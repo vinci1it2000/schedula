@@ -9,7 +9,6 @@
 
 
 from textwrap import dedent
-from tkinter import StringVar
 
 from wltp import model
 import wltp
@@ -19,9 +18,11 @@ try:
     from tkinter import ttk
 
     import tkinter as tk
+    from tkinter import StringVar
 except ImportError:
     import Tkinter as tk
     import ttk
+    from Tkinter import StringVar
 
 
 #__updated__ = "2014-10-10"
@@ -46,7 +47,7 @@ class TkWltp:
     A basic dektop UI to read and modify a WLTP model, run an experiment, and store the results.
     """
 
-    def __init__(self, root):
+    def __init__(self, root=None):
         """
         
         Layout::
@@ -64,6 +65,9 @@ class TkWltp:
             #|____________________________________________|#
             ################################################
         """
+        
+        if not root:
+            root = tk.Tk()
         root.title("TkWltp")
         self.master = master = tk.Frame(root)
         self.master.pack(fill=tk.BOTH, expand=1)
@@ -207,8 +211,9 @@ class TkWltp:
         print("Update %s!"%event)
         return False
 
-    
+    def mainloop(self):
+        self.master.mainloop()
+        
 if __name__ == '__main__':
-    root = tk.Tk()
-    app = TkWltp(root)
+    app = TkWltp()
     app.master.mainloop()
