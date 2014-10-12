@@ -9,6 +9,7 @@
 
 
 from textwrap import dedent
+import threading
 
 from wltp import model
 import wltp
@@ -37,11 +38,11 @@ class MPanel(object):
     TITLE   = "Title"
     DESC    = "Description"
     SCHEMA  = '_schema'
-    
-    COLUMNS = [MDLVAL, TITLE, DESC, SCHEMA]
-    
 
-        
+    COLUMNS = [MDLVAL, TITLE, DESC, SCHEMA]
+
+
+
 class TkWltp:
     """
     A basic dektop UI to read and modify a WLTP model, run an experiment, and store the results.
@@ -49,12 +50,12 @@ class TkWltp:
 
     def __init__(self, root=None):
         """
-        
+
         Layout::
-        
+
             ################################################
-            # ____________(model_paned)___________________ #   
-            #|                          || _(edit_frame)_ |#   
+            # ____________(model_paned)___________________ #
+            #|                          || _(edit_frame)_ |#
             #| *---model                ||| (node_title) ||#
             #| | +--tree                ||| (node_value) ||#
             #|   +--from             <slider>   ...      ||#
@@ -65,24 +66,24 @@ class TkWltp:
             #|____________________________________________|#
             ################################################
         """
-        
+
         if not root:
             root = tk.Tk()
         root.title("TkWltp")
         self.master = master = tk.Frame(root)
         self.master.pack(fill=tk.BOTH, expand=1)
-        
+
         ## MODEL PANEL ##########################
         model_paned = tk.PanedWindow(master, orient=tk.HORIZONTAL)
         model_paned.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
-        
+
         self.model_tree = self._build_tree_from_schema(model_paned, model._get_model_schema())
         model_paned.add(self.model_tree)
 
 
         edit_frame = tk.Frame(model_paned, **_sunken)
         model_paned.add(edit_frame)
-        
+
         tk.Label(edit_frame, text="Name:", anchor=tk.E).grid(row=0)
         tk.Label(edit_frame, text="Title:", anchor=tk.E).grid(row=1)
         tk.Label(edit_frame, text="Value:", anchor=tk.E).grid(row=2)
@@ -92,16 +93,16 @@ class TkWltp:
         self.node_name.grid(row=0, column=1, sticky=tk.W+tk.E)
         self.node_title = tk.Label(edit_frame)#, **_sunken)
         self.node_title.grid(row=1, column=1, sticky=tk.W+tk.E)
-        
+
         self.node_value = StringVar()
         #self.node_value.trace('w', lambda nm, idx, mode, var=sv: validate_float(var))
-        self.node_entry = tk.Entry(edit_frame, 
+        self.node_entry = tk.Entry(edit_frame,
                 textvariable=self.node_value, state=tk.DISABLED,
 #                validate=tk.ALL,
 #                validatecommand=self.do_validate,
         )
         self.node_entry.grid(row=2, column=1, sticky=tk.W+tk.E+tk.N+tk.S)
-        
+
         self.node_desc = tk.Label(edit_frame, justify=tk.LEFT, anchor=tk.NW, **_ridge)
         self.node_desc.grid(row=3, column=1, sticky=tk.W+tk.E+tk.N+tk.S)
 
@@ -109,39 +110,38 @@ class TkWltp:
         edit_frame.grid_rowconfigure(2, weight=1)
         edit_frame.grid_rowconfigure(3, weight=1)
         ## MODEL PANEL ##########################
-        
-        
+
+
         self.buttons_frame = tk.Frame(master)
         self.buttons_frame.pack(side=tk.BOTTOM, fill=tk.X)
 
         self.run_btn = tk.Button(self.buttons_frame, text="Run", fg="green", command=self.do_run,
             padx=_pad, pady=_pad)
         self.run_btn.pack(side=tk.RIGHT)
-        
-        self.reset_btn = tk.Button(self.buttons_frame, text="Reset", fg="red", command=self.do_quit,
+
+        self.reset_btn = tk.Button(self.buttons_frame, text="Reset", fg="red", command=self.do_reset,
             padx=_pad, pady=_pad)
         self.reset_btn.pack(side=tk.RIGHT)
-        
+
         about_btn = tk.Button(self.buttons_frame, text="About...", command=self.do_about,
             padx=_pad, pady=_pad)
         about_btn.pack(side=tk.RIGHT)
 
 
-
     def do_about(self):
         top = tk.Toplevel(self.master)
         top.title("About TkWltp")
-        
+
         txt = dedent("""\
             %s: %s
-            
+
             Version: %s (%s)
             Copyright: %s
             License: %s
         """ % (self.__class__.__name__, self.__doc__, wltp.__version__, wltp.__updated__, wltp.__copyright__, wltp.__license__, ))
         msg = tk.Message(top, text=txt, anchor=tk.NW, justify=tk.LEFT)
-        msg.pack(fill=tk.BOTH, expand=1)        
-        
+        msg.pack(fill=tk.BOTH, expand=1)
+
     def do_reset(self):
         print("Reset!")
 
@@ -151,12 +151,9 @@ class TkWltp:
     def do_run(self):
         print("RUN")
 
-    def do_quit(self):
-        self.master.quit
-
     def _build_tree_from_schema(self, root, schema):
 
-        
+
         tree = ttk.Treeview(root, columns=MPanel.COLUMNS, displaycolumns=(MPanel.TITLE, MPanel.MDLVAL))
         tree.column(MPanel.MDLVAL)
         tree.column(MPanel.TITLE, width=100)
@@ -173,13 +170,13 @@ class TkWltp:
         tree.insert("dir3", 3, text=" sub dir 3", values=("3A", 'ttttt [rpm]', " 3B", 7))
 
         tree.bind('<<TreeviewSelect>>', self.do_node_selected)
-        
+
         return tree
 
     def do_node_selected(self, event):
         tree = self.model_tree
         sel = tree.selection()
-        
+
         nsel = len(sel)
         mdlval = ''
         title = ''
@@ -196,24 +193,27 @@ class TkWltp:
                 mdlval, title, desc = values[0:3]
 
         self.node_title['text'] = title
-        self.node_value.set(mdlval) 
-        self.node_desc['text'] = desc 
+        self.node_value.set(mdlval)
+        self.node_desc['text'] = desc
         print("Selected %s, %s!"%(title, mdlval))
         print(title)
-        
+
     def do_update_node_value(self, event):
         tree = self.model_tree
         sel = tree.selection()
-        
+
         for node in sel:
-            tree        
+            tree
 
         print("Update %s!"%event)
         return False
 
     def mainloop(self):
-        self.master.mainloop()
-        
+        try:
+            self.master.mainloop()
+        finally:
+            self.master.destroy()
+
 if __name__ == '__main__':
     app = TkWltp()
     app.master.mainloop()
