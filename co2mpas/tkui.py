@@ -47,14 +47,14 @@ class MPanel(object):
 class LogPanel(tk.Frame):
     def __init__(self, master=None, cnf={}, **kw):
         tk.Frame.__init__(self, master=master, cnf=cnf, **kw)
-        
         self._log_text = log_text = tk.Text(self,
-                #state='readonly',
-#                validate=tk.ALL,
-#                validatecommand=self.do_validate,
+                state=tk.DISABLED,
+                font="Courier 8",
+                **_sunken
         )
         log_text.pack(fill=tk.BOTH, expand=1)
         
+        common_level_kws = dict(lmargin2='+2c')
         levels=[
                 [logging.CRITICAL, dict(background="red", foreground="yellow")],
                 [logging.ERROR, dict(foreground="red")],
@@ -64,13 +64,15 @@ class LogPanel(tk.Frame):
                 [logging.NOTSET, dict()],
         ]
         for level, kws in levels:
+            kws.update(common_level_kws)
             log_text.tag_config(logging.getLevelName(level), **kws)
             
             
         class MyHandler(logging.Handler):
             def __init__(self2, level=logging.DEBUG):  # @NoSelf
                 logging.Handler.__init__(self2, level=level)
-
+                self2.setFormatter(logging.Formatter('{name}:{levelname}:{message}', style='{'))
+                
             def emit(self2, record):  # @NoSelf
                 try:
                     msg = self2.format(record)
@@ -87,7 +89,9 @@ class LogPanel(tk.Frame):
         
     def _write_txt(self, txt, level_name):
         tags = (level_name, )
-        self._log_text.insert(tk.INSERT, '%s\n'%txt, *tags)
+        self._log_text['state'] = tk.NORMAL
+        self._log_text.insert(tk.END, '%s\n'%txt, *tags)
+        self._log_text['state'] = tk.DISABLED
 
     def set_level(self, level):
         self._handler.setLevel(level)
@@ -205,14 +209,14 @@ class TkWltp:
         msg.pack(fill=tk.BOTH, expand=1)
 
     def do_reset(self):
-        logging.critical('dfdsfdsfs')
+        logging.critical('dfdsfdsfs ds asdfaswe qw fasd sdfasdfa fweef fasd fasdf weq fwef  ytukio;lsdra b ,io pu7 t54qw asd fjmh gvsad v b thw erf ')
         print("Reset!")
 
     def do_validate(self, event):
         print("Validate!")
 
     def do_run(self):
-        logging.info('dfdsfdsfs')
+        logging.info('dfdsfdsfs\n634\ntyutty')
         logging.debug('dfdsfdsfs')
 
     def _build_tree_from_schema(self, root, schema):
