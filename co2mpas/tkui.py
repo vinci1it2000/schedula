@@ -10,7 +10,6 @@
 from __future__ import division, print_function, unicode_literals
 
 import logging 
-from queue import Queue
 from textwrap import dedent
 import threading
 
@@ -23,13 +22,16 @@ try:
 
     import tkinter as tk
     from tkinter import StringVar
+    from queue import Queue
 except ImportError:
     import Tkinter as tk
     import ttk
     from Tkinter import StringVar
+    from Queue import Queue
 
 
-#__updated__ = "2014-10-10"
+
+log = logging.getLogger(__name__)
 
 _bw = 2
 _pad = 2
@@ -44,39 +46,69 @@ class MPanel(object):
 
     COLUMNS = [MDLVAL, TITLE, DESC, SCHEMA]
 
+    
 class LogPanel(tk.Frame):
-    def __init__(self, master=None, cnf={}, **kw):
+    ## TODO: Not used yet 
+    TAG_METADATA = 'meta'
+    
+    FORMATTER_SPEC = [
+        dict(fmt='{asctime}:{name}:{levelname}:{message}\n', datefmt=None, style='{'), 
+        dict(fmt='{asctime}:{name}:{levelname}:', datefmt=None, style='{')
+    ]
+    
+    def __init__(self, master=None, cnf={}, formatter_spec=None, FORMAT_METADATA=None, **kw):
+        """
+        :param dict formatter_spec: If missing, defaults to :attr:`LogPanel.FORMATTER_SPEC`
+        """
         tk.Frame.__init__(self, master=master, cnf=cnf, **kw)
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        
         self._log_text = log_text = tk.Text(self,
                 state=tk.DISABLED,
                 font="Courier 8",
                 **_sunken
         )
-        log_text.pack(fill=tk.BOTH, expand=1)
+        log_text.grid(row=0, column=0, sticky=tk.N+tk.S+tk.E+tk.W)
         
-        common_level_kws = dict(lmargin2='+2c')
-        levels=[
+        v_scrollbar = tk.Scrollbar(self)
+        v_scrollbar.grid(row=0, column=1, sticky=tk.N+tk.S)        
+        h_scrollbar = tk.Scrollbar(self, orient=tk.HORIZONTAL)
+        h_scrollbar.grid(row=1, column=0, sticky=tk.E+tk.W)
+        
+        
+        ## Bind scrollbars.
+        #
+        self._log_text.config(yscrollcommand=v_scrollbar.set)
+        v_scrollbar.config(command=self._log_text.yview)
+        self._log_text.config(xscrollcommand=h_scrollbar.set)
+        h_scrollbar.config(command=self._log_text.xview)
+        
+        common_level_kws = dict(lmargin2='+2c', wrap=tk.NONE)
+        tags=[
                 [logging.CRITICAL, dict(background="red", foreground="yellow")],
                 [logging.ERROR, dict(foreground="red")],
                 [logging.WARNING, dict(foreground="magenta")],
-                [logging.INFO, dict()],
+                [logging.INFO, dict(foreground="blue")],
                 [logging.DEBUG, dict(foreground="grey")],
                 [logging.NOTSET, dict()],
+                
+                [self.TAG_METADATA, dict(font="Courier 6")],
         ]
-        for level, kws in levels:
+        for tag, kws in tags:
             kws.update(common_level_kws)
-            log_text.tag_config(logging.getLevelName(level), **kws)
+            if isinstance(tag, int):
+                tag = logging.getLevelName(tag)
+            log_text.tag_config(tag, **kws)
             
             
         class MyHandler(logging.Handler):
             def __init__(self2, level=logging.DEBUG):  # @NoSelf
                 logging.Handler.__init__(self2, level=level)
-                self2.setFormatter(logging.Formatter('{name}:{levelname}:{message}', style='{'))
                 
             def emit(self2, record):  # @NoSelf
                 try:
-                    msg = self2.format(record)
-                    self.after_idle(lambda: self._write_txt(msg, record.levelname))
+                    self.after_idle(lambda: self._write_log_record(record))
                 except Exception:
                     self2.handleError(record)
                 
@@ -84,15 +116,38 @@ class LogPanel(tk.Frame):
         root_logger = logging.getLogger()
         root_logger.addHandler(self._handler)
 
+        if not formatter_spec:
+            formatter_spec = self.FORMATTER_SPEC
+        self.formatter = logging.Formatter(**formatter_spec[0])
+        self.metadata_formatter = logging.Formatter(**formatter_spec[1])
         self.set_level(logging.INFO)
         
         
-    def _write_txt(self, txt, level_name):
-        tags = (level_name, )
+    def _write_log_record(self, record):
+        txt = self.formatter.format(record)
+        txt_len = len(txt)
+        metadata_len = len(self.metadata_formatter.format(record))
+            
+        was_bottom = (self._log_text.yview()[1] == 1)
+        
         self._log_text['state'] = tk.NORMAL
-        self._log_text.insert(tk.END, '%s\n'%txt, *tags)
+        self._log_text.insert(tk.END, txt, record.levelname)
+        self._log_text.tag_add(self.TAG_METADATA, 
+            '%s-%ic' %(tk.END, txt_len),
+            '%s-%ic' %(tk.END, txt_len - metadata_len)
+        )
         self._log_text['state'] = tk.DISABLED
-
+        
+        self.scroll_to_bottom_if_necessary(record.levelno, was_bottom)
+        
+        
+    def scroll_to_bottom_if_necessary(self, last_levelno, was_bottom):
+        ## Skip scrolling if
+        #    log serious or log already at the bottom.
+        #
+        if last_levelno >= logging.ERROR or was_bottom:
+            self._log_text.see(tk.END)
+        
     def set_level(self, level):
         self._handler.setLevel(level)
         logging.getLogger().setLevel(level)
@@ -109,21 +164,19 @@ class TkWltp:
 
         Layout::
 
-            ################################################
-            # ____________(model_paned)___________________ #
-            #|                          || _(edit_frame)_ |#
-            #| *---model                ||| (node_title) ||#
-            #| | +--tree                ||| (node_value) ||#
-            #|   +--from             <slider>   ...      ||#
-            #|     +--schema            |||______________||#
-            #|__________________________|||_______________|#
-            # _____________(buttons_frame)________________ #
-            #|          (about_btn) (reset_btn) (run_btn) |#
-            #|____________________________________________|#
-            # __________________(log_frame)_______________ #
-            ~|                                            |#
-            #|____________________________________________|#
-            ################################################
+            ############################################################
+            #.-------------(model_paned)------------------------------.#
+            #: _________________  : _________(edit_frame)____________ :#
+            #:| *---model       |:| [node_title]    _(action_frame)_ |:#
+            #:| | +--tree       |:| [node_value]   |   [run_btn]    ||:#
+            #:|   +--from       |:|     ...        |   [rest_btn]   ||:#
+            #:|     +--schema <slider>             |________________||:#
+            #:|_________________|:|__________________________________|:#
+            #'--------------------------------------------------------'#
+            # __________________(log_frame)___________________________ #
+            #|                                                        |#
+            #|________________________________________________________|#
+            ############################################################
         """
         
         if not root:
@@ -144,6 +197,7 @@ class TkWltp:
         model_paned.add(self.model_tree)
 
 
+        ## EDIT FRAME ##########################
         edit_frame = tk.Frame(model_paned, **_sunken)
         model_paned.add(edit_frame)
 
@@ -172,26 +226,29 @@ class TkWltp:
         edit_frame.grid_columnconfigure(1, weight=1)
         edit_frame.grid_rowconfigure(2, weight=1)
         edit_frame.grid_rowconfigure(3, weight=1)
-        ## MODEL PANEL ##########################
 
 
-        self.log_panel = LogPanel(master)
-        self.log_panel.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=1)
-
-        self.buttons_frame = tk.Frame(master)
-        self.buttons_frame.pack(side=tk.BOTTOM, fill=tk.X)
+        self.buttons_frame = tk.Frame(edit_frame)
+        self.buttons_frame.grid(row=0, column=3, rowspan=4, sticky=tk.W+tk.S, padx=4)
 
         self.run_btn = tk.Button(self.buttons_frame, text="Run", fg="green", command=self.do_run,
             padx=_pad, pady=_pad)
-        self.run_btn.pack(side=tk.RIGHT)
+        self.run_btn.pack(side=tk.TOP, fill=tk.X)
 
         self.reset_btn = tk.Button(self.buttons_frame, text="Reset", fg="red", command=self.do_reset,
             padx=_pad, pady=_pad)
-        self.reset_btn.pack(side=tk.RIGHT)
+        self.reset_btn.pack(side=tk.TOP, fill=tk.X)
 
         about_btn = tk.Button(self.buttons_frame, text="About...", command=self.do_about,
             padx=_pad, pady=_pad)
-        about_btn.pack(side=tk.RIGHT)
+        about_btn.pack(side=tk.TOP, fill=tk.X)
+        ## EDIT FRAME ##########################
+        
+        ## MODEL PANEL ##########################
+        
+        self.log_panel = LogPanel(master)
+        self.log_panel.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=1)
+
 
 
     def do_about(self):
@@ -200,16 +257,18 @@ class TkWltp:
 
         txt = dedent("""\
             %s: %s
-
+            
             Version: %s (%s)
             Copyright: %s
             License: %s
-        """ % (self.__class__.__name__, self.__doc__, wltp.__version__, wltp.__updated__, wltp.__copyright__, wltp.__license__, ))
+            """ % (self.__class__.__name__, self.__doc__, wltp.__version__, wltp.__updated__, wltp.__copyright__, wltp.__license__, ))
+        log.info(txt)
+        print(txt)
         msg = tk.Message(top, text=txt, anchor=tk.NW, justify=tk.LEFT)
         msg.pack(fill=tk.BOTH, expand=1)
 
     def do_reset(self):
-        logging.critical('dfdsfdsfs ds asdfaswe qw fasd sdfasdfa fweef fasd fasdf weq fwef  ytukio;lsdra b ,io pu7 t54qw asd fjmh gvsad v b thw erf ')
+        logging.critical('dfdsfdsfs ds asdfaswe qw fasd sdfasdfa fweef fasd fasdf weq fwef  ytukio;lsdra b ,io pu7 t54qw asd fjmh gvsad v b \nthw erf ')
         print("Reset!")
 
     def do_validate(self, event):
@@ -281,7 +340,7 @@ class TkWltp:
         
     def pump_logging(self):
         log_lines = ''
-        while self._logging_queue.not_empty:
+        while not self._logging_queue.empty():
             log_lines = '%s\n%s' % (log_lines, self._logging_queue.get_nowait())
         if log_lines:
             self.log_value.set('%s\n%s' % (self.log_value, log_lines))
@@ -294,11 +353,11 @@ class TkWltp:
                 self.master.mainloop()
             finally:
                 self.master.destroy()
-        t = threading.Thread(start_mailoop)
+        t = threading.Thread(target=start_mailoop)
         t.run()
         
 
     
 if __name__ == '__main__':
     app = TkWltp()
-    app.master.mainloop()
+    app.mainloop()
