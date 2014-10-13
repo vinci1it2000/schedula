@@ -7,7 +7,10 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 # from wltp import model
 
+from __future__ import division, print_function, unicode_literals
 
+import logging 
+from queue import Queue
 from textwrap import dedent
 import threading
 
@@ -41,11 +44,60 @@ class MPanel(object):
 
     COLUMNS = [MDLVAL, TITLE, DESC, SCHEMA]
 
+class LogPanel(tk.Frame):
+    def __init__(self, master=None, cnf={}, **kw):
+        tk.Frame.__init__(self, master=master, cnf=cnf, **kw)
+        
+        self._log_text = log_text = tk.Text(self,
+                #state='readonly',
+#                validate=tk.ALL,
+#                validatecommand=self.do_validate,
+        )
+        log_text.pack(fill=tk.BOTH, expand=1)
+        
+        levels=[
+                [logging.CRITICAL, dict(background="red", foreground="yellow")],
+                [logging.ERROR, dict(foreground="red")],
+                [logging.WARNING, dict(foreground="magenta")],
+                [logging.INFO, dict()],
+                [logging.DEBUG, dict(foreground="grey")],
+                [logging.NOTSET, dict()],
+        ]
+        for level, kws in levels:
+            log_text.tag_config(logging.getLevelName(level), **kws)
+            
+            
+        class MyHandler(logging.Handler):
+            def __init__(self2, level=logging.DEBUG):  # @NoSelf
+                logging.Handler.__init__(self2, level=level)
 
+            def emit(self2, record):  # @NoSelf
+                try:
+                    msg = self2.format(record)
+                    self.after_idle(lambda: self._write_txt(msg, record.levelname))
+                except Exception:
+                    self2.handleError(record)
+                
+        self._handler = MyHandler()
+        root_logger = logging.getLogger()
+        root_logger.addHandler(self._handler)
 
+        self.set_level(logging.INFO)
+        
+        
+    def _write_txt(self, txt, level_name):
+        tags = (level_name, )
+        self._log_text.insert(tk.INSERT, '%s\n'%txt, *tags)
+
+    def set_level(self, level):
+        self._handler.setLevel(level)
+        logging.getLogger().setLevel(level)
+
+        
+        
 class TkWltp:
     """
-    A basic dektop UI to read and modify a WLTP model, run an experiment, and store the results.
+    A basic desktop UI to read and modify a WLTP model, run an experiment, and store the results.
     """
 
     def __init__(self, root=None):
@@ -64,11 +116,18 @@ class TkWltp:
             # _____________(buttons_frame)________________ #
             #|          (about_btn) (reset_btn) (run_btn) |#
             #|____________________________________________|#
+            # __________________(log_frame)_______________ #
+            ~|                                            |#
+            #|____________________________________________|#
             ################################################
         """
-
+        
         if not root:
             root = tk.Tk()
+            
+        self._task_poll_delay = 70
+        self._logging_queue = Queue()
+
         root.title("TkWltp")
         self.master = master = tk.Frame(root)
         self.master.pack(fill=tk.BOTH, expand=1)
@@ -97,7 +156,7 @@ class TkWltp:
         self.node_value = StringVar()
         #self.node_value.trace('w', lambda nm, idx, mode, var=sv: validate_float(var))
         self.node_entry = tk.Entry(edit_frame,
-                textvariable=self.node_value, state=tk.DISABLED,
+                textvariable=self.node_value, #state=tk.DISABLED,
 #                validate=tk.ALL,
 #                validatecommand=self.do_validate,
         )
@@ -111,6 +170,9 @@ class TkWltp:
         edit_frame.grid_rowconfigure(3, weight=1)
         ## MODEL PANEL ##########################
 
+
+        self.log_panel = LogPanel(master)
+        self.log_panel.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=1)
 
         self.buttons_frame = tk.Frame(master)
         self.buttons_frame.pack(side=tk.BOTTOM, fill=tk.X)
@@ -143,13 +205,15 @@ class TkWltp:
         msg.pack(fill=tk.BOTH, expand=1)
 
     def do_reset(self):
+        logging.critical('dfdsfdsfs')
         print("Reset!")
 
     def do_validate(self, event):
         print("Validate!")
 
     def do_run(self):
-        print("RUN")
+        logging.info('dfdsfdsfs')
+        logging.debug('dfdsfdsfs')
 
     def _build_tree_from_schema(self, root, schema):
 
@@ -208,12 +272,29 @@ class TkWltp:
         print("Update %s!"%event)
         return False
 
+    def arm_logging_pump(self):
+        self.master.after(self._task_poll_delay, self.pump_logging)
+        
+    def pump_logging(self):
+        log_lines = ''
+        while self._logging_queue.not_empty:
+            log_lines = '%s\n%s' % (log_lines, self._logging_queue.get_nowait())
+        if log_lines:
+            self.log_value.set('%s\n%s' % (self.log_value, log_lines))
+        self.arm_logging_pump()
+        
     def mainloop(self):
-        try:
-            self.master.mainloop()
-        finally:
-            self.master.destroy()
+        self.arm_logging_pump()
+        def start_mailoop():
+            try:
+                self.master.mainloop()
+            finally:
+                self.master.destroy()
+        t = threading.Thread(start_mailoop)
+        t.run()
+        
 
+    
 if __name__ == '__main__':
     app = TkWltp()
     app.master.mainloop()
