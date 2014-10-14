@@ -6,29 +6,24 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 # from wltp import model
-
-from __future__ import division, print_function, unicode_literals
+"""
+Not Python-2 compatible!
+"""
 
 from collections import Counter
 import logging
 import sys
 from textwrap import dedent
-import threading
+from tkinter import StringVar
+from tkinter import ttk
 import traceback
 from wltp import model
 import wltp
 
+from PIL import Image, ImageTk
 
-try:
-    from tkinter import ttk
-
-    import tkinter as tk
-    from tkinter import StringVar
-except ImportError:
-    import Tkinter as tk
-    import ttk
-    from Tkinter import StringVar
-
+import pkg_resources as pkg
+import tkinter as tk
 
 
 log = logging.getLogger(__name__)
@@ -106,6 +101,7 @@ class LogPanel(tk.LabelFrame):
             if isinstance(tag, int):
                 tag = logging.getLevelName(tag)
             _log_text.tag_config(tag, **kws)
+        _log_text.tag_raise(tk.SEL)
 
         self._log_counters = Counter()
         self._update_title()
@@ -116,7 +112,8 @@ class LogPanel(tk.LabelFrame):
         
         self._intercept_logging(logger)
         self._intercept_tinker_exceptions()
-
+        self.bind('<Destroy>', self._stop_intercepting_exceptions)
+        
     def _setup_logging_components(self, formatter_specs, log_threshold):
         class MyHandler(logging.Handler):
             def __init__(self2, **kws):  # @NoSelf
@@ -158,13 +155,9 @@ class LogPanel(tk.LabelFrame):
         self._original_tk_ex_handler = tk.Tk.report_callback_exception
         tk.Tk.report_callback_exception = show_error
 
-    def _stop_intercepting_exceptions(self):
+    def _stop_intercepting_exceptions(self, event):
         root_logger = logging.getLogger()
         root_logger.removeHandler(self._handler)
-
-    def destroy(self):
-        self._stop_intercepting_exceptions()
-        tk.Frame.destroy(self)
 
     def _setup_popup(self, target):
         levels_map = LogPanel.LEVELS_MAP
@@ -215,7 +208,6 @@ class LogPanel(tk.LabelFrame):
         return self._handler.level
     @log_threshold.setter
     def log_threshold(self, level):
-        logging.getLogger().setLevel(level)
         self._handler.setLevel(level)
         self.threshold_var.set(level)
 
@@ -257,14 +249,14 @@ class LogPanel(tk.LabelFrame):
             if record.levelno >= logging.ERROR or was_bottom:
                 self._log_text.see(tk.END)
             
-            self._log_counters.update(['Totals', record.levelname])
+            self._log_counters.update(['Total', record.levelname])
             self._update_title()
         except Exception:
             ## Must not raise any errors, or infinite recursion here.
             print("!!!!!!     Unexpected exception while logging exceptions(!): %s" % traceback.format_exc())
 
 
-class _ModelPanel(tk.PanedWindow):
+class _ModelPanel(tk.LabelFrame):
     MDLVAL = "Value"
     TITLE = "Title"
     DESC = "Description"
@@ -274,25 +266,25 @@ class _ModelPanel(tk.PanedWindow):
 
     COLUMNS = [MDLVAL, TITLE, DESC, SCHEMA]
 
-    def __init__(self, parent, wltp_app, *args, **kwargs):
-        tk.PanedWindow.__init__(self, parent, *args, **kwargs)
-        self.configure(orient=tk.HORIZONTAL)
+    def __init__(self, parent, *args, **kwargs):
+        tk.LabelFrame.__init__(self, parent, *args, **kwargs)
+        self['text']='Model path: TODO@@@'
+        
+        slider = tk.PanedWindow(self, orient=tk.HORIZONTAL)
+        slider.pack(fill=tk.BOTH, expand=1)
 
-        self.model_tree = self._build_tree(self)
-        self.add(self.model_tree)
+        self.model_tree = self._build_tree(slider)
+        slider.add(self.model_tree)
 
 
         ## EDIT FRAME ##########################
-        edit_frame = tk.LabelFrame(self, text='Modify model node', **_sunken)
-        self.add(edit_frame)
+        edit_frame = tk.Frame(slider, **_sunken)
+        slider.add(edit_frame)
 
-        tk.Label(edit_frame, text="Node:", anchor=tk.E).grid(row=0)
         tk.Label(edit_frame, text="Title:", anchor=tk.E).grid(row=1)
         tk.Label(edit_frame, text="Value:", anchor=tk.E).grid(row=2)
         tk.Label(edit_frame, text="Desc:", anchor=tk.E).grid(row=3)
 
-        self.node_name = tk.Label(edit_frame)#,  **_sunken)
-        self.node_name.grid(row=0, column=1, sticky=tk.W+tk.E)
         self.node_title = tk.Label(edit_frame)#,  **_sunken)
         self.node_title.grid(row=1, column=1, sticky=tk.W+tk.E)
 
@@ -311,22 +303,6 @@ class _ModelPanel(tk.PanedWindow):
         edit_frame.grid_columnconfigure(1, weight=1)
         edit_frame.grid_rowconfigure(2, weight=21)
         edit_frame.grid_rowconfigure(3, weight=13)
-
-
-        self.buttons_frame = tk.Frame(edit_frame)
-        self.buttons_frame.grid(row=0, column=3, rowspan=4, sticky=tk.W+tk.S, padx=4)
-
-        self.run_btn = tk.Button(self.buttons_frame, text="Run", fg="green", command=wltp_app._do_run,
-            padx=_pad, pady=_pad)
-        self.run_btn.pack(side=tk.TOP, fill=tk.X)
-
-        self.reset_btn = tk.Button(self.buttons_frame, text="Reset", fg="red", command=wltp_app._do_reset,
-            padx=_pad, pady=_pad)
-        self.reset_btn.pack(side=tk.TOP, fill=tk.X)
-
-        about_btn = tk.Button(self.buttons_frame, text="About...", command=wltp_app._do_about,
-            padx=_pad, pady=_pad)
-        about_btn.pack(side=tk.TOP, fill=tk.X)
         ## EDIT FRAME ##########################
 
 
@@ -392,7 +368,7 @@ class _ModelPanel(tk.PanedWindow):
 
 class TkWltp:
     """
-    A basic desktop UI to read and modify a WLTP model,  run an experiment,  and store the results.
+    A basic desktop UI to read and modify a WLTP model, run experiment, and store its results.
     """
 
     def __init__(self, root=None):
@@ -418,18 +394,47 @@ class TkWltp:
         if not root:
             root = tk.Tk()
         self.root = root
+        
+        root.title("TkWltp-%s" % wltp.__version__)
 
-        self._task_poll_delay = 70
-
-        root.title("TkWltp")
+        ## Menubar
+        #
+        menubar = tk.Menu(root)
+        menubar.add_command(label="About TkWltp", command=self._do_about,)
+        root['menu'] = menubar
+        
+        
         self.master = master = tk.PanedWindow(root, orient=tk.VERTICAL)
         self.master.pack(fill=tk.BOTH, expand=1)
 
-        self.model_panel = _ModelPanel(master, self)
-        master.add(self.model_panel)
+        experiment_frame = tk.Frame()
+        master.add(experiment_frame)
 
+        self.model_panel = _ModelPanel(experiment_frame)
+        self.model_panel.pack(side=tk.LEFT,fill=tk.BOTH, expand=1)
+        
+
+        
         self.log_panel = LogPanel(master)
         master.add(self.log_panel)
+
+
+
+        self.buttons_frame = tk.Frame(experiment_frame)
+        self.buttons_frame.pack(side=tk.RIGHT,fill=tk.Y)
+
+        about_btn = tk.Button(self.buttons_frame, text="Store...", command=lambda:log.warning('Not Implemented!'),
+            padx=_pad, pady=_pad)
+        about_btn.pack(side=tk.BOTTOM, fill=tk.X)
+
+        self.reset_btn = tk.Button(self.buttons_frame, text="Reset", fg="red", command=self._do_reset,
+            padx=_pad, pady=_pad)
+        self.reset_btn.pack(side=tk.BOTTOM, fill=tk.X)
+
+        self.run_btn = tk.Button(self.buttons_frame, text="Run", fg="green", command=self._do_run,
+            padx=_pad, pady=_pad)
+        self.run_btn.pack(side=tk.BOTTOM, fill=tk.X)
+
 
         self.model_panel.bind_model(model._get_model_base(), model._get_model_schema())
 
@@ -438,20 +443,30 @@ class TkWltp:
         top = tk.Toplevel(self.master)
         top.title("About TkWltp")
 
-        txt = dedent("""\
-            %s: %s
-
+        txt1 = '%s\n\n'%self.__doc__.strip()
+        txt2 = dedent("""\n
+            
             Version: %s (%s)
             Copyright: %s
             License: %s
             Python: %s
-            """%(self.__class__.__name__, self.__doc__,
-                wltp.__version__, wltp.__updated__, wltp.__copyright__, wltp.__license__,
+            """ %(wltp.__version__, wltp.__updated__, wltp.__copyright__, wltp.__license__,
                 sys.version))
+        txt = '%s\n\n%s' % (txt1, txt2)
         log.info(txt)
         print(txt)
-        msg = tk.Message(top, text=txt, anchor=tk.NW, justify=tk.LEFT)
+
+        msg = tk.Text(top, wrap=tk.NONE)
         msg.pack(fill=tk.BOTH, expand=1)
+        
+        msg.insert(tk.INSERT, txt1)
+        with pkg.resource_stream('wltp', '../docs/wltc_class3b.png') as fd: #@UndefinedVariable
+            img = Image.open(fd)
+            msg.photo = ImageTk.PhotoImage(img)  # Avoid GC.
+            msg.image_create(tk.INSERT, image=msg.photo)
+        msg.insert(tk.INSERT, txt2)
+
+        msg.configure(state= tk.DISABLED, bg='LightBlue')
 
     def _do_reset(self):
         logging.error('dfdsfdsfs ds asdfaswe qw fasd sdfasdfa fweef fasd fasdf weq fwef  ytukio;lsdra b , io pu7 t54qw asd fjmh gvsad v b \nthw erf ')
@@ -478,6 +493,7 @@ class TkWltp:
 
 
 if __name__ == '__main__':
+    logging.getLogger().setLevel(logging.DEBUG)
     app = TkWltp()
     app.mainloop()
 
