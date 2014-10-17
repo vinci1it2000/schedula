@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env/python
 #-*- coding: utf-8 -*-
 #
 # Copyright 2013-2014 European Commission (JRC);
@@ -10,20 +10,20 @@
 Not Python-2 compatible!
 """
 
-from collections import Counter
+from collections import Counter, OrderedDict
 import logging
 import sys
 from textwrap import dedent
 from tkinter import StringVar
 from tkinter import ttk
 import traceback
-from wltp import model
-import wltp
 
 from PIL import Image, ImageTk
 
 import pkg_resources as pkg
 import tkinter as tk
+from wltp import model
+import wltp
 
 
 log = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ _bw = 2
 _pad = 2
 _sunken = dict(relief=tk.SUNKEN, padx=_pad, pady=_pad, borderwidth=_bw)
 _ridge = dict(relief=tk.RIDGE, padx=_pad, pady=_pad, borderwidth=_bw)
-
+_courier_font = "courier 8"
 
 
 class LogPanel(tk.LabelFrame):
@@ -45,17 +45,17 @@ class LogPanel(tk.LabelFrame):
     TAG_LOGS     = 'logs'
 
     FORMATTER_SPECS = [
-        dict(fmt='%(asctime)s:%(name)s:%(levelname)s:%(message)s\n', datefmt=None),
+        dict(fmt='%(asctime)s:%(name)s:%(levelname)s:%(message)s', datefmt=None),
         dict(fmt='%(asctime)s:%(name)s:%(levelname)s:', datefmt=None)
     ]
 
     initted = False
-    def __init__(self, master=None, cnf={}, log_threshold=logging.INFO, logger='', formatter_specs=None, **kw):
+    def __init__(self, master=None, cnf={}, log_threshold=logging.INFO, logger_name='', formatter_specs=None, **kw):
         """
         :param dict formatter_specs: A 2-element array of Formatter-args (note that python-2 has no `style` kw), 
                                     where the 2nd should print only the Metadata. 
                                     If missing, defaults to :attr:`LogPanel.FORMATTER_SPECS`
-        :param logger: What logger to intercept to. If missing, defaults to root('') and DOES NOT change its threshold.
+        :param logger_name: What logger to intercept to. If missing, defaults to root('') and DOES NOT change its threshold.
         """
         if LogPanel.initted:
             raise RuntimeError("I said instantiate me only ONCE!!!")
@@ -110,7 +110,7 @@ class LogPanel(tk.LabelFrame):
         
         self._setup_popup(self._log_text)
         
-        self._intercept_logging(logger)
+        self._intercept_logging(logger_name)
         self._intercept_tinker_exceptions()
         self.bind('<Destroy>', self._stop_intercepting_exceptions)
         
@@ -136,24 +136,18 @@ class LogPanel(tk.LabelFrame):
         self.log_threshold = log_threshold
 
 
-    def _intercept_logging(self, logger):
-        def show_error(tk_self,*args):
-            ## Must not raise any errors, or infinite recursion here.
-            log.critical('TkUI failed!', exc_info=True)
-
-        self._original_tk_ex_handler = tk.Tk.report_callback_exception
-        tk.Tk.report_callback_exception = show_error
-
-        root_logger = logging.getLogger(logger)
-        root_logger.addHandler(self._handler)
+    def _intercept_logging(self, logger_name):
+        logger = logging.getLogger(logger_name)
+        logger.addHandler(self._handler)
 
     def _intercept_tinker_exceptions(self):
-        def show_error(tk_self,*args):
+        def my_ex_interceptor(*args):
             ## Must not raise any errors, or infinite recursion here.
-            log.critical('TkUI failed!', exc_info=True)
-
+            log.critical('Unhandled TkUI exception:', exc_info=True)
+            self._original_tk_ex_handler(*args)
+            
         self._original_tk_ex_handler = tk.Tk.report_callback_exception
-        tk.Tk.report_callback_exception = show_error
+        tk.Tk.report_callback_exception = my_ex_interceptor
 
     def _stop_intercepting_exceptions(self, event):
         root_logger = logging.getLogger()
@@ -228,26 +222,27 @@ class LogPanel(tk.LabelFrame):
     
     def _write_log_record(self, record):
         try:
-            was_bottom = (self._log_text.yview()[1] == 1) ## Test FAILS on Python-2! Its ok.
+            log_text = self._log_text
+            was_bottom = (log_text.yview()[1] == 1) ## Test FAILS on Python-2! Its ok.
             
             txt = self.formatter.format(record)
             txt_len = len(txt)+1 #+1 ??
             metadata_len = len(self.metadata_formatter.formatMessage(record))
-            log_start = '%s-%ic'%(tk.END, txt_len)
             meta_end = '%s-%ic'%(tk.END, txt_len-metadata_len)
 
-            self._log_text['state'] = tk.NORMAL
-            self._log_text.insert(tk.END, txt, LogPanel.TAG_LOGS)#, LogPanel.TAG_LOGS)
-            self._log_text.tag_add(record.levelname, log_start, tk.END)
-            self._log_text.tag_add(LogPanel.TAG_META, log_start, meta_end)
-            self._log_text['state'] = tk.DISABLED
+            log_text['state'] = tk.NORMAL
+            self._log_text.mark_set('LE', tk.END)
+            log_text.insert(tk.END, txt, LogPanel.TAG_LOGS)#, LogPanel.TAG_LOGS)
+            log_text.tag_add(record.levelname, log_start, tk.END)
+            log_text.tag_add(LogPanel.TAG_META, log_start, meta_end)
+            log_text['state'] = tk.DISABLED
 
 
             ## Scrolling to the bottom if
             #    log serious or log already at the bottom.
             #
             if record.levelno >= logging.ERROR or was_bottom:
-                self._log_text.see(tk.END)
+                log_text.see(tk.END)
             
             self._log_counters.update(['Total', record.levelname])
             self._update_title()
@@ -256,13 +251,32 @@ class LogPanel(tk.LabelFrame):
             print("!!!!!!     Unexpected exception while logging exceptions(!): %s" % traceback.format_exc())
 
 
+class PythonVar(tk.StringVar):
+    """Value holder for python-code variables."""
+    def get(self):
+        code = tk.StringVar.get(self)
+        return eval(code)
+
+
+
 class _ModelPanel(tk.LabelFrame):
     MDLVAL = "Value"
     TITLE = "Title"
     DESC = "Description"
     SCHEMA = '_schema'
 
-    SCHEMA = '_schema'
+    TAG_ERROR   = 'error'
+    TAG_MISSING = 'miss'
+    TAG_EXTRA   = 'extra'
+    
+    NODE_TYPES = OrderedDict([
+        ('str',     dict(var=tk.StringVar,   btn_kws={})),
+        ('int',     dict(var=tk.IntVar,      btn_kws={})),
+        ('float',   dict(var=tk.DoubleVar,   btn_kws={})),
+        ('bool',    dict(var=tk.BooleanVar,  btn_kws={})),
+        ('<null>',  dict(var=None,           btn_kws={'fg': 'blue'})),
+        ('<python>', dict(var=PythonVar,     btn_kws={'fg': 'blue'})),
+    ])
 
     COLUMNS = [MDLVAL, TITLE, DESC, SCHEMA]
 
@@ -276,35 +290,43 @@ class _ModelPanel(tk.LabelFrame):
         self.model_tree = self._build_tree(slider)
         slider.add(self.model_tree)
 
-
         ## EDIT FRAME ##########################
+#        node_slider = tk.PanedWindow(self, orient=tk.VERTICAL, **_sunken)
         edit_frame = tk.Frame(slider, **_sunken)
         slider.add(edit_frame)
-
-        tk.Label(edit_frame, text="Title:", anchor=tk.E).grid(row=1)
-        tk.Label(edit_frame, text="Value:", anchor=tk.E).grid(row=2)
-        tk.Label(edit_frame, text="Desc:", anchor=tk.E).grid(row=3)
+        edit_frame.grid_columnconfigure(0, weight=1)
+        edit_frame.grid_rowconfigure(1, weight=13)
+        edit_frame.grid_rowconfigure(4, weight=21)
 
         self.node_title = tk.Label(edit_frame)#,  **_sunken)
-        self.node_title.grid(row=1, column=1, sticky=tk.W+tk.E)
+        self.node_title.grid(row=0, column=0, sticky=tk.W+tk.E)
 
-        self.node_value = StringVar()
-        #self.node_value.trace('w',  lambda nm,  idx,  mode,  var=sv: validate_float(var))
-        self.node_entry = tk.Entry(edit_frame,
-                textvariable=self.node_value, state=tk.DISABLED,
+        self.node_desc = tk.Label(edit_frame, justify=tk.LEFT, anchor=tk.NW, **_ridge)
+        self.node_desc.grid(row=1, column=0, sticky=tk.W+tk.E+tk.N+tk.S)
+
+        ## Types
+        #
+        menu1 = tk.Frame(edit_frame)  
+        menu1.grid(row=2, column=0, sticky=tk.W+tk.E)
+        
+        menu2 = tk.Frame(edit_frame)        
+        menu2.grid(row=3, column=0, sticky=tk.W)
+#        menu2 = menu1        
+        tk.Button(menu2, text='Delete...', fg='red', command=None).pack(side=tk.LEFT)
+        tk.Button(menu2, text='Move...', command=None).pack(side=tk.LEFT)
+        tk.Button(menu2, text='Clone...', command=None).pack(side=tk.LEFT)
+        tk.Button(menu2, text='Load...', fg='blue', command=None).pack(side=tk.LEFT)
+        
+        #self.node_var.trace('w',  lambda nm,  idx,  mode,  var=sv: validate_float(var))
+        self._node_entry = tk.Entry(edit_frame,
+                state=tk.DISABLED,
 #                validate=tk.ALL,
 #                validatecommand=self._do_validate,
         )
-        self.node_entry.grid(row=2, column=1, sticky=tk.W+tk.E+tk.N+tk.S)
-
-        self.node_desc = tk.Label(edit_frame, justify=tk.LEFT, anchor=tk.NW, **_ridge)
-        self.node_desc.grid(row=3, column=1, sticky=tk.W+tk.E+tk.N+tk.S)
-
-        edit_frame.grid_columnconfigure(1, weight=1)
-        edit_frame.grid_rowconfigure(2, weight=21)
-        edit_frame.grid_rowconfigure(3, weight=13)
+        self._node_entry.grid(row=4, column=0, sticky=tk.W+tk.E+tk.N+tk.S)
         ## EDIT FRAME ##########################
 
+        self._build_types_selector(menu1)
 
     def _build_tree(self, root):
 
@@ -318,7 +340,7 @@ class _ModelPanel(tk.LabelFrame):
 
         tree.insert("" , 0, iid='/', text="Model",  open=True)
 
-        tree.bind('<<TreeviewSelect>>', self.do_node_selected)
+        tree.bind('<<TreeviewSelect>>', self._do_node_selected)
 
         return tree
 
@@ -330,7 +352,10 @@ class _ModelPanel(tk.LabelFrame):
         tree.insert("/", 3, "dir3", text="Dir 3")
         tree.insert("dir3", 3, text=" sub dir 3", values=("3A", 'ttttt [rpm]', " 3B", 7))
 
-    def do_node_selected(self, event):
+    def _set_edit_value(self, value):
+        self._node_entry['textvariable'].set(value)
+
+    def _get_tree_node(self):        
         tree = self.model_tree
         sel = tree.selection()
 
@@ -338,24 +363,29 @@ class _ModelPanel(tk.LabelFrame):
         mdlval = ''
         title = ''
         desc = ''
-        self.node_entry['state'] = tk.DISABLED
         if nsel > 1:
             values = tree.item(sel[0], option='values')
             uniq_mdl_vals = len({tree.item(s[0], option='values') for s in sel if s})
             title = '<%selected %i (%i uniques)>' % (nsel, uniq_mdl_vals)
         elif nsel == 1:
-            self.node_entry['state'] = tk.NORMAL
             values = tree.item(sel[0], option='values')
             if values:
                 mdlval, title, desc = values[0:3]
 
+        return (nsel, mdlval, title, desc)
+        
+    def _do_node_selected(self, event):
+        (nsel, mdlval, title, desc) = self._get_tree_node()
+
         self.node_title['text'] = title
-        self.node_value.set(mdlval)
+        self._set_edit_value(mdlval)
         self.node_desc['text'] = desc
+#        self._node_entry['state'] = tk.DISABLED
+#        self._node_entry['state'] = tk.NORMAL
         print("Selected %s, %s!"%(title, mdlval))
         print(title)
 
-    def do_update_node_value(self, event):
+    def _do_update_tree_node(self, event):
         tree = self.model_tree
         sel = tree.selection()
 
@@ -365,6 +395,22 @@ class _ModelPanel(tk.LabelFrame):
         print("Update %s!"%event)
         return False
 
+    def _build_types_selector(self, parent):
+        first_type = next(iter(_ModelPanel.NODE_TYPES.keys()))
+        self._type_var = v = tk.StringVar(value=first_type)
+        for k, v in _ModelPanel.NODE_TYPES.items():
+            tk.Radiobutton(parent, text=k, font=_courier_font, 
+                variable=v, value=k, 
+                command=self._do_type_selected, **v['btn_kws']).pack(side=tk.LEFT)
+#        self._do_type_selected() ## To install var in edit_entry.
+                
+    def _do_type_selected(self):
+        typ = self._type_var.get()
+        var = _ModelPanel.NODE_TYPES[typ]['var']()
+        self._node_entry['textvariable'] = var
+        (nsel, mdl_value) = self._get_tree_node()[:2]
+        if nsel == 1:
+            self._set_edit_value(mdl_value)
 
 class TkWltp:
     """
