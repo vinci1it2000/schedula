@@ -14,16 +14,20 @@ from collections import Counter, OrderedDict
 import logging
 import sys
 from textwrap import dedent
-from tkinter import StringVar
+try:
+    from tkinter import StringVar
+except ImportError:
+    raise NotImplementedError("TkWltp is only supported on Python-3; not in Python-%s!" % sys.version_info[0])
+
 from tkinter import ttk
 import traceback
+from wltp import model
+import wltp
 
 from PIL import Image, ImageTk
 
 import pkg_resources as pkg
 import tkinter as tk
-from wltp import model
-import wltp
 
 
 log = logging.getLogger(__name__)
@@ -436,7 +440,6 @@ class TkWltp:
             #|________________________________________________________|#
             ############################################################
         """
-
         if not root:
             root = tk.Tk()
         self.root = root
