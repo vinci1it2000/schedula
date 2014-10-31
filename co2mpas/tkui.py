@@ -269,9 +269,11 @@ class _ModelPanel(tk.LabelFrame):
     DESC = "Description"
     SCHEMA = '_schema'
 
-    TAG_ERROR   = 'error'
-    TAG_MISSING = 'miss'
-    TAG_EXTRA   = 'extra'
+    TAG_ERROR       = 'err'
+    TAG_MISSING     = 'mis'
+    TAG_REQUIRED    = 'req'
+    TAG_VIRTUAL     = 'vrt'
+    TAG_EXTRA       = 'xtr'
     
     NODE_TYPES = OrderedDict([
         ('str',     dict(var=tk.StringVar,   btn_kws={})),
@@ -346,6 +348,18 @@ class _ModelPanel(tk.LabelFrame):
 
         tree.bind('<<TreeviewSelect>>', self._do_node_selected)
 
+        tags = [
+            [_ModelPanel.TAG_ERROR,     dict(foreground="red")],
+            [_ModelPanel.TAG_MISSING,   dict(background="grey")],
+            [_ModelPanel.TAG_REQUIRED,  dict(font="underline")],
+            [_ModelPanel.TAG_VIRTUAL,   dict(foreground="blue", font="italic")],
+            [_ModelPanel.TAG_EXTRA,     dict(font="arial overstrike")],
+        ]
+        for tag, kws in tags:
+            _log_text.tag_config(tag, **kws)
+        _log_text.tag_raise(tk.SEL)
+
+        
         return tree
 
     def bind_model(self, data, schema):
@@ -540,9 +554,10 @@ class TkWltp:
                 pass
 
 
-
-if __name__ == '__main__':
-    logging.getLogger().setLevel(logging.DEBUG)
+def main():
     app = TkWltp()
     app.mainloop()
 
+if __name__ == '__main__':
+    logging.getLogger().setLevel(logging.DEBUG)
+    main()
