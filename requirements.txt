@@ -1,0 +1,6 @@
+## Dependencies for installing and running the project.
+## from: https://caremad.io/blog/setup-vs-requirement/
+
+#--index-url https://pypi.python.org/simple/
+
+-e .
