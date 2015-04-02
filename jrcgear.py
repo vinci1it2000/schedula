@@ -39,21 +39,53 @@ def grouper(iterable, n):
     return zip(*args)
 
 
+def median_filter(x,y,dx_window):
+
+    def median_filter_iterator(x,y,dx_window):
+        samples=[]
+        dx_w=dx_window/2
+        it = zip(x,y)
+        val = next(it)
+        samples.append(val)
+        stop_add= False
+        from statistics import median_high
+        for x0 in x:
+            #remove samples
+            x_1 = x0-dx_w
+
+            for i,xy in enumerate(samples):
+                if xy[0]>=x_1:samples=samples[i:]; break
+
+            #add samples
+            x1 = x0+dx_w
+            while (not stop_add) and val[0]<=x1:
+                samples.append(val)
+                try:
+                    val = next(it)
+                except StopIteration:
+                    stop_add = True
+
+            X,Y=zip(*samples)
+
+            yield median_high(Y)
+
+    return list(median_filter_iterator(x,y,dx_window))
+
+
 class Cycle(object):
     '''
     A class that contains all cycle (WLTC or NEDC) data and methods
     to configure model parameters form the WLPC profiles.
     '''
 
-    def __init__(self, name, velocity=None, rpm=None, inertia=None, road_loads=None, gear=None, time=None,
-                 final_drive=None,
-                 r_dynamic=None, gb_ratios=None, excel_file=None,
+    def __init__(self, name, velocity=None, rpm=None, time=None, speed2velocity_ratios=None,
+                 final_drive=None, r_dynamic=None, gb_ratios=None, excel_file=None,
                  time_name_sheet_tag_cols=('target_', [0]), rpm_name_sheet_tag_cols=('target_', [1]),
                  velocity_name_sheet_tag_cols=('velocity_', [1]), input_name_sheet_cols_rows=('Input', [3, 4], 2),
                  inputs=None):
 
-        self.name, self.time, self.velocity, self.gear, self.rpm = \
-            (name, time, velocity, gear, rpm)
+        self.name, self.time, self.velocity, self.rpm = \
+            (name, time, velocity, rpm)
 
         sheet_names = excel_file.sheet_names if excel_file else []
 
@@ -68,42 +100,49 @@ class Cycle(object):
                                                                     (velocity_name_sheet_tag_cols, 'velocity'),
                                                                     (time_name_sheet_tag_cols, 'time')]]
 
-        if self.gear is not None: self.gear = [int(v) for v in self.gear]
-
-        if (inertia is None or road_loads is None) and inputs is None:
+        if inputs is None:
             inputs = excel_file.parse(sheetname=input_name_sheet_cols_rows[0],
                                       parse_cols=input_name_sheet_cols_rows[1],
                                       skiprows=input_name_sheet_cols_rows[2], header=None, index_col=0)[1]
 
-        self.inertia, self.road_loads, self.final_drive, self.r_dynamic, self.min_rpm, self.gb_ratios, self.max_gear \
-            = (inertia, road_loads, final_drive, r_dynamic, None, gb_ratios, None)
+        self.final_drive, self.r_dynamic, self.min_rpm, self.gb_ratios, self.max_gear, self.speed2velocity_ratios \
+            = (final_drive, r_dynamic, None, gb_ratios, None, speed2velocity_ratios)
 
         def set_inputs(attr, tag, fun, default):
             value = getattr(self, attr)
             input_name = (attr + tag).replace('_', ' ')
-            if value is None and input_name in inputs: value = fun(inputs.get(input_name, default))
-            setattr(self, attr, value)
+            if value is None and input_name in inputs:
+                value = inputs[input_name]
+                if value:value=fun(value)
+            if value: setattr(self, attr, value)
 
         from numpy import float64
 
-        [set_inputs(*v) for v in [('inertia', ' ' + name, float64, None),
-                                  ('road_loads', ' ' + name, eval, 'None'),
-                                  ('final_drive', '', float64, None),
+        [set_inputs(*v) for v in [('final_drive', '', float64, None),
                                   ('r_dynamic', '', float64, None),
-                                  ('gb_ratios', '', eval, None),
-                                  ('final_drive', '', float64, None)]]
+                                  ('gb_ratios', '', eval, 'None'),
+                                  ('final_drive', '', float64, None),
+                                  ('speed2velocity_ratios','',eval,'None')]]
 
         del set_attr, sheet_names, set_inputs
 
-        if self.gb_ratios is not None:
-            self.gb_ratios = {i + 1: v for i, v in enumerate(self.gb_ratios) if v != 0}
-            self.gb_ratios[0] = 0
+        def set_gear(attr):
+            v = {i + 1: v for i, v in enumerate(getattr(self,attr)) if v > 0}
+            v[0] = 0
+            setattr(self,attr,v)
+            setattr(self,'max_gear',max(v))
+
+        if self.gb_ratios is not None: set_gear('gb_ratios')
+
+        if self.speed2velocity_ratios is not None:
+            set_gear('speed2velocity_ratios')
+        else:
+            from math import pi
+            c = self.final_drive * 60 / (3.6 * 2 * pi * self.r_dynamic)
+            self.speed2velocity_ratios = {k:c * v for k,v in self.gb_ratios.items()}
 
         if self.rpm is not None and self.velocity is not None:
             self.min_rpm = self.evaluate_rpm_min()
-
-        if self.gb_ratios is not None or self.gear is not None: self.max_gear = max(
-            self.gb_ratios if self.gb_ratios is not None else self.gear)
 
         def evaluate_acceleration(time, velocity):
             from numpy import diff
@@ -218,15 +257,10 @@ class Cycle(object):
         return {'gsv': set_reliable_gsv(gsv), 'rpm_upper_bound_goal': self.evaluate_rpm_upper_bound_goal(gear),
                 'max_gear': self.max_gear}
 
-    def evaluate_power_wheels(self):
-        return (self.road_loads[0] + (self.road_loads[1] + self.road_loads[
-            2] * self.velocity) * self.velocity + 1.03 * self.inertia * self.acceleration) * self.velocity / 3.6 / 1000
-
     def evaluate_gear(self, gear_shifting_velocities=None, gear_shifting_decision_tree=None):
+        from numpy import array
 
         def correct_gear(v, a, gear, max_gear, rpm_upper_bound_goal):
-            from numpy import array
-
             if self.name.lower() != 'nedc': return gear
             while True:
                 rpm = self.evaluate_rpm(self.evaluate_gear_ratios([gear]), array([v]))[0]
@@ -242,16 +276,16 @@ class Cycle(object):
             v = self.velocity[0]
             current_gear, (down, up) = next(((k, (v0, v1)) for k, (v0, v1) in gsv.items() if v0 <= v < v1))
             gear = [current_gear]
-            for v in self.velocity[1:]:
+            for v,a in zip(self.velocity[1:],self.acceleration[1:]):
                 if not down <= v < up:
                     add = 1 if v >= up else -1
                     while True:
                         current_gear = current_gear + add
                         if current_gear in gsv: break
-                    down, up = gsv[current_gear]
+                current_gear = correct_gear(v, a, current_gear, max_gear, rpm_upper_bound_goal)
+                down, up = gsv[current_gear]
                 gear.append(current_gear)
-            gear = [correct_gear(v, a, g, max_gear, rpm_upper_bound_goal) for v, a, g in
-                    zip(self.velocity, self.acceleration, gear)]
+
         elif gear_shifting_decision_tree:
             previous_gear, gear = (0, [])
             tree = gear_shifting_decision_tree['tree']
@@ -261,35 +295,34 @@ class Cycle(object):
                 previous_gear = correct_gear(v, a, tree.predict([[previous_gear, v, a]])[0], max_gear,
                                              rpm_upper_bound_goal)
                 gear.append(previous_gear)
+
         else:
-            from math import pi
 
-            gear_ratios_constants = self.final_drive * 60 / (3.6 * 2 * pi * self.r_dynamic)
-            it= iter(self.gb_ratios.items()); next(it)
-            gear_ratios_constants = [(k, gear_ratios_constants * v) for k, v in it]
+            it = iter(self.speed2velocity_ratios.items()); next(it)
+            speed2velocity_ratios = [(k, v) for k,v in it]
 
-            def set_gear(velocity, rpm):
-                if velocity <= 0.1: return 0
-                ratio = rpm / velocity;
-                k, v = min((abs(v - ratio), (k, v)) for k, v in gear_ratios_constants)[1]
+            def set_gear(ratio,velocity):
+                if velocity < 0.1: return 0
+                k, v = min((abs(v - ratio), (k, v)) for k, v in speed2velocity_ratios)[1]
                 return 0 if v * velocity < self.min_rpm[1] else k
 
-            gear = [set_gear(*v) for v in zip(self.velocity, self.rpm)]
+            ratio = self.rpm/self.velocity
 
-        from scipy.signal import medfilt
+            gear = [set_gear(*v) for v in zip(ratio,self.velocity)]
 
-        return [int(v) for v in medfilt(gear)]
+            gear = median_filter(self.time,gear,4)
+
+        return gear
+
+
 
     def evaluate_gear_ratios(self, gear):
         from numpy import array
-
-        return array(list(map(lambda x: self.gb_ratios[x], gear)))
+        return array(list(map(lambda x: self.speed2velocity_ratios[x], gear)))
 
     def evaluate_rpm(self, gear_ratios, velocity=None):
-        from math import pi
-
         if velocity is None: velocity = self.velocity
-        rpm = self.final_drive * 60 / (3.6 * 2 * pi * self.r_dynamic) * velocity * gear_ratios
+        rpm = velocity * gear_ratios
         rpm[rpm < self.min_rpm[1]] = self.min_rpm[0]
         return rpm
 
@@ -316,8 +349,8 @@ class JRC_simplified(object):
     :*_sheet_tag_cols: 0-based
     '''
 
-    def __init__(self, excel_file_path=None, velocity={}, rpm={}, inertia={}, road_loads={}, gear={}, time={},
-                 r_dynamic=None, final_drive=None, gb_ratios=None,
+    def __init__(self, excel_file_path=None, velocity={}, rpm={}, time={},
+                 r_dynamic=None, final_drive=None, gb_ratios=None,speed2velocity_ratios=None,
                  time_name_sheet_tag_cols=('target_', [0]), rpm_name_sheet_tag_cols=('target_', [1]),
                  velocity_name_sheet_tag_cols=('velocity_', [1]),
                  input_name_sheet_cols_rows=('Input', [3, 4], 2)):
@@ -331,14 +364,13 @@ class JRC_simplified(object):
 
         def set_cycle(cycle):
             CYCLE = cycle.upper()
-            setattr(self, cycle, Cycle(CYCLE, velocity.get(CYCLE, None), rpm.get(CYCLE, None), inertia.get(CYCLE, None),
-                                       road_loads.get(CYCLE, None), gear.get(CYCLE, None), time.get(CYCLE, None),
-                                       final_drive, r_dynamic, gb_ratios, excel_file,
+            setattr(self, cycle, Cycle(CYCLE, velocity.get(CYCLE, None), rpm.get(CYCLE, None), time.get(CYCLE, None),
+                                       speed2velocity_ratios, final_drive, r_dynamic, gb_ratios, excel_file,
                                        time_name_sheet_tag_cols, rpm_name_sheet_tag_cols, velocity_name_sheet_tag_cols,
                                        input_name_sheet_cols_rows, inputs))
 
         self.wltp, self.nedc = (None, None)
-        set_cycle('wltp');
+        set_cycle('wltp')
         set_cycle('nedc')
 
     def JRC_gear_corrected_matrix_velocity_tool(self, cycle_name='wltp'):
@@ -420,7 +452,7 @@ class JRC_simplified(object):
             pl.subplot(2, 2, 2)
 
             if fig:
-                identified_gear = cycle.gear if cycle.gear is not None else cycle.evaluate_gear()
+                identified_gear = cycle.evaluate_gear()
                 df['Gear identified'] = identified_gear
                 pl.plot(cycle.time, array(identified_gear), color='red', linewidth=2, linestyle='-',
                         label='Gear identified')
@@ -500,7 +532,7 @@ def main(args):
     root.withdraw()
     input_folder = askdirectory(title='Select input folder',initialdir='%s/input'%(getcwd()),parent=root)
     output_folder = askdirectory(title='Select output folder',initialdir='%s/output'%(getcwd()),parent=root)
-    root.destroy()
+
     if not (input_folder and output_folder):
         print('ERROR: missing input and/or output folder')
         return
@@ -527,10 +559,12 @@ def main(args):
 
     writer = ExcelWriter('%s/%s%s.xlsx' % (output_folder, doday, 'Summary'))
     DataFrame.from_records(df_correlation).to_excel(writer, 'Summary')
+    return root
 
 
 if __name__ == '__main__':
     import pylab as pl
 
-    main(sys.argv)
+    root = main(sys.argv)
     pl.show()
+    root.destroy()
