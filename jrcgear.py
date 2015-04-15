@@ -308,19 +308,21 @@ class Cycle(object):
                                              rpm_upper_bound_goal)
                 gear.append(previous_gear)
 
-        elif self.speed2velocity_ratios is not None and self.rpm is not None and self.velocity is not None:
+        elif self.speed2velocity_ratios is not None and self.rpm is not None and self.velocity is not None and self.acceleration is not None:
 
             it = iter(self.speed2velocity_ratios.items()); next(it)
             speed2velocity_ratios = [(k, v) for k,v in it]
 
-            def set_gear(ratio,velocity):
-                if velocity < 0.1: return 0
+            def set_gear(ratio,velocity,acceleration):
+                if velocity <= 0.1: return 0
                 k, v = min((abs(v - ratio), (k, v)) for k, v in speed2velocity_ratios)[1]
-                return 0 if v * velocity < self.min_rpm[1] else k
+                gear = 0 if v * velocity < self.min_rpm[1] else k
+                if velocity>0.1 and acceleration>0 and gear==0: gear=1
+                return gear
 
             ratio = self.rpm/self.velocity
 
-            gear = [set_gear(*v) for v in zip(ratio,self.velocity)]
+            gear = [set_gear(*v) for v in zip(ratio,self.velocity,self.acceleration)]
 
             gear = median_filter(self.time,gear,4)
 
