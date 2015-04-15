@@ -247,16 +247,18 @@ class Cycle(object):
             return median(data_out), (len(data_out), 1 / std(data_out))
 
         gsv = OrderedDict(
-            [(k, [reject_outliers(v0) if v0 else (0.1, (0, 0)), reject_outliers(v1) if v1 else float('inf')])
+            [(k, [reject_outliers(v0) if v0 else (-1, (0, 0)), reject_outliers(v1) if v1 else float('inf')])
              for k, (v0, v1) in ((i, gsv.get(i, [[0], [0]])) for i in range(max(gsv) + 1))])
 
         def set_reliable_gsv(gsv):
             import sys
 
-            gsv[0], eps = ([0, (0.1, (float('inf'), 0))], sys.float_info.epsilon)
+            eps = 1+sys.float_info.epsilon
+
+            gsv[0] = [0, (eps, (float('inf'), 0))]
 
             for v0, v1, up0, down1 in ((v0, v1, v0[1][0], v1[0][0]) for v0, v1 in pairwise(gsv.values())):
-                if down1 <= v0[0]: down1 = float('inf'); v1[0] = (down1, (0, 0))
+                if down1+eps <= v0[0]: down1 = float('inf'); v1[0] = (down1, (0, 0))
                 if up0 >= down1 or not corrected: v0[1], v1[0] = (up0, down1); continue
                 v0[1] = v1[0] = up0 if max([(True, v0[1][1]), (False, v1[0][1])], key=lambda x: x[1])[0] else down1
                 v0[1] = v0[1] + eps
