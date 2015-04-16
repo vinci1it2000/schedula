@@ -19,10 +19,17 @@ Usage::
 
 """
 import sys
+import numpy as np
 
 __author__ = 'Vincenzo Arcidiacono'
 
+CORR_FUN_FLAG = True
 
+GEAR_FLAG = False
+
+MAX_ITER = 1
+
+ERROR_LIMIT = 0.0
 def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
     from itertools import tee
@@ -30,7 +37,6 @@ def pairwise(iterable):
     a, b = tee(iterable)
     next(b, None)
     return zip(a, b)
-
 
 def grouper(iterable, n):
     "Collect data into fixed-length chunks or blocks"
@@ -78,6 +84,131 @@ def reject_outliers(data, m=2):
     if not data_out: return data_median, data_std / m
     return median(data_out), std(data_out)
 
+def correction_function(rpm,c,rpm_idle):
+        return 1 - np.exp(-c * (rpm - rpm_idle))
+
+def correction_function_domain(rpm,velocity,time,temperature=None,ratio=None):
+    id_data = np.array(list(range(len(rpm)+1)))
+    condition = '(velocity>=0) & (velocity<45)'
+    condition += '& ((temperature>50) | (time>50))' if temperature is not None else '& (time>50)'
+    if ratio is not None: condition += '& (ratio<1.05)& (ratio>=0)'
+    return id_data[eval(condition)]
+
+def apply_correction_function(rpm,args_correction_function,velocity,time,temperature):
+    ratio = np.array([correction_function(x,args_correction_function[0],args_correction_function[1]) for x in rpm])
+    ratio[ratio<0]=0
+    rpm_gb = rpm.copy()
+    id_data = correction_function_domain(rpm,velocity,time,temperature,ratio)
+    rpm_gb[id_data]= rpm[id_data] * ratio[id_data]
+    return rpm_gb
+
+def calibrate_correction_function_parameters(gear_in,speed2velocity_ratios,time,velocity,rpm,temperature):
+    import numpy as np
+    from scipy.optimize import fmin
+    from sklearn.metrics import mean_squared_error
+
+    speed2velocity_ratios_list = [(k+1,speed2velocity_ratios[k+1]) for k in range(max(speed2velocity_ratios))]
+
+    def identify_gear(velocity,rpm_gb):
+        if velocity <= 0.1: return 0
+        ratio = rpm_gb / velocity
+        return min((abs(v-ratio),k) for k,v in speed2velocity_ratios_list)[1]
+
+    vectorized_set_gear = np.vectorize(identify_gear)
+
+    vectorized_speed2velocity_ratios = np.vectorize(lambda x: speed2velocity_ratios[x])
+
+
+    def function_loop_error(args_correction_function, rpm, velocity,gear,time,temperature,b=None):
+
+        ratio = [correction_function(x,args_correction_function[0],args_correction_function[1] if b is None else b) for x in rpm]
+
+        rpm_gb0 = rpm * np.array(ratio)# vectorized_correction_function(*([rpm]+ args_correction_function))
+
+        rpm_gb = velocity * vectorized_speed2velocity_ratios(gear)
+
+        id_data = correction_function_domain(rpm,velocity,time,temperature,rpm_gb/rpm)
+
+        #res = curve_fit(correction_function,rpm[id_data],ratio[id_data])
+        #print(res)
+        #args_correction_function[0],args_correction_function[1] = res[0]
+        if id_data.any():
+            res = mean_squared_error(rpm_gb[id_data],rpm_gb0[id_data])
+        else:
+            res = 0
+        return res
+
+    '''
+    def function_loop_error(args_correction_function, rpm, velocity):
+
+        ratio = [correction_function(x,args_correction_function[0],args_correction_function[1]) for x in rpm]
+
+        rpm_gb0 = rpm * np.array(ratio)# vectorized_correction_function(*([rpm]+ args_correction_function))
+        if gear_in is not None:
+            gear = gear_in
+        else:
+            gear = vectorized_set_gear(velocity,rpm_gb0)
+        rpm_gb = velocity * vectorized_speed2velocity_ratios(gear)
+
+        id_data = correction_function_domain(rpm,velocity,time,temperature,rpm_gb/rpm)
+
+        #res = curve_fit(correction_function,rpm[id_data],ratio[id_data])
+        #print(res)
+        #args_correction_function[0],args_correction_function[1] = res[0]
+        if id_data.any():
+            res = mean_squared_error(rpm_gb[id_data],rpm_gb0[id_data])
+        else:
+            res = 0
+        return res
+    args_correction_function = list(fmin(function_loop_error, [0.001,700], args=(rpm, velocity)))
+    ratio = [correction_function(x,args_correction_function[0],args_correction_function[1]) for x in rpm]
+    '''
+    if gear_in is not None:
+        args_correction_function = list(fmin(function_loop_error, [0.001,700], args=(rpm, velocity,gear_in,time,temperature)))
+    else:
+        gear = {}
+        gear[1] = vectorized_set_gear(velocity,rpm)
+        args_correction_function = {}
+
+        args_correction_function_av = [0.001,700]
+        min_res = float('inf')
+        def gear_error(min_res):
+            gear[0] = gear[1]
+
+            args_av = list(fmin(function_loop_error, args_correction_function_av, args=(rpm, velocity,gear[0],time,temperature)))
+            print(args_av)
+            a={}
+            a['av']=args_av
+            for i in range(max(gear[0])+1):
+                ids = gear[0]==i
+                if not ids.any(): continue
+                a[i] = args_av
+                a[i] = list(fmin(function_loop_error, args_av, args=(rpm[ids], velocity[ids],gear[0][ids],time[ids],temperature[ids] if temperature is not None else None)))
+                if abs((a[i][0]-args_av[0])/args_av[0])>1 or abs((a[i][1]-args_av[1])/args_av[1])>1:a[i] = args_av
+
+            ratio = np.array([correction_function(x,a[g][0],a[g][1]) for x,g in zip(rpm,gear[0])])
+            ratio[ratio<0]=0
+            ratio[ratio>1.05]=1
+            gear[1] = vectorized_set_gear(velocity,rpm * ratio)
+            res = mean_squared_error(gear[1],gear[0])
+            if res<min_res:
+                args_correction_function_av[0],args_correction_function_av[1] = args_av
+                args_correction_function.update(a)
+                min_res = res
+            return min_res
+
+        k=0
+        while min_res>ERROR_LIMIT and k<MAX_ITER:
+            k+=1
+            min_res = gear_error(min_res)
+
+
+    ratio = np.array([correction_function(x,args_correction_function[g][0],args_correction_function[g][1]) for x,g in zip(rpm,vectorized_set_gear(velocity,rpm))])
+    ratio[ratio<0]=0
+    ratio[ratio>1.05]=1
+    rpm_gb = rpm * ratio
+    return args_correction_function, rpm_gb
+
 class Cycle(object):
     '''
     A class that contains all cycle (WLTC or NEDC) data and methods
@@ -97,8 +228,7 @@ class Cycle(object):
             (name, time, velocity, rpm, gear, temperature)
 
         sheet_names = excel_file.sheet_names if excel_file else []
-        from numpy import float64,nan
-        import numpy as np
+
         def set_attr(attr, sn, cols):
             value = getattr(self, attr)
             if value is None and sn in sheet_names and cols:
@@ -111,6 +241,7 @@ class Cycle(object):
                                                                     (time_name_sheet_tag_cols, 'time'),
                                                                     (gear_shifting_name_sheet_cols, 'gear'),
                                                                     (temperature_name_sheet_tag_cols,'temperature')]]
+        if not GEAR_FLAG: self.gear=None
         if self.gear is not None: self.gear=list(self.gear)
         if inputs is None:
             inputs = excel_file.parse(sheetname=input_name_sheet_cols_rows[0],
@@ -120,20 +251,20 @@ class Cycle(object):
         self.final_drive, self.r_dynamic, self.min_rpm, self.gb_ratios, self.max_gear, self.speed2velocity_ratios \
             = (final_drive, r_dynamic, None, gb_ratios, None, speed2velocity_ratios)
 
-
+        self.correction_function_flag = inputs.get(' ',CORR_FUN_FLAG)
 
         def set_inputs(attr, tag, fun, default):
             value = getattr(self, attr)
             input_name = (attr + tag).replace('_', ' ')
             if value is None and input_name in inputs:
                 value = inputs[input_name]
-                if not (value is nan or (hasattr(value,'empty') and value.empty)):value=fun(value)
+                if not (value is np.nan or (hasattr(value,'empty') and value.empty)):value=fun(value)
             if value: setattr(self, attr, value)
 
-        [set_inputs(*v) for v in [('final_drive', '', float64, None),
-                                  ('r_dynamic', '', float64, None),
+        [set_inputs(*v) for v in [('final_drive', '', np.float64, None),
+                                  ('r_dynamic', '', np.float64, None),
                                   ('gb_ratios', '', eval, 'None'),
-                                  ('final_drive', '', float64, None),
+                                  ('final_drive', '', np.float64, None),
                                   ('speed2velocity_ratios','',eval,'None')]]
 
         del set_attr, sheet_names, set_inputs
@@ -185,6 +316,9 @@ class Cycle(object):
 
         return (x[0], x[0] + x[1])
 
+    def evaluate_correction_function_parameters(self):
+        return calibrate_correction_function_parameters(self.gear,self.speed2velocity_ratios,self.time,self.velocity,self.rpm,self.temperature)
+
     def evaluate_rpm_upper_bound_goal(self, gear=None, rpm=None, min_rpm=None, max_gear=None):
         '''
         A function that evaluate the upper bound of engine speed goal.
@@ -224,6 +358,7 @@ class Cycle(object):
         X, y = ([v for v in zip(*params)], gear)
 
         tree.fit(X, y)
+
 
         return {'tree': tree, 'rpm_upper_bound_goal': self.evaluate_rpm_upper_bound_goal(gear),
                 'max_gear': self.max_gear,
@@ -268,9 +403,10 @@ class Cycle(object):
         return {'gsv': set_reliable_gsv(gsv), 'rpm_upper_bound_goal': self.evaluate_rpm_upper_bound_goal(gear),
                 'max_gear': self.max_gear}
 
-    def evaluate_gear(self, gear_shifting_velocities=None, gear_shifting_decision_tree=None):
+    def evaluate_gear(self, rpm=None, gear_shifting_velocities=None, gear_shifting_decision_tree=None):
         from numpy import array
         gear = None
+        if rpm is None: rpm = self.rpm
         def correct_gear(v, a, gear, max_gear, rpm_upper_bound_goal):
             if self.name.lower() != 'nedc': return gear
             while True:
@@ -310,10 +446,8 @@ class Cycle(object):
                                              rpm_upper_bound_goal)
                 gear.append(previous_gear)
 
-        elif self.speed2velocity_ratios is not None and self.rpm is not None and self.velocity is not None and self.acceleration is not None:
-
-            it = iter(self.speed2velocity_ratios.items()); next(it)
-            speed2velocity_ratios = [(k, v) for k,v in it]
+        elif self.speed2velocity_ratios is not None and rpm is not None and self.velocity is not None and self.acceleration is not None:
+            speed2velocity_ratios = [(k+1, self.speed2velocity_ratios[k+1]) for k in range(max(self.speed2velocity_ratios))]
 
             def set_gear(ratio,velocity,acceleration):
                 if velocity <= 0.1: return 0
@@ -322,7 +456,7 @@ class Cycle(object):
                 if velocity>0.1 and acceleration>0 and gear==0: gear=1
                 return gear
 
-            ratio = self.rpm/self.velocity
+            ratio = rpm/self.velocity
 
             gear = [set_gear(*v) for v in zip(ratio,self.velocity,self.acceleration)]
 
@@ -365,7 +499,8 @@ class Cycle(object):
     def evaluate_rpm(self, gear_ratios, velocity=None):
         if velocity is None: velocity = self.velocity
         rpm = velocity * gear_ratios
-        rpm[rpm < self.min_rpm[1]] = self.min_rpm[0]
+        if not self.correction_function_flag:
+            rpm[rpm < self.min_rpm[1]] = self.min_rpm[0]
         return rpm
 
     def evaluate_correlation(self, values, attr='rpm'):
@@ -404,6 +539,7 @@ class JRC_simplified(object):
 
         inputs = excel_file.parse(sheetname=input_name_sheet_cols_rows[0], parse_cols=input_name_sheet_cols_rows[1],
                                   skiprows=input_name_sheet_cols_rows[2], header=None, index_col=0)[1]
+        self.correction_function_flag = inputs.get('correction function flag',CORR_FUN_FLAG)
 
         def set_cycle(cycle):
             CYCLE = cycle.upper()
@@ -420,6 +556,7 @@ class JRC_simplified(object):
         set_cycle('wltp')
         set_cycle('nedc')
 
+
     def JRC_gear_corrected_matrix_velocity_tool(self, cycle_name='wltp'):
 
         from scipy.optimize import fmin
@@ -427,7 +564,9 @@ class JRC_simplified(object):
         from numpy import append
 
         cycle = getattr(self, cycle_name)
-        if cycle.gear is None: cycle.gear = cycle.evaluate_gear()
+
+        if cycle.gear is None:
+            cycle.gear = cycle.evaluate_gear()
 
         gsv = cycle.gear_shifting_velocities(cycle.gear, corrected=True)
         gear_id, velocity_limits = zip(*list(gsv['gsv'].items())[1:])
@@ -436,12 +575,12 @@ class JRC_simplified(object):
             gsv['gsv'][0] = (0, velocity_limits[0])
             gsv['gsv'].update({k: v for k, v in zip(gear_id, grouper(append(velocity_limits[1:], float('inf')), 2))})
 
-        def JRC_func(velocity_limits, cycle, gear_id):
+        def JRC_func(velocity_limits, cycle):
             update_gvs(velocity_limits)
             return cycle.evaluate_mean_absolute_error(
-                cycle.evaluate_rpm(cycle.evaluate_gear_ratios(cycle.evaluate_gear(gsv))))
+                cycle.evaluate_rpm(cycle.evaluate_gear_ratios(cycle.evaluate_gear(gear_shifting_velocities=gsv))))
 
-        update_gvs(fmin(JRC_func, [gsv['gsv'][0][1]] + list(chain(*velocity_limits))[:-1], args=(cycle, gear_id)))
+        update_gvs(fmin(JRC_func, [gsv['gsv'][0][1]] + list(chain(*velocity_limits))[:-1], args=(cycle,)))
 
         def correct_gsv_for_constant_velocities(gear_shifting_velocities, up_constant_velocities=[15, 32, 50, 70],
                                                 up_limit=3.5, up_delta=-0.5,
@@ -463,12 +602,20 @@ class JRC_simplified(object):
     def JRC_gear_tree_tool(self, cycle_name='wltp'):
         cycle = getattr(self, cycle_name)
 
-        if cycle.gear is None: cycle.gear = cycle.evaluate_gear()
+        if cycle.gear is None:
+            cycle.gear = cycle.evaluate_gear()
 
         return cycle.gear_shifting_decision_tree(cycle.gear)
 
     def evaluate_save_plot_gear(self, vehicle, writer, doday, output_folder, df_correlation):
         from pandas import DataFrame
+
+        if self.correction_function_flag:
+            self.wltp.rpm_given = self.wltp.rpm
+            correction_function_parameters,self.wltp.rpm = self.wltp.evaluate_correction_function_parameters()
+            #self.wltp.rpm = apply_correction_function(self.wltp.rpm,correction_function_parameters,self.wltp.velocity,self.wltp.time,self.wltp.temperature)
+            #self.nedc.rpm = apply_correction_function(self.nedc.rpm,correction_function_parameters,self.nedc.velocity,self.nedc.time,self.nedc.temperature)
+            self.wltp.min_rpm = self.wltp.evaluate_rpm_min()
 
         gsv_corrected = self.JRC_gear_corrected_matrix_velocity_tool()
         gear_tree = self.JRC_gear_tree_tool()
@@ -488,13 +635,13 @@ class JRC_simplified(object):
 
             cycle = getattr(self, cycle_name)
             if fig:
-                cycle.gear = cycle.evaluate_gear()
+                if cycle.gear is None:cycle.gear = cycle.evaluate_gear()
                 df = DataFrame()
                 df['Time [s]'] = cycle.time
                 df['Measured velocity'] = cycle.velocity
 
             pl.scatter(cycle.gear,array(gear), s=80,color=color, alpha=0.7,label='Gear calculated [%s]' % (method),marker=marker,facecolors='none')
-            pl.xlabel('Gear identified')
+            pl.xlabel('Gear identified/Input')
             pl.ylabel('Gear calculated')
             pl.xlim((0,cycle.max_gear+2))
             pl.ylim((0,cycle.max_gear+2))
@@ -505,9 +652,9 @@ class JRC_simplified(object):
 
             if fig:
 
-                df['Gear identified'] = cycle.gear
+                df['Gear identified/Input'] = cycle.gear
                 pl.plot(cycle.time, array(cycle.gear), color='red', linewidth=2, linestyle='-',
-                        label='Gear identified')
+                        label='Gear identified/Input')
 
             df['Gear calculated [%s]' % (method)] = array(gear)
             pl.plot(cycle.time, array(gear), color=color, alpha=0.7, linestyle=line, linewidth=linewidth,
@@ -521,25 +668,36 @@ class JRC_simplified(object):
 
             pl.subplot(2, 2, 3)
             if fig:
-                df['Measured engine [rpm]'] = cycle.rpm
-                pl.plot(cycle.time, cycle.rpm, color='red', linewidth=2, label='Measured engine')
-            df['Calculated engine [%s]' % (method)] = rpm
+                if cycle_name == 'wltp':
+                    df['GBin_eng [rpm]'] = cycle.rpm
+                    pl.plot(cycle.time, cycle.rpm, color='red', linewidth=2, label='GBin_eng')
+                    df['Input [rpm]'] = cycle.rpm_given
+                    pl.plot(cycle.time, cycle.rpm_given, color='cyan', linewidth=2, label='Input')
+                else:
+                    df['Input [rpm]'] = cycle.rpm
+                    pl.plot(cycle.time, cycle.rpm, color='cyan', linewidth=2, label='Input')
+
+            df['Calculated GBin_wh [%s]' % (method)] = rpm
             pl.plot(cycle.time, rpm, color=color, alpha=0.7, linestyle=line, linewidth=linewidth,
-                    label='Calculated engine [%s] (corr: %.3f, mean abs error: %.1f)' % (
+                    label='Calculated GBin_wh [%s] (corr: %.3f, mean abs error: %.1f)' % (
                         method, correlation[0], correlation[1]))
             pl.xlabel('Time [s]')
-            pl.ylabel('Engine speed [rpm]')
+            pl.ylabel('Speed [RPM]')
             pl.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-            pl.title('Engine RPM')
+            pl.title('Speed')
             pl.grid()
 
-            df_correlation.append({'vehicle': vehicle, 'cycle': cycle_name, 'gear shifting method': method,
+            d = {'vehicle': vehicle, 'cycle': cycle_name, 'gear shifting method': method,
                                    'gear shifting correlation': correlation[0],
-                                   'gear shifting mean abs error': correlation[1]})
+                                   'gear shifting mean abs error': correlation[1],
+                                   'params':''}
+            if self.correction_function_flag:
+                d['params'] = str(correction_function_parameters)
+            df_correlation.append(d)
             return df
 
         df = None
-
+        sheet_name = ''
         for fig, line,marker, linewidth, color, cycle, method, gear_shifting, text in [
             (True, '-','x', 2, 'blue', 'nedc', 'corrected matrix velocity', {'gear_shifting_velocities': gsv_corrected},
              'nedc rpm correlation with corrected gsv:'),
@@ -565,9 +723,9 @@ class JRC_simplified(object):
 
             df = plot_velocity_gear_rpm((rpm_correlation[0], rpm_correlation[1]), method, cycle,marker, rpm_correlation[2],
                                         rpm_correlation[3], line, color, linewidth, fig, df)
-
-        df.to_excel(writer, sheet_name)
-        pl.savefig('%s/%s%s.png'%(output_folder,doday,sheet_name))
+        if sheet_name:
+            df.to_excel(writer, sheet_name)
+            pl.savefig('%s/%s%s.png'%(output_folder,doday,sheet_name))
 
 def main(args):
     from os.path import isfile, join
