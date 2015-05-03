@@ -30,6 +30,22 @@ GEAR_FLAG = False
 MAX_ITER = 1
 
 ERROR_LIMIT = 0.0
+
+MIN_GEAR = 1
+
+full_load = {
+    'gas': InterpolatedUnivariateSpline(
+        np.linspace(0,1.2,13),
+        [0.1, 0.198238659, 0.30313392, 0.410104642, 0.516920841, 0.621300767,
+         0.723313491, 0.820780368, 0.901750158, 0.962968496, 0.995867804,
+         0.953356174, 0.85]),
+    'diesel': InterpolatedUnivariateSpline(
+        np.linspace(0,1.2,13),
+        [0.1, 0.278071182, 0.427366185, 0.572340499, 0.683251935, 0.772776746,
+         0.846217049, 0.906754984, 0.94977083, 0.981937981, 1,
+         0.937598144, 0.85])
+}
+
 def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
     from itertools import tee
@@ -249,9 +265,8 @@ class Cycle(object):
                                       skiprows=input_name_sheet_cols_rows[2], header=None, index_col=0)[1]
 
         self.final_drive, self.r_dynamic, self.min_rpm, self.gb_ratios, self.max_gear, self.speed2velocity_ratios \
-            = (final_drive, r_dynamic, None, gb_ratios, None, speed2velocity_ratios)
-
-        self.correction_function_flag = inputs.get(' ',CORR_FUN_FLAG)
+            ,self.correction_function_flag, self.road_loads, self.inertia, self.DTC_power, self.nidle, self.nrated, self.Pmax, self.fuel_type = \
+            (final_drive, r_dynamic, None, gb_ratios, None, speed2velocity_ratios, None, road_loads, inertia, None, None, None, None, None)
 
         def set_inputs(attr, tag, fun, default):
             value = getattr(self, attr)
@@ -265,10 +280,18 @@ class Cycle(object):
                                   ('r_dynamic', '', np.float64, None),
                                   ('gb_ratios', '', eval, 'None'),
                                   ('final_drive', '', np.float64, None),
-                                  ('speed2velocity_ratios','',eval,'None')]]
+                                  ('speed2velocity_ratios','',eval,'None'),
+                                  ('road_loads','_'+name,eval,'None'),
+                                  ('inertia','_'+name,np.float64, None),
+                                  ('correction_function_flag','',bool, CORR_FUN_FLAG),
+                                  ('DTC_power','',bool, DTC_POWER_FLAG),
+                                  ('nidle','',np.float64, None),
+                                  ('nrated','', np.float64, None),
+                                  ('Pmax', '', np.float64, None),
+                                  ('fuel_type', '', str, 'diesel')]]
 
         del set_attr, sheet_names, set_inputs
-
+        self.full_load_curve = full_load[self.fuel_type]
         def set_gear(attr):
             v = {i + 1: v for i, v in enumerate(getattr(self,attr)) if v > 0}
             v[0] = 0
@@ -297,6 +320,11 @@ class Cycle(object):
 
         delta_time = diff(time)
         return InterpolatedUnivariateSpline(time[:-1] + delta_time / 2, diff(velocity) / 3.6 / delta_time, k=1)(time)
+
+    def evaluate_power_wheels(self, velocity=None, acceleration=None):
+        if velocity is None: velocity = self.velocity
+        if acceleration is  None: acceleration = self.acceleration
+        return (self.road_loads[0]+(self.road_loads[1]+self.road_loads[2]*velocity)*velocity+1.03*self.inertia*acceleration)*velocity/3.6/1000
 
     def evaluate_rpm_min(self, velocity=None, rpm=None):
         '''
@@ -408,13 +436,25 @@ class Cycle(object):
         gear = None
         if rpm is None: rpm = self.rpm
         def correct_gear(v, a, gear, max_gear, rpm_upper_bound_goal):
-            if self.name.lower() != 'nedc': return gear
+            #if self.name.lower() != 'nedc': return gear
+            p_norm = self.evaluate_power_wheels(v, a) / self.Pmax
+            rpm = self.evaluate_rpm(self.evaluate_gear_ratios([gear]), array([v]))[0]
             while True:
-                rpm = self.evaluate_rpm(self.evaluate_gear_ratios([gear]), array([v]))[0]
                 if abs(a) < 0.1 and rpm > rpm_upper_bound_goal and gear < max_gear:
                     gear = gear + 1
+                    rpm = self.evaluate_rpm(self.evaluate_gear_ratios([gear]), array([v]))[0]
                     continue
-                return gear
+                break
+
+            while True:
+                n_norm = rpm / (self.nrated - self.nidle)
+                if p_norm>0.8*self.full_load_curve(n_norm):
+                    gear = gear - 1
+                    rpm = self.evaluate_rpm(self.evaluate_gear_ratios([gear]), array([v]))[0]
+                    continue
+                else:
+                    break
+            return gear
 
         if gear_shifting_velocities:
             gsv = gear_shifting_velocities['gsv']
