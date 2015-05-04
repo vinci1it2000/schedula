@@ -20,6 +20,9 @@ Usage::
 """
 import sys
 import numpy as np
+from scipy.interpolate import InterpolatedUnivariateSpline
+from scipy import stats
+import time
 
 __author__ = 'Vincenzo Arcidiacono'
 
@@ -32,6 +35,8 @@ MAX_ITER = 1
 ERROR_LIMIT = 0.0
 
 MIN_GEAR = 1
+
+DTC_POWER_FLAG = True
 
 full_load = {
     'gas': InterpolatedUnivariateSpline(
@@ -266,7 +271,7 @@ class Cycle(object):
 
         self.final_drive, self.r_dynamic, self.min_rpm, self.gb_ratios, self.max_gear, self.speed2velocity_ratios \
             ,self.correction_function_flag, self.road_loads, self.inertia, self.DTC_power, self.nidle, self.nrated, self.Pmax, self.fuel_type = \
-            (final_drive, r_dynamic, None, gb_ratios, None, speed2velocity_ratios, None, road_loads, inertia, None, None, None, None, None)
+            (final_drive, r_dynamic, None, gb_ratios, None, speed2velocity_ratios, None, None, None, None, None, None, None, None)
 
         def set_inputs(attr, tag, fun, default):
             value = getattr(self, attr)
@@ -311,12 +316,14 @@ class Cycle(object):
 
         self.acceleration = self.evaluate_acceleration(self.time,self.velocity)
 
+        self.wheel_power = self.evaluate_power_wheels()
+
     def evaluate_acceleration(self,time=None, velocity=None):
         if time is None:time=self.time
         if velocity is None:velocity=self.velocity
         if not (time is not None and velocity is not None):return None
         from numpy import diff
-        from scipy.interpolate import InterpolatedUnivariateSpline
+
 
         delta_time = diff(time)
         return InterpolatedUnivariateSpline(time[:-1] + delta_time / 2, diff(velocity) / 3.6 / delta_time, k=1)(time)
@@ -369,12 +376,14 @@ class Cycle(object):
 
         return sum(reject_outliers(rpm[(rpm > min_rpm[1]) & (array(gear) < max_gear)], m=1))
 
-    def gear_shifting_decision_tree(self, gear=None,temperature=None):
+    def gear_shifting_decision_tree(self, gear=None, temperature=None, wheel_power=None):
         from sklearn.tree import DecisionTreeClassifier
 
         if gear is None: gear = self.gear if self.gear else self.evaluate_gear()
 
         if temperature is None: temperature = self.temperature
+
+        if wheel_power is None: wheel_power = self.wheel_power
 
         previous_gear = [0]
         previous_gear.extend(gear[:-1])
@@ -382,9 +391,11 @@ class Cycle(object):
         tree = DecisionTreeClassifier(random_state=0)
         params = (previous_gear, self.velocity, self.acceleration)
         params_type = ('previous_gear', 'velocity', 'acceleration')
-        if not temperature: params=params+(temperature,);params_type=params_type+('temperature',)
+        if isinstance(temperature, np.ndarray):
+            params=params+(temperature,);params_type=params_type+('temperature',)
 
-        if not wheel_power: params=params+(wheel_power,);params_type=params_type+('wheel_power',)
+        if isinstance(wheel_power, np.ndarray):
+            params=params+(wheel_power,);params_type=params_type+('wheel_power',)
 
         X, y = ([v for v in zip(*params)], gear)
 
@@ -395,12 +406,13 @@ class Cycle(object):
                 'max_gear': self.max_gear,
                 'params_type': params_type}
 
-    def gear_shifting_velocities(self, gear=None, corrected=False, velocity=None):
+    def gear_shifting_velocities(self, gear=None, corrected=False, velocity=None,rpm=None):
         from numpy import median, std
         from collections import OrderedDict
 
         if gear is None: gear = self.gear if self.gear else self.evaluate_gear()
         if velocity is None: velocity = self.velocity
+        if rpm is None: rpm = self.rpm
         gsv = {}
 
         for s, (g0, g1) in zip(velocity, pairwise(gear)):
@@ -432,19 +444,20 @@ class Cycle(object):
 
             return gsv
 
-        return {'gsv': set_reliable_gsv(gsv), 'rpm_upper_bound_goal': self.evaluate_rpm_upper_bound_goal(gear),
-                'max_gear': self.max_gear}
+        return {'gsv': set_reliable_gsv(gsv), 'rpm_upper_bound_goal': self.evaluate_rpm_upper_bound_goal(gear, rpm, max_gear=max(gear)),
+                'max_gear': max(gear)}
 
-    def gear_shifting_power_velocities(self, gear=None, corrected=False, velocity=None, power_wheels=None):
+    def gear_shifting_power_velocities(self, gear=None, corrected=False, velocity=None, wheel_power=None, rpm=None):
         from numpy import mean,median,std
         from collections import OrderedDict
 
         if gear is None: gear = self.gear if self.gear else self.evaluate_gear()
         if velocity is None: velocity = self.velocity
-        if power_wheels is None: power_wheels = self.power_wheels
+        if wheel_power is None: wheel_power = self.wheel_power
+        if rpm is None: rpm = self.rpm
         gspv = {}
 
-        for v, p, (g0, g1) in zip(velocity, power_wheels, pairwise(gear)):
+        for v, p, (g0, g1) in zip(velocity, wheel_power, pairwise(gear)):
             if v > 0.1 and g0 != g1:
                 gspv[g0] = gspv.get(g0, [[[],[]], [[],[]]])
                 gspv[g0][g0 < g1][0].append(p)
@@ -459,14 +472,14 @@ class Cycle(object):
             return min(data_out), (len(data_out), 1 / std(data_out))
 
         gsv = OrderedDict(
-            [(k, [reject_outliers(pv0[1]) if pv0[1] else (-1, (0, 0)), reject_outliers(pv1[1]) if pv1[1] else float('inf')])
+            [(k, [reject_outliers(pv0[1]) if pv0[1] else (-1, (0, 0)), reject_outliers(pv1[1]) if pv1[1] else (float('inf'),)])
              for k, (pv0, pv1) in ((i, gspv.get(i, [[[0],[0]], [[0],[0]]])) for i in range(max(gspv) + 1))])
 
         def points_pv(p, v):
             for i in range(10, 2, -1):
                 a,b,c = stats.binned_statistic(p, v, bins=i)
                 if not np.isnan(a).any():
-                    return [np.array([mean(p[c==j]) for j in range(1,i+1)]), b]
+                    return [np.array([mean(np.array(p)[c==j]) for j in range(1,i+1)]), a]
             return [np.array([0, float('inf')]), np.array([v[0], v[0]])]
 
         for k in range(1, max(gspv) + 1):
@@ -520,19 +533,20 @@ class Cycle(object):
 
             return gspv
 
-        return {'gspv': set_reliable_gspv(gsv, gspv), 'rpm_upper_bound_goal': self.evaluate_rpm_upper_bound_goal(gear),
-                'max_gear': self.max_gear}
+        return {'gspv': set_reliable_gspv(gsv, gspv), 'rpm_upper_bound_goal': self.evaluate_rpm_upper_bound_goal(gear,rpm,max_gear=max(gear)),
+                'max_gear': max(gear)}
 
     def evaluate_gear(self, rpm=None, gear_shifting_velocities=None,
                       gear_shifting_decision_tree=None,
                       gear_shifting_power_velocities=None,
-                      velocity=None, acceleration=None, power_wheels=None, time=None):
+                      velocity=None, acceleration=None, wheel_power=None, time=None):
         from numpy import array
         gear = None
         if rpm is None: rpm = self.rpm
         if velocity is None: velocity = self.velocity
         if acceleration is None: acceleration = self.acceleration
-        if power_wheels is None: power_wheels = self.power_wheels
+        if wheel_power is None: wheel_power = self.wheel_power
+
         if time is None: time = self.time
         def correct_gear(v, a, gear, max_gear, rpm_upper_bound_goal):
             #if self.name.lower() != 'nedc': return gear
@@ -579,11 +593,11 @@ class Cycle(object):
             gspv = gear_shifting_power_velocities['gspv']
             rpm_upper_bound_goal = gear_shifting_power_velocities['rpm_upper_bound_goal']
             max_gear = gear_shifting_power_velocities['max_gear']
-            p,v = (power_wheels[0], velocity[0])
+            p,v = (wheel_power[0], velocity[0])
 
             current_gear, (down, up) = next(((k, (pv0, pv1)) for k, (pv0, pv1) in gspv.items() if pv0(p) <= v < pv1(p)))
             gear = [max(MIN_GEAR,current_gear)]
-            for t, p,v,a in zip(time[1:], power_wheels[1:], velocity[1:], acceleration[1:]):
+            for t, p,v,a in zip(time[1:], wheel_power[1:], velocity[1:], acceleration[1:]):
                 if gspv.get('hot') and t>T0:
                     gspv = gspv['hot']
                     down, up = gspv[current_gear]
@@ -605,6 +619,7 @@ class Cycle(object):
             params_type=gear_shifting_decision_tree['params_type']
             params = (velocity, acceleration)
             if 'temperature' in params_type: params=params+(self.temperature,)
+            if 'wheel_power' in params_type: params=params+(self.wheel_power,)
             for v in zip(*params):
                 previous_gear = correct_gear(v[0], v[1], tree.predict([[previous_gear]+list(v)])[0], max_gear,
                                              rpm_upper_bound_goal)
@@ -743,9 +758,14 @@ class JRC_simplified(object):
             update_gvs(velocity_limits)
             return cycle.evaluate_mean_absolute_error(
                 cycle.evaluate_rpm(cycle.evaluate_gear_ratios(cycle.evaluate_gear(gear_shifting_velocities=gsv))))
-
-        update_gvs(fmin(JRC_func, [gsv['gsv'][0][1]] + list(chain(*velocity_limits))[:-1], args=(cycle,)))
-
+        x0 = [gsv['gsv'][0][1]] + list(chain(*velocity_limits))[:-1]
+        t_start = time.time()
+        res = fmin(JRC_func, x0, args=(cycle,), full_output=True)
+        update_gvs(res[0])
+        t_finish = time.time()
+        t_elapsed = t_finish - t_start
+        t_iter = t_elapsed / res[2]
+        print('corrected matrix velocity: %s sec/iter' % t_iter)
         def correct_gsv_for_constant_velocities(gear_shifting_velocities, up_constant_velocities=[15, 32, 50, 70],
                                                 up_limit=3.5, up_delta=-0.5,
                                                 down_constant_velocities=[35, 50], down_limit=3.5, down_delta=-1):
@@ -774,8 +794,8 @@ class JRC_simplified(object):
         if cycle.gear is None:
             cycle.gear = cycle.evaluate_gear()
 
-        def hot_cold(gear, velocity, rpm, acceleration, time):
-            gsv = cycle.gear_shifting_velocities(gear, corrected=True, velocity=velocity)
+        def hot_cold(gear, velocity, rpm, acceleration, c_time, txt):
+            gsv = cycle.gear_shifting_velocities(gear, corrected=True, velocity=velocity, rpm=rpm)
             gear_id, velocity_limits = zip(*list(gsv['gsv'].items())[1:])
 
             def update_gvs(velocity_limits):
@@ -786,11 +806,19 @@ class JRC_simplified(object):
                 update_gvs(velocity_limits)
                 g=cycle.evaluate_gear(gear_shifting_velocities=gsv,
                                       velocity=velocity,
-                                      acceleration=acceleration, time=time)
+                                      acceleration=acceleration, time=c_time)
                 from sklearn.metrics import mean_absolute_error
                 return mean_absolute_error(rpm, cycle.evaluate_rpm(cycle.evaluate_gear_ratios(g), velocity=velocity))
 
-            update_gvs(fmin(JRC_func, [gsv['gsv'][0][1]] + list(chain(*velocity_limits))[:-1], args=(cycle,)))
+
+            x0 = [gsv['gsv'][0][1]] + list(chain(*velocity_limits))[:-1]
+            t_start = time.time()
+            res = fmin(JRC_func, x0, args=(cycle,), full_output=True)
+            update_gvs(res[0])
+            t_finish = time.time()
+            t_elapsed = t_finish - t_start
+            t_iter = t_elapsed / res[2]
+            print('corrected matrix velocity %s: %s sec/iter'%(txt,t_iter))
 
             def correct_gsv_for_constant_velocities(gear_shifting_velocities, up_constant_velocities=[15, 32, 50, 70],
                                                     up_limit=3.5, up_delta=-0.5,
@@ -810,9 +838,9 @@ class JRC_simplified(object):
             return correct_gsv_for_constant_velocities(gsv)
 
         res = hot_cold(cycle.gear[:T0], cycle.velocity[:T0], cycle.rpm[:T0],
-                       cycle.acceleration[:T0],cycle.time[:T0])
+                       cycle.acceleration[:T0],cycle.time[:T0], 'cold')
         res['hot']= hot_cold(cycle.gear[T0:], cycle.velocity[T0:], cycle.rpm[T0:],
-                       cycle.acceleration[T0:],cycle.time[T0:])
+                       cycle.acceleration[T0:],cycle.time[T0:], 'hot')
         return res
 
     def JRC_gear_corrected_matrix_power_velocity_tool(self, cycle_name='wltp'):
@@ -830,10 +858,12 @@ class JRC_simplified(object):
             cycle.gear = cycle.evaluate_gear()
         res = cycle.gear_shifting_power_velocities(cycle.gear[:T0], corrected=True,
                                              velocity=cycle.velocity[:T0],
-                                             power_wheels=cycle.power_wheels[:T0])
+                                             wheel_power=cycle.wheel_power[:T0],
+                                             rpm=cycle.rpm[:T0])
         res['hot']=cycle.gear_shifting_power_velocities(cycle.gear[T0:], corrected=True,
                                              velocity=cycle.velocity[T0:],
-                                             power_wheels=cycle.power_wheels[T0:])
+                                             wheel_power=cycle.wheel_power[T0:],
+                                             rpm=cycle.rpm[T0:])
         return res
 
     def JRC_gear_tree_tool(self, cycle_name='wltp'):
@@ -858,7 +888,7 @@ class JRC_simplified(object):
         if cycle.gear is None:
             cycle.gear = cycle.evaluate_gear()
 
-        return cycle.gear_shifting_decision_tree(cycle.gear, wheel_power=False)
+        return cycle.gear_shifting_decision_tree(cycle.gear, wheel_power=True)
 
     def JRC_gear_tree_tool_temperature_power(self, cycle_name='wltp'):
         cycle = getattr(self, cycle_name)
@@ -878,15 +908,18 @@ class JRC_simplified(object):
             #self.nedc.rpm = apply_correction_function(self.nedc.rpm,correction_function_parameters,self.nedc.velocity,self.nedc.time,self.nedc.temperature)
             self.wltp.min_rpm = self.wltp.evaluate_rpm_min()
 
-        gsv_corrected = self.JRC_gear_corrected_matrix_velocity_tool()
+
         gspv_corrected = self.JRC_gear_corrected_matrix_power_velocity_tool()
         gear_tree = self.JRC_gear_tree_tool()
         gear_tree_power = self.JRC_gear_tree_tool_power()
         gear_tree_temperature = self.JRC_gear_tree_tool_temperature()
         gear_tree_temperature_power = self.JRC_gear_tree_tool_temperature_power()
+        gspv_corrected_hot_cold = self.JRC_gear_corrected_matrix_power_velocity_h_c_tool()
+        gsv_corrected = self.JRC_gear_corrected_matrix_velocity_tool()
+
 
         gsv_corrected_hot_cold = self.JRC_gear_corrected_matrix_velocity_tool_h_c()
-        gspv_corrected_hot_cold = self.JRC_gear_corrected_matrix_power_velocity_h_c_tool()
+
 
         def evaluate_rpm_correlation(cycle, gear_shifting):
 
