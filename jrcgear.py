@@ -460,34 +460,50 @@ class Cycle(object):
         for v, p, (g0, g1) in zip(velocity, wheel_power, pairwise(gear)):
             if v > 0.1 and g0 != g1:
                 gspv[g0] = gspv.get(g0, [[[],[]], [[],[]]])
-                gspv[g0][g0 < g1][0].append(p)
-                gspv[g0][g0 < g1][1].append(v)
-
+                if g0 < g1 and p>0:
+                    gspv[g0][g0 < g1][0].append(p)
+                    gspv[g0][g0 < g1][1].append(v)
+                elif g0 > g1:
+                    gspv[g0][g0 < g1][0].append(p)
+                    gspv[g0][g0 < g1][1].append(v)
 
         def reject_outliers(data, m=2):
+            return min(data), (len(data), 1 / std(data))
+            '''
             data_median, data_std, data_len = (median(data), std(data), len(data))
             data_std = data_std * m
             data_out = [v for v in data if abs(v - data_median) < data_std]
             if not data_out: return min(data), (data_len, m / data_std)
             return min(data_out), (len(data_out), 1 / std(data_out))
-
+            '''
+        for k,v in gspv.items():
+            print(k,v[0])
+            print(k,v[1])
         gsv = OrderedDict(
             [(k, [reject_outliers(pv0[1]) if pv0[1] else (-1, (0, 0)), reject_outliers(pv1[1]) if pv1[1] else (float('inf'),)])
              for k, (pv0, pv1) in ((i, gspv.get(i, [[[0],[0]], [[0],[0]]])) for i in range(max(gspv) + 1))])
 
         def points_pv(p, v):
+
             for i in range(10, 2, -1):
                 a,b,c = stats.binned_statistic(p, v, bins=i)
                 if not np.isnan(a).any():
-                    return [np.array([mean(np.array(p)[c==j]) for j in range(1,i+1)]), a]
-            return [np.array([0, float('inf')]), np.array([v[0], v[0]])]
+                    pi = [mean(np.array(p)[c==j]) for j in range(1,i+1)]
+                    vi = a
+                    if min(pi)>0:
+                        pi = [min(pi)] + pi
+                        vi = np.append(0, a)
+                    print([np.array(pi), vi])
+                    print([p, v])
+                    return [np.array(pi), vi]
+            return [np.array([0, 1]), np.array([min(v), min(v)])]
 
         for k in range(1, max(gspv) + 1):
             v = gspv.get(k, None)
             if v:
                 dn, up = v
                 dn = [np.array([0,1]),np.array([gsv[k][0][0],gsv[k][0][0]])]
-                if len(up[0])>5:
+                if len(up[0])>2:
                     up = points_pv(up[0], up[1])
                 else:
                     up = [np.array([0,1]),np.array([gsv[k][1][0],gsv[k][1][0]])]
@@ -526,9 +542,12 @@ class Cycle(object):
 
                 v0[1] = v0[1] + eps
                 pv0[1][1] = pv0[1][1] + eps
+
+            gspv[max(gspv)][1] = [np.array([0,1]),np.array([300,300])]
             gspv = OrderedDict([(k,gspv[k]) for k in gsv])
             for k,v in gspv.items():
                 for i in [0,1]:
+                    print(k,i,v[i][0],v[i][1])
                     gspv[k][i] = InterpolatedUnivariateSpline(v[i][0],v[i][1],k=1)
 
             return gspv
@@ -561,7 +580,7 @@ class Cycle(object):
 
             while True:
                 n_norm = rpm / (self.nrated - self.nidle)
-                if p_norm>0.8*self.full_load_curve(n_norm):
+                if p_norm>0.8*self.full_load_curve(n_norm) and gear >= MIN_GEAR:
                     gear = gear - 1
                     rpm = self.evaluate_rpm(self.evaluate_gear_ratios([gear]), array([v]))[0]
                     continue
@@ -849,18 +868,18 @@ class JRC_simplified(object):
         if cycle.gear is None:
             cycle.gear = cycle.evaluate_gear()
 
-        return cycle.gear_shifting_power_velocities(cycle.gear, corrected=True)
+        return cycle.gear_shifting_power_velocities(cycle.gear, corrected=False)
 
     def JRC_gear_corrected_matrix_power_velocity_h_c_tool(self, cycle_name='wltp'):
         cycle = getattr(self, cycle_name)
 
         if cycle.gear is None:
             cycle.gear = cycle.evaluate_gear()
-        res = cycle.gear_shifting_power_velocities(cycle.gear[:T0], corrected=True,
+        res = cycle.gear_shifting_power_velocities(cycle.gear[:T0], corrected=False,
                                              velocity=cycle.velocity[:T0],
                                              wheel_power=cycle.wheel_power[:T0],
                                              rpm=cycle.rpm[:T0])
-        res['hot']=cycle.gear_shifting_power_velocities(cycle.gear[T0:], corrected=True,
+        res['hot']=cycle.gear_shifting_power_velocities(cycle.gear[T0:], corrected=False,
                                              velocity=cycle.velocity[T0:],
                                              wheel_power=cycle.wheel_power[T0:],
                                              rpm=cycle.rpm[T0:])
@@ -973,6 +992,8 @@ class JRC_simplified(object):
                 df['Time [s]'] = cycle.time
                 df['Measured velocity'] = cycle.velocity
                 df['Gear identified/Input'] = cycle.gear
+                df['Power Input'] = cycle.wheel_power
+
                 if cycle_name == 'wltp' and cycle.correction_function_flag:
                         df['Input [rpm]'] = cycle.rpm_given
                         df['GBin_eng [rpm]'] = cycle.rpm
