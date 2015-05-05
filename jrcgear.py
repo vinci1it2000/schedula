@@ -25,7 +25,7 @@ from scipy import stats
 import time
 
 __author__ = 'Vincenzo Arcidiacono'
-
+_rule_couter = None
 CORR_FUN_FLAG = True
 
 GEAR_FLAG = False
@@ -468,7 +468,7 @@ class Cycle(object):
                     gspv[g0][g0 < g1][1].append(v)
 
         def reject_outliers(data, m=2):
-            return min(data), (len(data), 1 / std(data))
+            return mean(data), (len(data), 1 / std(data))
             '''
             data_median, data_std, data_len = (median(data), std(data), len(data))
             data_std = data_std * m
@@ -476,9 +476,7 @@ class Cycle(object):
             if not data_out: return min(data), (data_len, m / data_std)
             return min(data_out), (len(data_out), 1 / std(data_out))
             '''
-        for k,v in gspv.items():
-            print(k,v[0])
-            print(k,v[1])
+
         gsv = OrderedDict(
             [(k, [reject_outliers(pv0[1]) if pv0[1] else (-1, (0, 0)), reject_outliers(pv1[1]) if pv1[1] else (float('inf'),)])
              for k, (pv0, pv1) in ((i, gspv.get(i, [[[0],[0]], [[0],[0]]])) for i in range(max(gspv) + 1))])
@@ -491,12 +489,10 @@ class Cycle(object):
                     pi = [mean(np.array(p)[c==j]) for j in range(1,i+1)]
                     vi = a
                     if min(pi)>0:
-                        pi = [min(pi)] + pi
-                        vi = np.append(0, a)
-                    print([np.array(pi), vi])
-                    print([p, v])
+                        vi = np.append(np.append(a[0], a),a[-1])
+                        pi = [0] + pi + [pi[-1]+5]
                     return [np.array(pi), vi]
-            return [np.array([0, 1]), np.array([min(v), min(v)])]
+            return [np.array([0, 5]), np.array([min(v), min(v)])]
 
         for k in range(1, max(gspv) + 1):
             v = gspv.get(k, None)
@@ -547,7 +543,6 @@ class Cycle(object):
             gspv = OrderedDict([(k,gspv[k]) for k in gsv])
             for k,v in gspv.items():
                 for i in [0,1]:
-                    print(k,i,v[i][0],v[i][1])
                     gspv[k][i] = InterpolatedUnivariateSpline(v[i][0],v[i][1],k=1)
 
             return gspv
@@ -560,6 +555,7 @@ class Cycle(object):
                       gear_shifting_power_velocities=None,
                       velocity=None, acceleration=None, wheel_power=None, time=None):
         from numpy import array
+        from itertools import count
         gear = None
         if rpm is None: rpm = self.rpm
         if velocity is None: velocity = self.velocity
@@ -567,6 +563,8 @@ class Cycle(object):
         if wheel_power is None: wheel_power = self.wheel_power
 
         if time is None: time = self.time
+        global rule_counter
+        rule_counter = count().__next__
         def correct_gear(v, a, gear, max_gear, rpm_upper_bound_goal):
             #if self.name.lower() != 'nedc': return gear
             p_norm = self.evaluate_power_wheels(v, a) / self.Pmax
@@ -577,15 +575,19 @@ class Cycle(object):
                     rpm = self.evaluate_rpm(self.evaluate_gear_ratios([gear]), array([v]))[0]
                     continue
                 break
-
+            rule_flag = False
             while True:
                 n_norm = rpm / (self.nrated - self.nidle)
-                if p_norm>0.8*self.full_load_curve(n_norm) and gear >= MIN_GEAR:
+                #to consider adding the reverse function in the future because the n+200 rule should be applied at the engine not the GB
+                #(rpm<self.nidle+200 and 0<=a<0.1) or
+                if ( p_norm>0.9*self.full_load_curve(n_norm)) and gear >= MIN_GEAR:
                     gear = gear - 1
                     rpm = self.evaluate_rpm(self.evaluate_gear_ratios([gear]), array([v]))[0]
+                    rule_flag = True
                     continue
                 else:
                     break
+            if rule_flag: rule_counter()
             return gear
 
         if gear_shifting_velocities:
@@ -596,8 +598,12 @@ class Cycle(object):
             current_gear, (down, up) = next(((k, (v0, v1)) for k, (v0, v1) in gsv.items() if v0 <= v < v1))
             gear = [max(MIN_GEAR,current_gear)]
             for t,v,a in zip(time[1:], velocity[1:], acceleration[1:]):
-                if gsv.get('hot') and t>T0:
-                    gsv = gsv['hot']
+                if gear_shifting_velocities.get('hot') and t>T0:
+                    gsv = gear_shifting_velocities['hot']
+
+                    rpm_upper_bound_goal = gsv['rpm_upper_bound_goal']
+                    max_gear = gsv['max_gear']
+                    gsv = gsv['gsv']
                     down, up = gsv[current_gear]
                 if not down <= v < up:
                     add = 1 if v >= up else -1
@@ -617,8 +623,11 @@ class Cycle(object):
             current_gear, (down, up) = next(((k, (pv0, pv1)) for k, (pv0, pv1) in gspv.items() if pv0(p) <= v < pv1(p)))
             gear = [max(MIN_GEAR,current_gear)]
             for t, p,v,a in zip(time[1:], wheel_power[1:], velocity[1:], acceleration[1:]):
-                if gspv.get('hot') and t>T0:
-                    gspv = gspv['hot']
+                if gear_shifting_power_velocities.get('hot') and t>T0:
+                    gspv = gear_shifting_power_velocities['hot']
+                    rpm_upper_bound_goal = gspv['rpm_upper_bound_goal']
+                    max_gear = gspv['max_gear']
+                    gspv = gspv['gspv']
                     down, up = gspv[current_gear]
                 _up =up(p)
                 if not down(p) <= v < _up:
@@ -860,6 +869,7 @@ class JRC_simplified(object):
                        cycle.acceleration[:T0],cycle.time[:T0], 'cold')
         res['hot']= hot_cold(cycle.gear[T0:], cycle.velocity[T0:], cycle.rpm[T0:],
                        cycle.acceleration[T0:],cycle.time[T0:], 'hot')
+
         return res
 
     def JRC_gear_corrected_matrix_power_velocity_tool(self, cycle_name='wltp'):
@@ -1003,10 +1013,11 @@ class JRC_simplified(object):
             rpm_correlation, gear, rpm = evaluate_rpm_correlation(cycle, gear_shifting)
             df['Gear calculated [%s]' % (method)] = np.array(gear)
             df['Calculated GBin_wh [%s]' % (method)] = rpm
-
+            global rule_counter
             d = {'vehicle': vehicle, 'cycle': cycle_name, 'gear shifting method': method,
                                    'gear shifting correlation': rpm_correlation[0],
                                    'gear shifting mean abs error': rpm_correlation[1],
+                                   'corr_counter':rule_counter(),
                                    'params':''}
 
             if cycle.correction_function_flag:
