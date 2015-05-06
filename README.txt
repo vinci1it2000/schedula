@@ -1,10 +1,13 @@
 ###############
 	jrcgear
 ###############
-:author: Vincenzo Arcidiacono <vincenzo.arcidiacono@ext.jrc.ec.europa.eu>
-:version: 0.1b1
-:date: 15-Apr-2015
-
+:author: Vincenzo Arcidiacono 
+:version: 0.3_a2
+:date: 05-Apr-2015
+:reviewed by: Georgios Fontaras 5/5/2015
+For info contact <vincenzo.arcidiacono@ext.jrc.ec.europa.eu> or <georgios.fontaras@jrc.ec.europa.eu>
+###############
+Summary
 Predicts the NEDC gearshifting for automatic gearboxes from the WLTC measurement.
 
 :input: a directory that contains WLTC and NEDC input data ['.xls','.xlsx','xlsm']
@@ -38,6 +41,7 @@ Run the following command:
 
 	python setup.py -r requirements.txt
 
+In case the command fails please refer to alternative usage method below for runnng jrc gear	
 
 Usage of jrcgear
 ===================
@@ -45,7 +49,7 @@ Once Python is installed appropriately
 
 Execute the python-code from inside the extracted folder.
 
-Just run::
+Just run (or directly double click):
 
 	python jrcgear.py
 
@@ -53,4 +57,12 @@ Then select the input and output folders form the UI-browser.
 
 N.B. see the template file for input data.
 
+Alternative usage:
+Open any python development environment (eg spyder2 comes together with WinPython) or an ipython console from the python folder
+Run the command
+run 'C:/jrcgear/jrcgear.py'
 
+where in ' '  you define the actual path where you have saved the file jrcgear.py
+
+The program should run and a window asking you to select the input and output folders should appear.
+In case the you cannot see the respective window try minimizing your console in case the window appears in the background.
