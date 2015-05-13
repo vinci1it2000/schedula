@@ -426,7 +426,7 @@ class Cycle(object):
             return median(data_out), (len(data_out), 1 / std(data_out))
 
         gsv = OrderedDict(
-            [(k, [reject_outliers(v0) if v0 else (-1, (0, 0)), reject_outliers(v1) if v1 else float('inf')])
+            [(k, [reject_outliers(v0) if v0 else (-1, (0, 0)), reject_outliers(v1) if v1 else (float('inf'),(0,0))])
              for k, (v0, v1) in ((i, gsv.get(i, [[0], [0]])) for i in range(max(gsv) + 1))])
 
         def set_reliable_gsv(gsv):
@@ -441,7 +441,7 @@ class Cycle(object):
                 if up0 >= down1 or not corrected: v0[1], v1[0] = (up0, down1); continue
                 v0[1] = v1[0] = up0 if max([(True, v0[1][1]), (False, v1[0][1])], key=lambda x: x[1])[0] else down1
                 v0[1] = v0[1] + eps
-
+            gsv[max(gsv)][1] = float('inf')
             return gsv
 
         return {'gsv': set_reliable_gsv(gsv), 'rpm_upper_bound_goal': self.evaluate_rpm_upper_bound_goal(gear, rpm, max_gear=max(gear)),
@@ -937,17 +937,17 @@ class JRC_simplified(object):
             #self.nedc.rpm = apply_correction_function(self.nedc.rpm,correction_function_parameters,self.nedc.velocity,self.nedc.time,self.nedc.temperature)
             self.wltp.min_rpm = self.wltp.evaluate_rpm_min()
 
+        gspv_corrected_hot_cold = self.JRC_gear_corrected_matrix_power_velocity_h_c_tool()
+        gsv_corrected_hot_cold = self.JRC_gear_corrected_matrix_velocity_tool_h_c()
 
         gspv_corrected = self.JRC_gear_corrected_matrix_power_velocity_tool()
         gear_tree = self.JRC_gear_tree_tool()
         gear_tree_power = self.JRC_gear_tree_tool_power()
         gear_tree_temperature = self.JRC_gear_tree_tool_temperature()
         gear_tree_temperature_power = self.JRC_gear_tree_tool_temperature_power()
-        gspv_corrected_hot_cold = self.JRC_gear_corrected_matrix_power_velocity_h_c_tool()
         gsv_corrected = self.JRC_gear_corrected_matrix_velocity_tool()
 
 
-        gsv_corrected_hot_cold = self.JRC_gear_corrected_matrix_velocity_tool_h_c()
 
 
         def evaluate_rpm_correlation(cycle, gear_shifting):
