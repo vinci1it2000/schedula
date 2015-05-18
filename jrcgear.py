@@ -632,7 +632,7 @@ class Cycle(object):
                 _up =up(p)
                 if not down(p) <= v < _up:
                     add = 1 if v >= _up else -1
-                    while True:
+                    while MIN_GEAR <= current_gear <= max_gear:
                         current_gear = current_gear + add
                         if current_gear in gspv: break
                 current_gear = correct_gear(v, a, current_gear, max_gear, rpm_upper_bound_goal)
