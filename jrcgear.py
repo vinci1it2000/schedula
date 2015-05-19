@@ -478,7 +478,7 @@ class Cycle(object):
             '''
 
         gsv = OrderedDict(
-            [(k, [reject_outliers(pv0[1]) if pv0[1] else (-1, (0, 0)), reject_outliers(pv1[1]) if pv1[1] else (float('inf'),)])
+            [(k, [reject_outliers(pv0[1]) if pv0[1] else (-1, (0, 0)), reject_outliers(pv1[1]) if pv1[1] else (float('inf'),(0,0))])
              for k, (pv0, pv1) in ((i, gspv.get(i, [[[0],[0]], [[0],[0]]])) for i in range(max(gspv) + 1))])
 
         def points_pv(p, v):
@@ -596,7 +596,8 @@ class Cycle(object):
             max_gear = gear_shifting_velocities['max_gear']
             v = velocity[0]
             current_gear, (down, up) = next(((k, (v0, v1)) for k, (v0, v1) in gsv.items() if v0 <= v < v1))
-            gear = [max(MIN_GEAR,current_gear)]
+            current_gear = max(MIN_GEAR,current_gear)
+            gear = [current_gear]
             for t,v,a in zip(time[1:], velocity[1:], acceleration[1:]):
                 if gear_shifting_velocities.get('hot') and t>T0:
                     gsv = gear_shifting_velocities['hot']
@@ -621,7 +622,8 @@ class Cycle(object):
             p,v = (wheel_power[0], velocity[0])
 
             current_gear, (down, up) = next(((k, (pv0, pv1)) for k, (pv0, pv1) in gspv.items() if pv0(p) <= v < pv1(p)))
-            gear = [max(MIN_GEAR,current_gear)]
+            current_gear = max(MIN_GEAR,current_gear)
+            gear = [current_gear]
             for t, p,v,a in zip(time[1:], wheel_power[1:], velocity[1:], acceleration[1:]):
                 if gear_shifting_power_velocities.get('hot') and t>T0:
                     gspv = gear_shifting_power_velocities['hot']
@@ -629,10 +631,10 @@ class Cycle(object):
                     max_gear = gspv['max_gear']
                     gspv = gspv['gspv']
                     down, up = gspv[current_gear]
-                _up =up(p)
+                _up = up(p)
                 if not down(p) <= v < _up:
                     add = 1 if v >= _up else -1
-                    while MIN_GEAR <= current_gear <= max_gear:
+                    while 0 <= current_gear <= max_gear:
                         current_gear = current_gear + add
                         if current_gear in gspv: break
                 current_gear = correct_gear(v, a, current_gear, max_gear, rpm_upper_bound_goal)
@@ -936,11 +938,11 @@ class JRC_simplified(object):
             #self.wltp.rpm = apply_correction_function(self.wltp.rpm,correction_function_parameters,self.wltp.velocity,self.wltp.time,self.wltp.temperature)
             #self.nedc.rpm = apply_correction_function(self.nedc.rpm,correction_function_parameters,self.nedc.velocity,self.nedc.time,self.nedc.temperature)
             self.wltp.min_rpm = self.wltp.evaluate_rpm_min()
-
+        gspv_corrected = self.JRC_gear_corrected_matrix_power_velocity_tool()
         gspv_corrected_hot_cold = self.JRC_gear_corrected_matrix_power_velocity_h_c_tool()
         gsv_corrected_hot_cold = self.JRC_gear_corrected_matrix_velocity_tool_h_c()
 
-        gspv_corrected = self.JRC_gear_corrected_matrix_power_velocity_tool()
+
         gear_tree = self.JRC_gear_tree_tool()
         gear_tree_power = self.JRC_gear_tree_tool_power()
         gear_tree_temperature = self.JRC_gear_tree_tool_temperature()
@@ -959,9 +961,9 @@ class JRC_simplified(object):
         df = None
         sheet_name = ''
         for fig, cycle_name, method, gear_shifting, text in [
-            (True, 'nedc', 'corrected matrix velocity', {'gear_shifting_velocities': gsv_corrected},
-             'nedc rpm correlation with corrected gsv:'),
-            (False, 'nedc', 'corrected matrix power velocity', {'gear_shifting_power_velocities': gspv_corrected},
+            #(True, 'nedc', 'corrected matrix velocity', {'gear_shifting_velocities': gsv_corrected},
+            # 'nedc rpm correlation with corrected gsv:'),
+            (True, 'nedc', 'corrected matrix power velocity', {'gear_shifting_power_velocities': gspv_corrected},
              'nedc rpm correlation with corrected gspv:'),
             (False, 'nedc', 'corrected matrix velocity hot/cold', {'gear_shifting_velocities': gsv_corrected_hot_cold},
              'nedc rpm correlation with corrected gsv hot/cold:'),
