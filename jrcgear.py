@@ -73,7 +73,7 @@ def median_filter(x,y,dx_window):
         it = zip(x,y)
         val = next(it)
         samples.append(val)
-        stop_add= False
+        stop_add = False
         from statistics import median_high
         for x0 in x:
             #remove samples
@@ -228,7 +228,7 @@ def calibrate_correction_function_parameters(gear_in,speed2velocity_ratios,time,
     ratio[ratio<0]=0
     ratio[ratio>1.05]=1
     rpm_gb = rpm * ratio
-    return args_correction_function, rpm_gb
+    return args_correction_function, np.array(median_filter(time, rpm_gb, 4))
 
 class Cycle(object):
     '''
@@ -426,7 +426,7 @@ class Cycle(object):
             return median(data_out), (len(data_out), 1 / std(data_out))
 
         gsv = OrderedDict(
-            [(k, [reject_outliers(v0) if v0 else (-1, (0, 0)), reject_outliers(v1) if v1 else (float('inf'),(0,0))])
+            [(k, [reject_outliers(v0) if v0 else (-1, (0, 0)), reject_outliers(v1) if v1 else (10000,(0,0))])
              for k, (v0, v1) in ((i, gsv.get(i, [[0], [0]])) for i in range(max(gsv) + 1))])
 
         def set_reliable_gsv(gsv):
@@ -434,14 +434,14 @@ class Cycle(object):
 
             eps = 1+sys.float_info.epsilon
 
-            gsv[0] = [0, (eps, (float('inf'), 0))]
+            gsv[0] = [0, (eps, (10000, 0))]
 
             for v0, v1, up0, down1 in ((v0, v1, v0[1][0], v1[0][0]) for v0, v1 in pairwise(gsv.values())):
-                if down1+eps <= v0[0]: down1 = float('inf'); v1[0] = (down1, (0, 0))
+                if down1+eps <= v0[0]: down1 = 10000; v1[0] = (down1, (0, 0))
                 if up0 >= down1 or not corrected: v0[1], v1[0] = (up0, down1); continue
                 v0[1] = v1[0] = up0 if max([(True, v0[1][1]), (False, v1[0][1])], key=lambda x: x[1])[0] else down1
                 v0[1] = v0[1] + eps
-            gsv[max(gsv)][1] = float('inf')
+            gsv[max(gsv)][1] = 10000
             return gsv
 
         return {'gsv': set_reliable_gsv(gsv), 'rpm_upper_bound_goal': self.evaluate_rpm_upper_bound_goal(gear, rpm, max_gear=max(gear)),
@@ -478,7 +478,7 @@ class Cycle(object):
             '''
 
         gsv = OrderedDict(
-            [(k, [reject_outliers(pv0[1]) if pv0[1] else (-1, (0, 0)), reject_outliers(pv1[1]) if pv1[1] else (float('inf'),(0,0))])
+            [(k, [reject_outliers(pv0[1]) if pv0[1] else (-1, (0, 0)), reject_outliers(pv1[1]) if pv1[1] else (10000,(0,0))])
              for k, (pv0, pv1) in ((i, gspv.get(i, [[[0],[0]], [[0],[0]]])) for i in range(max(gspv) + 1))])
 
         def points_pv(p, v):
@@ -511,7 +511,7 @@ class Cycle(object):
 
             eps = 1+sys.float_info.epsilon
 
-            gsv[0] = [0, (eps, (float('inf'), 0))]
+            gsv[0] = [0, (eps, (10000, 0))]
             gspv[0] = [[np.array([0,1]),np.array([0,0])],
                        [np.array([0,1]),np.array([eps,eps])]]
 
@@ -521,7 +521,7 @@ class Cycle(object):
                 pv_up0, pv_down1 = (pv0[1], pv1[0])
 
                 if down1+eps <= v0[0]:
-                    down1 = float('inf')
+                    down1 = 10000
                     v1[0] = (down1, (0, 0))
 
                 if up0 >= down1 or not corrected:
@@ -654,6 +654,7 @@ class Cycle(object):
                 previous_gear = correct_gear(v[0], v[1], tree.predict([[previous_gear]+list(v)])[0], max_gear,
                                              rpm_upper_bound_goal)
                 gear.append(previous_gear)
+            gear = median_filter(self.time, gear, 4)
 
         elif self.speed2velocity_ratios is not None and rpm is not None and self.velocity is not None and self.acceleration is not None:
             speed2velocity_ratios = [(k+1, self.speed2velocity_ratios[k+1]) for k in range(max(self.speed2velocity_ratios))]
@@ -782,7 +783,7 @@ class JRC_simplified(object):
 
         def update_gvs(velocity_limits):
             gsv['gsv'][0] = (0, velocity_limits[0])
-            gsv['gsv'].update({k: v for k, v in zip(gear_id, grouper(append(velocity_limits[1:], float('inf')), 2))})
+            gsv['gsv'].update({k: v for k, v in zip(gear_id, grouper(append(velocity_limits[1:], 10000), 2))})
 
         def JRC_func(velocity_limits, cycle):
             update_gvs(velocity_limits)
@@ -802,12 +803,18 @@ class JRC_simplified(object):
 
             def set_velocity(velocity, const_steps, limit, delta):
                 for v in const_steps:
-                    if v < velocity < v + limit: return v + delta
+                    if v < velocity < v + limit:
+                        return v + delta
                 return velocity
+            gsv['gsv'] = {k: [set_velocity(v[0], down_constant_velocities, down_limit, down_delta),
+                              set_velocity(v[1], up_constant_velocities, up_limit, up_delta)] for k, v in
+                            gsv['gsv'].items()}
+            for (k0, v0),(k1, v1)  in pairwise(sorted(gsv['gsv'].items())):
+                if v1[0] > v0[1]:
+                    v1[0] = v0[1] + 1
+            print(gsv['gsv'])
 
-            return {'gsv': {k: (set_velocity(v[0], down_constant_velocities, down_limit, down_delta),
-                                set_velocity(v[1], up_constant_velocities, up_limit, up_delta)) for k, v in
-                            gsv['gsv'].items()},
+            return {'gsv': gsv['gsv'],
                     'rpm_upper_bound_goal': gear_shifting_velocities['rpm_upper_bound_goal'],
                     'max_gear': gear_shifting_velocities['max_gear']}
 
@@ -830,7 +837,7 @@ class JRC_simplified(object):
 
             def update_gvs(velocity_limits):
                 gsv['gsv'][0] = (0, velocity_limits[0])
-                gsv['gsv'].update({k: v for k, v in zip(gear_id, grouper(append(velocity_limits[1:], float('inf')), 2))})
+                gsv['gsv'].update({k: v for k, v in zip(gear_id, grouper(append(velocity_limits[1:], 10000), 2))})
 
             def JRC_func(velocity_limits, cycle):
                 update_gvs(velocity_limits)
@@ -851,17 +858,22 @@ class JRC_simplified(object):
             print('corrected matrix velocity %s: %s sec/iter'%(txt,t_iter))
 
             def correct_gsv_for_constant_velocities(gear_shifting_velocities, up_constant_velocities=[15, 32, 50, 70],
-                                                    up_limit=3.5, up_delta=-0.5,
-                                                    down_constant_velocities=[35, 50], down_limit=3.5, down_delta=-1):
+                                                up_limit=3.5, up_delta=-0.5,
+                                                down_constant_velocities=[35, 50], down_limit=3.5, down_delta=-1):
 
                 def set_velocity(velocity, const_steps, limit, delta):
                     for v in const_steps:
-                        if v < velocity < v + limit: return v + delta
+                        if v < velocity < v + limit:
+                            return v + delta
                     return velocity
-
-                return {'gsv': {k: (set_velocity(v[0], down_constant_velocities, down_limit, down_delta),
-                                    set_velocity(v[1], up_constant_velocities, up_limit, up_delta)) for k, v in
-                                gsv['gsv'].items()},
+                gsv['gsv'] = {k: [set_velocity(v[0], down_constant_velocities, down_limit, down_delta),
+                                  set_velocity(v[1], up_constant_velocities, up_limit, up_delta)] for k, v in
+                                gsv['gsv'].items()}
+                for (k0, v0),(k1, v1)  in pairwise(sorted(gsv['gsv'].items())):
+                    if v1[0] > v0[1]:
+                        v1[0] = v0[1] + 1
+                print(gsv['gsv'])
+                return {'gsv': gsv['gsv'],
                         'rpm_upper_bound_goal': gear_shifting_velocities['rpm_upper_bound_goal'],
                         'max_gear': gear_shifting_velocities['max_gear']}
 
@@ -961,9 +973,9 @@ class JRC_simplified(object):
         df = None
         sheet_name = ''
         for fig, cycle_name, method, gear_shifting, text in [
-            #(True, 'nedc', 'corrected matrix velocity', {'gear_shifting_velocities': gsv_corrected},
-            # 'nedc rpm correlation with corrected gsv:'),
-            (True, 'nedc', 'corrected matrix power velocity', {'gear_shifting_power_velocities': gspv_corrected},
+            (True, 'nedc', 'corrected matrix velocity', {'gear_shifting_velocities': gsv_corrected},
+             'nedc rpm correlation with corrected gsv:'),
+            (False, 'nedc', 'corrected matrix power velocity', {'gear_shifting_power_velocities': gspv_corrected},
              'nedc rpm correlation with corrected gspv:'),
             (False, 'nedc', 'corrected matrix velocity hot/cold', {'gear_shifting_velocities': gsv_corrected_hot_cold},
              'nedc rpm correlation with corrected gsv hot/cold:'),
