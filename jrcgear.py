@@ -96,6 +96,51 @@ def median_filter(x,y,dx_window):
 
     return list(median_filter_iterator(x,y,dx_window))
 
+def clear_fluctuations_gears(x,y,dx_window):
+
+    values = [list(v) for v in zip(x,y)]
+    from statistics import median_high
+    samples = []
+    dx_w=dx_window/2
+    it = iter(values)
+    val = next(it)
+    samples.append(val)
+    stop_add = False
+    for x0 in x:
+        #remove samples
+        x_1 = x0-dx_w
+
+        for i,xy in enumerate(samples):
+            if xy[0]>=x_1:samples=samples[i:]; break
+
+        #add samples
+        x1 = x0+dx_w
+        while (not stop_add) and val[0]<=x1:
+            samples.append(val)
+            try:
+                val = next(it)
+            except StopIteration:
+                stop_add = True
+
+        up = (False, None)
+        dn = (False, None)
+        XX,YY = zip(*samples)
+        for k,d in enumerate(np.diff(YY)):
+            if d > 0:
+                up = (True, k)
+            elif d < 0:
+                dn = (True, k)
+            if up[0] and dn[0]:
+                k0 = min(up[1], dn[1])
+                k1 = max(up[1], dn[1])+1
+
+                Y = median_high(YY[k0:k1])
+                for i in range(k0+1,k1):
+                    samples[i][1] = Y
+                up = (False, None)
+                dn = (False, None)
+    return [v[1] for v in values]
+
 def reject_outliers(data, m=2):
     from numpy import median,std
     data_median, data_std, data_len = (median(data), std(data), len(data))
@@ -651,7 +696,7 @@ class Cycle(object):
             gspv = gear_shifting_power_velocities['gspv']
             rpm_upper_bound_goal = gear_shifting_power_velocities['rpm_upper_bound_goal']
             max_gear = gear_shifting_power_velocities['max_gear']
-            p,v = (wheel_power[0], velocity[0])
+            #p,v = (wheel_power[0], velocity[0])
 
             #current_gear, (down, up) = next(((k, (pv0, pv1)) for k, (pv0, pv1) in gspv.items() if pv0(p) <= v < pv1(p)))
             #current_gear = max(MIN_GEAR,current_gear)
@@ -675,6 +720,8 @@ class Cycle(object):
                 current_gear = correct_gear(v, a, current_gear, max_gear, rpm_upper_bound_goal)
                 down, up = gspv[current_gear]
                 gear.append(max(MIN_GEAR,current_gear))
+            gear = median_filter(self.time, gear,4)
+            gear = clear_fluctuations_gears(self.time, gear, 4)
 
         elif gear_shifting_decision_tree:
             previous_gear, gear = (0, [])
@@ -690,7 +737,8 @@ class Cycle(object):
                                              rpm_upper_bound_goal)
                 gear.append(previous_gear)
             gear = [max(MIN_GEAR, g) for g in gear]
-            gear = median_filter(self.time,gear,4)
+            gear = median_filter(self.time, gear,4)
+            gear = clear_fluctuations_gears(self.time, gear, 4)
         elif self.speed2velocity_ratios is not None and rpm is not None and self.velocity is not None and self.acceleration is not None:
             speed2velocity_ratios = [(k+1, self.speed2velocity_ratios[k+1]) for k in range(max(self.speed2velocity_ratios))]
 
@@ -709,6 +757,7 @@ class Cycle(object):
             gear = [set_gear(*v) for v in zip(ratio,self.velocity,self.acceleration)]
 
             gear = median_filter(self.time,[int(v) for v in pd.Series(gear).interpolate()],4)
+            gear = clear_fluctuations_gears(self.time, gear, 4)
 
         return gear
 
