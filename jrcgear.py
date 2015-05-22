@@ -740,6 +740,7 @@ class Cycle(object):
             gear = median_filter(self.time, gear,4)
             gear = clear_fluctuations_gears(self.time, gear, 4)
         elif self.speed2velocity_ratios is not None and rpm is not None and self.velocity is not None and self.acceleration is not None:
+            max_gear = max(self.speed2velocity_ratios)
             speed2velocity_ratios = [(k+1, self.speed2velocity_ratios[k+1]) for k in range(max(self.speed2velocity_ratios))]
 
             def set_gear(ratio,velocity,acceleration):
@@ -750,6 +751,7 @@ class Cycle(object):
                 #    return None
                 gear = 0 if v * velocity < self.min_rpm[1] else k
                 if velocity>0.1 and acceleration>0 and gear==0: gear=1
+                if max_gear != gear and  ratio < v * 1.1: gear +=1
                 return gear
 
             ratio = rpm/self.velocity

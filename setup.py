@@ -12,11 +12,11 @@ setup(name='doit-graphx',
       description="JRC gear tool to predict the A/T gear shifting of the NEDC from the data of WLTP,"
                   "according to decision tree approach and the corrected matrix velocity.",
       long_description="",
-      version='0.1b1',
+      version='0.4a2',
       author='Vincenzo Arcidiacono',
       author_email='vincenzo.arcidiacono@ext.jrc.ec.europa.eu',
       classifiers=[
-          'Development Status :: 1 - Beta',
+          'Development Status :: 4 - Beta',
           'Environment :: Console',
           'License :: OSI Approved :: European Union Public Licence 1.1 (EUPL 1.1)',
           'Natural Language :: English',

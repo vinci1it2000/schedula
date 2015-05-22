@@ -2,9 +2,9 @@
 	jrcgear
 ###############
 :author: Vincenzo Arcidiacono 
-:version: 0.3_a2
-:date: 05-Apr-2015
-:reviewed by: Georgios Fontaras 5/5/2015
+:version: 0.4a2
+:date: 22-May-2015
+:reviewed by:
 For info contact <vincenzo.arcidiacono@ext.jrc.ec.europa.eu> or <georgios.fontaras@jrc.ec.europa.eu>
 ###############
 Summary
