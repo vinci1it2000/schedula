@@ -10,8 +10,9 @@ import networkx as nx
 from heapq import heappush, heappop
 from itertools import count
 from collections import OrderedDict
-from dispatcher.utils import Token, rename_function
+from dispatcher.utils import Token, rename_function, AttrDict
 from dispatcher.graph_utils import add_edge_fun, remove_cycles_iteration
+
 
 EMPTY = Token('empty')
 
@@ -112,6 +113,8 @@ class Dispatcher(object):
 
     def __init__(self, dmap=None):
         self.dmap = dmap if dmap else nx.DiGraph()
+        self.dmap.node = AttrDict(self.dmap.node)
+        self.nodes = self.dmap.node
         self.default_values = {}
         self._workflow = nx.DiGraph()  # graph output
         self._data_output = {}
