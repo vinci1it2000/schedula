@@ -77,24 +77,23 @@ def rename_function(new_name):
 class AttrDict(dict):
     def __init__(self, *args, **kwargs):
         super(AttrDict, self).__init__(*args, **kwargs)
-        self.__dict__ = {k: k for k in self if isinstance(k, str)}
+        self.__dict__ = {k: k for k in self}
 
     def __setitem__(self, key, value):
         super(AttrDict, self).__setitem__(key, value)
-        if isinstance(key, str):
-            self.__dict__[key] = key
+        self.__dict__[key] = key
 
     def __delitem__(self, key):
         super(AttrDict, self).__delitem__(key)
-        self.__dict__.pop(key, None)
+        del self.__dict__[key]
 
     def pop(self, k, d=None):
-        self.__dict__.pop(k, None)
+        del self.__dict__[k]
         return super(AttrDict, self).pop(k, d)
 
     def popitem(self):
         k, v = super(AttrDict, self).popitem()
-        self.__dict__.pop(k, None)
+        del self.__dict__[k]
         return k, v
 
     def clear(self):
