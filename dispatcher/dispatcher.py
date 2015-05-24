@@ -34,7 +34,7 @@ class Dispatcher(object):
 
     \***************************************************************************
 
-    **Example**::
+    **Example**:
 
     As an example, here is a system of equations:
 
@@ -680,7 +680,7 @@ class Dispatcher(object):
         # return a new dmap without the unresolved dmap cycles
         return new_dmap
 
-    def get_sub_dsp_from_workflow(self, sources, reverse=False):
+    def get_sub_dsp_from_workflow(self, sources, graph=None, reverse=False):
         """
         Returns the sub-dispatcher induced by the workflow from sources.
 
@@ -692,6 +692,10 @@ class Dispatcher(object):
             Source nodes for the breadth-first-search.
             A container of nodes which will be iterated through once.
         :type sources: iterable
+
+        :param graph:
+            A directed graph where evaluate the breadth-first-search.
+        :type graph: nx.DiGraph
 
         :param reverse:
             If True the workflow graph is assumed as reversed.
@@ -747,14 +751,17 @@ class Dispatcher(object):
         # define an empty dispatcher map
         sub_dsp = self.__class__()
 
+        if not graph:  # set default graph
+            graph = self._workflow
+
         if not reverse:
             # namespace shortcuts for speed
-            neighbors = self._workflow.neighbors_iter
+            neighbors = graph.neighbors_iter
             dmap_succ = self.dmap.succ
             succ, pred = (sub_dsp.dmap.succ, sub_dsp.dmap.pred)
         else:
             # namespace shortcuts for speed
-            neighbors = self._workflow.predecessors_iter
+            neighbors = graph.predecessors_iter
             dmap_succ = self.dmap.pred
             pred, succ = (sub_dsp.dmap.succ, sub_dsp.dmap.pred)
 
@@ -767,7 +774,6 @@ class Dispatcher(object):
 
         # function to set node attributes
         def set_node_attr(n):
-
             # set node attributes
             nodes[n] = dmap_nodes[n]
 
@@ -805,7 +811,7 @@ class Dispatcher(object):
         return sub_dsp
 
     def dispatch(self, input_values=None, output_targets=None, cutoff=None,
-                 wildcard=False, empty_fun=False):
+                 wildcard=False, empty_fun=False, shrink=False):
         """
         Evaluates the minimum workflow and data outputs of the dispatcher map
         model from given inputs.
@@ -831,6 +837,10 @@ class Dispatcher(object):
         :param empty_fun:
             If True data node estimation function is not used.
         :type empty_fun: bool, optional
+
+        :param shrink:
+            If True the dispatcher is shrink before the dispatch.
+        :type shrink: bool, optional
 
         :return:
             - workflow: A directed graph with data node estimations.
@@ -878,23 +888,28 @@ class Dispatcher(object):
              (start, '/a'),
              (start, '/b')]
         """
+        if not empty_fun and shrink:
+            dsp = self.shrink_dsp(input_values, output_targets, cutoff,
+                                  wildcard)
+        else:
+            dsp = self
 
         # initialize
-        args = self._init_run(input_values, output_targets, wildcard, cutoff,
-                              empty_fun)
+        args = dsp._init_run(input_values, output_targets, wildcard, cutoff,
+                             empty_fun)
 
         # return the evaluated workflow graph and data outputs
-        return self._run(*args)
+        return dsp._run(*args)
 
     # TODO: Extend minimum dmap when using function domains
-    def shrink_dsp(self, inputs, output_targets=None, cutoff=None,
+    def shrink_dsp(self, inputs=None, outputs=None, cutoff=None,
                    wildcard=False):
         """
         Returns a reduced dispatcher built using the empty function workflow.
 
         :param inputs:
             Input data nodes.
-        :type inputs: iterable
+        :type inputs: iterable, optional
 
         :param output_targets:
             Ending data nodes.
@@ -936,7 +951,7 @@ class Dispatcher(object):
             'builtins:max<3>'
 
             >>> shrink_dsp = dsp.shrink_dsp(inputs=['/a', '/b', '/d'],
-            ...                             output_targets=['/c', '/e', '/f'])
+            ...                             outputs=['/c', '/e', '/f'])
             >>> sorted(shrink_dsp.dmap.nodes())
             ['/a', '/b', '/c', '/d', '/e', '/f',
              'builtins:max', 'builtins:max<0>', 'builtins:max<1>']
@@ -947,23 +962,31 @@ class Dispatcher(object):
              ('builtins:max', '/c'), ('builtins:max<0>', '/e'),
              ('builtins:max<1>', '/f')]
         """
+        if inputs:
+            # evaluate the workflow graph without invoking functions
+            workflow, data_visited = self.dispatch(inputs, outputs, cutoff,
+                                                   wildcard, True)
 
-        # evaluate the workflow graph without invoking functions
-        workflow, data_visited = self.dispatch(inputs, output_targets,
-                                               cutoff, wildcard, True)
+            # remove the starting node from the workflow graph
+            workflow.remove_node(START)
 
-        if output_targets:
-            # outputs not reached
-            missed = set(output_targets).difference(data_visited)
+            # set the graph for the breadth-first-search
+            bfs_graph = workflow
 
-            if missed:  # if outputs are missing raise error
-                raise ValueError('Unreachable output-targets:{}'.format(missed))
+            # reached outputs
+            outputs = set(outputs) & set(data_visited)
 
-        # remove the starting node from the workflow graph
-        workflow.remove_node(START)
+        elif outputs:
+            # set the graph for the breadth-first-search
+            bfs_graph = self.dmap
+
+            # outputs in the dispatcher
+            outputs = set(outputs) & set(self.dmap.node)
+        else:
+            return self.__class__()  # return an empty dispatcher
 
         # return the sub dispatcher
-        return self.get_sub_dsp_from_workflow(output_targets, reverse=True)
+        return self.get_sub_dsp_from_workflow(outputs, bfs_graph, True)
 
     def extract_function_node(self, function_id, inputs, outputs, cutoff=None):
         """
@@ -1015,6 +1038,12 @@ class Dispatcher(object):
 
         # new shrink dispatcher
         dsp = self.shrink_dsp(inputs, outputs, cutoff, True)
+
+        # outputs not reached
+        missed = set(outputs).difference(dsp.nodes)
+
+        if missed:  # if outputs are missing raise error
+            raise ValueError('Unreachable output-targets:{}'.format(missed))
 
         # get initial default values
         input_values = dsp._get_initial_values(None, False)
@@ -1283,6 +1312,10 @@ class Dispatcher(object):
 
         # add initial values to fringe and seen
         for v in inputs:
+
+            if v not in node_attr:
+                continue
+
             wait_in = node_attr[v]['wait_inputs']  # store wait inputs flag
 
             # input value
@@ -1666,7 +1699,3 @@ class Dispatcher(object):
 
         # return the workflow and data outputs
         return self._workflow, self._data_output
-
-
-
-

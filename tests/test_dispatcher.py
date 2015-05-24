@@ -594,7 +594,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         disp.add_function(function=max, inputs=['/a', '/b'], outputs=['/a'])
 
         shrink_dsp = disp.shrink_dsp(inputs=['/a', '/b', '/d'],
-                                     output_targets=['/c', '/a', '/f'],
+                                     outputs=['/c', '/a', '/f'],
                                      wildcard=True)
 
         self.assertEquals(sorted(shrink_dsp.dmap.node),
@@ -609,7 +609,10 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
              ('builtins:max', '/c'), ('builtins:max<0>', '/e'),
              ('builtins:max<1>', '/f'), ('builtins:max<3>', '/a')])
 
-        self.assertRaises(ValueError, disp.shrink_dsp, ['/a', '/b'], ['/e'])
+        shrink_dsp = disp.shrink_dsp(['/a', '/b'], ['/e'])
+        self.assertEquals(sorted(shrink_dsp.dmap.node), [])
+        self.assertEquals(sorted(shrink_dsp.dmap.edges()), [])
+
 
     def test_extract_function_node(self):
         disp = dsp.Dispatcher()
