@@ -5,13 +5,15 @@
 
 """
 
+__author__ = 'Vincenzo Arcidiacono'
+
 import warnings
 import networkx as nx
 from heapq import heappush, heappop
 from itertools import count
 from collections import OrderedDict
-from dispatcher.utils import Token, rename_function, AttrDict
-from dispatcher.graph_utils import add_edge_fun, remove_cycles_iteration
+from .utils import Token, rename_function, AttrDict
+from .graph_utils import add_edge_fun, remove_cycles_iteration
 
 
 EMPTY = Token('empty')

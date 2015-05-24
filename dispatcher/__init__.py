@@ -5,7 +5,7 @@
 """
 from __future__ import absolute_import
 
-from dispatcher.dispatcher import *
-from dispatcher.graph_utils import *
-from dispatcher.utils import *
-from dispatcher.read_write import *
+from .dispatcher import *
+from .graph_utils import *
+from .utils import *
+from .read_write import *

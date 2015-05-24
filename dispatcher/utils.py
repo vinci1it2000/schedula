@@ -1,5 +1,5 @@
-__author__ = 'iMac2013'
-from itertools import tee, chain
+__author__ = 'Vincenzo Arcidiacono'
+from itertools import tee
 from heapq import heappop
 
 class Token(str):

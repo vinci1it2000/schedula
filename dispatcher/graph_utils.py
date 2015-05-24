@@ -7,7 +7,7 @@
 import networkx as nx
 from heapq import heappush, heappop
 from itertools import count
-from dispatcher.utils import pairwise, heap_flush
+from .utils import pairwise, heap_flush
 
 
 def add_edge_fun(graph):

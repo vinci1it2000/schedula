@@ -5,6 +5,8 @@
 
 """
 
+__author__ = 'Vincenzo Arcidiacono'
+
 import networkx as nx
 import matplotlib.pyplot as plt
 import dispatcher as dsp
