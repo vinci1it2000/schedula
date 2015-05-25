@@ -10,3 +10,7 @@ def combine(*args):
     for a in args[1:]:
         d.update(a)
     return d
+
+
+def bypass(*args):
+    return args
