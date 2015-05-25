@@ -367,10 +367,10 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
     def test_dispatch(self):
         disp = self.disp
 
-        workflow, outputs = disp.dispatch({'/a': 5, '/b': 6})
+        workflow, outputs = disp.dispatch({'/a': 5, '/b': 6, '/f': 9})
 
         self.assertEquals(outputs,
-                          {'/a': 5, '/b': 6, '/c': 0, '/d': 0, '/e': 2})
+                          {'/a': 5, '/b': 6, '/c': 0, '/d': 0, '/e': 2, '/f':9})
 
         res = ['/a', '/b', '/c', '/d', '/e', '2 / (d + 1)', 'log(b - a)', 'min',
                dsp.START]
@@ -612,7 +612,6 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         shrink_dsp = disp.shrink_dsp(['/a', '/b'], ['/e'])
         self.assertEquals(sorted(shrink_dsp.dmap.node), [])
         self.assertEquals(sorted(shrink_dsp.dmap.edges()), [])
-
 
     def test_extract_function_node(self):
         disp = dsp.Dispatcher()

@@ -8,5 +8,5 @@ setup(
     license='',
     author='Vincenzo Arcidiacono',
     author_email='vinci1it2000@gmail.com',
-    description='A dipatch function calls.'
+    description='A dipatch function calls.', requires=['networkx']
 )

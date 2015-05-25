@@ -106,8 +106,7 @@ class Dispatcher(object):
 
     Dispatch the function calls to achieve the desired output data node '/d'::
 
-        >>> workflow, outputs = dsp.dispatch(input_values={'/a': 0},
-        ...                                  output_targets=['/d'])
+        >>> workflow, outputs = dsp.dispatch(inputs={'/a': 0}, outputs=['/d'])
         (log(1) + 4) / 2 = 2.0
         >>> sorted(outputs.items())
         [('/a', 0), ('/b', 1), ('/c', 1), ('/d', 2.0)]
@@ -650,14 +649,14 @@ class Dispatcher(object):
             >>> dsp.add_function(function=max, inputs=['/b', '/d'],
             ...                  outputs=['/a'])
             'builtins:max<0>'
-            >>> res = dsp.dispatch(input_values={'/a': 1})[1]
+            >>> res = dsp.dispatch(inputs={'/a': 1})[1]
             >>> sorted(res.items())
             [('/a', 1), ('/b', 3)]
             >>> dsp_rm_cycles = dsp.remove_cycles(['/a', '/b'])
             >>> dsp_rm_cycles.add_function(function=min, inputs=['/a', '/e'],
             ...                            outputs=['/f'])
             'builtins:min<0>'
-            >>> res = dsp_rm_cycles.dispatch(input_values={'/a': 1, '/e': 0})[1]
+            >>> res = dsp_rm_cycles.dispatch(inputs={'/a': 1, '/e': 0})[1]
             >>> sorted(res.items())
             [('/a', 1), ('/b', 3), ('/c', 3.0), ('/d', 1), ('/e', 0), ('/f', 0)]
         """
@@ -725,7 +724,7 @@ class Dispatcher(object):
             ...                  outputs=['/c', '/d'])
             'fun1'
 
-            >>> wf = dsp.dispatch(input_values=['/a', '/b'], empty_fun=True)[0]
+            >>> wf = dsp.dispatch(inputs=['/a', '/b'], empty_fun=True)[0]
 
             >>> sub_dsp = dsp.get_sub_dsp_from_workflow(['/a', '/b'])
             >>> sub_dsp.default_values
@@ -812,19 +811,19 @@ class Dispatcher(object):
         # return the sub-dispatcher map
         return sub_dsp
 
-    def dispatch(self, input_values=None, output_targets=None, cutoff=None,
+    def dispatch(self, inputs=None, outputs=None, cutoff=None,
                  wildcard=False, empty_fun=False, shrink=False):
         """
         Evaluates the minimum workflow and data outputs of the dispatcher map
         model from given inputs.
 
-        :param input_values:
+        :param inputs:
             Input data values.
-        :type input_values: dict, iterable, optional
+        :type inputs: dict, iterable, optional
 
-        :param output_targets:
+        :param outputs:
             Ending data nodes.
-        :type output_targets: iterable, optional
+        :type outputs: iterable, optional
 
         :param cutoff:
             Depth to stop the search.
@@ -869,7 +868,7 @@ class Dispatcher(object):
             >>> dsp.add_function(function=my_log, inputs=['/a', '/b'],
             ...                  outputs=['/c'], input_domain=my_domain)
             '...dispatcher:my_log'
-            >>> workflow, outputs = dsp.dispatch(output_targets=['/c'])
+            >>> workflow, outputs = dsp.dispatch(outputs=['/c'])
             >>> sorted(outputs.items())
             [('/a', 0), ('/b', 1), ('/c', 0.0)]
             >>> sorted(workflow.nodes())
@@ -878,8 +877,8 @@ class Dispatcher(object):
             [('/a', '...dispatcher:my_log'), ('/b', '...dispatcher:my_log'),
              ('...dispatcher:my_log', '/c'), (start, '/a'), (start, '/b')]
 
-            >>> workflow, outputs = dsp.dispatch(input_values={'/b': 0},
-            ...                                  output_targets=['/c'])
+            >>> workflow, outputs = dsp.dispatch(inputs={'/b': 0},
+            ...                                  outputs=['/c'])
             >>> sorted(outputs.items())
             [('/a', 0), ('/b', 0)]
             >>> sorted(workflow.nodes())
@@ -890,18 +889,27 @@ class Dispatcher(object):
              (start, '/a'),
              (start, '/b')]
         """
+
+        # pre shrink
         if not empty_fun and shrink:
-            dsp = self.shrink_dsp(input_values, output_targets, cutoff,
-                                  wildcard)
+            dsp = self.shrink_dsp(inputs, outputs, cutoff, wildcard)
         else:
             dsp = self
 
         # initialize
-        args = dsp._init_run(input_values, output_targets, wildcard, cutoff,
-                             empty_fun)
+        args = dsp._init_run(inputs, outputs, wildcard, cutoff, empty_fun)
 
         # return the evaluated workflow graph and data outputs
-        return dsp._run(*args)
+        workflow, data_outputs = dsp._run(*args[1:])
+
+        # nodes that are out of the dispatcher nodes
+        out_dsp_nodes = set(args[0]).difference(dsp.nodes)
+
+        # add nodes that are out of the dispatcher nodes
+        data_outputs.update({k: inputs[k] for k in out_dsp_nodes})
+
+        # return the evaluated workflow graph and data outputs
+        return workflow, data_outputs
 
     # TODO: Extend minimum dmap when using function domains
     def shrink_dsp(self, inputs=None, outputs=None, cutoff=None,
@@ -913,9 +921,9 @@ class Dispatcher(object):
             Input data nodes.
         :type inputs: iterable, optional
 
-        :param output_targets:
+        :param outputs:
             Ending data nodes.
-        :type output_targets: iterable, optional
+        :type outputs: iterable, optional
 
         :param cutoff:
             Depth to stop the search.
@@ -1079,10 +1087,9 @@ class Dispatcher(object):
                 return return_output(o)
 
             except KeyError:  # unreached outputs
-                # evaluate unreached outputs
-                missed = set(outputs).difference(o)
                 # raise error
-                raise ValueError('Unreachable output-targets:{}'.format(missed))
+                raise ValueError('Unreachable output-targets:'
+                                 '{}'.format(set(outputs).difference(o)))
 
         # return function attributes
         return {'function': dsp_fun, 'inputs': inputs, 'outputs': outputs}
@@ -1258,7 +1265,7 @@ class Dispatcher(object):
                 initial_values.update(dict.fromkeys(input_values, None))
         else:
             # set initial values
-            initial_values = self.default_values
+            initial_values = self.default_values.copy()
 
             # update initial values with input values
             if input_values is not None:
@@ -1625,7 +1632,7 @@ class Dispatcher(object):
         fringe, seen = self._init_workflow(input_values, input_value)
 
         # return inputs for _run
-        return fringe, seen, empty_fun
+        return input_values, fringe, seen, empty_fun
 
     def _run(self, fringe, seen, empty_fun=False):
         """
