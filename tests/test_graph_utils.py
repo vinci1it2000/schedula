@@ -15,6 +15,9 @@ import unittest
 import networkx as nx
 import dispatcher.graph_utils as dsp
 
+__name__ = 'graph_utils'
+__path__ = ''
+
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):

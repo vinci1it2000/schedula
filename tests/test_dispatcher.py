@@ -18,6 +18,8 @@ import timeit
 
 
 import dispatcher.dispatcher as dsp
+from dispatcher.dispatcher import Dispatcher
+from dispatcher.constants import START, EMPTY
 
 
 DEFAULT_LOG_LEVEL = logging.INFO
@@ -40,7 +42,7 @@ log = _init_logging(DEFAULT_LOG_LEVEL)
 
 def _setup_dsp():
 
-    disp = dsp.Dispatcher()
+    disp = Dispatcher()
 
     disp.add_function('min', min, inputs=['/a', '/c'], outputs=['/d'])
     disp.add_function('max', max, inputs=['/b', '/d'], outputs=['/c'])
@@ -95,13 +97,12 @@ class TestDoctest(unittest.TestCase):
 
 class TestDispatcher(unittest.TestCase):
     def test_add_data(self):
-        dmap = dsp.Dispatcher()
+        dmap = Dispatcher()
 
         self.assertEquals(dmap.add_data(data_id='/a'), '/a')
         self.assertEquals(dmap.add_data(data_id='/a'), '/a')
 
         self.assertEquals(dmap.add_data(), 'unknown<0>')
-        dmap.counter = dsp.count().__next__
         self.assertEquals(dmap.add_data(default_value='v'), 'unknown<1>')
 
         self.assertEquals(dmap.dmap.node['unknown<1>'], {'wait_inputs': False,
@@ -120,7 +121,7 @@ class TestDispatcher(unittest.TestCase):
         self.assertRaises(ValueError, dmap.add_data, *('fun', ))
 
     def test_add_function(self):
-        dmap = dsp.Dispatcher()
+        dmap = Dispatcher()
 
         def my_function(a, b):
             c = a + b
@@ -191,7 +192,7 @@ class TestDispatcher(unittest.TestCase):
         self.assertRaises(ValueError, dmap.add_function, 'f', outputs=[fun_id])
 
     def test_load_from_lists(self):
-        dmap = dsp.Dispatcher()
+        dmap = Dispatcher()
         self.assertEquals(dmap.load_from_lists(), ([], []))
 
         def fun(**kwargs):
@@ -228,7 +229,7 @@ class TestDispatcher(unittest.TestCase):
         self.assertEquals(dmap.dmap.node, res)
 
     def test_set_default_value(self):
-        dmap = dsp.Dispatcher()
+        dmap = Dispatcher()
 
         dmap.add_data('/a', default_value=1)
         self.assertEquals(dmap.default_values['/a'], 1)
@@ -236,7 +237,7 @@ class TestDispatcher(unittest.TestCase):
         dmap.set_default_value('/a', value=2)
         self.assertEquals(dmap.default_values['/a'], 2)
 
-        dmap.set_default_value('/a', value=dsp.EMPTY)
+        dmap.set_default_value('/a', value=EMPTY)
         self.assertFalse('/a' in dmap.default_values)
 
         self.assertRaises(ValueError, dmap.set_default_value, *('/b', 3))
@@ -248,7 +249,7 @@ class TestDispatcher(unittest.TestCase):
         self.assertEquals(dmap.default_values['/b'], 3)
 
     def test_get_sub_dmap(self):
-        dmap = dsp.Dispatcher()
+        dmap = Dispatcher()
         dmap.add_data(data_id='/b', wait_inputs=True, default_value=3)
 
         dmap.add_function('max', inputs=['/a', '/b'], outputs=['/c'])
@@ -293,7 +294,7 @@ class TestDispatcher(unittest.TestCase):
         self.assertEquals(sub_dmap.dmap.node, {})
 
     def get_sub_dmap_from_workflow(self):
-        dmap = dsp.Dispatcher()
+        dmap = Dispatcher()
         dmap.add_data(data_id='/b', wait_inputs=True, default_value=3)
 
         dmap.add_function('max', inputs=['/a', '/b'], outputs=['/c'])
@@ -373,7 +374,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
                           {'/a': 5, '/b': 6, '/c': 0, '/d': 0, '/e': 2, '/f':9})
 
         res = ['/a', '/b', '/c', '/d', '/e', '2 / (d + 1)', 'log(b - a)', 'min',
-               dsp.START]
+               START]
         self.assertEquals(sorted(list(workflow.node)), res)
 
         res = {
@@ -385,7 +386,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
             '2 / (d + 1)': {'/e': {'value': 2.0}},
             'log(b - a)': {'/c': {'value': 0.0}},
             'min': {'/d': {'value': 0.0}},
-            dsp.START: {'/a': {'value': 5}, '/b': {'value': 6}}
+            START: {'/a': {'value': 5}, '/b': {'value': 6}}
         }
         self.assertEquals(workflow.edge, res)
 
@@ -395,7 +396,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
                           {'/a': 5, '/b': 3, '/c': 3, '/d': 1, '/e': 1})
 
         res = ['/a', '/b', '/c', '/d', '/e', '2 / (d + 1)', 'log(b - a)', 'max',
-               dsp.START, 'x - 4']
+               START, 'x - 4']
         self.assertEquals(sorted(list(workflow.node)), res)
 
         res = {
@@ -407,7 +408,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
             '2 / (d + 1)': {'/e': {'value': 1.0}},
             'log(b - a)': {},
             'max': {'/c': {'value': 3}},
-            dsp.START: {'/a': {'value': 5}, '/b': {'value': 3}},
+            START: {'/a': {'value': 5}, '/b': {'value': 3}},
             'x - 4': {'/d': {'value': 1}}
         }
         self.assertEquals(workflow.edge, res)
@@ -417,7 +418,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
                           dict.fromkeys(['/a', '/b', '/c', '/d', '/e']))
 
         res = ['/a', '/b', '/c', '/d', '/e', '2 / (d + 1)', 'log(b - a)', 'min',
-               dsp.START]
+               START]
         self.assertEquals(sorted(list(workflow.node)), res)
 
         res = {
@@ -429,7 +430,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
             '2 / (d + 1)': {'/e': {}},
             'log(b - a)': {'/c': {}},
             'min': {'/d': {}},
-            dsp.START: {'/a': {}, '/b': {}}
+            START: {'/a': {}, '/b': {}}
         }
         self.assertEquals(workflow.edge, res)
 
@@ -437,7 +438,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
 
         self.assertEquals(outputs, {'/a': 5, '/b': 6, '/c': 0, '/d': 0})
 
-        res = ['/a', '/b', '/c', '/d', 'log(b - a)', 'min', dsp.START]
+        res = ['/a', '/b', '/c', '/d', 'log(b - a)', 'min', START]
         self.assertEquals(sorted(list(workflow.node)), res)
 
         res = {
@@ -447,7 +448,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
             '/d': {},
             'log(b - a)': {'/c': {'value': 0.0}},
             'min': {'/d': {'value': 0.0}},
-            dsp.START: {'/a': {'value': 5}, '/b': {'value': 6}}
+            START: {'/a': {'value': 5}, '/b': {'value': 6}}
         }
         self.assertEquals(workflow.edge, res)
 
@@ -455,7 +456,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
 
         self.assertEquals(outputs, {'/a': 5, '/b': 6, '/c': 0})
 
-        res = ['/a', '/b', '/c', 'log(b - a)', dsp.START]
+        res = ['/a', '/b', '/c', 'log(b - a)', START]
         self.assertEquals(sorted(list(workflow.node)), res)
 
         res = {
@@ -463,7 +464,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
             '/b': {'log(b - a)': {'value': 6}},
             '/c': {},
             'log(b - a)': {'/c': {'value': 0.0}},
-            dsp.START: {'/a': {'value': 5}, '/b': {'value': 6}}
+            START: {'/a': {'value': 5}, '/b': {'value': 6}}
         }
         self.assertEquals(workflow.edge, res)
 
@@ -472,7 +473,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
 
         self.assertEquals(outputs, {'/a': 5, '/b': 6, '/c': 0, '/d': 1})
 
-        res = ['/a', '/b', '/c', '/d', 'log(b - a)', dsp.START, 'x - 4']
+        res = ['/a', '/b', '/c', '/d', 'log(b - a)', START, 'x - 4']
         self.assertEquals(sorted(list(workflow.node)), res)
 
         res = {
@@ -482,7 +483,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
             '/d': {},
             'log(b - a)': {'/c': {'value': 0.0}},
             'x - 4': {'/d': {'value': 1}},
-            dsp.START: {'/a': {'value': 5}, '/b': {'value': 6}}
+            START: {'/a': {'value': 5}, '/b': {'value': 6}}
         }
         self.assertEquals(workflow.edge, res)
 
@@ -494,7 +495,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
 
         node = ['/a', '/b', '/c', '/d', '/e',
                 '2 / (d + 1)', 'log(b - a)', 'min',
-                dsp.START, 'x ^ y']
+                START, 'x ^ y']
         self.assertEquals(sorted(list(workflow.node)), node)
 
         edge = {
@@ -506,7 +507,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
             '2 / (d + 1)': {'/e': {'value': 2.0}},
             'log(b - a)': {'/c': {'value': 0.0}},
             'min': {'/d': {'value': 0.0}},
-            dsp.START: {},
+            START: {},
             'x ^ y': {'/b': {'value': 1.0}}
         }
         self.assertEquals(workflow.edge, edge)
@@ -533,14 +534,14 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         disp.dmap.edge['/e']['x ^ y'].pop('weight')
 
     def test_set_node_output(self):
-        disp = dsp.Dispatcher()
+        disp = Dispatcher()
         wf_edge = disp._workflow.edge
         data_out = disp._data_output
         disp.add_data('/a', default_value=[1, 2])
         disp.add_function('max', function=max, inputs=['/a'], outputs=['/b'])
         disp.add_function('max', inputs=['/a'], outputs=['/b'])
-        disp._workflow.add_node(dsp.START, attr_dict={'type': 'start'})
-        disp._workflow.add_edge(dsp.START, '/a', attr_dict={'value': [1, 2]})
+        disp._workflow.add_node(START, attr_dict={'type': 'start'})
+        disp._workflow.add_edge(START, '/a', attr_dict={'value': [1, 2]})
 
         self.assertTrue(disp._set_node_output('/a', False))
         res = {
@@ -550,7 +551,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
             },
             'max': {},
             'max<0>': {},
-            dsp.START: {
+            START: {
                 '/a': {'value': [1, 2]}
             }
         }
@@ -585,7 +586,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         self.assertEquals(callback_obj, {2})
 
     def test_shrink_dsp(self):
-        disp = dsp.Dispatcher()
+        disp = Dispatcher()
         disp.add_function(function=max, inputs=['/a', '/b'], outputs=['/c'])
         disp.add_function(function=max, inputs=['/b', '/d'], outputs=['/e'])
         disp.add_function(function=max, inputs=['/d', '/e'],
@@ -614,7 +615,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         self.assertEquals(sorted(shrink_dsp.dmap.edges()), [])
 
     def test_extract_function_node(self):
-        disp = dsp.Dispatcher()
+        disp = Dispatcher()
         disp.add_function(function=max, inputs=['/a', '/b'], outputs=['/c'])
         disp.add_function(function=min, inputs=['/c', '/b'], outputs=['/a'],
                           input_domain=lambda c, b: c * b > 0)
@@ -628,7 +629,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
 
 class TestRemoveCycles(unittest.TestCase):
     def test_remove_cycles(self):
-        dmap = dsp.Dispatcher()
+        dmap = Dispatcher()
 
         def average(kwargs):
             return sum(kwargs.values()) / len(kwargs)

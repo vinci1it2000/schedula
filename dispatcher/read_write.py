@@ -1,11 +1,11 @@
 __author__ = 'Vincenzo Arcidiacono'
 
-import networkx as nx
-
+from networkx.utils import open_file
+from networkx.readwrite import read_gpickle, write_gpickle
 from pickle import dump, load, HIGHEST_PROTOCOL
+from dispatcher import Dispatcher
 
-
-@nx.utils.open_file(1, mode='wb')
+@open_file(1, mode='wb')
 def save_dispatcher(dmap, path):
     """
     Write Dispatcher object in Python pickle format.
@@ -20,9 +20,8 @@ def save_dispatcher(dmap, path):
 
     Example::
 
-        >>> import dispatcher as dsp
         >>> from tempfile import gettempdir
-        >>> dmap = dsp.Dispatcher()
+        >>> dmap = Dispatcher()
         >>> tmp = '/'.join([gettempdir(), 'test.dispatcher'])
         >>> save_dispatcher(dmap, tmp)
     """
@@ -31,7 +30,7 @@ def save_dispatcher(dmap, path):
     dump(dmap, path, HIGHEST_PROTOCOL)
 
 
-@nx.utils.open_file(0, mode='rb')
+@open_file(0, mode='rb')
 def load_dispatcher(path):
     """
     Load Dispatcher object in Python pickle format.
@@ -50,7 +49,7 @@ def load_dispatcher(path):
     Example::
 
         >>> from tempfile import gettempdir
-        >>> dmap = dsp.Dispatcher()
+        >>> dmap = Dispatcher()
         >>> dmap.add_data()
         0
         >>> tmp = '/'.join([gettempdir(), 'test.dispatcher'])
@@ -64,7 +63,7 @@ def load_dispatcher(path):
     return load(path)
 
 
-@nx.utils.open_file(1, mode='wb')
+@open_file(1, mode='wb')
 def save_default_values(dmap, path):
     """
     Write Dispatcher default values in Python pickle format.
@@ -83,7 +82,7 @@ def save_default_values(dmap, path):
     Example::
 
         >>> from tempfile import gettempdir
-        >>> dmap = dsp.Dispatcher()
+        >>> dmap = Dispatcher()
         >>> tmp = '/'.join([gettempdir(), 'test.dispatcher_default'])
         >>> save_default_values(dmap, tmp)
     """
@@ -92,7 +91,7 @@ def save_default_values(dmap, path):
     dump(dmap.default_values, path, HIGHEST_PROTOCOL)
 
 
-@nx.utils.open_file(1, mode='rb')
+@open_file(1, mode='rb')
 def load_default_values(dmap, path):
     """
     Load Dispatcher default values in Python pickle format.
@@ -112,11 +111,11 @@ def load_default_values(dmap, path):
 
         >>> from tempfile import gettempdir
         >>> tmp = '/'.join([gettempdir(), 'test.dispatcher_default'])
-        >>> dmap = dsp.Dispatcher()
+        >>> dmap = Dispatcher()
         >>> dmap.add_data(default_value=5)
         0
         >>> save_default_values(dmap, tmp)
-        >>> dmap_loaded = dsp.Dispatcher()
+        >>> dmap_loaded = Dispatcher()
         >>> load_default_values(dmap_loaded, tmp)
         >>> dmap_loaded.default_values == dmap.default_values
         True
@@ -145,11 +144,11 @@ def save_graph(dmap, path):
 
         >>> from tempfile import gettempdir
         >>> tmp = '/'.join([gettempdir(), 'test.dispatcher_graph'])
-        >>> dmap = dsp.Dispatcher()
+        >>> dmap = Dispatcher()
         >>> save_graph(dmap, tmp)
     """
 
-    nx.write_gpickle(dmap.dmap, path)
+    write_gpickle(dmap.dmap, path)
 
 
 def load_graph(dmap, path):
@@ -168,15 +167,15 @@ def load_graph(dmap, path):
 
         >>> from tempfile import gettempdir
         >>> tmp = '/'.join([gettempdir(), 'test.dispatcher_graph'])
-        >>> dmap = dsp.Dispatcher()
+        >>> dmap = Dispatcher()
         >>> fun_node = dmap.add_function(function=max, inputs=['/a'])
         >>> fun_node
         'builtins:max'
         >>> save_graph(dmap, tmp)
-        >>> dmap_loaded = dsp.Dispatcher()
+        >>> dmap_loaded = Dispatcher()
         >>> load_graph(dmap_loaded, tmp)
         >>> dmap_loaded.dmap.degree(fun_node) == dmap.dmap.degree(fun_node)
         True
     """
 
-    dmap.dmap = nx.read_gpickle(path)
+    dmap.dmap = read_gpickle(path)

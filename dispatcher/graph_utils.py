@@ -4,7 +4,7 @@
 .. moduleauthor:: Vincenzo Arcidiacono <vinci1it2000@gmail.com>
 
 """
-import networkx as nx
+
 from heapq import heappush, heappop
 from itertools import count
 from .utils import pairwise, heap_flush
@@ -127,7 +127,7 @@ def dijkstra(graph, source, targets=None, cutoff=None, weight=True):
     :rtype: dictionaries
 
     Example::
-
+        >>> import networkx as nx
         >>> graph = nx.path_graph(5)
         >>> length, path = dijkstra(graph, 0)
         >>> print(length[4])

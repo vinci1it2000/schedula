@@ -12,6 +12,8 @@ import logging
 import doctest
 import unittest
 from dispatcher import draw
+__name__ = 'draw'
+__path__ = ''
 
 
 class TestDoctest(unittest.TestCase):

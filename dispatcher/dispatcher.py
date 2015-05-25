@@ -8,17 +8,13 @@
 __author__ = 'Vincenzo Arcidiacono'
 
 import warnings
-import networkx as nx
+from networkx import DiGraph, isolates
 from heapq import heappush, heappop
 from itertools import count
 from collections import OrderedDict
-from .utils import Token, rename_function, AttrDict
+from .utils import rename_function, AttrDict
 from .graph_utils import add_edge_fun, remove_cycles_iteration
-
-
-EMPTY = Token('empty')
-
-START = Token('start')
+from .constants import EMPTY, START
 
 
 class Dispatcher(object):
@@ -32,7 +28,7 @@ class Dispatcher(object):
 
     :param dmap:
         A directed graph that stores data & functions parameters.
-    :type dmap: nx.DiGraph
+    :type dmap: DiGraph
 
     \***************************************************************************
 
@@ -113,11 +109,11 @@ class Dispatcher(object):
     """
 
     def __init__(self, dmap=None):
-        self.dmap = dmap if dmap else nx.DiGraph()
+        self.dmap = dmap if dmap else DiGraph()
         self.dmap.node = AttrDict(self.dmap.node)
         self.nodes = self.dmap.node
         self.default_values = {}
-        self._workflow = nx.DiGraph()  # graph output
+        self._workflow = DiGraph()  # graph output
         self._data_output = {}
         self._dist = {}
         self._visited = set()
@@ -603,7 +599,7 @@ class Dispatcher(object):
                 dmap_remove_node(u)  # remove function node
 
         # remove isolate nodes from sub-graph
-        sub_dmap.dmap.remove_nodes_from(nx.isolates(sub_dmap.dmap))
+        sub_dmap.dmap.remove_nodes_from(isolates(sub_dmap.dmap))
 
         # set default values
         sub_dmap.default_values = {k: dmap_dv[k] for k in dmap_dv if k in nodes}
@@ -696,7 +692,7 @@ class Dispatcher(object):
 
         :param graph:
             A directed graph where evaluate the breadth-first-search.
-        :type graph: nx.DiGraph
+        :type graph: DiGraph
 
         :param reverse:
             If True the workflow graph is assumed as reversed.
@@ -846,7 +842,7 @@ class Dispatcher(object):
         :return:
             - workflow: A directed graph with data node estimations.
             - data_output: Dictionary of estimated data node outputs.
-        :rtype: (NetworkX DiGraph, dict)
+        :rtype: (DiGraph, dict)
 
         \***********************************************************************
 
@@ -1648,7 +1644,7 @@ class Dispatcher(object):
         :return:
             - workflow: A directed graph with data node estimations.
             - data_output: Dictionary of estimated data node outputs.
-        :rtype: (NetworkX DiGraph, dict)
+        :rtype: (DiGraph, dict)
         """
 
         # namespace shortcuts for speed
