@@ -24,7 +24,7 @@ from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy import stats
 import time
 import pandas as pd
-
+from collections import OrderedDict
 __author__ = 'Vincenzo Arcidiacono'
 _rule_couter = None
 CORR_FUN_FLAG = False
@@ -49,7 +49,9 @@ full_load = {
          0.846217049, 0.906754984, 0.94977083, 0.981937981, 1,
          0.937598144, 0.85])
 }
+
 T0 = 300
+
 def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
     from itertools import tee
@@ -96,49 +98,52 @@ def median_filter(x,y,dx_window):
 
     return list(median_filter_iterator(x,y,dx_window))
 
-def clear_fluctuations_gears(x,y,dx_window):
 
-    values = [list(v) for v in zip(x,y)]
-    from statistics import median_high
-    samples = []
-    dx_w=dx_window/2
-    it = iter(values)
-    val = next(it)
-    samples.append(val)
-    stop_add = False
-    for x0 in x:
+def sliding_window(xy, dx_window):
+
+    dx = dx_window / 2
+    it = iter(xy)
+    v = next(it)
+    window = []
+    for x, y in xy:
+        # window limits
+        x_dn = x - dx
+        x_up = x + dx
+
         #remove samples
-        x_1 = x0-dx_w
-
-        for i,xy in enumerate(samples):
-            if xy[0]>=x_1:samples=samples[i:]; break
+        window = [w for w in window if w[0] >= x_dn]
 
         #add samples
-        x1 = x0+dx_w
-        while (not stop_add) and val[0]<=x1:
-            samples.append(val)
+        while v and v[0] <= x_up:
+            window.append(v)
             try:
-                val = next(it)
+                v = next(it)
             except StopIteration:
-                stop_add = True
+                v = None
 
-        up = (False, None)
-        dn = (False, None)
-        XX,YY = zip(*samples)
-        for k,d in enumerate(np.diff(YY)):
+        yield window
+
+
+def clear_fluctuations_gears(times, gears, dx_window):
+    from statistics import median_high
+    values = [list(v) for v in zip(times, gears)]
+    for samples in sliding_window(values, dx_window):
+        up, dn = (None, None)
+        x, y = zip(*samples)
+        for k, d in enumerate(np.diff(y)):
             if d > 0:
-                up = (True, k)
+                up = (k, )
             elif d < 0:
-                dn = (True, k)
-            if up[0] and dn[0]:
-                k0 = min(up[1], dn[1])
-                k1 = max(up[1], dn[1])+1
+                dn = (k, )
 
-                Y = median_high(YY[k0:k1])
-                for i in range(k0+1,k1):
+            if up and dn:
+                k0 = min(up[0], dn[0])
+                k1 = max(up[0], dn[0]) + 1
+                Y = median_high(y[k0:k1])
+                for i in range(k0 + 1, k1):
                     samples[i][1] = Y
-                up = (False, None)
-                dn = (False, None)
+                up, dn = (None, None)
+
     return [v[1] for v in values]
 
 def reject_outliers(data, m=2):
@@ -751,7 +756,6 @@ class Cycle(object):
                 #    return None
                 gear = 0 if v * velocity < self.min_rpm[1] else k
                 if velocity>0.1 and acceleration>0 and gear==0: gear=1
-                if max_gear != gear and  ratio < v * 1.1: gear +=1
                 return gear
 
             ratio = rpm/self.velocity
