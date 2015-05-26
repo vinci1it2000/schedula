@@ -6,14 +6,12 @@
 Welcome to dispatcher's documentation!
 ======================================
 
-.. automodule:: dispatcher
-
 
 Contents:
 
 .. toctree::
 
-   dispatcher
+   dispatcher/dispatcher
 
 
 Indices and tables
