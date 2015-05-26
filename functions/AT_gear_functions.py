@@ -1,10 +1,12 @@
 #!python
 """
-module AT_gear_functions
 
-This module provides access to the functions to predict the A/T gear shifting.
+.. module:: AT_gear_functions
 
-according to decision tree approach and the corrected matrix velocity.
+.. moduleauthor:: Vincenzo Arcidiacono <vinci1it2000@gmail.com>
+
+This module provides functions to predict the A/T gear shifting according to
+the decision tree approach and the corrected matrix velocity.
 """
 
 __author__ = 'Arcidiacono Vincenzo'
