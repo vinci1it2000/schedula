@@ -115,7 +115,7 @@ def bin_split(x, bin_std=(0.01, 0.1), n_min=None, bins_min=None):
             _bin_split(y1, m_y1, std_y1, m, x_max)
 
         else:
-            heappush(bin_stats, (np.median(x), std / n, std, m, n))
+            heappush(bin_stats, [np.median(x), std / n, std, m, n])
 
     def _stats(x):
         m = np.mean(x)
@@ -142,14 +142,14 @@ def bin_split(x, bin_std=(0.01, 0.1), n_min=None, bins_min=None):
                 if std < bin_std[1]:
                     n = v0[1][3] + v1[1][3]
                     bins[k0 + 1] = (
-                        (e_min, e_max), (np.median(y), std / n, std, m, n))
+                        (e_min, e_max), [np.median(y), std / n, std, m, n])
                     del bins[k0]
 
         for e, s in bins.values():
             new_edges.append(e[1])
             if s[2] < bin_std[1]:
                 s[2] *= s[3]
-                heappush(new_bin_stats, s[1:] + (s[0], ))
+                heappush(new_bin_stats, s[1:] + [s[0]])
 
         new_bin_stats = heap_flush(new_bin_stats)
         return new_edges, new_bin_stats

@@ -7,7 +7,7 @@
 
 __author__ = 'Vincenzo Arcidiacono'
 
-import warnings
+import logging
 import networkx as nx
 from heapq import heappush, heappop
 from itertools import count
@@ -16,8 +16,7 @@ from .utils import rename_function, AttrDict
 from .graph_utils import add_edge_fun, remove_cycles_iteration
 from .constants import EMPTY, START
 
-
-
+log = logging.getLogger(__name__)
 
 class Dispatcher(object):
     """
@@ -1464,7 +1463,7 @@ class Dispatcher(object):
                     # is missing estimation function of data node
                     msg = 'Estimation error at data node ({}) ' \
                           'due to: {}'.format(node_id, ex)
-                    warnings.warn(msg)  # raise a Warning
+                    log.warning(msg, exc_info=1)  # raise a Warning
                     return False
 
             if 'callback' in node_attr:  # invoke callback function of data node
@@ -1553,7 +1552,7 @@ class Dispatcher(object):
             # is missing function of the node or args are not in the domain
             msg = 'Estimation error at function node ({}) ' \
                   'due to: {}'.format(node_id, ex)
-            warnings.warn(msg)  # raise a Warning
+            log.warning(msg, exc_info=1)  # raise a Warning
             return False
 
         # set workflow

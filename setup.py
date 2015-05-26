@@ -33,5 +33,5 @@ setup(name='doit-graphx',
       ],
 
       py_modules=['jrcgear'],
-      install_requires=['pandas','tkinter','numpy','scipy','sklearn','matplotlib'],
+      install_requires=['pandas','numpy','scipy','matplotlib'],
       )

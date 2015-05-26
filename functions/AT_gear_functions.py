@@ -1,6 +1,5 @@
 #!python
 """
-
 .. module:: AT_gear_functions
 
 .. moduleauthor:: Vincenzo Arcidiacono <vinci1it2000@gmail.com>
@@ -31,7 +30,7 @@ from .utils import median_filter, sliding_window, pairwise, grouper, \
 
 EPS = 1 + sys.float_info.epsilon
 
-INF = 10000
+INF = 10000.0
 
 MIN_GEAR = 0
 
@@ -39,23 +38,24 @@ MAX_TIME_SHIFT = 3.0
 
 MIN_ENGINE_SPEED = 100.0
 
-TIME_WINDOW = 4
+TIME_WINDOW = 4.0
 
-full_load = {
-    'gas': InterpolatedUnivariateSpline(
-        np.linspace(0, 1.2, 13),
-        [0.1, 0.198238659, 0.30313392, 0.410104642, 0.516920841, 0.621300767,
-         0.723313491, 0.820780368, 0.901750158, 0.962968496, 0.995867804,
-         0.953356174, 0.85]),
-    'diesel': InterpolatedUnivariateSpline(
-        np.linspace(0, 1.2, 13),
-        [0.1, 0.278071182, 0.427366185, 0.572340499, 0.683251935, 0.772776746,
-         0.846217049, 0.906754984, 0.94977083, 0.981937981, 1,
-         0.937598144, 0.85])
-}
+def get_full_load(name):
+    full_load = {
+        'gas': InterpolatedUnivariateSpline(
+            np.linspace(0, 1.2, 13),
+            [0.1, 0.198238659, 0.30313392, 0.410104642, 0.516920841,
+             0.621300767, 0.723313491, 0.820780368, 0.901750158, 0.962968496,
+             0.995867804, 0.953356174, 0.85]),
+        'diesel': InterpolatedUnivariateSpline(
+            np.linspace(0, 1.2, 13),
+            [0.1, 0.278071182, 0.427366185, 0.572340499, 0.683251935,
+             0.772776746, 0.846217049, 0.906754984, 0.94977083, 0.981937981,
+             1, 0.937598144, 0.85])
+    }
+    return full_load[name]
 
-
-def clear_gear_fluctuations(times, gears, dt_window):
+def _clear_gear_fluctuations(times, gears, dt_window):
     """
     Clears the gear identification fluctuations.
 
@@ -104,8 +104,8 @@ def clear_gear_fluctuations(times, gears, dt_window):
     return np.array([y[1] for y in xy])
 
 
-def identify_velocity_speed_ratios(gear_box_speeds, velocities,
-                                   idle_engine_speed):
+def identify_velocity_speed_ratios(
+        gear_box_speeds, velocities, idle_engine_speed):
     """
     Identifies velocity speed ratios from gear box speed vector.
 
@@ -197,45 +197,6 @@ def calculate_speed_velocity_ratios(gear_box_ratios, final_drive, r_dynamic):
     return svr
 
 
-def calculate_engine_speeds(gears, velocities, velocity_speed_ratios,
-                            idle_engine_speed):
-    """
-    Calculates engine speed vector.
-
-    :param gears:
-        Gear vector.
-    :type gears: np.array
-
-    :param velocities:
-        Velocity vector.
-    :type velocities: np.array
-
-    :param velocity_speed_ratios:
-        Constant velocity speed ratios of the gear box.
-    :type velocity_speed_ratios: dict
-
-    :param idle_engine_speed:
-        Engine speed idle median and std.
-    :type idle_engine_speed: (float, float)
-
-    :return:
-        Engine speed vector.
-    :rtype: np.array
-    """
-
-    vsr = [EPS / idle_engine_speed[0]]
-
-    def get_vsr(g):
-        vsr[0] = velocity_speed_ratios.get(g, vsr[0])
-        return vsr[0]
-
-    speeds = velocities / np.vectorize(get_vsr)(gears)
-
-    speeds[velocities < EPS] = idle_engine_speed[0]
-
-    return speeds
-
-
 def calculate_velocity_speed_ratios(speed_velocity_ratios):
     """
     Calculates velocity speed (or speed velocity) ratios of the gear box.
@@ -258,60 +219,6 @@ def calculate_velocity_speed_ratios(speed_velocity_ratios):
             return 1 / v
 
     return {k: inverse(v) for k, v in speed_velocity_ratios.items()}
-
-
-def calculate_gear_box_speeds_from_engine_speeds(times, velocities,
-                                                 engine_speeds,
-                                                 velocity_speed_ratios):
-    """
-    Calculates the gear box speeds applying a constant time shift.
-
-    :param times:
-        Time vector.
-    :type times: np.array
-
-    :param velocities:
-        Velocity vector.
-    :type velocities: np.array
-
-    :param engine_speeds:
-        Engine speed vector.
-    :type engine_speeds: np.array
-
-    :param velocity_speed_ratios:
-        Constant velocity speed ratios of the gear box.
-    :type velocity_speed_ratios: dict
-
-    :return:
-        Gear box speed vector.
-    :rtype: np.array
-    """
-
-    bins = [-INF, 0]
-    bins.extend([v for k, v in sorted(velocity_speed_ratios.items())])
-    bins.append(INF)
-    bins = bins[:-1] + np.diff(bins) / 2
-    bins[0] = 0
-
-    speeds = InterpolatedUnivariateSpline(times, engine_speeds)
-
-    def error_fun(dt):
-        s = speeds(times + dt)
-
-        b = s > 0
-        ratio = velocities[b] / s[b]
-
-        std = binned_statistic(ratio, ratio, np.std, bins)[0]
-        w = binned_statistic(ratio, ratio, 'count', bins)[0]
-
-        return sum(std * w)
-
-    shift = brute(error_fun, (slice(-MAX_TIME_SHIFT, MAX_TIME_SHIFT, 0.1), ))
-
-    gear_box_speeds = speeds(times + shift)
-    gear_box_speeds[gear_box_speeds < 0] = 0
-
-    return gear_box_speeds
 
 
 def calculate_accelerations(times, velocities):
@@ -372,6 +279,59 @@ def calculate_wheel_powers(velocities, accelerations, road_loads, inertia):
     return (quadratic_term + 1.03 * inertia * accelerations) * velocities / 3600
 
 
+def calculate_gear_box_speeds_from_engine_speeds(
+        times, velocities, engine_speeds, velocity_speed_ratios):
+    """
+    Calculates the gear box speeds applying a constant time shift.
+
+    :param times:
+        Time vector.
+    :type times: np.array
+
+    :param velocities:
+        Velocity vector.
+    :type velocities: np.array
+
+    :param engine_speeds:
+        Engine speed vector.
+    :type engine_speeds: np.array
+
+    :param velocity_speed_ratios:
+        Constant velocity speed ratios of the gear box.
+    :type velocity_speed_ratios: dict
+
+    :return:
+        Gear box speed vector.
+    :rtype: np.array
+    """
+
+    bins = [-INF, 0]
+    bins.extend([v for k, v in sorted(velocity_speed_ratios.items()) if k > 0])
+    bins.append(INF)
+    bins = bins[:-1] + np.diff(bins) / 2
+    bins[0] = 0
+
+    speeds = InterpolatedUnivariateSpline(times, engine_speeds)
+
+    def error_fun(dt):
+        s = speeds(times + dt)
+
+        b = s > 0
+        ratio = velocities[b] / s[b]
+
+        std = binned_statistic(ratio, ratio, np.std, bins)[0]
+        w = binned_statistic(ratio, ratio, 'count', bins)[0]
+
+        return sum(std * w)
+
+    shift = brute(error_fun, (slice(-MAX_TIME_SHIFT, MAX_TIME_SHIFT, 0.1), ))
+
+    gear_box_speeds = speeds(times + shift)
+    gear_box_speeds[gear_box_speeds < 0] = 0
+
+    return gear_box_speeds
+
+
 def identify_idle_engine_speed(velocities, engine_speeds):
     """
     Identifies engine speed idle.
@@ -426,7 +386,7 @@ def identify_upper_bound_engine_speed(gears, engine_speeds, idle_engine_speed):
 
     max_gear = max(gears)
 
-    idle_speed = sum(idle_engine_speed[1])
+    idle_speed = idle_engine_speed[1]
 
     dom = (engine_speeds > idle_speed) & (gears < max_gear)
 
@@ -517,13 +477,13 @@ def identify_gears(
 
     idle_speed = idle_engine_speed[0] - idle_engine_speed[1]
 
-    it = zip(ratios, velocities, accelerations, repeat(idle_speed), repeat(vsr))
+    it = (ratios, velocities, accelerations, repeat(idle_speed), repeat(vsr))
 
-    gear = list(map(_identify_gear, it))
+    gear = list(map(_identify_gear, *it))
 
     gear = median_filter(times, gear, TIME_WINDOW)
 
-    return clear_gear_fluctuations(times, gear, TIME_WINDOW)
+    return _clear_gear_fluctuations(times, gear, TIME_WINDOW)
 
 
 def _correct_gear_upper_bound_engine_speed(
@@ -572,8 +532,9 @@ def _correct_gear_upper_bound_engine_speed(
 
 
 def _correct_gear_full_load(
-        velocity, acceleration, gear, velocity_speed_ratios, p_max, n_rated,
-        idle_engine_speed, full_load_curve, road_loads, inertia, min_gear):
+        velocity, acceleration, gear, velocity_speed_ratios, max_engine_power,
+        max_engine_speed_at_max_power, idle_engine_speed, full_load_curve,
+        road_loads, inertia, min_gear):
     """
     Corrects the gear predicted according to upper bound engine speed.
 
@@ -593,13 +554,13 @@ def _correct_gear_full_load(
         Constant velocity speed ratios of the gear box.
     :type velocity_speed_ratios: dict
 
-    :param p_max:
+    :param max_engine_power:
         Maximum power.
-    :type p_max: float
+    :type max_engine_power: float
 
-    :param n_rated:
+    :param max_engine_speed_at_max_power:
         Rated engine speed.
-    :type n_rated: float
+    :type max_engine_speed_at_max_power: float
 
     :param idle_engine_speed:
         Engine speed idle median and std.
@@ -623,9 +584,9 @@ def _correct_gear_full_load(
     """
 
     p_norm = calculate_wheel_powers(velocity, acceleration, road_loads, inertia)
-    p_norm /= p_max * 0.9
+    p_norm /= max_engine_power * 0.9
 
-    r = velocity / (n_rated - idle_engine_speed[0])
+    r = velocity / (max_engine_speed_at_max_power - idle_engine_speed[0])
 
     vsr = velocity_speed_ratios
     flc = full_load_curve
@@ -640,43 +601,46 @@ def _correct_gear_full_load(
 
 
 def correct_gear_v0(
-        velocity_speed_ratios, speed_upper_bound_goal, p_max, n_rated,
-        idle_engine_speed, full_load_curve, road_loads, inertia):
+        velocity_speed_ratios, upper_bound_engine_speed, max_engine_power,
+        max_engine_speed_at_max_power, idle_engine_speed, full_load_curve,
+        road_loads, inertia):
     max_gear = max(velocity_speed_ratios)
     min_gear = min([k for k in velocity_speed_ratios if k >= MIN_GEAR])
 
     def correct_gear_speed_full_load(velocity, acceleration, gear):
-        g1 = _correct_gear_upper_bound_engine_speed(
+        g = _correct_gear_upper_bound_engine_speed(
             velocity, acceleration, gear, velocity_speed_ratios, max_gear,
-            speed_upper_bound_goal)
+            upper_bound_engine_speed)
 
         return _correct_gear_full_load(
-            velocity, acceleration, g1, velocity_speed_ratios, p_max, n_rated,
-            idle_engine_speed, full_load_curve, road_loads, inertia, min_gear)
+            velocity, acceleration, g, velocity_speed_ratios, max_engine_power,
+            max_engine_speed_at_max_power, idle_engine_speed, full_load_curve,
+            road_loads, inertia, min_gear)
 
     return correct_gear_speed_full_load
 
 
-def correct_gear_v1(velocity_speed_ratios, speed_upper_bound_goal):
+def correct_gear_v1(velocity_speed_ratios, upper_bound_engine_speed):
     max_gear = max(velocity_speed_ratios)
 
     def correct_gear_speed(velocity, acceleration, gear):
         return _correct_gear_upper_bound_engine_speed(
             velocity, acceleration, gear, velocity_speed_ratios, max_gear,
-            speed_upper_bound_goal)
+            upper_bound_engine_speed)
 
     return correct_gear_speed
 
 
 def correct_gear_v2(
-        velocity_speed_ratios, p_max, n_rated, idle_engine_speed,
-        full_load_curve, road_loads, inertia):
+        velocity_speed_ratios, max_engine_power, max_engine_speed_at_max_power,
+        idle_engine_speed, full_load_curve, road_loads, inertia):
     min_gear = min([k for k in velocity_speed_ratios if k >= MIN_GEAR])
 
     def correct_gear_full_load(velocity, acceleration, gear):
         return _correct_gear_full_load(
-            velocity, acceleration, gear, velocity_speed_ratios, p_max, n_rated,
-            idle_engine_speed, full_load_curve, road_loads, inertia, min_gear)
+            velocity, acceleration, gear, velocity_speed_ratios,
+            max_engine_power, max_engine_speed_at_max_power, idle_engine_speed,
+            full_load_curve, road_loads, inertia, min_gear)
 
     return correct_gear_full_load
 
@@ -759,12 +723,12 @@ def _correct_gsv_for_constant_velocities(gsv):
                 return v + delta
         return velocity
 
-    def fun(k, v):
+    def fun(v):
         limits = (set_velocity(v[0], down_cns_vel, down_limit, down_delta),
                   set_velocity(v[1], up_cns_vel, up_limit, up_delta))
-        return k, limits
+        return limits
 
-    return dict(map(fun, gsv['gsv'].items()))
+    return {k: fun(v) for k, v in gsv.items()}
 
 
 def calibrate_gear_shifting_cmv(
@@ -879,8 +843,7 @@ def calibrate_gear_shifting_cmv_hot_cold(
         cmv[i] = calibrate_gear_shifting_cmv(
             correct_gear, gears[b], engine_speeds[b], velocities[b],
             accelerations[b], velocity_speed_ratios, idle_engine_speed)
-
-        b = not b
+        b = np.logical_not(b)
 
     return cmv
 
@@ -948,7 +911,7 @@ def _correct_gsv(gsv):
     return gsv
 
 
-def identify_gspv(gears, velocities, wheel_powers):
+def calibrate_gspv(gears, velocities, wheel_powers):
     """
     Identifies gear shifting power velocity matrix.
 
@@ -993,13 +956,13 @@ def identify_gspv(gears, velocities, wheel_powers):
         if len(v[1][0]) > 2:
             v[1] = interpolate_cloud(*v[1])
         else:
-            v[1] = [np.mean(v[1])] * 2
+            v[1] = [np.mean(v[1][1])] * 2
             v[1] = InterpolatedUnivariateSpline([0, 1], v[1], k=1)
 
     return gspv
 
 
-def identify_gspv_hot_cold(
+def calibrate_gspv_hot_cold(
         times, gears, velocities, wheel_powers, time_cold_hot_transition):
     """
     Identifies gear shifting power velocity matrices for cold and hot phases.
@@ -1034,8 +997,8 @@ def identify_gspv_hot_cold(
     b = times <= time_cold_hot_transition
 
     for i in ['cold', 'hot']:
-        gspv[i] = identify_gspv(gears[b], velocities[b], wheel_powers[b])
-        b = not b
+        gspv[i] = calibrate_gspv(gears[b], velocities[b], wheel_powers[b])
+        b = np.logical_not(b)
 
     return gspv
 
@@ -1074,11 +1037,11 @@ def prediction_gears_decision_tree(correct_gear, decision_tree, times, *params):
         gear[0] = correct_gear(args[0], args[1], g)
         return gear[0]
 
-    gear = np.vectorize(predict_gear)(zip(*params))
+    gear = np.vectorize(predict_gear)(*params)
 
     gear = median_filter(times, gear, TIME_WINDOW)
 
-    return clear_gear_fluctuations(times, gear, TIME_WINDOW)
+    return _clear_gear_fluctuations(times, gear, TIME_WINDOW)
 
 
 def prediction_gears_gsm(
@@ -1149,7 +1112,7 @@ def prediction_gears_gsm(
 
     if times is not None:
         gear = median_filter(times, gear, TIME_WINDOW)
-        gear = clear_gear_fluctuations(times, gear, TIME_WINDOW)
+        gear = _clear_gear_fluctuations(times, gear, TIME_WINDOW)
 
     return gear
 
@@ -1201,11 +1164,52 @@ def prediction_gears_gsm_hot_cold(
     gear = []
 
     for i in ['cold', 'hot']:
-        args = [correct_gear, gsm[i], velocities[b], accelerations[b]]
+        args = [correct_gear, gsm[i], velocities[b], accelerations[b], times[b]]
         if wheel_powers is not None:
             args.append(wheel_powers[b])
 
         gear = np.append(gear, prediction_gears_gsm(*args))
-        b = not b
+        b = np.logical_not(b)
 
     return gear
+
+
+def calculate_engine_speeds(
+        gears, velocities, velocity_speed_ratios, idle_engine_speed):
+    """
+    Calculates engine speed vector.
+
+    :param gears:
+        Gear vector.
+    :type gears: np.array
+
+    :param velocities:
+        Velocity vector.
+    :type velocities: np.array
+
+    :param velocity_speed_ratios:
+        Constant velocity speed ratios of the gear box.
+    :type velocity_speed_ratios: dict
+
+    :param idle_engine_speed:
+        Engine speed idle median and std.
+    :type idle_engine_speed: (float, float)
+
+    :return:
+        Engine speed vector.
+    :rtype: np.array
+    """
+
+    vsr = [EPS / idle_engine_speed[0]]
+
+    def get_vsr(g):
+        vsr[0] = velocity_speed_ratios.get(g, vsr[0])
+        return float(vsr[0])
+
+    vsr = np.vectorize(get_vsr)(gears)
+
+    speeds = velocities / vsr
+
+    speeds[(velocities < EPS) | (vsr == 0)] = idle_engine_speed[0]
+
+    return speeds

@@ -1,286 +1,476 @@
 __author__ = 'Vincenzo_Arcidiacono'
 from dispatcher import Dispatcher
 from functions.AT_gear_functions import *
-
-data = [
-    {'data_id': 'T0', 'default_value': 300}
-]
-
-functions = [
-    {  # evaluate speed/velocity ratios
-       'function': calculate_velocity_speed_ratios_v0,
-       'inputs': ['gear_box_ratios', 'final_drive', 'R_dynamic'],
-       'outputs': ['speed_velocity_ratios'],
-    },
-    {  # evaluate speed/velocity ratios
-       'function': identify_speed_velocity_ratios,
-       'inputs': ['gears', 'velocities', 'gear_box_speeds'],
-       'outputs': ['speed_velocity_ratios'],
-       'weight': 5,
-    },
-    {  # evaluate speed/velocity ratios
-       'function': identify_speed_velocity_ratios,
-       'inputs': ['gears', 'velocities', 'engine_speeds'],
-       'outputs': ['speed_velocity_ratios'],
-       'weight': 10,
-    },
-    {  # evaluate accelerations
-       'function': calculate_accelerations,
-       'inputs': ['times', 'velocities'],
-       'outputs': ['accelerations'],
-    },
-    {  # evaluate wheel powers
-       'function': calculate_wheel_powers,
-       'inputs': ['velocities', 'accelerations', 'road_loads', 'inertia'],
-       'outputs': ['wheel_powers'],
-    },
-    {  # evaluate gear box speeds
-       'function': eng_speed2gb_speed,
-       'inputs': ['speed_velocity_ratios', 'times', 'velocities',
-                  'accelerations', 'engine_speeds', 'temperatures'],
-       'outputs': ['torque_converter_coefficients', 'gear_box_speeds'],
-    },
-    {  # evaluate gear box speeds
-       'function': eng_speed2gb_speed,
-       'inputs': ['speed_velocity_ratios', 'times', 'velocities',
-                  'accelerations', 'engine_speeds'],
-       'outputs': ['torque_converter_coefficients', 'gear_box_speeds'],
-       'weight': 5,
-    },
-    {  # gear identification
-       'function': identify_gears,
-       'inputs': ['times', 'velocities', 'accelerations', 'gear_box_speeds',
-                  'speed_velocity_ratios'],
-       'outputs': ['gears'],
-    },
-    {  # gear identification
-       'function': identify_gears,
-       'inputs': ['times', 'velocities', 'accelerations', 'engine_speeds',
-                  'speed_velocity_ratios'],
-       'outputs': ['gears'],
-       'weight': 10,
-    },
-    {  # evaluate lower bound engine speed
-       'function': evaluate_speed_min,
-       'inputs': ['velocities', 'engine_speeds'],
-       'outputs': ['lower_bound_engine_speed'],
-    },
-    {  # evaluate upper bound engine speed
-       'function': identify_upper_bound_engine_speed,
-       'inputs': ['gears', 'engine_speeds', 'lower_bound_engine_speed'],
-       'outputs': ['upper_bound_engine_speed'],
-    },
-    {  # evaluate full load curve
-       'function': full_load.get,
-       'inputs': ['fuel_type'],
-       'outputs': ['full_load_curve'],
-    },
-    {  # evaluate gear correction function
-       'function': correct_gear_v0,
-       'inputs': ['speed_velocity_ratios', 'upper_bound_engine_speed',
-                  'max_gear_box_power', 'n_rated', 'n_idle', 'full_load_curve',
-                  'road_loads', 'inertia'],
-       'outputs': ['gear_correction_function'],
-    },
-    {  # evaluate gear correction function
-       'function': correct_gear_v1,
-       'inputs': ['speed_velocity_ratios', 'upper_bound_engine_speed'],
-       'outputs': ['gear_correction_function'],
-       'weight': 10,
-    },
-    {  # evaluate gear correction function
-       'function': correct_gear_v2,
-       'inputs': ['speed_velocity_ratios', 'max_gear_box_power', 'n_rated',
-                  'n_idle', 'full_load_curve', 'road_loads', 'inertia'],
-       'outputs': ['gear_correction_function'],
-       'weight': 10,
-    },
-    {  # calibrate decision tree velocity and acceleration
-       'function': calibrate_gear_shifting_decision_tree,
-       'inputs': ['gears', 'velocities', 'accelerations'],
-       'outputs': ['decision_tree_VA'],
-    },
-    {  # calibrate decision tree velocity, acceleration, and temperature
-       'function': calibrate_gear_shifting_decision_tree,
-       'inputs': ['gears', 'velocities', 'accelerations', 'temperatures'],
-       'outputs': ['decision_tree_VAT'],
-    },
-    {  # calibrate decision tree velocity, acceleration, and wheel power
-       'function': calibrate_gear_shifting_decision_tree,
-       'inputs': ['gears', 'velocities', 'accelerations', 'wheel_powers'],
-       'outputs': ['decision_tree_VAP'],
-    },
-    {  # calibrate decision tree velocity, acceleration, temperature, and power
-       'function': calibrate_gear_shifting_decision_tree,
-       'inputs': ['gears', 'velocities', 'accelerations', 'temperatures',
-                  'wheel_powers'],
-       'outputs': ['decision_tree_VATP'],
-    },
-    {  # calibrate corrected matrix velocity
-       'function': calibrate_gear_shifting_cmv,
-       'inputs': ['gear_correction_function', 'gears', 'gear_box_speeds',
-                  'velocities', 'accelerations', 'speed_velocity_ratios'],
-       'outputs': ['CMV'],
-    },
-    {  # calibrate corrected matrix velocity hot/cold
-       'function': calibrate_gear_shifting_cmv_hot_cold,
-       'inputs': ['gear_correction_function', 'times', 'gears',
-                  'gear_box_speeds', 'velocities', 'accelerations',
-                  'speed_velocity_ratios',
-                  'T0'],
-       'outputs': ['CMV_Hot_Cold'],
-    },
-    {  # calibrate matrix power velocity
-       'function': identify_gspv,
-       'inputs': ['gears', 'velocities', 'wheel_powers'],
-       'outputs': ['MPV'],
-    },
-    {  # calibrate matrix power velocity hot/cold
-       'function': identify_gspv_hot_cold,
-       'inputs': ['times', 'gears', 'velocities', 'wheel_powers', 'T0'],
-       'outputs': ['MPV_Hot_Cold'],
-    },
-    {  # gear prediction with decision tree V.A.
-       'function': prediction_gears_decision_tree,
-       'inputs': ['gear_correction_function', 'decision_tree_VA',
-                  'velocities',
-                  'accelerations'],
-       'outputs': ['gears_with_DT_VA'],
-    },
-    {  # gear prediction with decision tree V.A.T.
-       'function': prediction_gears_decision_tree,
-       'inputs': ['gear_correction_function', 'decision_tree_VAT',
-                  'velocities', 'accelerations', 'temperatures'],
-       'outputs': ['gears_with_DT_VAT'],
-    },
-    {  # gear prediction with decision tree V.A.P.
-       'function': prediction_gears_decision_tree,
-       'inputs': ['gear_correction_function', 'decision_tree_VAP',
-                  'velocities', 'accelerations', 'wheel_powers'],
-       'outputs': ['gears_with_DT_VAP'],
-    },
-    {  # gear prediction with decision tree V.A.T.P.
-       'function': prediction_gears_decision_tree,
-       'inputs': ['gear_correction_function', 'decision_tree_VATP',
-                  'velocities', 'accelerations', 'temperatures',
-                  'wheel_powers'],
-       'outputs': ['gears_with_DT_VATP'],
-    },
-    {  # gear prediction with CMV
-       'function': prediction_gears_gsm,
-       'inputs': ['gear_correction_function', 'CMV', 'velocities',
-                  'accelerations'],
-       'outputs': ['gears_with_CMV'],
-    },
-    {  # gear prediction with CMV Hot/Cold
-       'function': prediction_gears_gsm_hot_cold,
-       'inputs': ['gear_correction_function', 'CMV_Hot_Cold', 'times',
-                  'velocities', 'accelerations', 'T0'],
-       'outputs': ['gears_with_CMV_Hot_Cold'],
-    },
-    {  # gear prediction with MPV
-       'function': prediction_gears_gsm,
-       'inputs': ['gear_correction_function', 'MPV', 'velocities',
-                  'accelerations', 'wheel_powers'],
-       'outputs': ['gears_with_MPV'],
-    },
-    {  # gear prediction with MPV Hot/Cold
-       'function': prediction_gears_gsm_hot_cold,
-       'inputs': ['gear_correction_function', 'MPV_Hot_Cold', 'times',
-                  'velocities', 'accelerations', 'wheel_powers', 'T0'],
-       'outputs': ['gears_with_MPV_Hot_Cold'],
-    },
-    {  # predict gear box speeds with DT V.A.
-       'function': calculate_engine_speeds,
-       'inputs': ['gears_with_DT_VA', 'velocities', 'speed_velocity_ratios'],
-       'outputs': ['gear_box_speeds_with_DT_VA'],
-    },
-    {  # predict gear box speeds with DT V.A.T.
-       'function': calculate_engine_speeds,
-       'inputs': ['gears_with_DT_VAT', 'velocities',
-                  'speed_velocity_ratios'],
-       'outputs': ['gear_box_speeds_with_DT_VAT'],
-    },
-    {  # predict gear box speeds with DT V.A.P.
-       'function': calculate_engine_speeds,
-       'inputs': ['gears_with_DT_VAP', 'velocities',
-                  'speed_velocity_ratios'],
-       'outputs': ['gear_box_speeds_with_DT_VAP'],
-    },
-    {  # predict gear box speeds with DT V.A.T.P.
-       'function': calculate_engine_speeds,
-       'inputs': ['gears_with_DT_VATP', 'velocities',
-                  'speed_velocity_ratios'],
-       'outputs': ['gear_box_speeds_with_DT_VATP'],
-    },
-    {  # predict gear box speeds with CMV
-       'function': calculate_engine_speeds,
-       'inputs': ['gears_with_CMV', 'velocities', 'speed_velocity_ratios'],
-       'outputs': ['gear_box_speeds_with_CMV'],
-    },
-    {  # predict gear box speeds with CMV Hot/Cold
-       'function': calculate_engine_speeds,
-       'inputs': ['gears_with_CMV_Hot_Cold', 'velocities',
-                  'speed_velocity_ratios', 'T0'],
-       'outputs': ['gear_box_speeds_with_CMV_Hot_Cold'],
-    },
-    {  # predict gear box speeds with MPV
-       'function': calculate_engine_speeds,
-       'inputs': ['gears_with_MPV', 'velocities', 'speed_velocity_ratios'],
-       'outputs': ['gear_box_speeds_with_MPV'],
-    },
-    {  # predict gear box speeds with MPV Hot/Cold
-       'function': calculate_engine_speeds,
-       'inputs': ['gears_with_MPV_Hot_Cold', 'velocities',
-                  'speed_velocity_ratios', 'T0'],
-       'outputs': ['gear_box_speeds_with_MPV_Hot_Cold'],
-    }
-]
-
-# define calibration models
-calibration_models = [
-    'decision_tree_VA',
-    'decision_tree_VAT',
-    'decision_tree_VAP',
-    'decision_tree_VATP',
-    'CMV',
-    'CMV_Hot_Cold',
-    'MPV',
-    'MPV_Hot_Cold',
-]
-
-gears_prediction_models = [
-    'gears_with_DT_VA',
-    'gears_with_DT_VAT',
-    'gears_with_DT_VAP',
-    'gears_with_DT_VATP',
-    'gears_with_CMV',
-    'gears_with_CMV_Hot_Cold',
-    'gears_with_MPV',
-    'gears_with_MPV_Hot_Cold',
-]
+from dispatcher.dispatcher_utils import grouping
 
 
-gear_box_speeds_prediction_models = [
-    'gear_box_speeds_with_DT_VA',
-    'gear_box_speeds_with_DT_VAT',
-    'gear_box_speeds_with_DT_VAP',
-    'gear_box_speeds_with_DT_VATP',
-    'gear_box_speeds_with_CMV',
-    'gear_box_speeds_with_CMV_Hot_Cold',
-    'gear_box_speeds_with_MPV',
-    'gear_box_speeds_with_MPV_Hot_Cold',
-]
+def def_gear_model():
+    data = []
+    functions = []
+    calibration_models = []
+    gears_predicted = []
+    gear_box_speeds_predicted = []
 
-dsp = Dispatcher()
+    """
+    Full load curve
+    ===============
+    """
 
-dsp.load_from_lists(data_list=data, fun_list=functions)
+    functions.extend([
+        {  # get full load curve
+           'function': get_full_load,
+           'inputs': ['fuel_type'],
+           'outputs': ['full_load_curve'],
+        },
+    ])
 
-calibration_dsp = dsp.shrink_dsp(outputs=calibration_models)
+    """
+    Speed velocity ratios
+    =====================
+    """
 
-gears_prediction_dps = dsp.shrink_dsp(outputs=gears_prediction_models)
+    functions.extend([
+        {  # calculate speed velocity ratios from gear box ratios
+           'function': calculate_speed_velocity_ratios,
+           'inputs': ['gear_box_ratios', 'final_drive', 'r_dynamic'],
+           'outputs': ['speed_velocity_ratios'],
+        },
+        {  # identify speed velocity ratios from gear box speeds
+           'function': identify_speed_velocity_ratios,
+           'inputs': ['gears', 'velocities', 'gear_box_speeds'],
+           'outputs': ['speed_velocity_ratios'],
+           'weight': 5,
+        },
+        {  # identify speed velocity ratios from engine speeds
+           'function': identify_speed_velocity_ratios,
+           'inputs': ['gears', 'velocities', 'engine_speeds'],
+           'outputs': ['speed_velocity_ratios'],
+           'weight': 10,
+        },
+        {  # calculate speed velocity ratios from velocity speed ratios
+           'function': calculate_velocity_speed_ratios,
+           'inputs': ['velocity_speed_ratios'],
+           'outputs': ['speed_velocity_ratios'],
+           'weight': 15,
+        },
 
-gear_box_speeds_prediction_dsp = dsp.shrink_dsp(outputs=gears_prediction_models)
+    ])
 
+    """
+    Velocity speed ratios
+    =====================
+    """
+
+    functions.extend([
+        {  # calculate velocity speed ratios from speed velocity ratios
+           'function': calculate_velocity_speed_ratios,
+           'inputs': ['speed_velocity_ratios'],
+           'outputs': ['velocity_speed_ratios'],
+        },
+        {  # identify velocity speed ratios from gear box speeds
+           'function': identify_velocity_speed_ratios,
+           'inputs': ['gear_box_speeds', 'velocities', 'idle_engine_speed'],
+           'outputs': ['velocity_speed_ratios'],
+           'weight': 10,
+        },
+        {  # identify velocity speed ratios from engine speeds
+           'function': identify_velocity_speed_ratios,
+           'inputs': ['engine_speeds', 'velocities', 'idle_engine_speed'],
+           'outputs': ['velocity_speed_ratios'],
+           'weight': 10,
+        },
+    ])
+
+    """
+    Accelerations
+    =============
+    """
+
+    functions.extend([
+        {  # calculate accelerations
+           'function': calculate_accelerations,
+           'inputs': ['times', 'velocities'],
+           'outputs': ['accelerations'],
+        },
+    ])
+
+    """
+    Wheel powers
+    ============
+    """
+
+    functions.extend([
+        {  # calculate wheel powers
+           'function': calculate_wheel_powers,
+           'inputs': ['velocities', 'accelerations', 'road_loads', 'inertia'],
+           'outputs': ['wheel_powers'],
+        },
+    ])
+
+    """
+    Gear box speeds
+    ===============
+    """
+
+    functions.extend([
+        {  # calculate gear box speeds with time shift
+           'function': calculate_gear_box_speeds_from_engine_speeds,
+           'inputs': ['times', 'velocities', 'engine_speeds',
+                      'velocity_speed_ratios'],
+           'outputs': ['gear_box_speeds'],
+        },
+    ])
+
+    """
+    Idle engine speed
+    =================
+    """
+
+    data.extend([
+        {'data_id': 'idle_engine_speed_std', 'default_value': 100.0}
+    ])
+
+    functions.extend([
+        {  # set idle engine speed tuple
+           'function': grouping,
+           'inputs': ['idle_engine_speed_median', 'idle_engine_speed_std'],
+           'outputs': ['idle_engine_speed'],
+        },
+        {  # identify idle engine speed
+           'function': identify_idle_engine_speed,
+           'inputs': ['velocities', 'engine_speeds'],
+           'outputs': ['idle_engine_speed'],
+           'weight': 5,
+        },
+    ])
+
+    """
+    Upper bound engine speed
+    ========================
+    """
+
+    functions.extend([
+        {  # identify upper bound engine speed
+           'function': identify_upper_bound_engine_speed,
+           'inputs': ['gears', 'engine_speeds', 'idle_engine_speed'],
+           'outputs': ['upper_bound_engine_speed'],
+        },
+    ])
+
+    """
+    Gears identification
+    ====================
+    """
+
+    functions.extend([
+        {  # identify gears
+           'function': identify_gears,
+           'inputs': ['times', 'velocities', 'accelerations', 'gear_box_speeds',
+                      'velocity_speed_ratios', 'idle_engine_speed'],
+           'outputs': ['gears'],
+        },
+    ])
+
+    """
+    Gear correction function
+    ========================
+    """
+    calibration_models.append('correct_gear')
+
+    functions.extend([
+        {  # set gear correction function
+           'function': correct_gear_v0,
+           'inputs': ['velocity_speed_ratios', 'upper_bound_engine_speed',
+                      'max_engine_power', 'max_engine_speed_at_max_power',
+                      'idle_engine_speed', 'full_load_curve', 'road_loads',
+                      'inertia'],
+           'outputs': ['correct_gear'],
+        },
+        {  # set gear correction function
+           'function': correct_gear_v1,
+           'inputs': ['velocity_speed_ratios', 'upper_bound_engine_speed'],
+           'outputs': ['correct_gear'],
+           'weight': 50,
+        },
+        {  # set gear correction function
+           'function': correct_gear_v2,
+           'inputs': ['velocity_speed_ratios', 'max_engine_power',
+                      'max_engine_speed_at_max_power', 'idle_engine_speed',
+                      'full_load_curve', 'road_loads', 'inertia'],
+           'outputs': ['correct_gear'],
+           'weight': 50,
+        },
+    ])
+
+    """
+    Corrected Matrix Velocity Approach
+    ==================================
+    """
+
+    model = 'CMV'
+    calibration_models.append(model)
+    gears_predicted.append('gears_with_%s' % model)
+    gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
+
+    functions.extend([
+        {  # calibrate corrected matrix velocity
+           'function': calibrate_gear_shifting_cmv,
+           'inputs': ['correct_gear', 'gears', 'engine_speeds', 'velocities',
+                      'accelerations', 'velocity_speed_ratios',
+                      'idle_engine_speed'],
+           'outputs': [calibration_models[-1]],
+        },
+        {  # predict gears with corrected matrix velocity
+           'function': prediction_gears_gsm,
+           'inputs': ['correct_gear', calibration_models[-1], 'velocities',
+                      'accelerations', 'times'],
+           'outputs': [gears_predicted[-1]],
+        },
+        {  # calculate engine speeds with predicted gears
+           'function': calculate_engine_speeds,
+           'inputs': [gears_predicted[-1], 'velocities',
+                      'velocity_speed_ratios', 'idle_engine_speed'],
+           'outputs': [gear_box_speeds_predicted[-1]],
+        },
+    ])
+
+    """
+    Corrected Matrix Velocity Approach with Cold/Hot
+    ================================================
+    """
+
+    model = 'CMV_Cold_Hot'
+    calibration_models.append(model)
+    gears_predicted.append('gears_with_%s' % model)
+    gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
+
+    data.extend([
+        {'data_id': 'time_cold_hot_transition', 'default_value': 300.0}
+    ])
+
+    functions.extend([
+        {  # calibrate corrected matrix velocity
+           'function': calibrate_gear_shifting_cmv_hot_cold,
+           'inputs': ['correct_gear', 'times', 'gears', 'engine_speeds',
+                      'velocities', 'accelerations', 'velocity_speed_ratios',
+                      'idle_engine_speed', 'time_cold_hot_transition'],
+           'outputs': [calibration_models[-1]],
+        },
+        {  # predict gears with corrected matrix velocity
+           'function': prediction_gears_gsm_hot_cold,
+           'inputs': ['correct_gear', calibration_models[-1],
+                      'time_cold_hot_transition', 'times', 'velocities',
+                      'accelerations'],
+           'outputs': [gears_predicted[-1]],
+        },
+        {  # calculate gear box speeds with predicted gears
+           'function': calculate_engine_speeds,
+           'inputs': [gears_predicted[-1], 'velocities',
+                      'velocity_speed_ratios'],
+           'outputs': [gear_box_speeds_predicted[-1]],
+        },
+    ])
+
+    """
+    Gear Shifting Power Velocity Approach
+    =====================================
+    """
+
+    model = 'GSPV'
+    calibration_models.append(model)
+    gears_predicted.append('gears_with_%s' % model)
+    gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
+
+    functions.extend([
+        {  # calibrate corrected matrix velocity
+           'function': calibrate_gspv,
+           'inputs': ['gears', 'velocities', 'wheel_powers'],
+           'outputs': [calibration_models[-1]],
+        },
+        {  # predict gears with corrected matrix velocity
+           'function': prediction_gears_gsm,
+           'inputs': ['correct_gear', calibration_models[-1], 'velocities',
+                      'accelerations', 'times', 'wheel_powers'],
+           'outputs': [gears_predicted[-1]],
+        },
+        {  # calculate engine speeds with predicted gears
+           'function': calculate_engine_speeds,
+           'inputs': [gears_predicted[-1], 'velocities',
+                      'velocity_speed_ratios', 'idle_engine_speed'],
+           'outputs': [gear_box_speeds_predicted[-1]],
+        },
+    ])
+
+    """
+    Gear Shifting Power Velocity Approach with Cold/Hot
+    ===================================================
+    """
+
+    model = 'GSPV_Cold_Hot'
+    calibration_models.append(model)
+    gears_predicted.append('gears_with_%s' % model)
+    gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
+
+    data.extend([
+        {'data_id': 'time_cold_hot_transition', 'default_value': 300.0}
+    ])
+
+    functions.extend([
+        {  # calibrate corrected matrix velocity
+           'function': calibrate_gspv_hot_cold,
+           'inputs': ['times', 'gears', 'velocities', 'wheel_powers',
+                      'time_cold_hot_transition'],
+           'outputs': [calibration_models[-1]],
+        },
+        {  # predict gears with corrected matrix velocity
+           'function': prediction_gears_gsm_hot_cold,
+           'inputs': ['correct_gear', calibration_models[-1],
+                      'time_cold_hot_transition', 'times', 'velocities',
+                      'accelerations', 'wheel_powers'],
+           'outputs': [gears_predicted[-1]],
+        },
+        {  # calculate gear box speeds with predicted gears
+           'function': calculate_engine_speeds,
+           'inputs': [gears_predicted[-1], 'velocities',
+                      'velocity_speed_ratios'],
+           'outputs': [gear_box_speeds_predicted[-1]],
+        },
+    ])
+
+    """
+    Decision Tree with Velocity & Acceleration
+    ==========================================
+    """
+
+    model = 'DT_VA'
+    calibration_models.append(model)
+    gears_predicted.append('gears_with_%s' % model)
+    gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
+
+    functions.extend([
+        {  # calibrate corrected matrix velocity
+           'function': calibrate_gear_shifting_decision_tree,
+           'inputs': ['gears', 'velocities', 'accelerations'],
+           'outputs': [calibration_models[-1]],
+        },
+        {  # predict gears with corrected matrix velocity
+           'function': prediction_gears_decision_tree,
+           'inputs': ['correct_gear', calibration_models[-1], 'times',
+                      'velocities', 'accelerations'],
+           'outputs': [gears_predicted[-1]],
+        },
+        {  # calculate gear box speeds with predicted gears
+           'function': calculate_engine_speeds,
+           'inputs': [gears_predicted[-1], 'velocities',
+                      'velocity_speed_ratios'],
+           'outputs': [gear_box_speeds_predicted[-1]],
+        },
+    ])
+
+    """
+    Decision Tree with Velocity, Acceleration & Temperature
+    =======================================================
+    """
+
+    model = 'DT_VAT'
+    calibration_models.append(model)
+    gears_predicted.append('gears_with_%s' % model)
+    gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
+
+    functions.extend([
+        {  # calibrate corrected matrix velocity
+           'function': calibrate_gear_shifting_decision_tree,
+           'inputs': ['gears', 'velocities', 'accelerations', 'temperatures'],
+           'outputs': [calibration_models[-1]],
+        },
+        {  # predict gears with corrected matrix velocity
+           'function': prediction_gears_decision_tree,
+           'inputs': ['correct_gear', calibration_models[-1], 'times',
+                      'velocities', 'accelerations', 'temperatures'],
+           'outputs': [gears_predicted[-1]],
+        },
+        {  # calculate gear box speeds with predicted gears
+           'function': calculate_engine_speeds,
+           'inputs': [gears_predicted[-1], 'velocities',
+                      'velocity_speed_ratios'],
+           'outputs': [gear_box_speeds_predicted[-1]],
+        },
+    ])
+
+    """
+    Decision Tree with Velocity, Acceleration, & Wheel Power
+    ========================================================
+    """
+
+    model = 'DT_VAP'
+    calibration_models.append(model)
+    gears_predicted.append('gears_with_%s' % model)
+    gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
+
+    functions.extend([
+        {  # calibrate corrected matrix velocity
+           'function': calibrate_gear_shifting_decision_tree,
+           'inputs': ['gears', 'velocities', 'accelerations', 'wheel_powers'],
+           'outputs': [calibration_models[-1]],
+        },
+        {  # predict gears with corrected matrix velocity
+           'function': prediction_gears_decision_tree,
+           'inputs': ['correct_gear', calibration_models[-1], 'times',
+                      'velocities', 'accelerations', 'wheel_powers'],
+           'outputs': [gears_predicted[-1]],
+        },
+        {  # calculate gear box speeds with predicted gears
+           'function': calculate_engine_speeds,
+           'inputs': [gears_predicted[-1], 'velocities',
+                      'velocity_speed_ratios'],
+           'outputs': [gear_box_speeds_predicted[-1]],
+        },
+    ])
+
+    """
+    Decision Tree with Velocity, Acceleration, Temperature, & Wheel Power
+    =====================================================================
+    """
+
+    model = 'DT_VATP'
+    calibration_models.append(model)
+    gears_predicted.append('gears_with_%s' % model)
+    gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
+
+    functions.extend([
+        {  # calibrate corrected matrix velocity
+           'function': calibrate_gear_shifting_decision_tree,
+           'inputs': ['gears', 'velocities', 'accelerations', 'temperatures',
+                      'wheel_powers'],
+           'outputs': [calibration_models[-1]],
+        },
+        {  # predict gears with corrected matrix velocity
+           'function': prediction_gears_decision_tree,
+           'inputs': ['correct_gear', calibration_models[-1], 'times',
+                      'velocities', 'accelerations', 'temperatures',
+                      'wheel_powers'],
+           'outputs': [gears_predicted[-1]],
+        },
+        {  # calculate gear box speeds with predicted gears
+           'function': calculate_engine_speeds,
+           'inputs': [gears_predicted[-1], 'velocities',
+                      'velocity_speed_ratios'],
+           'outputs': [gear_box_speeds_predicted[-1]],
+        },
+    ])
+
+    dsp = Dispatcher()
+
+    dsp.load_from_lists(data_list=data, fun_list=functions)
+
+    calibration_dsp = dsp.shrink_dsp(outputs=calibration_models)
+
+    gears_prediction_dps = dsp.shrink_dsp(outputs=gears_predicted)
+
+    gear_box_speeds_prediction_dsp = dsp.shrink_dsp(outputs=gears_predicted)
+
+    return calibration_dsp, calibration_models, gears_prediction_dps, \
+           gears_predicted, gear_box_speeds_prediction_dsp, \
+           gear_box_speeds_predicted
 
 
