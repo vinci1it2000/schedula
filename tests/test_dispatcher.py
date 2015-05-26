@@ -350,20 +350,26 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         res = sum(res) / 3
         print('dispatch with functions in %f call/ms' % res)
 
-        res1 = timeit.repeat("disp.dispatch({'/a': 5, '/b': 6}, empty_fun=True)",
+        res1 = timeit.repeat("disp.dispatch({'/a': 5, '/b': 6}, no_call=True)",
                              'from tests.test_dispatcher import _setup_dsp; '
                              'disp = _setup_dsp()', repeat=3, number=1000)
         res1 = sum(res1) / 3
         print('dispatch without functions in %f call/ms' % res1)
         diff = res - res1
         print('functions is %f call/ms' % diff)
-        res2 = timeit.repeat("fun(5, 6)",
-                            'from tests.test_dispatcher import _setup_dsp; '
-                            'disp = _setup_dsp();'
-                            'fun = disp.extract_function_node("myF", ["/a", "/b"], ["/c", "/d", "/e"])["function"]', repeat=3, number=1000)
+
+        res2 = timeit.repeat(
+            "fun(5, 6)",
+            'from tests.test_dispatcher import _setup_dsp;'
+            'disp = _setup_dsp();'
+            'fun = disp.extract_function_node('
+            '    "myF", ["/a", "/b"], ["/c", "/d", "/e"])["function"]',
+            repeat=3, number=1000)
+
         res2 = sum(res2) / 3
         print('dispatcher function with functions in %f call/ms' % res2)
-        print('dispatcher function without functions in %f call/ms' % (res2 - diff))
+        print('dispatcher function without functions in '
+              '%f call/ms' % (res2 - diff))
 
     def test_dispatch(self):
         disp = self.disp
@@ -413,7 +419,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         }
         self.assertEquals(workflow.edge, res)
 
-        workflow, outputs = disp.dispatch(['/a', '/b'], empty_fun=True)
+        workflow, outputs = disp.dispatch(['/a', '/b'], no_call=True)
         self.assertEquals(outputs,
                           dict.fromkeys(['/a', '/b', '/c', '/d', '/e']))
 
