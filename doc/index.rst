@@ -11,8 +11,9 @@ Contents:
 
 .. toctree::
 
-   functions/functions
    models/models
+   functions/functions
+
 
 Indices and tables
 ==================

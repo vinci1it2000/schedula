@@ -6,17 +6,7 @@ from dispatcher import Dispatcher, dispatch, combine, def_fork, select
 
 
 def def_jrc_model():
-    """
-    Defines and returns a gear shifting model.
 
-    :returns:
-        - gear_model
-        - calibration model ids (i.e., data node ids)
-        - predicted gears ids (e.g., gears_with_DT_VA)
-        - predicted gear box speeds ids (e.g., gear_box_speeds_with_DT_VA)
-        - error coefficients ids (e.g., error_coefficients_with_DT_VA)
-    :rtype: (Dispatcher, list, list, list, list)
-    """
     # gear model
     gear_model, calibration_models, gears_predicted, \
     gear_box_speeds_predicted, error_coefficients = def_gear_model()
@@ -186,6 +176,7 @@ def def_jrc_model():
     def select_outputs_v2(kwargs):
         d = list(kwargs.values())[0]
         return select(d, error_coefficients)
+
     data.extend([
         {
             'data_id': 'error_coefficient_names',
@@ -260,7 +251,8 @@ def process_folder_files(input_folder, output_folder):
 
 
 if __name__ == '__main__':
-    # 'Users/iMac2013'\
+    # C:/Users/arcidvi
+    # /Users/iMac2013
 
     process_folder_files(r'C:/Users/arcidvi/Dropbox/LAT/*.xlsm',
-                  r'C:/Users/arcidvi/Dropbox/LAT/outputs')
+                         r'C:/Users/arcidvi/Dropbox/LAT/outputs')
