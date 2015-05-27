@@ -1,12 +1,12 @@
 from models.gear_model import *
 from models.read_model import *
-from dispatcher import Dispatcher, dispatch, combine, bypass
+from functions.write_outputs import write_output
+from dispatcher import Dispatcher, dispatch, combine, bypass, select
 
 
 def def_jrc_model():
     # gear model
-    calibration_dsp, calibration_models, gears_prediction_dps, \
-    gears_predicted, gear_box_speeds_prediction_dsp, \
+    gear_model, calibration_models, gears_predicted, \
     gear_box_speeds_predicted = def_gear_model()
 
     # read model
@@ -53,10 +53,22 @@ def def_jrc_model():
     Calibrate models
     ================
     """
+    def select_outputs(kwargs):
+        d = list(kwargs.values())[0]
+        return select(d, calibration_models)
 
     data.extend([
-        {'data_id': 'calibration_dispatcher', 'default_value': calibration_dsp},
-        {'data_id': 'calibration_models', 'default_value': calibration_models},
+        {
+            'data_id': 'calibration_dispatcher',
+            'default_value': gear_model},
+        {
+            'data_id': 'calibration_models',
+            'default_value': calibration_models},
+        {
+            'data_id': 'calibrated_models',
+            'wait_inputs': True,
+            'function': select_outputs
+        },
     ])
 
     functions.extend([
@@ -70,15 +82,15 @@ def def_jrc_model():
     ])
 
     """
-    Calibrate models
-    ================
+    Extract calibrated models
+    =========================
     """
-
     functions.extend([
+
         {  # predict gears
            'function_id': 'merge_calibrated_models_and_prediction_cycle_inputs',
            'function': combine,
-           'inputs': ['prediction_cycle_inputs', 'calibrated_models'],
+           'inputs': ['calibrated_models', 'prediction_cycle_inputs'],
            'outputs': ['calibrated_models_plus_prediction_cycle_inputs'],
         },
     ])
@@ -91,7 +103,7 @@ def def_jrc_model():
     data.extend([
         {
             'data_id': 'gears_prediction_dispatcher',
-            'default_value': gears_prediction_dps
+            'default_value': gear_model
         },
         {
             'data_id': 'gears_prediction_models',
@@ -118,7 +130,7 @@ def def_jrc_model():
     data.extend([
         {
             'data_id': 'gear_box_engine_speeds_prediction_dispatcher',
-            'default_value': gear_box_speeds_prediction_dsp
+            'default_value': gear_model
         },
         {
             'data_id': 'gear_box_engine_speeds_prediction_models',
@@ -163,8 +175,14 @@ if __name__ == '__main__':
         if isinstance(v, dict):
             print('{%s: ...' % k)
             for k0, v0 in v.items():
+                try:
+                    print(k0, len(v0))
+                except:
+                    pass
                 print('...\t\t{', '{}: {}'.format(k0, v0), '}')
             print('}')
         else:
             print('{', '{}: {}'.format(k, v), '}')
 
+    write_output(outputs['calculated_gear_box_engine_speeds'],
+                 r'/Users/iMac2013/Dropbox/LAT/ciao.xlsx', ('params', 'series'))

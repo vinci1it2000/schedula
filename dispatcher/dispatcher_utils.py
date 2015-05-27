@@ -23,3 +23,6 @@ def summation(*args):
 def grouping(*args):
     return tuple(args)
 
+
+def select(kwargs, keys):
+    return {k: v for k, v in kwargs.items() if k in keys}

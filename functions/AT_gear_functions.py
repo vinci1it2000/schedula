@@ -1175,7 +1175,7 @@ def prediction_gears_gsm_hot_cold(
 
 
 def calculate_engine_speeds(
-        gears, velocities, velocity_speed_ratios, idle_engine_speed):
+        gears, velocities, velocity_speed_ratios, idle_engine_speed=(0, 0)):
     """
     Calculates engine speed vector.
 
@@ -1200,7 +1200,10 @@ def calculate_engine_speeds(
     :rtype: np.array
     """
 
-    vsr = [EPS / idle_engine_speed[0]]
+    try:
+        vsr = [EPS / idle_engine_speed[0]]
+    except ZeroDivisionError:
+        vsr = [0]
 
     def get_vsr(g):
         vsr[0] = velocity_speed_ratios.get(g, vsr[0])

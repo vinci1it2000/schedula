@@ -174,6 +174,6 @@ def interpolate_cloud(x, y):
         x.append(x[-1] + 1)
         y.append(y[-1])
     else:
-        x, y = ([0, 1], [edges[0], edges[0]])
+        x, y = ([0, 1], [np.mean(y)] * 2)
 
     return InterpolatedUnivariateSpline(x, y, k=1)

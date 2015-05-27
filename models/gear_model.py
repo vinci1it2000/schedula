@@ -229,7 +229,7 @@ def def_gear_model():
         {  # calculate engine speeds with predicted gears
            'function': calculate_engine_speeds,
            'inputs': [gears_predicted[-1], 'velocities',
-                      'velocity_speed_ratios', 'idle_engine_speed'],
+                      'velocity_speed_ratios'],
            'outputs': [gear_box_speeds_predicted[-1]],
         },
     ])
@@ -296,7 +296,7 @@ def def_gear_model():
         {  # calculate engine speeds with predicted gears
            'function': calculate_engine_speeds,
            'inputs': [gears_predicted[-1], 'velocities',
-                      'velocity_speed_ratios', 'idle_engine_speed'],
+                      'velocity_speed_ratios'],
            'outputs': [gear_box_speeds_predicted[-1]],
         },
     ])
@@ -459,18 +459,12 @@ def def_gear_model():
         },
     ])
 
-    dsp = Dispatcher()
+    gear_model = Dispatcher()
 
-    dsp.load_from_lists(data_list=data, fun_list=functions)
+    gear_model.load_from_lists(data_list=data, fun_list=functions)
 
-    calibration_dsp = dsp.shrink_dsp(outputs=calibration_models)
 
-    gears_prediction_dps = dsp.shrink_dsp(outputs=gears_predicted)
-
-    gear_box_speeds_prediction_dsp = dsp.shrink_dsp(outputs=gears_predicted)
-
-    return calibration_dsp, calibration_models, gears_prediction_dps, \
-           gears_predicted, gear_box_speeds_prediction_dsp, \
+    return gear_model, calibration_models, gears_predicted, \
            gear_box_speeds_predicted
 
 
