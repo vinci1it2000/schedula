@@ -15,6 +15,7 @@ def parse_name(name):
 
 
 def write_output(kwargs, file_name, sheet_names):
+
     writer = pd.ExcelWriter(file_name)
     params, s = ([], [])
     for k, v in kwargs.items():
@@ -50,26 +51,27 @@ def check_writeable(value):
 
 standard_names = {
     'CMV': 'Corrected matrix velocity [km/h]',
-    'inertia': 'Inertia [.]',
+    'inertia': 'Inertia [kg]',
     'upper_bound_engine_speed': 'Upper bound engine speed [rpm]',
     'max_engine_power': 'Maximum engine power [watt]',
     'times': 'Time [s]',
     'idle_engine_speed_median': 'Idle engine speed median [rpm]',
     'CMV_Cold_Hot': 'Corrected matrix velocity Cold/Hot [km/h]',
-    'velocity_speed_ratios': 'Velocity speed ratios [km/rpm * h]',
+    'velocity_speed_ratios': 'Velocity speed ratios [km/(rpm * h)]',
     'wheel_powers': 'Wheel power [watt]',
     'max_engine_speed_at_max_power': 'Maximum engine speed at max power [rpm]',
-    'r_dynamic': 'R dynamic [.]',
-    'final_drive': 'Final drive [.]',
+    'r_dynamic': 'R dynamic [m]',
+    'final_drive': 'Final drive [-]',
     'temperatures': 'Temperature [C°]',
     'gear_box_speeds': 'Gear box speeds [rpm]',
     'velocities': 'Velocity [km/h]',
     'engine_speeds': 'Engine speed [rpm]',
     'idle_engine_speed': 'Idle engine speed [rpm]',
-    'speed_velocity_ratios': 'Speed velocity ratios [rmp * h/km]',
+    'speed_velocity_ratios': 'Speed velocity ratios [(rmp * h)/km]',
     'accelerations': 'Acceleration [km/h^2]',
-    'gear_box_ratios': 'Gear box ratios [.]',
+    'gear_box_ratios': 'Gear box ratios [-]',
     'idle_engine_speed_std': 'Idle engine speed std [rpm]',
-    'road_loads': 'Road loads [.]',
+    'road_loads': 'Road loads [(N, N/(km/h) N/(km/h)^2)]',
     'time_cold_hot_transition': 'Time cold hot transition [s]',
+    'time_shift_engine_speeds': 'Time shift engine speeds [s]'
 }

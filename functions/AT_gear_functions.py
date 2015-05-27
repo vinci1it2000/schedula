@@ -32,7 +32,7 @@ EPS = 1 + sys.float_info.epsilon
 
 INF = 10000.0
 
-MIN_GEAR = 0
+MIN_GEAR = 1
 
 MAX_TIME_SHIFT = 3.0
 
@@ -329,7 +329,7 @@ def calculate_gear_box_speeds_from_engine_speeds(
     gear_box_speeds = speeds(times + shift)
     gear_box_speeds[gear_box_speeds < 0] = 0
 
-    return gear_box_speeds
+    return gear_box_speeds, shift
 
 
 def identify_idle_engine_speed(velocities, engine_speeds):
@@ -605,7 +605,7 @@ def correct_gear_v0(
         max_engine_speed_at_max_power, idle_engine_speed, full_load_curve,
         road_loads, inertia):
     max_gear = max(velocity_speed_ratios)
-    min_gear = min([k for k in velocity_speed_ratios if k >= MIN_GEAR])
+    min_gear = min(velocity_speed_ratios)
 
     def correct_gear_speed_full_load(velocity, acceleration, gear):
         g = _correct_gear_upper_bound_engine_speed(
@@ -634,7 +634,7 @@ def correct_gear_v1(velocity_speed_ratios, upper_bound_engine_speed):
 def correct_gear_v2(
         velocity_speed_ratios, max_engine_power, max_engine_speed_at_max_power,
         idle_engine_speed, full_load_curve, road_loads, inertia):
-    min_gear = min([k for k in velocity_speed_ratios if k >= MIN_GEAR])
+    min_gear = min(velocity_speed_ratios)
 
     def correct_gear_full_load(velocity, acceleration, gear):
         return _correct_gear_full_load(
@@ -1039,6 +1039,8 @@ def prediction_gears_decision_tree(correct_gear, decision_tree, times, *params):
 
     gear = np.vectorize(predict_gear)(*params)
 
+    gear[gear < MIN_GEAR] = MIN_GEAR
+
     gear = median_filter(times, gear, TIME_WINDOW)
 
     return _clear_gear_fluctuations(times, gear, TIME_WINDOW)
@@ -1097,7 +1099,11 @@ def prediction_gears_gsm(
                     break
             gear = max(min_gear, min(max_gear, gear))
 
-        gear = correct_gear(velocity, acceleration, gear)
+        g = correct_gear(velocity, acceleration, gear)
+
+        if g in gsm:
+            gear = g
+
         param[0], param[1] = (gear, gsm[gear])
 
         return max(MIN_GEAR, gear)
@@ -1216,3 +1222,12 @@ def calculate_engine_speeds(
     speeds[(velocities < EPS) | (vsr == 0)] = idle_engine_speed[0]
 
     return speeds
+
+
+def calculate_error_coefficients(x, y, v):
+    x, y =(x[v > EPS], y[v > EPS])
+    res = {
+        'correlation coeff.': np.corrcoef(x, y),
+        'mean absolute error': mean_absolute_error(x, y),
+    }
+    return res

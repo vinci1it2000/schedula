@@ -1475,6 +1475,7 @@ class Dispatcher(object):
 
             # output value
             value = {'value': value}
+            log.info('Estimated data node: %s' % node_id)
         else:
             # set data output
             self._data_output[node_id] = None
@@ -1544,6 +1545,7 @@ class Dispatcher(object):
                 # args are not respecting the domain
                 return False
             else:  # use the estimation function of node
+                log.info('Function call: %s' % node_id)
                 # noinspection PyCallingNonCallable
                 res = node_attr['function'](*args)
                 # list of function results

@@ -26,3 +26,9 @@ def grouping(*args):
 
 def select(kwargs, keys):
     return {k: v for k, v in kwargs.items() if k in keys}
+
+
+def def_fork(n=2):
+    def fork(value):
+        return [value] * n
+    return fork

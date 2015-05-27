@@ -695,7 +695,7 @@ class Cycle(object):
                         if current_gear in gsv: break
                 current_gear = correct_gear(v, a, current_gear, max_gear, rpm_upper_bound_goal)
                 down, up = gsv[current_gear]
-                gear.append(max(MIN_GEAR,current_gear))
+                gear.append(max(MIN_GEAR, current_gear))
 
         elif gear_shifting_power_velocities:
             gspv = gear_shifting_power_velocities['gspv']

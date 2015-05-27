@@ -2,7 +2,7 @@ __author__ = 'Vincenzo_Arcidiacono'
 from dispatcher import Dispatcher
 from functions.AT_gear_functions import *
 from dispatcher.dispatcher_utils import grouping
-
+from numpy import corrcoef
 
 def def_gear_model():
     data = []
@@ -10,7 +10,7 @@ def def_gear_model():
     calibration_models = []
     gears_predicted = []
     gear_box_speeds_predicted = []
-
+    error_coefficients = []
     """
     Full load curve
     ===============
@@ -117,7 +117,7 @@ def def_gear_model():
            'function': calculate_gear_box_speeds_from_engine_speeds,
            'inputs': ['times', 'velocities', 'engine_speeds',
                       'velocity_speed_ratios'],
-           'outputs': ['gear_box_speeds'],
+           'outputs': ['gear_box_speeds', 'time_shift_engine_speeds'],
         },
     ])
 
@@ -211,6 +211,7 @@ def def_gear_model():
     calibration_models.append(model)
     gears_predicted.append('gears_with_%s' % model)
     gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
+    error_coefficients.append('error_coefficients_with_%s' % model)
 
     functions.extend([
         {  # calibrate corrected matrix velocity
@@ -232,6 +233,13 @@ def def_gear_model():
                       'velocity_speed_ratios'],
            'outputs': [gear_box_speeds_predicted[-1]],
         },
+        {  # calculate error coefficients
+           'function': calculate_error_coefficients,
+           'inputs': [gear_box_speeds_predicted[-1], 'engine_speeds',
+                      'velocities'],
+           'outputs': [error_coefficients[-1]],
+        },
+
     ])
 
     """
@@ -243,6 +251,7 @@ def def_gear_model():
     calibration_models.append(model)
     gears_predicted.append('gears_with_%s' % model)
     gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
+    error_coefficients.append('error_coefficients_with_%s' % model)
 
     data.extend([
         {'data_id': 'time_cold_hot_transition', 'default_value': 300.0}
@@ -269,6 +278,12 @@ def def_gear_model():
                       'velocity_speed_ratios'],
            'outputs': [gear_box_speeds_predicted[-1]],
         },
+        {  # calculate error coefficients
+           'function': calculate_error_coefficients,
+           'inputs': [gear_box_speeds_predicted[-1], 'engine_speeds',
+                      'velocities'],
+           'outputs': [error_coefficients[-1]],
+        },
     ])
 
     """
@@ -280,6 +295,7 @@ def def_gear_model():
     calibration_models.append(model)
     gears_predicted.append('gears_with_%s' % model)
     gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
+    error_coefficients.append('error_coefficients_with_%s' % model)
 
     functions.extend([
         {  # calibrate corrected matrix velocity
@@ -299,6 +315,12 @@ def def_gear_model():
                       'velocity_speed_ratios'],
            'outputs': [gear_box_speeds_predicted[-1]],
         },
+        {  # calculate error coefficients
+           'function': calculate_error_coefficients,
+           'inputs': [gear_box_speeds_predicted[-1], 'engine_speeds',
+                      'velocities'],
+           'outputs': [error_coefficients[-1]],
+        },
     ])
 
     """
@@ -310,6 +332,7 @@ def def_gear_model():
     calibration_models.append(model)
     gears_predicted.append('gears_with_%s' % model)
     gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
+    error_coefficients.append('error_coefficients_with_%s' % model)
 
     data.extend([
         {'data_id': 'time_cold_hot_transition', 'default_value': 300.0}
@@ -335,6 +358,12 @@ def def_gear_model():
                       'velocity_speed_ratios'],
            'outputs': [gear_box_speeds_predicted[-1]],
         },
+        {  # calculate error coefficients
+           'function': calculate_error_coefficients,
+           'inputs': [gear_box_speeds_predicted[-1], 'engine_speeds',
+                      'velocities'],
+           'outputs': [error_coefficients[-1]],
+        },
     ])
 
     """
@@ -346,6 +375,7 @@ def def_gear_model():
     calibration_models.append(model)
     gears_predicted.append('gears_with_%s' % model)
     gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
+    error_coefficients.append('error_coefficients_with_%s' % model)
 
     functions.extend([
         {  # calibrate corrected matrix velocity
@@ -365,6 +395,12 @@ def def_gear_model():
                       'velocity_speed_ratios'],
            'outputs': [gear_box_speeds_predicted[-1]],
         },
+        {  # calculate error coefficients
+           'function': calculate_error_coefficients,
+           'inputs': [gear_box_speeds_predicted[-1], 'engine_speeds',
+                      'velocities'],
+           'outputs': [error_coefficients[-1]],
+        },
     ])
 
     """
@@ -376,6 +412,7 @@ def def_gear_model():
     calibration_models.append(model)
     gears_predicted.append('gears_with_%s' % model)
     gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
+    error_coefficients.append('error_coefficients_with_%s' % model)
 
     functions.extend([
         {  # calibrate corrected matrix velocity
@@ -395,6 +432,12 @@ def def_gear_model():
                       'velocity_speed_ratios'],
            'outputs': [gear_box_speeds_predicted[-1]],
         },
+        {  # calculate error coefficients
+           'function': calculate_error_coefficients,
+           'inputs': [gear_box_speeds_predicted[-1], 'engine_speeds',
+                      'velocities'],
+           'outputs': [error_coefficients[-1]],
+        },
     ])
 
     """
@@ -406,6 +449,7 @@ def def_gear_model():
     calibration_models.append(model)
     gears_predicted.append('gears_with_%s' % model)
     gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
+    error_coefficients.append('error_coefficients_with_%s' % model)
 
     functions.extend([
         {  # calibrate corrected matrix velocity
@@ -425,6 +469,12 @@ def def_gear_model():
                       'velocity_speed_ratios'],
            'outputs': [gear_box_speeds_predicted[-1]],
         },
+        {  # calculate error coefficients
+           'function': calculate_error_coefficients,
+           'inputs': [gear_box_speeds_predicted[-1], 'engine_speeds',
+                      'velocities'],
+           'outputs': [error_coefficients[-1]],
+        },
     ])
 
     """
@@ -436,6 +486,7 @@ def def_gear_model():
     calibration_models.append(model)
     gears_predicted.append('gears_with_%s' % model)
     gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
+    error_coefficients.append('error_coefficients_with_%s' % model)
 
     functions.extend([
         {  # calibrate corrected matrix velocity
@@ -457,6 +508,12 @@ def def_gear_model():
                       'velocity_speed_ratios'],
            'outputs': [gear_box_speeds_predicted[-1]],
         },
+        {  # calculate error coefficients
+           'function': calculate_error_coefficients,
+           'inputs': [gear_box_speeds_predicted[-1], 'engine_speeds',
+                      'velocities'],
+           'outputs': [error_coefficients[-1]],
+        },
     ])
 
     gear_model = Dispatcher()
@@ -465,6 +522,6 @@ def def_gear_model():
 
 
     return gear_model, calibration_models, gears_predicted, \
-           gear_box_speeds_predicted
+           gear_box_speeds_predicted, error_coefficients
 
 
