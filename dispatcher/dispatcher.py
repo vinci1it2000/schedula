@@ -342,7 +342,7 @@ class Dispatcher(object):
         """
 
         if inputs is None:  # set a dummy input
-            inputs = [self.add_data(default_value=EMPTY)]
+            inputs = [self.add_data(default_value=None)]
             if outputs is None:
                 raise ValueError('Invalid input:'
                                  ' missing inputs and outputs attributes.')

@@ -301,8 +301,9 @@ def calculate_gear_box_speeds_from_engine_speeds(
     :type velocity_speed_ratios: dict
 
     :return:
-        Gear box speed vector.
-    :rtype: np.array
+        - Gear box speed vector.
+        - time shift of engine speeds.
+    :rtype: (np.array, float)
     """
 
     bins = [-INF, 0]
@@ -645,6 +646,14 @@ def correct_gear_v2(
     return correct_gear_full_load
 
 
+def correct_gear_v3(*args):
+
+    def correct_gear_bypass(velocity, acceleration, gear):
+        return gear
+
+    return correct_gear_bypass
+
+
 def _identify_gear_shifting_velocity_limits(gears, velocities):
     """
     Identifies gear shifting velocity matrix.
@@ -800,7 +809,8 @@ def calibrate_gear_shifting_cmv_hot_cold(
         correct_gear, times, gears, engine_speeds, velocities, accelerations,
         velocity_speed_ratios, idle_engine_speed, time_cold_hot_transition):
     """
-    Calibrates a corrected matrix velocity to predict gears.
+    Calibrates a corrected matrix velocity for cold and hot phases to predict
+    gears.
 
     :param gears:
         Gear vector.
@@ -1224,8 +1234,30 @@ def calculate_engine_speeds(
     return speeds
 
 
-def calculate_error_coefficients(x, y, v):
-    x, y =(x[v > EPS], y[v > EPS])
+def calculate_error_coefficients(engine_speeds, predicted_engine_speeds, velocities):
+    """
+    Calculates the prediction's error coefficients.
+
+    :param engine_speeds:
+        Engine speed vector.
+    :type engine_speeds: np.array
+
+    :param predicted_engine_speeds:
+        Predicted engine speed vector.
+    :type predicted_engine_speeds: np.array
+
+    :param velocities:
+        Velocity vector.
+    :type velocities: np.array
+
+    :return:
+        - correlation coefficient.
+        - mean absolute error.
+    :rtype: dict
+    """
+
+    x = engine_speeds[velocities > EPS],
+    y = predicted_engine_speeds[velocities > EPS]
     res = {
         'correlation coeff.': np.corrcoef(x, y),
         'mean absolute error': mean_absolute_error(x, y),

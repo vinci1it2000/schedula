@@ -12,7 +12,7 @@ Contents:
 .. toctree::
 
    functions/functions
-
+   models/models
 
 Indices and tables
 ==================

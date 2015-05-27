@@ -1,11 +1,22 @@
 import glob, re, os
-from models.gear_model import *
+from models.AT_gear_model import *
 from models.read_model import *
 from functions.write_outputs import write_output
 from dispatcher import Dispatcher, dispatch, combine, def_fork, select
 
 
 def def_jrc_model():
+    """
+    Defines and returns a gear shifting model.
+
+    :returns:
+        - gear_model
+        - calibration model ids (i.e., data node ids)
+        - predicted gears ids (e.g., gears_with_DT_VA)
+        - predicted gear box speeds ids (e.g., gear_box_speeds_with_DT_VA)
+        - error coefficients ids (e.g., error_coefficients_with_DT_VA)
+    :rtype: (Dispatcher, list, list, list, list)
+    """
     # gear model
     gear_model, calibration_models, gears_predicted, \
     gear_box_speeds_predicted, error_coefficients = def_gear_model()
@@ -219,9 +230,10 @@ def def_jrc_model():
 
     return dsp, error_coefficients
 
+
 files_exclude_regex = re.compile('^\w')
 
-def process_files(input_folder, output_folder):
+def process_folder_files(input_folder, output_folder):
     model, error_coefficients = def_jrc_model()
     fpaths = glob.glob(input_folder)
     error_coeff = []
@@ -250,5 +262,5 @@ def process_files(input_folder, output_folder):
 if __name__ == '__main__':
     # 'Users/iMac2013'\
 
-    process_files(r'C:/Users/arcidvi/Dropbox/LAT/*.xlsm',
+    process_folder_files(r'C:/Users/arcidvi/Dropbox/LAT/*.xlsm',
                   r'C:/Users/arcidvi/Dropbox/LAT/outputs')
