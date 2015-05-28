@@ -13,7 +13,7 @@ Contents:
 
    models/models
    functions/functions
-   dispatcher/dispatcher
+   dispatcher/dispatcher_index
 
 
 Indices and tables

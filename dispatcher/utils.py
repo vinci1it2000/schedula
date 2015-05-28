@@ -1,4 +1,5 @@
 __author__ = 'Vincenzo Arcidiacono'
+
 from itertools import tee
 from heapq import heappop
 
@@ -106,4 +107,3 @@ class AttrDict(dict):
 
     def copy(self):
         return AttrDict(super(AttrDict, self).copy())
-
