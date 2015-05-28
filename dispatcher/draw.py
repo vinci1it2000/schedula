@@ -25,6 +25,10 @@ def plot_dsp(dsp, pos=None, workflow=False):
        If not specified a spring layout positioning will be computed.
     :type pos: dictionary, optional
 
+    :param workflow:
+       If True the workflow graph will be plotted, otherwise the dispatcher map.
+    :type workflow: bool, optional
+
     Example::
 
         >>> import matplotlib.pyplot as plt
