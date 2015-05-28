@@ -1264,10 +1264,11 @@ def calculate_error_coefficients(
     :rtype: dict
     """
 
-    x = engine_speeds[velocities > EPS],
+    x = engine_speeds[velocities > EPS]
     y = predicted_engine_speeds[velocities > EPS]
+
     res = {
-        'correlation coeff.': np.corrcoef(x, y),
         'mean absolute error': mean_absolute_error(x, y),
+        'correlation coeff.': np.corrcoef(x, y)[0, 1],
     }
     return res

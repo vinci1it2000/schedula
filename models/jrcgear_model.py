@@ -19,7 +19,8 @@ import glob, re, os
 from models.AT_gear_model import *
 from models.read_model import *
 from functions.write_outputs import write_output
-from dispatcher import Dispatcher, dispatch, combine, def_fork, select
+from dispatcher import Dispatcher, def_dispatch, combine_dicts, def_replicate, \
+    def_selector
 
 
 def def_jrc_model():
@@ -27,7 +28,7 @@ def def_jrc_model():
     # gear model
     gear_model, calibration_models, gears_predicted, \
     gear_box_speeds_predicted, error_coefficients = def_gear_model()
-    fork = def_fork(2)
+
     # read model
     load_inputs = def_load_inputs()
 
@@ -39,9 +40,11 @@ def def_jrc_model():
     ==========
     """
 
+    replicate = def_replicate()
+
     functions.extend([
         {  # open excel workbook of the cycle
-           'function': fork,
+           'function': replicate,
            'inputs': ['input_file_name'],
            'outputs': ['calibration_input_file_name',
                        'prediction_input_file_name'],
@@ -88,47 +91,14 @@ def def_jrc_model():
     ================
     """
 
-    def select_outputs_v1(kwargs):
-        d = list(kwargs.values())[0]
-        return select(d, calibration_models)
-
-    data.extend([
-        {
-            'data_id': 'gear_model',
-            'default_value': gear_model
-        },
-        {
-            'data_id': 'calibration_models',
-            'default_value': calibration_models
-        },
-        {
-            'data_id': 'calibrated_models',
-            'wait_inputs': True,
-            'function': select_outputs_v1
-        },
-    ])
-
     functions.extend([
         {  # calibrate models
            'function_id': 'calibrate_models',
-           'function': dispatch,
-           'inputs': ['gear_model', 'calibration_cycle_inputs',
-                      'calibration_models'],
+           'function': def_dispatch(
+               gear_model, calibration_models, returns='dict'
+           ),
+           'inputs': ['calibration_cycle_inputs'],
            'outputs': ['calibrated_models'],
-        },
-    ])
-
-    """
-    Extract calibrated models
-    =========================
-    """
-    functions.extend([
-
-        {  # predict gears
-           'function_id': 'merge_calibrated_models_and_prediction_cycle_inputs',
-           'function': combine,
-           'inputs': ['calibrated_models', 'prediction_cycle_inputs'],
-           'outputs': ['calibrated_models_plus_prediction_cycle_inputs'],
         },
     ])
 
@@ -137,24 +107,13 @@ def def_jrc_model():
     =============
     """
 
-    data.extend([
-        {
-            'data_id': 'gear_model',
-            'default_value': gear_model
-        },
-        {
-            'data_id': 'gears_prediction_models',
-            'default_value': gears_predicted
-        },
-    ])
-
     functions.extend([
         {  # predict gears
            'function_id': 'predict_gears',
-           'function': dispatch,
-           'inputs': ['gear_model',
-                      'calibrated_models_plus_prediction_cycle_inputs',
-                      'gears_prediction_models'],
+           'function': def_dispatch(
+               gear_model, gears_predicted
+           ),
+           'inputs': ['calibrated_models', 'prediction_cycle_inputs'],
            'outputs': ['predicted_gears'],
         },
     ])
@@ -164,24 +123,13 @@ def def_jrc_model():
     ================================
     """
 
-    data.extend([
-        {
-            'data_id': 'gear_model',
-            'default_value': gear_model
-        },
-        {
-            'data_id': 'gear_box_engine_speeds_prediction_models',
-            'default_value': gear_box_speeds_predicted
-        },
-    ])
-
     functions.extend([
         {  # evaluate gear box engine speeds
            'function_id': 'calculate_gear_box_engine_speeds',
-           'function': dispatch,
-           'inputs': ['gear_model',
-                      'predicted_gears',
-                      'gear_box_engine_speeds_prediction_models'],
+           'function': def_dispatch(
+               gear_model, gear_box_speeds_predicted
+           ),
+           'inputs': ['predicted_gears'],
            'outputs': ['calculated_gear_box_engine_speeds'],
         },
     ])
@@ -190,29 +138,14 @@ def def_jrc_model():
     Extract error coefficients
     ==========================
     """
-    def select_outputs_v2(kwargs):
-        d = list(kwargs.values())[0]
-        return select(d, error_coefficients)
-
-    data.extend([
-        {
-            'data_id': 'error_coefficient_names',
-            'default_value': error_coefficients,
-        },
-        {
-            'data_id': 'error_coefficients',
-            'wait_inputs': True,
-            'function': select_outputs_v2
-        },
-    ])
 
     functions.extend([
         {  # evaluate gear box engine speeds
            'function_id': 'extract_error_coefficients',
-           'function': dispatch,
-           'inputs': ['gear_model',
-                      'calculated_gear_box_engine_speeds',
-                      'error_coefficient_names'],
+           'function': def_dispatch(
+               gear_model, error_coefficients, returns='dict'
+           ),
+           'inputs': ['calculated_gear_box_engine_speeds'],
            'outputs': ['error_coefficients'],
         },
     ])
@@ -261,6 +194,7 @@ def process_folder_files(input_folder, output_folder):
         coeff = model.dispatch(inputs=inputs)[1]['error_coefficients']
         coeff.update({'vehicle': fname})
         error_coeff.append(coeff)
+        break
     print('Done!')
 
     for v in error_coeff:
@@ -271,5 +205,5 @@ if __name__ == '__main__':
     # C:/Users/arcidvi
     # /Users/iMac2013
 
-    process_folder_files(r'C:/Users/arcidvi/Dropbox/LAT/*.xlsm',
-                         r'C:/Users/arcidvi/Dropbox/LAT/outputs')
+    process_folder_files(r'/Users/iMac2013/Dropbox/LAT/*.xlsm',
+                         r'/Users/iMac2013/Dropbox/LAT/outputs')
