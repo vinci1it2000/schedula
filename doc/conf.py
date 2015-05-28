@@ -20,13 +20,13 @@ import shlex
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-prj_dir = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..'))
+prj_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, prj_dir)
 
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
-#needs_sphinx = '1.0'
+# needs_sphinx = '1.0'
 
 
 # Add any Sphinx extension module names here, as strings. They can be
@@ -59,7 +59,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'JRC gear prediction tool'
-copyright = '2015, Vincenzo Arcidiacono'
+copyright = '2014-2015, European Commission (JRC)'  # @ReservedAssignment
 author = 'Vincenzo Arcidiacono'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -217,25 +217,26 @@ htmlhelp_basename = 'JRCgearpredictiontooldoc'
 # -- Options for LaTeX output ---------------------------------------------
 
 latex_elements = {
-# The paper size ('letterpaper' or 'a4paper').
-#'papersize': 'letterpaper',
+    # The paper size ('letterpaper' or 'a4paper').
+    #'papersize': 'letterpaper',
 
-# The font size ('10pt', '11pt' or '12pt').
-#'pointsize': '10pt',
+    # The font size ('10pt', '11pt' or '12pt').
+    #'pointsize': '10pt',
 
-# Additional stuff for the LaTeX preamble.
-#'preamble': '',
+    # Additional stuff for the LaTeX preamble.
+    #'preamble': '',
 
-# Latex figure (float) alignment
-#'figure_align': 'htbp',
+    # Latex figure (float) alignment
+    #'figure_align': 'htbp',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  (master_doc, 'JRCgearpredictiontool.tex', 'JRC gear prediction tool Documentation',
-   'Vincenzo Arcidiacono', 'manual'),
+    (master_doc, 'JRCgearpredictiontool.tex',
+     'JRC gear prediction tool Documentation',
+     'Vincenzo Arcidiacono', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -264,7 +265,8 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'jrcgearpredictiontool', 'JRC gear prediction tool Documentation',
+    (master_doc, 'jrcgearpredictiontool',
+     'JRC gear prediction tool Documentation',
      [author], 1)
 ]
 
@@ -278,9 +280,12 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  (master_doc, 'JRCgearpredictiontool', 'JRC gear prediction tool Documentation',
-   author, 'JRCgearpredictiontool', 'One line description of project.',
-   'Miscellaneous'),
+    (master_doc, 'JRCgearpredictiontool',
+     'JRC gear prediction tool Documentation',
+     author,
+     'JRCgearpredictiontool',
+     'One line description of project.',
+     'Miscellaneous'),
 ]
 
 # Documents to append as an appendix to all manuals.

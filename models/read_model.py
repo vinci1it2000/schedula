@@ -1,10 +1,26 @@
-import pandas as pd
+#-*- coding: utf-8 -*-
+#
+# Copyright 2015 European Commission (JRC);
+# Licensed under the EUPL (the 'Licence');
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
+import pandas as pd
 from functions.read_inputs import *
 from dispatcher import Dispatcher
 
 
 def def_load_inputs():
+    """
+
+    :return:
+    """
+
+    """
+    Open excel workbook
+    ===================
+    """
+
     data = [
         {'data_id': 'series_cols', 'default_value': 'A:E'},
         {'data_id': 'parameters_cols', 'default_value': 'A:B'},

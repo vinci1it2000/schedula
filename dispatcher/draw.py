@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from .dispatcher import Dispatcher
 from .constants import START
 
+
 def plot_dmap(dmap, pos=None):
     """
     Draw the graph of the Dispatcher map with Matplotlib.
@@ -25,6 +26,7 @@ def plot_dmap(dmap, pos=None):
     :type pos: dictionary, optional
 
     Example::
+
         >>> import dispatcher as dsp
         >>> dmap = dsp.Dispatcher()
         >>> dmap.add_function(function=max, inputs=['/a', '/b'], \

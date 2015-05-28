@@ -2,6 +2,7 @@ __author__ = 'Vincenzo Arcidiacono'
 from itertools import tee
 from heapq import heappop
 
+
 class Token(str):
     def __repr__(self):
         return self

@@ -18,6 +18,7 @@ from .constants import EMPTY, START
 
 log = logging.getLogger(__name__)
 
+
 class Dispatcher(object):
     """
     It provides a data structure to process a complex system of functions.

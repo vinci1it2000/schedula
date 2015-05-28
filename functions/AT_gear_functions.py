@@ -1,11 +1,18 @@
-#!python
+#-*- coding: utf-8 -*-
+#
+# Copyright 2015 European Commission (JRC);
+# Licensed under the EUPL (the 'Licence');
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+
 """
 .. module:: AT_gear_functions
 
 .. moduleauthor:: Vincenzo Arcidiacono <vinci1it2000@gmail.com>
 
 This module provides functions to predict the A/T gear shifting according to
-the decision tree approach and the corrected matrix velocity.
+the decision tree approaches (DT...), the corrected matrix velocity (CMV), and
+the gear shifting power velocity matrix (GSPV).
 """
 
 __author__ = 'Arcidiacono Vincenzo'
@@ -1234,7 +1241,8 @@ def calculate_engine_speeds(
     return speeds
 
 
-def calculate_error_coefficients(engine_speeds, predicted_engine_speeds, velocities):
+def calculate_error_coefficients(
+        engine_speeds, predicted_engine_speeds, velocities):
     """
     Calculates the prediction's error coefficients.
 

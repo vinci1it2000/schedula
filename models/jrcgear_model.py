@@ -1,3 +1,20 @@
+#-*- coding: utf-8 -*-
+#
+# Copyright 2015 European Commission (JRC);
+# Licensed under the EUPL (the 'Licence');
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+
+"""
+.. module:: AT_gear_functions
+
+.. moduleauthor:: Vincenzo Arcidiacono <vinci1it2000@gmail.com>
+
+This module provides a A/T gear shifting model to identify and predict the gear
+shifting.
+
+The model is defined by a Dispatcher that wraps all the functions needed.
+"""
 import glob, re, os
 from models.AT_gear_model import *
 from models.read_model import *

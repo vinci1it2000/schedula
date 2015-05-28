@@ -13,6 +13,7 @@ Contents:
 
    models/models
    functions/functions
+   dispatcher/dispatcher
 
 
 Indices and tables

@@ -49,6 +49,7 @@ def load_dispatcher(path):
 
     Example::
 
+        >>> import dispatcher as dsp
         >>> from tempfile import gettempdir
         >>> dmap = dsp.Dispatcher()
         >>> dmap.add_data()
@@ -82,6 +83,7 @@ def save_default_values(dmap, path):
 
     Example::
 
+        >>> import dispatcher as dsp
         >>> from tempfile import gettempdir
         >>> dmap = dsp.Dispatcher()
         >>> tmp = '/'.join([gettempdir(), 'test.dispatcher_default'])
@@ -110,6 +112,7 @@ def load_default_values(dmap, path):
 
     Example::
 
+        >>> import dispatcher as dsp
         >>> from tempfile import gettempdir
         >>> tmp = '/'.join([gettempdir(), 'test.dispatcher_default'])
         >>> dmap = dsp.Dispatcher()
@@ -143,6 +146,7 @@ def save_graph(dmap, path):
 
     Example::
 
+        >>> import dispatcher as dsp
         >>> from tempfile import gettempdir
         >>> tmp = '/'.join([gettempdir(), 'test.dispatcher_graph'])
         >>> dmap = dsp.Dispatcher()
@@ -166,6 +170,7 @@ def load_graph(dmap, path):
 
     Example::
 
+        >>> import dispatcher as dsp
         >>> from tempfile import gettempdir
         >>> tmp = '/'.join([gettempdir(), 'test.dispatcher_graph'])
         >>> dmap = dsp.Dispatcher()
