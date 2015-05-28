@@ -16,32 +16,16 @@ import doctest
 import unittest
 import timeit
 
-
 import dispatcher.dispatcher as dsp
 from dispatcher.dispatcher import Dispatcher
 from dispatcher.constants import START, EMPTY
 
 
-DEFAULT_LOG_LEVEL = logging.INFO
 __name__ = 'dispatcher'
 __path__ = ''
 
 
-def _init_logging(loglevel):
-    logging.basicConfig(level=loglevel)
-    logging.getLogger().setLevel(level=loglevel)
-
-    log = logging.getLogger(__name__)
-    log.trace = lambda *args, **kws: log.log(0, *args, **kws)
-
-    return log
-
-
-log = _init_logging(DEFAULT_LOG_LEVEL)
-
-
 def _setup_dsp():
-
     disp = Dispatcher()
 
     disp.add_function('min', min, inputs=['/a', '/c'], outputs=['/d'])
@@ -106,7 +90,7 @@ class TestDispatcher(unittest.TestCase):
         self.assertEquals(dmap.add_data(default_value='v'), 'unknown<1>')
 
         self.assertEquals(dmap.dmap.node['unknown<1>'], {'wait_inputs': False,
-                                                        'type': 'data'})
+                                                         'type': 'data'})
 
         self.assertEquals(dmap.default_values['unknown<1>'], 'v')
         self.assertEquals(dmap.add_data(data_id='unknown<1>'), 'unknown<1>')
@@ -167,7 +151,8 @@ class TestDispatcher(unittest.TestCase):
                 'input_domain': my_domain,
                 'outputs': ['/e'],
                 'weight': 1,
-                'wait_inputs': True}
+                'wait_inputs': True},
+            dsp.SINK: {'wait_inputs': True, 'type': 'data'},
         }
         self.assertEquals(dmap.dmap.node, res)
         res = [dmap.dmap.edge['/a']['funny_id']['weight'],
@@ -181,7 +166,7 @@ class TestDispatcher(unittest.TestCase):
             'type': 'function',
             'inputs': ['/a'],
             'function': None,
-            'outputs': ['unknown<0>'],
+            'outputs': [dsp.SINK],
             'wait_inputs': True
         }
         self.assertEquals(dmap.dmap.node[fun_id], res)
@@ -224,7 +209,8 @@ class TestDispatcher(unittest.TestCase):
                                 'wait_inputs': True,
                                 'function': fun1,
                                 'type': 'function',
-                                'outputs': ['/c']}
+                                'outputs': ['/c']},
+            dsp.SINK: {'wait_inputs': True, 'type': 'data'},
         }
         self.assertEquals(dmap.dmap.node, res)
 
@@ -376,8 +362,9 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
 
         workflow, outputs = disp.dispatch({'/a': 5, '/b': 6, '/f': 9})
 
-        self.assertEquals(outputs,
-                          {'/a': 5, '/b': 6, '/c': 0, '/d': 0, '/e': 2, '/f':9})
+        self.assertEquals(
+            outputs, {'/a': 5, '/b': 6, '/c': 0, '/d': 0, '/e': 2, '/f': 9}
+        )
 
         res = ['/a', '/b', '/c', '/d', '/e', '2 / (d + 1)', 'log(b - a)', 'min',
                START]
@@ -584,7 +571,6 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
 
         disp.add_data('/b', callback=callback)
 
-
         self.assertTrue(disp._set_node_output('/b', False))
 
         self.assertEquals(wf_edge, res)
@@ -595,8 +581,9 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         disp = Dispatcher()
         disp.add_function(function=max, inputs=['/a', '/b'], outputs=['/c'])
         disp.add_function(function=max, inputs=['/b', '/d'], outputs=['/e'])
-        disp.add_function(function=max, inputs=['/d', '/e'],
-                          outputs=['/c','/f'])
+        disp.add_function(
+            function=max, inputs=['/d', '/e'], outputs=['/c', '/f']
+        )
         disp.add_function(function=max, inputs=['/d', '/f'], outputs=['/g'])
         disp.add_function(function=max, inputs=['/a', '/b'], outputs=['/a'])
 
@@ -604,20 +591,23 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
                                      outputs=['/c', '/a', '/f'],
                                      wildcard=True)
 
-        self.assertEquals(sorted(shrink_dsp.dmap.node),
+        self.assertEquals(
+            sorted(shrink_dsp.dmap.node),
             ['/a', '/b', '/c', '/d', '/e', '/f',
              'builtins:max', 'builtins:max<0>',
-             'builtins:max<1>', 'builtins:max<3>'])
+             'builtins:max<1>', 'builtins:max<3>', dsp.SINK]
+        )
         self.assertEquals(sorted(shrink_dsp.dmap.edges()),
-            [('/a', 'builtins:max'), ('/a', 'builtins:max<3>'),
-             ('/b', 'builtins:max'), ('/b', 'builtins:max<0>'),
-             ('/b', 'builtins:max<3>'), ('/d', 'builtins:max<0>'),
-             ('/d', 'builtins:max<1>'), ('/e', 'builtins:max<1>'),
-             ('builtins:max', '/c'), ('builtins:max<0>', '/e'),
-             ('builtins:max<1>', '/f'), ('builtins:max<3>', '/a')])
+                          [('/a', 'builtins:max'), ('/a', 'builtins:max<3>'),
+                           ('/b', 'builtins:max'), ('/b', 'builtins:max<0>'),
+                           ('/b', 'builtins:max<3>'), ('/d', 'builtins:max<0>'),
+                           ('/d', 'builtins:max<1>'), ('/e', 'builtins:max<1>'),
+                           ('builtins:max', '/c'), ('builtins:max<0>', '/e'),
+                           ('builtins:max<1>', '/f'),
+                           ('builtins:max<3>', '/a')])
 
         shrink_dsp = disp.shrink_dsp(['/a', '/b'], ['/e'])
-        self.assertEquals(sorted(shrink_dsp.dmap.node), [])
+        self.assertEquals(sorted(shrink_dsp.dmap.node), [dsp.SINK])
         self.assertEquals(sorted(shrink_dsp.dmap.edges()), [])
 
     def test_extract_function_node(self):
@@ -629,6 +619,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         self.assertEquals(res['inputs'], ['/a', '/b'])
         self.assertEquals(res['outputs'], ['/a'])
         self.assertEquals(res['function'].__name__, 'myF')
+        # noinspection PyCallingNonCallable
         self.assertEquals(res['function'](2, 1), 1)
         self.assertRaises(ValueError, res['function'], 3, -1)
 

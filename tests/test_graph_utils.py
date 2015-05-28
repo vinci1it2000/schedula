@@ -26,6 +26,7 @@ class TestDoctest(unittest.TestCase):
         self.assertGreater(test_count, 0, (failure_count, test_count))
         self.assertEquals(failure_count, 0, (failure_count, test_count))
 
+
 class TestGraphAlgorithms(unittest.TestCase):
     def test_scc_fun(self):
         graph = nx.DiGraph()

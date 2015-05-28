@@ -32,6 +32,67 @@ class Dispatcher(object):
         A directed graph that stores data & functions parameters.
     :type dmap: DiGraph
 
+    :ivar dmap:
+        The directed graph that stores data & functions parameters.
+    :type dmap: DiGraph
+
+    :ivar nodes:
+        The function and data nodes of the dispatcher.
+    :type nodes: AttrDict
+
+    :ivar default_values:
+        Data node default values. These will be used as input if it is not
+        specified as inputs in the ArciDispatch algorithm.
+    :type default_values: dict
+
+    :ivar _workflow:
+        A workflow is a sequence of function calls.
+    :type _workflow: DiGraph
+
+    :ivar _data_output:
+
+    :type _data_output: DiGraph
+
+    :ivar _dist:
+
+    :type _dist: dict
+
+    :ivar _visited:
+
+    :type _visited: set
+
+    :ivar _targets:
+
+    :type _targets: set
+
+    :ivar _cutoff:
+
+    :type _cutoff: int, float
+
+    :ivar _weight:
+
+    :type _weight: str
+
+    :ivar _wildcards:
+
+    :type _wildcards: set
+
+    :ivar _pred:
+
+    :type _pred: dict
+
+    :ivar _succ:
+
+    :type _succ: dict
+
+    :ivar _wf_add_edge:
+
+    :type _wf_add_edge: function
+
+    :ivar _wf_pred:
+
+    :type _wf_pred: dict
+
     \***************************************************************************
 
     **Example**:
@@ -124,7 +185,6 @@ class Dispatcher(object):
         self._weight = 'weight'
         self._wildcards = set()
         self._pred = self.dmap.pred
-        self._node = self.dmap.node
         self._succ = self.dmap.succ
         self._wf_add_edge = add_edge_fun(self._workflow)
         self._wf_pred = self._workflow.pred
@@ -141,7 +201,7 @@ class Dispatcher(object):
 
         :param default_value:
             Data node default value. This will be used as input if it is not
-            specified as input_value in the ArciDispatch algorithm.
+            specified as inputs in the ArciDispatch algorithm.
         :type default_value: object, optional
 
         :param wait_inputs:
@@ -729,21 +789,23 @@ class Dispatcher(object):
             >>> sub_dsp.default_values
             {'/a': 1}
             >>> sorted(sub_dsp.dmap.node)
-            ['/a', '/b', '/c', '/d', 'fun1']
+            ['/a', '/b', '/c', '/d', 'fun1', sink]
             >>> res = {'/a': {'fun1': {}},
             ...        '/b': {'fun1': {}},
             ...        '/c': {},
             ...        '/d': {},
-            ...        'fun1': {'/c': {}, '/d': {}}}
+            ...        'fun1': {'/c': {}, '/d': {}},
+            ...        SINK: {}}
             >>> sub_dsp.dmap.edge ==  res
             True
             >>> sub_dsp = dsp.get_sub_dsp_from_workflow(['/c'], reverse=True)
             >>> sorted(sub_dsp.dmap.node)
-            ['/a', '/b', '/c', 'fun1']
+            ['/a', '/b', '/c', 'fun1', sink]
             >>> res = {'/a': {'fun1': {}},
             ...        '/b': {'fun1': {}},
             ...        '/c': {},
-            ...        'fun1': {'/c': {}}}
+            ...        'fun1': {'/c': {}},
+            ...        SINK: {}}
             >>> sub_dsp.dmap.edge ==  res
             True
         """
@@ -963,7 +1025,7 @@ class Dispatcher(object):
             ...                             outputs=['/c', '/e', '/f'])
             >>> sorted(shrink_dsp.dmap.nodes())
             ['/a', '/b', '/c', '/d', '/e', '/f',
-             'builtins:max', 'builtins:max<0>', 'builtins:max<1>']
+             'builtins:max', 'builtins:max<0>', 'builtins:max<1>', sink]
             >>> sorted(shrink_dsp.dmap.edges())
             [('/a', 'builtins:max'), ('/b', 'builtins:max'),
              ('/b', 'builtins:max<0>'), ('/d', 'builtins:max<0>'),
@@ -1226,7 +1288,7 @@ class Dispatcher(object):
         self._wildcards.clear()
 
         if outputs:
-            node = self._node
+            node = self.nodes
 
             # input data nodes that are in output_targets
             wildcards = {u: node[u] for u in inputs if u in outputs}
@@ -1291,7 +1353,7 @@ class Dispatcher(object):
         """
 
         # namespace shortcuts for speed
-        node_attr = self._node
+        node_attr = self.nodes
         graph = self.dmap
         add_visited = self._visited.add
         edge_weight = self._edge_length
@@ -1413,7 +1475,7 @@ class Dispatcher(object):
              (start, {'/a': {'value': [1, 2]}})]
         """
 
-        node_attr = self._node[node_id]
+        node_attr = self.nodes[node_id]
 
         node_type = node_attr['type']
 
@@ -1522,7 +1584,7 @@ class Dispatcher(object):
 
         # list of nodes that can still be estimated by the function node
         output_nodes = [u for u in node_attr['outputs']
-                        if (not u in self._dist) and (u in self._node)]
+                        if (not u in self._dist) and (u in self.nodes)]
 
         if not output_nodes:  # this function is not needed
             self._workflow.remove_node(node_id)  # remove function node
@@ -1650,7 +1712,7 @@ class Dispatcher(object):
         """
 
         # namespace shortcuts for speed
-        node_attr = self._node
+        node_attr = self.nodes
         graph = self.dmap
         dist = self._dist
         add_visited = self._visited.add

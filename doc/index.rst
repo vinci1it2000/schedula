@@ -12,6 +12,9 @@ Contents:
 .. toctree::
 
    dispatcher/dispatcher
+   dispatcher/dispatcher_utils
+   dispatcher/read_write
+   dispatcher/draw
 
 
 Indices and tables

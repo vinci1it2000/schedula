@@ -10,6 +10,7 @@ from itertools import count
 from .utils import pairwise, heap_flush
 
 
+# modified from NetworkX library
 def add_edge_fun(graph):
     succ = graph.succ
     pred = graph.pred

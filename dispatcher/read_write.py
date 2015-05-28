@@ -1,17 +1,20 @@
 __author__ = 'Vincenzo Arcidiacono'
 
 from networkx.utils import open_file
-from networkx.readwrite import read_gpickle, write_gpickle
-from pickle import dump, load, HIGHEST_PROTOCOL
-from dispatcher import Dispatcher
+from dill import dump, load
+
 
 @open_file(1, mode='wb')
-def save_dispatcher(dmap, path):
+def save_dispatcher(dsp, path):
     """
     Write Dispatcher object in Python pickle format.
 
     Pickles are a serialized byte stream of a Python object.
     This format will preserve Python objects used as nodes or edges.
+
+    :param dsp:
+        A dispatcher that identifies the model adopted.
+    :type dsp: dispatcher.Dispatcher
 
     :param path:
         File or filename to write.
@@ -20,14 +23,15 @@ def save_dispatcher(dmap, path):
 
     Example::
 
+        >>> from dispatcher import Dispatcher
         >>> from tempfile import gettempdir
-        >>> dmap = Dispatcher()
+        >>> dsp = Dispatcher()
         >>> tmp = '/'.join([gettempdir(), 'test.dispatcher'])
-        >>> save_dispatcher(dmap, tmp)
+        >>> save_dispatcher(dsp, tmp)
     """
 
     # noinspection PyArgumentList
-    dump(dmap, path, HIGHEST_PROTOCOL)
+    dump(dsp, path)
 
 
 @open_file(0, mode='rb')
@@ -48,14 +52,15 @@ def load_dispatcher(path):
 
     Example::
 
+        >>> from dispatcher import Dispatcher
         >>> from tempfile import gettempdir
-        >>> dmap = Dispatcher()
-        >>> dmap.add_data()
-        0
+        >>> dsp = Dispatcher()
+        >>> dsp.add_data()
+        'unknown<0>'
         >>> tmp = '/'.join([gettempdir(), 'test.dispatcher'])
-        >>> save_dispatcher(dmap, tmp)
-        >>> dmap_loaded = load_dispatcher(tmp)
-        >>> dmap.dmap.node[0]['type']
+        >>> save_dispatcher(dsp, tmp)
+        >>> dsp_loaded = load_dispatcher(tmp)
+        >>> dsp_loaded.dmap.node['unknown<0>']['type']
         'data'
     """
 
@@ -64,15 +69,16 @@ def load_dispatcher(path):
 
 
 @open_file(1, mode='wb')
-def save_default_values(dmap, path):
+def save_default_values(dsp, path):
     """
     Write Dispatcher default values in Python pickle format.
 
     Pickles are a serialized byte stream of a Python object.
     This format will preserve Python objects used as nodes or edges.
 
-    :param dmap: dispatcher map that identifies the model adopted.
-    :type dmap: Dispatcher
+    :param dsp:
+        A dispatcher that identifies the model adopted.
+    :type dsp: dispatcher.Dispatcher
 
     :param path:
         File or filename to write.
@@ -81,26 +87,28 @@ def save_default_values(dmap, path):
 
     Example::
 
+        >>> from dispatcher import Dispatcher
         >>> from tempfile import gettempdir
-        >>> dmap = Dispatcher()
+        >>> dsp = Dispatcher()
         >>> tmp = '/'.join([gettempdir(), 'test.dispatcher_default'])
-        >>> save_default_values(dmap, tmp)
+        >>> save_default_values(dsp, tmp)
     """
 
     # noinspection PyArgumentList
-    dump(dmap.default_values, path, HIGHEST_PROTOCOL)
+    dump(dsp.default_values, path)
 
 
 @open_file(1, mode='rb')
-def load_default_values(dmap, path):
+def load_default_values(dsp, path):
     """
     Load Dispatcher default values in Python pickle format.
 
     Pickles are a serialized byte stream of a Python object.
     This format will preserve Python objects used as nodes or edges.
 
-    :param dmap: dispatcher map that identifies the model adopted.
-    :type dmap: Dispatcher
+    :param dsp:
+        A dispatcher that identifies the model adopted.
+    :type dsp: dispatcher.Dispatcher
 
     :param path:
         File or filename to write.
@@ -109,31 +117,34 @@ def load_default_values(dmap, path):
 
     Example::
 
+        >>> from dispatcher import Dispatcher
         >>> from tempfile import gettempdir
         >>> tmp = '/'.join([gettempdir(), 'test.dispatcher_default'])
-        >>> dmap = Dispatcher()
-        >>> dmap.add_data(default_value=5)
-        0
-        >>> save_default_values(dmap, tmp)
-        >>> dmap_loaded = Dispatcher()
-        >>> load_default_values(dmap_loaded, tmp)
-        >>> dmap_loaded.default_values == dmap.default_values
+        >>> dsp = Dispatcher()
+        >>> dsp.add_data(default_value=5)
+        'unknown<0>'
+        >>> save_default_values(dsp, tmp)
+        >>> dsp_loaded = Dispatcher()
+        >>> load_default_values(dsp_loaded, tmp)
+        >>> dsp_loaded.default_values == dsp.default_values
         True
     """
 
     # noinspection PyArgumentList
-    dmap.default_values = load(path)
+    dsp.default_values = load(path)
 
 
-def save_graph(dmap, path):
+@open_file(1, mode='wb')
+def save_graph(dsp, path):
     """
     Write Dispatcher graph object in Python pickle format.
 
     Pickles are a serialized byte stream of a Python object.
     This format will preserve Python objects used as nodes or edges.
 
-    :param dmap: dispatcher map that identifies the model adopted.
-    :type dmap: Dispatcher
+    :param dsp:
+        A dispatcher that identifies the model adopted.
+    :type dsp: dispatcher.Dispatcher
 
     :param path:
         File or filename to write.
@@ -142,21 +153,24 @@ def save_graph(dmap, path):
 
     Example::
 
+        >>> from dispatcher import Dispatcher
         >>> from tempfile import gettempdir
         >>> tmp = '/'.join([gettempdir(), 'test.dispatcher_graph'])
-        >>> dmap = Dispatcher()
-        >>> save_graph(dmap, tmp)
+        >>> dsp = Dispatcher()
+        >>> save_graph(dsp, tmp)
     """
 
-    write_gpickle(dmap.dmap, path)
+    dump(dsp.dmap, path)
 
 
-def load_graph(dmap, path):
+@open_file(1, mode='rb')
+def load_graph(dsp, path):
     """
     Load Dispatcher graph object in Python pickle format.
 
-    :param dmap: dispatcher map that identifies the model adopted.
-    :type dmap: Dispatcher
+    :param dsp:
+        A dispatcher that identifies the model adopted.
+    :type dsp: Dispatcher
 
     :param path:
         File or filename to write.
@@ -165,17 +179,21 @@ def load_graph(dmap, path):
 
     Example::
 
+        >>> from dispatcher import Dispatcher
         >>> from tempfile import gettempdir
         >>> tmp = '/'.join([gettempdir(), 'test.dispatcher_graph'])
-        >>> dmap = Dispatcher()
-        >>> fun_node = dmap.add_function(function=max, inputs=['/a'])
-        >>> fun_node
-        'builtins:max'
-        >>> save_graph(dmap, tmp)
-        >>> dmap_loaded = Dispatcher()
-        >>> load_graph(dmap_loaded, tmp)
-        >>> dmap_loaded.dmap.degree(fun_node) == dmap.dmap.degree(fun_node)
+        >>> dsp = Dispatcher()
+        >>> def f(a):
+        ...     return (a, 1)
+        >>> fun_node = dsp.add_function(function=f, inputs=['/a'])
+        >>> save_graph(dsp, tmp)
+        >>> del f
+        >>> dsp_loaded = Dispatcher()
+        >>> load_graph(dsp_loaded, tmp)
+        >>> dsp_loaded.dmap.degree(fun_node) == dsp.dmap.degree(fun_node)
         True
+        >>> dsp_loaded.dmap.node[fun_node]['function']('ciao')
+        ('ciao', 1)
     """
 
-    dmap.dmap = read_gpickle(path)
+    dsp.dmap = load(path)
