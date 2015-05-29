@@ -15,6 +15,7 @@ from collections import OrderedDict
 from .utils import rename_function, AttrDict
 from .graph_utils import add_edge_fun, remove_cycles_iteration
 from .constants import EMPTY, START, NONE, SINK
+from .dispatcher_utils import SubDispatch
 
 log = logging.getLogger(__name__)
 
@@ -45,52 +46,52 @@ class Dispatcher(object):
         specified as inputs in the ArciDispatch algorithm.
     :type default_values: dict
 
-    :ivar _workflow:
-        A workflow is a sequence of function calls.
-    :type _workflow: DiGraph
+    :ivar data_output:
+        A dictionary with the dispatch outputs.
+    :type data_output: dict
 
-    :ivar _data_output:
+    :ivar dist:
+        A dictionary of distances from the `START` node.
+    :type dist: dict
 
-    :type _data_output: DiGraph
+    :ivar weight:
+        Weight tag.
+    :type weight: str
 
-    :ivar _dist:
-
-    :type _dist: dict
+    :ivar workflow:
+        The dispatch workflow graph. It is a sequence of function calls.
+    :type workflow: DiGraph
 
     :ivar _visited:
-
+        A set of visited nodes from the dispatch.
     :type _visited: set
 
     :ivar _targets:
-
+        A set of target nodes.
     :type _targets: set
 
     :ivar _cutoff:
-
-    :type _cutoff: int, float
-
-    :ivar _weight:
-
-    :type _weight: str
+        Depth to stop the search.
+    :type _cutoff: int, float, None
 
     :ivar _wildcards:
-
+        A set of nodes with a wildcard.
     :type _wildcards: set
 
     :ivar _pred:
-
+        The predecessors of the dispatcher map nodes.
     :type _pred: dict
 
     :ivar _succ:
-
+        The successors of the dispatcher map nodes.
     :type _succ: dict
 
     :ivar _wf_add_edge:
-
+        A function that add edges to the `workflow`.
     :type _wf_add_edge: function
 
     :ivar _wf_pred:
-
+        The predecessors of the `workflow` nodes.
     :type _wf_pred: dict
 
     \***************************************************************************
@@ -176,18 +177,18 @@ class Dispatcher(object):
         self.dmap.node = AttrDict(self.dmap.node)
         self.nodes = self.dmap.node
         self.default_values = {}
-        self._workflow = DiGraph()  # graph output
-        self._data_output = {}
-        self._dist = {}
+        self.weight = 'weight'
+        self.workflow = DiGraph()  # graph output
+        self.data_output = {}
+        self.dist = {}
         self._visited = set()
         self._targets = set()
         self._cutoff = None
-        self._weight = 'weight'
         self._wildcards = set()
         self._pred = self.dmap.pred
         self._succ = self.dmap.succ
-        self._wf_add_edge = add_edge_fun(self._workflow)
-        self._wf_pred = self._workflow.pred
+        self._wf_add_edge = add_edge_fun(self.workflow)
+        self._wf_pred = self.workflow.pred
         self.add_data(SINK, wait_inputs=True)
 
     def add_data(self, data_id=None, default_value=EMPTY, wait_inputs=False,
@@ -499,6 +500,7 @@ class Dispatcher(object):
         :returns:
             - Data node ids.
             - Function node ids.
+        :rtype: (list, list)
 
         .. seealso:: add_node, add_function
 
@@ -814,7 +816,7 @@ class Dispatcher(object):
         sub_dsp = self.__class__()
 
         if not graph:  # set default graph
-            graph = self._workflow
+            graph = self.workflow
 
         if not reverse:
             # namespace shortcuts for speed
@@ -1043,9 +1045,11 @@ class Dispatcher(object):
 
             # set the graph for the breadth-first-search
             bfs_graph = workflow
-
-            # reached outputs
-            outputs = set(outputs) & set(data_visited)
+            if outputs:
+                # reached outputs
+                outputs = set(outputs) & set(data_visited)
+            else:
+                outputs = set(data_visited)
 
         elif outputs:
             # set the graph for the breadth-first-search
@@ -1247,7 +1251,7 @@ class Dispatcher(object):
         :rtype: float, int
         """
 
-        weight = self._weight
+        weight = self.weight
 
         return edge.get(weight, 1) + node_out.get(weight, 0)
 
@@ -1285,7 +1289,7 @@ class Dispatcher(object):
         :type outputs: iterable
         """
 
-        self._wildcards.clear()
+        self._wildcards = set()
 
         if outputs:
             node = self.nodes
@@ -1319,11 +1323,11 @@ class Dispatcher(object):
 
         if no_call:
             # set initial values
-            initial_values = dict.fromkeys(self.default_values, None)
+            initial_values = dict.fromkeys(self.default_values, NONE)
 
             # update initial values with input values
             if inputs is not None:
-                initial_values.update(dict.fromkeys(inputs, None))
+                initial_values.update(dict.fromkeys(inputs, NONE))
         else:
             # set initial values
             initial_values = self.default_values.copy()
@@ -1355,24 +1359,33 @@ class Dispatcher(object):
         # namespace shortcuts for speed
         node_attr = self.nodes
         graph = self.dmap
-        add_visited = self._visited.add
+
         edge_weight = self._edge_length
         check_cutoff = self._check_cutoff()
         check_wait_in = self._check_wait_input_flag
-        wf_add_edge = self._wf_add_edge
-        wf_add_node = self._workflow.add_node
         wildcards = self._wildcards
 
-        self._workflow.clear()
+        self.workflow = DiGraph()
 
-        self._data_output.clear()  # estimated data node output
+        self.data_output = {}  # estimated data node output
 
-        self._visited.clear()
+        self._visited = set()
+
+        add_visited = self._visited.add
+        self._wf_add_edge = add_edge_fun(self.workflow)
+        self._wf_pred = self.workflow.pred
+
+        wf_add_edge = self._wf_add_edge
+        wf_add_node = self.workflow.add_node
+
+
+
+
 
         add_visited(START)  # nodes visited by the algorithm
 
         # dicts of distances
-        self._dist, seen = ({START: -1}, {START: -1})
+        self.dist, seen = ({START: -1}, {START: -1})
 
         # use heapq with (distance, wait, label)
         fringe = []
@@ -1456,8 +1469,8 @@ class Dispatcher(object):
             '/a'
             >>> fun_id = dsp.add_function(function=max, inputs=['/a'],
             ...                           outputs=['/b'])
-            >>> dsp._workflow.add_node(START, attr_dict={'type': 'start'})
-            >>> dsp._workflow.add_edge(START, '/a', attr_dict={'value': [1, 2]})
+            >>> dsp.workflow.add_node(START, attr_dict={'type': 'start'})
+            >>> dsp.workflow.add_edge(START, '/a', attr_dict={'value': [1, 2]})
             >>> dsp._set_node_output('/a', False)
             True
 
@@ -1465,10 +1478,10 @@ class Dispatcher(object):
             True
             >>> dsp._set_node_output('/b', False)
             True
-            >>> sorted(dsp._data_output.items())
+            >>> sorted(dsp.data_output.items())
             [('/a', [1, 2]),
              ('/b', 2)]
-            >>> sorted(dsp._workflow.edge.items())
+            >>> sorted(dsp.workflow.edge.items())
             [('/a', {'builtins:max': {'value': [1, 2]}}),
              ('/b', {}),
              ('builtins:max', {'/b': {'value': 2}}),
@@ -1535,13 +1548,13 @@ class Dispatcher(object):
                 node_attr['callback'](value)
 
             # set data output
-            self._data_output[node_id] = value
+            self.data_output[node_id] = value
 
             # output value
             value = {'value': value}
         else:
             # set data output
-            self._data_output[node_id] = None
+            self.data_output[node_id] = NONE
 
             # output value
             value = {}
@@ -1582,12 +1595,15 @@ class Dispatcher(object):
         :rtype: bool
         """
 
+        # namespace shortcuts for speed
+        o_nds = node_attr['outputs']
+
         # list of nodes that can still be estimated by the function node
-        output_nodes = [u for u in node_attr['outputs']
-                        if (not u in self._dist) and (u in self.nodes)]
+        output_nodes = [u for u in o_nds
+                        if (not u in self.dist) and (u in self.nodes)]
 
         if not output_nodes:  # this function is not needed
-            self._workflow.remove_node(node_id)  # remove function node
+            self.workflow.remove_node(node_id)  # remove function node
             return False
 
         # namespace shortcuts for speed
@@ -1608,10 +1624,17 @@ class Dispatcher(object):
                 # args are not respecting the domain
                 return False
             else:  # use the estimation function of node
-                # noinspection PyCallingNonCallable
-                res = node_attr['function'](*args)
+                fun = node_attr['function']
+
+                if isinstance(fun, SubDispatch):
+                    w, res = fun(*args)
+                    self.workflow.add_node(node_id, workflow=w)
+                else:
+                    res = fun(*args)
+
                 # list of function results
-                res = res if len(node_attr['outputs']) > 1 else [res]
+                res = res if len(o_nds) > 1 else [res]
+
         except Exception as ex:
             # is missing function of the node or args are not in the domain
             msg = 'Estimation error at function node ({}) ' \
@@ -1620,7 +1643,7 @@ class Dispatcher(object):
             return False
 
         # set workflow
-        for k, v in zip(node_attr['outputs'], res):
+        for k, v in zip(o_nds, res):
             if k in output_nodes:
                 wf_add_edge(node_id, k, value=v)
 
@@ -1664,16 +1687,13 @@ class Dispatcher(object):
         inputs = self._get_initial_values(inputs, no_call)
 
         # clear old targets
-        self._targets.clear()
+        self._targets = set()
 
         # update new targets
         if outputs is not None:
             self._targets.update(outputs)
 
-        if cutoff is not None:
-            self._cutoff = cutoff  # set cutoff parameter
-        else:
-            self._cutoff = None  # clear cutoff parameter
+        self._cutoff = cutoff  # set cutoff parameter
 
         if wildcard:
             self._set_wildcards(inputs, outputs)  # set wildcards
@@ -1714,7 +1734,7 @@ class Dispatcher(object):
         # namespace shortcuts for speed
         node_attr = self.nodes
         graph = self.dmap
-        dist = self._dist
+        dist = self.dist
         add_visited = self._visited.add
         set_node_output = self._set_node_output
         check_targets = self._check_targets()
@@ -1764,7 +1784,7 @@ class Dispatcher(object):
 
         # remove unused functions
         for n in (set(self._wf_pred) - set(self._visited)):
-            self._workflow.remove_node(n)
+            self.workflow.remove_node(n)
 
         # return the workflow and data outputs
-        return self._workflow, self._data_output
+        return self.workflow, self.data_output

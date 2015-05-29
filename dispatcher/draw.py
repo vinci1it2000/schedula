@@ -8,9 +8,11 @@
 __author__ = 'Vincenzo Arcidiacono'
 
 import re
+from networkx.classes.digraph import DiGraph
 from networkx.drawing import *
 from .constants import START
 import matplotlib.pyplot as plt
+from .dispatcher_utils import SubDispatch
 
 
 node_label_regex = re.compile('(^|[^(_ )])(_)[^(_ )]', re.IGNORECASE)
@@ -27,7 +29,7 @@ def replace_under_score(s):
     return s
 
 
-def plot_dsp(dsp, pos=None, workflow=False):
+def plot_dsp(dsp, pos=None, workflow=False, title='Dispatcher', fig=None):
     """
     Draw the graph of a Dispatcher with Matplotlib.
 
@@ -42,29 +44,42 @@ def plot_dsp(dsp, pos=None, workflow=False):
 
     :param workflow:
        If True the workflow graph will be plotted, otherwise the dispatcher map.
-    :type workflow: bool, optional
+    :type workflow: bool, DiGraph, optional
+
+    :return:
+        A dictionary with figures.
+    :rtype: dict
 
     Example::
 
         >>> import matplotlib.pyplot as plt
-        >>> from dispatcher import Dispatcher
+        >>> from dispatcher import Dispatcher, SubDispatch
+        >>> sub_dsp = Dispatcher()
+        >>> def fun(a):
+        ...     return a + 1, a - 1
+        >>> sub_dsp.add_function('fun', fun, ['/a'], ['/b', '/c'])
+        'fun'
+        >>> dispatch = SubDispatch(sub_dsp, ['/a', '/c'], returns='list')
         >>> dsp = Dispatcher()
-        >>> dsp.add_data('first_value', default_value=1)
-        'first_value'
-        >>> dsp.add_function(function=max,
-        ...                  inputs=['first_value', 'second_value'],
-        ...                  outputs=['/c'])
-        'builtins:max'
-        >>> o = dsp.dispatch({'second_value': 4})[1]
-        >>> f1 = plt.subplot(211)
-        >>> plot_dsp(dsp)
-        >>> f2 = plt.subplot(212)
-        >>> plot_dsp(dsp, workflow=True)
+        >>> dsp.add_data('_i_n_p_u_t', default_value={'/a': 3})
+        '_i_n_p_u_t'
+        >>> class no_str(object):
+        ...     def __str__(self):
+        ...         raise ValueError
+        >>> dsp.add_data('_i_', default_value=no_str())
+        '_i_'
+        >>> dsp.add_function('dispatch', dispatch, ['_i_n_p_u_t'], ['/e', '/f'])
+        'dispatch'
+        >>> w, o = dsp.dispatch()
+
+        >>> f1 = plot_dsp(dsp)
+        >>> f2 = plot_dsp(dsp, workflow=True)
         >>> plt.show()
     """
+    figs = []
 
     if workflow:
-        g = dsp._workflow
+        g = workflow if isinstance(workflow, DiGraph) else dsp.workflow
         dfl = {}
     else:
         g = dsp.dmap
@@ -75,9 +90,25 @@ def plot_dsp(dsp, pos=None, workflow=False):
 
     data, function = ([], [])
 
-    for k in g.node:
-        if k in dsp.nodes:
-            eval(dsp.nodes[k]['type']).append(k)
+    for k, v in g.node.items():
+        n = dsp.nodes.get(k, {})
+        if n:
+            type = n['type']
+            eval(type).append(k)
+
+            f = n.get('function', None)
+
+            if type == 'function' and isinstance(f, SubDispatch):
+                w = v.get('workflow', False)
+                t = '%s:%s' %(title, k)
+                figs.append(plot_dsp(f.dsp, title=t, workflow=w))
+
+
+    if fig is None:
+        fig = plt.figure()
+
+    fig.suptitle(title)
+    fig = {title: (fig, figs)}
 
     label_nodes = {k: replace_under_score(k) for k in g.node}
 
@@ -114,3 +145,7 @@ def plot_dsp(dsp, pos=None, workflow=False):
     draw_networkx_edge_labels(g, pos, edge_labels=label_edges)
 
     plt.axis('off')
+
+    return fig
+
+

@@ -2,9 +2,13 @@ __author__ = 'Vincenzo Arcidiacono'
 
 from itertools import tee
 from heapq import heappop
-
+from collections import namedtuple
 
 class Token(str):
+    """
+
+    """
+
     def __repr__(self):
         return self
 
@@ -19,7 +23,18 @@ class Token(str):
 
 
 def pairwise(iterable):
-    """s -> (s0,s1), (s1,s2), (s2, s3), ..."""
+    """
+    s -> (s0, s1), (s1, s2), (s2, s3), ...
+
+    :param iterable:
+        An iterable object.
+    :type iterable: iterable
+
+    :return:
+        A zip object.
+    :rtype: zip
+    """
+
     a, b = tee(iterable)
 
     next(b, None)
@@ -38,6 +53,16 @@ def heap_flush(heap):
     :return:
         A list of elements sorted in descending order.
     :rtype: list
+
+    Example::
+
+        >>> from heapq import heappush
+        >>> heap = []
+        >>> heappush(heap, 3)
+        >>> heappush(heap, 1)
+        >>> heappush(heap, 2)
+        >>> heap_flush(heap)
+        [1, 2, 3]
     """
 
     ordered_list = []
@@ -77,6 +102,23 @@ def rename_function(new_name):
 
 
 class AttrDict(dict):
+    """
+
+    Example::
+
+        >>> d = AttrDict({'a': 3, 'b': 4})
+        >>> d.a
+        'a'
+        >>> d.pop('b')
+        4
+        >>> c = d.copy()
+        >>> d.popitem()
+        ('a', 3)
+        >>> c.a
+        'a'
+        >>> c.clear()
+    """
+
     def __init__(self, *args, **kwargs):
         super(AttrDict, self).__init__(*args, **kwargs)
         self.__dict__ = {k: k

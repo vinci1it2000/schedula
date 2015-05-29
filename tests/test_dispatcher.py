@@ -108,9 +108,7 @@ class TestDispatcher(unittest.TestCase):
         dmap = Dispatcher()
 
         def my_function(a, b):
-            c = a + b
-            d = a - b
-            return c, d
+            return a + b, a - b
 
         fun_id = dmap.add_function(function=my_function, inputs=['/a', '/b'],
                                    outputs=['/c', '/d'])
@@ -407,8 +405,9 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         self.assertEquals(workflow.edge, res)
 
         workflow, outputs = disp.dispatch(['/a', '/b'], no_call=True)
-        self.assertEquals(outputs,
-                          dict.fromkeys(['/a', '/b', '/c', '/d', '/e']))
+        self.assertEquals(
+            outputs, dict.fromkeys(['/a', '/b', '/c', '/d', '/e'], dsp.NONE)
+        )
 
         res = ['/a', '/b', '/c', '/d', '/e', '2 / (d + 1)', 'log(b - a)', 'min',
                START]
@@ -461,7 +460,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         }
         self.assertEquals(workflow.edge, res)
 
-        disp._weight = None
+        disp.weight = None
         workflow, outputs = disp.dispatch({'/a': 5, '/b': 6}, cutoff=2)
 
         self.assertEquals(outputs, {'/a': 5, '/b': 6, '/c': 0, '/d': 1})
@@ -480,7 +479,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         }
         self.assertEquals(workflow.edge, res)
 
-        disp._weight = 'weight'
+        disp.weight = 'weight'
         workflow, outputs = disp.dispatch({'/a': 5, '/b': 6}, ['/a', '/b'],
                                           wildcard=True)
 
@@ -528,13 +527,13 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
 
     def test_set_node_output(self):
         disp = Dispatcher()
-        wf_edge = disp._workflow.edge
-        data_out = disp._data_output
+        wf_edge = disp.workflow.edge
+        data_out = disp.data_output
         disp.add_data('/a', default_value=[1, 2])
         disp.add_function('max', function=max, inputs=['/a'], outputs=['/b'])
         disp.add_function('max', inputs=['/a'], outputs=['/b'])
-        disp._workflow.add_node(START, attr_dict={'type': 'start'})
-        disp._workflow.add_edge(START, '/a', attr_dict={'value': [1, 2]})
+        disp.workflow.add_node(START, attr_dict={'type': 'start'})
+        disp.workflow.add_edge(START, '/a', attr_dict={'value': [1, 2]})
 
         self.assertTrue(disp._set_node_output('/a', False))
         res = {

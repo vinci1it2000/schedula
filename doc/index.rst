@@ -15,6 +15,9 @@ Contents:
    dispatcher/dispatcher_utils
    dispatcher/read_write
    dispatcher/draw
+   dispatcher/constants
+   dispatcher/graph_utils
+   dispatcher/utils
 
 
 Indices and tables
