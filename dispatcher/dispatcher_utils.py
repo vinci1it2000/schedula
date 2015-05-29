@@ -173,7 +173,7 @@ class SubDispatch(object):
 
     Example::
 
-        >>> from dispatcher import Dispatcher, SubDispatch
+        >>> from dispatcher import Dispatcher
         >>> sub_dsp = Dispatcher()
         >>> def fun(a):
         ...     return a + 1, a - 1
