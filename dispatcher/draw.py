@@ -7,9 +7,24 @@
 
 __author__ = 'Vincenzo Arcidiacono'
 
+import re
 from networkx.drawing import *
-import matplotlib.pyplot as plt
 from .constants import START
+import matplotlib.pyplot as plt
+
+
+node_label_regex = re.compile('(^|[^(_ )])(_)[^(_ )]', re.IGNORECASE)
+
+
+def under_rpl(match_obj):
+    return match_obj.group(0).replace('_', ' ')
+
+
+def replace_under_score(s):
+    s, n = node_label_regex.subn(under_rpl, s)
+    while n:
+        s, n = node_label_regex.subn(under_rpl, s)
+    return s
 
 
 def plot_dsp(dsp, pos=None, workflow=False):
@@ -34,9 +49,13 @@ def plot_dsp(dsp, pos=None, workflow=False):
         >>> import matplotlib.pyplot as plt
         >>> from dispatcher import Dispatcher
         >>> dsp = Dispatcher()
-        >>> dsp.add_function(function=max, inputs=['/a', '/b'], outputs=['/c'])
+        >>> dsp.add_data('first_value', default_value=1)
+        'first_value'
+        >>> dsp.add_function(function=max,
+        ...                  inputs=['first_value', 'second_value'],
+        ...                  outputs=['/c'])
         'builtins:max'
-        >>> o = dsp.dispatch({'/a': 1, '/b': 4})[1]
+        >>> o = dsp.dispatch({'second_value': 4})[1]
         >>> f1 = plt.subplot(211)
         >>> plot_dsp(dsp)
         >>> f2 = plt.subplot(212)
@@ -60,9 +79,15 @@ def plot_dsp(dsp, pos=None, workflow=False):
         if k in dsp.nodes:
             eval(dsp.nodes[k]['type']).append(k)
 
-    label_nodes = {k: ('%s' % k).replace('_', ' ') for k in g.node}
+    label_nodes = {k: replace_under_score(k) for k in g.node}
 
-    label_nodes.update({k: '%s:%s' % (str(k), str(v)) for k, v in dfl.items()})
+    for k, v in dfl.items():
+        try:
+            s = '%s:%s' % (replace_under_score(k), str(v))
+        except:
+            s = replace_under_score(k)
+
+        label_nodes.update({k: s})
 
     if START in g.node:
         label_nodes[START] = 'start'
@@ -77,12 +102,13 @@ def plot_dsp(dsp, pos=None, workflow=False):
     label_edges = {}
 
     for u, v, a in g.edges_iter(data=True):
-        try:
-            e = {(u, v): '%s' % (str(a['value']))}
-        except:
-            e = {(u, v): ''}
 
-        label_edges.update(e)
+        try:
+            s = str(a['value'])
+        except:
+            s = ''
+
+        label_edges.update({(u, v): s})
 
     draw_networkx_edges(g, pos, alpha=0.5)
     draw_networkx_edge_labels(g, pos, edge_labels=label_edges)
