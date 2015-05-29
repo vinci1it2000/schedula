@@ -15,15 +15,18 @@ shifting.
 
 The model is defined by a Dispatcher that wraps all the functions needed.
 """
-import glob, re, os
+
+import re
+import os
+import glob
+from datetime import datetime
 from models.AT_gear_model import *
 from models.read_model import *
 from functions.write_outputs import write_output
-from dispatcher import Dispatcher, def_dispatch, combine_dicts, def_replicate, \
-    def_selector
+from dispatcher import Dispatcher, def_dispatch, def_replicate
 
 
-def def_jrc_model():
+def def_jrcgear_model():
 
     # gear model
     gear_model, calibration_models, gears_predicted, \
@@ -174,10 +177,12 @@ def def_jrc_model():
 
 files_exclude_regex = re.compile('^\w')
 
+
 def process_folder_files(input_folder, output_folder):
-    model, error_coefficients = def_jrc_model()
+    model, error_coefficients = def_jrcgear_model()
     fpaths = glob.glob(input_folder)
     error_coeff = []
+    doday= datetime.today().strftime('%d_%b_%Y_%H_%M_%S_')
     for fpath in fpaths:
         fname = os.path.basename(fpath)
         fname = fname.split('.')[0]
@@ -185,16 +190,22 @@ def process_folder_files(input_folder, output_folder):
             print('Skipping: %s' % fname)
             continue
         print('Processing: %s' % fname)
-
+        o_name = '%s/%s%s.xlsx' % (output_folder, doday, fname)
         inputs = {
             'input_file_name': fpath,
-            'prediction_output_file_name': '%s/%s.xlsx' % (output_folder, fname),
+            'prediction_output_file_name': o_name,
             'output_sheet_names': ('params', 'series'),
         }
         coeff = model.dispatch(inputs=inputs)[1]['error_coefficients']
-        coeff.update({'vehicle': fname})
-        error_coeff.append(coeff)
-        break
+
+        for k, v in coeff.items():
+            print('%s:%s' %(k, str(v)))
+            v.update({'vehicle': fname, 'model': k})
+            error_coeff.append(v)
+
+    writer = pd.ExcelWriter('%s/%s%s.xlsx' % (output_folder, doday, 'Summary'))
+    pd.DataFrame.from_records(error_coeff).to_excel(writer, 'Summary')
+
     print('Done!')
 
     for v in error_coeff:

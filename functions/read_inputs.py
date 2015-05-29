@@ -5,6 +5,26 @@ import numpy as np
 
 
 def read_cycles_series(excel_file, sheet_name, parse_cols):
+    """
+    Reads cycle's time series.
+
+    :param excel_file:
+        An excel file.
+    :type excel_file: pandas.ExcelFile
+
+    :param sheet_name:
+        The sheet name where to read the time series.
+    :type sheet_name: str, int
+
+    :param parse_cols:
+        Columns of the time series.
+    :type parse_cols: tuple, str
+
+    :return:
+        A pandas DataFrame with cycle's time series.
+    :rtype: pandas.DataFrame
+    """
+
     df = excel_file.parse(sheetname=sheet_name, parse_cols=parse_cols,
                           has_index_names=True)
 
@@ -14,50 +34,133 @@ def read_cycles_series(excel_file, sheet_name, parse_cols):
 
 
 def read_cycle_parameters(excel_file, parse_cols):
+    """
+    Reads vehicle's parameters.
+
+    :param excel_file:
+        An excel file.
+    :type excel_file: pandas.ExcelFile
+
+    :param parse_cols:
+        Columns of the vehicle's parameters.
+    :type parse_cols: tuple, str
+
+    :return:
+        A pandas DataFrame with vehicle's parameters.
+    :rtype: pandas.DataFrame
+    """
+
     return excel_file.parse(sheetname='Input', parse_cols=parse_cols,
                             header=None, index_col=0)[1]
 
 
-def empty(x):
+def empty(value):
+    """
+    Check if value is empty.
+
+    :param value:
+        A value to be checked.
+    :type value: any Python object
+
+    :return:
+        The checked value if it is not empty.
+    :rtype: any Python object
+
+    :raise:
+        If the value is empty.
+    :type: ValueError
+    """
+
     try:
-        if x:
-            return x
+        if value:
+            return value
     except ValueError:
-        if not np.isnan(x).any():
-            return x
+        if not np.isnan(value).any():
+            return value
 
-    raise ValueError('Empty :%s' % type(x))
-
-
-def parse_inputs(data_input, nam):
-    for (k, act), v in ((nam[k], v) for k, v in data_input.items() if k in nam):
-        try:
-            for f in act:
-                v = f(v)
-            yield {k: v}
-        except ValueError:
-            pass
+    raise ValueError('Empty :%s' % type(value))
 
 
-def combine_inputs(cycle_name, parameters, series):
-    input_names = {}
-    input_names.update(CYCLE_input_names['STANDARD'])
-    input_names.update(CYCLE_input_names[cycle_name])
+def parse_inputs(data, data_map):
+    """
+    Parses and fetch the data with a data map.
+
+    :param data:
+        Data to be parsed (key) and fetch (value) with filters.
+    :type data: dict
+
+    :param data_map:
+        It maps the data as:
+            data's key --> (parsed key, filters)
+    :type data_map: dict
+
+    :return:
+        Parsed and fetched data.
+    :rtype: dict
+    """
+
+    d = {}
+    for k, v in data.items():
+        if k in data_map:
+            (k, filters), v = (data_map[k], v)
+            try:
+                for f in filters:
+                    v = f(v)
+                d.update({k: v})
+            except ValueError:
+                pass
+
+    return d
+
+
+def merge_inputs(cycle_name, parameters, series):
+    """
+
+    :param cycle_name:
+        Cycle name (NEDC or WLTP).
+    :type cycle_name: str
+
+    :param parameters:
+        A pandas DataFrame with vehicle's parameters.
+    :type parameters: pd.DataFrame
+
+    :param series:
+        A pandas DataFrame with cycle's time series.
+    :type series: pd.DataFrame
+
+    :return:
+        A unique dict with vehicle's parameters and cycle's time series.
+    :rtype: dict
+    """
+
+    data_map = {}
+    data_map.update(CYCLE_data_map['STANDARD'])
+    data_map.update(CYCLE_data_map[cycle_name])
+
     inputs = {}
-
-    for d in parse_inputs(parameters, input_names):
-        inputs.update(d)
-
-    for d in parse_inputs(series, CYCLE_input_names['SERIES']):
-        inputs.update(d)
+    inputs.update(parse_inputs(parameters, data_map))
+    inputs.update(parse_inputs(series, CYCLE_data_map['SERIES']))
 
     return inputs
 
-def index_dict(l):
-    return {k + 1: v for k, v in enumerate(l)}
+
+def index_dict(data):
+    """
+    Returns an indexed dict of the `data` with base 1.
+
+    :param data:
+        A lists to be indexed.
+    :type data: list
+
+    :return:
+        An indexed dict.
+    :rtype: dict
+    """
+
+    return {k + 1: v for k, v in enumerate(data)}
 
 
-CYCLE_input_names = {
+CYCLE_data_map = {
     'STANDARD': {
         'gb ratios': ('gear_box_ratios', (eval, list, empty, index_dict)),
         'final drive': ('final_drive', (float, )),
