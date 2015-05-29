@@ -23,10 +23,77 @@ from datetime import datetime
 from models.AT_gear_model import *
 from models.read_model import *
 from functions.write_outputs import write_output
-from dispatcher import Dispatcher, def_dispatch, def_replicate
+from dispatcher import Dispatcher, SubDispatch, def_replicate
 
 
 def def_jrcgear_model():
+    """
+    Defines and returns a jrcgear model that read, process (models' calibration
+    and gear's prediction), and write the vehicle data.
+
+    :returns:
+        - jrcgear_model
+        - error coefficients ids (e.g., error_coefficients_with_DT_VA)
+    :rtype: (dispatcher.dispatcher.Dispatcher, list)
+
+    Follow the input/output parameters of the `jrcgear_model` dispatcher:
+
+    :param input_file_name:
+        Unique input file name.
+    :type input_file_name: str, optional
+
+    :param calibration_input_file_name:
+        Input file name to calibrate the predictive models.
+    :type calibration_input_file_name: str, optional
+
+    :param calibration_cycle_name:
+        Calibration cycle name (NEDC or WLTP).
+    :type calibration_cycle_name: str, optional
+
+    :param calibration_cycle_inputs:
+        A dictionary that contains the calibration cycle inputs.
+    :type calibration_cycle_inputs: dict, optional
+
+    :param prediction_input_file_name:
+        Input file name with the data to be used to predict the gear shifting.
+    :type prediction_input_file_name: str, optional
+
+    :param prediction_cycle_name:
+        Prediction cycle name (NEDC or WLTP).
+    :type prediction_cycle_name: str, optional
+
+    :param prediction_cycle_inputs:
+        A dictionary that contains the prediction cycle inputs.
+    :type prediction_cycle_inputs: dict, optional
+
+    :param calibrated_models:
+        A dictionary with only the calibrated predicting methods.
+    :type calibrated_models: dict, optional
+
+    :param predicted_gears:
+        A dictionary with all the dispatcher outputs of the `AT_gear_model` to
+        predict the gears.
+    :type predicted_gears: dict, optional
+
+    :param calculated_gear_box_engine_speeds:
+        A dictionary with all the dispatcher outputs of the `AT_gear_model` to
+        calculate gear box engine speeds.
+    :type calculated_gear_box_engine_speeds: dict, optional
+
+    :param error_coefficients:
+        A dictionary with only the prediction methods' error coefficients.
+    :type error_coefficients: dict, optional
+
+    :param prediction_output_file_name:
+        Output file name where write the outputs of the prediction.
+    :type prediction_output_file_name: str, optional
+
+    :param output_sheet_names:
+        Sheet names for:
+            + series
+            + parameters
+    :type output_sheet_names: (str, str), optional
+    """
 
     # gear model
     gear_model, calibration_models, gears_predicted, \
@@ -97,7 +164,7 @@ def def_jrcgear_model():
     functions.extend([
         {  # calibrate models
            'function_id': 'calibrate_models',
-           'function': def_dispatch(
+           'function': SubDispatch(
                gear_model, calibration_models, returns='dict'
            ),
            'inputs': ['calibration_cycle_inputs'],
@@ -113,7 +180,7 @@ def def_jrcgear_model():
     functions.extend([
         {  # predict gears
            'function_id': 'predict_gears',
-           'function': def_dispatch(
+           'function': SubDispatch(
                gear_model, gears_predicted
            ),
            'inputs': ['calibrated_models', 'prediction_cycle_inputs'],
@@ -129,7 +196,7 @@ def def_jrcgear_model():
     functions.extend([
         {  # evaluate gear box engine speeds
            'function_id': 'calculate_gear_box_engine_speeds',
-           'function': def_dispatch(
+           'function': SubDispatch(
                gear_model, gear_box_speeds_predicted
            ),
            'inputs': ['predicted_gears'],
@@ -145,7 +212,7 @@ def def_jrcgear_model():
     functions.extend([
         {  # evaluate gear box engine speeds
            'function_id': 'extract_error_coefficients',
-           'function': def_dispatch(
+           'function': SubDispatch(
                gear_model, error_coefficients, returns='dict'
            ),
            'inputs': ['calculated_gear_box_engine_speeds'],
@@ -179,6 +246,18 @@ files_exclude_regex = re.compile('^\w')
 
 
 def process_folder_files(input_folder, output_folder):
+    """
+    Processes all excel files in a folder with the `jrcgear_model`.
+
+    :param input_folder:
+        Input folder.
+    :type input_folder: str
+
+    :param output_folder:
+        Output folder.
+    :type output_folder: str
+    """
+
     model, error_coefficients = def_jrcgear_model()
     fpaths = glob.glob(input_folder)
     error_coeff = []
@@ -202,7 +281,6 @@ def process_folder_files(input_folder, output_folder):
             print('%s:%s' %(k, str(v)))
             v.update({'vehicle': fname, 'model': k})
             error_coeff.append(v)
-
     writer = pd.ExcelWriter('%s/%s%s.xlsx' % (output_folder, doday, 'Summary'))
     pd.DataFrame.from_records(error_coeff).to_excel(writer, 'Summary')
 

@@ -12,6 +12,19 @@ from .utils import pairwise, heap_flush
 
 # modified from NetworkX library
 def add_edge_fun(graph):
+    """
+    Returns a function that add an edge to the `graph` checking only the out
+    node.
+
+    :param graph:
+        A directed graph.
+    :type graph: networkx.classes.digraph.DiGraph
+
+    :return:
+        A function that add edges to the `graph`.
+    :rtype: function
+    """
+
     succ = graph.succ
     pred = graph.pred
     node = graph.node
@@ -48,19 +61,7 @@ def scc_fun(graph, nodes_bunch=None):
     :rtype: list
 
     .. note::
-    Uses Tarjan's algorithm with Nuutila's modifications.
-
-    References
-    ----------
-    .. [1] Depth-first search and linear graph algorithms, R. Tarjan
-       SIAM Journal of Computing 1(2):146-160, (1972).
-
-    .. [2] On finding the strongly connected components in a directed graph.
-       E. Nuutila and E. Soisalon-Soinen
-       Information Processing Letters 49(1): 9-14, (1994)..
-
-    .. [3] http://networkx.lanl.gov/_modules/networkx/algorithms/components/
-       strongly_connected.html#strongly_connected_components
+        Uses Tarjan's algorithm with Nuutila's modifications.
     """
 
     p_ord, l_link, scc_found, scc_queue = ({}, {}, {}, [])
@@ -127,7 +128,23 @@ def dijkstra(graph, source, targets=None, cutoff=None, weight=True):
         - path: the path from the source to that node.
     :rtype: dictionaries
 
+    .. note::
+        Edge weight attributes must be numerical.
+        Distances are calculated as sums of weighted edges traversed.
+
+        Based on the NetworkX library at
+        http://networkx.lanl.gov/reference/generated/networkx.algorithms.
+        shortest_paths.weighted.single_source_dijkstra.html#networkx.algorithms.
+        shortest_paths.weighted.single_source_dijkstra
+
+        This algorithm is not guaranteed to work if edge weights
+        are negative or are floating point numbers
+        (overflows and round-off errors can cause problems).
+
+    \***************************************************************************
+
     Example::
+
         >>> import networkx as nx
         >>> graph = nx.path_graph(5)
         >>> length, path = dijkstra(graph, 0)
@@ -137,19 +154,6 @@ def dijkstra(graph, source, targets=None, cutoff=None, weight=True):
         {0: 0, 1: 1, 2: 2, 3: 3, 4: 4}
         >>> path[4]
         [0, 1, 2, 3, 4]
-
-    .. note::
-    Edge weight attributes must be numerical.
-    Distances are calculated as sums of weighted edges traversed.
-
-    Based on the NetworkX library at
-    http://networkx.lanl.gov/reference/generated/networkx.algorithms.\
-    shortest_paths.weighted.single_source_dijkstra.html#networkx.algorithms.\
-    shortest_paths.weighted.single_source_dijkstra
-
-    This algorithm is not guaranteed to work if edge weights
-    are negative or are floating point numbers
-    (overflows and round-off errors can cause problems).
 
     """
 
@@ -364,6 +368,8 @@ def _cycles_ord_by_length(graph, data_nodes, function_nodes):
 
 def remove_cycles_iteration(graph, nodes_bunch, reached_nodes, edge_to_rm):
     """
+    Identifies and removes the unresolved cycles.
+
     :param graph:
         A directed graph.
     :type graph: NetworkX DiGraph

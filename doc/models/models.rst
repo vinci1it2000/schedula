@@ -6,4 +6,5 @@ Contents:
 
 .. toctree::
 
-   AT_gear_model
+    AT_gear_model
+    jrcgear_model

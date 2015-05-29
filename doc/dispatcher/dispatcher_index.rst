@@ -10,5 +10,8 @@ Contents:
    dispatcher_utils
    read_write
    draw
+   constants
+   graph_utils
+   utils
 
 
