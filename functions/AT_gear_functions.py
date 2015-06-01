@@ -337,7 +337,7 @@ def calculate_gear_box_speeds_from_engine_speeds(
     gear_box_speeds = speeds(times + shift)
     gear_box_speeds[gear_box_speeds < 0] = 0
 
-    return gear_box_speeds, shift
+    return gear_box_speeds, float(shift)
 
 
 def identify_idle_engine_speed(velocities, engine_speeds):

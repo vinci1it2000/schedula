@@ -190,8 +190,8 @@ class SubDispatch(object):
         {'workflow': <networkx.classes.digraph.DiGraph object at 0x...>}
     """
 
-    def __init__(self, dsp, outputs, cutoff=None, wildcard=False, no_call=False,
-                 shrink=True, returns='all'):
+    def __init__(self, dsp, outputs=None, cutoff=None, wildcard=False,
+                 no_call=False, shrink=True, returns='all'):
         self.dsp = dsp
         self.outputs = outputs
         self.cutoff = cutoff

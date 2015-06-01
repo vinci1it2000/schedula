@@ -24,7 +24,6 @@ from dispatcher.dispatcher_utils import bypass
 
 
 def def_gear_model():
-    # noinspection PyUnresolvedReferences
     """
     Defines and returns a gear shifting model.
 

@@ -15,7 +15,7 @@ from collections import OrderedDict
 from .utils import rename_function, AttrDict
 from .graph_utils import add_edge_fun, remove_cycles_iteration
 from .constants import EMPTY, START, NONE, SINK
-from .dispatcher_utils import SubDispatch
+from .dispatcher_utils import SubDispatch, bypass
 
 log = logging.getLogger(__name__)
 
@@ -189,7 +189,7 @@ class Dispatcher(object):
         self._succ = self.dmap.succ
         self._wf_add_edge = add_edge_fun(self.workflow)
         self._wf_pred = self.workflow.pred
-        self.add_data(SINK, wait_inputs=True)
+        self.add_data(SINK, wait_inputs=True, function=bypass)
 
     def add_data(self, data_id=None, default_value=EMPTY, wait_inputs=False,
                  wildcard=None, function=None, callback=None, **kwargs):
@@ -410,7 +410,7 @@ class Dispatcher(object):
                 raise ValueError('Invalid input:'
                                  ' missing inputs and outputs attributes.')
         if outputs is None:  # set a dummy output
-            outputs = [self.add_data(data_id=SINK)]
+            outputs = [SINK]
 
         # base function node attributes
         attr_dict = {'type': 'function',

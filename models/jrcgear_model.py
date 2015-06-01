@@ -23,7 +23,7 @@ from datetime import datetime
 from models.AT_gear_model import *
 from models.read_model import *
 from functions.write_outputs import write_output
-from dispatcher import Dispatcher, SubDispatch, def_replicate
+from dispatcher import Dispatcher, SubDispatch, def_replicate, def_selector
 
 
 def def_jrcgear_model():
@@ -99,7 +99,7 @@ def def_jrcgear_model():
     gear_model, calibration_models, gears_predicted, \
     gear_box_speeds_predicted, error_coefficients = def_gear_model()
 
-    # read model
+        # read model
     load_inputs = def_load_inputs()
 
     data = []
@@ -164,10 +164,22 @@ def def_jrcgear_model():
     functions.extend([
         {  # calibrate models
            'function_id': 'calibrate_models',
-           'function': SubDispatch(
-               gear_model, calibration_models, returns='dict'
-           ),
+           'function': SubDispatch(gear_model),
            'inputs': ['calibration_cycle_inputs'],
+           'outputs': ['calibration_cycle_outputs'],
+        },
+    ])
+
+    """
+    Extract calibrated models
+    =========================
+    """
+
+    functions.extend([
+        {  # extract calibrated models
+           'function_id': 'extract_calibrated_models',
+           'function': def_selector(calibration_models),
+           'inputs': ['calibration_cycle_outputs'],
            'outputs': ['calibrated_models'],
         },
     ])
@@ -178,29 +190,11 @@ def def_jrcgear_model():
     """
 
     functions.extend([
-        {  # predict gears
+        {  # predict gears and calculate gear box speeds
            'function_id': 'predict_gears',
-           'function': SubDispatch(
-               gear_model, gears_predicted
-           ),
+           'function': SubDispatch(gear_model, error_coefficients),
            'inputs': ['calibrated_models', 'prediction_cycle_inputs'],
-           'outputs': ['predicted_gears'],
-        },
-    ])
-
-    """
-    Calculate gear box engine speeds
-    ================================
-    """
-
-    functions.extend([
-        {  # evaluate gear box engine speeds
-           'function_id': 'calculate_gear_box_engine_speeds',
-           'function': SubDispatch(
-               gear_model, gear_box_speeds_predicted
-           ),
-           'inputs': ['predicted_gears'],
-           'outputs': ['calculated_gear_box_engine_speeds'],
+           'outputs': ['prediction_cycle_outputs'],
         },
     ])
 
@@ -210,13 +204,17 @@ def def_jrcgear_model():
     """
 
     functions.extend([
-        {  # evaluate gear box engine speeds
-           'function_id': 'extract_error_coefficients',
-           'function': SubDispatch(
-               gear_model, error_coefficients, returns='dict'
-           ),
-           'inputs': ['calculated_gear_box_engine_speeds'],
-           'outputs': ['error_coefficients'],
+        {  # extract error coefficients
+           'function_id': 'extract_prediction_error_coefficients',
+           'function': def_selector(error_coefficients),
+           'inputs': ['prediction_cycle_outputs'],
+           'outputs': ['prediction_error_coefficients'],
+        },
+        {  # extract error coefficients
+           'function_id': 'extract_calibration_error_coefficients',
+           'function': def_selector(error_coefficients),
+           'inputs': ['calibration_cycle_outputs'],
+           'outputs': ['calibration_error_coefficients'],
         },
     ])
 
@@ -227,13 +225,21 @@ def def_jrcgear_model():
 
     functions.extend([
         {  # save gear box engine speeds
-           'function_id': 'save_gear_box_engine_speeds',
+           'function_id': 'save_prediction_cycle_outputs',
            'function': write_output,
-           'inputs': ['calculated_gear_box_engine_speeds',
+           'inputs': ['prediction_cycle_outputs',
                       'prediction_output_file_name',
                       'output_sheet_names'],
         },
+        {  # save gear box engine speeds
+           'function_id': 'save_calibration_cycle_outputs',
+           'function': write_output,
+           'inputs': ['calibration_cycle_outputs',
+                      'calibration_output_file_name',
+                      'output_sheet_names'],
+        },
     ])
+
 
     # initialize a dispatcher
     dsp = Dispatcher()
@@ -269,18 +275,28 @@ def process_folder_files(input_folder, output_folder):
             print('Skipping: %s' % fname)
             continue
         print('Processing: %s' % fname)
-        o_name = '%s/%s%s.xlsx' % (output_folder, doday, fname)
+        oc_name = '%s/%s%s_%s.xlsx' % (output_folder, doday, 'calibration', fname)
+        op_name = '%s/%s%s_%s.xlsx' % (output_folder, doday, 'prediction', fname)
         inputs = {
             'input_file_name': fpath,
-            'prediction_output_file_name': o_name,
+            'prediction_output_file_name': op_name,
+            'calibration_output_file_name': oc_name,
             'output_sheet_names': ('params', 'series'),
         }
-        coeff = model.dispatch(inputs=inputs)[1]['error_coefficients']
+        coeff = model.dispatch(inputs=inputs)[1]
 
-        for k, v in coeff.items():
+        print('Predicted')
+        for k, v in coeff['prediction_error_coefficients'].items():
             print('%s:%s' %(k, str(v)))
-            v.update({'vehicle': fname, 'model': k})
+            v.update({'cycle': 'Predicted', 'vehicle': fname, 'model': k})
             error_coeff.append(v)
+
+        print('Calibrated')
+        for k, v in coeff['calibration_error_coefficients'].items():
+            print('%s:%s' %(k, str(v)))
+            v.update({'cycle': 'Calibrated', 'vehicle': fname, 'model': k})
+            error_coeff.append(v)
+
     writer = pd.ExcelWriter('%s/%s%s.xlsx' % (output_folder, doday, 'Summary'))
     pd.DataFrame.from_records(error_coeff).to_excel(writer, 'Summary')
 

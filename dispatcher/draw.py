@@ -76,6 +76,7 @@ def plot_dsp(dsp, pos=None, workflow=False, title='Dispatcher', fig=None):
         >>> f2 = plot_dsp(dsp, workflow=True)
         >>> plt.show()
     """
+
     figs = []
 
     if workflow:
@@ -86,7 +87,9 @@ def plot_dsp(dsp, pos=None, workflow=False, title='Dispatcher', fig=None):
         dfl = dsp.default_values
 
     if pos is None:
-        pos = spring_layout(g)
+        pos=graphviz_layout(g,prog='dot')
+
+        #pos = spring_layout(g)
 
     data, function = ([], [])
 

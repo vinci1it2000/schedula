@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from dispatcher import heap_flush
 from heapq import heappush
-
+from .plot import plot_gear_box_speeds
 
 def parse_name(name):
     """
@@ -46,12 +46,12 @@ def write_output(output, file_name, sheet_names):
             + parameters
     :type sheet_names: (str, str)
     """
-
+    print(file_name)
     writer = pd.ExcelWriter(file_name)
 
     p, s = ([], [])
     for k, v in output.items():
-        if isinstance(v, (np.ndarray, np.generic)):  # series
+        if isinstance(v, np.ndarray):  # series
             heappush(s, (parse_name(k), v))
         elif check_writeable(v):  # params
             heappush(p, (parse_name(k), v))
@@ -62,7 +62,9 @@ def write_output(output, file_name, sheet_names):
 
     for k, v in heap_flush(s):
         series[k] = v
-
+    fig = plot_gear_box_speeds(series)
+    fig.savefig('%s.png' % file_name.split('.')[0])
+    fig.close()
     series.to_excel(writer, 'series_%s'% sheet_names[0])
     p.to_excel(writer, 'params_%s'% sheet_names[1])
 
@@ -108,7 +110,7 @@ standard_names = {
     'r_dynamic': 'R dynamic [m]',
     'final_drive': 'Final drive [-]',
     'temperatures': 'Temperature [C°]',
-    'gear_box_speeds': 'Gear box speeds [rpm]',
+    'gear_box_speeds': 'Gear box speed [rpm]',
     'velocities': 'Velocity [km/h]',
     'engine_speeds': 'Engine speed [rpm]',
     'idle_engine_speed': 'Idle engine speed [rpm]',
