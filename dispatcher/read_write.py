@@ -185,7 +185,7 @@ def load_graph(dsp, path):
         >>> dsp = Dispatcher()
         >>> def f(a):
         ...     return (a, 1)
-        >>> fun_node = dsp.add_function(function=f, inputs=['/a'])
+        >>> fun_node = dsp.add_function(function=f, inputs=['a'])
         >>> save_graph(dsp, tmp)
         >>> del f
         >>> dsp_loaded = Dispatcher()

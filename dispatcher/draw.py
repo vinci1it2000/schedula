@@ -57,18 +57,18 @@ def plot_dsp(dsp, pos=None, workflow=False, title='Dispatcher', fig=None):
         >>> sub_dsp = Dispatcher()
         >>> def fun(a):
         ...     return a + 1, a - 1
-        >>> sub_dsp.add_function('fun', fun, ['/a'], ['/b', '/c'])
+        >>> sub_dsp.add_function('fun', fun, ['a'], ['b', 'c'])
         'fun'
-        >>> dispatch = SubDispatch(sub_dsp, ['/a', '/c'], returns='list')
+        >>> dispatch = SubDispatch(sub_dsp, ['a', 'c'], returns='list')
         >>> dsp = Dispatcher()
-        >>> dsp.add_data('_i_n_p_u_t', default_value={'/a': 3})
+        >>> dsp.add_data('_i_n_p_u_t', default_value={'a': 3})
         '_i_n_p_u_t'
         >>> class no_str(object):
         ...     def __str__(self):
         ...         raise ValueError
         >>> dsp.add_data('_i_', default_value=no_str())
         '_i_'
-        >>> dsp.add_function('dispatch', dispatch, ['_i_n_p_u_t'], ['/e', '/f'])
+        >>> dsp.add_function('dispatch', dispatch, ['_i_n_p_u_t'], ['e', 'f'])
         'dispatch'
         >>> w, o = dsp.dispatch()
 

@@ -88,9 +88,9 @@ def def_selector(keys):
 
     Example::
 
-        >>> selector = def_selector(['/a', '/b'])
-        >>> sorted(selector({'/a': 1, '/b': 1}, {'/b': 2, '/c': 3}).items())
-        [('/a', 1), ('/b', 2)]
+        >>> selector = def_selector(['a', 'b'])
+        >>> sorted(selector({'a': 1, 'b': 1}, {'b': 2, 'c': 3}).items())
+        [('a', 1), ('b', 2)]
     """
 
     def selector(*input_dicts):
@@ -117,8 +117,8 @@ def def_replicate(n=2):
     Example::
 
         >>> replicate = def_replicate(n=5)
-        >>> replicate({'/a': 3})
-        [{'/a': 3}, {'/a': 3}, {'/a': 3}, {'/a': 3}, {'/a': 3}]
+        >>> replicate({'a': 3})
+        [{'a': 3}, {'a': 3}, {'a': 3}, {'a': 3}, {'a': 3}]
     """
 
     def replicate(value):
@@ -177,15 +177,15 @@ class SubDispatch(object):
         >>> sub_dsp = Dispatcher()
         >>> def fun(a):
         ...     return a + 1, a - 1
-        >>> sub_dsp.add_function('fun', fun, ['/a'], ['/b', '/c'])
+        >>> sub_dsp.add_function('fun', fun, ['a'], ['b', 'c'])
         'fun'
-        >>> dispatch = SubDispatch(sub_dsp, ['/a', '/b', '/c'], returns='dict')
+        >>> dispatch = SubDispatch(sub_dsp, ['a', 'b', 'c'], returns='dict')
         >>> dsp = Dispatcher()
-        >>> dsp.add_function('dispatch', dispatch, ['/d'], ['/e'])
+        >>> dsp.add_function('dispatch', dispatch, ['d'], ['e'])
         'dispatch'
-        >>> w, o = dsp.dispatch(inputs={'/d': {'/a': 3}})
-        >>> sorted(o['/e'].items())
-        [('/a', 3), ('/b', 4), ('/c', 2)]
+        >>> w, o = dsp.dispatch(inputs={'d': {'a': 3}})
+        >>> sorted(o['e'].items())
+        [('a', 3), ('b', 4), ('c', 2)]
         >>> w.node['dispatch']
         {'workflow': <networkx.classes.digraph.DiGraph object at 0x...>}
     """

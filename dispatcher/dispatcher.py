@@ -15,7 +15,7 @@ from collections import OrderedDict
 from .utils import rename_function, AttrDict
 from .graph_utils import add_edge_fun, remove_cycles_iteration
 from .constants import EMPTY, START, NONE, SINK
-from .dispatcher_utils import SubDispatch
+from .dispatcher_utils import SubDispatch, bypass
 
 log = logging.getLogger(__name__)
 
@@ -117,23 +117,23 @@ class Dispatcher(object):
 
     Add data nodes to the dispatcher map::
 
-        >>> dsp.add_data(data_id='/a')
-        '/a'
-        >>> dsp.add_data(data_id='/c')
-        '/c'
+        >>> dsp.add_data(data_id='a')
+        'a'
+        >>> dsp.add_data(data_id='c')
+        'c'
 
     Add a data node with a default value to the dispatcher map::
 
-        >>> dsp.add_data(data_id='/b', default_value=1)
-        '/b'
+        >>> dsp.add_data(data_id='b', default_value=1)
+        'b'
 
     Create a function node::
 
         >>> def diff_function(a, b):
         ...     return b - a
 
-        >>> dsp.add_function(function=diff_function, inputs=['/a', '/b'],
-        ...                  outputs=['/c'])
+        >>> dsp.add_function(function=diff_function, inputs=['a', 'b'],
+        ...                  outputs=['c'])
         '...dispatcher:diff_function'
 
     Create a function node with domain::
@@ -143,7 +143,7 @@ class Dispatcher(object):
         >>> def log_domain(x):
         ...     return x > 0
 
-        >>> dsp.add_function(function=log, inputs=['/c'], outputs=['/d'],
+        >>> dsp.add_function(function=log, inputs=['c'], outputs=['d'],
         ...                  input_domain=log_domain)
         'math:log'
 
@@ -160,16 +160,16 @@ class Dispatcher(object):
         >>> def callback_fun(x):
         ...     print('(log(1) + 4) / 2 = %.1f' % x)
 
-        >>> dsp.add_data(data_id='/d', default_value=4, wait_inputs=True,
+        >>> dsp.add_data(data_id='d', default_value=4, wait_inputs=True,
         ...              function=average_fun, callback=callback_fun)
-        '/d'
+        'd'
 
-    Dispatch the function calls to achieve the desired output data node '/d'::
+    Dispatch the function calls to achieve the desired output data node 'd'::
 
-        >>> workflow, outputs = dsp.dispatch(inputs={'/a': 0}, outputs=['/d'])
+        >>> workflow, outputs = dsp.dispatch(inputs={'a': 0}, outputs=['d'])
         (log(1) + 4) / 2 = 2.0
         >>> sorted(outputs.items())
-        [('/a', 0), ('/b', 1), ('/c', 1), ('/d', 2.0)]
+        [('a', 0), ('b', 1), ('c', 1), ('d', 2.0)]
     """
 
     def __init__(self, dmap=None):
@@ -189,7 +189,7 @@ class Dispatcher(object):
         self._succ = self.dmap.succ
         self._wf_add_edge = add_edge_fun(self.workflow)
         self._wf_pred = self.workflow.pred
-        self.add_data(SINK, wait_inputs=True)
+        self.add_data(SINK, wait_inputs=True, function=bypass)
 
     def add_data(self, data_id=None, default_value=EMPTY, wait_inputs=False,
                  wildcard=None, function=None, callback=None, **kwargs):
@@ -255,25 +255,25 @@ class Dispatcher(object):
             >>> dmap = Dispatcher()
 
             # data to be estimated (i.e., result data node)
-            >>> dmap.add_data(data_id='/a')
-            '/a'
+            >>> dmap.add_data(data_id='a')
+            'a'
 
             # data with a default value (i.e., input data node)
-            >>> dmap.add_data(data_id='/b', default_value=1)
-            '/b'
+            >>> dmap.add_data(data_id='b', default_value=1)
+            'b'
 
             >>> def average_fun(*x):
             ...     return sum(x) / len(x)
 
             # data node that is estimated as the average of all function node
             # estimations
-            >>> dmap.add_data('/c', wait_inputs=True, function=average_fun)
-            '/c'
+            >>> dmap.add_data('c', wait_inputs=True, function=average_fun)
+            'c'
 
             # initial data that is estimated as the average of all estimations
-            >>> dmap.add_data(data_id='/d', default_value=2, wait_inputs=True,
+            >>> dmap.add_data(data_id='d', default_value=2, wait_inputs=True,
             ...               function=average_fun)
-            '/d'
+            'd'
 
             # create an internal data and return the generated id
             >>> dmap.add_data()
@@ -388,8 +388,8 @@ class Dispatcher(object):
             ...     d = a - b
             ...     return c, d
 
-            >>> dmap.add_function(function=my_function, inputs=['/a', '/b'],
-            ...                   outputs=['/c', '/d'])
+            >>> dmap.add_function(function=my_function, inputs=['a', 'b'],
+            ...                   outputs=['c', 'd'])
             '...dispatcher:my_function'
 
             >>> from math import log
@@ -399,8 +399,8 @@ class Dispatcher(object):
             >>> def my_domain(a, b):
             ...     return a < b
 
-            >>> dmap.add_function(function=my_log, inputs=['/a', '/b'],
-            ...                   outputs=['/e'], input_domain=my_domain)
+            >>> dmap.add_function(function=my_log, inputs=['a', 'b'],
+            ...                   outputs=['e'], input_domain=my_domain)
             '...dispatcher:my_log'
         """
 
@@ -410,7 +410,7 @@ class Dispatcher(object):
                 raise ValueError('Invalid input:'
                                  ' missing inputs and outputs attributes.')
         if outputs is None:  # set a dummy output
-            outputs = [self.add_data(data_id=SINK)]
+            outputs = [SINK]
 
         # base function node attributes
         attr_dict = {'type': 'function',
@@ -510,20 +510,20 @@ class Dispatcher(object):
 
             >>> dmap = Dispatcher()
             >>> data_list = [
-            ...     {'data_id': '/a'},
-            ...     {'data_id': '/b'},
-            ...     {'data_id': '/c'},
+            ...     {'data_id': 'a'},
+            ...     {'data_id': 'b'},
+            ...     {'data_id': 'c'},
             ... ]
 
             >>> def f(a, b):
             ...     return a + b
 
             >>> fun_list = [
-            ...     {'function': f, 'inputs': ['/a', '/b'], 'outputs': ['/c']},
-            ...     {'function': f, 'inputs': ['/c', '/d'], 'outputs': ['/a']}
+            ...     {'function': f, 'inputs': ['a', 'b'], 'outputs': ['c']},
+            ...     {'function': f, 'inputs': ['c', 'd'], 'outputs': ['a']}
             ... ]
             >>> dmap.load_from_lists(data_list, fun_list)
-            (['/a', '/b', '/c'], ['...dispatcher:f', '...dispatcher:f<0>'])
+            (['a', 'b', 'c'], ['...dispatcher:f', '...dispatcher:f<0>'])
         """
 
         if data_list:  # add data nodes
@@ -556,16 +556,16 @@ class Dispatcher(object):
         **Example**::
 
             >>> dmap = Dispatcher()
-            >>> dmap.add_data(data_id='/a')
-            '/a'
+            >>> dmap.add_data(data_id='a')
+            'a'
 
             # add default value
-            >>> dmap.set_default_value('/a', value='value of the data')
+            >>> dmap.set_default_value('a', value='value of the data')
             >>> dmap.default_values
-            {'/a': 'value of the data'}
+            {'a': 'value of the data'}
 
             # remove default value
-            >>> dmap.set_default_value('/a', value=EMPTY)
+            >>> dmap.set_default_value('a', value=EMPTY)
             >>> dmap.default_values
             {}
         """
@@ -615,20 +615,20 @@ class Dispatcher(object):
         **Example**::
 
             >>> dmap = Dispatcher()
-            >>> dmap.add_function(function_id='fun1', inputs=['/a', '/b'],
-            ...                   outputs=['/c', '/d'])
+            >>> dmap.add_function(function_id='fun1', inputs=['a', 'b'],
+            ...                   outputs=['c', 'd'])
             'fun1'
-            >>> dmap.add_function(function_id='fun2', inputs=['/a', '/d'],
-            ...                   outputs=['/c', '/e'])
+            >>> dmap.add_function(function_id='fun2', inputs=['a', 'd'],
+            ...                   outputs=['c', 'e'])
             'fun2'
-            >>> sub_dmap = dmap.get_sub_dmap(['/a', '/c', '/d', '/e', 'fun2'])
+            >>> sub_dmap = dmap.get_sub_dmap(['a', 'c', 'd', 'e', 'fun2'])
             >>> sorted(sub_dmap.dmap.node)
-            ['/a', '/c', '/d', '/e', 'fun2']
-            >>> res = {'/a': {'fun2': {}},
-            ...        '/c': {},
-            ...        '/d': {'fun2': {}},
-            ...        '/e': {},
-            ...        'fun2': {'/e': {}, '/c': {}}}
+            ['a', 'c', 'd', 'e', 'fun2']
+            >>> res = {'a': {'fun2': {}},
+            ...        'c': {},
+            ...        'd': {'fun2': {}},
+            ...        'e': {},
+            ...        'fun2': {'e': {}, 'c': {}}}
             >>> sub_dmap.dmap.edge ==  res
             True
         """
@@ -694,32 +694,28 @@ class Dispatcher(object):
             >>> dsp = Dispatcher()
             >>> def average(kwargs):
             ...     return sum(kwargs.values()) / len(kwargs)
-            >>> dsp.add_data(data_id='/b', default_value=3)
-            '/b'
-            >>> dsp.add_data(data_id='/c', wait_inputs=True, function=average)
-            '/c'
-            >>> dsp.add_function(function=max, inputs=['/a', '/b'],
-            ...                  outputs=['/c'])
-            'builtins:max'
-            >>> dsp.add_function(function=min, inputs=['/a', '/c'],
-            ...                  outputs=['/d'])
-            'builtins:min'
-            >>> dsp.add_function(function=min, inputs=['/b', '/d'],
-            ...                  outputs=['/c'])
-            'builtins:min<0>'
-            >>> dsp.add_function(function=max, inputs=['/b', '/d'],
-            ...                  outputs=['/a'])
-            'builtins:max<0>'
-            >>> res = dsp.dispatch(inputs={'/a': 1})[1]
+            >>> data = [
+            ...     {'data_id': 'b', 'default_value': 3},
+            ...     {'data_id': 'c', 'wait_inputs': True, 'function': average},
+            ... ]
+            >>> functions = [
+            ...     {'function': max, 'inputs': ['a', 'b'], 'outputs': ['c']},
+            ...     {'function': min, 'inputs': ['a', 'c'], 'outputs': ['d']},
+            ...     {'function': min, 'inputs': ['b', 'd'], 'outputs': ['c']},
+            ...     {'function': max, 'inputs': ['b', 'd'], 'outputs': ['a']},
+            ... ]
+            >>> dsp.load_from_lists(data_list=data, fun_list=functions)
+            ([...], [...])
+            >>> res = dsp.dispatch(inputs={'a': 1})[1]
             >>> sorted(res.items())
-            [('/a', 1), ('/b', 3)]
-            >>> dsp_rm_cycles = dsp.remove_cycles(['/a', '/b'])
-            >>> dsp_rm_cycles.add_function(function=min, inputs=['/a', '/e'],
-            ...                            outputs=['/f'])
+            [('a', 1), ('b', 3)]
+            >>> dsp_rm_cycles = dsp.remove_cycles(['a', 'b'])
+            >>> dsp_rm_cycles.add_function(function=min, inputs=['a', 'e'],
+            ...                            outputs=['f'])
             'builtins:min<0>'
-            >>> res = dsp_rm_cycles.dispatch(inputs={'/a': 1, '/e': 0})[1]
+            >>> res = dsp_rm_cycles.dispatch(inputs={'a': 1, 'e': 0})[1]
             >>> sorted(res.items())
-            [('/a', 1), ('/b', 3), ('/c', 3.0), ('/d', 1), ('/e', 0), ('/f', 0)]
+            [('a', 1), ('b', 3), ('c', 3.0), ('d', 1), ('e', 0), ('f', 0)]
         """
 
         # Reachable nodes from sources
@@ -779,34 +775,34 @@ class Dispatcher(object):
         **Example**::
 
             >>> dsp = Dispatcher()
-            >>> dsp.add_data(data_id='/a', default_value=1)
-            '/a'
-            >>> dsp.add_function(function_id='fun1', inputs=['/a', '/b'],
-            ...                  outputs=['/c', '/d'])
+            >>> dsp.add_data(data_id='a', default_value=1)
+            'a'
+            >>> dsp.add_function(function_id='fun1', inputs=['a', 'b'],
+            ...                  outputs=['c', 'd'])
             'fun1'
 
-            >>> wf = dsp.dispatch(inputs=['/a', '/b'], no_call=True)[0]
+            >>> wf = dsp.dispatch(inputs=['a', 'b'], no_call=True)[0]
 
-            >>> sub_dsp = dsp.get_sub_dsp_from_workflow(['/a', '/b'])
+            >>> sub_dsp = dsp.get_sub_dsp_from_workflow(['a', 'b'])
             >>> sub_dsp.default_values
-            {'/a': 1}
+            {'a': 1}
             >>> sorted(sub_dsp.dmap.node)
-            ['/a', '/b', '/c', '/d', 'fun1', sink]
-            >>> res = {'/a': {'fun1': {}},
-            ...        '/b': {'fun1': {}},
-            ...        '/c': {},
-            ...        '/d': {},
-            ...        'fun1': {'/c': {}, '/d': {}},
+            ['a', 'b', 'c', 'd', 'fun1', sink]
+            >>> res = {'a': {'fun1': {}},
+            ...        'b': {'fun1': {}},
+            ...        'c': {},
+            ...        'd': {},
+            ...        'fun1': {'c': {}, 'd': {}},
             ...        SINK: {}}
             >>> sub_dsp.dmap.edge ==  res
             True
-            >>> sub_dsp = dsp.get_sub_dsp_from_workflow(['/c'], reverse=True)
+            >>> sub_dsp = dsp.get_sub_dsp_from_workflow(['c'], reverse=True)
             >>> sorted(sub_dsp.dmap.node)
-            ['/a', '/b', '/c', 'fun1', sink]
-            >>> res = {'/a': {'fun1': {}},
-            ...        '/b': {'fun1': {}},
-            ...        '/c': {},
-            ...        'fun1': {'/c': {}},
+            ['a', 'b', 'c', 'fun1', sink]
+            >>> res = {'a': {'fun1': {}},
+            ...        'b': {'fun1': {}},
+            ...        'c': {},
+            ...        'fun1': {'c': {}},
             ...        SINK: {}}
             >>> sub_dsp.dmap.edge ==  res
             True
@@ -917,10 +913,10 @@ class Dispatcher(object):
 
             >>> dsp = Dispatcher()
             >>> from math import log
-            >>> dsp.add_data(data_id='/a', default_value=0)
-            '/a'
-            >>> dsp.add_data(data_id='/b', default_value=1)
-            '/b'
+            >>> dsp.add_data(data_id='a', default_value=0)
+            'a'
+            >>> dsp.add_data(data_id='b', default_value=1)
+            'b'
 
             >>> def my_log(a, b):
             ...     return log(b - a)
@@ -928,29 +924,31 @@ class Dispatcher(object):
             >>> def my_domain(a, b):
             ...     return a < b
 
-            >>> dsp.add_function(function=my_log, inputs=['/a', '/b'],
-            ...                  outputs=['/c'], input_domain=my_domain)
+            >>> dsp.add_function(function=my_log, inputs=['a', 'b'],
+            ...                  outputs=['c'], input_domain=my_domain)
             '...dispatcher:my_log'
-            >>> workflow, outputs = dsp.dispatch(outputs=['/c'])
-            >>> sorted(outputs.items())
-            [('/a', 0), ('/b', 1), ('/c', 0.0)]
-            >>> sorted(workflow.nodes())
-            ['/a', '/b', '/c', '...dispatcher:my_log', start]
-            >>> sorted(workflow.edges())
-            [('/a', '...dispatcher:my_log'), ('/b', '...dispatcher:my_log'),
-             ('...dispatcher:my_log', '/c'), (start, '/a'), (start, '/b')]
 
-            >>> workflow, outputs = dsp.dispatch(inputs={'/b': 0},
-            ...                                  outputs=['/c'])
+            >>> workflow, outputs = dsp.dispatch(outputs=['c'])
+
             >>> sorted(outputs.items())
-            [('/a', 0), ('/b', 0)]
+            [('a', 0), ('b', 1), ('c', 0.0)]
             >>> sorted(workflow.nodes())
-            ['/a', '/b', '...dispatcher:my_log', start]
+            ['a', 'b', 'c', '...dispatcher:my_log', start]
             >>> sorted(workflow.edges())
-            [('/a', '...dispatcher:my_log'),
-             ('/b', '...dispatcher:my_log'),
-             (start, '/a'),
-             (start, '/b')]
+            [('a', '...dispatcher:my_log'), ('b', '...dispatcher:my_log'),
+             ('...dispatcher:my_log', 'c'), (start, 'a'), (start, 'b')]
+
+            >>> workflow, outputs = dsp.dispatch(inputs={'b': 0}, outputs=['c'])
+
+            >>> sorted(outputs.items())
+            [('a', 0), ('b', 0)]
+            >>> sorted(workflow.nodes())
+            ['a', 'b', '...dispatcher:my_log', start]
+            >>> sorted(workflow.edges())
+            [('a', '...dispatcher:my_log'),
+             ('b', '...dispatcher:my_log'),
+             (start, 'a'),
+             (start, 'b')]
         """
 
         # pre shrink
@@ -1007,33 +1005,31 @@ class Dispatcher(object):
         **Example**::
 
             >>> dsp = Dispatcher()
-            >>> dsp.add_function(function=max, inputs=['/a', '/b'],
-            ...                  outputs=['/c'])
-            'builtins:max'
-            >>> dsp.add_function(function=max, inputs=['/b', '/d'],
-            ...                  outputs=['/e'])
-            'builtins:max<0>'
-            >>> dsp.add_function(function=max, inputs=['/d', '/e'],
-            ...                  outputs=['/c','/f'])
-            'builtins:max<1>'
-            >>> dsp.add_function(function=max, inputs=['/d', '/f'],
-            ...                  outputs=['/g'])
-            'builtins:max<2>'
-            >>> dsp.add_function(function=max, inputs=['/a', '/b'],
-            ...                  outputs=['/g'])
-            'builtins:max<3>'
+            >>> functions = [
+            ...     {'function': max, 'inputs': ['a', 'b'], 'outputs': ['c']},
+            ...     {'function': max, 'inputs': ['b', 'd'], 'outputs': ['e']},
+            ...     {'function': max, 'inputs': ['d', 'f'], 'outputs': ['g']},
+            ...     {'function': max, 'inputs': ['a', 'b'], 'outputs': ['g']},
+            ...     {
+            ...         'function': max,
+            ...         'inputs': ['d', 'e'],
+            ...         'outputs': ['c', 'f']
+            ...     },
+            ... ]
+            >>> dsp.load_from_lists(fun_list=functions)
+            ([], [...])
 
-            >>> shrink_dsp = dsp.shrink_dsp(inputs=['/a', '/b', '/d'],
-            ...                             outputs=['/c', '/e', '/f'])
+            >>> shrink_dsp = dsp.shrink_dsp(inputs=['a', 'b', 'd'],
+            ...                             outputs=['c', 'e', 'f'])
             >>> sorted(shrink_dsp.dmap.nodes())
-            ['/a', '/b', '/c', '/d', '/e', '/f',
-             'builtins:max', 'builtins:max<0>', 'builtins:max<1>', sink]
+            ['a', 'b', 'builtins:max', 'builtins:max<0>', 'builtins:max<3>',
+             'c', 'd', 'e', 'f', sink]
             >>> sorted(shrink_dsp.dmap.edges())
-            [('/a', 'builtins:max'), ('/b', 'builtins:max'),
-             ('/b', 'builtins:max<0>'), ('/d', 'builtins:max<0>'),
-             ('/d', 'builtins:max<1>'), ('/e', 'builtins:max<1>'),
-             ('builtins:max', '/c'), ('builtins:max<0>', '/e'),
-             ('builtins:max<1>', '/f')]
+            [('a', 'builtins:max'), ('b', 'builtins:max'),
+             ('b', 'builtins:max<0>'), ('builtins:max', 'c'),
+             ('builtins:max<0>', 'e'), ('builtins:max<3>', 'f'),
+             ('d', 'builtins:max<0>'), ('d', 'builtins:max<3>'),
+             ('e', 'builtins:max<3>')]
         """
         if inputs:
             # evaluate the workflow graph without invoking functions
@@ -1093,17 +1089,15 @@ class Dispatcher(object):
         **Example**::
 
             >>> dsp = Dispatcher()
-            >>> dsp.add_function(function=max, inputs=['/a', '/b'],
-            ...                  outputs=['/c'])
+            >>> dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
             'builtins:max'
-            >>> dsp.add_function(function=min, inputs=['/c', '/b'],
-            ...                  outputs=['/a'],
+            >>> dsp.add_function(function=min, inputs=['c', 'b'], outputs=['a'],
             ...                  input_domain=lambda c, b: c * b > 0)
             'builtins:min'
-            >>> res = dsp.extract_function_node('myF', ['/a', '/b'], ['/a'])
-            >>> res['inputs'] == ['/a', '/b']
+            >>> res = dsp.extract_function_node('myF', ['a', 'b'], ['a'])
+            >>> res['inputs'] == ['a', 'b']
             True
-            >>> res['outputs'] == ['/a']
+            >>> res['outputs'] == ['a']
             True
             >>> res['function'].__name__
             'myF'
@@ -1348,7 +1342,7 @@ class Dispatcher(object):
 
         :param input_value:
             A function that return the input value of a given data node.
-            If input_values = {'/a': 'value'} then 'value' == input_value('/a')
+            If input_values = {'a': 'value'} then 'value' == input_value('a')
         :type input_value: function
 
         :return:
@@ -1465,27 +1459,27 @@ class Dispatcher(object):
         **Example**::
 
             >>> dsp = Dispatcher()
-            >>> dsp.add_data('/a', default_value=[1, 2])
-            '/a'
-            >>> fun_id = dsp.add_function(function=max, inputs=['/a'],
-            ...                           outputs=['/b'])
+            >>> dsp.add_data('a', default_value=[1, 2])
+            'a'
+            >>> fun_id = dsp.add_function(function=max, inputs=['a'],
+            ...                           outputs=['b'])
             >>> dsp.workflow.add_node(START, attr_dict={'type': 'start'})
-            >>> dsp.workflow.add_edge(START, '/a', attr_dict={'value': [1, 2]})
-            >>> dsp._set_node_output('/a', False)
+            >>> dsp.workflow.add_edge(START, 'a', attr_dict={'value': [1, 2]})
+            >>> dsp._set_node_output('a', False)
             True
 
             >>> dsp._set_node_output(fun_id, False)
             True
-            >>> dsp._set_node_output('/b', False)
+            >>> dsp._set_node_output('b', False)
             True
             >>> sorted(dsp.data_output.items())
-            [('/a', [1, 2]),
-             ('/b', 2)]
+            [('a', [1, 2]),
+             ('b', 2)]
             >>> sorted(dsp.workflow.edge.items())
-            [('/a', {'builtins:max': {'value': [1, 2]}}),
-             ('/b', {}),
-             ('builtins:max', {'/b': {'value': 2}}),
-             (start, {'/a': {'value': [1, 2]}})]
+            [('a', {'builtins:max': {'value': [1, 2]}}),
+             ('b', {}),
+             ('builtins:max', {'b': {'value': 2}}),
+             (start, {'a': {'value': [1, 2]}})]
         """
 
         node_attr = self.nodes[node_id]
