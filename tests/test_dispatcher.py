@@ -6,19 +6,12 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
-from __future__ import division, print_function, unicode_literals
-
-import logging
-import os
-import sys
-import tempfile
 import doctest
 import unittest
 import timeit
 
-import dispatcher.dispatcher as dsp
 from dispatcher.dispatcher import Dispatcher
-from dispatcher.constants import START, EMPTY
+from dispatcher.constants import START, EMPTY, SINK, NONE
 from dispatcher.dispatcher_utils import bypass
 
 
@@ -27,11 +20,11 @@ __path__ = ''
 
 
 def _setup_dsp():
-    disp = Dispatcher()
+    dsp = Dispatcher()
 
-    disp.add_function('min', min, inputs=['a', 'c'], outputs=['d'])
-    disp.add_function('max', max, inputs=['b', 'd'], outputs=['c'])
-    disp.add_data(data_id='e')
+    dsp.add_function('min', min, inputs=['a', 'c'], outputs=['d'])
+    dsp.add_function('max', max, inputs=['b', 'd'], outputs=['c'])
+    dsp.add_data(data_id='e')
 
     from math import log, pow
 
@@ -41,7 +34,7 @@ def _setup_dsp():
     def log_dom(a, b):
         return a < b
 
-    disp.add_function('log(b - a)', function=my_log, inputs=['a', 'b'],
+    dsp.add_function('log(b - a)', function=my_log, inputs=['a', 'b'],
                       outputs=['c'], input_domain=log_dom)
 
     def _2x(d):
@@ -50,13 +43,13 @@ def _setup_dsp():
     def _2x_dom(d):
         return d != -1
 
-    disp.add_function('2 / (d + 1)', function=_2x, inputs=['d'],
+    dsp.add_function('2 / (d + 1)', function=_2x, inputs=['d'],
                       outputs=['e'], input_domain=_2x_dom)
 
     def x_4(a):
         return a - 4
 
-    disp.add_function('x - 4', function=x_4, inputs=['a'],
+    dsp.add_function('x - 4', function=x_4, inputs=['a'],
                       outputs=['d'], weight_from={'a': 20},
                       weight_to={'d': 20}, weight=20)
 
@@ -66,52 +59,54 @@ def _setup_dsp():
     def x_y_dom(x, y):
         return not x == y == 0
 
-    disp.add_function('x ^ y', function=x_y, inputs=['e', 'd'],
+    dsp.add_function('x ^ y', function=x_y, inputs=['e', 'd'],
                       outputs=['b'], input_domain=x_y_dom)
 
-    return disp
+    return dsp
 
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):
+        import dispatcher.dispatcher as dsp
         failure_count, test_count = doctest.testmod(
-            dsp, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS)
+            dsp, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS
+        )
         self.assertGreater(test_count, 0, (failure_count, test_count))
         self.assertEquals(failure_count, 0, (failure_count, test_count))
 
 
 class TestDispatcher(unittest.TestCase):
     def test_add_data(self):
-        dmap = Dispatcher()
+        dsp = Dispatcher()
 
-        self.assertEquals(dmap.add_data(data_id='a'), 'a')
-        self.assertEquals(dmap.add_data(data_id='a'), 'a')
+        self.assertEquals(dsp.add_data(data_id='a'), 'a')
+        self.assertEquals(dsp.add_data(data_id='a'), 'a')
 
-        self.assertEquals(dmap.add_data(), 'unknown<0>')
-        self.assertEquals(dmap.add_data(default_value='v'), 'unknown<1>')
+        self.assertEquals(dsp.add_data(), 'unknown<0>')
+        self.assertEquals(dsp.add_data(default_value='v'), 'unknown<1>')
 
-        self.assertEquals(dmap.dmap.node['unknown<1>'], {'wait_inputs': False,
+        self.assertEquals(dsp.dmap.node['unknown<1>'], {'wait_inputs': False,
                                                          'type': 'data'})
 
-        self.assertEquals(dmap.default_values['unknown<1>'], 'v')
-        self.assertEquals(dmap.add_data(data_id='unknown<1>'), 'unknown<1>')
-        self.assertFalse('unknown<1>' in dmap.default_values)
-        dmap.add_data(data_id='a', wait_inputs=False, function=lambda: None,
+        self.assertEquals(dsp.default_values['unknown<1>'], 'v')
+        self.assertEquals(dsp.add_data(data_id='unknown<1>'), 'unknown<1>')
+        self.assertFalse('unknown<1>' in dsp.default_values)
+        dsp.add_data(data_id='a', wait_inputs=False, function=lambda: None,
                       callback=lambda: None, wildcard=True)
 
         res = ['callback', 'function', 'wildcard', 'wait_inputs', 'type']
-        self.assertEquals(set(dmap.dmap.node['a'].keys()), set(res))
+        self.assertEquals(set(dsp.dmap.node['a'].keys()), set(res))
 
-        dmap.add_function(function_id='fun', inputs=['a'])
-        self.assertRaises(ValueError, dmap.add_data, *('fun', ))
+        dsp.add_function(function_id='fun', inputs=['a'])
+        self.assertRaises(ValueError, dsp.add_data, *('fun', ))
 
     def test_add_function(self):
-        dmap = Dispatcher()
+        dsp = Dispatcher()
 
         def my_function(a, b):
             return a + b, a - b
 
-        fun_id = dmap.add_function(function=my_function, inputs=['a', 'b'],
+        fun_id = dsp.add_function(function=my_function, inputs=['a', 'b'],
                                    outputs=['c', 'd'])
 
         self.assertEquals(fun_id, 'dispatcher:my_function')
@@ -124,7 +119,7 @@ class TestDispatcher(unittest.TestCase):
         def my_domain(a, b):
             return a < b
 
-        fun_id = dmap.add_function(function_id='funny_id', function=my_log,
+        fun_id = dsp.add_function(function_id='funny_id', function=my_log,
                                    inputs=['a', 'b'], outputs=['e'],
                                    input_domain=my_domain, weight=1,
                                    weight_from={'a': 2, 'b': 3},
@@ -151,33 +146,33 @@ class TestDispatcher(unittest.TestCase):
                 'outputs': ['e'],
                 'weight': 1,
                 'wait_inputs': True},
-            dsp.SINK: {'wait_inputs': True, 'type': 'data', 'function': bypass},
+            SINK: {'wait_inputs': True, 'type': 'data', 'function': bypass},
         }
-        self.assertEquals(dmap.dmap.node, res)
-        res = [dmap.dmap.edge['a']['funny_id']['weight'],
-               dmap.dmap.edge['b']['funny_id']['weight'],
-               dmap.dmap.edge['funny_id']['e']['weight']]
+        self.assertEquals(dsp.dmap.node, res)
+        res = [dsp.dmap.edge['a']['funny_id']['weight'],
+               dsp.dmap.edge['b']['funny_id']['weight'],
+               dsp.dmap.edge['funny_id']['e']['weight']]
         self.assertEquals(res, [2, 3, 4])
 
-        fun_id = dmap.add_function(function_id='funny_id', inputs=['a'])
+        fun_id = dsp.add_function(function_id='funny_id', inputs=['a'])
         self.assertEquals(fun_id, 'funny_id<0>')
         res = {
             'type': 'function',
             'inputs': ['a'],
             'function': None,
-            'outputs': [dsp.SINK],
+            'outputs': [SINK],
             'wait_inputs': True
         }
-        self.assertEquals(dmap.dmap.node[fun_id], res)
+        self.assertEquals(dsp.dmap.node[fun_id], res)
 
-        self.assertRaises(ValueError, dmap.add_function)
-        self.assertRaises(ValueError, dmap.add_function, inputs=['a'])
-        self.assertRaises(ValueError, dmap.add_function, 'f', inputs=[fun_id])
-        self.assertRaises(ValueError, dmap.add_function, 'f', outputs=[fun_id])
+        self.assertRaises(ValueError, dsp.add_function)
+        self.assertRaises(ValueError, dsp.add_function, inputs=['a'])
+        self.assertRaises(ValueError, dsp.add_function, 'f', inputs=[fun_id])
+        self.assertRaises(ValueError, dsp.add_function, 'f', outputs=[fun_id])
 
     def test_load_from_lists(self):
-        dmap = Dispatcher()
-        self.assertEquals(dmap.load_from_lists(), ([], []))
+        dsp = Dispatcher()
+        self.assertEquals(dsp.load_from_lists(), ([], []))
 
         def fun(**kwargs):
             return (kwargs['a'] + kwargs['b']) / 2
@@ -198,52 +193,52 @@ class TestDispatcher(unittest.TestCase):
         fun_list = [
             {'function': fun1, 'inputs': ['a', 'b'], 'outputs': ['c']},
         ]
-        dmap.load_from_lists(data_list, fun_list)
+        dsp.load_from_lists(data_list, fun_list)
         res = {
             'a': {'wait_inputs': False, 'callback': callback, 'type': 'data'},
             'b': {'wait_inputs': False, 'type': 'data'},
             'c': {'wait_inputs': True, 'function': fun, 'type': 'data',
-                   'wildcard': True},
+                  'wildcard': True},
             'dispatcher:fun1': {'inputs': ['a', 'b'],
                                 'wait_inputs': True,
                                 'function': fun1,
                                 'type': 'function',
                                 'outputs': ['c']},
-            dsp.SINK: {'wait_inputs': True, 'type': 'data', 'function': bypass},
+            SINK: {'wait_inputs': True, 'type': 'data', 'function': bypass},
         }
-        self.assertEquals(dmap.dmap.node, res)
+        self.assertEquals(dsp.dmap.node, res)
 
     def test_set_default_value(self):
-        dmap = Dispatcher()
+        dsp = Dispatcher()
 
-        dmap.add_data('a', default_value=1)
-        self.assertEquals(dmap.default_values['a'], 1)
+        dsp.add_data('a', default_value=1)
+        self.assertEquals(dsp.default_values['a'], 1)
 
-        dmap.set_default_value('a', value=2)
-        self.assertEquals(dmap.default_values['a'], 2)
+        dsp.set_default_value('a', value=2)
+        self.assertEquals(dsp.default_values['a'], 2)
 
-        dmap.set_default_value('a', value=EMPTY)
-        self.assertFalse('a' in dmap.default_values)
+        dsp.set_default_value('a', value=EMPTY)
+        self.assertFalse('a' in dsp.default_values)
 
-        self.assertRaises(ValueError, dmap.set_default_value, *('b', 3))
+        self.assertRaises(ValueError, dsp.set_default_value, *('b', 3))
 
-        fun_id = dmap.add_function(function=max, inputs=['a', 'b'])
-        self.assertRaises(ValueError, dmap.set_default_value, *(fun_id, ))
+        fun_id = dsp.add_function(function=max, inputs=['a', 'b'])
+        self.assertRaises(ValueError, dsp.set_default_value, *(fun_id, ))
 
-        dmap.set_default_value('b', value=3)
-        self.assertEquals(dmap.default_values['b'], 3)
+        dsp.set_default_value('b', value=3)
+        self.assertEquals(dsp.default_values['b'], 3)
 
     def test_get_sub_dmap(self):
-        dmap = Dispatcher()
-        dmap.add_data(data_id='b', wait_inputs=True, default_value=3)
+        dsp = Dispatcher()
+        dsp.add_data(data_id='b', wait_inputs=True, default_value=3)
 
-        dmap.add_function('max', inputs=['a', 'b'], outputs=['c'])
-        dmap.add_function('min', inputs=['a', 'c'], outputs=['d'])
-        dmap.add_function('min<0>', inputs=['b', 'd'], outputs=['c'])
-        dmap.add_function('max<0>', inputs=['b', 'd'], outputs=['a'])
-        dmap.add_data(data_id='e')
+        dsp.add_function('max', inputs=['a', 'b'], outputs=['c'])
+        dsp.add_function('min', inputs=['a', 'c'], outputs=['d'])
+        dsp.add_function('min<0>', inputs=['b', 'd'], outputs=['c'])
+        dsp.add_function('max<0>', inputs=['b', 'd'], outputs=['a'])
+        dsp.add_data(data_id='e')
 
-        sub_dmap = dmap.get_sub_dmap(['a', 'b', 'c', 'max', 'max<0>'])
+        sub_dmap = dsp.get_sub_dsp(['a', 'b', 'c', 'max', 'max<0>'])
         res = {
             'a': {'type': 'data', 'wait_inputs': False},
             'b': {'type': 'data', 'wait_inputs': True},
@@ -257,10 +252,10 @@ class TestDispatcher(unittest.TestCase):
         self.assertEquals(sub_dmap.dmap.node, res)
         self.assertEquals(sub_dmap.default_values['b'], 3)
 
-        sub_dmap = dmap.get_sub_dmap(['a', 'c', 'max', 'max<0>'])
+        sub_dmap = dsp.get_sub_dsp(['a', 'c', 'max', 'max<0>'])
         self.assertEquals(sub_dmap.dmap.node, {})
 
-        sub_dmap = dmap.get_sub_dmap(['a', 'b', 'c', 'max', 'e'])
+        sub_dmap = dsp.get_sub_dsp(['a', 'b', 'c', 'max', 'e'])
         res = {
             'a': {'type': 'data', 'wait_inputs': False},
             'b': {'type': 'data', 'wait_inputs': True},
@@ -275,20 +270,20 @@ class TestDispatcher(unittest.TestCase):
         self.assertEquals(sub_dmap.default_values['b'], 3)
 
         edges_bunch = [('max', 'c')]
-        sub_dmap = dmap.get_sub_dmap(['a', 'b', 'c', 'max'], edges_bunch)
+        sub_dmap = dsp.get_sub_dsp(['a', 'b', 'c', 'max'], edges_bunch)
         self.assertEquals(sub_dmap.dmap.node, {})
 
     def get_sub_dmap_from_workflow(self):
-        dmap = Dispatcher()
-        dmap.add_data(data_id='b', wait_inputs=True, default_value=3)
+        dsp = Dispatcher()
+        dsp.add_data(data_id='b', wait_inputs=True, default_value=3)
 
-        dmap.add_function('max', inputs=['a', 'b'], outputs=['c'])
-        dmap.add_function('min', inputs=['a', 'c'], outputs=['d'])
-        dmap.add_function('min<0>', inputs=['b', 'd'], outputs=['c'])
-        dmap.add_function('max<0>', inputs=['b', 'd'], outputs=['a'])
-        dmap.add_data(data_id='e')
+        dsp.add_function('max', inputs=['a', 'b'], outputs=['c'])
+        dsp.add_function('min', inputs=['a', 'c'], outputs=['d'])
+        dsp.add_function('min<0>', inputs=['b', 'd'], outputs=['c'])
+        dsp.add_function('max<0>', inputs=['b', 'd'], outputs=['a'])
+        dsp.add_data(data_id='e')
 
-        sub_dmap = dmap.get_sub_dmap(['a', 'b', 'c', 'max', 'max<0>'])
+        sub_dmap = dsp.get_sub_dsp(['a', 'b', 'c', 'max', 'max<0>'])
         res = {
             'a': {'type': 'data', 'wait_inputs': False},
             'b': {'type': 'data', 'wait_inputs': True},
@@ -302,10 +297,10 @@ class TestDispatcher(unittest.TestCase):
         self.assertEquals(sub_dmap.dmap.node, res)
         self.assertEquals(sub_dmap.default_values['b'], 3)
 
-        sub_dmap = dmap.get_sub_dmap(['a', 'c', 'max', 'max<0>'])
+        sub_dmap = dsp.get_sub_dsp(['a', 'c', 'max', 'max<0>'])
         self.assertEquals(sub_dmap.dmap.node, {})
 
-        sub_dmap = dmap.get_sub_dmap(['a', 'b', 'c', 'max', 'e'])
+        sub_dmap = dsp.get_sub_dsp(['a', 'b', 'c', 'max', 'e'])
         res = {
             'a': {'type': 'data', 'wait_inputs': False},
             'b': {'type': 'data', 'wait_inputs': True},
@@ -320,24 +315,24 @@ class TestDispatcher(unittest.TestCase):
         self.assertEquals(sub_dmap.default_values['b'], 3)
 
         edges_bunch = [('max', 'c')]
-        sub_dmap = dmap.get_sub_dmap(['a', 'b', 'c', 'max'], edges_bunch)
+        sub_dmap = dsp.get_sub_dsp(['a', 'b', 'c', 'max'], edges_bunch)
         self.assertEquals(sub_dmap.dmap.node, {})
 
 
 class TestDispatcherDispatchAlgorithm(unittest.TestCase):
     def setUp(self):
-        self.disp = _setup_dsp()
+        self.dsp = _setup_dsp()
 
     def test_stress_tests(self):
-        res = timeit.repeat("disp.dispatch({'a': 5, 'b': 6})",
+        res = timeit.repeat("dsp.dispatch({'a': 5, 'b': 6})",
                             'from tests.test_dispatcher import _setup_dsp; '
-                            'disp = _setup_dsp()', repeat=3, number=1000)
+                            'dsp = _setup_dsp()', repeat=3, number=1000)
         res = sum(res) / 3
         print('dispatch with functions in %f call/ms' % res)
 
-        res1 = timeit.repeat("disp.dispatch({'a': 5, 'b': 6}, no_call=True)",
+        res1 = timeit.repeat("dsp.dispatch({'a': 5, 'b': 6}, no_call=True)",
                              'from tests.test_dispatcher import _setup_dsp; '
-                             'disp = _setup_dsp()', repeat=3, number=1000)
+                             'dsp = _setup_dsp()', repeat=3, number=1000)
         res1 = sum(res1) / 3
         print('dispatch without functions in %f call/ms' % res1)
         diff = res - res1
@@ -346,8 +341,8 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         res2 = timeit.repeat(
             "fun(5, 6)",
             'from tests.test_dispatcher import _setup_dsp;'
-            'disp = _setup_dsp();'
-            'fun = disp.extract_function_node('
+            'dsp = _setup_dsp();'
+            'fun = dsp.extract_function_node('
             '    "myF", ["a", "b"], ["c", "d", "e"])["function"]',
             repeat=3, number=1000)
 
@@ -357,9 +352,9 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
               '%f call/ms' % (res2 - diff))
 
     def test_dispatch(self):
-        disp = self.disp
+        dsp = self.dsp
 
-        workflow, outputs = disp.dispatch({'a': 5, 'b': 6, 'f': 9})
+        workflow, outputs = dsp.dispatch({'a': 5, 'b': 6, 'f': 9})
 
         self.assertEquals(
             outputs, {'a': 5, 'b': 6, 'c': 0, 'd': 0, 'e': 2, 'f': 9}
@@ -382,7 +377,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         }
         self.assertEquals(workflow.edge, res)
 
-        workflow, outputs = disp.dispatch({'a': 5, 'b': 3})
+        workflow, outputs = dsp.dispatch({'a': 5, 'b': 3})
 
         self.assertEquals(outputs,
                           {'a': 5, 'b': 3, 'c': 3, 'd': 1, 'e': 1})
@@ -405,9 +400,9 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         }
         self.assertEquals(workflow.edge, res)
 
-        workflow, outputs = disp.dispatch(['a', 'b'], no_call=True)
+        workflow, outputs = dsp.dispatch(['a', 'b'], no_call=True)
         self.assertEquals(
-            outputs, dict.fromkeys(['a', 'b', 'c', 'd', 'e'], dsp.NONE)
+            outputs, dict.fromkeys(['a', 'b', 'c', 'd', 'e'], NONE)
         )
 
         res = ['2 / (d + 1)', 'a', 'b', 'c', 'd', 'e', 'log(b - a)', 'min',
@@ -427,7 +422,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         }
         self.assertEquals(workflow.edge, res)
 
-        workflow, outputs = disp.dispatch({'a': 5, 'b': 6}, ['d'])
+        workflow, outputs = dsp.dispatch({'a': 5, 'b': 6}, ['d'])
 
         self.assertEquals(outputs, {'a': 5, 'b': 6, 'c': 0, 'd': 0})
 
@@ -445,7 +440,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         }
         self.assertEquals(workflow.edge, res)
 
-        workflow, outputs = disp.dispatch({'a': 5, 'b': 6}, cutoff=2)
+        workflow, outputs = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2)
 
         self.assertEquals(outputs, {'a': 5, 'b': 6, 'c': 0})
 
@@ -461,8 +456,8 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         }
         self.assertEquals(workflow.edge, res)
 
-        disp.weight = None
-        workflow, outputs = disp.dispatch({'a': 5, 'b': 6}, cutoff=2)
+        dsp.weight = None
+        workflow, outputs = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2)
 
         self.assertEquals(outputs, {'a': 5, 'b': 6, 'c': 0, 'd': 1})
 
@@ -480,8 +475,8 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         }
         self.assertEquals(workflow.edge, res)
 
-        disp.weight = 'weight'
-        workflow, outputs = disp.dispatch({'a': 5, 'b': 6}, ['a', 'b'],
+        dsp.weight = 'weight'
+        workflow, outputs = dsp.dispatch({'a': 5, 'b': 6}, ['a', 'b'],
                                           wildcard=True)
 
         self.assertEquals(outputs, {'b': 1, 'c': 0, 'd': 0, 'e': 2})
@@ -507,35 +502,35 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         def average(kwargs):
             return sum(kwargs.values()) / len(kwargs)
 
-        disp.dmap.node['b']['wait_inputs'] = True
-        disp.dmap.node['b']['function'] = average
+        dsp.dmap.node['b']['wait_inputs'] = True
+        dsp.dmap.node['b']['function'] = average
 
-        workflow, outputs = disp.dispatch({'a': 5, 'b': 6}, ['a', 'b'],
+        workflow, outputs = dsp.dispatch({'a': 5, 'b': 6}, ['a', 'b'],
                                           wildcard=True)
 
         self.assertEquals(sorted(list(workflow.node)), node)
         self.assertEquals(workflow.edge, edge)
 
-        disp.dmap.node['b']['wait_inputs'] = False
-        disp.dmap.node['b'].pop('function')
+        dsp.dmap.node['b']['wait_inputs'] = False
+        dsp.dmap.node['b'].pop('function')
 
-        disp.dmap.edge['e']['x ^ y']['weight'] = -100
-        self.assertRaises(ValueError, disp.dispatch, {'a': 5, 'b': 6},
+        dsp.dmap.edge['e']['x ^ y']['weight'] = -100
+        self.assertRaises(ValueError, dsp.dispatch, {'a': 5, 'b': 6},
                           ['a', 'b'], wildcard=True)
 
-        disp.dmap.edge['e']['x ^ y'].pop('weight')
+        dsp.dmap.edge['e']['x ^ y'].pop('weight')
 
     def test_set_node_output(self):
-        disp = Dispatcher()
-        wf_edge = disp.workflow.edge
-        data_out = disp.data_output
-        disp.add_data('a', default_value=[1, 2])
-        disp.add_function('max', function=max, inputs=['a'], outputs=['b'])
-        disp.add_function('max', inputs=['a'], outputs=['b'])
-        disp.workflow.add_node(START, attr_dict={'type': 'start'})
-        disp.workflow.add_edge(START, 'a', attr_dict={'value': [1, 2]})
+        dsp = Dispatcher()
+        wf_edge = dsp.workflow.edge
+        data_out = dsp.data_output
+        dsp.add_data('a', default_value=[1, 2])
+        dsp.add_function('max', function=max, inputs=['a'], outputs=['b'])
+        dsp.add_function('max', inputs=['a'], outputs=['b'])
+        dsp.workflow.add_node(START, attr_dict={'type': 'start'})
+        dsp.workflow.add_edge(START, 'a', attr_dict={'value': [1, 2]})
 
-        self.assertTrue(disp._set_node_output('a', False))
+        self.assertTrue(dsp._set_node_output('a', False))
         res = {
             'a': {
                 'max': {'value': [1, 2]},
@@ -549,17 +544,17 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         }
         self.assertEquals(wf_edge, res)
         self.assertEquals(data_out, {'a': [1, 2]})
-        self.assertFalse(disp._set_node_output('max<0>', False))
-        self.assertTrue(disp._set_node_output('max', False))
+        self.assertFalse(dsp._set_node_output('max<0>', False))
+        self.assertTrue(dsp._set_node_output('max', False))
         res['b'] = {}
         res['max'] = {'b': {'value': 2}}
 
         self.assertEquals(wf_edge, res)
         self.assertEquals(data_out, {'a': [1, 2]})
 
-        disp.add_data('b', wait_inputs=True)
+        dsp.add_data('b', wait_inputs=True)
 
-        self.assertFalse(disp._set_node_output('b', False))
+        self.assertFalse(dsp._set_node_output('b', False))
         self.assertEquals(wf_edge, res)
         self.assertEquals(data_out, {'a': [1, 2]})
 
@@ -568,51 +563,75 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         def callback(value):
             callback_obj.update([value])
 
-        disp.add_data('b', callback=callback)
+        dsp.add_data('b', callback=callback)
 
-        self.assertTrue(disp._set_node_output('b', False))
+        self.assertTrue(dsp._set_node_output('b', False))
 
         self.assertEquals(wf_edge, res)
         self.assertEquals(data_out, {'a': [1, 2], 'b': 2})
         self.assertEquals(callback_obj, {2})
 
     def test_shrink_dsp(self):
-        disp = Dispatcher()
-        disp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
-        disp.add_function(function=max, inputs=['b', 'd'], outputs=['e'])
-        disp.add_function(
-            function=max, inputs=['d', 'e'], outputs=['c', 'f']
-        )
-        disp.add_function(function=max, inputs=['d', 'f'], outputs=['g'])
-        disp.add_function(function=max, inputs=['a', 'b'], outputs=['a'])
+        dsp = Dispatcher()
+        dsp.add_function(function_id='h', inputs=['a', 'b'], outputs=['c'])
+        dsp.add_function(function_id='h', inputs=['b', 'd'], outputs=['e'])
+        dsp.add_function(function_id='h', inputs=['d', 'e'], outputs=['c', 'f'])
+        dsp.add_function(function_id='h', inputs=['d', 'f'], outputs=['g'])
+        dsp.add_function(function_id='h', inputs=['a', 'b'], outputs=['a'])
 
-        shrink_dsp = disp.shrink_dsp(inputs=['a', 'b', 'd'],
-                                     outputs=['c', 'a', 'f'],
-                                     wildcard=True)
+        shrink_dsp = dsp.shrink_dsp(
+            inputs=['a', 'b', 'd'], outputs=['c', 'a', 'f'], wildcard=True
+        )
 
         self.assertEquals(
             sorted(shrink_dsp.dmap.node),
-            ['a', 'b', 'builtins:max', 'builtins:max<0>', 'builtins:max<1>',
-             'builtins:max<3>', 'c', 'd', 'e', 'f', dsp.SINK]
+            ['a', 'b', 'c', 'd', 'e', 'f', 'h', 'h<0>', 'h<1>', 'h<3>', SINK]
         )
-        self.assertEquals(sorted(shrink_dsp.dmap.edges()),
-                          [('a', 'builtins:max'), ('a', 'builtins:max<3>'),
-                           ('b', 'builtins:max'), ('b', 'builtins:max<0>'),
-                           ('b', 'builtins:max<3>'), ('builtins:max', 'c'),
-                           ('builtins:max<0>', 'e'), ('builtins:max<1>', 'f'),
-                           ('builtins:max<3>', 'a'), ('d', 'builtins:max<0>'),
-                           ('d', 'builtins:max<1>'), ('e', 'builtins:max<1>')])
+        self.assertEquals(
+            sorted(shrink_dsp.dmap.edges()),
+            [('a', 'h'), ('a', 'h<3>'), ('b', 'h'), ('b', 'h<0>'),
+             ('b', 'h<3>'), ('d', 'h<0>'), ('d', 'h<1>'), ('e', 'h<1>'),
+             ('h', 'c'), ('h<0>', 'e'), ('h<1>', 'f'), ('h<3>', 'a')]
+        )
 
-        shrink_dsp = disp.shrink_dsp(['a', 'b'], ['e'])
-        self.assertEquals(sorted(shrink_dsp.dmap.node), [dsp.SINK])
+        shrink_dsp = dsp.shrink_dsp(['a', 'b'], ['e'])
+        self.assertEquals(sorted(shrink_dsp.dmap.node), [SINK])
         self.assertEquals(sorted(shrink_dsp.dmap.edges()), [])
 
+        shrink_dsp = dsp.shrink_dsp([], [])
+        self.assertEquals(sorted(shrink_dsp.dmap.node), [SINK])
+        self.assertEquals(sorted(shrink_dsp.dmap.edges()), [])
+
+        shrink_dsp = dsp.shrink_dsp(outputs=['g'])
+        self.assertEquals(
+            sorted(shrink_dsp.dmap.node),
+            ['b', 'd', 'e', 'f', 'g', 'h<0>', 'h<1>', 'h<2>', SINK]
+        )
+        self.assertEquals(
+            sorted(shrink_dsp.dmap.edges()),
+            [('b', 'h<0>'), ('d', 'h<0>'), ('d', 'h<1>'), ('d', 'h<2>'),
+             ('e', 'h<1>'), ('f', 'h<2>'), ('h<0>', 'e'), ('h<1>', 'f'),
+             ('h<2>', 'g')]
+        )
+
+        shrink_dsp = dsp.shrink_dsp(inputs=['d', 'e'])
+        self.assertEquals(
+            sorted(shrink_dsp.dmap.node),
+            ['c', 'd', 'e', 'f', 'g', 'h<1>', 'h<2>', SINK]
+        )
+        self.assertEquals(
+            sorted(shrink_dsp.dmap.edges()),
+            [('d', 'h<1>'), ('d', 'h<2>'), ('e', 'h<1>'), ('f', 'h<2>'),
+             ('h<1>', 'c'), ('h<1>', 'f'), ('h<2>', 'g')]
+        )
+
     def test_extract_function_node(self):
-        disp = Dispatcher()
-        disp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
-        disp.add_function(function=min, inputs=['c', 'b'], outputs=['a'],
-                          input_domain=lambda c, b: c * b > 0)
-        res = disp.extract_function_node('myF', ['a', 'b'], ['a'])
+        dsp = Dispatcher()
+        dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
+        dsp.add_function(function=min, inputs=['c', 'b'], outputs=['a'],
+                         input_domain=lambda c, b: c * b > 0)
+
+        res = dsp.extract_function_node('myF', ['a', 'b'], ['a'])
         self.assertEquals(res['inputs'], ['a', 'b'])
         self.assertEquals(res['outputs'], ['a'])
         self.assertEquals(res['function'].__name__, 'myF')
@@ -620,30 +639,46 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         self.assertEquals(res['function'](2, 1), 1)
         self.assertRaises(ValueError, res['function'], 3, -1)
 
+        dsp = Dispatcher()
+
+        def f(a, b):
+            return a + b, a - b
+
+        dsp.add_function(function=f, inputs=['a', 'b'], outputs=['c', SINK])
+        dsp.add_function(function=f, inputs=['c', 'b'], outputs=[SINK, 'd'])
+
+        res = dsp.extract_function_node('myF', ['a', 'b'], ['c', 'd'])
+        # noinspection PyCallingNonCallable
+        self.assertEquals(res['function'](2, 1), [3, 2])
+
+        self.assertRaises(
+            ValueError, dsp.extract_function_node, 'myF', ['a', 'c'], ['d']
+        )
+
 
 class TestRemoveCycles(unittest.TestCase):
     def test_remove_cycles(self):
-        dmap = Dispatcher()
+        dsp = Dispatcher()
 
         def average(kwargs):
             return sum(kwargs.values()) / len(kwargs)
 
-        dmap.add_data(data_id='b', default_value=3)
-        dmap.add_data(data_id='c', function=average)
-        dmap.add_function('max', function=max, inputs=['a', 'b'],
+        dsp.add_data(data_id='b', default_value=3)
+        dsp.add_data(data_id='c', function=average)
+        dsp.add_function('max', function=max, inputs=['a', 'b'],
                           outputs=['c'])
-        dmap.add_function('min', function=min, inputs=['a', 'c'],
+        dsp.add_function('min', function=min, inputs=['a', 'c'],
                           outputs=['d'])
-        dmap.add_function('min', function=min, inputs=['b', 'd'],
+        dsp.add_function('min', function=min, inputs=['b', 'd'],
                           outputs=['c'])
-        dmap.add_function('max', function=max, inputs=['b', 'd'],
+        dsp.add_function('max', function=max, inputs=['b', 'd'],
                           outputs=['a'])
-        dmap_woc = dmap.remove_cycles(['a', 'b'])
-        self.assertEquals(sorted(dmap_woc.dmap.edges()),
-                          sorted(dmap.dmap.edges()))
+        dsp_woc = dsp.remove_cycles(['a', 'b'])
+        self.assertEquals(sorted(dsp_woc.dmap.edges()),
+                          sorted(dsp.dmap.edges()))
 
-        dmap.add_data(data_id='c', wait_inputs=True, function=average)
-        dmap_woc = dmap.remove_cycles(['a', 'b'])
+        dsp.add_data(data_id='c', wait_inputs=True, function=average)
+        dsp_woc = dsp.remove_cycles(['a', 'b'])
         res = [('a', 'max'),
                ('a', 'min'),
                ('b', 'max'),
@@ -653,11 +688,11 @@ class TestRemoveCycles(unittest.TestCase):
                ('max', 'c'),
                ('max<0>', 'a'),
                ('min', 'd')]
-        self.assertEquals(sorted(dmap_woc.dmap.edges()), res)
-        self.assertTrue(dmap_woc.dmap.node['c']['wait_inputs'])
-        self.assertTrue(dmap.dmap.node['c']['wait_inputs'])
+        self.assertEquals(sorted(dsp_woc.dmap.edges()), res)
+        self.assertTrue(dsp_woc.dmap.node['c']['wait_inputs'])
+        self.assertTrue(dsp.dmap.node['c']['wait_inputs'])
 
-        dmap_woc = dmap.remove_cycles(['d', 'b'])
+        dsp_woc = dsp.remove_cycles(['d', 'b'])
         res = [('a', 'max'),
                ('a', 'min'),
                ('b', 'max'),
@@ -667,17 +702,17 @@ class TestRemoveCycles(unittest.TestCase):
                ('max', 'c'),
                ('max<0>', 'a'),
                ('min', 'd')]
-        self.assertEquals(sorted(dmap_woc.dmap.edges()), res)
+        self.assertEquals(sorted(dsp_woc.dmap.edges()), res)
 
-        dmap.dmap.remove_node('max<0>')
-        dmap_woc = dmap.remove_cycles(['b', 'd'])
-        self.assertEquals(dmap_woc.dmap.edges(), [])
+        dsp.dmap.remove_node('max<0>')
+        dsp_woc = dsp.remove_cycles(['b', 'd'])
+        self.assertEquals(dsp_woc.dmap.edges(), [])
 
-        dmap_woc = dmap.remove_cycles(['a', 'b', 'c'])
+        dsp_woc = dsp.remove_cycles(['a', 'b', 'c'])
         res = [('a', 'max'),
                ('a', 'min'),
                ('b', 'max'),
                ('c', 'min'),
                ('max', 'c'),
                ('min', 'd')]
-        self.assertEquals(sorted(dmap_woc.dmap.edges()), res)
+        self.assertEquals(sorted(dsp_woc.dmap.edges()), res)

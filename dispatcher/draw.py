@@ -7,29 +7,20 @@
 
 __author__ = 'Vincenzo Arcidiacono'
 
-import re
 from networkx.classes.digraph import DiGraph
 from networkx.drawing import *
-from .constants import START
+from networkx.utils import default_opener
 import matplotlib.pyplot as plt
+from graphviz import Digraph
+
+from .constants import START, SINK
 from .dispatcher_utils import SubDispatch
 
-
-node_label_regex = re.compile('(^|[^(_ )])(_)[^(_ )]', re.IGNORECASE)
-
-
-def under_rpl(match_obj):
-    return match_obj.group(0).replace('_', ' ')
+from tempfile import mkstemp
 
 
-def replace_under_score(s):
-    s, n = node_label_regex.subn(under_rpl, s)
-    while n:
-        s, n = node_label_regex.subn(under_rpl, s)
-    return s
-
-
-def plot_dsp(dsp, pos=None, workflow=False, title='Dispatcher', fig=None):
+def plot_dsp(dsp, pos=None, workflow=False, title='Dispatcher', fig=None,
+             edge_attr='value'):
     """
     Draw the graph of a Dispatcher with Matplotlib.
 
@@ -63,10 +54,7 @@ def plot_dsp(dsp, pos=None, workflow=False, title='Dispatcher', fig=None):
         >>> dsp = Dispatcher()
         >>> dsp.add_data('_i_n_p_u_t', default_value={'a': 3})
         '_i_n_p_u_t'
-        >>> class no_str(object):
-        ...     def __str__(self):
-        ...         raise ValueError
-        >>> dsp.add_data('_i_', default_value=no_str())
+        >>> dsp.add_data('_i_', default_value=object())
         '_i_'
         >>> dsp.add_function('dispatch', dispatch, ['_i_n_p_u_t'], ['e', 'f'])
         'dispatch'
@@ -76,6 +64,7 @@ def plot_dsp(dsp, pos=None, workflow=False, title='Dispatcher', fig=None):
         >>> f2 = plot_dsp(dsp, workflow=True)
         >>> plt.show()
     """
+
     figs = []
 
     if workflow:
@@ -93,16 +82,15 @@ def plot_dsp(dsp, pos=None, workflow=False, title='Dispatcher', fig=None):
     for k, v in g.node.items():
         n = dsp.nodes.get(k, {})
         if n:
-            type = n['type']
-            eval(type).append(k)
+            data_type = n['type']
+            eval(data_type).append(k)
 
             f = n.get('function', None)
 
-            if type == 'function' and isinstance(f, SubDispatch):
+            if data_type == 'function' and isinstance(f, SubDispatch):
                 w = v.get('workflow', False)
-                t = '%s:%s' %(title, k)
+                t = '%s:%s' % (title, k)
                 figs.append(plot_dsp(f.dsp, title=t, workflow=w))
-
 
     if fig is None:
         fig = plt.figure()
@@ -110,15 +98,13 @@ def plot_dsp(dsp, pos=None, workflow=False, title='Dispatcher', fig=None):
     fig.suptitle(title)
     fig = {title: (fig, figs)}
 
-    label_nodes = {k: replace_under_score(k) for k in g.node}
+    label_nodes = {}
 
-    for k, v in dfl.items():
-        try:
-            s = '%s:%s' % (replace_under_score(k), str(v))
-        except:
-            s = replace_under_score(k)
-
-        label_nodes.update({k: s})
+    for k in g.node:
+        if k in dfl:
+            label_nodes[k] = '%s\n default = %s' % (k, str(dfl[k]))
+        else:
+            label_nodes[k] = k
 
     if START in g.node:
         label_nodes[START] = 'start'
@@ -134,9 +120,9 @@ def plot_dsp(dsp, pos=None, workflow=False, title='Dispatcher', fig=None):
 
     for u, v, a in g.edges_iter(data=True):
 
-        try:
-            s = str(a['value'])
-        except:
+        if edge_attr in a:
+            s = str(a[edge_attr])
+        else:
             s = ''
 
         label_edges.update({(u, v): s})
@@ -149,3 +135,146 @@ def plot_dsp(dsp, pos=None, workflow=False, title='Dispatcher', fig=None):
     return fig
 
 
+def dsp2dot(dsp, workflow=False, dot=None, edge_attr='value', view=False,
+            **kw_dot):
+    """
+    Converts the Dispatcher map into a graph in the DOT language with Graphviz.
+
+    :param dsp:
+        A dispatcher that identifies the model adopted.
+    :type dsp: dispatcher.dispatcher.Dispatcher
+
+    :param workflow:
+       If True the workflow graph will be plotted, otherwise the dispatcher map.
+    :type workflow: bool, DiGraph, optional
+
+    :param dot:
+        A directed graph in the DOT language.
+    :type dot: Digraph, optional
+
+    :param edge_attr:
+        Edge attribute to view.
+    :type edge_attr: str, optional
+
+    :param view:
+        Open the rendered directed graph in the DOT language with the sys
+        default opener.
+    :type view: bool, optional
+
+    :return:
+        A directed graph source code in the DOT language.
+    :rtype: Digraph
+
+    Example::
+
+        >>> from dispatcher import Dispatcher, SubDispatch
+        >>> ss_dsp = Dispatcher()
+        >>> def fun(a):
+        ...     return a + 1, a - 1
+        >>> ss_dsp.add_function('fun', fun, ['a'], ['b', 'c'])
+        'fun'
+        >>> sub_dispatch = SubDispatch(ss_dsp, ['a', 'b', 'c'], returns='list')
+        >>> s_dsp = Dispatcher()
+
+        >>> s_dsp.add_function('sub_dispatch', sub_dispatch, ['d'], ['e', 'f'])
+        'sub_dispatch'
+        >>> dispatch = SubDispatch(s_dsp, ['e', 'f'], returns='list')
+        >>> dsp = Dispatcher()
+        >>> dsp.add_data('input', default_value={'d': {'a': 3}})
+        'input'
+        >>> dsp.add_function('dispatch', dispatch, ['input'], ['e', 'f'])
+        'dispatch'
+        >>> w, o = dsp.dispatch()
+
+        >>> dsp2dot(dsp, view=True)
+        <graphviz.dot.Digraph object at 0x...>
+        >>> dsp2dot(dsp, workflow=True, view=True)
+        <graphviz.dot.Digraph object at 0x...>
+    """
+
+    if workflow:
+        g = workflow if isinstance(workflow, DiGraph) else dsp.workflow
+        dfl = {}
+    else:
+        g = dsp.dmap
+        dfl = dsp.default_values
+
+    if dot is None:
+        kw = {
+            'name': dsp.name,
+            'format': 'svg',
+            'body': ['label = "%s"' % dsp.name, 'splines = ortho'],
+            'filename': mkstemp()[1] if 'filename' not in kw_dot else '',
+        }
+        kw.update(kw_dot)
+        dot = Digraph(**kw)
+        dot.node_attr.update(style='filled')
+
+    dot_name = dot.name
+    dot_node = dot.node
+
+    def id_node(o):
+        return '%s_%s' % (dot_name, hash(o))
+
+    if START in g.node:
+        kw = {
+            'shape': 'triangle',
+            'fillcolor': 'red',
+        }
+        dot_node(id_node(START), 'start', **kw)
+
+    for k, v in g.node.items():
+
+        n = dsp.nodes.get(k, {})
+
+        if n and not (k is SINK and g.in_degree(k) == 0):
+            node_label = k
+
+            node_id = id_node(k)
+
+            if n['type'] == 'function':
+
+                fun = n.get('function', None)
+
+                kw = {'shape': 'box', 'fillcolor': 'springgreen'}
+
+                if isinstance(fun, SubDispatch):
+                    kw_sub = {
+                        'name': 'cluster_%s' % node_id,
+                        'body': [
+                            'style=filled',
+                            'fillcolor="#FF8F0F80"',
+                            'label="%s"' % k,
+                            'comment="%s"' % k,
+                        ]
+                    }
+                    sub = Digraph(**kw_sub)
+                    wf = v.get('workflow', False)
+
+                    dot.subgraph(dsp2dot(fun.dsp, wf, sub, edge_attr))
+
+                    kw['fillcolor'] = '#FF8F0F80'
+
+            elif n['type'] == 'data':
+                kw = {'shape': 'oval', 'fillcolor': 'cyan'}
+                try:
+                    node_label = '%s\n default = %s' % (k, str(dfl[k]))
+                except KeyError:
+                    pass
+
+            else:
+                continue
+
+            dot.node(node_id, node_label, **kw)
+
+    for u, v, a in g.edges_iter(data=True):
+        if edge_attr in a:
+            kw = {'label': str(a[edge_attr])}
+        else:
+            kw = {}
+        dot.edge(id_node(u), id_node(v), **kw)
+
+    if view:
+        default_opener(dot.view())
+
+    return dot

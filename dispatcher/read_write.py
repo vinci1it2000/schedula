@@ -2,6 +2,7 @@ __author__ = 'Vincenzo Arcidiacono'
 
 from networkx.utils import open_file
 from dill import dump, load
+from dispatcher.utils import AttrDict
 
 
 @open_file(1, mode='wb')
@@ -14,19 +15,23 @@ def save_dispatcher(dsp, path):
 
     :param dsp:
         A dispatcher that identifies the model adopted.
-    :type dsp: dispatcher.Dispatcher
+    :type dsp: dispatcher.dispatcher.Dispatcher
 
     :param path:
         File or filename to write.
         File names ending in .gz or .bz2 will be compressed.
-    :type path: file or string
+    :type path: str, file
 
     Example::
 
         >>> from dispatcher import Dispatcher
-        >>> from tempfile import gettempdir
+        >>> from tempfile import mkstemp
+        >>> tmp = mkstemp()[1]
         >>> dsp = Dispatcher()
-        >>> tmp = '/'.join([gettempdir(), 'test.dispatcher'])
+        >>> dsp.add_data('a', default_value=1)
+        'a'
+        >>> dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
+        'builtins:max'
         >>> save_dispatcher(dsp, tmp)
     """
 
@@ -45,23 +50,26 @@ def load_dispatcher(path):
     :param path:
         File or filename to write.
         File names ending in .gz or .bz2 will be uncompressed.
-    :type path: file or string
+    :type path: str, file
 
     :return: dispatcher map that identifies the model adopted.
-    :rtype: Dispatcher
+    :rtype: dispatcher.dispatcher.Dispatcher
 
     Example::
 
         >>> from dispatcher import Dispatcher
-        >>> from tempfile import gettempdir
+        >>> from tempfile import mkstemp
+        >>> tmp = mkstemp()[1]
         >>> dsp = Dispatcher()
-        >>> dsp.add_data()
-        'unknown<0>'
-        >>> tmp = '/'.join([gettempdir(), 'test.dispatcher'])
+        >>> dsp.add_data('a', default_value=1)
+        'a'
+        >>> dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
+        'builtins:max'
         >>> save_dispatcher(dsp, tmp)
-        >>> dsp_loaded = load_dispatcher(tmp)
-        >>> dsp_loaded.dmap.node['unknown<0>']['type']
-        'data'
+
+        >>> dsp = load_dispatcher(tmp)
+        >>> dsp.dispatch(inputs={'b': 3})[1]['c']
+        3
     """
 
     # noinspection PyArgumentList
@@ -78,19 +86,23 @@ def save_default_values(dsp, path):
 
     :param dsp:
         A dispatcher that identifies the model adopted.
-    :type dsp: dispatcher.Dispatcher
+    :type dsp: dispatcher.dispatcher.Dispatcher
 
     :param path:
         File or filename to write.
         File names ending in .gz or .bz2 will be compressed.
-    :type path: file or string
+    :type path: str, file
 
     Example::
 
         >>> from dispatcher import Dispatcher
-        >>> from tempfile import gettempdir
+        >>> from tempfile import mkstemp
+        >>> tmp = mkstemp()[1]
         >>> dsp = Dispatcher()
-        >>> tmp = '/'.join([gettempdir(), 'test.dispatcher_default'])
+        >>> dsp.add_data('a', default_value=1)
+        'a'
+        >>> dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
+        'builtins:max'
         >>> save_default_values(dsp, tmp)
     """
 
@@ -108,34 +120,37 @@ def load_default_values(dsp, path):
 
     :param dsp:
         A dispatcher that identifies the model adopted.
-    :type dsp: dispatcher.Dispatcher
+    :type dsp: dispatcher.dispatcher.Dispatcher
 
     :param path:
         File or filename to write.
         File names ending in .gz or .bz2 will be uncompressed.
-    :type path: file or string
+    :type path: str, file
 
     Example::
 
         >>> from dispatcher import Dispatcher
-        >>> from tempfile import gettempdir
-        >>> tmp = '/'.join([gettempdir(), 'test.dispatcher_default'])
+        >>> from tempfile import mkstemp
+        >>> tmp = mkstemp()[1]
         >>> dsp = Dispatcher()
-        >>> dsp.add_data(default_value=5)
-        'unknown<0>'
+        >>> dsp.add_data('a', default_value=1)
+        'a'
+        >>> dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
+        'builtins:max'
         >>> save_default_values(dsp, tmp)
-        >>> dsp_loaded = Dispatcher()
-        >>> load_default_values(dsp_loaded, tmp)
-        >>> dsp_loaded.default_values == dsp.default_values
-        True
+
+        >>> dsp = Dispatcher(dmap=dsp.dmap)
+        >>> load_default_values(dsp, tmp)
+        >>> dsp.dispatch(inputs={'b': 3})[1]['c']
+        3
     """
 
     # noinspection PyArgumentList
-    dsp.default_values = load(path)
+    dsp.__init__(dmap=dsp.dmap, default_values=load(path))
 
 
 @open_file(1, mode='wb')
-def save_graph(dsp, path):
+def save_map(dsp, path):
     """
     Write Dispatcher graph object in Python pickle format.
 
@@ -144,56 +159,56 @@ def save_graph(dsp, path):
 
     :param dsp:
         A dispatcher that identifies the model adopted.
-    :type dsp: dispatcher.Dispatcher
+    :type dsp: dispatcher.dispatcher.Dispatcher
 
     :param path:
         File or filename to write.
         File names ending in .gz or .bz2 will be compressed.
-    :type path: file or string
+    :type path: str, file
 
     Example::
 
         >>> from dispatcher import Dispatcher
-        >>> from tempfile import gettempdir
-        >>> tmp = '/'.join([gettempdir(), 'test.dispatcher_graph'])
+        >>> from tempfile import mkstemp
+        >>> tmp = mkstemp()[1]
         >>> dsp = Dispatcher()
-        >>> save_graph(dsp, tmp)
+        >>> dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
+        'builtins:max'
+        >>> save_map(dsp, tmp)
     """
 
     dump(dsp.dmap, path)
 
 
 @open_file(1, mode='rb')
-def load_graph(dsp, path):
+def load_map(dsp, path):
     """
-    Load Dispatcher graph object in Python pickle format.
+    Load Dispatcher map in Python pickle format.
 
     :param dsp:
-        A dispatcher that identifies the model adopted.
-    :type dsp: Dispatcher
+        A dispatcher that identifies the model to be upgraded.
+    :type dsp: dispatcher.dispatcher.Dispatcher
 
     :param path:
         File or filename to write.
         File names ending in .gz or .bz2 will be uncompressed.
-    :type path: file or string
+    :type path: str, file
 
     Example::
 
         >>> from dispatcher import Dispatcher
-        >>> from tempfile import gettempdir
-        >>> tmp = '/'.join([gettempdir(), 'test.dispatcher_graph'])
+        >>> from tempfile import mkstemp
+        >>> tmp = mkstemp()[1]
         >>> dsp = Dispatcher()
-        >>> def f(a):
-        ...     return (a, 1)
-        >>> fun_node = dsp.add_function(function=f, inputs=['a'])
-        >>> save_graph(dsp, tmp)
-        >>> del f
-        >>> dsp_loaded = Dispatcher()
-        >>> load_graph(dsp_loaded, tmp)
-        >>> dsp_loaded.dmap.degree(fun_node) == dsp.dmap.degree(fun_node)
-        True
-        >>> dsp_loaded.dmap.node[fun_node]['function']('ciao')
-        ('ciao', 1)
+        >>> dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
+        'builtins:max'
+        >>> save_map(dsp, tmp)
+
+        >>> dsp = Dispatcher()
+        >>> load_map(dsp, tmp)
+        >>> dsp.dispatch(inputs={'a': 1, 'b': 3})[1]['c']
+        3
+
     """
 
-    dsp.dmap = load(path)
+    dsp.__init__(dmap=load(path), default_values=dsp.default_values)

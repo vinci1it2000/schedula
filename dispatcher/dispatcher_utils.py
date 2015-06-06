@@ -129,7 +129,7 @@ def def_replicate(n=2):
 
 class SubDispatch(object):
     """
-    Returns a function that executes the dispatch of the given `dsp`..
+    Returns a function that executes the dispatch of the given `dsp`.
 
     :param dsp:
         A dispatcher that identifies the model adopted.
@@ -175,8 +175,10 @@ class SubDispatch(object):
 
         >>> from dispatcher import Dispatcher
         >>> sub_dsp = Dispatcher()
+
         >>> def fun(a):
         ...     return a + 1, a - 1
+
         >>> sub_dsp.add_function('fun', fun, ['a'], ['b', 'c'])
         'fun'
         >>> dispatch = SubDispatch(sub_dsp, ['a', 'b', 'c'], returns='dict')
@@ -190,7 +192,7 @@ class SubDispatch(object):
         {'workflow': <networkx.classes.digraph.DiGraph object at 0x...>}
     """
 
-    def __init__(self, dsp, outputs, cutoff=None, wildcard=False, no_call=False,
+    def __init__(self, dsp, outputs=None, cutoff=None, wildcard=False, no_call=False,
                  shrink=True, returns='all'):
         self.dsp = dsp
         self.outputs = outputs

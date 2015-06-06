@@ -31,11 +31,24 @@ class Dispatcher(object):
 
     :param dmap:
         A directed graph that stores data & functions parameters.
-    :type dmap: DiGraph
+    :type dmap: DiGraph, optional
+
+    :param name:
+        The dispatcher's name.
+    :type name: str, optional
+
+    :param default_values:
+        Data node default values. These will be used as input if it is not
+        specified as inputs in the ArciDispatch algorithm.
+    :type default_values: dict, optional
 
     :ivar dmap:
         The directed graph that stores data & functions parameters.
     :type dmap: DiGraph
+
+    :ivar name:
+        The dispatcher's name.
+    :type name: DiGraph
 
     :ivar nodes:
         The function and data nodes of the dispatcher.
@@ -172,11 +185,12 @@ class Dispatcher(object):
         [('a', 0), ('b', 1), ('c', 1), ('d', 2.0)]
     """
 
-    def __init__(self, dmap=None):
+    def __init__(self, dmap=None, name='Dispatcher', default_values=None):
         self.dmap = dmap if dmap else DiGraph()
+        self.name = name
         self.dmap.node = AttrDict(self.dmap.node)
         self.nodes = self.dmap.node
-        self.default_values = {}
+        self.default_values = default_values if default_values else {}
         self.weight = 'weight'
         self.workflow = DiGraph()  # graph output
         self.data_output = {}
@@ -428,7 +442,7 @@ class Dispatcher(object):
                 function_name = '%s:%s' % (function.__module__,
                                            function.__name__)
             except Exception as ex:
-                raise ValueError('Invalid function name due to: {}'.format(ex))
+                raise ValueError('Invalid function name due to:\n{}'.format(ex))
         else:
             function_name = function_id
 
@@ -569,6 +583,7 @@ class Dispatcher(object):
             >>> dmap.default_values
             {}
         """
+
         try:
             if self.dmap.node[data_id]['type'] == 'data':  # check if data node
                 if value == EMPTY:
@@ -580,13 +595,12 @@ class Dispatcher(object):
         except:
             raise ValueError('Input error: %s is not a data node' % data_id)
 
-    def get_sub_dmap(self, nodes_bunch, edges_bunch=None):
+    def get_sub_dsp(self, nodes_bunch, edges_bunch=None):
         """
-        Returns the sub-dispatcher map induced by given node and edge bunches.
+        Returns the sub-dispatcher induced by given node and edge bunches.
 
-        The induced sub-dispatcher map of the dmap contains the available nodes
-        in nodes_bunch and edges between those nodes, excluding those that are
-        in edges_bunch.
+        The induced sub-dispatcher contains the available nodes in nodes_bunch
+        and edges between those nodes, excluding those that are in edges_bunch.
 
         The available nodes are non isolated nodes and function nodes that have
         all inputs and at least one output.
@@ -600,13 +614,13 @@ class Dispatcher(object):
         :type edges_bunch: list, iterable, optional
 
         :return:
-            A sub-dispatcher map.
+            A sub-dispatcher.
         :rtype: Dispatcher
 
         .. note::
 
-            The sub-dispatcher map, edge or node attributes just point to the
-            original dispatcher map. So changes to the node or edge structure
+            The sub-dispatcher edge or node attributes just point to the
+            original dispatcher. So changes to the node or edge structure
             will not be reflected in the original dispatcher map while changes
             to the attributes will.
 
@@ -621,7 +635,7 @@ class Dispatcher(object):
             >>> dmap.add_function(function_id='fun2', inputs=['a', 'd'],
             ...                   outputs=['c', 'e'])
             'fun2'
-            >>> sub_dmap = dmap.get_sub_dmap(['a', 'c', 'd', 'e', 'fun2'])
+            >>> sub_dmap = dmap.get_sub_dsp(['a', 'c', 'd', 'e', 'fun2'])
             >>> sorted(sub_dmap.dmap.node)
             ['a', 'c', 'd', 'e', 'fun2']
             >>> res = {'a': {'fun2': {}},
@@ -633,14 +647,14 @@ class Dispatcher(object):
             True
         """
 
-        # define an empty dispatcher map
-        sub_dmap = self.__class__(dmap=self.dmap.subgraph(nodes_bunch))
+        # define an empty dispatcher
+        sub_dsp = self.__class__(dmap=self.dmap.subgraph(nodes_bunch))
 
         # namespace shortcuts for speed
-        nodes = sub_dmap.dmap.node
-        dmap_out_degree = sub_dmap.dmap.out_degree
-        dmap_remove_node = sub_dmap.dmap.remove_node
-        dmap_remove_edge = sub_dmap.dmap.remove_edge
+        nodes = sub_dsp.dmap.node
+        dmap_out_degree = sub_dsp.dmap.out_degree
+        dmap_remove_node = sub_dsp.dmap.remove_node
+        dmap_remove_edge = sub_dsp.dmap.remove_edge
         dmap_dv = self.default_values
 
         # remove function nodes that has not whole inputs available
@@ -657,24 +671,24 @@ class Dispatcher(object):
                 dmap_remove_edge(*e)  # remove edge
 
         # remove function node with no outputs
-        for u in [u for u, n in sub_dmap.dmap.nodes_iter(True)
+        for u in [u for u, n in sub_dsp.dmap.nodes_iter(True)
                   if n['type'] == 'function']:
 
             if not dmap_out_degree(u):  # no outputs
                 dmap_remove_node(u)  # remove function node
 
         # remove isolate nodes from sub-graph
-        sub_dmap.dmap.remove_nodes_from(isolates(sub_dmap.dmap))
+        sub_dsp.dmap.remove_nodes_from(isolates(sub_dsp.dmap))
 
         # set default values
-        sub_dmap.default_values = {k: dmap_dv[k] for k in dmap_dv if k in nodes}
+        sub_dsp.default_values = {k: dmap_dv[k] for k in dmap_dv if k in nodes}
 
-        # return the sub-dispatcher map
-        return sub_dmap
+        # return the sub-dispatcher
+        return sub_dsp
 
     def remove_cycles(self, sources):
         """
-        Returns a new dispatcher map removing unresolved cycles.
+        Returns a new dispatcher removing unresolved cycles.
 
         An unresolved cycle is a cycle that cannot be removed by the
         ArciDispatch algorithm.
@@ -684,7 +698,7 @@ class Dispatcher(object):
         :type sources: iterable
 
         :return:
-            A new dmap without the unresolved dmap cycles.
+            A new dispatcher without the unresolved dmap cycles.
         :rtype: Dispatcher
 
         \***********************************************************************
@@ -732,10 +746,10 @@ class Dispatcher(object):
             if v.pop('undo', False):
                 v['wait_inputs'] = True
 
-        # sub-dispatcher map induced by the reachable nodes
-        new_dmap = self.get_sub_dmap(reached_nodes, edge_to_remove)
+        # sub-dispatcher induced by the reachable nodes
+        new_dmap = self.get_sub_dsp(reached_nodes, edge_to_remove)
 
-        # return a new dmap without the unresolved dmap cycles
+        # return a new dispatcher without the unresolved cycles
         return new_dmap
 
     def get_sub_dsp_from_workflow(self, sources, graph=None, reverse=False):
@@ -765,8 +779,8 @@ class Dispatcher(object):
 
         .. note::
 
-            The sub-dispatcher map, edge or node attributes just point to the
-            original dispatcher map. So changes to the node or edge structure
+            The sub-dispatcher edge or node attributes just point to the
+            original dispatcher. So changes to the node or edge structure
             will not be reflected in the original dispatcher map while changes
             to the attributes will.
 
@@ -967,7 +981,8 @@ class Dispatcher(object):
         out_dsp_nodes = set(args[0]).difference(dsp.nodes)
 
         # add nodes that are out of the dispatcher nodes
-        data_outputs.update({k: inputs[k] for k in out_dsp_nodes})
+        if inputs:
+            data_outputs.update({k: inputs[k] for k in out_dsp_nodes})
 
         # return the evaluated workflow graph and data outputs
         return workflow, data_outputs
@@ -1031,6 +1046,7 @@ class Dispatcher(object):
              ('d', 'builtins:max<0>'), ('d', 'builtins:max<3>'),
              ('e', 'builtins:max<3>')]
         """
+
         if inputs:
             # evaluate the workflow graph without invoking functions
             workflow, data_visited = self.dispatch(inputs, outputs, cutoff,
@@ -1218,6 +1234,7 @@ class Dispatcher(object):
                     True if distance > cutoff, otherwise False
                 :rtype: bool
                 """
+
                 return distance > cutoff  # check cutoff distance
 
         else:  # cutoff is None.
@@ -1371,10 +1388,6 @@ class Dispatcher(object):
 
         wf_add_edge = self._wf_add_edge
         wf_add_node = self.workflow.add_node
-
-
-
-
 
         add_visited(START)  # nodes visited by the algorithm
 
