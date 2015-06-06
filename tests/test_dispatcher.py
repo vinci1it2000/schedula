@@ -35,7 +35,7 @@ def _setup_dsp():
         return a < b
 
     dsp.add_function('log(b - a)', function=my_log, inputs=['a', 'b'],
-                      outputs=['c'], input_domain=log_dom)
+                     outputs=['c'], input_domain=log_dom)
 
     def _2x(d):
         return 2 / (d + 1)
@@ -44,14 +44,14 @@ def _setup_dsp():
         return d != -1
 
     dsp.add_function('2 / (d + 1)', function=_2x, inputs=['d'],
-                      outputs=['e'], input_domain=_2x_dom)
+                     outputs=['e'], input_domain=_2x_dom)
 
     def x_4(a):
         return a - 4
 
     dsp.add_function('x - 4', function=x_4, inputs=['a'],
-                      outputs=['d'], weight_from={'a': 20},
-                      weight_to={'d': 20}, weight=20)
+                     outputs=['d'], weight_from={'a': 20},
+                     weight_to={'d': 20}, weight=20)
 
     def x_y(e, d):
         return pow(e, d)
@@ -60,7 +60,7 @@ def _setup_dsp():
         return not x == y == 0
 
     dsp.add_function('x ^ y', function=x_y, inputs=['e', 'd'],
-                      outputs=['b'], input_domain=x_y_dom)
+                     outputs=['b'], input_domain=x_y_dom)
 
     return dsp
 
@@ -68,6 +68,7 @@ def _setup_dsp():
 class TestDoctest(unittest.TestCase):
     def runTest(self):
         import dispatcher.dispatcher as dsp
+
         failure_count, test_count = doctest.testmod(
             dsp, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS
         )
@@ -86,13 +87,13 @@ class TestDispatcher(unittest.TestCase):
         self.assertEquals(dsp.add_data(default_value='v'), 'unknown<1>')
 
         self.assertEquals(dsp.dmap.node['unknown<1>'], {'wait_inputs': False,
-                                                         'type': 'data'})
+                                                        'type': 'data'})
 
         self.assertEquals(dsp.default_values['unknown<1>'], 'v')
         self.assertEquals(dsp.add_data(data_id='unknown<1>'), 'unknown<1>')
         self.assertFalse('unknown<1>' in dsp.default_values)
         dsp.add_data(data_id='a', wait_inputs=False, function=lambda: None,
-                      callback=lambda: None, wildcard=True)
+                     callback=lambda: None, wildcard=True)
 
         res = ['callback', 'function', 'wildcard', 'wait_inputs', 'type']
         self.assertEquals(set(dsp.dmap.node['a'].keys()), set(res))
@@ -107,7 +108,7 @@ class TestDispatcher(unittest.TestCase):
             return a + b, a - b
 
         fun_id = dsp.add_function(function=my_function, inputs=['a', 'b'],
-                                   outputs=['c', 'd'])
+                                  outputs=['c', 'd'])
 
         self.assertEquals(fun_id, 'dispatcher:my_function')
 
@@ -120,10 +121,10 @@ class TestDispatcher(unittest.TestCase):
             return a < b
 
         fun_id = dsp.add_function(function_id='funny_id', function=my_log,
-                                   inputs=['a', 'b'], outputs=['e'],
-                                   input_domain=my_domain, weight=1,
-                                   weight_from={'a': 2, 'b': 3},
-                                   weight_to={'e': 4})
+                                  inputs=['a', 'b'], outputs=['e'],
+                                  input_domain=my_domain, weight=1,
+                                  weight_from={'a': 2, 'b': 3},
+                                  weight_to={'e': 4})
 
         self.assertEquals(fun_id, 'funny_id')
         res = {
@@ -477,7 +478,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
 
         dsp.weight = 'weight'
         workflow, outputs = dsp.dispatch({'a': 5, 'b': 6}, ['a', 'b'],
-                                          wildcard=True)
+                                         wildcard=True)
 
         self.assertEquals(outputs, {'b': 1, 'c': 0, 'd': 0, 'e': 2})
 
@@ -506,7 +507,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         dsp.dmap.node['b']['function'] = average
 
         workflow, outputs = dsp.dispatch({'a': 5, 'b': 6}, ['a', 'b'],
-                                          wildcard=True)
+                                         wildcard=True)
 
         self.assertEquals(sorted(list(workflow.node)), node)
         self.assertEquals(workflow.edge, edge)
@@ -666,13 +667,13 @@ class TestRemoveCycles(unittest.TestCase):
         dsp.add_data(data_id='b', default_value=3)
         dsp.add_data(data_id='c', function=average)
         dsp.add_function('max', function=max, inputs=['a', 'b'],
-                          outputs=['c'])
+                         outputs=['c'])
         dsp.add_function('min', function=min, inputs=['a', 'c'],
-                          outputs=['d'])
+                         outputs=['d'])
         dsp.add_function('min', function=min, inputs=['b', 'd'],
-                          outputs=['c'])
+                         outputs=['c'])
         dsp.add_function('max', function=max, inputs=['b', 'd'],
-                          outputs=['a'])
+                         outputs=['a'])
         dsp_woc = dsp.remove_cycles(['a', 'b'])
         self.assertEquals(sorted(dsp_woc.dmap.edges()),
                           sorted(dsp.dmap.edges()))
