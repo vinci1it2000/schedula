@@ -268,6 +268,7 @@ def process_folder_files(input_folder, output_folder):
     fpaths = glob.glob(input_folder)
     error_coeff = []
     doday= datetime.today().strftime('%d_%b_%Y_%H_%M_%S_')
+
     for fpath in fpaths:
         fname = os.path.basename(fpath)
         fname = fname.split('.')[0]
@@ -310,5 +311,9 @@ if __name__ == '__main__':
     # C:/Users/arcidvi
     # /Users/iMac2013
 
-    process_folder_files(r'/Users/iMac2013/Dropbox/LAT/*.xlsm',
-                         r'/Users/iMac2013/Dropbox/LAT/outputs')
+    #process_folder_files(r'/Users/iMac2013/Dropbox/LAT/*.xlsm',
+    #                     r'/Users/iMac2013/Dropbox/LAT/outputs')
+    from dispatcher.draw import plot_dsp_graphviz
+    dsp = def_jrcgear_model()[0]
+    dot = plot_dsp_graphviz(dsp)
+    dot.view()
