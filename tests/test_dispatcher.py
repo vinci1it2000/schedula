@@ -12,7 +12,6 @@ import timeit
 
 from dispatcher.dispatcher import Dispatcher
 from dispatcher.constants import START, EMPTY, SINK, NONE
-from dispatcher.dispatcher_utils import bypass
 
 
 __name__ = 'dispatcher'
@@ -67,10 +66,10 @@ def _setup_dsp():
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):
-        import dispatcher.dispatcher as dsp
+        import dispatcher.dispatcher as d
 
         failure_count, test_count = doctest.testmod(
-            dsp, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS
+            d, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS
         )
         self.assertGreater(test_count, 0, (failure_count, test_count))
         self.assertEquals(failure_count, 0, (failure_count, test_count))
@@ -172,7 +171,7 @@ class TestDispatcher(unittest.TestCase):
 
     def test_load_from_lists(self):
         dsp = Dispatcher()
-        self.assertEquals(dsp.load_from_lists(), ([], []))
+        self.assertEquals(dsp.add_from_lists(), ([], []))
 
         def fun(**kwargs):
             return (kwargs['a'] + kwargs['b']) / 2
@@ -193,7 +192,7 @@ class TestDispatcher(unittest.TestCase):
         fun_list = [
             {'function': fun1, 'inputs': ['a', 'b'], 'outputs': ['c']},
         ]
-        dsp.load_from_lists(data_list, fun_list)
+        dsp.add_from_lists(data_list, fun_list)
         res = {
             'a': {'wait_inputs': False, 'callback': callback, 'type': 'data'},
             'b': {'wait_inputs': False, 'type': 'data'},
@@ -272,7 +271,7 @@ class TestDispatcher(unittest.TestCase):
         sub_dmap = dsp.get_sub_dsp(['a', 'b', 'c', 'max'], edges_bunch)
         self.assertEquals(sub_dmap.dmap.node, {})
 
-    def get_sub_dmap_from_workflow(self):
+    def test_get_sub_dmap_from_workflow(self):
         dsp = Dispatcher()
         dsp.add_data(data_id='b', wait_inputs=True, default_value=3)
 
@@ -521,11 +520,36 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
 
         dsp = Dispatcher()
 
-        def f():
+        def f(*args):
             return 3
 
         dsp.add_function(function=f, outputs=['a'])
-        self.assertEquals(dsp.dispatch(outputs=['a'])[1], {'a': 3})
+        dsp.add_function(function=f, outputs=['b'])
+        self.assertEquals(dsp.dispatch(outputs=['a', 'b'])[1], {'a': 3, 'b': 3})
+
+        dsp = Dispatcher()
+        dsp.add_function('A', function=max, inputs=['a', 'b'], outputs=['c'])
+        dsp.add_function('B', function=min, inputs=['a', 'b'], outputs=['c'])
+        o = dsp.dispatch(inputs={'a': 1, 'b': 3})[1]
+        self.assertEquals(o, {'a': 1, 'b': 3, 'c': 3})
+
+        dsp = Dispatcher()
+        dsp.add_function('B', function=max, inputs=['a', 'b'], outputs=['c'])
+        dsp.add_function('A', function=min, inputs=['a', 'b'], outputs=['c'])
+        o = dsp.dispatch(inputs={'a': 1, 'b': 3})[1]
+        self.assertEquals(o, {'a': 1, 'b': 3, 'c': 1})
+
+        dsp = Dispatcher()
+        def f(kwargs):
+            return 1 / list(kwargs.values())[0]
+
+        dsp.add_function('A', function=min, inputs=['a', 'b'], outputs=['c'])
+        dsp.add_data('c', function=f, callback=f)
+        o = dsp.dispatch(inputs={'a': 1, 'b': 5})[1]
+        self.assertEquals(o, {'a': 1, 'b': 5, 'c': 1.0})
+
+        o = dsp.dispatch(inputs={'a': 0, 'b': 5})[1]
+        self.assertEquals(o, {'a': 0, 'b': 5})
 
     def test_set_node_output(self):
         dsp = Dispatcher()
