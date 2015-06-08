@@ -42,7 +42,7 @@ class TestDispatcherUtils(unittest.TestCase):
         self.assertEquals(res, {'a': 1, 'b': 2})
 
     def test_replicate(self):
-        replicate = def_replicate(n=3)
+        replicate = def_replicate_value(n=3)
         self.assertEquals(replicate({'a': 3}), [{'a': 3}, {'a': 3}, {'a': 3}])
 
     def test_sub_dsp(self):
@@ -72,3 +72,16 @@ class TestDispatcherUtils(unittest.TestCase):
         self.assertEquals(o['g'], [3, 2])
         self.assertEquals(o['h'],  2)
         self.assertIsInstance(w.node['dispatch']['workflow'], DiGraph)
+
+    def test_replicate_function(self):
+        from dispatcher import Dispatcher
+        dsp = Dispatcher()
+
+        def fun(a):
+            return a + 1, a - 1
+
+        dsp.add_function('fun', ReplicateFunction(fun), ['a', 'b'], ['c', 'd'])
+
+        o = dsp.dispatch(inputs={'a': 3, 'b': 4})[1]
+
+        self.assertEquals(o, {'a': 3, 'b': 4, 'c': (4, 2), 'd': (5, 3)})

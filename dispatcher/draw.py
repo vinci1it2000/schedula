@@ -13,7 +13,7 @@ from networkx.utils import default_opener
 import matplotlib.pyplot as plt
 from graphviz import Digraph
 
-from .constants import START, SINK
+from .constants import START
 from .dispatcher_utils import SubDispatch
 
 from tempfile import mkstemp
@@ -227,7 +227,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr='value', view=False,
 
         n = dsp.nodes.get(k, {})
 
-        if n and not (k is SINK and g.in_degree(k) == 0):
+        if n:
             node_label = k
 
             node_id = id_node(k)

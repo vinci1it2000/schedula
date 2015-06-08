@@ -102,7 +102,7 @@ def def_selector(keys):
     return selector
 
 
-def def_replicate(n=2):
+def def_replicate_value(n=2):
     """
     Define a function that replicates the input value.
 
@@ -116,15 +116,15 @@ def def_replicate(n=2):
 
     Example::
 
-        >>> replicate = def_replicate(n=5)
-        >>> replicate({'a': 3})
+        >>> replicate_value = def_replicate_value(n=5)
+        >>> replicate_value({'a': 3})
         [{'a': 3}, {'a': 3}, {'a': 3}, {'a': 3}, {'a': 3}]
     """
 
-    def replicate(value):
+    def replicate_value(value):
         return [value] * n
 
-    return replicate
+    return replicate_value
 
 
 class SubDispatch(object):
@@ -222,3 +222,13 @@ class SubDispatch(object):
             o = {k: v for k, v in o.items() if k in outputs}
 
         return w, o
+
+
+class ReplicateFunction(object):
+
+    def __init__(self, function):
+        self.function = function
+
+    def __call__(self, *inputs):
+        function = self.function
+        return [function(i) for i in inputs]

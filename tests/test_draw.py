@@ -10,6 +10,7 @@ import unittest
 from dispatcher.draw import *
 from graphviz.dot import Digraph
 from matplotlib.figure import Figure
+from dispatcher.constants import SINK
 
 __name__ = 'draw'
 __path__ = ''
@@ -55,13 +56,13 @@ class TestDispatcherUtils(unittest.TestCase):
         sub_dispatch = SubDispatch(ss_dsp, ['a', 'b', 'c'], returns='list')
         s_dsp = Dispatcher()
 
-        s_dsp.add_function('sub_dispatch', sub_dispatch, ['d'], ['e', 'f'])
+        s_dsp.add_function('sub_dispatch', sub_dispatch, ['d'], ['e', 'f', 'g'])
 
-        dispatch = SubDispatch(s_dsp, ['e', 'f'], returns='list')
+        dispatch = SubDispatch(s_dsp, ['e', 'f', 'g'], returns='list')
         dsp = Dispatcher()
         dsp.add_data('input', default_value={'d': {'a': 3}})
 
-        dsp.add_function('dispatch', dispatch, ['input'], ['e', 'f'])
+        dsp.add_function('dispatch', dispatch, ['input'], [SINK, 'h', 'i'])
 
         dsp.dispatch()
         self.assertIsInstance(dsp2dot(dsp), Digraph)

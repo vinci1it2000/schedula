@@ -203,7 +203,6 @@ class Dispatcher(object):
         self._succ = self.dmap.succ
         self._wf_add_edge = add_edge_fun(self.workflow)
         self._wf_pred = self.workflow.pred
-        self.add_data(SINK, wait_inputs=True, function=bypass)
 
     def add_data(self, data_id=None, default_value=EMPTY, wait_inputs=False,
                  wildcard=None, function=None, callback=None, **kwargs):
@@ -419,11 +418,15 @@ class Dispatcher(object):
         """
 
         if inputs is None:  # set a dummy input
-            inputs = [self.add_data(default_value=NONE)]
-            if outputs is None:
-                raise ValueError('Invalid input:'
-                                 ' missing inputs and outputs attributes.')
+            if START not in self.nodes:
+                self.add_data(START, default_value=NONE)
+
+            inputs = [START]
+
         if outputs is None:  # set a dummy output
+            if SINK not in self.nodes:
+                self.add_data(SINK, wait_inputs=True, function=bypass)
+
             outputs = [SINK]
 
         # base function node attributes
@@ -801,23 +804,23 @@ class Dispatcher(object):
             >>> sub_dsp.default_values
             {'a': 1}
             >>> sorted(sub_dsp.dmap.node)
-            ['a', 'b', 'c', 'd', 'fun1', sink]
+            ['a', 'b', 'c', 'd', 'fun1']
             >>> res = {'a': {'fun1': {}},
             ...        'b': {'fun1': {}},
             ...        'c': {},
             ...        'd': {},
             ...        'fun1': {'c': {}, 'd': {}},
-            ...        SINK: {}}
+            ...     }
             >>> sub_dsp.dmap.edge ==  res
             True
             >>> sub_dsp = dsp.get_sub_dsp_from_workflow(['c'], reverse=True)
             >>> sorted(sub_dsp.dmap.node)
-            ['a', 'b', 'c', 'fun1', sink]
+            ['a', 'b', 'c', 'fun1']
             >>> res = {'a': {'fun1': {}},
             ...        'b': {'fun1': {}},
             ...        'c': {},
             ...        'fun1': {'c': {}},
-            ...        SINK: {}}
+            ...     }
             >>> sub_dsp.dmap.edge ==  res
             True
         """
@@ -828,23 +831,45 @@ class Dispatcher(object):
         if not graph:  # set default graph
             graph = self.workflow
 
+        # visited nodes used as queue
+        family = OrderedDict()
+
+        # namespace shortcuts for speed
+        nodes, dmap_nodes = (sub_dsp.dmap.node, self.dmap.node)
+        dlt_val, dsp_dlt_val = (sub_dsp.default_values, self.default_values)
+
         if not reverse:
             # namespace shortcuts for speed
             neighbors = graph.neighbors_iter
             dmap_succ = self.dmap.succ
             succ, pred = (sub_dsp.dmap.succ, sub_dsp.dmap.pred)
+
+            def check_node_inputs(c):
+                node_attr = dmap_nodes[c]
+
+                if node_attr['type'] == 'function':
+                    if set(node_attr['inputs']).issubset(family):
+                        set_node_attr(c)
+
+                        # namespace shortcuts for speed
+                        s_pred = pred[c]
+
+                        for p in node_attr['inputs']:
+
+                            # add attributes to both representations of edge
+                            succ[p][c] = s_pred[p] = dmap_succ[p][c]
+                    return True
+
+                return False
+
         else:
             # namespace shortcuts for speed
             neighbors = graph.predecessors_iter
             dmap_succ = self.dmap.pred
             pred, succ = (sub_dsp.dmap.succ, sub_dsp.dmap.pred)
 
-        # namespace shortcuts for speed
-        nodes, dmap_nodes = (sub_dsp.dmap.node, self.dmap.node)
-        dlt_val, dsp_dlt_val = (sub_dsp.default_values, self.default_values)
-
-        # visited nodes used as queue
-        family = OrderedDict()
+            def check_node_inputs(c):
+                return False
 
         # function to set node attributes
         def set_node_attr(n):
@@ -861,7 +886,8 @@ class Dispatcher(object):
 
         # set initial node attributes
         for s in sources:
-            set_node_attr(s)
+            if s in dmap_nodes and s in graph.node:
+                set_node_attr(s)
 
         # start breadth-first-search
         for parent, children in iter(family.items()):
@@ -872,7 +898,7 @@ class Dispatcher(object):
             # iterate parent's children
             for child in children:
 
-                if child == START:
+                if child == START or check_node_inputs(child):
                     continue
 
                 if child not in family:
@@ -988,10 +1014,9 @@ class Dispatcher(object):
         return workflow, data_outputs
 
     # TODO: Extend minimum dmap when using function domains
-    def shrink_dsp(self, inputs=None, outputs=None, cutoff=None,
-                   wildcard=False):
+    def shrink_dsp(self, inputs=None, outputs=None, cutoff=None, wildcard=None):
         """
-        Returns a reduced dispatcher built using the empty function workflow.
+        Returns a reduced dispatcher.
 
         :param inputs:
             Input data nodes.
@@ -1038,42 +1063,34 @@ class Dispatcher(object):
             ...                             outputs=['c', 'e', 'f'])
             >>> sorted(shrink_dsp.dmap.nodes())
             ['a', 'b', 'builtins:max', 'builtins:max<0>', 'builtins:max<3>',
-             'c', 'd', 'e', 'f', sink]
+             'c', 'd', 'e', 'f']
             >>> sorted(shrink_dsp.dmap.edges())
             [('a', 'builtins:max'), ('b', 'builtins:max'),
-             ('b', 'builtins:max<0>'), ('builtins:max', 'c'),
-             ('builtins:max<0>', 'e'), ('builtins:max<3>', 'f'),
-             ('d', 'builtins:max<0>'), ('d', 'builtins:max<3>'),
-             ('e', 'builtins:max<3>')]
+            ('b', 'builtins:max<0>'), ('builtins:max', 'c'),
+            ('builtins:max<0>', 'e'), ('builtins:max<3>', 'f'),
+            ('d', 'builtins:max<0>'), ('d', 'builtins:max<3>'),
+            ('e', 'builtins:max<3>')]
         """
+
+        bfs_graph = self.dmap
 
         if inputs:
             # evaluate the workflow graph without invoking functions
-            workflow, data_visited = self.dispatch(inputs, outputs, cutoff,
-                                                   wildcard, True)
+            bfs_graph, data_visited = self.dispatch(
+                inputs, outputs, cutoff, wildcard, True
+            )
 
-            # remove the starting node from the workflow graph
-            workflow.remove_node(START)
-
-            # set the graph for the breadth-first-search
-            bfs_graph = workflow
-            if outputs:
-                # reached outputs
-                outputs = set(outputs) & set(data_visited)
-            else:
+            if outputs is None:
                 outputs = set(data_visited)
 
-        elif outputs:
-            # set the graph for the breadth-first-search
-            bfs_graph = self.dmap
+        elif not outputs:
+            return self.__class__()
 
-            # outputs in the dispatcher
-            outputs = set(outputs) & set(self.dmap.node)
-        else:
-            return self.__class__()  # return an empty dispatcher
+        if outputs:
+            dsp = self.get_sub_dsp_from_workflow(outputs, bfs_graph, True)
 
         # return the sub dispatcher
-        return self.get_sub_dsp_from_workflow(outputs, bfs_graph, True)
+        return dsp
 
     def extract_function_node(self, function_id, inputs, outputs, cutoff=None):
         """
@@ -1122,7 +1139,7 @@ class Dispatcher(object):
         """
 
         # new shrink dispatcher
-        dsp = self.shrink_dsp(inputs, outputs, cutoff, True)
+        dsp = self.shrink_dsp(inputs, outputs, cutoff=cutoff, wildcard=True)
 
         # outputs not reached
         missed = set(outputs).difference(dsp.nodes)
@@ -1554,8 +1571,9 @@ class Dispatcher(object):
                 # noinspection PyCallingNonCallable
                 node_attr['callback'](value)
 
-            # set data output
-            self.data_output[node_id] = value
+            if value is not NONE:
+                # set data output
+                self.data_output[node_id] = value
 
             # output value
             value = {'value': value}
@@ -1624,6 +1642,8 @@ class Dispatcher(object):
 
         args = self._wf_pred[node_id]  # list of the function's arguments
         args = [args[k]['value'] for k in node_attr['inputs']]
+        args = [v for v in args if v is not NONE]
+
         try:
             # noinspection PyCallingNonCallable
             if 'input_domain' in node_attr and \
