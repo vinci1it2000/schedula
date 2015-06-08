@@ -12,7 +12,7 @@ from networkx import DiGraph, isolates
 from heapq import heappush, heappop
 from itertools import count
 from collections import OrderedDict
-from .utils import rename_function, AttrDict
+from .utils import rename_function, AttrDict, heap_flush
 from .graph_utils import add_edge_fun, remove_cycles_iteration
 from .constants import EMPTY, START, NONE, SINK
 from .dispatcher_utils import SubDispatch, bypass
@@ -203,6 +203,7 @@ class Dispatcher(object):
         self._succ = self.dmap.succ
         self._wf_add_edge = add_edge_fun(self.workflow)
         self._wf_pred = self.workflow.pred
+        self._wait_est = {}
 
     def add_data(self, data_id=None, default_value=EMPTY, wait_inputs=False,
                  wildcard=None, function=None, callback=None, **kwargs):
@@ -1013,8 +1014,7 @@ class Dispatcher(object):
         # return the evaluated workflow graph and data outputs
         return workflow, data_outputs
 
-    # TODO: Extend minimum dmap when using function domains
-    def shrink_dsp(self, inputs=None, outputs=None, cutoff=None, wildcard=None):
+    def shrink_dsp(self, inputs=None, outputs=None, cutoff=None, wildcard=False):
         """
         Returns a reduced dispatcher.
 
@@ -1073,21 +1073,43 @@ class Dispatcher(object):
         """
 
         bfs_graph = self.dmap
-
+        self._wait_est = wait_in = {}
         if inputs:
-            # evaluate the workflow graph without invoking functions
-            bfs_graph, data_visited = self.dispatch(
-                inputs, outputs, cutoff, wildcard, True
-            )
+            for n, a in self.nodes.items():
+                n_type = a['type']
+                if n_type == 'function' and 'input_domain' in a:
+                    wait_in.update(dict.fromkeys(a['outputs'], True))
+                elif n_type == 'data' and a['wait_inputs']:
+                    wait_in.update({n: True})
+
+            n_d = True
+            inputs = set(inputs)
+            edges = set()
+            bfs_graph = DiGraph()
+            data_visited = outputs
+            while n_d:
+
+                wait_in.update(dict.fromkeys([k for k in wait_in if k in inputs], False))
+
+                # evaluate the workflow graph without invoking functions
+                wf, data_visited = self.dispatch(
+                    inputs, outputs, cutoff, True, True
+                )
+                n_d = (wf.node.keys() - self._visited)
+                inputs = inputs | n_d
+                edges.update(wf.edges())
+
+            bfs_graph.add_edges_from(edges)
 
             if outputs is None:
-                outputs = set(data_visited)
-
-        elif not outputs:
-            return self.__class__()
+                outputs = data_visited
 
         if outputs:
             dsp = self.get_sub_dsp_from_workflow(outputs, bfs_graph, True)
+        else:
+            return self.__class__()
+
+        self._wait_est = {}
 
         # return the sub dispatcher
         return dsp
@@ -1283,7 +1305,7 @@ class Dispatcher(object):
 
         return edge.get(weight, 1) + node_out.get(weight, 0)
 
-    def _check_wait_input_flag(self, wait_in, node_id):
+    def _check_wait_input_flag(self):
         """
         Stops the search of the investigated node of the ArciDispatch algorithm,
         until all inputs are satisfied.
@@ -1301,8 +1323,20 @@ class Dispatcher(object):
         :rtype: bool
         """
 
-        # return true if the node is waiting inputs and inputs are satisfied
-        return wait_in and (self._pred[node_id].keys() - self._visited)
+        visited = self._visited
+        pred = self._pred
+        if self._wait_est:
+            we = self._wait_est
+            def check_wait_input_flag(wait_in, node_id):
+                # return true if the node inputs are satisfied
+                return we.get(node_id, wait_in) and (pred[node_id].keys() - visited)
+
+        else:
+            def check_wait_input_flag(wait_in, node_id):
+                # return true if the node inputs are satisfied
+                return wait_in and (pred[node_id].keys() - visited)
+
+        return check_wait_input_flag
 
     def _set_wildcards(self, inputs=None, outputs=None):
         """
@@ -1387,10 +1421,8 @@ class Dispatcher(object):
         # namespace shortcuts for speed
         node_attr = self.nodes
         graph = self.dmap
-
         edge_weight = self._edge_length
         check_cutoff = self._check_cutoff()
-        check_wait_in = self._check_wait_input_flag
         wildcards = self._wildcards
 
         self.workflow = DiGraph()
@@ -1398,6 +1430,7 @@ class Dispatcher(object):
         self.data_output = {}  # estimated data node output
 
         self._visited = set()
+        check_wait_in = self._check_wait_input_flag()
 
         add_visited = self._visited.add
         self._wf_add_edge = add_edge_fun(self.workflow)
@@ -1545,11 +1578,25 @@ class Dispatcher(object):
         # get data node estimations
         estimations = self._wf_pred[node_id]
 
+        wait_in = node_attr['wait_inputs']
+
+        if not wait_in and not node_id in self._wait_est and len(estimations) > 1:
+            est = []
+            dist = self.dist
+            edge_length = self._edge_length
+            edg = self.dmap.edge
+            for k, v in estimations.items():
+                d = dist[k] + edge_length(edg[k][node_id], node_attr)
+                heappush(est, (d, k, v))
+
+            estimations = {est[0][1]: est[0][2]}
+
+            self.workflow.remove_edges_from([(v[1], node_id) for v in est[1:]])
+
         if not no_call:
 
             # final estimation of the node and node status
-            if not node_attr['wait_inputs']:
-
+            if not wait_in:
                 # data node that has just one estimation value
                 value = list(estimations.values())[0]['value']
 
@@ -1622,10 +1669,11 @@ class Dispatcher(object):
 
         # namespace shortcuts for speed
         o_nds = node_attr['outputs']
-
+        dist = self.dist
+        nodes = self.nodes
         # list of nodes that can still be estimated by the function node
         output_nodes = [u for u in o_nds
-                        if (not u in self.dist) and (u in self.nodes)]
+                        if (not u in dist) and (u in nodes)]
 
         if not output_nodes:  # this function is not needed
             self.workflow.remove_node(node_id)  # remove function node
@@ -1767,7 +1815,7 @@ class Dispatcher(object):
         check_targets = self._check_targets()
         edge_weight = self._edge_length
         check_cutoff = self._check_cutoff()
-        check_wait_in = self._check_wait_input_flag
+        check_wait_in = self._check_wait_input_flag()
 
         while fringe:
             (d, _, v) = heappop(fringe)  # visit the closest available node
@@ -1792,7 +1840,8 @@ class Dispatcher(object):
 
                 vw_d = d + edge_weight(e_data, node)  # evaluate distance
 
-                wait_in = node['wait_inputs']  # store wait inputs flag
+                # wait inputs flag
+                wait_in = node['wait_inputs']
 
                 # check the cutoff limit and if all node inputs are satisfied
                 if check_cutoff(vw_d) or check_wait_in(wait_in, w):
@@ -1811,7 +1860,8 @@ class Dispatcher(object):
 
         # remove unused functions
         for n in (set(self._wf_pred) - set(self._visited)):
-            self.workflow.remove_node(n)
+            if self.nodes[n]['type'] == 'function':
+                self.workflow.remove_node(n)
 
         # return the workflow and data outputs
         return self.workflow, self.data_output

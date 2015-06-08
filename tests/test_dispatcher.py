@@ -327,7 +327,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
                             'from tests.test_dispatcher import _setup_dsp; '
                             'dsp = _setup_dsp()', repeat=3, number=1000)
         res = sum(res) / 3
-        print('dispatch with functions in %f call/ms' % res)
+        print('dispatch with functions in %f ms/call' % res)
 
         res1 = timeit.repeat("dsp.dispatch({'a': 5, 'b': 6}, no_call=True)",
                              'from tests.test_dispatcher import _setup_dsp; '
@@ -592,13 +592,13 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
 
         self.assertEquals(
             sorted(shrink_dsp.dmap.node),
-            ['a', 'b', 'c', 'd', 'e', 'f', 'h', 'h<0>', 'h<1>']
+            ['a', 'b', 'c', 'd', 'e', 'f', 'h', 'h<0>', 'h<1>', 'h<3>']
         )
         self.assertEquals(
             sorted(shrink_dsp.dmap.edges()),
-            [('a', 'h'), ('b', 'h'), ('b', 'h<0>'), ('d', 'h<0>'),
-             ('d', 'h<1>'), ('e', 'h<1>'), ('h', 'c'), ('h<0>', 'e'),
-             ('h<1>', 'f')]
+            [('a', 'h'), ('a', 'h<3>'), ('b', 'h'), ('b', 'h<0>'),
+             ('b', 'h<3>'), ('d', 'h<0>'), ('d', 'h<1>'), ('e', 'h<1>'),
+             ('h', 'c'), ('h<0>', 'e'), ('h<1>', 'f'), ('h<3>', 'a')]
         )
 
         shrink_dsp = dsp.shrink_dsp(['a', 'b'], ['e'])
@@ -640,6 +640,29 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         dsp.add_function(function_id='h', inputs=['e'], outputs=['a'])
 
         self.assertEquals(sorted(dsp.shrink_dsp(['a'], ['b']).nodes.keys()), ['a', 'b', 'h'])
+
+        dsp = Dispatcher()
+        dsp.add_function(function_id='h', input_domain=bool, inputs=['a', 'b'], outputs=['g'])
+        dsp.add_function(function_id='h', input_domain=bool, inputs=['b', 'c'], outputs=['g'])
+        dsp.add_function(function_id='h', input_domain=bool, inputs=['c', 'd'], outputs=['g'])
+        dsp.add_function(function_id='h', input_domain=bool, inputs=['e', 'f'], outputs=['g'])
+        dsp.add_function(function_id='h', inputs=['g'], outputs=['i'])
+        dsp.add_function(function_id='h', inputs=['g', 'd'], outputs=['i'])
+        dsp.add_function(function_id='h', inputs=['i'], outputs=['l'])
+        dsp.add_data('i', wait_inputs=True)
+        shrink_dsp = dsp.shrink_dsp(['a', 'b', 'c', 'e', 'f'])
+        self.assertEquals(
+            sorted(shrink_dsp.dmap.node),
+            ['a', 'b', 'c', 'e', 'f', 'g', 'h', 'h<0>', 'h<2>', 'h<3>', 'h<5>',
+             'i', 'l']
+        )
+        self.assertEquals(
+            sorted(shrink_dsp.dmap.edges()),
+            [('a', 'h'), ('b', 'h'), ('b', 'h<0>'), ('c', 'h<0>'),
+             ('e', 'h<2>'), ('f', 'h<2>'), ('g', 'h<3>'), ('h', 'g'),
+             ('h<0>', 'g'), ('h<2>', 'g'), ('h<3>', 'i'), ('h<5>', 'l'),
+             ('i', 'h<5>')]
+        )
 
     def test_extract_function_node(self):
         dsp = Dispatcher()
