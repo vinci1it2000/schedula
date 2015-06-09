@@ -157,12 +157,12 @@ class SubDispatch(object):
         If True the dispatcher is shrink before the dispatch.
     :type shrink: bool, optional
 
-    :params returns:
+    :params type_return:
         Type of function output:
             + 'all': a dict with all dispatch outputs.
             + 'list': a list with all outputs listed in `outputs`.
             + 'dict': a dict with any outputs listed in `outputs`.
-    :type returns: str
+    :type type_return: str
 
     :return:
         A function that executes the dispatch of the given `dsp`.
@@ -181,7 +181,7 @@ class SubDispatch(object):
 
         >>> sub_dsp.add_function('fun', fun, ['a'], ['b', 'c'])
         'fun'
-        >>> dispatch = SubDispatch(sub_dsp, ['a', 'b', 'c'], returns='dict')
+        >>> dispatch = SubDispatch(sub_dsp, ['a', 'b', 'c'], type_return='dict')
         >>> dsp = Dispatcher()
         >>> dsp.add_function('dispatch', dispatch, ['d'], ['e'])
         'dispatch'
@@ -193,14 +193,14 @@ class SubDispatch(object):
     """
 
     def __init__(self, dsp, outputs=None, cutoff=None, wildcard=False, no_call=False,
-                 shrink=True, returns='all'):
+                 shrink=True, type_return='all'):
         self.dsp = dsp
         self.outputs = outputs
         self.cutoff = cutoff
         self.wildcard = wildcard
         self.no_call = no_call
         self.shrink = shrink
-        self.returns = returns
+        self.returns = type_return
 
     def __call__(self, *input_dicts):
 

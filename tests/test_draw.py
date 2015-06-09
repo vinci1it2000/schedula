@@ -23,7 +23,7 @@ class TestDispatcherUtils(unittest.TestCase):
         def fun(a):
             return a + 1, a - 1
         sub_dsp.add_function('fun', fun, ['a'], ['b', 'c'])
-        dispatch = SubDispatch(sub_dsp, ['a', 'c'], returns='list')
+        dispatch = SubDispatch(sub_dsp, ['a', 'c'], type_return='list')
         dsp = Dispatcher()
         dsp.add_data('_i_n_p_u_t', default_value={'a': 3})
         '_i_n_p_u_t'
@@ -53,17 +53,17 @@ class TestDispatcherUtils(unittest.TestCase):
 
         ss_dsp.add_function('fun', fun, ['a'], ['b', 'c'])
 
-        sub_dispatch = SubDispatch(ss_dsp, ['a', 'b', 'c'], returns='list')
+        sub_dispatch = SubDispatch(ss_dsp, ['a', 'b', 'c'], type_return='list')
         s_dsp = Dispatcher()
 
         s_dsp.add_function('sub_dispatch', sub_dispatch, ['d'], ['e', 'f', 'g'])
 
-        dispatch = SubDispatch(s_dsp, ['e', 'f', 'g'], returns='list')
+        dispatch = SubDispatch(s_dsp, ['e', 'f', 'g'], type_return='list')
         dsp = Dispatcher()
         dsp.add_data('input', default_value={'d': {'a': 3}})
 
         dsp.add_function('dispatch', dispatch, ['input'], [SINK, 'h', 'i'])
 
         dsp.dispatch()
-        self.assertIsInstance(dsp2dot(dsp), Digraph)
-        self.assertIsInstance(dsp2dot(dsp, workflow=True), Digraph)
+        self.assertIsInstance(dsp2dot(dsp, view=True), Digraph)
+        self.assertIsInstance(dsp2dot(dsp, workflow=True, view=True), Digraph)

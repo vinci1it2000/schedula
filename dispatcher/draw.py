@@ -269,7 +269,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr='value', view=False,
 
     for u, v, a in g.edges_iter(data=True):
         if edge_attr in a:
-            kw = {'label': str(a[edge_attr])}
+            kw = {'xlabel': str(a[edge_attr])}
         else:
             kw = {}
         dot.edge(id_node(u), id_node(v), **kw)

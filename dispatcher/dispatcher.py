@@ -108,9 +108,7 @@ class Dispatcher(object):
     :type _wf_pred: dict
 
     :ivar _wait_in:
-        Data nodes that waits inputs.
-
-        They are used in `shrink_dsp`.
+        Data nodes that waits inputs. They are used in `shrink_dsp`.
     :type _wait_in: dict
 
     \***************************************************************************
