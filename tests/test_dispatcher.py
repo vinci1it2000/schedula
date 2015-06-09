@@ -323,13 +323,13 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
 
     def test_stress_tests(self):
         res = timeit.repeat("dsp.dispatch({'a': 5, 'b': 6})",
-                            'from tests.test_dispatcher import _setup_dsp; '
+                            'from test_dispatcher import _setup_dsp; '
                             'dsp = _setup_dsp()', repeat=3, number=1000)
         res = sum(res) / 3
         print('dispatch with functions in %f ms/call' % res)
 
         res1 = timeit.repeat("dsp.dispatch({'a': 5, 'b': 6}, no_call=True)",
-                             'from tests.test_dispatcher import _setup_dsp; '
+                             'from test_dispatcher import _setup_dsp; '
                              'dsp = _setup_dsp()', repeat=3, number=1000)
         res1 = sum(res1) / 3
         print('dispatch without functions in %f ms/call' % res1)
@@ -338,7 +338,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
 
         res2 = timeit.repeat(
             "fun(5, 6)",
-            'from tests.test_dispatcher import _setup_dsp;'
+            'from test_dispatcher import _setup_dsp;'
             'dsp = _setup_dsp();'
             'fun = dsp.extract_function_node('
             '    "myF", ["a", "b"], ["c", "d", "e"])["function"]',

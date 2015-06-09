@@ -2,7 +2,6 @@ __author__ = 'Vincenzo Arcidiacono'
 
 from networkx.utils import open_file
 from dill import dump, load
-from dispatcher.utils import AttrDict
 
 
 @open_file(1, mode='wb')

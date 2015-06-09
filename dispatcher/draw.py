@@ -275,6 +275,6 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr='value', view=False,
         dot.edge(id_node(u), id_node(v), **kw)
 
     if view:
-        default_opener(dot.view())
+        default_opener(dot.render())
 
     return dot
