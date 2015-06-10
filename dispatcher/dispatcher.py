@@ -24,6 +24,22 @@ class Dispatcher(object):
 
     A workflow is a sequence of function calls.
 
+    .. rubric:: Methods
+
+    .. autosummary::
+       :nosignatures:
+
+       add_data
+       add_function
+       add_from_lists
+       set_default_value
+       get_sub_dsp
+       get_sub_dsp_from_workflow
+       remove_cycles
+       dispatch
+       shrink_dsp
+       extract_function_node
+
     :ivar dmap:
         The directed graph that stores data & functions parameters.
     :type dmap: DiGraph
@@ -130,7 +146,7 @@ class Dispatcher(object):
 
         >>> def diff_function(a, b):
         ...     return b - a
-
+        ...
         >>> dsp.add_function(function=diff_function, inputs=['a', 'b'],
         ...                  outputs=['c'])
         '...dispatcher:diff_function'
@@ -138,10 +154,10 @@ class Dispatcher(object):
     Add a function node with domain::
 
         >>> from math import log
-
+        ...
         >>> def log_domain(x):
         ...     return x > 0
-
+        ...
         >>> dsp.add_function(function=log, inputs=['c'], outputs=['d'],
         ...                  input_domain=log_domain)
         'math:log'
@@ -167,10 +183,10 @@ class Dispatcher(object):
         ...
         ...     x = kwargs.values()
         ...     return sum(x) / len(x)
-
+        ...
         >>> def callback_fun(x):
         ...     print('(log(1) + 4) / 2 = %.1f' % x)
-
+        ...
         >>> dsp.add_data(data_id='d', default_value=4, wait_inputs=True,
         ...              function=average_fun, callback=callback_fun)
         'd'
@@ -312,7 +328,7 @@ class Dispatcher(object):
             ...     '''
             ...
             ...     return min(kwargs.values())
-
+            ...
             >>> dsp.add_data(data_id='c', default_value=2, wait_inputs=True,
             ...              function=min_fun)
             'c'
@@ -434,7 +450,7 @@ class Dispatcher(object):
             ...     c = a + b
             ...     d = a - b
             ...     return c, d
-
+            ...
             >>> dsp.add_function(function=my_function, inputs=['a', 'b'],
             ...                  outputs=['c', 'd'])
             '...dispatcher:my_function'
@@ -444,10 +460,10 @@ class Dispatcher(object):
             >>> from math import log
             >>> def my_log(a, b):
             ...     log(b - a)
-
+            ...
             >>> def my_domain(a, b):
             ...     return a < b
-
+            ...
             >>> dsp.add_function(function=my_log, inputs=['a', 'b'],
             ...                  outputs=['e'], input_domain=my_domain)
             '...dispatcher:my_log'
@@ -562,6 +578,7 @@ class Dispatcher(object):
         **Example**:
 
         Create an empty dispatcher::
+
             >>> dsp = Dispatcher()
 
         Define a data list::
@@ -576,7 +593,7 @@ class Dispatcher(object):
 
             >>> def f(a, b):
             ...     return a + b
-
+            ...
             >>> fun_list = [
             ...     {'function': f, 'inputs': ['a', 'b'], 'outputs': ['c']},
             ...     {'function': f, 'inputs': ['c', 'd'], 'outputs': ['a']}
@@ -620,7 +637,7 @@ class Dispatcher(object):
         Create a dispatcher with a data node named `a`::
 
             >>> dsp = Dispatcher()
-
+            ...
             >>> dsp.add_data(data_id='a')
             'a'
 
@@ -684,6 +701,7 @@ class Dispatcher(object):
         Create a dispatcher with a two functions `fun1` and `fun2`::
 
             >>> dsp = Dispatcher()
+            ...
             >>> dsp.add_function(function_id='fun1', inputs=['a', 'b'],
             ...                   outputs=['c', 'd'])
             'fun1'
@@ -784,6 +802,7 @@ class Dispatcher(object):
         value::
 
             >>> dsp = Dispatcher()
+            ...
             >>> dsp.add_data(data_id='a', default_value=1)
             'a'
             >>> dsp.add_function(function_id='fun', inputs=['a', 'b'],
@@ -932,16 +951,19 @@ class Dispatcher(object):
             >>> dsp = Dispatcher()
             >>> def average(kwargs):
             ...     return sum(kwargs.values()) / len(kwargs)
+            ...
             >>> data = [
             ...     {'data_id': 'b', 'default_value': 3},
             ...     {'data_id': 'c', 'wait_inputs': True, 'function': average},
             ... ]
+            ...
             >>> functions = [
             ...     {'function': max, 'inputs': ['a', 'b'], 'outputs': ['c']},
             ...     {'function': min, 'inputs': ['a', 'c'], 'outputs': ['d']},
             ...     {'function': min, 'inputs': ['b', 'd'], 'outputs': ['c']},
             ...     {'function': max, 'inputs': ['b', 'd'], 'outputs': ['a']},
             ... ]
+            ...
             >>> dsp.add_from_lists(data_list=data, fun_list=functions)
             ([...], [...])
 
@@ -1027,7 +1049,7 @@ class Dispatcher(object):
         with default values::
 
             >>> dsp = Dispatcher()
-
+            ...
             >>> dsp.add_data(data_id='a', default_value=0)
             'a'
             >>> dsp.add_data(data_id='b', default_value=1)
@@ -1036,10 +1058,10 @@ class Dispatcher(object):
             >>> from math import log
             >>> def my_log(a, b):
             ...     return log(b - a)
-
+            ...
             >>> def my_domain(a, b):
             ...     return a < b
-
+            ...
             >>> dsp.add_function(function=my_log, inputs=['a', 'b'],
             ...                  outputs=['c'], input_domain=my_domain)
             '...dispatcher:my_log'
@@ -1047,7 +1069,7 @@ class Dispatcher(object):
         Dispatch without inputs. The default values are used as inputs::
 
             >>> workflow, outputs = dsp.dispatch(outputs=['c'])
-
+            ...
             >>> sorted(outputs.items())
             [('a', 0), ('b', 1), ('c', 0.0)]
             >>> sorted(workflow.nodes())
@@ -1060,7 +1082,7 @@ class Dispatcher(object):
         inputs::
 
             >>> workflow, outputs = dsp.dispatch(inputs={'b': 0}, outputs=['c'])
-
+            ...
             >>> sorted(outputs.items())
             [('a', 0), ('b', 0)]
             >>> sorted(workflow.nodes())
@@ -1121,6 +1143,7 @@ class Dispatcher(object):
         Create a dispatcher with unresolved cycles::
 
             >>> dsp = Dispatcher()
+            ...
             >>> functions = [
             ...     {'function': max, 'inputs': ['a', 'b'], 'outputs': ['c']},
             ...     {'function': max, 'inputs': ['b', 'd'], 'outputs': ['e']},
@@ -1132,7 +1155,7 @@ class Dispatcher(object):
             ...         'outputs': ['c', 'f']
             ...     },
             ... ]
-
+            ...
             >>> dsp.add_from_lists(fun_list=functions)
             ([], [...])
 
@@ -1141,7 +1164,7 @@ class Dispatcher(object):
 
             >>> shrink_dsp = dsp.shrink_dsp(inputs=['a', 'b', 'd'],
             ...                             outputs=['c', 'e', 'f'])
-
+            ...
             >>> sorted(shrink_dsp.dmap.nodes())
             ['a', 'b', 'builtins:max', 'builtins:max<0>', 'builtins:max<3>',
              'c', 'd', 'e', 'f']
@@ -1229,6 +1252,7 @@ class Dispatcher(object):
         cycle::
 
             >>> dsp = Dispatcher()
+            ...
             >>> dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
             'builtins:max'
             >>> dsp.add_function(function=min, inputs=['c', 'b'], outputs=['a'],
