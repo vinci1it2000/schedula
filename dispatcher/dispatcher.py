@@ -844,7 +844,8 @@ class Dispatcher(object):
             >>> from dispatcher.draw import dsp2dot
             >>> from doc.conf import prj_dir
             >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
-            >>> dot.save('doc/dispatcher/get_sub_dsp_from_workflow/dsp.dot', prj_dir)
+            >>> file = 'doc/dispatcher/get_sub_dsp_from_workflow/dsp.dot'
+            >>> dot.save(file, prj_dir)
             '...'
 
         .. graphviz:: get_sub_dsp_from_workflow/dsp.dot
@@ -860,7 +861,8 @@ class Dispatcher(object):
         .. testsetup::
             >>> sub_dsp.name = 'Sub-Dispatcher'
             >>> dot = dsp2dot(sub_dsp, graph_attr={'rankdir': 'LR'})
-            >>> dot.save('doc/dispatcher/get_sub_dsp_from_workflow/sub_dsp1.dot', prj_dir)
+            >>> file = 'doc/dispatcher/get_sub_dsp_from_workflow/sub_dsp1.dot'
+            >>> dot.save(file, prj_dir)
             '...'
 
         .. graphviz:: get_sub_dsp_from_workflow/sub_dsp1.dot
@@ -872,7 +874,8 @@ class Dispatcher(object):
         .. testsetup::
             >>> sub_dsp.name = 'Sub-Dispatcher (reverse workflow)'
             >>> dot = dsp2dot(sub_dsp, graph_attr={'rankdir': 'LR'})
-            >>> dot.save('doc/dispatcher/get_sub_dsp_from_workflow/sub_dsp2.dot', prj_dir)
+            >>> file = 'doc/dispatcher/get_sub_dsp_from_workflow/sub_dsp2.dot'
+            >>> dot.save(file, prj_dir)
             '...'
 
         .. graphviz:: get_sub_dsp_from_workflow/sub_dsp2.dot
@@ -1035,7 +1038,7 @@ class Dispatcher(object):
             [('a', 1), ('b', 3)]
 
         .. testsetup::
-            >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
+            >>> dot = dsp2dot(dsp, True, graph_attr={'rankdir': 'LR'})
             >>> dot.save('doc/dispatcher/remove_cycles/wf.dot', prj_dir)
             '...'
 
@@ -1050,8 +1053,9 @@ class Dispatcher(object):
 
         .. testsetup::
             >>> dsp_rm_cycles.name = 'Dispatcher without unresolved cycles'
-            >>> dot = dsp2dot(dsp_rm_cycles, workflow=True, graph_attr={'rankdir': 'LR'})
-            >>> dot.save('doc/dispatcher/remove_cycles/wf_rm_cycles.dot', prj_dir)
+            >>> dot = dsp2dot(dsp_rm_cycles, True, graph_attr={'rankdir': 'LR'})
+            >>> file = 'doc/dispatcher/remove_cycles/wf_rm_cycles.dot'
+            >>> dot.save(file, prj_dir)
             '...'
 
         .. graphviz:: remove_cycles/wf_rm_cycles.dot
@@ -1405,7 +1409,7 @@ class Dispatcher(object):
 
         .. testsetup::
             >>> dsp.name = 'Created function internal'
-            >>> dsp.dispatch(inputs={'a': 2, 'b': 1}, outputs=['a'], wildcard=True)
+            >>> dsp.dispatch({'a': 2, 'b': 1}, outputs=['a'], wildcard=True)
             (...)
             >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
             >>> dot.save('doc/dispatcher/create_function_node/wf1.dot', prj_dir)
@@ -1422,7 +1426,7 @@ class Dispatcher(object):
             ValueError: Unreachable output-targets:{'a'}
 
         .. testsetup::
-            >>> dsp.dispatch(inputs={'a': 1, 'b': 0}, outputs=['a'], wildcard=True)
+            >>> dsp.dispatch({'a': 1, 'b': 0}, outputs=['a'], wildcard=True)
             (...)
             >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
             >>> dot.save('doc/dispatcher/create_function_node/wf2.dot', prj_dir)
@@ -1712,7 +1716,7 @@ class Dispatcher(object):
             # namespace shortcut
             n_type = a['type']
 
-            if n_type == 'function' and 'input_domain' in a: # with a domain
+            if n_type == 'function' and 'input_domain' in a:  # with a domain
                 # nodes estimated from functions with a domain function
                 for k in a['outputs']:
                     wait_in[k] = True
@@ -1875,10 +1879,10 @@ class Dispatcher(object):
         node_attr = self.nodes[node_id]
         node_type = node_attr['type']
 
-        if node_type == 'data': # set data node
+        if node_type == 'data':  # set data node
             return self._set_data_node_output(node_id, node_attr, no_call)
 
-        elif node_type == 'function': # det function node
+        elif node_type == 'function':  # det function node
             return self._set_function_node_output(node_id, node_attr, no_call)
 
     def _set_data_node_output(self, node_id, node_attr, no_call):
@@ -1910,7 +1914,7 @@ class Dispatcher(object):
             # final estimation of the node and node status
             if not wait_in:
 
-                if 'function' in node_attr: # evaluate output
+                if 'function' in node_attr:  # evaluate output
                     try:
                         kwargs = {k: v['value'] for k, v in est.items()}
                         # noinspection PyCallingNonCallable
