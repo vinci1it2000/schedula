@@ -1,6 +1,9 @@
 __author__ = 'Vincenzo Arcidiacono'
 
-from .utils import Token
+from dispatcher.utils import Token
+
+__all__ = ['EMPTY', 'START', 'NONE', 'SINK']
+
 
 #: Empty value.
 EMPTY = Token('empty')

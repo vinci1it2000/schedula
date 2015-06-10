@@ -9,15 +9,21 @@ Welcome to dispatcher's documentation!
 
 Contents:
 
-.. toctree::
+.. currentmodule:: dispatcher
 
-   dispatcher/dispatcher
-   dispatcher/dispatcher_utils
-   dispatcher/read_write
-   dispatcher/draw
-   dispatcher/constants
-   dispatcher/graph_utils
-   dispatcher/utils
+.. autosummary::
+    :nosignatures:
+    :toctree: dispatcher/
+
+    dispatcher
+    dispatcher_utils
+    read_write
+    draw
+    constants
+    graph_utils
+    utils
+
+
 
 
 Indices and tables

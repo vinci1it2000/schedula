@@ -1,7 +1,3 @@
-"""A pypi demonstration vehicle.
+__author__ = 'Vincenzo Arcidiacono'
 
-.. moduleauthor:: Vincenzo Arcidiacono <vinci1it2000@gmail.com>
-
-"""
-
-from .dispatcher import *
+from dispatcher.dispatcher import Dispatcher

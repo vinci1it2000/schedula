@@ -1,22 +1,15 @@
-"""
-.. module:: draw
-
-.. moduleauthor:: Vincenzo Arcidiacono <vinci1it2000@gmail.com>
-
-"""
-
 __author__ = 'Vincenzo Arcidiacono'
 
-from networkx.classes.digraph import DiGraph
-from networkx.drawing import *
-from networkx.utils import default_opener
 import matplotlib.pyplot as plt
+from networkx.classes.digraph import DiGraph
+from networkx.drawing import spring_layout, draw_networkx_nodes, draw_networkx_labels, draw_networkx_edges, draw_networkx_edge_labels
+from networkx.utils import default_opener
 from graphviz import Digraph
-
-from .constants import START
-from .dispatcher_utils import SubDispatch
-
+from dispatcher.constants import START
+from dispatcher.dispatcher_utils import SubDispatch
 from tempfile import mkstemp
+
+__all__ = ['plot_dsp', 'dsp2dot']
 
 
 def plot_dsp(dsp, pos=None, workflow=False, title='Dispatcher', fig=None,

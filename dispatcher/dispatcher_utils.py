@@ -1,5 +1,8 @@
 __author__ = 'Vincenzo Arcidiacono'
 
+__all__ = ['combine_dicts', 'bypass', 'summation', 'def_selector',
+           'def_replicate_value', 'SubDispatch', 'ReplicateFunction']
+
 
 def combine_dicts(*dicts):
     """
@@ -131,39 +134,6 @@ class SubDispatch(object):
     """
     Returns a function that executes the dispatch of the given `dsp`.
 
-    :param dsp:
-        A dispatcher that identifies the model adopted.
-    :type dsp: dispatcher.dispatcher.Dispatcher
-
-    :param outputs:
-        Ending data nodes.
-    :type outputs: iterable
-
-    :param cutoff:
-        Depth to stop the search.
-    :type cutoff: float, int, optional
-
-    :param wildcard:
-        If True, when the data node is used as input and target in the
-        ArciDispatch algorithm, the input value will be used as input for
-        the connected functions, but not as output.
-    :type wildcard: bool, optional
-
-    :param no_call:
-        If True data node estimation function is not used.
-    :type no_call: bool, optional
-
-    :param shrink:
-        If True the dispatcher is shrink before the dispatch.
-    :type shrink: bool, optional
-
-    :params type_return:
-        Type of function output:
-            + 'all': a dict with all dispatch outputs.
-            + 'list': a list with all outputs listed in `outputs`.
-            + 'dict': a dict with any outputs listed in `outputs`.
-    :type type_return: str
-
     :return:
         A function that executes the dispatch of the given `dsp`.
 
@@ -194,6 +164,41 @@ class SubDispatch(object):
 
     def __init__(self, dsp, outputs=None, cutoff=None, wildcard=False, no_call=False,
                  shrink=True, type_return='all'):
+        """
+
+        :param dsp:
+            A dispatcher that identifies the model adopted.
+        :type dsp: dispatcher.dispatcher.Dispatcher
+
+        :param outputs:
+            Ending data nodes.
+        :type outputs: iterable
+
+        :param cutoff:
+            Depth to stop the search.
+        :type cutoff: float, int, optional
+
+        :param wildcard:
+            If True, when the data node is used as input and target in the
+            ArciDispatch algorithm, the input value will be used as input for
+            the connected functions, but not as output.
+        :type wildcard: bool, optional
+
+        :param no_call:
+            If True data node estimation function is not used.
+        :type no_call: bool, optional
+
+        :param shrink:
+            If True the dispatcher is shrink before the dispatch.
+        :type shrink: bool, optional
+
+        :params type_return:
+                   Type of function output:
+                + 'all': a dict with all dispatch outputs.
+                + 'list': a list with all outputs listed in `outputs`.
+                + 'dict': a dict with any outputs listed in `outputs`.
+        :type type_return: str
+        """
         self.dsp = dsp
         self.outputs = outputs
         self.cutoff = cutoff
@@ -225,7 +230,9 @@ class SubDispatch(object):
 
 
 class ReplicateFunction(object):
-
+    """
+    Replicates a function.
+    """
     def __init__(self, function):
         self.function = function
 

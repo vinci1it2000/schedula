@@ -3,8 +3,13 @@ __author__ = 'Vincenzo Arcidiacono'
 from itertools import tee
 from heapq import heappop
 
+__all__ = ['Token', 'pairwise', 'heap_flush', 'rename_function', 'AttrDict']
+
 
 class Token(str):
+    """
+    Token.
+    """
     def __repr__(self):
         return self
 
@@ -20,7 +25,7 @@ class Token(str):
 
 def pairwise(iterable):
     """
-    s -> (s0, s1), (s1, s2), (s2, s3), ...
+    s -> (s0, s1), (s1, s2), (s2, s3), .
 
     :param iterable:
         An iterable object.

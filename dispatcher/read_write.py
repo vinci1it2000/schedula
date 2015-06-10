@@ -3,6 +3,8 @@ __author__ = 'Vincenzo Arcidiacono'
 from networkx.utils import open_file
 from dill import dump, load
 
+__all__ = ['save_dispatcher', 'load_dispatcher', 'save_default_values',
+           'load_default_values', 'save_map', 'load_map']
 
 @open_file(1, mode='wb')
 def save_dispatcher(dsp, path):

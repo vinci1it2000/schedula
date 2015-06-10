@@ -1,10 +1,3 @@
-"""
-.. module:: dispatcher
-
-.. moduleauthor:: Vincenzo Arcidiacono <vinci1it2000@gmail.com>
-
-"""
-
 __author__ = 'Vincenzo Arcidiacono'
 
 import logging
@@ -12,12 +5,14 @@ from networkx import DiGraph, isolates
 from heapq import heappush, heappop
 from itertools import count
 from collections import OrderedDict
-from .utils import rename_function, AttrDict
-from .graph_utils import add_edge_fun, remove_cycles_iteration
-from .constants import EMPTY, START, NONE, SINK
-from .dispatcher_utils import SubDispatch, bypass
+from dispatcher.utils import rename_function, AttrDict
+from dispatcher.graph_utils import add_edge_fun, remove_cycles_iteration
+from dispatcher.constants import EMPTY, START, NONE, SINK
+from dispatcher.dispatcher_utils import SubDispatch, bypass
 
 log = logging.getLogger(__name__)
+
+__all__ = ['Dispatcher']
 
 
 class Dispatcher(object):
@@ -28,19 +23,6 @@ class Dispatcher(object):
     input and output data nodes.
 
     A workflow is a sequence of function calls.
-
-    :param dmap:
-        A directed graph that stores data & functions parameters.
-    :type dmap: DiGraph, optional
-
-    :param name:
-        The dispatcher's name.
-    :type name: str, optional
-
-    :param default_values:
-        Data node default values. These will be used as input if it is not
-        specified as inputs in the ArciDispatch algorithm.
-    :type default_values: dict, optional
 
     :ivar dmap:
         The directed graph that stores data & functions parameters.
@@ -202,6 +184,20 @@ class Dispatcher(object):
     """
 
     def __init__(self, dmap=None, name='Dispatcher', default_values=None):
+        """
+        :param dmap:
+            A directed graph that stores data & functions parameters.
+        :type dmap: DiGraph, optional
+
+        :param name:
+            The dispatcher's name.
+        :type name: str, optional
+
+        :param default_values:
+            Data node default values. These will be used as input if it is not
+            specified as inputs in the ArciDispatch algorithm.
+        :type default_values: dict, optional
+        """
         self.dmap = dmap if dmap else DiGraph()
         self.name = name
         self.dmap.node = AttrDict(self.dmap.node)

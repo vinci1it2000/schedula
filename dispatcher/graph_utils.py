@@ -1,13 +1,10 @@
-"""
-.. module:: graph_utils
-
-.. moduleauthor:: Vincenzo Arcidiacono <vinci1it2000@gmail.com>
-
-"""
+__author__ = 'Vincenzo Arcidiacono'
 
 from heapq import heappush, heappop
 from itertools import count
-from .utils import pairwise, heap_flush
+from dispatcher.utils import pairwise, heap_flush
+
+__all__ = ['add_edge_fun', 'scc_fun', 'dijkstra', 'remove_cycles_iteration']
 
 
 # modified from NetworkX library

@@ -11,6 +11,8 @@ from dispatcher.draw import *
 from graphviz.dot import Digraph
 from matplotlib.figure import Figure
 from dispatcher.constants import SINK
+from dispatcher import Dispatcher
+from dispatcher.dispatcher_utils import SubDispatch
 
 __name__ = 'draw'
 __path__ = ''
@@ -18,7 +20,6 @@ __path__ = ''
 
 class TestDispatcherUtils(unittest.TestCase):
     def test_plot_dsp(self):
-        from dispatcher import Dispatcher, SubDispatch
         sub_dsp = Dispatcher()
         def fun(a):
             return a + 1, a - 1
@@ -45,7 +46,6 @@ class TestDispatcherUtils(unittest.TestCase):
         self.assertIsInstance(res[1][0]['Dispatcher:dispatch'][0], Figure)
 
     def test_plot_dsp_dot(self):
-        from dispatcher import Dispatcher, SubDispatch
         ss_dsp = Dispatcher()
 
         def fun(a):
