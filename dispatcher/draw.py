@@ -10,7 +10,8 @@ __author__ = 'Vincenzo Arcidiacono'
 
 import matplotlib.pyplot as plt
 from networkx.classes.digraph import DiGraph
-from networkx.drawing import spring_layout, draw_networkx_nodes, draw_networkx_labels, draw_networkx_edges, draw_networkx_edge_labels
+from networkx.drawing import spring_layout, draw_networkx_nodes, \
+    draw_networkx_labels, draw_networkx_edges, draw_networkx_edge_labels
 from networkx.utils import default_opener
 from graphviz import Digraph
 from dispatcher.constants import START
@@ -45,7 +46,8 @@ def plot_dsp(dsp, pos=None, workflow=False, title='Dispatcher', fig=None,
     Example::
 
         >>> import matplotlib.pyplot as plt
-        >>> from dispatcher import Dispatcher, SubDispatch
+        >>> from dispatcher import Dispatcher
+        >>> from dispatcher.dispatcher_utils import SubDispatch
         >>> sub_dsp = Dispatcher()
         >>> def fun(a):
         ...     return a + 1, a - 1
@@ -291,17 +293,17 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
     return dot
 
 
-def _node_label(id, values):
+def _node_label(name, values):
     attr = ''
 
     if values:
         attr = '| ' + ' | '.join([_attr_node(*v) for v in values.items()])
 
-    return '{ %s %s }' % (id, attr)
+    return '{ %s %s }' % (name, attr)
 
 
 def _attr_node(k, v):
-    return '%s = %s' % (k, str(v).replace('{','\{').replace('}','\}'))
+    return '%s = %s' % (k, str(v).replace('{', '\{').replace('}', '\}'))
 
 
 def _data_node_label(k, values, attr=None, workflow=False):
@@ -327,7 +329,8 @@ def _fun_node_label(k, attr=None, workflow=False):
 
     return _node_label(k, v)
 
+
 def _fun_attr(k, v):
     if k in ['input_domain']:
         return True
-    return v.replace('{','\{').replace('}','\}')
+    return v.replace('{', '\{').replace('}', '\}')
