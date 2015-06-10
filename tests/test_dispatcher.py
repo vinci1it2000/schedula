@@ -13,7 +13,6 @@ import timeit
 from dispatcher.dispatcher import Dispatcher
 from dispatcher.constants import START, EMPTY, SINK, NONE
 
-
 __name__ = 'dispatcher'
 __path__ = ''
 
@@ -340,7 +339,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
             "fun(5, 6)",
             'from test_dispatcher import _setup_dsp;'
             'dsp = _setup_dsp();'
-            'fun = dsp.extract_function_node('
+            'fun = dsp.create_function_node('
             '    "myF", ["a", "b"], ["c", "d", "e"])["function"]',
             repeat=3, number=1000)
 
@@ -694,7 +693,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         dsp.add_function(function=min, inputs=['c', 'b'], outputs=['a'],
                          input_domain=lambda c, b: c * b > 0)
 
-        res = dsp.extract_function_node('myF', ['a', 'b'], ['a'])
+        res = dsp.create_function_node('myF', ['a', 'b'], ['a'])
         self.assertEquals(res['inputs'], ['a', 'b'])
         self.assertEquals(res['outputs'], ['a'])
         self.assertEquals(res['function'].__name__, 'myF')
@@ -710,12 +709,12 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         dsp.add_function(function=f, inputs=['a', 'b'], outputs=['c', SINK])
         dsp.add_function(function=f, inputs=['c', 'b'], outputs=[SINK, 'd'])
 
-        res = dsp.extract_function_node('myF', ['a', 'b'], ['c', 'd'])
+        res = dsp.create_function_node('myF', ['a', 'b'], ['c', 'd'])
         # noinspection PyCallingNonCallable
         self.assertEquals(res['function'](2, 1), [3, 2])
 
         self.assertRaises(
-            ValueError, dsp.extract_function_node, 'myF', ['a', 'c'], ['d']
+            ValueError, dsp.create_function_node, 'myF', ['a', 'c'], ['d']
         )
 
 

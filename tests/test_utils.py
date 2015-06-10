@@ -12,7 +12,6 @@ import doctest
 import unittest
 from dispatcher.utils import *
 
-
 __name__ = 'utils'
 __path__ = ''
 

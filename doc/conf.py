@@ -20,10 +20,8 @@ import shlex
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-dsp_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../dispatcher'))
 prj_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
-sys.path.insert(0, dsp_dir)
 sys.path.insert(0, prj_dir)
 # -- General configuration ------------------------------------------------
 
@@ -43,10 +41,12 @@ extensions = [
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
     'sphinx.ext.autosummary',
+    'sphinx.ext.graphviz',
 ]
 
 autosummary_generate = True
 autodoc_member_order = 'bysource'
+graphviz_output_format = 'svg'
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

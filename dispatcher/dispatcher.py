@@ -1,3 +1,11 @@
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
+#
+# Copyright 2014 European Commission (JRC);
+# Licensed under the EUPL (the 'Licence');
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+
 __author__ = 'Vincenzo Arcidiacono'
 
 import logging
@@ -29,6 +37,7 @@ class Dispatcher(object):
     .. autosummary::
        :nosignatures:
 
+       __init__
        add_data
        add_function
        add_from_lists
@@ -38,76 +47,7 @@ class Dispatcher(object):
        remove_cycles
        dispatch
        shrink_dsp
-       extract_function_node
-
-    :ivar dmap:
-        The directed graph that stores data & functions parameters.
-    :type dmap: DiGraph
-
-    :ivar name:
-        The dispatcher's name.
-    :type name: str
-
-    :ivar nodes:
-        The function and data nodes of the dispatcher.
-    :type nodes: AttrDict
-
-    :ivar default_values:
-        Data node default values. These will be used as input if it is not
-        specified as inputs in the ArciDispatch algorithm.
-    :type default_values: dict
-
-    :ivar data_output:
-        A dictionary with the dispatch outputs.
-    :type data_output: dict
-
-    :ivar dist:
-        A dictionary of distances from the `START` node.
-    :type dist: dict
-
-    :ivar weight:
-        Weight tag.
-    :type weight: str
-
-    :ivar workflow:
-        The dispatch workflow graph. It is a sequence of function calls.
-    :type workflow: DiGraph
-
-    :ivar _visited:
-        A set of visited nodes from the dispatch.
-    :type _visited: set
-
-    :ivar _targets:
-        A set of target nodes.
-    :type _targets: set
-
-    :ivar _cutoff:
-        Depth to stop the search.
-    :type _cutoff: int, float, None
-
-    :ivar _wildcards:
-        A set of nodes with a wildcard.
-    :type _wildcards: set
-
-    :ivar _pred:
-        The predecessors of the dispatcher map nodes.
-    :type _pred: dict
-
-    :ivar _succ:
-        The successors of the dispatcher map nodes.
-    :type _succ: dict
-
-    :ivar _wf_add_edge:
-        A function that add edges to the `workflow`.
-    :type _wf_add_edge: function
-
-    :ivar _wf_pred:
-        The predecessors of the `workflow` nodes.
-    :type _wf_pred: dict
-
-    :ivar _wait_in:
-        Data nodes that waits inputs. They are used in `shrink_dsp`.
-    :type _wait_in: dict
+       create_function_node
 
     \***************************************************************************
 
@@ -147,9 +87,9 @@ class Dispatcher(object):
         >>> def diff_function(a, b):
         ...     return b - a
         ...
-        >>> dsp.add_function(function=diff_function, inputs=['a', 'b'],
-        ...                  outputs=['c'])
-        '...dispatcher:diff_function'
+        >>> dsp.add_function('diff_function', function=diff_function,
+        ...                  inputs=['a', 'b'], outputs=['c'])
+        'diff_function'
 
     Add a function node with domain::
 
@@ -158,9 +98,9 @@ class Dispatcher(object):
         >>> def log_domain(x):
         ...     return x > 0
         ...
-        >>> dsp.add_function(function=log, inputs=['c'], outputs=['d'],
+        >>> dsp.add_function('log', function=log, inputs=['c'], outputs=['d'],
         ...                  input_domain=log_domain)
-        'math:log'
+        'log'
 
     Add a data node with function estimation and callback function.
 
@@ -191,16 +131,36 @@ class Dispatcher(object):
         ...              function=average_fun, callback=callback_fun)
         'd'
 
-    Dispatch the function calls to achieve the desired output data node 'd'::
+    .. testsetup::
+
+        >>> from dispatcher.draw import dsp2dot
+        >>> from doc.conf import prj_dir
+        >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
+        >>> dot.save('doc/dispatcher/Dispatcher/dsp.dot', prj_dir)
+        '...'
+
+    .. graphviz:: Dispatcher/dsp.dot
+
+    Dispatch the function calls to achieve the desired output data node `d`::
 
         >>> workflow, outputs = dsp.dispatch(inputs={'a': 0}, outputs=['d'])
         (log(1) + 4) / 2 = 2.0
         >>> sorted(outputs.items())
         [('a', 0), ('b', 1), ('c', 1), ('d', 2.0)]
+
+    .. testsetup::
+
+        >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
+        >>> dot.save('doc/dispatcher/Dispatcher/wf.dot', prj_dir)
+        '...'
+
+    .. graphviz:: Dispatcher/wf.dot
     """
 
     def __init__(self, dmap=None, name='Dispatcher', default_values=None):
         """
+        Initializes the dispatcher.
+
         :param dmap:
             A directed graph that stores data & functions parameters.
         :type dmap: DiGraph, optional
@@ -213,7 +173,77 @@ class Dispatcher(object):
             Data node default values. These will be used as input if it is not
             specified as inputs in the ArciDispatch algorithm.
         :type default_values: dict, optional
+
+        :ivar dmap:
+            The directed graph that stores data & functions parameters.
+        :type dmap: DiGraph
+
+        :ivar name:
+            The dispatcher's name.
+        :type name: str
+
+        :ivar nodes:
+            The function and data nodes of the dispatcher.
+        :type nodes: AttrDict
+
+        :ivar default_values:
+            Data node default values. These will be used as input if it is not
+            specified as inputs in the ArciDispatch algorithm.
+        :type default_values: dict
+
+        :ivar data_output:
+            A dictionary with the dispatch outputs.
+        :type data_output: dict
+
+        :ivar dist:
+            A dictionary of distances from the `START` node.
+        :type dist: dict
+
+        :ivar weight:
+            Weight tag.
+        :type weight: str
+
+        :ivar workflow:
+            The dispatch workflow graph. It is a sequence of function calls.
+        :type workflow: DiGraph
+
+        :ivar _visited:
+            A set of visited nodes from the dispatch.
+        :type _visited: set
+
+        :ivar _targets:
+            A set of target nodes.
+        :type _targets: set
+
+        :ivar _cutoff:
+            Depth to stop the search.
+        :type _cutoff: int, float, None
+
+        :ivar _wildcards:
+            A set of nodes with a wildcard.
+        :type _wildcards: set
+
+        :ivar _pred:
+            The predecessors of the dispatcher map nodes.
+        :type _pred: dict
+
+        :ivar _succ:
+            The successors of the dispatcher map nodes.
+        :type _succ: dict
+
+        :ivar _wf_add_edge:
+            A function that add edges to the `workflow`.
+        :type _wf_add_edge: function
+
+        :ivar _wf_pred:
+            The predecessors of the `workflow` nodes.
+        :type _wf_pred: dict
+
+        :ivar _wait_in:
+            Data nodes that waits inputs. They are used in `shrink_dsp`.
+        :type _wait_in: dict
         """
+
         self.dmap = dmap if dmap else DiGraph()
         self.name = name
         self.dmap.node = AttrDict(self.dmap.node)
@@ -294,7 +324,7 @@ class Dispatcher(object):
 
         **Example**:
 
-        Create an empty dispatcher::
+        .. testsetup::
 
             >>> dsp = Dispatcher()
 
@@ -440,7 +470,7 @@ class Dispatcher(object):
 
         **Example**:
 
-        Create an empty dispatcher::
+        .. testsetup::
 
             >>> dsp = Dispatcher()
 
@@ -577,7 +607,7 @@ class Dispatcher(object):
 
         **Example**:
 
-        Create an empty dispatcher::
+        .. testsetup::
 
             >>> dsp = Dispatcher()
 
@@ -634,7 +664,7 @@ class Dispatcher(object):
 
         **Example**:
 
-        Create a dispatcher with a data node named `a`::
+        A dispatcher with a data node named `a`::
 
             >>> dsp = Dispatcher()
             ...
@@ -698,29 +728,37 @@ class Dispatcher(object):
 
         **Example**:
 
-        Create a dispatcher with a two functions `fun1` and `fun2`::
+        A dispatcher with a two functions `fun1` and `fun2`:
+
+        .. testsetup::
 
             >>> dsp = Dispatcher()
-            ...
             >>> dsp.add_function(function_id='fun1', inputs=['a', 'b'],
             ...                   outputs=['c', 'd'])
             'fun1'
             >>> dsp.add_function(function_id='fun2', inputs=['a', 'd'],
             ...                   outputs=['c', 'e'])
             'fun2'
+            >>> from dispatcher.draw import dsp2dot
+            >>> from doc.conf import prj_dir
+            >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
+            >>> dot.save('doc/dispatcher/get_sub_dsp/dsp.dot', prj_dir)
+            '...'
+
+        .. graphviz:: get_sub_dsp/dsp.dot
 
         Get the sub-dispatcher induced by given nodes bunch::
 
             >>> sub_dsp = dsp.get_sub_dsp(['a', 'c', 'd', 'e', 'fun2'])
-            >>> sorted(sub_dsp.dmap.node)
-            ['a', 'c', 'd', 'e', 'fun2']
-            >>> res = {'a': {'fun2': {}},
-            ...        'c': {},
-            ...        'd': {'fun2': {}},
-            ...        'e': {},
-            ...        'fun2': {'e': {}, 'c': {}}}
-            >>> sub_dsp.dmap.edge ==  res
-            True
+
+        .. testsetup::
+
+            >>> sub_dsp.name = 'Sub-Dispatcher'
+            >>> dot = dsp2dot(sub_dsp, graph_attr={'rankdir': 'LR'})
+            >>> dot.save('doc/dispatcher/get_sub_dsp/sub_dsp.dot', prj_dir)
+            '...'
+
+        .. graphviz:: get_sub_dsp/sub_dsp.dot
         """
 
         # define an empty dispatcher
@@ -798,49 +836,56 @@ class Dispatcher(object):
 
         **Example**:
 
-        Create a dispatcher with a function `fun` and a node `a` with a default
-        value::
+        A dispatcher with a function `fun` and a node `a` with a default value:
+
+        .. testsetup::
 
             >>> dsp = Dispatcher()
-            ...
             >>> dsp.add_data(data_id='a', default_value=1)
             'a'
-            >>> dsp.add_function(function_id='fun', inputs=['a', 'b'],
+            >>> dsp.add_function(function_id='fun1', inputs=['a', 'b'],
             ...                  outputs=['c', 'd'])
-            'fun'
+            'fun1'
+            >>> dsp.add_function(function_id='fun2', inputs=['e'],
+            ...                  outputs=['c'])
+            'fun2'
+            >>> from dispatcher.draw import dsp2dot
+            >>> from doc.conf import prj_dir
+            >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
+            >>> dot.save('doc/dispatcher/get_sub_dsp_from_workflow/dsp.dot', prj_dir)
+            '...'
 
-        Dispatch with no calls::
+        .. graphviz:: get_sub_dsp_from_workflow/dsp.dot
+
+        Dispatch with no calls in order to have a workflow::
 
             >>> o = dsp.dispatch(inputs=['a', 'b'], no_call=True)[1]
 
         Get sub-dispatcher from workflow inputs `a` and `b`::
 
             >>> sub_dsp = dsp.get_sub_dsp_from_workflow(['a', 'b'])
-            >>> sub_dsp.default_values
-            {'a': 1}
-            >>> sorted(sub_dsp.dmap.node)
-            ['a', 'b', 'c', 'd', 'fun']
-            >>> res = {'a': {'fun': {}},
-            ...        'b': {'fun': {}},
-            ...        'c': {},
-            ...        'd': {},
-            ...        'fun': {'c': {}, 'd': {}},
-            ...     }
-            >>> sub_dsp.dmap.edge ==  res
-            True
+
+        .. testsetup::
+
+            >>> sub_dsp.name = 'Sub-Dispatcher'
+            >>> dot = dsp2dot(sub_dsp, graph_attr={'rankdir': 'LR'})
+            >>> dot.save('doc/dispatcher/get_sub_dsp_from_workflow/sub_dsp1.dot', prj_dir)
+            '...'
+
+        .. graphviz:: get_sub_dsp_from_workflow/sub_dsp1.dot
 
         Get sub-dispatcher from a workflow output `c`::
 
             >>> sub_dsp = dsp.get_sub_dsp_from_workflow(['c'], reverse=True)
-            >>> sorted(sub_dsp.dmap.node)
-            ['a', 'b', 'c', 'fun']
-            >>> res = {'a': {'fun': {}},
-            ...        'b': {'fun': {}},
-            ...        'c': {},
-            ...        'fun': {'c': {}},
-            ...     }
-            >>> sub_dsp.dmap.edge ==  res
-            True
+
+        .. testsetup::
+
+            >>> sub_dsp.name = 'Sub-Dispatcher (reverse workflow)'
+            >>> dot = dsp2dot(sub_dsp, graph_attr={'rankdir': 'LR'})
+            >>> dot.save('doc/dispatcher/get_sub_dsp_from_workflow/sub_dsp2.dot', prj_dir)
+            '...'
+
+        .. graphviz:: get_sub_dsp_from_workflow/sub_dsp2.dot
         """
 
         # define an empty dispatcher map
@@ -946,42 +991,83 @@ class Dispatcher(object):
 
         **Example**:
 
-        Create a dispatcher with unresolved cycles::
+        A dispatcher with an unresolved cycle (i.e., `c` --> `min1` --> `d` -->
+        `min2` --> `c`):
+
+        .. testsetup::
 
             >>> dsp = Dispatcher()
             >>> def average(kwargs):
             ...     return sum(kwargs.values()) / len(kwargs)
-            ...
             >>> data = [
             ...     {'data_id': 'b', 'default_value': 3},
             ...     {'data_id': 'c', 'wait_inputs': True, 'function': average},
             ... ]
-            ...
             >>> functions = [
-            ...     {'function': max, 'inputs': ['a', 'b'], 'outputs': ['c']},
-            ...     {'function': min, 'inputs': ['a', 'c'], 'outputs': ['d']},
-            ...     {'function': min, 'inputs': ['b', 'd'], 'outputs': ['c']},
-            ...     {'function': max, 'inputs': ['b', 'd'], 'outputs': ['a']},
+            ...     {
+            ...         'function_id': 'max1',
+            ...         'function': max,
+            ...         'inputs': ['a', 'b'],
+            ...         'outputs': ['c']
+            ...     },
+            ...     {
+            ...         'function_id': 'min1',
+            ...         'function': min,
+            ...         'inputs': ['a', 'c'],
+            ...         'outputs': ['d']
+            ...     },
+            ...     {
+            ...         'function_id': 'min2',
+            ...         'function': min,
+            ...         'inputs': ['b', 'd'],
+            ...         'outputs': ['c']
+            ...     },
+            ...     {
+            ...         'function_id': 'max2',
+            ...         'function': max,
+            ...         'inputs': ['b', 'd'],
+            ...         'outputs': ['a']
+            ...     },
             ... ]
-            ...
             >>> dsp.add_from_lists(data_list=data, fun_list=functions)
             ([...], [...])
+            >>> from dispatcher.draw import dsp2dot
+            >>> from doc.conf import prj_dir
+            >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
+            >>> dot.save('doc/dispatcher/remove_cycles/dsp.dot', prj_dir)
+            '...'
 
-        The dispatch output is affected by unresolved cycles::
+        .. graphviz:: remove_cycles/dsp.dot
+
+        The dispatch stops on data node `c` due to the unresolved cycle::
 
             >>> res = dsp.dispatch(inputs={'a': 1})[1]
             >>> sorted(res.items())
             [('a', 1), ('b', 3)]
 
-        Removing the unresolved cycles the dispatch output is extended::
+        .. testsetup::
+
+            >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
+            >>> dot.save('doc/dispatcher/remove_cycles/wf.dot', prj_dir)
+            '...'
+
+        .. graphviz:: remove_cycles/wf.dot
+
+        Removing the unresolved cycle the dispatch continues to all nodes::
 
             >>> dsp_rm_cycles = dsp.remove_cycles(['a', 'b'])
-            >>> dsp_rm_cycles.add_function(function=min, inputs=['a', 'e'],
-            ...                            outputs=['f'])
-            'builtins:min<0>'
-            >>> res = dsp_rm_cycles.dispatch(inputs={'a': 1, 'e': 0})[1]
+            >>> res = dsp_rm_cycles.dispatch(inputs={'a': 1})[1]
             >>> sorted(res.items())
-            [('a', 1), ('b', 3), ('c', 3.0), ('d', 1), ('e', 0), ('f', 0)]
+            [('a', 1), ('b', 3), ('c', 3.0), ('d', 1)]
+
+        .. testsetup::
+
+            >>> dsp_rm_cycles.name = 'Dispatcher without unresolved cycles'
+            >>> dot = dsp2dot(dsp_rm_cycles, workflow=True, graph_attr={'rankdir': 'LR'})
+            >>> dot.save('doc/dispatcher/remove_cycles/wf_rm_cycles.dot', prj_dir)
+            '...'
+
+        .. graphviz:: remove_cycles/wf_rm_cycles.dot
         """
 
         # Reachable nodes from sources
@@ -1045,53 +1131,82 @@ class Dispatcher(object):
 
         **Example**:
 
-        Create a dispatcher with a function `my_log` and two data `a` and `b`
-        with default values::
+        A dispatcher with a function `my_log` and two data `a` and `b`
+        with default values:
+
+        .. testsetup::
 
             >>> dsp = Dispatcher()
-            ...
             >>> dsp.add_data(data_id='a', default_value=0)
             'a'
-            >>> dsp.add_data(data_id='b', default_value=1)
+            >>> dsp.add_data(data_id='b', default_value=5)
             'b'
-
+            >>> dsp.add_data(data_id='d', default_value=1)
+            'd'
             >>> from math import log
             >>> def my_log(a, b):
             ...     return log(b - a)
-            ...
             >>> def my_domain(a, b):
             ...     return a < b
-            ...
-            >>> dsp.add_function(function=my_log, inputs=['a', 'b'],
-            ...                  outputs=['c'], input_domain=my_domain)
-            '...dispatcher:my_log'
+            >>> dsp.add_function('my log', function=my_log, inputs=['c', 'd'],
+            ...                  outputs=['e'], input_domain=my_domain)
+            'my log'
+            >>> dsp.add_function('min', function=min, inputs=['a', 'b'],
+            ...                  outputs=['c'])
+            'min'
+            >>> from dispatcher.draw import dsp2dot
+            >>> from doc.conf import prj_dir
+            >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
+            >>> dot.save('doc/dispatcher/dispatch/dsp.dot', prj_dir)
+            '...'
+
+        .. graphviz:: dispatch/dsp.dot
 
         Dispatch without inputs. The default values are used as inputs::
+
+            >>> workflow, outputs = dsp.dispatch()
+            ...
+            >>> sorted(outputs.items())
+            [('a', 0), ('b', 5), ('c', 0), ('d', 1), ('e', 0.0)]
+
+        .. testsetup::
+
+            >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
+            >>> dot.save('doc/dispatcher/dispatch/wf1.dot', prj_dir)
+            '...'
+
+        .. graphviz:: dispatch/wf1.dot
+
+        Dispatch until data node `c` is estimated::
 
             >>> workflow, outputs = dsp.dispatch(outputs=['c'])
             ...
             >>> sorted(outputs.items())
-            [('a', 0), ('b', 1), ('c', 0.0)]
-            >>> sorted(workflow.nodes())
-            ['a', 'b', 'c', '...dispatcher:my_log', start]
-            >>> sorted(workflow.edges())
-            [('a', '...dispatcher:my_log'), ('b', '...dispatcher:my_log'),
-             ('...dispatcher:my_log', 'c'), (start, 'a'), (start, 'b')]
+             [('a', 0), ('b', 5), ('c', 0), ('d', 1)]
 
-        Dispatch with one inputs. The default value of `b` is not used as
+        .. testsetup::
+
+            >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
+            >>> dot.save('doc/dispatcher/dispatch/wf2.dot', prj_dir)
+            '...'
+
+        .. graphviz:: dispatch/wf2.dot
+
+        Dispatch with one inputs. The default value of `a` is not used as
         inputs::
 
-            >>> workflow, outputs = dsp.dispatch(inputs={'b': 0}, outputs=['c'])
+            >>> workflow, outputs = dsp.dispatch(inputs={'a': 3})
             ...
             >>> sorted(outputs.items())
-            [('a', 0), ('b', 0)]
-            >>> sorted(workflow.nodes())
-            ['a', 'b', '...dispatcher:my_log', start]
-            >>> sorted(workflow.edges())
-            [('a', '...dispatcher:my_log'),
-             ('b', '...dispatcher:my_log'),
-             (start, 'a'),
-             (start, 'b')]
+             [('a', 3), ('b', 5), ('c', 3), ('d', 1)]
+
+        .. testsetup::
+
+            >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
+            >>> dot.save('doc/dispatcher/dispatch/wf3.dot', prj_dir)
+            '...'
+
+        .. graphviz:: dispatch/wf3.dot
         """
 
         # pre shrink
@@ -1140,40 +1255,64 @@ class Dispatcher(object):
 
         **Example**:
 
-        Create a dispatcher with unresolved cycles::
+        A dispatcher like this:
+
+        .. testsetup::
 
             >>> dsp = Dispatcher()
-            ...
             >>> functions = [
-            ...     {'function': max, 'inputs': ['a', 'b'], 'outputs': ['c']},
-            ...     {'function': max, 'inputs': ['b', 'd'], 'outputs': ['e']},
-            ...     {'function': max, 'inputs': ['d', 'f'], 'outputs': ['g']},
-            ...     {'function': max, 'inputs': ['a', 'b'], 'outputs': ['g']},
             ...     {
+            ...         'function_id': 'fun1',
+            ...         'inputs': ['a', 'b'],
+            ...         'outputs': ['c']
+            ...     },
+            ...     {
+            ...         'function_id': 'fun2',
+            ...         'inputs': ['b', 'd'],
+            ...         'outputs': ['e']
+            ...     },
+            ...     {
+            ...         'function_id': 'fun3',
+            ...         'function': min,
+            ...         'inputs': ['d', 'f'],
+            ...         'outputs': ['g']
+            ...     },
+            ...     {
+            ...         'function_id': 'fun4',
+            ...         'function': max,
+            ...         'inputs': ['a', 'b'],
+            ...         'outputs': ['g']
+            ...     },
+            ...     {
+            ...         'function_id': 'fun5',
             ...         'function': max,
             ...         'inputs': ['d', 'e'],
             ...         'outputs': ['c', 'f']
             ...     },
             ... ]
-            ...
             >>> dsp.add_from_lists(fun_list=functions)
             ([], [...])
+            >>> from dispatcher.draw import dsp2dot
+            >>> from doc.conf import prj_dir
+            >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
+            >>> dot.save('doc/dispatcher/shrink_dsp/dsp.dot', prj_dir)
+            '...'
+
+        .. graphviz:: shrink_dsp/dsp.dot
 
         Get the sub-dispatcher induced by dispatching with no calls from inputs
         `a`, `b`, and `c` to outputs `c`, `e`, and `f`::
 
             >>> shrink_dsp = dsp.shrink_dsp(inputs=['a', 'b', 'd'],
-            ...                             outputs=['c', 'e', 'f'])
-            ...
-            >>> sorted(shrink_dsp.dmap.nodes())
-            ['a', 'b', 'builtins:max', 'builtins:max<0>', 'builtins:max<3>',
-             'c', 'd', 'e', 'f']
-            >>> sorted(shrink_dsp.dmap.edges())
-            [('a', 'builtins:max'), ('b', 'builtins:max'),
-            ('b', 'builtins:max<0>'), ('builtins:max', 'c'),
-            ('builtins:max<0>', 'e'), ('builtins:max<3>', 'f'),
-            ('d', 'builtins:max<0>'), ('d', 'builtins:max<3>'),
-            ('e', 'builtins:max<3>')]
+            ...                             outputs=['c', 'f'])
+
+        .. testsetup::
+
+            >>> dot = dsp2dot(shrink_dsp, graph_attr={'rankdir': 'LR'})
+            >>> dot.save('doc/dispatcher/shrink_dsp/shrink_dsp.dot', prj_dir)
+            '...'
+
+        .. graphviz:: shrink_dsp/shrink_dsp.dot
         """
 
         bfs_graph = self.dmap
@@ -1219,7 +1358,7 @@ class Dispatcher(object):
         # return the sub dispatcher
         return dsp
 
-    def extract_function_node(self, function_id, inputs, outputs, cutoff=None):
+    def create_function_node(self, function_id, inputs, outputs, cutoff=None):
         """
         Returns a function node that uses the dispatcher map as function.
 
@@ -1248,21 +1387,32 @@ class Dispatcher(object):
 
         **Example**:
 
-        Create a dispatcher with two functions `max` and `min` and an unresolved
-        cycle::
+        A dispatcher with two functions `max` and `min` and an unresolved cycle
+        (i.e., `a` --> `max` --> `c` --> `min` --> `a`):
+
+        .. testsetup::
 
             >>> dsp = Dispatcher()
-            ...
-            >>> dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
-            'builtins:max'
-            >>> dsp.add_function(function=min, inputs=['c', 'b'], outputs=['a'],
-            ...                  input_domain=lambda c, b: c * b > 0)
-            'builtins:min'
+            >>> dsp.add_function('max', max, inputs=['a', 'b'], outputs=['c'])
+            'max'
+            >>> from math import log
+            >>> def my_log(x):
+            ...     return log(x - 1)
+            >>> dsp.add_function('log(x - 1)', my_log, inputs=['c'],
+            ...                  outputs=['a'], input_domain=lambda c: c > 1)
+            'log(x - 1)'
+            >>> from dispatcher.draw import dsp2dot
+            >>> from doc.conf import prj_dir
+            >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
+            >>> dot.save('doc/dispatcher/create_function_node/dsp.dot', prj_dir)
+            '...'
+
+        .. graphviz:: create_function_node/dsp.dot
 
         Extract a static function node, i.e. the inputs `a` and `b` and the
         output `a` are fixed::
 
-            >>> res = dsp.extract_function_node('myF', ['a', 'b'], ['a'])
+            >>> res = dsp.create_function_node('myF', ['a', 'b'], ['a'])
             >>> res['inputs'] == ['a', 'b']
             True
             >>> res['outputs'] == ['a']
@@ -1270,11 +1420,36 @@ class Dispatcher(object):
             >>> res['function'].__name__
             'myF'
             >>> res['function'](2, 1)
-            1
-            >>> res['function'](3, 0)
+            0.0
+
+        .. testsetup::
+
+            >>> dsp.name = 'Created function internal'
+            >>> dsp.dispatch(inputs={'a': 2, 'b': 1}, outputs=['a'], wildcard=True)
+            (...)
+            >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
+            >>> dot.save('doc/dispatcher/create_function_node/wf1.dot', prj_dir)
+            '...'
+
+        .. graphviz:: create_function_node/wf1.dot
+
+        The created function raises a ValueError if unvalid inputs are
+        provided::
+
+            >>> res['function'](1, 0)
             Traceback (most recent call last):
             ...
             ValueError: Unreachable output-targets:{'a'}
+
+        .. testsetup::
+
+            >>> dsp.dispatch(inputs={'a': 1, 'b': 0}, outputs=['a'], wildcard=True)
+            (...)
+            >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
+            >>> dot.save('doc/dispatcher/create_function_node/wf2.dot', prj_dir)
+            '...'
+
+        .. graphviz:: create_function_node/wf2.dot
         """
 
         # new shrink dispatcher

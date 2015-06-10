@@ -1,3 +1,11 @@
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
+#
+# Copyright 2014 European Commission (JRC);
+# Licensed under the EUPL (the 'Licence');
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+
 __author__ = 'Vincenzo Arcidiacono'
 
 import matplotlib.pyplot as plt
@@ -188,15 +196,21 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr='value', view=False,
     if workflow:
         g = workflow if isinstance(workflow, DiGraph) else dsp.workflow
         dfl = {}
+
+        def title(name):
+            return ' '.join([name, 'workflow'])
     else:
         g = dsp.dmap
         dfl = dsp.default_values
+
+        def title(name):
+            return name
 
     if dot is None:
         kw = {
             'name': dsp.name,
             'format': 'svg',
-            'body': ['label = "%s"' % dsp.name, 'splines = ortho'],
+            'body': ['label = "%s"' % title(dsp.name), 'splines = ortho'],
             'filename': mkstemp()[1] if 'filename' not in kw_dot else '',
         }
         kw.update(kw_dot)
@@ -237,7 +251,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr='value', view=False,
                         'body': [
                             'style=filled',
                             'fillcolor="#FF8F0F80"',
-                            'label="%s"' % k,
+                            'label="%s"' % title(k),
                             'comment="%s"' % k,
                         ]
                     }

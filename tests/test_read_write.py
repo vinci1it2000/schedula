@@ -6,7 +6,6 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
-
 import doctest
 import unittest
 
@@ -15,7 +14,6 @@ from dispatcher.read_write import *
 from dispatcher import Dispatcher
 
 temp_file = mkstemp()[1]
-
 __path__ = ''
 
 class TestDoctest(unittest.TestCase):
