@@ -132,7 +132,6 @@ class Dispatcher(object):
         'd'
 
     .. testsetup::
-
         >>> from dispatcher.draw import dsp2dot
         >>> from doc.conf import prj_dir
         >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
@@ -149,7 +148,6 @@ class Dispatcher(object):
         [('a', 0), ('b', 1), ('c', 1), ('d', 2.0)]
 
     .. testsetup::
-
         >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
         >>> dot.save('doc/dispatcher/Dispatcher/wf.dot', prj_dir)
         '...'
@@ -325,7 +323,6 @@ class Dispatcher(object):
         **Example**:
 
         .. testsetup::
-
             >>> dsp = Dispatcher()
 
         Add a data to be estimated or a possible input data node::
@@ -471,7 +468,6 @@ class Dispatcher(object):
         **Example**:
 
         .. testsetup::
-
             >>> dsp = Dispatcher()
 
         Add a function node::
@@ -608,7 +604,6 @@ class Dispatcher(object):
         **Example**:
 
         .. testsetup::
-
             >>> dsp = Dispatcher()
 
         Define a data list::
@@ -731,7 +726,6 @@ class Dispatcher(object):
         A dispatcher with a two functions `fun1` and `fun2`:
 
         .. testsetup::
-
             >>> dsp = Dispatcher()
             >>> dsp.add_function(function_id='fun1', inputs=['a', 'b'],
             ...                   outputs=['c', 'd'])
@@ -752,7 +746,6 @@ class Dispatcher(object):
             >>> sub_dsp = dsp.get_sub_dsp(['a', 'c', 'd', 'e', 'fun2'])
 
         .. testsetup::
-
             >>> sub_dsp.name = 'Sub-Dispatcher'
             >>> dot = dsp2dot(sub_dsp, graph_attr={'rankdir': 'LR'})
             >>> dot.save('doc/dispatcher/get_sub_dsp/sub_dsp.dot', prj_dir)
@@ -839,7 +832,6 @@ class Dispatcher(object):
         A dispatcher with a function `fun` and a node `a` with a default value:
 
         .. testsetup::
-
             >>> dsp = Dispatcher()
             >>> dsp.add_data(data_id='a', default_value=1)
             'a'
@@ -866,7 +858,6 @@ class Dispatcher(object):
             >>> sub_dsp = dsp.get_sub_dsp_from_workflow(['a', 'b'])
 
         .. testsetup::
-
             >>> sub_dsp.name = 'Sub-Dispatcher'
             >>> dot = dsp2dot(sub_dsp, graph_attr={'rankdir': 'LR'})
             >>> dot.save('doc/dispatcher/get_sub_dsp_from_workflow/sub_dsp1.dot', prj_dir)
@@ -879,7 +870,6 @@ class Dispatcher(object):
             >>> sub_dsp = dsp.get_sub_dsp_from_workflow(['c'], reverse=True)
 
         .. testsetup::
-
             >>> sub_dsp.name = 'Sub-Dispatcher (reverse workflow)'
             >>> dot = dsp2dot(sub_dsp, graph_attr={'rankdir': 'LR'})
             >>> dot.save('doc/dispatcher/get_sub_dsp_from_workflow/sub_dsp2.dot', prj_dir)
@@ -995,7 +985,6 @@ class Dispatcher(object):
         `min2` --> `c`):
 
         .. testsetup::
-
             >>> dsp = Dispatcher()
             >>> def average(kwargs):
             ...     return sum(kwargs.values()) / len(kwargs)
@@ -1046,7 +1035,6 @@ class Dispatcher(object):
             [('a', 1), ('b', 3)]
 
         .. testsetup::
-
             >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
             >>> dot.save('doc/dispatcher/remove_cycles/wf.dot', prj_dir)
             '...'
@@ -1061,7 +1049,6 @@ class Dispatcher(object):
             [('a', 1), ('b', 3), ('c', 3.0), ('d', 1)]
 
         .. testsetup::
-
             >>> dsp_rm_cycles.name = 'Dispatcher without unresolved cycles'
             >>> dot = dsp2dot(dsp_rm_cycles, workflow=True, graph_attr={'rankdir': 'LR'})
             >>> dot.save('doc/dispatcher/remove_cycles/wf_rm_cycles.dot', prj_dir)
@@ -1135,7 +1122,6 @@ class Dispatcher(object):
         with default values:
 
         .. testsetup::
-
             >>> dsp = Dispatcher()
             >>> dsp.add_data(data_id='a', default_value=0)
             'a'
@@ -1170,7 +1156,6 @@ class Dispatcher(object):
             [('a', 0), ('b', 5), ('c', 0), ('d', 1), ('e', 0.0)]
 
         .. testsetup::
-
             >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
             >>> dot.save('doc/dispatcher/dispatch/wf1.dot', prj_dir)
             '...'
@@ -1185,7 +1170,6 @@ class Dispatcher(object):
              [('a', 0), ('b', 5), ('c', 0), ('d', 1)]
 
         .. testsetup::
-
             >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
             >>> dot.save('doc/dispatcher/dispatch/wf2.dot', prj_dir)
             '...'
@@ -1201,7 +1185,6 @@ class Dispatcher(object):
              [('a', 3), ('b', 5), ('c', 3), ('d', 1)]
 
         .. testsetup::
-
             >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
             >>> dot.save('doc/dispatcher/dispatch/wf3.dot', prj_dir)
             '...'
@@ -1258,7 +1241,6 @@ class Dispatcher(object):
         A dispatcher like this:
 
         .. testsetup::
-
             >>> dsp = Dispatcher()
             >>> functions = [
             ...     {
@@ -1307,7 +1289,7 @@ class Dispatcher(object):
             ...                             outputs=['c', 'f'])
 
         .. testsetup::
-
+            >>> shrink_dsp.name = 'Sub-Dispatcher'
             >>> dot = dsp2dot(shrink_dsp, graph_attr={'rankdir': 'LR'})
             >>> dot.save('doc/dispatcher/shrink_dsp/shrink_dsp.dot', prj_dir)
             '...'
@@ -1391,7 +1373,6 @@ class Dispatcher(object):
         (i.e., `a` --> `max` --> `c` --> `min` --> `a`):
 
         .. testsetup::
-
             >>> dsp = Dispatcher()
             >>> dsp.add_function('max', max, inputs=['a', 'b'], outputs=['c'])
             'max'
@@ -1423,7 +1404,6 @@ class Dispatcher(object):
             0.0
 
         .. testsetup::
-
             >>> dsp.name = 'Created function internal'
             >>> dsp.dispatch(inputs={'a': 2, 'b': 1}, outputs=['a'], wildcard=True)
             (...)
@@ -1442,7 +1422,6 @@ class Dispatcher(object):
             ValueError: Unreachable output-targets:{'a'}
 
         .. testsetup::
-
             >>> dsp.dispatch(inputs={'a': 1, 'b': 0}, outputs=['a'], wildcard=True)
             (...)
             >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
@@ -2055,7 +2034,7 @@ class Dispatcher(object):
 
                 if isinstance(fun, SubDispatch):
                     w, res = fun(*args)
-                    self.workflow.add_node(node_id, workflow=w)
+                    self.workflow.add_node(node_id, workflow=w, outputs=res)
                 else:
                     res = fun(*args)
 

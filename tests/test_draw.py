@@ -65,5 +65,5 @@ class TestDispatcherUtils(unittest.TestCase):
         dsp.add_function('dispatch', dispatch, ['input'], [SINK, 'h', 'i'])
 
         dsp.dispatch()
-        self.assertIsInstance(dsp2dot(dsp), Digraph)
+        self.assertIsInstance(dsp2dot(dsp, view=True), Digraph)
         self.assertIsInstance(dsp2dot(dsp, workflow=True), Digraph)

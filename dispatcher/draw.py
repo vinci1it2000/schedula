@@ -136,7 +136,7 @@ def plot_dsp(dsp, pos=None, workflow=False, title='Dispatcher', fig=None,
     return fig
 
 
-def dsp2dot(dsp, workflow=False, dot=None, edge_attr='value', view=False,
+def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
             **kw_dot):
     """
     Converts the Dispatcher map into a graph in the DOT language with Graphviz.
@@ -147,7 +147,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr='value', view=False,
 
     :param workflow:
        If True the workflow graph will be plotted, otherwise the dispatcher map.
-    :type workflow: bool, DiGraph, optional
+    :type workflow: bool, (DiGraph, dict), optional
 
     :param dot:
         A directed graph in the DOT language.
@@ -168,7 +168,8 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr='value', view=False,
 
     Example::
 
-        >>> from dispatcher import Dispatcher, SubDispatch
+        >>> from dispatcher import Dispatcher
+        >>> from dispatcher.dispatcher_utils import SubDispatch
         >>> ss_dsp = Dispatcher()
         >>> def fun(a):
         ...     return a + 1, a - 1
@@ -194,14 +195,16 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr='value', view=False,
     """
 
     if workflow:
-        g = workflow if isinstance(workflow, DiGraph) else dsp.workflow
-        dfl = {}
+        if isinstance(workflow, tuple):
+            g, val = workflow
+        else:
+            g, val = (dsp.workflow, dsp.data_output)
 
         def title(name):
             return ' '.join([name, 'workflow'])
     else:
         g = dsp.dmap
-        dfl = dsp.default_values
+        val = dsp.default_values
 
         def title(name):
             return name
@@ -235,15 +238,15 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr='value', view=False,
         n = dsp.nodes.get(k, {})
 
         if n:
-            node_label = k
-
             node_id = id_node(k)
 
             if n['type'] == 'function':
 
                 fun = n.get('function', None)
 
-                kw = {'shape': 'box', 'fillcolor': 'springgreen'}
+                kw = {'shape': 'record', 'fillcolor': 'springgreen'}
+
+                node_label = _fun_node_label(k, n, workflow)
 
                 if isinstance(fun, SubDispatch):
                     kw_sub = {
@@ -256,18 +259,19 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr='value', view=False,
                         ]
                     }
                     sub = Digraph(**kw_sub)
-                    wf = v.get('workflow', False)
+
+                    if 'workflow' in v and 'outputs' in v:
+                        wf = (v['workflow'], v['outputs'])
+                    else:
+                        wf = False
 
                     dot.subgraph(dsp2dot(fun.dsp, wf, sub, edge_attr))
 
                     kw['fillcolor'] = '#FF8F0F80'
 
             elif n['type'] == 'data':
-                kw = {'shape': 'oval', 'fillcolor': 'cyan'}
-                try:
-                    node_label = '%s\n default = %s' % (k, str(dfl[k]))
-                except KeyError:
-                    pass
+                kw = {'shape': 'Mrecord', 'fillcolor': 'cyan'}
+                node_label = _data_node_label(k, val, n, workflow)
 
             else:
                 continue
@@ -285,3 +289,45 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr='value', view=False,
         default_opener(dot.render())
 
     return dot
+
+
+def _node_label(id, values):
+    attr = ''
+
+    if values:
+        attr = '| ' + ' | '.join([_attr_node(*v) for v in values.items()])
+
+    return '{ %s %s }' % (id, attr)
+
+
+def _attr_node(k, v):
+    return '%s = %s' % (k, str(v).replace('{','\{').replace('}','\}'))
+
+
+def _data_node_label(k, values, attr=None, workflow=False):
+    if not workflow:
+        v = dict(attr)
+        v.pop('type')
+        if k in values:
+            v.update({'default': values[k]})
+        if not v['wait_inputs']:
+            v.pop('wait_inputs')
+    else:
+        v = {'output': values[k]} if k in values else {}
+
+    return _node_label(k, v)
+
+
+def _fun_node_label(k, attr=None, workflow=False):
+    if not workflow:
+        exc = ['type', 'inputs', 'outputs', 'wait_inputs', 'function']
+        v = {k: _fun_attr(k, v) for k, v in attr.items() if k not in exc}
+    else:
+        v = {}
+
+    return _node_label(k, v)
+
+def _fun_attr(k, v):
+    if k in ['input_domain']:
+        return True
+    return v.replace('{','\{').replace('}','\}')

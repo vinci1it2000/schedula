@@ -166,8 +166,8 @@ class SubDispatch(object):
         >>> w, o = dsp.dispatch(inputs={'d': {'a': 3}})
         >>> sorted(o['e'].items())
         [('a', 3), ('b', 4), ('c', 2)]
-        >>> w.node['dispatch']
-        {'workflow': <networkx.classes.digraph.DiGraph object at 0x...>}
+        >>> sorted(w.node['dispatch'].items())
+        [('outputs', {...}), ('workflow', <...DiGraph object at 0x...>)]
     """
 
     def __init__(self, dsp, outputs=None, cutoff=None, wildcard=False, no_call=False,
