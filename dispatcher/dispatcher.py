@@ -18,9 +18,33 @@ from .graph_utils import add_edge_fun, remove_cycles_iteration
 from .constants import EMPTY, START, NONE, SINK
 from .dispatcher_utils import SubDispatch, bypass
 
+
 log = logging.getLogger(__name__)
 
 __all__ = ['Dispatcher']
+
+
+def _warning(raises):
+    """
+    Returns a function that handle the error messages.
+
+    :param raises:
+        If True the dispatcher interrupt the dispatch when an error occur,
+        otherwise it logs a warning.
+    :type: bool
+
+    :return:
+        A function that handle the error messages.
+    :rtype: function
+    """
+
+    if raises:
+        def warning(msg):
+            raise ValueError(msg)
+    else:
+        def warning(msg):
+            log.warning(msg, exc_info=1)
+    return warning
 
 
 class Dispatcher(object):
@@ -207,7 +231,8 @@ class Dispatcher(object):
     .. graphviz:: Dispatcher/wf.dot
     """
 
-    def __init__(self, dmap=None, name='Dispatcher', default_values=None):
+    def __init__(self, dmap=None, name='Dispatcher', default_values=None,
+                 raises=False):
         """
         Initializes the dispatcher.
 
@@ -223,6 +248,11 @@ class Dispatcher(object):
             Data node default values. These will be used as input if it is not
             specified as inputs in the ArciDispatch algorithm.
         :type default_values: dict, optional
+
+        :param raises:
+            If True the dispatcher interrupt the dispatch when an error occur,
+            otherwise it logs a warning.
+        :type raises: bool, optional
         """
 
         self.dmap = dmap if dmap else DiGraph()
@@ -234,6 +264,7 @@ class Dispatcher(object):
         self.workflow = DiGraph()  # graph output
         self.data_output = {}
         self.dist = {}
+        self.warning = _warning(raises)
         self._visited = set()
         self._targets = set()
         self._cutoff = None
@@ -1597,8 +1628,9 @@ class Dispatcher(object):
             est = []  # estimations' heap
 
             for k, v in estimations.items():  # calculate length
-                d = dist[k] + edge_length(edg[k][node_id], node_attr)
-                heappush(est, (d, k, v))
+                if k is not START:
+                    d = dist[k] + edge_length(edg[k][node_id], node_attr)
+                    heappush(est, (d, k, v))
 
             # the estimation with minimum distance from the starting node
             estimations = {est[0][1]: est[0][2]}
@@ -1801,6 +1833,9 @@ class Dispatcher(object):
             # input value
             value = input_value(v)
 
+            # add edge
+            wf_add_edge(START, v, **value)
+
             if v in wildcards:  # check if the data node is in wildcards
 
                 # update visited nodes
@@ -1827,9 +1862,6 @@ class Dispatcher(object):
                     heappush(fringe, (vw_dist, True, w))
 
                 continue
-
-            # add edge
-            wf_add_edge(START, v, **value)
 
             # check if all node inputs are satisfied
             if not check_wait_in(wait_in, v):
@@ -1906,7 +1938,7 @@ class Dispatcher(object):
                         # some error occurs
                         msg = 'Estimation error at data node ({}) ' \
                               'due to: {}'.format(node_id, ex)
-                        log.warning(msg, exc_info=1)  # raise a Warning
+                        self.warning(msg)  # raise a Warning
                         return False
                 else:
                     # data node that has just one estimation value
@@ -1923,7 +1955,7 @@ class Dispatcher(object):
                     # is missing estimation function of data node or some error
                     msg = 'Estimation error at data node ({}) ' \
                           'due to: {}'.format(node_id, ex)
-                    log.warning(msg, exc_info=1)  # raise a Warning
+                    self.warning(msg)  # raise a Warning
                     return False
 
             if 'callback' in node_attr:  # invoke callback function of data node
@@ -1933,7 +1965,7 @@ class Dispatcher(object):
                 except Exception as ex:
                     msg = 'Callback error at data node ({}) ' \
                           'due to: {}'.format(node_id, ex)
-                    log.warning(msg, exc_info=1)  # raise a Warning
+                    self.warning(msg)  # raise a Warning
 
             if value is not NONE:
                 # set data output
@@ -2034,7 +2066,7 @@ class Dispatcher(object):
             # is missing function of the node or args are not in the domain
             msg = 'Estimation error at function node ({}) ' \
                   'due to: {}'.format(node_id, ex)
-            log.warning(msg, exc_info=1)  # raise a Warning
+            self.warning(msg)  # raise a Warning
             return False
 
         # set workflow

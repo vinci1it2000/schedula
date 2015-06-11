@@ -162,7 +162,7 @@ class SubDispatch(object):
         >>> dispatch = SubDispatch(sub_dsp, ['a', 'b', 'c'], type_return='dict')
         >>> dsp = Dispatcher()
         >>> dsp.add_function('Sub-dispatch', dispatch, ['d'], ['e'])
-        'dispatch'
+        'Sub-dispatch'
 
     .. testsetup::
         >>> from dispatcher.draw import dsp2dot
@@ -178,7 +178,7 @@ class SubDispatch(object):
         >>> w, o = dsp.dispatch(inputs={'d': {'a': 3}})
         >>> sorted(o['e'].items())
         [('a', 3), ('b', 4), ('c', 2)]
-        >>> w.node['dispatch']['workflow']
+        >>> w.node['Sub-dispatch']['workflow']
         (<...DiGraph object at 0x...>, {...}, {...})
 
     .. testsetup::
@@ -189,8 +189,8 @@ class SubDispatch(object):
     .. graphviz:: SubDispatch/wf.dot
     """
 
-    def __init__(self, dsp, outputs=None, cutoff=None, wildcard=False, no_call=False,
-                 shrink=True, type_return='all'):
+    def __init__(self, dsp, outputs=None, cutoff=None, wildcard=False,
+                 no_call=False, shrink=True, type_return='all'):
         """
 
         :param dsp:
@@ -226,6 +226,7 @@ class SubDispatch(object):
                 + 'dict': a dict with any outputs listed in `outputs`.
         :type type_return: str
         """
+
         self.dsp = dsp
         self.outputs = outputs
         self.cutoff = cutoff

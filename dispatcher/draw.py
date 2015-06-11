@@ -221,6 +221,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
 
         def title(name):
             return ' '.join([name, 'workflow'])
+
     else:
         g = dsp.dmap
         val = dsp.default_values
@@ -354,5 +355,5 @@ def _fun_node_label(k, attr=None, dist=None):
 
 def _fun_attr(k, v):
     if k in ['input_domain']:
-        return True
+        return v.__name__
     return v.replace('{', '\{').replace('}', '\}')

@@ -491,7 +491,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
             '2 / (d + 1)': {'e': {'value': 2.0}},
             'log(b - a)': {'c': {'value': 0.0}},
             'min': {'d': {'value': 0.0}},
-            START: {},
+            START: {'a': {'value': 5}, 'b': {'value': 6}},
             'x ^ y': {'b': {'value': 1.0}}
         }
         self.assertEquals(workflow.edge, edge)
@@ -716,6 +716,13 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         self.assertRaises(
             ValueError, dsp.create_function_node, 'myF', ['a', 'c'], ['d']
         )
+
+    def test_dispatch_raises(self):
+        dsp = Dispatcher(raises=True)
+        from math import log
+        dsp.add_function(function=log, inputs=['a'], outputs=['b'])
+
+        self.assertRaises(ValueError, dsp.dispatch, inputs={'a': 0})
 
 
 class TestRemoveCycles(unittest.TestCase):
