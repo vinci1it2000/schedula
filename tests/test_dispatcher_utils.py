@@ -71,7 +71,10 @@ class TestDispatcherUtils(unittest.TestCase):
         self.assertEquals(o['f'], {'c': 2})
         self.assertEquals(o['g'], [3, 2])
         self.assertEquals(o['h'],  2)
-        self.assertIsInstance(w.node['dispatch']['workflow'], DiGraph)
+        self.assertIsInstance(w.node['dispatch']['workflow'], tuple)
+        self.assertIsInstance(w.node['dispatch']['workflow'][0], DiGraph)
+        self.assertIsInstance(w.node['dispatch']['workflow'][1], dict)
+        self.assertIsInstance(w.node['dispatch']['workflow'][2], dict)
 
     def test_replicate_function(self):
         from dispatcher import Dispatcher

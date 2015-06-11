@@ -7,6 +7,7 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 import unittest
+import doctest
 from dispatcher.draw import *
 from graphviz.dot import Digraph
 from matplotlib.figure import Figure
@@ -17,6 +18,15 @@ from dispatcher.dispatcher_utils import SubDispatch
 __name__ = 'draw'
 __path__ = ''
 
+class TestDoctest(unittest.TestCase):
+    def runTest(self):
+        import dispatcher.draw as d
+
+        failure_count, test_count = doctest.testmod(
+            d, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS
+        )
+        self.assertGreater(test_count, 0, (failure_count, test_count))
+        self.assertEquals(failure_count, 0, (failure_count, test_count))
 
 class TestDispatcherUtils(unittest.TestCase):
     def test_plot_dsp(self):
@@ -56,14 +66,14 @@ class TestDispatcherUtils(unittest.TestCase):
         sub_dispatch = SubDispatch(ss_dsp, ['a', 'b', 'c'], type_return='list')
         s_dsp = Dispatcher()
 
-        s_dsp.add_function('sub_dispatch', sub_dispatch, ['d'], ['e', 'f', 'g'])
+        s_dsp.add_function('sub_dispatch', sub_dispatch, ['a'], ['b', 'c', 'd'])
 
-        dispatch = SubDispatch(s_dsp, ['e', 'f', 'g'], type_return='list')
+        dispatch = SubDispatch(s_dsp, ['b', 'c', 'd'], type_return='list')
         dsp = Dispatcher()
-        dsp.add_data('input', default_value={'d': {'a': 3}})
+        dsp.add_data('input', default_value={'a': {'a': 3}})
 
         dsp.add_function('dispatch', dispatch, ['input'], [SINK, 'h', 'i'])
 
         dsp.dispatch()
-        self.assertIsInstance(dsp2dot(dsp, view=True), Digraph)
+        self.assertIsInstance(dsp2dot(dsp), Digraph)
         self.assertIsInstance(dsp2dot(dsp, workflow=True), Digraph)

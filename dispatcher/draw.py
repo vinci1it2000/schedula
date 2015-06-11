@@ -53,7 +53,7 @@ def plot_dsp(dsp, pos=None, workflow=False, title='Dispatcher', fig=None,
         ...     return a + 1, a - 1
         >>> sub_dsp.add_function('fun', fun, ['a'], ['b', 'c'])
         'fun'
-        >>> dispatch = SubDispatch(sub_dsp, ['a', 'c'], returns='list')
+        >>> dispatch = SubDispatch(sub_dsp, ['a', 'c'], type_return='list')
         >>> dsp = Dispatcher()
         >>> dsp.add_data('_i_n_p_u_t', default_value={'a': 3})
         '_i_n_p_u_t'
@@ -61,11 +61,10 @@ def plot_dsp(dsp, pos=None, workflow=False, title='Dispatcher', fig=None,
         '_i_'
         >>> dsp.add_function('dispatch', dispatch, ['_i_n_p_u_t'], ['e', 'f'])
         'dispatch'
+        >>> f1 = plot_dsp(dsp)
         >>> w, o = dsp.dispatch()
 
-        >>> f1 = plot_dsp(dsp)
         >>> f2 = plot_dsp(dsp, workflow=True)
-        >>> plt.show()
     """
 
     figs = []
@@ -177,36 +176,57 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
         ...     return a + 1, a - 1
         >>> ss_dsp.add_function('fun', fun, ['a'], ['b', 'c'])
         'fun'
-        >>> sub_dispatch = SubDispatch(ss_dsp, ['a', 'b', 'c'], returns='list')
+        >>> sub_dispatch = SubDispatch(ss_dsp, ['a', 'b', 'c'], type_return='list')
         >>> s_dsp = Dispatcher()
 
-        >>> s_dsp.add_function('sub_dispatch', sub_dispatch, ['d'], ['e', 'f'])
+        >>> s_dsp.add_function('sub_dispatch', sub_dispatch, ['a'], ['b', 'c'])
         'sub_dispatch'
-        >>> dispatch = SubDispatch(s_dsp, ['e', 'f'], returns='list')
+        >>> dispatch = SubDispatch(s_dsp, ['b', 'c'], type_return='list')
         >>> dsp = Dispatcher()
-        >>> dsp.add_data('input', default_value={'d': {'a': 3}})
+        >>> dsp.add_data('input', default_value={'a': {'a': 3}})
         'input'
-        >>> dsp.add_function('dispatch', dispatch, ['input'], ['e', 'f'])
+        >>> dsp.add_function('dispatch', dispatch, ['input'], ['d', 'e'])
         'dispatch'
-        >>> w, o = dsp.dispatch()
 
-        >>> dsp2dot(dsp, view=True)
-        <graphviz.dot.Digraph object at 0x...>
-        >>> dsp2dot(dsp, workflow=True, view=True)
-        <graphviz.dot.Digraph object at 0x...>
+        >>> dot = dsp2dot(dsp)
+
+    .. testsetup::
+        >>> from dispatcher import dot_dir
+        >>> dot.save('draw/dsp.dot', dot_dir)
+        '...'
+
+    .. graphviz:: dsp.dot
+
+    Dispatch in order to have a workflow::
+
+        >>> dsp.dispatch()
+        (..., ...)
+        >>> wf = dsp2dot(dsp, workflow=True)
+
+    .. testsetup::
+        >>> wf.save('draw/wf.dot', dot_dir)
+        '...'
+
+    .. graphviz:: wf.dot
     """
 
     if workflow:
         if isinstance(workflow, tuple):
-            g, val = workflow
+            g, val, dist = workflow
         else:
-            g, val = (dsp.workflow, dsp.data_output)
+            g, val, dist= (dsp.workflow, dsp.data_output, dsp.dist)
+
+        if not edge_attr:
+            edge_attr = 'value'
 
         def title(name):
             return ' '.join([name, 'workflow'])
     else:
         g = dsp.dmap
         val = dsp.default_values
+        dist = {}
+        if not edge_attr:
+            edge_attr = dsp.weight
 
         def title(name):
             return name
@@ -248,7 +268,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
 
                 kw = {'shape': 'record', 'fillcolor': 'springgreen'}
 
-                node_label = _fun_node_label(k, n, workflow)
+                node_label = _fun_node_label(k, n, dist)
 
                 if isinstance(fun, SubDispatch):
                     kw_sub = {
@@ -262,8 +282,8 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
                     }
                     sub = Digraph(**kw_sub)
 
-                    if 'workflow' in v and 'outputs' in v:
-                        wf = (v['workflow'], v['outputs'])
+                    if 'workflow' in v:
+                        wf = v['workflow']
                     else:
                         wf = False
 
@@ -273,7 +293,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
 
             elif n['type'] == 'data':
                 kw = {'shape': 'Mrecord', 'fillcolor': 'cyan'}
-                node_label = _data_node_label(k, val, n, workflow)
+                node_label = _data_node_label(k, val, n, dist)
 
             else:
                 continue
@@ -306,8 +326,8 @@ def _attr_node(k, v):
     return '%s = %s' % (k, str(v).replace('{', '\{').replace('}', '\}'))
 
 
-def _data_node_label(k, values, attr=None, workflow=False):
-    if not workflow:
+def _data_node_label(k, values, attr=None, dist=None):
+    if not dist:
         v = dict(attr)
         v.pop('type')
         if k in values:
@@ -316,16 +336,18 @@ def _data_node_label(k, values, attr=None, workflow=False):
             v.pop('wait_inputs')
     else:
         v = {'output': values[k]} if k in values else {}
+        if k in dist:
+            v['distance'] = dist[k]
 
     return _node_label(k, v)
 
 
-def _fun_node_label(k, attr=None, workflow=False):
-    if not workflow:
+def _fun_node_label(k, attr=None, dist=None):
+    if not dist:
         exc = ['type', 'inputs', 'outputs', 'wait_inputs', 'function']
         v = {k: _fun_attr(k, v) for k, v in attr.items() if k not in exc}
     else:
-        v = {}
+        v = {'distance': dist[k]} if k in dist else {}
 
     return _node_label(k, v)
 

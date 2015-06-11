@@ -116,9 +116,9 @@ class Dispatcher(object):
 
     .. testsetup::
         >>> from dispatcher.draw import dsp2dot
-        >>> from doc.conf import prj_dir
+        >>> from dispatcher import dot_dir
         >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
-        >>> dot.save('doc/dispatcher/Dispatcher/dsp.dot', prj_dir)
+        >>> dot.save('Dispatcher/dsp.dot', dot_dir)
         '...'
 
     .. graphviz:: Dispatcher/dsp.dot
@@ -132,7 +132,7 @@ class Dispatcher(object):
 
     .. testsetup::
         >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
-        >>> dot.save('doc/dispatcher/Dispatcher/wf.dot', prj_dir)
+        >>> dot.save('Dispatcher/wf.dot', dot_dir)
         '...'
 
     .. graphviz:: Dispatcher/wf.dot
@@ -717,9 +717,9 @@ class Dispatcher(object):
             ...                   outputs=['c', 'e'])
             'fun2'
             >>> from dispatcher.draw import dsp2dot
-            >>> from doc.conf import prj_dir
+            >>> from dispatcher import dot_dir
             >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
-            >>> dot.save('doc/dispatcher/get_sub_dsp/dsp.dot', prj_dir)
+            >>> dot.save('get_sub_dsp/dsp.dot', dot_dir)
             '...'
 
         .. graphviz:: get_sub_dsp/dsp.dot
@@ -731,7 +731,7 @@ class Dispatcher(object):
         .. testsetup::
             >>> sub_dsp.name = 'Sub-Dispatcher'
             >>> dot = dsp2dot(sub_dsp, graph_attr={'rankdir': 'LR'})
-            >>> dot.save('doc/dispatcher/get_sub_dsp/sub_dsp.dot', prj_dir)
+            >>> dot.save('get_sub_dsp/sub_dsp.dot', dot_dir)
             '...'
 
         .. graphviz:: get_sub_dsp/sub_dsp.dot
@@ -825,10 +825,10 @@ class Dispatcher(object):
             ...                  outputs=['c'])
             'fun2'
             >>> from dispatcher.draw import dsp2dot
-            >>> from doc.conf import prj_dir
+            >>> from dispatcher import dot_dir
             >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
-            >>> file = 'doc/dispatcher/get_sub_dsp_from_workflow/dsp.dot'
-            >>> dot.save(file, prj_dir)
+            >>> file = 'get_sub_dsp_from_workflow/dsp.dot'
+            >>> dot.save(file, dot_dir)
             '...'
 
         .. graphviz:: get_sub_dsp_from_workflow/dsp.dot
@@ -844,8 +844,8 @@ class Dispatcher(object):
         .. testsetup::
             >>> sub_dsp.name = 'Sub-Dispatcher'
             >>> dot = dsp2dot(sub_dsp, graph_attr={'rankdir': 'LR'})
-            >>> file = 'doc/dispatcher/get_sub_dsp_from_workflow/sub_dsp1.dot'
-            >>> dot.save(file, prj_dir)
+            >>> file = 'get_sub_dsp_from_workflow/sub_dsp1.dot'
+            >>> dot.save(file, dot_dir)
             '...'
 
         .. graphviz:: get_sub_dsp_from_workflow/sub_dsp1.dot
@@ -857,8 +857,8 @@ class Dispatcher(object):
         .. testsetup::
             >>> sub_dsp.name = 'Sub-Dispatcher (reverse workflow)'
             >>> dot = dsp2dot(sub_dsp, graph_attr={'rankdir': 'LR'})
-            >>> file = 'doc/dispatcher/get_sub_dsp_from_workflow/sub_dsp2.dot'
-            >>> dot.save(file, prj_dir)
+            >>> file = 'get_sub_dsp_from_workflow/sub_dsp2.dot'
+            >>> dot.save(file, dot_dir)
             '...'
 
         .. graphviz:: get_sub_dsp_from_workflow/sub_dsp2.dot
@@ -1007,9 +1007,9 @@ class Dispatcher(object):
             >>> dsp.add_from_lists(data_list=data, fun_list=functions)
             ([...], [...])
             >>> from dispatcher.draw import dsp2dot
-            >>> from doc.conf import prj_dir
+            >>> from dispatcher import dot_dir
             >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
-            >>> dot.save('doc/dispatcher/remove_cycles/dsp.dot', prj_dir)
+            >>> dot.save('remove_cycles/dsp.dot', dot_dir)
             '...'
 
         .. graphviz:: remove_cycles/dsp.dot
@@ -1022,7 +1022,7 @@ class Dispatcher(object):
 
         .. testsetup::
             >>> dot = dsp2dot(dsp, True, graph_attr={'rankdir': 'LR'})
-            >>> dot.save('doc/dispatcher/remove_cycles/wf.dot', prj_dir)
+            >>> dot.save('remove_cycles/wf.dot', dot_dir)
             '...'
 
         .. graphviz:: remove_cycles/wf.dot
@@ -1037,8 +1037,8 @@ class Dispatcher(object):
         .. testsetup::
             >>> dsp_rm_cycles.name = 'Dispatcher without unresolved cycles'
             >>> dot = dsp2dot(dsp_rm_cycles, True, graph_attr={'rankdir': 'LR'})
-            >>> file = 'doc/dispatcher/remove_cycles/wf_rm_cycles.dot'
-            >>> dot.save(file, prj_dir)
+            >>> file = 'remove_cycles/wf_rm_cycles.dot'
+            >>> dot.save(file, dot_dir)
             '...'
 
         .. graphviz:: remove_cycles/wf_rm_cycles.dot
@@ -1128,9 +1128,9 @@ class Dispatcher(object):
             ...                  outputs=['c'])
             'min'
             >>> from dispatcher.draw import dsp2dot
-            >>> from doc.conf import prj_dir
+            >>> from dispatcher import dot_dir
             >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
-            >>> dot.save('doc/dispatcher/dispatch/dsp.dot', prj_dir)
+            >>> dot.save('dispatch/dsp.dot', dot_dir)
             '...'
 
         .. graphviz:: dispatch/dsp.dot
@@ -1144,7 +1144,7 @@ class Dispatcher(object):
 
         .. testsetup::
             >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
-            >>> dot.save('doc/dispatcher/dispatch/wf1.dot', prj_dir)
+            >>> dot.save('dispatch/wf1.dot', dot_dir)
             '...'
 
         .. graphviz:: dispatch/wf1.dot
@@ -1158,7 +1158,7 @@ class Dispatcher(object):
 
         .. testsetup::
             >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
-            >>> dot.save('doc/dispatcher/dispatch/wf2.dot', prj_dir)
+            >>> dot.save('dispatch/wf2.dot', dot_dir)
             '...'
 
         .. graphviz:: dispatch/wf2.dot
@@ -1173,7 +1173,7 @@ class Dispatcher(object):
 
         .. testsetup::
             >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
-            >>> dot.save('doc/dispatcher/dispatch/wf3.dot', prj_dir)
+            >>> dot.save('dispatch/wf3.dot', dot_dir)
             '...'
 
         .. graphviz:: dispatch/wf3.dot
@@ -1262,9 +1262,9 @@ class Dispatcher(object):
             >>> dsp.add_from_lists(fun_list=functions)
             ([], [...])
             >>> from dispatcher.draw import dsp2dot
-            >>> from doc.conf import prj_dir
+            >>> from dispatcher import dot_dir
             >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
-            >>> dot.save('doc/dispatcher/shrink_dsp/dsp.dot', prj_dir)
+            >>> dot.save('shrink_dsp/dsp.dot', dot_dir)
             '...'
 
         .. graphviz:: shrink_dsp/dsp.dot
@@ -1278,7 +1278,7 @@ class Dispatcher(object):
         .. testsetup::
             >>> shrink_dsp.name = 'Sub-Dispatcher'
             >>> dot = dsp2dot(shrink_dsp, graph_attr={'rankdir': 'LR'})
-            >>> dot.save('doc/dispatcher/shrink_dsp/shrink_dsp.dot', prj_dir)
+            >>> dot.save('shrink_dsp/shrink_dsp.dot', dot_dir)
             '...'
 
         .. graphviz:: shrink_dsp/shrink_dsp.dot
@@ -1370,9 +1370,9 @@ class Dispatcher(object):
             ...                  outputs=['a'], input_domain=lambda c: c > 1)
             'log(x - 1)'
             >>> from dispatcher.draw import dsp2dot
-            >>> from doc.conf import prj_dir
+            >>> from dispatcher import dot_dir
             >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
-            >>> dot.save('doc/dispatcher/create_function_node/dsp.dot', prj_dir)
+            >>> dot.save('create_function_node/dsp.dot', dot_dir)
             '...'
 
         .. graphviz:: create_function_node/dsp.dot
@@ -1395,7 +1395,7 @@ class Dispatcher(object):
             >>> dsp.dispatch({'a': 2, 'b': 1}, outputs=['a'], wildcard=True)
             (...)
             >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
-            >>> dot.save('doc/dispatcher/create_function_node/wf1.dot', prj_dir)
+            >>> dot.save('create_function_node/wf1.dot', dot_dir)
             '...'
 
         .. graphviz:: create_function_node/wf1.dot
@@ -1412,7 +1412,7 @@ class Dispatcher(object):
             >>> dsp.dispatch({'a': 1, 'b': 0}, outputs=['a'], wildcard=True)
             (...)
             >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
-            >>> dot.save('doc/dispatcher/create_function_node/wf2.dot', prj_dir)
+            >>> dot.save('create_function_node/wf2.dot', dot_dir)
             '...'
 
         .. graphviz:: create_function_node/wf2.dot
@@ -2021,7 +2021,9 @@ class Dispatcher(object):
 
                 if isinstance(fun, SubDispatch):
                     w, res = fun(*args)
-                    self.workflow.add_node(node_id, workflow=w, outputs=res)
+                    self.workflow.add_node(
+                        node_id, workflow=(w, fun.data_output, fun.dist)
+                    )
                 else:
                     res = fun(*args)
 

@@ -6,33 +6,7 @@
 Welcome to dispatcher's documentation!
 ======================================
 
-Dispatcher:
-
-.. currentmodule:: dispatcher.dispatcher
-
-.. autosummary::
-    :nosignatures:
-    :toctree: dispatcher/
-
-      Dispatcher
-
-Modules:
-
-.. currentmodule:: dispatcher
-
-.. autosummary::
-    :nosignatures:
-    :toctree: dispatcher/
-
-    dispatcher_utils
-    read_write
-    draw
-    constants
-    graph_utils
-    utils
-
-
-
+.. automodule:: dispatcher
 
 Indices and tables
 ==================

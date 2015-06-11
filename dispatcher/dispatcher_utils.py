@@ -153,21 +153,40 @@ class SubDispatch(object):
 
         >>> from dispatcher import Dispatcher
         >>> sub_dsp = Dispatcher()
-
+        ...
         >>> def fun(a):
         ...     return a + 1, a - 1
-
+        ...
         >>> sub_dsp.add_function('fun', fun, ['a'], ['b', 'c'])
         'fun'
         >>> dispatch = SubDispatch(sub_dsp, ['a', 'b', 'c'], type_return='dict')
         >>> dsp = Dispatcher()
-        >>> dsp.add_function('dispatch', dispatch, ['d'], ['e'])
+        >>> dsp.add_function('Sub-dispatch', dispatch, ['d'], ['e'])
         'dispatch'
+
+    .. testsetup::
+        >>> from dispatcher.draw import dsp2dot
+        >>> from dispatcher import dot_dir
+        >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
+        >>> dot.save('dispatcher_utils/SubDispatch/dsp.dot', dot_dir)
+        '...'
+
+    .. graphviz:: SubDispatch/dsp.dot
+
+    Dispatch the dispatch output is::
+
         >>> w, o = dsp.dispatch(inputs={'d': {'a': 3}})
         >>> sorted(o['e'].items())
         [('a', 3), ('b', 4), ('c', 2)]
-        >>> sorted(w.node['dispatch'].items())
-        [('outputs', {...}), ('workflow', <...DiGraph object at 0x...>)]
+        >>> w.node['dispatch']['workflow']
+        (<...DiGraph object at 0x...>, {...}, {...})
+
+    .. testsetup::
+        >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
+        >>> dot.save('dispatcher_utils/SubDispatch/wf.dot', dot_dir)
+        '...'
+
+    .. graphviz:: SubDispatch/wf.dot
     """
 
     def __init__(self, dsp, outputs=None, cutoff=None, wildcard=False, no_call=False,
@@ -214,6 +233,8 @@ class SubDispatch(object):
         self.no_call = no_call
         self.shrink = shrink
         self.returns = type_return
+        self.data_output = {}
+        self.dist = {}
 
     def __call__(self, *input_dicts):
 
@@ -227,6 +248,9 @@ class SubDispatch(object):
         w, o = self.dsp.dispatch(
             i, outputs, self.cutoff, self.wildcard, self.no_call, self.shrink
         )
+
+        self.data_output = o
+        self.dist = self.dsp.dist
 
         # set output
         if self.returns == 'list':
