@@ -1,9 +1,10 @@
-{{ fullname }}
+{{ name }}
 {{ underline }}
 
 .. currentmodule:: {{ module }}
 
 .. autoclass:: {{ objname }}
+   :members:
 
    {% block methods %}
    .. automethod:: __init__

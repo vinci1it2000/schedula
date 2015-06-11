@@ -6,8 +6,17 @@
 Welcome to dispatcher's documentation!
 ======================================
 
+Dispatcher:
 
-Contents:
+.. currentmodule:: dispatcher.dispatcher
+
+.. autosummary::
+    :nosignatures:
+    :toctree: dispatcher/
+
+      Dispatcher
+
+Modules:
 
 .. currentmodule:: dispatcher
 
@@ -15,7 +24,6 @@ Contents:
     :nosignatures:
     :toctree: dispatcher/
 
-    dispatcher
     dispatcher_utils
     read_write
     draw

@@ -32,23 +32,6 @@ class Dispatcher(object):
 
     A workflow is a sequence of function calls.
 
-    .. rubric:: Methods
-
-    .. autosummary::
-       :nosignatures:
-
-       __init__
-       add_data
-       add_function
-       add_from_lists
-       set_default_value
-       get_sub_dsp
-       get_sub_dsp_from_workflow
-       remove_cycles
-       dispatch
-       shrink_dsp
-       create_function_node
-
     \***************************************************************************
 
     **Example**:

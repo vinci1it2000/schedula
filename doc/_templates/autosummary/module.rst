@@ -1,4 +1,4 @@
-{{ fullname }}
+{{ name }}
 {{ underline }}
 
 
@@ -12,6 +12,8 @@
 
    .. autosummary::
       :nosignatures:
+      :toctree: {{ name }}/
+
    {% for item in functions %}
       {{ item }}
    {%- endfor %}
@@ -24,6 +26,8 @@
 
    .. autosummary::
       :nosignatures:
+      :toctree: {{ name }}/
+
    {% for item in classes %}
       {{ item }}
    {%- endfor %}
@@ -36,6 +40,8 @@
 
    .. autosummary::
       :nosignatures:
+      :toctree: {{ name }}/
+
    {% for item in exceptions %}
       {{ item }}
    {%- endfor %}
