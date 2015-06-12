@@ -11,6 +11,7 @@ __author__ = 'Vincenzo Arcidiacono'
 __all__ = ['combine_dicts', 'bypass', 'summation', 'def_selector',
            'def_replicate_value', 'SubDispatch', 'ReplicateFunction']
 
+from .utils import caller_name
 
 def combine_dicts(*dicts):
     """
@@ -236,6 +237,8 @@ class SubDispatch(object):
         self.returns = type_return
         self.data_output = {}
         self.dist = {}
+        self.__module__ = caller_name()
+        self.__name__ = dsp.name
 
     def __call__(self, *input_dicts):
 
@@ -268,6 +271,8 @@ class ReplicateFunction(object):
     """
     def __init__(self, function):
         self.function = function
+        self.__module__ = caller_name()
+        self.__name__ = function.__name__
 
     def __call__(self, *inputs):
         function = self.function
