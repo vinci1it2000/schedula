@@ -181,7 +181,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
         >>> sub_dispatch = SubDispatch(ss_dsp, ['a', 'b', 'c'], type_return='list')
         >>> s_dsp = Dispatcher()
 
-        >>> s_dsp.add_function('sub_dispatch', sub_dispatch, ['a'], ['b', 'c'])
+        >>> s_dsp.add_function('sub_ " | } {dispatch', sub_dispatch, ['a'], ['b', 'c'])
         'sub_dispatch'
         >>> dispatch = SubDispatch(s_dsp, ['b', 'c'], type_return='list')
         >>> dsp = Dispatcher()
@@ -222,7 +222,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
             edge_attr = 'value'
 
         def title(name):
-            return ' '.join([name, 'workflow'])
+            return ' '.join([_label_encode(name), 'workflow'])
 
     else:
         g = dsp.dmap
@@ -232,7 +232,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
             edge_attr = dsp.weight
 
         def title(name):
-            return name
+            return _label_encode(name)
 
     if dot is None:
         kw = {
@@ -280,7 +280,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
                             'style=filled',
                             'fillcolor="#FF8F0F80"',
                             'label="%s"' % title(k),
-                            'comment="%s"' % k,
+                            'comment="%s"' % _label_encode(k),
                         ]
                     }
                     sub = Digraph(**kw_sub)
@@ -305,7 +305,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
 
     for u, v, a in g.edges_iter(data=True):
         if edge_attr in a:
-            kw = {'xlabel': str(a[edge_attr])}
+            kw = {'xlabel': _label_encode(a[edge_attr])}
         else:
             kw = {}
         dot.edge(id_node(u), id_node(v), **kw)
@@ -362,7 +362,19 @@ def _fun_attr(k, v):
         v = v.__name__
     return _label_encode(v)
 
+
+# noinspection PyCallByClass,PyTypeChecker
+_encode_table = str.maketrans({
+    '&': '&amp;',
+    '<': '&lt;',
+    '\'': '&quot;',
+    '"': '&quot;',
+    '>': '&gt;',
+    '{':'\{',
+    '|': '\|',
+    '}': '\}',
+    })
+
+
 def _label_encode(text):
-    t = Text()
-    t.data = text
-    return re.sub(r'[{|}]', r'\\\g<0>', t.toxml())
+    return str(text).translate(_encode_table)
