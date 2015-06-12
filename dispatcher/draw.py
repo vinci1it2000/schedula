@@ -181,7 +181,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
         >>> sub_dispatch = SubDispatch(ss_dsp, ['a', 'b', 'c'], type_return='list')
         >>> s_dsp = Dispatcher()
 
-        >>> s_dsp.add_function('sub_ " | } {dispatch', sub_dispatch, ['a'], ['b', 'c'])
+        >>> s_dsp.add_function('sub_dispatch', sub_dispatch, ['a'], ['b', 'c'])
         'sub_dispatch'
         >>> dispatch = SubDispatch(s_dsp, ['b', 'c'], type_return='list')
         >>> dsp = Dispatcher()
