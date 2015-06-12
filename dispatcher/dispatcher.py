@@ -13,7 +13,7 @@ from networkx import DiGraph, isolates
 from heapq import heappush, heappop
 from itertools import count
 from collections import OrderedDict
-from .utils import rename_function, AttrDict
+from .utils import rename_function, AttrDict, caller_name
 from .graph_utils import add_edge_fun, remove_cycles_iteration
 from .constants import EMPTY, START, NONE, SINK
 from .dispatcher_utils import SubDispatch, bypass
@@ -1477,7 +1477,7 @@ class Dispatcher(object):
                 return o[outputs[0]]
 
         # define function
-        @rename_function(function_id)
+        @rename_function(function_id, caller_name())
         def dsp_fun(*args):
             # update inputs
             input_values.update(dict(zip(inputs, args)))

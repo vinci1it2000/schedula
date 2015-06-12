@@ -324,8 +324,10 @@ def _node_label(name, values):
 
 
 def _attr_node(k, v):
-    if k == 'function':
+    try:
         v = v.__name__
+    except AttributeError:
+        pass
     return '%s = %s' % (_label_encode(k), _label_encode(v))
 
 

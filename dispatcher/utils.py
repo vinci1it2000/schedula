@@ -8,6 +8,7 @@
 
 __author__ = 'Vincenzo Arcidiacono'
 
+import inspect
 from itertools import tee
 from heapq import heappop
 
@@ -82,7 +83,7 @@ def heap_flush(heap):
     return ordered_list
 
 
-def rename_function(new_name):
+def rename_function(new_name, module_name=None):
     """
     Decorator to rename a function.
 
@@ -102,10 +103,15 @@ def rename_function(new_name):
         >>> f.__name__
         'new name'
     """
-
-    def decorator(f):
-        f.__name__ = new_name
-        return f
+    if module_name is not None:
+        def decorator(f):
+            f.__name__ = new_name
+            f.__module__ = module_name
+            return f
+    else:
+        def decorator(f):
+            f.__name__ = new_name
+            return f
 
     return decorator
 
@@ -158,3 +164,38 @@ class AttrDict(dict):
 
     def copy(self):
         return AttrDict(super(AttrDict, self).copy())
+
+
+
+def caller_name(skip=2):
+    """Get a name of a caller in the format module.class.method
+
+       `skip` specifies how many levels of stack to skip while getting caller
+       name. skip=1 means "who calls me", skip=2 "who calls my caller" etc.
+
+       An empty string is returned if skipped levels exceed stack height
+    """
+
+    stack = inspect.stack()
+    start = 0 + skip
+    if len(stack) < start + 1:
+      return ''
+    parentframe = stack[start][0]
+
+    name = []
+    module = inspect.getmodule(parentframe)
+    # `modname` can be None when frame is executed directly in console
+    # TODO(techtonik): consider using __main__
+    if module:
+        name.append(module.__name__)
+    # detect classname
+    if 'self' in parentframe.f_locals:
+        # I don't know any way to detect call from the object method
+        # XXX: there seems to be no way to detect static method call - it will
+        #      be just a function call
+        name.append(parentframe.f_locals['self'].__class__.__name__)
+    codename = parentframe.f_code.co_name
+    if codename != '<module>':  # top level usually
+        name.append( codename ) # function or a method
+    del parentframe
+    return ".".join(name)
