@@ -8,6 +8,8 @@
 
 __author__ = 'Vincenzo Arcidiacono'
 
+import re
+from xml.dom.minidom import Text
 import matplotlib.pyplot as plt
 from networkx.classes.digraph import DiGraph
 from networkx.drawing import spring_layout, draw_networkx_nodes, \
@@ -188,7 +190,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
         >>> dsp.add_function('dispatch', dispatch, ['input'], ['d', 'e'])
         'dispatch'
 
-        >>> dot = dsp2dot(dsp)
+        >>> dot = dsp2dot(dsp, view = True)
 
     .. testsetup::
         >>> from dispatcher import dot_dir
@@ -320,11 +322,13 @@ def _node_label(name, values):
     if values:
         attr = '| ' + ' | '.join([_attr_node(*v) for v in values.items()])
 
-    return '{ %s %s }' % (name, attr)
+    return '{ %s %s }' % (_label_encode(name), attr)
 
 
 def _attr_node(k, v):
-    return '%s = %s' % (k, str(v).replace('{', '\{').replace('}', '\}'))
+    if k == 'function':
+        v = v.__name__
+    return '%s = %s' % (_label_encode(k), _label_encode(v))
 
 
 def _data_node_label(k, values, attr=None, dist=None):
@@ -355,5 +359,10 @@ def _fun_node_label(k, attr=None, dist=None):
 
 def _fun_attr(k, v):
     if k in ['input_domain']:
-        return v.__name__
-    return v.replace('{', '\{').replace('}', '\}')
+        v = v.__name__
+    return _label_encode(v)
+
+def _label_encode(text):
+    t = Text()
+    t.data = text
+    return re.sub(r'[{|}]', r'\\\g<0>', t.toxml())
