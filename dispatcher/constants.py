@@ -8,7 +8,7 @@
 
 __author__ = 'Vincenzo Arcidiacono'
 
-from dispatcher.utils import Token
+from .utils import Token
 
 __all__ = ['EMPTY', 'START', 'NONE', 'SINK']
 

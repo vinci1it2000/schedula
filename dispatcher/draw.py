@@ -14,8 +14,8 @@ from networkx.drawing import spring_layout, draw_networkx_nodes, \
     draw_networkx_labels, draw_networkx_edges, draw_networkx_edge_labels
 from networkx.utils import default_opener
 from graphviz import Digraph
-from dispatcher.constants import START
-from dispatcher.dispatcher_utils import SubDispatch
+from .constants import START
+from .dispatcher_utils import SubDispatch
 from tempfile import mkstemp
 
 __all__ = ['plot_dsp', 'dsp2dot']

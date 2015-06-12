@@ -10,7 +10,7 @@ __author__ = 'Vincenzo Arcidiacono'
 
 from heapq import heappush, heappop
 from itertools import count
-from dispatcher.utils import pairwise, heap_flush
+from .utils import pairwise, heap_flush
 
 __all__ = ['add_edge_fun', 'scc_fun', 'dijkstra', 'remove_cycles_iteration']
 
