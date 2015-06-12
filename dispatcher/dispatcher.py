@@ -1,9 +1,10 @@
-"""
-.. module:: dispatcher
-
-.. moduleauthor:: Vincenzo Arcidiacono <vinci1it2000@gmail.com>
-
-"""
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
+#
+# Copyright 2014 European Commission (JRC);
+# Licensed under the EUPL (the 'Licence');
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 __author__ = 'Vincenzo Arcidiacono'
 
@@ -17,7 +18,33 @@ from .graph_utils import add_edge_fun, remove_cycles_iteration
 from .constants import EMPTY, START, NONE, SINK
 from .dispatcher_utils import SubDispatch, bypass
 
+
 log = logging.getLogger(__name__)
+
+__all__ = ['Dispatcher']
+
+
+def _warning(raises):
+    """
+    Returns a function that handle the error messages.
+
+    :param raises:
+        If True the dispatcher interrupt the dispatch when an error occur,
+        otherwise it logs a warning.
+    :type: bool
+
+    :return:
+        A function that handle the error messages.
+    :rtype: function
+    """
+
+    if raises:
+        def warning(msg):
+            raise ValueError(msg)
+    else:
+        def warning(msg):
+            log.warning(msg, exc_info=1)
+    return warning
 
 
 class Dispatcher(object):
@@ -29,13 +56,13 @@ class Dispatcher(object):
 
     A workflow is a sequence of function calls.
 
-    :param dmap:
-        A directed graph that stores data & functions parameters.
-    :type dmap: DiGraph
-
     :ivar dmap:
         The directed graph that stores data & functions parameters.
     :type dmap: DiGraph
+
+    :ivar name:
+        The dispatcher's name.
+    :type name: str
 
     :ivar nodes:
         The function and data nodes of the dispatcher.
@@ -94,6 +121,10 @@ class Dispatcher(object):
         The predecessors of the `workflow` nodes.
     :type _wf_pred: dict
 
+    :ivar _wait_in:
+        Data nodes that waits inputs. They are used in `shrink_dsp`.
+    :type _wait_in: dict
+
     \***************************************************************************
 
     **Example**:
@@ -117,70 +148,123 @@ class Dispatcher(object):
 
     Add data nodes to the dispatcher map::
 
-        >>> dsp.add_data(data_id='/a')
-        '/a'
-        >>> dsp.add_data(data_id='/c')
-        '/c'
+        >>> dsp.add_data(data_id='a')
+        'a'
+        >>> dsp.add_data(data_id='c')
+        'c'
 
     Add a data node with a default value to the dispatcher map::
 
-        >>> dsp.add_data(data_id='/b', default_value=1)
-        '/b'
+        >>> dsp.add_data(data_id='b', default_value=1)
+        'b'
 
-    Create a function node::
+    Add a function node::
 
         >>> def diff_function(a, b):
         ...     return b - a
+        ...
+        >>> dsp.add_function('diff_function', function=diff_function,
+        ...                  inputs=['a', 'b'], outputs=['c'])
+        'diff_function'
 
-        >>> dsp.add_function(function=diff_function, inputs=['/a', '/b'],
-        ...                  outputs=['/c'])
-        '...dispatcher:diff_function'
-
-    Create a function node with domain::
+    Add a function node with domain::
 
         >>> from math import log
-
+        ...
         >>> def log_domain(x):
         ...     return x > 0
-
-        >>> dsp.add_function(function=log, inputs=['/c'], outputs=['/d'],
+        ...
+        >>> dsp.add_function('log', function=log, inputs=['c'], outputs=['d'],
         ...                  input_domain=log_domain)
-        'math:log'
+        'log'
 
-    Create a data node with function estimation and callback function.
+    Add a data node with function estimation and callback function.
 
         - function estimation: estimate one unique output from multiple
           estimations.
         - callback function: is invoked after computing the output.
 
         >>> def average_fun(kwargs):
+        ...     '''
+        ...     Returns the average of node estimations.
+        ...
+        ...     :param kwargs:
+        ...         Node estimations.
+        ...     :type kwargs: dict
+        ...
+        ...     :return:
+        ...         The average of node estimations.
+        ...     :rtype: float
+        ...     '''
+        ...
         ...     x = kwargs.values()
         ...     return sum(x) / len(x)
-
+        ...
         >>> def callback_fun(x):
         ...     print('(log(1) + 4) / 2 = %.1f' % x)
-
-        >>> dsp.add_data(data_id='/d', default_value=4, wait_inputs=True,
+        ...
+        >>> dsp.add_data(data_id='d', default_value=4, wait_inputs=True,
         ...              function=average_fun, callback=callback_fun)
-        '/d'
+        'd'
 
-    Dispatch the function calls to achieve the desired output data node '/d'::
+    .. testsetup::
+        >>> from dispatcher.draw import dsp2dot
+        >>> from dispatcher import dot_dir
+        >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
+        >>> dot.save('Dispatcher/dsp.dot', dot_dir)
+        '...'
 
-        >>> workflow, outputs = dsp.dispatch(inputs={'/a': 0}, outputs=['/d'])
+    .. graphviz:: Dispatcher/dsp.dot
+
+    Dispatch the function calls to achieve the desired output data node `d`::
+
+        >>> workflow, outputs = dsp.dispatch(inputs={'a': 0}, outputs=['d'])
         (log(1) + 4) / 2 = 2.0
         >>> sorted(outputs.items())
-        [('/a', 0), ('/b', 1), ('/c', 1), ('/d', 2.0)]
+        [('a', 0), ('b', 1), ('c', 1), ('d', 2.0)]
+
+    .. testsetup::
+        >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
+        >>> dot.save('Dispatcher/wf.dot', dot_dir)
+        '...'
+
+    .. graphviz:: Dispatcher/wf.dot
     """
 
-    def __init__(self, dmap=None):
+    def __init__(self, dmap=None, name='Dispatcher', default_values=None,
+                 raises=False):
+        """
+        Initializes the dispatcher.
+
+        :param dmap:
+            A directed graph that stores data & functions parameters.
+        :type dmap: DiGraph, optional
+
+        :param name:
+            The dispatcher's name.
+        :type name: str, optional
+
+        :param default_values:
+            Data node default values. These will be used as input if it is not
+            specified as inputs in the ArciDispatch algorithm.
+        :type default_values: dict, optional
+
+        :param raises:
+            If True the dispatcher interrupt the dispatch when an error occur,
+            otherwise it logs a warning.
+        :type raises: bool, optional
+        """
+
         self.dmap = dmap if dmap else DiGraph()
+        self.name = name
         self.dmap.node = AttrDict(self.dmap.node)
         self.nodes = self.dmap.node
-        self.default_values = {}
+        self.default_values = default_values if default_values else {}
         self.weight = 'weight'
         self.workflow = DiGraph()  # graph output
         self.data_output = {}
         self.dist = {}
+        self.warning = _warning(raises)
         self._visited = set()
         self._targets = set()
         self._cutoff = None
@@ -189,12 +273,12 @@ class Dispatcher(object):
         self._succ = self.dmap.succ
         self._wf_add_edge = add_edge_fun(self.workflow)
         self._wf_pred = self.workflow.pred
-        self.add_data(SINK, wait_inputs=True, function=bypass)
+        self._wait_in = {}
 
     def add_data(self, data_id=None, default_value=EMPTY, wait_inputs=False,
                  wildcard=None, function=None, callback=None, **kwargs):
         """
-        Add a single data node to the dispatcher map (dmap).
+        Add a single data node to the dispatcher.
 
         :param data_id:
             Data node id. If None will be assigned the next 'int' not in dmap.
@@ -217,7 +301,7 @@ class Dispatcher(object):
         :type wildcard: bool, optional
 
         :param function:
-            Data node estimation function (requires wait_inputs=True).
+            Data node estimation function.
             This can be any function that takes only one dictionary
             (key=function node id, value=estimation of data node) as input and
             return one value that is the estimation of the data node.
@@ -237,7 +321,7 @@ class Dispatcher(object):
             Data node id.
         :rtype: object
 
-        .. seealso:: add_function, load_dmap_from_lists
+        .. seealso:: add_function, add_from_lists
 
         .. note::
             A hashable object is one that can be used as a key in a Python
@@ -250,33 +334,49 @@ class Dispatcher(object):
 
         \***********************************************************************
 
-        **Example**::
+        **Example**:
 
-            >>> dmap = Dispatcher()
+        .. testsetup::
+            >>> dsp = Dispatcher()
 
-            # data to be estimated (i.e., result data node)
-            >>> dmap.add_data(data_id='/a')
-            '/a'
+        Add a data to be estimated or a possible input data node::
 
-            # data with a default value (i.e., input data node)
-            >>> dmap.add_data(data_id='/b', default_value=1)
-            '/b'
+            >>> dsp.add_data(data_id='a')
+            'a'
 
-            >>> def average_fun(*x):
-            ...     return sum(x) / len(x)
+        Add a data with a default value (i.e., input data node)::
 
-            # data node that is estimated as the average of all function node
-            # estimations
-            >>> dmap.add_data('/c', wait_inputs=True, function=average_fun)
-            '/c'
+            >>> dsp.add_data(data_id='b', default_value=1)
+            'b'
 
-            # initial data that is estimated as the average of all estimations
-            >>> dmap.add_data(data_id='/d', default_value=2, wait_inputs=True,
-            ...               function=average_fun)
-            '/d'
+        Create a data node with function estimation and a default value.
 
-            # create an internal data and return the generated id
-            >>> dmap.add_data()
+            - function estimation: estimate one unique output from multiple
+              estimations.
+            - default value: is a default estimation.
+
+            >>> def min_fun(kwargs):
+            ...     '''
+            ...     Returns the minimum value of node estimations.
+            ...
+            ...     :param kwargs:
+            ...         Node estimations.
+            ...     :type kwargs: dict
+            ...
+            ...     :return:
+            ...         The minimum value of node estimations.
+            ...     :rtype: float
+            ...     '''
+            ...
+            ...     return min(kwargs.values())
+            ...
+            >>> dsp.add_data(data_id='c', default_value=2, wait_inputs=True,
+            ...              function=min_fun)
+            'c'
+
+        Create a data with an unknown id and return the generated id::
+
+            >>> dsp.add_data()
             'unknown<0>'
         """
 
@@ -324,7 +424,7 @@ class Dispatcher(object):
                      outputs=None, input_domain=None, weight=None,
                      weight_from=None, weight_to=None, **kwargs):
         """
-        Add a single function node to dispatcher map.
+        Add a single function node to dispatcher.
 
         :param function_id:
             Function node id.
@@ -375,41 +475,50 @@ class Dispatcher(object):
             Function node id.
         :rtype: object
 
-        .. seealso:: add_node, load_dmap_from_lists
+        .. seealso:: add_node, add_from_lists
 
         \***********************************************************************
 
-        **Example**::
+        **Example**:
 
-            >>> dmap = Dispatcher()
+        .. testsetup::
+            >>> dsp = Dispatcher()
+
+        Add a function node::
 
             >>> def my_function(a, b):
             ...     c = a + b
             ...     d = a - b
             ...     return c, d
-
-            >>> dmap.add_function(function=my_function, inputs=['/a', '/b'],
-            ...                   outputs=['/c', '/d'])
+            ...
+            >>> dsp.add_function(function=my_function, inputs=['a', 'b'],
+            ...                  outputs=['c', 'd'])
             '...dispatcher:my_function'
+
+        Add a function node with domain::
 
             >>> from math import log
             >>> def my_log(a, b):
             ...     log(b - a)
-
+            ...
             >>> def my_domain(a, b):
             ...     return a < b
-
-            >>> dmap.add_function(function=my_log, inputs=['/a', '/b'],
-            ...                   outputs=['/e'], input_domain=my_domain)
+            ...
+            >>> dsp.add_function(function=my_log, inputs=['a', 'b'],
+            ...                  outputs=['e'], input_domain=my_domain)
             '...dispatcher:my_log'
         """
 
         if inputs is None:  # set a dummy input
-            inputs = [self.add_data(default_value=NONE)]
-            if outputs is None:
-                raise ValueError('Invalid input:'
-                                 ' missing inputs and outputs attributes.')
+            if START not in self.nodes:
+                self.add_data(START, default_value=NONE)
+
+            inputs = [START]
+
         if outputs is None:  # set a dummy output
+            if SINK not in self.nodes:
+                self.add_data(SINK, wait_inputs=True, function=bypass)
+
             outputs = [SINK]
 
         # base function node attributes
@@ -428,7 +537,7 @@ class Dispatcher(object):
                 function_name = '%s:%s' % (function.__module__,
                                            function.__name__)
             except Exception as ex:
-                raise ValueError('Invalid function name due to: {}'.format(ex))
+                raise ValueError('Invalid function name due to:\n{}'.format(ex))
         else:
             function_name = function_id
 
@@ -485,9 +594,9 @@ class Dispatcher(object):
         # return function node id
         return fun_id
 
-    def load_from_lists(self, data_list=None, fun_list=None):
+    def add_from_lists(self, data_list=None, fun_list=None):
         """
-        Add multiple function and data nodes to dispatcher map.
+        Add multiple function and data nodes to dispatcher.
 
         :param data_list:
             It is a list of data node kwargs to be loaded.
@@ -506,24 +615,33 @@ class Dispatcher(object):
 
         \***********************************************************************
 
-        **Example**::
+        **Example**:
 
-            >>> dmap = Dispatcher()
+        .. testsetup::
+            >>> dsp = Dispatcher()
+
+        Define a data list::
+
             >>> data_list = [
-            ...     {'data_id': '/a'},
-            ...     {'data_id': '/b'},
-            ...     {'data_id': '/c'},
+            ...     {'data_id': 'a'},
+            ...     {'data_id': 'b'},
+            ...     {'data_id': 'c'},
             ... ]
+
+        Define a functions list::
 
             >>> def f(a, b):
             ...     return a + b
-
+            ...
             >>> fun_list = [
-            ...     {'function': f, 'inputs': ['/a', '/b'], 'outputs': ['/c']},
-            ...     {'function': f, 'inputs': ['/c', '/d'], 'outputs': ['/a']}
+            ...     {'function': f, 'inputs': ['a', 'b'], 'outputs': ['c']},
+            ...     {'function': f, 'inputs': ['c', 'd'], 'outputs': ['a']}
             ... ]
-            >>> dmap.load_from_lists(data_list, fun_list)
-            (['/a', '/b', '/c'], ['...dispatcher:f', '...dispatcher:f<0>'])
+
+        Add function and data nodes to dispatcher::
+
+            >>> dsp.add_from_lists(data_list, fun_list)
+            (['a', 'b', 'c'], ['...dispatcher:f', '...dispatcher:f<0>'])
         """
 
         if data_list:  # add data nodes
@@ -541,7 +659,7 @@ class Dispatcher(object):
 
     def set_default_value(self, data_id, value=EMPTY):
         """
-        Set the default value of a data node in the dispatcher map.
+        Set the default value of a data node in the dispatcher.
 
         :param data_id:
             Data node id.
@@ -553,22 +671,28 @@ class Dispatcher(object):
 
         \***********************************************************************
 
-        **Example**::
+        **Example**:
 
-            >>> dmap = Dispatcher()
-            >>> dmap.add_data(data_id='/a')
-            '/a'
+        A dispatcher with a data node named `a`::
 
-            # add default value
-            >>> dmap.set_default_value('/a', value='value of the data')
-            >>> dmap.default_values
-            {'/a': 'value of the data'}
+            >>> dsp = Dispatcher()
+            ...
+            >>> dsp.add_data(data_id='a')
+            'a'
 
-            # remove default value
-            >>> dmap.set_default_value('/a', value=EMPTY)
-            >>> dmap.default_values
+        Add a default value to `a` node::
+
+            >>> dsp.set_default_value('a', value='value of the data')
+            >>> dsp.default_values
+            {'a': 'value of the data'}
+
+        Remove the default value of `a` node::
+
+            >>> dsp.set_default_value('a', value=EMPTY)
+            >>> dsp.default_values
             {}
         """
+
         try:
             if self.dmap.node[data_id]['type'] == 'data':  # check if data node
                 if value == EMPTY:
@@ -580,13 +704,12 @@ class Dispatcher(object):
         except:
             raise ValueError('Input error: %s is not a data node' % data_id)
 
-    def get_sub_dmap(self, nodes_bunch, edges_bunch=None):
+    def get_sub_dsp(self, nodes_bunch, edges_bunch=None):
         """
-        Returns the sub-dispatcher map induced by given node and edge bunches.
+        Returns the sub-dispatcher induced by given node and edge bunches.
 
-        The induced sub-dispatcher map of the dmap contains the available nodes
-        in nodes_bunch and edges between those nodes, excluding those that are
-        in edges_bunch.
+        The induced sub-dispatcher contains the available nodes in nodes_bunch
+        and edges between those nodes, excluding those that are in edges_bunch.
 
         The available nodes are non isolated nodes and function nodes that have
         all inputs and at least one output.
@@ -600,47 +723,59 @@ class Dispatcher(object):
         :type edges_bunch: list, iterable, optional
 
         :return:
-            A sub-dispatcher map.
+            A sub-dispatcher.
         :rtype: Dispatcher
 
         .. note::
 
-            The sub-dispatcher map, edge or node attributes just point to the
-            original dispatcher map. So changes to the node or edge structure
+            The sub-dispatcher edge or node attributes just point to the
+            original dispatcher. So changes to the node or edge structure
             will not be reflected in the original dispatcher map while changes
             to the attributes will.
 
         \***********************************************************************
 
-        **Example**::
+        **Example**:
 
-            >>> dmap = Dispatcher()
-            >>> dmap.add_function(function_id='fun1', inputs=['/a', '/b'],
-            ...                   outputs=['/c', '/d'])
+        A dispatcher with a two functions `fun1` and `fun2`:
+
+        .. testsetup::
+            >>> dsp = Dispatcher()
+            >>> dsp.add_function(function_id='fun1', inputs=['a', 'b'],
+            ...                   outputs=['c', 'd'])
             'fun1'
-            >>> dmap.add_function(function_id='fun2', inputs=['/a', '/d'],
-            ...                   outputs=['/c', '/e'])
+            >>> dsp.add_function(function_id='fun2', inputs=['a', 'd'],
+            ...                   outputs=['c', 'e'])
             'fun2'
-            >>> sub_dmap = dmap.get_sub_dmap(['/a', '/c', '/d', '/e', 'fun2'])
-            >>> sorted(sub_dmap.dmap.node)
-            ['/a', '/c', '/d', '/e', 'fun2']
-            >>> res = {'/a': {'fun2': {}},
-            ...        '/c': {},
-            ...        '/d': {'fun2': {}},
-            ...        '/e': {},
-            ...        'fun2': {'/e': {}, '/c': {}}}
-            >>> sub_dmap.dmap.edge ==  res
-            True
+            >>> from dispatcher.draw import dsp2dot
+            >>> from dispatcher import dot_dir
+            >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
+            >>> dot.save('get_sub_dsp/dsp.dot', dot_dir)
+            '...'
+
+        .. graphviz:: get_sub_dsp/dsp.dot
+
+        Get the sub-dispatcher induced by given nodes bunch::
+
+            >>> sub_dsp = dsp.get_sub_dsp(['a', 'c', 'd', 'e', 'fun2'])
+
+        .. testsetup::
+            >>> sub_dsp.name = 'Sub-Dispatcher'
+            >>> dot = dsp2dot(sub_dsp, graph_attr={'rankdir': 'LR'})
+            >>> dot.save('get_sub_dsp/sub_dsp.dot', dot_dir)
+            '...'
+
+        .. graphviz:: get_sub_dsp/sub_dsp.dot
         """
 
-        # define an empty dispatcher map
-        sub_dmap = self.__class__(dmap=self.dmap.subgraph(nodes_bunch))
+        # define an empty dispatcher
+        sub_dsp = self.__class__(dmap=self.dmap.subgraph(nodes_bunch))
 
         # namespace shortcuts for speed
-        nodes = sub_dmap.dmap.node
-        dmap_out_degree = sub_dmap.dmap.out_degree
-        dmap_remove_node = sub_dmap.dmap.remove_node
-        dmap_remove_edge = sub_dmap.dmap.remove_edge
+        nodes = sub_dsp.dmap.node
+        dmap_out_degree = sub_dsp.dmap.out_degree
+        dmap_remove_node = sub_dsp.dmap.remove_node
+        dmap_remove_edge = sub_dsp.dmap.remove_edge
         dmap_dv = self.default_values
 
         # remove function nodes that has not whole inputs available
@@ -657,90 +792,20 @@ class Dispatcher(object):
                 dmap_remove_edge(*e)  # remove edge
 
         # remove function node with no outputs
-        for u in [u for u, n in sub_dmap.dmap.nodes_iter(True)
+        for u in [u for u, n in sub_dsp.dmap.nodes_iter(True)
                   if n['type'] == 'function']:
 
             if not dmap_out_degree(u):  # no outputs
                 dmap_remove_node(u)  # remove function node
 
         # remove isolate nodes from sub-graph
-        sub_dmap.dmap.remove_nodes_from(isolates(sub_dmap.dmap))
+        sub_dsp.dmap.remove_nodes_from(isolates(sub_dsp.dmap))
 
         # set default values
-        sub_dmap.default_values = {k: dmap_dv[k] for k in dmap_dv if k in nodes}
+        sub_dsp.default_values = {k: dmap_dv[k] for k in dmap_dv if k in nodes}
 
-        # return the sub-dispatcher map
-        return sub_dmap
-
-    def remove_cycles(self, sources):
-        """
-        Returns a new dispatcher map removing unresolved cycles.
-
-        An unresolved cycle is a cycle that cannot be removed by the
-        ArciDispatch algorithm.
-
-        :param sources:
-            Input data nodes.
-        :type sources: iterable
-
-        :return:
-            A new dmap without the unresolved dmap cycles.
-        :rtype: Dispatcher
-
-        \***********************************************************************
-
-        **Example**::
-
-            >>> dsp = Dispatcher()
-            >>> def average(kwargs):
-            ...     return sum(kwargs.values()) / len(kwargs)
-            >>> dsp.add_data(data_id='/b', default_value=3)
-            '/b'
-            >>> dsp.add_data(data_id='/c', wait_inputs=True, function=average)
-            '/c'
-            >>> dsp.add_function(function=max, inputs=['/a', '/b'],
-            ...                  outputs=['/c'])
-            'builtins:max'
-            >>> dsp.add_function(function=min, inputs=['/a', '/c'],
-            ...                  outputs=['/d'])
-            'builtins:min'
-            >>> dsp.add_function(function=min, inputs=['/b', '/d'],
-            ...                  outputs=['/c'])
-            'builtins:min<0>'
-            >>> dsp.add_function(function=max, inputs=['/b', '/d'],
-            ...                  outputs=['/a'])
-            'builtins:max<0>'
-            >>> res = dsp.dispatch(inputs={'/a': 1})[1]
-            >>> sorted(res.items())
-            [('/a', 1), ('/b', 3)]
-            >>> dsp_rm_cycles = dsp.remove_cycles(['/a', '/b'])
-            >>> dsp_rm_cycles.add_function(function=min, inputs=['/a', '/e'],
-            ...                            outputs=['/f'])
-            'builtins:min<0>'
-            >>> res = dsp_rm_cycles.dispatch(inputs={'/a': 1, '/e': 0})[1]
-            >>> sorted(res.items())
-            [('/a', 1), ('/b', 3), ('/c', 3.0), ('/d', 1), ('/e', 0), ('/f', 0)]
-        """
-
-        # Reachable nodes from sources
-        reached_nodes = set()
-
-        # List of edges to be removed
-        edge_to_remove = []
-
-        # updates the reachable nodes and list of edges to be removed
-        remove_cycles_iteration(self.dmap, iter(sources), reached_nodes,
-                                edge_to_remove)
-
-        for v in self.dmap.node.values():
-            if v.pop('undo', False):
-                v['wait_inputs'] = True
-
-        # sub-dispatcher map induced by the reachable nodes
-        new_dmap = self.get_sub_dmap(reached_nodes, edge_to_remove)
-
-        # return a new dmap without the unresolved dmap cycles
-        return new_dmap
+        # return the sub-dispatcher
+        return sub_dsp
 
     def get_sub_dsp_from_workflow(self, sources, graph=None, reverse=False):
         """
@@ -769,47 +834,65 @@ class Dispatcher(object):
 
         .. note::
 
-            The sub-dispatcher map, edge or node attributes just point to the
-            original dispatcher map. So changes to the node or edge structure
+            The sub-dispatcher edge or node attributes just point to the
+            original dispatcher. So changes to the node or edge structure
             will not be reflected in the original dispatcher map while changes
             to the attributes will.
 
         \***********************************************************************
 
-        **Example**::
+        **Example**:
 
+        A dispatcher with a function `fun` and a node `a` with a default value:
+
+        .. testsetup::
             >>> dsp = Dispatcher()
-            >>> dsp.add_data(data_id='/a', default_value=1)
-            '/a'
-            >>> dsp.add_function(function_id='fun1', inputs=['/a', '/b'],
-            ...                  outputs=['/c', '/d'])
+            >>> dsp.add_data(data_id='a', default_value=1)
+            'a'
+            >>> dsp.add_function(function_id='fun1', inputs=['a', 'b'],
+            ...                  outputs=['c', 'd'])
             'fun1'
+            >>> dsp.add_function(function_id='fun2', inputs=['e'],
+            ...                  outputs=['c'])
+            'fun2'
+            >>> from dispatcher.draw import dsp2dot
+            >>> from dispatcher import dot_dir
+            >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
+            >>> file = 'get_sub_dsp_from_workflow/dsp.dot'
+            >>> dot.save(file, dot_dir)
+            '...'
 
-            >>> wf = dsp.dispatch(inputs=['/a', '/b'], no_call=True)[0]
+        .. graphviz:: get_sub_dsp_from_workflow/dsp.dot
 
-            >>> sub_dsp = dsp.get_sub_dsp_from_workflow(['/a', '/b'])
-            >>> sub_dsp.default_values
-            {'/a': 1}
-            >>> sorted(sub_dsp.dmap.node)
-            ['/a', '/b', '/c', '/d', 'fun1', sink]
-            >>> res = {'/a': {'fun1': {}},
-            ...        '/b': {'fun1': {}},
-            ...        '/c': {},
-            ...        '/d': {},
-            ...        'fun1': {'/c': {}, '/d': {}},
-            ...        SINK: {}}
-            >>> sub_dsp.dmap.edge ==  res
-            True
-            >>> sub_dsp = dsp.get_sub_dsp_from_workflow(['/c'], reverse=True)
-            >>> sorted(sub_dsp.dmap.node)
-            ['/a', '/b', '/c', 'fun1', sink]
-            >>> res = {'/a': {'fun1': {}},
-            ...        '/b': {'fun1': {}},
-            ...        '/c': {},
-            ...        'fun1': {'/c': {}},
-            ...        SINK: {}}
-            >>> sub_dsp.dmap.edge ==  res
-            True
+        Dispatch with no calls in order to have a workflow::
+
+            >>> o = dsp.dispatch(inputs=['a', 'b'], no_call=True)[1]
+
+        Get sub-dispatcher from workflow inputs `a` and `b`::
+
+            >>> sub_dsp = dsp.get_sub_dsp_from_workflow(['a', 'b'])
+
+        .. testsetup::
+            >>> sub_dsp.name = 'Sub-Dispatcher'
+            >>> dot = dsp2dot(sub_dsp, graph_attr={'rankdir': 'LR'})
+            >>> file = 'get_sub_dsp_from_workflow/sub_dsp1.dot'
+            >>> dot.save(file, dot_dir)
+            '...'
+
+        .. graphviz:: get_sub_dsp_from_workflow/sub_dsp1.dot
+
+        Get sub-dispatcher from a workflow output `c`::
+
+            >>> sub_dsp = dsp.get_sub_dsp_from_workflow(['c'], reverse=True)
+
+        .. testsetup::
+            >>> sub_dsp.name = 'Sub-Dispatcher (reverse workflow)'
+            >>> dot = dsp2dot(sub_dsp, graph_attr={'rankdir': 'LR'})
+            >>> file = 'get_sub_dsp_from_workflow/sub_dsp2.dot'
+            >>> dot.save(file, dot_dir)
+            '...'
+
+        .. graphviz:: get_sub_dsp_from_workflow/sub_dsp2.dot
         """
 
         # define an empty dispatcher map
@@ -818,23 +901,44 @@ class Dispatcher(object):
         if not graph:  # set default graph
             graph = self.workflow
 
+        # visited nodes used as queue
+        family = OrderedDict()
+
+        # namespace shortcuts for speed
+        nodes, dmap_nodes = (sub_dsp.dmap.node, self.dmap.node)
+        dlt_val, dsp_dlt_val = (sub_dsp.default_values, self.default_values)
+
         if not reverse:
             # namespace shortcuts for speed
             neighbors = graph.neighbors_iter
             dmap_succ = self.dmap.succ
             succ, pred = (sub_dsp.dmap.succ, sub_dsp.dmap.pred)
+
+            def check_node_inputs(c):
+                node_attr = dmap_nodes[c]
+
+                if node_attr['type'] == 'function':
+                    if set(node_attr['inputs']).issubset(family):
+                        set_node_attr(c)
+
+                        # namespace shortcuts for speed
+                        s_pred = pred[c]
+
+                        for p in node_attr['inputs']:
+                            # add attributes to both representations of edge
+                            succ[p][c] = s_pred[p] = dmap_succ[p][c]
+                    return True
+
+                return False
+
         else:
             # namespace shortcuts for speed
             neighbors = graph.predecessors_iter
             dmap_succ = self.dmap.pred
             pred, succ = (sub_dsp.dmap.succ, sub_dsp.dmap.pred)
 
-        # namespace shortcuts for speed
-        nodes, dmap_nodes = (sub_dsp.dmap.node, self.dmap.node)
-        dlt_val, dsp_dlt_val = (sub_dsp.default_values, self.default_values)
-
-        # visited nodes used as queue
-        family = OrderedDict()
+            def check_node_inputs(c):
+                return False
 
         # function to set node attributes
         def set_node_attr(n):
@@ -851,7 +955,8 @@ class Dispatcher(object):
 
         # set initial node attributes
         for s in sources:
-            set_node_attr(s)
+            if s in dmap_nodes and s in graph.node:
+                set_node_attr(s)
 
         # start breadth-first-search
         for parent, children in iter(family.items()):
@@ -862,7 +967,7 @@ class Dispatcher(object):
             # iterate parent's children
             for child in children:
 
-                if child == START:
+                if child == START or check_node_inputs(child):
                     continue
 
                 if child not in family:
@@ -874,10 +979,126 @@ class Dispatcher(object):
         # return the sub-dispatcher map
         return sub_dsp
 
+    def remove_cycles(self, sources):
+        """
+        Returns a new dispatcher removing unresolved cycles.
+
+        An unresolved cycle is a cycle that cannot be removed by the
+        ArciDispatch algorithm.
+
+        :param sources:
+            Input data nodes.
+        :type sources: iterable
+
+        :return:
+            A new dispatcher without the unresolved cycles.
+        :rtype: Dispatcher
+
+        \***********************************************************************
+
+        **Example**:
+
+        A dispatcher with an unresolved cycle (i.e., `c` --> `min1` --> `d` -->
+        `min2` --> `c`):
+
+        .. testsetup::
+            >>> dsp = Dispatcher()
+            >>> def average(kwargs):
+            ...     return sum(kwargs.values()) / len(kwargs)
+            >>> data = [
+            ...     {'data_id': 'b', 'default_value': 3},
+            ...     {'data_id': 'c', 'wait_inputs': True, 'function': average},
+            ... ]
+            >>> functions = [
+            ...     {
+            ...         'function_id': 'max1',
+            ...         'function': max,
+            ...         'inputs': ['a', 'b'],
+            ...         'outputs': ['c']
+            ...     },
+            ...     {
+            ...         'function_id': 'min1',
+            ...         'function': min,
+            ...         'inputs': ['a', 'c'],
+            ...         'outputs': ['d']
+            ...     },
+            ...     {
+            ...         'function_id': 'min2',
+            ...         'function': min,
+            ...         'inputs': ['b', 'd'],
+            ...         'outputs': ['c']
+            ...     },
+            ...     {
+            ...         'function_id': 'max2',
+            ...         'function': max,
+            ...         'inputs': ['b', 'd'],
+            ...         'outputs': ['a']
+            ...     },
+            ... ]
+            >>> dsp.add_from_lists(data_list=data, fun_list=functions)
+            ([...], [...])
+            >>> from dispatcher.draw import dsp2dot
+            >>> from dispatcher import dot_dir
+            >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
+            >>> dot.save('remove_cycles/dsp.dot', dot_dir)
+            '...'
+
+        .. graphviz:: remove_cycles/dsp.dot
+
+        The dispatch stops on data node `c` due to the unresolved cycle::
+
+            >>> res = dsp.dispatch(inputs={'a': 1})[1]
+            >>> sorted(res.items())
+            [('a', 1), ('b', 3)]
+
+        .. testsetup::
+            >>> dot = dsp2dot(dsp, True, graph_attr={'rankdir': 'LR'})
+            >>> dot.save('remove_cycles/wf.dot', dot_dir)
+            '...'
+
+        .. graphviz:: remove_cycles/wf.dot
+
+        Removing the unresolved cycle the dispatch continues to all nodes::
+
+            >>> dsp_rm_cycles = dsp.remove_cycles(['a', 'b'])
+            >>> res = dsp_rm_cycles.dispatch(inputs={'a': 1})[1]
+            >>> sorted(res.items())
+            [('a', 1), ('b', 3), ('c', 3.0), ('d', 1)]
+
+        .. testsetup::
+            >>> dsp_rm_cycles.name = 'Dispatcher without unresolved cycles'
+            >>> dot = dsp2dot(dsp_rm_cycles, True, graph_attr={'rankdir': 'LR'})
+            >>> file = 'remove_cycles/wf_rm_cycles.dot'
+            >>> dot.save(file, dot_dir)
+            '...'
+
+        .. graphviz:: remove_cycles/wf_rm_cycles.dot
+        """
+
+        # Reachable nodes from sources
+        reached_nodes = set()
+
+        # List of edges to be removed
+        edge_to_remove = []
+
+        # updates the reachable nodes and list of edges to be removed
+        remove_cycles_iteration(self.dmap, iter(sources), reached_nodes,
+                                edge_to_remove)
+
+        for v in self.dmap.node.values():
+            if v.pop('undo', False):
+                v['wait_inputs'] = True
+
+        # sub-dispatcher induced by the reachable nodes
+        new_dmap = self.get_sub_dsp(reached_nodes, edge_to_remove)
+
+        # return a new dispatcher without the unresolved cycles
+        return new_dmap
+
     def dispatch(self, inputs=None, outputs=None, cutoff=None,
                  wildcard=False, no_call=False, shrink=False):
         """
-        Evaluates the minimum workflow and data outputs of the dispatcher map
+        Evaluates the minimum workflow and data outputs of the dispatcher
         model from given inputs.
 
         :param inputs:
@@ -913,49 +1134,85 @@ class Dispatcher(object):
 
         \***********************************************************************
 
-        **Example**::
+        **Example**:
 
+        A dispatcher with a function `my_log` and two data `a` and `b`
+        with default values:
+
+        .. testsetup::
             >>> dsp = Dispatcher()
+            >>> dsp.add_data(data_id='a', default_value=0)
+            'a'
+            >>> dsp.add_data(data_id='b', default_value=5)
+            'b'
+            >>> dsp.add_data(data_id='d', default_value=1)
+            'd'
             >>> from math import log
-            >>> dsp.add_data(data_id='/a', default_value=0)
-            '/a'
-            >>> dsp.add_data(data_id='/b', default_value=1)
-            '/b'
-
             >>> def my_log(a, b):
             ...     return log(b - a)
-
             >>> def my_domain(a, b):
             ...     return a < b
+            >>> dsp.add_function('my log', function=my_log, inputs=['c', 'd'],
+            ...                  outputs=['e'], input_domain=my_domain)
+            'my log'
+            >>> dsp.add_function('min', function=min, inputs=['a', 'b'],
+            ...                  outputs=['c'])
+            'min'
+            >>> from dispatcher.draw import dsp2dot
+            >>> from dispatcher import dot_dir
+            >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
+            >>> dot.save('dispatch/dsp.dot', dot_dir)
+            '...'
 
-            >>> dsp.add_function(function=my_log, inputs=['/a', '/b'],
-            ...                  outputs=['/c'], input_domain=my_domain)
-            '...dispatcher:my_log'
-            >>> workflow, outputs = dsp.dispatch(outputs=['/c'])
-            >>> sorted(outputs.items())
-            [('/a', 0), ('/b', 1), ('/c', 0.0)]
-            >>> sorted(workflow.nodes())
-            ['/a', '/b', '/c', '...dispatcher:my_log', start]
-            >>> sorted(workflow.edges())
-            [('/a', '...dispatcher:my_log'), ('/b', '...dispatcher:my_log'),
-             ('...dispatcher:my_log', '/c'), (start, '/a'), (start, '/b')]
+        .. graphviz:: dispatch/dsp.dot
 
-            >>> workflow, outputs = dsp.dispatch(inputs={'/b': 0},
-            ...                                  outputs=['/c'])
+        Dispatch without inputs. The default values are used as inputs::
+
+            >>> workflow, outputs = dsp.dispatch()
+            ...
             >>> sorted(outputs.items())
-            [('/a', 0), ('/b', 0)]
-            >>> sorted(workflow.nodes())
-            ['/a', '/b', '...dispatcher:my_log', start]
-            >>> sorted(workflow.edges())
-            [('/a', '...dispatcher:my_log'),
-             ('/b', '...dispatcher:my_log'),
-             (start, '/a'),
-             (start, '/b')]
+            [('a', 0), ('b', 5), ('c', 0), ('d', 1), ('e', 0.0)]
+
+        .. testsetup::
+            >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
+            >>> dot.save('dispatch/wf1.dot', dot_dir)
+            '...'
+
+        .. graphviz:: dispatch/wf1.dot
+
+        Dispatch until data node `c` is estimated::
+
+            >>> workflow, outputs = dsp.dispatch(outputs=['c'])
+            ...
+            >>> sorted(outputs.items())
+             [('a', 0), ('b', 5), ('c', 0), ('d', 1)]
+
+        .. testsetup::
+            >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
+            >>> dot.save('dispatch/wf2.dot', dot_dir)
+            '...'
+
+        .. graphviz:: dispatch/wf2.dot
+
+        Dispatch with one inputs. The default value of `a` is not used as
+        inputs::
+
+            >>> workflow, outputs = dsp.dispatch(inputs={'a': 3})
+            ...
+            >>> sorted(outputs.items())
+             [('a', 3), ('b', 5), ('c', 3), ('d', 1)]
+
+        .. testsetup::
+            >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
+            >>> dot.save('dispatch/wf3.dot', dot_dir)
+            '...'
+
+        .. graphviz:: dispatch/wf3.dot
         """
 
         # pre shrink
         if not no_call and shrink:
-            dsp = self.shrink_dsp(inputs, outputs, cutoff, wildcard)
+            dsp = self.shrink_dsp(inputs, outputs, cutoff)
         else:
             dsp = self
 
@@ -969,16 +1226,15 @@ class Dispatcher(object):
         out_dsp_nodes = set(args[0]).difference(dsp.nodes)
 
         # add nodes that are out of the dispatcher nodes
-        data_outputs.update({k: inputs[k] for k in out_dsp_nodes})
+        if inputs:
+            data_outputs.update({k: inputs[k] for k in out_dsp_nodes})
 
         # return the evaluated workflow graph and data outputs
         return workflow, data_outputs
 
-    # TODO: Extend minimum dmap when using function domains
-    def shrink_dsp(self, inputs=None, outputs=None, cutoff=None,
-                   wildcard=False):
+    def shrink_dsp(self, inputs=None, outputs=None, cutoff=None):
         """
-        Returns a reduced dispatcher built using the empty function workflow.
+        Returns a reduced dispatcher.
 
         :param inputs:
             Input data nodes.
@@ -992,78 +1248,117 @@ class Dispatcher(object):
             Depth to stop the search.
         :type cutoff: float, int, optional
 
-        :param wildcard:
-            If True, when the data node is used as input and target in the
-            ArciDispatch algorithm, the input value will be used as input for
-            the connected functions, but not as output.
-        :type wildcard: bool, optional
-
         :return:
             A sub-dispatcher.
         :rtype: Dispatcher
 
         \***********************************************************************
 
-        **Example**::
+        **Example**:
 
+        A dispatcher like this:
+
+        .. testsetup::
             >>> dsp = Dispatcher()
-            >>> dsp.add_function(function=max, inputs=['/a', '/b'],
-            ...                  outputs=['/c'])
-            'builtins:max'
-            >>> dsp.add_function(function=max, inputs=['/b', '/d'],
-            ...                  outputs=['/e'])
-            'builtins:max<0>'
-            >>> dsp.add_function(function=max, inputs=['/d', '/e'],
-            ...                  outputs=['/c','/f'])
-            'builtins:max<1>'
-            >>> dsp.add_function(function=max, inputs=['/d', '/f'],
-            ...                  outputs=['/g'])
-            'builtins:max<2>'
-            >>> dsp.add_function(function=max, inputs=['/a', '/b'],
-            ...                  outputs=['/g'])
-            'builtins:max<3>'
+            >>> functions = [
+            ...     {
+            ...         'function_id': 'fun1',
+            ...         'inputs': ['a', 'b'],
+            ...         'outputs': ['c']
+            ...     },
+            ...     {
+            ...         'function_id': 'fun2',
+            ...         'inputs': ['b', 'd'],
+            ...         'outputs': ['e']
+            ...     },
+            ...     {
+            ...         'function_id': 'fun3',
+            ...         'function': min,
+            ...         'inputs': ['d', 'f'],
+            ...         'outputs': ['g']
+            ...     },
+            ...     {
+            ...         'function_id': 'fun4',
+            ...         'function': max,
+            ...         'inputs': ['a', 'b'],
+            ...         'outputs': ['g']
+            ...     },
+            ...     {
+            ...         'function_id': 'fun5',
+            ...         'function': max,
+            ...         'inputs': ['d', 'e'],
+            ...         'outputs': ['c', 'f']
+            ...     },
+            ... ]
+            >>> dsp.add_from_lists(fun_list=functions)
+            ([], [...])
+            >>> from dispatcher.draw import dsp2dot
+            >>> from dispatcher import dot_dir
+            >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
+            >>> dot.save('shrink_dsp/dsp.dot', dot_dir)
+            '...'
 
-            >>> shrink_dsp = dsp.shrink_dsp(inputs=['/a', '/b', '/d'],
-            ...                             outputs=['/c', '/e', '/f'])
-            >>> sorted(shrink_dsp.dmap.nodes())
-            ['/a', '/b', '/c', '/d', '/e', '/f',
-             'builtins:max', 'builtins:max<0>', 'builtins:max<1>', sink]
-            >>> sorted(shrink_dsp.dmap.edges())
-            [('/a', 'builtins:max'), ('/b', 'builtins:max'),
-             ('/b', 'builtins:max<0>'), ('/d', 'builtins:max<0>'),
-             ('/d', 'builtins:max<1>'), ('/e', 'builtins:max<1>'),
-             ('builtins:max', '/c'), ('builtins:max<0>', '/e'),
-             ('builtins:max<1>', '/f')]
+        .. graphviz:: shrink_dsp/dsp.dot
+
+        Get the sub-dispatcher induced by dispatching with no calls from inputs
+        `a`, `b`, and `c` to outputs `c`, `e`, and `f`::
+
+            >>> shrink_dsp = dsp.shrink_dsp(inputs=['a', 'b', 'd'],
+            ...                             outputs=['c', 'f'])
+
+        .. testsetup::
+            >>> shrink_dsp.name = 'Sub-Dispatcher'
+            >>> dot = dsp2dot(shrink_dsp, graph_attr={'rankdir': 'LR'})
+            >>> dot.save('shrink_dsp/shrink_dsp.dot', dot_dir)
+            '...'
+
+        .. graphviz:: shrink_dsp/shrink_dsp.dot
         """
+
+        bfs_graph = self.dmap
+
         if inputs:
-            # evaluate the workflow graph without invoking functions
-            workflow, data_visited = self.dispatch(inputs, outputs, cutoff,
-                                                   wildcard, True)
 
-            # remove the starting node from the workflow graph
-            workflow.remove_node(START)
+            self._set_wait_in()
+            wait_in = self._wait_in
+            edges = set()
+            bfs_graph = DiGraph()
 
-            # set the graph for the breadth-first-search
-            bfs_graph = workflow
-            if outputs:
-                # reached outputs
-                outputs = set(outputs) & set(data_visited)
-            else:
-                outputs = set(data_visited)
+            while True:
 
-        elif outputs:
-            # set the graph for the breadth-first-search
-            bfs_graph = self.dmap
+                for k, v in wait_in.items():
+                    if v and k in inputs:
+                        wait_in[k] = False
 
-            # outputs in the dispatcher
-            outputs = set(outputs) & set(self.dmap.node)
+                # evaluate the workflow graph without invoking functions
+                wf, o = self.dispatch(inputs, outputs, cutoff, True, True)
+
+                edges.update(wf.edges())
+
+                n_d = (wf.node.keys() - self._visited)
+
+                if not n_d:
+                    break
+
+                inputs = n_d.union(inputs)
+
+            bfs_graph.add_edges_from(edges)
+
+            if outputs is None:
+                # noinspection PyUnboundLocalVariable
+                outputs = o
+
+        self._wait_in = {}
+
+        if outputs:
+            dsp = self.get_sub_dsp_from_workflow(outputs, bfs_graph, True)
         else:
-            return self.__class__()  # return an empty dispatcher
+            return self.__class__()
 
         # return the sub dispatcher
-        return self.get_sub_dsp_from_workflow(outputs, bfs_graph, True)
+        return dsp
 
-    def extract_function_node(self, function_id, inputs, outputs, cutoff=None):
+    def create_function_node(self, function_id, inputs, outputs, cutoff=None):
         """
         Returns a function node that uses the dispatcher map as function.
 
@@ -1090,29 +1385,72 @@ class Dispatcher(object):
 
         \***********************************************************************
 
-        **Example**::
+        **Example**:
 
+        A dispatcher with two functions `max` and `min` and an unresolved cycle
+        (i.e., `a` --> `max` --> `c` --> `min` --> `a`):
+
+        .. testsetup::
             >>> dsp = Dispatcher()
-            >>> dsp.add_function(function=max, inputs=['/a', '/b'],
-            ...                  outputs=['/c'])
-            'builtins:max'
-            >>> dsp.add_function(function=min, inputs=['/c', '/b'],
-            ...                  outputs=['/a'],
-            ...                  input_domain=lambda c, b: c * b > 0)
-            'builtins:min'
-            >>> res = dsp.extract_function_node('myF', ['/a', '/b'], ['/a'])
-            >>> res['inputs'] == ['/a', '/b']
+            >>> dsp.add_function('max', max, inputs=['a', 'b'], outputs=['c'])
+            'max'
+            >>> from math import log
+            >>> def my_log(x):
+            ...     return log(x - 1)
+            >>> dsp.add_function('log(x - 1)', my_log, inputs=['c'],
+            ...                  outputs=['a'], input_domain=lambda c: c > 1)
+            'log(x - 1)'
+            >>> from dispatcher.draw import dsp2dot
+            >>> from dispatcher import dot_dir
+            >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
+            >>> dot.save('create_function_node/dsp.dot', dot_dir)
+            '...'
+
+        .. graphviz:: create_function_node/dsp.dot
+
+        Extract a static function node, i.e. the inputs `a` and `b` and the
+        output `a` are fixed::
+
+            >>> res = dsp.create_function_node('myF', ['a', 'b'], ['a'])
+            >>> res['inputs'] == ['a', 'b']
             True
-            >>> res['outputs'] == ['/a']
+            >>> res['outputs'] == ['a']
             True
             >>> res['function'].__name__
             'myF'
             >>> res['function'](2, 1)
-            1
+            0.0
+
+        .. testsetup::
+            >>> dsp.name = 'Created function internal'
+            >>> dsp.dispatch({'a': 2, 'b': 1}, outputs=['a'], wildcard=True)
+            (...)
+            >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
+            >>> dot.save('create_function_node/wf1.dot', dot_dir)
+            '...'
+
+        .. graphviz:: create_function_node/wf1.dot
+
+        The created function raises a ValueError if un-valid inputs are
+        provided::
+
+            >>> res['function'](1, 0)
+            Traceback (most recent call last):
+            ...
+            ValueError: Unreachable output-targets:{'a'}
+
+        .. testsetup::
+            >>> dsp.dispatch({'a': 1, 'b': 0}, outputs=['a'], wildcard=True)
+            (...)
+            >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
+            >>> dot.save('create_function_node/wf2.dot', dot_dir)
+            '...'
+
+        .. graphviz:: create_function_node/wf2.dot
         """
 
         # new shrink dispatcher
-        dsp = self.shrink_dsp(inputs, outputs, cutoff, True)
+        dsp = self.shrink_dsp(inputs, outputs, cutoff=cutoff)
 
         # outputs not reached
         missed = set(outputs).difference(dsp.nodes)
@@ -1224,6 +1562,7 @@ class Dispatcher(object):
                     True if distance > cutoff, otherwise False
                 :rtype: bool
                 """
+
                 return distance > cutoff  # check cutoff distance
 
         else:  # cutoff is None.
@@ -1255,26 +1594,98 @@ class Dispatcher(object):
 
         return edge.get(weight, 1) + node_out.get(weight, 0)
 
-    def _check_wait_input_flag(self, wait_in, node_id):
+    def _get_node_estimations(self, node_attr, node_id):
         """
-        Stops the search of the investigated node of the ArciDispatch algorithm,
-        until all inputs are satisfied.
+        Returns the data nodes estimations and `wait_inputs` flag.
 
-        :param wait_in:
-            If True the node is waiting input estimations.
-        :type wait_in: bool
+        :param node_attr:
+            Dictionary of node attributes.
+        :type node_attr: dict
 
         :param node_id:
-            Data or function node id.
+            Data node's id.
         :type node_id: any hashable Python object except None
 
         :return:
-            True if all node inputs are satisfied, otherwise False
-        :rtype: bool
+            - node estimations with minimum distance from the starting node, and
+            - `wait_inputs` flag
+        :rtype: (dict, bool)
         """
 
-        # return true if the node is waiting inputs and inputs are satisfied
-        return wait_in and (self._pred[node_id].keys() - self._visited)
+        # get data node estimations
+        estimations = self._wf_pred[node_id]
+
+        # namespace shortcut
+        wait_in = node_attr['wait_inputs']
+
+        # check if node has multiple estimations and it is not waiting inputs
+        if len(estimations) > 1 and not self._wait_in.get(node_id, wait_in):
+            # namespace shortcuts
+            dist = self.dist
+            edge_length = self._edge_length
+            edg = self.dmap.edge
+
+            est = []  # estimations' heap
+
+            for k, v in estimations.items():  # calculate length
+                if k is not START:
+                    d = dist[k] + edge_length(edg[k][node_id], node_attr)
+                    heappush(est, (d, k, v))
+
+            # the estimation with minimum distance from the starting node
+            estimations = {est[0][1]: est[0][2]}
+
+            # remove unused workflow edges
+            self.workflow.remove_edges_from([(v[1], node_id) for v in est[1:]])
+
+        # return estimations and `wait_inputs` flag.
+        return estimations, wait_in
+
+    def _check_wait_input_flag(self):
+        """
+        Returns a function to stop the search of the investigated node of the
+        ArciDispatch algorithm.
+
+        :return:
+            A function to stop the search
+        :rtype: function
+        """
+
+        # namespace shortcuts
+        visited = self._visited
+        pred = self._pred
+
+        if self._wait_in:
+            # namespace shortcut
+            we = self._wait_in.get
+
+            def check_wait_input_flag(wait_in, node_id):
+                """
+                Stops the search of the investigated node of the ArciDispatch
+                algorithm, until all inputs are satisfied.
+
+                :param wait_in:
+                    If True the node is waiting input estimations.
+                :type wait_in: bool
+
+                :param node_id:
+                    Data or function node id.
+                :type node_id: any hashable Python object except None
+
+                :return:
+                    True if all node inputs are satisfied, otherwise False
+                :rtype: bool
+                """
+
+                # return true if the node inputs are satisfied
+                return we(node_id, wait_in) and (pred[node_id].keys() - visited)
+
+        else:
+            def check_wait_input_flag(wait_in, node_id):
+                # return true if the node inputs are satisfied
+                return wait_in and (pred[node_id].keys() - visited)
+
+        return check_wait_input_flag
 
     def _set_wildcards(self, inputs=None, outputs=None):
         """
@@ -1289,9 +1700,11 @@ class Dispatcher(object):
         :type outputs: iterable
         """
 
+        # clear wildcards
         self._wildcards = set()
 
         if outputs:
+            # namespace shortcut
             node = self.nodes
 
             # input data nodes that are in output_targets
@@ -1301,6 +1714,30 @@ class Dispatcher(object):
             self._wildcards.update([k
                                     for k, v in wildcards.items()
                                     if v.get('wildcard', True)])
+
+    def _set_wait_in(self):
+        """
+        Set `wait_inputs` flags for data nodes that:
+            - are estimated from functions with a domain function, and
+            - are waiting inputs.
+        """
+        # clear wait_in
+        self._wait_in = {}
+
+        # namespace shortcut
+        wait_in = self._wait_in
+
+        for n, a in self.nodes.items():
+            # namespace shortcut
+            n_type = a['type']
+
+            if n_type == 'function' and 'input_domain' in a:  # with a domain
+                # nodes estimated from functions with a domain function
+                for k in a['outputs']:
+                    wait_in[k] = True
+
+            elif n_type == 'data' and a['wait_inputs']:  # is waiting inputs
+                wait_in[n] = True
 
     def _get_initial_values(self, inputs, no_call):
         """
@@ -1348,7 +1785,7 @@ class Dispatcher(object):
 
         :param input_value:
             A function that return the input value of a given data node.
-            If input_values = {'/a': 'value'} then 'value' == input_value('/a')
+            If input_values = {'a': 'value'} then 'value' == input_value('a')
         :type input_value: function
 
         :return:
@@ -1356,31 +1793,23 @@ class Dispatcher(object):
             - seen: Distance to seen nodes.
         """
 
-        # namespace shortcuts for speed
-        node_attr = self.nodes
-        graph = self.dmap
-
-        edge_weight = self._edge_length
-        check_cutoff = self._check_cutoff()
-        check_wait_in = self._check_wait_input_flag
-        wildcards = self._wildcards
-
+        # clear previous outputs
         self.workflow = DiGraph()
-
         self.data_output = {}  # estimated data node output
-
         self._visited = set()
-
-        add_visited = self._visited.add
         self._wf_add_edge = add_edge_fun(self.workflow)
         self._wf_pred = self.workflow.pred
 
+        # namespace shortcuts for speed
+        node_attr = self.nodes
+        graph = self.dmap
+        edge_weight = self._edge_length
+        check_cutoff = self._check_cutoff()
+        wildcards = self._wildcards
+        check_wait_in = self._check_wait_input_flag()
+        add_visited = self._visited.add
         wf_add_edge = self._wf_add_edge
         wf_add_node = self.workflow.add_node
-
-
-
-
 
         add_visited(START)  # nodes visited by the algorithm
 
@@ -1403,6 +1832,9 @@ class Dispatcher(object):
 
             # input value
             value = input_value(v)
+
+            # add edge
+            wf_add_edge(START, v, **value)
 
             if v in wildcards:  # check if the data node is in wildcards
 
@@ -1431,9 +1863,6 @@ class Dispatcher(object):
 
                 continue
 
-            # add edge
-            wf_add_edge(START, v, **value)
-
             # check if all node inputs are satisfied
             if not check_wait_in(wait_in, v):
                 # update distance
@@ -1459,42 +1888,16 @@ class Dispatcher(object):
         :return status:
             If the output have been evaluated correctly.
         :rtype: bool
-
-        \***********************************************************************
-
-        **Example**::
-
-            >>> dsp = Dispatcher()
-            >>> dsp.add_data('/a', default_value=[1, 2])
-            '/a'
-            >>> fun_id = dsp.add_function(function=max, inputs=['/a'],
-            ...                           outputs=['/b'])
-            >>> dsp.workflow.add_node(START, attr_dict={'type': 'start'})
-            >>> dsp.workflow.add_edge(START, '/a', attr_dict={'value': [1, 2]})
-            >>> dsp._set_node_output('/a', False)
-            True
-
-            >>> dsp._set_node_output(fun_id, False)
-            True
-            >>> dsp._set_node_output('/b', False)
-            True
-            >>> sorted(dsp.data_output.items())
-            [('/a', [1, 2]),
-             ('/b', 2)]
-            >>> sorted(dsp.workflow.edge.items())
-            [('/a', {'builtins:max': {'value': [1, 2]}}),
-             ('/b', {}),
-             ('builtins:max', {'/b': {'value': 2}}),
-             (start, {'/a': {'value': [1, 2]}})]
         """
 
+        # namespace shortcuts
         node_attr = self.nodes[node_id]
-
         node_type = node_attr['type']
 
-        if node_type == 'data':
+        if node_type == 'data':  # set data node
             return self._set_data_node_output(node_id, node_attr, no_call)
-        elif node_type == 'function':
+
+        elif node_type == 'function':  # det function node
             return self._set_function_node_output(node_id, node_attr, no_call)
 
     def _set_data_node_output(self, node_id, node_attr, no_call):
@@ -1519,36 +1922,54 @@ class Dispatcher(object):
         """
 
         # get data node estimations
-        estimations = self._wf_pred[node_id]
+        est, wait_in = self._get_node_estimations(node_attr, node_id)
 
         if not no_call:
 
             # final estimation of the node and node status
-            if not node_attr['wait_inputs']:
+            if not wait_in:
 
-                # data node that has just one estimation value
-                value = list(estimations.values())[0]['value']
+                if 'function' in node_attr:  # evaluate output
+                    try:
+                        kwargs = {k: v['value'] for k, v in est.items()}
+                        # noinspection PyCallingNonCallable
+                        value = node_attr['function'](kwargs)
+                    except Exception as ex:
+                        # some error occurs
+                        msg = 'Estimation error at data node ({}) ' \
+                              'due to: {}'.format(node_id, ex)
+                        self.warning(msg)  # raise a Warning
+                        return False
+                else:
+                    # data node that has just one estimation value
+                    value = list(est.values())[0]['value']
 
             else:  # use the estimation function of node
                 try:
                     # dict of all data node estimations
-                    kwargs = {k: v['value'] for k, v in estimations.items()}
+                    kwargs = {k: v['value'] for k, v in est.items()}
 
                     # noinspection PyCallingNonCallable
                     value = node_attr['function'](kwargs)  # evaluate output
                 except Exception as ex:
-                    # is missing estimation function of data node
+                    # is missing estimation function of data node or some error
                     msg = 'Estimation error at data node ({}) ' \
                           'due to: {}'.format(node_id, ex)
-                    log.warning(msg, exc_info=1)  # raise a Warning
+                    self.warning(msg)  # raise a Warning
                     return False
 
             if 'callback' in node_attr:  # invoke callback function of data node
-                # noinspection PyCallingNonCallable
-                node_attr['callback'](value)
+                try:
+                    # noinspection PyCallingNonCallable
+                    node_attr['callback'](value)
+                except Exception as ex:
+                    msg = 'Callback error at data node ({}) ' \
+                          'due to: {}'.format(node_id, ex)
+                    self.warning(msg)  # raise a Warning
 
-            # set data output
-            self.data_output[node_id] = value
+            if value is not NONE:
+                # set data output
+                self.data_output[node_id] = value
 
             # output value
             value = {'value': value}
@@ -1597,10 +2018,12 @@ class Dispatcher(object):
 
         # namespace shortcuts for speed
         o_nds = node_attr['outputs']
+        dist = self.dist
+        nodes = self.nodes
 
         # list of nodes that can still be estimated by the function node
         output_nodes = [u for u in o_nds
-                        if (not u in self.dist) and (u in self.nodes)]
+                        if (not u in dist) and (u in nodes)]
 
         if not output_nodes:  # this function is not needed
             self.workflow.remove_node(node_id)  # remove function node
@@ -1617,6 +2040,8 @@ class Dispatcher(object):
 
         args = self._wf_pred[node_id]  # list of the function's arguments
         args = [args[k]['value'] for k in node_attr['inputs']]
+        args = [v for v in args if v is not NONE]
+
         try:
             # noinspection PyCallingNonCallable
             if 'input_domain' in node_attr and \
@@ -1628,7 +2053,9 @@ class Dispatcher(object):
 
                 if isinstance(fun, SubDispatch):
                     w, res = fun(*args)
-                    self.workflow.add_node(node_id, workflow=w)
+                    self.workflow.add_node(
+                        node_id, workflow=(w, fun.data_output, fun.dist)
+                    )
                 else:
                     res = fun(*args)
 
@@ -1639,7 +2066,7 @@ class Dispatcher(object):
             # is missing function of the node or args are not in the domain
             msg = 'Estimation error at function node ({}) ' \
                   'due to: {}'.format(node_id, ex)
-            log.warning(msg, exc_info=1)  # raise a Warning
+            self.warning(msg)  # raise a Warning
             return False
 
         # set workflow
@@ -1740,7 +2167,7 @@ class Dispatcher(object):
         check_targets = self._check_targets()
         edge_weight = self._edge_length
         check_cutoff = self._check_cutoff()
-        check_wait_in = self._check_wait_input_flag
+        check_wait_in = self._check_wait_input_flag()
 
         while fringe:
             (d, _, v) = heappop(fringe)  # visit the closest available node
@@ -1765,7 +2192,8 @@ class Dispatcher(object):
 
                 vw_d = d + edge_weight(e_data, node)  # evaluate distance
 
-                wait_in = node['wait_inputs']  # store wait inputs flag
+                # wait inputs flag
+                wait_in = node['wait_inputs']
 
                 # check the cutoff limit and if all node inputs are satisfied
                 if check_cutoff(vw_d) or check_wait_in(wait_in, w):
@@ -1784,7 +2212,8 @@ class Dispatcher(object):
 
         # remove unused functions
         for n in (set(self._wf_pred) - set(self._visited)):
-            self.workflow.remove_node(n)
+            if self.nodes[n]['type'] == 'function':
+                self.workflow.remove_node(n)
 
         # return the workflow and data outputs
         return self.workflow, self.data_output

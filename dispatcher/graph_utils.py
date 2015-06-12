@@ -1,13 +1,18 @@
-"""
-.. module:: graph_utils
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
+#
+# Copyright 2014 European Commission (JRC);
+# Licensed under the EUPL (the 'Licence');
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
-.. moduleauthor:: Vincenzo Arcidiacono <vinci1it2000@gmail.com>
-
-"""
+__author__ = 'Vincenzo Arcidiacono'
 
 from heapq import heappush, heappop
 from itertools import count
 from .utils import pairwise, heap_flush
+
+__all__ = ['add_edge_fun', 'scc_fun', 'dijkstra', 'remove_cycles_iteration']
 
 
 # modified from NetworkX library

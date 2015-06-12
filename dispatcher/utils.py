@@ -1,14 +1,23 @@
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
+#
+# Copyright 2014 European Commission (JRC);
+# Licensed under the EUPL (the 'Licence');
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+
 __author__ = 'Vincenzo Arcidiacono'
 
 from itertools import tee
 from heapq import heappop
-from collections import namedtuple
+
+__all__ = ['Token', 'pairwise', 'heap_flush', 'rename_function', 'AttrDict']
+
 
 class Token(str):
     """
-
+    Token.
     """
-
     def __repr__(self):
         return self
 
@@ -24,7 +33,7 @@ class Token(str):
 
 def pairwise(iterable):
     """
-    s -> (s0, s1), (s1, s2), (s2, s3), ...
+    s -> (s0, s1), (s1, s2), (s2, s3), .
 
     :param iterable:
         An iterable object.

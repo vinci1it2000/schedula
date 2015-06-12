@@ -1,4 +1,17 @@
 __author__ = 'Vincenzo Arcidiacono'
+"""
+Modules:
 
-from .AT_gear_functions import *
-from .read_inputs import *
+.. currentmodule:: functions
+
+.. autosummary::
+    :nosignatures:
+    :toctree: functions/
+
+    AT_gear_functions
+    plot
+    read_inputs
+    utils
+    write_outputs
+
+"""

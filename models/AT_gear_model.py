@@ -827,7 +827,7 @@ def def_gear_model():
 
     gear_model = Dispatcher()
 
-    gear_model.load_from_lists(data_list=data, fun_list=functions)
+    gear_model.add_from_lists(data_list=data, fun_list=functions)
 
     return gear_model, calibration_models, gears_predicted, \
            gear_box_speeds_predicted, error_coefficients

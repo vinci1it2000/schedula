@@ -83,10 +83,10 @@ def def_load_inputs():
 
     # Initialize a dispatcher.
     dsp = Dispatcher()
-    dsp.load_from_lists(data_list=data, fun_list=functions)
+    dsp.add_from_lists(data_list=data, fun_list=functions)
 
     # Define a function to load the cycle inputs.
-    load_inputs = dsp.extract_function_node(
+    load_inputs = dsp.create_function_node(
         'load_inputs', ['input_file_name', 'cycle_name'], ['cycle_inputs']
     )['function']
     return load_inputs

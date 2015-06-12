@@ -23,7 +23,8 @@ from datetime import datetime
 from models.AT_gear_model import *
 from models.read_model import *
 from functions.write_outputs import write_output
-from dispatcher import Dispatcher, SubDispatch, def_replicate, def_selector
+from dispatcher import Dispatcher
+from dispatcher.dispatcher_utils import  SubDispatch, def_replicate_value, def_selector
 
 
 def def_jrcgear_model():
@@ -110,7 +111,7 @@ def def_jrcgear_model():
     ==========
     """
 
-    replicate = def_replicate()
+    replicate = def_replicate_value()
 
     functions.extend([
         {  # open excel workbook of the cycle
@@ -243,7 +244,7 @@ def def_jrcgear_model():
 
     # initialize a dispatcher
     dsp = Dispatcher()
-    dsp.load_from_lists(data_list=data, fun_list=functions)
+    dsp.add_from_lists(data_list=data, fun_list=functions)
 
     return dsp, error_coefficients
 
@@ -313,7 +314,6 @@ if __name__ == '__main__':
 
     #process_folder_files(r'/Users/iMac2013/Dropbox/LAT/*.xlsm',
     #                     r'/Users/iMac2013/Dropbox/LAT/outputs')
-    from dispatcher.draw import plot_dsp_graphviz
+    from dispatcher.draw import dsp2dot
     dsp = def_jrcgear_model()[0]
-    dot = plot_dsp_graphviz(dsp)
-    dot.view()
+    dot = dsp2dot(dsp, view=True)

@@ -3,7 +3,7 @@ __author__ = 'Vincenzo Arcidiacono'
 
 import numpy as np
 import pandas as pd
-from dispatcher import heap_flush
+from dispatcher.utils import heap_flush
 from heapq import heappush
 from .plot import plot_gear_box_speeds
 
