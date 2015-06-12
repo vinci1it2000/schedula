@@ -190,7 +190,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
         >>> dsp.add_function('dispatch', dispatch, ['input'], ['d', 'e'])
         'dispatch'
 
-        >>> dot = dsp2dot(dsp, view = True)
+        >>> dot = dsp2dot(dsp)
 
     .. testsetup::
         >>> from dispatcher import dot_dir
