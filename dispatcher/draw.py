@@ -8,8 +8,6 @@
 
 __author__ = 'Vincenzo Arcidiacono'
 
-import re
-from xml.dom.minidom import Text
 import matplotlib.pyplot as plt
 from networkx.classes.digraph import DiGraph
 from networkx.drawing import spring_layout, draw_networkx_nodes, \
