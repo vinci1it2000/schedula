@@ -64,7 +64,7 @@ def write_output(output, file_name, sheet_names):
         series[k] = v
     fig = plot_gear_box_speeds(series)
     fig.savefig('%s.png' % file_name.split('.')[0])
-    fig.close()
+
     series.to_excel(writer, 'series_%s'% sheet_names[0])
     p.to_excel(writer, 'params_%s'% sheet_names[1])
 
