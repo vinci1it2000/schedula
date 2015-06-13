@@ -9,7 +9,8 @@
 __author__ = 'Vincenzo Arcidiacono'
 
 __all__ = ['combine_dicts', 'bypass', 'summation', 'def_selector',
-           'def_replicate_value', 'SubDispatch', 'ReplicateFunction']
+           'def_replicate_value', 'SubDispatch', 'ReplicateFunction',
+           'SubDispatchFunction']
 
 from .utils import caller_name
 
@@ -169,10 +170,10 @@ class SubDispatch(object):
         >>> from dispatcher.draw import dsp2dot
         >>> from dispatcher import dot_dir
         >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
-        >>> dot.save('dispatcher_utils/SubDispatch/dsp.dot', dot_dir)
+        >>> dot.save('dispatcher_utils/SubDispatch_dsp.dot', dot_dir)
         '...'
 
-    .. graphviz:: SubDispatch/dsp.dot
+    .. graphviz:: /dispatcher/dispatcher_utils/SubDispatch_dsp.dot
 
     Dispatch the dispatch output is::
 
@@ -184,15 +185,16 @@ class SubDispatch(object):
 
     .. testsetup::
         >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
-        >>> dot.save('dispatcher_utils/SubDispatch/wf.dot', dot_dir)
+        >>> dot.save('dispatcher_utils/SubDispatch_wf.dot', dot_dir)
         '...'
 
-    .. graphviz:: SubDispatch/wf.dot
+    .. graphviz:: /dispatcher/dispatcher_utils/SubDispatch_wf.dot
     """
 
     def __init__(self, dsp, outputs=None, cutoff=None, wildcard=False,
                  no_call=False, shrink=True, type_return='all'):
         """
+        Initializes the Sub-dispatch.
 
         :param dsp:
             A dispatcher that identifies the model adopted.
@@ -221,7 +223,7 @@ class SubDispatch(object):
         :type shrink: bool, optional
 
         :params type_return:
-                   Type of function output:
+            Type of function output:
                 + 'all': a dict with all dispatch outputs.
                 + 'list': a list with all outputs listed in `outputs`.
                 + 'dict': a dict with any outputs listed in `outputs`.
@@ -282,6 +284,73 @@ class ReplicateFunction(object):
 class SubDispatchFunction(SubDispatch):
     """
     Returns a function node that uses the dispatcher map as function.
+    
+    :return:
+        A function that executes the dispatch of the given `dsp`.
+
+        This function takes a sequence of arguments as input od the dispatch.
+    :rtype: function
+
+    **Example**:
+
+    A dispatcher with two functions `max` and `min` and an unresolved cycle
+    (i.e., `a` --> `max` --> `c` --> `min` --> `a`):
+
+    .. testsetup::
+        >>> from dispatcher.dispatcher import Dispatcher
+        >>> dsp = Dispatcher()
+        >>> dsp.add_function('max', max, inputs=['a', 'b'], outputs=['c'])
+        'max'
+        >>> from math import log
+        >>> def my_log(x):
+        ...     return log(x - 1)
+        >>> dsp.add_function('log(x - 1)', my_log, inputs=['c'],
+        ...                  outputs=['a'], input_domain=lambda c: c > 1)
+        'log(x - 1)'
+        >>> from dispatcher.draw import dsp2dot
+        >>> from dispatcher import dot_dir
+        >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
+        >>> dot.save('dispatcher_utils/SubDispatchFunction_dsp.dot', dot_dir)
+        '...'
+
+    .. graphviz:: /dispatcher/dispatcher_utils/SubDispatchFunction_dsp.dot
+
+    Extract a static function node, i.e. the inputs `a` and `b` and the
+    output `a` are fixed::
+
+        >>> fun = SubDispatchFunction(dsp, 'myF', ['a', 'b'], ['a'])
+        >>> fun.__name__
+        'myF'
+        >>> fun(2, 1)
+        0.0
+
+    .. testsetup::
+        >>> dsp.name = 'Created function internal'
+        >>> dsp.dispatch({'a': 2, 'b': 1}, outputs=['a'], wildcard=True)
+        (...)
+        >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
+        >>> dot.save('dispatcher_utils/SubDispatchFunction_wf1.dot', dot_dir)
+        '...'
+
+    .. graphviz:: /dispatcher/dispatcher_utils/SubDispatchFunction_wf1.dot
+
+    The created function raises a ValueError if un-valid inputs are
+    provided::
+
+        >>> fun(1, 0)
+        Traceback (most recent call last):
+        ...
+        ValueError: Unreachable output-targets:{'a'}
+
+    .. testsetup::
+        >>> dsp.dispatch({'a': 1, 'b': 0}, outputs=['a'], wildcard=True)
+        (...)
+        >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
+        >>> dot.save('dispatcher_utils/SubDispatchFunction_wf2.dot', dot_dir)
+        '...'
+
+    .. graphviz:: /dispatcher/dispatcher_utils/SubDispatchFunction_wf2.dot
+
     """
 
     def __init__(self, dsp, function_id, inputs, outputs, cutoff=None):
@@ -306,69 +375,6 @@ class SubDispatchFunction(SubDispatch):
         :param cutoff:
             Depth to stop the search.
         :type cutoff: float, int, optional
-
-
-        \***********************************************************************
-
-        **Example**:
-
-        A dispatcher with two functions `max` and `min` and an unresolved cycle
-        (i.e., `a` --> `max` --> `c` --> `min` --> `a`):
-
-        .. testsetup::
-            >>> from dispatcher.dispatcher import Dispatcher
-            >>> dsp = Dispatcher()
-            >>> dsp.add_function('max', max, inputs=['a', 'b'], outputs=['c'])
-            'max'
-            >>> from math import log
-            >>> def my_log(x):
-            ...     return log(x - 1)
-            >>> dsp.add_function('log(x - 1)', my_log, inputs=['c'],
-            ...                  outputs=['a'], input_domain=lambda c: c > 1)
-            'log(x - 1)'
-            >>> from dispatcher.draw import dsp2dot
-            >>> from dispatcher import dot_dir
-            >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
-            >>> dot.save('create_function_node/dsp.dot', dot_dir)
-            '...'
-
-        .. graphviz:: create_function_node/dsp.dot
-
-        Extract a static function node, i.e. the inputs `a` and `b` and the
-        output `a` are fixed::
-
-            >>> fun = SubDispatchFunction(dsp, 'myF', ['a', 'b'], ['a'])
-            >>> fun.__name__
-            'myF'
-            >>> fun(2, 1)
-            0.0
-
-        .. testsetup::
-            >>> dsp.name = 'Created function internal'
-            >>> dsp.dispatch({'a': 2, 'b': 1}, outputs=['a'], wildcard=True)
-            (...)
-            >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
-            >>> dot.save('create_function_node/wf1.dot', dot_dir)
-            '...'
-
-        .. graphviz:: create_function_node/wf1.dot
-
-        The created function raises a ValueError if un-valid inputs are
-        provided::
-
-            >>> fun(1, 0)
-            Traceback (most recent call last):
-            ...
-            ValueError: Unreachable output-targets:{'a'}
-
-        .. testsetup::
-            >>> dsp.dispatch({'a': 1, 'b': 0}, outputs=['a'], wildcard=True)
-            (...)
-            >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
-            >>> dot.save('create_function_node/wf2.dot', dot_dir)
-            '...'
-
-        .. graphviz:: create_function_node/wf2.dot
         """
 
         # new shrink dispatcher
@@ -391,6 +397,7 @@ class SubDispatchFunction(SubDispatch):
         dsp.name = function_id
         super(SubDispatchFunction, self).__init__(
             dsp, outputs, cutoff, True, False, True, 'list')
+        self.__module__ = caller_name()
 
         # define the function to populate the workflow
         def input_value(k):
