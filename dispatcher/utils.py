@@ -12,13 +12,29 @@ import inspect
 from itertools import tee
 from heapq import heappop
 
-__all__ = ['Token', 'pairwise', 'heap_flush', 'rename_function', 'AttrDict']
+__all__ = ['Token', 'pairwise', 'heap_flush', 'rename_function', 'AttrDict',
+           'caller_name']
 
 
 class Token(str):
     """
-    Token.
+    It constructs a unique constant that behaves like a string.
+
+    Example::
+
+        >>> s = Token('string')
+        >>> s
+        string
+        >>> s == 'string'
+        False
+        >>> s == Token('string')
+        False
+        >>> {s: 1, Token('string'): 3}
+        {string: 1, string: 3}
+        >>> s.capitalize()
+        'String'
     """
+
     def __repr__(self):
         return self
 
@@ -116,34 +132,68 @@ def rename_function(new_name, module_name=None):
     return decorator
 
 
+def _isidentifier(*args):
+    attr = set()
+
+    for a in args:
+        attr.update(a)
+
+    def isidentifier(self, key):
+        return isinstance(key, str) and key.isidentifier() and key not in attr
+
+    return isidentifier
+
+
+class _Attr(str):
+    def __new__(cls, text, value=None):
+        self = str.__new__(cls, text)
+        self.value = value
+        return self
+
+    def __call__(self):
+        return self.value
+
+
 class AttrDict(dict):
     """
+    It constructs a dictionary with extended attributes.
+
+    An extended attribute is a dictionary's attribute that has:
+
+        - `name` == `value` == `key`
+        - `attribute.__call__()` returns `value`
 
     Example::
 
-        >>> d = AttrDict({'a': 3, 'b': 4})
+        >>> d = AttrDict({'a': {'b': 3}, 'pop': 4})
         >>> d.a
         'a'
-        >>> d.pop('b')
+        >>> d.a()
+        {'b': 3}
+        >>> d.pop('pop')
         4
         >>> c = d.copy()
         >>> d.popitem()
-        ('a', 3)
+        ('a', {'b': 3})
         >>> c.a
         'a'
+        >>> c.a()
+        {'b': 3}
         >>> c.clear()
     """
 
+    isidentifier = _isidentifier(dict.__dict__, ['isidentifier'])
+
     def __init__(self, *args, **kwargs):
         super(AttrDict, self).__init__(*args, **kwargs)
-        self.__dict__ = {k: k
-                         for k in self
-                         if isinstance(k, str) and k.isidentifier()}
+        self.__dict__ = {k: _Attr(k, v)
+                         for k, v in self.items()
+                         if self.isidentifier(k)}
 
     def __setitem__(self, key, value):
         super(AttrDict, self).__setitem__(key, value)
-        if isinstance(key, str) and key.isidentifier():
-            self.__dict__[key] = key
+        if self.isidentifier(key):
+            self.__dict__[key] = _Attr(key, value)
 
     def __delitem__(self, key):
         super(AttrDict, self).__delitem__(key)
@@ -164,7 +214,6 @@ class AttrDict(dict):
 
     def copy(self):
         return AttrDict(super(AttrDict, self).copy())
-
 
 
 def caller_name(skip=2):

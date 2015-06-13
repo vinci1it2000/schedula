@@ -7,16 +7,16 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-.. autodata:: EMPTY
+.. data:: EMPTY
     :annotation: = Empty value.
 
-.. autodata:: START
+.. data:: START
     :annotation: = Starting node for the workflow.
 
-.. autodata:: NONE
+.. data:: NONE
     :annotation: = None value.
 
-.. autodata:: SINK
+.. data:: SINK
     :annotation: = Sink node of the dispatcher map.
 """
 __author__ = 'Vincenzo Arcidiacono'
@@ -27,6 +27,7 @@ __all__ = ['EMPTY', 'START', 'NONE', 'SINK']
 
 
 EMPTY = Token('empty')
+"""Empty value."""
 
 START = Token('start')
 
