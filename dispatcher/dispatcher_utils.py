@@ -224,6 +224,7 @@ class SubDispatch(object):
 
         :params type_return:
             Type of function output:
+
                 + 'all': a dict with all dispatch outputs.
                 + 'list': a list with all outputs listed in `outputs`.
                 + 'dict': a dict with any outputs listed in `outputs`.
@@ -297,7 +298,7 @@ class SubDispatchFunction(SubDispatch):
     (i.e., `a` --> `max` --> `c` --> `min` --> `a`):
 
     .. testsetup::
-        >>> from dispatcher.dispatcher import Dispatcher
+        >>> from dispatcher import Dispatcher
         >>> dsp = Dispatcher()
         >>> dsp.add_function('max', max, inputs=['a', 'b'], outputs=['c'])
         'max'

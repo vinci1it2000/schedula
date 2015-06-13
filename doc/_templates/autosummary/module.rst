@@ -3,8 +3,6 @@
 
 
 .. automodule:: {{ fullname }}
-   :members:
-   :noindex:
 
    {% block functions %}
    {% if functions %}

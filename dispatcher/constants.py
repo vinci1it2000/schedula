@@ -6,6 +6,19 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
+"""
+.. autodata:: EMPTY
+    :annotation: = Empty value.
+
+.. autodata:: START
+    :annotation: = Starting node for the workflow.
+
+.. autodata:: NONE
+    :annotation: = None value.
+
+.. autodata:: SINK
+    :annotation: = Sink node of the dispatcher map.
+"""
 __author__ = 'Vincenzo Arcidiacono'
 
 from .utils import Token
@@ -13,14 +26,10 @@ from .utils import Token
 __all__ = ['EMPTY', 'START', 'NONE', 'SINK']
 
 
-#: Empty value.
 EMPTY = Token('empty')
 
-#: Starting node for the workflow.
 START = Token('start')
 
-#: None value.
 NONE = Token('none')
 
-#: Sink node of the dispatcher map.
 SINK = Token('sink')

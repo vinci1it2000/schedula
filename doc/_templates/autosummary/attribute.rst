@@ -5,3 +5,4 @@
 
 .. auto{{ objtype }}:: {{ objname }}
    :noindex:
+

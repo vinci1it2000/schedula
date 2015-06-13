@@ -10,7 +10,7 @@ import doctest
 import unittest
 import timeit
 
-from dispatcher.dispatcher import Dispatcher
+from dispatcher import Dispatcher
 from dispatcher.constants import START, EMPTY, SINK, NONE
 
 
@@ -66,7 +66,7 @@ def _setup_dsp():
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):
-        import dispatcher.dispatcher as d
+        import dispatcher as d
 
         failure_count, test_count = doctest.testmod(
             d, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS

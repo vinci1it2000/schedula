@@ -7,16 +7,19 @@
    :members:
 
    {% block methods %}
-   .. automethod:: __init__
 
    {% if methods %}
    .. rubric:: Methods
 
    .. autosummary::
+      :nosignatures:
+      :toctree: {{ name }}/
    {% for item in methods %}
       ~{{ name }}.{{ item }}
    {%- endfor %}
    {% endif %}
+
+   .. automethod:: __init__
    {% endblock %}
 
    {% block attributes %}
@@ -24,6 +27,8 @@
    .. rubric:: Attributes
 
    .. autosummary::
+      :nosignatures:
+      :toctree: {{ name }}/
    {% for item in attributes %}
       ~{{ name }}.{{ item }}
    {%- endfor %}
