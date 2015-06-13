@@ -10,7 +10,8 @@ import doctest
 import unittest
 
 from dispatcher.dispatcher_utils import *
-
+from dispatcher import Dispatcher
+from dispatcher.constants import SINK
 __name__ = 'dispatcher_utils'
 __path__ = ''
 
@@ -46,7 +47,6 @@ class TestDispatcherUtils(unittest.TestCase):
         self.assertEquals(replicate({'a': 3}), [{'a': 3}, {'a': 3}, {'a': 3}])
 
     def test_sub_dsp(self):
-        from dispatcher import Dispatcher
         from networkx.classes.digraph import DiGraph
         sub_dsp = Dispatcher()
 
@@ -88,3 +88,32 @@ class TestDispatcherUtils(unittest.TestCase):
         o = dsp.dispatch(inputs={'a': 3, 'b': 4})[1]
 
         self.assertEquals(o, {'a': 3, 'b': 4, 'c': (4, 2), 'd': (5, 3)})
+
+    def test_sub_dispatch_function(self):
+        dsp = Dispatcher()
+        dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
+        dsp.add_function(function=min, inputs=['c', 'b'], outputs=['a'],
+                         input_domain=lambda c, b: c * b > 0)
+
+        fun = SubDispatchFunction(dsp, 'myF', ['a', 'b'], ['a'])
+        self.assertEquals(fun.__name__, 'myF')
+
+        # noinspection PyCallingNonCallable
+        self.assertEquals(fun(2, 1), 1)
+        self.assertRaises(ValueError, fun, 3, -1)
+
+        dsp = Dispatcher()
+
+        def f(a, b):
+            return a + b, a - b
+
+        dsp.add_function(function=f, inputs=['a', 'b'], outputs=['c', SINK])
+        dsp.add_function(function=f, inputs=['c', 'b'], outputs=[SINK, 'd'])
+
+        fun = SubDispatchFunction(dsp, 'myF', ['a', 'b'], ['c', 'd'])
+        # noinspection PyCallingNonCallable
+        self.assertEquals(fun(2, 1), [3, 2])
+
+        self.assertRaises(
+            ValueError, SubDispatchFunction, dsp, 'myF', ['a', 'c'], ['d']
+        )

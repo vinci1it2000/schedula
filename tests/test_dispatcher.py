@@ -13,6 +13,7 @@ import timeit
 from dispatcher.dispatcher import Dispatcher
 from dispatcher.constants import START, EMPTY, SINK, NONE
 
+
 __name__ = 'dispatcher'
 __path__ = ''
 
@@ -338,9 +339,9 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         res2 = timeit.repeat(
             "fun(5, 6)",
             'from test_dispatcher import _setup_dsp;'
+            'from dispatcher.dispatcher_utils import SubDispatchFunction;'
             'dsp = _setup_dsp();'
-            'fun = dsp.create_function_node('
-            '    "myF", ["a", "b"], ["c", "d", "e"])["function"]',
+            'fun = SubDispatchFunction(dsp, "f", ["a", "b"], ["c", "d", "e"])',
             repeat=3, number=1000)
 
         res2 = sum(res2) / 3
@@ -685,36 +686,6 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
              ('e', 'h<2>'), ('f', 'h<2>'), ('g', 'h<3>'), ('h', 'g'),
              ('h<0>', 'g'), ('h<2>', 'g'), ('h<3>', 'i'), ('h<5>', 'l'),
              ('i', 'h<5>')]
-        )
-
-    def test_extract_function_node(self):
-        dsp = Dispatcher()
-        dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
-        dsp.add_function(function=min, inputs=['c', 'b'], outputs=['a'],
-                         input_domain=lambda c, b: c * b > 0)
-
-        res = dsp.create_function_node('myF', ['a', 'b'], ['a'])
-        self.assertEquals(res['inputs'], ['a', 'b'])
-        self.assertEquals(res['outputs'], ['a'])
-        self.assertEquals(res['function'].__name__, 'myF')
-        # noinspection PyCallingNonCallable
-        self.assertEquals(res['function'](2, 1), 1)
-        self.assertRaises(ValueError, res['function'], 3, -1)
-
-        dsp = Dispatcher()
-
-        def f(a, b):
-            return a + b, a - b
-
-        dsp.add_function(function=f, inputs=['a', 'b'], outputs=['c', SINK])
-        dsp.add_function(function=f, inputs=['c', 'b'], outputs=[SINK, 'd'])
-
-        res = dsp.create_function_node('myF', ['a', 'b'], ['c', 'd'])
-        # noinspection PyCallingNonCallable
-        self.assertEquals(res['function'](2, 1), [3, 2])
-
-        self.assertRaises(
-            ValueError, dsp.create_function_node, 'myF', ['a', 'c'], ['d']
         )
 
     def test_dispatch_raises(self):

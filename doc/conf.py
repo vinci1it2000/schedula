@@ -40,7 +40,7 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
-    'sphinx.ext.autosummary',
+    'doc.sphinxext.autosummary',
     'sphinx.ext.graphviz',
 ]
 
