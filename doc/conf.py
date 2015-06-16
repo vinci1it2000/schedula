@@ -64,7 +64,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'C'
+project = 'COMPAS'
 copyright = '2014-2015, European Commission (JRC)'  # @ReservedAssignment
 author = 'Vincenzo Arcidiacono'
 

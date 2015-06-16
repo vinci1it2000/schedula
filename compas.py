@@ -8,6 +8,7 @@ if __name__ == '__main__':
 
     root = Tk()
     root.withdraw()
+
     input_folder = askdirectory(title='Select input folder',
                                 initialdir='%s/input'%(getcwd()),
                                 parent=root)
@@ -15,6 +16,10 @@ if __name__ == '__main__':
                                  initialdir='%s/output'%(getcwd()),
                                  parent=root)
 
-    from compas.models.compas_model import process_folder_files
+    if not (input_folder and output_folder):
+        print('ERROR: missing input and/or output folder')
+    else:
 
-    process_folder_files(input_folder, output_folder)
+        from compas.models.compas_model import process_folder_files
+
+        process_folder_files(input_folder, output_folder)
