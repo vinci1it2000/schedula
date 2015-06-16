@@ -3,17 +3,12 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to JRC gear prediction tool's documentation!
-====================================================
+Welcome to COMPAS's documentation!
+==================================
 
+Modules:
 
-Contents:
-
-.. toctree::
-
-   models/models
-   functions/functions
-   dispatcher/dispatcher_index
+.. automodule:: compas
 
 
 Indices and tables

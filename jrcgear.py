@@ -358,7 +358,7 @@ class Cycle(object):
 
         if self.speed2velocity_ratios is not None:self.max_gear=max(self.speed2velocity_ratios)
 
-        if self.rpm is not None:
+        if self.rpm is not None and self.name != 'NEDC':
             self.velocity = self.evaluate_velocity()
 
         if self.rpm is not None and self.velocity is not None:
