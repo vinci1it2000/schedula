@@ -364,7 +364,7 @@ def _fun_attr(k, v):
 
 
 # noinspection PyCallByClass,PyTypeChecker
-_encode_table = str.maketrans({
+_encode_table = {
     '&': '&amp;',
     '<': '&lt;',
     '\'': '&quot;',
@@ -373,8 +373,8 @@ _encode_table = str.maketrans({
     '{':'\{',
     '|': '\|',
     '}': '\}',
-    })
+    }
 
 
 def _label_encode(text):
-    return str(text).translate(_encode_table)
+    return ''.join(_encode_table.get(c, c) for c in str(text))
