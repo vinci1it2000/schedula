@@ -9,7 +9,8 @@
 __author__ = 'Vincenzo Arcidiacono'
 
 __all__ = ['combine_dicts', 'bypass', 'summation', 'def_selector',
-           'def_replicate_value', 'SubDispatch', 'ReplicateFunction']
+           'def_replicate_value', 'SubDispatch', 'ReplicateFunction',
+           'SubDispatchFunction']
 
 from .utils import caller_name
 
@@ -277,3 +278,159 @@ class ReplicateFunction(object):
     def __call__(self, *inputs):
         function = self.function
         return [function(i) for i in inputs]
+
+
+class SubDispatchFunction(SubDispatch):
+    """
+    Returns a function node that uses the dispatcher map as function.
+
+    :return:
+        A function that executes the dispatch of the given `dsp`.
+
+        This function takes a sequence of arguments as input od the dispatch.
+    :rtype: function
+
+    **Example**:
+
+    A dispatcher with two functions `max` and `min` and an unresolved cycle
+    (i.e., `a` --> `max` --> `c` --> `min` --> `a`):
+
+    .. testsetup::
+        >>> from dispatcher.dispatcher import Dispatcher
+        >>> dsp = Dispatcher()
+        >>> dsp.add_function('max', max, inputs=['a', 'b'], outputs=['c'])
+        'max'
+        >>> from math import log
+        >>> def my_log(x):
+        ...     return log(x - 1)
+        >>> dsp.add_function('log(x - 1)', my_log, inputs=['c'],
+        ...                  outputs=['a'], input_domain=lambda c: c > 1)
+        'log(x - 1)'
+        >>> from dispatcher.draw import dsp2dot
+        >>> from dispatcher import dot_dir
+        >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
+        >>> dot.save('dispatcher_utils/SubDispatchFunction/dsp.dot', dot_dir)
+        '...'
+
+    .. graphviz:: SubDispatchFunction/dsp.dot
+
+    Extract a static function node, i.e. the inputs `a` and `b` and the
+    output `a` are fixed::
+
+        >>> fun = SubDispatchFunction(dsp, 'myF', ['a', 'b'], ['a'])
+        >>> fun.__name__
+        'myF'
+        >>> fun(2, 1)
+        0.0
+
+    .. testsetup::
+        >>> dsp.name = 'Created function internal'
+        >>> dsp.dispatch({'a': 2, 'b': 1}, outputs=['a'], wildcard=True)
+        (...)
+        >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
+        >>> dot.save('dispatcher_utils/SubDispatchFunction/wf1.dot', dot_dir)
+        '...'
+
+    .. graphviz:: SubDispatchFunction/wf1.dot
+
+    The created function raises a ValueError if un-valid inputs are
+    provided::
+
+        >>> fun(1, 0)
+        Traceback (most recent call last):
+        ...
+        ValueError: Unreachable output-targets:{'a'}
+
+    .. testsetup::
+        >>> dsp.dispatch({'a': 1, 'b': 0}, outputs=['a'], wildcard=True)
+        (...)
+        >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
+        >>> dot.save('dispatcher_utils/SubDispatchFunction/wf2.dot', dot_dir)
+        '...'
+
+    .. graphviz:: SubDispatchFunction/wf2.dot
+
+    """
+
+    def __init__(self, dsp, function_id, inputs, outputs, cutoff=None):
+        """
+        :param dsp:
+            A dispatcher that identifies the model adopted.
+        :type dsp: dispatcher.dispatcher.Dispatcher
+
+        :param function_id:
+            Function node id.
+            If None will be assigned as <fun.__module__>:<fun.__name__>.
+        :type function_id: any hashable Python object except None
+
+        :param inputs:
+            Input data nodes.
+        :type inputs: iterable
+
+        :param outputs:
+            Ending data nodes.
+        :type outputs: iterable
+
+        :param cutoff:
+            Depth to stop the search.
+        :type cutoff: float, int, optional
+        """
+
+        # new shrink dispatcher
+        dsp = dsp.shrink_dsp(inputs, outputs, cutoff=cutoff)
+
+        # outputs not reached
+        missed = set(outputs).difference(dsp.nodes)
+
+        if missed:  # if outputs are missing raise error
+            raise ValueError('Unreachable output-targets:{}'.format(missed))
+
+        # get initial default values
+        input_values = dsp._get_initial_values(None, False)
+        self.input_values = input_values
+        self.inputs = inputs
+
+        # set wildcards
+        dsp._set_wildcards(inputs, outputs)
+
+        dsp.name = function_id
+        super(SubDispatchFunction, self).__init__(
+            dsp, outputs, cutoff, True, False, True, 'list')
+        self.__module__ = caller_name()
+
+        # define the function to populate the workflow
+        def input_value(k):
+            return {'value': input_values[k]}
+        self.input_value = input_value
+
+        # define the function to return outputs sorted
+        if len(outputs) > 1:
+            def return_output(o):
+                return [o[k] for k in outputs]
+        else:
+            def return_output(o):
+                return o[outputs[0]]
+        self.return_output = return_output
+
+    def __call__(self, *args):
+        # namespace shortcuts
+        input_values = self.input_values
+        dsp = self.dsp
+
+        # update inputs
+        input_values.update(dict(zip(self.inputs, args)))
+
+        # dispatch outputs
+        o = dsp._run(*dsp._init_workflow(input_values, self.input_value))[1]
+
+        self.data_output = o
+        self.dist = dsp.dist
+
+        try:
+            # return outputs sorted
+            return self.return_output(o)
+
+        except KeyError:  # unreached outputs
+            # raise error
+            raise ValueError('Unreachable output-targets:'
+                             '{}'.format(set(self.outputs).difference(o)))

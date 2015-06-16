@@ -8,6 +8,7 @@
 import pandas as pd
 from functions.read_inputs import *
 from dispatcher import Dispatcher
+from dispatcher.dispatcher_utils import SubDispatchFunction
 
 
 def def_load_inputs():
@@ -86,9 +87,9 @@ def def_load_inputs():
     dsp.add_from_lists(data_list=data, fun_list=functions)
 
     # Define a function to load the cycle inputs.
-    load_inputs = dsp.create_function_node(
-        'load_inputs', ['input_file_name', 'cycle_name'], ['cycle_inputs']
-    )['function']
+    load_inputs = SubDispatchFunction(
+        dsp, 'load_inputs', ['input_file_name', 'cycle_name'], ['cycle_inputs']
+    )
     return load_inputs
 
 if __name__ == '__main__':

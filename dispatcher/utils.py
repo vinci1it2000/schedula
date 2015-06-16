@@ -166,7 +166,6 @@ class AttrDict(dict):
         return AttrDict(super(AttrDict, self).copy())
 
 
-
 def caller_name(skip=2):
     """Get a name of a caller in the format module.class.method
 
