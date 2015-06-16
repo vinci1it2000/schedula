@@ -7,6 +7,11 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
+This page contains a comprehensive list of all modules and classes within
+dispatcher.
+
+Docstrings should provide sufficient understanding for any individual function.
+
 Dispatcher:
 
 .. currentmodule:: dispatcher
@@ -1942,14 +1947,12 @@ class Dispatcher(object):
                 return False
             else:  # use the estimation function of node
                 fun = node_attr['function']
-
+                res = fun(*args)
                 if isinstance(fun, SubDispatch):
-                    w, res = fun(*args)
                     self.workflow.add_node(
-                        node_id, workflow=(w, fun.data_output, fun.dist)
+                        node_id,
+                        workflow=(fun.workflow, fun.data_output, fun.dist)
                     )
-                else:
-                    res = fun(*args)
 
                 # list of function results
                 res = res if len(o_nds) > 1 else [res]

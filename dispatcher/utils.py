@@ -50,7 +50,7 @@ class Token(str):
 
 def pairwise(iterable):
     """
-    s -> (s0, s1), (s1, s2), (s2, s3), .
+    A sequence of overlapping sub-sequences.
 
     :param iterable:
         An iterable object.
@@ -59,6 +59,11 @@ def pairwise(iterable):
     :return:
         A zip object.
     :rtype: zip
+
+    Example::
+
+        >>> list(pairwise([1, 2, 3, 4, 5]))
+        [(1, 2), (2, 3), (3, 4), (4, 5)]
     """
 
     a, b = tee(iterable)
@@ -164,12 +169,14 @@ class AttrDict(dict):
         - `attribute.__call__()` returns `value`
 
     Example::
-
-        >>> d = AttrDict({'a': {'b': 3}, 'pop': 4})
+        >>> o = object()
+        >>> d = AttrDict({'a': {'b': 3}, 'pop': 4, o: 5})
         >>> d.a
         'a'
         >>> d.a()
         {'b': 3}
+        >>> d.pop(o)
+        5
         >>> d.pop('pop')
         4
         >>> c = d.copy()

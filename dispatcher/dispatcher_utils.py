@@ -13,6 +13,7 @@ __all__ = ['combine_dicts', 'bypass', 'summation', 'def_selector',
            'SubDispatchFunction']
 
 from .utils import caller_name
+from networkx.classes.digraph import DiGraph
 
 def combine_dicts(*dicts):
     """
@@ -240,6 +241,7 @@ class SubDispatch(object):
         self.returns = type_return
         self.data_output = {}
         self.dist = {}
+        self.workflow = DiGraph()
         self.__module__ = caller_name()
         self.__name__ = dsp.name
 
@@ -265,7 +267,7 @@ class SubDispatch(object):
         elif self.returns == 'dict':
             o = {k: v for k, v in o.items() if k in outputs}
 
-        return w, o
+        return o
 
 
 class ReplicateFunction(object):
@@ -423,10 +425,11 @@ class SubDispatchFunction(SubDispatch):
         input_values.update(dict(zip(self.inputs, args)))
 
         # dispatch outputs
-        o = dsp._run(*dsp._init_workflow(input_values, self.input_value))[1]
+        w, o = dsp._run(*dsp._init_workflow(input_values, self.input_value))
 
         self.data_output = o
         self.dist = dsp.dist
+        self.workflow = w
 
         try:
             # return outputs sorted
