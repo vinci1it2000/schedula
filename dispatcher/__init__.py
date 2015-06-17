@@ -111,7 +111,7 @@ class Dispatcher(object):
 
     :ivar data_output:
         A dictionary with the dispatch outputs.
-    :type data_output: dict
+    :type data_output: AttrDict
 
     :ivar dist:
         A dictionary of distances from the `START` node.
@@ -298,7 +298,7 @@ class Dispatcher(object):
         self.default_values = default_values if default_values else {}
         self.weight = 'weight'
         self.workflow = DiGraph()  # graph output
-        self.data_output = {}
+        self.data_output = AttrDict()
         self.dist = {}
         self.warning = _warning(raises)
         self._visited = set()
@@ -1168,7 +1168,7 @@ class Dispatcher(object):
 
             - workflow: A directed graph with data node estimations.
             - data_output: Dictionary of estimated data node outputs.
-        :rtype: (DiGraph, dict)
+        :rtype: (DiGraph, AttrDict)
 
         .. seealso:: :func:`shrink_dsp`
 
@@ -1703,7 +1703,7 @@ class Dispatcher(object):
 
         # clear previous outputs
         self.workflow = DiGraph()
-        self.data_output = {}  # estimated data node output
+        self.data_output = AttrDict()  # estimated data node output
         self._visited = set()
         self._wf_add_edge = add_edge_fun(self.workflow)
         self._wf_pred = self.workflow.pred
@@ -2063,7 +2063,7 @@ class Dispatcher(object):
 
             - workflow: A directed graph with data node estimations.
             - data_output: Dictionary of estimated data node outputs.
-        :rtype: (DiGraph, dict)
+        :rtype: (DiGraph, AttrDict)
         """
 
         # namespace shortcuts for speed

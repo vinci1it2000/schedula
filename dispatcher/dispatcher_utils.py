@@ -233,9 +233,11 @@ class SubDispatch(object):
         :params type_return:
             Type of function output:
 
-                + 'all': a dict with all dispatch outputs.
+                + 'all': a :class:`~dispatcher.utils.AttrDict` with all dispatch
+                outputs.
                 + 'list': a list with all outputs listed in `outputs`.
-                + 'dict': a dict with any outputs listed in `outputs`.
+                + 'dict': a :class:`~dispatcher.utils.AttrDict` with any outputs
+                listed in `outputs`.
         :type type_return: str
         """
 
