@@ -262,6 +262,7 @@ class SubDispatch(object):
 
         self.data_output = o
         self.dist = self.dsp.dist
+        self.workflow = w
 
         # set output
         if self.returns == 'list':

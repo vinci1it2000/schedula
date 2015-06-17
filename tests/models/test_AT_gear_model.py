@@ -13,7 +13,7 @@ import unittest
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):
-        import compas.models.compas_model as mdl
+        import compas.models.AT_gear_model as mdl
 
         failure_count, test_count = doctest.testmod(
             mdl, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS

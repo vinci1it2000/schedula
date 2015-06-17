@@ -29,7 +29,17 @@ def def_gear_model():
         - predicted gears ids (e.g., gears_with_DT_VA)
         - predicted gear box speeds ids (e.g., gear_box_speeds_with_DT_VA)
         - error coefficients ids (e.g., error_coefficients_with_DT_VA)
-    :rtype: (dispatcher.dispatcher.Dispatcher, list, list, list, list)
+    :rtype: (Dispatcher, list, list, list, list)
+
+    .. testsetup::
+        >>> from compas.dispatcher.draw import dsp2dot
+        >>> dsp = def_gear_model()[0]
+        >>> dot = dsp2dot(dsp, level=0, graph_attr={'ratio': '1'})
+        >>> from compas.models import dot_dir
+        >>> dot.save('AT_gear_model/dsp.dot', dot_dir)
+        '...'
+
+    .. graphviz:: /compas/models/AT_gear_model/dsp.dot
 
     Follow the input/output parameters of the `gear_model` dispatcher:
 
@@ -827,3 +837,15 @@ def def_gear_model():
 
     return gear_model, calibration_models, gears_predicted, \
            gear_box_speeds_predicted, error_coefficients
+
+if __name__ == '__main__':
+    dsp = def_gear_model()[0]
+    from compas.dispatcher.draw import dsp2dot
+    dot = dsp2dot(
+        dsp, view=True,
+        graph_attr={
+            'rankdir': 'LR',
+            'ratio': '1',
+        },
+        function_module=False)
+    print(dot.source)

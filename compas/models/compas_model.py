@@ -19,7 +19,7 @@ from compas.models.AT_gear_model import *
 from compas.models.read_model import *
 from compas.functions.write_outputs import write_output
 from compas.dispatcher import Dispatcher
-from compas.dispatcher.dispatcher_utils import  SubDispatch, \
+from compas.dispatcher.dispatcher_utils import SubDispatch, \
     def_replicate_value, def_selector
 
 
@@ -106,7 +106,7 @@ def def_compas_model():
     gear_model, calibration_models, gears_predicted, \
     gear_box_speeds_predicted, error_coefficients = def_gear_model()
 
-        # read model
+    # read model
     load_inputs = def_load_inputs()
 
     data = []
@@ -272,7 +272,7 @@ def process_folder_files(input_folder, output_folder):
     """
 
     model, error_coefficients = def_compas_model()
-    fpaths = glob.glob(input_folder)
+    fpaths = glob.glob(input_folder + '/*.xlsm')
     error_coeff = []
     doday= datetime.today().strftime('%d_%b_%Y_%H_%M_%S_')
 

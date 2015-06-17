@@ -30,15 +30,15 @@ from compas.functions.utils import median_filter, sliding_window, pairwise, grou
     reject_outliers, bin_split, interpolate_cloud
 
 
-EPS = 1 + sys.float_info.epsilon
+EPS = 0.1 + sys.float_info.epsilon
 
 INF = 10000.0
 
-MIN_GEAR = 1
+MIN_GEAR = 0
 
 MAX_TIME_SHIFT = 3.0
 
-MIN_ENGINE_SPEED = 100.0
+MIN_ENGINE_SPEED = 10.0
 
 TIME_WINDOW = 4.0
 
@@ -217,7 +217,7 @@ def calculate_velocity_speed_ratios(speed_velocity_ratios):
         if v <= 0:
             return INF
         elif v >= INF:
-            return 0
+            return 0.0
         else:
             return 1 / v
 
@@ -315,13 +315,14 @@ def calculate_gear_box_speeds_from_engine_speeds(
     bins = bins[:-1] + np.diff(bins) / 2
     bins[0] = 0
 
-    speeds = InterpolatedUnivariateSpline(times, engine_speeds)
+    speeds = InterpolatedUnivariateSpline(times, engine_speeds, k=1)
+    vel = InterpolatedUnivariateSpline(times, velocities, k=1)
 
     def error_fun(dt):
-        s = speeds(times + dt)
+        v = vel(times + dt)
 
-        b = s > 0
-        ratio = velocities[b] / s[b]
+        b = engine_speeds > 0
+        ratio = v[b] / engine_speeds[b]
 
         std = binned_statistic(ratio, ratio, np.std, bins)[0]
         w = binned_statistic(ratio, ratio, 'count', bins)[0]
@@ -330,7 +331,7 @@ def calculate_gear_box_speeds_from_engine_speeds(
 
     shift = brute(error_fun, (slice(-MAX_TIME_SHIFT, MAX_TIME_SHIFT, 0.1), ))
 
-    gear_box_speeds = speeds(times + shift)
+    gear_box_speeds = speeds(times - shift)
     gear_box_speeds[gear_box_speeds < 0] = 0
 
     return gear_box_speeds, float(shift)
@@ -397,7 +398,8 @@ def identify_upper_bound_engine_speed(gears, engine_speeds, idle_engine_speed):
     return sum(reject_outliers(engine_speeds[dom]))
 
 
-def _identify_gear(ratio, velocity, acceleration, idle_engine_speed, vsr):
+def _identify_gear(ratio, velocity, acceleration, idle_engine_speed, vsr,
+                   max_gear):
     """
     Identifies a gear.
 
@@ -425,15 +427,22 @@ def _identify_gear(ratio, velocity, acceleration, idle_engine_speed, vsr):
         A gear.
     :rtype: int
     """
+
     if velocity <= EPS:
         return 0
 
-    gear, vs = min((abs(v - ratio), (k, v)) for k, v in vsr)[1]
+    m, (gear, vs) = min((abs(v - ratio), (k, v)) for k, v in vsr)
+
+    if (acceleration < 0
+        and (velocity <= idle_engine_speed[0] * vs
+             or abs(velocity / idle_engine_speed[1] - ratio) < m)):
+        return 0
 
     if velocity > EPS and acceleration > 0 and gear == 0:
         return 1
-    elif velocity < idle_engine_speed * vs:
-        return 0
+
+    if max_gear > gear and vs < 1.1 * ratio:
+        return gear + 1
 
     return gear
 
@@ -473,15 +482,19 @@ def identify_gears(
     :rtype: np.array
     """
 
-    vsr = velocity_speed_ratios.items()
+    vsr = [v for v in velocity_speed_ratios.items()]
 
     ratios = velocities / gear_box_speeds
 
-    ratios[gear_box_speeds < EPS] = 0
+    ratios[gear_box_speeds < MIN_ENGINE_SPEED] = 0
 
-    idle_speed = idle_engine_speed[0] - idle_engine_speed[1]
+    idle_speed = (idle_engine_speed[0] - idle_engine_speed[1],
+                  idle_engine_speed[0] + idle_engine_speed[1])
 
-    it = (ratios, velocities, accelerations, repeat(idle_speed), repeat(vsr))
+    max_gear = max(velocity_speed_ratios)
+
+    it = (ratios, velocities, accelerations, repeat(idle_speed), repeat(vsr),
+          repeat(max_gear))
 
     gear = list(map(_identify_gear, *it))
 

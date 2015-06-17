@@ -1,6 +1,6 @@
 #! python
 ##
-## Installs jrcgear:
+## Installs compas:
 ## 		python setup.py install
 ## or
 ##		pip install -r requirements.txt
@@ -8,7 +8,7 @@
 #
 from setuptools import setup
 
-setup(name='doit-graphx',
+setup(name='compas',
       description="JRC gear tool to predict the A/T gear shifting of the NEDC from the data of WLTP,"
                   "according to decision tree approach and the corrected matrix velocity.",
       long_description="",
@@ -32,6 +32,6 @@ setup(name='doit-graphx',
           'Topic :: Scientific/Engineering',
       ],
 
-      py_modules=['jrcgear'],
+      py_modules=['compas'],
       install_requires=['pandas','numpy','scipy','matplotlib'],
       )

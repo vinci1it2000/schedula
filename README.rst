@@ -1,25 +1,20 @@
-###############
-	jrcgear
-###############
+CO2MPAS
+#######
+
 :author: Vincenzo Arcidiacono 
-:version: 0.4a2
-:date: 22-May-2015
+:version: 0.5.1
+:date: 17-June-2015
 :reviewed by:
+
 For info contact <vincenzo.arcidiacono@ext.jrc.ec.europa.eu> or <georgios.fontaras@jrc.ec.europa.eu>
-###############
+
+
 Summary
-Predicts the NEDC gearshifting for automatic gearboxes from the WLTC measurement.
+#######
 
-:input: a directory that contains WLTC and NEDC input data ['.xls','.xlsx','xlsm']
-:output: a directory to store the predicted gears and plots
-
-Class: JRC_simplified  controlls the process.
-Class: Cycle identifies data
-
-
-Install jrcgear
-==================
-The program requires CPython-3, and numpy/pandas, tkinter and matplotlib.
+Install CO2MPAS
+===============
+The program requires CPython-3, and numpy/pandas, tkinter, networkx and matplotlib.
 Code is currently tested only with python 3.4 in Anaconda/Winpython/MacOS/Windows 7
 
 .. Note::
@@ -35,7 +30,7 @@ Unzip the archive to some folder, `cd` to it and install its dependencies::
 Open windows command prompt: start-->search cmd.exe --> run cmd.exe 
 
 In the cmd window go in in the folder where you have unzipped the archive
-(eg. cd\ --> cd\jrcgear)
+(eg. cd\ --> cd\compas)
 
 Run the following command:
 
@@ -43,15 +38,15 @@ Run the following command:
 
 In case the command fails please refer to alternative usage method below for runnng jrc gear	
 
-Usage of jrcgear
-===================
+Usage of CO2MPAS
+================
 Once Python is installed appropriately
 
 Execute the python-code from inside the extracted folder.
 
 Just run (or directly double click):
 
-	python jrcgear.py
+	python compas.py
 
 Then select the input and output folders form the UI-browser.
 
@@ -60,9 +55,9 @@ N.B. see the template file for input data.
 Alternative usage:
 Open any python development environment (eg spyder2 comes together with WinPython) or an ipython console from the python folder
 Run the command
-run 'C:/jrcgear/jrcgear.py'
+run 'C:/compas/compas.py'
 
-where in ' '  you define the actual path where you have saved the file jrcgear.py
+where in ' '  you define the actual path where you have saved the file compas.py
 
 The program should run and a window asking you to select the input and output folders should appear.
 In case the you cannot see the respective window try minimizing your console in case the window appears in the background.
