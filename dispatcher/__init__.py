@@ -246,7 +246,7 @@ class Dispatcher(object):
     .. testsetup::
         >>> from dispatcher.draw import dsp2dot
         >>> from dispatcher import dot_dir
-        >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
+        >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
         >>> dot.save('Dispatcher/dsp.dot', dot_dir)
         '...'
 
@@ -260,7 +260,7 @@ class Dispatcher(object):
         [('a', 0), ('b', 1), ('c', 1), ('d', 2.0)]
 
     .. testsetup::
-        >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
+        >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'ratio': '1'})
         >>> dot.save('Dispatcher/wf.dot', dot_dir)
         '...'
 
@@ -357,7 +357,7 @@ class Dispatcher(object):
             Data node id.
         :rtype: object
 
-        .. seealso:: add_function, add_from_lists
+        .. seealso:: :func:`add_function`, :func:`add_from_lists`
 
         .. note::
             A hashable object is one that can be used as a key in a Python
@@ -511,7 +511,7 @@ class Dispatcher(object):
             Function node id.
         :rtype: object
 
-        .. seealso:: add_node, add_from_lists
+        .. seealso:: :func:`add_node`, :func:`add_from_lists`
 
         \***********************************************************************
 
@@ -643,11 +643,12 @@ class Dispatcher(object):
         :type fun_list: list, optional
 
         :returns:
+
             - Data node ids.
             - Function node ids.
         :rtype: (list, list)
 
-        .. seealso:: add_node, add_function
+        .. seealso:: :func:`add_node`, :func:`add_function`
 
         \***********************************************************************
 
@@ -785,7 +786,7 @@ class Dispatcher(object):
             'fun2'
             >>> from dispatcher.draw import dsp2dot
             >>> from dispatcher import dot_dir
-            >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
+            >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
             >>> dot.save('get_sub_dsp/dsp.dot', dot_dir)
             '...'
 
@@ -797,7 +798,7 @@ class Dispatcher(object):
 
         .. testsetup::
             >>> sub_dsp.name = 'Sub-Dispatcher'
-            >>> dot = dsp2dot(sub_dsp, graph_attr={'rankdir': 'LR'})
+            >>> dot = dsp2dot(sub_dsp, graph_attr={'ratio': '1'})
             >>> dot.save('get_sub_dsp/sub_dsp.dot', dot_dir)
             '...'
 
@@ -893,7 +894,7 @@ class Dispatcher(object):
             'fun2'
             >>> from dispatcher.draw import dsp2dot
             >>> from dispatcher import dot_dir
-            >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
+            >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
             >>> file = 'get_sub_dsp_from_workflow/dsp.dot'
             >>> dot.save(file, dot_dir)
             '...'
@@ -910,7 +911,7 @@ class Dispatcher(object):
 
         .. testsetup::
             >>> sub_dsp.name = 'Sub-Dispatcher'
-            >>> dot = dsp2dot(sub_dsp, graph_attr={'rankdir': 'LR'})
+            >>> dot = dsp2dot(sub_dsp, graph_attr={'ratio': '1'})
             >>> file = 'get_sub_dsp_from_workflow/sub_dsp1.dot'
             >>> dot.save(file, dot_dir)
             '...'
@@ -923,7 +924,7 @@ class Dispatcher(object):
 
         .. testsetup::
             >>> sub_dsp.name = 'Sub-Dispatcher (reverse workflow)'
-            >>> dot = dsp2dot(sub_dsp, graph_attr={'rankdir': 'LR'})
+            >>> dot = dsp2dot(sub_dsp, graph_attr={'ratio': '1'})
             >>> file = 'get_sub_dsp_from_workflow/sub_dsp2.dot'
             >>> dot.save(file, dot_dir)
             '...'
@@ -1075,7 +1076,7 @@ class Dispatcher(object):
             ([...], [...])
             >>> from dispatcher.draw import dsp2dot
             >>> from dispatcher import dot_dir
-            >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
+            >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
             >>> dot.save('remove_cycles/dsp.dot', dot_dir)
             '...'
 
@@ -1088,7 +1089,7 @@ class Dispatcher(object):
             [('a', 1), ('b', 3)]
 
         .. testsetup::
-            >>> dot = dsp2dot(dsp, True, graph_attr={'rankdir': 'LR'})
+            >>> dot = dsp2dot(dsp, True, graph_attr={'ratio': '1'})
             >>> dot.save('remove_cycles/wf.dot', dot_dir)
             '...'
 
@@ -1096,14 +1097,14 @@ class Dispatcher(object):
 
         Removing the unresolved cycle the dispatch continues to all nodes::
 
-            >>> dsp_rm_cycles = dsp.remove_cycles(['a', 'b'])
-            >>> res = dsp_rm_cycles.dispatch(inputs={'a': 1})[1]
+            >>> dsp_rm_cy = dsp.remove_cycles(['a', 'b'])
+            >>> res = dsp_rm_cy.dispatch(inputs={'a': 1})[1]
             >>> sorted(res.items())
             [('a', 1), ('b', 3), ('c', 3.0), ('d', 1)]
 
         .. testsetup::
-            >>> dsp_rm_cycles.name = 'Dispatcher without unresolved cycles'
-            >>> dot = dsp2dot(dsp_rm_cycles, True, graph_attr={'rankdir': 'LR'})
+            >>> dsp_rm_cy.name = 'Dispatcher without unresolved cycles'
+            >>> dot = dsp2dot(dsp_rm_cy, True, graph_attr={'ratio': '1'})
             >>> file = 'remove_cycles/wf_rm_cycles.dot'
             >>> dot.save(file, dot_dir)
             '...'
@@ -1163,10 +1164,13 @@ class Dispatcher(object):
             If True the dispatcher is shrink before the dispatch.
         :type shrink: bool, optional
 
-        :return:
+        :returns:
+
             - workflow: A directed graph with data node estimations.
             - data_output: Dictionary of estimated data node outputs.
         :rtype: (DiGraph, dict)
+
+        .. seealso:: :func:`shrink_dsp`
 
         \***********************************************************************
 
@@ -1196,7 +1200,7 @@ class Dispatcher(object):
             'min'
             >>> from dispatcher.draw import dsp2dot
             >>> from dispatcher import dot_dir
-            >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
+            >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
             >>> dot.save('dispatch/dsp.dot', dot_dir)
             '...'
 
@@ -1210,7 +1214,7 @@ class Dispatcher(object):
             [('a', 0), ('b', 5), ('c', 0), ('d', 1), ('e', 0.0)]
 
         .. testsetup::
-            >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
+            >>> dot = dsp2dot(dsp, True, graph_attr={'ratio': '1'})
             >>> dot.save('dispatch/wf1.dot', dot_dir)
             '...'
 
@@ -1224,7 +1228,7 @@ class Dispatcher(object):
              [('a', 0), ('b', 5), ('c', 0), ('d', 1)]
 
         .. testsetup::
-            >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
+            >>> dot = dsp2dot(dsp, True, graph_attr={'ratio': '1'})
             >>> dot.save('dispatch/wf2.dot', dot_dir)
             '...'
 
@@ -1239,7 +1243,7 @@ class Dispatcher(object):
              [('a', 3), ('b', 5), ('c', 3), ('d', 1)]
 
         .. testsetup::
-            >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
+            >>> dot = dsp2dot(dsp, True, graph_attr={'ratio': '1'})
             >>> dot.save('dispatch/wf3.dot', dot_dir)
             '...'
 
@@ -1288,6 +1292,8 @@ class Dispatcher(object):
             A sub-dispatcher.
         :rtype: Dispatcher
 
+        .. seealso:: :func:`dispatch`
+
         \***********************************************************************
 
         **Example**:
@@ -1330,7 +1336,7 @@ class Dispatcher(object):
             ([], [...])
             >>> from dispatcher.draw import dsp2dot
             >>> from dispatcher import dot_dir
-            >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
+            >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
             >>> dot.save('shrink_dsp/dsp.dot', dot_dir)
             '...'
 
@@ -1344,7 +1350,7 @@ class Dispatcher(object):
 
         .. testsetup::
             >>> shrink_dsp.name = 'Sub-Dispatcher'
-            >>> dot = dsp2dot(shrink_dsp, graph_attr={'rankdir': 'LR'})
+            >>> dot = dsp2dot(shrink_dsp, graph_attr={'ratio': '1'})
             >>> dot.save('shrink_dsp/shrink_dsp.dot', dot_dir)
             '...'
 
@@ -1421,6 +1427,7 @@ class Dispatcher(object):
                     True if all targets have been visited, otherwise False
                 :rtype: bool
                 """
+
                 try:
                     targets.remove(node_id)  # remove visited node
                     return not targets  # if no targets terminate the algorithm
@@ -1503,7 +1510,8 @@ class Dispatcher(object):
             Data node's id.
         :type node_id: any hashable Python object except None
 
-        :return:
+        :returns:
+
             - node estimations with minimum distance from the starting node, and
             - `wait_inputs` flag
         :rtype: (dict, bool)
@@ -1615,9 +1623,11 @@ class Dispatcher(object):
     def _set_wait_in(self):
         """
         Set `wait_inputs` flags for data nodes that:
+
             - are estimated from functions with a domain function, and
             - are waiting inputs.
         """
+
         # clear wait_in
         self._wait_in = {}
 
@@ -1685,7 +1695,8 @@ class Dispatcher(object):
             If input_values = {'a': 'value'} then 'value' == input_value('a')
         :type input_value: function
 
-        :return:
+        :returns:
+
             - fringe: Nodes not visited, but seen.
             - seen: Distance to seen nodes.
         """
@@ -1782,7 +1793,7 @@ class Dispatcher(object):
             If True data node estimation function is not used.
         :type no_call: bool
 
-        :return status:
+        :return:
             If the output have been evaluated correctly.
         :rtype: bool
         """
@@ -1813,7 +1824,7 @@ class Dispatcher(object):
             If True data node estimations are not used.
         :type no_call: bool
 
-        :return status:
+        :return:
             If the output have been evaluated correctly.
         :rtype: bool
         """
@@ -1908,7 +1919,7 @@ class Dispatcher(object):
             If True data node estimation function is not used.
         :type no_call: bool
 
-        :return status:
+        :return:
             If the output have been evaluated correctly.
         :rtype: bool
         """
@@ -2000,6 +2011,7 @@ class Dispatcher(object):
 
         :return:
             Inputs for _run:
+
                 - fringe: Nodes not visited, but seen.
                 - seen: Distance to seen nodes.
                 - no_call.
@@ -2047,7 +2059,8 @@ class Dispatcher(object):
             If True data node estimation function is not used.
         :type no_call: bool, optional
 
-        :return:
+        :returns:
+
             - workflow: A directed graph with data node estimations.
             - data_output: Dictionary of estimated data node outputs.
         :rtype: (DiGraph, dict)

@@ -6,6 +6,10 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
+"""
+It provides functions to read and save a dispatcher from/to files.
+"""
+
 __author__ = 'Vincenzo Arcidiacono'
 
 from networkx.utils import open_file

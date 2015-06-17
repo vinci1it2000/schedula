@@ -28,7 +28,7 @@ class TestDoctest(unittest.TestCase):
         self.assertGreater(test_count, 0, (failure_count, test_count))
         self.assertEquals(failure_count, 0, (failure_count, test_count))
 
-class TestDispatcherUtils(unittest.TestCase):
+class TestDispatcherDraw(unittest.TestCase):
     def test_plot_dsp(self):
         sub_dsp = Dispatcher()
         def fun(a):

@@ -6,6 +6,10 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
+"""
+It provides functions to plot dispatcher map and workflow.
+"""
+
 __author__ = 'Vincenzo Arcidiacono'
 
 import matplotlib.pyplot as plt
@@ -138,7 +142,7 @@ def plot_dsp(dsp, pos=None, workflow=False, title='Dispatcher', fig=None,
 
 
 def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
-            **kw_dot):
+            level='all', function_module=True, **kw_dot):
     """
     Converts the Dispatcher map into a graph in the DOT language with Graphviz.
 
@@ -163,6 +167,15 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
         default opener.
     :type view: bool, optional
 
+    :param level:
+        Max level of sub-dispatch plots.
+    :type level: str, int, optional
+
+    :param function_module:
+        If True the function labels are plotted with the function module,
+        otherwise only the function name will be visible
+    :type function_module: bool, optional
+
     :return:
         A directed graph source code in the DOT language.
     :rtype: Digraph
@@ -176,7 +189,8 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
         ...     return a + 1, a - 1
         >>> ss_dsp.add_function('fun', fun, ['a'], ['b', 'c'])
         'fun'
-        >>> sub_dispatch = SubDispatch(ss_dsp, ['a', 'b', 'c'], type_return='list')
+        >>> sub_dispatch = SubDispatch(
+        ...     ss_dsp, ['a', 'b', 'c'], type_return='list')
         >>> s_dsp = Dispatcher()
 
         >>> s_dsp.add_function('sub_dispatch', sub_dispatch, ['a'], ['b', 'c'])
@@ -188,7 +202,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
         >>> dsp.add_function('dispatch', dispatch, ['input'], ['d', 'e'])
         'dispatch'
 
-        >>> dot = dsp2dot(dsp)
+        >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
 
     .. testsetup::
         >>> from dispatcher import dot_dir
@@ -201,7 +215,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
 
         >>> dsp.dispatch()
         (..., ...)
-        >>> wf = dsp2dot(dsp, workflow=True)
+        >>> wf = dsp2dot(dsp, workflow=True, graph_attr={'ratio': '1'})
 
     .. testsetup::
         >>> wf.save('draw/wf.dot', dot_dir)
@@ -214,7 +228,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
         if isinstance(workflow, tuple):
             g, val, dist = workflow
         else:
-            g, val, dist= (dsp.workflow, dsp.data_output, dsp.dist)
+            g, val, dist = (dsp.workflow, dsp.data_output, dsp.dist)
 
         if not edge_attr:
             edge_attr = 'value'
@@ -236,10 +250,19 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
         kw = {
             'name': dsp.name,
             'format': 'svg',
-            'body': ['label = "%s"' % title(dsp.name), 'splines = ortho'],
+            'body': {},
             'filename': mkstemp()[1] if 'filename' not in kw_dot else '',
         }
         kw.update(kw_dot)
+
+        if 'label' not in kw['body']:
+            kw['body']['label'] = '"%s"' % title(dsp.name)
+
+        if 'splines' not in kw['body']:
+            kw['body']['splines'] = 'ortho'
+
+        kw['body'] = ['%s = %s' % (k, v) for k, v in kw['body'].items()]
+
         dot = Digraph(**kw)
         dot.node_attr.update(style='filled')
 
@@ -251,7 +274,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
 
     if START in g.node:
         kw = {
-            'shape': 'triangle',
+            'shape': 'egg',
             'fillcolor': 'red',
         }
         dot_node(id_node(START), 'start', **kw)
@@ -269,16 +292,18 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
 
                 kw = {'shape': 'record', 'fillcolor': 'springgreen'}
 
-                node_label = _fun_node_label(k, n, dist)
+                fun_label = k if function_module else k.split(':')[-1]
 
-                if isinstance(fun, SubDispatch):
+                node_label = _fun_node_label(fun_label, n, dist)
+
+                if isinstance(fun, SubDispatch) and level:
                     kw_sub = {
                         'name': 'cluster_%s' % node_id,
                         'body': [
                             'style=filled',
                             'fillcolor="#FF8F0F80"',
-                            'label="%s"' % title(k),
-                            'comment="%s"' % _label_encode(k),
+                            'label="%s"' % title(fun_label),
+                            'comment="%s"' % _label_encode(fun_label),
                         ]
                     }
                     sub = Digraph(**kw_sub)
@@ -288,7 +313,12 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
                     else:
                         wf = False
 
-                    dot.subgraph(dsp2dot(fun.dsp, wf, sub, edge_attr))
+                    lv = level - 1 if level != 'all' else level
+
+                    dot.subgraph(dsp2dot(
+                        fun.dsp, wf, sub, edge_attr, level=lv,
+                        function_module=function_module
+                    ))
 
                     kw['fillcolor'] = '#FF8F0F80'
 
@@ -312,7 +342,6 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
         default_opener(dot.render())
 
     return dot
-
 
 def _node_label(name, values):
     attr = ''

@@ -6,6 +6,10 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
+"""
+It provides tools to create models with the :func:`~dispatcher.Dispatcher`.
+"""
+
 __author__ = 'Vincenzo Arcidiacono'
 
 __all__ = ['combine_dicts', 'bypass', 'summation', 'def_selector',
@@ -14,6 +18,7 @@ __all__ = ['combine_dicts', 'bypass', 'summation', 'def_selector',
 
 from .utils import caller_name
 from networkx.classes.digraph import DiGraph
+
 
 def combine_dicts(*dicts):
     """
@@ -143,14 +148,16 @@ def def_replicate_value(n=2):
 
 class SubDispatch(object):
     """
-    Returns a function that executes the dispatch of the given `dsp`.
+    It dispatches a given :func:`~dispatcher.Dispatcher` like a function.
+
+    This function takes a sequence of dictionaries as input that will be
+    combined before the dispatching.
 
     :return:
         A function that executes the dispatch of the given `dsp`.
-
-        This function takes a sequence of dictionaries as input that will be
-        combined before the dispatching.
     :rtype: function
+
+    .. seealso:: :func:`~dispatcher.Dispatcher.dispatch`, :func:`combine_dicts`
 
     Example::
 
@@ -170,7 +177,7 @@ class SubDispatch(object):
     .. testsetup::
         >>> from dispatcher.draw import dsp2dot
         >>> from dispatcher import dot_dir
-        >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
+        >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
         >>> dot.save('dispatcher_utils/SubDispatch_dsp.dot', dot_dir)
         '...'
 
@@ -185,7 +192,7 @@ class SubDispatch(object):
         (<...DiGraph object at 0x...>, {...}, {...})
 
     .. testsetup::
-        >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
+        >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'ratio': '1'})
         >>> dot.save('dispatcher_utils/SubDispatch_wf.dot', dot_dir)
         '...'
 
@@ -260,6 +267,7 @@ class SubDispatch(object):
 
         self.data_output = o
         self.dist = self.dsp.dist
+        self.workflow = w
 
         # set output
         if self.returns == 'list':
@@ -286,13 +294,15 @@ class ReplicateFunction(object):
 
 class SubDispatchFunction(SubDispatch):
     """
-    Returns a function node that uses the dispatcher map as function.
-    
+    It dispatches a given :func:`~dispatcher.Dispatcher` like a function.
+
+    This function takes a sequence of arguments as input of the dispatch.
+
     :return:
         A function that executes the dispatch of the given `dsp`.
-
-        This function takes a sequence of arguments as input od the dispatch.
     :rtype: function
+
+    .. seealso:: :func:`~dispatcher.Dispatcher.dispatch`
 
     **Example**:
 
@@ -312,7 +322,7 @@ class SubDispatchFunction(SubDispatch):
         'log(x - 1)'
         >>> from dispatcher.draw import dsp2dot
         >>> from dispatcher import dot_dir
-        >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
+        >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
         >>> dot.save('dispatcher_utils/SubDispatchFunction_dsp.dot', dot_dir)
         '...'
 
@@ -331,7 +341,7 @@ class SubDispatchFunction(SubDispatch):
         >>> dsp.name = 'Created function internal'
         >>> dsp.dispatch({'a': 2, 'b': 1}, outputs=['a'], wildcard=True)
         (...)
-        >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
+        >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'ratio': '1'})
         >>> dot.save('dispatcher_utils/SubDispatchFunction_wf1.dot', dot_dir)
         '...'
 
@@ -348,12 +358,11 @@ class SubDispatchFunction(SubDispatch):
     .. testsetup::
         >>> dsp.dispatch({'a': 1, 'b': 0}, outputs=['a'], wildcard=True)
         (...)
-        >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
+        >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'ratio': '1'})
         >>> dot.save('dispatcher_utils/SubDispatchFunction_wf2.dot', dot_dir)
         '...'
 
     .. graphviz:: /dispatcher/dispatcher_utils/SubDispatchFunction_wf2.dot
-
     """
 
     def __init__(self, dsp, function_id, inputs, outputs, cutoff=None):

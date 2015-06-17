@@ -169,6 +169,7 @@ class AttrDict(dict):
         - `attribute.__call__()` returns `value`
 
     Example::
+
         >>> o = object()
         >>> d = AttrDict({'a': {'b': 3}, 'pop': 4, o: 5})
         >>> d.a
