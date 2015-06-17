@@ -21,6 +21,9 @@ setup(
         'networkx',
         'matplotlib',
         'dill',
-        'graphviz'
+        'graphviz',
+    ],
+    setup_requires=[
+        'nose>=1.0',
     ]
 )
