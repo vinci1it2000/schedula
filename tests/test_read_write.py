@@ -37,12 +37,7 @@ class TestReadWrite(unittest.TestCase):
         
         self.tmp = mkstemp()[1]
 
-    def tearDown(self):
-        import os
-        os.remove(self.tmp)
-
     def test_save_dispatcher(self):
-
         save_dispatcher(self.dsp, self.tmp)
 
     def test_load_dispatcher(self):

@@ -11,7 +11,7 @@ from setuptools import setup
 setup(
     name='dispatcher',
     version='0.0.1',
-    packages=['tests', 'dispatcher'],
+    packages=['dispatcher'],
     url='',
     license='',
     author='Vincenzo Arcidiacono',
