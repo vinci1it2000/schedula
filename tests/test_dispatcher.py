@@ -14,10 +14,6 @@ from dispatcher import Dispatcher
 from dispatcher.constants import START, EMPTY, SINK, NONE
 
 
-__name__ = 'dispatcher'
-__path__ = ''
-
-
 def _setup_dsp():
     dsp = Dispatcher()
 
@@ -109,7 +105,7 @@ class TestDispatcher(unittest.TestCase):
         fun_id = dsp.add_function(function=my_function, inputs=['a', 'b'],
                                   outputs=['c', 'd'])
 
-        self.assertEquals(fun_id, 'dispatcher:my_function')
+        self.assertEquals(fun_id, 'test_dispatcher:my_function')
 
         from math import log
 
@@ -132,7 +128,7 @@ class TestDispatcher(unittest.TestCase):
             'c': {'wait_inputs': False, 'type': 'data'},
             'd': {'wait_inputs': False, 'type': 'data'},
             'e': {'wait_inputs': False, 'type': 'data'},
-            'dispatcher:my_function': {
+            'test_dispatcher:my_function': {
                 'type': 'function',
                 'inputs': ['a', 'b'],
                 'function': my_function,
@@ -198,7 +194,7 @@ class TestDispatcher(unittest.TestCase):
             'b': {'wait_inputs': False, 'type': 'data'},
             'c': {'wait_inputs': True, 'function': fun, 'type': 'data',
                   'wildcard': True},
-            'dispatcher:fun1': {'inputs': ['a', 'b'],
+            'test_dispatcher:fun1': {'inputs': ['a', 'b'],
                                 'wait_inputs': True,
                                 'function': fun1,
                                 'type': 'function',

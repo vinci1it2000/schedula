@@ -12,9 +12,6 @@ import unittest
 from dispatcher.graph_utils import *
 from networkx.classes.digraph import DiGraph
 
-__name__ = 'graph_utils'
-__path__ = ''
-
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):

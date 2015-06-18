@@ -12,9 +12,6 @@ import doctest
 import unittest
 from dispatcher.utils import *
 
-__name__ = 'utils'
-__path__ = ''
-
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):

@@ -12,8 +12,6 @@ import unittest
 from dispatcher.dispatcher_utils import *
 from dispatcher import Dispatcher
 from dispatcher.constants import SINK
-__name__ = 'dispatcher_utils'
-__path__ = ''
 
 
 class TestDoctest(unittest.TestCase):

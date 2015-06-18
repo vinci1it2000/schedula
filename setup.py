@@ -6,12 +6,12 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
-from distutils.core import setup
+from setuptools import setup
 
 setup(
     name='dispatcher',
     version='0.0.1',
-    packages=['', 'doc', 'tests', 'dispatcher'],
+    packages=['tests', 'dispatcher'],
     url='',
     license='',
     author='Vincenzo Arcidiacono',
@@ -23,7 +23,6 @@ setup(
         'dill',
         'graphviz',
     ],
-    setup_requires=[
-        'nose>=1.0',
-    ]
+    test_suite='nose.collector',
+    setup_requires=['nose>=1.0']
 )

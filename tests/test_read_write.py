@@ -14,7 +14,7 @@ from dispatcher.read_write import *
 from dispatcher import Dispatcher
 
 temp_file = mkstemp()[1]
-__path__ = ''
+
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):

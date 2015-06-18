@@ -15,8 +15,6 @@ from dispatcher.constants import SINK
 from dispatcher import Dispatcher
 from dispatcher.dispatcher_utils import SubDispatch
 
-__name__ = 'draw'
-__path__ = ''
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):
