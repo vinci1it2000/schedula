@@ -19,7 +19,7 @@ class TestDoctest(unittest.TestCase):
         failure_count, test_count = doctest.testmod(
             dsp, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS)
         self.assertGreater(test_count, 0, (failure_count, test_count))
-        self.assertEquals(failure_count, 0, (failure_count, test_count))
+        self.assertEqual(failure_count, 0, (failure_count, test_count))
 
 
 class TestGraphAlgorithms(unittest.TestCase):
@@ -31,13 +31,13 @@ class TestGraphAlgorithms(unittest.TestCase):
         graph.add_edge(10, 9)
 
         res = [[1, 2, 3, 4], [9], [10]]
-        self.assertEquals(list(scc_fun(graph, [1, 10])), res)
+        self.assertEqual(list(scc_fun(graph, [1, 10])), res)
 
         res = [[0], [1, 2, 3, 4], [5, 6, 7, 8], [9], [10]]
-        self.assertEquals(list(scc_fun(graph)), res)
+        self.assertEqual(list(scc_fun(graph)), res)
 
         res = [[1, 2, 3, 4]]
-        self.assertEquals(list(scc_fun(graph, [1])), res)
+        self.assertEqual(list(scc_fun(graph, [1])), res)
 
     def test_dijkstra(self):
         graph = DiGraph()
@@ -51,7 +51,7 @@ class TestGraphAlgorithms(unittest.TestCase):
         dist, paths = dijkstra(graph, 1)
         res = {1: 0, 2: 1, 3: 2, 4: 3, 5: 7,
                6: 8, 7: 5, 8: 6, 9: 3, 10: 4}
-        self.assertEquals(dist, res)
+        self.assertEqual(dist, res)
         res = {1: [1],
                2: [1, 2],
                3: [1, 2, 3],
@@ -73,28 +73,28 @@ class TestGraphAlgorithms(unittest.TestCase):
                4: [1, 2, 3, 4],
                9: [1, 2, 3, 9],
                10: [1, 2, 3, 9, 10]}
-        self.assertEquals(paths, res)
+        self.assertEqual(paths, res)
 
         dist, paths = dijkstra(graph, 1, [10])
         res = {1: 0, 2: 1, 3: 2, 4: 3, 9: 3, 10: 4}
-        self.assertEquals(dist, res)
+        self.assertEqual(dist, res)
         res = {1: [1],
                2: [1, 2],
                3: [1, 2, 3],
                4: [1, 2, 3, 4],
                9: [1, 2, 3, 9],
                10: [1, 2, 3, 9, 10]}
-        self.assertEquals(paths, res)
+        self.assertEqual(paths, res)
 
         dist, paths = dijkstra(graph, 1, [1])
         res = {1: 0}
-        self.assertEquals(dist, res)
+        self.assertEqual(dist, res)
         res = {1: [1]}
-        self.assertEquals(paths, res)
+        self.assertEqual(paths, res)
 
         dist, paths = dijkstra(graph, 1, [4, 8])
         res = {1: 0, 2: 1, 3: 2, 4: 3, 7: 5, 8: 6, 9: 3, 10: 4}
-        self.assertEquals(dist, res)
+        self.assertEqual(dist, res)
         res = {1: [1],
                2: [1, 2],
                3: [1, 2, 3],
@@ -103,20 +103,20 @@ class TestGraphAlgorithms(unittest.TestCase):
                8: [1, 2, 3, 9, 10, 7, 8],
                9: [1, 2, 3, 9],
                10: [1, 2, 3, 9, 10]}
-        self.assertEquals(paths, res)
+        self.assertEqual(paths, res)
 
         graph.add_edge(7, 2, attr_dict={'weight': -10})
 
         res = (dist, paths)
-        self.assertEquals(dijkstra(graph, 1, [4, 8], None, False), res)
+        self.assertEqual(dijkstra(graph, 1, [4, 8], None, False), res)
         self.assertRaises(ValueError, dijkstra, *(graph, 1, [4, 8]))
 
         dist, paths = dijkstra(graph, 1, [4, 8], 3)
         res = {1: 0, 2: 1, 3: 2, 4: 3, 9: 3}
-        self.assertEquals(dist, res)
+        self.assertEqual(dist, res)
         res = {1: [1],
                2: [1, 2],
                3: [1, 2, 3],
                4: [1, 2, 3, 4],
                9: [1, 2, 3, 9]}
-        self.assertEquals(paths, res)
+        self.assertEqual(paths, res)

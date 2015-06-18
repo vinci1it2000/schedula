@@ -24,7 +24,7 @@ class TestDoctest(unittest.TestCase):
             d, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS
         )
         self.assertGreater(test_count, 0, (failure_count, test_count))
-        self.assertEquals(failure_count, 0, (failure_count, test_count))
+        self.assertEqual(failure_count, 0, (failure_count, test_count))
 
 class TestDispatcherDraw(unittest.TestCase):
     def test_plot_dsp(self):

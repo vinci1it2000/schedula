@@ -35,17 +35,23 @@ def save_dispatcher(dsp, path):
         File names ending in .gz or .bz2 will be compressed.
     :type path: str, file
 
+    .. testsetup::
+        >>> from tempfile import mkstemp
+        >>> file_name = mkstemp()[1]
+
     Example::
 
         >>> from dispatcher import Dispatcher
-        >>> from tempfile import mkstemp
-        >>> tmp = mkstemp()[1]
         >>> dsp = Dispatcher()
         >>> dsp.add_data('a', default_value=1)
         'a'
         >>> dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
         'builtins:max'
-        >>> save_dispatcher(dsp, tmp)
+        >>> save_dispatcher(dsp, file_name)
+
+    .. testcleanup::
+        >>> import os
+        >>> os.remove(file_name)
     """
 
     # noinspection PyArgumentList
@@ -68,21 +74,27 @@ def load_dispatcher(path):
     :return: dispatcher map that identifies the model adopted.
     :rtype: dispatcher.dispatcher.Dispatcher
 
+    .. testsetup::
+        >>> from tempfile import mkstemp
+        >>> file_name = mkstemp()[1]
+
     Example::
 
         >>> from dispatcher import Dispatcher
-        >>> from tempfile import mkstemp
-        >>> tmp = mkstemp()[1]
         >>> dsp = Dispatcher()
         >>> dsp.add_data('a', default_value=1)
         'a'
         >>> dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
         'builtins:max'
-        >>> save_dispatcher(dsp, tmp)
+        >>> save_dispatcher(dsp, file_name)
 
-        >>> dsp = load_dispatcher(tmp)
+        >>> dsp = load_dispatcher(file_name)
         >>> dsp.dispatch(inputs={'b': 3})[1]['c']
         3
+
+    .. testcleanup::
+        >>> import os
+        >>> os.remove(file_name)
     """
 
     # noinspection PyArgumentList
@@ -106,17 +118,23 @@ def save_default_values(dsp, path):
         File names ending in .gz or .bz2 will be compressed.
     :type path: str, file
 
+    .. testsetup::
+        >>> from tempfile import mkstemp
+        >>> file_name = mkstemp()[1]
+
     Example::
 
         >>> from dispatcher import Dispatcher
-        >>> from tempfile import mkstemp
-        >>> tmp = mkstemp()[1]
         >>> dsp = Dispatcher()
         >>> dsp.add_data('a', default_value=1)
         'a'
         >>> dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
         'builtins:max'
-        >>> save_default_values(dsp, tmp)
+        >>> save_default_values(dsp, file_name)
+
+    .. testcleanup::
+        >>> import os
+        >>> os.remove(file_name)
     """
 
     # noinspection PyArgumentList
@@ -140,22 +158,28 @@ def load_default_values(dsp, path):
         File names ending in .gz or .bz2 will be uncompressed.
     :type path: str, file
 
+    .. testsetup::
+        >>> from tempfile import mkstemp
+        >>> file_name = mkstemp()[1]
+
     Example::
 
         >>> from dispatcher import Dispatcher
-        >>> from tempfile import mkstemp
-        >>> tmp = mkstemp()[1]
         >>> dsp = Dispatcher()
         >>> dsp.add_data('a', default_value=1)
         'a'
         >>> dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
         'builtins:max'
-        >>> save_default_values(dsp, tmp)
+        >>> save_default_values(dsp, file_name)
 
         >>> dsp = Dispatcher(dmap=dsp.dmap)
-        >>> load_default_values(dsp, tmp)
+        >>> load_default_values(dsp, file_name)
         >>> dsp.dispatch(inputs={'b': 3})[1]['c']
         3
+
+    .. testcleanup::
+        >>> import os
+        >>> os.remove(file_name)
     """
 
     # noinspection PyArgumentList
@@ -179,15 +203,21 @@ def save_map(dsp, path):
         File names ending in .gz or .bz2 will be compressed.
     :type path: str, file
 
+    .. testsetup::
+        >>> from tempfile import mkstemp
+        >>> file_name = mkstemp()[1]
+
     Example::
 
         >>> from dispatcher import Dispatcher
-        >>> from tempfile import mkstemp
-        >>> tmp = mkstemp()[1]
         >>> dsp = Dispatcher()
         >>> dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
         'builtins:max'
-        >>> save_map(dsp, tmp)
+        >>> save_map(dsp, file_name)
+
+    .. testcleanup::
+        >>> import os
+        >>> os.remove(file_name)
     """
 
     dump(dsp.dmap, path)
@@ -207,21 +237,26 @@ def load_map(dsp, path):
         File names ending in .gz or .bz2 will be uncompressed.
     :type path: str, file
 
+    .. testsetup::
+        >>> from tempfile import mkstemp
+        >>> file_name = mkstemp()[1]
+
     Example::
 
         >>> from dispatcher import Dispatcher
-        >>> from tempfile import mkstemp
-        >>> tmp = mkstemp()[1]
         >>> dsp = Dispatcher()
         >>> dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
         'builtins:max'
-        >>> save_map(dsp, tmp)
+        >>> save_map(dsp, file_name)
 
         >>> dsp = Dispatcher()
-        >>> load_map(dsp, tmp)
+        >>> load_map(dsp, file_name)
         >>> dsp.dispatch(inputs={'a': 1, 'b': 3})[1]['c']
         3
 
+    .. testcleanup::
+        >>> import os
+        >>> os.remove(file_name)
     """
 
     dsp.__init__(dmap=load(path), default_values=dsp.default_values)
