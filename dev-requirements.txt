@@ -2,3 +2,4 @@ networkx
 dill
 graphviz
 nose
+matplotlib
