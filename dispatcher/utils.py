@@ -11,6 +11,12 @@ __author__ = 'Vincenzo Arcidiacono'
 import inspect
 from itertools import tee
 from heapq import heappop
+try:
+    isidentifier = str.isidentifier
+except:
+    import re
+    isidentifier = re.compile(r'[a-z_]\w*$', re.I).match
+
 
 __all__ = ['Token', 'pairwise', 'heap_flush', 'rename_function', 'AttrDict',
            'caller_name']
@@ -144,7 +150,10 @@ def _isidentifier(*args):
         attr.update(a)
 
     def isidentifier(self, key):
-        return isinstance(key, str) and key.isidentifier() and key not in attr
+        try:
+            return isidentifier(key) and key not in attr
+        except TypeError:
+            return False
 
     return isidentifier
 
