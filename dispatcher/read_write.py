@@ -48,10 +48,6 @@ def save_dispatcher(dsp, path):
         >>> dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
         'builtins:max'
         >>> save_dispatcher(dsp, file_name)
-
-    .. testcleanup::
-        >>> import os
-        >>> os.remove(file_name)
     """
 
     # noinspection PyArgumentList
@@ -91,10 +87,6 @@ def load_dispatcher(path):
         >>> dsp = load_dispatcher(file_name)
         >>> dsp.dispatch(inputs={'b': 3})[1]['c']
         3
-
-    .. testcleanup::
-        >>> import os
-        >>> os.remove(file_name)
     """
 
     # noinspection PyArgumentList
@@ -131,10 +123,6 @@ def save_default_values(dsp, path):
         >>> dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
         'builtins:max'
         >>> save_default_values(dsp, file_name)
-
-    .. testcleanup::
-        >>> import os
-        >>> os.remove(file_name)
     """
 
     # noinspection PyArgumentList
@@ -176,10 +164,6 @@ def load_default_values(dsp, path):
         >>> load_default_values(dsp, file_name)
         >>> dsp.dispatch(inputs={'b': 3})[1]['c']
         3
-
-    .. testcleanup::
-        >>> import os
-        >>> os.remove(file_name)
     """
 
     # noinspection PyArgumentList
@@ -214,10 +198,6 @@ def save_map(dsp, path):
         >>> dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
         'builtins:max'
         >>> save_map(dsp, file_name)
-
-    .. testcleanup::
-        >>> import os
-        >>> os.remove(file_name)
     """
 
     dump(dsp.dmap, path)
@@ -253,10 +233,6 @@ def load_map(dsp, path):
         >>> load_map(dsp, file_name)
         >>> dsp.dispatch(inputs={'a': 1, 'b': 3})[1]['c']
         3
-
-    .. testcleanup::
-        >>> import os
-        >>> os.remove(file_name)
     """
 
     dsp.__init__(dmap=load(path), default_values=dsp.default_values)

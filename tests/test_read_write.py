@@ -22,6 +22,7 @@ class TestDoctest(unittest.TestCase):
         self.assertGreater(test_count, 0, (failure_count, test_count))
         self.assertEqual(failure_count, 0, (failure_count, test_count))
 
+
 class TestReadWrite(unittest.TestCase):
     def setUp(self):
         dsp = Dispatcher()
