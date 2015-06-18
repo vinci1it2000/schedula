@@ -38,7 +38,7 @@ class TestReadWrite(unittest.TestCase):
 
     def tearDown(self):
         import os
-        os.remove(self.tmp)
+        #os.remove(self.tmp)
 
     def test_save_dispatcher(self):
 
