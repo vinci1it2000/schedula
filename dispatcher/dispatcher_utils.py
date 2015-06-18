@@ -355,7 +355,7 @@ class SubDispatchFunction(SubDispatch):
         >>> fun(1, 0)
         Traceback (most recent call last):
         ...
-        ValueError: Unreachable output-targets:{'a'}
+        ValueError: Unreachable output-targets:...
 
     .. testsetup::
         >>> dsp.dispatch({'a': 1, 'b': 0}, outputs=['a'], wildcard=True)

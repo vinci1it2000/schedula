@@ -141,12 +141,12 @@ def rename_function(new_name, module_name=None):
     """
     if module_name is not None:
         def decorator(f):
-            f.__name__ = new_name
-            f.__module__ = module_name
+            setattr(f, '__name__', str(new_name))
+            setattr(f, '__module__', str(module_name))
             return f
     else:
         def decorator(f):
-            f.__name__ = new_name
+            setattr(f, '__name__', str(new_name))
             return f
 
     return decorator

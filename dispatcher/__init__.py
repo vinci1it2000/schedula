@@ -45,7 +45,7 @@ import os
 import logging
 from networkx import DiGraph, isolates
 from heapq import heappush, heappop
-from collections import OrderedDict
+from collections import deque
 from .utils import AttrDict, counter
 from .graph_utils import add_edge_fun, remove_cycles_iteration
 from .constants import EMPTY, START, NONE, SINK
@@ -938,7 +938,7 @@ class Dispatcher(object):
             graph = self.workflow
 
         # visited nodes used as queue
-        family = OrderedDict()
+        family = {}
 
         # namespace shortcuts for speed
         nodes, dmap_nodes = (sub_dsp.dmap.node, self.dmap.node)
@@ -976,6 +976,8 @@ class Dispatcher(object):
             def check_node_inputs(c):
                 return False
 
+        queue = deque([])
+
         # function to set node attributes
         def set_node_attr(n):
             # set node attributes
@@ -989,19 +991,22 @@ class Dispatcher(object):
 
             family[n] = neighbors(n)  # append a new parent to the family
 
+            queue.append(n)
+
         # set initial node attributes
         for s in sources:
             if s in dmap_nodes and s in graph.node:
                 set_node_attr(s)
 
         # start breadth-first-search
-        for parent, children in iter(family.items()):
+        while queue:
+            parent = queue.popleft()
 
             # namespace shortcuts for speed
             nbrs, dmap_nbrs = (succ[parent], dmap_succ[parent])
 
             # iterate parent's children
-            for child in children:
+            for child in family[parent]:
 
                 if child == START or check_node_inputs(child):
                     continue
@@ -1040,7 +1045,7 @@ class Dispatcher(object):
         .. testsetup::
             >>> dsp = Dispatcher()
             >>> def average(kwargs):
-            ...     return sum(kwargs.values()) / len(kwargs)
+            ...     return sum(kwargs.values()) / float(len(kwargs))
             >>> data = [
             ...     {'data_id': 'b', 'default_value': 3},
             ...     {'data_id': 'c', 'wait_inputs': True, 'function': average},
