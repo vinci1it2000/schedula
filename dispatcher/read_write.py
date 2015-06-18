@@ -46,7 +46,7 @@ def save_dispatcher(dsp, path):
         >>> dsp.add_data('a', default_value=1)
         'a'
         >>> dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
-        'builtins:max'
+        '...:max'
         >>> save_dispatcher(dsp, file_name)
     """
 
@@ -81,7 +81,7 @@ def load_dispatcher(path):
         >>> dsp.add_data('a', default_value=1)
         'a'
         >>> dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
-        'builtins:max'
+        '...:max'
         >>> save_dispatcher(dsp, file_name)
 
         >>> dsp = load_dispatcher(file_name)
@@ -121,7 +121,7 @@ def save_default_values(dsp, path):
         >>> dsp.add_data('a', default_value=1)
         'a'
         >>> dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
-        'builtins:max'
+        '...:max'
         >>> save_default_values(dsp, file_name)
     """
 
@@ -157,7 +157,7 @@ def load_default_values(dsp, path):
         >>> dsp.add_data('a', default_value=1)
         'a'
         >>> dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
-        'builtins:max'
+        '...:max'
         >>> save_default_values(dsp, file_name)
 
         >>> dsp = Dispatcher(dmap=dsp.dmap)
@@ -196,7 +196,7 @@ def save_map(dsp, path):
         >>> from dispatcher import Dispatcher
         >>> dsp = Dispatcher()
         >>> dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
-        'builtins:max'
+        '...:max'
         >>> save_map(dsp, file_name)
     """
 
@@ -226,7 +226,7 @@ def load_map(dsp, path):
         >>> from dispatcher import Dispatcher
         >>> dsp = Dispatcher()
         >>> dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
-        'builtins:max'
+        '...:max'
         >>> save_map(dsp, file_name)
 
         >>> dsp = Dispatcher()

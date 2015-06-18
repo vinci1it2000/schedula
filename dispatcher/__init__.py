@@ -1376,7 +1376,7 @@ class Dispatcher(object):
 
                 edges.update(wf.edges())
 
-                n_d = (wf.node.keys() - self._visited)
+                n_d = (set(wf.node.keys()) - self._visited)
 
                 if not n_d:
                     break
