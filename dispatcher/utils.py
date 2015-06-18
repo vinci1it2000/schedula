@@ -11,6 +11,7 @@ __author__ = 'Vincenzo Arcidiacono'
 import inspect
 from itertools import tee, count
 from heapq import heappop
+
 try:
     isidentifier = str.isidentifier
 except:
@@ -19,8 +20,8 @@ except:
 
 
 
-__all__ = ['counter', 'Token', 'pairwise', 'heap_flush', 'rename_function', 'AttrDict',
-           'caller_name']
+__all__ = ['counter', 'Token', 'pairwise', 'heap_flush', 'rename_function',
+           'AttrDict', 'caller_name']
 
 if '__next__' in count.__dict__:
     def counter(n=0):

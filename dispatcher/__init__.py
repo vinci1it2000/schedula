@@ -1563,7 +1563,7 @@ class Dispatcher(object):
             # namespace shortcut
             we = self._wait_in.get
 
-            def check_wait_input_flag(wait_in, node_id):
+            def check_wait_input_flag(wait_in, n_id):
                 """
                 Stops the search of the investigated node of the ArciDispatch
                 algorithm, until all inputs are satisfied.
@@ -1572,9 +1572,9 @@ class Dispatcher(object):
                     If True the node is waiting input estimations.
                 :type wait_in: bool
 
-                :param node_id:
+                :param n_id:
                     Data or function node id.
-                :type node_id: any hashable Python object except None
+                :type n_id: any hashable Python object except None
 
                 :return:
                     True if all node inputs are satisfied, otherwise False
@@ -1582,12 +1582,12 @@ class Dispatcher(object):
                 """
 
                 # return true if the node inputs are satisfied
-                return we(node_id, wait_in) and (pred[node_id].keys() - visited)
+                return we(n_id, wait_in) and (set(pred[n_id].keys()) - visited)
 
         else:
-            def check_wait_input_flag(wait_in, node_id):
+            def check_wait_input_flag(wait_in, n_id):
                 # return true if the node inputs are satisfied
-                return wait_in and (pred[node_id].keys() - visited)
+                return wait_in and (set(pred[n_id].keys()) - visited)
 
         return check_wait_input_flag
 
