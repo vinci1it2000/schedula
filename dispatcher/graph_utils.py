@@ -9,8 +9,7 @@
 __author__ = 'Vincenzo Arcidiacono'
 
 from heapq import heappush, heappop
-from itertools import count
-from .utils import pairwise, heap_flush
+from .utils import pairwise, heap_flush, counter
 
 __all__ = ['add_edge_fun', 'scc_fun', 'dijkstra', 'remove_cycles_iteration']
 
@@ -70,7 +69,7 @@ def scc_fun(graph, nodes_bunch=None):
     """
 
     p_ord, l_link, scc_found, scc_queue = ({}, {}, {}, [])
-    pre_ord_n = count().__next__  # Pre-order counter
+    pre_ord_n = counter()  # Pre-order counter
     for source in (nodes_bunch if nodes_bunch else graph):
         if source not in scc_found:
             q = [source]  # queue
@@ -169,7 +168,7 @@ def dijkstra(graph, source, targets=None, cutoff=None, weight=True):
     dist = {}  # dictionary of final distances
     paths = {source: [source]}  # dictionary of paths
     seen = {source: 0}
-    c = count(1).__next__
+    c = counter(1)
     fringe = [(0, 0, source)]  # use heapq with (distance,label) tuples
     while fringe:
         (d, _, v) = heappop(fringe)
@@ -294,7 +293,7 @@ def _nodes_by_relevance(graph, nodes_bunch):
     fun_nds, data_nds = ([], [])
 
     # counter
-    c = count(1).__next__
+    c = counter(1)
 
     for u, n in ((u, graph.node[u]) for u in nodes_bunch):
         # node type
@@ -340,7 +339,7 @@ def _cycles_ord_by_length(graph, data_nodes, function_nodes):
     min_l = []
 
     # counter
-    c = count(0).__next__
+    c = counter(0)
 
     # set of function nodes labels
     fun_n = set([v[-1] for v in function_nodes])

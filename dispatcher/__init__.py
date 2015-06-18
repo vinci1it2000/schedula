@@ -45,9 +45,8 @@ import os
 import logging
 from networkx import DiGraph, isolates
 from heapq import heappush, heappop
-from itertools import count
 from collections import OrderedDict
-from .utils import AttrDict
+from .utils import AttrDict, counter
 from .graph_utils import add_edge_fun, remove_cycles_iteration
 from .constants import EMPTY, START, NONE, SINK
 from .dispatcher_utils import SubDispatch, bypass
@@ -434,7 +433,7 @@ class Dispatcher(object):
         has_node = self.dmap.has_node  # namespace shortcut for speed
 
         if data_id is None:  # search for a unused node id
-            n = count(0).__next__  # counter
+            n = counter(0)  # counter
             data_id = 'unknown<%d>' % n()  # initial guess
             while has_node(data_id):  # check if node id is used
                 data_id = 'unknown<%d>' % n()  # guess
@@ -579,7 +578,7 @@ class Dispatcher(object):
 
         fun_id = function_name  # initial function id guess
 
-        n = count(0).__next__  # counter
+        n = counter(0)  # counter
 
         has_node = self.dmap.has_node  # namespace shortcut for speed
 

@@ -9,7 +9,7 @@
 __author__ = 'Vincenzo Arcidiacono'
 
 import inspect
-from itertools import tee
+from itertools import tee, count
 from heapq import heappop
 try:
     isidentifier = str.isidentifier
@@ -18,8 +18,16 @@ except:
     isidentifier = re.compile(r'[a-z_]\w*$', re.I).match
 
 
-__all__ = ['Token', 'pairwise', 'heap_flush', 'rename_function', 'AttrDict',
+
+__all__ = ['counter', 'Token', 'pairwise', 'heap_flush', 'rename_function', 'AttrDict',
            'caller_name']
+
+if '__next__' in count.__dict__:
+    def counter(n=0):
+        return count(n).__next__
+else:
+    def counter(n=0):
+        return count(n).next
 
 
 class Token(str):
