@@ -149,13 +149,13 @@ def _isidentifier(*args):
     for a in args:
         attr.update(a)
 
-    def isidentifier(self, key):
+    def my_isidentifier(self, key):
         try:
             return isidentifier(key) and key not in attr
         except TypeError:
             return False
 
-    return isidentifier
+    return my_isidentifier
 
 
 class _Attr(str):
