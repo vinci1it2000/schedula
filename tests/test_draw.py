@@ -10,7 +10,6 @@ import unittest
 import doctest
 from dispatcher.draw import *
 from graphviz.dot import Digraph
-from matplotlib.figure import Figure
 from dispatcher.constants import SINK
 from dispatcher import Dispatcher
 from dispatcher.dispatcher_utils import SubDispatch
