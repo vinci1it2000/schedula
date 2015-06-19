@@ -8,7 +8,7 @@
 
 import doctest
 import unittest
-import sys
+import platform
 from tempfile import mkstemp
 from dispatcher.read_write import *
 from dispatcher import Dispatcher
@@ -36,13 +36,13 @@ class TestReadWrite(unittest.TestCase):
         self.dsp = dsp
         
         self.tmp = mkstemp()[1]
-
-    @unittest.skipIf(sys.version_info in ('pypy', 'pypy3'),
+        
+    @unittest.skipIf(platform.python_implementation() == "PyPy",
                      "not supported for pypy")
     def test_save_dispatcher(self):
         save_dispatcher(self.dsp, self.tmp)
 
-    @unittest.skipIf(sys.version_info in ('pypy', 'pypy3'),
+    @unittest.skipIf(platform.python_implementation() == "PyPy",
                      "not supported for pypy")
     def test_load_dispatcher(self):
         save_dispatcher(self.dsp, self.tmp)
@@ -50,12 +50,12 @@ class TestReadWrite(unittest.TestCase):
         self.assertEqual(dsp.dmap.node['a']['type'], 'data')
         self.assertEqual(dsp.dispatch()[1]['b'], 6)
 
-    @unittest.skipIf(sys.version_info in ('pypy', 'pypy3'),
+    @unittest.skipIf(platform.python_implementation() == "PyPy",
                      "not supported for pypy")
     def test_save_default_values(self):
         save_default_values(self.dsp, self.tmp)
 
-    @unittest.skipIf(sys.version_info in ('pypy', 'pypy3'),
+    @unittest.skipIf(platform.python_implementation() == "PyPy",
                      "not supported for pypy")
     def test_load_default_values(self):
         save_default_values(self.dsp, self.tmp)
@@ -64,12 +64,12 @@ class TestReadWrite(unittest.TestCase):
         self.assertEqual(dsp.default_values, self.dsp.default_values)
         self.assertEqual(dsp.dispatch()[1]['b'], 6)
 
-    @unittest.skipIf(sys.version_info in ('pypy', 'pypy3'),
+    @unittest.skipIf(platform.python_implementation() == "PyPy",
                      "not supported for pypy")
     def test_save_map(self):
         save_map(self.dsp, self.tmp)
 
-    @unittest.skipIf(sys.version_info in ('pypy', 'pypy3'),
+    @unittest.skipIf(platform.python_implementation() == "PyPy",
                      "not supported for pypy")
     def test_load_map(self):
         save_map(self.dsp, self.tmp)
