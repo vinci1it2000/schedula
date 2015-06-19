@@ -2,5 +2,4 @@ networkx
 dill
 graphviz
 nose
-matplotlib
 wheel
