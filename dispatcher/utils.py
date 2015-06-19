@@ -44,8 +44,8 @@ class Token(str):
         False
         >>> s == Token('string')
         False
-        >>> {s: 1, Token('string'): 3}
-        {string: 1, string: 3}
+        >>> {s: 1, Token('string'): 1}
+        {string: 1, string: 1}
         >>> s.capitalize()
         'String'
     """
