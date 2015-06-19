@@ -12,133 +12,14 @@ It provides functions to plot dispatcher map and workflow.
 
 __author__ = 'Vincenzo Arcidiacono'
 
-import matplotlib.pyplot as plt
-from networkx.classes.digraph import DiGraph
-from networkx.drawing import spring_layout, draw_networkx_nodes, \
-    draw_networkx_labels, draw_networkx_edges, draw_networkx_edge_labels
+
 from networkx.utils import default_opener
 from graphviz import Digraph
 from .constants import START
 from .dispatcher_utils import SubDispatch
 from tempfile import mkstemp
 
-__all__ = ['plot_dsp', 'dsp2dot']
-
-
-def plot_dsp(dsp, pos=None, workflow=False, title='Dispatcher', fig=None,
-             edge_attr='value'):
-    """
-    Draw the graph of a Dispatcher with Matplotlib.
-
-    :param dsp:
-        A dispatcher that identifies the model adopted.
-    :type dsp: dispatcher.dispatcher.Dispatcher
-
-    :param pos:
-       A dictionary with nodes as keys and positions as values.
-       If not specified a spring layout positioning will be computed.
-    :type pos: dictionary, optional
-
-    :param workflow:
-       If True the workflow graph will be plotted, otherwise the dispatcher map.
-    :type workflow: bool, DiGraph, optional
-
-    :return:
-        A dictionary with figures.
-    :rtype: dict
-
-    Example::
-
-        >>> import matplotlib.pyplot as plt
-        >>> from dispatcher import Dispatcher
-        >>> from dispatcher.dispatcher_utils import SubDispatch
-        >>> sub_dsp = Dispatcher()
-        >>> def fun(a):
-        ...     return a + 1, a - 1
-        >>> sub_dsp.add_function('fun', fun, ['a'], ['b', 'c'])
-        'fun'
-        >>> dispatch = SubDispatch(sub_dsp, ['a', 'c'], type_return='list')
-        >>> dsp = Dispatcher()
-        >>> dsp.add_data('_i_n_p_u_t', default_value={'a': 3})
-        '_i_n_p_u_t'
-        >>> dsp.add_data('_i_', default_value=object())
-        '_i_'
-        >>> dsp.add_function('dispatch', dispatch, ['_i_n_p_u_t'], ['e', 'f'])
-        'dispatch'
-        >>> f1 = plot_dsp(dsp)
-        >>> w, o = dsp.dispatch()
-
-        >>> f2 = plot_dsp(dsp, workflow=True)
-    """
-
-    figs = []
-
-    if workflow:
-        g = workflow if isinstance(workflow, DiGraph) else dsp.workflow
-        dfl = {}
-    else:
-        g = dsp.dmap
-        dfl = dsp.default_values
-
-    if pos is None:
-        pos = spring_layout(g)
-
-    data, function = ([], [])
-
-    for k, v in g.node.items():
-        n = dsp.nodes.get(k, {})
-        if n:
-            data_type = n['type']
-            eval(data_type).append(k)
-
-            f = n.get('function', None)
-
-            if data_type == 'function' and isinstance(f, SubDispatch):
-                w = v.get('workflow', False)
-                t = '%s:%s' % (title, k)
-                figs.append(plot_dsp(f.dsp, title=t, workflow=w))
-
-    if fig is None:
-        fig = plt.figure()
-
-    fig.suptitle(title)
-    fig = {title: (fig, figs)}
-
-    label_nodes = {}
-
-    for k in g.node:
-        if k in dfl:
-            label_nodes[k] = '%s\n default = %s' % (k, str(dfl[k]))
-        else:
-            label_nodes[k] = k
-
-    if START in g.node:
-        label_nodes[START] = 'start'
-        draw_networkx_nodes(
-            g, pos, node_shape='^', nodelist=[START], node_color='b')
-
-    draw_networkx_nodes(g, pos, node_shape='o', nodelist=data, node_color='r')
-    draw_networkx_nodes(
-        g, pos, node_shape='s', nodelist=function, node_color='y')
-    draw_networkx_labels(g, pos, labels=label_nodes)
-
-    label_edges = {}
-
-    for u, v, a in g.edges_iter(data=True):
-
-        if edge_attr in a:
-            s = str(a[edge_attr])
-        else:
-            s = ''
-
-        label_edges.update({(u, v): s})
-
-    draw_networkx_edges(g, pos, alpha=0.5)
-    draw_networkx_edge_labels(g, pos, edge_labels=label_edges)
-
-    plt.axis('off')
-
-    return fig
+__all__ = ['dsp2dot']
 
 
 def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
