@@ -39,26 +39,18 @@ if platform.python_implementation() != "PyPy":
 
             self.tmp = mkstemp()[1]
 
-        @unittest.skipIf(platform.python_implementation() == "PyPy",
-                         "not supported for pypy")
         def test_save_dispatcher(self):
             save_dispatcher(self.dsp, self.tmp)
 
-        @unittest.skipIf(platform.python_implementation() == "PyPy",
-                         "not supported for pypy")
         def test_load_dispatcher(self):
             save_dispatcher(self.dsp, self.tmp)
             dsp = load_dispatcher(self.tmp)
             self.assertEqual(dsp.dmap.node['a']['type'], 'data')
             self.assertEqual(dsp.dispatch()[1]['b'], 6)
 
-        @unittest.skipIf(platform.python_implementation() == "PyPy",
-                         "not supported for pypy")
         def test_save_default_values(self):
             save_default_values(self.dsp, self.tmp)
 
-        @unittest.skipIf(platform.python_implementation() == "PyPy",
-                         "not supported for pypy")
         def test_load_default_values(self):
             save_default_values(self.dsp, self.tmp)
             dsp = Dispatcher(dmap=self.dsp.dmap)
@@ -66,13 +58,9 @@ if platform.python_implementation() != "PyPy":
             self.assertEqual(dsp.default_values, self.dsp.default_values)
             self.assertEqual(dsp.dispatch()[1]['b'], 6)
 
-        @unittest.skipIf(platform.python_implementation() == "PyPy",
-                         "not supported for pypy")
         def test_save_map(self):
             save_map(self.dsp, self.tmp)
 
-        @unittest.skipIf(platform.python_implementation() == "PyPy",
-                         "not supported for pypy")
         def test_load_map(self):
             save_map(self.dsp, self.tmp)
             dsp = Dispatcher(default_values=self.dsp.default_values)
