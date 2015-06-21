@@ -65,17 +65,6 @@ class TestGraphAlgorithms(unittest.TestCase):
                10: [1, 2, 3, 9, 10]}
         self.assertEqual(paths, res)
 
-        dist, paths = dijkstra(graph, 1, [4, 9])
-        res = {1: 0, 2: 1, 3: 2, 4: 3, 9: 3}
-        self.assertEqual(dist, res)
-        res = {1: [1],
-               2: [1, 2],
-               3: [1, 2, 3],
-               4: [1, 2, 3, 4],
-               9: [1, 2, 3, 9],
-               10: [1, 2, 3, 9, 10]}
-        self.assertEqual(paths, res)
-
         dist, paths = dijkstra(graph, 1, [10])
         res = {1: 0, 2: 1, 3: 2, 4: 3, 9: 3, 10: 4}
         self.assertEqual(dist, res)
