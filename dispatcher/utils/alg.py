@@ -6,10 +6,14 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
+"""
+It contains basic algorithms, numerical tricks, and data processing tasks.
+"""
+
 __author__ = 'Vincenzo Arcidiacono'
 
 from heapq import heappush, heappop
-from .utils import pairwise, heap_flush, counter
+from .gen import pairwise, heap_flush, counter
 
 __all__ = ['add_edge_fun', 'scc_fun', 'dijkstra', 'remove_cycles_iteration']
 

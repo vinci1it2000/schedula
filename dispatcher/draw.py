@@ -12,12 +12,14 @@ It provides functions to plot dispatcher map and workflow.
 
 __author__ = 'Vincenzo Arcidiacono'
 
+from tempfile import mkstemp
 
 from networkx.utils import default_opener
 from graphviz import Digraph
-from .constants import START
-from .dispatcher_utils import SubDispatch
-from tempfile import mkstemp
+
+from .constants import START, SINK
+from .utils.dsp import SubDispatch
+
 
 __all__ = ['dsp2dot']
 
@@ -64,7 +66,8 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
     Example::
 
         >>> from dispatcher import Dispatcher
-        >>> from dispatcher.dispatcher_utils import SubDispatch
+        >>> from dispatcher.utils.dsp import SubDispatch
+        >>> from dispatcher.constants import SINK
         >>> ss_dsp = Dispatcher()
         >>> def fun(a):
         ...     return a + 1, a - 1
@@ -76,11 +79,11 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
 
         >>> s_dsp.add_function('sub_dispatch', sub_dispatch, ['a'], ['b', 'c'])
         'sub_dispatch'
-        >>> dispatch = SubDispatch(s_dsp, ['b', 'c'], type_return='list')
+        >>> dispatch = SubDispatch(s_dsp, ['b', 'c', 'a'], type_return='list')
         >>> dsp = Dispatcher()
         >>> dsp.add_data('input', default_value={'a': {'a': 3}})
         'input'
-        >>> dsp.add_function('dispatch', dispatch, ['input'], ['d', 'e'])
+        >>> dsp.add_function('dispatch', dispatch, ['input'], ['d', 'e', SINK])
         'dispatch'
 
         >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
@@ -154,10 +157,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
         return '%s_%s' % (dot_name, hash(o))
 
     if START in g.node:
-        kw = {
-            'shape': 'egg',
-            'fillcolor': 'red',
-        }
+        kw = {'shape': 'egg', 'fillcolor': 'red'}
         dot_node(id_node(START), 'start', **kw)
 
     for k, v in g.node.items():
@@ -203,6 +203,13 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
 
                     kw['fillcolor'] = '#FF8F0F80'
 
+            elif k is SINK:
+                kw = {
+                    'shape': 'invhouse',
+                    'fillcolor': 'black',
+                    'fontcolor':'white'
+                }
+                node_label = 'sink'
             elif n['type'] == 'data':
                 kw = {'shape': 'Mrecord', 'fillcolor': 'cyan'}
                 node_label = _data_node_label(k, val, n, dist)
@@ -223,6 +230,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
         default_opener(dot.render())
 
     return dot
+
 
 def _node_label(name, values):
     attr = ''

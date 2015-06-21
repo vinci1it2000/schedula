@@ -335,7 +335,7 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         res2 = timeit.repeat(
             "fun(5, 6)",
             'from test_dispatcher import _setup_dsp;'
-            'from dispatcher.dispatcher_utils import SubDispatchFunction;'
+            'from dispatcher.utils.dsp import SubDispatchFunction;'
             'dsp = _setup_dsp();'
             'fun = SubDispatchFunction(dsp, "f", ["a", "b"], ["c", "d", "e"])',
             repeat=3, number=1000)

@@ -10,12 +10,12 @@ from __future__ import division, print_function, unicode_literals
 
 import doctest
 import unittest
-from dispatcher.utils import *
+from dispatcher.utils.gen import *
 
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):
-        import dispatcher.utils as utl
+        import dispatcher.utils.gen as utl
         failure_count, test_count = doctest.testmod(
             utl, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS)
         self.assertGreater(test_count, 0, (failure_count, test_count))

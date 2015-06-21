@@ -16,7 +16,7 @@ __all__ = ['combine_dicts', 'bypass', 'summation', 'def_selector',
            'def_replicate_value', 'SubDispatch', 'ReplicateFunction',
            'SubDispatchFunction']
 
-from .utils import caller_name
+from .gen import caller_name
 from networkx.classes.digraph import DiGraph
 
 
@@ -178,10 +178,10 @@ class SubDispatch(object):
         >>> from dispatcher.draw import dsp2dot
         >>> from dispatcher import dot_dir
         >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
-        >>> dot.save('dispatcher_utils/SubDispatch_dsp.dot', dot_dir)
+        >>> dot.save('utils/dsp/SubDispatch_dsp.dot', dot_dir)
         '...'
 
-    .. graphviz:: /dispatcher/dispatcher_utils/SubDispatch_dsp.dot
+    .. graphviz:: /dispatcher/utils/dsp/SubDispatch_dsp.dot
 
     Dispatch the dispatch output is::
 
@@ -193,10 +193,10 @@ class SubDispatch(object):
 
     .. testsetup::
         >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'ratio': '1'})
-        >>> dot.save('dispatcher_utils/SubDispatch_wf.dot', dot_dir)
+        >>> dot.save('utils/dsp/SubDispatch_wf.dot', dot_dir)
         '...'
 
-    .. graphviz:: /dispatcher/dispatcher_utils/SubDispatch_wf.dot
+    .. graphviz:: /dispatcher/utils/dsp/SubDispatch_wf.dot
     """
 
     def __init__(self, dsp, outputs=None, cutoff=None, wildcard=False,
@@ -234,10 +234,10 @@ class SubDispatch(object):
             Type of function output:
 
                 + 'all': a :class:`~dispatcher.utils.AttrDict` with all dispatch
-                outputs.
+                  outputs.
                 + 'list': a list with all outputs listed in `outputs`.
                 + 'dict': a :class:`~dispatcher.utils.AttrDict` with any outputs
-                listed in `outputs`.
+                  listed in `outputs`.
         :type type_return: str
         """
 
@@ -304,7 +304,8 @@ class SubDispatchFunction(SubDispatch):
         A function that executes the dispatch of the given `dsp`.
     :rtype: function
 
-    .. seealso:: :func:`~dispatcher.Dispatcher.dispatch`
+    .. seealso:: :func:`~dispatcher.Dispatcher.dispatch`,
+       :func:`~dispatcher.Dispatcher.shrink_dsp`
 
     **Example**:
 
@@ -325,10 +326,10 @@ class SubDispatchFunction(SubDispatch):
         >>> from dispatcher.draw import dsp2dot
         >>> from dispatcher import dot_dir
         >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
-        >>> dot.save('dispatcher_utils/SubDispatchFunction_dsp.dot', dot_dir)
+        >>> dot.save('utils/dsp/SubDispatchFunction_dsp.dot', dot_dir)
         '...'
 
-    .. graphviz:: /dispatcher/dispatcher_utils/SubDispatchFunction_dsp.dot
+    .. graphviz:: /dispatcher/utils/dsp/SubDispatchFunction_dsp.dot
 
     Extract a static function node, i.e. the inputs `a` and `b` and the
     output `a` are fixed::
@@ -344,10 +345,10 @@ class SubDispatchFunction(SubDispatch):
         >>> dsp.dispatch({'a': 2, 'b': 1}, outputs=['a'], wildcard=True)
         (...)
         >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'ratio': '1'})
-        >>> dot.save('dispatcher_utils/SubDispatchFunction_wf1.dot', dot_dir)
+        >>> dot.save('utils/dsp/SubDispatchFunction_wf1.dot', dot_dir)
         '...'
 
-    .. graphviz:: /dispatcher/dispatcher_utils/SubDispatchFunction_wf1.dot
+    .. graphviz:: /dispatcher/utils/dsp/SubDispatchFunction_wf1.dot
 
     The created function raises a ValueError if un-valid inputs are
     provided::
@@ -361,14 +362,16 @@ class SubDispatchFunction(SubDispatch):
         >>> dsp.dispatch({'a': 1, 'b': 0}, outputs=['a'], wildcard=True)
         (...)
         >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'ratio': '1'})
-        >>> dot.save('dispatcher_utils/SubDispatchFunction_wf2.dot', dot_dir)
+        >>> dot.save('utils/dsp/SubDispatchFunction_wf2.dot', dot_dir)
         '...'
 
-    .. graphviz:: /dispatcher/dispatcher_utils/SubDispatchFunction_wf2.dot
+    .. graphviz:: /dispatcher/utils/dsp/SubDispatchFunction_wf2.dot
     """
 
     def __init__(self, dsp, function_id, inputs, outputs, cutoff=None):
         """
+        Initializes the Sub-dispatch Function.
+
         :param dsp:
             A dispatcher that identifies the model adopted.
         :type dsp: dispatcher.dispatcher.Dispatcher

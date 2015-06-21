@@ -7,7 +7,7 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-This module provides constants data node ids and values.
+It provides constants data node ids and values.
 
 
 .. data:: EMPTY
@@ -42,7 +42,7 @@ This module provides constants data node ids and values.
 
 __author__ = 'Vincenzo Arcidiacono'
 
-from .utils import Token
+from .utils.gen import Token
 
 __all__ = ['EMPTY', 'START', 'NONE', 'SINK']
 

@@ -8,11 +8,13 @@
 
 import unittest
 import doctest
-from dispatcher.draw import *
+
 from graphviz.dot import Digraph
+
+from dispatcher.draw import *
 from dispatcher.constants import SINK
 from dispatcher import Dispatcher
-from dispatcher.dispatcher_utils import SubDispatch
+from dispatcher.utils.dsp import SubDispatch
 
 
 class TestDoctest(unittest.TestCase):
@@ -31,9 +33,9 @@ class TestDispatcherDraw(unittest.TestCase):
         ss_dsp = Dispatcher()
 
         def fun(a):
-            return a + 1, a - 1
+            return a + 1, 5, a - 1
 
-        ss_dsp.add_function('fun', fun, ['a'], ['b', 'c'])
+        ss_dsp.add_function('fun', fun, ['a'], ['b', SINK, 'c'])
 
         sub_dispatch = SubDispatch(ss_dsp, ['a', 'b', 'c'], type_return='list')
         s_dsp = Dispatcher()

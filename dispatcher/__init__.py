@@ -30,11 +30,9 @@ Modules:
     :nosignatures:
     :toctree: dispatcher/
 
-    dispatcher_utils
     read_write
     draw
     constants
-    graph_utils
     utils
 
 """
@@ -43,13 +41,16 @@ __author__ = 'Vincenzo Arcidiacono'
 
 import os
 import logging
-from networkx import DiGraph, isolates
 from heapq import heappush, heappop
 from collections import deque
-from .utils import AttrDict, counter
-from .graph_utils import add_edge_fun, remove_cycles_iteration
+
+from networkx import DiGraph, isolates
+
+from .utils.gen import AttrDict, counter
+from .utils.alg import add_edge_fun, remove_cycles_iteration
 from .constants import EMPTY, START, NONE, SINK
-from .dispatcher_utils import SubDispatch, bypass
+from .utils.dsp import SubDispatch, bypass
+
 
 prj_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 dot_dir = os.path.join(prj_dir, 'doc/dispatcher/')
@@ -90,75 +91,6 @@ class Dispatcher(object):
     input and output data nodes.
 
     A workflow is a sequence of function calls.
-
-    :ivar dmap:
-        The directed graph that stores data & functions parameters.
-    :type dmap: DiGraph
-
-    :ivar name:
-        The dispatcher's name.
-    :type name: str
-
-    :ivar nodes:
-        The function and data nodes of the dispatcher.
-    :type nodes: AttrDict
-
-    :ivar default_values:
-        Data node default values. These will be used as input if it is not
-        specified as inputs in the ArciDispatch algorithm.
-    :type default_values: dict
-
-    :ivar data_output:
-        A dictionary with the dispatch outputs.
-    :type data_output: AttrDict
-
-    :ivar dist:
-        A dictionary of distances from the `START` node.
-    :type dist: dict
-
-    :ivar weight:
-        Weight tag.
-    :type weight: str
-
-    :ivar workflow:
-        The dispatch workflow graph. It is a sequence of function calls.
-    :type workflow: DiGraph
-
-    :ivar _visited:
-        A set of visited nodes from the dispatch.
-    :type _visited: set
-
-    :ivar _targets:
-        A set of target nodes.
-    :type _targets: set
-
-    :ivar _cutoff:
-        Depth to stop the search.
-    :type _cutoff: int, float, None
-
-    :ivar _wildcards:
-        A set of nodes with a wildcard.
-    :type _wildcards: set
-
-    :ivar _pred:
-        The predecessors of the dispatcher map nodes.
-    :type _pred: dict
-
-    :ivar _succ:
-        The successors of the dispatcher map nodes.
-    :type _succ: dict
-
-    :ivar _wf_add_edge:
-        A function that add edges to the `workflow`.
-    :type _wf_add_edge: function
-
-    :ivar _wf_pred:
-        The predecessors of the `workflow` nodes.
-    :type _wf_pred: dict
-
-    :ivar _wait_in:
-        Data nodes that waits inputs. They are used in `shrink_dsp`.
-    :type _wait_in: dict
 
     \***************************************************************************
 
@@ -290,24 +222,61 @@ class Dispatcher(object):
         :type raises: bool, optional
         """
 
+        #: The directed graph that stores data & functions parameters.
         self.dmap = dmap if dmap else DiGraph()
+
+        #: The dispatcher's name.
         self.name = name
         self.dmap.node = AttrDict(self.dmap.node)
+
+        #: The function and data nodes of the dispatcher.
         self.nodes = self.dmap.node
+
+        #: Data node default values. These will be used as input if it is not
+        #: specified as inputs in the ArciDispatch algorithm.
         self.default_values = default_values if default_values else {}
+
+        #: Weight tag.
         self.weight = 'weight'
-        self.workflow = DiGraph()  # graph output
+
+        #: The dispatch workflow graph. It is a sequence of function calls with
+        #: outputs.
+        self.workflow = DiGraph()
+
+        #: A dictionary with the dispatch outputs.
         self.data_output = AttrDict()
+
+        #: A dictionary of distances from the `START` node.
         self.dist = {}
+
+        #: A function that raises or logs warnings.
         self.warning = _warning(raises)
+
+        #: A set of visited nodes from the dispatch.
         self._visited = set()
+
+        #: A set of target nodes.
         self._targets = set()
+
+        #: Depth to stop the search.
         self._cutoff = None
+
+        #: A set of nodes with a wildcard.
         self._wildcards = set()
+
+        #: The predecessors of the dispatcher map nodes.
         self._pred = self.dmap.pred
+
+        #: The successors of the dispatcher map nodes.
         self._succ = self.dmap.succ
+
+        #: A function that add edges to the `workflow`.
         self._wf_add_edge = add_edge_fun(self.workflow)
+
+        #: The predecessors of the `workflow` nodes.
         self._wf_pred = self.workflow.pred
+
+        #: Data nodes that waits inputs. They are used in `shrink_dsp`.
         self._wait_in = {}
 
     def add_data(self, data_id=None, default_value=EMPTY, wait_inputs=False,
@@ -510,7 +479,7 @@ class Dispatcher(object):
             Function node id.
         :rtype: object
 
-        .. seealso:: :func:`add_node`, :func:`add_from_lists`
+        .. seealso:: :func:`add_data`, :func:`add_from_lists`
 
         \***********************************************************************
 
@@ -647,7 +616,7 @@ class Dispatcher(object):
             - Function node ids.
         :rtype: (list, list)
 
-        .. seealso:: :func:`add_node`, :func:`add_function`
+        .. seealso:: :func:`add_data`, :func:`add_function`
 
         \***********************************************************************
 
@@ -762,6 +731,8 @@ class Dispatcher(object):
             A sub-dispatcher.
         :rtype: Dispatcher
 
+        .. seealso:: :func:`get_sub_dsp_from_workflow`
+
         .. note::
 
             The sub-dispatcher edge or node attributes just point to the
@@ -867,6 +838,8 @@ class Dispatcher(object):
         :return:
             A sub-dispatcher
         :rtype: Dispatcher
+
+        .. seealso:: :func:`get_sub_dsp`
 
         .. note::
 

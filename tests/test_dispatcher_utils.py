@@ -9,14 +9,14 @@
 import doctest
 import unittest
 
-from dispatcher.dispatcher_utils import *
+from dispatcher.utils.dsp import *
 from dispatcher import Dispatcher
 from dispatcher.constants import SINK
 
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):
-        import dispatcher.dispatcher_utils as utl
+        import dispatcher.utils.dsp as utl
         failure_count, test_count = doctest.testmod(
             utl, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS)
         self.assertGreater(test_count, 0, (failure_count, test_count))

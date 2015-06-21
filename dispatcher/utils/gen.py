@@ -6,6 +6,13 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
+"""
+It contains classes and functions of general utility.
+
+These are python-specific utilities and hacks - general data-processing or
+numerical operations.
+"""
+
 __author__ = 'Vincenzo Arcidiacono'
 
 import inspect
@@ -24,11 +31,35 @@ __all__ = ['counter', 'Token', 'pairwise', 'heap_flush', 'rename_function',
            'AttrDict', 'caller_name']
 
 if '__next__' in count.__dict__:
-    def counter(n=0):
-        return count(n).__next__
+    def counter(start=0, step=1):
+        """
+        Return a object whose .__call__() method returns consecutive values.
+
+        :param start:
+            Start value.
+        :type start: int, float, optional
+
+        :param step:
+            Step value.
+        :type step: int, float, optional
+        """
+
+        return count(start, step).__next__
 else:
-    def counter(n=0):
-        return count(n).next
+    def counter(start=0, step=1):
+        """
+        Return a object whose .__call__() method returns consecutive values.
+
+        :param start:
+            Start value.
+        :type start: int, float, optional
+
+        :param step:
+            Step value.
+        :type step: int, float, optional
+        """
+
+        return count(start, step).next
 
 
 class Token(str):
@@ -243,12 +274,13 @@ class AttrDict(dict):
 
 
 def caller_name(skip=2):
-    """Get a name of a caller in the format module.class.method
+    """
+    Get a name of a caller in the format module.class.method
 
-       `skip` specifies how many levels of stack to skip while getting caller
-       name. skip=1 means "who calls me", skip=2 "who calls my caller" etc.
+    `skip` specifies how many levels of stack to skip while getting caller
+    name. skip=1 means "who calls me", skip=2 "who calls my caller" etc.
 
-       An empty string is returned if skipped levels exceed stack height
+    An empty string is returned if skipped levels exceed stack height
     """
 
     stack = inspect.stack()

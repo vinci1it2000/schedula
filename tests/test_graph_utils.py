@@ -9,13 +9,14 @@
 import doctest
 import unittest
 
-from dispatcher.graph_utils import *
 from networkx.classes.digraph import DiGraph
+
+from dispatcher.utils.alg import *
 
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):
-        import dispatcher.graph_utils as dsp
+        import dispatcher.utils.alg as dsp
         failure_count, test_count = doctest.testmod(
             dsp, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS)
         self.assertGreater(test_count, 0, (failure_count, test_count))
