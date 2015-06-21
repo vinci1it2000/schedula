@@ -181,7 +181,7 @@ class SubDispatch(object):
         >>> dot.save('utils/dsp/SubDispatch_dsp.dot', dot_dir)
         '...'
 
-    .. graphviz:: /dispatcher/utils/dsp/SubDispatch_dsp.dot
+    .. graphviz:: ../dsp/SubDispatch_dsp.dot
 
     Dispatch the dispatch output is::
 
@@ -196,7 +196,7 @@ class SubDispatch(object):
         >>> dot.save('utils/dsp/SubDispatch_wf.dot', dot_dir)
         '...'
 
-    .. graphviz:: /dispatcher/utils/dsp/SubDispatch_wf.dot
+    .. graphviz:: ../dsp/SubDispatch_wf.dot
     """
 
     def __init__(self, dsp, outputs=None, cutoff=None, wildcard=False,
@@ -329,7 +329,7 @@ class SubDispatchFunction(SubDispatch):
         >>> dot.save('utils/dsp/SubDispatchFunction_dsp.dot', dot_dir)
         '...'
 
-    .. graphviz:: /dispatcher/utils/dsp/SubDispatchFunction_dsp.dot
+    .. graphviz:: ../dsp/SubDispatchFunction_dsp.dot
 
     Extract a static function node, i.e. the inputs `a` and `b` and the
     output `a` are fixed::
@@ -348,7 +348,7 @@ class SubDispatchFunction(SubDispatch):
         >>> dot.save('utils/dsp/SubDispatchFunction_wf1.dot', dot_dir)
         '...'
 
-    .. graphviz:: /dispatcher/utils/dsp/SubDispatchFunction_wf1.dot
+    .. graphviz:: ../dsp/SubDispatchFunction_wf1.dot
 
     The created function raises a ValueError if un-valid inputs are
     provided::
@@ -365,7 +365,7 @@ class SubDispatchFunction(SubDispatch):
         >>> dot.save('utils/dsp/SubDispatchFunction_wf2.dot', dot_dir)
         '...'
 
-    .. graphviz:: /dispatcher/utils/dsp/SubDispatchFunction_wf2.dot
+    .. graphviz:: ../dsp/SubDispatchFunction_wf2.dot
     """
 
     def __init__(self, dsp, function_id, inputs, outputs, cutoff=None):

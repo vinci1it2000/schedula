@@ -18,7 +18,7 @@ Dispatcher:
 
 .. autosummary::
     :nosignatures:
-    :toctree: dispatcher/
+    :toctree: dispatcher/__init__/
 
       Dispatcher
 
@@ -34,7 +34,6 @@ Modules:
     draw
     constants
     utils
-
 """
 
 __author__ = 'Vincenzo Arcidiacono'
@@ -178,10 +177,10 @@ class Dispatcher(object):
         >>> from dispatcher.draw import dsp2dot
         >>> from dispatcher import dot_dir
         >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
-        >>> dot.save('Dispatcher/dsp.dot', dot_dir)
+        >>> dot.save('__init__/Dispatcher/dsp.dot', dot_dir)
         '...'
 
-    .. graphviz:: /dispatcher/Dispatcher/dsp.dot
+    .. graphviz:: Dispatcher/dsp.dot
 
     Dispatch the function calls to achieve the desired output data node `d`::
 
@@ -192,10 +191,10 @@ class Dispatcher(object):
 
     .. testsetup::
         >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'ratio': '1'})
-        >>> dot.save('Dispatcher/wf.dot', dot_dir)
+        >>> dot.save('__init__/Dispatcher/wf.dot', dot_dir)
         '...'
 
-    .. graphviz:: /dispatcher/Dispatcher/wf.dot
+    .. graphviz:: Dispatcher/wf.dot
     """
 
     def __init__(self, dmap=None, name='Dispatcher', default_values=None,
@@ -757,10 +756,10 @@ class Dispatcher(object):
             >>> from dispatcher.draw import dsp2dot
             >>> from dispatcher import dot_dir
             >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
-            >>> dot.save('get_sub_dsp/dsp.dot', dot_dir)
+            >>> dot.save('__init__/get_sub_dsp/dsp.dot', dot_dir)
             '...'
 
-        .. graphviz:: /dispatcher/get_sub_dsp/dsp.dot
+        .. graphviz:: /dispatcher/__init__/get_sub_dsp/dsp.dot
 
         Get the sub-dispatcher induced by given nodes bunch::
 
@@ -769,10 +768,10 @@ class Dispatcher(object):
         .. testsetup::
             >>> sub_dsp.name = 'Sub-Dispatcher'
             >>> dot = dsp2dot(sub_dsp, graph_attr={'ratio': '1'})
-            >>> dot.save('get_sub_dsp/sub_dsp.dot', dot_dir)
+            >>> dot.save('__init__/get_sub_dsp/sub_dsp.dot', dot_dir)
             '...'
 
-        .. graphviz:: /dispatcher/get_sub_dsp/sub_dsp.dot
+        .. graphviz:: /dispatcher/__init__/get_sub_dsp/sub_dsp.dot
         """
 
         # define an empty dispatcher
@@ -867,11 +866,11 @@ class Dispatcher(object):
             >>> from dispatcher.draw import dsp2dot
             >>> from dispatcher import dot_dir
             >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
-            >>> file = 'get_sub_dsp_from_workflow/dsp.dot'
+            >>> file = '__init__/get_sub_dsp_from_workflow/dsp.dot'
             >>> dot.save(file, dot_dir)
             '...'
 
-        .. graphviz:: /dispatcher/get_sub_dsp_from_workflow/dsp.dot
+        .. graphviz:: /dispatcher/__init__/get_sub_dsp_from_workflow/dsp.dot
 
         Dispatch with no calls in order to have a workflow::
 
@@ -884,11 +883,11 @@ class Dispatcher(object):
         .. testsetup::
             >>> sub_dsp.name = 'Sub-Dispatcher'
             >>> dot = dsp2dot(sub_dsp, graph_attr={'ratio': '1'})
-            >>> file = 'get_sub_dsp_from_workflow/sub_dsp1.dot'
+            >>> file = '__init__/get_sub_dsp_from_workflow/sub_dsp1.dot'
             >>> dot.save(file, dot_dir)
             '...'
 
-        .. graphviz:: /dispatcher/get_sub_dsp_from_workflow/sub_dsp1.dot
+        .. graphviz:: /dispatcher/__init__/get_sub_dsp_from_workflow/sub_dsp1.dot
 
         Get sub-dispatcher from a workflow output `c`::
 
@@ -897,11 +896,11 @@ class Dispatcher(object):
         .. testsetup::
             >>> sub_dsp.name = 'Sub-Dispatcher (reverse workflow)'
             >>> dot = dsp2dot(sub_dsp, graph_attr={'ratio': '1'})
-            >>> file = 'get_sub_dsp_from_workflow/sub_dsp2.dot'
+            >>> file = '__init__/get_sub_dsp_from_workflow/sub_dsp2.dot'
             >>> dot.save(file, dot_dir)
             '...'
 
-        .. graphviz:: /dispatcher/get_sub_dsp_from_workflow/sub_dsp2.dot
+        .. graphviz:: /dispatcher/__init__/get_sub_dsp_from_workflow/sub_dsp2.dot
         """
 
         # define an empty dispatcher map
@@ -1054,10 +1053,10 @@ class Dispatcher(object):
             >>> from dispatcher.draw import dsp2dot
             >>> from dispatcher import dot_dir
             >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
-            >>> dot.save('remove_cycles/dsp.dot', dot_dir)
+            >>> dot.save('__init__/remove_cycles/dsp.dot', dot_dir)
             '...'
 
-        .. graphviz:: /dispatcher/remove_cycles/dsp.dot
+        .. graphviz:: /dispatcher/__init__/remove_cycles/dsp.dot
 
         The dispatch stops on data node `c` due to the unresolved cycle::
 
@@ -1067,10 +1066,10 @@ class Dispatcher(object):
 
         .. testsetup::
             >>> dot = dsp2dot(dsp, True, graph_attr={'ratio': '1'})
-            >>> dot.save('remove_cycles/wf.dot', dot_dir)
+            >>> dot.save('__init__/remove_cycles/wf.dot', dot_dir)
             '...'
 
-        .. graphviz:: /dispatcher/remove_cycles/wf.dot
+        .. graphviz:: /dispatcher/__init__/remove_cycles/wf.dot
 
         Removing the unresolved cycle the dispatch continues to all nodes::
 
@@ -1082,11 +1081,11 @@ class Dispatcher(object):
         .. testsetup::
             >>> dsp_rm_cy.name = 'Dispatcher without unresolved cycles'
             >>> dot = dsp2dot(dsp_rm_cy, True, graph_attr={'ratio': '1'})
-            >>> file = 'remove_cycles/wf_rm_cycles.dot'
+            >>> file = '__init__/remove_cycles/wf_rm_cycles.dot'
             >>> dot.save(file, dot_dir)
             '...'
 
-        .. graphviz:: /dispatcher/remove_cycles/wf_rm_cycles.dot
+        .. graphviz:: /dispatcher/__init__/remove_cycles/wf_rm_cycles.dot
         """
 
         # Reachable nodes from sources
@@ -1178,10 +1177,10 @@ class Dispatcher(object):
             >>> from dispatcher.draw import dsp2dot
             >>> from dispatcher import dot_dir
             >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
-            >>> dot.save('dispatch/dsp.dot', dot_dir)
+            >>> dot.save('__init__/dispatch/dsp.dot', dot_dir)
             '...'
 
-        .. graphviz:: /dispatcher/dispatch/dsp.dot
+        .. graphviz:: /dispatcher/__init__/dispatch/dsp.dot
 
         Dispatch without inputs. The default values are used as inputs::
 
@@ -1192,10 +1191,10 @@ class Dispatcher(object):
 
         .. testsetup::
             >>> dot = dsp2dot(dsp, True, graph_attr={'ratio': '1'})
-            >>> dot.save('dispatch/wf1.dot', dot_dir)
+            >>> dot.save('__init__/dispatch/wf1.dot', dot_dir)
             '...'
 
-        .. graphviz:: /dispatcher/dispatch/wf1.dot
+        .. graphviz:: /dispatcher/__init__/dispatch/wf1.dot
 
         Dispatch until data node `c` is estimated::
 
@@ -1206,10 +1205,10 @@ class Dispatcher(object):
 
         .. testsetup::
             >>> dot = dsp2dot(dsp, True, graph_attr={'ratio': '1'})
-            >>> dot.save('dispatch/wf2.dot', dot_dir)
+            >>> dot.save('__init__/dispatch/wf2.dot', dot_dir)
             '...'
 
-        .. graphviz:: /dispatcher/dispatch/wf2.dot
+        .. graphviz:: /dispatcher/__init__/dispatch/wf2.dot
 
         Dispatch with one inputs. The default value of `a` is not used as
         inputs::
@@ -1221,10 +1220,10 @@ class Dispatcher(object):
 
         .. testsetup::
             >>> dot = dsp2dot(dsp, True, graph_attr={'ratio': '1'})
-            >>> dot.save('dispatch/wf3.dot', dot_dir)
+            >>> dot.save('__init__/dispatch/wf3.dot', dot_dir)
             '...'
 
-        .. graphviz:: /dispatcher/dispatch/wf3.dot
+        .. graphviz:: /dispatcher/__init__/dispatch/wf3.dot
         """
 
         # pre shrink
@@ -1314,10 +1313,10 @@ class Dispatcher(object):
             >>> from dispatcher.draw import dsp2dot
             >>> from dispatcher import dot_dir
             >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
-            >>> dot.save('shrink_dsp/dsp.dot', dot_dir)
+            >>> dot.save('__init__/shrink_dsp/dsp.dot', dot_dir)
             '...'
 
-        .. graphviz:: /dispatcher/shrink_dsp/dsp.dot
+        .. graphviz:: /dispatcher/__init__/shrink_dsp/dsp.dot
 
         Get the sub-dispatcher induced by dispatching with no calls from inputs
         `a`, `b`, and `c` to outputs `c`, `e`, and `f`::
@@ -1328,10 +1327,10 @@ class Dispatcher(object):
         .. testsetup::
             >>> shrink_dsp.name = 'Sub-Dispatcher'
             >>> dot = dsp2dot(shrink_dsp, graph_attr={'ratio': '1'})
-            >>> dot.save('shrink_dsp/shrink_dsp.dot', dot_dir)
+            >>> dot.save('__init__/shrink_dsp/shrink_dsp.dot', dot_dir)
             '...'
 
-        .. graphviz:: /dispatcher/shrink_dsp/shrink_dsp.dot
+        .. graphviz:: /dispatcher/__init__/shrink_dsp/shrink_dsp.dot
         """
 
         bfs_graph = self.dmap
