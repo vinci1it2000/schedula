@@ -32,13 +32,13 @@ class TestGraphAlgorithms(unittest.TestCase):
         graph.add_edge(10, 9)
 
         res = [[1, 2, 3, 4], [9], [10]]
-        self.assertEqual(list(scc_fun(graph, [1, 10])), res)
+        self.assertEqual(sorted(list(scc_fun(graph, [1, 10]))), res)
 
         res = [[0], [1, 2, 3, 4], [5, 6, 7, 8], [9], [10]]
-        self.assertEqual(list(scc_fun(graph)), res)
+        self.assertEqual(sorted(list(scc_fun(graph))), res)
 
         res = [[1, 2, 3, 4]]
-        self.assertEqual(list(scc_fun(graph, [1])), res)
+        self.assertEqual(sorted(list(scc_fun(graph, [1]))), res)
 
     def test_dijkstra(self):
         graph = DiGraph()
@@ -65,7 +65,7 @@ class TestGraphAlgorithms(unittest.TestCase):
                10: [1, 2, 3, 9, 10]}
         self.assertEqual(paths, res)
 
-        dist, paths = dijkstra(graph, 1, [4])
+        dist, paths = dijkstra(graph, 1, [4, 9])
         res = {1: 0, 2: 1, 3: 2, 4: 3, 9: 3}
         self.assertEqual(dist, res)
         res = {1: [1],
