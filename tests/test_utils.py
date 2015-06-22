@@ -51,14 +51,6 @@ class TestUtils(unittest.TestCase):
         heappush(heap, 2)
         self.assertEqual(heap_flush(heap), [1, 2, 3])
         
-    def test_rename_function(self):
-        
-        @rename_function('new name')
-        def f():
-             pass
-        
-        self.assertEqual(f.__name__, 'new name')
-        
     def test_attr_dict(self):
         d = AttrDict({'a': 3, 'b': 4})
         self.assertEqual(d.a, 'a')

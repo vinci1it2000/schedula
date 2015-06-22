@@ -27,8 +27,8 @@ except:
 
 
 
-__all__ = ['counter', 'Token', 'pairwise', 'heap_flush', 'rename_function',
-           'AttrDict', 'caller_name']
+__all__ = ['counter', 'Token', 'pairwise', 'heap_flush', 'AttrDict',
+           'caller_name']
 
 if '__next__' in count.__dict__:
     def counter(start=0, step=1):
@@ -148,39 +148,6 @@ def heap_flush(heap):
         ordered_list.append(heappop(heap))
 
     return ordered_list
-
-
-def rename_function(new_name, module_name=None):
-    """
-    Decorator to rename a function.
-
-    :param new_name:
-        New name of the function.
-    :type new_name: str
-
-    :return:
-        Renamed function.
-    :rtype: function
-
-    Example::
-
-        >>> @rename_function('new name')
-        ... def f():
-        ...     pass
-        >>> f.__name__
-        'new name'
-    """
-    if module_name is not None:
-        def decorator(f):
-            setattr(f, '__name__', str(new_name))
-            setattr(f, '__module__', str(module_name))
-            return f
-    else:
-        def decorator(f):
-            setattr(f, '__name__', str(new_name))
-            return f
-
-    return decorator
 
 
 def _isidentifier(*args):

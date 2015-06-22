@@ -1,0 +1,19 @@
+digraph "Created function internal" {
+	graph [ratio=1]
+	node [style=filled]
+	splines = ortho
+	label = "Created function internal workflow"
+		"Created function internal_4373660080" [label=start fillcolor=red shape=egg]
+		"Created function internal_-2193805309291217967" [label="{ c | distance = 2 | output = 2 }" fillcolor=cyan shape=Mrecord]
+		"Created function internal_9139109398902324004" [label="{ a | distance = 4 | output = 0.0 }" fillcolor=cyan shape=Mrecord]
+		"Created function internal_-8066809969768465707" [label="{ log(x - 1) | distance = 3 }" fillcolor=springgreen shape=record]
+		"Created function internal_5099201867563505239" [label="{ b | distance = 0 | output = 1 }" fillcolor=cyan shape=Mrecord]
+		"Created function internal_1534414356972631965" [label="{ max | distance = 1 }" fillcolor=springgreen shape=record]
+			"Created function internal_4373660080" -> "Created function internal_9139109398902324004" [xlabel=2]
+			"Created function internal_4373660080" -> "Created function internal_5099201867563505239" [xlabel=1]
+			"Created function internal_-2193805309291217967" -> "Created function internal_-8066809969768465707" [xlabel=2]
+			"Created function internal_9139109398902324004" -> "Created function internal_1534414356972631965" [xlabel=2]
+			"Created function internal_-8066809969768465707" -> "Created function internal_9139109398902324004" [xlabel=0.0]
+			"Created function internal_5099201867563505239" -> "Created function internal_1534414356972631965" [xlabel=1]
+			"Created function internal_1534414356972631965" -> "Created function internal_-2193805309291217967" [xlabel=2]
+}

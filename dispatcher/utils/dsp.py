@@ -154,7 +154,8 @@ class SubDispatch(object):
     combined before the dispatching.
 
     :return:
-        A function that executes the dispatch of the given `dsp`.
+        A function that executes the dispatch of the given
+        :func:`~dispatcher.Dispatcher`.
     :rtype: function
 
     .. seealso:: :func:`~dispatcher.Dispatcher.dispatch`, :func:`combine_dicts`

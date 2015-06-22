@@ -1,0 +1,13 @@
+digraph "Sub-Dispatcher (reverse workflow)" {
+	graph [ratio=1]
+	node [style=filled]
+	splines = ortho
+	label = "Sub-Dispatcher (reverse workflow)"
+		"Sub-Dispatcher (reverse workflow)_-2193805309291217967" [label="{ c  }" fillcolor=cyan shape=Mrecord]
+		"Sub-Dispatcher (reverse workflow)_5099201867563505239" [label="{ b  }" fillcolor=cyan shape=Mrecord]
+		"Sub-Dispatcher (reverse workflow)_9139109398902324004" [label="{ a | default = 1 }" fillcolor=cyan shape=Mrecord]
+		"Sub-Dispatcher (reverse workflow)_-1589682399254902345" [label="{ fun1  }" fillcolor=springgreen shape=record]
+			"Sub-Dispatcher (reverse workflow)_5099201867563505239" -> "Sub-Dispatcher (reverse workflow)_-1589682399254902345"
+			"Sub-Dispatcher (reverse workflow)_9139109398902324004" -> "Sub-Dispatcher (reverse workflow)_-1589682399254902345"
+			"Sub-Dispatcher (reverse workflow)_-1589682399254902345" -> "Sub-Dispatcher (reverse workflow)_-2193805309291217967"
+}
