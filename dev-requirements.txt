@@ -4,3 +4,4 @@ graphviz
 nose
 wheel
 coveralls
+sphinx

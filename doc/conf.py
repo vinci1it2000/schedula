@@ -44,14 +44,13 @@ extensions = [
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
     'sphinx.ext.graphviz',
-
 ]
-
 if on_rtd:
     extensions.append('sphinx.ext.autosummary')
 else:
     extensions.append('doc.sphinxext.autosummary')
     autosummary_generate = True
+
 
 autodoc_member_order = 'bysource'
 graphviz_output_format = 'svg'
