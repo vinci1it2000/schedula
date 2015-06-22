@@ -870,7 +870,8 @@ class Dispatcher(object):
             >>> dot.save(file, dot_dir)
             '...'
 
-        .. graphviz:: /source/dispatcher/__init__/get_sub_dsp_from_workflow/dsp.dot
+        .. graphviz::
+           /source/dispatcher/__init__/get_sub_dsp_from_workflow/dsp.dot
 
         Dispatch with no calls in order to have a workflow::
 
@@ -887,7 +888,8 @@ class Dispatcher(object):
             >>> dot.save(file, dot_dir)
             '...'
 
-        .. graphviz:: /source/dispatcher/__init__/get_sub_dsp_from_workflow/sub_dsp1.dot
+        .. graphviz::
+           /source/dispatcher/__init__/get_sub_dsp_from_workflow/sub_dsp1.dot
 
         Get sub-dispatcher from a workflow output `c`::
 
@@ -900,7 +902,8 @@ class Dispatcher(object):
             >>> dot.save(file, dot_dir)
             '...'
 
-        .. graphviz:: /source/dispatcher/__init__/get_sub_dsp_from_workflow/sub_dsp2.dot
+        .. graphviz::
+           /source/dispatcher/__init__/get_sub_dsp_from_workflow/sub_dsp2.dot
         """
 
         # define an empty dispatcher map

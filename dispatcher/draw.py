@@ -203,17 +203,9 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
 
                     kw['fillcolor'] = '#FF8F0F80'
 
-            elif k is SINK:
-                kw = {
-                    'shape': 'invhouse',
-                    'fillcolor': 'black',
-                    'fontcolor':'white'
-                }
-                node_label = 'sink'
-            elif n['type'] == 'data':
+            elif k is not SINK and n['type'] == 'data':
                 kw = {'shape': 'Mrecord', 'fillcolor': 'cyan'}
                 node_label = _data_node_label(k, val, n, dist)
-
             else:
                 continue
 

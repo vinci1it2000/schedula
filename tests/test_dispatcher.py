@@ -71,25 +71,24 @@ class TestDoctest(unittest.TestCase):
         self.assertEqual(failure_count, 0, (failure_count, test_count))
 
 
-class TestDispatcher(unittest.TestCase):
+class TestCreateDispatcher(unittest.TestCase):
     def test_add_data(self):
         dsp = Dispatcher()
 
         self.assertEqual(dsp.add_data(data_id='a'), 'a')
         self.assertEqual(dsp.add_data(data_id='a'), 'a')
-
         self.assertEqual(dsp.add_data(), 'unknown<0>')
+
         self.assertEqual(dsp.add_data(default_value='v'), 'unknown<1>')
-
         self.assertEqual(dsp.dmap.node['unknown<1>'], {'wait_inputs': False,
-                                                        'type': 'data'})
-
+                                                       'type': 'data'})
         self.assertEqual(dsp.default_values['unknown<1>'], 'v')
+
         self.assertEqual(dsp.add_data(data_id='unknown<1>'), 'unknown<1>')
         self.assertFalse('unknown<1>' in dsp.default_values)
+
         dsp.add_data(data_id='a', wait_inputs=False, function=lambda: None,
                      callback=lambda: None, wildcard=True)
-
         res = ['callback', 'function', 'wildcard', 'wait_inputs', 'type']
         self.assertEqual(set(dsp.dmap.node['a'].keys()), set(res))
 
@@ -222,7 +221,9 @@ class TestDispatcher(unittest.TestCase):
         dsp.set_default_value('b', value=3)
         self.assertEqual(dsp.default_values['b'], 3)
 
-    def test_get_sub_dmap(self):
+
+class TestSubDMap(unittest.TestCase):
+    def setUp(self):
         dsp = Dispatcher()
         dsp.add_data(data_id='b', wait_inputs=True, default_value=3)
 
@@ -231,7 +232,12 @@ class TestDispatcher(unittest.TestCase):
         dsp.add_function('min<0>', inputs=['b', 'd'], outputs=['c'])
         dsp.add_function('max<0>', inputs=['b', 'd'], outputs=['a'])
         dsp.add_data(data_id='e')
+        dsp.dispatch(['a', 'b'], no_call=True)
+        self.dsp = dsp
 
+    def test_get_sub_dmap(self):
+
+        dsp = self.dsp
         sub_dmap = dsp.get_sub_dsp(['a', 'b', 'c', 'max', 'max<0>'])
         res = {
             'a': {'type': 'data', 'wait_inputs': False},
@@ -268,55 +274,45 @@ class TestDispatcher(unittest.TestCase):
         self.assertEqual(sub_dmap.dmap.node, {})
 
     def test_get_sub_dmap_from_workflow(self):
-        dsp = Dispatcher()
-        dsp.add_data(data_id='b', wait_inputs=True, default_value=3)
+        dsp = self.dsp
 
-        dsp.add_function('max', inputs=['a', 'b'], outputs=['c'])
-        dsp.add_function('min', inputs=['a', 'c'], outputs=['d'])
-        dsp.add_function('min<0>', inputs=['b', 'd'], outputs=['c'])
-        dsp.add_function('max<0>', inputs=['b', 'd'], outputs=['a'])
-        dsp.add_data(data_id='e')
-
-        sub_dmap = dsp.get_sub_dsp(['a', 'b', 'c', 'max', 'max<0>'])
+        sub_dmap = dsp.get_sub_dsp_from_workflow(['a', 'b'])
         res = {
-            'a': {'type': 'data', 'wait_inputs': False},
-            'b': {'type': 'data', 'wait_inputs': True},
+            'd': {'type': 'data', 'wait_inputs': False},
             'c': {'type': 'data', 'wait_inputs': False},
-            'max': {'function': None,
-                    'inputs': ['a', 'b'],
-                    'outputs': ['c'],
-                    'type': 'function',
-                    'wait_inputs': True}
+            'min': {
+                'type': 'function',
+                'wait_inputs': True,
+                'inputs': ['a', 'c'],
+                'function': None,
+                'outputs': ['d']
+            },
+            'a': {'type': 'data', 'wait_inputs': False},
+            'max': {
+                'type': 'function',
+                'wait_inputs': True,
+                'inputs': ['a', 'b'],
+                'function': None,
+                'outputs': ['c']
+            },
+            'b': {'type': 'data', 'wait_inputs': True}
         }
+        self.assertEqual(sub_dmap.dmap.node, res)
+
+        sub_dmap = dsp.get_sub_dsp_from_workflow(['d'], reverse=True)
+        self.assertEqual(sub_dmap.dmap.node, res)
+
+        sub_dmap = dsp.get_sub_dsp_from_workflow(['c'], reverse=True)
+        res.pop('min')
+        res.pop('d')
+        self.assertEqual(sub_dmap.dmap.node, res)
+
+        sub_dmap = dsp.get_sub_dsp_from_workflow(['c', 'e'], reverse=True)
         self.assertEqual(sub_dmap.dmap.node, res)
         self.assertEqual(sub_dmap.default_values['b'], 3)
 
-        sub_dmap = dsp.get_sub_dsp(['a', 'c', 'max', 'max<0>'])
-        self.assertEqual(sub_dmap.dmap.node, {})
 
-        sub_dmap = dsp.get_sub_dsp(['a', 'b', 'c', 'max', 'e'])
-        res = {
-            'a': {'type': 'data', 'wait_inputs': False},
-            'b': {'type': 'data', 'wait_inputs': True},
-            'c': {'type': 'data', 'wait_inputs': False},
-            'max': {'function': None,
-                    'inputs': ['a', 'b'],
-                    'outputs': ['c'],
-                    'type': 'function',
-                    'wait_inputs': True}
-        }
-        self.assertEqual(sub_dmap.dmap.node, res)
-        self.assertEqual(sub_dmap.default_values['b'], 3)
-
-        edges_bunch = [('max', 'c')]
-        sub_dmap = dsp.get_sub_dsp(['a', 'b', 'c', 'max'], edges_bunch)
-        self.assertEqual(sub_dmap.dmap.node, {})
-
-
-class TestDispatcherDispatchAlgorithm(unittest.TestCase):
-    def setUp(self):
-        self.dsp = _setup_dsp()
-
+class TestPerformance(unittest.TestCase):
     def test_stress_tests(self):
         res = timeit.repeat("dsp.dispatch({'a': 5, 'b': 6})",
                             'from test_dispatcher import _setup_dsp; '
@@ -345,20 +341,32 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         print('dispatcher function without functions in '
               '%f ms/call' % (res2 - diff))
 
-    def test_dispatch(self):
+
+class TestDispatch(unittest.TestCase):
+    def setUp(self):
+        self.dsp = _setup_dsp()
+        self.dsp_cutoff = _setup_dsp()
+        self.dsp_wildcard_1 = _setup_dsp()
+        self.dsp_wildcard_2 = _setup_dsp()
+
+        def average(kwargs):
+            return sum(kwargs.values()) / len(kwargs)
+
+        self.dsp_wildcard_1.dmap.node['b']['wait_inputs'] = True
+        self.dsp_wildcard_1.dmap.node['b']['function'] = average
+
+        self.dsp_wildcard_2.dmap.edge['e']['x ^ y']['weight'] = -100
+
+        self.dsp_raises = Dispatcher(raises=True)
+        from math import log
+        self.dsp_raises.add_function(function=log, inputs=['a'], outputs=['b'])
+
+    def test_without_outputs(self):
         dsp = self.dsp
 
-        workflow, outputs = dsp.dispatch({'a': 5, 'b': 6, 'f': 9})
-
-        self.assertEqual(
-            outputs, {'a': 5, 'b': 6, 'c': 0, 'd': 0, 'e': 2, 'f': 9}
-        )
-
-        res = ['2 / (d + 1)', 'a', 'b', 'c', 'd', 'e', 'log(b - a)', 'min',
-               START]
-        self.assertEqual(sorted(list(workflow.node)), res)
-
-        res = {
+        wk, o = dsp.dispatch({'a': 5, 'b': 6, 'f': 9})
+        r = ['2 / (d + 1)', 'a', 'b', 'c', 'd', 'e', 'log(b - a)', 'min', START]
+        w = {
             'a': {'log(b - a)': {'value': 5}, 'min': {'value': 5}},
             'b': {'log(b - a)': {'value': 6}},
             'c': {'min': {'value': 0.0}},
@@ -369,18 +377,14 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
             'min': {'d': {'value': 0.0}},
             START: {'a': {'value': 5}, 'b': {'value': 6}}
         }
-        self.assertEqual(workflow.edge, res)
+        self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 0, 'e': 2, 'f': 9})
+        self.assertEqual(sorted(list(wk.node)), r)
+        self.assertEqual(wk.edge, w)
 
-        workflow, outputs = dsp.dispatch({'a': 5, 'b': 3})
-
-        self.assertEqual(outputs,
-                          {'a': 5, 'b': 3, 'c': 3, 'd': 1, 'e': 1})
-
-        res = ['2 / (d + 1)', 'a', 'b', 'c', 'd', 'e', 'log(b - a)', 'max',
-               START, 'x - 4']
-        self.assertEqual(sorted(list(workflow.node)), res)
-
-        res = {
+        wk, o = dsp.dispatch({'a': 5, 'b': 3})
+        r = ['2 / (d + 1)', 'a', 'b', 'c', 'd', 'e', 'log(b - a)', 'max', START,
+             'x - 4']
+        w = {
             'a': {'log(b - a)': {'value': 5}, 'x - 4': {'value': 5}},
             'b': {'log(b - a)': {'value': 3}, 'max': {'value': 3}},
             'c': {},
@@ -392,18 +396,15 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
             START: {'a': {'value': 5}, 'b': {'value': 3}},
             'x - 4': {'d': {'value': 1}}
         }
-        self.assertEqual(workflow.edge, res)
+        self.assertEqual(o, {'a': 5, 'b': 3, 'c': 3, 'd': 1, 'e': 1})
+        self.assertEqual(sorted(list(wk.node)), r)
+        self.assertEqual(wk.edge, w)
 
-        workflow, outputs = dsp.dispatch(['a', 'b'], no_call=True)
-        self.assertEqual(
-            outputs, dict.fromkeys(['a', 'b', 'c', 'd', 'e'], NONE)
-        )
-
-        res = ['2 / (d + 1)', 'a', 'b', 'c', 'd', 'e', 'log(b - a)', 'min',
-               START]
-        self.assertEqual(sorted(list(workflow.node)), res)
-
-        res = {
+    def test_no_call(self):
+        dsp = self.dsp
+        wk, o = dsp.dispatch(['a', 'b'], no_call=True)
+        r = ['2 / (d + 1)', 'a', 'b', 'c', 'd', 'e', 'log(b - a)', 'min', START]
+        w = {
             'a': {'log(b - a)': {}, 'min': {}},
             'b': {'log(b - a)': {}},
             'c': {'min': {}},
@@ -414,16 +415,16 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
             'min': {'d': {}},
             START: {'a': {}, 'b': {}}
         }
-        self.assertEqual(workflow.edge, res)
+        self.assertEqual(o, dict.fromkeys(['a', 'b', 'c', 'd', 'e'], NONE))
+        self.assertEqual(sorted(list(wk.node)), r)
+        self.assertEqual(wk.edge, w)
 
-        workflow, outputs = dsp.dispatch({'a': 5, 'b': 6}, ['d'])
+    def test_with_outputs(self):
+        dsp = self.dsp
 
-        self.assertEqual(outputs, {'a': 5, 'b': 6, 'c': 0, 'd': 0})
-
-        res = ['a', 'b', 'c', 'd', 'log(b - a)', 'min', START]
-        self.assertEqual(sorted(list(workflow.node)), res)
-
-        res = {
+        wk, o = dsp.dispatch({'a': 5, 'b': 6}, ['d'])
+        r = ['a', 'b', 'c', 'd', 'log(b - a)', 'min', START]
+        w = {
             'a': {'log(b - a)': {'value': 5}, 'min': {'value': 5}},
             'b': {'log(b - a)': {'value': 6}},
             'c': {'min': {'value': 0.0}},
@@ -432,33 +433,30 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
             'min': {'d': {'value': 0.0}},
             START: {'a': {'value': 5}, 'b': {'value': 6}}
         }
-        self.assertEqual(workflow.edge, res)
+        self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 0})
+        self.assertEqual(sorted(list(wk.node)), r)
+        self.assertEqual(wk.edge, w)
 
-        workflow, outputs = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2)
+    def test_cutoff(self):
+        dsp = self.dsp_cutoff
 
-        self.assertEqual(outputs, {'a': 5, 'b': 6, 'c': 0})
-
-        res = ['a', 'b', 'c', 'log(b - a)', START]
-        self.assertEqual(sorted(list(workflow.node)), res)
-
-        res = {
+        wk, o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2)
+        r = ['a', 'b', 'c', 'log(b - a)', START]
+        w = {
             'a': {'log(b - a)': {'value': 5}},
             'b': {'log(b - a)': {'value': 6}},
             'c': {},
             'log(b - a)': {'c': {'value': 0.0}},
             START: {'a': {'value': 5}, 'b': {'value': 6}}
         }
-        self.assertEqual(workflow.edge, res)
+        self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0})
+        self.assertEqual(sorted(list(wk.node)), r)
+        self.assertEqual(wk.edge, w)
 
         dsp.weight = None
-        workflow, outputs = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2)
-
-        self.assertEqual(outputs, {'a': 5, 'b': 6, 'c': 0, 'd': 1})
-
-        res = ['a', 'b', 'c', 'd', 'log(b - a)', START, 'x - 4']
-        self.assertEqual(sorted(list(workflow.node)), res)
-
-        res = {
+        wk, o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2)
+        r = ['a', 'b', 'c', 'd', 'log(b - a)', START, 'x - 4']
+        w = {
             'a': {'log(b - a)': {'value': 5}, 'x - 4': {'value': 5}},
             'b': {'log(b - a)': {'value': 6}},
             'c': {},
@@ -467,19 +465,16 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
             'x - 4': {'d': {'value': 1}},
             START: {'a': {'value': 5}, 'b': {'value': 6}}
         }
-        self.assertEqual(workflow.edge, res)
+        self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 1})
+        self.assertEqual(sorted(list(wk.node)), r)
+        self.assertEqual(wk.edge, w)
 
-        dsp.weight = 'weight'
-        workflow, outputs = dsp.dispatch({'a': 5, 'b': 6}, ['a', 'b'],
-                                         wildcard=True)
-
-        self.assertEqual(outputs, {'b': 1, 'c': 0, 'd': 0, 'e': 2})
-
-        node = ['2 / (d + 1)', 'a', 'b', 'c', 'd', 'e', 'log(b - a)', 'min',
-                START, 'x ^ y']
-        self.assertEqual(sorted(list(workflow.node)), node)
-
-        edge = {
+    def test_wildcard(self):
+        dsp = self.dsp
+        wk, o = dsp.dispatch({'a': 5, 'b': 6}, ['a', 'b'], wildcard=True)
+        r = ['2 / (d + 1)', 'a', 'b', 'c', 'd', 'e', 'log(b - a)', 'min', START,
+             'x ^ y']
+        w = {
             'a': {'log(b - a)': {'value': 5}, 'min': {'value': 5}},
             'b': {'log(b - a)': {'value': 6}},
             'c': {'min': {'value': 0.0}},
@@ -491,135 +486,185 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
             START: {'a': {'value': 5}, 'b': {'value': 6}},
             'x ^ y': {'b': {'value': 1.0}}
         }
-        self.assertEqual(workflow.edge, edge)
+        self.assertEqual(o, {'b': 1, 'c': 0, 'd': 0, 'e': 2})
+        self.assertEqual(sorted(list(wk.node)), r)
+        self.assertEqual(wk.edge, w)
 
-        def average(kwargs):
-            return sum(kwargs.values()) / len(kwargs)
+        dsp = self.dsp_wildcard_1
 
-        dsp.dmap.node['b']['wait_inputs'] = True
-        dsp.dmap.node['b']['function'] = average
+        wk, o = dsp.dispatch({'a': 5, 'b': 6}, ['a', 'b'], wildcard=True)
+        self.assertEqual(sorted(list(wk.node)), r)
+        self.assertEqual(wk.edge, w)
 
-        workflow, outputs = dsp.dispatch({'a': 5, 'b': 6}, ['a', 'b'],
-                                         wildcard=True)
-
-        self.assertEqual(sorted(list(workflow.node)), node)
-        self.assertEqual(workflow.edge, edge)
-
-        dsp.dmap.node['b']['wait_inputs'] = False
-        dsp.dmap.node['b'].pop('function')
-
-        dsp.dmap.edge['e']['x ^ y']['weight'] = -100
+        dsp = self.dsp_wildcard_2
         self.assertRaises(ValueError, dsp.dispatch, {'a': 5, 'b': 6},
                           ['a', 'b'], wildcard=True)
 
-        dsp.dmap.edge['e']['x ^ y'].pop('weight')
+    def test_raises(self):
+        dsp = self.dsp_raises
+        self.assertRaises(ValueError, dsp.dispatch, inputs={'a': 0})
 
-        dsp = Dispatcher()
+
+class TestBoundaryDispatch(unittest.TestCase):
+    def setUp(self):
+        self.dsp = Dispatcher()
 
         def f(*args):
-            return 3
+            return 3, 5
 
-        dsp.add_function(function=f, outputs=['a'])
-        dsp.add_function(function=f, outputs=['b'])
-        self.assertEqual(dsp.dispatch(outputs=['a', 'b'])[1], {'a': 3, 'b': 3})
+        self.dsp.add_function(function=f, outputs=['a', SINK])
+        self.dsp.add_function(function=f, outputs=[SINK, 'b'])
 
-        dsp = Dispatcher()
-        dsp.add_function('A', function=max, inputs=['a', 'b'], outputs=['c'])
-        dsp.add_function('B', function=min, inputs=['a', 'b'], outputs=['c'])
-        o = dsp.dispatch(inputs={'a': 1, 'b': 3})[1]
-        self.assertEqual(o, {'a': 1, 'b': 3, 'c': 3})
+        self.dsp_1 = Dispatcher()
+        self.dsp_1.add_function('A', max, inputs=['a', 'b'], outputs=['c'])
+        self.dsp_1.add_function('B', min, inputs=['a', 'b'], outputs=['c'])
 
-        dsp = Dispatcher()
-        dsp.add_function('B', function=max, inputs=['a', 'b'], outputs=['c'])
-        dsp.add_function('A', function=min, inputs=['a', 'b'], outputs=['c'])
-        o = dsp.dispatch(inputs={'a': 1, 'b': 3})[1]
-        self.assertEqual(o, {'a': 1, 'b': 3, 'c': 1})
+        self.dsp_2 = Dispatcher()
+        self.dsp_2.add_function('B', max, inputs=['a', 'b'], outputs=['c'])
+        self.dsp_2.add_function('A', min, inputs=['a', 'b'], outputs=['c'])
 
-        dsp = Dispatcher()
+        self.dsp_3 = Dispatcher()
+
         def f(kwargs):
             return 1 / list(kwargs.values())[0]
 
-        dsp.add_function('A', function=min, inputs=['a', 'b'], outputs=['c'])
-        dsp.add_data('c', function=f, callback=f)
+        self.dsp_3.add_function('A', min, inputs=['a', 'b'], outputs=['c'])
+        self.dsp_3.add_data('c', function=f, callback=f)
+
+    def test_dispatch_functions_without_arguments(self):
+        dsp = self.dsp
+        self.assertEqual(dsp.dispatch(outputs=['a', 'b'])[1], {'a': 3, 'b': 5})
+
+    def test_deterministic_dispatch(self):
+        dsp = self.dsp_1
+
+        o = dsp.dispatch(inputs={'a': 1, 'b': 3})[1]
+        self.assertEqual(o, {'a': 1, 'b': 3, 'c': 3})
+
+        dsp = self.dsp_2
+
+        o = dsp.dispatch(inputs={'a': 1, 'b': 3})[1]
+        self.assertEqual(o, {'a': 1, 'b': 3, 'c': 1})
+
+    def test_callback(self):
+        dsp = self.dsp_3
         o = dsp.dispatch(inputs={'a': 1, 'b': 5})[1]
         self.assertEqual(o, {'a': 1, 'b': 5, 'c': 1.0})
 
         o = dsp.dispatch(inputs={'a': 0, 'b': 5})[1]
         self.assertEqual(o, {'a': 0, 'b': 5})
 
-    def test_set_node_output(self):
+
+class TestNodeOutput(unittest.TestCase):
+    def setUp(self):
+
+
         dsp = Dispatcher()
-        wf_edge = dsp.workflow.edge
-        data_out = dsp.data_output
+
         dsp.add_data('a', default_value=[1, 2])
-        dsp.add_function('max', function=max, inputs=['a'], outputs=['b'])
+        dsp.add_function('max', max, inputs=['a'], outputs=['b'])
         dsp.add_function('max', inputs=['a'], outputs=['b'])
+        dsp.add_function('max', max, inputs=['a'], outputs=['c'])
         dsp.workflow.add_node(START, attr_dict={'type': 'start'})
         dsp.workflow.add_edge(START, 'a', attr_dict={'value': [1, 2]})
 
+        dsp.add_data('b', wait_inputs=True)
+
+        self.callback_obj = set()
+
+        def callback(value):
+            self.callback_obj.update([value])
+
+        dsp.add_data('c', callback=callback)
+        self.dsp = dsp
+
+    def test_set_node_output(self):
+        dsp = self.dsp
+        wf_edge = dsp.workflow.edge
+        data_out = dsp.data_output
         self.assertTrue(dsp._set_node_output('a', False))
-        res = {
+        r = {
             'a': {
                 'max': {'value': [1, 2]},
-                'max<0>': {'value': [1, 2]}
+                'max<0>': {'value': [1, 2]},
+                'max<1>': {'value': [1, 2]}
             },
             'max': {},
             'max<0>': {},
-            START: {
-                'a': {'value': [1, 2]}
-            }
+            'max<1>': {},
+            START: {'a': {'value': [1, 2]}}
         }
-        self.assertEqual(wf_edge, res)
+        self.assertEqual(wf_edge, r)
         self.assertEqual(data_out, {'a': [1, 2]})
+
         self.assertFalse(dsp._set_node_output('max<0>', False))
         self.assertTrue(dsp._set_node_output('max', False))
-        res['b'] = {}
-        res['max'] = {'b': {'value': 2}}
+        r['b'] = {}
+        r['max'] = {'b': {'value': 2}}
 
-        self.assertEqual(wf_edge, res)
+        self.assertEqual(wf_edge, r)
         self.assertEqual(data_out, {'a': [1, 2]})
-
-        dsp.add_data('b', wait_inputs=True)
 
         self.assertFalse(dsp._set_node_output('b', False))
-        self.assertEqual(wf_edge, res)
+        self.assertEqual(wf_edge, r)
         self.assertEqual(data_out, {'a': [1, 2]})
 
-        callback_obj = set()
+        self.assertTrue(dsp._set_node_output('max<1>', False))
+        self.assertTrue(dsp._set_node_output('c', False))
+        r['c'] = {}
+        r['max<1>'] = {'c': {'value': 2}}
+        self.assertEqual(wf_edge, r)
+        self.assertEqual(data_out, {'a': [1, 2], 'c': 2})
+        self.assertEqual(self.callback_obj, {2})
 
-        def callback(value):
-            callback_obj.update([value])
 
-        dsp.add_data('b', callback=callback)
-
-        self.assertTrue(dsp._set_node_output('b', False))
-
-        self.assertEqual(wf_edge, res)
-        self.assertEqual(data_out, {'a': [1, 2], 'b': 2})
-        self.assertEqual(callback_obj, {2})
-
-    def test_shrink_dsp(self):
+class TestShrinkDispatcher(unittest.TestCase):
+    def setUp(self):
         dsp = Dispatcher()
         dsp.add_function(function_id='h', inputs=['a', 'b'], outputs=['c'])
         dsp.add_function(function_id='h', inputs=['b', 'd'], outputs=['e'])
         dsp.add_function(function_id='h', inputs=['d', 'e'], outputs=['c', 'f'])
         dsp.add_function(function_id='h', inputs=['d', 'f'], outputs=['g'])
         dsp.add_function(function_id='h', inputs=['a', 'b'], outputs=['a'])
+        self.dsp_1 = dsp
 
-        shrink_dsp = dsp.shrink_dsp(
-            inputs=['a', 'b', 'd'], outputs=['c', 'a', 'f']
-        )
+        dsp = Dispatcher()
+        dsp.add_function(function_id='h', inputs=['a'], outputs=['b'])
+        dsp.add_function(function_id='h', inputs=['b'], outputs=['c'])
+        dsp.add_function(function_id='h', inputs=['c'], outputs=['d'])
+        dsp.add_function(function_id='h', inputs=['d'], outputs=['e'])
+        dsp.add_function(function_id='h', inputs=['e'], outputs=['a'])
+        self.dsp_2 = dsp
 
-        self.assertEqual(
-            sorted(shrink_dsp.dmap.node),
-            ['a', 'b', 'c', 'd', 'e', 'f', 'h', 'h<0>', 'h<1>', 'h<3>']
+        dsp = Dispatcher()
+        dsp.add_function(
+            function_id='h', input_domain=bool, inputs=['a', 'b'], outputs=['g']
         )
-        self.assertEqual(
-            sorted(shrink_dsp.dmap.edges()),
-            [('a', 'h'), ('a', 'h<3>'), ('b', 'h'), ('b', 'h<0>'),
+        dsp.add_function(
+            function_id='h', input_domain=bool, inputs=['b', 'c'], outputs=['g']
+        )
+        dsp.add_function(
+            function_id='h', input_domain=bool, inputs=['c', 'd'], outputs=['g']
+        )
+        dsp.add_function(
+            function_id='h', input_domain=bool, inputs=['e', 'f'], outputs=['g']
+        )
+        dsp.add_function(function_id='h', inputs=['g'], outputs=['i'])
+        dsp.add_function(function_id='h', inputs=['g', 'd'], outputs=['i'])
+        dsp.add_function(function_id='h', inputs=['i'], outputs=['l'])
+        dsp.add_data('i', wait_inputs=True)
+        self.dsp_3 = dsp
+
+    def test_shrink_with_inputs_outputs(self):
+
+        dsp = self.dsp_1
+        shrink_dsp = dsp.shrink_dsp(['a', 'b', 'd'], ['c', 'a', 'f'])
+        r = ['a', 'b', 'c', 'd', 'e', 'f', 'h', 'h<0>', 'h<1>', 'h<3>']
+        w = [('a', 'h'), ('a', 'h<3>'), ('b', 'h'), ('b', 'h<0>'),
              ('b', 'h<3>'), ('d', 'h<0>'), ('d', 'h<1>'), ('e', 'h<1>'),
              ('h', 'c'), ('h<0>', 'e'), ('h<1>', 'f'), ('h<3>', 'a')]
-        )
+        self.assertEqual(sorted(shrink_dsp.dmap.node), r)
+        self.assertEqual(sorted(shrink_dsp.dmap.edges()), w)
 
         shrink_dsp = dsp.shrink_dsp(['a', 'b'], ['e'])
         self.assertEqual(sorted(shrink_dsp.dmap.node), [])
@@ -629,71 +674,47 @@ class TestDispatcherDispatchAlgorithm(unittest.TestCase):
         self.assertEqual(sorted(shrink_dsp.dmap.node), [])
         self.assertEqual(sorted(shrink_dsp.dmap.edges()), [])
 
+        dsp = self.dsp_2
+        shrink_dsp = dsp.shrink_dsp(['a'], ['b'])
+        r = ['a', 'b', 'h']
+        w = [('a', 'h'), ('h', 'b')]
+        self.assertEqual(sorted(shrink_dsp.dmap.node), r)
+        self.assertEqual(sorted(shrink_dsp.dmap.edges()), w)
+
+    def test_shrink_with_outputs(self):
+        dsp = self.dsp_1
         shrink_dsp = dsp.shrink_dsp(outputs=['g'])
-        self.assertEqual(
-            sorted(shrink_dsp.dmap.node),
-            ['b', 'd', 'e', 'f', 'g', 'h<0>', 'h<1>', 'h<2>']
-        )
-        self.assertEqual(
-            sorted(shrink_dsp.dmap.edges()),
-            [('b', 'h<0>'), ('d', 'h<0>'), ('d', 'h<1>'), ('d', 'h<2>'),
+        r = ['b', 'd', 'e', 'f', 'g', 'h<0>', 'h<1>', 'h<2>']
+        w = [('b', 'h<0>'), ('d', 'h<0>'), ('d', 'h<1>'), ('d', 'h<2>'),
              ('e', 'h<1>'), ('f', 'h<2>'), ('h<0>', 'e'), ('h<1>', 'f'),
              ('h<2>', 'g')]
-        )
+        self.assertEqual(sorted(shrink_dsp.dmap.node), r)
+        self.assertEqual(sorted(shrink_dsp.dmap.edges()), w)
 
+    def test_shrink_with_inputs(self):
+        dsp = self.dsp_1
         shrink_dsp = dsp.shrink_dsp(inputs=['d', 'e'])
-        self.assertEqual(
-            sorted(shrink_dsp.dmap.node),
-            ['c', 'd', 'e', 'f', 'g', 'h<1>', 'h<2>']
-        )
-        self.assertEqual(
-            sorted(shrink_dsp.dmap.edges()),
-            [('d', 'h<1>'), ('d', 'h<2>'), ('e', 'h<1>'), ('f', 'h<2>'),
+        r = ['c', 'd', 'e', 'f', 'g', 'h<1>', 'h<2>']
+        w = [('d', 'h<1>'), ('d', 'h<2>'), ('e', 'h<1>'), ('f', 'h<2>'),
              ('h<1>', 'c'), ('h<1>', 'f'), ('h<2>', 'g')]
-        )
+        self.assertEqual(sorted(shrink_dsp.dmap.node), r)
+        self.assertEqual(sorted(shrink_dsp.dmap.edges()), w)
 
-        dsp = Dispatcher()
-        dsp.add_function(function_id='h', inputs=['a'], outputs=['b'])
-        dsp.add_function(function_id='h', inputs=['b'], outputs=['c'])
-        dsp.add_function(function_id='h', inputs=['c'], outputs=['d'])
-        dsp.add_function(function_id='h', inputs=['d'], outputs=['e'])
-        dsp.add_function(function_id='h', inputs=['e'], outputs=['a'])
-
-        self.assertEqual(sorted(dsp.shrink_dsp(['a'], ['b']).nodes.keys()), ['a', 'b', 'h'])
-
-        dsp = Dispatcher()
-        dsp.add_function(function_id='h', input_domain=bool, inputs=['a', 'b'], outputs=['g'])
-        dsp.add_function(function_id='h', input_domain=bool, inputs=['b', 'c'], outputs=['g'])
-        dsp.add_function(function_id='h', input_domain=bool, inputs=['c', 'd'], outputs=['g'])
-        dsp.add_function(function_id='h', input_domain=bool, inputs=['e', 'f'], outputs=['g'])
-        dsp.add_function(function_id='h', inputs=['g'], outputs=['i'])
-        dsp.add_function(function_id='h', inputs=['g', 'd'], outputs=['i'])
-        dsp.add_function(function_id='h', inputs=['i'], outputs=['l'])
-        dsp.add_data('i', wait_inputs=True)
+    def test_shrink_with_domains(self):
+        dsp = self.dsp_3
         shrink_dsp = dsp.shrink_dsp(['a', 'b', 'c', 'e', 'f'])
-        self.assertEqual(
-            sorted(shrink_dsp.dmap.node),
-            ['a', 'b', 'c', 'e', 'f', 'g', 'h', 'h<0>', 'h<2>', 'h<3>', 'h<5>',
+        r = ['a', 'b', 'c', 'e', 'f', 'g', 'h', 'h<0>', 'h<2>', 'h<3>', 'h<5>',
              'i', 'l']
-        )
-        self.assertEqual(
-            sorted(shrink_dsp.dmap.edges()),
-            [('a', 'h'), ('b', 'h'), ('b', 'h<0>'), ('c', 'h<0>'),
+        w = [('a', 'h'), ('b', 'h'), ('b', 'h<0>'), ('c', 'h<0>'),
              ('e', 'h<2>'), ('f', 'h<2>'), ('g', 'h<3>'), ('h', 'g'),
              ('h<0>', 'g'), ('h<2>', 'g'), ('h<3>', 'i'), ('h<5>', 'l'),
              ('i', 'h<5>')]
-        )
-
-    def test_dispatch_raises(self):
-        dsp = Dispatcher(raises=True)
-        from math import log
-        dsp.add_function(function=log, inputs=['a'], outputs=['b'])
-
-        self.assertRaises(ValueError, dsp.dispatch, inputs={'a': 0})
+        self.assertEqual(sorted(shrink_dsp.dmap.node), r)
+        self.assertEqual(sorted(shrink_dsp.dmap.edges()), w)
 
 
 class TestRemoveCycles(unittest.TestCase):
-    def test_remove_cycles(self):
+    def setUp(self):
         dsp = Dispatcher()
 
         def average(kwargs):
@@ -701,42 +722,30 @@ class TestRemoveCycles(unittest.TestCase):
 
         dsp.add_data(data_id='b', default_value=3)
         dsp.add_data(data_id='c', function=average)
-        dsp.add_function('max', function=max, inputs=['a', 'b'],
-                         outputs=['c'])
-        dsp.add_function('min', function=min, inputs=['a', 'c'],
-                         outputs=['d'])
-        dsp.add_function('min', function=min, inputs=['b', 'd'],
-                         outputs=['c'])
-        dsp.add_function('max', function=max, inputs=['b', 'd'],
-                         outputs=['a'])
-        dsp_woc = dsp.remove_cycles(['a', 'b'])
-        self.assertEqual(sorted(dsp_woc.dmap.edges()),
-                          sorted(dsp.dmap.edges()))
+        dsp.add_function('max', function=max, inputs=['a', 'b'], outputs=['c'])
+        dsp.add_function('min', function=min, inputs=['a', 'c'], outputs=['d'])
+        dsp.add_function('min', function=min, inputs=['b', 'd'], outputs=['c'])
+        dsp.add_function('max', function=max, inputs=['b', 'd'], outputs=['a'])
+        self.dsp = dsp
 
-        dsp.add_data(data_id='c', wait_inputs=True, function=average)
+    def test_remove_cycles(self):
+        dsp = self.dsp
+        # no cycles
         dsp_woc = dsp.remove_cycles(['a', 'b'])
-        res = [('a', 'max'),
-               ('a', 'min'),
-               ('b', 'max'),
-               ('b', 'max<0>'),
-               ('c', 'min'),
-               ('d', 'max<0>'),
-               ('max', 'c'),
-               ('max<0>', 'a'),
+        self.assertEqual(sorted(dsp_woc.dmap.edges()), sorted(dsp.dmap.edges()))
+
+        dsp.nodes['c']['wait_inputs'] = True
+        dsp_woc = dsp.remove_cycles(['a', 'b'])
+        res = [('a', 'max'), ('a', 'min'), ('b', 'max'), ('b', 'max<0>'),
+               ('c', 'min'), ('d', 'max<0>'), ('max', 'c'), ('max<0>', 'a'),
                ('min', 'd')]
         self.assertEqual(sorted(dsp_woc.dmap.edges()), res)
         self.assertTrue(dsp_woc.dmap.node['c']['wait_inputs'])
         self.assertTrue(dsp.dmap.node['c']['wait_inputs'])
 
         dsp_woc = dsp.remove_cycles(['d', 'b'])
-        res = [('a', 'max'),
-               ('a', 'min'),
-               ('b', 'max'),
-               ('b', 'max<0>'),
-               ('c', 'min'),
-               ('d', 'max<0>'),
-               ('max', 'c'),
-               ('max<0>', 'a'),
+        res = [('a', 'max'), ('a', 'min'), ('b', 'max'), ('b', 'max<0>'),
+               ('c', 'min'), ('d', 'max<0>'), ('max', 'c'), ('max<0>', 'a'),
                ('min', 'd')]
         self.assertEqual(sorted(dsp_woc.dmap.edges()), res)
 
@@ -745,10 +754,6 @@ class TestRemoveCycles(unittest.TestCase):
         self.assertEqual(dsp_woc.dmap.edges(), [])
 
         dsp_woc = dsp.remove_cycles(['a', 'b', 'c'])
-        res = [('a', 'max'),
-               ('a', 'min'),
-               ('b', 'max'),
-               ('c', 'min'),
-               ('max', 'c'),
-               ('min', 'd')]
+        res = [('a', 'max'), ('a', 'min'), ('b', 'max'), ('c', 'min'),
+               ('max', 'c'), ('min', 'd')]
         self.assertEqual(sorted(dsp_woc.dmap.edges()), res)
