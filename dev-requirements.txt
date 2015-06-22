@@ -3,3 +3,4 @@ dill
 graphviz
 nose
 wheel
+coveralls
