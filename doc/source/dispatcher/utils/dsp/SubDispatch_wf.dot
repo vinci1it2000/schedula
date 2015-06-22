@@ -1,28 +1,28 @@
 digraph Dispatcher {
 	graph [ratio=1]
 	node [style=filled]
-	splines = ortho
 	label = "Dispatcher workflow"
-		Dispatcher_4373660080 [label=start fillcolor=red shape=egg]
-		Dispatcher_6631309999372667202 [label="{ d | distance = 0 | output = \{&quot;a&quot;: 3\} }" fillcolor=cyan shape=Mrecord]
-		"Dispatcher_-7260254538652562390" [label="{ e | distance = 2 | output = \{&quot;c&quot;: 2, &quot;a&quot;: 3, &quot;b&quot;: 4\} }" fillcolor=cyan shape=Mrecord]
-		subgraph "cluster_Dispatcher_-3979966649910739169" {
+	splines = ortho
+		Dispatcher_4373639600 [label=start fillcolor=red shape=egg]
+		Dispatcher_4732348619466872361 [label="{ e | distance = 2 | output = \{&quot;a&quot;: 3, &quot;b&quot;: 4, &quot;c&quot;: 2\} }" fillcolor=cyan shape=Mrecord]
+		subgraph cluster_Dispatcher_3185096728837850295 {
 		style=filled
 		fillcolor="#FF8F0F80"
 		label="Sub-dispatch workflow"
 		comment="Sub-dispatch"
-			"cluster_Dispatcher_-3979966649910739169_4373660080" [label=start fillcolor=red shape=egg]
-			"cluster_Dispatcher_-3979966649910739169_-2193805309291217967" [label="{ c | distance = 2 | output = 2 }" fillcolor=cyan shape=Mrecord]
-			"cluster_Dispatcher_-3979966649910739169_9139109398902324004" [label="{ a | output = 3 }" fillcolor=cyan shape=Mrecord]
-			"cluster_Dispatcher_-3979966649910739169_141576447417409454" [label="{ fun | distance = 1 }" fillcolor=springgreen shape=record]
-			"cluster_Dispatcher_-3979966649910739169_5099201867563505239" [label="{ b | distance = 2 | output = 4 }" fillcolor=cyan shape=Mrecord]
-				"cluster_Dispatcher_-3979966649910739169_4373660080" -> "cluster_Dispatcher_-3979966649910739169_9139109398902324004" [xlabel=3]
-				"cluster_Dispatcher_-3979966649910739169_9139109398902324004" -> "cluster_Dispatcher_-3979966649910739169_141576447417409454" [xlabel=3]
-				"cluster_Dispatcher_-3979966649910739169_141576447417409454" -> "cluster_Dispatcher_-3979966649910739169_-2193805309291217967" [xlabel=2]
-				"cluster_Dispatcher_-3979966649910739169_141576447417409454" -> "cluster_Dispatcher_-3979966649910739169_5099201867563505239" [xlabel=4]
+			cluster_Dispatcher_3185096728837850295_4373639600 [label=start fillcolor=red shape=egg]
+			"cluster_Dispatcher_3185096728837850295_-1353340929889452664" [label="{ a | output = 3 }" fillcolor=cyan shape=Mrecord]
+			"cluster_Dispatcher_3185096728837850295_-1012281636065293414" [label="{ fun | distance = 1 }" fillcolor=springgreen shape=record]
+			cluster_Dispatcher_3185096728837850295_6900719114362863374 [label="{ c | distance = 2 | output = 2 }" fillcolor=cyan shape=Mrecord]
+			cluster_Dispatcher_3185096728837850295_7224607962633671560 [label="{ b | distance = 2 | output = 4 }" fillcolor=cyan shape=Mrecord]
+				cluster_Dispatcher_3185096728837850295_4373639600 -> "cluster_Dispatcher_3185096728837850295_-1353340929889452664" [xlabel=3]
+				"cluster_Dispatcher_3185096728837850295_-1353340929889452664" -> "cluster_Dispatcher_3185096728837850295_-1012281636065293414" [xlabel=3]
+				"cluster_Dispatcher_3185096728837850295_-1012281636065293414" -> cluster_Dispatcher_3185096728837850295_7224607962633671560 [xlabel=4]
+				"cluster_Dispatcher_3185096728837850295_-1012281636065293414" -> cluster_Dispatcher_3185096728837850295_6900719114362863374 [xlabel=2]
 		}
-		"Dispatcher_-3979966649910739169" [label="{ Sub-dispatch | distance = 1 }" fillcolor="#FF8F0F80" shape=record]
-			Dispatcher_4373660080 -> Dispatcher_6631309999372667202 [xlabel="\{&quot;a&quot;: 3\}"]
-			Dispatcher_6631309999372667202 -> "Dispatcher_-3979966649910739169" [xlabel="\{&quot;a&quot;: 3\}"]
-			"Dispatcher_-3979966649910739169" -> "Dispatcher_-7260254538652562390" [xlabel="\{&quot;c&quot;: 2, &quot;a&quot;: 3, &quot;b&quot;: 4\}"]
+		Dispatcher_3185096728837850295 [label="{ Sub-dispatch | distance = 1 }" fillcolor="#FF8F0F80" shape=record]
+		"Dispatcher_-5912537819166218321" [label="{ d | distance = 0 | output = \{&quot;a&quot;: 3\} }" fillcolor=cyan shape=Mrecord]
+			Dispatcher_4373639600 -> "Dispatcher_-5912537819166218321" [xlabel="\{&quot;a&quot;: 3\}"]
+			Dispatcher_3185096728837850295 -> Dispatcher_4732348619466872361 [xlabel="\{&quot;a&quot;: 3, &quot;b&quot;: 4, &quot;c&quot;: 2\}"]
+			"Dispatcher_-5912537819166218321" -> Dispatcher_3185096728837850295 [xlabel="\{&quot;a&quot;: 3\}"]
 }

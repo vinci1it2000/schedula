@@ -53,5 +53,6 @@ setup(
         'graphviz',
     ],
     test_suite='nose.collector',
-    setup_requires=['nose>=1.0']
+    setup_requires=['nose>=1.0'],
+
 )

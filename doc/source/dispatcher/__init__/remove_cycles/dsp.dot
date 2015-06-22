@@ -1,26 +1,26 @@
 digraph Dispatcher {
 	graph [ratio=1]
 	node [style=filled]
-	splines = ortho
 	label = "Dispatcher"
-		"Dispatcher_-2193805309291217967" [label="{ c | wait_inputs = True | function = average }" fillcolor=cyan shape=Mrecord]
-		Dispatcher_6631309999372667202 [label="{ d  }" fillcolor=cyan shape=Mrecord]
-		Dispatcher_3942438910677806419 [label="{ min1  }" fillcolor=springgreen shape=record]
-		Dispatcher_9139109398902324004 [label="{ a  }" fillcolor=cyan shape=Mrecord]
-		"Dispatcher_-2193285440211216922" [label="{ min2  }" fillcolor=springgreen shape=record]
-		Dispatcher_5099201867563505239 [label="{ b | default = 3 }" fillcolor=cyan shape=Mrecord]
-		Dispatcher_5062303636095560169 [label="{ max1  }" fillcolor=springgreen shape=record]
-		Dispatcher_6031913352977330063 [label="{ max2  }" fillcolor=springgreen shape=record]
-			"Dispatcher_-2193805309291217967" -> Dispatcher_3942438910677806419
-			Dispatcher_6631309999372667202 -> "Dispatcher_-2193285440211216922"
-			Dispatcher_6631309999372667202 -> Dispatcher_6031913352977330063
-			Dispatcher_3942438910677806419 -> Dispatcher_6631309999372667202
-			Dispatcher_9139109398902324004 -> Dispatcher_5062303636095560169
-			Dispatcher_9139109398902324004 -> Dispatcher_3942438910677806419
-			"Dispatcher_-2193285440211216922" -> "Dispatcher_-2193805309291217967"
-			Dispatcher_5099201867563505239 -> Dispatcher_5062303636095560169
-			Dispatcher_5099201867563505239 -> "Dispatcher_-2193285440211216922"
-			Dispatcher_5099201867563505239 -> Dispatcher_6031913352977330063
-			Dispatcher_5062303636095560169 -> "Dispatcher_-2193805309291217967"
-			Dispatcher_6031913352977330063 -> Dispatcher_9139109398902324004
+	splines = ortho
+		"Dispatcher_-1353340929889452664" [label="{ a  }" fillcolor=cyan shape=Mrecord]
+		"Dispatcher_-31041863739931261" [label="{ max1  }" fillcolor=springgreen shape=record]
+		Dispatcher_4347001826184765925 [label="{ max2  }" fillcolor=springgreen shape=record]
+		Dispatcher_7224607962633671560 [label="{ b | default = 3 }" fillcolor=cyan shape=Mrecord]
+		Dispatcher_5601471042950820649 [label="{ min2  }" fillcolor=springgreen shape=record]
+		Dispatcher_8545015552011819642 [label="{ min1  }" fillcolor=springgreen shape=record]
+		Dispatcher_6900719114362863374 [label="{ c | wait_inputs = True | function = average }" fillcolor=cyan shape=Mrecord]
+		"Dispatcher_-5912537819166218321" [label="{ d  }" fillcolor=cyan shape=Mrecord]
+			"Dispatcher_-1353340929889452664" -> Dispatcher_8545015552011819642
+			"Dispatcher_-1353340929889452664" -> "Dispatcher_-31041863739931261"
+			"Dispatcher_-31041863739931261" -> Dispatcher_6900719114362863374
+			Dispatcher_4347001826184765925 -> "Dispatcher_-1353340929889452664"
+			Dispatcher_7224607962633671560 -> Dispatcher_5601471042950820649
+			Dispatcher_7224607962633671560 -> "Dispatcher_-31041863739931261"
+			Dispatcher_7224607962633671560 -> Dispatcher_4347001826184765925
+			Dispatcher_5601471042950820649 -> Dispatcher_6900719114362863374
+			Dispatcher_8545015552011819642 -> "Dispatcher_-5912537819166218321"
+			Dispatcher_6900719114362863374 -> Dispatcher_8545015552011819642
+			"Dispatcher_-5912537819166218321" -> Dispatcher_5601471042950820649
+			"Dispatcher_-5912537819166218321" -> Dispatcher_4347001826184765925
 }

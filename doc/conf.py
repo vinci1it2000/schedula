@@ -18,7 +18,14 @@ import os
 import shlex
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
-
+if on_rtd:
+    update_imported_docs(version)
+    if exists('setup.py'):
+        run('python setup.py install')
+    if project.requirements_file:
+        run('pip install -r %s' % project.requirements_file)
+    build_docs(version=version)
+    copy_files(artifact_dir)
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
