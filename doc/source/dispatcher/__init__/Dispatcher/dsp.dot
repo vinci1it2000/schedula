@@ -3,15 +3,15 @@ digraph Dispatcher {
 	node [style=filled]
 	splines = ortho
 	label = "Dispatcher"
-		Dispatcher_3972589190614631537 [label="{ log | input_domain = log_domain }" fillcolor=springgreen shape=record]
-		Dispatcher_1248373816960019038 [label="{ d | wait_inputs = True | function = average_fun | callback = callback_fun | default = 4 }" fillcolor=cyan shape=Mrecord]
-		Dispatcher_1161704250910580454 [label="{ c  }" fillcolor=cyan shape=Mrecord]
-		"Dispatcher_-7776202301500148952" [label="{ a  }" fillcolor=cyan shape=Mrecord]
-		Dispatcher_3212931600518739037 [label="{ b | default = 1 }" fillcolor=cyan shape=Mrecord]
-		"Dispatcher_-7590698075780531602" [label="{ diff_function  }" fillcolor=springgreen shape=record]
-			Dispatcher_3972589190614631537 -> Dispatcher_1248373816960019038
-			Dispatcher_1161704250910580454 -> Dispatcher_3972589190614631537
-			"Dispatcher_-7776202301500148952" -> "Dispatcher_-7590698075780531602"
-			Dispatcher_3212931600518739037 -> "Dispatcher_-7590698075780531602"
-			"Dispatcher_-7590698075780531602" -> Dispatcher_1161704250910580454
+		Dispatcher_6013051498004961488 [label="{ diff_function  }" fillcolor=springgreen shape=record]
+		"Dispatcher_-427784935824896063" [label="{ b | default = 1 }" fillcolor=cyan shape=Mrecord]
+		"Dispatcher_-6866225254170713515" [label="{ d | function = average_fun | wait_inputs = True | callback = callback_fun | default = 4 }" fillcolor=cyan shape=Mrecord]
+		Dispatcher_5626300579074633926 [label="{ c  }" fillcolor=cyan shape=Mrecord]
+		"Dispatcher_-3574468403947108869" [label="{ a  }" fillcolor=cyan shape=Mrecord]
+		"Dispatcher_-7227856657863221857" [label="{ log | input_domain = log_domain }" fillcolor=springgreen shape=record]
+			Dispatcher_6013051498004961488 -> Dispatcher_5626300579074633926
+			"Dispatcher_-427784935824896063" -> Dispatcher_6013051498004961488
+			Dispatcher_5626300579074633926 -> "Dispatcher_-7227856657863221857"
+			"Dispatcher_-3574468403947108869" -> Dispatcher_6013051498004961488
+			"Dispatcher_-7227856657863221857" -> "Dispatcher_-6866225254170713515"
 }
