@@ -21,11 +21,10 @@ from heapq import heappop
 
 try:
     isidentifier = str.isidentifier
-except:
+except AttributeError:
     import re
+
     isidentifier = re.compile(r'[a-z_]\w*$', re.I).match
-
-
 
 __all__ = ['counter', 'Token', 'pairwise', 'heap_flush', 'AttrDict',
            'caller_name']
@@ -253,7 +252,7 @@ def caller_name(skip=2):
     stack = inspect.stack()
     start = 0 + skip
     if len(stack) < start + 1:
-      return ''
+        return ''
     parentframe = stack[start][0]
 
     name = []
@@ -266,10 +265,10 @@ def caller_name(skip=2):
     if 'self' in parentframe.f_locals:
         # I don't know any way to detect call from the object method
         # XXX: there seems to be no way to detect static method call - it will
-        #      be just a function call
+        # be just a function call
         name.append(parentframe.f_locals['self'].__class__.__name__)
     codename = parentframe.f_code.co_name
     if codename != '<module>':  # top level usually
-        name.append( codename ) # function or a method
+        name.append(codename)  # function or a method
     del parentframe
     return ".".join(name)

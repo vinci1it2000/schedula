@@ -68,13 +68,12 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
         >>> from dispatcher import Dispatcher
         >>> from dispatcher.utils.dsp import SubDispatch
         >>> from dispatcher.constants import SINK
-        >>> ss_dsp = Dispatcher()
+        >>> ss = Dispatcher()
         >>> def fun(a):
         ...     return a + 1, a - 1
-        >>> ss_dsp.add_function('fun', fun, ['a'], ['b', 'c'])
+        >>> ss.add_function('fun', fun, ['a'], ['b', 'c'])
         'fun'
-        >>> sub_dispatch = SubDispatch(
-        ...     ss_dsp, ['a', 'b', 'c'], type_return='list')
+        >>> sub_dispatch = SubDispatch(ss, ['a', 'b', 'c'], type_return='list')
         >>> s_dsp = Dispatcher()
 
         >>> s_dsp.add_function('sub_dispatch', sub_dispatch, ['a'], ['b', 'c'])
@@ -280,10 +279,10 @@ _encode_table = {
     '\'': '&quot;',
     '"': '&quot;',
     '>': '&gt;',
-    '{':'\{',
+    '{': '\{',
     '|': '\|',
     '}': '\}',
-    }
+}
 
 
 def _label_encode(text):
