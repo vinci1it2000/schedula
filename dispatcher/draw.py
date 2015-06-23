@@ -92,7 +92,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
         >>> dot.save('draw/dsp.dot', dot_dir)
         '...'
 
-    .. graphviz:: /dispatcher/draw/dsp.dot
+    .. graphviz:: /source/dispatcher/draw/dsp.dot
 
     Dispatch in order to have a workflow::
 
@@ -104,7 +104,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
         >>> wf.save('draw/wf.dot', dot_dir)
         '...'
 
-    .. graphviz:: /dispatcher/draw/wf.dot
+    .. graphviz:: /source/dispatcher/draw/wf.dot
     """
 
     if workflow:

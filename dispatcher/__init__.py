@@ -52,7 +52,7 @@ from .utils.dsp import SubDispatch, bypass
 
 
 prj_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-dot_dir = os.path.join(prj_dir, 'doc/dispatcher/')
+dot_dir = os.path.join(prj_dir, 'doc/source/dispatcher/')
 
 log = logging.getLogger(__name__)
 
@@ -759,7 +759,7 @@ class Dispatcher(object):
             >>> dot.save('__init__/get_sub_dsp/dsp.dot', dot_dir)
             '...'
 
-        .. graphviz:: /dispatcher/__init__/get_sub_dsp/dsp.dot
+        .. graphviz:: /source/dispatcher/__init__/get_sub_dsp/dsp.dot
 
         Get the sub-dispatcher induced by given nodes bunch::
 
@@ -771,7 +771,7 @@ class Dispatcher(object):
             >>> dot.save('__init__/get_sub_dsp/sub_dsp.dot', dot_dir)
             '...'
 
-        .. graphviz:: /dispatcher/__init__/get_sub_dsp/sub_dsp.dot
+        .. graphviz:: /source/dispatcher/__init__/get_sub_dsp/sub_dsp.dot
         """
 
         # define an empty dispatcher
@@ -871,7 +871,7 @@ class Dispatcher(object):
             '...'
 
         .. graphviz::
-           /dispatcher/__init__/get_sub_dsp_from_workflow/dsp.dot
+           /source/dispatcher/__init__/get_sub_dsp_from_workflow/dsp.dot
 
         Dispatch with no calls in order to have a workflow::
 
@@ -889,7 +889,7 @@ class Dispatcher(object):
             '...'
 
         .. graphviz::
-           /dispatcher/__init__/get_sub_dsp_from_workflow/sub_dsp1.dot
+           /source/dispatcher/__init__/get_sub_dsp_from_workflow/sub_dsp1.dot
 
         Get sub-dispatcher from a workflow output `c`::
 
@@ -903,7 +903,7 @@ class Dispatcher(object):
             '...'
 
         .. graphviz::
-           /dispatcher/__init__/get_sub_dsp_from_workflow/sub_dsp2.dot
+           /source/dispatcher/__init__/get_sub_dsp_from_workflow/sub_dsp2.dot
         """
 
         # define an empty dispatcher map
@@ -1059,7 +1059,7 @@ class Dispatcher(object):
             >>> dot.save('__init__/remove_cycles/dsp.dot', dot_dir)
             '...'
 
-        .. graphviz:: /dispatcher/__init__/remove_cycles/dsp.dot
+        .. graphviz:: /source/dispatcher/__init__/remove_cycles/dsp.dot
 
         The dispatch stops on data node `c` due to the unresolved cycle::
 
@@ -1072,7 +1072,7 @@ class Dispatcher(object):
             >>> dot.save('__init__/remove_cycles/wf.dot', dot_dir)
             '...'
 
-        .. graphviz:: /dispatcher/__init__/remove_cycles/wf.dot
+        .. graphviz:: /source/dispatcher/__init__/remove_cycles/wf.dot
 
         Removing the unresolved cycle the dispatch continues to all nodes::
 
@@ -1088,7 +1088,7 @@ class Dispatcher(object):
             >>> dot.save(file, dot_dir)
             '...'
 
-        .. graphviz:: /dispatcher/__init__/remove_cycles/wf_rm_cycles.dot
+        .. graphviz:: /source/dispatcher/__init__/remove_cycles/wf_rm_cycles.dot
         """
 
         # Reachable nodes from sources
@@ -1183,7 +1183,7 @@ class Dispatcher(object):
             >>> dot.save('__init__/dispatch/dsp.dot', dot_dir)
             '...'
 
-        .. graphviz:: /dispatcher/__init__/dispatch/dsp.dot
+        .. graphviz:: /source/dispatcher/__init__/dispatch/dsp.dot
 
         Dispatch without inputs. The default values are used as inputs::
 
@@ -1197,7 +1197,7 @@ class Dispatcher(object):
             >>> dot.save('__init__/dispatch/wf1.dot', dot_dir)
             '...'
 
-        .. graphviz:: /dispatcher/__init__/dispatch/wf1.dot
+        .. graphviz:: /source/dispatcher/__init__/dispatch/wf1.dot
 
         Dispatch until data node `c` is estimated::
 
@@ -1211,7 +1211,7 @@ class Dispatcher(object):
             >>> dot.save('__init__/dispatch/wf2.dot', dot_dir)
             '...'
 
-        .. graphviz:: /dispatcher/__init__/dispatch/wf2.dot
+        .. graphviz:: /source/dispatcher/__init__/dispatch/wf2.dot
 
         Dispatch with one inputs. The default value of `a` is not used as
         inputs::
@@ -1226,7 +1226,7 @@ class Dispatcher(object):
             >>> dot.save('__init__/dispatch/wf3.dot', dot_dir)
             '...'
 
-        .. graphviz:: /dispatcher/__init__/dispatch/wf3.dot
+        .. graphviz:: /source/dispatcher/__init__/dispatch/wf3.dot
         """
 
         # pre shrink
@@ -1319,7 +1319,7 @@ class Dispatcher(object):
             >>> dot.save('__init__/shrink_dsp/dsp.dot', dot_dir)
             '...'
 
-        .. graphviz:: /dispatcher/__init__/shrink_dsp/dsp.dot
+        .. graphviz:: /source/dispatcher/__init__/shrink_dsp/dsp.dot
 
         Get the sub-dispatcher induced by dispatching with no calls from inputs
         `a`, `b`, and `c` to outputs `c`, `e`, and `f`::
@@ -1333,7 +1333,7 @@ class Dispatcher(object):
             >>> dot.save('__init__/shrink_dsp/shrink_dsp.dot', dot_dir)
             '...'
 
-        .. graphviz:: /dispatcher/__init__/shrink_dsp/shrink_dsp.dot
+        .. graphviz:: /source/dispatcher/__init__/shrink_dsp/shrink_dsp.dot
         """
 
         bfs_graph = self.dmap
