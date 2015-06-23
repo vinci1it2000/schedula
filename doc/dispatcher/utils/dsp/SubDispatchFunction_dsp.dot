@@ -1,0 +1,16 @@
+digraph Dispatcher {
+	graph [ratio=1]
+	node [style=filled]
+	label = "Dispatcher"
+	splines = ortho
+		"Dispatcher_-4519079440491430663" [label="{ b  }" fillcolor=cyan shape=Mrecord]
+		Dispatcher_8924090687986925466 [label="{ a  }" fillcolor=cyan shape=Mrecord]
+		"Dispatcher_-1705733922340640717" [label="{ max  }" fillcolor=springgreen shape=record]
+		Dispatcher_5431715331068191834 [label="{ c  }" fillcolor=cyan shape=Mrecord]
+		Dispatcher_1586720594119702242 [label="{ log(x - 1) | input_domain = &amp;lt;lambda&amp;gt; }" fillcolor=springgreen shape=record]
+			"Dispatcher_-4519079440491430663" -> "Dispatcher_-1705733922340640717"
+			Dispatcher_8924090687986925466 -> "Dispatcher_-1705733922340640717"
+			"Dispatcher_-1705733922340640717" -> Dispatcher_5431715331068191834
+			Dispatcher_5431715331068191834 -> Dispatcher_1586720594119702242
+			Dispatcher_1586720594119702242 -> Dispatcher_8924090687986925466
+}

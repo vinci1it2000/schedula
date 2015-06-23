@@ -1,0 +1,23 @@
+digraph Dispatcher {
+	graph [ratio=1]
+	node [style=filled]
+	label = "Dispatcher workflow"
+	splines = ortho
+		Dispatcher_4373721280 [label=start fillcolor=red shape=egg]
+		Dispatcher_3242600848141611984 [label="{ min | distance = 1 }" fillcolor=springgreen shape=record]
+		"Dispatcher_-3934880090079577648" [label="{ e | output = 0.0 | distance = 4 }" fillcolor=cyan shape=Mrecord]
+		Dispatcher_427052991769328247 [label="{ my log | distance = 3 }" fillcolor=springgreen shape=record]
+		"Dispatcher_-4519079440491430663" [label="{ b | output = 5 | distance = 0 }" fillcolor=cyan shape=Mrecord]
+		Dispatcher_8924090687986925466 [label="{ a | output = 0 | distance = 0 }" fillcolor=cyan shape=Mrecord]
+		"Dispatcher_-3033218840940190516" [label="{ d | output = 1 | distance = 0 }" fillcolor=cyan shape=Mrecord]
+		Dispatcher_5431715331068191834 [label="{ c | output = 0 | distance = 2 }" fillcolor=cyan shape=Mrecord]
+			Dispatcher_4373721280 -> "Dispatcher_-4519079440491430663" [xlabel=5]
+			Dispatcher_4373721280 -> Dispatcher_8924090687986925466 [xlabel=0]
+			Dispatcher_4373721280 -> "Dispatcher_-3033218840940190516" [xlabel=1]
+			Dispatcher_3242600848141611984 -> Dispatcher_5431715331068191834 [xlabel=0]
+			Dispatcher_427052991769328247 -> "Dispatcher_-3934880090079577648" [xlabel=0.0]
+			"Dispatcher_-4519079440491430663" -> Dispatcher_3242600848141611984 [xlabel=5]
+			Dispatcher_8924090687986925466 -> Dispatcher_3242600848141611984 [xlabel=0]
+			"Dispatcher_-3033218840940190516" -> Dispatcher_427052991769328247 [xlabel=1]
+			Dispatcher_5431715331068191834 -> Dispatcher_427052991769328247 [xlabel=0]
+}

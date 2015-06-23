@@ -1,0 +1,15 @@
+digraph "Sub-Dispatcher" {
+	graph [ratio=1]
+	node [style=filled]
+	label = "Sub-Dispatcher"
+	splines = ortho
+		"Sub-Dispatcher_-4519079440491430663" [label="{ b  }" fillcolor=cyan shape=Mrecord]
+		"Sub-Dispatcher_8924090687986925466" [label="{ a | default = 1 }" fillcolor=cyan shape=Mrecord]
+		"Sub-Dispatcher_-3033218840940190516" [label="{ d  }" fillcolor=cyan shape=Mrecord]
+		"Sub-Dispatcher_5431715331068191834" [label="{ c  }" fillcolor=cyan shape=Mrecord]
+		"Sub-Dispatcher_-6187035820328994423" [label="{ fun1  }" fillcolor=springgreen shape=record]
+			"Sub-Dispatcher_-4519079440491430663" -> "Sub-Dispatcher_-6187035820328994423"
+			"Sub-Dispatcher_8924090687986925466" -> "Sub-Dispatcher_-6187035820328994423"
+			"Sub-Dispatcher_-6187035820328994423" -> "Sub-Dispatcher_5431715331068191834"
+			"Sub-Dispatcher_-6187035820328994423" -> "Sub-Dispatcher_-3033218840940190516"
+}
