@@ -16,7 +16,7 @@ __author__ = 'Vincenzo_Arcidiacono'
 
 from compas.dispatcher import Dispatcher
 from compas.functions.AT_gear_functions import *
-from compas.dispatcher.dispatcher_utils import bypass
+from compas.dispatcher.utils.dsp import bypass
 
 
 def def_gear_model():
@@ -39,7 +39,7 @@ def def_gear_model():
         >>> dot.save('AT_gear_model/dsp.dot', dot_dir)
         '...'
 
-    .. graphviz:: /compas/models/AT_gear_model/dsp.dot
+    .. graphviz:: /source/compas/models/AT_gear_model/dsp.dot
 
     Follow the input/output parameters of the `gear_model` dispatcher:
 

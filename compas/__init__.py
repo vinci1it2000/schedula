@@ -5,9 +5,9 @@
     :nosignatures:
     :toctree: compas/
 
-    dispatcher
-    functions
-    models
+    ~models
+    ~functions
+    ~dispatcher
 
 """
 __author__ = 'Vincenzo Arcidiacono'

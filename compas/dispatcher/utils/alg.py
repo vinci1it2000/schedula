@@ -6,13 +6,14 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
+"""
+It contains basic algorithms, numerical tricks, and data processing tasks.
+"""
+
 __author__ = 'Vincenzo Arcidiacono'
 
 from heapq import heappush, heappop
-from itertools import count
-
-from compas.dispatcher.utils import pairwise, heap_flush
-
+from .gen import pairwise, heap_flush, counter
 
 __all__ = ['add_edge_fun', 'scc_fun', 'dijkstra', 'remove_cycles_iteration']
 
@@ -72,7 +73,7 @@ def scc_fun(graph, nodes_bunch=None):
     """
 
     p_ord, l_link, scc_found, scc_queue = ({}, {}, {}, [])
-    pre_ord_n = count().__next__  # Pre-order counter
+    pre_ord_n = counter()  # Pre-order counter
     for source in (nodes_bunch if nodes_bunch else graph):
         if source not in scc_found:
             q = [source]  # queue
@@ -171,7 +172,7 @@ def dijkstra(graph, source, targets=None, cutoff=None, weight=True):
     dist = {}  # dictionary of final distances
     paths = {source: [source]}  # dictionary of paths
     seen = {source: 0}
-    c = count(1).__next__
+    c = counter(1)
     fringe = [(0, 0, source)]  # use heapq with (distance,label) tuples
     while fringe:
         (d, _, v) = heappop(fringe)
@@ -212,7 +213,6 @@ def _check_targets_fun(targets):
 
     :return: A function to stop the Dijkstra algorithm.
     :rtype: function
-
     """
 
     if targets:
@@ -296,21 +296,26 @@ def _nodes_by_relevance(graph, nodes_bunch):
     fun_nds, data_nds = ([], [])
 
     # counter
-    c = count(1).__next__
+    c = counter(1)
 
-    for u, n in ((u, graph.node[u]) for u in nodes_bunch):
+    # namespace shortcuts for speed
+    node = graph.node
+    out_degree = graph.out_degree
+    in_degree = graph.in_degree
+
+    for u, n in ((u, node[u]) for u in nodes_bunch):
         # node type
         node_type = n['type']
 
         # node weight
-        nw = graph.node[u].get('weight', 0)
+        nw = node[u].get('weight', 0)
 
         if node_type == 'function':
-            heappush(fun_nds, (nw + graph.out_degree(u, 'weight'), 1 / c(), u))
+            heappush(fun_nds, (nw + out_degree(u, 'weight'), 1.0 / c(), u))
 
         elif node_type == 'data' and n['wait_inputs']:  # this is unresolved
             # item to push
-            item = (1 / (nw + graph.in_degree(u, 'weight')), 1 / c(), u)
+            item = (1.0 / (nw + in_degree(u, 'weight')), 1.0 / c(), u)
 
             heappush(data_nds, item)
 
@@ -339,38 +344,42 @@ def _cycles_ord_by_length(graph, data_nodes, function_nodes):
     """
 
     # use heapq with (length, steps, 1/data node in-degree, counter, cycle path)
-    min_l = []
+    h = []
 
     # counter
-    c = count(0).__next__
+    c = counter(0)
 
     # set of function nodes labels
     fun_n = set([v[-1] for v in function_nodes])
 
+    # namespace shortcuts for speed
+    pred = graph.pred
+    node = graph.node
+
     for in_d, i in ((v[0], v[-1]) for v in data_nodes):
         # function node targets
-        f_n = [j for j in graph.pred[i] if j in fun_n]
+        f_n = [j for j in pred[i] if j in fun_n]
 
         # length and path of the semi-cycle without function-data edge
         length, cycle = dijkstra(graph, i, f_n, None, True)
 
         # node weight
-        n_weight = graph.node[i].get('weight', 0)
+        n_weight = node[i].get('weight', 0.0)
 
         # sort the cycles founded
         for j in (j for j in f_n if j in length):
             # cycle length
-            lng = length[j] + graph[j][i].get('weight', 1) + n_weight
+            lng = length[j] + graph[j][i].get('weight', 1.0) + n_weight
 
             # cycle path
             pth = cycle[j] + [i]
 
             # add cycle to the heapq
-            heappush(min_l, (lng, len(pth), 1 / in_d, c(), list(pairwise(pth))))
+            heappush(h, (lng, len(pth), 1.0 / in_d, c(), list(pairwise(pth))))
 
     # sorted list of cycles (expressed as list of edges).
     # N.B. the last edge is that to be deleted
-    return [p[-1] for p in heap_flush(min_l)]
+    return [p[-1] for p in heap_flush(h)]
 
 
 def remove_cycles_iteration(graph, nodes_bunch, reached_nodes, edge_to_rm):

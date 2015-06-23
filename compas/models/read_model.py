@@ -13,7 +13,7 @@ The model is defined by a Dispatcher that wraps all the functions needed.
 import pandas as pd
 from compas.functions.read_inputs import *
 from compas.dispatcher import Dispatcher
-from compas.dispatcher.dispatcher_utils import SubDispatchFunction
+from compas.dispatcher.utils.dsp import SubDispatchFunction
 
 
 def def_load_inputs():

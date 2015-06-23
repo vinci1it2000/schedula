@@ -8,64 +8,68 @@
 
 import doctest
 import unittest
+import platform
 
-from tempfile import mkstemp
-from compas.dispatcher.read_write import *
-from compas.dispatcher import Dispatcher
+if platform.python_implementation() != "PyPy":
+    from tempfile import mkstemp
+    from compas.dispatcher.read_write import *
+    from compas.dispatcher import Dispatcher
 
-temp_file = mkstemp()[1]
-__path__ = ''
 
-class TestDoctest(unittest.TestCase):
-    def runTest(self):
-        import compas.dispatcher.read_write as utl
-        failure_count, test_count = doctest.testmod(
-            utl, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS)
-        self.assertGreater(test_count, 0, (failure_count, test_count))
-        self.assertEquals(failure_count, 0, (failure_count, test_count))
+    class TestDoctest(unittest.TestCase):
+        def runTest(self):
+            import compas.dispatcher.read_write as utl
+            failure_count, test_count = doctest.testmod(
+                utl, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS)
+            self.assertGreater(test_count, 0, (failure_count, test_count))
+            self.assertEqual(failure_count, 0, (failure_count, test_count))
 
-class TestReadWrite(unittest.TestCase):
-    def setUp(self):
-        dsp = Dispatcher()
-        dsp.add_data('a', default_value=5)
 
-        def f(a):
-            return a + 1
+    class TestReadWrite(unittest.TestCase):
+        def setUp(self):
+            dsp = Dispatcher()
+            dsp.add_data('a', default_value=5)
 
-        self.fun_id = dsp.add_function(function=f, inputs=['a'], outputs=['b'])
+            def f(a):
+                return a + 1
 
-        self.dsp = dsp
+            self.fun_id = dsp.add_function(
+                function=f, inputs=['a'], outputs=['b']
+            )
 
-    def test_save_dispatcher(self):
+            self.dsp = dsp
 
-        save_dispatcher(self.dsp, temp_file)
+            self.tmp = mkstemp()[1]
 
-    def test_load_dispatcher(self):
-        save_dispatcher(self.dsp, temp_file)
-        dsp = load_dispatcher(temp_file)
-        self.assertEquals(dsp.dmap.node['a']['type'], 'data')
-        self.assertEquals(dsp.dispatch()[1]['b'], 6)
+        def test_save_dispatcher(self):
+            save_dispatcher(self.dsp, self.tmp)
 
-    def test_save_default_values(self):
-        save_default_values(self.dsp, temp_file)
+        def test_load_dispatcher(self):
+            save_dispatcher(self.dsp, self.tmp)
+            dsp = load_dispatcher(self.tmp)
+            self.assertEqual(dsp.dmap.node['a']['type'], 'data')
+            self.assertEqual(dsp.dispatch()[1]['b'], 6)
 
-    def test_load_default_values(self):
-        save_default_values(self.dsp, temp_file)
-        dsp = Dispatcher(dmap=self.dsp.dmap)
-        load_default_values(dsp, temp_file)
-        self.assertEquals(dsp.default_values, self.dsp.default_values)
-        self.assertEquals(dsp.dispatch()[1]['b'], 6)
+        def test_save_default_values(self):
+            save_default_values(self.dsp, self.tmp)
 
-    def test_save_map(self):
-        save_map(self.dsp, temp_file)
+        def test_load_default_values(self):
+            save_default_values(self.dsp, self.tmp)
+            dsp = Dispatcher(dmap=self.dsp.dmap)
+            load_default_values(dsp, self.tmp)
+            self.assertEqual(dsp.default_values, self.dsp.default_values)
+            self.assertEqual(dsp.dispatch()[1]['b'], 6)
 
-    def test_load_map(self):
-        save_map(self.dsp, temp_file)
-        dsp = Dispatcher(default_values=self.dsp.default_values)
-        load_map(dsp, temp_file)
+        def test_save_map(self):
+            save_map(self.dsp, self.tmp)
 
-        self.assertEquals(
-            dsp.dmap.degree(self.fun_id), self.dsp.dmap.degree(self.fun_id)
-        )
-        self.assertEquals(dsp.dmap.node[self.fun_id]['function'](1), 2)
-        self.assertEquals(dsp.dispatch()[1]['b'], 6)
+        def test_load_map(self):
+            save_map(self.dsp, self.tmp)
+            dsp = Dispatcher(default_values=self.dsp.default_values)
+            load_map(dsp, self.tmp)
+
+            self.assertEqual(
+                dsp.dmap.degree(self.fun_id), self.dsp.dmap.degree(self.fun_id)
+            )
+            self.assertEqual(dsp.dmap.node[self.fun_id]['function'](1), 2)
+            self.assertEqual(dsp.dispatch()[1]['b'], 6)

@@ -6,15 +6,18 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
+"""
+It provides tools to create models with the :func:`~dispatcher.Dispatcher`.
+"""
+
 __author__ = 'Vincenzo Arcidiacono'
 
 __all__ = ['combine_dicts', 'bypass', 'summation', 'def_selector',
            'def_replicate_value', 'SubDispatch', 'ReplicateFunction',
            'SubDispatchFunction']
 
+from .gen import caller_name
 from networkx.classes.digraph import DiGraph
-
-from compas.dispatcher.utils import caller_name
 
 
 def combine_dicts(*dicts):
@@ -145,14 +148,17 @@ def def_replicate_value(n=2):
 
 class SubDispatch(object):
     """
-    Returns a function that executes the dispatch of the given `dsp`.
+    It dispatches a given :func:`~dispatcher.Dispatcher` like a function.
+
+    This function takes a sequence of dictionaries as input that will be
+    combined before the dispatching.
 
     :return:
-        A function that executes the dispatch of the given `dsp`.
-
-        This function takes a sequence of dictionaries as input that will be
-        combined before the dispatching.
+        A function that executes the dispatch of the given
+        :func:`~dispatcher.Dispatcher`.
     :rtype: function
+
+    .. seealso:: :func:`~dispatcher.Dispatcher.dispatch`, :func:`combine_dicts`
 
     Example::
 
@@ -172,11 +178,11 @@ class SubDispatch(object):
     .. testsetup::
         >>> from compas.dispatcher.draw import dsp2dot
         >>> from compas.dispatcher import dot_dir
-        >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
-        >>> dot.save('dispatcher_utils/SubDispatch_dsp.dot', dot_dir)
+        >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
+        >>> dot.save('utils/dsp/SubDispatch_dsp.dot', dot_dir)
         '...'
 
-    .. graphviz:: /compas/dispatcher/dispatcher_utils/SubDispatch_dsp.dot
+    .. graphviz:: ../dsp/SubDispatch_dsp.dot
 
     Dispatch the dispatch output is::
 
@@ -187,11 +193,11 @@ class SubDispatch(object):
         (<...DiGraph object at 0x...>, {...}, {...})
 
     .. testsetup::
-        >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
-        >>> dot.save('dispatcher_utils/SubDispatch_wf.dot', dot_dir)
+        >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'ratio': '1'})
+        >>> dot.save('utils/dsp/SubDispatch_wf.dot', dot_dir)
         '...'
 
-    .. graphviz:: /compas/dispatcher/dispatcher_utils/SubDispatch_wf.dot
+    .. graphviz:: ../dsp/SubDispatch_wf.dot
     """
 
     def __init__(self, dsp, outputs=None, cutoff=None, wildcard=False,
@@ -228,9 +234,11 @@ class SubDispatch(object):
         :params type_return:
             Type of function output:
 
-                + 'all': a dict with all dispatch outputs.
+                + 'all': a :class:`~dispatcher.utils.AttrDict` with all dispatch
+                  outputs.
                 + 'list': a list with all outputs listed in `outputs`.
-                + 'dict': a dict with any outputs listed in `outputs`.
+                + 'dict': a :class:`~dispatcher.utils.AttrDict` with any outputs
+                  listed in `outputs`.
         :type type_return: str
         """
 
@@ -289,13 +297,16 @@ class ReplicateFunction(object):
 
 class SubDispatchFunction(SubDispatch):
     """
-    Returns a function node that uses the dispatcher map as function.
-    
+    It dispatches a given :func:`~dispatcher.Dispatcher` like a function.
+
+    This function takes a sequence of arguments as input of the dispatch.
+
     :return:
         A function that executes the dispatch of the given `dsp`.
-
-        This function takes a sequence of arguments as input od the dispatch.
     :rtype: function
+
+    .. seealso:: :func:`~dispatcher.Dispatcher.dispatch`,
+       :func:`~dispatcher.Dispatcher.shrink_dsp`
 
     **Example**:
 
@@ -315,11 +326,11 @@ class SubDispatchFunction(SubDispatch):
         'log(x - 1)'
         >>> from compas.dispatcher.draw import dsp2dot
         >>> from compas.dispatcher import dot_dir
-        >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
-        >>> dot.save('dispatcher_utils/SubDispatchFunction_dsp.dot', dot_dir)
+        >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
+        >>> dot.save('utils/dsp/SubDispatchFunction_dsp.dot', dot_dir)
         '...'
 
-    .. graphviz:: /compas/dispatcher/dispatcher_utils/SubDispatchFunction_dsp.dot
+    .. graphviz:: ../dsp/SubDispatchFunction_dsp.dot
 
     Extract a static function node, i.e. the inputs `a` and `b` and the
     output `a` are fixed::
@@ -334,11 +345,11 @@ class SubDispatchFunction(SubDispatch):
         >>> dsp.name = 'Created function internal'
         >>> dsp.dispatch({'a': 2, 'b': 1}, outputs=['a'], wildcard=True)
         (...)
-        >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
-        >>> dot.save('dispatcher_utils/SubDispatchFunction_wf1.dot', dot_dir)
+        >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'ratio': '1'})
+        >>> dot.save('utils/dsp/SubDispatchFunction_wf1.dot', dot_dir)
         '...'
 
-    .. graphviz:: /compas/dispatcher/dispatcher_utils/SubDispatchFunction_wf1.dot
+    .. graphviz:: ../dsp/SubDispatchFunction_wf1.dot
 
     The created function raises a ValueError if un-valid inputs are
     provided::
@@ -346,21 +357,22 @@ class SubDispatchFunction(SubDispatch):
         >>> fun(1, 0)
         Traceback (most recent call last):
         ...
-        ValueError: Unreachable output-targets:{'a'}
+        ValueError: Unreachable output-targets:...
 
     .. testsetup::
         >>> dsp.dispatch({'a': 1, 'b': 0}, outputs=['a'], wildcard=True)
         (...)
-        >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
-        >>> dot.save('dispatcher_utils/SubDispatchFunction_wf2.dot', dot_dir)
+        >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'ratio': '1'})
+        >>> dot.save('utils/dsp/SubDispatchFunction_wf2.dot', dot_dir)
         '...'
 
-    .. graphviz:: /compas/dispatcher/dispatcher_utils/SubDispatchFunction_wf2.dot
-
+    .. graphviz:: ../dsp/SubDispatchFunction_wf2.dot
     """
 
     def __init__(self, dsp, function_id, inputs, outputs, cutoff=None):
         """
+        Initializes the Sub-dispatch Function.
+
         :param dsp:
             A dispatcher that identifies the model adopted.
         :type dsp: dispatcher.dispatcher.Dispatcher

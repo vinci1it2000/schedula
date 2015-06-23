@@ -8,15 +8,14 @@
 
 import unittest
 import doctest
-from compas.dispatcher.draw import *
+
 from graphviz.dot import Digraph
-from matplotlib.figure import Figure
+
+from compas.dispatcher.draw import *
 from compas.dispatcher.constants import SINK
 from compas.dispatcher import Dispatcher
-from compas.dispatcher.dispatcher_utils import SubDispatch
+from compas.dispatcher.utils.dsp import SubDispatch
 
-__name__ = 'draw'
-__path__ = ''
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):
@@ -26,42 +25,16 @@ class TestDoctest(unittest.TestCase):
             d, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS
         )
         self.assertGreater(test_count, 0, (failure_count, test_count))
-        self.assertEquals(failure_count, 0, (failure_count, test_count))
+        self.assertEqual(failure_count, 0, (failure_count, test_count))
 
-class TestDispatcherUtils(unittest.TestCase):
-    def test_plot_dsp(self):
-        sub_dsp = Dispatcher()
-        def fun(a):
-            return a + 1, a - 1
-        sub_dsp.add_function('fun', fun, ['a'], ['b', 'c'])
-        dispatch = SubDispatch(sub_dsp, ['a', 'c'], type_return='list')
-        dsp = Dispatcher()
-        dsp.add_data('_i_n_p_u_t', default_value={'a': 3})
-        '_i_n_p_u_t'
-
-        dsp.add_data('_i_', default_value=object())
-        '_i_'
-
-        dsp.add_function('dispatch', dispatch, ['_i_n_p_u_t'], ['e', 'f'])
-        'dispatch'
-        w, o = dsp.dispatch()
-
-        res = plot_dsp(dsp)['Dispatcher']
-
-        self.assertIsInstance(res[0], Figure)
-        self.assertIsInstance(res[1][0]['Dispatcher:dispatch'][0], Figure)
-        res = plot_dsp(dsp, workflow=True)['Dispatcher']
-
-        self.assertIsInstance(res[0], Figure)
-        self.assertIsInstance(res[1][0]['Dispatcher:dispatch'][0], Figure)
-
-    def test_plot_dsp_dot(self):
+class TestDispatcherDraw(unittest.TestCase):
+    def setUp(self):
         ss_dsp = Dispatcher()
 
         def fun(a):
-            return a + 1, a - 1
+            return a + 1, 5, a - 1
 
-        ss_dsp.add_function('fun', fun, ['a'], ['b', 'c'])
+        ss_dsp.add_function('fun', fun, ['a'], ['b', SINK, 'c'])
 
         sub_dispatch = SubDispatch(ss_dsp, ['a', 'b', 'c'], type_return='list')
         s_dsp = Dispatcher()
@@ -75,5 +48,19 @@ class TestDispatcherUtils(unittest.TestCase):
         dsp.add_function('dispatch', dispatch, ['input'], [SINK, 'h', 'i'])
 
         dsp.dispatch()
-        self.assertIsInstance(dsp2dot(dsp), Digraph)
-        self.assertIsInstance(dsp2dot(dsp, workflow=True), Digraph)
+        self.dsp = dsp
+
+    def test_plot_dsp_dot(self):
+        dsp = self.dsp
+
+        d = dsp2dot(dsp)
+        self.assertIsInstance(d, Digraph)
+
+        w = dsp2dot(dsp, workflow=True)
+        self.assertIsInstance(w, Digraph)
+
+        l = dsp2dot(dsp, level=1)
+        self.assertIsInstance(l, Digraph)
+
+        f = dsp2dot(dsp, function_module=False)
+        self.assertIsInstance(f, Digraph)

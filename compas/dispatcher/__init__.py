@@ -7,18 +7,10 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-This page contains a comprehensive list of all functions within toolz.
+This page contains a comprehensive list of all modules and classes within
+dispatcher.
+
 Docstrings should provide sufficient understanding for any individual function.
-
-Dispatcher:
-
-.. currentmodule:: compas.dispatcher
-
-.. autosummary::
-    :nosignatures:
-    :toctree: dispatcher/
-
-      Dispatcher
 
 Modules:
 
@@ -28,13 +20,10 @@ Modules:
     :nosignatures:
     :toctree: dispatcher/
 
-    dispatcher_utils
     read_write
     draw
     constants
-    graph_utils
     utils
-
 """
 
 __author__ = 'Vincenzo Arcidiacono'
@@ -42,19 +31,18 @@ __author__ = 'Vincenzo Arcidiacono'
 import os
 import logging
 from heapq import heappush, heappop
-from itertools import count
-from collections import OrderedDict
+from collections import deque
 
 from networkx import DiGraph, isolates
 
-from compas.dispatcher.utils import AttrDict
-from compas.dispatcher.graph_utils import add_edge_fun, remove_cycles_iteration
-from compas.dispatcher.constants import EMPTY, START, NONE, SINK
-from compas.dispatcher.dispatcher_utils import SubDispatch, bypass
+from .utils.gen import AttrDict, counter
+from .utils.alg import add_edge_fun, remove_cycles_iteration
+from .constants import EMPTY, START, NONE, SINK
+from .utils.dsp import SubDispatch, bypass
 
 
 prj_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
-dot_dir = os.path.join(prj_dir, 'doc/compas/dispatcher/')
+dot_dir = os.path.join(prj_dir, 'doc/source/compas/dispatcher/')
 
 log = logging.getLogger(__name__)
 
@@ -92,75 +80,6 @@ class Dispatcher(object):
     input and output data nodes.
 
     A workflow is a sequence of function calls.
-
-    :ivar dmap:
-        The directed graph that stores data & functions parameters.
-    :type dmap: DiGraph
-
-    :ivar name:
-        The dispatcher's name.
-    :type name: str
-
-    :ivar nodes:
-        The function and data nodes of the dispatcher.
-    :type nodes: AttrDict
-
-    :ivar default_values:
-        Data node default values. These will be used as input if it is not
-        specified as inputs in the ArciDispatch algorithm.
-    :type default_values: dict
-
-    :ivar data_output:
-        A dictionary with the dispatch outputs.
-    :type data_output: dict
-
-    :ivar dist:
-        A dictionary of distances from the `START` node.
-    :type dist: dict
-
-    :ivar weight:
-        Weight tag.
-    :type weight: str
-
-    :ivar workflow:
-        The dispatch workflow graph. It is a sequence of function calls.
-    :type workflow: DiGraph
-
-    :ivar _visited:
-        A set of visited nodes from the dispatch.
-    :type _visited: set
-
-    :ivar _targets:
-        A set of target nodes.
-    :type _targets: set
-
-    :ivar _cutoff:
-        Depth to stop the search.
-    :type _cutoff: int, float, None
-
-    :ivar _wildcards:
-        A set of nodes with a wildcard.
-    :type _wildcards: set
-
-    :ivar _pred:
-        The predecessors of the dispatcher map nodes.
-    :type _pred: dict
-
-    :ivar _succ:
-        The successors of the dispatcher map nodes.
-    :type _succ: dict
-
-    :ivar _wf_add_edge:
-        A function that add edges to the `workflow`.
-    :type _wf_add_edge: function
-
-    :ivar _wf_pred:
-        The predecessors of the `workflow` nodes.
-    :type _wf_pred: dict
-
-    :ivar _wait_in:
-        Data nodes that waits inputs. They are used in `shrink_dsp`.
-    :type _wait_in: dict
 
     \***************************************************************************
 
@@ -247,11 +166,11 @@ class Dispatcher(object):
     .. testsetup::
         >>> from compas.dispatcher.draw import dsp2dot
         >>> from compas.dispatcher import dot_dir
-        >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
-        >>> dot.save('Dispatcher/dsp.dot', dot_dir)
+        >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
+        >>> dot.save('__init__/Dispatcher/dsp.dot', dot_dir)
         '...'
 
-    .. graphviz:: /compas/dispatcher/Dispatcher/dsp.dot
+    .. graphviz:: /source/compas/dispatcher/__init__/Dispatcher/dsp.dot
 
     Dispatch the function calls to achieve the desired output data node `d`::
 
@@ -261,11 +180,11 @@ class Dispatcher(object):
         [('a', 0), ('b', 1), ('c', 1), ('d', 2.0)]
 
     .. testsetup::
-        >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
-        >>> dot.save('Dispatcher/wf.dot', dot_dir)
+        >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'ratio': '1'})
+        >>> dot.save('__init__/Dispatcher/wf.dot', dot_dir)
         '...'
 
-    .. graphviz:: /compas/dispatcher/Dispatcher/wf.dot
+    .. graphviz:: /source/compas/dispatcher/__init__/Dispatcher/wf.dot
     """
 
     def __init__(self, dmap=None, name='Dispatcher', default_values=None,
@@ -292,24 +211,61 @@ class Dispatcher(object):
         :type raises: bool, optional
         """
 
+        #: The directed graph that stores data & functions parameters.
         self.dmap = dmap if dmap else DiGraph()
+
+        #: The dispatcher's name.
         self.name = name
         self.dmap.node = AttrDict(self.dmap.node)
+
+        #: The function and data nodes of the dispatcher.
         self.nodes = self.dmap.node
+
+        #: Data node default values. These will be used as input if it is not
+        #: specified as inputs in the ArciDispatch algorithm.
         self.default_values = default_values if default_values else {}
+
+        #: Weight tag.
         self.weight = 'weight'
-        self.workflow = DiGraph()  # graph output
-        self.data_output = {}
+
+        #: The dispatch workflow graph. It is a sequence of function calls with
+        #: outputs.
+        self.workflow = DiGraph()
+
+        #: A dictionary with the dispatch outputs.
+        self.data_output = AttrDict()
+
+        #: A dictionary of distances from the `START` node.
         self.dist = {}
+
+        #: A function that raises or logs warnings.
         self.warning = _warning(raises)
+
+        #: A set of visited nodes from the dispatch.
         self._visited = set()
+
+        #: A set of target nodes.
         self._targets = set()
+
+        #: Depth to stop the search.
         self._cutoff = None
+
+        #: A set of nodes with a wildcard.
         self._wildcards = set()
+
+        #: The predecessors of the dispatcher map nodes.
         self._pred = self.dmap.pred
+
+        #: The successors of the dispatcher map nodes.
         self._succ = self.dmap.succ
+
+        #: A function that add edges to the `workflow`.
         self._wf_add_edge = add_edge_fun(self.workflow)
+
+        #: The predecessors of the `workflow` nodes.
         self._wf_pred = self.workflow.pred
+
+        #: Data nodes that waits inputs. They are used in `shrink_dsp`.
         self._wait_in = {}
 
     def add_data(self, data_id=None, default_value=EMPTY, wait_inputs=False,
@@ -358,7 +314,7 @@ class Dispatcher(object):
             Data node id.
         :rtype: object
 
-        .. seealso:: add_function, add_from_lists
+        .. seealso:: :func:`add_function`, :func:`add_from_lists`
 
         .. note::
             A hashable object is one that can be used as a key in a Python
@@ -435,7 +391,7 @@ class Dispatcher(object):
         has_node = self.dmap.has_node  # namespace shortcut for speed
 
         if data_id is None:  # search for a unused node id
-            n = count(0).__next__  # counter
+            n = counter(0)  # counter
             data_id = 'unknown<%d>' % n()  # initial guess
             while has_node(data_id):  # check if node id is used
                 data_id = 'unknown<%d>' % n()  # guess
@@ -512,7 +468,7 @@ class Dispatcher(object):
             Function node id.
         :rtype: object
 
-        .. seealso:: add_node, add_from_lists
+        .. seealso:: :func:`add_data`, :func:`add_from_lists`
 
         \***********************************************************************
 
@@ -580,7 +536,7 @@ class Dispatcher(object):
 
         fun_id = function_name  # initial function id guess
 
-        n = count(0).__next__  # counter
+        n = counter(0)  # counter
 
         has_node = self.dmap.has_node  # namespace shortcut for speed
 
@@ -644,11 +600,12 @@ class Dispatcher(object):
         :type fun_list: list, optional
 
         :returns:
+
             - Data node ids.
             - Function node ids.
         :rtype: (list, list)
 
-        .. seealso:: add_node, add_function
+        .. seealso:: :func:`add_data`, :func:`add_function`
 
         \***********************************************************************
 
@@ -763,6 +720,8 @@ class Dispatcher(object):
             A sub-dispatcher.
         :rtype: Dispatcher
 
+        .. seealso:: :func:`get_sub_dsp_from_workflow`
+
         .. note::
 
             The sub-dispatcher edge or node attributes just point to the
@@ -786,11 +745,11 @@ class Dispatcher(object):
             'fun2'
             >>> from compas.dispatcher.draw import dsp2dot
             >>> from compas.dispatcher import dot_dir
-            >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
-            >>> dot.save('get_sub_dsp/dsp.dot', dot_dir)
+            >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
+            >>> dot.save('__init__/get_sub_dsp/dsp.dot', dot_dir)
             '...'
 
-        .. graphviz:: /compas/dispatcher/get_sub_dsp/dsp.dot
+        .. graphviz:: /source/compas/dispatcher/__init__/get_sub_dsp/dsp.dot
 
         Get the sub-dispatcher induced by given nodes bunch::
 
@@ -798,11 +757,11 @@ class Dispatcher(object):
 
         .. testsetup::
             >>> sub_dsp.name = 'Sub-Dispatcher'
-            >>> dot = dsp2dot(sub_dsp, graph_attr={'rankdir': 'LR'})
-            >>> dot.save('get_sub_dsp/sub_dsp.dot', dot_dir)
+            >>> dot = dsp2dot(sub_dsp, graph_attr={'ratio': '1'})
+            >>> dot.save('__init__/get_sub_dsp/sub_dsp.dot', dot_dir)
             '...'
 
-        .. graphviz:: /compas/dispatcher/get_sub_dsp/sub_dsp.dot
+        .. graphviz:: /source/compas/dispatcher/__init__/get_sub_dsp/sub_dsp.dot
         """
 
         # define an empty dispatcher
@@ -869,6 +828,8 @@ class Dispatcher(object):
             A sub-dispatcher
         :rtype: Dispatcher
 
+        .. seealso:: :func:`get_sub_dsp`
+
         .. note::
 
             The sub-dispatcher edge or node attributes just point to the
@@ -894,12 +855,13 @@ class Dispatcher(object):
             'fun2'
             >>> from compas.dispatcher.draw import dsp2dot
             >>> from compas.dispatcher import dot_dir
-            >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
-            >>> file = 'get_sub_dsp_from_workflow/dsp.dot'
+            >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
+            >>> file = '__init__/get_sub_dsp_from_workflow/dsp.dot'
             >>> dot.save(file, dot_dir)
             '...'
 
-        .. graphviz:: /compas/dispatcher/get_sub_dsp_from_workflow/dsp.dot
+        .. graphviz::
+           /source/compas/dispatcher/__init__/get_sub_dsp_from_workflow/dsp.dot
 
         Dispatch with no calls in order to have a workflow::
 
@@ -911,12 +873,13 @@ class Dispatcher(object):
 
         .. testsetup::
             >>> sub_dsp.name = 'Sub-Dispatcher'
-            >>> dot = dsp2dot(sub_dsp, graph_attr={'rankdir': 'LR'})
-            >>> file = 'get_sub_dsp_from_workflow/sub_dsp1.dot'
+            >>> dot = dsp2dot(sub_dsp, graph_attr={'ratio': '1'})
+            >>> file = '__init__/get_sub_dsp_from_workflow/sub_dsp1.dot'
             >>> dot.save(file, dot_dir)
             '...'
 
-        .. graphviz:: /compas/dispatcher/get_sub_dsp_from_workflow/sub_dsp1.dot
+        .. graphviz::
+           /source/compas/dispatcher/__init__/get_sub_dsp_from_workflow/sub_dsp1.dot
 
         Get sub-dispatcher from a workflow output `c`::
 
@@ -924,12 +887,13 @@ class Dispatcher(object):
 
         .. testsetup::
             >>> sub_dsp.name = 'Sub-Dispatcher (reverse workflow)'
-            >>> dot = dsp2dot(sub_dsp, graph_attr={'rankdir': 'LR'})
-            >>> file = 'get_sub_dsp_from_workflow/sub_dsp2.dot'
+            >>> dot = dsp2dot(sub_dsp, graph_attr={'ratio': '1'})
+            >>> file = '__init__/get_sub_dsp_from_workflow/sub_dsp2.dot'
             >>> dot.save(file, dot_dir)
             '...'
 
-        .. graphviz:: /compas/dispatcher/get_sub_dsp_from_workflow/sub_dsp2.dot
+        .. graphviz::
+           /source/compas/dispatcher/__init__/get_sub_dsp_from_workflow/sub_dsp2.dot
         """
 
         # define an empty dispatcher map
@@ -939,7 +903,7 @@ class Dispatcher(object):
             graph = self.workflow
 
         # visited nodes used as queue
-        family = OrderedDict()
+        family = {}
 
         # namespace shortcuts for speed
         nodes, dmap_nodes = (sub_dsp.dmap.node, self.dmap.node)
@@ -977,6 +941,8 @@ class Dispatcher(object):
             def check_node_inputs(c):
                 return False
 
+        queue = deque([])
+
         # function to set node attributes
         def set_node_attr(n):
             # set node attributes
@@ -990,19 +956,22 @@ class Dispatcher(object):
 
             family[n] = neighbors(n)  # append a new parent to the family
 
+            queue.append(n)
+
         # set initial node attributes
         for s in sources:
             if s in dmap_nodes and s in graph.node:
                 set_node_attr(s)
 
         # start breadth-first-search
-        for parent, children in iter(family.items()):
+        while queue:
+            parent = queue.popleft()
 
             # namespace shortcuts for speed
             nbrs, dmap_nbrs = (succ[parent], dmap_succ[parent])
 
             # iterate parent's children
-            for child in children:
+            for child in family[parent]:
 
                 if child == START or check_node_inputs(child):
                     continue
@@ -1041,7 +1010,7 @@ class Dispatcher(object):
         .. testsetup::
             >>> dsp = Dispatcher()
             >>> def average(kwargs):
-            ...     return sum(kwargs.values()) / len(kwargs)
+            ...     return sum(kwargs.values()) / float(len(kwargs))
             >>> data = [
             ...     {'data_id': 'b', 'default_value': 3},
             ...     {'data_id': 'c', 'wait_inputs': True, 'function': average},
@@ -1076,11 +1045,11 @@ class Dispatcher(object):
             ([...], [...])
             >>> from compas.dispatcher.draw import dsp2dot
             >>> from compas.dispatcher import dot_dir
-            >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
-            >>> dot.save('remove_cycles/dsp.dot', dot_dir)
+            >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
+            >>> dot.save('__init__/remove_cycles/dsp.dot', dot_dir)
             '...'
 
-        .. graphviz:: /compas/dispatcher/remove_cycles/dsp.dot
+        .. graphviz:: /source/compas/dispatcher/__init__/remove_cycles/dsp.dot
 
         The dispatch stops on data node `c` due to the unresolved cycle::
 
@@ -1089,27 +1058,27 @@ class Dispatcher(object):
             [('a', 1), ('b', 3)]
 
         .. testsetup::
-            >>> dot = dsp2dot(dsp, True, graph_attr={'rankdir': 'LR'})
-            >>> dot.save('remove_cycles/wf.dot', dot_dir)
+            >>> dot = dsp2dot(dsp, True, graph_attr={'ratio': '1'})
+            >>> dot.save('__init__/remove_cycles/wf.dot', dot_dir)
             '...'
 
-        .. graphviz:: /compas/dispatcher/remove_cycles/wf.dot
+        .. graphviz:: /source/compas/dispatcher/__init__/remove_cycles/wf.dot
 
         Removing the unresolved cycle the dispatch continues to all nodes::
 
-            >>> dsp_rm_cycles = dsp.remove_cycles(['a', 'b'])
-            >>> res = dsp_rm_cycles.dispatch(inputs={'a': 1})[1]
+            >>> dsp_rm_cy = dsp.remove_cycles(['a', 'b'])
+            >>> res = dsp_rm_cy.dispatch(inputs={'a': 1})[1]
             >>> sorted(res.items())
             [('a', 1), ('b', 3), ('c', 3.0), ('d', 1)]
 
         .. testsetup::
-            >>> dsp_rm_cycles.name = 'Dispatcher without unresolved cycles'
-            >>> dot = dsp2dot(dsp_rm_cycles, True, graph_attr={'rankdir': 'LR'})
-            >>> file = 'remove_cycles/wf_rm_cycles.dot'
+            >>> dsp_rm_cy.name = 'Dispatcher without unresolved cycles'
+            >>> dot = dsp2dot(dsp_rm_cy, True, graph_attr={'ratio': '1'})
+            >>> file = '__init__/remove_cycles/wf_rm_cycles.dot'
             >>> dot.save(file, dot_dir)
             '...'
 
-        .. graphviz:: /compas/dispatcher/remove_cycles/wf_rm_cycles.dot
+        .. graphviz:: /source/compas/dispatcher/__init__/remove_cycles/wf_rm_cycles.dot
         """
 
         # Reachable nodes from sources
@@ -1164,10 +1133,13 @@ class Dispatcher(object):
             If True the dispatcher is shrink before the dispatch.
         :type shrink: bool, optional
 
-        :return:
+        :returns:
+
             - workflow: A directed graph with data node estimations.
             - data_output: Dictionary of estimated data node outputs.
-        :rtype: (DiGraph, dict)
+        :rtype: (DiGraph, AttrDict)
+
+        .. seealso:: :func:`shrink_dsp`
 
         \***********************************************************************
 
@@ -1197,11 +1169,11 @@ class Dispatcher(object):
             'min'
             >>> from compas.dispatcher.draw import dsp2dot
             >>> from compas.dispatcher import dot_dir
-            >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
-            >>> dot.save('dispatch/dsp.dot', dot_dir)
+            >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
+            >>> dot.save('__init__/dispatch/dsp.dot', dot_dir)
             '...'
 
-        .. graphviz:: /compas/dispatcher/dispatch/dsp.dot
+        .. graphviz:: /source/compas/dispatcher/__init__/dispatch/dsp.dot
 
         Dispatch without inputs. The default values are used as inputs::
 
@@ -1211,11 +1183,11 @@ class Dispatcher(object):
             [('a', 0), ('b', 5), ('c', 0), ('d', 1), ('e', 0.0)]
 
         .. testsetup::
-            >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
-            >>> dot.save('dispatch/wf1.dot', dot_dir)
+            >>> dot = dsp2dot(dsp, True, graph_attr={'ratio': '1'})
+            >>> dot.save('__init__/dispatch/wf1.dot', dot_dir)
             '...'
 
-        .. graphviz:: /compas/dispatcher/dispatch/wf1.dot
+        .. graphviz:: /source/compas/dispatcher/__init__/dispatch/wf1.dot
 
         Dispatch until data node `c` is estimated::
 
@@ -1225,11 +1197,11 @@ class Dispatcher(object):
              [('a', 0), ('b', 5), ('c', 0), ('d', 1)]
 
         .. testsetup::
-            >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
-            >>> dot.save('dispatch/wf2.dot', dot_dir)
+            >>> dot = dsp2dot(dsp, True, graph_attr={'ratio': '1'})
+            >>> dot.save('__init__/dispatch/wf2.dot', dot_dir)
             '...'
 
-        .. graphviz:: /compas/dispatcher/dispatch/wf2.dot
+        .. graphviz:: /source/compas/dispatcher/__init__/dispatch/wf2.dot
 
         Dispatch with one inputs. The default value of `a` is not used as
         inputs::
@@ -1240,11 +1212,11 @@ class Dispatcher(object):
              [('a', 3), ('b', 5), ('c', 3), ('d', 1)]
 
         .. testsetup::
-            >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'rankdir': 'LR'})
-            >>> dot.save('dispatch/wf3.dot', dot_dir)
+            >>> dot = dsp2dot(dsp, True, graph_attr={'ratio': '1'})
+            >>> dot.save('__init__/dispatch/wf3.dot', dot_dir)
             '...'
 
-        .. graphviz:: /compas/dispatcher/dispatch/wf3.dot
+        .. graphviz:: /source/compas/dispatcher/__init__/dispatch/wf3.dot
         """
 
         # pre shrink
@@ -1289,6 +1261,8 @@ class Dispatcher(object):
             A sub-dispatcher.
         :rtype: Dispatcher
 
+        .. seealso:: :func:`dispatch`
+
         \***********************************************************************
 
         **Example**:
@@ -1331,11 +1305,11 @@ class Dispatcher(object):
             ([], [...])
             >>> from compas.dispatcher.draw import dsp2dot
             >>> from compas.dispatcher import dot_dir
-            >>> dot = dsp2dot(dsp, graph_attr={'rankdir': 'LR'})
-            >>> dot.save('shrink_dsp/dsp.dot', dot_dir)
+            >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
+            >>> dot.save('__init__/shrink_dsp/dsp.dot', dot_dir)
             '...'
 
-        .. graphviz:: /compas/dispatcher/shrink_dsp/dsp.dot
+        .. graphviz:: /source/compas/dispatcher/__init__/shrink_dsp/dsp.dot
 
         Get the sub-dispatcher induced by dispatching with no calls from inputs
         `a`, `b`, and `c` to outputs `c`, `e`, and `f`::
@@ -1345,11 +1319,11 @@ class Dispatcher(object):
 
         .. testsetup::
             >>> shrink_dsp.name = 'Sub-Dispatcher'
-            >>> dot = dsp2dot(shrink_dsp, graph_attr={'rankdir': 'LR'})
-            >>> dot.save('shrink_dsp/shrink_dsp.dot', dot_dir)
+            >>> dot = dsp2dot(shrink_dsp, graph_attr={'ratio': '1'})
+            >>> dot.save('__init__/shrink_dsp/shrink_dsp.dot', dot_dir)
             '...'
 
-        .. graphviz:: /compas/dispatcher/shrink_dsp/shrink_dsp.dot
+        .. graphviz:: /source/compas/dispatcher/__init__/shrink_dsp/shrink_dsp.dot
         """
 
         bfs_graph = self.dmap
@@ -1372,7 +1346,7 @@ class Dispatcher(object):
 
                 edges.update(wf.edges())
 
-                n_d = (wf.node.keys() - self._visited)
+                n_d = (set(wf.node.keys()) - self._visited)
 
                 if not n_d:
                     break
@@ -1422,6 +1396,7 @@ class Dispatcher(object):
                     True if all targets have been visited, otherwise False
                 :rtype: bool
                 """
+
                 try:
                     targets.remove(node_id)  # remove visited node
                     return not targets  # if no targets terminate the algorithm
@@ -1504,7 +1479,8 @@ class Dispatcher(object):
             Data node's id.
         :type node_id: any hashable Python object except None
 
-        :return:
+        :returns:
+
             - node estimations with minimum distance from the starting node, and
             - `wait_inputs` flag
         :rtype: (dict, bool)
@@ -1557,7 +1533,7 @@ class Dispatcher(object):
             # namespace shortcut
             we = self._wait_in.get
 
-            def check_wait_input_flag(wait_in, node_id):
+            def check_wait_input_flag(wait_in, n_id):
                 """
                 Stops the search of the investigated node of the ArciDispatch
                 algorithm, until all inputs are satisfied.
@@ -1566,9 +1542,9 @@ class Dispatcher(object):
                     If True the node is waiting input estimations.
                 :type wait_in: bool
 
-                :param node_id:
+                :param n_id:
                     Data or function node id.
-                :type node_id: any hashable Python object except None
+                :type n_id: any hashable Python object except None
 
                 :return:
                     True if all node inputs are satisfied, otherwise False
@@ -1576,12 +1552,12 @@ class Dispatcher(object):
                 """
 
                 # return true if the node inputs are satisfied
-                return we(node_id, wait_in) and (pred[node_id].keys() - visited)
+                return we(n_id, wait_in) and (set(pred[n_id].keys()) - visited)
 
         else:
-            def check_wait_input_flag(wait_in, node_id):
+            def check_wait_input_flag(wait_in, n_id):
                 # return true if the node inputs are satisfied
-                return wait_in and (pred[node_id].keys() - visited)
+                return wait_in and (set(pred[n_id].keys()) - visited)
 
         return check_wait_input_flag
 
@@ -1616,9 +1592,11 @@ class Dispatcher(object):
     def _set_wait_in(self):
         """
         Set `wait_inputs` flags for data nodes that:
+
             - are estimated from functions with a domain function, and
             - are waiting inputs.
         """
+
         # clear wait_in
         self._wait_in = {}
 
@@ -1686,14 +1664,15 @@ class Dispatcher(object):
             If input_values = {'a': 'value'} then 'value' == input_value('a')
         :type input_value: function
 
-        :return:
+        :returns:
+
             - fringe: Nodes not visited, but seen.
             - seen: Distance to seen nodes.
         """
 
         # clear previous outputs
         self.workflow = DiGraph()
-        self.data_output = {}  # estimated data node output
+        self.data_output = AttrDict()  # estimated data node output
         self._visited = set()
         self._wf_add_edge = add_edge_fun(self.workflow)
         self._wf_pred = self.workflow.pred
@@ -1783,7 +1762,7 @@ class Dispatcher(object):
             If True data node estimation function is not used.
         :type no_call: bool
 
-        :return status:
+        :return:
             If the output have been evaluated correctly.
         :rtype: bool
         """
@@ -1814,7 +1793,7 @@ class Dispatcher(object):
             If True data node estimations are not used.
         :type no_call: bool
 
-        :return status:
+        :return:
             If the output have been evaluated correctly.
         :rtype: bool
         """
@@ -1909,7 +1888,7 @@ class Dispatcher(object):
             If True data node estimation function is not used.
         :type no_call: bool
 
-        :return status:
+        :return:
             If the output have been evaluated correctly.
         :rtype: bool
         """
@@ -2001,6 +1980,7 @@ class Dispatcher(object):
 
         :return:
             Inputs for _run:
+
                 - fringe: Nodes not visited, but seen.
                 - seen: Distance to seen nodes.
                 - no_call.
@@ -2048,10 +2028,11 @@ class Dispatcher(object):
             If True data node estimation function is not used.
         :type no_call: bool, optional
 
-        :return:
+        :returns:
+
             - workflow: A directed graph with data node estimations.
             - data_output: Dictionary of estimated data node outputs.
-        :rtype: (DiGraph, dict)
+        :rtype: (DiGraph, AttrDict)
         """
 
         # namespace shortcuts for speed

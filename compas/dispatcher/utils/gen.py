@@ -6,14 +6,59 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
+"""
+It contains classes and functions of general utility.
+
+These are python-specific utilities and hacks - general data-processing or
+numerical operations.
+"""
+
 __author__ = 'Vincenzo Arcidiacono'
 
 import inspect
-from itertools import tee
+from itertools import tee, count
 from heapq import heappop
 
-__all__ = ['Token', 'pairwise', 'heap_flush', 'rename_function', 'AttrDict',
+try:
+    isidentifier = str.isidentifier
+except AttributeError:
+    import re
+
+    isidentifier = re.compile(r'[a-z_]\w*$', re.I).match
+
+__all__ = ['counter', 'Token', 'pairwise', 'heap_flush', 'AttrDict',
            'caller_name']
+
+if '__next__' in count.__dict__:
+    def counter(start=0, step=1):
+        """
+        Return a object whose .__call__() method returns consecutive values.
+
+        :param start:
+            Start value.
+        :type start: int, float, optional
+
+        :param step:
+            Step value.
+        :type step: int, float, optional
+        """
+
+        return count(start, step).__next__
+else:
+    def counter(start=0, step=1):
+        """
+        Return a object whose .__call__() method returns consecutive values.
+
+        :param start:
+            Start value.
+        :type start: int, float, optional
+
+        :param step:
+            Step value.
+        :type step: int, float, optional
+        """
+
+        return count(start, step).next
 
 
 class Token(str):
@@ -29,8 +74,8 @@ class Token(str):
         False
         >>> s == Token('string')
         False
-        >>> {s: 1, Token('string'): 3}
-        {string: 1, string: 3}
+        >>> {s: 1, Token('string'): 1}
+        {string: 1, string: 1}
         >>> s.capitalize()
         'String'
     """
@@ -104,49 +149,19 @@ def heap_flush(heap):
     return ordered_list
 
 
-def rename_function(new_name, module_name=None):
-    """
-    Decorator to rename a function.
-
-    :param new_name:
-        New name of the function.
-    :type new_name: str
-
-    :return:
-        Renamed function.
-    :rtype: function
-
-    Example::
-
-        >>> @rename_function('new name')
-        ... def f():
-        ...     pass
-        >>> f.__name__
-        'new name'
-    """
-    if module_name is not None:
-        def decorator(f):
-            f.__name__ = new_name
-            f.__module__ = module_name
-            return f
-    else:
-        def decorator(f):
-            f.__name__ = new_name
-            return f
-
-    return decorator
-
-
 def _isidentifier(*args):
     attr = set()
 
     for a in args:
         attr.update(a)
 
-    def isidentifier(self, key):
-        return isinstance(key, str) and key.isidentifier() and key not in attr
+    def my_isidentifier(self, key):
+        try:
+            return isidentifier(key) and key not in attr
+        except TypeError:
+            return False
 
-    return isidentifier
+    return my_isidentifier
 
 
 class _Attr(str):
@@ -169,6 +184,7 @@ class AttrDict(dict):
         - `attribute.__call__()` returns `value`
 
     Example::
+
         >>> o = object()
         >>> d = AttrDict({'a': {'b': 3}, 'pop': 4, o: 5})
         >>> d.a
@@ -224,18 +240,19 @@ class AttrDict(dict):
 
 
 def caller_name(skip=2):
-    """Get a name of a caller in the format module.class.method
+    """
+    Get a name of a caller in the format module.class.method
 
-       `skip` specifies how many levels of stack to skip while getting caller
-       name. skip=1 means "who calls me", skip=2 "who calls my caller" etc.
+    `skip` specifies how many levels of stack to skip while getting caller
+    name. skip=1 means "who calls me", skip=2 "who calls my caller" etc.
 
-       An empty string is returned if skipped levels exceed stack height
+    An empty string is returned if skipped levels exceed stack height
     """
 
     stack = inspect.stack()
     start = 0 + skip
     if len(stack) < start + 1:
-      return ''
+        return ''
     parentframe = stack[start][0]
 
     name = []
@@ -248,10 +265,10 @@ def caller_name(skip=2):
     if 'self' in parentframe.f_locals:
         # I don't know any way to detect call from the object method
         # XXX: there seems to be no way to detect static method call - it will
-        #      be just a function call
+        # be just a function call
         name.append(parentframe.f_locals['self'].__class__.__name__)
     codename = parentframe.f_code.co_name
     if codename != '<module>':  # top level usually
-        name.append( codename ) # function or a method
+        name.append(codename)  # function or a method
     del parentframe
     return ".".join(name)

@@ -15,4 +15,4 @@ __author__ = 'Vincenzo Arcidiacono'
 
 import os
 prj_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
-dot_dir = os.path.join(prj_dir, 'doc/compas/models/')
+dot_dir = os.path.join(prj_dir, 'doc/source/compas/models/')

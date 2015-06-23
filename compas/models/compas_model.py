@@ -19,8 +19,8 @@ from compas.models.AT_gear_model import *
 from compas.models.read_model import *
 from compas.functions.write_outputs import write_output
 from compas.dispatcher import Dispatcher
-from compas.dispatcher.dispatcher_utils import SubDispatch, \
-    def_replicate_value, def_selector
+from compas.dispatcher.utils.dsp import SubDispatch, def_replicate_value, \
+    def_selector
 
 
 def def_compas_model():
@@ -41,7 +41,7 @@ def def_compas_model():
         >>> dot.save('compas_model/dsp.dot', dot_dir)
         '...'
 
-    .. graphviz:: /compas/models/compas_model/dsp.dot
+    .. graphviz:: /source/compas/models/compas_model/dsp.dot
 
     Follow the input/output parameters of the `jrcgear_model` dispatcher:
 
