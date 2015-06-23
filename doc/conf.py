@@ -16,16 +16,17 @@
 import sys
 import os
 import shlex
-
+from os.path import abspath, join, dirname
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-prj_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+prj_dir = abspath(join(dirname(__file__), '..'))
 
 sys.path.insert(0, prj_dir)
+sys.path.append(abspath(join(dirname(__file__), '_ext')))
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -44,15 +45,15 @@ extensions = [
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
     'sphinx.ext.graphviz',
+    'autosummary',
 ]
-if on_rtd:
-    extensions.append('sphinx.ext.autosummary')
-else:
-    extensions.append('doc.sphinxext.autosummary')
-    autosummary_generate = True
 
+autosummary_generate = True
+
+doctest_test_doctest_blocks = True
 
 autodoc_member_order = 'bysource'
+
 graphviz_output_format = 'svg'
 
 # Add any paths that contain templates here, relative to this directory.
@@ -132,15 +133,16 @@ todo_include_todos = True
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'sphinx_rtd_theme'
+if not on_rtd:
+    import sphinx_rtd_theme
+    html_theme = 'sphinx_rtd_theme'
+    # Add any paths that contain custom themes here, relative to this directory.
+    html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #html_theme_options = {}
-
-# Add any paths that contain custom themes here, relative to this directory.
-#html_theme_path = []
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
@@ -326,5 +328,4 @@ texinfo_documents = [
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {'https://docs.python.org/': None}
-
 
