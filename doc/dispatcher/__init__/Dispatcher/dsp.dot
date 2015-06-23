@@ -1,0 +1,17 @@
+digraph Dispatcher {
+	graph [ratio=1]
+	node [style=filled]
+	label = "Dispatcher"
+	splines = ortho
+		"Dispatcher_-4631276279473250640" [label="{ c  }" fillcolor=cyan shape=Mrecord]
+		"Dispatcher_-1993691204919979312" [label="{ b | default = 1 }" fillcolor=cyan shape=Mrecord]
+		"Dispatcher_-8790407019608196459" [label="{ a  }" fillcolor=cyan shape=Mrecord]
+		Dispatcher_6256378578364475497 [label="{ diff_function  }" fillcolor=springgreen shape=record]
+		Dispatcher_3534455284199633161 [label="{ log | input_domain = log_domain }" fillcolor=springgreen shape=record]
+		"Dispatcher_-3502547296849737717" [label="{ d | wait_inputs = True | default = 4 | function = average_fun | callback = callback_fun }" fillcolor=cyan shape=Mrecord]
+			"Dispatcher_-4631276279473250640" -> Dispatcher_3534455284199633161
+			"Dispatcher_-1993691204919979312" -> Dispatcher_6256378578364475497
+			"Dispatcher_-8790407019608196459" -> Dispatcher_6256378578364475497
+			Dispatcher_6256378578364475497 -> "Dispatcher_-4631276279473250640"
+			Dispatcher_3534455284199633161 -> "Dispatcher_-3502547296849737717"
+}
