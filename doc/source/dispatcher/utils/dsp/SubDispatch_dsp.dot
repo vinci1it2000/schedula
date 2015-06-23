@@ -1,0 +1,24 @@
+digraph Dispatcher {
+	graph [ratio=1]
+	node [style=filled]
+	label = "Dispatcher"
+	splines = ortho
+		"Dispatcher_-5174759717128200752" [label="{ e  }" fillcolor=cyan shape=Mrecord]
+		subgraph "cluster_Dispatcher_-5934194362207933406" {
+		style=filled
+		fillcolor="#FF8F0F80"
+		label="Sub-dispatch"
+		comment="Sub-dispatch"
+			"cluster_Dispatcher_-5934194362207933406_7452516812483748984" [label="{ c  }" fillcolor=cyan shape=Mrecord]
+			"cluster_Dispatcher_-5934194362207933406_5482972350223217843" [label="{ fun  }" fillcolor=springgreen shape=record]
+			"cluster_Dispatcher_-5934194362207933406_-8073797913379046683" [label="{ a  }" fillcolor=cyan shape=Mrecord]
+			"cluster_Dispatcher_-5934194362207933406_1087140788564521341" [label="{ b  }" fillcolor=cyan shape=Mrecord]
+				"cluster_Dispatcher_-5934194362207933406_5482972350223217843" -> "cluster_Dispatcher_-5934194362207933406_7452516812483748984"
+				"cluster_Dispatcher_-5934194362207933406_5482972350223217843" -> "cluster_Dispatcher_-5934194362207933406_1087140788564521341"
+				"cluster_Dispatcher_-5934194362207933406_-8073797913379046683" -> "cluster_Dispatcher_-5934194362207933406_5482972350223217843"
+		}
+		"Dispatcher_-5934194362207933406" [label="{ Sub-dispatch  }" fillcolor="#FF8F0F80" shape=record]
+		"Dispatcher_-2327272690753316518" [label="{ d  }" fillcolor=cyan shape=Mrecord]
+			"Dispatcher_-5934194362207933406" -> "Dispatcher_-5174759717128200752"
+			"Dispatcher_-2327272690753316518" -> "Dispatcher_-5934194362207933406"
+}

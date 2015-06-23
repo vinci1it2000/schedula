@@ -1,0 +1,21 @@
+digraph "Dispatcher without unresolved cycles" {
+	graph [ratio=1]
+	node [style=filled]
+	label = "Dispatcher without unresolved cycles workflow"
+	splines = ortho
+		"Dispatcher without unresolved cycles_4371398848" [label=start fillcolor=red shape=egg]
+		"Dispatcher without unresolved cycles_6202726865601163108" [label="{ min1 | distance = 3 }" fillcolor=springgreen shape=record]
+		"Dispatcher without unresolved cycles_-8073797913379046683" [label="{ a | distance = 0 | output = 1 }" fillcolor=cyan shape=Mrecord]
+		"Dispatcher without unresolved cycles_7452516812483748984" [label="{ c | distance = 2 | output = 3.0 }" fillcolor=cyan shape=Mrecord]
+		"Dispatcher without unresolved cycles_-2327272690753316518" [label="{ d | distance = 4 | output = 1 }" fillcolor=cyan shape=Mrecord]
+		"Dispatcher without unresolved cycles_1087140788564521341" [label="{ b | distance = 0 | output = 3 }" fillcolor=cyan shape=Mrecord]
+		"Dispatcher without unresolved cycles_-1814365777058668658" [label="{ max1 | distance = 1 }" fillcolor=springgreen shape=record]
+			"Dispatcher without unresolved cycles_4371398848" -> "Dispatcher without unresolved cycles_1087140788564521341" [xlabel=3]
+			"Dispatcher without unresolved cycles_4371398848" -> "Dispatcher without unresolved cycles_-8073797913379046683" [xlabel=1]
+			"Dispatcher without unresolved cycles_6202726865601163108" -> "Dispatcher without unresolved cycles_-2327272690753316518" [xlabel=1]
+			"Dispatcher without unresolved cycles_-8073797913379046683" -> "Dispatcher without unresolved cycles_6202726865601163108" [xlabel=1]
+			"Dispatcher without unresolved cycles_-8073797913379046683" -> "Dispatcher without unresolved cycles_-1814365777058668658" [xlabel=1]
+			"Dispatcher without unresolved cycles_7452516812483748984" -> "Dispatcher without unresolved cycles_6202726865601163108" [xlabel=3.0]
+			"Dispatcher without unresolved cycles_1087140788564521341" -> "Dispatcher without unresolved cycles_-1814365777058668658" [xlabel=3]
+			"Dispatcher without unresolved cycles_-1814365777058668658" -> "Dispatcher without unresolved cycles_7452516812483748984" [xlabel=3]
+}

@@ -1,0 +1,28 @@
+digraph Dispatcher {
+	graph [ratio=1]
+	node [style=filled]
+	label = "Dispatcher workflow"
+	splines = ortho
+		Dispatcher_4371398848 [label=start fillcolor=red shape=egg]
+		"Dispatcher_-5174759717128200752" [label="{ e | distance = 2 | output = \{&quot;c&quot;: 2, &quot;a&quot;: 3, &quot;b&quot;: 4\} }" fillcolor=cyan shape=Mrecord]
+		"Dispatcher_-2327272690753316518" [label="{ d | distance = 0 | output = \{&quot;a&quot;: 3\} }" fillcolor=cyan shape=Mrecord]
+		subgraph "cluster_Dispatcher_-5934194362207933406" {
+		style=filled
+		fillcolor="#FF8F0F80"
+		label="Sub-dispatch workflow"
+		comment="Sub-dispatch"
+			"cluster_Dispatcher_-5934194362207933406_4371398848" [label=start fillcolor=red shape=egg]
+			"cluster_Dispatcher_-5934194362207933406_7452516812483748984" [label="{ c | distance = 2 | output = 2 }" fillcolor=cyan shape=Mrecord]
+			"cluster_Dispatcher_-5934194362207933406_5482972350223217843" [label="{ fun | distance = 1 }" fillcolor=springgreen shape=record]
+			"cluster_Dispatcher_-5934194362207933406_-8073797913379046683" [label="{ a | output = 3 }" fillcolor=cyan shape=Mrecord]
+			"cluster_Dispatcher_-5934194362207933406_1087140788564521341" [label="{ b | distance = 2 | output = 4 }" fillcolor=cyan shape=Mrecord]
+				"cluster_Dispatcher_-5934194362207933406_4371398848" -> "cluster_Dispatcher_-5934194362207933406_-8073797913379046683" [xlabel=3]
+				"cluster_Dispatcher_-5934194362207933406_5482972350223217843" -> "cluster_Dispatcher_-5934194362207933406_7452516812483748984" [xlabel=2]
+				"cluster_Dispatcher_-5934194362207933406_5482972350223217843" -> "cluster_Dispatcher_-5934194362207933406_1087140788564521341" [xlabel=4]
+				"cluster_Dispatcher_-5934194362207933406_-8073797913379046683" -> "cluster_Dispatcher_-5934194362207933406_5482972350223217843" [xlabel=3]
+		}
+		"Dispatcher_-5934194362207933406" [label="{ Sub-dispatch | distance = 1 }" fillcolor="#FF8F0F80" shape=record]
+			Dispatcher_4371398848 -> "Dispatcher_-2327272690753316518" [xlabel="\{&quot;a&quot;: 3\}"]
+			"Dispatcher_-2327272690753316518" -> "Dispatcher_-5934194362207933406" [xlabel="\{&quot;a&quot;: 3\}"]
+			"Dispatcher_-5934194362207933406" -> "Dispatcher_-5174759717128200752" [xlabel="\{&quot;c&quot;: 2, &quot;a&quot;: 3, &quot;b&quot;: 4\}"]
+}

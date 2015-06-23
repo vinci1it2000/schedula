@@ -1,0 +1,18 @@
+digraph Dispatcher {
+	graph [ratio=1]
+	node [style=filled]
+	label = "Dispatcher workflow"
+	splines = ortho
+		Dispatcher_4371398848 [label=start fillcolor=red shape=egg]
+		"Dispatcher_-8073797913379046683" [label="{ a | distance = 0 | output = 0 }" fillcolor=cyan shape=Mrecord]
+		Dispatcher_7452516812483748984 [label="{ c | distance = 2 | output = 0 }" fillcolor=cyan shape=Mrecord]
+		"Dispatcher_-2327272690753316518" [label="{ d | distance = 0 | output = 1 }" fillcolor=cyan shape=Mrecord]
+		Dispatcher_1087140788564521341 [label="{ b | distance = 0 | output = 5 }" fillcolor=cyan shape=Mrecord]
+		Dispatcher_8480355317385282846 [label="{ min | distance = 1 }" fillcolor=springgreen shape=record]
+			Dispatcher_4371398848 -> "Dispatcher_-2327272690753316518" [xlabel=1]
+			Dispatcher_4371398848 -> "Dispatcher_-8073797913379046683" [xlabel=0]
+			Dispatcher_4371398848 -> Dispatcher_1087140788564521341 [xlabel=5]
+			"Dispatcher_-8073797913379046683" -> Dispatcher_8480355317385282846 [xlabel=0]
+			Dispatcher_1087140788564521341 -> Dispatcher_8480355317385282846 [xlabel=5]
+			Dispatcher_8480355317385282846 -> Dispatcher_7452516812483748984 [xlabel=0]
+}
