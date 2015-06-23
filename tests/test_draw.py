@@ -28,8 +28,7 @@ class TestDoctest(unittest.TestCase):
         self.assertEqual(failure_count, 0, (failure_count, test_count))
 
 class TestDispatcherDraw(unittest.TestCase):
-
-    def test_plot_dsp_dot(self):
+    def setUp(self):
         ss_dsp = Dispatcher()
 
         def fun(a):
@@ -49,5 +48,19 @@ class TestDispatcherDraw(unittest.TestCase):
         dsp.add_function('dispatch', dispatch, ['input'], [SINK, 'h', 'i'])
 
         dsp.dispatch()
-        self.assertIsInstance(dsp2dot(dsp), Digraph)
-        self.assertIsInstance(dsp2dot(dsp, workflow=True), Digraph)
+        self.dsp = dsp
+
+    def test_plot_dsp_dot(self):
+        dsp = self.dsp
+
+        d = dsp2dot(dsp)
+        self.assertIsInstance(d, Digraph)
+
+        w = dsp2dot(dsp, workflow=True)
+        self.assertIsInstance(w, Digraph)
+
+        l = dsp2dot(dsp, level=1)
+        self.assertIsInstance(l, Digraph)
+
+        f = dsp2dot(dsp, function_module=False)
+        self.assertIsInstance(f, Digraph)

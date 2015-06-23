@@ -33,7 +33,9 @@ if platform.python_implementation() != "PyPy":
             def f(a):
                 return a + 1
 
-            self.fun_id = dsp.add_function(function=f, inputs=['a'], outputs=['b'])
+            self.fun_id = dsp.add_function(
+                function=f, inputs=['a'], outputs=['b']
+            )
 
             self.dsp = dsp
 

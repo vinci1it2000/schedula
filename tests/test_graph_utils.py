@@ -24,12 +24,25 @@ class TestDoctest(unittest.TestCase):
 
 
 class TestGraphAlgorithms(unittest.TestCase):
-    def test_scc_fun(self):
+    def setUp(self):
         graph = DiGraph()
         graph.add_cycle([1, 2, 3, 4])
         graph.add_cycle([5, 6, 7, 8])
         graph.add_node(0)
-        graph.add_edge(10, 9)
+        graph.add_edge(9, 10)
+        self.graph_1 = graph
+
+        graph = DiGraph()
+        graph.add_cycle([1, 2, 3, 4])
+        graph.add_cycle([5, 6, 7, 8])
+        graph.add_node(0)
+        graph.add_edge(9, 10)
+        graph.add_edge(3, 9)
+        graph.add_edge(10, 7)
+        self.graph_2 = graph
+
+    def test_scc_fun(self):
+        graph = self.graph_1
 
         res = [[1, 2, 3, 4], [9], [10]]
         self.assertEqual(sorted(list(scc_fun(graph, [1, 10]))), res)
@@ -41,17 +54,10 @@ class TestGraphAlgorithms(unittest.TestCase):
         self.assertEqual(sorted(list(scc_fun(graph, [1]))), res)
 
     def test_dijkstra(self):
-        graph = DiGraph()
-        graph.add_cycle([1, 2, 3, 4])
-        graph.add_cycle([5, 6, 7, 8])
-        graph.add_node(0)
-        graph.add_edge(9, 10)
-        graph.add_edge(3, 9)
-        graph.add_edge(10, 7)
+        graph = self.graph_2
 
         dist, paths = dijkstra(graph, 1)
-        res = {1: 0, 2: 1, 3: 2, 4: 3, 5: 7,
-               6: 8, 7: 5, 8: 6, 9: 3, 10: 4}
+        res = {1: 0, 2: 1, 3: 2, 4: 3, 5: 7, 6: 8, 7: 5, 8: 6, 9: 3, 10: 4}
         self.assertEqual(dist, res)
         res = {1: [1],
                2: [1, 2],
