@@ -3,38 +3,39 @@ digraph Dispatcher {
 	node [style=filled]
 	splines = ortho
 	label = "Dispatcher"
-		Dispatcher_8881531434403260099 [label="{ input | default = \{&quot;a&quot;: \{&quot;a&quot;: 3\}\} }" fillcolor=cyan shape=Mrecord]
-		Dispatcher_8757498191479327245 [label="{ e  }" fillcolor=cyan shape=Mrecord]
-		Dispatcher_8292886482098159717 [label="{ d  }" fillcolor=cyan shape=Mrecord]
-		subgraph "cluster_Dispatcher_-9016643627422849785" {
+		"Dispatcher_-7463268218442358016" [label="{ e  }" fillcolor=cyan shape=Mrecord]
+		subgraph cluster_Dispatcher_8831915344634789529 {
 		style=filled
 		fillcolor="#FF8F0F80"
 		label="dispatch"
 		comment="dispatch"
-			"cluster_Dispatcher_-9016643627422849785_-8069443800989944208" [label="{ c  }" fillcolor=cyan shape=Mrecord]
-			subgraph "cluster_cluster_Dispatcher_-9016643627422849785_3327975050261345057" {
+			"cluster_Dispatcher_8831915344634789529_-7122603177858460539" [label="{ c  }" fillcolor=cyan shape=Mrecord]
+			cluster_Dispatcher_8831915344634789529_5198365931108737741 [label="{ b  }" fillcolor=cyan shape=Mrecord]
+			"cluster_Dispatcher_8831915344634789529_-8678671152349271859" [label="{ a  }" fillcolor=cyan shape=Mrecord]
+			subgraph "cluster_cluster_Dispatcher_8831915344634789529_-7492051643469341537" {
 			style=filled
 			fillcolor="#FF8F0F80"
 			label="sub_dispatch"
 			comment="sub_dispatch"
-				"cluster_cluster_Dispatcher_-9016643627422849785_3327975050261345057_-8069443800989944208" [label="{ c  }" fillcolor=cyan shape=Mrecord]
-				"cluster_cluster_Dispatcher_-9016643627422849785_3327975050261345057_-4868960230063457645" [label="{ b  }" fillcolor=cyan shape=Mrecord]
-				"cluster_cluster_Dispatcher_-9016643627422849785_3327975050261345057_-6154672520566587020" [label="{ a  }" fillcolor=cyan shape=Mrecord]
-				"cluster_cluster_Dispatcher_-9016643627422849785_3327975050261345057_5723371101454013599" [label="{ fun  }" fillcolor=springgreen shape=record]
-					"cluster_cluster_Dispatcher_-9016643627422849785_3327975050261345057_-6154672520566587020" -> "cluster_cluster_Dispatcher_-9016643627422849785_3327975050261345057_5723371101454013599"
-					"cluster_cluster_Dispatcher_-9016643627422849785_3327975050261345057_5723371101454013599" -> "cluster_cluster_Dispatcher_-9016643627422849785_3327975050261345057_-8069443800989944208"
-					"cluster_cluster_Dispatcher_-9016643627422849785_3327975050261345057_5723371101454013599" -> "cluster_cluster_Dispatcher_-9016643627422849785_3327975050261345057_-4868960230063457645"
+				"cluster_cluster_Dispatcher_8831915344634789529_-7492051643469341537_-7122603177858460539" [label="{ c  }" fillcolor=cyan shape=Mrecord]
+				"cluster_cluster_Dispatcher_8831915344634789529_-7492051643469341537_-878348487762420980" [label="{ fun  }" fillcolor=springgreen shape=record]
+				"cluster_cluster_Dispatcher_8831915344634789529_-7492051643469341537_-8678671152349271859" [label="{ a  }" fillcolor=cyan shape=Mrecord]
+				"cluster_cluster_Dispatcher_8831915344634789529_-7492051643469341537_5198365931108737741" [label="{ b  }" fillcolor=cyan shape=Mrecord]
+					"cluster_cluster_Dispatcher_8831915344634789529_-7492051643469341537_-878348487762420980" -> "cluster_cluster_Dispatcher_8831915344634789529_-7492051643469341537_5198365931108737741"
+					"cluster_cluster_Dispatcher_8831915344634789529_-7492051643469341537_-878348487762420980" -> "cluster_cluster_Dispatcher_8831915344634789529_-7492051643469341537_-7122603177858460539"
+					"cluster_cluster_Dispatcher_8831915344634789529_-7492051643469341537_-8678671152349271859" -> "cluster_cluster_Dispatcher_8831915344634789529_-7492051643469341537_-878348487762420980"
 			}
-			"cluster_Dispatcher_-9016643627422849785_3327975050261345057" [label="{ sub_dispatch  }" fillcolor="#FF8F0F80" shape=record]
-			"cluster_Dispatcher_-9016643627422849785_-4868960230063457645" [label="{ b  }" fillcolor=cyan shape=Mrecord]
-			"cluster_Dispatcher_-9016643627422849785_-6154672520566587020" [label="{ a  }" fillcolor=cyan shape=Mrecord]
-				"cluster_Dispatcher_-9016643627422849785_3327975050261345057" -> "cluster_Dispatcher_-9016643627422849785_-8069443800989944208"
-				"cluster_Dispatcher_-9016643627422849785_3327975050261345057" -> "cluster_Dispatcher_-9016643627422849785_-4868960230063457645"
-				"cluster_Dispatcher_-9016643627422849785_-6154672520566587020" -> "cluster_Dispatcher_-9016643627422849785_3327975050261345057"
+			"cluster_Dispatcher_8831915344634789529_-7492051643469341537" [label="{ sub_dispatch  }" fillcolor="#FF8F0F80" shape=record]
+				"cluster_Dispatcher_8831915344634789529_-8678671152349271859" -> "cluster_Dispatcher_8831915344634789529_-7492051643469341537"
+				"cluster_Dispatcher_8831915344634789529_-7492051643469341537" -> cluster_Dispatcher_8831915344634789529_5198365931108737741
+				"cluster_Dispatcher_8831915344634789529_-7492051643469341537" -> "cluster_Dispatcher_8831915344634789529_-7122603177858460539"
 		}
-		"Dispatcher_-9016643627422849785" [label="{ dispatch  }" fillcolor="#FF8F0F80" shape=record]
-			Dispatcher_8881531434403260099 -> "Dispatcher_-9016643627422849785"
-			"Dispatcher_-9016643627422849785" -> Dispatcher_4372648488
-			"Dispatcher_-9016643627422849785" -> Dispatcher_8292886482098159717
-			"Dispatcher_-9016643627422849785" -> Dispatcher_8757498191479327245
+		Dispatcher_8831915344634789529 [label="{ dispatch  }" fillcolor="#FF8F0F80" shape=record]
+		Dispatcher_5332099414230128037 [label="{ input | default = \{&quot;a&quot;: \{&quot;a&quot;: 3\}\} }" fillcolor=cyan shape=Mrecord]
+		"Dispatcher_-5279003028835121650" [label="{ d  }" fillcolor=cyan shape=Mrecord]
+		Dispatcher_4373709352 [label=sink fillcolor=black fontcolor=white shape=egg]
+			Dispatcher_8831915344634789529 -> "Dispatcher_-7463268218442358016"
+			Dispatcher_8831915344634789529 -> Dispatcher_4373709352
+			Dispatcher_8831915344634789529 -> "Dispatcher_-5279003028835121650"
+			Dispatcher_5332099414230128037 -> Dispatcher_8831915344634789529
 }

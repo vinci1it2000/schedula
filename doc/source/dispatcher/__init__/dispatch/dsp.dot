@@ -3,17 +3,17 @@ digraph Dispatcher {
 	node [style=filled]
 	splines = ortho
 	label = "Dispatcher"
-		"Dispatcher_-8069443800989944208" [label="{ c  }" fillcolor=cyan shape=Mrecord]
-		"Dispatcher_-2616412021160338383" [label="{ min  }" fillcolor=springgreen shape=record]
-		"Dispatcher_-4868960230063457645" [label="{ b | default = 5 }" fillcolor=cyan shape=Mrecord]
-		"Dispatcher_-6154672520566587020" [label="{ a | default = 0 }" fillcolor=cyan shape=Mrecord]
-		Dispatcher_8292886482098159717 [label="{ d | default = 1 }" fillcolor=cyan shape=Mrecord]
-		Dispatcher_2516145115022043129 [label="{ my log | input_domain = my_domain }" fillcolor=springgreen shape=record]
-		Dispatcher_8757498191479327245 [label="{ e  }" fillcolor=cyan shape=Mrecord]
-			"Dispatcher_-8069443800989944208" -> Dispatcher_2516145115022043129
-			"Dispatcher_-2616412021160338383" -> "Dispatcher_-8069443800989944208"
-			"Dispatcher_-4868960230063457645" -> "Dispatcher_-2616412021160338383"
-			"Dispatcher_-6154672520566587020" -> "Dispatcher_-2616412021160338383"
-			Dispatcher_8292886482098159717 -> Dispatcher_2516145115022043129
-			Dispatcher_2516145115022043129 -> Dispatcher_8757498191479327245
+		"Dispatcher_-7463268218442358016" [label="{ e  }" fillcolor=cyan shape=Mrecord]
+		Dispatcher_2108795078524061106 [label="{ min  }" fillcolor=springgreen shape=record]
+		"Dispatcher_-7122603177858460539" [label="{ c  }" fillcolor=cyan shape=Mrecord]
+		Dispatcher_4504726463497797545 [label="{ my log | input_domain = my_domain }" fillcolor=springgreen shape=record]
+		"Dispatcher_-8678671152349271859" [label="{ a | default = 0 }" fillcolor=cyan shape=Mrecord]
+		"Dispatcher_-5279003028835121650" [label="{ d | default = 1 }" fillcolor=cyan shape=Mrecord]
+		Dispatcher_5198365931108737741 [label="{ b | default = 5 }" fillcolor=cyan shape=Mrecord]
+			Dispatcher_2108795078524061106 -> "Dispatcher_-7122603177858460539"
+			"Dispatcher_-7122603177858460539" -> Dispatcher_4504726463497797545
+			Dispatcher_4504726463497797545 -> "Dispatcher_-7463268218442358016"
+			"Dispatcher_-8678671152349271859" -> Dispatcher_2108795078524061106
+			"Dispatcher_-5279003028835121650" -> Dispatcher_4504726463497797545
+			Dispatcher_5198365931108737741 -> Dispatcher_2108795078524061106
 }

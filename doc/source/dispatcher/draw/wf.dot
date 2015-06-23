@@ -3,44 +3,45 @@ digraph Dispatcher {
 	node [style=filled]
 	splines = ortho
 	label = "Dispatcher workflow"
-		Dispatcher_4372648248 [label=start fillcolor=red shape=egg]
-		Dispatcher_8881531434403260099 [label="{ input | output = \{&quot;a&quot;: \{&quot;a&quot;: 3\}\} | distance = 0 }" fillcolor=cyan shape=Mrecord]
-		Dispatcher_8292886482098159717 [label="{ d | output = 3 | distance = 2 }" fillcolor=cyan shape=Mrecord]
-		subgraph "cluster_Dispatcher_-9016643627422849785" {
+		Dispatcher_4373709112 [label=start fillcolor=red shape=egg]
+		"Dispatcher_-7463268218442358016" [label="{ e | output = 4 | distance = 2 }" fillcolor=cyan shape=Mrecord]
+		Dispatcher_4373709352 [label=sink fillcolor=black fontcolor=white shape=egg]
+		Dispatcher_5332099414230128037 [label="{ input | output = \{&quot;a&quot;: \{&quot;a&quot;: 3\}\} | distance = 0 }" fillcolor=cyan shape=Mrecord]
+		subgraph cluster_Dispatcher_8831915344634789529 {
 		style=filled
 		fillcolor="#FF8F0F80"
 		label="dispatch workflow"
 		comment="dispatch"
-			"cluster_Dispatcher_-9016643627422849785_4372648248" [label=start fillcolor=red shape=egg]
-			subgraph "cluster_cluster_Dispatcher_-9016643627422849785_3327975050261345057" {
+			cluster_Dispatcher_8831915344634789529_4373709112 [label=start fillcolor=red shape=egg]
+			cluster_Dispatcher_8831915344634789529_5198365931108737741 [label="{ b | output = 3 | distance = 2 }" fillcolor=cyan shape=Mrecord]
+			"cluster_Dispatcher_8831915344634789529_-8678671152349271859" [label="{ a | output = \{&quot;a&quot;: 3\} }" fillcolor=cyan shape=Mrecord]
+			"cluster_Dispatcher_8831915344634789529_-7122603177858460539" [label="{ c | output = 4 | distance = 2 }" fillcolor=cyan shape=Mrecord]
+			subgraph "cluster_cluster_Dispatcher_8831915344634789529_-7492051643469341537" {
 			style=filled
 			fillcolor="#FF8F0F80"
 			label="sub_dispatch workflow"
 			comment="sub_dispatch"
-				"cluster_cluster_Dispatcher_-9016643627422849785_3327975050261345057_4372648248" [label=start fillcolor=red shape=egg]
-				"cluster_cluster_Dispatcher_-9016643627422849785_3327975050261345057_-8069443800989944208" [label="{ c | output = 2 | distance = 2 }" fillcolor=cyan shape=Mrecord]
-				"cluster_cluster_Dispatcher_-9016643627422849785_3327975050261345057_-4868960230063457645" [label="{ b | output = 4 | distance = 2 }" fillcolor=cyan shape=Mrecord]
-				"cluster_cluster_Dispatcher_-9016643627422849785_3327975050261345057_-6154672520566587020" [label="{ a | output = 3 }" fillcolor=cyan shape=Mrecord]
-				"cluster_cluster_Dispatcher_-9016643627422849785_3327975050261345057_5723371101454013599" [label="{ fun | distance = 1 }" fillcolor=springgreen shape=record]
-					"cluster_cluster_Dispatcher_-9016643627422849785_3327975050261345057_4372648248" -> "cluster_cluster_Dispatcher_-9016643627422849785_3327975050261345057_-6154672520566587020" [xlabel=3]
-					"cluster_cluster_Dispatcher_-9016643627422849785_3327975050261345057_-6154672520566587020" -> "cluster_cluster_Dispatcher_-9016643627422849785_3327975050261345057_5723371101454013599" [xlabel=3]
-					"cluster_cluster_Dispatcher_-9016643627422849785_3327975050261345057_5723371101454013599" -> "cluster_cluster_Dispatcher_-9016643627422849785_3327975050261345057_-8069443800989944208" [xlabel=2]
-					"cluster_cluster_Dispatcher_-9016643627422849785_3327975050261345057_5723371101454013599" -> "cluster_cluster_Dispatcher_-9016643627422849785_3327975050261345057_-4868960230063457645" [xlabel=4]
+				"cluster_cluster_Dispatcher_8831915344634789529_-7492051643469341537_4373709112" [label=start fillcolor=red shape=egg]
+				"cluster_cluster_Dispatcher_8831915344634789529_-7492051643469341537_-878348487762420980" [label="{ fun | distance = 1 }" fillcolor=springgreen shape=record]
+				"cluster_cluster_Dispatcher_8831915344634789529_-7492051643469341537_-8678671152349271859" [label="{ a | output = 3 }" fillcolor=cyan shape=Mrecord]
+				"cluster_cluster_Dispatcher_8831915344634789529_-7492051643469341537_-7122603177858460539" [label="{ c | output = 2 | distance = 2 }" fillcolor=cyan shape=Mrecord]
+				"cluster_cluster_Dispatcher_8831915344634789529_-7492051643469341537_5198365931108737741" [label="{ b | output = 4 | distance = 2 }" fillcolor=cyan shape=Mrecord]
+					"cluster_cluster_Dispatcher_8831915344634789529_-7492051643469341537_4373709112" -> "cluster_cluster_Dispatcher_8831915344634789529_-7492051643469341537_-8678671152349271859" [xlabel=3]
+					"cluster_cluster_Dispatcher_8831915344634789529_-7492051643469341537_-878348487762420980" -> "cluster_cluster_Dispatcher_8831915344634789529_-7492051643469341537_5198365931108737741" [xlabel=4]
+					"cluster_cluster_Dispatcher_8831915344634789529_-7492051643469341537_-878348487762420980" -> "cluster_cluster_Dispatcher_8831915344634789529_-7492051643469341537_-7122603177858460539" [xlabel=2]
+					"cluster_cluster_Dispatcher_8831915344634789529_-7492051643469341537_-8678671152349271859" -> "cluster_cluster_Dispatcher_8831915344634789529_-7492051643469341537_-878348487762420980" [xlabel=3]
 			}
-			"cluster_Dispatcher_-9016643627422849785_3327975050261345057" [label="{ sub_dispatch | distance = 1 }" fillcolor="#FF8F0F80" shape=record]
-			"cluster_Dispatcher_-9016643627422849785_-4868960230063457645" [label="{ b | output = 3 | distance = 2 }" fillcolor=cyan shape=Mrecord]
-			"cluster_Dispatcher_-9016643627422849785_-6154672520566587020" [label="{ a | output = \{&quot;a&quot;: 3\} }" fillcolor=cyan shape=Mrecord]
-			"cluster_Dispatcher_-9016643627422849785_-8069443800989944208" [label="{ c | output = 4 | distance = 2 }" fillcolor=cyan shape=Mrecord]
-				"cluster_Dispatcher_-9016643627422849785_4372648248" -> "cluster_Dispatcher_-9016643627422849785_-6154672520566587020" [xlabel="\{&quot;a&quot;: 3\}"]
-				"cluster_Dispatcher_-9016643627422849785_3327975050261345057" -> "cluster_Dispatcher_-9016643627422849785_-8069443800989944208" [xlabel=4]
-				"cluster_Dispatcher_-9016643627422849785_3327975050261345057" -> "cluster_Dispatcher_-9016643627422849785_-4868960230063457645" [xlabel=3]
-				"cluster_Dispatcher_-9016643627422849785_-6154672520566587020" -> "cluster_Dispatcher_-9016643627422849785_3327975050261345057" [xlabel="\{&quot;a&quot;: 3\}"]
+			"cluster_Dispatcher_8831915344634789529_-7492051643469341537" [label="{ sub_dispatch | distance = 1 }" fillcolor="#FF8F0F80" shape=record]
+				cluster_Dispatcher_8831915344634789529_4373709112 -> "cluster_Dispatcher_8831915344634789529_-8678671152349271859" [xlabel="\{&quot;a&quot;: 3\}"]
+				"cluster_Dispatcher_8831915344634789529_-8678671152349271859" -> "cluster_Dispatcher_8831915344634789529_-7492051643469341537" [xlabel="\{&quot;a&quot;: 3\}"]
+				"cluster_Dispatcher_8831915344634789529_-7492051643469341537" -> cluster_Dispatcher_8831915344634789529_5198365931108737741 [xlabel=3]
+				"cluster_Dispatcher_8831915344634789529_-7492051643469341537" -> "cluster_Dispatcher_8831915344634789529_-7122603177858460539" [xlabel=4]
 		}
-		"Dispatcher_-9016643627422849785" [label="{ dispatch | distance = 1 }" fillcolor="#FF8F0F80" shape=record]
-		Dispatcher_8757498191479327245 [label="{ e | output = 4 | distance = 2 }" fillcolor=cyan shape=Mrecord]
-			Dispatcher_8881531434403260099 -> "Dispatcher_-9016643627422849785" [xlabel="\{&quot;a&quot;: \{&quot;a&quot;: 3\}\}"]
-			"Dispatcher_-9016643627422849785" -> Dispatcher_4372648488 [xlabel="\{&quot;a&quot;: 3\}"]
-			"Dispatcher_-9016643627422849785" -> Dispatcher_8292886482098159717 [xlabel=3]
-			"Dispatcher_-9016643627422849785" -> Dispatcher_8757498191479327245 [xlabel=4]
-			Dispatcher_4372648248 -> Dispatcher_8881531434403260099 [xlabel="\{&quot;a&quot;: \{&quot;a&quot;: 3\}\}"]
+		Dispatcher_8831915344634789529 [label="{ dispatch | distance = 1 }" fillcolor="#FF8F0F80" shape=record]
+		"Dispatcher_-5279003028835121650" [label="{ d | output = 3 | distance = 2 }" fillcolor=cyan shape=Mrecord]
+			Dispatcher_5332099414230128037 -> Dispatcher_8831915344634789529 [xlabel="\{&quot;a&quot;: \{&quot;a&quot;: 3\}\}"]
+			Dispatcher_4373709112 -> Dispatcher_5332099414230128037 [xlabel="\{&quot;a&quot;: \{&quot;a&quot;: 3\}\}"]
+			Dispatcher_8831915344634789529 -> "Dispatcher_-7463268218442358016" [xlabel=4]
+			Dispatcher_8831915344634789529 -> Dispatcher_4373709352 [xlabel="\{&quot;a&quot;: 3\}"]
+			Dispatcher_8831915344634789529 -> "Dispatcher_-5279003028835121650" [xlabel=3]
 }
