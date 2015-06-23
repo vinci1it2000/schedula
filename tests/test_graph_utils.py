@@ -44,7 +44,7 @@ class TestGraphAlgorithms(unittest.TestCase):
     def test_scc_fun(self):
         graph = self.graph_1
 
-        res = [[1, 2, 3, 4], [9], [10]]
+        res = [[1, 2, 3, 4], [10]]
         self.assertEqual(sorted(list(scc_fun(graph, [1, 10]))), res)
 
         res = [[0], [1, 2, 3, 4], [5, 6, 7, 8], [9], [10]]
