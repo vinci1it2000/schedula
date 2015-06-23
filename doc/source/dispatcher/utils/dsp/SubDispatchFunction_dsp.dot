@@ -1,16 +1,16 @@
 digraph Dispatcher {
 	graph [ratio=1]
 	node [style=filled]
-	splines = ortho
 	label = "Dispatcher"
-		"Dispatcher_-427784935824896063" [label="{ b  }" fillcolor=cyan shape=Mrecord]
-		"Dispatcher_-3574468403947108869" [label="{ a  }" fillcolor=cyan shape=Mrecord]
-		Dispatcher_5626300579074633926 [label="{ c  }" fillcolor=cyan shape=Mrecord]
-		"Dispatcher_-6345661912335312386" [label="{ max  }" fillcolor=springgreen shape=record]
-		Dispatcher_4745488610790022479 [label="{ log(x - 1) | input_domain = &amp;lt;lambda&amp;gt; }" fillcolor=springgreen shape=record]
-			"Dispatcher_-427784935824896063" -> "Dispatcher_-6345661912335312386"
-			"Dispatcher_-3574468403947108869" -> "Dispatcher_-6345661912335312386"
-			Dispatcher_5626300579074633926 -> Dispatcher_4745488610790022479
-			"Dispatcher_-6345661912335312386" -> Dispatcher_5626300579074633926
-			Dispatcher_4745488610790022479 -> "Dispatcher_-3574468403947108869"
+	splines = ortho
+		"Dispatcher_-1739731674132073175" [label="{ c  }" fillcolor=cyan shape=Mrecord]
+		"Dispatcher_-8503278920192876870" [label="{ a  }" fillcolor=cyan shape=Mrecord]
+		"Dispatcher_-3117625956851900853" [label="{ b  }" fillcolor=cyan shape=Mrecord]
+		Dispatcher_353524919982885525 [label="{ log(x - 1) | input_domain = &amp;lt;lambda&amp;gt; }" fillcolor=springgreen shape=record]
+		"Dispatcher_-1690875837688140777" [label="{ max  }" fillcolor=springgreen shape=record]
+			"Dispatcher_-1739731674132073175" -> Dispatcher_353524919982885525
+			"Dispatcher_-8503278920192876870" -> "Dispatcher_-1690875837688140777"
+			"Dispatcher_-3117625956851900853" -> "Dispatcher_-1690875837688140777"
+			Dispatcher_353524919982885525 -> "Dispatcher_-8503278920192876870"
+			"Dispatcher_-1690875837688140777" -> "Dispatcher_-1739731674132073175"
 }
