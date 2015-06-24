@@ -14,7 +14,7 @@ from graphviz.dot import Digraph
 from compas.dispatcher.draw import *
 from compas.dispatcher.constants import SINK
 from compas.dispatcher import Dispatcher
-from compas.dispatcher.utils.dsp import SubDispatch
+from compas.utils.dsp import SubDispatch
 
 
 class TestDoctest(unittest.TestCase):

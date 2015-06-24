@@ -1,4 +1,9 @@
 """
+This page contains a comprehensive list of all modules and classes within
+dispatcher.
+
+Docstrings should provide sufficient understanding for any individual function.
+
 Modules:
 
 .. currentmodule:: compas.models
@@ -7,9 +12,9 @@ Modules:
     :nosignatures:
     :toctree: models/
 
-    compas_model
-    AT_gear_model
-    read_model
+    compas
+    AT_gear
+    read_inputs
 """
 __author__ = 'Vincenzo Arcidiacono'
 

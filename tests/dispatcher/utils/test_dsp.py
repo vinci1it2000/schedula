@@ -9,14 +9,14 @@
 import doctest
 import unittest
 
-from compas.dispatcher.utils.dsp import *
+from compas.utils.dsp import *
 from compas.dispatcher import Dispatcher
 from compas.dispatcher.constants import SINK
 
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):
-        import compas.dispatcher.utils.dsp as utl
+        import compas.utils.dsp as utl
         failure_count, test_count = doctest.testmod(
             utl, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS)
         self.assertGreater(test_count, 0, (failure_count, test_count))

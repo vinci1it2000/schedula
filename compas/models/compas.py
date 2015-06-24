@@ -15,11 +15,12 @@ import re
 import os
 import glob
 from datetime import datetime
-from compas.models.AT_gear_model import *
-from compas.models.read_model import *
+
+from compas.models.AT_gear import *
+from compas.models.read_inputs import *
 from compas.functions.write_outputs import write_output
 from compas.dispatcher import Dispatcher
-from compas.dispatcher.utils.dsp import SubDispatch, def_replicate_value, \
+from compas.utils.dsp import SubDispatch, def_replicate_value, \
     def_selector
 
 
@@ -36,12 +37,12 @@ def def_compas_model():
     .. testsetup::
         >>> from compas.dispatcher.draw import dsp2dot
         >>> dsp = def_compas_model()[0]
-        >>> dot = dsp2dot(dsp, level=0)
+        >>> dot = dsp2dot(dsp, level=0, function_module=False)
         >>> from compas.models import dot_dir
-        >>> dot.save('compas_model/dsp.dot', dot_dir)
+        >>> dot.save('compas/dsp.dot', dot_dir)
         '...'
 
-    .. graphviz:: /compas/models/compas_model/dsp.dot
+    .. graphviz:: /compas/models/compas/dsp.dot
 
     Follow the input/output parameters of the `jrcgear_model` dispatcher:
 
@@ -78,13 +79,14 @@ def def_compas_model():
     :type calibrated_models: dict, optional
 
     :param predicted_gears:
-        A dictionary with all the dispatcher outputs of the `AT_gear_model` to
-        predict the gears.
+        A dictionary with all the dispatcher outputs of the model defined by
+        :func:`compas.models.AT_gear.def_gear_model` to predict the gears.
     :type predicted_gears: dict, optional
 
     :param calculated_gear_box_engine_speeds:
-        A dictionary with all the dispatcher outputs of the `AT_gear_model` to
-        calculate gear box engine speeds.
+        A dictionary with all the dispatcher outputs of the model defined by
+        :func:`compas.models.AT_gear.def_gear_model` to calculate gear box
+        engine speeds.
     :type calculated_gear_box_engine_speeds: dict, optional
 
     :param error_coefficients:
@@ -97,6 +99,7 @@ def def_compas_model():
 
     :param output_sheet_names:
         Sheet names for:
+
             + series
             + parameters
     :type output_sheet_names: (str, str), optional
@@ -104,7 +107,7 @@ def def_compas_model():
 
     # gear model
     gear_model, calibration_models, gears_predicted, \
-    gear_box_speeds_predicted, error_coefficients = def_gear_model()
+    gear_box_speeds_predicted, error_coefficients = def_gear_models()
 
     # read model
     load_inputs = def_load_inputs()

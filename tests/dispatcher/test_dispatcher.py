@@ -335,7 +335,7 @@ class TestPerformance(unittest.TestCase):
         res2 = timeit.repeat(
             "fun(5, 6)",
             'from %s import _setup_dsp;'
-            'from compas.dispatcher.utils.dsp import SubDispatchFunction;'
+            'from compas.utils.dsp import SubDispatchFunction;'
             'dsp = _setup_dsp();'
             'fun = SubDispatchFunction(dsp, "f", ["a", "b"], ["c", "d", "e"])'
             % __name__,

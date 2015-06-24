@@ -10,12 +10,13 @@ from __future__ import division, print_function, unicode_literals
 
 import doctest
 import unittest
-from compas.dispatcher.utils.gen import *
+
+from compas.utils.gen import *
 
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):
-        import compas.dispatcher.utils.gen as utl
+        import compas.utils.gen as utl
         failure_count, test_count = doctest.testmod(
             utl, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS)
         self.assertGreater(test_count, 0, (failure_count, test_count))

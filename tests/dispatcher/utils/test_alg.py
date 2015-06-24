@@ -11,12 +11,12 @@ import unittest
 
 from networkx.classes.digraph import DiGraph
 
-from compas.dispatcher.utils.alg import *
+from compas.utils.alg import *
 
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):
-        import compas.dispatcher.utils.alg as dsp
+        import compas.utils.alg as dsp
         failure_count, test_count = doctest.testmod(
             dsp, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS)
         self.assertGreater(test_count, 0, (failure_count, test_count))

@@ -18,7 +18,7 @@ from networkx.utils import default_opener
 from graphviz import Digraph
 
 from .constants import START, SINK
-from .utils.dsp import SubDispatch
+from compas.utils.dsp import SubDispatch
 
 
 __all__ = ['dsp2dot']
@@ -66,7 +66,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
     Example::
 
         >>> from compas.dispatcher import Dispatcher
-        >>> from compas.dispatcher.utils.dsp import SubDispatch
+        >>> from compas.utils.dsp import SubDispatch
         >>> from compas.dispatcher.constants import SINK
         >>> ss = Dispatcher()
         >>> def fun(a):

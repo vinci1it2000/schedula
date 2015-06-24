@@ -23,7 +23,6 @@ Modules:
     read_write
     draw
     constants
-    utils
 """
 
 __author__ = 'Vincenzo Arcidiacono'
@@ -35,10 +34,10 @@ from collections import deque
 
 from networkx import DiGraph, isolates
 
-from .utils.gen import AttrDict, counter
-from .utils.alg import add_edge_fun, remove_cycles_iteration
+from compas.utils.gen import AttrDict, counter
+from compas.utils.alg import add_edge_fun, remove_cycles_iteration
 from .constants import EMPTY, START, NONE, SINK
-from .utils.dsp import SubDispatch, bypass
+from compas.utils.dsp import SubDispatch, bypass
 
 
 prj_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))

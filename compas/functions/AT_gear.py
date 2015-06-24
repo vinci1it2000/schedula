@@ -26,8 +26,8 @@ from scipy.interpolate import InterpolatedUnivariateSpline
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import mean_absolute_error
 
-from compas.functions.utils import median_filter, sliding_window, pairwise, grouper, \
-    reject_outliers, bin_split, interpolate_cloud
+from compas.utils.gen import median_filter, sliding_window, pairwise, \
+    grouper, reject_outliers, bin_split, interpolate_cloud
 
 
 EPS = 0.1 + sys.float_info.epsilon
@@ -58,7 +58,7 @@ def get_full_load(name):
     return full_load[name]
 
 
-def _clear_gear_fluctuations(times, gears, dt_window):
+def clear_gear_fluctuations(times, gears, dt_window):
     """
     Clears the gear identification fluctuations.
 
@@ -366,7 +366,8 @@ def identify_upper_bound_engine_speed(gears, engine_speeds, idle_engine_speed):
     """
     Identifies upper bound engine speed.
 
-    It is used to correct the gear prediction for constant accelerations.
+    It is used to correct the gear prediction for constant accelerations (see
+    :func:`compas.functions.AT_gear.correct_gear_upper_bound_engine_speed`).
 
     This is evaluated as the median value plus one standard deviation of the
     filtered cycle engine speed (i.e., the engine speeds when engine speed >
@@ -398,7 +399,7 @@ def identify_upper_bound_engine_speed(gears, engine_speeds, idle_engine_speed):
     return sum(reject_outliers(engine_speeds[dom]))
 
 
-def _identify_gear(ratio, velocity, acceleration, idle_engine_speed, vsr,
+def identify_gear(ratio, velocity, acceleration, idle_engine_speed, vsr,
                    max_gear):
     """
     Identifies a gear.
@@ -496,14 +497,14 @@ def identify_gears(
     it = (ratios, velocities, accelerations, repeat(idle_speed), repeat(vsr),
           repeat(max_gear))
 
-    gear = list(map(_identify_gear, *it))
+    gear = list(map(identify_gear, *it))
 
     gear = median_filter(times, gear, TIME_WINDOW)
 
-    return _clear_gear_fluctuations(times, gear, TIME_WINDOW)
+    return clear_gear_fluctuations(times, gear, TIME_WINDOW)
 
 
-def _correct_gear_upper_bound_engine_speed(
+def correct_gear_upper_bound_engine_speed(
         velocity, acceleration, gear, velocity_speed_ratios, max_gear,
         upper_bound_engine_speed):
     """
@@ -548,12 +549,12 @@ def _correct_gear_upper_bound_engine_speed(
     return gear
 
 
-def _correct_gear_full_load(
+def correct_gear_full_load(
         velocity, acceleration, gear, velocity_speed_ratios, max_engine_power,
         max_engine_speed_at_max_power, idle_engine_speed, full_load_curve,
         road_loads, inertia, min_gear):
     """
-    Corrects the gear predicted according to upper bound engine speed.
+    Corrects the gear predicted according to full load curve.
 
     :param velocity:
         Vehicle velocity.
@@ -621,56 +622,159 @@ def correct_gear_v0(
         velocity_speed_ratios, upper_bound_engine_speed, max_engine_power,
         max_engine_speed_at_max_power, idle_engine_speed, full_load_curve,
         road_loads, inertia):
+    """
+    Returns a function to correct the gear predicted according to
+    :func:`compas.functions.AT_gear.correct_gear_upper_bound_engine_speed`
+    and :func:`compas.functions.AT_gear.correct_gear_full_load`.
+
+    :param velocity_speed_ratios:
+        Constant velocity speed ratios of the gear box.
+    :type velocity_speed_ratios: dict
+
+    :param upper_bound_engine_speed:
+        Upper bound engine speed.
+    :type upper_bound_engine_speed: float
+
+    :param max_engine_power:
+        Maximum power.
+    :type max_engine_power: float
+
+    :param max_engine_speed_at_max_power:
+        Rated engine speed.
+    :type max_engine_speed_at_max_power: float
+
+    :param idle_engine_speed:
+        Engine speed idle median and std.
+    :type idle_engine_speed: (float, float)
+
+    :param full_load_curve:
+        Vehicle full load curve.
+    :type full_load_curve: InterpolatedUnivariateSpline
+
+    :param road_loads:
+        Cycle road loads.
+    :type road_loads: list, tuple
+
+    :param inertia:
+        Cycle inertia.
+    :type inertia: float
+
+    :return:
+        A function to correct the predicted gear.
+    :rtype: function
+    """
+
     max_gear = max(velocity_speed_ratios)
     min_gear = min(velocity_speed_ratios)
 
-    def correct_gear_speed_full_load(velocity, acceleration, gear):
-        g = _correct_gear_upper_bound_engine_speed(
+    def correct_gear(velocity, acceleration, gear):
+        g = correct_gear_upper_bound_engine_speed(
             velocity, acceleration, gear, velocity_speed_ratios, max_gear,
             upper_bound_engine_speed)
 
-        return _correct_gear_full_load(
+        return correct_gear_full_load(
             velocity, acceleration, g, velocity_speed_ratios, max_engine_power,
             max_engine_speed_at_max_power, idle_engine_speed, full_load_curve,
             road_loads, inertia, min_gear)
 
-    return correct_gear_speed_full_load
+    return correct_gear
 
 
 def correct_gear_v1(velocity_speed_ratios, upper_bound_engine_speed):
+    """
+    Returns a function to correct the gear predicted according to
+    :func:`compas.functions.AT_gear.correct_gear_upper_bound_engine_speed`.
+
+    :param velocity_speed_ratios:
+        Constant velocity speed ratios of the gear box.
+    :type velocity_speed_ratios: dict
+
+    :param upper_bound_engine_speed:
+        Upper bound engine speed.
+    :type upper_bound_engine_speed: float
+
+    :return:
+        A function to correct the predicted gear.
+    :rtype: function
+    """
+
     max_gear = max(velocity_speed_ratios)
 
-    def correct_gear_speed(velocity, acceleration, gear):
-        return _correct_gear_upper_bound_engine_speed(
+    def correct_gear(velocity, acceleration, gear):
+        return correct_gear_upper_bound_engine_speed(
             velocity, acceleration, gear, velocity_speed_ratios, max_gear,
             upper_bound_engine_speed)
 
-    return correct_gear_speed
+    return correct_gear
 
 
 def correct_gear_v2(
         velocity_speed_ratios, max_engine_power, max_engine_speed_at_max_power,
         idle_engine_speed, full_load_curve, road_loads, inertia):
+    """
+    Returns a function to correct the gear predicted according to
+    :func:`compas.functions.AT_gear.correct_gear_full_load`.
+
+    :param velocity_speed_ratios:
+        Constant velocity speed ratios of the gear box.
+    :type velocity_speed_ratios: dict
+
+    :param max_engine_power:
+        Maximum power.
+    :type max_engine_power: float
+
+    :param max_engine_speed_at_max_power:
+        Rated engine speed.
+    :type max_engine_speed_at_max_power: float
+
+    :param idle_engine_speed:
+        Engine speed idle median and std.
+    :type idle_engine_speed: (float, float)
+
+    :param full_load_curve:
+        Vehicle full load curve.
+    :type full_load_curve: InterpolatedUnivariateSpline
+
+    :param road_loads:
+        Cycle road loads.
+    :type road_loads: list, tuple
+
+    :param inertia:
+        Cycle inertia.
+    :type inertia: float
+
+    :return:
+        A function to correct the predicted gear.
+    :rtype: function
+    """
+
     min_gear = min(velocity_speed_ratios)
 
-    def correct_gear_full_load(velocity, acceleration, gear):
-        return _correct_gear_full_load(
+    def correct_gear(velocity, acceleration, gear):
+        return correct_gear_full_load(
             velocity, acceleration, gear, velocity_speed_ratios,
             max_engine_power, max_engine_speed_at_max_power, idle_engine_speed,
             full_load_curve, road_loads, inertia, min_gear)
 
-    return correct_gear_full_load
+    return correct_gear
 
 
-def correct_gear_v3(*args):
+def correct_gear_v3():
+    """
+    Returns a function that does not correct the gear predicted.
 
-    def correct_gear_bypass(velocity, acceleration, gear):
+    :return:
+        A function to correct the predicted gear.
+    :rtype: function
+    """
+
+    def correct_gear(velocity, acceleration, gear):
         return gear
 
-    return correct_gear_bypass
+    return correct_gear
 
 
-def _identify_gear_shifting_velocity_limits(gears, velocities):
+def identify_gear_shifting_velocity_limits(gears, velocities):
     """
     Identifies gear shifting velocity matrix.
 
@@ -719,10 +823,10 @@ def _identify_gear_shifting_velocity_limits(gears, velocities):
         v0, v1 = limits.get(k, [[], []])
         gsv[k] = [rjt_out(v0, (-1, (0, 0))), rjt_out(v1, (INF, (0, 0)))]
 
-    return _correct_gsv(gsv)
+    return correct_gsv(gsv)
 
 
-def _correct_gsv_for_constant_velocities(gsv):
+def correct_gsv_for_constant_velocities(gsv):
     """
     Corrects the gear shifting matrix velocity according to the NEDC velocities.
 
@@ -791,7 +895,7 @@ def calibrate_gear_shifting_cmv(
     :rtype: dict
     """
 
-    gsv = _identify_gear_shifting_velocity_limits(gears, velocities)
+    gsv = identify_gear_shifting_velocity_limits(gears, velocities)
 
     gear_id, velocity_limits = zip(*list(gsv.items())[1:])
 
@@ -818,7 +922,7 @@ def calibrate_gear_shifting_cmv(
 
     update_gvs(x)
 
-    return _correct_gsv_for_constant_velocities(gsv)
+    return correct_gsv_for_constant_velocities(gsv)
 
 
 def calibrate_gear_shifting_cmv_hot_cold(
@@ -902,7 +1006,7 @@ def calibrate_gear_shifting_decision_tree(gears, *params):
     return tree
 
 
-def _correct_gsv(gsv):
+def correct_gsv(gsv):
     """
     Corrects gear shifting velocity matrix from unreliable limits.
 
@@ -1069,7 +1173,7 @@ def prediction_gears_decision_tree(correct_gear, decision_tree, times, *params):
 
     gear = median_filter(times, gear, TIME_WINDOW)
 
-    return _clear_gear_fluctuations(times, gear, TIME_WINDOW)
+    return clear_gear_fluctuations(times, gear, TIME_WINDOW)
 
 
 def prediction_gears_gsm(
@@ -1144,7 +1248,7 @@ def prediction_gears_gsm(
 
     if times is not None:
         gear = median_filter(times, gear, TIME_WINDOW)
-        gear = _clear_gear_fluctuations(times, gear, TIME_WINDOW)
+        gear = clear_gear_fluctuations(times, gear, TIME_WINDOW)
 
     return gear
 

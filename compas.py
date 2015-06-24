@@ -20,6 +20,6 @@ if __name__ == '__main__':
         print('ERROR: missing input and/or output folder')
     else:
 
-        from compas.models.compas_model import process_folder_files
+        from compas.models.compas import process_folder_files
 
         process_folder_files(input_folder, output_folder)

@@ -7,7 +7,7 @@ from sklearn.metrics import mean_squared_error
 from scipy.optimize import fmin
 
 from .compas.functions.AT_gear_functions import identify_gears
-from .utils import median_filter
+from .compas.utils.utils import median_filter
 
 
 

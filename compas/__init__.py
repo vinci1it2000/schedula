@@ -8,6 +8,7 @@
     ~models
     ~functions
     ~dispatcher
+    ~utils
 
 """
 __author__ = 'Vincenzo Arcidiacono'

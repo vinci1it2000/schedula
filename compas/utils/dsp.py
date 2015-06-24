@@ -7,7 +7,8 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-It provides tools to create models with the :func:`~dispatcher.Dispatcher`.
+It provides tools to create models with the
+:func:`~compas.dispatcher.Dispatcher`.
 """
 
 __author__ = 'Vincenzo Arcidiacono'
@@ -16,8 +17,9 @@ __all__ = ['combine_dicts', 'bypass', 'summation', 'def_selector',
            'def_replicate_value', 'SubDispatch', 'ReplicateFunction',
            'SubDispatchFunction']
 
-from .gen import caller_name
 from networkx.classes.digraph import DiGraph
+
+from compas.utils.gen import caller_name
 
 
 def combine_dicts(*dicts):
@@ -148,17 +150,18 @@ def def_replicate_value(n=2):
 
 class SubDispatch(object):
     """
-    It dispatches a given :func:`~dispatcher.Dispatcher` like a function.
+    It dispatches a given :func:`~compas.dispatcher.Dispatcher` like a function.
 
     This function takes a sequence of dictionaries as input that will be
     combined before the dispatching.
 
     :return:
         A function that executes the dispatch of the given
-        :func:`~dispatcher.Dispatcher`.
+        :func:`~compas.dispatcher.Dispatcher`.
     :rtype: function
 
-    .. seealso:: :func:`~dispatcher.Dispatcher.dispatch`, :func:`combine_dicts`
+    .. seealso:: :func:`~compas.dispatcher.Dispatcher.dispatch`,
+       :func:`combine_dicts`
 
     Example::
 
@@ -177,9 +180,9 @@ class SubDispatch(object):
 
     .. testsetup::
         >>> from compas.dispatcher.draw import dsp2dot
-        >>> from compas.dispatcher import dot_dir
+        >>> from compas.utils import dot_dir
         >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
-        >>> dot.save('utils/dsp/SubDispatch_dsp.dot', dot_dir)
+        >>> dot.save('dsp/SubDispatch_dsp.dot', dot_dir)
         '...'
 
     .. graphviz:: ../dsp/SubDispatch_dsp.dot
@@ -194,7 +197,7 @@ class SubDispatch(object):
 
     .. testsetup::
         >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'ratio': '1'})
-        >>> dot.save('utils/dsp/SubDispatch_wf.dot', dot_dir)
+        >>> dot.save('dsp/SubDispatch_wf.dot', dot_dir)
         '...'
 
     .. graphviz:: ../dsp/SubDispatch_wf.dot
@@ -297,7 +300,7 @@ class ReplicateFunction(object):
 
 class SubDispatchFunction(SubDispatch):
     """
-    It dispatches a given :func:`~dispatcher.Dispatcher` like a function.
+    It dispatches a given :func:`~compas.dispatcher.Dispatcher` like a function.
 
     This function takes a sequence of arguments as input of the dispatch.
 
@@ -305,8 +308,8 @@ class SubDispatchFunction(SubDispatch):
         A function that executes the dispatch of the given `dsp`.
     :rtype: function
 
-    .. seealso:: :func:`~dispatcher.Dispatcher.dispatch`,
-       :func:`~dispatcher.Dispatcher.shrink_dsp`
+    .. seealso:: :func:`~compas.dispatcher.Dispatcher.dispatch`,
+       :func:`~compas.dispatcher.Dispatcher.shrink_dsp`
 
     **Example**:
 
@@ -325,9 +328,9 @@ class SubDispatchFunction(SubDispatch):
         ...                  outputs=['a'], input_domain=lambda c: c > 1)
         'log(x - 1)'
         >>> from compas.dispatcher.draw import dsp2dot
-        >>> from compas.dispatcher import dot_dir
+        >>> from compas.utils import dot_dir
         >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
-        >>> dot.save('utils/dsp/SubDispatchFunction_dsp.dot', dot_dir)
+        >>> dot.save('dsp/SubDispatchFunction_dsp.dot', dot_dir)
         '...'
 
     .. graphviz:: ../dsp/SubDispatchFunction_dsp.dot
@@ -346,7 +349,7 @@ class SubDispatchFunction(SubDispatch):
         >>> dsp.dispatch({'a': 2, 'b': 1}, outputs=['a'], wildcard=True)
         (...)
         >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'ratio': '1'})
-        >>> dot.save('utils/dsp/SubDispatchFunction_wf1.dot', dot_dir)
+        >>> dot.save('dsp/SubDispatchFunction_wf1.dot', dot_dir)
         '...'
 
     .. graphviz:: ../dsp/SubDispatchFunction_wf1.dot
@@ -363,7 +366,7 @@ class SubDispatchFunction(SubDispatch):
         >>> dsp.dispatch({'a': 1, 'b': 0}, outputs=['a'], wildcard=True)
         (...)
         >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'ratio': '1'})
-        >>> dot.save('utils/dsp/SubDispatchFunction_wf2.dot', dot_dir)
+        >>> dot.save('dsp/SubDispatchFunction_wf2.dot', dot_dir)
         '...'
 
     .. graphviz:: ../dsp/SubDispatchFunction_wf2.dot
