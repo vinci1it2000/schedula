@@ -7,6 +7,8 @@
 
 """
 It contains functions to predict the A/T gear shifting.
+
+.. note:: these functions are used in :mod:`compas.models.AT_gear`.
 """
 
 __author__ = 'Arcidiacono Vincenzo'

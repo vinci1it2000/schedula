@@ -8,7 +8,7 @@
 """
 It contains functions to write prediction outputs.
 
-.. note:: these functions are used in :mod:`compas.models.compas`
+.. note:: these functions are used in :mod:`compas.models.compas`.
 """
 __author__ = 'Vincenzo Arcidiacono'
 

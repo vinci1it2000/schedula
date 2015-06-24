@@ -1,7 +1,5 @@
 """
-It contains a comprehensive list of all CO2MPAS models.
-
-Modules:
+It contains a comprehensive list of all CO2MPAS models:
 
 .. currentmodule:: compas.models
 

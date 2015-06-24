@@ -31,7 +31,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
 
     :param dsp:
         A dispatcher that identifies the model adopted.
-    :type dsp: dispatcher.dispatcher.Dispatcher
+    :type dsp: compas.dispatcher.Dispatcher
 
     :param workflow:
        If True the workflow graph will be plotted, otherwise the dispatcher map.

@@ -29,7 +29,7 @@ def save_dispatcher(dsp, path):
 
     :param dsp:
         A dispatcher that identifies the model adopted.
-    :type dsp: dispatcher.dispatcher.Dispatcher
+    :type dsp: compas.dispatcher.Dispatcher
 
     :param path:
         File or filename to write.
@@ -69,7 +69,7 @@ def load_dispatcher(path):
     :type path: str, file
 
     :return: dispatcher map that identifies the model adopted.
-    :rtype: dispatcher.dispatcher.Dispatcher
+    :rtype: compas.dispatcher.Dispatcher
 
     .. testsetup::
         >>> from tempfile import mkstemp
@@ -104,7 +104,7 @@ def save_default_values(dsp, path):
 
     :param dsp:
         A dispatcher that identifies the model adopted.
-    :type dsp: dispatcher.dispatcher.Dispatcher
+    :type dsp: compas.dispatcher.Dispatcher
 
     :param path:
         File or filename to write.
@@ -140,7 +140,7 @@ def load_default_values(dsp, path):
 
     :param dsp:
         A dispatcher that identifies the model adopted.
-    :type dsp: dispatcher.dispatcher.Dispatcher
+    :type dsp: compas.dispatcher.Dispatcher
 
     :param path:
         File or filename to write.
@@ -181,7 +181,7 @@ def save_map(dsp, path):
 
     :param dsp:
         A dispatcher that identifies the model adopted.
-    :type dsp: dispatcher.dispatcher.Dispatcher
+    :type dsp: compas.dispatcher.Dispatcher
 
     :param path:
         File or filename to write.
@@ -211,7 +211,7 @@ def load_map(dsp, path):
 
     :param dsp:
         A dispatcher that identifies the model to be upgraded.
-    :type dsp: dispatcher.dispatcher.Dispatcher
+    :type dsp: compas.dispatcher.Dispatcher
 
     :param path:
         File or filename to write.

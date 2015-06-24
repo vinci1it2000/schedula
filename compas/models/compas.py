@@ -32,7 +32,7 @@ def def_compas_model():
     :returns:
         - jrcgear_model
         - error coefficients ids (e.g., error_coefficients_with_DT_VA)
-    :rtype: (dispatcher.dispatcher.Dispatcher, list)
+    :rtype: (Dispatcher, list)
 
     .. testsetup::
         >>> from compas.dispatcher.draw import dsp2dot

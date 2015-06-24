@@ -210,7 +210,7 @@ class SubDispatch(object):
 
         :param dsp:
             A dispatcher that identifies the model adopted.
-        :type dsp: dispatcher.dispatcher.Dispatcher
+        :type dsp: compas.dispatcher.Dispatcher
 
         :param outputs:
             Ending data nodes.
@@ -237,10 +237,10 @@ class SubDispatch(object):
         :params type_return:
             Type of function output:
 
-                + 'all': a :class:`~dispatcher.utils.AttrDict` with all dispatch
+                + 'all': a :class:`compas.utils.gen.AttrDict` with all dispatch
                   outputs.
                 + 'list': a list with all outputs listed in `outputs`.
-                + 'dict': a :class:`~dispatcher.utils.AttrDict` with any outputs
+                + 'dict': a :class:`compas.utils.gen.AttrDict` with any outputs
                   listed in `outputs`.
         :type type_return: str
         """
@@ -378,7 +378,7 @@ class SubDispatchFunction(SubDispatch):
 
         :param dsp:
             A dispatcher that identifies the model adopted.
-        :type dsp: dispatcher.dispatcher.Dispatcher
+        :type dsp: compas.dispatcher.Dispatcher
 
         :param function_id:
             Function node id.

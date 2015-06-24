@@ -8,7 +8,7 @@
 """
 It contains functions to plot cycle time series.
 
-.. note:: these functions are used in :mod:`compas.functions.write_outputs`
+.. note:: these functions are used in :mod:`compas.functions.write_outputs`.
 """
 __author__ = 'Vincenzo Arcidiacono'
 
