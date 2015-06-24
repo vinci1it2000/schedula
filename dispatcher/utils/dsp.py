@@ -207,7 +207,7 @@ class SubDispatch(object):
 
         :param dsp:
             A dispatcher that identifies the model adopted.
-        :type dsp: dispatcher.dispatcher.Dispatcher
+        :type dsp: dispatcher.Dispatcher
 
         :param outputs:
             Ending data nodes.
@@ -375,7 +375,7 @@ class SubDispatchFunction(SubDispatch):
 
         :param dsp:
             A dispatcher that identifies the model adopted.
-        :type dsp: dispatcher.dispatcher.Dispatcher
+        :type dsp: dispatcher.Dispatcher
 
         :param function_id:
             Function node id.

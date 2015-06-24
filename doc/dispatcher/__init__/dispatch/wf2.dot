@@ -1,18 +1,18 @@
 digraph Dispatcher {
 	graph [ratio=1]
 	node [style=filled]
-	splines = ortho
 	label = "Dispatcher workflow"
-		Dispatcher_78779400 [label=start fillcolor=red shape=egg]
-		Dispatcher_5731122394292607163 [label="{ b | output = 5 | distance = 0 }" fillcolor=cyan shape=Mrecord]
-		Dispatcher_8290813521182058041 [label="{ min | distance = 1 }" fillcolor=springgreen shape=record]
-		Dispatcher_5471397706553619705 [label="{ d | output = 1 | distance = 0 }" fillcolor=cyan shape=Mrecord]
-		Dispatcher_6978204315916669291 [label="{ a | output = 0 | distance = 0 }" fillcolor=cyan shape=Mrecord]
-		"Dispatcher_-9068828303841174803" [label="{ c | output = 0 | distance = 2 }" fillcolor=cyan shape=Mrecord]
-			Dispatcher_5731122394292607163 -> Dispatcher_8290813521182058041 [xlabel=5]
-			Dispatcher_8290813521182058041 -> "Dispatcher_-9068828303841174803" [xlabel=0]
-			Dispatcher_78779400 -> Dispatcher_5471397706553619705 [xlabel=1]
-			Dispatcher_78779400 -> Dispatcher_6978204315916669291 [xlabel=0]
-			Dispatcher_78779400 -> Dispatcher_5731122394292607163 [xlabel=5]
-			Dispatcher_6978204315916669291 -> Dispatcher_8290813521182058041 [xlabel=0]
+	splines = ortho
+		Dispatcher_78382088 [label=start fillcolor=red shape=egg]
+		Dispatcher_7064534807064601008 [label="{ min | distance = 1 }" fillcolor=springgreen shape=record]
+		Dispatcher_2454507358469954929 [label="{ d | output = 1 | distance = 0 }" fillcolor=cyan shape=Mrecord]
+		Dispatcher_6185816497042703556 [label="{ b | output = 5 | distance = 0 }" fillcolor=cyan shape=Mrecord]
+		"Dispatcher_-6053996528196385240" [label="{ c | output = 0 | distance = 2 }" fillcolor=cyan shape=Mrecord]
+		Dispatcher_2203997267912285163 [label="{ a | output = 0 | distance = 0 }" fillcolor=cyan shape=Mrecord]
+			Dispatcher_7064534807064601008 -> "Dispatcher_-6053996528196385240" [xlabel=0]
+			Dispatcher_6185816497042703556 -> Dispatcher_7064534807064601008 [xlabel=5]
+			Dispatcher_78382088 -> Dispatcher_2454507358469954929 [xlabel=1]
+			Dispatcher_78382088 -> Dispatcher_2203997267912285163 [xlabel=0]
+			Dispatcher_78382088 -> Dispatcher_6185816497042703556 [xlabel=5]
+			Dispatcher_2203997267912285163 -> Dispatcher_7064534807064601008 [xlabel=0]
 }
