@@ -1,18 +1,18 @@
 digraph Dispatcher {
 	graph [ratio=1]
 	node [style=filled]
-	label = "Dispatcher workflow"
 	splines = ortho
-		Dispatcher_4372672704 [label=start fillcolor=red shape=egg]
-		"Dispatcher_-1993691204919979312" [label="{ b | output = 5 | distance = 0 }" fillcolor=cyan shape=Mrecord]
-		Dispatcher_3228716046595429251 [label="{ min | distance = 1 }" fillcolor=springgreen shape=record]
-		"Dispatcher_-8790407019608196459" [label="{ a | output = 0 | distance = 0 }" fillcolor=cyan shape=Mrecord]
-		"Dispatcher_-3502547296849737717" [label="{ d | output = 1 | distance = 0 }" fillcolor=cyan shape=Mrecord]
-		"Dispatcher_-4631276279473250640" [label="{ c | output = 0 | distance = 2 }" fillcolor=cyan shape=Mrecord]
-			Dispatcher_4372672704 -> "Dispatcher_-1993691204919979312" [xlabel=5]
-			Dispatcher_4372672704 -> "Dispatcher_-3502547296849737717" [xlabel=1]
-			Dispatcher_4372672704 -> "Dispatcher_-8790407019608196459" [xlabel=0]
-			"Dispatcher_-1993691204919979312" -> Dispatcher_3228716046595429251 [xlabel=5]
-			Dispatcher_3228716046595429251 -> "Dispatcher_-4631276279473250640" [xlabel=0]
-			"Dispatcher_-8790407019608196459" -> Dispatcher_3228716046595429251 [xlabel=0]
+	label = "Dispatcher workflow"
+		Dispatcher_78779400 [label=start fillcolor=red shape=egg]
+		Dispatcher_5731122394292607163 [label="{ b | output = 5 | distance = 0 }" fillcolor=cyan shape=Mrecord]
+		Dispatcher_8290813521182058041 [label="{ min | distance = 1 }" fillcolor=springgreen shape=record]
+		Dispatcher_5471397706553619705 [label="{ d | output = 1 | distance = 0 }" fillcolor=cyan shape=Mrecord]
+		Dispatcher_6978204315916669291 [label="{ a | output = 0 | distance = 0 }" fillcolor=cyan shape=Mrecord]
+		"Dispatcher_-9068828303841174803" [label="{ c | output = 0 | distance = 2 }" fillcolor=cyan shape=Mrecord]
+			Dispatcher_5731122394292607163 -> Dispatcher_8290813521182058041 [xlabel=5]
+			Dispatcher_8290813521182058041 -> "Dispatcher_-9068828303841174803" [xlabel=0]
+			Dispatcher_78779400 -> Dispatcher_5471397706553619705 [xlabel=1]
+			Dispatcher_78779400 -> Dispatcher_6978204315916669291 [xlabel=0]
+			Dispatcher_78779400 -> Dispatcher_5731122394292607163 [xlabel=5]
+			Dispatcher_6978204315916669291 -> Dispatcher_8290813521182058041 [xlabel=0]
 }

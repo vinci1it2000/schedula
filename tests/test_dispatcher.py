@@ -104,7 +104,7 @@ class TestCreateDispatcher(unittest.TestCase):
         fun_id = dsp.add_function(function=my_function, inputs=['a', 'b'],
                                   outputs=['c', 'd'])
 
-        self.assertEqual(fun_id, 'test_dispatcher:my_function')
+        self.assertEqual(fun_id, '%s:my_function' % __name__)
 
         from math import log
 
@@ -127,7 +127,7 @@ class TestCreateDispatcher(unittest.TestCase):
             'c': {'wait_inputs': False, 'type': 'data'},
             'd': {'wait_inputs': False, 'type': 'data'},
             'e': {'wait_inputs': False, 'type': 'data'},
-            'test_dispatcher:my_function': {
+            '%s:my_function' % __name__: {
                 'type': 'function',
                 'inputs': ['a', 'b'],
                 'function': my_function,
@@ -193,7 +193,7 @@ class TestCreateDispatcher(unittest.TestCase):
             'b': {'wait_inputs': False, 'type': 'data'},
             'c': {'wait_inputs': True, 'function': fun, 'type': 'data',
                   'wildcard': True},
-            'test_dispatcher:fun1': {'inputs': ['a', 'b'],
+            '%s:fun1' % __name__: {'inputs': ['a', 'b'],
                                 'wait_inputs': True,
                                 'function': fun1,
                                 'type': 'function',
@@ -314,15 +314,19 @@ class TestSubDMap(unittest.TestCase):
 
 class TestPerformance(unittest.TestCase):
     def test_stress_tests(self):
-        res = timeit.repeat("dsp.dispatch({'a': 5, 'b': 6})",
-                            'from test_dispatcher import _setup_dsp; '
-                            'dsp = _setup_dsp()', repeat=3, number=1000)
+        res = timeit.repeat(
+            "dsp.dispatch({'a': 5, 'b': 6})",
+            'from %s import _setup_dsp; '
+            'dsp = _setup_dsp()' % __name__,
+            repeat=3, number=1000)
         res = sum(res) / 3
         print('dispatch with functions in %f ms/call' % res)
 
-        res1 = timeit.repeat("dsp.dispatch({'a': 5, 'b': 6}, no_call=True)",
-                             'from test_dispatcher import _setup_dsp; '
-                             'dsp = _setup_dsp()', repeat=3, number=1000)
+        res1 = timeit.repeat(
+            "dsp.dispatch({'a': 5, 'b': 6}, no_call=True)",
+            'from %s import _setup_dsp; '
+            'dsp = _setup_dsp()' % __name__,
+            repeat=3, number=1000)
         res1 = sum(res1) / 3
         print('dispatch without functions in %f ms/call' % res1)
         diff = res - res1
@@ -330,10 +334,11 @@ class TestPerformance(unittest.TestCase):
 
         res2 = timeit.repeat(
             "fun(5, 6)",
-            'from test_dispatcher import _setup_dsp;'
+            'from %s import _setup_dsp;'
             'from dispatcher.utils.dsp import SubDispatchFunction;'
             'dsp = _setup_dsp();'
-            'fun = SubDispatchFunction(dsp, "f", ["a", "b"], ["c", "d", "e"])',
+            'fun = SubDispatchFunction(dsp, "f", ["a", "b"], ["c", "d", "e"])'
+            % __name__,
             repeat=3, number=1000)
 
         res2 = sum(res2) / 3

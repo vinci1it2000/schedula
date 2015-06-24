@@ -7,10 +7,10 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 from setuptools import setup
-
+from doc.conf import release
 setup(
     name='dispatcher',
-    version='0.0.1',
+    version=release,
     packages=['dispatcher'],
     url='',
     license='',
