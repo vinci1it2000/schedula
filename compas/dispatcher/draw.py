@@ -92,7 +92,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
         >>> dot.save('draw/dsp.dot', dot_dir)
         '...'
 
-    .. graphviz:: /source/compas/dispatcher/draw/dsp.dot
+    .. graphviz:: /compas/dispatcher/draw/dsp.dot
 
     Dispatch in order to have a workflow::
 
@@ -104,7 +104,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
         >>> wf.save('draw/wf.dot', dot_dir)
         '...'
 
-    .. graphviz:: /source/compas/dispatcher/draw/wf.dot
+    .. graphviz:: /compas/dispatcher/draw/wf.dot
     """
 
     if workflow:
@@ -213,7 +213,6 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
             elif n['type'] == 'data':
                 kw = {'shape': 'Mrecord', 'fillcolor': 'cyan'}
                 node_label = _data_node_label(k, val, n, dist)
-
             else:
                 continue
 

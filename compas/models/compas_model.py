@@ -41,7 +41,7 @@ def def_compas_model():
         >>> dot.save('compas_model/dsp.dot', dot_dir)
         '...'
 
-    .. graphviz:: /source/compas/models/compas_model/dsp.dot
+    .. graphviz:: /compas/models/compas_model/dsp.dot
 
     Follow the input/output parameters of the `jrcgear_model` dispatcher:
 

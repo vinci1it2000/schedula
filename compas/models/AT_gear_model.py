@@ -39,7 +39,7 @@ def def_gear_model():
         >>> dot.save('AT_gear_model/dsp.dot', dot_dir)
         '...'
 
-    .. graphviz:: /source/compas/models/AT_gear_model/dsp.dot
+    .. graphviz:: /compas/models/AT_gear_model/dsp.dot
 
     Follow the input/output parameters of the `gear_model` dispatcher:
 
