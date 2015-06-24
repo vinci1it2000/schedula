@@ -6,9 +6,7 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-This module provides functions to predict the A/T gear shifting according to
-the decision tree approaches (DT...), the corrected matrix velocity (CMV), and
-the gear shifting power velocity matrix (GSPV).
+It contains functions to predict the A/T gear shifting.
 """
 
 __author__ = 'Arcidiacono Vincenzo'
@@ -42,7 +40,20 @@ MIN_ENGINE_SPEED = 10.0
 
 TIME_WINDOW = 4.0
 
-def get_full_load(name):
+
+def get_full_load(fuel_type):
+    """
+    Returns vehicle full load curve.
+
+    :param fuel_type:
+        Vehicle fuel type (diesel or gas).
+    :type fuel_type: str
+
+    :return:
+        Vehicle full load curve.
+    :rtype: InterpolatedUnivariateSpline
+    """
+
     full_load = {
         'gas': InterpolatedUnivariateSpline(
             np.linspace(0, 1.2, 13),
@@ -55,7 +66,7 @@ def get_full_load(name):
              0.772776746, 0.846217049, 0.906754984, 0.94977083, 0.981937981,
              1, 0.937598144, 0.85])
     }
-    return full_load[name]
+    return full_load[fuel_type]
 
 
 def clear_gear_fluctuations(times, gears, dt_window):
@@ -226,7 +237,7 @@ def calculate_velocity_speed_ratios(speed_velocity_ratios):
 
 def calculate_accelerations(times, velocities):
     """
-    Calculate the acceleration from velocity time series.
+    Calculates the acceleration from velocity time series.
 
     :param times:
         Time vector.
@@ -252,7 +263,7 @@ def calculate_accelerations(times, velocities):
 
 def calculate_wheel_powers(velocities, accelerations, road_loads, inertia):
     """
-    Calculate the wheel power.
+    Calculates the wheel power.
 
     :param velocities:
         Velocity vector.

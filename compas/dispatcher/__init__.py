@@ -7,8 +7,7 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-This page contains a comprehensive list of all modules and classes within
-dispatcher.
+It contains a comprehensive list of all modules and classes within dispatcher.
 
 Docstrings should provide sufficient understanding for any individual function.
 

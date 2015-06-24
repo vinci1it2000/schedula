@@ -1,6 +1,5 @@
 """
-This page contains a comprehensive list of all modules and classes within
-dispatcher.
+It contains a comprehensive list of all functions/formulas within CO2MPAS.
 
 Docstrings should provide sufficient understanding for any individual function.
 

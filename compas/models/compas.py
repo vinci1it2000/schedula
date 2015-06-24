@@ -6,7 +6,7 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-This module provides COMPAS model to predict light-vehicles' CO2 emissions.
+It provides COMPAS model to predict light-vehicles' CO2 emissions.
 
 The model is defined by a Dispatcher that wraps all the functions needed.
 """
@@ -80,12 +80,12 @@ def def_compas_model():
 
     :param predicted_gears:
         A dictionary with all the dispatcher outputs of the model defined by
-        :func:`compas.models.AT_gear.def_gear_model` to predict the gears.
+        :func:`compas.models.AT_gear.def_gear_models` to predict the gears.
     :type predicted_gears: dict, optional
 
     :param calculated_gear_box_engine_speeds:
         A dictionary with all the dispatcher outputs of the model defined by
-        :func:`compas.models.AT_gear.def_gear_model` to calculate gear box
+        :func:`compas.models.AT_gear.def_gear_models` to calculate gear box
         engine speeds.
     :type calculated_gear_box_engine_speeds: dict, optional
 
@@ -263,7 +263,8 @@ files_exclude_regex = re.compile('^\w')
 
 def process_folder_files(input_folder, output_folder):
     """
-    Processes all excel files in a folder with the `jrcgear_model`.
+    Processes all excel files in a folder with the model defined by
+    :func:`def_compas_model`.
 
     :param input_folder:
         Input folder.

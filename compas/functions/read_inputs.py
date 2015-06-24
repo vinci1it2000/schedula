@@ -1,3 +1,16 @@
+#-*- coding: utf-8 -*-
+#
+# Copyright 2015 European Commission (JRC);
+# Licensed under the EUPL (the 'Licence');
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+
+"""
+It contains functions to read vehicle inputs.
+
+.. note:: these functions are used in :mod:`compas.models.read_inputs`
+"""
+
 __author__ = 'Vincenzo Arcidiacono'
 
 
@@ -115,6 +128,7 @@ def parse_inputs(data, data_map):
 
 def merge_inputs(cycle_name, parameters, series):
     """
+    Merges vehicle's parameters and cycle's time series.
 
     :param cycle_name:
         Cycle name (NEDC or WLTP).

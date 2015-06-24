@@ -1,8 +1,5 @@
 """
-This page contains a comprehensive list of all modules and classes within
-dispatcher.
-
-Docstrings should provide sufficient understanding for any individual function.
+It contains a comprehensive list of all CO2MPAS models.
 
 Modules:
 
@@ -15,6 +12,8 @@ Modules:
     compas
     AT_gear
     read_inputs
+
+.. note:: The main model is compas.
 """
 __author__ = 'Vincenzo Arcidiacono'
 

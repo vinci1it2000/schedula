@@ -18,7 +18,7 @@ from networkx.utils import default_opener
 from graphviz import Digraph
 
 from .constants import START, SINK
-from compas.utils.dsp import SubDispatch
+from compas.utils.dsp import SubDispatch, SubDispatchFunction
 
 
 __all__ = ['dsp2dot']
@@ -106,6 +106,14 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
 
     .. graphviz:: /compas/dispatcher/draw/wf.dot
     """
+    inputs = []
+    outputs = []
+    if isinstance(dsp, SubDispatchFunction) and not workflow:
+        inputs = dsp.inputs
+        outputs = dsp.outputs
+        dsp = dsp.dsp
+    elif isinstance(dsp, SubDispatch):
+        dsp = dsp.dsp
 
     if workflow:
         if isinstance(workflow, tuple):
@@ -158,6 +166,14 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
     if START in g.node:
         kw = {'shape': 'egg', 'fillcolor': 'red'}
         dot_node(id_node(START), 'start', **kw)
+    elif inputs:
+        kw = {'shape': 'egg', 'fillcolor': 'red'}
+        u = id_node(START)
+        dot_node(u, 'start', **kw)
+
+        for i, v in enumerate(inputs):
+            dot.edge(u, id_node(v), xlabel=str(i))
+
 
     for k, v in g.node.items():
 
@@ -196,7 +212,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
                     lv = level - 1 if level != 'all' else level
 
                     dot.subgraph(dsp2dot(
-                        fun.dsp, wf, sub, edge_attr, level=lv,
+                        fun, wf, sub, edge_attr, level=lv,
                         function_module=function_module
                     ))
 
@@ -224,6 +240,16 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
         else:
             kw = {}
         dot.edge(id_node(u), id_node(v), **kw)
+
+    if outputs:
+        kw = {'shape': 'egg', 'fillcolor': 'blue'}
+
+        u = id_node(object())
+
+        dot_node(u, 'end', **kw)
+
+        for i, v in enumerate(outputs):
+            dot.edge(id_node(v), u, xlabel=str(i))
 
     if view:
         default_opener(dot.render())

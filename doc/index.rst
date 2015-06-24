@@ -6,9 +6,9 @@
 Welcome to COMPAS's documentation!
 ==================================
 
-Modules:
+.. toctree::
 
-.. automodule:: compas
+    API_Reference
 
 
 Indices and tables

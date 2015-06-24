@@ -5,7 +5,7 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 """
-This module provides model to read light-vehicles inputs.
+It provides model to read vehicle and cycle inputs.
 
 The model is defined by a Dispatcher that wraps all the functions needed.
 """
@@ -19,8 +19,22 @@ from compas.utils.dsp import SubDispatchFunction
 
 def def_load_inputs():
     """
+    Defines and returns a function that loads the vehicle data from a xl-file.
 
     :return:
+        A sub-dispatch function.
+    :rtype: SubDispatchFunction
+
+    .. testsetup::
+        >>> from compas.dispatcher.draw import dsp2dot
+        >>> dsp = def_load_inputs()
+        >>> dot = dsp2dot(dsp, level=0, function_module=False)
+        >>> from compas.models import dot_dir
+        >>> dot.save('read_inputs/dsp.dot', dot_dir)
+        '...'
+
+    .. graphviz:: /compas/models/read_inputs/dsp.dot
+
     """
     data = []
     functions = []

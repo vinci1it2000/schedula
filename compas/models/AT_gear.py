@@ -6,8 +6,7 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-This module provides a A/T gear shifting model to identify and predict the gear
-shifting.
+It provides a A/T gear shifting model to identify and predict the gear shifting.
 
 The model is defined by a Dispatcher that wraps all the functions needed.
 """
@@ -31,6 +30,23 @@ def def_gear_models():
         - error coefficients ids (e.g., error_coefficients_with_DT_VA)
     :rtype: (Dispatcher, list, list, list, list)
 
+    .. testsetup::
+        >>> from compas.dispatcher.draw import dsp2dot
+        >>> dsp = def_gear_models()
+        >>> dsp, error_coefficients = (dsp[0], dsp[-1])
+        >>> from compas.models import dot_dir
+        >>> dot = dsp2dot(dsp, level=0, function_module=False)
+        >>> s = dot.save('AT_gear/dsp0.dot', dot_dir)
+        >>> for i, m in enumerate(error_coefficients):
+        ...     s = dsp.shrink_dsp(outputs=[m])
+        ...     s.name = m.replace('error_coefficients_with_', '')
+        ...     dot = dsp2dot(s, level=0, function_module=False)
+        ...     s = dot.save('AT_gear/dsp%d.dot' % (i + 1), dot_dir)
+
+    Gear Shifting Model:
+
+    .. graphviz:: /compas/models/AT_gear/dsp0.dot
+
     Follow the input/output parameters of the `gear_model` dispatcher:
 
     \**********************************************************************
@@ -40,7 +56,7 @@ def def_gear_models():
     \**********************************************************************
 
     :param fuel_type:
-        Vehicle fuel type (diesel or gas)
+        Vehicle fuel type (diesel or gas).
     :type fuel_type: str, optional
 
     :param full_load_curve:
@@ -301,17 +317,6 @@ def def_gear_models():
          'gears_with_DT_VAP',
          'gears_with_DT_VAT',
          'gears_with_DT_VATP']
-
-    .. testsetup::
-        >>> from compas.dispatcher.draw import dsp2dot
-        >>> dsp = def_gear_models()
-        >>> dsp, error_coefficients = (dsp[0], dsp[-1])
-        >>> from compas.models import dot_dir
-        >>> for i, m in enumerate(error_coefficients):
-        ...     s = dsp.shrink_dsp(outputs=[m])
-        ...     s.name = m.replace('error_coefficients_with_', '')
-        ...     dot = dsp2dot(s, level=0, function_module=False)
-        ...     s = dot.save('AT_gear/dsp%d.dot' % i, dot_dir)
     """
 
     data = []
@@ -848,6 +853,10 @@ def def_CMV():
         - gear_model
     :rtype: Dispatcher
 
+    Corrected Matrix Velocity Approach:
+
+    .. graphviz:: /compas/models/AT_gear/dsp1.dot
+
     Follow the input/output parameters of the `gear_model` dispatcher:
 
     \**********************************************************************
@@ -857,7 +866,7 @@ def def_CMV():
     \**********************************************************************
 
     :param fuel_type:
-        Vehicle fuel type (diesel or gas)
+        Vehicle fuel type (diesel or gas).
     :type fuel_type: str, optional
 
     :param full_load_curve:
@@ -988,10 +997,6 @@ def def_CMV():
             - correlation coefficient.
             - mean absolute error.
     :type error_coefficients_with_'model': dict, optional
-
-    Corrected Matrix Velocity Approach:
-
-    .. graphviz:: /compas/models/AT_gear/dsp0.dot
     """
 
     model = 'CMV'
@@ -1009,6 +1014,10 @@ def def_CMV_Cold_Hot():
         - gear_model
     :rtype: Dispatcher
 
+    Corrected Matrix Velocity Approach with Cold/Hot:
+
+    .. graphviz:: /compas/models/AT_gear/dsp2.dot
+
     Follow the input/output parameters of the `gear_model` dispatcher:
 
     \**********************************************************************
@@ -1018,7 +1027,7 @@ def def_CMV_Cold_Hot():
     \**********************************************************************
 
     :param fuel_type:
-        Vehicle fuel type (diesel or gas)
+        Vehicle fuel type (diesel or gas).
     :type fuel_type: str, optional
 
     :param full_load_curve:
@@ -1152,10 +1161,6 @@ def def_CMV_Cold_Hot():
             - correlation coefficient.
             - mean absolute error.
     :type error_coefficients_with_'model': dict, optional
-
-    Corrected Matrix Velocity Approach with Cold/Hot:
-
-    .. graphviz:: /compas/models/AT_gear/dsp1.dot
     """
 
     model = 'CMV_Cold_Hot'
@@ -1173,6 +1178,10 @@ def def_GSPV():
         - gear_model
     :rtype: Dispatcher
 
+     Gear Shifting Power Velocity Approach:
+
+    .. graphviz:: /compas/models/AT_gear/dsp3.dot
+
     Follow the input/output parameters of the `gear_model` dispatcher:
 
     \**********************************************************************
@@ -1182,7 +1191,7 @@ def def_GSPV():
     \**********************************************************************
 
     :param fuel_type:
-        Vehicle fuel type (diesel or gas)
+        Vehicle fuel type (diesel or gas).
     :type fuel_type: str, optional
 
     :param full_load_curve:
@@ -1312,10 +1321,6 @@ def def_GSPV():
             - correlation coefficient.
             - mean absolute error.
     :type error_coefficients_with_'model': dict, optional
-
-    Gear Shifting Power Velocity Approach:
-
-    .. graphviz:: /compas/models/AT_gear/dsp2.dot
     """
 
     model = 'GSPV'
@@ -1333,6 +1338,10 @@ def def_GSPV_Cold_Hot():
         - gear_model
     :rtype: Dispatcher
 
+    Gear Shifting Power Velocity Approach with Cold/Hot:
+
+    .. graphviz:: /compas/models/AT_gear/dsp4.dot
+
     Follow the input/output parameters of the `gear_model` dispatcher:
 
     \**********************************************************************
@@ -1342,7 +1351,7 @@ def def_GSPV_Cold_Hot():
     \**********************************************************************
 
     :param fuel_type:
-        Vehicle fuel type (diesel or gas)
+        Vehicle fuel type (diesel or gas).
     :type fuel_type: str, optional
 
     :param full_load_curve:
@@ -1477,10 +1486,6 @@ def def_GSPV_Cold_Hot():
             - correlation coefficient.
             - mean absolute error.
     :type error_coefficients_with_'model': dict, optional
-
-    Gear Shifting Power Velocity Approach with Cold/Hot:
-
-    .. graphviz:: /compas/models/AT_gear/dsp3.dot
     """
 
     model = 'GSPV_Cold_Hot'
@@ -1498,6 +1503,10 @@ def def_DT_VA():
         - gear_model
     :rtype: Dispatcher
 
+    Decision Tree with Velocity & Acceleration:
+
+    .. graphviz:: /compas/models/AT_gear/dsp5.dot
+
     Follow the input/output parameters of the `gear_model` dispatcher:
 
     \**********************************************************************
@@ -1507,7 +1516,7 @@ def def_DT_VA():
     \**********************************************************************
 
     :param fuel_type:
-        Vehicle fuel type (diesel or gas)
+        Vehicle fuel type (diesel or gas).
     :type fuel_type: str, optional
 
     :param full_load_curve:
@@ -1637,10 +1646,6 @@ def def_DT_VA():
             - correlation coefficient.
             - mean absolute error.
     :type error_coefficients_with_'model': dict, optional
-
-    Decision Tree with Velocity & Acceleration:
-
-    .. graphviz:: /compas/models/AT_gear/dsp4.dot
     """
 
     model = 'DT_VA'
@@ -1658,6 +1663,10 @@ def def_DT_VAT():
         - gear_model
     :rtype: Dispatcher
 
+    Decision Tree with Velocity, Acceleration & Temperature:
+
+    .. graphviz:: /compas/models/AT_gear/dsp6.dot
+
     Follow the input/output parameters of the `gear_model` dispatcher:
 
     \**********************************************************************
@@ -1667,7 +1676,7 @@ def def_DT_VAT():
     \**********************************************************************
 
     :param fuel_type:
-        Vehicle fuel type (diesel or gas)
+        Vehicle fuel type (diesel or gas).
     :type fuel_type: str, optional
 
     :param full_load_curve:
@@ -1797,10 +1806,6 @@ def def_DT_VAT():
             - correlation coefficient.
             - mean absolute error.
     :type error_coefficients_with_'model': dict, optional
-
-    Decision Tree with Velocity, Acceleration & Temperature:
-
-    .. graphviz:: /compas/models/AT_gear/dsp5.dot
     """
 
     model = 'DT_VAT'
@@ -1818,6 +1823,10 @@ def def_DT_VAP():
         - gear_model
     :rtype: Dispatcher
 
+    Decision Tree with Velocity, Acceleration, & Wheel Power:
+
+    .. graphviz:: /compas/models/AT_gear/dsp7.dot
+
     Follow the input/output parameters of the `gear_model` dispatcher:
 
     \**********************************************************************
@@ -1827,7 +1836,7 @@ def def_DT_VAP():
     \**********************************************************************
 
     :param fuel_type:
-        Vehicle fuel type (diesel or gas)
+        Vehicle fuel type (diesel or gas).
     :type fuel_type: str, optional
 
     :param full_load_curve:
@@ -1957,10 +1966,6 @@ def def_DT_VAP():
             - correlation coefficient.
             - mean absolute error.
     :type error_coefficients_with_'model': dict, optional
-
-    Decision Tree with Velocity, Acceleration, & Wheel Power:
-
-    .. graphviz:: /compas/models/AT_gear/dsp6.dot
     """
 
     model = 'DT_VAP'
@@ -1978,6 +1983,10 @@ def def_DT_VATP():
         - gear_model
     :rtype: Dispatcher
 
+    Decision Tree with Velocity, Acceleration, Temperature, & Wheel Power:
+
+    .. graphviz:: /compas/models/AT_gear/dsp8.dot
+
     Follow the input/output parameters of the `gear_model` dispatcher:
 
     \**********************************************************************
@@ -1987,7 +1996,7 @@ def def_DT_VATP():
     \**********************************************************************
 
     :param fuel_type:
-        Vehicle fuel type (diesel or gas)
+        Vehicle fuel type (diesel or gas).
     :type fuel_type: str, optional
 
     :param full_load_curve:
@@ -2117,10 +2126,6 @@ def def_DT_VATP():
             - correlation coefficient.
             - mean absolute error.
     :type error_coefficients_with_'model': dict, optional
-
-    Decision Tree with Velocity, Acceleration, Temperature, & Wheel Power:
-
-    .. graphviz:: /compas/models/AT_gear/dsp7.dot
     """
 
     model = 'DT_VATP'
