@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 
+from dispatcher import Dispatcher
+
 from sphinx.ext.autosummary.generate import *
 
 from sphinx.ext.autosummary.generate import _simple_warn, _simple_info
+
 
 def generate_autosummary_docs(sources, output_dir=None, suffix='.rst',
                               warn=_simple_warn, info=_simple_info,
@@ -112,6 +115,14 @@ def generate_autosummary_docs(sources, output_dir=None, suffix='.rst',
                                  get_members(obj, 'class')
                 ns['exceptions'], ns['all_exceptions'] = \
                                    get_members(obj, 'exception')
+                ns['data'], ns['all_data'] = \
+                                   get_members(obj, 'data', imported=True)
+
+                ns['data'] = ', '.join(ns['data'])
+                ns['all_data'] = ', '.join(ns['all_data'])
+
+                ns['dispatchers'], ns['all_dispatchers'] = \
+                                   get_members(obj, 'dispatcher', imported=True)
             elif doc.objtype == 'class':
                 ns['members'] = dir(obj)
                 ns['methods'], ns['all_methods'] = \
@@ -148,6 +159,95 @@ def generate_autosummary_docs(sources, output_dir=None, suffix='.rst',
                                   base_path=base_path, builder=builder,
                                   template_dir=template_dir)
 
+from sphinx.ext.autodoc import *
+
+
+class DispatcherDocumenter(DocstringSignatureMixin, ModuleLevelDocumenter):
+    """
+    Specialized Documenter subclass for classes.
+    """
+    objtype = 'dispatcher'
+    member_order = 20
+    option_spec = {
+        'data': members_option, 'functions': members_option,
+    }
+
+    @classmethod
+    def can_document_member(cls, member, membername, isattr, parent):
+        return isinstance(parent, ModuleDocumenter) and \
+               isinstance(member, Dispatcher)
+
+    def import_object(self):
+        return ModuleLevelDocumenter.import_object(self)
+
+    def format_args(self):
+        # for classes, the relevant signature is the __init__ method's
+        initmeth = self.get_attr(self.object, 'nodes', None)
+
+        if initmeth:
+            return None
+        try:
+            argspec = getargspec(initmeth)
+        except TypeError:
+            return None
+        if argspec[0] and argspec[0][0] in ('cls', 'self'):
+            del argspec[0][0]
+        return formatargspec(*argspec)
+
+    def add_directive_header(self, sig):
+        self.directivetype = 'attribute'
+        Documenter.add_directive_header(self, sig)
+
+    def get_doc(self, encoding=None, ignore=1):
+        lines = getattr(self, '_new_docstrings', None)
+        if lines is not None:
+            return lines
+
+        content = self.env.config.autoclass_content
+
+        docstrings = []
+        attrdocstring = self.get_attr(self.object, '__doc__', None)
+        if attrdocstring:
+            docstrings.append(attrdocstring)
+
+        # for classes, what the "docstring" is can be controlled via a
+        # config value; the default is only the class docstring
+        if content in ('both', 'init'):
+            initdocstring = self.get_attr(
+                self.get_attr(self.object, '__init__', None), '__doc__')
+            # for new-style classes, no __init__ means default __init__
+            if (initdocstring is not None and
+                (initdocstring == object.__init__.__doc__ or  # for pypy
+                 initdocstring.strip() == object.__init__.__doc__)):  # for !pypy
+                initdocstring = None
+            if initdocstring:
+                if content == 'init':
+                    docstrings = [initdocstring]
+                else:
+                    docstrings.append(initdocstring)
+        doc = []
+        for docstring in docstrings:
+            if not isinstance(docstring, text_type):
+                docstring = force_decode(docstring, encoding)
+            doc.append(prepare_docstring(docstring))
+        return doc
+
+    def add_content(self, more_content, no_docstring=False):
+        classname = safe_getattr(self.object, '__name__', None)
+        if classname:
+            content = ViewList(
+                [_('alias of :class:`%s`') % classname], source='')
+            ModuleLevelDocumenter.add_content(self, content,
+                                              no_docstring=True)
+
+    def document_members(self, all_members=False):
+        return
+
 import sphinx.ext.autosummary.generate as gen
+
 gen.generate_autosummary_docs = generate_autosummary_docs
-from sphinx.ext.autosummary import setup
+
+def setup(app):
+    from sphinx.ext.autosummary import setup as autosetup
+    autosetup(app)
+    app.add_autodocumenter(DispatcherDocumenter)

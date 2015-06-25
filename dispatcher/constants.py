@@ -8,36 +8,6 @@
 
 """
 It provides constants data node ids and values.
-
-
-.. data:: EMPTY
-   :annotation: = Empty value.
-
-   It is used set and unset empty values.
-
-.. seealso:: :func:`~dispatcher.Dispatcher.set_default_value`
-
-.. data:: START
-   :annotation: = Starting node for the workflow.
-
-   Starting node that identifies initial inputs of the workflow.
-
-.. seealso:: :func:`~dispatcher.Dispatcher.dispatch`
-
-.. data:: NONE
-   :annotation: = None value.
-
-   Fake value used to set a default value to call functions without arguments.
-
-.. seealso:: :func:`~dispatcher.Dispatcher.add_function`
-
-.. data:: SINK
-   :annotation: = Sink node of the dispatcher.
-
-   Sink node of the dispatcher that collects all unused outputs.
-
-.. seealso:: :func:`~dispatcher.Dispatcher.add_data`,
-   :func:`~dispatcher.Dispatcher.add_function`
 """
 
 __author__ = 'Vincenzo Arcidiacono'
@@ -46,14 +16,23 @@ from .utils.gen import Token
 
 __all__ = ['EMPTY', 'START', 'NONE', 'SINK']
 
-
+#: It is used set and unset empty values.
+#:
+#: .. seealso:: :func:`~dispatcher.Dispatcher.set_default_value`
 EMPTY = Token('empty')
 
-
+#: Starting node that identifies initial inputs of the workflow.
+#:
+#: .. seealso:: :func:`~dispatcher.Dispatcher.dispatch`
 START = Token('start')
 
-
+#: Fake value used to set a default value to call functions without arguments.
+#:
+#: .. seealso:: :func:`~dispatcher.Dispatcher.add_function`
 NONE = Token('none')
 
-
+#: Sink node of the dispatcher that collects all unused outputs.
+#:
+#: .. seealso:: :func:`~dispatcher.Dispatcher.add_data`,
+#:    :func:`~dispatcher.Dispatcher.add_function`
 SINK = Token('sink')

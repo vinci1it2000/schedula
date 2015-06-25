@@ -3,15 +3,15 @@ digraph Dispatcher {
 	node [style=filled]
 	label = "Dispatcher"
 	splines = ortho
-		Dispatcher_2454507358469954929 [label="{ d | function = average_fun | callback = callback_fun | default = 4 | wait_inputs = True }" fillcolor=cyan shape=Mrecord]
-		Dispatcher_6185816497042703556 [label="{ b | default = 1 }" fillcolor=cyan shape=Mrecord]
-		"Dispatcher_-6053996528196385240" [label="{ c  }" fillcolor=cyan shape=Mrecord]
-		Dispatcher_2203997267912285163 [label="{ a  }" fillcolor=cyan shape=Mrecord]
-		"Dispatcher_-2658388023599773892" [label="{ diff_function  }" fillcolor=springgreen shape=record]
-		"Dispatcher_-162521449536860787" [label="{ log | input_domain = log_domain }" fillcolor=springgreen shape=record]
-			Dispatcher_6185816497042703556 -> "Dispatcher_-2658388023599773892"
-			"Dispatcher_-6053996528196385240" -> "Dispatcher_-162521449536860787"
-			Dispatcher_2203997267912285163 -> "Dispatcher_-2658388023599773892"
-			"Dispatcher_-2658388023599773892" -> "Dispatcher_-6053996528196385240"
-			"Dispatcher_-162521449536860787" -> Dispatcher_2454507358469954929
+		Dispatcher_483858525469303520 [label="{ a  }" fillcolor=cyan shape=Mrecord]
+		"Dispatcher_-8910526491154162589" [label="{ diff_function  }" fillcolor=springgreen shape=record]
+		"Dispatcher_-7216187140594408253" [label="{ log | input_domain = log_domain }" fillcolor=springgreen shape=record]
+		"Dispatcher_-8490501165579404505" [label="{ b | default = 1 }" fillcolor=cyan shape=Mrecord]
+		Dispatcher_2483061293966101162 [label="{ c  }" fillcolor=cyan shape=Mrecord]
+		"Dispatcher_-4481680193965843537" [label="{ d | function = average_fun | default = 4 | callback = callback_fun | wait_inputs = True }" fillcolor=cyan shape=Mrecord]
+			Dispatcher_483858525469303520 -> "Dispatcher_-8910526491154162589"
+			"Dispatcher_-8910526491154162589" -> Dispatcher_2483061293966101162
+			"Dispatcher_-7216187140594408253" -> "Dispatcher_-4481680193965843537"
+			"Dispatcher_-8490501165579404505" -> "Dispatcher_-8910526491154162589"
+			Dispatcher_2483061293966101162 -> "Dispatcher_-7216187140594408253"
 }

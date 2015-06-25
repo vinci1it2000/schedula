@@ -45,7 +45,7 @@ from collections import deque
 
 from networkx import DiGraph, isolates
 
-from .utils.gen import AttrDict, counter
+from .utils.gen import AttrDict, counter, caller_name
 from .utils.alg import add_edge_fun, remove_cycles_iteration
 from .constants import EMPTY, START, NONE, SINK
 from .utils.dsp import SubDispatch, bypass
@@ -277,6 +277,8 @@ class Dispatcher(object):
 
         #: Data nodes that waits inputs. They are used in `shrink_dsp`.
         self._wait_in = {}
+
+        self.__module__ = caller_name()
 
     def add_data(self, data_id=None, default_value=EMPTY, wait_inputs=False,
                  wildcard=None, function=None, callback=None, **kwargs):
