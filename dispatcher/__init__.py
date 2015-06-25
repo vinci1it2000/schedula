@@ -198,7 +198,7 @@ class Dispatcher(object):
     """
 
     def __init__(self, dmap=None, name='Dispatcher', default_values=None,
-                 raises=False):
+                 raises=False, description=''):
         """
         Initializes the dispatcher.
 
@@ -219,6 +219,10 @@ class Dispatcher(object):
             If True the dispatcher interrupt the dispatch when an error occur,
             otherwise it logs a warning.
         :type raises: bool, optional
+
+        :param description:
+            The dispatcher's description.
+        :type description: str, optional
         """
 
         #: The directed graph that stores data & functions parameters.
@@ -226,6 +230,10 @@ class Dispatcher(object):
 
         #: The dispatcher's name.
         self.name = name
+
+        #: The dispatcher's description.
+        self.description = description
+
         self.dmap.node = AttrDict(self.dmap.node)
 
         #: The function and data nodes of the dispatcher.

@@ -46,6 +46,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.graphviz',
     'autosummary',
+    'autodispatcher',
 ]
 
 autosummary_generate = True

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from dispatcher import Dispatcher
 
 from sphinx.ext.autosummary.generate import *
 
@@ -159,95 +158,27 @@ def generate_autosummary_docs(sources, output_dir=None, suffix='.rst',
                                   base_path=base_path, builder=builder,
                                   template_dir=template_dir)
 
-from sphinx.ext.autodoc import *
 
+def process_generate_options(app):
+    genfiles = app.config.autosummary_generate
 
-class DispatcherDocumenter(DocstringSignatureMixin, ModuleLevelDocumenter):
-    """
-    Specialized Documenter subclass for classes.
-    """
-    objtype = 'dispatcher'
-    member_order = 20
-    option_spec = {
-        'data': members_option, 'functions': members_option,
-    }
+    if genfiles and not hasattr(genfiles, '__len__'):
+        env = app.builder.env
+        genfiles = [env.doc2path(x, base=None) for x in env.found_docs
+                    if os.path.isfile(env.doc2path(x))]
 
-    @classmethod
-    def can_document_member(cls, member, membername, isattr, parent):
-        return isinstance(parent, ModuleDocumenter) and \
-               isinstance(member, Dispatcher)
-
-    def import_object(self):
-        return ModuleLevelDocumenter.import_object(self)
-
-    def format_args(self):
-        # for classes, the relevant signature is the __init__ method's
-        initmeth = self.get_attr(self.object, 'nodes', None)
-
-        if initmeth:
-            return None
-        try:
-            argspec = getargspec(initmeth)
-        except TypeError:
-            return None
-        if argspec[0] and argspec[0][0] in ('cls', 'self'):
-            del argspec[0][0]
-        return formatargspec(*argspec)
-
-    def add_directive_header(self, sig):
-        self.directivetype = 'attribute'
-        Documenter.add_directive_header(self, sig)
-
-    def get_doc(self, encoding=None, ignore=1):
-        lines = getattr(self, '_new_docstrings', None)
-        if lines is not None:
-            return lines
-
-        content = self.env.config.autoclass_content
-
-        docstrings = []
-        attrdocstring = self.get_attr(self.object, '__doc__', None)
-        if attrdocstring:
-            docstrings.append(attrdocstring)
-
-        # for classes, what the "docstring" is can be controlled via a
-        # config value; the default is only the class docstring
-        if content in ('both', 'init'):
-            initdocstring = self.get_attr(
-                self.get_attr(self.object, '__init__', None), '__doc__')
-            # for new-style classes, no __init__ means default __init__
-            if (initdocstring is not None and
-                (initdocstring == object.__init__.__doc__ or  # for pypy
-                 initdocstring.strip() == object.__init__.__doc__)):  # for !pypy
-                initdocstring = None
-            if initdocstring:
-                if content == 'init':
-                    docstrings = [initdocstring]
-                else:
-                    docstrings.append(initdocstring)
-        doc = []
-        for docstring in docstrings:
-            if not isinstance(docstring, text_type):
-                docstring = force_decode(docstring, encoding)
-            doc.append(prepare_docstring(docstring))
-        return doc
-
-    def add_content(self, more_content, no_docstring=False):
-        classname = safe_getattr(self.object, '__name__', None)
-        if classname:
-            content = ViewList(
-                [_('alias of :class:`%s`') % classname], source='')
-            ModuleLevelDocumenter.add_content(self, content,
-                                              no_docstring=True)
-
-    def document_members(self, all_members=False):
+    if not genfiles:
         return
 
-import sphinx.ext.autosummary.generate as gen
+    ext = app.config.source_suffix[0]
+    genfiles = [genfile + (not genfile.endswith(ext) and ext or '')
+                for genfile in genfiles]
 
-gen.generate_autosummary_docs = generate_autosummary_docs
+    generate_autosummary_docs(genfiles, builder=app.builder,
+                              warn=app.warn, info=app.info, suffix=ext,
+                              base_path=app.srcdir)
+
 
 def setup(app):
-    from sphinx.ext.autosummary import setup as autosetup
-    autosetup(app)
-    app.add_autodocumenter(DispatcherDocumenter)
+    app.setup_extension('sphinx.ext.autosummary')
+    app.connect('builder-inited', process_generate_options)
