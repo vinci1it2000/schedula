@@ -1266,7 +1266,6 @@ def prediction_gears_gsm(
     return gear
 
 
-
 def prediction_gears_gsm_hot_cold(
         correct_gear, gsm, time_cold_hot_transition, times, velocities,
         accelerations, wheel_powers=None):

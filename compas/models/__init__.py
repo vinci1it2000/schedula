@@ -9,6 +9,7 @@ It contains a comprehensive list of all CO2MPAS models:
 
     compas
     AT_gear
+    gear_box
     read_inputs
 
 .. note:: The main model is compas.

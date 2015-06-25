@@ -19,6 +19,7 @@ Modules:
     :toctree: functions/
 
     AT_gear
+    gear_box
     plot
     read_inputs
     write_outputs
