@@ -22,6 +22,7 @@ Dispatcher:
 
       Dispatcher
 
+
 Modules:
 
 .. currentmodule:: dispatcher
@@ -34,6 +35,7 @@ Modules:
     draw
     constants
     utils
+    new
 """
 
 __author__ = 'Vincenzo Arcidiacono'

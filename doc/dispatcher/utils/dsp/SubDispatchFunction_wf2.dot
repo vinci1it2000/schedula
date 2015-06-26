@@ -1,18 +1,18 @@
 digraph "Created function internal" {
 	graph [ratio=1]
 	node [style=filled]
-	splines = ortho
 	label = "Created function internal workflow"
-		"Created function internal_4373676344" [label=start fillcolor=red shape=egg]
-		"Created function internal_-4863238121632644504" [label="{ b | distance = 0 | output = 0 }" fillcolor=cyan shape=Mrecord]
-		"Created function internal_-7525193253846915964" [label="{ c | distance = 2 | output = 1 }" fillcolor=cyan shape=Mrecord]
-		"Created function internal_-1641313092816415866" [label="{ log(x - 1) | distance = 3 }" fillcolor=springgreen shape=record]
-		"Created function internal_-1299726788120471209" [label="{ max | distance = 1 }" fillcolor=springgreen shape=record]
-		"Created function internal_5281915415694126460" [label="{ a  }" fillcolor=cyan shape=Mrecord]
-			"Created function internal_-4863238121632644504" -> "Created function internal_-1299726788120471209" [xlabel=0]
-			"Created function internal_-7525193253846915964" -> "Created function internal_-1641313092816415866" [xlabel=1]
-			"Created function internal_-1299726788120471209" -> "Created function internal_-7525193253846915964" [xlabel=1]
-			"Created function internal_4373676344" -> "Created function internal_-4863238121632644504" [xlabel=0]
-			"Created function internal_4373676344" -> "Created function internal_5281915415694126460" [xlabel=1]
-			"Created function internal_5281915415694126460" -> "Created function internal_-1299726788120471209" [xlabel=1]
+	splines = ortho
+		"Created function internal_78709768" [label=start fillcolor=red shape=egg]
+		"Created function internal_5285838715725610368" [label="{ a  }" fillcolor=cyan shape=Mrecord]
+		"Created function internal_-8603157216472985936" [label="{ max | distance = 1 }" fillcolor=springgreen shape=record]
+		"Created function internal_-1283898629557077595" [label="{ c | output = 1 | distance = 2 }" fillcolor=cyan shape=Mrecord]
+		"Created function internal_842756815190668186" [label="{ b | output = 0 | distance = 0 }" fillcolor=cyan shape=Mrecord]
+		"Created function internal_-7700641190460666817" [label="{ log(x - 1) | distance = 3 }" fillcolor=springgreen shape=record]
+			"Created function internal_5285838715725610368" -> "Created function internal_-8603157216472985936" [xlabel=1]
+			"Created function internal_-8603157216472985936" -> "Created function internal_-1283898629557077595" [xlabel=1]
+			"Created function internal_-1283898629557077595" -> "Created function internal_-7700641190460666817" [xlabel=1]
+			"Created function internal_78709768" -> "Created function internal_5285838715725610368" [xlabel=1]
+			"Created function internal_78709768" -> "Created function internal_842756815190668186" [xlabel=0]
+			"Created function internal_842756815190668186" -> "Created function internal_-8603157216472985936" [xlabel=0]
 }

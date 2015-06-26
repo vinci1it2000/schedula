@@ -1,16 +1,16 @@
 digraph Dispatcher {
 	graph [ratio=1]
 	node [style=filled]
-	splines = ortho
 	label = "Dispatcher workflow"
-		Dispatcher_4373676344 [label=start fillcolor=red shape=egg]
-		"Dispatcher_-4863238121632644504" [label="{ b | distance = 0 | output = 3 }" fillcolor=cyan shape=Mrecord]
-		"Dispatcher_-5827508458787275582" [label="{ max1 | distance = 1 }" fillcolor=springgreen shape=record]
-		"Dispatcher_-7525193253846915964" [label="{ c  }" fillcolor=cyan shape=Mrecord]
-		Dispatcher_5281915415694126460 [label="{ a | distance = 0 | output = 1 }" fillcolor=cyan shape=Mrecord]
-			"Dispatcher_-4863238121632644504" -> "Dispatcher_-5827508458787275582" [xlabel=3]
-			"Dispatcher_-5827508458787275582" -> "Dispatcher_-7525193253846915964" [xlabel=3]
-			Dispatcher_4373676344 -> "Dispatcher_-4863238121632644504" [xlabel=3]
-			Dispatcher_4373676344 -> Dispatcher_5281915415694126460 [xlabel=1]
-			Dispatcher_5281915415694126460 -> "Dispatcher_-5827508458787275582" [xlabel=1]
+	splines = ortho
+		Dispatcher_78709768 [label=start fillcolor=red shape=egg]
+		Dispatcher_5285838715725610368 [label="{ a | output = 1 | distance = 0 }" fillcolor=cyan shape=Mrecord]
+		"Dispatcher_-1283898629557077595" [label="{ c  }" fillcolor=cyan shape=Mrecord]
+		Dispatcher_5113480376194660071 [label="{ max1 | distance = 1 }" fillcolor=springgreen shape=record]
+		Dispatcher_842756815190668186 [label="{ b | output = 3 | distance = 0 }" fillcolor=cyan shape=Mrecord]
+			Dispatcher_5285838715725610368 -> Dispatcher_5113480376194660071 [xlabel=1]
+			Dispatcher_5113480376194660071 -> "Dispatcher_-1283898629557077595" [xlabel=3]
+			Dispatcher_78709768 -> Dispatcher_5285838715725610368 [xlabel=1]
+			Dispatcher_78709768 -> Dispatcher_842756815190668186 [xlabel=3]
+			Dispatcher_842756815190668186 -> Dispatcher_5113480376194660071 [xlabel=3]
 }
