@@ -13,6 +13,7 @@ It contains functions to estimate the gear box efficiency.
 __author__ = 'Arcidiacono Vincenzo'
 from compas.dispatcher import Dispatcher
 from compas.functions.gear_box import *
+from compas.utils.dsp import bypass
 
 def def_gear_box_model():
     """
@@ -67,33 +68,56 @@ def def_gear_box_model():
     ])
 
     """
-    Torques out
-    ===========
+    Torques gear box
+    ================
     """
 
     functions.extend([
         {
-           'function': calculate_torques_out,
+           'function': calculate_torques_gear_box,
            'inputs': ['wheel_powers', 'engine_speeds', 'wheel_speeds'],
-           'outputs': ['torques_out'],
+           'outputs': ['torques_gear_box'],
         },
     ])
 
     """
-    Torques required hot/cold
-    =========================
+    Torques required
+    ================
     """
+
+    data.extend([
+        {'data_id': 'temperature_references', 'default_value': (40, 80)}
+    ])
 
     functions.extend([
         {
-           'function': calculate_torques_required_hot_cold,
-           'inputs': ['torques_out', 'engine_speeds', 'wheel_speeds',
+           'function': calculate_torques_required,
+           'inputs': ['torques_gear_box', 'engine_speeds', 'wheel_speeds',
                       'temperatures', 'gear_box_efficiency_parameters',
                       'temperature_references'],
-           'outputs': ['torques_required_hot_cold'],
+           'outputs': ['torques_required<0>'],
         },
     ])
 
+    """
+    Correct Torques required
+    ========================
+    """
+
+    functions.extend([
+        {
+           'function': correct_torques_required,
+           'inputs': ['torques_gear_box', 'torques_required<0>', 'gears',
+                      'gear_box_ratios'],
+           'outputs': ['torques_required'],
+        },
+        {
+           'function': bypass,
+           'inputs': ['torques_required<0>'],
+           'outputs': ['torques_required'],
+           'weight': 100,
+        },
+    ])
 
 
     """
@@ -105,8 +129,8 @@ def def_gear_box_model():
         {
            'function': calculate_gear_box_efficiencies,
            'inputs': ['wheel_powers', 'engine_speeds', 'wheel_speeds',
-                      'torques_out', 'torques_required_hot_cold'],
-           'outputs': ['gear_box_efficiencies'],
+                      'torques_gear_box', 'torques_required'],
+           'outputs': ['gear_box_efficiencies', 'gear_box_torque_losses'],
         },
     ])
 

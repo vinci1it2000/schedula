@@ -40,7 +40,7 @@ def get_gear_box_efficiency_constants(gear_box_type):
         'manual': {
             'gbp00': {'m': -0.0034, 'q': {'hot': -0.3119, 'cold': -0.7119}},
             'gbp10': {'q': {'hot': -0.00018, 'cold': 0}},
-            'gbp01': {'q': {'hot': 0.965, 'cold': 0.965}},
+            'gbp01': {'q': {'hot': 0.97, 'cold': 0.97}},
         }
     }
 
@@ -90,9 +90,9 @@ def calculate_gear_box_efficiency_parameters(
     return par
 
 
-def calculate_torques_out(wheel_powers, engine_speeds, wheel_speeds):
+def calculate_torques_gear_box(wheel_powers, engine_speeds, wheel_speeds):
     """
-    Calculates torque out.
+    Calculates torque entering the gear box.
 
     :param wheel_powers:
         Power at wheels vector.
@@ -107,8 +107,11 @@ def calculate_torques_out(wheel_powers, engine_speeds, wheel_speeds):
     :type wheel_speeds: np.array
 
     :return:
-        Torque out vector.
+        Torque gear box vector.
     :rtype: np.array
+
+    .. note:: Torque entering the gearbox can be from engine side
+       (power mode or from wheels in motoring mode)
     """
 
     x = np.where(wheel_powers > 0, engine_speeds, wheel_speeds)
@@ -122,15 +125,15 @@ def calculate_torques_out(wheel_powers, engine_speeds, wheel_speeds):
     return y * (30000 / pi)
 
 
-def calculate_torques_required_hot_cold(
-        torques_out, engine_speeds, wheel_speeds, temperatures,
+def calculate_torques_required(
+        torques_gear_box, engine_speeds, wheel_speeds, temperatures,
         gear_box_efficiency_parameters, temperature_references):
     """
     Calculates torque required according to the temperature profile.
 
-    :param torques_out:
-        Torque out vector.
-    :type torques_out: np.array
+    :param torques_gear_box:
+        Torque gear box vector.
+    :type torques_gear_box: np.array
 
     :param engine_speeds:
         Engine speed vector.
@@ -162,8 +165,8 @@ def calculate_torques_required_hot_cold(
 
     par = gear_box_efficiency_parameters
     T_cold, T_hot = temperature_references
-    t_out, e_s, gb_s = torques_out, engine_speeds, wheel_speeds
-    fun = calculate_torques_required
+    t_out, e_s, gb_s = torques_gear_box, engine_speeds, wheel_speeds
+    fun = torques_required
 
     t = fun(t_out, e_s, gb_s, par['hot'])
 
@@ -177,13 +180,13 @@ def calculate_torques_required_hot_cold(
     return t
 
 
-def calculate_torques_required(torques_out, engine_speeds, wheel_speeds, par):
+def torques_required(torques_gear_box, engine_speeds, wheel_speeds, par):
     """
     Calculates torque required according to the temperature profile.
 
-    :param torques_out:
-        Torque out vector.
-    :type torques_out: np.array
+    :param torques_gear_box:
+        Torque gear_box vector.
+    :type torques_gear_box: np.array
 
     :param engine_speeds:
         Engine speed vector.
@@ -206,26 +209,37 @@ def calculate_torques_required(torques_out, engine_speeds, wheel_speeds, par):
     :rtype: np.array
     """
 
-    t_out, es, ws = torques_out, engine_speeds, wheel_speeds
+    tgb, es, ws = torques_gear_box, engine_speeds, wheel_speeds
 
-    b = t_out < 0
+    b = tgb < 0
 
-    y = np.zeros(t_out.shape)
+    y = np.zeros(tgb.shape)
 
-    y[b] = par['gbp01'] * t_out[b] - par['gbp10'] * ws[b] - par['gbp00']
+    y[b] = par['gbp01'] * tgb[b] - par['gbp10'] * ws[b] - par['gbp00']
 
     b = (np.logical_not(b)) & (es > MIN_ENGINE_SPEED) & (ws > MIN_ENGINE_SPEED)
 
-    y[b] = (t_out[b] - par['gbp10'] * es[b] - par['gbp00']) / par['gbp01']
+    y[b] = (tgb[b] - par['gbp10'] * es[b] - par['gbp00']) / par['gbp01']
 
     return y
 
 
+def correct_torques_required(torques_gear_box, torques_required, gears, gear_box_ratios):
+
+    b = np.zeros(gears.shape, dtype=bool)
+
+    for k, v in gear_box_ratios.items():
+        if v == 1:
+            b |= gears == k
+
+    return np.where(b, torques_gear_box, torques_required)
+
+
 def calculate_gear_box_efficiencies(
-        wheel_powers, engine_speeds, wheel_speeds, torques_out,
-        torques_required_hot_cold):
+        wheel_powers, engine_speeds, wheel_speeds, torques_gear_box,
+        torques_required):
     """
-    Calculates torque out.
+    Calculates torque entering the gear box.
 
     :param wheel_powers:
         Power at wheels vector.
@@ -242,17 +256,20 @@ def calculate_gear_box_efficiencies(
     :return:
         Torque out vector.
     :rtype: np.array
+
+    .. note:: Torque entering the gearbox can be from engine side
+       (power mode or from wheels in motoring mode)
     """
 
     wp = wheel_powers
-    t_o = torques_out
-    tr = torques_required_hot_cold
+    tgb = torques_gear_box
+    tr = torques_required
     ws = wheel_speeds
     es = engine_speeds
 
     eff = np.zeros(wp.shape)
 
-    b0 = tr * t_o >= 0
+    b0 = tr * tgb >= 0
     b1 = (b0) & (wp >= 0) & (es > MIN_ENGINE_SPEED) & (tr != 0)
     b = (((b0) & (wp < 0)) | (b1))
 
@@ -262,4 +279,4 @@ def calculate_gear_box_efficiencies(
 
     eff[b1] = 1 / eff[b1]
 
-    return eff
+    return eff, tr - tgb

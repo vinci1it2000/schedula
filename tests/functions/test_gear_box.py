@@ -28,27 +28,33 @@ class TestGearBox(unittest.TestCase):
             'hot': {'gbp00': -3.0482, 'gbp01': 0.965, 'gbp10': -0.0012}
         }
         self.pm = {
-            'cold': {'gbp00': -1.3919, 'gbp01': 0.965, 'gbp10': 0.0},
-            'hot': {'gbp00': -0.9919, 'gbp01': 0.965, 'gbp10': -0.00018}
+            'cold': {'gbp00': -1.3919, 'gbp01': 0.97, 'gbp10': 0.0},
+            'hot': {'gbp00': -0.9919, 'gbp01': 0.97, 'gbp10': -0.00018}
         }
         self.mt = 200.0
-        self.wp = np.array(
-            [0.0, 2.472771222, 0.557047604, -3.211491601, -0.544354754])
+        self.wp = np.array([0.0, 2.472771222, 0.557047604, -3.211491601,
+                            -0.544354754])
         self.es = np.array([2058.0, 1117.0, 1937.0, 1261.0, 890.0])
         self.ws = np.array([0.0, 64.8, 129.6, 108.0, 0.0])
-        self.to = np.array(
-            [0.0, 21.139861940018971, 2.746212071680846, -283.95820166514159, 0.0])
-        self.trc = np.array(
-            [0.0, 23.348976103646603, 4.2881990380112391, -272.6277646068616, 0.0])
-        self.trh = np.array(
-            [0.0, 23.142820663232097, 4.2349969654723791, -273.00832460686166, 0.0])
-        self.tr = np.array(
-            [0.0, 23.441661265202836, 4.3120452553497985, -272.45791177851459, 0.0])
-        self.T = np.array(
-            [22.0, 22.01645101, 22.07121174, 22.1470645, 22.1470645])
+        self.tgb = np.array([0.0, 21.139861940018971, 2.746212071680846,
+                             -283.95820166514159, 0.0])
+        self.trc = np.array([0.0, 23.228620556720589, 4.2660949192586042,
+                             -274.04755561518732, 0.0])
+        self.trh = np.array([0.0, 23.023527773215438, 4.2131670842070577,
+                             -274.42811561518738, 0.0])
+        self.tr = np.array([0.0, 23.320827959712098, 4.2898182179510886,
+                            -273.8777027868403, 0.0])
+        self.T = np.array([22.0, 22.01645101, 22.07121174, 22.1470645,
+                           22.1470645])
         self.Tr = (40.0, 80.0)
-        self.eff = np.array(
-            [0.0, 0.90180732930388796, 0.63686995591563433, 0.95950006085688355, -0.0])
+        self.eff = np.array([0.0, 0.90647990613965945, 0.64016980024680337,
+                             0.96450006085688356, -0.0])
+        self.tl = np.array([0.0, 2.1809660196931269, 1.5436061462702426,
+                            10.080498878301285, 0.0])
+        self.g = np.array([0, 1, 1, 2, 0])
+        self.gbr = {0: 1, 1: 1, 2: 0.5}
+        self.tcorr = np.array([0.0, 21.139861940018971, 2.746212071680846,
+                               -273.8777027868403, 0.0])
 
     def test_gb_eff_parameters(self):
         c = get_gear_box_efficiency_constants('automatic')
@@ -63,22 +69,30 @@ class TestGearBox(unittest.TestCase):
 
     def test_calculate_torque_out(self):
         wp, es, gbs = self.wp, self.es, self.ws
-        self.assertEquals(list(calculate_torques_out(wp, es, gbs)), list(self.to))
+        self.assertEquals(list(calculate_torques_gear_box(wp, es, gbs)), list(self.tgb))
+
+    def test_torque_required(self):
+
+        fun = torques_required
+        a = (self.tgb, self.es, self.ws)
+        self.assertEquals(list(fun(*(a + (self.pm['hot'], )))), list(self.trh))
+        self.assertEquals(list(fun(*(a + (self.pm['cold'], )))), list(self.trc))
 
     def test_calculate_torque_required(self):
 
         fun = calculate_torques_required
-        a = (self.to, self.es, self.ws)
-        self.assertEquals(list(fun(*(a + (self.pm['hot'], )))), list(self.trh))
-        self.assertEquals(list(fun(*(a + (self.pm['cold'], )))), list(self.trc))
-
-    def test_calculate_torque_required_hot_cold(self):
-
-        fun = calculate_torques_required_hot_cold
-        a = (self.to, self.es, self.ws, self.T, self.pm, self.Tr)
+        a = (self.tgb, self.es, self.ws, self.T, self.pm, self.Tr)
         self.assertEquals(list(fun(*a)), list(self.tr))
+
+    def test_correct_torques_required(self):
+
+        fun = correct_torques_required
+        a = (self.tgb, self.tr, self.g, self.gbr)
+        self.assertEquals(list(fun(*a)), list(self.tcorr))
 
     def test_calculate_gear_box_efficiency(self):
         fun = calculate_gear_box_efficiencies
-        a = (self.wp, self.es, self.ws, self.to, self.tr)
-        self.assertEquals(list(fun(*a)), list(self.eff))
+        a = (self.wp, self.es, self.ws, self.tgb, self.tr)
+        self.assertEquals(list(fun(*a)[0]), list(self.eff))
+        self.assertEquals(list(fun(*a)[1]), list(self.tl))
+
