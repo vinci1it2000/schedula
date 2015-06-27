@@ -189,7 +189,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
 
                 kw = {'shape': 'record', 'fillcolor': 'springgreen'}
 
-                fun_label = k if function_module else k.split(':')[-1]
+                fun_label = _func_name(k, function_module)
 
                 node_label = _fun_node_label(fun_label, n, dist)
 
@@ -256,6 +256,10 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
         default_opener(dot.render())
 
     return dot
+
+
+def _func_name(name, function_module=True):
+    return name if function_module else name.split(':')[-1]
 
 
 def _node_label(name, values):

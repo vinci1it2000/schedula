@@ -49,10 +49,10 @@
    .. rubric:: Dispatchers
 
    .. autosummary::
-     :nosignatures:
-     :toctree: {{ name }}/
+      :nosignatures:
+      :toctree: {{ name }}/
    {% for item in dispatchers %}
-     {{ item }}
+      {{ item }}
    {%- endfor %}
    {% endif %}
    {% endblock %}
