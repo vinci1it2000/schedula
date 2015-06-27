@@ -63,7 +63,11 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
         A directed graph source code in the DOT language.
     :rtype: Digraph
 
-    Example::
+    Example:
+
+    .. autodispatcher:: dsp
+       :opt: graph_attr={'ratio': '1'}
+       :code:
 
         >>> from dispatcher import Dispatcher
         >>> from dispatcher.utils.dsp import SubDispatch
@@ -73,12 +77,11 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
         ...     return a + 1, a - 1
         >>> ss.add_function('fun', fun, ['a'], ['b', 'c'])
         'fun'
-        >>> sub_dispatch = SubDispatch(ss, ['a', 'b', 'c'], type_return='list')
+        >>> sub_dispatch = SubDispatch(ss, ['a', 'b', 'c'], output_type='list')
         >>> s_dsp = Dispatcher()
-
         >>> s_dsp.add_function('sub_dispatch', sub_dispatch, ['a'], ['b', 'c'])
         'sub_dispatch'
-        >>> dispatch = SubDispatch(s_dsp, ['b', 'c', 'a'], type_return='list')
+        >>> dispatch = SubDispatch(s_dsp, ['b', 'c', 'a'], output_type='list')
         >>> dsp = Dispatcher()
         >>> dsp.add_data('input', default_value={'a': {'a': 3}})
         'input'
@@ -87,24 +90,15 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
 
         >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
 
-    .. testsetup::
-        >>> from dispatcher import dot_dir
-        >>> dot.save('draw/dsp.dot', dot_dir)
-        '...'
+    Dispatch in order to have a workflow:
 
-    .. graphviz:: /dispatcher/draw/dsp.dot
-
-    Dispatch in order to have a workflow::
+    .. autodispatcher:: dsp
+       :opt: workflow=True, graph_attr={'ratio': '1'}
+       :code:
 
         >>> dsp.dispatch()
         (..., ...)
         >>> wf = dsp2dot(dsp, workflow=True, graph_attr={'ratio': '1'})
-
-    .. testsetup::
-        >>> wf.save('draw/wf.dot', dot_dir)
-        '...'
-
-    .. graphviz:: /dispatcher/draw/wf.dot
     """
 
     inputs = []

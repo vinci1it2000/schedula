@@ -6,6 +6,7 @@ from dispatcher.draw import dsp2dot, _func_name
 # ------------------------------------------------------------------------------
 # Doctest handling
 # ------------------------------------------------------------------------------
+from doctest import DocTestParser, DocTestRunner, NORMALIZE_WHITESPACE, ELLIPSIS
 
 
 def contains_doctest(text):
@@ -19,27 +20,10 @@ def contains_doctest(text):
     m = r.search(text)
     return bool(m)
 
-
-def unescape_doctest(text):
-    """
-    Extract code from a piece of text, which contains either Python code
-    or doctests.
-
-    """
-    if not contains_doctest(text):
-        return text, False
-
-    code = ""
-    for line in text.split("\n"):
-        m = re.match(r'^\s*(>>>|\.\.\.) (.*)$', line)
-        if m:
-            code += m.group(2) + "\n"
-    return code, True
-
-
 # ------------------------------------------------------------------------------
 # Auto dispatcher content
 # ------------------------------------------------------------------------------
+
 
 def get_summary(doc):
     while doc and not doc[0].strip():
@@ -65,37 +49,52 @@ def get_summary(doc):
     return summary
 
 
-def get_grandfather_content(content):
-    if content.parent:
-        return get_grandfather_content(content.parent)
-    return content
+def get_grandfather_content(content, level=2):
+    if content.parent and level:
+        return get_grandfather_content(content.parent, level - 1)
+    return content, get_grandfather_offset(content)
 
+
+def get_grandfather_offset(content):
+    if content.parent:
+        return get_grandfather_offset(content.parent) + content.parent_offset
+    return 0
 
 def _import_docstring(documenter):
+
     if documenter.directive.content:
         # noinspection PyBroadException
         try:
             import textwrap
+
             content = documenter.directive.content
 
-            def get_code(source):
-                origin = textwrap.dedent("\n".join(map(str, source)))
-                return origin, unescape_doctest(origin)
+            def get_code(source, c=''):
+                s = "\n%s" % c
+                return textwrap.dedent(s.join(map(str, source)))
 
-            code, (module, is_doctest) = get_code(content)
-
+            is_doctest = contains_doctest(get_code(content))
+            offset = documenter.directive.content_offset
             if is_doctest:
-                offset = documenter.directive.content_offset
-                content = get_grandfather_content(content)[:offset]
-                module = '%s\n%s' % (get_code(content)[1][0], module)
+                parent, parent_offset = get_grandfather_content(content)
+                parent = parent[:offset + len(content) - parent_offset]
+                code = get_code(parent)
+            else:
+                code = get_code(content, '>>> ')
 
-            module = 'from %s import *\n%s' % (documenter.modname, module)
-            mdl = {}
-            exec(module, mdl)
+            parser = DocTestParser()
+            runner = DocTestRunner(verbose=0,
+                                   optionflags=NORMALIZE_WHITESPACE | ELLIPSIS)
 
-            documenter.code = code
+            glob = {}
+            exec('import %s as mdl\n' % documenter.modname, glob)
+            glob = glob['mdl'].__dict__
+            tests = parser.get_doctest(code, glob, '', '', 0)
+            runner.run(tests, clear_globs=False)
+
+            documenter.object = tests.globs[documenter.name]
+            documenter.code = content
             documenter.is_doctest = True
-            documenter.object = mdl[documenter.name]
             return True
         except:
             return False
@@ -115,12 +114,11 @@ def _description(lines, dsp, documenter):
 
 def _code(lines, documenter):
     if documenter.code:
-        code = documenter.code.split('\n')
         if documenter.is_doctest:
-            lines += [row.rstrip() for row in code]
+            lines += [row.rstrip() for row in documenter.code]
         else:
             lines.extend(['.. code-block:: python', ''])
-            lines.extend(['    %s' % r.rstrip() for r in code])
+            lines.extend(['    %s' % r.rstrip() for r in documenter.code])
 
         lines.append('')
 
@@ -265,6 +263,8 @@ class DispatcherDocumenter(DataDocumenter):
 
         dot_view_opt = {}
         dot_view_opt.update(self.default_opt)
+        if opt.opt:
+            dot_view_opt.update(opt.opt)
 
         lines = []
 
@@ -303,4 +303,3 @@ def setup(app):
     app.setup_extension('sphinx.ext.autodoc')
     app.setup_extension('sphinx.ext.graphviz')
     add_autodocumenter(app, DispatcherDocumenter)
-

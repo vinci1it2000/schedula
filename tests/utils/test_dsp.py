@@ -67,9 +67,9 @@ class TestSubDispatcher(unittest.TestCase):
         sub_dsp.add_function('fun', fun, ['a'], ['b', 'c'])
 
         dispatch = SubDispatch(sub_dsp, ['a', 'b', 'c'])
-        dispatch_dict = SubDispatch(sub_dsp, ['c'], type_return='dict')
-        dispatch_list = SubDispatch(sub_dsp, ['a', 'c'], type_return='list')
-        dispatch_val = SubDispatch(sub_dsp, ['c'], type_return='list')
+        dispatch_dict = SubDispatch(sub_dsp, ['c'], output_type='dict')
+        dispatch_list = SubDispatch(sub_dsp, ['a', 'c'], output_type='list')
+        dispatch_val = SubDispatch(sub_dsp, ['c'], output_type='list')
 
         dsp = Dispatcher()
         dsp.add_function('dispatch', dispatch, ['d'], ['e'])
