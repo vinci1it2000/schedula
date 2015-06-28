@@ -20,7 +20,20 @@ Dispatcher:
     :nosignatures:
     :toctree: dispatcher/__init__/
 
-      new
+    Dispatcher
+
+Modules:
+
+.. currentmodule:: dispatcher
+
+.. autosummary::
+    :nosignatures:
+    :toctree: dispatcher/
+
+    read_write
+    draw
+    constants
+    utils
 """
 
 __author__ = 'Vincenzo Arcidiacono'
