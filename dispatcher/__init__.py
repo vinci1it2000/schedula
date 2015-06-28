@@ -20,21 +20,7 @@ Dispatcher:
     :nosignatures:
     :toctree: dispatcher/__init__/
 
-      Dispatcher
-
-
-Modules:
-
-.. currentmodule:: dispatcher
-
-.. autosummary::
-    :nosignatures:
-    :toctree: dispatcher/
-
-    read_write
-    draw
-    constants
-    utils
+      new
 """
 
 __author__ = 'Vincenzo Arcidiacono'
@@ -174,7 +160,7 @@ class Dispatcher(object):
         ...              function=average_fun, callback=callback_fun)
         'd'
 
-    .. autodispatcher:: dsp
+    .. dispatcher:: dsp
        :opt: graph_attr={'ratio': '1'}
 
         >>> dsp
@@ -187,15 +173,15 @@ class Dispatcher(object):
         >>> sorted(outputs.items())
         [('a', 0), ('b', 1), ('c', 1), ('d', 2.0)]
 
-    .. autodispatcher:: dsp
+    .. dispatcher:: dsp
        :opt: workflow=True, graph_attr={'ratio': '1'}
 
         >>> dsp
         <...>
     """
 
-    def __init__(self, dmap=None, name='Dispatcher', default_values=None,
-                 raises=False, description=''):
+    def __init__(self, dmap=None, name='', default_values=None, raises=False,
+                 description=''):
         """
         Initializes the dispatcher.
 
@@ -229,7 +215,7 @@ class Dispatcher(object):
         self.name = name
 
         #: The dispatcher's description.
-        self.description = description
+        self.__doc__ = description
 
         self.dmap.node = AttrDict(self.dmap.node)
 
@@ -752,7 +738,7 @@ class Dispatcher(object):
 
         A dispatcher with a two functions `fun1` and `fun2`:
 
-        .. autodispatcher:: dsp
+        .. dispatcher:: dsp
            :opt: graph_attr={'ratio': '1'}
 
             >>> dsp = Dispatcher()
@@ -767,7 +753,7 @@ class Dispatcher(object):
 
             >>> sub_dsp = dsp.get_sub_dsp(['a', 'c', 'd', 'e', 'fun2'])
 
-        .. autodispatcher:: sub_dsp
+        .. dispatcher:: sub_dsp
            :opt: graph_attr={'ratio': '1'}
 
             >>> sub_dsp.name = 'Sub-Dispatcher'
@@ -852,7 +838,7 @@ class Dispatcher(object):
 
         A dispatcher with a function `fun` and a node `a` with a default value:
 
-        .. autodispatcher:: dsp
+        .. dispatcher:: dsp
            :opt: graph_attr={'ratio': '1'}
 
             >>> dsp = Dispatcher()
@@ -873,7 +859,7 @@ class Dispatcher(object):
 
             >>> sub_dsp = dsp.get_sub_dsp_from_workflow(['a', 'b'])
 
-        .. autodispatcher:: sub_dsp
+        .. dispatcher:: sub_dsp
            :opt: graph_attr={'ratio': '1'}
 
             >>> sub_dsp.name = 'Sub-Dispatcher'
@@ -882,7 +868,7 @@ class Dispatcher(object):
 
             >>> sub_dsp = dsp.get_sub_dsp_from_workflow(['c'], reverse=True)
 
-        .. autodispatcher:: sub_dsp
+        .. dispatcher:: sub_dsp
            :opt: graph_attr={'ratio': '1'}
 
             >>> sub_dsp.name = 'Sub-Dispatcher (reverse workflow)'
@@ -999,7 +985,7 @@ class Dispatcher(object):
         A dispatcher with an unresolved cycle (i.e., `c` --> `min1` --> `d` -->
         `min2` --> `c`):
 
-        .. autodispatcher:: dsp
+        .. dispatcher:: dsp
            :opt: graph_attr={'ratio': '1'}
 
             >>> dsp = Dispatcher()
@@ -1044,7 +1030,7 @@ class Dispatcher(object):
             >>> sorted(res.items())
             [('a', 1), ('b', 3)]
 
-        .. autodispatcher:: dsp
+        .. dispatcher:: dsp
            :opt: workflow=True, graph_attr={'ratio': '1'}
 
             >>> dsp
@@ -1057,7 +1043,7 @@ class Dispatcher(object):
             >>> sorted(res.items())
             [('a', 1), ('b', 3), ('c', 3.0), ('d', 1)]
 
-        .. autodispatcher:: dsp_rm_cy
+        .. dispatcher:: dsp_rm_cy
            :opt: workflow=True, graph_attr={'ratio': '1'}
 
             >>> dsp_rm_cy.name = 'Dispatcher without unresolved cycles'
@@ -1130,7 +1116,7 @@ class Dispatcher(object):
         A dispatcher with a function `my_log` and two data `a` and `b`
         with default values:
 
-        .. autodispatcher:: dsp
+        .. dispatcher:: dsp
            :opt: graph_attr={'ratio': '1'}
 
             >>> dsp = Dispatcher()
@@ -1159,7 +1145,7 @@ class Dispatcher(object):
             >>> sorted(outputs.items())
             [('a', 0), ('b', 5), ('c', 0), ('d', 1), ('e', 0.0)]
 
-        .. autodispatcher:: dsp
+        .. dispatcher:: dsp
            :opt: workflow=True, graph_attr={'ratio': '1'}
 
             >>> dsp
@@ -1172,7 +1158,7 @@ class Dispatcher(object):
             >>> sorted(outputs.items())
              [('a', 0), ('b', 5), ('c', 0), ('d', 1)]
 
-        .. autodispatcher:: dsp
+        .. dispatcher:: dsp
            :opt: workflow=True, graph_attr={'ratio': '1'}
 
             >>> dsp
@@ -1186,7 +1172,7 @@ class Dispatcher(object):
             >>> sorted(outputs.items())
              [('a', 3), ('b', 5), ('c', 3), ('d', 1)]
 
-        .. autodispatcher:: dsp
+        .. dispatcher:: dsp
            :opt: workflow=True, graph_attr={'ratio': '1'}
 
             >>> dsp
@@ -1243,7 +1229,7 @@ class Dispatcher(object):
 
         A dispatcher like this:
 
-        .. autodispatcher:: dsp
+        .. dispatcher:: dsp
            :opt: graph_attr={'ratio': '1'}
 
             >>> dsp = Dispatcher()
@@ -1286,7 +1272,7 @@ class Dispatcher(object):
             >>> shrink_dsp = dsp.shrink_dsp(inputs=['a', 'b', 'd'],
             ...                             outputs=['c', 'f'])
 
-        .. autodispatcher:: shrink_dsp
+        .. dispatcher:: shrink_dsp
            :opt: graph_attr={'ratio': '1'}
 
             >>> shrink_dsp.name = 'Sub-Dispatcher'

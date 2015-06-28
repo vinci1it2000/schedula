@@ -20,6 +20,7 @@ def contains_doctest(text):
     m = r.search(text)
     return bool(m)
 
+
 # ------------------------------------------------------------------------------
 # Auto dispatcher content
 # ------------------------------------------------------------------------------
@@ -60,9 +61,9 @@ def get_grandfather_offset(content):
         return get_grandfather_offset(content.parent) + content.parent_offset
     return 0
 
-def _import_docstring(documenter):
 
-    if documenter.directive.content:
+def _import_docstring(documenter):
+    if getattr(documenter.directive, 'content', None):
         # noinspection PyBroadException
         try:
             import textwrap
@@ -101,7 +102,7 @@ def _import_docstring(documenter):
 
 
 def _description(lines, dsp, documenter):
-    docstring = [dsp.description]
+    docstring = dsp.__doc__
 
     if documenter.objpath:
         attr_docs = documenter.analyzer.find_attr_docs()
@@ -109,7 +110,10 @@ def _description(lines, dsp, documenter):
         if key in attr_docs:
             docstring = attr_docs[key]
 
-    lines.extend(docstring + [''])
+    if isinstance(docstring, str):
+        docstring = docstring.split('\n') + ['']
+
+    lines.extend(docstring)
 
 
 def _code(lines, documenter):
@@ -136,7 +140,7 @@ def _table_heather(lines, title, dsp_name):
 def _data(lines, dsp):
     data = [v for v in sorted(dsp.nodes.items()) if v[1]['type'] == 'data']
     if data:
-        _table_heather(lines, 'Data', dsp.name)
+        _table_heather(lines, 'data', dsp.name)
 
         for k, v in data:
             link = ''
@@ -145,14 +149,14 @@ def _data(lines, dsp):
             else:
                 # noinspection PyBroadException
                 try:
-                    des = get_summary(k.__doc__.split('\n'))
+                    des = k.__doc__
                     link = '%s.%s' % (k.__module__, k.__name__)
                 except:
                     des = ''
 
             link = ':obj:`%s <%s>`' % (str(k), link)
 
-            lines.append(u'   %s, %s' % (link, des))
+            lines.append(u'   %s, %s' % (link, get_summary(des.split('\n'))))
 
         lines.append('')
 
@@ -160,7 +164,7 @@ def _data(lines, dsp):
 def _functions(lines, dsp, function_module):
     fun = [v for v in sorted(dsp.nodes.items()) if v[1]['type'] == 'function']
     if fun:
-        _table_heather(lines, 'Functions', dsp.name)
+        _table_heather(lines, 'functions', dsp.name)
 
         for k, v in fun:
             full_name = ''
@@ -168,10 +172,10 @@ def _functions(lines, dsp, function_module):
             if 'description' in v:
                 des = v['description']
             elif 'function' in v:
-                des = get_summary(v['function'].__doc__.split('\n'))
+                des = v['function'].__doc__
             else:
                 des = ''
-
+            des = get_summary(des.split('\n'))
             if ('function' in v
                 and isinstance(v['function'], (FunctionType,
                                                BuiltinFunctionType))):
@@ -188,10 +192,19 @@ def _functions(lines, dsp, function_module):
 # Registration hook
 # ------------------------------------------------------------------------------
 
-
+PLOT = object()
 def _dsp2dot_option(arg):
     """Used to convert the :dmap: option to auto directives."""
-    return eval('dict(%s)' % arg)
+
+    def map_args(*args, **kwargs):
+        k = ['workflow', 'dot', 'edge_attr', 'view', 'level', 'function_module']
+        kw = dict(zip(k, args))
+        kw.update(kwargs)
+        return kw
+    kw = eval('map_args(%s)' % arg)
+
+    return kw if kw else PLOT
+
 
 
 class DispatcherDocumenter(DataDocumenter):
@@ -225,28 +238,15 @@ class DispatcherDocumenter(DataDocumenter):
         return (isinstance(parent, ModuleDocumenter)
                 and isinstance(member, Dispatcher))
 
-    def get_doc(self, encoding=None, ignore=1):
-        """Decode and return lines of the docstring(s) for the object."""
-        if self.object.description:
-            docstring = self.object.description
-        else:
-            docstring = self.get_attr(self.object, '__doc__', None)
-        # make sure we have Unicode docstrings, then sanitize and split
-        # into lines
-        if isinstance(docstring, str):
-            return [prepare_docstring(docstring, ignore)]
-        elif isinstance(docstring, str):  # this will not trigger on Py3
-            return [prepare_docstring(force_decode(docstring, encoding),
-                                      ignore)]
-        # ... else it is something strange, let's ignore it
-        return []
-
     def add_directive_header(self, sig):
         if not self.code:
+            if not self.options.annotation:
+                self.options.annotation = ' = %s' % self.object.name
             super(DispatcherDocumenter, self).add_directive_header(sig)
 
     def import_object(self):
-        if self.directive.arguments and _import_docstring(self):
+        if (getattr(self.directive, 'arguments', None)
+            and _import_docstring(self)):
             return True
         self.is_doctest = False
         self.code = None
@@ -263,7 +263,7 @@ class DispatcherDocumenter(DataDocumenter):
 
         dot_view_opt = {}
         dot_view_opt.update(self.default_opt)
-        if opt.opt:
+        if opt.opt and opt.opt is not PLOT:
             dot_view_opt.update(opt.opt)
 
         lines = []
@@ -287,8 +287,13 @@ class DispatcherDocumenter(DataDocumenter):
             self.add_line(line, sourcename)
 
 
-class AutoDispatcherDirective(AutoDirective):
-    _default_flags = {'des', 'opt', 'data', 'func', 'code'}
+class DispatcherDirective(AutoDirective):
+    _default_flags = {'des', 'opt', 'data', 'func', 'code', 'annotation'}
+
+    def __init__(self, *args, **kwargs):
+        super(DispatcherDirective, self).__init__(*args, **kwargs)
+        if args[0] == 'dispatcher':
+            self.name = 'autodispatcher'
 
 
 def add_autodocumenter(app, cls):
@@ -296,10 +301,11 @@ def add_autodocumenter(app, cls):
     from sphinx.ext import autodoc
 
     autodoc.add_documenter(cls)
-    app.add_directive('auto' + cls.objtype, AutoDispatcherDirective)
+    app.add_directive('auto' + cls.objtype, DispatcherDirective)
 
 
 def setup(app):
     app.setup_extension('sphinx.ext.autodoc')
     app.setup_extension('sphinx.ext.graphviz')
     add_autodocumenter(app, DispatcherDocumenter)
+    app.add_directive('dispatcher', DispatcherDirective)
