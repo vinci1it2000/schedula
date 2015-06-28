@@ -36,7 +36,6 @@ sys.path.append(abspath(join(dirname(__file__), '_ext')))
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
     'sphinx.ext.doctest',
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
@@ -44,14 +43,11 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
-    'sphinx.ext.graphviz',
     'autosummary',
-    'autodispatcher',
+    'dsp_directive',
 ]
 
 autosummary_generate = True
-
-doctest_test_doctest_blocks = True
 
 autodoc_member_order = 'bysource'
 

@@ -65,7 +65,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
 
     Example:
 
-    .. autodispatcher:: dsp
+    .. dispatcher:: dsp
        :opt: graph_attr={'ratio': '1'}
        :code:
 
@@ -92,7 +92,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
 
     Dispatch in order to have a workflow:
 
-    .. autodispatcher:: dsp
+    .. dispatcher:: dsp
        :opt: workflow=True, graph_attr={'ratio': '1'}
        :code:
 

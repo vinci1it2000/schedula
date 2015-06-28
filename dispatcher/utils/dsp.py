@@ -162,7 +162,7 @@ class SubDispatch(object):
 
     Example:
 
-    .. autodispatcher:: dsp
+    .. dispatcher:: dsp
        :opt: graph_attr={'ratio': '1'}, level=1
        :code:
 
@@ -181,7 +181,7 @@ class SubDispatch(object):
 
     Dispatch the dispatch output is:
 
-    .. autodispatcher:: dsp
+    .. dispatcher:: dsp
        :opt: workflow=True, graph_attr={'ratio': '1'}, level=1
 
         >>> w, o = dsp.dispatch(inputs={'d': {'a': 3}})
@@ -305,7 +305,7 @@ class SubDispatchFunction(SubDispatch):
     A dispatcher with two functions `max` and `min` and an unresolved cycle
     (i.e., `a` --> `max` --> `c` --> `min` --> `a`):
 
-    .. autodispatcher:: dsp
+    .. dispatcher:: dsp
        :opt: graph_attr={'ratio': '1'}
 
         >>> from dispatcher import Dispatcher
@@ -328,7 +328,7 @@ class SubDispatchFunction(SubDispatch):
         >>> fun(2, 1)
         0.0
 
-    .. autodispatcher:: dsp
+    .. dispatcher:: dsp
        :opt: workflow=True, graph_attr={'ratio': '1'}
 
         >>> dsp = fun.dsp
@@ -342,7 +342,7 @@ class SubDispatchFunction(SubDispatch):
         ...
         ValueError: Unreachable output-targets:...
 
-    .. autodispatcher:: dsp
+    .. dispatcher:: dsp
        :opt: workflow=True, graph_attr={'ratio': '1'}
 
         >>> dsp = fun.dsp
