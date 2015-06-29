@@ -38,16 +38,16 @@ class TestDispatcherUtils(unittest.TestCase):
     # noinspection PyArgumentList
     def test_selector(self):
 
-        args = (['a', 'b'], {'a': 1, 'b': 1}, {'b': 2, 'c': 3})
+        args = (['a', 'b'], {'a': 1, 'b': 2, 'c': 3})
         self.assertEqual(selector(*args), {'a': 1, 'b': 2})
 
-        args = (['a', 'b'], {'a': 1, 'b': 1}, {'b': object(), 'c': 3})
-        res = {'a': 1, 'b': args[2]['b']}
+        args = (['a', 'b'], {'a': 1, 'b': object(), 'c': 3})
+        res = {'a': 1, 'b': args[1]['b']}
         self.assertNotEqual(selector(*args), res)
 
         self.assertEqual(selector(*args, copy=False), res)
 
-        args = (['a', 'b'], {'a': 1, 'b': 1}, {'b': 2, 'c': 3})
+        args = (['a', 'b'], {'a': 1, 'b': 2, 'c': 3})
         self.assertEqual(selector(*args, output_type='list'), (1, 2))
 
         args = ['a', 'd'], {'a': 1, 'b': 1}

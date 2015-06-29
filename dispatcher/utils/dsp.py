@@ -176,7 +176,7 @@ def map_list(key_map, *inputs):
     return d
 
 
-def selector(keys, *dicts, copy=True, output_type='dict'):
+def selector(keys, dict, copy=True, output_type='dict'):
     """
     Selects the chosen dictionary keys from the given sequence of dictionaries.
 
@@ -201,21 +201,21 @@ def selector(keys, *dicts, copy=True, output_type='dict'):
 
         >>> from functools import partial
         >>> fun = partial(selector, ['a', 'b'])
-        >>> sorted(fun({'a': 1, 'b': 1}, {'b': 2, 'c': 3}).items())
+        >>> sorted(fun({'a': 1, 'b': 2, 'c': 3}).items())
         [('a', 1), ('b', 2)]
     """
 
-    it = combine_dicts(*dicts)
+
 
     get = deepcopy if copy else lambda x: x
 
     if output_type == 'list':
         if len(keys) > 1:
-            return tuple([get(it[k]) for k in keys])
+            return tuple([get(dict[k]) for k in keys])
         else:
-            return get(it[keys[0]])
+            return get(dict[keys[0]])
 
-    return {k: get(v) for k, v in it.items() if k in keys}
+    return {k: get(v) for k, v in dict.items() if k in keys}
 
 
 def replicate_value(value, n=2, copy=True):
