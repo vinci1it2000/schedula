@@ -29,17 +29,25 @@ from sklearn.metrics import mean_absolute_error
 from compas.utils.gen import median_filter, sliding_window, pairwise, \
     grouper, reject_outliers, bin_split, interpolate_cloud
 
+#: Minimum vehicle velocity
+VEL_EPS = 1 + sys.float_info.epsilon
 
-EPS = 0.1 + sys.float_info.epsilon
+#: Minimum vehicle acceleration
+ACC_EPS = 0.1 + sys.float_info.epsilon
 
+#: Infinite value
 INF = 10000.0
 
+#: Minimum gear
 MIN_GEAR = 0
 
+#: Maximum time shift
 MAX_TIME_SHIFT = 3.0
 
+#: Minimum vehicle engine speed
 MIN_ENGINE_SPEED = 10.0
 
+#: Time window applied to the filters
 TIME_WINDOW = 4.0
 
 
@@ -143,7 +151,7 @@ def identify_velocity_speed_ratios(
     """
     idle_speed = idle_engine_speed[0] - idle_engine_speed[1]
 
-    b = (gear_box_speeds > idle_speed) & (velocities > EPS)
+    b = (gear_box_speeds > idle_speed) & (velocities > VEL_EPS)
 
     vsr = bin_split(velocities[b] / gear_box_speeds[b])[1]
 
@@ -175,7 +183,7 @@ def identify_speed_velocity_ratios(gears, velocities, gear_box_speeds):
 
     ratios = gear_box_speeds / velocities
 
-    ratios[velocities < EPS] = 0
+    ratios[velocities < VEL_EPS] = 0
 
     svr.update({k: reject_outliers(ratios[gears == k])[0]
                 for k in range(1, max(gears) + 1)
@@ -295,8 +303,16 @@ def calculate_wheel_powers(velocities, accelerations, road_loads, inertia):
     return (quadratic_term + 1.03 * inertia * accelerations) * velocities / 3600
 
 
+def speed_shift(times, speeds, accelerations):
+    speeds = InterpolatedUnivariateSpline(times, speeds, k=1)
+
+    def fun(dt, m):
+        return speeds(times + dt + m * accelerations)
+
+    return fun
+
 def calculate_gear_box_speeds_from_engine_speeds(
-        times, velocities, engine_speeds, velocity_speed_ratios):
+        times, velocities, accelerations, engine_speeds, velocity_speed_ratios):
     """
     Calculates the gear box speeds applying a constant time shift.
 
@@ -328,26 +344,26 @@ def calculate_gear_box_speeds_from_engine_speeds(
     bins = bins[:-1] + np.diff(bins) / 2
     bins[0] = 0
 
-    speeds = InterpolatedUnivariateSpline(times, engine_speeds, k=1)
-    vel = InterpolatedUnivariateSpline(times, velocities, k=1)
+    speeds = speed_shift(times, engine_speeds, accelerations)
 
-    def error_fun(dt):
-        v = vel(times + dt)
+    def error_fun(x):
+        s = speeds(*x)
 
-        b = engine_speeds > 0
-        ratio = v[b] / engine_speeds[b]
+        b = s > 0
+        ratio = velocities[b] / s[b]
 
         std = binned_statistic(ratio, ratio, np.std, bins)[0]
         w = binned_statistic(ratio, ratio, 'count', bins)[0]
 
         return sum(std * w)
 
-    shift = brute(error_fun, (slice(-MAX_TIME_SHIFT, MAX_TIME_SHIFT, 0.1), ))
+    shift = brute(error_fun, (slice(-MAX_TIME_SHIFT, MAX_TIME_SHIFT, 0.1),
+                              slice(-MAX_TIME_SHIFT, MAX_TIME_SHIFT, 0.1), ))
 
-    gear_box_speeds = speeds(times - shift)
+    gear_box_speeds = speeds(*shift)
     gear_box_speeds[gear_box_speeds < 0] = 0
 
-    return gear_box_speeds, float(shift)
+    return gear_box_speeds, tuple(shift)
 
 
 def identify_idle_engine_speed(velocities, engine_speeds):
@@ -368,7 +384,7 @@ def identify_idle_engine_speed(velocities, engine_speeds):
     :rtype: (float, float)
     """
 
-    x = engine_speeds[velocities < EPS & engine_speeds > MIN_ENGINE_SPEED]
+    x = engine_speeds[velocities < VEL_EPS & engine_speeds > MIN_ENGINE_SPEED]
 
     idle_speed = bin_split(x, bin_std=(0.01, 0.3))[1][0]
 
@@ -382,9 +398,9 @@ def identify_upper_bound_engine_speed(gears, engine_speeds, idle_engine_speed):
     It is used to correct the gear prediction for constant accelerations (see
     :func:`compas.functions.AT_gear.correct_gear_upper_bound_engine_speed`).
 
-    This is evaluated as the median value plus one standard deviation of the
+    This is evaluated as the median value plus 0.67 standard deviation of the
     filtered cycle engine speed (i.e., the engine speeds when engine speed >
-    minimum engine speed plus one standard deviation and gear < maximum gear)
+    minimum engine speed plus 0.67 standard deviation and gear < maximum gear).
 
     :param gears:
         Gear vector.
@@ -401,6 +417,9 @@ def identify_upper_bound_engine_speed(gears, engine_speeds, idle_engine_speed):
     :returns:
         Upper bound engine speed.
     :rtype: float
+
+    .. note:: Assuming a normal distribution then about 68 percent of the data
+       values are within 0.67 standard deviation of the mean.
     """
 
     max_gear = max(gears)
@@ -409,11 +428,13 @@ def identify_upper_bound_engine_speed(gears, engine_speeds, idle_engine_speed):
 
     dom = (engine_speeds > idle_speed) & (gears < max_gear)
 
-    return sum(reject_outliers(engine_speeds[dom]))
+    m, sd = reject_outliers(engine_speeds[dom])
+
+    return m + sd * 0.674490
 
 
-def identify_gear(ratio, velocity, acceleration, idle_engine_speed, vsr,
-                   max_gear):
+def identify_gear(
+        ratio, velocity, acceleration, idle_engine_speed, vsr, max_gear):
     """
     Identifies a gear.
 
@@ -431,7 +452,7 @@ def identify_gear(ratio, velocity, acceleration, idle_engine_speed, vsr,
 
     :param idle_engine_speed:
         Engine speed idle.
-    :type idle_engine_speed: float
+    :type idle_engine_speed: (float, float)
 
     :param vsr:
         Constant velocity speed ratios of the gear box.
@@ -442,7 +463,7 @@ def identify_gear(ratio, velocity, acceleration, idle_engine_speed, vsr,
     :rtype: int
     """
 
-    if velocity <= EPS:
+    if velocity <= VEL_EPS:
         return 0
 
     m, (gear, vs) = min((abs(v - ratio), (k, v)) for k, v in vsr)
@@ -452,11 +473,8 @@ def identify_gear(ratio, velocity, acceleration, idle_engine_speed, vsr,
              or abs(velocity / idle_engine_speed[1] - ratio) < m)):
         return 0
 
-    if velocity > EPS and acceleration > 0 and gear == 0:
+    if velocity > VEL_EPS and acceleration > 0 and gear == 0:
         return 1
-
-    if max_gear > gear and vs < 1.1 * ratio:
-        return gear + 1
 
     return gear
 
@@ -552,7 +570,7 @@ def correct_gear_upper_bound_engine_speed(
     :rtype: int
     """
 
-    if abs(acceleration) < 0.1 and velocity > EPS:
+    if abs(acceleration) < ACC_EPS and velocity > VEL_EPS:
 
         l = velocity / upper_bound_engine_speed
 
@@ -613,9 +631,11 @@ def correct_gear_full_load(
         A gear corrected according to full load curve.
     :rtype: int
     """
+    if velocity > 100:
+        return gear
 
     p_norm = calculate_wheel_powers(velocity, acceleration, road_loads, inertia)
-    p_norm /= max_engine_power * 0.9
+    p_norm /= max_engine_power
 
     r = velocity / (max_engine_speed_at_max_power - idle_engine_speed[0])
 
@@ -807,7 +827,7 @@ def identify_gear_shifting_velocity_limits(gears, velocities):
     limits = {}
 
     for v, (g0, g1) in zip(velocities, pairwise(gears)):
-        if v >= EPS and g0 != g1:
+        if v >= VEL_EPS and g0 != g1:
             limits[g0] = limits.get(g0, [[], []])
             limits[g0][g0 < g1].append(v)
 
@@ -875,7 +895,7 @@ def correct_gsv_for_constant_velocities(gsv):
 
 def calibrate_gear_shifting_cmv(
         correct_gear, gears, engine_speeds, velocities, accelerations,
-        velocity_speed_ratios, idle_engine_speed):
+        velocity_speed_ratios):
     """
     Calibrates a corrected matrix velocity to predict gears.
 
@@ -899,10 +919,6 @@ def calibrate_gear_shifting_cmv(
         Constant velocity speed ratios of the gear box.
     :type velocity_speed_ratios: dict
 
-    :param idle_engine_speed:
-        Engine speed idle median and std.
-    :type idle_engine_speed: (float, float)
-
     :returns:
         A corrected matrix velocity to predict gears.
     :rtype: dict
@@ -924,8 +940,8 @@ def calibrate_gear_shifting_cmv(
         g_pre = prediction_gears_gsm(
             correct_gear, gsv, velocities, accelerations)
 
-        speed_predicted = calculate_engine_speeds(
-            g_pre, velocities, velocity_speed_ratios, idle_engine_speed)
+        speed_predicted = calculate_gear_box_speeds(
+            g_pre, velocities, velocity_speed_ratios)
 
         return mean_absolute_error(engine_speeds, speed_predicted)
 
@@ -940,7 +956,7 @@ def calibrate_gear_shifting_cmv(
 
 def calibrate_gear_shifting_cmv_hot_cold(
         correct_gear, times, gears, engine_speeds, velocities, accelerations,
-        velocity_speed_ratios, idle_engine_speed, time_cold_hot_transition):
+        velocity_speed_ratios, time_cold_hot_transition):
     """
     Calibrates a corrected matrix velocity for cold and hot phases to predict
     gears.
@@ -985,7 +1001,7 @@ def calibrate_gear_shifting_cmv_hot_cold(
     for i in ['cold', 'hot']:
         cmv[i] = calibrate_gear_shifting_cmv(
             correct_gear, gears[b], engine_speeds[b], velocities[b],
-            accelerations[b], velocity_speed_ratios, idle_engine_speed)
+            accelerations[b], velocity_speed_ratios)
         b = np.logical_not(b)
 
     return cmv
@@ -1032,12 +1048,12 @@ def correct_gsv(gsv):
     :rtype: dict
     """
 
-    gsv[0] = [0, (EPS, (INF, 0))]
+    gsv[0] = [0, (VEL_EPS, (INF, 0))]
 
     for v0, v1 in pairwise(gsv.values()):
         up0, down1 = (v0[1][0], v1[0][0])
 
-        if down1 + EPS <= v0[0]:
+        if down1 + VEL_EPS <= v0[0]:
             v0[1] = v1[0] = up0
         elif up0 >= down1:
             v0[1], v1[0] = (up0, down1)
@@ -1047,7 +1063,7 @@ def correct_gsv(gsv):
         else:
             v0[1] = v1[0] = down1
 
-        v0[1] += EPS
+        v0[1] += VEL_EPS
 
     gsv[max(gsv)][1] = INF
 
@@ -1077,7 +1093,7 @@ def calibrate_gspv(gears, velocities, wheel_powers):
     gspv = {}
 
     for v, p, (g0, g1) in zip(velocities, wheel_powers, pairwise(gears)):
-        if v > EPS and g0 != g1:
+        if v > VEL_EPS and g0 != g1:
             x = gspv.get(g0, [[], [[], []]])
             if g0 < g1 and p >= 0:
                 x[1][0].append(p)
@@ -1088,7 +1104,7 @@ def calibrate_gspv(gears, velocities, wheel_powers):
                 continue
             gspv[g0] = x
 
-    gspv[0] = [[0], [[None], [EPS]]]
+    gspv[0] = [[0], [[None], [VEL_EPS]]]
 
     gspv[max(gspv)][1] = [[0, 1], [INF] * 2]
 
@@ -1322,8 +1338,45 @@ def prediction_gears_gsm_hot_cold(
     return gear
 
 
+def calculate_gear_box_speeds(gears, velocities, velocity_speed_ratios):
+    """
+    Calculates gear box speed vector.
+
+    :param gears:
+        Gear vector.
+    :type gears: np.array
+
+    :param velocities:
+        Velocity vector.
+    :type velocities: np.array
+
+    :param velocity_speed_ratios:
+        Constant velocity speed ratios of the gear box.
+    :type velocity_speed_ratios: dict
+
+    :return:
+        Gear box speed vector.
+    :rtype: np.array
+    """
+
+    vsr = [0]
+
+    def get_vsr(g):
+        vsr[0] = velocity_speed_ratios.get(g, vsr[0])
+        return float(vsr[0])
+
+    vsr = np.vectorize(get_vsr)(gears)
+
+    speeds = velocities / vsr
+
+    speeds[(velocities < VEL_EPS) | (vsr == 0)] = 0
+
+    return speeds
+
+
 def calculate_engine_speeds(
-        gears, velocities, velocity_speed_ratios, idle_engine_speed=(0, 0)):
+        times, gear_box_speeds, accelerations, idle_engine_speed,
+        time_shift_engine_speeds):
     """
     Calculates engine speed vector.
 
@@ -1348,22 +1401,13 @@ def calculate_engine_speeds(
     :rtype: np.array
     """
 
-    try:
-        vsr = [EPS / idle_engine_speed[0]]
-    except ZeroDivisionError:
-        vsr = [0]
+    speeds = speed_shift(times, gear_box_speeds, accelerations)
+    dt, m = time_shift_engine_speeds
+    engine_speeds = speeds(-dt, -m)
 
-    def get_vsr(g):
-        vsr[0] = velocity_speed_ratios.get(g, vsr[0])
-        return float(vsr[0])
+    engine_speeds[idle_engine_speed[0] > engine_speeds] = idle_engine_speed[0]
 
-    vsr = np.vectorize(get_vsr)(gears)
-
-    speeds = velocities / vsr
-
-    speeds[(velocities < EPS) | (vsr == 0)] = idle_engine_speed[0]
-
-    return speeds
+    return engine_speeds
 
 
 def calculate_error_coefficients(
@@ -1389,8 +1433,8 @@ def calculate_error_coefficients(
     :rtype: dict
     """
 
-    x = engine_speeds[velocities > EPS]
-    y = predicted_engine_speeds[velocities > EPS]
+    x = engine_speeds[velocities > VEL_EPS]
+    y = predicted_engine_speeds[velocities > VEL_EPS]
 
     res = {
         'mean absolute error': mean_absolute_error(x, y),
