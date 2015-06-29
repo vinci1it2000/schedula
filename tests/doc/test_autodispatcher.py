@@ -63,7 +63,7 @@ def assert_equal_items(test, items):
                                          ' the correct order' % item)
     del directive.result[:]
 
-@unittest.skipIf(sys.version_info < (3, 4, 0))
+@unittest.skipIf((2, 8) < sys.version_info < (3, 3, 0), 'Testing sphinx directive.')
 class TestDispatcherDirective(unittest.TestCase):
     def setUp(self):
         global app
