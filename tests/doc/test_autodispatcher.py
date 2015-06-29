@@ -1,5 +1,5 @@
 
-from doc_tests.util import TestApp, Struct
+from .util import TestApp, Struct
 
 from docutils.statemachine import ViewList
 
@@ -8,7 +8,7 @@ from dispatcher import Dispatcher
 from dispatcher.draw import dsp2dot
 app = None
 import unittest
-
+import sys
 
 directive = options = None
 
@@ -63,7 +63,7 @@ def assert_equal_items(test, items):
                                          ' the correct order' % item)
     del directive.result[:]
 
-
+@unittest.skipIf(sys.version_info < (3, 4, 0))
 class TestDispatcherDirective(unittest.TestCase):
     def setUp(self):
         global app
