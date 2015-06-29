@@ -1853,7 +1853,7 @@ class Dispatcher(object):
         succ_fun = [u for u in self._succ[node_id]]
 
         # check if it has functions as outputs and wildcard condition
-        if succ_fun and succ_fun[0] not in self.workflow.succ[node_id]:
+        if succ_fun and succ_fun[0] not in self._visited:
             # namespace shortcuts for speed
             wf_add_edge = self._wf_add_edge
 
@@ -2233,8 +2233,7 @@ class Dispatcher(object):
                     dsp._init_as_sub_dsp(fringe, node['outputs'], no_call)
                     wf = (dsp.workflow, dsp.data_output, dsp.dist)
                     wf_add_node(node_id, workflow=wf)
-
-                    self._visited.add(w)
+                    distances[node_id] = dist
 
                 # namespace shortcuts
                 n_id, val = node['inputs'][node_id], pred[node_id]
@@ -2277,14 +2276,18 @@ class Dispatcher(object):
 
     def _remove_unused_functions(self):
         nodes = self.nodes
-        remove_node = self.workflow.remove_node
+        succ = self.workflow.succ
         # remove unused functions
-        for k, v in list(self.workflow.edge.items()):
-            if k in nodes and not v:
-                node_type = nodes[k]['type']
-                if ((node_type == 'function' and k not in self._visited)
-                    or node_type == 'dispatcher'):
-                    remove_node(k)
+        for n in (set(self._wf_pred) - set(self._visited)):
+            node_type = nodes[n]['type']
+            if node_type == 'data':
+                continue
+
+            if node_type == 'dispatcher' and succ[n]:
+                self._visited.add(n)
+                continue
+
+            self.workflow.remove_node(n)
 
     def _init_as_sub_dsp(self, fringe, outputs, no_call):
         dsp_fringe = self._init_run({}, outputs, True, None, no_call)[1]
