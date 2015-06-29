@@ -467,7 +467,7 @@ class Dispatcher(object):
             Edge weights from data nodes to the function node.
             It is a dictionary (key=data node id) with the weight coefficients
             used by the dispatch algorithm to estimate the minimum workflow.
-        :type weight_from: dict , optional
+        :type weight_from: dict, optional
 
         :param weight_to:
             Edge weights from the function node to data nodes.
@@ -608,22 +608,22 @@ class Dispatcher(object):
         """
         Add a single sub-dispatcher node to dispatcher.
 
-        :param function_id:
-            Function node id.
-            If None will be assigned as <fun.__module__>:<fun.__name__>.
-        :type function_id: any hashable Python object except None, optional
-
-        :param function:
+        :param dsp:
             Data node estimation function.
-        :type function: function, optional
+        :type dsp: Dispatcher
 
         :param inputs:
             Ordered arguments (i.e., data node ids) needed by the function.
-        :type inputs: list, optional
+        :type inputs: dict
 
         :param outputs:
             Ordered results (i.e., data node ids) returned by the function.
-        :type outputs: list, optional
+        :type outputs: dict
+
+        :param dsp_id:
+            Sub-dispatcher node id.
+            If None will be assigned as <dsp.__module__>:<dsp.name>.
+        :type dsp_id: any hashable Python object except None, optional
 
         :param input_domain:
             A function that checks if input values satisfy the function domain.
@@ -641,13 +641,7 @@ class Dispatcher(object):
             Edge weights from data nodes to the function node.
             It is a dictionary (key=data node id) with the weight coefficients
             used by the dispatch algorithm to estimate the minimum workflow.
-        :type weight_from: dict , optional
-
-        :param weight_to:
-            Edge weights from the function node to data nodes.
-            It is a dictionary (key=data node id) with the weight coefficients
-            used by the dispatch algorithm to estimate the minimum workflow.
-        :type weight_to: dict, optional
+        :type weight_from: dict, optional
 
         :param kwargs:
             Set additional node attributes using key=value.
