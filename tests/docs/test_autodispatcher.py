@@ -7,8 +7,12 @@ if not IS_PYPY:
     from dispatcher import Dispatcher
     from dispatcher.draw import dsp2dot
     from doc._ext.dsp_directive import DispatcherDirective, PLOT
-    from .util import TestApp, Struct
     from docutils.statemachine import ViewList
+
+    try:
+        from .util import TestApp, Struct
+    except SystemError:
+        from docs.util import TestApp, Struct
     app = None
 
     directive = options = None
