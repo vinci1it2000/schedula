@@ -14,7 +14,7 @@ from sphinx import application
 from doc._ext.dsp_directive import DispatcherDirective
 from os.path import abspath, join, exists, isdir
 
-__all__ = [ 'Struct', 'ListOutput', 'TestApp']
+__all__ = ['Struct', 'ListOutput', 'TestApp']
 
 rootdir = abspath(os.path.dirname(__file__) or '.')
 

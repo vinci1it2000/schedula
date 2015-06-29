@@ -544,8 +544,8 @@ class TestDispatch(unittest.TestCase):
             'x ^ y': {'b': {'value': 1.0}}
         }
         self.assertEqual(o, {'b': 1, 'c': 0, 'd': 0, 'e': 2})
-        self.assertEqual(sorted(list(wk.node)), r)
         self.assertEqual(wk.edge, w)
+        self.assertEqual(sorted(list(wk.node)), r)
 
         dsp = self.dsp_wildcard_1
 

@@ -2277,10 +2277,14 @@ class Dispatcher(object):
 
     def _remove_unused_functions(self):
         nodes = self.nodes
+        remove_node = self.workflow.remove_node
         # remove unused functions
-        for n in (set(self._wf_pred) - set(self._visited)):
-            if nodes[n]['type'] == 'function':
-                self.workflow.remove_node(n)
+        for k, v in list(self.workflow.edge.items()):
+            if k in nodes and not v:
+                node_type = nodes[k]['type']
+                if ((node_type == 'function' and k not in self._visited)
+                    or node_type == 'dispatcher'):
+                    remove_node(k)
 
     def _init_as_sub_dsp(self, fringe, outputs, no_call):
         dsp_fringe = self._init_run({}, outputs, True, None, no_call)[1]
