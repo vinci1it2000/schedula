@@ -8,124 +8,30 @@
 """
 
 import os
-import re
 import sys
-import tempfile
-from functools import wraps
-
 from six import StringIO
-
-from nose import tools, SkipTest
-
 from sphinx import application
-from sphinx.builders.latex import LaTeXBuilder
-from sphinx.theming import Theme
-from sphinx.ext.autodoc import AutoDirective
-from sphinx.pycode import ModuleAnalyzer
+from doc._ext.dsp_directive import DispatcherDirective
+from os.path import abspath, join, exists, isdir
 
-from path import path
+__all__ = [ 'Struct', 'ListOutput', 'TestApp']
 
+rootdir = abspath(os.path.dirname(__file__) or '.')
+
+import shutil
+
+
+# find a temp dir for testing and clean it up now
+if 'SPHINX_TEST_TEMPDIR' not in os.environ:
+    os.environ['SPHINX_TEST_TEMPDIR'] = abspath(join(rootdir, 'build'))
+
+tempdir = os.environ['SPHINX_TEST_TEMPDIR']
 try:
-    # Python >=3.3
-    from unittest import mock
-except ImportError:
-    import mock
-
-
-__all__ = [
-    'rootdir', 'tempdir', 'raises', 'raises_msg',
-    'skip_if', 'skip_unless', 'skip_unless_importable', 'Struct',
-    'ListOutput', 'TestApp', 'with_app', 'gen_with_app',
-    'path', 'with_tempdir',
-    'sprint', 'remove_unicode_literals',
-    'mock',
-]
-
-
-rootdir = path(os.path.dirname(__file__) or '.').abspath()
-tempdir = path(os.environ['SPHINX_TEST_TEMPDIR']).abspath()
-
-
-def _excstr(exc):
-    if type(exc) is tuple:
-        return str(tuple(map(_excstr, exc)))
-    return exc.__name__
-
-
-def raises(exc, func, *args, **kwds):
-    """Raise AssertionError if ``func(*args, **kwds)`` does not raise *exc*."""
-    try:
-        func(*args, **kwds)
-    except exc:
-        pass
-    else:
-        raise AssertionError('%s did not raise %s' %
-                             (func.__name__, _excstr(exc)))
-
-
-def raises_msg(exc, msg, func, *args, **kwds):
-    """Raise AssertionError if ``func(*args, **kwds)`` does not raise *exc*,
-    and check if the message contains *msg*.
-    """
-    try:
-        func(*args, **kwds)
-    except exc as err:
-        assert msg in str(err), "\"%s\" not in \"%s\"" % (msg, err)
-    else:
-        raise AssertionError('%s did not raise %s' %
-                             (func.__name__, _excstr(exc)))
-
-
-def assert_re_search(regex, text, flags=0):
-    if not re.search(regex, text, flags):
-        assert False, '%r did not match %r' % (regex, text)
-
-
-def assert_not_re_search(regex, text, flags=0):
-    if re.search(regex, text, flags):
-        assert False, '%r did match %r' % (regex, text)
-
-
-def assert_startswith(thing, prefix):
-    if not thing.startswith(prefix):
-        assert False, '%r does not start with %r' % (thing, prefix)
-
-
-def assert_in(x, thing):
-    if x not in thing:
-        assert False, '%r is not in %r' % (x, thing)
-
-
-def assert_not_in(x, thing):
-    if x in thing:
-        assert False, '%r is in %r' % (x, thing)
-
-
-def skip_if(condition, msg=None):
-    """Decorator to skip test if condition is true."""
-    def deco(test):
-        @tools.make_decorator(test)
-        def skipper(*args, **kwds):
-            if condition:
-                raise SkipTest(msg or 'conditional skip')
-            return test(*args, **kwds)
-        return skipper
-    return deco
-
-
-def skip_unless(condition, msg=None):
-    """Decorator to skip test if condition is false."""
-    return skip_if(not condition, msg)
-
-
-def skip_unless_importable(module, msg=None):
-    """Decorator to skip test if module is not importable."""
-    try:
-        __import__(module)
-    except ImportError:
-        return skip_if(True, msg)
-    else:
-        return skip_if(False, msg)
+    if exists(tempdir):
+        shutil.rmtree(tempdir)
+    os.makedirs(tempdir)
+except PermissionError:
+    pass
 
 
 class Struct(object):
@@ -159,32 +65,33 @@ class TestApp(application.Sphinx):
                  tags=None, docutilsconf=None):
         if testroot is None:
             defaultsrcdir = 'root'
-            testroot = rootdir / 'root'
+            testroot = join(rootdir, 'root')
         else:
             defaultsrcdir = 'test-' + testroot
-            testroot = rootdir / 'roots' / ('test-' + testroot)
+            testroot = join(rootdir, 'roots', 'test-' + testroot)
         if srcdir is None:
-            srcdir = tempdir / defaultsrcdir
+            srcdir = join(tempdir, defaultsrcdir)
         else:
-            srcdir = tempdir / srcdir
+            srcdir = join(tempdir, srcdir)
 
-        if not srcdir.exists():
-            testroot.copytree(srcdir)
+        if not exists(srcdir):
+            shutil.copytree(testroot, srcdir)
 
         if docutilsconf is not None:
-            (srcdir / 'docutils.conf').write_text(docutilsconf)
+            with open(join(srcdir, 'docutils.conf'), 'w') as f:
+                f.write(docutilsconf)
 
-        builddir = srcdir / '_build'
+        builddir = join(srcdir, '_build')
 #        if confdir is None:
         confdir = srcdir
 #        if outdir is None:
-        outdir = builddir.joinpath(buildername)
-        if not outdir.isdir():
-            outdir.makedirs()
+        outdir = join(builddir, buildername)
+        if not isdir(outdir):
+            os.makedirs(outdir)
 #        if doctreedir is None:
-        doctreedir = builddir.joinpath('doctrees')
-        if not doctreedir.isdir():
-            doctreedir.makedirs()
+        doctreedir = join(builddir, 'doctrees')
+        if not isdir(doctreedir):
+            os.makedirs(doctreedir)
         if confoverrides is None:
             confoverrides = {}
         if status is None:
@@ -201,80 +108,9 @@ class TestApp(application.Sphinx):
                                     freshenv, warningiserror, tags)
 
     def cleanup(self, doctrees=False):
-        Theme.themes.clear()
-        AutoDirective._registry.clear()
-        ModuleAnalyzer.cache.clear()
-        LaTeXBuilder.usepackages = []
+        DispatcherDirective._registry.clear()
         sys.path[:] = self._saved_path
         sys.modules.pop('autodoc_fodder', None)
 
     def __repr__(self):
         return '<%s buildername=%r>' % (self.__class__.__name__, self.builder.name)
-
-
-def with_app(*args, **kwargs):
-    """
-    Make a TestApp with args and kwargs, pass it to the test and clean up
-    properly.
-    """
-    def generator(func):
-        @wraps(func)
-        def deco(*args2, **kwargs2):
-            status, warning = StringIO(), StringIO()
-            kwargs['status'] = status
-            kwargs['warning'] = warning
-            app = TestApp(*args, **kwargs)
-            try:
-                func(app, status, warning, *args2, **kwargs2)
-            finally:
-                app.cleanup()
-        return deco
-    return generator
-
-
-def gen_with_app(*args, **kwargs):
-    """
-    Decorate a test generator to pass a TestApp as the first argument to the
-    test generator when it's executed.
-    """
-    def generator(func):
-        @wraps(func)
-        def deco(*args2, **kwargs2):
-            status, warning = StringIO(), StringIO()
-            kwargs['status'] = status
-            kwargs['warning'] = warning
-            app = TestApp(*args, **kwargs)
-            try:
-                for item in func(app, status, warning, *args2, **kwargs2):
-                    yield item
-            finally:
-                app.cleanup()
-        return deco
-    return generator
-
-
-def with_tempdir(func):
-    def new_func(*args, **kwds):
-        new_tempdir = path(tempfile.mkdtemp(dir=tempdir))
-        func(new_tempdir, *args, **kwds)
-    new_func.__name__ = func.__name__
-    return new_func
-
-
-def sprint(*args):
-    sys.stderr.write(' '.join(map(str, args)) + '\n')
-
-
-_unicode_literals_re = re.compile(r'u(".*?")|u(\'.*?\')')
-
-
-def remove_unicode_literals(s):
-    return _unicode_literals_re.sub(lambda x: x.group(1) or x.group(2), s)
-
-
-def find_files(root, suffix=None):
-    for dirpath, dirs, files in os.walk(root, followlinks=True):
-        dirpath = path(dirpath)
-        for f in [f for f in files if not suffix or f.endswith(suffix)]:
-            fpath = dirpath / f
-            yield os.path.relpath(fpath, root)
