@@ -1,6 +1,7 @@
 import sys
-
-if getattr(sys, 'implementation', None) != 'pypy':
+IS_PYPY = (getattr(sys, 'implementation', None) == 'pypy'
+           or  getattr(sys, 'pypy_version_info', None) is not None)
+if not IS_PYPY:
 
     import unittest
     from dispatcher import Dispatcher
