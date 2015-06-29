@@ -1,10 +1,8 @@
 import sys
-if not ((2, 8) < sys.version_info < (3, 3, 0)):
+
+if getattr(sys, 'implementation', None) != 'pypy':
 
     import unittest
-
-
-
     from dispatcher import Dispatcher
     from dispatcher.draw import dsp2dot
     from doc._ext.dsp_directive import DispatcherDirective, PLOT
@@ -12,12 +10,9 @@ if not ((2, 8) < sys.version_info < (3, 3, 0)):
     from docutils.statemachine import ViewList
     app = None
 
-
-
     directive = options = None
 
     _warnings = []
-
 
     def setup_test():
         global options, directive, _warnings, app
