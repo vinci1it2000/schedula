@@ -93,7 +93,7 @@ def def_gear_box_model():
         {
            'function': calculate_torques_required,
            'inputs': ['gear_box_torques', 'engine_speeds', 'wheel_speeds',
-                      'temperatures', 'gear_box_efficiency_parameters',
+                      'gear_box_temperatures', 'gear_box_efficiency_parameters',
                       'temperature_references'],
            'outputs': ['torques_required<0>'],
         },
