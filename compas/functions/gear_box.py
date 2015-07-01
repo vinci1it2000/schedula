@@ -14,7 +14,8 @@ __author__ = 'Arcidiacono Vincenzo'
 from math import pi
 import numpy as np
 from compas.functions.AT_gear import MIN_ENGINE_SPEED
-
+from compas.utils.dsp import SubDispatchFunction
+from compas.models.gear_box_efficiency import gear_box_eff
 
 def get_gear_box_efficiency_constants(gear_box_type):
     """
@@ -90,7 +91,7 @@ def calculate_gear_box_efficiency_parameters(
     return par
 
 
-def calculate_torques_gear_box(wheel_powers, engine_speeds, wheel_speeds):
+def calculate_gear_box_torques(wheel_powers, engine_speeds, wheel_speeds):
     """
     Calculates torque entering the gear box.
 
@@ -126,14 +127,14 @@ def calculate_torques_gear_box(wheel_powers, engine_speeds, wheel_speeds):
 
 
 def calculate_torques_required(
-        torques_gear_box, engine_speeds, wheel_speeds, temperatures,
+        gear_box_torques, engine_speeds, wheel_speeds, temperatures,
         gear_box_efficiency_parameters, temperature_references):
     """
     Calculates torque required according to the temperature profile.
 
-    :param torques_gear_box:
+    :param gear_box_torques:
         Torque gear box vector.
-    :type torques_gear_box: np.array
+    :type gear_box_torques: np.array
 
     :param engine_speeds:
         Engine speed vector.
@@ -165,7 +166,7 @@ def calculate_torques_required(
 
     par = gear_box_efficiency_parameters
     T_cold, T_hot = temperature_references
-    t_out, e_s, gb_s = torques_gear_box, engine_speeds, wheel_speeds
+    t_out, e_s, gb_s = gear_box_torques, engine_speeds, wheel_speeds
     fun = torques_required
 
     t = fun(t_out, e_s, gb_s, par['hot'])
@@ -180,13 +181,13 @@ def calculate_torques_required(
     return t
 
 
-def torques_required(torques_gear_box, engine_speeds, wheel_speeds, par):
+def torques_required(gear_box_torques, engine_speeds, wheel_speeds, par):
     """
     Calculates torque required according to the temperature profile.
 
-    :param torques_gear_box:
+    :param gear_box_torques:
         Torque gear_box vector.
-    :type torques_gear_box: np.array
+    :type gear_box_torques: np.array
 
     :param engine_speeds:
         Engine speed vector.
@@ -209,7 +210,7 @@ def torques_required(torques_gear_box, engine_speeds, wheel_speeds, par):
     :rtype: np.array
     """
 
-    tgb, es, ws = torques_gear_box, engine_speeds, wheel_speeds
+    tgb, es, ws = gear_box_torques, engine_speeds, wheel_speeds
 
     b = tgb < 0
 
@@ -224,19 +225,38 @@ def torques_required(torques_gear_box, engine_speeds, wheel_speeds, par):
     return y
 
 
-def correct_torques_required(torques_gear_box, torques_required, gears, gear_box_ratios):
+def correct_torques_required(
+        gear_box_torques, torques_required, gears, gear_box_ratios):
+    """
+    Corrects the torque when the gear box ratio is equal to 1.
 
+    :param gear_box_torques:
+        Torque gear_box vector.
+    :type gear_box_torques: np.array
+
+    :param torques_required:
+        Torque required vector.
+    :type torques_required: np.array
+
+    :param gears:
+        Gear vector.
+    :type gears: np.array
+
+    :return:
+        Corrected torque required vector.
+    :rtype: np.array
+    """
     b = np.zeros(gears.shape, dtype=bool)
 
     for k, v in gear_box_ratios.items():
         if v == 1:
             b |= gears == k
 
-    return np.where(b, torques_gear_box, torques_required)
+    return np.where(b, gear_box_torques, torques_required)
 
 
-def calculate_gear_box_efficiencies(
-        wheel_powers, engine_speeds, wheel_speeds, torques_gear_box,
+def calculate_gear_box_efficiencies_v2(
+        wheel_powers, engine_speeds, wheel_speeds, gear_box_torques,
         torques_required):
     """
     Calculates torque entering the gear box.
@@ -254,15 +274,17 @@ def calculate_gear_box_efficiencies(
     :type wheel_speeds: np.array
 
     :return:
-        Torque out vector.
-    :rtype: np.array
+
+        - Gear box efficiency vector.
+        - Torque losses.
+    :rtype: (np.array, np.array)
 
     .. note:: Torque entering the gearbox can be from engine side
-       (power mode or from wheels in motoring mode)
+       (power mode or from wheels in motoring mode).
     """
 
     wp = wheel_powers
-    tgb = torques_gear_box
+    tgb = gear_box_torques
     tr = torques_required
     ws = wheel_speeds
     es = engine_speeds
@@ -280,3 +302,63 @@ def calculate_gear_box_efficiencies(
     eff[b1] = 1 / eff[b1]
 
     return eff, tr - tgb
+
+def calculate_gear_box_efficiencies(
+        wheel_powers, engine_speeds, wheel_speeds, gear_box_torques,
+        gear_box_efficiency_parameters, equivalent_gear_box_capacity,
+        thermostat_temperature, temperature_references,
+        gear_box_starting_temperature, gears=None, gear_box_ratios=None):
+    """
+    Calculates torque entering the gear box.
+
+    :param wheel_powers:
+        Power at wheels vector.
+    :type wheel_powers: np.array
+
+    :param engine_speeds:
+        Engine speed vector.
+    :type engine_speeds: np.array
+
+    :param wheel_speeds:
+        Wheel speed vector.
+    :type wheel_speeds: np.array
+
+    :return:
+
+        - Gear box efficiency vector.
+        - Torque losses.
+    :rtype: (np.array, np.array)
+
+    .. note:: Torque entering the gearbox can be from engine side
+       (power mode or from wheels in motoring mode).
+    """
+
+    inputs = ['thermostat_temperature', 'equivalent_gear_box_capacity',
+              'gear_box_efficiency_parameters', 'temperature_references',
+              'wheel_power', 'wheel_speed', 'engine_speed', 'gear_box_torque']
+
+    outputs = ['gear_box_temperature', 'gear_box_torque_loss',
+               'gear_box_efficiency']
+
+    dfl = (thermostat_temperature, equivalent_gear_box_capacity,
+           gear_box_efficiency_parameters, temperature_references)
+
+    it = (wheel_powers, wheel_speeds, engine_speeds, gear_box_torques)
+
+    if gear_box_ratios and gears:
+        inputs = ['gear_box_ratios'] + inputs
+        inputs.append('gear')
+        dfl = (gear_box_ratios) + dfl
+        it = it + (gears)
+
+    inputs.append('gear_box_temperature')
+
+    fun = SubDispatchFunction(gear_box_eff, 'gear_box_eff', inputs, outputs)
+
+    res = []
+    for args in zip(*it):
+        res.append(fun(*(dfl + args + (res[-1][0], ))))
+
+    temp, loss, eff = zip(*res)
+
+    return np.array(eff), np.array(loss), np.array(temp)

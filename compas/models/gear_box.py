@@ -23,7 +23,7 @@ def def_gear_box_model():
     :returns:
         - jrcgear_model
         - error coefficients ids (e.g., error_coefficients_with_DT_VA)
-    :rtype: (Dispatcher, list)
+    :rtype: Dispatcher
 
     .. testsetup::
         >>> from compas.dispatcher.draw import dsp2dot
@@ -74,9 +74,9 @@ def def_gear_box_model():
 
     functions.extend([
         {
-           'function': calculate_torques_gear_box,
+           'function': calculate_gear_box_torques,
            'inputs': ['wheel_powers', 'engine_speeds', 'wheel_speeds'],
-           'outputs': ['torques_gear_box'],
+           'outputs': ['gear_box_torques'],
         },
     ])
 
@@ -92,7 +92,7 @@ def def_gear_box_model():
     functions.extend([
         {
            'function': calculate_torques_required,
-           'inputs': ['torques_gear_box', 'engine_speeds', 'wheel_speeds',
+           'inputs': ['gear_box_torques', 'engine_speeds', 'wheel_speeds',
                       'temperatures', 'gear_box_efficiency_parameters',
                       'temperature_references'],
            'outputs': ['torques_required<0>'],
@@ -107,7 +107,7 @@ def def_gear_box_model():
     functions.extend([
         {
            'function': correct_torques_required,
-           'inputs': ['torques_gear_box', 'torques_required<0>', 'gears',
+           'inputs': ['gear_box_torques', 'torques_required<0>', 'gears',
                       'gear_box_ratios'],
            'outputs': ['torques_required'],
         },
@@ -127,10 +127,32 @@ def def_gear_box_model():
 
     functions.extend([
         {
-           'function': calculate_gear_box_efficiencies,
+           'function': calculate_gear_box_efficiencies_v2,
            'inputs': ['wheel_powers', 'engine_speeds', 'wheel_speeds',
                       'torques_gear_box', 'torques_required'],
            'outputs': ['gear_box_efficiencies', 'gear_box_torque_losses'],
+        },
+        {
+           'function': calculate_gear_box_efficiencies,
+           'inputs': ['wheel_powers', 'engine_speeds', 'wheel_speeds',
+                      'gear_box_torques', 'gear_box_efficiency_parameters',
+                      'equivalent_gear_box_capacity', 'thermostat_temperature',
+                      'temperature_references', 'gear_box_starting_temperature',
+                      'gears', 'gear_box_ratios'],
+           'outputs': ['gear_box_efficiencies', 'gear_box_torque_losses',
+                       'gear_box_temperatures'],
+           'weight': 50,
+        },
+        {
+           'function': calculate_gear_box_efficiencies,
+           'inputs': ['wheel_powers', 'engine_speeds', 'wheel_speeds',
+                      'gear_box_torques', 'gear_box_efficiency_parameters',
+                      'equivalent_gear_box_capacity', 'thermostat_temperature',
+                      'temperature_references',
+                      'gear_box_starting_temperature'],
+           'outputs': ['gear_box_efficiencies', 'gear_box_torque_losses',
+                       'gear_box_temperatures'],
+           'weight': 100,
         },
     ])
 

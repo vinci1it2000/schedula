@@ -233,7 +233,8 @@ def def_gear_models():
 
         >>> gear_model, calibration_models = def_gear_models()[0:2]
         >>> calibration_models
-        ['correct_gear',
+        ['time_shift_engine_speeds',
+         'correct_gear',
          'CMV', 'CMV_Cold_Hot',
          'GSPV', 'GSPV_Cold_Hot',
          'DT_VA', 'DT_VAT', 'DT_VAP', 'DT_VATP']

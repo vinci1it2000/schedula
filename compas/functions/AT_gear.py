@@ -41,8 +41,11 @@ INF = 10000.0
 #: Minimum gear
 MIN_GEAR = 0
 
-#: Maximum time shift
-MAX_TIME_SHIFT = 3.0
+#: Maximum Dt in speed shift equation
+MAX_DT_SHIFT = 3.0
+
+#: Maximum m in speed shift equation
+MAX_M_SHIFT = 1
 
 #: Minimum vehicle engine speed
 MIN_ENGINE_SPEED = 10.0
@@ -357,8 +360,8 @@ def calculate_gear_box_speeds_from_engine_speeds(
 
         return sum(std * w)
 
-    shift = brute(error_fun, (slice(-MAX_TIME_SHIFT, MAX_TIME_SHIFT, 0.1),
-                              slice(-MAX_TIME_SHIFT, MAX_TIME_SHIFT, 0.1), ))
+    shift = brute(error_fun, (slice(-MAX_DT_SHIFT, MAX_DT_SHIFT, 0.1),
+                              slice(-MAX_M_SHIFT, MAX_M_SHIFT, 0.01), ))
 
     gear_box_speeds = speeds(*shift)
     gear_box_speeds[gear_box_speeds < 0] = 0

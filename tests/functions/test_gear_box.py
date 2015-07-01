@@ -69,7 +69,9 @@ class TestGearBox(unittest.TestCase):
 
     def test_calculate_torque_out(self):
         wp, es, gbs = self.wp, self.es, self.ws
-        self.assertEquals(list(calculate_torques_gear_box(wp, es, gbs)), list(self.tgb))
+        self.assertEquals(
+            list(calculate_gear_box_torques(wp, es, gbs)), list(self.tgb)
+        )
 
     def test_torque_required(self):
 
@@ -91,7 +93,7 @@ class TestGearBox(unittest.TestCase):
         self.assertEquals(list(fun(*a)), list(self.tcorr))
 
     def test_calculate_gear_box_efficiency(self):
-        fun = calculate_gear_box_efficiencies
+        fun = calculate_gear_box_efficiencies_v2
         a = (self.wp, self.es, self.ws, self.tgb, self.tr)
         self.assertEquals(list(fun(*a)[0]), list(self.eff))
         self.assertEquals(list(fun(*a)[1]), list(self.tl))
