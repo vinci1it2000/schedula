@@ -37,7 +37,7 @@ def torque_required(gear_box_torque, engine_speed, wheel_speed, par):
 
     if tgb < 0:
         return par['gbp01'] * tgb - par['gbp10'] * ws - par['gbp00']
-    elif es > MIN_ENGINE_SPEED and ws > MIN_ENGINE_SPEED:
+    elif es > 0 and ws > 0:
         return (tgb - par['gbp10'] * es - par['gbp00']) / par['gbp01']
     return 0
 
@@ -151,12 +151,13 @@ def calculate_gear_box_efficiency(
     """
 
     eff, torque_loss = 0, torque_required - gear_box_torque
-
-    if torque_required * gear_box_torque > 0:
+    if torque_required == gear_box_torque:
+        eff = 1
+    else:
         eff = torque_required / wheel_power * (pi / 30000)
         eff = 1 / (engine_speed * eff) if wheel_power > 0 else wheel_speed * eff
 
-    return eff, torque_loss
+    return max(0, min(1, eff)), torque_loss
 
 
 def calculate_gear_box_temperature(
@@ -186,7 +187,7 @@ def calculate_gear_box_temperature(
     :rtype: float
     """
 
-    temp = gear_box_heat + starting_temperature / equivalent_gear_box_capacity
+    temp = starting_temperature + gear_box_heat / equivalent_gear_box_capacity
 
     return min(temp, thermostat_temperature - 5.0)
 

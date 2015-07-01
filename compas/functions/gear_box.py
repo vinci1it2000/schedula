@@ -303,6 +303,7 @@ def calculate_gear_box_efficiencies_v2(
 
     return eff, tr - tgb
 
+
 def calculate_gear_box_efficiencies(
         wheel_powers, engine_speeds, wheel_speeds, gear_box_torques,
         gear_box_efficiency_parameters, equivalent_gear_box_capacity,
@@ -345,20 +346,21 @@ def calculate_gear_box_efficiencies(
 
     it = (wheel_powers, wheel_speeds, engine_speeds, gear_box_torques)
 
-    if gear_box_ratios and gears:
+    if gear_box_ratios and gears is not None:
         inputs = ['gear_box_ratios'] + inputs
         inputs.append('gear')
-        dfl = (gear_box_ratios) + dfl
-        it = it + (gears)
+        dfl = (gear_box_ratios, ) + dfl
+        it = it + (gears, )
 
     inputs.append('gear_box_temperature')
 
     fun = SubDispatchFunction(gear_box_eff, 'gear_box_eff', inputs, outputs)
-
+    T0 = gear_box_starting_temperature
     res = []
     for args in zip(*it):
-        res.append(fun(*(dfl + args + (res[-1][0], ))))
+        res.append(fun(*(dfl + args + (T0, ))))
+        T0 = res[-1][0]
 
     temp, loss, eff = zip(*res)
-
+    temp = (gear_box_starting_temperature, ) + temp[:-1]
     return np.array(eff), np.array(loss), np.array(temp)
