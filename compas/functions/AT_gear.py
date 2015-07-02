@@ -314,6 +314,7 @@ def speed_shift(times, speeds, accelerations):
 
     return fun
 
+
 def calculate_gear_box_speeds_from_engine_speeds(
         times, velocities, accelerations, engine_speeds, velocity_speed_ratios):
     """
@@ -534,8 +535,10 @@ def identify_gears(
     gear = list(map(identify_gear, *it))
 
     gear = median_filter(times, gear, TIME_WINDOW)
+    gear = clear_gear_fluctuations(times, gear, TIME_WINDOW)
 
-    return clear_gear_fluctuations(times, gear, TIME_WINDOW)
+    speeds = calculate_gear_box_speeds(gear, velocities, velocity_speed_ratios)
+    return gear, speeds
 
 
 def correct_gear_upper_bound_engine_speed(

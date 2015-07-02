@@ -16,7 +16,7 @@ __author__ = 'Vincenzo_Arcidiacono'
 from compas.dispatcher import Dispatcher
 from compas.functions.AT_gear import *
 from compas.utils.dsp import bypass
-
+from compas.functions.torque_converter import *
 
 def def_gear_models():
     """
@@ -327,6 +327,8 @@ def def_gear_models():
     gear_box_speeds_predicted = []
     engine_speeds_predicted = []
     error_coefficients = []
+    torque_speeds = []
+    error_coefficients_torque = []
 
     """
     Full load curve
@@ -436,9 +438,27 @@ def def_gear_models():
            'function': calculate_gear_box_speeds_from_engine_speeds,
            'inputs': ['times', 'velocities', 'accelerations', 'engine_speeds',
                       'velocity_speed_ratios'],
-           'outputs': ['gear_box_speeds', 'time_shift_engine_speeds'],
+           'outputs': ['gear_box_speeds<0>', 'time_shift_engine_speeds'],
         },
     ])
+
+
+    """
+    Torque efficiencies
+    ===================
+    """
+
+    calibration_models.append('torque_efficiency_params')
+
+    functions.extend([
+        {  # calibrate torque efficiency params
+           'function': calibrate_torque_efficiency_params,
+           'inputs': ['engine_speeds', 'gear_box_speeds', 'idle_engine_speed',
+                      'gears', 'velocities', 'accelerations'],
+           'outputs': ['torque_efficiency_params'],
+        },
+    ])
+
 
     """
     Idle engine speed
@@ -484,9 +504,10 @@ def def_gear_models():
     functions.extend([
         {  # identify gears
            'function': identify_gears,
-           'inputs': ['times', 'velocities', 'accelerations', 'gear_box_speeds',
-                      'velocity_speed_ratios', 'idle_engine_speed'],
-           'outputs': ['gears'],
+           'inputs': ['times', 'velocities', 'accelerations',
+                      'gear_box_speeds<0>', 'velocity_speed_ratios',
+                      'idle_engine_speed'],
+           'outputs': ['gears', 'gear_box_speeds'],
         },
     ])
 
@@ -538,6 +559,8 @@ def def_gear_models():
     gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
     engine_speeds_predicted.append('engine_speeds_with_%s' % model)
     error_coefficients.append('error_coefficients_with_%s' % model)
+    torque_speeds.append('torque_speeds_with_%s' % model)
+    error_coefficients_torque.append('error_coefficients_torque_with_%s' % model)
 
     functions.extend([
         {  # calibrate corrected matrix velocity
@@ -570,6 +593,19 @@ def def_gear_models():
                       'velocities'],
            'outputs': [error_coefficients[-1]],
         },
+        {  # calculate engine speeds with predicted gears
+           'function': calculate_torque_converter_speeds,
+           'inputs': [gears_predicted[-1], gear_box_speeds_predicted[-1],
+                      'idle_engine_speed', 'accelerations',
+                      'torque_efficiency_params'],
+           'outputs': [torque_speeds[-1]],
+        },
+        {  # calculate error coefficients
+           'function': calculate_error_coefficients,
+           'inputs': [torque_speeds[-1], 'engine_speeds',
+                      'velocities'],
+           'outputs': [error_coefficients_torque[-1]],
+        },
 
     ])
 
@@ -584,6 +620,8 @@ def def_gear_models():
     gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
     engine_speeds_predicted.append('engine_speeds_with_%s' % model)
     error_coefficients.append('error_coefficients_with_%s' % model)
+    torque_speeds.append('torque_speeds_with_%s' % model)
+    error_coefficients_torque.append('error_coefficients_torque_with_%s' % model)
 
     data.extend([
         {'data_id': 'time_cold_hot_transition', 'default_value': 300.0}
@@ -622,6 +660,19 @@ def def_gear_models():
                       'velocities'],
            'outputs': [error_coefficients[-1]],
         },
+        {  # calculate engine speeds with predicted gears
+           'function': calculate_torque_converter_speeds,
+           'inputs': [gears_predicted[-1], gear_box_speeds_predicted[-1],
+                      'idle_engine_speed', 'accelerations',
+                      'torque_efficiency_params'],
+           'outputs': [torque_speeds[-1]],
+        },
+        {  # calculate error coefficients
+           'function': calculate_error_coefficients,
+           'inputs': [torque_speeds[-1], 'engine_speeds',
+                      'velocities'],
+           'outputs': [error_coefficients_torque[-1]],
+        },
     ])
 
     """
@@ -635,6 +686,8 @@ def def_gear_models():
     gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
     engine_speeds_predicted.append('engine_speeds_with_%s' % model)
     error_coefficients.append('error_coefficients_with_%s' % model)
+    torque_speeds.append('torque_speeds_with_%s' % model)
+    error_coefficients_torque.append('error_coefficients_torque_with_%s' % model)
 
     functions.extend([
         {  # calibrate corrected matrix velocity
@@ -666,6 +719,19 @@ def def_gear_models():
                       'velocities'],
            'outputs': [error_coefficients[-1]],
         },
+        {  # calculate engine speeds with predicted gears
+           'function': calculate_torque_converter_speeds,
+           'inputs': [gears_predicted[-1], gear_box_speeds_predicted[-1],
+                      'idle_engine_speed', 'accelerations',
+                      'torque_efficiency_params'],
+           'outputs': [torque_speeds[-1]],
+        },
+        {  # calculate error coefficients
+           'function': calculate_error_coefficients,
+           'inputs': [torque_speeds[-1], 'engine_speeds',
+                      'velocities'],
+           'outputs': [error_coefficients_torque[-1]],
+        },
     ])
 
     """
@@ -679,6 +745,8 @@ def def_gear_models():
     gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
     engine_speeds_predicted.append('engine_speeds_with_%s' % model)
     error_coefficients.append('error_coefficients_with_%s' % model)
+    torque_speeds.append('torque_speeds_with_%s' % model)
+    error_coefficients_torque.append('error_coefficients_torque_with_%s' % model)
 
     data.extend([
         {'data_id': 'time_cold_hot_transition', 'default_value': 300.0}
@@ -716,6 +784,19 @@ def def_gear_models():
                       'velocities'],
            'outputs': [error_coefficients[-1]],
         },
+        {  # calculate engine speeds with predicted gears
+           'function': calculate_torque_converter_speeds,
+           'inputs': [gears_predicted[-1], gear_box_speeds_predicted[-1],
+                      'idle_engine_speed', 'accelerations',
+                      'torque_efficiency_params'],
+           'outputs': [torque_speeds[-1]],
+        },
+        {  # calculate error coefficients
+           'function': calculate_error_coefficients,
+           'inputs': [torque_speeds[-1], 'engine_speeds',
+                      'velocities'],
+           'outputs': [error_coefficients_torque[-1]],
+        },
     ])
 
     """
@@ -729,6 +810,8 @@ def def_gear_models():
     gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
     engine_speeds_predicted.append('engine_speeds_with_%s' % model)
     error_coefficients.append('error_coefficients_with_%s' % model)
+    torque_speeds.append('torque_speeds_with_%s' % model)
+    error_coefficients_torque.append('error_coefficients_torque_with_%s' % model)
 
     functions.extend([
         {  # calibrate corrected matrix velocity
@@ -760,6 +843,19 @@ def def_gear_models():
                       'velocities'],
            'outputs': [error_coefficients[-1]],
         },
+        {  # calculate engine speeds with predicted gears
+           'function': calculate_torque_converter_speeds,
+           'inputs': [gears_predicted[-1], gear_box_speeds_predicted[-1],
+                      'idle_engine_speed', 'accelerations',
+                      'torque_efficiency_params'],
+           'outputs': [torque_speeds[-1]],
+        },
+        {  # calculate error coefficients
+           'function': calculate_error_coefficients,
+           'inputs': [torque_speeds[-1], 'engine_speeds',
+                      'velocities'],
+           'outputs': [error_coefficients_torque[-1]],
+        },
     ])
 
     """
@@ -773,6 +869,8 @@ def def_gear_models():
     gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
     engine_speeds_predicted.append('engine_speeds_with_%s' % model)
     error_coefficients.append('error_coefficients_with_%s' % model)
+    torque_speeds.append('torque_speeds_with_%s' % model)
+    error_coefficients_torque.append('error_coefficients_torque_with_%s' % model)
 
     functions.extend([
         {  # calibrate corrected matrix velocity
@@ -804,6 +902,19 @@ def def_gear_models():
                       'velocities'],
            'outputs': [error_coefficients[-1]],
         },
+        {  # calculate engine speeds with predicted gears
+           'function': calculate_torque_converter_speeds,
+           'inputs': [gears_predicted[-1], gear_box_speeds_predicted[-1],
+                      'idle_engine_speed', 'accelerations',
+                      'torque_efficiency_params'],
+           'outputs': [torque_speeds[-1]],
+        },
+        {  # calculate error coefficients
+           'function': calculate_error_coefficients,
+           'inputs': [torque_speeds[-1], 'engine_speeds',
+                      'velocities'],
+           'outputs': [error_coefficients_torque[-1]],
+        },
     ])
 
     """
@@ -817,6 +928,8 @@ def def_gear_models():
     gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
     engine_speeds_predicted.append('engine_speeds_with_%s' % model)
     error_coefficients.append('error_coefficients_with_%s' % model)
+    torque_speeds.append('torque_speeds_with_%s' % model)
+    error_coefficients_torque.append('error_coefficients_torque_with_%s' % model)
 
     functions.extend([
         {  # calibrate corrected matrix velocity
@@ -848,6 +961,19 @@ def def_gear_models():
                       'velocities'],
            'outputs': [error_coefficients[-1]],
         },
+        {  # calculate engine speeds with predicted gears
+           'function': calculate_torque_converter_speeds,
+           'inputs': [gears_predicted[-1], gear_box_speeds_predicted[-1],
+                      'idle_engine_speed', 'accelerations',
+                      'torque_efficiency_params'],
+           'outputs': [torque_speeds[-1]],
+        },
+        {  # calculate error coefficients
+           'function': calculate_error_coefficients,
+           'inputs': [torque_speeds[-1], 'engine_speeds',
+                      'velocities'],
+           'outputs': [error_coefficients_torque[-1]],
+        },
     ])
 
     """
@@ -861,6 +987,8 @@ def def_gear_models():
     gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
     engine_speeds_predicted.append('engine_speeds_with_%s' % model)
     error_coefficients.append('error_coefficients_with_%s' % model)
+    torque_speeds.append('torque_speeds_with_%s' % model)
+    error_coefficients_torque.append('error_coefficients_torque_with_%s' % model)
 
     functions.extend([
         {  # calibrate corrected matrix velocity
@@ -894,6 +1022,19 @@ def def_gear_models():
                       'velocities'],
            'outputs': [error_coefficients[-1]],
         },
+        {  # calculate engine speeds with predicted gears
+           'function': calculate_torque_converter_speeds,
+           'inputs': [gears_predicted[-1], gear_box_speeds_predicted[-1],
+                      'idle_engine_speed', 'accelerations',
+                      'torque_efficiency_params'],
+           'outputs': [torque_speeds[-1]],
+        },
+        {  # calculate error coefficients
+           'function': calculate_error_coefficients,
+           'inputs': [torque_speeds[-1], 'engine_speeds',
+                      'velocities'],
+           'outputs': [error_coefficients_torque[-1]],
+        },
     ])
 
     gear_model = Dispatcher()
@@ -901,7 +1042,7 @@ def def_gear_models():
     gear_model.add_from_lists(data_list=data, fun_list=functions)
 
     return gear_model, calibration_models, gears_predicted, \
-           gear_box_speeds_predicted, error_coefficients
+           gear_box_speeds_predicted, error_coefficients + error_coefficients_torque
 
 def def_CMV():
     """
