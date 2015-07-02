@@ -1,87 +1,79 @@
 __author__ = 'Vincenzo Arcidiacono'
 
-from itertools import repeat
-
 import numpy as np
 from sklearn.metrics import mean_squared_error
 from scipy.optimize import fmin
-
-from .compas.functions.AT_gear_functions import identify_gears
-from .compas.utils.utils import median_filter
+from compas.functions.AT_gear import VEL_EPS
 
 
+def calibrate_torque_efficiency_params(
+        engine_speeds, gear_box_speeds, idle_engine_speed, gears, velocities, 
+        accelerations):
 
-# deprecated
-def correction_function(rpm, coeff):
-    c, rpm_idle = coeff
+    ratios = gear_box_speeds / engine_speeds
+
+    b = accelerations < 0
+
+    ratios[b] = 1.0 / ratios[b]
+
+    ratios[(1 < ratios) & (ratios <= 1.05)] = 1.0
+
+    b = (velocities > VEL_EPS) & (0 < ratios) & (ratios <= 1)
+    b &= engine_speeds > (idle_engine_speed[0] - idle_engine_speed[1])
+    
+    lower_limit = min(gear_box_speeds[b])
+    
+    x0 = (idle_engine_speed, 0.001)
+    
+    def calibrate(w):
+        return fmin(error_function, x0, (ratios[w], gear_box_speeds[w]))
+    
+    x0 = dfl = calibrate(b)
+    
+    params = {}
+    for i in range(max(gears)):
+        t = b & (gears == i)
+        params[i] = calibrate(t) if t.any() else dfl
+        
+    return params, lower_limit
+
+
+def error_function(params, ratios, gear_box_speeds):
+    ratios = torque_efficiencies(gear_box_speeds, *params)
+    return mean_squared_error(ratios, ratios)
+
+
+def torque_efficiencies(gear_box_speeds, engine_speed_param, exp_param):
+    """
+    
+    :param gear_box_speeds: 
+    :param engine_speed_param: 
+    :param exp_param: 
+    :return:
+    :rtype: np.array
+    """
+
     # noinspection PyTypeChecker
-    return 1 - np.exp(-c * (rpm - rpm_idle))
+    return 1.0 - np.exp(-exp_param * (gear_box_speeds - engine_speed_param))
 
 
-# deprecated
-def eng_speed2gb_speed_error_fun(args_corr_fun, svr_get, rpm, vel, gear, time,
-                                 temp=None):
-    it = zip(rpm, repeat(args_corr_fun))
+def calculate_torque_converter_speeds(
+        gear_box_speeds, idle_engine_speed, lower_limit, accelerations, params):
+    
+    speeds = np.zeros(gear_box_speeds.shape)
+    
+    b0 = gear_box_speeds <= lower_limit
+    
+    speeds[b0] = idle_engine_speed[0]
+    
+    b0 = np.logical_not(b0)
+    
+    ratios = torque_efficiencies(gear_box_speeds[b0], *params)
+    
+    b = b0 & (accelerations >= 0)
 
-    rpm_gb0 = rpm * list(map(correction_function, it))
+    ratios[b] = 1.0 / ratios[b]
 
-    rpm_gb = vel * list(map(svr_get, gear))
+    speeds[b0] = ratios * gear_box_speeds[b0]
 
-    # noinspection PyUnresolvedReferences
-    ratio = rpm_gb / rpm
-
-    t = (0 <= vel) & (vel < 45) & (0 <= ratio) & (ratio < 1.05)
-
-    if temp is None:
-        t &= 50 < time
-    else:
-        t &= ((50 < temp) | (time > 50))
-
-    return mean_squared_error(rpm_gb[t], rpm_gb0[t]) if t.any() else 0
-
-
-# deprecated
-def eng_speed2gb_speed(speed2velocity_ratios, time, vel, acc, speed_eng,
-                       temp=None):
-    svr = speed2velocity_ratios
-
-    svr_get = svr.get
-
-    if temp is None:
-        def set_args(*a, ids=None):
-            if ids is not None:
-                return (svr_get, ) + tuple(v[ids] for v in a)
-            else:
-                return (svr_get, ) + a
-    else:
-        def set_args(*a, ids=None):
-            p = a + (temp, )
-            if ids is not None:
-                p = tuple(v[ids] for v in p)
-            return (svr_get, ) + p
-
-    gear_eng = identify_gears(time, vel, acc, speed_eng, svr)
-
-    args = set_args(speed_eng, vel, gear_eng, time)
-
-    c_av = list(fmin(eng_speed2gb_speed_error_fun, [0.001, 700], args=args))
-
-    coeff_cf = {'av': c_av}
-
-    for i in range(max(gear_eng) + 1):
-        coeff_cf[i] = c_av
-
-        if i in gear_eng:
-            args = set_args(speed_eng, vel, gear_eng, time, ids=gear_eng == i)
-
-            res = list(fmin(eng_speed2gb_speed_error_fun, c_av, args=args))
-
-            if all(abs((res[j] - c_av[j]) / c_av[j]) <= 1 for j in [0, 1]):
-                coeff_cf[i] = res
-
-    coeff = list(map(coeff_cf.get, gear_eng))
-    ratio = np.vectorize(correction_function)(speed_eng, coeff)
-    ratio[ratio < 0] = 0
-    ratio[ratio > 1.05] = 1
-
-    return coeff_cf, median_filter(time, speed_eng * ratio, 4)
+    return speeds

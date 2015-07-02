@@ -1,10 +1,5 @@
 networkx
 dill
-graphviz
-nose
-wheel
-coveralls
-sphinx
 pandas
 numpy
 scipy
