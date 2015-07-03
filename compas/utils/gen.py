@@ -35,8 +35,11 @@ except AttributeError:
 
     isidentifier = re.compile(r'[a-z_]\w*$', re.I).match
 
-__all__ = ['counter', 'Token', 'pairwise', 'heap_flush', 'AttrDict',
-           'caller_name']
+__all__ = [
+    'counter', 'Token', 'pairwise', 'heap_flush', 'AttrDict', 'caller_name',
+    'grouper', 'sliding_window', 'median_filter', 'reject_outliers',
+    'bin_split', 'interpolate_cloud', 'clear_gear_fluctuations'
+]
 
 if '__next__' in count.__dict__:
     def counter(start=0, step=1):
@@ -438,3 +441,52 @@ def interpolate_cloud(x, y):
         x, y = ([0, 1], [np.mean(y)] * 2)
 
     return InterpolatedUnivariateSpline(x, y, k=1)
+
+
+def clear_gear_fluctuations(times, gears, dt_window):
+    """
+    Clears the gear identification fluctuations.
+
+    :param times:
+        Time vector.
+    :type times: np.array
+
+    :param gears:
+        Gear vector.
+    :type gears: np.array
+
+    :param dt_window:
+        Time window.
+    :type dt_window: float
+
+    :return:
+        Gear vector corrected from fluctuations.
+    :rtype: np.array
+    """
+
+    xy = [list(v) for v in zip(times, gears)]
+
+    for samples in sliding_window(xy, dt_window):
+
+        up, dn = (None, None)
+
+        x, y = zip(*samples)
+
+        for k, d in enumerate(np.diff(y)):
+            if d > 0:
+                up = (k, )
+            elif d < 0:
+                dn = (k, )
+
+            if up and dn:
+                k0 = min(up[0], dn[0])
+                k1 = max(up[0], dn[0]) + 1
+
+                m = median_high(y[k0:k1])
+
+                for i in range(k0 + 1, k1):
+                    samples[i][1] = m
+
+                up, dn = (None, None)
+
+    return np.array([y[1] for y in xy])

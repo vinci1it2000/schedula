@@ -130,4 +130,3 @@ def calculate_currents_no_recuperation(
     res[c] = max_charging_current * alternator_charging_factor -a
 
     return res
-

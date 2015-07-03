@@ -13,9 +13,9 @@ __author__ = 'Arcidiacono Vincenzo'
 
 from math import pi
 import numpy as np
-from compas.functions.AT_gear import MIN_ENGINE_SPEED
 from compas.utils.dsp import SubDispatchFunction
 from compas.models.gear_box_efficiency import gear_box_eff
+from compas.functions.constants import *
 
 def get_gear_box_efficiency_constants(gear_box_type):
     """
@@ -364,3 +364,39 @@ def calculate_gear_box_efficiencies(
     temp, loss, eff = zip(*res)
     temp = (gear_box_starting_temperature, ) + temp[:-1]
     return np.array(eff), np.array(loss), np.array(temp)
+
+
+def calculate_gear_box_speeds(gears, velocities, velocity_speed_ratios):
+    """
+    Calculates gear box speed vector.
+
+    :param gears:
+        Gear vector.
+    :type gears: np.array
+
+    :param velocities:
+        Velocity vector.
+    :type velocities: np.array
+
+    :param velocity_speed_ratios:
+        Constant velocity speed ratios of the gear box.
+    :type velocity_speed_ratios: dict
+
+    :return:
+        Gear box speed vector.
+    :rtype: np.array
+    """
+
+    vsr = [0]
+
+    def get_vsr(g):
+        vsr[0] = velocity_speed_ratios.get(g, vsr[0])
+        return float(vsr[0])
+
+    vsr = np.vectorize(get_vsr)(gears)
+
+    speeds = velocities / vsr
+
+    speeds[(velocities < VEL_EPS) | (vsr == 0)] = 0
+
+    return speeds

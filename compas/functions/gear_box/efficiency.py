@@ -1,7 +1,6 @@
 __author__ = 'Vincenzo Arcidiacono'
 
 from math import pi
-from compas.functions.AT_gear import MIN_ENGINE_SPEED
 
 
 def torque_required(gear_box_torque, engine_speed, wheel_speed, par):
