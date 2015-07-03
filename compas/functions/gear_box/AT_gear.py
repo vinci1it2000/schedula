@@ -26,7 +26,8 @@ from compas.utils.gen import median_filter, pairwise, grouper, \
     interpolate_cloud, clear_gear_fluctuations
 
 from compas.functions.constants import *
-
+from compas.functions.gear_box import calculate_gear_box_speeds
+from compas.functions.wheels import calculate_wheel_powers
 
 def get_full_load(fuel_type):
     """

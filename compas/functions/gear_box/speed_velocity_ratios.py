@@ -1,3 +1,4 @@
+from math import pi
 from compas.utils.gen import bin_split, reject_outliers
 from compas.functions.constants import *
 

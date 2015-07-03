@@ -1,5 +1,7 @@
 __author__ = 'iMac2013'
 
+from compas.functions.constants import *
+from compas.utils import bin_split, reject_outliers
 
 def identify_idle_engine_speed(velocities, engine_speeds):
     """

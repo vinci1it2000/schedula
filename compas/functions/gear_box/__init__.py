@@ -16,6 +16,11 @@ import numpy as np
 from compas.utils.dsp import SubDispatchFunction
 from compas.models.gear_box_efficiency import gear_box_eff
 from compas.functions.constants import *
+from .AT_gear import *
+from .efficiency import *
+from .speed_velocity_ratios import *
+from .torque_converter import *
+
 
 def get_gear_box_efficiency_constants(gear_box_type):
     """
