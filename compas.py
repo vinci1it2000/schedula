@@ -10,7 +10,7 @@ def main(*args):
         from tkinter import Tk
 
         root = Tk()
-        #root.withdraw()
+        root.withdraw()
         input_folder = askdirectory(title='Select input folder',
                                     initialdir='%s/input'%(getcwd()),
                                     parent=root)

@@ -22,7 +22,7 @@ from scipy.interpolate import InterpolatedUnivariateSpline
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import mean_absolute_error
 
-from compas.utils.gen import median_filter, pairwise, grouper, \
+from compas.functions.utils import median_filter, pairwise, grouper, \
     interpolate_cloud, clear_gear_fluctuations
 
 from compas.functions.constants import *

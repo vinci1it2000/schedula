@@ -10,18 +10,18 @@
 It contains utility classes and functions.
 
 The utils module contains classes and functions of general utility used in
-multiple places throughout `compas`. Some of these are graph-specific
+multiple places throughout `dispatcher`. Some of these are graph-specific
 algorithms while others are more python tricks.
 
 The utils module is composed of three submodules to make organization clearer.
 The submodules are fairly different from each other, but the main uniting theme
-is that all of these submodules are not specific to a particularly compas
+is that all of these submodules are not specific to a particularly dispatcher
 application.
 
 .. note::
-    The :mod:`~compas.utils` module is composed of submodules that can be
+    The :mod:`~dispatcher.utils` module is composed of submodules that can be
     accessed separately. However, they are all also included in the base module.
-    Thus, as an example, compas.utils.gen.Token and compas.utils.Token
+    Thus, as an example, dispatcher.utils.gen.Token and dispatcher.utils.Token
     are different names for the same class (Token). The dispatcher.utils.Token
     usage is preferred as this allows the internal organization to be changed if
     it is deemed necessary.
@@ -29,7 +29,7 @@ application.
 
 Sub-Modules:
 
-.. currentmodule:: compas.utils
+.. currentmodule:: dispatcher.utils
 
 .. autosummary::
     :nosignatures:
@@ -39,9 +39,7 @@ Sub-Modules:
     alg
     gen
 """
-import os
-prj_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
-dot_dir = os.path.join(prj_dir, 'doc/compas/utils/')
+
 __author__ = 'Vincenzo Arcidiacono'
 
 from .dsp import *

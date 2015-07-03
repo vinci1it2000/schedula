@@ -1,6 +1,7 @@
 from math import pi
-from compas.utils.gen import bin_split, reject_outliers
+from compas.functions.utils import bin_split, reject_outliers
 from compas.functions.constants import *
+
 
 def identify_velocity_speed_ratios(
         gear_box_speeds, velocities, idle_engine_speed):

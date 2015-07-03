@@ -21,6 +21,7 @@ Modules:
 
     read_write
     draw
+    utils
     constants
 """
 
@@ -33,10 +34,10 @@ from collections import deque
 
 from networkx import DiGraph, isolates
 
-from compas.utils.gen import AttrDict, counter
-from compas.utils.alg import add_edge_fun, remove_cycles_iteration
+from .utils.gen import AttrDict, counter, caller_name
+from .utils.alg import add_edge_fun, remove_cycles_iteration
 from .constants import EMPTY, START, NONE, SINK
-from compas.utils.dsp import SubDispatch, bypass
+from .utils.dsp import SubDispatch, bypass
 
 
 prj_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
@@ -161,14 +162,11 @@ class Dispatcher(object):
         ...              function=average_fun, callback=callback_fun)
         'd'
 
-    .. testsetup::
-        >>> from compas.dispatcher.draw import dsp2dot
-        >>> from compas.dispatcher import dot_dir
-        >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
-        >>> dot.save('__init__/Dispatcher/dsp.dot', dot_dir)
-        '...'
+    .. dispatcher:: dsp
+       :opt: graph_attr={'ratio': '1'}
 
-    .. graphviz:: /compas/dispatcher/__init__/Dispatcher/dsp.dot
+        >>> dsp
+        <...>
 
     Dispatch the function calls to achieve the desired output data node `d`::
 
@@ -177,16 +175,15 @@ class Dispatcher(object):
         >>> sorted(outputs.items())
         [('a', 0), ('b', 1), ('c', 1), ('d', 2.0)]
 
-    .. testsetup::
-        >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'ratio': '1'})
-        >>> dot.save('__init__/Dispatcher/wf.dot', dot_dir)
-        '...'
+    .. dispatcher:: dsp
+       :opt: workflow=True, graph_attr={'ratio': '1'}
 
-    .. graphviz:: /compas/dispatcher/__init__/Dispatcher/wf.dot
+        >>> dsp
+        <...>
     """
 
-    def __init__(self, dmap=None, name='Dispatcher', default_values=None,
-                 raises=False):
+    def __init__(self, dmap=None, name='', default_values=None, raises=False,
+                 description=''):
         """
         Initializes the dispatcher.
 
@@ -207,6 +204,10 @@ class Dispatcher(object):
             If True the dispatcher interrupt the dispatch when an error occur,
             otherwise it logs a warning.
         :type raises: bool, optional
+
+        :param description:
+            The dispatcher's description.
+        :type description: str, optional
         """
 
         #: The directed graph that stores data & functions parameters.
@@ -214,6 +215,10 @@ class Dispatcher(object):
 
         #: The dispatcher's name.
         self.name = name
+
+        #: The dispatcher's description.
+        self.__doc__ = description
+
         self.dmap.node = AttrDict(self.dmap.node)
 
         #: The function and data nodes of the dispatcher.
@@ -265,6 +270,8 @@ class Dispatcher(object):
 
         #: Data nodes that waits inputs. They are used in `shrink_dsp`.
         self._wait_in = {}
+
+        self.__module__ = caller_name()
 
     def add_data(self, data_id=None, default_value=EMPTY, wait_inputs=False,
                  wildcard=None, function=None, callback=None, **kwargs):
@@ -733,7 +740,9 @@ class Dispatcher(object):
 
         A dispatcher with a two functions `fun1` and `fun2`:
 
-        .. testsetup::
+        .. dispatcher:: dsp
+           :opt: graph_attr={'ratio': '1'}
+
             >>> dsp = Dispatcher()
             >>> dsp.add_function(function_id='fun1', inputs=['a', 'b'],
             ...                   outputs=['c', 'd'])
@@ -741,25 +750,15 @@ class Dispatcher(object):
             >>> dsp.add_function(function_id='fun2', inputs=['a', 'd'],
             ...                   outputs=['c', 'e'])
             'fun2'
-            >>> from compas.dispatcher.draw import dsp2dot
-            >>> from compas.dispatcher import dot_dir
-            >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
-            >>> dot.save('__init__/get_sub_dsp/dsp.dot', dot_dir)
-            '...'
-
-        .. graphviz:: /compas/dispatcher/__init__/get_sub_dsp/dsp.dot
 
         Get the sub-dispatcher induced by given nodes bunch::
 
             >>> sub_dsp = dsp.get_sub_dsp(['a', 'c', 'd', 'e', 'fun2'])
 
-        .. testsetup::
-            >>> sub_dsp.name = 'Sub-Dispatcher'
-            >>> dot = dsp2dot(sub_dsp, graph_attr={'ratio': '1'})
-            >>> dot.save('__init__/get_sub_dsp/sub_dsp.dot', dot_dir)
-            '...'
+        .. dispatcher:: sub_dsp
+           :opt: graph_attr={'ratio': '1'}
 
-        .. graphviz:: /compas/dispatcher/__init__/get_sub_dsp/sub_dsp.dot
+            >>> sub_dsp.name = 'Sub-Dispatcher'
         """
 
         # define an empty dispatcher
@@ -841,7 +840,9 @@ class Dispatcher(object):
 
         A dispatcher with a function `fun` and a node `a` with a default value:
 
-        .. testsetup::
+        .. dispatcher:: dsp
+           :opt: graph_attr={'ratio': '1'}
+
             >>> dsp = Dispatcher()
             >>> dsp.add_data(data_id='a', default_value=1)
             'a'
@@ -851,15 +852,6 @@ class Dispatcher(object):
             >>> dsp.add_function(function_id='fun2', inputs=['e'],
             ...                  outputs=['c'])
             'fun2'
-            >>> from compas.dispatcher.draw import dsp2dot
-            >>> from compas.dispatcher import dot_dir
-            >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
-            >>> file = '__init__/get_sub_dsp_from_workflow/dsp.dot'
-            >>> dot.save(file, dot_dir)
-            '...'
-
-        .. graphviz::
-           /compas/dispatcher/__init__/get_sub_dsp_from_workflow/dsp.dot
 
         Dispatch with no calls in order to have a workflow::
 
@@ -869,29 +861,19 @@ class Dispatcher(object):
 
             >>> sub_dsp = dsp.get_sub_dsp_from_workflow(['a', 'b'])
 
-        .. testsetup::
-            >>> sub_dsp.name = 'Sub-Dispatcher'
-            >>> dot = dsp2dot(sub_dsp, graph_attr={'ratio': '1'})
-            >>> file = '__init__/get_sub_dsp_from_workflow/sub_dsp1.dot'
-            >>> dot.save(file, dot_dir)
-            '...'
+        .. dispatcher:: sub_dsp
+           :opt: graph_attr={'ratio': '1'}
 
-        .. graphviz::
-           /compas/dispatcher/__init__/get_sub_dsp_from_workflow/sub_dsp1.dot
+            >>> sub_dsp.name = 'Sub-Dispatcher'
 
         Get sub-dispatcher from a workflow output `c`::
 
             >>> sub_dsp = dsp.get_sub_dsp_from_workflow(['c'], reverse=True)
 
-        .. testsetup::
-            >>> sub_dsp.name = 'Sub-Dispatcher (reverse workflow)'
-            >>> dot = dsp2dot(sub_dsp, graph_attr={'ratio': '1'})
-            >>> file = '__init__/get_sub_dsp_from_workflow/sub_dsp2.dot'
-            >>> dot.save(file, dot_dir)
-            '...'
+        .. dispatcher:: sub_dsp
+           :opt: graph_attr={'ratio': '1'}
 
-        .. graphviz::
-           /compas/dispatcher/__init__/get_sub_dsp_from_workflow/sub_dsp2.dot
+            >>> sub_dsp.name = 'Sub-Dispatcher (reverse workflow)'
         """
 
         # define an empty dispatcher map
@@ -1005,7 +987,9 @@ class Dispatcher(object):
         A dispatcher with an unresolved cycle (i.e., `c` --> `min1` --> `d` -->
         `min2` --> `c`):
 
-        .. testsetup::
+        .. dispatcher:: dsp
+           :opt: graph_attr={'ratio': '1'}
+
             >>> dsp = Dispatcher()
             >>> def average(kwargs):
             ...     return sum(kwargs.values()) / float(len(kwargs))
@@ -1041,13 +1025,6 @@ class Dispatcher(object):
             ... ]
             >>> dsp.add_from_lists(data_list=data, fun_list=functions)
             ([...], [...])
-            >>> from compas.dispatcher.draw import dsp2dot
-            >>> from compas.dispatcher import dot_dir
-            >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
-            >>> dot.save('__init__/remove_cycles/dsp.dot', dot_dir)
-            '...'
-
-        .. graphviz:: /compas/dispatcher/__init__/remove_cycles/dsp.dot
 
         The dispatch stops on data node `c` due to the unresolved cycle::
 
@@ -1055,12 +1032,11 @@ class Dispatcher(object):
             >>> sorted(res.items())
             [('a', 1), ('b', 3)]
 
-        .. testsetup::
-            >>> dot = dsp2dot(dsp, True, graph_attr={'ratio': '1'})
-            >>> dot.save('__init__/remove_cycles/wf.dot', dot_dir)
-            '...'
+        .. dispatcher:: dsp
+           :opt: workflow=True, graph_attr={'ratio': '1'}
 
-        .. graphviz:: /compas/dispatcher/__init__/remove_cycles/wf.dot
+            >>> dsp
+            <...>
 
         Removing the unresolved cycle the dispatch continues to all nodes::
 
@@ -1069,14 +1045,10 @@ class Dispatcher(object):
             >>> sorted(res.items())
             [('a', 1), ('b', 3), ('c', 3.0), ('d', 1)]
 
-        .. testsetup::
-            >>> dsp_rm_cy.name = 'Dispatcher without unresolved cycles'
-            >>> dot = dsp2dot(dsp_rm_cy, True, graph_attr={'ratio': '1'})
-            >>> file = '__init__/remove_cycles/wf_rm_cycles.dot'
-            >>> dot.save(file, dot_dir)
-            '...'
+        .. dispatcher:: dsp_rm_cy
+           :opt: workflow=True, graph_attr={'ratio': '1'}
 
-        .. graphviz:: /compas/dispatcher/__init__/remove_cycles/wf_rm_cycles.dot
+            >>> dsp_rm_cy.name = 'Dispatcher without unresolved cycles'
         """
 
         # Reachable nodes from sources
@@ -1146,7 +1118,9 @@ class Dispatcher(object):
         A dispatcher with a function `my_log` and two data `a` and `b`
         with default values:
 
-        .. testsetup::
+        .. dispatcher:: dsp
+           :opt: graph_attr={'ratio': '1'}
+
             >>> dsp = Dispatcher()
             >>> dsp.add_data(data_id='a', default_value=0)
             'a'
@@ -1165,13 +1139,6 @@ class Dispatcher(object):
             >>> dsp.add_function('min', function=min, inputs=['a', 'b'],
             ...                  outputs=['c'])
             'min'
-            >>> from compas.dispatcher.draw import dsp2dot
-            >>> from compas.dispatcher import dot_dir
-            >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
-            >>> dot.save('__init__/dispatch/dsp.dot', dot_dir)
-            '...'
-
-        .. graphviz:: /compas/dispatcher/__init__/dispatch/dsp.dot
 
         Dispatch without inputs. The default values are used as inputs::
 
@@ -1180,12 +1147,11 @@ class Dispatcher(object):
             >>> sorted(outputs.items())
             [('a', 0), ('b', 5), ('c', 0), ('d', 1), ('e', 0.0)]
 
-        .. testsetup::
-            >>> dot = dsp2dot(dsp, True, graph_attr={'ratio': '1'})
-            >>> dot.save('__init__/dispatch/wf1.dot', dot_dir)
-            '...'
+        .. dispatcher:: dsp
+           :opt: workflow=True, graph_attr={'ratio': '1'}
 
-        .. graphviz:: /compas/dispatcher/__init__/dispatch/wf1.dot
+            >>> dsp
+            <...>
 
         Dispatch until data node `c` is estimated::
 
@@ -1194,12 +1160,11 @@ class Dispatcher(object):
             >>> sorted(outputs.items())
              [('a', 0), ('b', 5), ('c', 0), ('d', 1)]
 
-        .. testsetup::
-            >>> dot = dsp2dot(dsp, True, graph_attr={'ratio': '1'})
-            >>> dot.save('__init__/dispatch/wf2.dot', dot_dir)
-            '...'
+        .. dispatcher:: dsp
+           :opt: workflow=True, graph_attr={'ratio': '1'}
 
-        .. graphviz:: /compas/dispatcher/__init__/dispatch/wf2.dot
+            >>> dsp
+            <...>
 
         Dispatch with one inputs. The default value of `a` is not used as
         inputs::
@@ -1209,12 +1174,11 @@ class Dispatcher(object):
             >>> sorted(outputs.items())
              [('a', 3), ('b', 5), ('c', 3), ('d', 1)]
 
-        .. testsetup::
-            >>> dot = dsp2dot(dsp, True, graph_attr={'ratio': '1'})
-            >>> dot.save('__init__/dispatch/wf3.dot', dot_dir)
-            '...'
+        .. dispatcher:: dsp
+           :opt: workflow=True, graph_attr={'ratio': '1'}
 
-        .. graphviz:: /compas/dispatcher/__init__/dispatch/wf3.dot
+            >>> dsp
+            <...>
         """
 
         # pre shrink
@@ -1267,7 +1231,9 @@ class Dispatcher(object):
 
         A dispatcher like this:
 
-        .. testsetup::
+        .. dispatcher:: dsp
+           :opt: graph_attr={'ratio': '1'}
+
             >>> dsp = Dispatcher()
             >>> functions = [
             ...     {
@@ -1301,13 +1267,6 @@ class Dispatcher(object):
             ... ]
             >>> dsp.add_from_lists(fun_list=functions)
             ([], [...])
-            >>> from compas.dispatcher.draw import dsp2dot
-            >>> from compas.dispatcher import dot_dir
-            >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
-            >>> dot.save('__init__/shrink_dsp/dsp.dot', dot_dir)
-            '...'
-
-        .. graphviz:: /compas/dispatcher/__init__/shrink_dsp/dsp.dot
 
         Get the sub-dispatcher induced by dispatching with no calls from inputs
         `a`, `b`, and `c` to outputs `c`, `e`, and `f`::
@@ -1315,13 +1274,10 @@ class Dispatcher(object):
             >>> shrink_dsp = dsp.shrink_dsp(inputs=['a', 'b', 'd'],
             ...                             outputs=['c', 'f'])
 
-        .. testsetup::
-            >>> shrink_dsp.name = 'Sub-Dispatcher'
-            >>> dot = dsp2dot(shrink_dsp, graph_attr={'ratio': '1'})
-            >>> dot.save('__init__/shrink_dsp/shrink_dsp.dot', dot_dir)
-            '...'
+        .. dispatcher:: shrink_dsp
+           :opt: graph_attr={'ratio': '1'}
 
-        .. graphviz:: /compas/dispatcher/__init__/shrink_dsp/shrink_dsp.dot
+            >>> shrink_dsp.name = 'Sub-Dispatcher'
         """
 
         bfs_graph = self.dmap

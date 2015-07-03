@@ -7,8 +7,7 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-It provides tools to create models with the
-:func:`~compas.dispatcher.Dispatcher`.
+It provides tools to create models with the :func:`~dispatcher.Dispatcher`.
 """
 
 __author__ = 'Vincenzo Arcidiacono'
@@ -17,9 +16,8 @@ __all__ = ['combine_dicts', 'bypass', 'summation', 'def_selector',
            'def_replicate_value', 'SubDispatch', 'ReplicateFunction',
            'SubDispatchFunction']
 
+from .gen import caller_name
 from networkx.classes.digraph import DiGraph
-
-from compas.utils.gen import caller_name
 
 
 def combine_dicts(*dicts):
@@ -150,22 +148,25 @@ def def_replicate_value(n=2):
 
 class SubDispatch(object):
     """
-    It dispatches a given :func:`~compas.dispatcher.Dispatcher` like a function.
+    It dispatches a given :func:`~dispatcher.Dispatcher` like a function.
 
     This function takes a sequence of dictionaries as input that will be
     combined before the dispatching.
 
     :return:
         A function that executes the dispatch of the given
-        :func:`~compas.dispatcher.Dispatcher`.
+        :func:`~dispatcher.Dispatcher`.
     :rtype: function
 
-    .. seealso:: :func:`~compas.dispatcher.Dispatcher.dispatch`,
-       :func:`combine_dicts`
+    .. seealso:: :func:`~dispatcher.Dispatcher.dispatch`, :func:`combine_dicts`
 
-    Example::
+    Example:
 
-        >>> from compas.dispatcher import Dispatcher
+    .. dispatcher:: dsp
+       :opt: graph_attr={'ratio': '1'}, level=1
+       :code:
+
+        >>> from dispatcher import Dispatcher
         >>> sub_dsp = Dispatcher()
         ...
         >>> def fun(a):
@@ -173,21 +174,15 @@ class SubDispatch(object):
         ...
         >>> sub_dsp.add_function('fun', fun, ['a'], ['b', 'c'])
         'fun'
-        >>> dispatch = SubDispatch(sub_dsp, ['a', 'b', 'c'], type_return='dict')
+        >>> dispatch = SubDispatch(sub_dsp, ['a', 'b', 'c'], output_type='dict')
         >>> dsp = Dispatcher()
         >>> dsp.add_function('Sub-dispatch', dispatch, ['d'], ['e'])
         'Sub-dispatch'
 
-    .. testsetup::
-        >>> from compas.dispatcher.draw import dsp2dot
-        >>> from compas.utils import dot_dir
-        >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
-        >>> dot.save('dsp/SubDispatch_dsp.dot', dot_dir)
-        '...'
+    Dispatch the dispatch output is:
 
-    .. graphviz:: ../dsp/SubDispatch_dsp.dot
-
-    Dispatch the dispatch output is::
+    .. dispatcher:: dsp
+       :opt: workflow=True, graph_attr={'ratio': '1'}, level=1
 
         >>> w, o = dsp.dispatch(inputs={'d': {'a': 3}})
         >>> sorted(o['e'].items())
@@ -195,22 +190,16 @@ class SubDispatch(object):
         >>> w.node['Sub-dispatch']['workflow']
         (<...DiGraph object at 0x...>, {...}, {...})
 
-    .. testsetup::
-        >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'ratio': '1'})
-        >>> dot.save('dsp/SubDispatch_wf.dot', dot_dir)
-        '...'
-
-    .. graphviz:: ../dsp/SubDispatch_wf.dot
     """
 
     def __init__(self, dsp, outputs=None, cutoff=None, wildcard=False,
-                 no_call=False, shrink=True, type_return='all'):
+                 no_call=False, shrink=True, output_type='all'):
         """
         Initializes the Sub-dispatch.
 
         :param dsp:
             A dispatcher that identifies the model adopted.
-        :type dsp: compas.dispatcher.Dispatcher
+        :type dsp: dispatcher.Dispatcher
 
         :param outputs:
             Ending data nodes.
@@ -234,15 +223,15 @@ class SubDispatch(object):
             If True the dispatcher is shrink before the dispatch.
         :type shrink: bool, optional
 
-        :params type_return:
+        :params output_type:
             Type of function output:
 
-                + 'all': a :class:`compas.utils.gen.AttrDict` with all dispatch
+                + 'all': a :class:`~dispatcher.utils.AttrDict` with all dispatch
                   outputs.
                 + 'list': a list with all outputs listed in `outputs`.
-                + 'dict': a :class:`compas.utils.gen.AttrDict` with any outputs
+                + 'dict': a :class:`~dispatcher.utils.AttrDict` with any outputs
                   listed in `outputs`.
-        :type type_return: str
+        :type output_type: str
         """
 
         self.dsp = dsp
@@ -251,7 +240,7 @@ class SubDispatch(object):
         self.wildcard = wildcard
         self.no_call = no_call
         self.shrink = shrink
-        self.returns = type_return
+        self.returns = output_type
         self.data_output = {}
         self.dist = {}
         self.workflow = DiGraph()
@@ -300,7 +289,7 @@ class ReplicateFunction(object):
 
 class SubDispatchFunction(SubDispatch):
     """
-    It dispatches a given :func:`~compas.dispatcher.Dispatcher` like a function.
+    It dispatches a given :func:`~dispatcher.Dispatcher` like a function.
 
     This function takes a sequence of arguments as input of the dispatch.
 
@@ -308,16 +297,18 @@ class SubDispatchFunction(SubDispatch):
         A function that executes the dispatch of the given `dsp`.
     :rtype: function
 
-    .. seealso:: :func:`~compas.dispatcher.Dispatcher.dispatch`,
-       :func:`~compas.dispatcher.Dispatcher.shrink_dsp`
+    .. seealso:: :func:`~dispatcher.Dispatcher.dispatch`,
+       :func:`~dispatcher.Dispatcher.shrink_dsp`
 
     **Example**:
 
     A dispatcher with two functions `max` and `min` and an unresolved cycle
     (i.e., `a` --> `max` --> `c` --> `min` --> `a`):
 
-    .. testsetup::
-        >>> from compas.dispatcher import Dispatcher
+    .. dispatcher:: dsp
+       :opt: graph_attr={'ratio': '1'}
+
+        >>> from dispatcher import Dispatcher
         >>> dsp = Dispatcher()
         >>> dsp.add_function('max', max, inputs=['a', 'b'], outputs=['c'])
         'max'
@@ -327,13 +318,6 @@ class SubDispatchFunction(SubDispatch):
         >>> dsp.add_function('log(x - 1)', my_log, inputs=['c'],
         ...                  outputs=['a'], input_domain=lambda c: c > 1)
         'log(x - 1)'
-        >>> from compas.dispatcher.draw import dsp2dot
-        >>> from compas.utils import dot_dir
-        >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
-        >>> dot.save('dsp/SubDispatchFunction_dsp.dot', dot_dir)
-        '...'
-
-    .. graphviz:: ../dsp/SubDispatchFunction_dsp.dot
 
     Extract a static function node, i.e. the inputs `a` and `b` and the
     output `a` are fixed::
@@ -344,15 +328,11 @@ class SubDispatchFunction(SubDispatch):
         >>> fun(2, 1)
         0.0
 
-    .. testsetup::
-        >>> dsp.name = 'Created function internal'
-        >>> dsp.dispatch({'a': 2, 'b': 1}, outputs=['a'], wildcard=True)
-        (...)
-        >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'ratio': '1'})
-        >>> dot.save('dsp/SubDispatchFunction_wf1.dot', dot_dir)
-        '...'
+    .. dispatcher:: dsp
+       :opt: workflow=True, graph_attr={'ratio': '1'}
 
-    .. graphviz:: ../dsp/SubDispatchFunction_wf1.dot
+        >>> dsp = fun.dsp
+        >>> dsp.name = 'Created function internal'
 
     The created function raises a ValueError if un-valid inputs are
     provided::
@@ -362,14 +342,10 @@ class SubDispatchFunction(SubDispatch):
         ...
         ValueError: Unreachable output-targets:...
 
-    .. testsetup::
-        >>> dsp.dispatch({'a': 1, 'b': 0}, outputs=['a'], wildcard=True)
-        (...)
-        >>> dot = dsp2dot(dsp, workflow=True, graph_attr={'ratio': '1'})
-        >>> dot.save('dsp/SubDispatchFunction_wf2.dot', dot_dir)
-        '...'
+    .. dispatcher:: dsp
+       :opt: workflow=True, graph_attr={'ratio': '1'}
 
-    .. graphviz:: ../dsp/SubDispatchFunction_wf2.dot
+        >>> dsp = fun.dsp
     """
 
     def __init__(self, dsp, function_id, inputs, outputs, cutoff=None):
@@ -378,7 +354,7 @@ class SubDispatchFunction(SubDispatch):
 
         :param dsp:
             A dispatcher that identifies the model adopted.
-        :type dsp: compas.dispatcher.Dispatcher
+        :type dsp: dispatcher.Dispatcher
 
         :param function_id:
             Function node id.

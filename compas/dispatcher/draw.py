@@ -18,7 +18,7 @@ from networkx.utils import default_opener
 from graphviz import Digraph
 
 from .constants import START, SINK
-from compas.utils.dsp import SubDispatch, SubDispatchFunction
+from .utils.dsp import SubDispatch, SubDispatchFunction
 
 
 __all__ = ['dsp2dot']
@@ -63,22 +63,25 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
         A directed graph source code in the DOT language.
     :rtype: Digraph
 
-    Example::
+    Example:
+
+    .. dispatcher:: dsp
+       :opt: graph_attr={'ratio': '1'}
+       :code:
 
         >>> from compas.dispatcher import Dispatcher
-        >>> from compas.utils.dsp import SubDispatch
+        >>> from compas.dispatcher.utils.dsp import SubDispatch
         >>> from compas.dispatcher.constants import SINK
         >>> ss = Dispatcher()
         >>> def fun(a):
         ...     return a + 1, a - 1
         >>> ss.add_function('fun', fun, ['a'], ['b', 'c'])
         'fun'
-        >>> sub_dispatch = SubDispatch(ss, ['a', 'b', 'c'], type_return='list')
+        >>> sub_dispatch = SubDispatch(ss, ['a', 'b', 'c'], output_type='list')
         >>> s_dsp = Dispatcher()
-
         >>> s_dsp.add_function('sub_dispatch', sub_dispatch, ['a'], ['b', 'c'])
         'sub_dispatch'
-        >>> dispatch = SubDispatch(s_dsp, ['b', 'c', 'a'], type_return='list')
+        >>> dispatch = SubDispatch(s_dsp, ['b', 'c', 'a'], output_type='list')
         >>> dsp = Dispatcher()
         >>> dsp.add_data('input', default_value={'a': {'a': 3}})
         'input'
@@ -87,25 +90,17 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
 
         >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
 
-    .. testsetup::
-        >>> from compas.dispatcher import dot_dir
-        >>> dot.save('draw/dsp.dot', dot_dir)
-        '...'
+    Dispatch in order to have a workflow:
 
-    .. graphviz:: /compas/dispatcher/draw/dsp.dot
-
-    Dispatch in order to have a workflow::
+    .. dispatcher:: dsp
+       :opt: workflow=True, graph_attr={'ratio': '1'}
+       :code:
 
         >>> dsp.dispatch()
         (..., ...)
         >>> wf = dsp2dot(dsp, workflow=True, graph_attr={'ratio': '1'})
-
-    .. testsetup::
-        >>> wf.save('draw/wf.dot', dot_dir)
-        '...'
-
-    .. graphviz:: /compas/dispatcher/draw/wf.dot
     """
+
     inputs = []
     outputs = []
     if isinstance(dsp, SubDispatchFunction) and not workflow:
@@ -188,7 +183,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
 
                 kw = {'shape': 'record', 'fillcolor': 'springgreen'}
 
-                fun_label = k if function_module else k.split(':')[-1]
+                fun_label = _func_name(k, function_module)
 
                 node_label = _fun_node_label(fun_label, n, dist)
 
@@ -255,6 +250,10 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
         default_opener(dot.render())
 
     return dot
+
+
+def _func_name(name, function_module=True):
+    return name if function_module else name.split(':')[-1]
 
 
 def _node_label(name, values):

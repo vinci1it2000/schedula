@@ -20,7 +20,7 @@ from compas.models.AT_gear import *
 from compas.models.read_inputs import *
 from compas.functions.write_outputs import write_output
 from compas.dispatcher import Dispatcher
-from compas.utils.dsp import SubDispatch, def_replicate_value, \
+from compas.dispatcher.utils.dsp import SubDispatch, def_replicate_value, \
     def_selector
 
 

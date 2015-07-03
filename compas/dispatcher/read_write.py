@@ -211,7 +211,7 @@ def load_map(dsp, path):
 
     :param dsp:
         A dispatcher that identifies the model to be upgraded.
-    :type dsp: compas.dispatcher.Dispatcher
+    :type dsp: dispatcher.dispatcher.Dispatcher
 
     :param path:
         File or filename to write.
