@@ -8,7 +8,7 @@ It contains a comprehensive list of all CO2MPAS models:
     :toctree: models/
 
     compas
-    AT_gear
+    engine
     gear_box
     read_inputs
 
@@ -16,6 +16,4 @@ It contains a comprehensive list of all CO2MPAS models:
 """
 __author__ = 'Vincenzo Arcidiacono'
 
-import os
-prj_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
-dot_dir = os.path.join(prj_dir, 'doc/compas/models/')
+

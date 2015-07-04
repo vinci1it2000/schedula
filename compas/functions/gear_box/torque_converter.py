@@ -89,7 +89,8 @@ def calculate_torque_converter_speeds(
 
     return speeds
 
-def calculate_engine_speeds(
+
+def calculate_torque_engine_speeds_v1(
         times, gear_box_speeds, accelerations, idle_engine_speed,
         time_shift_engine_speeds):
     """

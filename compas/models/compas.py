@@ -24,6 +24,7 @@ from compas.dispatcher.utils.dsp import SubDispatch, def_replicate_value, \
     def_selector
 
 
+
 def def_compas_model():
     """
     Defines and returns a jrcgear model that read, process (models' calibration

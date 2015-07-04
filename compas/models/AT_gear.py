@@ -582,7 +582,7 @@ def def_gear_models():
            'outputs': [gear_box_speeds_predicted[-1]],
         },
         {  # calculate engine speeds with predicted gears
-           'function': calculate_engine_speeds,
+           'function': calculate_torque_engine_speeds_v1,
            'inputs': ['times', gear_box_speeds_predicted[-1], 'accelerations',
                       'idle_engine_speed', 'time_shift_engine_speeds',],
            'outputs': [engine_speeds_predicted[-1]],
@@ -649,7 +649,7 @@ def def_gear_models():
            'outputs': [gear_box_speeds_predicted[-1]],
         },
         {  # calculate engine speeds with predicted gears
-           'function': calculate_engine_speeds,
+           'function': calculate_torque_engine_speeds_v1,
            'inputs': ['times', gear_box_speeds_predicted[-1], 'accelerations',
                       'idle_engine_speed', 'time_shift_engine_speeds',],
            'outputs': [engine_speeds_predicted[-1]],
@@ -708,7 +708,7 @@ def def_gear_models():
            'outputs': [gear_box_speeds_predicted[-1]],
         },
         {  # calculate engine speeds with predicted gears
-           'function': calculate_engine_speeds,
+           'function': calculate_torque_engine_speeds_v1,
            'inputs': ['times', gear_box_speeds_predicted[-1], 'accelerations',
                       'idle_engine_speed', 'time_shift_engine_speeds',],
            'outputs': [engine_speeds_predicted[-1]],
@@ -773,7 +773,7 @@ def def_gear_models():
            'outputs': [gear_box_speeds_predicted[-1]],
         },
         {  # calculate engine speeds with predicted gears
-           'function': calculate_engine_speeds,
+           'function': calculate_torque_engine_speeds_v1,
            'inputs': ['times', gear_box_speeds_predicted[-1], 'accelerations',
                       'idle_engine_speed', 'time_shift_engine_speeds',],
            'outputs': [engine_speeds_predicted[-1]],
@@ -832,7 +832,7 @@ def def_gear_models():
            'outputs': [gear_box_speeds_predicted[-1]],
         },
         {  # calculate engine speeds with predicted gears
-           'function': calculate_engine_speeds,
+           'function': calculate_torque_engine_speeds_v1,
            'inputs': ['times', gear_box_speeds_predicted[-1], 'accelerations',
                       'idle_engine_speed', 'time_shift_engine_speeds',],
            'outputs': [engine_speeds_predicted[-1]],
@@ -891,7 +891,7 @@ def def_gear_models():
            'outputs': [gear_box_speeds_predicted[-1]],
         },
         {  # calculate engine speeds with predicted gears
-           'function': calculate_engine_speeds,
+           'function': calculate_torque_engine_speeds_v1,
            'inputs': ['times', gear_box_speeds_predicted[-1], 'accelerations',
                       'idle_engine_speed', 'time_shift_engine_speeds',],
            'outputs': [engine_speeds_predicted[-1]],
@@ -950,7 +950,7 @@ def def_gear_models():
            'outputs': [gear_box_speeds_predicted[-1]],
         },
         {  # calculate engine speeds with predicted gears
-           'function': calculate_engine_speeds,
+           'function': calculate_torque_engine_speeds_v1,
            'inputs': ['times', gear_box_speeds_predicted[-1], 'accelerations',
                       'idle_engine_speed', 'time_shift_engine_speeds',],
            'outputs': [engine_speeds_predicted[-1]],
@@ -1011,7 +1011,7 @@ def def_gear_models():
            'outputs': [gear_box_speeds_predicted[-1]],
         },
         {  # calculate engine speeds with predicted gears
-           'function': calculate_engine_speeds,
+           'function': calculate_torque_engine_speeds_v1,
            'inputs': ['times', gear_box_speeds_predicted[-1], 'accelerations',
                       'idle_engine_speed', 'time_shift_engine_speeds',],
            'outputs': [engine_speeds_predicted[-1]],
