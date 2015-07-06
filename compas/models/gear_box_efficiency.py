@@ -2,7 +2,7 @@ __author__ = 'Vincenzo Arcidiacono'
 
 from compas.dispatcher import Dispatcher
 from compas.utils.dsp import bypass
-from compas.functions.gear_box.gear_box_efficiency import *
+from compas.functions.gear_box.efficiency import *
 
 gear_box_eff = Dispatcher(name='gear box efficiency model')
 gear_box_eff.add_data('temperature_references', (40, 80))

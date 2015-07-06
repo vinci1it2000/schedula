@@ -2,63 +2,63 @@ __author__ = 'iMac2013'
 
 import numpy as np
 from math import pi
-from compas.utils.gen import reject_outliers, bin_split
-from compas.functions.constants import *
 
 
-def calculate_accelerations(times, velocities):
+def calculate_wheel_torques(wheel_powers, wheel_speeds):
     """
-    Calculates the acceleration from velocity time series.
+    Calculates torque at the wheels.
 
-    :param times:
-        Time vector.
-    :type times: np.array
+    :param wheel_powers:
+        Power at the wheels [kW].
+    :type wheel_powers: np.array, float
 
-    :param velocities:
-        Velocity vector.
-    :type velocities: np.array
+    :param wheel_speeds:
+        Rotating speed of the wheel [RPM].
+    :type wheel_speeds: np.array, float
 
     :return:
-        Acceleration vector.
-    :rtype: np.array
-    """
-
-    delta_time = np.diff(times)
-
-    x = times[:-1] + delta_time / 2
-
-    y = np.diff(velocities) / 3.6 / delta_time
-
-    return np.interp(times, x, y)
-
-
-def calculate_wheel_powers(velocities, accelerations, road_loads, inertia):
-    """
-    Calculates the wheel power.
-
-    :param velocities:
-        Velocity vector.
-    :type velocities: np.array, float
-
-    :param accelerations:
-        Acceleration vector.
-    :type accelerations: np.array, float
-
-    :param road_loads:
-        Cycle road loads.
-    :type road_loads: list, tuple
-
-    :param inertia:
-        Cycle inertia.
-    :type inertia: float
-
-    :return:
-        Power at wheels vector or just the power at wheels.
+        Torque at the wheels [N*m].
     :rtype: np.array, float
     """
 
-    f0, f1, f2 = road_loads
+    return wheel_powers / wheel_speeds * (30000 / pi)
 
-    quadratic_term = f0 + (f1 + f2 * velocities) * velocities
 
-    return (quadratic_term + 1.03 * inertia * accelerations) * velocities / 3600
+def calculate_wheel_powers(wheel_torques, wheel_speeds):
+    """
+    Calculates power at the wheels.
+
+    :param wheel_torques:
+        Torque at the wheel [N*m].
+    :type wheel_torques: np.array, float
+
+    :param wheel_speeds:
+        Rotating speed of the wheel [RPM].
+    :type wheel_speeds: np.array, float
+
+    :return:
+        Power at the wheels [kW].
+    :rtype: np.array, float
+    """
+
+    return wheel_torques * wheel_speeds * (pi / 30000)
+
+
+def calculate_wheel_speeds(velocities, r_dynamic):
+    """
+    Calculates power at the wheels.
+
+    :param velocities:
+        Vehicle velocity [km/h].
+    :type velocities: np.array, float
+
+    :param wheel_speeds:
+        Rotating speed of the wheel [RPM].
+    :type wheel_speeds: np.array, float
+
+    :return:
+        Power at the wheels [kW].
+    :rtype: np.array, float
+    """
+
+    return velocities * (30 / (3.6 * pi * r_dynamic))
