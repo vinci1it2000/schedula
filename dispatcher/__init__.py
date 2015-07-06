@@ -39,12 +39,11 @@ Modules:
 
 __author__ = 'Vincenzo Arcidiacono'
 
-import os
 import logging
 from heapq import heappush, heappop
 from collections import deque
-
-from networkx import DiGraph, isolates, relabel_nodes, union
+from copy import deepcopy
+from networkx import DiGraph, isolates
 
 from .utils.gen import AttrDict, counter, caller_name
 from .utils.alg import add_edge_fun, remove_cycles_iteration
@@ -283,7 +282,8 @@ class Dispatcher(object):
         self.__module__ = caller_name()
 
     def add_data(self, data_id=None, default_value=EMPTY, wait_inputs=False,
-                 wildcard=None, function=None, callback=None, **kwargs):
+                 wildcard=None, function=None, callback=None, tunnel=None,
+                 **kwargs):
         """
         Add a single data node to the dispatcher.
 
@@ -398,7 +398,8 @@ class Dispatcher(object):
 
         if wildcard is not None:  # add wildcard as node attribute
             attr_dict['wildcard'] = wildcard
-
+        if tunnel is not None:
+            attr_dict['wildcard'] = tunnel
         # additional attributes
         attr_dict.update(kwargs)
 
@@ -601,11 +602,11 @@ class Dispatcher(object):
         # return function node id
         return fun_id
 
-    def add_dispatcher(self, dsp, inputs, outputs=None, dsp_id=None,
+    def add_dispatcher(self, dsp, inputs, outputs, dsp_id=None,
                        input_domain=None, weight=None, weight_from=None,
-                       weight_to=None, cutoff=None, **kwargs):
+                       cutoff=None, **kwargs):
         """
-        Add a single function node to dispatcher.
+        Add a single sub-dispatcher node to dispatcher.
 
         :param function_id:
             Function node id.
@@ -691,13 +692,8 @@ class Dispatcher(object):
         """
 
         # new shrink dispatcher
-        shrink_dsp = dsp.shrink_dsp(inputs, outputs, cutoff=cutoff)
+        shrink_dsp = dsp.shrink_dsp(inputs.values(), outputs, cutoff=cutoff)
 
-        if outputs is None:  # set a dummy output
-            if SINK not in self.nodes:
-                self.add_data(SINK, wait_inputs=True, function=bypass)
-
-            outputs = [SINK]
 
         # select the name
         if dsp_id:
@@ -705,12 +701,25 @@ class Dispatcher(object):
         elif dsp.name:
             dsp_id = '%s:%s' % (dsp.__module__, dsp.name)
         else:
-            dsp_id = '%s:%s' % (dsp.__module__, dsp.__name__)
+            dsp_id = '%s:%s' % (dsp.__module__, 'unknown')
 
         # return dispatcher node id
-        return self.add_function(
-            dsp_id, shrink_dsp, inputs, outputs, input_domain, weight,
+        dsp_id = self.add_function(
+            dsp_id, shrink_dsp, inputs, outputs.values(), input_domain, weight,
             weight_from, type='dispatcher')
+
+        self.nodes[dsp_id]['outputs'] = outputs
+
+        tunnel = [dsp_id, self]
+
+        nodes = shrink_dsp.nodes
+
+        for k in outputs:
+            node = nodes[k] = deepcopy(nodes[k])
+            node['tunnel'] = node.get('tunnel', [])
+            node['tunnel'].append(tunnel)
+
+        return dsp_id
 
     def add_from_lists(self, data_list=None, fun_list=None):
         """
@@ -1440,6 +1449,14 @@ class Dispatcher(object):
         else:
             return self.__class__()
 
+        pred, succ = dsp.dmap.pred, dsp.dmap.succ
+        for k, v in dsp.nodes.items():
+            if v['type'] == 'dispatcher':
+                i, o = pred[k], succ[k]
+                v['inputs'] = {l: m for l, m in v['inputs'].items() if l in i}
+                v['outputs'] = {l: m for l, m in v['outputs'].items() if m in o}
+                v['function'] = v['function'].get_sub_dsp_from_workflow(o, reverse=True)
+
         # return the sub dispatcher
         return dsp
 
@@ -1752,9 +1769,6 @@ class Dispatcher(object):
         elif node_type == 'function':  # det function node
             return self._set_function_node_output(node_id, node_attr, no_call)
 
-        elif node_type == 'dispatcher':  # det function node
-            return self._set_function_node_output(node_id, node_attr, no_call)
-
     def _set_data_node_output(self, node_id, node_attr, no_call):
         """
         Set the data node output from node estimations.
@@ -1962,7 +1976,6 @@ class Dispatcher(object):
 
         # namespace shortcuts for speed
         check_cutoff = self._check_cutoff()
-
         add_visited = self._visited.add
         wf_add_node = self.workflow.add_node
 
@@ -1979,12 +1992,11 @@ class Dispatcher(object):
 
         # add initial values to fringe and seen
         for v in inputs:
-            self._add_initial_value(
-                fringe, check_cutoff, v, input_value)
+            self._add_initial_value(fringe, check_cutoff, v, input_value(v))
 
         return fringe, check_cutoff
 
-    def _add_initial_value(self, fringe, check_cutoff, data_id, input_value,
+    def _add_initial_value(self, fringe, check_cutoff, data_id, value,
                            initial_dist=0):
         # namespace shortcuts for speed
         node_attr = self.nodes
@@ -1998,9 +2010,6 @@ class Dispatcher(object):
             return False
 
         wait_in = node_attr[data_id]['wait_inputs']  # store wait inputs flag
-
-        # data value
-        value = input_value(data_id)
 
         # add edge
         wf_add_edge(START, data_id, **value)
@@ -2163,12 +2172,22 @@ class Dispatcher(object):
                 else:
                     finished.add(dsp)
 
+            node = dsp.nodes[v]
+
+            if 'tunnel' in node:
+                value = dsp.data_output[v]
+                for sub_dsp_id, sub_dsp in node['tunnel']:
+                    n = sub_dsp.nodes[sub_dsp_id]['outputs'][v]
+                    if sub_dsp._see_node(n, fringe, d):
+                        sub_dsp._wf_add_edge(sub_dsp_id, n, value=value)
+
         self._remove_unused_functions()
 
         # return the workflow and data outputs
         return self.workflow, self.data_output
 
     def _visit_nodes(self, node_id, dist, fringe, check_cutoff, no_call=False):
+        # namespace shortcuts
         node_attr = self.nodes
         graph = self.dmap
         workflow_has_edge = self.workflow.has_edge
@@ -2176,15 +2195,15 @@ class Dispatcher(object):
         add_visited = self._visited.add
         set_node_output = self._set_node_output
         edge_weight = self._edge_length
-        seen = self.seen
         check_targets = self.check_targets
-        check_wait_in = self.check_wait_in
+        wf_add_node = self.workflow.add_node
 
         # set minimum dist
         distances[node_id] = dist
 
         # update visited nodes
         add_visited(node_id)
+
         # set node output
         if not set_node_output(node_id, no_call):
             # some error occurs or inputs are not in the function domain
@@ -2202,34 +2221,58 @@ class Dispatcher(object):
 
             vw_d = dist + edge_weight(e_data, node)  # evaluate dist
 
-            # wait inputs flag
-            wait_in = node['wait_inputs']
+            # check the cutoff limit
+            if check_cutoff(vw_d):
+                continue
 
             if node['type'] == 'dispatcher':
-                pred = self._wf_pred[w]
-                if len(pred) == 1:
-                    for f in node['function']._init_run(None, node['outputs'], True, None, no_call)[1]:
-                        heappush(fringe, f)
-                value = {node_id: pred[node_id]['value']}
-                node['function']._add_initial_value(fringe, check_cutoff,
-                                                    node_id, value.get, vw_d)
+                # namespace shortcuts
+                dsp, pred = node['function'], self._wf_pred[w]
 
-            # check the cutoff limit and if all node inputs are satisfied
-            if check_cutoff(vw_d) or check_wait_in(wait_in, w):
-                continue  # pass the node
+                if len(pred) == 1:  # initialize the sub-dispatcher
+                    dsp._init_as_sub_dsp(fringe, node['outputs'], no_call)
+                    wf = (dsp.workflow, dsp.data_output, dsp.dist)
+                    wf_add_node(node_id, workflow=wf)
 
-            if w in distances:  # the node w already estimated
-                if vw_d < distances[w]:  # error for negative paths
-                    raise ValueError('Contradictory paths found: '
-                                     'negative weights?')
-            elif w not in seen or vw_d < seen[w]:  # check min dist to w
-                # update dist
-                seen[w] = vw_d
+                    self._visited.add(w)
+                # namespace shortcuts
+                n_id, val = node['inputs'][node_id], pred[node_id]
 
-                # add node to heapq
-                heappush(fringe, (vw_d, wait_in, (w, self)))
+                # add initial value to the sub-dispatcher
+                dsp._add_initial_value(fringe, check_cutoff, n_id, val, vw_d)
+
+            else:
+                # see the node
+                self._see_node(w, fringe, vw_d)
 
         return True
+
+    def _see_node(self, node_id, fringe, dist):
+        check_wait_in = self.check_wait_in
+        seen = self.seen
+        distances = self.dist
+
+        # wait inputs flag
+        wait_in = self.nodes[node_id]['wait_inputs']
+
+        # check if all node inputs are satisfied
+        if check_wait_in(wait_in, node_id):
+            pass # pass the node
+
+        elif node_id in distances:  # the node w already estimated
+            if dist < distances[node_id]:  # error for negative paths
+                raise ValueError('Contradictory paths found: '
+                                 'negative weights?')
+        elif node_id not in seen or dist < seen[node_id]:  # check min dist to w
+            # update dist
+            seen[node_id] = dist
+
+            # add node to heapq
+            heappush(fringe, (dist, wait_in, (node_id, self)))
+
+            # the node is visible
+            return True
+        return False
 
     def _remove_unused_functions(self):
         nodes = self.nodes
@@ -2237,3 +2280,8 @@ class Dispatcher(object):
         for n in (set(self._wf_pred) - set(self._visited)):
             if nodes[n]['type'] == 'function':
                 self.workflow.remove_node(n)
+
+    def _init_as_sub_dsp(self, fringe, outputs, no_call):
+        dsp_fringe = self._init_run({}, outputs, True, None, no_call)[1]
+        for f in dsp_fringe:
+            heappush(fringe, f)

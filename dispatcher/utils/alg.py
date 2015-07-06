@@ -310,7 +310,7 @@ def _nodes_by_relevance(graph, nodes_bunch):
         # node weight
         nw = node[u].get('weight', 0)
 
-        if node_type == 'function':
+        if node_type in ('function', 'dispatcher'):
             heappush(fun_nds, (nw + out_degree(u, 'weight'), 1.0 / c(), u))
 
         elif node_type == 'data' and n['wait_inputs']:  # this is unresolved
