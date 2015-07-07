@@ -3,7 +3,7 @@ __author__ = 'Vincenzo Arcidiacono'
 from math import pi
 import numpy as np
 from compas.dispatcher.utils.dsp import SubDispatchFunction
-from compas.models.gear_box_efficiency import gear_box_eff
+
 from compas.functions.constants import *
 
 def torque_required(gear_box_torque, engine_speed, wheel_speed, par):
@@ -553,7 +553,7 @@ def calculate_gear_box_efficiencies(
         it = it + (gears, )
 
     inputs.append('gear_box_temperature')
-
+    from compas.models.gear_box_efficiency import gear_box_eff
     fun = SubDispatchFunction(gear_box_eff, 'gear_box_eff', inputs, outputs)
     T0 = gear_box_starting_temperature
     res = []

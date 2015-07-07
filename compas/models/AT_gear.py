@@ -14,9 +14,9 @@ The model is defined by a Dispatcher that wraps all the functions needed.
 __author__ = 'Vincenzo_Arcidiacono'
 
 from compas.dispatcher import Dispatcher
-from compas.functions.gear_box.AT_gear import *
+from compas.functions.gear_box.AT_gear.AT_gear import *
 from compas.utils.dsp import bypass
-from compas.functions.gear_box.torque_converter import *
+from compas.functions.gear_box.AT_gear.torque_converter import *
 
 def def_gear_models():
     """

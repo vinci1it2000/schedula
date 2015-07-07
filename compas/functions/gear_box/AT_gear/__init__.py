@@ -26,7 +26,7 @@ from compas.functions.utils import median_filter, pairwise, grouper, \
     interpolate_cloud, clear_gear_fluctuations
 
 from compas.functions.constants import *
-from compas.functions.gear_box import calculate_gear_box_speeds
+from compas.functions.gear_box import calculate_gear_box_speeds_in
 from compas.functions.wheels import calculate_wheel_powers
 
 def get_full_load(fuel_type):
@@ -157,7 +157,7 @@ def identify_gears(
     gear = median_filter(times, gear, TIME_WINDOW)
     gear = clear_gear_fluctuations(times, gear, TIME_WINDOW)
 
-    speeds = calculate_gear_box_speeds(gear, velocities, velocity_speed_ratios)
+    speeds = calculate_gear_box_speeds_in(gear, velocities, velocity_speed_ratios)
     return gear, speeds
 
 
@@ -566,7 +566,7 @@ def calibrate_gear_shifting_cmv(
         g_pre = prediction_gears_gsm(
             correct_gear, gsv, velocities, accelerations)
 
-        speed_predicted = calculate_gear_box_speeds(
+        speed_predicted = calculate_gear_box_speeds_in(
             g_pre, velocities, velocity_speed_ratios)
 
         return mean_absolute_error(engine_speeds, speed_predicted)

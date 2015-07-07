@@ -2,7 +2,7 @@ __author__ = 'iMac2013'
 
 
 from compas.dispatcher import Dispatcher
-from compas.functions.gear_box.AT_gear import *
+from compas.functions.gear_box.AT_gear.AT_gear import *
 
 cmv = Dispatcher()
 

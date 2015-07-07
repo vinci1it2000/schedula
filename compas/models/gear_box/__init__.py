@@ -1,3 +1,4 @@
+
 #-*- coding: utf-8 -*-
 #
 # Copyright 2015 European Commission (JRC);
@@ -6,84 +7,123 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-It provides a A/T gear shifting model to identify and predict the gear shifting.
-
-The model is defined by a Dispatcher that wraps all the functions needed.
+It contains functions to estimate the gear box efficiency.
 """
 
-__author__ = 'Vincenzo_Arcidiacono'
-
+__author__ = 'Arcidiacono Vincenzo'
 from compas.dispatcher import Dispatcher
 from compas.functions.gear_box import *
+from compas.dispatcher.utils.dsp import bypass
 
+def gear_box():
+    """
+    Define the vehicle model.
 
-gear_box = Dispatcher(
-    name='Automatic gear model',
-    description='Defines an omni-comprehensive gear shifting model for '
-                'automatic vehicles.')
+    .. dispatcher:: dsp
 
-# Speed velocity ratios
+        >>> dsp = gear_box()
 
-# calculate speed velocity ratios from gear box ratios
-gear_box.add_function(
-    function=calculate_speed_velocity_ratios,
-    inputs=['gear_box_ratios', 'final_drive', 'r_dynamic'],
-    outputs=['speed_velocity_ratios'])
+    :return:
+        The vehicle model.
+    :rtype: Dispatcher
+    """
 
-# identify speed velocity ratios from gear box speeds
-gear_box.add_function(
-    function=identify_speed_velocity_ratios,
-    inputs=['gears', 'velocities', 'gear_box_speeds'],
-    outputs=['speed_velocity_ratios'],
-    weight=5)
+    gear_box = Dispatcher(
+        name='Gear box model',
+        description='Calculates forces and power acting on the vehicle.'
+    )
 
-# identify speed velocity ratios from engine speeds
-gear_box.add_function(
-    function=identify_speed_velocity_ratios,
-    inputs=['gears', 'velocities', 'engine_speeds'],
-    outputs=['speed_velocity_ratios'],
-    weight=10)
+    gear_box.add_function(
+        function=get_gear_box_efficiency_constants,
+        inputs=['gear_box_type'],
+        outputs=['gear_box_efficiency_constants'],
+    )
 
-# calculate speed velocity ratios from velocity speed ratios
-gear_box.add_function(
-    function=calculate_velocity_speed_ratios,
-    inputs=['velocity_speed_ratios'],
-    outputs=['speed_velocity_ratios'],
-    weight=15)
+    gear_box.add_function(
+        function=calculate_gear_box_efficiency_parameters_cold_hot,
+        inputs=['gear_box_efficiency_constants', 'engine_max_torque'],
+        outputs=['gear_box_efficiency_parameters_cold_hot'],
+    )
 
-# Velocity speed ratios
+    gear_box.add_function(
+        function=calculate_gear_box_torques_out,
+        inputs=['gear_box_powers_out', 'gear_box_speeds_in', 
+                'gear_box_speeds_out'],
+        outputs=['gear_box_torques_out'],
+    )
 
-# calculate velocity speed ratios from speed velocity ratios
-gear_box.add_function(
-    function=calculate_velocity_speed_ratios,
-    inputs=['speed_velocity_ratios'],
-    outputs=['velocity_speed_ratios'])
+    gear_box.add_data(
+        data_id='temperature_references',
+        default_value=(40, 80)
+    )
 
-# identify velocity speed ratios from gear box speeds
-gear_box.add_function(
-    function=identify_velocity_speed_ratios,
-    inputs=['gear_box_speeds', 'velocities', 'idle_engine_speed'],
-    outputs=['velocity_speed_ratios'],
-    weight=10)
+    gear_box.add_function(
+        function=calculate_gear_box_torques_in,
+        inputs=['gear_box_torques', 'gear_box_speeds_in', 'gear_box_speeds_out', 
+                'gear_box_temperatures', 
+                'gear_box_efficiency_parameters_cold_hot', 
+                'temperature_references'],
+        outputs=['gear_box_torques_in<0>']
+    )
 
-# identify velocity speed ratios from engine speeds
-gear_box.add_function(
-    function=identify_velocity_speed_ratios,
-    inputs=['engine_speeds', 'velocities', 'idle_engine_speed'],
-    outputs=['velocity_speed_ratios'],
-    weight=15)
+    gear_box.add_function(
+        function=correct_gear_box_torques_in,
+        inputs=['gear_box_torques_out', 'gear_box_torques_in<0>', 'gears',
+                'gear_box_ratios'],
+        outputs=['gear_box_torques_in'],
+    )
 
+    gear_box.add_function(
+        function=bypass,
+        inputs=['gear_box_torques_in<0>'],
+        outputs=['gear_box_torques_in'],
+        weight=100,
+    )
 
-# Gear box speeds
-gear_box.add_function(
-    function=calculate_gear_box_speeds_from_engine_speeds,
-    inputs=['times', 'velocities', 'accelerations', 'engine_speeds',
-            'velocity_speed_ratios'],
-    outputs=['gear_box_speeds<0>', 'time_shift_engine_speeds'])
+    gear_box.add_function(
+        function=calculate_gear_box_efficiencies_v2,
+        inputs=['gear_box_powers_out', 'gear_box_speeds_in', 
+                'gear_box_speeds_out', 'gear_box_torques_out', 
+                'gear_box_torques_in'],
+        outputs=['gear_box_efficiencies', 'gear_box_torque_losses'],
+    )
 
-# Gears identification
-gear_box.add_function(
-    function=identify_gears,
-    inputs=['times', 'velocities', 'accelerations', 'gear_box_speeds<0>',
-            'velocity_speed_ratios', 'idle_engine_speed'],
-    outputs=['gears', 'gear_box_speeds'])
+    gear_box.add_function(
+        function=calculate_gear_box_efficiencies,
+        inputs=['gear_box_powers_out', 'gear_box_speeds_in',
+                'gear_box_speeds_out', 'gear_box_torques_out',
+                'gear_box_efficiency_parameters',
+                'equivalent_gear_box_capacity', 'thermostat_temperature',
+                'temperature_references', 'gear_box_starting_temperature',
+                'gears', 'gear_box_ratios'],
+        outputs=['gear_box_efficiencies', 'gear_box_torque_losses',
+                 'gear_box_temperatures'],
+        weight=50
+    )
+
+    gear_box.add_function(
+        function=calculate_gear_box_efficiencies,
+        inputs=['gear_box_powers_out', 'gear_box_speeds_in',
+                'gear_box_speeds_out', 'gear_box_torques_out',
+                'gear_box_efficiency_parameters',
+                'equivalent_gear_box_capacity', 'thermostat_temperature',
+                'temperature_references', 'gear_box_starting_temperature'],
+        outputs=['gear_box_efficiencies', 'gear_box_torque_losses',
+                 'gear_box_temperatures'],
+        weight=100
+    )
+
+    gear_box.add_function(
+        function=calculate_gear_box_speeds_in,
+        inputs=['gears', 'velocities', 'velocity_speed_ratios'],
+        outputs=['gear_box_speeds_in'],
+        weight=100
+    )
+
+    gear_box.add_function(
+        function=calculate_gear_box_speeds_in_v1,
+        inputs=['gears', 'gear_box_speeds_out', 'gear_box_ratios'],
+        outputs=['gear_box_speeds_in']
+    )
+
+    return gear_box

@@ -59,36 +59,36 @@ class TestGearBox(unittest.TestCase):
     def test_gb_eff_parameters(self):
         c = get_gear_box_efficiency_constants('automatic')
         self.assertEquals(
-            calculate_gear_box_efficiency_parameters(c, self.mt), self.pa
+            calculate_gear_box_efficiency_parameters_cold_hot(c, self.mt), self.pa
         )
 
         c = get_gear_box_efficiency_constants('manual')
         self.assertEquals(
-            calculate_gear_box_efficiency_parameters(c, self.mt), self.pm
+            calculate_gear_box_efficiency_parameters_cold_hot(c, self.mt), self.pm
         )
 
     def test_calculate_torque_out(self):
         wp, es, gbs = self.wp, self.es, self.ws
         self.assertEquals(
-            list(calculate_gear_box_torques(wp, es, gbs)), list(self.tgb)
+            list(calculate_gear_box_torques_out(wp, es, gbs)), list(self.tgb)
         )
 
     def test_torque_required(self):
 
-        fun = torques_required
+        fun = gear_box_torques_in
         a = (self.tgb, self.es, self.ws)
         self.assertEquals(list(fun(*(a + (self.pm['hot'], )))), list(self.trh))
         self.assertEquals(list(fun(*(a + (self.pm['cold'], )))), list(self.trc))
 
     def test_calculate_torque_required(self):
 
-        fun = calculate_torques_required
+        fun = calculate_gear_box_torques_in
         a = (self.tgb, self.es, self.ws, self.T, self.pm, self.Tr)
         self.assertEquals(list(fun(*a)), list(self.tr))
 
     def test_correct_torques_required(self):
 
-        fun = correct_torques_required
+        fun = correct_gear_box_torques_in
         a = (self.tgb, self.tr, self.g, self.gbr)
         self.assertEquals(list(fun(*a)), list(self.tcorr))
 

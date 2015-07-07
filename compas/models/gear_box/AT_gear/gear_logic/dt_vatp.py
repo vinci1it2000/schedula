@@ -6,7 +6,7 @@ __author__ = 'Vincenzo Arcidiacono'
 
 
 from compas.dispatcher import Dispatcher
-from compas.functions.gear_box.AT_gear import *
+from compas.functions.gear_box.AT_gear.AT_gear import *
 
 dt_vatp = Dispatcher()
 
