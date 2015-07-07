@@ -756,10 +756,15 @@ class TestShrinkDispatcher(unittest.TestCase):
 
         dsp = self.dsp_4
         shrink_dsp = dsp.shrink_dsp(['a', 'b'], ['d', 'e', 'f', 'g'])
-        r = ['a', 'b', 'h']
-        w = [('a', 'h'), ('h', 'b')]
+        sub_dsp = shrink_dsp.nodes['sub_dsp']['function']
+        r = ['a', 'b', 'd', 'e', 'f', 'g', 'h', 'h<0>', 'sub_dsp']
+        w = [('a', 'h'), ('a', 'sub_dsp'), ('b', 'h<0>'), ('b', 'sub_dsp'),
+             ('h', 'f'), ('h<0>', 'e'), ('sub_dsp', 'd'), ('sub_dsp', 'g')]
+        sw = [('a', 'h'), ('a', 'h<2>'), ('b', 'h'), ('c', 'h<0>'),
+              ('c', 'h<2>'), ('h', 'c'), ('h<0>', 'd'), ('h<2>', 'g')]
         self.assertEqual(sorted(shrink_dsp.dmap.node), r)
         self.assertEqual(sorted(shrink_dsp.dmap.edges()), w)
+        self.assertEqual(sorted(sub_dsp.dmap.edges()), sw)
 
     def test_shrink_with_outputs(self):
         dsp = self.dsp_1
@@ -873,54 +878,6 @@ class TestDispatcherOfDispatchers(unittest.TestCase):
             'f': {},
             'max': {'c': {'value': 5}},
             dsp_id: {'f': {'value': 7}},
-            START: {
-                'a': {'value': 3},
-                'e': {'value': 20},
-                'b': {'value': 5},
-                'd': {'value': 10}
-            },
-        }
-        self.assertEqual(o, {'a': 3, 'c': 5, 'b': 5, 'e': 20, 'd': 10, 'f': 7})
-        self.assertEqual(sorted(list(wf.node)), r)
-        self.assertEqual(wf.edge, w)
-
-
-class TestDispatcherOfDispatchers_1(unittest.TestCase):
-    def setUp(self):
-        sub_dsp = Dispatcher(name='sub_dispatcher')
-        sub_dsp.add_data('a', 1)
-        sub_dsp.add_function(function=min, inputs=['a', 'b'], outputs=['c'])
-
-        def fun(c):
-            return c + 3, c - 3
-
-        sub_dsp.add_function(function=fun, inputs=['c'], outputs=['d', 'e'])
-
-
-        dsp = Dispatcher()
-
-        dsp.add_function('max', function=max, inputs=['a', 'b'], outputs=['c'])
-
-        dsp.add_dispatcher(sub_dsp,
-                           dsp_id='sub_dsp',
-                           inputs={'d': 'a', 'e': 'b'},
-                           outputs={'d':'c', 'e':'f'})
-        self.dsp = dsp
-
-    def test_dispatch(self):
-        dsp = self.dsp
-
-        wf, o = dsp.dispatch(inputs={'a': 3, 'b': 5, 'd': 10, 'e': 20})
-        r = ['a', 'b', 'c', 'd', 'e', 'f', 'max', START, 'sub_dsp']
-        w = {
-            'a': {'max': {'value': 3}},
-            'b': {'max': {'value': 5}},
-            'c': {},
-            'd': {'sub_dsp': {'value': 10}},
-            'e': {'sub_dsp': {'value': 20}},
-            'f': {},
-            'max': {'c': {'value': 5}},
-            'sub_dsp': {'f': {'value': 7}},
             START: {
                 'a': {'value': 3},
                 'e': {'value': 20},

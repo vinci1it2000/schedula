@@ -692,7 +692,7 @@ class Dispatcher(object):
         """
 
         # new shrink dispatcher
-        shrink_dsp = dsp.shrink_dsp(inputs.values(), outputs, cutoff=cutoff)
+        shrink_dsp = dsp.shrink_dsp(inputs.values(), outputs.keys(), cutoff=cutoff)
 
 
         # select the name
@@ -1853,7 +1853,7 @@ class Dispatcher(object):
         succ_fun = [u for u in self._succ[node_id]]
 
         # check if it has functions as outputs and wildcard condition
-        if succ_fun and succ_fun[0] not in self._visited:
+        if succ_fun and succ_fun[0] not in self.workflow.succ[node_id]:
             # namespace shortcuts for speed
             wf_add_edge = self._wf_add_edge
 
@@ -2235,6 +2235,7 @@ class Dispatcher(object):
                     wf_add_node(node_id, workflow=wf)
 
                     self._visited.add(w)
+
                 # namespace shortcuts
                 n_id, val = node['inputs'][node_id], pred[node_id]
 
