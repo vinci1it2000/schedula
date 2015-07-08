@@ -686,7 +686,7 @@ class Dispatcher(object):
         """
 
         # new shrink dispatcher
-        shrink_dsp = dsp.shrink_dsp(inputs.values(), outputs.keys(), cutoff=cutoff)
+        shrink_dsp = dsp.shrink_dsp(inputs.values(), outputs, cutoff=cutoff)
 
 
         # select the name
