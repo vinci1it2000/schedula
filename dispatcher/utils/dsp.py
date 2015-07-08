@@ -12,12 +12,14 @@ It provides tools to create models with the :func:`~dispatcher.Dispatcher`.
 
 __author__ = 'Vincenzo Arcidiacono'
 
-__all__ = ['combine_dicts', 'bypass', 'summation', 'def_selector',
-           'def_replicate_value', 'SubDispatch', 'ReplicateFunction',
-           'SubDispatchFunction']
+__all__ = ['combine_dicts', 'bypass', 'summation', 'map_dict', 'map_list',
+           'selector', 'replicate_value',
+           'SubDispatch', 'ReplicateFunction', 'SubDispatchFunction']
 
 from .gen import caller_name
 from networkx.classes.digraph import DiGraph
+from copy import deepcopy
+from dispatcher.constants import NONE
 
 
 def combine_dicts(*dicts):
@@ -25,8 +27,8 @@ def combine_dicts(*dicts):
     Combines multiple dicts in one.
 
     :param dicts:
-        A tuple of dicts.
-    :type dicts: dict
+        A sequence of dicts.
+    :type dicts: (dict, ...)
 
     :return:
         A unique dict.
@@ -37,6 +39,9 @@ def combine_dicts(*dicts):
         >>> sorted(combine_dicts({'a': 3, 'c': 3}, {'a': 1, 'b': 2}).items())
         [('a', 1), ('b', 2), ('c', 3)]
     """
+
+    if len(dicts) == 1:
+        return dicts[0]
 
     res = {}
 
@@ -52,11 +57,11 @@ def bypass(*inputs):
 
     :param inputs:
         Inputs values.
-    :type inputs: any Python object
+    :type inputs: (object, ...)
 
     :return:
         Same input values.
-    :rtype: tuple, any Python object
+    :rtype: tuple, object
 
     Example::
 
@@ -90,60 +95,161 @@ def summation(*inputs):
     return sum(inputs)
 
 
-def def_selector(keys):
+def map_dict(key_map, *dicts):
     """
-    Define a function that selects the dictionary keys.
+    Returns a dict with new key values.
+
+    :param key_map:
+        A dictionary that maps the dict keys ({old key: new key}
+    :type key_map: dict
+
+    :param dicts:
+        A sequence of dicts.
+    :type dicts: (dict, ...)
+
+    :return:
+        A unique dict with new key values.
+    :rtype: dict
+
+    Example::
+
+        >>> d = map_dict({'a': 'c', 'b': 'd'}, {'a': 1, 'b': 1}, {'b': 2})
+        >>> sorted(d.items())
+        [('c', 1), ('d', 2)]
+    """
+
+    it = combine_dicts(*dicts).items()
+    get = key_map.get
+
+    return {get(k, k): v for k, v in it}
+
+
+def map_list(key_map, *inputs):
+    """
+    Returns a new dict
+
+    :param key_map:
+        A list that maps the dict keys ({old key: new key}
+    :type key_map: [str, dict, ...]
+
+    :param dicts:
+        A sequence of dicts.
+    :type dicts: (dict, ...)
+
+    :return:
+        A unique dict with new values.
+    :rtype: dict
+
+    Example::
+
+        >>> key_map = [
+        ...     'a',
+        ...     {'a': 'c'},
+        ...     [
+        ...         'a',
+        ...         {'a': 'd'}
+        ...     ]
+        ... ]
+        >>> inputs = (
+        ...     2,
+        ...     {'a': 3, 'b': 2},
+        ...     [
+        ...         1,
+        ...         {'a': 4}
+        ...     ]
+        ... )
+        >>> d = map_list(key_map, *inputs)
+        >>> sorted(d.items())
+        [('a', 1), ('b', 2), ('c', 3), ('d', 4)]
+    """
+
+    d = {}
+
+    for m, v in zip(key_map, inputs):
+        if isinstance(m, dict):
+            d.update(map_dict(m, v))
+        elif isinstance(m, list):
+            d.update(map_list(m, *v))
+        else:
+            d[m] = v
+
+    return d
+
+
+def selector(keys, dict, copy=True, output_type='dict'):
+    """
+    Selects the chosen dictionary keys from the given sequence of dictionaries.
 
     :param keys:
         Keys to select.
     :type keys: list
 
-    :return:
-        A selector function that selects the dictionary keys.
+    :param dicts:
+        Sequence of dictionaries.
+    :type dicts: (dict, ...)
 
-        This function takes a sequence of dictionaries as input that will be
-        combined before the dispatching.
-    :rtype: function
+    :param copy:
+        If True the output contains deep-copies of the values.
+    :type copy: bool
+
+    :return:
+        A dictionary with chosen dictionary keys if present in the sequence of
+        dictionaries. These are combined with :func:`combine_dicts`.
+    :rtype: dict
 
     Example::
 
-        >>> selector = def_selector(['a', 'b'])
-        >>> sorted(selector({'a': 1, 'b': 1}, {'b': 2, 'c': 3}).items())
+        >>> from functools import partial
+        >>> fun = partial(selector, ['a', 'b'])
+        >>> sorted(fun({'a': 1, 'b': 2, 'c': 3}).items())
         [('a', 1), ('b', 2)]
     """
 
-    def selector(*input_dicts):
-
-        d = combine_dicts(*input_dicts)
-
-        return {k: v for k, v in d.items() if k in keys}
-
-    return selector
 
 
-def def_replicate_value(n=2):
+    get = deepcopy if copy else lambda x: x
+
+    if output_type == 'list':
+        if len(keys) > 1:
+            return tuple([get(dict[k]) for k in keys])
+        else:
+            return get(dict[keys[0]])
+
+    return {k: get(v) for k, v in dict.items() if k in keys}
+
+
+def replicate_value(value, n=2, copy=True):
     """
-    Define a function that replicates the input value.
+    Replicates `n` times the input value.
 
     :param n:
         Number of replications.
-    :type n: int, optional
+    :type n: int
+
+    :param value:
+        Value to be replicated.
+    :type value: object
+
+    :param copy:
+        If True the list contains deep-copies of the value.
+    :type copy: bool
 
     :return:
-        A function that replicates the input value.
-    :rtype: function
+        A list with the value replicated `n` times.
+    :rtype: list
 
     Example::
 
-        >>> replicate_value = def_replicate_value(n=5)
-        >>> replicate_value({'a': 3})
+        >>> from functools import partial
+        >>> fun = partial(replicate_value, n=5)
+        >>> fun({'a': 3})
         [{'a': 3}, {'a': 3}, {'a': 3}, {'a': 3}, {'a': 3}]
     """
 
-    def replicate_value(value):
-        return [value] * n
+    if copy:
+        return [deepcopy(value) for i in range(n)]
 
-    return replicate_value
+    return [value] * n
 
 
 class SubDispatch(object):
@@ -240,7 +346,7 @@ class SubDispatch(object):
         self.wildcard = wildcard
         self.no_call = no_call
         self.shrink = shrink
-        self.returns = output_type
+        self.output_type = output_type
         self.data_output = {}
         self.dist = {}
         self.workflow = DiGraph()
@@ -265,10 +371,8 @@ class SubDispatch(object):
         self.workflow = w
 
         # set output
-        if self.returns == 'list':
-            o = [o[k] for k in outputs] if len(outputs) > 1 else o[outputs[0]]
-        elif self.returns == 'dict':
-            o = {k: v for k, v in o.items() if k in outputs}
+        if self.output_type in ('list', 'dict'):
+            o = selector(outputs, o, copy=False, output_type=self.output_type)
 
         return o
 
@@ -348,7 +452,7 @@ class SubDispatchFunction(SubDispatch):
         >>> dsp = fun.dsp
     """
 
-    def __init__(self, dsp, function_id, inputs, outputs, cutoff=None):
+    def __init__(self, dsp, function_id, inputs, outputs=None, cutoff=None):
         """
         Initializes the Sub-dispatch Function.
 
@@ -377,11 +481,12 @@ class SubDispatchFunction(SubDispatch):
         # new shrink dispatcher
         dsp = dsp.shrink_dsp(inputs, outputs, cutoff=cutoff)
 
-        # outputs not reached
-        missed = set(outputs).difference(dsp.nodes)
+        if outputs:
+            # outputs not reached
+            missed = set(outputs).difference(dsp.nodes)
 
-        if missed:  # if outputs are missing raise error
-            raise ValueError('Unreachable output-targets:{}'.format(missed))
+            if missed:  # if outputs are missing raise error
+                raise ValueError('Unreachable output-targets:{}'.format(missed))
 
         # get initial default values
         input_values = dsp._get_initial_values(None, False)
@@ -397,12 +502,13 @@ class SubDispatchFunction(SubDispatch):
         self.__module__ = caller_name()
 
         # define the function to populate the workflow
-        def input_value(k):
-            return {'value': input_values[k]}
-        self.input_value = input_value
+        self.input_value = lambda k: {'value': input_values[k]}
 
         # define the function to return outputs sorted
-        if len(outputs) > 1:
+        if outputs is None:
+            def return_output(o):
+                return o
+        elif len(outputs) > 1:
             def return_output(o):
                 return [o[k] for k in outputs]
         else:

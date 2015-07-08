@@ -35,14 +35,39 @@ class TestDispatcherUtils(unittest.TestCase):
     def test_summation(self):
         self.assertEqual(summation(1, 3.0, 4, 2), 10.0)
 
+    # noinspection PyArgumentList
     def test_selector(self):
-        selector = def_selector(['a', 'b'])
-        res = selector({'a': 1, 'b': 1}, {'b': 2, 'c': 3})
-        self.assertEqual(res, {'a': 1, 'b': 2})
+
+        args = (['a', 'b'], {'a': 1, 'b': 2, 'c': 3})
+        self.assertEqual(selector(*args), {'a': 1, 'b': 2})
+
+        args = (['a', 'b'], {'a': 1, 'b': object(), 'c': 3})
+        res = {'a': 1, 'b': args[1]['b']}
+        self.assertNotEqual(selector(*args), res)
+
+        self.assertEqual(selector(*args, copy=False), res)
+
+        args = (['a', 'b'], {'a': 1, 'b': 2, 'c': 3})
+        self.assertEqual(selector(*args, output_type='list'), (1, 2))
+
+        args = ['a', 'd'], {'a': 1, 'b': 1}
+        self.assertRaises(KeyError, selector, *args, output_type='list')
 
     def test_replicate(self):
-        replicate = def_replicate_value(n=3)
-        self.assertEqual(replicate({'a': 3}), [{'a': 3}, {'a': 3}, {'a': 3}])
+        v = {'a': object()}
+        self.assertEqual(replicate_value(v, n=3, copy=False), [v] * 3)
+
+        self.assertNotEqual(replicate_value(v, n=3), [v] * 3)
+
+    def test_map_dict(self):
+        d = map_dict({'a': 'c', 'b': 'a', 'c': 'a'}, {'a': 1, 'b': 1}, {'b': 2})
+        self.assertEqual(d, {'a': 2, 'c': 1})
+
+    def test_map_list(self):
+        key_map = ['a', {'a': 'c'}, ['a', {'a': 'd'}]]
+        inputs = (2, {'a': 3, 'b': 2}, [1, {'a': 4}])
+        res = map_list(key_map, *inputs)
+        self.assertEqual(res, {'a': 1, 'b': 2, 'c': 3, 'd': 4})
 
     def test_replicate_function(self):
         dsp = Dispatcher()
@@ -85,7 +110,7 @@ class TestSubDispatcher(unittest.TestCase):
 
         self.assertEqual(o['e'], {'a': 3, 'b': 4, 'c': 2})
         self.assertEqual(o['f'], {'c': 2})
-        self.assertEqual(o['g'], [3, 2])
+        self.assertEqual(o['g'], (3, 2))
         self.assertEqual(o['h'],  2)
         self.assertIsInstance(w.node['dispatch']['workflow'], tuple)
         self.assertIsInstance(w.node['dispatch']['workflow'][0], DiGraph)
