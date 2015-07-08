@@ -42,7 +42,7 @@ __author__ = 'Vincenzo Arcidiacono'
 import logging
 from heapq import heappush, heappop
 from collections import deque
-from copy import deepcopy
+from copy import copy
 from networkx import DiGraph, isolates
 
 from .utils.gen import AttrDict, counter, caller_name
@@ -282,8 +282,8 @@ class Dispatcher(object):
         self.__module__ = caller_name()
 
     def add_data(self, data_id=None, default_value=EMPTY, wait_inputs=False,
-                 wildcard=None, function=None, callback=None, tunnel=None,
-                 **kwargs):
+                 wildcard=None, function=None, callback=None, input=None,
+                 output=None, **kwargs):
         """
         Add a single data node to the dispatcher.
 
@@ -398,8 +398,13 @@ class Dispatcher(object):
 
         if wildcard is not None:  # add wildcard as node attribute
             attr_dict['wildcard'] = wildcard
-        if tunnel is not None:
-            attr_dict['wildcard'] = tunnel
+
+        if input is not None:  # add output as node attribute
+            attr_dict['input'] = input
+
+        if output is not None:  # add output as node attribute
+            attr_dict['output'] = output
+
         # additional attributes
         attr_dict.update(kwargs)
 
@@ -704,14 +709,15 @@ class Dispatcher(object):
 
         self.nodes[dsp_id]['outputs'] = outputs
 
-        tunnel = [dsp_id, self]
-
         nodes = shrink_dsp.nodes
 
-        for k in outputs:
-            node = nodes[k] = deepcopy(nodes[k])
-            node['tunnel'] = node.get('tunnel', [])
-            node['tunnel'].append(tunnel)
+        remote_link = [dsp_id, self]
+
+        for tag, it in [('input', inputs.values()), ('output', outputs)]:
+            for k in it:
+                node = nodes[k] = copy(nodes[k])
+                node[tag] = node.get(tag, [])
+                node[tag].append(remote_link)
 
         return dsp_id
 
@@ -886,6 +892,7 @@ class Dispatcher(object):
 
         # define an empty dispatcher
         sub_dsp = self.__class__(dmap=self.dmap.subgraph(nodes_bunch))
+        sub_dsp.weight = self.weight
 
         # namespace shortcuts for speed
         nodes = sub_dsp.dmap.node
@@ -1001,6 +1008,7 @@ class Dispatcher(object):
 
         # define an empty dispatcher map
         sub_dsp = self.__class__()
+        sub_dsp.weight = self.weight
 
         if not graph:  # set default graph
             graph = self.workflow
@@ -1314,17 +1322,20 @@ class Dispatcher(object):
         args = dsp._init_run(inputs, outputs, wildcard, cutoff, no_call)
 
         # return the evaluated workflow graph and data outputs
-        workflow, data_outputs = dsp._run(*args[1:])
+        self.workflow, self.data_output = dsp._run(*args[1:])
 
         # nodes that are out of the dispatcher nodes
         out_dsp_nodes = set(args[0]).difference(dsp.nodes)
 
         # add nodes that are out of the dispatcher nodes
         if inputs:
-            data_outputs.update({k: inputs[k] for k in out_dsp_nodes})
+            if no_call:
+                self.data_output.update({k: None for k in out_dsp_nodes})
+            else:
+                self.data_output.update({k: inputs[k] for k in out_dsp_nodes})
 
         # return the evaluated workflow graph and data outputs
-        return workflow, data_outputs
+        return self.workflow, self.data_output
 
     def shrink_dsp(self, inputs=None, outputs=None, cutoff=None):
         """
@@ -1409,14 +1420,17 @@ class Dispatcher(object):
 
             self._set_wait_in()
             wait_in = self._wait_in
+
             edges = set()
             bfs_graph = DiGraph()
+            wi = set(wait_in)
 
             while True:
 
                 for k, v in wait_in.items():
                     if v and k in inputs:
                         wait_in[k] = False
+                        wi.remove(k)
 
                 # evaluate the workflow graph without invoking functions
                 wf, o = self.dispatch(inputs, outputs, cutoff, True, True)
@@ -1424,6 +1438,7 @@ class Dispatcher(object):
                 edges.update(wf.edges())
 
                 n_d = (set(wf.node.keys()) - self._visited)
+                n_d = n_d.union(self._visited.intersection(wi))
 
                 if not n_d:
                     break
@@ -1444,12 +1459,31 @@ class Dispatcher(object):
             return self.__class__()
 
         pred, succ = dsp.dmap.pred, dsp.dmap.succ
-        for k, v in dsp.nodes.items():
-            if v['type'] == 'dispatcher':
-                i, o = pred[k], succ[k]
-                v['inputs'] = {l: m for l, m in v['inputs'].items() if l in i}
-                v['outputs'] = {l: m for l, m in v['outputs'].items() if m in o}
-                v['function'] = v['function'].get_sub_dsp_from_workflow(o, reverse=True)
+        nodes = dsp.nodes
+        for k in (k for k, v in dsp.nodes.items() if v['type'] == 'dispatcher'):
+            i, o = pred[k], succ[k]
+            node = nodes[k] = nodes[k].copy()
+
+            i = {l: m for l, m in node['inputs'].items() if l in i}
+            o = {l: m for l, m in node['outputs'].items() if m in o}
+
+            sub_dsp = node['function'].shrink_dsp(i.values(), o)
+
+            rl = [k, self]
+            nl = [k, dsp]
+            for tag, v in (('input', i.values()), ('output', o)):
+                for j in v:
+                    n = sub_dsp.nodes[j] = sub_dsp.nodes[j].copy()
+                    remote_links = n[tag]
+                    if j in v:
+                        node[tag] = [l if l != rl else nl for l in remote_links]
+                    else:
+                        node[tag] = [l for l in remote_links if l != rl]
+                        if not node[tag]:
+                            node.pop(tag)
+            v['inputs'] = i
+            v['outputs'] = o
+            v['function'] = sub_dsp
 
         # return the sub dispatcher
         return dsp
@@ -2168,9 +2202,9 @@ class Dispatcher(object):
 
             node = dsp.nodes[v]
 
-            if 'tunnel' in node:
+            if node['type'] == 'data' and 'output' in node:
                 value = dsp.data_output[v]
-                for sub_dsp_id, sub_dsp in node['tunnel']:
+                for sub_dsp_id, sub_dsp in node['output']:
                     n = sub_dsp.nodes[sub_dsp_id]['outputs'][v]
                     if sub_dsp._see_node(n, fringe, d):
                         sub_dsp._wf_add_edge(sub_dsp_id, n, value=value)
@@ -2226,14 +2260,28 @@ class Dispatcher(object):
                 if len(pred) == 1:  # initialize the sub-dispatcher
                     dsp._init_as_sub_dsp(fringe, node['outputs'], no_call)
                     wf = (dsp.workflow, dsp.data_output, dsp.dist)
-                    wf_add_node(node_id, workflow=wf)
-                    distances[node_id] = dist
+                    wf_add_node(w, workflow=wf)
 
-                # namespace shortcuts
-                n_id, val = node['inputs'][node_id], pred[node_id]
+                nodes = [node_id]
 
-                # add initial value to the sub-dispatcher
-                dsp._add_initial_value(fringe, check_cutoff, n_id, val, vw_d)
+                if w not in distances:
+                    if 'input_domain' in node and not no_call:
+                        try:
+                            kwargs = {k: v['value'] for k, v in pred.items()}
+                            if not node['input_domain'](kwargs):
+                                continue
+                            else:
+                                nodes = pred
+                        except:
+                            continue
+                    distances[w] = vw_d
+
+                for n_id in nodes:
+                    # namespace shortcuts
+                    n, val = node['inputs'][n_id], pred[n_id]
+
+                    # add initial value to the sub-dispatcher
+                    dsp._add_initial_value(fringe, check_cutoff, n, val, vw_d)
 
             else:
                 # see the node
