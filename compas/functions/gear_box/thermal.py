@@ -1,4 +1,16 @@
-__author__ = 'arcidvi'
+#-*- coding: utf-8 -*-
+#
+# Copyright 2015 European Commission (JRC);
+# Licensed under the EUPL (the 'Licence');
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+
+"""
+It contains functions to calculate torque losses and the gear box temperature.
+"""
+
+__author__ = 'Vincenzo Arcidiacono'
+
 from math import pi
 
 
@@ -83,7 +95,8 @@ def calculate_gear_box_torque_in(
 
     par = gear_box_efficiency_parameters_cold_hot
     T_cold, T_hot = temperature_references
-    t_out, e_s, gb_s = gear_box_torque_out, gear_box_speed_in, gear_box_speed_out
+    t_out = gear_box_torque_out
+    e_s, gb_s = gear_box_speed_in, gear_box_speed_out
 
     t = evaluate_gear_box_torque_in(t_out, e_s, gb_s, par['hot'])
 
@@ -151,14 +164,14 @@ def calculate_gear_box_efficiency(
        (power mode or from wheels in motoring mode).
     """
 
-    eff, torque_loss = 0, gear_box_torque_in - gear_box_torque_out
     if gear_box_torque_in == gear_box_torque_out:
         eff = 1
     else:
         eff = gear_box_torque_in / gear_box_power_out * (pi / 30000)
-        eff = 1 / (gear_box_speed_in * eff) if gear_box_power_out > 0 else gear_box_speed_out * eff
+        s_in, s_out = gear_box_speed_in, gear_box_speed_out
+        eff = 1 / (s_in * eff) if gear_box_power_out > 0 else s_out * eff
 
-    return max(0, min(1, eff)), torque_loss
+    return max(0, min(1, eff))
 
 
 def calculate_gear_box_temperature(
@@ -188,7 +201,8 @@ def calculate_gear_box_temperature(
     :rtype: float
     """
 
-    temp = starting_temperature + gear_box_heat / equivalent_gear_box_heat_capacity
+    temp = starting_temperature
+    temp+= gear_box_heat / equivalent_gear_box_heat_capacity
 
     return min(temp, thermostat_temperature - 5.0)
 

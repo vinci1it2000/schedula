@@ -18,9 +18,13 @@ Modules:
     :nosignatures:
     :toctree: functions/
 
-    AT_gear
+    vehicle
+    wheels
+    final_drive
     gear_box
+    utils
     plot
+    constants
     read_inputs
     write_outputs
 

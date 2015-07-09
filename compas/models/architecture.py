@@ -15,13 +15,13 @@ import re
 import os
 import glob
 from datetime import datetime
-
+'''
 from compas.models.AT_gear import *
 from compas.models.read_inputs import *
 from compas.functions.write_outputs import write_output
 from compas.dispatcher import Dispatcher
-from compas.dispatcher.utils.dsp import SubDispatch, def_replicate_value, \
-    def_selector
+from compas.dispatcher.utils.dsp import SubDispatch, replicate_value, \
+    selector
 
 
 
@@ -39,11 +39,10 @@ def def_compas_model():
         >>> from compas.dispatcher.draw import dsp2dot
         >>> dsp = def_compas_model()[0]
         >>> dot = dsp2dot(dsp, level=0, function_module=False)
-        >>> from compas.models import dot_dir
-        >>> dot.save('compas/dsp.dot', dot_dir)
-        '...'
 
-    .. graphviz:: /compas/models/compas/dsp.dot
+    .. dispatcher:: dsp
+
+        >>> dsp = dsp
 
     Follow the input/output parameters of the `jrcgear_model` dispatcher:
 
@@ -121,7 +120,7 @@ def def_compas_model():
     ==========
     """
 
-    replicate = def_replicate_value()
+    replicate = replicate_value()
 
     functions.extend([
         {  # open excel workbook of the cycle
@@ -189,7 +188,7 @@ def def_compas_model():
     functions.extend([
         {  # extract calibrated models
            'function_id': 'extract_calibrated_models',
-           'function': def_selector(calibration_models),
+           'function': selector(calibration_models),
            'inputs': ['calibration_cycle_outputs'],
            'outputs': ['calibrated_models'],
         },
@@ -217,13 +216,13 @@ def def_compas_model():
     functions.extend([
         {  # extract error coefficients
            'function_id': 'extract_prediction_error_coefficients',
-           'function': def_selector(error_coefficients),
+           'function': selector(error_coefficients),
            'inputs': ['prediction_cycle_outputs'],
            'outputs': ['prediction_error_coefficients'],
         },
         {  # extract error coefficients
            'function_id': 'extract_calibration_error_coefficients',
-           'function': def_selector(error_coefficients),
+           'function': selector(error_coefficients),
            'inputs': ['calibration_cycle_outputs'],
            'outputs': ['calibration_error_coefficients'],
         },
@@ -328,3 +327,4 @@ if __name__ == '__main__':
     from compas.dispatcher.draw import dsp2dot
     dsp = def_compas_model()[0]
     dot = dsp2dot(dsp, view=True)
+'''

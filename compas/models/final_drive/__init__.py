@@ -17,7 +17,7 @@ def final_drive():
     """
 
     final_drive = Dispatcher(
-        name='Vehicle free body diagram',
+        name='Final drive',
         description='Calculates forces and power acting on the vehicle.'
     )
 

@@ -6,7 +6,7 @@ import numpy as np
 from sklearn.metrics import mean_squared_error
 from scipy.optimize import fmin
 
-from compas.functions.gear_box.AT_gear.AT_gear import identify_gears, VEL_EPS
+from compas.functions.gear_box.AT_gear.gear_logic.AT_gear import identify_gears, VEL_EPS
 from compas.utils import median_filter
 
 

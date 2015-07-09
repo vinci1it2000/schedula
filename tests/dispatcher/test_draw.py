@@ -14,7 +14,7 @@ from graphviz.dot import Digraph
 from compas.dispatcher.draw import *
 from compas.dispatcher.constants import SINK
 from compas.dispatcher import Dispatcher
-from compas.utils.dsp import SubDispatch
+from compas.dispatcher.utils.dsp import SubDispatch
 
 
 class TestDoctest(unittest.TestCase):
@@ -37,12 +37,12 @@ class TestDispatcherDraw(unittest.TestCase):
 
         ss_dsp.add_function('fun', fun, ['a'], ['b', SINK, 'c'])
 
-        sub_dispatch = SubDispatch(ss_dsp, ['a', 'b', 'c'], type_return='list')
+        sub_dispatch = SubDispatch(ss_dsp, ['a', 'b', 'c'], output_type='list')
         s_dsp = Dispatcher()
 
         s_dsp.add_function('sub_dispatch', sub_dispatch, ['a'], ['b', 'c', 'd'])
 
-        dispatch = SubDispatch(s_dsp, ['b', 'c', 'd'], type_return='list')
+        dispatch = SubDispatch(s_dsp, ['b', 'c', 'd'], output_type='list')
         dsp = Dispatcher()
         dsp.add_data('input', default_value={'a': {'a': 3}})
 

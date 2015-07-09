@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
+
 from sphinx.ext.autosummary.generate import *
 
 from sphinx.ext.autosummary.generate import _simple_warn, _simple_info
+
 
 def generate_autosummary_docs(sources, output_dir=None, suffix='.rst',
                               warn=_simple_warn, info=_simple_info,
@@ -112,6 +114,14 @@ def generate_autosummary_docs(sources, output_dir=None, suffix='.rst',
                                  get_members(obj, 'class')
                 ns['exceptions'], ns['all_exceptions'] = \
                                    get_members(obj, 'exception')
+                ns['data'], ns['all_data'] = \
+                                   get_members(obj, 'data', imported=True)
+
+                ns['data'] = ', '.join(ns['data'])
+                ns['all_data'] = ', '.join(ns['all_data'])
+
+                ns['dispatchers'], ns['all_dispatchers'] = \
+                                   get_members(obj, 'dispatcher', imported=True)
             elif doc.objtype == 'class':
                 ns['members'] = dir(obj)
                 ns['methods'], ns['all_methods'] = \
@@ -148,6 +158,27 @@ def generate_autosummary_docs(sources, output_dir=None, suffix='.rst',
                                   base_path=base_path, builder=builder,
                                   template_dir=template_dir)
 
-import sphinx.ext.autosummary.generate as gen
-gen.generate_autosummary_docs = generate_autosummary_docs
-from sphinx.ext.autosummary import setup
+
+def process_generate_options(app):
+    genfiles = app.config.autosummary_generate
+
+    if genfiles and not hasattr(genfiles, '__len__'):
+        env = app.builder.env
+        genfiles = [env.doc2path(x, base=None) for x in env.found_docs
+                    if os.path.isfile(env.doc2path(x))]
+
+    if not genfiles:
+        return
+
+    ext = app.config.source_suffix[0]
+    genfiles = [genfile + (not genfile.endswith(ext) and ext or '')
+                for genfile in genfiles]
+
+    generate_autosummary_docs(genfiles, builder=app.builder,
+                              warn=app.warn, info=app.info, suffix=ext,
+                              base_path=app.srcdir)
+
+
+def setup(app):
+    app.setup_extension('sphinx.ext.autosummary')
+    app.connect('builder-inited', process_generate_options)

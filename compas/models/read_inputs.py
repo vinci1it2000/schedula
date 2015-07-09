@@ -14,7 +14,7 @@ import pandas as pd
 
 from compas.functions.read_inputs import *
 from compas.dispatcher import Dispatcher
-from compas.utils.dsp import SubDispatchFunction
+from compas.dispatcher.utils import SubDispatchFunction
 
 
 def def_load_inputs():
@@ -25,16 +25,9 @@ def def_load_inputs():
         A sub-dispatch function.
     :rtype: SubDispatchFunction
 
-    .. testsetup::
-        >>> from compas.dispatcher.draw import dsp2dot
-        >>> dsp = def_load_inputs()
-        >>> dot = dsp2dot(dsp, level=0, function_module=False)
-        >>> from compas.models import dot_dir
-        >>> dot.save('read_inputs/dsp.dot', dot_dir)
-        '...'
+    .. dispatcher:: dsp
 
-    .. graphviz:: /compas/models/read_inputs/dsp.dot
-
+        >>> dsp = def_load_inputs().dsp
     """
     data = []
     functions = []

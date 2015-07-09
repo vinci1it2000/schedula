@@ -7,11 +7,12 @@
 ## and then just code from inside this folder.
 #
 from setuptools import setup
-from doc.conf import release
-
+version = '0.6'
+release = '%s.0' % version
 setup(
     name='compas',
-    version=release,
+    version=version,
+    release=release,
     packages=['compas'],
     description="A tool to predict light-vehicles' CO2 emissions.",
     long_description="",

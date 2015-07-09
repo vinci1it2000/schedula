@@ -7,12 +7,14 @@ It contains a comprehensive list of all CO2MPAS models:
     :nosignatures:
     :toctree: models/
 
-    compas
-    engine
+    architecture
+    vehicle
+    wheels
+    final_drive
     gear_box
     read_inputs
 
-.. note:: The main model is compas.
+.. note:: The main is architecture.
 """
 __author__ = 'Vincenzo Arcidiacono'
 

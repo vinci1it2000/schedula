@@ -19,7 +19,7 @@ from graphviz import Digraph
 
 from .constants import START, SINK
 from .utils.dsp import SubDispatch, SubDispatchFunction
-
+from . import Dispatcher
 
 __all__ = ['dsp2dot']
 
@@ -31,7 +31,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
 
     :param dsp:
         A dispatcher that identifies the model adopted.
-    :type dsp: compas.dispatcher.Dispatcher
+    :type dsp: dispatcher.dispatcher.Dispatcher
 
     :param workflow:
        If True the workflow graph will be plotted, otherwise the dispatcher map.
@@ -177,7 +177,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
         if n:
             node_id = id_node(k)
 
-            if n['type'] == 'function':
+            if n['type'] in ('function', 'dispatcher'):
 
                 fun = n.get('function', None)
 
@@ -187,7 +187,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
 
                 node_label = _fun_node_label(fun_label, n, dist)
 
-                if isinstance(fun, SubDispatch) and level:
+                if isinstance(fun, (SubDispatch, Dispatcher)) and level:
                     kw_sub = {
                         'name': 'cluster_%s' % node_id,
                         'body': [
@@ -281,12 +281,32 @@ def _data_node_label(k, values, attr=None, dist=None):
             v.update({'default': values[k]})
         if not v['wait_inputs']:
             v.pop('wait_inputs')
+        if 'output' in v:
+            _remote_links(v, 'output', v.pop('output'), k)
+
+        if 'input' in v:
+            v.pop('default', None)
+            _remote_links(v, 'input', v.pop('input'), k)
     else:
         v = {'output': values[k]} if k in values else {}
         if k in dist:
             v['distance'] = dist[k]
 
     return _node_label(k, v)
+
+
+def _remote_links(label, tag, links, node_id):
+    for i, (k, v) in enumerate(links):
+        label['remote %s %d' % (tag, i)] = _get_link(k, v, node_id, tag)
+
+
+def _get_link(dsp_id, dsp, node_id, tag):
+    tag = '%ss' % tag
+    if tag == 'inputs':
+        n = [k for k, v in dsp.nodes[dsp_id][tag].items() if v == node_id]
+    else:
+        n = [dsp.nodes[dsp_id][tag][node_id]]
+    return '%s:(%s)' % (dsp_id, ', '.join(n))
 
 
 def _fun_node_label(k, attr=None, dist=None):

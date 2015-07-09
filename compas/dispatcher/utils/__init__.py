@@ -29,7 +29,7 @@ application.
 
 Sub-Modules:
 
-.. currentmodule:: dispatcher.utils
+.. currentmodule:: compas.dispatcher.utils
 
 .. autosummary::
     :nosignatures:

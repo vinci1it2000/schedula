@@ -75,7 +75,7 @@ class TestGearBox(unittest.TestCase):
 
     def test_torque_required(self):
 
-        fun = gear_box_torques_in
+        fun = _gear_box_torques_in
         a = (self.tgb, self.es, self.ws)
         self.assertEquals(list(fun(*(a + (self.pm['hot'], )))), list(self.trh))
         self.assertEquals(list(fun(*(a + (self.pm['cold'], )))), list(self.trc))

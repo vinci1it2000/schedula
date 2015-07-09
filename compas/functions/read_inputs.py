@@ -7,8 +7,6 @@
 
 """
 It contains functions to read vehicle inputs.
-
-.. note:: these functions are used in :mod:`compas.models.read_inputs`.
 """
 
 __author__ = 'Vincenzo Arcidiacono'

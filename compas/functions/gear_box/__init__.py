@@ -6,7 +6,19 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-It contains functions to estimate the gear box efficiency.
+It contains functions that model the basic mechanics of the gear box.
+
+Sub-Modules:
+
+.. currentmodule:: compas.functions.gear_box
+
+.. autosummary::
+    :nosignatures:
+    :toctree: gear_box/
+
+    speed_velocity_ratios
+    thermal
+    AT_gear
 """
 
 __author__ = 'Vincenzo Arcidiacono'
@@ -14,7 +26,7 @@ __author__ = 'Vincenzo Arcidiacono'
 from math import pi
 import numpy as np
 from compas.dispatcher.utils.dsp import SubDispatchFunction
-from compas.models.gear_box.thermal import thermal
+
 from compas.functions.constants import *
 
 
@@ -170,7 +182,7 @@ def calculate_gear_box_torques_in(
     par = gear_box_efficiency_parameters_cold_hot
     T_cold, T_hot = temperature_references
     t_out, e_s, gb_s = gear_box_torques, gear_box_speeds_in, gear_box_speeds_out
-    fun = gear_box_torques_in
+    fun = _gear_box_torques_in
 
     t = fun(t_out, e_s, gb_s, par['hot'])
 
@@ -184,7 +196,7 @@ def calculate_gear_box_torques_in(
     return t
 
 
-def gear_box_torques_in(
+def _gear_box_torques_in(
         gear_box_torques_out, gear_box_speeds_in, gear_box_speeds_out,
         gear_box_efficiency_parameters_cold_hot):
     """
@@ -266,7 +278,7 @@ def calculate_gear_box_efficiencies_v2(
         gear_box_powers_out, gear_box_speeds_in, gear_box_speeds_out,
         gear_box_torques_out, gear_box_torques_in):
     """
-    Calculates torque entering the gear box.
+    Calculates gear box efficiency.
 
     :param gear_box_powers_out:
         Power at wheels vector.
@@ -280,14 +292,17 @@ def calculate_gear_box_efficiencies_v2(
         Wheel speed vector.
     :type gear_box_speeds_out: np.array
 
+    :param gear_box_torques_out:
+        Torque gear_box vector.
+    :type gear_box_torques_out: np.array
+
+    :param gear_box_torques_in:
+        Torque required vector.
+    :type gear_box_torques_in: np.array
+
     :return:
-
-        - Gear box efficiency vector.
-        - Torque losses.
-    :rtype: (np.array, np.array)
-
-    .. note:: Torque entering the gearbox can be from engine side
-       (power mode or from wheels in motoring mode).
+        Gear box efficiency vector.
+    :rtype: np.array
     """
 
     wp = gear_box_powers_out
@@ -308,7 +323,26 @@ def calculate_gear_box_efficiencies_v2(
 
     eff[b1] = 1 / eff[b1]
 
-    return eff, tr - tgb
+    return eff
+
+
+def calculate_torques_losses(gear_box_torques_in, gear_box_torques_out):
+    """
+    Calculates gear box torque losses.
+
+    :param gear_box_torques_in:
+        Torque required vector.
+    :type gear_box_torques_in: np.array, float
+
+    :param gear_box_torques_out:
+        Torque gear_box vector.
+    :type gear_box_torques_out: np.array, float
+
+    :return:
+        Gear box torques losses.
+    :rtype: np.array, float
+    """
+    return gear_box_torques_in - gear_box_torques_out
 
 
 def calculate_gear_box_efficiencies(
@@ -347,13 +381,14 @@ def calculate_gear_box_efficiencies(
               'gear_box_power_out', 'gear_box_speed_out', 'gear_box_speed_in',
               'gear_box_torque_out']
 
-    outputs = ['gear_box_temperature', 'gear_box_torque_loss',
+    outputs = ['gear_box_temperature', 'gear_box_torque_in',
                'gear_box_efficiency']
 
     dfl = (thermostat_temperature, equivalent_gear_box_capacity,
            gear_box_efficiency_parameters, temperature_references)
 
-    it = (gear_box_powers_out, gear_box_speeds_out, gear_box_speeds_in, gear_box_torques_out)
+    it = (gear_box_powers_out, gear_box_speeds_out, gear_box_speeds_in,
+          gear_box_torques_out)
 
     if gear_box_ratios and gears is not None:
         inputs = ['gear_box_ratios'] + inputs
@@ -362,7 +397,7 @@ def calculate_gear_box_efficiencies(
         it = it + (gears, )
 
     inputs.append('gear_box_temperature')
-
+    from compas.models.gear_box.thermal import thermal
     fun = SubDispatchFunction(thermal(), 'thermal', inputs, outputs)
     T0 = gear_box_starting_temperature
     res = []
@@ -370,9 +405,9 @@ def calculate_gear_box_efficiencies(
         res.append(fun(*(dfl + args + (T0, ))))
         T0 = res[-1][0]
 
-    temp, loss, eff = zip(*res)
+    temp, to_in, eff = zip(*res)
     temp = (gear_box_starting_temperature, ) + temp[:-1]
-    return np.array(eff), np.array(loss), np.array(temp)
+    return np.array(eff), np.array(to_in), np.array(temp)
 
 
 def calculate_gear_box_speeds_in(gears, velocities, velocity_speed_ratios):
@@ -411,7 +446,8 @@ def calculate_gear_box_speeds_in(gears, velocities, velocity_speed_ratios):
     return speeds
 
 
-def calculate_gear_box_speeds_in_v1(gears, gear_box_speeds_out, gear_box_ratios):
+def calculate_gear_box_speeds_in_v1(
+        gears, gear_box_speeds_out, gear_box_ratios):
     """
     Calculates gear box speed vector.
 

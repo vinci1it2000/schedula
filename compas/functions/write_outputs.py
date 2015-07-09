@@ -7,8 +7,6 @@
 
 """
 It contains functions to write prediction outputs.
-
-.. note:: these functions are used in :mod:`compas.models.compas`.
 """
 __author__ = 'Vincenzo Arcidiacono'
 
@@ -17,7 +15,7 @@ from heapq import heappush
 import numpy as np
 import pandas as pd
 
-from compas.utils import heap_flush
+from compas.dispatcher.utils import heap_flush
 from compas.functions.plot import plot_gear_box_speeds
 
 
