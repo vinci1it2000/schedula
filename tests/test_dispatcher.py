@@ -437,8 +437,34 @@ class TestDispatch(unittest.TestCase):
             input_domain=dom
         )
         self.dsp_of_dsp_1 = dsp
+        def fun(c):
+            return c + 3, c - 3
+
+        sub_sub_dsp = Dispatcher(name='sub_sub_dispatcher')
+        sub_sub_dsp.add_function('fun', fun, inputs=['a'], outputs=['b', 'c'])
+        sub_sub_dsp.add_function('min', min, inputs=['b', 'c'], outputs=['d'])
 
 
+
+        sub_dsp = Dispatcher(name='sub_dispatcher')
+        sub_dsp.add_data('a', 1)
+        sub_dsp.add_function('min', min, inputs=['a', 'b'], outputs=['c'])
+        sub_dsp.add_dispatcher(
+            sub_sub_dsp, {'c': 'a'}, {'d':'d'}, dsp_id='sub_sub_dsp',
+        )
+
+        def fun(c):
+            return c + 3, c - 3
+
+        sub_dsp.add_function('fun', fun, inputs=['d'], outputs=['e', 'f'])
+
+        dsp = Dispatcher()
+        dsp.add_function('max', function=max, inputs=['a', 'b'], outputs=['c'])
+        dsp.add_dispatcher(
+            sub_dsp, {'d': 'a', 'e': 'b'}, {'e':'c', 'f':'f'}, dsp_id='sub_dsp',
+            input_domain=dom
+        )
+        self.dsp_of_dsp_2 = dsp
 
     def test_without_outputs(self):
         dsp = self.dsp
@@ -575,14 +601,67 @@ class TestDispatch(unittest.TestCase):
         self.assertEqual(sorted(list(wf.node)), r)
         self.assertEqual(wf.edge, w)
 
+        dsp = self.dsp_of_dsp_2
         wf, o = dsp.dispatch(
             inputs={'a': 3, 'b': 5, 'd': 10, 'e': 20},
             shrink=True)
-        self.assertEqual(o, {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 20, 'f': 7})
+        r = ['a', 'b', 'c', 'd', 'e', 'f', 'max', START, 'sub_dsp']
+        w = {
+            'a': {'max': {'value': 3}},
+            'b': {'max': {'value': 5}},
+            'c': {},
+            'd': {'sub_dsp': {'value': 10}},
+            'e': {'sub_dsp': {'value': 20}},
+            'f': {},
+            'max': {'c': {'value': 5}},
+            'sub_dsp': {'f': {'value': 4}},
+            START: {
+                'a': {'value': 3},
+                'e': {'value': 20},
+                'b': {'value': 5},
+                'd': {'value': 10}
+            },
+        }
+        sw = {
+            'a': {'min': {'value': 10}},
+            'b': {'min': {'value': 20}},
+            'c': {'sub_sub_dsp': {'value': 10}},
+            'd': {'fun': {'value': 7}},
+            'f': {},
+            'fun': {'f': {'value': 4}},
+            'min': {'c': {'value': 10}},
+            'sub_sub_dsp': {'d': {'value': 7}},
+            START: {
+                'a': {'value': 10},
+                'b': {'value': 20}
+            },
+        }
+        ssw = {
+            'a': {'fun': {'value': 10}},
+            'b': {'min': {'value': 13}},
+            'c': {'min': {'value': 7}},
+            'd': {},
+            'fun': {'b': {'value': 13}, 'c': {'value': 7}},
+            'min': {'d': {'value': 7}},
+            START: {'a': {'value': 10}},
+        }
+        self.assertEqual(o, {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 20, 'f': 4})
         self.assertEqual(sorted(list(wf.node)), r)
         self.assertEqual(wf.edge, w)
+        self.assertEqual(wf.node['sub_dsp']['workflow'][0].edge, sw)
+        sd_wf = wf.node['sub_dsp']['workflow'][0]
+        self.assertEqual(sd_wf.node['sub_sub_dsp']['workflow'][0].edge, ssw)
 
 
+        wf, o = dsp.dispatch(inputs={'a': 3, 'b': 5, 'd': 10, 'e': 20})
+        sw['e'] = {}
+        sw['fun']['e'] = {'value': 10}
+        self.assertEqual(o, {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 20, 'f': 4})
+        self.assertEqual(sorted(list(wf.node)), r)
+        self.assertEqual(wf.edge, w)
+        self.assertEqual(wf.node['sub_dsp']['workflow'][0].edge, sw)
+        sd_wf = wf.node['sub_dsp']['workflow'][0]
+        self.assertEqual(sd_wf.node['sub_sub_dsp']['workflow'][0].edge, ssw)
 
     def test_cutoff(self):
         dsp = self.dsp_cutoff
