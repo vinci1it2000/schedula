@@ -303,9 +303,9 @@ def _remote_links(label, tag, links, node_id):
 def _get_link(dsp_id, dsp, node_id, tag):
     tag = '%ss' % tag
     if tag == 'inputs':
-        n = [k for k, v in dsp.nodes[dsp_id]['inputs'].items() if v == node_id]
+        n = [k for k, v in dsp.nodes[dsp_id][tag].items() if v == node_id]
     else:
-        n = [dsp.nodes[dsp_id]['inputs'][node_id]]
+        n = [dsp.nodes[dsp_id][tag][node_id]]
     return '%s:(%s)' % (dsp_id, ', '.join(n))
 
 

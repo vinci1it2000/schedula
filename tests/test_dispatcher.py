@@ -193,7 +193,6 @@ class TestCreateDispatcher(unittest.TestCase):
                   'inputs': {'d': 'a', 'e': 'b'},
                   'outputs': {'e': 'e', 'c': 'd'},
                   'wait_inputs': True,
-                  'remote_link': [dsp_id, dsp]
         }
         self.assertEqual(dsp.nodes[dsp_id], res)
 

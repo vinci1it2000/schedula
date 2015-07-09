@@ -1467,23 +1467,25 @@ class Dispatcher(object):
             i = {l: m for l, m in node['inputs'].items() if l in i}
             o = {l: m for l, m in node['outputs'].items() if m in o}
 
-            sub_dsp = node['function'].shrink_dsp(i.values(), o)
+            sub_dsp = node['function'].shrink_dsp(
+                i.values() if i else None, o if o else None)
 
             rl = [k, self]
             nl = [k, dsp]
-            for tag, v in (('input', i.values()), ('output', o)):
-                for j in v:
-                    n = sub_dsp.nodes[j] = sub_dsp.nodes[j].copy()
-                    remote_links = n[tag]
-                    if j in v:
-                        node[tag] = [l if l != rl else nl for l in remote_links]
-                    else:
-                        node[tag] = [l for l in remote_links if l != rl]
-                        if not node[tag]:
-                            node.pop(tag)
-            v['inputs'] = i
-            v['outputs'] = o
-            v['function'] = sub_dsp
+            for tag, v, w in (('input', i.values(), node['inputs'].values()),
+                              ('output', o, node['outputs'])):
+                for j in w:
+                    if j in sub_dsp.nodes:
+                        n = sub_dsp.nodes[j] = sub_dsp.nodes[j].copy()
+                        if j in v:
+                            n[tag] = [l if l != rl else nl for l in n[tag]]
+                        else:
+                            n[tag] = [l for l in n[tag] if l != rl]
+                            if not n[tag]:
+                                n.pop(tag)
+            node['inputs'] = i
+            node['outputs'] = o
+            node['function'] = sub_dsp
 
         # return the sub dispatcher
         return dsp
@@ -2186,13 +2188,13 @@ class Dispatcher(object):
         """
 
         finished = set()
-
+        started = {self}
         while fringe:
             (d, _, (v, dsp)) = heappop(fringe)  # visit the closest available node
 
             if dsp in finished:
                 continue
-
+            started.add(dsp)
             # set and see nodes
             if not dsp._visit_nodes(v, d, fringe, check_cutoff, no_call):
                 if self is dsp:
@@ -2205,9 +2207,10 @@ class Dispatcher(object):
             if node['type'] == 'data' and 'output' in node:
                 value = dsp.data_output[v]
                 for sub_dsp_id, sub_dsp in node['output']:
-                    n = sub_dsp.nodes[sub_dsp_id]['outputs'][v]
-                    if sub_dsp._see_node(n, fringe, d):
-                        sub_dsp._wf_add_edge(sub_dsp_id, n, value=value)
+                    if sub_dsp in started:
+                        n = sub_dsp.nodes[sub_dsp_id]['outputs'][v]
+                        if sub_dsp._see_node(n, fringe, d):
+                            sub_dsp._wf_add_edge(sub_dsp_id, n, value=value)
 
         self._remove_unused_functions()
 
