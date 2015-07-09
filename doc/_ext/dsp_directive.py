@@ -104,7 +104,7 @@ def _import_docstring(documenter):
 def _description(lines, dsp, documenter):
     docstring = dsp.__doc__
 
-    if documenter.objpath:
+    if documenter.objpath and documenter.analyzer:
         attr_docs = documenter.analyzer.find_attr_docs()
         key = ('.'.join(documenter.objpath[:-1]), documenter.objpath[-1])
         if key in attr_docs:
@@ -133,7 +133,7 @@ def _plot(lines, dsp, dot_view_opt):
 
 
 def _table_heather(lines, title, dsp_name):
-    q = 's' if dsp_name[-1] != 's' else ''
+    q = 's' if dsp_name and dsp_name[-1] != 's' else ''
     lines.extend(['.. csv-table:: **%s\'%s %s**' % (dsp_name, q, title), ''])
 
 
@@ -153,6 +153,9 @@ def _data(lines, dsp):
                     link = '%s.%s' % (k.__module__, k.__name__)
                 except:
                     des = ''
+
+            if not des:
+                des = ''
 
             link = ':obj:`%s <%s>`' % (str(k), link)
 
@@ -175,6 +178,10 @@ def _functions(lines, dsp, function_module):
                 des = v['function'].__doc__
             else:
                 des = ''
+
+            if not des:
+                des = ''
+
             des = get_summary(des.split('\n'))
             if ('function' in v
                 and isinstance(v['function'], (FunctionType,
