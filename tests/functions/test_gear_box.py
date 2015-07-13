@@ -70,7 +70,7 @@ class TestGearBox(unittest.TestCase):
     def test_calculate_torque_out(self):
         wp, es, gbs = self.wp, self.es, self.ws
         self.assertEquals(
-            list(calculate_gear_box_torques_out(wp, es, gbs)), list(self.tgb)
+            list(calculate_gear_box_torques(wp, es, gbs)), list(self.tgb)
         )
 
     def test_torque_required(self):

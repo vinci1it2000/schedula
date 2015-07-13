@@ -50,7 +50,8 @@ def calculate_aerodynamic_resistances(f2, velocities):
     return f2 * velocities**2
 
 
-def calculate_aerodynamic_resistances_v1(air_density, Cd, A, velocities):
+def calculate_aerodynamic_resistances_v1(
+        air_density, aerodynamic_drag_coefficient, frontal_area, velocities):
     """
     Calculates the aerodynamic resistances of the vehicle.
 
@@ -58,13 +59,13 @@ def calculate_aerodynamic_resistances_v1(air_density, Cd, A, velocities):
         Air density [kg/m3].
     :type air_density: float
 
-    :param Cd:
+    :param aerodynamic_drag_coefficient:
         Aerodynamic drag coefficient [-].
-    :type Cd: float
+    :type aerodynamic_drag_coefficient: float
 
-    :param A:
+    :param frontal_area:
         Frontal area of the vehicle [m2].
-    :type A: float
+    :type frontal_area: float
 
     :param velocities:
         Velocity vector [km/h].
@@ -74,8 +75,8 @@ def calculate_aerodynamic_resistances_v1(air_density, Cd, A, velocities):
         Aerodynamic resistance vector [N].
     :rtype: np.array, float
     """
-
-    return velocities**2 * (0.5 * Cd * A * air_density / 3.6**2)
+    c = aerodynamic_drag_coefficient * frontal_area * air_density
+    return velocities**2 * (0.5 * c / 3.6**2)
 
 
 def calculate_rolling_resistance(f0, angle_slope):

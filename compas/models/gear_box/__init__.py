@@ -57,10 +57,10 @@ def gear_box():
     )
 
     gear_box.add_function(
-        function=calculate_gear_box_torques_out,
+        function=calculate_gear_box_torques,
         inputs=['gear_box_powers_out', 'gear_box_speeds_in', 
                 'gear_box_speeds_out'],
-        outputs=['gear_box_torques_out'],
+        outputs=['gear_box_torques'],
     )
 
     gear_box.add_data(
@@ -70,7 +70,7 @@ def gear_box():
 
     gear_box.add_function(
         function=calculate_gear_box_torques_in,
-        inputs=['gear_box_torques_out', 'gear_box_speeds_in',
+        inputs=['gear_box_torques', 'gear_box_speeds_in',
                 'gear_box_speeds_out', 'gear_box_temperatures',
                 'gear_box_efficiency_parameters_cold_hot', 
                 'temperature_references'],
@@ -79,7 +79,7 @@ def gear_box():
 
     gear_box.add_function(
         function=correct_gear_box_torques_in,
-        inputs=['gear_box_torques_out', 'gear_box_torques_in<0>', 'gears',
+        inputs=['gear_box_torques', 'gear_box_torques_in<0>', 'gears',
                 'gear_box_ratios'],
         outputs=['gear_box_torques_in'],
     )
@@ -94,21 +94,21 @@ def gear_box():
     gear_box.add_function(
         function=calculate_gear_box_efficiencies_v2,
         inputs=['gear_box_powers_out', 'gear_box_speeds_in', 
-                'gear_box_speeds_out', 'gear_box_torques_out', 
+                'gear_box_speeds_out', 'gear_box_torques', 
                 'gear_box_torques_in'],
         outputs=['gear_box_efficiencies', 'gear_box_torque_losses'],
     )
 
     gear_box.add_function(
         function=calculate_torques_losses,
-        inputs=['gear_box_torques_in', 'gear_box_torques_out'],
+        inputs=['gear_box_torques_in', 'gear_box_torques'],
         outputs=['gear_box_torque_losses'],
     )
 
     gear_box.add_function(
         function=calculate_gear_box_efficiencies,
         inputs=['gear_box_powers_out', 'gear_box_speeds_in',
-                'gear_box_speeds_out', 'gear_box_torques_out',
+                'gear_box_speeds_out', 'gear_box_torques',
                 'gear_box_efficiency_parameters',
                 'equivalent_gear_box_capacity', 'thermostat_temperature',
                 'temperature_references', 'gear_box_starting_temperature',
@@ -121,7 +121,7 @@ def gear_box():
     gear_box.add_function(
         function=calculate_gear_box_efficiencies,
         inputs=['gear_box_powers_out', 'gear_box_speeds_in',
-                'gear_box_speeds_out', 'gear_box_torques_out',
+                'gear_box_speeds_out', 'gear_box_torques',
                 'gear_box_efficiency_parameters',
                 'equivalent_gear_box_capacity', 'thermostat_temperature',
                 'temperature_references', 'gear_box_starting_temperature'],

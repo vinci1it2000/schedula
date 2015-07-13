@@ -29,3 +29,22 @@ Sub-Models:
 """
 
 __author__ = 'Vincenzo_Arcidiacono'
+
+from compas.dispatcher import Dispatcher
+from compas.dispatcher.utils import SubDispatchFunction
+from .cmv import cmv
+def gear_logic():
+
+    gear_logic = Dispatcher()
+
+    gear_logic.add_function(
+        function=SubDispatchFunction(
+            cmv(),
+            'calibrate_cmv',
+            ['correct_gear', 'identified_gears', 'engine_speeds_out',
+             'velocities', 'accelerations', 'velocity_speed_ratios', 'times']),
+        inputs=['correct_gear', 'identified_gears', 'engine_speeds_out',
+                'velocities', 'accelerations', 'velocity_speed_ratios',
+                'times'],
+        outputs=['']
+    )

@@ -252,6 +252,14 @@ def replicate_value(value, n=2, copy=True):
     return [value] * n
 
 
+def add_opt_fun_args(fun, n=1):
+
+    def f(*args, **kwargs):
+        return fun(*args[n:], **kwargs)
+
+    return f
+
+
 class SubDispatch(object):
     """
     It dispatches a given :func:`~dispatcher.Dispatcher` like a function.

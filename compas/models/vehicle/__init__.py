@@ -41,7 +41,8 @@ def vehicle():
 
     vehicle.add_function(
         function=calculate_aerodynamic_resistances_v1,
-        inputs=['air_density', 'Cd', 'A', 'velocities'],
+        inputs=['air_density', 'aerodynamic_drag_coefficient', 'frontal_area',
+                'velocities'],
         outputs=['aerodynamic_resistances'],
         weight=5
     )

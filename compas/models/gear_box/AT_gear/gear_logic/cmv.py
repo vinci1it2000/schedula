@@ -27,8 +27,8 @@ def cmv():
     # calibrate corrected matrix velocity
     cmv.add_function(
         function=calibrate_gear_shifting_cmv,
-        inputs=['correct_gear', 'gears', 'engine_speeds', 'velocities',
-                'accelerations', 'velocity_speed_ratios'],
+        inputs=['correct_gear', 'identified_gears', 'engine_speeds_out',
+                'velocities', 'accelerations', 'velocity_speed_ratios'],
         outputs=['CMV'])
 
     # predict gears with corrected matrix velocity

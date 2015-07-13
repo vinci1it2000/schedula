@@ -15,247 +15,232 @@ import re
 import os
 import glob
 from datetime import datetime
-'''
-from compas.models.AT_gear import *
-from compas.models.read_inputs import *
+import pandas as pd
 from compas.functions.write_outputs import write_output
 from compas.dispatcher import Dispatcher
-from compas.dispatcher.utils.dsp import SubDispatch, replicate_value, \
-    selector
+from compas.dispatcher.utils import SubDispatch, replicate_value, selector
+from functools import partial
 
-
-
-def def_compas_model():
+def mechanical():
     """
-    Defines and returns a jrcgear model that read, process (models' calibration
-    and gear's prediction), and write the vehicle data.
-
-    :returns:
-        - jrcgear_model
-        - error coefficients ids (e.g., error_coefficients_with_DT_VA)
-    :rtype: (Dispatcher, list)
-
-    .. testsetup::
-        >>> from compas.dispatcher.draw import dsp2dot
-        >>> dsp = def_compas_model()[0]
-        >>> dot = dsp2dot(dsp, level=0, function_module=False)
+    Define the mechanical model.
 
     .. dispatcher:: dsp
 
-        >>> dsp = dsp
+        >>> dsp = mechanical()
 
-    Follow the input/output parameters of the `jrcgear_model` dispatcher:
-
-    :param input_file_name:
-        Unique input file name.
-    :type input_file_name: str, optional
-
-    :param calibration_input_file_name:
-        Input file name to calibrate the predictive models.
-    :type calibration_input_file_name: str, optional
-
-    :param calibration_cycle_name:
-        Calibration cycle name (NEDC or WLTP).
-    :type calibration_cycle_name: str, optional
-
-    :param calibration_cycle_inputs:
-        A dictionary that contains the calibration cycle inputs.
-    :type calibration_cycle_inputs: dict, optional
-
-    :param prediction_input_file_name:
-        Input file name with the data to be used to predict the gear shifting.
-    :type prediction_input_file_name: str, optional
-
-    :param prediction_cycle_name:
-        Prediction cycle name (NEDC or WLTP).
-    :type prediction_cycle_name: str, optional
-
-    :param prediction_cycle_inputs:
-        A dictionary that contains the prediction cycle inputs.
-    :type prediction_cycle_inputs: dict, optional
-
-    :param calibrated_models:
-        A dictionary with only the calibrated predicting methods.
-    :type calibrated_models: dict, optional
-
-    :param predicted_gears:
-        A dictionary with all the dispatcher outputs of the model defined by
-        :func:`compas.models.AT_gear.def_gear_models` to predict the gears.
-    :type predicted_gears: dict, optional
-
-    :param calculated_gear_box_engine_speeds:
-        A dictionary with all the dispatcher outputs of the model defined by
-        :func:`compas.models.AT_gear.def_gear_models` to calculate gear box
-        engine speeds.
-    :type calculated_gear_box_engine_speeds: dict, optional
-
-    :param error_coefficients:
-        A dictionary with only the prediction methods' error coefficients.
-    :type error_coefficients: dict, optional
-
-    :param prediction_output_file_name:
-        Output file name where write the outputs of the prediction.
-    :type prediction_output_file_name: str, optional
-
-    :param output_sheet_names:
-        Sheet names for:
-
-            + series
-            + parameters
-    :type output_sheet_names: (str, str), optional
+    :return:
+        The mechanical model.
+    :rtype: Dispatcher
     """
 
-    # gear model
-    gear_model, calibration_models, gears_predicted, \
-    gear_box_speeds_predicted, error_coefficients = def_gear_models()
+    mechanical = Dispatcher(
+        name='CO2MPAS model'
+    )
 
-    # read model
-    load_inputs = def_load_inputs()
+    from .vehicle import vehicle
 
-    data = []
-    functions = []
+    v = vehicle()
 
-    """
-    Input file
-    ==========
-    """
+    mechanical.add_from_lists(
+        data_list=[{'data_id': k, 'default_value': v}
+                   for k, v in v.default_values.items()]
+    )
 
-    replicate = replicate_value()
-
-    functions.extend([
-        {  # open excel workbook of the cycle
-           'function': replicate,
-           'inputs': ['input_file_name'],
-           'outputs': ['calibration_input_file_name',
-                       'prediction_input_file_name'],
+    mechanical.add_dispatcher(
+        dsp_id='Vehicle model',
+        dsp=v,
+        inputs={
+            'aerodynamic_drag_coefficient': 'aerodynamic_drag_coefficient',
+            'frontal_area': 'frontal_area',
+            'air_density': 'air_density',
+            'angle_slope': 'angle_slope',
+            'cycle_type': 'cycle_type',
+            'f0': 'f0',
+            'f1': 'f1',
+            'f2': 'f2',
+            'inertial_factor': 'inertial_factor',
+            'rolling_resistance_coeff': 'rolling_resistance_coeff',
+            'times': 'times',
+            'vehicle_mass': 'vehicle_mass',
+            'velocities': 'velocities',
         },
-    ])
+        outputs={
+            'accelerations': 'accelerations',
+            'motive_powers': 'wheel_powers',
+        }
+    )
 
-    """
-    Read calibration inputs
-    =======================
-    """
+    from .wheels import wheels
 
-    data.extend([
-        {'data_id': 'calibration_cycle_name', 'default_value': 'WLTP'}
-    ])
-
-    functions.extend([
-        {  # open excel workbook of the cycle
-           'function': load_inputs,
-           'inputs': ['calibration_input_file_name', 'calibration_cycle_name'],
-           'outputs': ['calibration_cycle_inputs'],
+    mechanical.add_dispatcher(
+        dsp_id='Wheels model',
+        dsp=wheels(),
+        inputs={
+            'r_dynamic': 'r_dynamic',
+            'velocities': 'velocities',
+            'wheel_powers': 'wheel_powers',
         },
-    ])
+        outputs={
+            'wheel_speeds': 'wheel_speeds',
+            'wheel_torques': 'wheel_torques'
+        }
+    )
 
-    """
-    Read prediction inputs
-    ======================
-    """
+    from .final_drive import  final_drive
 
-    data.extend([
-        {'data_id': 'prediction_cycle_name', 'default_value': 'NEDC'}
-    ])
+    fd = final_drive()
 
-    functions.extend([
-        {  # open excel workbook of the cycle
-           'function': load_inputs,
-           'inputs': ['prediction_input_file_name', 'prediction_cycle_name'],
-           'outputs': ['prediction_cycle_inputs'],
-           'weight': 20,
+    mechanical.add_from_lists(
+        data_list=[{'data_id': k, 'default_value': v}
+                   for k, v in fd.default_values.items()]
+    )
+
+    mechanical.add_dispatcher(
+        dsp_id='Final drive model',
+        dsp=final_drive(),
+        inputs={
+            'final_drive_efficiency': 'final_drive_efficiency',
+            'final_drive_ratio': 'final_drive_ratio',
+            'final_drive_torque_loss': 'final_drive_torque_loss',
+            'wheel_powers': 'final_drive_powers_out',
+            'wheel_speeds': 'final_drive_speeds_out',
+            'wheel_torques': 'final_drive_torques_out'
         },
-    ])
+        outputs={
+            'final_drive_powers_in': 'final_drive_powers_in',
+            'final_drive_speeds_in': 'final_drive_speeds_in',
+            'final_drive_torques_in': 'final_drive_torques_in',
 
-    """
-    Calibrate models
-    ================
-    """
+        }
+    )
 
-    functions.extend([
-        {  # calibrate models
-           'function_id': 'calibrate_models',
-           'function': SubDispatch(gear_model),
-           'inputs': ['calibration_cycle_inputs'],
-           'outputs': ['calibration_cycle_outputs'],
+    from .gear_box import gear_box
+
+    gb = gear_box()
+
+    mechanical.add_from_lists(
+        data_list=[{'data_id': k, 'default_value': v}
+                   for k, v in gb.default_values.items()]
+    )
+    mechanical.add_dispatcher(
+        dsp_id='Gear box model',
+        dsp=gb,
+        inputs={
+            'engine_max_torque': 'engine_max_torque',
+            'equivalent_gear_box_capacity': 'equivalent_gear_box_capacity',
+            'final_drive_powers_in': 'gear_box_powers_out',
+            'final_drive_speeds_in': 'gear_box_speeds_out',
+            'gear_box_efficiency_constants': 'gear_box_efficiency_constants',
+            'gear_box_efficiency_parameters': 'gear_box_efficiency_parameters',
+            'gear_box_ratios': 'gear_box_ratios',
+            'gear_box_starting_temperature': 'gear_box_starting_temperature',
+            'gear_box_type': 'gear_box_type',
+            'gears': 'gears',
+            'temperature_references': 'temperature_references',
+            'thermostat_temperature': 'thermostat_temperature',
+            'velocities': 'velocities',
+            'velocity_speed_ratios': 'velocity_speed_ratios'
         },
-    ])
+        outputs={
+            'gear_box_efficiencies': 'gear_box_efficiencies',
+            'gear_box_speeds_in': 'gear_box_speeds_in',
+            'gear_box_temperatures': 'gear_box_temperatures',
+            'gear_box_torque_losses': 'gear_box_torque_losses',
+            'gear_box_torques_in': 'gear_box_torques_in',
+        }
+    )
 
-    """
-    Extract calibrated models
-    =========================
-    """
+    return mechanical
 
-    functions.extend([
-        {  # extract calibrated models
-           'function_id': 'extract_calibrated_models',
-           'function': selector(calibration_models),
-           'inputs': ['calibration_cycle_outputs'],
-           'outputs': ['calibrated_models'],
-        },
-    ])
 
+def architecture():
     """
-    Predict gears
-    =============
-    """
+    Define the architecture model.
 
-    functions.extend([
-        {  # predict gears and calculate gear box speeds
-           'function_id': 'predict_gears',
-           'function': SubDispatch(gear_model, error_coefficients),
-           'inputs': ['calibrated_models', 'prediction_cycle_inputs'],
-           'outputs': ['prediction_cycle_outputs'],
-        },
-    ])
+    .. dispatcher:: dsp
 
-    """
-    Extract error coefficients
-    ==========================
+        >>> dsp = architecture()
+
+    :return:
+        The architecture model.
+    :rtype: Dispatcher
     """
 
-    functions.extend([
-        {  # extract error coefficients
-           'function_id': 'extract_prediction_error_coefficients',
-           'function': selector(error_coefficients),
-           'inputs': ['prediction_cycle_outputs'],
-           'outputs': ['prediction_error_coefficients'],
-        },
-        {  # extract error coefficients
-           'function_id': 'extract_calibration_error_coefficients',
-           'function': selector(error_coefficients),
-           'inputs': ['calibration_cycle_outputs'],
-           'outputs': ['calibration_error_coefficients'],
-        },
-    ])
+    architecture = Dispatcher(
+        name='CO2MPAS architecture'
+    )
+    
+    architecture.add_function(
+        function_id='replicate',
+        function=partial(replicate_value, n=2),
+        inputs=['input_file_name'],
+        outputs=['calibration_input_file_name', 'prediction_input_file_name']
+    )
+    
+    architecture.add_data(
+        data_id='calibration_cycle_name', 
+        default_value='WLTP'
+    )
 
-    """
-    Save gear box engine speeds
-    ===========================
-    """
+    from .read_inputs import def_load_inputs
 
-    functions.extend([
-        {  # save gear box engine speeds
-           'function_id': 'save_prediction_cycle_outputs',
-           'function': write_output,
-           'inputs': ['prediction_cycle_outputs',
-                      'prediction_output_file_name',
-                      'output_sheet_names'],
-        },
-        {  # save gear box engine speeds
-           'function_id': 'save_calibration_cycle_outputs',
-           'function': write_output,
-           'inputs': ['calibration_cycle_outputs',
-                      'calibration_output_file_name',
-                      'output_sheet_names'],
-        },
-    ])
+    architecture.add_function(
+        function=def_load_inputs(),
+        inputs=['calibration_input_file_name', 'calibration_cycle_name'],
+        outputs=['calibration_cycle_inputs'],
+    )
 
+    architecture.add_data(
+            data_id='prediction_cycle_name',
+            default_value='NEDC'
+    )
 
-    # initialize a dispatcher
-    dsp = Dispatcher()
-    dsp.add_from_lists(data_list=data, fun_list=functions)
+    architecture.add_function(
+        function=def_load_inputs(),
+        inputs=['prediction_input_file_name', 'prediction_cycle_name'],
+        outputs=['prediction_cycle_inputs'],
+        weight=20,
+    )
 
-    return dsp, error_coefficients
+    architecture.add_function(
+        function_id='calibrate_mechanical_model',
+        function=SubDispatch(mechanical()),
+        inputs=['calibration_cycle_inputs'],
+        outputs=['calibration_cycle_outputs'],
+    )
+
+    models = ['']
+
+    architecture.add_function(
+        function_id='extract_calibrated_models',
+        function=partial(selector, models),
+        inputs=['calibration_cycle_outputs'],
+        outputs=['calibrated_models'],
+        )
+
+    architecture.add_function(
+        function_id='predict_mechanical_model',
+        function=SubDispatch(mechanical()),
+        inputs=['calibrated_models', 'prediction_cycle_inputs'],
+        outputs=['prediction_cycle_outputs'],
+    )
+
+    architecture.add_function(
+        function_id='save_prediction_cycle_outputs',
+        function=write_output,
+        inputs=['prediction_cycle_outputs', 'prediction_output_file_name',
+                'output_sheet_names'],
+    )
+
+    architecture.add_function(
+        function_id='save_calibration_cycle_outputs',
+        function=write_output,
+        inputs=['calibration_cycle_outputs', 'calibration_output_file_name',
+                'output_sheet_names'],
+    )
+
+    return architecture
 
 
 files_exclude_regex = re.compile('^\w')
@@ -264,7 +249,7 @@ files_exclude_regex = re.compile('^\w')
 def process_folder_files(input_folder, output_folder):
     """
     Processes all excel files in a folder with the model defined by
-    :func:`def_compas_model`.
+    :func:`architecture`.
 
     :param input_folder:
         Input folder.
@@ -275,7 +260,7 @@ def process_folder_files(input_folder, output_folder):
     :type output_folder: str
     """
 
-    model, error_coefficients = def_compas_model()
+    model, error_coefficients = architecture()
     fpaths = glob.glob(input_folder + '/*.xlsm')
     error_coeff = []
     doday= datetime.today().strftime('%d_%b_%Y_%H_%M_%S_')
@@ -316,15 +301,3 @@ def process_folder_files(input_folder, output_folder):
 
     for v in error_coeff:
         print(v)
-
-
-if __name__ == '__main__':
-    # C:/Users/arcidvi
-    # /Users/iMac2013
-
-    #process_folder_files(r'C:/Users/arcidvi/Dropbox/LAT/*.xlsm',
-    #                     r'C:/Users/arcidvi/Dropbox/LAT/outputs')
-    from compas.dispatcher.draw import dsp2dot
-    dsp = def_compas_model()[0]
-    dot = dsp2dot(dsp, view=True)
-'''

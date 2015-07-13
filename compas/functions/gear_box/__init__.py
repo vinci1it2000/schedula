@@ -104,7 +104,7 @@ def calculate_gear_box_efficiency_parameters_cold_hot(
     return par
 
 
-def calculate_gear_box_torques_out(
+def calculate_gear_box_torques(
         gear_box_powers_out, gear_box_speeds_in, gear_box_speeds_out):
     """
     Calculates torque entering the gear box.

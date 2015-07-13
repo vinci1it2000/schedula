@@ -678,10 +678,6 @@ class Dispatcher(object):
             '...dispatcher:my_log'
         """
 
-        # new shrink dispatcher
-        shrink_dsp = dsp.shrink_dsp(inputs.values(), outputs, cutoff=cutoff)
-
-
         # select the name
         if dsp_id:
             pass
@@ -692,12 +688,12 @@ class Dispatcher(object):
 
         # return dispatcher node id
         dsp_id = self.add_function(
-            dsp_id, shrink_dsp, inputs, outputs.values(), input_domain, weight,
-            weight_from, type='dispatcher')
+            dsp_id, dsp, inputs, outputs.values(), input_domain, weight,
+            weight_from, type='dispatcher', **kwargs)
 
         self.nodes[dsp_id]['outputs'] = outputs
 
-        nodes = shrink_dsp.nodes
+        nodes = dsp.nodes
 
         remote_link = [dsp_id, self]
 
