@@ -1,5 +1,5 @@
 __author__ = 'iMac2013'
-
+from math import pi
 from compas.functions.constants import *
 from compas.functions.utils import bin_split, reject_outliers
 
@@ -127,8 +127,7 @@ def calculate_braking_powers(
     cap, es = engine_capacity, engine_speeds_out
 
     # indicative_friction_powers
-    friction_powers = (
-                          (loss2 * piston_speeds ** 2 + loss) * es * cap ) / 1200000
+    friction_powers = ((loss2 * piston_speeds ** 2 + loss) * es * cap) / 1200000
 
     bp = gear_box_torques_in * engine_speeds_out * (pi / 30000)
 
@@ -137,8 +136,8 @@ def calculate_braking_powers(
     return bp
 
 
-# ###############################################################################
-
+# ##############################################################################
+'''
 def evaluate_engine_speed(
         engine_speed_idle, engine_speed_min, engine_speed_idle_add_start,
         engine_therma_start, engine_therma_thres, logical_idling,
@@ -228,7 +227,7 @@ def evaluate_engine_speed(
 
     return (rpm1 + rpm2) * engine_status
 
-def evaluate_engine_speed(
+def evaluate_engine_speed_(
         idle_engine_speed, engine_speed_idle_add_start,
         engine_therma_start, engine_therma_thres, logical_idling,
         previous_logical_idling,
@@ -316,3 +315,4 @@ def evaluate_engine_speed(
         rpm2 = 0
 
     return (rpm1 + rpm2) * engine_status
+'''

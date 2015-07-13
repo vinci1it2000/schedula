@@ -35,7 +35,7 @@ def main(*args):
         if not output_folder:
             exit()
 
-    from compas.models.architecture import process_folder_files
+    from compas.models.main import process_folder_files
 
     process_folder_files(input_folder, output_folder)
 

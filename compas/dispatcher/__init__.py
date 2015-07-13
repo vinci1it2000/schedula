@@ -37,7 +37,7 @@ from .utils.gen import AttrDict, counter, caller_name
 from .utils.alg import add_edge_fun, remove_cycles_iteration
 from .constants import EMPTY, START, NONE, SINK
 from .utils.dsp import SubDispatch, bypass
-
+from functools import total_ordering
 
 log = logging.getLogger(__name__)
 
@@ -177,6 +177,9 @@ class Dispatcher(object):
         >>> dsp
         <...>
     """
+
+    def __lt__(self, other):
+        return isinstance(other, Dispatcher) and id(other) < id(self)
 
     def __init__(self, dmap=None, name='', default_values=None, raises=False,
                  description=''):

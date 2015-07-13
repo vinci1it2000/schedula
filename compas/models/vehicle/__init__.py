@@ -2,6 +2,7 @@ __author__ = 'arcidvi'
 
 from compas.dispatcher import Dispatcher
 from compas.functions.vehicle import *
+from compas.dispatcher.utils import bypass
 
 def vehicle():
     """
@@ -101,6 +102,20 @@ def vehicle():
         function=calculate_motive_powers,
         inputs=['motive_forces', 'velocities'],
         outputs=['motive_powers']
+    )
+
+    vehicle.add_function(
+        function_id='grouping',
+        function=bypass,
+        inputs=['f0', 'f1', 'f2'],
+        outputs=['road_loads']
+    )
+
+    vehicle.add_function(
+        function_id='splitting',
+        function=bypass,
+        inputs=['road_loads'],
+        outputs=['f0', 'f1', 'f2']
     )
 
     return vehicle

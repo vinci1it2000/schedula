@@ -143,4 +143,38 @@ def gear_box():
         outputs=['gear_box_speeds_in']
     )
 
+    gear_box.add_function(
+        function=calculate_speed_velocity_ratios,
+        inputs=['gear_box_ratios', 'final_drive', 'r_dynamic'],
+        outputs=['speed_velocity_ratios']
+    )
+
+    gear_box.add_function(
+        function=identify_speed_velocity_ratios,
+        inputs=['gears', 'velocities', 'gear_box_speeds_in'],
+        outputs=['velocity_speed_ratios'],
+        weight=5
+    )
+
+    gear_box.add_function(
+        function=identify_speed_velocity_ratios,
+        inputs=['gears', 'velocities', 'engine_speeds_out'],
+        outputs=['velocity_speed_ratios'],
+        weight=10
+    )
+
+    gear_box.add_function(
+        function=calculate_velocity_speed_ratios,
+        inputs=['speed_velocity_ratios'],
+        outputs=['velocity_speed_ratios'],
+        weight=15
+    )
+
+    gear_box.add_function(
+        function=identify_velocity_speed_ratios,
+        inputs=['gear_box_speeds_in', 'velocities', 'idle_engine_speed'],
+        outputs=['velocity_speed_ratios'],
+        weight=20
+    )
+
     return gear_box

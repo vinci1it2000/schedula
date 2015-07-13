@@ -307,7 +307,7 @@ class SubDispatch(object):
     """
 
     def __init__(self, dsp, outputs=None, cutoff=None, wildcard=False,
-                 no_call=False, shrink=True, output_type='all'):
+                 no_call=False, shrink=False, output_type='all'):
         """
         Initializes the Sub-dispatch.
 

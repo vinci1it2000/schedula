@@ -102,7 +102,7 @@ def identify_gear(
 
 
 def identify_gears(
-        times, velocities, accelerations, gear_box_speeds,
+        times, velocities, accelerations, gear_box_speeds_in,
         velocity_speed_ratios, idle_engine_speed=(0.0, 0.0)):
     """
     Identifies gear time series.
@@ -119,9 +119,9 @@ def identify_gears(
         Acceleration vector.
     :type accelerations: np.array, float
 
-    :param gear_box_speeds:
+    :param gear_box_speeds_in:
         Gear box speed vector.
-    :type gear_box_speeds: np.array
+    :type gear_box_speeds_in: np.array
 
     :param velocity_speed_ratios:
         Constant velocity speed ratios of the gear box.
@@ -138,9 +138,9 @@ def identify_gears(
 
     vsr = [v for v in velocity_speed_ratios.items()]
 
-    ratios = velocities / gear_box_speeds
+    ratios = velocities / gear_box_speeds_in
 
-    ratios[gear_box_speeds < MIN_ENGINE_SPEED] = 0
+    ratios[gear_box_speeds_in < MIN_ENGINE_SPEED] = 0
 
     idle_speed = (idle_engine_speed[0] - idle_engine_speed[1],
                   idle_engine_speed[0] + idle_engine_speed[1])

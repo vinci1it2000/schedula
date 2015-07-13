@@ -21,6 +21,7 @@ from compas.dispatcher import Dispatcher
 from compas.dispatcher.utils import SubDispatch, replicate_value, selector
 from functools import partial
 
+
 def mechanical():
     """
     Define the mechanical model.
@@ -62,12 +63,15 @@ def mechanical():
             'inertial_factor': 'inertial_factor',
             'rolling_resistance_coeff': 'rolling_resistance_coeff',
             'times': 'times',
-            'vehicle_mass': 'vehicle_mass',
+            'inertia': 'vehicle_mass',
             'velocities': 'velocities',
+            'road_loads': 'road_loads',
         },
         outputs={
+            'f0': 'f0',
             'accelerations': 'accelerations',
             'motive_powers': 'wheel_powers',
+            'road_loads': 'road_loads',
         }
     )
 
@@ -129,6 +133,7 @@ def mechanical():
         inputs={
             'engine_max_torque': 'engine_max_torque',
             'equivalent_gear_box_capacity': 'equivalent_gear_box_capacity',
+            'final_drive': 'final_drive',
             'final_drive_powers_in': 'gear_box_powers_out',
             'final_drive_speeds_in': 'gear_box_speeds_out',
             'gear_box_efficiency_constants': 'gear_box_efficiency_constants',
@@ -137,6 +142,7 @@ def mechanical():
             'gear_box_starting_temperature': 'gear_box_starting_temperature',
             'gear_box_type': 'gear_box_type',
             'gears': 'gears',
+            'r_dynamic': 'r_dynamic',
             'temperature_references': 'temperature_references',
             'thermostat_temperature': 'thermostat_temperature',
             'velocities': 'velocities',
@@ -183,10 +189,10 @@ def architecture():
         default_value='WLTP'
     )
 
-    from .read_inputs import def_load_inputs
+    from .read_inputs import load
 
     architecture.add_function(
-        function=def_load_inputs(),
+        function=load(),
         inputs=['calibration_input_file_name', 'calibration_cycle_name'],
         outputs=['calibration_cycle_inputs'],
     )
@@ -197,14 +203,14 @@ def architecture():
     )
 
     architecture.add_function(
-        function=def_load_inputs(),
+        function=load(),
         inputs=['prediction_input_file_name', 'prediction_cycle_name'],
         outputs=['prediction_cycle_inputs'],
         weight=20,
     )
 
     architecture.add_function(
-        function_id='calibrate_mechanical_model',
+        function_id='calibrate_mechanical_models',
         function=SubDispatch(mechanical()),
         inputs=['calibration_cycle_inputs'],
         outputs=['calibration_cycle_outputs'],
@@ -260,7 +266,7 @@ def process_folder_files(input_folder, output_folder):
     :type output_folder: str
     """
 
-    model, error_coefficients = architecture()
+    model = architecture()
     fpaths = glob.glob(input_folder + '/*.xlsm')
     error_coeff = []
     doday= datetime.today().strftime('%d_%b_%Y_%H_%M_%S_')
@@ -281,7 +287,7 @@ def process_folder_files(input_folder, output_folder):
             'output_sheet_names': ('params', 'series'),
         }
         coeff = model.dispatch(inputs=inputs)[1]
-
+        '''
         print('Predicted')
         for k, v in coeff['prediction_error_coefficients'].items():
             print('%s:%s' %(k, str(v)))
@@ -293,7 +299,7 @@ def process_folder_files(input_folder, output_folder):
             print('%s:%s' %(k, str(v)))
             v.update({'cycle': 'Calibrated', 'vehicle': fname, 'model': k})
             error_coeff.append(v)
-
+        '''
     writer = pd.ExcelWriter('%s/%s%s.xlsx' % (output_folder, doday, 'Summary'))
     pd.DataFrame.from_records(error_coeff).to_excel(writer, 'Summary')
 

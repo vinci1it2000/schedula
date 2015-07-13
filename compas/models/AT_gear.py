@@ -14,2322 +14,607 @@ The model is defined by a Dispatcher that wraps all the functions needed.
 __author__ = 'Vincenzo_Arcidiacono'
 
 from compas.dispatcher import Dispatcher
-from compas.functions.gear_box.AT_gear.gear_logic.AT_gear import *
-from compas.utils.dsp import bypass
-from compas.functions.gear_box.AT_gear.torque_converter import *
 
-def def_gear_models():
+from compas.functions.gear_box.AT_gear.gear_logic import *
+
+def AT_gear():
     """
-    Defines and returns an omni-comprehensive gear shifting model.
+    Define the A/T gear shifting model.
 
-    :returns:
-        - gear_model
-        - calibration model ids (i.e., data node ids)
-        - predicted gears ids (e.g., gears_with_DT_VA)
-        - predicted gear box speeds ids (e.g., gear_box_speeds_with_DT_VA)
-        - error coefficients ids (e.g., error_coefficients_with_DT_VA)
-    :rtype: (Dispatcher, list, list, list, list)
+    .. dispatcher:: dsp
 
-    .. testsetup::
-        >>> from compas.dispatcher.draw import dsp2dot
-        >>> dsp = def_gear_models()
-        >>> dsp, error_coefficients = (dsp[0], dsp[-1])
-        >>> from compas.models import dot_dir
-        >>> dot = dsp2dot(dsp, level=0, function_module=False)
-        >>> s = dot.save('AT_gear/dsp0.dot', dot_dir)
-        >>> for i, m in enumerate(error_coefficients):
-        ...     s = dsp.shrink_dsp(outputs=[m])
-        ...     s.name = m.replace('error_coefficients_with_', '')
-        ...     dot = dsp2dot(s, level=0, function_module=False)
-        ...     s = dot.save('AT_gear/dsp%d.dot' % (i + 1), dot_dir)
+        >>> dsp = AT_gear()
 
-    Gear Shifting Model:
-
-    .. graphviz:: /compas/models/AT_gear/dsp0.dot
-
-    Follow the input/output parameters of the `gear_model` dispatcher:
-
-    \**********************************************************************
-
-    Vehicle Parameters:
-
-    \**********************************************************************
-
-    :param fuel_type:
-        Vehicle fuel type (diesel or gas).
-    :type fuel_type: str, optional
-
-    :param full_load_curve:
-        Vehicle full load curve.
-    :type full_load_curve: InterpolatedUnivariateSpline, optional
-
-    :param gear_box_ratios:
-        Gear box ratios (e.g., `{1:..., 2:...}`).
-    :type gear_box_ratios: dict, optional
-
-    :param final_drive:
-        Vehicle final drive.
-    :type final_drive: float, optional
-
-    :param r_dynamic:
-        Vehicle r dynamic.
-    :type r_dynamic: float, optional
-
-    :param speed_velocity_ratios:
-        Constant speed velocity ratios of the gear box (e.g.,
-        `{1:..., 2:...,}`).
-    :type speed_velocity_ratios: dict, optional
-
-    :param velocity_speed_ratios:
-        Constant velocity speed ratios of the gear box (e.g.,
-        `{1:..., 2:...,}`).
-    :type velocity_speed_ratios: dict, optional
-
-    :param road_loads:
-        Cycle road loads.
-    :type road_loads: list, tuple, optional
-
-    :param inertia:
-        Cycle inertia.
-    :type inertia: float, optional
-
-    :param idle_engine_speed:
-        Engine speed idle median and std.
-    :type idle_engine_speed: (float, float), optional
-
-    :param idle_engine_speed_median:
-        Engine speed idle median value.
-    :type idle_engine_speed: float, optional
-
-    :param idle_engine_speed_std:
-        Engine speed idle std (default=100.0).
-    :type idle_engine_speed: float, optional
-
-    :param upper_bound_engine_speed:
-        Vehicle upper bound engine speed.
-    :type upper_bound_engine_speed: float, optional
-
-    :param max_engine_power:
-        Maximum power.
-    :type max_engine_power: float, optional
-
-    :param max_engine_speed_at_max_power:
-        Rated engine speed.
-    :type max_engine_speed_at_max_power: float, optional
-
-    :param time_shift_engine_speeds:
-        Time shift of engine speeds.
-    :type time_shift_engine_speeds: float, optional
-
-    :param time_cold_hot_transition:
-        Time at cold hot transition phase (default=300.0).
-    :type time_cold_hot_transition: float, optional
-
-    :param correct_gear:
-        A function to correct the gear predicted.
-    :type correct_gear: function, optional
-
-    \**********************************************************************
-
-    Prediction Models:
-
-    \**********************************************************************
-
-    :param CMV:
-        Corrected matrix velocity (e.g.,
-        `{0: [..., ...], 1: [..., ...], ...}`).
-    :type CMV: dict, optional
-
-    :param CMV_Cold_Hot:
-        Corrected matrix velocity for cold and hot phases (e.g.,
-        `{{'cold': {0: [..., ...], 1: [..., ...], ...}, 'hot': ...}`).
-    :type CMV_Cold_Hot: dict, optional
-
-    :param GSPV:
-        Gear shifting power velocity matrix
-        (e.g., `{0: [InterpolatedUnivariateSpline, ...], ...}`).
-    :type CMV: dict, optional
-
-    :param GSPV_Cold_Hot:
-        Corrected matrix velocity for cold and hot phases
-        (e.g., `{{'cold': {0: [InterpolatedUnivariateSpline, ...], ...},
-        'hot': ...}`).
-    :type CMV_Cold_Hot: dict, optional
-
-    :param DT_VA:
-        A decision tree classifier to predict gears according to
-        (previous gear, velocity, acceleration).
-    :type DT_VA: DecisionTreeClassifier, optional
-
-    :param DT_VAP:
-        A decision tree classifier to predict gears according to
-        (previous gear, velocity, acceleration, wheel power).
-    :type DT_VAP: DecisionTreeClassifier, optional
-
-    :param DT_VAT:
-        A decision tree classifier to predict gears according to
-        (previous gear, velocity, acceleration, temperature).
-    :type DT_VAT: DecisionTreeClassifier, optional
-
-    :param DT_VATP:
-        A decision tree classifier to predict gears according to
-        (previous gear, velocity, acceleration, temperature, wheel power).
-    :type DT_VATP: DecisionTreeClassifier, optional
-
-    \**********************************************************************
-
-    Time Series:
-
-    \**********************************************************************
-
-    :param times:
-        Cycle time vector.
-    :type times: np.array, optional
-
-    :param velocities:
-        Cycle velocity vector.
-    :type velocities: np.array, optional
-
-    :param accelerations:
-        Cycle acceleration vector.
-    :type accelerations: np.array, optional
-
-    :param wheel_powers:
-        Cycle power at wheels vector.
-    :type wheel_powers: np.array, optional
-
-    :param gears:
-        Cycle gear vector.
-    :type gears: np.array, optional
-
-    :param gear_box_speeds:
-        Cycle gear box speed vector.
-    :type gear_box_speeds: np.array, optional
-
-    :param engine_speeds:
-        Cycle engine speed vector.
-    :type engine_speeds: np.array, optional
-
-    :param gears_with_'model':
-        Gear vector predicted with a model (e.g., gears_with_DT_VA).
-    :type gears_with_'model': np.array, optional
-
-    :param gear_box_speeds_with_'model':
-        Gear box speed vector predicted with a model (e.g.,
-        gear_box_speeds_with_DT_VA).
-    :type gear_box_speeds_with_'model': np.array, optional
-
-    :param error_coefficients_with_'model':
-        Error coefficients predicted with a model (e.g.,
-        error_coefficients_with_DT_VA):
-
-            - correlation coefficient.
-            - mean absolute error.
-    :type error_coefficients_with_'model': dict, optional
-
-    Usage example:
-
-    Define gear model::
-
-        >>> gear_model, calibration_models = def_gear_models()[0:2]
-        >>> calibration_models
-        ['time_shift_engine_speeds',
-         'correct_gear',
-         'CMV', 'CMV_Cold_Hot',
-         'GSPV', 'GSPV_Cold_Hot',
-         'DT_VA', 'DT_VAT', 'DT_VAP', 'DT_VATP']
-
-    Define calibration inputs::
-
-        >>> import numpy as np
-        >>> t = np.arange(1801)
-        >>> c_inputs = {
-        ...     'gear_box_ratios': {
-        ...         1: 14.33, 2: 8.18, 3: 5.37, 4: 3.99, 5: 2.96, 6: 2.37
-        ...     },
-        ...     'final_drive': 1.0,
-        ...     'r_dynamic': 0.318,
-        ...     'max_engine_power': 116.86,
-        ...     'max_engine_speed_at_max_power': 4000.0,
-        ...     'idle_engine_speed_median': 750.0,
-        ...     'fuel_type': 'diesel',
-        ...     'inertia': 1764.5,
-        ...     'road_loads': [153.2, 1.13, 0.026],
-        ...     'times': t,
-        ...     'engine_speeds': np.random.normal(1500, 400, 1801),
-        ...     'velocities': abs((np.sin(t / 20) + np.sin(t / 50)) * t / 30
-        ...                       + np.sin(t / 2) * 3),
-        ...     'temperatures': np.sqrt(t) * 2 + abs(np.sin(t / 80) +
-        ...                                          np.sin(t / 200)) * 10,
-        ... }
-
-    Calibrate the models::
-
-        >>> models = ['DT_VA', 'DT_VAT', 'DT_VAP', 'DT_VATP']
-        >>> c_out = gear_model.dispatch(c_inputs, models, shrink=True)[1]
-        >>> c_models = {k: v for k, v in c_out.items() if k in models}
-        >>> sorted(c_models.keys())
-        ['DT_VA', 'DT_VAP', 'DT_VAT', 'DT_VATP']
-
-    Define the mandatory prediction inputs::
-
-        >>> t = np.arange(1181)
-        >>> p_inputs = {
-        ...     'times': t,
-        ...     'velocities': abs((np.sin(t / 25) + np.sin(t / 45)) * t / 30
-        ...                       + np.sin(t / 2) * 3),
-        ... }
-
-    Add others prediction inputs (N.B. part of `c_out` can be used as an
-    additional input)::
-
-        >>> p_inputs.update({
-        ...     'gear_box_ratios': {
-        ...         1: 15.33, 2: 8.84, 3: 4.76, 4: 3.35, 5: 2.54, 6: 2.10
-        ...     },
-        ...     'final_drive': 1.1,
-        ...     'r_dynamic': 0.32,
-        ...     'max_engine_power': 126.86,
-        ...     'max_engine_speed_at_max_power': 4500.0,
-        ...     'idle_engine_speed_median': 850.0,
-        ...     'fuel_type': 'diesel',
-        ...     'inertia': 1767.5,
-        ...     'road_loads': [157.2, 1.33, 0.036],
-        ...     'temperatures': np.sqrt(t) * 2 + abs(np.sin(t / 100) +
-        ...                                          np.sin(t / 160)) * 10,
-        ... })
-
-    When changing the vehicle engine, to use the full correction gear
-    function, the upper bound engine speed value have to be set::
-
-        >>> p_inputs.update({'upper_bound_engine_speed': 1900.0})
-
-    Then add the calibrated models to the prediction inputs::
-
-        >>> p_inputs.update(c_models)
-
-    Predict gears::
-
-        >>> gears = ['gears_with_%s' % v for v in models]
-        >>> p_gears = gear_model.dispatch(p_inputs, gears, shrink=True)[1]
-        >>> p_gears = {k: v for k, v in p_gears.items() if k in gears}
-        >>> sorted(p_gears.keys())
-        ['gears_with_DT_VA',
-         'gears_with_DT_VAP',
-         'gears_with_DT_VAT',
-         'gears_with_DT_VATP']
-    """
-
-    data = []
-    functions = []
-    calibration_models = []
-    gears_predicted = []
-    gear_box_speeds_predicted = []
-    engine_speeds_predicted = []
-    error_coefficients = []
-    torque_speeds = []
-    error_coefficients_torque = []
-
-    """
-    Full load curve
-    ===============
-    """
-
-    functions.extend([
-        {  # get full load curve
-           'function': get_full_load,
-           'inputs': ['fuel_type'],
-           'outputs': ['full_load_curve'],
-        },
-    ])
-
-    """
-    Speed velocity ratios
-    =====================
-    """
-
-    functions.extend([
-        {  # calculate speed velocity ratios from gear box ratios
-           'function': calculate_speed_velocity_ratios,
-           'inputs': ['gear_box_ratios', 'final_drive', 'r_dynamic'],
-           'outputs': ['speed_velocity_ratios'],
-        },
-        {  # identify speed velocity ratios from gear box speeds
-           'function': identify_speed_velocity_ratios,
-           'inputs': ['gears', 'velocities', 'gear_box_speeds'],
-           'outputs': ['speed_velocity_ratios'],
-           'weight': 5,
-        },
-        {  # identify speed velocity ratios from engine speeds
-           'function': identify_speed_velocity_ratios,
-           'inputs': ['gears', 'velocities', 'engine_speeds'],
-           'outputs': ['speed_velocity_ratios'],
-           'weight': 10,
-        },
-        {  # calculate speed velocity ratios from velocity speed ratios
-           'function': calculate_velocity_speed_ratios,
-           'inputs': ['velocity_speed_ratios'],
-           'outputs': ['speed_velocity_ratios'],
-           'weight': 15,
-        },
-
-    ])
-
-    """
-    Velocity speed ratios
-    =====================
-    """
-
-    functions.extend([
-        {  # calculate velocity speed ratios from speed velocity ratios
-           'function': calculate_velocity_speed_ratios,
-           'inputs': ['speed_velocity_ratios'],
-           'outputs': ['velocity_speed_ratios'],
-        },
-        {  # identify velocity speed ratios from gear box speeds
-           'function': identify_velocity_speed_ratios,
-           'inputs': ['gear_box_speeds', 'velocities', 'idle_engine_speed'],
-           'outputs': ['velocity_speed_ratios'],
-           'weight': 10,
-        },
-        {  # identify velocity speed ratios from engine speeds
-           'function': identify_velocity_speed_ratios,
-           'inputs': ['engine_speeds', 'velocities', 'idle_engine_speed'],
-           'outputs': ['velocity_speed_ratios'],
-           'weight': 10,
-        },
-    ])
-
-    """
-    Accelerations
-    =============
-    """
-
-    functions.extend([
-        {  # calculate accelerations
-           'function': calculate_accelerations,
-           'inputs': ['times', 'velocities'],
-           'outputs': ['accelerations'],
-        },
-    ])
-
-    """
-    Wheel powers
-    ============
-    """
-
-    functions.extend([
-        {  # calculate wheel powers
-           'function': calculate_wheel_powers,
-           'inputs': ['velocities', 'accelerations', 'road_loads', 'inertia'],
-           'outputs': ['wheel_powers'],
-        },
-    ])
-
-    """
-    Gear box speeds
-    ===============
-    """
-
-    calibration_models.append('time_shift_engine_speeds')
-
-    functions.extend([
-        {  # calculate gear box speeds with time shift
-           'function': calculate_gear_box_speeds_from_engine_speeds,
-           'inputs': ['times', 'velocities', 'accelerations', 'engine_speeds',
-                      'velocity_speed_ratios'],
-           'outputs': ['gear_box_speeds<0>', 'time_shift_engine_speeds'],
-        },
-    ])
-
-
-    """
-    Torque efficiencies
-    ===================
-    """
-
-    calibration_models.append('torque_efficiency_params')
-
-    functions.extend([
-        {  # calibrate torque efficiency params
-           'function': calibrate_torque_efficiency_params,
-           'inputs': ['engine_speeds', 'gear_box_speeds', 'idle_engine_speed',
-                      'gears', 'velocities', 'accelerations'],
-           'outputs': ['torque_efficiency_params'],
-        },
-    ])
-
-
-    """
-    Idle engine speed
-    =================
-    """
-
-    data.extend([
-        {'data_id': 'idle_engine_speed_std', 'default_value': 100.0}
-    ])
-
-    functions.extend([
-        {  # set idle engine speed tuple
-           'function': bypass,
-           'inputs': ['idle_engine_speed_median', 'idle_engine_speed_std'],
-           'outputs': ['idle_engine_speed'],
-        },
-        {  # identify idle engine speed
-           'function': identify_idle_engine_speed,
-           'inputs': ['velocities', 'engine_speeds'],
-           'outputs': ['idle_engine_speed'],
-           'weight': 5,
-        },
-    ])
-
-    """
-    Upper bound engine speed
-    ========================
-    """
-
-    functions.extend([
-        {  # identify upper bound engine speed
-           'function': identify_upper_bound_engine_speed,
-           'inputs': ['gears', 'engine_speeds', 'idle_engine_speed'],
-           'outputs': ['upper_bound_engine_speed'],
-        },
-    ])
-
-    """
-    Gears identification
-    ====================
-    """
-
-    functions.extend([
-        {  # identify gears
-           'function': identify_gears,
-           'inputs': ['times', 'velocities', 'accelerations',
-                      'gear_box_speeds<0>', 'velocity_speed_ratios',
-                      'idle_engine_speed'],
-           'outputs': ['gears', 'gear_box_speeds'],
-        },
-    ])
-
-    """
-    Gear correction function
-    ========================
-    """
-
-    calibration_models.append('correct_gear')
-
-    functions.extend([
-        {  # set gear correction function
-           'function': correct_gear_v0,
-           'inputs': ['velocity_speed_ratios', 'upper_bound_engine_speed',
-                      'max_engine_power', 'max_engine_speed_at_max_power',
-                      'idle_engine_speed', 'full_load_curve', 'road_loads',
-                      'inertia'],
-           'outputs': ['correct_gear'],
-        },
-        {  # set gear correction function
-           'function': correct_gear_v1,
-           'inputs': ['velocity_speed_ratios', 'upper_bound_engine_speed'],
-           'outputs': ['correct_gear'],
-           'weight': 50,
-        },
-        {  # set gear correction function
-           'function': correct_gear_v2,
-           'inputs': ['velocity_speed_ratios', 'max_engine_power',
-                      'max_engine_speed_at_max_power', 'idle_engine_speed',
-                      'full_load_curve', 'road_loads', 'inertia'],
-           'outputs': ['correct_gear'],
-           'weight': 50,
-        },
-        {  # set gear correction function
-           'function': correct_gear_v3,
-           'outputs': ['correct_gear'],
-           'weight': 100,
-        },
-    ])
-
-    """
-    Corrected Matrix Velocity Approach
-    ==================================
-    """
-
-    model = 'CMV'
-    calibration_models.append(model)
-    gears_predicted.append('gears_with_%s' % model)
-    gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
-    engine_speeds_predicted.append('engine_speeds_with_%s' % model)
-    error_coefficients.append('error_coefficients_with_%s' % model)
-    torque_speeds.append('torque_speeds_with_%s' % model)
-    error_coefficients_torque.append('error_coefficients_torque_with_%s' % model)
-
-    functions.extend([
-        {  # calibrate corrected matrix velocity
-           'function': calibrate_gear_shifting_cmv,
-           'inputs': ['correct_gear', 'gears', 'engine_speeds', 'velocities',
-                      'accelerations', 'velocity_speed_ratios'],
-           'outputs': [calibration_models[-1]],
-        },
-        {  # predict gears with corrected matrix velocity
-           'function': prediction_gears_gsm,
-           'inputs': ['correct_gear', calibration_models[-1], 'velocities',
-                      'accelerations', 'times'],
-           'outputs': [gears_predicted[-1]],
-        },
-        {  # calculate engine speeds with predicted gears
-           'function': calculate_gear_box_speeds,
-           'inputs': [gears_predicted[-1], 'velocities',
-                      'velocity_speed_ratios',],
-           'outputs': [gear_box_speeds_predicted[-1]],
-        },
-        {  # calculate engine speeds with predicted gears
-           'function': calculate_torque_engine_speeds_v1,
-           'inputs': ['times', gear_box_speeds_predicted[-1], 'accelerations',
-                      'idle_engine_speed', 'time_shift_engine_speeds',],
-           'outputs': [engine_speeds_predicted[-1]],
-        },
-        {  # calculate error coefficients
-           'function': calculate_error_coefficients,
-           'inputs': [engine_speeds_predicted[-1], 'engine_speeds',
-                      'velocities'],
-           'outputs': [error_coefficients[-1]],
-        },
-        {  # calculate engine speeds with predicted gears
-           'function': calculate_torque_converter_speeds,
-           'inputs': [gears_predicted[-1], gear_box_speeds_predicted[-1],
-                      'idle_engine_speed', 'accelerations',
-                      'torque_efficiency_params'],
-           'outputs': [torque_speeds[-1]],
-        },
-        {  # calculate error coefficients
-           'function': calculate_error_coefficients,
-           'inputs': [torque_speeds[-1], 'engine_speeds',
-                      'velocities'],
-           'outputs': [error_coefficients_torque[-1]],
-        },
-
-    ])
-
-    """
-    Corrected Matrix Velocity Approach with Cold/Hot
-    ================================================
-    """
-
-    model = 'CMV_Cold_Hot'
-    calibration_models.append(model)
-    gears_predicted.append('gears_with_%s' % model)
-    gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
-    engine_speeds_predicted.append('engine_speeds_with_%s' % model)
-    error_coefficients.append('error_coefficients_with_%s' % model)
-    torque_speeds.append('torque_speeds_with_%s' % model)
-    error_coefficients_torque.append('error_coefficients_torque_with_%s' % model)
-
-    data.extend([
-        {'data_id': 'time_cold_hot_transition', 'default_value': 300.0}
-    ])
-
-    functions.extend([
-        {  # calibrate corrected matrix velocity
-           'function': calibrate_gear_shifting_cmv_hot_cold,
-           'inputs': ['correct_gear', 'times', 'gears', 'engine_speeds',
-                      'velocities', 'accelerations', 'velocity_speed_ratios',
-                      'time_cold_hot_transition'],
-           'outputs': [calibration_models[-1]],
-        },
-        {  # predict gears with corrected matrix velocity
-           'function': prediction_gears_gsm_hot_cold,
-           'inputs': ['correct_gear', calibration_models[-1],
-                      'time_cold_hot_transition', 'times', 'velocities',
-                      'accelerations'],
-           'outputs': [gears_predicted[-1]],
-        },
-        {  # calculate gear box speeds with predicted gears
-           'function': calculate_gear_box_speeds,
-           'inputs': [gears_predicted[-1], 'velocities',
-                      'velocity_speed_ratios',],
-           'outputs': [gear_box_speeds_predicted[-1]],
-        },
-        {  # calculate engine speeds with predicted gears
-           'function': calculate_torque_engine_speeds_v1,
-           'inputs': ['times', gear_box_speeds_predicted[-1], 'accelerations',
-                      'idle_engine_speed', 'time_shift_engine_speeds',],
-           'outputs': [engine_speeds_predicted[-1]],
-        },
-        {  # calculate error coefficients
-           'function': calculate_error_coefficients,
-           'inputs': [engine_speeds_predicted[-1], 'engine_speeds',
-                      'velocities'],
-           'outputs': [error_coefficients[-1]],
-        },
-        {  # calculate engine speeds with predicted gears
-           'function': calculate_torque_converter_speeds,
-           'inputs': [gears_predicted[-1], gear_box_speeds_predicted[-1],
-                      'idle_engine_speed', 'accelerations',
-                      'torque_efficiency_params'],
-           'outputs': [torque_speeds[-1]],
-        },
-        {  # calculate error coefficients
-           'function': calculate_error_coefficients,
-           'inputs': [torque_speeds[-1], 'engine_speeds',
-                      'velocities'],
-           'outputs': [error_coefficients_torque[-1]],
-        },
-    ])
-
-    """
-    Gear Shifting Power Velocity Approach
-    =====================================
-    """
-
-    model = 'GSPV'
-    calibration_models.append(model)
-    gears_predicted.append('gears_with_%s' % model)
-    gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
-    engine_speeds_predicted.append('engine_speeds_with_%s' % model)
-    error_coefficients.append('error_coefficients_with_%s' % model)
-    torque_speeds.append('torque_speeds_with_%s' % model)
-    error_coefficients_torque.append('error_coefficients_torque_with_%s' % model)
-
-    functions.extend([
-        {  # calibrate corrected matrix velocity
-           'function': calibrate_gspv,
-           'inputs': ['gears', 'velocities', 'wheel_powers'],
-           'outputs': [calibration_models[-1]],
-        },
-        {  # predict gears with corrected matrix velocity
-           'function': prediction_gears_gsm,
-           'inputs': ['correct_gear', calibration_models[-1], 'velocities',
-                      'accelerations', 'times', 'wheel_powers'],
-           'outputs': [gears_predicted[-1]],
-        },
-        {  # calculate engine speeds with predicted gears
-           'function': calculate_gear_box_speeds,
-           'inputs': [gears_predicted[-1], 'velocities',
-                      'velocity_speed_ratios',],
-           'outputs': [gear_box_speeds_predicted[-1]],
-        },
-        {  # calculate engine speeds with predicted gears
-           'function': calculate_torque_engine_speeds_v1,
-           'inputs': ['times', gear_box_speeds_predicted[-1], 'accelerations',
-                      'idle_engine_speed', 'time_shift_engine_speeds',],
-           'outputs': [engine_speeds_predicted[-1]],
-        },
-        {  # calculate error coefficients
-           'function': calculate_error_coefficients,
-           'inputs': [engine_speeds_predicted[-1], 'engine_speeds',
-                      'velocities'],
-           'outputs': [error_coefficients[-1]],
-        },
-        {  # calculate engine speeds with predicted gears
-           'function': calculate_torque_converter_speeds,
-           'inputs': [gears_predicted[-1], gear_box_speeds_predicted[-1],
-                      'idle_engine_speed', 'accelerations',
-                      'torque_efficiency_params'],
-           'outputs': [torque_speeds[-1]],
-        },
-        {  # calculate error coefficients
-           'function': calculate_error_coefficients,
-           'inputs': [torque_speeds[-1], 'engine_speeds',
-                      'velocities'],
-           'outputs': [error_coefficients_torque[-1]],
-        },
-    ])
-
-    """
-    Gear Shifting Power Velocity Approach with Cold/Hot
-    ===================================================
-    """
-
-    model = 'GSPV_Cold_Hot'
-    calibration_models.append(model)
-    gears_predicted.append('gears_with_%s' % model)
-    gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
-    engine_speeds_predicted.append('engine_speeds_with_%s' % model)
-    error_coefficients.append('error_coefficients_with_%s' % model)
-    torque_speeds.append('torque_speeds_with_%s' % model)
-    error_coefficients_torque.append('error_coefficients_torque_with_%s' % model)
-
-    data.extend([
-        {'data_id': 'time_cold_hot_transition', 'default_value': 300.0}
-    ])
-
-    functions.extend([
-        {  # calibrate corrected matrix velocity
-           'function': calibrate_gspv_hot_cold,
-           'inputs': ['times', 'gears', 'velocities', 'wheel_powers',
-                      'time_cold_hot_transition'],
-           'outputs': [calibration_models[-1]],
-        },
-        {  # predict gears with corrected matrix velocity
-           'function': prediction_gears_gsm_hot_cold,
-           'inputs': ['correct_gear', calibration_models[-1],
-                      'time_cold_hot_transition', 'times', 'velocities',
-                      'accelerations', 'wheel_powers'],
-           'outputs': [gears_predicted[-1]],
-        },
-        {  # calculate gear box speeds with predicted gears
-           'function': calculate_gear_box_speeds,
-           'inputs': [gears_predicted[-1], 'velocities',
-                      'velocity_speed_ratios',],
-           'outputs': [gear_box_speeds_predicted[-1]],
-        },
-        {  # calculate engine speeds with predicted gears
-           'function': calculate_torque_engine_speeds_v1,
-           'inputs': ['times', gear_box_speeds_predicted[-1], 'accelerations',
-                      'idle_engine_speed', 'time_shift_engine_speeds',],
-           'outputs': [engine_speeds_predicted[-1]],
-        },
-        {  # calculate error coefficients
-           'function': calculate_error_coefficients,
-           'inputs': [engine_speeds_predicted[-1], 'engine_speeds',
-                      'velocities'],
-           'outputs': [error_coefficients[-1]],
-        },
-        {  # calculate engine speeds with predicted gears
-           'function': calculate_torque_converter_speeds,
-           'inputs': [gears_predicted[-1], gear_box_speeds_predicted[-1],
-                      'idle_engine_speed', 'accelerations',
-                      'torque_efficiency_params'],
-           'outputs': [torque_speeds[-1]],
-        },
-        {  # calculate error coefficients
-           'function': calculate_error_coefficients,
-           'inputs': [torque_speeds[-1], 'engine_speeds',
-                      'velocities'],
-           'outputs': [error_coefficients_torque[-1]],
-        },
-    ])
-
-    """
-    Decision Tree with Velocity & Acceleration
-    ==========================================
-    """
-
-    model = 'DT_VA'
-    calibration_models.append(model)
-    gears_predicted.append('gears_with_%s' % model)
-    gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
-    engine_speeds_predicted.append('engine_speeds_with_%s' % model)
-    error_coefficients.append('error_coefficients_with_%s' % model)
-    torque_speeds.append('torque_speeds_with_%s' % model)
-    error_coefficients_torque.append('error_coefficients_torque_with_%s' % model)
-
-    functions.extend([
-        {  # calibrate corrected matrix velocity
-           'function': calibrate_gear_shifting_decision_tree,
-           'inputs': ['gears', 'velocities', 'accelerations'],
-           'outputs': [calibration_models[-1]],
-        },
-        {  # predict gears with corrected matrix velocity
-           'function': prediction_gears_decision_tree,
-           'inputs': ['correct_gear', calibration_models[-1], 'times',
-                      'velocities', 'accelerations'],
-           'outputs': [gears_predicted[-1]],
-        },
-        {  # calculate gear box speeds with predicted gears
-           'function': calculate_gear_box_speeds,
-           'inputs': [gears_predicted[-1], 'velocities',
-                      'velocity_speed_ratios',],
-           'outputs': [gear_box_speeds_predicted[-1]],
-        },
-        {  # calculate engine speeds with predicted gears
-           'function': calculate_torque_engine_speeds_v1,
-           'inputs': ['times', gear_box_speeds_predicted[-1], 'accelerations',
-                      'idle_engine_speed', 'time_shift_engine_speeds',],
-           'outputs': [engine_speeds_predicted[-1]],
-        },
-        {  # calculate error coefficients
-           'function': calculate_error_coefficients,
-           'inputs': [engine_speeds_predicted[-1], 'engine_speeds',
-                      'velocities'],
-           'outputs': [error_coefficients[-1]],
-        },
-        {  # calculate engine speeds with predicted gears
-           'function': calculate_torque_converter_speeds,
-           'inputs': [gears_predicted[-1], gear_box_speeds_predicted[-1],
-                      'idle_engine_speed', 'accelerations',
-                      'torque_efficiency_params'],
-           'outputs': [torque_speeds[-1]],
-        },
-        {  # calculate error coefficients
-           'function': calculate_error_coefficients,
-           'inputs': [torque_speeds[-1], 'engine_speeds',
-                      'velocities'],
-           'outputs': [error_coefficients_torque[-1]],
-        },
-    ])
-
-    """
-    Decision Tree with Velocity, Acceleration & Temperature
-    =======================================================
-    """
-
-    model = 'DT_VAT'
-    calibration_models.append(model)
-    gears_predicted.append('gears_with_%s' % model)
-    gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
-    engine_speeds_predicted.append('engine_speeds_with_%s' % model)
-    error_coefficients.append('error_coefficients_with_%s' % model)
-    torque_speeds.append('torque_speeds_with_%s' % model)
-    error_coefficients_torque.append('error_coefficients_torque_with_%s' % model)
-
-    functions.extend([
-        {  # calibrate corrected matrix velocity
-           'function': calibrate_gear_shifting_decision_tree,
-           'inputs': ['gears', 'velocities', 'accelerations', 'temperatures'],
-           'outputs': [calibration_models[-1]],
-        },
-        {  # predict gears with corrected matrix velocity
-           'function': prediction_gears_decision_tree,
-           'inputs': ['correct_gear', calibration_models[-1], 'times',
-                      'velocities', 'accelerations', 'temperatures'],
-           'outputs': [gears_predicted[-1]],
-        },
-        {  # calculate gear box speeds with predicted gears
-           'function': calculate_gear_box_speeds,
-           'inputs': [gears_predicted[-1], 'velocities',
-                      'velocity_speed_ratios',],
-           'outputs': [gear_box_speeds_predicted[-1]],
-        },
-        {  # calculate engine speeds with predicted gears
-           'function': calculate_torque_engine_speeds_v1,
-           'inputs': ['times', gear_box_speeds_predicted[-1], 'accelerations',
-                      'idle_engine_speed', 'time_shift_engine_speeds',],
-           'outputs': [engine_speeds_predicted[-1]],
-        },
-        {  # calculate error coefficients
-           'function': calculate_error_coefficients,
-           'inputs': [engine_speeds_predicted[-1], 'engine_speeds',
-                      'velocities'],
-           'outputs': [error_coefficients[-1]],
-        },
-        {  # calculate engine speeds with predicted gears
-           'function': calculate_torque_converter_speeds,
-           'inputs': [gears_predicted[-1], gear_box_speeds_predicted[-1],
-                      'idle_engine_speed', 'accelerations',
-                      'torque_efficiency_params'],
-           'outputs': [torque_speeds[-1]],
-        },
-        {  # calculate error coefficients
-           'function': calculate_error_coefficients,
-           'inputs': [torque_speeds[-1], 'engine_speeds',
-                      'velocities'],
-           'outputs': [error_coefficients_torque[-1]],
-        },
-    ])
-
-    """
-    Decision Tree with Velocity, Acceleration, & Wheel Power
-    ========================================================
-    """
-
-    model = 'DT_VAP'
-    calibration_models.append(model)
-    gears_predicted.append('gears_with_%s' % model)
-    gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
-    engine_speeds_predicted.append('engine_speeds_with_%s' % model)
-    error_coefficients.append('error_coefficients_with_%s' % model)
-    torque_speeds.append('torque_speeds_with_%s' % model)
-    error_coefficients_torque.append('error_coefficients_torque_with_%s' % model)
-
-    functions.extend([
-        {  # calibrate corrected matrix velocity
-           'function': calibrate_gear_shifting_decision_tree,
-           'inputs': ['gears', 'velocities', 'accelerations', 'wheel_powers'],
-           'outputs': [calibration_models[-1]],
-        },
-        {  # predict gears with corrected matrix velocity
-           'function': prediction_gears_decision_tree,
-           'inputs': ['correct_gear', calibration_models[-1], 'times',
-                      'velocities', 'accelerations', 'wheel_powers'],
-           'outputs': [gears_predicted[-1]],
-        },
-        {  # calculate gear box speeds with predicted gears
-           'function': calculate_gear_box_speeds,
-           'inputs': [gears_predicted[-1], 'velocities',
-                      'velocity_speed_ratios',],
-           'outputs': [gear_box_speeds_predicted[-1]],
-        },
-        {  # calculate engine speeds with predicted gears
-           'function': calculate_torque_engine_speeds_v1,
-           'inputs': ['times', gear_box_speeds_predicted[-1], 'accelerations',
-                      'idle_engine_speed', 'time_shift_engine_speeds',],
-           'outputs': [engine_speeds_predicted[-1]],
-        },
-        {  # calculate error coefficients
-           'function': calculate_error_coefficients,
-           'inputs': [engine_speeds_predicted[-1], 'engine_speeds',
-                      'velocities'],
-           'outputs': [error_coefficients[-1]],
-        },
-        {  # calculate engine speeds with predicted gears
-           'function': calculate_torque_converter_speeds,
-           'inputs': [gears_predicted[-1], gear_box_speeds_predicted[-1],
-                      'idle_engine_speed', 'accelerations',
-                      'torque_efficiency_params'],
-           'outputs': [torque_speeds[-1]],
-        },
-        {  # calculate error coefficients
-           'function': calculate_error_coefficients,
-           'inputs': [torque_speeds[-1], 'engine_speeds',
-                      'velocities'],
-           'outputs': [error_coefficients_torque[-1]],
-        },
-    ])
-
-    """
-    Decision Tree with Velocity, Acceleration, Temperature, & Wheel Power
-    =====================================================================
-    """
-
-    model = 'DT_VATP'
-    calibration_models.append(model)
-    gears_predicted.append('gears_with_%s' % model)
-    gear_box_speeds_predicted.append('gear_box_speeds_with_%s' % model)
-    engine_speeds_predicted.append('engine_speeds_with_%s' % model)
-    error_coefficients.append('error_coefficients_with_%s' % model)
-    torque_speeds.append('torque_speeds_with_%s' % model)
-    error_coefficients_torque.append('error_coefficients_torque_with_%s' % model)
-
-    functions.extend([
-        {  # calibrate corrected matrix velocity
-           'function': calibrate_gear_shifting_decision_tree,
-           'inputs': ['gears', 'velocities', 'accelerations', 'temperatures',
-                      'wheel_powers'],
-           'outputs': [calibration_models[-1]],
-        },
-        {  # predict gears with corrected matrix velocity
-           'function': prediction_gears_decision_tree,
-           'inputs': ['correct_gear', calibration_models[-1], 'times',
-                      'velocities', 'accelerations', 'temperatures',
-                      'wheel_powers'],
-           'outputs': [gears_predicted[-1]],
-        },
-        {  # calculate gear box speeds with predicted gears
-           'function': calculate_gear_box_speeds,
-           'inputs': [gears_predicted[-1], 'velocities',
-                      'velocity_speed_ratios',],
-           'outputs': [gear_box_speeds_predicted[-1]],
-        },
-        {  # calculate engine speeds with predicted gears
-           'function': calculate_torque_engine_speeds_v1,
-           'inputs': ['times', gear_box_speeds_predicted[-1], 'accelerations',
-                      'idle_engine_speed', 'time_shift_engine_speeds',],
-           'outputs': [engine_speeds_predicted[-1]],
-        },
-        {  # calculate error coefficients
-           'function': calculate_error_coefficients,
-           'inputs': [engine_speeds_predicted[-1], 'engine_speeds',
-                      'velocities'],
-           'outputs': [error_coefficients[-1]],
-        },
-        {  # calculate engine speeds with predicted gears
-           'function': calculate_torque_converter_speeds,
-           'inputs': [gears_predicted[-1], gear_box_speeds_predicted[-1],
-                      'idle_engine_speed', 'accelerations',
-                      'torque_efficiency_params'],
-           'outputs': [torque_speeds[-1]],
-        },
-        {  # calculate error coefficients
-           'function': calculate_error_coefficients,
-           'inputs': [torque_speeds[-1], 'engine_speeds',
-                      'velocities'],
-           'outputs': [error_coefficients_torque[-1]],
-        },
-    ])
-
-    gear_model = Dispatcher()
-
-    gear_model.add_from_lists(data_list=data, fun_list=functions)
-
-    return gear_model, calibration_models, gears_predicted, \
-           gear_box_speeds_predicted, error_coefficients + error_coefficients_torque
-
-def def_CMV():
-    """
-    Defines and returns a gear shifting model based on Corrected Matrix Velocity
-    Approach.
-
-    :returns:
-        - gear_model
+    :return:
+        The gear box model.
     :rtype: Dispatcher
-
-    Corrected Matrix Velocity Approach:
-
-    .. graphviz:: /compas/models/AT_gear/dsp1.dot
-
-    Follow the input/output parameters of the `gear_model` dispatcher:
-
-    \**********************************************************************
-
-    Vehicle Parameters:
-
-    \**********************************************************************
-
-    :param fuel_type:
-        Vehicle fuel type (diesel or gas).
-    :type fuel_type: str, optional
-
-    :param full_load_curve:
-        Vehicle full load curve.
-    :type full_load_curve: InterpolatedUnivariateSpline, optional
-
-    :param gear_box_ratios:
-        Gear box ratios (e.g., `{1:..., 2:...}`).
-    :type gear_box_ratios: dict, optional
-
-    :param final_drive:
-        Vehicle final drive.
-    :type final_drive: float, optional
-
-    :param r_dynamic:
-        Vehicle r dynamic.
-    :type r_dynamic: float, optional
-
-    :param speed_velocity_ratios:
-        Constant speed velocity ratios of the gear box (e.g.,
-        `{1:..., 2:...,}`).
-    :type speed_velocity_ratios: dict, optional
-
-    :param velocity_speed_ratios:
-        Constant velocity speed ratios of the gear box (e.g.,
-        `{1:..., 2:...,}`).
-    :type velocity_speed_ratios: dict, optional
-
-    :param road_loads:
-        Cycle road loads.
-    :type road_loads: list, tuple, optional
-
-    :param inertia:
-        Cycle inertia.
-    :type inertia: float, optional
-
-    :param idle_engine_speed:
-        Engine speed idle median and std.
-    :type idle_engine_speed: (float, float), optional
-
-    :param idle_engine_speed_median:
-        Engine speed idle median value.
-    :type idle_engine_speed: float, optional
-
-    :param idle_engine_speed_std:
-        Engine speed idle std (default=100.0).
-    :type idle_engine_speed: float, optional
-
-    :param upper_bound_engine_speed:
-        Vehicle upper bound engine speed.
-    :type upper_bound_engine_speed: float, optional
-
-    :param max_engine_power:
-        Maximum power.
-    :type max_engine_power: float, optional
-
-    :param max_engine_speed_at_max_power:
-        Rated engine speed.
-    :type max_engine_speed_at_max_power: float, optional
-
-    :param time_shift_engine_speeds:
-        Time shift of engine speeds.
-    :type time_shift_engine_speeds: float, optional
-
-    :param correct_gear:
-        A function to correct the gear predicted.
-    :type correct_gear: function, optional
-
-    \**********************************************************************
-
-    Prediction Models:
-
-    \**********************************************************************
-
-    :param CMV:
-        Corrected matrix velocity (e.g.,
-        `{0: [..., ...], 1: [..., ...], ...}`).
-    :type CMV: dict, optional
-
-
-    \**********************************************************************
-
-    Time Series:
-
-    \**********************************************************************
-
-    :param times:
-        Cycle time vector.
-    :type times: np.array, optional
-
-    :param velocities:
-        Cycle velocity vector.
-    :type velocities: np.array, optional
-
-    :param accelerations:
-        Cycle acceleration vector.
-    :type accelerations: np.array, optional
-
-    :param wheel_powers:
-        Cycle power at wheels vector.
-    :type wheel_powers: np.array, optional
-
-    :param gears:
-        Cycle gear vector.
-    :type gears: np.array, optional
-
-    :param gear_box_speeds:
-        Cycle gear box speed vector.
-    :type gear_box_speeds: np.array, optional
-
-    :param engine_speeds:
-        Cycle engine speed vector.
-    :type engine_speeds: np.array, optional
-
-    :param gears_with_'model':
-        Gear vector predicted with a model (e.g., gears_with_DT_VA).
-    :type gears_with_'model': np.array, optional
-
-    :param gear_box_speeds_with_'model':
-        Gear box speed vector predicted with a model (e.g.,
-        gear_box_speeds_with_DT_VA).
-    :type gear_box_speeds_with_'model': np.array, optional
-
-    :param error_coefficients_with_'model':
-        Error coefficients predicted with a model (e.g.,
-        error_coefficients_with_DT_VA):
-
-            - correlation coefficient.
-            - mean absolute error.
-    :type error_coefficients_with_'model': dict, optional
     """
 
-    model = 'CMV'
+    AT_gear = Dispatcher(
+        name='Automatic gear model',
+        description='Defines an omni-comprehensive gear shifting model for '
+                    'automatic vehicles.')
 
-    dsp = def_gear_models()[0]
+    AT_gear.add_function(
+        function=identify_gears,
+        inputs=['times', 'velocities', 'accelerations', 'gear_box_speeds_in',
+                'velocity_speed_ratios', 'idle_engine_speed'],
+        outputs=['identified_gears']
+    )
 
-    return dsp.shrink_dsp(outputs=['error_coefficients_with_%s' % model])
+    AT_gear.add_function(
+        function=get_full_load,
+        inputs=['fuel_type'],
+        outputs=['full_load_curve'])
 
-def def_CMV_Cold_Hot():
+    AT_gear.add_function(
+        function=correct_gear_v0,
+        inputs=['velocity_speed_ratios', 'upper_bound_engine_speed',
+                'max_engine_power', 'max_engine_speed_at_max_power',
+                'idle_engine_speed', 'full_load_curve', 'road_loads', 'inertia'],
+        outputs=['correct_gear'])
+
+    AT_gear.add_function(
+        function=correct_gear_v1,
+        inputs=['velocity_speed_ratios', 'upper_bound_engine_speed'],
+        outputs=['correct_gear'],
+        weight=50)
+
+    AT_gear.add_function(
+        function=correct_gear_v2,
+        inputs=['velocity_speed_ratios', 'max_engine_power',
+                'max_engine_speed_at_max_power', 'idle_engine_speed',
+                'full_load_curve', 'road_loads', 'inertia'],
+        outputs=['correct_gear'],
+        weight=50)
+
+    AT_gear.add_function(
+        function=correct_gear_v3,
+        outputs=['correct_gear'],
+        weight=100)
+
+
+    AT_gear.add_dispatcher(
+        dsp=cmv(),
+        inputs={
+            'CMV': 'CMV',
+            'accelerations': 'accelerations',
+            'correct_gear': 'correct_gear',
+            'engine_speeds_out': 'engine_speeds_out',
+            'error_coefficients': 'error_coefficients',
+            'identified_gears': 'identified_gears',
+            'times': 'times',
+            'velocities': 'velocities',
+            'velocity_speed_ratios': 'velocity_speed_ratios'
+        },
+        outputs={
+            'CMV': 'CMV',
+            'error_coefficients': 'error_coefficients',
+            'gear_box_speeds_in': 'gear_box_speeds_in',
+            'gears': 'gears',
+        }
+    )
+
+    AT_gear.add_dispatcher(
+        dsp=cmv_cold_hot(),
+        inputs={
+            'CMV_Cold_Hot': 'CMV_Cold_Hot',
+            'accelerations': 'accelerations',
+            'correct_gear': 'correct_gear',
+            'engine_speeds_out': 'engine_speeds_out',
+            'identified_gears': 'identified_gears',
+            'time_cold_hot_transition': 'time_cold_hot_transition',
+            'times': 'times',
+            'velocities': 'velocities',
+            'velocity_speed_ratios': 'velocity_speed_ratios'
+        },
+        outputs={
+            'CMV_Cold_Hot': 'CMV_Cold_Hot',
+            'error_coefficients': 'error_coefficients',
+            'gear_box_speeds_in': 'gear_box_speeds_in',
+            'gears': 'gears',
+        }
+    )
+
+    AT_gear.add_dispatcher(
+        dsp=dt_va(),
+        inputs={
+            'DT_VA': 'DT_VA',
+            'accelerations': 'accelerations',
+            'correct_gear': 'correct_gear',
+            'engine_speeds_out': 'engine_speeds_out',
+            'identified_gears': 'identified_gears',
+            'times': 'times',
+            'velocities': 'velocities',
+            'velocity_speed_ratios': 'velocity_speed_ratios'
+        },
+        outputs={
+            'DT_VA': 'DT_VA',
+            'error_coefficients': 'error_coefficients',
+            'gear_box_speeds_in': 'gear_box_speeds_in',
+            'gears': 'gears',
+        }
+    )
+
+    AT_gear.add_dispatcher(
+        dsp=dt_vap(),
+        inputs={
+            'DT_VAP': 'DT_VAP',
+            'accelerations': 'accelerations',
+            'correct_gear': 'correct_gear',
+            'engine_speeds_out': 'engine_speeds_out',
+            'gear_box_powers_out': 'gear_box_powers_out',
+            'identified_gears': 'identified_gears',
+            'times': 'times',
+            'velocities': 'velocities',
+            'velocity_speed_ratios': 'velocity_speed_ratios'
+        },
+        outputs={
+            'DT_VAP': 'DT_VAP',
+            'error_coefficients': 'error_coefficients',
+            'gear_box_speeds_in': 'gear_box_speeds_in',
+            'gears': 'gears',
+        }
+    )
+
+    AT_gear.add_dispatcher(
+        dsp=dt_vat(),
+        inputs={
+            'DT_VAT': 'DT_VAT',
+            'accelerations': 'accelerations',
+            'correct_gear': 'correct_gear',
+            'engine_speeds_out': 'engine_speeds_out',
+            'identified_gears': 'identified_gears',
+            'temperatures': 'temperatures',
+            'times': 'times',
+            'velocities': 'velocities',
+            'velocity_speed_ratios': 'velocity_speed_ratios'
+        },
+        outputs={
+            'DT_VAT': 'DT_VAT',
+            'error_coefficients': 'error_coefficients',
+            'gear_box_speeds_in': 'gear_box_speeds_in',
+            'gears': 'gears',
+        }
+    )
+
+    AT_gear.add_dispatcher(
+        dsp=dt_vatp(),
+        inputs={
+            'DT_VATP': 'DT_VATP',
+            'accelerations': 'accelerations',
+            'correct_gear': 'correct_gear',
+            'engine_speeds_out': 'engine_speeds_out',
+            'gear_box_powers_out': 'gear_box_powers_out',
+            'identified_gears': 'identified_gears',
+            'temperatures': 'temperatures',
+            'times': 'times',
+            'velocities': 'velocities',
+            'velocity_speed_ratios': 'velocity_speed_ratios'
+        },
+        outputs={
+            'DT_VATP': 'DT_VATP',
+            'error_coefficients': 'error_coefficients',
+            'gear_box_speeds_in': 'gear_box_speeds_in',
+            'gears': 'gears',
+        }
+    )
+
+    AT_gear.add_dispatcher(
+        dsp=gspv(),
+        inputs={
+            'GSPV': 'GSPV',
+            'accelerations': 'accelerations',
+            'correct_gear': 'correct_gear',
+            'engine_speeds_out': 'engine_speeds_out',
+            'gear_box_powers_out': 'gear_box_powers_out',
+            'identified_gears': 'identified_gears',
+            'times': 'times',
+            'velocities': 'velocities',
+            'velocity_speed_ratios': 'velocity_speed_ratios'
+        },
+        outputs={
+            'GSPV': 'GSPV',
+            'error_coefficients': 'error_coefficients',
+            'gear_box_speeds_in': 'gear_box_speeds_in',
+            'gears': 'gears',
+        }
+    )
+
+    AT_gear.add_dispatcher(
+        dsp=gspv_cold_hot(),
+        inputs={
+            'GSPV_Cold_Hot': 'GSPV_Cold_Hot',
+            'accelerations': 'accelerations',
+            'correct_gear': 'correct_gear',
+            'engine_speeds_out': 'engine_speeds_out',
+            'gear_box_powers_out': 'gear_box_powers_out',
+            'identified_gears': 'identified_gears',
+            'time_cold_hot_transition': 'time_cold_hot_transition',
+            'times': 'times',
+            'velocities': 'velocities',
+            'velocity_speed_ratios': 'velocity_speed_ratios'
+        },
+        outputs={
+            'GSPV_Cold_Hot': 'GSPV_Cold_Hot',
+            'error_coefficients': 'error_coefficients',
+            'gear_box_speeds_in': 'gear_box_speeds_in',
+            'gears': 'gears',
+        }
+    )
+
+    return AT_gear
+
+
+def cmv():
     """
-    Defines and returns a gear shifting model based on Corrected Matrix Velocity
-    Approach with Cold/Hot.
+    Define the corrected matrix velocity model.
 
-    :returns:
-        - gear_model
+    .. dispatcher:: dsp
+
+        >>> dsp = cmv()
+
+    :return:
+        The corrected matrix velocity model.
     :rtype: Dispatcher
-
-    Corrected Matrix Velocity Approach with Cold/Hot:
-
-    .. graphviz:: /compas/models/AT_gear/dsp2.dot
-
-    Follow the input/output parameters of the `gear_model` dispatcher:
-
-    \**********************************************************************
-
-    Vehicle Parameters:
-
-    \**********************************************************************
-
-    :param fuel_type:
-        Vehicle fuel type (diesel or gas).
-    :type fuel_type: str, optional
-
-    :param full_load_curve:
-        Vehicle full load curve.
-    :type full_load_curve: InterpolatedUnivariateSpline, optional
-
-    :param gear_box_ratios:
-        Gear box ratios (e.g., `{1:..., 2:...}`).
-    :type gear_box_ratios: dict, optional
-
-    :param final_drive:
-        Vehicle final drive.
-    :type final_drive: float, optional
-
-    :param r_dynamic:
-        Vehicle r dynamic.
-    :type r_dynamic: float, optional
-
-    :param speed_velocity_ratios:
-        Constant speed velocity ratios of the gear box (e.g.,
-        `{1:..., 2:...,}`).
-    :type speed_velocity_ratios: dict, optional
-
-    :param velocity_speed_ratios:
-        Constant velocity speed ratios of the gear box (e.g.,
-        `{1:..., 2:...,}`).
-    :type velocity_speed_ratios: dict, optional
-
-    :param road_loads:
-        Cycle road loads.
-    :type road_loads: list, tuple, optional
-
-    :param inertia:
-        Cycle inertia.
-    :type inertia: float, optional
-
-    :param idle_engine_speed:
-        Engine speed idle median and std.
-    :type idle_engine_speed: (float, float), optional
-
-    :param idle_engine_speed_median:
-        Engine speed idle median value.
-    :type idle_engine_speed: float, optional
-
-    :param idle_engine_speed_std:
-        Engine speed idle std (default=100.0).
-    :type idle_engine_speed: float, optional
-
-    :param upper_bound_engine_speed:
-        Vehicle upper bound engine speed.
-    :type upper_bound_engine_speed: float, optional
-
-    :param max_engine_power:
-        Maximum power.
-    :type max_engine_power: float, optional
-
-    :param max_engine_speed_at_max_power:
-        Rated engine speed.
-    :type max_engine_speed_at_max_power: float, optional
-
-    :param time_shift_engine_speeds:
-        Time shift of engine speeds.
-    :type time_shift_engine_speeds: float, optional
-
-    :param time_cold_hot_transition:
-        Time at cold hot transition phase (default=300.0).
-    :type time_cold_hot_transition: float, optional
-
-    :param correct_gear:
-        A function to correct the gear predicted.
-    :type correct_gear: function, optional
-
-    \**********************************************************************
-
-    Prediction Models:
-
-    \**********************************************************************
-
-    :param CMV_Cold_Hot:
-        Corrected matrix velocity for cold and hot phases (e.g.,
-        `{{'cold': {0: [..., ...], 1: [..., ...], ...}, 'hot': ...}`).
-    :type CMV_Cold_Hot: dict, optional
-
-    \**********************************************************************
-
-    Time Series:
-
-    \**********************************************************************
-
-    :param times:
-        Cycle time vector.
-    :type times: np.array, optional
-
-    :param velocities:
-        Cycle velocity vector.
-    :type velocities: np.array, optional
-
-    :param accelerations:
-        Cycle acceleration vector.
-    :type accelerations: np.array, optional
-
-    :param wheel_powers:
-        Cycle power at wheels vector.
-    :type wheel_powers: np.array, optional
-
-    :param gears:
-        Cycle gear vector.
-    :type gears: np.array, optional
-
-    :param gear_box_speeds:
-        Cycle gear box speed vector.
-    :type gear_box_speeds: np.array, optional
-
-    :param engine_speeds:
-        Cycle engine speed vector.
-    :type engine_speeds: np.array, optional
-
-    :param gears_with_'model':
-        Gear vector predicted with a model (e.g., gears_with_DT_VA).
-    :type gears_with_'model': np.array, optional
-
-    :param gear_box_speeds_with_'model':
-        Gear box speed vector predicted with a model (e.g.,
-        gear_box_speeds_with_DT_VA).
-    :type gear_box_speeds_with_'model': np.array, optional
-
-    :param error_coefficients_with_'model':
-        Error coefficients predicted with a model (e.g.,
-        error_coefficients_with_DT_VA):
-
-            - correlation coefficient.
-            - mean absolute error.
-    :type error_coefficients_with_'model': dict, optional
     """
 
-    model = 'CMV_Cold_Hot'
+    cmv = Dispatcher(
+        name='Corrected Matrix Velocity Approach'
+    )
 
-    dsp = def_gear_models()[0]
+    # calibrate corrected matrix velocity
+    cmv.add_function(
+        function=calibrate_gear_shifting_cmv,
+        inputs=['correct_gear', 'identified_gears', 'engine_speeds_out',
+                'velocities', 'accelerations', 'velocity_speed_ratios'],
+        outputs=['CMV'])
 
-    return dsp.shrink_dsp(outputs=['error_coefficients_with_%s' % model])
+    # predict gears with corrected matrix velocity
+    cmv.add_function(
+        function=prediction_gears_gsm,
+        inputs=['correct_gear', 'CMV', 'velocities', 'accelerations', 'times'],
+        outputs=['gears'])
 
-def def_GSPV():
+    # calculate engine speeds with predicted gears
+    cmv.add_function(
+        function=calculate_gear_box_speeds_in,
+        inputs=['gears', 'velocities', 'velocity_speed_ratios'],
+        outputs=['gear_box_speeds_in'])
+
+    # calculate error coefficients
+    cmv.add_function(
+        function=calculate_error_coefficients,
+        inputs=['gear_box_speeds_in', 'engine_speeds_out', 'velocities'],
+        outputs=['error_coefficients'])
+
+    return cmv
+
+
+def cmv_cold_hot():
     """
-    Defines and returns a gear shifting model based on Gear Shifting Power
-    Velocity Approach.
+    Define the corrected matrix velocity with cold/hot model.
 
-    :returns:
-        - gear_model
+    .. dispatcher:: dsp
+
+        >>> dsp = cmv_cold_hot()
+
+    :return:
+        The corrected matrix velocity with cold/hot model.
     :rtype: Dispatcher
-
-     Gear Shifting Power Velocity Approach:
-
-    .. graphviz:: /compas/models/AT_gear/dsp3.dot
-
-    Follow the input/output parameters of the `gear_model` dispatcher:
-
-    \**********************************************************************
-
-    Vehicle Parameters:
-
-    \**********************************************************************
-
-    :param fuel_type:
-        Vehicle fuel type (diesel or gas).
-    :type fuel_type: str, optional
-
-    :param full_load_curve:
-        Vehicle full load curve.
-    :type full_load_curve: InterpolatedUnivariateSpline, optional
-
-    :param gear_box_ratios:
-        Gear box ratios (e.g., `{1:..., 2:...}`).
-    :type gear_box_ratios: dict, optional
-
-    :param final_drive:
-        Vehicle final drive.
-    :type final_drive: float, optional
-
-    :param r_dynamic:
-        Vehicle r dynamic.
-    :type r_dynamic: float, optional
-
-    :param speed_velocity_ratios:
-        Constant speed velocity ratios of the gear box (e.g.,
-        `{1:..., 2:...,}`).
-    :type speed_velocity_ratios: dict, optional
-
-    :param velocity_speed_ratios:
-        Constant velocity speed ratios of the gear box (e.g.,
-        `{1:..., 2:...,}`).
-    :type velocity_speed_ratios: dict, optional
-
-    :param road_loads:
-        Cycle road loads.
-    :type road_loads: list, tuple, optional
-
-    :param inertia:
-        Cycle inertia.
-    :type inertia: float, optional
-
-    :param idle_engine_speed:
-        Engine speed idle median and std.
-    :type idle_engine_speed: (float, float), optional
-
-    :param idle_engine_speed_median:
-        Engine speed idle median value.
-    :type idle_engine_speed: float, optional
-
-    :param idle_engine_speed_std:
-        Engine speed idle std (default=100.0).
-    :type idle_engine_speed: float, optional
-
-    :param upper_bound_engine_speed:
-        Vehicle upper bound engine speed.
-    :type upper_bound_engine_speed: float, optional
-
-    :param max_engine_power:
-        Maximum power.
-    :type max_engine_power: float, optional
-
-    :param max_engine_speed_at_max_power:
-        Rated engine speed.
-    :type max_engine_speed_at_max_power: float, optional
-
-    :param time_shift_engine_speeds:
-        Time shift of engine speeds.
-    :type time_shift_engine_speeds: float, optional
-
-    :param correct_gear:
-        A function to correct the gear predicted.
-    :type correct_gear: function, optional
-
-    \**********************************************************************
-
-    Prediction Models:
-
-    \**********************************************************************
-
-    :param GSPV:
-        Gear shifting power velocity matrix
-        (e.g., `{0: [InterpolatedUnivariateSpline, ...], ...}`).
-    :type CMV: dict, optional
-
-    \**********************************************************************
-
-    Time Series:
-
-    \**********************************************************************
-
-    :param times:
-        Cycle time vector.
-    :type times: np.array, optional
-
-    :param velocities:
-        Cycle velocity vector.
-    :type velocities: np.array, optional
-
-    :param accelerations:
-        Cycle acceleration vector.
-    :type accelerations: np.array, optional
-
-    :param wheel_powers:
-        Cycle power at wheels vector.
-    :type wheel_powers: np.array, optional
-
-    :param gears:
-        Cycle gear vector.
-    :type gears: np.array, optional
-
-    :param gear_box_speeds:
-        Cycle gear box speed vector.
-    :type gear_box_speeds: np.array, optional
-
-    :param engine_speeds:
-        Cycle engine speed vector.
-    :type engine_speeds: np.array, optional
-
-    :param gears_with_'model':
-        Gear vector predicted with a model (e.g., gears_with_DT_VA).
-    :type gears_with_'model': np.array, optional
-
-    :param gear_box_speeds_with_'model':
-        Gear box speed vector predicted with a model (e.g.,
-        gear_box_speeds_with_DT_VA).
-    :type gear_box_speeds_with_'model': np.array, optional
-
-    :param error_coefficients_with_'model':
-        Error coefficients predicted with a model (e.g.,
-        error_coefficients_with_DT_VA):
-
-            - correlation coefficient.
-            - mean absolute error.
-    :type error_coefficients_with_'model': dict, optional
     """
 
-    model = 'GSPV'
+    cmv_cold_hot = Dispatcher(
+        name='Corrected Matrix Velocity Approach with Cold/Hot'
+    )
 
-    dsp = def_gear_models()[0]
+    cmv_cold_hot.add_data('time_cold_hot_transition', 300.0)
 
-    return dsp.shrink_dsp(outputs=['error_coefficients_with_%s' % model])
+    # calibrate corrected matrix velocity cold/hot
+    cmv_cold_hot.add_function(
+        function=calibrate_gear_shifting_cmv_hot_cold,
+        inputs=['correct_gear', 'times', 'identified_gears',
+                'engine_speeds_out', 'velocities', 'accelerations',
+                'velocity_speed_ratios', 'time_cold_hot_transition'],
+        outputs=['CMV_Cold_Hot'])
 
-def def_GSPV_Cold_Hot():
+    # predict gears with corrected matrix velocity
+    cmv_cold_hot.add_function(
+        function=prediction_gears_gsm_hot_cold,
+        inputs=['correct_gear', 'CMV_Cold_Hot', 'time_cold_hot_transition',
+                'times', 'velocities', 'accelerations'],
+        outputs=['gears'])
+
+    # calculate engine speeds with predicted gears
+    cmv_cold_hot.add_function(
+        function=calculate_gear_box_speeds_in,
+        inputs=['gears', 'velocities', 'velocity_speed_ratios'],
+        outputs=['gear_box_speeds_in'])
+
+    # calculate error coefficients
+    cmv_cold_hot.add_function(
+        function=calculate_error_coefficients,
+        inputs=['gear_box_speeds_in', 'engine_speeds_out', 'velocities'],
+        outputs=['error_coefficients'])
+
+    return cmv_cold_hot
+
+
+def dt_va():
     """
-    Defines and returns a gear shifting model based on Gear Shifting Power
-    Velocity Approach with Cold/Hot.
+    Define the decision tree with velocity & acceleration model.
 
-    :returns:
-        - gear_model
+    .. dispatcher:: dsp
+
+        >>> dsp = dt_va()
+
+    :return:
+        The decision tree with velocity & acceleration model.
     :rtype: Dispatcher
-
-    Gear Shifting Power Velocity Approach with Cold/Hot:
-
-    .. graphviz:: /compas/models/AT_gear/dsp4.dot
-
-    Follow the input/output parameters of the `gear_model` dispatcher:
-
-    \**********************************************************************
-
-    Vehicle Parameters:
-
-    \**********************************************************************
-
-    :param fuel_type:
-        Vehicle fuel type (diesel or gas).
-    :type fuel_type: str, optional
-
-    :param full_load_curve:
-        Vehicle full load curve.
-    :type full_load_curve: InterpolatedUnivariateSpline, optional
-
-    :param gear_box_ratios:
-        Gear box ratios (e.g., `{1:..., 2:...}`).
-    :type gear_box_ratios: dict, optional
-
-    :param final_drive:
-        Vehicle final drive.
-    :type final_drive: float, optional
-
-    :param r_dynamic:
-        Vehicle r dynamic.
-    :type r_dynamic: float, optional
-
-    :param speed_velocity_ratios:
-        Constant speed velocity ratios of the gear box (e.g.,
-        `{1:..., 2:...,}`).
-    :type speed_velocity_ratios: dict, optional
-
-    :param velocity_speed_ratios:
-        Constant velocity speed ratios of the gear box (e.g.,
-        `{1:..., 2:...,}`).
-    :type velocity_speed_ratios: dict, optional
-
-    :param road_loads:
-        Cycle road loads.
-    :type road_loads: list, tuple, optional
-
-    :param inertia:
-        Cycle inertia.
-    :type inertia: float, optional
-
-    :param idle_engine_speed:
-        Engine speed idle median and std.
-    :type idle_engine_speed: (float, float), optional
-
-    :param idle_engine_speed_median:
-        Engine speed idle median value.
-    :type idle_engine_speed: float, optional
-
-    :param idle_engine_speed_std:
-        Engine speed idle std (default=100.0).
-    :type idle_engine_speed: float, optional
-
-    :param upper_bound_engine_speed:
-        Vehicle upper bound engine speed.
-    :type upper_bound_engine_speed: float, optional
-
-    :param max_engine_power:
-        Maximum power.
-    :type max_engine_power: float, optional
-
-    :param max_engine_speed_at_max_power:
-        Rated engine speed.
-    :type max_engine_speed_at_max_power: float, optional
-
-    :param time_shift_engine_speeds:
-        Time shift of engine speeds.
-    :type time_shift_engine_speeds: float, optional
-
-    :param time_cold_hot_transition:
-        Time at cold hot transition phase (default=300.0).
-    :type time_cold_hot_transition: float, optional
-
-    :param correct_gear:
-        A function to correct the gear predicted.
-    :type correct_gear: function, optional
-
-    \**********************************************************************
-
-    Prediction Models:
-
-    \**********************************************************************
-
-    :param GSPV_Cold_Hot:
-        Corrected matrix velocity for cold and hot phases
-        (e.g., `{{'cold': {0: [InterpolatedUnivariateSpline, ...], ...},
-        'hot': ...}`).
-    :type CMV_Cold_Hot: dict, optional
-
-    \**********************************************************************
-
-    Time Series:
-
-    \**********************************************************************
-
-    :param times:
-        Cycle time vector.
-    :type times: np.array, optional
-
-    :param velocities:
-        Cycle velocity vector.
-    :type velocities: np.array, optional
-
-    :param accelerations:
-        Cycle acceleration vector.
-    :type accelerations: np.array, optional
-
-    :param wheel_powers:
-        Cycle power at wheels vector.
-    :type wheel_powers: np.array, optional
-
-    :param gears:
-        Cycle gear vector.
-    :type gears: np.array, optional
-
-    :param gear_box_speeds:
-        Cycle gear box speed vector.
-    :type gear_box_speeds: np.array, optional
-
-    :param engine_speeds:
-        Cycle engine speed vector.
-    :type engine_speeds: np.array, optional
-
-    :param gears_with_'model':
-        Gear vector predicted with a model (e.g., gears_with_DT_VA).
-    :type gears_with_'model': np.array, optional
-
-    :param gear_box_speeds_with_'model':
-        Gear box speed vector predicted with a model (e.g.,
-        gear_box_speeds_with_DT_VA).
-    :type gear_box_speeds_with_'model': np.array, optional
-
-    :param error_coefficients_with_'model':
-        Error coefficients predicted with a model (e.g.,
-        error_coefficients_with_DT_VA):
-
-            - correlation coefficient.
-            - mean absolute error.
-    :type error_coefficients_with_'model': dict, optional
     """
 
-    model = 'GSPV_Cold_Hot'
+    dt_va = Dispatcher(
+        name='Decision Tree with Velocity & Acceleration'
+    )
 
-    dsp = def_gear_models()[0]
+    # calibrate decision tree with velocity & acceleration
+    dt_va.add_function(
+        function=calibrate_gear_shifting_decision_tree,
+        inputs=['identified_gears', 'velocities', 'accelerations'],
+        outputs=['DT_VA'])
 
-    return dsp.shrink_dsp(outputs=['error_coefficients_with_%s' % model])
+    # predict gears with decision tree with velocity & acceleration
+    dt_va.add_function(
+        function=prediction_gears_gsm_hot_cold,
+        inputs=['correct_gear', 'DT_VA', 'times', 'velocities',
+                'accelerations'],
+        outputs=['gears'])
 
-def def_DT_VA():
+    # calculate engine speeds with predicted gears
+    dt_va.add_function(
+        function=calculate_gear_box_speeds_in,
+        inputs=['gears', 'velocities', 'velocity_speed_ratios'],
+        outputs=['gear_box_speeds_in'])
+
+    # calculate error coefficients
+    dt_va.add_function(
+        function=calculate_error_coefficients,
+        inputs=['gear_box_speeds_in', 'engine_speeds_out', 'velocities'],
+        outputs=['error_coefficients'])
+
+    return dt_va
+
+
+def dt_vap():
     """
-    Defines and returns a gear shifting model based on Decision Tree with
-    Velocity & Acceleration.
+    Define the decision tree with velocity, acceleration, & power model.
 
-    :returns:
-        - gear_model
+    .. dispatcher:: dsp
+
+        >>> dsp = dt_vap()
+
+    :return:
+        The decision tree with velocity, acceleration, & power model.
     :rtype: Dispatcher
-
-    Decision Tree with Velocity & Acceleration:
-
-    .. graphviz:: /compas/models/AT_gear/dsp5.dot
-
-    Follow the input/output parameters of the `gear_model` dispatcher:
-
-    \**********************************************************************
-
-    Vehicle Parameters:
-
-    \**********************************************************************
-
-    :param fuel_type:
-        Vehicle fuel type (diesel or gas).
-    :type fuel_type: str, optional
-
-    :param full_load_curve:
-        Vehicle full load curve.
-    :type full_load_curve: InterpolatedUnivariateSpline, optional
-
-    :param gear_box_ratios:
-        Gear box ratios (e.g., `{1:..., 2:...}`).
-    :type gear_box_ratios: dict, optional
-
-    :param final_drive:
-        Vehicle final drive.
-    :type final_drive: float, optional
-
-    :param r_dynamic:
-        Vehicle r dynamic.
-    :type r_dynamic: float, optional
-
-    :param speed_velocity_ratios:
-        Constant speed velocity ratios of the gear box (e.g.,
-        `{1:..., 2:...,}`).
-    :type speed_velocity_ratios: dict, optional
-
-    :param velocity_speed_ratios:
-        Constant velocity speed ratios of the gear box (e.g.,
-        `{1:..., 2:...,}`).
-    :type velocity_speed_ratios: dict, optional
-
-    :param road_loads:
-        Cycle road loads.
-    :type road_loads: list, tuple, optional
-
-    :param inertia:
-        Cycle inertia.
-    :type inertia: float, optional
-
-    :param idle_engine_speed:
-        Engine speed idle median and std.
-    :type idle_engine_speed: (float, float), optional
-
-    :param idle_engine_speed_median:
-        Engine speed idle median value.
-    :type idle_engine_speed: float, optional
-
-    :param idle_engine_speed_std:
-        Engine speed idle std (default=100.0).
-    :type idle_engine_speed: float, optional
-
-    :param upper_bound_engine_speed:
-        Vehicle upper bound engine speed.
-    :type upper_bound_engine_speed: float, optional
-
-    :param max_engine_power:
-        Maximum power.
-    :type max_engine_power: float, optional
-
-    :param max_engine_speed_at_max_power:
-        Rated engine speed.
-    :type max_engine_speed_at_max_power: float, optional
-
-    :param time_shift_engine_speeds:
-        Time shift of engine speeds.
-    :type time_shift_engine_speeds: float, optional
-
-    :param correct_gear:
-        A function to correct the gear predicted.
-    :type correct_gear: function, optional
-
-    \**********************************************************************
-
-    Prediction Models:
-
-    \**********************************************************************
-
-    :param DT_VA:
-        A decision tree classifier to predict gears according to
-        (previous gear, velocity, acceleration).
-    :type DT_VA: DecisionTreeClassifier, optional
-
-    \**********************************************************************
-
-    Time Series:
-
-    \**********************************************************************
-
-    :param times:
-        Cycle time vector.
-    :type times: np.array, optional
-
-    :param velocities:
-        Cycle velocity vector.
-    :type velocities: np.array, optional
-
-    :param accelerations:
-        Cycle acceleration vector.
-    :type accelerations: np.array, optional
-
-    :param wheel_powers:
-        Cycle power at wheels vector.
-    :type wheel_powers: np.array, optional
-
-    :param gears:
-        Cycle gear vector.
-    :type gears: np.array, optional
-
-    :param gear_box_speeds:
-        Cycle gear box speed vector.
-    :type gear_box_speeds: np.array, optional
-
-    :param engine_speeds:
-        Cycle engine speed vector.
-    :type engine_speeds: np.array, optional
-
-    :param gears_with_'model':
-        Gear vector predicted with a model (e.g., gears_with_DT_VA).
-    :type gears_with_'model': np.array, optional
-
-    :param gear_box_speeds_with_'model':
-        Gear box speed vector predicted with a model (e.g.,
-        gear_box_speeds_with_DT_VA).
-    :type gear_box_speeds_with_'model': np.array, optional
-
-    :param error_coefficients_with_'model':
-        Error coefficients predicted with a model (e.g.,
-        error_coefficients_with_DT_VA):
-
-            - correlation coefficient.
-            - mean absolute error.
-    :type error_coefficients_with_'model': dict, optional
     """
 
-    model = 'DT_VA'
+    dt_vap = Dispatcher(
+        name='Decision Tree with Velocity, Acceleration, & Power'
+    )
 
-    dsp = def_gear_models()[0]
+    # calibrate decision tree with velocity, acceleration & wheel power
+    dt_vap.add_function(
+        function=calibrate_gear_shifting_decision_tree,
+        inputs=['identified_gears', 'velocities', 'accelerations',
+                'gear_box_powers_out'],
+        outputs=['DT_VAP'])
 
-    return dsp.shrink_dsp(outputs=['error_coefficients_with_%s' % model])
+    # predict gears with decision tree with velocity, acceleration & wheel power
+    dt_vap.add_function(
+        function=prediction_gears_gsm_hot_cold,
+        inputs=['correct_gear', 'DT_VAP', 'times', 'velocities',
+                'accelerations', 'gear_box_powers_out'],
+        outputs=['gears'])
 
-def def_DT_VAT():
+    # calculate engine speeds with predicted gears
+    dt_vap.add_function(
+        function=calculate_gear_box_speeds_in,
+        inputs=['gears', 'velocities', 'velocity_speed_ratios'],
+        outputs=['gear_box_speeds_in'])
+
+    # calculate error coefficients
+    dt_vap.add_function(
+        function=calculate_error_coefficients,
+        inputs=['gear_box_speeds_in', 'engine_speeds_out', 'velocities'],
+        outputs=['error_coefficients'])
+
+    return dt_vap
+
+
+def dt_vat():
     """
-    Defines and returns a gear shifting model based on Decision Tree with
-    Velocity, Acceleration & Temperature.
+    Define the decision tree with velocity, acceleration, & temperature model.
 
-    :returns:
-        - gear_model
+    .. dispatcher:: dsp
+
+        >>> dsp = dt_vat()
+
+    :return:
+        The decision tree with velocity, acceleration, & temperature model.
     :rtype: Dispatcher
-
-    Decision Tree with Velocity, Acceleration & Temperature:
-
-    .. graphviz:: /compas/models/AT_gear/dsp6.dot
-
-    Follow the input/output parameters of the `gear_model` dispatcher:
-
-    \**********************************************************************
-
-    Vehicle Parameters:
-
-    \**********************************************************************
-
-    :param fuel_type:
-        Vehicle fuel type (diesel or gas).
-    :type fuel_type: str, optional
-
-    :param full_load_curve:
-        Vehicle full load curve.
-    :type full_load_curve: InterpolatedUnivariateSpline, optional
-
-    :param gear_box_ratios:
-        Gear box ratios (e.g., `{1:..., 2:...}`).
-    :type gear_box_ratios: dict, optional
-
-    :param final_drive:
-        Vehicle final drive.
-    :type final_drive: float, optional
-
-    :param r_dynamic:
-        Vehicle r dynamic.
-    :type r_dynamic: float, optional
-
-    :param speed_velocity_ratios:
-        Constant speed velocity ratios of the gear box (e.g.,
-        `{1:..., 2:...,}`).
-    :type speed_velocity_ratios: dict, optional
-
-    :param velocity_speed_ratios:
-        Constant velocity speed ratios of the gear box (e.g.,
-        `{1:..., 2:...,}`).
-    :type velocity_speed_ratios: dict, optional
-
-    :param road_loads:
-        Cycle road loads.
-    :type road_loads: list, tuple, optional
-
-    :param inertia:
-        Cycle inertia.
-    :type inertia: float, optional
-
-    :param idle_engine_speed:
-        Engine speed idle median and std.
-    :type idle_engine_speed: (float, float), optional
-
-    :param idle_engine_speed_median:
-        Engine speed idle median value.
-    :type idle_engine_speed: float, optional
-
-    :param idle_engine_speed_std:
-        Engine speed idle std (default=100.0).
-    :type idle_engine_speed: float, optional
-
-    :param upper_bound_engine_speed:
-        Vehicle upper bound engine speed.
-    :type upper_bound_engine_speed: float, optional
-
-    :param max_engine_power:
-        Maximum power.
-    :type max_engine_power: float, optional
-
-    :param max_engine_speed_at_max_power:
-        Rated engine speed.
-    :type max_engine_speed_at_max_power: float, optional
-
-    :param time_shift_engine_speeds:
-        Time shift of engine speeds.
-    :type time_shift_engine_speeds: float, optional
-
-    :param correct_gear:
-        A function to correct the gear predicted.
-    :type correct_gear: function, optional
-
-    \**********************************************************************
-
-    Prediction Models:
-
-    \**********************************************************************
-
-    :param DT_VAT:
-        A decision tree classifier to predict gears according to
-        (previous gear, velocity, acceleration, temperature).
-    :type DT_VAT: DecisionTreeClassifier, optional
-
-    \**********************************************************************
-
-    Time Series:
-
-    \**********************************************************************
-
-    :param times:
-        Cycle time vector.
-    :type times: np.array, optional
-
-    :param velocities:
-        Cycle velocity vector.
-    :type velocities: np.array, optional
-
-    :param accelerations:
-        Cycle acceleration vector.
-    :type accelerations: np.array, optional
-
-    :param wheel_powers:
-        Cycle power at wheels vector.
-    :type wheel_powers: np.array, optional
-
-    :param gears:
-        Cycle gear vector.
-    :type gears: np.array, optional
-
-    :param gear_box_speeds:
-        Cycle gear box speed vector.
-    :type gear_box_speeds: np.array, optional
-
-    :param engine_speeds:
-        Cycle engine speed vector.
-    :type engine_speeds: np.array, optional
-
-    :param gears_with_'model':
-        Gear vector predicted with a model (e.g., gears_with_DT_VA).
-    :type gears_with_'model': np.array, optional
-
-    :param gear_box_speeds_with_'model':
-        Gear box speed vector predicted with a model (e.g.,
-        gear_box_speeds_with_DT_VA).
-    :type gear_box_speeds_with_'model': np.array, optional
-
-    :param error_coefficients_with_'model':
-        Error coefficients predicted with a model (e.g.,
-        error_coefficients_with_DT_VA):
-
-            - correlation coefficient.
-            - mean absolute error.
-    :type error_coefficients_with_'model': dict, optional
     """
 
-    model = 'DT_VAT'
+    dt_vat = Dispatcher(
+        name='Decision Tree with Velocity, Acceleration & Temperature'
+    )
 
-    dsp = def_gear_models()[0]
+    # calibrate decision tree with velocity, acceleration & temperature
+    dt_vat.add_function(
+        function=calibrate_gear_shifting_decision_tree,
+        inputs=['identified_gears', 'velocities', 'accelerations',
+                'temperatures'],
+        outputs=['DT_VAT'])
 
-    return dsp.shrink_dsp(outputs=['error_coefficients_with_%s' % model])
+    # predict gears with decision tree with velocity, acceleration & temperature
+    dt_vat.add_function(
+        function=prediction_gears_gsm_hot_cold,
+        inputs=['correct_gear', 'DT_VAT', 'times', 'velocities',
+                'accelerations', 'temperatures'],
+        outputs=['gears'])
 
-def def_DT_VAP():
+    # calculate engine speeds with predicted gears
+    dt_vat.add_function(
+        function=calculate_gear_box_speeds_in,
+        inputs=['gears', 'velocities', 'velocity_speed_ratios'],
+        outputs=['gear_box_speeds_in'])
+
+    # calculate error coefficients
+    dt_vat.add_function(
+        function=calculate_error_coefficients,
+        inputs=['gear_box_speeds_in', 'engine_speeds_out', 'velocities'],
+        outputs=['error_coefficients'])
+
+    return dt_vat
+
+
+def dt_vatp():
     """
-    Defines and returns a gear shifting model based on Decision Tree with
-    Velocity, Acceleration, & Wheel Power.
+    Define the decision tree with velocity, acceleration, temperature & power
+    model.
 
-    :returns:
-        - gear_model
+    .. dispatcher:: dsp
+
+        >>> dsp = dt_vatp()
+
+    :return:
+        The decision tree with velocity, acceleration, temperature & power
+        model.
     :rtype: Dispatcher
-
-    Decision Tree with Velocity, Acceleration, & Wheel Power:
-
-    .. graphviz:: /compas/models/AT_gear/dsp7.dot
-
-    Follow the input/output parameters of the `gear_model` dispatcher:
-
-    \**********************************************************************
-
-    Vehicle Parameters:
-
-    \**********************************************************************
-
-    :param fuel_type:
-        Vehicle fuel type (diesel or gas).
-    :type fuel_type: str, optional
-
-    :param full_load_curve:
-        Vehicle full load curve.
-    :type full_load_curve: InterpolatedUnivariateSpline, optional
-
-    :param gear_box_ratios:
-        Gear box ratios (e.g., `{1:..., 2:...}`).
-    :type gear_box_ratios: dict, optional
-
-    :param final_drive:
-        Vehicle final drive.
-    :type final_drive: float, optional
-
-    :param r_dynamic:
-        Vehicle r dynamic.
-    :type r_dynamic: float, optional
-
-    :param speed_velocity_ratios:
-        Constant speed velocity ratios of the gear box (e.g.,
-        `{1:..., 2:...,}`).
-    :type speed_velocity_ratios: dict, optional
-
-    :param velocity_speed_ratios:
-        Constant velocity speed ratios of the gear box (e.g.,
-        `{1:..., 2:...,}`).
-    :type velocity_speed_ratios: dict, optional
-
-    :param road_loads:
-        Cycle road loads.
-    :type road_loads: list, tuple, optional
-
-    :param inertia:
-        Cycle inertia.
-    :type inertia: float, optional
-
-    :param idle_engine_speed:
-        Engine speed idle median and std.
-    :type idle_engine_speed: (float, float), optional
-
-    :param idle_engine_speed_median:
-        Engine speed idle median value.
-    :type idle_engine_speed: float, optional
-
-    :param idle_engine_speed_std:
-        Engine speed idle std (default=100.0).
-    :type idle_engine_speed: float, optional
-
-    :param upper_bound_engine_speed:
-        Vehicle upper bound engine speed.
-    :type upper_bound_engine_speed: float, optional
-
-    :param max_engine_power:
-        Maximum power.
-    :type max_engine_power: float, optional
-
-    :param max_engine_speed_at_max_power:
-        Rated engine speed.
-    :type max_engine_speed_at_max_power: float, optional
-
-    :param time_shift_engine_speeds:
-        Time shift of engine speeds.
-    :type time_shift_engine_speeds: float, optional
-
-    :param correct_gear:
-        A function to correct the gear predicted.
-    :type correct_gear: function, optional
-
-    \**********************************************************************
-
-    Prediction Models:
-
-    \**********************************************************************
-
-    :param DT_VAP:
-        A decision tree classifier to predict gears according to
-        (previous gear, velocity, acceleration, wheel power).
-    :type DT_VAP: DecisionTreeClassifier, optional
-
-    \**********************************************************************
-
-    Time Series:
-
-    \**********************************************************************
-
-    :param times:
-        Cycle time vector.
-    :type times: np.array, optional
-
-    :param velocities:
-        Cycle velocity vector.
-    :type velocities: np.array, optional
-
-    :param accelerations:
-        Cycle acceleration vector.
-    :type accelerations: np.array, optional
-
-    :param wheel_powers:
-        Cycle power at wheels vector.
-    :type wheel_powers: np.array, optional
-
-    :param gears:
-        Cycle gear vector.
-    :type gears: np.array, optional
-
-    :param gear_box_speeds:
-        Cycle gear box speed vector.
-    :type gear_box_speeds: np.array, optional
-
-    :param engine_speeds:
-        Cycle engine speed vector.
-    :type engine_speeds: np.array, optional
-
-    :param gears_with_'model':
-        Gear vector predicted with a model (e.g., gears_with_DT_VA).
-    :type gears_with_'model': np.array, optional
-
-    :param gear_box_speeds_with_'model':
-        Gear box speed vector predicted with a model (e.g.,
-        gear_box_speeds_with_DT_VA).
-    :type gear_box_speeds_with_'model': np.array, optional
-
-    :param error_coefficients_with_'model':
-        Error coefficients predicted with a model (e.g.,
-        error_coefficients_with_DT_VA):
-
-            - correlation coefficient.
-            - mean absolute error.
-    :type error_coefficients_with_'model': dict, optional
     """
 
-    model = 'DT_VAP'
+    dt_vatp = Dispatcher(
+        name='Decision Tree with Velocity, Acceleration, Temperature, & Power'
+    )
 
-    dsp = def_gear_models()[0]
+    # calibrate decision tree with velocity, acceleration, temperature
+    # & wheel power
+    dt_vatp.add_function(
+        function=calibrate_gear_shifting_decision_tree,
+        inputs=['identified_gears', 'velocities', 'accelerations',
+                'temperatures', 'gear_box_powers_out'],
+        outputs=['DT_VATP'])
 
-    return dsp.shrink_dsp(outputs=['error_coefficients_with_%s' % model])
+    # predict gears with decision tree with velocity, acceleration, temperature
+    # & wheel power
+    dt_vatp.add_function(
+        function=prediction_gears_gsm_hot_cold,
+        inputs=['correct_gear', 'DT_VATP', 'times', 'velocities',
+                'accelerations', 'temperatures', 'gear_box_powers_out'],
+        outputs=['gears'])
 
-def def_DT_VATP():
+    # calculate engine speeds with predicted gears
+    dt_vatp.add_function(
+        function=calculate_gear_box_speeds_in,
+        inputs=['gears', 'velocities', 'velocity_speed_ratios'],
+        outputs=['gear_box_speeds_in'])
+
+    # calculate error coefficients
+    dt_vatp.add_function(
+        function=calculate_error_coefficients,
+        inputs=['gear_box_speeds_in', 'engine_speeds_out', 'velocities'],
+        outputs=['error_coefficients'])
+
+    return dt_vatp
+
+
+def gspv():
     """
-    Defines and returns a gear shifting model based on Decision Tree with
-    Velocity, Acceleration, Temperature, & Wheel Power.
+    Define the gear shifting power velocity model.
 
-    :returns:
-        - gear_model
+    .. dispatcher:: dsp
+
+        >>> dsp = gspv()
+
+    :return:
+        The gear shifting power velocity model.
     :rtype: Dispatcher
-
-    Decision Tree with Velocity, Acceleration, Temperature, & Wheel Power:
-
-    .. graphviz:: /compas/models/AT_gear/dsp8.dot
-
-    Follow the input/output parameters of the `gear_model` dispatcher:
-
-    \**********************************************************************
-
-    Vehicle Parameters:
-
-    \**********************************************************************
-
-    :param fuel_type:
-        Vehicle fuel type (diesel or gas).
-    :type fuel_type: str, optional
-
-    :param full_load_curve:
-        Vehicle full load curve.
-    :type full_load_curve: InterpolatedUnivariateSpline, optional
-
-    :param gear_box_ratios:
-        Gear box ratios (e.g., `{1:..., 2:...}`).
-    :type gear_box_ratios: dict, optional
-
-    :param final_drive:
-        Vehicle final drive.
-    :type final_drive: float, optional
-
-    :param r_dynamic:
-        Vehicle r dynamic.
-    :type r_dynamic: float, optional
-
-    :param speed_velocity_ratios:
-        Constant speed velocity ratios of the gear box (e.g.,
-        `{1:..., 2:...,}`).
-    :type speed_velocity_ratios: dict, optional
-
-    :param velocity_speed_ratios:
-        Constant velocity speed ratios of the gear box (e.g.,
-        `{1:..., 2:...,}`).
-    :type velocity_speed_ratios: dict, optional
-
-    :param road_loads:
-        Cycle road loads.
-    :type road_loads: list, tuple, optional
-
-    :param inertia:
-        Cycle inertia.
-    :type inertia: float, optional
-
-    :param idle_engine_speed:
-        Engine speed idle median and std.
-    :type idle_engine_speed: (float, float), optional
-
-    :param idle_engine_speed_median:
-        Engine speed idle median value.
-    :type idle_engine_speed: float, optional
-
-    :param idle_engine_speed_std:
-        Engine speed idle std (default=100.0).
-    :type idle_engine_speed: float, optional
-
-    :param upper_bound_engine_speed:
-        Vehicle upper bound engine speed.
-    :type upper_bound_engine_speed: float, optional
-
-    :param max_engine_power:
-        Maximum power.
-    :type max_engine_power: float, optional
-
-    :param max_engine_speed_at_max_power:
-        Rated engine speed.
-    :type max_engine_speed_at_max_power: float, optional
-
-    :param time_shift_engine_speeds:
-        Time shift of engine speeds.
-    :type time_shift_engine_speeds: float, optional
-
-    :param correct_gear:
-        A function to correct the gear predicted.
-    :type correct_gear: function, optional
-
-    \**********************************************************************
-
-    Prediction Models:
-
-    \**********************************************************************
-
-    :param DT_VATP:
-        A decision tree classifier to predict gears according to
-        (previous gear, velocity, acceleration, temperature, wheel power).
-    :type DT_VATP: DecisionTreeClassifier, optional
-
-    \**********************************************************************
-
-    Time Series:
-
-    \**********************************************************************
-
-    :param times:
-        Cycle time vector.
-    :type times: np.array, optional
-
-    :param velocities:
-        Cycle velocity vector.
-    :type velocities: np.array, optional
-
-    :param accelerations:
-        Cycle acceleration vector.
-    :type accelerations: np.array, optional
-
-    :param wheel_powers:
-        Cycle power at wheels vector.
-    :type wheel_powers: np.array, optional
-
-    :param gears:
-        Cycle gear vector.
-    :type gears: np.array, optional
-
-    :param gear_box_speeds:
-        Cycle gear box speed vector.
-    :type gear_box_speeds: np.array, optional
-
-    :param engine_speeds:
-        Cycle engine speed vector.
-    :type engine_speeds: np.array, optional
-
-    :param gears_with_'model':
-        Gear vector predicted with a model (e.g., gears_with_DT_VA).
-    :type gears_with_'model': np.array, optional
-
-    :param gear_box_speeds_with_'model':
-        Gear box speed vector predicted with a model (e.g.,
-        gear_box_speeds_with_DT_VA).
-    :type gear_box_speeds_with_'model': np.array, optional
-
-    :param error_coefficients_with_'model':
-        Error coefficients predicted with a model (e.g.,
-        error_coefficients_with_DT_VA):
-
-            - correlation coefficient.
-            - mean absolute error.
-    :type error_coefficients_with_'model': dict, optional
     """
 
-    model = 'DT_VATP'
+    gspv = Dispatcher(
+        name='Gear Shifting Power Velocity Approach'
+    )
 
-    dsp = def_gear_models()[0]
+    # calibrate corrected matrix velocity
+    gspv.add_function(
+        function=calibrate_gspv,
+        inputs=['identified_gears', 'velocities', 'gear_box_powers_out'],
+        outputs=['GSPV'])
 
-    return dsp.shrink_dsp(outputs=['error_coefficients_with_%s' % model])
+    # predict gears with corrected matrix velocity
+    gspv.add_function(
+        function=prediction_gears_gsm,
+        inputs=['correct_gear', 'GSPV', 'velocities', 'accelerations', 'times',
+                'gear_box_powers_out'],
+        outputs=['gears'])
+
+    # calculate engine speeds with predicted gears
+    gspv.add_function(
+        function=calculate_gear_box_speeds_in,
+        inputs=['gears', 'velocities', 'velocity_speed_ratios'],
+        outputs=['gear_box_speeds_in'])
+
+    # calculate error coefficients
+    gspv.add_function(
+        function=calculate_error_coefficients,
+        inputs=['gear_box_speeds_in', 'engine_speeds_out', 'velocities'],
+        outputs=['error_coefficients'])
+
+    return gspv
+
+
+def gspv_cold_hot():
+    """
+    Define the gear shifting power velocity with cold/hot model.
+
+    .. dispatcher:: dsp
+
+        >>> dsp = gspv_cold_hot()
+
+    :return:
+        The gear shifting power velocity with cold/hot model.
+    :rtype: Dispatcher
+    """
+
+    gspv_cold_hot = Dispatcher(
+        name='Gear Shifting Power Velocity Approach with Cold/Hot'
+    )
+
+    gspv_cold_hot.add_data('time_cold_hot_transition', 300.0)
+
+    # calibrate corrected matrix velocity
+    gspv_cold_hot.add_function(
+        function=calibrate_gspv,
+        inputs=['times', 'identified_gears', 'velocities',
+                'gear_box_powers_out', 'time_cold_hot_transition'],
+        outputs=['GSPV_Cold_Hot'])
+
+    # predict gears with corrected matrix velocity
+    gspv_cold_hot.add_function(
+        function=prediction_gears_gsm,
+        inputs=['correct_gear', 'GSPV_Cold_Hot', 'time_cold_hot_transition',
+                'times', 'velocities', 'accelerations', 'gear_box_powers_out'],
+        outputs=['gears'])
+
+    # calculate engine speeds with predicted gears
+    gspv_cold_hot.add_function(
+        function=calculate_gear_box_speeds_in,
+        inputs=['gears', 'velocities', 'velocity_speed_ratios'],
+        outputs=['gear_box_speeds_in'])
+
+    # calculate error coefficients
+    gspv_cold_hot.add_function(
+        function=calculate_error_coefficients,
+        inputs=['gear_box_speeds_in', 'engine_speeds_out', 'velocities'],
+        outputs=['error_coefficients'])
+
+    return gspv_cold_hot

@@ -152,7 +152,7 @@ def merge_inputs(cycle_name, parameters, series):
     inputs = {}
     inputs.update(parse_inputs(parameters, data_map))
     inputs.update(parse_inputs(series, CYCLE_data_map['SERIES']))
-
+    inputs['cycle_type'] = cycle_name
     return inputs
 
 
@@ -176,6 +176,9 @@ CYCLE_data_map = {
     'STANDARD': {
         'gb ratios': ('gear_box_ratios', (eval, list, empty, index_dict)),
         'final drive': ('final_drive', (float, )),
+        'f0': ('f0', (float, )),
+        'f1': ('f1', (float, )),
+        'f2': ('f2', (float, )),
         'r dynamic': ('r_dynamic', (float, )),
         'speed2velocity ratios': ('speed_velocity_ratios',
                                   (eval, list, empty, index_dict)),

@@ -78,9 +78,10 @@ def write_output(output, file_name, sheet_names):
 
     for k, v in heap_flush(s):
         series[k] = v
+    '''
     fig = plot_gear_box_speeds(series)
     fig.savefig('%s.png' % file_name.split('.')[0])
-
+    '''
     series.to_excel(writer, 'series_%s'% sheet_names[0])
     p.to_excel(writer, 'params_%s'% sheet_names[1])
 
