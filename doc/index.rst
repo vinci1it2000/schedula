@@ -7,6 +7,8 @@ Welcome to CO2MPAS's documentation!
 ===================================
 version |version| and release |release|
 
+.. include:: ../README.rst
+
 .. toctree::
 
     API_Reference

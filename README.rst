@@ -1,63 +1,71 @@
-CO2MPAS
-#######
+#############################################################
+CO2MPAS: Predict CO2 emissions of NEDC using WLTP time-series
+#############################################################
+:Version: 1.0.0
+:date: 13-July-2015
+:author: Vincenzo Arcidiacono <vincenzo.arcidiacono@ext.jrc.ec.europa.eu>
+:contributors:  Stefanos Tsiamakis <stefanos.tsiakmakis@jrc.ec.europa.eu>, 
+				Georgios Fontaras <georgios.fontaras@jrc.ec.europa.eu>
+				Kostis Anagnostopoulos <konstantinos.anagnostopoulos@ext.jrc.ec.europa.eu>
+:Keywords:  CO2, wltp, engineering, scientific, python, excel, library,
+:Copyright: 2015 European Commission (`JRC-IET
+            <https://ec.europa.eu/jrc/en/institutes/iet>`_)
+:License:   `EUPL 1.1+ <https://joinup.ec.europa.eu/software/page/eupl>`_
 
-:author: Vincenzo Arcidiacono 
-:version: 0.5.1
-:date: 17-June-2015
-:reviewed by:
 
-For info contact <vincenzo.arcidiacono@ext.jrc.ec.europa.eu> or <georgios.fontaras@jrc.ec.europa.eu>
+Install
+=======
 
+The program requires CPython-3, and depends on, among others,  
+numpy/scipy, pandas and matplotlib libraries that require native backends.
 
-Summary
-#######
+Code is currently tested only with python 3.4 in
+Anaconda/Winpython/MacOS/Windows 7.
 
-Install CO2MPAS
-===============
-The program requires CPython-3, and numpy/pandas, tkinter, networkx and matplotlib.
-Code is currently tested only with python 3.4 in Anaconda/Winpython/MacOS/Windows 7
-
-.. Note::
-	In *Windows* it is strongly suggested **NOT to install the standard CPython distribution**,
-    unless you are an experienced python-developer, you know how to hunt dependencies from *PyPi* repository and the `Unofficial Windows Binaries for Python Extension Packages <http://www.lfd.uci.edu/~gohlke/pythonlibs/>`_.
+.. note::
+   In *Windows* it is strongly suggested **NOT to install the standard CPython
+   distribution**, unless you are an experienced python-developer, you know how
+   to hunt dependencies from *PyPi* repository and the `Unofficial Windows
+   Binaries for Python Extension Packages
+   <http://www.lfd.uci.edu/~gohlke/pythonlibs/>`_.
 	
-Install python 3.4 from one of:
+1. Install python 3.4 from one of:
 	
 	- `Anaconda <http://continuum.io/downloads>`_
+
 	- `WinPython <https://winpython.github.io/>`_
+	  (and register the installation from its Control-panel)
 
-Unzip the archive to some folder, `cd` to it and install its dependencies::
-Open windows command prompt: start-->search cmd.exe --> run cmd.exe 
+2. Unzip the archive to some folder. 
 
-In the cmd window go in in the folder where you have unzipped the archive
-(eg. cd\ --> cd\compas)
+3. Open windows command prompt::
 
-Run the following command:
+       start --> `cmd.exe`
 
-	python setup.py -r requirements.txt
+4. In the cmd window go in in the folder where you have unzipped the archive::
 
-In case the command fails please refer to alternative usage method below for runnng jrc gear	
+       cd \path\to\directory\compas
 
-Usage of CO2MPAS
-================
-Once Python is installed appropriately
+5. Run the following command to install dependent libraries::
 
-Execute the python-code from inside the extracted folder.
+       pip install -r requirements.txt
 
-Just run (or directly double click):
 
-	python compas.py
+Usage
+=====
 
-Then select the input and output folders form the UI-browser.
+1. Once Python is installed appropriately, 
+   you can execute the python-code from inside the extracted folder.
+   Just run from the command prompt::
 
-N.B. see the template file for input data.
+	    python compas.py
 
-Alternative usage:
-Open any python development environment (eg spyder2 comes together with WinPython) or an ipython console from the python folder
-Run the command
-run 'C:/compas/compas.py'
+   or directly double click the python-file.
 
-where in ' '  you define the actual path where you have saved the file compas.py
 
-The program should run and a window asking you to select the input and output folders should appear.
-In case the you cannot see the respective window try minimizing your console in case the window appears in the background.
+2. Then select the input and output folders form the UI-browser.
+
+   .. Tip: 
+       See the template file (excel input/Template.xlsm) for required input data.
+
+   

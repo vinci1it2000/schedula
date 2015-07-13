@@ -1,41 +1,44 @@
-__author__ = 'Vincenzo Arcidiacono'
-
 import sys
-from os import getcwd
+import os
+
 
 def main(*args):
+    args = list(args)
+    prog_name = args.pop()
 
-    if len(args) == 1:
-        from tkinter.filedialog import askdirectory
-        from tkinter import Tk
+    input_folder = 'input'
+    output_folder = 'output'
 
-        root = Tk()
-        root.withdraw()
-        input_folder = askdirectory(title='Select input folder',
-                                    initialdir='%s/input'%(getcwd()),
-                                    parent=root)
+    if args:
+        input_folder = args.pop()
+    if args:
+        output_folder = args.pop()
+    if args:
+        print("Syntax: %s [input_folder  output_folder]" % args[0])
+        exit(-1)
+
+    if not os.path.isdir(input_folder):
+        import easygui as eu
+
+        input_folder = eu.diropenbox(msg='Select input folder',
+                                     title='GearTool',
+                                     default=input_folder)
         if not input_folder:
             exit()
-        output_folder = askdirectory(title='Select output folder',
-                                     initialdir='%s/output'%(getcwd()),
-                                     parent=root)
+
+    if not os.path.isdir(output_folder):
+        import easygui as eu
+
+        output_folder = eu.diropenbox(msg='Select output folder',
+                                      title='GearTool',
+                                      default=output_folder)
         if not output_folder:
             exit()
 
-    elif len(args) == 3:
-        input_folder, output_folder = args[1:]
+    from compas.models.architecture import process_folder_files
 
-    else:
-        print("%s [input_folder  output_folder]" % args[0])
+    process_folder_files(input_folder, output_folder)
 
-    if not (input_folder and output_folder):
-        print('ERROR: missing input and/or output folder')
-    else:
-        from compas.models.compas import process_folder_files
-
-        process_folder_files(input_folder, output_folder)
-
-    root.destroy()
 
 if __name__ == '__main__':
     main(*sys.argv)
