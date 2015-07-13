@@ -73,10 +73,23 @@ def plot_gear_box_speeds(series):
     _plot_series(series['Time [s]'], g, ax=ax2,
                 x_label='Time [s]', y_label='Gear [-]')
 
-    g = {k.replace('Gear box speeds with ', ''): v
-         for k, v in series.items()
-         if 'Gear box speed' in k or 'Engine speed' in k}
+    g, e = {}, {}
+    for k, v in series.items():
+        if 'Gearbox speeds engine side [RPM] with' in k:
+            g[k.replace('Gearbox speeds engine side [RPM] with ', '')] = v
+        elif 'Engine speed' in k:
+            e[k] = v
+
+    g1 = {}
+    g1.update(e)
+    for i in range(int((len(g) - 1) / 2) + 1):
+        k, v = g.popitem()
+        g1[k] = v
+    g.update(e)
     _plot_series(series['Time [s]'], g, ax=ax3,
-                x_label='Time [s]', y_label='Gear box speed [rpm]')
+                x_label='Time [s]', y_label='Gearbox speed [rpm]')
+
+    _plot_series(series['Time [s]'], g1, ax=ax4,
+                x_label='Time [s]', y_label='Gearbox speed [rpm]')
 
     return fig

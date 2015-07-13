@@ -7,6 +7,8 @@
 
 """
 It contains functions to write prediction outputs.
+
+.. note:: these functions are used in :mod:`compas.models.compas`.
 """
 __author__ = 'Vincenzo Arcidiacono'
 
@@ -119,7 +121,7 @@ standard_names = {
     'idle_engine_speed_median': 'Idle engine speed median [rpm]',
     'CMV_Cold_Hot': 'Corrected matrix velocity Cold/Hot [km/h]',
     'velocity_speed_ratios': 'Velocity speed ratios [km/(rpm * h)]',
-    'wheel_powers': 'Wheel power [watt]',
+    'wheel_powers': 'Wheel power [kW]',
     'max_engine_speed_at_max_power': 'Maximum engine speed at max power [rpm]',
     'r_dynamic': 'R dynamic [m]',
     'final_drive': 'Final drive [-]',
@@ -134,5 +136,13 @@ standard_names = {
     'idle_engine_speed_std': 'Idle engine speed std [rpm]',
     'road_loads': 'Road loads [(N, N/(km/h) N/(km/h)^2)]',
     'time_cold_hot_transition': 'Time cold hot transition [s]',
-    'time_shift_engine_speeds': 'Time shift engine speeds [s]'
 }
+
+'''
+from compas.models.AT_gear import def_gear_models
+
+
+for c in def_gear_models()[1]:
+    s = 'gear_box_speeds_with_%s' % c
+    standard_names[s] = 'Gearbox speeds engine side [RPM] with %s' % c
+'''
