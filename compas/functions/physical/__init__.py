@@ -22,6 +22,8 @@ Modules:
     wheels
     final_drive
     gear_box
+    torque_converter
+    engine
     utils
     constants
 

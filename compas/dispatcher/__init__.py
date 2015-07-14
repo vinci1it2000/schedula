@@ -2214,7 +2214,9 @@ class Dispatcher(object):
 
             if dsp in finished:
                 continue
+
             started.add(dsp)
+
             # set and see nodes
             if not dsp._visit_nodes(v, d, fringe, check_cutoff, no_call):
                 if self is dsp:

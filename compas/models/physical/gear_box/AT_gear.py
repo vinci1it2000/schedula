@@ -14,8 +14,8 @@ The model is defined by a Dispatcher that wraps all the functions needed.
 __author__ = 'Vincenzo_Arcidiacono'
 
 from compas.dispatcher import Dispatcher
+from compas.functions.physical.gear_box.AT_gear import *
 
-from compas.functions.physical.gear_box.AT_gear.gear_logic import *
 
 def AT_gear():
     """
@@ -51,7 +51,8 @@ def AT_gear():
         function=correct_gear_v0,
         inputs=['velocity_speed_ratios', 'upper_bound_engine_speed',
                 'max_engine_power', 'max_engine_speed_at_max_power',
-                'idle_engine_speed', 'full_load_curve', 'road_loads', 'inertia'],
+                'idle_engine_speed', 'full_load_curve', 'road_loads',
+                'inertia'],
         outputs=['correct_gear'])
 
     AT_gear.add_function(

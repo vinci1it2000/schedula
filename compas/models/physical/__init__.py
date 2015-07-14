@@ -21,6 +21,7 @@ It contains a comprehensive list of all CO2MPAS software models and sub-models:
     final_drive
     gear_box
     torque_converter
+    engine
 
 The model is defined by a Dispatcher that wraps all the functions needed.
 """
@@ -166,6 +167,37 @@ def physical():
             'gear_box_temperatures': 'gear_box_temperatures',
             'gear_box_torque_losses': 'gear_box_torque_losses',
             'gear_box_torques_in': 'gear_box_torques_in',
+        }
+    )
+
+    from .engine import engine
+
+    en = engine()
+
+    mechanical.add_from_lists(
+        data_list=[{'data_id': k, 'default_value': v}
+                   for k, v in en.default_values.items()]
+    )
+
+    mechanical.add_dispatcher(
+        dsp_id='Engine model',
+        dsp=en,
+        inputs={
+            'engine_capacity': 'engine_capacity',
+            'engine_loss_parameters': 'engine_loss_parameters',
+            'engine_speeds_out': 'engine_speeds_out',
+            'gear_box_torques_in': 'engine_torques_in',
+            'gears': 'gears',
+            'idle_engine_speed_median': 'idle_engine_speed_median',
+            'idle_engine_speed_std': 'idle_engine_speed_std',
+            'velocities': 'velocities'
+        },
+        outputs={
+            'braking_powers': 'braking_powers',
+            'engine_stroke': 'engine_stroke',
+            'idle_engine_speed': 'idle_engine_speed',
+            'piston_speeds': 'piston_speeds',
+            'upper_bound_engine_speed': 'upper_bound_engine_speed',
         }
     )
 

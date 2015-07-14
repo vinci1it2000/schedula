@@ -183,6 +183,9 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
 
                 kw = {'shape': 'record', 'fillcolor': 'springgreen'}
 
+                if n['type'] == 'dispatcher':
+                    kw['style'] = 'dashed, filled'
+
                 fun_label = _func_name(k, function_module)
 
                 node_label = _fun_node_label(fun_label, n, dist)

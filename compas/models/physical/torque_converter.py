@@ -6,7 +6,7 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-It provides a A/T gear shifting model to identify and predict the gear shifting.
+It provides a torque converter model.
 
 The model is defined by a Dispatcher that wraps all the functions needed.
 """
@@ -14,14 +14,25 @@ The model is defined by a Dispatcher that wraps all the functions needed.
 __author__ = 'Vincenzo_Arcidiacono'
 
 from compas.dispatcher import Dispatcher
-from compas.functions.physical.gear_box.AT_gear.gear_logic import *
-from compas.functions.physical.gear_box.AT_gear.torque_converter import *
+from compas.functions.physical.gear_box.AT_gear import *
+from compas.functions.physical.torque_converter import *
+
 
 def torque_converter():
+    """
+    Define the torque converter model.
+
+    .. dispatcher:: dsp
+
+        >>> dsp = torque_converter()
+
+    :return:
+        The torque converter model.
+    :rtype: Dispatcher
+    """
     torque_converter = Dispatcher(
-        name='Automatic gear model',
-        description='Defines an omni-comprehensive gear shifting model for '
-                    'automatic vehicles.')
+        name='Torque converter',
+        description='Models the torque converter.')
 
     # Torque efficiencies
     torque_converter.add_function(

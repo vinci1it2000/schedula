@@ -165,6 +165,7 @@ def search_doc_in_func(dsp, node_id):
 
     return des, link
 
+
 def search_data_description(node_id, node_attr, dsp):
     link = ''
 
@@ -180,6 +181,7 @@ def search_data_description(node_id, node_attr, dsp):
 
     return des, link
 
+
 def _data(lines, dsp):
     nodes = dsp.nodes
     data = [v for v in sorted(nodes.items()) if v[1]['type'] == 'data']
@@ -191,7 +193,7 @@ def _data(lines, dsp):
 
             link = ':obj:`%s <%s>`' % (str(k), link)
 
-            lines.append(u'   %s, "%s"' % (link, get_summary(des.split('\n'))))
+            lines.append(u'   "%s", "%s"' % (link, get_summary(des.split('\n'))))
 
         lines.append('')
 
@@ -223,7 +225,7 @@ def _functions(lines, dsp, function_module, node_type='function'):
 
             name = _func_name(k, function_module)
 
-            lines.append(u'   :func:`%s <%s>`, %s' % (name, full_name, des))
+            lines.append(u'   ":func:`%s <%s>`", "%s"' % (name, full_name, des))
         lines.append('')
 
 
@@ -232,6 +234,8 @@ def _functions(lines, dsp, function_module, node_type='function'):
 # ------------------------------------------------------------------------------
 
 PLOT = object()
+
+
 def _dsp2dot_option(arg):
     """Used to convert the :dmap: option to auto directives."""
 
@@ -340,9 +344,11 @@ class DispatcherDirective(AutoDirective):
 
 def add_autodocumenter(app, cls):
     app.debug('[app] adding autodocumenter: %r', cls)
+
     from sphinx.ext import autodoc
 
     autodoc.add_documenter(cls)
+
     app.add_directive('auto' + cls.objtype, DispatcherDirective)
 
 
@@ -351,7 +357,3 @@ def setup(app):
     app.setup_extension('sphinx.ext.graphviz')
     add_autodocumenter(app, DispatcherDocumenter)
     app.add_directive('dispatcher', DispatcherDirective)
-
-if __name__ == '__main__':
-    from compas.dispatcher.draw import dsp2dot
-    get_attr_doc(dsp2dot.__doc__, 'worflow')

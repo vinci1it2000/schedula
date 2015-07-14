@@ -283,8 +283,9 @@ def correct_gear_v0(
         road_loads, inertia):
     """
     Returns a function to correct the gear predicted according to
-    :func:`compas.functions.AT_gear.correct_gear_upper_bound_engine_speed`
-    and :func:`compas.functions.AT_gear.correct_gear_full_load`.
+    :func:`compas.functions.physical.AT_gear.
+    correct_gear_upper_bound_engine_speed`
+    and :func:`compas.functions.physical.AT_gear.correct_gear_full_load`.
 
     :param velocity_speed_ratios:
         Constant velocity speed ratios of the gear box.
@@ -342,7 +343,8 @@ def correct_gear_v0(
 def correct_gear_v1(velocity_speed_ratios, upper_bound_engine_speed):
     """
     Returns a function to correct the gear predicted according to
-    :func:`compas.functions.AT_gear.correct_gear_upper_bound_engine_speed`.
+    :func:`compas.functions.physical.AT_gear.
+    correct_gear_upper_bound_engine_speed`.
 
     :param velocity_speed_ratios:
         Constant velocity speed ratios of the gear box.
@@ -372,7 +374,7 @@ def correct_gear_v2(
         idle_engine_speed, full_load_curve, road_loads, inertia):
     """
     Returns a function to correct the gear predicted according to
-    :func:`compas.functions.AT_gear.correct_gear_full_load`.
+    :func:`compas.functions.physical.AT_gear.correct_gear_full_load`.
 
     :param velocity_speed_ratios:
         Constant velocity speed ratios of the gear box.

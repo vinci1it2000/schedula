@@ -26,6 +26,7 @@ from compas.functions.physical.gear_box import *
 from compas.dispatcher.utils import bypass
 from compas.functions.physical.gear_box import get_gear_box_efficiency_constants
 
+
 def gear_box():
     """
     Define the gear box model.

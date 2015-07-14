@@ -4,6 +4,7 @@ from compas.dispatcher import Dispatcher
 from compas.dispatcher.utils.dsp import bypass
 from compas.functions.physical.gear_box.thermal import *
 
+
 def thermal():
     """
     Define the gear box thermal sub model.
