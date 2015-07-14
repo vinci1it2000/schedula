@@ -132,12 +132,14 @@ def mechanical():
         dsp=gb,
         inputs={
             'engine_max_torque': 'engine_max_torque',
-            'equivalent_gear_box_capacity': 'equivalent_gear_box_capacity',
+            'equivalent_gear_box_heat_capacity':
+                'equivalent_gear_box_heat_capacity',
             'final_drive': 'final_drive',
             'final_drive_powers_in': 'gear_box_powers_out',
             'final_drive_speeds_in': 'gear_box_speeds_out',
             'gear_box_efficiency_constants': 'gear_box_efficiency_constants',
-            'gear_box_efficiency_parameters': 'gear_box_efficiency_parameters',
+            'gear_box_efficiency_parameters_cold_hot':
+                'gear_box_efficiency_parameters_cold_hot',
             'gear_box_ratios': 'gear_box_ratios',
             'gear_box_starting_temperature': 'gear_box_starting_temperature',
             'gear_box_type': 'gear_box_type',

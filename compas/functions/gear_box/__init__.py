@@ -347,7 +347,7 @@ def calculate_torques_losses(gear_box_torques_in, gear_box_torques_out):
 def calculate_gear_box_efficiencies(
         gear_box_powers_out, gear_box_speeds_in, gear_box_speeds_out,
         gear_box_torques_out,
-        gear_box_efficiency_parameters, equivalent_gear_box_capacity,
+        gear_box_efficiency_parameters, equivalent_gear_box_heat_capacity,
         thermostat_temperature, temperature_references,
         gear_box_starting_temperature, gears=None, gear_box_ratios=None):
     """
@@ -375,15 +375,16 @@ def calculate_gear_box_efficiencies(
        (power mode or from wheels in motoring mode).
     """
 
-    inputs = ['thermostat_temperature', 'equivalent_gear_box_capacity',
-              'gear_box_efficiency_parameters', 'temperature_references',
+    inputs = ['thermostat_temperature', 'equivalent_gear_box_heat_capacity',
+              'gear_box_efficiency_parameters_cold_hot',
+              'temperature_references',
               'gear_box_power_out', 'gear_box_speed_out', 'gear_box_speed_in',
               'gear_box_torque_out']
 
     outputs = ['gear_box_temperature', 'gear_box_torque_in',
                'gear_box_efficiency']
 
-    dfl = (thermostat_temperature, equivalent_gear_box_capacity,
+    dfl = (thermostat_temperature, equivalent_gear_box_heat_capacity,
            gear_box_efficiency_parameters, temperature_references)
 
     it = (gear_box_powers_out, gear_box_speeds_out, gear_box_speeds_in,

@@ -186,6 +186,13 @@ CYCLE_data_map = {
         'nrated': ('max_engine_speed_at_max_power', (float, )),
         'nidle': ('idle_engine_speed_median', (float, )),
         'fuel type': ('fuel_type', (str, empty)),
+        'gear box type': ('gear_box_type', (str, empty)),
+        'engine max torque': ('engine_max_torque', (float, )),
+        'equivalent gear box heat capacity':
+            ('equivalent_gear_box_heat_capacity', (float, )),
+        'thermostat temperature': ('thermostat_temperature', (float, )),
+        'gear box starting temperature': ('gear_box_starting_temperature',
+                                          (float, )),
     },
     'SERIES': {
         0: ('times', (np.asarray, empty)),
