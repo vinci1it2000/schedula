@@ -360,6 +360,7 @@ class SubDispatch(object):
         self.workflow = DiGraph()
         self.__module__ = caller_name()
         self.__name__ = dsp.name
+        self.__doc__ = dsp.__doc__
 
     def __call__(self, *input_dicts):
 
@@ -393,6 +394,7 @@ class ReplicateFunction(object):
         self.function = function
         self.__module__ = caller_name()
         self.__name__ = function.__name__
+        self.__doc__ = function.__doc__
 
     def __call__(self, *inputs):
         function = self.function

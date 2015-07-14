@@ -6,20 +6,19 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-It contains a list of all modules that contains functions/formulas of CO2MPAS.
+It contains functions to predict the A/T gear shifting and torque converter
+mechanics.
 
-Modules:
+Sub-Modules:
 
-.. currentmodule:: compas.functions
+.. currentmodule:: compas.functions.physical.gear_box.AT_gear
 
 .. autosummary::
     :nosignatures:
-    :toctree: functions/
+    :toctree: AT_gear/
 
-    physical
-    plot
-    read_inputs
-    write_outputs
-
+    gear_logic
+    torque_converter
 """
+
 __author__ = 'Vincenzo Arcidiacono'

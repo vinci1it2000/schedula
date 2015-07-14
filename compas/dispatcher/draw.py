@@ -277,6 +277,7 @@ def _data_node_label(k, values, attr=None, dist=None):
     if not dist:
         v = dict(attr)
         v.pop('type')
+        v.pop('description', None)
         if k in values:
             v.update({'default': values[k]})
         if not v['wait_inputs']:
@@ -311,7 +312,8 @@ def _get_link(dsp_id, dsp, node_id, tag):
 
 def _fun_node_label(k, attr=None, dist=None):
     if not dist:
-        exc = ['type', 'inputs', 'outputs', 'wait_inputs', 'function']
+        exc = ['type', 'inputs', 'outputs', 'wait_inputs', 'function',
+               'description']
         v = {k: _fun_attr(k, v) for k, v in attr.items() if k not in exc}
     else:
         v = {'distance': dist[k]} if k in dist else {}

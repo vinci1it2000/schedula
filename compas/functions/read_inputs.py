@@ -101,8 +101,7 @@ def parse_inputs(data, data_map):
     :type data: dict
 
     :param data_map:
-        It maps the data as:
-            data's key --> (parsed key, filters)
+        It maps the data as: data's key --> (parsed key, filters).
     :type data_map: dict
 
     :return:

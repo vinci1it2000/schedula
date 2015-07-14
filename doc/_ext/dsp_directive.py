@@ -25,6 +25,13 @@ def contains_doctest(text):
 # Auto dispatcher content
 # ------------------------------------------------------------------------------
 
+def get_attr_doc(doc, attr_name):
+    res = re.search(r":param[\s]+%s:" % attr_name, doc)
+    if res:
+        return get_summary(doc[res.regs[0][1]:].split('\n'))
+    else:
+        return ''
+
 
 def get_summary(doc):
     while doc and not doc[0].strip():
@@ -137,37 +144,62 @@ def _table_heather(lines, title, dsp_name):
     lines.extend(['.. csv-table:: **%s\'%s %s**' % (dsp_name, q, title), ''])
 
 
+def search_doc_in_func(dsp, node_id):
+    nodes = dsp.nodes
+    des, link = ('', '')
+    for k, v in ((k, nodes[k]) for k in sorted(dsp.dmap[node_id])):
+        if v['type'] == 'function':
+            try:
+                fun = v['function']
+                attr_name = getargspec(fun)[0][v['inputs'].index(node_id)]
+                des = get_attr_doc(fun.__doc__, attr_name)
+            except:
+                pass
+        elif v['type'] == 'dispatcher':
+            sub_dsp = v['function']
+            n_id = v['inputs'][node_id]
+            des, link = search_data_description(n_id, sub_dsp.nodes[n_id], sub_dsp)
+
+        if des:
+            break
+
+    return des, link
+
+def search_data_description(node_id, node_attr, dsp):
+    link = ''
+
+    if 'description' in node_attr:
+        des = node_attr['description']
+    else:
+        # noinspection PyBroadException
+        try:
+            des = node_id.__doc__
+            link = '%s.%s' % (node_id.__module__, node_id.__name__)
+        except:
+            des, link = search_doc_in_func(dsp, node_id)
+
+    return des, link
+
 def _data(lines, dsp):
-    data = [v for v in sorted(dsp.nodes.items()) if v[1]['type'] == 'data']
+    nodes = dsp.nodes
+    data = [v for v in sorted(nodes.items()) if v[1]['type'] == 'data']
     if data:
         _table_heather(lines, 'data', dsp.name)
 
         for k, v in data:
-            link = ''
-            if 'description' in v:
-                des = v['description']
-            else:
-                # noinspection PyBroadException
-                try:
-                    des = k.__doc__
-                    link = '%s.%s' % (k.__module__, k.__name__)
-                except:
-                    des = ''
-
-            if not des:
-                des = ''
+            des, link = search_data_description(k, v, dsp)
 
             link = ':obj:`%s <%s>`' % (str(k), link)
 
-            lines.append(u'   %s, %s' % (link, get_summary(des.split('\n'))))
+            lines.append(u'   %s, "%s"' % (link, get_summary(des.split('\n'))))
 
         lines.append('')
 
 
-def _functions(lines, dsp, function_module):
-    fun = [v for v in sorted(dsp.nodes.items()) if v[1]['type'] == 'function']
+def _functions(lines, dsp, function_module, node_type='function'):
+    fun = [v for v in sorted(dsp.nodes.items()) if v[1]['type'] == node_type]
     if fun:
-        _table_heather(lines, 'functions', dsp.name)
+        _table_heather(lines, '%ss' % node_type, dsp.name)
 
         for k, v in fun:
             full_name = ''
@@ -213,7 +245,6 @@ def _dsp2dot_option(arg):
     return kw if kw else PLOT
 
 
-
 class DispatcherDocumenter(DataDocumenter):
     """
     Specialized Documenter subclass for dispatchers.
@@ -228,6 +259,7 @@ class DispatcherDocumenter(DataDocumenter):
         'code': bool_option,
         'data': bool_option,
         'func': bool_option,
+        'dsp': bool_option,
     })
     default_opt = {
         'workflow': False,
@@ -290,12 +322,15 @@ class DispatcherDocumenter(DataDocumenter):
         if not opt or opt.func:
             _functions(lines, dsp, dot_view_opt['function_module'])
 
+        if not opt or opt.dsp:
+            _functions(lines, dsp, dot_view_opt['function_module'], 'dispatcher')
+
         for line in lines:
             self.add_line(line, sourcename)
 
 
 class DispatcherDirective(AutoDirective):
-    _default_flags = {'des', 'opt', 'data', 'func', 'code', 'annotation'}
+    _default_flags = {'des', 'opt', 'data', 'func', 'dsp', 'code', 'annotation'}
 
     def __init__(self, *args, **kwargs):
         super(DispatcherDirective, self).__init__(*args, **kwargs)
@@ -316,3 +351,7 @@ def setup(app):
     app.setup_extension('sphinx.ext.graphviz')
     add_autodocumenter(app, DispatcherDocumenter)
     app.add_directive('dispatcher', DispatcherDirective)
+
+if __name__ == '__main__':
+    from compas.dispatcher.draw import dsp2dot
+    get_attr_doc(dsp2dot.__doc__, 'worflow')

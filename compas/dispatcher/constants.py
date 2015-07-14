@@ -25,6 +25,7 @@ EMPTY = Token('empty')
 #:
 #: .. seealso:: :func:`~dispatcher.Dispatcher.dispatch`
 START = Token('start')
+START.__doc__ = 'Starting node that identifies initial inputs of the workflow.'
 
 #: Fake value used to set a default value to call functions without arguments.
 #:
@@ -36,3 +37,4 @@ NONE = Token('none')
 #: .. seealso:: :func:`~dispatcher.Dispatcher.add_data`,
 #:    :func:`~dispatcher.Dispatcher.add_function`
 SINK = Token('sink')
+SINK.__doc__ = 'Sink node of the dispatcher that collects all unused outputs.'

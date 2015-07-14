@@ -6,20 +6,24 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-It contains a list of all modules that contains functions/formulas of CO2MPAS.
+Contains a comprehensive list of all functions/formulas within CO2MPAS.
+
+Docstrings should provide sufficient understanding for any individual function.
 
 Modules:
 
-.. currentmodule:: compas.functions
+.. currentmodule:: compas.functions.physical
 
 .. autosummary::
     :nosignatures:
-    :toctree: functions/
+    :toctree: physical/
 
-    physical
-    plot
-    read_inputs
-    write_outputs
+    vehicle
+    wheels
+    final_drive
+    gear_box
+    utils
+    constants
 
 """
 __author__ = 'Vincenzo Arcidiacono'

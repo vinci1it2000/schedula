@@ -209,7 +209,7 @@ class Dispatcher(object):
         :type description: str, optional
         """
 
-        # : The directed graph that stores data & functions parameters.
+        #: The directed graph that stores data & functions parameters.
         self.dmap = dmap if dmap else DiGraph()
 
         #: The dispatcher's name.
@@ -274,7 +274,7 @@ class Dispatcher(object):
 
     def add_data(self, data_id=None, default_value=EMPTY, wait_inputs=False,
                  wildcard=None, function=None, callback=None, input=None,
-                 output=None, **kwargs):
+                 output=None, description=None, **kwargs):
         """
         Add a single data node to the dispatcher.
 
@@ -310,6 +310,10 @@ class Dispatcher(object):
             This can be any function that takes only one argument that is the
             data node estimation output. It does not return anything.
         :type callback: function, optional
+
+        :param description:
+            Data node's description.
+        :type description: str, optional
 
         :param kwargs:
             Set additional node attributes using key=value.
@@ -378,6 +382,11 @@ class Dispatcher(object):
             'unknown<0>'
         """
 
+        if data_id is START:
+            default_value, description = NONE, START.__doc__
+        elif data_id is SINK:
+            wait_inputs, function, description = True, bypass, SINK.__doc__
+
         # base data node attributes
         attr_dict = {'type': 'data', 'wait_inputs': wait_inputs}
 
@@ -395,6 +404,9 @@ class Dispatcher(object):
 
         if output is not None:  # add output as node attribute
             attr_dict['output'] = output
+
+        if description is not None:  # add description as node attribute
+            attr_dict['description'] = description
 
         # additional attributes
         attr_dict.update(kwargs)
@@ -426,7 +438,8 @@ class Dispatcher(object):
 
     def add_function(self, function_id=None, function=None, inputs=None,
                      outputs=None, input_domain=None, weight=None,
-                     weight_from=None, weight_to=None, **kwargs):
+                     weight_from=None, weight_to=None, description=None,
+                     **kwargs):
         """
         Add a single function node to dispatcher.
 
@@ -471,6 +484,10 @@ class Dispatcher(object):
             used by the dispatch algorithm to estimate the minimum workflow.
         :type weight_to: dict, optional
 
+        :param description:
+            Function node's description.
+        :type description: str, optional
+
         :param kwargs:
             Set additional node attributes using key=value.
         :type kwargs: keyword arguments, optional
@@ -503,7 +520,7 @@ class Dispatcher(object):
 
             >>> from math import log
             >>> def my_log(a, b):
-            ...     log(b - a)
+            ...     return log(b - a)
             ...
             >>> def my_domain(a, b):
             ...     return a < b
@@ -515,13 +532,13 @@ class Dispatcher(object):
 
         if inputs is None:  # set a dummy input
             if START not in self.nodes:
-                self.add_data(START, default_value=NONE)
+                self.add_data(START)
 
             inputs = [START]
 
         if outputs is None:  # set a dummy output
             if SINK not in self.nodes:
-                self.add_data(SINK, wait_inputs=True, function=bypass)
+                self.add_data(SINK)
 
             outputs = [SINK]
 
@@ -534,6 +551,10 @@ class Dispatcher(object):
 
         if input_domain:  # add domain as node attribute
             attr_dict['input_domain'] = input_domain
+
+
+        if description is not None:  # add description as node attribute
+            attr_dict['description'] = description
 
         if function_id is None:  # set function name
             try:
@@ -600,7 +621,7 @@ class Dispatcher(object):
 
     def add_dispatcher(self, dsp, inputs, outputs, dsp_id=None,
                        input_domain=None, weight=None, weight_from=None,
-                       cutoff=None, **kwargs):
+                       cutoff=None, description=None, **kwargs):
         """
         Add a single sub-dispatcher node to dispatcher.
 
@@ -639,6 +660,10 @@ class Dispatcher(object):
             used by the dispatch algorithm to estimate the minimum workflow.
         :type weight_from: dict, optional
 
+        :param description:
+            Sub-dispatcher node's description.
+        :type description: str, optional
+
         :param kwargs:
             Set additional node attributes using key=value.
         :type kwargs: keyword arguments, optional
@@ -671,7 +696,7 @@ class Dispatcher(object):
 
             >>> from math import log
             >>> def my_log(a, b):
-            ...     log(b - a)
+            ...     return log(b - a)
             ...
             >>> def my_domain(a, b):
             ...     return a < b
@@ -689,10 +714,13 @@ class Dispatcher(object):
         else:
             dsp_id = '%s:%s' % (dsp.__module__, 'unknown')
 
+        if description is None:
+            description = dsp.__doc__
+
         # return dispatcher node id
         dsp_id = self.add_function(
             dsp_id, dsp, inputs, outputs.values(), input_domain, weight,
-            weight_from, type='dispatcher', **kwargs)
+            weight_from, type='dispatcher', description=description, **kwargs)
 
         self.nodes[dsp_id]['outputs'] = outputs
 
@@ -880,6 +908,8 @@ class Dispatcher(object):
         # define an empty dispatcher
         sub_dsp = self.__class__(dmap=self.dmap.subgraph(nodes_bunch))
         sub_dsp.weight = self.weight
+        sub_dsp.__doc__ = self.__doc__
+        sub_dsp.name = self.name
 
         # namespace shortcuts for speed
         nodes = sub_dsp.dmap.node
@@ -996,6 +1026,8 @@ class Dispatcher(object):
         # define an empty dispatcher map
         sub_dsp = self.__class__()
         sub_dsp.weight = self.weight
+        sub_dsp.__doc__ = self.__doc__
+        sub_dsp.name = self.name
 
         if not graph:  # set default graph
             graph = self.workflow
@@ -1233,7 +1265,7 @@ class Dispatcher(object):
 
         **Example**:
 
-        A dispatcher with a function `my_log` and two data `a` and `b`
+        A dispatcher with a function :math:`log(b - a)` and two data `a` and `b`
         with default values:
 
         .. dispatcher:: dsp
@@ -1251,9 +1283,10 @@ class Dispatcher(object):
             ...     return log(b - a)
             >>> def my_domain(a, b):
             ...     return a < b
-            >>> dsp.add_function('my log', function=my_log, inputs=['c', 'd'],
+            >>> dsp.add_function('log(b - a)', function=my_log,
+            ...                  inputs=['c', 'd'],
             ...                  outputs=['e'], input_domain=my_domain)
-            'my log'
+            'log(b - a)'
             >>> dsp.add_function('min', function=min, inputs=['a', 'b'],
             ...                  outputs=['c'])
             'min'

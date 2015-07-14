@@ -8,11 +8,13 @@
 
 import doctest
 import unittest
-from compas.functions.gear_box import *
+
+from compas.functions.physical.gear_box import *
+
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):
-        import compas.functions.gear_box as mld
+        import compas.functions.physical.gear_box as mld
 
         failure_count, test_count = doctest.testmod(
             mld, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS
