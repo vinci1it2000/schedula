@@ -365,7 +365,7 @@ def dt_va():
 
     # predict gears with decision tree with velocity & acceleration
     dt_va.add_function(
-        function=prediction_gears_gsm_hot_cold,
+        function=prediction_gears_decision_tree,
         inputs=['correct_gear', 'DT_VA', 'times', 'velocities',
                 'accelerations'],
         outputs=['gears'])
@@ -411,7 +411,7 @@ def dt_vap():
 
     # predict gears with decision tree with velocity, acceleration & wheel power
     dt_vap.add_function(
-        function=prediction_gears_gsm_hot_cold,
+        function=prediction_gears_decision_tree,
         inputs=['correct_gear', 'DT_VAP', 'times', 'velocities',
                 'accelerations', 'gear_box_powers_out'],
         outputs=['gears'])
@@ -457,7 +457,7 @@ def dt_vat():
 
     # predict gears with decision tree with velocity, acceleration & temperature
     dt_vat.add_function(
-        function=prediction_gears_gsm_hot_cold,
+        function=prediction_gears_decision_tree,
         inputs=['correct_gear', 'DT_VAT', 'times', 'velocities',
                 'accelerations', 'temperatures'],
         outputs=['gears'])
@@ -507,7 +507,7 @@ def dt_vatp():
     # predict gears with decision tree with velocity, acceleration, temperature
     # & wheel power
     dt_vatp.add_function(
-        function=prediction_gears_gsm_hot_cold,
+        function=prediction_gears_decision_tree,
         inputs=['correct_gear', 'DT_VATP', 'times', 'velocities',
                 'accelerations', 'temperatures', 'gear_box_powers_out'],
         outputs=['gears'])
@@ -600,7 +600,7 @@ def gspv_cold_hot():
 
     # predict gears with corrected matrix velocity
     gspv_cold_hot.add_function(
-        function=prediction_gears_gsm,
+        function=prediction_gears_gsm_hot_cold,
         inputs=['correct_gear', 'GSPV_Cold_Hot', 'time_cold_hot_transition',
                 'times', 'velocities', 'accelerations', 'gear_box_powers_out'],
         outputs=['gears'])
