@@ -1,4 +1,17 @@
-__author__ = 'arcidvi'
+#-*- coding: utf-8 -*-
+#
+# Copyright 2015 European Commission (JRC);
+# Licensed under the EUPL (the 'Licence');
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+
+"""
+It provides a final drive model.
+
+The model is defined by a Dispatcher that wraps all the functions needed.
+"""
+
+__author__ = 'Vincenzo_Arcidiacono'
 
 from compas.dispatcher import Dispatcher
 from compas.functions.physical.final_drive import *
@@ -19,7 +32,7 @@ def final_drive():
 
     final_drive = Dispatcher(
         name='Final drive',
-        description='Calculates forces and power acting on the vehicle.'
+        description='Models the final drive.'
     )
 
     final_drive.add_data(

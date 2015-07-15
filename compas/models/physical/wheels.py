@@ -1,4 +1,17 @@
-__author__ = 'iMac2013'
+#-*- coding: utf-8 -*-
+#
+# Copyright 2015 European Commission (JRC);
+# Licensed under the EUPL (the 'Licence');
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+
+"""
+It provides a wheels model.
+
+The model is defined by a Dispatcher that wraps all the functions needed.
+"""
+
+__author__ = 'Vincenzo_Arcidiacono'
 
 from compas.dispatcher import Dispatcher
 from compas.functions.physical.wheels import *
