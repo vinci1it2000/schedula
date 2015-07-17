@@ -114,11 +114,11 @@ def architecture():
         description='Dictionary that has all inputs of the prediction cycle.'
     )
 
-    from .physical import physical
+    from .physical import physical_calibration
 
     architecture.add_function(
         function_id='calibrate_mechanical_models',
-        function=SubDispatch(physical()),
+        function=SubDispatch(physical_calibration()),
         inputs=['calibration_cycle_inputs'],
         outputs=['calibration_cycle_outputs'],
         description='Wraps all functions needed to calibrate the models to '
@@ -145,10 +145,11 @@ def architecture():
         data_id='calibrated_models',
         description='Dictionary that has all calibrated models.'
     )
+    from .physical import physical_prediction
 
     architecture.add_function(
         function_id='predict_mechanical_model',
-        function=SubDispatch(physical()),
+        function=SubDispatch(physical_prediction()),
         inputs=['calibrated_models', 'prediction_cycle_inputs'],
         outputs=['prediction_cycle_outputs'],
     )
@@ -241,6 +242,9 @@ def process_folder_files(input_folder, output_folder):
             v.update({'cycle': 'Calibrated', 'vehicle': fname, 'model': k})
             error_coeff.append(v)
         '''
+    from compas.dispatcher.draw import dsp2dot
+    dsp2dot(model, workflow =True, view = True, function_module=False, node_output=False, edge_attr=model.weight)
+    dsp2dot(model, view = True, function_module=False)
     writer = pd.ExcelWriter('%s/%s%s.xlsx' % (output_folder, doday, 'Summary'))
     pd.DataFrame.from_records(error_coeff).to_excel(writer, 'Summary')
 

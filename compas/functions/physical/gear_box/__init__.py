@@ -29,6 +29,185 @@ import numpy as np
 from compas.dispatcher.utils.dsp import SubDispatchFunction
 from compas.functions.physical.utils import bin_split, reject_outliers
 from compas.functions.physical.constants import *
+from functools import partial
+from scipy.stats import binned_statistic
+from scipy.optimize import brute
+from scipy.interpolate import InterpolatedUnivariateSpline
+
+from compas.functions.physical.utils import median_filter, \
+    clear_gear_fluctuations
+
+
+def identify_gear(
+        idle_engine_speed, vsr, max_gear, ratio, velocity, acceleration):
+    """
+    Identifies a gear.
+
+    :param ratio:
+        Vehicle velocity speed ratio.
+    :type ratio: float
+
+    :param velocity:
+        Vehicle velocity.
+    :type velocity: float
+
+    :param acceleration:
+        Vehicle acceleration.
+    :type acceleration: float
+
+    :param idle_engine_speed:
+        Engine speed idle.
+    :type idle_engine_speed: (float, float)
+
+    :param vsr:
+        Constant velocity speed ratios of the gear box.
+    :type vsr: iterable
+
+    :return:
+        A gear.
+    :rtype: int
+    """
+
+    if velocity <= VEL_EPS:
+        return 0
+
+    m, (gear, vs) = min((abs(v - ratio), (k, v)) for k, v in vsr)
+
+    if (acceleration < 0
+        and (velocity <= idle_engine_speed[0] * vs
+             or abs(velocity / idle_engine_speed[1] - ratio) < m)):
+        return 0
+
+    if gear == 0 and ((velocity > VEL_EPS and acceleration > 0)
+                      or acceleration > ACC_EPS):
+        return 1
+
+    return gear
+
+
+def identify_gears(
+        times, velocities, accelerations, engine_speeds_out,
+        velocity_speed_ratios, idle_engine_speed=(0.0, 0.0)):
+    """
+    Identifies gear time series.
+
+    :param times:
+        Time vector.
+    :type times: np.array
+
+    :param velocities:
+        Velocity vector.
+    :type velocities: np.array
+
+    :param accelerations:
+        Acceleration vector.
+    :type accelerations: np.array, float
+
+    :param gear_box_speeds_in:
+        Gear box speed vector.
+    :type gear_box_speeds_in: np.array
+
+    :param velocity_speed_ratios:
+        Constant velocity speed ratios of the gear box.
+    :type velocity_speed_ratios: dict
+
+    :param idle_engine_speed:
+        Engine speed idle median and std.
+    :type idle_engine_speed: (float, float), optional
+
+    :return:
+        Gear vector identified.
+    :rtype: np.array
+    """
+
+    gb_speeds = calculate_gear_box_speeds_from_engine_speeds(
+        times, velocities, accelerations, engine_speeds_out,
+        velocity_speed_ratios)[0]
+
+    vsr = [v for v in velocity_speed_ratios.items()]
+
+    ratios = velocities / gb_speeds
+
+    ratios[gb_speeds < MIN_ENGINE_SPEED] = 0
+
+    idle_speed = (idle_engine_speed[0] - idle_engine_speed[1],
+                  idle_engine_speed[0] + idle_engine_speed[1])
+
+    max_gear = max(velocity_speed_ratios)
+
+    id_gear = partial(identify_gear, idle_speed, vsr, max_gear)
+
+    gear = list(map(id_gear, *(ratios, velocities, accelerations)))
+
+    gear = median_filter(times, gear, TIME_WINDOW)
+
+    gear = clear_gear_fluctuations(times, gear, TIME_WINDOW)
+
+    return gear
+
+
+def speed_shift(times, speeds):
+    speeds = InterpolatedUnivariateSpline(times, speeds, k=1)
+
+    def shift(dt):
+        return speeds(times + dt)
+
+    return shift
+
+
+def calculate_gear_box_speeds_from_engine_speeds(
+        times, velocities, accelerations, engine_speeds_out,
+        velocity_speed_ratios):
+    """
+    Calculates the gear box speeds applying a constant time shift.
+
+    :param times:
+        Time vector.
+    :type times: np.array
+
+    :param velocities:
+        Velocity vector.
+    :type velocities: np.array
+
+    :param engine_speeds_out:
+        Engine speed vector.
+    :type engine_speeds_out: np.array
+
+    :param velocity_speed_ratios:
+        Constant velocity speed ratios of the gear box.
+    :type velocity_speed_ratios: dict
+
+    :return:
+        - Gear box speed vector.
+        - time shift of engine speeds.
+    :rtype: (np.array, float)
+    """
+
+    bins = [-INF, 0]
+    bins.extend([v for k, v in sorted(velocity_speed_ratios.items()) if k > 0])
+    bins.append(INF)
+    bins = bins[:-1] + np.diff(bins) / 2
+    bins[0] = 0
+
+    speeds = speed_shift(times, engine_speeds_out)
+
+    def error_fun(x):
+        s = speeds(x)
+
+        b = s > 0
+        ratio = velocities[b] / s[b]
+
+        std = binned_statistic(ratio, ratio, np.std, bins)[0]
+        w = binned_statistic(ratio, ratio, 'count', bins)[0]
+
+        return sum(std * w)
+
+    shift = brute(error_fun, (slice(-MAX_DT_SHIFT, MAX_DT_SHIFT, 0.1),))
+
+    gear_box_speeds = speeds(*shift)
+    gear_box_speeds[gear_box_speeds < 0] = 0
+
+    return gear_box_speeds, tuple(shift)
 
 
 def get_gear_box_efficiency_constants(gear_box_type):

@@ -12,7 +12,7 @@ It contains functions to predict the A/T gear shifting.
 __author__ = 'Vincenzo Arcidiacono'
 
 from collections import OrderedDict
-from itertools import chain, repeat
+from itertools import chain
 
 import numpy as np
 from scipy.optimize import fmin
@@ -54,111 +54,6 @@ def get_full_load(fuel_type):
              1, 0.937598144, 0.85])
     }
     return full_load[fuel_type]
-
-
-def identify_gear(
-        ratio, velocity, acceleration, idle_engine_speed, vsr, max_gear):
-    """
-    Identifies a gear.
-
-    :param ratio:
-        Vehicle velocity speed ratio.
-    :type ratio: float
-
-    :param velocity:
-        Vehicle velocity.
-    :type velocity: float
-
-    :param acceleration:
-        Vehicle acceleration.
-    :type acceleration: float
-
-    :param idle_engine_speed:
-        Engine speed idle.
-    :type idle_engine_speed: (float, float)
-
-    :param vsr:
-        Constant velocity speed ratios of the gear box.
-    :type vsr: iterable
-
-    :return:
-        A gear.
-    :rtype: int
-    """
-
-    if velocity <= VEL_EPS:
-        return 0
-
-    m, (gear, vs) = min((abs(v - ratio), (k, v)) for k, v in vsr)
-
-    if (acceleration < 0
-        and (velocity <= idle_engine_speed[0] * vs
-             or abs(velocity / idle_engine_speed[1] - ratio) < m)):
-        return 0
-
-    if gear == 0 and ((velocity > VEL_EPS and acceleration > 0)
-                      or acceleration > ACC_EPS):
-        return 1
-
-    return gear
-
-
-def identify_gears(
-        times, velocities, accelerations, gear_box_speeds_in,
-        velocity_speed_ratios, idle_engine_speed=(0.0, 0.0)):
-    """
-    Identifies gear time series.
-
-    :param times:
-        Time vector.
-    :type times: np.array
-
-    :param velocities:
-        Velocity vector.
-    :type velocities: np.array
-
-    :param accelerations:
-        Acceleration vector.
-    :type accelerations: np.array, float
-
-    :param gear_box_speeds_in:
-        Gear box speed vector.
-    :type gear_box_speeds_in: np.array
-
-    :param velocity_speed_ratios:
-        Constant velocity speed ratios of the gear box.
-    :type velocity_speed_ratios: dict
-
-    :param idle_engine_speed:
-        Engine speed idle median and std.
-    :type idle_engine_speed: (float, float), optional
-
-    :return:
-        Gear vector identified.
-    :rtype: np.array
-    """
-
-    vsr = [v for v in velocity_speed_ratios.items()]
-
-    ratios = velocities / gear_box_speeds_in
-
-    ratios[gear_box_speeds_in < MIN_ENGINE_SPEED] = 0
-
-    idle_speed = (idle_engine_speed[0] - idle_engine_speed[1],
-                  idle_engine_speed[0] + idle_engine_speed[1])
-
-    max_gear = max(velocity_speed_ratios)
-
-    it = (ratios, velocities, accelerations, repeat(idle_speed), repeat(vsr),
-          repeat(max_gear))
-
-    gear = list(map(identify_gear, *it))
-
-    gear = median_filter(times, gear, TIME_WINDOW)
-    gear = clear_gear_fluctuations(times, gear, TIME_WINDOW)
-
-    speeds = calculate_gear_box_speeds_in(gear, velocities, velocity_speed_ratios)
-    return gear, speeds
 
 
 def correct_gear_upper_bound_engine_speed(

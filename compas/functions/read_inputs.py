@@ -195,10 +195,10 @@ CYCLE_data_map = {
     },
     'SERIES': {
         0: ('times', (np.asarray, empty)),
-        1: ('engine_speeds', (np.asarray, empty)),
+        1: ('engine_speeds_out', (np.asarray, empty)),
         2: ('velocities', (np.asarray, empty)),
         3: ('gears', (np.asarray, empty)),
-        4: ('temperatures', (np.asarray, empty)),
+        4: ('engine_temperatures', (np.asarray, empty)),
         5: ('gear_box_speeds', (np.asarray, empty)),
     },
     'NEDC': {

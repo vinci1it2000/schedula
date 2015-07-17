@@ -34,14 +34,9 @@ def AT_gear():
         name='Automatic gear model',
         description='Defines an omni-comprehensive gear shifting model for '
                     'automatic vehicles.')
-
-    AT_gear.add_function(
-        function=identify_gears,
-        inputs=['times', 'velocities', 'accelerations', 'gear_box_speeds_in',
-                'velocity_speed_ratios', 'idle_engine_speed'],
-        outputs=['identified_gears']
+    AT_gear.add_data(
+        data_id='gear_box_type'
     )
-
     AT_gear.add_function(
         function=get_full_load,
         inputs=['fuel_type'],
@@ -82,7 +77,6 @@ def AT_gear():
             'accelerations': 'accelerations',
             'correct_gear': 'correct_gear',
             'engine_speeds_out': 'engine_speeds_out',
-            'error_coefficients': 'error_coefficients',
             'identified_gears': 'identified_gears',
             'times': 'times',
             'velocities': 'velocities',
@@ -90,14 +84,20 @@ def AT_gear():
         },
         outputs={
             'CMV': 'CMV',
-            'error_coefficients': 'error_coefficients',
-            'gear_box_speeds_in': 'gear_box_speeds_in',
+            'error_coefficients': 'CMV_error_coefficients',
             'gears': 'gears',
         }
     )
 
+    cmv_ch = cmv_cold_hot()
+
+    AT_gear.add_from_lists(
+        data_list=[{'data_id': k, 'default_value': v}
+                   for k, v in cmv_ch.default_values.items()]
+    )
+
     AT_gear.add_dispatcher(
-        dsp=cmv_cold_hot(),
+        dsp=cmv_ch,
         inputs={
             'CMV_Cold_Hot': 'CMV_Cold_Hot',
             'accelerations': 'accelerations',
@@ -111,8 +111,7 @@ def AT_gear():
         },
         outputs={
             'CMV_Cold_Hot': 'CMV_Cold_Hot',
-            'error_coefficients': 'error_coefficients',
-            'gear_box_speeds_in': 'gear_box_speeds_in',
+            'error_coefficients': 'CMV_Cold_Hot_error_coefficients',
             'gears': 'gears',
         }
     )
@@ -131,8 +130,7 @@ def AT_gear():
         },
         outputs={
             'DT_VA': 'DT_VA',
-            'error_coefficients': 'error_coefficients',
-            'gear_box_speeds_in': 'gear_box_speeds_in',
+            'error_coefficients': 'DT_VA_error_coefficients',
             'gears': 'gears',
         }
     )
@@ -152,8 +150,7 @@ def AT_gear():
         },
         outputs={
             'DT_VAP': 'DT_VAP',
-            'error_coefficients': 'error_coefficients',
-            'gear_box_speeds_in': 'gear_box_speeds_in',
+            'error_coefficients': 'DT_VAP_error_coefficients',
             'gears': 'gears',
         }
     )
@@ -166,15 +163,14 @@ def AT_gear():
             'correct_gear': 'correct_gear',
             'engine_speeds_out': 'engine_speeds_out',
             'identified_gears': 'identified_gears',
-            'temperatures': 'temperatures',
+            'engine_temperatures': 'engine_temperatures',
             'times': 'times',
             'velocities': 'velocities',
             'velocity_speed_ratios': 'velocity_speed_ratios'
         },
         outputs={
             'DT_VAT': 'DT_VAT',
-            'error_coefficients': 'error_coefficients',
-            'gear_box_speeds_in': 'gear_box_speeds_in',
+            'error_coefficients': 'DT_VAT_error_coefficients',
             'gears': 'gears',
         }
     )
@@ -188,15 +184,14 @@ def AT_gear():
             'engine_speeds_out': 'engine_speeds_out',
             'gear_box_powers_out': 'gear_box_powers_out',
             'identified_gears': 'identified_gears',
-            'temperatures': 'temperatures',
+            'engine_temperatures': 'engine_temperatures',
             'times': 'times',
             'velocities': 'velocities',
             'velocity_speed_ratios': 'velocity_speed_ratios'
         },
         outputs={
             'DT_VATP': 'DT_VATP',
-            'error_coefficients': 'error_coefficients',
-            'gear_box_speeds_in': 'gear_box_speeds_in',
+            'error_coefficients': 'DT_VATP_error_coefficients',
             'gears': 'gears',
         }
     )
@@ -216,14 +211,20 @@ def AT_gear():
         },
         outputs={
             'GSPV': 'GSPV',
-            'error_coefficients': 'error_coefficients',
-            'gear_box_speeds_in': 'gear_box_speeds_in',
+            'error_coefficients': 'GSPV_error_coefficients',
             'gears': 'gears',
         }
     )
 
+    gspv_ch = gspv_cold_hot()
+
+    AT_gear.add_from_lists(
+        data_list=[{'data_id': k, 'default_value': v}
+                   for k, v in gspv_ch.default_values.items()]
+    )
+
     AT_gear.add_dispatcher(
-        dsp=gspv_cold_hot(),
+        dsp=gspv_ch,
         inputs={
             'GSPV_Cold_Hot': 'GSPV_Cold_Hot',
             'accelerations': 'accelerations',
@@ -238,8 +239,7 @@ def AT_gear():
         },
         outputs={
             'GSPV_Cold_Hot': 'GSPV_Cold_Hot',
-            'error_coefficients': 'error_coefficients',
-            'gear_box_speeds_in': 'gear_box_speeds_in',
+            'error_coefficients': 'GSPV_Cold_Hot_error_coefficients',
             'gears': 'gears',
         }
     )
@@ -453,14 +453,14 @@ def dt_vat():
     dt_vat.add_function(
         function=calibrate_gear_shifting_decision_tree,
         inputs=['identified_gears', 'velocities', 'accelerations',
-                'temperatures'],
+                'engine_temperatures'],
         outputs=['DT_VAT'])
 
     # predict gears with decision tree with velocity, acceleration & temperature
     dt_vat.add_function(
         function=prediction_gears_decision_tree,
         inputs=['correct_gear', 'DT_VAT', 'times', 'velocities',
-                'accelerations', 'temperatures'],
+                'accelerations', 'engine_temperatures'],
         outputs=['gears'])
 
     # calculate engine speeds with predicted gears
@@ -502,7 +502,7 @@ def dt_vatp():
     dt_vatp.add_function(
         function=calibrate_gear_shifting_decision_tree,
         inputs=['identified_gears', 'velocities', 'accelerations',
-                'temperatures', 'gear_box_powers_out'],
+                'engine_temperatures', 'gear_box_powers_out'],
         outputs=['DT_VATP'])
 
     # predict gears with decision tree with velocity, acceleration, temperature
@@ -510,7 +510,7 @@ def dt_vatp():
     dt_vatp.add_function(
         function=prediction_gears_decision_tree,
         inputs=['correct_gear', 'DT_VATP', 'times', 'velocities',
-                'accelerations', 'temperatures', 'gear_box_powers_out'],
+                'accelerations', 'engine_temperatures', 'gear_box_powers_out'],
         outputs=['gears'])
 
     # calculate engine speeds with predicted gears
@@ -594,7 +594,7 @@ def gspv_cold_hot():
 
     # calibrate corrected matrix velocity
     gspv_cold_hot.add_function(
-        function=calibrate_gspv,
+        function=calibrate_gspv_hot_cold,
         inputs=['times', 'identified_gears', 'velocities',
                 'gear_box_powers_out', 'time_cold_hot_transition'],
         outputs=['GSPV_Cold_Hot'])

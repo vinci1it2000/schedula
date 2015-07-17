@@ -15,16 +15,12 @@ numerical operations.
 
 __author__ = 'Vincenzo Arcidiacono'
 
-import inspect
-from itertools import tee, count
-from heapq import heappop
-
 import sys
 import math
 from heapq import heappush
 from statistics import median_high
 from collections import OrderedDict
-
+from compas.dispatcher.utils import heap_flush, pairwise
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline
 

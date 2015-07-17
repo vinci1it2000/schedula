@@ -25,7 +25,7 @@ __all__ = ['dsp2dot']
 
 
 def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
-            level='all', function_module=True, **kw_dot):
+            level='all', function_module=True, node_output=True, **kw_dot):
     """
     Converts the Dispatcher map into a graph in the DOT language with Graphviz.
 
@@ -115,6 +115,9 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
             g, val, dist = workflow
         else:
             g, val, dist = (dsp.workflow, dsp.data_output, dsp.dist)
+
+        if not node_output:
+            val = {}
 
         if not edge_attr:
             edge_attr = 'value'
@@ -211,7 +214,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
 
                     dot.subgraph(dsp2dot(
                         fun, wf, sub, edge_attr, level=lv,
-                        function_module=function_module
+                        function_module=function_module, node_output=node_output
                     ))
 
                     kw['fillcolor'] = '#FF8F0F80'
@@ -224,9 +227,9 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
                 }
                 node_label = 'sink'
 
-            elif n['type'] == 'data':
+            elif n['type'] == 'data' and not k is START:
                 kw = {'shape': 'Mrecord', 'fillcolor': 'cyan'}
-                node_label = _data_node_label(k, val, n, dist)
+                node_label = _data_node_label(k, val, n, dist, function_module)
             else:
                 continue
 
@@ -276,7 +279,7 @@ def _attr_node(k, v):
     return '%s = %s' % (_label_encode(k), _label_encode(v))
 
 
-def _data_node_label(k, values, attr=None, dist=None):
+def _data_node_label(k, values, attr=None, dist=None, function_module=True):
     if not dist:
         v = dict(attr)
         v.pop('type')
@@ -286,11 +289,11 @@ def _data_node_label(k, values, attr=None, dist=None):
         if not v['wait_inputs']:
             v.pop('wait_inputs')
         if 'output' in v:
-            _remote_links(v, 'output', v.pop('output'), k)
+            _remote_links(v, 'output', v.pop('output'), k, function_module)
 
         if 'input' in v:
             v.pop('default', None)
-            _remote_links(v, 'input', v.pop('input'), k)
+            _remote_links(v, 'input', v.pop('input'), k, function_module)
     else:
         v = {'output': values[k]} if k in values else {}
         if k in dist:
@@ -299,18 +302,21 @@ def _data_node_label(k, values, attr=None, dist=None):
     return _node_label(k, v)
 
 
-def _remote_links(label, tag, links, node_id):
+def _remote_links(label, tag, links, node_id, function_module):
     for i, (k, v) in enumerate(links):
-        label['remote %s %d' % (tag, i)] = _get_link(k, v, node_id, tag)
+        label['remote %s %d' % (tag, i)] = _get_link(k, v, node_id, tag, function_module)
 
 
-def _get_link(dsp_id, dsp, node_id, tag):
+def _get_link(dsp_id, dsp, node_id, tag, function_module):
     tag = '%ss' % tag
     if tag == 'inputs':
         n = [k for k, v in dsp.nodes[dsp_id][tag].items() if v == node_id]
     else:
         n = [dsp.nodes[dsp_id][tag][node_id]]
-    return '%s:(%s)' % (dsp_id, ', '.join(n))
+
+    n = [_func_name(v, function_module) for v in n]
+
+    return '%s:(%s)' % (_func_name(dsp_id, function_module), ', '.join(n))
 
 
 def _fun_node_label(k, attr=None, dist=None):

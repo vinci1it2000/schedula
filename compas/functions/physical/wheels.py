@@ -48,18 +48,18 @@ def calculate_wheel_powers(wheel_torques, wheel_speeds):
 
 def calculate_wheel_speeds(velocities, r_dynamic):
     """
-    Calculates power at the wheels.
+    Calculates rotating speed of the wheels.
 
     :param velocities:
         Vehicle velocity [km/h].
     :type velocities: np.array, float
 
-    :param wheel_speeds:
-        Rotating speed of the wheel [RPM].
-    :type wheel_speeds: np.array, float
+    :param r_dynamic:
+        Dynamic radius of the wheels [m].
+    :type r_dynamic: float
 
     :return:
-        Power at the wheels [kW].
+        Rotating speed of the wheel [RPM].
     :rtype: np.array, float
     """
 

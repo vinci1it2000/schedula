@@ -31,20 +31,9 @@ from compas.dispatcher import Dispatcher
 __author__ = 'Vincenzo Arcidiacono'
 
 
-def physical():
-    """
-    Define the physical model.
+def _physical():
 
-    .. dispatcher:: dsp
-
-        >>> dsp = physical()
-
-    :return:
-        The physical model.
-    :rtype: Dispatcher
-    """
-
-    mechanical = Dispatcher(
+    physical = Dispatcher(
         name='CO2MPAS physical model',
         description='Wraps all functions needed to predict light-vehicles\' CO2'
                     ' emissions.'
@@ -54,12 +43,12 @@ def physical():
 
     v = vehicle()
 
-    mechanical.add_from_lists(
+    physical.add_from_lists(
         data_list=[{'data_id': k, 'default_value': v}
                    for k, v in v.default_values.items()]
     )
 
-    mechanical.add_dispatcher(
+    physical.add_dispatcher(
         dsp_id='Vehicle model',
         dsp=v,
         inputs={
@@ -88,7 +77,7 @@ def physical():
 
     from .wheels import wheels
 
-    mechanical.add_dispatcher(
+    physical.add_dispatcher(
         dsp_id='Wheels model',
         dsp=wheels(),
         inputs={
@@ -106,12 +95,12 @@ def physical():
 
     fd = final_drive()
 
-    mechanical.add_from_lists(
+    physical.add_from_lists(
         data_list=[{'data_id': k, 'default_value': v}
                    for k, v in fd.default_values.items()]
     )
 
-    mechanical.add_dispatcher(
+    physical.add_dispatcher(
         dsp_id='Final drive model',
         dsp=final_drive(),
         inputs={
@@ -130,19 +119,88 @@ def physical():
         }
     )
 
-    from .gear_box import gear_box
+    from .engine import engine
 
-    gb = gear_box()
+    en = engine()
 
-    mechanical.add_from_lists(
+    physical.add_from_lists(
+        data_list=[{'data_id': k, 'default_value': v}
+                   for k, v in en.default_values.items()]
+    )
+
+    physical.add_dispatcher(
+        dsp_id='Engine model',
+        dsp=en,
+        inputs={
+            'accelerations': 'accelerations',
+            'engine_capacity': 'engine_capacity',
+            'engine_loss_parameters': 'engine_loss_parameters',
+            'engine_speeds_out': 'engine_speeds_out',
+            'engine_temperatures': 'engine_temperatures',
+            'engine_temperature_regression_model':
+                'engine_temperature_regression_model',
+            'gear_box_torques_in': 'engine_torques_in',
+            'gears': 'gears',
+            'idle_engine_speed_median': 'idle_engine_speed_median',
+            'idle_engine_speed_std': 'idle_engine_speed_std',
+            'initial_engine_temperature': 'initial_engine_temperature',
+            'wheel_powers': 'wheel_powers',
+            'velocities': 'velocities'
+        },
+        outputs={
+            'braking_powers': 'braking_powers',
+            'engine_stroke': 'engine_stroke',
+            'engine_temperatures': 'engine_temperatures',
+            'engine_temperature_regression_model':
+                'engine_temperature_regression_model',
+            'idle_engine_speed': 'idle_engine_speed',
+            'piston_speeds': 'piston_speeds',
+            'upper_bound_engine_speed': 'upper_bound_engine_speed',
+        }
+    )
+
+    return physical
+
+
+def physical_calibration():
+    """
+    Define the physical calibration model.
+
+    .. dispatcher:: dsp
+
+        >>> dsp = physical_calibration()
+
+    :return:
+        The physical calibration model.
+    :rtype: Dispatcher
+    """
+
+    physical_calibration = _physical()
+    from .gear_box import gear_box_calibration
+
+    gb = gear_box_calibration()
+
+    physical_calibration.add_from_lists(
         data_list=[{'data_id': k, 'default_value': v}
                    for k, v in gb.default_values.items()]
     )
-    mechanical.add_dispatcher(
+
+    physical_calibration.add_dispatcher(
         dsp_id='Gear box model',
         dsp=gb,
         inputs={
+            'fuel_type': 'fuel_type',
+            'max_engine_power': 'max_engine_power',
+            'max_engine_speed_at_max_power': 'max_engine_speed_at_max_power',
+            'road_loads': 'road_loads',
+            'engine_temperatures': 'engine_temperatures',
+            'time_cold_hot_transition': 'time_cold_hot_transition',
+            'upper_bound_engine_speed': 'upper_bound_engine_speed',
+            'vehicle_mass': 'vehicle_mass',
+
+            'accelerations':'accelerations',
             'engine_max_torque': 'engine_max_torque',
+            'engine_speeds_out': 'engine_speeds_out',
             'equivalent_gear_box_heat_capacity':
                 'equivalent_gear_box_heat_capacity',
             'final_drive': 'final_drive',
@@ -155,13 +213,33 @@ def physical():
             'gear_box_starting_temperature': 'gear_box_starting_temperature',
             'gear_box_type': 'gear_box_type',
             'gears': 'gears',
+            'idle_engine_speed': 'idle_engine_speed',
             'r_dynamic': 'r_dynamic',
             'temperature_references': 'temperature_references',
             'thermostat_temperature': 'thermostat_temperature',
+            'times': 'times',
             'velocities': 'velocities',
             'velocity_speed_ratios': 'velocity_speed_ratios'
         },
         outputs={
+            'correct_gear': 'correct_gear',
+            'CMV': 'CMV',
+            'CMV_Cold_Hot': 'CMV_Cold_Hot',
+            'DT_VA': 'DT_VA',
+            'DT_VAT': 'DT_VAT',
+            'DT_VAP': 'DT_VAP',
+            'DT_VATP': 'DT_VATP',
+            'GSPV': 'GSPV',
+            'GSPV_Cold_Hot': 'GSPV_Cold_Hot',
+            'CMV_error_coefficients': 'CMV_error_coefficients',
+            'CMV_Cold_Hot_error_coefficients': 'CMV_Cold_Hot_error_coefficients',
+            'DT_VA_error_coefficients': 'DT_VA_error_coefficients',
+            'DT_VAT_error_coefficients': 'DT_VAT_error_coefficients',
+            'DT_VAP_error_coefficients': 'DT_VAP_error_coefficients',
+            'DT_VATP_error_coefficients': 'DT_VATP_error_coefficients',
+            'GSPV_error_coefficients': 'GSPV_error_coefficients',
+            'GSPV_Cold_Hot_error_coefficients': 'GSPV_Cold_Hot_error_coefficients',
+            'gears': 'gears',
             'gear_box_efficiencies': 'gear_box_efficiencies',
             'gear_box_speeds_in': 'gear_box_speeds_in',
             'gear_box_temperatures': 'gear_box_temperatures',
@@ -169,36 +247,78 @@ def physical():
             'gear_box_torques_in': 'gear_box_torques_in',
         }
     )
+    return physical_calibration
 
-    from .engine import engine
 
-    en = engine()
+def physical_prediction():
+    """
+    Define the physical prediction model.
 
-    mechanical.add_from_lists(
+    .. dispatcher:: dsp
+
+        >>> dsp = physical_prediction()
+
+    :return:
+        The physical prediction model.
+    :rtype: Dispatcher
+    """
+
+    physical_prediction = _physical()
+    from .gear_box import gear_box_prediction
+
+    gb = gear_box_prediction()
+
+    physical_prediction.add_from_lists(
         data_list=[{'data_id': k, 'default_value': v}
-                   for k, v in en.default_values.items()]
+                   for k, v in gb.default_values.items()]
     )
 
-    mechanical.add_dispatcher(
-        dsp_id='Engine model',
-        dsp=en,
+    physical_prediction.add_dispatcher(
+        dsp_id='Gear box model',
+        dsp=gb,
         inputs={
-            'engine_capacity': 'engine_capacity',
-            'engine_loss_parameters': 'engine_loss_parameters',
+            'correct_gear': 'correct_gear',
+            'CMV': 'CMV',
+            'CMV_Cold_Hot': 'CMV_Cold_Hot',
+            'DT_VA': 'DT_VA',
+            'DT_VAT': 'DT_VAT',
+            'DT_VAP': 'DT_VAP',
+            'DT_VATP': 'DT_VATP',
+            'GSPV': 'GSPV',
+            'GSPV_Cold_Hot': 'GSPV_Cold_Hot',
+            'engine_temperatures': 'engine_temperatures',
+            'time_cold_hot_transition': 'time_cold_hot_transition',
+
+            'accelerations':'accelerations',
+            'engine_max_torque': 'engine_max_torque',
             'engine_speeds_out': 'engine_speeds_out',
-            'gear_box_torques_in': 'engine_torques_in',
+            'equivalent_gear_box_heat_capacity':
+                'equivalent_gear_box_heat_capacity',
+            'final_drive': 'final_drive',
+            'final_drive_powers_in': 'gear_box_powers_out',
+            'final_drive_speeds_in': 'gear_box_speeds_out',
+            'gear_box_efficiency_constants': 'gear_box_efficiency_constants',
+            'gear_box_efficiency_parameters_cold_hot':
+                'gear_box_efficiency_parameters_cold_hot',
+            'gear_box_ratios': 'gear_box_ratios',
+            'gear_box_starting_temperature': 'gear_box_starting_temperature',
+            'gear_box_type': 'gear_box_type',
             'gears': 'gears',
-            'idle_engine_speed_median': 'idle_engine_speed_median',
-            'idle_engine_speed_std': 'idle_engine_speed_std',
-            'velocities': 'velocities'
+            'idle_engine_speed': 'idle_engine_speed',
+            'r_dynamic': 'r_dynamic',
+            'temperature_references': 'temperature_references',
+            'thermostat_temperature': 'thermostat_temperature',
+            'times': 'times',
+            'velocities': 'velocities',
+            'velocity_speed_ratios': 'velocity_speed_ratios'
         },
         outputs={
-            'braking_powers': 'braking_powers',
-            'engine_stroke': 'engine_stroke',
-            'idle_engine_speed': 'idle_engine_speed',
-            'piston_speeds': 'piston_speeds',
-            'upper_bound_engine_speed': 'upper_bound_engine_speed',
+            'gears': 'gears',
+            'gear_box_efficiencies': 'gear_box_efficiencies',
+            'gear_box_speeds_in': 'gear_box_speeds_in',
+            'gear_box_temperatures': 'gear_box_temperatures',
+            'gear_box_torque_losses': 'gear_box_torque_losses',
+            'gear_box_torques_in': 'gear_box_torques_in',
         }
     )
-
-    return mechanical
+    return physical_prediction

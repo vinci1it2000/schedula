@@ -1,5 +1,8 @@
-__author__ = 'iMac2013'
+__author__ = 'Vincenzo Arcidiacono'
+
 from math import pi
+import numpy as np
+from sklearn.tree import DecisionTreeRegressor
 
 from compas.functions.physical.constants import *
 from compas.functions.physical.utils import bin_split, reject_outliers
@@ -137,3 +140,74 @@ def calculate_braking_powers(
     bp[bp < friction_powers] = 0
 
     return bp
+
+
+def calibrate_engine_temperature_regression_model(
+        engine_temperatures, accelerations, wheel_powers):
+    """
+    Calibrates an engine temperature regression model to predict engine
+    temperatures.
+
+    This model returns the delta temperature function of temperature (previous),
+    acceleration, and power at the wheel.
+
+    :param engine_temperatures:
+        Engine temperature vector [°C].
+    :type engine_temperatures: np.array
+
+    :param accelerations:
+        Acceleration vector [m/s2].
+    :type accelerations: np.array
+
+    :param wheel_powers:
+        Power at the wheels [kW].
+    :type wheel_powers: np.array
+
+    :return:
+        The calibrated engine temperature regression model.
+    :rtype: sklearn.tree.DecisionTreeRegressor
+    """
+
+    temp = np.zeros(engine_temperatures.shape)
+    temp[1:] = engine_temperatures[:-1]
+
+    model = DecisionTreeRegressor(random_state=0)
+
+    X = list(zip(temp, accelerations, wheel_powers))
+
+    model.fit(X[1:], np.diff(engine_temperatures))
+
+    return model
+
+
+def predict_engine_temperatures(
+        model, accelerations, wheel_powers, initial_temperature):
+    """
+    Predicts the engine temperature.
+
+    :param model:
+        Engine temperature regression model.
+    :type model: sklearn.tree.DecisionTreeRegressor
+
+    :param accelerations:
+        Acceleration vector [m/s2].
+    :type accelerations: np.array
+
+    :param wheel_powers:
+        Power at the wheels [kW].
+    :type wheel_powers: np.array
+
+    :param initial_temperature:
+        Engine initial temperature [°C]
+    :type initial_temperature: float
+
+    :return:
+        Engine temperature vector [°C].
+    :rtype: np.array
+    """
+
+    temp = [initial_temperature]
+    for  p, a in zip(accelerations[:-1], wheel_powers[:-1]):
+        temp.append(temp[-1] + model.predict([[temp[-1], p, a]])[0])
+
+    return np.array(temp)
