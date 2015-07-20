@@ -2,8 +2,8 @@ __author__ = 'Vincenzo Arcidiacono'
 
 from math import pi
 import numpy as np
-from sklearn.tree import DecisionTreeRegressor
-
+from sklearn.tree import DecisionTreeRegressor, ExtraTreeRegressor
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from compas.functions.physical.constants import *
 from compas.functions.physical.utils import bin_split, reject_outliers
 
@@ -13,7 +13,7 @@ def identify_idle_engine_speed_out(velocities, engine_speeds_out):
     Identifies engine speed idle.
 
     :param velocities:
-        Velocity vector.
+        Velocity vector [km/h].
     :type velocities: np.array
 
     :param engine_speeds_out:
@@ -143,7 +143,7 @@ def calculate_braking_powers(
 
 
 def calibrate_engine_temperature_regression_model(
-        engine_temperatures, accelerations, wheel_powers):
+        engine_temperatures, velocities, wheel_powers, engine_speeds_out):
     """
     Calibrates an engine temperature regression model to predict engine
     temperatures.
@@ -155,25 +155,35 @@ def calibrate_engine_temperature_regression_model(
         Engine temperature vector [°C].
     :type engine_temperatures: np.array
 
-    :param accelerations:
-        Acceleration vector [m/s2].
-    :type accelerations: np.array
+    :param velocities:
+        Velocity vector [km/h].
+    :type velocities: np.array
 
     :param wheel_powers:
         Power at the wheels [kW].
     :type wheel_powers: np.array
 
+    :param engine_speeds_out:
+        Engine speed [RPM].
+    :type engine_speeds_out: np.array
+
     :return:
         The calibrated engine temperature regression model.
-    :rtype: sklearn.tree.DecisionTreeRegressor
+    :rtype: sklearn.ensemble.GradientBoostingRegressor
     """
 
     temp = np.zeros(engine_temperatures.shape)
     temp[1:] = engine_temperatures[:-1]
 
-    model = DecisionTreeRegressor(random_state=0)
+    kw = {
+        'random_state': 0,
+        'max_depth': 2,
+        'n_estimators': int(min(300, 0.25 * (len(temp) - 1)))
+    }
 
-    X = list(zip(temp, accelerations, wheel_powers))
+    model = GradientBoostingRegressor(**kw)
+
+    X = list(zip(temp, velocities, wheel_powers, engine_speeds_out))
 
     model.fit(X[1:], np.diff(engine_temperatures))
 
@@ -181,21 +191,26 @@ def calibrate_engine_temperature_regression_model(
 
 
 def predict_engine_temperatures(
-        model, accelerations, wheel_powers, initial_temperature):
+        model, velocities, wheel_powers, engine_speeds_out,
+        initial_temperature):
     """
     Predicts the engine temperature.
 
     :param model:
         Engine temperature regression model.
-    :type model: sklearn.tree.DecisionTreeRegressor
+    :type model: sklearn.ensemble.GradientBoostingRegressor
 
-    :param accelerations:
-        Acceleration vector [m/s2].
-    :type accelerations: np.array
+    :param velocities:
+        Velocity vector [km/h].
+    :type velocities: np.array
 
     :param wheel_powers:
         Power at the wheels [kW].
     :type wheel_powers: np.array
+
+    :param engine_speeds_out:
+        Engine speed [RPM].
+    :type engine_speeds_out: np.array
 
     :param initial_temperature:
         Engine initial temperature [°C]
@@ -206,8 +221,70 @@ def predict_engine_temperatures(
     :rtype: np.array
     """
 
+    predict = model.predict
+    it = zip(velocities[:-1], wheel_powers[:-1], engine_speeds_out[:-1])
+
     temp = [initial_temperature]
-    for  p, a in zip(accelerations[:-1], wheel_powers[:-1]):
-        temp.append(temp[-1] + model.predict([[temp[-1], p, a]])[0])
+    for v, p, e in it:
+        temp.append(temp[-1] + predict([[temp[-1], v, p, e]])[0])
 
     return np.array(temp)
+
+
+if __name__ == '__main__':
+    from compas.functions.physical.vehicle import calculate_accelerations
+    import pandas as pd
+    import glob, os
+    import matplotlib.pyplot as plt
+    from sklearn.metrics import mean_absolute_error
+    fpaths = glob.glob('C:/Users/arcidvi/Desktop/basecases/*.xlsx')
+
+
+    for fpath in fpaths:
+        fname = os.path.basename(fpath)
+        fname = fname.split('.')[0]
+        print('Processing: %s' % fname)
+        ex = pd.ExcelFile(fpath)
+        WLTP = ex.parse(sheetname='WLTP mean')
+        WLTPL = ex.parse(sheetname='WLTP-Low mean')
+        NEDC = ex.parse(sheetname='NEDC mean')
+        time_WLTP = WLTP['Time [s]'].values
+        time_WLTPL = WLTPL['Time [s]'].values
+        time_NEDC = NEDC['Time [s]'].values
+        vel_WLTP = WLTP['Velocity [km/h]'].values
+        vel_WLTPL = WLTPL['Velocity [km/h]'].values
+        vel_NEDC = NEDC['Velocity [km/h]'].values
+        acc_WLTP = calculate_accelerations(time_WLTP, vel_WLTP)
+        acc_WLTPL = calculate_accelerations(time_WLTPL, vel_WLTPL)
+        acc_NEDC = calculate_accelerations(time_NEDC, vel_NEDC)
+        temp_WLTP = WLTP['Engine Temperature [oC]'].values
+        temp_WLTPL = WLTPL['Engine Temperature [oC]'].values
+        temp_NEDC = NEDC['Engine Temperature [oC]'].values
+
+        modelH = calibrate_engine_temperature_regression_model(temp_WLTP,vel_WLTP, WLTP['Wheel Power [kW]'].values, WLTP['Engine Speed [rpm]'].values)
+
+        #modelH = calibrate_engine_temperature_regression_model(temp_NEDC, NEDC['Wheel Power [kW]'].values, NEDC['Engine Speed [rpm]'].values)
+        modelL = calibrate_engine_temperature_regression_model(temp_WLTPL, vel_WLTPL,WLTPL['Wheel Power [kW]'].values, WLTPL['Engine Speed [rpm]'].values)
+
+        t_WLTP = predict_engine_temperatures(modelL, vel_WLTP , WLTP['Wheel Power [kW]'].values, WLTP['Engine Speed [rpm]'].values, temp_WLTP[0])
+        t_WLTPL = predict_engine_temperatures(modelH, vel_WLTPL, WLTPL['Wheel Power [kW]'].values, WLTPL['Engine Speed [rpm]'].values, temp_WLTPL[0])
+
+        #if mean_absolute_error(temp_WLTP, t_WLTP) < mean_absolute_error(temp_WLTPL, t_WLTPL):
+        model = modelL
+        #    print('low')
+        #else:
+        #    model = modelH
+        #    print('high')
+        t_WLTP = predict_engine_temperatures(model,vel_WLTP, WLTP['Wheel Power [kW]'].values, WLTP['Engine Speed [rpm]'].values, temp_WLTP[0])
+        t_NEDC = predict_engine_temperatures(model,vel_NEDC, NEDC['Wheel Power [kW]'].values, NEDC['Engine Speed [rpm]'].values, temp_NEDC[0])
+        errors = (mean_absolute_error(temp_WLTP, t_WLTP), mean_absolute_error(temp_NEDC, t_NEDC))
+        print(errors)
+        plt.figure()
+        plt.subplot(2, 1, 1)
+        plt.title(fname + str(errors))
+        plt.plot(time_WLTP, temp_WLTP, 'r-')
+        plt.plot(time_WLTP, t_WLTP, 'b-')
+        plt.subplot(2, 1, 2)
+        plt.plot(time_NEDC, temp_NEDC, 'r-')
+        plt.plot(time_NEDC, t_NEDC, 'b-')
+    plt.show()

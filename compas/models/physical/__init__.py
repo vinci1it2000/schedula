@@ -132,7 +132,6 @@ def _physical():
         dsp_id='Engine model',
         dsp=en,
         inputs={
-            'accelerations': 'accelerations',
             'engine_capacity': 'engine_capacity',
             'engine_loss_parameters': 'engine_loss_parameters',
             'engine_speeds_out': 'engine_speeds_out',
