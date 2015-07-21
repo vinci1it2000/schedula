@@ -225,15 +225,22 @@ if __name__ == '__main__':
         plt.plot(WLTP['time'].values, fc, 'b-')
 
         print(p)
-        dist = calculate_cumulative_fuels(NEDC['time'].values, eval(Input['fuel integration times']), WLTP['velocity'].values) / 3600
+        dist = calculate_cumulative_fuels(WLTP['time'].values, eval(Input['fuel integration times']), WLTP['velocity'].values) / 3600
+        print('dist', dist)
 
         print(mean_absolute_error(WLTP['fuel consumption'].values, fc))
         print((calculate_cumulative_fuels(WLTP['time'].values, eval(Input['fuel integration times']), WLTP['fuel consumption'].values) -
         calculate_cumulative_fuels(WLTP['time'].values, eval(Input['fuel integration times']), fc))/ dist
         )
-        print(mean_absolute_error(calculate_cumulative_fuels(WLTP['time'].values, eval(Input['fuel integration times']), WLTP['fuel consumption'].values),
-        calculate_cumulative_fuels(WLTP['time'].values, eval(Input['fuel integration times']), fc)
+        print(mean_absolute_error(calculate_cumulative_fuels(WLTP['time'].values, eval(Input['fuel integration times']), WLTP['fuel consumption'].values) / dist,
+        calculate_cumulative_fuels(WLTP['time'].values, eval(Input['fuel integration times']), fc)/ dist
         ))
+        dist = calculate_cumulative_fuels(WLTP['time'].values, (0, WLTP['time'].values[-1]), WLTP['velocity'].values) / 3600
+        print('dist', dist)
+
+        print(mean_absolute_error(calculate_cumulative_fuels(WLTP['time'].values, (0, WLTP['time'].values[-1]), WLTP['fuel consumption'].values),
+        calculate_cumulative_fuels(WLTP['time'].values, (0, WLTP['time'].values[-1]), fc)
+        ) / dist)
 
         n_s = calculate_normalized_engine_speeds_out(NEDC['rpm'].values, Input['engine stroke'])
         n_p = calculate_normalized_engine_powers_out(
@@ -250,11 +257,13 @@ if __name__ == '__main__':
         plt.plot(NEDC['time'].values, fc, 'b-')
         dist = calculate_cumulative_fuels(NEDC['time'].values, (0, NEDC['time'].values[-1]), NEDC['velocity'].values) / 3600
         print(mean_absolute_error(NEDC['fuel consumption'].values, fc))
-        print(calculate_cumulative_fuels(NEDC['time'].values, (0, NEDC['time'].values[-1]), NEDC['fuel consumption'].values),
-        calculate_cumulative_fuels(NEDC['time'].values, (0, NEDC['time'].values[-1]), fc)
+        print(
+            calculate_cumulative_fuels(NEDC['time'].values, (0, NEDC['time'].values[-1]), NEDC['fuel consumption'].values) / dist,
+        calculate_cumulative_fuels(NEDC['time'].values, (0, NEDC['time'].values[-1]), fc) / dist
         )
-        print(mean_absolute_error(calculate_cumulative_fuels(NEDC['time'].values, (0, NEDC['time'].values[-1]), NEDC['fuel consumption'].values),
-        calculate_cumulative_fuels(NEDC['time'].values, (0, NEDC['time'].values[-1]), fc)
-        ) / dist)
+        print(mean_absolute_error(
+            calculate_cumulative_fuels(NEDC['time'].values, (0, NEDC['time'].values[-1]), NEDC['fuel consumption'].values) / dist,
+            calculate_cumulative_fuels(NEDC['time'].values, (0, NEDC['time'].values[-1]), fc) / dist
+        ))
 
     plt.show()
