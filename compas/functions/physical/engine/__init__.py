@@ -94,7 +94,7 @@ def calculate_piston_speeds(engine_stroke, engine_speeds_out):
     :rtype: np.array, float
     """
 
-    return engine_speeds_out / 60 * 2 * engine_stroke / 1000
+    return engine_speeds_out * engine_stroke / 30000
 
 
 def calculate_braking_powers(
