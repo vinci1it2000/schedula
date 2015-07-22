@@ -63,7 +63,7 @@ def _physical():
             'inertial_factor': 'inertial_factor',
             'rolling_resistance_coeff': 'rolling_resistance_coeff',
             'times': 'times',
-            'inertia': 'vehicle_mass',
+            'vehicle_mass': 'vehicle_mass',
             'velocities': 'velocities',
             'road_loads': 'road_loads',
         },
@@ -148,7 +148,6 @@ def _physical():
         },
         outputs={
             'braking_powers': 'braking_powers',
-            'engine_stroke': 'engine_stroke',
             'engine_temperatures': 'engine_temperatures',
             'engine_temperature_regression_model':
                 'engine_temperature_regression_model',
@@ -202,7 +201,7 @@ def physical_calibration():
             'engine_speeds_out': 'engine_speeds_out',
             'equivalent_gear_box_heat_capacity':
                 'equivalent_gear_box_heat_capacity',
-            'final_drive': 'final_drive',
+            'final_drive_ratio': 'final_drive',
             'final_drive_powers_in': 'gear_box_powers_out',
             'final_drive_speeds_in': 'gear_box_speeds_out',
             'gear_box_efficiency_constants': 'gear_box_efficiency_constants',
@@ -293,7 +292,7 @@ def physical_prediction():
             'engine_speeds_out': 'engine_speeds_out',
             'equivalent_gear_box_heat_capacity':
                 'equivalent_gear_box_heat_capacity',
-            'final_drive': 'final_drive',
+            'final_drive_ratio': 'final_drive',
             'final_drive_powers_in': 'gear_box_powers_out',
             'final_drive_speeds_in': 'gear_box_speeds_out',
             'gear_box_efficiency_constants': 'gear_box_efficiency_constants',

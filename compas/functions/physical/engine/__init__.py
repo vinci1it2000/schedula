@@ -1,3 +1,24 @@
+#-*- coding: utf-8 -*-
+#
+# Copyright 2015 European Commission (JRC);
+# Licensed under the EUPL (the 'Licence');
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+
+"""
+It contains functions that model the basic mechanics of the engine.
+
+Sub-Modules:
+
+.. currentmodule:: compas.functions.physical.engine
+
+.. autosummary::
+    :nosignatures:
+    :toctree: engine/
+
+    co2_emission
+"""
+
 __author__ = 'Vincenzo Arcidiacono'
 
 from math import pi
@@ -9,24 +30,24 @@ from compas.functions.physical.utils import bin_split, reject_outliers
 
 def identify_idle_engine_speed_out(velocities, engine_speeds_out):
     """
-    Identifies engine speed idle.
+    Identifies engine speed idle and its standard deviation [RPM].
 
     :param velocities:
         Velocity vector [km/h].
     :type velocities: np.array
 
     :param engine_speeds_out:
-        Engine speed vector.
+        Engine speed vector [RPM].
     :type engine_speeds_out: np.array
 
     :returns:
-        - Engine speed idle.
-        - Its standard deviation.
+        Idle engine speed and its standard deviation [RPM].
     :rtype: (float, float)
     """
 
-    x = engine_speeds_out[
-        velocities < VEL_EPS & engine_speeds_out > MIN_ENGINE_SPEED]
+    b = velocities < VEL_EPS & engine_speeds_out > MIN_ENGINE_SPEED
+
+    x = engine_speeds_out[b]
 
     idle_speed = bin_split(x, bin_std=(0.01, 0.3))[1][0]
 
@@ -47,19 +68,19 @@ def identify_upper_bound_engine_speed(
     minimum engine speed plus 0.67 standard deviation and gear < maximum gear).
 
     :param gears:
-        Gear vector.
+        Gear vector [-].
     :type gears: np.array
 
     :param engine_speeds_out:
-        Engine speed vector.
+         Engine speed vector [RPM].
     :type engine_speeds_out: np.array
 
     :param idle_engine_speed:
-        Engine speed idle median and std.
+        Idle engine speed and its standard deviation [RPM].
     :type idle_engine_speed: (float, float)
 
     :returns:
-        Upper bound engine speed.
+        Upper bound engine speed [RPM].
     :rtype: float
 
     .. note:: Assuming a normal distribution then about 68 percent of the data
@@ -75,26 +96,6 @@ def identify_upper_bound_engine_speed(
     m, sd = reject_outliers(engine_speeds_out[dom])
 
     return m + sd * 0.674490
-
-
-def calculate_piston_speeds(engine_stroke, engine_speeds_out):
-    """
-    Calculates piston speed.
-
-    :param engine_stroke:
-        Engine stroke.
-    :type engine_stroke: np.array, float
-
-    :param engine_speeds_out:
-        Engine speed [RPM].
-    :type engine_speeds_out: np.array, float
-
-    :return:
-        Engine piston speed.
-    :rtype: np.array, float
-    """
-
-    return engine_speeds_out * engine_stroke / 30000
 
 
 def calculate_braking_powers(
@@ -159,11 +160,11 @@ def calibrate_engine_temperature_regression_model(
     :type velocities: np.array
 
     :param wheel_powers:
-        Power at the wheels [kW].
+        Power at the wheels vector [kW].
     :type wheel_powers: np.array
 
     :param engine_speeds_out:
-        Engine speed [RPM].
+        Engine speed vector [RPM].
     :type engine_speeds_out: np.array
 
     :return:
@@ -193,7 +194,7 @@ def predict_engine_temperatures(
         model, velocities, wheel_powers, engine_speeds_out,
         initial_temperature):
     """
-    Predicts the engine temperature.
+    Predicts the engine temperature [°C].
 
     :param model:
         Engine temperature regression model.
@@ -204,11 +205,11 @@ def predict_engine_temperatures(
     :type velocities: np.array
 
     :param wheel_powers:
-        Power at the wheels [kW].
+        Power at the wheels vector [kW].
     :type wheel_powers: np.array
 
     :param engine_speeds_out:
-        Engine speed [RPM].
+        Engine speed vector [RPM].
     :type engine_speeds_out: np.array
 
     :param initial_temperature:

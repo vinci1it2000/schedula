@@ -243,7 +243,7 @@ def process_folder_files(input_folder, output_folder):
             error_coeff.append(v)
         '''
     from compas.dispatcher.draw import dsp2dot
-    dsp2dot(model, workflow =True, view = True, function_module=False, node_output=False, edge_attr=model.weight)
+    dsp2dot(model, workflow =True, view = True, function_module=False, node_output=True)
     dsp2dot(model, view = True, function_module=False)
     writer = pd.ExcelWriter('%s/%s%s.xlsx' % (output_folder, doday, 'Summary'))
     pd.DataFrame.from_records(error_coeff).to_excel(writer, 'Summary')

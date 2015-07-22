@@ -6,9 +6,17 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-It provides a engine model.
+The engine model.
 
-The model is defined by a Dispatcher that wraps all the functions needed.
+Sub-Modules:
+
+.. currentmodule:: compas.models.physical.engine
+
+.. autosummary::
+    :nosignatures:
+    :toctree: engine/
+
+    co2_emission
 """
 
 __author__ = 'Vincenzo_Arcidiacono'
@@ -63,12 +71,6 @@ def engine():
         function=identify_upper_bound_engine_speed,
         inputs=['gears', 'engine_speeds_out', 'idle_engine_speed'],
         outputs=['upper_bound_engine_speed']
-    )
-
-    engine.add_function(
-        function=calculate_piston_speeds,
-        inputs=['engine_stroke', 'engine_speeds_out'],
-        outputs=['piston_speeds']
     )
 
     engine.add_function(
