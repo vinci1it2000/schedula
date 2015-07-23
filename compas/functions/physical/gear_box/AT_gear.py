@@ -25,7 +25,7 @@ from compas.functions.physical.utils import median_filter, grouper, \
     interpolate_cloud, clear_gear_fluctuations
 from compas.functions.physical.constants import *
 from compas.functions.physical.gear_box import calculate_gear_box_speeds_in
-from compas.functions.physical.wheels import calculate_wheel_powers
+from compas.functions.physical.wheels import calculate_wheel_power
 
 
 def get_full_load(fuel_type):
@@ -42,7 +42,7 @@ def get_full_load(fuel_type):
     """
 
     full_load = {
-        'gas': InterpolatedUnivariateSpline(
+        'gasoline': InterpolatedUnivariateSpline(
             np.linspace(0, 1.2, 13),
             [0.1, 0.198238659, 0.30313392, 0.410104642, 0.516920841,
              0.621300767, 0.723313491, 0.820780368, 0.901750158, 0.962968496,
@@ -155,7 +155,7 @@ def correct_gear_full_load(
     if velocity > 100:
         return gear
 
-    p_norm = calculate_wheel_powers(velocity, acceleration, road_loads, inertia)
+    p_norm = calculate_wheel_power(velocity, acceleration, road_loads, inertia)
     p_norm /= max_engine_power
 
     r = velocity / (max_engine_speed_at_max_power - idle_engine_speed[0])
@@ -269,7 +269,7 @@ def correct_gear_v2(
         idle_engine_speed, full_load_curve, road_loads, inertia):
     """
     Returns a function to correct the gear predicted according to
-    :func:`compas.functions.physical.AT_gear.correct_gear_full_load`.
+    :func:`correct_gear_full_load`.
 
     :param velocity_speed_ratios:
         Constant velocity speed ratios of the gear box.
@@ -888,7 +888,7 @@ def calculate_error_coefficients(
     y = predicted_engine_speeds[velocities > VEL_EPS]
 
     res = {
-        'mean absolute error': mean_absolute_error(x, y),
-        'correlation coeff.': np.corrcoef(x, y)[0, 1],
+        'mean_absolute_error': mean_absolute_error(x, y),
+        'correlation_coefficient': np.corrcoef(x, y)[0, 1],
     }
     return res

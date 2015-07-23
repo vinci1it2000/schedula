@@ -33,7 +33,6 @@ from functools import partial
 from scipy.stats import binned_statistic
 from scipy.optimize import brute
 from scipy.interpolate import InterpolatedUnivariateSpline
-
 from compas.functions.physical.utils import median_filter, \
     clear_gear_fluctuations
 
@@ -41,30 +40,30 @@ from compas.functions.physical.utils import median_filter, \
 def identify_gear(
         idle_engine_speed, vsr, max_gear, ratio, velocity, acceleration):
     """
-    Identifies a gear.
+    Identifies a gear [-].
 
     :param ratio:
-        Vehicle velocity speed ratio.
+        Vehicle velocity speed ratio [km/(h*RPM)].
     :type ratio: float
 
     :param velocity:
-        Vehicle velocity.
+        Vehicle velocity [km/h].
     :type velocity: float
 
     :param acceleration:
-        Vehicle acceleration.
+        Vehicle acceleration [m/s2].
     :type acceleration: float
 
     :param idle_engine_speed:
-        Engine speed idle.
+        Engine speed idle [RPM].
     :type idle_engine_speed: (float, float)
 
     :param vsr:
-        Constant velocity speed ratios of the gear box.
+        Constant velocity speed ratios of the gear box [km/(h*RPM)].
     :type vsr: iterable
 
     :return:
-        A gear.
+        A gear [-].
     :rtype: int
     """
 
@@ -89,34 +88,34 @@ def identify_gears(
         times, velocities, accelerations, engine_speeds_out,
         velocity_speed_ratios, idle_engine_speed=(0.0, 0.0)):
     """
-    Identifies gear time series.
+    Identifies gear time series [-].
 
     :param times:
-        Time vector.
+        Time vector [s].
     :type times: np.array
 
     :param velocities:
-        Velocity vector.
+        Velocity vector [km/h].
     :type velocities: np.array
 
     :param accelerations:
-        Acceleration vector.
+        Acceleration vector [m/s2].
     :type accelerations: np.array, float
 
     :param gear_box_speeds_in:
-        Gear box speed vector.
+        Gear box speed vector [RPM].
     :type gear_box_speeds_in: np.array
 
     :param velocity_speed_ratios:
-        Constant velocity speed ratios of the gear box.
+        Constant velocity speed ratios of the gear box [km/(h*RPM)].
     :type velocity_speed_ratios: dict
 
     :param idle_engine_speed:
-        Engine speed idle median and std.
+        Engine speed idle median and std [RPM].
     :type idle_engine_speed: (float, float), optional
 
     :return:
-        Gear vector identified.
+        Gear vector identified [-].
     :rtype: np.array
     """
 
@@ -162,24 +161,24 @@ def calculate_gear_box_speeds_from_engine_speeds(
     Calculates the gear box speeds applying a constant time shift.
 
     :param times:
-        Time vector.
+        Time vector [s].
     :type times: np.array
 
     :param velocities:
-        Velocity vector.
+        Velocity vector [km/h].
     :type velocities: np.array
 
     :param engine_speeds_out:
-        Engine speed vector.
+        Engine speed vector [RPM].
     :type engine_speeds_out: np.array
 
     :param velocity_speed_ratios:
-        Constant velocity speed ratios of the gear box.
+        Constant velocity speed ratios of the gear box [km/(h*RPM)].
     :type velocity_speed_ratios: dict
 
     :return:
-        - Gear box speed vector.
-        - time shift of engine speeds.
+        - Gear box speed vector [RPM].
+        - time shift of engine speeds [s].
     :rtype: (np.array, float)
     """
 
@@ -202,7 +201,7 @@ def calculate_gear_box_speeds_from_engine_speeds(
 
         return sum(std * w)
 
-    shift = brute(error_fun, (slice(-MAX_DT_SHIFT, MAX_DT_SHIFT, 0.1),))
+    shift = brute(error_fun, ranges=(slice(-MAX_DT_SHIFT, MAX_DT_SHIFT, 0.1),))
 
     gear_box_speeds = speeds(*shift)
     gear_box_speeds[gear_box_speeds < 0] = 0
@@ -212,19 +211,17 @@ def calculate_gear_box_speeds_from_engine_speeds(
 
 def get_gear_box_efficiency_constants(gear_box_type):
     """
-    Returns vehicle gear box efficiency constants.
+    Returns vehicle gear box efficiency constants (gbp00, gbp10, and gbp01).
 
     :param gear_box_type:
-        Gear box type:
-
-            - 'manual',
-            - 'automatic'.
+        Gear box type (manual or automatic).
     :type gear_box_type: str
 
     :return:
-        Vehicle gear box efficiency constants.
+        Vehicle gear box efficiency constants (gbp00, gbp10, and gbp01).
     :rtype: dict
     """
+    
     gb_eff_constants = {
         'automatic': {
             'gbp00': {'m': -0.0054, 'q': {'hot': -1.9682, 'cold': -3.9682}},
@@ -251,7 +248,7 @@ def calculate_gear_box_efficiency_parameters_cold_hot(
     :type gear_box_efficiency_constants: dict
 
     :param engine_max_torque:
-        Engine Max Torque (Nm).
+        Engine Max Torque [N*m].
     :type engine_max_torque: float
 
     :return:
@@ -287,29 +284,31 @@ def calculate_gear_box_efficiency_parameters_cold_hot(
 def calculate_gear_box_torques(
         gear_box_powers_out, gear_box_speeds_in, gear_box_speeds_out):
     """
-    Calculates torque entering the gear box.
+    Calculates torque entering the gear box [N*m].
 
     :param gear_box_powers_out:
-        Power at wheels vector.
+        Gear box power vector [kW].
     :type gear_box_powers_out: np.array
 
     :param gear_box_speeds_in:
-        Engine speed vector.
+        Engine speed vector [RPM].
     :type gear_box_speeds_in: np.array
 
     :param gear_box_speeds_out:
-        Wheel speed vector.
+        Wheel speed vector [RPM].
     :type gear_box_speeds_out: np.array
 
     :return:
-        Torque gear box vector.
+        Torque gear box vector [N*m].
     :rtype: np.array
 
     .. note:: Torque entering the gearbox can be from engine side
        (power mode or from wheels in motoring mode)
     """
 
-    x = np.where(gear_box_powers_out > 0, gear_box_speeds_in, gear_box_speeds_out)
+    s_in, s_out = gear_box_speeds_in, gear_box_speeds_out
+
+    x = np.where(gear_box_powers_out > 0, s_in, s_out)
 
     y = np.zeros(gear_box_powers_out.shape)
 
@@ -317,7 +316,7 @@ def calculate_gear_box_torques(
 
     y[b] = gear_box_powers_out[b] / x[b]
 
-    return y * (30000 / pi)
+    return y * (30000.0 / pi)
 
 
 def calculate_gear_box_torques_in(
@@ -325,22 +324,22 @@ def calculate_gear_box_torques_in(
         gear_box_temperatures, gear_box_efficiency_parameters_cold_hot,
         temperature_references):
     """
-    Calculates torque required according to the temperature profile.
+    Calculates torque required according to the temperature profile [N*m].
 
     :param gear_box_torques:
-        Torque gear box vector.
+        Torque gear box vector [N*m].
     :type gear_box_torques: np.array
 
     :param gear_box_speeds_in:
-        Engine speed vector.
+        Engine speed vector [RPM].
     :type gear_box_speeds_in: np.array
 
     :param gear_box_speeds_out:
-        Wheel speed vector.
+        Wheel speed vector [RPM].
     :type gear_box_speeds_out: np.array
 
     :param gear_box_temperatures:
-        Temperature vector.
+        Temperature vector [°C].
     :type gear_box_temperatures: np.array
 
     :param gear_box_efficiency_parameters_cold_hot:
@@ -351,11 +350,11 @@ def calculate_gear_box_torques_in(
     :type gear_box_efficiency_parameters_cold_hot: dict
 
     :param temperature_references:
-        Cold and hot reference temperatures.
+        Cold and hot reference temperatures [°C].
     :type temperature_references: tuple
 
     :return:
-        Torque required vector according to the temperature profile.
+        Torque required vector according to the temperature profile [N*m].
     :rtype: np.array
     """
 
@@ -385,15 +384,15 @@ def _gear_box_torques_in(
     Calculates torque required according to the temperature profile.
 
     :param gear_box_torques_out:
-        Torque gear_box vector.
+        Torque gear_box vector [N*m].
     :type gear_box_torques_out: np.array
 
     :param gear_box_speeds_in:
-        Engine speed vector.
+        Engine speed vector [RPM].
     :type gear_box_speeds_in: np.array
 
     :param gear_box_speeds_out:
-        Wheel speed vector.
+        Wheel speed vector [RPM].
     :type gear_box_speeds_out: np.array
 
     :param gear_box_efficiency_parameters_cold_hot:
@@ -405,7 +404,7 @@ def _gear_box_torques_in(
     :type gear_box_efficiency_parameters_cold_hot: dict
 
     :return:
-        Torque required vector.
+        Torque required vector [N*m].
     :rtype: np.array
     """
 
@@ -432,19 +431,19 @@ def correct_gear_box_torques_in(
     Corrects the torque when the gear box ratio is equal to 1.
 
     :param gear_box_torques_out:
-        Torque gear_box vector.
+        Torque gear_box vector [N*m].
     :type gear_box_torques_out: np.array
 
     :param gear_box_torques_in:
-        Torque required vector.
+        Torque required vector [N*m].
     :type gear_box_torques_in: np.array
 
     :param gears:
-        Gear vector.
+        Gear vector [-].
     :type gears: np.array
 
     :return:
-        Corrected torque required vector.
+        Corrected Torque required vector [N*m].
     :rtype: np.array
     """
     b = np.zeros(gears.shape, dtype=bool)
@@ -463,27 +462,27 @@ def calculate_gear_box_efficiencies_v2(
     Calculates gear box efficiency.
 
     :param gear_box_powers_out:
-        Power at wheels vector.
+        Power at wheels vector [kW].
     :type gear_box_powers_out: np.array
 
     :param gear_box_speeds_in:
-        Engine speed vector.
+        Engine speed vector [RPM].
     :type gear_box_speeds_in: np.array
 
     :param gear_box_speeds_out:
-        Wheel speed vector.
+        Wheel speed vector [RPM].
     :type gear_box_speeds_out: np.array
 
     :param gear_box_torques_out:
-        Torque gear_box vector.
+        Torque gear_box vector [N*m].
     :type gear_box_torques_out: np.array
 
     :param gear_box_torques_in:
-        Torque required vector.
+        Torque required vector [N*m].
     :type gear_box_torques_in: np.array
 
     :return:
-        Gear box efficiency vector.
+        Gear box efficiency vector [-].
     :rtype: np.array
     """
 
@@ -513,15 +512,15 @@ def calculate_torques_losses(gear_box_torques_in, gear_box_torques_out):
     Calculates gear box torque losses.
 
     :param gear_box_torques_in:
-        Torque required vector.
+        Torque required vector [N*m].
     :type gear_box_torques_in: np.array, float
 
     :param gear_box_torques_out:
-        Torque gear_box vector.
+        Torque gear_box vector [N*m].
     :type gear_box_torques_out: np.array, float
 
     :return:
-        Gear box torques losses.
+        Gear box torques losses [N*m].
     :rtype: np.array, float
     """
     return gear_box_torques_in - gear_box_torques_out
@@ -537,21 +536,21 @@ def calculate_gear_box_efficiencies(
     Calculates torque entering the gear box.
 
     :param gear_box_powers_out:
-        Power at wheels vector.
+        Power at wheels vector [kW].
     :type gear_box_powers_out: np.array
 
     :param gear_box_speeds_in:
-        Engine speed vector.
+        Engine speed vector [RPM].
     :type gear_box_speeds_in: np.array
 
     :param gear_box_speeds_out:
-        Wheel speed vector.
+        Wheel speed vector [RPM].
     :type gear_box_speeds_out: np.array
 
     :return:
 
-        - Gear box efficiency vector.
-        - Torque losses.
+        - Gear box efficiency vector [-].
+        - Torque losses [N*m].
     :rtype: (np.array, np.array)
 
     .. note:: Torque entering the gearbox can be from engine side
@@ -597,22 +596,22 @@ def calculate_gear_box_efficiencies(
 
 def calculate_gear_box_speeds_in(gears, velocities, velocity_speed_ratios):
     """
-    Calculates gear box speed vector.
+    Calculates Gear box speed vector [RPM].
 
     :param gears:
-        Gear vector.
+        Gear vector [-].
     :type gears: np.array
 
     :param velocities:
-        Velocity vector.
+        Velocity vector [km/h].
     :type velocities: np.array
 
     :param velocity_speed_ratios:
-        Constant velocity speed ratios of the gear box.
+        Constant velocity speed ratios of the gear box [km/(h*RPM)].
     :type velocity_speed_ratios: dict
 
     :return:
-        Gear box speed vector.
+        Gear box speed vector [RPM].
     :rtype: np.array
     """
 
@@ -634,24 +633,25 @@ def calculate_gear_box_speeds_in(gears, velocities, velocity_speed_ratios):
 def calculate_gear_box_speeds_in_v1(
         gears, gear_box_speeds_out, gear_box_ratios):
     """
-    Calculates gear box speed vector.
+    Calculates Gear box speed vector [RPM].
 
     :param gears:
-        Gear vector.
+        Gear vector [-].
     :type gears: np.array
 
     :param velocities:
-        Velocity vector.
+        Velocity vector [km/h].
     :type velocities: np.array
 
     :param velocity_speed_ratios:
-        Constant velocity speed ratios of the gear box.
+        Constant velocity speed ratios of the gear box [km/(h*RPM)].
     :type velocity_speed_ratios: dict
 
     :return:
-        Gear box speed vector.
+        Gear box speed vector [RPM].
     :rtype: np.array
     """
+
     d = {0: 0.0}
 
     d.update(gear_box_ratios)
@@ -664,22 +664,22 @@ def calculate_gear_box_speeds_in_v1(
 def identify_velocity_speed_ratios(
         gear_box_speeds_in, velocities, idle_engine_speed):
     """
-    Identifies velocity speed ratios from gear box speed vector.
+    Identifies velocity speed ratios from gear box speed vector [km/(h*RPM)].
 
     :param gear_box_speeds_in:
-        Gear box speed vector.
+        Gear box speed vector [RPM].
     :type gear_box_speeds_in: np.array
 
     :param velocities:
-        Velocity vector.
+        Velocity vector [km/h].
     :type velocities: np.array
 
     :param idle_engine_speed:
-        Engine speed idle median and std.
+        Engine speed idle median and std [RPM].
     :type idle_engine_speed: (float, float)
 
     :return:
-        Velocity speed ratios of the gear box.
+        Constant velocity speed ratios of the gear box [km/(h*RPM)].
     :rtype: dict
     """
     idle_speed = idle_engine_speed[0] - idle_engine_speed[1]
@@ -693,22 +693,22 @@ def identify_velocity_speed_ratios(
 
 def identify_speed_velocity_ratios(gears, velocities, gear_box_speeds_in):
     """
-    Identifies speed velocity ratios from gear vector.
+    Identifies speed velocity ratios from gear vector [h*RPM/km].
 
     :param gears:
-        Gear vector.
+        Gear vector [-].
     :type gears: np.array
 
     :param velocities:
-        Velocity vector.
+        Velocity vector [km/h].
     :type velocities: np.array
 
     :param gear_box_speeds_in:
-        Gear box speed vector.
+        Gear box speed vector [RPM].
     :type gear_box_speeds_in: np.array
 
     :return:
-        Speed velocity ratios of the gear box.
+        Speed velocity ratios of the gear box [h*RPM/km].
     :rtype: dict
     """
 
@@ -725,27 +725,29 @@ def identify_speed_velocity_ratios(gears, velocities, gear_box_speeds_in):
     return svr
 
 
-def calculate_speed_velocity_ratios(gear_box_ratios, final_drive, r_dynamic):
+def calculate_speed_velocity_ratios(
+        gear_box_ratios, final_drive_ratio, r_dynamic):
     """
-    Calculates speed velocity ratios of the gear box.
+    Calculates speed velocity ratios of the gear box [h*RPM/km].
 
     :param gear_box_ratios:
-        Gear box ratios.
+        Gear box ratios [-].
     :type gear_box_ratios: dict
 
-    :param final_drive:
-        Vehicle final drive.
-    :type final_drive: float
+    :param final_drive_ratio:
+        Final drive ratio [-].
+    :type final_drive_ratio: float
 
     :param r_dynamic:
-        Vehicle r dynamic.
+        Dynamic radius of the wheels [m].
     :type r_dynamic: float
 
     :return:
-        Speed velocity ratios of the gear box.
+        Speed velocity ratios of the gear box [h*RPM/km].
     :rtype: dict
     """
-    c = final_drive * 30 / (3.6 * pi * r_dynamic)
+
+    c = final_drive_ratio * 30 / (3.6 * pi * r_dynamic)
 
     svr = {k: c * v for k, v in gear_box_ratios.items()}
 
@@ -759,11 +761,13 @@ def calculate_velocity_speed_ratios(speed_velocity_ratios):
     Calculates velocity speed (or speed velocity) ratios of the gear box.
 
     :param speed_velocity_ratios:
-        Constant speed velocity (or velocity speed) ratios of the gear box.
+        Constant speed velocity (or velocity speed) ratios of the gear box
+        [h*RPM/km or km/(h*RPM)].
     :type speed_velocity_ratios: dict
 
     :return:
-        Constant velocity speed (or speed velocity) ratios of the gear box.
+        Constant velocity speed (or speed velocity) ratios of the gear box
+        [km/(h*RPM) or h*RPM/km].
     :rtype: dict
     """
 
@@ -776,3 +780,25 @@ def calculate_velocity_speed_ratios(speed_velocity_ratios):
             return 1 / v
 
     return {k: inverse(v) for k, v in speed_velocity_ratios.items()}
+
+
+def calculate_gear_box_powers_in(gear_box_torques_in, gear_box_speeds_in):
+    """
+    Calculates gear box power [kW].
+
+    :param gear_box_torques_in:
+        Torque at the wheel [N*m].
+    :type gear_box_torques_in: np.array, float
+
+    :param gear_box_speeds_in:
+        Rotating speed of the wheel [RPM].
+    :type gear_box_speeds_in: np.array, float
+
+    :return:
+        Gear box power [kW].
+    :rtype: np.array, float
+    """
+    
+    from compas.functions.physical.wheels import calculate_wheel_powers
+    
+    return calculate_wheel_powers(gear_box_torques_in, gear_box_speeds_in)

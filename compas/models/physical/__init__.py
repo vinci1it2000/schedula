@@ -27,6 +27,7 @@ The model is defined by a Dispatcher that wraps all the functions needed.
 """
 
 from compas.dispatcher import Dispatcher
+from heapq import heappush
 
 __author__ = 'Vincenzo Arcidiacono'
 
@@ -144,6 +145,7 @@ def _physical():
             'idle_engine_speed_std': 'idle_engine_speed_std',
             'initial_engine_temperature': 'initial_engine_temperature',
             'wheel_powers': 'wheel_powers',
+            'wheel_speeds': 'wheel_speeds',
             'velocities': 'velocities'
         },
         outputs={
@@ -201,7 +203,7 @@ def physical_calibration():
             'engine_speeds_out': 'engine_speeds_out',
             'equivalent_gear_box_heat_capacity':
                 'equivalent_gear_box_heat_capacity',
-            'final_drive_ratio': 'final_drive',
+            'final_drive_ratio': 'final_drive_ratio',
             'final_drive_powers_in': 'gear_box_powers_out',
             'final_drive_speeds_in': 'gear_box_speeds_out',
             'gear_box_efficiency_constants': 'gear_box_efficiency_constants',
@@ -217,7 +219,7 @@ def physical_calibration():
             'thermostat_temperature': 'thermostat_temperature',
             'times': 'times',
             'velocities': 'velocities',
-            'velocity_speed_ratios': 'velocity_speed_ratios'
+            'velocity_speed_ratios': 'velocity_speed_ratios',
         },
         outputs={
             'correct_gear': 'correct_gear',
@@ -243,6 +245,7 @@ def physical_calibration():
             'gear_box_temperatures': 'gear_box_temperatures',
             'gear_box_torque_losses': 'gear_box_torque_losses',
             'gear_box_torques_in': 'gear_box_torques_in',
+            'gear_box_powers_in': 'gear_box_powers_in',
         }
     )
     return physical_calibration
@@ -289,10 +292,9 @@ def physical_prediction():
 
             'accelerations':'accelerations',
             'engine_max_torque': 'engine_max_torque',
-            'engine_speeds_out': 'engine_speeds_out',
             'equivalent_gear_box_heat_capacity':
                 'equivalent_gear_box_heat_capacity',
-            'final_drive_ratio': 'final_drive',
+            'final_drive_ratio': 'final_drive_ratio',
             'final_drive_powers_in': 'gear_box_powers_out',
             'final_drive_speeds_in': 'gear_box_speeds_out',
             'gear_box_efficiency_constants': 'gear_box_efficiency_constants',
@@ -308,7 +310,7 @@ def physical_prediction():
             'thermostat_temperature': 'thermostat_temperature',
             'times': 'times',
             'velocities': 'velocities',
-            'velocity_speed_ratios': 'velocity_speed_ratios'
+            'velocity_speed_ratios': 'velocity_speed_ratios',
         },
         outputs={
             'gears': 'gears',
@@ -317,6 +319,46 @@ def physical_prediction():
             'gear_box_temperatures': 'gear_box_temperatures',
             'gear_box_torque_losses': 'gear_box_torque_losses',
             'gear_box_torques_in': 'gear_box_torques_in',
+            'gear_box_powers_in': 'gear_box_powers_in',
         }
     )
     return physical_prediction
+
+
+def model_selector(calibration_outputs):
+
+    models = {}
+    _models = [
+        'engine_temperature_regression_model',
+        'correct_gear',
+        'upper_bound_engine_speed',
+        'idle_engine_speed'
+    ]
+
+    for k in _models:
+        if k in calibration_outputs:
+            models[k] = calibration_outputs[k]
+
+    # A/T gear shifting
+    methods_ids = {
+        'CMV_error_coefficients': 'CMV',
+        'CMV_Cold_Hot_error_coefficients': 'CMV_Cold_Hot',
+        'GSPV_error_coefficients': 'GSPV',
+        'GSPV_Cold_Hot_error_coefficients': 'GSPV_Cold_Hot',
+        'DT_VA_error_coefficients': 'DT_VA',
+        'DT_VAT_error_coefficients': 'DT_VAT',
+        'DT_VAP_error_coefficients': 'DT_VAP',
+        'DT_VATP_error_coefficients': 'DT_VATP',
+    }
+    m = []
+    for e, k in methods_ids.items():
+        e = calibration_outputs.get(e, None)
+        if e:
+            e = e['mean_absolute_error'] / e['correlation_coefficient']
+            heappush(m, (e, k))
+
+    k = m[0][1]
+
+    models[k] = calibration_outputs[k]
+
+    return models

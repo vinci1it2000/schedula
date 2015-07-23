@@ -35,7 +35,7 @@ def calculate_aerodynamic_resistances(f2, velocities):
     Calculates the aerodynamic resistances of the vehicle.
 
     :param f2:
-        As used in the dyno and defined by respective guidelines [N/(km/h)^2]
+        As used in the dyno and defined by respective guidelines [N/(km/h)^2].
     :type f2: float
 
     :param velocities:

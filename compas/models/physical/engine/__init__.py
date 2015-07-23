@@ -83,15 +83,14 @@ def engine():
     engine.add_function(
         function=calibrate_engine_temperature_regression_model,
         inputs=['engine_temperatures', 'velocities', 'wheel_powers',
-                'engine_speeds_out'],
+                'wheel_speeds'],
         outputs=['engine_temperature_regression_model']
     )
 
     engine.add_function(
         function=predict_engine_temperatures,
         inputs=['engine_temperature_regression_model', 'velocities',
-                'wheel_powers', 'engine_speeds_out',
-                'initial_engine_temperature'],
+                'wheel_powers', 'wheel_speeds', 'initial_engine_temperature'],
         outputs=['engine_temperatures']
     )
 

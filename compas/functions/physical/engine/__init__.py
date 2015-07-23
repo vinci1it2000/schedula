@@ -143,7 +143,7 @@ def calculate_braking_powers(
 
 
 def calibrate_engine_temperature_regression_model(
-        engine_temperatures, velocities, wheel_powers, engine_speeds_out):
+        engine_temperatures, velocities, wheel_powers, wheel_speeds):
     """
     Calibrates an engine temperature regression model to predict engine
     temperatures.
@@ -163,9 +163,9 @@ def calibrate_engine_temperature_regression_model(
         Power at the wheels vector [kW].
     :type wheel_powers: np.array
 
-    :param engine_speeds_out:
-        Engine speed vector [RPM].
-    :type engine_speeds_out: np.array
+    :param wheel_speeds:
+        Speed at the wheels vector [RPM].
+    :type wheel_speeds: np.array
 
     :return:
         The calibrated engine temperature regression model.
@@ -183,7 +183,7 @@ def calibrate_engine_temperature_regression_model(
 
     model = GradientBoostingRegressor(**kw)
 
-    X = list(zip(temp, velocities, wheel_powers, engine_speeds_out))
+    X = list(zip(temp, velocities, wheel_powers, wheel_speeds))
 
     model.fit(X[1:], np.diff(engine_temperatures))
 
@@ -191,7 +191,7 @@ def calibrate_engine_temperature_regression_model(
 
 
 def predict_engine_temperatures(
-        model, velocities, wheel_powers, engine_speeds_out,
+        model, velocities, wheel_powers, wheel_speeds,
         initial_temperature):
     """
     Predicts the engine temperature [°C].
@@ -208,9 +208,9 @@ def predict_engine_temperatures(
         Power at the wheels vector [kW].
     :type wheel_powers: np.array
 
-    :param engine_speeds_out:
-        Engine speed vector [RPM].
-    :type engine_speeds_out: np.array
+    :param wheel_speeds:
+        Speed at the wheels vector [RPM].
+    :type wheel_speeds: np.array
 
     :param initial_temperature:
         Engine initial temperature [°C]
@@ -222,7 +222,7 @@ def predict_engine_temperatures(
     """
 
     predict = model.predict
-    it = zip(velocities[:-1], wheel_powers[:-1], engine_speeds_out[:-1])
+    it = zip(velocities[:-1], wheel_powers[:-1], wheel_speeds[:-1])
 
     temp = [initial_temperature]
     for v, p, e in it:

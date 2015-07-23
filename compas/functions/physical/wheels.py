@@ -3,10 +3,41 @@ __author__ = 'iMac2013'
 import numpy as np
 from math import pi
 
+def calculate_wheel_power(velocities, accelerations, road_loads, vehicle_mass):
+    """
+    Calculates the wheel power [kW].
+
+    :param velocities:
+        Velocity [km/h].
+    :type velocities: np.array, float
+
+    :param accelerations:
+        Acceleration [m/s2].
+    :type accelerations: np.array, float
+
+    :param road_loads:
+        Cycle road loads [N, N/(km/h), N/(km/h)^2].
+    :type road_loads: list, tuple
+
+    :param vehicle_mass:
+        Vehicle mass [kg].
+    :type vehicle_mass: float
+
+    :return:
+        Power at wheels [kW].
+    :rtype: np.array, float
+    """
+
+    f0, f1, f2 = road_loads
+
+    quadratic_term = f0 + (f1 + f2 * velocities) * velocities
+
+    return (quadratic_term + 1.03 * vehicle_mass * accelerations) * velocities / 3600
+
 
 def calculate_wheel_torques(wheel_powers, wheel_speeds):
     """
-    Calculates torque at the wheels.
+    Calculates torque at the wheels [N*m].
 
     :param wheel_powers:
         Power at the wheels [kW].
@@ -28,7 +59,7 @@ def calculate_wheel_torques(wheel_powers, wheel_speeds):
 
 def calculate_wheel_powers(wheel_torques, wheel_speeds):
     """
-    Calculates power at the wheels.
+    Calculates power at the wheels [kW].
 
     :param wheel_torques:
         Torque at the wheel [N*m].
@@ -48,7 +79,7 @@ def calculate_wheel_powers(wheel_torques, wheel_speeds):
 
 def calculate_wheel_speeds(velocities, r_dynamic):
     """
-    Calculates rotating speed of the wheels.
+    Calculates rotating speed of the wheels [RPM].
 
     :param velocities:
         Vehicle velocity [km/h].

@@ -28,7 +28,7 @@ from datetime import datetime
 import pandas as pd
 from compas.functions.write_outputs import write_output
 from compas.dispatcher import Dispatcher
-from compas.dispatcher.utils import SubDispatch, replicate_value, selector
+from compas.dispatcher.utils import SubDispatch, replicate_value
 from functools import partial
 from compas.functions.read_inputs import *
 from compas.dispatcher.utils import SubDispatchFunction
@@ -130,11 +130,11 @@ def architecture():
         description='Dictionary that has all outputs of the calibration cycle.'
     )
 
-    models = ['']
+    from .physical import model_selector
 
     architecture.add_function(
         function_id='extract_calibrated_models',
-        function=partial(selector, models),
+        function=model_selector,
         inputs=['calibration_cycle_outputs'],
         outputs=['calibrated_models'],
         description='Extracts the calibrated models from calibration cycle\' '
@@ -210,7 +210,7 @@ def process_folder_files(input_folder, output_folder):
     """
 
     model = architecture()
-    fpaths = glob.glob(input_folder + '/*.xlsm')
+    fpaths = glob.glob(input_folder + '/*.xlsx')
     error_coeff = []
     doday= datetime.today().strftime('%d_%b_%Y_%H_%M_%S_')
 
@@ -243,7 +243,7 @@ def process_folder_files(input_folder, output_folder):
             error_coeff.append(v)
         '''
     from compas.dispatcher.draw import dsp2dot
-    dsp2dot(model, workflow =True, view = True, function_module=False, node_output=True)
+    dsp2dot(model, workflow =True, view = True, function_module=False, node_output=False,edge_attr=model.weight)
     dsp2dot(model, view = True, function_module=False)
     writer = pd.ExcelWriter('%s/%s%s.xlsx' % (output_folder, doday, 'Summary'))
     pd.DataFrame.from_records(error_coeff).to_excel(writer, 'Summary')
