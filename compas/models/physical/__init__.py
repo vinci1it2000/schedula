@@ -133,10 +133,14 @@ def _physical():
         dsp=en,
         inputs={
             'engine_capacity': 'engine_capacity',
+            'engine_max_power': 'engine_max_power',
+            'engine_max_speed_at_max_power': 'engine_max_speed_at_max_power',
+            'engine_max_torque': 'engine_max_torque',
             'engine_speeds_out': 'engine_speeds_out',
             'engine_temperatures': 'engine_temperatures',
             'engine_temperature_regression_model':
                 'engine_temperature_regression_model',
+            'fuel_type': 'fuel_type',
             'gears': 'gears',
             'idle_engine_speed_median': 'idle_engine_speed_median',
             'idle_engine_speed_std': 'idle_engine_speed_std',
@@ -159,16 +163,26 @@ def _physical():
             'engine_thermostat_temperature': 'engine_thermostat_temperature',
             'engine_type': 'engine_type',
             'fuel_carbon_content': 'fuel_carbon_content',
+            'gear_box_speeds_in': 'gear_box_speeds_in',
+            'gear_box_powers_in': 'gear_box_powers_in',
             'idle_engine_speed': 'idle_engine_speed',
+            'start_stop_model': 'start_stop_model',
             'times': 'times',
         },
         outputs={
+            'co2_emission_value': 'co2_emission_value',
+            'co2_emissions': 'co2_emissions',
+            'co2_params': 'co2_params',
+            'engine_max_torque': 'engine_max_torque',
             'engine_temperatures': 'engine_temperatures',
             'engine_thermostat_temperature': 'engine_thermostat_temperature',
             'engine_temperature_regression_model':
                 'engine_temperature_regression_model',
+            'fuel_consumptions': 'fuel_consumptions',
             'idle_engine_speed': 'idle_engine_speed',
             'initial_engine_temperature': 'initial_temperature',
+            'phases_co2_emissions': 'phases_co2_emissions',
+            'start_stop_model': 'start_stop_model',
             'upper_bound_engine_speed': 'upper_bound_engine_speed',
         }
     )
@@ -204,8 +218,8 @@ def physical_calibration():
         dsp=gb,
         inputs={
             'fuel_type': 'fuel_type',
-            'max_engine_power': 'max_engine_power',
-            'max_engine_speed_at_max_power': 'max_engine_speed_at_max_power',
+            'engine_max_power': 'engine_max_power',
+            'engine_max_speed_at_max_power': 'engine_max_speed_at_max_power',
             'road_loads': 'road_loads',
             'engine_temperatures': 'engine_temperatures',
             'time_cold_hot_transition': 'time_cold_hot_transition',

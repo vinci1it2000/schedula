@@ -174,8 +174,8 @@ def correct_gear_full_load(
 
 
 def correct_gear_v0(
-        velocity_speed_ratios, upper_bound_engine_speed, max_engine_power,
-        max_engine_speed_at_max_power, idle_engine_speed, full_load_curve,
+        velocity_speed_ratios, upper_bound_engine_speed, engine_max_power,
+        engine_max_speed_at_max_power, idle_engine_speed, full_load_curve,
         road_loads, inertia):
     """
     Returns a function to correct the gear predicted according to
@@ -190,13 +190,13 @@ def correct_gear_v0(
         Upper bound engine speed.
     :type upper_bound_engine_speed: float
 
-    :param max_engine_power:
+    :param engine_max_power:
         Maximum power.
-    :type max_engine_power: float
+    :type engine_max_power: float
 
-    :param max_engine_speed_at_max_power:
+    :param engine_max_speed_at_max_power:
         Rated engine speed.
-    :type max_engine_speed_at_max_power: float
+    :type engine_max_speed_at_max_power: float
 
     :param idle_engine_speed:
         Engine speed idle median and std.
@@ -228,8 +228,8 @@ def correct_gear_v0(
             upper_bound_engine_speed)
 
         return correct_gear_full_load(
-            velocity, acceleration, g, velocity_speed_ratios, max_engine_power,
-            max_engine_speed_at_max_power, idle_engine_speed, full_load_curve,
+            velocity, acceleration, g, velocity_speed_ratios, engine_max_power,
+            engine_max_speed_at_max_power, idle_engine_speed, full_load_curve,
             road_loads, inertia, min_gear)
 
     return correct_gear
@@ -264,7 +264,7 @@ def correct_gear_v1(velocity_speed_ratios, upper_bound_engine_speed):
 
 
 def correct_gear_v2(
-        velocity_speed_ratios, max_engine_power, max_engine_speed_at_max_power,
+        velocity_speed_ratios, engine_max_power, engine_max_speed_at_max_power,
         idle_engine_speed, full_load_curve, road_loads, inertia):
     """
     Returns a function to correct the gear predicted according to
@@ -274,13 +274,13 @@ def correct_gear_v2(
         Constant velocity speed ratios of the gear box.
     :type velocity_speed_ratios: dict
 
-    :param max_engine_power:
+    :param engine_max_power:
         Maximum power.
-    :type max_engine_power: float
+    :type engine_max_power: float
 
-    :param max_engine_speed_at_max_power:
+    :param engine_max_speed_at_max_power:
         Rated engine speed.
-    :type max_engine_speed_at_max_power: float
+    :type engine_max_speed_at_max_power: float
 
     :param idle_engine_speed:
         Engine speed idle median and std.
@@ -308,7 +308,7 @@ def correct_gear_v2(
     def correct_gear(velocity, acceleration, gear):
         return correct_gear_full_load(
             velocity, acceleration, gear, velocity_speed_ratios,
-            max_engine_power, max_engine_speed_at_max_power, idle_engine_speed,
+            engine_max_power, engine_max_speed_at_max_power, idle_engine_speed,
             full_load_curve, road_loads, inertia, min_gear)
 
     return correct_gear

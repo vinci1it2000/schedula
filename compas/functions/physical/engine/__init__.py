@@ -23,7 +23,8 @@ __author__ = 'Vincenzo Arcidiacono'
 
 from math import pi
 import numpy as np
-from sklearn.ensemble import  GradientBoostingRegressor
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import GradientBoostingRegressor
 from compas.functions.physical.constants import *
 from compas.functions.physical.utils import bin_split, reject_outliers
 
@@ -105,7 +106,7 @@ def calculate_braking_powers(
     Calculates braking power.
 
     :param engine_speeds_out:
-        Engine speed.
+        Engine speed [RPM].
     :type engine_speeds_out: np.array
 
     :param engine_torques_in:
@@ -265,3 +266,156 @@ def identify_initial_engine_temperature(engine_temperatures):
     """
 
     return float(engine_temperatures[0])
+
+
+def calculate_engine_max_torque(
+        engine_max_power, engine_max_speed_at_max_power, fuel_type):
+
+    c = {
+        'gasoline': 1.25,
+        'diesel': 1.1
+    }[fuel_type]
+
+    return engine_max_power / engine_max_speed_at_max_power * 30000.0 / pi * c
+
+
+def identify_on_engine(engine_speeds_out, idle_engine_speed):
+    """
+    Identifies if the engine is on [-].
+
+    :param engine_speeds_out:
+        Engine speed [RPM].
+    :type engine_speeds_out: np.array
+
+    :param idle_engine_speed:
+        Idle engine speed and its standard deviation [RPM].
+    :type idle_engine_speed: (float, float)
+
+    :return:
+        If the engine is on [-].
+    :rtype: np.array
+    """
+
+    return engine_speeds_out > idle_engine_speed[0] - idle_engine_speed[1]
+
+
+def calibrate_start_stop_model(
+        on_engine, velocities, engine_temperatures):
+    """
+    Calibrates an start/stop model to predict if the engine is on.
+
+    :param on_engine:
+        If the engine is on [-].
+    :type on_engine: np.array
+
+    :param velocities:
+        Velocity vector [km/h].
+    :type velocities: np.array
+
+    :param engine_temperatures:
+        Engine temperature vector [°C].
+    :type engine_temperatures: np.array
+
+    :return:
+        Start/stop model.
+    :rtype: sklearn.tree.DecisionTreeClassifier
+    """
+
+    kw = {
+        'random_state': 0,
+        'min_samples_leaf': max(len(velocities) * 0.01, 15)
+    }
+
+    model = DecisionTreeClassifier(**kw)
+
+    X = list(zip(on_engine[:-1], velocities[1:], engine_temperatures[1:]))
+
+    model.fit(X, on_engine[1:])
+
+    return model
+
+
+def predict_on_engine(
+        model, velocities, engine_temperatures):
+    """
+    Predicts if the engine is on (start and stop) [-].
+
+    :param model:
+        Start/stop model.
+    :type model: sklearn.tree.DecisionTreeClassifier
+
+    :param velocities:
+        Velocity vector [km/h].
+    :type velocities: np.array
+
+    :param engine_temperatures:
+        Engine temperature vector [°C].
+    :type engine_temperatures: np.array
+
+    :return:
+        If the engine is on [-].
+    :rtype: np.array
+    """
+
+    predict = model.predict
+
+    it = zip(velocities[:-1], engine_temperatures[:-1])
+
+    offs_engine = [predict([True, velocities[0], engine_temperatures[0]])]
+    for v, t in it:
+        offs_engine.append(predict([[offs_engine[-1], v, t]])[0])
+
+    return np.array(offs_engine, dtype=bool)
+
+
+def calculate_engine_speeds_out(
+        gear_box_speeds_in, on_engine, idle_engine_speed):
+    """
+    Calculates the engine speed [RPM].
+
+    :param gear_box_speeds_in:
+        Gear box speed [RPM].
+    :type gear_box_speeds_in: np.array
+
+    :param on_engine:
+        If the engine is on [-].
+    :type on_engine: np.array
+
+    :return:
+        Engine speed [RPM].
+    :rtype: np.array
+    """
+
+    s = gear_box_speeds_in.copy()
+
+    s[(on_engine) & (s < idle_engine_speed[0])] = idle_engine_speed[0]
+
+    return s
+
+
+def calculate_engine_powers_out(gear_box_powers_in, P0, on_engine):
+    """
+    Calculates the engine power [kW].
+
+    :param gear_box_powers_in:
+        Gear box power [kW].
+    :type gear_box_powers_in: np.array
+
+    :param P0:
+        Power engine power threshold limit [kW].
+    :type P0: float
+
+    :param on_engine:
+        If the engine is on [-].
+    :type on_engine: np.array
+
+    :return:
+        Engine power [kW].
+    :rtype: np.array
+    """
+
+    p = np.zeros(gear_box_powers_in.shape)
+
+    p[on_engine] = P0 - gear_box_powers_in[on_engine]
+
+    return p

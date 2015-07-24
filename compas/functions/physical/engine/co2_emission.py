@@ -612,7 +612,7 @@ def calibrate_model_params(params_bounds, error_function, initial_guess=None):
         step = 3.0
         x = brute(error_func, params_bounds, Ns=step, finish=finish)
     else:
-        x = finish(error_func, initial_guess[param_keys])[0]
+        x = finish(error_func, [initial_guess[k] for k in param_keys])[0]
 
     update_params(x)
 
@@ -678,7 +678,7 @@ def calculate_co2_emission(phases_co2_emissions, phases_distances):
     :rtype: float
     """
 
-    n = phases_co2_emissions * phases_distances
+    n = sum(phases_co2_emissions * phases_distances)
 
     if isinstance(phases_distances, float):
         d = phases_distances * len(phases_co2_emissions)

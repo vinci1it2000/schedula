@@ -100,6 +100,43 @@ def engine():
         outputs=['initial_engine_temperature']
     )
 
+    engine.add_function(
+        function=calculate_engine_max_torque,
+        inputs=['engine_max_power', 'engine_max_speed_at_max_power',
+                'fuel_type'],
+        outputs=['engine_max_torque']
+    )
+
+    engine.add_function(
+        function=identify_on_engine,
+        inputs=['engine_speeds_out', 'idle_engine_speed'],
+        outputs=['on_engine']
+    )
+
+    engine.add_function(
+        function=calibrate_start_stop_model,
+        inputs=['on_engine', 'velocities', 'engine_temperatures'],
+        outputs=['start_stop_model']
+    )
+
+    engine.add_function(
+        function=predict_on_engine,
+        inputs=['start_stop_model', 'velocities', 'engine_temperatures'],
+        outputs=['on_engine']
+    )
+
+    engine.add_function(
+        function=calculate_engine_speeds_out,
+        inputs=['gear_box_speeds_in', 'on_engine', 'idle_engine_speed'],
+        outputs=['engine_speeds_out']
+    )
+
+    engine.add_function(
+        function=calculate_engine_powers_out,
+        inputs=['gear_box_powers_in', 'P0', 'on_engine'],
+        outputs=['engine_powers_out']
+    )
+
     from .co2_emission import co2_emission
 
     engine.add_dispatcher(

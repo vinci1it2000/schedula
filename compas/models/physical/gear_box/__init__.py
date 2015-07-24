@@ -208,6 +208,12 @@ def gear_box_calibration():
                    for k, v in at.default_values.items()]
     )
 
+    def domain_AT_gear_shifting(kwargs):
+        for k, v in kwargs.items():
+            if ':gear_box_type' in k or 'gear_box_type' == k:
+                return v == 'automatic'
+        return False
+
     gear_box_calibration.add_dispatcher(
         dsp=at,
         dsp_id='AT_gear_shifting',
@@ -217,9 +223,10 @@ def gear_box_calibration():
             'fuel_type': 'fuel_type',
             'gears': 'identified_gears',
             'gear_box_powers_out': 'gear_box_powers_out',
+            'gear_box_type': 'gear_box_type',
             'idle_engine_speed': 'idle_engine_speed',
-            'max_engine_power': 'max_engine_power',
-            'max_engine_speed_at_max_power': 'max_engine_speed_at_max_power',
+            'engine_max_power': 'engine_max_power',
+            'engine_max_speed_at_max_power': 'engine_max_speed_at_max_power',
             'road_loads': 'road_loads',
             'engine_temperatures': 'engine_temperatures',
             'time_cold_hot_transition': 'time_cold_hot_transition',
@@ -240,14 +247,17 @@ def gear_box_calibration():
             'GSPV': 'GSPV',
             'GSPV_Cold_Hot': 'GSPV_Cold_Hot',
             'CMV_error_coefficients': 'CMV_error_coefficients',
-            'CMV_Cold_Hot_error_coefficients': 'CMV_Cold_Hot_error_coefficients',
+            'CMV_Cold_Hot_error_coefficients':
+                'CMV_Cold_Hot_error_coefficients',
             'DT_VA_error_coefficients': 'DT_VA_error_coefficients',
             'DT_VAT_error_coefficients': 'DT_VAT_error_coefficients',
             'DT_VAP_error_coefficients': 'DT_VAP_error_coefficients',
             'DT_VATP_error_coefficients': 'DT_VATP_error_coefficients',
             'GSPV_error_coefficients': 'GSPV_error_coefficients',
-            'GSPV_Cold_Hot_error_coefficients': 'GSPV_Cold_Hot_error_coefficients',
-        }
+            'GSPV_Cold_Hot_error_coefficients':
+                'GSPV_Cold_Hot_error_coefficients',
+        },
+        input_domain=domain_AT_gear_shifting
     )
     return gear_box_calibration
 

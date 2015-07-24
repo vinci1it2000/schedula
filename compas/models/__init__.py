@@ -290,7 +290,7 @@ def load():
 
     dsp.add_data(
         data_id='series_cols',
-        default_value='A:E'
+        default_value='A:F'
     )
 
     dsp.add_function(
