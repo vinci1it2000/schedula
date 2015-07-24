@@ -531,7 +531,7 @@ def calculate_gear_box_efficiencies(
         gear_box_torques_out,
         gear_box_efficiency_parameters, equivalent_gear_box_heat_capacity,
         thermostat_temperature, temperature_references,
-        gear_box_starting_temperature, gears=None, gear_box_ratios=None):
+        initial_gear_box_temperature, gears=None, gear_box_ratios=None):
     """
     Calculates torque entering the gear box.
 
@@ -583,14 +583,14 @@ def calculate_gear_box_efficiencies(
     from compas.models.physical.gear_box.thermal import thermal
 
     fun = SubDispatchFunction(thermal(), 'thermal', inputs, outputs)
-    T0 = gear_box_starting_temperature
+    T0 = initial_gear_box_temperature
     res = []
     for args in zip(*it):
         res.append(fun(*(dfl + args + (T0, ))))
         T0 = res[-1][0]
 
     temp, to_in, eff = zip(*res)
-    temp = (gear_box_starting_temperature, ) + temp[:-1]
+    temp = (initial_gear_box_temperature, ) + temp[:-1]
     return np.array(eff), np.array(to_in), np.array(temp)
 
 

@@ -382,28 +382,9 @@ def calculate_cumulative_co2_v1(phases_co2_emissions, phases_distances):
     return phases_co2_emissions * phases_distances
 
 
-def identify_target_engine_temperature_window(engine_temperatures):
-    """
-    Identifies target engine temperature and its limits [°C].
-
-    :param engine_temperatures:
-        Engine temperature vector [°C].
-    :type engine_temperatures: np.array
-
-    :return:
-        Target engine temperature and its limits [°C].
-    :rtype: (float, (float, float))
-    """
-
-    m, s = reject_outliers(engine_temperatures, n=2)
-
-    s = max(s, 20.0)
-
-    return m, (m - s, max(engine_temperatures))
-
-
 def select_initial_co2_emission_model_params_guess(
-        engine_type, target_engine_temperature_window):
+        engine_type, engine_thermostat_temperature,
+        target_engine_temperature_window):
     """
     Selects initial guess and bounds of co2 emission model params.
 
@@ -411,9 +392,13 @@ def select_initial_co2_emission_model_params_guess(
         Engine type (gasoline turbo, gasoline natural aspiration, diesel).
     :type engine_type: str
 
+    :param engine_thermostat_temperature:
+        Thermostat engine temperature [°C].
+    :type engine_thermostat_temperature: float
+
     :param target_engine_temperature_window:
-        Target engine temperature and its limits [°C].
-    :type target_engine_temperature_window: (float, (float, float))
+        Thermostat engine temperature limits [°C].
+    :type target_engine_temperature_window: (float, float)
 
     :return:
         Initial guess and bounds of co2 emission model params.
@@ -423,11 +408,11 @@ def select_initial_co2_emission_model_params_guess(
     p = {
         'x0': {
             't': 4.5,
-            'trg': target_engine_temperature_window[0]
+            'trg': engine_thermostat_temperature
         },
         'bounds': {
             't': (0.0, 8.0),
-            'trg': target_engine_temperature_window[1]
+            'trg': target_engine_temperature_window
         }
     }
     params = {

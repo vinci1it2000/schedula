@@ -26,11 +26,10 @@ It contains a comprehensive list of all CO2MPAS software models and sub-models:
 The model is defined by a Dispatcher that wraps all the functions needed.
 """
 
-from compas.dispatcher import Dispatcher
-from heapq import heappush
 
 __author__ = 'Vincenzo Arcidiacono'
 
+from compas.dispatcher import Dispatcher
 
 def _physical():
 
@@ -134,27 +133,42 @@ def _physical():
         dsp=en,
         inputs={
             'engine_capacity': 'engine_capacity',
-            'engine_loss_parameters': 'engine_loss_parameters',
             'engine_speeds_out': 'engine_speeds_out',
             'engine_temperatures': 'engine_temperatures',
             'engine_temperature_regression_model':
                 'engine_temperature_regression_model',
-            'gear_box_torques_in': 'engine_torques_in',
             'gears': 'gears',
             'idle_engine_speed_median': 'idle_engine_speed_median',
             'idle_engine_speed_std': 'idle_engine_speed_std',
-            'initial_engine_temperature': 'initial_engine_temperature',
+            'initial_temperature': 'initial_engine_temperature',
             'wheel_powers': 'wheel_powers',
             'wheel_speeds': 'wheel_speeds',
-            'velocities': 'velocities'
+            'velocities': 'velocities',
+
+            'co2_emission_low': 'co2_emission_low',
+            'co2_emission_medium': 'co2_emission_medium',
+            'co2_emission_high': 'co2_emission_high',
+            'co2_emission_extra_high': 'co2_emission_extra_high',
+            'co2_params': 'co2_params',
+            'cycle_type': 'cycle_type',
+            'engine_fuel_lower_heating_value':
+                'engine_fuel_lower_heating_value',
+            'engine_idle_fuel_consumption': 'engine_idle_fuel_consumption',
+            'engine_powers_out': 'engine_powers_out',
+            'engine_stroke': 'engine_stroke',
+            'engine_thermostat_temperature': 'engine_thermostat_temperature',
+            'engine_type': 'engine_type',
+            'fuel_carbon_content': 'fuel_carbon_content',
+            'idle_engine_speed': 'idle_engine_speed',
+            'times': 'times',
         },
         outputs={
-            'braking_powers': 'braking_powers',
             'engine_temperatures': 'engine_temperatures',
+            'engine_thermostat_temperature': 'engine_thermostat_temperature',
             'engine_temperature_regression_model':
                 'engine_temperature_regression_model',
             'idle_engine_speed': 'idle_engine_speed',
-            'piston_speeds': 'piston_speeds',
+            'initial_engine_temperature': 'initial_temperature',
             'upper_bound_engine_speed': 'upper_bound_engine_speed',
         }
     )
@@ -210,13 +224,13 @@ def physical_calibration():
             'gear_box_efficiency_parameters_cold_hot':
                 'gear_box_efficiency_parameters_cold_hot',
             'gear_box_ratios': 'gear_box_ratios',
-            'gear_box_starting_temperature': 'gear_box_starting_temperature',
+            'initial_temperature': 'initial_gear_box_temperature',
             'gear_box_type': 'gear_box_type',
             'gears': 'gears',
             'idle_engine_speed': 'idle_engine_speed',
             'r_dynamic': 'r_dynamic',
             'temperature_references': 'temperature_references',
-            'thermostat_temperature': 'thermostat_temperature',
+            'engine_thermostat_temperature': 'engine_thermostat_temperature',
             'times': 'times',
             'velocities': 'velocities',
             'velocity_speed_ratios': 'velocity_speed_ratios',
@@ -232,13 +246,15 @@ def physical_calibration():
             'GSPV': 'GSPV',
             'GSPV_Cold_Hot': 'GSPV_Cold_Hot',
             'CMV_error_coefficients': 'CMV_error_coefficients',
-            'CMV_Cold_Hot_error_coefficients': 'CMV_Cold_Hot_error_coefficients',
+            'CMV_Cold_Hot_error_coefficients':
+                'CMV_Cold_Hot_error_coefficients',
             'DT_VA_error_coefficients': 'DT_VA_error_coefficients',
             'DT_VAT_error_coefficients': 'DT_VAT_error_coefficients',
             'DT_VAP_error_coefficients': 'DT_VAP_error_coefficients',
             'DT_VATP_error_coefficients': 'DT_VATP_error_coefficients',
             'GSPV_error_coefficients': 'GSPV_error_coefficients',
-            'GSPV_Cold_Hot_error_coefficients': 'GSPV_Cold_Hot_error_coefficients',
+            'GSPV_Cold_Hot_error_coefficients':
+                'GSPV_Cold_Hot_error_coefficients',
             'gears': 'gears',
             'gear_box_efficiencies': 'gear_box_efficiencies',
             'gear_box_speeds_in': 'gear_box_speeds_in',
@@ -301,13 +317,13 @@ def physical_prediction():
             'gear_box_efficiency_parameters_cold_hot':
                 'gear_box_efficiency_parameters_cold_hot',
             'gear_box_ratios': 'gear_box_ratios',
-            'gear_box_starting_temperature': 'gear_box_starting_temperature',
+            'initial_temperature': 'initial_gear_box_temperature',
             'gear_box_type': 'gear_box_type',
             'gears': 'gears',
             'idle_engine_speed': 'idle_engine_speed',
             'r_dynamic': 'r_dynamic',
             'temperature_references': 'temperature_references',
-            'thermostat_temperature': 'thermostat_temperature',
+            'engine_thermostat_temperature': 'engine_thermostat_temperature',
             'times': 'times',
             'velocities': 'velocities',
             'velocity_speed_ratios': 'velocity_speed_ratios',
@@ -323,42 +339,3 @@ def physical_prediction():
         }
     )
     return physical_prediction
-
-
-def model_selector(calibration_outputs):
-
-    models = {}
-    _models = [
-        'engine_temperature_regression_model',
-        'correct_gear',
-        'upper_bound_engine_speed',
-        'idle_engine_speed'
-    ]
-
-    for k in _models:
-        if k in calibration_outputs:
-            models[k] = calibration_outputs[k]
-
-    # A/T gear shifting
-    methods_ids = {
-        'CMV_error_coefficients': 'CMV',
-        'CMV_Cold_Hot_error_coefficients': 'CMV_Cold_Hot',
-        'GSPV_error_coefficients': 'GSPV',
-        'GSPV_Cold_Hot_error_coefficients': 'GSPV_Cold_Hot',
-        'DT_VA_error_coefficients': 'DT_VA',
-        'DT_VAT_error_coefficients': 'DT_VAT',
-        'DT_VAP_error_coefficients': 'DT_VAP',
-        'DT_VATP_error_coefficients': 'DT_VATP',
-    }
-    m = []
-    for e, k in methods_ids.items():
-        e = calibration_outputs.get(e, None)
-        if e:
-            e = e['mean_absolute_error'] / e['correlation_coefficient']
-            heappush(m, (e, k))
-
-    k = m[0][1]
-
-    models[k] = calibration_outputs[k]
-
-    return models

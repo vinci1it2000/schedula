@@ -2,6 +2,7 @@ __author__ = 'Vincenzo Arcidiacono'
 
 from compas.dispatcher import Dispatcher
 from compas.functions.physical.engine.co2_emission import *
+from compas.dispatcher.utils import bypass
 
 
 def co2_emission():
@@ -46,14 +47,9 @@ def co2_emission():
     )
 
     co2_emission.add_function(
-        function=identify_target_engine_temperature_window,
-        inputs=['engine_temperatures'],
-        outputs=['target_engine_temperature_window']
-    )
-
-    co2_emission.add_function(
         function=select_initial_co2_emission_model_params_guess,
-        inputs=['engine_type', 'target_engine_temperature_window'],
+        inputs=['engine_type', 'engine_thermostat_temperature',
+                'target_engine_temperature_window'],
         outputs=['co2_params_initial_guess', 'co2_params_bounds']
     )
 
@@ -79,12 +75,12 @@ def co2_emission():
         function=identify_co2_emissions,
         inputs=['co2_emissions_model', 'co2_params_initial_guess', 'times',
                 'phases_integration_times', 'cumulative_co2_emissions'],
-        outputs=['co2_emissions<0>']
+        outputs=['identified_co2_emissions']
     )
 
     co2_emission.add_function(
         function=define_co2_error_function,
-        inputs=['co2_emissions_model', 'co2_emissions<0>'],
+        inputs=['co2_emissions_model', 'identified_co2_emissions'],
         outputs=['co2_error_function']
     )
 
@@ -127,6 +123,21 @@ def co2_emission():
         function=calculate_co2_emission,
         inputs=['phases_co2_emissions', 'phases_distances'],
         outputs=['co2_emission_value']
+    )
+
+    co2_emission.add_function(
+        function_id='merge_wltp_phases_co2_emission',
+        function=bypass,
+        inputs=['co2_emission_low', 'co2_emission_medium', 'co2_emission_high',
+                'co2_emission_extra_high'],
+        outputs=['phases_co2_emissions']
+    )
+
+    co2_emission.add_function(
+        function_id='merge_nedc_phases_co2_emission',
+        function=bypass,
+        inputs=['co2_emission_udc', 'co2_emission_eudc'],
+        outputs=['phases_co2_emissions']
     )
 
     return co2_emission

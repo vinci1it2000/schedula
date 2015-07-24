@@ -130,7 +130,7 @@ def architecture():
         description='Dictionary that has all outputs of the calibration cycle.'
     )
 
-    from .physical import model_selector
+    from compas.functions.physical import model_selector
 
     architecture.add_function(
         function_id='extract_calibrated_models',

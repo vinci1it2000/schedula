@@ -63,31 +63,31 @@ def correct_gear_upper_bound_engine_speed(
     Corrects the gear predicted according to upper bound engine speed.
 
     :param velocity:
-        Vehicle velocity.
+        Vehicle velocity [km/h].
     :type velocity: float
 
     :param acceleration:
-        Vehicle acceleration.
+        Vehicle acceleration [m/s2].
     :type acceleration: float
 
     :param gear:
-        Predicted vehicle gear.
+        Predicted vehicle gear [-].
     :type gear: int
 
     :param velocity_speed_ratios:
-        Constant velocity speed ratios of the gear box.
+        Constant velocity speed ratios of the gear box [km/(h*RPM)].
     :type velocity_speed_ratios: dict
 
     :param max_gear:
-        Maximum gear.
+        Maximum gear [-].
     :type max_gear: int
 
     :param upper_bound_engine_speed:
-        Upper bound engine speed.
+        Upper bound engine speed [RPM].
     :type upper_bound_engine_speed: float
 
     :return:
-        A gear corrected according to upper bound engine speed.
+        A gear corrected according to upper bound engine speed [-].
     :rtype: int
     """
 
@@ -109,31 +109,31 @@ def correct_gear_full_load(
     Corrects the gear predicted according to full load curve.
 
     :param velocity:
-        Vehicle velocity.
+        Vehicle velocity [km/h].
     :type velocity: float
 
     :param acceleration:
-        Vehicle acceleration.
+        Vehicle acceleration [m/s2].
     :type acceleration: float
 
     :param gear:
-        Predicted vehicle gear.
+        Predicted vehicle gear [-].
     :type gear: int
 
     :param velocity_speed_ratios:
-        Constant velocity speed ratios of the gear box.
+        Constant velocity speed ratios of the gear box [km/(h*RPM)].
     :type velocity_speed_ratios: dict
 
     :param max_engine_power:
-        Maximum power.
+        Maximum power [kW].
     :type max_engine_power: float
 
     :param max_engine_speed_at_max_power:
-        Rated engine speed.
+        Rated engine speed [RPM].
     :type max_engine_speed_at_max_power: float
 
     :param idle_engine_speed:
-        Engine speed idle median and std.
+        Engine speed idle median and std [RPM].
     :type idle_engine_speed: (float, float)
 
     :param full_load_curve:
@@ -152,6 +152,7 @@ def correct_gear_full_load(
         A gear corrected according to full load curve.
     :rtype: int
     """
+
     if velocity > 100:
         return gear
 
@@ -178,9 +179,8 @@ def correct_gear_v0(
         road_loads, inertia):
     """
     Returns a function to correct the gear predicted according to
-    :func:`compas.functions.physical.AT_gear.
-    correct_gear_upper_bound_engine_speed`
-    and :func:`compas.functions.physical.AT_gear.correct_gear_full_load`.
+    :func:`correct_gear_upper_bound_engine_speed`
+    and :func:`correct_gear_full_load`.
 
     :param velocity_speed_ratios:
         Constant velocity speed ratios of the gear box.
@@ -238,8 +238,7 @@ def correct_gear_v0(
 def correct_gear_v1(velocity_speed_ratios, upper_bound_engine_speed):
     """
     Returns a function to correct the gear predicted according to
-    :func:`compas.functions.physical.AT_gear.
-    correct_gear_upper_bound_engine_speed`.
+    :func:`correct_gear_upper_bound_engine_speed`.
 
     :param velocity_speed_ratios:
         Constant velocity speed ratios of the gear box.

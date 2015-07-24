@@ -229,3 +229,39 @@ def predict_engine_temperatures(
         temp.append(temp[-1] + predict([[temp[-1], v, p, e]])[0])
 
     return np.array(temp)
+
+
+def identify_thermostat_engine_temperature(engine_temperatures):
+    """
+    Identifies thermostat engine temperature and its limits [°C].
+
+    :param engine_temperatures:
+        Engine temperature vector [°C].
+    :type engine_temperatures: np.array
+
+    :return:
+        Thermostat engine temperature and its limits [°C].
+    :rtype: (float, (float, float))
+    """
+
+    m, s = reject_outliers(engine_temperatures, n=2)
+
+    s = max(s, 20.0)
+
+    return m, (m - s, max(engine_temperatures))
+
+
+def identify_initial_engine_temperature(engine_temperatures):
+    """
+    Identifies initial engine temperature [°C].
+
+    :param engine_temperatures:
+        Engine temperature vector [°C].
+    :type engine_temperatures: np.array
+
+    :return:
+        Initial engine temperature [°C].
+    :rtype: float
+    """
+
+    return float(engine_temperatures[0])
