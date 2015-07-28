@@ -86,6 +86,7 @@ def plot_gear_box_speeds(series):
         k, v = g.popitem()
         g1[k] = v
     g.update(e)
+
     _plot_series(series['Time [s]'], g, ax=ax3,
                  x_label='Time [s]', y_label='Gearbox speed [rpm]')
 
