@@ -115,7 +115,6 @@ def _physical():
             'final_drive_powers_in': 'final_drive_powers_in',
             'final_drive_speeds_in': 'final_drive_speeds_in',
             'final_drive_torques_in': 'final_drive_torques_in',
-
         }
     )
 
@@ -140,6 +139,7 @@ def _physical():
             'engine_temperatures': 'engine_temperatures',
             'engine_temperature_regression_model':
                 'engine_temperature_regression_model',
+            'thermal_speed_param': 'thermal_speed_param',
             'fuel_type': 'fuel_type',
             'gears': 'gears',
             'idle_engine_speed_median': 'idle_engine_speed_median',
@@ -168,16 +168,19 @@ def _physical():
             'idle_engine_speed': 'idle_engine_speed',
             'start_stop_model': 'start_stop_model',
             'times': 'times',
+            'upper_bound_engine_speed': 'upper_bound_engine_speed',
         },
         outputs={
             'co2_emission_value': 'co2_emission_value',
             'co2_emissions': 'co2_emissions',
             'co2_params': 'co2_params',
             'engine_max_torque': 'engine_max_torque',
+            'engine_speeds_out': 'engine_speeds_out',
             'engine_temperatures': 'engine_temperatures',
             'engine_thermostat_temperature': 'engine_thermostat_temperature',
             'engine_temperature_regression_model':
                 'engine_temperature_regression_model',
+            'thermal_speed_param': 'thermal_speed_param',
             'fuel_consumptions': 'fuel_consumptions',
             'idle_engine_speed': 'idle_engine_speed',
             'initial_engine_temperature': 'initial_temperature',

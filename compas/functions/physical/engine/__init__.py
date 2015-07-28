@@ -321,12 +321,7 @@ def calibrate_start_stop_model(
     :rtype: sklearn.tree.DecisionTreeClassifier
     """
 
-    kw = {
-        'random_state': 0,
-        'min_samples_leaf': max(len(velocities) * 0.01, 15)
-    }
-
-    model = DecisionTreeClassifier(**kw)
+    model = DecisionTreeClassifier(random_state=0)
 
     X = list(zip(on_engine[:-1], velocities[1:], engine_temperatures[1:]))
 
@@ -361,15 +356,16 @@ def predict_on_engine(
 
     it = zip(velocities[:-1], engine_temperatures[:-1])
 
-    offs_engine = [predict([True, velocities[0], engine_temperatures[0]])]
+    on_engine = [predict([True, velocities[0], engine_temperatures[0]])]
     for v, t in it:
-        offs_engine.append(predict([[offs_engine[-1], v, t]])[0])
+        on_engine.append(predict([[on_engine[-1], v, t]])[0])
 
-    return np.array(offs_engine, dtype=bool)
+    return np.array(on_engine, dtype=bool)
 
 
 def calculate_engine_speeds_out(
-        gear_box_speeds_in, on_engine, idle_engine_speed):
+        gear_box_speeds_in, on_engine, idle_engine_speed, temperatures,
+        engine_thermostat_temperature, thermal_speed_param):
     """
     Calculates the engine speed [RPM].
 
@@ -388,9 +384,25 @@ def calculate_engine_speeds_out(
 
     s = gear_box_speeds_in.copy()
 
-    s[(on_engine) & (s < idle_engine_speed[0])] = idle_engine_speed[0]
+    s[on_engine & (s < idle_engine_speed[0])] = idle_engine_speed[0]
+
+    e_t = (engine_thermostat_temperature - temperatures) / thermal_speed_param
+
+    b = on_engine & (e_t > s)
+    s[b] = e_t[b]
 
     return s
+
+
+def calibrate_thermal_speed_param(
+        velocities, engine_speeds_out, temperatures, idle_engine_speed,
+        engine_thermostat_temperature):
+
+    b = (velocities < VEL_EPS) & (idle_engine_speed[0] < engine_speeds_out)
+
+    p = (engine_thermostat_temperature - temperatures[b]) / engine_speeds_out[b]
+
+    return reject_outliers(p)[0]
 
 
 def calculate_engine_powers_out(gear_box_powers_in, P0, on_engine):

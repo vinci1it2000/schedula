@@ -126,8 +126,17 @@ def engine():
     )
 
     engine.add_function(
+        function=calibrate_thermal_speed_param,
+        inputs=['velocities', 'engine_speeds_out', 'engine_temperatures',
+                'idle_engine_speed', 'engine_thermostat_temperature'],
+        outputs=['thermal_speed_param']
+    )
+
+    engine.add_function(
         function=calculate_engine_speeds_out,
-        inputs=['gear_box_speeds_in', 'on_engine', 'idle_engine_speed'],
+        inputs=['gear_box_speeds_in', 'on_engine', 'idle_engine_speed',
+                'engine_temperatures', 'engine_thermostat_temperature',
+                'thermal_speed_param'],
         outputs=['engine_speeds_out']
     )
 
@@ -136,6 +145,7 @@ def engine():
         inputs=['gear_box_powers_in', 'P0', 'on_engine'],
         outputs=['engine_powers_out']
     )
+
 
     from .co2_emission import co2_emission
 
