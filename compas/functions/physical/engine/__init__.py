@@ -26,7 +26,8 @@ import numpy as np
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import GradientBoostingRegressor
 from compas.functions.physical.constants import *
-from compas.functions.physical.utils import bin_split, reject_outliers
+from compas.functions.physical.utils import bin_split, reject_outliers, \
+    clear_gear_fluctuations
 
 
 def identify_idle_engine_speed_out(velocities, engine_speeds_out):
@@ -279,9 +280,13 @@ def calculate_engine_max_torque(
     return engine_max_power / engine_max_speed_at_max_power * 30000.0 / pi * c
 
 
-def identify_on_engine(engine_speeds_out, idle_engine_speed):
+def identify_on_engine(times, engine_speeds_out, idle_engine_speed):
     """
     Identifies if the engine is on [-].
+
+    :param times:
+        Time vector [s].
+    :type times: np.array
 
     :param engine_speeds_out:
         Engine speed [RPM].
@@ -296,7 +301,14 @@ def identify_on_engine(engine_speeds_out, idle_engine_speed):
     :rtype: np.array
     """
 
-    return engine_speeds_out > idle_engine_speed[0] - idle_engine_speed[1]
+    on_engine = np.zeros(times.shape)
+
+    b = engine_speeds_out > idle_engine_speed[0] - idle_engine_speed[1]
+    on_engine[b] = 1
+
+    on_engine = clear_gear_fluctuations(times, on_engine, TIME_WINDOW)
+
+    return np.array(on_engine, dtype=bool)
 
 
 def calibrate_start_stop_model(
@@ -331,13 +343,18 @@ def calibrate_start_stop_model(
 
 
 def predict_on_engine(
-        model, velocities, engine_temperatures):
+        model, times, velocities, engine_temperatures, cycle_type,
+        gear_box_type):
     """
     Predicts if the engine is on (start and stop) [-].
 
     :param model:
         Start/stop model.
     :type model: sklearn.tree.DecisionTreeClassifier
+
+    :param times:
+        Time vector [s].
+    :type times: np.array
 
     :param velocities:
         Velocity vector [km/h].
@@ -356,9 +373,24 @@ def predict_on_engine(
 
     it = zip(velocities[:-1], engine_temperatures[:-1])
 
-    on_engine = [predict([True, velocities[0], engine_temperatures[0]])]
+    on_engine = [int(predict([True, velocities[0], engine_temperatures[0]]))]
     for v, t in it:
-        on_engine.append(predict([[on_engine[-1], v, t]])[0])
+        on_engine.append(int(predict([[on_engine[-1], v, t]])[0]))
+
+    # legislation imposition
+    if cycle_type == 'NEDC' and gear_box_type == 'manual':
+        legislation_on_engine = dict.fromkeys(
+            [11, 49, 117, 206, 244, 312, 401, 439, 507, 596, 634, 702],
+            5.0
+        )
+        legislation_on_engine[800] = 20.0
+
+        on_engine = np.array(on_engine)
+
+        for k, v in legislation_on_engine.items():
+            on_engine[((k - v) <= times) & (times <= k + 3)] = 1
+
+    on_engine = clear_gear_fluctuations(times, on_engine, TIME_WINDOW)
 
     return np.array(on_engine, dtype=bool)
 
@@ -384,6 +416,8 @@ def calculate_engine_speeds_out(
 
     s = gear_box_speeds_in.copy()
 
+    s[np.logical_not(on_engine)] = 0
+
     s[on_engine & (s < idle_engine_speed[0])] = idle_engine_speed[0]
 
     e_t = (engine_thermostat_temperature - temperatures) / thermal_speed_param
@@ -405,7 +439,7 @@ def calibrate_thermal_speed_param(
     return reject_outliers(p)[0]
 
 
-def calculate_engine_powers_out(gear_box_powers_in, P0, on_engine):
+def calculate_engine_powers_out(gear_box_powers_in, on_engine, P0=None):
     """
     Calculates the engine power [kW].
 
@@ -428,6 +462,9 @@ def calculate_engine_powers_out(gear_box_powers_in, P0, on_engine):
 
     p = np.zeros(gear_box_powers_in.shape)
 
-    p[on_engine] = P0 - gear_box_powers_in[on_engine]
+    p[on_engine] = gear_box_powers_in[on_engine]
+
+    if P0 is not None:
+        p[p < P0] = P0
 
     return p

@@ -3,9 +3,8 @@ from functools import partial
 from scipy.integrate import trapz
 from scipy.optimize import brute, minimize
 
-from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.metrics import mean_squared_error
 from compas.dispatcher.utils import pairwise
-from compas.functions.physical.utils import reject_outliers
 from compas.functions.physical.constants import *
 
 
@@ -100,6 +99,30 @@ def _calculate_fuel_mean_effective_pressure(
     return (-B + v) / A_2, v
 
 
+def calculate_P0(params, engine_capacity, engine_stroke, idle_engine_speed,
+                 engine_fuel_lower_heating_value):
+
+    p = {
+        'a2': 0.0, 'b2': 0.0,
+        'a': 0.0, 'b': 0.0, 'c': 0.0,
+        'l': 0.0, 'l2': 0.0,
+        't': 0.0, 'trg': 0.0
+    }
+
+    p.update(params)
+
+    engine_cm_idle = idle_engine_speed[0] * engine_stroke / 30000
+
+    lhv = engine_fuel_lower_heating_value
+    FMEP = _calculate_fuel_mean_effective_pressure
+
+    engine_wfb_idle, engine_wfa_idle = FMEP(p, engine_cm_idle, 0, 1)
+    engine_wfa_idle = (3600000 / lhv) / engine_wfa_idle
+    engine_wfb_idle *= (3 * engine_capacity / lhv * idle_engine_speed[0])
+
+    return -engine_wfb_idle / engine_wfa_idle
+
+
 def calculate_co2_emissions(
         engine_speeds_out, engine_powers_out, mean_piston_speeds,
         brake_mean_effective_pressures, engine_temperatures,
@@ -188,13 +211,9 @@ def calculate_co2_emissions(
 
     fc *= engine_speeds_out * (engine_capacity / (lhv * 1200))  # [g/sec]
 
-    engine_cm_idle = idle_engine_speed[0] * engine_stroke / 30000
-
-    engine_wfb_idle, engine_wfa_idle = FMEP(engine_cm_idle, 0, 1)
-    engine_wfa_idle = (3600000 / lhv) / engine_wfa_idle
-    engine_wfb_idle *= (3 * engine_capacity / lhv * idle_engine_speed[0])
-
-    ec_P0 = -engine_wfb_idle / engine_wfa_idle
+    ec_P0 = calculate_P0(
+        p, engine_capacity, engine_stroke, idle_engine_speed, lhv
+    )
 
     b = engine_speeds_out < idle_engine_speed[0] + MIN_ENGINE_SPEED
 

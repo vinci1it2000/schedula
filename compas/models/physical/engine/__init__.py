@@ -75,15 +75,16 @@ def engine():
 
     engine.add_function(
         function=calibrate_engine_temperature_regression_model,
-        inputs=['engine_temperatures', 'velocities', 'wheel_powers',
-                'wheel_speeds'],
+        inputs=['engine_temperatures', 'velocities', 'gear_box_powers_in',
+                'gear_box_speeds_in'],
         outputs=['engine_temperature_regression_model']
     )
 
     engine.add_function(
         function=predict_engine_temperatures,
         inputs=['engine_temperature_regression_model', 'velocities',
-                'wheel_powers', 'wheel_speeds', 'initial_engine_temperature'],
+                'gear_box_powers_in', 'gear_box_speeds_in',
+                'initial_engine_temperature'],
         outputs=['engine_temperatures']
     )
 
@@ -109,7 +110,7 @@ def engine():
 
     engine.add_function(
         function=identify_on_engine,
-        inputs=['engine_speeds_out', 'idle_engine_speed'],
+        inputs=['times', 'engine_speeds_out', 'idle_engine_speed'],
         outputs=['on_engine']
     )
 
@@ -121,7 +122,8 @@ def engine():
 
     engine.add_function(
         function=predict_on_engine,
-        inputs=['start_stop_model', 'velocities', 'engine_temperatures'],
+        inputs=['start_stop_model', 'times', 'velocities',
+                'engine_temperatures', 'cycle_type', 'gear_box_type'],
         outputs=['on_engine']
     )
 
@@ -142,8 +144,15 @@ def engine():
 
     engine.add_function(
         function=calculate_engine_powers_out,
-        inputs=['gear_box_powers_in', 'P0', 'on_engine'],
+        inputs=['gear_box_powers_in', 'on_engine', 'P0'],
         outputs=['engine_powers_out']
+    )
+
+    engine.add_function(
+        function=calculate_engine_powers_out,
+        inputs=['gear_box_powers_in', 'on_engine'],
+        outputs=['engine_powers_out'],
+        weight=20
     )
 
 
@@ -182,6 +191,7 @@ def engine():
             'co2_params': 'co2_params',
             'fuel_consumptions': 'fuel_consumptions',
             'phases_co2_emissions': 'phases_co2_emissions',
+            'P0': 'P0'
         }
     )
 

@@ -45,7 +45,8 @@ def model_selector(calibration_outputs):
         'idle_engine_speed',
         'engine_thermostat_temperature',
         'start_stop_model',
-        'thermal_speed_param'
+        'thermal_speed_param',
+        'co2_params'
     ]
 
     for k in _models:
