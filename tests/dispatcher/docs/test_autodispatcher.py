@@ -12,7 +12,7 @@ if not IS_PYPY:
     try:
         from .util import TestApp, Struct
     except SystemError:
-        from compas.docs.util import TestApp, Struct
+        from dispatcher.docs.util import TestApp, Struct
     app = None
 
     directive = options = None
@@ -28,6 +28,7 @@ if not IS_PYPY:
             data = True,
             func = True,
             code = True,
+            dsp = True,
             inherited_members = False,
             undoc_members = False,
             private_members = False,
@@ -166,15 +167,17 @@ if not IS_PYPY:
                 '   ',
                 "   .. csv-table:: **Pippo's data**",
                 '   ',
-                '      :obj:`a <>`, Description of a',
-                '      :obj:`sink <>`, ',
-                '      :obj:`start <>`, ',
+                '      ":obj:`a <>`", "Description of a"',
+                '      ":obj:`sink <>`", "Sink node of the dispatcher that '
+                'collects all unused outputs."',
+                '      ":obj:`start <>`", "Starting node that identifies '
+                'initial inputs of the workflow."',
                 '   ',
                 "   .. csv-table:: **Pippo's functions**",
                 '   ',
-                '      :func:`fun1 <>`, Fun1',
-                '      :func:`fun2 <%s.fun2>`, Fun2' % dsp.__module__,
-                '      :func:`fun3 <%s.fun2>`, Fun3' % dsp.__module__,
+                '      ":func:`fun1 <>`", "Fun1"',
+                '      ":func:`fun2 <%s.fun2>`", "Fun2"' % dsp.__module__,
+                '      ":func:`fun3 <%s.fun2>`", "Fun3"' % dsp.__module__,
                 '   ']
 
             assert_result(self, res, 'dispatcher', 'dsp')

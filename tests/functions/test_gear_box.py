@@ -10,7 +10,7 @@ import doctest
 import unittest
 
 from compas.functions.physical.gear_box import *
-
+from compas.functions.physical.gear_box import _gear_box_torques_in
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):
@@ -97,8 +97,7 @@ class TestGearBox(unittest.TestCase):
     def test_calculate_gear_box_efficiency_v2(self):
         fun = calculate_gear_box_efficiencies_v2
         a = (self.wp, self.es, self.ws, self.tgb, self.tr)
-        self.assertEquals(list(fun(*a)[0]), list(self.eff))
-        self.assertEquals(list(fun(*a)[1]), list(self.tl))
+        self.assertEquals(list(fun(*a)), list(self.eff))
 
 class TestGearBox_v1(unittest.TestCase):
     def setUp(self):

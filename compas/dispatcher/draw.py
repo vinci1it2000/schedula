@@ -13,7 +13,7 @@ It provides functions to plot dispatcher map and workflow.
 __author__ = 'Vincenzo Arcidiacono'
 
 from tempfile import mkstemp
-
+import networkx as nx
 from networkx.utils import default_opener
 from graphviz import Digraph
 
@@ -161,7 +161,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
     def id_node(o):
         return '%s_%s' % (dot_name, hash(o))
 
-    if START in g.node:
+    if START in g.node and not nx.is_isolate(g, START):
         kw = {'shape': 'egg', 'fillcolor': 'red'}
         dot_node(id_node(START), 'start', **kw)
     elif inputs:

@@ -446,6 +446,7 @@ def correct_gear_box_torques_in(
         Corrected Torque required vector [N*m].
     :rtype: np.array
     """
+
     b = np.zeros(gears.shape, dtype=bool)
 
     for k, v in gear_box_ratios.items():
@@ -459,7 +460,7 @@ def calculate_gear_box_efficiencies_v2(
         gear_box_powers_out, gear_box_speeds_in, gear_box_speeds_out,
         gear_box_torques_out, gear_box_torques_in):
     """
-    Calculates gear box efficiency.
+    Calculates gear box efficiency [-].
 
     :param gear_box_powers_out:
         Power at wheels vector [kW].
@@ -504,12 +505,12 @@ def calculate_gear_box_efficiencies_v2(
 
     eff[b1] = 1 / eff[b1]
 
-    return eff
+    return np.nan_to_num(eff)
 
 
 def calculate_torques_losses(gear_box_torques_in, gear_box_torques_out):
     """
-    Calculates gear box torque losses.
+    Calculates gear box torque losses [N*m].
 
     :param gear_box_torques_in:
         Torque required vector [N*m].
@@ -523,15 +524,16 @@ def calculate_torques_losses(gear_box_torques_in, gear_box_torques_out):
         Gear box torques losses [N*m].
     :rtype: np.array, float
     """
+
     return gear_box_torques_in - gear_box_torques_out
 
 
 def calculate_gear_box_efficiencies(
         gear_box_powers_out, gear_box_speeds_in, gear_box_speeds_out,
-        gear_box_torques_out,
-        gear_box_efficiency_parameters, equivalent_gear_box_heat_capacity,
-        thermostat_temperature, temperature_references,
-        initial_gear_box_temperature, gears=None, gear_box_ratios=None):
+        gear_box_torques_out, gear_box_efficiency_parameters_cold_hot,
+        equivalent_gear_box_heat_capacity, thermostat_temperature,
+        temperature_references, initial_gear_box_temperature, gears=None,
+        gear_box_ratios=None):
     """
     Calculates torque entering the gear box.
 
@@ -547,15 +549,44 @@ def calculate_gear_box_efficiencies(
         Wheel speed vector [RPM].
     :type gear_box_speeds_out: np.array
 
+    :param gear_box_torques_out:
+        Torque gear_box vector [N*m].
+    :type gear_box_torques_out: np.array
+
+    :param gear_box_efficiency_parameters_cold_hot:
+        Parameters of gear box efficiency model for cold/hot phases:
+
+            - 'hot': `gbp00`, `gbp10`, `gbp01`
+            - 'cold': `gbp00`, `gbp10`, `gbp01`
+    :type gear_box_efficiency_parameters_cold_hot: dict
+
+    :param equivalent_gear_box_heat_capacity:
+        Equivalent gear box heat capacity [kg*J/K].
+    :type equivalent_gear_box_heat_capacity: float
+
+    :param thermostat_temperature:
+        Thermostat temperature [°C].
+    :type thermostat_temperature: float
+
+    :param temperature_references:
+        Reference temperature [°C].
+    :type temperature_references: (float, float)
+
+    :param initial_gear_box_temperature:
+        initial_gear_box_temperature [°C].
+    :type initial_gear_box_temperature: float
+
+    :param gears:
+        Gear vector [-].
+    :type gears: np.array, optional
+
     :param gear_box_ratios:
         Gear box ratios [-].
-    :type gear_box_ratios: dict
+    :type gear_box_ratios: dict, optional
 
     :return:
-
-        - Gear box efficiency vector [-].
-        - Torque losses [N*m].
-    :rtype: (np.array, np.array)
+        Gear box efficiency [-], torque in [N*m], and temperature [°C] vectors.
+    :rtype: (np.array, np.array, np.array)
 
     .. note:: Torque entering the gearbox can be from engine side
        (power mode or from wheels in motoring mode).
@@ -571,7 +602,7 @@ def calculate_gear_box_efficiencies(
                'gear_box_efficiency']
 
     dfl = (thermostat_temperature, equivalent_gear_box_heat_capacity,
-           gear_box_efficiency_parameters, temperature_references)
+           gear_box_efficiency_parameters_cold_hot, temperature_references)
 
     it = (gear_box_powers_out, gear_box_speeds_out, gear_box_speeds_in,
           gear_box_torques_out)
@@ -686,6 +717,7 @@ def identify_velocity_speed_ratios(
         Constant velocity speed ratios of the gear box [km/(h*RPM)].
     :rtype: dict
     """
+
     idle_speed = idle_engine_speed[0] - idle_engine_speed[1]
 
     b = (gear_box_speeds_in > idle_speed) & (velocities > VEL_EPS)

@@ -190,6 +190,7 @@ class TestCreateDispatcher(unittest.TestCase):
         function = dsp.nodes[dsp_id].pop('function')
         res = {
                   'type': 'dispatcher',
+                  'description': '',
                   'inputs': {'d': 'a', 'e': 'b'},
                   'outputs': {'e': 'e', 'c': 'd'},
                   'wait_inputs': True,
@@ -387,7 +388,7 @@ class TestPerformance(unittest.TestCase):
         res2 = timeit.repeat(
             "fun(5, 6)",
             'from %s import _setup_dsp;'
-            'from dispatcher.utils.dsp import SubDispatchFunction;'
+            'from compas.dispatcher.utils.dsp import SubDispatchFunction;'
             'dsp = _setup_dsp();'
             'fun = SubDispatchFunction(dsp, "f", ["a", "b"], ["c", "d", "e"])'
             % __name__,
