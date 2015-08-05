@@ -16,6 +16,7 @@ from compas.dispatcher import Dispatcher
 from compas.functions.physical.vehicle import *
 from compas.dispatcher.utils import bypass
 
+
 def vehicle():
     """
     Define the vehicle model.
@@ -53,17 +54,17 @@ def vehicle():
     )
 
     vehicle.add_function(
-        function=calculate_aerodynamic_resistances_v1,
-        inputs=['air_density', 'aerodynamic_drag_coefficient', 'frontal_area',
-                'velocities'],
-        outputs=['aerodynamic_resistances'],
+        function=calculate_f2,
+        inputs=['air_density', 'aerodynamic_drag_coefficient', 'frontal_area'],
+        outputs=['f2'],
         weight=5
     )
 
     vehicle.add_function(
         function=calculate_f0,
         inputs=['vehicle_mass', 'rolling_resistance_coeff'],
-        outputs=['f0']
+        outputs=['f0'],
+        weight=5
     )
 
     vehicle.add_data(

@@ -38,9 +38,17 @@ from compas.functions.physical.utils import median_filter, \
 
 
 def identify_gear(
-        idle_engine_speed, vsr, max_gear, ratio, velocity, acceleration):
+        idle_engine_speed, vsr, ratio, velocity, acceleration):
     """
     Identifies a gear [-].
+
+    :param idle_engine_speed:
+        Engine speed idle [RPM].
+    :type idle_engine_speed: (float, float)
+
+    :param vsr:
+        Constant velocity speed ratios of the gear box [km/(h*RPM)].
+    :type vsr: iterable
 
     :param ratio:
         Vehicle velocity speed ratio [km/(h*RPM)].
@@ -53,14 +61,6 @@ def identify_gear(
     :param acceleration:
         Vehicle acceleration [m/s2].
     :type acceleration: float
-
-    :param idle_engine_speed:
-        Engine speed idle [RPM].
-    :type idle_engine_speed: (float, float)
-
-    :param vsr:
-        Constant velocity speed ratios of the gear box [km/(h*RPM)].
-    :type vsr: iterable
 
     :return:
         A gear [-].
@@ -102,9 +102,9 @@ def identify_gears(
         Acceleration vector [m/s2].
     :type accelerations: np.array, float
 
-    :param gear_box_speeds_in:
+    :param engine_speeds_out:
         Gear box speed vector [RPM].
-    :type gear_box_speeds_in: np.array
+    :type engine_speeds_out: np.array
 
     :param velocity_speed_ratios:
         Constant velocity speed ratios of the gear box [km/(h*RPM)].
@@ -120,8 +120,7 @@ def identify_gears(
     """
 
     gb_speeds = calculate_gear_box_speeds_from_engine_speeds(
-        times, velocities, accelerations, engine_speeds_out,
-        velocity_speed_ratios)[0]
+        times, velocities, engine_speeds_out, velocity_speed_ratios)[0]
 
     vsr = [v for v in velocity_speed_ratios.items()]
 
@@ -132,9 +131,7 @@ def identify_gears(
     idle_speed = (idle_engine_speed[0] - idle_engine_speed[1],
                   idle_engine_speed[0] + idle_engine_speed[1])
 
-    max_gear = max(velocity_speed_ratios)
-
-    id_gear = partial(identify_gear, idle_speed, vsr, max_gear)
+    id_gear = partial(identify_gear, idle_speed, vsr)
 
     gear = list(map(id_gear, *(ratios, velocities, accelerations)))
 
@@ -155,8 +152,7 @@ def speed_shift(times, speeds):
 
 
 def calculate_gear_box_speeds_from_engine_speeds(
-        times, velocities, accelerations, engine_speeds_out,
-        velocity_speed_ratios):
+        times, velocities, engine_speeds_out, velocity_speed_ratios):
     """
     Calculates the gear box speeds applying a constant time shift.
 
@@ -442,6 +438,10 @@ def correct_gear_box_torques_in(
         Gear vector [-].
     :type gears: np.array
 
+    :param gear_box_ratios:
+        Gear box ratios [-].
+    :type gear_box_ratios: dict
+
     :return:
         Corrected Torque required vector [N*m].
     :rtype: np.array
@@ -495,8 +495,8 @@ def calculate_gear_box_efficiencies_v2(
     eff = np.zeros(wp.shape)
 
     b0 = tr * tgb >= 0
-    b1 = (b0) & (wp >= 0) & (es > MIN_ENGINE_SPEED) & (tr != 0)
-    b = (((b0) & (wp < 0)) | (b1))
+    b1 = b0 & (wp >= 0) & (es > MIN_ENGINE_SPEED) & (tr != 0)
+    b = ((b0 & (wp < 0)) | b1)
 
     s = np.where(b1, es, ws)
 
@@ -546,6 +546,10 @@ def calculate_gear_box_efficiencies(
     :param gear_box_speeds_out:
         Wheel speed vector [RPM].
     :type gear_box_speeds_out: np.array
+
+    :param gear_box_ratios:
+        Gear box ratios [-].
+    :type gear_box_ratios: dict
 
     :return:
 
@@ -639,13 +643,13 @@ def calculate_gear_box_speeds_in_v1(
         Gear vector [-].
     :type gears: np.array
 
-    :param velocities:
-        Velocity vector [km/h].
-    :type velocities: np.array
+    :param gear_box_speeds_out:
+        Wheel speed vector [RPM].
+    :type gear_box_speeds_out: np.array
 
-    :param velocity_speed_ratios:
-        Constant velocity speed ratios of the gear box [km/(h*RPM)].
-    :type velocity_speed_ratios: dict
+    :param gear_box_ratios:
+        Gear box ratios [-].
+    :type gear_box_ratios: dict
 
     :return:
         Gear box speed vector [RPM].

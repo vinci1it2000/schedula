@@ -32,13 +32,9 @@ def evaluate_gear_box_torque_in(
         Wheel speed.
     :type gear_box_speed_out: float
 
-    :param par:
-        Parameters of gear box efficiency model:
-
-            - `gbp00`,
-            - `gbp10`,
-            - `gbp01`
-    :type par: dict
+    :param gear_box_efficiency_parameters:
+        Parameters of gear box efficiency model (`gbp00`, `gbp10`, `gbp01`).
+    :type gear_box_efficiency_parameters: dict
 
     :return:
         Torque required.
@@ -202,7 +198,7 @@ def calculate_gear_box_temperature(
     """
 
     temp = starting_temperature
-    temp+= gear_box_heat / equivalent_gear_box_heat_capacity
+    temp += gear_box_heat / equivalent_gear_box_heat_capacity
 
     return min(temp, thermostat_temperature - 5.0)
 

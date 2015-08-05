@@ -28,7 +28,6 @@ Modules:
     constants
 
 """
-from compas.dispatcher.utils.gen import _Attr
 
 __author__ = 'Vincenzo Arcidiacono'
 
@@ -70,7 +69,7 @@ def model_selector(calibration_outputs):
     for e, k in methods_ids.items():
         e = calibration_outputs.get(e, None)
         if e:
-            e = (e['mean_absolute_error'] , e['correlation_coefficient'])
+            e = (e['mean_absolute_error'], e['correlation_coefficient'])
             heappush(m, (e[0] / e[1], e, k))
     if m:
         e, k = m[0][1:]

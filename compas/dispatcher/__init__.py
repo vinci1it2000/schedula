@@ -552,7 +552,6 @@ class Dispatcher(object):
         if input_domain:  # add domain as node attribute
             attr_dict['input_domain'] = input_domain
 
-
         if description is not None:  # add description as node attribute
             attr_dict['description'] = description
 
@@ -2180,21 +2179,9 @@ class Dispatcher(object):
             Heapq of closest available nodes.
         :type fringe: list
 
-        :param seen:
-            Distances of seen nodes.
-        :type seen: dict
-
         :param check_cutoff:
             Check the cutoff limit.
         :type check_cutoff: function
-
-        :param check_wait_in:
-            Check if all node inputs of a given node are satisfied.
-        :type check_wait_in: function
-
-        :param check_targets:
-            Check wildcard option and if the targets are satisfied.
-        :type check_targets: function
 
         :param no_call:
             If True data node estimation function is not used.
@@ -2210,7 +2197,8 @@ class Dispatcher(object):
         finished = set()
         started = {self}
         while fringe:
-            (d, _, (v, dsp)) = heappop(fringe)  # visit the closest available node
+            # visit the closest available node
+            (d, _, (v, dsp)) = heappop(fringe)
 
             if dsp in finished:
                 continue
@@ -2291,6 +2279,7 @@ class Dispatcher(object):
 
                 if w not in distances:
                     if 'input_domain' in node and not no_call:
+                        # noinspection PyBroadException
                         try:
                             kwargs = {k: v['value'] for k, v in pred.items()}
                             if not node['input_domain'](kwargs):
@@ -2324,7 +2313,7 @@ class Dispatcher(object):
 
         # check if all node inputs are satisfied
         if check_wait_in(wait_in, node_id):
-            pass # pass the node
+            pass  # pass the node
 
         elif node_id in distances:  # the node w already estimated
             if dist < distances[node_id]:  # error for negative paths

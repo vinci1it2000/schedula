@@ -1,4 +1,4 @@
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Copyright 2015 European Commission (JRC);
 # Licensed under the EUPL (the 'Licence');
@@ -11,9 +11,9 @@ It contains functions to read vehicle inputs.
 
 __author__ = 'Vincenzo Arcidiacono'
 
-
 import numpy as np
 from math import isnan
+
 
 def read_cycles_series(excel_file, sheet_name, parse_cols):
     """
@@ -39,7 +39,6 @@ def read_cycles_series(excel_file, sheet_name, parse_cols):
     df = excel_file.parse(sheetname=sheet_name, parse_cols=parse_cols,
                           skiprows=1, has_index_names=True)
 
-
     return df
 
 
@@ -63,9 +62,11 @@ def read_cycle_parameters(excel_file, parse_cols):
     return excel_file.parse(sheetname='Inputs', parse_cols=parse_cols,
                             skiprows=1, header=None, index_col=0)[1]
 
+
 class EmptyValue(Exception):
     """Exception raised when there is an empty value."""
     pass
+
 
 def empty(value):
     """
@@ -114,7 +115,7 @@ def parse_inputs(data, data_map, cycle_name):
     d = {}
 
     for k, v in data.items():
-        if (isinstance(v, float) and isnan(v)):
+        if isinstance(v, float) and isnan(v):
             continue
 
         k = k.split(' ')
@@ -166,7 +167,7 @@ def merge_inputs(cycle_name, parameters, series):
             'idle_engine_speed': (eval, list, empty),
             'velocity_speed_ratios': (eval, list, empty, index_dict),
             'road_loads': (eval, list, empty),
-            },
+        },
         'SERIES': {
             None: (np.asarray, empty)
         }

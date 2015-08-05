@@ -155,7 +155,6 @@ def engine():
         weight=20
     )
 
-
     from .co2_emission import co2_emission
 
     engine.add_dispatcher(

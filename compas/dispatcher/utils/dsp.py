@@ -19,7 +19,6 @@ __all__ = ['combine_dicts', 'bypass', 'summation', 'map_dict', 'map_list',
 from .gen import caller_name
 from networkx.classes.digraph import DiGraph
 from copy import deepcopy
-from compas.dispatcher.constants import NONE
 
 
 def combine_dicts(*dicts):
@@ -176,17 +175,17 @@ def map_list(key_map, *inputs):
     return d
 
 
-def selector(keys, dict, copy=True, output_type='dict'):
+def selector(keys, dictionary, copy=True, output_type='dict'):
     """
-    Selects the chosen dictionary keys from the given sequence of dictionaries.
+    Selects the chosen dictionary keys from the given dictionary.
 
     :param keys:
         Keys to select.
     :type keys: list
 
-    :param dicts:
-        Sequence of dictionaries.
-    :type dicts: (dict, ...)
+    :param dictionary:
+        A dictionary.
+    :type dictionary: dict
 
     :param copy:
         If True the output contains deep-copies of the values.
@@ -205,17 +204,15 @@ def selector(keys, dict, copy=True, output_type='dict'):
         [('a', 1), ('b', 2)]
     """
 
-
-
     get = deepcopy if copy else lambda x: x
 
     if output_type == 'list':
         if len(keys) > 1:
-            return tuple([get(dict[k]) for k in keys])
+            return tuple([get(dictionary[k]) for k in keys])
         else:
-            return get(dict[keys[0]])
+            return get(dictionary[keys[0]])
 
-    return {k: get(v) for k, v in dict.items() if k in keys}
+    return {k: get(v) for k, v in dictionary.items() if k in keys}
 
 
 def replicate_value(value, n=2, copy=True):

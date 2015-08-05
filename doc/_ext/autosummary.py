@@ -9,7 +9,6 @@ from sphinx.ext.autosummary.generate import _simple_warn, _simple_info
 def generate_autosummary_docs(sources, output_dir=None, suffix='.rst',
                               warn=_simple_warn, info=_simple_info,
                               base_path=None, builder=None, template_dir=None):
-
     showed_sources = list(sorted(sources))
     if len(showed_sources) > 20:
         showed_sources = showed_sources[:10] + ['...'] + showed_sources[-10:]
@@ -95,7 +94,7 @@ def generate_autosummary_docs(sources, output_dir=None, suffix='.rst',
                             cond = (
                                 imported or
                                 obj_name.__module__ == obj.__name__
-                                )
+                            )
                         except AttributeError:
                             cond = True
                         if cond:
@@ -109,25 +108,25 @@ def generate_autosummary_docs(sources, output_dir=None, suffix='.rst',
             if doc.objtype == 'module':
                 ns['members'] = dir(obj)
                 ns['functions'], ns['all_functions'] = \
-                                   get_members(obj, 'function')
+                    get_members(obj, 'function')
                 ns['classes'], ns['all_classes'] = \
-                                 get_members(obj, 'class')
+                    get_members(obj, 'class')
                 ns['exceptions'], ns['all_exceptions'] = \
-                                   get_members(obj, 'exception')
+                    get_members(obj, 'exception')
                 ns['data'], ns['all_data'] = \
-                                   get_members(obj, 'data', imported=True)
+                    get_members(obj, 'data', imported=True)
 
                 ns['data'] = ', '.join(ns['data'])
                 ns['all_data'] = ', '.join(ns['all_data'])
 
                 ns['dispatchers'], ns['all_dispatchers'] = \
-                                   get_members(obj, 'dispatcher', imported=True)
+                    get_members(obj, 'dispatcher', imported=True)
             elif doc.objtype == 'class':
                 ns['members'] = dir(obj)
                 ns['methods'], ns['all_methods'] = \
-                                 get_members(obj, 'method', ['__init__'], True)
+                    get_members(obj, 'method', ['__init__'], True)
                 ns['attributes'], ns['all_attributes'] = \
-                                 get_members(obj, 'attribute')
+                    get_members(obj, 'attribute')
 
             parts = name.split('.')
             if doc.objtype in ('method', 'attribute'):

@@ -503,10 +503,6 @@ def calibrate_gear_shifting_cmv_hot_cold(
         Constant velocity speed ratios of the gear box.
     :type velocity_speed_ratios: dict
 
-    :param idle_engine_speed:
-        Engine speed idle median and std.
-    :type idle_engine_speed: (float, float)
-
     :param time_cold_hot_transition:
         Time at cold hot transition phase.
     :type time_cold_hot_transition: float

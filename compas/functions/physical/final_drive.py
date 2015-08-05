@@ -1,8 +1,22 @@
-__author__ = 'arcidvi'
+# -*- coding: utf-8 -*-
+#
+# Copyright 2015 European Commission (JRC);
+# Licensed under the EUPL (the 'Licence');
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+
+"""
+It contains functions that model the basic mechanics of the final drive.
+"""
+
+__author__ = 'Vincenzo Arcidiacono'
+
+import numpy as np
+
 
 def calculate_final_drive_speeds_in(final_drive_speeds_out, final_drive_ratio):
     """
-    Calculates final drive speed.
+    Calculates final drive speed [RPM].
 
     :param final_drive_speeds_out:
         Rotating speed of the wheel [RPM].
@@ -20,73 +34,126 @@ def calculate_final_drive_speeds_in(final_drive_speeds_out, final_drive_ratio):
     return final_drive_speeds_out * final_drive_ratio
 
 
-def calculate_final_drive_powers_in(
-        final_drive_powers_out, final_drive_efficiency):
+def calculate_final_drive_torque_losses(
+        final_drive_torques_out, final_drive_torque_loss):
     """
-    Calculates final drive power.
+    Calculates final drive torque losses [N*m].
+
+    :param final_drive_torques_out:
+        Torque at the wheels [N*m].
+    :type final_drive_torques_out: np.array
+
+    :param final_drive_torque_loss:
+        Constant Final drive torque loss [N*m].
+    :type final_drive_torque_loss: float
+
+    :return:
+        Final drive torque losses [N*m].
+    :rtype: np.array
+    """
+
+    return np.ones(final_drive_torques_out.shape) * final_drive_torque_loss
+
+
+def calculate_final_drive_torque_losses_v1(
+        final_drive_torques_out, final_drive_ratio, final_drive_efficiency):
+    """
+    Calculates final drive torque losses [N*m].
+
+    :param final_drive_torques_out:
+        Torque at the wheels [N*m].
+    :type final_drive_torques_out: np.array, float
+
+    :param final_drive_ratio:
+        Final drive ratio [-].
+    :type final_drive_ratio: float
+
+    :param final_drive_efficiency:
+        Final drive efficiency [-].
+    :type final_drive_efficiency: float
+
+    :return:
+        Final drive torque losses [N*m].
+    :rtype: np.array, float
+    """
+
+    c = (1 - final_drive_efficiency)
+    c /= final_drive_efficiency * final_drive_ratio
+
+    return c * final_drive_torques_out
+
+
+def calculate_final_drive_torques_in(
+        final_drive_torques_out, final_drive_ratio, final_drive_torque_losses):
+    """
+    Calculates final drive torque [N*m].
+
+    :param final_drive_torques_out:
+        Torque at the wheels [N*m].
+    :type final_drive_torques_out: np.array, float
+
+    :param final_drive_ratio:
+        Final drive ratio [-].
+    :type final_drive_ratio: float
+
+    :param final_drive_torque_losses:
+        Final drive torque losses [N*m].
+    :type final_drive_torque_losses: np.array, float
+
+    :return:
+        Final drive torque in [N*m].
+    :rtype: np.array, float
+    """
+
+    t = final_drive_torques_out / final_drive_ratio
+
+    return t + final_drive_torque_losses
+
+
+def calculate_final_drive_efficiencies(
+        final_drive_torques_out, final_drive_ratio, final_drive_torques_in):
+    """
+    Calculates final drive efficiency [-].
+
+    :param final_drive_torques_out:
+        Torque at the wheels [N*m].
+    :type final_drive_torques_out: np.array, float
+
+    :param final_drive_ratio:
+        Final drive ratio [-].
+    :type final_drive_ratio: float
+
+    :param final_drive_torques_in:
+        Final drive torque in [N*m].
+    :type final_drive_torques_in: np.array, float
+
+    :return:
+        Final drive torque efficiency [-].
+    :rtype: np.array, float
+    """
+
+    d = final_drive_ratio * final_drive_torques_in
+    t = final_drive_torques_out / d
+    t[(final_drive_torques_out == 0) & (final_drive_torques_in == 0)] = 1
+    return t
+
+
+def calculate_final_drive_powers_in(
+        final_drive_powers_out, final_drive_efficiencies):
+    """
+    Calculates final drive power [kW].
 
     :param final_drive_powers_out:
         Power at the wheels [kW].
     :type final_drive_powers_out: np.array, float
 
-    :param final_drive_efficiency:
+    :param final_drive_efficiencies:
         Final drive efficiency [-].
-    :type final_drive_efficiency: float
+    :type final_drive_efficiencies: np.array, float
 
     :return:
         Final drive power in [kW].
     :rtype: np.array, float
     """
 
-    return final_drive_powers_out / final_drive_efficiency
-
-
-def calculate_final_drive_torques_in(
-        final_drive_torques_out, final_drive_ratio, final_drive_torque_loss):
-    """
-    Calculates final drive torque.
-
-    :param final_drive_torques_out:
-        Torque at the wheels [N*m].
-    :type final_drive_torques_out: np.array, float
-
-    :param final_drive_ratio:
-        Final drive ratio [-].
-    :type final_drive_ratio: float
-
-    :param final_drive_torque_loss:
-        Final drive torque losses [N*m].
-    :type final_drive_torque_loss: float
-
-    :return:
-        Final drive torque in [N*m].
-    :rtype: np.array, float
-    """
-
-    return final_drive_torques_out / final_drive_ratio + final_drive_torque_loss
-
-
-def calculate_final_drive_torques_in_v1(
-        final_drive_torques_out, final_drive_efficiency, final_drive_ratio):
-    """
-    Calculates final drive torque.
-
-    :param final_drive_torques_out:
-        Torque at the wheels [N*m].
-    :type final_drive_torques_out: np.array, float
-
-    :param final_drive_efficiency:
-        Final drive efficiency [-].
-    :type final_drive_efficiency: float
-    
-    :param final_drive_ratio:
-        Final drive ratio [-].
-    :type final_drive_ratio: float
-    
-    :return:
-        Final drive torque in [N*m].
-    :rtype: np.array, float
-    """
-    v = (final_drive_efficiency * final_drive_ratio)
-
-    return final_drive_torques_out / v
+    return final_drive_powers_out / final_drive_efficiencies

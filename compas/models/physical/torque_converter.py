@@ -41,12 +41,11 @@ def torque_converter():
                 'gears', 'velocities', 'accelerations'],
         outputs=['torque_efficiency_params'])
 
-
     # Torque efficiencies
     torque_converter.add_function(
         function=calculate_torque_converter_speeds,
-        inputs=['gears', 'gear_box_speeds', 'idle_engine_speed', 'accelerations',
-                'torque_efficiency_params'],
+        inputs=['gears', 'gear_box_speeds', 'idle_engine_speed',
+                'accelerations', 'torque_efficiency_params'],
         outputs=['engine_speeds_out<0>'])
 
     # Torque efficiencies

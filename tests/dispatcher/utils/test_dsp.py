@@ -9,14 +9,14 @@
 import doctest
 import unittest
 
-from dispatcher.utils.dsp import *
-from dispatcher import Dispatcher
-from dispatcher.constants import SINK
+from compas.dispatcher.utils.dsp import *
+from compas.dispatcher import Dispatcher
+from compas.dispatcher.constants import SINK
 
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):
-        import dispatcher.utils.dsp as utl
+        import compas.dispatcher.utils.dsp as utl
         failure_count, test_count = doctest.testmod(
             utl, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS)
         self.assertGreater(test_count, 0, (failure_count, test_count))
@@ -137,15 +137,12 @@ class TestSubDispatchFunction(unittest.TestCase):
 
     def test_sub_dispatch_function(self):
 
-
         fun = SubDispatchFunction(self.dsp_1, 'F', ['a', 'b'], ['a'])
         self.assertEqual(fun.__name__, 'F')
 
         # noinspection PyCallingNonCallable
         self.assertEqual(fun(2, 1), 1)
         self.assertRaises(ValueError, fun, 3, -1)
-
-
 
         fun = SubDispatchFunction(self.dsp_2, 'F', ['a', 'b'], ['c', 'd'])
         # noinspection PyCallingNonCallable

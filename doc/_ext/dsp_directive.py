@@ -149,6 +149,7 @@ def search_doc_in_func(dsp, node_id):
     des, link = ('', '')
     for k, v in ((k, nodes[k]) for k in sorted(dsp.dmap[node_id])):
         if v['type'] == 'function':
+            # noinspection PyBroadException
             try:
                 fun = v['function']
                 attr_name = getargspec(fun)[0][v['inputs'].index(node_id)]
@@ -158,7 +159,9 @@ def search_doc_in_func(dsp, node_id):
         elif v['type'] == 'dispatcher':
             sub_dsp = v['function']
             n_id = v['inputs'][node_id]
-            des, link = search_data_description(n_id, sub_dsp.nodes[n_id], sub_dsp)
+            des, link = search_data_description(
+                n_id, sub_dsp.nodes[n_id], sub_dsp
+            )
 
         if des:
             break
@@ -192,8 +195,8 @@ def _data(lines, dsp):
             des, link = search_data_description(k, v, dsp)
 
             link = ':obj:`%s <%s>`' % (str(k), link)
-
-            lines.append(u'   "%s", "%s"' % (link, get_summary(des.split('\n'))))
+            str_format =u'   "%s", "%s"'
+            lines.append(str_format % (link, get_summary(des.split('\n'))))
 
         lines.append('')
 
@@ -239,6 +242,7 @@ PLOT = object()
 def _dsp2dot_option(arg):
     """Used to convert the :dmap: option to auto directives."""
 
+    # noinspection PyUnusedLocal
     def map_args(*args, **kwargs):
         k = ['workflow', 'dot', 'edge_attr', 'view', 'level', 'function_module']
         kw = dict(zip(k, args))
@@ -288,9 +292,9 @@ class DispatcherDocumenter(DataDocumenter):
             super(DispatcherDocumenter, self).add_directive_header(sig)
 
     def import_object(self):
-        if (getattr(self.directive, 'arguments', None)
-            and _import_docstring(self)):
-            return True
+        if getattr(self.directive, 'arguments', None):
+            if _import_docstring(self):
+                return True
         self.is_doctest = False
         self.code = None
         return DataDocumenter.import_object(self)
@@ -327,7 +331,9 @@ class DispatcherDocumenter(DataDocumenter):
             _functions(lines, dsp, dot_view_opt['function_module'])
 
         if not opt or opt.dsp:
-            _functions(lines, dsp, dot_view_opt['function_module'], 'dispatcher')
+            _functions(
+                lines, dsp, dot_view_opt['function_module'], 'dispatcher'
+            )
 
         for line in lines:
             self.add_line(line, sourcename)

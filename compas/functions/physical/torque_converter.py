@@ -91,8 +91,8 @@ def calculate_torque_converter_speeds(
     
     b = b0 & (accelerations >= 0)
 
-    ratios[ratios<0] = 0
-    ratios[ratios>1] = 1.0
+    ratios[ratios < 0] = 0
+    ratios[ratios > 1] = 1.0
 
     ratios[b] = 1.0 / ratios[b]
     speeds[b0] = ratios[b0] * gear_box_speeds[b0]

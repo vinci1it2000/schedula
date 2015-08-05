@@ -15,7 +15,6 @@
 
 import sys
 import os
-import shlex
 
 from os.path import abspath, join, dirname
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'

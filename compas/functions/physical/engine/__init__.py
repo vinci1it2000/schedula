@@ -111,7 +111,7 @@ def calculate_braking_powers(
     :type engine_speeds_out: np.array
 
     :param engine_torques_in:
-        Engine torque out.
+        Engine torque out [N*m].
     :type engine_torques_in: np.array
 
     :param piston_speeds:
@@ -271,6 +271,25 @@ def identify_initial_engine_temperature(engine_temperatures):
 
 def calculate_engine_max_torque(
         engine_max_power, engine_max_speed_at_max_power, fuel_type):
+    """
+    Calculates engine nominal torque [N*m].
+
+    :param engine_max_power:
+        Engine nominal power  [kW].
+    :type engine_max_power: float
+
+    :param engine_max_speed_at_max_power:
+        Engine nominal speed at engine nominal power [RPM].
+    :type engine_max_speed_at_max_power: float
+
+    :param fuel_type:
+        Fuel type (gasoline or diesel).
+    :type fuel_type: str
+
+    :return:
+        Engine nominal torque [N*m].
+    :rtype: float
+    """
 
     c = {
         'gasoline': 1.25,

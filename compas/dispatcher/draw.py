@@ -172,7 +172,6 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
         for i, v in enumerate(inputs):
             dot.edge(u, id_node(v), xlabel=str(i))
 
-
     for k, v in g.node.items():
 
         n = dsp.nodes.get(k, {})
@@ -304,7 +303,8 @@ def _data_node_label(k, values, attr=None, dist=None, function_module=True):
 
 def _remote_links(label, tag, links, node_id, function_module):
     for i, (k, v) in enumerate(links):
-        label['remote %s %d' % (tag, i)] = _get_link(k, v, node_id, tag, function_module)
+        link = _get_link(k, v, node_id, tag, function_module)
+        label['remote %s %d' % (tag, i)] = link
 
 
 def _get_link(dsp_id, dsp, node_id, tag, function_module):

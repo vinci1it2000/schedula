@@ -3,6 +3,7 @@ __author__ = 'Vincenzo Arcidiacono'
 import numpy as np
 from math import pi
 
+
 def calculate_currents_recuperation_availability(
         wheel_powers, gear_box_efficiencies, generator_nominal_power,
         alternator_eff, battery_eff, engine_power_at_zero_fc):
@@ -128,14 +129,9 @@ def calculate_currents_no_recuperation(
 
     b |= c
     c = np.logical_not(bs) & (ratios_battery_soc < bbs) & np.logical_not(b)
-    res[c] = max_charging_current * alternator_charging_factor -a
+    res[c] = max_charging_current * alternator_charging_factor - a
 
     return res
-
-
-
-
-
 
 
 def calculate_current(
@@ -212,13 +208,15 @@ def evaluate_power_demand_electrics(bat_int_res, load_elec, alt_eff, current):
     """
 
     if current >= 0:
-        return (bat_int_res * current**2 / 1000 + load_elec) / alt_eff
+        return (bat_int_res * current ** 2 / 1000 + load_elec) / alt_eff
     return 0
 
 
 def evaluate_heating_energy(
-        is_therm_manag, eng_therm_manag_fact, fuel_lhv, eng_heat2gas, engine_therma_thres,
-        engine_therma_start, eng_cool_flow, coolant_mass, coolant_cp, time, temperature, engine_power, fuel_consumption):
+        is_therm_manag, eng_therm_manag_fact, fuel_lhv, eng_heat2gas,
+        engine_therma_thres,
+        engine_therma_start, eng_cool_flow, coolant_mass, coolant_cp, time,
+        temperature, engine_power, fuel_consumption):
     """
     Calculates energy going to heating.
 
@@ -283,15 +281,18 @@ def evaluate_heating_energy(
 
     if fuel_consumption > 0:
         if time < 300 and is_therm_manag:
-            heating_energy_1 = (1 - (1000 * engine_power / (fuel_consumption * fuel_lhv)) - \
-                                    eng_heat2gas * eng_therm_manag_fact - 0.1) * fuel_consumption * fuel_lhv
+            heating_energy_1 = (1 - (
+                1000 * engine_power / (fuel_consumption * fuel_lhv)) - \
+                                eng_heat2gas * eng_therm_manag_fact - 0.1) * fuel_consumption * fuel_lhv
         else:
-            heating_energy_1 = (1 - (1000 * engine_power / (fuel_consumption * fuel_lhv)) - \
-                                    eng_heat2gas * 1 - 0.1) * fuel_consumption * fuel_lhv
+            heating_energy_1 = (1 - (
+                1000 * engine_power / (fuel_consumption * fuel_lhv)) - \
+                                eng_heat2gas * 1 - 0.1) * fuel_consumption * fuel_lhv
 
     if fuel_consumption > 0:
         if temperature > engine_therma_thres:
-            heating_energy_2 = coolant_mass * coolant_cp * (temperature - engine_therma_start) * eng_cool_flow
+            heating_energy_2 = coolant_mass * coolant_cp * (
+                temperature - engine_therma_start) * eng_cool_flow
 
     return heating_energy_1 - heating_energy_2
 
@@ -322,7 +323,8 @@ def evaluate_battery_soc(
     :rtype: float
     """
 
-    return (battery_eff * previous_current / 3600 + previous_battery_soc * battery_capacity) / battery_capacity
+    return (
+               battery_eff * previous_current / 3600 + previous_battery_soc * battery_capacity) / battery_capacity
 
 
 def evaluate_logical_energy_recup(is_energy_recup, braking_power):
@@ -352,8 +354,10 @@ def evaluate_logical_energy_recup(is_energy_recup, braking_power):
 
 
 def evaluate_current_no_recup(
-        engine_status, next_engine_status, battery_starting_current, battery_soc, previous_battery_soc,
-        battery_soc_bal, battery_soc_bal_margin, engine_speed, engine_speed_gen_off, load_elec, alt_volt,
+        engine_status, next_engine_status, battery_starting_current,
+        battery_soc, previous_battery_soc,
+        battery_soc_bal, battery_soc_bal_margin, engine_speed,
+        engine_speed_gen_off, load_elec, alt_volt,
         battery_charging_current_max, alt_char_factor):
     """
     Calculates current with recuperation not active.
@@ -422,7 +426,7 @@ def evaluate_current_no_recup(
             return -load_elec * 1000 / alt_volt
         else:
             if battery_soc < battery_soc_bal - battery_soc_bal_margin and battery_soc - previous_battery_soc < 0:
-                return  load_elec * 1000 / alt_volt + battery_charging_current_max
+                return load_elec * 1000 / alt_volt + battery_charging_current_max
             else:
                 if battery_soc < battery_soc_bal + battery_soc_bal_margin and battery_soc - previous_battery_soc > 0:
                     return -load_elec * 1000 / alt_volt + battery_charging_current_max * alt_char_factor
@@ -431,7 +435,8 @@ def evaluate_current_no_recup(
 
 
 def evaluate_current_recup(
-        eng_p0fc, battery_eff, alt_eff, alt_power_nom, wheel_power, gearbox_efficiency_fixed):
+        eng_p0fc, battery_eff, alt_eff, alt_power_nom, wheel_power,
+        gearbox_efficiency_fixed):
     """
     Calculates current with recuperation active.
 
@@ -465,11 +470,13 @@ def evaluate_current_recup(
     """
 
     if wheel_power * gearbox_efficiency_fixed < eng_p0fc:
-        return (wheel_power*gearbox_efficiency_fixed)/(alt_power_nom/(battery_eff*alt_eff))
+        return (wheel_power * gearbox_efficiency_fixed) / (
+            alt_power_nom / (battery_eff * alt_eff))
     return 0
 
 
-def evaluate_braking_power(engine_speed, indicative_friction_power, gearbox_torque_in):
+def evaluate_braking_power(engine_speed, indicative_friction_power,
+                           gearbox_torque_in):
     """
     Calculates braking power.
 
@@ -494,9 +501,12 @@ def evaluate_braking_power(engine_speed, indicative_friction_power, gearbox_torq
     if c < indicative_friction_power:
         return gearbox_torque_in * engine_speed / 60 * 2 * pi / 1000 - indicative_friction_power
     return 0
+
+
 # no
 def evaluate_indicative_friction_power(
-        engine_param_l, engine_param_l2, engine_capacity, engine_stroke, engine_speed):
+        engine_param_l, engine_param_l2, engine_capacity, engine_stroke,
+        engine_speed):
     """
     Calculates indicative friction power.
 
@@ -526,7 +536,10 @@ def evaluate_indicative_friction_power(
     """
 
     piston_speed = evaluate_piston_speed(engine_stroke, engine_speed)
-    return ((engine_param_l2 * piston_speed**2 + engine_param_l) * 10**5 * engine_speed / 60 * engine_capacity * 10**(-6)) / (2 * 1000)
+    return ((
+                engine_param_l2 * piston_speed ** 2 + engine_param_l) * 10 ** 5 * engine_speed / 60 * engine_capacity * 10 ** (
+                -6)) / (2 * 1000)
+
 
 def evaluate_logical_bmep(
         Fd_x0, Fd_x1, Fd_x2, Fd_x3, Fd_x4, engine_imep_max,
@@ -582,12 +595,13 @@ def evaluate_logical_bmep(
     bmep = evaluate_bmep(engine_capacity, engine_speed, engine_power)
     piston_speed = evaluate_piston_speed(engine_stroke, engine_speed)
 
-    c = bmep - (piston_speed**4 * Fd_x4 + piston_speed**3 * Fd_x3 + \
-        piston_speed**2 * Fd_x2 + piston_speed * Fd_x1 + Fd_x0) * engine_imep_max
+    c = bmep - (piston_speed ** 4 * Fd_x4 + piston_speed ** 3 * Fd_x3 + \
+                piston_speed ** 2 * Fd_x2 + piston_speed * Fd_x1 + Fd_x0) * engine_imep_max
 
     if bmep != 0 and c > 0:
         return 1
     return 0
+
 
 def evaluate_bmep(engine_capacity, engine_speed, engine_power):
     """
@@ -611,8 +625,10 @@ def evaluate_bmep(engine_capacity, engine_speed, engine_power):
     """
 
     if engine_speed != 0:
-        return 1000 * engine_power * 2 / (10**(-6) * engine_capacity * engine_speed / 60) * 10**(-5)
+        return 1000 * engine_power * 2 / (
+            10 ** (-6) * engine_capacity * engine_speed / 60) * 10 ** (-5)
     return 0
+
 
 def evaluate_piston_speed(engine_stroke, engine_speed_out):
     """
@@ -632,6 +648,7 @@ def evaluate_piston_speed(engine_stroke, engine_speed_out):
     """
 
     return engine_speed_out / 60 * 2 * engine_stroke / 1000
+
 
 def evaluate_engine_power(
         gearbox_efficiency_fixed, gearbox_efficiency, engine_inertia, load_mech,
@@ -685,18 +702,23 @@ def evaluate_engine_power(
     :rtype: float
     """
 
-    power1 = wheel_power/(gearbox_efficiency_fixed*gearbox_efficiency)
-    power2 = 0.5 * engine_inertia * 2 * pi / 60000 * (next_engine_speed - engine_speed)
-    power3 = load_mech + power_demand_electrics + (load_mech_torque * engine_speed / 60000 * 2 * pi)
+    power1 = wheel_power / (gearbox_efficiency_fixed * gearbox_efficiency)
+    power2 = 0.5 * engine_inertia * 2 * pi / 60000 * (
+        next_engine_speed - engine_speed)
+    power3 = load_mech + power_demand_electrics + (
+        load_mech_torque * engine_speed / 60000 * 2 * pi)
 
     if power1 == np.nan or power1 == np.inf or power1 == -np.inf: power1 = 0
 
     return (power1 + power2 + power3) * engine_status
 
+
 def evaluate_engine_speed(
         engine_speed_idle, engine_speed_min, engine_speed_idle_add_start,
-        engine_therma_start, engine_therma_thres, logical_idling, previous_logical_idling,
-        gearbox_speed_out, next_gearbox_speed_out, acceleration, previous_temperature, engine_status):
+        engine_therma_start, engine_therma_thres, logical_idling,
+        previous_logical_idling,
+        gearbox_speed_out, next_gearbox_speed_out, acceleration,
+        previous_temperature, engine_status):
     """
     Calculates engine speed.
 
@@ -754,29 +776,37 @@ def evaluate_engine_speed(
     """
 
     if logical_idling == 1:
-        if (gearbox_speed_out == 0 and next_gearbox_speed_out> 0) or (gearbox_speed_out > 0 and next_gearbox_speed_out == 0):
-            rpm1 = engine_speed_idle + 0.9*np.abs(engine_speed_min - gearbox_speed_out)
+        if (gearbox_speed_out == 0 and next_gearbox_speed_out > 0) or (
+                        gearbox_speed_out > 0 and next_gearbox_speed_out == 0):
+            rpm1 = engine_speed_idle + 0.9 * np.abs(
+                engine_speed_min - gearbox_speed_out)
         else:
             rpm1 = engine_speed_idle
     else:
         if gearbox_speed_out < engine_speed_min and acceleration >= 0:
-            rpm1 = engine_speed_min + 0.9*(engine_speed_min - gearbox_speed_out)
+            rpm1 = engine_speed_min + 0.9 * (
+                engine_speed_min - gearbox_speed_out)
         else:
             rpm1 = gearbox_speed_out
 
     if previous_temperature < 30 and previous_logical_idling == 1:
         if engine_speed_idle_add_start > 0:
-            rpm2 = engine_speed_idle_add_start * (np.abs(previous_temperature-30)/np.abs(30-engine_therma_start))
+            rpm2 = engine_speed_idle_add_start * (
+                np.abs(previous_temperature - 30) / np.abs(
+                    30 - engine_therma_start))
         else:
-            rpm2 = (273+engine_therma_thres)/(273+previous_temperature)*320
+            rpm2 = (273 + engine_therma_thres) / (
+                273 + previous_temperature) * 320
     else:
         rpm2 = 0
 
     return (rpm1 + rpm2) * engine_status
 
+
 def evaluate_logical_engine_status(
         is_startstop, is_hybrid, ss_therma_thres, time_thres, battery_soc_bal,
-        battery_soc_margin, time, velocity, next_velocity, previous_temperature, previous_battery_soc):
+        battery_soc_margin, time, velocity, next_velocity, previous_temperature,
+        previous_battery_soc):
     """
     Calculates logical engine status.
 
@@ -832,9 +862,11 @@ def evaluate_logical_engine_status(
     avg_velocity = np.average([velocity, next_velocity])
 
     if is_startstop == 1 and avg_velocity < 0.1 and time > time_thres and \
-                previous_temperature > ss_therma_thres and previous_battery_soc > (battery_soc_bal - battery_soc_margin * 1.5):
+                    previous_temperature > ss_therma_thres and previous_battery_soc > (
+                battery_soc_bal - battery_soc_margin * 1.5):
         return 0
     return 1 * (not is_hybrid)
+
 
 def evaluate_logical_power_positive(
         eng_p0fc, engine_power, logical_idling, engine_status):
@@ -866,8 +898,10 @@ def evaluate_logical_power_positive(
         return 1 * engine_status
     return 0
 
+
 def evaluate_logical_motoring(
-        eng_p0fc, engine_power, logical_idling, logical_clutching, engine_status):
+        eng_p0fc, engine_power, logical_idling, logical_clutching,
+        engine_status):
     """
     Calculates logical motoring.
 
@@ -900,6 +934,7 @@ def evaluate_logical_motoring(
         return 1 * engine_status
     return 0
 
+
 def evaluate_logical_clutching(
         engine_speed_min, gearbox_speed_out, gear, next_gear, engine_status):
     """
@@ -930,12 +965,15 @@ def evaluate_logical_clutching(
     :rtype: binary
     """
 
-    if (gearbox_speed_out < engine_speed_min and gear > 0) or np.abs(next_gear - gear) > 0:
+    if (gearbox_speed_out < engine_speed_min and gear > 0) or np.abs(
+                    next_gear - gear) > 0:
         return 1 * engine_status
     return 0
 
+
 def evaluate_logical_idling(
-        velocity_thres, gear, velocity, acceleration, logical_clutching, engine_status):
+        velocity_thres, gear, velocity, acceleration, logical_clutching,
+        engine_status):
     """
     Calculates logical idling.
 
@@ -970,6 +1008,7 @@ def evaluate_logical_idling(
 
     if gear == 0 and logical_clutching == 0:
         return 1 * engine_status
-    elif  (velocity / 3.6) < velocity_thres and logical_clutching == 1 and acceleration <= 0:
+    elif (
+                velocity / 3.6) < velocity_thres and logical_clutching == 1 and acceleration <= 0:
         return 1 * engine_status
     return 0

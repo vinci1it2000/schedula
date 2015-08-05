@@ -1,4 +1,4 @@
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Copyright 2015 European Commission (JRC);
 # Licensed under the EUPL (the 'Licence');
@@ -78,9 +78,9 @@ def architecture():
         data_id='prediction_input_file_name',
         description='File name, that contains prediction inputs.'
     )
-    
+
     architecture.add_data(
-        data_id='calibration_cycle_name', 
+        data_id='calibration_cycle_name',
         default_value='WLTP',
         description='Cycle used for calibrating models.'
     )
@@ -117,7 +117,7 @@ def architecture():
     from .physical import physical_calibration
 
     architecture.add_function(
-        function_id='calibrate_mechanical_models',
+        function_id='calibrate_physical_models',
         function=SubDispatch(physical_calibration()),
         inputs=['calibration_cycle_inputs'],
         outputs=['calibration_cycle_outputs'],
@@ -148,7 +148,7 @@ def architecture():
     from .physical import physical_prediction
 
     architecture.add_function(
-        function_id='predict_mechanical_model',
+        function_id='predict_physical_model',
         function=SubDispatch(physical_prediction()),
         inputs=['calibrated_models', 'prediction_cycle_inputs'],
         outputs=['prediction_cycle_outputs'],
@@ -212,7 +212,7 @@ def process_folder_files(input_folder, output_folder):
     model = architecture()
     fpaths = glob.glob(input_folder + '/*.xlsx')
     error_coeff = []
-    doday= datetime.today().strftime('%d_%b_%Y_%H_%M_%S_')
+    doday = datetime.today().strftime('%d_%b_%Y_%H_%M_%S_')
 
     for fpath in fpaths:
         fname = os.path.basename(fpath)
@@ -221,8 +221,9 @@ def process_folder_files(input_folder, output_folder):
             print('Skipping: %s' % fname)
             continue
         print('Processing: %s' % fname)
-        oc_name = '%s/%s%s_%s.xlsx' % (output_folder, doday, 'calibration', fname)
-        op_name = '%s/%s%s_%s.xlsx' % (output_folder, doday, 'prediction', fname)
+        format = '%s/%s%s_%s.xlsx'
+        oc_name = format % (output_folder, doday, 'calibration', fname)
+        op_name = format % (output_folder, doday, 'prediction', fname)
         inputs = {
             'input_file_name': fpath,
             'prediction_output_file_name': op_name,
@@ -243,8 +244,10 @@ def process_folder_files(input_folder, output_folder):
             error_coeff.append(v)
         '''
     from compas.dispatcher.draw import dsp2dot
-    dsp2dot(model, workflow =True, view = True, function_module=False, node_output=False,edge_attr=model.weight)
-    dsp2dot(model, view = True, function_module=False)
+
+    dsp2dot(model, workflow=True, view=True, function_module=False,
+            node_output=False, edge_attr=model.weight)
+    dsp2dot(model, view=True, function_module=False)
     writer = pd.ExcelWriter('%s/%s%s.xlsx' % (output_folder, doday, 'Summary'))
     pd.DataFrame.from_records(error_coeff).to_excel(writer, 'Summary')
 

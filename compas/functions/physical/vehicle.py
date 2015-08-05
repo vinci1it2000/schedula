@@ -1,8 +1,19 @@
-__author__ = 'arcidvi'
+#-*- coding: utf-8 -*-
+#
+# Copyright 2015 European Commission (JRC);
+# Licensed under the EUPL (the 'Licence');
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
+"""
+It contains functions that model the basic mechanics of the vehicle.
+"""
+
+__author__ = 'Vincenzo Arcidiacono'
 
 import numpy as np
 from math import cos, sin
+
 
 def calculate_accelerations(times, velocities):
     """
@@ -50,10 +61,10 @@ def calculate_aerodynamic_resistances(f2, velocities):
     return f2 * velocities**2
 
 
-def calculate_aerodynamic_resistances_v1(
-        air_density, aerodynamic_drag_coefficient, frontal_area, velocities):
+def calculate_f2(
+        air_density, aerodynamic_drag_coefficient, frontal_area):
     """
-    Calculates the aerodynamic resistances of the vehicle.
+    Calculates the f2 coefficient [N/(km/h)^2].
 
     :param air_density:
         Air density [kg/m3].
@@ -67,16 +78,14 @@ def calculate_aerodynamic_resistances_v1(
         Frontal area of the vehicle [m2].
     :type frontal_area: float
 
-    :param velocities:
-        Velocity vector [km/h].
-    :type velocities: np.array, float
-
     :return:
-        Aerodynamic resistance vector [N].
+        As used in the dyno and defined by respective guidelines [N/(km/h)^2].
     :rtype: np.array, float
     """
+
     c = aerodynamic_drag_coefficient * frontal_area * air_density
-    return velocities**2 * (0.5 * c / 3.6**2)
+
+    return 0.5 * c / 3.6**2
 
 
 def calculate_rolling_resistance(f0, angle_slope):

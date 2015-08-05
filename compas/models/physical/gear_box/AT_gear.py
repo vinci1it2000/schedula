@@ -69,7 +69,6 @@ def AT_gear():
         outputs=['correct_gear'],
         weight=100)
 
-
     AT_gear.add_dispatcher(
         dsp=cmv(),
         inputs={

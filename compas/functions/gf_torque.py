@@ -6,7 +6,8 @@ import numpy as np
 from sklearn.metrics import mean_squared_error
 from scipy.optimize import fmin
 
-from compas.functions.physical.gear_box.AT_gear.__init__.AT_gear import identify_gears, VEL_EPS
+from compas.functions.physical.gear_box.AT_gear.__init__.AT_gear import \
+    identify_gears, VEL_EPS
 from compas.utils import median_filter
 
 
@@ -86,9 +87,10 @@ def eng_speed2gb_speed(speed2velocity_ratios, time, vel, acc, speed_eng,
 
     return coeff_cf, median_filter(time, speed_eng * ratio, 4)
 
-def fun(engine_speeds, gear_box_speeds,times, velocities, accelerations, idle_engine_speed,
-        time_shift_engine_speeds):
 
+def fun(engine_speeds, gear_box_speeds, times, velocities, accelerations,
+        idle_engine_speed,
+        time_shift_engine_speeds):
     ratio = gear_box_speeds / engine_speeds
 
     ratio[accelerations < -0.1] = 1 / ratio[accelerations < -0.1]

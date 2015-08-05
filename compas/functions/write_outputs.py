@@ -84,8 +84,8 @@ def write_output(output, file_name, sheet_names):
     fig = plot_gear_box_speeds(series)
     fig.savefig('%s.png' % file_name.split('.')[0])
     '''
-    series.to_excel(writer, 'series_%s'% sheet_names[0])
-    p.to_excel(writer, 'params_%s'% sheet_names[1])
+    series.to_excel(writer, 'series_%s' % sheet_names[0])
+    p.to_excel(writer, 'params_%s' % sheet_names[1])
 
 
 def check_writeable(data):

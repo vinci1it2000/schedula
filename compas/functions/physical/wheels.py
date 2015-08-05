@@ -1,7 +1,19 @@
-__author__ = 'iMac2013'
+#-*- coding: utf-8 -*-
+#
+# Copyright 2015 European Commission (JRC);
+# Licensed under the EUPL (the 'Licence');
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+
+"""
+It contains functions that model the basic mechanics of the wheels.
+"""
+
+__author__ = 'Vincenzo Arcidiacono'
 
 import numpy as np
 from math import pi
+
 
 def calculate_wheel_power(velocities, accelerations, road_loads, vehicle_mass):
     """
@@ -32,7 +44,9 @@ def calculate_wheel_power(velocities, accelerations, road_loads, vehicle_mass):
 
     quadratic_term = f0 + (f1 + f2 * velocities) * velocities
 
-    return (quadratic_term + 1.03 * vehicle_mass * accelerations) * velocities / 3600
+    vel = velocities / 3600
+
+    return (quadratic_term + 1.03 * vehicle_mass * accelerations) * vel
 
 
 def calculate_wheel_torques(wheel_powers, wheel_speeds):

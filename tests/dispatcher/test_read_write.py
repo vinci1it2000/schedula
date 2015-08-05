@@ -19,8 +19,10 @@ if platform.python_implementation() != "PyPy":
     class TestDoctest(unittest.TestCase):
         def runTest(self):
             import compas.dispatcher.read_write as utl
+
             failure_count, test_count = doctest.testmod(
-                utl, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS)
+                utl,
+                optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS)
             self.assertGreater(test_count, 0, (failure_count, test_count))
             self.assertEqual(failure_count, 0, (failure_count, test_count))
 

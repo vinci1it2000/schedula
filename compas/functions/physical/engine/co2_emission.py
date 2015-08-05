@@ -571,7 +571,7 @@ def define_co2_error_function_v1(
     """
 
     def error_func(params):
-        co2 =  co2_emissions_model(params)
+        co2 = co2_emissions_model(params)
         cco2 = calculate_cumulative_co2(times, phases_integration_times, co2)
         return mean_squared_error(cumulative_co2_emissions, cco2)
 

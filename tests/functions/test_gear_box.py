@@ -100,7 +100,7 @@ class TestGearBox(unittest.TestCase):
         self.assertEquals(list(fun(*a)[0]), list(self.eff))
         self.assertEquals(list(fun(*a)[1]), list(self.tl))
 
-class TestGearBox(unittest.TestCase):
+class TestGearBox_v1(unittest.TestCase):
     def setUp(self):
         self.pa = {
             'cold': {'gbp00': -3.9682, 'gbp01': 0.965, 'gbp10': -0.0016},

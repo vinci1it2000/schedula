@@ -52,28 +52,37 @@ def final_drive():
     )
 
     final_drive.add_function(
-        function=calculate_final_drive_powers_in,
-        inputs=['final_drive_powers_out', 'final_drive_efficiency'],
-        outputs=['final_drive_powers_in']
+        function=calculate_final_drive_torque_losses,
+        inputs=['final_drive_torques_out', 'final_drive_torque_loss'],
+        outputs=['final_drive_torque_losses']
     )
 
-    final_drive.add_data(
-        data_id='final_drive_torque_loss',
-        default_value=0.0
+    final_drive.add_function(
+        function=calculate_final_drive_torque_losses_v1,
+        inputs=['final_drive_torques_out', 'final_drive_ratio',
+                'final_drive_efficiency'],
+        outputs=['final_drive_torque_losses'],
+        weight=5
     )
 
     final_drive.add_function(
         function=calculate_final_drive_torques_in,
         inputs=['final_drive_torques_out', 'final_drive_ratio',
-                'final_drive_torque_loss'],
+                'final_drive_torque_losses'],
         outputs=['final_drive_torques_in']
     )
 
     final_drive.add_function(
-        function=calculate_final_drive_torques_in_v1,
-        inputs=['final_drive_torques_out', 'final_drive_efficiency', 'final_drive_ratio'],
-        outputs=['final_drive_torques_in'],
-        weight=10
+        function=calculate_final_drive_efficiencies,
+        inputs=['final_drive_torques_out', 'final_drive_ratio',
+                'final_drive_torques_in'],
+        outputs=['final_drive_efficiencies']
+    )
+
+    final_drive.add_function(
+        function=calculate_final_drive_powers_in,
+        inputs=['final_drive_powers_out', 'final_drive_efficiencies'],
+        outputs=['final_drive_powers_in']
     )
 
     return final_drive

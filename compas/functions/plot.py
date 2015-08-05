@@ -65,13 +65,13 @@ def plot_gear_box_speeds(series):
 
     g = {'Velocity [km/h]': series['Velocity [km/h]']}
     _plot_series(series['Time [s]'], g, ax=ax1,
-                x_label='Time [s]', y_label='Velocity [km/h]')
+                 x_label='Time [s]', y_label='Velocity [km/h]')
 
     g = {k.replace('Gears with ', ''): v
          for k, v in series.items()
          if 'Gears' in k}
     _plot_series(series['Time [s]'], g, ax=ax2,
-                x_label='Time [s]', y_label='Gear [-]')
+                 x_label='Time [s]', y_label='Gear [-]')
 
     g, e = {}, {}
     for k, v in series.items():

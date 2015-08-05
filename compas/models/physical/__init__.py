@@ -1,4 +1,4 @@
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Copyright 2015 European Commission (JRC);
 # Licensed under the EUPL (the 'Licence');
@@ -26,17 +26,16 @@ It contains a comprehensive list of all CO2MPAS software models and sub-models:
 The model is defined by a Dispatcher that wraps all the functions needed.
 """
 
-
 __author__ = 'Vincenzo Arcidiacono'
 
 from compas.dispatcher import Dispatcher
 
-def _physical():
 
+def _physical():
     physical = Dispatcher(
         name='CO2MPAS physical model',
-        description='Wraps all functions needed to predict light-vehicles\' CO2'
-                    ' emissions.'
+        description='Wraps all functions needed to calibrate and predict '
+                    'light-vehicles\' CO2 emissions.'
     )
 
     from .vehicle import vehicle
@@ -91,7 +90,7 @@ def _physical():
         }
     )
 
-    from .final_drive import  final_drive
+    from .final_drive import final_drive
 
     fd = final_drive()
 
@@ -209,6 +208,11 @@ def physical_calibration():
     """
 
     physical_calibration = _physical()
+
+    physical_calibration.name = 'CO2MPAS physical calibration model'
+    physical_calibration.__doc__ = 'Wraps all functions needed to calibrate ' \
+                                   'light-vehicles\' CO2 emissions.'
+
     from .gear_box import gear_box_calibration
 
     gb = gear_box_calibration()
@@ -231,7 +235,7 @@ def physical_calibration():
             'upper_bound_engine_speed': 'upper_bound_engine_speed',
             'vehicle_mass': 'vehicle_mass',
 
-            'accelerations':'accelerations',
+            'accelerations': 'accelerations',
             'engine_max_torque': 'engine_max_torque',
             'engine_speeds_out': 'engine_speeds_out',
             'equivalent_gear_box_heat_capacity':
@@ -300,6 +304,11 @@ def physical_prediction():
     """
 
     physical_prediction = _physical()
+
+    physical_prediction.name = 'CO2MPAS physical prediction model'
+    physical_prediction.__doc__ = 'Wraps all functions needed to predict ' \
+                                  'light-vehicles\' CO2 emissions.'
+
     from .gear_box import gear_box_prediction
 
     gb = gear_box_prediction()
@@ -325,7 +334,7 @@ def physical_prediction():
             'engine_temperatures': 'engine_temperatures',
             'time_cold_hot_transition': 'time_cold_hot_transition',
 
-            'accelerations':'accelerations',
+            'accelerations': 'accelerations',
             'engine_max_torque': 'engine_max_torque',
             'equivalent_gear_box_heat_capacity':
                 'equivalent_gear_box_heat_capacity',
