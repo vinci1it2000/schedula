@@ -29,6 +29,8 @@ The model is defined by a Dispatcher that wraps all the functions needed.
 __author__ = 'Vincenzo Arcidiacono'
 
 from compas.dispatcher import Dispatcher
+from compas.functions.physical.constants.NEDC import *
+
 
 
 def _physical():
@@ -36,6 +38,42 @@ def _physical():
         name='CO2MPAS physical model',
         description='Wraps all functions needed to calibrate and predict '
                     'light-vehicles\' CO2 emissions.'
+    )
+
+    physical.add_data(
+        data_id='k1',
+        default_value=1
+    )
+
+    physical.add_data(
+        data_id='k2',
+        default_value=2
+    )
+
+    physical.add_data(
+        data_id='k5',
+        default_value=2
+    )
+
+    physical.add_data(
+        data_id='time_sample_frequency',
+        default_value=1
+    )
+    from compas.dispatcher.utils.dsp import add_opt_fun_args
+    physical.add_function(
+        function_id='nedc_gears',
+        function=add_opt_fun_args(nedc_gears, n=2),
+        inputs=['cycle_type', 'gear_box_type', 'time_sample_frequency',
+                'max_gear', 'k1', 'k2', 'k5'],
+        outputs=['times', 'gears'],
+        input_domain=nedc_gears_domain
+    )
+
+    physical.add_function(
+        function=add_opt_fun_args(nedc_velocities, n=1),
+        inputs=['cycle_type', 'time_sample_frequency'],
+        outputs=['times', 'velocities'],
+        input_domain=nedc_velocities_domain
     )
 
     from .vehicle import vehicle

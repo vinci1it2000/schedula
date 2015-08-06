@@ -159,7 +159,7 @@ def merge_inputs(cycle_name, parameters, series):
     _filters = {
         'PARAMETERS': {
             None: (float, empty),
-            'co2_params': (eval, list, empty),
+            'co2_params': (eval, dict, empty),
             'engine_type': (str, empty),
             'fuel_type': (str, empty),
             'gear_box_ratios': (eval, list, empty, index_dict),

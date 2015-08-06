@@ -155,6 +155,12 @@ def engine():
         weight=20
     )
 
+    engine.add_function(
+        function=calculate_mean_piston_speeds,
+        inputs=['engine_speeds_out', 'engine_stroke'],
+        outputs=['mean_piston_speeds']
+    )
+
     from .co2_emission import co2_emission
 
     engine.add_dispatcher(
@@ -176,11 +182,12 @@ def engine():
             'engine_stroke': 'engine_stroke',
             'engine_temperatures': 'engine_temperatures',
             'engine_thermostat_temperature': 'engine_thermostat_temperature',
-            'target_engine_temperature_window':
-                'target_engine_temperature_window',
             'engine_type': 'engine_type',
             'fuel_carbon_content': 'fuel_carbon_content',
             'idle_engine_speed': 'idle_engine_speed',
+            'mean_piston_speeds': 'mean_piston_speeds',
+            'target_engine_temperature_window':
+                'target_engine_temperature_window',
             'times': 'times',
             'velocities': 'velocities'
         },

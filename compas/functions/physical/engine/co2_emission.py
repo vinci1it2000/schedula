@@ -8,26 +8,6 @@ from compas.dispatcher.utils import pairwise
 from compas.functions.physical.constants import *
 
 
-def calculate_mean_piston_speeds(engine_speeds_out, engine_stroke):
-    """
-    Calculates mean piston speed [m/sec].
-
-    :param engine_speeds_out:
-        Engine speed vector [RPM].
-    :type engine_speeds_out: np.array
-
-    :param engine_stroke:
-        Engine stroke [mm].
-    :type engine_stroke: float
-
-    :return:
-        Mean piston speed vector [m/s].
-    :rtype: np.array, float
-    """
-
-    return (engine_stroke / 30000.0) * engine_speeds_out
-
-
 def calculate_normalized_engine_temperatures(
         engine_temperatures, temperature_target):
     """
@@ -434,6 +414,7 @@ def select_initial_co2_emission_model_params_guess(
             'trg': target_engine_temperature_window
         }
     }
+
     params = {
         'gasoline turbo': {
             'x0': {
@@ -647,7 +628,8 @@ def predict_co2_emissions(co2_emissions_model, params):
     :type co2_emissions_model: function
 
     :param params:
-        CO2 emission model parameters (a2, b2, a, b, c, l, l2, t, trg).
+        CO2 emission model parameters (a2, b2, a, b, c, l, l2, t, trg; e.g.
+        {'a2':..., 'b2:..., ...}).
 
         The missing parameters are set equal to zero.
     :type params: dict

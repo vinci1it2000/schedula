@@ -178,7 +178,7 @@ class TestGearBox_v1(unittest.TestCase):
         res = fun(*a)
 
         self.assertTrue(np.allclose(res[0], self.eff, 0, 0.001))
-        self.assertTrue(np.allclose(res[1], self.tl, 0, 0.001))
+        self.assertTrue(np.allclose(res[1], self.tgb + self.tl, 0, 0.001))
         self.assertTrue(np.allclose(res[2], self.T, 0, 0.001))
 
     def test_calculate_gear_box_efficiency_v1(self):
@@ -189,5 +189,5 @@ class TestGearBox_v1(unittest.TestCase):
         res = fun(*a)
         v = np.zeros(self.g.shape)
         self.assertTrue(np.allclose(res[0], v + 1, 0, 0.001))
-        self.assertTrue(np.allclose(res[1], v, 0, 0.001))
+        self.assertTrue(np.allclose(res[1], self.tgb, 0, 0.001))
         self.assertTrue(np.allclose(res[2], v + self.st, 0, 0.001))

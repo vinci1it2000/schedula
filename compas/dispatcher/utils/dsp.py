@@ -254,6 +254,8 @@ def add_opt_fun_args(fun, n=1):
     def f(*args, **kwargs):
         return fun(*args[n:], **kwargs)
 
+    f.__name__ = fun.__name__
+
     return f
 
 

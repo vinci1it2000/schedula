@@ -100,50 +100,6 @@ def identify_upper_bound_engine_speed(
     return m + sd * 0.674490
 
 
-def calculate_braking_powers(
-        engine_speeds_out, engine_torques_in, piston_speeds,
-        engine_loss_parameters, engine_capacity):
-    """
-    Calculates braking power.
-
-    :param engine_speeds_out:
-        Engine speed [RPM].
-    :type engine_speeds_out: np.array
-
-    :param engine_torques_in:
-        Engine torque out [N*m].
-    :type engine_torques_in: np.array
-
-    :param piston_speeds:
-        Piston speed.
-    :type piston_speeds: np.array
-
-    :param engine_loss_parameters:
-        Engine parameter (loss, loss2).
-    :type engine_loss_parameters: (float, float)
-
-    :param engine_capacity:
-        Engine capacity.
-    :type engine_capacity: float
-
-    :return:
-        Braking powers.
-    :rtype: np.array
-    """
-
-    loss, loss2 = engine_loss_parameters
-    cap, es = engine_capacity, engine_speeds_out
-
-    # indicative_friction_powers
-    friction_powers = ((loss2 * piston_speeds ** 2 + loss) * es * cap) / 1200000
-
-    bp = engine_torques_in * engine_speeds_out * (pi / 30000)
-
-    bp[bp < friction_powers] = 0
-
-    return bp
-
-
 def calibrate_engine_temperature_regression_model(
         engine_temperatures, velocities, wheel_powers, wheel_speeds):
     """
@@ -487,3 +443,86 @@ def calculate_engine_powers_out(gear_box_powers_in, on_engine, P0=None):
         p[p < P0] = P0
 
     return p
+
+
+def calculate_braking_powers(
+        engine_speeds_out, engine_torques_in, friction_powers):
+    """
+    Calculates braking power [kW].
+
+    :param engine_speeds_out:
+        Engine speed [RPM].
+    :type engine_speeds_out: np.array
+
+    :param engine_torques_in:
+        Engine torque out [N*m].
+    :type engine_torques_in: np.array
+
+    :param friction_powers:
+        Friction power [kW].
+    :type friction_powers: np.array
+
+    :return:
+        Braking powers [kW].
+    :rtype: np.array
+    """
+
+    bp = engine_torques_in * engine_speeds_out * (pi / 30000)
+
+    bp[bp < friction_powers] = 0
+
+    return bp
+
+
+def calculate_friction_powers(
+        engine_speeds_out, piston_speeds, engine_loss_parameters,
+        engine_capacity):
+    """
+    Calculates friction power [kW].
+
+    :param engine_speeds_out:
+        Engine speed [RPM].
+    :type engine_speeds_out: np.array
+
+    :param piston_speeds:
+        Piston speed [m/s].
+    :type piston_speeds: np.array
+
+    :param engine_loss_parameters:
+        Engine parameter (loss, loss2).
+    :type engine_loss_parameters: (float, float)
+
+    :param engine_capacity:
+        Engine capacity [cm3].
+    :type engine_capacity: float
+
+    :return:
+        Friction powers [kW].
+    :rtype: np.array
+    """
+
+    loss, loss2 = engine_loss_parameters
+    cap, es = engine_capacity, engine_speeds_out
+
+    # indicative_friction_powers
+    return (loss2 * piston_speeds ** 2 + loss) * es * (cap / 1200000.0)
+
+
+def calculate_mean_piston_speeds(engine_speeds_out, engine_stroke):
+    """
+    Calculates mean piston speed [m/sec].
+
+    :param engine_speeds_out:
+        Engine speed vector [RPM].
+    :type engine_speeds_out: np.array
+
+    :param engine_stroke:
+        Engine stroke [mm].
+    :type engine_stroke: float
+
+    :return:
+        Mean piston speed vector [m/s].
+    :rtype: np.array, float
+    """
+
+    return (engine_stroke / 30000.0) * engine_speeds_out

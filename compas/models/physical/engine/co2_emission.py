@@ -25,12 +25,6 @@ def co2_emission():
     )
 
     co2_emission.add_function(
-        function=calculate_mean_piston_speeds,
-        inputs=['engine_speeds_out', 'engine_stroke'],
-        outputs=['mean_piston_speeds']
-    )
-
-    co2_emission.add_function(
         function=calculate_brake_mean_effective_pressures,
         inputs=['engine_speeds_out', 'engine_powers_out', 'engine_capacity'],
         outputs=['brake_mean_effective_pressures']
@@ -85,7 +79,7 @@ def co2_emission():
     )
 
     co2_emission.add_function(
-        function=define_co2_error_function,
+        function=define_co2_error_function_v1,
         inputs=['co2_emissions_model', 'cumulative_co2_emissions', 'times',
                 'phases_integration_times'],
         outputs=['co2_error_function'],
