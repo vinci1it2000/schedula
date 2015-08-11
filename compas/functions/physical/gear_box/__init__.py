@@ -625,7 +625,9 @@ def calculate_gear_box_efficiencies(
         T0 = res[-1][0]
 
     temp, to_in, eff = zip(*res)
+
     temp = (initial_gear_box_temperature, ) + temp[:-1]
+
     return np.array(eff), np.array(to_in), np.array(temp)
 
 
@@ -755,7 +757,7 @@ def identify_speed_velocity_ratios(gears, velocities, gear_box_speeds_in):
     ratios[velocities < VEL_EPS] = 0
 
     svr.update({k: reject_outliers(ratios[gears == k])[0]
-                for k in range(1, max(gears) + 1)
+                for k in range(1, int(max(gears)) + 1)
                 if k in gears})
 
     return svr
@@ -838,3 +840,18 @@ def calculate_gear_box_powers_in(gear_box_torques_in, gear_box_speeds_in):
     from compas.functions.physical.wheels import calculate_wheel_powers
     
     return calculate_wheel_powers(gear_box_torques_in, gear_box_speeds_in)
+
+
+def identify_max_gear(gears):
+    """
+    Identifies the maximum gear of the gear box [-].
+
+    :param gears:
+        Gear vector [-].
+    :type gears: np.array
+
+    :return:
+        Maximum gear of the gear box [-].
+    :rtype: int
+    """
+    return int(max(gears))

@@ -40,12 +40,17 @@ def model_selector(calibration_outputs):
     _models = [
         'engine_temperature_regression_model',
         'correct_gear',
+        'max_gear',
         'upper_bound_engine_speed',
         'idle_engine_speed',
         'engine_thermostat_temperature',
         'start_stop_model',
-        'thermal_speed_param',
-        'co2_params'
+        'cold_start_speed_model',
+        'co2_params',
+        'alternator_status_model',
+        'max_alternator_current',
+        'electric_load',
+        'start_demand'
     ]
 
     for k in _models:

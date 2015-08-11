@@ -155,6 +155,40 @@ def _physical():
         }
     )
 
+    from .electrics import electrics
+
+    physical.add_dispatcher(
+        dsp_id='Electric model',
+        dsp=electrics(),
+        inputs={
+            'alternator_currents': 'alternator_currents',
+            'alternator_efficiency': 'alternator_efficiency',
+            'alternator_nominal_voltage': 'alternator_nominal_voltage',
+            'alternator_status_model': 'alternator_status_model',
+            'battery_capacity': 'battery_capacity',
+            'battery_currents': 'battery_currents',
+            'electric_load': 'electric_load',
+            'engine_temperatures': 'engine_temperatures',
+            'engine_starts': 'engine_starts',
+            'gear_box_powers_in': 'gear_box_powers_in',
+            'initial_soc': 'initial_soc',
+            'max_alternator_current': 'max_alternator_current',
+            'on_engine': 'on_engine',
+            'start_demand': 'start_demand',
+            'times': 'times',
+        },
+        outputs={
+            'alternator_currents': 'alternator_currents',
+            'alternator_powers_demand': 'alternator_powers_demand',
+            'alternator_status_model': 'alternator_status_model',
+            'battery_currents': 'battery_currents',
+            'electric_load': 'electric_load',
+            'max_alternator_current': 'max_alternator_current',
+            'state_of_charges': 'state_of_charges',
+            'start_demand': 'start_demand',
+        }
+
+    )
     from .engine import engine
 
     en = engine()
@@ -168,6 +202,7 @@ def _physical():
         dsp_id='Engine model',
         dsp=en,
         inputs={
+            'alternator_powers_demand': 'alternator_powers_demand',
             'engine_capacity': 'engine_capacity',
             'engine_max_power': 'engine_max_power',
             'engine_max_speed_at_max_power': 'engine_max_speed_at_max_power',
@@ -176,7 +211,7 @@ def _physical():
             'engine_temperatures': 'engine_temperatures',
             'engine_temperature_regression_model':
                 'engine_temperature_regression_model',
-            'thermal_speed_param': 'thermal_speed_param',
+            'cold_start_speed_model': 'cold_start_speed_model',
             'fuel_type': 'fuel_type',
             'gears': 'gears',
             'idle_engine_speed_median': 'idle_engine_speed_median',
@@ -212,17 +247,19 @@ def _physical():
             'co2_emission_value': 'co2_emission_value',
             'co2_emissions': 'co2_emissions',
             'co2_params': 'co2_params',
+            'cold_start_speed_model': 'cold_start_speed_model',
             'engine_max_torque': 'engine_max_torque',
             'engine_powers_out': 'engine_powers_out',
             'engine_speeds_out': 'engine_speeds_out',
+            'engine_starts': 'engine_starts',
             'engine_temperatures': 'engine_temperatures',
             'engine_thermostat_temperature': 'engine_thermostat_temperature',
             'engine_temperature_regression_model':
                 'engine_temperature_regression_model',
-            'thermal_speed_param': 'thermal_speed_param',
             'fuel_consumptions': 'fuel_consumptions',
             'idle_engine_speed': 'idle_engine_speed',
             'initial_engine_temperature': 'initial_temperature',
+            'on_engine': 'on_engine',
             'phases_co2_emissions': 'phases_co2_emissions',
             'start_stop_model': 'start_stop_model',
             'upper_bound_engine_speed': 'upper_bound_engine_speed',
@@ -323,6 +360,7 @@ def physical_calibration():
             'gear_box_torque_losses': 'gear_box_torque_losses',
             'gear_box_torques_in': 'gear_box_torques_in',
             'gear_box_powers_in': 'gear_box_powers_in',
+            'max_gear': 'max_gear',
         }
     )
     return physical_calibration
@@ -402,6 +440,7 @@ def physical_prediction():
             'gear_box_torque_losses': 'gear_box_torque_losses',
             'gear_box_torques_in': 'gear_box_torques_in',
             'gear_box_powers_in': 'gear_box_powers_in',
+            'max_gear': 'max_gear',
         }
     )
     return physical_prediction

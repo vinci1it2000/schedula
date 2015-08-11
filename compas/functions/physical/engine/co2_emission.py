@@ -91,14 +91,14 @@ def calculate_P0(params, engine_capacity, engine_stroke, idle_engine_speed,
 
     p.update(params)
 
-    engine_cm_idle = idle_engine_speed[0] * engine_stroke / 30000
+    engine_cm_idle = idle_engine_speed[0] * engine_stroke / 30000.0
 
     lhv = engine_fuel_lower_heating_value
     FMEP = _calculate_fuel_mean_effective_pressure
 
     engine_wfb_idle, engine_wfa_idle = FMEP(p, engine_cm_idle, 0, 1)
-    engine_wfa_idle = (3600000 / lhv) / engine_wfa_idle
-    engine_wfb_idle *= (3 * engine_capacity / lhv * idle_engine_speed[0])
+    engine_wfa_idle = (3600000.0 / lhv) / engine_wfa_idle
+    engine_wfb_idle *= (3.0 * engine_capacity / lhv * idle_engine_speed[0])
 
     return -engine_wfb_idle / engine_wfa_idle
 
@@ -317,7 +317,7 @@ def calculate_phases_distances(times, phases_integration_times, velocities):
     :rtype: np.array
     """
 
-    vel = velocities / 3600
+    vel = velocities / 3600.0
 
     return calculate_cumulative_co2(times, phases_integration_times, vel)
 

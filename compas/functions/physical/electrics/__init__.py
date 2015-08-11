@@ -2,6 +2,11 @@ __author__ = 'Vincenzo Arcidiacono'
 
 import numpy as np
 from math import pi
+from sklearn.tree import DecisionTreeClassifier
+from compas.dispatcher.utils import SubDispatchFunction
+from functools import partial
+
+
 # Power Demand due to Electrics:
 def evaluate_power_demand_electrics(bat_int_res, load_elec, alt_eff, current):
     """
@@ -217,18 +222,25 @@ def identify_electric_loads(
     :type alternator_powers_demand: np.array
 
     :return:
-        Vehicle electric load [kW].
+        Vehicle electric load and start/stop demand [kW].
     :rtype: (float, float)
     """
 
-    power = (alternator_nominal_voltage / 1000) * battery_currents
+    power = (alternator_nominal_voltage / 1000.0) * battery_currents
     power += alternator_powers_demand
 
     vl, s = reject_outliers(power, n=1)
 
-    ssl = np.median((power <= vl - s) | (power >= vl + s)) - vl
+    ssl = np.median(power[(power <= vl - s) | (power >= vl + s)]) - vl
 
     return vl, ssl
+
+
+def identify_max_alternator_current(alternator_currents):
+
+    c = alternator_currents
+
+    return max([(abs(v), v) for v in [max(c), min(c)]])[1]
 
 
 def calculate_soc(
@@ -258,7 +270,7 @@ def calculate_soc(
     """
 
     soc = [initial_soc]
-    c = battery_capacity * 3600.0
+    c = battery_capacity * 36.0
 
     bc = np.asarray(battery_currents)
     bc = (bc[:-1] + bc[1:]) * np.diff(times) / 2
@@ -266,7 +278,7 @@ def calculate_soc(
     for b in bc:
         soc.append(soc[-1] + b / c)
 
-    return np.asarray(soc) * 100.0
+    return np.asarray(soc)
 
 
 def calculate_alternator_powers_demand(
@@ -291,10 +303,120 @@ def calculate_alternator_powers_demand(
     :rtype: np.array
     """
 
-    c = alternator_nominal_voltage / (1000 * alternator_efficiency)
+    c = alternator_nominal_voltage / (1000.0 * alternator_efficiency)
 
     return c * alternator_currents
 
 
-def identify_bers():
-    pass
+def identify_alternator_logic(
+        alternator_powers_demand, gear_box_powers_in, on_engine):
+    gb_p = gear_box_powers_in
+    status = np.zeros(alternator_powers_demand.shape)
+
+    status[np.logical_not(np.isclose(alternator_powers_demand, status))] = 2
+
+    it = (i
+          for i, (s, p) in enumerate(zip(status, gb_p))
+          if s == 2 and p >= 0)
+
+    b1 = -1
+
+    while True:
+        b0 = next(it, None)
+
+        if b0 is None:
+            break
+
+        if status[b0 - 1] or b0 < b1:
+            continue
+
+        b1 = b0
+
+        while status[b1] or not on_engine[b1]:
+            b1 += 1
+
+        while gb_p[b1] < 0 or gb_p[b1] - gb_p[b1 - 1] > 0:
+            b1 -= 1
+
+        status[b0:b1 + 1] = 1
+
+    return status
+
+
+def calibrate_alternator_status_model(
+        alternator_statuses, engine_temperatures, state_of_charges,
+        gear_box_powers_in):
+
+    bers = DecisionTreeClassifier(random_state=0, max_depth=3)
+    charge = DecisionTreeClassifier(random_state=0, max_depth=3)
+
+    X = list(zip(alternator_statuses[:-1],
+                 gear_box_powers_in[1:]))
+
+    bers.fit(X, alternator_statuses[1:] == 2)
+
+    X = list(zip(alternator_statuses[:-1], state_of_charges[1:]))
+
+    charge.fit(X, alternator_statuses[1:] == 1)
+
+    # shortcut names
+    bers_pred = bers.predict
+    charge_pred = charge.predict
+
+    def model(prev_status, engine_temperature, battery_soc, gear_box_power_in):
+
+        if charge_pred([prev_status, battery_soc])[0]:
+            status = 1
+
+        elif bers_pred([prev_status, gear_box_power_in])[0]:
+            status = 2
+
+        else:
+            status = 0
+
+        return status
+
+    return model
+
+
+def predict_electrics(
+        battery_capacity, alternator_status_model, max_alternator_current,
+        alternator_nominal_voltage, start_demand, electric_load, initial_soc,
+        times, engine_temperatures, gear_box_powers_in, on_engine,
+        engine_starts):
+
+    from compas.models.physical.electrics.electrics_prediction import \
+        electrics_prediction
+
+    func = SubDispatchFunction(
+        dsp=electrics_prediction(),
+        function_id='electric_sub_model',
+        inputs=['battery_capacity', 'alternator_status_model',
+                'max_alternator_current', 'alternator_nominal_voltage',
+                'start_demand', 'electric_load',
+
+                'delta_time', 'engine_temperature', 'gear_box_power_in',
+                'on_engine', 'engine_start',
+
+                'battery_soc', 'alternator_status', 'prev_battery_current'],
+        outputs=['alternator_current', 'battery_soc', 'alternator_status',
+                 'battery_current']
+    )
+
+    func = partial(
+        func, battery_capacity, alternator_status_model, max_alternator_current,
+        alternator_nominal_voltage, start_demand, electric_load)
+
+
+    delta_times = np.append([0], np.diff(times))
+
+    X = list(zip(delta_times, engine_temperatures, gear_box_powers_in,
+                 on_engine, engine_starts))
+
+    res = [(0, initial_soc, 0, None)]
+    for x in X:
+        res.append(tuple(func(*(x + res[-1][1:]))))
+
+    alt_c, soc, alt_stat, bat_c = zip(*res[1:])
+
+    return np.array(alt_c), np.array(soc), np.array(alt_stat), np.array(bat_c)

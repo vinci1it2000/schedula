@@ -111,7 +111,7 @@ def engine():
     engine.add_function(
         function=identify_on_engine,
         inputs=['times', 'engine_speeds_out', 'idle_engine_speed'],
-        outputs=['on_engine']
+        outputs=['on_engine', 'engine_starts']
     )
 
     engine.add_function(
@@ -124,33 +124,34 @@ def engine():
         function=predict_on_engine,
         inputs=['start_stop_model', 'times', 'velocities',
                 'engine_temperatures', 'cycle_type', 'gear_box_type'],
-        outputs=['on_engine']
+        outputs=['on_engine', 'engine_starts']
     )
 
     engine.add_function(
-        function=calibrate_thermal_speed_param,
+        function=calibrate_cold_start_speed_model,
         inputs=['velocities', 'engine_speeds_out', 'engine_temperatures',
                 'idle_engine_speed', 'engine_thermostat_temperature'],
-        outputs=['thermal_speed_param']
+        outputs=['cold_start_speed_model']
     )
 
     engine.add_function(
         function=calculate_engine_speeds_out,
         inputs=['gear_box_speeds_in', 'on_engine', 'idle_engine_speed',
                 'engine_temperatures', 'engine_thermostat_temperature',
-                'thermal_speed_param'],
+                'cold_start_speed_model'],
         outputs=['engine_speeds_out']
     )
 
     engine.add_function(
         function=calculate_engine_powers_out,
-        inputs=['gear_box_powers_in', 'on_engine', 'P0'],
+        inputs=['gear_box_powers_in', 'on_engine', 'alternator_powers_demand',
+                'P0'],
         outputs=['engine_powers_out']
     )
 
     engine.add_function(
         function=calculate_engine_powers_out,
-        inputs=['gear_box_powers_in', 'on_engine'],
+        inputs=['gear_box_powers_in', 'on_engine', 'alternator_powers_demand'],
         outputs=['engine_powers_out'],
         weight=20
     )

@@ -257,7 +257,7 @@ def calculate_engine_max_torque(
 
 def identify_on_engine(times, engine_speeds_out, idle_engine_speed):
     """
-    Identifies if the engine is on [-].
+    Identifies if the engine is on and when it starts [-].
 
     :param times:
         Time vector [s].
@@ -272,7 +272,7 @@ def identify_on_engine(times, engine_speeds_out, idle_engine_speed):
     :type idle_engine_speed: (float, float)
 
     :return:
-        If the engine is on [-].
+        If the engine is on and when it starts [-].
     :rtype: np.array
     """
 
@@ -283,7 +283,11 @@ def identify_on_engine(times, engine_speeds_out, idle_engine_speed):
 
     on_engine = clear_gear_fluctuations(times, on_engine, TIME_WINDOW)
 
-    return np.array(on_engine, dtype=bool)
+    engine_starts = np.diff(on_engine) > 0
+
+    engine_starts = np.append(engine_starts, False)
+
+    return np.array(on_engine, dtype=bool), engine_starts
 
 
 def calibrate_start_stop_model(
@@ -321,7 +325,7 @@ def predict_on_engine(
         model, times, velocities, engine_temperatures, cycle_type,
         gear_box_type):
     """
-    Predicts if the engine is on (start and stop) [-].
+    Predicts if the engine is on and when it starts [-].
 
     :param model:
         Start/stop model.
@@ -340,7 +344,7 @@ def predict_on_engine(
     :type engine_temperatures: np.array
 
     :return:
-        If the engine is on [-].
+        If the engine is on and when it starts [-].
     :rtype: np.array
     """
 
@@ -367,12 +371,14 @@ def predict_on_engine(
 
     on_engine = clear_gear_fluctuations(times, on_engine, TIME_WINDOW)
 
-    return np.array(on_engine, dtype=bool)
+    engine_starts = np.append(np.diff(on_engine) > 0, False)
+
+    return np.array(on_engine, dtype=bool), engine_starts
 
 
 def calculate_engine_speeds_out(
-        gear_box_speeds_in, on_engine, idle_engine_speed, temperatures,
-        engine_thermostat_temperature, thermal_speed_param):
+        gear_box_speeds_in, on_engine, idle_engine_speed, engine_temperatures,
+        engine_thermostat_temperature, cold_start_speed_model):
     """
     Calculates the engine speed [RPM].
 
@@ -383,6 +389,22 @@ def calculate_engine_speeds_out(
     :param on_engine:
         If the engine is on [-].
     :type on_engine: np.array
+
+    :param idle_engine_speed:
+        Idle engine speed and its standard deviation [RPM].
+    :type idle_engine_speed: (float, float)
+
+    :param engine_temperatures:
+        Engine temperature vector [°C].
+    :type engine_temperatures: np.array
+
+    :param engine_thermostat_temperature:
+        Thermostat engine temperature [°C].
+    :type engine_thermostat_temperature: float
+
+    :param cold_start_speed_model:
+        Cold start speed model.
+    :type cold_start_speed_model: float
 
     :return:
         Engine speed [RPM].
@@ -395,7 +417,8 @@ def calculate_engine_speeds_out(
 
     s[on_engine & (s < idle_engine_speed[0])] = idle_engine_speed[0]
 
-    e_t = (engine_thermostat_temperature - temperatures) / thermal_speed_param
+    e_t = (engine_thermostat_temperature - engine_temperatures)
+    e_t *= cold_start_speed_model
 
     b = on_engine & (e_t > s)
     s[b] = e_t[b]
@@ -403,18 +426,50 @@ def calculate_engine_speeds_out(
     return s
 
 
-def calibrate_thermal_speed_param(
-        velocities, engine_speeds_out, temperatures, idle_engine_speed,
+def calibrate_cold_start_speed_model(
+        velocities, engine_speeds_out, engine_temperatures, idle_engine_speed,
         engine_thermostat_temperature):
+    """
+    Calibrates the cold start speed model.
+
+    :param velocities:
+        Velocity vector [km/h].
+    :type velocities: np.array
+
+    :param engine_speeds_out:
+        Engine speed [RPM].
+    :type engine_speeds_out: np.array
+
+    :param engine_temperatures:
+        Engine temperature vector [°C].
+    :type engine_temperatures: np.array
+
+    :param idle_engine_speed:
+        Idle engine speed and its standard deviation [RPM].
+    :type idle_engine_speed: (float, float)
+
+    :param engine_thermostat_temperature:
+        Thermostat engine temperature [°C].
+    :type engine_thermostat_temperature: float
+
+    :return:
+        Cold start speed model.
+    :rtype: float
+    """
 
     b = (velocities < VEL_EPS) & (idle_engine_speed[0] < engine_speeds_out)
 
-    p = (engine_thermostat_temperature - temperatures[b]) / engine_speeds_out[b]
+    if not b.any():
+        return 0.0
 
-    return reject_outliers(p)[0]
+    p = (engine_thermostat_temperature - engine_temperatures[b])
+    p /= engine_speeds_out[b]
+
+    return 1.0 / reject_outliers(p)[0]
 
 
-def calculate_engine_powers_out(gear_box_powers_in, on_engine, P0=None):
+def calculate_engine_powers_out(
+        gear_box_powers_in, on_engine, alternator_powers_demand=None, P0=None):
     """
     Calculates the engine power [kW].
 
@@ -422,13 +477,13 @@ def calculate_engine_powers_out(gear_box_powers_in, on_engine, P0=None):
         Gear box power [kW].
     :type gear_box_powers_in: np.array
 
-    :param P0:
-        Power engine power threshold limit [kW].
-    :type P0: float
-
     :param on_engine:
         If the engine is on [-].
     :type on_engine: np.array
+
+    :param P0:
+        Power engine power threshold limit [kW].
+    :type P0: float
 
     :return:
         Engine power [kW].
@@ -442,7 +497,7 @@ def calculate_engine_powers_out(gear_box_powers_in, on_engine, P0=None):
     if P0 is not None:
         p[p < P0] = P0
 
-    return p
+    return p + np.abs(alternator_powers_demand)
 
 
 def calculate_braking_powers(
@@ -467,7 +522,7 @@ def calculate_braking_powers(
     :rtype: np.array
     """
 
-    bp = engine_torques_in * engine_speeds_out * (pi / 30000)
+    bp = engine_torques_in * engine_speeds_out * (pi / 30000.0)
 
     bp[bp < friction_powers] = 0
 

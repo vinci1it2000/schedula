@@ -150,14 +150,14 @@ def _gear_box():
     gear_box.add_function(
         function=identify_speed_velocity_ratios,
         inputs=['gears', 'velocities', 'gear_box_speeds_in'],
-        outputs=['velocity_speed_ratios'],
+        outputs=['speed_velocity_ratios'],
         weight=5
     )
 
     gear_box.add_function(
         function=identify_speed_velocity_ratios,
         inputs=['gears', 'velocities', 'engine_speeds_out'],
-        outputs=['velocity_speed_ratios'],
+        outputs=['speed_velocity_ratios'],
         weight=10
     )
 
@@ -181,6 +181,11 @@ def _gear_box():
         outputs=['gear_box_powers_in']
     )
 
+    gear_box.add_function(
+        function=identify_max_gear,
+        inputs=['gears'],
+        outputs=['max_gear']
+    )
     return gear_box
 
 

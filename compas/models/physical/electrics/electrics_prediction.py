@@ -1,0 +1,71 @@
+#-*- coding: utf-8 -*-
+#
+# Copyright 2015 European Commission (JRC);
+# Licensed under the EUPL (the 'Licence');
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+
+"""
+It provides a final drive model.
+
+The model is defined by a Dispatcher that wraps all the functions needed.
+"""
+
+__author__ = 'Vincenzo_Arcidiacono'
+
+from compas.dispatcher import Dispatcher
+from compas.functions.physical.electrics.electric_prediction import *
+
+
+def electrics_prediction():
+    """
+    Define the electric sub model to predict the alternator loads.
+
+    .. dispatcher:: dsp
+
+        >>> dsp = electrics_prediction()
+
+    :return:
+        The electric sub model.
+    :rtype: Dispatcher
+    """
+
+    electrics_prediction = Dispatcher(
+        name='Electric sub model',
+        description=''
+    )
+
+    electrics_prediction.add_function(
+        function=calculate_battery_current,
+        inputs=['electric_load', 'engine_start_current', 'alternator_current',
+                'alternator_nominal_voltage'],
+        outputs=['battery_current']
+    )
+
+    electrics_prediction.add_function(
+        function=calculate_alternator_current,
+        inputs=['alternator_status', 'on_engine', 'max_alternator_current'],
+        outputs=['alternator_current']
+    )
+
+    electrics_prediction.add_function(
+        function=calculate_battery_soc,
+        inputs=['battery_soc', 'battery_capacity', 'delta_time',
+                'battery_current', 'prev_battery_current'],
+        outputs=['battery_soc']
+    )
+
+    electrics_prediction.add_function(
+        function=predict_alternator_status,
+        inputs=['alternator_status_model', 'alternator_status',
+                'engine_temperature', 'battery_soc', 'gear_box_power_in'],
+        outputs=['alternator_status']
+    )
+
+    electrics_prediction.add_function(
+        function=calculate_engine_start_current,
+        inputs=['engine_start', 'start_demand', 'alternator_nominal_voltage'],
+        outputs=['engine_start_current']
+    )
+
+    return electrics_prediction
