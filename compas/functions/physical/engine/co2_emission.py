@@ -195,11 +195,14 @@ def calculate_co2_emissions(
         p, engine_capacity, engine_stroke, idle_engine_speed, lhv
     )
 
-    b = engine_speeds_out < idle_engine_speed[0] + MIN_ENGINE_SPEED
+    b = (engine_powers_out < ec_P0) | (engine_speeds_out < idle_engine_speed[0] + MIN_ENGINE_SPEED)
+    # Idle fc correction for temperature
+    idle_fc_temp_correction = n_temperatures**(-p['t'])
+    fc[b] = engine_idle_fuel_consumption * idle_fc_temp_correction[b]
+    # fc[b] = engine_idle_fuel_consumption
 
-    fc[b] = engine_idle_fuel_consumption
-
-    b = (engine_powers_out < ec_P0) | (engine_speeds_out <= MIN_ENGINE_SPEED)
+    # b = (engine_powers_out < ec_P0) | (engine_speeds_out <= MIN_ENGINE_SPEED)
+    b = (engine_speeds_out <= MIN_ENGINE_SPEED)
     fc[b | (fc < 0)] = 0
 
     co2 = fc * fuel_carbon_content
@@ -383,7 +386,7 @@ def calculate_cumulative_co2_v1(phases_co2_emissions, phases_distances):
 
 def select_initial_co2_emission_model_params_guess(
         engine_type, engine_thermostat_temperature,
-        target_engine_temperature_window):
+        engine_thermostat_temperature_window):
     """
     Selects initial guess and bounds of co2 emission model params.
 
@@ -395,9 +398,9 @@ def select_initial_co2_emission_model_params_guess(
         Thermostat engine temperature [°C].
     :type engine_thermostat_temperature: float
 
-    :param target_engine_temperature_window:
+    :param engine_thermostat_temperature_window:
         Thermostat engine temperature limits [°C].
-    :type target_engine_temperature_window: (float, float)
+    :type engine_thermostat_temperature_window: (float, float)
 
     :return:
         Initial guess and bounds of co2 emission model params.
@@ -411,7 +414,7 @@ def select_initial_co2_emission_model_params_guess(
         },
         'bounds': {
             't': (0.0, 8.0),
-            'trg': target_engine_temperature_window
+            'trg': engine_thermostat_temperature_window
         }
     }
 

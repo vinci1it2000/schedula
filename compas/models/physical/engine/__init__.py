@@ -75,16 +75,15 @@ def engine():
 
     engine.add_function(
         function=calibrate_engine_temperature_regression_model,
-        inputs=['engine_temperatures', 'velocities', 'gear_box_powers_in',
+        inputs=['engine_temperatures', 'gear_box_powers_in',
                 'gear_box_speeds_in'],
         outputs=['engine_temperature_regression_model']
     )
 
     engine.add_function(
         function=predict_engine_temperatures,
-        inputs=['engine_temperature_regression_model', 'velocities',
-                'gear_box_powers_in', 'gear_box_speeds_in',
-                'initial_engine_temperature'],
+        inputs=['engine_temperature_regression_model', 'gear_box_powers_in',
+                'gear_box_speeds_in', 'initial_engine_temperature'],
         outputs=['engine_temperatures']
     )
 
@@ -92,7 +91,7 @@ def engine():
         function=identify_thermostat_engine_temperature,
         inputs=['engine_temperatures'],
         outputs=['engine_thermostat_temperature',
-                 'target_engine_temperature_window']
+                 'engine_thermostat_temperature_window']
     )
 
     engine.add_function(
@@ -116,21 +115,24 @@ def engine():
 
     engine.add_function(
         function=calibrate_start_stop_model,
-        inputs=['on_engine', 'velocities', 'engine_temperatures'],
+        inputs=['on_engine', 'velocities', 'accelerations',
+                'engine_temperatures'],
         outputs=['start_stop_model']
     )
 
     engine.add_function(
         function=predict_on_engine,
-        inputs=['start_stop_model', 'times', 'velocities',
+        inputs=['start_stop_model', 'times', 'velocities', 'accelerations',
                 'engine_temperatures', 'cycle_type', 'gear_box_type'],
         outputs=['on_engine', 'engine_starts']
     )
 
     engine.add_function(
         function=calibrate_cold_start_speed_model,
-        inputs=['velocities', 'engine_speeds_out', 'engine_temperatures',
-                'idle_engine_speed', 'engine_thermostat_temperature'],
+        inputs=['velocities', 'accelerations', 'engine_speeds_out',
+                'engine_temperatures', 'idle_engine_speed',
+                'engine_thermostat_temperature',
+                'engine_thermostat_temperature_window'],
         outputs=['cold_start_speed_model']
     )
 
@@ -187,8 +189,8 @@ def engine():
             'fuel_carbon_content': 'fuel_carbon_content',
             'idle_engine_speed': 'idle_engine_speed',
             'mean_piston_speeds': 'mean_piston_speeds',
-            'target_engine_temperature_window':
-                'target_engine_temperature_window',
+            'engine_thermostat_temperature_window':
+                'engine_thermostat_temperature_window',
             'times': 'times',
             'velocities': 'velocities'
         },

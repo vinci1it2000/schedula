@@ -38,18 +38,18 @@ def electrics():
     electrics.add_function(
         function=identify_electric_loads,
         inputs=['alternator_nominal_voltage', 'battery_currents',
-                'alternator_powers_demand'],
+                'gear_box_powers_in', 'times', 'on_engine', 'engine_starts'],
         outputs=['electric_load', 'start_demand']
     )
 
     electrics.add_function(
-        function=calculate_soc,
-        inputs=['battery_capacity', 'times', 'initial_soc', 'battery_currents'],
+        function=calculate_state_of_charges,
+        inputs=['battery_capacity', 'times', 'initial_state_of_charge', 'battery_currents'],
         outputs=['state_of_charges']
     )
 
     electrics.add_function(
-        function=identify_alternator_logic,
+        function=identify_alternator_statuses,
         inputs=['alternator_powers_demand', 'gear_box_powers_in', 'on_engine'],
         outputs=['alternator_statuses']
     )
@@ -63,8 +63,8 @@ def electrics():
 
     electrics.add_function(
         function=calibrate_alternator_status_model,
-        inputs=['alternator_statuses', 'engine_temperatures',
-                'state_of_charges', 'gear_box_powers_in'],
+        inputs=['alternator_statuses', 'state_of_charges',
+                'gear_box_powers_in'],
         outputs=['alternator_status_model']
     )
 
@@ -75,14 +75,13 @@ def electrics():
     )
 
     electrics.add_function(
-        function=predict_electrics,
+        function=predict_vehicle_electrics,
         inputs=['battery_capacity', 'alternator_status_model',
                 'max_alternator_current', 'alternator_nominal_voltage',
-                'start_demand', 'electric_load', 'initial_soc', 'times',
-                'engine_temperatures', 'gear_box_powers_in', 'on_engine',
-                'engine_starts'],
-        outputs=['alternator_currents', 'state_of_charges',
-                 'alternator_statuses', 'battery_currents']
+                'start_demand', 'electric_load', 'initial_state_of_charge',
+                'times', 'gear_box_powers_in', 'on_engine', 'engine_starts'],
+        outputs=['alternator_currents', 'battery_currents',
+                 'state_of_charges', 'alternator_statuses']
     )
 
     return electrics

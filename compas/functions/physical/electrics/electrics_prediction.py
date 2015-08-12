@@ -15,8 +15,8 @@ def calculate_alternator_current(
     return max_alternator_current if alternator_status and on_engine else 0.0
 
 
-def calculate_battery_soc(
-        prev_soc, battery_capacity,
+def calculate_battery_state_of_charge(
+        prev_battery_state_of_charge, battery_capacity,
         delta_time, battery_current, prev_battery_current=None):
 
     if prev_battery_current is None:
@@ -26,21 +26,21 @@ def calculate_battery_soc(
 
     b = (battery_current + prev_battery_current) / 2 * delta_time
 
-    return prev_soc + b / c
+    return prev_battery_state_of_charge + b / c
 
 
 def predict_alternator_status(
-        alternator_status_model, prev_status, engine_temperature, battery_soc,
+        alternator_status_model, prev_status, battery_state_of_charge,
         gear_box_power_in):
 
-    args = (prev_status, engine_temperature, battery_soc, gear_box_power_in)
+    args = (prev_status, battery_state_of_charge, gear_box_power_in)
 
     return alternator_status_model(*args)
 
 
 def calculate_engine_start_current(
-        engine_start, start_demand, alternator_nominal_voltage):
+        engine_start, start_demand, alternator_nominal_voltage, delta_time):
 
     if engine_start:
-        return start_demand / alternator_nominal_voltage * 1000.0
+        return start_demand / (delta_time * alternator_nominal_voltage) * 1000.0
     return 0.0

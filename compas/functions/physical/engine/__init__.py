@@ -101,7 +101,7 @@ def identify_upper_bound_engine_speed(
 
 
 def calibrate_engine_temperature_regression_model(
-        engine_temperatures, velocities, wheel_powers, wheel_speeds):
+        engine_temperatures, gear_box_powers_in, gear_box_speeds_in):
     """
     Calibrates an engine temperature regression model to predict engine
     temperatures.
@@ -113,17 +113,13 @@ def calibrate_engine_temperature_regression_model(
         Engine temperature vector [°C].
     :type engine_temperatures: np.array
 
-    :param velocities:
-        Velocity vector [km/h].
-    :type velocities: np.array
+    :param gear_box_powers_in:
+        Gear box power vector [kW].
+    :type gear_box_powers_in: np.array
 
-    :param wheel_powers:
-        Power at the wheels vector [kW].
-    :type wheel_powers: np.array
-
-    :param wheel_speeds:
-        Speed at the wheels vector [RPM].
-    :type wheel_speeds: np.array
+    :param gear_box_speeds_in:
+        Gear box speed vector [RPM].
+    :type gear_box_speeds_in: np.array
 
     :return:
         The calibrated engine temperature regression model.
@@ -141,7 +137,7 @@ def calibrate_engine_temperature_regression_model(
 
     model = GradientBoostingRegressor(**kw)
 
-    X = list(zip(temp, velocities, wheel_powers, wheel_speeds))
+    X = list(zip(temp, gear_box_powers_in, gear_box_speeds_in))
 
     model.fit(X[1:], np.diff(engine_temperatures))
 
@@ -149,8 +145,7 @@ def calibrate_engine_temperature_regression_model(
 
 
 def predict_engine_temperatures(
-        model, velocities, wheel_powers, wheel_speeds,
-        initial_temperature):
+        model, gear_box_powers_in, gear_box_speeds_in, initial_temperature):
     """
     Predicts the engine temperature [°C].
 
@@ -158,17 +153,13 @@ def predict_engine_temperatures(
         Engine temperature regression model.
     :type model: sklearn.ensemble.GradientBoostingRegressor
 
-    :param velocities:
-        Velocity vector [km/h].
-    :type velocities: np.array
+    :param gear_box_powers_in:
+        Gear box power vector [kW].
+    :type gear_box_powers_in: np.array
 
-    :param wheel_powers:
-        Power at the wheels vector [kW].
-    :type wheel_powers: np.array
-
-    :param wheel_speeds:
-        Speed at the wheels vector [RPM].
-    :type wheel_speeds: np.array
+    :param gear_box_speeds_in:
+        Gear box speed vector [RPM].
+    :type gear_box_speeds_in: np.array
 
     :param initial_temperature:
         Engine initial temperature [°C]
@@ -180,11 +171,11 @@ def predict_engine_temperatures(
     """
 
     predict = model.predict
-    it = zip(velocities[:-1], wheel_powers[:-1], wheel_speeds[:-1])
+    it = zip(gear_box_powers_in[:-1], gear_box_speeds_in[:-1])
 
     temp = [initial_temperature]
-    for v, p, e in it:
-        temp.append(temp[-1] + predict([[temp[-1], v, p, e]])[0])
+    for p, s in it:
+        temp.append(temp[-1] + predict([[temp[-1],  p, s]])[0])
 
     return np.array(temp)
 
@@ -273,7 +264,7 @@ def identify_on_engine(times, engine_speeds_out, idle_engine_speed):
 
     :return:
         If the engine is on and when it starts [-].
-    :rtype: np.array
+    :rtype: (np.array, np.array)
     """
 
     on_engine = np.zeros(times.shape)
@@ -291,7 +282,7 @@ def identify_on_engine(times, engine_speeds_out, idle_engine_speed):
 
 
 def calibrate_start_stop_model(
-        on_engine, velocities, engine_temperatures):
+        on_engine, velocities, accelerations, engine_temperatures):
     """
     Calibrates an start/stop model to predict if the engine is on.
 
@@ -312,18 +303,18 @@ def calibrate_start_stop_model(
     :rtype: sklearn.tree.DecisionTreeClassifier
     """
 
-    model = DecisionTreeClassifier(random_state=0)
+    model = DecisionTreeClassifier(random_state=0, max_depth=4)
 
-    X = list(zip(on_engine[:-1], velocities[1:], engine_temperatures[1:]))
+    X = list(zip(velocities, accelerations, engine_temperatures))
 
-    model.fit(X, on_engine[1:])
+    model.fit(X, on_engine)
 
     return model
 
 
 def predict_on_engine(
-        model, times, velocities, engine_temperatures, cycle_type,
-        gear_box_type):
+        model, times, velocities, accelerations, engine_temperatures,
+        cycle_type, gear_box_type):
     """
     Predicts if the engine is on and when it starts [-].
 
@@ -348,13 +339,9 @@ def predict_on_engine(
     :rtype: np.array
     """
 
-    predict = model.predict
+    X = list(zip(velocities, accelerations, engine_temperatures))
 
-    it = zip(velocities[:-1], engine_temperatures[:-1])
-
-    on_engine = [int(predict([True, velocities[0], engine_temperatures[0]]))]
-    for v, t in it:
-        on_engine.append(int(predict([[on_engine[-1], v, t]])[0]))
+    on_engine = np.array(model.predict(X), dtype=int)
 
     # legislation imposition
     if cycle_type == 'NEDC' and gear_box_type == 'manual':
@@ -427,8 +414,9 @@ def calculate_engine_speeds_out(
 
 
 def calibrate_cold_start_speed_model(
-        velocities, engine_speeds_out, engine_temperatures, idle_engine_speed,
-        engine_thermostat_temperature):
+        velocities, accelerations, engine_speeds_out, engine_temperatures,
+        idle_engine_speed, engine_thermostat_temperature,
+        engine_thermostat_temperature_window):
     """
     Calibrates the cold start speed model.
 
@@ -457,12 +445,14 @@ def calibrate_cold_start_speed_model(
     :rtype: float
     """
 
-    b = (velocities < VEL_EPS) & (idle_engine_speed[0] < engine_speeds_out)
+    b = engine_temperatures < engine_thermostat_temperature_window[0]
+    b &= (velocities < VEL_EPS) & (abs(accelerations) < ACC_EPS)
+    b &= (idle_engine_speed[0] < engine_speeds_out)
 
     if not b.any():
         return 0.0
 
-    p = (engine_thermostat_temperature - engine_temperatures[b])
+    p = engine_thermostat_temperature - engine_temperatures[b]
     p /= engine_speeds_out[b]
 
     return 1.0 / reject_outliers(p)[0]
@@ -493,11 +483,12 @@ def calculate_engine_powers_out(
     p = np.zeros(gear_box_powers_in.shape)
 
     p[on_engine] = gear_box_powers_in[on_engine]
+    p[on_engine] += np.abs(alternator_powers_demand[on_engine])
 
     if P0 is not None:
         p[p < P0] = P0
 
-    return p + np.abs(alternator_powers_demand)
+    return p
 
 
 def calculate_braking_powers(

@@ -14,7 +14,7 @@ The model is defined by a Dispatcher that wraps all the functions needed.
 __author__ = 'Vincenzo_Arcidiacono'
 
 from compas.dispatcher import Dispatcher
-from compas.functions.physical.electrics.electric_prediction import *
+from compas.functions.physical.electrics.electrics_prediction import *
 
 
 def electrics_prediction():
@@ -49,22 +49,23 @@ def electrics_prediction():
     )
 
     electrics_prediction.add_function(
-        function=calculate_battery_soc,
-        inputs=['battery_soc', 'battery_capacity', 'delta_time',
+        function=calculate_battery_state_of_charge,
+        inputs=['battery_state_of_charge', 'battery_capacity', 'delta_time',
                 'battery_current', 'prev_battery_current'],
-        outputs=['battery_soc']
+        outputs=['battery_state_of_charge']
     )
 
     electrics_prediction.add_function(
         function=predict_alternator_status,
         inputs=['alternator_status_model', 'alternator_status',
-                'engine_temperature', 'battery_soc', 'gear_box_power_in'],
+                'battery_state_of_charge', 'gear_box_power_in'],
         outputs=['alternator_status']
     )
 
     electrics_prediction.add_function(
         function=calculate_engine_start_current,
-        inputs=['engine_start', 'start_demand', 'alternator_nominal_voltage'],
+        inputs=['engine_start', 'start_demand', 'alternator_nominal_voltage',
+                'delta_time'],
         outputs=['engine_start_current']
     )
 
