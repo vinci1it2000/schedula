@@ -35,26 +35,28 @@ def identify_electric_loads(
 
     :return:
         Vehicle electric load and engine start demand [kW].
-    :rtype: (float, float)
+    :rtype: ((float, float), float)
     """
-    b = (battery_currents < 0) & (gear_box_powers_in >= 0)
+
+    b_c = battery_currents
+    b = (b_c < 0) & (gear_box_powers_in >= 0)
 
     c = alternator_nominal_voltage / 1000.0
+
     bL = b & np.logical_not(on_engine)
     bH = b & on_engine
-    electric_load = [
-        reject_outliers(c * battery_currents[bL])[0],
-        reject_outliers(c * battery_currents[bH])[0]
-    ]
+
+    load_off = min(0.0, reject_outliers(c * b_c[bL], med=np.mean)[0])
+    load_on = min(0.0, reject_outliers(c * b_c[bH], med=np.mean)[0])
 
     n_starts = sum(engine_starts)
 
     #start_demand = float(np.trapz(power - electric_load, x=times) / n_starts)
 
-    return 0,0 #electric_load[0], 0
+    return (load_off, load_on), 0
 
 
-def identify_max_alternator_current(alternator_currents):
+def identify_max_charging_current(battery_currents, electric_load):
     """
     Identifies the maximum charging current of the alternator [A].
 
@@ -67,9 +69,7 @@ def identify_max_alternator_current(alternator_currents):
     :rtype: float
     """
 
-    c = alternator_currents
-
-    return max([(abs(v), v) for v in [max(c), min(c)]])[1]
+    return electric_load[1] - max(battery_currents)
 
 
 def calculate_state_of_charges(
@@ -111,7 +111,8 @@ def calculate_state_of_charges(
 
 
 def calculate_alternator_powers_demand(
-        alternator_nominal_voltage, alternator_currents, alternator_efficiency):
+        alternator_nominal_voltage, alternator_currents, alternator_efficiency,
+        max_charging_current):
     """
     Calculates the alternator power demand to the engine [kW].
 
@@ -134,11 +135,18 @@ def calculate_alternator_powers_demand(
 
     c = alternator_nominal_voltage / (1000.0 * alternator_efficiency)
 
-    return c * alternator_currents
+    current = np.zeros(alternator_currents.shape)
+
+    b = max_charging_current < alternator_currents
+
+    current[b] = alternator_currents[b]
+    current[np.logical_not(b)] = max_charging_current
+
+    return current * c
 
 
-def identify_alternator_statuses(
-        alternator_powers_demand, gear_box_powers_in, on_engine):
+def identify_charging_statuses(
+        battery_currents, gear_box_powers_in, on_engine):
     """
     Identifies when the alternator is on due to 1:state of charge or 2:BERS [-].
 
@@ -161,15 +169,17 @@ def identify_alternator_statuses(
     """
 
     gb_p = gear_box_powers_in
-    status = np.zeros(alternator_powers_demand.shape)
+    status = np.zeros(battery_currents.shape)
 
-    status[np.logical_not(np.isclose(alternator_powers_demand, status))] = 2
+    status[battery_currents >= 0] = 2
 
     it = (i
           for i, (s, p) in enumerate(zip(status, gb_p))
           if s == 2 and p >= 0)
 
     b1 = -1
+
+    n = len(on_engine) - 1
 
     while True:
         b0 = next(it, None)
@@ -182,13 +192,14 @@ def identify_alternator_statuses(
 
         b1 = b0
 
-        while status[b1] or not on_engine[b1]:
+        while b1 < n and (status[b1] or not on_engine[b1]):
             b1 += 1
 
-        while gb_p[b1] < 0 or gb_p[b1] - gb_p[b1 - 1] > 0:
+        while b1 > b0 and (gb_p[b1] < 0 or gb_p[b1] - gb_p[b1 - 1] > 0):
             b1 -= 1
 
-        status[b0:b1 + 1] = 1
+        if b1 > b0:
+            status[b0:b1 + 1] = 1
 
     return status
 
@@ -219,8 +230,7 @@ def calibrate_alternator_status_model(
     bers = DecisionTreeClassifier(random_state=0, max_depth=3)
     charge = DecisionTreeClassifier(random_state=0, max_depth=3)
 
-    X = list(zip(alternator_statuses[:-1],
-                 gear_box_powers_in[1:]))
+    X = list(zip(gear_box_powers_in[1:]))
 
     bers.fit(X, alternator_statuses[1:] == 2)
 
@@ -233,15 +243,14 @@ def calibrate_alternator_status_model(
     charge_pred = charge.predict
 
     def model(prev_status, battery_soc, gear_box_power_in):
+        status = 0
 
-        if charge_pred([prev_status, battery_soc])[0]:
-            status = 1
+        if battery_soc < 100:
+            if charge_pred([prev_status, battery_soc])[0]:
+                status = 1
 
-        elif bers_pred([prev_status, gear_box_power_in])[0]:
-            status = 2
-
-        else:
-            status = 0
+            elif bers_pred([gear_box_power_in])[0]:
+                status = 2
 
         return status
 

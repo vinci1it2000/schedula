@@ -2,9 +2,9 @@ __author__ = 'arcidvi'
 
 def calculate_battery_current(
         electric_load, engine_start_current, alternator_current,
-        alternator_nominal_voltage):
+        alternator_nominal_voltage, on_engine):
 
-    c = electric_load / alternator_nominal_voltage * 1000.0
+    c = electric_load[on_engine] / alternator_nominal_voltage * 1000.0
 
     return c + engine_start_current - alternator_current
 

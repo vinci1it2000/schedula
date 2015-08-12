@@ -60,19 +60,27 @@ def _physical():
         default_value=1
     )
     from compas.dispatcher.utils.dsp import add_opt_fun_args
+
     physical.add_function(
         function_id='nedc_gears',
         function=add_opt_fun_args(nedc_gears, n=2),
-        inputs=['cycle_type', 'gear_box_type', 'time_sample_frequency',
+        inputs=['cycle_type', 'gear_box_type', 'times',
                 'max_gear', 'k1', 'k2', 'k5'],
-        outputs=['times', 'gears'],
+        outputs=['gears'],
         input_domain=nedc_gears_domain
     )
 
     physical.add_function(
         function=add_opt_fun_args(nedc_velocities, n=1),
+        inputs=['cycle_type', 'times'],
+        outputs=['velocities'],
+        input_domain=nedc_velocities_domain
+    )
+
+    physical.add_function(
+        function=add_opt_fun_args(nedc_times, n=1),
         inputs=['cycle_type', 'time_sample_frequency'],
-        outputs=['times', 'velocities'],
+        outputs=['times'],
         input_domain=nedc_velocities_domain
     )
 
@@ -171,7 +179,7 @@ def _physical():
             'engine_starts': 'engine_starts',
             'gear_box_powers_in': 'gear_box_powers_in',
             'initial_state_of_charge': 'initial_state_of_charge',
-            'max_alternator_current': 'max_alternator_current',
+            'max_charging_current': 'max_charging_current',
             'on_engine': 'on_engine',
             'start_demand': 'start_demand',
             'times': 'times',
@@ -182,7 +190,7 @@ def _physical():
             'alternator_status_model': 'alternator_status_model',
             'battery_currents': 'battery_currents',
             'electric_load': 'electric_load',
-            'max_alternator_current': 'max_alternator_current',
+            'max_charging_current': 'max_charging_current',
             'state_of_charges': 'state_of_charges',
             'start_demand': 'start_demand',
         }
@@ -216,8 +224,6 @@ def _physical():
             'idle_engine_speed_median': 'idle_engine_speed_median',
             'idle_engine_speed_std': 'idle_engine_speed_std',
             'initial_temperature': 'initial_engine_temperature',
-            #'wheel_powers': 'wheel_powers',
-            #'wheel_speeds': 'wheel_speeds',
             'velocities': 'velocities',
             'accelerations': 'accelerations',
             'co2_emission_low': 'co2_emission_low',

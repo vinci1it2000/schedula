@@ -77,17 +77,17 @@ def median_filter(x, y, dx_window):
     return np.array(Y)
 
 
-def reject_outliers(x, n=1):
+def reject_outliers(x, n=1, med=np.median, std=np.std):
     x = np.asarray(x)
 
-    m, s = np.median(x), np.std(x)
+    m, s = med(x), std(x)
 
     y = n > (abs(x - m) / s)
 
     if y.any():
         y = x[y]
 
-        m, s = np.median(y), np.std(y)
+        m, s = med(y), std(y)
 
     return m, s
 

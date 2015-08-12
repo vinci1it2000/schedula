@@ -72,14 +72,16 @@ def write_output(output, file_name, sheet_names):
         elif check_writeable(v):  # params
             heappush(p, (parse_name(k), v))
 
-    index, p = zip(*[(k, str(v)) for k, v in heap_flush(p)])
-    p = pd.DataFrame(list(p), index=index)
+
     series = pd.DataFrame()
     for k, v in heap_flush(s):
         try:
             series[k] = v
         except ValueError:
-            p[k] = str(v)
+            heappush(p, (k, v))
+
+    index, p = zip(*[(k, str(v)) for k, v in heap_flush(p)])
+    p = pd.DataFrame(list(p), index=index)
     '''
     fig = plot_gear_box_speeds(series)
     fig.savefig('%s.png' % file_name.split('.')[0])

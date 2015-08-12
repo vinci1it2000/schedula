@@ -38,7 +38,7 @@ def electrics_prediction():
     electrics_prediction.add_function(
         function=calculate_battery_current,
         inputs=['electric_load', 'engine_start_current', 'alternator_current',
-                'alternator_nominal_voltage'],
+                'alternator_nominal_voltage', 'on_engine'],
         outputs=['battery_current']
     )
 

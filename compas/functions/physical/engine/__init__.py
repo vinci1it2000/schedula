@@ -175,7 +175,7 @@ def predict_engine_temperatures(
 
     temp = [initial_temperature]
     for p, s in it:
-        temp.append(temp[-1] + predict([[temp[-1],  p, s]])[0])
+        temp.append(temp[-1] + predict([[temp[-1], p, s]])[0])
 
     return np.array(temp)
 

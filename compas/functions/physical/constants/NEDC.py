@@ -10,7 +10,8 @@ def nedc_gears_domain(cycle_type, gear_box_type, *args):
 def nedc_velocities_domain(cycle_type, *args):
     return cycle_type == 'NEDC'
 
-def nedc_velocities(frequency):
+
+def nedc_velocities(times):
     t, v = zip(*[
         [0, 0],
         [11, 0],
@@ -39,7 +40,7 @@ def nedc_velocities(frequency):
         [195, 0],
     ])
 
-    times, velocities = _repeat_part_one(t, v)
+    _t, velocities = _repeat_part_one(t, v)
 
     t, v = zip(*[
         [0, 0],
@@ -65,16 +66,16 @@ def nedc_velocities(frequency):
         [380, 0],
         [400, 0],
     ])
-    times.extend(np.asarray(t)+times[-1])
+
+    _t.extend(np.asarray(t) + _t[-1])
     velocities.extend(v)
 
-    t = np.arange(0.0, 1180.0, 1 / frequency)
-    v = np.interp(t, times, velocities)
+    v = np.interp(times, _t, velocities)
 
-    return t, v
+    return v
 
 
-def nedc_gears(frequency, max_gear, k1=1, k2=2, k5=2):
+def nedc_gears(times, max_gear, k1=1, k2=2, k5=2):
 
     # part one
     t, s = zip(*[
@@ -114,7 +115,7 @@ def nedc_gears(frequency, max_gear, k1=1, k2=2, k5=2):
         [195, 0]
     ])
 
-    times, shifting = _repeat_part_one(t, s)
+    _t, shifting = _repeat_part_one(t, s)
 
     # part two
     t, s = zip(*[
@@ -142,16 +143,18 @@ def nedc_gears(frequency, max_gear, k1=1, k2=2, k5=2):
         [400, 0]
     ])
 
-    times.extend(np.asarray(t)+times[-1])
+    _t.extend(np.asarray(t) + _t[-1])
     shifting.extend(s)
 
-
-    t = np.arange(0.0, 1180.0, 1 / frequency)
-    s = np.interp(t, times, shifting)
+    s = np.interp(times, _t, shifting)
 
     s[s > max_gear] = max_gear
 
-    return t, s
+    return s
+
+
+def nedc_times(frequency):
+    return np.arange(0.0, 1180.0, 1 / frequency)
 
 
 def _repeat_part_one(times, values):

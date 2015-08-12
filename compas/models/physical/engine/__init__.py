@@ -146,8 +146,7 @@ def engine():
 
     engine.add_function(
         function=calculate_engine_powers_out,
-        inputs=['gear_box_powers_in', 'on_engine', 'alternator_powers_demand',
-                'P0'],
+        inputs=['gear_box_powers_in', 'on_engine', 'alternator_powers_demand'],
         outputs=['engine_powers_out']
     )
 
