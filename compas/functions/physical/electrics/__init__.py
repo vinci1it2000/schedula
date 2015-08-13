@@ -5,11 +5,12 @@ from functools import partial
 from sklearn.tree import DecisionTreeClassifier
 from compas.dispatcher.utils import SubDispatchFunction
 from compas.functions.physical.utils import reject_outliers
+from compas.functions.physical.constants import *
 
 
 def identify_electric_loads(
-        alternator_nominal_voltage, battery_currents, gear_box_powers_in,
-        times, on_engine, engine_starts):
+        alternator_nominal_voltage, battery_currents, alternator_currents,
+        gear_box_powers_in, times, on_engine, engine_starts):
     """
     Identifies vehicle electric load and engine start demand [kW].
 
@@ -25,55 +26,111 @@ def identify_electric_loads(
         Alternator current vector [A].
     :type alternator_currents: np.array
 
+    :param gear_box_powers_in:
+        Gear box power [kW].
+    :type gear_box_powers_in: np.array
+
     :param times:
         Time vector [s].
     :type times: np.array
+
+    :param on_engine:
+        If the engine is on [-].
+    :type on_engine: np.array
 
     :param engine_starts:
         When the engine starts [-].
     :type engine_starts: np.array
 
     :return:
-        Vehicle electric load and engine start demand [kW].
+        Vehicle electric load (engine off and on) and engine start demand [kW].
     :rtype: ((float, float), float)
     """
 
     b_c = battery_currents
-    b = (b_c < 0) & (gear_box_powers_in >= 0)
+    a_c = alternator_currents
 
     c = alternator_nominal_voltage / 1000.0
 
-    bL = b & np.logical_not(on_engine)
+    b = gear_box_powers_in >= 0
+    bL = b & np.logical_not(on_engine) & (b_c < 0)
     bH = b & on_engine
 
-    load_off = min(0.0, reject_outliers(c * b_c[bL], med=np.mean)[0])
-    load_on = min(0.0, reject_outliers(c * b_c[bH], med=np.mean)[0])
+    off = min(0.0, c * reject_outliers(b_c[bL], med=np.mean)[0])
+    on = min(off, c * reject_outliers(b_c[bH] + a_c[bH], med=np.mean)[0])
 
-    n_starts = sum(engine_starts)
+    dt = TIME_WINDOW / 2.0
+    loads = [off, on]
+    start_demand = []
 
-    #start_demand = float(np.trapz(power - electric_load, x=times) / n_starts)
+    for t in times[engine_starts]:
+        b = (t - dt <= times) & (times <= t + dt)
+        p = b_c[b] * c - np.choose(on_engine[b], loads)
+        p[p > 0] = 0.0
+        p = np.trapz(p, x=times[b])
 
-    return (load_off, load_on), 0
+        if p < 0:
+            start_demand.append(p)
+
+    start_demand = reject_outliers(start_demand)[0] if start_demand else 0.0
+
+    return (off, on), start_demand
 
 
-def identify_max_charging_current(battery_currents, electric_load):
+def identify_max_battery_charging_current(battery_currents):
     """
-    Identifies the maximum charging current of the alternator [A].
+    Identifies the maximum charging current of the battery [A].
+
+    :param battery_currents:
+        Low voltage battery current vector [A].
+    :type battery_currents: np.array
+
+    :return:
+         Maximum charging current of the battery [A].
+    :rtype: float
+    """
+
+    return max(battery_currents)
+
+
+def identify_alternator_charging_currents(
+        alternator_currents, gear_box_powers_in, on_engine):
+    """
+    Identifies the mean charging currents of the alternator [A].
 
     :param alternator_currents:
         Alternator current vector [A].
     :type alternator_currents: np.array
 
+    :param gear_box_powers_in:
+        Gear box power [kW].
+    :type gear_box_powers_in: np.array
+
+    :param on_engine:
+        If the engine is on [-].
+    :type on_engine: np.array
+
     :return:
-        Maximum charging current of the alternator [A].
-    :rtype: float
+        Mean charging currents of the alternator (for negative and positive
+        power)[A].
+    :rtype: (float, float)
     """
 
-    return electric_load[1] - max(battery_currents)
+    a_c = alternator_currents
+
+    b = (a_c < 0.0) & on_engine
+    p_neg = b & (gear_box_powers_in < 0)
+    p_pos = b & (gear_box_powers_in > 0)
+
+    p_neg = reject_outliers(a_c[p_neg], med=np.mean)[0] if p_neg.any() else 0.0
+    p_pos = reject_outliers(a_c[p_pos], med=np.mean)[0] if p_pos.any() else 0.0
+
+    return p_neg, p_pos
 
 
 def calculate_state_of_charges(
-        battery_capacity, times, initial_soc, battery_currents):
+        battery_capacity, times, initial_soc, battery_currents,
+        max_battery_charging_current):
     """
     Calculates the state of charge of the battery [%].
 
@@ -93,6 +150,10 @@ def calculate_state_of_charges(
         Low voltage battery current vector [A].
     :type battery_currents: np.array
 
+    :param max_battery_charging_current:
+        Maximum charging current of the battery [A].
+    :type max_battery_charging_current: float
+
     :return:
         State of charge of the battery [%].
     :rtype: np.array
@@ -102,17 +163,18 @@ def calculate_state_of_charges(
     c = battery_capacity * 36.0
 
     bc = np.asarray(battery_currents)
-    bc = (bc[:-1] + bc[1:]) * np.diff(times) / 2
+    bc[bc > max_battery_charging_current] = max_battery_charging_current
+    bc = (bc[:-1] + bc[1:]) * np.diff(times) / 2.0
 
     for b in bc:
         soc.append(soc[-1] + b / c)
+        soc[-1] = min(soc[-1], 100.0)
 
     return np.asarray(soc)
 
 
 def calculate_alternator_powers_demand(
-        alternator_nominal_voltage, alternator_currents, alternator_efficiency,
-        max_charging_current):
+        alternator_nominal_voltage, alternator_currents, alternator_efficiency):
     """
     Calculates the alternator power demand to the engine [kW].
 
@@ -135,18 +197,11 @@ def calculate_alternator_powers_demand(
 
     c = alternator_nominal_voltage / (1000.0 * alternator_efficiency)
 
-    current = np.zeros(alternator_currents.shape)
-
-    b = max_charging_current < alternator_currents
-
-    current[b] = alternator_currents[b]
-    current[np.logical_not(b)] = max_charging_current
-
-    return current * c
+    return alternator_currents * c
 
 
 def identify_charging_statuses(
-        battery_currents, gear_box_powers_in, on_engine):
+        alternator_currents, gear_box_powers_in, on_engine):
     """
     Identifies when the alternator is on due to 1:state of charge or 2:BERS [-].
 
@@ -169,9 +224,9 @@ def identify_charging_statuses(
     """
 
     gb_p = gear_box_powers_in
-    status = np.zeros(battery_currents.shape)
 
-    status[battery_currents >= 0] = 2
+    status = np.zeros(alternator_currents.shape)
+    status[(alternator_currents < 0) & on_engine] = 2
 
     it = (i
           for i, (s, p) in enumerate(zip(status, gb_p))
@@ -230,9 +285,7 @@ def calibrate_alternator_status_model(
     bers = DecisionTreeClassifier(random_state=0, max_depth=3)
     charge = DecisionTreeClassifier(random_state=0, max_depth=3)
 
-    X = list(zip(gear_box_powers_in[1:]))
-
-    bers.fit(X, alternator_statuses[1:] == 2)
+    bers.fit(list(zip(gear_box_powers_in)), alternator_statuses == 2)
 
     X = list(zip(alternator_statuses[:-1], state_of_charges[1:]))
 
@@ -258,10 +311,10 @@ def calibrate_alternator_status_model(
 
 
 def predict_vehicle_electrics(
-        battery_capacity, alternator_status_model, max_alternator_current,
-        alternator_nominal_voltage, start_demand, electric_load,
-        initial_state_of_charge, times, gear_box_powers_in, on_engine,
-        engine_starts):
+        battery_capacity, alternator_status_model, alternator_charging_currents,
+        max_battery_charging_current, alternator_nominal_voltage, start_demand,
+        electric_load, initial_state_of_charge, times, gear_box_powers_in,
+        on_engine, engine_starts):
     """
     Predicts alternator and battery currents, state of charge, and alternator
     status.
@@ -274,9 +327,14 @@ def predict_vehicle_electrics(
         A function that predicts the alternator status.
     :type alternator_status_model: function
 
-    :param max_alternator_current:
-        Maximum charging current of the alternator [A].
-    :type max_alternator_current: float
+    :param alternator_charging_currents:
+        Mean charging currents of the alternator (for negative and positive
+        power)[A].
+    :type alternator_charging_currents: (float, float)
+
+    :param max_battery_charging_current:
+        Maximum charging current of the battery [A].
+    :type max_battery_charging_current: float
 
     :param alternator_nominal_voltage:
         Alternator nominal voltage [V].
@@ -309,7 +367,11 @@ def predict_vehicle_electrics(
     :param engine_starts:
         When the engine starts [-].
     :type engine_starts: np.array
+
     :return:
+        Alternator and battery currents, state of charge, and alternator status
+        [A, A, %, -].
+    :rtype: (np.array, np.array, np.array, np.array)
     """
 
     from compas.models.physical.electrics.electrics_prediction import \
@@ -319,7 +381,8 @@ def predict_vehicle_electrics(
         dsp=electrics_prediction(),
         function_id='electric_sub_model',
         inputs=['battery_capacity', 'alternator_status_model',
-                'max_alternator_current', 'alternator_nominal_voltage',
+                'alternator_charging_currents', 'max_battery_charging_current',
+                'alternator_nominal_voltage',
                 'start_demand', 'electric_load',
 
                 'delta_time', 'gear_box_power_in',
@@ -332,7 +395,8 @@ def predict_vehicle_electrics(
     )
 
     func = partial(
-        func, battery_capacity, alternator_status_model, max_alternator_current,
+        func, battery_capacity, alternator_status_model,
+        alternator_charging_currents, max_battery_charging_current,
         alternator_nominal_voltage, start_demand, electric_load)
 
     delta_times = np.append([0], np.diff(times))

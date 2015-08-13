@@ -169,6 +169,7 @@ def _physical():
         dsp_id='Electric model',
         dsp=electrics(),
         inputs={
+            'alternator_charging_currents': 'alternator_charging_currents',
             'alternator_currents': 'alternator_currents',
             'alternator_efficiency': 'alternator_efficiency',
             'alternator_nominal_voltage': 'alternator_nominal_voltage',
@@ -179,18 +180,19 @@ def _physical():
             'engine_starts': 'engine_starts',
             'gear_box_powers_in': 'gear_box_powers_in',
             'initial_state_of_charge': 'initial_state_of_charge',
-            'max_charging_current': 'max_charging_current',
+            'max_battery_charging_current': 'max_battery_charging_current',
             'on_engine': 'on_engine',
             'start_demand': 'start_demand',
             'times': 'times',
         },
         outputs={
+            'alternator_charging_currents': 'alternator_charging_currents',
             'alternator_currents': 'alternator_currents',
             'alternator_powers_demand': 'alternator_powers_demand',
             'alternator_status_model': 'alternator_status_model',
             'battery_currents': 'battery_currents',
             'electric_load': 'electric_load',
-            'max_charging_current': 'max_charging_current',
+            'max_battery_charging_current': 'max_battery_charging_current',
             'state_of_charges': 'state_of_charges',
             'start_demand': 'start_demand',
         }
@@ -318,8 +320,6 @@ def physical_calibration():
             'accelerations': 'accelerations',
             'engine_max_torque': 'engine_max_torque',
             'engine_speeds_out': 'engine_speeds_out',
-            'equivalent_gear_box_heat_capacity':
-                'equivalent_gear_box_heat_capacity',
             'final_drive_ratio': 'final_drive_ratio',
             'final_drive_powers_in': 'gear_box_powers_out',
             'final_drive_speeds_in': 'gear_box_speeds_out',
@@ -358,6 +358,8 @@ def physical_calibration():
             'GSPV_error_coefficients': 'GSPV_error_coefficients',
             'GSPV_Cold_Hot_error_coefficients':
                 'GSPV_Cold_Hot_error_coefficients',
+            'equivalent_gear_box_heat_capacity':
+                'equivalent_gear_box_heat_capacity',
             'gears': 'gears',
             'gear_box_efficiencies': 'gear_box_efficiencies',
             'gear_box_speeds_in': 'gear_box_speeds_in',
@@ -413,15 +415,15 @@ def physical_prediction():
             'GSPV': 'GSPV',
             'GSPV_Cold_Hot': 'GSPV_Cold_Hot',
             'engine_temperatures': 'engine_temperatures',
+            'engine_max_power': 'engine_max_power',
             'time_cold_hot_transition': 'time_cold_hot_transition',
 
             'accelerations': 'accelerations',
             'engine_max_torque': 'engine_max_torque',
-            'equivalent_gear_box_heat_capacity':
-                'equivalent_gear_box_heat_capacity',
             'final_drive_ratio': 'final_drive_ratio',
             'final_drive_powers_in': 'gear_box_powers_out',
             'final_drive_speeds_in': 'gear_box_speeds_out',
+            'fuel_type': 'fuel_type',
             'gear_box_efficiency_constants': 'gear_box_efficiency_constants',
             'gear_box_efficiency_parameters_cold_hot':
                 'gear_box_efficiency_parameters_cold_hot',
@@ -438,6 +440,8 @@ def physical_prediction():
             'velocity_speed_ratios': 'velocity_speed_ratios',
         },
         outputs={
+            'equivalent_gear_box_heat_capacity':
+                'equivalent_gear_box_heat_capacity',
             'gears': 'gears',
             'gear_box_efficiencies': 'gear_box_efficiencies',
             'gear_box_speeds_in': 'gear_box_speeds_in',

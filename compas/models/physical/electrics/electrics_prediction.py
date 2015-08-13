@@ -37,14 +37,16 @@ def electrics_prediction():
 
     electrics_prediction.add_function(
         function=calculate_battery_current,
-        inputs=['electric_load', 'engine_start_current', 'alternator_current',
-                'alternator_nominal_voltage', 'on_engine'],
+        inputs=['electric_load', 'alternator_current',
+                'alternator_nominal_voltage', 'on_engine',
+                'max_battery_charging_current'],
         outputs=['battery_current']
     )
 
     electrics_prediction.add_function(
         function=calculate_alternator_current,
-        inputs=['alternator_status', 'on_engine', 'max_alternator_current'],
+        inputs=['alternator_status', 'on_engine', 'gear_box_power_in',
+                'alternator_charging_currents', 'engine_start_current'],
         outputs=['alternator_current']
     )
 

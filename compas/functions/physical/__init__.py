@@ -48,7 +48,8 @@ def model_selector(calibration_outputs):
         'cold_start_speed_model',
         'co2_params',
         'alternator_status_model',
-        'max_charging_current',
+        'alternator_charging_currents',
+        'max_battery_charging_current',
         'electric_load',
         'start_demand'
     ]

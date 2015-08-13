@@ -186,6 +186,13 @@ def _gear_box():
         inputs=['gears'],
         outputs=['max_gear']
     )
+
+    gear_box.add_function(
+        function=calculate_equivalent_gear_box_heat_capacity,
+        inputs=['fuel_type', 'engine_max_power'],
+        outputs=['equivalent_gear_box_heat_capacity']
+    )
+
     return gear_box
 
 

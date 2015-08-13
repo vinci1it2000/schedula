@@ -855,3 +855,54 @@ def identify_max_gear(gears):
     :rtype: int
     """
     return int(max(gears))
+
+
+def calculate_equivalent_gear_box_heat_capacity(fuel_type, engine_max_power):
+    """
+    Calculates the equivalent gear box heat capacity [kg*J/K].
+
+    :param fuel_type:
+        Vehicle fuel type (diesel or gasoline).
+    :type fuel_type: str
+
+    :param engine_max_power:
+        Engine nominal power [kW].
+    :type engine_max_power: float
+
+    :return:
+       Equivalent gear box heat capacity [kg*J/K].
+    :rtype: float
+    """
+
+    _mass_coeff ={
+        'diesel': 1.1,
+        'gasoline': 1.0
+    }
+    # Engine mass empirical formula based on web data found for engines weighted
+    # according DIN 70020-GZ
+    eng_mass = (0.4208 * engine_max_power + 60.0) * _mass_coeff[fuel_type]  # kg
+
+    _mass_percentage = {
+        'coolant': 0.04,     # coolant: 50%/50% (0.85*4.186)
+        'oil': 0.055,
+        'crankcase': 0.18,   # crankcase: cast iron
+        'cyl_head': 0.09,    # cyl_head: aluminium
+        'pistons': 0.025,    # crankshaft: steel
+        'crankshaft': 0.08   # pistons: aluminium
+    }
+
+    # Cp in J/K
+    _heat_capacity = {
+        'coolant': 0.85 * 4186.0,
+        'oil': 2090.0,
+        'crankcase': 526.0,
+        'cyl_head': 940.0,
+        'pistons': 940.0,
+        'crankshaft': 526.0
+    }
+
+    weighted_eng_mass = sum(v * eng_mass for v in _mass_percentage.values())
+
+    gear_box_mass = weighted_eng_mass * 0.15
+
+    return _heat_capacity['oil'] * gear_box_mass

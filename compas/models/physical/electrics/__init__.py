@@ -38,27 +38,28 @@ def electrics():
     electrics.add_function(
         function=identify_electric_loads,
         inputs=['alternator_nominal_voltage', 'battery_currents',
-                'gear_box_powers_in', 'times', 'on_engine', 'engine_starts'],
+                'alternator_currents', 'gear_box_powers_in', 'times',
+                'on_engine', 'engine_starts'],
         outputs=['electric_load', 'start_demand']
     )
 
     electrics.add_function(
         function=calculate_state_of_charges,
         inputs=['battery_capacity', 'times', 'initial_state_of_charge',
-                'battery_currents'],
+                'battery_currents', 'max_battery_charging_current'],
         outputs=['state_of_charges']
     )
 
     electrics.add_function(
         function=identify_charging_statuses,
-        inputs=['battery_currents', 'gear_box_powers_in', 'on_engine'],
+        inputs=['alternator_currents', 'gear_box_powers_in', 'on_engine'],
         outputs=['alternator_statuses']
     )
 
     electrics.add_function(
         function=calculate_alternator_powers_demand,
         inputs=['alternator_nominal_voltage', 'alternator_currents',
-                'alternator_efficiency', 'max_charging_current'],
+                'alternator_efficiency'],
         outputs=['alternator_powers_demand']
     )
 
@@ -70,17 +71,24 @@ def electrics():
     )
 
     electrics.add_function(
-        function=identify_max_charging_current,
-        inputs=['battery_currents', 'electric_load'],
-        outputs=['max_charging_current']
+        function=identify_max_battery_charging_current,
+        inputs=['battery_currents'],
+        outputs=['max_battery_charging_current']
+    )
+
+    electrics.add_function(
+        function=identify_alternator_charging_currents,
+        inputs=['alternator_currents', 'gear_box_powers_in', 'on_engine'],
+        outputs=['alternator_charging_currents']
     )
 
     electrics.add_function(
         function=predict_vehicle_electrics,
         inputs=['battery_capacity', 'alternator_status_model',
-                'max_charging_current', 'alternator_nominal_voltage',
-                'start_demand', 'electric_load', 'initial_state_of_charge',
-                'times', 'gear_box_powers_in', 'on_engine', 'engine_starts'],
+                'alternator_charging_currents', 'max_battery_charging_current',
+                'alternator_nominal_voltage', 'start_demand', 'electric_load',
+                'initial_state_of_charge', 'times', 'gear_box_powers_in',
+                'on_engine', 'engine_starts'],
         outputs=['alternator_currents', 'battery_currents',
                  'state_of_charges', 'alternator_statuses']
     )

@@ -222,7 +222,7 @@ def calculate_engine_max_torque(
     Calculates engine nominal torque [N*m].
 
     :param engine_max_power:
-        Engine nominal power  [kW].
+        Engine nominal power [kW].
     :type engine_max_power: float
 
     :param engine_max_speed_at_max_power:

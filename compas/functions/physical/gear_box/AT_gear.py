@@ -33,7 +33,7 @@ def get_full_load(fuel_type):
     Returns vehicle full load curve.
 
     :param fuel_type:
-        Vehicle fuel type (diesel or gas).
+        Vehicle fuel type (diesel or gasoline).
     :type fuel_type: str
 
     :return:
