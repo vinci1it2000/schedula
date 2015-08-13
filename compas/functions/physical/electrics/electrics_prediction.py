@@ -70,7 +70,7 @@ def calculate_alternator_current(
     :rtype: float
     """
 
-    if alternator_status and on_engine:
+    if alternator_status and on_engine and engine_start_current == 0:
         a_c = alternator_charging_currents[gear_box_power_in >= 0]
     else:
         a_c = 0.0
@@ -189,4 +189,5 @@ def calculate_engine_start_current(
 
     if engine_start:
         return start_demand / (delta_time * alternator_nominal_voltage) * 1000.0
+
     return 0.0

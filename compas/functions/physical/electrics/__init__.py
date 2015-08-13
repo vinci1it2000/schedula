@@ -65,12 +65,14 @@ def identify_electric_loads(
 
     for t in times[engine_starts]:
         b = (t - dt <= times) & (times <= t + dt)
-        p = b_c[b] * c - np.choose(on_engine[b], loads)
+        p = b_c[b] * c
         p[p > 0] = 0.0
         p = np.trapz(p, x=times[b])
 
         if p < 0:
-            start_demand.append(p)
+            l = np.trapz(np.choose(on_engine[b], loads), x=times[b])
+            if p < l:
+                start_demand.append(p - l)
 
     start_demand = reject_outliers(start_demand)[0] if start_demand else 0.0
 
