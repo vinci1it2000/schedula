@@ -19,6 +19,7 @@ __all__ = ['combine_dicts', 'bypass', 'summation', 'map_dict', 'map_list',
 from .gen import caller_name
 from networkx.classes.digraph import DiGraph
 from copy import deepcopy
+from functools import partial
 
 
 def combine_dicts(*dicts):
@@ -389,8 +390,10 @@ class ReplicateFunction(object):
     """
     Replicates a function.
     """
-    def __init__(self, function):
-        self.function = function
+
+    def __init__(self, function, *args, **kwargs):
+
+        self.function = partial(function, *args, **kwargs)
         self.__module__ = caller_name()
         self.__name__ = function.__name__
         self.__doc__ = function.__doc__

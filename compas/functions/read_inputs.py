@@ -13,7 +13,7 @@ __author__ = 'Vincenzo Arcidiacono'
 
 import numpy as np
 from math import isnan
-
+import pandas as pd
 
 def read_cycles_series(excel_file, sheet_name, parse_cols):
     """
@@ -35,9 +35,11 @@ def read_cycles_series(excel_file, sheet_name, parse_cols):
         A pandas DataFrame with cycle's time series.
     :rtype: pandas.DataFrame
     """
-
-    df = excel_file.parse(sheetname=sheet_name, parse_cols=parse_cols,
-                          skiprows=1, has_index_names=True)
+    try:
+        df = excel_file.parse(sheetname=sheet_name, parse_cols=parse_cols,
+                              skiprows=1, has_index_names=True)
+    except:
+        df = pd.DataFrame()
 
     return df
 
@@ -108,19 +110,27 @@ def parse_inputs(data, data_map, cycle_name):
     :type data_map: dict
 
     :return:
-        Parsed and fetched data.
-    :rtype: dict
+        Parsed and fetched data (inputs and targets).
+    :rtype: (dict, dict)
     """
 
-    d = {}
+    d = {'inputs': {}, 'targets': {}}
 
     for k, v in data.items():
         if isinstance(v, float) and isnan(v):
             continue
 
         k = k.split(' ')
+        n = len(k)
 
-        if len(k) == 1 or k[1].upper() == cycle_name:
+        if n == 1 or k[-1].upper() == cycle_name:
+
+            if n > 1 and k[0] == 'target':
+                k = k[1:]
+                t = 'targets'
+            else:
+                t = 'inputs'
+
             node_id = k[0]
 
             k = k[0] if k[0] in data_map else None
@@ -128,11 +138,11 @@ def parse_inputs(data, data_map, cycle_name):
             try:
                 for f in data_map[k]:
                     v = f(v)
-                d[node_id] = v
+                d[t][node_id] = v
             except EmptyValue:
                 pass
 
-    return d
+    return d['inputs'], d['targets']
 
 
 def merge_inputs(cycle_name, parameters, series):
@@ -152,8 +162,9 @@ def merge_inputs(cycle_name, parameters, series):
     :type series: pd.DataFrame
 
     :return:
-        A unique dict with vehicle's parameters and cycle's time series.
-    :rtype: dict
+        A unique dict with vehicle's parameters and cycle's time series (inputs
+        and targets).
+    :rtype: (dict, dict)
     """
 
     _filters = {
@@ -173,12 +184,16 @@ def merge_inputs(cycle_name, parameters, series):
         }
     }
 
-    inputs = {}
-    inputs.update(parse_inputs(parameters, _filters['PARAMETERS'], cycle_name))
-    inputs.update(parse_inputs(series, _filters['SERIES'], cycle_name))
-    inputs['cycle_type'] = cycle_name
+    inputs, targets = {}, {}
+    for data, map_tag in [(parameters, 'PARAMETERS'), (series, 'SERIES')]:
+        i, t = parse_inputs(data, _filters[map_tag], cycle_name)
+        inputs.update(i)
+        targets.update(t)
 
-    return inputs
+    inputs['cycle_type'] = cycle_name.split('-')[0]
+    inputs['cycle_name'] = cycle_name
+
+    return inputs, targets
 
 
 def index_dict(data):
@@ -195,4 +210,3 @@ def index_dict(data):
     """
 
     return {k + 1: v for k, v in enumerate(data)}
-

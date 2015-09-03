@@ -1,3 +1,16 @@
+#-*- coding: utf-8 -*-
+#
+# Copyright 2015 European Commission (JRC);
+# Licensed under the EUPL (the 'Licence');
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+
+"""
+It contains functions to predict the CO2 emissions.
+"""
+
+__author__ = 'Vincenzo Arcidiacono'
+
 import numpy as np
 from functools import partial
 from scipy.integrate import trapz
@@ -6,6 +19,7 @@ from scipy.optimize import brute, minimize
 from sklearn.metrics import mean_squared_error
 from compas.dispatcher.utils import pairwise
 from compas.functions.physical.constants import *
+from inspect import isfunction
 
 
 def calculate_normalized_engine_temperatures(
@@ -587,6 +601,11 @@ def calibrate_model_params(params_bounds, error_function, initial_guess=None):
     :rtype: dict
     """
 
+    if isfunction(error_function):
+        error_f = error_function
+    else:
+        error_f = lambda p: sum(f(p) for f in error_function)
+
     param_keys, params_bounds = zip(*params_bounds.items())
 
     params, min_e_and_p = {}, [np.inf, None]
@@ -597,7 +616,7 @@ def calibrate_model_params(params_bounds, error_function, initial_guess=None):
     def error_func(params_values):
         update_params(params_values)
 
-        res = error_function(params)
+        res = error_f(params)
 
         if res < min_e_and_p[0]:
             min_e_and_p[0], min_e_and_p[1] = (res, params_values.copy())

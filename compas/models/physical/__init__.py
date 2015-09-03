@@ -32,7 +32,6 @@ from compas.dispatcher import Dispatcher
 from compas.functions.physical.constants.NEDC import *
 
 
-
 def _physical():
     physical = Dispatcher(
         name='CO2MPAS physical model',
@@ -251,9 +250,13 @@ def _physical():
             'upper_bound_engine_speed': 'upper_bound_engine_speed',
         },
         outputs={
+            'co2_emissions_model': 'co2_emissions_model',
             'co2_emission_value': 'co2_emission_value',
             'co2_emissions': 'co2_emissions',
+            'co2_error_function': 'co2_error_function',
             'co2_params': 'co2_params',
+            'co2_params_bounds': 'co2_params_bounds',
+            'co2_params_initial_guess': 'co2_params_initial_guess',
             'cold_start_speed_model': 'cold_start_speed_model',
             'engine_max_torque': 'engine_max_torque',
             'engine_powers_out': 'engine_powers_out',

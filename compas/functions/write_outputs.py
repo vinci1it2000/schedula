@@ -34,8 +34,8 @@ def parse_name(name):
     :rtype: str
     """
 
-    if name in standard_names:
-        return standard_names[name]
+    if name in _standard_names:
+        return _standard_names[name]
 
     name = name.replace('_', ' ')
 
@@ -82,12 +82,9 @@ def write_output(output, file_name, sheet_names):
 
     index, p = zip(*[(k, str(v)) for k, v in heap_flush(p)])
     p = pd.DataFrame(list(p), index=index)
-    '''
-    fig = plot_gear_box_speeds(series)
-    fig.savefig('%s.png' % file_name.split('.')[0])
-    '''
-    series.to_excel(writer, 'series_%s' % sheet_names[0])
-    p.to_excel(writer, 'params_%s' % sheet_names[1])
+
+    p.to_excel(writer, sheet_names[0])
+    series.to_excel(writer, sheet_names[1])
 
 
 def check_writeable(data):
@@ -117,7 +114,7 @@ def check_writeable(data):
     return False
 
 
-standard_names = {
+_standard_names = {
     'CMV': 'Corrected matrix velocity [km/h]',
     'inertia': 'Inertia [kg]',
     'upper_bound_engine_speed': 'Upper bound engine speed [rpm]',
@@ -142,12 +139,3 @@ standard_names = {
     'road_loads': 'Road loads [(N, N/(km/h) N/(km/h)^2)]',
     'time_cold_hot_transition': 'Time cold hot transition [s]',
 }
-
-'''
-from compas.models.AT_gear import def_gear_models
-
-
-for c in def_gear_models()[1]:
-    s = 'gear_box_speeds_with_%s' % c
-    standard_names[s] = 'Gearbox speeds engine side [RPM] with %s' % c
-'''

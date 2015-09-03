@@ -194,9 +194,13 @@ def engine():
             'velocities': 'velocities'
         },
         outputs={
+            'co2_emissions_model': 'co2_emissions_model',
             'co2_emission_value': 'co2_emission_value',
             'co2_emissions': 'co2_emissions',
+            'co2_error_function': 'co2_error_function',
             'co2_params': 'co2_params',
+            'co2_params_bounds': 'co2_params_bounds',
+            'co2_params_initial_guess': 'co2_params_initial_guess',
             'fuel_consumptions': 'fuel_consumptions',
             'phases_co2_emissions': 'phases_co2_emissions',
             'P0': 'P0'
