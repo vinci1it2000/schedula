@@ -91,12 +91,11 @@ def generate_autosummary_docs(sources, output_dir=None, suffix='.rst',
                         continue
                     if documenter.objtype == typ:
                         try:
-                            cond = (
-                                imported or
-                                obj_name.__module__ == obj.__name__
-                            )
+                            cond = imported or obj_name.__module__ == obj.__name__
+
                         except AttributeError:
                             cond = True
+
                         if cond:
                             items.append(name)
                 public = [x for x in items

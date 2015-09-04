@@ -32,7 +32,8 @@ from compas.dispatcher.constants import SINK
 from functools import partial
 from compas.functions.read_inputs import *
 from compas.dispatcher.utils import SubDispatchFunction
-from compas.functions.physical.engine.co2_emission import calibrate_model_params
+from compas.functions import *
+
 __author__ = 'Vincenzo Arcidiacono'
 
 
@@ -81,13 +82,21 @@ def architecture():
         default_value=('params', 'series'),
         description='Names of xl-sheets to save parameters and data series.'
     )
+
+    from .physical import physical_prediction
+
     calibration_cycle_outputs = []
-    for cycle_name, tag in [('WLTP', ''), ('WLTP-L', '<0>')]:
+
+    for cycle_name, tag in [('WLTP-H', ''), ('WLTP-L', '<0>')]:
         ccn = 'calibration_cycle_name%s' % tag
         cif = 'calibration_input_file_name%s' % tag
         cof = 'calibration_output_file_name%s' % tag
         cco = 'calibration_cycle_outputs%s' % tag
+        ccpo = 'calibration_cycle_prediction_outputs%s' % tag
+        ccip = 'calibration_cycle_inputs_for_prediction%s' % tag
+        ccpof = 'calibration_cycle_prediction_outputs_file_name%s' % tag
         cct = 'calibration_cycle_targets%s' % tag
+
         calibration_cycle_outputs.append(cco)
 
         architecture.add_data(
@@ -109,7 +118,7 @@ def architecture():
         architecture.add_function(
             function=calibrate_models(),
             inputs=[ccn, cif, cof, 'output_sheet_names'],
-            outputs=[cco, cct, SINK],
+            outputs=[cco, cct, ccip, SINK],
         )
 
         architecture.add_data(
@@ -120,6 +129,35 @@ def architecture():
         architecture.add_data(
             data_id=cct,
             description='Dictionary that has all calibration cycle targets.'
+        )
+
+        architecture.add_data(
+            data_id=ccip,
+            description='Dictionary that has data for the CO2 prediction with '
+                        'CO2MPAS model.'
+        )
+
+        architecture.add_function(
+            function_id='predict_physical_model',
+            function=SubDispatch(physical_prediction()),
+            inputs=['calibrated_models', ccip],
+            outputs=[ccpo],
+        )
+
+        architecture.add_data(
+            data_id=ccpo,
+            description='Dictionary that has outputs of the calibration cycle.'
+        )
+
+        architecture.add_function(
+            function_id='save_cycle_outputs',
+            function=write_output,
+            inputs=[ccpo, ccpof, 'output_sheet_names'],
+        )
+
+        architecture.add_data(
+            data_id=ccpof,
+            description='File name to save prediction outputs.'
         )
 
 
@@ -156,6 +194,7 @@ def architecture():
         data_id='calibrated_models',
         description='Dictionary that has all calibrated models.'
     )
+
     from .physical import physical_prediction
 
     architecture.add_function(
@@ -171,7 +210,7 @@ def architecture():
     )
 
     architecture.add_function(
-        function_id='save_prediction_cycle_outputs',
+        function_id='save_cycle_outputs',
         function=write_output,
         inputs=['prediction_cycle_outputs', 'prediction_output_file_name',
                 'output_sheet_names'],
@@ -204,8 +243,9 @@ def process_folder_files(input_folder, output_folder):
 
     model = architecture()
     fpaths = glob.glob(input_folder + '/*.xlsx')
-    error_coeff = []
-    doday = datetime.today().strftime('%d_%b_%Y_%H_%M_%S_')
+    summary = []
+    start_time = datetime.today()
+    doday = start_time.strftime('%d_%b_%Y_%H_%M_%S_')
 
     for fpath in fpaths:
         fname = os.path.basename(fpath)
@@ -214,42 +254,58 @@ def process_folder_files(input_folder, output_folder):
             print('Skipping: %s' % fname)
             continue
         print('Processing: %s' % fname)
-        format = '%s/%s%s_%s.xlsx'
-        oc_name = format % (output_folder, doday, 'calibration', fname)
-        ocl_name = format % (output_folder, doday, 'calibration-L', fname)
-        op_name = format % (output_folder, doday, 'prediction', fname)
+        format = '%s/%s_%s_%s.xlsx'
+        woch_name = format % (output_folder, doday, 'calibration_WLTP-H', fname)
+        wocl_name = format % (output_folder, doday, 'calibration_WLTP-L', fname)
+        woph_name = format % (output_folder, doday, 'prediction_WLTP-H', fname)
+        wopl_name = format % (output_folder, doday, 'prediction_WLTP-L', fname)
+        nop_name = format % (output_folder, doday, 'prediction_NEDC', fname)
         inputs = {
             'input_file_name': fpath,
-            'prediction_output_file_name': op_name,
-            'calibration_output_file_name': oc_name,
-            'calibration_output_file_name<0>': ocl_name,
+            'prediction_output_file_name': nop_name,
+            'calibration_output_file_name': woch_name,
+            'calibration_output_file_name<0>': wocl_name,
+            'calibration_cycle_prediction_outputs_file_name': woph_name,
+            'calibration_cycle_prediction_outputs_file_name<0>': wopl_name,
         }
-        coeff = model.dispatch(inputs=inputs)[1]
-        '''
-        print('Predicted')
-        for k, v in coeff['prediction_error_coefficients'].items():
-            print('%s:%s' %(k, str(v)))
-            v.update({'cycle': 'Predicted', 'vehicle': fname, 'model': k})
-            error_coeff.append(v)
+        res = model.dispatch(inputs=inputs)[1]
+        nedc = res['prediction_cycle_outputs']
+        wltph = res['calibration_cycle_prediction_outputs']
+        wltpl = res['calibration_cycle_prediction_outputs<0>']
+        t_nedc = res['prediction_cycle_targets']
+        t_wltph = res['calibration_cycle_outputs']
+        t_wltpl = res['calibration_cycle_outputs<0>']
 
-        print('Calibrated')
-        for k, v in coeff['calibration_error_coefficients'].items():
-            print('%s:%s' %(k, str(v)))
-            v.update({'cycle': 'Calibrated', 'vehicle': fname, 'model': k})
-            error_coeff.append(v)
-        '''
+        try:
+            s = {'vehicle': fname}
+            s.update(nedc['co2_params'])
+            for tag, r, t in [('NEDC', nedc, t_nedc),
+                           ('WLTP-H', wltph, t_wltph),
+                           ('WLTP-L', wltpl, t_wltpl)]:
+
+                s.update({"%s co2_emission_value" % tag: r['co2_emission_value']})
+                s.update({"%s phases_co2_emissions %d" % (tag, i): v
+                          for i, v in enumerate(r['phases_co2_emissions'])})
+
+                s.update({"target %s co2_emission_value" % tag: t['co2_emission_value']})
+                s.update({"target %s phases_co2_emissions %d" % (tag, i): v
+                          for i, v in enumerate(t['phases_co2_emissions'])})
+
+            summary.append(s)
+        except KeyError:
+            print('Skipping summary for: %s' % fname)
+            pass
+
+    writer = pd.ExcelWriter('%s/%s%s.xlsx' % (output_folder, doday, 'Summary'))
+    pd.DataFrame.from_records(summary).to_excel(writer, 'Summary')
+    """
     from compas.dispatcher.draw import dsp2dot
 
     dsp2dot(model, workflow=True, view=True, function_module=False,
             node_output=False, edge_attr=model.weight)
     dsp2dot(model, view=True, function_module=False)
-    writer = pd.ExcelWriter('%s/%s%s.xlsx' % (output_folder, doday, 'Summary'))
-    pd.DataFrame.from_records(error_coeff).to_excel(writer, 'Summary')
-
-    print('Done!')
-
-    for v in error_coeff:
-        print(v)
+    """
+    print('Done! [%f min]' % ((datetime.today() - start_time).total_seconds() / 60.0))
 
 
 def load():
@@ -386,13 +442,26 @@ def calibrate_models():
         description='File name to save cycle outputs.'
     )
 
+    dsp.add_function(
+        function=select_inputs_for_prediction,
+        inputs=['cycle_outputs'],
+        outputs=['cycle_inputs_for_prediction']
+    )
+
+    dsp.add_data(
+        data_id='cycle_inputs_for_prediction',
+        description='Dictionary that has data for the CO2 prediction with '
+                    'CO2MPAS model.'
+    )
+
     # Define a function to load the cycle inputs.
     calibrate_models = SubDispatchFunction(
         dsp=dsp,
         function_id='calibrate_models',
         inputs=['cycle_name', 'input_file_name', 'output_file_name',
                 'output_sheet_names'],
-        outputs=['cycle_outputs', 'cycle_targets', SINK]
+        outputs=['cycle_outputs', 'cycle_targets',
+                 'cycle_inputs_for_prediction', SINK]
     )
 
     return calibrate_models

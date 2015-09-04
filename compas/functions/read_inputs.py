@@ -176,6 +176,7 @@ def merge_inputs(cycle_name, parameters, series):
             'gear_box_ratios': (eval, list, empty, index_dict),
             'gear_box_type': (str, empty),
             'idle_engine_speed': (eval, list, empty),
+            'phases_co2_emissions': (eval, list, empty),
             'velocity_speed_ratios': (eval, list, empty, index_dict),
             'road_loads': (eval, list, empty),
         },

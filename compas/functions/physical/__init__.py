@@ -146,11 +146,6 @@ def comparison_model():
         }
     )
 
-    models.append({
-        'models': ('co2_params',),
-        'targets': ('co2_emissions',)
-    })
-
     # calibration of all
     dsp.add_dispatcher(
         dsp_id='calibration_co2_params_with_all_calibration_cycles',
@@ -193,7 +188,8 @@ def comparison_model():
 
         e_tag = 'co2_error_function'
         error_function = [o[e_tag] for o in co if e_tag in o]
-
+        if len(error_function) <= 1:
+            return
         p = calibrate_model_params(bounds, error_function, initial_guess)
         return {'co2_params': p}
 
@@ -335,6 +331,7 @@ def model_selector(*calibration_outputs):
 
             m = {k: e_mods[k] for k in mods if k in e_mods}
             err = np.mean(err) if err else np.nan
+
             heappush(heap, (err, len(e_mods), co_i, m))
 
         for v in em_rt:
