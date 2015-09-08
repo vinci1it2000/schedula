@@ -9,7 +9,6 @@
 It contains functions to model the torque converter.
 """
 
-__author__ = 'Vincenzo Arcidiacono'
 
 import numpy as np
 from sklearn.metrics import mean_squared_error

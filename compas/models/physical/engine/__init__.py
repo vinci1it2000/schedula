@@ -19,7 +19,6 @@ Sub-Modules:
     co2_emission
 """
 
-__author__ = 'Vincenzo_Arcidiacono'
 
 from compas.dispatcher import Dispatcher
 from compas.functions.physical.engine import *
@@ -163,10 +162,22 @@ def engine():
         outputs=['mean_piston_speeds']
     )
 
-    from .co2_emission import co2_emission
+    engine.add_function(
+        function=calculate_engine_type,
+        inputs=['fuel_type', 'engine_is_turbo'],
+        outputs=['engine_type']
+    )
+
+    from compas.models.physical.engine.co2_emission import co2_emission
+    co_e = co2_emission()
+
+    engine.add_from_lists(
+        data_list=[{'data_id': k, 'default_value': v}
+                   for k, v in co_e.default_values.items()]
+    )
 
     engine.add_dispatcher(
-        dsp=co2_emission(),
+        dsp=co_e,
         dsp_id='CO2_emission_model',
         inputs={
             'co2_emission_low': 'co2_emission_low',

@@ -10,7 +10,7 @@ It contains functions to plot cycle time series.
 
 .. note:: these functions are used in :mod:`compas.functions.write_outputs`.
 """
-__author__ = 'Vincenzo Arcidiacono'
+
 
 from itertools import product
 import matplotlib.pyplot as plt

@@ -29,7 +29,6 @@ Modules:
 
 """
 
-__author__ = 'Vincenzo Arcidiacono'
 
 from heapq import heappush
 from sklearn.metrics import mean_absolute_error
@@ -37,7 +36,6 @@ from compas.dispatcher import Dispatcher
 from compas.dispatcher.utils import heap_flush
 import numpy as np
 from itertools import zip_longest, chain
-from compas.functions.physical.engine.co2_emission import calibrate_model_params
 
 
 def compare_result(target_ids, model_results, target_results, sample_weight=()):
@@ -169,10 +167,12 @@ def comparison_model():
         c_name = c_name['engine_temperature_regression_model']
 
         def check(data):
-            return 'co2_params_initial_guess' in data and 'co2_params_bounds' in data
+            keys = ('co2_params_initial_guess', 'co2_params_bounds')
+            return  all(p in data for p in keys)
+
 
         its = [(o for o in co if o['cycle_name'] == c_name and check(o)),
-                (o for o in co if check(o))]
+               (o for o in co if check(o))]
 
         data = {}
         for it in its:
@@ -190,7 +190,11 @@ def comparison_model():
         error_function = [o[e_tag] for o in co if e_tag in o]
         if len(error_function) <= 1:
             return
+
+        from .engine.co2_emission import calibrate_model_params
+
         p = calibrate_model_params(bounds, error_function, initial_guess)
+
         return {'co2_params': p}
 
     models.append({

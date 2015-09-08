@@ -9,13 +9,13 @@
 It contains functions to read vehicle inputs.
 """
 
-__author__ = 'Vincenzo Arcidiacono'
 
 import numpy as np
 from math import isnan
 import pandas as pd
 
-def read_cycles_series(excel_file, sheet_name, parse_cols):
+
+def read_cycles_series(excel_file, sheet_name):
     """
     Reads cycle's time series.
 
@@ -27,17 +27,13 @@ def read_cycles_series(excel_file, sheet_name, parse_cols):
         The sheet name where to read the time series.
     :type sheet_name: str, int
 
-    :param parse_cols:
-        Columns of the time series.
-    :type parse_cols: tuple, str
-
     :return:
         A pandas DataFrame with cycle's time series.
     :rtype: pandas.DataFrame
     """
     try:
-        df = excel_file.parse(sheetname=sheet_name, parse_cols=parse_cols,
-                              skiprows=1, has_index_names=True)
+        df = excel_file.parse(sheetname=sheet_name, skiprows=1,
+                              has_index_names=True)
     except:
         df = pd.DataFrame()
 
@@ -171,6 +167,7 @@ def merge_inputs(cycle_name, parameters, series):
         'PARAMETERS': {
             None: (float, empty),
             'co2_params': (eval, dict, empty),
+            'engine_is_turbo': (bool, empty),
             'engine_type': (str, empty),
             'fuel_type': (str, empty),
             'gear_box_ratios': (eval, list, empty, index_dict),

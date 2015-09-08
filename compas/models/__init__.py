@@ -34,8 +34,6 @@ from compas.functions.read_inputs import *
 from compas.dispatcher.utils import SubDispatchFunction
 from compas.functions import *
 
-__author__ = 'Vincenzo Arcidiacono'
-
 
 def architecture():
     """
@@ -242,7 +240,7 @@ def process_folder_files(input_folder, output_folder):
     """
 
     model = architecture()
-    fpaths = glob.glob(input_folder + '/*.xlsx')
+    fpaths = sorted(glob.glob(input_folder + '/*.xlsx'))
     summary = []
     start_time = datetime.today()
     doday = start_time.strftime('%d_%b_%Y_%H_%M_%S_')
@@ -280,17 +278,19 @@ def process_folder_files(input_folder, output_folder):
             s = {'vehicle': fname}
             s.update(nedc['co2_params'])
             for tag, r, t in [('NEDC', nedc, t_nedc),
-                           ('WLTP-H', wltph, t_wltph),
-                           ('WLTP-L', wltpl, t_wltpl)]:
+                              ('WLTP-H', wltph, t_wltph),
+                              ('WLTP-L', wltpl, t_wltpl)]:
+                try:
+                    s.update({"%s co2_emission_value" % tag: r['co2_emission_value']})
+                    s.update({"%s phases_co2_emissions %d" % (tag, i): v
+                              for i, v in enumerate(r['phases_co2_emissions'])})
 
-                s.update({"%s co2_emission_value" % tag: r['co2_emission_value']})
-                s.update({"%s phases_co2_emissions %d" % (tag, i): v
-                          for i, v in enumerate(r['phases_co2_emissions'])})
-
-                s.update({"target %s co2_emission_value" % tag: t['co2_emission_value']})
-                s.update({"target %s phases_co2_emissions %d" % (tag, i): v
-                          for i, v in enumerate(t['phases_co2_emissions'])})
-
+                    s.update({"target %s co2_emission_value" % tag: t['co2_emission_value']})
+                    s.update({"target %s phases_co2_emissions %d" % (tag, i): v
+                              for i, v in enumerate(t['phases_co2_emissions'])})
+                except KeyError:
+                    if tag in ('WLTP-H', 'WLTP-L'):
+                        continue
             summary.append(s)
         except KeyError:
             print('Skipping summary for: %s' % fname)
@@ -342,15 +342,10 @@ def load():
         outputs=['cycle_parameters']
     )
 
-    dsp.add_data(
-        data_id='series_cols',
-        default_value='A:L'
-    )
-
     dsp.add_function(
         function_id='load: time series',
         function=read_cycles_series,
-        inputs=['input_excel_file', 'cycle_name', 'series_cols'],
+        inputs=['input_excel_file', 'cycle_name'],
         outputs=['cycle_series']
     )
 

@@ -8,17 +8,14 @@
 """
 It contains functions to write prediction outputs.
 
-.. note:: these functions are used in :mod:`compas.models.compas`.
+.. note:: these functions are used in :func:`compas.models.architecture`.
 """
-__author__ = 'Vincenzo Arcidiacono'
+
 
 from heapq import heappush
-
 import numpy as np
 import pandas as pd
-
 from compas.dispatcher.utils import heap_flush
-from compas.functions.plot import plot_gear_box_speeds
 
 
 def parse_name(name):
@@ -68,23 +65,27 @@ def write_output(output, file_name, sheet_names):
     p, s = ([], [])
     for k, v in output.items():
         if isinstance(v, np.ndarray):  # series
-            heappush(s, (parse_name(k), v))
+            heappush(s, (parse_name(k), k, v))
         elif check_writeable(v):  # params
-            heappush(p, (parse_name(k), v))
+            heappush(p, (parse_name(k), k, v))
 
 
     series = pd.DataFrame()
-    for k, v in heap_flush(s):
+    series_headers = pd.DataFrame()
+    for name, k, v in heap_flush(s):
         try:
+            series_headers[k] = (name, k)
             series[k] = v
         except ValueError:
-            heappush(p, (k, v))
+            heappush(p, (name, k, v))
 
-    index, p = zip(*[(k, str(v)) for k, v in heap_flush(p)])
-    p = pd.DataFrame(list(p), index=index)
+    index, p = zip(*[(k, (name, k, str(v))) for name, k, v in heap_flush(p)])
+    p = pd.DataFrame(list(p), index=index, columns=['Parameter', 'Model Name', 'Value'])
 
-    p.to_excel(writer, sheet_names[0])
-    series.to_excel(writer, sheet_names[1])
+    p.to_excel(writer, sheet_names[0], index=False)
+
+    series = pd.concat([series_headers, series])
+    series.to_excel(writer, sheet_names[1], header=False, index=False)
 
 
 def check_writeable(data):

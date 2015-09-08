@@ -9,7 +9,6 @@
 It contains functions that model the basic mechanics of the final drive.
 """
 
-__author__ = 'Vincenzo Arcidiacono'
 
 import numpy as np
 

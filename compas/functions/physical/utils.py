@@ -13,7 +13,6 @@ These are python-specific utilities and hacks - general data-processing or
 numerical operations.
 """
 
-__author__ = 'Vincenzo Arcidiacono'
 
 import sys
 import math

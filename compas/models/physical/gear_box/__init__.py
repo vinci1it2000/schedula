@@ -20,7 +20,7 @@ Sub-Modules:
     AT_gear
 """
 
-__author__ = 'Arcidiacono Vincenzo'
+
 from compas.dispatcher import Dispatcher
 from compas.functions.physical.gear_box import *
 from compas.dispatcher.utils import bypass

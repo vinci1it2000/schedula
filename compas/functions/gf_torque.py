@@ -1,4 +1,4 @@
-__author__ = 'Vincenzo Arcidiacono'
+
 
 from itertools import repeat
 

@@ -22,7 +22,6 @@ Modules:
     write_outputs
 
 """
-__author__ = 'Vincenzo Arcidiacono'
 
 
 def select_inputs_for_prediction(data):

@@ -9,7 +9,6 @@
 It contains functions to calculate torque losses and the gear box temperature.
 """
 
-__author__ = 'Vincenzo Arcidiacono'
 
 from math import pi
 

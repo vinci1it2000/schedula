@@ -11,7 +11,6 @@ It provides a CO2 emission model to identify and predict the CO2 emissions.
 The model is defined by a Dispatcher that wraps all the functions needed.
 """
 
-__author__ = 'Vincenzo_Arcidiacono'
 
 from compas.dispatcher import Dispatcher
 from compas.dispatcher.utils import bypass

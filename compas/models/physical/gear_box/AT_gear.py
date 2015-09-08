@@ -11,7 +11,6 @@ It provides a A/T gear shifting model to identify and predict the gear shifting.
 The model is defined by a Dispatcher that wraps all the functions needed.
 """
 
-__author__ = 'Vincenzo_Arcidiacono'
 
 from compas.dispatcher import Dispatcher
 from compas.functions.physical.gear_box.AT_gear import *

@@ -20,12 +20,9 @@ Sub-Modules:
     AT_gear
 """
 
-__author__ = 'Vincenzo Arcidiacono'
 
 from math import pi
-
 import numpy as np
-
 from compas.dispatcher.utils.dsp import SubDispatchFunction
 from compas.functions.physical.utils import bin_split, reject_outliers
 from compas.functions.physical.constants import *

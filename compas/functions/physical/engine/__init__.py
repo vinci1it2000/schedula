@@ -19,7 +19,6 @@ Sub-Modules:
     co2_emission
 """
 
-__author__ = 'Vincenzo Arcidiacono'
 
 from math import pi
 import numpy as np
@@ -572,3 +571,30 @@ def calculate_mean_piston_speeds(engine_speeds_out, engine_stroke):
     """
 
     return (engine_stroke / 30000.0) * engine_speeds_out
+
+
+def calculate_engine_type(fuel_type, engine_is_turbo):
+    """
+    Calculates the engine type (gasoline turbo, gasoline natural aspiration,
+    diesel).
+
+    :param fuel_type:
+        Fuel type (gasoline or diesel).
+    :type fuel_type: str
+
+    :param engine_is_turbo:
+        If the engine is equipped with any kind of charging.
+    :type engine_is_turbo: bool
+
+    :return:
+        Engine type (gasoline turbo, gasoline natural aspiration, diesel).
+    :rtype: str
+    """
+
+    engine_type = fuel_type
+
+    if fuel_type == 'gasoline':
+        engine_type = 'turbo' if engine_is_turbo else 'natural aspiration'
+        engine_type = '%s %s' % (fuel_type, engine_type)
+
+    return engine_type

@@ -1,11 +1,26 @@
-__author__ = 'arcidvi'
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
+#
+# Copyright 2014 European Commission (JRC);
+# Licensed under the EUPL (the 'Licence');
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+
+"""
+It provides constants for the NEDC cycle.
+"""
+
+
 import numpy as np
 import sys
 
+
 EPS = sys.float_info.epsilon
+
 
 def nedc_gears_domain(cycle_type, gear_box_type, *args):
     return cycle_type == 'NEDC' and gear_box_type == 'manual'
+
 
 def nedc_velocities_domain(cycle_type, *args):
     return cycle_type == 'NEDC'

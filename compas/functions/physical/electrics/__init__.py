@@ -1,4 +1,24 @@
-__author__ = 'Vincenzo Arcidiacono'
+#-*- coding: utf-8 -*-
+#
+# Copyright 2015 European Commission (JRC);
+# Licensed under the EUPL (the 'Licence');
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+
+"""
+It contains functions that model the electrics of the vehicle.
+
+Sub-Modules:
+
+.. currentmodule:: compas.functions.physical.electrics
+
+.. autosummary::
+    :nosignatures:
+    :toctree: electrics/
+
+    electrics_prediction
+"""
+
 
 import numpy as np
 from functools import partial
@@ -292,16 +312,23 @@ def calibrate_alternator_status_model(
     X = list(zip(alternator_statuses[:-1], state_of_charges[1:]))
 
     charge.fit(X, alternator_statuses[1:] == 1)
+    if 1 in alternator_statuses:
+        soc = state_of_charges[alternator_statuses == 1]
+        min_charge_soc, max_charge_soc = min(soc), max(soc)
+    else:
+        min_charge_soc, max_charge_soc = 0, 100
 
     # shortcut names
     bers_pred = bers.predict
     charge_pred = charge.predict
 
-    def model(prev_status, battery_soc, gear_box_power_in):
+    def model(prev_status, soc, gear_box_power_in):
         status = 0
 
-        if battery_soc < 100:
-            if charge_pred([prev_status, battery_soc])[0]:
+        if soc < 100:
+            if soc < min_charge_soc:
+                status = 1
+            elif charge_pred([prev_status, soc])[0] and soc <= max_charge_soc:
                 status = 1
 
             elif bers_pred([gear_box_power_in])[0]:

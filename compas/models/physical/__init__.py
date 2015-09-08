@@ -26,7 +26,6 @@ It contains a comprehensive list of all CO2MPAS software models and sub-models:
 The model is defined by a Dispatcher that wraps all the functions needed.
 """
 
-__author__ = 'Vincenzo Arcidiacono'
 
 from compas.dispatcher import Dispatcher
 from compas.functions.physical.constants.NEDC import *
@@ -187,6 +186,7 @@ def _physical():
         outputs={
             'alternator_charging_currents': 'alternator_charging_currents',
             'alternator_currents': 'alternator_currents',
+            'alternator_statuses': 'alternator_statuses',
             'alternator_powers_demand': 'alternator_powers_demand',
             'alternator_status_model': 'alternator_status_model',
             'battery_currents': 'battery_currents',
@@ -212,6 +212,7 @@ def _physical():
         inputs={
             'alternator_powers_demand': 'alternator_powers_demand',
             'engine_capacity': 'engine_capacity',
+            'engine_is_turbo': 'engine_is_turbo',
             'engine_max_power': 'engine_max_power',
             'engine_max_speed_at_max_power': 'engine_max_speed_at_max_power',
             'engine_max_torque': 'engine_max_torque',

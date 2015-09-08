@@ -9,17 +9,14 @@
 It contains functions to predict the A/T gear shifting.
 """
 
-__author__ = 'Vincenzo Arcidiacono'
 
 from collections import OrderedDict
 from itertools import chain
-
 import numpy as np
 from scipy.optimize import fmin
 from scipy.interpolate import InterpolatedUnivariateSpline
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import mean_absolute_error
-
 from compas.dispatcher.utils import pairwise
 from compas.functions.physical.utils import median_filter, grouper, \
     interpolate_cloud, clear_gear_fluctuations
@@ -55,6 +52,33 @@ def get_full_load(fuel_type):
     }
     return full_load[fuel_type]
 
+
+def calculate_full_load(t1_map_speeds, t1_map_powers, idle_engine_speed):
+    """
+    Calculates the full load curve.
+
+    :param t1_map_speeds:
+    :type t1_map_speeds: list
+
+    :param t1_map_powers:
+    :type t1_map_powers: list
+
+    :param idle_engine_speed:
+
+    :type idle_engine_speed: tuple
+    :return:
+    """
+
+    v = list(zip(t1_map_powers, t1_map_speeds))
+    max_engine_power, max_engine_speed_at_max_power = max(v)
+
+    p_norm = np.asarray(t1_map_powers) / max_engine_power
+    n_norm = (max_engine_speed_at_max_power - idle_engine_speed[0])
+    n_norm = np.asarray(t1_map_speeds) / n_norm
+
+    flc = InterpolatedUnivariateSpline(n_norm, p_norm)
+
+    return flc, max_engine_power, max_engine_speed_at_max_power
 
 def correct_gear_upper_bound_engine_speed(
         velocity, acceleration, gear, velocity_speed_ratios, max_gear,

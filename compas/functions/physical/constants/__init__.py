@@ -10,7 +10,6 @@
 It provides constants for the CO2MPAS formulas.
 """
 
-__author__ = 'Vincenzo Arcidiacono'
 
 import sys
 

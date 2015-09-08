@@ -1,4 +1,15 @@
-__author__ = 'Vincenzo Arcidiacono'
+#-*- coding: utf-8 -*-
+#
+# Copyright 2015 European Commission (JRC);
+# Licensed under the EUPL (the 'Licence');
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+
+"""
+It provides a gear box thermal sub model to predict the gear box temperature.
+
+The model is defined by a Dispatcher that wraps all the functions needed.
+"""
 
 from compas.dispatcher import Dispatcher
 from compas.dispatcher.utils.dsp import bypass

@@ -3,10 +3,7 @@ CO2MPAS: Predict CO2 emissions of NEDC using WLTP time-series
 #############################################################
 :Version: 1.0.0
 :date: 13-July-2015
-:author: Vincenzo Arcidiacono <vincenzo.arcidiacono@ext.jrc.ec.europa.eu>
-:contributors:  Stefanos Tsiamakis <stefanos.tsiakmakis@jrc.ec.europa.eu>, 
-				Georgios Fontaras <georgios.fontaras@jrc.ec.europa.eu>
-				Kostis Anagnostopoulos <konstantinos.anagnostopoulos@ext.jrc.ec.europa.eu>
+:author: see `AUTHORS.rst`
 :Keywords:  CO2, wltp, engineering, scientific, python, excel, library,
 :Copyright: 2015 European Commission (`JRC-IET
             <https://ec.europa.eu/jrc/en/institutes/iet>`_)

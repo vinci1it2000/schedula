@@ -9,13 +9,11 @@
 It contains functions to predict the CO2 emissions.
 """
 
-__author__ = 'Vincenzo Arcidiacono'
 
 import numpy as np
 from functools import partial
 from scipy.integrate import trapz
 from scipy.optimize import brute, minimize
-
 from sklearn.metrics import mean_squared_error
 from compas.dispatcher.utils import pairwise
 from compas.functions.physical.constants import *

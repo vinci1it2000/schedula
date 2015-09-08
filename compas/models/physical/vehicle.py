@@ -11,7 +11,7 @@ It provides a vehicle model.
 The model is defined by a Dispatcher that wraps all the functions needed.
 """
 
-__author__ = 'Vincenzo_Arcidiacono'
+
 from compas.dispatcher import Dispatcher
 from compas.functions.physical.vehicle import *
 from compas.dispatcher.utils import bypass
