@@ -280,17 +280,14 @@ def process_folder_files(input_folder, output_folder):
             for tag, r, t in [('NEDC', nedc, t_nedc),
                               ('WLTP-H', wltph, t_wltph),
                               ('WLTP-L', wltpl, t_wltpl)]:
-                try:
-                    s.update({"%s co2_emission_value" % tag: r['co2_emission_value']})
-                    s.update({"%s phases_co2_emissions %d" % (tag, i): v
-                              for i, v in enumerate(r['phases_co2_emissions'])})
-
-                    s.update({"target %s co2_emission_value" % tag: t['co2_emission_value']})
-                    s.update({"target %s phases_co2_emissions %d" % (tag, i): v
-                              for i, v in enumerate(t['phases_co2_emissions'])})
-                except KeyError:
-                    if tag in ('WLTP-H', 'WLTP-L'):
-                        continue
+                for ta, m in (('', r), ('target ', t)):
+                    try:
+                        s.update({"%s%s co2_emission_value" % (ta, tag): m['co2_emission_value']})
+                        s.update({"%s%s phases_co2_emissions %d" % (ta, tag, i): v
+                                  for i, v in enumerate(m['phases_co2_emissions'])})
+                    except KeyError:
+                        if tag in ('WLTP-H', 'WLTP-L'):
+                            pass
             summary.append(s)
         except KeyError:
             print('Skipping summary for: %s' % fname)

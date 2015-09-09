@@ -43,6 +43,44 @@ def engine():
         description='Models the vehicle engine.'
     )
 
+    engine.add_function(
+        function=get_full_load,
+        inputs=['fuel_type'],
+        outputs=['full_load_curve'],
+        weight=20
+    )
+
+    from compas.functions.physical.wheels import calculate_wheel_powers, \
+        calculate_wheel_torques
+
+    engine.add_function(
+        function_id='calculate_full_load_powers',
+        function=calculate_wheel_powers,
+        inputs=['full_load_torques', 'full_load_speeds'],
+        outputs=['full_load_powers']
+    )
+
+    engine.add_function(
+        function_id='calculate_full_load_speeds',
+        function=calculate_wheel_torques,
+        inputs=['full_load_powers', 'full_load_torques'],
+        outputs=['full_load_speeds']
+    )
+
+    engine.add_function(
+        function=calculate_full_load,
+        inputs=['full_load_speeds', 'full_load_powers', 'idle_engine_speed'],
+        outputs=['full_load_curve', 'engine_max_power',
+                 'engine_max_speed_at_max_power']
+    )
+
+    engine.add_function(
+        function=calculate_full_load,
+        inputs=['full_load_speeds', 'full_load_powers', 'idle_engine_speed'],
+        outputs=['full_load_curve', 'engine_max_power',
+                 'engine_max_speed_at_max_power']
+    )
+
     # Idle engine speed
 
     # default value
@@ -160,6 +198,11 @@ def engine():
         function=calculate_mean_piston_speeds,
         inputs=['engine_speeds_out', 'engine_stroke'],
         outputs=['mean_piston_speeds']
+    )
+
+    engine.add_data(
+        data_id='engine_is_turbo',
+        default_value=True
     )
 
     engine.add_function(

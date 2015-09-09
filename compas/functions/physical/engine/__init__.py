@@ -24,9 +24,72 @@ from math import pi
 import numpy as np
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import GradientBoostingRegressor
+from scipy.interpolate import InterpolatedUnivariateSpline
 from compas.functions.physical.constants import *
 from compas.functions.physical.utils import bin_split, reject_outliers, \
     clear_gear_fluctuations
+
+
+
+def get_full_load(fuel_type):
+    """
+    Returns vehicle full load curve.
+
+    :param fuel_type:
+        Vehicle fuel type (diesel or gasoline).
+    :type fuel_type: str
+
+    :return:
+        Vehicle normalized full load curve.
+    :rtype: InterpolatedUnivariateSpline
+    """
+
+    full_load = {
+        'gasoline': InterpolatedUnivariateSpline(
+            np.linspace(0, 1.2, 13),
+            [0.1, 0.198238659, 0.30313392, 0.410104642, 0.516920841,
+             0.621300767, 0.723313491, 0.820780368, 0.901750158, 0.962968496,
+             0.995867804, 0.953356174, 0.85]),
+        'diesel': InterpolatedUnivariateSpline(
+            np.linspace(0, 1.2, 13),
+            [0.1, 0.278071182, 0.427366185, 0.572340499, 0.683251935,
+             0.772776746, 0.846217049, 0.906754984, 0.94977083, 0.981937981,
+             1, 0.937598144, 0.85])
+    }
+    return full_load[fuel_type]
+
+
+def calculate_full_load(full_load_speeds, full_load_powers, idle_engine_speed):
+    """
+    Calculates the full load curve.
+
+    :param full_load_speeds:
+        T1 map speed vector [RPM].
+    :type full_load_speeds: list
+
+    :param full_load_powers: list
+        T1 map power vector [kW].
+    :type full_load_powers: list
+
+    :param idle_engine_speed:
+        Engine speed idle median and std [RPM].
+    :type idle_engine_speed: (float, float)
+
+    :return:
+        Vehicle full load curve, Maximum power [kW], Rated engine speed [RPM].
+    :rtype: (InterpolatedUnivariateSpline, float, float)
+    """
+
+    v = list(zip(full_load_powers, full_load_speeds))
+    max_engine_power, max_engine_speed_at_max_power = max(v)
+
+    p_norm = np.asarray(full_load_powers) / max_engine_power
+    n_norm = (max_engine_speed_at_max_power - idle_engine_speed[0])
+    n_norm = (np.asarray(full_load_speeds) - idle_engine_speed[0]) / n_norm
+
+    flc = InterpolatedUnivariateSpline(n_norm, p_norm)
+
+    return flc, max_engine_power, max_engine_speed_at_max_power
 
 
 def identify_idle_engine_speed_out(velocities, engine_speeds_out):
@@ -194,9 +257,13 @@ def identify_thermostat_engine_temperature(engine_temperatures):
 
     m, s = reject_outliers(engine_temperatures, n=2)
 
-    s = max(s, 20.0)
+    max_temp = max(engine_temperatures)
 
-    return m, (m - s, max(engine_temperatures))
+    if max_temp - m > s:
+        m = max_temp
+        s = max(s, 20.0)
+
+    return m, (m - s, max_temp)
 
 
 def identify_initial_engine_temperature(engine_temperatures):

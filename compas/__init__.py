@@ -16,3 +16,51 @@
     ~dispatcher
 
 """
+
+if __name__ == '__main__':
+    from compas.dispatcher.draw import dsp2dot
+    from compas.models import load, architecture, calibrate_models
+    from compas.models.physical import physical_calibration, physical_prediction
+    from compas.models.physical.wheels import wheels
+    from compas.models.physical.vehicle import vehicle
+    from compas.models.physical.final_drive import final_drive
+    from compas.models.physical.gear_box import gear_box_prediction, \
+        gear_box_calibration
+    from compas.models.physical.gear_box.AT_gear import AT_gear, cmv, \
+        cmv_cold_hot, dt_va, dt_vap, dt_vat, dt_vatp, gspv, gspv_cold_hot
+    from compas.models.physical.gear_box.thermal import thermal
+    from compas.models.physical.engine import engine
+    from compas.models.physical.engine.co2_emission import co2_emission
+    from compas.models.physical.electrics import electrics
+    from compas.models.physical.electrics.electrics_prediction import \
+        electrics_prediction
+
+    dsps = [
+        architecture(),
+        load(),
+        calibrate_models(),
+        physical_calibration(),
+        physical_prediction(),
+        vehicle(),
+        wheels(),
+        final_drive(),
+        gear_box_calibration(),
+        gear_box_prediction(),
+        AT_gear(),
+        cmv(),
+        cmv_cold_hot(),
+        dt_va(),
+        dt_vap(),
+        dt_vat(),
+        dt_vatp(),
+        gspv(),
+        gspv_cold_hot(),
+        thermal(),
+        engine(),
+        co2_emission(),
+        electrics(),
+        electrics_prediction()
+    ]
+
+    for dsp in dsps:
+        dsp2dot(dsp, view=True, level=0, function_module=False, format='pdf')

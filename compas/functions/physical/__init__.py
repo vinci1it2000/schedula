@@ -22,7 +22,7 @@ Modules:
     wheels
     final_drive
     gear_box
-    torque_converter
+    electrics
     engine
     utils
     constants
@@ -164,7 +164,8 @@ def comparison_model():
         co = calibration_outputs
 
         c_name = extracted_models['origin calibrated_models']
-        c_name = c_name['engine_temperature_regression_model']
+        c_name = c_name.get('engine_temperature_regression_model',
+                            co[0]['cycle_name'])
 
         def check(data):
             keys = ('co2_params_initial_guess', 'co2_params_bounds')

@@ -33,13 +33,10 @@ def AT_gear():
         name='Automatic gear model',
         description='Defines an omni-comprehensive gear shifting model for '
                     'automatic vehicles.')
+
     AT_gear.add_data(
         data_id='gear_box_type'
     )
-    AT_gear.add_function(
-        function=get_full_load,
-        inputs=['fuel_type'],
-        outputs=['full_load_curve'])
 
     AT_gear.add_function(
         function=correct_gear_v0,

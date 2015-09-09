@@ -232,7 +232,7 @@ def gear_box_calibration():
         inputs={
             'accelerations': 'accelerations',
             'engine_speeds_out': 'engine_speeds_out',
-            'fuel_type': 'fuel_type',
+            'full_load_curve': 'full_load_curve',
             'gears': 'identified_gears',
             'gear_box_powers_out': 'gear_box_powers_out',
             'gear_box_type': 'gear_box_type',

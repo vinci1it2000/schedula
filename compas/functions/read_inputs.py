@@ -86,6 +86,8 @@ def empty(value):
     try:
         if value:
             return value
+        elif value != '':
+            return value
     except ValueError:
         if not np.isnan(value).any():
             return np.nan_to_num(value)
@@ -99,7 +101,7 @@ def parse_inputs(data, data_map, cycle_name):
 
     :param data:
         Data to be parsed (key) and fetch (value) with filters.
-    :type data: dict
+    :type data: dict, pd.DataFrame
 
     :param data_map:
         It maps the data as: data's key --> (parsed key, filters).
@@ -141,6 +143,51 @@ def parse_inputs(data, data_map, cycle_name):
     return d['inputs'], d['targets']
 
 
+def get_filters():
+    """
+    Returns the filters for parameters and series.
+
+    :return:
+        Filters for parameters and series.
+    :rtype: dict
+    """
+
+    _filters = {
+        'PARAMETERS': {
+            None: (float, empty),
+            'co2_params': (eval, dict, empty),
+            'engine_is_turbo': (bool, empty),
+            'engine_has_variable_valve_actuation': (bool, empty),
+            'engine_has_cylinder_deactivation': (bool, empty),
+            'engine_has_direct_injection': (bool, empty),
+            'engine_type': (str, empty),
+            'fuel_type': (str, empty),
+            'gear_box_ratios': (eval, list, empty, index_dict),
+            'gear_box_type': (str, empty),
+            'has_start_stop': (bool, empty),
+            'has_energy_recuperation': (bool, empty),
+            'has_thermal_management': (bool, empty),
+            'has_lean_burn': (bool, empty),
+            'has_exhausted_gas_recuperation': (bool, empty),
+            'has_particle_filter': (bool, empty),
+            'has_selective_catalytic_reduction': (bool, empty),
+            'has_nox_storage_catalyst': (bool, empty),
+            'idle_engine_speed': (eval, list, empty),
+            'phases_co2_emissions': (eval, list, empty),
+            'velocity_speed_ratios': (eval, list, empty, index_dict),
+            'road_loads': (eval, list, empty),
+            'full_load_speeds': (np.asarray, empty),
+            'full_load_torques': (np.asarray, empty),
+            'full_load_powers': (np.asarray, empty),
+        },
+        'SERIES': {
+            None: (np.asarray, empty)
+        }
+    }
+
+    return _filters
+
+
 def merge_inputs(cycle_name, parameters, series):
     """
     Merges vehicle's parameters and cycle's time series.
@@ -163,24 +210,7 @@ def merge_inputs(cycle_name, parameters, series):
     :rtype: (dict, dict)
     """
 
-    _filters = {
-        'PARAMETERS': {
-            None: (float, empty),
-            'co2_params': (eval, dict, empty),
-            'engine_is_turbo': (bool, empty),
-            'engine_type': (str, empty),
-            'fuel_type': (str, empty),
-            'gear_box_ratios': (eval, list, empty, index_dict),
-            'gear_box_type': (str, empty),
-            'idle_engine_speed': (eval, list, empty),
-            'phases_co2_emissions': (eval, list, empty),
-            'velocity_speed_ratios': (eval, list, empty, index_dict),
-            'road_loads': (eval, list, empty),
-        },
-        'SERIES': {
-            None: (np.asarray, empty)
-        }
-    }
+    _filters = get_filters()
 
     inputs, targets = {}, {}
     for data, map_tag in [(parameters, 'PARAMETERS'), (series, 'SERIES')]:

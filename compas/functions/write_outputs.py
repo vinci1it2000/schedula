@@ -62,9 +62,12 @@ def write_output(output, file_name, sheet_names):
     print(file_name)
     writer = pd.ExcelWriter(file_name)
 
+    from .read_inputs import get_filters
+    params = get_filters()['PARAMETERS'].keys()
+
     p, s = ([], [])
     for k, v in output.items():
-        if isinstance(v, np.ndarray):  # series
+        if isinstance(v, np.ndarray) and k not in params:  # series
             heappush(s, (parse_name(k), k, v))
         elif check_writeable(v):  # params
             heappush(p, (parse_name(k), k, v))
@@ -80,7 +83,9 @@ def write_output(output, file_name, sheet_names):
             heappush(p, (name, k, v))
 
     index, p = zip(*[(k, (name, k, str(v))) for name, k, v in heap_flush(p)])
-    p = pd.DataFrame(list(p), index=index, columns=['Parameter', 'Model Name', 'Value'])
+    p = pd.DataFrame(list(p),
+                     index=index,
+                     columns=['Parameter', 'Model Name', 'Value'])
 
     p.to_excel(writer, sheet_names[0], index=False)
 

@@ -20,7 +20,7 @@ It contains a comprehensive list of all CO2MPAS software models and sub-models:
     wheels
     final_drive
     gear_box
-    torque_converter
+    electrics
     engine
 
 The model is defined by a Dispatcher that wraps all the functions needed.
@@ -222,6 +222,9 @@ def _physical():
                 'engine_temperature_regression_model',
             'cold_start_speed_model': 'cold_start_speed_model',
             'fuel_type': 'fuel_type',
+            'full_load_speeds': 'full_load_speeds',
+            'full_load_torques': 'full_load_torques',
+            'full_load_powers': 'full_load_powers',
             'gears': 'gears',
             'idle_engine_speed_median': 'idle_engine_speed_median',
             'idle_engine_speed_std': 'idle_engine_speed_std',
@@ -274,6 +277,9 @@ def _physical():
             'phases_co2_emissions': 'phases_co2_emissions',
             'start_stop_model': 'start_stop_model',
             'upper_bound_engine_speed': 'upper_bound_engine_speed',
+            'full_load_curve': 'full_load_curve',
+            'engine_max_power': 'engine_max_power',
+            'engine_max_speed_at_max_power' : 'engine_max_speed_at_max_power'
         }
     )
 
@@ -313,6 +319,7 @@ def physical_calibration():
         dsp=gb,
         inputs={
             'fuel_type': 'fuel_type',
+            'full_load_curve': 'full_load_curve',
             'engine_max_power': 'engine_max_power',
             'engine_max_speed_at_max_power': 'engine_max_speed_at_max_power',
             'road_loads': 'road_loads',

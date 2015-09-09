@@ -7,16 +7,6 @@
 
 """
 It contains functions to predict the electrics of the vehicle.
-
-Sub-Modules:
-
-.. currentmodule:: compas.functions.physical.electrics
-
-.. autosummary::
-    :nosignatures:
-    :toctree: electrics/
-
-    electrics_prediction
 """
 
 

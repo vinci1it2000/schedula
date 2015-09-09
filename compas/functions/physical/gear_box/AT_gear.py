@@ -25,61 +25,6 @@ from compas.functions.physical.gear_box import calculate_gear_box_speeds_in
 from compas.functions.physical.wheels import calculate_wheel_power
 
 
-def get_full_load(fuel_type):
-    """
-    Returns vehicle full load curve.
-
-    :param fuel_type:
-        Vehicle fuel type (diesel or gasoline).
-    :type fuel_type: str
-
-    :return:
-        Vehicle full load curve.
-    :rtype: InterpolatedUnivariateSpline
-    """
-
-    full_load = {
-        'gasoline': InterpolatedUnivariateSpline(
-            np.linspace(0, 1.2, 13),
-            [0.1, 0.198238659, 0.30313392, 0.410104642, 0.516920841,
-             0.621300767, 0.723313491, 0.820780368, 0.901750158, 0.962968496,
-             0.995867804, 0.953356174, 0.85]),
-        'diesel': InterpolatedUnivariateSpline(
-            np.linspace(0, 1.2, 13),
-            [0.1, 0.278071182, 0.427366185, 0.572340499, 0.683251935,
-             0.772776746, 0.846217049, 0.906754984, 0.94977083, 0.981937981,
-             1, 0.937598144, 0.85])
-    }
-    return full_load[fuel_type]
-
-
-def calculate_full_load(t1_map_speeds, t1_map_powers, idle_engine_speed):
-    """
-    Calculates the full load curve.
-
-    :param t1_map_speeds:
-    :type t1_map_speeds: list
-
-    :param t1_map_powers:
-    :type t1_map_powers: list
-
-    :param idle_engine_speed:
-
-    :type idle_engine_speed: tuple
-    :return:
-    """
-
-    v = list(zip(t1_map_powers, t1_map_speeds))
-    max_engine_power, max_engine_speed_at_max_power = max(v)
-
-    p_norm = np.asarray(t1_map_powers) / max_engine_power
-    n_norm = (max_engine_speed_at_max_power - idle_engine_speed[0])
-    n_norm = np.asarray(t1_map_speeds) / n_norm
-
-    flc = InterpolatedUnivariateSpline(n_norm, p_norm)
-
-    return flc, max_engine_power, max_engine_speed_at_max_power
-
 def correct_gear_upper_bound_engine_speed(
         velocity, acceleration, gear, velocity_speed_ratios, max_gear,
         upper_bound_engine_speed):
@@ -183,12 +128,15 @@ def correct_gear_full_load(
     p_norm = calculate_wheel_power(velocity, acceleration, road_loads, inertia)
     p_norm /= max_engine_power
 
-    r = velocity / (max_engine_speed_at_max_power - idle_engine_speed[0])
+    r = max_engine_speed_at_max_power - idle_engine_speed[0]
 
     vsr = velocity_speed_ratios
-    flc = full_load_curve
 
-    while gear > min_gear and (gear not in vsr or p_norm > flc(r / vsr[gear])):
+    def flc(gear):
+        x = (velocity / vsr[gear] - idle_engine_speed[0]) / r
+        return full_load_curve(x)
+
+    while gear > min_gear and (gear not in vsr or p_norm > flc(gear)):
         # to consider adding the reverse function in the future because the
         # n+200 rule should be applied at the engine not the GB
         # (rpm < idle_speed + 200 and 0 <= a < 0.1) or
