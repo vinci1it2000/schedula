@@ -264,7 +264,7 @@ def identify_thermostat_engine_temperature(engine_temperatures):
     if max_temp - m > s:
         m = max_temp
 
-    max_temp += s
+    max_temp = max(max_temp, m + s)
     s = max(s, 20.0)
 
     return m, (m - s, max_temp)
