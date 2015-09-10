@@ -72,7 +72,6 @@ def write_output(output, file_name, sheet_names):
         elif check_writeable(v):  # params
             heappush(p, (parse_name(k), k, v))
 
-
     series = pd.DataFrame()
     series_headers = pd.DataFrame()
     for name, k, v in heap_flush(s):
@@ -105,7 +104,7 @@ def check_writeable(data):
         If the data is writeable.
     :rtype: bool
     """
-    if isinstance(data, (str, float, int)):
+    if isinstance(data, (str, float, int, np.ndarray)):
         return True
     elif isinstance(data, dict):
         for v in data.values():

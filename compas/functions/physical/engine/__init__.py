@@ -25,6 +25,8 @@ import numpy as np
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import GradientBoostingRegressor
 from scipy.interpolate import InterpolatedUnivariateSpline
+from scipy.optimize import minimize
+from sklearn.metrics import mean_absolute_error
 from compas.functions.physical.constants import *
 from compas.functions.physical.utils import bin_split, reject_outliers, \
     clear_gear_fluctuations
@@ -261,7 +263,9 @@ def identify_thermostat_engine_temperature(engine_temperatures):
 
     if max_temp - m > s:
         m = max_temp
-        s = max(s, 20.0)
+
+    max_temp += s
+    s = max(s, 20.0)
 
     return m, (m - s, max_temp)
 
@@ -470,7 +474,7 @@ def calculate_engine_speeds_out(
 
     s[on_engine & (s < idle_engine_speed[0])] = idle_engine_speed[0]
 
-    e_t = (engine_thermostat_temperature - engine_temperatures)
+    e_t = engine_thermostat_temperature - engine_temperatures
     e_t *= cold_start_speed_model
 
     b = on_engine & (e_t > s)
@@ -482,7 +486,7 @@ def calculate_engine_speeds_out(
 def calibrate_cold_start_speed_model(
         velocities, accelerations, engine_speeds_out, engine_temperatures,
         idle_engine_speed, engine_thermostat_temperature,
-        engine_thermostat_temperature_window):
+        engine_thermostat_temperature_window, gear_box_speeds_in, on_engine):
     """
     Calibrates the cold start speed model.
 
@@ -518,10 +522,29 @@ def calibrate_cold_start_speed_model(
     if not b.any():
         return 0.0
 
-    p = engine_thermostat_temperature - engine_temperatures[b]
-    p /= engine_speeds_out[b]
+    e_t = engine_thermostat_temperature - engine_temperatures
+    p = 1.0 / reject_outliers(e_t[b] / engine_speeds_out[b])[0]
 
-    return 1.0 / reject_outliers(p)[0]
+    s = calculate_engine_speeds_out(
+        gear_box_speeds_in, on_engine, idle_engine_speed,
+        engine_temperatures, 0, 0
+    )
+
+    err_0 = mean_absolute_error(engine_speeds_out, gear_box_speeds_in)
+
+    def error_func(p):
+        s_o = e_t * p
+
+        b = on_engine & (s_o > s)
+
+        if not b.any():
+            return err_0
+
+        return mean_absolute_error(engine_speeds_out[b], s_o[b])
+
+    res = minimize(error_func, p, bounds=[(0, float('inf'))])
+
+    return float(res.x) if res.success else 0.0
 
 
 def calculate_engine_powers_out(

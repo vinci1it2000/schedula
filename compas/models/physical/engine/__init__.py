@@ -169,7 +169,8 @@ def engine():
         inputs=['velocities', 'accelerations', 'engine_speeds_out',
                 'engine_temperatures', 'idle_engine_speed',
                 'engine_thermostat_temperature',
-                'engine_thermostat_temperature_window'],
+                'engine_thermostat_temperature_window', 'gear_box_speeds_in',
+                'on_engine'],
         outputs=['cold_start_speed_model']
     )
 
