@@ -175,6 +175,13 @@ def engine():
     )
 
     engine.add_function(
+        function=calibrate_cold_start_speed_model_v1,
+        inputs=['times', 'velocities', 'accelerations', 'engine_speeds_out',
+                'idle_engine_speed'],
+        outputs=['cold_start_speed_model<0>']
+    )
+
+    engine.add_function(
         function=calculate_engine_speeds_out,
         inputs=['gear_box_speeds_in', 'on_engine', 'idle_engine_speed',
                 'engine_temperatures', 'engine_thermostat_temperature',

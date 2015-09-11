@@ -365,6 +365,33 @@ def get_models(calibration_outputs, models_to_extract):
         if k in calibration_outputs:
             models[k] = calibration_outputs[k]
 
+    # cold start model
+    inputs = [
+        'engine_speeds_out', 'gear_box_speeds_in', 'on_engine',
+        'idle_engine_speed', 'engine_temperatures',
+        'engine_thermostat_temperature']
+
+    heap = []
+
+    if all(i in calibration_outputs for i in inputs):
+
+        inputs = tuple([calibration_outputs[i] for i in inputs])
+
+        from .engine import calculate_engine_speeds_out
+
+        for name in ['cold_start_speed_model', 'cold_start_speed_model<0>']:
+            if name not in calibration_outputs:
+                continue
+
+            model = calibration_outputs[name]
+            s = calculate_engine_speeds_out(*(inputs[1:] + (model, )))
+            heappush(heap, (mean_absolute_error(inputs[0], s), name, model))
+
+    if heap:
+        models['cold_start_speed_model'] = heap[0][-1]
+        print('cold_start_speed_model: %s with mean_absolute_error %.3f [RPM] '
+              % (heap[0][1], heap[0][0]))
+
     # A/T gear shifting
     methods_ids = {
         'CMV_error_coefficients': 'CMV',

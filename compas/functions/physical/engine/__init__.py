@@ -22,6 +22,7 @@ Sub-Modules:
 
 from math import pi
 import numpy as np
+from heapq import heappush
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import GradientBoostingRegressor
 from scipy.interpolate import InterpolatedUnivariateSpline
@@ -461,7 +462,7 @@ def calculate_engine_speeds_out(
 
     :param cold_start_speed_model:
         Cold start speed model.
-    :type cold_start_speed_model: float
+    :type cold_start_speed_model: function
 
     :return:
         Engine speed [RPM].
@@ -474,13 +475,11 @@ def calculate_engine_speeds_out(
 
     s[on_engine & (s < idle_engine_speed[0])] = idle_engine_speed[0]
 
-    e_t = engine_thermostat_temperature - engine_temperatures
-    e_t *= cold_start_speed_model
+    add_speeds = cold_start_speed_model(
+        s, on_engine, engine_temperatures, engine_thermostat_temperature
+    )
 
-    b = on_engine & (e_t > s)
-    s[b] = e_t[b]
-
-    return s
+    return s + add_speeds
 
 
 def calibrate_cold_start_speed_model(
@@ -527,7 +526,7 @@ def calibrate_cold_start_speed_model(
 
     s = calculate_engine_speeds_out(
         gear_box_speeds_in, on_engine, idle_engine_speed,
-        engine_temperatures, 0, 0
+        engine_temperatures, 0, lambda *args: np.zeros(args[0].shape)
     )
 
     err_0 = mean_absolute_error(engine_speeds_out, gear_box_speeds_in)
@@ -544,7 +543,38 @@ def calibrate_cold_start_speed_model(
 
     res = minimize(error_func, p, bounds=[(0, float('inf'))])
 
-    return float(res.x) if res.success else 0.0
+    p = float(res.x) if res.success else 0.0
+
+    def model(speeds, on_engine, temperatures, thermostat_temperature, *args):
+        add_speeds = (thermostat_temperature - temperatures) * p - speeds
+        add_speeds[add_speeds < 0 | np.logical_not(on_engine)] = 0
+        return add_speeds
+
+    return model
+
+
+def calibrate_cold_start_speed_model_v1(
+        times, velocities, accelerations, engine_speeds_out, idle_engine_speed):
+
+    b = (times < 10) & (engine_speeds_out > idle_engine_speed[0])
+    b &= (velocities < VEL_EPS) & (abs(accelerations) < ACC_EPS)
+
+    s = np.mean(engine_speeds_out[b]) if b.any() else idle_engine_speed[0] * 1.2
+
+    if s <= idle_engine_speed[0] * 1.05:
+        s = idle_engine_speed[0] * 1.2
+    s -= idle_engine_speed[0]
+
+    def model(speeds, on_engine, temperatures, *args):
+        add_speeds = np.zeros(speeds.shape)
+        b = (temperatures < 30.0) & on_engine
+        add_speeds[b] = s * (30.0 - temperatures[b])
+        add_speeds[b] /= abs(30.0 - min(temperatures))
+        b = speeds > (idle_engine_speed[0] + add_speeds)
+        add_speeds[b] = 0
+        return add_speeds
+
+    return model
 
 
 def calculate_engine_powers_out(
