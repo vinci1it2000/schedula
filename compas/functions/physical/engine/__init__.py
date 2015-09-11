@@ -570,8 +570,11 @@ def calibrate_cold_start_speed_model_v1(
         b = (temperatures < 30.0) & on_engine
         add_speeds[b] = s * (30.0 - temperatures[b])
         add_speeds[b] /= abs(30.0 - min(temperatures))
-        b = speeds > (idle_engine_speed[0] + add_speeds)
+        add_speeds += idle_engine_speed[0]
+        b = speeds > add_speeds
         add_speeds[b] = 0
+        b = np.logical_not(b)
+        add_speeds[b] -= speeds[b]
         return add_speeds
 
     return model
