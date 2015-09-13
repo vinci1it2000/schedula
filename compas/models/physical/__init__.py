@@ -242,6 +242,10 @@ def _physical():
             'engine_idle_fuel_consumption': 'engine_idle_fuel_consumption',
             'engine_powers_out': 'engine_powers_out',
             'engine_stroke': 'engine_stroke',
+            'engine_normalization_temperature':
+                'engine_normalization_temperature',
+            'engine_normalization_temperature_window':
+                'engine_normalization_temperature_window',
             'engine_thermostat_temperature': 'engine_thermostat_temperature',
             'engine_type': 'engine_type',
             'fuel_carbon_content': 'fuel_carbon_content',
@@ -269,6 +273,8 @@ def _physical():
             'engine_starts': 'engine_starts',
             'engine_temperatures': 'engine_temperatures',
             'engine_thermostat_temperature': 'engine_thermostat_temperature',
+            'engine_normalization_temperature':
+                'engine_normalization_temperature',
             'engine_temperature_regression_model':
                 'engine_temperature_regression_model',
             'fuel_consumptions': 'fuel_consumptions',
@@ -280,7 +286,7 @@ def _physical():
             'upper_bound_engine_speed': 'upper_bound_engine_speed',
             'full_load_curve': 'full_load_curve',
             'engine_max_power': 'engine_max_power',
-            'engine_max_speed_at_max_power' : 'engine_max_speed_at_max_power'
+            'engine_max_speed_at_max_power': 'engine_max_speed_at_max_power'
         }
     )
 

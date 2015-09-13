@@ -54,8 +54,8 @@ def co2_emission():
 
     co2_emission.add_function(
         function=select_initial_co2_emission_model_params_guess,
-        inputs=['engine_type', 'engine_thermostat_temperature',
-                'engine_thermostat_temperature_window'],
+        inputs=['engine_type', 'engine_normalization_temperature',
+                'engine_normalization_temperature_window'],
         outputs=['co2_params_initial_guess', 'co2_params_bounds']
     )
 

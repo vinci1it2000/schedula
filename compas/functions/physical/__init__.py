@@ -158,14 +158,12 @@ def comparison_model():
     )
 
     def calibrate_co2_params_with_all_calibration_cycles(
-            extracted_models, *calibration_outputs):
+            heap, extracted_models, *calibration_outputs):
         if len(calibration_outputs) <= 1:
             return
         co = calibration_outputs
 
-        c_name = extracted_models['origin calibrated_models']
-        c_name = c_name.get('engine_temperature_regression_model',
-                            co[0]['cycle_name'])
+        c_name = heap[0][-2]
 
         def check(data):
             keys = ('co2_params_initial_guess', 'co2_params_bounds')
@@ -327,7 +325,9 @@ def model_selector(*calibration_outputs):
         def error_fun(e_mods, res_t, co_i):
             if any(m not in e_mods for m in mods):
                 return
+
             err = []
+
             for t in res_t:
                 if all(k not in t for k in trgs):
                     continue
@@ -342,7 +342,7 @@ def model_selector(*calibration_outputs):
         for v in em_rt:
             error_fun(*v)
 
-        e_mods = post(models, *co)
+        e_mods = post(heap, models, *co)
         if e_mods:
             error_fun(e_mods, co, 'ALL')
 
@@ -352,7 +352,6 @@ def model_selector(*calibration_outputs):
             origin.update(dict.fromkeys(mods, rank[0][0]))
             print('Models %s are selected from %s (%.3f) respect to targets %s.'
                   '\nErrors %s.' % (mods, rank[0][0], rank[0][1], trgs, rank))
-
 
     return models
 
@@ -369,7 +368,7 @@ def get_models(calibration_outputs, models_to_extract):
     inputs = [
         'engine_speeds_out', 'gear_box_speeds_in', 'on_engine',
         'idle_engine_speed', 'engine_temperatures',
-        'engine_thermostat_temperature']
+        'engine_normalization_temperature']
 
     heap = []
 

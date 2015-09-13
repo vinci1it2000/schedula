@@ -127,8 +127,14 @@ def engine():
     engine.add_function(
         function=identify_thermostat_engine_temperature,
         inputs=['engine_temperatures'],
-        outputs=['engine_thermostat_temperature',
-                 'engine_thermostat_temperature_window']
+        outputs=['engine_thermostat_temperature']
+    )
+
+    engine.add_function(
+        function=identify_normalization_engine_temperature,
+        inputs=['engine_temperatures'],
+        outputs=['engine_normalization_temperature',
+                 'engine_normalization_temperature_window']
     )
 
     engine.add_function(
@@ -168,8 +174,8 @@ def engine():
         function=calibrate_cold_start_speed_model,
         inputs=['velocities', 'accelerations', 'engine_speeds_out',
                 'engine_temperatures', 'idle_engine_speed',
-                'engine_thermostat_temperature',
-                'engine_thermostat_temperature_window', 'gear_box_speeds_in',
+                'engine_normalization_temperature',
+                'engine_normalization_temperature_window', 'gear_box_speeds_in',
                 'on_engine'],
         outputs=['cold_start_speed_model']
     )
@@ -245,13 +251,14 @@ def engine():
             'engine_speeds_out': 'engine_speeds_out',
             'engine_stroke': 'engine_stroke',
             'engine_temperatures': 'engine_temperatures',
-            'engine_thermostat_temperature': 'engine_thermostat_temperature',
+            'engine_normalization_temperature':
+                'engine_normalization_temperature',
             'engine_type': 'engine_type',
             'fuel_carbon_content': 'fuel_carbon_content',
             'idle_engine_speed': 'idle_engine_speed',
             'mean_piston_speeds': 'mean_piston_speeds',
-            'engine_thermostat_temperature_window':
-                'engine_thermostat_temperature_window',
+            'engine_normalization_temperature_window':
+                'engine_normalization_temperature_window',
             'times': 'times',
             'velocities': 'velocities'
         },

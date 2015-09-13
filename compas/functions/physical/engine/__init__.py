@@ -22,7 +22,6 @@ Sub-Modules:
 
 from math import pi
 import numpy as np
-from heapq import heappush
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import GradientBoostingRegressor
 from scipy.interpolate import InterpolatedUnivariateSpline
@@ -31,7 +30,6 @@ from sklearn.metrics import mean_absolute_error
 from compas.functions.physical.constants import *
 from compas.functions.physical.utils import bin_split, reject_outliers, \
     clear_gear_fluctuations
-
 
 
 def get_full_load(fuel_type):
@@ -254,8 +252,8 @@ def identify_thermostat_engine_temperature(engine_temperatures):
     :type engine_temperatures: np.array
 
     :return:
-        Thermostat engine temperature and its limits [°C].
-    :rtype: (float, (float, float))
+        Thermostat engine temperature [°C].
+    :rtype: float
     """
 
     m, s = reject_outliers(engine_temperatures, n=2)
@@ -265,7 +263,25 @@ def identify_thermostat_engine_temperature(engine_temperatures):
     if max_temp - m > s:
         m = max_temp
 
-    max_temp = max(max_temp, m + s)
+    return m
+
+
+def identify_normalization_engine_temperature(engine_temperatures):
+    """
+    Identifies normalization engine temperature and its limits [°C].
+
+    :param engine_temperatures:
+        Engine temperature vector [°C].
+    :type engine_temperatures: np.array
+
+    :return:
+        Normalization engine temperature and its limits [°C].
+    :rtype: (float, (float, float))
+    """
+
+    m, s = reject_outliers(engine_temperatures, n=2)
+
+    max_temp = max(engine_temperatures)
     s = max(s, 20.0)
 
     return m, (m - s, max_temp)
