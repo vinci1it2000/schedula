@@ -273,6 +273,7 @@ def _physical():
             'engine_starts': 'engine_starts',
             'engine_temperatures': 'engine_temperatures',
             'engine_thermostat_temperature': 'engine_thermostat_temperature',
+            'engine_type': 'engine_type',
             'engine_normalization_temperature':
                 'engine_normalization_temperature',
             'engine_temperature_regression_model':

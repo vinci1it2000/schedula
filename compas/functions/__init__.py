@@ -58,6 +58,7 @@ def select_inputs_for_prediction(data):
         'co2_params',
         'engine_idle_fuel_consumption',
         'engine_type',
+        'engine_is_turbo',
         'engine_fuel_lower_heating_value',
         'fuel_carbon_content',
         'initial_state_of_charge',
@@ -65,6 +66,7 @@ def select_inputs_for_prediction(data):
         'f1',
         'f2',
         'initial_temperature',
+        'upper_bound_engine_speed',
         'road_loads',
         'vehicle_mass',
     ]

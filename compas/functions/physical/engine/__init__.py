@@ -25,7 +25,7 @@ import numpy as np
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import GradientBoostingRegressor
 from scipy.interpolate import InterpolatedUnivariateSpline
-from scipy.optimize import minimize
+from scipy.optimize import fmin
 from sklearn.metrics import mean_absolute_error
 from compas.functions.physical.constants import *
 from compas.functions.physical.utils import bin_split, reject_outliers, \
@@ -534,36 +534,43 @@ def calibrate_cold_start_speed_model(
     b &= (velocities < VEL_EPS) & (abs(accelerations) < ACC_EPS)
     b &= (idle_engine_speed[0] < engine_speeds_out)
 
-    if not b.any():
-        return 0.0
+    p = 0.0
 
-    e_t = engine_thermostat_temperature - engine_temperatures
-    p = 1.0 / reject_outliers(e_t[b] / engine_speeds_out[b])[0]
+    if b.any():
+        e_t = engine_thermostat_temperature - engine_temperatures
+        x0 = 1.0 / reject_outliers(e_t[b] / engine_speeds_out[b])[0]
 
-    s = calculate_engine_speeds_out(
-        gear_box_speeds_in, on_engine, idle_engine_speed,
-        engine_temperatures, 0, lambda *args: np.zeros(args[0].shape)
-    )
+        speeds = calculate_engine_speeds_out(
+            gear_box_speeds_in, on_engine, idle_engine_speed,
+            engine_temperatures, 0, lambda *args: np.zeros(args[0].shape)
+        )
 
-    err_0 = mean_absolute_error(engine_speeds_out, gear_box_speeds_in)
+        err_0 = mean_absolute_error(engine_speeds_out[b], speeds[b])
 
-    def error_func(p):
-        s_o = e_t * p
+        def error_func(p):
+            s_o = e_t * p
 
-        b = on_engine & (s_o > s)
+            b_ = on_engine & (s_o > speeds)
 
-        if not b.any():
-            return err_0
+            if not b_.any():
+                return err_0
 
-        return mean_absolute_error(engine_speeds_out[b], s_o[b])
+            b_ = np.logical_not(b_)
 
-    res = minimize(error_func, p, bounds=[(0, float('inf'))])
+            s_o[b_] = speeds[b_]
 
-    p = float(res.x) if res.success else 0.0
+            return mean_absolute_error(engine_speeds_out[b], s_o[b])
 
-    def model(speeds, on_engine, temperatures, thermostat_temperature, *args):
-        add_speeds = (thermostat_temperature - temperatures) * p - speeds
-        add_speeds[add_speeds < 0 | np.logical_not(on_engine)] = 0
+        p, err = fmin(error_func, x0, disp=False, full_output=True)[0:2]
+
+        p = float(p) if p > 0.0 and err < err_0 else 0.0
+
+    def model(speeds, on_engine, temperatures, *args):
+        add_speeds = np.zeros(speeds.shape)
+        if p > 0:
+            s_o = (engine_thermostat_temperature - temperatures) * p
+            b = on_engine & (s_o > speeds)
+            add_speeds[b] = s_o[b] - speeds[b]
         return add_speeds
 
     return model

@@ -267,12 +267,12 @@ def process_folder_files(input_folder, output_folder):
             'calibration_cycle_prediction_outputs_file_name<0>': wopl_name,
         }
         res = model.dispatch(inputs=inputs)[1]
-        nedc = res['prediction_cycle_outputs']
-        wltph = res['calibration_cycle_prediction_outputs']
-        wltpl = res['calibration_cycle_prediction_outputs<0>']
-        t_nedc = res['prediction_cycle_targets']
-        t_wltph = res['calibration_cycle_outputs']
-        t_wltpl = res['calibration_cycle_outputs<0>']
+        nedc = res.get('prediction_cycle_outputs', {})
+        wltph = res.get('calibration_cycle_prediction_outputs', {})
+        wltpl = res.get('calibration_cycle_prediction_outputs<0>', {})
+        t_nedc = res.get('prediction_cycle_targets', {})
+        t_wltph = res.get('calibration_cycle_outputs', {})
+        t_wltpl = res.get('calibration_cycle_outputs<0>', {})
 
         try:
             s = {'vehicle': fname}

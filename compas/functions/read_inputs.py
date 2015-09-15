@@ -59,8 +59,10 @@ def read_cycle_parameters(excel_file, parse_cols):
     """
 
     sheet = _open_sheet_by_name_or_index(excel_file.book, 'book', 'Inputs')
-    res = lasso('#Inputs!%s2:%s_:["pipe", ["dict", "recurse"]]' % tuple(parse_cols.split(':')), sheet=sheet)
-    return res
+    cols = tuple(parse_cols.split(':'))
+    xl_ref = '#Inputs!%s2:%s_:["pipe", ["dict", "recurse"]]' % cols
+
+    return lasso(xl_ref, sheet=sheet)
 
 
 class EmptyValue(Exception):
@@ -148,6 +150,10 @@ def parse_inputs(data, data_map, cycle_name):
     return d['inputs'], d['targets']
 
 
+def try_eval(data):
+    return eval(data) if isinstance(data, str) else data
+
+
 def get_filters():
     """
     Returns the filters for parameters and series.
@@ -160,14 +166,14 @@ def get_filters():
     _filters = {
         'PARAMETERS': {
             None: (float, empty),
-            'co2_params': (eval, dict, empty),
+            'co2_params': (try_eval, dict, empty),
             'engine_is_turbo': (bool, empty),
             'engine_has_variable_valve_actuation': (bool, empty),
             'engine_has_cylinder_deactivation': (bool, empty),
             'engine_has_direct_injection': (bool, empty),
             'engine_type': (str, empty),
             'fuel_type': (str, empty),
-            'gear_box_ratios': (list, empty, index_dict),
+            'gear_box_ratios': (try_eval, list, empty, index_dict),
             'gear_box_type': (str, empty),
             'has_start_stop': (bool, empty),
             'has_energy_recuperation': (bool, empty),
@@ -177,13 +183,13 @@ def get_filters():
             'has_particle_filter': (bool, empty),
             'has_selective_catalytic_reduction': (bool, empty),
             'has_nox_storage_catalyst': (bool, empty),
-            'idle_engine_speed': (list, empty),
-            'phases_co2_emissions': (list, empty),
-            'velocity_speed_ratios': (list, empty, index_dict),
-            'road_loads': (list, empty),
-            'full_load_speeds': (np.asarray, empty),
-            'full_load_torques': (np.asarray, empty),
-            'full_load_powers': (np.asarray, empty),
+            'idle_engine_speed': (try_eval, list, empty),
+            'phases_co2_emissions': (try_eval, list, empty),
+            'velocity_speed_ratios': (try_eval, list, empty, index_dict),
+            'road_loads': (try_eval, list, empty),
+            'full_load_speeds': (try_eval, np.asarray, empty),
+            'full_load_torques': (try_eval, np.asarray, empty),
+            'full_load_powers': (try_eval, np.asarray, empty),
         },
         'SERIES': {
             None: (np.asarray, empty)
