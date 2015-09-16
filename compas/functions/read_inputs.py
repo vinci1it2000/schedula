@@ -16,6 +16,7 @@ import pandas as pd
 from pandalone.xleash import lasso
 from pandalone.xleash.io._xlrd import _open_sheet_by_name_or_index
 
+
 def read_cycles_series(excel_file, sheet_name):
     """
     Reads cycle's time series.

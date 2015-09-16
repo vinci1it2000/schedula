@@ -534,11 +534,11 @@ def calibrate_cold_start_speed_model(
     b &= (velocities < VEL_EPS) & (abs(accelerations) < ACC_EPS)
     b &= (idle_engine_speed[0] < engine_speeds_out)
 
-    p = 0.0
+    t, p = engine_thermostat_temperature, 0.0
 
     if b.any():
         e_t = engine_thermostat_temperature - engine_temperatures
-        x0 = 1.0 / reject_outliers(e_t[b] / engine_speeds_out[b])[0]
+        p = 1.0 / reject_outliers(e_t[b] / engine_speeds_out[b])[0]
 
         speeds = calculate_engine_speeds_out(
             gear_box_speeds_in, on_engine, idle_engine_speed,
@@ -547,8 +547,8 @@ def calibrate_cold_start_speed_model(
 
         err_0 = mean_absolute_error(engine_speeds_out[b], speeds[b])
 
-        def error_func(p):
-            s_o = e_t * p
+        def error_func(x):
+            s_o = (x[0] - engine_temperatures) * x[1]
 
             b_ = on_engine & (s_o > speeds)
 
@@ -561,16 +561,20 @@ def calibrate_cold_start_speed_model(
 
             return mean_absolute_error(engine_speeds_out[b], s_o[b])
 
-        p, err = fmin(error_func, x0, disp=False, full_output=True)[0:2]
+        x0 = [t, p]
+        res, err = fmin(error_func, x0, disp=False, full_output=True)[0:2]
+        t, p = res
 
         p = float(p) if p > 0.0 and err < err_0 else 0.0
 
-    def model(speeds, on_engine, temperatures, *args):
-        add_speeds = np.zeros(speeds.shape)
+    def model(spd, on_eng, temperatures, *args):
+        add_speeds = np.zeros(spd.shape)
+
         if p > 0:
-            s_o = (engine_thermostat_temperature - temperatures) * p
-            b = on_engine & (s_o > speeds)
-            add_speeds[b] = s_o[b] - speeds[b]
+            s_o = (t - temperatures) * p
+            b = on_eng & (s_o > spd)
+            add_speeds[b] = s_o[b] - spd[b]
+
         return add_speeds
 
     return model
