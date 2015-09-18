@@ -38,13 +38,15 @@ import numpy as np
 from itertools import zip_longest, chain
 
 
-def compare_result(target_ids, model_results, target_results, sample_weight=()):
+def compare_result(
+        outputs_ids, target_ids, model_results, target_results,
+        sample_weight=()):
 
     err, weights = [], []
     to_list = lambda *args: [np.asarray(v, dtype=float) for v in args]
-    for t, w in zip_longest(target_ids, sample_weight, fillvalue=1):
-        if t in model_results and t in target_results:
-            y = (target_results[t], model_results[t])
+    for o, t, w in zip_longest(outputs_ids, target_ids, sample_weight, fillvalue=1):
+        if o in model_results and t in target_results:
+            y = (target_results[t], model_results[o])
 
             e = mean_absolute_error(*[to_list(x) for x in y])
             err.append(e)
@@ -198,7 +200,8 @@ def comparison_model():
 
     models.append({
         'models': ('co2_params',),
-        'targets': ('co2_emissions',),
+        'outputs':('co2_emissions',),
+        'targets': ('identified_co2_emissions',),
         'post_processing': calibrate_co2_params_with_all_calibration_cycles
     })
 
@@ -272,13 +275,13 @@ def comparison_model():
     )
 
     def AT_get_inputs(extracted_models, *args, **kwargs):
-        i = get_inputs(extracted_models, *args)
-        k = i['AT_gear_shifting_model'][0]
+        i = get_inputs(extracted_models, *args, **kwargs)
+        k = i['origin AT_gear_shifting_model'][0]
         i[k] = extracted_models[k]
         return i
 
     models.append({
-        'models': ('AT_gear_shifting_model', 'correct_gear',
+        'models': ('origin AT_gear_shifting_model', 'correct_gear',
                    'upper_bound_engine_speed'),
         'targets': ('gears',),
         'get_inputs': AT_get_inputs
@@ -287,8 +290,16 @@ def comparison_model():
     return dsp, models
 
 
-def get_inputs(extracted_models, outputs, models, targets, **kwargs):
-    inputs = {k: v for k, v in outputs.items() if k not in targets}
+def get_inputs(
+        extracted_models, results, models, targets=None, outputs=None,
+        **kwargs):
+    if targets is None:
+        targets = {}
+    if outputs is None:
+        outputs = {}
+
+    keys = set(targets).union(outputs)
+    inputs = {k: v for k, v in results.items() if k not in keys}
     inputs.update({m: extracted_models[m] for m in models})
     return inputs
 
@@ -309,47 +320,68 @@ def model_selector(*calibration_outputs):
     co = calibration_outputs
     models = {}
     models['origin calibrated_models'] = origin = {}
+    models['errors calibrated_models'] = origin_errors = {}
     dsp, _model_targets = comparison_model()
 
     # get calibrated models and data for comparison
     m = set(chain.from_iterable(m['models'] for m in _model_targets))
     id_tag = 'cycle_name'
-    get = lambda i, o: (get_models(o, m), co[:i] + co[i + 1:], o[id_tag])
+    get = lambda i, o: (get_models(o, m), o[id_tag], co[:i] + co[i + 1:], co[i])
     em_rt = list(map(get, range(len(co)), co))
 
     for d in _model_targets:
         heap, mods, trgs = [], d['models'], d['targets']
+        trgs = d.get('targets', d.get('outputs', ()))
+        outs = d.get('outputs', d.get('targets', ()))
         get_i = d.get('get_inputs', get_inputs)
         post = d.get('post_processing', lambda *args: None)
 
-        def error_fun(e_mods, res_t, co_i):
+        def error_fun(e_mods, co_i, res_t, push=True):
             if any(m not in e_mods for m in mods):
-                return
+                return (None, False)
 
-            err = []
+            err_ = [] if trgs else [float('inf')]
 
             for t in res_t:
                 if all(k not in t for k in trgs):
                     continue
-                pred = dsp.dispatch(get_i(e_mods, t, **d), trgs, shrink=True)[1]
-                err.append(compare_result(trgs, pred, t))
+
+                pred = dsp.dispatch(get_i(e_mods, t, **d), outs, shrink=True)[1]
+                err_.append(compare_result(outs, trgs, pred, t))
 
             m = {k: e_mods[k] for k in mods if k in e_mods}
-            err = np.mean(err) if err else np.nan
 
-            heappush(heap, (err, len(e_mods), co_i, m))
+            err = np.mean(err_) if err_ else float('inf')
+
+            if err_ and push:
+                heappush(heap, (err, len(e_mods), co_i, m))
+
+            return (err, len(e_mods), co_i, m), err_
 
         for v in em_rt:
-            error_fun(*v)
+
+            push = not error_fun(*v[:-1])[1]
+
+            coi = v[-1]
+            res = error_fun(v[0], v[1], (coi,), push=push)[0]
+            if res:
+                err = res[0]
+                for k in res[-1]:
+                    coi['errors %s' % k] = err
 
         e_mods = post(heap, models, *co)
         if e_mods:
-            error_fun(e_mods, co, 'ALL')
+            error_fun(e_mods, 'ALL', co)
+            # heappush(heap, (-1, 0, 'ALL_', {k: e_mods[k] for k in mods if k in e_mods}))
 
         if heap:
             models.update(heap[0][-1])
+
             rank = [(v[-2], v[0]) for v in heap_flush(heap)]
+
             origin.update(dict.fromkeys(mods, rank[0][0]))
+            origin_errors.update(dict.fromkeys(mods, rank))
+
             print('Models %s are selected from %s (%.3f) respect to targets %s.'
                   '\nErrors %s.' % (mods, rank[0][0], rank[0][1], trgs, rank))
 
@@ -390,6 +422,8 @@ def get_models(calibration_outputs, models_to_extract):
         models['cold_start_speed_model'] = heap[0][-1]
         print('cold_start_speed_model: %s with mean_absolute_error %.3f [RPM] '
               % (heap[0][1], heap[0][0]))
+        heap = [(v[1], v[0]) for v in heap_flush(heap)]
+        calibration_outputs['errors cold_start_speed_model'] = heap
 
     # A/T gear shifting
     methods_ids = {
@@ -414,7 +448,10 @@ def get_models(calibration_outputs, models_to_extract):
         e, k = m[0][1:]
 
         models[k] = calibration_outputs[k]
-        models['AT_gear_shifting_model'] = (k, e)
+        models['origin AT_gear_shifting_model'] = (k, e)
+        tags = ['mean_absolute_error', 'correlation_coefficient']
+        m = [(v[-1], {t: v for t, v in zip(tags, v[1])}) for v in heap_flush(m)]
+        calibration_outputs['errors AT_gear_shifting_model'] = m
 
         print('AT_gear_shifting_model: %s with mean_absolute_error %.3f [RPM] '
               'and correlation_coefficient %.3f' % (k, e[0], e[1]))

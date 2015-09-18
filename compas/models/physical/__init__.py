@@ -261,6 +261,7 @@ def _physical():
             'co2_emissions_model': 'co2_emissions_model',
             'co2_emission_value': 'co2_emission_value',
             'co2_emissions': 'co2_emissions',
+            'identified_co2_emissions': 'identified_co2_emissions',
             'co2_error_function': 'co2_error_function',
             'co2_params': 'co2_params',
             'co2_params_bounds': 'co2_params_bounds',

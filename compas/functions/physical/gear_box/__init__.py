@@ -409,7 +409,8 @@ def _gear_box_torques_in(
 
     par = gear_box_efficiency_parameters_cold_hot
 
-    y[b] = par['gbp01'] * tgb[b] - par['gbp10'] * ws[b] - par['gbp00']
+    y[b] = (par['gbp01'] * tgb[b] - par['gbp10'] * ws[b] - par['gbp00']) * ws[b]
+    y[b] /= es[b]
 
     b = (np.logical_not(b)) & (es > MIN_ENGINE_SPEED) & (ws > MIN_ENGINE_SPEED)
 

@@ -174,7 +174,7 @@ def engine():
         function=calibrate_cold_start_speed_model,
         inputs=['velocities', 'accelerations', 'engine_speeds_out',
                 'engine_temperatures', 'idle_engine_speed',
-                'engine_thermostat_temperature',
+                'engine_normalization_temperature',
                 'engine_normalization_temperature_window', 'gear_box_speeds_in',
                 'on_engine'],
         outputs=['cold_start_speed_model']
@@ -266,6 +266,7 @@ def engine():
             'co2_emissions_model': 'co2_emissions_model',
             'co2_emission_value': 'co2_emission_value',
             'co2_emissions': 'co2_emissions',
+            'identified_co2_emissions': 'identified_co2_emissions',
             'co2_error_function': 'co2_error_function',
             'co2_params': 'co2_params',
             'co2_params_bounds': 'co2_params_bounds',

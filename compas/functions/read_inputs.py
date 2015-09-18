@@ -91,8 +91,7 @@ def empty(value):
     try:
         if value:
             return value
-        elif isinstance(value, np.ndarray) and \
-                (value == [[None]] or value == [[]]):
+        elif isinstance(value, np.ndarray) and not value:
             pass
         elif value != '':
             return value

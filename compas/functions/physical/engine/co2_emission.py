@@ -604,7 +604,7 @@ def calibrate_model_params(params_bounds, error_function, initial_guess=None):
     else:
         error_f = lambda p: sum(f(p) for f in error_function)
 
-    param_keys, params_bounds = zip(*params_bounds.items())
+    param_keys, params_bounds = zip(*sorted(params_bounds.items()))
 
     params, min_e_and_p = {}, [np.inf, None]
 

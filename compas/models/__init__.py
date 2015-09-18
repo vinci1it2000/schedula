@@ -21,10 +21,6 @@ It contains a comprehensive list of all CO2MPAS software models and functions:
     physical
 """
 
-import re
-import os
-import glob
-from datetime import datetime
 from compas.functions.write_outputs import write_output
 from compas.dispatcher import Dispatcher
 from compas.dispatcher.utils import SubDispatch, replicate_value
@@ -32,7 +28,7 @@ from compas.dispatcher.constants import SINK
 from functools import partial
 from compas.functions.read_inputs import *
 from compas.dispatcher.utils import SubDispatchFunction
-from compas.functions import *
+from compas.functions import select_inputs_for_prediction
 
 
 def architecture():
@@ -220,89 +216,6 @@ def architecture():
     )
 
     return architecture
-
-
-files_exclude_regex = re.compile('^\w')
-
-
-def process_folder_files(input_folder, output_folder):
-    """
-    Processes all excel files in a folder with the model defined by
-    :func:`architecture`.
-
-    :param input_folder:
-        Input folder.
-    :type input_folder: str
-
-    :param output_folder:
-        Output folder.
-    :type output_folder: str
-    """
-
-    model = architecture()
-    fpaths = sorted(glob.glob(input_folder + '/*.xlsx'))
-    summary = []
-    start_time = datetime.today()
-    doday = start_time.strftime('%d_%b_%Y_%H_%M_%S_')
-
-    for fpath in fpaths:
-        fname = os.path.basename(fpath)
-        fname = fname.split('.')[0]
-        if not files_exclude_regex.match(fname):
-            print('Skipping: %s' % fname)
-            continue
-        print('Processing: %s' % fname)
-        format = '%s/%s_%s_%s.xlsx'
-        woch_name = format % (output_folder, doday, 'calibration_WLTP-H', fname)
-        wocl_name = format % (output_folder, doday, 'calibration_WLTP-L', fname)
-        woph_name = format % (output_folder, doday, 'prediction_WLTP-H', fname)
-        wopl_name = format % (output_folder, doday, 'prediction_WLTP-L', fname)
-        nop_name = format % (output_folder, doday, 'prediction_NEDC', fname)
-        inputs = {
-            'input_file_name': fpath,
-            'prediction_output_file_name': nop_name,
-            'calibration_output_file_name': woch_name,
-            'calibration_output_file_name<0>': wocl_name,
-            'calibration_cycle_prediction_outputs_file_name': woph_name,
-            'calibration_cycle_prediction_outputs_file_name<0>': wopl_name,
-        }
-        res = model.dispatch(inputs=inputs)[1]
-        nedc = res.get('prediction_cycle_outputs', {})
-        wltph = res.get('calibration_cycle_prediction_outputs', {})
-        wltpl = res.get('calibration_cycle_prediction_outputs<0>', {})
-        t_nedc = res.get('prediction_cycle_targets', {})
-        t_wltph = res.get('calibration_cycle_outputs', {})
-        t_wltpl = res.get('calibration_cycle_outputs<0>', {})
-
-        try:
-            s = {'vehicle': fname}
-            s.update(nedc['co2_params'])
-            for tag, r, t in [('NEDC', nedc, t_nedc),
-                              ('WLTP-H', wltph, t_wltph),
-                              ('WLTP-L', wltpl, t_wltpl)]:
-                for ta, m in (('', r), ('target ', t)):
-                    try:
-                        s.update({"%s%s co2_emission_value" % (ta, tag): m['co2_emission_value']})
-                        s.update({"%s%s phases_co2_emissions %d" % (ta, tag, i): v
-                                  for i, v in enumerate(m['phases_co2_emissions'])})
-                    except KeyError:
-                        if tag in ('WLTP-H', 'WLTP-L'):
-                            pass
-            summary.append(s)
-        except KeyError:
-            print('Skipping summary for: %s' % fname)
-            pass
-
-    writer = pd.ExcelWriter('%s/%s%s.xlsx' % (output_folder, doday, 'Summary'))
-    pd.DataFrame.from_records(summary).to_excel(writer, 'Summary')
-    """
-    from compas.dispatcher.draw import dsp2dot
-
-    dsp2dot(model, workflow=True, view=True, function_module=False,
-            node_output=False, edge_attr=model.weight)
-    dsp2dot(model, view=True, function_module=False)
-    """
-    print('Done! [%f min]' % ((datetime.today() - start_time).total_seconds() / 60.0))
 
 
 def load():
