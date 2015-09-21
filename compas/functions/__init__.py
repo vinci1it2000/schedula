@@ -202,7 +202,7 @@ def process_folder_files(input_folder, output_folder):
             inputs[k] = output_file_format % (output_folder, doday, v, fname)
 
         res = model.dispatch(inputs=inputs)
-        print(res[1]['prediction_cycle_targets'])
+
         s = make_summary(sheets, *res, **{'vehicle': fname})
         s.update(extract_summary(s))
 

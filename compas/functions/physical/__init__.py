@@ -165,7 +165,7 @@ def comparison_model():
             return
         co = calibration_outputs
 
-        c_name = heap[0][-2]
+        c_name = heap[0][-2] if heap else co[0]['cycle_name']
 
         def check(data):
             keys = ('co2_params_initial_guess', 'co2_params_bounds')
@@ -397,26 +397,24 @@ def get_models(calibration_outputs, models_to_extract):
             models[k] = calibration_outputs[k]
 
     # cold start model
-    inputs = [
-        'engine_speeds_out', 'gear_box_speeds_in', 'on_engine',
-        'idle_engine_speed', 'engine_temperatures',
-        'engine_normalization_temperature']
+    params = ['engine_speeds_out', 'engine_speeds_out_hot', 'on_engine',
+              'engine_temperatures']
 
     heap = []
 
-    if all(i in calibration_outputs for i in inputs):
+    if all(i in calibration_outputs for i in params):
 
-        inputs = tuple([calibration_outputs[i] for i in inputs])
+        params = tuple([calibration_outputs[i] for i in params])
 
-        from .engine import calculate_engine_speeds_out
+        from .engine import calculate_engine_speeds_out_with_cold_start as fun
 
-        for name in ['cold_start_speed_model', 'cold_start_speed_model<0>']:
+        for name in ['cold_start_speed_model', 'cold_start_speed_model_v1']:
             if name not in calibration_outputs:
                 continue
 
             model = calibration_outputs[name]
-            s = calculate_engine_speeds_out(*(inputs[1:] + (model, )))
-            heappush(heap, (mean_absolute_error(inputs[0], s), name, model))
+            s = fun(*((model, ) + params[1:]))
+            heappush(heap, (mean_absolute_error(params[0], s), name, model))
 
     if heap:
         models['cold_start_speed_model'] = heap[0][-1]
