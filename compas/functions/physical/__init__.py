@@ -76,13 +76,13 @@ def comparison_model():
             'initial_temperature': 'initial_engine_temperature'
         },
         outputs={
-            'engine_temperatures': 'engine_temperatures'
+            'engine_coolant_temperatures': 'engine_coolant_temperatures'
         }
     )
 
     models.append({
         'models': ('engine_temperature_regression_model',),
-        'targets': ('engine_temperatures',)
+        'targets': ('engine_coolant_temperatures',)
     })
 
     # start_stop_model
@@ -94,7 +94,7 @@ def comparison_model():
             'times': 'times',
             'velocities': 'velocities',
             'accelerations': 'accelerations',
-            'engine_temperatures': 'engine_temperatures',
+            'engine_coolant_temperatures': 'engine_coolant_temperatures',
             'cycle_type': 'cycle_type',
             'gear_box_type': 'gear_box_type'
         },
@@ -117,7 +117,7 @@ def comparison_model():
             'gear_box_speeds_in': 'gear_box_speeds_in',
             'on_engine': 'on_engine',
             'idle_engine_speed': 'idle_engine_speed',
-            'engine_temperatures': 'engine_temperatures',
+            'engine_coolant_temperatures': 'engine_coolant_temperatures',
             'engine_thermostat_temperature': 'engine_thermostat_temperature',
             'cold_start_speed_model': 'cold_start_speed_model'
         },
@@ -264,7 +264,7 @@ def comparison_model():
             'GSPV_Cold_Hot': 'GSPV_Cold_Hot',
             'accelerations': 'accelerations',
             'gear_box_powers_out': 'gear_box_powers_out',
-            'engine_temperatures': 'engine_temperatures',
+            'engine_coolant_temperatures': 'engine_coolant_temperatures',
             'time_cold_hot_transition': 'time_cold_hot_transition',
             'times': 'times',
             'velocities': 'velocities',
@@ -398,7 +398,7 @@ def get_models(calibration_outputs, models_to_extract):
 
     # cold start model
     params = ['engine_speeds_out', 'engine_speeds_out_hot', 'on_engine',
-              'engine_temperatures']
+              'engine_coolant_temperatures']
 
     heap = []
 

@@ -124,6 +124,11 @@ def vehicle():
         outputs=['road_loads']
     )
 
+    vehicle.add_data(
+        data_id='road_loads',
+        description='Cycle road loads [N, N/(km/h), N/(km/h)^2].'
+    )
+
     vehicle.add_function(
         function_id='splitting',
         function=bypass,

@@ -20,14 +20,14 @@ from compas.functions.physical.constants import *
 from inspect import isfunction
 
 
-def calculate_normalized_engine_temperatures(
-        engine_temperatures, temperature_target):
+def calculate_normalized_engine_coolant_temperatures(
+        engine_coolant_temperatures, temperature_target):
     """
     Calculates the normalized engine temperature [-].
 
-    :param engine_temperatures:
-        Engine temperature vector [°C].
-    :type engine_temperatures: np.array
+    :param engine_coolant_temperatures:
+        Engine coolant temperature vector [°C].
+    :type engine_coolant_temperatures: np.array
 
     :param temperature_target:
         Normalization temperature [°C].
@@ -38,7 +38,7 @@ def calculate_normalized_engine_temperatures(
     :rtype: np.array
     """
 
-    T = (engine_temperatures + 273.0) / (temperature_target + 273.0)
+    T = (engine_coolant_temperatures + 273.0) / (temperature_target + 273.0)
 
     T[T > 1] = 1.0
 
@@ -93,6 +93,35 @@ def _calculate_fuel_mean_effective_pressure(
 
 def calculate_P0(params, engine_capacity, engine_stroke, idle_engine_speed,
                  engine_fuel_lower_heating_value):
+    """
+    Calculates the P0 power threshold [kW].
+
+    :param params:
+        CO2 emission model parameters (a2, b2, a, b, c, l, l2, t, trg).
+
+        The missing parameters are set equal to zero.
+    :type params: dict
+
+    :param engine_capacity:
+        Engine capacity [cm3].
+    :type engine_capacity: float
+
+    :param engine_stroke:
+        Engine stroke [mm].
+    :type engine_stroke: float
+
+    :param idle_engine_speed:
+        Engine speed idle median and std [RPM].
+    :type idle_engine_speed: (float, float)
+
+    :param engine_fuel_lower_heating_value:
+        Fuel lower heating value [kJ/kg].
+    :type engine_fuel_lower_heating_value: float
+
+    :return:
+        P0 power threshold [kW].
+    :rtype: float
+    """
 
     p = {
         'a2': 0.0, 'b2': 0.0,
@@ -117,7 +146,7 @@ def calculate_P0(params, engine_capacity, engine_stroke, idle_engine_speed,
 
 def calculate_co2_emissions(
         engine_speeds_out, engine_powers_out, mean_piston_speeds,
-        brake_mean_effective_pressures, engine_temperatures,
+        brake_mean_effective_pressures, engine_coolant_temperatures,
         engine_fuel_lower_heating_value, idle_engine_speed, engine_stroke,
         engine_capacity, engine_idle_fuel_consumption, fuel_carbon_content,
         params):
@@ -140,9 +169,9 @@ def calculate_co2_emissions(
         Engine brake mean effective pressure vector [bar].
     :rtype: np.array
 
-    :param engine_temperatures:
-        Engine temperature vector [°C].
-    :type engine_temperatures: np.array
+    :param engine_coolant_temperatures:
+        Engine coolant temperature vector [°C].
+    :type engine_coolant_temperatures: np.array
 
     :param engine_fuel_lower_heating_value:
         Fuel lower heating value [kJ/kg].
@@ -191,11 +220,11 @@ def calculate_co2_emissions(
     n_speeds = mean_piston_speeds
     n_powers = brake_mean_effective_pressures
     lhv = engine_fuel_lower_heating_value
-    temp = calculate_normalized_engine_temperatures
+    temp = calculate_normalized_engine_coolant_temperatures
 
     p.update(params)
 
-    n_temperatures = temp(engine_temperatures, p['trg'])
+    n_temperatures = temp(engine_coolant_temperatures, p['trg'])
 
     FMEP = partial(_calculate_fuel_mean_effective_pressure, p)
 
@@ -225,7 +254,7 @@ def calculate_co2_emissions(
 
 def define_co2_emissions_model(
         engine_speeds_out, engine_powers_out, mean_piston_speeds,
-        brake_mean_effective_pressures, engine_temperatures,
+        brake_mean_effective_pressures, engine_coolant_temperatures,
         engine_fuel_lower_heating_value, idle_engine_speed, engine_stroke,
         engine_capacity, engine_idle_fuel_consumption, fuel_carbon_content):
     """
@@ -247,9 +276,9 @@ def define_co2_emissions_model(
         Engine brake mean effective pressure vector [bar].
     :rtype: np.array
 
-    :param engine_temperatures:
-        Engine temperature vector [°C].
-    :type engine_temperatures: np.array
+    :param engine_coolant_temperatures:
+        Engine coolant temperature vector [°C].
+    :type engine_coolant_temperatures: np.array
 
     :param engine_fuel_lower_heating_value:
         Fuel lower heating value [kJ/kg].
@@ -283,7 +312,7 @@ def define_co2_emissions_model(
     model = partial(
         calculate_co2_emissions, engine_speeds_out, engine_powers_out,
         mean_piston_speeds, brake_mean_effective_pressures,
-        engine_temperatures, engine_fuel_lower_heating_value,
+        engine_coolant_temperatures, engine_fuel_lower_heating_value,
         idle_engine_speed, engine_stroke, engine_capacity,
         engine_idle_fuel_consumption, fuel_carbon_content
     )
@@ -398,8 +427,8 @@ def calculate_cumulative_co2_v1(phases_co2_emissions, phases_distances):
 
 
 def select_initial_co2_emission_model_params_guess(
-        engine_type, engine_thermostat_temperature,
-        engine_thermostat_temperature_window):
+        engine_type, engine_normalization_temperature,
+        engine_normalization_temperature_window):
     """
     Selects initial guess and bounds of co2 emission model params.
 
@@ -407,13 +436,13 @@ def select_initial_co2_emission_model_params_guess(
         Engine type (gasoline turbo, gasoline natural aspiration, diesel).
     :type engine_type: str
 
-    :param engine_thermostat_temperature:
-        Thermostat engine temperature [°C].
-    :type engine_thermostat_temperature: float
+    :param engine_normalization_temperature:
+        Engine normalization temperature [°C].
+    :type engine_normalization_temperature: float
 
-    :param engine_thermostat_temperature_window:
-        Thermostat engine temperature limits [°C].
-    :type engine_thermostat_temperature_window: (float, float)
+    :param engine_normalization_temperature_window:
+        Engine normalization temperature limits [°C].
+    :type engine_normalization_temperature_window: (float, float)
 
     :return:
         Initial guess and bounds of co2 emission model params.
@@ -423,11 +452,11 @@ def select_initial_co2_emission_model_params_guess(
     p = {
         'x0': {
             't': 4.5,
-            'trg': engine_thermostat_temperature
+            'trg': engine_normalization_temperature
         },
         'bounds': {
             't': (0.0, 8.0),
-            'trg': engine_thermostat_temperature_window
+            'trg': engine_normalization_temperature_window
         }
     }
 

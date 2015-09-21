@@ -35,7 +35,8 @@ def AT_gear():
                     'automatic vehicles.')
 
     AT_gear.add_data(
-        data_id='gear_box_type'
+        data_id='gear_box_type',
+        description='Gear box type (manual or automatic).'
     )
 
     AT_gear.add_function(
@@ -158,7 +159,7 @@ def AT_gear():
             'correct_gear': 'correct_gear',
             'engine_speeds_out': 'engine_speeds_out',
             'identified_gears': 'identified_gears',
-            'engine_temperatures': 'engine_temperatures',
+            'engine_coolant_temperatures': 'engine_coolant_temperatures',
             'times': 'times',
             'velocities': 'velocities',
             'velocity_speed_ratios': 'velocity_speed_ratios'
@@ -179,7 +180,7 @@ def AT_gear():
             'engine_speeds_out': 'engine_speeds_out',
             'gear_box_powers_out': 'gear_box_powers_out',
             'identified_gears': 'identified_gears',
-            'engine_temperatures': 'engine_temperatures',
+            'engine_coolant_temperatures': 'engine_coolant_temperatures',
             'times': 'times',
             'velocities': 'velocities',
             'velocity_speed_ratios': 'velocity_speed_ratios'
@@ -353,6 +354,11 @@ def dt_va():
         name='Decision Tree with Velocity & Acceleration'
     )
 
+    dt_va.add_data(
+        data_id='accelerations',
+        description='Acceleration vector [m/s2].'
+    )
+
     # calibrate decision tree with velocity & acceleration
     dt_va.add_function(
         function=calibrate_gear_shifting_decision_tree,
@@ -396,6 +402,16 @@ def dt_vap():
 
     dt_vap = Dispatcher(
         name='Decision Tree with Velocity, Acceleration, & Power'
+    )
+
+    dt_vap.add_data(
+        data_id='accelerations',
+        description='Acceleration vector [m/s2].'
+    )
+
+    dt_vap.add_data(
+        data_id='gear_box_powers_out',
+        description='Gear box power vector [kW].'
     )
 
     # calibrate decision tree with velocity, acceleration & wheel power
@@ -444,18 +460,28 @@ def dt_vat():
         name='Decision Tree with Velocity, Acceleration & Temperature'
     )
 
+    dt_vat.add_data(
+        data_id='accelerations',
+        description='Acceleration vector [m/s2].'
+    )
+
+    dt_vat.add_data(
+        data_id='engine_coolant_temperatures',
+        description='Engine coolant temperature vector [°C].'
+    )
+
     # calibrate decision tree with velocity, acceleration & temperature
     dt_vat.add_function(
         function=calibrate_gear_shifting_decision_tree,
         inputs=['identified_gears', 'velocities', 'accelerations',
-                'engine_temperatures'],
+                'engine_coolant_temperatures'],
         outputs=['DT_VAT'])
 
     # predict gears with decision tree with velocity, acceleration & temperature
     dt_vat.add_function(
         function=prediction_gears_decision_tree,
         inputs=['correct_gear', 'DT_VAT', 'times', 'velocities',
-                'accelerations', 'engine_temperatures'],
+                'accelerations', 'engine_coolant_temperatures'],
         outputs=['gears'])
 
     # calculate engine speeds with predicted gears
@@ -492,12 +518,27 @@ def dt_vatp():
         name='Decision Tree with Velocity, Acceleration, Temperature, & Power'
     )
 
+    dt_vatp.add_data(
+        data_id='accelerations',
+        description='Acceleration vector [m/s2].'
+    )
+
+    dt_vatp.add_data(
+        data_id='engine_coolant_temperatures',
+        description='Engine coolant temperature vector [°C].'
+    )
+
+    dt_vatp.add_data(
+        data_id='gear_box_powers_out',
+        description='Gear box power vector [kW].'
+    )
+
     # calibrate decision tree with velocity, acceleration, temperature
     # & wheel power
     dt_vatp.add_function(
         function=calibrate_gear_shifting_decision_tree,
         inputs=['identified_gears', 'velocities', 'accelerations',
-                'engine_temperatures', 'gear_box_powers_out'],
+                'engine_coolant_temperatures', 'gear_box_powers_out'],
         outputs=['DT_VATP'])
 
     # predict gears with decision tree with velocity, acceleration, temperature
@@ -505,7 +546,8 @@ def dt_vatp():
     dt_vatp.add_function(
         function=prediction_gears_decision_tree,
         inputs=['correct_gear', 'DT_VATP', 'times', 'velocities',
-                'accelerations', 'engine_temperatures', 'gear_box_powers_out'],
+                'accelerations', 'engine_coolant_temperatures',
+                'gear_box_powers_out'],
         outputs=['gears'])
 
     # calculate engine speeds with predicted gears

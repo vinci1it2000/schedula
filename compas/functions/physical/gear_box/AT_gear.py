@@ -73,7 +73,7 @@ def correct_gear_upper_bound_engine_speed(
 def correct_gear_full_load(
         velocity, acceleration, gear, velocity_speed_ratios, max_engine_power,
         max_engine_speed_at_max_power, idle_engine_speed, full_load_curve,
-        road_loads, inertia, min_gear):
+        road_loads, vehicle_mass, min_gear):
     """
     Corrects the gear predicted according to full load curve.
 
@@ -110,12 +110,12 @@ def correct_gear_full_load(
     :type full_load_curve: InterpolatedUnivariateSpline
 
     :param road_loads:
-        Cycle road loads.
+        Cycle road loads [N, N/(km/h), N/(km/h)^2].
     :type road_loads: list, tuple
 
-    :param inertia:
-        Cycle inertia.
-    :type inertia: float
+    :param vehicle_mass:
+        Vehicle mass [kg].
+    :type vehicle_mass: float
 
     :return:
         A gear corrected according to full load curve.
@@ -125,7 +125,7 @@ def correct_gear_full_load(
     if velocity > 100:
         return gear
 
-    p_norm = calculate_wheel_power(velocity, acceleration, road_loads, inertia)
+    p_norm = calculate_wheel_power(velocity, acceleration, road_loads, vehicle_mass)
     p_norm /= max_engine_power
 
     r = max_engine_speed_at_max_power - idle_engine_speed[0]
@@ -148,7 +148,7 @@ def correct_gear_full_load(
 def correct_gear_v0(
         velocity_speed_ratios, upper_bound_engine_speed, engine_max_power,
         engine_max_speed_at_max_power, idle_engine_speed, full_load_curve,
-        road_loads, inertia):
+        road_loads, vehicle_mass):
     """
     Returns a function to correct the gear predicted according to
     :func:`correct_gear_upper_bound_engine_speed`
@@ -179,12 +179,12 @@ def correct_gear_v0(
     :type full_load_curve: InterpolatedUnivariateSpline
 
     :param road_loads:
-        Cycle road loads.
+        Cycle road loads [N, N/(km/h), N/(km/h)^2].
     :type road_loads: list, tuple
 
-    :param inertia:
-        Cycle inertia.
-    :type inertia: float
+    :param vehicle_mass:
+        Vehicle mass [kg].
+    :type vehicle_mass: float
 
     :return:
         A function to correct the predicted gear.
@@ -202,7 +202,7 @@ def correct_gear_v0(
         return correct_gear_full_load(
             velocity, acceleration, g, velocity_speed_ratios, engine_max_power,
             engine_max_speed_at_max_power, idle_engine_speed, full_load_curve,
-            road_loads, inertia, min_gear)
+            road_loads, vehicle_mass, min_gear)
 
     return correct_gear
 
@@ -237,7 +237,7 @@ def correct_gear_v1(velocity_speed_ratios, upper_bound_engine_speed):
 
 def correct_gear_v2(
         velocity_speed_ratios, engine_max_power, engine_max_speed_at_max_power,
-        idle_engine_speed, full_load_curve, road_loads, inertia):
+        idle_engine_speed, full_load_curve, road_loads, vehicle_mass):
     """
     Returns a function to correct the gear predicted according to
     :func:`correct_gear_full_load`.
@@ -251,11 +251,11 @@ def correct_gear_v2(
     :type engine_max_power: float
 
     :param engine_max_speed_at_max_power:
-        Rated engine speed.
+        Rated engine speed [RPM].
     :type engine_max_speed_at_max_power: float
 
     :param idle_engine_speed:
-        Engine speed idle median and std.
+        Engine speed idle median and std [RPM].
     :type idle_engine_speed: (float, float)
 
     :param full_load_curve:
@@ -263,12 +263,12 @@ def correct_gear_v2(
     :type full_load_curve: InterpolatedUnivariateSpline
 
     :param road_loads:
-        Cycle road loads.
+        Cycle road loads [N, N/(km/h), N/(km/h)^2].
     :type road_loads: list, tuple
 
-    :param inertia:
-        Cycle inertia.
-    :type inertia: float
+    :param vehicle_mass:
+        Vehicle mass [kg].
+    :type vehicle_mass: float
 
     :return:
         A function to correct the predicted gear.
@@ -281,7 +281,7 @@ def correct_gear_v2(
         return correct_gear_full_load(
             velocity, acceleration, gear, velocity_speed_ratios,
             engine_max_power, engine_max_speed_at_max_power, idle_engine_speed,
-            full_load_curve, road_loads, inertia, min_gear)
+            full_load_curve, road_loads, vehicle_mass, min_gear)
 
     return correct_gear
 
@@ -809,7 +809,7 @@ def prediction_gears_gsm_hot_cold(
     :type wheel_powers: np.array, optional
 
     :return:
-        Predicted gears.
+        Predicted gears [-].
     :rtype: np.array
     """
 
@@ -846,8 +846,7 @@ def calculate_error_coefficients(
     :type velocities: np.array
 
     :return:
-        - correlation coefficient.
-        - mean absolute error.
+        Correlation coefficient and mean absolute error.
     :rtype: dict
     """
 

@@ -164,7 +164,7 @@ def identify_upper_bound_engine_speed(
 
 
 def calibrate_engine_temperature_regression_model(
-        engine_temperatures, gear_box_powers_in, gear_box_speeds_in):
+        engine_coolant_temperatures, gear_box_powers_in, gear_box_speeds_in):
     """
     Calibrates an engine temperature regression model to predict engine
     temperatures.
@@ -172,9 +172,9 @@ def calibrate_engine_temperature_regression_model(
     This model returns the delta temperature function of temperature (previous),
     acceleration, and power at the wheel.
 
-    :param engine_temperatures:
-        Engine temperature vector [°C].
-    :type engine_temperatures: np.array
+    :param engine_coolant_temperatures:
+        Engine coolant temperature vector [°C].
+    :type engine_coolant_temperatures: np.array
 
     :param gear_box_powers_in:
         Gear box power vector [kW].
@@ -189,8 +189,8 @@ def calibrate_engine_temperature_regression_model(
     :rtype: sklearn.ensemble.GradientBoostingRegressor
     """
 
-    temp = np.zeros(engine_temperatures.shape)
-    temp[1:] = engine_temperatures[:-1]
+    temp = np.zeros(engine_coolant_temperatures.shape)
+    temp[1:] = engine_coolant_temperatures[:-1]
 
     kw = {
         'random_state': 0,
@@ -202,12 +202,12 @@ def calibrate_engine_temperature_regression_model(
 
     X = list(zip(temp, gear_box_powers_in, gear_box_speeds_in))
 
-    model.fit(X[1:], np.diff(engine_temperatures))
+    model.fit(X[1:], np.diff(engine_coolant_temperatures))
 
     return model
 
 
-def predict_engine_temperatures(
+def predict_engine_coolant_temperatures(
         model, gear_box_powers_in, gear_box_speeds_in, initial_temperature):
     """
     Predicts the engine temperature [°C].
@@ -229,7 +229,7 @@ def predict_engine_temperatures(
     :type initial_temperature: float
 
     :return:
-        Engine temperature vector [°C].
+        Engine coolant temperature vector [°C].
     :rtype: np.array
     """
 
@@ -243,22 +243,22 @@ def predict_engine_temperatures(
     return np.array(temp)
 
 
-def identify_thermostat_engine_temperature(engine_temperatures):
+def identify_thermostat_engine_temperature(engine_coolant_temperatures):
     """
     Identifies thermostat engine temperature and its limits [°C].
 
-    :param engine_temperatures:
-        Engine temperature vector [°C].
-    :type engine_temperatures: np.array
+    :param engine_coolant_temperatures:
+        Engine coolant temperature vector [°C].
+    :type engine_coolant_temperatures: np.array
 
     :return:
         Thermostat engine temperature [°C].
     :rtype: float
     """
 
-    m, s = reject_outliers(engine_temperatures, n=2)
+    m, s = reject_outliers(engine_coolant_temperatures, n=2)
 
-    max_temp = max(engine_temperatures)
+    max_temp = max(engine_coolant_temperatures)
 
     if max_temp - m > s:
         m = max_temp
@@ -266,41 +266,41 @@ def identify_thermostat_engine_temperature(engine_temperatures):
     return m
 
 
-def identify_normalization_engine_temperature(engine_temperatures):
+def identify_normalization_engine_temperature(engine_coolant_temperatures):
     """
     Identifies normalization engine temperature and its limits [°C].
 
-    :param engine_temperatures:
-        Engine temperature vector [°C].
-    :type engine_temperatures: np.array
+    :param engine_coolant_temperatures:
+        Engine coolant temperature vector [°C].
+    :type engine_coolant_temperatures: np.array
 
     :return:
         Normalization engine temperature and its limits [°C].
     :rtype: (float, (float, float))
     """
 
-    m, s = reject_outliers(engine_temperatures, n=2)
+    m, s = reject_outliers(engine_coolant_temperatures, n=2)
 
-    max_temp = max(engine_temperatures)
+    max_temp = max(engine_coolant_temperatures)
     s = max(s, 20.0)
 
     return m, (m - s, max_temp)
 
 
-def identify_initial_engine_temperature(engine_temperatures):
+def identify_initial_engine_temperature(engine_coolant_temperatures):
     """
     Identifies initial engine temperature [°C].
 
-    :param engine_temperatures:
-        Engine temperature vector [°C].
-    :type engine_temperatures: np.array
+    :param engine_coolant_temperatures:
+        Engine coolant temperature vector [°C].
+    :type engine_coolant_temperatures: np.array
 
     :return:
         Initial engine temperature [°C].
     :rtype: float
     """
 
-    return float(engine_temperatures[0])
+    return float(engine_coolant_temperatures[0])
 
 
 def calculate_engine_max_torque(
@@ -369,7 +369,7 @@ def identify_on_engine(times, engine_speeds_out, idle_engine_speed):
 
 
 def calibrate_start_stop_model(
-        on_engine, velocities, accelerations, engine_temperatures):
+        on_engine, velocities, accelerations, engine_coolant_temperatures):
     """
     Calibrates an start/stop model to predict if the engine is on.
 
@@ -381,9 +381,13 @@ def calibrate_start_stop_model(
         Velocity vector [km/h].
     :type velocities: np.array
 
-    :param engine_temperatures:
-        Engine temperature vector [°C].
-    :type engine_temperatures: np.array
+    :param accelerations:
+        Acceleration vector [m/s2].
+    :type accelerations: np.array
+
+    :param engine_coolant_temperatures:
+        Engine coolant temperature vector [°C].
+    :type engine_coolant_temperatures: np.array
 
     :return:
         Start/stop model.
@@ -392,7 +396,7 @@ def calibrate_start_stop_model(
 
     model = DecisionTreeClassifier(random_state=0, max_depth=4)
 
-    X = list(zip(velocities, accelerations, engine_temperatures))
+    X = list(zip(velocities, accelerations, engine_coolant_temperatures))
 
     model.fit(X, on_engine)
 
@@ -400,7 +404,7 @@ def calibrate_start_stop_model(
 
 
 def predict_on_engine(
-        model, times, velocities, accelerations, engine_temperatures,
+        model, times, velocities, accelerations, engine_coolant_temperatures,
         cycle_type, gear_box_type):
     """
     Predicts if the engine is on and when it starts [-].
@@ -417,16 +421,28 @@ def predict_on_engine(
         Velocity vector [km/h].
     :type velocities: np.array
 
-    :param engine_temperatures:
-        Engine temperature vector [°C].
-    :type engine_temperatures: np.array
+    :param accelerations:
+        Acceleration vector [m/s2].
+    :type accelerations: np.array
+
+    :param engine_coolant_temperatures:
+        Engine coolant temperature vector [°C].
+    :type engine_coolant_temperatures: np.array
+
+    :param cycle_type:
+        Cycle type (WLTP or NEDC).
+    :type cycle_type: str
+
+    :param gear_box_type:
+        Gear box type (manual or automatic).
+    :type gear_box_type: str
 
     :return:
         If the engine is on and when it starts [-].
     :rtype: np.array
     """
 
-    X = list(zip(velocities, accelerations, engine_temperatures))
+    X = list(zip(velocities, accelerations, engine_coolant_temperatures))
 
     on_engine = np.array(model.predict(X), dtype=int)
 
@@ -483,7 +499,7 @@ def calculate_engine_speeds_out_hot(
 
 def calculate_engine_speeds_out_with_cold_start(
         cold_start_speed_model, engine_speeds_out_hot, on_engine,
-        engine_temperatures):
+        engine_coolant_temperatures):
     """
     Calculates the engine speed [RPM].
 
@@ -499,25 +515,25 @@ def calculate_engine_speeds_out_with_cold_start(
         If the engine is on [-].
     :type on_engine: np.array
 
-    :param engine_temperatures:
-        Engine temperature vector [°C].
-    :type engine_temperatures: np.array
+    :param engine_coolant_temperatures:
+        Engine coolant temperature vector [°C].
+    :type engine_coolant_temperatures: np.array
 
     :return:
         Engine speed [RPM].
     :rtype: np.array
     """
 
-    model = cold_start_speed_model
-    add_speeds = model(engine_speeds_out_hot, on_engine, engine_temperatures)
+    add_speeds = cold_start_speed_model(
+        engine_speeds_out_hot, on_engine, engine_coolant_temperatures)
 
     return engine_speeds_out_hot + add_speeds
 
 
 def calibrate_cold_start_speed_model(
-        velocities, accelerations, engine_speeds_out, engine_temperatures,
-        engine_speeds_out_hot, on_engine, idle_engine_speed,
-        engine_normalization_temperature,
+        velocities, accelerations, engine_speeds_out,
+        engine_coolant_temperatures, engine_speeds_out_hot, on_engine,
+        idle_engine_speed, engine_normalization_temperature,
         engine_normalization_temperature_window):
     """
     Calibrates the cold start speed model.
@@ -534,9 +550,9 @@ def calibrate_cold_start_speed_model(
         Engine speed [RPM].
     :type engine_speeds_out: np.array
 
-    :param engine_temperatures:
-        Engine temperature vector [°C].
-    :type engine_temperatures: np.array
+    :param engine_coolant_temperatures:
+        Engine coolant temperature vector [°C].
+    :type engine_coolant_temperatures: np.array
 
     :param engine_speeds_out_hot:
         Engine speed at hot condition [RPM].
@@ -563,14 +579,14 @@ def calibrate_cold_start_speed_model(
     :rtype: function
     """
 
-    b = engine_temperatures < engine_normalization_temperature_window[0]
+    b = engine_coolant_temperatures < engine_normalization_temperature_window[0]
     b &= (velocities < VEL_EPS) & (abs(accelerations) < ACC_EPS)
     b &= (idle_engine_speed[0] < engine_speeds_out)
 
     p = 0.0
 
     if b.any():
-        dT = engine_normalization_temperature - engine_temperatures[b]
+        dT = engine_normalization_temperature - engine_coolant_temperatures[b]
         e_real, e_hot = engine_speeds_out[b], engine_speeds_out_hot[b]
         on, err_0 = on_engine[b], mean_absolute_error(e_real, e_hot)
 
@@ -589,11 +605,11 @@ def calibrate_cold_start_speed_model(
         if res[0] > 0.0 and err < err_0:
             p = res[0]
 
-    def model(speeds, on_engine, engine_temperatures, *args):
+    def model(speeds, on_engine, temperatures, *args):
         add_speeds = np.zeros(speeds.shape)
 
         if p > 0:
-            s_o = (engine_normalization_temperature - engine_temperatures) * p
+            s_o = (engine_normalization_temperature - temperatures) * p
             b = on_engine & (s_o > speeds)
             add_speeds[b] = s_o[b] - speeds[b]
 
@@ -604,7 +620,7 @@ def calibrate_cold_start_speed_model(
 
 def calibrate_cold_start_speed_model_v1(
         times, velocities, accelerations, engine_speeds_out,
-        engine_temperatures, idle_engine_speed):
+        engine_coolant_temperatures, idle_engine_speed):
     """
     Calibrates the cold start speed model.
 
@@ -624,9 +640,9 @@ def calibrate_cold_start_speed_model_v1(
         Engine speed [RPM].
     :type engine_speeds_out: np.array
 
-    :param engine_temperatures:
-        Engine temperature vector [°C].
-    :type engine_temperatures: np.array
+    :param engine_coolant_temperatures:
+        Engine coolant temperature vector [°C].
+    :type engine_coolant_temperatures: np.array
 
     :param idle_engine_speed:
         Idle engine speed and its standard deviation [RPM].
@@ -649,13 +665,13 @@ def calibrate_cold_start_speed_model_v1(
     else:
         ds = idle * 1.2
 
-    ds = abs((ds - idle) / (30.0 - min(engine_temperatures)))
+    ds = abs((ds - idle) / (30.0 - min(engine_coolant_temperatures)))
 
-    def model(speeds, on_engine, engine_temperatures, *args):
+    def model(speeds, on_engine, engine_coolant_temperatures, *args):
         add_speeds = np.zeros(speeds.shape)
 
-        b = (engine_temperatures < 30.0) & on_engine
-        s =  ds * (30.0 - engine_temperatures[b])
+        b = (engine_coolant_temperatures < 30.0) & on_engine
+        s =  ds * (30.0 - engine_coolant_temperatures[b])
         add_speeds[b] = np.where(speeds[b] < s + idle, s, add_speeds[b])
 
         return add_speeds

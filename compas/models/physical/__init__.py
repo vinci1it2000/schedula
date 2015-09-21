@@ -217,7 +217,7 @@ def _physical():
             'engine_max_speed_at_max_power': 'engine_max_speed_at_max_power',
             'engine_max_torque': 'engine_max_torque',
             'engine_speeds_out': 'engine_speeds_out',
-            'engine_temperatures': 'engine_temperatures',
+            'engine_coolant_temperatures': 'engine_coolant_temperatures',
             'engine_temperature_regression_model':
                 'engine_temperature_regression_model',
             'cold_start_speed_model': 'cold_start_speed_model',
@@ -273,7 +273,7 @@ def _physical():
             'engine_speeds_out': 'engine_speeds_out',
             'engine_speeds_out_hot': 'engine_speeds_out_hot',
             'engine_starts': 'engine_starts',
-            'engine_temperatures': 'engine_temperatures',
+            'engine_coolant_temperatures': 'engine_coolant_temperatures',
             'engine_thermostat_temperature': 'engine_thermostat_temperature',
             'engine_type': 'engine_type',
             'engine_normalization_temperature':
@@ -333,7 +333,7 @@ def physical_calibration():
             'engine_max_power': 'engine_max_power',
             'engine_max_speed_at_max_power': 'engine_max_speed_at_max_power',
             'road_loads': 'road_loads',
-            'engine_temperatures': 'engine_temperatures',
+            'engine_coolant_temperatures': 'engine_coolant_temperatures',
             'time_cold_hot_transition': 'time_cold_hot_transition',
             'upper_bound_engine_speed': 'upper_bound_engine_speed',
             'vehicle_mass': 'vehicle_mass',
@@ -434,7 +434,7 @@ def physical_prediction():
             'DT_VATP': 'DT_VATP',
             'GSPV': 'GSPV',
             'GSPV_Cold_Hot': 'GSPV_Cold_Hot',
-            'engine_temperatures': 'engine_temperatures',
+            'engine_coolant_temperatures': 'engine_coolant_temperatures',
             'engine_max_power': 'engine_max_power',
             'time_cold_hot_transition': 'time_cold_hot_transition',
 

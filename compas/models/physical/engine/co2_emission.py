@@ -46,7 +46,7 @@ def co2_emission():
         function=define_co2_emissions_model,
         inputs=['engine_speeds_out', 'engine_powers_out',
                 'mean_piston_speeds', 'brake_mean_effective_pressures',
-                'engine_temperatures', 'engine_fuel_lower_heating_value',
+                'engine_coolant_temperatures', 'engine_fuel_lower_heating_value',
                 'idle_engine_speed', 'engine_stroke', 'engine_capacity',
                 'engine_idle_fuel_consumption', 'fuel_carbon_content'],
         outputs=['co2_emissions_model']

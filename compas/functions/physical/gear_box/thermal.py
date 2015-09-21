@@ -57,7 +57,7 @@ def calculate_gear_box_torque_in(
     Calculates torque required according to the temperature profile.
 
     :param gear_box_torque_out:
-        Torque gear box.
+        Torque gear box [N*m].
     :type gear_box_torque_out: float
 
     :param gear_box_speed_in:
@@ -110,19 +110,23 @@ def correct_gear_box_torque_in(
     Corrects the torque when the gear box ratio is equal to 1.
 
     :param gear_box_torque_out:
-        Torque gear_box.
+        Torque gear_box [N*m].
     :type gear_box_torque_out: float
 
     :param gear_box_torque_in:
-        Torque required.
+        Torque required [N*m].
     :type gear_box_torque_in: float
 
     :param gear:
-        Gear.
+        Gear [-].
     :type gear: int
 
+    :param gear_box_ratios:
+        Gear box ratios [-].
+    :type gear_box_ratios: dict
+
     :return:
-        Corrected torque required.
+        Corrected torque required [N*m].
     :rtype: float
     """
 

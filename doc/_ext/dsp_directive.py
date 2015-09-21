@@ -25,8 +25,12 @@ def contains_doctest(text):
 # Auto dispatcher content
 # ------------------------------------------------------------------------------
 
-def get_attr_doc(doc, attr_name):
-    res = re.search(r":param[\s]+%s:" % attr_name, doc)
+def get_attr_doc(doc, attr_name, get_param=True):
+    if get_param:
+        res = re.search(r":param[\s]+%s:" % attr_name, doc)
+    else:
+        res = re.search(r":returns?:", doc)
+
     if res:
         return get_summary(doc[res.regs[0][1]:].split('\n'))
     else:
@@ -144,28 +148,56 @@ def _table_heather(lines, title, dsp_name):
     lines.extend(['.. csv-table:: **%s\'%s %s**' % (dsp_name, q, title), ''])
 
 
-def search_doc_in_func(dsp, node_id):
+def search_doc_in_func(dsp, node_id, where_succ=True, node_type='function'):
     nodes = dsp.nodes
     des, link = ('', '')
-    for k, v in ((k, nodes[k]) for k in sorted(dsp.dmap[node_id])):
-        if v['type'] == 'function':
+    check = lambda *args: True
+
+    if where_succ:
+        neighbors = dsp.dmap.succ
+        node_attr = 'inputs'
+    else:
+        neighbors = dsp.dmap.pred
+        node_attr = 'outputs'
+
+    if node_type == 'function':
+        if where_succ:
+            check = lambda k: dsp.dmap.out_degree(k) == 1
+
+        def get_des(func_node):
+            fun = func_node['function']
+            n_id = func_node[node_attr].index(node_id)
+            attr_name = getargspec(fun)[0][n_id]
+            return get_attr_doc(fun.__doc__, attr_name, where_succ), ''
+    else:
+        if where_succ:
+            get_id = lambda node: node[node_attr][node_id]
+        else:
+            def get_id(node):
+                it = node[node_attr].items()
+                return next(k for k, v in it if v == node_id)
+
+        def get_des(dsp_node):
+            sub_dsp = dsp_node['function']
+            n_id = get_id(dsp_node)
+            return search_data_description(n_id, sub_dsp.nodes[n_id], sub_dsp)
+
+    for k, v in ((k, nodes[k]) for k in sorted(neighbors[node_id])):
+        if v['type'] == node_type and check(k):
             # noinspection PyBroadException
             try:
-                fun = v['function']
-                attr_name = getargspec(fun)[0][v['inputs'].index(node_id)]
-                des = get_attr_doc(fun.__doc__, attr_name)
+                des, link = get_des(v)
             except:
                 pass
-        elif v['type'] == 'dispatcher':
-            sub_dsp = v['function']
-            n_id = v['inputs'][node_id]
-            des, link = search_data_description(
-                n_id, sub_dsp.nodes[n_id], sub_dsp
-            )
 
         if des:
-            break
+            return des, link
 
+    if where_succ:
+        return search_doc_in_func(dsp, node_id, False, node_type)
+    elif node_type == 'function':
+        return search_doc_in_func(dsp, node_id, True, 'dispatcher')
+    print(node_id, 'err')
     return des, link
 
 
