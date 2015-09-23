@@ -301,7 +301,7 @@ def extract_summary(summary):
     s = {}
     tags = ('co2_emission_value', 'phases_co2_emissions')
     for k, v in summary['PRE NEDC'].items():
-        if any(i in k for i in ('vehicle', 'co2_params ')):
+        if k == 'vehicle' or k[:11] == 'co2_params ':
             s[k] = v
         elif any(i in k for i in tags):
             s['NEDC %s' % k] = v

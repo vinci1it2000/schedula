@@ -853,8 +853,10 @@ def calculate_error_coefficients(
     :rtype: dict
     """
 
-    x = engine_speeds[velocities > VEL_EPS]
-    y = predicted_engine_speeds[velocities > VEL_EPS]
+    b = velocities > VEL_EPS
+
+    x = engine_speeds[b]
+    y = predicted_engine_speeds[b]
 
     res = {
         'mean_absolute_error': mean_absolute_error(x, y),
