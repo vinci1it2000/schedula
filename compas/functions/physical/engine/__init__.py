@@ -110,7 +110,7 @@ def identify_idle_engine_speed_out(velocities, engine_speeds_out):
     :rtype: (float, float)
     """
 
-    b = velocities < VEL_EPS & engine_speeds_out > MIN_ENGINE_SPEED
+    b = (velocities < VEL_EPS) & (engine_speeds_out > MIN_ENGINE_SPEED)
 
     x = engine_speeds_out[b]
 
@@ -122,7 +122,7 @@ def identify_idle_engine_speed_out(velocities, engine_speeds_out):
 def identify_upper_bound_engine_speed(
         gears, engine_speeds_out, idle_engine_speed):
     """
-    Identifies upper bound engine speed.
+    Identifies upper bound engine speed [RPM].
 
     It is used to correct the gear prediction for constant accelerations (see
     :func:`compas.functions.physical.AT_gear.
@@ -707,7 +707,7 @@ def calculate_engine_powers_out(
     :type alternator_powers_demand: np.array
 
     :param P0:
-        Power engine power threshold limit [kW].
+        Engine power threshold limit [kW].
     :type P0: float
 
     :return:

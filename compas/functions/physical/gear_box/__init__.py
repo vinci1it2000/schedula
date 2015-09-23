@@ -40,7 +40,7 @@ def identify_gear(
     Identifies a gear [-].
 
     :param idle_engine_speed:
-        Engine speed idle [RPM].
+        Engine speed idle median and std [RPM].
     :type idle_engine_speed: (float, float)
 
     :param vsr:
@@ -97,7 +97,7 @@ def identify_gears(
 
     :param accelerations:
         Acceleration vector [m/s2].
-    :type accelerations: np.array, float
+    :type accelerations: np.array
 
     :param engine_speeds_out:
         Gear box speed vector [RPM].
@@ -139,7 +139,7 @@ def identify_gears(
     return gear
 
 
-def speed_shift(times, speeds):
+def _speed_shift(times, speeds):
     speeds = InterpolatedUnivariateSpline(times, speeds, k=1)
 
     def shift(dt):
@@ -151,7 +151,7 @@ def speed_shift(times, speeds):
 def calculate_gear_box_speeds_from_engine_speeds(
         times, velocities, engine_speeds_out, velocity_speed_ratios):
     """
-    Calculates the gear box speeds applying a constant time shift.
+    Calculates the gear box speeds applying a constant time shift [RPM, s].
 
     :param times:
         Time vector [s].
@@ -181,7 +181,7 @@ def calculate_gear_box_speeds_from_engine_speeds(
     bins = bins[:-1] + np.diff(bins) / 2
     bins[0] = 0
 
-    speeds = speed_shift(times, engine_speeds_out)
+    speeds = _speed_shift(times, engine_speeds_out)
 
     def error_fun(x):
         s = speeds(x)
@@ -374,7 +374,7 @@ def _gear_box_torques_in(
         gear_box_torques_out, gear_box_speeds_in, gear_box_speeds_out,
         gear_box_efficiency_parameters_cold_hot):
     """
-    Calculates torque required according to the temperature profile.
+    Calculates torque required according to the temperature profile [N*m].
 
     :param gear_box_torques_out:
         Torque gear_box vector [N*m].
@@ -840,19 +840,19 @@ def calculate_gear_box_powers_in(gear_box_torques_in, gear_box_speeds_in):
     return calculate_wheel_powers(gear_box_torques_in, gear_box_speeds_in)
 
 
-def identify_max_gear(gears):
+def identify_max_gear(speed_velocity_ratios):
     """
     Identifies the maximum gear of the gear box [-].
 
-    :param gears:
-        Gear vector [-].
-    :type gears: np.array
+    :param speed_velocity_ratios:
+        Speed velocity ratios of the gear box [h*RPM/km].
+    :type speed_velocity_ratios: dict
 
     :return:
         Maximum gear of the gear box [-].
     :rtype: int
     """
-    return int(max(gears))
+    return int(max(speed_velocity_ratios))
 
 
 def calculate_equivalent_gear_box_heat_capacity(fuel_type, engine_max_power):

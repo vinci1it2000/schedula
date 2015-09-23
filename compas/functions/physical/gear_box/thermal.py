@@ -17,18 +17,18 @@ def evaluate_gear_box_torque_in(
         gear_box_torque_out, gear_box_speed_in, gear_box_speed_out,
         gear_box_efficiency_parameters):
     """
-    Calculates torque required according to the temperature profile.
+    Calculates torque required according to the temperature profile [N*m].
 
     :param gear_box_torque_out:
-        Torque gear_box.
+        Torque gear_box [N*m].
     :type gear_box_torque_out: float
 
     :param gear_box_speed_in:
-        Engine speed.
+        Engine speed [RPM].
     :type gear_box_speed_in: float
 
     :param gear_box_speed_out:
-        Wheel speed.
+        Wheel speed [RPM].
     :type gear_box_speed_out: float
 
     :param gear_box_efficiency_parameters:
@@ -36,7 +36,7 @@ def evaluate_gear_box_torque_in(
     :type gear_box_efficiency_parameters: dict
 
     :return:
-        Torque required.
+        Torque required [N*m].
     :rtype: float
     """
 
@@ -54,22 +54,22 @@ def calculate_gear_box_torque_in(
         gear_box_temperature, gear_box_efficiency_parameters_cold_hot,
         temperature_references):
     """
-    Calculates torque required according to the temperature profile.
+    Calculates torque required according to the temperature profile [N*m].
 
     :param gear_box_torque_out:
         Torque gear box [N*m].
     :type gear_box_torque_out: float
 
     :param gear_box_speed_in:
-        Engine speed.
+        Engine speed [RPM].
     :type gear_box_speed_in: float
 
     :param gear_box_speed_out:
-        Wheel speed.
+        Wheel speed [RPM].
     :type gear_box_speed_out: float
 
     :param gear_box_temperature:
-        Temperature.
+        Gear box temperature [°C].
     :type gear_box_temperature: float
 
     :param gear_box_efficiency_parameters_cold_hot:
@@ -80,11 +80,11 @@ def calculate_gear_box_torque_in(
     :type gear_box_efficiency_parameters_cold_hot: dict
 
     :param temperature_references:
-        Cold and hot reference temperatures.
+        Cold and hot reference temperatures [°C].
     :type temperature_references: tuple
 
     :return:
-        Torque required according to the temperature profile.
+        Torque required according to the temperature profile [N*m].
     :rtype: float
     """
 
@@ -139,18 +139,18 @@ def calculate_gear_box_efficiency(
         gear_box_power_out, gear_box_speed_in, gear_box_speed_out,
         gear_box_torque_out, gear_box_torque_in):
     """
-    Calculates torque entering the gear box.
+    Calculates torque entering the gear box [N*m].
 
     :param gear_box_power_out:
-        Power at wheels.
+        Power at wheels [kW].
     :type gear_box_power_out: float
 
     :param gear_box_speed_in:
-        Engine speed.
+        Engine speed [RPM].
     :type gear_box_speed_in: float
 
     :param gear_box_speed_out:
-        Wheel speed.
+        Wheel speed [RPM].
     :type gear_box_speed_out: float
 
     :return:
@@ -177,26 +177,26 @@ def calculate_gear_box_temperature(
         gear_box_heat, starting_temperature, equivalent_gear_box_heat_capacity,
         thermostat_temperature):
     """
-    Calculates the gear box temperature not finalized [°].
+    Calculates the gear box temperature not finalized [°C].
 
     :param gear_box_heat:
-        Gear box heat.
+        Gear box heat [W].
     :type gear_box_heat: float
 
     :param starting_temperature:
-        Starting temperature.
+        Starting temperature [°C].
     :type starting_temperature: float
 
     :param equivalent_gear_box_heat_capacity:
-        Equivalent gear box capacity (from cold start model).
+        Equivalent gear box capacity (from cold start model) [W/°C].
     :type equivalent_gear_box_heat_capacity: float
 
     :param thermostat_temperature:
-        Thermostat temperature [°].
+        Thermostat temperature [°C].
     :type thermostat_temperature: float
 
     :return:
-        Gear box temperature not finalized.
+        Gear box temperature not finalized [°C].
     :rtype: float
     """
 
@@ -208,22 +208,22 @@ def calculate_gear_box_temperature(
 
 def calculate_gear_box_heat(gear_box_efficiency, gear_box_power_out):
     """
-    Calculates the gear box temperature heat.
+    Calculates the gear box temperature heat [W].
 
     :param gear_box_efficiency:
-        Gear box efficiency.
+        Gear box efficiency [-].
     :type gear_box_efficiency: float
 
     :param gear_box_power_out:
-        Power at wheels.
+        Power at wheels [kW].
     :type gear_box_power_out: float
 
     :return:
-        Gear box heat.
+        Gear box heat [W].
     :rtype: float
     """
 
     if gear_box_efficiency and gear_box_power_out:
         return abs(gear_box_power_out) * (1.0 - gear_box_efficiency) * 1000.0
 
-    return 0
+    return 0.0

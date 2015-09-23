@@ -135,14 +135,6 @@ def predict_alternator_status(
     Predicts the alternator status(0: off, 1: on, due to state of charge, 2: on
     due to BERS) [-].
 
-    :param state_of_charges:
-        State of charge of the battery [%].
-    :type state_of_charges: np.array
-
-    :param gear_box_powers_in:
-        Gear box power [kW].
-    :type gear_box_powers_in: np.array
-
     :param alternator_status_model:
          Function that predicts the alternator status.
     :type alternator_status_model: function

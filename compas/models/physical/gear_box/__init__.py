@@ -183,7 +183,7 @@ def _gear_box():
 
     gear_box.add_function(
         function=identify_max_gear,
-        inputs=['gears'],
+        inputs=['speed_velocity_ratios'],
         outputs=['max_gear']
     )
 

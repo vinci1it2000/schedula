@@ -227,9 +227,9 @@ def identify_charging_statuses(
     """
     Identifies when the alternator is on due to 1:state of charge or 2:BERS [-].
 
-    :param alternator_powers_demand:
-        Alternator power demand to the engine [kW].
-    :type alternator_powers_demand: np.array
+    :param alternator_currents:
+        Alternator current vector [A].
+    :type alternator_currents: np.array
 
     :param gear_box_powers_in:
         Gear box power [kW].
@@ -374,8 +374,8 @@ def predict_vehicle_electrics(
     :type start_demand: float
 
     :param electric_load:
-        Vehicle electric load.
-    :type electric_load: float
+        Vehicle electric load (engine off and on) [kW].
+    :type electric_load: (float, float)
 
     :param initial_state_of_charge:
         Initial state of charge of the battery [%].

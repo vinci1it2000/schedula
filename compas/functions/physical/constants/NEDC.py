@@ -56,7 +56,7 @@ def nedc_velocities_domain(cycle_type, *args):
 
 def nedc_velocities(times):
     """
-    Returns the velocity profile according to NEDC.
+    Returns the velocity profile according to NEDC [km/h].
 
     :param times:
         Time vector [s].
@@ -132,7 +132,7 @@ def nedc_velocities(times):
 
 def nedc_gears(times, max_gear, k1=1, k2=2, k5=2):
     """
-    Returns the velocity profile according to NEDC.
+    Returns the gear shifting profile according to NEDC [-].
 
     :param times:
         Time vector [s].
@@ -143,15 +143,15 @@ def nedc_gears(times, max_gear, k1=1, k2=2, k5=2):
     :type max_gear: int
 
     :param k1:
-        K1 NEDC parameter (first or second gear).
+        K1 NEDC parameter (first or second gear) [-].
     :type k1: int
 
     :param k2:
-        K2 NEDC parameter (first or second gear).
+        K2 NEDC parameter (first or second gear) [-].
     :type k2: int
 
     :param k5:
-        K5 NEDC parameter (first or second gear).
+        K5 NEDC parameter (first or second gear) [-].
     :type k5: int
 
     :return:
@@ -237,7 +237,7 @@ def nedc_gears(times, max_gear, k1=1, k2=2, k5=2):
 
 def nedc_times(frequency):
     """
-    Returns the time vector with constant time step.
+    Returns the time vector with constant time step [s].
 
     :param frequency:
         Time frequency [1/s].

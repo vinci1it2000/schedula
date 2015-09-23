@@ -155,23 +155,23 @@ def correct_gear_v0(
     and :func:`correct_gear_full_load`.
 
     :param velocity_speed_ratios:
-        Constant velocity speed ratios of the gear box.
+        Constant velocity speed ratios of the gear box [km/(h*RPM)].
     :type velocity_speed_ratios: dict
 
     :param upper_bound_engine_speed:
-        Upper bound engine speed.
+        Upper bound engine speed [RPM].
     :type upper_bound_engine_speed: float
 
     :param engine_max_power:
-        Maximum power.
+        Maximum power [kW].
     :type engine_max_power: float
 
     :param engine_max_speed_at_max_power:
-        Rated engine speed.
+        Rated engine speed [RPM].
     :type engine_max_speed_at_max_power: float
 
     :param idle_engine_speed:
-        Engine speed idle median and std.
+        Engine speed idle median and std [RPM].
     :type idle_engine_speed: (float, float)
 
     :param full_load_curve:
@@ -213,11 +213,11 @@ def correct_gear_v1(velocity_speed_ratios, upper_bound_engine_speed):
     :func:`correct_gear_upper_bound_engine_speed`.
 
     :param velocity_speed_ratios:
-        Constant velocity speed ratios of the gear box.
+        Constant velocity speed ratios of the gear box [km/(h*RPM)].
     :type velocity_speed_ratios: dict
 
     :param upper_bound_engine_speed:
-        Upper bound engine speed.
+        Upper bound engine speed [RPM].
     :type upper_bound_engine_speed: float
 
     :return:
@@ -243,11 +243,11 @@ def correct_gear_v2(
     :func:`correct_gear_full_load`.
 
     :param velocity_speed_ratios:
-        Constant velocity speed ratios of the gear box.
+        Constant velocity speed ratios of the gear box [km/(h*RPM)].
     :type velocity_speed_ratios: dict
 
     :param engine_max_power:
-        Maximum power.
+        Maximum power [kW].
     :type engine_max_power: float
 
     :param engine_max_speed_at_max_power:
@@ -306,11 +306,11 @@ def identify_gear_shifting_velocity_limits(gears, velocities):
     Identifies gear shifting velocity matrix.
 
     :param gears:
-        Gear vector.
+        Gear vector [-].
     :type gears: np.array
 
     :param velocities:
-        Velocity vector.
+        Vehicle velocity [km/h].
     :type velocities: np.array
 
     :return:
@@ -388,29 +388,29 @@ def correct_gsv_for_constant_velocities(gsv):
 
 
 def calibrate_gear_shifting_cmv(
-        correct_gear, gears, engine_speeds, velocities, accelerations,
+        correct_gear, gears, engine_speeds_out, velocities, accelerations,
         velocity_speed_ratios):
     """
     Calibrates a corrected matrix velocity to predict gears.
 
     :param gears:
-        Gear vector.
+        Gear vector [-].
     :type gears: np.array
 
-    :param engine_speeds:
-        Engine speed vector.
-    :type engine_speeds: np.array
+    :param engine_speeds_out:
+        Engine speed vector [RPM].
+    :type engine_speeds_out: np.array
 
     :param velocities:
-        Velocity vector.
+        Vehicle velocity [km/h].
     :type velocities: np.array
 
     :param accelerations:
-        Acceleration vector.
+        Vehicle acceleration [m/s2].
     :type accelerations: np.array, float
 
     :param velocity_speed_ratios:
-        Constant velocity speed ratios of the gear box.
+        Constant velocity speed ratios of the gear box [km/(h*RPM)].
     :type velocity_speed_ratios: dict
 
     :returns:
@@ -437,7 +437,7 @@ def calibrate_gear_shifting_cmv(
         speed_predicted = calculate_gear_box_speeds_in(
             g_pre, velocities, velocity_speed_ratios)
 
-        return mean_absolute_error(engine_speeds, speed_predicted)
+        return mean_absolute_error(engine_speeds_out, speed_predicted)
 
     x0 = [gsv[0][1]].__add__(list(chain(*velocity_limits))[:-1])
 
@@ -456,27 +456,27 @@ def calibrate_gear_shifting_cmv_hot_cold(
     gears.
 
     :param gears:
-        Gear vector.
+        Gear vector [-].
     :type gears: np.array
 
     :param engine_speeds:
-        Engine speed vector.
+        Engine speed vector [RPM].
     :type engine_speeds: np.array
 
     :param velocities:
-        Velocity vector.
+        Vehicle velocity [km/h].
     :type velocities: np.array
 
     :param accelerations:
-        Acceleration vector.
+        Vehicle acceleration [m/s2].
     :type accelerations: np.array, float
 
     :param velocity_speed_ratios:
-        Constant velocity speed ratios of the gear box.
+        Constant velocity speed ratios of the gear box [km/(h*RPM)].
     :type velocity_speed_ratios: dict
 
     :param time_cold_hot_transition:
-        Time at cold hot transition phase.
+        Time at cold hot transition phase [s].
     :type time_cold_hot_transition: float
 
     :returns:
@@ -502,7 +502,7 @@ def calibrate_gear_shifting_decision_tree(gears, *params):
     Calibrates a decision tree classifier to predict gears.
 
     :param gears:
-        Gear vector.
+        Gear vector [-].
     :type gears: np.array
 
     :param params:
@@ -565,15 +565,15 @@ def calibrate_gspv(gears, velocities, wheel_powers):
     Identifies gear shifting power velocity matrix.
 
     :param gears:
-        Gear vector.
+        Gear vector [-].
     :type gears: np.array
 
     :param velocities:
-        Velocity vector.
+        Vehicle velocity [km/h].
     :type velocities: np.array
 
     :param wheel_powers:
-        Power at wheels vector.
+        Power at wheels vector [kW].
     :type wheel_powers: np.array
 
     :return:
@@ -617,23 +617,23 @@ def calibrate_gspv_hot_cold(
     Identifies gear shifting power velocity matrices for cold and hot phases.
 
     :param times:
-        Time vector.
+        Time vector [s].
     :type times: np.array
 
     :param gears:
-        Gear vector.
+        Gear vector [-].
     :type gears: np.array
 
     :param velocities:
-        Velocity vector.
+        Vehicle velocity [km/h].
     :type velocities: np.array
 
     :param wheel_powers:
-        Power at wheels vector.
+         Power at wheels vector [kW].
     :type wheel_powers: np.array
 
     :param time_cold_hot_transition:
-        Time at cold hot transition phase.
+        Time at cold hot transition phase [s].
     :type time_cold_hot_transition: float
 
     :return:
@@ -654,7 +654,7 @@ def calibrate_gspv_hot_cold(
 
 def prediction_gears_decision_tree(correct_gear, decision_tree, times, *params):
     """
-    Predicts gears with a decision tree classifier.
+    Predicts gears with a decision tree classifier [-].
 
     :param correct_gear:
         A function to correct the gear predicted.
@@ -665,7 +665,7 @@ def prediction_gears_decision_tree(correct_gear, decision_tree, times, *params):
     :type decision_tree: DecisionTreeClassifier
 
     :param times:
-        Time vector.
+        Time vector [s].
     :type times: np.array
 
     :param params:
@@ -699,7 +699,7 @@ def prediction_gears_gsm(
         correct_gear, gsm, velocities, accelerations, times=None,
         wheel_powers=None):
     """
-    Predicts gears with a gear shifting matrix (cmv or gspv).
+    Predicts gears with a gear shifting matrix (cmv or gspv) [-].
 
     :param correct_gear:
         A function to correct the gear predicted.
@@ -710,20 +710,22 @@ def prediction_gears_gsm(
     :type gsm: dict
 
     :param velocities:
-        Velocity vector.
+        Vehicle velocity [km/h].
     :type velocities: np.array
 
     :param accelerations:
-        Acceleration vector.
+        Vehicle acceleration [m/s2].
     :type accelerations: np.array
 
     :param times:
-        Time vector.
+        Time vector [s].
+
         If None gears are predicted with cmv approach, otherwise with gspv.
     :type times: np.array, optional
 
     :param wheel_powers:
-        Power at wheels vector.
+        Power at wheels vector [kW].
+
         If None gears are predicted with cmv approach, otherwise with gspv.
     :type wheel_powers: np.array, optional
 
@@ -777,7 +779,7 @@ def prediction_gears_gsm_hot_cold(
         accelerations, wheel_powers=None):
     """
     Predicts gears with a gear shifting matrix (cmv or gspv) for cold and hot
-    phases.
+    phases [-].
 
     :param correct_gear:
         A function to correct the gear predicted.
@@ -788,23 +790,24 @@ def prediction_gears_gsm_hot_cold(
     :type gsm: dict
 
     :param time_cold_hot_transition:
-        Time at cold hot transition phase.
+        Time at cold hot transition phase [s].
     :type time_cold_hot_transition: float
 
     :param times:
-        Time vector.
+        Time vector [s].
     :type times: np.array
 
     :param velocities:
-        Velocity vector.
+        Vehicle velocity [km/h].
     :type velocities: np.array
 
     :param accelerations:
-        Acceleration vector.
+        Vehicle acceleration [m/s2].
     :type accelerations: np.array
 
     :param wheel_powers:
-        Power at wheels vector.
+        Power at wheels vector [kW].
+
         If None gears are predicted with cmv approach, otherwise with gspv.
     :type wheel_powers: np.array, optional
 
@@ -834,15 +837,15 @@ def calculate_error_coefficients(
     Calculates the prediction's error coefficients.
 
     :param engine_speeds:
-        Engine speed vector.
+        Engine speed vector [RPM].
     :type engine_speeds: np.array
 
     :param predicted_engine_speeds:
-        Predicted engine speed vector.
+        Predicted Engine speed vector [RPM].
     :type predicted_engine_speeds: np.array
 
     :param velocities:
-        Velocity vector.
+        Vehicle velocity [km/h].
     :type velocities: np.array
 
     :return:
@@ -857,4 +860,5 @@ def calculate_error_coefficients(
         'mean_absolute_error': mean_absolute_error(x, y),
         'correlation_coefficient': np.corrcoef(x, y)[0, 1],
     }
+
     return res

@@ -94,7 +94,7 @@ def _calculate_fuel_mean_effective_pressure(
 def calculate_P0(params, engine_capacity, engine_stroke, idle_engine_speed,
                  engine_fuel_lower_heating_value):
     """
-    Calculates the P0 power threshold [kW].
+    Calculates the engine power threshold limit [kW].
 
     :param params:
         CO2 emission model parameters (a2, b2, a, b, c, l, l2, t, trg).
@@ -119,7 +119,7 @@ def calculate_P0(params, engine_capacity, engine_stroke, idle_engine_speed,
     :type engine_fuel_lower_heating_value: float
 
     :return:
-        P0 power threshold [kW].
+        Engine power threshold limit [kW].
     :rtype: float
     """
 
@@ -167,7 +167,7 @@ def calculate_co2_emissions(
 
     :param brake_mean_effective_pressures:
         Engine brake mean effective pressure vector [bar].
-    :rtype: np.array
+    :type brake_mean_effective_pressures: np.array
 
     :param engine_coolant_temperatures:
         Engine coolant temperature vector [°C].
@@ -274,7 +274,7 @@ def define_co2_emissions_model(
 
     :param brake_mean_effective_pressures:
         Engine brake mean effective pressure vector [bar].
-    :rtype: np.array
+    :type brake_mean_effective_pressures: np.array
 
     :param engine_coolant_temperatures:
         Engine coolant temperature vector [°C].
@@ -412,11 +412,11 @@ def calculate_cumulative_co2_v1(phases_co2_emissions, phases_distances):
 
     :param phases_co2_emissions:
         CO2 emission of cycle phases [CO2g/km].
-    :rtype: np.array
+    :type phases_co2_emissions: np.array
 
     :param phases_distances:
         Cycle phases distances [km].
-    :type phases_distances: np.array, optional
+    :type phases_distances: np.array
 
     :return:
         Cumulative CO2 of cycle phases [CO2g].
@@ -671,7 +671,7 @@ def calibrate_model_params(params_bounds, error_function, initial_guess=None):
 
 def predict_co2_emissions(co2_emissions_model, params):
     """
-    Predicts  CO2 instantaneous emissions vector [CO2g/s].
+    Predicts CO2 instantaneous emissions vector [CO2g/s].
 
     :param co2_emissions_model:
         CO2 emissions model (co2_emissions = models(params)).
@@ -718,7 +718,7 @@ def calculate_co2_emission(phases_co2_emissions, phases_distances):
 
     :param phases_co2_emissions:
         CO2 emission of cycle phases [CO2g/km].
-    :rtype: np.array
+    :type phases_co2_emissions: np.array
 
     :param phases_distances:
         Cycle phases distances [km].
