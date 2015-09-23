@@ -161,6 +161,11 @@ def architecture():
         description='Cycle used for predicting CO2 emissions.'
     )
 
+    architecture.add_data(
+        data_id='prediction_cycle_targets',
+        description='Dictionary that has all prediction cycle targets.'
+    )
+
     architecture.add_function(
         function=load(),
         inputs=['prediction_input_file_name', 'prediction_cycle_name'],
@@ -234,6 +239,11 @@ def load():
     # Initialize a dispatcher.
     dsp = Dispatcher(description='Loads the vehicle data from a xl-file.')
 
+    dsp.add_data(
+        data_id='input_file_name',
+        description='Input file name.'
+    )
+
     dsp.add_function(
         function=pd.ExcelFile,
         inputs=['input_file_name'],
@@ -257,6 +267,16 @@ def load():
         function=read_cycles_series,
         inputs=['input_excel_file', 'cycle_name'],
         outputs=['cycle_series']
+    )
+
+    dsp.add_data(
+        data_id='cycle_inputs',
+        description='Data inputs.'
+    )
+
+    dsp.add_data(
+        data_id='cycle_targets',
+        description='Data targets.'
     )
 
     dsp.add_function(

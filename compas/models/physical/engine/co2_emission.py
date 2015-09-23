@@ -131,12 +131,42 @@ def co2_emission():
         outputs=['co2_emission_value']
     )
 
+    co2_emission.add_data(
+        data_id='co2_emission_low',
+        description='CO2 emission on low WLTP phase [CO2g/km].'
+    )
+
+    co2_emission.add_data(
+        data_id='co2_emission_medium',
+        description='CO2 emission on medium WLTP phase [CO2g/km].'
+    )
+
+    co2_emission.add_data(
+        data_id='co2_emission_high',
+        description='CO2 emission on high WLTP phase [CO2g/km].'
+    )
+
+    co2_emission.add_data(
+        data_id='co2_emission_extra_high',
+        description='CO2 emission on extra high WLTP phase [CO2g/km].'
+    )
+
     co2_emission.add_function(
         function_id='merge_wltp_phases_co2_emission',
         function=bypass,
         inputs=['co2_emission_low', 'co2_emission_medium', 'co2_emission_high',
                 'co2_emission_extra_high'],
         outputs=['phases_co2_emissions']
+    )
+
+    co2_emission.add_data(
+        data_id='co2_emission_udc',
+        description='CO2 emission on UDC NEDC phase [CO2g/km].'
+    )
+
+    co2_emission.add_data(
+        data_id='co2_emission_eudc',
+        description='CO2 emission on EUDC NEDC phase [CO2g/km].'
     )
 
     co2_emission.add_function(

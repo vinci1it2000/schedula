@@ -82,9 +82,17 @@ def engine():
     )
 
     # Idle engine speed
+    engine.add_data(
+        data_id='idle_engine_speed_median',
+        description='Idle engine speed [RPM].'
+    )
 
     # default value
-    engine.add_data('idle_engine_speed_std', 100.0)
+    engine.add_data(
+        data_id='idle_engine_speed_std',
+        default_value=100.0,
+        description='Standard deviation of idle engine speed [RPM].'
+    )
 
     # set idle engine speed tuple
     engine.add_function(
@@ -153,7 +161,13 @@ def engine():
     engine.add_function(
         function=identify_on_engine,
         inputs=['times', 'engine_speeds_out', 'idle_engine_speed'],
-        outputs=['on_engine', 'engine_starts']
+        outputs=['on_engine']
+    )
+
+    engine.add_function(
+        function=identify_engine_starts,
+        inputs=['on_engine'],
+        outputs=['engine_starts']
     )
 
     engine.add_function(
@@ -167,7 +181,7 @@ def engine():
         function=predict_on_engine,
         inputs=['start_stop_model', 'times', 'velocities', 'accelerations',
                 'engine_coolant_temperatures', 'cycle_type', 'gear_box_type'],
-        outputs=['on_engine', 'engine_starts']
+        outputs=['on_engine']
     )
 
     engine.add_function(

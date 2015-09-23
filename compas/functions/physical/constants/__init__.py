@@ -8,6 +8,17 @@
 
 """
 It provides constants for the CO2MPAS formulas.
+
+Sub-Modules:
+
+.. currentmodule:: compas.functions.physical.constants
+
+.. autosummary::
+    :nosignatures:
+    :toctree: constants/
+
+    NEDC
+
 """
 
 

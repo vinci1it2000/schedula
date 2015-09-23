@@ -19,14 +19,54 @@ EPS = sys.float_info.epsilon
 
 
 def nedc_gears_domain(cycle_type, gear_box_type, *args):
+    """
+    Returns if the cycle is NEDC and the gearbox is manual.
+
+    :param cycle_type:
+        Cycle type (WLTP or NEDC).
+    :type cycle_type: str
+
+    :param gear_box_type:
+        Gear box type (manual or automatic).
+    :type gear_box_type: str
+
+    :return:
+        If the cycle is NEDC and the gearbox is manual.
+    :rtype: bool
+    """
+
     return cycle_type == 'NEDC' and gear_box_type == 'manual'
 
 
 def nedc_velocities_domain(cycle_type, *args):
+    """
+    Returns if the cycle is NEDC.
+
+    :param cycle_type:
+        Cycle type (WLTP or NEDC).
+    :type cycle_type: str
+
+    :return:
+        If the cycle is NEDC.
+    :rtype: bool
+    """
+
     return cycle_type == 'NEDC'
 
 
 def nedc_velocities(times):
+    """
+    Returns the velocity profile according to NEDC.
+
+    :param times:
+        Time vector [s].
+    :type times: np.array
+
+    :return:
+        Velocity vector [km/h].
+    :rtype: np.array
+    """
+
     t, v = zip(*[
         [0, 0],
         [11, 0],
@@ -91,6 +131,33 @@ def nedc_velocities(times):
 
 
 def nedc_gears(times, max_gear, k1=1, k2=2, k5=2):
+    """
+    Returns the velocity profile according to NEDC.
+
+    :param times:
+        Time vector [s].
+    :type times: np.array
+
+    :param max_gear:
+        Maximum gear of the gear box [-].
+    :type max_gear: int
+
+    :param k1:
+        K1 NEDC parameter (first or second gear).
+    :type k1: int
+
+    :param k2:
+        K2 NEDC parameter (first or second gear).
+    :type k2: int
+
+    :param k5:
+        K5 NEDC parameter (first or second gear).
+    :type k5: int
+
+    :return:
+        Gear vector [-].
+    :rtype: np.array
+    """
 
     # part one
     t, s = zip(*[
@@ -169,6 +236,18 @@ def nedc_gears(times, max_gear, k1=1, k2=2, k5=2):
 
 
 def nedc_times(frequency):
+    """
+    Returns the time vector with constant time step.
+
+    :param frequency:
+        Time frequency [1/s].
+    :type frequency: float
+
+    :return:
+        Time vector [s].
+    :rtype: np.array
+    """
+
     return np.arange(0.0, 1180.0, 1 / frequency)
 
 

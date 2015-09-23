@@ -335,7 +335,7 @@ def calculate_engine_max_torque(
 
 def identify_on_engine(times, engine_speeds_out, idle_engine_speed):
     """
-    Identifies if the engine is on and when it starts [-].
+    Identifies if the engine is on [-].
 
     :param times:
         Time vector [s].
@@ -350,8 +350,8 @@ def identify_on_engine(times, engine_speeds_out, idle_engine_speed):
     :type idle_engine_speed: (float, float)
 
     :return:
-        If the engine is on and when it starts [-].
-    :rtype: (np.array, np.array)
+        If the engine is on [-].
+    :rtype: np.array
     """
 
     on_engine = np.zeros(times.shape)
@@ -361,11 +361,23 @@ def identify_on_engine(times, engine_speeds_out, idle_engine_speed):
 
     on_engine = clear_gear_fluctuations(times, on_engine, TIME_WINDOW)
 
-    engine_starts = np.diff(on_engine) > 0
+    return np.array(on_engine, dtype=bool)
 
-    engine_starts = np.append(engine_starts, False)
 
-    return np.array(on_engine, dtype=bool), engine_starts
+def identify_engine_starts(on_engine):
+    """
+    Identifies when the engine starts [-].
+
+    :param on_engine:
+        If the engine is on [-].
+    :type on_engine: np.array
+
+    :return:
+        When the engine starts [-].
+    :rtype: np.array
+    """
+
+    return np.append(np.diff(np.array(on_engine, dtype=int)) > 0, False)
 
 
 def calibrate_start_stop_model(
@@ -407,7 +419,7 @@ def predict_on_engine(
         model, times, velocities, accelerations, engine_coolant_temperatures,
         cycle_type, gear_box_type):
     """
-    Predicts if the engine is on and when it starts [-].
+    Predicts if the engine is on [-].
 
     :param model:
         Start/stop model.
@@ -438,7 +450,7 @@ def predict_on_engine(
     :type gear_box_type: str
 
     :return:
-        If the engine is on and when it starts [-].
+        If the engine is on [-].
     :rtype: np.array
     """
 
@@ -461,9 +473,7 @@ def predict_on_engine(
 
     on_engine = clear_gear_fluctuations(times, on_engine, TIME_WINDOW)
 
-    engine_starts = np.append(np.diff(on_engine) > 0, False)
-
-    return np.array(on_engine, dtype=bool), engine_starts
+    return np.array(on_engine, dtype=bool)
 
 
 def calculate_engine_speeds_out_hot(
@@ -691,6 +701,10 @@ def calculate_engine_powers_out(
     :param on_engine:
         If the engine is on [-].
     :type on_engine: np.array
+
+    :param alternator_powers_demand:
+        Alternator power demand to the engine [kW].
+    :type alternator_powers_demand: np.array
 
     :param P0:
         Power engine power threshold limit [kW].

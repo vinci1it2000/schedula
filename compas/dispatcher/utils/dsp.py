@@ -16,10 +16,14 @@ __all__ = ['combine_dicts', 'bypass', 'summation', 'map_dict', 'map_list',
            'selector', 'replicate_value',
            'SubDispatch', 'ReplicateFunction', 'SubDispatchFunction']
 
-from .gen import caller_name
+from .gen import caller_name, Token
 from networkx.classes.digraph import DiGraph
 from copy import deepcopy
 from functools import partial
+from inspect import signature, Parameter, _POSITIONAL_OR_KEYWORD
+from collections import OrderedDict
+import types
+from itertools import chain, repeat
 
 
 def combine_dicts(*dicts):
@@ -256,8 +260,24 @@ def add_opt_fun_args(fun, n=1):
         return fun(*args[n:], **kwargs)
 
     f.__name__ = fun.__name__
+    f.__doc__ = fun.__doc__
+    f.__signature__ = _get_signature(fun, n)
 
     return f
+
+
+def _get_signature(fun, n=1):
+    sig = signature(fun)
+
+    def ept_p():
+        name = Token('none')
+        return name, Parameter(name, _POSITIONAL_OR_KEYWORD)
+
+    par = [p() for p in repeat(ept_p, n)].__add__(list(sig.parameters.items()))
+
+    sig._parameters = types.MappingProxyType(OrderedDict(par))
+
+    return sig
 
 
 class SubDispatch(object):

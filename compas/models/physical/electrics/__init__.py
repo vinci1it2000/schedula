@@ -6,9 +6,19 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-It provides a final drive model.
+It provides a model fro the vehicle electrics.
 
 The model is defined by a Dispatcher that wraps all the functions needed.
+
+Sub-Modules:
+
+.. currentmodule:: compas.models.physical.electrics
+
+.. autosummary::
+    :nosignatures:
+    :toctree: electrics/
+
+    electrics_prediction
 """
 
 

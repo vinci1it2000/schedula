@@ -57,6 +57,7 @@ def _physical():
         data_id='time_sample_frequency',
         default_value=1
     )
+
     from compas.dispatcher.utils.dsp import add_opt_fun_args
 
     physical.add_function(

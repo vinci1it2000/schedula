@@ -2,7 +2,7 @@ from sphinx.ext.autodoc import *
 from compas.dispatcher import Dispatcher
 # noinspection PyProtectedMember
 from compas.dispatcher.draw import dsp2dot, _func_name
-
+from compas.dispatcher.utils.dsp import SubDispatchFunction
 # ------------------------------------------------------------------------------
 # Doctest handling
 # ------------------------------------------------------------------------------
@@ -161,14 +161,21 @@ def search_doc_in_func(dsp, node_id, where_succ=True, node_type='function'):
         node_attr = 'outputs'
 
     if node_type == 'function':
-        if where_succ:
+        if not where_succ:
             check = lambda k: dsp.dmap.out_degree(k) == 1
 
         def get_des(func_node):
             fun = func_node['function']
             n_id = func_node[node_attr].index(node_id)
-            attr_name = getargspec(fun)[0][n_id]
-            return get_attr_doc(fun.__doc__, attr_name, where_succ), ''
+            if isinstance(fun, SubDispatchFunction):
+                sub_dsp = fun.dsp
+                n_id = fun.inputs[n_id]
+                n_att = sub_dsp.nodes[n_id]
+                return search_data_description(n_id, n_att, sub_dsp)
+            else:
+                attr_name = getargspec(fun)[0][n_id]
+                return get_attr_doc(fun.__doc__, attr_name, where_succ), ''
+
     else:
         if where_succ:
             get_id = lambda node: node[node_attr][node_id]
@@ -197,7 +204,6 @@ def search_doc_in_func(dsp, node_id, where_succ=True, node_type='function'):
         return search_doc_in_func(dsp, node_id, False, node_type)
     elif node_type == 'function':
         return search_doc_in_func(dsp, node_id, True, 'dispatcher')
-    print(node_id, 'err')
     return des, link
 
 
@@ -226,8 +232,8 @@ def _data(lines, dsp):
         for k, v in data:
             des, link = search_data_description(k, v, dsp)
 
-            link = ':obj:`%s <%s>`' % (str(k), link)
-            str_format =u'   "%s", "%s"'
+            link = ':obj:`%s <%s>`' % (_node_name(str(k)), link)
+            str_format = u'   "%s", "%s"'
             lines.append(str_format % (link, get_summary(des.split('\n'))))
 
         lines.append('')
@@ -258,10 +264,14 @@ def _functions(lines, dsp, function_module, node_type='function'):
                 fun = v['function']
                 full_name = '%s.%s' % (fun.__module__, fun.__name__)
 
-            name = _func_name(k, function_module)
+            name = _node_name(_func_name(k, function_module))
 
             lines.append(u'   ":func:`%s <%s>`", "%s"' % (name, full_name, des))
         lines.append('')
+
+
+def _node_name(name):
+    return name.replace('<', '\<').replace('>', '\>')
 
 
 # ------------------------------------------------------------------------------
