@@ -140,7 +140,7 @@ def engine():
 
     engine.add_function(
         function=identify_normalization_engine_temperature,
-        inputs=['engine_coolant_temperatures'],
+        inputs=['times', 'engine_coolant_temperatures'],
         outputs=['engine_normalization_temperature',
                  'engine_normalization_temperature_window']
     )
@@ -282,6 +282,7 @@ def engine():
             'fuel_carbon_content': 'fuel_carbon_content',
             'idle_engine_speed': 'idle_engine_speed',
             'mean_piston_speeds': 'mean_piston_speeds',
+            'on_engine': 'on_engine',
             'engine_normalization_temperature_window':
                 'engine_normalization_temperature_window',
             'times': 'times',
@@ -292,7 +293,7 @@ def engine():
             'co2_emission_value': 'co2_emission_value',
             'co2_emissions': 'co2_emissions',
             'identified_co2_emissions': 'identified_co2_emissions',
-            'co2_error_function': 'co2_error_function',
+            'co2_error_function_on_phases': 'co2_error_function_on_phases',
             'co2_params': 'co2_params',
             'co2_params_bounds': 'co2_params_bounds',
             'co2_params_initial_guess': 'co2_params_initial_guess',

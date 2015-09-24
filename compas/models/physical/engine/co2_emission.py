@@ -46,8 +46,9 @@ def co2_emission():
         function=define_co2_emissions_model,
         inputs=['engine_speeds_out', 'engine_powers_out',
                 'mean_piston_speeds', 'brake_mean_effective_pressures',
-                'engine_coolant_temperatures', 'engine_fuel_lower_heating_value',
-                'idle_engine_speed', 'engine_stroke', 'engine_capacity',
+                'engine_coolant_temperatures', 'on_engine',
+                'engine_fuel_lower_heating_value', 'idle_engine_speed',
+                'engine_stroke', 'engine_capacity',
                 'engine_idle_fuel_consumption', 'fuel_carbon_content'],
         outputs=['co2_emissions_model']
     )
@@ -85,22 +86,23 @@ def co2_emission():
     )
 
     co2_emission.add_function(
-        function=define_co2_error_function,
+        function=define_co2_error_function_on_emissions,
         inputs=['co2_emissions_model', 'identified_co2_emissions'],
-        outputs=['co2_error_function']
+        outputs=['co2_error_function_on_emissions']
     )
 
     co2_emission.add_function(
-        function=define_co2_error_function_v1,
+        function=define_co2_error_function_on_phases,
         inputs=['co2_emissions_model', 'cumulative_co2_emissions', 'times',
                 'phases_integration_times'],
-        outputs=['co2_error_function'],
-        weight=100
+        outputs=['co2_error_function_on_phases']
     )
 
     co2_emission.add_function(
-        function=calibrate_model_params,
-        inputs=['co2_params_bounds', 'co2_error_function',
+        function=calibrate_co2_params,
+        inputs=['engine_coolant_temperatures',
+                'co2_error_function_on_emissions',
+                'co2_error_function_on_phases', 'co2_params_bounds',
                 'co2_params_initial_guess'],
         outputs=['co2_params']
     )

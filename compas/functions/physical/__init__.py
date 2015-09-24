@@ -168,9 +168,8 @@ def comparison_model():
         c_name = heap[0][-2] if heap else co[0]['cycle_name']
 
         def check(data):
-            keys = ('co2_params_initial_guess', 'co2_params_bounds')
+            keys = ('co2_params', 'co2_params_bounds')
             return  all(p in data for p in keys)
-
 
         its = [(o for o in co if o['cycle_name'] == c_name and check(o)),
                (o for o in co if check(o))]
@@ -184,10 +183,10 @@ def comparison_model():
         if not data:
             return
 
-        initial_guess = data['co2_params_initial_guess']
+        initial_guess = data['co2_params']
         bounds = data['co2_params_bounds']
 
-        e_tag = 'co2_error_function'
+        e_tag = 'co2_error_function_on_phases'
         error_function = [o[e_tag] for o in co if e_tag in o]
         if len(error_function) <= 1:
             return

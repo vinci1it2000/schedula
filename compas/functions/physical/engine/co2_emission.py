@@ -146,10 +146,10 @@ def calculate_P0(params, engine_capacity, engine_stroke, idle_engine_speed,
 
 def calculate_co2_emissions(
         engine_speeds_out, engine_powers_out, mean_piston_speeds,
-        brake_mean_effective_pressures, engine_coolant_temperatures,
+        brake_mean_effective_pressures, engine_coolant_temperatures, on_engine,
         engine_fuel_lower_heating_value, idle_engine_speed, engine_stroke,
         engine_capacity, engine_idle_fuel_consumption, fuel_carbon_content,
-        params):
+        params, default_params=None, sub_values=None):
     """
     Calculates CO2 emissions [CO2g/s].
 
@@ -216,36 +216,41 @@ def calculate_co2_emissions(
         't': 0.0, 'trg': 0.0
     }
 
-    # namespace shortcuts
-    n_speeds = mean_piston_speeds
-    n_powers = brake_mean_effective_pressures
-    lhv = engine_fuel_lower_heating_value
-    temp = calculate_normalized_engine_coolant_temperatures
+    if default_params:
+        p.update(default_params.copy())
 
     p.update(params)
+    if sub_values is None:
+        sub_values = np.ones(mean_piston_speeds.shape, dtype=bool)
 
-    n_temperatures = temp(engine_coolant_temperatures, p['trg'])
+    # namespace shortcuts
+    n_speeds = mean_piston_speeds[sub_values]
+    n_powers = brake_mean_effective_pressures[sub_values]
+    lhv = engine_fuel_lower_heating_value
+    e_speeds = engine_speeds_out[sub_values]
+    e_powers = engine_powers_out[sub_values]
+    e_temp = engine_coolant_temperatures[sub_values]
+    e_off =  np.logical_not(on_engine[sub_values])
+
+    n_temp = calculate_normalized_engine_coolant_temperatures(e_temp, p['trg'])
 
     FMEP = partial(_calculate_fuel_mean_effective_pressure, p)
 
-    fc = FMEP(n_speeds, n_powers, n_temperatures)[0]  # FMEP [bar]
+    fc = FMEP(n_speeds, n_powers, n_temp)[0]  # FMEP [bar]
 
-    fc *= engine_speeds_out * (engine_capacity / (lhv * 1200))  # [g/sec]
+    fc *= e_speeds * (engine_capacity / (lhv * 1200))  # [g/sec]
 
     ec_P0 = calculate_P0(
         p, engine_capacity, engine_stroke, idle_engine_speed, lhv
     )
 
-    #b = (engine_powers_out <= ec_P0)
-    b = (engine_speeds_out < idle_engine_speed[0] + MIN_ENGINE_SPEED)
-    # Idle fc correction for temperature
-    # idle_fc_temp_correction = n_temperatures**(-p['t'])
-    fc[b] = engine_idle_fuel_consumption #* idle_fc_temp_correction[b]
-    # fc[b] = engine_idle_fuel_consumption
+    b = (e_speeds < idle_engine_speed[0] + MIN_ENGINE_SPEED)
 
-    b = (engine_powers_out <= ec_P0) | (engine_speeds_out <= MIN_ENGINE_SPEED)
-    #b = (engine_speeds_out <= ec_P0)
-    fc[b | (fc < 0)] = 0
+    # Idle fc correction for temperature
+    idle_fc_temp_correction = np.power(n_temp[b], -p['t'])
+    fc[b] = engine_idle_fuel_consumption * idle_fc_temp_correction
+
+    fc[(e_powers <= ec_P0) | e_off | (fc < 0)] = 0
 
     co2 = fc * fuel_carbon_content
 
@@ -254,7 +259,7 @@ def calculate_co2_emissions(
 
 def define_co2_emissions_model(
         engine_speeds_out, engine_powers_out, mean_piston_speeds,
-        brake_mean_effective_pressures, engine_coolant_temperatures,
+        brake_mean_effective_pressures, engine_coolant_temperatures, on_engine,
         engine_fuel_lower_heating_value, idle_engine_speed, engine_stroke,
         engine_capacity, engine_idle_fuel_consumption, fuel_carbon_content):
     """
@@ -312,7 +317,7 @@ def define_co2_emissions_model(
     model = partial(
         calculate_co2_emissions, engine_speeds_out, engine_powers_out,
         mean_piston_speeds, brake_mean_effective_pressures,
-        engine_coolant_temperatures, engine_fuel_lower_heating_value,
+        engine_coolant_temperatures, on_engine, engine_fuel_lower_heating_value,
         idle_engine_speed, engine_stroke, engine_capacity,
         engine_idle_fuel_consumption, fuel_carbon_content
     )
@@ -510,23 +515,23 @@ def identify_co2_emissions(
         phases_integration_times, cumulative_co2_emissions):
     """
     Identifies instantaneous CO2 emission vector [CO2g/s].
-    
-    :param co2_emissions_model: 
+
+    :param co2_emissions_model:
         CO2 emissions model (co2_emissions = models(params)).
     :type co2_emissions_model: function
-    
-    :param params_initial_guess: 
+
+    :param params_initial_guess:
         Initial guess of co2 emission model params.
     :type params_initial_guess: dict
-    
+
     :param times:
         Time vector [s].
     :type times: np.array
-    
+
     :param phases_integration_times:
         Cycle phases integration times [s].
     :type phases_integration_times: tuple
-    
+
     :param cumulative_co2_emissions:
         Cumulative CO2 of cycle phases [CO2g].
     :type cumulative_co2_emissions: np.array
@@ -546,7 +551,7 @@ def identify_co2_emissions(
     return co2_emissions
 
 
-def define_co2_error_function(co2_emissions_model, co2_emissions):
+def define_co2_error_function_on_emissions(co2_emissions_model, co2_emissions):
     """
     Defines an error function to calibrate the CO2 emission model params.
 
@@ -563,13 +568,16 @@ def define_co2_error_function(co2_emissions_model, co2_emissions):
     :rtype: function
     """
 
-    def error_func(params):
-        return mean_squared_error(co2_emissions, co2_emissions_model(params))
+    def error_func(params, default_params=None, sub_values=None):
+        x = co2_emissions[sub_values]
+        y = co2_emissions_model(
+            params, default_params=default_params, sub_values=sub_values)
+        return mean_squared_error(x, y)
 
     return error_func
 
 
-def define_co2_error_function_v1(
+def define_co2_error_function_on_phases(
         co2_emissions_model, cumulative_co2_emissions, times,
         phases_integration_times):
     """
@@ -596,12 +604,68 @@ def define_co2_error_function_v1(
     :rtype: function
     """
 
-    def error_func(params):
-        co2 = co2_emissions_model(params)
+    def error_func(params, default_params=None, phases=None):
+
+        if phases:
+            co2, b = np.zeros(times.shape), np.zeros(times.shape, dtype=bool)
+            w = []
+            for i, (t0, t1) in enumerate(pairwise(phases_integration_times)):
+                if i in phases:
+                    b |= (t0 <= times) & (times < t1)
+                    w.append(1)
+                else:
+                    w.append(0)
+
+            co2[b] = co2_emissions_model(
+                params, default_params=default_params, sub_values=b)
+        else:
+            co2 = co2_emissions_model(params, default_params=default_params)
+            w = None
+
         cco2 = calculate_cumulative_co2(times, phases_integration_times, co2)
-        return mean_squared_error(cumulative_co2_emissions, cco2)
+        return mean_squared_error(cumulative_co2_emissions, cco2, w)
 
     return error_func
+
+
+def calibrate_co2_params(
+        engine_coolant_temperatures, co2_error_function_on_emissions,
+        co2_error_function_on_phases, co2_params_bounds,
+        co2_params_initial_guess):
+
+    b = engine_coolant_temperatures < co2_params_initial_guess['trg']
+
+    bounds, guess = co2_params_bounds, co2_params_initial_guess
+
+    def calibrate(id_p, **kwargs):
+        limits = {k: v for k, v in bounds.items() if k in id_p}
+        initial = {k: v for k, v in guess.items() if k in id_p}
+        err_f = partial(co2_error_function_on_emissions, **kwargs)
+        return calibrate_model_params(limits, err_f, initial)
+
+    hot_p = ['a2', 'a', 'b', 'c', 'l', 'l2']
+    p = calibrate(hot_p, default_params={}, sub_values=np.logical_not(b))
+
+    cold_p = ['t', 'trg']
+    p.update(calibrate(cold_p, default_params=p, sub_values=b))
+
+    def _bounds(p):
+        mul = {
+            't': (0.5, 1.5), 'trg': (0.9, 1.1),
+            'a': (0.8, 1.2), 'b': (0.8, 1.2), 'c': (1.2, 0.8),
+            'a2': (1.2, 0.8),
+            'l': (1.2, 0.8), 'l2': (1.2, 0.0),
+        }
+
+        fun = [max, min]
+
+        def _limits(k, v):
+            l = (f(b, v * m) for f, b, m in zip(fun, bounds[k], mul[k]))
+            return tuple(l)
+
+        return {k: _limits(k, v) for k, v in p.items()}
+
+    return calibrate_model_params(_bounds(p), co2_error_function_on_phases, p)
 
 
 def calibrate_model_params(params_bounds, error_function, initial_guess=None):
@@ -628,7 +692,7 @@ def calibrate_model_params(params_bounds, error_function, initial_guess=None):
     :rtype: dict
     """
 
-    if isfunction(error_function):
+    if hasattr(error_function, '__call__'):
         error_f = error_function
     else:
         error_f = lambda p: sum(f(p) for f in error_function)
