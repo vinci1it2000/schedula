@@ -63,3 +63,5 @@ target/
 /inputs/
 /output/
 /outputs/
+/.project
+/.pydevproject
