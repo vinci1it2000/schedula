@@ -7,8 +7,8 @@
 ## and then just code from inside this folder.
 #
 from setuptools import setup
-version = '1.0'
-release = '%s.0' % version
+version = '1.0.0-dev.ank.0'
+release = version
 setup(
     name='compas',
     version=version,
