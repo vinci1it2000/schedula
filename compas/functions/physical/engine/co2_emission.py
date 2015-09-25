@@ -645,9 +645,11 @@ def calibrate_co2_params(
 
     hot_p = ['a2', 'a', 'b', 'c', 'l', 'l2']
     p = calibrate(hot_p, default_params={}, sub_values=np.logical_not(b))
-
-    cold_p = ['t', 'trg']
-    p.update(calibrate(cold_p, default_params=p, sub_values=b))
+    if b.any():
+        cold_p = ['t', 'trg']
+        p.update(calibrate(cold_p, default_params=p, sub_values=b))
+    else:
+        p['trg'], p['t'] = co2_params_initial_guess['trg'], 0.0
 
     def _bounds(p):
         mul = {

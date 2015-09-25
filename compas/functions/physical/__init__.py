@@ -139,23 +139,13 @@ def comparison_model():
         dsp=co2_emission(),
         inputs={
             'co2_emissions_model': 'co2_emissions_model',
-            'co2_params': 'co2_params'
+            'co2_params': 'co2_params',
+            'cycle_type': 'cycle_type',
+            'velocities': 'velocities',
+            'times': 'times'
         },
         outputs={
-            'co2_emissions': 'co2_emissions'
-        }
-    )
-
-    # calibration of all
-    dsp.add_dispatcher(
-        dsp_id='calibration_co2_params_with_all_calibration_cycles',
-        dsp=co2_emission(),
-        inputs={
-            'co2_emissions_model': 'co2_emissions_model',
-            'co2_params': 'co2_params'
-        },
-        outputs={
-            'co2_emissions': 'co2_emissions'
+            'phases_co2_emissions': 'phases_co2_emissions'
         }
     )
 
@@ -199,8 +189,7 @@ def comparison_model():
 
     models.append({
         'models': ('co2_params',),
-        'outputs':('co2_emissions',),
-        'targets': ('identified_co2_emissions',),
+        'targets':('phases_co2_emissions',),
         'post_processing': calibrate_co2_params_with_all_calibration_cycles
     })
 
@@ -329,7 +318,7 @@ def model_selector(*calibration_outputs):
     em_rt = list(map(get, range(len(co)), co))
 
     for d in _model_targets:
-        heap, mods, trgs = [], d['models'], d['targets']
+        heap, mods= [], d['models']
         trgs = d.get('targets', d.get('outputs', ()))
         outs = d.get('outputs', d.get('targets', ()))
         get_i = d.get('get_inputs', get_inputs)
