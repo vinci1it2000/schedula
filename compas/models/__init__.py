@@ -58,12 +58,18 @@ def architecture():
 
     architecture.add_function(
         function_id='replicate',
-        function=partial(replicate_value, n=3),
+        function=partial(replicate_value, n=4),
         inputs=['input_file_name'],
-        outputs=['calibration_input_file_name',
+        outputs=['precondition_input_file_name',
+                 'calibration_input_file_name',
                  'calibration_input_file_name<0>',
                  'prediction_input_file_name'],
         description='Replicates the input value.'
+    )
+
+    architecture.add_data(
+        data_id='precondition_input_file_name',
+        description='File name, that contains precondition inputs.'
     )
 
     architecture.add_data(
@@ -75,6 +81,24 @@ def architecture():
         data_id='output_sheet_names',
         default_value=('params', 'series'),
         description='Names of xl-sheets to save parameters and data series.'
+    )
+
+    architecture.add_data(
+        data_id='precondition_cycle_name',
+        default_value='WLTP-Precon',
+        description='Precondition cycle name.'
+    )
+
+    architecture.add_data(
+        data_id='precondition_output_file_name',
+        description='Dictionary that has all precondition cycle targets.'
+    )
+
+    architecture.add_function(
+        function=calibrate_models(),
+        inputs=['precondition_cycle_name', 'precondition_input_file_name',
+                'precondition_output_file_name', 'output_sheet_names'],
+        outputs=['precondition_cycle_outputs', SINK, SINK, SINK],
     )
 
     from .physical import physical_prediction
@@ -153,7 +177,6 @@ def architecture():
             data_id=ccpof,
             description='File name to save prediction outputs.'
         )
-
 
     architecture.add_data(
         data_id='prediction_cycle_name',

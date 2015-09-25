@@ -293,7 +293,6 @@ def identify_normalization_engine_temperature(
     return m - s, (m - 3 * s, max_temp)
 
 
-
 def identify_initial_engine_temperature(engine_coolant_temperatures):
     """
     Identifies initial engine temperature [°C].
