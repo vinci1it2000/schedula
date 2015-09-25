@@ -250,6 +250,12 @@ def engine():
         outputs=['engine_type']
     )
 
+    engine.add_function(
+        function=calculate_engine_moment_inertia,
+        inputs=['engine_capacity', 'fuel_type'],
+        outputs=['engine_moment_inertia']
+    )
+
     from compas.models.physical.engine.co2_emission import co2_emission
     co_e = co2_emission()
 

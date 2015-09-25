@@ -841,3 +841,29 @@ def calculate_engine_type(fuel_type, engine_is_turbo):
         engine_type = '%s %s' % (fuel_type, engine_type)
 
     return engine_type
+
+
+def calculate_engine_moment_inertia(engine_capacity, fuel_type):
+    """
+    Calculates engine moment of inertia [kg*m2].
+
+    :param engine_capacity:
+        Engine capacity [cm3].
+    :type engine_capacity: float
+
+    :param fuel_type:
+        Fuel type (gasoline or diesel).
+    :type fuel_type: str
+
+    :return:
+        Engine moment of inertia [kg*m2].
+    :rtype: float
+    """
+
+    w = {
+        'gasoline': 1,
+        'diesel': 2
+
+    }[fuel_type]
+
+    return (0.05 + 0.1 * engine_capacity / 1000.0) * w

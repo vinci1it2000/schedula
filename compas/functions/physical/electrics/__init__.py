@@ -26,6 +26,34 @@ from sklearn.tree import DecisionTreeClassifier
 from compas.dispatcher.utils import SubDispatchFunction
 from compas.functions.physical.utils import reject_outliers
 from compas.functions.physical.constants import *
+from math import pi
+
+
+def calculate_engine_start_demand(
+        engine_moment_inertia, idle_engine_speed, alternator_efficiency):
+    """
+    Calculates the engine start demand [kW].
+
+    :param engine_moment_inertia:
+        Engine moment of inertia [kg*m2].
+    :type engine_moment_inertia: float
+
+    :param idle_engine_speed:
+        Idle engine speed and its standard deviation [RPM].
+    :type idle_engine_speed: (float, float)
+
+    :param alternator_efficiency:
+        Alternator efficiency [-].
+    :type alternator_efficiency: float
+
+    :return:
+        Engine start demand [kW].
+    :rtype: float
+    """
+
+    w_idle =  idle_engine_speed[0] / 30.0 * pi
+
+    return engine_moment_inertia / alternator_efficiency * w_idle**2
 
 
 def identify_electric_loads(

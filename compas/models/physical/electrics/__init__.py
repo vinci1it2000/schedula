@@ -45,6 +45,14 @@ def electrics():
     )
 
     electrics.add_function(
+        function=calculate_engine_start_demand,
+        inputs=['engine_moment_inertia', 'idle_engine_speed',
+                'alternator_efficiency'],
+        outputs=['start_demand'],
+        weight=100
+    )
+
+    electrics.add_function(
         function=identify_electric_loads,
         inputs=['alternator_nominal_voltage', 'battery_currents',
                 'alternator_currents', 'gear_box_powers_in', 'times',
