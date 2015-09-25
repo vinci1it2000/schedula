@@ -51,7 +51,8 @@ coverage.xml
 *.log
 
 # Sphinx documentation
-docs/_build/
+doc/_build/
+doc/compas/
 
 # PyBuilder
 target/
@@ -59,3 +60,6 @@ target/
 .idea/
 
 /versions
+/inputs/
+/output/
+/outputs/
