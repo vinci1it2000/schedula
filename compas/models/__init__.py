@@ -24,14 +24,14 @@ It contains a comprehensive list of all CO2MPAS software models and functions:
 from compas.functions.write_outputs import write_output
 from compas.dispatcher import Dispatcher
 from compas.dispatcher.utils import SubDispatch, replicate_value
-from compas.dispatcher.constants import SINK
+from compas.dispatcher.constants import SINK, START
 from functools import partial
 from compas.functions.read_inputs import *
 from compas.dispatcher.utils import SubDispatchFunction
 from compas.functions import select_inputs_for_prediction
 
 
-def architecture():
+def architecture(with_output_file=True):
     """
     Defines the CO2MPAS software architecture.
 
@@ -95,7 +95,7 @@ def architecture():
     )
 
     architecture.add_function(
-        function=calibrate_models(),
+        function=calibrate_models(with_output_file),
         inputs=['precondition_cycle_name', 'precondition_input_file_name',
                 'precondition_output_file_name', 'output_sheet_names'],
         outputs=['precondition_cycle_outputs', SINK, SINK, SINK],
@@ -134,7 +134,7 @@ def architecture():
         )
 
         architecture.add_function(
-            function=calibrate_models(),
+            function=calibrate_models(with_output_file),
             inputs=[ccn, cif, cof, 'output_sheet_names'],
             outputs=[cco, cct, ccip, SINK],
         )
@@ -166,12 +166,12 @@ def architecture():
             data_id=ccpo,
             description='Dictionary that has outputs of the calibration cycle.'
         )
-
-        architecture.add_function(
-            function_id='save_cycle_outputs',
-            function=write_output,
-            inputs=[ccpo, ccpof, 'output_sheet_names'],
-        )
+        if with_output_file:
+            architecture.add_function(
+                function_id='save_cycle_outputs',
+                function=write_output,
+                inputs=[ccpo, ccpof, 'output_sheet_names'],
+            )
 
         architecture.add_data(
             data_id=ccpof,
@@ -231,12 +231,13 @@ def architecture():
         description='Dictionary that has all outputs of the prediction cycle.'
     )
 
-    architecture.add_function(
-        function_id='save_cycle_outputs',
-        function=write_output,
-        inputs=['prediction_cycle_outputs', 'prediction_output_file_name',
-                'output_sheet_names'],
-    )
+    if with_output_file:
+        architecture.add_function(
+            function_id='save_cycle_outputs',
+            function=write_output,
+            inputs=['prediction_cycle_outputs', 'prediction_output_file_name',
+                    'output_sheet_names'],
+        )
 
     architecture.add_data(
         data_id='prediction_output_file_name',
@@ -320,7 +321,7 @@ def load():
     return load_inputs
 
 
-def calibrate_models():
+def calibrate_models(with_output_file=True):
     """
     Defines and returns a function to calibrate CO2MPAS models with one cycle.
 
@@ -378,12 +379,19 @@ def calibrate_models():
         data_id='output_sheet_names',
         description='Names of xl-sheets to save parameters and data series.'
     )
+    if with_output_file:
+        dsp.add_function(
+            function_id='save_cycle_outputs',
+            function=write_output,
+            inputs=['cycle_outputs', 'output_file_name', 'output_sheet_names'],
+        )
+    else:
+        dsp.add_function(
+            function_id='save_cycle_outputs',
+            function=lambda *args: None,
+            inputs=['cycle_outputs', 'output_file_name', 'output_sheet_names'],
+        )
 
-    dsp.add_function(
-        function_id='save_cycle_outputs',
-        function=write_output,
-        inputs=['cycle_outputs', 'output_file_name', 'output_sheet_names'],
-    )
 
     dsp.add_data(
         data_id='output_file_name',

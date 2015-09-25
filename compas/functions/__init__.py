@@ -89,7 +89,7 @@ def select_inputs_for_prediction(data):
 files_exclude_regex = re.compile('^\w')
 
 
-def process_folder_files(input_folder, output_folder):
+def process_folder_files(input_folder, output_folder, with_output_file=True):
     """
     Processes all excel files in a folder with the model defined by
     :func:`architecture`.
@@ -103,7 +103,7 @@ def process_folder_files(input_folder, output_folder):
     :type output_folder: str
     """
     from compas.models import architecture
-    model = architecture()
+    model = architecture(with_output_file)
     fpaths = sorted(glob.glob(input_folder + '/*.xlsx'))
     summary = {}
     start_time = datetime.today()
@@ -210,10 +210,11 @@ def process_folder_files(input_folder, output_folder):
             summary[k] = l = summary.get(k, [])
             l.append(v)
 
-    writer = pd.ExcelWriter('%s/%s%s.xlsx' % (output_folder, doday, 'Summary'))
+    if with_output_file:
+        writer = pd.ExcelWriter('%s/%s%s.xlsx' % (output_folder, doday, 'Summary'))
 
-    for k, v in sorted(summary.items()):
-        pd.DataFrame.from_records(v).to_excel(writer, k)
+        for k, v in sorted(summary.items()):
+            pd.DataFrame.from_records(v).to_excel(writer, k)
 
     """
     from compas.dispatcher.draw import dsp2dot
@@ -223,8 +224,11 @@ def process_folder_files(input_folder, output_folder):
     dsp2dot(model, view=True, function_module=False)
     """
 
+
     time_elapsed = (datetime.today() - start_time).total_seconds() / 60.0
     print('Done! [%.3f min]' % time_elapsed)
+
+    return summary
 
 
 def make_summary(sheets, workflow, results, **kwargs):
