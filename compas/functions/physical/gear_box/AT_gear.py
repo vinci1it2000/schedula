@@ -420,7 +420,7 @@ def calibrate_gear_shifting_cmv(
 
     gsv = identify_gear_shifting_velocity_limits(gears, velocities)
 
-    gear_id, velocity_limits = zip(*list(gsv.items())[1:])
+    gear_id, velocity_limits = zip(*list(sorted(gsv.items()))[1:])
 
     def update_gvs(vel_limits):
         gsv[0] = (0, vel_limits[0])

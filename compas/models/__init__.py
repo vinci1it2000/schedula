@@ -24,11 +24,11 @@ It contains a comprehensive list of all CO2MPAS software models and functions:
 from compas.functions.write_outputs import write_output
 from compas.dispatcher import Dispatcher
 from compas.dispatcher.utils import SubDispatch, replicate_value
-from compas.dispatcher.constants import SINK, START
+from compas.dispatcher.constants import SINK
 from functools import partial
 from compas.functions.read_inputs import *
 from compas.dispatcher.utils import SubDispatchFunction
-from compas.functions import select_inputs_for_prediction
+from compas.functions import *
 
 
 def architecture(with_output_file=True):
@@ -95,7 +95,8 @@ def architecture(with_output_file=True):
     )
 
     architecture.add_function(
-        function=calibrate_models(with_output_file),
+        function_id='process_precondition_cycle',
+        function=partial(calibrate_models(with_output_file), {}),
         inputs=['precondition_cycle_name', 'precondition_input_file_name',
                 'precondition_output_file_name', 'output_sheet_names'],
         outputs=['precondition_cycle_outputs', SINK, SINK, SINK],
@@ -135,7 +136,8 @@ def architecture(with_output_file=True):
 
         architecture.add_function(
             function=calibrate_models(with_output_file),
-            inputs=[ccn, cif, cof, 'output_sheet_names'],
+            inputs=['precondition_cycle_outputs', ccn, cif, cof,
+                    'output_sheet_names'],
             outputs=[cco, cct, ccip, SINK],
         )
 
@@ -280,14 +282,14 @@ def load():
     )
 
     dsp.add_function(
-        function_id='load: parameters',
+        function_id='load-parameters',
         function=read_cycle_parameters,
         inputs=['input_excel_file', 'parameters_cols'],
         outputs=['cycle_parameters']
     )
 
     dsp.add_function(
-        function_id='load: time series',
+        function_id='load-time series',
         function=read_cycles_series,
         inputs=['input_excel_file', 'cycle_name'],
         outputs=['cycle_series']
@@ -351,7 +353,13 @@ def calibrate_models(with_output_file=True):
     dsp.add_function(
         function=load(),
         inputs=['input_file_name', 'cycle_name'],
-        outputs=['cycle_inputs', 'cycle_targets'],
+        outputs=['cycle_inputs<0>', 'cycle_targets'],
+    )
+
+    dsp.add_function(
+        function=select_precondition_inputs,
+        inputs=['cycle_inputs<0>', 'precondition_outputs'],
+        outputs=['cycle_inputs'],
     )
 
     dsp.add_data(
@@ -379,19 +387,12 @@ def calibrate_models(with_output_file=True):
         data_id='output_sheet_names',
         description='Names of xl-sheets to save parameters and data series.'
     )
-    if with_output_file:
-        dsp.add_function(
-            function_id='save_cycle_outputs',
-            function=write_output,
-            inputs=['cycle_outputs', 'output_file_name', 'output_sheet_names'],
-        )
-    else:
-        dsp.add_function(
-            function_id='save_cycle_outputs',
-            function=lambda *args: None,
-            inputs=['cycle_outputs', 'output_file_name', 'output_sheet_names'],
-        )
 
+    dsp.add_function(
+        function_id='save_cycle_outputs',
+        function=write_output if with_output_file else lambda *args: None,
+        inputs=['cycle_outputs', 'output_file_name', 'output_sheet_names'],
+    )
 
     dsp.add_data(
         data_id='output_file_name',
@@ -414,8 +415,8 @@ def calibrate_models(with_output_file=True):
     calibrate_models = SubDispatchFunction(
         dsp=dsp,
         function_id='calibrate_models',
-        inputs=['cycle_name', 'input_file_name', 'output_file_name',
-                'output_sheet_names'],
+        inputs=['precondition_outputs', 'cycle_name', 'input_file_name',
+                'output_file_name', 'output_sheet_names'],
         outputs=['cycle_outputs', 'cycle_targets',
                  'cycle_inputs_for_prediction', SINK]
     )

@@ -89,10 +89,10 @@ def select_inputs_for_prediction(data):
 files_exclude_regex = re.compile('^\w')
 
 
-def process_folder_files(input_folder, output_folder, with_output_file=True):
+def process_folder_files(input_folder, output_folder):
     """
     Processes all excel files in a folder with the model defined by
-    :func:`architecture`.
+    :func:`compas.models.architecture`.
 
     :param input_folder:
         Input folder.
@@ -102,8 +102,9 @@ def process_folder_files(input_folder, output_folder, with_output_file=True):
         Output folder.
     :type output_folder: str
     """
+
     from compas.models import architecture
-    model = architecture(with_output_file)
+    model = architecture()
     fpaths = sorted(glob.glob(input_folder + '/*.xlsx'))
     summary = {}
     start_time = datetime.today()
@@ -113,10 +114,10 @@ def process_folder_files(input_folder, output_folder, with_output_file=True):
         'prediction_output_file_name': 'prediction_NEDC',
         'calibration_output_file_name': 'calibration_WLTP-H',
         'calibration_output_file_name<0>': 'calibration_WLTP-L',
-        'calibration_cycle_prediction_outputs_file_name':
-            'prediction_WLTP-H',
+        'calibration_cycle_prediction_outputs_file_name': 'prediction_WLTP-H',
         'calibration_cycle_prediction_outputs_file_name<0>':
             'prediction_WLTP-L',
+        'precondition_output_file_name': 'precondition_WLTP'
     }
 
     def check_printable(tag, data):
@@ -160,6 +161,13 @@ def process_folder_files(input_folder, output_folder, with_output_file=True):
         'CAL WLTP-H': {
             'results': {
                 'output': 'calibration_cycle_outputs',
+                'check': check_printable,
+                'filters': filters
+            }
+        },
+        'CAL WLTP-PRECON': {
+            'results': {
+                'output': 'precondition_cycle_outputs',
                 'check': check_printable,
                 'filters': filters
             }
@@ -210,11 +218,10 @@ def process_folder_files(input_folder, output_folder, with_output_file=True):
             summary[k] = l = summary.get(k, [])
             l.append(v)
 
-    if with_output_file:
-        writer = pd.ExcelWriter('%s/%s%s.xlsx' % (output_folder, doday, 'Summary'))
+    writer = pd.ExcelWriter('%s/%s%s.xlsx' % (output_folder, doday, 'Summary'))
 
-        for k, v in sorted(summary.items()):
-            pd.DataFrame.from_records(v).to_excel(writer, k)
+    for k, v in sorted(summary.items()):
+        pd.DataFrame.from_records(v).to_excel(writer, k)
 
     """
     from compas.dispatcher.draw import dsp2dot
@@ -227,8 +234,6 @@ def process_folder_files(input_folder, output_folder, with_output_file=True):
 
     time_elapsed = (datetime.today() - start_time).total_seconds() / 60.0
     print('Done! [%.3f min]' % time_elapsed)
-
-    return summary
 
 
 def make_summary(sheets, workflow, results, **kwargs):
@@ -324,3 +329,33 @@ def extract_summary(summary):
                 s['%s %s' % (c, k)] = v
 
     return {'SUMMARY': s}
+
+
+def select_precondition_inputs(cycle_inputs, precondition_outputs):
+        """
+        Updates cycle inputs with the precondition outputs.
+
+        :param cycle_inputs:
+            Dictionary that has all inputs of the calibration cycle.
+        :type cycle_inputs: dict
+
+        :param precondition_outputs:
+            Dictionary that has all outputs of the precondition cycle.
+        :type precondition_outputs: dict
+
+        :return:
+            Dictionary that has all inputs of the calibration cycle.
+        :rtype: dict
+        """
+
+        inputs, pre = cycle_inputs.copy(), precondition_outputs
+
+        p = ('electric_load', 'battery_currents')
+        if not any(k in cycle_inputs for k in p) and p[0] in pre:
+            inputs['electric_load'] = pre['electric_load']
+
+        p = ('initial_state_of_charge', 'state_of_charges')
+        if not any(k in cycle_inputs for k in p) and p[0] in pre:
+            inputs['initial_state_of_charge'] = pre['state_of_charges'][-1]
+
+        return inputs

@@ -23,7 +23,7 @@ from functools import partial
 from inspect import signature, Parameter, _POSITIONAL_OR_KEYWORD
 from collections import OrderedDict
 import types
-from itertools import chain, repeat
+from itertools import repeat
 
 
 def combine_dicts(*dicts):

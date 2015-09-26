@@ -50,6 +50,19 @@ def engine():
         weight=20
     )
 
+    engine.add_function(
+        function=get_engine_motoring_curve,
+        inputs=['fuel_type'],
+        outputs=['engine_motoring_curve']
+    )
+
+    engine.add_function(
+        function=define_engine_power_correction_function,
+        inputs=['full_load_curve', 'engine_motoring_curve', 'engine_max_power',
+                'idle_engine_speed', 'engine_max_speed_at_max_power'],
+        outputs=['engine_power_correction_function']
+    )
+
     from compas.functions.physical.wheels import calculate_wheel_powers, \
         calculate_wheel_torques
 
@@ -222,15 +235,9 @@ def engine():
 
     engine.add_function(
         function=calculate_engine_powers_out,
-        inputs=['gear_box_powers_in', 'on_engine', 'alternator_powers_demand'],
+        inputs=['gear_box_powers_in', 'engine_speeds_out', 'on_engine',
+                'engine_power_correction_function', 'alternator_powers_demand'],
         outputs=['engine_powers_out']
-    )
-
-    engine.add_function(
-        function=calculate_engine_powers_out,
-        inputs=['gear_box_powers_in', 'on_engine', 'alternator_powers_demand'],
-        outputs=['engine_powers_out'],
-        weight=20
     )
 
     engine.add_function(
@@ -304,8 +311,7 @@ def engine():
             'co2_params_bounds': 'co2_params_bounds',
             'co2_params_initial_guess': 'co2_params_initial_guess',
             'fuel_consumptions': 'fuel_consumptions',
-            'phases_co2_emissions': 'phases_co2_emissions',
-            'P0': 'P0'
+            'phases_co2_emissions': 'phases_co2_emissions'
         }
     )
 

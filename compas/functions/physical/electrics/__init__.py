@@ -51,9 +51,9 @@ def calculate_engine_start_demand(
     :rtype: float
     """
 
-    w_idle =  idle_engine_speed[0] / 30.0 * pi
+    w_idle = idle_engine_speed[0] / 30.0 * pi
 
-    return engine_moment_inertia / alternator_efficiency * w_idle**2
+    return engine_moment_inertia / alternator_efficiency * w_idle ** 2
 
 
 def identify_electric_loads(
@@ -445,7 +445,7 @@ def predict_vehicle_electrics(
                 'delta_time', 'gear_box_power_in',
                 'on_engine', 'engine_start',
 
-                'battery_state_of_charge', 'alternator_status',
+                'battery_state_of_charge', 'prev_alternator_status',
                 'prev_battery_current'],
         outputs=['alternator_current', 'battery_state_of_charge',
                  'alternator_status', 'battery_current']

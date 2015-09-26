@@ -32,6 +32,7 @@ from heapq import heappush, heappop
 from collections import deque
 from copy import copy
 from networkx import DiGraph, isolates
+from functools import partial
 
 from .utils.gen import AttrDict, counter, caller_name
 from .utils.alg import add_edge_fun, remove_cycles_iteration
@@ -556,10 +557,14 @@ class Dispatcher(object):
             attr_dict['description'] = description
 
         if function_id is None:  # set function name
+
+            if isinstance(function, partial): # get parent function
+                func = function.func
+            else:
+                func = function
             try:
                 # noinspection PyUnresolvedReferences
-                function_name = '%s:%s' % (function.__module__,
-                                           function.__name__)
+                function_name = '%s:%s' % (func.__module__, func.__name__)
             except Exception as ex:
                 raise ValueError('Invalid function name due to:\n{}'.format(ex))
         else:

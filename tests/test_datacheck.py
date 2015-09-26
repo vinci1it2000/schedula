@@ -6,6 +6,7 @@ import os
 
 from compas.functions import make_summary, extract_summary, files_exclude_regex
 
+
 def process_folder_files(input_folder):
     """
     Processes all excel files in a folder with the model defined by
@@ -19,10 +20,15 @@ def process_folder_files(input_folder):
         Output folder.
     :type output_folder: str
     """
+
     from compas.models import architecture
+
     model = architecture(with_output_file=False)
+
     fpaths = sorted(glob.glob(input_folder + '/*.xlsx'))
+
     summary = {}
+
     output_files = {
         'prediction_output_file_name': 'prediction_NEDC',
         'calibration_output_file_name': 'calibration_WLTP-H',
@@ -32,6 +38,7 @@ def process_folder_files(input_folder):
         'calibration_cycle_prediction_outputs_file_name<0>':
             'prediction_WLTP-L',
     }
+
     def check_printable(tag, data):
         mods = {'errors calibrated_models', 'errors AT_gear_shifting_model',
                 'origin calibrated_models'}
@@ -137,6 +144,7 @@ class SeatBelt(unittest.TestCase):
     def test_basic(self):
 
         summary = process_folder_files(os.path.curdir)
+
         for v in summary['SUMMARY']:
             for k, r  in v.items():
                 print(k, r)

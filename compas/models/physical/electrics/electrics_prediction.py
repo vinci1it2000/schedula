@@ -58,7 +58,7 @@ def electrics_prediction():
 
     electrics_prediction.add_function(
         function=predict_alternator_status,
-        inputs=['alternator_status_model', 'alternator_status',
+        inputs=['alternator_status_model', 'prev_alternator_status',
                 'battery_state_of_charge', 'gear_box_power_in'],
         outputs=['alternator_status']
     )

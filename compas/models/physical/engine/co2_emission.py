@@ -178,11 +178,4 @@ def co2_emission():
         outputs=['phases_co2_emissions']
     )
 
-    co2_emission.add_function(
-        function=calculate_P0,
-        inputs=['co2_params', 'engine_capacity', 'engine_stroke',
-                'idle_engine_speed', 'engine_fuel_lower_heating_value'],
-        outputs=['P0']
-    )
-
     return co2_emission

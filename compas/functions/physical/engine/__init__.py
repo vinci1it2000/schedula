@@ -57,7 +57,53 @@ def get_full_load(fuel_type):
              0.772776746, 0.846217049, 0.906754984, 0.94977083, 0.981937981,
              1, 0.937598144, 0.85])
     }
+
     return full_load[fuel_type]
+
+
+def get_engine_motoring_curve(fuel_type):
+    """
+    Returns engine motoring curve.
+
+    :param fuel_type:
+        Vehicle fuel type (diesel or gasoline).
+    :type fuel_type: str
+
+    :return:
+        Vehicle normalized engine motoring curve.
+    :rtype: InterpolatedUnivariateSpline
+    """
+
+    engine_motoring_curve = {
+        'gasoline': InterpolatedUnivariateSpline(
+            np.linspace(0, 1.2, 13),
+            [-0.2, -0.20758, -0.21752, -0.22982, -0.24448, -0.2615, -0.28088,
+             -0.30262, -0.32672, -0.35318, -0.382, -0.41318, -0.44672]),
+        'diesel': InterpolatedUnivariateSpline(
+            np.linspace(0, 1.2, 13),
+            [-0.2, -0.20758, -0.21752, -0.22982, -0.24448, -0.2615, -0.28088,
+             -0.30262, -0.32672, -0.35318, -0.382, -0.41318, -0.44672])
+    }
+
+    return engine_motoring_curve[fuel_type]
+
+
+def define_engine_power_correction_function(
+        full_load_curve, engine_motoring_curve, engine_max_power,
+        idle_engine_speed, engine_max_speed_at_max_power):
+
+    def engine_power_correction_function(engine_speeds, engine_powers):
+        n_norm = (engine_max_speed_at_max_power - idle_engine_speed[0])
+        n_norm = (np.asarray(engine_speeds) - idle_engine_speed[0]) / n_norm
+
+        up_limit = full_load_curve(n_norm) * engine_max_power
+        dn_limit = engine_motoring_curve(n_norm) * engine_max_power
+
+        up, dn = up_limit < engine_powers, dn_limit > engine_powers
+
+        return np.where(up, up_limit, np.where(dn, dn_limit, engine_powers))
+
+    return engine_power_correction_function
 
 
 def calculate_full_load(full_load_speeds, full_load_powers, idle_engine_speed):
@@ -82,15 +128,15 @@ def calculate_full_load(full_load_speeds, full_load_powers, idle_engine_speed):
     """
 
     v = list(zip(full_load_powers, full_load_speeds))
-    max_engine_power, max_engine_speed_at_max_power = max(v)
+    engine_max_power, engine_max_speed_at_max_power = max(v)
 
-    p_norm = np.asarray(full_load_powers) / max_engine_power
-    n_norm = (max_engine_speed_at_max_power - idle_engine_speed[0])
+    p_norm = np.asarray(full_load_powers) / engine_max_power
+    n_norm = (engine_max_speed_at_max_power - idle_engine_speed[0])
     n_norm = (np.asarray(full_load_speeds) - idle_engine_speed[0]) / n_norm
 
     flc = InterpolatedUnivariateSpline(n_norm, p_norm)
 
-    return flc, max_engine_power, max_engine_speed_at_max_power
+    return flc, engine_max_power, engine_max_speed_at_max_power
 
 
 def identify_idle_engine_speed_out(velocities, engine_speeds_out):
@@ -696,7 +742,8 @@ def calibrate_cold_start_speed_model_v1(
 
 
 def calculate_engine_powers_out(
-        gear_box_powers_in, on_engine, alternator_powers_demand=None, P0=None):
+        gear_box_powers_in, engine_speeds_out, on_engine,
+        engine_power_correction_function, alternator_powers_demand=None):
     """
     Calculates the engine power [kW].
 
@@ -721,13 +768,15 @@ def calculate_engine_powers_out(
     :rtype: np.array
     """
 
+    p_on = gear_box_powers_in[on_engine]
+
+    if alternator_powers_demand is not None:
+        p_on += np.abs(alternator_powers_demand[on_engine])
+
+    p_on = engine_power_correction_function(engine_speeds_out[on_engine], p_on)
+
     p = np.zeros(gear_box_powers_in.shape)
-
-    p[on_engine] = gear_box_powers_in[on_engine]
-    p[on_engine] += np.abs(alternator_powers_demand[on_engine])
-
-    if P0 is not None:
-        p[p < P0] = P0
+    p[on_engine] = p_on
 
     return p
 
