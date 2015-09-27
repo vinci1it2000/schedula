@@ -24,6 +24,7 @@ Sub-Modules:
 from compas.dispatcher import Dispatcher
 from compas.functions.physical.gear_box import *
 from compas.dispatcher.utils import bypass
+from compas.dispatcher.constants import SINK
 from compas.functions.physical.gear_box import get_gear_box_efficiency_constants
 
 
@@ -231,11 +232,12 @@ def gear_box_calibration():
         dsp_id='AT_gear_shifting',
         inputs={
             'accelerations': 'accelerations',
+            'use_dt_gear_shifting': 'use_dt_gear_shifting',
             'engine_speeds_out': 'engine_speeds_out',
             'full_load_curve': 'full_load_curve',
             'gears': 'identified_gears',
             'gear_box_powers_out': 'gear_box_powers_out',
-            'gear_box_type': 'gear_box_type',
+            'gear_box_type': SINK,
             'idle_engine_speed': 'idle_engine_speed',
             'engine_max_power': 'engine_max_power',
             'engine_max_speed_at_max_power': 'engine_max_speed_at_max_power',
@@ -302,6 +304,7 @@ def gear_box_prediction():
         dsp=at,
         dsp_id='AT_gear_shifting',
         inputs={
+            'use_dt_gear_shifting': 'use_dt_gear_shifting',
             'correct_gear': 'correct_gear',
             'CMV': 'CMV',
             'CMV_Cold_Hot': 'CMV_Cold_Hot',

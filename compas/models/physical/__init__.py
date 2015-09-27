@@ -331,6 +331,7 @@ def physical_calibration():
         dsp_id='Gear box model',
         dsp=gb,
         inputs={
+            'use_dt_gear_shifting': 'use_dt_gear_shifting',
             'fuel_type': 'fuel_type',
             'full_load_curve': 'full_load_curve',
             'engine_max_power': 'engine_max_power',
@@ -428,6 +429,7 @@ def physical_prediction():
         dsp_id='Gear box model',
         dsp=gb,
         inputs={
+            'use_dt_gear_shifting': 'use_dt_gear_shifting',
             'correct_gear': 'correct_gear',
             'CMV': 'CMV',
             'CMV_Cold_Hot': 'CMV_Cold_Hot',

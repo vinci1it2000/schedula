@@ -263,16 +263,27 @@ def comparison_model():
     )
 
     def AT_get_inputs(extracted_models, *args, **kwargs):
+
         i = get_inputs(extracted_models, *args, **kwargs)
+
         k = i['origin AT_gear_shifting_model'][0]
+
         i[k] = extracted_models[k]
+
         return i
+
+    def AT_get_models(selected_models, *args):
+
+        k = selected_models['origin AT_gear_shifting_model'][0]
+
+        return {k: selected_models[k]}
 
     models.append({
         'models': ('origin AT_gear_shifting_model', 'correct_gear',
                    'upper_bound_engine_speed'),
         'targets': ('gears',),
-        'get_inputs': AT_get_inputs
+        'get_inputs': AT_get_inputs,
+        'get_models': AT_get_models,
     })
 
     return dsp, models
@@ -290,6 +301,13 @@ def get_inputs(
     inputs = {k: v for k, v in results.items() if k not in keys}
     inputs.update({m: extracted_models[m] for m in models})
     return inputs
+
+
+def get_models(selected_models, models_to_select):
+
+    m = set(models_to_select).intersection(selected_models)
+
+    return {k: selected_models[k] for k in m}
 
 
 def model_selector(*calibration_outputs):
@@ -314,7 +332,7 @@ def model_selector(*calibration_outputs):
     # get calibrated models and data for comparison
     m = set(chain.from_iterable(m['models'] for m in _model_targets))
     id_tag = 'cycle_name'
-    get = lambda i, o: (get_models(o, m), o[id_tag], co[:i] + co[i + 1:], co[i])
+    get = lambda i, o: (extract_models(o, m), o[id_tag], co[:i] + co[i + 1:], co[i])
     em_rt = list(map(get, range(len(co)), co))
 
     for d in _model_targets:
@@ -322,11 +340,12 @@ def model_selector(*calibration_outputs):
         trgs = d.get('targets', d.get('outputs', ()))
         outs = d.get('outputs', d.get('targets', ()))
         get_i = d.get('get_inputs', get_inputs)
+        get_m = d.get('get_models', get_models)
         post = d.get('post_processing', lambda *args: None)
 
         def error_fun(e_mods, co_i, res_t, push=True):
             if any(m not in e_mods for m in mods):
-                return (None, False)
+                return None, False
 
             err_ = [] if trgs else [float('inf')]
 
@@ -337,7 +356,7 @@ def model_selector(*calibration_outputs):
                 pred = dsp.dispatch(get_i(e_mods, t, **d), outs, shrink=True)[1]
                 err_.append(compare_result(outs, trgs, pred, t))
 
-            m = {k: e_mods[k] for k in mods if k in e_mods}
+            m = get_m(e_mods, mods)
 
             err = np.mean(err_) if err_ else float('inf')
 
@@ -376,7 +395,7 @@ def model_selector(*calibration_outputs):
     return models
 
 
-def get_models(calibration_outputs, models_to_extract):
+def extract_models(calibration_outputs, models_to_extract):
     calibration_outputs = calibration_outputs
     models = {}
 

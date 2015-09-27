@@ -734,6 +734,9 @@ class Dispatcher(object):
 
         for tag, it in [('input', inputs.values()), ('output', outputs)]:
             for k in it:
+                if k is SINK and k not in nodes:
+                    dsp.add_data(SINK)
+
                 node = nodes[k] = copy(nodes[k])
                 node[tag] = node.get(tag, [])
                 node[tag].append(remote_link)

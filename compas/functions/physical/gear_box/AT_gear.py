@@ -441,7 +441,7 @@ def calibrate_gear_shifting_cmv(
 
     x0 = [gsv[0][1]].__add__(list(chain(*velocity_limits))[:-1])
 
-    x = fmin(error_fun, x0)
+    x = fmin(error_fun, x0, disp=False)
 
     update_gvs(x)
 

@@ -13,6 +13,7 @@ The model is defined by a Dispatcher that wraps all the functions needed.
 
 
 from compas.dispatcher import Dispatcher
+from compas.dispatcher.constants import SINK
 from compas.functions.physical.gear_box.AT_gear import *
 
 
@@ -33,11 +34,6 @@ def AT_gear():
         name='Automatic gear model',
         description='Defines an omni-comprehensive gear shifting model for '
                     'automatic vehicles.')
-
-    AT_gear.add_data(
-        data_id='gear_box_type',
-        description='Gear box type (manual or automatic).'
-    )
 
     AT_gear.add_function(
         function=correct_gear_v0,
@@ -112,9 +108,20 @@ def AT_gear():
         }
     )
 
+    AT_gear.add_data(
+        data_id='use_dt_gear_shifting',
+        default_value=False,
+        description='If to use decision tree classifiers to predict gears.'
+    )
+
+    def dt_domain(kwargs):
+        return kwargs['use_dt_gear_shifting']
+
     AT_gear.add_dispatcher(
+        input_domain=dt_domain,
         dsp=dt_va(),
         inputs={
+            'use_dt_gear_shifting': SINK,
             'DT_VA': 'DT_VA',
             'accelerations': 'accelerations',
             'correct_gear': 'correct_gear',
@@ -132,8 +139,10 @@ def AT_gear():
     )
 
     AT_gear.add_dispatcher(
+        input_domain=dt_domain,
         dsp=dt_vap(),
         inputs={
+            'use_dt_gear_shifting': SINK,
             'DT_VAP': 'DT_VAP',
             'accelerations': 'accelerations',
             'correct_gear': 'correct_gear',
@@ -152,8 +161,10 @@ def AT_gear():
     )
 
     AT_gear.add_dispatcher(
+        input_domain=dt_domain,
         dsp=dt_vat(),
         inputs={
+            'use_dt_gear_shifting': SINK,
             'DT_VAT': 'DT_VAT',
             'accelerations': 'accelerations',
             'correct_gear': 'correct_gear',
@@ -172,8 +183,10 @@ def AT_gear():
     )
 
     AT_gear.add_dispatcher(
+        input_domain=dt_domain,
         dsp=dt_vatp(),
         inputs={
+            'use_dt_gear_shifting': SINK,
             'DT_VATP': 'DT_VATP',
             'accelerations': 'accelerations',
             'correct_gear': 'correct_gear',
