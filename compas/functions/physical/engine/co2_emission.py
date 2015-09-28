@@ -258,8 +258,8 @@ def calculate_co2_emissions(
     b = (e_speeds < idle_engine_speed[0] + MIN_ENGINE_SPEED)
 
     # Idle fc correction for temperature
-    #idle_fc_temp_correction = np.power(n_temp[b], -p['t'])
-    fc[b] = engine_idle_fuel_consumption #* idle_fc_temp_correction
+    idle_fc_temp_correction = np.power(n_temp[b], -p['t'])
+    fc[b] = engine_idle_fuel_consumption * idle_fc_temp_correction
 
     fc[(e_powers <= ec_p0) | e_off | (fc < 0)] = 0
 

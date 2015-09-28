@@ -234,13 +234,13 @@ def process_folder_files(input_folder, output_folder):
     for k, v in sorted(summary.items()):
         pd.DataFrame.from_records(v).to_excel(writer, k)
 
-    """
-    from compas.dispatcher.draw import dsp2dot
 
-    dsp2dot(model, workflow=True, view=True, function_module=False,
-            node_output=False, edge_attr=model.weight)
-    dsp2dot(model, view=True, function_module=False)
-    """
+    #from compas.dispatcher.draw import dsp2dot
+
+    #dsp2dot(model, workflow=True, view=True, function_module=False,
+    #        node_output=False, edge_attr=model.weight)
+    #dsp2dot(model, view=True, function_module=False)
+
 
     time_elapsed = (datetime.today() - start_time).total_seconds() / 60.0
 

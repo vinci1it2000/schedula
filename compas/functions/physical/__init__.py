@@ -36,26 +36,29 @@ from compas.dispatcher import Dispatcher
 from compas.dispatcher.utils import heap_flush
 import numpy as np
 from itertools import zip_longest, chain
+from easygui import buttonbox
 
+_calibration_failure_warning = False
 
-def compare_result(
+def _compare_result(
         outputs_ids, target_ids, model_results, target_results,
-        sample_weight=()):
+        comparison_function, sample_weight=()):
 
     err, weights = [], []
     to_list = lambda *args: [np.asarray(v, dtype=float) for v in args]
-    for o, t, w in zip_longest(outputs_ids, target_ids, sample_weight, fillvalue=1):
+    for o, t, w in zip_longest(outputs_ids, target_ids, sample_weight,
+                               fillvalue=1):
         if o in model_results and t in target_results:
             y = (target_results[t], model_results[o])
 
-            e = mean_absolute_error(*[to_list(x) for x in y])
+            e = comparison_function(*[to_list(x) for x in y])
             err.append(e)
             weights.append(w)
 
     return np.average(err, weights=weights) if err else np.nan
 
 
-def comparison_model():
+def _comparison_model():
     models = [{
         'models': ('max_gear',),
         'targets': (),
@@ -82,7 +85,8 @@ def comparison_model():
 
     models.append({
         'models': ('engine_temperature_regression_model',),
-        'targets': ('engine_coolant_temperatures',)
+        'targets': ('engine_coolant_temperatures',),
+        'check_models': lambda error: error < 3,
     })
 
     # start_stop_model
@@ -106,7 +110,8 @@ def comparison_model():
 
     models.append({
         'models': ('start_stop_model',),
-        'targets': ('on_engine',)
+        'targets': ('on_engine',),
+        'check_models': lambda error: error < 0.1,
     })
 
     # cold_start_speed_model
@@ -129,7 +134,8 @@ def comparison_model():
     models.append({
         'models': ('cold_start_speed_model', 'idle_engine_speed',
                    'engine_thermostat_temperature'),
-        'targets': ('engine_speeds_out',)
+        'targets': ('engine_speeds_out',),
+        'check_models': lambda error: error < 80,
     })
 
     # co2_params
@@ -190,7 +196,8 @@ def comparison_model():
     models.append({
         'models': ('co2_params',),
         'targets':('phases_co2_emissions',),
-        'post_processing': calibrate_co2_params_with_all_calibration_cycles
+        'post_processing': calibrate_co2_params_with_all_calibration_cycles,
+        'check_models': lambda error: error < 0.5,
     })
 
     # alternator_status_model
@@ -224,7 +231,8 @@ def comparison_model():
         'models': ('alternator_charging_currents', 'start_demand',
                    'max_battery_charging_current', 'electric_load',
                    'alternator_status_model'),
-        'targets': ('alternator_currents', 'battery_currents')
+        'targets': ('alternator_currents', 'battery_currents'),
+        'check_models': lambda error: error < 60,
     })
 
     # AT_gear
@@ -264,7 +272,7 @@ def comparison_model():
 
     def AT_get_inputs(extracted_models, *args, **kwargs):
 
-        i = get_inputs(extracted_models, *args, **kwargs)
+        i = _get_inputs(extracted_models, *args, **kwargs)
 
         k = i['origin AT_gear_shifting_model'][0]
 
@@ -289,7 +297,7 @@ def comparison_model():
     return dsp, models
 
 
-def get_inputs(
+def _get_inputs(
         extracted_models, results, models, targets=None, outputs=None,
         **kwargs):
     if targets is None:
@@ -303,11 +311,15 @@ def get_inputs(
     return inputs
 
 
-def get_models(selected_models, models_to_select):
+def _get_models(selected_models, models_to_select):
 
     m = set(models_to_select).intersection(selected_models)
 
     return {k: selected_models[k] for k in m}
+
+
+def _check_models(error):
+    return True
 
 
 def model_selector(*calibration_outputs):
@@ -327,21 +339,25 @@ def model_selector(*calibration_outputs):
     models = {}
     models['origin calibrated_models'] = origin = {}
     models['errors calibrated_models'] = origin_errors = {}
-    dsp, _model_targets = comparison_model()
+    dsp, _model_targets = _comparison_model()
 
     # get calibrated models and data for comparison
     m = set(chain.from_iterable(m['models'] for m in _model_targets))
     id_tag = 'cycle_name'
+
     def get(i, o):
-        return (extract_models(o, m), o[id_tag], co[:i] + co[i + 1:], co[i])
+        return (_extract_models(o, m), o[id_tag], co[:i] + co[i + 1:], co[i])
+
     em_rt = list(map(get, range(len(co)), co))
 
     for d in _model_targets:
         heap, mods = [], d['models']
         trgs = d.get('targets', d.get('outputs', ()))
         outs = d.get('outputs', d.get('targets', ()))
-        get_i = d.get('get_inputs', get_inputs)
-        get_m = d.get('get_models', get_models)
+        get_i = d.get('get_inputs', _get_inputs)
+        get_m = d.get('get_models', _get_models)
+        check_m = d.get('check_models', _check_models)
+        comp_func = d.get('comparison_func', mean_absolute_error)
         post = d.get('post_processing', lambda *args: None)
 
         def error_fun(e_mods, co_i, res_t, push=True):
@@ -355,7 +371,7 @@ def model_selector(*calibration_outputs):
                     continue
 
                 pred = dsp.dispatch(get_i(e_mods, t, **d), outs, shrink=True)[1]
-                err_.append(compare_result(outs, trgs, pred, t))
+                err_.append(_compare_result(outs, trgs, pred, t, comp_func))
 
             m = get_m(e_mods, mods)
 
@@ -382,6 +398,9 @@ def model_selector(*calibration_outputs):
             error_fun(e_mods, 'ALL', co)
 
         if heap:
+            if _calibration_failure_warning and not check_m(heap[0][0]) and \
+                    _calibration_failure_msg(mods):
+                continue
             models.update(heap[0][-1])
 
             rank = [(v[-2], v[0]) for v in heap_flush(heap)]
@@ -395,7 +414,15 @@ def model_selector(*calibration_outputs):
     return models
 
 
-def extract_models(calibration_outputs, models_to_extract):
+def _calibration_failure_msg(failed_models):
+    msg = 'The following models has failed the calibration:\n%s.\n\n' \
+          'Would you like to continue anyhow?\n\n ' \
+          'For any questions ask to JRC.' % '\n,'.join(failed_models)
+    choices = ["Yes", "No"]
+    return buttonbox(msg, choices=choices) == 1
+
+
+def _extract_models(calibration_outputs, models_to_extract):
     calibration_outputs = calibration_outputs
     models = {}
 
