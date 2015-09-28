@@ -30,6 +30,7 @@ from compas.functions.read_inputs import *
 from compas.dispatcher.utils import SubDispatchFunction
 from compas.functions import *
 
+prediction_WLTP = False
 
 def architecture(with_output_file=True):
     """
@@ -112,7 +113,11 @@ def architecture(with_output_file=True):
         cof = 'calibration_output_file_name%s' % tag
         cco = 'calibration_cycle_outputs%s' % tag
         ccpo = 'calibration_cycle_prediction_outputs%s' % tag
-        ccip = 'calibration_cycle_inputs_for_prediction%s' % tag
+        if prediction_WLTP:
+            ccip = 'calibration_cycle_inputs_for_prediction%s' % tag
+        else:
+            ccip = SINK
+
         ccpof = 'calibration_cycle_prediction_outputs_file_name%s' % tag
         cct = 'calibration_cycle_targets%s' % tag
 
@@ -151,34 +156,37 @@ def architecture(with_output_file=True):
             description='Dictionary that has all calibration cycle targets.'
         )
 
-        architecture.add_data(
-            data_id=ccip,
-            description='Dictionary that has data for the CO2 prediction with '
-                        'CO2MPAS model.'
-        )
-
-        architecture.add_function(
-            function_id='predict_physical_model',
-            function=SubDispatch(physical_prediction()),
-            inputs=['calibrated_models', ccip],
-            outputs=[ccpo],
-        )
-
-        architecture.add_data(
-            data_id=ccpo,
-            description='Dictionary that has outputs of the calibration cycle.'
-        )
-        if with_output_file:
-            architecture.add_function(
-                function_id='save_cycle_outputs',
-                function=write_output,
-                inputs=[ccpo, ccpof, 'output_sheet_names'],
+        if prediction_WLTP:
+            architecture.add_data(
+                data_id=ccip,
+                description='Dictionary that has data for the CO2 prediction '
+                            'with CO2MPAS model.'
             )
 
-        architecture.add_data(
-            data_id=ccpof,
-            description='File name to save prediction outputs.'
-        )
+            architecture.add_function(
+                function_id='predict_physical_model',
+                function=SubDispatch(physical_prediction()),
+                inputs=['calibrated_models', ccip],
+                outputs=[ccpo],
+            )
+
+            architecture.add_data(
+                data_id=ccpo,
+                description='Dictionary that has the prediction outputs of the '
+                            'calibration cycle.'
+            )
+
+            if with_output_file:
+                architecture.add_function(
+                    function_id='save_cycle_outputs',
+                    function=write_output,
+                    inputs=[ccpo, ccpof, 'output_sheet_names'],
+                )
+
+                architecture.add_data(
+                    data_id=ccpof,
+                    description='File name to save prediction outputs.'
+                )
 
     architecture.add_data(
         data_id='prediction_cycle_name',

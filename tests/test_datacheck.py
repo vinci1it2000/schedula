@@ -4,7 +4,7 @@ import glob
 import numpy as np
 import os
 
-from compas.functions import make_summary, extract_summary, files_exclude_regex
+from compas.functions import _make_summary, _extract_summary, files_exclude_regex
 
 
 def process_folder_files(input_folder):
@@ -123,8 +123,8 @@ def process_folder_files(input_folder):
 
         res = model.dispatch(inputs=inputs)
 
-        s = make_summary(sheets, *res, **{'vehicle': fname})
-        s.update(extract_summary(s))
+        s = _make_summary(sheets, *res, **{'vehicle': fname})
+        s.update(_extract_summary(s))
 
         for k, v in s.items():
             summary[k] = l = summary.get(k, [])

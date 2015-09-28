@@ -17,7 +17,6 @@ Modules:
     :toctree: functions/
 
     physical
-    plot
     read_inputs
     write_outputs
 
@@ -34,6 +33,18 @@ from .write_outputs import check_writeable
 
 
 def select_inputs_for_prediction(data):
+    """
+    Selects the data required to predict the CO2 emissions with CO2MPAS model.
+
+    :param data:
+        Calibration output data.
+    :type data: dict
+
+    :return:
+        Data required to predict the CO2 emissions with CO2MPAS model.
+    :rtype: dict
+    """
+
     ids = [
         'times',
         'velocities',
@@ -211,8 +222,8 @@ def process_folder_files(input_folder, output_folder):
 
         res = model.dispatch(inputs=inputs)
 
-        s = make_summary(sheets, *res, **{'vehicle': fname})
-        s.update(extract_summary(s))
+        s = _make_summary(sheets, *res, **{'vehicle': fname})
+        s.update(_extract_summary(s))
 
         for k, v in s.items():
             summary[k] = l = summary.get(k, [])
@@ -231,12 +242,12 @@ def process_folder_files(input_folder, output_folder):
     dsp2dot(model, view=True, function_module=False)
     """
 
-
     time_elapsed = (datetime.today() - start_time).total_seconds() / 60.0
+
     print('Done! [%.3f min]' % time_elapsed)
 
 
-def make_summary(sheets, workflow, results, **kwargs):
+def _make_summary(sheets, workflow, results, **kwargs):
 
     summary = {}
 
@@ -263,6 +274,8 @@ def make_summary(sheets, workflow, results, **kwargs):
 
             data = {}
             data.update({k: result[k] for k in output_keys if k in result})
+            if not data:
+                continue
             data.update(kwargs)
 
             for k, v in sorted(data.items()):
@@ -273,9 +286,8 @@ def make_summary(sheets, workflow, results, **kwargs):
                     if not check_writeable(v):
                         continue
 
-                    s.update(parse_outputs(k, v, check))
+                    s.update(_parse_outputs(k, v, check))
                 except Exception as ex:
-                    print(ex)
                     pass
 
             for k, post_process in post_processes.items():
@@ -289,7 +301,7 @@ def make_summary(sheets, workflow, results, **kwargs):
     return summary
 
 
-def parse_outputs(tag, data, check):
+def _parse_outputs(tag, data, check):
 
     if not check(tag, data):
         return {}
@@ -299,17 +311,17 @@ def parse_outputs(tag, data, check):
     if not isinstance(data, str) and isinstance(data, Iterable):
         it = data.items() if hasattr(data, 'items') else enumerate(data)
         for k, v in it:
-            res.update(parse_outputs("%s %s" % (tag, k), v, check))
+            res.update(_parse_outputs("%s %s" % (tag, k), v, check))
     else:
         res[tag] = data
 
     return res
 
 
-def extract_summary(summary):
+def _extract_summary(summaries):
     s = {}
     tags = ('co2_emission_value', 'phases_co2_emissions')
-    for k, v in summary['PRE NEDC'].items():
+    for k, v in summaries['PRE NEDC'].items():
         if k == 'vehicle' or k[:11] == 'co2_params ':
             s[k] = v
         elif any(i in k for i in tags):
@@ -324,38 +336,39 @@ def extract_summary(summary):
     ]
 
     for c, i in sub_s:
-        for k, v in summary[i].items():
-            if any(i in k for i in tags):
-                s['%s %s' % (c, k)] = v
+        if i in summaries:
+            for k, v in summaries[i].items():
+                if any(i in k for i in tags):
+                    s['%s %s' % (c, k)] = v
 
     return {'SUMMARY': s}
 
 
 def select_precondition_inputs(cycle_inputs, precondition_outputs):
-        """
-        Updates cycle inputs with the precondition outputs.
+    """
+    Updates cycle inputs with the precondition outputs.
 
-        :param cycle_inputs:
-            Dictionary that has all inputs of the calibration cycle.
-        :type cycle_inputs: dict
+    :param cycle_inputs:
+        Dictionary that has all inputs of the calibration cycle.
+    :type cycle_inputs: dict
 
-        :param precondition_outputs:
-            Dictionary that has all outputs of the precondition cycle.
-        :type precondition_outputs: dict
+    :param precondition_outputs:
+        Dictionary that has all outputs of the precondition cycle.
+    :type precondition_outputs: dict
 
-        :return:
-            Dictionary that has all inputs of the calibration cycle.
-        :rtype: dict
-        """
+    :return:
+        Dictionary that has all inputs of the calibration cycle.
+    :rtype: dict
+    """
 
-        inputs, pre = cycle_inputs.copy(), precondition_outputs
+    inputs, pre = cycle_inputs.copy(), precondition_outputs
 
-        p = ('electric_load', 'battery_currents')
-        if not any(k in cycle_inputs for k in p) and p[0] in pre:
-            inputs['electric_load'] = pre['electric_load']
+    p = ('electric_load', 'battery_currents')
+    if not any(k in cycle_inputs for k in p) and p[0] in pre:
+        inputs['electric_load'] = pre['electric_load']
 
-        p = ('initial_state_of_charge', 'state_of_charges')
-        if not any(k in cycle_inputs for k in p) and p[0] in pre:
-            inputs['initial_state_of_charge'] = pre['state_of_charges'][-1]
+    p = ('initial_state_of_charge', 'state_of_charges')
+    if not any(k in cycle_inputs for k in p) and p[0] in pre:
+        inputs['initial_state_of_charge'] = pre['state_of_charges'][-1]
 
-        return inputs
+    return inputs

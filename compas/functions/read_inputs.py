@@ -150,7 +150,7 @@ def parse_inputs(data, data_map, cycle_name):
     return d['inputs'], d['targets']
 
 
-def try_eval(data):
+def _try_eval(data):
     return eval(data) if isinstance(data, str) else data
 
 
@@ -166,16 +166,17 @@ def get_filters():
     _filters = {
         'PARAMETERS': {
             None: (float, empty),
-            'co2_params': (try_eval, dict, empty),
+            'co2_params': (_try_eval, dict, empty),
             'engine_is_turbo': (bool, empty),
             'engine_has_variable_valve_actuation': (bool, empty),
             'engine_has_cylinder_deactivation': (bool, empty),
             'engine_has_direct_injection': (bool, empty),
             'engine_type': (str, empty),
             'fuel_type': (str, empty),
-            'gear_box_ratios': (try_eval, list, empty, index_dict),
+            'gear_box_ratios': (_try_eval, list, empty, index_dict),
             'gear_box_type': (str, empty),
             'has_start_stop': (bool, empty),
+            'use_dt_gear_shifting': (bool, empty),
             'has_energy_recuperation': (bool, empty),
             'has_thermal_management': (bool, empty),
             'has_lean_burn': (bool, empty),
@@ -183,13 +184,13 @@ def get_filters():
             'has_particle_filter': (bool, empty),
             'has_selective_catalytic_reduction': (bool, empty),
             'has_nox_storage_catalyst': (bool, empty),
-            'idle_engine_speed': (try_eval, list, empty),
-            'phases_co2_emissions': (try_eval, list, empty),
-            'velocity_speed_ratios': (try_eval, list, empty, index_dict),
-            'road_loads': (try_eval, list, empty),
-            'full_load_speeds': (try_eval, np.asarray, empty),
-            'full_load_torques': (try_eval, np.asarray, empty),
-            'full_load_powers': (try_eval, np.asarray, empty),
+            'idle_engine_speed': (_try_eval, list, empty),
+            'phases_co2_emissions': (_try_eval, list, empty),
+            'velocity_speed_ratios': (_try_eval, list, empty, index_dict),
+            'road_loads': (_try_eval, list, empty),
+            'full_load_speeds': (_try_eval, np.asarray, empty),
+            'full_load_torques': (_try_eval, np.asarray, empty),
+            'full_load_powers': (_try_eval, np.asarray, empty),
         },
         'SERIES': {
             None: (np.asarray, empty)

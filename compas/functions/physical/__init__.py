@@ -332,11 +332,12 @@ def model_selector(*calibration_outputs):
     # get calibrated models and data for comparison
     m = set(chain.from_iterable(m['models'] for m in _model_targets))
     id_tag = 'cycle_name'
-    get = lambda i, o: (extract_models(o, m), o[id_tag], co[:i] + co[i + 1:], co[i])
+    def get(i, o):
+        return (extract_models(o, m), o[id_tag], co[:i] + co[i + 1:], co[i])
     em_rt = list(map(get, range(len(co)), co))
 
     for d in _model_targets:
-        heap, mods= [], d['models']
+        heap, mods = [], d['models']
         trgs = d.get('targets', d.get('outputs', ()))
         outs = d.get('outputs', d.get('targets', ()))
         get_i = d.get('get_inputs', get_inputs)
@@ -379,7 +380,6 @@ def model_selector(*calibration_outputs):
         e_mods = post(heap, models, *co)
         if e_mods:
             error_fun(e_mods, 'ALL', co)
-            # heappush(heap, (-1, 0, 'ALL_', {k: e_mods[k] for k in mods if k in e_mods}))
 
         if heap:
             models.update(heap[0][-1])
@@ -389,8 +389,8 @@ def model_selector(*calibration_outputs):
             origin.update(dict.fromkeys(mods, rank[0][0]))
             origin_errors.update(dict.fromkeys(mods, rank))
 
-            print('Models %s are selected from %s (%.3f) respect to targets %s.'
-                  '\nErrors %s.' % (mods, rank[0][0], rank[0][1], trgs, rank))
+            #print('Models %s are selected from %s (%.3f) respect to targets %s'
+            #      '.\nErrors %s.' % (mods, rank[0][0], rank[0][1], trgs, rank))
 
     return models
 
@@ -425,8 +425,8 @@ def extract_models(calibration_outputs, models_to_extract):
 
     if heap:
         models['cold_start_speed_model'] = heap[0][-1]
-        print('cold_start_speed_model: %s with mean_absolute_error %.3f [RPM] '
-              % (heap[0][1], heap[0][0]))
+        #print('cold_start_speed_model: %s with mean_absolute_error %.3f [RPM] '
+        #      % (heap[0][1], heap[0][0]))
         heap = [(v[1], v[0]) for v in heap_flush(heap)]
         calibration_outputs['errors cold_start_speed_model'] = heap
 
@@ -458,7 +458,7 @@ def extract_models(calibration_outputs, models_to_extract):
         m = [(v[-1], {t: v for t, v in zip(tags, v[1])}) for v in heap_flush(m)]
         calibration_outputs['errors AT_gear_shifting_model'] = m
 
-        print('AT_gear_shifting_model: %s with mean_absolute_error %.3f [RPM] '
-              'and correlation_coefficient %.3f' % (k, e[0], e[1]))
+        #print('AT_gear_shifting_model: %s with mean_absolute_error %.3f [RPM] '
+        #      'and correlation_coefficient %.3f' % (k, e[0], e[1]))
 
     return models

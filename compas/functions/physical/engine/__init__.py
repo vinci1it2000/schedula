@@ -91,6 +91,35 @@ def get_engine_motoring_curve(fuel_type):
 def define_engine_power_correction_function(
         full_load_curve, engine_motoring_curve, engine_max_power,
         idle_engine_speed, engine_max_speed_at_max_power):
+    """
+    Defines a function to correct the engine power that exceed full load and
+    engine motoring curves.
+
+    :param full_load_curve:
+        Vehicle normalized full load curve., ,
+    :type full_load_curve: InterpolatedUnivariateSpline
+
+    :param engine_motoring_curve:
+        Vehicle normalized engine motoring curve.
+    :type engine_motoring_curve: InterpolatedUnivariateSpline
+
+    :param engine_max_power:
+        Maximum power [kW].
+    :type engine_max_power: float
+
+    :param idle_engine_speed:
+        Engine speed idle median and std [RPM].
+    :type idle_engine_speed: (float, float)
+
+    :param engine_max_speed_at_max_power:
+        Rated engine speed [RPM].
+    :type engine_max_speed_at_max_power: float
+
+    :return:
+        A function to correct the engine power that exceed full load and
+        engine motoring curves.
+    :rtype: function
+    """
 
     def engine_power_correction_function(engine_speeds, engine_powers):
         n_norm = (engine_max_speed_at_max_power - idle_engine_speed[0])
@@ -751,17 +780,22 @@ def calculate_engine_powers_out(
         Gear box power [kW].
     :type gear_box_powers_in: np.array
 
+    :param engine_speeds_out:
+        Engine speed [RPM].
+    :type engine_speeds_out: np.array:param engine_speeds_out:
+
     :param on_engine:
         If the engine is on [-].
     :type on_engine: np.array
 
+    :param engine_power_correction_function:
+        A function to correct the engine power that exceed full load and
+        engine motoring curves.
+    :type engine_power_correction_function: function
+
     :param alternator_powers_demand:
         Alternator power demand to the engine [kW].
     :type alternator_powers_demand: np.array
-
-    :param P0:
-        Engine power threshold limit [kW].
-    :type P0: float
 
     :return:
         Engine power [kW].

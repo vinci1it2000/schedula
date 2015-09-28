@@ -172,6 +172,10 @@ def calculate_co2_emissions(
         Engine coolant temperature vector [°C].
     :type engine_coolant_temperatures: np.array
 
+    :param on_engine:
+        If the engine is on [-].
+    :type on_engine: np.array
+
     :param engine_fuel_lower_heating_value:
         Fuel lower heating value [kJ/kg].
     :type engine_fuel_lower_heating_value: float
@@ -291,6 +295,10 @@ def define_co2_emissions_model(
     :param engine_coolant_temperatures:
         Engine coolant temperature vector [°C].
     :type engine_coolant_temperatures: np.array
+
+    :param on_engine:
+        If the engine is on [-].
+    :type on_engine: np.array
 
     :param engine_fuel_lower_heating_value:
         Fuel lower heating value [kJ/kg].
