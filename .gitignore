@@ -65,3 +65,4 @@ target/
 /outputs/
 /.project
 /.pydevproject
+/.settings
