@@ -25,11 +25,16 @@ Modules:
 import re
 import os
 import glob
+import logging
 from datetime import datetime
 import numpy as np
 import pandas as pd
 from collections import Iterable
 from .write_outputs import check_writeable
+from compas.dispatcher.draw import dsp2dot
+
+
+log = logging.getLogger(__name__)
 
 
 def select_inputs_for_prediction(data):
@@ -100,7 +105,7 @@ def select_inputs_for_prediction(data):
 files_exclude_regex = re.compile('^\w')
 
 
-def process_folder_files(input_folder, output_folder):
+def process_folder_files(input_folder, output_folder, plot_workflow=False):
     """
     Processes all excel files in a folder with the model defined by
     :func:`compas.models.architecture`.
@@ -112,6 +117,10 @@ def process_folder_files(input_folder, output_folder):
     :param output_folder:
         Output folder.
     :type output_folder: str
+
+    :param plot_workflow:
+        If to show the CO2MPAS model workflow.
+    :type plot_workflow: bool, optional
     """
 
     from compas.models import architecture
@@ -229,18 +238,17 @@ def process_folder_files(input_folder, output_folder):
             summary[k] = l = summary.get(k, [])
             l.append(v)
 
+        if plot_workflow:
+            try:
+                dsp2dot(model, workflow=True, view=True, function_module=False,
+                        node_output=False, edge_attr=model.weight)
+            except RuntimeError as ex:
+                log.warning(ex, exc_info=1)
+
     writer = pd.ExcelWriter('%s/%s%s.xlsx' % (output_folder, doday, 'Summary'))
 
     for k, v in sorted(summary.items()):
         pd.DataFrame.from_records(v).to_excel(writer, k)
-
-
-    from compas.dispatcher.draw import dsp2dot
-
-    #dsp2dot(model, workflow=True, view=True, function_module=False,
-    #        node_output=False, edge_attr=model.weight)
-    #dsp2dot(model, view=True, function_module=False)
-
 
     time_elapsed = (datetime.today() - start_time).total_seconds() / 60.0
 
