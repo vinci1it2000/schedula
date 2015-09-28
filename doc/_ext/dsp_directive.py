@@ -2,11 +2,12 @@ from sphinx.ext.autodoc import *
 from compas.dispatcher import Dispatcher
 # noinspection PyProtectedMember
 from compas.dispatcher.draw import dsp2dot, _func_name
-from compas.dispatcher.utils.dsp import SubDispatchFunction
+from compas.dispatcher.utils.dsp import SubDispatch, SubDispatchFunction
 # ------------------------------------------------------------------------------
 # Doctest handling
 # ------------------------------------------------------------------------------
 from doctest import DocTestParser, DocTestRunner, NORMALIZE_WHITESPACE, ELLIPSIS
+from functools import partial
 
 
 def contains_doctest(text):
@@ -250,7 +251,17 @@ def _functions(lines, dsp, function_module, node_type='function'):
             if 'description' in v:
                 des = v['description']
             elif 'function' in v:
-                des = v['function'].__doc__
+                func = v['function']
+                if isinstance(func, partial):
+                    func = func.func
+
+                des = func.__doc__
+                if not des:
+                    if isinstance(func, Dispatcher):
+                        des = func.name
+                    elif isinstance(func, SubDispatch):
+                        des = func.dsp.name
+
             else:
                 des = ''
 
