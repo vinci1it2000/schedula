@@ -19,7 +19,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import mean_absolute_error
 from compas.dispatcher.utils import pairwise
 from compas.functions.physical.utils import median_filter, grouper, \
-    interpolate_cloud, clear_gear_fluctuations
+    interpolate_cloud, clear_fluctuations
 from compas.functions.physical.constants import *
 from compas.functions.physical.gear_box import calculate_gear_box_speeds_in
 from compas.functions.physical.wheels import calculate_wheel_power
@@ -692,7 +692,7 @@ def prediction_gears_decision_tree(correct_gear, decision_tree, times, *params):
 
     gear = median_filter(times, gear, TIME_WINDOW)
 
-    return clear_gear_fluctuations(times, gear, TIME_WINDOW)
+    return clear_fluctuations(times, gear, TIME_WINDOW)
 
 
 def prediction_gears_gsm(
@@ -769,7 +769,7 @@ def prediction_gears_gsm(
 
     if times is not None:
         gear = median_filter(times, gear, TIME_WINDOW)
-        gear = clear_gear_fluctuations(times, gear, TIME_WINDOW)
+        gear = clear_fluctuations(times, gear, TIME_WINDOW)
 
     return gear
 

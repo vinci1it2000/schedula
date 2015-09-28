@@ -18,7 +18,7 @@ from compas.functions.physical.wheels import *
 
 def wheels():
     """
-    Define the wheels model.
+    Defines the wheels model.
 
     .. dispatcher:: dsp
 

@@ -32,7 +32,7 @@ except AttributeError:
 
 __all__ = [
     'grouper', 'sliding_window', 'median_filter', 'reject_outliers',
-    'bin_split', 'interpolate_cloud', 'clear_gear_fluctuations'
+    'bin_split', 'interpolate_cloud', 'clear_fluctuations'
 ]
 
 
@@ -43,6 +43,7 @@ def grouper(iterable, n):
 
 
 def sliding_window(xy, dx_window):
+    "Returns a sliding window (of width dx) over data from the iterable"
     dx = dx_window / 2
     it = iter(xy)
     v = next(it)
@@ -68,6 +69,26 @@ def sliding_window(xy, dx_window):
 
 
 def median_filter(x, y, dx_window):
+    """
+    Calculates the moving median-high of y values over a constant dx.
+
+    :param x:
+        x data.
+    :type x: Iterable
+
+    :param y:
+        y data.
+    :type y: Iterable
+
+    :param dx_window:
+        dx window.
+    :type dx_window: float
+
+    :return:
+        Moving median-high of y values over a constant dx.
+    :rtype: np.array
+    """
+
     xy = [list(v) for v in zip(x, y)]
     Y = []
     add = Y.append
@@ -77,6 +98,31 @@ def median_filter(x, y, dx_window):
 
 
 def reject_outliers(x, n=1, med=np.median, std=np.std):
+    """
+    Calculates the median and standard deviation of the sample rejecting the
+    outliers.
+
+    :param x:
+        Input data.
+    :type x: Iterable
+
+    :param n:
+        Number of standard deviations.
+    :type n: int
+
+    :param med:
+        Median function.
+    :type med: function, optional
+
+    :param std:
+        Standard deviation function.
+    :type std: function, optional
+
+    :return:
+        Median and standard deviation.
+    :rtype: (float, float)
+    """
+
     x = np.asarray(x)
 
     m, s = med(x), std(x)
@@ -92,6 +138,31 @@ def reject_outliers(x, n=1, med=np.median, std=np.std):
 
 
 def bin_split(x, bin_std=(0.01, 0.1), n_min=None, bins_min=None):
+    """
+    Splits the input data with variable bins.
+
+    :param x:
+        Input data.
+    :type x: Iterable
+
+    :param bin_std:
+        Bin standard deviation limits.
+    :type bin_std: (float, float)
+
+    :param n_min:
+        Minimum number of data inside a bin [-].
+    :type n_min: int
+
+    :param bins_min:
+        Minimum number of bins [-].
+    :type bins_min: int
+
+    :return:
+        Bins and their statistics.
+    :rtype: (list, list)
+    """
+
+    x = np.asarray(x)
     edges = [min(x), max(x) + sys.float_info.epsilon * 2]
 
     max_bin_size = edges[1] - edges[0]
@@ -170,6 +241,22 @@ def bin_split(x, bin_std=(0.01, 0.1), n_min=None, bins_min=None):
 
 
 def interpolate_cloud(x, y):
+    """
+    Defines a function that interpolate a cloud of points.
+
+    :param x:
+        x data.
+    :type x: Iterable
+
+    :param y:
+        y data.
+    :type y: Iterable
+
+    :return:
+        A function that interpolate a cloud of points.
+    :rtype: InterpolatedUnivariateSpline
+    """
+
     p = np.asarray(x)
     v = np.asarray(y)
 
@@ -192,7 +279,7 @@ def interpolate_cloud(x, y):
     return InterpolatedUnivariateSpline(x, y, k=1)
 
 
-def clear_gear_fluctuations(times, gears, dt_window):
+def clear_fluctuations(times, gears, dt_window):
     """
     Clears the gear identification fluctuations.
 
@@ -223,9 +310,9 @@ def clear_gear_fluctuations(times, gears, dt_window):
 
         for k, d in enumerate(np.diff(y)):
             if d > 0:
-                up = (k, )
+                up = (k,)
             elif d < 0:
-                dn = (k, )
+                dn = (k,)
 
             if up and dn:
                 k0 = min(up[0], dn[0])

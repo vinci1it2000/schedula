@@ -171,7 +171,7 @@ class TestGearBox_v1(unittest.TestCase):
         self.gbc = 12374.85823
 
     def test_calculate_gear_box_efficiency(self):
-        fun = calculate_gear_box_efficiencies
+        fun = calculate_gear_box_efficiencies_torques_temperatures
 
         a = (self.wp, self.es, self.ws, self.tgb, self.pa, self.gbc, self.ts,
              self.Tr, self.st)
@@ -182,7 +182,7 @@ class TestGearBox_v1(unittest.TestCase):
         self.assertTrue(np.allclose(res[2], self.T, 0, 0.001))
 
     def test_calculate_gear_box_efficiency_v1(self):
-        fun = calculate_gear_box_efficiencies
+        fun = calculate_gear_box_efficiencies_torques_temperatures
 
         a = (self.wp, self.es, self.ws, self.tgb, self.pa, self.gbc, self.ts,
              self.Tr, self.st, self.g, self.gbr)

@@ -28,7 +28,7 @@ from compas.functions.physical.electrics import *
 
 def electrics():
     """
-    Define the electrics model.
+    Defines the electrics model.
 
     .. dispatcher:: dsp
 

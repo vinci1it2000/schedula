@@ -29,7 +29,7 @@ from scipy.optimize import fmin
 from sklearn.metrics import mean_absolute_error
 from compas.functions.physical.constants import *
 from compas.functions.physical.utils import bin_split, reject_outliers, \
-    clear_gear_fluctuations
+    clear_fluctuations
 
 
 def get_full_load(fuel_type):
@@ -96,7 +96,7 @@ def define_engine_power_correction_function(
     engine motoring curves.
 
     :param full_load_curve:
-        Vehicle normalized full load curve., ,
+        Vehicle normalized full load curve.
     :type full_load_curve: InterpolatedUnivariateSpline
 
     :param engine_motoring_curve:
@@ -440,7 +440,7 @@ def identify_on_engine(times, engine_speeds_out, idle_engine_speed):
     b = engine_speeds_out > idle_engine_speed[0] - idle_engine_speed[1]
     on_engine[b] = 1
 
-    on_engine = clear_gear_fluctuations(times, on_engine, TIME_WINDOW)
+    on_engine = clear_fluctuations(times, on_engine, TIME_WINDOW)
 
     return np.array(on_engine, dtype=bool)
 
@@ -552,7 +552,7 @@ def predict_on_engine(
         for k, v in legislation_on_engine.items():
             on_engine[((k - v) <= times) & (times <= k + 3)] = 1
 
-    on_engine = clear_gear_fluctuations(times, on_engine, TIME_WINDOW)
+    on_engine = clear_fluctuations(times, on_engine, TIME_WINDOW)
 
     return np.array(on_engine, dtype=bool)
 

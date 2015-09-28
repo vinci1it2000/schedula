@@ -18,7 +18,7 @@ from compas.functions.physical.final_drive import *
 
 def final_drive():
     """
-    Define the final drive model.
+    Defines the final drive model.
 
     .. dispatcher:: dsp
 

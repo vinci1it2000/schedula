@@ -27,7 +27,7 @@ from compas.dispatcher.utils.dsp import bypass
 
 def engine():
     """
-    Define the engine model.
+    Defines the engine model.
 
     .. dispatcher:: dsp
 
@@ -306,6 +306,8 @@ def engine():
             'co2_emission_value': 'co2_emission_value',
             'co2_emissions': 'co2_emissions',
             'identified_co2_emissions': 'identified_co2_emissions',
+            'co2_error_function_on_emissions':
+                'co2_error_function_on_emissions',
             'co2_error_function_on_phases': 'co2_error_function_on_phases',
             'co2_params': 'co2_params',
             'co2_params_bounds': 'co2_params_bounds',

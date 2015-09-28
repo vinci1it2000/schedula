@@ -18,7 +18,7 @@ from compas.functions.physical.electrics.electrics_prediction import *
 
 def electrics_prediction():
     """
-    Define the electric sub model to predict the alternator loads.
+    Defines the electric sub model to predict the alternator loads.
 
     .. dispatcher:: dsp
 

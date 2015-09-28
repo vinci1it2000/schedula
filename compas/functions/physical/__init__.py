@@ -40,6 +40,7 @@ import numpy as np
 from itertools import zip_longest, chain
 from ... import _show_calibration_failure_msgbox
 
+
 def _compare_result(
         outputs_ids, target_ids, model_results, target_results,
         comparison_function, sample_weight=()):
@@ -151,7 +152,7 @@ def _comparison_model():
             'times': 'times'
         },
         outputs={
-            'phases_co2_emissions': 'phases_co2_emissions'
+            'co2_emissions': 'co2_emissions'
         }
     )
 
@@ -165,7 +166,7 @@ def _comparison_model():
 
         def check(data):
             keys = ('co2_params', 'co2_params_bounds')
-            return  all(p in data for p in keys)
+            return all(p in data for p in keys)
 
         its = [(o for o in co if o['cycle_name'] == c_name and check(o)),
                (o for o in co if check(o))]
@@ -179,23 +180,33 @@ def _comparison_model():
         if not data:
             return
 
+        from .engine.co2_emission import calibrate_co2_params
+
         initial_guess = data['co2_params']
         bounds = data['co2_params_bounds']
 
+        e_tag = 'engine_coolant_temperatures'
+        engine_coolant_temperatures = [o[e_tag] for o in co if e_tag in o]
+
+        e_tag = 'co2_error_function_on_emissions'
+        co2_error_function_on_emissions = [o[e_tag] for o in co if e_tag in o]
+
         e_tag = 'co2_error_function_on_phases'
-        error_function = [o[e_tag] for o in co if e_tag in o]
-        if len(error_function) <= 1:
+        co2_error_function_on_phases = [o[e_tag] for o in co if e_tag in o]
+
+        if len(co2_error_function_on_phases) <= 1:
             return
 
-        from .engine.co2_emission import calibrate_model_params
-
-        p = calibrate_model_params(bounds, error_function, initial_guess)
+        p = calibrate_co2_params(
+            engine_coolant_temperatures, co2_error_function_on_emissions,
+            co2_error_function_on_phases, bounds, initial_guess)
 
         return {'co2_params': p}
 
     models.append({
         'models': ('co2_params',),
-        'targets':('phases_co2_emissions',),
+        'outputs': ('co2_emissions',),
+        'targets': ('identified_co2_emissions',),
         'post_processing': calibrate_co2_params_with_all_calibration_cycles,
         'check_models': lambda error: error < 0.5,
     })
@@ -346,7 +357,7 @@ def model_selector(*calibration_outputs):
     id_tag = 'cycle_name'
 
     def get(i, o):
-        return (_extract_models(o, m), o[id_tag], co[:i] + co[i + 1:], co[i])
+        return _extract_models(o, m), o[id_tag], co[:i] + co[i + 1:], co[i]
 
     em_rt = list(map(get, range(len(co)), co))
 

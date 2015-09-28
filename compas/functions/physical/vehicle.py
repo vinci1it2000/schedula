@@ -16,7 +16,7 @@ from math import cos, sin
 
 def calculate_accelerations(times, velocities):
     """
-    Calculates the acceleration from velocity time series.
+    Calculates the acceleration from velocity time series [m/s2].
 
     :param times:
         Time vector [s].
@@ -42,7 +42,7 @@ def calculate_accelerations(times, velocities):
 
 def calculate_aerodynamic_resistances(f2, velocities):
     """
-    Calculates the aerodynamic resistances of the vehicle.
+    Calculates the aerodynamic resistances of the vehicle [N].
 
     :param f2:
         As used in the dyno and defined by respective guidelines [N/(km/h)^2].
@@ -89,7 +89,7 @@ def calculate_f2(
 
 def calculate_rolling_resistance(f0, angle_slope):
     """
-    Calculates rolling resistance.
+    Calculates rolling resistance [N].
 
     :param f0:
         Rolling resistance force [N] when angle_slope == 0.
@@ -109,7 +109,7 @@ def calculate_rolling_resistance(f0, angle_slope):
 
 def calculate_f0(vehicle_mass, rolling_resistance_coeff):
     """
-    Calculates rolling resistance.
+    Calculates rolling resistance [N].
 
     :param vehicle_mass:
         Vehicle mass [kg].
@@ -129,7 +129,7 @@ def calculate_f0(vehicle_mass, rolling_resistance_coeff):
 
 def calculate_velocity_resistances(f1, velocities):
     """
-    Calculates forces function of velocity.
+    Calculates forces function of velocity [N].
 
     :param f1:
         Defined by dyno procedure [N/(km/h)].
@@ -140,7 +140,7 @@ def calculate_velocity_resistances(f1, velocities):
     :type velocities: np.array, float
 
     :return:
-        Forces function of velocity.
+        Forces function of velocity [N].
     :rtype: np.array, float
     """
 
@@ -149,7 +149,7 @@ def calculate_velocity_resistances(f1, velocities):
 
 def calculate_climbing_force(vehicle_mass, angle_slope):
     """
-    Calculates the vehicle climbing resistance.
+    Calculates the vehicle climbing resistance [N].
 
     :param vehicle_mass:
         Vehicle mass [kg].
@@ -170,7 +170,7 @@ def calculate_climbing_force(vehicle_mass, angle_slope):
 def calculate_rotational_inertia_forces(
         vehicle_mass, inertial_factor, accelerations):
     """
-    Calculate rotational inertia forces.
+    Calculate rotational inertia forces [N].
 
     :param vehicle_mass:
         Vehicle mass [kg].
@@ -194,7 +194,7 @@ def calculate_rotational_inertia_forces(
 
 def select_inertial_factor(cycle_type):
     """
-    Selects the inertia factor according to the cycle type (default is 3%).
+    Selects the inertia factor [%] according to the cycle type (default is 3%).
 
     :param cycle_type:
         Cycle type (WLTP or NEDC).
@@ -216,7 +216,7 @@ def calculate_motive_forces(
         vehicle_mass, accelerations, climbing_force, aerodynamic_resistances,
         rolling_resistance, velocity_resistances, rotational_inertia_forces):
     """
-    Calculate motive forces.
+    Calculate motive forces [N].
 
     :param vehicle_mass:
         Vehicle mass [kg].
@@ -239,7 +239,7 @@ def calculate_motive_forces(
     :type aerodynamic_resistances: np.array, float
 
     :param velocity_resistances:
-        Forces function of velocity.
+        Forces function of velocity [N].
     :type velocity_resistances: np.array, float
 
     :param rotational_inertia_forces:
@@ -263,7 +263,7 @@ def calculate_motive_forces(
 
 def calculate_motive_powers(motive_forces, velocities):
     """
-    Calculates motive power.
+    Calculates motive power [kW].
 
     :param motive_forces:
         Motive forces [N].

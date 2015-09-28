@@ -7,8 +7,6 @@
 
 """
 It contains functions to write prediction outputs.
-
-.. note:: these functions are used in :func:`compas.models.architecture`.
 """
 
 

@@ -264,6 +264,8 @@ def _physical():
             'co2_emission_value': 'co2_emission_value',
             'co2_emissions': 'co2_emissions',
             'identified_co2_emissions': 'identified_co2_emissions',
+            'co2_error_function_on_emissions':
+                'co2_error_function_on_emissions',
             'co2_error_function_on_phases': 'co2_error_function_on_phases',
             'co2_params': 'co2_params',
             'co2_params_bounds': 'co2_params_bounds',
@@ -301,7 +303,7 @@ def _physical():
 
 def physical_calibration():
     """
-    Define the physical calibration model.
+    Defines the physical calibration model.
 
     .. dispatcher:: dsp
 
@@ -399,7 +401,7 @@ def physical_calibration():
 
 def physical_prediction():
     """
-    Define the physical prediction model.
+    Defines the physical prediction model.
 
     .. dispatcher:: dsp
 

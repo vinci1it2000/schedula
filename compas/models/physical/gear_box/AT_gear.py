@@ -19,7 +19,7 @@ from compas.functions.physical.gear_box.AT_gear import *
 
 def AT_gear():
     """
-    Define the A/T gear shifting model.
+    Defines the A/T gear shifting model.
 
     .. dispatcher:: dsp
 
@@ -63,6 +63,7 @@ def AT_gear():
         weight=100)
 
     AT_gear.add_dispatcher(
+        dsp_id='cmv_model',
         dsp=cmv(),
         inputs={
             'CMV': 'CMV',
@@ -89,6 +90,7 @@ def AT_gear():
     )
 
     AT_gear.add_dispatcher(
+        dsp_id='cmv_ch_model',
         dsp=cmv_ch,
         inputs={
             'CMV_Cold_Hot': 'CMV_Cold_Hot',
@@ -118,6 +120,7 @@ def AT_gear():
         return kwargs['use_dt_gear_shifting']
 
     AT_gear.add_dispatcher(
+        dsp_id='dt_va_model',
         input_domain=dt_domain,
         dsp=dt_va(),
         inputs={
@@ -139,6 +142,7 @@ def AT_gear():
     )
 
     AT_gear.add_dispatcher(
+        dsp_id='dt_vap_model',
         input_domain=dt_domain,
         dsp=dt_vap(),
         inputs={
@@ -161,6 +165,7 @@ def AT_gear():
     )
 
     AT_gear.add_dispatcher(
+        dsp_id='dt_vat_model',
         input_domain=dt_domain,
         dsp=dt_vat(),
         inputs={
@@ -183,6 +188,7 @@ def AT_gear():
     )
 
     AT_gear.add_dispatcher(
+        dsp_id='dt_vatp_model',
         input_domain=dt_domain,
         dsp=dt_vatp(),
         inputs={
@@ -206,6 +212,7 @@ def AT_gear():
     )
 
     AT_gear.add_dispatcher(
+        dsp_id='gspv_model',
         dsp=gspv(),
         inputs={
             'GSPV': 'GSPV',
@@ -233,6 +240,7 @@ def AT_gear():
     )
 
     AT_gear.add_dispatcher(
+        dsp_id='gspv_ch_model',
         dsp=gspv_ch,
         inputs={
             'GSPV_Cold_Hot': 'GSPV_Cold_Hot',
@@ -258,7 +266,7 @@ def AT_gear():
 
 def cmv():
     """
-    Define the corrected matrix velocity model.
+    Defines the corrected matrix velocity model.
 
     .. dispatcher:: dsp
 
@@ -270,7 +278,7 @@ def cmv():
     """
 
     cmv = Dispatcher(
-        name='Corrected Matrix Velocity Approach'
+        name='Corrected Matrix Velocity Approach',
     )
 
     # calibrate corrected matrix velocity
@@ -303,7 +311,7 @@ def cmv():
 
 def cmv_cold_hot():
     """
-    Define the corrected matrix velocity with cold/hot model.
+    Defines the corrected matrix velocity with cold/hot model.
 
     .. dispatcher:: dsp
 
@@ -352,7 +360,7 @@ def cmv_cold_hot():
 
 def dt_va():
     """
-    Define the decision tree with velocity & acceleration model.
+    Defines the decision tree with velocity & acceleration model.
 
     .. dispatcher:: dsp
 
@@ -402,7 +410,7 @@ def dt_va():
 
 def dt_vap():
     """
-    Define the decision tree with velocity, acceleration, & power model.
+    Defines the decision tree with velocity, acceleration, & power model.
 
     .. dispatcher:: dsp
 
@@ -458,7 +466,7 @@ def dt_vap():
 
 def dt_vat():
     """
-    Define the decision tree with velocity, acceleration, & temperature model.
+    Defines the decision tree with velocity, acceleration, & temperature model.
 
     .. dispatcher:: dsp
 
@@ -514,7 +522,7 @@ def dt_vat():
 
 def dt_vatp():
     """
-    Define the decision tree with velocity, acceleration, temperature & power
+    Defines the decision tree with velocity, acceleration, temperature & power
     model.
 
     .. dispatcher:: dsp
@@ -580,7 +588,7 @@ def dt_vatp():
 
 def gspv():
     """
-    Define the gear shifting power velocity model.
+    Defines the gear shifting power velocity model.
 
     .. dispatcher:: dsp
 
@@ -625,7 +633,7 @@ def gspv():
 
 def gspv_cold_hot():
     """
-    Define the gear shifting power velocity with cold/hot model.
+    Defines the gear shifting power velocity with cold/hot model.
 
     .. dispatcher:: dsp
 
