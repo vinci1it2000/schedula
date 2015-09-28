@@ -595,8 +595,8 @@ def define_co2_error_function_on_emissions(co2_emissions_model, co2_emissions):
 
 
 def define_co2_error_function_on_phases(
-        co2_emissions_model, cumulative_co2_emissions, times,
-        phases_integration_times):
+        co2_emissions_model, phases_co2_emissions, times,
+        phases_integration_times, phases_distances):
     """
     Defines an error function (according to co2 emissions phases) to
     calibrate the CO2 emission model params.
@@ -605,9 +605,9 @@ def define_co2_error_function_on_phases(
         CO2 emissions model (co2_emissions = models(params)).
     :type co2_emissions_model: function
 
-    :param cumulative_co2_emissions:
-        Cumulative CO2 of cycle phases [CO2g].
-    :type cumulative_co2_emissions: np.array
+    :param phases_co2_emissions:
+        CO2 emission of cycle phases [CO2g/km].
+    :type phases_co2_emissions: np.array
 
     :param times:
         Time vector [s].
@@ -616,6 +616,10 @@ def define_co2_error_function_on_phases(
     :param phases_integration_times:
         Cycle phases integration times [s].
     :type phases_integration_times: tuple
+
+    :param phases_distances:
+        Cycle phases distances [km].
+    :type phases_distances: np.array, float
 
     :return:
         Error function (according to co2 emissions phases) to calibrate the CO2
@@ -631,7 +635,7 @@ def define_co2_error_function_on_phases(
             for i, (t0, t1) in enumerate(pairwise(phases_integration_times)):
                 if i in phases:
                     b |= (t0 <= times) & (times < t1)
-                    w.append(cumulative_co2_emissions[i])
+                    w.append(phases_co2_emissions[i])
                 else:
                     w.append(0)
 
@@ -639,10 +643,11 @@ def define_co2_error_function_on_phases(
                 params, default_params=default_params, sub_values=b)
         else:
             co2 = co2_emissions_model(params, default_params=default_params)
-            w = cumulative_co2_emissions
+            w = phases_co2_emissions
 
-        cco2 = calculate_cumulative_co2(times, phases_integration_times, co2)
-        return mean_squared_error(cumulative_co2_emissions, cco2, w)
+        cco2 = calculate_cumulative_co2(
+            times, phases_integration_times, co2, phases_distances)
+        return mean_squared_error(phases_co2_emissions, cco2, w)
 
     return error_func
 

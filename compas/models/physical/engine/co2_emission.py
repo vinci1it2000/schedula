@@ -93,8 +93,8 @@ def co2_emission():
 
     co2_emission.add_function(
         function=define_co2_error_function_on_phases,
-        inputs=['co2_emissions_model', 'cumulative_co2_emissions', 'times',
-                'phases_integration_times'],
+        inputs=['co2_emissions_model', 'phases_co2_emissions', 'times',
+                'phases_integration_times', 'phases_distances'],
         outputs=['co2_error_function_on_phases']
     )
 
