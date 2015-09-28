@@ -32,7 +32,7 @@ def _gear_box():
 
     gear_box = Dispatcher(
         name='Gear box model',
-        description='Calculates forces and power acting on the vehicle.'
+        description='Models the gear box.'
     )
 
     gear_box.add_function(
@@ -104,7 +104,7 @@ def _gear_box():
     )
 
     gear_box.add_function(
-        function=calculate_gear_box_efficiencies,
+        function=calculate_gear_box_efficiencies_torques_temperatures,
         inputs=['gear_box_powers_out', 'gear_box_speeds_in',
                 'gear_box_speeds_out', 'gear_box_torques',
                 'gear_box_efficiency_parameters_cold_hot',
@@ -117,7 +117,7 @@ def _gear_box():
     )
 
     gear_box.add_function(
-        function=calculate_gear_box_efficiencies,
+        function=calculate_gear_box_efficiencies_torques_temperatures,
         inputs=['gear_box_powers_out', 'gear_box_speeds_in',
                 'gear_box_speeds_out', 'gear_box_torques',
                 'gear_box_efficiency_parameters_cold_hot',
@@ -199,7 +199,7 @@ def _gear_box():
 
 def gear_box_calibration():
     """
-    Define the gear box calibration model.
+    Defines the gear box calibration model.
 
     .. dispatcher:: dsp
 
@@ -278,7 +278,7 @@ def gear_box_calibration():
 
 def gear_box_prediction():
     """
-    Define the gear box prediction model.
+    Defines the gear box prediction model.
 
     .. dispatcher:: dsp
 

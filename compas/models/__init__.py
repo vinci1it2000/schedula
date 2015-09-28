@@ -8,8 +8,6 @@
 """
 It provides CO2MPAS software architecture.
 
-It contains a comprehensive list of all CO2MPAS software models and functions:
-
 .. rubric:: Sub-modules
 
 .. currentmodule:: compas.models
@@ -29,8 +27,8 @@ from functools import partial
 from compas.functions.read_inputs import *
 from compas.dispatcher.utils import SubDispatchFunction
 from compas.functions import *
+from compas import _prediction_WLTP
 
-prediction_WLTP = False
 
 def architecture(with_output_file=True):
     """
@@ -48,7 +46,7 @@ def architecture(with_output_file=True):
     architecture = Dispatcher(
         name='CO2MPAS architecture',
         description='Processes an excel file calibrating the models defined by '
-                    ':func:`physical model<compas.models.physical.physical>`.'
+                    ':mod:`physical model<compas.models.physical>`.'
     )
 
     architecture.add_data(
@@ -113,7 +111,8 @@ def architecture(with_output_file=True):
         cof = 'calibration_output_file_name%s' % tag
         cco = 'calibration_cycle_outputs%s' % tag
         ccpo = 'calibration_cycle_prediction_outputs%s' % tag
-        if prediction_WLTP:
+
+        if _prediction_WLTP:
             ccip = 'calibration_cycle_inputs_for_prediction%s' % tag
         else:
             ccip = SINK
@@ -156,7 +155,7 @@ def architecture(with_output_file=True):
             description='Dictionary that has all calibration cycle targets.'
         )
 
-        if prediction_WLTP:
+        if _prediction_WLTP:
             architecture.add_data(
                 data_id=ccip,
                 description='Dictionary that has data for the CO2 prediction '

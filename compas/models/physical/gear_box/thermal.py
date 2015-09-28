@@ -18,7 +18,7 @@ from compas.functions.physical.gear_box.thermal import *
 
 def thermal():
     """
-    Define the gear box thermal sub model.
+    Defines the gear box thermal sub model.
 
     .. dispatcher:: dsp
 

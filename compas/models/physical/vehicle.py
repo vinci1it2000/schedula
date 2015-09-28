@@ -19,7 +19,7 @@ from compas.dispatcher.utils import bypass
 
 def vehicle():
     """
-    Define the vehicle model.
+    Defines the vehicle model.
 
     .. dispatcher:: dsp
 

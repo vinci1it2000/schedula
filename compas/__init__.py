@@ -18,14 +18,18 @@
 """
 from ._version import (__version__, __updated__)
 
-__copyright__     = "Copyright (C) 2015 European Commission (JRC)"
-__license__       = "EUPL 1.1+"
+__copyright__ = "Copyright (C) 2015 European Commission (JRC)"
+__license__   = "EUPL 1.1+"
 
-__title__ = "co2mpas"
-__summary__ = "Collection of utilities for working with hierarchical data with relocatable paths."
-__uri__ = "https://github.com/pandalone/pandalone"
+__title__     = "co2mpas"
+__summary__   = "Collection of utilities for working with hierarchical data " \
+                "with relocatable paths."
+__uri__       = "https://github.com/pandalone/pandalone"
 
 _show_calibration_failure_msgbox = True
+
+_prediction_WLTP = False
+
 
 if __name__ == '__main__':
     from compas.dispatcher.draw import dsp2dot

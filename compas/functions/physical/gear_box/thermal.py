@@ -139,7 +139,7 @@ def calculate_gear_box_efficiency(
         gear_box_power_out, gear_box_speed_in, gear_box_speed_out,
         gear_box_torque_out, gear_box_torque_in):
     """
-    Calculates torque entering the gear box [N*m].
+    Calculates the gear box efficiency [N*m].
 
     :param gear_box_power_out:
         Power at wheels [kW].
@@ -153,14 +153,17 @@ def calculate_gear_box_efficiency(
         Wheel speed [RPM].
     :type gear_box_speed_out: float
 
+    :param gear_box_torque_out:
+        Torque gear_box [N*m].
+    :type gear_box_torque_out: float
+
+    :param gear_box_torque_in:
+        Torque required [N*m].
+    :type gear_box_torque_in: float
+
     :return:
-
-        - Gear box efficiency.
-        - Torque loss.
-    :rtype: (float, float)
-
-    .. note:: Torque entering the gearbox can be from engine side
-       (power mode or from wheels in motoring mode).
+        Gear box efficiency [-].
+    :rtype: float
     """
 
     if gear_box_torque_in == gear_box_torque_out:

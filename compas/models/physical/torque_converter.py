@@ -19,7 +19,7 @@ from compas.functions.physical.torque_converter import *
 
 def torque_converter():
     """
-    Define the torque converter model.
+    Defines the torque converter model.
 
     .. dispatcher:: dsp
 

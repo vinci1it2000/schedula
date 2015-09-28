@@ -31,7 +31,7 @@ from scipy.stats import binned_statistic
 from scipy.optimize import brute
 from scipy.interpolate import InterpolatedUnivariateSpline
 from compas.functions.physical.utils import median_filter, \
-    clear_gear_fluctuations
+    clear_fluctuations
 
 
 def identify_gear(
@@ -134,7 +134,7 @@ def identify_gears(
 
     gear = median_filter(times, gear, TIME_WINDOW)
 
-    gear = clear_gear_fluctuations(times, gear, TIME_WINDOW)
+    gear = clear_fluctuations(times, gear, TIME_WINDOW)
 
     return gear
 
@@ -526,14 +526,14 @@ def calculate_torques_losses(gear_box_torques_in, gear_box_torques_out):
     return gear_box_torques_in - gear_box_torques_out
 
 
-def calculate_gear_box_efficiencies(
+def calculate_gear_box_efficiencies_torques_temperatures(
         gear_box_powers_out, gear_box_speeds_in, gear_box_speeds_out,
         gear_box_torques_out, gear_box_efficiency_parameters_cold_hot,
         equivalent_gear_box_heat_capacity, thermostat_temperature,
         temperature_references, initial_gear_box_temperature, gears=None,
         gear_box_ratios=None):
     """
-    Calculates torque entering the gear box.
+    Calculates gear box efficiency [-], torque in [N*m], and temperature [°C].
 
     :param gear_box_powers_out:
         Power at wheels vector [kW].
@@ -794,7 +794,8 @@ def calculate_speed_velocity_ratios(
 
 def calculate_velocity_speed_ratios(speed_velocity_ratios):
     """
-    Calculates velocity speed (or speed velocity) ratios of the gear box.
+    Calculates velocity speed (or speed velocity) ratios of the gear box
+    [km/(h*RPM) or h*RPM/km].
 
     :param speed_velocity_ratios:
         Constant speed velocity (or velocity speed) ratios of the gear box

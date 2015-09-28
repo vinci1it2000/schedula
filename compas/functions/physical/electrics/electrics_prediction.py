@@ -67,7 +67,7 @@ def calculate_alternator_current(
 
     :param alternator_charging_currents:
         Mean charging currents of the alternator (for negative and positive
-        power)[A].
+        power) [A].
     :type alternator_charging_currents: (float, float)
 
     :param engine_start_current:
