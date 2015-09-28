@@ -235,7 +235,7 @@ def process_folder_files(input_folder, output_folder):
         pd.DataFrame.from_records(v).to_excel(writer, k)
 
 
-    #from compas.dispatcher.draw import dsp2dot
+    from compas.dispatcher.draw import dsp2dot
 
     #dsp2dot(model, workflow=True, view=True, function_module=False,
     #        node_output=False, edge_attr=model.weight)

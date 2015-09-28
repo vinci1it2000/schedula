@@ -18,7 +18,7 @@ and JRC has been assigned the development of this vehicle simulator to
 facilitate this step.
 
 This open-source python-project is currently tested only with python 3.4,
- in Anaconda/Winpython/MacOS/Windows 7.
+in Anaconda/Winpython/MacOS/Windows 7.
 
 
 
@@ -71,7 +71,39 @@ Usage
    .. Tip:
        See the template file (excel input/Template.xlsm) for required input data.
 
+Debugging and investigating results
+-----------------------------------
+- Make sure that you have installed `graphviz` and invoke the `co2mpas` cmd
+  with the `--plot-workflow` option.
+-
+
+
+Output files
+------------
+The structure of the output-files produced for each vehicle is the following::
+
+    +--<date>-<time>_precondition_WLTP_<inp-fname>.xls:
+    |               Input and calibrated values for electrics.
+    |
+    +--<date>-<time>_calibration_WLTP-H_<inp-fname>.xls:
+    |               Input and calibrated values.
+    |
+    +--<date>-<time>_calibration_WLTP-L_<inp-fname>.xls:
+    |               Input and calibrated values.
+    |
+    +--<date>-<time>_prediction_NEDC_<inp-fname>.xls:
+    |               Input and predicted values.
+    |
+    +--<date>-<time>_summary.xls:
+                    Major CO2 values from all vehicles in the batch-run.
 
 Known Limitations
 =================
-- asdf
+- Running with the same input might produce slightly different result values
+  (i.e. for the CO2 it is in the max range of 0.8 gr/km).
+- The calculations are very sensitive to the thermal time-series.
+  Mixing time series from different vehicles produce unreliable results.
+- Heavily quantized velocity time-series heavily affect the accuracy of the
+  results.
+- Ill-formatted input data may NOT produce warnings. Check if all input
+  data are also contained in the output data (calibration files).
