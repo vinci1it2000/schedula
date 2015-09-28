@@ -21,7 +21,7 @@ This open-source python-project is currently tested only with python 3.4,
 in Anaconda/Winpython/MacOS/Windows 7.
 
 
-
+=======
 Install
 =======
 The program requires CPython-3, and depends on *numpy*, *scipy* and *pandas*
@@ -55,7 +55,7 @@ libraries that require native C-backends.
 
        pip install -r requirements.txt
 
-
+=====
 Usage
 =====
 
@@ -73,6 +73,7 @@ Usage
 
 Debugging and investigating results
 -----------------------------------
+
 - Make sure that you have installed `graphviz` and invoke the `co2mpas` cmd
   with the `--plot-workflow` option.
 -
@@ -80,6 +81,7 @@ Debugging and investigating results
 
 Output files
 ------------
+
 The structure of the output-files produced for each vehicle is the following::
 
     +--<date>-<time>_precondition_WLTP_<inp-fname>.xls:
@@ -97,6 +99,7 @@ The structure of the output-files produced for each vehicle is the following::
     +--<date>-<time>_summary.xls:
                     Major CO2 values from all vehicles in the batch-run.
 
+=================
 Known Limitations
 =================
 - Running with the same input might produce slightly different result values
