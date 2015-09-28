@@ -133,6 +133,7 @@ setup(
         'graphviz',
         'sphinx',
         'six',
+        'docopt',
         'sphinx_rtd_theme',
         'easygui',
         'pandalone',
