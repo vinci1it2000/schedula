@@ -24,8 +24,8 @@ in Anaconda/Winpython/MacOS/Windows 7.
 =======
 Install
 =======
-The program requires CPython-3, and depends on *numpy*, *scipy* and *pandas*
-libraries that require native C-backends.
+The program requires CPython-3, and depends on *numpy*, *scipy*, *pandas*,
+*sklearn* and *matplotlib* libraries that require native C-backends.
 
 .. note::
    In *Windows* it is strongly suggested **NOT to install the standard CPython
@@ -51,9 +51,19 @@ libraries that require native C-backends.
 
        cd \path\to\directory\compas
 
-5. Run the following command to install dependent libraries::
+5. **Anaconda**-only: Run the following command to install dependencies
+   with C-native code::
 
-       pip install -r requirements.txt
+        conda update conda
+        conda install --file requirements/exe.conda
+
+6. Run the following command to install run-time dependencies::
+
+       pip install -r requirements/exe.pip
+
+7. (optionally) Install develop-time dependencies::
+
+       pip install -r requirements/dev.pip
 
 =====
 Usage
@@ -62,7 +72,7 @@ Usage
 1. Once Python is installed appropriately,
    you can execute it from the command prompt::
 
-	    > python co2mpas --version
+	    > co2mpas --version
         1.0.0-dev.ank.1
 
 

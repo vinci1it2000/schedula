@@ -1,0 +1,27 @@
+## Pip-dependencies for developing the project.
+#   Install them with::
+#
+#       pip install -r dev.pip
+
+-r execution.pip
+
+
+## C-backends (use `conda` to install?)
+#
+pandas
+numpy
+scipy
+
+
+## Pure python libs.
+#
+setuptools
+wheel
+nose
+networkx
+dill
+matplotlib
+easygui
+sklearn
+pandalone
+graphviz
