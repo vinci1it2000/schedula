@@ -31,14 +31,14 @@ Modules:
 
 
 from heapq import heappush
+from textwrap import dedent
 from sklearn.metrics import mean_absolute_error
-from compas.dispatcher import Dispatcher
-from compas.dispatcher.utils import heap_flush
+from easygui import buttonbox
+from ...dispatcher import Dispatcher
+from ...dispatcher.utils import heap_flush
 import numpy as np
 from itertools import zip_longest, chain
-from easygui import buttonbox
-
-_calibration_failure_warning = False
+from ... import _show_calibration_failure_msgbox
 
 def _compare_result(
         outputs_ids, target_ids, model_results, target_results,
@@ -398,8 +398,8 @@ def model_selector(*calibration_outputs):
             error_fun(e_mods, 'ALL', co)
 
         if heap:
-            if _calibration_failure_warning and not check_m(heap[0][0]) and \
-                    _calibration_failure_msg(mods):
+            if _show_calibration_failure_msgbox and not check_m(heap[0][0]) and \
+                    _show_calibration_failure_msg(mods):
                 continue
             models.update(heap[0][-1])
 
@@ -414,10 +414,15 @@ def model_selector(*calibration_outputs):
     return models
 
 
-def _calibration_failure_msg(failed_models):
-    msg = 'The following models has failed the calibration:\n%s.\n\n' \
-          'Would you like to continue anyhow?\n\n ' \
-          'For any questions ask to JRC.' % '\n,'.join(failed_models)
+def _show_calibration_failure_msg(failed_models):
+    msg = dedent("""\
+          The following models has failed the calibration:
+              %s.
+
+          - Select `Yes` if want to continue and use the failed models.
+          - Select `No` if want to continue WITHOUT these models.
+          For more clarifications, please ask JRC.
+          """) % ',\n'.join(failed_models)
     choices = ["Yes", "No"]
     return buttonbox(msg, choices=choices) == 1
 

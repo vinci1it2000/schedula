@@ -6,8 +6,8 @@ def main(*args):
     args = list(args)
     prog_name = args.pop()
 
-    input_folder = 'input'
-    output_folder = 'output'
+    input_folder = '../input'
+    output_folder = '../output'
 
     if args:
         input_folder = args.pop()
@@ -38,6 +38,7 @@ def main(*args):
     from compas.functions import process_folder_files
 
     process_folder_files(input_folder, output_folder)
+
 
 
 if __name__ == '__main__':
