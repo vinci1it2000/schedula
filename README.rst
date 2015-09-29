@@ -21,6 +21,13 @@ facilitate this step.
 This open-source python-project is currently tested only with python 3.4,
 in Anaconda/Winpython/MacOS/Windows 7.
 
+Quickstart: Installation and Usage
+----------------------------------
+
+
+
+
+
 .. _end-opening:
 .. contents:: Table of Contents
   :backlinks: top
@@ -69,38 +76,84 @@ The program requires CPython-3, and depends on *numpy*, *scipy*, *pandas*,
 
        pip install -r requirements/dev.pip
 
+8. Once Python is installed appropriately,
+   execute it from the command prompt and check the installed version::
+
+        co2mpas --version
+        1.0.0-dev.ank.1
+
 
 .. _begin-usage:
 
 Usage
 =====
+The main entry for the simulator is the ``co2mpas`` console-command.
+To get the syntax of this command, type into a **python-enabled** console
+(see :ref:`Install` above):
 
-1. Once Python is installed appropriately,
-   execute it from the command prompt and check the version::
+   .. code-block:: bash
 
-	    > co2mpas --version
-        1.0.0-dev.ank.1
+    $ co2mpas --help
+
+.. Tip::
+    The commands beginning with ``$`` symbol imply a *bash-console* (UNIX).
+    You can run it from any similar environemnt, such as the *Windows*
+    ``cmd.exe`` console, or the *console.lnk* included in the top folder
+    of the *all-in-one* distribution-archive.
 
 
-2. Then run it without any options and select the input and output folders
-   from the UI-browser::
+To setup the input and run the simulator follow these instructions:
 
-        > co2mpas
+1. Choose a folder where you will run *co2mpas* and create the *input* and
+   *output* data-folders
+   (ignore this step if this is not the first time you run the model):
+
+   .. code-block:: bash
+
+      $ cd <some-folder>
+      $ mkdir input output
+
+  .. Note::
+    These folder do not have to reside under the same parent folder.
+    It is only for demonstration purposes that we decided to group both
+    *inputs* and *outputs* in a hypothetical ``some-folder``.
+
+3. Create inside the *input-folder* a vehicle-data template file
+   (eg. ``vehicle1.xlsx``):
+
+   .. code-block:: bash
+
+        $ co2mpas --create-template input/vehicle1
+        Creating co2mpas INPUT template-file './input/vehicle1.xlsx'...
+
+
+4. Open the template excel-file, fill-in your vehicle data, and save it:
+
+   .. code-block:: bash bash
+
+      $ cygstart input/vehicle1.xlsx        ## Opens the excel-file.
 
    .. Tip:
        See the template file (excel input/Template.xlsm) for required input data.
 
-3. To get the syntax of the command use::
-
-    > co2mpas --help
-
+   You can repeat the last 2 steps and add more vehicles if you need them
+   to run at once.
 
 
-Debugging and investigating results
------------------------------------
+5. Run the simulator:
 
-- Make sure that you have installed `graphviz` and invoke the `co2mpas` cmd
-  with the ``--plot-workflow`` option.
+   .. code-block:: bash
+
+      $ co2mpas -I input -o output
+      Processing './input' --> './output'...
+
+6. Inspect the results:
+
+   .. code-block:: bash
+
+      $ cygstart output/*summary.xlsx       ## View the aggregate for all vehicles.
+      $ cygstart output                     ## View all files generated (see below).
+
 
 
 Output files
@@ -123,6 +176,15 @@ Below is the structure of the output-files produced for each vehicle::
                     Major CO2 values from all vehicles in the batch-run.
 
 
+Debugging and investigating results
+-----------------------------------
+
+- Make sure that you have installed `graphviz` and invoke the `co2mpas` cmd
+  with the ``--plot-workflow`` option.
+- Unzip the **docs-archives** and inspect the functions mentioned in the
+  workflow
+
+
 .. _begin-limitations:
 
 Known Limitations
@@ -131,8 +193,8 @@ Known Limitations
 - Running with the same input might produce slightly different result values
   (i.e. for the CO2 it is in the max range of 0.5 gr/km).
 - The calculations are very sensitive to the thermal time-series.
-  Mixing time series from different vehicles produce unreliable results.
-- Heavily quantized velocity time-series heavily affect the accuracy of the
+  Mixing time series from different vehicles may produce unreliable results.
+- Heavily quantized velocity time-series affect greatly the accuracy of the
   results.
 - Ill-formatted input data may NOT produce warnings. Check if all input
   data are also contained in the output data (calibration files).
