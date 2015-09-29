@@ -598,14 +598,18 @@ def calibrate_gspv(gears, velocities, wheel_powers):
 
     gspv[max(gspv)][1] = [[0, 1], [INF] * 2]
 
+    def mean(x):
+        x = np.asarray(x)
+        return np.mean(x) if x.any() else np.nan
+
     for k, v in gspv.items():
 
-        v[0] = InterpolatedUnivariateSpline([0, 1], [np.mean(v[0])] * 2, k=1)
+        v[0] = InterpolatedUnivariateSpline([0, 1], [mean(v[0])] * 2, k=1)
 
         if len(v[1][0]) > 2:
             v[1] = interpolate_cloud(*v[1])
         else:
-            v[1] = [np.mean(v[1][1])] * 2
+            v[1] = [mean(v[1][1])] * 2
             v[1] = InterpolatedUnivariateSpline([0, 1], v[1], k=1)
 
     return gspv

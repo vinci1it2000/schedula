@@ -157,6 +157,8 @@ def process_folder_files(input_folder, output_folder, plot_workflow=False):
                 b = value > 0
                 if b.any():
                     return np.mean(value[b])
+                else:
+                    return
         except:
             pass
         return value

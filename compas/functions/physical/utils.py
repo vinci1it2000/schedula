@@ -124,7 +124,8 @@ def reject_outliers(x, n=1, med=np.median, std=np.std):
     """
 
     x = np.asarray(x)
-
+    if not x.any():
+        return np.nan, np.nan
     m, s = med(x), std(x)
 
     y = n > (abs(x - m) / s)
