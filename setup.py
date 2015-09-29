@@ -138,6 +138,7 @@ setup(
         'easygui',
         'pandalone',
     ],
+    package_data= {'compas': ['input_template.xlsx']},
     test_suite='nose.collector',
     tests_require=['nose>=1.0'],
     entry_points={

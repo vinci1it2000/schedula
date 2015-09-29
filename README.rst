@@ -45,6 +45,14 @@ The program requires CPython-3, and depends on *numpy*, *scipy*, *pandas*,
    Binaries for Python Extension Packages
    <http://www.lfd.uci.edu/~gohlke/pythonlibs/>`_.
 
+There are 3 installation option:
+
+# Install `Anaconda <http://continuum.io/downloads>`_ python and *pip-install* it.
+# Install `WinPython <https://winpython.github.io/>`_ python and *pip-install* it.
+# Download the *all_in_one* distribution archive (~400MB) and unzip it.
+
+Anaconda install
+----------------
 1. Install python 3.4 from one of:
 
 	- `Anaconda <http://continuum.io/downloads>`_
@@ -82,16 +90,60 @@ The program requires CPython-3, and depends on *numpy*, *scipy*, *pandas*,
         co2mpas --version
         1.0.0-dev.ank.1
 
+WinPython install
+-----------------
+
+1. Install python 3.4 from one of:
+
+    - `Anaconda <http://continuum.io/downloads>`_
+
+    - `WinPython <https://winpython.github.io/>`_
+      (and register the installation from its Control-panel)
+
+2. Unzip the archive to some folder.
+
+3. Open windows command prompt::
+
+       start --> `cmd.exe`
+
+4. In the cmd window go in in the folder where you have unzipped the archive::
+
+       cd \path\to\directory\compas
+
+5. **Anaconda**-only: Run the following command to install dependencies
+   with C-native code::
+
+        conda update conda
+        conda install --file requirements/exe.conda
+
+6. Run the following command to install run-time dependencies::
+
+       pip install -r requirements/exe.pip
+
+7. (optionally) Install develop-time dependencies::
+
+       pip install -r requirements/dev.pip
+
+8. Once Python is installed appropriately,
+   execute it from the command prompt and check the installed version::
+
+        co2mpas --version
+        1.0.0-dev.ank.1
 
 .. _begin-usage:
 
 Usage
 =====
 The main entry for the simulator is the ``co2mpas`` console-command.
-To get the syntax of this command, type into a **python-enabled** console
-(see :ref:`Install` above):
+This command accepts multiple *input-files*, one for each vehicle,
+and generates multiple *output-files* per each one vehicle,
+and a *summary* file which aggregates the major result-values from all vehicles.
 
-   .. code-block:: bash
+To get the syntax of the command, open a console where you have
+installed **co2mpas** (see :ref:`Install` above) and type the following
+command:
+
+.. code-block:: bash
 
     $ co2mpas --help
 
@@ -102,11 +154,9 @@ To get the syntax of this command, type into a **python-enabled** console
     of the *all-in-one* distribution-archive.
 
 
-To setup the input and run the simulator follow these instructions:
 
 1. Choose a folder where you will run *co2mpas* and create the *input* and
    *output* data-folders
-   (ignore this step if this is not the first time you run the model):
 
    .. code-block:: bash
 
@@ -114,9 +164,9 @@ To setup the input and run the simulator follow these instructions:
       $ mkdir input output
 
   .. Note::
-    These folder do not have to reside under the same parent folder.
-    It is only for demonstration purposes that we decided to group both
-    *inputs* and *outputs* in a hypothetical ``some-folder``.
+    The input & output folders do not have to reside in the same parent.
+    It is only for demonstration purposes that we decided to group them both
+    under a hypothetical ``some-folder``.
 
 3. Create inside the *input-folder* a vehicle-data template file
    (eg. ``vehicle1.xlsx``):
@@ -129,11 +179,11 @@ To setup the input and run the simulator follow these instructions:
 
 4. Open the template excel-file, fill-in your vehicle data, and save it:
 
-   .. code-block:: bash bash
+   .. code-block:: bash
 
       $ cygstart input/vehicle1.xlsx        ## Opens the excel-file.
 
-   .. Tip:
+   .. Tip::
        See the template file (excel input/Template.xlsm) for required input data.
 
    You can repeat the last 2 steps and add more vehicles if you need them
@@ -146,6 +196,10 @@ To setup the input and run the simulator follow these instructions:
 
       $ co2mpas -I input -o output
       Processing './input' --> './output'...
+      Processing: vehicle1
+      ...
+      Done! [0.851 min]
+
 
 6. Inspect the results:
 
@@ -154,6 +208,8 @@ To setup the input and run the simulator follow these instructions:
       $ cygstart output/*summary.xlsx       ## View the aggregate for all vehicles.
       $ cygstart output                     ## View all files generated (see below).
 
+9. Repeat the above procedure from step 4 to modify the vehicle and run again
+   the model.  Start from step 1 to construct a new batch.
 
 
 Output files
