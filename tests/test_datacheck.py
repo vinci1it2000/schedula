@@ -25,7 +25,7 @@ def process_folder_files(input_folder):
 
     model = architecture(with_output_file=False)
 
-    fpaths = sorted(glob.glob(input_folder + '/*.xlsx'))
+    fpaths = glob.glob(input_folder + '/*.xlsx')
 
     summary = {}
 
@@ -145,7 +145,7 @@ class SeatBelt(unittest.TestCase):
 
     def test_basic(self):
 
-        summary = process_folder_files(os.path.curdir)
+        summary = process_folder_files(os.path.curdir)['SUMMARY']
 
         for v in summary['SUMMARY']:
             for k, r  in v.items():
