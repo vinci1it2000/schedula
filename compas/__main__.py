@@ -2,7 +2,7 @@
 Predict NEDC CO2 emissions from WLTP cycles.
 
 Usage:
-    co2mpas [options] [-I <folder>  -O <folder]
+    co2mpas [options] [-I <folder>  -O <folder>]
     co2mpas --help
     co2mpas --version
 
