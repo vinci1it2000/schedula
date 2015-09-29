@@ -243,25 +243,31 @@ def calculate_co2_emissions(
     e_temp = engine_coolant_temperatures[sub_values]
     e_off = np.logical_not(on_engine[sub_values])
 
-    n_temp = calculate_normalized_engine_coolant_temperatures(e_temp, p['trg'])
+    fc = np.zeros(e_temp.shape)
+
+    # Idle fc correction for temperature
+    b = (e_speeds < idle_engine_speed[0] + MIN_ENGINE_SPEED)
+
+    if p['t'] == 0:
+        n_temp = np.ones(e_temp.shape)
+        fc[b] = engine_idle_fuel_consumption
+    else:
+        n_temp = calculate_normalized_engine_coolant_temperatures(e_temp, p['trg'])
+        fc[b] =  engine_idle_fuel_consumption * np.power(n_temp[b], -p['t'])
 
     FMEP = partial(_calculate_fuel_mean_effective_pressure, p)
 
-    fc = FMEP(n_speeds, n_powers, n_temp)[0]  # FMEP [bar]
+    b = np.logical_not(b)
 
-    fc *= e_speeds * (engine_capacity / (lhv * 1200))  # [g/sec]
+    fc[b] = FMEP(n_speeds[b], n_powers[b], n_temp[b])[0]  # FMEP [bar]
+
+    fc[b] *= e_speeds[b] * (engine_capacity / (lhv * 1200))  # [g/sec]
 
     ec_p0 = calculate_p0(
-        p, engine_capacity, engine_stroke, e_speeds, lhv
+        p, engine_capacity, engine_stroke, idle_engine_speed[0], lhv
     )
 
-    b = (e_speeds < idle_engine_speed[0] + MIN_ENGINE_SPEED)
-
-    # Idle fc correction for temperature
-    idle_fc_temp_correction = np.power(n_temp[b], -p['t'])
-    fc[b] = engine_idle_fuel_consumption * idle_fc_temp_correction
-
-    fc[(e_powers <= ec_p0) | e_off | (fc < 0)] = 0
+    fc[(e_powers <= ec_p0) | (e_speeds < MIN_ENGINE_SPEED) | (fc < 0)] = 0
 
     co2 = fc * fuel_carbon_content
 
@@ -522,6 +528,12 @@ def select_initial_co2_emission_model_params_guess(
     for k, v in params[engine_type].items():
         p[k].update(v)
 
+    p['bounds'] = {i: [l - (u - l) / 2, u + (u - l) / 2]
+                   for i, (l, u) in p['bounds'].items()}
+    p['bounds']['t'][0] = 0
+    p['bounds']['l2'][1] = 0
+    p['bounds']['l'][1] = min(0, p['bounds']['l'][1])
+
     return p['x0'], p['bounds']
 
 
@@ -595,8 +607,8 @@ def define_co2_error_function_on_emissions(co2_emissions_model, co2_emissions):
 
 
 def define_co2_error_function_on_phases(
-        co2_emissions_model, cumulative_co2_emissions, times,
-        phases_integration_times):
+        co2_emissions_model, phases_co2_emissions, times,
+        phases_integration_times, phases_distances):
     """
     Defines an error function (according to co2 emissions phases) to
     calibrate the CO2 emission model params.
@@ -631,7 +643,7 @@ def define_co2_error_function_on_phases(
             for i, (t0, t1) in enumerate(pairwise(phases_integration_times)):
                 if i in phases:
                     b |= (t0 <= times) & (times < t1)
-                    w.append(cumulative_co2_emissions[i])
+                    w.append(phases_co2_emissions[i])
                 else:
                     w.append(0)
 
@@ -639,10 +651,10 @@ def define_co2_error_function_on_phases(
                 params, default_params=default_params, sub_values=b)
         else:
             co2 = co2_emissions_model(params, default_params=default_params)
-            w = cumulative_co2_emissions
+            w = None # cumulative_co2_emissions
 
-        cco2 = calculate_cumulative_co2(times, phases_integration_times, co2)
-        return mean_squared_error(cumulative_co2_emissions, cco2, w)
+        cco2 = calculate_cumulative_co2(times, phases_integration_times, co2, phases_distances)
+        return mean_squared_error(phases_co2_emissions, cco2, w)
 
     return error_func
 
@@ -721,8 +733,8 @@ def calibrate_co2_params(
         p['t'] = co2_params_initial_guess['t']
 
     bounds = restrict_bounds(bounds, p)
-
-    return calibrate_model_params(bounds, co2_error_function_on_phases, p)
+    p = calibrate_model_params(bounds, co2_error_function_on_phases, p)
+    return p
 
 
 def restrict_bounds(co2_params_bounds, co2_params_initial_guess):
@@ -746,17 +758,14 @@ def restrict_bounds(co2_params_bounds, co2_params_initial_guess):
     """
 
     mul = {
-        't': (0.5, 1.5), 'trg': (0.9, 1.1),
-        'a': (0.8, 1.2), 'b': (0.8, 1.2), 'c': (1.2, 0.8),
-        'a2': (1.2, 0.8),
-        'l': (1.2, 0.8), 'l2': (1.2, 0.0),
+        't': np.array([0.5, 1.5]), 'trg': np.array([0.9, 1.1]),
+        'a': np.array([0.8, 1.2]), 'b': np.array([0.8, 1.2]),
+        'c': np.array([1.2, 0.8]), 'a2': np.array([1.2, 0.8]),
+        'l': np.array([1.2, 0.8]), 'l2': np.array([1.2, 0.0]),
     }
 
-    fun = [max, min]
-
     def _limits(k, v):
-        l = (f(b, v * m) for f, b, m in zip(fun, co2_params_bounds[k], mul[k]))
-        return tuple(l)
+        return tuple(mul[k] * v)
 
     return {k: _limits(k, v) for k, v in co2_params_initial_guess.items()}
 
@@ -792,7 +801,7 @@ def calibrate_model_params(params_bounds, error_function, initial_guess=None):
 
     param_keys, params_bounds = zip(*sorted(params_bounds.items()))
 
-    bounds = [(i - EPS, j + EPS) for i, j in params_bounds]
+    #bounds = [(i - EPS, j + EPS) for i, j in params_bounds]
 
     params, min_e_and_p = {}, [np.inf, None]
 
@@ -810,7 +819,7 @@ def calibrate_model_params(params_bounds, error_function, initial_guess=None):
         return res
 
     def finish(fun, x0, **kwargs):
-        res = minimize(fun, x0, bounds=bounds)
+        res = minimize(fun, x0, bounds=params_bounds)
 
         if res.success:
             return res.x, res.success
@@ -821,9 +830,15 @@ def calibrate_model_params(params_bounds, error_function, initial_guess=None):
         step = 3.0
         x = brute(error_func, params_bounds, Ns=step, finish=finish)
     else:
-        x = finish(error_func, [initial_guess[k] for k in param_keys])[0]
+        x0 = np.array([initial_guess[k] for k in param_keys])
 
-    x = [min(u, max(l, v)) for (l, u), v in zip(params_bounds, x)]
+        l, u = np.asarray(params_bounds).T
+
+        x0 = np.where(x0 <= l, l + EPS, np.where(x0 >= u, u - EPS, x0))
+
+        x = finish(error_func, x0)[0]
+
+    #x = [min(u, max(l, v)) for (l, u), v in zip(params_bounds, x)]
 
     update_params(x)
 

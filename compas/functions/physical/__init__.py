@@ -147,9 +147,6 @@ def _comparison_model():
         inputs={
             'co2_emissions_model': 'co2_emissions_model',
             'co2_params': 'co2_params',
-            'cycle_type': 'cycle_type',
-            'velocities': 'velocities',
-            'times': 'times'
         },
         outputs={
             'co2_emissions': 'co2_emissions'
@@ -165,7 +162,7 @@ def _comparison_model():
         c_name = heap[0][-2] if heap else co[0]['cycle_name']
 
         def check(data):
-            keys = ('co2_params', 'co2_params_bounds')
+            keys = ('co2_params_initial_guess', 'co2_params_bounds')
             return all(p in data for p in keys)
 
         its = [(o for o in co if o['cycle_name'] == c_name and check(o)),
@@ -180,16 +177,16 @@ def _comparison_model():
         if not data:
             return
 
-        from .engine.co2_emission import calibrate_co2_params
+        from .engine.co2_emission import calibrate_model_params
 
-        initial_guess = data['co2_params']
+        initial_guess = data['co2_params_initial_guess']
         bounds = data['co2_params_bounds']
 
-        e_tag = 'engine_coolant_temperatures'
-        engine_coolant_temperatures = [o[e_tag] for o in co if e_tag in o]
+        #e_tag = 'engine_coolant_temperatures'
+        #engine_coolant_temperatures = [o[e_tag] for o in co if e_tag in o]
 
-        e_tag = 'co2_error_function_on_emissions'
-        co2_error_function_on_emissions = [o[e_tag] for o in co if e_tag in o]
+        #e_tag = 'co2_error_function_on_emissions'
+        #co2_error_function_on_emissions = [o[e_tag] for o in co if e_tag in o]
 
         e_tag = 'co2_error_function_on_phases'
         co2_error_function_on_phases = [o[e_tag] for o in co if e_tag in o]
@@ -197,9 +194,8 @@ def _comparison_model():
         if len(co2_error_function_on_phases) <= 1:
             return
 
-        p = calibrate_co2_params(
-            engine_coolant_temperatures, co2_error_function_on_emissions,
-            co2_error_function_on_phases, bounds, initial_guess)
+        p = calibrate_model_params(
+            bounds,co2_error_function_on_phases, initial_guess)
 
         return {'co2_params': p}
 
@@ -419,8 +415,8 @@ def model_selector(*calibration_outputs):
             origin.update(dict.fromkeys(mods, rank[0][0]))
             origin_errors.update(dict.fromkeys(mods, rank))
 
-            #print('Models %s are selected from %s (%.3f) respect to targets %s'
-            #      '.\nErrors %s.' % (mods, rank[0][0], rank[0][1], trgs, rank))
+            print('Models %s are selected from %s (%.3f) respect to targets %s'
+                  '.\nErrors %s.' % (mods, rank[0][0], rank[0][1], trgs, rank))
 
     return models
 
