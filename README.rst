@@ -20,8 +20,11 @@ facilitate this step.
 This open-source python-project is currently tested only with python 3.4,
 in Anaconda/Winpython/MacOS/Windows 7.
 
+.. _end-opening:
+.. contents:: Table of Contents
+  :backlinks: top
+.. _begin-install:
 
-=======
 Install
 =======
 The program requires CPython-3, and depends on *numpy*, *scipy*, *pandas*,
@@ -65,34 +68,43 @@ The program requires CPython-3, and depends on *numpy*, *scipy*, *pandas*,
 
        pip install -r requirements/dev.pip
 
-=====
+
+.. _begin-usage:
+
 Usage
 =====
 
 1. Once Python is installed appropriately,
-   you can execute it from the command prompt::
+   execute it from the command prompt and check the version::
 
 	    > co2mpas --version
         1.0.0-dev.ank.1
 
 
-2. Then select the input and output folders form the UI-browser.
+2. Then run it without any options and select the input and output folders
+   from the UI-browser::
+
+        > co2mpas
 
    .. Tip:
        See the template file (excel input/Template.xlsm) for required input data.
+
+3. To get the syntax of the command use::
+
+    > co2mpas --help
+
+
 
 Debugging and investigating results
 -----------------------------------
 
 - Make sure that you have installed `graphviz` and invoke the `co2mpas` cmd
-  with the `--plot-workflow` option.
--
+  with the ``--plot-workflow`` option.
 
 
 Output files
 ------------
-
-The structure of the output-files produced for each vehicle is the following::
+Below is the structure of the output-files produced for each vehicle::
 
     +--<date>-<time>_precondition_WLTP_<inp-fname>.xls:
     |               Input and calibrated values for electrics.
@@ -109,11 +121,14 @@ The structure of the output-files produced for each vehicle is the following::
     +--<date>-<time>_summary.xls:
                     Major CO2 values from all vehicles in the batch-run.
 
-=================
+
+.. _begin-limitations:
+
 Known Limitations
 =================
+
 - Running with the same input might produce slightly different result values
-  (i.e. for the CO2 it is in the max range of 0.8 gr/km).
+  (i.e. for the CO2 it is in the max range of 0.5 gr/km).
 - The calculations are very sensitive to the thermal time-series.
   Mixing time series from different vehicles produce unreliable results.
 - Heavily quantized velocity time-series heavily affect the accuracy of the
