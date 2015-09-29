@@ -689,13 +689,14 @@ def calibrate_co2_params(
         def err_f(params, **kwargs):
             return co2_error_function_on_emissions(params, **kwargs)
 
+
     else:
         temps = np.array(engine_coolant_temperatures)
 
         def err_f(params, default_params, sub_values):
             it = zip(co2_error_function_on_emissions, sub_values)
             d = default_params
-            return sum(f(params, default_params=d, sub_values=b) for f, b in it)
+            return sum(f(params, default_params=d, sub_values=b) for f, b in it if b.any())
 
     cold = temps < co2_params_initial_guess['trg']
     hot = np.logical_not(cold)
@@ -713,7 +714,11 @@ def calibrate_co2_params(
     p = calibrate(hot_p, default_params={}, sub_values=hot)
 
     cold_p = ['t', 'trg']
-    p.update(calibrate(cold_p, default_params=p, sub_values=cold))
+    if cold.any():
+        p.update(calibrate(cold_p, default_params=p, sub_values=cold))
+    else:
+        p['trg'] = co2_params_initial_guess['trg']
+        p['t'] = co2_params_initial_guess['t']
 
     bounds = restrict_bounds(bounds, p)
 
@@ -786,6 +791,8 @@ def calibrate_model_params(params_bounds, error_function, initial_guess=None):
         error_f = lambda p: sum(f(p) for f in error_function)
 
     param_keys, params_bounds = zip(*sorted(params_bounds.items()))
+
+    params_bounds = [(i - EPS, j + EPS) for i, j in params_bounds]
 
     params, min_e_and_p = {}, [np.inf, None]
 

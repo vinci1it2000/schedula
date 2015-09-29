@@ -24,11 +24,14 @@ Sub-Modules:
 
 import sys
 
+#: Machine error.
+EPS = sys.float_info.epsilon
+
 #: Minimum vehicle velocity [km/h].
-VEL_EPS = 1 + sys.float_info.epsilon
+VEL_EPS = 1 + EPS
 
 #: Minimum vehicle acceleration [m/s2].
-ACC_EPS = 0.1 + sys.float_info.epsilon
+ACC_EPS = 0.1 + EPS
 
 #: Infinite value.
 INF = 10000.0
