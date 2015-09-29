@@ -2,8 +2,7 @@
 co2mpas: Vehicle simulator predicting NEDC CO2 emissions from WLTP time-series
 ##############################################################################
 
-:Release:   1.0.0-dev.ank.1
-:Sources:   https://github.com/JRCSTU/co2mpas
+:Release:   1.0.1-b0es:   https://github.com/JRCSTU/co2mpas
 :Keywords:  CO2, wltp, engineering, scientific, python, excel, library,
 :Dev-team:  .. include:: ../AUTHORS.rst
 :Copyright: 2015 European Commission (`JRC-IET
@@ -23,14 +22,34 @@ in Anaconda/Winpython/MacOS/Windows 7.
 
 Quickstart: Installation and Usage
 ----------------------------------
+If you already have a full-blown *python-3 environment* (i.e. *Linux*) you can
+immediately start working with these console-commands:
 
+.. code-block:: bash
 
+    ## Install co2mpas
+    $ pip install co2mpas --extra-index http://pypi.wltp.io/simple/ --trusted-host pypi.wltp.io  --pre
 
+    ## Where to store input and output files.
+    $ mkdir input output
+
+    ## Create a template excel-file for inputs.
+    $ co2mpas --create-template input/vehicle1
+
+    ######################################################
+    ## edit the generated `./input/vehicle1.xlsx` file. ##
+    ######################################################
+
+    ## Run simulator.
+    $ co2mpas -I input -O output
 
 
 .. _end-opening:
 .. contents:: Table of Contents
   :backlinks: top
+
+
+
 .. _begin-install:
 
 Install
@@ -45,90 +64,108 @@ The program requires CPython-3, and depends on *numpy*, *scipy*, *pandas*,
    Binaries for Python Extension Packages
    <http://www.lfd.uci.edu/~gohlke/pythonlibs/>`_.
 
-There are 3 installation option:
+    There are 3 installation option for *Windows*:
 
-# Install `Anaconda <http://continuum.io/downloads>`_ python and *pip-install* it.
-# Install `WinPython <https://winpython.github.io/>`_ python and *pip-install* it.
-# Download the *all_in_one* distribution archive (~400MB) and unzip it.
+    #. Install `Anaconda <http://continuum.io/downloads>`_ **python-3** (prefer 64 bit),
+       ``pip install co2mpas``, and download sources (distributed separately) and
+       unzip them to get the documents.
+    #. Install the latest `WinPython <https://winpython.github.io/>`_ **python-3** (prefer 64 bit),
+       ``pip install co2mpas``, and download sources (distributed separately) and
+       unzip them to get the documents.
+    #. Unzip the *all_in_one* distribution archive (~400MB) (distributed separately).
+
 
 Anaconda install
 ----------------
-1. Install python 3.4 from one of:
+1. Install Anaconda python 3.4 (preferably 64 bit) from http://continuum.io/downloads.
+   Prefer an installation-folder without any spaces leading to it.
 
-	- `Anaconda <http://continuum.io/downloads>`_
+   .. Note::
+       When asked by the installation wizard, ensure that *Anaconda* gets to be
+       registered as the default python-environment for the user's account.
 
-	- `WinPython <https://winpython.github.io/>`_
-	  (and register the installation from its Control-panel)
+2. Open a windows command-prompt console::
 
-2. Unzip the archive to some folder.
+       start button --> `cmd.exe`
 
-3. Open windows command prompt::
+3. In the console-window check that you have the correct version of
+   Anaconda-python installed, by typing::
 
-       start --> `cmd.exe`
+        > python --version
+        Python 3.4.3 :: Anaconda 2.3.0 (64-bit)
 
-4. In the cmd window go in in the folder where you have unzipped the archive::
 
-       cd \path\to\directory\compas
+4. Install **co2mpas** by typing::
 
-5. **Anaconda**-only: Run the following command to install dependencies
-   with C-native code::
+       > pip install co2mpas --extra-index http://pypi.wltp.io/simple/ --trusted-host pypi.wltp.io --pre
 
-        conda update conda
-        conda install --file requirements/exe.conda
 
-6. Run the following command to install run-time dependencies::
+5. (optionally) Unzip the sources (distributed separately) and install
+   the develop-time dependencies::
 
-       pip install -r requirements/exe.pip
+       > cd <sources-folder>
+       > pip install -r requirements/dev.pip
 
-7. (optionally) Install develop-time dependencies::
 
-       pip install -r requirements/dev.pip
+Upgrade Anaconda
+~~~~~~~~~~~~~~~~
+If you already have installed *Anaconda*, you may simply upgrade it.
 
-8. Once Python is installed appropriately,
-   execute it from the command prompt and check the installed version::
+[TBD: Ask JRC]
 
-        co2mpas --version
-        1.0.0-dev.ank.1
+
 
 WinPython install
 -----------------
 
-1. Install python 3.4 from one of:
+1. Install the latest python-3 (preferably 64 bit) from https://winpython.github.io/ preferably
+   Prefer an installation-folder without any spaces leading to it.
 
-    - `Anaconda <http://continuum.io/downloads>`_
+2. Open the WinPython's command-prompt console, by locating the folder where
+   you installed it and execute::
 
-    - `WinPython <https://winpython.github.io/>`_
-      (and register the installation from its Control-panel)
+        <winpython-folder>\"WinPython Command Prompt.exe"
 
-2. Unzip the archive to some folder.
 
-3. Open windows command prompt::
+3. In the console-window check that you have the correct version of
+   Anaconda-python installed, by typing::
 
-       start --> `cmd.exe`
+        > python --version
+        Python 3.4.3
 
-4. In the cmd window go in in the folder where you have unzipped the archive::
 
-       cd \path\to\directory\compas
+4. Install **co2mpas** by typing::
 
-5. **Anaconda**-only: Run the following command to install dependencies
-   with C-native code::
+       > pip install co2mpas --extra-index http://pypi.wltp.io/simple/ --trusted-host pypi.wltp.io --pre
 
-        conda update conda
-        conda install --file requirements/exe.conda
 
-6. Run the following command to install run-time dependencies::
+4. (optionally) Unzip the sources (distributed separately) and install
+   the develop-time dependencies::
 
-       pip install -r requirements/exe.pip
+       > cd <sources-folder>
+       > pip install -r requirements/dev.pip
 
-7. (optionally) Install develop-time dependencies::
-
-       pip install -r requirements/dev.pip
 
 8. Once Python is installed appropriately,
    execute it from the command prompt and check the installed version::
 
         co2mpas --version
-        1.0.0-dev.ank.1
+        1.0.1-b0
+
+*All-in-one* distributed archive
+--------------------------------
+[TBD]
+
+
+
+Check installation
+------------------
+Check everything was OK by comparing the version with the string below::
+
+    > co2mpas --version
+    1.0.1-b0
+
+
 
 .. _begin-usage:
 
@@ -140,18 +177,21 @@ and generates multiple *output-files* per each one vehicle,
 and a *summary* file which aggregates the major result-values from all vehicles.
 
 To get the syntax of the command, open a console where you have
-installed **co2mpas** (see :ref:`Install` above) and type the following
-command:
+installed **co2mpas** (see `Install <begin-install>`_ above) and type the
+following command:
 
 .. code-block:: bash
 
     $ co2mpas --help
 
 .. Tip::
-    The commands beginning with ``$`` symbol imply a *bash-console* (UNIX).
-    You can run it from any similar environemnt, such as the *Windows*
-    ``cmd.exe`` console, or the *console.lnk* included in the top folder
-    of the *all-in-one* distribution-archive.
+    The commands beginning with ``$`` symbol are for the *bash-console* (UNIX)
+    included in the ``console.lnk`` file in top folder of the *all-in-one*
+    distribution-archive (see above :ref:`_begin-install`).
+
+    You can run them with minor modifications in any similar environemnt,
+    such as the *Windows* ``cmd.exe`` console (i.e. replace ``mkdir --> md`` and
+    ``cygstart --> start``)
 
 
 
@@ -184,10 +224,11 @@ command:
       $ cygstart input/vehicle1.xlsx        ## Opens the excel-file.
 
    .. Tip::
-       See the template file (excel input/Template.xlsm) for required input data.
+       The generated file contains help descriptions to help you populate it
+       with vehicle data.
 
-   You can repeat the last 2 steps and add more vehicles if you need them
-   to run at once.
+       Repeat these last 2 steps if you want to add more vehicles in
+       the *batch-run*.
 
 
 5. Run the simulator:
@@ -237,8 +278,8 @@ Debugging and investigating results
 
 - Make sure that you have installed `graphviz` and invoke the `co2mpas` cmd
   with the ``--plot-workflow`` option.
-- Unzip the **docs-archives** and inspect the functions mentioned in the
-  workflow
+- Inspect the functions mentioned in the workflow and search them in the
+  unzipped the **source-archive**.
 
 
 .. _begin-limitations:
