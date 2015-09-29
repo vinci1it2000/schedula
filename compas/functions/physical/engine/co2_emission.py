@@ -528,12 +528,6 @@ def select_initial_co2_emission_model_params_guess(
     for k, v in params[engine_type].items():
         p[k].update(v)
 
-    p['bounds'] = {i: [l - (u - l) / 2, u + (u - l) / 2]
-                   for i, (l, u) in p['bounds'].items()}
-    p['bounds']['t'][0] = 0
-    p['bounds']['l2'][1] = 0
-    p['bounds']['l'][1] = min(0, p['bounds']['l'][1])
-
     return p['x0'], p['bounds']
 
 
