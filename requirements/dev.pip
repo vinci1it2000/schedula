@@ -3,7 +3,7 @@
 #
 #       pip install -r dev.pip
 
--r execution.pip
+-r exe.pip
 
 
 ## C-backends (use `conda` to install?)
