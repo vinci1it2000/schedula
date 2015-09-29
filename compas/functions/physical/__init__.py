@@ -38,7 +38,6 @@ from ...dispatcher import Dispatcher
 from ...dispatcher.utils import heap_flush
 import numpy as np
 from itertools import zip_longest, chain
-from ... import _show_calibration_failure_msgbox
 
 
 def _compare_result(
@@ -329,7 +328,7 @@ def _check_models(error):
     return True
 
 
-def model_selector(*calibration_outputs):
+def model_selector(*calibration_outputs, show_calibration_failure_msgbox=False):
     """
     Selects the best calibrated models from many sources (e.g., WLTP, WLTP-L).
 
@@ -405,7 +404,7 @@ def model_selector(*calibration_outputs):
             error_fun(e_mods, 'ALL', co)
 
         if heap:
-            if _show_calibration_failure_msgbox and not check_m(heap[0][0]) and \
+            if show_calibration_failure_msgbox and not check_m(heap[0][0]) and \
                     _show_calibration_failure_msg(mods):
                 continue
             models.update(heap[0][-1])
@@ -415,8 +414,8 @@ def model_selector(*calibration_outputs):
             origin.update(dict.fromkeys(mods, rank[0][0]))
             origin_errors.update(dict.fromkeys(mods, rank))
 
-            print('Models %s are selected from %s (%.3f) respect to targets %s'
-                  '.\nErrors %s.' % (mods, rank[0][0], rank[0][1], trgs, rank))
+            #print('Models %s are selected from %s (%.3f) respect to targets %s'
+            #      '.\nErrors %s.' % (mods, rank[0][0], rank[0][1], trgs, rank))
 
     return models
 

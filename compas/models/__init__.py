@@ -30,7 +30,7 @@ from compas.functions import *
 from compas import _prediction_WLTP
 
 
-def architecture(with_output_file=True):
+def architecture(with_output_file=True, show_calibration_failure_msgbox=False):
     """
     Defines the CO2MPAS software architecture.
 
@@ -214,7 +214,7 @@ def architecture(with_output_file=True):
 
     architecture.add_function(
         function_id='extract_calibrated_models',
-        function=model_selector,
+        function=partial(model_selector,show_calibration_failure_msgbox=show_calibration_failure_msgbox),
         inputs=calibration_cycle_outputs,
         outputs=['calibrated_models'],
         description='Extracts the calibrated models from calibration cycle\' '

@@ -32,7 +32,6 @@ import pandas as pd
 from collections import Iterable
 from .write_outputs import check_writeable
 from compas.dispatcher.draw import dsp2dot
-from compas import _only_summary_sheet
 
 
 log = logging.getLogger(__name__)
@@ -106,7 +105,9 @@ def select_inputs_for_prediction(data):
 files_exclude_regex = re.compile('^\w')
 
 
-def process_folder_files(input_folder, output_folder, plot_workflow=False):
+def process_folder_files(
+        input_folder, output_folder, plot_workflow=False,
+        show_calibration_failure_msgbox=False, only_summary_sheet=True):
     """
     Processes all excel files in a folder with the model defined by
     :func:`compas.models.architecture`.
@@ -125,7 +126,8 @@ def process_folder_files(input_folder, output_folder, plot_workflow=False):
     """
 
     from compas.models import architecture
-    model = architecture()
+    model = architecture(
+        show_calibration_failure_msgbox=show_calibration_failure_msgbox)
     fpaths = glob.glob(input_folder + '/*.xlsx')
     summary = {}
     start_time = datetime.today()
@@ -249,7 +251,7 @@ def process_folder_files(input_folder, output_folder, plot_workflow=False):
                 log.warning(ex, exc_info=1)
 
     writer = pd.ExcelWriter('%s/%s%s.xlsx' % (output_folder, doday, 'summary'))
-    if _only_summary_sheet:
+    if only_summary_sheet:
         summary = {'SUMMARY': summary['SUMMARY']}
 
     for k, v in sorted(summary.items()):
