@@ -792,7 +792,7 @@ def calibrate_model_params(params_bounds, error_function, initial_guess=None):
 
     param_keys, params_bounds = zip(*sorted(params_bounds.items()))
 
-    params_bounds = [(i - EPS, j + EPS) for i, j in params_bounds]
+    bounds = [(i - EPS, j + EPS) for i, j in params_bounds]
 
     params, min_e_and_p = {}, [np.inf, None]
 
@@ -810,7 +810,7 @@ def calibrate_model_params(params_bounds, error_function, initial_guess=None):
         return res
 
     def finish(fun, x0, **kwargs):
-        res = minimize(fun, x0, bounds=params_bounds)
+        res = minimize(fun, x0, bounds=bounds)
 
         if res.success:
             return res.x, res.success
@@ -822,6 +822,8 @@ def calibrate_model_params(params_bounds, error_function, initial_guess=None):
         x = brute(error_func, params_bounds, Ns=step, finish=finish)
     else:
         x = finish(error_func, [initial_guess[k] for k in param_keys])[0]
+
+    x = [min(u, max(l, v)) for (l, u), v in zip(params_bounds, x)]
 
     update_params(x)
 
