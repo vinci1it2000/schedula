@@ -32,6 +32,7 @@ import pandas as pd
 from collections import Iterable
 from .write_outputs import check_writeable
 from compas.dispatcher.draw import dsp2dot
+from compas import _only_summary_sheet
 
 
 log = logging.getLogger(__name__)
@@ -125,7 +126,7 @@ def process_folder_files(input_folder, output_folder, plot_workflow=False):
 
     from compas.models import architecture
     model = architecture()
-    fpaths = sorted(glob.glob(input_folder + '/*.xlsx'))
+    fpaths = glob.glob(input_folder + '/*.xlsx')
     summary = {}
     start_time = datetime.today()
     doday = start_time.strftime('%d_%b_%Y_%H_%M_%S_')
@@ -247,7 +248,9 @@ def process_folder_files(input_folder, output_folder, plot_workflow=False):
             except RuntimeError as ex:
                 log.warning(ex, exc_info=1)
 
-    writer = pd.ExcelWriter('%s/%s%s.xlsx' % (output_folder, doday, 'Summary'))
+    writer = pd.ExcelWriter('%s/%s%s.xlsx' % (output_folder, doday, 'summary'))
+    if _only_summary_sheet:
+        summary = {'SUMMARY': summary['SUMMARY']}
 
     for k, v in sorted(summary.items()):
         pd.DataFrame.from_records(v).to_excel(writer, k)

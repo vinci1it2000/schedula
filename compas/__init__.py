@@ -30,6 +30,7 @@ _show_calibration_failure_msgbox = True
 
 _prediction_WLTP = False
 
+_only_summary_sheet = True
 
 if __name__ == '__main__':
     from compas.dispatcher.draw import dsp2dot
