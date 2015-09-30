@@ -107,7 +107,7 @@ files_exclude_regex = re.compile('^\w')
 
 def process_folder_files(
         input_folder, output_folder, plot_workflow=False,
-        show_calibration_failure_msgbox=False, only_summary_sheet=True):
+        hide_warn_msgbox=False, gen_outfiles_per_vehicle=False):
     """
     Processes all excel files in a folder with the model defined by
     :func:`compas.models.architecture`.
@@ -127,7 +127,7 @@ def process_folder_files(
 
     from compas.models import architecture
     model = architecture(
-        show_calibration_failure_msgbox=show_calibration_failure_msgbox)
+        hide_warn_msgbox=hide_warn_msgbox)
     fpaths = glob.glob(input_folder + '/*.xlsx')
     summary = {}
     start_time = datetime.datetime.today()
@@ -251,7 +251,7 @@ def process_folder_files(
                 log.warning(ex, exc_info=1)
 
     writer = pd.ExcelWriter('%s/%s%s.xlsx' % (output_folder, doday, 'summary'))
-    if only_summary_sheet and 'SUMMARY' in summary:
+    if not gen_outfiles_per_vehicle and 'SUMMARY' in summary:
         summary = {'SUMMARY': summary['SUMMARY']}
 
     for k, v in sorted(summary.items()):

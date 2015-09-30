@@ -328,7 +328,7 @@ def _check_models(error):
     return True
 
 
-def model_selector(*calibration_outputs, show_calibration_failure_msgbox=False):
+def model_selector(*calibration_outputs, hide_warn_msgbox=False):
     """
     Selects the best calibrated models from many sources (e.g., WLTP, WLTP-L).
 
@@ -404,7 +404,7 @@ def model_selector(*calibration_outputs, show_calibration_failure_msgbox=False):
             error_fun(e_mods, 'ALL', co)
 
         if heap:
-            if show_calibration_failure_msgbox and not check_m(heap[0][0]) and \
+            if not hide_warn_msgbox and not check_m(heap[0][0]) and \
                     _show_calibration_failure_msg(mods):
                 continue
             models.update(heap[0][-1])

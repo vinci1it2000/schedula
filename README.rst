@@ -60,7 +60,7 @@ immediately start working with the following console-commands:
     $ mkdir input output
 
     ## Create a template excel-file for inputs.
-    $ co2mpas --create-template input/vehicle1
+    $ co2mpas template input/vehicle1
 
     ###################################################
     ## Edit generated `./input/vehicle1.xlsx` file.  ##
@@ -228,6 +228,22 @@ you have installed CO2MPAS (see :ref:`begin-install` above) and type:
 .. code-block:: bash
 
     $ co2mpas --help
+    Predict NEDC CO2 emissions from WLTP cycles.
+
+    Usage:
+        co2mpas [options] [-I <folder>  -O <folder>]
+        co2mpas template [-f | --force] <excel-file> ...
+        co2mpas --help
+        co2mpas --version
+
+    -I <folder> --inp <folder>       Input folder, prompted with GUI if missing.
+                                     [default: ./input]
+    -O <folder> --out <folder>       Input folder, prompted with GUI if missing.
+                                     [default: ./output]
+    --more-output                    Output also per-vehicle output-files.
+    --no-warn-gui                    Does not pause batch-run to report inconsistencies.
+    --plot-workflow                  Show workflow in browser, after run finished.
+    -f --force                       Overwrite template excel-file if it exists.
 
 
 1. Choose a folder where you will run CO2MPAS and create the *input* and
@@ -249,7 +265,7 @@ you have installed CO2MPAS (see :ref:`begin-install` above) and type:
 
    .. code-block:: bash
 
-        $ co2mpas --create-template input/vehicle1
+        $ co2mpas template input/vehicle1
         Creating co2mpas INPUT template-file './input/vehicle1.xlsx'...
 
 

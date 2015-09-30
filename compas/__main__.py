@@ -3,7 +3,7 @@ Predict NEDC CO2 emissions from WLTP cycles.
 
 Usage:
     co2mpas [options] [-I <folder>  -O <folder>]
-    co2mpas [-f | --force] --create-template <excel-file>
+    co2mpas template [-f | --force] <excel-file> ...
     co2mpas --help
     co2mpas --version
 
@@ -11,9 +11,10 @@ Usage:
                                  [default: ./input]
 -O <folder> --out <folder>       Input folder, prompted with GUI if missing.
                                  [default: ./output]
---create-template <excel-file>   Create a new input-template excel-file.
--f --force                       Create template even if file already exists.
+--more-output                    Output also per-vehicle output-files.
+--no-warn-gui                    Does not pause batch-run to report inconsistencies.
 --plot-workflow                  Show workflow in browser, after run finished.
+-f --force                       Overwrite template excel-file if it exists.
 """
 # [-f | --force]
 # -f --force                       Create template even if file already exists.
@@ -34,18 +35,19 @@ def _get_input_template_fpath():
                                            'input_template.xlsx')
 
 
-def _create_input_template(fpath, force=False):
-    fpath = os.path.abspath(fpath)
-    if not fpath.endswith('.xlsx'):
-        fpath = '%s.xlsx' % fpath
-    if os.path.exists(fpath) and not force:
-        exit("File '%s' already exists! Use '-f' to overwrite it." % fpath)
-    if os.path.isdir(fpath):
-        exit("Expecting a file-name instead of directory '%s'!" % fpath)
+def _create_input_template(fpaths, force=False):
+    for fpath in fpaths:
+        fpath = os.path.abspath(fpath)
+        if not fpath.endswith('.xlsx'):
+            fpath = '%s.xlsx' % fpath
+        if os.path.exists(fpath) and not force:
+            exit("File '%s' already exists! Use '-f' to overwrite it." % fpath)
+        if os.path.isdir(fpath):
+            exit("Expecting a file-name instead of directory '%s'!" % fpath)
 
-    print("Creating co2mpas INPUT template-file '%s'..." % fpath,
-          file=sys.stderr)
-    shutil.copy(_get_input_template_fpath(), fpath)
+        print("Creating co2mpas INPUT template-file '%s'..." % fpath,
+              file=sys.stderr)
+        shutil.copy(_get_input_template_fpath(), fpath)
 
 
 def _prompt_folder(folder_name, folder):
@@ -62,16 +64,7 @@ def _prompt_folder(folder_name, folder):
     return folder
 
 
-def main(*args):
-    opts = docopt(__doc__,
-                  argv=args or sys.argv[1:],
-                  version='%s %s' % (proj_name, proj_ver))
-
-    inp_template = opts['--create-template']
-    if inp_template:
-        _create_input_template(inp_template, opts['--force'])
-        exit()
-
+def _run_simulation(opts):
     input_folder = _prompt_folder(folder_name='INPUT', folder=opts['--inp'])
     input_folder = os.path.abspath(input_folder)
 
@@ -83,8 +76,19 @@ def main(*args):
 
     from compas.functions import process_folder_files
     process_folder_files(input_folder, output_folder,
-                         plot_workflow=opts['--plot-workflow'])
+                         plot_workflow=opts['--plot-workflow'],
+                         hide_warn_msgbox=opts['--no-warn-gui'],
+                         gen_outfiles_per_vehicle=opts['--more-output'])
 
+
+def main(*args):
+    opts = docopt(__doc__,
+                  argv=args or sys.argv[1:],
+                  version='%s %s' % (proj_name, proj_ver))
+    if opts['template']:
+        _create_input_template(opts['<excel-file>'], opts['--force'])
+    else:
+        _run_simulation(opts)
 
 if __name__ == '__main__':
     main()
