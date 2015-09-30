@@ -41,6 +41,7 @@ immediately start working with these console-commands:
     $ pip install co2mpas --extra-index http://pypi.wltp.io/simple/ --trusted-host pypi.wltp.io  --pre
 
     ## Where to store input and output files.
+    ## In *Windows* use `md` command instead.
     $ mkdir input output
 
     ## Create a template excel-file for inputs.
@@ -204,7 +205,7 @@ following command:
    .. code-block:: bash
 
       $ cd <some-folder>
-      $ mkdir input output
+      $ mkdir input output     ## Replace `mkdir` with `md` in *Windows* (`cmd.exe`)
 
   .. Note::
     The input & output folders do not have to reside in the same parent.
@@ -224,7 +225,7 @@ following command:
 
    .. code-block:: bash
 
-      $ cygstart input/vehicle1.xlsx        ## Opens the excel-file.
+      $ cygstart input/vehicle1.xlsx        ## Opens the excel-file. Use `start` in *cmd.exe*.
 
    .. Tip::
        The generated file contains help descriptions to help you populate it
