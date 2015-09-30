@@ -26,7 +26,7 @@ import re
 import os
 import glob
 import logging
-from datetime import datetime
+import datetime
 import numpy as np
 import pandas as pd
 from collections import Iterable
@@ -130,7 +130,7 @@ def process_folder_files(
         show_calibration_failure_msgbox=show_calibration_failure_msgbox)
     fpaths = glob.glob(input_folder + '/*.xlsx')
     summary = {}
-    start_time = datetime.today()
+    start_time = datetime.datetime.today()
     doday = start_time.strftime('%d_%b_%Y_%H_%M_%S_')
     output_file_format = '%s/%s_%s_%s.xlsx'
     output_files = {
@@ -251,16 +251,16 @@ def process_folder_files(
                 log.warning(ex, exc_info=1)
 
     writer = pd.ExcelWriter('%s/%s%s.xlsx' % (output_folder, doday, 'summary'))
-
     if only_summary_sheet and 'SUMMARY' in summary:
         summary = {'SUMMARY': summary['SUMMARY']}
 
     for k, v in sorted(summary.items()):
         pd.DataFrame.from_records(v).to_excel(writer, k)
 
-    time_elapsed = (datetime.today() - start_time).total_seconds() / 60.0
+    time_elapsed = (datetime.datetime.today() - start_time).total_seconds()
 
-    print('Done! [%.3f min]' % time_elapsed)
+    time_elapsed = datetime.timedelta(seconds=time_elapsed)
+    print('Done! [%s sec]' % time_elapsed)
 
 
 def _make_summary(sheets, workflow, results, **kwargs):
