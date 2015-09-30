@@ -1,2 +1,2 @@
-include README.md LICENSE.txt
-include docs/index.txt
+include README.md LICENSE.txt AUTHORS.rst CHANGES.rst
+recursive-include requirements *

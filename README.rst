@@ -2,27 +2,28 @@
 co2mpas: Vehicle simulator predicting NEDC CO2 emissions from WLTP time-series
 ##############################################################################
 
-:Release:   1.0.1b1
-:Sources:   https://github.com/JRCSTU/co2mpas
-:Keywords:  CO2, wltp, engineering, scientific, python, excel, library,
-:Dev-team:  .. include:: ../AUTHORS.rst
-:Copyright: 2015 European Commission (`JRC-IET
-            <https://ec.europa.eu/jrc/en/institutes/iet>`_)
-:License:   `EUPL 1.1+ <https://joinup.ec.europa.eu/software/page/eupl>`_
+:Release:       1.0.1b2
+:Sources:       https://github.com/JRCSTU/co2mpas
+:Keywords:      CO2, wltp, engineering, scientific, python, excel, library,
+:Developers:    .. include:: ../AUTHORS.rst
+:Copyright:     2015 European Commission (`JRC-IET
+                <https://ec.europa.eu/jrc/en/institutes/iet>`_)
+:License:       `EUPL 1.1+ <https://joinup.ec.europa.eu/software/page/eupl>`_
 
 
 CO2MPAS is backward-looking longitudinal-dynamics CO2 & fuel-consumption
-simulator for Light-Duty Vehicles specially build to back-translate consumption
-figures from WLTP cycles into NEDC ones.
+simulator for Light-Duty Vehicles (cars and vans) specially crafted
+to back-translate consumption figures from WLTP cycles into NEDC ones.
 
-It is an open-source python-3 project currently tested with python 3.4,
-in Anaconda under MacOS & Anaconda/WinPython under Windows 7.
+It is an open-source python-3 project currently developed with python 3.4,
+in Anaconda/WinPython under Windows 7, in Anaconda under MacOS, and in Linux's
+standard python environment.
 
 
 History
 -------
 The *European Commission* is supporting the introduction of the WLTP cycle
-for Light-duty vehicles (cars and vans) developed at the United Nations (UNECE)
+for Light-duty vehicles developed at the United Nations (UNECE)
 level, in the shortest possible time-frame. Its introduction requires
 the adaptation of CO2 certification and CO2 monitoring procedures set
 by European Regulations. European Commission's *Joint Research Centre* has been
@@ -30,10 +31,20 @@ assigned the development of this vehicle simulator to facilitate this step.
 
 
 
-Quickstart: Installation and Usage
-----------------------------------
+Quickstart
+----------
 If you already have a full-blown *python-3 environment* (i.e. *Linux*) you can
-immediately start working with these console-commands:
+immediately start working with the following console-commands:
+
+.. Tip::
+    - Commands beginning with ``$`` symbol are for the *bash-console* (UNIX)
+      i.e. the one included in the ``console.lnk`` file in top folder of
+      the *all-in-one* distribution-archive (see `Install` below).
+
+    - Windows's ``cmd.exe`` console commands begin with ``>`` symbol.
+      You can adapt most UNIX commands with minor modifications
+      (i.e. replace ``mkdir --> md`` and ``cygstart --> start``)
+
 
 .. code-block:: bash
 
@@ -47,12 +58,16 @@ immediately start working with these console-commands:
     ## Create a template excel-file for inputs.
     $ co2mpas --create-template input/vehicle1
 
-    ######################################################
-    ## edit the generated `./input/vehicle1.xlsx` file. ##
-    ######################################################
+    ###################################################
+    ## Edit generated `./input/vehicle1.xlsx` file.  ##
+    ###################################################
 
     ## Run simulator.
     $ co2mpas -I input -O output
+
+    ###################################################
+    ## Inspect generated results inside `./output/`. ##
+    ###################################################
 
 
 .. _end-opening:
@@ -85,6 +100,8 @@ The program requires CPython-3, and depends on *numpy*, *scipy*, *pandas*,
        unzip them to get the documents.
     #. Unzip the *all_in_one* distribution archive (~400MB) (distributed separately).
 
+Read further for detailed instructions for each method.
+
 
 Anaconda install
 ----------------
@@ -95,7 +112,7 @@ Anaconda install
        When asked by the installation wizard, ensure that *Anaconda* gets to be
        registered as the default python-environment for the user's account.
 
-2. Open a windows command-prompt console::
+2. Open a *Windows* command-prompt console::
 
        start button --> `cmd.exe`
 
@@ -106,7 +123,7 @@ Anaconda install
         Python 3.4.3 :: Anaconda 2.3.0 (64-bit)
 
 
-4. Install **co2mpas** by typing::
+4. Install CO2MPAS by typing::
 
        > pip install co2mpas --extra-index http://pypi.wltp.io/simple/ --trusted-host pypi.wltp.io --pre
 
@@ -118,39 +135,38 @@ Anaconda install
        > pip install -r requirements/dev.pip
 
 
-Upgrade Anaconda
-~~~~~~~~~~~~~~~~
-If you already have installed *Anaconda*, you may simply upgrade it.
+Upgrade Anaconda-python
+~~~~~~~~~~~~~~~~~~~~~~~
+If you already have installed *Anaconda*, you may upgrade it before install.
 
 [TBD: Ask JRC]
-
 
 
 WinPython install
 -----------------
 
-1. Install the latest python-3 (preferably 64 bit) from https://winpython.github.io/ preferably
+1. Install the latest python-3 (preferably 64 bit) from https://winpython.github.io/.
    Prefer an installation-folder without any spaces leading to it.
 
 2. Open the WinPython's command-prompt console, by locating the folder where
-   you installed it and execute::
+   you installed it and run (double-click)::
 
         <winpython-folder>\"WinPython Command Prompt.exe"
 
 
 3. In the console-window check that you have the correct version of
-   Anaconda-python installed, by typing::
+   Anaconda-python installed, by typing:
 
         > python --version
         Python 3.4.3
 
 
-4. Install **co2mpas** by typing::
+4. Install CO2MPAS by typing::
 
        > pip install co2mpas --extra-index http://pypi.wltp.io/simple/ --trusted-host pypi.wltp.io --pre
 
 
-4. (optionally) Unzip the sources (distributed separately) and install
+5. (optionally) Unzip the sources (distributed separately) and install
    the develop-time dependencies::
 
        > cd <sources-folder>
@@ -159,16 +175,35 @@ WinPython install
 
 *All-in-one* distributed archive
 --------------------------------
+Just download and unzip the archive, and from the unzipped-folder's file run
+(double-click) on ``console.lnk``.
+
 [TBD]
 
 
 
 Check installation
 ------------------
-Check everything was OK by comparing the versions with the strings below::
+Compare the co2mpas-version reported with the strings below::
 
     > co2mpas --version
-    1.0.1b1
+    1.0.1b2
+
+Upgrade CO2MPAS
+---------------
+Regardless of the method of installation, to update CO2MPAS just append
+the ``-U --no-deps`` options in the ``pip`` command::
+
+
+    > pip install co2mpas --extra-index http://pypi.wltp.io/simple/ --trusted-host pypi.wltp.io --pre -U --no-deps
+
+
+Uninstall CO2MPAS
+-----------------
+Regardless of the method of installation, to uninstall CO2MPAS just type
+(preferably twice to be sure no dangling instances are left over)::
+
+    > pip uninstall co2mpas
 
 
 .. _begin-usage:
@@ -176,30 +211,20 @@ Check everything was OK by comparing the versions with the strings below::
 Usage
 =====
 The main entry for the simulator is the ``co2mpas`` console-command.
-This command accepts multiple *input-files*, one for each vehicle,
-and generates multiple *output-files* per each one vehicle,
-and a *summary* file which aggregates the major result-values from all vehicles.
+This command accepts multiple **input-excel-files**, one for each vehicle,
+and generates a **summary-excel-file** aggregating the major result-values
+from these vehicles, and (optionally) multiple **output-excel-files** for each
+vehicle run.
 
-To get the syntax of the command, open a console where you have
-installed **co2mpas** (see `Install`_ above) and type the
-following command:
+To get the syntax of the ``co2mpas`` console-command, open a console where
+you have installed CO2MPAS (see Install_ above) and type:
 
 .. code-block:: bash
 
     $ co2mpas --help
 
-.. Tip::
-    The commands beginning with ``$`` symbol are for the *bash-console* (UNIX)
-    included in the ``console.lnk`` file in top folder of the *all-in-one*
-    distribution-archive (see above `Install`).
 
-    You can run them with minor modifications in any similar environemnt,
-    such as the *Windows* ``cmd.exe`` console (i.e. replace ``mkdir --> md`` and
-    ``cygstart --> start``)
-
-
-
-1. Choose a folder where you will run *co2mpas* and create the *input* and
+1. Choose a folder where you will run CO2MPAS and create the *input* and
    *output* data-folders
 
    .. code-block:: bash
@@ -212,8 +237,9 @@ following command:
     It is only for demonstration purposes that we decided to group them both
     under a hypothetical ``some-folder``.
 
-3. Create inside the *input-folder* a vehicle-data template file
-   (eg. ``vehicle1.xlsx``):
+3. Create a vehicle template-file (eg. ``vehicle1.xlsx``) inside
+   the *input-folder*:
+
 
    .. code-block:: bash
 
@@ -283,5 +309,5 @@ Debugging and investigating results
 - Make sure that you have installed `graphviz` and invoke the `co2mpas` cmd
   with the ``--plot-workflow`` option.
 - Inspect the functions mentioned in the workflow and search them in the
-  unzipped the **source-archive**.
+  unzipped **source-archive** (distributed separately).
 

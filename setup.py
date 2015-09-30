@@ -142,8 +142,7 @@ setup(
         'easygui',
         'pandalone',
     ],
-    packages=find_packages(exclude=["tests"]),
-    #package_data= {'compas': ['input_template.xlsx']},
+    packages=find_packages(exclude=['tests', 'doc']),
     include_package_data=True,
     test_suite='nose.collector',
     tests_require=['nose>=1.0'],
@@ -152,4 +151,10 @@ setup(
             '%s = compas.__main__:main' % proj_name,
         ],
     },
+    options={
+        'bdist_wheel': {
+            'universal': True,
+        },
+    },
+    platforms=['any'],
 )
