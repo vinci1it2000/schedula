@@ -3,7 +3,7 @@ co2mpas: Vehicle simulator predicting NEDC CO2 emissions from WLTP time-series
 ##############################################################################
 |python-ver| |proj-license|
 
-:Release:       1.0.1b3
+:Release:       1.0.1b4
 :Sources:       https://github.com/JRCSTU/co2mpas
 :Repository:    http://pypi.wltp.io/simple/co2mpas/
 :Keywords:      CO2, wltp, engineering, scientific, python, excel, library,
@@ -35,8 +35,11 @@ assigned the development of this vehicle simulator to facilitate this step.
 
 Quickstart
 ----------
-If you already have a full-blown *python-3 environment* (i.e. *Linux*) you can
-immediately start working with the following console-commands:
+If you have familiarity with v1 release and already have a full-blown
+*python-3 environment* (i.e. *Linux*) you can immediately start working with
+the following console-commands; otherwise follow the instuctions unde `Install`_
+and `usage`_ sections:
+
 
 .. Tip::
     - Commands beginning with ``$`` symbol are for the *bash-console* (UNIX)
@@ -106,15 +109,46 @@ instructions.
 
     There are 3 installation option for *Windows*:
 
-    #. Install `Anaconda <http://continuum.io/downloads>`_ **python-3** (prefer 64 bit),
+    #. Install the latest `WinPython <https://winpython.github.io/>`_ **python-3** (prefer 64 bit),
        ``pip install co2mpas``, and download sources (distributed separately) and
        unzip them to get the documents.
-    #. Install the latest `WinPython <https://winpython.github.io/>`_ **python-3** (prefer 64 bit),
+    #. Install `Anaconda <http://continuum.io/downloads>`_ **python-3** (prefer 64 bit),
        ``pip install co2mpas``, and download sources (distributed separately) and
        unzip them to get the documents.
     #. Unzip the *all_in_one* distribution archive (~400MB) (distributed separately).
 
 Read further for detailed instructions for each method.
+
+
+WinPython install
+-----------------
+
+1. Install the latest python-3 (preferably 64 bit) from https://winpython.github.io/.
+   Prefer an installation-folder without any spaces leading to it.
+
+2. Open the WinPython's command-prompt console, by locating the folder where
+   you installed it and run (double-click)::
+
+        <winpython-folder>\"WinPython Command Prompt.exe"
+
+
+3. In the console-window check that you have the correct version of
+   Anaconda-python installed, by typing:
+
+        > python --version
+        Python 3.4.3
+
+
+4. Install CO2MPAS by typing::
+
+       > pip install co2mpas --extra-index http://pypi.wltp.io/simple/ --trusted-host pypi.wltp.io --pre
+
+
+5. (optionally) Unzip the sources (distributed separately) and install
+   the develop-time dependencies::
+
+       > cd <sources-folder>
+       > pip install -r requirements/dev.pip
 
 
 Anaconda install
@@ -156,37 +190,6 @@ If you already have installed *Anaconda*, you may upgrade it before install.
 [TBD: Ask JRC]
 
 
-WinPython install
------------------
-
-1. Install the latest python-3 (preferably 64 bit) from https://winpython.github.io/.
-   Prefer an installation-folder without any spaces leading to it.
-
-2. Open the WinPython's command-prompt console, by locating the folder where
-   you installed it and run (double-click)::
-
-        <winpython-folder>\"WinPython Command Prompt.exe"
-
-
-3. In the console-window check that you have the correct version of
-   Anaconda-python installed, by typing:
-
-        > python --version
-        Python 3.4.3
-
-
-4. Install CO2MPAS by typing::
-
-       > pip install co2mpas --extra-index http://pypi.wltp.io/simple/ --trusted-host pypi.wltp.io --pre
-
-
-5. (optionally) Unzip the sources (distributed separately) and install
-   the develop-time dependencies::
-
-       > cd <sources-folder>
-       > pip install -r requirements/dev.pip
-
-
 *All-in-one* distributed archive
 --------------------------------
 Just download and unzip the archive, and from the unzipped-folder's file run
@@ -201,7 +204,7 @@ Check installation
 Compare the co2mpas-version reported with the strings below::
 
     > co2mpas --version
-    1.0.1b3
+    1.0.1b4
 
 Upgrade CO2MPAS
 ---------------

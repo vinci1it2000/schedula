@@ -1,10 +1,10 @@
 Changes
 =======
 
-v1.0.1: Sept 2015, 2nd release
+v1.0.1: 30-Sept 2015, 2nd release
 ------------------------------------
 - Comprehensive modeling with multiple alternative routes depending on
-  the available data.
+  available data.
 - Tested against a sample of 1800 artificially generated vehicles (simulations).
 
 Known Limitations
@@ -86,7 +86,7 @@ Bugs reported from V0:
 #. The gearshift module 0.5.5 miscalculates gearshifts:
    **partially fixed**, the module is now included in CO2MPAS v1 but due to lack in test cases
    has not been further optimized.
-#. Overestimation of engine-power in comparison tothan measurements:
+#. Overestimation of engine-power in comparison to measurements:
    **indeterminate**, in fact this problem is vehicle specific. In the test-cases
    provided to the JRC both higher and lower power demands are experienced.
    Small deviations are expected to have a limited effect on the final calculation.
