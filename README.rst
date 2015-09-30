@@ -2,7 +2,8 @@
 co2mpas: Vehicle simulator predicting NEDC CO2 emissions from WLTP time-series
 ##############################################################################
 
-:Release:   1.0.1-b0es:   https://github.com/JRCSTU/co2mpas
+:Release:   1.0.1-b0e
+:Sources:   https://github.com/JRCSTU/co2mpas
 :Keywords:  CO2, wltp, engineering, scientific, python, excel, library,
 :Dev-team:  .. include:: ../AUTHORS.rst
 :Copyright: 2015 European Commission (`JRC-IET
@@ -10,15 +11,24 @@ co2mpas: Vehicle simulator predicting NEDC CO2 emissions from WLTP time-series
 :License:   `EUPL 1.1+ <https://joinup.ec.europa.eu/software/page/eupl>`_
 
 
-The European Commission is supporting the introduction of the WLTP cycle
-for Light-duty vehicles (cars and vans) developed at the United Nations (UNECE)
-level, in the shortest possible time-frame. Its introduction require
-the adaptation of CO2 targets for manufacturers set by European Regulations,
-and JRC has been assigned the development of this vehicle simulator to
-facilitate this step.
+CO2MPAS is backward-looking longitudinal-dynamics CO2 & fuel-consumption
+simulator for Light-Duty Vehicles specially build to back-translate consumption
+figures from WLTP cycles into NEDC ones.
 
-This open-source python-project is currently tested only with python 3.4,
-in Anaconda/Winpython/MacOS/Windows 7.
+It is an open-source python-3 project currently tested with python 3.4,
+in Anaconda under MacOS & Anaconda/WinPython under Windows 7.
+
+
+History
+-------
+The *European Commission* is supporting the introduction of the WLTP cycle
+for Light-duty vehicles (cars and vans) developed at the United Nations (UNECE)
+level, in the shortest possible time-frame. Its introduction requires
+the adaptation of CO2 certification and CO2 monitoring procedures set
+by European Regulations. European Commission's *Joint Research Centre* has been
+assigned the development of this vehicle simulator to facilitate this step.
+
+
 
 Quickstart: Installation and Usage
 ----------------------------------
@@ -146,12 +156,6 @@ WinPython install
        > pip install -r requirements/dev.pip
 
 
-8. Once Python is installed appropriately,
-   execute it from the command prompt and check the installed version::
-
-        co2mpas --version
-        1.0.1-b0
-
 *All-in-one* distributed archive
 --------------------------------
 [TBD]
@@ -160,11 +164,10 @@ WinPython install
 
 Check installation
 ------------------
-Check everything was OK by comparing the version with the string below::
+Check everything was OK by comparing the versions with the strings below::
 
     > co2mpas --version
     1.0.1-b0
-
 
 
 .. _begin-usage:
@@ -177,7 +180,7 @@ and generates multiple *output-files* per each one vehicle,
 and a *summary* file which aggregates the major result-values from all vehicles.
 
 To get the syntax of the command, open a console where you have
-installed **co2mpas** (see `Install <begin-install>`_ above) and type the
+installed **co2mpas** (see `Install`_ above) and type the
 following command:
 
 .. code-block:: bash
@@ -187,7 +190,7 @@ following command:
 .. Tip::
     The commands beginning with ``$`` symbol are for the *bash-console* (UNIX)
     included in the ``console.lnk`` file in top folder of the *all-in-one*
-    distribution-archive (see above :ref:`_begin-install`).
+    distribution-archive (see above `Install`).
 
     You can run them with minor modifications in any similar environemnt,
     such as the *Windows* ``cmd.exe`` console (i.e. replace ``mkdir --> md`` and
@@ -281,17 +284,3 @@ Debugging and investigating results
 - Inspect the functions mentioned in the workflow and search them in the
   unzipped the **source-archive**.
 
-
-.. _begin-limitations:
-
-Known Limitations
-=================
-
-- Running with the same input might produce slightly different result values
-  (i.e. for the CO2 it is in the max range of 0.5 gr/km).
-- The calculations are very sensitive to the thermal time-series.
-  Mixing time series from different vehicles may produce unreliable results.
-- Heavily quantized velocity time-series affect greatly the accuracy of the
-  results.
-- Ill-formatted input data may NOT produce warnings. Check if all input
-  data are also contained in the output data (calibration files).

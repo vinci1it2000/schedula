@@ -5,7 +5,7 @@
 
     install
     usage
-    limitations
+    changes
     reference
 
 
