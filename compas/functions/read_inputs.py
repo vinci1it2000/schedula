@@ -13,6 +13,7 @@ It contains functions to read vehicle inputs.
 import numpy as np
 from math import isnan
 import pandas as pd
+from collections import Iterable
 from pandalone.xleash import lasso
 from pandalone.xleash.io._xlrd import _open_sheet_by_name_or_index
 
@@ -102,6 +103,14 @@ def empty(value):
     raise EmptyValue()
 
 
+def check_none(v):
+    if v is None:
+        return True
+    elif isinstance(v, Iterable) and not isinstance(v, str) and len(v) == 1:
+        return check_none(v[0])
+    return False
+
+
 def parse_inputs(data, data_map, cycle_name):
     """
     Parses and fetch the data with a data map.
@@ -122,7 +131,7 @@ def parse_inputs(data, data_map, cycle_name):
     d = {'inputs': {}, 'targets': {}}
 
     for k, v in data.items():
-        if isinstance(v, float) and isnan(v) or v is None:
+        if isinstance(v, float) and isnan(v) or check_none(v):
             continue
 
         k = k.split(' ')
