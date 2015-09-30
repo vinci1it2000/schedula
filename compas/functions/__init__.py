@@ -251,7 +251,8 @@ def process_folder_files(
                 log.warning(ex, exc_info=1)
 
     writer = pd.ExcelWriter('%s/%s%s.xlsx' % (output_folder, doday, 'summary'))
-    if only_summary_sheet:
+
+    if only_summary_sheet and 'SUMMARY' in summary:
         summary = {'SUMMARY': summary['SUMMARY']}
 
     for k, v in sorted(summary.items()):
