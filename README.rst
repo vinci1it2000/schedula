@@ -2,7 +2,7 @@
 co2mpas: Vehicle simulator predicting NEDC CO2 emissions from WLTP time-series
 ##############################################################################
 
-:Release:       1.0.1b2
+:Release:       1.0.1b3
 :Sources:       https://github.com/JRCSTU/co2mpas
 :Keywords:      CO2, wltp, engineering, scientific, python, excel, library,
 :Developers:    .. include:: ../AUTHORS.rst
@@ -193,7 +193,7 @@ Check installation
 Compare the co2mpas-version reported with the strings below::
 
     > co2mpas --version
-    1.0.1b2
+    1.0.1b3
 
 Upgrade CO2MPAS
 ---------------
