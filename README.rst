@@ -39,11 +39,15 @@ immediately start working with the following console-commands:
 .. Tip::
     - Commands beginning with ``$`` symbol are for the *bash-console* (UNIX)
       i.e. the one included in the ``console.lnk`` file in top folder of
-      the *all-in-one* distribution-archive (see `Install` below).
+      the *all-in-one* distribution-archive (see :ref:`begin-install` below).
 
     - Windows's ``cmd.exe`` console commands begin with ``>`` symbol.
       You can adapt most UNIX commands with minor modifications
       (i.e. replace ``mkdir --> md`` and ``cygstart --> start``)
+
+    - In Windows you may download and install (unzip) the
+      `Console 2 <http://sourceforge.net/projects/console/>`_
+      application that supports a more decent way to copy-paste.
 
 
 .. code-block:: bash
@@ -82,6 +86,8 @@ Install
 =======
 The program requires CPython-3, and depends on *numpy*, *scipy*, *pandas*,
 *sklearn* and *matplotlib* libraries that require native C-backends.
+If you have already a suitable python installation, check the `Upgrade CO2MPAS`_
+instructions.
 
 .. note::
    In *Windows* it is strongly suggested **NOT to install the standard CPython
@@ -136,7 +142,7 @@ Anaconda install
 
 
 Upgrade Anaconda-python
-~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------
 If you already have installed *Anaconda*, you may upgrade it before install.
 
 [TBD: Ask JRC]
@@ -217,7 +223,7 @@ from these vehicles, and (optionally) multiple **output-excel-files** for each
 vehicle run.
 
 To get the syntax of the ``co2mpas`` console-command, open a console where
-you have installed CO2MPAS (see Install_ above) and type:
+you have installed CO2MPAS (see :ref:`begin-install` above) and type:
 
 .. code-block:: bash
 
