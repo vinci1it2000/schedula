@@ -1,3 +1,18 @@
+#!/bin/bash
+#
+# Release checklist
+# =================
+# 0. Run TCs.
+# 1. Tag & push
+# 2. Gen docs:
+#       python setup.py build_sphinx
+# 3. Build `wheel,` `sdist` , `doc` archives:
+#       ./bin/package.sh
+# 4. Upload to PyPi:
+#       twine upload -r wltp -su <user> dist/* # Ignore warn about doc-package.
+# 5. Generate README instructions:
+#       cygstart ./doc/_build/html/readme.html ## & SaveAs 'CO2MPAS-v0.1.1.pdf'
+#
 my_dir=`dirname "$0"`
 cd $my_dir/..
 

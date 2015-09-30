@@ -1,9 +1,11 @@
 ##############################################################################
 co2mpas: Vehicle simulator predicting NEDC CO2 emissions from WLTP time-series
 ##############################################################################
+|python-ver| |proj-license|
 
 :Release:       1.0.1b3
 :Sources:       https://github.com/JRCSTU/co2mpas
+:Repository:    http://pypi.wltp.io/simple/co2mpas/
 :Keywords:      CO2, wltp, engineering, scientific, python, excel, library,
 :Developers:    .. include:: ../AUTHORS.rst
 :Copyright:     2015 European Commission (`JRC-IET
@@ -16,8 +18,8 @@ simulator for Light-Duty Vehicles (cars and vans) specially crafted
 to back-translate consumption figures from WLTP cycles into NEDC ones.
 
 It is an open-source python-3 project currently developed with python 3.4,
-in Anaconda/WinPython under Windows 7, in Anaconda under MacOS, and in Linux's
-standard python environment.
+using Anaconda/WinPython under Windows 7, using Anaconda under MacOS, and
+using Linux'sstandard python environment.
 
 
 History
@@ -74,6 +76,12 @@ immediately start working with the following console-commands:
     ###################################################
 
 
+.. |proj-license| image:: https://img.shields.io/badge/license-BSD%2Bzlib%2Flibpng-blue.svg
+    :target: https://raw.githubusercontent.com/pypiserver/pypiserver/master/LICENSE.txt
+    :alt: Project License
+.. |python-ver| image:: https://img.shields.io/pypi/pyversions/pypiserver.svg
+    :target: https://pypi.python.org/pypi/pypiserver/
+    :alt: Supported Python versions
 .. _end-opening:
 .. contents:: Table of Contents
   :backlinks: top
