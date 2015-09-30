@@ -6,7 +6,7 @@
 ##		pip install -r requirements.txt
 ## and then just code from inside this folder.
 #
-from setuptools import setup
+from setuptools import setup, find_packages
 import os, io, re
 
 proj_name = 'co2mpas'
@@ -88,13 +88,14 @@ proj_ver = read_project_version()
 readme_lines = read_text_lines('README.rst')
 description = readme_lines[1]
 long_desc = ''.join(yield_sphinx_only_markup(readme_lines))
+download_url = 'https://github.com/JRCSTU/%s/tarball/v%s' % (proj_name, proj_ver)
+
 setup(
     name=proj_name,
     version=proj_ver,
-    release=proj_ver,
-    packages=['compas'],
     description="A vehicle simulator predicting CO2 emissions for NEDC using WLTP time-series",
     long_description=long_desc,
+    download_url=download_url,
     keywords=[
         "python", "utility", "library", "data", "processing",
         "calculation", "dependencies", "resolution", "scientific",
@@ -102,8 +103,8 @@ setup(
     ],
     url='',
     license='',
-    author='Vincenzo Arcidiacono',
-    author_email='vincenzo.arcidiacono@ext.jrc.ec.europa.eu',
+    author='CO2MPAS-Team',
+    author_email='co2mpas@jrc.ec.europa.eu',
     classifiers=[
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
@@ -122,7 +123,10 @@ setup(
         'Operating System :: POSIX',
         'Topic :: Scientific/Engineering',
     ],
-    requires=[
+    install_requires=[
+        'setuptools',
+        'setuptools-git >= 0.3',
+        'wheel',
         'pandas',
         'sklearn',
         'numpy',
@@ -132,13 +136,15 @@ setup(
         'dill',
         'graphviz',
         'sphinx',
-        'six',
-        'docopt',
         'sphinx_rtd_theme',
+        'docopt',
+        'six',
         'easygui',
         'pandalone',
     ],
-    package_data= {'compas': ['input_template.xlsx']},
+    packages=find_packages(exclude=["tests"]),
+    #package_data= {'compas': ['input_template.xlsx']},
+    include_package_data=True,
     test_suite='nose.collector',
     tests_require=['nose>=1.0'],
     entry_points={
