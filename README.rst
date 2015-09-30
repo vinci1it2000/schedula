@@ -17,10 +17,10 @@ CO2MPAS is backward-looking longitudinal-dynamics CO2 & fuel-consumption
 simulator for Light-Duty Vehicles (cars and vans) specially crafted
 to back-translate consumption figures from WLTP cycles into NEDC ones.
 
-It is an open-source python-3 project currently developed with python 3.4,
+It is an open-source python-3 project, currently developed with python 3.4,
 using Anaconda/WinPython under Windows 7, using Anaconda under MacOS, and
 using Linux'sstandard python environment.
-
+The program runs as a *console-mode command**.
 
 History
 -------
@@ -48,7 +48,7 @@ Quickstart
       `Console 2 <http://sourceforge.net/projects/console/>`_
       application that supports a more decent way to copy-paste.
 
-IF you have familiarity with v1 release AND already have a full-blown
+IF you have familiarity with v1 release AND IF you already have a full-blown
 *python-3 environment* (i.e. *Linux*) you can immediately start working with
 the following console-commands; otherwise follow the detailed instructions
 under sections :ref:`begin-install` and :ref:`begin-usage`.
@@ -93,38 +93,36 @@ under sections :ref:`begin-install` and :ref:`begin-usage`.
 
 Install
 =======
-The installation procedure is comprised of 3 steps:
+The installation procedure is 2-stage procedure:
 
-1. Install Python (2 choices under *Windows*)
+1. Install (or Upgrade) Python (2 choices under *Windows*)
 2. Install CO2MPAS:
-    a. Install executable.
+    a. Install (or Upgrade) executable.
     b. (optional) Install documents.
     c. (optional) Install sources.
 
-If you have already have a suitable python installation, skip steps 1 and
-read to the `Upgrade CO2MPAS`_ instructions, below.
+If you have already have a suitable python installation, skip step 1.
 
 .. Note::
     The program requires CPython-3, and depends on *numpy*, *scipy*, *pandas*,
-    *sklearn* and *matplotlib* libraries that require native C-compiler.
+    *sklearn* and *matplotlib* libraries that require a native C-compiler.
 
-    In *Windows* therefore it is strongly suggested **NOT to install the standard
-    CPython distribution** that comes first if you google for "python"(!)
-    unless you are an experienced python-developer, and you know how to hunt
-    dependencies from *PyPi* repository and the `Unofficial Windows Binaries
-    for Python Extension Packages <http://www.lfd.uci.edu/~gohlke/pythonlibs/>`_.
+    For that reason, in *Windows* it is strongly suggested **NOT to install
+    the standard CPython distribution** that comes up first if you google
+    for "python"(!), unless you are an experienced python-developer, and
+    you know how to hunt dependencies from *PyPi* repository and from the
+    `Unofficial Windows Binaries for Python Extension Packages
+    <http://www.lfd.uci.edu/~gohlke/pythonlibs/>`_.
 
-    Otherwise, follow one of the 2 alternatives for python:
+    Therefore we suggest that you download and unzip the **all-in-one archive**
+    (distributed separately).
 
-      #. - Install the latest `WinPython <https://winpython.github.io/>`_ **python-3** (prefer 64 bit),
-         - ``pip install co2mpas``, and download sources (distributed separately) and
-         - unzip them to get the documents.
-      #. Install `Anaconda <http://continuum.io/downloads>`_ **python-3** (prefer 64 bit),
-         ``pip install co2mpas``, and download sources (distributed separately) and
-         unzip them to get the documents.
+    Otherwise, download one of the 2 alternatives scientific-python
+    distributions:
 
-    Alternatively, yoummay download and unzip the **all-in-one** archive
-    which is distributed separately, and run (double-click) ``console.lnk``.
+      #. `WinPython <https://winpython.github.io/>`_ **python-3** (prefer 64 bit)
+      #. `Anaconda <http://continuum.io/downloads>`_ **python-3** (prefer 64 bit)
+
 
 
 WinPython install
@@ -149,27 +147,8 @@ WinPython install
         ....
 
 
-4. Install CO2MPAS executable internally into your python-environment by typing::
-
-       > pip install co2mpas --extra-index http://pypi.wltp.io/simple/ --trusted-host pypi.wltp.io --pre
-
-
-5. Compare the co2mpas-version reported with the strings below::
-
-        > co2mpas --version
-        1.0.1b4
-
-
-6. (optionally) Just unzip the documents archive (distributed separately)
-   to search them when inspecting the workflow for each run
-   (see :ref:`begin-usage`, below).
-
-7. (optionally) Download sources (download the latest ``zip`` archive
-   from http://pypi.wltp.io/simple/co2mpas/) and unzip them; then
-   install additional develop-time dependencies::
-
-       > cd <sources-folder>
-       > pip install -r requirements/dev.pip
+4. Use this console and follow CO2MPAS-executable installation instructions
+   (see :ref:`CO2MPAS install`, below)
 
 
 
@@ -195,47 +174,65 @@ Anaconda install
         > where python      ## Check your python's location is where you installed it.
         ....
 
+4. Use this console and follow CO2MPAS-executable installation instructions
+   (see :ref:`CO2MPAS install`, below)
 
-4. Install CO2MPAS executable internally into your python-environment by typing::
+
+CO2MPAS install
+---------------
+1. Install CO2MPAS executable internally into your python-environment with
+   the following console-command::
 
         > pip install co2mpas --extra-index http://pypi.wltp.io/simple/ --trusted-host pypi.wltp.io --pre
+        Collecting toolz
+        Installing collected packages: co2mpas
+        Successfully installed co2mpas-1.0.1b4
+
+... Tip::
+    In case of errors, re-run the command adding the *verbose* flags ``-vv``,
+    and copy-paste the result to JRC
 
 
-5. Compare the co2mpas-version reported with the strings below::
+2. Check that when you run ``co2mpas``, you run indeed the version just
+   installed::
 
         > co2mpas --version
         1.0.1b4
 
 
-6. (optionally) Just unzip the documents archive (distributed separately)
-   to search them when inspecting the workflow for each run
+3. (optionally) Unzip the documents archive (distributed separately)
+   to have them ready when inspecting the workflow for each simulation-run
    (see :ref:`begin-usage`, below).
 
-7. (optionally) Download sources (download the latest ``zip`` archive
+4. (optionally) Download sources (download the latest ``zip`` archive
    from http://pypi.wltp.io/simple/co2mpas/) and unzip them; then
    install additional develop-time dependencies::
 
        > cd <sources-folder>
        > pip install -r requirements/dev.pip
-
+       Collecting co2mpas
 
 
 Upgrade CO2MPAS
 ---------------
-Regardless of the method of installation, to update CO2MPAS just append
-the ``-U --no-deps`` options in the ``pip`` command::
-
+To update CO2MPAS when a new minor release has been announced,
+just append the ``-U --no-deps`` options in the ``pip`` command::
 
     > pip install co2mpas --extra-index http://pypi.wltp.io/simple/ --trusted-host pypi.wltp.io --pre -U --no-deps
 
 
 Uninstall CO2MPAS
 -----------------
-Regardless of the method of installation, to uninstall CO2MPAS just type
-(preferably twice to be sure no dangling instances are left over)::
+To uninstall CO2MPAS type the following command, and confirm it with ``y``::
 
     > pip uninstall co2mpas
+    Uninstalling co2mpas-<installed-version>
+    ...
+    Proceed (y/n)?
 
+
+Run the command *again*, to make sure that no dangling installations are left
+over; disregard any errors.
 
 
 
@@ -274,20 +271,63 @@ you have installed CO2MPAS (see :ref:`begin-install` above) and type:
     -f --force                       Overwrite template excel-file if it exists.
 
 
-1. Choose a folder where you will run CO2MPAS and create the *input* and
-   *output* data-folders
+Running samples
+---------------
+The simulator contains sample input files for 2 vehicles.
+
+1. Choose a folder where you will store the *sample-input* and *sample-output*
+   data-folders:
 
    .. code-block:: bash
 
-      $ cd <some-folder>
-      $ mkdir input output     ## Replace `mkdir` with `md` in *Windows* (`cmd.exe`)
+      $ cd <some-folder>                 ## You should have created that hypothetical <some-folder>.
+      $ mkdir sample_inp sample_out      ## Replace `mkdir` with `md` in *Windows* (`cmd.exe`)
 
   .. Note::
     The input & output folders do not have to reside in the same parent.
     It is only for demonstration purposes that we decided to group them both
-    under a hypothetical ``some-folder``.
+    under the hypothetical ``<some-folder>``.
 
-3. Create a vehicle template-file (eg. ``vehicle1.xlsx``) inside
+2. Create the sample vehicles inside the ``./sample_inp`` folder:
+
+   .. code-block:: bash
+
+        $ co2mpas samples sample_inp
+        Creating co2mpas SAMPLE './sample_inp/sample_vehicle_1.xlsx'...
+        Creating co2mpas SAMPLE './sample_inp/sample_vehicle_2.xlsx'...
+
+
+3. Run the simulator:
+
+   .. code-block:: bash
+
+      $ co2mpas -I sample_inp -O sample_out
+      Processing './sample_inp' --> './sample_out'...
+      Processing: sample_vehicle_1
+      ...
+      Processing: sample_vehicle_2
+      ...
+      Done! [0.851 min]
+
+
+4. Inspect the results:
+
+   .. code-block:: bash
+
+      $ cygstart output/*summary.xlsx       ## View the aggregate for all vehicles.
+      $ cygstart output                     ## View all files generated (see below).
+
+
+Entering new vehicles
+---------------------
+1. Choose other input/output folders for your vehicles:
+
+   .. code-block:: bash
+
+      $ cd <some-folder>
+      $ mkdir input output                  ## Replace `mkdir` with `md` in *Windows* (`cmd.exe`)
+
+1. Create an empty vehicle template-file (eg. ``vehicle1.xlsx``) inside
    the *input-folder*:
 
 
@@ -309,25 +349,6 @@ you have installed CO2MPAS (see :ref:`begin-install` above) and type:
 
        Repeat these last 2 steps if you want to add more vehicles in
        the *batch-run*.
-
-
-5. Run the simulator:
-
-   .. code-block:: bash
-
-      $ co2mpas -I input -o output
-      Processing './input' --> './output'...
-      Processing: vehicle1
-      ...
-      Done! [0.851 min]
-
-
-6. Inspect the results:
-
-   .. code-block:: bash
-
-      $ cygstart output/*summary.xlsx       ## View the aggregate for all vehicles.
-      $ cygstart output                     ## View all files generated (see below).
 
 9. Repeat the above procedure from step 4 to modify the vehicle and run again
    the model.  Start from step 1 to construct a new batch.
