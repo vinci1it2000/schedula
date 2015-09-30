@@ -35,12 +35,6 @@ assigned the development of this vehicle simulator to facilitate this step.
 
 Quickstart
 ----------
-If you have familiarity with v1 release and already have a full-blown
-*python-3 environment* (i.e. *Linux*) you can immediately start working with
-the following console-commands; otherwise follow the instuctions unde `Install`_
-and `usage`_ sections:
-
-
 .. Tip::
     - Commands beginning with ``$`` symbol are for the *bash-console* (UNIX)
       i.e. the one included in the ``console.lnk`` file in top folder of
@@ -54,6 +48,10 @@ and `usage`_ sections:
       `Console 2 <http://sourceforge.net/projects/console/>`_
       application that supports a more decent way to copy-paste.
 
+IF you have familiarity with v1 release AND already have a full-blown
+*python-3 environment* (i.e. *Linux*) you can immediately start working with
+the following console-commands; otherwise follow the detailed instructions
+under sections :ref:`begin-install` and :ref:`begin-usage`.
 
 .. code-block:: bash
 
@@ -95,29 +93,38 @@ and `usage`_ sections:
 
 Install
 =======
-The program requires CPython-3, and depends on *numpy*, *scipy*, *pandas*,
-*sklearn* and *matplotlib* libraries that require native C-backends.
-If you have already a suitable python installation, check the `Upgrade CO2MPAS`_
-instructions.
+The installation procedure is comprised of 3 steps:
 
-.. note::
-   In *Windows* it is strongly suggested **NOT to install the standard CPython
-   distribution**, unless you are an experienced python-developer, you know how
-   to hunt dependencies from *PyPi* repository and the `Unofficial Windows
-   Binaries for Python Extension Packages
-   <http://www.lfd.uci.edu/~gohlke/pythonlibs/>`_.
+1. Install Python (2 choices under *Windows*)
+2. Install CO2MPAS:
+    a. Install executable.
+    b. (optional) Install documents.
+    c. (optional) Install sources.
 
-    There are 3 installation option for *Windows*:
+If you have already have a suitable python installation, skip steps 1 and
+read to the `Upgrade CO2MPAS`_ instructions, below.
 
-    #. Install the latest `WinPython <https://winpython.github.io/>`_ **python-3** (prefer 64 bit),
-       ``pip install co2mpas``, and download sources (distributed separately) and
-       unzip them to get the documents.
-    #. Install `Anaconda <http://continuum.io/downloads>`_ **python-3** (prefer 64 bit),
-       ``pip install co2mpas``, and download sources (distributed separately) and
-       unzip them to get the documents.
-    #. Unzip the *all_in_one* distribution archive (~400MB) (distributed separately).
+.. Note::
+    The program requires CPython-3, and depends on *numpy*, *scipy*, *pandas*,
+    *sklearn* and *matplotlib* libraries that require native C-compiler.
 
-Read further for detailed instructions for each method.
+    In *Windows* therefore it is strongly suggested **NOT to install the standard
+    CPython distribution** that comes first if you google for "python"(!)
+    unless you are an experienced python-developer, and you know how to hunt
+    dependencies from *PyPi* repository and the `Unofficial Windows Binaries
+    for Python Extension Packages <http://www.lfd.uci.edu/~gohlke/pythonlibs/>`_.
+
+    Otherwise, follow one of the 2 alternatives for python:
+
+      #. - Install the latest `WinPython <https://winpython.github.io/>`_ **python-3** (prefer 64 bit),
+         - ``pip install co2mpas``, and download sources (distributed separately) and
+         - unzip them to get the documents.
+      #. Install `Anaconda <http://continuum.io/downloads>`_ **python-3** (prefer 64 bit),
+         ``pip install co2mpas``, and download sources (distributed separately) and
+         unzip them to get the documents.
+
+    Alternatively, yoummay download and unzip the **all-in-one** archive
+    which is distributed separately, and run (double-click) ``console.lnk``.
 
 
 WinPython install
@@ -127,28 +134,43 @@ WinPython install
    Prefer an installation-folder without any spaces leading to it.
 
 2. Open the WinPython's command-prompt console, by locating the folder where
-   you installed it and run (double-click)::
+   you just installed it and run (double-click)::
 
         <winpython-folder>\"WinPython Command Prompt.exe"
 
 
 3. In the console-window check that you have the correct version of
-   Anaconda-python installed, by typing:
+   WinPython installed, by typing::
 
         > python --version
         Python 3.4.3
 
+        > where python      ## Check your python's location is where you installed it.
+        ....
 
-4. Install CO2MPAS by typing::
+
+4. Install CO2MPAS executable internally into your python-environment by typing::
 
        > pip install co2mpas --extra-index http://pypi.wltp.io/simple/ --trusted-host pypi.wltp.io --pre
 
 
-5. (optionally) Unzip the sources (distributed separately) and install
-   the develop-time dependencies::
+5. Compare the co2mpas-version reported with the strings below::
+
+        > co2mpas --version
+        1.0.1b4
+
+
+6. (optionally) Just unzip the documents archive (distributed separately)
+   to search them when inspecting the workflow for each run
+   (see :ref:`begin-usage`, below).
+
+7. (optionally) Download sources (download the latest ``zip`` archive
+   from http://pypi.wltp.io/simple/co2mpas/) and unzip them; then
+   install additional develop-time dependencies::
 
        > cd <sources-folder>
        > pip install -r requirements/dev.pip
+
 
 
 Anaconda install
@@ -157,12 +179,12 @@ Anaconda install
    Prefer an installation-folder without any spaces leading to it.
 
    .. Note::
-       When asked by the installation wizard, ensure that *Anaconda* gets to be
-       registered as the default python-environment for the user's account.
+        When asked by the installation wizard, ensure that *Anaconda* gets to be
+        registered as the default python-environment for the user's account.
 
 2. Open a *Windows* command-prompt console::
 
-       start button --> `cmd.exe`
+        "windows start button" --> `cmd.exe`
 
 3. In the console-window check that you have the correct version of
    Anaconda-python installed, by typing::
@@ -170,41 +192,33 @@ Anaconda install
         > python --version
         Python 3.4.3 :: Anaconda 2.3.0 (64-bit)
 
-
-4. Install CO2MPAS by typing::
-
-       > pip install co2mpas --extra-index http://pypi.wltp.io/simple/ --trusted-host pypi.wltp.io --pre
+        > where python      ## Check your python's location is where you installed it.
+        ....
 
 
-5. (optionally) Unzip the sources (distributed separately) and install
-   the develop-time dependencies::
+4. Install CO2MPAS executable internally into your python-environment by typing::
+
+        > pip install co2mpas --extra-index http://pypi.wltp.io/simple/ --trusted-host pypi.wltp.io --pre
+
+
+5. Compare the co2mpas-version reported with the strings below::
+
+        > co2mpas --version
+        1.0.1b4
+
+
+6. (optionally) Just unzip the documents archive (distributed separately)
+   to search them when inspecting the workflow for each run
+   (see :ref:`begin-usage`, below).
+
+7. (optionally) Download sources (download the latest ``zip`` archive
+   from http://pypi.wltp.io/simple/co2mpas/) and unzip them; then
+   install additional develop-time dependencies::
 
        > cd <sources-folder>
        > pip install -r requirements/dev.pip
 
 
-Upgrade Anaconda-python
------------------------
-If you already have installed *Anaconda*, you may upgrade it before install.
-
-[TBD: Ask JRC]
-
-
-*All-in-one* distributed archive
---------------------------------
-Just download and unzip the archive, and from the unzipped-folder's file run
-(double-click) on ``console.lnk``.
-
-[TBD]
-
-
-
-Check installation
-------------------
-Compare the co2mpas-version reported with the strings below::
-
-    > co2mpas --version
-    1.0.1b4
 
 Upgrade CO2MPAS
 ---------------
@@ -221,6 +235,9 @@ Regardless of the method of installation, to uninstall CO2MPAS just type
 (preferably twice to be sure no dangling instances are left over)::
 
     > pip uninstall co2mpas
+
+
+
 
 
 .. _begin-usage:
