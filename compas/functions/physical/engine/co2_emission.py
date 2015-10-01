@@ -759,7 +759,11 @@ def restrict_bounds(co2_params_bounds, co2_params_initial_guess):
     }
 
     def _limits(k, v):
-        return tuple(mul[k] * v)
+        l = tuple(mul[k] * v)
+        if l[1] - l[0] < EPS:
+            l = np.mean(l)
+            l = (l - EPS, l + EPS)
+        return l
 
     return {k: _limits(k, v) for k, v in co2_params_initial_guess.items()}
 
@@ -796,8 +800,9 @@ def calibrate_model_params(params_bounds, error_function, initial_guess=None):
     param_keys, params_bounds = zip(*sorted(params_bounds.items()))
 
     #bounds = [(i - EPS, j + EPS) for i, j in params_bounds]
+    x0 = np.array([initial_guess[k] for k in param_keys])
 
-    params, min_e_and_p = {}, [np.inf, None]
+    params, min_e_and_p = {}, [np.inf, x0]
 
     def update_params(params_values):
         params.update({k: v for k, v in zip(param_keys, params_values)})
@@ -824,7 +829,6 @@ def calibrate_model_params(params_bounds, error_function, initial_guess=None):
         step = 3.0
         x = brute(error_func, params_bounds, Ns=step, finish=finish)
     else:
-        x0 = np.array([initial_guess[k] for k in param_keys])
 
         l, u = np.asarray(params_bounds).T
 
