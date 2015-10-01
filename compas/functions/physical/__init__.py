@@ -32,7 +32,7 @@ Modules:
 
 from heapq import heappush
 from textwrap import dedent
-from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_absolute_error, accuracy_score
 from easygui import buttonbox
 from ...dispatcher import Dispatcher
 from ...dispatcher.utils import heap_flush
@@ -45,7 +45,13 @@ def _compare_result(
         comparison_function, sample_weight=()):
 
     err, weights = [], []
-    to_list = lambda *args: [np.asarray(v, dtype=float) for v in args]
+
+    def to_list(*args):
+        if len(args) == 1:
+            return np.asarray(args[0], dtype=float)
+        else:
+            return [np.asarray(v, dtype=float) for v in args]
+
     for o, t, w in zip_longest(outputs_ids, target_ids, sample_weight,
                                fillvalue=1):
         if o in model_results and t in target_results:
@@ -111,7 +117,8 @@ def _comparison_model():
     models.append({
         'models': ('start_stop_model',),
         'targets': ('on_engine',),
-        'check_models': lambda error: error < 0.1,
+        'check_models': lambda error: error > 0.7,
+        'comparison_func': accuracy_score
     })
 
     # cold_start_speed_model
@@ -135,7 +142,7 @@ def _comparison_model():
         'models': ('cold_start_speed_model', 'idle_engine_speed',
                    'engine_thermostat_temperature'),
         'targets': ('engine_speeds_out',),
-        'check_models': lambda error: error < 80,
+        'check_models': lambda error: error < 100,
     })
 
     # co2_params
@@ -414,8 +421,8 @@ def model_selector(*calibration_outputs, hide_warn_msgbox=False):
             origin.update(dict.fromkeys(mods, rank[0][0]))
             origin_errors.update(dict.fromkeys(mods, rank))
 
-            #print('Models %s are selected from %s (%.3f) respect to targets %s'
-            #      '.\nErrors %s.' % (mods, rank[0][0], rank[0][1], trgs, rank))
+            print('Models %s are selected from %s (%.3f) respect to targets %s'
+                  '.\nErrors %s.' % (mods, rank[0][0], rank[0][1], trgs, rank))
 
     return models
 
