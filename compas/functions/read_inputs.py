@@ -103,11 +103,11 @@ def empty(value):
     raise EmptyValue()
 
 
-def check_none(v):
+def _check_none(v):
     if v is None:
         return True
-    elif isinstance(v, Iterable) and not isinstance(v, str) and len(v) == 1:
-        return check_none(v[0])
+    elif isinstance(v, Iterable) and not isinstance(v, str) and len(v) <= 1:
+        return _check_none(v[0]) if len(v) == 1 else True
     return False
 
 
@@ -131,7 +131,7 @@ def parse_inputs(data, data_map, cycle_name):
     d = {'inputs': {}, 'targets': {}}
 
     for k, v in data.items():
-        if isinstance(v, float) and isnan(v) or check_none(v):
+        if isinstance(v, float) and isnan(v) or _check_none(v):
             continue
 
         k = k.split(' ')
