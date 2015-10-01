@@ -110,10 +110,10 @@ def _prompt_folder(folder_name, folder):
 
 
 def _run_simulation(opts):
-    input_folder = _prompt_folder(folder_name='INPUT', folder=opts['--inp'])
+    input_folder = _prompt_folder(folder_name='INPUT', folder=opts['-I'])
     input_folder = os.path.abspath(input_folder)
 
-    output_folder = _prompt_folder(folder_name='OUTPUT', folder=opts['--out'])
+    output_folder = _prompt_folder(folder_name='OUTPUT', folder=opts['-O'])
     output_folder = os.path.abspath(output_folder)
 
     print("Processing '%s' --> '%s'..." %
