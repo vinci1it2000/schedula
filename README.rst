@@ -1,9 +1,8 @@
 ##############################################################################
 co2mpas: Vehicle simulator predicting NEDC CO2 emissions from WLTP time-series
 ##############################################################################
-|python-ver| |proj-license|
 
-:Release:       1.0.1b5
+:Release:       1.0.1b6
 :Sources:       https://github.com/JRCSTU/co2mpas
 :Repository:    http://pypi.wltp.io/simple/co2mpas/
 :Keywords:      CO2, wltp, engineering, scientific, python, excel, library,
@@ -63,7 +62,7 @@ under sections :ref:`Install` and :ref:`Usage`.
     $ mkdir input output
 
     ## Create a template excel-file for inputs.
-    $ co2mpas template input/vehicle_1
+    $ co2mpas template input/vehicle_1.xlsx
 
     ###################################################
     ## Edit generated `./input/vehicle_1.xlsx` file.  ##
@@ -77,12 +76,6 @@ under sections :ref:`Install` and :ref:`Usage`.
     ###################################################
 
 
-.. |proj-license| image:: https://img.shields.io/badge/license-BSD%2Bzlib%2Flibpng-blue.svg
-    :target: https://raw.githubusercontent.com/pypiserver/pypiserver/master/LICENSE.txt
-    :alt: Project License
-.. |python-ver| image:: https://img.shields.io/pypi/pyversions/pypiserver.svg
-    :target: https://pypi.python.org/pypi/pypiserver/
-    :alt: Supported Python versions
 .. _end-opening:
 .. contents:: Table of Contents
   :backlinks: top
@@ -190,7 +183,7 @@ CO2MPAS install
         > pip install co2mpas --extra-index http://pypi.wltp.io/simple/ --trusted-host pypi.wltp.io --pre
         Collecting toolz
         Installing collected packages: co2mpas
-        Successfully installed co2mpas-1.0.1b5
+        Successfully installed co2mpas-1.0.1b6
 
    .. Tip::
        In case of errors, re-run the command adding the *verbose* flags ``-vv``,
@@ -201,7 +194,7 @@ CO2MPAS install
    installed::
 
         > co2mpas --version
-        1.0.1b5 at <python-folders>\compas
+        1.0.1b6 at <python-folders>\compas
 
 
 3. (optionally) Unzip the documents archive (distributed separately)
@@ -343,11 +336,12 @@ the sample-data, use the ``template`` sub-command to make an empty excel-file.
 
    .. code-block:: bash
 
-        $ co2mpas template input/vehicle_1  ## Note that we specify the filename, not the folder!
+        $ co2mpas template input/vehicle_1.xlsx  ## Note that here we specify the filename, not the folder!
         Creating co2mpas INPUT template-file './input/vehicle_1.xlsx'...
 
 
-3. Open the template excel-file to fill-in your vehicle data (and save it):
+3. Open the template excel-file to fill-in your vehicle data
+   (and save it afterwards):
 
    .. code-block:: bash
 

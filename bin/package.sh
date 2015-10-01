@@ -33,5 +33,6 @@ mkdir -p build/doc
 
 cp -lr doc/_build/html "$docdir"
 pushd build/doc
-zip -r "../../dist/$zipfolder.zip" "$zipfolder"
-
+#zip -r9 "../../dist/$zipfolder.zip" "$zipfolder"
+7z a -r "../../dist/$zipfolder.7z" "$zipfolder"
+popd

@@ -2,22 +2,36 @@
 Predict NEDC CO2 emissions from WLTP cycles.
 
 Usage:
-    co2mpas [options] [-I <folder>  -O <folder>]
+    co2mpas [options] [-I <folder>]  [-O <folder>]
     co2mpas example [-f | --force] <folder>
     co2mpas template [-f | --force] <excel-file> ...
     co2mpas --help
     co2mpas --version
 
--I <folder> --inp <folder>       Input folder, prompted with GUI if missing.
-                                 [default: ./input]
--O <folder> --out <folder>       Input folder, prompted with GUI if missing.
-                                 [default: ./output]
---more-output                    Output also per-vehicle output-files.
---no-warn-gui                    Does not pause batch-run to report inconsistencies.
---plot-workflow                  Show workflow in browser, after run finished.
--f --force                       Overwrite template/sample excel-file(s).
+-I <folder>             Input folder, prompted with GUI if missing.
+                        [default: ./input]
+-O <folder>             Input folder, prompted with GUI if missing.
+                        [default: ./output]
+--more-output           Output also per-vehicle output-files.
+--no-warn-gui           Does not pause batch-run to report inconsistencies.
+--plot-workflow         Show workflow in browser, after run finished.
+-f --force              Overwrite template/sample excel-file(s).
 
 * Items enclosed in `[]` are optional.
+
+Examples:
+
+    ## Create sample-vehicles inside the `input` folder.
+    ## (the `input` folder must exist)
+    co2mpas example input
+
+    ## Run the sample-vehicles just created.
+    ## (the `output` folder must exist)
+    co2mpas -I input -O output
+
+    ## Create an empty vehicle-file inside `input` folder.
+    co2mpas template input/vehicle_1.xlsx
+
 """
 import sys
 import os
