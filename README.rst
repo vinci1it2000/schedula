@@ -41,16 +41,18 @@ Quickstart
 
     - Windows's ``cmd.exe`` console commands begin with ``>`` symbol.
       You can adapt most UNIX commands with minor modifications
-      (i.e. replace ``mkdir --> md`` and ``cygstart --> start``)
+      (i.e. replace ``mkdir --> md``, '`rm --> del`` and ``cygstart --> start``).
 
     - In Windows you may download and install (unzip) the
       `Console 2 <http://sourceforge.net/projects/console/>`_
-      application that supports a more decent way to copy-paste.
+      application that supports a more decent way to copy-paste
+      (BUT make sure that your command-interpreter contains the correct
+      python installation).
 
 IF you have familiarity with v1 release AND IF you already have a full-blown
 *python-3 environment* (i.e. *Linux*) you can immediately start working with
 the following console-commands; otherwise follow the detailed instructions
-under sections :ref:`Install` and :ref:`Usage`.
+under sections :ref:`begin-nstall` and :ref:`begin-usage`.
 
 .. code-block:: bash
 
@@ -95,7 +97,7 @@ The installation procedure is 2-stage procedure:
     c. (optional) Install sources.
 
 If you have already have a suitable python-3 installation with all scientific
-packages updated to their latest version, skip the 1st stage.
+packages updated to their latest versions, you may skip the 1st stage.
 
 .. Note::
     **Installing Python under Windows:**
@@ -107,15 +109,14 @@ packages updated to their latest version, skip the 1st stage.
     For that reason, in *Windows* it is strongly suggested **NOT to install
     the standard CPython distribution** that comes up first if you google
     for "python"(!), unless you are an experienced python-developer, and
-    you know how to hunt dependencies from *PyPi* repository and from the
+    you know how to hunt dependencies from *PyPi* repository and/or the
     `Unofficial Windows Binaries for Python Extension Packages
     <http://www.lfd.uci.edu/~gohlke/pythonlibs/>`_.
 
     Therefore we suggest that you download and unzip the **all-in-one archive**
-    (distributed separately).
+    (distributed separately, due to its size ~500Mb).
 
-    Otherwise, download one of the 2 alternatives scientific-python
-    distributions:
+    Otherwise, download one of the following 2 scientific-python distributions:
 
       #. `WinPython <https://winpython.github.io/>`_ **python-3** (prefer 64 bit)
       #. `Anaconda <http://continuum.io/downloads>`_ **python-3** (prefer 64 bit)
@@ -129,7 +130,7 @@ WinPython install
    Prefer an installation-folder without any spaces leading to it.
 
 2. Open the WinPython's command-prompt console, by locating the folder where
-   you just installed it and run (double-click)::
+   you just installed it and run (double-click) the following file::
 
         <winpython-folder>\"WinPython Command Prompt.exe"
 
@@ -190,16 +191,18 @@ CO2MPAS install
        and copy-paste the result to JRC
 
 
-2. Check that when you run ``co2mpas``, you run indeed the version just
-   installed::
+2. Check that when you run ``co2mpas``, the version executed is indeed the one
+   installed above::
 
         > co2mpas --version
         1.0.1b6 at <python-folders>\compas
 
 
 3. (optionally) Unzip the documents archive (distributed separately)
-   to have them ready when inspecting the workflow for each simulation-run
+   to have them ready when inspecting the workflow for each simulation-run.
    (see :ref:`begin-usage`, below).
+
+   To view them, open in your browser the ``index.html`` file.
 
 4. (optionally) Download sources (download the latest ``zip`` archive
    from http://pypi.wltp.io/simple/co2mpas/) and unzip them; then
@@ -217,6 +220,10 @@ just append the ``-U --no-deps`` options in the ``pip`` command::
 
     > pip install co2mpas --extra-index http://pypi.wltp.io/simple/ --trusted-host pypi.wltp.io --pre -U --no-deps
 
+.. Note::
+    In case CO2MPAS complains about a missing libraries, re-run the above command
+    but without the ``--no-deps`` option.
+
 
 Uninstall CO2MPAS
 -----------------
@@ -229,7 +236,7 @@ To uninstall CO2MPAS type the following command, and confirm it with ``y``::
 
 
 Run the command *again*, to make sure that no dangling installations are left
-over; disregard any errors.
+over; disregard any errors this time.
 
 
 
@@ -253,26 +260,29 @@ you have installed CO2MPAS (see :ref:`begin-install` above) and type:
     Predict NEDC CO2 emissions from WLTP cycles.
 
     Usage:
-        co2mpas [options] [-I <folder>  -O <folder>]
+        co2mpas [options] [-I <folder>]  [-O <folder>]
+        co2mpas example [-f | --force] <folder>
         co2mpas template [-f | --force] <excel-file> ...
         co2mpas --help
         co2mpas --version
 
-    -I <folder> --inp <folder>       Input folder, prompted with GUI if missing.
-                                     [default: ./input]
-    -O <folder> --out <folder>       Input folder, prompted with GUI if missing.
-                                     [default: ./output]
-    --more-output                    Output also per-vehicle output-files.
-    --no-warn-gui                    Does not pause batch-run to report inconsistencies.
-    --plot-workflow                  Show workflow in browser, after run finished.
-    -f --force                       Overwrite template excel-file if it exists.
+    -I <folder>             Input folder, prompted with GUI if missing.
+                            [default: ./input]
+    -O <folder>             Input folder, prompted with GUI if missing.
+                            [default: ./output]
+    --more-output           Output also per-vehicle output-files.
+    --no-warn-gui           Does not pause batch-run to report inconsistencies.
+    --plot-workflow         Show workflow in browser, after run finished.
+    -f --force              Overwrite template/sample excel-file(s).
+
+    * Items enclosed in `[]` are optional.
 
 Running samples
 ---------------
 The simulator contains sample input files for 2 vehicles that
 are a nice starting point to try out.
 
-1. Choose a folder where you will store the *input* and *output*
+1. Choose a folder where you will store the *input* and *output* files:
 
    .. code-block:: bash
 
@@ -285,7 +295,7 @@ are a nice starting point to try out.
     under a hypothetical ``some-folder``.
 
 3. Create the example vehicles inside the *input-folder* with the ``template``
-   sub-command::
+   sub-command:
 
 
    .. code-block:: bash
@@ -312,23 +322,24 @@ are a nice starting point to try out.
 
    .. code-block:: bash
 
-      $ cygstart output/*summary.xlsx       ## More summaries might open from previous runs.
-      $ cygstart output                     ## View all files generated (see below).
+      $ cygstart output/*summary.xlsx       ## More summaries might exist in the folder from previous runs.
+      $ cygstart output                     ## View the folder with all files generated.
 
 
 Entering new vehicles
 ---------------------
 You may modify the samples vehicles and run again the model.
 But to be sure that your vehicle does not contain by accident any of
-the sample-data, use the ``template`` sub-command to make an empty excel-file.
+the sample-data, use the ``template`` sub-command to make an *empty*input
+excel-file:
 
 
-1. Decide *input/output* folders.  Assuming we want to re-use the "example"
-   folders from above, we remove everything that they contain:
+1. Decide the *input/output* folders.  Assuming we want to re-use the folders
+   from the above example, we should just clear everything that they contain:
 
    .. code-block:: bash
 
-        $ rm -r ./input/* ./output/*
+        $ rm -r ./input/* ./output/*        Replace `rm` with `del` in *Windows* (`cmd.exe`)
 
 
 2. Create an empty vehicle template-file (eg. ``vehicle_1.xlsx``) inside
@@ -405,5 +416,5 @@ Debugging and investigating results
 - Make sure that you have installed `graphviz` and invoke the `co2mpas` cmd
   with the ``--plot-workflow`` option.
 - Inspect the functions mentioned in the workflow and search them in the
-  unzipped **source-archive** (distributed separately).
+  **documentstion** (archive distributed separately).
 
