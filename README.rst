@@ -2,7 +2,7 @@
 CO2MPAS: Vehicle simulator predicting NEDC CO2 emissions from WLTP time-series
 ##############################################################################
 
-:Release:       1.0.1b6
+:Release:       1.0.1
 :Sources:       https://github.com/JRCSTU/co2mpas
 :Repository:    http://pypi.wltp.io/simple/co2mpas/
 :Keywords:      CO2, wltp, engineering, scientific, python, excel, library,
@@ -57,7 +57,7 @@ under sections :ref:`begin-install` and :ref:`begin-usage`.
 .. code-block:: bash
 
     ## Install co2mpas
-    $ pip install co2mpas --extra-index http://pypi.wltp.io/simple/ --trusted-host pypi.wltp.io  --pre
+    $ pip install co2mpas --extra-index http://pypi.wltp.io/simple/ --trusted-host pypi.wltp.io
 
     ## Where to store input and output files.
     ## In *Windows* use `md` command instead.
@@ -88,9 +88,9 @@ under sections :ref:`begin-install` and :ref:`begin-usage`.
 
 Install
 =======
-The installation procedure is 2-stage procedure:
+The installation procedure is 2-stage procedure and requires internet connectivity:
 
-1. Install (or Upgrade) Python (2 choices under *Windows*)
+1. Install (or Upgrade) Python (2 choices under *Windows*).
 2. Install CO2MPAS:
     a. Install (or Upgrade) executable.
     b. (optional) Install documents.
@@ -146,7 +146,7 @@ WinPython install
 
 
 4. Use this console and follow CO2MPAS-executable installation instructions
-   (see :ref:`CO2MPAS install`, below)
+   (see :ref:`begin-co2mpas-install`, below)
 
 
 
@@ -173,29 +173,31 @@ Anaconda install
         ....
 
 4. Use this console and follow CO2MPAS-executable installation instructions
-   (see :ref:`CO2MPAS install`, below)
+   (see :ref:`begin-co2mpas-install`, below)
 
+
+.. _begin-co2mpas-install:
 
 CO2MPAS install
 ---------------
 1. Install CO2MPAS executable internally into your python-environment with
    the following console-command::
 
-        > pip install co2mpas --extra-index http://pypi.wltp.io/simple/ --trusted-host pypi.wltp.io --pre
+        > pip install co2mpas --extra-index http://pypi.wltp.io/simple/ --trusted-host pypi.wltp.io
         Collecting toolz
         Installing collected packages: co2mpas
-        Successfully installed co2mpas-1.0.1b6
+        Successfully installed co2mpas-1.0.1
 
-   .. Tip::
+   .. Warning::
        In case of errors, re-run the command adding the *verbose* flags ``-vv``,
-       and copy-paste the result to JRC
+       copy-paste the console-output, and send it to JRC.
 
 
 2. Check that when you run ``co2mpas``, the version executed is indeed the one
    installed above::
 
         > co2mpas --version
-        1.0.1b6 at <python-folders>\compas
+        1.0.1 at <your-python-folders>\compas
 
 
 3. (optionally) Unzip the documents archive (distributed separately)
@@ -218,11 +220,14 @@ Upgrade CO2MPAS
 To update CO2MPAS when a new minor release has been announced,
 just append the ``-U --no-deps`` options in the ``pip`` command::
 
-    > pip install co2mpas --extra-index http://pypi.wltp.io/simple/ --trusted-host pypi.wltp.io --pre -U --no-deps
+    > pip install co2mpas --extra-index http://pypi.wltp.io/simple/ --trusted-host pypi.wltp.io -U --no-deps
 
 .. Note::
-    In case CO2MPAS complains about a missing libraries, re-run the above command
-    but without the ``--no-deps`` option.
+    In case CO2MPAS complains about a missing libraries, run the following command::
+
+        pip install co2mpas --extra-index http://pypi.wltp.io/simple/ --trusted-host pypi.wltp.io -I
+
+    If still in trouble, call JRC.
 
 
 Uninstall CO2MPAS
@@ -245,6 +250,9 @@ over; disregard any errors this time.
 
 Usage
 =====
+Ensure that the latest version of CO2MPAS is properly installed, and that
+these instructions match its version.
+
 The main entry for the simulator is the ``co2mpas`` console-command.
 This command accepts multiple **input-excel-files**, one for each vehicle,
 and generates a **summary-excel-file** aggregating the major result-values
@@ -332,7 +340,7 @@ Entering new vehicles
 ---------------------
 You may modify the samples vehicles and run again the model.
 But to be sure that your vehicle does not contain by accident any of
-the sample-data, use the ``template`` sub-command to make an *empty*input
+the sample-data, use the ``template`` sub-command to make an *empty* input
 excel-file:
 
 
@@ -390,7 +398,7 @@ excel-file:
 
 6. In the case of errors, or if the results are not satisfactory, repeat the
    above procedure from step 3 to modify the vehicle and re-run the model.
-   See also :ref:`Debugging and investigating results`, below.
+   See also :ref:`begin-debug`, below.
 
 Output files
 ------------
@@ -411,6 +419,8 @@ Below is the structure of the output-files produced for each vehicle::
     +--<date>-<time>_summary.xls:
                     Major CO2 values from all vehicles in the batch-run.
 
+
+.. _begin-debug:
 
 Debugging and investigating results
 -----------------------------------

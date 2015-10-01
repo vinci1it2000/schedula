@@ -2,12 +2,13 @@
 #
 # Release checklist
 # =================
-# 1. Update ./CHANGES.rst
+# 1. Bump-ver & Update date in ./CHANGES.rst.
 # 2. REMOVE pip install --pre!!!
 # 3. Run TCs.
-# 4. Tag & push
-# 5. Gen docs (check diagrams OK!):
+# 4. Gen docs & check OK (i.e. diagrams??):
+#       rm -r ./doc/{compas/,_build/}
 #       python setup.py build_sphinx
+# 5. commit & TAG & push
 # 6. Build `wheel,` `sdist` , `doc` archives:
 #       ./bin/package.sh
 # 7. Upload to PyPi:
