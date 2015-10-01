@@ -1,15 +1,17 @@
-Changes
-=======
+###############
+CO2MPAS Changes
+###############
+.. _begin-changes:
 
 v1.0.1: 1-Oct 2015, 2nd release
-------------------------------------
+===============================
 - Comprehensive modeling with multiple alternative routes depending on
   available data.
 - Tested against a sample of 1800 artificially generated vehicles (simulations).
 - The model is currently optimized to calculate directly the NEDC CO2 emissions.
 
 Known Limitations
-~~~~~~~~~~~~~~~~~
+-----------------
 
 #. When data from both WLTP H & L cycles are provided, the model results in
    average NEDC error of ~0.3gCO2/km +- 5.5g/km (stdev) over the 1800 cases
@@ -61,7 +63,7 @@ Known Limitations
 
 
 v0: Aug 2015, 1st unofficial release
-------------------------------------
+====================================
 Bugs reported from v0 with their status up to date:
 
 #. 1s before acceleration "press clutch" not applied in WLTP:

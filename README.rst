@@ -1,5 +1,5 @@
 ##############################################################################
-co2mpas: Vehicle simulator predicting NEDC CO2 emissions from WLTP time-series
+CO2MPAS: Vehicle simulator predicting NEDC CO2 emissions from WLTP time-series
 ##############################################################################
 
 :Release:       1.0.1b6
@@ -52,7 +52,7 @@ Quickstart
 IF you have familiarity with v1 release AND IF you already have a full-blown
 *python-3 environment* (i.e. *Linux*) you can immediately start working with
 the following console-commands; otherwise follow the detailed instructions
-under sections :ref:`begin-nstall` and :ref:`begin-usage`.
+under sections :ref:`begin-install` and :ref:`begin-usage`.
 
 .. code-block:: bash
 

@@ -2,22 +2,24 @@
 #
 # Release checklist
 # =================
-# 0. Run TCs.
-# 1. Updaste ./CHANGES.rst
+# 1. Update ./CHANGES.rst
 # 2. REMOVE pip install --pre!!!
-# 3. Tag & push
-# 4. Gen docs (check diagrams OK!):
+# 3. Run TCs.
+# 4. Tag & push
+# 5. Gen docs (check diagrams OK!):
 #       python setup.py build_sphinx
-# 5. Build `wheel,` `sdist` , `doc` archives:
+# 6. Build `wheel,` `sdist` , `doc` archives:
 #       ./bin/package.sh
-# 6. Upload to PyPi:
-#       twine upload -r wltp -su <user> dist/* # Ignore warn about doc-package.
+# 7. Upload to PyPi:
+#    - DELETE any BETAS (but the last one?)!!
+#       - twine upload -r wltp -su <user> dist/* # Ignore warn about doc-package.
 #
 # +++MANUAL+++
-# 7. Generate README instructions:
-#       cygstart ./doc/_build/html/readme.html ## & SaveAs 'CO2MPAS-v0.1.1.pdf'
-# 8. Generate RELEASE_NOTES:
-#       cygstart ./doc/_build/html/changes.html ## & SaveAs 'CO2MPAS_ReleaseNotes-v0.1.1.pdf'
+# 8. Generate README:
+#       cygstart ./doc/_build/html/co2mpas_README.html ## & PrintAs 'CO2MPAS_README-v0.1.1.pdf'
+# 9. Generate RELEASE_NOTES:
+#       cygstart ./doc/_build/html/co2mpas_RelNotes.html ## & PrintAs 'CO2MPAS_RelNotes-v0.1.1.pdf'
+# 10. Prepare email (and test).
 #
 my_dir=`dirname "$0"`
 cd $my_dir/..
