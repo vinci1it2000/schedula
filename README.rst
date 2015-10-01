@@ -20,7 +20,7 @@ to back-translate consumption figures from WLTP cycles into NEDC ones.
 It is an open-source python-3 project, currently developed with python 3.4,
 using Anaconda/WinPython under Windows 7, using Anaconda under MacOS, and
 using Linux'sstandard python environment.
-The program runs as a *console-mode command**.
+The program runs as a **console command**.
 
 History
 -------
@@ -51,7 +51,7 @@ Quickstart
 IF you have familiarity with v1 release AND IF you already have a full-blown
 *python-3 environment* (i.e. *Linux*) you can immediately start working with
 the following console-commands; otherwise follow the detailed instructions
-under sections :ref:`begin-install` and :ref:`begin-usage`.
+under sections :ref:`Install` and :ref:`Usage`.
 
 .. code-block:: bash
 
@@ -101,11 +101,15 @@ The installation procedure is 2-stage procedure:
     b. (optional) Install documents.
     c. (optional) Install sources.
 
-If you have already have a suitable python installation, skip step 1.
+If you have already have a suitable python-3 installation with all scientific
+packages updated to their latest version, skip the 1st stage.
 
 .. Note::
+    **Installing Python under Windows:**
+
     The program requires CPython-3, and depends on *numpy*, *scipy*, *pandas*,
-    *sklearn* and *matplotlib* libraries that require a native C-compiler.
+    *sklearn* and *matplotlib* libraries that require a native C-compiler
+    to install.
 
     For that reason, in *Windows* it is strongly suggested **NOT to install
     the standard CPython distribution** that comes up first if you google
@@ -188,9 +192,9 @@ CO2MPAS install
         Installing collected packages: co2mpas
         Successfully installed co2mpas-1.0.1b5
 
-... Tip::
-    In case of errors, re-run the command adding the *verbose* flags ``-vv``,
-    and copy-paste the result to JRC
+   .. Tip::
+       In case of errors, re-run the command adding the *verbose* flags ``-vv``,
+       and copy-paste the result to JRC
 
 
 2. Check that when you run ``co2mpas``, you run indeed the version just

@@ -1,54 +1,68 @@
 Changes
 =======
 
-v1.0.1: 30-Sept 2015, 2nd release
+v1.0.1: 1-Oct 2015, 2nd release
 ------------------------------------
 - Comprehensive modeling with multiple alternative routes depending on
   available data.
 - Tested against a sample of 1800 artificially generated vehicles (simulations).
+- The model is currently optimized to calculate directly the NEDC CO2 emissions.
 
 Known Limitations
 ~~~~~~~~~~~~~~~~~
 
 #. When data from both WLTP H & L cycles are provided, the model results in
-   average NEDC error of ~0.3gCO2/km +- 5.5g/km (stdev) over the 1800 cases.
-   No apparent correlations to specific engine or vehicle characteristics
-   have been observed in the present release.
-#. The model is currently optimized to calculate directly the NEDC CO2.
-   Hence no delta value is provided in the results.
-#. The calculations are sensitive to the input data provided, and in particular
-   the time-series. Time series should originate from measurements/simulations
-   that correspond to specific tests from which the input data were derived.
-#. Mixing time series from different vehicles, tests or cycles may produce
-   results that lay outside the expected error band.
-#. Heavily quantized velocity time-series may significantly affect the accuracy
-   of the  results in the current version.
-#. Ill-formatted input data may NOT produce warnings.
-   Should you find a case where a warning should have been raised, we kindly
-   ask you to communicate the finding to the developers.
-#. Misspelled input-data that are not compulsory, are SILENTLY ignored, and the
-   calculations proceed with alternative routes.
-   Check that all your input-data are also contained in the output data
-   (calibration files).
+   average NEDC error of ~0.3gCO2/km +- 5.5g/km (stdev) over the 1800 cases
+   available to the JRC. Currently no significant systematic errors are observed
+   for UDC and EUDC cycles.  No apparent correlations to specific engine or
+   vehicle characteristics have been observed in the present release.
+   Additional effort is necessary in order to improve the stability of the tool
+   and reduce the standard deviation of the error.
+#. It has been observed that CO2MPAS tends to underestimate the power requirements
+   due to accelerations in WLTP.
+   More feedback is needed from real test cases.
+#. The current gearbox thermal model overestimates the warm up rate of the gearbox.
+   The bug is identified and will be fixed in future versions.
 #. Simulation runs may under certain circumstances produce different families
    of solutions for the same inputs
    (i.e. for the CO2 it is in the max range of 0.5 g/km).
-   The bug is identified and will be fixed in future versions
-#. The current gearbox thermal model overestimates the warm up rate of the
-   gearbox. The bug is identified and will be fixed in future versions
+   The bug is identified and will be fixed in future versions.
+#. The calculations are sensitive to the input data provided, and in particular
+   the time-series. Time series should originate from measurements/simulations
+   that correspond to specific tests from which the input data were derived.
+   Mixing time series from different vehicles, tests or cycles may produce
+   results that lay outside the expected error band.
+#. Heavily quantized velocity time-series may affect the accuracy of the
+   results.
+#. Ill-formatted input data may NOT produce warnings.
+   Should you find a case where a warning should have been raised, we kindly
+   ask you to communicate the finding to the developers.
+#. Misspelled input-data which are not compulsory, are SILENTLY ignored, and
+   the calculations proceed with alternative routes or default-values.
+   Check that all your input-data are also contained in the output data
+   (calibration files).
 #. The A/T module has NOT been tested by the JRC due to the lack of respective
-   test-data
+   test-data.
 #. The A/T module should be further optimized with respect to the gear-shifting
-   method applied for the simulations. An additional error of 0.5-1.5g/km
-   in the NEDC prediction is expected under the current configuration based
+   method applied for the simulations. An additional error of 0.5-1.5g/km  in
+   the NEDC prediction is expected under the current configuration based
    on previous indications.
-#. The model lacks a torque-converter / clutch module.
-   JRC requested additional feedback on the necessity of such modules.
+#. The model lacks a torque-converter / clutch module. JRC requested additional
+   feedback on the necessity of such modules.
+#. The electric systems module has not been tested with real test data.
+   Cruise time series result in quantized squared-shaped signals which are,
+   in general, different from analog currents recorded in real tests.
+   More test cases are necessary.
+#. Currently the electric system module requires input regarding both
+   alternator current and battery current in  order to operate. Battery current
+   vector can be set to zero but this may reduce the accuracy of the tool.
+#. The preconditioning cycle and the respective functions has not been tested
+   due to lack of corresponding data.
 
 
 v0: Aug 2015, 1st unofficial release
 ------------------------------------
-Bugs reported from V0:
+Bugs reported from v0 with their status up to date:
 
 #. 1s before acceleration "press clutch" not applied in WLTP:
    **not fixed**, lacking clutch module, problem not clear in Cruise time series,

@@ -4,15 +4,20 @@
 # =================
 # 0. Run TCs.
 # 1. Updaste ./CHANGES.rst
-# 2. Tag & push
-# 3. Gen docs (check diagrams OK!):
+# 2. REMOVE pip install --pre!!!
+# 3. Tag & push
+# 4. Gen docs (check diagrams OK!):
 #       python setup.py build_sphinx
-# 4. Build `wheel,` `sdist` , `doc` archives:
+# 5. Build `wheel,` `sdist` , `doc` archives:
 #       ./bin/package.sh
-# 5. Upload to PyPi:
+# 6. Upload to PyPi:
 #       twine upload -r wltp -su <user> dist/* # Ignore warn about doc-package.
-# 6. Generate README instructions:
+#
+# +++MANUAL+++
+# 7. Generate README instructions:
 #       cygstart ./doc/_build/html/readme.html ## & SaveAs 'CO2MPAS-v0.1.1.pdf'
+# 8. Generate RELEASE_NOTES:
+#       cygstart ./doc/_build/html/changes.html ## & SaveAs 'CO2MPAS_ReleaseNotes-v0.1.1.pdf'
 #
 my_dir=`dirname "$0"`
 cd $my_dir/..
