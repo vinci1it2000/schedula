@@ -151,7 +151,9 @@ setup(
         'pandalone',
     ],
     packages=find_packages(exclude=['tests', 'doc']),
+    package_data={'compas': ['samples/*.xlsx', 'co2mpas_template.xlsx']},
     include_package_data=True,
+    zip_safe=False,
     test_suite='nose.collector',
     tests_require=['nose>=1.0'],
     entry_points={

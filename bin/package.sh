@@ -36,3 +36,8 @@ pushd build/doc
 #zip -r9 "../../dist/$zipfolder.zip" "$zipfolder"
 7z a -r "../../dist/$zipfolder.7z" "$zipfolder"
 popd
+
+( unzip -l ./dist/co2mpas-*.zip | grep -q co2mpas_template; ) || echo "FAIL: No TEMPLATE-file in SOURCES!"
+( unzip -l ./dist/co2mpas-*.zip | grep -q co2mpas_example; ) || echo "FAIL: No EXAMPLES in SOURCES!"
+( unzip -l ./dist/co2mpas-*.whl | grep -q co2mpas_template; ) || echo "FAIL: No TEMPLATE-file in WHEEL!"
+( unzip -l ./dist/co2mpas-*.whl | grep -q co2mpas_example; ) || echo "FAIL: No EXAMPLES in WHEEL!"
