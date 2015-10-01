@@ -258,8 +258,6 @@ def process_folder_files(
         pd.DataFrame.from_records(v).to_excel(writer, k)
 
     time_elapsed = (datetime.datetime.today() - start_time).total_seconds()
-
-    time_elapsed = datetime.timedelta(seconds=time_elapsed)
     print('Done! [%s sec]' % time_elapsed)
 
 

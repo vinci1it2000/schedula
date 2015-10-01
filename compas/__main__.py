@@ -3,7 +3,7 @@ Predict NEDC CO2 emissions from WLTP cycles.
 
 Usage:
     co2mpas [options] [-I <folder>  -O <folder>]
-    co2mpas samples [-f | --force] <folder>
+    co2mpas example [-f | --force] <folder>
     co2mpas template [-f | --force] <excel-file> ...
     co2mpas --help
     co2mpas --version
@@ -17,6 +17,7 @@ Usage:
 --plot-workflow                  Show workflow in browser, after run finished.
 -f --force                       Overwrite template/sample excel-file(s).
 
+* Items enclosed in `[]` are optional.
 """
 import sys
 import os
@@ -24,7 +25,7 @@ import shutil
 import pkg_resources
 from docopt import docopt
 
-from compas import __version__ as proj_ver
+from compas import __version__ as proj_ver, __file__ as proj_file
 
 
 proj_name = 'co2mpas'
@@ -32,7 +33,7 @@ proj_name = 'co2mpas'
 
 def _get_input_template_fpath():
     return pkg_resources.resource_filename(__name__,  # @UndefinedVariable
-                                           'input_template.xlsx')
+                                           'co2mpas_template.xlsx')
 
 
 def _create_input_template(opts):
@@ -56,8 +57,7 @@ def _get_sample_files():
     samples = pkg_resources.resource_listdir(__name__,  # @UndefinedVariable
                                              'samples')
     return [pkg_resources.resource_filename(__name__,  # @UndefinedVariable
-                                            os.path.join('samples',
-                                                         f))
+                                            os.path.join('samples', f))
             for f in samples]
 
 
@@ -66,7 +66,7 @@ def _copy_sample_files(opts):
     force = opts['--force']
     dst_folder = os.path.abspath(dst_folder)
     if not os.path.exists(dst_folder):
-        exit("Destination-<folder> '%s' does not exist!" % dst_folder)
+        exit("Destination folder '%s' does not exist!" % dst_folder)
     if not os.path.isdir(dst_folder):
         exit("Destination '%s' is not a <folder>!" % dst_folder)
 
@@ -76,7 +76,7 @@ def _copy_sample_files(opts):
             print("Skipping file '%s', already exists! Use '-f' to overwrite it." %
                  dst_fpath, file=sys.stderr)
         else:
-            print("Creating co2mpas SAMPLE input-file '%s'..." % dst_fpath,
+            print("Creating co2mpas EXAMPLE input-file '%s'..." % dst_fpath,
                   file=sys.stderr)
             shutil.copy(src_fpath, dst_fpath)
 
@@ -113,12 +113,13 @@ def _run_simulation(opts):
 
 
 def main(*args):
+    proj_file2 = os.path.dirname(proj_file)
     opts = docopt(__doc__,
                   argv=args or sys.argv[1:],
-                  version='%s %s' % (proj_name, proj_ver))
+                  version='%s %s at %s' % (proj_name, proj_ver, proj_file2))
     if opts['template']:
         _create_input_template(opts)
-    elif opts['samples']:
+    elif opts['example']:
         _copy_sample_files(opts)
     else:
         _run_simulation(opts)

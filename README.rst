@@ -63,10 +63,10 @@ under sections :ref:`begin-install` and :ref:`begin-usage`.
     $ mkdir input output
 
     ## Create a template excel-file for inputs.
-    $ co2mpas template input/vehicle1
+    $ co2mpas template input/vehicle_1
 
     ###################################################
-    ## Edit generated `./input/vehicle1.xlsx` file.  ##
+    ## Edit generated `./input/vehicle_1.xlsx` file.  ##
     ###################################################
 
     ## Run simulator.
@@ -197,7 +197,7 @@ CO2MPAS install
    installed::
 
         > co2mpas --version
-        1.0.1b5
+        1.0.1b5 at <python-folders>\compas
 
 
 3. (optionally) Unzip the documents archive (distributed separately)
@@ -270,89 +270,116 @@ you have installed CO2MPAS (see :ref:`begin-install` above) and type:
     --plot-workflow                  Show workflow in browser, after run finished.
     -f --force                       Overwrite template excel-file if it exists.
 
-
 Running samples
 ---------------
-The simulator contains sample input files for 2 vehicles.
+The simulator contains sample input files for 2 vehicles that
+are a nice starting point to try out.
 
-1. Choose a folder where you will store the *sample-input* and *sample-output*
-   data-folders:
+1. Choose a folder where you will store the *input* and *output*
 
    .. code-block:: bash
 
-      $ cd <some-folder>                 ## You should have created that hypothetical <some-folder>.
-      $ mkdir sample_inp sample_out      ## Replace `mkdir` with `md` in *Windows* (`cmd.exe`)
+      $ cd <some-folder>       ## You should have created that hypothetical <some-folder>.
+      $ mkdir input output     ## Replace `mkdir` with `md` in *Windows* (`cmd.exe`)
 
   .. Note::
     The input & output folders do not have to reside in the same parent.
     It is only for demonstration purposes that we decided to group them both
-    under the hypothetical ``<some-folder>``.
+    under a hypothetical ``some-folder``.
 
-2. Create the sample vehicles inside the ``./sample_inp`` folder:
+3. Create the example vehicles inside the *input-folder* with the ``template``
+   sub-command::
+
 
    .. code-block:: bash
 
-        $ co2mpas samples sample_inp
-        Creating co2mpas SAMPLE './sample_inp/sample_vehicle_1.xlsx'...
-        Creating co2mpas SAMPLE './sample_inp/sample_vehicle_2.xlsx'...
+        $ co2mpas example input
+        Creating co2mpas EXAMPLE input-file '.\input\co2mpas_example_1.xlsx'...
+        Creating co2mpas EXAMPLE input-file '.\input\co2mpas_example_2.xlsx'...
 
 
-3. Run the simulator:
+4. Run the simulator:
 
    .. code-block:: bash
 
-      $ co2mpas -I sample_inp -O sample_out
-      Processing './sample_inp' --> './sample_out'...
-      Processing: sample_vehicle_1
+      $ co2mpas -I input -O output
+      Processing './input' --> './output'...
+      Processing: co2mpas_example_1
       ...
-      Processing: sample_vehicle_2
+      Processing: co2mpas_example_2
       ...
-      Done! [0.851 min]
+      Done! [48.938986 sec]
 
 
-4. Inspect the results:
+6. Inspect the results:
 
    .. code-block:: bash
 
-      $ cygstart output/*summary.xlsx       ## View the aggregate for all vehicles.
+      $ cygstart output/*summary.xlsx       ## More summaries might open from previous runs.
       $ cygstart output                     ## View all files generated (see below).
 
 
 Entering new vehicles
 ---------------------
-1. Choose other input/output folders for your vehicles:
+You may modify the samples vehicles and run again the model.
+But to be sure that your vehicle does not contain by accident any of
+the sample-data, use the ``template`` sub-command to make an empty excel-file.
+
+
+1. Decide *input/output* folders.  Assuming we want to re-use the "example"
+   folders from above, we remove everything that they contain:
 
    .. code-block:: bash
 
-      $ cd <some-folder>
-      $ mkdir input output                  ## Replace `mkdir` with `md` in *Windows* (`cmd.exe`)
-
-1. Create an empty vehicle template-file (eg. ``vehicle1.xlsx``) inside
-   the *input-folder*:
+        $ rm -r ./input/* ./output/*
 
 
-   .. code-block:: bash
-
-        $ co2mpas template input/vehicle1
-        Creating co2mpas INPUT template-file './input/vehicle1.xlsx'...
-
-
-4. Open the template excel-file, fill-in your vehicle data, and save it:
+2. Create an empty vehicle template-file (eg. ``vehicle_1.xlsx``) inside
+   the *input-folder* with the ``template`` sub-command:
 
    .. code-block:: bash
 
-      $ cygstart input/vehicle1.xlsx        ## Opens the excel-file. Use `start` in *cmd.exe*.
+        $ co2mpas template input/vehicle_1  ## Note that we specify the filename, not the folder!
+        Creating co2mpas INPUT template-file './input/vehicle_1.xlsx'...
+
+
+3. Open the template excel-file to fill-in your vehicle data (and save it):
+
+   .. code-block:: bash
+
+      $ cygstart input/vehicle_1.xlsx        ## Opens the excel-file. Use `start` in *cmd.exe*.
 
    .. Tip::
        The generated file contains help descriptions to help you populate it
-       with vehicle data.
+       with vehicle data.  For items where an array of values is required
+       (i.e. gear-box ratios) you may reference different parts of
+       the spreadsheet following the syntax of `the "xlref" mini-language
+       <https://pandalone.readthedocs.org/en/latest/reference.html#module-pandalone.xleash>`_.
 
-       Repeat these last 2 steps if you want to add more vehicles in
-       the *batch-run*.
+   You may repeat these last 2 steps if you want to add more vehicles in
+   the *batch-run*.
 
-9. Repeat the above procedure from step 4 to modify the vehicle and run again
-   the model.  Start from step 1 to construct a new batch.
+4. Run the simulator:
 
+   .. code-block:: bash
+
+      $ co2mpas -I input -O output
+      Processing './input' --> './output'...
+      Processing: vehicle_1
+      ...
+      Done! [12.938986 sec]
+
+5. Assuming you do receive any error, you may now inspect the results:
+
+   .. code-block:: bash
+
+      $ cygstart output/*summary.xlsx       ## More summaries might open from previous runs.
+      $ cygstart output                     ## View all files generated (see below).
+
+
+6. In the case of errors, or if the results are not satisfactory, repeat the
+   above procedure from step 3 to modify the vehicle and re-run the model.
+   See also :ref:`Debugging and investigating results`, below.
 
 Output files
 ------------
