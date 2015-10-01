@@ -335,11 +335,12 @@ def _parse_outputs(tag, data, check):
 def _extract_summary(summaries):
     s = {}
     tags = ('co2_emission_value', 'phases_co2_emissions')
-    for k, v in summaries['PRE NEDC'].items():
-        if k == 'vehicle' or k[:11] == 'co2_params ':
-            s[k] = v
-        elif any(i in k for i in tags):
-            s['NEDC %s' % k] = v
+    if 'PRE NEDC' in summaries:
+        for k, v in summaries['PRE NEDC'].items():
+            if k == 'vehicle' or k[:11] == 'co2_params ':
+                s[k] = v
+            elif any(i in k for i in tags):
+                s['NEDC %s' % k] = v
 
     sub_s = [
         ('target NEDC', 'TRG NEDC'),
