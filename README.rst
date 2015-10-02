@@ -14,24 +14,24 @@ CO2MPAS: Vehicle simulator predicting NEDC CO2 emissions from WLTP time-series
 :License:       `EUPL 1.1+ <https://joinup.ec.europa.eu/software/page/eupl>`_
 
 
-CO2MPAS is backward-looking longitudinal-dynamics CO2 & fuel-consumption
+**CO2MPAS** is backward-looking longitudinal-dynamics CO2 & fuel-consumption
 simulator for Light-Duty Vehicles (cars and vans) specially crafted
 to back-translate consumption figures from WLTP cycles into NEDC ones.
 
-It is an open-source python-3 project, currently developed with python 3.4,
-using Anaconda/WinPython under Windows 7, using Anaconda under MacOS, and
-using Linux'sstandard python environment.
-The program runs as a **console command**.
+It is an open-source project developed with Python-3.4,
+using Anaconda & WinPython under Windows 7, Anaconda under MacOS, and
+Linux's standard python environment.
+The program runs as a *console command*.
 
 History
 -------
-The *European Commission* is supporting the introduction of the WLTP cycle
-for Light-duty vehicles developed at the United Nations (UNECE)
+The *European Commission* is supporting the introduction of the *WLTP cycle*
+for Light-duty vehicles developed at the *United Nations (UNECE)*
 level, in the shortest possible time-frame. Its introduction requires
-the adaptation of CO2 certification and CO2 monitoring procedures set
-by European Regulations. European Commission's *Joint Research Centre* has been
+the adaptation of CO\ :sub:`2` certification and monitoring procedures set
+by European regulations. European Commission's *Joint Research Centre* has been
 assigned the development of this vehicle simulator to facilitate this
-back-translation.
+adaptation.
 
 
 
@@ -44,13 +44,20 @@ Quickstart
 
     - Windows's ``cmd.exe`` console commands begin with ``>`` symbol.
       You can adapt most UNIX commands with minor modifications
-      (i.e. replace ``mkdir --> md``, '`rm --> del`` and ``cygstart --> start``).
+      (i.e. replace ``mkdir --> md``, ``rm --> del`` and ``cygstart --> start``).
 
     - In Windows you may download and install (unzip) the
       `Console 2 <http://sourceforge.net/projects/console/>`_
       application that supports a more decent way to copy-paste
       (BUT make sure that your command-interpreter contains the correct
       python installation).
+
+    - To get generic help for *bash* commands (``ls``, ``pwd``, ``cd``, etc),
+      you can try any of the VARIOUS tutorials and crash-courses available:
+
+          - a concise one: http://www.ks.uiuc.edu/Training/Tutorials/Reference/unixprimer.html
+          - or a more detailed guide (just ignore the linux-specific part):
+            http://linuxcommand.org/lc3_lts0020.php
 
 IF you have familiarity with v1 release AND IF you already have a full-blown
 *python-3 environment* (i.e. *Linux*) you can immediately start working with
@@ -269,14 +276,6 @@ Usage
     for the **all-in-one** archive.  More specific instructions for this archive
     are contained within it.
 
-    .. Tip::
-        To get generic help for *bash* commands (``ls``, ``pwd``, ``cd``, etc),
-        you can try any of the VARIOUS tutorials and crash-courses available,
-        such as this terse one:
-        http://www.ks.uiuc.edu/Training/Tutorials/Reference/unixprimer.html
-        or this more detailed guide (just ignore the linux-specific part):
-        http://linuxcommand.org/lc3_lts0020.php
-
 
 First ensure that the latest version of CO2MPAS is properly installed, and that
 its version match the version declared on this file.
@@ -400,7 +399,7 @@ excel-file:
        The generated file contains help descriptions to help you populate it
        with vehicle data.  For items where an array of values is required
        (i.e. gear-box ratios) you may reference different parts of
-       the spreadsheet following the syntax of `the "xlref" mini-language
+       the spreadsheet following the syntax of the `"xlref" mini-language
        <https://pandalone.readthedocs.org/en/latest/reference.html#module-pandalone.xleash>`_.
 
    You may repeat these last 2 steps if you want to add more vehicles in
