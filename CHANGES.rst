@@ -3,13 +3,14 @@ CO2MPAS Changes
 ###############
 .. _begin-changes:
 
-v1.0.2: 2-Oct 2015
-==================
-- New site: http://co2mpas.io/
+v1.0.2: 2-Oct 2015: mostly doc fixes for all-in-one archive
+===========================================================
+- Install docs on http://co2mpas.io/ and drop install-docs & install-sources
+  instructions.
 - Update instructions based on *all-in-one* archive.
-- Tip for corporate procies.
+- Tip for corporate proxies.
 
-v1.0.1: 1-Oct 2015, 2nd release
+v1.0.1, 1-Oct 2015: 2nd release
 ===============================
 - Comprehensive modeling with multiple alternative routes depending on
   available data.
@@ -68,7 +69,7 @@ Known Limitations
    due to lack of corresponding data.
 
 
-v0: Aug 2015, 1st unofficial release
+v0, Aug 2015: 1st unofficial release
 ====================================
 Bugs reported from v0 with their status up to date:
 

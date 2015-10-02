@@ -1,4 +1,20 @@
 ## Pip-dependencies for installing and running the project.
-##  from: https://caremad.io/blog/setup-vs-requirement/
 
--e .
+## C-backends (under Anaconda use `conda` to install them)
+#
+pandas
+numpy
+scipy
+sklearn
+matplotlib
+
+## Pure python libs.
+#
+setuptools
+networkx
+dill
+graphviz
+docopt
+six
+easygui
+pandalone

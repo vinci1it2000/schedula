@@ -144,7 +144,6 @@ setup(
         'dill',
         'graphviz',
         'sphinx',
-        'sphinx_rtd_theme',
         'docopt',
         'six',
         'easygui',

@@ -30,7 +30,8 @@ for Light-duty vehicles developed at the United Nations (UNECE)
 level, in the shortest possible time-frame. Its introduction requires
 the adaptation of CO2 certification and CO2 monitoring procedures set
 by European Regulations. European Commission's *Joint Research Centre* has been
-assigned the development of this vehicle simulator to facilitate this step.
+assigned the development of this vehicle simulator to facilitate this
+back-translation.
 
 
 
@@ -93,7 +94,7 @@ under sections :ref:`begin-install` and :ref:`begin-usage`.
 
 Install
 =======
-The installation procedure is 2-stage procedure and requires Internet connectivity:
+The installation procedure has 2-stages:
 
 1. Install (or Upgrade) Python (2 choices under *Windows*).
 2. Install CO2MPAS:
@@ -185,19 +186,24 @@ Anaconda install
 
 CO2MPAS install
 ---------------
+.. Tip::
+    This step requires Internet connectivity to Python's "standard" repository
+    (https://pypi.python.org/). In case you are behind a **corporate proxy**,
+    append an appropriate option to the ``pip`` commands that follow::
+
+        --proxy http://user:password@yourProxyUrl:yourProxyPort
+
+
 1. Install CO2MPAS executable internally into your python-environment with
    the following console-command::
 
         > pip install co2mpas --extra-index http://pypi.co2mpas.io/simple/ --trusted-host pypi.co2mpas.io
-        Collecting toolz
+        Collecting co2mpas
+        Downloading http://pypi.co2mpas.io/packages/co2mpas-...
+        ...
         Installing collected packages: co2mpas
         Successfully installed co2mpas-1.0.2
 
-   .. Tip::
-        In case you are behind a corporate proxy, you may specify additionally
-        this option::
-
-           --proxy http://user:password@yourProxyUrl:yourProxyPort
    .. Warning::
        In case of errors, re-run the command adding the *verbose* flags ``-vv``,
        copy-paste the console-output, and send it to JRC.
@@ -209,27 +215,11 @@ CO2MPAS install
         co2mpas-1.0.2 at <your-python-folders>\compas
 
 
-3. (optionally) Unzip the documents archive (distributed separately)
-   to have them ready when inspecting the workflow for each simulation-run.
-   (see :ref:`begin-usage`, below).
-
-   To view them, open in your browser the ``index.html`` file.
-
-4. (optionally) Download sources (download the latest ``zip`` archive
-   from http://files.co2mpas.io/) and unzip them; then
-   install additional develop-time dependencies::
-
-       > cd <sources-folder>
-       > pip install -r requirements/dev.pip
-       Collecting co2mpas
-
-   Don't forget to specify your "proxy" option, if applicable.
-
 Upgrade CO2MPAS
 ---------------
 There are 2 ways to upgrade:
 
-1. Uninstall and re-install it (prefer this).
+1. (preferred) Uninstall and re-install it.
 2. Use the `pip` *--upgrade* option:
    To update CO2MPAS when a new minor release has been announced,
    just append the ``-U --no-deps`` options in the ``pip`` command::
@@ -255,9 +245,8 @@ To uninstall CO2MPAS type the following command, and confirm it with ``y``::
     Proceed (y/n)?
 
 
-Run the command *again*, to make sure that no dangling installations are left
+Re-run the command *again*, to make sure that no dangling installations are left
 over; disregard any errors this time.
-
 
 
 

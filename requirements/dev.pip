@@ -5,23 +5,9 @@
 
 -r exe.pip
 
-
-## C-backends (use `conda` to install?)
-#
-pandas
-numpy
-scipy
-
-
 ## Pure python libs.
 #
-setuptools
+setuptools-git >= 0.3
 wheel
 nose
-networkx
-dill
-matplotlib
-easygui
-sklearn
-pandalone
-graphviz
+sphinx
