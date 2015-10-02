@@ -2,7 +2,7 @@
 CO2MPAS: Vehicle simulator predicting NEDC CO2 emissions from WLTP time-series
 ##############################################################################
 
-:Release:       1.0.2
+:Release:       1.0.2b0
 :Documentation: http://co2mpas.io/
 :Sources:       https://github.com/JRCSTU/co2mpas
 :Repository:    http://pypi.co2mpas.io/
@@ -202,7 +202,7 @@ CO2MPAS install
         Downloading http://pypi.co2mpas.io/packages/co2mpas-...
         ...
         Installing collected packages: co2mpas
-        Successfully installed co2mpas-1.0.2
+        Successfully installed co2mpas-1.0.2b0
 
    .. Warning::
        In case of errors, re-run the command adding the *verbose* flags ``-vv``,
@@ -212,7 +212,7 @@ CO2MPAS install
    installed above::
 
         > co2mpas --version
-        co2mpas-1.0.2 at <your-python-folders>\compas
+        co2mpas-1.0.2b0 at <your-python-folders>\compas
 
 
 Upgrade CO2MPAS

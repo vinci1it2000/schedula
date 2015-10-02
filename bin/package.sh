@@ -20,7 +20,9 @@
 #       cygstart ./doc/_build/html/co2mpas_README.html ## & PrintAs 'CO2MPAS_README-v0.1.1.pdf'
 # 9. Generate RELEASE_NOTES:
 #       cygstart ./doc/_build/html/co2mpas_RelNotes.html ## & PrintAs 'CO2MPAS_RelNotes-v0.1.1.pdf'
-# 10. Prepare email (and test).
+# 10. Prepare site at http://co2mpas.io/
+#   Rename sources package!
+# 11. Prepare email (and test).
 #
 my_dir=`dirname "$0"`
 cd $my_dir/..
