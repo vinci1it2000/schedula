@@ -3,9 +3,11 @@ CO2MPAS: Vehicle simulator predicting NEDC CO2 emissions from WLTP time-series
 ##############################################################################
 
 :Release:       1.0.2
+:Documentation: http://co2mpas.io/
 :Sources:       https://github.com/JRCSTU/co2mpas
-:Repository:    http://pypi.wltp.io/simple/co2mpas/
-:Keywords:      CO2, wltp, engineering, scientific, python, excel, library,
+:Repository:    http://pypi.co2mpas.io/
+:Keywords:      CO2, WLTP, NEDC, fuel-consumption, simulator, vehicle,
+                EU, JRC, back-translation, policy, engineering, scientific
 :Developers:    .. include:: ../AUTHORS.rst
 :Copyright:     2015 European Commission (`JRC-IET
                 <https://ec.europa.eu/jrc/en/institutes/iet>`_)
@@ -56,8 +58,11 @@ under sections :ref:`begin-install` and :ref:`begin-usage`.
 
 .. code-block:: bash
 
-    ## Install co2mpas
-    $ pip install co2mpas --extra-index http://pypi.wltp.io/simple/ --trusted-host pypi.wltp.io
+    ## Install co2mpas.
+    ## NOTE: If behind proxy, specify additionally this option:
+    ##    --proxy http://user:password@yourProxyUrl:yourProxyPort
+    ##
+    $ pip install co2mpas --extra-index http://pypi.co2mpas.io/simple/ --trusted-host pypi.co2mpas.io
 
     ## Where to store input and output files.
     ## In *Windows* use `md` command instead.
@@ -183,15 +188,19 @@ CO2MPAS install
 1. Install CO2MPAS executable internally into your python-environment with
    the following console-command::
 
-        > pip install co2mpas --extra-index http://pypi.wltp.io/simple/ --trusted-host pypi.wltp.io
+        > pip install co2mpas --extra-index http://pypi.co2mpas.io/simple/ --trusted-host pypi.co2mpas.io
         Collecting toolz
         Installing collected packages: co2mpas
         Successfully installed co2mpas-1.0.2
 
+   .. Tip::
+        In case you are behind a corporate proxy, you may specify additionally
+        this option::
+
+           --proxy http://user:password@yourProxyUrl:yourProxyPort
    .. Warning::
        In case of errors, re-run the command adding the *verbose* flags ``-vv``,
        copy-paste the console-output, and send it to JRC.
-
 
 2. Check that when you run ``co2mpas``, the version executed is indeed the one
    installed above::
@@ -207,27 +216,33 @@ CO2MPAS install
    To view them, open in your browser the ``index.html`` file.
 
 4. (optionally) Download sources (download the latest ``zip`` archive
-   from http://pypi.wltp.io/simple/co2mpas/) and unzip them; then
+   from http://files.co2mpas.io/) and unzip them; then
    install additional develop-time dependencies::
 
        > cd <sources-folder>
        > pip install -r requirements/dev.pip
        Collecting co2mpas
 
+   Don't forget to specify your "proxy" option, if applicable.
 
 Upgrade CO2MPAS
 ---------------
-To update CO2MPAS when a new minor release has been announced,
-just append the ``-U --no-deps`` options in the ``pip`` command::
+There are 2 ways to upgrade:
 
-    > pip install co2mpas --extra-index http://pypi.wltp.io/simple/ --trusted-host pypi.wltp.io -U --no-deps
+1. Uninstall and re-install it (prefer this).
+2. Use the `pip` *--upgrade* option:
+   To update CO2MPAS when a new minor release has been announced,
+   just append the ``-U --no-deps`` options in the ``pip`` command::
 
-.. Note::
-    In case CO2MPAS complains about a missing libraries, run the following command::
+       > pip install co2mpas --extra-index http://pypi.co2mpas.io/simple/ --trusted-host pypi.co2mpas.io -U --no-deps
 
-        pip install co2mpas --extra-index http://pypi.wltp.io/simple/ --trusted-host pypi.wltp.io -I
+   .. Note::
+       In case CO2MPAS complains about a missing libraries, run the following command::
 
-    If still in trouble, call JRC.
+           pip install co2mpas --extra-index http://pypi.co2mpas.io/simple/ --trusted-host pypi.co2mpas.io -I
+
+       Don't forget to specify your "proxy" option, if applicable.
+       If still in trouble, call JRC.
 
 
 Uninstall CO2MPAS
@@ -250,8 +265,22 @@ over; disregard any errors this time.
 
 Usage
 =====
-Ensure that the latest version of CO2MPAS is properly installed, and that
-these instructions match its version.
+.. Note::
+    The following commands are for the **bash console**, specifically tailored
+    for the **all-in-one** archive.  More specific instructions for this archive
+    are contained within it.
+
+    .. Tip::
+        To get generic help for *bash* commands (``ls``, ``pwd``, ``cd``, etc),
+        you can try any of the VARIOUS tutorials and crash-courses available,
+        such as this terse one:
+          http://www.ks.uiuc.edu/Training/Tutorials/Reference/unixprimer.html
+        or this more detailed guide (just ignore the linux-specific part):
+          http://linuxcommand.org/lc3_lts0020.php
+
+
+First ensure that the latest version of CO2MPAS is properly installed, and that
+its version match the version declared on this file.
 
 The main entry for the simulator is the ``co2mpas`` console-command.
 This command accepts multiple **input-excel-files**, one for each vehicle,

@@ -3,6 +3,12 @@ CO2MPAS Changes
 ###############
 .. _begin-changes:
 
+v1.0.2: 2-Oct 2015
+==================
+- New site: http://co2mpas.io/
+- Update instructions based on *all-in-one* archive.
+- Tip for corporate procies.
+
 v1.0.1: 1-Oct 2015, 2nd release
 ===============================
 - Comprehensive modeling with multiple alternative routes depending on
