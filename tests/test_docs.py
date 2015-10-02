@@ -6,11 +6,14 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
+import io
 import os
 import re
 import unittest
+from unittest.mock import patch
 
 import compas
+from compas import __main__ as compas_main
 
 
 mydir = os.path.dirname(__file__)
@@ -37,8 +40,13 @@ class Doctest(unittest.TestCase):
         mydir = os.path.dirname(__file__)
         with open(readme_path) as fd:
             ftext = fd.read()
-            m = re.search(
-                r'co2mpas --version\s+%s' % ver, ftext, re.MULTILINE | re.IGNORECASE)
-            self.assertIsNotNone(m,
-                                 "Version(%s) not found in README cmd-line version-check!" %
-                                 ver)
+            with patch('sys.stdout', new=io.StringIO()) as stdout:
+                try:
+                    compas_main.main('--version')
+                except SystemExit as ex:
+                    pass
+            ver_str = stdout.getvalue().strip()
+            proj_ver = re.match('([^ ]+)', ver_str).group(1)
+            self.assertIn('%s ' % proj_ver, ftext,
+                          "Version(%s) not found in README cmd-line version-check!" %
+                          ver)

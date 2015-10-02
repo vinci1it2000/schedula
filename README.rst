@@ -206,7 +206,7 @@ CO2MPAS install
    installed above::
 
         > co2mpas --version
-        1.0.2 at <your-python-folders>\compas
+        co2mpas-1.0.2 at <your-python-folders>\compas
 
 
 3. (optionally) Unzip the documents archive (distributed separately)
