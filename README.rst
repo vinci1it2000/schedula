@@ -109,20 +109,22 @@ packages updated to their latest versions, you may skip the 1st stage.
     **Installing Python under Windows:**
 
     The program requires CPython-3, and depends on *numpy*, *scipy*, *pandas*,
-    *sklearn* and *matplotlib* libraries that require a native C-compiler
-    to install.
+    *sklearn* and *matplotlib* packages which have C-native backends, and need
+    a C-compiler in order to to install them from sources.
 
-    For that reason, in *Windows* it is strongly suggested **NOT to install
-    the standard CPython distribution** that comes up first if you google
-    for "python"(!), unless you are an experienced python-developer, and
-    you know how to hunt dependencies from *PyPi* repository and/or the
-    `Unofficial Windows Binaries for Python Extension Packages
+    In *Windows* it is strongly suggested
+    **NOT to install the standard CPython distribution**
+    (then one that comes up first(!) if you google for "python windows"),
+    unless you are an experienced python-developer, and you know also how to
+    hunt down pre-compiled dependencies from the *PyPi* repository and/or
+    the `Unofficial Windows Binaries for Python Extension Packages
     <http://www.lfd.uci.edu/~gohlke/pythonlibs/>`_.
 
     Therefore we suggest that you download and unzip the **all-in-one archive**
     (distributed separately, due to its size ~500Mb).
 
-    Otherwise, download one of the following 2 scientific-python distributions:
+    Alternatively, download one of the following two scientific-python
+    distributions:
 
       #. `WinPython <https://winpython.github.io/>`_ **python-3** (prefer 64 bit)
       #. `Anaconda <http://continuum.io/downloads>`_ **python-3** (prefer 64 bit)
@@ -131,6 +133,10 @@ packages updated to their latest versions, you may skip the 1st stage.
 
 WinPython install
 -----------------
+The *WinPython* distribution is just a collection of the pre-compiled binaries
+for *Windows* containing all the scientific packages we need, and much more.
+It is not update-able, and has a semi-regular release-cycle of 3 months.
+
 
 1. Install the latest python-3 (preferably 64 bit) from https://winpython.github.io/.
    Prefer an installation-folder without any spaces leading to it.
@@ -158,6 +164,10 @@ WinPython install
 
 Anaconda install
 ----------------
+The *Anaconda* distribution is a non-standard Python environment that
+for *Windows* containing all the scientific packages we need, and much more.
+It is not update-able, and has a semi-regular release-cycle of 3 months.
+
 1. Install Anaconda python 3.4 (preferably 64 bit) from http://continuum.io/downloads.
    Prefer an installation-folder without any spaces leading to it.
 
@@ -264,6 +274,7 @@ Usage
         you can try any of the VARIOUS tutorials and crash-courses available,
         such as this terse one:
           http://www.ks.uiuc.edu/Training/Tutorials/Reference/unixprimer.html
+
         or this more detailed guide (just ignore the linux-specific part):
           http://linuxcommand.org/lc3_lts0020.php
 

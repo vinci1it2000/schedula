@@ -3,8 +3,8 @@ CO2MPAS Changes
 ###############
 .. _begin-changes:
 
-v1.0.2: 2-Oct 2015: mostly doc fixes for all-in-one archive
-===========================================================
+v1.0.2: 2-Oct 2015: mostly doc fixes for "all-in-one archive"
+=============================================================
 - Install docs on http://co2mpas.io/ and drop install-docs & install-sources
   instructions.
 - Update instructions based on *all-in-one* archive.
