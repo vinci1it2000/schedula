@@ -101,8 +101,8 @@ def _prompt_folder(folder_name, folder):
     while folder and not os.path.isdir(folder):
         print('Cannot find %s folder: %r' % (folder_name, folder),
               file=sys.stderr)
-        folder = eu.diropenbox(msg='Select %s folder' % folder_name,
-                               title=proj_name,
+        folder = eu.diropenbox(msg='Select %s folder:' % folder_name,
+                               title='%s-v%s' %(proj_name, proj_ver),
                                default=folder)
         if not folder:
             exit('User abort.')
@@ -130,7 +130,7 @@ def main(*args):
     proj_file2 = os.path.dirname(proj_file)
     opts = docopt(__doc__,
                   argv=args or sys.argv[1:],
-                  version='%s %s at %s' % (proj_name, proj_ver, proj_file2))
+                  version='%s-%s at %s' % (proj_name, proj_ver, proj_file2))
     if opts['template']:
         _create_input_template(opts)
     elif opts['example']:

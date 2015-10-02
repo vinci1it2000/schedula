@@ -29,7 +29,8 @@ rm -rf build/* dist/*
 python setup.py build bdist_wheel sdist
 
 ## Build docs
-gitver="$(git describe --tags)"
+gitver="`git describe --tags`"
+gitver="${gitver:1}"
 zipfolder="co2mpas-doc-$gitver"
 docdir="build/doc/$zipfolder"
 mkdir -p build/doc
