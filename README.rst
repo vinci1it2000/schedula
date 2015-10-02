@@ -2,7 +2,7 @@
 CO2MPAS: Vehicle simulator predicting NEDC CO2 emissions from WLTP time-series
 ##############################################################################
 
-:Release:       1.0.2b0
+:Release:       1.0.2b1
 :Documentation: http://co2mpas.io/
 :Sources:       https://github.com/JRCSTU/co2mpas
 :Repository:    http://pypi.co2mpas.io/
@@ -212,7 +212,7 @@ CO2MPAS install
         Downloading http://pypi.co2mpas.io/packages/co2mpas-...
         ...
         Installing collected packages: co2mpas
-        Successfully installed co2mpas-1.0.2b0
+        Successfully installed co2mpas-1.0.2b1
 
    .. Warning::
        In case of errors, re-run the command adding the *verbose* flags ``-vv``,
@@ -222,7 +222,7 @@ CO2MPAS install
    installed above::
 
         > co2mpas --version
-        co2mpas-1.0.2b0 at <your-python-folders>\compas
+        co2mpas-1.0.2b1 at <your-python-folders>\compas
 
 
 Upgrade CO2MPAS
@@ -273,10 +273,9 @@ Usage
         To get generic help for *bash* commands (``ls``, ``pwd``, ``cd``, etc),
         you can try any of the VARIOUS tutorials and crash-courses available,
         such as this terse one:
-          http://www.ks.uiuc.edu/Training/Tutorials/Reference/unixprimer.html
-
+        http://www.ks.uiuc.edu/Training/Tutorials/Reference/unixprimer.html
         or this more detailed guide (just ignore the linux-specific part):
-          http://linuxcommand.org/lc3_lts0020.php
+        http://linuxcommand.org/lc3_lts0020.php
 
 
 First ensure that the latest version of CO2MPAS is properly installed, and that
