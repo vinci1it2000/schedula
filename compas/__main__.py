@@ -2,22 +2,24 @@
 Predict NEDC CO2 emissions from WLTP cycles.
 
 Usage:
-    co2mpas [--more-output] [--no-warn-gui] [--plot-workflow] [-I <folder>]  [-O <folder>]
-    co2mpas example [-f | --force] <folder>
-    co2mpas template [-f | --force] <excel-file> ...
+    co2mpas [--more-output] [--no-warn-gui] [--plot-workflow] [-I <folder>] [-O <folder>]
+    co2mpas example [--force] <folder>
+    co2mpas template [--force] <excel-file-path> ...
     co2mpas --help
     co2mpas --version
 
--I <folder>             Input folder, prompted with GUI if missing.
-                        [default: ./input]
--O <folder>             Input folder, prompted with GUI if missing.
-                        [default: ./output]
---more-output           Output also per-vehicle output-files.
---no-warn-gui           Does not pause batch-run to report inconsistencies.
---plot-workflow         Show workflow in browser, after run finished.
--f --force              Overwrite template/sample excel-file(s).
+-I <folder>      Input folder, prompted with GUI if missing [default: ./input]
+-O <folder>      Input folder, prompted with GUI if missing [default: ./output]
+--more-output    Output also per-vehicle output-files.
+--no-warn-gui    Does not pause batch-run to report inconsistencies.
+--plot-workflow  Show workflow in browser, after run finished.
+-F, --force      Overwrite template/sample excel-file(s).
 
-* The 1st form runs the simulation for all excel-files found in the input-folder.
+
+Sub-commands:
+    example   Generate demo input-files in the <folder> specified.
+    template  Generate "empty" input-file at <excel-file-path>.
+* The next 2 forms generate input-files at the locations specified.
 * Items enclosed in `[]` are optional.
 
 Examples:
@@ -43,6 +45,9 @@ from docopt import docopt
 from compas import __version__ as proj_ver, __file__ as proj_file
 
 
+class CmdException(Exception):
+    pass
+
 proj_name = 'co2mpas'
 
 
@@ -52,16 +57,18 @@ def _get_input_template_fpath():
 
 
 def _create_input_template(opts):
-    dst_fpaths = opts['<excel-file>']
+    dst_fpaths = opts['<excel-file-path>']
     force = opts['--force']
     for fpath in dst_fpaths:
         fpath = os.path.abspath(fpath)
         if not fpath.endswith('.xlsx'):
             fpath = '%s.xlsx' % fpath
         if os.path.exists(fpath) and not force:
-            exit("File '%s' already exists! Use '-f' to overwrite it." % fpath)
+            raise CmdException(
+                "File '%s' already exists! Use '-f' to overwrite it." % fpath)
         if os.path.isdir(fpath):
-            exit("Expecting a file-name instead of directory '%s'!" % fpath)
+            raise CmdException(
+                "Expecting a file-name instead of directory '%s'!" % fpath)
 
         print("Creating co2mpas TEMPLATE input-file '%s'..." % fpath,
               file=sys.stderr)
@@ -83,15 +90,17 @@ def _copy_sample_files(opts):
     force = opts['--force']
     dst_folder = os.path.abspath(dst_folder)
     if not os.path.exists(dst_folder):
-        exit("Destination folder '%s' does not exist!" % dst_folder)
+        raise CmdException(
+            "Destination folder '%s' does not exist!" % dst_folder)
     if not os.path.isdir(dst_folder):
-        exit("Destination '%s' is not a <folder>!" % dst_folder)
+        raise CmdException(
+            "Destination '%s' is not a <folder>!" % dst_folder)
 
     for src_fpath in _get_sample_files():
         dst_fpath = os.path.join(dst_folder, os.path.basename(src_fpath))
         if os.path.exists(dst_fpath) and not force:
             print("Skipping file '%s', already exists! Use '-f' to overwrite it." %
-                 dst_fpath, file=sys.stderr)
+                  dst_fpath, file=sys.stderr)
         else:
             print("Creating co2mpas EXAMPLE input-file '%s'..." % dst_fpath,
                   file=sys.stderr)
@@ -105,10 +114,10 @@ def _prompt_folder(folder_name, folder):
         print('Cannot find %s folder: %r' % (folder_name, folder),
               file=sys.stderr)
         folder = eu.diropenbox(msg='Select %s folder:' % folder_name,
-                               title='%s-v%s' %(proj_name, proj_ver),
+                               title='%s-v%s' % (proj_name, proj_ver),
                                default=folder)
         if not folder:
-            exit('User abort.')
+            raise CmdException('User abort.')
     return folder
 
 
@@ -129,7 +138,9 @@ def _run_simulation(opts):
                          gen_outfiles_per_vehicle=opts['--more-output'])
 
 
-def main(*args):
+def _main(*args):
+    """Does not ``sys.exit()`` like :func:`main()` but throws any exception."""
+
     proj_file2 = os.path.dirname(proj_file)
     opts = docopt(__doc__,
                   argv=args or sys.argv[1:],
@@ -140,6 +151,13 @@ def main(*args):
         _copy_sample_files(opts)
     else:
         _run_simulation(opts)
+
+
+def main(*args):
+    try:
+        _main(*args)
+    except CmdException as ex:
+        exit(ex.args[0])
 
 if __name__ == '__main__':
     main()
