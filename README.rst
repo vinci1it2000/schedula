@@ -3,11 +3,13 @@ CO2MPAS: Vehicle simulator predicting NEDC CO2 emissions from WLTP time-series
 ##############################################################################
 
 :Release:       1.0.2b1
-:Documentation: http://co2mpas.io/
+:Home:          http://co2mpas.io/
+:Releases:      http://files.co2mpas.io/
 :Sources:       https://github.com/JRCSTU/co2mpas
-:Repository:    http://pypi.co2mpas.io/
-:Keywords:      CO2, WLTP, NEDC, fuel-consumption, simulator, vehicle,
-                EU, JRC, back-translation, policy, engineering, scientific
+:pypi-repo:     http://pypi.co2mpas.io/
+:Keywords:      CO2, fuel-consumption, WLTP, NEDC, vehicle, simulator,
+                EU, JRC, IET, STU, back-translation, policy,
+                engineering, scientific
 :Developers:    .. include:: ../AUTHORS.rst
 :Copyright:     2015 European Commission (`JRC-IET
                 <https://ec.europa.eu/jrc/en/institutes/iet>`_)
@@ -46,11 +48,11 @@ Quickstart
       You can adapt most UNIX commands with minor modifications
       (i.e. replace ``mkdir --> md``, ``rm --> del`` and ``cygstart --> start``).
 
-    - In Windows you may download and install (unzip) the
-      `Console 2 <http://sourceforge.net/projects/console/>`_
-      application that supports a more decent way to copy-paste
-      (BUT make sure that your command-interpreter contains the correct
-      python installation).
+    - In Windows you may download and install `Portable Git
+      <https://github.com/sheabunge/GitPortable>`_ which contains *bash* and
+      other unix-utilities, run from a *console* supporting decent copy-paste
+      (BUT make sure you run the correct Python installation, by setting
+      your ``PATH`` variable appropriately).
 
     - To get generic help for *bash* commands (``ls``, ``pwd``, ``cd``, etc),
       you can try any of the VARIOUS tutorials and crash-courses available:
@@ -73,7 +75,7 @@ under sections :ref:`begin-install` and :ref:`begin-usage`.
     $ pip install co2mpas --extra-index http://pypi.co2mpas.io/simple/ --trusted-host pypi.co2mpas.io
 
     ## Where to store input and output files.
-    ## In *Windows* use `md` command instead.
+    ## In *Windows* cmd-prompt use `md` command instead.
     $ mkdir input output
 
     ## Create a template excel-file for inputs.

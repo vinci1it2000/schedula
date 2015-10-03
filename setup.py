@@ -101,8 +101,8 @@ setup(
         "calculation", "dependencies", "resolution", "scientific",
         "engineering", "dispatch", "simulink", "graphviz",
     ],
-    url='',
-    license='',
+    url='http://co2mpas.io/',
+    license='EUPL 1.1+',
     author='CO2MPAS-Team',
     author_email='co2mpas@jrc.ec.europa.eu',
     classifiers=[
