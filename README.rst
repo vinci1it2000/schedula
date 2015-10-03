@@ -66,7 +66,7 @@ IF you have familiarity with v1 release AND IF you already have a full-blown
 the following console-commands; otherwise follow the detailed instructions
 under sections :ref:`begin-install` and :ref:`begin-usage`.
 
-.. code-block:: bash
+.. code-block:: console
 
     ## Install co2mpas.
     ## NOTE: If behind proxy, specify additionally this option:
@@ -291,28 +291,48 @@ vehicle run.
 To get the syntax of the ``co2mpas`` console-command, open a console where
 you have installed CO2MPAS (see :ref:`begin-install` above) and type:
 
-.. code-block:: bash
+.. code-block:: console
 
     $ co2mpas --help
     Predict NEDC CO2 emissions from WLTP cycles.
 
     Usage:
-        co2mpas [options] [-I <folder>]  [-O <folder>]
-        co2mpas example [-f | --force] <folder>
-        co2mpas template [-f | --force] <excel-file> ...
+        co2mpas [simulate] [--more-output] [--no-warn-gui] [--plot-workflow] [-I <folder>] [-O <folder>]
+        co2mpas example    [--force] <folder>
+        co2mpas template   [--force] <excel-file-path> ...
+        co2mpas ipynb      [--force] <folder>
         co2mpas --help
         co2mpas --version
 
-    -I <folder>             Input folder, prompted with GUI if missing.
-                            [default: ./input]
-    -O <folder>             Input folder, prompted with GUI if missing.
-                            [default: ./output]
-    --more-output           Output also per-vehicle output-files.
-    --no-warn-gui           Does not pause batch-run to report inconsistencies.
-    --plot-workflow         Show workflow in browser, after run finished.
-    -f --force              Overwrite template/sample excel-file(s).
+    -I <folder>      Input folder, prompted with GUI if missing [default: ./input]
+    -O <folder>      Input folder, prompted with GUI if missing [default: ./output]
+    --more-output    Output also per-vehicle output-files.
+    --no-warn-gui    Does not pause batch-run to report inconsistencies.
+    --plot-workflow  Show workflow in browser, after run finished.
+    -F, --force      Overwrite template/sample excel-file(s).
+
+
+    Sub-commands:
+        simulate [default) Run simulation for all excel-files in input-folder (-I).
+        example  Generate demo input-files inside <folder>.
+        template Generate "empty" input-file at <excel-file-path>.
+        ipynb    Generate IPython notebooks inside <folder>; view them with cmd:
+                    ipython --notebook-dir=<folder>
 
     * Items enclosed in `[]` are optional.
+
+    Examples:
+
+        ## Create sample-vehicles inside the `input` folder.
+        ## (the `input` folder must exist)
+        co2mpas example input
+
+        ## Run the sample-vehicles just created.
+        ## (the `output` folder must exist)
+        co2mpas -I input -O output
+
+        ## Create an empty vehicle-file inside `input` folder.
+        co2mpas template input/vehicle_1.xlsx
 
 Running samples
 ---------------
@@ -321,7 +341,7 @@ are a nice starting point to try out.
 
 1. Choose a folder where you will store the *input* and *output* files:
 
-   .. code-block:: bash
+   .. code-block:: console
 
       $ cd <some-folder>       ## You should have created that hypothetical <some-folder>.
       $ mkdir input output     ## Replace `mkdir` with `md` in *Windows* (`cmd.exe`)
@@ -335,7 +355,7 @@ are a nice starting point to try out.
    sub-command:
 
 
-   .. code-block:: bash
+   .. code-block:: console
 
         $ co2mpas example input
         Creating co2mpas EXAMPLE input-file 'D:\Apps\cygwin64\home\anastkn\Work\tut\input\co2mpas_example_1_full_data.xlsx'...
@@ -347,7 +367,7 @@ are a nice starting point to try out.
 
 4. Run the simulator:
 
-   .. code-block:: bash
+   .. code-block:: console
 
       $ co2mpas -I input -O output
       Processing './input' --> './output'...
@@ -359,7 +379,7 @@ are a nice starting point to try out.
 
 6. Inspect the results:
 
-   .. code-block:: bash
+   .. code-block:: console
 
       $ cygstart output/*summary.xlsx       ## More summaries might exist in the folder from previous runs.
       $ cygstart output                     ## View the folder with all files generated.
@@ -376,7 +396,7 @@ excel-file:
 1. Decide the *input/output* folders.  Assuming we want to re-use the folders
    from the above example, we should just clear everything that they contain:
 
-   .. code-block:: bash
+   .. code-block:: console
 
         $ rm -r ./input/* ./output/*        Replace `rm` with `del` in *Windows* (`cmd.exe`)
 
@@ -384,7 +404,7 @@ excel-file:
 2. Create an empty vehicle template-file (eg. ``vehicle_1.xlsx``) inside
    the *input-folder* with the ``template`` sub-command:
 
-   .. code-block:: bash
+   .. code-block:: console
 
         $ co2mpas template input/vehicle_1.xlsx  ## Note that here we specify the filename, not the folder!
         Creating co2mpas INPUT template-file './input/vehicle_1.xlsx'...
@@ -393,7 +413,7 @@ excel-file:
 3. Open the template excel-file to fill-in your vehicle data
    (and save it afterwards):
 
-   .. code-block:: bash
+   .. code-block:: console
 
       $ cygstart input/vehicle_1.xlsx        ## Opens the excel-file. Use `start` in *cmd.exe*.
 
@@ -409,7 +429,7 @@ excel-file:
 
 4. Run the simulator:
 
-   .. code-block:: bash
+   .. code-block:: console
 
       $ co2mpas -I input -O output
       Processing './input' --> './output'...
@@ -419,7 +439,7 @@ excel-file:
 
 5. Assuming you do receive any error, you may now inspect the results:
 
-   .. code-block:: bash
+   .. code-block:: console
 
       $ cygstart output/*summary.xlsx       ## More summaries might open from previous runs.
       $ cygstart output                     ## View all files generated (see below).

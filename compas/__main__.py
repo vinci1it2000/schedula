@@ -2,9 +2,10 @@
 Predict NEDC CO2 emissions from WLTP cycles.
 
 Usage:
-    co2mpas [--more-output] [--no-warn-gui] [--plot-workflow] [-I <folder>] [-O <folder>]
-    co2mpas example [--force] <folder>
-    co2mpas template [--force] <excel-file-path> ...
+    co2mpas [simulate] [--more-output] [--no-warn-gui] [--plot-workflow] [-I <folder>] [-O <folder>]
+    co2mpas example    [--force] <folder>
+    co2mpas template   [--force] <excel-file-path> ...
+    co2mpas ipynb      [--force] <folder>
     co2mpas --help
     co2mpas --version
 
@@ -17,9 +18,12 @@ Usage:
 
 
 Sub-commands:
-    example   Generate demo input-files in the <folder> specified.
-    template  Generate "empty" input-file at <excel-file-path>.
-* The next 2 forms generate input-files at the locations specified.
+    simulate Run simulation for all excel-files in input-folder (-I).
+    example  Generate demo input-files inside <folder>.
+    template Generate "empty" input-file at <excel-file-path>.
+    ipynb    Generate IPython notebooks inside <folder>; view them with cmd:
+                ipython --notebook-dir=<folder>
+
 * Items enclosed in `[]` are optional.
 
 Examples:
@@ -51,12 +55,17 @@ class CmdException(Exception):
 proj_name = 'co2mpas'
 
 
+def _cmd_ipynb(opts):
+    raise NotImplementedError()
+
+
+
 def _get_input_template_fpath():
     return pkg_resources.resource_filename(__name__,  # @UndefinedVariable
                                            'co2mpas_template.xlsx')
 
 
-def _create_input_template(opts):
+def _cmd_template(opts):
     dst_fpaths = opts['<excel-file-path>']
     force = opts['--force']
     for fpath in dst_fpaths:
@@ -85,7 +94,7 @@ def _get_sample_files():
             for f in samples]
 
 
-def _copy_sample_files(opts):
+def _cmd_example(opts):
     dst_folder = opts['<folder>']
     force = opts['--force']
     dst_folder = os.path.abspath(dst_folder)
@@ -145,10 +154,13 @@ def _main(*args):
     opts = docopt(__doc__,
                   argv=args or sys.argv[1:],
                   version='%s-%s at %s' % (proj_name, proj_ver, proj_file2))
+
     if opts['template']:
-        _create_input_template(opts)
+        _cmd_template(opts)
     elif opts['example']:
-        _copy_sample_files(opts)
+        _cmd_example(opts)
+    elif opts['ipynb']:
+        _cmd_ipynb(opts)
     else:
         _run_simulation(opts)
 
