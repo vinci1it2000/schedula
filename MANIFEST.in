@@ -2,4 +2,4 @@ include README.md LICENSE.txt AUTHORS.rst CHANGES.rst
 recursive-include requirements *
 
 include compas/co2mpas_template.xlsx
-recursive-include compas/samples *
+recursive-include compas/demo_input *

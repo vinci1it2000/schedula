@@ -2,7 +2,7 @@
 Predict NEDC CO2 emissions from WLTP cycles.
 
 Usage:
-    co2mpas [options] [-I <folder>]  [-O <folder>]
+    co2mpas [--more-output] [--no-warn-gui] [--plot-workflow] [-I <folder>]  [-O <folder>]
     co2mpas example [-f | --force] <folder>
     co2mpas template [-f | --force] <excel-file> ...
     co2mpas --help
@@ -17,6 +17,7 @@ Usage:
 --plot-workflow         Show workflow in browser, after run finished.
 -f --force              Overwrite template/sample excel-file(s).
 
+* The 1st form runs the simulation for all excel-files found in the input-folder.
 * Items enclosed in `[]` are optional.
 
 Examples:
@@ -68,10 +69,12 @@ def _create_input_template(opts):
 
 
 def _get_sample_files():
+    """Rename `demo_input` folder also in `setup.py` & `MANIFEST.in`."""
+
     samples = pkg_resources.resource_listdir(__name__,  # @UndefinedVariable
-                                             'samples')
+                                             'demo_input')
     return [pkg_resources.resource_filename(__name__,  # @UndefinedVariable
-                                            os.path.join('samples', f))
+                                            os.path.join('demo_input', f))
             for f in samples]
 
 
