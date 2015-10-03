@@ -18,7 +18,7 @@ Usage:
 
 
 Sub-commands:
-    simulate Run simulation for all excel-files in input-folder (-I).
+    simulate [default] Run simulation for all excel-files in input-folder (-I).
     example  Generate demo input-files inside <folder>.
     template Generate "empty" input-file at <excel-file-path>.
     ipynb    Generate IPython notebooks inside <folder>; view them with cmd:

@@ -59,8 +59,8 @@ class Doctest(unittest.TestCase):
         mydir = os.path.dirname(__file__)
         with open(readme_path) as fd:
             ftext = fd.read()
+            msg = "Main help-line[%s] missing from README: \n  %s"
             for i, l in enumerate(help_msg.split('\n')):
                 l = l.strip()
-                self.assertIn(l, ftext,
-                              "main's help-msg line[%i] not found in README: %s" %
-                              (i, l))
+                if l:
+                    assert l in ftext, msg % (i, l)
