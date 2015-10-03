@@ -3,7 +3,7 @@ Predict NEDC CO2 emissions from WLTP cycles.
 
 Usage:
     co2mpas [simulate] [--more-output] [--no-warn-gui] [--plot-workflow] [-I <folder>] [-O <folder>]
-    co2mpas example    [--force] <folder>
+    co2mpas demo       [--force] <folder>
     co2mpas template   [--force] <excel-file-path> ...
     co2mpas ipynb      [--force] <folder>
     co2mpas --help
@@ -18,10 +18,10 @@ Usage:
 
 
 Sub-commands:
-    simulate [default] Run simulation for all excel-files in input-folder (-I).
-    example  Generate demo input-files inside <folder>.
-    template Generate "empty" input-file at <excel-file-path>.
-    ipynb    Generate IPython notebooks inside <folder>; view them with cmd:
+    simulate  [default] Run simulation for all excel-files in input-folder (-I).
+    demo      Generate demo input-files inside <folder>.
+    template  Generate "empty" input-file at <excel-file-path>.
+    ipynb     Generate IPython notebooks inside <folder>; view them with cmd:
                 ipython --notebook-dir=<folder>
 
 * Items enclosed in `[]` are optional.
@@ -30,7 +30,7 @@ Examples:
 
     ## Create sample-vehicles inside the `input` folder.
     ## (the `input` folder must exist)
-    co2mpas example input
+    co2mpas demo input
 
     ## Run the sample-vehicles just created.
     ## (the `output` folder must exist)
@@ -113,7 +113,7 @@ def _cmd_template(opts):
 
 
 def _get_internal_file_streams(internal_folder, incl_regex=None):
-    """Rename `demo_input` folder also in `setup.py` & `MANIFEST.in`."""
+    """NOTE: Add internal-files also in `setup.py` & `MANIFEST.in`."""
 
     samples = pkg_resources.resource_listdir(__name__, internal_folder) # @UndefinedVariable
     if incl_regex:
@@ -124,11 +124,11 @@ def _get_internal_file_streams(internal_folder, incl_regex=None):
             if not incl_regex or incl_regex.match(f)}
 
 
-def _cmd_example(opts):
+def _cmd_demo(opts):
     dst_folder = opts['<folder>']
     force = opts['--force']
-    file_category = 'EXAMPLE INPUT'
-    file_stream_pairs = _get_internal_file_streams('demo_input', r'.*\.xlsx$')
+    file_category = 'DEMO INPUT'
+    file_stream_pairs = _get_internal_file_streams('demos', r'.*\.xlsx$')
     file_stream_pairs = sorted(file_stream_pairs.items())
     _generate_files_from_streams(dst_folder, file_stream_pairs,
                                  force, file_category)
@@ -175,8 +175,8 @@ def _main(*args):
 
     if opts['template']:
         _cmd_template(opts)
-    elif opts['example']:
-        _cmd_example(opts)
+    elif opts['demo']:
+        _cmd_demo(opts)
     elif opts['ipynb']:
         _cmd_ipynb(opts)
     else:

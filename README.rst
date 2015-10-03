@@ -298,7 +298,7 @@ you have installed CO2MPAS (see :ref:`begin-install` above) and type:
 
     Usage:
         co2mpas [simulate] [--more-output] [--no-warn-gui] [--plot-workflow] [-I <folder>] [-O <folder>]
-        co2mpas example    [--force] <folder>
+        co2mpas demo       [--force] <folder>
         co2mpas template   [--force] <excel-file-path> ...
         co2mpas ipynb      [--force] <folder>
         co2mpas --help
@@ -313,10 +313,10 @@ you have installed CO2MPAS (see :ref:`begin-install` above) and type:
 
 
     Sub-commands:
-        simulate [default] Run simulation for all excel-files in input-folder (-I).
-        example  Generate demo input-files inside <folder>.
-        template Generate "empty" input-file at <excel-file-path>.
-        ipynb    Generate IPython notebooks inside <folder>; view them with cmd:
+        simulate  [default] Run simulation for all excel-files in input-folder (-I).
+        demo      Generate demo input-files inside <folder>.
+        template  Generate "empty" input-file at <excel-file-path>.
+        ipynb     Generate IPython notebooks inside <folder>; view them with cmd:
                     ipython --notebook-dir=<folder>
 
     * Items enclosed in `[]` are optional.
@@ -325,7 +325,7 @@ you have installed CO2MPAS (see :ref:`begin-install` above) and type:
 
         ## Create sample-vehicles inside the `input` folder.
         ## (the `input` folder must exist)
-        co2mpas example input
+        co2mpas demo input
 
         ## Run the sample-vehicles just created.
         ## (the `output` folder must exist)
@@ -351,18 +351,18 @@ are a nice starting point to try out.
     It is only for demonstration purposes that we decided to group them both
     under a hypothetical ``some-folder``.
 
-3. Create the example vehicles inside the *input-folder* with the ``template``
+3. Create the demo vehicles inside the *input-folder* with the ``template``
    sub-command:
 
 
    .. code-block:: console
 
-        $ co2mpas example input
-        Creating EXAMPLE INPUT file 'D:\Apps\cygwin64\home\anastkn\Work\tut\input\co2mpas_example_1_full_data.xlsx'...
-        Creating EXAMPLE INPUT file 'D:\Apps\cygwin64\home\anastkn\Work\tut\input\co2mpas_example_2_wltp_high_only.xlsx'...
-        Creating EXAMPLE INPUT file 'D:\Apps\cygwin64\home\anastkn\Work\tut\input\co2mpas_example_3_wltp_low_only.xlsx'...
-        Creating EXAMPLE INPUT file 'D:\Apps\cygwin64\home\anastkn\Work\tut\input\co2mpas_example_4_baseline_no_battery_currents - Copy.xlsx'...
-        Creating EXAMPLE INPUT file 'D:\Apps\cygwin64\home\anastkn\Work\tut\input\co2mpas_example_5_baseline_no_gears.xlsx'...
+        $ co2mpas demo input
+        Creating DEMO INPUT file 'D:\Apps\cygwin64\home\anastkn\Work\tut\input\co2mpas_demo_1_full_data.xlsx'...
+        Creating DEMO INPUT file 'D:\Apps\cygwin64\home\anastkn\Work\tut\input\co2mpas_demo_2_wltp_high_only.xlsx'...
+        Creating DEMO INPUT file 'D:\Apps\cygwin64\home\anastkn\Work\tut\input\co2mpas_demo_3_wltp_low_only.xlsx'...
+        Creating DEMO INPUT file 'D:\Apps\cygwin64\home\anastkn\Work\tut\input\co2mpas_demo_4_baseline_no_battery_currents - Copy.xlsx'...
+        Creating DEMO INPUT file 'D:\Apps\cygwin64\home\anastkn\Work\tut\input\co2mpas_demo_5_baseline_no_gears.xlsx'...
 
 
 4. Run the simulator:
@@ -371,7 +371,7 @@ are a nice starting point to try out.
 
       $ co2mpas -I input -O output
       Processing './input' --> './output'...
-      Processing: co2mpas_example_1_full_data
+      Processing: co2mpas_demo_1_full_data
       ...
       ...
       Done! [90.765501 sec]

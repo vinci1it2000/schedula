@@ -151,7 +151,7 @@ setup(
     ],
     packages=find_packages(exclude=['tests', 'doc']),
     package_data={'compas': [
-            'demo_input/*.xlsx',
+            'demos/*.xlsx',
             'ipynbs/*.ipynb',
             'co2mpas_template.xlsx',
     ]},

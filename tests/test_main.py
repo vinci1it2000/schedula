@@ -45,12 +45,12 @@ class Main(unittest.TestCase):
             self.assertSetEqual(set(files), set(exp_files))
 
     def test_Gen_demo_inputs(self):
-        exp_path = ('..', 'compas', 'demo_input', '*.xlsx')
+        exp_path = ('..', 'compas', 'demos', '*.xlsx')
         exp_files = [os.path.basename(f)
                      for f in glob.glob(os.path.join(*exp_path))]
 
         with tempfile.TemporaryDirectory() as d:
-            cmd = "example %s" % d
+            cmd = "demo %s" % d
             compas_main._main(*cmd.split())
             files = os.listdir(path=d)
             self.assertSetEqual(set(files), set(exp_files))
@@ -65,7 +65,7 @@ class Main(unittest.TestCase):
     @unittest.skip  #Takes too long.
     def test_run_demos(self):
         with tempfile.TemporaryDirectory() as inp, tempfile.TemporaryDirectory() as out:
-            cmd = "example %s" % inp
+            cmd = "demo %s" % inp
             compas_main._main(*cmd.split())
             cmd = "-I %s -O %s" % (inp, out)
             compas_main._main(*cmd.split())
