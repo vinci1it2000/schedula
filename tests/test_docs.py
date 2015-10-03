@@ -35,7 +35,7 @@ class Doctest(unittest.TestCase):
                     msg = "Version(%s) not found in README %s header-lines!"
                     raise AssertionError(msg % (ver, header_len))
 
-    def test_README_version_cmdline(self):
+    def test_README_version_from_cmdline(self):
         ver = compas.__version__
         mydir = os.path.dirname(__file__)
         with open(readme_path) as fd:
@@ -46,7 +46,21 @@ class Doctest(unittest.TestCase):
                 except SystemExit as ex:
                     pass
             ver_str = stdout.getvalue().strip()
-            proj_ver = re.match('([^ ]+)', ver_str).group(1)
+            assert ver_str
+            m = re.match('(co2mpas-[^ ]+)', ver_str)
+            self.assertIsNotNone(m, 'Version(%s) not found!' % ver_str)
+            proj_ver = m.group(1)
             self.assertIn('%s ' % proj_ver, ftext,
                           "Version(%s) not found in README cmd-line version-check!" %
                           ver)
+
+    def test_README_contains_main_help_msg(self):
+        help_msg = compas_main.__doc__  # @UndefinedVariable
+        mydir = os.path.dirname(__file__)
+        with open(readme_path) as fd:
+            ftext = fd.read()
+            for i, l in enumerate(help_msg.split('\n')):
+                l = l.strip()
+                self.assertIn(l, ftext,
+                              "main's help-msg line[%i] not found in README: %s" %
+                              (i, l))
