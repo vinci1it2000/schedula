@@ -40,13 +40,14 @@ Examples:
     co2mpas template input/vehicle_1.xlsx
 
 """
-import sys
-import os
-import shutil
-import pkg_resources
-from docopt import docopt
-
 from compas import __version__ as proj_ver, __file__ as proj_file
+import os
+import re
+import shutil
+import sys
+
+from docopt import docopt
+import pkg_resources
 
 
 class CmdException(Exception):
@@ -55,9 +56,35 @@ class CmdException(Exception):
 proj_name = 'co2mpas'
 
 
-def _cmd_ipynb(opts):
-    raise NotImplementedError()
+def _generate_files_from_streams(dst_folder, file_stream_pairs, force, file_category):
+    dst_folder = os.path.abspath(dst_folder)
+    if not os.path.exists(dst_folder):
+        raise CmdException(
+            "Destination folder '%s' does not exist!" % dst_folder)
+    if not os.path.isdir(dst_folder):
+        raise CmdException(
+            "Destination '%s' is not a <folder>!" % dst_folder)
 
+    for src_fname, stream in file_stream_pairs:
+        dst_fpath = os.path.join(dst_folder, src_fname)
+        if os.path.exists(dst_fpath) and not force:
+            print("Creating %s file '%s' skipped, already exists! \n  Use '-F' to overwrite it." %
+                  (file_category, dst_fpath), file=sys.stderr)
+        else:
+            print("Creating %s file '%s'..." %
+                  (file_category, dst_fpath), file=sys.stderr)
+            with open(dst_fpath, 'wb') as fd:
+                shutil.copyfileobj(stream, fd, 16 * 1024)
+
+
+def _cmd_ipynb(opts):
+    dst_folder = opts['<folder>']
+    force = opts['--force']
+    file_category = 'IPYTHON NOTEBOOKS'
+    file_stream_pairs = _get_internal_file_streams('ipynbs', r'.*\.ipynb$')
+    file_stream_pairs = sorted(file_stream_pairs.items())
+    _generate_files_from_streams(dst_folder, file_stream_pairs,
+                                 force, file_category)
 
 def _get_input_template_fpath():
     fname = 'co2mpas_template.xlsx'
@@ -73,49 +100,38 @@ def _cmd_template(opts):
             fpath = '%s.xlsx' % fpath
         if os.path.exists(fpath) and not force:
             raise CmdException(
-                "File '%s' already exists! Use '-f' to overwrite it." % fpath)
+                "Writing file '%s' skipped, already exists! Use '-f' to overwrite it." % fpath)
         if os.path.isdir(fpath):
             raise CmdException(
                 "Expecting a file-name instead of directory '%s'!" % fpath)
 
-        print("Creating co2mpas TEMPLATE input-file '%s'..." % fpath,
+        print("Creating TEMPLATE INPUT file '%s'..." % fpath,
               file=sys.stderr)
         stream = _get_input_template_fpath()
         with open(fpath, 'wb') as fd:
             shutil.copyfileobj(stream, fd, 16 * 1024)
 
 
-def _get_demo_input_files():
+def _get_internal_file_streams(internal_folder, incl_regex=None):
     """Rename `demo_input` folder also in `setup.py` & `MANIFEST.in`."""
 
-    samples = pkg_resources.resource_listdir(__name__,  # @UndefinedVariable
-                                             'demo_input')
+    samples = pkg_resources.resource_listdir(__name__, internal_folder) # @UndefinedVariable
+    if incl_regex:
+        incl_regex = re.compile(incl_regex)
     return {f: pkg_resources.resource_stream(__name__,  # @UndefinedVariable
-                                             os.path.join('demo_input', f))
-            for f in samples}
+                                             os.path.join(internal_folder, f))
+            for f in samples
+            if not incl_regex or incl_regex.match(f)}
 
 
 def _cmd_example(opts):
     dst_folder = opts['<folder>']
     force = opts['--force']
-    dst_folder = os.path.abspath(dst_folder)
-    if not os.path.exists(dst_folder):
-        raise CmdException(
-            "Destination folder '%s' does not exist!" % dst_folder)
-    if not os.path.isdir(dst_folder):
-        raise CmdException(
-            "Destination '%s' is not a <folder>!" % dst_folder)
-
-    for src_fname, stream in sorted(_get_demo_input_files().items()):
-        dst_fpath = os.path.join(dst_folder, src_fname)
-        if os.path.exists(dst_fpath) and not force:
-            print("Skipping file '%s', already exists! Use '-f' to overwrite it." %
-                  dst_fpath, file=sys.stderr)
-        else:
-            print("Creating co2mpas EXAMPLE input-file '%s'..." % dst_fpath,
-                  file=sys.stderr)
-            with open(dst_fpath, 'wb') as fd:
-                shutil.copyfileobj(stream, fd, 16 * 1024)
+    file_category = 'EXAMPLE INPUT'
+    file_stream_pairs = _get_internal_file_streams('demo_input', r'.*\.xlsx$')
+    file_stream_pairs = sorted(file_stream_pairs.items())
+    _generate_files_from_streams(dst_folder, file_stream_pairs,
+                                 force, file_category)
 
 
 def _prompt_folder(folder_name, folder):

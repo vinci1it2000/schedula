@@ -3,3 +3,4 @@ recursive-include requirements *
 
 include compas/co2mpas_template.xlsx
 recursive-include compas/demo_input *
+recursive-include compas/ipynbs *

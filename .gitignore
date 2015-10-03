@@ -66,3 +66,5 @@ target/
 /.project
 /.pydevproject
 /.settings
+/compas/ipynbs/.ipynb_checkpoints/
+
