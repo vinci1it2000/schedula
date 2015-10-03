@@ -54,3 +54,18 @@ class Main(unittest.TestCase):
             compas_main._main(*cmd.split())
             files = os.listdir(path=d)
             self.assertSetEqual(set(files), set(exp_files))
+
+    def test_run_empty(self):
+        with tempfile.TemporaryDirectory() as inp, tempfile.TemporaryDirectory() as out:
+            cmd = "template %s/tt" % inp
+            compas_main._main(*cmd.split())
+            cmd = "-I %s -O %s" % (inp, out)
+            compas_main._main(*cmd.split())
+
+    @unittest.skip  #Takes too long.
+    def test_run_demos(self):
+        with tempfile.TemporaryDirectory() as inp, tempfile.TemporaryDirectory() as out:
+            cmd = "example %s" % inp
+            compas_main._main(*cmd.split())
+            cmd = "-I %s -O %s" % (inp, out)
+            compas_main._main(*cmd.split())
