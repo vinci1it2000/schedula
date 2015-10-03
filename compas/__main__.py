@@ -59,10 +59,9 @@ def _cmd_ipynb(opts):
     raise NotImplementedError()
 
 
-
 def _get_input_template_fpath():
-    return pkg_resources.resource_filename(__name__,  # @UndefinedVariable
-                                           'co2mpas_template.xlsx')
+    fname = 'co2mpas_template.xlsx'
+    return pkg_resources.resource_stream(__name__, fname)  # @UndefinedVariable
 
 
 def _cmd_template(opts):
@@ -81,17 +80,19 @@ def _cmd_template(opts):
 
         print("Creating co2mpas TEMPLATE input-file '%s'..." % fpath,
               file=sys.stderr)
-        shutil.copy(_get_input_template_fpath(), fpath)
+        stream = _get_input_template_fpath()
+        with open(fpath, 'wb') as fd:
+            shutil.copyfileobj(stream, fd, 16 * 1024)
 
 
-def _get_sample_files():
+def _get_demo_input_files():
     """Rename `demo_input` folder also in `setup.py` & `MANIFEST.in`."""
 
     samples = pkg_resources.resource_listdir(__name__,  # @UndefinedVariable
                                              'demo_input')
-    return [pkg_resources.resource_filename(__name__,  # @UndefinedVariable
-                                            os.path.join('demo_input', f))
-            for f in samples]
+    return {f: pkg_resources.resource_stream(__name__,  # @UndefinedVariable
+                                             os.path.join('demo_input', f))
+            for f in samples}
 
 
 def _cmd_example(opts):
@@ -105,15 +106,16 @@ def _cmd_example(opts):
         raise CmdException(
             "Destination '%s' is not a <folder>!" % dst_folder)
 
-    for src_fpath in _get_sample_files():
-        dst_fpath = os.path.join(dst_folder, os.path.basename(src_fpath))
+    for src_fname, stream in sorted(_get_demo_input_files().items()):
+        dst_fpath = os.path.join(dst_folder, src_fname)
         if os.path.exists(dst_fpath) and not force:
             print("Skipping file '%s', already exists! Use '-f' to overwrite it." %
                   dst_fpath, file=sys.stderr)
         else:
             print("Creating co2mpas EXAMPLE input-file '%s'..." % dst_fpath,
                   file=sys.stderr)
-            shutil.copy(src_fpath, dst_fpath)
+            with open(dst_fpath, 'wb') as fd:
+                shutil.copyfileobj(stream, fd, 16 * 1024)
 
 
 def _prompt_folder(folder_name, folder):

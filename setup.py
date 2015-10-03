@@ -152,7 +152,7 @@ setup(
     packages=find_packages(exclude=['tests', 'doc']),
     package_data={'compas': ['demo_input/*.xlsx', 'co2mpas_template.xlsx']},
     include_package_data=True,
-    zip_safe=False,
+    zip_safe=True,
     test_suite='nose.collector',
     tests_require=['nose>=1.0'],
     entry_points={
