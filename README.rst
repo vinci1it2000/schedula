@@ -363,7 +363,8 @@ are a nice starting point to try out.
         Creating DEMO INPUT file 'D:\Apps\cygwin64\home\anastkn\Work\tut\input\co2mpas_demo_3_wltp_low_only.xlsx'...
         Creating DEMO INPUT file 'D:\Apps\cygwin64\home\anastkn\Work\tut\input\co2mpas_demo_4_baseline_no_battery_currents - Copy.xlsx'...
         Creating DEMO INPUT file 'D:\Apps\cygwin64\home\anastkn\Work\tut\input\co2mpas_demo_5_baseline_no_gears.xlsx'...
-
+        You may run DEMOS with:
+            co2mpas simulate -I input
 
 4. Run the simulator:
 

@@ -132,7 +132,8 @@ def _cmd_demo(opts):
     file_stream_pairs = sorted(file_stream_pairs.items())
     _generate_files_from_streams(dst_folder, file_stream_pairs,
                                  force, file_category)
-
+    msg = "You may run DEMOS with:\n    co2mpas simulate -I %s"
+    print(msg % dst_folder, file=sys.stderr)
 
 def _prompt_folder(folder_name, folder):
     import easygui as eu
