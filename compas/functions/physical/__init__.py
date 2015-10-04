@@ -4,7 +4,6 @@
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
-
 """
 Contains a comprehensive list of all functions/formulas within CO2MPAS.
 
@@ -37,7 +36,9 @@ from easygui import buttonbox
 from ...dispatcher import Dispatcher
 import numpy as np
 from itertools import zip_longest, chain
+import logging
 
+log = logging.getLogger(__name__)
 
 def _compare_result(
         outputs_ids, target_ids, model_results, target_results,
@@ -420,8 +421,8 @@ def model_selector(*calibration_outputs, hide_warn_msgbox=False):
             origin.update(dict.fromkeys(mods, rank[0][0]))
             origin_errors.update(dict.fromkeys(mods, rank))
 
-            print('Models %s are selected from %s (%.3f) respect to targets %s'
-                  '.\nErrors %s.' % (mods, rank[0][0], rank[0][1], trgs, rank))
+            msg = 'Models %s are selected from %s (%.3f) respect to targets %s.\n  Errors: %s.'
+            log.info(msg, mods, rank[0][0], rank[0][1], trgs, rank)
 
     return models
 
@@ -469,8 +470,8 @@ def _extract_models(calibration_outputs, models_to_extract):
 
     if heap:
         models['cold_start_speed_model'] = heap[0][-1]
-        #print('cold_start_speed_model: %s with mean_absolute_error %.3f [RPM] '
-        #      % (heap[0][1], heap[0][0]))
+        log.debug('cold_start_speed_model: %s with mean_absolute_error %.3f [RPM].',
+                  heap[0][1], heap[0][0])
         heap = [(v[1], v[0]) for v in sorted(heap)]
         calibration_outputs['errors cold_start_speed_model'] = heap
 
@@ -502,7 +503,7 @@ def _extract_models(calibration_outputs, models_to_extract):
         m = [(v[-1], {t: v for t, v in zip(tags, v[1])}) for v in sorted(m)]
         calibration_outputs['errors AT_gear_shifting_model'] = m
 
-        #print('AT_gear_shifting_model: %s with mean_absolute_error %.3f [RPM] '
-        #      'and correlation_coefficient %.3f' % (k, e[0], e[1]))
+        log.debug('AT_gear_shifting_model: %s with mean_absolute_error %.3f [RPM].'
+                  'and correlation_coefficient %.3f.', k, e[0], e[1])
 
     return models

@@ -4,15 +4,19 @@
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
-
 """
 It contains functions to write prediction outputs.
 """
 
 
 from heapq import heappush
+import logging
+
 import numpy as np
 import pandas as pd
+
+
+log = logging.getLogger(__name__)
 
 
 def parse_name(name):
@@ -56,7 +60,7 @@ def write_output(output, file_name, sheet_names):
     :type sheet_names: (str, str)
     """
 
-    print(file_name)
+    log.info("Writing output-file: %s", file_name)
     writer = pd.ExcelWriter(file_name)
 
     from .read_inputs import get_filters

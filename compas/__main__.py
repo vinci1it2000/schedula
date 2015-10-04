@@ -2,7 +2,8 @@
 Predict NEDC CO2 emissions from WLTP cycles.
 
 Usage:
-    co2mpas [simulate] [--more-output] [--no-warn-gui] [--plot-workflow] [-I <folder>] [-O <folder>]
+    co2mpas [simulate] [--more-output] [--no-warn-gui] [--plot-workflow] [--verbose]
+                       [-I <folder>] [-O <folder>]
     co2mpas demo       [--force] <folder>
     co2mpas template   [--force] <excel-file-path> ...
     co2mpas ipynb      [--force] <folder>
@@ -15,6 +16,7 @@ Usage:
 --no-warn-gui    Does not pause batch-run to report inconsistencies.
 --plot-workflow  Show workflow in browser, after run finished.
 -F, --force      Overwrite template/sample excel-file(s).
+-v, --verbose    Print more verbosely messages.
 
 
 Sub-commands:
@@ -28,19 +30,20 @@ Sub-commands:
 
 Examples:
 
-    ## Create sample-vehicles inside the `input` folder.
-    ## (the `input` folder must exist)
+    # Create sample-vehicles inside the `input` folder.
+    # (the `input` folder must exist)
     co2mpas demo input
 
-    ## Run the sample-vehicles just created.
-    ## (the `output` folder must exist)
+    # Run the sample-vehicles just created.
+    # (the `output` folder must exist)
     co2mpas -I input -O output
 
-    ## Create an empty vehicle-file inside `input` folder.
+    # Create an empty vehicle-file inside `input` folder.
     co2mpas template input/vehicle_1.xlsx
 
 """
 from compas import __version__ as proj_ver, __file__ as proj_file
+import logging
 import os
 import re
 import shutil
@@ -55,6 +58,14 @@ class CmdException(Exception):
 
 proj_name = 'co2mpas'
 
+log = logging.getLogger(__name__)
+
+
+def _init_logging(verbose):
+    frmt = "%(asctime)-15s:%(levelname)s:%(name)s:%(message)s"
+    logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO,
+                        format=frmt)
+
 
 def _generate_files_from_streams(dst_folder, file_stream_pairs, force, file_category):
     dst_folder = os.path.abspath(dst_folder)
@@ -68,11 +79,10 @@ def _generate_files_from_streams(dst_folder, file_stream_pairs, force, file_cate
     for src_fname, stream in file_stream_pairs:
         dst_fpath = os.path.join(dst_folder, src_fname)
         if os.path.exists(dst_fpath) and not force:
-            print("Creating %s file '%s' skipped, already exists! \n  Use '-F' to overwrite it." %
-                  (file_category, dst_fpath), file=sys.stderr)
+            msg = "Creating %s file '%s' skipped, already exists! \n  Use '-F' to overwrite it."
+            log.info(msg, file_category, dst_fpath)
         else:
-            print("Creating %s file '%s'..." %
-                  (file_category, dst_fpath), file=sys.stderr)
+            log.info("Creating %s file '%s'...", file_category, dst_fpath)
             with open(dst_fpath, 'wb') as fd:
                 shutil.copyfileobj(stream, fd, 16 * 1024)
 
@@ -85,6 +95,7 @@ def _cmd_ipynb(opts):
     file_stream_pairs = sorted(file_stream_pairs.items())
     _generate_files_from_streams(dst_folder, file_stream_pairs,
                                  force, file_category)
+
 
 def _get_input_template_fpath():
     fname = 'co2mpas_template.xlsx'
@@ -105,8 +116,7 @@ def _cmd_template(opts):
             raise CmdException(
                 "Expecting a file-name instead of directory '%s'!" % fpath)
 
-        print("Creating TEMPLATE INPUT file '%s'..." % fpath,
-              file=sys.stderr)
+        log.info("Creating TEMPLATE INPUT file '%s'...", fpath)
         stream = _get_input_template_fpath()
         with open(fpath, 'wb') as fd:
             shutil.copyfileobj(stream, fd, 16 * 1024)
@@ -115,7 +125,8 @@ def _cmd_template(opts):
 def _get_internal_file_streams(internal_folder, incl_regex=None):
     """NOTE: Add internal-files also in `setup.py` & `MANIFEST.in`."""
 
-    samples = pkg_resources.resource_listdir(__name__, internal_folder) # @UndefinedVariable
+    samples = pkg_resources.resource_listdir(__name__,  # @UndefinedVariable
+                                             internal_folder)
     if incl_regex:
         incl_regex = re.compile(incl_regex)
     return {f: pkg_resources.resource_stream(__name__,  # @UndefinedVariable
@@ -133,14 +144,14 @@ def _cmd_demo(opts):
     _generate_files_from_streams(dst_folder, file_stream_pairs,
                                  force, file_category)
     msg = "You may run DEMOS with:\n    co2mpas simulate -I %s"
-    print(msg % dst_folder, file=sys.stderr)
+    log.info(msg, dst_folder)
+
 
 def _prompt_folder(folder_name, folder):
     import easygui as eu
 
     while folder and not os.path.isdir(folder):
-        print('Cannot find %s folder: %r' % (folder_name, folder),
-              file=sys.stderr)
+        log.info('Cannot find %s folder: %r', folder_name, folder)
         folder = eu.diropenbox(msg='Select %s folder:' % folder_name,
                                title='%s-v%s' % (proj_name, proj_ver),
                                default=folder)
@@ -156,8 +167,7 @@ def _run_simulation(opts):
     output_folder = _prompt_folder(folder_name='OUTPUT', folder=opts['-O'])
     output_folder = os.path.abspath(output_folder)
 
-    print("Processing '%s' --> '%s'..." %
-          (input_folder, output_folder), file=sys.stderr)
+    log.info("Processing '%s' --> '%s'...", input_folder, output_folder)
 
     from compas.functions import process_folder_files
     process_folder_files(input_folder, output_folder,
@@ -173,6 +183,7 @@ def _main(*args):
     opts = docopt(__doc__,
                   argv=args or sys.argv[1:],
                   version='%s-%s at %s' % (proj_name, proj_ver, proj_file2))
+    _init_logging(opts['--verbose'])
 
     if opts['template']:
         _cmd_template(opts)

@@ -4,23 +4,27 @@
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
-
 """
 It contains functions to model the torque converter.
 """
 
 
-import numpy as np
-from sklearn.metrics import mean_squared_error
-from scipy.stats import binned_statistic
-from scipy.optimize import fmin, brute
+from compas.functions.physical.constants import (VEL_EPS, MAX_DT_SHIFT,
+                                                 MAX_M_SHIFT, INF)
+import logging
+
 from scipy.interpolate import InterpolatedUnivariateSpline
+from scipy.optimize import fmin, brute
+from scipy.stats import binned_statistic
+from sklearn.metrics import mean_squared_error
 
-from compas.functions.physical.constants import *
+import numpy as np
 
+
+log = logging.getLogger(__name__)
 
 def calibrate_torque_efficiency_params(
-        engine_speeds, gear_box_speeds, idle_engine_speed, gears, velocities, 
+        engine_speeds, gear_box_speeds, idle_engine_speed, gears, velocities,
         accelerations):
 
     ratios = gear_box_speeds / engine_speeds
@@ -33,21 +37,21 @@ def calibrate_torque_efficiency_params(
 
     b = (velocities > VEL_EPS) & (0 < ratios) & (ratios <= 1)
     b &= engine_speeds > (idle_engine_speed[0] - idle_engine_speed[1])
-    
+
     lower_limit = min(gear_box_speeds[b])
-    
+
     x0 = (idle_engine_speed[0], 0.001)
-    
+
     def calibrate(w):
         return fmin(error_function, x0, (ratios[w], gear_box_speeds[w]))
-    
+
     x0 = dfl = calibrate(b)
-    
+
     coeff = {}
     for i in range(max(gears) + 1):
         t = b & (gears == i)
         coeff[i] = calibrate(t) if t.any() else dfl
-    print(coeff)
+    log.debug("Torque-conv coeffs: %s", coeff)
     return coeff, lower_limit
 
 
@@ -58,10 +62,10 @@ def error_function(params, ratios, gear_box_speeds):
 
 def torque_efficiencies(gear_box_speeds, engine_speed_coeff, exp_coeff):
     """
-    
-    :param gear_box_speeds: 
-    :param engine_speed_param: 
-    :param exp_param: 
+
+    :param gear_box_speeds:
+    :param engine_speed_param:
+    :param exp_param:
     :return:
     :rtype: np.array
     """
@@ -77,17 +81,17 @@ def calculate_torque_converter_speeds(
 
     speeds = np.zeros(gear_box_speeds.shape)
     ratios = np.ones(gear_box_speeds.shape)
-    
+
     b0 = gear_box_speeds <= lower_limit
 
     speeds[b0] = idle_engine_speed[0]
-    
+
     b0 = np.logical_not(b0)
 
     for i in range(int(max(gears)) + 1):
         b = b0 & (gears == i)
         ratios[b] = torque_efficiencies(gear_box_speeds[b], *coeff[i])
-    
+
     b = b0 & (accelerations >= 0)
 
     ratios[ratios < 0] = 0

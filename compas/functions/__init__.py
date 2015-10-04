@@ -224,10 +224,10 @@ def process_folder_files(
         fname = os.path.basename(fpath).split('.')[0]
 
         if not files_exclude_regex.match(fname):
-            print('Skipping: %s' % fname)
+            log.inof('Skipping: %s', fname)
             continue
 
-        print('Processing: %s' % fname)
+        log.info('Processing: %s', fname)
 
         inputs = {'input_file_name': fpath}
 
@@ -258,7 +258,7 @@ def process_folder_files(
         pd.DataFrame.from_records(v).to_excel(writer, k)
 
     time_elapsed = (datetime.datetime.today() - start_time).total_seconds()
-    print('Done! [%s sec]' % time_elapsed)
+    log.info('Done! [%s sec]', time_elapsed)
 
 
 def _make_summary(sheets, workflow, results, **kwargs):
