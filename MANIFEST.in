@@ -4,3 +4,5 @@ recursive-include requirements *
 include compas/co2mpas_template.xlsx
 recursive-include compas/demos *
 recursive-include compas/ipynbs *
+prune compas/ipynbs/.ipynb_checkpoints
+

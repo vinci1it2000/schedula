@@ -126,7 +126,8 @@ def _get_internal_file_streams(internal_folder, incl_regex=None):
     """
     :return: a mappings of {filename--> stream-gen-function}.
 
-    NOTE: Add internal-files also in `setup.py` & `MANIFEST.in`.
+    NOTE: Add internal-files also in `setup.py` & `MANIFEST.in` and
+    update checks in `./bin/packahe.sh`.
     """
 
     samples = pkg_resources.resource_listdir(__name__,  # @UndefinedVariable
