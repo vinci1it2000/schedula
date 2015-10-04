@@ -2,7 +2,7 @@
 Predict NEDC CO2 emissions from WLTP cycles.
 
 Usage:
-    co2mpas [simulate] [--more-output] [--no-warn-gui] [--plot-workflow] [--verbose]
+    co2mpas [simulate] [-v] [--more-output] [--no-warn-gui] [--plot-workflow]
                        [-I <folder>] [-O <folder>]
     co2mpas demo       [--force] <folder>
     co2mpas template   [--force] <excel-file-path> ...
@@ -62,9 +62,9 @@ log = logging.getLogger(__name__)
 
 
 def _init_logging(verbose):
+    level = logging.DEBUG if verbose else logging.INFO
     frmt = "%(asctime)-15s:%(levelname)s:%(name)s:%(message)s"
-    logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO,
-                        format=frmt)
+    logging.basicConfig(level=level, format=frmt)
 
 
 def _generate_files_from_streams(dst_folder, file_stream_pairs, force, file_category):
@@ -76,7 +76,7 @@ def _generate_files_from_streams(dst_folder, file_stream_pairs, force, file_cate
         raise CmdException(
             "Destination '%s' is not a <folder>!" % dst_folder)
 
-    for src_fname, stream in file_stream_pairs:
+    for src_fname, streamer in file_stream_pairs:
         dst_fpath = os.path.join(dst_folder, src_fname)
         if os.path.exists(dst_fpath) and not force:
             msg = "Creating %s file '%s' skipped, already exists! \n  Use '-F' to overwrite it."
@@ -84,7 +84,7 @@ def _generate_files_from_streams(dst_folder, file_stream_pairs, force, file_cate
         else:
             log.info("Creating %s file '%s'...", file_category, dst_fpath)
             with open(dst_fpath, 'wb') as fd:
-                shutil.copyfileobj(stream, fd, 16 * 1024)
+                shutil.copyfileobj(streamer(), fd, 16 * 1024)
 
 
 def _cmd_ipynb(opts):
@@ -123,16 +123,21 @@ def _cmd_template(opts):
 
 
 def _get_internal_file_streams(internal_folder, incl_regex=None):
-    """NOTE: Add internal-files also in `setup.py` & `MANIFEST.in`."""
+    """
+    :return: a mappings of {filename--> stream-gen-function}.
+
+    NOTE: Add internal-files also in `setup.py` & `MANIFEST.in`.
+    """
 
     samples = pkg_resources.resource_listdir(__name__,  # @UndefinedVariable
                                              internal_folder)
     if incl_regex:
         incl_regex = re.compile(incl_regex)
-    return {f: pkg_resources.resource_stream(__name__,  # @UndefinedVariable
-                                             os.path.join(internal_folder, f))
-            for f in samples
-            if not incl_regex or incl_regex.match(f)}
+    return {f: lambda: pkg_resources.resource_stream(  # @UndefinedVariable
+            __name__,
+            os.path.join(internal_folder, f))
+        for f in samples
+        if not incl_regex or incl_regex.match(f)}
 
 
 def _cmd_demo(opts):

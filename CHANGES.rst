@@ -3,12 +3,16 @@ CO2MPAS Changes
 ###############
 .. _begin-changes:
 
-v1.0.2: 5-Oct 2015: mostly doc fixes for "all-in-one archive"
-=============================================================
+v1.0.2: 5-Oct 2015: "Renata" release
+====================================
+Mostly doc fixes for "all-in-one archive" for *Windows*:
+
 - Establish project-home on http://co2mpas.io/ and drop install-docs &
   install-sources instructions.
-- Update instructions based on *all-in-one* archive.
-- Tip for corporate proxies.
+- docs:
+    - Update instructions based on *all-in-one* archive.
+    - Tip for corporate proxies.
+- Better logging.
 
 v1.0.1, 1-Oct 2015: 2nd release
 ===============================

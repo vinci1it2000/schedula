@@ -425,9 +425,9 @@ class ReplicateFunction(object):
 
 class SubDispatchFunction(SubDispatch):
     """
-    It dispatches a given :func:`~dispatcher.Dispatcher` like a function.
+    It converts a :func:`~dispatcher.Dispatcher` into a function.
 
-    This function takes a sequence of arguments as input of the dispatch.
+    That function takes a sequence of arguments as input of the dispatch.
 
     :return:
         A function that executes the dispatch of the given `dsp`.

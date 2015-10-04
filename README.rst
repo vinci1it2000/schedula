@@ -46,7 +46,7 @@ Quickstart
 
     - Windows's ``cmd.exe`` console commands begin with ``>`` symbol.
       You can adapt most UNIX commands with minor modifications
-      (i.e. replace ``mkdir --> md``, ``rm --> del`` and ``cygstart --> start``).
+      (i.e. replace ``mkdir --> md``, ``rm --> del``).
 
     - In Windows you may download and install `Portable Git
       <https://github.com/sheabunge/GitPortable>`_ which contains *bash* and
@@ -297,7 +297,8 @@ you have installed CO2MPAS (see :ref:`begin-install` above) and type:
     Predict NEDC CO2 emissions from WLTP cycles.
 
     Usage:
-        co2mpas [simulate] [--more-output] [--no-warn-gui] [--plot-workflow] [-I <folder>] [-O <folder>]
+        co2mpas [simulate] [-v] [--more-output] [--no-warn-gui] [--plot-workflow]
+                           [-I <folder>] [-O <folder>]
         co2mpas demo       [--force] <folder>
         co2mpas template   [--force] <excel-file-path> ...
         co2mpas ipynb      [--force] <folder>
@@ -310,6 +311,7 @@ you have installed CO2MPAS (see :ref:`begin-install` above) and type:
     --no-warn-gui    Does not pause batch-run to report inconsistencies.
     --plot-workflow  Show workflow in browser, after run finished.
     -F, --force      Overwrite template/sample excel-file(s).
+    -v, --verbose    Print more verbosely messages.
 
 
     Sub-commands:
@@ -382,8 +384,8 @@ are a nice starting point to try out.
 
    .. code-block:: console
 
-      $ cygstart output/*summary.xlsx       ## More summaries might exist in the folder from previous runs.
-      $ cygstart output                     ## View the folder with all files generated.
+      $ start output/*summary.xlsx       ## More summaries might exist in the folder from previous runs.
+      $ start output                     ## View the folder with all files generated.
 
 
 Entering new vehicles
@@ -416,7 +418,7 @@ excel-file:
 
    .. code-block:: console
 
-      $ cygstart input/vehicle_1.xlsx        ## Opens the excel-file. Use `start` in *cmd.exe*.
+      $ start input/vehicle_1.xlsx        ## Opens the excel-file. Use `start` in *cmd.exe*.
 
    .. Tip::
        The generated file contains help descriptions to help you populate it
@@ -442,8 +444,8 @@ excel-file:
 
    .. code-block:: console
 
-      $ cygstart output/*summary.xlsx       ## More summaries might open from previous runs.
-      $ cygstart output                     ## View all files generated (see below).
+      $ start output/*summary.xlsx       ## More summaries might open from previous runs.
+      $ start output                     ## View all files generated (see below).
 
 
 6. In the case of errors, or if the results are not satisfactory, repeat the
