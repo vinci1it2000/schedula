@@ -35,7 +35,6 @@ from textwrap import dedent
 from sklearn.metrics import mean_absolute_error, accuracy_score
 from easygui import buttonbox
 from ...dispatcher import Dispatcher
-from ...dispatcher.utils import heap_flush
 import numpy as np
 from itertools import zip_longest, chain
 
@@ -416,7 +415,7 @@ def model_selector(*calibration_outputs, hide_warn_msgbox=False):
                 continue
             models.update(heap[0][-1])
 
-            rank = [(v[-2], v[0]) for v in heap_flush(heap)]
+            rank = [(v[-2], v[0]) for v in sorted(heap)]
 
             origin.update(dict.fromkeys(mods, rank[0][0]))
             origin_errors.update(dict.fromkeys(mods, rank))
@@ -472,7 +471,7 @@ def _extract_models(calibration_outputs, models_to_extract):
         models['cold_start_speed_model'] = heap[0][-1]
         #print('cold_start_speed_model: %s with mean_absolute_error %.3f [RPM] '
         #      % (heap[0][1], heap[0][0]))
-        heap = [(v[1], v[0]) for v in heap_flush(heap)]
+        heap = [(v[1], v[0]) for v in sorted(heap)]
         calibration_outputs['errors cold_start_speed_model'] = heap
 
     # A/T gear shifting
@@ -500,7 +499,7 @@ def _extract_models(calibration_outputs, models_to_extract):
         models[k] = calibration_outputs[k]
         models['origin AT_gear_shifting_model'] = (k, e)
         tags = ['mean_absolute_error', 'correlation_coefficient']
-        m = [(v[-1], {t: v for t, v in zip(tags, v[1])}) for v in heap_flush(m)]
+        m = [(v[-1], {t: v for t, v in zip(tags, v[1])}) for v in sorted(m)]
         calibration_outputs['errors AT_gear_shifting_model'] = m
 
         #print('AT_gear_shifting_model: %s with mean_absolute_error %.3f [RPM] '

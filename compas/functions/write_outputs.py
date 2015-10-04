@@ -13,7 +13,6 @@ It contains functions to write prediction outputs.
 from heapq import heappush
 import numpy as np
 import pandas as pd
-from compas.dispatcher.utils import heap_flush
 
 
 def parse_name(name):
@@ -72,14 +71,14 @@ def write_output(output, file_name, sheet_names):
 
     series = pd.DataFrame()
     series_headers = pd.DataFrame()
-    for name, k, v in heap_flush(s):
+    for name, k, v in sorted(s):
         try:
             series_headers[k] = (name, k)
             series[k] = v
         except ValueError:
             heappush(p, (name, k, v))
 
-    index, p = zip(*[(k, (name, k, str(v))) for name, k, v in heap_flush(p)])
+    index, p = zip(*[(k, (name, k, str(v))) for name, k, v in sorted(p)])
     p = pd.DataFrame(list(p),
                      index=index,
                      columns=['Parameter', 'Model Name', 'Value'])

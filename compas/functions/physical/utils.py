@@ -19,7 +19,7 @@ import math
 from heapq import heappush
 from statistics import median_high
 from collections import OrderedDict
-from compas.dispatcher.utils import heap_flush, pairwise
+from compas.dispatcher.utils import pairwise
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline
 
@@ -208,9 +208,9 @@ def bin_split(x, bin_std=(0.01, 0.1), n_min=None, bins_min=None):
 
     _bin_split(x, *(_stats(x) + edges))
 
-    edges = heap_flush(edges)
+    edges = sorted(edges)
 
-    bin_stats = heap_flush(bin_stats)
+    bin_stats = sorted(bin_stats)
 
     def _bin_merge(x, edges, bin_stats):
         bins = OrderedDict(enumerate(zip(pairwise(edges), bin_stats)))
@@ -235,7 +235,7 @@ def bin_split(x, bin_std=(0.01, 0.1), n_min=None, bins_min=None):
                 s[2] *= s[3]
                 heappush(new_bin_stats, s[1:] + [s[0]])
 
-        new_bin_stats = heap_flush(new_bin_stats)
+        new_bin_stats = sorted(new_bin_stats)
         return new_edges, new_bin_stats
 
     return _bin_merge(x, edges, bin_stats)

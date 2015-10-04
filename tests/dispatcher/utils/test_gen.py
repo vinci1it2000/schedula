@@ -8,9 +8,9 @@
 
 from __future__ import division, print_function, unicode_literals
 
+from compas.dispatcher.utils.gen import pairwise, Token, AttrDict
 import doctest
 import unittest
-from compas.dispatcher.utils.gen import *
 
 
 class TestDoctest(unittest.TestCase):
@@ -42,15 +42,7 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(list(pairwise([1, 2, 3])), [(1, 2), (2, 3)])
         pairwise([1, 2, 3, 4])
         self.assertEqual(list(pairwise([1])), [])
-    
-    def test_heap_flush(self):
-        from heapq import heappush
-        heap = []
-        heappush(heap, 3)
-        heappush(heap, 1)
-        heappush(heap, 2)
-        self.assertEqual(heap_flush(heap), [1, 2, 3])
-        
+
     def test_attr_dict(self):
         d = AttrDict({'a': 3, 'b': 4})
         self.assertEqual(d.a, 'a')

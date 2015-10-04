@@ -26,8 +26,7 @@ except AttributeError:
 
     isidentifier = re.compile(r'[a-z_]\w*$', re.I).match
 
-__all__ = ['counter', 'Token', 'pairwise', 'heap_flush', 'AttrDict',
-           'caller_name']
+__all__ = ['counter', 'Token', 'pairwise', 'AttrDict', 'caller_name']
 
 if '__next__' in count.__dict__:
     def counter(start=0, step=1):
@@ -116,37 +115,6 @@ def pairwise(iterable):
     next(b, None)
 
     return zip(a, b)
-
-
-def heap_flush(heap):
-    """
-    Returns an ordered list of heap elements.
-
-    :param heap:
-        Fibonacci heap.
-    :type heap: list
-
-    :return:
-        A list of elements sorted in descending order.
-    :rtype: list
-
-    Example::
-
-        >>> from heapq import heappush
-        >>> heap = []
-        >>> heappush(heap, 3)
-        >>> heappush(heap, 1)
-        >>> heappush(heap, 2)
-        >>> heap_flush(heap)
-        [1, 2, 3]
-    """
-
-    ordered_list = []
-
-    while heap:
-        ordered_list.append(heappop(heap))
-
-    return ordered_list
 
 
 def _isidentifier(*args):

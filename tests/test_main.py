@@ -62,7 +62,7 @@ class Main(unittest.TestCase):
             cmd = "-I %s -O %s" % (inp, out)
             compas_main._main(*cmd.split())
 
-    @unittest.skip  #Takes too long.
+    #@unittest.skip  #Takes too long.
     def test_run_demos(self):
         with tempfile.TemporaryDirectory() as inp, tempfile.TemporaryDirectory() as out:
             cmd = "demo %s" % inp

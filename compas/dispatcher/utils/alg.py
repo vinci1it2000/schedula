@@ -13,7 +13,7 @@ It contains basic algorithms, numerical tricks, and data processing tasks.
 __author__ = 'Vincenzo Arcidiacono'
 
 from heapq import heappush, heappop
-from .gen import pairwise, heap_flush, counter
+from .gen import pairwise, counter
 
 __all__ = ['add_edge_fun', 'scc_fun', 'dijkstra', 'remove_cycles_iteration']
 
@@ -319,7 +319,7 @@ def _nodes_by_relevance(graph, nodes_bunch):
 
             heappush(data_nds, item)
 
-    return heap_flush(fun_nds), heap_flush(data_nds)
+    return sorted(fun_nds), sorted(data_nds)
 
 
 def _cycles_ord_by_length(graph, data_nodes, function_nodes):
@@ -379,7 +379,7 @@ def _cycles_ord_by_length(graph, data_nodes, function_nodes):
 
     # sorted list of cycles (expressed as list of edges).
     # N.B. the last edge is that to be deleted
-    return [p[-1] for p in heap_flush(h)]
+    return [p[-1] for p in sorted(h)]
 
 
 def remove_cycles_iteration(graph, nodes_bunch, reached_nodes, edge_to_rm):
