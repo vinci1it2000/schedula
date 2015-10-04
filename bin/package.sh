@@ -13,16 +13,14 @@
 #       ./bin/package.sh
 # 7. Upload to PyPi:
 #    - DELETE any BETAS (but the last one?)!!
-#       - twine upload -r wltp -su <user> dist/* # Ignore warn about doc-package.
+#       - twine upload -r co2mpas -su <user> dist/* # Ignore warn about doc-package.
 #
 # +++MANUAL+++
-# 8. Generate README:
-#       cygstart ./doc/_build/html/co2mpas_README.html ## & PrintAs 'CO2MPAS_README-v0.1.1.pdf'
-# 9. Generate RELEASE_NOTES:
-#       cygstart ./doc/_build/html/co2mpas_RelNotes.html ## & PrintAs 'CO2MPAS_RelNotes-v0.1.1.pdf'
-# 10. Prepare site at http://co2mpas.io/
-#   Rename sources package!
-# 11. Prepare email (and test).
+# 8. Generate RELEASE_NOTES:
+#       start ./doc/_build/html/co2mpas_RelNotes.html ## & PrintAs 'co2mpas_RelNotes-v0.1.1.pdf'
+# 9. Prepare site at http://co2mpas.io/
+#   Copy docs-archive & rename sources package!
+# 10. Prepare email (and test).
 #
 my_dir=`dirname "$0"`
 cd $my_dir/..
@@ -53,5 +51,8 @@ src_list="`unzip -l ./dist/co2mpas-*.zip`"
 whl_list="`unzip -l ./dist/co2mpas-*.whl`"
 ( echo "$src_list" | grep -q co2mpas_template; ) || echo "FAIL: No TEMPLATE-file in SOURCES!"
 ( echo "$src_list" | grep -q co2mpas_demo; ) || echo "FAIL: No DEMO in SOURCES!"
+( echo "$src_list" | grep -q simVehicle.ipynb; ) || echo "FAIL: No IPYNBS in SOURCES!"
+
 ( echo "$whl_list" | grep -q co2mpas_template; ) || echo "FAIL: No TEMPLATE-file in WHEEL!"
 ( echo "$whl_list" | grep -q co2mpas_demo; ) || echo "FAIL: No DEMO in WHEEL!"
+( echo "$whl_list" | grep -q simVehicle.ipynb; ) || echo "FAIL: No IPYNBS in WHEEL!"
