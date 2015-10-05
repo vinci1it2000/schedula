@@ -69,9 +69,9 @@ def write_output(output, file_name, sheet_names):
     p, s = ([], [])
     for k, v in output.items():
         if isinstance(v, np.ndarray) and k not in params:  # series
-            heappush(s, (parse_name(k), k, v))
+            s.append((parse_name(k), k, v))
         elif check_writeable(v):  # params
-            heappush(p, (parse_name(k), k, v))
+            p.append((parse_name(k), k, v))
 
     series = pd.DataFrame()
     series_headers = pd.DataFrame()
@@ -80,7 +80,7 @@ def write_output(output, file_name, sheet_names):
             series_headers[k] = (name, k)
             series[k] = v
         except ValueError:
-            heappush(p, (name, k, v))
+            p.append((name, k, v))
 
     index, p = zip(*[(k, (name, k, str(v))) for name, k, v in sorted(p)])
     p = pd.DataFrame(list(p),

@@ -421,7 +421,8 @@ def model_selector(*calibration_outputs, hide_warn_msgbox=False):
             origin.update(dict.fromkeys(mods, rank[0][0]))
             origin_errors.update(dict.fromkeys(mods, rank))
 
-            msg = 'Models %s are selected from %s (%.3f) respect to targets %s.\n  Errors: %s.'
+            msg = 'Models %s are selected from %s (%.3f) respect to targets ' \
+                  '%s.\n  Errors: %s.'
             log.info(msg, mods, rank[0][0], rank[0][1], trgs, rank)
 
     return models
@@ -466,13 +467,14 @@ def _extract_models(calibration_outputs, models_to_extract):
 
             model = calibration_outputs[name]
             s = fun(*((model, ) + params[1:]))
-            heappush(heap, (mean_absolute_error(params[0], s), name, model))
+            heap.append((mean_absolute_error(params[0], s), name, model))
 
     if heap:
+        heap = sorted(heap)
         models['cold_start_speed_model'] = heap[0][-1]
-        log.debug('cold_start_speed_model: %s with mean_absolute_error %.3f [RPM].',
-                  heap[0][1], heap[0][0])
-        heap = [(v[1], v[0]) for v in sorted(heap)]
+        log.debug('cold_start_speed_model: %s with mean_absolute_error %.3f '
+                  '[RPM].', heap[0][1], heap[0][0])
+        heap = [(v[1], v[0]) for v in heap]
         calibration_outputs['errors cold_start_speed_model'] = heap
 
     # A/T gear shifting
@@ -493,17 +495,18 @@ def _extract_models(calibration_outputs, models_to_extract):
         e = calibration_outputs.get(e, None)
         if e:
             e = (e['mean_absolute_error'], e['correlation_coefficient'])
-            heappush(m, (e[0] / e[1], e, k))
+            m.append((e[0] / e[1], e, k))
     if m:
+        m = sorted(m)
         e, k = m[0][1:]
 
         models[k] = calibration_outputs[k]
         models['origin AT_gear_shifting_model'] = (k, e)
         tags = ['mean_absolute_error', 'correlation_coefficient']
-        m = [(v[-1], {t: v for t, v in zip(tags, v[1])}) for v in sorted(m)]
+        m = [(v[-1], {t: v for t, v in zip(tags, v[1])}) for v in m]
         calibration_outputs['errors AT_gear_shifting_model'] = m
 
-        log.debug('AT_gear_shifting_model: %s with mean_absolute_error %.3f [RPM].'
-                  'and correlation_coefficient %.3f.', k, e[0], e[1])
+        log.debug('AT_gear_shifting_model: %s with mean_absolute_error %.3f '
+                  '[RPM]. and correlation_coefficient %.3f.', k, e[0], e[1])
 
     return models

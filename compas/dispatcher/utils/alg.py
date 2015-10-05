@@ -311,13 +311,10 @@ def _nodes_by_relevance(graph, nodes_bunch):
         nw = node[u].get('weight', 0)
 
         if node_type in ('function', 'dispatcher'):
-            heappush(fun_nds, (nw + out_degree(u, 'weight'), 1.0 / c(), u))
+            fun_nds.append((nw + out_degree(u, 'weight'), 1.0 / c(), u))
 
         elif node_type == 'data' and n['wait_inputs']:  # this is unresolved
-            # item to push
-            item = (1.0 / (nw + in_degree(u, 'weight')), 1.0 / c(), u)
-
-            heappush(data_nds, item)
+            data_nds.append((1.0 / (nw + in_degree(u, 'weight')), 1.0 / c(), u))
 
     return sorted(fun_nds), sorted(data_nds)
 
@@ -375,7 +372,7 @@ def _cycles_ord_by_length(graph, data_nodes, function_nodes):
             pth = cycle[j] + [i]
 
             # add cycle to the heapq
-            heappush(h, (lng, len(pth), 1.0 / in_d, c(), list(pairwise(pth))))
+            h.append((lng, len(pth), 1.0 / in_d, c(), list(pairwise(pth))))
 
     # sorted list of cycles (expressed as list of edges).
     # N.B. the last edge is that to be deleted
