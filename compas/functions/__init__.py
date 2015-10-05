@@ -364,7 +364,7 @@ def select_precondition_inputs(cycle_inputs, precondition_outputs):
     Updates cycle inputs with the precondition outputs.
 
     :param cycle_inputs:
-        Dictionary that has all inputs of the calibration cycle.
+        Dictionary that has inputs of the calibration cycle.
     :type cycle_inputs: dict
 
     :param precondition_outputs:

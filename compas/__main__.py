@@ -67,7 +67,8 @@ def _init_logging(verbose):
     logging.basicConfig(level=level, format=frmt)
 
 
-def _generate_files_from_streams(dst_folder, file_stream_pairs, force, file_category):
+def _generate_files_from_streams(
+        dst_folder, file_stream_pairs, force, file_category):
     dst_folder = os.path.abspath(dst_folder)
     if not os.path.exists(dst_folder):
         raise CmdException(
@@ -79,7 +80,8 @@ def _generate_files_from_streams(dst_folder, file_stream_pairs, force, file_cate
     for src_fname, streamer in file_stream_pairs:
         dst_fpath = os.path.join(dst_folder, src_fname)
         if os.path.exists(dst_fpath) and not force:
-            msg = "Creating %s file '%s' skipped, already exists! \n  Use '-F' to overwrite it."
+            msg = "Creating %s file '%s' skipped, already exists! \n  " \
+                  "Use '-F' to overwrite it."
             log.info(msg, file_category, dst_fpath)
         else:
             log.info("Creating %s file '%s'...", file_category, dst_fpath)
@@ -111,7 +113,8 @@ def _cmd_template(opts):
             fpath = '%s.xlsx' % fpath
         if os.path.exists(fpath) and not force:
             raise CmdException(
-                "Writing file '%s' skipped, already exists! Use '-f' to overwrite it." % fpath)
+                "Writing file '%s' skipped, already exists! "
+                "Use '-f' to overwrite it." % fpath)
         if os.path.isdir(fpath):
             raise CmdException(
                 "Expecting a file-name instead of directory '%s'!" % fpath)
