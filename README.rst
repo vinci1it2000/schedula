@@ -1,6 +1,6 @@
-##############################################################################
-CO2MPAS: Vehicle simulator predicting NEDC CO2 emissions from WLTP time-series
-##############################################################################
+##################################################################
+CO2MPAS: Vehicle simulator predicting NEDC CO2 emissions from WLTP
+##################################################################
 
 :Release:       1.0.2b2
 :Home:          http://co2mpas.io/
@@ -17,7 +17,7 @@ CO2MPAS: Vehicle simulator predicting NEDC CO2 emissions from WLTP time-series
 
 
 **CO2MPAS** is backward-looking longitudinal-dynamics CO\ :sub:`2` and
-fuel-consumption simulator for Light-Duty Vehicles (cars and vans),
+fuel-consumption simulator for light-duty vehicles (cars and vans),
 specially crafted to back-translate consumption figures from WLTP cycles
 into NEDC ones.
 
@@ -41,6 +41,8 @@ adaptation.
 Quickstart
 ----------
 .. Tip::
+    **Help about Console:**
+
     - Commands beginning with ``$`` symbol are for the *bash-console* (UNIX)
       i.e. the one included in the ``console.lnk`` file in top folder of
       the *all-in-one* distribution-archive (see :ref:`begin-install` below).
@@ -49,7 +51,7 @@ Quickstart
       You can adapt most UNIX commands with minor modifications
       (i.e. replace ``mkdir --> md``, ``rm --> del``).
 
-    - In Windows you may download and install `Portable Git
+    - In any case, in Windows you may download and install `Portable Git
       <https://github.com/sheabunge/GitPortable>`_ which contains *bash* and
       other unix-utilities, run from a *console* supporting decent copy-paste
       (BUT make sure you run the correct Python installation, by setting
@@ -61,6 +63,11 @@ Quickstart
           - a concise one: http://www.ks.uiuc.edu/Training/Tutorials/Reference/unixprimer.html
           - or a more detailed guide (just ignore the linux-specific part):
             http://linuxcommand.org/lc3_lts0020.php
+
+    - In case of errors, use the mouse to select the offending command(s) and
+      the error(s) from the *console*, and paste this text to an email sent to
+      JRC(co2mpas@jrc.ec.europa.eu).
+
 
 IF you have familiarity with v1 release AND IF you already have a full-blown
 *python-3 environment* (i.e. *Linux*) you can immediately start working with

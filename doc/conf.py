@@ -18,7 +18,6 @@ import os
 import io
 
 from os.path import abspath, join, dirname
-on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
 mydir = os.path.dirname(__file__)
 
@@ -140,11 +139,7 @@ todo_include_todos = True
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-if not on_rtd:
-    import sphinx_rtd_theme
-    html_theme = 'sphinx_rtd_theme'
-    # Add any paths that contain custom themes here, relative to this directory.
-    html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+html_theme = 'sphinx_rtd_theme'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -179,7 +174,7 @@ html_static_path = ['_static']
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
-html_last_updated_fmt = '%b %d, %Y, %HH:%M:%S'
+html_last_updated_fmt = '%b %d, %Y, %H:%M:%S'
 
 # If true, SmartyPants will be used to convert quotes and dashes to
 # typographically correct entities.
