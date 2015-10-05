@@ -232,7 +232,7 @@ CO2MPAS install
    installed above::
 
         > co2mpas --version
-        co2mpas-1.0.2b2 at <your-python-folders>\compas
+        co2mpas-1.0.2b2 at <your-python-folders>\co2mpas
 
 
 Upgrade CO2MPAS

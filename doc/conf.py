@@ -24,7 +24,7 @@ mydir = os.path.dirname(__file__)
 
 def read_project_version():
     fglobals = {}
-    with io.open(os.path.join(mydir, '..', 'compas', '_version.py')) as fd:
+    with io.open(os.path.join(mydir, '..', 'co2mpas', '_version.py')) as fd:
         exec(fd.read(), fglobals)  # To read __version__
     return fglobals['__version__']
 

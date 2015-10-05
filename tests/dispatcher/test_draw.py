@@ -11,15 +11,15 @@ import doctest
 
 from graphviz.dot import Digraph
 
-from compas.dispatcher.draw import *
-from compas.dispatcher.constants import SINK
-from compas.dispatcher import Dispatcher
-from compas.dispatcher.utils.dsp import SubDispatch
+from co2mpas.dispatcher.draw import *
+from co2mpas.dispatcher.constants import SINK
+from co2mpas.dispatcher import Dispatcher
+from co2mpas.dispatcher.utils.dsp import SubDispatch
 
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):
-        import compas.dispatcher.draw as d
+        import co2mpas.dispatcher.draw as d
 
         failure_count, test_count = doctest.testmod(
             d, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS

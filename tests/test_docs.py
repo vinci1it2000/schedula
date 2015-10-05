@@ -12,8 +12,8 @@ import re
 import unittest
 from unittest.mock import patch
 
-import compas
-from compas import __main__ as compas_main
+import co2mpas
+from co2mpas import __main__ as compas_main
 
 
 mydir = os.path.dirname(__file__)
@@ -24,7 +24,7 @@ tutorial_path = os.path.join(mydir, '..', 'doc', 'tutorial.rst')
 class Doctest(unittest.TestCase):
 
     def test_README_version_opening(self):
-        ver = compas.__version__
+        ver = co2mpas.__version__
         header_len = 20
         mydir = os.path.dirname(__file__)
         with open(readme_path) as fd:
@@ -36,7 +36,7 @@ class Doctest(unittest.TestCase):
                     raise AssertionError(msg % (ver, header_len))
 
     def test_README_version_from_cmdline(self):
-        ver = compas.__version__
+        ver = co2mpas.__version__
         mydir = os.path.dirname(__file__)
         with open(readme_path) as fd:
             ftext = fd.read()

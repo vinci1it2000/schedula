@@ -4,7 +4,7 @@
 	but without the `.sample` suffix, and import it into eclipse/liclise.
 -->
 <projectDescription>
-	<name>compas</name>
+	<name>co2mpas</name>
 	<comment></comment>
 	<projects>
 	</projects>

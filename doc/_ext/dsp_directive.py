@@ -1,8 +1,8 @@
 from sphinx.ext.autodoc import *
-from compas.dispatcher import Dispatcher
+from co2mpas.dispatcher import Dispatcher
 # noinspection PyProtectedMember
-from compas.dispatcher.draw import dsp2dot, _func_name
-from compas.dispatcher.utils.dsp import SubDispatch, SubDispatchFunction
+from co2mpas.dispatcher.draw import dsp2dot, _func_name
+from co2mpas.dispatcher.utils.dsp import SubDispatch, SubDispatchFunction
 # ------------------------------------------------------------------------------
 # Doctest handling
 # ------------------------------------------------------------------------------

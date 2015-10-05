@@ -52,7 +52,7 @@ coverage.xml
 
 # Sphinx documentation
 doc/_build/
-doc/compas/
+doc/co2mpas/
 
 # PyBuilder
 target/
@@ -66,5 +66,5 @@ target/
 /.project
 /.pydevproject
 /.settings
-/compas/ipynbs/.ipynb_checkpoints/
+/co2mpas/ipynbs/.ipynb_checkpoints/
 

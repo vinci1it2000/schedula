@@ -4,7 +4,7 @@ import glob
 import numpy as np
 import os
 
-from compas.functions import _make_summary, _extract_summary, files_exclude_regex
+from co2mpas.functions import _make_summary, _extract_summary, files_exclude_regex
 import tempfile
 import json
 
@@ -25,7 +25,7 @@ def process_folder_files(input_folder):
     :type output_folder: str
     """
 
-    from compas.models import architecture
+    from co2mpas.models import architecture
 
     model = architecture(with_output_file=False)
 
@@ -136,7 +136,7 @@ def process_folder_files(input_folder):
             summary[k] = l = summary.get(k, [])
             l.append(v)
 
-    #from compas.dispatcher.draw import dsp2dot
+    #from co2mpas.dispatcher.draw import dsp2dot
 
     #dsp2dot(model, workflow=True, view=True, function_module=False,
     #        node_output=False, edge_attr=model.weight)
@@ -158,7 +158,7 @@ class SeatBelt(unittest.TestCase):
 
     def test_demos(self):
 
-        res = process_folder_files(os.path.join('..', 'compas', 'demos'))
+        res = process_folder_files(os.path.join('..', 'co2mpas', 'demos'))
         summaries = res['SUMMARY']
 
         tmpdir = tempfile.gettempdir()

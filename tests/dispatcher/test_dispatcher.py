@@ -10,8 +10,8 @@ import doctest
 import unittest
 import timeit
 
-from compas.dispatcher import Dispatcher
-from compas.dispatcher.constants import START, EMPTY, SINK, NONE
+from co2mpas.dispatcher import Dispatcher
+from co2mpas.dispatcher.constants import START, EMPTY, SINK, NONE
 
 
 def _setup_dsp():
@@ -62,7 +62,7 @@ def _setup_dsp():
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):
-        import compas.dispatcher as d
+        import co2mpas.dispatcher as d
 
         failure_count, test_count = doctest.testmod(
             d, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS
@@ -388,7 +388,7 @@ class TestPerformance(unittest.TestCase):
         res2 = timeit.repeat(
             "fun(5, 6)",
             'from %s import _setup_dsp;'
-            'from compas.dispatcher.utils.dsp import SubDispatchFunction;'
+            'from co2mpas.dispatcher.utils.dsp import SubDispatchFunction;'
             'dsp = _setup_dsp();'
             'fun = SubDispatchFunction(dsp, "f", ["a", "b"], ["c", "d", "e"])'
             % __name__,

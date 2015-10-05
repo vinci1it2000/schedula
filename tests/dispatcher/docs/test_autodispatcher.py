@@ -4,8 +4,8 @@ IS_PYPY = (getattr(sys, 'implementation', None) == 'pypy'
 if not IS_PYPY:
 
     import unittest
-    from compas.dispatcher import Dispatcher
-    from compas.dispatcher.draw import dsp2dot
+    from co2mpas.dispatcher import Dispatcher
+    from co2mpas.dispatcher.draw import dsp2dot
     from doc._ext.dsp_directive import DispatcherDirective, PLOT
     from docutils.statemachine import ViewList
 

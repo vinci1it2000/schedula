@@ -8,14 +8,14 @@
 
 from __future__ import division, print_function, unicode_literals
 
-from compas.dispatcher.utils.gen import pairwise, Token, AttrDict
+from co2mpas.dispatcher.utils.gen import pairwise, Token, AttrDict
 import doctest
 import unittest
 
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):
-        import compas.dispatcher.utils.gen as utl
+        import co2mpas.dispatcher.utils.gen as utl
         failure_count, test_count = doctest.testmod(
             utl, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS)
         self.assertGreater(test_count, 0, (failure_count, test_count))

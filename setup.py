@@ -1,6 +1,6 @@
 #! python
 ##
-## Installs compas:
+## Installs co2mpas:
 ## 		python setup.py install
 ## or
 ##		pip install -r requirements.txt
@@ -18,7 +18,7 @@ mydir = os.path.dirname(__file__)
 def read_project_version():
     fglobals = {}
     with io.open(os.path.join(
-            mydir, 'compas', '_version.py'), encoding='UTF-8') as fd:
+            mydir, 'co2mpas', '_version.py'), encoding='UTF-8') as fd:
         exec(fd.read(), fglobals)  # To read __version__
     return fglobals['__version__']
 
@@ -150,7 +150,7 @@ setup(
         'pandalone',
     ],
     packages=find_packages(exclude=['tests', 'doc']),
-    package_data={'compas': [
+    package_data={'co2mpas': [
             'demos/*.xlsx',
             'ipynbs/*.ipynb',
             'co2mpas_template.xlsx',
@@ -161,7 +161,7 @@ setup(
     tests_require=['nose>=1.0'],
     entry_points={
         'console_scripts': [
-            '%s = compas.__main__:main' % proj_name,
+            '%s = co2mpas.__main__:main' % proj_name,
         ],
     },
     options={

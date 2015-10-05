@@ -13,7 +13,7 @@ import unittest
 from unittest.mock import patch
 import tempfile
 
-from compas import __main__ as compas_main
+from co2mpas import __main__ as compas_main
 import glob
 
 
@@ -34,7 +34,7 @@ class Main(unittest.TestCase):
             self.assertSetEqual(set(files), set(exp_files))
 
     def test_Gen_ipynbs(self):
-        exp_path = ('..', 'compas', 'ipynbs', '*.ipynb')
+        exp_path = ('..', 'co2mpas', 'ipynbs', '*.ipynb')
         exp_files = [os.path.basename(f)
                      for f in glob.glob(os.path.join(*exp_path))]
 
@@ -45,7 +45,7 @@ class Main(unittest.TestCase):
             self.assertSetEqual(set(files), set(exp_files))
 
     def test_Gen_demo_inputs(self):
-        exp_path = ('..', 'compas', 'demos', '*.xlsx')
+        exp_path = ('..', 'co2mpas', 'demos', '*.xlsx')
         exp_files = [os.path.basename(f)
                      for f in glob.glob(os.path.join(*exp_path))]
 

@@ -6,7 +6,7 @@
 # 2. REMOVE pip install --pre!!!
 # 3. Run TCs.
 # 4. Gen docs & check OK (i.e. diagrams??):
-#       rm -r ./doc/{compas/,_build/}
+#       rm -r ./doc/{co2mpas/,_build/}
 #       python setup.py build_sphinx
 # 5. commit & TAG & push
 # 6. Build `wheel,` `sdist` , `doc` archives:
