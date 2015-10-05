@@ -5,7 +5,11 @@ import numpy as np
 import os
 
 from compas.functions import _make_summary, _extract_summary, files_exclude_regex
+import tempfile
+import json
 
+OVERWRITE_SEATBELT = False # NOTE: Do not commit it as `True`!
+DATA_DIFF_RATIO = 1e-6
 
 def process_folder_files(input_folder):
     """
@@ -143,10 +147,26 @@ def process_folder_files(input_folder):
 
 class SeatBelt(unittest.TestCase):
 
-    def test_basic(self):
+    def _check_summaries(self, new_sums, old_sums):
+        for i, (summary, old_summary) in enumerate(zip(new_sums, old_sums)):
+            for k, nv  in summary.items():
+                ov = old_summary[k]
+                ratio = abs(ov - nv) / min(ov, nv)
+                msg = "Failed sum[%i][%r]: %s !~= %s \n  +--NEW: %s\n  +--OLD: %s"
+                self.assertLessEqual(ratio, DATA_DIFF_RATIO,
+                                       msg %(i, k, ov, nv, new_sums, old_sums))
 
-        summary = process_folder_files(os.path.curdir)['SUMMARY']
+    def test_demos(self):
 
-        for v in summary['SUMMARY']:
-            for k, r  in v.items():
-                print(k, r)
+        res = process_folder_files(os.path.join('..', 'compas', 'demos'))
+        summaries = res['SUMMARY']
+
+        tmpdir = tempfile.gettempdir()
+        sum_file = os.path.join(tmpdir, 'co2mpas_seatbelt_demos.json')
+
+        if not OVERWRITE_SEATBELT and os.path.isfile(sum_file):
+            with open(sum_file, 'rt') as fd:
+                old_summaries = json.load(fd)
+                self._check_summaries(summaries, old_summaries)
+        with open(sum_file, 'wt') as fd:
+            json.dump(summaries, fd)
