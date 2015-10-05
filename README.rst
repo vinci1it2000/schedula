@@ -16,9 +16,10 @@ CO2MPAS: Vehicle simulator predicting NEDC CO2 emissions from WLTP time-series
 :License:       `EUPL 1.1+ <https://joinup.ec.europa.eu/software/page/eupl>`_
 
 
-**CO2MPAS** is backward-looking longitudinal-dynamics CO2 & fuel-consumption
-simulator for Light-Duty Vehicles (cars and vans) specially crafted
-to back-translate consumption figures from WLTP cycles into NEDC ones.
+**CO2MPAS** is backward-looking longitudinal-dynamics CO\ :sub:`2` and
+fuel-consumption simulator for Light-Duty Vehicles (cars and vans),
+specially crafted to back-translate consumption figures from WLTP cycles
+into NEDC ones.
 
 It is an open-source project developed with Python-3.4,
 using Anaconda & WinPython under Windows 7, Anaconda under MacOS, and
@@ -345,11 +346,16 @@ are a nice starting point to try out.
 
    .. code-block:: console
 
-      $ cd <some-folder>       ## You should have created that hypothetical <some-folder>.
-      $ mkdir input output     ## Replace `mkdir` with `md` in *Windows* (`cmd.exe`)
+        ## Skip this if ``tutorial`` folder already exists.
+        $ mkdir tutorial         ## Replace `mkdir` with `md` in *Windows* (`cmd.exe`)
+        $ cd tutorial
+
+        ## Skip also this if folders exist.
+        $ mkdir input output
 
   .. Note::
-    The input & output folders do not have to reside in the same parent.
+    The input & output folders do not have to reside in the same parent,
+    neither to have these names.
     It is only for demonstration purposes that we decided to group them both
     under a hypothetical ``some-folder``.
 
@@ -396,8 +402,9 @@ the sample-data, use the ``template`` sub-command to make an *empty* input
 excel-file:
 
 
-1. Decide the *input/output* folders.  Assuming we want to re-use the folders
-   from the above example, we should just clear everything that they contain:
+1. Decide the *input/output* folders.  Assuming we are still in the ``tutorial``
+   folder and we wish to re-use the ``input/output`` folders from the example
+   above, we may clear all their contents with this:
 
    .. code-block:: console
 
