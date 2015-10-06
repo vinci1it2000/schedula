@@ -157,8 +157,9 @@ class SeatBelt(unittest.TestCase):
                                        msg %(i, k, ov, nv, new_sums, old_sums))
 
     def test_demos(self):
-
-        res = process_folder_files(os.path.join('..', 'co2mpas', 'demos'))
+        mydir = os.path.dirname(__file__)
+        res = process_folder_files(os.path.join(mydir, '..', 'co2mpas', 'demos'))
+        print(res)
         summaries = res['SUMMARY']
 
         tmpdir = tempfile.gettempdir()
