@@ -305,8 +305,8 @@ you have installed CO2MPAS (see :ref:`begin-install` above) and type:
     Predict NEDC CO2 emissions from WLTP cycles.
 
     Usage:
-        co2mpas [simulate] [-v] [--more-output] [--no-warn-gui] [--plot-workflow]
-                           [-I <folder>] [-O <folder>]
+        co2mpas [simulate] [-v] [--predict-wltp] [--more-output] [--no-warn-gui]
+                           [--plot-workflow] [-I <folder>] [-O <folder>]
         co2mpas demo       [-f] <folder>
         co2mpas template   [-f] <excel-file-path> ...
         co2mpas ipynb      [-f] <folder>
@@ -317,6 +317,7 @@ you have installed CO2MPAS (see :ref:`begin-install` above) and type:
     -I <folder>      Input folder, prompted with GUI if missing [default: ./input]
     -O <folder>      Input folder, prompted with GUI if missing [default: ./output]
     -l, --list       List available models.
+    --predict-wltp   Whether predict also WLTP values.
     --more-output    Output also per-vehicle output-files.
     --no-warn-gui    Does not pause batch-run to report inconsistencies.
     --plot-workflow  Open workflow-plot in browser, after run finished.

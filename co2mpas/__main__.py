@@ -8,8 +8,8 @@
 Predict NEDC CO2 emissions from WLTP cycles.
 
 Usage:
-    co2mpas [simulate] [-v] [--more-output] [--no-warn-gui] [--plot-workflow]
-                       [-I <folder>] [-O <folder>]
+    co2mpas [simulate] [-v] [--predict-wltp] [--more-output] [--no-warn-gui]
+                       [--plot-workflow] [-I <folder>] [-O <folder>]
     co2mpas demo       [-f] <folder>
     co2mpas template   [-f] <excel-file-path> ...
     co2mpas ipynb      [-f] <folder>
@@ -20,6 +20,7 @@ Usage:
 -I <folder>      Input folder, prompted with GUI if missing [default: ./input]
 -O <folder>      Input folder, prompted with GUI if missing [default: ./output]
 -l, --list       List available models.
+--predict-wltp   Whether predict also WLTP values.
 --more-output    Output also per-vehicle output-files.
 --no-warn-gui    Does not pause batch-run to report inconsistencies.
 --plot-workflow  Open workflow-plot in browser, after run finished.
@@ -198,7 +199,8 @@ def _run_simulation(opts):
     process_folder_files(input_folder, output_folder,
                          plot_workflow=opts['--plot-workflow'],
                          hide_warn_msgbox=opts['--no-warn-gui'],
-                         extended_summary=opts['--more-output'])
+                         extended_summary=opts['--more-output'],
+                         enable_prediction_WLTP=opts['--predict-wltp']),
 
 
 def _main(*args):
