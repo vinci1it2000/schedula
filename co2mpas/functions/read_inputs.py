@@ -189,7 +189,7 @@ def get_filters():
             'has_energy_recuperation': (bool, empty),
             'has_thermal_management': (bool, empty),
             'has_lean_burn': (bool, empty),
-            'has_exhausted_gas_recuperation': (bool, empty),
+            'has_exhausted_gas_recirculation': (bool, empty),
             'has_particle_filter': (bool, empty),
             'has_selective_catalytic_reduction': (bool, empty),
             'has_nox_storage_catalyst': (bool, empty),
