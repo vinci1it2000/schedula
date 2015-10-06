@@ -7,6 +7,7 @@ Usage:
     co2mpas demo       [--force] <folder>
     co2mpas template   [--force] <excel-file-path> ...
     co2mpas ipynb      [--force] <folder>
+    co2mpas modelgraph [--list | <model-path>]
     co2mpas --help
     co2mpas --version
 
@@ -182,7 +183,7 @@ def _run_simulation(opts):
     process_folder_files(input_folder, output_folder,
                          plot_workflow=opts['--plot-workflow'],
                          hide_warn_msgbox=opts['--no-warn-gui'],
-                         gen_outfiles_per_vehicle=opts['--more-output'])
+                         extended_summary=opts['--more-output'])
 
 
 def _main(*args):

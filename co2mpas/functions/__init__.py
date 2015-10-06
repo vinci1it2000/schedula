@@ -107,8 +107,8 @@ files_exclude_regex = re.compile('^\w')
 
 def process_folder_files(
         input_folder, output_folder, plot_workflow=False,
-        hide_warn_msgbox=False, gen_outfiles_per_vehicle=False,
-        prediction_WLTP=False):
+        hide_warn_msgbox=False, extended_summary=False,
+        enable_prediction_WLTP=False):
     """
     Processes all excel files in a folder with the model defined by
     :func:`co2mpas.models.architecture`.
@@ -130,7 +130,7 @@ def process_folder_files(
 
     model = architecture(
         hide_warn_msgbox=hide_warn_msgbox,
-        prediction_WLTP=prediction_WLTP)
+        prediction_WLTP=enable_prediction_WLTP)
 
     fpaths = glob.glob(input_folder + '/*.xlsx')
     summary = {}
@@ -254,7 +254,7 @@ def process_folder_files(
                 log.warning(ex, exc_info=1)
 
     writer = pd.ExcelWriter('%s/%s%s.xlsx' % (output_folder, doday, 'summary'))
-    if not gen_outfiles_per_vehicle and 'SUMMARY' in summary:
+    if not extended_summary and 'SUMMARY' in summary:
         summary = {'SUMMARY': summary['SUMMARY']}
 
     for k, v in sorted(summary.items()):
