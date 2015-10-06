@@ -10,20 +10,23 @@ Predict NEDC CO2 emissions from WLTP cycles.
 Usage:
     co2mpas [simulate] [-v] [--more-output] [--no-warn-gui] [--plot-workflow]
                        [-I <folder>] [-O <folder>]
-    co2mpas demo       [--force] <folder>
-    co2mpas template   [--force] <excel-file-path> ...
-    co2mpas ipynb      [--force] <folder>
-    co2mpas modelgraph [--list | <model-path>]
+    co2mpas demo       [-f] <folder>
+    co2mpas template   [-f] <excel-file-path> ...
+    co2mpas ipynb      [-f] <folder>
+    co2mpas modelgraph [-l | <models> ...]
     co2mpas --help
     co2mpas --version
 
 -I <folder>      Input folder, prompted with GUI if missing [default: ./input]
 -O <folder>      Input folder, prompted with GUI if missing [default: ./output]
+-l, --list       List available models.
 --more-output    Output also per-vehicle output-files.
 --no-warn-gui    Does not pause batch-run to report inconsistencies.
 --plot-workflow  Open workflow-plot in browser, after run finished.
--F, --force      Overwrite template/sample excel-file(s).
+-f, --force      Overwrite template/sample excel-file(s).
 -v, --verbose    Print more verbosely messages.
+
+* Items enclosed in `[]` are optional.
 
 
 Sub-commands:
@@ -32,9 +35,7 @@ Sub-commands:
     template    Generate "empty" input-file at <excel-file-path>.
     ipynb       Generate IPython notebooks inside <folder>; view them with cmd:
                   ipython --notebook-dir=<folder>
-    modelgraph  Plot models.
-
-* Items enclosed in `[]` are optional.
+    modelgraph  List all or plot available models.
 
 Examples:
 
@@ -51,6 +52,7 @@ Examples:
 
 """
 from co2mpas import __version__ as proj_ver, __file__ as proj_file
+from co2mpas.functions import (process_folder_files, plot as co2plot)
 import logging
 import os
 import re
@@ -67,6 +69,13 @@ class CmdException(Exception):
 proj_name = 'co2mpas'
 
 log = logging.getLogger(__name__)
+
+
+def _cmd_modelgraph(opts):
+    if opts['--list']:
+        print('\n'.join(co2plot.get_all_model_names()))
+    else:
+        co2plot.plot_model_graphs(opts['<models>'])
 
 
 def _init_logging(verbose):
@@ -89,7 +98,7 @@ def _generate_files_from_streams(
         dst_fpath = os.path.join(dst_folder, src_fname)
         if os.path.exists(dst_fpath) and not force:
             msg = "Creating %s file '%s' skipped, already exists! \n  " \
-                  "Use '-F' to overwrite it."
+                  "Use '-f' to overwrite it."
             log.info(msg, file_category, dst_fpath)
         else:
             log.info("Creating %s file '%s'...", file_category, dst_fpath)
@@ -148,8 +157,8 @@ def _get_internal_file_streams(internal_folder, incl_regex=None):
     return {f: lambda: pkg_resources.resource_stream(  # @UndefinedVariable
             __name__,
             os.path.join(internal_folder, f))
-        for f in samples
-        if not incl_regex or incl_regex.match(f)}
+            for f in samples
+            if not incl_regex or incl_regex.match(f)}
 
 
 def _cmd_demo(opts):
@@ -186,7 +195,6 @@ def _run_simulation(opts):
 
     log.info("Processing '%s' --> '%s'...", input_folder, output_folder)
 
-    from co2mpas.functions import process_folder_files
     process_folder_files(input_folder, output_folder,
                          plot_workflow=opts['--plot-workflow'],
                          hide_warn_msgbox=opts['--no-warn-gui'],
@@ -208,6 +216,8 @@ def _main(*args):
         _cmd_demo(opts)
     elif opts['ipynb']:
         _cmd_ipynb(opts)
+    elif opts['modelgraph']:
+        _cmd_modelgraph(opts)
     else:
         _run_simulation(opts)
 

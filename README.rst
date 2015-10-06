@@ -307,20 +307,23 @@ you have installed CO2MPAS (see :ref:`begin-install` above) and type:
     Usage:
         co2mpas [simulate] [-v] [--more-output] [--no-warn-gui] [--plot-workflow]
                            [-I <folder>] [-O <folder>]
-        co2mpas demo       [--force] <folder>
-        co2mpas template   [--force] <excel-file-path> ...
-        co2mpas ipynb      [--force] <folder>
-        co2mpas modelgraph [--list | <model-path>]
+        co2mpas demo       [-f] <folder>
+        co2mpas template   [-f] <excel-file-path> ...
+        co2mpas ipynb      [-f] <folder>
+        co2mpas modelgraph [-l | <models> ...]
         co2mpas --help
         co2mpas --version
 
     -I <folder>      Input folder, prompted with GUI if missing [default: ./input]
     -O <folder>      Input folder, prompted with GUI if missing [default: ./output]
+    -l, --list       List available models.
     --more-output    Output also per-vehicle output-files.
     --no-warn-gui    Does not pause batch-run to report inconsistencies.
     --plot-workflow  Open workflow-plot in browser, after run finished.
-    -F, --force      Overwrite template/sample excel-file(s).
+    -f, --force      Overwrite template/sample excel-file(s).
     -v, --verbose    Print more verbosely messages.
+
+    * Items enclosed in `[]` are optional.
 
 
     Sub-commands:
@@ -329,9 +332,7 @@ you have installed CO2MPAS (see :ref:`begin-install` above) and type:
         template    Generate "empty" input-file at <excel-file-path>.
         ipynb       Generate IPython notebooks inside <folder>; view them with cmd:
                       ipython --notebook-dir=<folder>
-        modelgraph  Plot models.
-
-    * Items enclosed in `[]` are optional.
+        modelgraph  List all or plot available models.
 
     Examples:
 
@@ -493,8 +494,18 @@ Below is the structure of the output-files produced for each vehicle::
 Debugging and investigating results
 -----------------------------------
 
-- Make sure that you have installed `graphviz` and invoke the `co2mpas` cmd
-  with the ``--plot-workflow`` option.
-- Inspect the functions mentioned in the workflow and search them in the
-  **documentation** (archive distributed separately).
+- Make sure that you have installed `graphviz`, and when running the simulation,
+  append also the ``--plot-workflow`` option.
+
+- Use the ``modelgraph`` sub-command to plot the offending model (or just
+  out of curiosity).  For instance:
+
+  .. code-block:: console
+
+        $ co2mpas modelgraph gear_box_calibration
+
+
+- Inspect the functions mentioned in the workflow and models and search them
+  in `CO2MPAS documentation <http://files.co2mpas.io/>`_ ensuring you are
+  visiting the documents for the actual version you are using.
 

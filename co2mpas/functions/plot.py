@@ -4,44 +4,18 @@
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
-
 """
-It contains functions to plot cycle time series.
-
-.. note:: these functions are used in :mod:`co2mpas.functions.write_outputs`.
+It contains plotting functions for models and/or output results.
 """
 
-import sys
 from co2mpas.dispatcher.draw import dsp2dot
+import logging
+import sys
 
 
-def plot_model_graphs(model_ids=None, **kwargs):
-    """
-    Plots the graph of CO2MPAS models.
+log = logging.getLogger(__name__)
 
-    :param model_ids:
-        List of models to be plotted
-        (e.g., ['co2mpas.models.physical.physical_calibration', 'engine', ...]).
-
-        .. note:: It it is not specified all models will be plotted.
-    :type model_ids: list, None
-
-    :param kwargs:
-        Optional dsp2dot keywords.
-    :type kwargs: dict
-
-    :return:
-        A list of directed graphs source code in the DOT language.
-    :rtype: list
-    """
-
-    dot_setting = {
-        'view': True,
-        'level': 0,
-        'function_module': False
-    }
-    dot_setting.update(kwargs)
-
+def get_all_model_names():
     co2maps_models = {
         'vehicle_processing_model',
         'load_inputs',
@@ -81,7 +55,37 @@ def plot_model_graphs(model_ids=None, **kwargs):
         'physical.engine.co2_emission.co2_emission',
     }
 
-    co2maps_models = {'co2mpas.models.%s' % k for k in co2maps_models}
+    return co2maps_models
+
+
+def plot_model_graphs(model_ids=None, **kwargs):
+    """
+    Plots the graph of CO2MPAS models.
+
+    :param model_ids:
+        List of models to be plotted
+        (e.g., ['co2mpas.models.physical.physical_calibration', 'engine', ...]).
+
+        .. note:: It it is not specified all models will be plotted.
+    :type model_ids: list, None
+
+    :param kwargs:
+        Optional dsp2dot keywords.
+    :type kwargs: dict
+
+    :return:
+        A list of directed graphs source code in the DOT language.
+    :rtype: list
+    """
+
+    dot_setting = {
+        'view': True,
+        'level': 0,
+        'function_module': False
+    }
+    dot_setting.update(kwargs)
+
+    co2maps_models = {'co2mpas.models.%s' % k for k in get_all_model_names()}
 
     if not model_ids:
         models = co2maps_models
@@ -89,7 +93,7 @@ def plot_model_graphs(model_ids=None, **kwargs):
         models = set()
         for model_id in model_ids:
             models.update({k for k in co2maps_models if model_id in k})
-
+    log.info('Plotting graph for models: %s', models)
 
     dot_graphs = []
 
