@@ -95,7 +95,7 @@ def _generate_files_from_streams(
         raise CmdException(
             "Destination '%s' is not a <folder>!" % dst_folder)
 
-    for src_fname, streamer in file_stream_pairs:
+    for src_fname, stream in file_stream_pairs:
         dst_fpath = os.path.join(dst_folder, src_fname)
         if os.path.exists(dst_fpath) and not force:
             msg = "Creating %s file '%s' skipped, already exists! \n  " \
@@ -104,7 +104,7 @@ def _generate_files_from_streams(
         else:
             log.info("Creating %s file '%s'...", file_category, dst_fpath)
             with open(dst_fpath, 'wb') as fd:
-                shutil.copyfileobj(streamer(), fd, 16 * 1024)
+                shutil.copyfileobj(stream, fd, 16 * 1024)
 
 
 def _cmd_ipynb(opts):
@@ -155,7 +155,7 @@ def _get_internal_file_streams(internal_folder, incl_regex=None):
                                              internal_folder)
     if incl_regex:
         incl_regex = re.compile(incl_regex)
-    return {f: lambda: pkg_resources.resource_stream(  # @UndefinedVariable
+    return {f: pkg_resources.resource_stream(  # @UndefinedVariable
             __name__,
             os.path.join(internal_folder, f))
             for f in samples
