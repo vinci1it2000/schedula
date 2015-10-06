@@ -228,7 +228,7 @@ def process_folder_files(
         fname = os.path.basename(fpath).split('.')[0]
 
         if not files_exclude_regex.match(fname):
-            log.inof('Skipping: %s', fname)
+            log.info('Skipping: %s', fname)
             continue
 
         log.info('Processing: %s', fname)
