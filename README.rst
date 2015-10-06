@@ -494,5 +494,5 @@ Debugging and investigating results
 - Make sure that you have installed `graphviz` and invoke the `co2mpas` cmd
   with the ``--plot-workflow`` option.
 - Inspect the functions mentioned in the workflow and search them in the
-  **documentstion** (archive distributed separately).
+  **documentation** (archive distributed separately).
 

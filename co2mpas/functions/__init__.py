@@ -107,7 +107,8 @@ files_exclude_regex = re.compile('^\w')
 
 def process_folder_files(
         input_folder, output_folder, plot_workflow=False,
-        hide_warn_msgbox=False, gen_outfiles_per_vehicle=False):
+        hide_warn_msgbox=False, gen_outfiles_per_vehicle=False,
+        prediction_WLTP=False):
     """
     Processes all excel files in a folder with the model defined by
     :func:`co2mpas.models.architecture`.
@@ -126,21 +127,23 @@ def process_folder_files(
     """
 
     from co2mpas.models import architecture
+
     model = architecture(
-        hide_warn_msgbox=hide_warn_msgbox)
+        hide_warn_msgbox=hide_warn_msgbox,
+        prediction_WLTP=prediction_WLTP)
+
     fpaths = glob.glob(input_folder + '/*.xlsx')
     summary = {}
     start_time = datetime.datetime.today()
     doday = start_time.strftime('%d_%b_%Y_%H_%M_%S_')
     output_file_format = '%s/%s_%s_%s.xlsx'
     output_files = {
-        'prediction_output_file_name': 'prediction_NEDC',
-        'calibration_output_file_name': 'calibration_WLTP-H',
-        'calibration_output_file_name<0>': 'calibration_WLTP-L',
-        'calibration_cycle_prediction_outputs_file_name': 'prediction_WLTP-H',
-        'calibration_cycle_prediction_outputs_file_name<0>':
-            'prediction_WLTP-L',
-        'precondition_output_file_name': 'precondition_WLTP'
+        'precondition_output_file_name': 'precondition_WLTP',
+        'calibration_wltp_h_output_file_name': 'calibration_WLTP-H',
+        'prediction_wltp_h_output_file_name': 'prediction_WLTP-H',
+        'calibration_wltp_l_output_file_name': 'calibration_WLTP-L',
+        'prediction_wltp_l_output_file_name': 'prediction_WLTP-L',
+        'prediction_nedc_output_file_name': 'prediction_NEDC',
     }
 
     def check_printable(tag, data):
@@ -178,14 +181,14 @@ def process_folder_files(
         },
         'PRE NEDC': {
             'results': {
-                'output': 'prediction_cycle_outputs',
+                'output': 'prediction_nedc_outputs',
                 'check': check_printable,
                 'filters': filters
             },
         },
         'CAL WLTP-H': {
             'results': {
-                'output': 'calibration_cycle_outputs',
+                'output': 'calibration_wltp_h_outputs',
                 'check': check_printable,
                 'filters': filters
             }
@@ -199,21 +202,21 @@ def process_folder_files(
         },
         'CAL WLTP-L': {
             'results': {
-                'output': 'calibration_cycle_outputs<0>',
+                'output': 'calibration_wltp_l_outputs',
                 'check': check_printable,
                 'filters': filters
             }
         },
         'PRE WLTP-H': {
             'results': {
-                'output': 'calibration_cycle_prediction_outputs',
+                'output': 'prediction_wltp_h_outputs',
                 'check': check_printable,
                 'filters': filters
             }
         },
         'PRE WLTP-L': {
             'results': {
-                'output': 'calibration_cycle_prediction_outputs<0>',
+                'output': 'prediction_wltp_l_outputs',
                 'check': check_printable,
                 'filters': filters
             }

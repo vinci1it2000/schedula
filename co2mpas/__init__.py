@@ -22,11 +22,9 @@ __copyright__ = "Copyright (C) 2015 European Commission (JRC)"
 __license__   = "EUPL 1.1+"
 
 __title__     = "co2mpas"
-__summary__   = "Collection of utilities for working with hierarchical data " \
-                "with relocatable paths."
-__uri__       = "https://github.com/pandalone/pandalone"
-
-_prediction_WLTP = False
+__summary__   = "Vehicle simulator predicting NEDC CO2 emissions from WLTP " \
+                "time-series."
+__uri__       = "https://github.com/JRCSTU/co2mpas"
 
 if __name__ == '__main__':
     from co2mpas.dispatcher.draw import dsp2dot
