@@ -34,7 +34,7 @@ class Main(unittest.TestCase):
             self.assertSetEqual(set(files), set(exp_files))
 
     def test_Gen_ipynbs(self):
-        exp_path = ('..', 'co2mpas', 'ipynbs', '*.ipynb')
+        exp_path = (mydir, '..', 'co2mpas', 'ipynbs', '*.ipynb')
         exp_files = [os.path.basename(f)
                      for f in glob.glob(os.path.join(*exp_path))]
 
@@ -45,7 +45,7 @@ class Main(unittest.TestCase):
             self.assertSetEqual(set(files), set(exp_files))
 
     def test_Gen_demo_inputs(self):
-        exp_path = ('..', 'co2mpas', 'demos', '*.xlsx')
+        exp_path = (mydir, '..', 'co2mpas', 'demos', '*.xlsx')
         exp_files = [os.path.basename(f)
                      for f in glob.glob(os.path.join(*exp_path))]
 

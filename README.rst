@@ -310,6 +310,7 @@ you have installed CO2MPAS (see :ref:`begin-install` above) and type:
         co2mpas demo       [--force] <folder>
         co2mpas template   [--force] <excel-file-path> ...
         co2mpas ipynb      [--force] <folder>
+        co2mpas modelgraph [--list | <model-path>]
         co2mpas --help
         co2mpas --version
 
@@ -317,17 +318,18 @@ you have installed CO2MPAS (see :ref:`begin-install` above) and type:
     -O <folder>      Input folder, prompted with GUI if missing [default: ./output]
     --more-output    Output also per-vehicle output-files.
     --no-warn-gui    Does not pause batch-run to report inconsistencies.
-    --plot-workflow  Show workflow in browser, after run finished.
+    --plot-workflow  Open workflow-plot in browser, after run finished.
     -F, --force      Overwrite template/sample excel-file(s).
     -v, --verbose    Print more verbosely messages.
 
 
     Sub-commands:
-        simulate  [default] Run simulation for all excel-files in input-folder (-I).
-        demo      Generate demo input-files inside <folder>.
-        template  Generate "empty" input-file at <excel-file-path>.
-        ipynb     Generate IPython notebooks inside <folder>; view them with cmd:
-                    ipython --notebook-dir=<folder>
+        simulate    [default] Run simulation for all excel-files in input-folder (-I).
+        demo        Generate demo input-files inside <folder>.
+        template    Generate "empty" input-file at <excel-file-path>.
+        ipynb       Generate IPython notebooks inside <folder>; view them with cmd:
+                      ipython --notebook-dir=<folder>
+        modelgraph  Plot models.
 
     * Items enclosed in `[]` are optional.
 
