@@ -28,7 +28,7 @@ __uri__       = "https://github.com/JRCSTU/co2mpas"
 
 if __name__ == '__main__':
     from co2mpas.dispatcher.draw import dsp2dot
-    from co2mpas.models import load, architecture, calibrate_models
+    from co2mpas.models import load, vehicle_processing_model, calibrate_models
     from co2mpas.models.physical import physical_calibration, physical_prediction
     from co2mpas.models.physical.wheels import wheels
     from co2mpas.models.physical.vehicle import vehicle
@@ -45,7 +45,7 @@ if __name__ == '__main__':
         electrics_prediction
 
     dsps = [
-        architecture(),
+        vehicle_processing_model(),
         load(),
         calibrate_models(),
         physical_calibration(),

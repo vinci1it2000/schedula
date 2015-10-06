@@ -17,6 +17,7 @@ Modules:
     :toctree: functions/
 
     physical
+    plot
     read_inputs
     write_outputs
 
@@ -126,9 +127,9 @@ def process_folder_files(
     :type plot_workflow: bool, optional
     """
 
-    from co2mpas.models import architecture
+    from co2mpas.models import vehicle_processing_model
 
-    model = architecture(
+    model = vehicle_processing_model(
         hide_warn_msgbox=hide_warn_msgbox,
         prediction_WLTP=enable_prediction_WLTP)
 

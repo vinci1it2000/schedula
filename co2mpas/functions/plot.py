@@ -11,86 +11,95 @@ It contains functions to plot cycle time series.
 .. note:: these functions are used in :mod:`co2mpas.functions.write_outputs`.
 """
 
-
-from itertools import product
-import matplotlib.pyplot as plt
-
-linestyles = ('-', '--', '-.', ':')
-colors = ('b', 'r', 'g', 'c', 'm', 'y', 'k')
-markers = ('', 'o', 's', '+', 'x', '*', '.', '<', '>', 'v', '^', '_')
+import sys
+from co2mpas.dispatcher.draw import dsp2dot
 
 
-def _get_styles():
-    for m, l, c in product(markers, linestyles, colors):
-        yield {'linestyle': l, 'color': c, 'marker': m}
-
-
-def _plot_series(time, series, ax=None, x_label=None, y_label=None):
-    styles = _get_styles()
-    if ax is None:
-        import matplotlib.pyplot as plt
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-
-    for l, v in sorted(series.items()):
-        ax.plot(time, v, label=l, **next(styles))
-
-    ax.legend(loc=8, ncol=8, mode='expand')
-    ax.set_xlabel(x_label)
-    ax.set_ylabel(y_label)
-
-
-def plot_gear_box_speeds(series):
+def plot_model_graphs(model_ids=None, **kwargs):
     """
-    Plots the time series for velocity, gear, gear box speed, and engine speed.
+    Plots the graph of CO2MPAS models.
 
-    :param series:
-        Vehicle time series:
+    :param model_ids:
+        List of models to be plotted
+        (e.g., ['co2mpas.models.physical.physical_calibration', 'engine', ...]).
 
-            - Time [s]
-            - Velocity [km/h]
-            - Gears [-]
-            - Gears with ... [-]
-            - Engine speed [rpm]
-            - Gear box speeds with ... [rpm]
+        .. note:: It it is not specified all models will be plotted.
+    :type model_ids: list, None
 
-    :type series: pandas.DataFrame
+    :param kwargs:
+        Optional dsp2dot keywords.
+    :type kwargs: dict
 
     :return:
-        A figure.
-    :rtype: plt.Figure
+        A list of directed graphs source code in the DOT language.
+    :rtype: list
     """
 
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, True, figsize=(32, 20))
+    dot_setting = {
+        'view': True,
+        'level': 0,
+        'function_module': False
+    }
+    dot_setting.update(kwargs)
 
-    g = {'Velocity [km/h]': series['Velocity [km/h]']}
-    _plot_series(series['Time [s]'], g, ax=ax1,
-                 x_label='Time [s]', y_label='Velocity [km/h]')
+    co2maps_models = {
+        'vehicle_processing_model',
+        'load_inputs',
+        'write_outputs',
+        'load',
+        #+
+        'physical.physical_calibration',
+        'physical.physical_prediction',
+        #++
+        'physical.vehicle.vehicle',
+        #++
+        'physical.wheels.wheels',
+        #++
+        'physical.final_drive.final_drive',
+        #++
+        'physical.gear_box.gear_box_calibration',
+        'physical.gear_box.gear_box_prediction',
+        #+++
+        'physical.gear_box.thermal.thermal',
+        #+++
+        'physical.gear_box.AT_gear.AT_gear',
+        'physical.gear_box.AT_gear.cmv',
+        'physical.gear_box.AT_gear.cmv_cold_hot',
+        'physical.gear_box.AT_gear.dt_va',
+        'physical.gear_box.AT_gear.dt_vap',
+        'physical.gear_box.AT_gear.dt_vat',
+        'physical.gear_box.AT_gear.dt_vatp',
+        'physical.gear_box.AT_gear.gspv',
+        'physical.gear_box.AT_gear.gspv_cold_hot',
+        #++
+        'physical.electrics.electrics',
+        #+++
+        'physical.electrics.electrics_prediction.electrics_prediction',
+        #++
+        'physical.engine.engine',
+        #+++
+        'physical.engine.co2_emission.co2_emission',
+    }
 
-    g = {k.replace('Gears with ', ''): v
-         for k, v in series.items()
-         if 'Gears' in k}
-    _plot_series(series['Time [s]'], g, ax=ax2,
-                 x_label='Time [s]', y_label='Gear [-]')
+    co2maps_models = {'co2mpas.models.%s' % k for k in co2maps_models}
 
-    g, e = {}, {}
-    for k, v in series.items():
-        if 'Gearbox speeds engine side [RPM] with' in k:
-            g[k.replace('Gearbox speeds engine side [RPM] with ', '')] = v
-        elif 'Engine speed' in k:
-            e[k] = v
+    if not model_ids:
+        models = co2maps_models
+    else:
+        models = set()
+        for model_id in model_ids:
+            models.update({k for k in co2maps_models if model_id in k})
 
-    g1 = {}
-    g1.update(e)
-    for i in range(int((len(g) - 1) / 2) + 1):
-        k, v = g.popitem()
-        g1[k] = v
-    g.update(e)
 
-    _plot_series(series['Time [s]'], g, ax=ax3,
-                 x_label='Time [s]', y_label='Gearbox speed [rpm]')
+    dot_graphs = []
 
-    _plot_series(series['Time [s]'], g1, ax=ax4,
-                 x_label='Time [s]', y_label='Gearbox speed [rpm]')
+    for model_path in sorted(models):
+        model_path = model_path.split('.')
+        module_path, object_name = '.'.join(model_path[:-1]), model_path[-1]
+        __import__(module_path)
+        module = sys.modules[module_path]
+        dsp = getattr(module, object_name)()
+        dot = dsp2dot(dsp, **dot_setting)
+        dot_graphs.append(dot)
 
-    return fig
+    return dot_graphs

@@ -25,9 +25,9 @@ def process_folder_files(input_folder):
     :type output_folder: str
     """
 
-    from co2mpas.models import architecture
+    from co2mpas.models import vehicle_processing_model
 
-    model = architecture(with_output_file=False)
+    model = vehicle_processing_model(with_output_file=False)
 
     fpaths = glob.glob(input_folder + '/*.xlsx')
 

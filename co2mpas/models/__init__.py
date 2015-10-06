@@ -21,12 +21,12 @@ It provides CO2MPAS software architecture.
 
 from co2mpas.functions.write_outputs import write_output
 from co2mpas.dispatcher import Dispatcher
-from co2mpas.dispatcher.utils import SubDispatch, replicate_value
+from co2mpas.dispatcher.utils import SubDispatch, replicate_value, \
+    SubDispatchFunction
 from co2mpas.dispatcher.constants import SINK
 from functools import partial
 from itertools import chain
 from co2mpas.functions.read_inputs import *
-from co2mpas.dispatcher.utils import SubDispatchFunction
 from co2mpas.functions import *
 
 
@@ -118,9 +118,9 @@ def load_inputs():
     """
 
     load_inputs = Dispatcher(
-        name='CO2MPAS architecture',
-        description='Processes an excel file calibrating the models defined by '
-                    ':mod:`physical model<co2mpas.models.physical>`.'
+        name='load_inputs',
+        description='Loads from files the inputs for the '
+                    ':func:`CO2MPAS model<co2mpas_model>`.'
     )
 
     load_inputs.add_data(
@@ -401,21 +401,21 @@ def write_outputs(prediction_WLTP=False):
     return write_outputs
 
 
-def architecture(
+def vehicle_processing_model(
         with_output_file=True, hide_warn_msgbox=False, prediction_WLTP=False):
     """
-    Defines the CO2MPAS software architecture.
+    Defines the vehicle-processing model.
 
     .. dispatcher:: dsp
 
-        >>> dsp = architecture_v1()
+        >>> dsp = vehicle_processing_model()
 
     :return:
-        The architecture model.
+        The vehicle-processing model.
     :rtype: Dispatcher
     """
 
-    architecture = Dispatcher(
+    vehicle_processing_model = Dispatcher(
         name='CO2MPAS architecture',
         description='Processes an excel file calibrating the models defined by '
                     ':mod:`physical model<co2mpas.models.physical>`.'
@@ -461,13 +461,13 @@ def architecture(
         ])
 
 
-    architecture.add_dispatcher(
+    vehicle_processing_model.add_dispatcher(
         dsp=load_inputs(),
         inputs={'input_file_name': 'input_file_name'},
         outputs={k: k for k in chain(co2mpas_inputs, co2mpas_targets)}
     )
 
-    architecture.add_dispatcher(
+    vehicle_processing_model.add_dispatcher(
         dsp=co2mpas_model(hide_warn_msgbox=hide_warn_msgbox,
                          prediction_WLTP=prediction_WLTP),
         inputs={k: k for k in co2mpas_inputs},
@@ -475,10 +475,10 @@ def architecture(
     )
 
     if with_output_file:
-        architecture.add_dispatcher(
+        vehicle_processing_model.add_dispatcher(
             dsp=write_outputs(prediction_WLTP=prediction_WLTP),
             inputs={k: k for k in chain(co2mpas_outputs, output_file_names)},
             outputs={SINK: SINK}
         )
 
-    return architecture
+    return vehicle_processing_model
