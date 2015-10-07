@@ -24,7 +24,7 @@ from inspect import signature, Parameter, _POSITIONAL_OR_KEYWORD
 from collections import OrderedDict
 import types
 from itertools import repeat
-from ..constants import NONE
+from .constants import NONE
 
 
 def get_sub_node(dsp, path, node_attr='auto', _level=0, _dsp_name=NONE):

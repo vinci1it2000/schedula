@@ -13,8 +13,8 @@ The model is defined by a Dispatcher that wraps all the functions needed.
 
 
 from co2mpas.dispatcher import Dispatcher
-from co2mpas.dispatcher.constants import SINK
 from co2mpas.functions.physical.gear_box.AT_gear import *
+import co2mpas.dispatcher.utils as dsp_utl
 
 
 def AT_gear():
@@ -124,7 +124,7 @@ def AT_gear():
         input_domain=dt_domain,
         dsp=dt_va(),
         inputs={
-            'use_dt_gear_shifting': SINK,
+            'use_dt_gear_shifting': dsp_utl.SINK,
             'DT_VA': 'DT_VA',
             'accelerations': 'accelerations',
             'correct_gear': 'correct_gear',
@@ -146,7 +146,7 @@ def AT_gear():
         input_domain=dt_domain,
         dsp=dt_vap(),
         inputs={
-            'use_dt_gear_shifting': SINK,
+            'use_dt_gear_shifting': dsp_utl.SINK,
             'DT_VAP': 'DT_VAP',
             'accelerations': 'accelerations',
             'correct_gear': 'correct_gear',
@@ -169,7 +169,7 @@ def AT_gear():
         input_domain=dt_domain,
         dsp=dt_vat(),
         inputs={
-            'use_dt_gear_shifting': SINK,
+            'use_dt_gear_shifting': dsp_utl.SINK,
             'DT_VAT': 'DT_VAT',
             'accelerations': 'accelerations',
             'correct_gear': 'correct_gear',
@@ -192,7 +192,7 @@ def AT_gear():
         input_domain=dt_domain,
         dsp=dt_vatp(),
         inputs={
-            'use_dt_gear_shifting': SINK,
+            'use_dt_gear_shifting': dsp_utl.SINK,
             'DT_VATP': 'DT_VATP',
             'accelerations': 'accelerations',
             'correct_gear': 'correct_gear',

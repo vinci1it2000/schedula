@@ -10,6 +10,7 @@ OVERWRITE_SEATBELT = False # NOTE: Do not commit it as `True`!
 DATA_DIFF_RATIO = 1e-6
 EPS = 2 * sys.float_info.epsilon / DATA_DIFF_RATIO
 
+
 class SeatBelt(unittest.TestCase):
 
     def _check_summaries(self, new_sums, old_sums):

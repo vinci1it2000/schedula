@@ -12,7 +12,7 @@ The model is defined by a Dispatcher that wraps all the functions needed.
 """
 
 from co2mpas.dispatcher import Dispatcher
-from co2mpas.dispatcher.utils.dsp import bypass
+import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.functions.physical.gear_box.thermal import *
 
 
@@ -57,7 +57,7 @@ def thermal():
     )
 
     thermal.add_function(
-        function=bypass,
+        function=dsp_utl.bypass,
         inputs=['gear_box_torque_in<0>'],
         outputs=['gear_box_torque_in'],
         weight=100,

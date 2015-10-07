@@ -22,7 +22,7 @@ Sub-Modules:
 
 from co2mpas.dispatcher import Dispatcher
 from co2mpas.functions.physical.engine import *
-from co2mpas.dispatcher.utils.dsp import bypass
+import co2mpas.dispatcher.utils as dsp_utl
 
 
 def engine():
@@ -109,7 +109,7 @@ def engine():
 
     # set idle engine speed tuple
     engine.add_function(
-        function=bypass,
+        function=dsp_utl.bypass,
         inputs=['idle_engine_speed_median', 'idle_engine_speed_std'],
         outputs=['idle_engine_speed']
     )
@@ -227,7 +227,7 @@ def engine():
     )
 
     engine.add_function(
-        function=bypass,
+        function=dsp_utl.bypass,
         inputs=['engine_speeds_out_hot'],
         outputs=['engine_speeds_out'],
         weight=50

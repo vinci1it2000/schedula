@@ -42,7 +42,8 @@ def evaluate_gear_box_torque_in(
 
     tgb, es, ws = gear_box_torque_out, gear_box_speed_in, gear_box_speed_out
     par = gear_box_efficiency_parameters
-    if tgb < 0 and es > 0 and ws > 0:
+
+    if tgb < 0 < es and ws > 0:
         return (par['gbp01'] * tgb - par['gbp10'] * ws - par['gbp00']) * ws / es
     elif es > 0 and ws > 0:
         return (tgb - par['gbp10'] * es - par['gbp00']) / par['gbp01']

@@ -6,11 +6,8 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
-import io
 import os
-import re
 import unittest
-from unittest.mock import patch
 import tempfile
 
 from co2mpas import __main__ as compas_main

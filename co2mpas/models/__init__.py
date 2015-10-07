@@ -21,13 +21,11 @@ It provides CO2MPAS software architecture.
 
 from co2mpas.functions.write_outputs import write_output
 from co2mpas.dispatcher import Dispatcher
-from co2mpas.dispatcher.utils import SubDispatch, replicate_value, \
-    SubDispatchFunction
-from co2mpas.dispatcher.constants import SINK
 from functools import partial
 from itertools import chain
 from co2mpas.functions.read_inputs import *
 from co2mpas.functions import *
+import co2mpas.dispatcher.utils as dsp_utl
 
 
 def load():
@@ -94,7 +92,7 @@ def load():
     )
 
     # Define a function to load the cycle inputs.
-    load_inputs = SubDispatchFunction(
+    load_inputs = dsp_utl.SubDispatchFunction(
         dsp=dsp,
         function_id='load_inputs',
         inputs=['cycle_name', 'input_file_name'],
@@ -131,7 +129,7 @@ def load_inputs():
 
     load_inputs.add_function(
         function_id='replicate',
-        function=partial(replicate_value, n=4),
+        function=partial(dsp_utl.replicate_value, n=4),
         inputs=['input_file_name'],
         outputs=['precondition_cycle_input_file_name',
                  'wltp_h_cycle_input_file_name',
@@ -215,7 +213,7 @@ def co2mpas_model(hide_warn_msgbox=False, prediction_WLTP=False):
 
     co2mpas_model.add_function(
         function_id='calibrate_physical_models',
-        function=SubDispatch(physical_calibration()),
+        function=dsp_utl.SubDispatch(physical_calibration()),
         inputs=['precondition_cycle_inputs'],
         outputs=['precondition_cycle_outputs'],
         description='Wraps all functions needed to calibrate the models to '
@@ -234,7 +232,7 @@ def co2mpas_model(hide_warn_msgbox=False, prediction_WLTP=False):
 
     co2mpas_model.add_function(
         function_id='calibrate_physical_models_with_wltp_h',
-        function=SubDispatch(physical_calibration()),
+        function=dsp_utl.SubDispatch(physical_calibration()),
         inputs=['calibration_wltp_h_inputs'],
         outputs=['calibration_wltp_h_outputs'],
         description='Wraps all functions needed to calibrate the models to '
@@ -251,7 +249,7 @@ def co2mpas_model(hide_warn_msgbox=False, prediction_WLTP=False):
 
         co2mpas_model.add_function(
             function_id='predict_wltp_h',
-            function=SubDispatch(physical_prediction()),
+            function=dsp_utl.SubDispatch(physical_prediction()),
             inputs=['calibrated_co2mpas_models', 'prediction_wltp_h_inputs'],
             outputs=['prediction_wltp_h_outputs'],
         )
@@ -268,7 +266,7 @@ def co2mpas_model(hide_warn_msgbox=False, prediction_WLTP=False):
 
     co2mpas_model.add_function(
         function_id='calibrate_physical_models_with_wltp_l',
-        function=SubDispatch(physical_calibration()),
+        function=dsp_utl.SubDispatch(physical_calibration()),
         inputs=['calibration_wltp_l_inputs'],
         outputs=['calibration_wltp_l_outputs'],
         description='Wraps all functions needed to calibrate the models to '
@@ -285,7 +283,7 @@ def co2mpas_model(hide_warn_msgbox=False, prediction_WLTP=False):
 
         co2mpas_model.add_function(
             function_id='predict_wltp_l',
-            function=SubDispatch(physical_prediction()),
+            function=dsp_utl.SubDispatch(physical_prediction()),
             inputs=['calibrated_co2mpas_models', 'prediction_wltp_l_inputs'],
             outputs=['prediction_wltp_l_outputs'],
         )
@@ -305,7 +303,7 @@ def co2mpas_model(hide_warn_msgbox=False, prediction_WLTP=False):
 
     co2mpas_model.add_function(
         function_id='predict_nedc',
-        function=SubDispatch(physical_prediction()),
+        function=dsp_utl.SubDispatch(physical_prediction()),
         inputs=['calibrated_co2mpas_models', 'nedc_inputs'],
         outputs=['prediction_nedc_outputs'],
     )
@@ -478,7 +476,7 @@ def vehicle_processing_model(
         vehicle_processing_model.add_dispatcher(
             dsp=write_outputs(prediction_WLTP=prediction_WLTP),
             inputs={k: k for k in chain(co2mpas_outputs, output_file_names)},
-            outputs={SINK: SINK}
+            outputs={dsp_utl.SINK: dsp_utl.SINK}
         )
 
     return vehicle_processing_model

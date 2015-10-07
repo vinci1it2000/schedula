@@ -6,10 +6,8 @@ import numpy as np
 from sklearn.metrics import mean_squared_error
 from scipy.optimize import fmin
 
-from co2mpas.functions.physical.gear_box.AT_gear.__init__.AT_gear import \
-    identify_gears, VEL_EPS
-from co2mpas.utils import median_filter
-
+from co2mpas.functions.physical.gear_box import identify_gears, VEL_EPS
+from co2mpas.functions.physical.utils import median_filter
 
 
 # deprecated

@@ -23,7 +23,7 @@ Sub-Modules:
 
 from math import pi
 import numpy as np
-from co2mpas.dispatcher.utils.dsp import SubDispatchFunction
+import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.functions.physical.utils import bin_split, reject_outliers
 from co2mpas.functions.physical.constants import *
 from functools import partial
@@ -615,7 +615,7 @@ def calculate_gear_box_efficiencies_torques_temperatures(
 
     from co2mpas.models.physical.gear_box.thermal import thermal
 
-    fun = SubDispatchFunction(thermal(), 'thermal', inputs, outputs)
+    fun = dsp_utl.SubDispatchFunction(thermal(), 'thermal', inputs, outputs)
     T0 = initial_gear_box_temperature
     res = []
     for args in zip(*it):

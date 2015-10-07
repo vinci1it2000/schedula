@@ -9,9 +9,7 @@ It contains functions to write prediction outputs.
 """
 
 
-from heapq import heappush
 import logging
-
 import numpy as np
 import pandas as pd
 

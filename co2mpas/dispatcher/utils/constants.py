@@ -12,7 +12,7 @@ It provides constants data node ids and values.
 
 __author__ = 'Vincenzo Arcidiacono'
 
-from .utils.gen import Token
+from .gen import Token
 
 __all__ = ['EMPTY', 'START', 'NONE', 'SINK']
 

@@ -19,10 +19,7 @@ Modules:
     :nosignatures:
     :toctree: dispatcher/
 
-    read_write
-    draw
     utils
-    constants
 """
 
 __author__ = 'Vincenzo Arcidiacono'
@@ -36,7 +33,7 @@ from functools import partial
 
 from .utils.gen import AttrDict, counter, caller_name
 from .utils.alg import add_edge_fun, remove_cycles_iteration
-from .constants import EMPTY, START, NONE, SINK
+from .utils.constants import EMPTY, START, NONE, SINK
 from .utils.dsp import SubDispatch, bypass
 
 

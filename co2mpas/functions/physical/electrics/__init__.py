@@ -23,7 +23,7 @@ Sub-Modules:
 import numpy as np
 from functools import partial
 from sklearn.tree import DecisionTreeClassifier
-from co2mpas.dispatcher.utils import SubDispatchFunction
+import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.functions.physical.utils import reject_outliers
 from co2mpas.functions.physical.constants import *
 from math import pi
@@ -434,7 +434,7 @@ def predict_vehicle_electrics(
     from co2mpas.models.physical.electrics.electrics_prediction import \
         electrics_prediction
 
-    func = SubDispatchFunction(
+    func = dsp_utl.SubDispatchFunction(
         dsp=electrics_prediction(),
         function_id='electric_sub_model',
         inputs=['battery_capacity', 'alternator_status_model',

@@ -11,18 +11,18 @@ import doctest
 
 from graphviz.dot import Digraph
 
-from co2mpas.dispatcher.draw import *
-from co2mpas.dispatcher.constants import SINK
+from co2mpas.dispatcher.utils import *
+from co2mpas.dispatcher.utils import SINK
 from co2mpas.dispatcher import Dispatcher
 from co2mpas.dispatcher.utils.dsp import SubDispatch
 
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):
-        import co2mpas.dispatcher.draw as d
+        import co2mpas.dispatcher.utils.drw as utl
 
         failure_count, test_count = doctest.testmod(
-            d, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS
+            utl, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS
         )
         self.assertGreater(test_count, 0, (failure_count, test_count))
         self.assertEqual(failure_count, 0, (failure_count, test_count))

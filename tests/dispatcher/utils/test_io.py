@@ -12,13 +12,13 @@ import platform
 
 if platform.python_implementation() != "PyPy":
     from tempfile import mkstemp
-    from co2mpas.dispatcher.read_write import *
+    from co2mpas.dispatcher.utils import *
     from co2mpas.dispatcher import Dispatcher
 
 
     class TestDoctest(unittest.TestCase):
         def runTest(self):
-            import co2mpas.dispatcher.read_write as utl
+            import co2mpas.dispatcher.utils.io as utl
 
             failure_count, test_count = doctest.testmod(
                 utl,

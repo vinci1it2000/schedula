@@ -32,7 +32,7 @@ import numpy as np
 import pandas as pd
 from collections import Iterable
 from .write_outputs import check_writeable
-from co2mpas.dispatcher.draw import dsp2dot
+import co2mpas.dispatcher.utils as dsp_utl
 
 
 log = logging.getLogger(__name__)
@@ -228,8 +228,9 @@ def _process_folder_files(
 
         if plot_workflow:
             try:
-                dsp2dot(model, workflow=True, view=True, function_module=False,
-                        node_output=False, edge_attr=model.weight)
+                dsp_utl.dsp2dot(
+                    model, workflow=True, view=True, function_module=False,
+                    node_output=False, edge_attr=model.weight)
             except RuntimeError as ex:
                 log.warning(ex, exc_info=1)
 

@@ -5,14 +5,14 @@ if not IS_PYPY:
 
     import unittest
     from co2mpas.dispatcher import Dispatcher
-    from co2mpas.dispatcher.draw import dsp2dot
+    from co2mpas.dispatcher.utils import dsp2dot
     from doc._ext.dsp_directive import DispatcherDirective, PLOT
     from docutils.statemachine import ViewList
 
     try:
         from .util import TestApp, Struct
     except SystemError:
-        from dispatcher.docs.util import TestApp, Struct
+        from tests.dispatcher.docs.util import TestApp, Struct
     app = None
 
     directive = options = None

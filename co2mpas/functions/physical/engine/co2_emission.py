@@ -15,7 +15,7 @@ from functools import partial
 from scipy.integrate import trapz
 from scipy.optimize import brute, minimize
 from sklearn.metrics import mean_squared_error
-from co2mpas.dispatcher.utils import pairwise
+import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.functions.physical.constants import *
 
 
@@ -425,7 +425,7 @@ def calculate_cumulative_co2(
 
     co2 = []
 
-    for t0, t1 in pairwise(phases_integration_times):
+    for t0, t1 in dsp_utl.pairwise(phases_integration_times):
         b = (t0 <= times) & (times < t1)
         co2.append(trapz(co2_emissions[b], times[b]))
 
@@ -564,7 +564,8 @@ def identify_co2_emissions(
 
     co2_emissions = co2_emissions_model(params_initial_guess)
 
-    it = zip(cumulative_co2_emissions, pairwise(phases_integration_times))
+    it = zip(cumulative_co2_emissions,
+             dsp_utl.pairwise(phases_integration_times))
     for cco2, (t0, t1) in it:
         b = (t0 <= times) & (times < t1)
         co2_emissions[b] *= cco2 / trapz(co2_emissions[b], times[b])
@@ -634,7 +635,8 @@ def define_co2_error_function_on_phases(
         if phases:
             co2, b = np.zeros(times.shape), np.zeros(times.shape, dtype=bool)
             w = []
-            for i, (t0, t1) in enumerate(pairwise(phases_integration_times)):
+            it = enumerate(dsp_utl.pairwise(phases_integration_times))
+            for i, (t0, t1) in it:
                 if i in phases:
                     b |= (t0 <= times) & (times < t1)
                     w.append(phases_co2_emissions[i])

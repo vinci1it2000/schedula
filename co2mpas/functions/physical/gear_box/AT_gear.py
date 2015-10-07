@@ -17,7 +17,7 @@ from scipy.optimize import fmin
 from scipy.interpolate import InterpolatedUnivariateSpline
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import mean_absolute_error
-from co2mpas.dispatcher.utils import pairwise
+import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.functions.physical.utils import median_filter, grouper, \
     interpolate_cloud, clear_fluctuations
 from co2mpas.functions.physical.constants import *
@@ -320,7 +320,7 @@ def identify_gear_shifting_velocity_limits(gears, velocities):
 
     limits = {}
 
-    for v, (g0, g1) in zip(velocities, pairwise(gears)):
+    for v, (g0, g1) in zip(velocities, dsp_utl.pairwise(gears)):
         if v >= VEL_EPS and g0 != g1:
             limits[g0] = limits.get(g0, [[], []])
             limits[g0][g0 < g1].append(v)
@@ -540,7 +540,7 @@ def correct_gsv(gsv):
 
     gsv[0] = [0, (VEL_EPS, (INF, 0))]
 
-    for v0, v1 in pairwise(gsv.values()):
+    for v0, v1 in dsp_utl.pairwise(gsv.values()):
         up0, down1 = (v0[1][0], v1[0][0])
 
         if down1 + VEL_EPS <= v0[0]:
@@ -580,9 +580,12 @@ def calibrate_gspv(gears, velocities, wheel_powers):
         Gear shifting power velocity matrix.
     :rtype: dict
     """
+
     gspv = {}
 
-    for v, p, (g0, g1) in zip(velocities, wheel_powers, pairwise(gears)):
+    it = zip(velocities, wheel_powers, dsp_utl.pairwise(gears))
+
+    for v, p, (g0, g1) in it:
         if v > VEL_EPS and g0 != g1:
             x = gspv.get(g0, [[], [[], []]])
             if g0 < g1 and p >= 0:

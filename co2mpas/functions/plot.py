@@ -8,7 +8,7 @@
 It contains plotting functions for models and/or output results.
 """
 
-from co2mpas.dispatcher.draw import dsp2dot
+import co2mpas.dispatcher.utils as dsp_utl
 import logging
 import sys
 
@@ -103,7 +103,7 @@ def plot_model_graphs(model_ids=None, **kwargs):
         __import__(module_path)
         module = sys.modules[module_path]
         dsp = getattr(module, object_name)()
-        dot = dsp2dot(dsp, **dot_setting)
+        dot = dsp_utl.dsp2dot(dsp, **dot_setting)
         dot_graphs.append(dot)
 
     return dot_graphs

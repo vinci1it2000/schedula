@@ -13,8 +13,8 @@ The model is defined by a Dispatcher that wraps all the functions needed.
 
 
 from co2mpas.dispatcher import Dispatcher
-from co2mpas.dispatcher.utils import bypass
 from co2mpas.functions.physical.engine.co2_emission import *
+import co2mpas.dispatcher.utils as dsp_utl
 
 
 def co2_emission():
@@ -155,7 +155,7 @@ def co2_emission():
 
     co2_emission.add_function(
         function_id='merge_wltp_phases_co2_emission',
-        function=bypass,
+        function=dsp_utl.bypass,
         inputs=['co2_emission_low', 'co2_emission_medium', 'co2_emission_high',
                 'co2_emission_extra_high'],
         outputs=['phases_co2_emissions']
@@ -173,7 +173,7 @@ def co2_emission():
 
     co2_emission.add_function(
         function_id='merge_nedc_phases_co2_emission',
-        function=bypass,
+        function=dsp_utl.bypass,
         inputs=['co2_emission_udc', 'co2_emission_eudc'],
         outputs=['phases_co2_emissions']
     )

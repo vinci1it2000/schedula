@@ -23,9 +23,7 @@ Sub-Modules:
 
 from co2mpas.dispatcher import Dispatcher
 from co2mpas.functions.physical.gear_box import *
-from co2mpas.dispatcher.utils import bypass
-from co2mpas.dispatcher.constants import SINK
-from co2mpas.functions.physical.gear_box import get_gear_box_efficiency_constants
+import co2mpas.dispatcher.utils as dsp_utl
 
 
 def _gear_box():
@@ -83,7 +81,7 @@ def _gear_box():
     )
 
     gear_box.add_function(
-        function=bypass,
+        function=dsp_utl.bypass,
         inputs=['gear_box_torques_in<0>'],
         outputs=['gear_box_torques_in'],
         weight=100,
@@ -237,7 +235,7 @@ def gear_box_calibration():
             'full_load_curve': 'full_load_curve',
             'gears': 'identified_gears',
             'gear_box_powers_out': 'gear_box_powers_out',
-            'gear_box_type': SINK,
+            'gear_box_type': dsp_utl.SINK,
             'idle_engine_speed': 'idle_engine_speed',
             'engine_max_power': 'engine_max_power',
             'engine_max_speed_at_max_power': 'engine_max_speed_at_max_power',

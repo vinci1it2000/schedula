@@ -11,7 +11,7 @@ import unittest
 
 from co2mpas.dispatcher.utils.dsp import *
 from co2mpas.dispatcher import Dispatcher
-from co2mpas.dispatcher.constants import SINK
+from co2mpas.dispatcher.utils import SINK
 
 
 class TestDoctest(unittest.TestCase):

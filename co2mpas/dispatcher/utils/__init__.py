@@ -13,7 +13,7 @@ The utils module contains classes and functions of general utility used in
 multiple places throughout `dispatcher`. Some of these are graph-specific
 algorithms while others are more python tricks.
 
-The utils module is composed of three submodules to make organization clearer.
+The utils module is composed of six submodules to make organization clearer.
 The submodules are fairly different from each other, but the main uniting theme
 is that all of these submodules are not specific to a particularly dispatcher
 application.
@@ -38,6 +38,9 @@ Sub-Modules:
     dsp
     alg
     gen
+    drw
+    constants
+    io
 """
 
 __author__ = 'Vincenzo Arcidiacono'
@@ -45,3 +48,6 @@ __author__ = 'Vincenzo Arcidiacono'
 from .dsp import *
 from .alg import *
 from .gen import *
+from .drw import *
+from .constants import *
+from .io import *

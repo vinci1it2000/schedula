@@ -18,8 +18,8 @@ from networkx.utils import default_opener
 from graphviz import Digraph
 
 from .constants import START, SINK
-from .utils.dsp import SubDispatch, SubDispatchFunction
-from . import Dispatcher
+from .dsp import SubDispatch, SubDispatchFunction
+
 
 __all__ = ['dsp2dot']
 
@@ -71,7 +71,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
 
         >>> from co2mpas.dispatcher import Dispatcher
         >>> from co2mpas.dispatcher.utils.dsp import SubDispatch
-        >>> from co2mpas.dispatcher.constants import SINK
+        >>> from co2mpas.dispatcher.utils import SINK
         >>> ss = Dispatcher()
         >>> def fun(a):
         ...     return a + 1, a - 1
@@ -100,7 +100,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
         (..., ...)
         >>> wf = dsp2dot(dsp, workflow=True, graph_attr={'ratio': '1'})
     """
-
+    from .. import Dispatcher
     inputs = []
     outputs = []
     if isinstance(dsp, SubDispatchFunction) and not workflow:

@@ -16,10 +16,9 @@ numerical operations.
 
 import sys
 import math
-from heapq import heappush
 from statistics import median_high
 from collections import OrderedDict
-from co2mpas.dispatcher.utils import pairwise
+import co2mpas.dispatcher.utils as dsp_utl
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline
 
@@ -213,7 +212,7 @@ def bin_split(x, bin_std=(0.01, 0.1), n_min=None, bins_min=None):
     bin_stats = sorted(bin_stats)
 
     def _bin_merge(x, edges, bin_stats):
-        bins = OrderedDict(enumerate(zip(pairwise(edges), bin_stats)))
+        bins = OrderedDict(enumerate(zip(dsp_utl.pairwise(edges), bin_stats)))
         new_edges = [edges[0]]
         new_bin_stats = []
 
@@ -266,7 +265,7 @@ def interpolate_cloud(x, y):
     if len(s) > 2:
         x, y = ([0.0], [None])
 
-        for e0, e1 in pairwise(edges):
+        for e0, e1 in dsp_utl.pairwise(edges):
             b = (e0 <= p) & (p < e1)
             x.append(np.mean(p[b]))
             y.append(np.mean(v[b]))

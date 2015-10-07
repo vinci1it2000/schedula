@@ -14,7 +14,7 @@ The model is defined by a Dispatcher that wraps all the functions needed.
 
 from co2mpas.dispatcher import Dispatcher
 from co2mpas.functions.physical.vehicle import *
-from co2mpas.dispatcher.utils import bypass
+import co2mpas.dispatcher.utils as dsp_utl
 
 
 def vehicle():
@@ -119,7 +119,7 @@ def vehicle():
 
     vehicle.add_function(
         function_id='grouping',
-        function=bypass,
+        function=dsp_utl.bypass,
         inputs=['f0', 'f1', 'f2'],
         outputs=['road_loads']
     )
@@ -131,7 +131,7 @@ def vehicle():
 
     vehicle.add_function(
         function_id='splitting',
-        function=bypass,
+        function=dsp_utl.bypass,
         inputs=['road_loads'],
         outputs=['f0', 'f1', 'f2']
     )
