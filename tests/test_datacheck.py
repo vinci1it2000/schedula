@@ -42,9 +42,10 @@ class SeatBelt(unittest.TestCase):
 
     def test_demos(self):
         path = os.path.join(os.path.dirname(__file__), '..', 'co2mpas', 'demos')
+        file = '%s/co2mpas_demo_1_full_data.xlsx' % path
 
         res = _process_folder_files(
-            path, hide_warn_msgbox=True, extended_summary=False,
+            file, hide_warn_msgbox=True, extended_summary=False,
             with_output_file=False)[0]
 
         print(res)

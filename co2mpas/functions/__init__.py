@@ -127,16 +127,14 @@ def process_folder_files(
     :type plot_workflow: bool, optional
     """
 
-    start_time = datetime.datetime.today()
-    doday = start_time.strftime('%d_%b_%Y_%H_%M_%S_')
-
-
     summary, start_time = _process_folder_files(
         input_folder, output_folder=output_folder, plot_workflow=plot_workflow,
         hide_warn_msgbox=hide_warn_msgbox, extended_summary=extended_summary,
         enable_prediction_WLTP=enable_prediction_WLTP, with_output_file=True)
 
-    writer = pd.ExcelWriter('%s/%s%s.xlsx' % (output_folder, doday, 'summary'))
+    doday = start_time.strftime('%d_%b_%Y_%H_%M_%S')
+
+    writer = pd.ExcelWriter('%s/%s_%s.xlsx' % (output_folder, doday, 'summary'))
 
     for k, v in sorted(summary.items()):
         pd.DataFrame.from_records(v).to_excel(writer, k)
@@ -173,7 +171,10 @@ def _process_folder_files(
         hide_warn_msgbox=hide_warn_msgbox,
         prediction_WLTP=enable_prediction_WLTP)
 
-    fpaths = glob.glob(input_folder + '/*.xlsx')
+    if os.path.isfile(input_folder):
+        fpaths = [input_folder]
+    else:
+        fpaths = glob.glob(input_folder + '/*.xlsx')
 
     summary = {}
 
