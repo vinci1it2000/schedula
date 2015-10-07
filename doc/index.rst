@@ -5,6 +5,7 @@
 
     install
     usage
+    allinone
     changes
     reference
 

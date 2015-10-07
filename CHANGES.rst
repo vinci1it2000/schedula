@@ -3,18 +3,25 @@ CO2MPAS Changes
 ###############
 .. _begin-changes:
 
-v1.0.2: 5-Oct 2015: "Renata" release
+v1.0.2: 7-Oct 2015: "Renata" release
 ====================================
-Mostly doc fixes for "all-in-one archive" in *Windows*:
+Prepare "all-in-one archive" and new project-site, add Ipython-notebook doc-fixes,
+no model changes.
 
-- Establish project-home on http://co2mpas.io/ and drop install-docs &
-  install-sources instructions.
-- Rename ``co2mpas`` subcommand ``examples --> demos``.
-- Rename internal package, et all ``compas --> co2mpas``.
-- docs:
+- Distribute pre-populated folder with WinPython + CO2MPAS + Consoles
+  for Windows 64bit & 32bit (ALLINONE).
+- Establish project-home on http://co2mpas.io/ for distributing
+  docs, sources and ALLINONE archives.
+
     - Update instructions based on *all-in-one* archive.
-    - Tip for corporate proxies.
-- Better logging.
+    - Tip for installing behind corporate proxies (thanks to Michael Gratzke),
+       and provide link to ``pandalone`` dependency.
+- Add **ipython** notebook for running a single vehicle from the browser
+  (see respective Usage-section in the documents)
+- Rename ``co2mpas`` subcommand: ``examples --> demo``.
+- Rename internal package, et all ``compas --> co2mpas``.
+- Log timestamp when printing messages.
+
 
 v1.0.1, 1-Oct 2015: 2nd release
 ===============================

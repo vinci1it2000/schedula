@@ -2,7 +2,7 @@
 CO2MPAS: Vehicle simulator predicting NEDC CO2 emissions from WLTP
 ##################################################################
 
-:Release:       1.0.2b3
+:Release:       1.0.2b4
 :Home:          http://co2mpas.io/
 :Releases:      http://files.co2mpas.io/
 :Sources:       https://github.com/JRCSTU/co2mpas
@@ -44,8 +44,8 @@ Quickstart
     **Help about Console:**
 
     - Commands beginning with ``$`` symbol are for the *bash-console* (UNIX)
-      i.e. the one included in the ``console.lnk`` file in top folder of
-      the *all-in-one* distribution-archive (see :ref:`begin-install` below).
+      i.e. the one included in the ``bash-console.bat`` file in top folder of
+      the *all-in-one* distribution-archive (see :doc:`allinone`).
 
     - Windows's ``cmd.exe`` console commands begin with ``>`` symbol.
       You can adapt most UNIX commands with minor modifications
@@ -90,7 +90,7 @@ under sections :ref:`begin-install` and :ref:`begin-usage`.
     $ co2mpas template input/vehicle_1.xlsx
 
     ###################################################
-    ## Edit generated `./input/vehicle_1.xlsx` file.  ##
+    ## Edit generated `./input/vehicle_1.xlsx` file. ##
     ###################################################
 
     ## Run simulator.
@@ -138,7 +138,7 @@ packages updated to their latest versions, you may skip the 1st stage.
     <http://www.lfd.uci.edu/~gohlke/pythonlibs/>`_.
 
     Therefore we suggest that you download and unzip the **all-in-one archive**
-    (distributed separately, due to its size ~500Mb).
+    (download from http://files.co2mpas.io/).
 
     Alternatively, download one of the following two scientific-python
     distributions:
@@ -165,12 +165,15 @@ It is not update-able, and has a semi-regular release-cycle of 3 months.
 
 
 3. In the console-window check that you have the correct version of
-   WinPython installed, by typing::
+   WinPython installed, by typing:
+
+   .. code-block:: console
 
         > python --version
         Python 3.4.3
 
-        > where python      ## Check your python's location is where you installed it.
+        REM Check your python is indeed where you installed it.
+        > where python
         ....
 
 
@@ -197,74 +200,82 @@ It is not update-able, and has a semi-regular release-cycle of 3 months.
         "windows start button" --> `cmd.exe`
 
 3. In the console-window check that you have the correct version of
-   Anaconda-python installed, by typing::
+   Anaconda-python installed, by typing:
+
+   .. code-block:: console
 
         > python --version
         Python 3.4.3 :: Anaconda 2.3.0 (64-bit)
 
-        > where python      ## Check your python's location is where you installed it.
+        REM Check your python is indeed where you installed it.
+        > where python
         ....
 
 4. Use this console and follow CO2MPAS-executable installation instructions
    (see :ref:`begin-co2mpas-install`, below)
 
 
+
 .. _begin-co2mpas-install:
 
 CO2MPAS install
 ---------------
-.. Tip::
-    This step requires Internet connectivity to Python's "standard" repository
-    (https://pypi.python.org/). In case you are behind a **corporate proxy**,
-    append an appropriate option to the ``pip`` commands that follow::
-
-        --proxy http://user:password@yourProxyUrl:yourProxyPort
-
-
 1. Install CO2MPAS executable internally into your python-environment with
    the following console-command::
+
+   .. code-block:: console
 
         > pip install co2mpas --extra-index http://pypi.co2mpas.io/simple/ --trusted-host pypi.co2mpas.io
         Collecting co2mpas
         Downloading http://pypi.co2mpas.io/packages/co2mpas-...
         ...
         Installing collected packages: co2mpas
-        Successfully installed co2mpas-1.0.2b3
+        Successfully installed co2mpas-1.0.2b4
+
+    .. Tip::
+        This step requires Internet connectivity to Python's "standard" repository
+        (https://pypi.python.org/). In case you are behind a **corporate proxy**,
+        append an appropriate option to the ``pip`` commands that follow::
+
+            --proxy http://user:password@yourProxyUrl:yourProxyPort
+
+        An alternative is to download the *wheel* packages from
+        http://files.co2mpas.io  and install them one
+        by one:
+
+        .. code-block:: console
+
+             REM Download MANUALLY all `*.whl` files contained in release folder
+             REM from co2mpas-site in some folder.
+             > cd <folder-where-wheels_downloaded>
+             > pip install *.whl
+
 
    .. Warning::
-       In case of errors, re-run the command adding the *verbose* flags ``-vv``,
+       In case of errors, re-run the command adding 2 *verbose* flags ``-vv``,
        copy-paste the console-output, and send it to JRC.
+
 
 2. Check that when you run ``co2mpas``, the version executed is indeed the one
    installed above::
 
+   .. code-block:: console
+
         > co2mpas --version
-        co2mpas-1.0.2b3 at <your-python-folders>\co2mpas
+        co2mpas-1.0.2b4 at <your-python-folders>\co2mpas
 
 
 Upgrade CO2MPAS
 ---------------
-There are 2 ways to upgrade:
 
-1. (preferred) Uninstall and re-install it.
-2. Use the `pip` *--upgrade* option:
-   To update CO2MPAS when a new minor release has been announced,
-   just append the ``-U --no-deps`` options in the ``pip`` command::
-
-       > pip install co2mpas --extra-index http://pypi.co2mpas.io/simple/ --trusted-host pypi.co2mpas.io -U --no-deps
-
-   .. Note::
-       In case CO2MPAS complains about a missing libraries, run the following command::
-
-           pip install co2mpas --extra-index http://pypi.co2mpas.io/simple/ --trusted-host pypi.co2mpas.io -I
-
-       Don't forget to specify your "proxy" option, if applicable.
-       If still in trouble, call JRC.
+1. Uninstall (see below) and re-install it.
 
 
 Uninstall CO2MPAS
 -----------------
 To uninstall CO2MPAS type the following command, and confirm it with ``y``::
+
+.. code-block:: console
 
     > pip uninstall co2mpas
     Uninstalling co2mpas-<installed-version>
@@ -283,8 +294,8 @@ Usage
 =====
 .. Note::
     The following commands are for the **bash console**, specifically tailored
-    for the **all-in-one** archive.  More specific instructions for this archive
-    are contained within it.
+    for the **all-in-one** archive.  More generic guidelines for this archive
+    are contained in :doc:`allinone`.
 
 
 First ensure that the latest version of CO2MPAS is properly installed, and that
@@ -347,6 +358,7 @@ you have installed CO2MPAS (see :ref:`begin-install` above) and type:
 
         ## Create an empty vehicle-file inside `input` folder.
         co2mpas template input/vehicle_1.xlsx
+
 
 Running samples
 ---------------
@@ -488,6 +500,20 @@ Below is the structure of the output-files produced for each vehicle::
     |
     +--<date>-<time>_summary.xls:
                     Major CO2 values from all vehicles in the batch-run.
+
+
+Using IPython
+-------------
+You may enter the data for a single and run its simulation, plot its results
+and experiment in your browser using `IPython <http://ipython.org/>`_.
+
+5. Assuming you do receive any error, you may now inspect the results:
+
+   .. code-block:: console
+
+      $ start output/*summary.xlsx       ## More summaries might open from previous runs.
+      $ start output                     ## View all files generated (see below).
+
 
 
 .. _begin-debug:
