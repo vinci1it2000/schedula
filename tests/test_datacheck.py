@@ -34,13 +34,12 @@ def process_folder_files(input_folder):
     summary = {}
 
     output_files = {
-        'prediction_output_file_name': 'prediction_NEDC',
-        'calibration_output_file_name': 'calibration_WLTP-H',
-        'calibration_output_file_name<0>': 'calibration_WLTP-L',
-        'calibration_cycle_prediction_outputs_file_name':
-            'prediction_WLTP-H',
-        'calibration_cycle_prediction_outputs_file_name<0>':
-            'prediction_WLTP-L',
+        'precondition_output_file_name': 'precondition_WLTP',
+        'calibration_wltp_h_output_file_name': 'calibration_WLTP-H',
+        'prediction_wltp_h_output_file_name': 'prediction_WLTP-H',
+        'calibration_wltp_l_output_file_name': 'calibration_WLTP-L',
+        'prediction_wltp_l_output_file_name': 'prediction_WLTP-L',
+        'prediction_nedc_output_file_name': 'prediction_NEDC',
     }
 
     def check_printable(tag, data):
@@ -78,35 +77,42 @@ def process_folder_files(input_folder):
         },
         'PRE NEDC': {
             'results': {
-                'output': 'prediction_cycle_outputs',
+                'output': 'prediction_nedc_outputs',
                 'check': check_printable,
                 'filters': filters
             },
         },
         'CAL WLTP-H': {
             'results': {
-                'output': 'calibration_cycle_outputs',
+                'output': 'calibration_wltp_h_outputs',
+                'check': check_printable,
+                'filters': filters
+            }
+        },
+        'CAL WLTP-PRECON': {
+            'results': {
+                'output': 'precondition_cycle_outputs',
                 'check': check_printable,
                 'filters': filters
             }
         },
         'CAL WLTP-L': {
             'results': {
-                'output': 'calibration_cycle_outputs<0>',
+                'output': 'calibration_wltp_l_outputs',
                 'check': check_printable,
                 'filters': filters
             }
         },
         'PRE WLTP-H': {
             'results': {
-                'output': 'calibration_cycle_prediction_outputs',
+                'output': 'prediction_wltp_h_outputs',
                 'check': check_printable,
                 'filters': filters
             }
         },
         'PRE WLTP-L': {
             'results': {
-                'output': 'calibration_cycle_prediction_outputs<0>',
+                'output': 'prediction_wltp_l_outputs',
                 'check': check_printable,
                 'filters': filters
             }
