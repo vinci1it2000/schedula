@@ -417,6 +417,26 @@ are a nice starting point to try out.
       $ start output                     ## View the folder with all files generated.
 
 
+Output files
+~~~~~~~~~~~~
+Below is the structure of the output-files produced for each vehicle::
+
+    +--<date>-<time>_precondition_WLTP_<inp-fname>.xls:
+    |               Input and calibrated values for electrics.
+    |
+    +--<date>-<time>_calibration_WLTP-H_<inp-fname>.xls:
+    |               Input and calibrated values.
+    |
+    +--<date>-<time>_calibration_WLTP-L_<inp-fname>.xls:
+    |               Input and calibrated values.
+    |
+    +--<date>-<time>_prediction_NEDC_<inp-fname>.xls:
+    |               Input and predicted values.
+    |
+    +--<date>-<time>_summary.xls:
+                    Major CO2 values from all vehicles in the batch-run.
+
+
 Entering new vehicles
 ---------------------
 You may modify the samples vehicles and run again the model.
@@ -482,38 +502,68 @@ excel-file:
    above procedure from step 3 to modify the vehicle and re-run the model.
    See also :ref:`begin-debug`, below.
 
-Output files
-------------
-Below is the structure of the output-files produced for each vehicle::
-
-    +--<date>-<time>_precondition_WLTP_<inp-fname>.xls:
-    |               Input and calibrated values for electrics.
-    |
-    +--<date>-<time>_calibration_WLTP-H_<inp-fname>.xls:
-    |               Input and calibrated values.
-    |
-    +--<date>-<time>_calibration_WLTP-L_<inp-fname>.xls:
-    |               Input and calibrated values.
-    |
-    +--<date>-<time>_prediction_NEDC_<inp-fname>.xls:
-    |               Input and predicted values.
-    |
-    +--<date>-<time>_summary.xls:
-                    Major CO2 values from all vehicles in the batch-run.
-
 
 Using IPython
 -------------
 You may enter the data for a single and run its simulation, plot its results
 and experiment in your browser using `IPython <http://ipython.org/>`_.
 
-5. Assuming you do receive any error, you may now inspect the results:
+The usage pattern is similar to "demos" but requires to have **ipython**
+installed:
+
+1. Ensure *ipython* with *notebook* "extra" installed:
+
+   .. Warning::
+        This step requires too many libraries to provide as standalone files,
+        so unless you have it already installed, you will need a proper
+        *http-connectivity* to the standard python-repo.
 
    .. code-block:: console
 
-      $ start output/*summary.xlsx       ## More summaries might open from previous runs.
-      $ start output                     ## View all files generated (see below).
+        $ pip install ipython[notebook]
+        Installing collected packages: ipython[notebook]
+        ...
+        Successfully installed ipython-x.x.x notebook-x.x.x
 
+
+2. Then create the demo ipython-notebook(s) into some folder
+   (i.e. the ``tutorial``, from above):
+
+   .. code-block:: console
+
+        $ pwd                     ## Check our current folder (``cd`` alone for Windows).
+        .../tutorial
+
+        $ mkdir ./ipynbs
+        $ co2mpas ipynb ./ipynbs
+
+3. Start-up the server and open a browser page to run the vehicle-simulation"
+
+   .. code-block:: console
+
+        $ ipython notebook ./ipynbs
+
+4. A new window should open to your default browser (AVOID IEXPLORER) listing
+   the ``simVehicle.ipynb`` notebook.  Click on it to open in a new tab.
+
+   The results are of a simulation run already pre-generated for this notebook
+   but you may re-run it yourself by clicking from the menu::
+
+        "menu" --> `Cell` --> `Run All`
+
+   And watch it as it re-calculates *cell* by cell.
+
+5. You may edit the python code on the cells (selct them and click ``Enter``,
+   the frame should become green), and then re-run them (``Ctrl + Enter``).
+
+   Navigate your self around by taking the tutorial at::
+
+        "menu" --> `Help` --> `User Interface Tour`
+
+   And study the example code and diagrams.
+
+6. When you have finished, return to the console and issue twice ``Ctrl + C``
+   to shutdown the *ipython-server*.
 
 
 .. _begin-debug:
