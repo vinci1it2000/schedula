@@ -127,26 +127,118 @@ def process_folder_files(
     :type plot_workflow: bool, optional
     """
 
+    start_time = datetime.datetime.today()
+    doday = start_time.strftime('%d_%b_%Y_%H_%M_%S_')
+
+
+    summary, start_time = _process_folder_files(
+        input_folder, output_folder=output_folder, plot_workflow=plot_workflow,
+        hide_warn_msgbox=hide_warn_msgbox, extended_summary=extended_summary,
+        enable_prediction_WLTP=enable_prediction_WLTP, with_output_file=True)
+
+    writer = pd.ExcelWriter('%s/%s%s.xlsx' % (output_folder, doday, 'summary'))
+
+    for k, v in sorted(summary.items()):
+        pd.DataFrame.from_records(v).to_excel(writer, k)
+
+    time_elapsed = (datetime.datetime.today() - start_time).total_seconds()
+    log.info('Done! [%s sec]', time_elapsed)
+
+
+def _process_folder_files(
+        input_folder, output_folder=None, plot_workflow=False,
+        hide_warn_msgbox=False, extended_summary=False,
+        enable_prediction_WLTP=False, with_output_file=True):
+    """
+    Processes all excel files in a folder with the model defined by
+    :func:`co2mpas.models.architecture`.
+
+    :param input_folder:
+        Input folder.
+    :type input_folder: str
+
+    :param output_folder:
+        Output folder.
+    :type output_folder: str
+
+    :param plot_workflow:
+        If to show the CO2MPAS model workflow.
+    :type plot_workflow: bool, optional
+    """
+
     from co2mpas.models import vehicle_processing_model
 
     model = vehicle_processing_model(
+        with_output_file=with_output_file,
         hide_warn_msgbox=hide_warn_msgbox,
         prediction_WLTP=enable_prediction_WLTP)
 
     fpaths = glob.glob(input_folder + '/*.xlsx')
-    summary = {}
-    start_time = datetime.datetime.today()
-    doday = start_time.strftime('%d_%b_%Y_%H_%M_%S_')
-    output_file_format = '%s/%s_%s_%s.xlsx'
-    output_files = {
-        'precondition_output_file_name': 'precondition_WLTP',
-        'calibration_wltp_h_output_file_name': 'calibration_WLTP-H',
-        'prediction_wltp_h_output_file_name': 'prediction_WLTP-H',
-        'calibration_wltp_l_output_file_name': 'calibration_WLTP-L',
-        'prediction_wltp_l_output_file_name': 'prediction_WLTP-L',
-        'prediction_nedc_output_file_name': 'prediction_NEDC',
-    }
 
+    summary = {}
+
+    start_time = datetime.datetime.today()
+
+    if with_output_file:
+        output_file_format = (output_folder,
+                              start_time.strftime('%d_%b_%Y_%H_%M_%S'),
+                              '%s_%s.xlsx')
+        output_file_format = '%s/%s_%s' % output_file_format
+
+        output_files = {
+            'precondition_output_file_name': 'precondition_WLTP',
+            'calibration_wltp_h_output_file_name': 'calibration_WLTP-H',
+            'prediction_wltp_h_output_file_name': 'prediction_WLTP-H',
+            'calibration_wltp_l_output_file_name': 'calibration_WLTP-L',
+            'prediction_wltp_l_output_file_name': 'prediction_WLTP-L',
+            'prediction_nedc_output_file_name': 'prediction_NEDC',
+        }
+
+        def update_inputs(inputs, fname):
+            for k, v in output_files.items():
+                inputs[k] = output_file_format % (v, fname)
+    else:
+        update_inputs = lambda *args: None
+
+    sheets = _get_sheet_summary_actions()
+
+    for fpath in fpaths:
+        fname = os.path.basename(fpath).split('.')[0]
+
+        if not files_exclude_regex.match(fname):
+            log.info('Skipping: %s', fname)
+            continue
+
+        log.info('Processing: %s', fname)
+
+        inputs = {'input_file_name': fpath}
+
+        update_inputs(inputs, fname)
+
+        res = model.dispatch(inputs=inputs)
+
+        s = _make_summary(sheets, *res, **{'vehicle': fname})
+
+        s.update(_extract_summary(s))
+
+        for k, v in s.items():
+            summary[k] = l = summary.get(k, [])
+            l.append(v)
+
+        if plot_workflow:
+            try:
+                dsp2dot(model, workflow=True, view=True, function_module=False,
+                        node_output=False, edge_attr=model.weight)
+            except RuntimeError as ex:
+                log.warning(ex, exc_info=1)
+
+    if not extended_summary and 'SUMMARY' in summary:
+        summary = {'SUMMARY': summary['SUMMARY']}
+
+    return summary, start_time
+
+
+def _get_sheet_summary_actions():
     def check_printable(tag, data):
         mods = {'errors calibrated_models', 'errors AT_gear_shifting_model',
                 'origin calibrated_models'}
@@ -224,45 +316,7 @@ def process_folder_files(
         },
     }
 
-    for fpath in fpaths:
-        fname = os.path.basename(fpath).split('.')[0]
-
-        if not files_exclude_regex.match(fname):
-            log.info('Skipping: %s', fname)
-            continue
-
-        log.info('Processing: %s', fname)
-
-        inputs = {'input_file_name': fpath}
-
-        for k, v in output_files.items():
-            inputs[k] = output_file_format % (output_folder, doday, v, fname)
-
-        res = model.dispatch(inputs=inputs)
-
-        s = _make_summary(sheets, *res, **{'vehicle': fname})
-        s.update(_extract_summary(s))
-
-        for k, v in s.items():
-            summary[k] = l = summary.get(k, [])
-            l.append(v)
-
-        if plot_workflow:
-            try:
-                dsp2dot(model, workflow=True, view=True, function_module=False,
-                        node_output=False, edge_attr=model.weight)
-            except RuntimeError as ex:
-                log.warning(ex, exc_info=1)
-
-    writer = pd.ExcelWriter('%s/%s%s.xlsx' % (output_folder, doday, 'summary'))
-    if not extended_summary and 'SUMMARY' in summary:
-        summary = {'SUMMARY': summary['SUMMARY']}
-
-    for k, v in sorted(summary.items()):
-        pd.DataFrame.from_records(v).to_excel(writer, k)
-
-    time_elapsed = (datetime.datetime.today() - start_time).total_seconds()
-    log.info('Done! [%s sec]', time_elapsed)
+    return sheets
 
 
 def _make_summary(sheets, workflow, results, **kwargs):
