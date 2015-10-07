@@ -318,10 +318,10 @@ you have installed CO2MPAS (see :ref:`begin-install` above) and type:
     Usage:
         co2mpas [simulate] [-v] [--predict-wltp] [--more-output] [--no-warn-gui]
                            [--plot-workflow] [-I <folder>] [-O <folder>]
-        co2mpas demo       [-f] <folder>
-        co2mpas template   [-f] <excel-file-path> ...
-        co2mpas ipynb      [-f] <folder>
-        co2mpas modelgraph [-l | <models> ...]
+        co2mpas demo       [-v] [-f] <folder>
+        co2mpas template   [-v] [-f] <excel-file-path> ...
+        co2mpas ipynb      [-v] [-f] <folder>
+        co2mpas modelgraph [-v] [-l | <models> ...]
         co2mpas --help
         co2mpas --version
 

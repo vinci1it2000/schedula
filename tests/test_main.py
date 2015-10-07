@@ -66,5 +66,5 @@ class Main(unittest.TestCase):
                 tempfile.TemporaryDirectory() as out:
             cmd = "demo %s" % inp
             compas_main._main(*cmd.split())
-            cmd = "-I %s -O %s" % (inp, out)
+            cmd = "-v -I %s -O %s" % (inp, out)
             compas_main._main(*cmd.split())
