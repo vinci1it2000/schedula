@@ -13,7 +13,7 @@ It provides tools to create models with the :func:`~dispatcher.Dispatcher`.
 __author__ = 'Vincenzo Arcidiacono'
 
 __all__ = ['combine_dicts', 'bypass', 'summation', 'map_dict', 'map_list',
-           'selector', 'replicate_value', 'get_sub_node',
+           'selector', 'replicate_value', 'get_sub_node', 'add_args',
            'SubDispatch', 'ReplicateFunction', 'SubDispatchFunction']
 
 from .gen import caller_name, Token
@@ -55,6 +55,40 @@ def get_sub_node(dsp, path, node_attr='auto', _level=0, _dsp_name=NONE):
     :return:
         A sub node of a dispatcher.
     :rtype: dict, function, SubDispatch, SubDispatchFunction
+
+    **Example**:
+
+    .. dispatcher:: dsp
+       :opt: workflow=True, graph_attr={'ratio': '1'}, level=1
+
+        >>> from co2mpas.dispatcher import Dispatcher
+        >>> s_dsp = Dispatcher(name='Sub-dispatcher')
+        >>> def fun(a, b):
+        ...     return a + b
+        ...
+        >>> s_dsp.add_function('a + b', fun, ['a', 'b'], ['c'])
+        'a + b'
+        >>> dispatch = SubDispatch(s_dsp, ['c'], output_type='dict')
+        >>> dsp = Dispatcher(name='Dispatcher')
+        >>> dsp.add_function('Sub-dispatcher', dispatch, ['a'], ['b'])
+        'Sub-dispatcher'
+
+        >>> w, o = dsp.dispatch(inputs={'a': {'a': 3, 'b': 1}})
+        ...
+
+    Get the sub node output::
+
+        >>> get_sub_node(dsp, ('Sub-dispatcher', 'c'))
+        4
+        >>> get_sub_node(dsp, ('Sub-dispatcher', 'c'), node_attr='type')
+        'data'
+
+    .. dispatcher:: sub_dsp
+       :opt: workflow=True, graph_attr={'ratio': '1'}, level=0
+       :code:
+
+        >>> sub_dsp = get_sub_node(dsp, ('Sub-dispatcher',))
+
     """
 
     if isinstance(dsp, SubDispatch):  # Take the dispatcher obj.
@@ -324,26 +358,63 @@ def replicate_value(value, n=2, copy=True):
     return [value] * n
 
 
-def add_opt_fun_args(fun, n=1):
+def add_args(func, n=1, left=True):
+    """
+    Adds arguments to a function.
 
-    def f(*args, **kwargs):
-        return fun(*args[n:], **kwargs)
+    :param func:
+        Function to wrap.
+    :type func: function
 
-    f.__name__ = fun.__name__
-    f.__doc__ = fun.__doc__
-    f.__signature__ = _get_signature(fun, n)
+    :param n:
+        Number of unused arguments to add.
+    :type n: int
 
-    return f
+    :param left:
+        Add to the left side.
+    :type left: bool
+
+    :return:
+        Wrapped function.
+    :rtype: function
+
+    Example::
+
+        >>> def original_func(a, b):
+        ...     '''Doc'''
+        ...     return a + b
+        >>> func = add_args(original_func, n=2)
+        >>> func.__name__, func.__doc__
+        ('original_func', 'Doc')
+        >>> func(1, 2, 3, 4)
+        7
+    """
+
+    if left:
+        def wrap(*args, **kwargs):
+            return func(*args[n:], **kwargs)
+    else:
+        def wrap(*args, **kwargs):
+            return func(*args[:n], **kwargs)
+
+    wrap.__name__ = func.__name__
+    wrap.__doc__ = func.__doc__
+    wrap.__signature__ = _get_signature(func, n, left=True)
+
+    return wrap
 
 
-def _get_signature(fun, n=1):
-    sig = signature(fun)
+def _get_signature(func, n=1, left=True):
+    sig = signature(func)
 
     def ept_p():
         name = Token('none')
         return name, Parameter(name, _POSITIONAL_OR_KEYWORD)
 
-    par = [p() for p in repeat(ept_p, n)].__add__(list(sig.parameters.items()))
+    if left:
+        par = [p() for p in repeat(ept_p, n)] + list(sig.parameters.items())
+    else:
+        par = list(sig.parameters.items()) + [p() for p in repeat(ept_p, n)]
 
     sig._parameters = types.MappingProxyType(OrderedDict(par))
 
@@ -371,7 +442,7 @@ class SubDispatch(object):
        :code:
 
         >>> from co2mpas.dispatcher import Dispatcher
-        >>> sub_dsp = Dispatcher()
+        >>> sub_dsp = Dispatcher(name='Sub-dispatcher')
         ...
         >>> def fun(a):
         ...     return a + 1, a - 1
@@ -379,7 +450,7 @@ class SubDispatch(object):
         >>> sub_dsp.add_function('fun', fun, ['a'], ['b', 'c'])
         'fun'
         >>> dispatch = SubDispatch(sub_dsp, ['a', 'b', 'c'], output_type='dict')
-        >>> dsp = Dispatcher()
+        >>> dsp = Dispatcher(name='Dispatcher')
         >>> dsp.add_function('Sub-dispatch', dispatch, ['d'], ['e'])
         'Sub-dispatch'
 
@@ -515,7 +586,7 @@ class SubDispatchFunction(SubDispatch):
        :opt: graph_attr={'ratio': '1'}
 
         >>> from co2mpas.dispatcher import Dispatcher
-        >>> dsp = Dispatcher()
+        >>> dsp = Dispatcher(name='Dispatcher')
         >>> dsp.add_function('max', max, inputs=['a', 'b'], outputs=['c'])
         'max'
         >>> from math import log

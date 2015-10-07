@@ -58,11 +58,11 @@ def _physical():
         default_value=1
     )
 
-    from co2mpas.dispatcher.utils.dsp import add_opt_fun_args
+    from co2mpas.dispatcher.utils.dsp import add_args
 
     physical.add_function(
         function_id='nedc_gears',
-        function=add_opt_fun_args(nedc_gears, n=2),
+        function=add_args(nedc_gears, n=2),
         inputs=['cycle_type', 'gear_box_type', 'times',
                 'max_gear', 'k1', 'k2', 'k5'],
         outputs=['gears'],
@@ -70,14 +70,14 @@ def _physical():
     )
 
     physical.add_function(
-        function=add_opt_fun_args(nedc_velocities, n=1),
+        function=add_args(nedc_velocities, n=1),
         inputs=['cycle_type', 'times'],
         outputs=['velocities'],
         input_domain=nedc_velocities_domain
     )
 
     physical.add_function(
-        function=add_opt_fun_args(nedc_times, n=1),
+        function=add_args(nedc_times, n=1),
         inputs=['cycle_type', 'time_sample_frequency'],
         outputs=['times'],
         input_domain=nedc_velocities_domain

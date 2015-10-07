@@ -70,19 +70,18 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
        :code:
 
         >>> from co2mpas.dispatcher import Dispatcher
-        >>> from co2mpas.dispatcher.utils.dsp import SubDispatch
-        >>> from co2mpas.dispatcher.utils import SINK
-        >>> ss = Dispatcher()
+        >>> from co2mpas.dispatcher.utils import SubDispatch, SINK
+        >>> ss = Dispatcher(name='Sub-sub-dispatcher')
         >>> def fun(a):
         ...     return a + 1, a - 1
         >>> ss.add_function('fun', fun, ['a'], ['b', 'c'])
         'fun'
         >>> sub_dispatch = SubDispatch(ss, ['a', 'b', 'c'], output_type='list')
-        >>> s_dsp = Dispatcher()
+        >>> s_dsp = Dispatcher(name='Sub-dispatcher')
         >>> s_dsp.add_function('sub_dispatch', sub_dispatch, ['a'], ['b', 'c'])
         'sub_dispatch'
         >>> dispatch = SubDispatch(s_dsp, ['b', 'c', 'a'], output_type='list')
-        >>> dsp = Dispatcher()
+        >>> dsp = Dispatcher(name='Dispatcher')
         >>> dsp.add_data('input', default_value={'a': {'a': 3}})
         'input'
         >>> dsp.add_function('dispatch', dispatch, ['input'], ['d', 'e', SINK])

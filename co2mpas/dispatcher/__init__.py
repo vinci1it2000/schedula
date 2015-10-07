@@ -93,7 +93,7 @@ class Dispatcher(object):
 
     Create an empty dispatcher::
 
-        >>> dsp = Dispatcher()
+        >>> dsp = Dispatcher(name='Dispatcher')
 
     Add data nodes to the dispatcher map::
 
@@ -337,7 +337,7 @@ class Dispatcher(object):
         **Example**:
 
         .. testsetup::
-            >>> dsp = Dispatcher()
+            >>> dsp = Dispatcher(name='Dispatcher')
 
         Add a data to be estimated or a possible input data node::
 
@@ -501,7 +501,7 @@ class Dispatcher(object):
         **Example**:
 
         .. testsetup::
-            >>> dsp = Dispatcher()
+            >>> dsp = Dispatcher(name='Dispatcher')
 
         Add a function node::
 
@@ -680,7 +680,7 @@ class Dispatcher(object):
         **Example**:
 
         .. testsetup::
-            >>> dsp = Dispatcher()
+            >>> dsp = Dispatcher(name='Dispatcher')
 
         Add a function node::
 
@@ -765,7 +765,7 @@ class Dispatcher(object):
         **Example**:
 
         .. testsetup::
-            >>> dsp = Dispatcher()
+            >>> dsp = Dispatcher(name='Dispatcher')
 
         Define a data list::
 
@@ -822,7 +822,7 @@ class Dispatcher(object):
 
         A dispatcher with a data node named `a`::
 
-            >>> dsp = Dispatcher()
+            >>> dsp = Dispatcher(name='Dispatcher')
             ...
             >>> dsp.add_data(data_id='a')
             'a'
@@ -891,7 +891,7 @@ class Dispatcher(object):
         .. dispatcher:: dsp
            :opt: graph_attr={'ratio': '1'}
 
-            >>> dsp = Dispatcher()
+            >>> dsp = Dispatcher(name='Dispatcher')
             >>> dsp.add_function(function_id='fun1', inputs=['a', 'b'],
             ...                   outputs=['c', 'd'])
             'fun1'
@@ -994,7 +994,7 @@ class Dispatcher(object):
         .. dispatcher:: dsp
            :opt: graph_attr={'ratio': '1'}
 
-            >>> dsp = Dispatcher()
+            >>> dsp = Dispatcher(name='Dispatcher')
             >>> dsp.add_data(data_id='a', default_value=1)
             'a'
             >>> dsp.add_function(function_id='fun1', inputs=['a', 'b'],
@@ -1144,7 +1144,7 @@ class Dispatcher(object):
         .. dispatcher:: dsp
            :opt: graph_attr={'ratio': '1'}
 
-            >>> dsp = Dispatcher()
+            >>> dsp = Dispatcher(name='Dispatcher')
             >>> def average(kwargs):
             ...     return sum(kwargs.values()) / float(len(kwargs))
             >>> data = [
@@ -1275,7 +1275,7 @@ class Dispatcher(object):
         .. dispatcher:: dsp
            :opt: graph_attr={'ratio': '1'}
 
-            >>> dsp = Dispatcher()
+            >>> dsp = Dispatcher(name='Dispatcher')
             >>> dsp.add_data(data_id='a', default_value=0)
             'a'
             >>> dsp.add_data(data_id='b', default_value=5)
@@ -1392,7 +1392,7 @@ class Dispatcher(object):
         .. dispatcher:: dsp
            :opt: graph_attr={'ratio': '1'}
 
-            >>> dsp = Dispatcher()
+            >>> dsp = Dispatcher(name='Dispatcher')
             >>> functions = [
             ...     {
             ...         'function_id': 'fun1',
