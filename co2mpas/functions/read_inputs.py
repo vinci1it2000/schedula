@@ -16,6 +16,7 @@ import pandas as pd
 from collections import Iterable
 from pandalone.xleash import lasso
 from pandalone.xleash.io._xlrd import _open_sheet_by_name_or_index
+from functools import partial
 
 
 def read_cycles_series(excel_file, sheet_name):
@@ -202,7 +203,8 @@ def get_filters():
             'full_load_powers': (_try_eval, np.asarray, empty),
         },
         'SERIES': {
-            None: (np.asarray, empty)
+            None: (np.asarray, empty),
+            'gears': (np.around, partial(np.asarray, dtype='int'),  empty)
         }
     }
 

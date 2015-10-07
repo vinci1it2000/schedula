@@ -173,7 +173,7 @@ def _gear_box():
         function=identify_velocity_speed_ratios,
         inputs=['gear_box_speeds_in', 'velocities', 'idle_engine_speed'],
         outputs=['velocity_speed_ratios'],
-        weight=20
+        weight=50
     )
 
     gear_box.add_function(

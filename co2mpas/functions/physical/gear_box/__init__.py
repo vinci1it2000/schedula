@@ -724,7 +724,11 @@ def identify_velocity_speed_ratios(
 
     vsr = bin_split(velocities[b] / gear_box_speeds_in[b])[1]
 
-    return {k + 1: v for k, v in enumerate(vsr)}
+    vsr = {k + 1: v for k, v in enumerate(vsr)}
+
+    vsr[0] = 0.0
+
+    return vsr
 
 
 def identify_speed_velocity_ratios(gears, velocities, gear_box_speeds_in):
