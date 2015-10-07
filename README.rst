@@ -512,13 +512,13 @@ excel-file:
 
 Using IPython
 -------------
-You may enter the data for a single and run its simulation, plot its results
-and experiment in your browser using `IPython <http://ipython.org/>`_.
+You may enter the data for a single vehicle and run its simulation, plot its
+results and experiment in your browser using `IPython <http://ipython.org/>`_.
 
 The usage pattern is similar to "demos" but requires to have **ipython**
 installed:
 
-1. Ensure *ipython* with *notebook* "extra" installed:
+1. Ensure *ipython* with *notebook* "extra" is installed:
 
    .. Warning::
         This step requires too many libraries to provide as standalone files,
@@ -534,7 +534,7 @@ installed:
 
 
 2. Then create the demo ipython-notebook(s) into some folder
-   (i.e. the ``tutorial``, from above):
+   (i.e. assuming the same setup from above, ``tutorial/ipynbs``):
 
    .. code-block:: console
 
@@ -544,24 +544,26 @@ installed:
         $ mkdir ./ipynbs
         $ co2mpas ipynb ./ipynbs
 
-3. Start-up the server and open a browser page to run the vehicle-simulation"
+3. Start-up the server and open a browser page to run the vehicle-simulation:
 
    .. code-block:: console
 
         $ ipython notebook ./ipynbs
 
-4. A new window should open to your default browser (AVOID IEXPLORER) listing
-   the ``simVehicle.ipynb`` notebook.  Click on it to open in a new tab.
+4. A new window should open to your default browser listing
+   the ``simVehicle.ipynb`` notebook (AVOID IEXPLORER) .
+   Click on it to open the notebook  in a new tab.
 
    The results are of a simulation run already pre-generated for this notebook
-   but you may re-run it yourself by clicking from the menu::
+   but you may run it yourself again, by clicking the menu::
 
         "menu" --> `Cell` --> `Run All`
 
    And watch it as it re-calculates *cell* by cell.
 
-5. You may edit the python code on the cells (selct them and click ``Enter``,
-   the frame should become green), and then re-run them (``Ctrl + Enter``).
+5. You may edit the python code on the cells by selecting them and clicking
+  ``Enter`` (the frame should become green), and then re-run them,
+  with ``Ctrl + Enter``.
 
    Navigate your self around by taking the tutorial at::
 
