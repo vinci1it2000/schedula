@@ -13,7 +13,7 @@ It provides tools to create models with the :func:`~dispatcher.Dispatcher`.
 __author__ = 'Vincenzo Arcidiacono'
 
 __all__ = ['combine_dicts', 'bypass', 'summation', 'map_dict', 'map_list',
-           'selector', 'replicate_value',
+           'selector', 'replicate_value', 'get_sub_node',
            'SubDispatch', 'ReplicateFunction', 'SubDispatchFunction']
 
 from .gen import caller_name, Token
@@ -24,6 +24,76 @@ from inspect import signature, Parameter, _POSITIONAL_OR_KEYWORD
 from collections import OrderedDict
 import types
 from itertools import repeat
+from ..constants import NONE
+
+
+def get_sub_node(dsp, path, node_attr='auto', _level=0, _dsp_name=NONE):
+    """
+    Returns a sub node of a dispatcher.
+
+    :param dsp:
+         A dispatcher object or a sub dispatch function.
+    :type dsp: dispatcher.Dispatcher, SubDispatch, SubDispatchFunction
+
+    :param path:
+        A sequence of node ids. Each id identifies a sub-level node.
+    :type path: tuple
+
+    :param node_attr:
+        Output node attr.
+
+        If the searched node does not have this attribute, all its attributes
+        are returned.
+
+        When 'auto', returns the "default" attributes of the searched node,
+        which are:
+
+          - for data node: its output, and if not exists, all its attributes.
+          - for function and sub-dispatcher nodes: the 'function' attribute.
+    :type node_attr: str
+
+    :return:
+        A sub node of a dispatcher.
+    :rtype: dict, function, SubDispatch, SubDispatchFunction
+    """
+
+    if isinstance(dsp, SubDispatch):  # Take the dispatcher obj.
+        dsp = dsp.dsp
+
+    if _dsp_name is NONE:  # Set origin dispatcher name for waring purpose.
+        _dsp_name = dsp.name
+
+    node_id = path[_level]  # Node id at given level.
+
+    try:
+        node = dsp.nodes[node_id]  # Get dispatcher node.
+    except KeyError:
+        msg = 'Path %s does not exist in %s dispatcher.' % (path, _dsp_name)
+        raise ValueError(msg)
+
+    _level += 1  # Next level.
+
+    if _level < len(path):  # Is not path leaf?.
+
+        try:
+            dsp = node['function']  # Get function or sub-dispatcher node.
+        except KeyError:
+            msg = 'Node of path %s at level %i is not a function or ' \
+                  'sub-dispatcher node of %s ' \
+                  'dispatcher.' % (path, _level, _dsp_name)
+            raise ValueError(msg)
+
+        # Continue the node search.
+        return get_sub_node(dsp, path, node_attr, _level, _dsp_name)
+    else:
+        # Return the sub node.
+        if node_attr == 'auto':  # Auto.
+            if node['type'] != 'data':  # Return function.
+                node_attr = 'function'
+            elif node_id in dsp.data_output:  # Return data output.
+                return dsp.data_output[node_id]
+
+        return node.get(node_attr, node)  # Return the data
 
 
 def combine_dicts(*dicts):

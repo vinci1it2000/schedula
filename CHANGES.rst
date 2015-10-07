@@ -33,10 +33,11 @@ Known Limitations
    vehicle characteristics have been observed in the present release.
    Additional effort is necessary in order to improve the stability of the tool
    and reduce the standard deviation of the error.
-#. It has been observed that CO2MPAS tends to underestimate the power requirements
-   due to accelerations in WLTP.
+#. It has been observed that CO2MPAS tends to underestimate the power
+   requirements due to accelerations in WLTP.
    More feedback is needed from real test cases.
-#. The current gearbox thermal model overestimates the warm up rate of the gearbox.
+#. The current gearbox thermal model overestimates the warm up rate of the
+   gearbox.
    The bug is identified and will be fixed in future versions.
 #. Simulation runs may under certain circumstances produce different families
    of solutions for the same inputs
@@ -113,8 +114,8 @@ Bugs reported from v0 with their status up to date:
    intended with the current version:
    **fixed**, please review new module for electrics.
 #. The gearshift module 0.5.5 miscalculates gearshifts:
-   **partially fixed**, the module is now included in CO2MPAS v1 but due to lack in test cases
-   has not been further optimized.
+   **partially fixed**, the module is now included in CO2MPAS v1 but due to lack
+   in test cases has not been further optimized.
 #. Overestimation of engine-power in comparison to measurements:
    **indeterminate**, in fact this problem is vehicle specific. In the test-cases
    provided to the JRC both higher and lower power demands are experienced.
