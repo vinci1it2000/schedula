@@ -2,7 +2,7 @@
 CO2MPAS: Vehicle simulator predicting NEDC CO2 emissions from WLTP
 ##################################################################
 
-:Release:       1.0.2b4
+:Release:       1.0.2
 :Home:          http://co2mpas.io/
 :Releases:      http://files.co2mpas.io/
 :Sources:       https://github.com/JRCSTU/co2mpas
@@ -27,7 +27,7 @@ Linux's standard python environment.
 The program runs as a *console command*.
 
 History
--------
+=======
 The *European Commission* is supporting the introduction of the *WLTP cycle*
 for Light-duty vehicles developed at the *United Nations (UNECE)*
 level, in the shortest possible time-frame. Its introduction requires
@@ -39,7 +39,7 @@ adaptation.
 
 
 Quickstart
-----------
+==========
 .. Tip::
     **Help about Console:**
 
@@ -230,18 +230,25 @@ CO2MPAS install
         Downloading http://pypi.co2mpas.io/packages/co2mpas-...
         ...
         Installing collected packages: co2mpas
-        Successfully installed co2mpas-1.0.2b4
+        Successfully installed co2mpas-1.0.2
 
     .. Tip::
+        **Installing Behind Firewall:**
+
         This step requires Internet connectivity to Python's "standard" repository
-        (https://pypi.python.org/). In case you are behind a **corporate proxy**,
-        append an appropriate option to the ``pip`` commands that follow::
+        (https://pypi.python.org/) and to co2mpas-site.
+        In case you are behind a **corporate proxy**, append an appropriatly
+        adapted option to all ``pip`` commands::
 
             --proxy http://user:password@yourProxyUrl:yourProxyPort
 
-        An alternative is to download the *wheel* packages from
-        http://files.co2mpas.io  and install them one
-        by one:
+        Note that all *final releases* are cryptographically signed by JRC,
+        so that you or your IT staff can `validate their authenticity
+        <https://www.davidfischer.name/2012/05/signing-and-verifying-python-packages-with-pgp/>`_
+        and detect *man-in-the-middle* attacks, however impossible.
+
+        An alternative is to download all *wheel* packages from `co2mpas-site
+        <http://files.co2mpas.io>`_  and install them one by one:
 
         .. code-block:: console
 
@@ -262,7 +269,7 @@ CO2MPAS install
    .. code-block:: console
 
         > co2mpas --version
-        co2mpas-1.0.2b4 at <your-python-folders>\co2mpas
+        co2mpas-1.0.2 at <your-python-folders>\co2mpas
 
 
 Upgrade CO2MPAS
@@ -360,7 +367,7 @@ you have installed CO2MPAS (see :ref:`begin-install` above) and type:
         co2mpas template input/vehicle_1.xlsx
 
 
-Running samples
+Running Samples
 ---------------
 The simulator contains sample input files for 2 vehicles that
 are a nice starting point to try out.
