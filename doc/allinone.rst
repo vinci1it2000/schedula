@@ -159,9 +159,9 @@ File Contents
     CO2MPAS/vX.X.X/co2mpas_RelNotes-*.pdf   ## CO2MPAS Release notes.
 
     Apps/Cygwin/                            ## Unix-folders for *Cygwin* environment (i.e. bash).
-    Apps/WinPython-XXbit-X.X.X.x/           ## Python environment (co2mpas is pre-installed inside it).
+    Apps/WinPython/                         ## Python environment (co2mpas is pre-installed inside it).
     Apps/Console2/                          ## A versatile console-window supporting decent copy-paste.
-    Apps/graphviz-2.38/                     ## Graph-plotting library (needed to generate model-plots).
+    Apps/graphviz/                          ## Graph-plotting library (needed to generate model-plots).
 
     README.txt                              ## This file, with instructions on this pre-populated folder.
 
