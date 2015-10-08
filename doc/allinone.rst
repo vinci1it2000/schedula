@@ -136,6 +136,13 @@ Console Help
    of the *Installation* section from the documents.
 
 
+Upgrade CO2MPAS
+===============
+When a new CO2MPAS version comes out it is not necessary to download the full
+ALLINONE archive, but you choose instead to just *upgrade* co2mpas.
+
+Please follow the procedure in the main documentation.
+
 
 File Contents
 =============
