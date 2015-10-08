@@ -219,7 +219,7 @@ class TestCreateDispatcher(unittest.TestCase):
 
     def test_load_from_lists(self):
         dsp = Dispatcher()
-        self.assertEqual(dsp.add_from_lists(), ([], []))
+        self.assertEqual(dsp.add_from_lists(), ([], [], []))
 
         def fun(**kwargs):
             return (kwargs['a'] + kwargs['b']) / 2

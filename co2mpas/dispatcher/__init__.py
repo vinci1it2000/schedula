@@ -740,7 +740,7 @@ class Dispatcher(object):
 
         return dsp_id
 
-    def add_from_lists(self, data_list=None, fun_list=None):
+    def add_from_lists(self, data_list=None, fun_list=None, dsp_list=None):
         """
         Add multiple function and data nodes to dispatcher.
 
@@ -752,13 +752,19 @@ class Dispatcher(object):
             It is a list of function node kwargs to be loaded.
         :type fun_list: list, optional
 
+        :param dsp_list:
+            It is a list of sub-dispatcher node kwargs to be loaded.
+        :type dsp_list: list, optional
+
         :returns:
 
             - Data node ids.
             - Function node ids.
-        :rtype: (list, list)
+            - Sub-dispatcher node ids.
+        :rtype: (list, list, list)
 
-        .. seealso:: :func:`add_data`, :func:`add_function`
+        .. seealso:: :func:`add_data`, :func:`add_function`,
+           :func:`add_dispatcher`
 
         \***********************************************************************
 
@@ -781,14 +787,25 @@ class Dispatcher(object):
             ...     return a + b
             ...
             >>> fun_list = [
-            ...     {'function': f, 'inputs': ['a', 'b'], 'outputs': ['c']},
-            ...     {'function': f, 'inputs': ['c', 'd'], 'outputs': ['a']}
+            ...     {'function': f, 'inputs': ['a', 'b'], 'outputs': ['c']}
+            ... ]
+
+        Define a functions list::
+
+            >>> sub_dsp = Dispatcher(name='Sub-dispatcher')
+            >>> sub_dsp.add_function(function=f, inputs=['e', 'f'],
+            ...                      outputs=['g'])
+            '...:f'
+            >>>
+            >>> dsp_list = [
+            ...     {'dsp_id': 'Sub', 'dsp': sub_dsp,
+            ...      'inputs': {'a': 'e', 'b': 'f'}, 'outputs': {'g': 'c'}},
             ... ]
 
         Add function and data nodes to dispatcher::
 
-            >>> dsp.add_from_lists(data_list, fun_list)
-            (['a', 'b', 'c'], ['...dispatcher:f', '...dispatcher:f<0>'])
+            >>> dsp.add_from_lists(data_list, fun_list, dsp_list)
+            (['a', 'b', 'c'], ['...dispatcher:f'], ['Sub'])
         """
 
         if data_list:  # add data nodes
@@ -801,8 +818,13 @@ class Dispatcher(object):
         else:
             fun_ids = []
 
-        # return data and function node ids
-        return data_ids, fun_ids
+        if dsp_list:  # add dispatcher nodes
+            dsp_ids = [self.add_dispatcher(**v) for v in dsp_list]  # dsp ids
+        else:
+            dsp_ids = []
+
+        # return data, function, and sub-dispatcher node ids
+        return data_ids, fun_ids, dsp_ids
 
     def set_default_value(self, data_id, value=EMPTY):
         """
