@@ -456,8 +456,9 @@ class SubDispatch(object):
 
     """
 
-    def __init__(self, dsp, outputs=None, cutoff=None, wildcard=False,
-                 no_call=False, shrink=False, output_type='all'):
+    def __init__(self, dsp, outputs=None, cutoff=None, inputs_dist=None,
+                 wildcard=False, no_call=False, shrink=False,
+                 rm_unused_func=False, output_type='all'):
         """
         Initializes the Sub-dispatch.
 
@@ -505,6 +506,8 @@ class SubDispatch(object):
         self.no_call = no_call
         self.shrink = shrink
         self.output_type = output_type
+        self.inputs_dist = inputs_dist
+        self.rm_unused_func = rm_unused_func
         self.data_output = {}
         self.dist = {}
         self.workflow = DiGraph()
@@ -522,7 +525,8 @@ class SubDispatch(object):
 
         # dispatch the function calls
         w, o = self.dsp.dispatch(
-            i, outputs, self.cutoff, self.wildcard, self.no_call, self.shrink
+            i, outputs, self.cutoff, self.inputs_dist, self.wildcard,
+            self.no_call, self.shrink, self.rm_unused_func
         )
 
         self.data_output = o
@@ -614,7 +618,8 @@ class SubDispatchFunction(SubDispatch):
         >>> dsp = fun.dsp
     """
 
-    def __init__(self, dsp, function_id, inputs, outputs=None, cutoff=None):
+    def __init__(self, dsp, function_id, inputs, outputs=None, cutoff=None,
+                 inputs_dist=None, rm_unused_func=False):
         """
         Initializes the Sub-dispatch Function.
 
@@ -638,6 +643,10 @@ class SubDispatchFunction(SubDispatch):
         :param cutoff:
             Depth to stop the search.
         :type cutoff: float, int, optional
+
+        :param inputs_dist:
+            Initial distances of input data nodes.
+        :type inputs_dist: float, int, optional
         """
 
         # new shrink dispatcher
@@ -658,9 +667,13 @@ class SubDispatchFunction(SubDispatch):
         # set wildcards
         dsp._set_wildcards(inputs, outputs)
 
+        # set dsp name equal to function id
         dsp.name = function_id
+
         super(SubDispatchFunction, self).__init__(
-            dsp, outputs, cutoff, True, False, True, 'list')
+            dsp, outputs, cutoff, inputs_dist, True, False, True,
+            rm_unused_func, 'list')
+
         self.__module__ = caller_name()
 
         # define the function to populate the workflow
@@ -686,8 +699,11 @@ class SubDispatchFunction(SubDispatch):
         # update inputs
         input_values.update(dict(zip(self.inputs, args)))
 
+        # initialize
+        args = dsp._init_workflow(input_values, self.input_value,
+                                  self.inputs_dist)
         # dispatch outputs
-        w, o = dsp._run(*dsp._init_workflow(input_values, self.input_value))
+        w, o = dsp._run(*args)
 
         self.data_output = o
         self.dist = dsp.dist

@@ -32,7 +32,7 @@ from networkx import DiGraph, isolates
 from functools import partial
 
 from .utils.gen import AttrDict, counter, caller_name
-from .utils.alg import add_edge_fun, remove_cycles_iteration
+from .utils.alg import add_edge_fun, remove_edge_fun, remove_cycles_iteration
 from .utils.constants import EMPTY, START, NONE, SINK
 from .utils.dsp import SubDispatch, bypass
 
@@ -261,6 +261,9 @@ class Dispatcher(object):
 
         #: A function that add edges to the `workflow`.
         self._wf_add_edge = add_edge_fun(self.workflow)
+
+        #: A function that remove edges from the `workflow`.
+        self._wf_remove_edge = remove_edge_fun(self.workflow)
 
         #: The predecessors of the `workflow` nodes.
         self._wf_pred = self.workflow.pred
@@ -1247,8 +1250,9 @@ class Dispatcher(object):
         # return a new dispatcher without the unresolved cycles
         return new_dmap
 
-    def dispatch(self, inputs=None, outputs=None, cutoff=None,
-                 wildcard=False, no_call=False, shrink=False):
+    def dispatch(self, inputs=None, outputs=None, cutoff=None, inputs_dist=None,
+                 wildcard=False, no_call=False, shrink=False,
+                 rm_unused_func=False):
         """
         Evaluates the minimum workflow and data outputs of the dispatcher
         model from given inputs.
@@ -1265,6 +1269,10 @@ class Dispatcher(object):
             Depth to stop the search.
         :type cutoff: float, int, optional
 
+        :param inputs_dist:
+            Initial distances of input data nodes.
+        :type inputs_dist: float, int, optional
+
         :param wildcard:
             If True, when the data node is used as input and target in the
             ArciDispatch algorithm, the input value will be used as input for
@@ -1278,6 +1286,11 @@ class Dispatcher(object):
         :param shrink:
             If True the dispatcher is shrink before the dispatch.
         :type shrink: bool, optional
+
+        :param rm_unused_func:
+            If True unused function and sub-dispatcher nodes are removed from
+            workflow.
+        :type rm_unused_func: bool, optional
 
         :returns:
 
@@ -1365,7 +1378,8 @@ class Dispatcher(object):
             dsp = self
 
         # initialize
-        args = dsp._init_run(inputs, outputs, wildcard, cutoff, no_call)
+        args = dsp._init_run(inputs, outputs, wildcard, cutoff, inputs_dist,
+                             no_call, rm_unused_func)
 
         # return the evaluated workflow graph and data outputs
         self.workflow, self.data_output = dsp._run(*args[1:])
@@ -1383,7 +1397,8 @@ class Dispatcher(object):
         # return the evaluated workflow graph and data outputs
         return self.workflow, self.data_output
 
-    def shrink_dsp(self, inputs=None, outputs=None, cutoff=None):
+    def shrink_dsp(self, inputs=None, outputs=None, cutoff=None,
+                   inputs_dist=None):
         """
         Returns a reduced dispatcher.
 
@@ -1398,6 +1413,10 @@ class Dispatcher(object):
         :param cutoff:
             Depth to stop the search.
         :type cutoff: float, int, optional
+
+        :param inputs_dist:
+            Initial distances of input data nodes.
+        :type inputs_dist: float, int, optional
 
         :return:
             A sub-dispatcher.
@@ -1479,7 +1498,8 @@ class Dispatcher(object):
                         wi.remove(k)
 
                 # evaluate the workflow graph without invoking functions
-                wf, o = self.dispatch(inputs, outputs, cutoff, True, True)
+                wf, o = self.dispatch(inputs, outputs, cutoff, inputs_dist,
+                                      True, True, False, True)
 
                 edges.update(wf.edges())
 
@@ -1756,7 +1776,7 @@ class Dispatcher(object):
                                     for k, v in wildcards.items()
                                     if v.get('wildcard', True)])
 
-    def _set_wait_in(self):
+    def _set_wait_in(self, flag=True):
         """
         Set `wait_inputs` flags for data nodes that:
 
@@ -1777,10 +1797,10 @@ class Dispatcher(object):
             if n_type == 'function' and 'input_domain' in a:  # with a domain
                 # nodes estimated from functions with a domain function
                 for k in a['outputs']:
-                    wait_in[k] = True
+                    wait_in[k] = flag
 
             elif n_type == 'data' and a['wait_inputs']:  # is waiting inputs
-                wait_in[n] = True
+                wait_in[n] = flag
 
     def _get_initial_values(self, inputs, no_call):
         """
@@ -2020,7 +2040,7 @@ class Dispatcher(object):
         # return True, i.e. that the output have been evaluated correctly
         return True
 
-    def _init_workflow(self, inputs, input_value):
+    def _init_workflow(self, inputs, input_value, inputs_dist):
         """
         Initializes workflow, visited nodes, data output, and distance.
 
@@ -2032,6 +2052,10 @@ class Dispatcher(object):
             A function that return the input value of a given data node.
             If input_values = {'a': 'value'} then 'value' == input_value('a')
         :type input_value: function
+
+        :param inputs_dist:
+            Initial distances of input data nodes.
+        :type inputs_dist: float, int
 
         :returns:
             Inputs for _run:
@@ -2046,6 +2070,7 @@ class Dispatcher(object):
         self.data_output = AttrDict()  # estimated data node output
         self._visited = set()
         self._wf_add_edge = add_edge_fun(self.workflow)
+        self._wf_remove_edge = remove_edge_fun(self.workflow)
         self._wf_pred = self.workflow.pred
         self.check_wait_in = self._check_wait_input_flag()
         self.check_targets = self._check_targets()
@@ -2066,18 +2091,23 @@ class Dispatcher(object):
         # add the starting node to the workflow graph
         wf_add_node(START, type='start')
 
+        if not inputs_dist:
+            inputs_dist = {}
+
         # add initial values to fringe and seen
         for v in inputs:
-            self._add_initial_value(fringe, check_cutoff, v, input_value(v))
+            d = inputs_dist.get(v, 0.0)
+            self._add_initial_value(fringe, check_cutoff, v, input_value(v), d)
 
         return fringe, check_cutoff
 
     def _add_initial_value(self, fringe, check_cutoff, data_id, value,
-                           initial_dist=0):
+                           initial_dist=0.0):
         # namespace shortcuts for speed
         node_attr = self.nodes
         edge_weight = self._edge_length
         wf_add_edge = self._wf_add_edge
+        wf_remove_edge = self._wf_remove_edge
         seen = self.seen
         check_wait_in = self.check_wait_in
 
@@ -2106,7 +2136,10 @@ class Dispatcher(object):
                 vw_dist = initial_dist + edge_weight(edge_data, node_attr[w])
 
                 # check the cutoff limit and if all inputs are satisfied
-                if check_cutoff(vw_dist) or check_wait_in(True, w):
+                if check_cutoff(vw_dist):
+                    wf_remove_edge(data_id, w)  # remove workflow edge
+                    continue  # pass the node
+                elif check_wait_in(True, w):
                     continue  # pass the node
 
                 # update distance
@@ -2117,8 +2150,9 @@ class Dispatcher(object):
 
             return True
 
-        # check if all node inputs are satisfied
-        if not (check_cutoff(initial_dist) or check_wait_in(wait_in, data_id)):
+        if check_cutoff(initial_dist):  # check the cutoff limit
+            wf_remove_edge(START, data_id)  # remove workflow edge
+        elif not check_wait_in(wait_in, data_id):  # check inputs
             # update distance
             seen[data_id] = initial_dist
 
@@ -2128,7 +2162,8 @@ class Dispatcher(object):
             return True
         return False
 
-    def _init_run(self, inputs, outputs, wildcard, cutoff, no_call):
+    def _init_run(self, inputs, outputs, wildcard, cutoff, inputs_dist, no_call,
+                  rm_unused_func):
         """
         Initializes workflow, visited nodes, data output, and distance.
 
@@ -2148,11 +2183,20 @@ class Dispatcher(object):
 
         :param cutoff:
             Depth to stop the search.
-        :type cutoff: float, int
+        :type cutoff: float, int, optional
+
+        :param inputs_dist:
+            Initial distances of input data nodes.
+        :type inputs_dist: float, int, optional
 
         :param no_call:
             If True data node estimation function is not used.
-        :type no_call: bool
+        :type no_call: bool, optional
+
+        :param rm_unused_func:
+            If True unused function and sub-dispatcher nodes are removed from
+            workflow.
+        :type rm_unused_func: bool, optional
 
         :return:
             Inputs for _run:
@@ -2161,7 +2205,8 @@ class Dispatcher(object):
                 - fringe: Nodes not visited, but seen.
                 - check_cutoff: Check the cutoff limit.
                 - no_call.
-        :rtype: (dict, list, function, bool)
+                - remove_unused_func.
+        :rtype: (dict, list, function, bool, bool)
         """
 
         # get inputs
@@ -2190,12 +2235,12 @@ class Dispatcher(object):
                 return {'value': inputs[k]}
 
         # initialize workflow params
-        fringe, check_cutoff = self._init_workflow(inputs, input_value)
+        fringe, check_cutoff = self._init_workflow(inputs, input_value, inputs_dist)
 
         # return inputs for _run
-        return inputs, fringe, check_cutoff, no_call
+        return inputs, fringe, check_cutoff, no_call, rm_unused_func
 
-    def _run(self, fringe, check_cutoff, no_call=False):
+    def _run(self, fringe, check_cutoff, no_call=False, rm_unused_func=False):
         """
         Evaluates the minimum workflow and data outputs of the dispatcher map.
 
@@ -2213,6 +2258,11 @@ class Dispatcher(object):
         :param no_call:
             If True data node estimation function is not used.
         :type no_call: bool, optional
+
+        :param rm_unused_func:
+            If True unused function and sub-dispatcher nodes are removed from
+            workflow.
+        :type rm_unused_func: bool, optional
 
         :returns:
 
@@ -2249,7 +2299,8 @@ class Dispatcher(object):
                         if sub_dsp._see_node(n, fringe, d):
                             sub_dsp._wf_add_edge(sub_dsp_id, n, value=value)
 
-        self._remove_unused_functions()
+        if rm_unused_func:  # remove unused function and sub-dispatcher nodes
+            self._remove_unused_functions()
 
         # return the workflow and data outputs
         return self.workflow, self.data_output
@@ -2265,6 +2316,7 @@ class Dispatcher(object):
         edge_weight = self._edge_length
         check_targets = self.check_targets
         wf_add_node = self.workflow.add_node
+        wf_remove_edge = self._wf_remove_edge
 
         # set minimum dist
         distances[node_id] = dist
@@ -2291,6 +2343,7 @@ class Dispatcher(object):
 
             # check the cutoff limit
             if check_cutoff(vw_d):
+                wf_remove_edge(node_id, w)
                 continue
 
             if node['type'] == 'dispatcher':
@@ -2373,6 +2426,7 @@ class Dispatcher(object):
             self.workflow.remove_node(n)
 
     def _init_as_sub_dsp(self, fringe, outputs, no_call):
-        dsp_fringe = self._init_run({}, outputs, True, None, no_call)[1]
+        dsp_fringe = self._init_run({}, outputs, True, None, None, no_call,
+                                    False)[1]
         for f in dsp_fringe:
             heappush(fringe, f)

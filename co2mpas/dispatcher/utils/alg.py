@@ -14,14 +14,15 @@ __author__ = 'Vincenzo Arcidiacono'
 
 from heapq import heappush, heappop
 from .gen import pairwise, counter
-
-__all__ = ['add_edge_fun', 'scc_fun', 'dijkstra', 'remove_cycles_iteration']
+from networkx import is_isolate
+__all__ = ['add_edge_fun', 'remove_edge_fun', 'scc_fun', 'dijkstra',
+           'remove_cycles_iteration']
 
 
 # modified from NetworkX library
 def add_edge_fun(graph):
     """
-    Returns a function that add an edge to the `graph` checking only the out
+    Returns a function that adds an edge to the `graph` checking only the out
     node.
 
     :param graph:
@@ -29,7 +30,7 @@ def add_edge_fun(graph):
     :type graph: networkx.classes.digraph.DiGraph
 
     :return:
-        A function that add edges to the `graph`.
+        A function that adds an edge to the `graph`.
     :rtype: function
     """
 
@@ -37,7 +38,7 @@ def add_edge_fun(graph):
     pred = graph.pred
     node = graph.node
 
-    def add_edges(u, v, **attr):
+    def add_edge(u, v, **attr):
         # add nodes
         if v not in succ:
             succ[v] = {}
@@ -46,7 +47,33 @@ def add_edge_fun(graph):
         # add the edge
         succ[u][v] = pred[v][u] = attr
 
-    return add_edges
+    return add_edge
+
+
+def remove_edge_fun(graph):
+    """
+    Returns a function that removes an edge from the `graph`.
+
+    ..note:: The out node is removed if this is isolate.
+
+    :param graph:
+        A directed graph.
+    :type graph: networkx.classes.digraph.DiGraph
+
+    :return:
+        A function that remove an edge from the `graph`.
+    :rtype: function
+    """
+
+    rm_edge = graph.remove_edge
+    rm_node = graph.remove_node
+
+    def remove_edge(u, v):
+        rm_edge(u, v)  # remove the edge
+        if is_isolate(graph, v):  # check if v is isolate
+            rm_node(v)  # remove the isolate out node
+
+    return remove_edge
 
 
 # modified from NetworkX library

@@ -99,9 +99,11 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
         (..., ...)
         >>> wf = dsp2dot(dsp, workflow=True, graph_attr={'ratio': '1'})
     """
+
     from .. import Dispatcher
-    inputs = []
-    outputs = []
+
+    inputs, outputs = [], []
+
     if isinstance(dsp, SubDispatchFunction) and not workflow:
         inputs = dsp.inputs
         outputs = dsp.outputs
