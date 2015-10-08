@@ -23,7 +23,7 @@ from functools import partial
 from inspect import signature, Parameter, _POSITIONAL_OR_KEYWORD
 from collections import OrderedDict
 import types
-from itertools import repeat
+from itertools import repeat, chain
 from .constants import NONE
 
 
@@ -358,21 +358,17 @@ def replicate_value(value, n=2, copy=True):
     return [value] * n
 
 
-def add_args(func, n=1, left=True):
+def add_args(func, n=1):
     """
-    Adds arguments to a function.
+    Adds arguments to a function (left side).
 
     :param func:
         Function to wrap.
     :type func: function
 
     :param n:
-        Number of unused arguments to add.
+        Number of unused arguments to add to the left side.
     :type n: int
-
-    :param left:
-        Add to the left side.
-    :type left: bool
 
     :return:
         Wrapped function.
@@ -390,31 +386,24 @@ def add_args(func, n=1, left=True):
         7
     """
 
-    if left:
-        def wrap(*args, **kwargs):
-            return func(*args[n:], **kwargs)
-    else:
-        def wrap(*args, **kwargs):
-            return func(*args[:n], **kwargs)
+    def wrap(*args, **kwargs):
+        return func(*args[n:], **kwargs)
 
     wrap.__name__ = func.__name__
     wrap.__doc__ = func.__doc__
-    wrap.__signature__ = _get_signature(func, n, left=True)
+    wrap.__signature__ = _get_signature(func, n)
 
     return wrap
 
 
-def _get_signature(func, n=1, left=True):
+def _get_signature(func, n=1):
     sig = signature(func)
 
-    def ept_p():
+    def ept_par():
         name = Token('none')
         return name, Parameter(name, _POSITIONAL_OR_KEYWORD)
 
-    if left:
-        par = [p() for p in repeat(ept_p, n)] + list(sig.parameters.items())
-    else:
-        par = list(sig.parameters.items()) + [p() for p in repeat(ept_p, n)]
+    par = chain(*([p() for p in repeat(ept_par, n)], sig.parameters.items()))
 
     sig._parameters = types.MappingProxyType(OrderedDict(par))
 
