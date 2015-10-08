@@ -15,7 +15,23 @@ import sys
 
 log = logging.getLogger(__name__)
 
-def get_all_model_names():
+
+def get_models_path(model_ids=None):
+    """
+    Returns all CO2MPAS models import paths.
+
+    :param model_ids:
+        List of models to be returned
+        (e.g., ['co2mpas.models.physical.physical_calibration', 'engine', ...]).
+
+        .. note:: It it is not specified all models will be returned.
+    :type model_ids: list, None
+
+    :return:
+        CO2MPAS models import paths.
+    :rtype: set
+    """
+
     co2maps_models = {
         'vehicle_processing_model',
         'load_inputs',
@@ -55,7 +71,16 @@ def get_all_model_names():
         'physical.engine.co2_emission.co2_emission',
     }
 
-    return co2maps_models
+    co2maps_models = {'co2mpas.models.%s' % k for k in co2maps_models}
+
+    if not model_ids:
+        models = co2maps_models
+    else:
+        models = set()
+        for model_id in model_ids:
+            models.update({k for k in co2maps_models if model_id in k})
+
+    return models
 
 
 def plot_model_graphs(model_ids=None, **kwargs):
@@ -85,19 +110,13 @@ def plot_model_graphs(model_ids=None, **kwargs):
     }
     dot_setting.update(kwargs)
 
-    co2maps_models = {'co2mpas.models.%s' % k for k in get_all_model_names()}
+    models_path = get_models_path(model_ids=model_ids)
 
-    if not model_ids:
-        models = co2maps_models
-    else:
-        models = set()
-        for model_id in model_ids:
-            models.update({k for k in co2maps_models if model_id in k})
-    log.info('Plotting graph for models: %s', models)
+    log.info('Plotting graph for models: %s', models_path)
 
     dot_graphs = []
 
-    for model_path in sorted(models):
+    for model_path in sorted(models_path):
         model_path = model_path.split('.')
         module_path, object_name = '.'.join(model_path[:-1]), model_path[-1]
         __import__(module_path)

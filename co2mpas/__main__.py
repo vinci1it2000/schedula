@@ -74,7 +74,7 @@ log = logging.getLogger(__name__)
 
 def _cmd_modelgraph(opts):
     if opts['--list']:
-        print('\n'.join(co2plot.get_all_model_names()))
+        print('\n'.join(co2plot.get_models_paths()))
     else:
         co2plot.plot_model_graphs(opts['<models>'])
 
