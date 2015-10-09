@@ -422,7 +422,7 @@ def model_selector(*calibration_outputs, hide_warn_msgbox=False):
             origin_errors.update(dict.fromkeys(mods, rank))
 
             msg = 'Models %s are selected from %s (%.3f) respect to targets ' \
-                  '%s.\n  Errors: %s.'
+                  '%s.\n  PredictionDiff: %s.'
             log.info(msg, mods, rank[0][0], rank[0][1], trgs, rank)
 
     return models
