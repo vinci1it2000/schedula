@@ -24,7 +24,26 @@ from inspect import signature, Parameter, _POSITIONAL_OR_KEYWORD
 from collections import OrderedDict
 import types
 from itertools import repeat, chain
-from .constants import NONE
+from .constants import NONE, EMPTY
+
+
+def _get_node(nodes, node_id, function_module=True):
+    from .drw import _func_name
+
+    try:
+        return nodes[node_id]  # Get dispatcher node.
+    except KeyError:
+        if function_module:
+            nfm = {_func_name(k, False) if v['type'] != 'data' else k: v
+                   for k, v in nodes.items()}
+            try:
+                return _get_node(nfm, node_id, function_module=False)
+            except KeyError:
+                for n in (nfm.items(), nodes.items()):
+                    n = next((v for k, v in sorted(n) if node_id in k), EMPTY)
+                    if n is not EMPTY:
+                        return n
+    raise KeyError
 
 
 def get_sub_node(dsp, path, node_attr='auto', _level=0, _dsp_name=NONE):
@@ -88,7 +107,6 @@ def get_sub_node(dsp, path, node_attr='auto', _level=0, _dsp_name=NONE):
        :code:
 
         >>> sub_dsp = get_sub_node(dsp, ('Sub-dispatcher',))
-
     """
 
     if isinstance(dsp, SubDispatch):  # Take the dispatcher obj.
@@ -100,7 +118,7 @@ def get_sub_node(dsp, path, node_attr='auto', _level=0, _dsp_name=NONE):
     node_id = path[_level]  # Node id at given level.
 
     try:
-        node = dsp.nodes[node_id]  # Get dispatcher node.
+        node = _get_node(dsp.nodes, node_id)  # Get dispatcher node.
     except KeyError:
         msg = 'Path %s does not exist in %s dispatcher.' % (path, _dsp_name)
         raise ValueError(msg)
@@ -130,13 +148,17 @@ def get_sub_node(dsp, path, node_attr='auto', _level=0, _dsp_name=NONE):
         return node.get(node_attr, node)  # Return the data
 
 
-def combine_dicts(*dicts):
+def combine_dicts(*dicts, copy=False):
     """
     Combines multiple dicts in one.
 
     :param dicts:
         A sequence of dicts.
     :type dicts: (dict, ...)
+
+    :param copy:
+        If True, it returns a deepcopy of input values.
+    :type copy: bool, optional
 
     :return:
         A unique dict.
@@ -148,24 +170,30 @@ def combine_dicts(*dicts):
         [('a', 1), ('b', 2), ('c', 3)]
     """
 
-    if len(dicts) == 1:
-        return dicts[0]
 
-    res = {}
+    if len(dicts) == 1:  # Only one input dict.
+        cd = dicts[0]
+    else:
+        cd = {}  # Initialize empty dict.
 
-    for a in dicts:
-        res.update(a)
+        for d in dicts:  # Combine dicts.
+            cd.update(d)
 
-    return res
+    # Return combined dict.
+    return {k: deepcopy(v) for k, v in cd.items()} if copy else cd
 
 
-def bypass(*inputs):
+def bypass(*inputs, copy=False):
     """
     Returns the same arguments.
 
     :param inputs:
         Inputs values.
     :type inputs: (object, ...)
+
+    :param copy:
+        If True, it returns a deepcopy of input values.
+    :type copy: bool, optional
 
     :return:
         Same input values.
@@ -179,7 +207,9 @@ def bypass(*inputs):
         'a'
     """
 
-    return inputs if len(inputs) > 1 else inputs[0]
+    inputs = inputs if len(inputs) > 1 else inputs[0]  # Same inputs.
+
+    return deepcopy(inputs) if copy else inputs  # Return inputs.
 
 
 def summation(*inputs):
@@ -200,10 +230,10 @@ def summation(*inputs):
         10.0
     """
 
-    return sum(inputs)
+    return sum(inputs)  # Return the sum of the input values.
 
 
-def map_dict(key_map, *dicts):
+def map_dict(key_map, *dicts, copy=False):
     """
     Returns a dict with new key values.
 
@@ -226,23 +256,25 @@ def map_dict(key_map, *dicts):
         [('c', 1), ('d', 2)]
     """
 
-    it = combine_dicts(*dicts).items()
-    get = key_map.get
+    it = combine_dicts(*dicts).items()  # Combine dicts.
 
-    return {get(k, k): v for k, v in it}
+    get = key_map.get  # Namespace shortcut.
+
+    # Return mapped dict.
+    return combine_dicts({get(k, k): v for k, v in it}, copy=copy)
 
 
-def map_list(key_map, *inputs):
+def map_list(key_map, *inputs, copy=False):
     """
-    Returns a new dict
+    Returns a new dict.
 
     :param key_map:
         A list that maps the dict keys ({old key: new key}
     :type key_map: [str, dict, ...]
 
-    :param dicts:
+    :param inputs:
         A sequence of dicts.
-    :type dicts: (dict, ...)
+    :type inputs: (dict, int, float, list, tuple, ...)
 
     :return:
         A unique dict with new values.
@@ -271,20 +303,20 @@ def map_list(key_map, *inputs):
         [('a', 1), ('b', 2), ('c', 3), ('d', 4)]
     """
 
-    d = {}
+    d = {}  # Initialize empty dict.
 
     for m, v in zip(key_map, inputs):
         if isinstance(m, dict):
-            d.update(map_dict(m, v))
+            d.update(map_dict(m, v))   # Apply a map dict.
         elif isinstance(m, list):
-            d.update(map_list(m, *v))
+            d.update(map_list(m, *v))  # Apply a map list.
         else:
-            d[m] = v
+            d[m] = v  # Apply map.
 
-    return d
+    return combine_dicts(d, copy=copy)  # Return dict.
 
 
-def selector(keys, dictionary, copy=True, output_type='dict'):
+def selector(keys, dictionary, copy=True, output_type='dictionary'):
     """
     Selects the chosen dictionary keys from the given dictionary.
 
@@ -313,15 +345,11 @@ def selector(keys, dictionary, copy=True, output_type='dict'):
         [('a', 1), ('b', 2)]
     """
 
-    get = deepcopy if copy else lambda x: x
+    if output_type == 'list':  # Select as list.
+        return bypass(*[dictionary[k] for k in keys], copy=copy)
 
-    if output_type == 'list':
-        if len(keys) > 1:
-            return tuple([get(dictionary[k]) for k in keys])
-        else:
-            return get(dictionary[keys[0]])
-
-    return {k: get(v) for k, v in dictionary.items() if k in keys}
+    # Select as dict.
+    return combine_dicts({k: dictionary[k] for k in keys}, copy=copy)
 
 
 def replicate_value(value, n=2, copy=True):
@@ -349,13 +377,10 @@ def replicate_value(value, n=2, copy=True):
         >>> from functools import partial
         >>> fun = partial(replicate_value, n=5)
         >>> fun({'a': 3})
-        [{'a': 3}, {'a': 3}, {'a': 3}, {'a': 3}, {'a': 3}]
+        ({'a': 3}, {'a': 3}, {'a': 3}, {'a': 3}, {'a': 3})
     """
 
-    if copy:
-        return [deepcopy(value) for i in range(n)]
-
-    return [value] * n
+    return bypass(*[value] * n, copy=copy)  # Return replicated values.
 
 
 def add_args(func, n=1):
@@ -386,25 +411,25 @@ def add_args(func, n=1):
         7
     """
 
-    def wrap(*args, **kwargs):
+    def wrapper(*args, **kwargs):  # Wrap function.
         return func(*args[n:], **kwargs)
 
-    wrap.__name__ = func.__name__
-    wrap.__doc__ = func.__doc__
-    wrap.__signature__ = _get_signature(func, n)
+    # Set wrapper name, doc, and signature.
+    wrapper.__name__, wrapper.__doc__ = func.__name__, func.__doc__
+    wrapper.__signature__ = _get_signature(func, n)
 
-    return wrap
+    return wrapper  # Return wrapper.
 
 
 def _get_signature(func, n=1):
-    sig = signature(func)
+    sig = signature(func)  # Get function signature.
 
-    def ept_par():
+    def ept_par():  # Return none signature parameter.
         name = Token('none')
         return name, Parameter(name, _POSITIONAL_OR_KEYWORD)
 
+    # Update signature parameters.
     par = chain(*([p() for p in repeat(ept_par, n)], sig.parameters.items()))
-
     sig._parameters = types.MappingProxyType(OrderedDict(par))
 
     return sig
@@ -458,7 +483,7 @@ class SubDispatch(object):
 
     def __init__(self, dsp, outputs=None, cutoff=None, inputs_dist=None,
                  wildcard=False, no_call=False, shrink=False,
-                 rm_unused_func=False, output_type='all'):
+                 rm_unused_nds=False, output_type='all'):
         """
         Initializes the Sub-dispatch.
 
@@ -488,6 +513,11 @@ class SubDispatch(object):
             If True the dispatcher is shrink before the dispatch.
         :type shrink: bool, optional
 
+        :param rm_unused_nds:
+            If True unused function and sub-dispatcher nodes are removed from
+            workflow.
+        :type rm_unused_nds: bool, optional
+
         :params output_type:
             Type of function output:
 
@@ -507,7 +537,7 @@ class SubDispatch(object):
         self.shrink = shrink
         self.output_type = output_type
         self.inputs_dist = inputs_dist
-        self.rm_unused_func = rm_unused_func
+        self.rm_unused_nds = rm_unused_nds
         self.data_output = {}
         self.dist = {}
         self.workflow = DiGraph()
@@ -515,29 +545,27 @@ class SubDispatch(object):
         self.__name__ = dsp.name
         self.__doc__ = dsp.__doc__
 
-    def __call__(self, *input_dicts):
+    def __call__(self, *input_dicts, copy_input_dicts=False):
 
-        # combine input dictionaries
-        i = combine_dicts(*input_dicts)
+        # Combine input dictionaries.
+        i = combine_dicts(*input_dicts, copy=copy_input_dicts)
 
-        # namespace shortcut
-        outputs = self.outputs
+        outputs = self.outputs  # Namespace shortcut.
 
-        # dispatch the function calls
+        # Dispatch the function calls.
         w, o = self.dsp.dispatch(
             i, outputs, self.cutoff, self.inputs_dist, self.wildcard,
-            self.no_call, self.shrink, self.rm_unused_func
+            self.no_call, self.shrink, self.rm_unused_nds
         )
 
-        self.data_output = o
-        self.dist = self.dsp.dist
-        self.workflow = w
+        # Save outputs.
+        self.workflow, self.data_output, self.dist = w, o, self.dsp.dist
 
-        # set output
+        # Set output.
         if self.output_type in ('list', 'dict'):
             o = selector(outputs, o, copy=False, output_type=self.output_type)
 
-        return o
+        return o  # Return outputs.
 
 
 class ReplicateFunction(object):
@@ -649,37 +677,35 @@ class SubDispatchFunction(SubDispatch):
         :type inputs_dist: float, int, optional
         """
 
-        # new shrink dispatcher
+        # New shrink dispatcher.
         dsp = dsp.shrink_dsp(inputs, outputs, cutoff=cutoff)
 
         if outputs:
-            # outputs not reached
-            missed = set(outputs).difference(dsp.nodes)
+            missed = set(outputs).difference(dsp.nodes)  # Outputs not reached.
 
-            if missed:  # if outputs are missing raise error
+            if missed:  # If outputs are missing raise error.
                 raise ValueError('Unreachable output-targets:{}'.format(missed))
 
-        # get initial default values
+        # Get initial default values.
         input_values = dsp._get_initial_values(None, False)
         self.input_values = input_values
         self.inputs = inputs
 
-        # set wildcards
-        dsp._set_wildcards(inputs, outputs)
+        dsp._set_wildcards(inputs, outputs)  # Set wildcards.
 
-        # set dsp name equal to function id
-        dsp.name = function_id
+        dsp.name = function_id  # Set dsp name equal to function id.
 
+        # Initialize as sub dispatch.
         super(SubDispatchFunction, self).__init__(
             dsp, outputs, cutoff, inputs_dist, True, False, True,
             rm_unused_func, 'list')
 
-        self.__module__ = caller_name()
+        self.__module__ = caller_name()  # Set as who calls my caller.
 
-        # define the function to populate the workflow
+        # Define the function to populate the workflow.
         self.input_value = lambda k: {'value': input_values[k]}
 
-        # define the function to return outputs sorted
+        # Define the function to return outputs sorted.
         if outputs is None:
             def return_output(o):
                 return o
@@ -692,28 +718,24 @@ class SubDispatchFunction(SubDispatch):
         self.return_output = return_output
 
     def __call__(self, *args):
-        # namespace shortcuts
-        input_values = self.input_values
-        dsp = self.dsp
+        input_values, dsp = self.input_values, self.dsp  # Namespace shortcuts.
 
-        # update inputs
-        input_values.update(dict(zip(self.inputs, args)))
+        input_values.update(dict(zip(self.inputs, args)))  # Update inputs.
 
-        # initialize
+        # Initialize.
         args = dsp._init_workflow(input_values, self.input_value,
                                   self.inputs_dist)
-        # dispatch outputs
+        # Dispatch outputs.
         w, o = dsp._run(*args)
 
-        self.data_output = o
-        self.dist = dsp.dist
-        self.workflow = w
+        # Save outputs.
+        self.data_output, self.workflow, self.dist = o, w, dsp.dist
 
         try:
-            # return outputs sorted
+            # Return outputs sorted.
             return self.return_output(o)
 
-        except KeyError:  # unreached outputs
-            # raise error
+        except KeyError:  # Unreached outputs.
+            # Raise error
             raise ValueError('Unreachable output-targets:'
                              '{}'.format(set(self.outputs).difference(o)))

@@ -53,10 +53,8 @@ if not IS_PYPY:
             filename_set = set(),
         )
 
-
     def warnfunc(msg):
         _warnings.append(msg)
-
 
     def assert_equal_items(test, items):
         global directive
@@ -82,6 +80,7 @@ if not IS_PYPY:
 
         def test_format_signature(self):
             setup_test()
+
             def formatsig(objtype, name, obj, args, retann):
                 global directive
                 inst = DispatcherDirective._registry[objtype](directive, name)
@@ -123,7 +122,6 @@ if not IS_PYPY:
             res = getdocl('dispatcher', dsp_local, 'dsp_local')
             self.assertEqual(res, ['First line', '', 'Other', '  lines'])
 
-
         def test_docstring_property_processing(self):
             setup_test()
             def genarate_docstring(objtype, name, **kw):
@@ -138,7 +136,6 @@ if not IS_PYPY:
             assert '.. py:data:: dsp' in results
             assert '   :module: %s' % dsp.__module__ in results
             assert '   :annotation:  = Pippo' in results
-
 
         def test_generate(self):
             setup_test()
@@ -189,7 +186,6 @@ if not IS_PYPY:
             res[1] = '.. py:data:: dsp_2'
             res[5] = '   Docstring 3'
             assert_result(self, res, 'dispatcher', 'dsp_2')
-
 
     def fun2():
         """

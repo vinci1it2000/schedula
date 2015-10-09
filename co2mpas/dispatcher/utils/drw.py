@@ -31,7 +31,7 @@ def plot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
 
     :param dsp:
         A dispatcher that identifies the model adopted.
-    :type dsp: dispatcher.dispatcher.Dispatcher
+    :type dsp: dispatcher.Dispatcher
 
     :param workflow:
        If True the workflow graph will be plotted, otherwise the dispatcher map.
@@ -288,12 +288,11 @@ def _data_node_label(k, values, attr=None, dist=None, function_module=True):
             v.update({'default': values[k]})
         if not v['wait_inputs']:
             v.pop('wait_inputs')
-        if 'output' in v:
-            _remote_links(v, 'output', v.pop('output'), k, function_module)
+        if 'remote_links' in v:
+            if any(t == 'parent' for l, t in v['remote_links']):
+                v.pop('default', None)
+            _remote_links(v, v.pop('remote_links'), k, function_module)
 
-        if 'input' in v:
-            v.pop('default', None)
-            _remote_links(v, 'input', v.pop('input'), k, function_module)
     else:
         v = {'output': values[k]} if k in values else {}
         if k in dist:
@@ -302,10 +301,10 @@ def _data_node_label(k, values, attr=None, dist=None, function_module=True):
     return _node_label(k, v)
 
 
-def _remote_links(label, tag, links, node_id, function_module):
-    for i, (k, v) in enumerate(links):
-        link = _get_link(k, v, node_id, tag, function_module)
-        label['remote %s %d' % (tag, i)] = link
+def _remote_links(label, links, node_id, function_module):
+    for i, ((k, v), t) in enumerate(links):
+        link = _get_link(k, v, node_id, t, function_module)
+        label['remote %s %d' % (t, i)] = link
 
 
 def _get_link(dsp_id, dsp, node_id, tag, function_module):

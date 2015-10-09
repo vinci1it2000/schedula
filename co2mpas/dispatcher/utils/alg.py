@@ -33,20 +33,16 @@ def add_edge_fun(graph):
     :rtype: function
     """
 
-    succ = graph.succ
-    pred = graph.pred
-    node = graph.node
+    # Namespace shortcut for speed.
+    succ, pred, node = graph.succ, graph.pred, graph.node
 
     def add_edge(u, v, **attr):
-        # add nodes
-        if v not in succ:
-            succ[v] = {}
-            pred[v] = {}
-            node[v] = {}
-        # add the edge
-        succ[u][v] = pred[v][u] = attr
+        if v not in succ:  # Add nodes.
+            succ[v], pred[v], node[v] = {}, {}, {}
 
-    return add_edge
+        succ[u][v] = pred[v][u] = attr  # Add the edge.
+
+    return add_edge  # Returns the function.
 
 
 def remove_edge_fun(graph):
@@ -64,18 +60,191 @@ def remove_edge_fun(graph):
     :rtype: function
     """
 
-    rm_edge = graph.remove_edge
-    rm_node = graph.remove_node
+    # Namespace shortcut for speed.
+    rm_edge, rm_node = graph.remove_edge, graph.remove_node
 
     def remove_edge(u, v):
-        rm_edge(u, v)  # remove the edge
-        if is_isolate(graph, v):  # check if v is isolate
-            rm_node(v)  # remove the isolate out node
+        rm_edge(u, v)  # Remove the edge.
+        if is_isolate(graph, v):  # Check if v is isolate.
+            rm_node(v)  # Remove the isolate out node.
 
-    return remove_edge
+    return remove_edge  # Returns the function.
 
 
-# modified from NetworkX library
+def get_unused_node_id(graph, initial_guess='unknown'):
+    """
+    Finds an unused node id in `graph`.
+
+    :param graph:
+        A directed graph.
+    :type graph: networkx.classes.digraph.DiGraph
+
+    :param initial_guess:
+        Initial node id guess.
+    :type initial_guess: str, optional
+
+    :return:
+        An unused node id.
+    :rtype: str
+    """
+
+    has_node = graph.has_node  # Namespace shortcut for speed.
+
+    n = counter(0)  # Counter.
+    node_id_format = '%s%s' % (initial_guess, '<%d>')  # Node id format.
+
+    node_id = initial_guess  # Initial guess.
+    while has_node(node_id):  # Check if node id is used.
+        node_id = node_id_format % n()  # Guess.
+
+    return node_id  # Returns an unused node id.
+
+
+def add_func_edges(dsp, fun_id, nodes_bunch, edge_weights=None, input=True,
+                   data_nodes=None):
+    """
+    Adds function node edges.
+
+    :param dsp:
+        A dispatcher that identifies the model adopted.
+    :type dsp: dispatcher.Dispatcher
+
+    :param fun_id:
+        Function node id.
+    :type fun_id: str
+
+    :param nodes_bunch:
+        A container of nodes which will be iterated through once.
+    :type nodes_bunch: iterable
+
+    :param edge_weights:
+        Edge weights.
+    :type edge_weights: dict, optional
+
+    :param input:
+        If True the nodes_bunch are input nodes, otherwise are output nodes.
+    :type input: bool, optional
+
+    :param data_nodes:
+        Data nodes to be deleted if something fail.
+    :type data_nodes: list
+
+    :return:
+        List of new data nodes.
+    :rtype: list
+    """
+
+    # Namespace shortcut for speed.
+    add_edge = _add_edge_dmap_fun(dsp.dmap, edge_weights)
+    node, add_data = dsp.dmap.node, dsp.add_data
+    remove_nodes = dsp.dmap.remove_nodes_from
+
+    # Define an error message.
+    msg = 'Invalid %sput id: {} is not a data node' % ['out', 'in'][input]
+    i, j = ('i', 'o') if input else ('o', 'i')
+
+    data_nodes = data_nodes or []  # Update data nodes.
+
+    for u in nodes_bunch:  # Iterate nodes.
+        try:
+            if node[u]['type'] != 'data':  # The node is not a data node.
+                data_nodes.append(fun_id)  # Add function id to be removed.
+
+                remove_nodes(data_nodes)  # Remove function and new data nodes.
+
+                raise ValueError(msg.format(u))  # Raise error.
+        except KeyError:
+            data_nodes.append(add_data(data_id=u))  # Add new data node.
+
+        add_edge(**{i: u, j: fun_id, 'w': u})  # Add edge.
+
+    return data_nodes  # Return new data nodes.
+
+
+def _add_edge_dmap_fun(graph, edges_weights=None):
+    """
+    Adds edge to the dispatcher map.
+
+    :param graph:
+        A directed graph.
+    :type graph: networkx.classes.digraph.DiGraph
+
+    :param edges_weights:
+        Edge weights.
+    :type edges_weights: dict, optional
+
+    :return:
+        A function that adds an edge to the `graph`.
+    :rtype: function
+    """
+
+    add = graph.add_edge  # Namespace shortcut for speed.
+
+    if edges_weights is not None:
+        def add_edge(i, o, w):
+            if w in edges_weights:
+                add(i, o, weight=edges_weights[w])  # Weighted edge.
+            else:
+                add(i, o)  # Normal edge.
+    else:
+        add_edge = lambda i, o, w: add(i, o)  # Normal edge.
+
+    return add_edge  # Returns the function.
+
+
+def replace_remote_link(dsp, nodes_bunch, old_link, new_link=None,
+                        is_parent=True):
+    """
+    Replaces or removes remote links.
+
+    :param dsp:
+        A dispatcher with remote links.
+    :type dsp: dispatcher.Dispatcher
+
+    :param nodes_bunch:
+        A container of nodes which will be iterated through once.
+    :type nodes_bunch: iterable
+
+    :param old_link:
+        Remote link to be replaced or removed.
+    :type old_link: [str, dispatcher.Dispatcher]
+
+    :param new_link:
+        New remote link. If it is None the old link will be removed.
+    :type new_link: [str, dispatcher.Dispatcher], optional
+
+    :param is_parent:
+        If True the link is inflow (parent), otherwise is outflow (child).
+    :type is_parent: bool, optional
+    """
+
+    attr = 'remote_links'  # Namespace shortcut for speed.
+
+    # Define link type.
+    link_type = ['parent', 'child'] if new_link is None else ['child', 'parent']
+    link_type = link_type[is_parent]
+
+    # Define a function to check if update link.
+    def no_update(link, func):
+        return func((link[0] != old_link, link[1] == link_type))
+
+    if new_link is None:  # Remove links.
+        for node in (dsp.nodes[k] for k in nodes_bunch):  # Update remote links.
+            # Define new remote links.
+            r_links = [l for l in node.pop(attr) if no_update(l, any)]
+
+            if r_links:  # Update remote links.
+                node[attr] = r_links
+
+    else:  # Replace links.
+        nl = [new_link, link_type]  # Define new link.
+
+        for node in (dsp.nodes[k] for k in nodes_bunch):  # Update remote links.
+            # Define new remote links.
+            node[attr] = [l if no_update(l, all) else nl for l in node[attr]]
+
+
+# Modified from NetworkX library.
 def scc_fun(graph, nodes_bunch=None):
     """
     Return nodes in strongly connected components (SCC) of the reachable graph.
@@ -99,10 +268,10 @@ def scc_fun(graph, nodes_bunch=None):
     """
 
     p_ord, l_link, scc_found, scc_queue = ({}, {}, {}, [])
-    pre_ord_n = counter()  # Pre-order counter
+    pre_ord_n = counter()  # Pre-order counter.
     for source in (nodes_bunch if nodes_bunch else graph):
         if source not in scc_found:
-            q = [source]  # queue
+            q = [source]  # Queue.
             while q:
                 v = q[-1]
 
@@ -195,11 +364,11 @@ def dijkstra(graph, source, targets=None, cutoff=None, weight=True):
     check_cutoff = _check_cutoff_fun(cutoff)
     edge_weight = _edge_weight_fun(weight)
 
-    dist = {}  # dictionary of final distances
-    paths = {source: [source]}  # dictionary of paths
+    dist = {}  # Dictionary of final distances.
+    paths = {source: [source]}  # Dictionary of paths.
     seen = {source: 0}
     c = counter(1)
-    fringe = [(0, 0, source)]  # use heapq with (distance,label) tuples
+    fringe = [(0, 0, source)]  # Use heapq with (distance,label) tuples.
     while fringe:
         (d, _, v) = heappop(fringe)
 

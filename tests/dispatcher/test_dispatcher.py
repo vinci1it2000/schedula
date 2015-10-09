@@ -88,16 +88,16 @@ class TestCreateDispatcher(unittest.TestCase):
 
         self.assertEqual(dsp.add_data(data_id='a'), 'a')
         self.assertEqual(dsp.add_data(data_id='a'), 'a')
-        self.assertEqual(dsp.add_data(), 'unknown<0>')
+        self.assertEqual(dsp.add_data(), 'unknown')
 
-        self.assertEqual(dsp.add_data(default_value='v'), 'unknown<1>')
-        self.assertEqual(dsp.dmap.node['unknown<1>'], {'wait_inputs': False,
+        self.assertEqual(dsp.add_data(default_value='v'), 'unknown<0>')
+        self.assertEqual(dsp.dmap.node['unknown<0>'], {'wait_inputs': False,
                                                        'type': 'data'})
         r = {'initial_dist': 0.0, 'value': 'v'}
-        self.assertEqual(dsp.default_values['unknown<1>'], r)
+        self.assertEqual(dsp.default_values['unknown<0>'], r)
 
-        self.assertEqual(dsp.add_data(data_id='unknown<1>'), 'unknown<1>')
-        self.assertFalse('unknown<1>' in dsp.default_values)
+        self.assertEqual(dsp.add_data(data_id='unknown<0>'), 'unknown<0>')
+        self.assertFalse('unknown<0>' in dsp.default_values)
 
         dsp.add_data(data_id='a', wait_inputs=False, function=lambda: None,
                      callback=lambda: None, wildcard=True)
@@ -277,6 +277,15 @@ class TestCreateDispatcher(unittest.TestCase):
         dsp.set_default_value('b', value=3)
         dfl = {'value': 3, 'initial_dist': 0.0}
         self.assertEqual(dsp.default_values['b'], dfl)
+
+    def test_copy(self):
+        dsp = self.sub_dsp.copy()
+
+        self.assertIsNot(self.sub_dsp, dsp)
+        self.assertIsNot(self.sub_dsp.nodes, dsp.nodes)
+        self.assertIsNot(self.sub_dsp.dmap, dsp.dmap)
+        self.assertIsNot(self.sub_dsp.dmap.node, dsp.dmap.node)
+        self.assertIsNot(self.sub_dsp.dmap.edge, dsp.dmap.edge)
 
 
 class TestSubDMap(unittest.TestCase):
@@ -473,6 +482,9 @@ class TestDispatch(unittest.TestCase):
             input_domain=dom
         )
         self.dsp_of_dsp_2 = dsp
+        dsp = dsp.copy()
+
+        self.dsp_of_dsp_3 = dsp
 
     def test_without_outputs(self):
         dsp = self.dsp
@@ -581,7 +593,7 @@ class TestDispatch(unittest.TestCase):
         self.assertEqual(set(wk.node), r)
         self.assertEqual(wk.edge, w)
 
-        wk, o = dsp.dispatch({'a': 5, 'b': 6}, ['d'], rm_unused_func=True)
+        wk, o = dsp.dispatch({'a': 5, 'b': 6}, ['d'], rm_unused_nds=True)
         n = {'x - 4'}
         r = r - n
         w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
@@ -852,6 +864,46 @@ class TestDispatch(unittest.TestCase):
         self.assertEqual(set(wk.node), r)
         self.assertEqual(wk.edge, w)
 
+        dsp = self.dsp
+        wk, o = dsp.dispatch({'a': 5, 'b': 6, 'd': 0}, ['a', 'b', 'd'],
+                             wildcard=True, inputs_dist={'a': 1})
+        r = {'2 / (d + 1)', 'a', 'b', 'c', 'd', 'e', 'max', 'min', START,
+             'x ^ y'}
+        w = {
+            '2 / (d + 1)': {'e': {'value': 2.0}},
+            'a': {'min': {'value': 5}},
+            'b': {'max': {'value': 6}},
+            'c': {'min': {'value': 6}},
+            'd': {'max': {'value': 0}, 'x ^ y': {'value': 0},
+                  '2 / (d + 1)': {'value': 0}},
+            'e': {'x ^ y': {'value': 2.0}},
+            'max': {'c': {'value': 6}},
+            'min': {'d': {'value': 5}},
+            START: {'a': {'value': 5}, 'b': {'value': 6}, 'd': {'value': 0}},
+            'x ^ y': {'b': {'value': 1.0}}
+        }
+        self.assertEqual(o, {'b': 1, 'c': 6, 'd': 5, 'e': 2})
+        self.assertEqual(wk.edge, w)
+        self.assertEqual(set(wk.node), r)
+
+        wk, o = dsp.dispatch({'a': 5, 'b': 6, 'd': 0}, ['a', 'b', 'd'],
+                             wildcard=True, shrink=True, inputs_dist={'a': 1})
+        self.assertEqual(o, {'b': 1, 'c': 6, 'd': 5, 'e': 2})
+        self.assertEqual(wk.edge, w)
+        self.assertEqual(set(wk.node), r)
+
+        dsp = self.dsp_wildcard_1
+
+        wk, o = dsp.dispatch({'a': 5, 'b': 6, 'd': 0}, ['a', 'b', 'd'],
+                             wildcard=True, inputs_dist={'a': 2})
+        self.assertEqual(set(wk.node), r)
+        self.assertEqual(wk.edge, w)
+
+        wk, o = dsp.dispatch({'a': 5, 'b': 6, 'd': 0}, ['a', 'b', 'd'],
+                             wildcard=True, shrink=True, inputs_dist={'a': 2})
+        self.assertEqual(set(wk.node), r)
+        self.assertEqual(wk.edge, w)
+
 
 class TestBoundaryDispatch(unittest.TestCase):
     def setUp(self):
@@ -1076,12 +1128,16 @@ class TestShrinkDispatcher(unittest.TestCase):
         w = [('a', 'h'), ('a', 'sub_dsp'), ('b', 'sub_dsp'), ('h', 'f'),
              ('sub_dsp', 'd'), ('sub_dsp', 'f')]
         sn = {
-            'a': {'wait_inputs': False, 'input': [rl], 'type': 'data'},
-            'b': {'wait_inputs': False, 'input': [rl], 'type': 'data'},
+            'a': {'wait_inputs': False, 'remote_links': [[rl, 'parent']],
+                  'type': 'data'},
+            'b': {'wait_inputs': False, 'remote_links': [[rl, 'parent']],
+                  'type': 'data'},
             'c': {'wait_inputs': False, 'type': 'data'},
-            'd': {'wait_inputs': False, 'output': [rl], 'type': 'data'},
+            'd': {'wait_inputs': False, 'remote_links': [[rl, 'child']],
+                  'type': 'data'},
             'e': {'wait_inputs': False, 'type': 'data'},
-            'f': {'wait_inputs': False, 'output': [rl], 'type': 'data'},
+            'f': {'wait_inputs': False, 'remote_links': [[rl, 'child']],
+                  'type': 'data'},
             'h': {
                 'type': 'function',
                 'inputs': ['a', 'b'],

@@ -55,9 +55,9 @@ class TestDispatcherUtils(unittest.TestCase):
 
     def test_replicate(self):
         v = {'a': object()}
-        self.assertEqual(replicate_value(v, n=3, copy=False), [v] * 3)
+        self.assertEqual(replicate_value(v, n=3, copy=False), tuple([v] * 3))
 
-        self.assertNotEqual(replicate_value(v, n=3), [v] * 3)
+        self.assertNotEqual(replicate_value(v, n=3)[0], v)
 
     def test_map_dict(self):
         d = map_dict({'a': 'c', 'b': 'a', 'c': 'a'}, {'a': 1, 'b': 1}, {'b': 2})
@@ -89,7 +89,7 @@ class TestDispatcherGetSubNode(unittest.TestCase):
         def fun(a):
             return a + 1, 5, a - 1
 
-        ss_dsp.add_function('fun', fun, ['a'], ['b', SINK, 'c'])
+        ss_dsp.add_function('module:fun', fun, ['a'], ['b', SINK, 'c'])
 
         sub_dispatch = SubDispatch(ss_dsp, ['a', 'b', 'c'], output_type='list')
         s_dsp = Dispatcher()
@@ -125,7 +125,13 @@ class TestDispatcherGetSubNode(unittest.TestCase):
         o = get_sub_node(dsp, ('dispatch', 'sub_dispatch'))
         self.assertEqual(o, self.sub_dispatch)
 
+        o = get_sub_node(dsp, ('dispatch', 'sub_dispatch', 'module:fun'))
+        self.assertEqual(o, self.fun)
+
         o = get_sub_node(dsp, ('dispatch', 'sub_dispatch', 'fun'))
+        self.assertEqual(o, self.fun)
+
+        o = get_sub_node(dsp, ('dispatch', 'sub_dispatch', 'module'))
         self.assertEqual(o, self.fun)
 
         o = get_sub_node(dsp, ('dispatch', 'sub_dispatch', SINK),
