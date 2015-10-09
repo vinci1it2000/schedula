@@ -7,9 +7,9 @@ CO2MPAS: Vehicle simulator predicting NEDC CO2 emissions from WLTP
 :Releases:      http://files.co2mpas.io/
 :Sources:       https://github.com/JRCSTU/co2mpas
 :pypi-repo:     http://pypi.co2mpas.io/
-:Keywords:      CO2, fuel-consumption, WLTP, NEDC, vehicle, simulator,
+:Keywords:      CO2, fuel-consumption, WLTP, NEDC, vehicle, automotive,
                 EU, JRC, IET, STU, back-translation, policy,
-                engineering, scientific
+                simulator, engineering, scientific
 :Developers:    .. include:: ../AUTHORS.rst
 :Copyright:     2015 European Commission (`JRC-IET
                 <https://ec.europa.eu/jrc/en/institutes/iet>`_)
