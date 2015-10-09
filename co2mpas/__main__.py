@@ -14,8 +14,8 @@ Usage:
     co2mpas template   [-v] [-f] <excel-file-path> ...
     co2mpas ipynb      [-v] [-f] <folder>
     co2mpas modelgraph [-v] [-l | <models> ...]
+    co2mpas [-v] --version
     co2mpas --help
-    co2mpas --version
 
 -I <folder>      Input folder, prompted with GUI if missing [default: ./input]
 -O <folder>      Input folder, prompted with GUI if missing [default: ./output]
@@ -51,6 +51,9 @@ Examples:
     # Create an empty vehicle-file inside `input` folder.
     co2mpas template input/vehicle_1.xlsx
 
+    # View a specific submodel on your browser.
+    co2mpas modelgraph gear_box_calibration
+
 """
 from co2mpas import __version__ as proj_ver, __file__ as proj_file
 from co2mpas.functions import (process_folder_files, plot as co2plot)
@@ -74,7 +77,7 @@ log = logging.getLogger(__name__)
 
 def _cmd_modelgraph(opts):
     if opts['--list']:
-        print('\n'.join(co2plot.get_models_paths()))
+        print('\n'.join(co2plot.get_model_paths()))
     else:
         co2plot.plot_model_graphs(opts['<models>'])
 

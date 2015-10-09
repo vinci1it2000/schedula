@@ -16,7 +16,7 @@ import sys
 log = logging.getLogger(__name__)
 
 
-def get_models_path(model_ids=None):
+def get_model_paths(model_ids=None):
     """
     Returns all CO2MPAS models import paths.
 
@@ -110,7 +110,7 @@ def plot_model_graphs(model_ids=None, **kwargs):
     }
     dot_setting.update(kwargs)
 
-    models_path = get_models_path(model_ids=model_ids)
+    models_path = get_model_paths(model_ids=model_ids)
 
     log.info('Plotting graph for models: %s', models_path)
 
