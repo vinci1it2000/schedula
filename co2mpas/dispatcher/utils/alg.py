@@ -15,8 +15,7 @@ __author__ = 'Vincenzo Arcidiacono'
 from heapq import heappush, heappop
 from .gen import pairwise, counter
 from networkx import is_isolate
-__all__ = ['add_edge_fun', 'remove_edge_fun', 'scc_fun', 'dijkstra',
-           'remove_cycles_iteration']
+__all__ = ['scc_fun', 'dijkstra']
 
 
 # modified from NetworkX library

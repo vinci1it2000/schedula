@@ -84,12 +84,8 @@ def AT_gear():
 
     cmv_ch = cmv_cold_hot()
 
-    AT_gear.add_from_lists(
-        data_list=[{'data_id': k, 'default_value': v}
-                   for k, v in cmv_ch.default_values.items()]
-    )
-
     AT_gear.add_dispatcher(
+        include_defaults=True,
         dsp_id='cmv_ch_model',
         dsp=cmv_ch,
         inputs={
@@ -234,12 +230,8 @@ def AT_gear():
 
     gspv_ch = gspv_cold_hot()
 
-    AT_gear.add_from_lists(
-        data_list=[{'data_id': k, 'default_value': v}
-                   for k, v in gspv_ch.default_values.items()]
-    )
-
     AT_gear.add_dispatcher(
+        include_defaults=True,
         dsp_id='gspv_ch_model',
         dsp=gspv_ch,
         inputs={

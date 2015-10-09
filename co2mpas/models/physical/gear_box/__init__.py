@@ -214,11 +214,6 @@ def gear_box_calibration():
 
     at = AT_gear()
 
-    gear_box_calibration.add_from_lists(
-        data_list=[{'data_id': k, 'default_value': v}
-                   for k, v in at.default_values.items()]
-    )
-
     def domain_AT_gear_shifting(kwargs):
         for k, v in kwargs.items():
             if ':gear_box_type' in k or 'gear_box_type' == k:
@@ -226,6 +221,7 @@ def gear_box_calibration():
         return False
 
     gear_box_calibration.add_dispatcher(
+        include_defaults=True,
         dsp=at,
         dsp_id='AT_gear_shifting',
         inputs={
@@ -293,12 +289,8 @@ def gear_box_prediction():
 
     at = AT_gear()
 
-    gear_box_prediction.add_from_lists(
-        data_list=[{'data_id': k, 'default_value': v}
-                   for k, v in at.default_values.items()]
-    )
-
     gear_box_prediction.add_dispatcher(
+        include_defaults=True,
         dsp=at,
         dsp_id='AT_gear_shifting',
         inputs={

@@ -54,14 +54,14 @@ class TestDispatcherDraw(unittest.TestCase):
     def test_plot_dsp_dot(self):
         dsp = self.dsp
 
-        d = dsp2dot(dsp)
+        d = plot(dsp)
         self.assertIsInstance(d, Digraph)
 
-        w = dsp2dot(dsp, workflow=True)
+        w = plot(dsp, workflow=True)
         self.assertIsInstance(w, Digraph)
 
-        l = dsp2dot(dsp, level=1)
+        l = plot(dsp, level=1)
         self.assertIsInstance(l, Digraph)
 
-        f = dsp2dot(dsp, function_module=False)
+        f = plot(dsp, function_module=False)
         self.assertIsInstance(f, Digraph)

@@ -1,7 +1,7 @@
 from sphinx.ext.autodoc import *
 from co2mpas.dispatcher import Dispatcher
 # noinspection PyProtectedMember
-from co2mpas.dispatcher.utils.drw import dsp2dot, _func_name
+from co2mpas.dispatcher.utils.drw import plot, _func_name
 from co2mpas.dispatcher.utils.dsp import SubDispatch, SubDispatchFunction
 # ------------------------------------------------------------------------------
 # Doctest handling
@@ -140,7 +140,7 @@ def _code(lines, documenter):
 
 
 def _plot(lines, dsp, dot_view_opt):
-    digraph = u'   %s' % dsp2dot(dsp, **dot_view_opt).source
+    digraph = u'   %s' % plot(dsp, **dot_view_opt).source
     lines.extend(['.. graphviz::', '', digraph, ''])
 
 

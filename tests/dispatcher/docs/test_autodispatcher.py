@@ -5,7 +5,7 @@ if not IS_PYPY:
 
     import unittest
     from co2mpas.dispatcher import Dispatcher
-    from co2mpas.dispatcher.utils import dsp2dot
+    from co2mpas.dispatcher.utils import plot
     from doc._ext.dsp_directive import DispatcherDirective, PLOT
     from docutils.statemachine import ViewList
 
@@ -163,7 +163,7 @@ if not IS_PYPY:
                 '   ',
                 '   .. graphviz::',
                 '   ',
-                '      %s' % dsp2dot(dsp).source,
+                '      %s' % plot(dsp).source,
                 '   ',
                 "   .. csv-table:: **Pippo's data**",
                 '   ',

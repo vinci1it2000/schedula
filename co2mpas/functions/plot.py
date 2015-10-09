@@ -122,7 +122,7 @@ def plot_model_graphs(model_ids=None, **kwargs):
         __import__(module_path)
         module = sys.modules[module_path]
         dsp = getattr(module, object_name)()
-        dot = dsp_utl.dsp2dot(dsp, **dot_setting)
+        dot = dsp_utl.plot(dsp, **dot_setting)
         dot_graphs.append(dot)
 
     return dot_graphs

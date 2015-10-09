@@ -266,12 +266,8 @@ def engine():
     from co2mpas.models.physical.engine.co2_emission import co2_emission
     co_e = co2_emission()
 
-    engine.add_from_lists(
-        data_list=[{'data_id': k, 'default_value': v}
-                   for k, v in co_e.default_values.items()]
-    )
-
     engine.add_dispatcher(
+        include_defaults=True,
         dsp=co_e,
         dsp_id='CO2_emission_model',
         inputs={

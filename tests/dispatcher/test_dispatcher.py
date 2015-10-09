@@ -62,10 +62,10 @@ def _setup_dsp():
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):
-        import co2mpas.dispatcher as d
+        import co2mpas.dispatcher as dsp
 
         failure_count, test_count = doctest.testmod(
-            d, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS
+            dsp, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS
         )
         self.assertGreater(test_count, 0, (failure_count, test_count))
         self.assertEqual(failure_count, 0, (failure_count, test_count))
@@ -93,7 +93,8 @@ class TestCreateDispatcher(unittest.TestCase):
         self.assertEqual(dsp.add_data(default_value='v'), 'unknown<1>')
         self.assertEqual(dsp.dmap.node['unknown<1>'], {'wait_inputs': False,
                                                        'type': 'data'})
-        self.assertEqual(dsp.default_values['unknown<1>'], 'v')
+        r = {'initial_dist': 0.0, 'value': 'v'}
+        self.assertEqual(dsp.default_values['unknown<1>'], r)
 
         self.assertEqual(dsp.add_data(data_id='unknown<1>'), 'unknown<1>')
         self.assertFalse('unknown<1>' in dsp.default_values)
@@ -257,11 +258,13 @@ class TestCreateDispatcher(unittest.TestCase):
     def test_set_default_value(self):
         dsp = Dispatcher()
 
-        dsp.add_data('a', default_value=1)
-        self.assertEqual(dsp.default_values['a'], 1)
+        dsp.add_data('a', default_value=1, initial_dist=1)
+        dfl = {'value': 1, 'initial_dist': 1}
+        self.assertEqual(dsp.default_values['a'], dfl)
 
-        dsp.set_default_value('a', value=2)
-        self.assertEqual(dsp.default_values['a'], 2)
+        dsp.set_default_value('a', value=2, initial_dist=3)
+        dfl = {'value': 2, 'initial_dist': 3}
+        self.assertEqual(dsp.default_values['a'], dfl)
 
         dsp.set_default_value('a', value=EMPTY)
         self.assertFalse('a' in dsp.default_values)
@@ -272,7 +275,8 @@ class TestCreateDispatcher(unittest.TestCase):
         self.assertRaises(ValueError, dsp.set_default_value, *(fun_id, ))
 
         dsp.set_default_value('b', value=3)
-        self.assertEqual(dsp.default_values['b'], 3)
+        dfl = {'value': 3, 'initial_dist': 0.0}
+        self.assertEqual(dsp.default_values['b'], dfl)
 
 
 class TestSubDMap(unittest.TestCase):
@@ -302,8 +306,9 @@ class TestSubDMap(unittest.TestCase):
                     'type': 'function',
                     'wait_inputs': True}
         }
+        dfl = {'value': 3, 'initial_dist': 0.0}
         self.assertEqual(sub_dmap.dmap.node, res)
-        self.assertEqual(sub_dmap.default_values['b'], 3)
+        self.assertEqual(sub_dmap.default_values['b'], dfl)
 
         sub_dmap = dsp.get_sub_dsp(['a', 'c', 'max', 'max<0>'])
         self.assertEqual(sub_dmap.dmap.node, {})
@@ -319,8 +324,9 @@ class TestSubDMap(unittest.TestCase):
                     'type': 'function',
                     'wait_inputs': True}
         }
+        dfl = {'value': 3, 'initial_dist': 0.0}
         self.assertEqual(sub_dmap.dmap.node, res)
-        self.assertEqual(sub_dmap.default_values['b'], 3)
+        self.assertEqual(sub_dmap.default_values['b'], dfl)
 
         edges_bunch = [('max', 'c')]
         sub_dmap = dsp.get_sub_dsp(['a', 'b', 'c', 'max'], edges_bunch)
@@ -362,7 +368,8 @@ class TestSubDMap(unittest.TestCase):
 
         sub_dmap = dsp.get_sub_dsp_from_workflow(['c', 'e'], reverse=True)
         self.assertEqual(sub_dmap.dmap.node, res)
-        self.assertEqual(sub_dmap.default_values['b'], 3)
+        dfl = {'value': 3, 'initial_dist': 0.0}
+        self.assertEqual(sub_dmap.default_values['b'], dfl)
 
 
 class TestPerformance(unittest.TestCase):
@@ -574,6 +581,15 @@ class TestDispatch(unittest.TestCase):
         self.assertEqual(set(wk.node), r)
         self.assertEqual(wk.edge, w)
 
+        wk, o = dsp.dispatch({'a': 5, 'b': 6}, ['d'], rm_unused_func=True)
+        n = {'x - 4'}
+        r = r - n
+        w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
+             for k in w.items() if k[0] not in n}
+        self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 0})
+        self.assertEqual(set(wk.node), r)
+        self.assertEqual(wk.edge, w)
+
         dsp = self.dsp_of_dsp_1
         wf, o = dsp.dispatch(inputs={'a': 3, 'b': 5, 'd': 10, 'e': 15})
         r = {'a', 'b', 'c', 'd', 'e', 'max', START, 'sub_dsp'}
@@ -694,9 +710,8 @@ class TestDispatch(unittest.TestCase):
         self.assertEqual(set(wk.node), r)
         self.assertEqual(wk.edge, w)
 
-
         wk, o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2, shrink=True)
-        n = {'max'}
+        n = {'max', 'min'}
         r = r - n
         w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
              for k in w.items() if k[0] not in n}
@@ -724,7 +739,7 @@ class TestDispatch(unittest.TestCase):
         self.assertEqual(wk.edge, w)
 
         wk, o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2, shrink=True)
-        n = {'max'}
+        n = {'max', 'min'}
         r = r - n
         w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
              for k in w.items() if k[0] not in n}
@@ -800,7 +815,7 @@ class TestDispatch(unittest.TestCase):
 
         wk, o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2, shrink=True,
                              inputs_dist={'b': 1})
-        n = {'max'}
+        n = {'max', 'min'}
         r = r - n
         w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
              for k in w.items() if k[0] not in n}
@@ -829,7 +844,7 @@ class TestDispatch(unittest.TestCase):
 
         wk, o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2, shrink=True,
                              inputs_dist={'b': 1})
-        n = {'max'}
+        n = {'max', 'min'}
         r = r - n
         w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
              for k in w.items() if k[0] not in n}

@@ -34,7 +34,7 @@ from functools import partial
 from .utils.gen import AttrDict, counter, caller_name
 from .utils.alg import add_edge_fun, remove_edge_fun, remove_cycles_iteration
 from .utils.constants import EMPTY, START, NONE, SINK
-from .utils.dsp import SubDispatch, bypass
+from .utils.dsp import SubDispatch, bypass, combine_dicts
 
 
 log = logging.getLogger(__name__)
@@ -273,9 +273,9 @@ class Dispatcher(object):
 
         self.__module__ = caller_name()
 
-    def add_data(self, data_id=None, default_value=EMPTY, wait_inputs=False,
-                 wildcard=None, function=None, callback=None, input=None,
-                 output=None, description=None, **kwargs):
+    def add_data(self, data_id=None, default_value=EMPTY, initial_dist=0.0,
+                 wait_inputs=False, wildcard=None, function=None, callback=None,
+                 input=None, output=None, description=None, **kwargs):
         """
         Add a single data node to the dispatcher.
 
@@ -425,14 +425,11 @@ class Dispatcher(object):
             raise ValueError('Invalid data id: '
                              'override function {}'.format(data_id))
 
-        if default_value != EMPTY:  # add default value
-            self.default_values[data_id] = default_value
-
-        elif data_id in self.default_values:  # remove default value
-            self.default_values.pop(data_id)
-
         # add node to the dispatcher map
         self.dmap.add_node(data_id, attr_dict=attr_dict)
+
+        # set default value
+        self.set_default_value(data_id, default_value, initial_dist)
 
         # return data node id
         return data_id
@@ -625,7 +622,8 @@ class Dispatcher(object):
 
     def add_dispatcher(self, dsp, inputs, outputs, dsp_id=None,
                        input_domain=None, weight=None, weight_from=None,
-                       cutoff=None, description=None, **kwargs):
+                       cutoff=None, description=None, include_defaults=False,
+                       **kwargs):
         """
         Add a single sub-dispatcher node to dispatcher.
 
@@ -732,14 +730,20 @@ class Dispatcher(object):
 
         remote_link = [dsp_id, self]
 
-        for tag, it in [('input', inputs.values()), ('output', outputs)]:
+        for attr, it in [('input', inputs.values()), ('output', outputs)]:
             for k in it:
                 if k is SINK and k not in nodes:
                     dsp.add_data(SINK)
 
                 node = nodes[k] = copy(nodes[k])
-                node[tag] = node.get(tag, [])
-                node[tag].append(remote_link)
+                node[attr] = node.get(attr, [])
+                node[attr].append(remote_link)
+
+        if include_defaults:
+            dsp_dfl = dsp.default_values
+            for k, v in inputs.items():
+                if v in dsp_dfl:
+                    self.set_default_value(k, **dsp_dfl[v])
 
         return dsp_id
 
@@ -829,7 +833,7 @@ class Dispatcher(object):
         # return data, function, and sub-dispatcher node ids
         return data_ids, fun_ids, dsp_ids
 
-    def set_default_value(self, data_id, value=EMPTY):
+    def set_default_value(self, data_id, value=EMPTY, initial_dist=0.0):
         """
         Set the default value of a data node in the dispatcher.
 
@@ -855,8 +859,8 @@ class Dispatcher(object):
         Add a default value to `a` node::
 
             >>> dsp.set_default_value('a', value='value of the data')
-            >>> dsp.default_values
-            {'a': 'value of the data'}
+            >>> list(sorted(dsp.default_values['a'].items()))
+            [('initial_dist', 0.0), ('value', 'value of the data')]
 
         Remove the default value of `a` node::
 
@@ -869,8 +873,11 @@ class Dispatcher(object):
             if self.dmap.node[data_id]['type'] == 'data':  # check if data node
                 if value == EMPTY:
                     self.default_values.pop(data_id, None)  # remove default
-                else:
-                    self.default_values[data_id] = value  # add default
+                else:  # add default
+                    self.default_values[data_id] = {
+                        'value': value,
+                        'initial_dist': initial_dist
+                    }
                 return
             raise ValueError
         except:
@@ -1482,12 +1489,26 @@ class Dispatcher(object):
         bfs_graph = self.dmap
 
         if inputs:
-
-            self._set_wait_in()
-            wait_in = self._wait_in
-
             edges = set()
             bfs_graph = DiGraph()
+
+            self._set_wait_in(flag=False)
+
+            # evaluate the workflow graph without invoking functions
+            wf, o = self.dispatch(inputs, outputs, cutoff, inputs_dist,
+                                  True, True, False, True)
+
+            edges.update(wf.edges())
+
+            if inputs_dist:
+                inputs_dist = combine_dicts(self.dist, inputs_dist)
+            else:
+                inputs_dist = self.dist
+
+            self._set_wait_in(flag=True)
+
+
+            wait_in = self._wait_in
             wi = set(wait_in)
 
             while True:
@@ -1538,17 +1559,17 @@ class Dispatcher(object):
 
             rl = [k, self]
             nl = [k, dsp]
-            for tag, v, w in (('input', i.values(), node['inputs'].values()),
+            for attr, v, w in (('input', i.values(), node['inputs'].values()),
                               ('output', o, node['outputs'])):
                 for j in w:
                     if j in sub_dsp.nodes:
                         n = sub_dsp.nodes[j] = sub_dsp.nodes[j].copy()
                         if j in v:
-                            n[tag] = [l if l != rl else nl for l in n[tag]]
+                            n[attr] = [l if l != rl else nl for l in n[attr]]
                         else:
-                            n[tag] = [l for l in n[tag] if l != rl]
-                            if not n[tag]:
-                                n.pop(tag)
+                            n[attr] = [l for l in n[attr] if l != rl]
+                            if not n[attr]:
+                                n.pop(attr)
             node['inputs'] = i
             node['outputs'] = o
             node['function'] = sub_dsp
@@ -1830,7 +1851,8 @@ class Dispatcher(object):
                 initial_values.update(dict.fromkeys(inputs, NONE))
         else:
             # set initial values
-            initial_values = self.default_values.copy()
+            initial_values = {k: v['value']
+                              for k, v in self.default_values.items()}
 
             # update initial values with input values
             if inputs is not None:
@@ -2095,12 +2117,12 @@ class Dispatcher(object):
             inputs_dist = {}
 
         # add initial values to fringe and seen
-        for v in inputs:
-            d = inputs_dist.get(v, 0.0)
-            self._add_initial_value(fringe, check_cutoff, v, input_value(v), d)
+        for d, k in sorted((inputs_dist.get(v, 0.0), v) for v in inputs):
+            self._add_initial_value(fringe, check_cutoff, k, input_value(k), d)
 
         return fringe, check_cutoff
 
+    # TODO: add doc.
     def _add_initial_value(self, fringe, check_cutoff, data_id, value,
                            initial_dist=0.0):
         # namespace shortcuts for speed
@@ -2305,6 +2327,7 @@ class Dispatcher(object):
         # return the workflow and data outputs
         return self.workflow, self.data_output
 
+    # TODO: add doc.
     def _visit_nodes(self, node_id, dist, fringe, check_cutoff, no_call=False):
         # namespace shortcuts
         node_attr = self.nodes
@@ -2383,6 +2406,7 @@ class Dispatcher(object):
 
         return True
 
+    # TODO: add doc.
     def _see_node(self, node_id, fringe, dist):
         check_wait_in = self.check_wait_in
         seen = self.seen
@@ -2410,6 +2434,7 @@ class Dispatcher(object):
             return True
         return False
 
+    # TODO: add doc.
     def _remove_unused_functions(self):
         nodes = self.nodes
         succ = self.workflow.succ
@@ -2425,6 +2450,7 @@ class Dispatcher(object):
 
             self.workflow.remove_node(n)
 
+    # TODO: add doc.
     def _init_as_sub_dsp(self, fringe, outputs, no_call):
         dsp_fringe = self._init_run({}, outputs, True, None, None, no_call,
                                     False)[1]

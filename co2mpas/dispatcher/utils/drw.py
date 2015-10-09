@@ -21,11 +21,11 @@ from .constants import START, SINK
 from .dsp import SubDispatch, SubDispatchFunction
 
 
-__all__ = ['dsp2dot']
+__all__ = ['plot']
 
 
-def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
-            level='all', function_module=True, node_output=True, **kw_dot):
+def plot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
+         level='all', function_module=True, node_output=True, **kw_dot):
     """
     Converts the Dispatcher map into a graph in the DOT language with Graphviz.
 
@@ -87,7 +87,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
         >>> dsp.add_function('dispatch', dispatch, ['input'], ['d', 'e', SINK])
         'dispatch'
 
-        >>> dot = dsp2dot(dsp, graph_attr={'ratio': '1'})
+        >>> dot = plot(dsp, graph_attr={'ratio': '1'})
 
     Dispatch in order to have a workflow:
 
@@ -97,7 +97,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
 
         >>> dsp.dispatch()
         (..., ...)
-        >>> wf = dsp2dot(dsp, workflow=True, graph_attr={'ratio': '1'})
+        >>> wf = plot(dsp, workflow=True, graph_attr={'ratio': '1'})
     """
 
     from .. import Dispatcher
@@ -212,7 +212,7 @@ def dsp2dot(dsp, workflow=False, dot=None, edge_attr=None, view=False,
 
                     lv = level - 1 if level != 'all' else level
 
-                    dot.subgraph(dsp2dot(
+                    dot.subgraph(plot(
                         fun, wf, sub, edge_attr, level=lv,
                         function_module=function_module, node_output=node_output
                     ))

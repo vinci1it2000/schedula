@@ -87,12 +87,8 @@ def _physical():
 
     v = vehicle()
 
-    physical.add_from_lists(
-        data_list=[{'data_id': k, 'default_value': v}
-                   for k, v in v.default_values.items()]
-    )
-
     physical.add_dispatcher(
+        include_defaults=True,
         dsp_id='Vehicle model',
         dsp=v,
         inputs={
@@ -139,12 +135,8 @@ def _physical():
 
     fd = final_drive()
 
-    physical.add_from_lists(
-        data_list=[{'data_id': k, 'default_value': v}
-                   for k, v in fd.default_values.items()]
-    )
-
     physical.add_dispatcher(
+        include_defaults=True,
         dsp_id='Final drive model',
         dsp=final_drive(),
         inputs={
@@ -203,12 +195,8 @@ def _physical():
 
     en = engine()
 
-    physical.add_from_lists(
-        data_list=[{'data_id': k, 'default_value': v}
-                   for k, v in en.default_values.items()]
-    )
-
     physical.add_dispatcher(
+        include_defaults=True,
         dsp_id='Engine model',
         dsp=en,
         inputs={
@@ -324,12 +312,8 @@ def physical_calibration():
 
     gb = gear_box_calibration()
 
-    physical_calibration.add_from_lists(
-        data_list=[{'data_id': k, 'default_value': v}
-                   for k, v in gb.default_values.items()]
-    )
-
     physical_calibration.add_dispatcher(
+        include_defaults=True,
         dsp_id='Gear box model',
         dsp=gb,
         inputs={
@@ -422,12 +406,8 @@ def physical_prediction():
 
     gb = gear_box_prediction()
 
-    physical_prediction.add_from_lists(
-        data_list=[{'data_id': k, 'default_value': v}
-                   for k, v in gb.default_values.items()]
-    )
-
     physical_prediction.add_dispatcher(
+        include_defaults=True,
         dsp_id='Gear box model',
         dsp=gb,
         inputs={

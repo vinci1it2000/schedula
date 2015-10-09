@@ -209,7 +209,7 @@ class AttrDict(dict):
 
 def caller_name(skip=2):
     """
-    Get a name of a caller in the format module.class.method
+    Get a name of a caller in the format module.class.method.
 
     `skip` specifies how many levels of stack to skip while getting caller
     name. skip=1 means "who calls me", skip=2 "who calls my caller" etc.

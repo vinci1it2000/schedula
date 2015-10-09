@@ -228,7 +228,7 @@ def _process_folder_files(
 
         if plot_workflow:
             try:
-                dsp_utl.dsp2dot(
+                dsp_utl.plot(
                     model, workflow=True, view=True, function_module=False,
                     node_output=False, edge_attr=model.weight)
             except RuntimeError as ex:
