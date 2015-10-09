@@ -117,8 +117,8 @@ def _comparison_model():
     models.append({
         'models': ('start_stop_model',),
         'targets': ('on_engine',),
-        'check_models': lambda error: error > 0.7,
-        'comparison_func': accuracy_score
+        'check_models': lambda error: error < -0.7,
+        'comparison_func': lambda *args: -accuracy_score(*args)
     })
 
     # cold_start_speed_model
@@ -421,8 +421,8 @@ def model_selector(*calibration_outputs, hide_warn_msgbox=False):
             origin.update(dict.fromkeys(mods, rank[0][0]))
             origin_errors.update(dict.fromkeys(mods, rank))
 
-            msg = 'Models %s are selected from %s (%.3f) respect to targets ' \
-                  '%s.\n  Errors: %s.'
+            msg = '\nModels %s are selected from %s (%.3f) respect to targets' \
+                  ' %s.\n  Scores: %s.'
             log.info(msg, mods, rank[0][0], rank[0][1], trgs, rank)
 
     return models
