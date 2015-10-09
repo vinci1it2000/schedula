@@ -165,7 +165,7 @@ It is not update-able, and has a semi-regular release-cycle of 3 months.
 
 
 3. In the console-window check that you have the correct version of
-   WinPython installed, by typing:
+   WinPython installed, and expect a similar response:
 
    .. code-block:: console
 
@@ -178,7 +178,7 @@ It is not update-able, and has a semi-regular release-cycle of 3 months.
 
 
 4. Use this console and follow CO2MPAS-executable installation instructions
-   (see :ref:`begin-co2mpas-install`, below)
+   (see :ref:`begin-co2mpas-install`, below).
 
 
 
@@ -221,7 +221,7 @@ It is not update-able, and has a semi-regular release-cycle of 3 months.
 CO2MPAS install
 ---------------
 1. Install CO2MPAS executable internally into your python-environment with
-   the following console-command::
+   the following console-command:
 
    .. code-block:: console
 
@@ -264,12 +264,15 @@ CO2MPAS install
 
 
 2. Check that when you run ``co2mpas``, the version executed is indeed the one
-   installed above::
+   installed above:
 
    .. code-block:: console
 
-        > co2mpas --version
-        co2mpas-1.0.3 at <your-python-folders>\co2mpas
+        > python -v --version
+        co2mpas_version: 1.0.3
+        co2mpas_path: d:\co2mpas_ALLINONE-XXbit-v1.0.3\Apps\WinPython\python-3.4.3\lib\site-packages\co2mpas
+        python_path: D:\co2mpas_ALLINONE-XXbit-v1.0.3\WinPython\python-3.4.3
+        python_version: 3.4.3 (v3.4.3:9b73f1c3e601, Feb 24 2015, 22:44:40) [MSC v.1600 XXX]
 
 
 Upgrade CO2MPAS
@@ -280,7 +283,7 @@ Upgrade CO2MPAS
 
 Uninstall CO2MPAS
 -----------------
-To uninstall CO2MPAS type the following command, and confirm it with ``y``::
+To uninstall CO2MPAS type the following command, and confirm it with ``y``:
 
 .. code-block:: console
 
@@ -329,8 +332,8 @@ you have installed CO2MPAS (see :ref:`begin-install` above) and type:
         co2mpas template   [-v] [-f] <excel-file-path> ...
         co2mpas ipynb      [-v] [-f] <folder>
         co2mpas modelgraph [-v] [-l | <models> ...]
+        co2mpas [-v] --version
         co2mpas --help
-        co2mpas --version
 
     -I <folder>      Input folder, prompted with GUI if missing [default: ./input]
     -O <folder>      Input folder, prompted with GUI if missing [default: ./output]
@@ -355,17 +358,19 @@ you have installed CO2MPAS (see :ref:`begin-install` above) and type:
 
     Examples:
 
-        ## Create sample-vehicles inside the `input` folder.
-        ## (the `input` folder must exist)
+        # Create sample-vehicles inside the `input` folder.
+        # (the `input` folder must exist)
         co2mpas demo input
 
-        ## Run the sample-vehicles just created.
-        ## (the `output` folder must exist)
+        # Run the sample-vehicles just created.
+        # (the `output` folder must exist)
         co2mpas -I input -O output
 
-        ## Create an empty vehicle-file inside `input` folder.
+        # Create an empty vehicle-file inside `input` folder.
         co2mpas template input/vehicle_1.xlsx
 
+        # View a specific submodel on your browser.
+        co2mpas modelgraph gear_box_calibration
 
 Running Samples
 ---------------

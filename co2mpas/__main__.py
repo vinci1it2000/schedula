@@ -57,6 +57,7 @@ Examples:
 """
 from co2mpas import __version__ as proj_ver, __file__ as proj_file
 from co2mpas.functions import (process_folder_files, plot as co2plot)
+from collections import OrderedDict
 import logging
 import os
 import re
@@ -209,22 +210,31 @@ def _run_simulation(opts):
 def _main(*args):
     """Does not ``sys.exit()`` like :func:`main()` but throws any exception."""
 
-    proj_file2 = os.path.dirname(proj_file)
     opts = docopt(__doc__,
-                  argv=args or sys.argv[1:],
-                  version='%s-%s at %s' % (proj_name, proj_ver, proj_file2))
+                  argv=args or sys.argv[1:])
     _init_logging(opts['--verbose'])
-
-    if opts['template']:
-        _cmd_template(opts)
-    elif opts['demo']:
-        _cmd_demo(opts)
-    elif opts['ipynb']:
-        _cmd_ipynb(opts)
-    elif opts['modelgraph']:
-        _cmd_modelgraph(opts)
+    if opts['--version']:
+        v = '%s-%s' % (proj_name, proj_ver)
+        if opts['--verbose']:
+            v_infos = OrderedDict([
+                ('co2mpas_version', proj_ver),
+                ('co2mpas_path', os.path.dirname(proj_file)),
+                ('python_version', sys.version),
+                ('python_path', sys.prefix),
+            ])
+            v = ''.join('%s: %s\n' % kv for kv in v_infos.items())
+        print(v)
     else:
-        _run_simulation(opts)
+        if opts['template']:
+            _cmd_template(opts)
+        elif opts['demo']:
+            _cmd_demo(opts)
+        elif opts['ipynb']:
+            _cmd_ipynb(opts)
+        elif opts['modelgraph']:
+            _cmd_modelgraph(opts)
+        else:
+            _run_simulation(opts)
 
 
 def main(*args):
