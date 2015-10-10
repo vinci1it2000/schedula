@@ -32,7 +32,7 @@ from networkx import DiGraph, isolates
 from functools import partial
 
 from .utils.gen import AttrDict, counter, caller_name
-from .utils.alg import add_edge_fun, remove_edge_fun, remove_cycles_iteration, \
+from .utils.alg import add_edge_fun, remove_edge_fun, rm_cycles_iter, \
     get_unused_node_id, add_func_edges, replace_remote_link
 from .utils.constants import EMPTY, START, NONE, SINK
 from .utils.dsp import SubDispatch, bypass, combine_dicts
@@ -1178,7 +1178,6 @@ class Dispatcher(object):
 
         return deepcopy(self)  # Return the copy of the Dispatcher.
 
-    # TODO: check 'undo' attr with ._wait_in flag.
     def remove_cycles(self, sources):
         """
         Returns a new dispatcher removing unresolved cycles.
@@ -1269,13 +1268,13 @@ class Dispatcher(object):
 
         edge_to_remove = []  # List of edges to be removed.
 
-        # Updates the reachable nodes and list of edges to be removed.
-        remove_cycles_iteration(self.dmap, iter(sources), reached_nodes,
-                                edge_to_remove)
+        self._set_wait_in(all_domain=False)  # Set data nodes to wait inputs.
 
-        for v in self.dmap.node.values():
-            if v.pop('undo', False):
-                v['wait_inputs'] = True
+        # Updates the reachable nodes and list of edges to be removed.
+        rm_cycles_iter(self.dmap, iter(sources), reached_nodes,
+                                edge_to_remove, self._wait_in)
+
+        self._set_wait_in(flag=None)  # Clean wait input flags.
 
         # Sub-dispatcher induced by the reachable nodes.
         new_dmap = self.get_sub_dsp(reached_nodes, edge_to_remove)
@@ -1557,8 +1556,7 @@ class Dispatcher(object):
             bfs_graph.add_edges_from(edges)
             outputs = outputs or o
 
-            # Clean wait input flags.
-            self._wait_in = {}
+            self._set_wait_in(flag=None)  # Clean wait input flags.
 
         if outputs:  # Get sub dispatcher breadth-first-search graph.
             dsp = self.get_sub_dsp_from_workflow(outputs, bfs_graph, True)
@@ -1822,23 +1820,33 @@ class Dispatcher(object):
             # Data nodes without the wildcard.
             w.update([k for k, v in w_crd.items() if v.get('wildcard', True)])
 
-    def _set_wait_in(self, flag=True):
+    def _set_wait_in(self, flag=True, all_domain=True):
         """
         Set `wait_inputs` flags for data nodes that:
 
             - are estimated from functions with a domain function, and
             - are waiting inputs.
+
         :param flag:
-            Value to be set.
-        :type flag: bool
+            Value to be set. If None `wait_inputs` are just cleaned.
+        :type flag: bool, None, optional
+
+        :param all_domain:
+            Set `wait_inputs` flags for data nodes that are estimated from
+            functions with a domain function.
+        :type all_domain: bool, optional
         """
 
         wait_in = self._wait_in = {}  # Clear wait_in.
 
+        if flag is None:  # No set.
+            return
+
         for n, a in self.nodes.items():
             n_type = a['type']  # Namespace shortcut.
 
-            if n_type == 'function' and 'input_domain' in a:  # With a domain.
+            # With a domain.
+            if all_domain and n_type == 'function' and 'input_domain' in a:
                 # Nodes estimated from functions with a domain function.
                 for k in a['outputs']:
                     wait_in[k] = flag

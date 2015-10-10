@@ -17,7 +17,6 @@ __author__ = 'Vincenzo Arcidiacono'
 
 import inspect
 from itertools import tee, count
-from heapq import heappop
 
 try:
     isidentifier = str.isidentifier

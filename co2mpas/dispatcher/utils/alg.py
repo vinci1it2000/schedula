@@ -403,10 +403,12 @@ def _check_targets_fun(targets):
     Returns a function to stop the Dijkstra algorithm when all the targets
     have been visited.
 
-    :param targets: Ending data nodes.
+    :param targets:
+        Ending data nodes.
     :type targets: iterable, None
 
-    :return: A function to stop the Dijkstra algorithm.
+    :return:
+        A function to stop the Dijkstra algorithm.
     :rtype: function
     """
 
@@ -429,10 +431,12 @@ def _check_cutoff_fun(cutoff):
 
     Only paths of length <= cutoff are returned.
 
-    :param cutoff: Depth to stop the search.
+    :param cutoff:
+        Depth to stop the search.
     :type cutoff: float, int
 
-    :return: A function to stop the search of the Dijkstra algorithm.
+    :return:
+        A function to stop the search of the Dijkstra algorithm.
     :rtype: function
     """
 
@@ -451,7 +455,8 @@ def _edge_weight_fun(weight):
         otherwise is 1.
     :type weight: bool
 
-    :return: A function to evaluate the edge weight.
+    :return:
+        A function to evaluate the edge weight.
     :rtype: function
     """
 
@@ -464,7 +469,7 @@ def _edge_weight_fun(weight):
     return edge_weight
 
 
-def _nodes_by_relevance(graph, nodes_bunch):
+def _nodes_by_relevance(graph, nodes_bunch, get_wait_flag):
     """
     Returns function and data nodes ordered by relevance for the edges removal.
 
@@ -487,28 +492,27 @@ def _nodes_by_relevance(graph, nodes_bunch):
     :rtype: (list of tuples, list of tuples)
     """
 
-    # initialize data and function node lists
+    # Initialize data and function node lists.
     fun_nds, data_nds = ([], [])
 
-    # counter
+    # Counter.
     c = counter(1)
 
-    # namespace shortcuts for speed
-    node = graph.node
-    out_degree = graph.out_degree
-    in_degree = graph.in_degree
+    # Namespace shortcuts for speed.
+    node, out_degree, in_degree = graph.node, graph.out_degree, graph.in_degree
 
     for u, n in ((u, node[u]) for u in nodes_bunch):
-        # node type
+        # Node type.
         node_type = n['type']
 
-        # node weight
+        # Node weight.
         nw = node[u].get('weight', 0)
 
         if node_type in ('function', 'dispatcher'):
             fun_nds.append((nw + out_degree(u, 'weight'), 1.0 / c(), u))
 
-        elif node_type == 'data' and n['wait_inputs']:  # this is unresolved
+        # This is unresolved.
+        elif node_type == 'data' and get_wait_flag(u, n['wait_inputs']):
             data_nds.append((1.0 / (nw + in_degree(u, 'weight')), 1.0 / c(), u))
 
     return sorted(fun_nds), sorted(data_nds)
@@ -535,46 +539,45 @@ def _cycles_ord_by_length(graph, data_nodes, function_nodes):
     :rtype: list
     """
 
-    # use heapq with (length, steps, 1/data node in-degree, counter, cycle path)
+    # Use heap with (length, steps, 1/data node in-degree, counter, cycle path).
     h = []
 
-    # counter
+    # Counter.
     c = counter(0)
 
-    # set of function nodes labels
+    # Set of function nodes labels.
     fun_n = set([v[-1] for v in function_nodes])
 
-    # namespace shortcuts for speed
-    pred = graph.pred
-    node = graph.node
+    # Namespace shortcuts for speed.
+    pred, node = graph.pred, graph.node
 
     for in_d, i in ((v[0], v[-1]) for v in data_nodes):
-        # function node targets
+        # Function node targets.
         f_n = [j for j in pred[i] if j in fun_n]
 
-        # length and path of the semi-cycle without function-data edge
+        # Length and path of the semi-cycle without function-data edge.
         length, cycle = dijkstra(graph, i, f_n, None, True)
 
-        # node weight
+        # Node weight.
         n_weight = node[i].get('weight', 0.0)
 
-        # sort the cycles founded
+        # Sort the cycles founded.
         for j in (j for j in f_n if j in length):
-            # cycle length
+            # Cycle length.
             lng = length[j] + graph[j][i].get('weight', 1.0) + n_weight
 
-            # cycle path
+            # Cycle path.
             pth = cycle[j] + [i]
 
-            # add cycle to the heapq
+            # Add cycle to the heapq.
             h.append((lng, len(pth), 1.0 / in_d, c(), list(pairwise(pth))))
 
-    # sorted list of cycles (expressed as list of edges).
-    # N.B. the last edge is that to be deleted
+    # Sorted list of cycles (expressed as list of edges).
+    # N.B. The last edge is that to be deleted.
     return [p[-1] for p in sorted(h)]
 
 
-def remove_cycles_iteration(graph, nodes_bunch, reached_nodes, edge_to_rm):
+def rm_cycles_iter(graph, nodes_bunch, reached_nodes, edge_to_rm, wait_in):
     """
     Identifies and removes the unresolved cycles.
 
@@ -595,44 +598,46 @@ def remove_cycles_iteration(graph, nodes_bunch, reached_nodes, edge_to_rm):
     :type edge_to_rm: list
     """
 
-    # search for strongly connected components
+    # Namespace shortcut.
+    get_wait_flag = wait_in.get
+
+    # Search for strongly connected components.
     for scc in scc_fun(graph, nodes_bunch):
-        # add reachable nodes
+        # Add reachable nodes.
         reached_nodes.update(scc)
 
-        if len(scc) < 2:  # single node
-            continue  # not a cycle
+        if len(scc) < 2:  # Single node.
+            continue  # Not a cycle.
 
-        # function and data nodes that are waiting inputs ordered by relevance
-        fun_n, data_n = _nodes_by_relevance(graph, scc)
+        # Function and data nodes that are waiting inputs ordered by relevance.
+        fun_n, data_n = _nodes_by_relevance(graph, scc, get_wait_flag)
 
-        if not data_n:  # no cycles to be deleted
-            continue  # cycles are deleted by populate_output algorithm
+        if not data_n:  # No cycles to be deleted.
+            continue  # Cycles are deleted by populate_output algorithm.
 
-        # sub-graph that contains the cycles
+        # Sub-graph that contains the cycles.
         sub_g = graph.subgraph(scc)
 
-        # cycles ordered by length
+        # Cycles ordered by length.
         cycles = _cycles_ord_by_length(sub_g, data_n, fun_n)
 
-        # list of removed edges in the current scc
+        # List of removed edges in the current scc.
         removed_edges = []
 
-        # data nodes that are waiting inputs
+        # Data nodes that are waiting inputs.
         data_n = list(v[-1] for v in data_n)
 
-        # remove edges from sub-graph
+        # Remove edges from sub-graph.
         for cycle, edge, data_id in ((c, c[-1], c[-1][1]) for c in cycles):
             if data_id in data_n and set(cycle).isdisjoint(removed_edges):
-                sub_g.remove_edge(*edge)  # remove edge from sub-graph
-                removed_edges.append(edge)  # update removed edges in the scc
-                edge_to_rm.append(edge)  # update removed edges in the dmap
+                sub_g.remove_edge(*edge)  # Remove edge from sub-graph.
+                removed_edges.append(edge)  # Update removed edges in the scc.
+                edge_to_rm.append(edge)  # Update removed edges in the dmap.
 
-                # no multiple estimations needed
+                # No multiple estimations needed.
                 if sub_g.in_degree(data_id) == 1:
-                    data_n.remove(data_id)  # wait only one estimation
-                    sub_g.node[data_id]['wait_inputs'] = False
-                    sub_g.node[data_id]['undo'] = True
+                    data_n.remove(data_id)  # Wait only one estimation.
+                    wait_in[data_id] = False
 
-        if data_n:  # no unresolved data nodes
-            remove_cycles_iteration(sub_g, data_n, reached_nodes, edge_to_rm)
+        if data_n:  # No unresolved data nodes.
+            rm_cycles_iter(sub_g, data_n, reached_nodes, edge_to_rm, wait_in)
