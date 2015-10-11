@@ -188,13 +188,12 @@ class TestCreateDispatcher(unittest.TestCase):
                                     outputs={'c':'d', 'e':'e'})
 
         self.assertEqual(dsp_id, sub_dsp.__module__ + ':sub_dispatcher')
-        function = dsp.nodes[dsp_id].pop('function')
+        dsp.nodes[dsp_id].pop('function')
         res = {
-                  'type': 'dispatcher',
-                  'description': '',
-                  'inputs': {'d': 'a', 'e': 'b'},
-                  'outputs': {'e': 'e', 'c': 'd'},
-                  'wait_inputs': True,
+            'type': 'dispatcher',
+            'inputs': {'d': 'a', 'e': 'b'},
+            'outputs': {'e': 'e', 'c': 'd'},
+            'wait_inputs': True,
         }
         self.assertEqual(dsp.nodes[dsp_id], res)
 
@@ -693,7 +692,6 @@ class TestDispatch(unittest.TestCase):
         sd_wf = wf.node['sub_dsp']['workflow'][0]
         self.assertEqual(sd_wf.node['sub_sub_dsp']['workflow'][0].edge, ssw)
 
-
         wf, o = dsp.dispatch(inputs={'a': 3, 'b': 5, 'd': 10, 'e': 20})
         sw['e'] = {}
         sw['fun']['e'] = {'value': 10}
@@ -823,7 +821,6 @@ class TestDispatch(unittest.TestCase):
         self.assertEqual(o, {'a': 5, 'b': 6})
         self.assertEqual(set(wk.node), r)
         self.assertEqual(wk.edge, w)
-
 
         wk, o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2, shrink=True,
                              inputs_dist={'b': 1})

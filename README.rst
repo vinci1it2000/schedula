@@ -264,7 +264,7 @@ CO2MPAS install
 
 
 2. Check that when you run ``co2mpas``, the version executed is indeed the one
-   installed above::
+   installed above:
 
    .. code-block:: console
 
@@ -562,8 +562,8 @@ installed:
    And watch it as it re-calculates *cell* by cell.
 
 5. You may edit the python code on the cells by selecting them and clicking
-  ``Enter`` (the frame should become green), and then re-run them,
-  with ``Ctrl + Enter``.
+   ``Enter`` (the frame should become green), and then re-run them,
+   with ``Ctrl + Enter``.
 
    Navigate your self around by taking the tutorial at::
 

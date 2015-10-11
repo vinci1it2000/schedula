@@ -36,6 +36,7 @@ from .utils.alg import add_edge_fun, remove_edge_fun, rm_cycles_iter, \
     get_unused_node_id, add_func_edges, replace_remote_link
 from .utils.constants import EMPTY, START, NONE, SINK
 from .utils.dsp import SubDispatch, bypass, combine_dicts
+from .utils.drw import plot
 
 
 log = logging.getLogger(__name__)
@@ -680,7 +681,7 @@ class Dispatcher(object):
             dsp_id = '%s:%s' % (dsp.__module__, dsp.name or 'unknown')
 
         if description is None:  # Get description.
-            description = dsp.__doc__
+            description = dsp.__doc__ or None
 
         # Return dispatcher node id.
         dsp_id = self.add_function(
@@ -1177,6 +1178,86 @@ class Dispatcher(object):
         """
 
         return deepcopy(self)  # Return the copy of the Dispatcher.
+
+    def plot(self, workflow=False, edge_data=EMPTY, view=True, level='all',
+             function_module=False, node_output=False, filename=None, **kw_dot):
+        """
+        Plots the Dispatcher with a graph in the DOT language with Graphviz.
+
+        :param workflow:
+           If True the workflow graph will be plotted, otherwise the dmap.
+        :type workflow: bool, optional
+
+        :param edge_data:
+            Edge attribute to view. The default is the edge weights.
+        :type edge_data: str, optional
+
+        :param node_output:
+            If True the node outputs are displayed with the workflow.
+        :type node_output: bool
+
+        :param view:
+            Open the rendered directed graph in the DOT language with the sys
+            default opener.
+        :type view: bool, optional
+
+        :param level:
+            Max level of sub-dispatch plots.
+        :type level: int, str, optional
+
+        :param function_module:
+            If True the function labels are plotted with the function module,
+            otherwise only the function name will be visible.
+        :type function_module: bool, optional
+
+        :param filename:
+            Filename for saving the source (defaults to name + '.gv').
+        :type filename: str, optional
+
+        :param kw_dot:
+            Dot arguments:
+
+                - name: Graph name used in the source code.
+                - comment: Comment added to the first line of the source.
+                - directory: (Sub)directory for source saving and rendering.
+                - format: Rendering output format ('pdf', 'png', ...).
+                - engine: Layout command used ('dot', 'neato', ...).
+                - encoding: Encoding for saving the source.
+                - graph_attr: Dict of (attribute, value) pairs for the graph.
+                - node_attr: Dict of (attribute, value) pairs set for all nodes.
+                - edge_attr: Dict of (attribute, value) pairs set for all edges.
+                - body: Dict of (attribute, value) pairs to add to the graph
+                  body.
+        :param kw_dot: dict
+
+        :return:
+            A directed graph source code in the DOT language.
+        :rtype: graphviz.dot.Digraph
+
+        Example:
+
+        .. dispatcher:: dsp
+           :opt: graph_attr={'ratio': '1'}
+           :code:
+
+            >>> dsp = Dispatcher(name='Dispatcher')
+            >>> def fun(a):
+            ...     return a + 1, a - 1
+            >>> dsp.add_function('fun', fun, ['a'], ['b', 'c'])
+            'fun'
+            >>> dsp.plot(view=False, graph_attr={'ratio': '1'})
+            <graphviz.dot.Digraph object at 0x...>
+        """
+
+        if edge_data is EMPTY:
+            edge_data = self.weight
+
+        if filename is not None:
+            kw_dot['filename'] = filename
+
+        return plot(self, workflow=workflow, edge_data=edge_data, view=view,
+                    level=level, function_module=function_module,
+                    node_output=node_output, **kw_dot)
 
     def remove_cycles(self, sources):
         """

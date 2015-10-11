@@ -230,7 +230,7 @@ def _process_folder_files(
             try:
                 dsp_utl.plot(
                     model, workflow=True, view=True, function_module=False,
-                    node_output=False, edge_attr=model.weight)
+                    node_output=False, edge_data=model.weight)
             except RuntimeError as ex:
                 log.warning(ex, exc_info=1)
 

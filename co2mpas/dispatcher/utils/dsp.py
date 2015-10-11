@@ -316,7 +316,7 @@ def map_list(key_map, *inputs, copy=False):
     return combine_dicts(d, copy=copy)  # Return dict.
 
 
-def selector(keys, dictionary, copy=True, output_type='dictionary'):
+def selector(keys, dictionary, copy=True, output_type='dict'):
     """
     Selects the chosen dictionary keys from the given dictionary.
 

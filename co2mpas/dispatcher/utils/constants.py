@@ -35,6 +35,12 @@ NONE = Token('none')
 #: Sink node of the dispatcher that collects all unused outputs.
 #:
 #: .. seealso:: :func:`~dispatcher.Dispatcher.add_data`,
-#:    :func:`~dispatcher.Dispatcher.add_function`
+#:    :func:`~dispatcher.Dispatcher.add_function`,
+#:    :func:`~dispatcher.Dispatcher.add_dispatcher`
 SINK = Token('sink')
 SINK.__doc__ = 'Sink node of the dispatcher that collects all unused outputs.'
+
+#: Ending node of SubDispatcherFunction.
+#:
+#: .. seealso:: :func:`~dispatcher.utils.dsp.SubDispatchFunction`
+END = Token('end')

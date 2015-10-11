@@ -40,6 +40,7 @@ import logging
 
 log = logging.getLogger(__name__)
 
+
 def _compare_result(
         outputs_ids, target_ids, model_results, target_results,
         comparison_function, sample_weight=()):

@@ -163,19 +163,42 @@ def search_doc_in_func(dsp, node_id, where_succ=True, node_type='function'):
 
     if node_type == 'function':
         if not where_succ:
-            check = lambda k: dsp.dmap.out_degree(k) == 1
+            def check(k):
+                if dsp.dmap.out_degree(k) == 1:
+                    return True
+                func = _get_original_func(dsp.nodes[k].get('function', None))
+                return isinstance(func, SubDispatch)
 
         def get_des(func_node):
-            fun = func_node['function']
-            n_id = func_node[node_attr].index(node_id)
+            n_ix = func_node[node_attr].index(node_id)
+            d, l = '', ''
+            if where_succ:
+                fun, n_ix = _get_original_func(func_node['function'],
+                                               input_id=n_ix)
+            else:
+                fun = _get_original_func(func_node['function'])
+
             if isinstance(fun, SubDispatchFunction):
                 sub_dsp = fun.dsp
-                n_id = fun.inputs[n_id]
+                n_id = getattr(fun, node_attr)[n_ix]
                 n_att = sub_dsp.nodes[n_id]
-                return search_data_description(n_id, n_att, sub_dsp)
-            else:
-                attr_name = getargspec(fun)[0][n_id]
-                return get_attr_doc(fun.__doc__, attr_name, where_succ), ''
+                d, l = search_data_description(n_id, n_att, sub_dsp)
+
+            elif isinstance(fun, SubDispatch) and not where_succ:
+                if fun.output_type == 'list':
+                    sub_dsp = fun.dsp
+                    n_id = getattr(fun, node_attr)[n_ix]
+                    n_att = sub_dsp.nodes[n_id]
+                    d, l = search_data_description(n_id, n_att, sub_dsp)
+
+            if d:
+                return d, l
+            try:
+                attr_name = getargspec(fun)[0][n_ix] if where_succ else None
+            except IndexError:
+                attr_name = getargspec(fun)[1]
+
+            return get_attr_doc(fun.__doc__, attr_name, where_succ), ''
 
     else:
         if where_succ:
@@ -240,40 +263,56 @@ def _data(lines, dsp):
         lines.append('')
 
 
+def _get_original_func(func, input_id=None):
+
+    if isinstance(func, partial):
+        if input_id is not None:
+            input_id += len(func.args)
+        return _get_original_func(func.func, input_id=input_id)
+
+    if input_id is None:
+        return func
+    else:
+        return func, input_id
+
+
 def _functions(lines, dsp, function_module, node_type='function'):
-    fun = [v for v in sorted(dsp.nodes.items()) if v[1]['type'] == node_type]
+    def check_fun(node_attr):
+        if node_attr['type'] not in ('function', 'dispatcher'):
+            return False
+
+        if 'function' in node_attr:
+            func = _get_original_func(node_attr['function'])
+            c = isinstance(func, (Dispatcher, SubDispatch))
+            return c if node_type == 'dispatcher' else not c
+        return node_attr['type'] == node_type
+
+    fun = [v for v in sorted(dsp.nodes.items()) if check_fun(v[1])]
+
     if fun:
         _table_heather(lines, '%ss' % node_type, dsp.name)
 
         for k, v in fun:
-            full_name = ''
+            des, full_name = '', ''
+
+            func = _get_original_func(v.get('function', None))
 
             if 'description' in v:
                 des = v['description']
-            elif 'function' in v:
-                func = v['function']
-                if isinstance(func, partial):
-                    func = func.func
-
-                des = func.__doc__
+            elif func:
+                des = func.__doc__ or ''
                 if not des:
                     if isinstance(func, Dispatcher):
                         des = func.name
                     elif isinstance(func, SubDispatch):
                         des = func.dsp.name
 
-            else:
-                des = ''
-
-            if not des:
-                des = ''
-
             des = get_summary(des.split('\n'))
-            if ('function' in v
-                and isinstance(v['function'], (FunctionType,
-                                               BuiltinFunctionType))):
-                fun = v['function']
-                full_name = '%s.%s' % (fun.__module__, fun.__name__)
+
+            try:
+                full_name = '%s.%s' % (func.__module__, func.__name__)
+            except:
+                pass
 
             name = _node_name(_func_name(k, function_module))
 
