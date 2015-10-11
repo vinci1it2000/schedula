@@ -417,6 +417,8 @@ def add_args(func, n=1):
     # Set wrapper name, doc, and signature.
     wrapper.__name__, wrapper.__doc__ = func.__name__, func.__doc__
     wrapper.__signature__ = _get_signature(func, n)
+    wrapper.n = 1
+    wrapper.func = func
 
     return wrapper  # Return wrapper.
 

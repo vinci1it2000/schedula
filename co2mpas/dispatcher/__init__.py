@@ -1180,7 +1180,8 @@ class Dispatcher(object):
         return deepcopy(self)  # Return the copy of the Dispatcher.
 
     def plot(self, workflow=False, edge_data=EMPTY, view=True, level='all',
-             function_module=False, node_output=False, filename=None, **kw_dot):
+             function_module=False, node_output=False, filename=None,
+             nested=True, **kw_dot):
         """
         Plots the Dispatcher with a graph in the DOT language with Graphviz.
 
@@ -1211,8 +1212,15 @@ class Dispatcher(object):
         :type function_module: bool, optional
 
         :param filename:
-            Filename for saving the source (defaults to name + '.gv').
+            A file directory (if `nested`) or file name
+            (defaults to name + '.gv') for saving the source.
         :type filename: str, optional
+
+        :param nested:
+            If False the sub-dispatcher nodes are plotted on the same graph,
+            otherwise they can be viewed clicking on the node that has an URL
+            link.
+        :type nested: bool
 
         :param kw_dot:
             Dot arguments:
@@ -1257,7 +1265,7 @@ class Dispatcher(object):
 
         return plot(self, workflow=workflow, edge_data=edge_data, view=view,
                     level=level, function_module=function_module,
-                    node_output=node_output, **kw_dot)
+                    node_output=node_output, nested=nested, **kw_dot)
 
     def remove_cycles(self, sources):
         """

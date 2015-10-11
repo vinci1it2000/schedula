@@ -82,12 +82,10 @@ def AT_gear():
         }
     )
 
-    cmv_ch = cmv_cold_hot()
-
     AT_gear.add_dispatcher(
         include_defaults=True,
         dsp_id='cmv_ch_model',
-        dsp=cmv_ch,
+        dsp=cmv_cold_hot(),
         inputs={
             'CMV_Cold_Hot': 'CMV_Cold_Hot',
             'accelerations': 'accelerations',
@@ -228,12 +226,10 @@ def AT_gear():
         }
     )
 
-    gspv_ch = gspv_cold_hot()
-
     AT_gear.add_dispatcher(
         include_defaults=True,
         dsp_id='gspv_ch_model',
-        dsp=gspv_ch,
+        dsp=gspv_cold_hot(),
         inputs={
             'GSPV_Cold_Hot': 'GSPV_Cold_Hot',
             'accelerations': 'accelerations',

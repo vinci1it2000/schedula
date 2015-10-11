@@ -264,11 +264,10 @@ def engine():
     )
 
     from co2mpas.models.physical.engine.co2_emission import co2_emission
-    co_e = co2_emission()
 
     engine.add_dispatcher(
         include_defaults=True,
-        dsp=co_e,
+        dsp=co2_emission(),
         dsp_id='CO2_emission_model',
         inputs={
             'co2_emission_low': 'co2_emission_low',

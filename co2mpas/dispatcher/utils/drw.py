@@ -11,14 +11,19 @@ It provides functions to plot dispatcher map and workflow.
 """
 
 __author__ = 'Vincenzo Arcidiacono'
-
-from tempfile import mkstemp
+import urllib
+import numpy as np
+import pprint
+import inspect
+import os
+from tempfile import mkstemp, mkdtemp
 import networkx as nx
 from networkx.utils import default_opener
 from graphviz import Digraph
 from .constants import START, SINK, END
 from .dsp import SubDispatch, SubDispatchFunction, combine_dicts
 from itertools import chain
+from functools import partial
 
 __all__ = ['plot']
 
@@ -36,26 +41,53 @@ _encode_table = {
 }
 
 
-def _init_dot(dsp, workflow, file_dir=None, **kw_dot):
+def _init_filepath(directory, filename, nested, name, is_sub_dsp):
+    path = os.path.join(directory, filename)
+
+    if nested:
+        name = name.replace('/', ' ').replace('.', ' ')
+        if not is_sub_dsp:
+            name = '%s/%s' % (name, name)
+        path = '%s/%s.gv' % ((path or mkdtemp('')).split('.')[0], name)
+
+    else:
+        path = (path or mkstemp('.gv')[1]).split('.')
+
+        if not len(path) > 1:
+            path = (path[0], 'gv')
+
+        path = '.'.join(path)
+
+    directory = os.path.dirname(path)
+    filename = os.path.basename(path)
+
+    return directory, filename
+
+
+def _init_dot(dsp, workflow, nested, is_sub_dsp, **kw_dot):
     name = dsp.name
 
     dfl_node_attr = {'style': 'filled'}
     dfl_body = {'label': '"%s"' % _get_title(name, workflow),
                 'splines': 'ortho'}
 
-    kw_dot = {
+    kw = {
         'name': name,
         'format': 'svg',
         'body': combine_dicts(dfl_body, kw_dot.pop('body', {})),
         'node_attr': combine_dicts(dfl_node_attr, kw_dot.pop('node_attr', {}))
     }
-    kw_dot.update(kw_dot)
+    kw.update(kw_dot)
 
-    kw_dot['filename'] = kw_dot.get('filename', '') or mkstemp(dir=file_dir)[1]
+    kw['body'] = ['%s = %s' % (k, v) for k, v in kw['body'].items()]
 
-    kw_dot['body'] = ['%s = %s' % (k, v) for k, v in kw_dot['body'].items()]
+    kw['directory'], kw['filename'] = _init_filepath(
+        kw.pop('directory', ''), kw.pop('filename', ''), nested, name,
+        is_sub_dsp)
 
-    return Digraph(**kw_dot)
+    dot = Digraph(**kw)
+
+    return dot
 
 
 def _get_title(name, workflow=False):
@@ -79,7 +111,9 @@ def _attr_node(k, v):
     return '%s = %s' % (_label_encode(k), _label_encode(v))
 
 
-def _data_node_label(k, values, attr=None, dist=None, function_module=True):
+def _data_node_label(k, values, attr=None, dist=None, function_module=True,
+                     node_output=False):
+    tooltip = ''
     if not dist:
         v = dict(attr)
         v.pop('type')
@@ -99,11 +133,42 @@ def _data_node_label(k, values, attr=None, dist=None, function_module=True):
             _remote_links(v, v.pop('remote_links'), k, function_module)
 
     else:
-        v = {'output': values[k]} if k in values else {}
+        if k in values:
+            out = values[k]
+            tooltip = _set_output_tooltip(out)
+            v = {'output': out}
+        else:
+            v = {}
+
         if k in dist:
             v['distance'] = dist[k]
 
-    return _node_label(k, v)
+    node_label = _node_label(k, v)
+
+    tooltip = tooltip or node_label
+
+    return node_label, tooltip
+
+
+def _set_output_tooltip(data, max_len=2000):
+    filters = [
+        partial(np.array_str, suppress_small=True),
+        partial(pprint.pformat, compact=True)
+    ]
+    tooltip = ['']
+
+    for f in filters:
+        try:
+            doc = f(data).split('\n')
+            if len(doc) <= max_len:
+                tooltip = doc
+            else:
+                tooltip = doc[:max_len]
+            break
+        except:
+            pass
+
+    return '&#10;'.join(tooltip)
 
 
 def _remote_links(label, links, node_id, function_module):
@@ -122,6 +187,19 @@ def _get_link(dsp_id, dsp, node_id, tag, function_module):
     n = [_func_name(v, function_module) for v in n]
 
     return '%s:(%s)' % (_func_name(dsp_id, function_module), ', '.join(n))
+
+
+def _get_original_func(func, input_id=None):
+
+    if isinstance(func, partial):
+        if input_id is not None:
+            input_id += len(func.args)
+        return _get_original_func(func.func, input_id=input_id)
+
+    if input_id is None:
+        return func
+    else:
+        return func, input_id
 
 
 def _fun_node_label(k, attr=None, dist=None):
@@ -149,7 +227,7 @@ def _func_name(name, function_module=True):
     return name if function_module else name.split(':')[-1]
 
 
-def _init_graph_data(dsp, workflow, node_output, edge_attr):
+def _init_graph_data(dsp, workflow, edge_attr):
     func_in_out = [[], []]
 
     if isinstance(dsp, SubDispatch):
@@ -163,9 +241,6 @@ def _init_graph_data(dsp, workflow, node_output, edge_attr):
         else:
             args = [dsp, dsp.workflow, dsp.data_output, dsp.dist, edge_attr]
 
-        if not node_output:
-            args[2] = {}
-
     else:
         if isinstance(dsp, SubDispatchFunction):
             func_in_out = [dsp.inputs, dsp.outputs]
@@ -176,7 +251,7 @@ def _init_graph_data(dsp, workflow, node_output, edge_attr):
 
 def _set_node(dot, node_id, dsp2dot_id, node_attr=None, values=None, dist=None,
               function_module=True, edge_attr=None, workflow=False, level=0,
-              node_output=True, **dot_kw):
+              node_output=False, nested=False, **dot_kw):
 
     styles = {
         START: ('start', {'shape': 'egg', 'fillcolor': 'red'}),
@@ -197,13 +272,14 @@ def _set_node(dot, node_id, dsp2dot_id, node_attr=None, values=None, dist=None,
 
     if node_id not in styles:
         if node_type == 'data':
-            node_label = _data_node_label(node_id, values, node_attr, dist,
-                                          function_module)
+            node_label, tooltip = _data_node_label(
+                node_id, values, node_attr, dist, function_module, node_output)
+
         else:
             node_name = _func_name(node_id, function_module)
             node_label = _fun_node_label(node_name, node_attr, dist)
 
-            fun = node_attr.get('function', None)
+            fun, n_args = _get_original_func(node_attr.get('function', None), 0)
 
             if node_type == 'dispatcher' or isinstance(fun, SubDispatch):
                 kw['style'] = 'dashed, filled'
@@ -211,9 +287,25 @@ def _set_node(dot, node_id, dsp2dot_id, node_attr=None, values=None, dist=None,
                 if level:
                     kw['fillcolor'] = '#FF8F0F80'
 
-                    dot.subgraph(_set_sub_dsp(fun, dot_id, node_name, edge_attr,
-                                              workflow, level, node_output,
-                                              function_module=function_module))
+                    kwargs = {
+                        'dot': dot,
+                        'dsp': fun,
+                        'dot_id': 'cluster_%s' % dot_id,
+                        'node_name': node_name,
+                        'edge_attr': edge_attr,
+                        'workflow': workflow,
+                        'level': level,
+                        'node_output': node_output,
+                        'function_module': function_module,
+                        'nested': nested,
+                        'format': dot.format
+                    }
+                    kw.update(_set_sub_dsp(**kwargs))
+
+            tooltip = _set_func_tooltip(fun)
+
+        if tooltip:
+            kw['tooltip'] = tooltip
 
     kw.update(dot_kw)
 
@@ -222,23 +314,68 @@ def _set_node(dot, node_id, dsp2dot_id, node_attr=None, values=None, dist=None,
     return dot_id
 
 
-def _set_sub_dsp(dsp, dot_id, node_name, edge_attr, workflow, level,
-                 node_output, function_module=True):
-    kw_sub = {
-        'name': 'cluster_%s' % dot_id,
-        'body': [
-            'style=filled',
-            'fillcolor="#FF8F0F80"',
-            'label="%s"' % _get_title(node_name, workflow),
-            'comment="%s"' % _label_encode(node_name),
-        ]
-    }
-    sub = Digraph(**kw_sub)
+def _set_func_tooltip(func, max_len=2000):
+    filters = [
+        inspect.getsource,
+        lambda fun: fun.__doc__
+    ]
+    tooltip = ['']
+
+    for f in filters:
+        try:
+            doc = f(func).split('\n')
+            if len(doc) <= max_len:
+                tooltip = doc
+                break
+            else:
+                tooltip = doc[:max_len]
+        except:
+            pass
+
+    return '&#10;'.join(tooltip)
+
+
+def _set_sub_dsp(dot, dsp, dot_id, node_name, edge_attr, workflow, level,
+                 node_output, function_module=True, nested=False, **dot_kw):
 
     lv = level - 1 if level != 'all' else level
 
-    return plot(dsp, workflow, sub, edge_attr, level=lv,
-                function_module=function_module, node_output=node_output)
+    if nested:
+        sub_dot = None
+        dot_kw['name'] = node_name
+        dot_kw['filename'] = node_name
+        dot_kw['directory'] = dot.directory
+
+        def wrapper(*args, **kwargs):
+            s_dot = plot(*args, is_sub_dsp=True, **kwargs)
+            path = s_dot.render()
+            filename = os.path.basename(path)
+            url = urllib.parse.quote('./%s/%s' % (node_name, filename))
+            return {'URL': url}
+
+    else:
+        kw_sub = {
+            'name': dot_id,
+            'body': [
+                'style=filled',
+                'fillcolor="#FF8F0F80"',
+                'label="%s"' % _get_title(node_name, workflow),
+                'comment="%s"' % _label_encode(node_name),
+            ]
+        }
+        kw_sub.update(dot_kw)
+
+        dot_kw = {}
+        sub_dot = Digraph(**kw_sub)
+
+        def wrapper(*args, **kwargs):
+            s_dot = plot(*args, **kwargs)
+            dot.subgraph(s_dot)
+            return {}
+
+    return wrapper(dsp, workflow, sub_dot, edge_attr, level=lv,
+                   function_module=function_module, node_output=node_output,
+                   nested=nested, **dot_kw)
 
 
 def _set_edge(dot, dot_u, dot_v, attr=None, edge_data=None, **kw_dot):
@@ -262,7 +399,8 @@ def _get_dsp2dot_id(dot, graph):
 
 
 def plot(dsp, workflow=False, dot=None, edge_data=None, view=False,
-         level='all', function_module=True, node_output=True, **kw_dot):
+         level='all', function_module=True, node_output=True, nested=False,
+         is_sub_dsp=False, **kw_dot):
     """
     Plots the Dispatcher with a graph in the DOT language with Graphviz.
 
@@ -299,6 +437,12 @@ def plot(dsp, workflow=False, dot=None, edge_data=None, view=False,
         If True the function labels are plotted with the function module,
         otherwise only the function name will be visible.
     :type function_module: bool, optional
+
+    :param nested:
+        If False the sub-dispatcher nodes are plotted on the same graph,
+        otherwise they can be viewed clicking on the node that has an URL
+        link.
+    :type nested: bool
 
     :param kw_dot:
         Dot arguments:
@@ -358,10 +502,10 @@ def plot(dsp, workflow=False, dot=None, edge_data=None, view=False,
         >>> wf = plot(dsp, workflow=True, graph_attr={'ratio': '1'})
     """
 
-    args = _init_graph_data(dsp, workflow, node_output, edge_data)
+    args = _init_graph_data(dsp, workflow, edge_data)
     dsp, g, val, dist, edge_data, inputs, outputs = args
 
-    dot = dot or _init_dot(dsp, workflow, **kw_dot)
+    dot = dot or _init_dot(dsp, workflow, nested, is_sub_dsp, **kw_dot)
 
     dsp2dot_id = _get_dsp2dot_id(dot, g)
 
@@ -379,7 +523,7 @@ def plot(dsp, workflow=False, dot=None, edge_data=None, view=False,
             _set_edge(dot, dot_u, dsp2dot_id[v], xlabel=str(i))
 
     for k, v in g.node.items():
-        if k not in dsp.nodes:
+        if k not in dsp.nodes or (k is SINK and nx.is_isolate(g, SINK)):
             continue
 
         _set_node(dot, k, dsp2dot_id,
@@ -390,7 +534,8 @@ def plot(dsp, workflow=False, dot=None, edge_data=None, view=False,
                   edge_attr=edge_data,
                   workflow=v.get('workflow', False),
                   level=level,
-                  node_output=node_output)
+                  node_output=node_output,
+                  nested=nested)
 
     for u, v, a in g.edges_iter(data=True):
         _set_edge(dot, dsp2dot_id[u], dsp2dot_id[v], a, edge_data=None)

@@ -212,8 +212,6 @@ def gear_box_calibration():
 
     from .AT_gear import AT_gear
 
-    at = AT_gear()
-
     def domain_AT_gear_shifting(kwargs):
         for k, v in kwargs.items():
             if ':gear_box_type' in k or 'gear_box_type' == k:
@@ -222,7 +220,7 @@ def gear_box_calibration():
 
     gear_box_calibration.add_dispatcher(
         include_defaults=True,
-        dsp=at,
+        dsp=AT_gear(),
         dsp_id='AT_gear_shifting',
         inputs={
             'accelerations': 'accelerations',
@@ -287,11 +285,9 @@ def gear_box_prediction():
 
     from .AT_gear import AT_gear
 
-    at = AT_gear()
-
     gear_box_prediction.add_dispatcher(
         include_defaults=True,
-        dsp=at,
+        dsp=AT_gear(),
         dsp_id='AT_gear_shifting',
         inputs={
             'use_dt_gear_shifting': 'use_dt_gear_shifting',

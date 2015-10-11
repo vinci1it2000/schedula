@@ -1,7 +1,7 @@
 from sphinx.ext.autodoc import *
 from co2mpas.dispatcher import Dispatcher
 # noinspection PyProtectedMember
-from co2mpas.dispatcher.utils.drw import plot, _func_name
+from co2mpas.dispatcher.utils.drw import plot, _func_name, _get_original_func
 from co2mpas.dispatcher.utils.dsp import SubDispatch, SubDispatchFunction
 # ------------------------------------------------------------------------------
 # Doctest handling
@@ -261,19 +261,6 @@ def _data(lines, dsp):
             lines.append(str_format % (link, get_summary(des.split('\n'))))
 
         lines.append('')
-
-
-def _get_original_func(func, input_id=None):
-
-    if isinstance(func, partial):
-        if input_id is not None:
-            input_id += len(func.args)
-        return _get_original_func(func.func, input_id=input_id)
-
-    if input_id is None:
-        return func
-    else:
-        return func, input_id
 
 
 def _functions(lines, dsp, function_module, node_type='function'):

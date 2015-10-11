@@ -85,12 +85,10 @@ def _physical():
 
     from .vehicle import vehicle
 
-    v = vehicle()
-
     physical.add_dispatcher(
         include_defaults=True,
-        dsp_id='Vehicle model',
-        dsp=v,
+        dsp_id='vehicle_model',
+        dsp=vehicle(),
         inputs={
             'aerodynamic_drag_coefficient': 'aerodynamic_drag_coefficient',
             'frontal_area': 'frontal_area',
@@ -118,7 +116,7 @@ def _physical():
     from .wheels import wheels
 
     physical.add_dispatcher(
-        dsp_id='Wheels model',
+        dsp_id='wheels_model',
         dsp=wheels(),
         inputs={
             'r_dynamic': 'r_dynamic',
@@ -133,11 +131,9 @@ def _physical():
 
     from .final_drive import final_drive
 
-    fd = final_drive()
-
     physical.add_dispatcher(
         include_defaults=True,
-        dsp_id='Final drive model',
+        dsp_id='final_drive_model',
         dsp=final_drive(),
         inputs={
             'final_drive_efficiency': 'final_drive_efficiency',
@@ -157,7 +153,7 @@ def _physical():
     from .electrics import electrics
 
     physical.add_dispatcher(
-        dsp_id='Electric model',
+        dsp_id='electric_model',
         dsp=electrics(),
         inputs={
             'alternator_charging_currents': 'alternator_charging_currents',
@@ -193,12 +189,10 @@ def _physical():
     )
     from .engine import engine
 
-    en = engine()
-
     physical.add_dispatcher(
         include_defaults=True,
-        dsp_id='Engine model',
-        dsp=en,
+        dsp_id='engine_model',
+        dsp=engine(),
         inputs={
             'alternator_powers_demand': 'alternator_powers_demand',
             'engine_capacity': 'engine_capacity',
@@ -310,12 +304,10 @@ def physical_calibration():
 
     from .gear_box import gear_box_calibration
 
-    gb = gear_box_calibration()
-
     physical_calibration.add_dispatcher(
         include_defaults=True,
-        dsp_id='Gear box model',
-        dsp=gb,
+        dsp_id='gear_box_model',
+        dsp=gear_box_calibration(),
         inputs={
             'use_dt_gear_shifting': 'use_dt_gear_shifting',
             'fuel_type': 'fuel_type',
@@ -404,12 +396,10 @@ def physical_prediction():
 
     from .gear_box import gear_box_prediction
 
-    gb = gear_box_prediction()
-
     physical_prediction.add_dispatcher(
         include_defaults=True,
-        dsp_id='Gear box model',
-        dsp=gb,
+        dsp_id='gear_box_model',
+        dsp=gear_box_prediction(),
         inputs={
             'use_dt_gear_shifting': 'use_dt_gear_shifting',
             'correct_gear': 'correct_gear',
