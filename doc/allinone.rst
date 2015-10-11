@@ -21,11 +21,14 @@ Console Help
 
 - The Cygwin environment and its accompanying bash-shell is a much more
   powerful command-interpreter.  There are MANY tutorials and crash-courses
-  for the fundamental bash-commands (`ls`, `pwd`, `cd`, etc), such as:
-  http://www.ks.uiuc.edu/Training/Tutorials/Reference/unixprimer.html
+  (eg. http://www.ks.uiuc.edu/Training/Tutorials/Reference/unixprimer.html,
+  ot the more detailed one   http://linuxcommand.org/lc3_lts0020.php).
+
+  The fundamental bash-commands (`ls`, `pwd`, `cd`, etc), are also listed
+  in this usefull poster:
+  http://www.improgrammer.net/linux-commands-cheat-sheet/
 
   A more detailed guide is the following (just ignore the Linux-specific part):
-  http://linuxcommand.org/lc3_lts0020.php
 
 
 

@@ -539,25 +539,24 @@ installed:
 
 
 2. Then create the demo ipython-notebook(s) into some folder
-   (i.e. assuming the same setup from above, ``tutorial/ipynbs``):
+   (i.e. assuming the same setup from above, ``tutorial/input``):
 
    .. code-block:: console
 
         $ pwd                     ## Check our current folder (``cd`` alone for Windows).
         .../tutorial
 
-        $ mkdir ./ipynbs
-        $ co2mpas ipynb ./ipynbs
+        $ co2mpas ipynb ./input
 
 3. Start-up the server and open a browser page to run the vehicle-simulation:
 
    .. code-block:: console
 
-        $ ipython notebook ./ipynbs
+        $ ipython notebook ./input
 
-4. A new window should open to your default browser listing
-   the ``simVehicle.ipynb`` notebook (AVOID IEXPLORER) .
-   Click on it to open the notebook  in a new tab.
+4. A new window should open to your default browser (AVOID IEXPLORER) listing
+   the ``simVehicle.ipynb`` notebook (and all the demo xls-files).
+   Click on the ``*.ippynb`` file to "load" the notebook in a new tab.
 
    The results are of a simulation run already pre-generated for this notebook
    but you may run it yourself again, by clicking the menu::
