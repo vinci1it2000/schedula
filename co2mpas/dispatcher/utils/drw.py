@@ -352,8 +352,6 @@ def _set_func_tooltip(dot, node_name, func, nested, max_len=2000):
             kw['URL'] = urllib.parse.quote('./%s.txt' % node_name)
         except:
             pass
-    else:
-        print(node_name, nested, formatted_output)
 
     return kw
 
