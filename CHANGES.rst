@@ -3,6 +3,12 @@ CO2MPAS Changes
 ###############
 .. _begin-changes:
 
+v1.0.3 XX-Oct 2015: 3rd open release
+====================================
+Still no model-changes, just *all-in-one* improvements and better
+instructions.
+
+
 v1.0.2 6-Oct 2015: "Renata" release, unpublished
 ================================================
 No model-changes, beta-testing "all-in-one" archive for *Windows* distributed

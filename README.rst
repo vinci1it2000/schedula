@@ -366,8 +366,8 @@ you have installed CO2MPAS (see :ref:`begin-install` above) and type:
     Predict NEDC CO2 emissions from WLTP cycles.
 
     Usage:
-        co2mpas [simulate] [-v] [--predict-wltp] [--more-output] [--no-warn-gui]
-                           [--plot-workflow] [-I <folder>] [-O <folder>]
+        co2mpas [simulate] [-v] [--predict-wltp] [--more-output] [--no-warn-gui] [--plot-workflow]
+                           [-I <fpath>] [-O <fpath>]
         co2mpas demo       [-v] [-f] <folder>
         co2mpas template   [-v] [-f] <excel-file-path> ...
         co2mpas ipynb      [-v] [-f] <folder>
@@ -375,8 +375,8 @@ you have installed CO2MPAS (see :ref:`begin-install` above) and type:
         co2mpas [-v] --version
         co2mpas --help
 
-    -I <folder>      Input folder, prompted with GUI if missing [default: ./input]
-    -O <folder>      Input folder, prompted with GUI if missing [default: ./output]
+    -I <fpath>       Input folder or file, prompted with GUI if missing [default: ./input]
+    -O <fpath>       Input folder or file, prompted with GUI if missing [default: ./output]
     -l, --list       List available models.
     --predict-wltp   Whether predict also WLTP values.
     --more-output    Output also per-vehicle output-files.
@@ -532,12 +532,12 @@ excel-file:
    You may repeat these last 2 steps if you want to add more vehicles in
    the *batch-run*.
 
-4. Run the simulator:
+4. Run the simulator.  You may specify to run exactly the single excel-file:
 
    .. code-block:: console
 
-      $ co2mpas -I input -O output
-      Processing './input' --> './output'...
+      $ co2mpas -I ./input/vehicle_1.xlsx -O output
+      Processing './input/vehicle_1.xlsx' --> 'output'...
       Processing: vehicle_1
       ...
       Done! [12.938986 sec]
