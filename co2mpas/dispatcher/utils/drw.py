@@ -111,9 +111,10 @@ def _attr_node(k, v):
     return '%s = %s' % (_label_encode(k), _label_encode(v))
 
 
-def _data_node_label(k, values, attr=None, dist=None, function_module=True,
-                     node_output=False):
-    tooltip = ''
+def _data_node_label(dot, k, values, attr=None, dist=None, function_module=True,
+                     node_output=False, nested=False):
+    tooltip, formatted_output = '', ''
+    kw = {}
     if not dist:
         v = dict(attr)
         v.pop('type')
@@ -133,42 +134,51 @@ def _data_node_label(k, values, attr=None, dist=None, function_module=True,
             _remote_links(v, v.pop('remote_links'), k, function_module)
 
     else:
+        v = {}
         if k in values:
-            out = values[k]
-            tooltip = _set_output_tooltip(out)
-            v = {'output': out}
-        else:
-            v = {}
+            tooltip, formatted_output = _format_output(values[k])
+            if not nested:
+                v['output'] = '&#10;'.join(formatted_output)
+
+            else:
+                filename = _label_encode(k)
+                filepath = '%s/%s.txt' % (dot.directory, filename)
+                try:
+                    with open(filepath, "w") as text_file:
+                        text_file.write('\n'.join(formatted_output))
+                    kw['URL'] = urllib.parse.quote('./%s' % filename)
+                except:
+                    pass
 
         if k in dist:
             v['distance'] = dist[k]
 
     node_label = _node_label(k, v)
 
-    tooltip = tooltip or node_label
+    kw['tooltip'] = tooltip or node_label
 
-    return node_label, tooltip
+    return node_label, kw
 
 
-def _set_output_tooltip(data, max_len=2000):
+def _format_output(data, max_len=2000):
     filters = [
         partial(np.array_str, suppress_small=True),
         partial(pprint.pformat, compact=True)
     ]
-    tooltip = ['']
+    tooltip, formatted_output = [''], ['']
 
     for f in filters:
         try:
-            doc = f(data).split('\n')
-            if len(doc) <= max_len:
-                tooltip = doc
+            formatted_output = f(data).split('\n')
+            if len(formatted_output) <= max_len:
+                tooltip = formatted_output
             else:
-                tooltip = doc[:max_len]
+                tooltip = formatted_output[:max_len]
             break
         except:
             pass
 
-    return '&#10;'.join(tooltip)
+    return '&#10;'.join(tooltip), formatted_output
 
 
 def _remote_links(label, links, node_id, function_module):
@@ -272,15 +282,17 @@ def _set_node(dot, node_id, dsp2dot_id, node_attr=None, values=None, dist=None,
 
     if node_id not in styles:
         if node_type == 'data':
-            node_label, tooltip = _data_node_label(
-                node_id, values, node_attr, dist, function_module, node_output)
+            node_label, kwargs = _data_node_label(
+                dot, node_id, values, node_attr, dist, function_module,
+                node_output, nested)
+            kw.update(kwargs)
 
         else:
             node_name = _func_name(node_id, function_module)
             node_label = _fun_node_label(node_name, node_attr, dist)
 
             fun, n_args = _get_original_func(node_attr.get('function', None), 0)
-
+            kw.update(_set_func_tooltip(dot, node_name, fun, nested))
             if node_type == 'dispatcher' or isinstance(fun, SubDispatch):
                 kw['style'] = 'dashed, filled'
 
@@ -302,11 +314,6 @@ def _set_node(dot, node_id, dsp2dot_id, node_attr=None, values=None, dist=None,
                     }
                     kw.update(_set_sub_dsp(**kwargs))
 
-            tooltip = _set_func_tooltip(fun)
-
-        if tooltip:
-            kw['tooltip'] = tooltip
-
     kw.update(dot_kw)
 
     dot.node(dot_id, node_label, **kw)
@@ -314,25 +321,41 @@ def _set_node(dot, node_id, dsp2dot_id, node_attr=None, values=None, dist=None,
     return dot_id
 
 
-def _set_func_tooltip(func, max_len=2000):
+def _set_func_tooltip(dot, node_name, func, nested, max_len=2000):
     filters = [
         inspect.getsource,
         lambda fun: fun.__doc__
     ]
-    tooltip = ['']
+    tooltip, formatted_output = [''], None
 
     for f in filters:
         try:
-            doc = f(func).split('\n')
-            if len(doc) <= max_len:
-                tooltip = doc
+            o = f(func).split('\n')
+
+            if not formatted_output:
+                formatted_output = o
+
+            if len(o) <= max_len:
+                tooltip = o
                 break
             else:
-                tooltip = doc[:max_len]
+                tooltip = o[:max_len]
         except:
             pass
 
-    return '&#10;'.join(tooltip)
+    kw = {'tooltip': '&#10;'.join(tooltip) or node_name}
+    if nested and formatted_output:
+        filepath = '%s/%s.txt' % (dot.directory, node_name)
+        try:
+            with open(filepath, "w") as text_file:
+                text_file.write('\n'.join(formatted_output))
+            kw['URL'] = urllib.parse.quote('./%s.txt' % node_name)
+        except:
+            pass
+    else:
+        print(node_name, nested, formatted_output)
+
+    return kw
 
 
 def _set_sub_dsp(dot, dsp, dot_id, node_name, edge_attr, workflow, level,
