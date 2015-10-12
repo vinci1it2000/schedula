@@ -6,7 +6,7 @@ CO2MPAS: Vehicle simulator predicting NEDC CO2 emissions from WLTP
 :Home:          http://co2mpas.io/
 :Releases:      http://files.co2mpas.io/
 :Sources:       https://github.com/JRCSTU/co2mpas
-:pypi-repo:     http://pypi.co2mpas.io/
+:pypi-repo:     http://pypi.co2mpas.io/ (will move to standard Python-repo in the future)
 :Keywords:      CO2, fuel-consumption, WLTP, NEDC, vehicle, automotive,
                 EU, JRC, IET, STU, back-translation, policy,
                 simulator, engineering, scientific
@@ -51,28 +51,16 @@ Quickstart
       You can adapt most UNIX commands with minor modifications
       (i.e. replace ``mkdir --> md``, ``rm --> del``).
 
-    - In any case, in Windows you may download and install `Portable Git
-      <https://github.com/sheabunge/GitPortable>`_ which contains *bash* and
-      other unix-utilities, run from a *console* supporting decent copy-paste
-      (BUT make sure you run the correct Python installation, by setting
-      your ``PATH`` variable appropriately).
-
-    - To get generic help for *bash* commands (``ls``, ``pwd``, ``cd``, etc),
-      you can try any of the VARIOUS tutorials and crash-courses available:
-
-          - a concise one: http://www.ks.uiuc.edu/Training/Tutorials/Reference/unixprimer.html
-          - or a more detailed guide (just ignore the linux-specific part):
-            http://linuxcommand.org/lc3_lts0020.php
-
-    - In case of errors, use the mouse to select the offending command(s) and
-      the error(s) from the *console*, and paste this text to an email sent to
-      JRC(co2mpas@jrc.ec.europa.eu).
+    - You may download and install *all-in-one* archive which contains *bash*
+      and and `cmd.exe` prompt configured in a *console* supporting decent
+      copy-paste and resizing.
 
 
 IF you have familiarity with v1 release AND IF you already have a full-blown
-*python-3 environment* (i.e. *Linux*) you can immediately start working with
-the following console-commands; otherwise follow the detailed instructions
-under sections :ref:`begin-install` and :ref:`begin-usage`.
+*python-3 environment* (i.e. *Linux* or the *all-in-one* archive) you can
+immediately start working with the following *bash* commands; otherwise
+follow the detailed instructions under sections :ref:`begin-install` and
+:ref:`begin-usage`.
 
 .. code-block:: console
 
@@ -104,6 +92,7 @@ under sections :ref:`begin-install` and :ref:`begin-usage`.
 .. _end-opening:
 .. contents:: Table of Contents
   :backlinks: top
+  :depth: 4
 
 
 
@@ -119,8 +108,34 @@ The installation procedure has 2-stages:
     b. (optional) Install documents.
     c. (optional) Install sources.
 
-If you have already have a suitable python-3 installation with all scientific
-packages updated to their latest versions, you may skip the 1st stage.
+On *Windows* you may alternatively download in unzip the *all-In-One* archive
+instead of performing the above 2 steps separately.
+
+.. Tip::
+    **Installing All-In-One archive under Windows:**
+
+    - Download **all-in-one archive** from
+      http://files.co2mpas.io/.
+
+    - Ensure that you download the correct 32/64 architecture for your PC
+      (the 64bit archive CANNOT run on 32bit PCs, but the opposite is acceptable).
+
+    - Use the `"7z" extraxtor <http://portableapps.com/apps/utilities/7-zip_portable>`_,
+      since the "plain-zip" may produce minor errors when expanding long directories.
+
+    - If you have already downloaded a previous version of the *all-in-one*
+      archive, you may just upgrade CO2MPAS contained within.
+
+    - After installation, check that the version of CO2MPAS contained in the
+      archive corrseponds to the one described in the instructions here.
+      If not, upgrade it by following the instructions in the respective
+      section, below.
+
+
+Python Installation
+-------------------
+If you have already a suitable python-3 installation with all scientific
+packages updated to their latest versions, you may skip this 1st stage.
 
 .. Note::
     **Installing Python under Windows:**
@@ -137,19 +152,16 @@ packages updated to their latest versions, you may skip the 1st stage.
     the `Unofficial Windows Binaries for Python Extension Packages
     <http://www.lfd.uci.edu/~gohlke/pythonlibs/>`_.
 
-    Therefore we suggest that you download and unzip the **all-in-one archive**
-    (download from http://files.co2mpas.io/).
-
-    Alternatively, download one of the following two scientific-python
-    distributions:
+    Therefore we suggest that you download one of the following two
+    *scientific-python* distributions:
 
       #. `WinPython <https://winpython.github.io/>`_ **python-3** (prefer 64 bit)
       #. `Anaconda <http://continuum.io/downloads>`_ **python-3** (prefer 64 bit)
 
 
 
-WinPython install
------------------
+Install WinPython
+~~~~~~~~~~~~~~~~~
 The *WinPython* distribution is just a collection of the pre-compiled binaries
 for *Windows* containing all the scientific packages we need, and much more.
 It is not update-able, and has a semi-regular release-cycle of 3 months.
@@ -177,13 +189,12 @@ It is not update-able, and has a semi-regular release-cycle of 3 months.
         ....
 
 
-4. Use this console and follow CO2MPAS-executable installation instructions
-   (see :ref:`begin-co2mpas-install`, below).
+4. Use this console and follow CO2MPAS-installation instructions, below.
 
 
 
-Anaconda install
-----------------
+Install Anaconda
+~~~~~~~~~~~~~~~~
 The *Anaconda* distribution is a non-standard Python environment that
 for *Windows* containing all the scientific packages we need, and much more.
 It is not update-able, and has a semi-regular release-cycle of 3 months.
@@ -218,8 +229,8 @@ It is not update-able, and has a semi-regular release-cycle of 3 months.
 
 .. _begin-co2mpas-install:
 
-CO2MPAS install
----------------
+CO2MPAS installation
+--------------------
 1. Install CO2MPAS executable internally into your python-environment with
    the following console-command:
 
@@ -232,35 +243,37 @@ CO2MPAS install
         Installing collected packages: co2mpas
         Successfully installed co2mpas-1.0.3
 
-    .. Tip::
+   .. Note::
         **Installing Behind Firewall:**
 
-        This step requires Internet connectivity to Python's "standard" repository
-        (https://pypi.python.org/) and to co2mpas-site.
-        In case you are behind a **corporate proxy**, append an appropriatly
-        adapted option to all ``pip`` commands::
+        This previous step requires http-connectivity to Python's
+        "standard" repository (https://pypi.python.org/) and to co2mpas-site.
+        In case you are behind a **corporate proxy**, you may either:
 
-            --proxy http://user:password@yourProxyUrl:yourProxyPort
+        a) Append the following option to all ``pip`` commands, appropriatly
+           adapted: ``--proxy http://user:password@yourProxyUrl:yourProxyPort``.
 
-        Note that all *final releases* are cryptographically signed by JRC,
-        so that you or your IT staff can `validate their authenticity
-        <https://www.davidfischer.name/2012/05/signing-and-verifying-python-packages-with-pgp/>`_
-        and detect *man-in-the-middle* attacks, however impossible.
+           For averting any security deliberations, JRC cryptographically signes
+           all *final releases*, so that you or your IT staff may
+           `validate their authenticity
+           <https://www.davidfischer.name/2012/05/signing-and-verifying-python-packages-with-pgp/>`_
+           and detect *man-in-the-middle* attacks, however impossible.
 
-        An alternative is to download all *wheel* packages from `co2mpas-site
-        <http://files.co2mpas.io>`_  and install them one by one:
+        b) Download all *wheel* packages from `co2mpas-site
+           <http://files.co2mpas.io>`_ for the specific version you are
+           intereseted in , and install them one by one:
 
-        .. code-block:: console
+           .. code-block:: console
 
-             REM Download MANUALLY all `*.whl` files contained in release folder
-             REM from co2mpas-site in some folder.
-             > cd <folder-where-wheels_downloaded>
-             > pip install *.whl
+                REM Download MANUALLY all `*.whl` files contained in release folder
+                REM from co2mpas-site in some folder.
+                > cd <folder-where-wheels_downloaded>
+                > pip install *.whl
 
 
    .. Warning::
-       In case of errors, re-run the command adding 2 *verbose* flags ``-vv``,
-       copy-paste the console-output, and send it to JRC.
+       If you cannot install CO2MPAS, re-run the command adding 2 *verbose*
+       flags ``-vv``, copy-paste the console-output, and send it to JRC.
 
 
 2. Check that when you run ``co2mpas``, the version executed is indeed the one
@@ -275,14 +288,41 @@ CO2MPAS install
         python_version: 3.4.3 (v3.4.3:9b73f1c3e601, Feb 24 2015, 22:44:40) [MSC v.1600 XXX]
 
 
+   .. Warning::
+        The above procedure installs the *latest* CO2MPAS, which
+        *might be more up-to-date than the version described here!*
+
+        In that case you can either:
+
+        a) Visit the documents for the CO2MPAS version actually installed.
+        b) "Pin" the exact version to install with a ``pip`` command like this:
+
+           .. code-block:: console
+
+                > pip install co2mpas==1.0.3 ... # Other options, like above.
+
+
+
+Install extras
+~~~~~~~~~~~~~~
+Internally CO2MPAS uses an algorithmic scheduler to execute model functions.
+In order to visualize the *design-time models* and/or *run-time workflows*
+you need to install the **Graphviz** graph visualization library  from:
+http://www.graphviz.org/.
+
+If you skip this step, the ``graphplot`` sub-command and the ``--plot-workflow``
+option would both fail (see :ref:`begin-debug` below).
+
+
+
 Upgrade CO2MPAS
----------------
+~~~~~~~~~~~~~~~
 
 1. Uninstall (see below) and re-install it.
 
 
 Uninstall CO2MPAS
------------------
+~~~~~~~~~~~~~~~~~
 To uninstall CO2MPAS type the following command, and confirm it with ``y``:
 
 .. code-block:: console
@@ -566,8 +606,8 @@ installed:
    And watch it as it re-calculates *cell* by cell.
 
 5. You may edit the python code on the cells by selecting them and clicking
-  ``Enter`` (the frame should become green), and then re-run them,
-  with ``Ctrl + Enter``.
+   ``Enter`` (the frame should become green), and then re-run them,
+   with ``Ctrl + Enter``.
 
    Navigate your self around by taking the tutorial at::
 

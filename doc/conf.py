@@ -235,15 +235,25 @@ htmlhelp_basename = 'CO2MPASdoc'
 latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').
     #'papersize': 'letterpaper',
+    'papersize': 'a4paper',
 
     # The font size ('10pt', '11pt' or '12pt').
     #'pointsize': '10pt',
 
     # Additional stuff for the LaTeX preamble.
     #'preamble': '',
-
-    # Latex figure (float) alignment
-    #'figure_align': 'htbp',
+    # For UTF8 and other smbols
+    # From
+    # http://tex.stackexchange.com/questions/20182/how-to-use-unicode-characters-with-sphinx-rst-documents-and-properly-generate-pd
+    'inputenc': '',
+    'utf8extra': '',
+    'preamble': r'''
+    \usepackage{amssymb}
+    \usepackage{amsmath}
+    \usepackage{textcomp}
+    \usepackage{dejavu}
+    \usepackage[utf8]{inputenc}
+    ''',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
