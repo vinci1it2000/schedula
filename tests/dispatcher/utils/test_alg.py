@@ -12,6 +12,10 @@ import unittest
 from networkx.classes.digraph import DiGraph
 
 from co2mpas.dispatcher.utils.alg import *
+from co2mpas.dispatcher.utils.dsp import SubDispatch, SubDispatchFunction
+from co2mpas.dispatcher import Dispatcher
+from co2mpas.dispatcher.utils.constants import SINK
+from functools import partial
 
 
 class TestDoctest(unittest.TestCase):
@@ -116,3 +120,74 @@ class TestGraphAlgorithms(unittest.TestCase):
                4: [1, 2, 3, 4],
                9: [1, 2, 3, 9]}
         self.assertEqual(paths, res)
+
+
+class TestDispatcherGetSubNode(unittest.TestCase):
+    def setUp(self):
+        ss_dsp = Dispatcher()
+
+        def fun(a, c):
+            return a + 1, c, a - 1
+
+        ss_dsp.add_function('module:fun', fun, ['a', 'e'], ['b', 'c', 'd'])
+
+        sub_disfun = partial(SubDispatchFunction(
+            ss_dsp, 'func', ['e', 'a'], ['c', 'd', 'b']), 5)
+
+        s_dsp = Dispatcher()
+
+        s_dsp.add_function('sub_dispatch', sub_disfun, ['a'], ['b', 'c', SINK])
+
+        dispatch = SubDispatch(s_dsp, ['b', 'c', 'a'], output_type='list')
+        dsp = Dispatcher()
+        dsp.add_data('input', default_value={'a': 3})
+
+        dsp.add_function('dispatch', dispatch, ['input'], [SINK, 'h', 'i'])
+
+        dsp.dispatch()
+
+        self.dsp = dsp
+        self.fun = fun
+        self.sub_dispatch = sub_disfun
+        self.s_dsp = s_dsp
+        self.ss_dsp = ss_dsp
+
+    def test_get_sub_node(self):
+        dsp = self.dsp
+
+        o = get_sub_node(dsp, ('dispatch', 'b'))
+        self.assertEqual(o, 5)
+
+        o = get_sub_node(dsp, ('i',))
+        self.assertEqual(o, 3)
+
+        o = get_sub_node(dsp, ('i',), node_attr='')
+        self.assertEqual(o, {'wait_inputs': False, 'type': 'data'})
+
+        o = get_sub_node(dsp, ('dispatch', 'sub_dispatch'))
+        self.assertEqual(o, self.sub_dispatch)
+
+        o = get_sub_node(dsp, ('dispatch', 'sub_dispatch', 'module:fun'))
+        self.assertEqual(o, self.fun)
+
+        o = get_sub_node(dsp, ('dispatch', 'sub_dispatch', 'fun'))
+        self.assertEqual(o, self.fun)
+
+        o = get_sub_node(dsp, ('dispatch', 'sub_dispatch', 'module'))
+        self.assertEqual(o, self.fun)
+
+        o = get_sub_node(dsp, ('dispatch', SINK), node_attr='wait_inputs')
+        self.assertEqual(o, True)
+
+        o = get_sub_node(dsp, ('dispatch', SINK))
+        del o['description'], o['function']
+        self.assertEqual(o, {'type': 'data', 'wait_inputs': True})
+
+        o = get_sub_node(dsp, ('dispatch', 'sub_dispatch', 'b'))
+        self.assertEqual(o, 4)
+
+        o = get_sub_node(dsp, ('dispatch', 'sub_dispatch', 'b'), node_attr=None)
+        self.assertEqual(o, {'wait_inputs': False, 'type': 'data'})
+
+        self.assertRaises(ValueError, get_sub_node, dsp, ('dispatch', 'b', 'c'))
+        self.assertRaises(ValueError, get_sub_node, dsp, ('dispatch', 'e'))

@@ -33,7 +33,7 @@ from functools import partial
 
 from .utils.gen import AttrDict, counter, caller_name
 from .utils.alg import add_edge_fun, remove_edge_fun, rm_cycles_iter, \
-    get_unused_node_id, add_func_edges, replace_remote_link
+    get_unused_node_id, add_func_edges, replace_remote_link, get_sub_node
 from .utils.constants import EMPTY, START, NONE, SINK
 from .utils.dsp import SubDispatch, bypass, combine_dicts
 from .utils.drw import plot
@@ -1162,6 +1162,74 @@ class Dispatcher(object):
                 nbrs[child] = pred[child][parent] = dmap_nbrs[child]
 
         return sub_dsp  # Return the sub-dispatcher map.
+
+    def get_node(self, *node_ids, node_attr='auto'):
+        """
+        Returns a sub node of a dispatcher.
+
+        :param dsp:
+             A dispatcher object or a sub dispatch function.
+        :type dsp: dispatcher.Dispatcher, SubDispatch, SubDispatchFunction
+
+        :param node_ids:
+            A sequence of node ids or a single node id. The id order identifies
+            a dispatcher sub-level.
+        :type node_ids: str
+
+        :param node_attr:
+            Output node attr.
+
+            If the searched node does not have this attribute, all its
+            attributes are returned.
+
+            When 'auto', returns the "default" attributes of the searched node,
+            which are:
+
+              - for data node: its output, and if not exists, all its
+                attributes.
+              - for function and sub-dispatcher nodes: the 'function' attribute.
+        :type node_attr: str
+
+        :return:
+            A sub node of a dispatcher.
+        :rtype: dict, function, SubDispatch, SubDispatchFunction
+
+        **Example**:
+
+        .. dispatcher:: dsp
+           :opt: workflow=True, graph_attr={'ratio': '1'}, level=1
+
+            >>> from co2mpas.dispatcher import Dispatcher
+            >>> s_dsp = Dispatcher(name='Sub-dispatcher')
+            >>> def fun(a, b):
+            ...     return a + b
+            ...
+            >>> s_dsp.add_function('a + b', fun, ['a', 'b'], ['c'])
+            'a + b'
+            >>> dispatch = SubDispatch(s_dsp, ['c'], output_type='dict')
+            >>> dsp = Dispatcher(name='Dispatcher')
+            >>> dsp.add_function('Sub-dispatcher', dispatch, ['a'], ['b'])
+            'Sub-dispatcher'
+
+            >>> w, o = dsp.dispatch(inputs={'a': {'a': 3, 'b': 1}})
+            ...
+
+        Get the sub node output::
+
+            >>> dsp.get_node('Sub-dispatcher', 'c')
+            4
+            >>> dsp.get_node('Sub-dispatcher', 'c', node_attr='type')
+            'data'
+
+        .. dispatcher:: sub_dsp
+           :opt: workflow=True, graph_attr={'ratio': '1'}, level=0
+           :code:
+
+            >>> sub_dsp = dsp.get_node('Sub-dispatcher')
+        """
+
+        # Returns the node.
+        return get_sub_node(self, node_ids, node_attr=node_attr)
 
     def copy(self):
         """
