@@ -189,6 +189,9 @@ def calculate_engine_start_current(
     """
 
     if engine_start:
-        return start_demand / (delta_time * alternator_nominal_voltage) * 1000.0
+        den = delta_time * alternator_nominal_voltage
+
+        if den:
+            return start_demand / den * 1000.0
 
     return 0.0
