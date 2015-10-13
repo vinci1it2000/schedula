@@ -24,6 +24,8 @@ from .constants import START, SINK, END
 from .dsp import SubDispatch, SubDispatchFunction, combine_dicts
 from itertools import chain
 from functools import partial
+from graphviz.tools import mkdirs
+from .des import get_original_func, search_node_description
 
 __all__ = ['plot']
 
@@ -61,11 +63,11 @@ def _init_filepath(directory, filename, nested, name, is_sub_dsp):
     directory = os.path.dirname(path)
     filename = os.path.basename(path)
 
-    return directory, filename
+    return _label_encode(directory), _label_encode(filename)
 
 
 def _init_dot(dsp, workflow, nested, is_sub_dsp, **kw_dot):
-    name = dsp.name
+    name = dsp.name or '%s %d' % (type(dsp).__name__, id(dsp))
 
     dfl_node_attr = {'style': 'filled'}
     dfl_body = {'label': '"%s"' % _get_title(name, workflow),
@@ -111,12 +113,12 @@ def _attr_node(k, v):
     return '%s = %s' % (_label_encode(k), _label_encode(v))
 
 
-def _data_node_label(dot, k, values, attr=None, dist=None, function_module=True,
-                     node_output=False, nested=False):
-    tooltip, formatted_output = '', ''
+def _data_node_label(dot, k, values, attr=None, dist=None,
+                     function_module=True, node_output=False, nested=False):
+
     kw = {}
     if not dist:
-        v = dict(attr)
+        v = attr.copy()
         v.pop('type')
         v.pop('description', None)
         if k in values:
@@ -135,50 +137,46 @@ def _data_node_label(dot, k, values, attr=None, dist=None, function_module=True,
 
     else:
         v = {}
-        if k in values:
-            tooltip, formatted_output = _format_output(values[k])
-            if not nested:
-                v['output'] = '&#10;'.join(formatted_output)
-
-            else:
-                filename = _label_encode(k)
-                filepath = '%s/%s.txt' % (dot.directory, filename)
-                try:
-                    with open(filepath, "w") as text_file:
-                        text_file.write('\n'.join(formatted_output))
-                    kw['URL'] = urllib.parse.quote('./%s' % filename)
-                except:
-                    pass
-
         if k in dist:
             v['distance'] = dist[k]
 
-    node_label = _node_label(k, v)
+        if k in values:
+            val = values[k]
+            if inspect.isfunction(val):
+                kw.update(_set_func_out(dot, k, val, nested))
+            else:
+                tooltip, formatted_output = _format_output(values[k])
 
-    kw['tooltip'] = tooltip or node_label
+                if tooltip:
+                    kw['tooltip'] = tooltip
+
+                if not nested:
+                    v['output'] = '&#10;'.join(formatted_output)
+
+                else:
+                    directory = dot.filepath.split('.')[0]
+                    filepath = _save_txt_output(directory, k, formatted_output)
+                    if filepath is not None:
+                        kw['URL'] = _url_rel_path(dot.directory, filepath)
+
+    node_label = _node_label(k, v)
 
     return node_label, kw
 
 
-def _format_output(data, max_len=2000):
-    filters = [
-        partial(np.array_str, suppress_small=True),
-        partial(pprint.pformat, compact=True)
-    ]
+def _format_output(data, max_len=1000):
+
     tooltip, formatted_output = [''], ['']
+    format = partial(pprint.pformat, compact=True)
+    if inspect.isfunction(data):
+        inspect.getsource(data)
+    try:
+        tooltip = format(data).split('\n')
+        formatted_output = format(np.asarray(data).tolist()).split('\n')
+    except:
+        pass
 
-    for f in filters:
-        try:
-            formatted_output = f(data).split('\n')
-            if len(formatted_output) <= max_len:
-                tooltip = formatted_output
-            else:
-                tooltip = formatted_output[:max_len]
-            break
-        except:
-            pass
-
-    return '&#10;'.join(tooltip), formatted_output
+    return '&#10;'.join(tooltip[:max_len]), formatted_output
 
 
 def _remote_links(label, links, node_id, function_module):
@@ -197,19 +195,6 @@ def _get_link(dsp_id, dsp, node_id, tag, function_module):
     n = [_func_name(v, function_module) for v in n]
 
     return '%s:(%s)' % (_func_name(dsp_id, function_module), ', '.join(n))
-
-
-def _get_original_func(func, input_id=None):
-
-    if isinstance(func, partial):
-        if input_id is not None:
-            input_id += len(func.args)
-        return _get_original_func(func.func, input_id=input_id)
-
-    if input_id is None:
-        return func
-    else:
-        return func, input_id
 
 
 def _fun_node_label(k, attr=None, dist=None):
@@ -259,9 +244,9 @@ def _init_graph_data(dsp, workflow, edge_attr):
     return args + func_in_out
 
 
-def _set_node(dot, node_id, dsp2dot_id, node_attr=None, values=None, dist=None,
-              function_module=True, edge_attr=None, workflow=False, level=0,
-              node_output=False, nested=False, **dot_kw):
+def _set_node(dot, node_id, dsp2dot_id, dsp=None, node_attr=None, values=None,
+              dist=None, function_module=True, edge_attr=None, workflow=False,
+              level=0, node_output=False, nested=False, **dot_kw):
 
     styles = {
         START: ('start', {'shape': 'egg', 'fillcolor': 'red'}),
@@ -291,8 +276,8 @@ def _set_node(dot, node_id, dsp2dot_id, node_attr=None, values=None, dist=None,
             node_name = _func_name(node_id, function_module)
             node_label = _fun_node_label(node_name, node_attr, dist)
 
-            fun, n_args = _get_original_func(node_attr.get('function', None), 0)
-            kw.update(_set_func_tooltip(dot, node_name, fun, nested))
+            fun, n_args = get_original_func(node_attr.get('function', None), 0)
+
             if node_type == 'dispatcher' or isinstance(fun, SubDispatch):
                 kw['style'] = 'dashed, filled'
 
@@ -312,48 +297,55 @@ def _set_node(dot, node_id, dsp2dot_id, node_attr=None, values=None, dist=None,
                         'nested': nested,
                         'format': dot.format
                     }
+
                     kw.update(_set_sub_dsp(**kwargs))
+                else:
+                    kw.update(_set_func_out(dot, node_name, fun, nested))
+            else:
+                kw.update(_set_func_out(dot, node_name, fun, nested))
 
     kw.update(dot_kw)
+
+    if node_attr and dsp and 'tooltip' not in kw:
+        tooltip = search_node_description(node_id, node_attr, dsp)[0]
+        kw['tooltip'] = tooltip or _label_encode(node_id)
 
     dot.node(dot_id, node_label, **kw)
 
     return dot_id
 
 
-def _set_func_tooltip(dot, node_name, func, nested, max_len=2000):
-    filters = [
-        inspect.getsource,
-        lambda fun: fun.__doc__
-    ]
-    tooltip, formatted_output = [''], None
+def _set_func_out(dot, node_name, func, nested):
 
-    for f in filters:
-        try:
-            o = f(func).split('\n')
+    formatted_output = None
 
-            if not formatted_output:
-                formatted_output = o
+    try:
+        formatted_output = inspect.getsource(func).split('\n')
+    except:
+        pass
 
-            if len(o) <= max_len:
-                tooltip = o
-                break
-            else:
-                tooltip = o[:max_len]
-        except:
-            pass
-
-    kw = {'tooltip': '&#10;'.join(tooltip) or node_name}
+    kw = {}
     if nested and formatted_output:
-        filepath = '%s/%s.txt' % (dot.directory, node_name)
-        try:
-            with open(filepath, "w") as text_file:
-                text_file.write('\n'.join(formatted_output))
-            kw['URL'] = urllib.parse.quote('./%s.txt' % node_name)
-        except:
-            pass
+        directory = dot.filepath.split('.')[0]
+        filepath = _save_txt_output(directory, node_name, formatted_output)
+        if filepath is not None:
+            kw['URL'] = _url_rel_path(dot.directory, filepath)
 
     return kw
+
+
+def _save_txt_output(directory, filename, output_lines):
+    filename = '%s.txt' % _label_encode(filename)
+    directory = _label_encode(directory)
+    filepath = os.path.join(directory, filename)
+    try:
+        mkdirs(filepath)
+        with open(filepath, "w") as text_file:
+            text_file.write('\n'.join(output_lines))
+        return filepath
+    except:
+        pass
+    return None
 
 
 def _set_sub_dsp(dot, dsp, dot_id, node_name, edge_attr, workflow, level,
@@ -370,9 +362,7 @@ def _set_sub_dsp(dot, dsp, dot_id, node_name, edge_attr, workflow, level,
         def wrapper(*args, **kwargs):
             s_dot = plot(*args, is_sub_dsp=True, **kwargs)
             path = s_dot.render()
-            filename = os.path.basename(path)
-            url = urllib.parse.quote('./%s/%s' % (node_name, filename))
-            return {'URL': url}
+            return {'URL': _url_rel_path(dot.directory, path)}
 
     else:
         kw_sub = {
@@ -409,6 +399,12 @@ def _set_edge(dot, dot_u, dot_v, attr=None, edge_data=None, **kw_dot):
         kw.update(kw_dot)
 
         dot.edge(dot_u, dot_v, **kw)
+
+
+def _url_rel_path(directory, path):
+    url = os.path.join('.', os.path.relpath(path, directory))
+    url = urllib.parse.quote(url.replace(os.sep, '/'))
+    return url
 
 
 def _get_dsp2dot_id(dot, graph):
@@ -551,6 +547,7 @@ def plot(dsp, workflow=False, dot=None, edge_data=None, view=False,
                   node_attr=dsp.nodes.get(k, {}),
                   values=val,
                   dist=dist,
+                  dsp=dsp,
                   function_module=function_module,
                   edge_attr=edge_data,
                   workflow=v.get('workflow', False),

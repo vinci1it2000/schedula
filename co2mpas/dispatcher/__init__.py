@@ -1213,7 +1213,7 @@ class Dispatcher(object):
 
         :param filename:
             A file directory (if `nested`) or file name
-            (defaults to name + '.gv') for saving the source.
+            (defaults to name + '.gv') for saving the sources.
         :type filename: str, optional
 
         :param nested:
