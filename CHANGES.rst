@@ -5,7 +5,7 @@ CO2MPAS Changes
 
 v1.0.3, 13-Oct 2015, CWG release
 ================================
-Still no model-changes in comparison to v1.0.1, release just to distribute
+Still no model-changes in comparison to v1.0.1; released just to distribute
 the *all-in-one* archive, provide better instructions, and demonstrate ipython
 UI.
 

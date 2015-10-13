@@ -2,7 +2,7 @@
 CO2MPAS: Vehicle simulator predicting NEDC CO2 emissions from WLTP
 ##################################################################
 
-:Release:       1.0.3
+:Release:       1.0.34.dev0
 :Home:          http://co2mpas.io/
 :Releases:      http://files.co2mpas.io/
 :Sources:       https://github.com/JRCSTU/co2mpas
@@ -69,7 +69,7 @@ follow the detailed instructions under sections :ref:`install` and
     ## NOTE: If behind proxy, specify additionally this option:
     ##    --proxy http://user:password@yourProxyUrl:yourProxyPort
     ##
-    $ pip install co2mpas --extra-index http://pypi.co2mpas.io/simple/ --trusted-host pypi.co2mpas.io
+    $ pip install co2mpas --extra-index http://pypi.co2mpas.io/simple/ --trusted-host pypi.co2mpas.io --pre
 
     ## Where to store input and output files.
     ## In *Windows* cmd-prompt use `md` command instead.
@@ -125,7 +125,7 @@ instead of performing the above 2 steps separately.
 - Use the original `"7z" extraxtor <http://portableapps.com/apps/utilities/7-zip_portable>`_,
   since "plain-zip" produces out-of-memory errors when expanding long
   directories.
-  Prefer an **installation-folder without any spaces leading to it**.
+  Prefer to **extract it in a folder without any spaces in its path.**
 
 - If you have already downloaded a previous version of the *all-in-one*
   archive, you may prefer to just upgrade CO2MPAS contained within.
@@ -240,12 +240,12 @@ CO2MPAS installation
 
    .. code-block:: console
 
-        > pip install co2mpas --extra-index http://pypi.co2mpas.io/simple/ --trusted-host pypi.co2mpas.io
+        > pip install co2mpas --extra-index http://pypi.co2mpas.io/simple/ --trusted-host pypi.co2mpas.io  --pre
         Collecting co2mpas
         Downloading http://pypi.co2mpas.io/packages/co2mpas-...
         ...
         Installing collected packages: co2mpas
-        Successfully installed co2mpas-1.0.3
+        Successfully installed co2mpas-1.0.34.dev0
 
    .. Note::
         **Installing Behind Firewall:**
@@ -286,9 +286,9 @@ CO2MPAS installation
    .. code-block:: console
 
         > python -v --version
-        co2mpas_version: 1.0.3
-        co2mpas_path: d:\co2mpas_ALLINONE-XXbit-v1.0.3\Apps\WinPython\python-3.4.3\lib\site-packages\co2mpas
-        python_path: D:\co2mpas_ALLINONE-XXbit-v1.0.3\WinPython\python-3.4.3
+        co2mpas_version: 1.0.34.dev0
+        co2mpas_path: d:\co2mpas_ALLINONE-XXbit-v1.0.34.dev0\Apps\WinPython\python-3.4.3\lib\site-packages\co2mpas
+        python_path: D:\co2mpas_ALLINONE-XXbit-v1.0.34.dev0\WinPython\python-3.4.3
         python_version: 3.4.3 (v3.4.3:9b73f1c3e601, Feb 24 2015, 22:44:40) [MSC v.1600 XXX]
 
 
@@ -304,7 +304,7 @@ CO2MPAS installation
 
        .. code-block:: console
 
-            > pip install co2mpas==1.0.3 ... # Other options, like above.
+            > pip install co2mpas==1.0.34.dev0 ... # Other options, like above.
 
 
 
