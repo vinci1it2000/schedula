@@ -13,7 +13,7 @@ It provides tools to find data, function, and sub-dispatcher node description.
 __author__ = 'Vincenzo Arcidiacono'
 
 __all__ = ['get_attr_doc', 'get_summary', 'search_node_description',
-           'get_original_func']
+           'get_parent_func']
 
 import re
 from .dsp import SubDispatch, SubDispatchFunction, add_args
@@ -73,17 +73,17 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function'):
             def check(k):
                 if dsp.dmap.out_degree(k) == 1:
                     return True
-                func = get_original_func(dsp.nodes[k].get('function', None))
+                func = get_parent_func(dsp.nodes[k].get('function', None))
                 return isinstance(func, SubDispatch)
 
         def get_des(func_node):
             n_ix = func_node[node_attr].index(node_id)
             d, l = '', ''
             if where_succ:
-                fun, n_ix = get_original_func(func_node['function'],
+                fun, n_ix = get_parent_func(func_node['function'],
                                                input_id=n_ix)
             else:
-                fun = get_original_func(func_node['function'])
+                fun = get_parent_func(func_node['function'])
 
             if isinstance(fun, SubDispatchFunction):
                 sub_dsp = fun.dsp
@@ -143,7 +143,7 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function'):
 def search_node_description(node_id, node_attr, dsp):
 
     if 'function' == node_attr['type']:
-        func = get_original_func(node_attr.get('function', None))
+        func = get_parent_func(node_attr.get('function', None))
     else:
         func = None
 
@@ -179,15 +179,15 @@ def get_link(*items):
     return ''
 
 
-def get_original_func(func, input_id=None):
+def get_parent_func(func, input_id=None):
 
     if isinstance(func, partial):
         if input_id is not None:
             input_id += len(func.args)
-        return get_original_func(func.func, input_id=input_id)
+        return get_parent_func(func.func, input_id=input_id)
 
     elif isinstance(func, add_args):
-        return get_original_func(func.func, input_id=input_id)
+        return get_parent_func(func.func, input_id=input_id)
 
     if input_id is None:
         return func

@@ -37,6 +37,7 @@ from .utils.alg import add_edge_fun, remove_edge_fun, rm_cycles_iter, \
 from .utils.constants import EMPTY, START, NONE, SINK
 from .utils.dsp import SubDispatch, bypass, combine_dicts
 from .utils.drw import plot
+from .utils.des import get_parent_func
 
 
 log = logging.getLogger(__name__)
@@ -2142,8 +2143,11 @@ class Dispatcher(object):
                     not node_attr['input_domain'](*args):
                 return False  # Args are not respecting the domain.
             else:  # Use the estimation function of node.
-                fun = node_attr['function']
-                res = fun(*args)
+                fun = node_attr['function']  # Get function.
+
+                res = fun(*args)  # Evaluate function.
+
+                fun = get_parent_func(fun)  # Get parent function (if nested).
                 if isinstance(fun, SubDispatch):  # Save intermediate results.
                     self.workflow.add_node(
                         node_id,

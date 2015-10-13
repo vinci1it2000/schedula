@@ -25,7 +25,7 @@ from .dsp import SubDispatch, SubDispatchFunction, combine_dicts
 from itertools import chain
 from functools import partial
 from graphviz.tools import mkdirs
-from .des import get_original_func, search_node_description
+from .des import get_parent_func, search_node_description
 
 __all__ = ['plot']
 
@@ -276,7 +276,7 @@ def _set_node(dot, node_id, dsp2dot_id, dsp=None, node_attr=None, values=None,
             node_name = _func_name(node_id, function_module)
             node_label = _fun_node_label(node_name, node_attr, dist)
 
-            fun, n_args = get_original_func(node_attr.get('function', None), 0)
+            fun, n_args = get_parent_func(node_attr.get('function', None), 0)
 
             if node_type == 'dispatcher' or isinstance(fun, SubDispatch):
                 kw['style'] = 'dashed, filled'
