@@ -1,7 +1,7 @@
 ###############
 CO2MPAS Changes
 ###############
-.. _begin-changes:
+.. _changes:
 
 v1.0.3 XX-Oct 2015: 3rd open release
 ====================================

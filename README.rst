@@ -41,26 +41,27 @@ adaptation.
 Quickstart
 ==========
 .. Tip::
-    **Help about Console:**
+    **About console-commands:**
 
-    - Commands beginning with ``$`` symbol are for the *bash-console* (UNIX)
-      i.e. the one included in the ``bash-console.bat`` file in top folder of
-      the *all-in-one* distribution-archive (see :doc:`allinone`).
+    - Console-commands beginning with ``$`` symbol are for the ``bash`` shell
+      (UNIX).
 
-    - Windows's ``cmd.exe`` console commands begin with ``>`` symbol.
-      You can adapt most UNIX commands with minor modifications
-      (i.e. replace ``mkdir --> md``, ``rm --> del``).
+    - Console-commands beginning with ``>`` symbol are for *Windows* ``cmd.exe``
+      command-prompt.
 
-    - You may download and install *all-in-one* archive which contains *bash*
-      and and `cmd.exe` prompt configured in a *console* supporting decent
-      copy-paste and resizing.
+    - You can adapt commands between the two shells with minor modifications
+      (i.e. ``mkdir <--> md``, ``rm <--> del``).
+
+    - You may download and install the *all-in-one* archive which contains
+      both shells configured in a console supporting decent copy-paste and
+      resizing capabilities (see :ref:`all-in-one`).
 
 
 IF you have familiarity with v1 release AND IF you already have a full-blown
 *python-3 environment* (i.e. *Linux* or the *all-in-one* archive) you can
 immediately start working with the following *bash* commands; otherwise
-follow the detailed instructions under sections :ref:`begin-install` and
-:ref:`begin-usage`.
+follow the detailed instructions under sections :ref:`install` and
+:ref:`usage`.
 
 .. code-block:: console
 
@@ -96,7 +97,7 @@ follow the detailed instructions under sections :ref:`begin-install` and
 
 
 
-.. _begin-install:
+.. _install:
 
 Install
 =======
@@ -108,48 +109,53 @@ The installation procedure has 2-stages:
     b. (optional) Install documents.
     c. (optional) Install sources.
 
-On *Windows* you may alternatively download in unzip the *all-In-One* archive
+On *Windows* you may alternatively install the *all-In-One* archive
 instead of performing the above 2 steps separately.
 
-.. Tip::
-    **Installing All-In-One archive under Windows:**
 
-    - Download **all-in-one archive** from
-      http://files.co2mpas.io/.
+.. _all-in-one:
 
-    - Ensure that you download the correct 32/64 architecture for your PC
-      (the 64bit archive CANNOT run on 32bit PCs, but the opposite is acceptable).
+*All-In-One* Installation under Windows
+---------------------------------------
+- Download **all-in-one archive** from
+  http://files.co2mpas.io/.
+  Ensure that you download the correct 32/64 architecture for your PC
+  (the 64bit archive CANNOT run on 32bit PCs, but the opposite is possible).
 
-    - Use the `"7z" extraxtor <http://portableapps.com/apps/utilities/7-zip_portable>`_,
-      since the "plain-zip" may produce minor errors when expanding long directories.
+- Use the original `"7z" extraxtor <http://portableapps.com/apps/utilities/7-zip_portable>`_,
+  since "plain-zip" produces out-of-memory errors when expanding long
+  directories.
+  Prefer an **installation-folder without any spaces leading to it**.
 
-    - If you have already downloaded a previous version of the *all-in-one*
-      archive, you may just upgrade CO2MPAS contained within.
+- If you have already downloaded a previous version of the *all-in-one*
+  archive, you may prefer to just upgrade CO2MPAS contained within.
+  Follow the instructions in the "Upgrade" section, below.
 
-    - After installation, check that the version of CO2MPAS contained in the
-      archive corrseponds to the one described in the instructions here.
-      If not, upgrade it by following the instructions in the respective
-      section, below.
+- After installation, check that the version of CO2MPAS contained in the
+  archive corresponds to the latest/the one described in these instructions.
+  If not, follow the instructions in the "Upgrade" section, below.
+
+- Visit the guidelines for its usage: :doc:`allinone`
+  (also contained within the archive).
 
 
 Python Installation
 -------------------
-If you have already a suitable python-3 installation with all scientific
+If you already have a suitable python-3 installation with all scientific
 packages updated to their latest versions, you may skip this 1st stage.
 
 .. Note::
     **Installing Python under Windows:**
 
     The program requires CPython-3, and depends on *numpy*, *scipy*, *pandas*,
-    *sklearn* and *matplotlib* packages which have C-native backends, and need
-    a C-compiler in order to to install them from sources.
+    *sklearn* and *matplotlib* packages, which depend on C-native backends
+    and need a C-compiler to install from sources.
 
-    In *Windows* it is strongly suggested
-    **NOT to install the standard CPython distribution**
-    (then one that comes up first(!) if you google for "python windows"),
-    unless you are an experienced python-developer, and you know also how to
+    In *Windows* it is strongly suggested **NOT to install the standard CPython
+    distribution that comes up first(!) when you google for "python windows"**,
+    unless you are an experienced python-developer, and you know how to
     hunt down pre-compiled dependencies from the *PyPi* repository and/or
-    the `Unofficial Windows Binaries for Python Extension Packages
+    from the `Unofficial Windows Binaries for Python Extension Packages
     <http://www.lfd.uci.edu/~gohlke/pythonlibs/>`_.
 
     Therefore we suggest that you download one of the following two
@@ -162,13 +168,13 @@ packages updated to their latest versions, you may skip this 1st stage.
 
 Install WinPython
 ~~~~~~~~~~~~~~~~~
-The *WinPython* distribution is just a collection of the pre-compiled binaries
-for *Windows* containing all the scientific packages we need, and much more.
-It is not update-able, and has a semi-regular release-cycle of 3 months.
+The *WinPython* distribution is just a collection of the standard pre-compiled
+binaries for *Windows* containing all the scientific packages, and much more.
+It is not update-able, and has a quasi-regular release-cycle of 3 months.
 
 
 1. Install the latest python-3 (preferably 64 bit) from https://winpython.github.io/.
-   Prefer an installation-folder without any spaces leading to it.
+   Prefer an **installation-folder without any spaces leading to it**.
 
 2. Open the WinPython's command-prompt console, by locating the folder where
    you just installed it and run (double-click) the following file::
@@ -189,7 +195,7 @@ It is not update-able, and has a semi-regular release-cycle of 3 months.
         ....
 
 
-4. Use this console and follow CO2MPAS-installation instructions, below.
+4. Use this console and follow :ref:`co2mpas-install` instructions, below.
 
 
 
@@ -200,7 +206,7 @@ for *Windows* containing all the scientific packages we need, and much more.
 It is not update-able, and has a semi-regular release-cycle of 3 months.
 
 1. Install Anaconda python 3.4 (preferably 64 bit) from http://continuum.io/downloads.
-   Prefer an installation-folder without any spaces leading to it.
+   Prefer an **installation-folder without any spaces leading to it**.
 
    .. Note::
         When asked by the installation wizard, ensure that *Anaconda* gets to be
@@ -222,12 +228,10 @@ It is not update-able, and has a semi-regular release-cycle of 3 months.
         > where python
         ....
 
-4. Use this console and follow CO2MPAS-executable installation instructions
-   (see :ref:`begin-co2mpas-install`, below)
+4. Use this console and follow :ref:`co2mpas-install` instructions, below.
 
 
-
-.. _begin-co2mpas-install:
+.. _co2mpas-install:
 
 CO2MPAS installation
 --------------------
@@ -261,7 +265,7 @@ CO2MPAS installation
 
         b) Download all *wheel* packages from `co2mpas-site
            <http://files.co2mpas.io>`_ for the specific version you are
-           intereseted in , and install them one by one:
+           interested in , and install them one by one:
 
            .. code-block:: console
 
@@ -288,30 +292,31 @@ CO2MPAS installation
         python_version: 3.4.3 (v3.4.3:9b73f1c3e601, Feb 24 2015, 22:44:40) [MSC v.1600 XXX]
 
 
-   .. Warning::
-        The above procedure installs the *latest* CO2MPAS, which
-        *might be more up-to-date than the version described here!*
+.. Warning::
+    The above procedure installs the *latest* CO2MPAS, which
+    *might be more up-to-date than the version described here!*
 
-        In that case you can either:
+    In that case you can either:
 
-        a) Visit the documents for the CO2MPAS version actually installed.
-        b) "Pin" the exact version to install with a ``pip`` command like this:
+    a) Visit the documents for version actually installed.
+    b) "Pin" the exact version you wish to install with a ``pip`` command
+       like this:
 
-           .. code-block:: console
+       .. code-block:: console
 
-                > pip install co2mpas==1.0.3b0 ... # Other options, like above.
+            > pip install co2mpas==1.0.3b0 ... # Other options, like above.
 
 
 
 Install extras
 ~~~~~~~~~~~~~~
 Internally CO2MPAS uses an algorithmic scheduler to execute model functions.
-In order to visualize the *design-time models* and/or *run-time workflows*
-you need to install the **Graphviz** graph visualization library  from:
+In order to visualize the *design-time models* and *run-time workflows*
+you need to install the **Graphviz** visualization library  from:
 http://www.graphviz.org/.
 
 If you skip this step, the ``graphplot`` sub-command and the ``--plot-workflow``
-option would both fail (see :ref:`begin-debug` below).
+option would both fail to run (see :ref:`debug`).
 
 
 
@@ -338,27 +343,22 @@ over; disregard any errors this time.
 
 
 
-.. _begin-usage:
+.. _usage:
 
 Usage
 =====
 .. Note::
     The following commands are for the **bash console**, specifically tailored
-    for the **all-in-one** archive.  More generic guidelines for this archive
-    are contained in :doc:`allinone`.
+    for the **all-in-one** archive.
 
 
 First ensure that the latest version of CO2MPAS is properly installed, and that
 its version match the version declared on this file.
 
-The main entry for the simulator is the ``co2mpas`` console-command.
-This command accepts multiple **input-excel-files**, one for each vehicle,
-and generates a **summary-excel-file** aggregating the major result-values
-from these vehicles, and (optionally) multiple **output-excel-files** for each
-vehicle run.
-
+The main entry for the simulator is the ``co2mpas`` console-command,
+which **is not visible, but it is installed in your PATH.**
 To get the syntax of the ``co2mpas`` console-command, open a console where
-you have installed CO2MPAS (see :ref:`begin-install` above) and type:
+you have installed CO2MPAS (see :ref:`install` above) and type:
 
 .. code-block:: console
 
@@ -412,17 +412,23 @@ you have installed CO2MPAS (see :ref:`begin-install` above) and type:
         # View a specific submodel on your browser.
         co2mpas modelgraph gear_box_calibration
 
+The default sub-command (``simulate``) accepts either a single **input-excel-file**
+or a folder with multiple input-files for each vehicle, and generates a
+**summary-excel-file** aggregating the major result-values from these vehicles,
+and (optionally) multiple **output-excel-files** for each vehicle run.
+
+
 Running Samples
 ---------------
-The simulator contains sample input files for 2 vehicles that
-are a nice starting point to try out.
+The simulator contains input-files for demo-vehicles that are a nice
+starting point to try out.
 
 1. Choose a folder where you will store the *input* and *output* files:
 
    .. code-block:: console
 
         ## Skip this if ``tutorial`` folder already exists.
-        $ mkdir tutorial         ## Replace `mkdir` with `md` in *Windows* (`cmd.exe`)
+        $ mkdir tutorial
         $ cd tutorial
 
         ## Skip also this if folders exist.
@@ -434,18 +440,18 @@ are a nice starting point to try out.
     It is only for demonstration purposes that we decided to group them both
     under a hypothetical ``some-folder``.
 
-3. Create the demo vehicles inside the *input-folder* with the ``template``
+3. Create the demo vehicles inside the *input-folder* with the ``demo``
    sub-command:
 
 
    .. code-block:: console
 
         $ co2mpas demo input
-        Creating DEMO INPUT file 'D:\Apps\cygwin64\home\anastkn\Work\tut\input\co2mpas_demo_1_full_data.xlsx'...
-        Creating DEMO INPUT file 'D:\Apps\cygwin64\home\anastkn\Work\tut\input\co2mpas_demo_2_wltp_high_only.xlsx'...
-        Creating DEMO INPUT file 'D:\Apps\cygwin64\home\anastkn\Work\tut\input\co2mpas_demo_3_wltp_low_only.xlsx'...
-        Creating DEMO INPUT file 'D:\Apps\cygwin64\home\anastkn\Work\tut\input\co2mpas_demo_4_baseline_no_battery_currents - Copy.xlsx'...
-        Creating DEMO INPUT file 'D:\Apps\cygwin64\home\anastkn\Work\tut\input\co2mpas_demo_5_baseline_no_gears.xlsx'...
+        Creating DEMO INPUT file 'input\co2mpas_demo_1_full_data.xlsx'...
+        Creating DEMO INPUT file 'input\co2mpas_demo_2_wltp_high_only.xlsx'...
+        Creating DEMO INPUT file 'input\co2mpas_demo_3_wltp_low_only.xlsx'...
+        Creating DEMO INPUT file 'input\co2mpas_demo_4_baseline_no_battery_currents - Copy.xlsx'...
+        Creating DEMO INPUT file 'input\co2mpas_demo_5_baseline_no_gears.xlsx'...
         You may run DEMOS with:
             co2mpas simulate -I input
 
@@ -454,7 +460,7 @@ are a nice starting point to try out.
    .. code-block:: console
 
       $ co2mpas -I input -O output
-      Processing './input' --> './output'...
+      Processing 'input' --> 'output'...
       Processing: co2mpas_demo_1_full_data
       ...
       ...
@@ -473,20 +479,20 @@ Output files
 ~~~~~~~~~~~~
 Below is the structure of the output-files produced for each vehicle::
 
-    +--<date>-<time>_precondition_WLTP_<inp-fname>.xls:
-    |               Input and calibrated values for electrics.
-    |
-    +--<date>-<time>_calibration_WLTP-H_<inp-fname>.xls:
-    |               Input and calibrated values.
-    |
-    +--<date>-<time>_calibration_WLTP-L_<inp-fname>.xls:
-    |               Input and calibrated values.
-    |
-    +--<date>-<time>_prediction_NEDC_<inp-fname>.xls:
-    |               Input and predicted values.
-    |
-    +--<date>-<time>_summary.xls:
-                    Major CO2 values from all vehicles in the batch-run.
+    ## Input and calibrated values for electrics.
+    <timestamp>_precondition_WLTP_<inp-fname>.xls
+
+    ## Input and calibrated values.
+    <timestamp>_calibration_WLTP-H_<inp-fname>.xls
+
+    ## Input and calibrated values.
+    <timestamp>_calibration_WLTP-L_<inp-fname>.xls
+
+    ## Input and predicted values.
+    <timestamp>_prediction_NEDC_<inp-fname>.xls
+
+    ## Major CO2 values from all vehicles in the batch-run.
+    <timestamp>_summary.xls
 
 
 Entering new vehicles
@@ -512,7 +518,7 @@ excel-file:
    .. code-block:: console
 
         $ co2mpas template input/vehicle_1.xlsx  ## Note that here we specify the filename, not the folder!
-        Creating TEMPLATE INPUT file './input/vehicle_1.xlsx'...
+        Creating TEMPLATE INPUT file 'input/vehicle_1.xlsx'...
 
 
 3. Open the template excel-file to fill-in your vehicle data
@@ -532,7 +538,7 @@ excel-file:
    You may repeat these last 2 steps if you want to add more vehicles in
    the *batch-run*.
 
-4. Run the simulator.  You may specify to run exactly the single excel-file:
+4. Run the simulator.  Specify the single excel-file as input:
 
    .. code-block:: console
 
@@ -552,7 +558,7 @@ excel-file:
 
 6. In the case of errors, or if the results are not satisfactory, repeat the
    above procedure from step 3 to modify the vehicle and re-run the model.
-   See also :ref:`begin-debug`, below.
+   See also :ref:`debug`, below.
 
 
 Using IPython
@@ -619,7 +625,7 @@ installed:
    to shutdown the *ipython-server*.
 
 
-.. _begin-debug:
+.. _debug:
 
 Debugging and investigating results
 -----------------------------------

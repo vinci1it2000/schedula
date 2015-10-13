@@ -1,4 +1,4 @@
 .. include:: ../README.rst
-    :start-after: _begin-install:
-    :end-before: _begin-usage:
+    :start-after: _install:
+    :end-before: _usage:
 
