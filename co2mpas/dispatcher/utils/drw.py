@@ -150,14 +150,13 @@ def _data_node_label(dot, k, values, attr=None, dist=None,
                 if tooltip:
                     kw['tooltip'] = tooltip
 
-                if not nested:
-                    v['output'] = '&#10;'.join(formatted_output)
+                    if node_output:
+                        v['output'] = tooltip
 
-                else:
-                    directory = dot.filepath.split('.')[0]
-                    filepath = _save_txt_output(directory, k, formatted_output)
-                    if filepath is not None:
-                        kw['URL'] = _url_rel_path(dot.directory, filepath)
+                directory = dot.filepath.split('.')[0]
+                filepath = _save_txt_output(directory, k, formatted_output)
+                if filepath is not None:
+                    kw['URL'] = _url_rel_path(dot.directory, filepath)
 
     node_label = _node_label(k, v)
 
