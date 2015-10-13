@@ -2,7 +2,7 @@
 CO2MPAS: Vehicle simulator predicting NEDC CO2 emissions from WLTP
 ##################################################################
 
-:Release:       1.0.3b0
+:Release:       1.0.3
 :Home:          http://co2mpas.io/
 :Releases:      http://files.co2mpas.io/
 :Sources:       https://github.com/JRCSTU/co2mpas
@@ -69,7 +69,7 @@ follow the detailed instructions under sections :ref:`install` and
     ## NOTE: If behind proxy, specify additionally this option:
     ##    --proxy http://user:password@yourProxyUrl:yourProxyPort
     ##
-    $ pip install co2mpas --extra-index http://pypi.co2mpas.io/simple/ --trusted-host pypi.co2mpas.io --pre
+    $ pip install co2mpas --extra-index http://pypi.co2mpas.io/simple/ --trusted-host pypi.co2mpas.io
 
     ## Where to store input and output files.
     ## In *Windows* cmd-prompt use `md` command instead.
@@ -240,12 +240,12 @@ CO2MPAS installation
 
    .. code-block:: console
 
-        > pip install co2mpas --extra-index http://pypi.co2mpas.io/simple/ --trusted-host pypi.co2mpas.io  --pre
+        > pip install co2mpas --extra-index http://pypi.co2mpas.io/simple/ --trusted-host pypi.co2mpas.io
         Collecting co2mpas
         Downloading http://pypi.co2mpas.io/packages/co2mpas-...
         ...
         Installing collected packages: co2mpas
-        Successfully installed co2mpas-1.0.3b0
+        Successfully installed co2mpas-1.0.3
 
    .. Note::
         **Installing Behind Firewall:**
@@ -286,9 +286,9 @@ CO2MPAS installation
    .. code-block:: console
 
         > python -v --version
-        co2mpas_version: 1.0.3b0
-        co2mpas_path: d:\co2mpas_ALLINONE-XXbit-v1.0.3b0\Apps\WinPython\python-3.4.3\lib\site-packages\co2mpas
-        python_path: D:\co2mpas_ALLINONE-XXbit-v1.0.3b0\WinPython\python-3.4.3
+        co2mpas_version: 1.0.3
+        co2mpas_path: d:\co2mpas_ALLINONE-XXbit-v1.0.3\Apps\WinPython\python-3.4.3\lib\site-packages\co2mpas
+        python_path: D:\co2mpas_ALLINONE-XXbit-v1.0.3\WinPython\python-3.4.3
         python_version: 3.4.3 (v3.4.3:9b73f1c3e601, Feb 24 2015, 22:44:40) [MSC v.1600 XXX]
 
 
@@ -304,7 +304,7 @@ CO2MPAS installation
 
        .. code-block:: console
 
-            > pip install co2mpas==1.0.3b0 ... # Other options, like above.
+            > pip install co2mpas==1.0.3 ... # Other options, like above.
 
 
 
@@ -378,7 +378,7 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
     -I <fpath>       Input folder or file, prompted with GUI if missing [default: ./input]
     -O <fpath>       Input folder or file, prompted with GUI if missing [default: ./output]
     -l, --list       List available models.
-    --predict-wltp   Whether to predict also WLTP values.
+   dict-wltp   Whether to predict also WLTP values.
     --more-output    Output also per-vehicle output-files.
     --no-warn-gui    Does not pause batch-run to report inconsistencies.
     --plot-workflow  Open workflow-plot in browser, after run finished.

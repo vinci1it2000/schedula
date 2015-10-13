@@ -3,14 +3,18 @@ CO2MPAS Changes
 ###############
 .. _changes:
 
-v1.0.3 XX-Oct 2015: 3rd open release
-====================================
-Still no model-changes, just *all-in-one* improvements and better
-instructions.
+v1.0.3, 13-Oct 2015, CWG release
+================================
+Still no model-changes in comparison to v1.0.1, release just to distribute
+the *all-in-one* archive, provide better instructions, and demonstrate ipython
+UI.
+
+- Note that the CO2MPAS contained in the ALLINONE archive is ``1.0.3b0``,
+  which does not affect the results or the UI in any way.
 
 
-v1.0.2 6-Oct 2015: "Renata" release, unpublished
-================================================
+v1.0.2, 6-Oct 2015: "Renata" release, unpublished
+=================================================
 No model-changes, beta-testing "all-in-one" archive for *Windows* distributed
 to selected active users only:
 
