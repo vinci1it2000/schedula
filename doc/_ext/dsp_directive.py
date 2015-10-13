@@ -1,13 +1,14 @@
 from sphinx.ext.autodoc import *
 from co2mpas.dispatcher import Dispatcher
 # noinspection PyProtectedMember
-from co2mpas.dispatcher.utils.drw import plot, _func_name, _get_original_func
-from co2mpas.dispatcher.utils.dsp import SubDispatch, SubDispatchFunction
+from co2mpas.dispatcher.utils.drw import plot, _func_name
+from co2mpas.dispatcher.utils.dsp import SubDispatch
+from co2mpas.dispatcher.utils.des import search_node_description, get_summary, \
+    get_original_func
 # ------------------------------------------------------------------------------
 # Doctest handling
 # ------------------------------------------------------------------------------
 from doctest import DocTestParser, DocTestRunner, NORMALIZE_WHITESPACE, ELLIPSIS
-from functools import partial
 
 
 def contains_doctest(text):
@@ -21,45 +22,9 @@ def contains_doctest(text):
     m = r.search(text)
     return bool(m)
 
-
 # ------------------------------------------------------------------------------
 # Auto dispatcher content
 # ------------------------------------------------------------------------------
-
-def get_attr_doc(doc, attr_name, get_param=True):
-    if get_param:
-        res = re.search(r":param[\s]+%s:" % attr_name, doc)
-    else:
-        res = re.search(r":returns?:", doc)
-
-    if res:
-        return get_summary(doc[res.regs[0][1]:].split('\n'))
-    else:
-        return ''
-
-
-def get_summary(doc):
-    while doc and not doc[0].strip():
-        doc.pop(0)
-
-    # If there's a blank line, then we can assume the first sentence /
-    # paragraph has ended, so anything after shouldn't be part of the
-    # summary
-    for i, piece in enumerate(doc):
-        if not piece.strip():
-            doc = doc[:i]
-            break
-
-    # Try to find the "first sentence", which may span multiple lines
-    m = re.search(r"^([A-Z].*?\.)(?:\s|$)", " ".join(doc).strip())
-    if m:
-        summary = m.group(1).strip()
-    elif doc:
-        summary = doc[0].strip()
-    else:
-        summary = ''
-
-    return summary
 
 
 def get_grandfather_content(content, level=2):
@@ -149,104 +114,6 @@ def _table_heather(lines, title, dsp_name):
     lines.extend(['.. csv-table:: **%s\'%s %s**' % (dsp_name, q, title), ''])
 
 
-def search_doc_in_func(dsp, node_id, where_succ=True, node_type='function'):
-    nodes = dsp.nodes
-    des, link = ('', '')
-    check = lambda *args: True
-
-    if where_succ:
-        neighbors = dsp.dmap.succ
-        node_attr = 'inputs'
-    else:
-        neighbors = dsp.dmap.pred
-        node_attr = 'outputs'
-
-    if node_type == 'function':
-        if not where_succ:
-            def check(k):
-                if dsp.dmap.out_degree(k) == 1:
-                    return True
-                func = _get_original_func(dsp.nodes[k].get('function', None))
-                return isinstance(func, SubDispatch)
-
-        def get_des(func_node):
-            n_ix = func_node[node_attr].index(node_id)
-            d, l = '', ''
-            if where_succ:
-                fun, n_ix = _get_original_func(func_node['function'],
-                                               input_id=n_ix)
-            else:
-                fun = _get_original_func(func_node['function'])
-
-            if isinstance(fun, SubDispatchFunction):
-                sub_dsp = fun.dsp
-                n_id = getattr(fun, node_attr)[n_ix]
-                n_att = sub_dsp.nodes[n_id]
-                d, l = search_data_description(n_id, n_att, sub_dsp)
-
-            elif isinstance(fun, SubDispatch) and not where_succ:
-                if fun.output_type == 'list':
-                    sub_dsp = fun.dsp
-                    n_id = getattr(fun, node_attr)[n_ix]
-                    n_att = sub_dsp.nodes[n_id]
-                    d, l = search_data_description(n_id, n_att, sub_dsp)
-
-            if d:
-                return d, l
-            try:
-                attr_name = getargspec(fun)[0][n_ix] if where_succ else None
-            except IndexError:
-                attr_name = getargspec(fun)[1]
-
-            return get_attr_doc(fun.__doc__, attr_name, where_succ), ''
-
-    else:
-        if where_succ:
-            get_id = lambda node: node[node_attr][node_id]
-        else:
-            def get_id(node):
-                it = node[node_attr].items()
-                return next(k for k, v in it if v == node_id)
-
-        def get_des(dsp_node):
-            sub_dsp = dsp_node['function']
-            n_id = get_id(dsp_node)
-            return search_data_description(n_id, sub_dsp.nodes[n_id], sub_dsp)
-
-    for k, v in ((k, nodes[k]) for k in sorted(neighbors[node_id])):
-        if v['type'] == node_type and check(k):
-            # noinspection PyBroadException
-            try:
-                des, link = get_des(v)
-            except:
-                pass
-
-        if des:
-            return des, link
-
-    if where_succ:
-        return search_doc_in_func(dsp, node_id, False, node_type)
-    elif node_type == 'function':
-        return search_doc_in_func(dsp, node_id, True, 'dispatcher')
-    return des, link
-
-
-def search_data_description(node_id, node_attr, dsp):
-    link = ''
-
-    if 'description' in node_attr:
-        des = node_attr['description']
-    else:
-        # noinspection PyBroadException
-        try:
-            des = node_id.__doc__
-            link = '%s.%s' % (node_id.__module__, node_id.__name__)
-        except:
-            des, link = search_doc_in_func(dsp, node_id)
-
-    return des, link
-
-
 def _data(lines, dsp):
     nodes = dsp.nodes
     data = [v for v in sorted(nodes.items()) if v[1]['type'] == 'data']
@@ -254,7 +121,7 @@ def _data(lines, dsp):
         _table_heather(lines, 'data', dsp.name)
 
         for k, v in data:
-            des, link = search_data_description(k, v, dsp)
+            des, link = search_node_description(k, v, dsp)
 
             link = ':obj:`%s <%s>`' % (_node_name(str(k)), link)
             str_format = u'   "%s", "%s"'
@@ -269,7 +136,7 @@ def _functions(lines, dsp, function_module, node_type='function'):
             return False
 
         if 'function' in node_attr:
-            func = _get_original_func(node_attr['function'])
+            func = get_original_func(node_attr['function'])
             c = isinstance(func, (Dispatcher, SubDispatch))
             return c if node_type == 'dispatcher' else not c
         return node_attr['type'] == node_type
@@ -280,27 +147,7 @@ def _functions(lines, dsp, function_module, node_type='function'):
         _table_heather(lines, '%ss' % node_type, dsp.name)
 
         for k, v in fun:
-            des, full_name = '', ''
-
-            func = _get_original_func(v.get('function', None))
-
-            if 'description' in v:
-                des = v['description']
-            elif func:
-                des = func.__doc__ or ''
-                if not des:
-                    if isinstance(func, Dispatcher):
-                        des = func.name
-                    elif isinstance(func, SubDispatch):
-                        des = func.dsp.name
-
-            des = get_summary(des.split('\n'))
-
-            try:
-                full_name = '%s.%s' % (func.__module__, func.__name__)
-            except:
-                pass
-
+            des, full_name = search_node_description(k, v, dsp)
             name = _node_name(_func_name(k, function_module))
 
             lines.append(u'   ":func:`%s <%s>`", "%s"' % (name, full_name, des))

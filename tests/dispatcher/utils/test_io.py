@@ -12,7 +12,7 @@ import platform
 
 if platform.python_implementation() != "PyPy":
     from tempfile import mkstemp
-    from co2mpas.dispatcher.utils import *
+    from co2mpas.dispatcher.utils.io import *
     from co2mpas.dispatcher import Dispatcher
 
 

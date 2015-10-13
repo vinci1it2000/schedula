@@ -5,7 +5,7 @@ if not IS_PYPY:
 
     import unittest
     from co2mpas.dispatcher import Dispatcher
-    from co2mpas.dispatcher.utils import plot
+    from co2mpas.dispatcher.utils.drw import plot
     from doc._ext.dsp_directive import DispatcherDirective, PLOT
     from docutils.statemachine import ViewList
 

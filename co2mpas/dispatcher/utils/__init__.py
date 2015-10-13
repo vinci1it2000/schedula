@@ -41,6 +41,7 @@ Sub-Modules:
     drw
     constants
     io
+    doc
 """
 
 __author__ = 'Vincenzo Arcidiacono'
@@ -51,3 +52,4 @@ from .gen import *
 from .drw import *
 from .constants import *
 from .io import *
+from .des import *
