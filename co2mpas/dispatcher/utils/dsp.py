@@ -383,7 +383,7 @@ def replicate_value(value, n=2, copy=True):
     return bypass(*[value] * n, copy=copy)  # Return replicated values.
 
 
-def add_args(func, n=1):
+class add_args(object):
     """
     Adds arguments to a function (left side).
 
@@ -411,16 +411,15 @@ def add_args(func, n=1):
         7
     """
 
-    def wrapper(*args, **kwargs):  # Wrap function.
-        return func(*args[n:], **kwargs)
+    def __init__(self, func, n=1):
+        self.func = func
+        self.n = n
+        self.__name__ = func.__name__
+        self.__doc__ = func.__doc__
+        self.__signature__ = _get_signature(func, n)
 
-    # Set wrapper name, doc, and signature.
-    wrapper.__name__, wrapper.__doc__ = func.__name__, func.__doc__
-    wrapper.__signature__ = _get_signature(func, n)
-    wrapper.n = 1
-    wrapper.func = func
-
-    return wrapper  # Return wrapper.
+    def __call__(self, *args, **kwargs):
+        return self.func(*args[self.n:], **kwargs)
 
 
 def _get_signature(func, n=1):
