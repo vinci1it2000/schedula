@@ -1,7 +1,7 @@
 ##################
 CO2MPAS All-In-One
 ##################
-A pre-populated folder with WinPython + CO2MPAS + Consoles for Windows.
+A pre-populated folder with WinPython + CO2MPAS + Consoles for *Windows*.
 
 Generic Tips
 ============

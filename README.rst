@@ -378,7 +378,7 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
     -I <fpath>       Input folder or file, prompted with GUI if missing [default: ./input]
     -O <fpath>       Input folder or file, prompted with GUI if missing [default: ./output]
     -l, --list       List available models.
-    --predict-wltp   Whether predict also WLTP values.
+    --predict-wltp   Whether to predict also WLTP values.
     --more-output    Output also per-vehicle output-files.
     --no-warn-gui    Does not pause batch-run to report inconsistencies.
     --plot-workflow  Open workflow-plot in browser, after run finished.
@@ -640,6 +640,10 @@ Debugging and investigating results
 
         $ co2mpas modelgraph gear_box_calibration
 
+  .. image:: _static/GearModel.png
+    :alt: Flow-diagram of the Gear-calibration model.
+    :height: 240
+    :width: 320
 
 - Inspect the functions mentioned in the workflow and models and search them
   in `CO2MPAS documentation <http://files.co2mpas.io/>`_ ensuring you are

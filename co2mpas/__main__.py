@@ -20,7 +20,7 @@ Usage:
 -I <fpath>       Input folder or file, prompted with GUI if missing [default: ./input]
 -O <fpath>       Input folder or file, prompted with GUI if missing [default: ./output]
 -l, --list       List available models.
---predict-wltp   Whether predict also WLTP values.
+--predict-wltp   Whether to predict also WLTP values.
 --more-output    Output also per-vehicle output-files.
 --no-warn-gui    Does not pause batch-run to report inconsistencies.
 --plot-workflow  Open workflow-plot in browser, after run finished.
