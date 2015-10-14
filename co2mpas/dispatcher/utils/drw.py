@@ -352,11 +352,12 @@ def _set_sub_dsp(dot, dsp, dot_id, node_name, edge_attr, workflow, level,
 
     lv = level - 1 if level != 'all' else level
 
+    dot_kw['directory'] = dot_kw.get('directory', dot.directory)
+
     if nested:
         sub_dot = None
         dot_kw['name'] = node_name
         dot_kw['filename'] = node_name
-        dot_kw['directory'] = dot.directory
 
         def wrapper(*args, **kwargs):
             s_dot = plot(*args, is_sub_dsp=True, **kwargs)
