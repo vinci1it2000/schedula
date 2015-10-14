@@ -82,6 +82,20 @@ def _init_logging(verbose):
     logging.basicConfig(level=level, format=frmt)
 
 
+def build_version_string(verbose):
+    v = '%s-%s' % (proj_name, proj_ver)
+    if verbose:
+        v_infos = OrderedDict([
+            ('co2mpas_version', proj_ver),
+            ('co2mpas_path', os.path.dirname(proj_file)),
+            ('python_version', sys.version),
+            ('python_path', sys.prefix),
+            ('PATH', os.environ.get('PATH', None)),
+        ])
+        v = ''.join('%s: %s\n' % kv for kv in v_infos.items())
+    return v
+
+
 def _cmd_modelgraph(opts):
     from co2mpas.functions import plot as co2plot
     if opts['--list']:
@@ -223,17 +237,11 @@ def _main(*args):
 
     opts = docopt(__doc__,
                   argv=args or sys.argv[1:])
-    _init_logging(opts['--verbose'])
+
+    verbose = opts['--verbose']
+    _init_logging(verbose)
     if opts['--version']:
-        v = '%s-%s' % (proj_name, proj_ver)
-        if opts['--verbose']:
-            v_infos = OrderedDict([
-                ('co2mpas_version', proj_ver),
-                ('co2mpas_path', os.path.dirname(proj_file)),
-                ('python_version', sys.version),
-                ('python_path', sys.prefix),
-            ])
-            v = ''.join('%s: %s\n' % kv for kv in v_infos.items())
+        v = build_version_string(verbose)
         print(v)
     else:
         if opts['template']:

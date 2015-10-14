@@ -22,6 +22,7 @@ readme_path = os.path.join(mydir, '..', 'README.rst')
 
 
 class Main(unittest.TestCase):
+
     def test_Version(self):
         cmd = "-v --version"
         stdout = io.StringIO()
@@ -40,7 +41,6 @@ class Main(unittest.TestCase):
         self.assertIn(proj_ver, s),
         self.assertNotIn(sys.prefix, s),
         self.assertNotIn(sys.version, s),
-
 
     def test_Gen_template(self):
         gen_files = ['t1', 'tt2.xlsx']
@@ -82,7 +82,7 @@ class Main(unittest.TestCase):
             cmd = "-I %s -O %s" % (inp, out)
             compas_main._main(*cmd.split())
 
-    #@unittest.skip('Takes too long.')  ## DO NOT COMIT AS SKIPPED!!
+    #@unittest.skip('Takes too long.')  # DO NOT COMIT AS SKIPPED!!
     def test_run_demos(self):
         with tempfile.TemporaryDirectory() as inp, \
                 tempfile.TemporaryDirectory() as out:

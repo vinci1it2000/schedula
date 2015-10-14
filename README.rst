@@ -290,6 +290,7 @@ CO2MPAS installation
         co2mpas_path: d:\co2mpas_ALLINONE-XXbit-v1.0.4.dev0\Apps\WinPython\python-3.4.3\lib\site-packages\co2mpas
         python_path: D:\co2mpas_ALLINONE-XXbit-v1.0.4.dev0\WinPython\python-3.4.3
         python_version: 3.4.3 (v3.4.3:9b73f1c3e601, Feb 24 2015, 22:44:40) [MSC v.1600 XXX]
+        PATH: D:\co2mpas_ALLINONE-XXbit-v1.0.4.dev0\WinPython...
 
 
 .. Warning::
