@@ -221,11 +221,11 @@ def _process_folder_files(
 
         def model_builder():
             outputs = [
-                'precondition_cycle_inputs',
-                'wltp_h_cycle_inputs',
-                'wltp_l_cycle_inputs',
+                'wltp_precondition_inputs',
+                'wltp_h_inputs',
+                'wltp_l_inputs',
                 'nedc_inputs',
-                'nedc_cycle_targets'
+                'nedc_targets'
             ]
 
             inps_n_outs = model.dispatch(inputs=input_files, outputs=outputs)[1]
@@ -243,7 +243,7 @@ def _process_folder_files(
             summary[k] = l = summary.get(k, [])
             l.append(v)
 
-        if not plot_workflow:
+        if plot_workflow:
             try:
                 model.plot(workflow=True)
             except RuntimeError as ex:

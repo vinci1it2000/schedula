@@ -131,10 +131,10 @@ def load_inputs():
         function_id='replicate',
         function=partial(dsp_utl.replicate_value, n=4),
         inputs=['input_file_name'],
-        outputs=['precondition_cycle_input_file_name',
-                 'wltp_h_cycle_input_file_name',
-                 'wltp_l_cycle_input_file_name',
-                 'nedc_cycle_input_file_name'],
+        outputs=['wltp_precondition_input_file_name',
+                 'wltp_h_input_file_name',
+                 'wltp_l_input_file_name',
+                 'nedc_input_file_name'],
     )
 
     ############################################################################
@@ -143,8 +143,8 @@ def load_inputs():
 
     load_inputs.add_function(
         function=partial(load(), 'WLTP-Precon'),
-        inputs=['precondition_cycle_input_file_name'],
-        outputs=['precondition_cycle_inputs', 'precondition_cycle_targets'],
+        inputs=['wltp_precondition_input_file_name'],
+        outputs=['wltp_precondition_inputs', 'wltp_precondition_targets'],
     )
 
 
@@ -154,8 +154,8 @@ def load_inputs():
 
     load_inputs.add_function(
         function=partial(load(), 'WLTP-H'),
-        inputs=['wltp_h_cycle_input_file_name'],
-        outputs=['wltp_h_cycle_inputs', 'wltp_h_cycle_targets'],
+        inputs=['wltp_h_input_file_name'],
+        outputs=['wltp_h_inputs', 'wltp_h_targets'],
     )
 
     ############################################################################
@@ -164,8 +164,8 @@ def load_inputs():
 
     load_inputs.add_function(
         function=partial(load(), 'WLTP-L'),
-        inputs=['wltp_l_cycle_input_file_name'],
-        outputs=['wltp_l_cycle_inputs', 'wltp_l_cycle_targets'],
+        inputs=['wltp_l_input_file_name'],
+        outputs=['wltp_l_inputs', 'wltp_l_targets'],
     )
 
     ############################################################################
@@ -174,8 +174,8 @@ def load_inputs():
 
     load_inputs.add_function(
         function=partial(load(), 'NEDC'),
-        inputs=['nedc_cycle_input_file_name'],
-        outputs=['nedc_inputs', 'nedc_cycle_targets'],
+        inputs=['nedc_input_file_name'],
+        outputs=['nedc_inputs', 'nedc_targets'],
     )
 
     return load_inputs
@@ -205,7 +205,7 @@ def co2mpas_model(hide_warn_msgbox=False, prediction_WLTP=False):
     ############################################################################
 
     co2mpas_model.add_data(
-        data_id='precondition_cycle_inputs',
+        data_id='wltp_precondition_inputs',
         description='Dictionary that has all inputs of the calibration cycle.'
     )
 
@@ -214,8 +214,8 @@ def co2mpas_model(hide_warn_msgbox=False, prediction_WLTP=False):
     co2mpas_model.add_function(
         function_id='calibrate_physical_models',
         function=dsp_utl.SubDispatch(physical_calibration()),
-        inputs=['precondition_cycle_inputs'],
-        outputs=['precondition_cycle_outputs'],
+        inputs=['wltp_precondition_inputs'],
+        outputs=['wltp_precondition_outputs'],
         description='Wraps all functions needed to calibrate the models to '
                     'predict light-vehicles\' CO2 emissions.'
     )
@@ -226,7 +226,7 @@ def co2mpas_model(hide_warn_msgbox=False, prediction_WLTP=False):
 
     co2mpas_model.add_function(
         function=select_precondition_inputs,
-        inputs=['wltp_h_cycle_inputs', 'precondition_cycle_outputs'],
+        inputs=['wltp_h_inputs', 'wltp_precondition_outputs'],
         outputs=['calibration_wltp_h_inputs'],
     )
 
@@ -260,7 +260,7 @@ def co2mpas_model(hide_warn_msgbox=False, prediction_WLTP=False):
 
     co2mpas_model.add_function(
         function=select_precondition_inputs,
-        inputs=['wltp_l_cycle_inputs', 'precondition_cycle_outputs'],
+        inputs=['wltp_l_inputs', 'wltp_precondition_outputs'],
         outputs=['calibration_wltp_l_inputs'],
     )
 
@@ -341,10 +341,10 @@ def write_outputs(prediction_WLTP=False):
     ############################################################################
 
     write_outputs.add_function(
-        function_id='save_precondition_cycle_outputs',
+        function_id='save_wltp_precondition_outputs',
         function=write_output,
-        inputs=['precondition_cycle_outputs', 'precondition_output_file_name',
-                'output_sheet_names'],
+        inputs=['wltp_precondition_outputs',
+                'wltp_precondition_output_file_name', 'output_sheet_names'],
     )
 
     ############################################################################
@@ -352,7 +352,7 @@ def write_outputs(prediction_WLTP=False):
     ############################################################################
 
     write_outputs.add_function(
-        function_id='save_calibration_wltp_h_cycle_outputs',
+        function_id='save_calibration_wltp_h_outputs',
         function=write_output,
         inputs=['calibration_wltp_h_outputs',
                 'calibration_wltp_h_output_file_name', 'output_sheet_names'],
@@ -360,7 +360,7 @@ def write_outputs(prediction_WLTP=False):
 
     if prediction_WLTP:
         write_outputs.add_function(
-            function_id='save_prediction_wltp_h_cycle_outputs',
+            function_id='save_prediction_wltp_h_outputs',
             function=write_output,
             inputs=['prediction_wltp_h_outputs',
                     'prediction_wltp_h_output_file_name', 'output_sheet_names'],
@@ -371,7 +371,7 @@ def write_outputs(prediction_WLTP=False):
     ############################################################################
 
     write_outputs.add_function(
-        function_id='save_calibration_wltp_l_cycle_outputs',
+        function_id='save_calibration_wltp_l_outputs',
         function=write_output,
         inputs=['calibration_wltp_l_outputs',
                 'calibration_wltp_l_output_file_name', 'output_sheet_names'],
@@ -379,7 +379,7 @@ def write_outputs(prediction_WLTP=False):
 
     if prediction_WLTP:
         write_outputs.add_function(
-            function_id='save_prediction_wltp_l_cycle_outputs',
+            function_id='save_prediction_wltp_l_outputs',
             function=write_output,
             inputs=['prediction_wltp_l_outputs',
                     'prediction_wltp_l_output_file_name', 'output_sheet_names'],
@@ -390,7 +390,7 @@ def write_outputs(prediction_WLTP=False):
     ############################################################################
 
     write_outputs.add_function(
-        function_id='save_nedc_cycle_outputs',
+        function_id='save_nedc_outputs',
         function=write_output,
         inputs=['prediction_nedc_outputs', 'prediction_nedc_output_file_name',
                 'output_sheet_names'],
@@ -420,28 +420,28 @@ def vehicle_processing_model(
     )
 
     co2mpas_inputs = [
-        'precondition_cycle_inputs',
-        'wltp_h_cycle_inputs',
-        'wltp_l_cycle_inputs',
+        'wltp_precondition_inputs',
+        'wltp_h_inputs',
+        'wltp_l_inputs',
         'nedc_inputs',
     ]
 
     co2mpas_targets = [
-        'precondition_cycle_targets',
-        'wltp_h_cycle_targets',
-        'wltp_l_cycle_targets',
-        'nedc_cycle_targets',
+        'wltp_precondition_targets',
+        'wltp_h_targets',
+        'wltp_l_targets',
+        'nedc_targets',
     ]
 
     co2mpas_outputs=[
-        'precondition_cycle_outputs',
+        'wltp_precondition_outputs',
         'calibration_wltp_h_outputs',
         'calibration_wltp_l_outputs',
         'prediction_nedc_outputs',
     ]
 
     output_file_names = [
-        'precondition_output_file_name',
+        'wltp_precondition_output_file_name',
         'calibration_wltp_h_output_file_name',
         'calibration_wltp_l_output_file_name',
         'prediction_nedc_output_file_name',

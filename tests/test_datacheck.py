@@ -61,5 +61,6 @@ class SeatBelt(unittest.TestCase):
             with open(sum_file, 'rt') as fd:
                 old_summaries = json.load(fd)
                 self._check_summaries(summaries, old_summaries)
-        with open(sum_file, 'wt') as fd:
-            json.dump(summaries, fd)
+        else:
+            with open(sum_file, 'wt') as fd:
+                json.dump(summaries, fd)
