@@ -197,12 +197,16 @@ def _get_link(dsp_id, dsp, node_id, tag, function_module):
 
 
 def _fun_node_label(k, attr=None, dist=None):
+
+    exc = {'type', 'inputs', 'outputs', 'wait_inputs', 'function',
+           'description', 'workflow'}
     if not dist:
-        exc = ['type', 'inputs', 'outputs', 'wait_inputs', 'function',
-               'description']
         v = {k: _fun_attr(k, v) for k, v in attr.items() if k not in exc}
     else:
-        v = {'distance': dist[k]} if k in dist else {}
+        exc = exc.union({'input_domain'})
+        v = {k: _fun_attr(k, v) for k, v in attr.items() if k not in exc}
+        if k in dist:
+            v['distance'] = dist[k]
 
     return _node_label(k, v)
 
@@ -244,8 +248,9 @@ def _init_graph_data(dsp, workflow, edge_attr):
 
 
 def _set_node(dot, node_id, dsp2dot_id, dsp=None, node_attr=None, values=None,
-              dist=None, function_module=True, edge_attr=None, workflow=False,
-              level=0, node_output=False, nested=False, **dot_kw):
+              dist=None, function_module=True, edge_attr=None,
+              workflow_node=False, level=0, node_output=False, nested=False,
+              **dot_kw):
 
     styles = {
         START: ('start', {'shape': 'egg', 'fillcolor': 'red'}),
@@ -273,8 +278,8 @@ def _set_node(dot, node_id, dsp2dot_id, dsp=None, node_attr=None, values=None,
 
         else:
             node_name = _func_name(node_id, function_module)
-            node_label = _fun_node_label(node_name, node_attr, dist)
-
+            label_attr = workflow_node if dist else node_attr
+            node_label = _fun_node_label(node_name, label_attr, dist)
             fun, n_args = get_parent_func(node_attr.get('function', None), 0)
 
             if node_type == 'dispatcher' or isinstance(fun, SubDispatch):
@@ -289,7 +294,7 @@ def _set_node(dot, node_id, dsp2dot_id, dsp=None, node_attr=None, values=None,
                         'dot_id': 'cluster_%s' % dot_id,
                         'node_name': node_name,
                         'edge_attr': edge_attr,
-                        'workflow': workflow,
+                        'workflow': workflow_node.get('workflow', False),
                         'level': level,
                         'node_output': node_output,
                         'function_module': function_module,
@@ -550,7 +555,7 @@ def plot(dsp, workflow=False, dot=None, edge_data=None, view=False,
                   dsp=dsp,
                   function_module=function_module,
                   edge_attr=edge_data,
-                  workflow=v.get('workflow', False),
+                  workflow_node=v,
                   level=level,
                   node_output=node_output,
                   nested=nested)

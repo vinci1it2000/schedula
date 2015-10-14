@@ -30,6 +30,7 @@ from collections import deque
 from copy import copy, deepcopy
 from networkx import DiGraph, isolates
 from functools import partial
+from datetime import datetime
 
 from .utils.gen import AttrDict, counter, caller_name
 from .utils.alg import add_edge_fun, remove_edge_fun, rm_cycles_iter, \
@@ -2213,14 +2214,19 @@ class Dispatcher(object):
             else:  # Use the estimation function of node.
                 fun = node_attr['function']  # Get function.
 
+                attr = {'started': datetime.today()}  # Starting time.
+
                 res = fun(*args)  # Evaluate function.
+
+                # Time elapsed.
+                attr['duration'] = datetime.today() - attr['started']
 
                 fun = get_parent_func(fun)  # Get parent function (if nested).
                 if isinstance(fun, SubDispatch):  # Save intermediate results.
-                    self.workflow.add_node(
-                        node_id,
-                        workflow=(fun.workflow, fun.data_output, fun.dist)
-                    )
+                    attr['workflow'] = (fun.workflow, fun.data_output, fun.dist)
+
+                # Save node.
+                self.workflow.add_node(node_id, **attr)
 
                 # List of function results.
                 res = res if len(o_nds) > 1 else [res]
