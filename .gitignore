@@ -68,4 +68,4 @@ target/
 /.pydevproject
 /.settings
 /co2mpas/ipynbs/.ipynb_checkpoints/
-
+.co2mpas_cache

@@ -4,7 +4,6 @@
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
-
 """
 It contains a list of all modules that contains functions/formulas of CO2MPAS.
 
@@ -23,14 +22,20 @@ Modules:
 
 """
 
-import re
-import os
+from collections import Iterable
+import datetime
 import glob
 import logging
-import datetime
+import os
+import pathlib
+import re
+
+import dill
+from networkx.utils.decorators import open_file
+
 import numpy as np
 import pandas as pd
-from collections import Iterable
+
 from .write_outputs import check_writeable
 
 
@@ -211,10 +216,21 @@ def _process_folder_files(
 
         log.info('Processing: %s', fname)
 
-        inputs = {'input_file_name': fpath}
+        input_files = {'input_file_name': fpath}
+        update_inputs(input_files, fname)
 
-        update_inputs(inputs, fname)
+        def model_builder():
+            outputs = [
+                'precondition_cycle_inputs',
+                'wltp_h_cycle_inputs',
+                'wltp_l_cycle_inputs',
+                'nedc_inputs',
+                'nedc_targets'
+            ]
+            inps_n_outs = model.dispatch(inputs=input_files, outputs=outputs)[1]
+            return {k:v for k, v in inps_n_outs.items() if k in outputs}
 
+        inputs = _read_model_from_cache(fpath, model_builder)
         res = model.dispatch(inputs=inputs)
 
         s = _make_summary(sheets, *res, **{'vehicle': fname})
@@ -235,6 +251,46 @@ def _process_folder_files(
         summary = {'SUMMARY': summary['SUMMARY']}
 
     return summary, start_time
+
+
+@open_file(0, mode='wb')
+def _store_model_from_dill_file(fpath, model):
+    log.debug('Writting cache-file: %s', fpath)
+    dill.dump(model, fpath)
+
+@open_file(0, mode='rb')
+def _load_model_from_dill_file(fpath):
+    log.info('Reading cached-file: %s', fpath)
+    return dill.load(fpath)
+
+def _read_model_from_cache(inp_fpath, model_loader):
+    """
+    If intermediate cache-file (pickled) exists AND up-to-date with input, return its contents.
+
+    :parm callable model_loader:
+            a func to generate model if not already in cache.
+    :return: `None` if no cache found.
+    """
+
+    inp_fpath = pathlib.Path(inp_fpath)
+    cache_folder = inp_fpath.parent.joinpath('.co2mpas_cache')
+    try:
+        cache_folder.mkdir()
+    except:
+        pass
+    cache_fpath = cache_folder.joinpath('%s.dill' % inp_fpath.name)
+    cache_fpath_str = str(cache_fpath.absolute())
+    model = None
+    if cache_fpath.exists():
+        inp_stats = inp_fpath.stat()   ## Will scream if INPUT does not exist.
+        cache_stats = cache_fpath.stat()
+        if inp_stats.st_mtime <= cache_stats.st_mtime:
+            model = _load_model_from_dill_file(cache_fpath_str)
+    if model is None:
+        model = model_loader()
+        _store_model_from_dill_file(cache_fpath_str, model)
+
+    return model
 
 
 def _get_sheet_summary_actions():

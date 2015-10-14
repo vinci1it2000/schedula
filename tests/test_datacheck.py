@@ -3,6 +3,7 @@ import os
 import sys
 
 from co2mpas.functions import _process_folder_files
+from co2mpas.__main__ import _init_logging
 import tempfile
 import json
 
@@ -10,6 +11,7 @@ OVERWRITE_SEATBELT = False # NOTE: Do not commit it as `True`!
 DATA_DIFF_RATIO = 1e-6
 EPS = 2 * sys.float_info.epsilon / DATA_DIFF_RATIO
 
+_init_logging(True)
 
 class SeatBelt(unittest.TestCase):
 
