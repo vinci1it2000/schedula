@@ -8,9 +8,9 @@
 
 import unittest
 from co2mpas.functions import plot as co2plot
-from co2mpas.__main__ import _init_logging
+from co2mpas.__main__ import init_logging
 
-_init_logging(True)
+init_logging(True)
 
 
 class TPlot(unittest.TestCase):

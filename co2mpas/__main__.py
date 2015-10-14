@@ -76,7 +76,7 @@ proj_name = 'co2mpas'
 log = logging.getLogger(__name__)
 
 
-def _init_logging(verbose):
+def init_logging(verbose):
     level = logging.DEBUG if verbose else logging.INFO
     frmt = "%(asctime)-15s:%(levelname)s:%(name)s:%(message)s"
     logging.basicConfig(level=level, format=frmt)
@@ -239,7 +239,7 @@ def _main(*args):
                   argv=args or sys.argv[1:])
 
     verbose = opts['--verbose']
-    _init_logging(verbose)
+    init_logging(verbose)
     if opts['--version']:
         v = build_version_string(verbose)
         print(v)
