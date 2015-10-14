@@ -1249,7 +1249,7 @@ class Dispatcher(object):
 
         return deepcopy(self)  # Return the copy of the Dispatcher.
 
-    def plot(self, workflow=False, edge_data=EMPTY, view=True, level='all',
+    def plot(self, workflow=False, edge_data=EMPTY, view=True, level=-1,
              function_module=False, node_output=False, filename=None,
              nested=True, **kw_dot):
         """
@@ -1273,8 +1273,8 @@ class Dispatcher(object):
         :type view: bool, optional
 
         :param level:
-            Max level of sub-dispatch plots.
-        :type level: int, str, optional
+            Max level of sub-dispatch plots. If negative all levels are plotted.
+        :type level: int, optional
 
         :param function_module:
             If True the function labels are plotted with the function module,

@@ -227,8 +227,10 @@ def _func_name(name, function_module=True):
 
 def _init_graph_data(dsp, workflow, edge_attr):
     func_in_out = [[], []]
-
-    if isinstance(dsp, SubDispatch):
+    if not workflow and isinstance(dsp, SubDispatchFunction):
+        func_in_out = [dsp.inputs, dsp.outputs]
+        dsp = dsp.dsp
+    elif isinstance(dsp, SubDispatch):
         dsp = dsp.dsp
 
     if workflow:
@@ -240,8 +242,6 @@ def _init_graph_data(dsp, workflow, edge_attr):
             args = [dsp, dsp.workflow, dsp.data_output, dsp.dist, edge_attr]
 
     else:
-        if isinstance(dsp, SubDispatchFunction):
-            func_in_out = [dsp.inputs, dsp.outputs]
         args = [dsp, dsp.dmap, dsp.default_values, {}, edge_attr or dsp.weight]
 
     return args + func_in_out
@@ -285,7 +285,7 @@ def _set_node(dot, node_id, dsp2dot_id, dsp=None, node_attr=None, values=None,
             if node_type == 'dispatcher' or isinstance(fun, SubDispatch):
                 kw['style'] = 'dashed, filled'
 
-                if level:
+                if level != 0:
                     kw['fillcolor'] = '#FF8F0F80'
 
                     kwargs = {
@@ -355,8 +355,6 @@ def _save_txt_output(directory, filename, output_lines):
 def _set_sub_dsp(dot, dsp, dot_id, node_name, edge_attr, workflow, level,
                  node_output, function_module=True, nested=False, **dot_kw):
 
-    lv = level - 1 if level != 'all' else level
-
     dot_kw['directory'] = dot_kw.get('directory', dot.directory)
 
     if nested:
@@ -389,7 +387,7 @@ def _set_sub_dsp(dot, dsp, dot_id, node_name, edge_attr, workflow, level,
             dot.subgraph(s_dot)
             return {}
 
-    return wrapper(dsp, workflow, sub_dot, edge_attr, level=lv,
+    return wrapper(dsp, workflow, sub_dot, edge_attr, level=level - 1,
                    function_module=function_module, node_output=node_output,
                    nested=nested, **dot_kw)
 
@@ -421,7 +419,7 @@ def _get_dsp2dot_id(dot, graph):
 
 
 def plot(dsp, workflow=False, dot=None, edge_data=None, view=False,
-         level='all', function_module=True, node_output=True, nested=False,
+         level=-1, function_module=True, node_output=True, nested=False,
          is_sub_dsp=False, **kw_dot):
     """
     Plots the Dispatcher with a graph in the DOT language with Graphviz.
@@ -452,8 +450,8 @@ def plot(dsp, workflow=False, dot=None, edge_data=None, view=False,
     :type view: bool, optional
 
     :param level:
-        Max level of sub-dispatch plots.
-    :type level: int, str, optional
+        Max level of sub-dispatch plots. If negative all levels are plotted.
+    :type level: int, optional
 
     :param function_module:
         If True the function labels are plotted with the function module,
