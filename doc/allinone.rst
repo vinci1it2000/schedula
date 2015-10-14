@@ -1,32 +1,46 @@
 ##################
 CO2MPAS All-In-One
 ##################
-A pre-populated folder with WinPython + CO2MPAS + Consoles for Windows.
+A pre-populated folder with WinPython + CO2MPAS + Consoles for *Windows*.
 
-Console Help
+Generic Tips
 ============
 
 - You may freely move & copy this folder around.
   But prefer NOT TO HAVE SPACES IN THE PATH LEADING TO IT.
 
-- To view & edit textual files, such as ``.txt``, ``.bat``, configuration-files
+- To view & edit textual files, such as ``.txt``, ``.bat`` or config-files
   starting with dot(``.``), you may use the "ancient" Window *notepad* editor,
-  or better download and install **notepad++** from:
-  http://portableapps.com/apps/development/notepadpp_portable
-  (no admin-rights needed)
+  but it will save you from  a lot of trouble if you download and install
+  **notepad++** from: http://portableapps.com/apps/development/notepadpp_portable
+  (no admin-rights needed).
 
-  Even better if you get accustomed to the "gem" file-manager of the '90s,
-  **TotalCommander**, at http://www.ghisler.com/ (no admin-rights needed).
-  Use the ``F3`` key-shortcut to view files.
+  Even better if you combine it with the "gem" file-manager of the '90s,
+  **TotalCommander**, from http://www.ghisler.com/ (no admin-rights needed).
+  From inside this file-manager, ``F3`` key-shortcut views files.
 
-- The Cygwin environment and its accompanying bash-shell is a much more
-  powerful command-interpreter.  There are MANY tutorials and crash-courses
-  for the fundamental bash-commands (`ls`, `pwd`, `cd`, etc), such as:
-  http://www.ks.uiuc.edu/Training/Tutorials/Reference/unixprimer.html
+- The **Cygwin** POSIX-environment and its accompanying **bash-shell** are
+  a much better choice to give console-commands compare to `cmd.exe` prompt,
+  supporting *auto-completion* for various commands (with ``[TAB]``key) and
+  enhanced history search (with ``[UP]/[DOWN]`` cursor-keys).
 
-  A more detailed guide is the following (just ignore the Linux-specific part):
-  http://linuxcommand.org/lc3_lts0020.php
+  There are MANY tutorials and crash-courses for bash:
 
+  - a concise one:
+    http://www.ks.uiuc.edu/Training/Tutorials/Reference/unixprimer.html
+  - a more detailed guide (just ignore the Linux-specific part):
+    http://linuxcommand.org/lc3_lts0020.php
+  - a useful poster with all fundamental bash-commands (eg. `ls`, `pwd`, `cd`):
+    http://www.improgrammer.net/linux-commands-cheat-sheet/
+
+- The console automatically copies into clipboard anything that is selected
+  with the mouse.  In case of errors, copy and paste the offending commands and
+  their error-messages to emails sent to JRC.
+
+- When a new CO2MPAS version comes out it is not necessary to download the full
+  ALLINONE archive, but you choose instead to just *upgrade* co2mpas.
+
+  Please follow the upgrade procedure in the main documentation.
 
 
 1st steps
@@ -120,7 +134,8 @@ Console Help
             > co2mpas --version
             co2mpas-1.0.2 at D:\co2mpas_ALLINONE-XXbit-v1.0.2\Apps\WinPython-XXbit-3.4.3.5\python-3.4.3\lib\site-packages\co2mpas
 
-   In case of problems, the output from the above commands are valuable.
+   In case of problems, copy-paste the output from the above commands and send
+   it to JRC.
 
 
 4. Follow the *Usage* instructions; they are locally installed at
@@ -135,13 +150,6 @@ Console Help
    re-downloading the *all-in-one* archive.  Read the respective sub-section
    of the *Installation* section from the documents.
 
-
-Upgrade CO2MPAS
-===============
-When a new CO2MPAS version comes out it is not necessary to download the full
-ALLINONE archive, but you choose instead to just *upgrade* co2mpas.
-
-Please follow the procedure in the main documentation.
 
 
 File Contents
@@ -170,5 +178,5 @@ File Contents
     Apps/Console2/                          ## A versatile console-window supporting decent copy-paste.
     Apps/graphviz/                          ## Graph-plotting library (needed to generate model-plots).
 
-    README.txt                              ## This file, with instructions on this pre-populated folder.
+    README                                  ## This file, with instructions on this pre-populated folder.
 

@@ -1,3 +1,3 @@
 .. include:: ../README.rst
-    :start-after: _begin-usage:
+    :start-after: _usage:
 

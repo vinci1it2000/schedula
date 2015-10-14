@@ -6,12 +6,15 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
-import os
-import unittest
-import tempfile
-
 from co2mpas import __main__ as compas_main
+from co2mpas import __version__ as proj_ver
 import glob
+import os
+import tempfile
+import unittest
+from unittest.mock import patch
+import io
+import sys
 
 
 mydir = os.path.dirname(__file__)
@@ -19,6 +22,25 @@ readme_path = os.path.join(mydir, '..', 'README.rst')
 
 
 class Main(unittest.TestCase):
+    def test_Version(self):
+        cmd = "-v --version"
+        stdout = io.StringIO()
+        with patch('sys.stdout', stdout):
+            compas_main._main(*cmd.split())
+        s = stdout.getvalue()
+        self.assertIn(proj_ver, s),
+        self.assertIn(sys.prefix, s),
+        self.assertIn(sys.version, s),
+
+        cmd = "--version"
+        stdout = io.StringIO()
+        with patch('sys.stdout', stdout):
+            compas_main._main(*cmd.split())
+        s = stdout.getvalue()
+        self.assertIn(proj_ver, s),
+        self.assertNotIn(sys.prefix, s),
+        self.assertNotIn(sys.version, s),
+
 
     def test_Gen_template(self):
         gen_files = ['t1', 'tt2.xlsx']
@@ -60,7 +82,7 @@ class Main(unittest.TestCase):
             cmd = "-I %s -O %s" % (inp, out)
             compas_main._main(*cmd.split())
 
-    #@unittest.skip('Takes too long.')
+    #@unittest.skip('Takes too long.')  ## DO NOT COMIT AS SKIPPED!!
     def test_run_demos(self):
         with tempfile.TemporaryDirectory() as inp, \
                 tempfile.TemporaryDirectory() as out:

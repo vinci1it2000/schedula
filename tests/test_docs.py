@@ -47,10 +47,10 @@ class Doctest(unittest.TestCase):
                     pass
             ver_str = stdout.getvalue().strip()
             assert ver_str
-            m = re.match('(co2mpas-[^ ]+)', ver_str)
+            m = re.match('co2mpas-([^ ]+)', ver_str)
             self.assertIsNotNone(m, 'Version(%s) not found!' % ver_str)
             proj_ver = m.group(1)
-            self.assertIn('%s ' % proj_ver, ftext,
+            self.assertIn('co2mpas_version: %s' % proj_ver, ftext,
                           "Version(%s) not found in README cmd-line version-check!" %
                           ver)
 
