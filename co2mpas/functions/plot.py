@@ -9,6 +9,7 @@ It contains plotting functions for models and/or output results.
 """
 
 import co2mpas.dispatcher.utils as dsp_utl
+import importlib
 import logging
 import sys
 
@@ -83,7 +84,8 @@ def get_models_path(model_ids=None):
     return models
 
 
-def plot_model_graphs(model_ids=None, **kwargs):
+def plot_model_graphs(model_ids=None, view_in_browser=True,
+        depth=None, **kwargs):
     """
     Plots the graph of CO2MPAS models.
 
@@ -94,22 +96,16 @@ def plot_model_graphs(model_ids=None, **kwargs):
         .. note:: It it is not specified all models will be plotted.
     :type model_ids: list, None
 
-    :param kwargs:
-        Optional dsp2dot keywords.
-    :type kwargs: dict
+    :param int, None depth:
+        Max level of sub-dispatch plots.  If `None` or negative, no limit.
+
+    :param dict kwargs:
+        Optional :func:`dispatcher.utils.drw.dsp2dot` keywords.
 
     :return:
         A list of directed graphs source code in the DOT language.
     :rtype: list
     """
-
-    dot_setting = {
-        'view': True,
-        'level': 0,
-        'function_module': False
-    }
-    dot_setting.update(kwargs)
-
     models_path = get_models_path(model_ids=model_ids)
 
     log.info('Plotting graph for models: %s', models_path)
@@ -119,10 +115,12 @@ def plot_model_graphs(model_ids=None, **kwargs):
     for model_path in sorted(models_path):
         model_path = model_path.split('.')
         module_path, object_name = '.'.join(model_path[:-1]), model_path[-1]
-        __import__(module_path)
+        importlib.import_module(module_path)
         module = sys.modules[module_path]
         dsp = getattr(module, object_name)()
-        dot = dsp_utl.plot(dsp, **dot_setting)
+        depth = 'all' if depth < 0 else depth  # Please @arci rename arg.
+        dot = dsp_utl.plot(dsp, view=view_in_browser,
+                function_module=True, level=depth, **kwargs)
         dot_graphs.append(dot)
 
     return dot_graphs

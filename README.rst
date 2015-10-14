@@ -371,7 +371,8 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
         co2mpas demo       [-v] [-f] <folder>
         co2mpas template   [-v] [-f] <excel-file-path> ...
         co2mpas ipynb      [-v] [-f] <folder>
-        co2mpas modelgraph [-v] [-l | <models> ...]
+        co2mpas modelgraph [-v] --list
+        co2mpas modelgraph [-v] [--depth=INTEGER] [<models> ...]
         co2mpas [-v] --version
         co2mpas --help
 
@@ -382,6 +383,7 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
     --more-output    Output also per-vehicle output-files.
     --no-warn-gui    Does not pause batch-run to report inconsistencies.
     --plot-workflow  Open workflow-plot in browser, after run finished.
+    --depth=INTEGER  Limit the number of sub-dispatchers plotted (no limit by default).
     -f, --force      Overwrite template/sample excel-file(s).
     -v, --verbose    Print more verbosely messages.
 
@@ -394,7 +396,7 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
         template    Generate "empty" input-file at <excel-file-path>.
         ipynb       Generate IPython notebooks inside <folder>; view them with cmd:
                       ipython --notebook-dir=<folder>
-        modelgraph  List all or plot available models.
+        modelgraph  List all or plot available models.  If no model(s) specified, all assumed.
 
     Examples:
 

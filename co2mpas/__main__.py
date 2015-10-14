@@ -13,7 +13,8 @@ Usage:
     co2mpas demo       [-v] [-f] <folder>
     co2mpas template   [-v] [-f] <excel-file-path> ...
     co2mpas ipynb      [-v] [-f] <folder>
-    co2mpas modelgraph [-v] [-l | <models> ...]
+    co2mpas modelgraph [-v] --list
+    co2mpas modelgraph [-v] [--depth=INTEGER] [<models> ...]
     co2mpas [-v] --version
     co2mpas --help
 
@@ -24,6 +25,7 @@ Usage:
 --more-output    Output also per-vehicle output-files.
 --no-warn-gui    Does not pause batch-run to report inconsistencies.
 --plot-workflow  Open workflow-plot in browser, after run finished.
+--depth=INTEGER  Limit the number of sub-dispatchers plotted (no limit by default).
 -f, --force      Overwrite template/sample excel-file(s).
 -v, --verbose    Print more verbosely messages.
 
@@ -36,7 +38,7 @@ Sub-commands:
     template    Generate "empty" input-file at <excel-file-path>.
     ipynb       Generate IPython notebooks inside <folder>; view them with cmd:
                   ipython --notebook-dir=<folder>
-    modelgraph  List all or plot available models.
+    modelgraph  List all or plot available models.  If no model(s) specified, all assumed.
 
 Examples:
 
@@ -56,7 +58,6 @@ Examples:
 
 """
 from co2mpas import __version__ as proj_ver, __file__ as proj_file
-from co2mpas.functions import (process_folder_files, plot as co2plot)
 from collections import OrderedDict
 import logging
 import os
@@ -65,7 +66,6 @@ import shutil
 import sys
 
 from docopt import docopt
-import pkg_resources
 
 
 class CmdException(Exception):
@@ -76,17 +76,29 @@ proj_name = 'co2mpas'
 log = logging.getLogger(__name__)
 
 
-def _cmd_modelgraph(opts):
-    if opts['--list']:
-        print('\n'.join(co2plot.get_models_path()))
-    else:
-        co2plot.plot_model_graphs(opts['<models>'])
-
-
 def _init_logging(verbose):
     level = logging.DEBUG if verbose else logging.INFO
     frmt = "%(asctime)-15s:%(levelname)s:%(name)s:%(message)s"
     logging.basicConfig(level=level, format=frmt)
+
+
+def _cmd_modelgraph(opts):
+    from co2mpas.functions import plot as co2plot
+    if opts['--list']:
+        print('\n'.join(co2plot.get_models_path()))
+    else:
+        depth = opts['--depth']
+        if depth:
+            try:
+                depth = int(depth)
+            except:
+                msg = "The '--depth' must be an integer!  Not %r."
+                raise CmdException(msg % depth)
+        else:
+            depth = None
+        dot_graphs = co2plot.plot_model_graphs(opts['<models>'], depth=depth)
+        if not dot_graphs:
+            raise CmdException("No models plotted!")
 
 
 def _generate_files_from_streams(
@@ -121,6 +133,8 @@ def _cmd_ipynb(opts):
 
 
 def _get_input_template_fpath():
+    import pkg_resources
+
     fname = 'co2mpas_template.xlsx'
     return pkg_resources.resource_stream(__name__, fname)  # @UndefinedVariable
 
@@ -152,6 +166,7 @@ def _get_internal_file_streams(internal_folder, incl_regex=None):
     REMEMBER: Add internal-files also in `setup.py` & `MANIFEST.in` and
     update checks in `./bin/package.sh`.
     """
+    import pkg_resources
 
     samples = pkg_resources.resource_listdir(__name__,  # @UndefinedVariable
                                              internal_folder)
@@ -181,8 +196,8 @@ def _prompt_folder(folder_name, fpath):
         log.info('Cannot find %s folder/file: %r', folder_name, fpath)
         import easygui as eu
         fpath = eu.diropenbox(msg='Select %s folder:' % folder_name,
-                               title='%s-v%s' % (proj_name, proj_ver),
-                               default=fpath)
+                              title='%s-v%s' % (proj_name, proj_ver),
+                              default=fpath)
         if not fpath:
             raise CmdException('User abort.')
     return fpath
@@ -195,6 +210,7 @@ def _run_batch(opts):
 
     log.info("Processing '%s' --> '%s'...", input_folder, output_folder)
 
+    from co2mpas.functions import process_folder_files
     process_folder_files(input_folder, output_folder,
                          plot_workflow=opts['--plot-workflow'],
                          hide_warn_msgbox=opts['--no-warn-gui'],
