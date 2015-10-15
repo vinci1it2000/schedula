@@ -41,7 +41,7 @@ Sub-Modules:
     drw
     constants
     io
-    doc
+    des
 """
 
 __author__ = 'Vincenzo Arcidiacono'
