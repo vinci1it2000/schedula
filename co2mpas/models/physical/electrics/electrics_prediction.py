@@ -13,6 +13,7 @@ The model is defined by a Dispatcher that wraps all the functions needed.
 
 
 from co2mpas.dispatcher import Dispatcher
+from co2mpas.dispatcher.utils import SubDispatchPipe
 from co2mpas.functions.physical.electrics.electrics_prediction import *
 
 
@@ -26,7 +27,7 @@ def electrics_prediction():
 
     :return:
         The electric sub model.
-    :rtype: Dispatcher
+    :rtype: SubDispatchPipe
     """
 
     electrics_prediction = Dispatcher(
@@ -68,6 +69,23 @@ def electrics_prediction():
         inputs=['engine_start', 'start_demand', 'alternator_nominal_voltage',
                 'delta_time'],
         outputs=['engine_start_current']
+    )
+
+    electrics_prediction = SubDispatchPipe(
+        dsp=electrics_prediction,
+        function_id='electric_sub_model',
+        inputs=['battery_capacity', 'alternator_status_model',
+                'alternator_charging_currents', 'max_battery_charging_current',
+                'alternator_nominal_voltage',
+                'start_demand', 'electric_load',
+
+                'delta_time', 'gear_box_power_in',
+                'on_engine', 'engine_start',
+
+                'battery_state_of_charge', 'prev_alternator_status',
+                'prev_battery_current'],
+        outputs=['alternator_current', 'battery_state_of_charge',
+                 'alternator_status', 'battery_current']
     )
 
     return electrics_prediction
