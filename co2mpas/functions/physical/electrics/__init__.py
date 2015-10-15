@@ -26,6 +26,7 @@ from sklearn.tree import DecisionTreeClassifier
 from co2mpas.functions.physical.utils import reject_outliers
 from co2mpas.functions.physical.constants import *
 from math import pi
+from .electrics_prediction import _predict_electrics
 
 
 def calculate_engine_start_demand(
@@ -434,11 +435,8 @@ def predict_vehicle_electrics(
     :rtype: (np.array, np.array, np.array, np.array)
     """
 
-    from co2mpas.models.physical.electrics.electrics_prediction import \
-        electrics_prediction
-
     func = partial(
-        electrics_prediction(), battery_capacity, alternator_status_model,
+        _predict_electrics, battery_capacity, alternator_status_model,
         alternator_charging_currents, max_battery_charging_current,
         alternator_nominal_voltage, start_demand, electric_load)
 

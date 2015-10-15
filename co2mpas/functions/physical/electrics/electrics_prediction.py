@@ -197,7 +197,6 @@ def calculate_engine_start_current(
     return 0.0
 
 
-# Unused.
 def _predict_electrics(
         battery_capacity, alternator_status_model, alternator_charging_currents,
         max_battery_charging_current, alternator_nominal_voltage, start_demand,
