@@ -331,23 +331,27 @@ def calibrate_alternator_status_model(
     :rtype: function
     """
 
-    bers = DecisionTreeClassifier(random_state=0, max_depth=3)
-    charge = DecisionTreeClassifier(random_state=0, max_depth=3)
+    b = alternator_statuses == 2
+    if b.any():
+        bers = DecisionTreeClassifier(random_state=0, max_depth=3)
+        bers.fit(np.array([gear_box_powers_in]).T, b)
 
-    bers.fit(list(zip(gear_box_powers_in)), alternator_statuses == 2)
+        bers_pred = bers.predict  # shortcut name
+    else:
+        bers_pred = lambda *args: (False,)
 
-    X = list(zip(alternator_statuses[:-1], state_of_charges[1:]))
+    b = alternator_statuses[1:] == 1
+    if b.any():
+        charge = DecisionTreeClassifier(random_state=0, max_depth=3)
+        X = np.array([alternator_statuses[:-1], state_of_charges[1:]]).T
+        charge.fit(X, b)
 
-    charge.fit(X, alternator_statuses[1:] == 1)
-    if 1 in alternator_statuses:
-        soc = state_of_charges[alternator_statuses == 1]
+        charge_pred = charge.predict  # shortcut name
+        soc = state_of_charges[b]
         min_charge_soc, max_charge_soc = min(soc), max(soc)
     else:
+        charge_pred = lambda *args: (False,)
         min_charge_soc, max_charge_soc = 0, 100
-
-    # shortcut names
-    bers_pred = bers.predict
-    charge_pred = charge.predict
 
     def model(prev_status, soc, gear_box_power_in):
         status = 0

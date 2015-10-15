@@ -156,7 +156,7 @@ def calculate_full_load(full_load_speeds, full_load_powers, idle_engine_speed):
     :rtype: (InterpolatedUnivariateSpline, float, float)
     """
 
-    v = list(zip(full_load_powers, full_load_speeds))
+    v = np.array([full_load_powers, full_load_speeds]).T
     engine_max_power, engine_max_speed_at_max_power = max(v)
 
     p_norm = np.asarray(full_load_powers) / engine_max_power
@@ -275,9 +275,10 @@ def calibrate_engine_temperature_regression_model(
 
     model = GradientBoostingRegressor(**kw)
 
-    X = list(zip(temp, gear_box_powers_in, gear_box_speeds_in))
+    X = np.array([temp, gear_box_powers_in, gear_box_speeds_in]).T
 
-    model.fit(X[1:], np.diff(engine_coolant_temperatures))
+    dt = np.diff(engine_coolant_temperatures)
+    model.fit(X[1:], np.array(dt, dtype=np.float64, order='C'))
 
     return model
 
@@ -310,10 +311,12 @@ def predict_engine_coolant_temperatures(
 
     predict = model.predict
     it = zip(gear_box_powers_in[:-1], gear_box_speeds_in[:-1])
-
+    t = initial_temperature
     temp = [initial_temperature]
+    append = temp.append
     for p, s in it:
-        temp.append(temp[-1] + predict([[temp[-1], p, s]])[0])
+        t += predict([[t, p, s]])[0]
+        append(t)
 
     return np.array(temp)
 
@@ -489,7 +492,7 @@ def calibrate_start_stop_model(
 
     model = DecisionTreeClassifier(random_state=0, max_depth=4)
 
-    X = list(zip(velocities, accelerations, engine_coolant_temperatures))
+    X = np.array([velocities, accelerations, engine_coolant_temperatures]).T
 
     model.fit(X, on_engine)
 
@@ -535,7 +538,7 @@ def predict_on_engine(
     :rtype: np.array
     """
 
-    X = list(zip(velocities, accelerations, engine_coolant_temperatures))
+    X = np.array([velocities, accelerations, engine_coolant_temperatures]).T
 
     on_engine = np.array(model.predict(X), dtype=int)
 

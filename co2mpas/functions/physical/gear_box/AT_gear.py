@@ -520,7 +520,7 @@ def calibrate_gear_shifting_decision_tree(gears, *params):
 
     tree = DecisionTreeClassifier(random_state=0)
 
-    tree.fit(list(zip(previous_gear, *params)), gears)
+    tree.fit(np.array((previous_gear,) + params).T, gears)
 
     return tree
 
