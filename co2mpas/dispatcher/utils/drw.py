@@ -196,7 +196,7 @@ def _get_link(dsp_id, dsp, node_id, tag, function_module):
     return '%s:(%s)' % (_func_name(dsp_id, function_module), ', '.join(n))
 
 
-def _fun_node_label(k, attr=None, dist=None):
+def _fun_node_label(node_id, node_name, attr=None, dist=None):
 
     exc = {'type', 'inputs', 'outputs', 'wait_inputs', 'function',
            'description', 'workflow'}
@@ -205,10 +205,10 @@ def _fun_node_label(k, attr=None, dist=None):
     else:
         exc = exc.union({'input_domain'})
         v = {k: _fun_attr(k, v) for k, v in attr.items() if k not in exc}
-        if k in dist:
-            v['distance'] = dist[k]
+        if node_id in dist:
+            v['distance'] = dist[node_id]
 
-    return _node_label(k, v)
+    return _node_label(node_name, v)
 
 
 def _fun_attr(k, v):
@@ -279,7 +279,7 @@ def _set_node(dot, node_id, dsp2dot_id, dsp=None, node_attr=None, values=None,
         else:
             node_name = _func_name(node_id, function_module)
             label_attr = workflow_node if dist else node_attr
-            node_label = _fun_node_label(node_name, label_attr, dist)
+            node_label = _fun_node_label(node_id, node_name, label_attr, dist)
             fun, n_args = get_parent_func(node_attr.get('function', None), 0)
 
             if node_type == 'dispatcher' or isinstance(fun, SubDispatch):
