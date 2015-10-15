@@ -8,18 +8,22 @@
 
 from co2mpas import __main__ as compas_main
 from co2mpas import __version__ as proj_ver
+from co2mpas.__main__ import init_logging
 import glob
+import io
+import logging
 import os
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
-import io
-import sys
 
 
 mydir = os.path.dirname(__file__)
 readme_path = os.path.join(mydir, '..', 'README.rst')
 
+init_logging(True)
+#logging.getLogger('pandalone.xleash').setLevel(logging.INFO)
 
 class Main(unittest.TestCase):
 

@@ -1,17 +1,19 @@
-import unittest
+from co2mpas.__main__ import init_logging
+from co2mpas.functions import _process_folder_files
+import json
+import logging
 import os
 import sys
-
-from co2mpas.functions import _process_folder_files
-from co2mpas.__main__ import init_logging
 import tempfile
-import json
+import unittest
+
 
 OVERWRITE_SEATBELT = False # NOTE: Do not commit it as `True`!
 DATA_DIFF_RATIO = 1e-6
 EPS = 2 * sys.float_info.epsilon / DATA_DIFF_RATIO
 
 init_logging(True)
+#logging.getLogger('pandalone.xleash').setLevel(logging.INFO)
 
 class SeatBelt(unittest.TestCase):
 
