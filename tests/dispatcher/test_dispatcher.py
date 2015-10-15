@@ -9,7 +9,7 @@
 import doctest
 import unittest
 import timeit
-
+import numpy as np
 from co2mpas.dispatcher import Dispatcher
 from co2mpas.dispatcher.utils.constants import START, EMPTY, SINK, NONE
 
@@ -383,51 +383,41 @@ class TestSubDMap(unittest.TestCase):
 class TestPerformance(unittest.TestCase):
     def test_stress_tests(self):
 
-        res = timeit.repeat(
+        T = np.mean(timeit.repeat(
             "dsp.dispatch({'a': 5, 'b': 6})",
             'from %s import _setup_dsp; '
             'dsp = _setup_dsp()' % __name__,
-            repeat=3, number=1000)
-        res = sum(res) / 3
-        print('dispatch with functions in %f ms/call' % res)
+            repeat=3, number=1000))
+        msg = 'Mean performance of %s with%s functions made in %f ms/call.\n' \
+              'It is %.2f%% faster than Dispatcher.dispatch with functions.\n'
+        print(msg % ('Dispatcher.dispatch', '', T, (T - T) / T * 100))
 
-        res1 = timeit.repeat(
+        t = np.mean(timeit.repeat(
             "dsp.dispatch({'a': 5, 'b': 6}, no_call=True)",
             'from %s import _setup_dsp; '
             'dsp = _setup_dsp()' % __name__,
-            repeat=3, number=1000)
-        res1 = sum(res1) / 3
-        print('dispatch without functions in %f ms/call' % res1)
-        diff = res - res1
-        print('functions is %f ms/call' % diff)
+            repeat=3, number=1000))
+        print(msg % ('Dispatcher.dispatch', 'out', t, (T - t) / T * 100))
 
-        res2 = timeit.repeat(
+        t = np.mean(timeit.repeat(
             "fun(5, 6)",
             'from %s import _setup_dsp;'
             'from co2mpas.dispatcher.utils.dsp import SubDispatchFunction;'
             'dsp = _setup_dsp();'
             'fun = SubDispatchFunction(dsp, "f", ["a", "b"], ["c", "d", "e"])'
             % __name__,
-            repeat=3, number=1000)
+            repeat=3, number=1000))
+        print(msg % ('SubDispatchFunction.__call__', '', t, (T - t) / T * 100))
 
-        res2 = sum(res2) / 3
-        print('dispatcher function with functions in %f ms/call' % res2)
-        print('dispatcher function without functions in '
-              '%f ms/call' % (res2 - diff))
-
-        res3 = timeit.repeat(
+        t = np.mean(timeit.repeat(
             "fun(5, 6)",
             'from %s import _setup_dsp;'
             'from co2mpas.dispatcher.utils.dsp import SubDispatchPipe;'
             'dsp = _setup_dsp();'
             'fun = SubDispatchPipe(dsp, "f", ["a", "b"], ["c", "d", "e"])'
             % __name__,
-            repeat=3, number=1000)
-
-        res3 = sum(res3) / 3
-        print('dispatcher pipe with functions in %f ms/call' % res3)
-        print('dispatcher pipe without functions in '
-              '%f ms/call' % (res3 - diff))
+            repeat=3, number=1000))
+        print(msg % ('SubDispatchPipe.__call__', '', t, (T - t) / T * 100))
 
 
 class TestDispatch(unittest.TestCase):
