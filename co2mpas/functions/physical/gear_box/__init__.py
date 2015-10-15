@@ -616,11 +616,11 @@ def calculate_gear_box_efficiencies_torques_temperatures(
     from co2mpas.models.physical.gear_box.thermal import thermal
 
     fun = dsp_utl.SubDispatchPipe(thermal(), 'thermal', inputs, outputs)
-    T0 = initial_gear_box_temperature
     res = []
+    o = [initial_gear_box_temperature]
     for args in zip(*it):
-        res.append(fun(*(dfl + args + (T0, ))))
-        T0 = res[-1][0]
+        o = fun(*(dfl + args + (o[0], )))
+        res.append(o)
 
     temp, to_in, eff = zip(*res)
 

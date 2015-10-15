@@ -439,10 +439,11 @@ def predict_vehicle_electrics(
         alternator_nominal_voltage, start_demand, electric_load)
 
     delta_times = np.append([0], np.diff(times))
-
-    res = [(0, initial_state_of_charge, 0, None)]
+    o = (0, initial_state_of_charge, 0, None)
+    res = [o]
     for x in zip(delta_times, gear_box_powers_in, on_engine, engine_starts):
-        res.append(tuple(func(*(x + res[-1][1:]))))
+        o = tuple(func(*(x + o[1:])))
+        res.append(o)
 
     alt_c, soc, alt_stat, bat_c = zip(*res[1:])
 
