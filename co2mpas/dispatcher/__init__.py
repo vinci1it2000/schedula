@@ -26,7 +26,7 @@ __author__ = 'Vincenzo Arcidiacono'
 
 import logging
 from heapq import heappush, heappop
-from collections import deque
+from collections import deque, defaultdict
 from copy import copy, deepcopy
 from networkx import DiGraph, isolates
 from functools import partial
@@ -580,13 +580,6 @@ class Dispatcher(object):
         # Add node to the dispatcher map.
         self.dmap.add_node(fun_id, attr_dict=attr_dict)
 
-        def add_edge(i, o, edg_weight, w):
-            # Adds edge to the dispatcher map.
-            if edg_weight is not None and w in edg_weight:
-                self.dmap.add_edge(i, o, weight=edg_weight[w])  # Weighted edge.
-            else:
-                self.dmap.add_edge(i, o)  # Normal edge.
-
         # Add input edges.
         n_data = add_func_edges(self, fun_id, inputs, weight_from, True)
 
@@ -688,10 +681,14 @@ class Dispatcher(object):
         if description is None:  # Get description.
             description = dsp.__doc__ or None
 
+        # Set zero as default input distances.
+        _weight_from = dict.fromkeys(inputs.keys(), 0.0)
+        _weight_from.update(weight_from or {})
+
         # Return dispatcher node id.
         dsp_id = self.add_function(
             dsp_id, dsp, inputs, outputs.values(), input_domain, weight,
-            weight_from, type='dispatcher', description=description, **kwargs)
+            _weight_from, type='dispatcher', description=description, **kwargs)
 
         # Set proper outputs.
         self.nodes[dsp_id]['outputs'] = outputs
