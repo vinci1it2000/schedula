@@ -25,7 +25,7 @@ from inspect import signature, Parameter, _POSITIONAL_OR_KEYWORD
 from collections import OrderedDict
 import types
 from itertools import repeat, chain
-from .constants import START, NONE
+from .constants import START, NONE, EMPTY
 from datetime import datetime
 
 
@@ -427,6 +427,98 @@ class SubDispatch(object):
         self.__name__ = dsp.name
         self.__doc__ = dsp.__doc__
 
+    def plot(self, workflow=False, edge_data=EMPTY, view=True, level=-1,
+             function_module=False, node_output=False, filename=None,
+             nested=True, **kw_dot):
+        """
+        Plots the Dispatcher with a graph in the DOT language with Graphviz.
+
+        :param workflow:
+           If True the workflow graph will be plotted, otherwise the dmap.
+        :type workflow: bool, optional
+
+        :param edge_data:
+            Edge attribute to view. The default is the edge weights.
+        :type edge_data: str, optional
+
+        :param node_output:
+            If True the node outputs are displayed with the workflow.
+        :type node_output: bool
+
+        :param view:
+            Open the rendered directed graph in the DOT language with the sys
+            default opener.
+        :type view: bool, optional
+
+        :param level:
+            Max level of sub-dispatch plots. If negative all levels are plotted.
+        :type level: int, optional
+
+        :param function_module:
+            If True the function labels are plotted with the function module,
+            otherwise only the function name will be visible.
+        :type function_module: bool, optional
+
+        :param filename:
+            A file directory (if `nested`) or file name
+            (defaults to name + '.gv') for saving the sources.
+        :type filename: str, optional
+
+        :param nested:
+            If False the sub-dispatcher nodes are plotted on the same graph,
+            otherwise they can be viewed clicking on the node that has an URL
+            link.
+        :type nested: bool
+
+        :param kw_dot:
+            Dot arguments:
+
+                - name: Graph name used in the source code.
+                - comment: Comment added to the first line of the source.
+                - directory: (Sub)directory for source saving and rendering.
+                - format: Rendering output format ('pdf', 'png', ...).
+                - engine: Layout command used ('dot', 'neato', ...).
+                - encoding: Encoding for saving the source.
+                - graph_attr: Dict of (attribute, value) pairs for the graph.
+                - node_attr: Dict of (attribute, value) pairs set for all nodes.
+                - edge_attr: Dict of (attribute, value) pairs set for all edges.
+                - body: Dict of (attribute, value) pairs to add to the graph
+                  body.
+        :param kw_dot: dict
+
+        :return:
+            A directed graph source code in the DOT language.
+        :rtype: graphviz.dot.Digraph
+
+        Example:
+
+        .. dispatcher:: dsp
+           :opt: graph_attr={'ratio': '1'}
+           :code:
+
+            >>> from co2mpas.dispatcher import Dispatcher
+            >>> dsp = Dispatcher(name='Dispatcher')
+            >>> def fun(a):
+            ...     return a + 1, a - 1
+            >>> dsp.add_function('fun', fun, ['a'], ['b', 'c'])
+            'fun'
+            >>> func = SubDispatch(dsp)
+            >>> func.plot(view=False, graph_attr={'ratio': '1'})
+            <graphviz.dot.Digraph object at 0x...>
+        """
+
+        if edge_data is EMPTY:
+            edge_data = self.dsp.weight
+
+        if filename is not None:
+            kw_dot['filename'] = filename
+
+        from .drw import plot
+
+        return plot(self, workflow=workflow, edge_data=edge_data, view=view,
+                    level=level, function_module=function_module,
+                    node_output=node_output, nested=nested, **kw_dot)
+
     def __call__(self, *input_dicts, copy_input_dicts=False):
 
         # Combine input dictionaries.
@@ -725,7 +817,7 @@ class SubDispatchPipe(SubDispatchFunction):
         self.pipe, rm_nds_dsp = [], set()
         add_to_pipe, add_rm_nds_set = self.pipe.append, rm_nds_dsp.add
 
-        for _, _, (i, dsp) in self.dsp._pipe:
+        for d, _, (i, dsp) in self.dsp._pipe:
 
             if not dsp in rm_nds_dsp:
                 add_rm_nds_set(dsp)
@@ -747,6 +839,7 @@ class SubDispatchPipe(SubDispatchFunction):
 
             if i in dsp.workflow.node:
                 add_to_pipe((i, dsp))
+                dsp.nodes[i]['distance'] = d
 
     def _set_node_output(self, dsp, node_id):
         """
