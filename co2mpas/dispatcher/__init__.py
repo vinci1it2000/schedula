@@ -236,6 +236,9 @@ class Dispatcher(object):
         #: outputs.
         self.workflow = DiGraph()
 
+        #: Dispatch workflow pipe. It is a sequence of (node id, dispatcher).
+        self._pipe = []
+
         #: A dictionary with the dispatch outputs.
         self.data_output = AttrDict()
 
@@ -2334,7 +2337,6 @@ class Dispatcher(object):
         wf_remove_edge, check_wait_in = self._wf_remove_edge, self.check_wait_in
         wf_add_edge = self._wf_add_edge
 
-
         if data_id not in nodes:  # Data node is not in the dmap.
             return False
 
@@ -2482,17 +2484,22 @@ class Dispatcher(object):
         # Initialized and terminated dispatcher sets.
         dsp_closed, dsp_init = set(), {self}
 
+        # Reset function pipe.
+        pipe = self._pipe = []
+
         # A function to check if a dispatcher has been initialized.
         check_dsp = dsp_init.__contains__
 
         while fringe:
             # Visit the closest available node.
-            (d, _, (v, dsp)) = heappop(fringe)
+            n = (d, _, (v, dsp)) = heappop(fringe)
 
             if dsp in dsp_closed:  # Skip terminated sub-dispatcher.
                 continue
 
             dsp_init.add(dsp)  # Update initialized dispatcher sets.
+
+            pipe.append(n)  # Add node to the pipe.
 
             # Set and visit nodes.
             if not dsp._visit_nodes(v, d, fringe, check_cutoff, no_call):

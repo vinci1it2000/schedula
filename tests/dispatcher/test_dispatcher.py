@@ -382,6 +382,7 @@ class TestSubDMap(unittest.TestCase):
 
 class TestPerformance(unittest.TestCase):
     def test_stress_tests(self):
+
         res = timeit.repeat(
             "dsp.dispatch({'a': 5, 'b': 6})",
             'from %s import _setup_dsp; '
@@ -413,6 +414,20 @@ class TestPerformance(unittest.TestCase):
         print('dispatcher function with functions in %f ms/call' % res2)
         print('dispatcher function without functions in '
               '%f ms/call' % (res2 - diff))
+
+        res3 = timeit.repeat(
+            "fun(5, 6)",
+            'from %s import _setup_dsp;'
+            'from co2mpas.dispatcher.utils.dsp import SubDispatchPipe;'
+            'dsp = _setup_dsp();'
+            'fun = SubDispatchPipe(dsp, "f", ["a", "b"], ["c", "d", "e"])'
+            % __name__,
+            repeat=3, number=1000)
+
+        res3 = sum(res3) / 3
+        print('dispatcher pipe with functions in %f ms/call' % res3)
+        print('dispatcher pipe without functions in '
+              '%f ms/call' % (res3 - diff))
 
 
 class TestDispatch(unittest.TestCase):

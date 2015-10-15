@@ -14,7 +14,8 @@ __author__ = 'Vincenzo Arcidiacono'
 
 __all__ = ['combine_dicts', 'bypass', 'summation', 'map_dict', 'map_list',
            'selector', 'replicate_value', 'add_args',
-           'SubDispatch', 'ReplicateFunction', 'SubDispatchFunction']
+           'SubDispatch', 'ReplicateFunction', 'SubDispatchFunction',
+           'SubDispatchPipe']
 
 from .gen import caller_name, Token
 from networkx.classes.digraph import DiGraph
@@ -24,7 +25,8 @@ from inspect import signature, Parameter, _POSITIONAL_OR_KEYWORD
 from collections import OrderedDict
 import types
 from itertools import repeat, chain
-from .constants import NONE, EMPTY
+from .constants import START, NONE
+from datetime import datetime
 
 
 def combine_dicts(*dicts, copy=False):
@@ -527,7 +529,7 @@ class SubDispatchFunction(SubDispatch):
     """
 
     def __init__(self, dsp, function_id, inputs, outputs=None, cutoff=None,
-                 inputs_dist=None, rm_unused_func=False):
+                 inputs_dist=None):
         """
         Initializes the Sub-dispatch Function.
 
@@ -558,7 +560,8 @@ class SubDispatchFunction(SubDispatch):
         """
 
         # New shrink dispatcher.
-        dsp = dsp.shrink_dsp(inputs, outputs, cutoff=cutoff)
+        dsp = dsp.shrink_dsp(inputs, outputs, cutoff=cutoff,
+                             inputs_dist=inputs_dist)
 
         if outputs:
             missed = set(outputs).difference(dsp.nodes)  # Outputs not reached.
@@ -567,8 +570,7 @@ class SubDispatchFunction(SubDispatch):
                 raise ValueError('Unreachable output-targets:{}'.format(missed))
 
         # Get initial default values.
-        input_values = dsp._get_initial_values(None, False)
-        self.input_values = input_values
+        self.input_values = input_values = dsp._get_initial_values(None, False)
         self.inputs = inputs
 
         dsp._set_wildcards(inputs, outputs)  # Set wildcards.
@@ -578,7 +580,7 @@ class SubDispatchFunction(SubDispatch):
         # Initialize as sub dispatch.
         super(SubDispatchFunction, self).__init__(
             dsp, outputs, cutoff, inputs_dist, True, False, True,
-            rm_unused_func, 'list')
+            True, 'list')
 
         self.__module__ = caller_name()  # Set as who calls my caller.
 
@@ -619,3 +621,276 @@ class SubDispatchFunction(SubDispatch):
             # Raise error
             raise ValueError('Unreachable output-targets:'
                              '{}'.format(set(self.outputs).difference(o)))
+
+
+class SubDispatchPipe(SubDispatchFunction):
+    """
+    It converts a :func:`~dispatcher.Dispatcher` into a function.
+
+    That function takes a sequence of arguments as input of the dispatch.
+
+    :return:
+        A function that executes the pipe of the given `dsp`, updating .
+    :rtype: function
+
+    .. seealso:: :func:`~dispatcher.Dispatcher.dispatch`,
+       :func:`~dispatcher.Dispatcher.shrink_dsp`
+
+    **Example**:
+
+    A dispatcher with two functions `max` and `min` and an unresolved cycle
+    (i.e., `a` --> `max` --> `c` --> `min` --> `a`):
+
+    .. dispatcher:: dsp
+       :opt: graph_attr={'ratio': '1'}
+
+        >>> from co2mpas.dispatcher import Dispatcher
+        >>> dsp = Dispatcher(name='Dispatcher')
+        >>> dsp.add_function('max', max, inputs=['a', 'b'], outputs=['c'])
+        'max'
+        >>> def func(x):
+        ...     return x - 1
+        >>> dsp.add_function('x - 1', func, inputs=['c'], outputs=['a'])
+        'x - 1'
+
+    Extract a static function node, i.e. the inputs `a` and `b` and the
+    output `a` are fixed::
+
+        >>> fun = SubDispatchPipe(dsp, 'myF', ['a', 'b'], ['a'])
+        >>> fun.__name__
+        'myF'
+        >>> fun(2, 1)
+        1
+
+    .. dispatcher:: dsp
+       :opt: workflow=True, graph_attr={'ratio': '1'}
+
+        >>> dsp = fun.dsp
+        >>> dsp.name = 'Created function internal'
+
+    The created function raises a ValueError if un-valid inputs are
+    provided::
+
+        >>> fun(1, 0)
+        0
+
+    .. dispatcher:: dsp
+       :opt: workflow=True, graph_attr={'ratio': '1'}
+
+        >>> dsp = fun.dsp
+    """
+
+    def __init__(self, dsp, function_id, inputs, outputs=None, cutoff=None,
+                 inputs_dist=None):
+
+        super(SubDispatchPipe, self).__init__(
+            dsp, function_id, inputs, outputs=outputs, cutoff=cutoff,
+            inputs_dist=inputs_dist,
+        )
+
+        w, o, = self.dsp.dispatch(
+            inputs=inputs, outputs=outputs, cutoff=cutoff,
+            inputs_dist=inputs_dist, wildcard=True, no_call=True)
+
+        if outputs:
+            missed = set(outputs).difference(dsp.nodes)  # Outputs not reached.
+
+            if missed:  # If outputs are missing raise error.
+                raise ValueError('Unreachable output-targets:{}'.format(missed))
+
+        main_dsp = self.dsp
+        self.out_flow = out_flow = main_dsp.workflow.succ
+        self.in_flow = out_flow[START]
+        self.wildcards = main_dsp._wildcards
+
+        # Set outputs.
+        self.data_output = o
+        self.workflow = w
+        self.dist = self.dsp.dist
+
+        # Define the function to return outputs sorted.
+        if outputs is None:
+            def return_output():
+                return o
+        elif len(outputs) > 1:
+            def return_output():
+                return [o[k] for k in outputs]
+        else:
+            def return_output():
+                return o[outputs[0]]
+        self.return_output = return_output
+
+        self.__module__ = caller_name()  # Set as who calls my caller.
+
+        self.pipe, rm_nds_dsp = [], set()
+        add_to_pipe, add_rm_nds_set = self.pipe.append, rm_nds_dsp.add
+
+        for _, _, (i, dsp) in self.dsp._pipe:
+
+            if not dsp in rm_nds_dsp:
+                add_rm_nds_set(dsp)
+
+                dsp._remove_unused_nodes()
+
+                out_flow = dsp.workflow.succ
+                in_flow = out_flow[START]
+                data_output = dsp.data_output
+                wildcards = dsp._wildcards
+
+                for k, value in dsp._get_initial_values(None, True).items():
+
+                    if k not in wildcards:
+                        in_flow[k]['value'] = data_output[k] = value
+
+                    for _, edge_attr in out_flow[k].items():
+                        edge_attr['value'] = value
+
+            if i in dsp.workflow.node:
+                add_to_pipe((i, dsp))
+
+    def _set_node_output(self, dsp, node_id):
+        """
+        Set the node outputs from node inputs.
+
+        :param node_id:
+            Data or function node id.
+        :type node_id: str
+
+        :param no_call:
+            If True data node estimation function is not used.
+        :type no_call: bool
+
+        :return:
+            If the output have been evaluated correctly.
+        :rtype: bool
+        """
+
+        # Namespace shortcuts.
+        node_attr = dsp.nodes[node_id]
+        node_type = node_attr['type']
+
+        if node_type == 'data':  # Set data node.
+            return self._set_data_node_output(dsp, node_id, node_attr)
+
+        elif node_type == 'function':  # Set function node.
+            return self._set_function_node_output(dsp, node_id, node_attr)
+
+    def _set_data_node_output(self, dsp, node_id, node_attr):
+
+
+        # Get data node estimations.
+        estimations = dsp._wf_pred[node_id]
+
+        # Check if node has multiple estimations and it is not waiting inputs.
+        if len(estimations) > 1:
+            estimations.pop(START, None)
+
+        if 'function' in node_attr:  # Evaluate output.
+            try:
+                kwargs = {k: v['value'] for k, v in estimations.items()}
+                # noinspection PyCallingNonCallable
+                value = node_attr['function'](kwargs)
+            except Exception as ex:
+                # Some error occurs.
+                msg = 'Estimation error at data node ({}) ' \
+                      'due to: {}'.format(node_id, ex)
+                dsp.warning(msg)  # Raise a Warning.
+                return False
+        else:
+            # Data node that has just one estimation value.
+            value = list(estimations.values())[0]['value']
+
+        if 'callback' in node_attr:  # Invoke callback func of data node.
+            try:
+                # noinspection PyCallingNonCallable
+                node_attr['callback'](value)
+            except Exception as ex:
+                msg = 'Callback error at data node ({}) ' \
+                      'due to: {}'.format(node_id, ex)
+                dsp.warning(msg)  # Raise a Warning.
+
+        if value is not NONE:  # Set data output.
+            dsp.data_output[node_id] = value
+            value = {'value': value}   # Output value.
+
+        else:
+            dsp.data_output.pop(node_id, None)
+            value = {}   # Output value.
+
+        wf_add_edge = dsp._wf_add_edge
+
+        if node_id not in dsp._wildcards:
+            for u in dsp.workflow.succ[node_id]:  # Set workflow.
+                wf_add_edge(node_id, u, **value)
+
+    def _set_function_node_output(self, dsp, node_id, node_attr):
+
+        # Namespace shortcuts for speed.
+        o_nds = node_attr['outputs']
+
+        args = dsp._wf_pred[node_id]  # List of the function's arguments.
+        args = [args[k]['value'] for k in node_attr['inputs']]
+        args = [v for v in args if v is not NONE]
+
+        try:
+
+            fun = node_attr['function']  # Get function.
+
+            attr = {'started': datetime.today()}  # Starting time.
+
+            res = fun(*args)  # Evaluate function.
+
+            # Time elapsed.
+            attr['duration'] = datetime.today() - attr['started']
+
+            from .des import get_parent_func
+            fun = get_parent_func(fun)  # Get parent function (if nested).
+            if isinstance(fun, SubDispatch):  # Save intermediate results.
+                attr['workflow'] = (fun.workflow, fun.data_output, fun.dist)
+
+            # Save node.
+            dsp.workflow.node[node_id].update(attr)
+
+            # List of function results.
+            res = res if len(o_nds) > 1 else [res]
+
+        except Exception as ex:
+            # Is missing function of the node or args are not in the domain.
+            msg = 'Estimation error at function node ({}) ' \
+                  'due to: {}'.format(node_id, ex)
+            dsp.warning(msg)  # Raise a Warning.
+            return False
+
+        res = dict(zip(o_nds, res))
+        wf_add_edge = dsp._wf_add_edge
+        for k in dsp.workflow.succ[node_id]:  # Set workflow.
+            wf_add_edge(node_id, k, value=res[k])
+
+        return True  # Return that the output have been evaluated correctly.
+
+    def __call__(self, *args):
+        out_flow, in_flow = self.out_flow, self.in_flow
+        data_output, wildcards = self.data_output, self.wildcards
+        set_node = self._set_node_output
+
+        for k, value in zip(self.inputs, args):
+            if k not in wildcards:
+                in_flow[k]['value'] = data_output[k] = value
+
+            for _, edge_attr in out_flow[k].items():
+                edge_attr['value'] = value
+
+        try:
+            it = iter(self.pipe)
+            for v, dsp in it:
+                set_node(dsp, v)
+
+            # Return outputs sorted.
+            return self.return_output()
+
+        except KeyError:  # Unreached outputs.
+            o = set(data_output) - set([v] + [k[0] for k in it])
+            missing = set(self.outputs) - o
+            # Raise error
+            raise ValueError('Unreachable output-targets:'
+                             '{}'.format(missing))
