@@ -195,3 +195,33 @@ def calculate_engine_start_current(
             return start_demand / den * 1000.0
 
     return 0.0
+
+
+# Unused.
+def _predict_electrics(
+        battery_capacity, alternator_status_model, alternator_charging_currents,
+        max_battery_charging_current, alternator_nominal_voltage, start_demand,
+        electric_load, delta_time, gear_box_power_in, on_engine, engine_start,
+        battery_state_of_charge, prev_alternator_status, prev_battery_current):
+
+    alternator_status = predict_alternator_status(
+        alternator_status_model, prev_alternator_status,
+        battery_state_of_charge, gear_box_power_in)
+
+    engine_start_current = calculate_engine_start_current(
+        engine_start, start_demand, alternator_nominal_voltage, delta_time)
+
+    alternator_current = calculate_alternator_current(
+        alternator_status, on_engine, gear_box_power_in,
+        alternator_charging_currents, engine_start_current)
+
+    battery_current = calculate_battery_current(
+        electric_load, alternator_current, alternator_nominal_voltage,
+        on_engine, max_battery_charging_current)
+
+    battery_state_of_charge = calculate_battery_state_of_charge(
+        battery_state_of_charge, battery_capacity,
+        delta_time, battery_current, prev_battery_current)
+
+    return alternator_current, battery_state_of_charge, alternator_status, \
+           battery_current
