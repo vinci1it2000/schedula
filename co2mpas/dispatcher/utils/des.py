@@ -17,7 +17,8 @@ __all__ = ['get_attr_doc', 'get_summary', 'search_node_description',
 
 import re
 import logging
-from .dsp import SubDispatch, SubDispatchFunction, add_args
+from .dsp import SubDispatch, SubDispatchFunction, add_args, bypass, \
+    replicate_value
 from functools import partial
 from sphinx.ext.autodoc import getargspec
 
@@ -85,7 +86,7 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function'):
             d, l = '', ''
             if where_succ:
                 fun, n = get_parent_func(func_node['function'], input_id=n_ix)
-                if n < 0:
+                if n < 0 or fun in (bypass, replicate_value):
                     fun, n_ix = get_parent_func(func_node['input_domain'],
                                                 input_id=n_ix)
                     if n_ix < 0:
@@ -138,8 +139,8 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function'):
         if v['type'] == node_type and check(k):
             try:
                 des, link = get_des(v)
-            except Exception as ex:
-                log.warning('{}'.format(ex))
+            except:
+                pass
 
         if des:
             return des, link
