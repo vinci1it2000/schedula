@@ -85,7 +85,7 @@ def get_models_path(model_ids=None):
 
 
 def plot_model_graphs(model_ids=None, view_in_browser=True,
-        depth=None, **kwargs):
+        depth=-1, **kwargs):
     """
     Plots the graph of CO2MPAS models.
 
@@ -118,7 +118,7 @@ def plot_model_graphs(model_ids=None, view_in_browser=True,
         importlib.import_module(module_path)
         module = sys.modules[module_path]
         dsp = getattr(module, object_name)()
-        depth = 'all' if depth < 0 else depth  # Please @arci rename arg.
+        depth = -1 if depth is None else depth  # Please @arci rename arg.
         dot = dsp_utl.plot(dsp, view=view_in_browser,
                 function_module=True, depth=depth, **kwargs)
         dot_graphs.append(dot)
