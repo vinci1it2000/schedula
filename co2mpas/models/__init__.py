@@ -19,7 +19,7 @@ It provides CO2MPAS software architecture.
     physical
 """
 
-from co2mpas.functions.write_outputs import write_output
+from co2mpas.functions.write_outputs import write_output, get_doc_description
 from co2mpas.dispatcher import Dispatcher
 from functools import partial
 from itertools import chain
@@ -330,6 +330,11 @@ def write_outputs(prediction_WLTP=False):
                     ':func:`CO2MPAS model<co2mpas_model>`.'
     )
 
+    write_outputs.add_function(
+        function=get_doc_description,
+        outputs=['data_descriptions']
+    )
+
     write_outputs.add_data(
         data_id='output_sheet_names',
         default_value=('params', 'series'),
@@ -344,7 +349,8 @@ def write_outputs(prediction_WLTP=False):
         function_id='save_wltp_precondition_outputs',
         function=write_output,
         inputs=['wltp_precondition_outputs',
-                'wltp_precondition_output_file_name', 'output_sheet_names'],
+                'wltp_precondition_output_file_name', 'output_sheet_names',
+                'data_descriptions'],
     )
 
     ############################################################################
@@ -355,7 +361,8 @@ def write_outputs(prediction_WLTP=False):
         function_id='save_calibration_wltp_h_outputs',
         function=write_output,
         inputs=['calibration_wltp_h_outputs',
-                'calibration_wltp_h_output_file_name', 'output_sheet_names'],
+                'calibration_wltp_h_output_file_name', 'output_sheet_names',
+                'data_descriptions'],
     )
 
     if prediction_WLTP:
@@ -363,7 +370,8 @@ def write_outputs(prediction_WLTP=False):
             function_id='save_prediction_wltp_h_outputs',
             function=write_output,
             inputs=['prediction_wltp_h_outputs',
-                    'prediction_wltp_h_output_file_name', 'output_sheet_names'],
+                    'prediction_wltp_h_output_file_name', 'output_sheet_names',
+                    'data_descriptions'],
         )
 
     ############################################################################
@@ -374,7 +382,8 @@ def write_outputs(prediction_WLTP=False):
         function_id='save_calibration_wltp_l_outputs',
         function=write_output,
         inputs=['calibration_wltp_l_outputs',
-                'calibration_wltp_l_output_file_name', 'output_sheet_names'],
+                'calibration_wltp_l_output_file_name', 'output_sheet_names',
+                'data_descriptions'],
     )
 
     if prediction_WLTP:
@@ -382,7 +391,8 @@ def write_outputs(prediction_WLTP=False):
             function_id='save_prediction_wltp_l_outputs',
             function=write_output,
             inputs=['prediction_wltp_l_outputs',
-                    'prediction_wltp_l_output_file_name', 'output_sheet_names'],
+                    'prediction_wltp_l_output_file_name', 'output_sheet_names',
+                    'data_descriptions'],
         )
 
     ############################################################################
@@ -393,7 +403,7 @@ def write_outputs(prediction_WLTP=False):
         function_id='save_nedc_outputs',
         function=write_output,
         inputs=['prediction_nedc_outputs', 'prediction_nedc_output_file_name',
-                'output_sheet_names'],
+                'output_sheet_names', 'data_descriptions'],
     )
 
     return write_outputs
@@ -467,7 +477,7 @@ def vehicle_processing_model(
 
     vehicle_processing_model.add_dispatcher(
         dsp=co2mpas_model(hide_warn_msgbox=hide_warn_msgbox,
-                         prediction_WLTP=prediction_WLTP),
+                          prediction_WLTP=prediction_WLTP),
         inputs={k: k for k in co2mpas_inputs},
         outputs={k: k for k in co2mpas_outputs}
     )

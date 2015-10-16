@@ -12,12 +12,13 @@ It contains functions to write prediction outputs.
 import logging
 import numpy as np
 import pandas as pd
+import re
 
 
 log = logging.getLogger(__name__)
 
 
-def parse_name(name):
+def parse_name(name, _standard_names=None):
     """
     Parses a column/row name.
 
@@ -30,7 +31,7 @@ def parse_name(name):
     :rtype: str
     """
 
-    if name in _standard_names:
+    if _standard_names and name in _standard_names:
         return _standard_names[name]
 
     name = name.replace('_', ' ')
@@ -38,7 +39,7 @@ def parse_name(name):
     return name.capitalize()
 
 
-def write_output(output, file_name, sheet_names):
+def write_output(output, file_name, sheet_names, data_descriptions):
     """
     Write the output in a excel file.
 
@@ -56,6 +57,10 @@ def write_output(output, file_name, sheet_names):
             + series
             + parameters
     :type sheet_names: (str, str)
+
+    :param data_descriptions:
+        Dictionary with data description.
+    :type data_descriptions: dict
     """
 
     log.info("Writing output-file: %s", file_name)
@@ -67,9 +72,9 @@ def write_output(output, file_name, sheet_names):
     p, s = ([], [])
     for k, v in output.items():
         if isinstance(v, np.ndarray) and k not in params:  # series
-            s.append((parse_name(k), k, v))
+            s.append((parse_name(k, data_descriptions), k, v))
         elif check_writeable(v):  # params
-            p.append((parse_name(k), k, v))
+            p.append((parse_name(k, data_descriptions), k, v))
 
     series = pd.DataFrame()
     series_headers = pd.DataFrame()
@@ -118,28 +123,30 @@ def check_writeable(data):
     return False
 
 
-_standard_names = {
-    'CMV': 'Corrected matrix velocity [km/h]',
-    'inertia': 'Inertia [kg]',
-    'upper_bound_engine_speed': 'Upper bound engine speed [rpm]',
-    'max_engine_power': 'Maximum engine power [watt]',
-    'times': 'Time [s]',
-    'idle_engine_speed_median': 'Idle engine speed median [rpm]',
-    'CMV_Cold_Hot': 'Corrected matrix velocity Cold/Hot [km/h]',
-    'velocity_speed_ratios': 'Velocity speed ratios [km/(rpm * h)]',
-    'wheel_powers': 'Wheel power [kW]',
-    'max_engine_speed_at_max_power': 'Maximum engine speed at max power [rpm]',
-    'r_dynamic': 'R dynamic [m]',
-    'final_drive': 'Final drive [-]',
-    'temperatures': 'Temperature [C°]',
-    'gear_box_speeds': 'Gear box speed [rpm]',
-    'velocities': 'Velocity [km/h]',
-    'engine_speeds': 'Engine speed [rpm]',
-    'idle_engine_speed': 'Idle engine speed [rpm]',
-    'speed_velocity_ratios': 'Speed velocity ratios [(rmp * h)/km]',
-    'accelerations': 'Acceleration [km/h^2]',
-    'gear_box_ratios': 'Gear box ratios [-]',
-    'idle_engine_speed_std': 'Idle engine speed std [rpm]',
-    'road_loads': 'Road loads [(N, N/(km/h) N/(km/h)^2)]',
-    'time_cold_hot_transition': 'Time cold hot transition [s]',
-}
+_re_units = re.compile('(\[.*\])')
+
+
+def get_doc_description():
+    from co2mpas.models.physical import physical_calibration
+    from co2mpas.models.physical import physical_prediction
+    from co2mpas.dispatcher.utils import search_node_description
+
+    doc_descriptions = {}
+
+    for builder in [physical_calibration, physical_prediction]:
+        dsp = builder()
+        for k, v in dsp.nodes.items():
+            if k in doc_descriptions or v['type'] != 'data':
+                continue
+            des = search_node_description(k, v, dsp)[0]
+            if not des or len(des.split(' ')) > 4:
+
+                unit = _re_units.search(des)
+                if unit:
+                    unit = ' %s' % unit.group()
+                else:
+                    unit = ''
+                doc_descriptions[k] = '%s%s.' % (parse_name(k), unit)
+            else:
+                doc_descriptions[k] = des
+    return doc_descriptions

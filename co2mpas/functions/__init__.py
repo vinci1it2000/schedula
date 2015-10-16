@@ -191,7 +191,7 @@ def _process_folder_files(
         output_file_format = '%s/%s_%s' % output_file_format
 
         output_files = {
-            'precondition_output_file_name': 'precondition_WLTP',
+            'wltp_precondition_output_file_name': 'precondition_WLTP',
             'calibration_wltp_h_output_file_name': 'calibration_WLTP-H',
             'prediction_wltp_h_output_file_name': 'prediction_WLTP-H',
             'calibration_wltp_l_output_file_name': 'calibration_WLTP-L',
@@ -217,7 +217,7 @@ def _process_folder_files(
         log.info('Processing: %s', fname)
 
         input_files = {'input_file_name': fpath}
-        update_inputs(input_files, fname)
+
 
         def model_builder():
             outputs = [
@@ -233,6 +233,9 @@ def _process_folder_files(
             return {k: v for k, v in inps_n_outs.items() if k in outputs}
 
         inputs = _read_model_from_cache(fpath, model_builder)
+
+        update_inputs(inputs, fname)
+
         res = model.dispatch(inputs=inputs)
 
         s = _make_summary(sheets, *res, **{'vehicle': fname})
