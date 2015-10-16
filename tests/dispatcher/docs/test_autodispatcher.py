@@ -165,6 +165,9 @@ if not IS_PYPY:
                 "   .. csv-table:: **Pippo's data**",
                 '   ',
                 '      ":obj:`a <>`", "Description of a"',
+                '      ":obj:`b <>`", "Nice e."',
+                '      ":obj:`c <>`", "Nice f."',
+                '      ":obj:`d <>`", "Other args."',
                 '      ":obj:`sink <>`", "Sink node of the dispatcher that '
                 'collects all unused outputs."',
                 '      ":obj:`start <>`", "Starting node that identifies '
@@ -187,11 +190,29 @@ if not IS_PYPY:
             res[5] = '   Docstring 3'
             assert_result(self, res, 'dispatcher', 'dsp_2')
 
-    def fun2():
+    def fun2(e, *args):
         """
         Fun2
 
         error
+
+        :param e:
+            Nice e.
+
+            error
+        :type e: None
+
+        :param args:
+            Other args.
+
+            error
+        :type args: None
+
+        :returns:
+            Nice f.
+
+            error
+        :rtype: None
         """
         return
 
@@ -201,7 +222,7 @@ if not IS_PYPY:
     dsp = Dispatcher(name='Pippo', description='Docstring 2\n\ngood')
     dsp.add_data(data_id='a', description='Description of a\n\nerror')
     dsp.add_function(function_id='fun1', description='Fun1\n\nerror')
-    dsp.add_function('fun2', fun2)
+    dsp.add_function('fun2', fun2, ['b', 'd'], ['c'])
     dsp.add_function('fun3', fun2, description='Fun3\n\nerror')
 
 

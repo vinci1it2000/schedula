@@ -16,8 +16,12 @@ __all__ = ['get_attr_doc', 'get_summary', 'search_node_description',
            'get_parent_func']
 
 import re
+import logging
 from .dsp import SubDispatch, SubDispatchFunction, add_args
 from functools import partial
+from sphinx.ext.autodoc import getargspec
+
+log = logging.getLogger(__name__)
 
 
 def get_attr_doc(doc, attr_name, get_param=True):
@@ -98,17 +102,18 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function'):
                     n_att = sub_dsp.nodes[n_id]
                     d, l = search_node_description(n_id, n_att, sub_dsp)
 
-            if d:
-                return d, l
-            from sphinx.ext.autodoc import getargspec
-            attr_name = getargspec(fun)
-            try:
-                attr_name[0][n_ix] if where_succ else None
-            except IndexError:
-                attr_name = attr_name[1]
+            doc = fun.__doc__
+            if not d and doc:
 
-            return get_attr_doc(fun.__doc__, attr_name, where_succ), ''
+                attr_name = getargspec(fun)
+                try:
+                    attr_name = attr_name[0][n_ix] if where_succ else None
+                except IndexError:
+                    attr_name = attr_name[1]
 
+                return get_attr_doc(doc, attr_name, where_succ), ''
+
+            return d, l
     else:
         if where_succ:
             get_id = lambda node: node[node_attr][node_id]
@@ -124,11 +129,10 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function'):
 
     for k, v in ((k, nodes[k]) for k in sorted(neighbors[node_id])):
         if v['type'] == node_type and check(k):
-            # noinspection PyBroadException
             try:
                 des, link = get_des(v)
-            except:
-                pass
+            except Exception as ex:
+                log.warning('{}'.format(ex))
 
         if des:
             return des, link
@@ -157,8 +161,6 @@ def search_node_description(node_id, node_attr, dsp):
                 des = func.name
             elif isinstance(func, SubDispatch):
                 des = func.dsp.name
-    elif hasattr(node_id, '__doc__'):
-        des = node_id.__doc__
     elif not func:
         return _search_doc_in_func(dsp, node_id)
     else:
@@ -187,6 +189,8 @@ def get_parent_func(func, input_id=None):
         return get_parent_func(func.func, input_id=input_id)
 
     elif isinstance(func, add_args):
+        if input_id is not None:
+            input_id -= func.n
         return get_parent_func(func.func, input_id=input_id)
 
     if input_id is None:
