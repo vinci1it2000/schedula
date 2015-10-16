@@ -45,12 +45,20 @@ Quickstart
 
     - Console-commands beginning with ``$`` symbol are for the ``bash`` shell
       (UNIX).
+      You can install it on *Windows* with **cygwin**: https://www.cygwin.com/
+      along with these useful utilities::
+
+        * git, git-completion
+        * make, zip, unzip, bzip2, 7z, dos2unix
+        * openssh, curl, wget
 
     - Console-commands beginning with ``>`` symbol are for *Windows* ``cmd.exe``
       command-prompt.
+      You can augment it with bash-like capabilities using **Clink**:
+      http://mridgers.github.io/clink/
 
     - You can adapt commands between the two shells with minor modifications
-      (i.e. ``mkdir <--> md``, ``rm <--> del``).
+      (i.e. ``ls <--> dir``, ``rm -r <--> deltree``).
 
     - You may download and install the *all-in-one* archive which contains
       both shells configured in a console supporting decent copy-paste and

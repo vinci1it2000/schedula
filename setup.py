@@ -158,7 +158,7 @@ setup(
     include_package_data=True,
     zip_safe=True,
     test_suite='nose.collector',
-    tests_require=['nose>=1.0'],
+    tests_require=['nose>=1.0', 'ddt'],
     entry_points={
         'console_scripts': [
             '%s = co2mpas.__main__:main' % proj_name,
