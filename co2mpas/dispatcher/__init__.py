@@ -26,7 +26,7 @@ __author__ = 'Vincenzo Arcidiacono'
 
 import logging
 from heapq import heappush, heappop
-from collections import deque, defaultdict
+from collections import deque
 from copy import copy, deepcopy
 from networkx import DiGraph, isolates
 from functools import partial
