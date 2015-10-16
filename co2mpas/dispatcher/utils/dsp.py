@@ -869,8 +869,6 @@ class SubDispatchPipe(SubDispatchFunction):
             return self._set_function_node_output(dsp, node_id, node_attr)
 
     def _set_data_node_output(self, dsp, node_id, node_attr):
-
-
         # Get data node estimations.
         estimations = dsp._wf_pred[node_id]
 
@@ -917,7 +915,6 @@ class SubDispatchPipe(SubDispatchFunction):
                 wf_add_edge(node_id, u, **value)
 
     def _set_function_node_output(self, dsp, node_id, node_attr):
-
         # Namespace shortcuts for speed.
         o_nds = node_attr['outputs']
 
@@ -926,7 +923,6 @@ class SubDispatchPipe(SubDispatchFunction):
         args = [v for v in args if v is not NONE]
 
         try:
-
             fun = node_attr['function']  # Get function.
 
             attr = {'started': datetime.today()}  # Starting time.

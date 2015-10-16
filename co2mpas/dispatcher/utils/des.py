@@ -84,8 +84,15 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function'):
             n_ix = func_node[node_attr].index(node_id)
             d, l = '', ''
             if where_succ:
-                fun, n_ix = get_parent_func(func_node['function'],
-                                               input_id=n_ix)
+                fun, n = get_parent_func(func_node['function'], input_id=n_ix)
+                if n < 0:
+                    fun, n_ix = get_parent_func(func_node['input_domain'],
+                                                input_id=n_ix)
+                    if n_ix < 0:
+                        return d, l
+                else:
+                    n_ix = n
+
             else:
                 fun = get_parent_func(func_node['function'])
 
