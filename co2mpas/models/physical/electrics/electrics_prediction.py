@@ -23,19 +23,19 @@ def electrics_prediction():
 
     .. dispatcher:: dsp
 
-        >>> dsp = electrics_prediction()
+        >>> dsp = electrics_prediction().dsp
 
     :return:
         The electric sub model.
     :rtype: SubDispatchPipe
     """
 
-    electrics_prediction = Dispatcher(
+    dsp = Dispatcher(
         name='Electric sub model',
         description=''
     )
 
-    electrics_prediction.add_function(
+    dsp.add_function(
         function=calculate_battery_current,
         inputs=['electric_load', 'alternator_current',
                 'alternator_nominal_voltage', 'on_engine',
@@ -43,28 +43,28 @@ def electrics_prediction():
         outputs=['battery_current']
     )
 
-    electrics_prediction.add_function(
+    dsp.add_function(
         function=calculate_alternator_current,
         inputs=['alternator_status', 'on_engine', 'gear_box_power_in',
                 'alternator_charging_currents', 'engine_start_current'],
         outputs=['alternator_current']
     )
 
-    electrics_prediction.add_function(
+    dsp.add_function(
         function=calculate_battery_state_of_charge,
         inputs=['battery_state_of_charge', 'battery_capacity', 'delta_time',
                 'battery_current', 'prev_battery_current'],
         outputs=['battery_state_of_charge']
     )
 
-    electrics_prediction.add_function(
+    dsp.add_function(
         function=predict_alternator_status,
         inputs=['alternator_status_model', 'prev_alternator_status',
                 'battery_state_of_charge', 'gear_box_power_in'],
         outputs=['alternator_status']
     )
 
-    electrics_prediction.add_function(
+    dsp.add_function(
         function=calculate_engine_start_current,
         inputs=['engine_start', 'start_demand', 'alternator_nominal_voltage',
                 'delta_time'],
@@ -72,7 +72,7 @@ def electrics_prediction():
     )
 
     electrics_prediction = SubDispatchPipe(
-        dsp=electrics_prediction,
+        dsp=dsp,
         function_id='electric_sub_model',
         inputs=['battery_capacity', 'alternator_status_model',
                 'alternator_charging_currents', 'max_battery_charging_current',
