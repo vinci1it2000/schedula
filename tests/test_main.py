@@ -9,6 +9,7 @@
 from co2mpas import __main__ as compas_main
 from co2mpas import __version__ as proj_ver
 from co2mpas.__main__ import init_logging
+from co2mpas.functions import plot as co2plot
 import glob
 import io
 import logging
@@ -17,7 +18,7 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
-
+import ddt
 
 mydir = os.path.dirname(__file__)
 readme_path = os.path.join(mydir, '..', 'README.rst')
@@ -94,3 +95,27 @@ class Main(unittest.TestCase):
             compas_main._main(*cmd.split())
             cmd = "-v -I %s -O %s" % (inp, out)
             compas_main._main(*cmd.split())
+
+
+@ddt.ddt
+class Modelgraph(unittest.TestCase):
+    def setUp(self):
+        self.plot_func = co2plot.plot_model_graphs
+        self.odl_dfl = self.plot_func.__defaults__
+        dfl = list(self.odl_dfl)
+        dfl[1] = False
+        self.plot_func.__defaults__ = tuple(dfl)
+        self.model = co2plot.get_models_path()[1]
+    def tearDown(self):
+        self.plot_func = co2plot.plot_model_graphs
+        self.plot_func.__defaults__ = self.odl_dfl
+
+    @ddt.data(
+        '',
+        '--dept -1',
+        '--dept 0',
+        '--dept 1',
+    )
+    def test_plot_graphs_depth(self, case):
+        cmd = "modelgraph %s %s" % (case, self.model)
+        compas_main._main(*cmd.split())

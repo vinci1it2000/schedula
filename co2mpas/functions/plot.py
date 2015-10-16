@@ -30,10 +30,10 @@ def get_models_path(model_ids=None):
 
     :return:
         CO2MPAS models import paths.
-    :rtype: set
+    :rtype: list
     """
 
-    co2maps_models = {
+    co2maps_models = [
         'vehicle_processing_model',
         'load_inputs',
         'write_outputs',
@@ -70,22 +70,21 @@ def get_models_path(model_ids=None):
         'physical.engine.engine',
         #+++
         'physical.engine.co2_emission.co2_emission',
-    }
+    ]
 
-    co2maps_models = {'co2mpas.models.%s' % k for k in co2maps_models}
+    co2maps_models = ['co2mpas.models.%s' % k for k in co2maps_models]
 
     if not model_ids:
         models = co2maps_models
     else:
         models = set()
         for model_id in model_ids:
-            models.update({k for k in co2maps_models if model_id in k})
+            models.update(k for k in co2maps_models if model_id in k)
 
     return models
 
 
-def plot_model_graphs(model_ids=None, view_in_browser=True,
-        depth=-1, **kwargs):
+def plot_model_graphs(model_ids=None, view_in_browser=True, depth=-1, **kwargs):
     """
     Plots the graph of CO2MPAS models.
 
@@ -112,15 +111,15 @@ def plot_model_graphs(model_ids=None, view_in_browser=True,
 
     dot_graphs = []
 
-    for model_path in sorted(models_path):
+    for model_path in models_path:
         model_path = model_path.split('.')
         module_path, object_name = '.'.join(model_path[:-1]), model_path[-1]
         importlib.import_module(module_path)
         module = sys.modules[module_path]
         dsp = getattr(module, object_name)()
-        depth = -1 if depth is None else depth  # Please @arci rename arg.
-        dot = dsp_utl.plot(dsp, view=view_in_browser,
-                function_module=True, depth=depth, **kwargs)
+        depth = -1 if depth is None else depth
+        dot = dsp_utl.plot(dsp, view=view_in_browser, function_module=False,
+                           depth=depth, nested=True, **kwargs)
         dot_graphs.append(dot)
 
     return dot_graphs
