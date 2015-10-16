@@ -50,7 +50,6 @@ def vehicle():
     vehicle.add_data(
         data_id='air_density',
         default_value=1.2,
-        description='Air density [kg/m3].'
     )
 
     vehicle.add_function(
@@ -70,7 +69,6 @@ def vehicle():
     vehicle.add_data(
         data_id='angle_slope',
         default_value=0,
-        description='Slope of the road in radiant.'
     )
 
     vehicle.add_function(
