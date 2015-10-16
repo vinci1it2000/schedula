@@ -1198,7 +1198,7 @@ class Dispatcher(object):
         **Example**:
 
         .. dispatcher:: dsp
-           :opt: workflow=True, graph_attr={'ratio': '1'}, level=1
+           :opt: workflow=True, graph_attr={'ratio': '1'}, depth=1
 
             >>> from co2mpas.dispatcher import Dispatcher
             >>> s_dsp = Dispatcher(name='Sub-dispatcher')
@@ -1223,7 +1223,7 @@ class Dispatcher(object):
             'data'
 
         .. dispatcher:: sub_dsp
-           :opt: workflow=True, graph_attr={'ratio': '1'}, level=0
+           :opt: workflow=True, graph_attr={'ratio': '1'}, depth=0
            :code:
 
             >>> sub_dsp = dsp.get_node('Sub-dispatcher')
@@ -1249,7 +1249,7 @@ class Dispatcher(object):
 
         return deepcopy(self)  # Return the copy of the Dispatcher.
 
-    def plot(self, workflow=False, edge_data=EMPTY, view=True, level=-1,
+    def plot(self, workflow=False, edge_data=EMPTY, view=True, depth=-1,
              function_module=False, node_output=False, filename=None,
              nested=True, **kw_dot):
         """
@@ -1272,9 +1272,9 @@ class Dispatcher(object):
             default opener.
         :type view: bool, optional
 
-        :param level:
-            Max level of sub-dispatch plots. If negative all levels are plotted.
-        :type level: int, optional
+        :param depth:
+            Depth of sub-dispatch plots. If negative all levels are plotted.
+        :type depth: int, optional
 
         :param function_module:
             If True the function labels are plotted with the function module,
@@ -1334,7 +1334,7 @@ class Dispatcher(object):
             kw_dot['filename'] = filename
 
         return plot(self, workflow=workflow, edge_data=edge_data, view=view,
-                    level=level, function_module=function_module,
+                    depth=depth, function_module=function_module,
                     node_output=node_output, nested=nested, **kw_dot)
 
     def remove_cycles(self, sources):

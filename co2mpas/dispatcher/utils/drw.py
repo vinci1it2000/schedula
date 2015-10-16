@@ -249,7 +249,7 @@ def _init_graph_data(dsp, workflow, edge_attr):
 
 def _set_node(dot, node_id, dsp2dot_id, dsp=None, node_attr=None, values=None,
               dist=None, function_module=True, edge_attr=None,
-              workflow_node=False, level=0, node_output=False, nested=False,
+              workflow_node=False, depth=0, node_output=False, nested=False,
               **dot_kw):
 
     styles = {
@@ -285,7 +285,7 @@ def _set_node(dot, node_id, dsp2dot_id, dsp=None, node_attr=None, values=None,
             if node_type == 'dispatcher' or isinstance(fun, SubDispatch):
                 kw['style'] = 'dashed, filled'
 
-                if level != 0:
+                if depth != 0:
                     kw['fillcolor'] = '#FF8F0F80'
 
                     kwargs = {
@@ -295,7 +295,7 @@ def _set_node(dot, node_id, dsp2dot_id, dsp=None, node_attr=None, values=None,
                         'node_name': node_name,
                         'edge_attr': edge_attr,
                         'workflow': workflow_node.get('workflow', False),
-                        'level': level,
+                        'depth': depth,
                         'node_output': node_output,
                         'function_module': function_module,
                         'nested': nested,
@@ -352,7 +352,7 @@ def _save_txt_output(directory, filename, output_lines):
     return None
 
 
-def _set_sub_dsp(dot, dsp, dot_id, node_name, edge_attr, workflow, level,
+def _set_sub_dsp(dot, dsp, dot_id, node_name, edge_attr, workflow, depth,
                  node_output, function_module=True, nested=False, **dot_kw):
 
     dot_kw['directory'] = dot_kw.get('directory', dot.directory)
@@ -387,7 +387,7 @@ def _set_sub_dsp(dot, dsp, dot_id, node_name, edge_attr, workflow, level,
             dot.subgraph(s_dot)
             return {}
 
-    return wrapper(dsp, workflow, sub_dot, edge_attr, level=level - 1,
+    return wrapper(dsp, workflow, sub_dot, edge_attr, depth=depth - 1,
                    function_module=function_module, node_output=node_output,
                    nested=nested, **dot_kw)
 
@@ -419,7 +419,7 @@ def _get_dsp2dot_id(dot, graph):
 
 
 def plot(dsp, workflow=False, dot=None, edge_data=None, view=False,
-         level=-1, function_module=True, node_output=True, nested=False,
+         depth=-1, function_module=True, node_output=True, nested=False,
          is_sub_dsp=False, **kw_dot):
     """
     Plots the Dispatcher with a graph in the DOT language with Graphviz.
@@ -449,9 +449,9 @@ def plot(dsp, workflow=False, dot=None, edge_data=None, view=False,
         default opener.
     :type view: bool, optional
 
-    :param level:
-        Max level of sub-dispatch plots. If negative all levels are plotted.
-    :type level: int, optional
+    :param depth:
+        Depth of sub-dispatch plots. If negative all levels are plotted.
+    :type depth: int, optional
 
     :param function_module:
         If True the function labels are plotted with the function module,
@@ -554,7 +554,7 @@ def plot(dsp, workflow=False, dot=None, edge_data=None, view=False,
                   function_module=function_module,
                   edge_attr=edge_data,
                   workflow_node=v,
-                  level=level,
+                  depth=depth,
                   node_output=node_output,
                   nested=nested)
 

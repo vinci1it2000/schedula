@@ -120,7 +120,7 @@ def plot_model_graphs(model_ids=None, view_in_browser=True,
         dsp = getattr(module, object_name)()
         depth = 'all' if depth < 0 else depth  # Please @arci rename arg.
         dot = dsp_utl.plot(dsp, view=view_in_browser,
-                function_module=True, level=depth, **kwargs)
+                function_module=True, depth=depth, **kwargs)
         dot_graphs.append(dot)
 
     return dot_graphs

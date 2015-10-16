@@ -334,7 +334,7 @@ class SubDispatch(object):
     Example:
 
     .. dispatcher:: dsp
-       :opt: graph_attr={'ratio': '1'}, level=1
+       :opt: graph_attr={'ratio': '1'}, depth=1
        :code:
 
         >>> from co2mpas.dispatcher import Dispatcher
@@ -353,7 +353,7 @@ class SubDispatch(object):
     Dispatch the dispatch output is:
 
     .. dispatcher:: dsp
-       :opt: workflow=True, graph_attr={'ratio': '1'}, level=1
+       :opt: workflow=True, graph_attr={'ratio': '1'}, depth=1
 
         >>> w, o = dsp.dispatch(inputs={'d': {'a': 3}})
         >>> sorted(o['e'].items())
@@ -427,7 +427,7 @@ class SubDispatch(object):
         self.__name__ = dsp.name
         self.__doc__ = dsp.__doc__
 
-    def plot(self, workflow=False, edge_data=EMPTY, view=True, level=-1,
+    def plot(self, workflow=False, edge_data=EMPTY, view=True, depth=-1,
              function_module=False, node_output=False, filename=None,
              nested=True, **kw_dot):
         """
@@ -450,9 +450,9 @@ class SubDispatch(object):
             default opener.
         :type view: bool, optional
 
-        :param level:
-            Max level of sub-dispatch plots. If negative all levels are plotted.
-        :type level: int, optional
+        :param depth:
+            Depth of sub-dispatch plots. If negative all levels are plotted.
+        :type depth: int, optional
 
         :param function_module:
             If True the function labels are plotted with the function module,
@@ -516,7 +516,7 @@ class SubDispatch(object):
         from .drw import plot
 
         return plot(self, workflow=workflow, edge_data=edge_data, view=view,
-                    level=level, function_module=function_module,
+                    depth=depth, function_module=function_module,
                     node_output=node_output, nested=nested, **kw_dot)
 
     def __call__(self, *input_dicts, copy_input_dicts=False):

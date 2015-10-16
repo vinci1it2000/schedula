@@ -59,7 +59,7 @@ class TestDispatcherDraw(unittest.TestCase):
         w = plot(dsp, workflow=True)
         self.assertIsInstance(w, Digraph)
 
-        l = plot(dsp, level=1)
+        l = plot(dsp, depth=1)
         self.assertIsInstance(l, Digraph)
 
         f = plot(dsp, function_module=False)

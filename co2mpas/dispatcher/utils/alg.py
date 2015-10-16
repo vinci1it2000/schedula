@@ -309,7 +309,7 @@ def get_sub_node(dsp, path, node_attr='auto', _level=0, _dsp_name=NONE):
     **Example**:
 
     .. dispatcher:: dsp
-       :opt: workflow=True, graph_attr={'ratio': '1'}, level=1
+       :opt: workflow=True, graph_attr={'ratio': '1'}, depth=1
 
         >>> from co2mpas.dispatcher import Dispatcher
         >>> s_dsp = Dispatcher(name='Sub-dispatcher')
@@ -334,7 +334,7 @@ def get_sub_node(dsp, path, node_attr='auto', _level=0, _dsp_name=NONE):
         'data'
 
     .. dispatcher:: sub_dsp
-       :opt: workflow=True, graph_attr={'ratio': '1'}, level=0
+       :opt: workflow=True, graph_attr={'ratio': '1'}, depth=0
        :code:
 
         >>> sub_dsp = get_sub_node(dsp, ('Sub-dispatcher',))

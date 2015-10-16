@@ -170,7 +170,7 @@ def _dsp2dot_option(arg):
 
     # noinspection PyUnusedLocal
     def map_args(*args, **kwargs):
-        k = ['workflow', 'dot', 'edge_attr', 'view', 'level', 'function_module']
+        k = ['workflow', 'dot', 'edge_attr', 'view', 'depth', 'function_module']
         kw = dict(zip(k, args))
         kw.update(kwargs)
         return kw
@@ -200,7 +200,7 @@ class DispatcherDocumenter(DataDocumenter):
         'dot': None,
         'edge_attr': None,
         'view': False,
-        'level': 0,
+        'depth': 0,
         'function_module': False,
     }
     code = None
