@@ -25,22 +25,31 @@ from .dsp import SubDispatch, SubDispatchFunction, combine_dicts
 from itertools import chain
 from functools import partial
 from graphviz.tools import mkdirs
+import html
+from pathlib import Path
 from .des import get_parent_func, search_node_description
 
 __all__ = ['plot']
 
 
-# noinspection PyCallByClass,PyTypeChecker
 _encode_table = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '\'': '&quot;',
-    '"': '&quot;',
-    '>': '&gt;',
     '{': '\{',
-    '|': '\|',
     '}': '\}',
+    '|': '\|'
 }
+
+
+def _encode_dot(s):
+    return str(s).replace('"', '\"')
+
+
+def _html_encode(s):
+    s = ''.join(_encode_table.get(c, c) for c in str(s))
+    return html.escape(s)
+
+
+def _encode_file_name(s):
+    return _html_encode(str(s))
 
 
 def _init_filepath(directory, filename, nested, name, is_sub_dsp):
@@ -63,11 +72,11 @@ def _init_filepath(directory, filename, nested, name, is_sub_dsp):
     directory = os.path.dirname(path)
     filename = os.path.basename(path)
 
-    return _label_encode(directory), _label_encode(filename)
+    return directory, _encode_file_name(filename)
 
 
 def _init_dot(dsp, workflow, nested, is_sub_dsp, **kw_dot):
-    name = dsp.name or '%s %d' % (type(dsp).__name__, id(dsp))
+    name = _encode_dot(dsp.name or '%s %d' % (type(dsp).__name__, id(dsp)))
 
     dfl_node_attr = {'style': 'filled'}
     dfl_body = {'label': '"%s"' % _get_title(name, workflow),
@@ -93,24 +102,17 @@ def _init_dot(dsp, workflow, nested, is_sub_dsp, **kw_dot):
 
 
 def _get_title(name, workflow=False):
-    return '%s%s' % (_label_encode(name), ['', ' workflow'][bool(workflow)])
+    return _html_encode('%s%s' % (name, ['', ' workflow'][bool(workflow)]))
 
 
 def _node_label(name, values):
     attr = ''
 
     if values:
-        attr = '| ' + ' | '.join([_attr_node(*v) for v in values.items()])
+        attr = (_html_encode('%s = %s' % (k, v)) for k, v in values.items())
+        attr = '| ' + ' | '.join(attr)
 
-    return '{ %s %s }' % (_label_encode(name), attr)
-
-
-def _attr_node(k, v):
-    try:
-        v = v.__name__
-    except AttributeError:
-        pass
-    return '%s = %s' % (_label_encode(k), _label_encode(v))
+    return '{ %s %s }' % (_html_encode(name), attr)
 
 
 def _data_node_label(dot, k, values, attr=None, dist=None,
@@ -158,9 +160,7 @@ def _data_node_label(dot, k, values, attr=None, dist=None,
                 if filepath is not None:
                     kw['URL'] = _url_rel_path(dot.directory, filepath)
 
-    node_label = _node_label(k, v)
-
-    return node_label, kw
+    return _node_label(k, v), kw
 
 
 def _format_output(data, max_len=1000):
@@ -214,11 +214,7 @@ def _fun_node_label(node_id, node_name, attr=None, dist=None):
 def _fun_attr(k, v):
     if k in ['input_domain']:
         v = v.__name__
-    return _label_encode(v)
-
-
-def _label_encode(text):
-    return ''.join(_encode_table.get(c, c) for c in str(text))
+    return _html_encode(v)
 
 
 def _func_name(name, function_module=True):
@@ -312,7 +308,7 @@ def _set_node(dot, node_id, dsp2dot_id, dsp=None, node_attr=None, values=None,
 
     if node_attr and dsp and 'tooltip' not in kw:
         tooltip = search_node_description(node_id, node_attr, dsp)[0]
-        kw['tooltip'] = tooltip or _label_encode(node_id)
+        kw['tooltip'] = tooltip or _html_encode(node_id)
 
     dot.node(dot_id, node_label, **kw)
 
@@ -339,8 +335,8 @@ def _set_func_out(dot, node_name, func, nested):
 
 
 def _save_txt_output(directory, filename, output_lines):
-    filename = '%s.txt' % _label_encode(filename)
-    directory = _label_encode(directory)
+    filename = '%s.txt' % _encode_file_name(filename)
+    directory = directory
     filepath = os.path.join(directory, filename)
     try:
         mkdirs(filepath)
@@ -359,8 +355,8 @@ def _set_sub_dsp(dot, dsp, dot_id, node_name, edge_attr, workflow, depth,
 
     if nested:
         sub_dot = None
-        dot_kw['name'] = node_name
-        dot_kw['filename'] = node_name
+        dot_kw['name'] = _encode_dot(node_name)
+        dot_kw['filename'] = _encode_file_name(node_name)
 
         def wrapper(*args, **kwargs):
             s_dot = plot(*args, is_sub_dsp=True, **kwargs)
@@ -374,10 +370,11 @@ def _set_sub_dsp(dot, dsp, dot_id, node_name, edge_attr, workflow, depth,
                 'style=filled',
                 'fillcolor="#FF8F0F80"',
                 'label="%s"' % _get_title(node_name, workflow),
-                'comment="%s"' % _label_encode(node_name),
+                'comment="%s"' % _html_encode(node_name),
             ]
         }
         kw_sub.update(dot_kw)
+        kw_sub['name'] = html.escape(kw_sub['name'], quote=True).replace(':', '')
 
         dot_kw = {}
         sub_dot = Digraph(**kw_sub)
@@ -395,7 +392,7 @@ def _set_sub_dsp(dot, dsp, dot_id, node_name, edge_attr, workflow, depth,
 def _set_edge(dot, dot_u, dot_v, attr=None, edge_data=None, **kw_dot):
     if dot_u != dot_v:
         if attr and edge_data in attr:
-            kw = {'xlabel': _label_encode(attr[edge_data])}
+            kw = {'xlabel': _html_encode(attr[edge_data])}
         else:
             kw = {}
 
@@ -411,9 +408,10 @@ def _url_rel_path(directory, path):
 
 
 def _get_dsp2dot_id(dot, graph):
+    parent = dot.name
 
     def id_node(o):
-        return '%s_%s' % (dot.name, hash(o))
+        return html.escape('%s_%s' % (parent, hash(o)), quote=True)
 
     return {k: id_node(k) for k in chain(graph.node, [START, END, SINK])}
 

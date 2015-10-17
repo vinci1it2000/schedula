@@ -31,12 +31,11 @@ class TestDispatcherDraw(unittest.TestCase):
     def setUp(self):
         ss_dsp = Dispatcher()
 
-        def fun(a):
-            return a + 1, 5, a - 1
+        fun = lambda a: (a + 1, 5, a - 1)
+        c = '|!"£$%&/()=?^*+éè[]#¶ù§çò@:;-_.,<>'
+        ss_dsp.add_function(function=fun, inputs=['a'], outputs=['b', SINK, c])
 
-        ss_dsp.add_function('fun', fun, ['a'], ['b', SINK, 'c'])
-
-        sub_dispatch = SubDispatch(ss_dsp, ['a', 'b', 'c'], output_type='list')
+        sub_dispatch = SubDispatch(ss_dsp, ['a', 'b', c], output_type='list')
         s_dsp = Dispatcher()
 
         s_dsp.add_function('sub_dispatch', sub_dispatch, ['a'], ['b', 'c', 'd'])
@@ -64,3 +63,8 @@ class TestDispatcherDraw(unittest.TestCase):
 
         f = plot(dsp, function_module=False)
         self.assertIsInstance(f, Digraph)
+
+        f = plot(dsp, function_module=True)
+        self.assertIsInstance(f, Digraph)
+
+
