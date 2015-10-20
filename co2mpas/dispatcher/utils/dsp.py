@@ -698,7 +698,7 @@ class SubDispatchFunction(SubDispatch):
 
         # Initialize.
         args = dsp._init_workflow(input_values, self.input_value,
-                                  self.inputs_dist)
+                                  self.inputs_dist, False)
         # Dispatch outputs.
         w, o = dsp._run(*args)
 

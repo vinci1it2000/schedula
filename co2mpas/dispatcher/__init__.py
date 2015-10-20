@@ -1016,7 +1016,7 @@ class Dispatcher(object):
 
         :param graph:
             A directed graph where evaluate the breadth-first-search.
-        :type graph: DiGraph
+        :type graph: DiGraph, optional
 
         :param reverse:
             If True the workflow graph is assumed as reversed.
@@ -1586,7 +1586,7 @@ class Dispatcher(object):
         return self.workflow, self.data_output
 
     def shrink_dsp(self, inputs=None, outputs=None, cutoff=None,
-                   inputs_dist=None):
+                   inputs_dist=None, wildcard=True):
         """
         Returns a reduced dispatcher.
 
@@ -1674,7 +1674,7 @@ class Dispatcher(object):
 
             # Evaluate the workflow graph without invoking functions.
             wf, o = self.dispatch(inputs, outputs, cutoff, inputs_dist,
-                                  True, True, False, True)
+                                  wildcard, True, False, True)
 
             edges = set(wf.edges())  # bfg edges.
 
@@ -1698,7 +1698,7 @@ class Dispatcher(object):
 
                 # Evaluate the workflow graph without invoking functions.
                 wf, o = self.dispatch(inputs, outputs, cutoff, inputs_dist,
-                                      True, True, False, True)
+                                      wildcard, True, False, True)
 
                 edges.update(wf.edges())  # Update bfg edges.
 
@@ -1716,6 +1716,11 @@ class Dispatcher(object):
             outputs = outputs or o
 
             self._set_wait_in(flag=None)  # Clean wait input flags.
+        else:
+            dsp = self.get_sub_dsp_from_workflow(outputs, bfs_graph, True)
+            for k, v in dsp.nodes.items():
+                if v['type'] == 'dispatcher':
+                    sub_dsp = v['function'] = v['function'].shrink_dsp(outputs=v['outputs'])
 
         if outputs:  # Get sub dispatcher breadth-first-search graph.
             dsp = self.get_sub_dsp_from_workflow(outputs, bfs_graph, True)
@@ -1742,7 +1747,7 @@ class Dispatcher(object):
         for k in (k for k, v in nodes.items() if v['type'] == 'dispatcher'):
             node = nodes[k] = nodes[k].copy()  # Unlink node references.
 
-            # Get parent dispatcher inpits and outputs.
+            # Get parent dispatcher inputs and outputs.
             i, o = pred[k], succ[k]
             i = {l: m for l, m in node['inputs'].items() if l in i}
             o = {l: m for l, m in node['outputs'].items() if m in o}
@@ -1922,7 +1927,7 @@ class Dispatcher(object):
         :rtype: function
         """
 
-        visited, pred = self._visited, self._pred  # Namespace shortcuts.
+        wf_pred, pred = self._wf_pred, self._pred  # Namespace shortcuts.
 
         if self._wait_in:
             we = self._wait_in.get  # Namespace shortcut.
@@ -1946,12 +1951,14 @@ class Dispatcher(object):
                 """
 
                 # Return true if the node inputs are satisfied.
-                return we(n_id, wait_in) and (set(pred[n_id].keys()) - visited)
+                if we(n_id, wait_in):
+                    return bool(set(pred[n_id]) - set(wf_pred[n_id]))
+                return False
 
         else:
             def check_wait_input_flag(wait_in, n_id):
                 # Return true if the node inputs are satisfied.
-                return wait_in and (set(pred[n_id].keys()) - visited)
+                return wait_in and (set(pred[n_id].keys()) - set(wf_pred[n_id]))
 
         return check_wait_input_flag  # Return the function.
 
@@ -2150,8 +2157,12 @@ class Dispatcher(object):
 
             value = {}  # Output value.
 
+        # namespace shortcuts for speed.
+        n, has = self.nodes, self.workflow.has_edge
+
         # List of functions.
-        succ_fun = [u for u in self._succ[node_id]]
+        succ_fun = [u for u in self._succ[node_id]
+                    if not (n[u]['type'] == 'dispatcher' and has(u, node_id))]
 
         # Check if it has functions as outputs and wildcard condition.
         if succ_fun and succ_fun[0] not in self._visited:
@@ -2244,7 +2255,7 @@ class Dispatcher(object):
 
         return True  # Return that the output have been evaluated correctly.
 
-    def _init_workflow(self, inputs, input_value, inputs_dist):
+    def _init_workflow(self, inputs, input_value, inputs_dist, no_call):
         """
         Initializes workflow, visited nodes, data output, and distance.
 
@@ -2295,11 +2306,11 @@ class Dispatcher(object):
 
         # Add initial values to fringe and seen.
         for d, k in sorted((inputs_dist.get(v, 0.0), v) for v in inputs):
-            self._add_initial_value(fringe, check_cutoff, k, input_value(k), d)
+            self._add_initial_value(fringe, check_cutoff, no_call, k, input_value(k), d)
 
         return fringe, check_cutoff  # Return fringe and cutoff function.
 
-    def _add_initial_value(self, fringe, check_cutoff, data_id, value,
+    def _add_initial_value(self, fringe, check_cutoff, no_call, data_id, value,
                            initial_dist=0.0):
         """
         Add initial values updating workflow, seen, and fringe.
@@ -2332,7 +2343,7 @@ class Dispatcher(object):
         # Namespace shortcuts for speed.
         nodes, seen, edge_weight = self.nodes, self.seen, self._edge_length
         wf_remove_edge, check_wait_in = self._wf_remove_edge, self.check_wait_in
-        wf_add_edge = self._wf_add_edge
+        wf_add_edge, dsp_input = self._wf_add_edge, self._set_dispatcher_node_input
 
         if data_id not in nodes:  # Data node is not in the dmap.
             return False
@@ -2357,6 +2368,8 @@ class Dispatcher(object):
                 if check_cutoff(vw_dist):
                     wf_remove_edge(data_id, w)  # Remove workflow edge.
                     continue  # Pass the node.
+                elif nodes[w]['type'] == 'dispatcher':
+                    dsp_input(data_id, w, fringe, check_cutoff, no_call, vw_dist)
                 elif check_wait_in(True, w):
                     continue  # Pass the node.
 
@@ -2442,7 +2455,8 @@ class Dispatcher(object):
                 return {'value': inputs[k]}
 
         # Initialize workflow params.
-        fringe, c_cutoff = self._init_workflow(inputs, input_value, inputs_dist)
+        fringe, c_cutoff = self._init_workflow(inputs, input_value, inputs_dist,
+                                               no_call)
 
         # Return inputs for _run.
         return inputs, fringe, c_cutoff, no_call, rm_unused_nds
@@ -2546,7 +2560,7 @@ class Dispatcher(object):
         distances, add_visited, graph = self.dist, self._visited.add, self.dmap
         wf_rm_edge, wf_has_edge = self._wf_remove_edge, self.workflow.has_edge
         edge_weight, check_targets = self._edge_length, self.check_targets
-        nodes, wf_add_node = self.nodes, self.workflow.add_node
+        nodes = self.nodes
         set_node_output = self._set_node_output
 
         distances[node_id] = dist  # Set minimum dist.
@@ -2573,37 +2587,8 @@ class Dispatcher(object):
                 continue
 
             if node['type'] == 'dispatcher':
-                # Namespace shortcuts.
-                dsp, pred = node['function'], self._wf_pred[w]
-
-                if len(pred) == 1:  # Initialize the sub-dispatcher.
-                    dsp._init_as_sub_dsp(fringe, node['outputs'], no_call)
-                    wf = (dsp.workflow, dsp.data_output, dsp.dist)
-                    wf_add_node(w, workflow=wf)
-
-                iv_nodes = [node_id]  # Nodes do be added as initial values.
-
-                if w not in distances:
-                    if 'input_domain' in node and not no_call:
-                        # noinspection PyBroadException
-                        try:
-                            kwargs = {k: v['value'] for k, v in pred.items()}
-
-                            if not node['input_domain'](kwargs):
-                                continue  # Args are not respecting the domain.
-                            else:
-                                iv_nodes = pred  # Args respect the domain.
-                        except:
-                            continue  # Some error occurs.
-
-                    distances[w] = vw_d  # Update min distance.
-
-                for n_id in iv_nodes:
-                    # Namespace shortcuts.
-                    n, val = node['inputs'][n_id], pred[n_id]
-
-                    # Add initial value to the sub-dispatcher.
-                    dsp._add_initial_value(fringe, check_cutoff, n, val, vw_d)
+                self._set_dispatcher_node_input(
+                    node_id, w, fringe, check_cutoff, no_call, vw_d)
 
             else:  # See the node.
                 self._see_node(w, fringe, vw_d)
@@ -2728,6 +2713,50 @@ class Dispatcher(object):
                     # Get node id of remote sub-dispatcher.
                     n_id = dsp.nodes[dsp_id]['outputs'][node_id]
 
-                    if dsp._see_node(n_id, fringe, dist):  # See node.
+                    b = n_id in dsp._visited  # Node has been visited.
+
+                    # Input do not coincide with the output.
+                    if not (b or dsp.workflow.has_edge(n_id, dsp_id)):
                         # Donate the result to the child.
                         dsp._wf_add_edge(dsp_id, n_id, value=value)
+
+                        dsp._see_node(n_id, fringe, dist)  # See node.
+
+    def _set_dispatcher_node_input(self, node_id, dsp_id, fringe,
+                                   check_cutoff, no_call, initial_dist):
+        # Namespace shortcuts.
+        node = self.nodes[dsp_id]
+        dsp, pred = node['function'], self._wf_pred[dsp_id]
+        distances = self.dist
+
+        if len(pred) == 1:  # Initialize the sub-dispatcher.
+            dsp._init_as_sub_dsp(fringe, node['outputs'], no_call)
+            wf = (dsp.workflow, dsp.data_output, dsp.dist)
+            self.workflow.add_node(dsp_id, workflow=wf)
+
+        iv_nodes = [node_id]  # Nodes do be added as initial values.
+
+        if dsp_id not in distances:
+            if 'input_domain' in node and not no_call:
+                # noinspection PyBroadException
+                try:
+                    kwargs = {k: v['value'] for k, v in pred.items()}
+
+                    if not node['input_domain'](kwargs):
+                        return False  # Args are not respecting the domain.
+                    else:
+                        iv_nodes = pred  # Args respect the domain.
+                except:
+                    return False  # Some error occurs.
+
+            distances[dsp_id] = initial_dist  # Update min distance.
+
+        for n_id in iv_nodes:
+            # Namespace shortcuts.
+            n, val = node['inputs'][n_id], pred[n_id]
+
+            # Add initial value to the sub-dispatcher.
+            dsp._add_initial_value(fringe, check_cutoff, no_call, n, val,
+                                   initial_dist)
+
+        return True

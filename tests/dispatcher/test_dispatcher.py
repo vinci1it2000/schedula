@@ -487,7 +487,8 @@ class TestDispatch(unittest.TestCase):
         )
         self.dsp_of_dsp_2 = dsp
         dsp = dsp.copy()
-
+        dsp.add_function('min', min, ['d', 'e'], ['f'],
+                         input_domain=lambda *args: False)
         self.dsp_of_dsp_3 = dsp
 
     def test_without_outputs(self):
@@ -690,6 +691,34 @@ class TestDispatch(unittest.TestCase):
             'min': {'d': {'value': 7}},
             START: {'a': {'value': 10}},
         }
+        self.assertEqual(o, {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 20, 'f': 4})
+        self.assertEqual(set(wf.node), r)
+        self.assertEqual(wf.edge, w)
+        self.assertEqual(wf.node['sub_dsp']['workflow'][0].edge, sw)
+        sd_wf = wf.node['sub_dsp']['workflow'][0]
+        self.assertEqual(sd_wf.node['sub_sub_dsp']['workflow'][0].edge, ssw)
+
+        wf, o = dsp.dispatch(inputs={'a': 3, 'b': 5, 'd': 10, 'e': 20})
+        sw['e'] = {}
+        sw['fun']['e'] = {'value': 10}
+        self.assertEqual(o, {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 20, 'f': 4})
+        self.assertEqual(set(wf.node), r)
+        self.assertEqual(wf.edge, w)
+        self.assertEqual(wf.node['sub_dsp']['workflow'][0].edge, sw)
+        sd_wf = wf.node['sub_dsp']['workflow'][0]
+        self.assertEqual(sd_wf.node['sub_sub_dsp']['workflow'][0].edge, ssw)
+
+        dsp = self.dsp_of_dsp_3
+        wf, o = dsp.dispatch(
+            inputs={'a': 3, 'b': 5, 'd': 10, 'e': 20},
+            shrink=True)
+        r.add('min')
+        w['d']['min'] = {'value': 10}
+        w['e']['min'] = {'value': 20}
+        w['min'] = {}
+        del sw['e']
+        sw['fun'].pop('e')
+
         self.assertEqual(o, {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 20, 'f': 4})
         self.assertEqual(set(wf.node), r)
         self.assertEqual(wf.edge, w)
@@ -1065,13 +1094,14 @@ class TestShrinkDispatcher(unittest.TestCase):
 
         dsp = Dispatcher()
         dsp.add_dispatcher(
-            sub_dsp, {'a': 'a', 'b': 'b'},
-            {'d': 'd', 'e': 'e', 'f': 'f', 'g': 'g'},
+            sub_dsp, {'a': 'a', 'b': 'b', 'd': 'd'},
+            {'d': 'd', 'e': 'e', 'f': 'f', 'g': 'g', 'a': 'a'},
             dsp_id='sub_dsp'
         )
 
         dsp.add_function(function_id='h', inputs=['a'], outputs=['f'])
-        dsp.add_function(function_id='h', inputs=['b'], outputs=['e'])
+        dsp.add_function(
+            function_id='h', input_domain=bool, inputs=['b'], outputs=['e'])
         self.dsp_of_dsp = dsp
 
     def test_shrink_with_inputs_outputs(self):
@@ -1105,9 +1135,16 @@ class TestShrinkDispatcher(unittest.TestCase):
         sub_dsp = shrink_dsp.nodes['sub_dsp']['function']
         r = ['a', 'b', 'd', 'e', 'f', 'g', 'h', 'h<0>', 'sub_dsp']
         w = [('a', 'h'), ('a', 'sub_dsp'), ('b', 'h<0>'), ('b', 'sub_dsp'),
-             ('h', 'f'), ('h<0>', 'e'), ('sub_dsp', 'd'), ('sub_dsp', 'g')]
+             ('h', 'f'), ('h<0>', 'e'), ('sub_dsp', 'd'), ('sub_dsp', 'e'),
+             ('sub_dsp', 'g')]
         sw = [('a', 'h'), ('a', 'h<2>'), ('b', 'h'), ('c', 'h<0>'),
-              ('c', 'h<2>'), ('h', 'c'), ('h<0>', 'd'), ('h<2>', 'g')]
+              ('c', 'h<2>'), ('h', 'c'), ('h<0>', 'd'), ('h<0>', 'e'),
+              ('h<2>', 'g')]
+        self.assertEqual(sorted(shrink_dsp.dmap.node), r)
+        self.assertEqual(sorted(shrink_dsp.dmap.edges()), w)
+        self.assertEqual(sorted(sub_dsp.dmap.edges()), sw)
+
+        shrink_dsp = dsp.shrink_dsp(['a', 'b'], ['d', 'e', 'f', 'g', 'a'])
         self.assertEqual(sorted(shrink_dsp.dmap.node), r)
         self.assertEqual(sorted(shrink_dsp.dmap.edges()), w)
         self.assertEqual(sorted(sub_dsp.dmap.edges()), sw)
@@ -1123,10 +1160,10 @@ class TestShrinkDispatcher(unittest.TestCase):
         self.assertEqual(sorted(shrink_dsp.dmap.edges()), w)
 
         dsp = self.dsp_of_dsp
-        shrink_dsp = dsp.shrink_dsp(outputs=['d', 'f'])
+        shrink_dsp = dsp.shrink_dsp(outputs=['d', 'e', 'f'])
         sub_dsp = shrink_dsp.nodes['sub_dsp']['function']
         rl = ['sub_dsp', shrink_dsp]
-        r = ['a', 'b', 'd', 'f', 'h', 'sub_dsp']
+        r = ['a', 'b', 'd', 'e', 'f', 'h', 'h<0>', 'sub_dsp']
         w = [('a', 'h'), ('a', 'sub_dsp'), ('b', 'sub_dsp'), ('h', 'f'),
              ('sub_dsp', 'd'), ('sub_dsp', 'f')]
         sn = {
@@ -1184,9 +1221,11 @@ class TestShrinkDispatcher(unittest.TestCase):
         sub_dsp = shrink_dsp.nodes['sub_dsp']['function']
         r = ['a', 'b', 'd', 'e', 'f', 'g', 'h', 'h<0>', 'sub_dsp']
         w = [('a', 'h'), ('a', 'sub_dsp'), ('b', 'h<0>'), ('b', 'sub_dsp'),
-             ('h', 'f'), ('h<0>', 'e'), ('sub_dsp', 'd'), ('sub_dsp', 'g')]
+             ('h', 'f'), ('h<0>', 'e'), ('sub_dsp', 'd'), ('sub_dsp', 'e'),
+             ('sub_dsp', 'g')]
         sw = [('a', 'h'), ('a', 'h<2>'), ('b', 'h'), ('c', 'h<0>'),
-              ('c', 'h<2>'), ('h', 'c'), ('h<0>', 'd'), ('h<2>', 'g')]
+              ('c', 'h<2>'), ('h', 'c'), ('h<0>', 'd'), ('h<0>', 'e'),
+              ('h<2>', 'g')]
         self.assertEqual(sorted(shrink_dsp.dmap.node), r)
         self.assertEqual(sorted(shrink_dsp.dmap.edges()), w)
         self.assertEqual(sorted(sub_dsp.dmap.edges()), sw)
