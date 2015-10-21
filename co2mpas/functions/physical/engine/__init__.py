@@ -156,7 +156,7 @@ def calculate_full_load(full_load_speeds, full_load_powers, idle_engine_speed):
     :rtype: (InterpolatedUnivariateSpline, float, float)
     """
 
-    v = np.array([full_load_powers, full_load_speeds]).T
+    v = list(zip(full_load_powers, full_load_speeds))
     engine_max_power, engine_max_speed_at_max_power = max(v)
 
     p_norm = np.asarray(full_load_powers) / engine_max_power
