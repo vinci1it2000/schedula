@@ -906,7 +906,7 @@ class Dispatcher(object):
             pass
         raise ValueError('Input error: %s is not a data node' % data_id)
 
-    def get_sub_dsp(self, nodes_bunch, edges_bunch=None):
+    def get_sub_dsp(self, nodes_bunch, edges_bunch=None, update_links=False):
         """
         Returns the sub-dispatcher induced by given node and edge bunches.
 
@@ -1000,9 +1000,14 @@ class Dispatcher(object):
         # Set default values.
         sub_dsp.default_values = {k: dmap_dv[k] for k in dmap_dv if k in nodes}
 
+        # Update remote links.
+        if update_links:
+            sub_dsp._update_remote_links(sub_dsp, self)
+
         return sub_dsp  # Return the sub-dispatcher.
 
-    def get_sub_dsp_from_workflow(self, sources, graph=None, reverse=False):
+    def get_sub_dsp_from_workflow(self, sources, graph=None, reverse=False,
+                                  update_links=False):
         """
         Returns the sub-dispatcher induced by the workflow from sources.
 
@@ -1162,6 +1167,10 @@ class Dispatcher(object):
 
                 # Add attributes to both representations of edge: u-v and v-u.
                 nbrs[child] = pred[child][parent] = dmap_nbrs[child]
+
+        # Update remote links.
+        if update_links:
+            sub_dsp._update_remote_links(sub_dsp, self)
 
         return sub_dsp  # Return the sub-dispatcher map.
 
@@ -1745,7 +1754,7 @@ class Dispatcher(object):
                 rm_edges(i.union(o))  # Remove unreachable nodes.
 
             # Get sub dispatcher breadth-first-search graph.
-            dsp = dsp.get_sub_dsp_from_workflow(outputs, dsp.dmap, True)
+            dsp = dsp.get_sub_dsp_from_workflow(outputs, dsp.dmap, True, True)
 
         else:
             dsp = self.__class__()  # Empty Dispatcher.
@@ -1765,21 +1774,21 @@ class Dispatcher(object):
         pred, succ, nodes = self.dmap.pred, self.dmap.succ, self.nodes
         re_rl = replace_remote_link
 
-        for k in (k for k, v in nodes.items() if v['type'] == 'dispatcher'):
-            node = nodes[k] = nodes[k].copy()  # Unlink node references.
+        for k, n in (v for v in nodes.items() if v[1]['type'] == 'dispatcher'):
+            n = nodes[k] = n.copy()  # Unlink node references.
 
             # Get parent dispatcher inputs and outputs.
             i, o = pred[k], succ[k]
-            i = {l: m for l, m in node['inputs'].items() if l in i}
-            o = {l: m for l, m in node['outputs'].items() if m in o}
+            i = {l: m for l, m in n['inputs'].items() if l in i}
+            o = {l: m for l, m in n['outputs'].items() if m in o}
 
             # Shrink the sub-dispatcher.
-            sub_dsp = node['function'].shrink_dsp(
+            sub_dsp = n['function'].shrink_dsp(
                 i.values() if not from_outputs and i else None, o or None)
 
             # Get nodes with remote links (input and output).
-            n_in = set(node['inputs'].values()).intersection(sub_dsp.nodes)
-            n_out = set(node['outputs']).intersection(sub_dsp.nodes)
+            n_in = set(n['inputs'].values()).intersection(sub_dsp.nodes)
+            n_out = set(n['outputs']).intersection(sub_dsp.nodes)
 
             # Unlink node references.
             for j in n_in.union(n_out):
@@ -1794,7 +1803,23 @@ class Dispatcher(object):
             re_rl(sub_dsp, rm_out, old_link, None, is_parent=False)
 
             # Update sub-dispatcher node.
-            node.update({'inputs': i, 'outputs': o, 'function': sub_dsp})
+            n.update({'inputs': i, 'outputs': o, 'function': sub_dsp})
+
+    def _update_remote_links(self, new_dsp, old_dsp):
+        # Namespace shortcuts.
+        nodes = self.nodes
+        re_rl = replace_remote_link
+
+        for k, n in (v for v in nodes.items() if v[1]['type'] == 'dispatcher'):
+            n = nodes[k] = n.copy()
+            dsp = n['function']
+            n_in, n_out = set(n['inputs'].values()), set(n['outputs'])
+            n_in, n_out = n_in.intersection(dsp.nodes), n_out.intersection(dsp.nodes)
+
+            # Update remote links.
+            old_link, new_link = [k, old_dsp], [k, new_dsp]
+            re_rl(dsp, n_in, old_link, new_link, is_parent=True)
+            re_rl(dsp, n_out, old_link, new_link, is_parent=False)
 
     def _check_targets(self):
         """

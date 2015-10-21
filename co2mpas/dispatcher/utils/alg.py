@@ -222,21 +222,20 @@ def replace_remote_link(dsp, nodes_bunch, old_link, new_link=None,
         If True the link is inflow (parent), otherwise is outflow (child).
     :type is_parent: bool, optional
     """
+    # Define link type.
+    link_type = ['child', 'parent'][is_parent]
 
     attr = 'remote_links'  # Namespace shortcut for speed.
-
-    # Define link type.
-    link_type = ['parent', 'child'] if new_link is None else ['child', 'parent']
-    link_type = link_type[is_parent]
+    old_link = [old_link, link_type]
 
     # Define a function to check if update link.
-    def update(link, func):
-        return not func((link[0] != old_link, link[1] == link_type))
+    def update(link):
+        return link == old_link
 
     if new_link is None:  # Remove links.
         for node in (dsp.nodes[k] for k in nodes_bunch):  # Update remote links.
             # Define new remote links.
-            r_links = [l for l in node.pop(attr) if not update(l, any)]
+            r_links = [l for l in node.pop(attr) if l != old_link]
 
             if r_links:  # Update remote links.
                 node[attr] = r_links
@@ -246,7 +245,7 @@ def replace_remote_link(dsp, nodes_bunch, old_link, new_link=None,
 
         for node in (dsp.nodes[k] for k in nodes_bunch):  # Update remote links.
             # Define new remote links.
-            node[attr] = [l if update(l, all) else nl for l in node[attr]]
+            node[attr] = [nl if l == old_link else l for l in node[attr]]
 
 
 def _get_node(nodes, node_id, function_module=True):
