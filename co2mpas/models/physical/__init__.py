@@ -28,6 +28,7 @@ The model is defined by a Dispatcher that wraps all the functions needed.
 
 
 from co2mpas.dispatcher import Dispatcher
+from co2mpas.dispatcher.utils import bypass
 from co2mpas.functions.physical.constants.NEDC import *
 
 
@@ -48,9 +49,17 @@ def _physical():
         default_value=2
     )
 
+    physical.add_function(
+        function_id='set_max_gear_as_default_k5',
+        function=bypass,
+        inputs=['max_gear'],
+        outputs=['k5']
+    )
+
     physical.add_data(
         data_id='k5',
-        default_value=2
+        default_value=2,
+        initial_dist=10
     )
 
     physical.add_data(
