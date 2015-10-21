@@ -464,7 +464,7 @@ def identify_engine_starts(on_engine):
     return np.append(np.diff(np.array(on_engine, dtype=int)) > 0, False)
 
 
-def calibrate_start_stop_model(
+def calibrate_start_stop_model_v1(
         on_engine, velocities, accelerations, engine_coolant_temperatures):
     """
     Calibrates an start/stop model to predict if the engine is on.
@@ -487,14 +487,59 @@ def calibrate_start_stop_model(
 
     :return:
         Start/stop model.
-    :rtype: sklearn.tree.DecisionTreeClassifier
+    :rtype: function
     """
 
-    model = DecisionTreeClassifier(random_state=0, max_depth=4)
+    dt = DecisionTreeClassifier(random_state=0, max_depth=4)
 
     X = np.array([velocities, accelerations, engine_coolant_temperatures]).T
 
-    model.fit(X, on_engine)
+    dt.fit(X, on_engine)
+
+    def model(times, vel, acc, temp, *args):
+        return dt.predict(np.array([vel, acc, temp]).T)
+
+    return model
+
+
+def calibrate_start_stop_model(
+        on_engine, velocities, accelerations, start_stop_activation_time):
+    """
+    Calibrates an start/stop model to predict if the engine is on.
+
+    :param on_engine:
+        If the engine is on [-].
+    :type on_engine: np.array
+
+    :param velocities:
+        Velocity vector [km/h].
+    :type velocities: np.array
+
+    :param accelerations:
+        Acceleration vector [m/s2].
+    :type accelerations: np.array
+
+    :param start_stop_activation_time:
+        Start-stop activation time threshold [s].
+    :type start_stop_activation_time: float
+
+    :return:
+        Start/stop model.
+    :rtype: function
+    """
+
+    dt = DecisionTreeClassifier(random_state=0, max_depth=4)
+
+    X = np.array([velocities, accelerations]).T
+
+    dt.fit(X, on_engine)
+
+    def model(times, vel, acc, *args):
+        on_engine = dt.predict(np.array([vel, acc]).T)
+
+        on_engine[times <= start_stop_activation_time] = True
+
+        return on_engine
 
     return model
 
@@ -507,7 +552,7 @@ def predict_on_engine(
 
     :param model:
         Start/stop model.
-    :type model: sklearn.tree.DecisionTreeClassifier
+    :type model: function
 
     :param times:
         Time vector [s].
@@ -538,9 +583,9 @@ def predict_on_engine(
     :rtype: np.array
     """
 
-    X = np.array([velocities, accelerations, engine_coolant_temperatures]).T
-
-    on_engine = np.array(model.predict(X), dtype=int)
+    on_engine = model(times, velocities, accelerations,
+                      engine_coolant_temperatures)
+    on_engine = np.array(on_engine, dtype=int)
 
     # legislation imposition
     if cycle_type == 'NEDC' and gear_box_type == 'manual':

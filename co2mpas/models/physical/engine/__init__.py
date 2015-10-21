@@ -186,8 +186,16 @@ def engine():
     engine.add_function(
         function=calibrate_start_stop_model,
         inputs=['on_engine', 'velocities', 'accelerations',
-                'engine_coolant_temperatures'],
+                'start_stop_activation_time'],
         outputs=['start_stop_model']
+    )
+
+    engine.add_function(
+        function=calibrate_start_stop_model_v1,
+        inputs=['on_engine', 'velocities', 'accelerations',
+                'engine_coolant_temperatures'],
+        outputs=['start_stop_model'],
+        weight=10
     )
 
     engine.add_function(
@@ -200,8 +208,9 @@ def engine():
     engine.add_function(
         function=calibrate_cold_start_speed_model,
         inputs=['velocities', 'accelerations', 'engine_speeds_out',
-                'engine_coolant_temperatures', 'engine_speeds_out_hot', 'on_engine',
-                'idle_engine_speed', 'engine_normalization_temperature',
+                'engine_coolant_temperatures', 'engine_speeds_out_hot',
+                'on_engine', 'idle_engine_speed',
+                'engine_normalization_temperature',
                 'engine_normalization_temperature_window'],
         outputs=['cold_start_speed_model']
     )

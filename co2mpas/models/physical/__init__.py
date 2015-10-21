@@ -238,6 +238,7 @@ def _physical():
             'gear_box_type': 'gear_box_type',
             'idle_engine_speed': 'idle_engine_speed',
             'start_stop_model': 'start_stop_model',
+            'start_stop_activation_time': 'start_stop_activation_time',
             'times': 'times',
             'upper_bound_engine_speed': 'upper_bound_engine_speed',
         },
