@@ -1160,22 +1160,27 @@ class TestShrinkDispatcher(unittest.TestCase):
         self.assertEqual(sorted(shrink_dsp.dmap.edges()), w)
 
         dsp = self.dsp_of_dsp
-        shrink_dsp = dsp.shrink_dsp(outputs=['d', 'e', 'f'])
+        shrink_dsp = dsp.shrink_dsp(outputs=['f', 'g'])
         sub_dsp = shrink_dsp.nodes['sub_dsp']['function']
         rl = ['sub_dsp', shrink_dsp]
-        r = ['a', 'b', 'd', 'e', 'f', 'h', 'h<0>', 'sub_dsp']
-        w = [('a', 'h'), ('a', 'sub_dsp'), ('b', 'sub_dsp'), ('h', 'f'),
-             ('sub_dsp', 'd'), ('sub_dsp', 'f')]
+        r = ['a', 'b', 'd', 'f', 'g', 'h', 'sub_dsp']
+        w = [('a', 'h'), ('a', 'sub_dsp'), ('b', 'sub_dsp'), ('d', 'sub_dsp'),
+             ('h', 'f'), ('sub_dsp', 'a'), ('sub_dsp', 'd'), ('sub_dsp', 'f'),
+             ('sub_dsp', 'g')]
         sn = {
-            'a': {'wait_inputs': False, 'remote_links': [[rl, 'parent']],
+            'a': {'wait_inputs': False,
+                  'remote_links': [[rl, 'parent'], [rl, 'child']],
                   'type': 'data'},
             'b': {'wait_inputs': False, 'remote_links': [[rl, 'parent']],
                   'type': 'data'},
             'c': {'wait_inputs': False, 'type': 'data'},
-            'd': {'wait_inputs': False, 'remote_links': [[rl, 'child']],
+            'd': {'wait_inputs': False,
+                  'remote_links': [[rl, 'parent'], [rl, 'child']],
                   'type': 'data'},
             'e': {'wait_inputs': False, 'type': 'data'},
             'f': {'wait_inputs': False, 'remote_links': [[rl, 'child']],
+                  'type': 'data'},
+            'g': {'wait_inputs': False, 'remote_links': [[rl, 'child']],
                   'type': 'data'},
             'h': {
                 'type': 'function',
@@ -1197,11 +1202,19 @@ class TestShrinkDispatcher(unittest.TestCase):
                 'outputs': ['f'],
                 'function': None,
                 'wait_inputs': True
+            },
+            'h<2>': {
+                'type': 'function',
+                'inputs': ['c', 'a'],
+                'outputs': ['g'],
+                'function': None,
+                'wait_inputs': True
             }
         }
-        sw = [('a', 'h'), ('b', 'h'), ('c', 'h<0>'), ('c', 'h<1>'),
-              ('e', 'h<1>'), ('h', 'c'), ('h<0>', 'd'), ('h<0>', 'e'),
-              ('h<1>', 'f')]
+        sw = [('a', 'h'), ('a', 'h<2>'), ('b', 'h'), ('c', 'h<0>'),
+              ('c', 'h<1>'), ('c', 'h<2>'), ('e', 'h<1>'), ('h', 'c'),
+              ('h<0>', 'd'), ('h<0>', 'e'), ('h<1>', 'f'), ('h<2>', 'g')]
+
         self.assertEqual(sorted(shrink_dsp.dmap.node), r)
         self.assertEqual(sorted(shrink_dsp.dmap.edges()), w)
         self.assertEqual(sub_dsp.dmap.node, sn)

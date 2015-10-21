@@ -230,13 +230,13 @@ def replace_remote_link(dsp, nodes_bunch, old_link, new_link=None,
     link_type = link_type[is_parent]
 
     # Define a function to check if update link.
-    def no_update(link, func):
-        return func((link[0] != old_link, link[1] == link_type))
+    def update(link, func):
+        return not func((link[0] != old_link, link[1] == link_type))
 
     if new_link is None:  # Remove links.
         for node in (dsp.nodes[k] for k in nodes_bunch):  # Update remote links.
             # Define new remote links.
-            r_links = [l for l in node.pop(attr) if no_update(l, any)]
+            r_links = [l for l in node.pop(attr) if not update(l, any)]
 
             if r_links:  # Update remote links.
                 node[attr] = r_links
@@ -246,7 +246,7 @@ def replace_remote_link(dsp, nodes_bunch, old_link, new_link=None,
 
         for node in (dsp.nodes[k] for k in nodes_bunch):  # Update remote links.
             # Define new remote links.
-            node[attr] = [l if no_update(l, all) else nl for l in node[attr]]
+            node[attr] = [l if update(l, all) else nl for l in node[attr]]
 
 
 def _get_node(nodes, node_id, function_module=True):

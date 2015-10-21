@@ -695,13 +695,14 @@ class Dispatcher(object):
 
         remote_link = [dsp_id, self]  # Define the remote link.
 
-        # Make remote links.
-        for k in set(inputs.values()).union(outputs):
-            if k in dsp.nodes:
-                dsp.nodes[k] = copy(dsp.nodes[k])  # Unlink node reference.
+        # Unlink node reference.
+        for k in set(inputs.values()).union(outputs).intersection(dsp.nodes):
+            dsp.nodes[k] = copy(dsp.nodes[k])
 
-            # Set remote link.
-            dsp.set_data_remote_link(k, remote_link, is_parent=k not in outputs)
+        # Set remote link.
+        for it, is_parent in [(inputs.values(), True), (outputs, False)]:
+            for k in it:
+                dsp.set_data_remote_link(k, remote_link, is_parent=is_parent)
 
         # Import default values from sub-dispatcher.
         if include_defaults:
@@ -900,7 +901,7 @@ class Dispatcher(object):
                     rl = node['remote_links'] = node.get('remote_links', [])
                     rl.append([remote_link, type])
 
-                return
+                return True
         except KeyError:
             pass
         raise ValueError('Input error: %s is not a data node' % data_id)
@@ -1606,6 +1607,12 @@ class Dispatcher(object):
             Initial distances of input data nodes.
         :type inputs_dist: float, int, optional
 
+        :param wildcard:
+            If True, when the data node is used as input and target in the
+            ArciDispatch algorithm, the input value will be used as input for
+            the connected functions, but not as output.
+        :type wildcard: bool, optional
+
         :return:
             A sub-dispatcher.
         :rtype: Dispatcher
@@ -1667,8 +1674,6 @@ class Dispatcher(object):
             >>> shrink_dsp.name = 'Sub-Dispatcher'
         """
 
-        bfs_graph = self.dmap  # A graph to evaluate the breadth-first-search.
-
         if inputs:
             self._set_wait_in(flag=False)  # Set all data nodes no wait inputs.
 
@@ -1716,22 +1721,38 @@ class Dispatcher(object):
             outputs = outputs or o
 
             self._set_wait_in(flag=None)  # Clean wait input flags.
+
+            # Get sub dispatcher breadth-first-search graph.
+            dsp = self.get_sub_dsp_from_workflow(outputs, bfs_graph, True)
+
+            dsp._shrink_sub_dsp(self)  # Shrink sub-dispatcher nodes.
+
+        elif outputs:
+            # Make a first search.
+            dsp = self.get_sub_dsp_from_workflow(outputs, self.dmap, True)
+
+            # Shrink sub-dispatcher nodes from outputs.
+            dsp._shrink_sub_dsp(self, True)
+
+            # Namespace shortcuts.
+            in_e, out_e = dsp.dmap.in_edges, dsp.dmap.out_edges
+            rm_edges, it = dsp.dmap.remove_edges_from, dsp.nodes.items()
+
+            # Update sub-dispatcher edges.
+            for k, v in (v for v in it if v[1]['type'] == 'dispatcher'):
+                o = set(out_e(k)) - {(k, u) for u in v['outputs'].values()}
+                i = set(in_e(k)) - {(u, k) for u in v['inputs']}
+                rm_edges(i.union(o))  # Remove unreachable nodes.
+
+            # Get sub dispatcher breadth-first-search graph.
+            dsp = dsp.get_sub_dsp_from_workflow(outputs, dsp.dmap, True)
+
         else:
-            dsp = self.get_sub_dsp_from_workflow(outputs, bfs_graph, True)
-            for k, v in dsp.nodes.items():
-                if v['type'] == 'dispatcher':
-                    sub_dsp = v['function'] = v['function'].shrink_dsp(outputs=v['outputs'])
-
-        if outputs:  # Get sub dispatcher breadth-first-search graph.
-            dsp = self.get_sub_dsp_from_workflow(outputs, bfs_graph, True)
-        else:  # Empty Dispatcher.
-            return self.__class__()
-
-        dsp._shrink_sub_dsp(self)  # Shrink sub-dispatcher nodes.
+            dsp = self.__class__()  # Empty Dispatcher.
 
         return dsp  # Return the shrink sub dispatcher.
 
-    def _shrink_sub_dsp(self, old_dsp):
+    def _shrink_sub_dsp(self, old_dsp, from_outputs=False):
         """
         Shrink sub-dispatcher nodes and update remote links.
 
@@ -1753,8 +1774,8 @@ class Dispatcher(object):
             o = {l: m for l, m in node['outputs'].items() if m in o}
 
             # Shrink the sub-dispatcher.
-            sub_dsp = node['function'].shrink_dsp(i.values() if i else None,
-                                                  o or None)
+            sub_dsp = node['function'].shrink_dsp(
+                i.values() if not from_outputs and i else None, o or None)
 
             # Get nodes with remote links (input and output).
             n_in = set(node['inputs'].values()).intersection(sub_dsp.nodes)
@@ -2290,7 +2311,7 @@ class Dispatcher(object):
 
         # Namespace shortcuts for speed.
         add_visited, wf_add_node = self._visited.add, self.workflow.add_node
-        check_cutoff = self._check_cutoff()
+        check_cutoff, add_value = self._check_cutoff(), self._add_initial_value
 
         add_visited(START)  # Nodes visited by the algorithm.
 
@@ -2306,7 +2327,7 @@ class Dispatcher(object):
 
         # Add initial values to fringe and seen.
         for d, k in sorted((inputs_dist.get(v, 0.0), v) for v in inputs):
-            self._add_initial_value(fringe, check_cutoff, no_call, k, input_value(k), d)
+            add_value(fringe, check_cutoff, no_call, k, input_value(k), d)
 
         return fringe, check_cutoff  # Return fringe and cutoff function.
 
@@ -2343,7 +2364,7 @@ class Dispatcher(object):
         # Namespace shortcuts for speed.
         nodes, seen, edge_weight = self.nodes, self.seen, self._edge_length
         wf_remove_edge, check_wait_in = self._wf_remove_edge, self.check_wait_in
-        wf_add_edge, dsp_input = self._wf_add_edge, self._set_dispatcher_node_input
+        wf_add_edge, dsp_in = self._wf_add_edge, self._set_sub_dsp_node_input
 
         if data_id not in nodes:  # Data node is not in the dmap.
             return False
@@ -2369,7 +2390,7 @@ class Dispatcher(object):
                     wf_remove_edge(data_id, w)  # Remove workflow edge.
                     continue  # Pass the node.
                 elif nodes[w]['type'] == 'dispatcher':
-                    dsp_input(data_id, w, fringe, check_cutoff, no_call, vw_dist)
+                    dsp_in(data_id, w, fringe, check_cutoff, no_call, vw_dist)
                 elif check_wait_in(True, w):
                     continue  # Pass the node.
 
@@ -2587,7 +2608,7 @@ class Dispatcher(object):
                 continue
 
             if node['type'] == 'dispatcher':
-                self._set_dispatcher_node_input(
+                self._set_sub_dsp_node_input(
                     node_id, w, fringe, check_cutoff, no_call, vw_d)
 
             else:  # See the node.
@@ -2722,7 +2743,7 @@ class Dispatcher(object):
 
                         dsp._see_node(n_id, fringe, dist)  # See node.
 
-    def _set_dispatcher_node_input(self, node_id, dsp_id, fringe,
+    def _set_sub_dsp_node_input(self, node_id, dsp_id, fringe,
                                    check_cutoff, no_call, initial_dist):
         # Namespace shortcuts.
         node = self.nodes[dsp_id]
