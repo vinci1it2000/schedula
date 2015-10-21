@@ -227,6 +227,8 @@ def _init_graph_data(dsp, workflow, edge_attr):
         func_in_out = [dsp.inputs, dsp.outputs]
         dsp = dsp.dsp
     elif isinstance(dsp, SubDispatch):
+        if dsp.data_output != 'all':
+            func_in_out = [[], dsp.outputs]
         dsp = dsp.dsp
 
     if workflow:
