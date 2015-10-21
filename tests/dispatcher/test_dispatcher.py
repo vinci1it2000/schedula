@@ -491,6 +491,13 @@ class TestDispatch(unittest.TestCase):
                          input_domain=lambda *args: False)
         self.dsp_of_dsp_3 = dsp
 
+        dsp = Dispatcher()
+        dsp.add_data('c', 0, 10)
+        dsp.add_function('max', max, ['a', 'b'], ['c'])
+        dsp.add_function('min', min, ['c', 'b'], ['d'])
+
+        self.dsp_dfl_input_dist = dsp
+
     def test_without_outputs(self):
         dsp = self.dsp
 
@@ -933,6 +940,35 @@ class TestDispatch(unittest.TestCase):
         wk, o = dsp.dispatch({'a': 5, 'b': 6, 'd': 0}, ['a', 'b', 'd'],
                              wildcard=True, shrink=True, inputs_dist={'a': 2})
         self.assertEqual(set(wk.node), r)
+        self.assertEqual(wk.edge, w)
+
+        dsp = self.dsp_dfl_input_dist
+
+        wk, o = dsp.dispatch({'a': 6, 'b': 5}, ['d'])
+        w = {
+            'a': {'max': {'value': 6}},
+            'b': {'min': {'value': 5}, 'max': {'value': 5}},
+            'c': {'min': {'value': 6}},
+            'd': {},
+            'max': {'c': {'value': 6}},
+            'min': {'d': {'value': 5}},
+            START: {'b': {'value': 5}, 'c': {'value': 0}, 'a': {'value': 6}},
+        }
+        self.assertEqual({'a': 6, 'b': 5, 'c': 6, 'd': 5}, o)
+        self.assertEqual(wk.edge, w)
+
+        wk, o = dsp.dispatch({'a': 6, 'b': 5}, ['d'], inputs_dist={'a': 50})
+        w = {
+            'a': {},
+            'b': {'min': {'value': 5}, 'max': {'value': 5}},
+            'c': {'min': {'value': 0}},
+            'd': {},
+            'max': {},
+            'min': {'d': {'value': 0}},
+            START: {'a': {'value': 6}, 'b': {'value': 5}, 'c': {'value': 0}},
+        }
+
+        self.assertEqual({'b': 5, 'c': 0, 'd': 0}, o)
         self.assertEqual(wk.edge, w)
 
 

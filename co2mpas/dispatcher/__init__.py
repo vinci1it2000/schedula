@@ -1768,6 +1768,11 @@ class Dispatcher(object):
         :param old_dsp:
             Old dispatcher object (to update remote links).
         :type old_dsp: Dispatcher
+
+        :param from_outputs:
+            If True the shrink of the sub-dispatcher nodes is made only from its
+            outputs.
+        :type from_outputs: bool, optional
         """
 
         # Namespace shortcuts.
@@ -1806,15 +1811,28 @@ class Dispatcher(object):
             n.update({'inputs': i, 'outputs': o, 'function': sub_dsp})
 
     def _update_remote_links(self, new_dsp, old_dsp):
-        # Namespace shortcuts.
-        nodes = self.nodes
-        re_rl = replace_remote_link
+        """
+        Replace the old_dsp with the new_dsp in the remote links (parent/child).
+
+        :param new_dsp:
+            New Dispatcher.
+        :type new_dsp: Dispatcher
+
+        :param old_dsp:
+            New Dispatcher.
+        :type old_dsp: Dispatcher
+        """
+
+        nodes, re_rl = self.nodes, replace_remote_link  # Namespace shortcuts.
 
         for k, n in (v for v in nodes.items() if v[1]['type'] == 'dispatcher'):
+            # Namespace shortcuts.
             n = nodes[k] = n.copy()
             dsp = n['function']
+
             n_in, n_out = set(n['inputs'].values()), set(n['outputs'])
-            n_in, n_out = n_in.intersection(dsp.nodes), n_out.intersection(dsp.nodes)
+            n_in = n_in.intersection(dsp.nodes)
+            n_out = n_out.intersection(dsp.nodes)
 
             # Update remote links.
             old_link, new_link = [k, old_dsp], [k, new_dsp]
@@ -2066,7 +2084,7 @@ class Dispatcher(object):
             elif n_type == 'data' and a['wait_inputs']:  # Is waiting inputs.
                 wait_in[n] = flag
 
-    def _get_initial_values(self, inputs, no_call):
+    def _get_initial_values(self, inputs, initial_dist, no_call):
         """
         Returns inputs' initial values for the ArciDispatcher algorithm.
 
@@ -2075,6 +2093,10 @@ class Dispatcher(object):
         :param inputs:
             Input data nodes values.
         :type inputs: iterable, None
+
+        :param initial_dist:
+            Data node initial distances in the ArciDispatch algorithm.
+        :type initial_dist: dict, None
 
         :param no_call:
             If True data node value is not None.
@@ -2099,7 +2121,15 @@ class Dispatcher(object):
             if inputs is not None:  # Update initial values with input values.
                 initial_values.update(inputs)
 
-        return initial_values  # Return initial values.
+        # Set initial values.
+        initial_distances = {k: v['initial_dist']
+                             for k, v in self.default_values.items()
+                             if not inputs or k not in inputs}
+
+        if initial_dist is not None:  # Update initial distances.
+            initial_distances.update(initial_dist)
+
+        return initial_values, initial_distances  # Return initial values.
 
     def _set_node_output(self, node_id, no_call):
         """
@@ -2318,6 +2348,10 @@ class Dispatcher(object):
             Initial distances of input data nodes.
         :type inputs_dist: float, int
 
+        :param no_call:
+            If True data node estimation function is not used.
+        :type no_call: bool
+
         :returns:
             Inputs for _run:
 
@@ -2368,6 +2402,10 @@ class Dispatcher(object):
         :param check_cutoff:
             Check the cutoff limit.
         :type check_cutoff: function
+
+        :param no_call:
+            If True data node estimation function is not used.
+        :type no_call: bool
 
         :param data_id:
             Data node id.
@@ -2483,7 +2521,9 @@ class Dispatcher(object):
         :rtype: (dict, list, function, bool, bool)
         """
 
-        inputs = self._get_initial_values(inputs, no_call)  # Get inputs.
+        # Get inputs and initial distances.
+        inputs, inputs_dist = self._get_initial_values(inputs, inputs_dist,
+                                                       no_call)
 
         self._targets = set(outputs or {})  # Clear old targets.
 
@@ -2649,13 +2689,13 @@ class Dispatcher(object):
             Node id to see.
         :type node_id: str
 
-        :param dist:
-            Distance from the starting node.
-        :type dist: float, int
-
         :param fringe:
             Heapq of closest available nodes.
         :type fringe: list
+
+        :param dist:
+            Distance from the starting node.
+        :type dist: float, int
 
         :return:
             True if the node is visible, otherwise False.
@@ -2768,8 +2808,9 @@ class Dispatcher(object):
 
                         dsp._see_node(n_id, fringe, dist)  # See node.
 
-    def _set_sub_dsp_node_input(self, node_id, dsp_id, fringe,
-                                   check_cutoff, no_call, initial_dist):
+    def _set_sub_dsp_node_input(self, node_id, dsp_id, fringe, check_cutoff,
+                                no_call, initial_dist):
+
         # Namespace shortcuts.
         node = self.nodes[dsp_id]
         dsp, pred = node['function'], self._wf_pred[dsp_id]

@@ -662,7 +662,11 @@ class SubDispatchFunction(SubDispatch):
                 raise ValueError('Unreachable output-targets:{}'.format(missed))
 
         # Get initial default values.
-        self.input_values = input_values = dsp._get_initial_values(None, False)
+        input_values, dist = dsp._get_initial_values(None, None, False)
+        dist = {k: v for k, v in dist.items() if k not in inputs}
+        if inputs_dist:
+            dist.update(inputs_dist)
+        self.input_values = input_values
         self.inputs = inputs
 
         dsp._set_wildcards(inputs, outputs)  # Set wildcards.
@@ -671,8 +675,7 @@ class SubDispatchFunction(SubDispatch):
 
         # Initialize as sub dispatch.
         super(SubDispatchFunction, self).__init__(
-            dsp, outputs, cutoff, inputs_dist, True, False, True,
-            True, 'list')
+            dsp, outputs, cutoff, dist, True, False, True, True, 'list')
 
         self.__module__ = caller_name()  # Set as who calls my caller.
 
@@ -829,7 +832,8 @@ class SubDispatchPipe(SubDispatchFunction):
                 data_output = dsp.data_output
                 wildcards = dsp._wildcards
 
-                for k, value in dsp._get_initial_values(None, True).items():
+                it = dsp._get_initial_values(None, None, True)[0].items()
+                for k, value in it:
 
                     if k not in wildcards:
                         in_flow[k]['value'] = data_output[k] = value
