@@ -3,6 +3,20 @@ CO2MPAS Changes
 ###############
 .. _changes:
 
+v1.0.4, next 2015, next release
+===============================
+Model-changes in comparison to v1.0.1; released just to distribute
+the *all-in-one* archive, provide better instructions, and demonstrate ipython
+UI.
+
+- New start/stop model that use start_stop_activation_time.
+- Set default value of k5 equal to max_gear.
+- FIX calculate_engine_start_current (zero division).
+- Add units to output files.
+- Update ipython UI.
+- Cache input-files in pickles, and read with up-to-date check.
+- New feature to plot CO2MPAS model workflow in a nested format.
+
 v1.0.3, 13-Oct 2015, CWG release
 ================================
 Still no model-changes in comparison to v1.0.1; released just to distribute
