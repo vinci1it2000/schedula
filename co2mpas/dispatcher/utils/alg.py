@@ -266,7 +266,7 @@ def _get_node(nodes, node_id, function_module=True):
             nfm = {_func_name(k, False) if v['type'] != 'data' else k: (k, v)
                    for k, v in nodes.items()}
             try:
-                return _get_node(nfm, node_id, function_module=False)
+                return _get_node(nfm, node_id, function_module=False)[1]
             except KeyError:
                 for n in (nfm, {k: (k, v) for k, v in nodes.items()}):
                     it = sorted(n.items())
