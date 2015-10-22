@@ -248,7 +248,9 @@ def nedc_times(frequency):
     :rtype: np.array
     """
 
-    return np.arange(0.0, 1180.0, 1 / frequency)
+    dt = 1 / frequency
+
+    return np.arange(0.0, 1180.0 + dt, dt)
 
 
 def _repeat_part_one(times, values):
