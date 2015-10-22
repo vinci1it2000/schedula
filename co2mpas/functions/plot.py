@@ -12,7 +12,7 @@ import co2mpas.dispatcher.utils as dsp_utl
 import importlib
 import logging
 import sys
-
+import matplotlib.pyplot as plt
 
 log = logging.getLogger(__name__)
 
@@ -123,3 +123,70 @@ def plot_model_graphs(model_ids=None, view_in_browser=True, depth=-1, **kwargs):
         dot_graphs.append(dot)
 
     return dot_graphs
+
+
+def plot_time_series(
+        dsp, x_id, *y_ids, title=None, x_label=None, y_label=None, **kwargs):
+    """
+
+    :param dsp:
+    :type dsp: co2mpas.dispatcher.Dispatcher
+    :param y_id:
+    :param title:
+    :param y_label:
+    :param x_id:
+    :param x_label:
+    :return:
+    """
+
+    x_id = tuple(x_id)
+    if x_label is None:
+        x, x_label = dsp.get_node(*x_id, des=True)
+        x_label = x_label[0]
+    else:
+        x = dsp.get_node(*x_id)
+
+    if x_label:
+        plt.xlabel(x_label)
+
+    if title is not None:
+        plt.title(title)
+
+    for data in y_ids:
+        if not isinstance(data, dict):
+            data = {'id': data, 'x': x}
+
+        if 'id' in data:
+            y_id = tuple(data.pop('id'))
+
+            des = y_label is None or 'label' not in data
+            if des or 'y' not in data:
+
+                res = dsp.get_node(*y_id, des=des)
+                y, label = res if des else (res, None)
+
+                if label and y_label is None:
+                    y_label = label[0]
+
+                if 'label' not in data:
+                    data['label'] = label[0] or y_id[-1]
+
+                if 'y' not in data:
+                    data['y'] = y
+
+            elif 'y' not in data:
+                data['y'] = dsp.get_node(*y_id)
+
+        x = data.pop('x', x)
+        y = data.pop('y')
+
+        if x.shape[0] != y.shape[0]:
+            y = y.T
+
+        data.update(kwargs)
+        plt.plot(x, y, **data)
+
+    if y_label:
+        plt.ylabel(y_label)
+
+    plt.legend()
