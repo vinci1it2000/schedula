@@ -1174,7 +1174,7 @@ class Dispatcher(object):
 
         return sub_dsp  # Return the sub-dispatcher map.
 
-    def get_node(self, *node_ids, node_attr='auto'):
+    def get_node(self, *node_ids, node_attr='auto', des=False):
         """
         Returns a sub node of a dispatcher.
 
@@ -1201,9 +1201,13 @@ class Dispatcher(object):
               - for function and sub-dispatcher nodes: the 'function' attribute.
         :type node_attr: str
 
+        :param des:
+            If True the node description is returned as second parameter.
+        :type des: bool
+
         :return:
-            A sub node of a dispatcher.
-        :rtype: dict, function, SubDispatch, SubDispatchFunction
+            A sub node of a dispatcher and its description (if des=True).
+        :rtype: dict, function, SubDispatch, SubDispatchFunction, tuple
 
         **Example**:
 
@@ -1240,7 +1244,7 @@ class Dispatcher(object):
         """
 
         # Returns the node.
-        return get_sub_node(self, node_ids, node_attr=node_attr)
+        return get_sub_node(self, node_ids, node_attr=node_attr, des=des)
 
     def copy(self):
         """

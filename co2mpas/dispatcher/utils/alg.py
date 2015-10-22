@@ -16,7 +16,7 @@ from heapq import heappush, heappop
 from .gen import pairwise, counter
 from .constants import EMPTY, NONE
 from .dsp import SubDispatch
-from .des import get_parent_func
+from .des import get_parent_func, search_node_description
 from networkx import is_isolate
 
 
@@ -260,22 +260,24 @@ def _get_node(nodes, node_id, function_module=True):
     from .drw import _func_name
 
     try:
-        return nodes[node_id]  # Get dispatcher node.
+        return node_id, nodes[node_id]  # Return dispatcher node and its id.
     except KeyError:
         if function_module:
-            nfm = {_func_name(k, False) if v['type'] != 'data' else k: v
+            nfm = {_func_name(k, False) if v['type'] != 'data' else k: (k, v)
                    for k, v in nodes.items()}
             try:
                 return _get_node(nfm, node_id, function_module=False)
             except KeyError:
-                for n in (nfm.items(), nodes.items()):
-                    n = next((v for k, v in sorted(n) if node_id in k), EMPTY)
+                for n in (nfm, {k: (k, v) for k, v in nodes.items()}):
+                    it = sorted(n.items())
+                    n = next((v for k, v in it if node_id in k), EMPTY)
                     if n is not EMPTY:
                         return n
     raise KeyError
 
 
-def get_sub_node(dsp, path, node_attr='auto', _level=0, _dsp_name=NONE):
+def get_sub_node(dsp, path, node_attr='auto', des=False, _level=0,
+                 _dsp_name=NONE):
     """
     Returns a sub node of a dispatcher.
 
@@ -348,7 +350,7 @@ def get_sub_node(dsp, path, node_attr='auto', _level=0, _dsp_name=NONE):
     node_id = path[_level]  # Node id at given level.
 
     try:
-        node = _get_node(dsp.nodes, node_id)  # Get dispatcher node.
+        node_id, node = _get_node(dsp.nodes, node_id)  # Get dispatcher node.
     except KeyError:
         msg = 'Path %s does not exist in %s dispatcher.' % (path, _dsp_name)
         raise ValueError(msg)
@@ -367,16 +369,23 @@ def get_sub_node(dsp, path, node_attr='auto', _level=0, _dsp_name=NONE):
             raise ValueError(msg)
 
         # Continue the node search.
-        return get_sub_node(dsp, path, node_attr, _level, _dsp_name)
+        return get_sub_node(dsp, path, node_attr, des, _level, _dsp_name)
     else:
+        data = EMPTY
         # Return the sub node.
         if node_attr == 'auto':  # Auto.
             if node['type'] != 'data':  # Return function.
                 node_attr = 'function'
             elif node_id in dsp.data_output:  # Return data output.
-                return dsp.data_output[node_id]
+                data = dsp.data_output[node_id]
 
-        return node.get(node_attr, node)  # Return the data
+        if data is EMPTY:
+            data = node.get(node_attr, node)
+
+        if des:  # Search and return node description.
+            return data, search_node_description(node_id, node, dsp)
+
+        return data  # Return the data
 
 
 # Modified from NetworkX library.
