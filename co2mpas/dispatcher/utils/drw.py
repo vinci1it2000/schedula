@@ -110,7 +110,7 @@ def _node_label(name, values):
 
     if values:
         attr = (_html_encode('%s = %s' % (k, v)) for k, v in values.items())
-        attr = '| ' + ' | '.join(attr)
+        attr = '| ' + ' | '.join(sorted(attr))
 
     return '{ %s %s }' % (_html_encode(name), attr)
 
