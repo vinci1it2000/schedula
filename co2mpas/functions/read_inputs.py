@@ -103,6 +103,13 @@ def empty(value):
     raise EmptyValue()
 
 
+def empty_dict(value, empty_value=None):
+    value = {k: v for k, v in value.items() if v != empty_value}
+    if value:
+        return value
+    raise EmptyValue()
+
+
 def _check_none(v):
     if v is None:
         return True
@@ -175,7 +182,7 @@ def get_filters():
     _filters = {
         'PARAMETERS': {
             None: (float, empty),
-            'co2_params': (_try_eval, dict, empty),
+            'co2_params': (_try_eval, dict, empty_dict),
             'engine_is_turbo': (bool, empty),
             'engine_has_variable_valve_actuation': (bool, empty),
             'engine_has_cylinder_deactivation': (bool, empty),
