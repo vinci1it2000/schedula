@@ -205,6 +205,10 @@ def calculate_state_of_charges(
 
     :return:
         State of charge of the battery [%].
+
+        .. note::
+
+            `state_of_charges` = 99 is equivalent to 99%.
     :rtype: np.array
     """
 
@@ -320,6 +324,10 @@ def calibrate_alternator_status_model(
 
     :param state_of_charges:
         State of charge of the battery [%].
+
+        .. note::
+
+            `state_of_charges` = 99 is equivalent to 99%.
     :type state_of_charges: np.array
 
     :param gear_box_powers_in:
@@ -410,6 +418,10 @@ def predict_vehicle_electrics(
 
     :param initial_state_of_charge:
         Initial state of charge of the battery [%].
+
+        .. note::
+
+            `initial_state_of_charge` = 99 is equivalent to 99%.
     :type initial_state_of_charge: float
 
     :param times:

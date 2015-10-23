@@ -95,6 +95,10 @@ def calculate_battery_state_of_charge(
 
     :param prev_battery_state_of_charge:
         Previous state of charge of the battery [%].
+
+        .. note::
+
+            `prev_battery_state_of_charge` = 99 is equivalent to 99%.
     :type prev_battery_state_of_charge: float
 
     :param battery_capacity:
@@ -145,6 +149,10 @@ def predict_alternator_status(
 
     :param battery_state_of_charge:
         State of charge of the battery [%].
+
+        .. note::
+
+            `battery_state_of_charge` = 99 is equivalent to 99%.
     :type battery_state_of_charge: float
 
     :param gear_box_power_in:
