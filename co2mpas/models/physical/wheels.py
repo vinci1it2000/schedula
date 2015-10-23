@@ -52,4 +52,19 @@ def wheels():
         outputs=['wheel_speeds']
     )
 
+    wheels.add_function(
+        function=identify_r_dynamic,
+        inputs=['velocity_speed_ratios', 'gear_box_ratios',
+                'final_drive_ratio'],
+        outputs=['r_dynamic']
+    )
+
+    wheels.add_function(
+        function=identify_r_dynamic_v1,
+        inputs=['velocities', 'gears', 'engine_speeds_out', 'gear_box_ratios',
+                'final_drive_ratio'],
+        outputs=['r_dynamic'],
+        weight=10
+    )
+
     return wheels

@@ -141,7 +141,7 @@ def _comparison_model():
 
     models.append({
         'models': ('cold_start_speed_model', 'idle_engine_speed',
-                   'engine_thermostat_temperature'),
+                   'engine_thermostat_temperature', 'r_dynamic'),
         'targets': ('engine_speeds_out',),
         'check_models': lambda error: error < 100,
     })

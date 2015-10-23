@@ -100,7 +100,7 @@ def identify_gears(
     :type accelerations: np.array
 
     :param engine_speeds_out:
-        Gear box speed vector [RPM].
+        Engine speed [RPM].
     :type engine_speeds_out: np.array
 
     :param velocity_speed_ratios:

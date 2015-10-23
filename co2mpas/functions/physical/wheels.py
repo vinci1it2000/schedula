@@ -12,6 +12,7 @@ It contains functions that model the basic mechanics of the wheels.
 
 import numpy as np
 from math import pi
+from .utils import reject_outliers
 
 
 def calculate_wheel_power(velocities, accelerations, road_loads, vehicle_mass):
@@ -108,3 +109,83 @@ def calculate_wheel_speeds(velocities, r_dynamic):
     """
 
     return velocities * (30.0 / (3.6 * pi * r_dynamic))
+
+
+def identify_r_dynamic_v1(
+        velocities, gears, engine_speeds_out, gear_box_ratios,
+        final_drive_ratio):
+    """
+    Identifies the dynamic radius of the wheels [m].
+
+    :param velocities:
+        Vehicle velocity [km/h].
+    :type velocities: np.array
+
+    :param gears:
+        Gear vector [-].
+    :type gears: np.array
+
+    :param engine_speeds_out:
+        Engine speed [RPM].
+    :type engine_speeds_out: np.array
+
+    :param gear_box_ratios:
+        Gear box ratios [-].
+    :type gear_box_ratios: dict
+
+    :param final_drive_ratio:
+        Final drive ratio [-].
+    :type final_drive_ratio: float
+
+    :return:
+        Dynamic radius of the wheels [m].
+    :rtype: float
+    """
+
+    from .gear_box import calculate_speed_velocity_ratios, \
+        calculate_velocity_speed_ratios, calculate_gear_box_speeds_in
+
+    svr = calculate_speed_velocity_ratios(
+        gear_box_ratios, final_drive_ratio, 1.0)
+
+    vsr = calculate_velocity_speed_ratios(svr)
+
+    speed_x_r_dyn_ratios = calculate_gear_box_speeds_in(gears, velocities, vsr)
+
+    r_dynamic = reject_outliers(speed_x_r_dyn_ratios / engine_speeds_out)[0]
+
+    return r_dynamic
+
+
+def identify_r_dynamic(
+        velocity_speed_ratios, gear_box_ratios, final_drive_ratio):
+    """
+    Identifies the dynamic radius of the wheels [m].
+
+    :param velocity_speed_ratios:
+
+    :type velocity_speed_ratios: dict
+
+    :param gear_box_ratios:
+        Gear box ratios [-].
+    :type gear_box_ratios: dict
+
+    :param final_drive_ratio:
+        Final drive ratio [-].
+    :type final_drive_ratio: float
+
+    :return:
+        Dynamic radius of the wheels [m].
+    :rtype: float
+    """
+
+    from .gear_box import calculate_speed_velocity_ratios
+
+    svr = calculate_speed_velocity_ratios(
+        gear_box_ratios, final_drive_ratio, 1.0)
+
+    r = [vs / svr[k] for k, vs in velocity_speed_ratios.items()]
+
+    r_dynamic = reject_outliers(r)[0]
+
+    return r_dynamic

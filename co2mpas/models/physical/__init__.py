@@ -130,9 +130,15 @@ def _physical():
         inputs={
             'r_dynamic': 'r_dynamic',
             'velocities': 'velocities',
+            'gears': 'gears',
+            'engine_speeds_out': 'engine_speeds_out',
+            'gear_box_ratios': 'gear_box_ratios',
+            'final_drive_ratio': 'final_drive_ratio',
+            'velocity_speed_ratios': 'velocity_speed_ratios',
             'wheel_powers': 'wheel_powers',
         },
         outputs={
+            'r_dynamic': 'r_dynamic',
             'wheel_speeds': 'wheel_speeds',
             'wheel_torques': 'wheel_torques'
         }
