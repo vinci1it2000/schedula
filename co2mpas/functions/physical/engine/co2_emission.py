@@ -649,7 +649,8 @@ def define_co2_error_function_on_phases(
             co2 = co2_emissions_model(params, default_params=default_params)
             w = None # cumulative_co2_emissions
 
-        cco2 = calculate_cumulative_co2(times, phases_integration_times, co2, phases_distances)
+        cco2 = calculate_cumulative_co2(
+            times, phases_integration_times, co2, phases_distances)
         return mean_squared_error(phases_co2_emissions, cco2, w)
 
     return error_func
@@ -697,14 +698,14 @@ def calibrate_co2_params(
         def err_f(params, **kwargs):
             return co2_error_function_on_emissions(params, **kwargs)
 
-
     else:
         temps = np.array(engine_coolant_temperatures)
 
         def err_f(params, default_params, sub_values):
             it = zip(co2_error_function_on_emissions, sub_values)
             d = default_params
-            return sum(f(params, default_params=d, sub_values=b) for f, b in it if b.any())
+            return sum(f(params, default_params=d, sub_values=b)
+                       for f, b in it if b.any())
 
     cold = temps < co2_params_initial_guess['trg']
     hot = np.logical_not(cold)
@@ -801,7 +802,6 @@ def calibrate_model_params(params_bounds, error_function, initial_guess=None):
 
     param_keys, params_bounds = zip(*sorted(params_bounds.items()))
 
-    #bounds = [(i - EPS, j + EPS) for i, j in params_bounds]
     x0 = np.array([initial_guess[k] for k in param_keys])
 
     params, min_e_and_p = {}, [np.inf, x0]
@@ -820,7 +820,7 @@ def calibrate_model_params(params_bounds, error_function, initial_guess=None):
         return res
 
     def finish(fun, x0, **kwargs):
-        res = minimize(fun, x0, bounds=params_bounds)
+        res = minimize(fun, x0, bounds=params_bounds, method='SLSQP')
 
         if res.success:
             return res.x, res.success

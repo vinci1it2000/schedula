@@ -202,7 +202,7 @@ def _comparison_model():
             return
 
         p = calibrate_model_params(
-            bounds,co2_error_function_on_phases, initial_guess)
+            bounds, co2_error_function_on_phases, initial_guess)
 
         return {'co2_params': p}
 
