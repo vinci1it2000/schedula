@@ -142,7 +142,7 @@ def process_folder_files(
 
     for k, v in sorted(summary.items()):
         pd.DataFrame.from_records(v).to_excel(writer, k)
-
+    writer.close()
     time_elapsed = (datetime.datetime.today() - start_time).total_seconds()
     log.info('Done! [%s sec]', time_elapsed)
 
@@ -217,7 +217,6 @@ def _process_folder_files(
         log.info('Processing: %s', fname)
 
         input_files = {'input_file_name': fpath}
-
 
         def model_builder():
             outputs = [
