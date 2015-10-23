@@ -9,8 +9,8 @@ import unittest
 
 
 OVERWRITE_SEATBELT = False # NOTE: Do not commit it as `True`!
-DATA_DIFF_RATIO = 1e-6
-EPS = 2 * sys.float_info.epsilon / DATA_DIFF_RATIO
+EPS = 2 * sys.float_info.epsilon
+DATA_DIFF_RATIO = 2 * EPS
 
 init_logging(True)
 #logging.getLogger('pandalone.xleash').setLevel(logging.INFO)
@@ -26,15 +26,15 @@ class SeatBelt(unittest.TestCase):
 
         for i, (summary, old_summary) in enumerate(zip(new_sums, old_sums)):
             err = []
-            for k, nv in summary.items():
+            for k, ov in old_summary.items():
 
-                ov = old_summary[k]
-                if isinstance(ov, str):
-                    ratio = DATA_DIFF_RATIO + 1 if ov != nv else 0
+                nv = summary[k]
+                if isinstance(nv, str):
+                    ratio = DATA_DIFF_RATIO + 1 if nv != ov else 0
                 else:
-                    ratio = abs(ov - nv) / max(abs(min(ov, nv)), EPS)
+                    ratio = abs(nv - ov) / max(abs(min(nv, ov)), EPS)
                 if ratio > DATA_DIFF_RATIO:
-                    err.append(msg %(ratio, DATA_DIFF_RATIO, k, ov, nv))
+                    err.append(msg %(ratio, DATA_DIFF_RATIO, k, nv, ov))
 
             if err:
                 err = ["\nFailed summary[%i]:\n" % i] + err
