@@ -81,10 +81,18 @@ def electrics():
     )
 
     electrics.add_function(
+        function=define_alternator_status_model,
+        inputs=['state_of_charge_balance', 'state_of_charge_balance_window',
+                'has_energy_recuperation'],
+        outputs=['alternator_status_model']
+    )
+
+    electrics.add_function(
         function=calibrate_alternator_status_model,
         inputs=['alternator_statuses', 'state_of_charges',
                 'gear_box_powers_in'],
-        outputs=['alternator_status_model']
+        outputs=['alternator_status_model'],
+        weight=10
     )
 
     electrics.add_function(

@@ -378,6 +378,55 @@ def calibrate_alternator_status_model(
     return model
 
 
+def define_alternator_status_model(
+        state_of_charge_balance, state_of_charge_balance_window,
+        has_energy_recuperation):
+    """
+    Defines the alternator status model.
+
+    :param state_of_charge_balance:
+        Battery state of charge balance [%].
+
+        .. note::
+
+            `state_of_charge_balance` = 99 is equivalent to 99%.
+    :type state_of_charge_balance: float
+
+    :param state_of_charge_balance_window:
+        Battery state of charge balance window [%].
+
+        .. note::
+
+            `state_of_charge_balance_window` = 2 is equivalent to 2%.
+    :type state_of_charge_balance_window: float
+
+    :param has_energy_recuperation:
+        Does the vehicle have energy recuperation features?
+    :type has_energy_recuperation: bool
+
+    :return:
+        A function that predicts the alternator status.
+    :rtype: function
+    """
+
+    dn_soc = state_of_charge_balance - state_of_charge_balance_window / 2
+    up_soc = state_of_charge_balance + state_of_charge_balance_window / 2
+
+    def model(prev_status, soc, gear_box_power_in):
+        status = 0
+
+        if soc < 100:
+            if soc < dn_soc or (prev_status == 1 and soc < up_soc):
+                status = 1
+
+            elif has_energy_recuperation and gear_box_power_in >= 0:
+                status = 2
+
+        return status
+
+    return model
+
+
 def predict_vehicle_electrics(
         battery_capacity, alternator_status_model, alternator_charging_currents,
         max_battery_charging_current, alternator_nominal_voltage, start_demand,
