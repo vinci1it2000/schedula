@@ -419,7 +419,7 @@ def define_alternator_status_model(
             if soc < dn_soc or (prev_status == 1 and soc < up_soc):
                 status = 1
 
-            elif has_energy_recuperation and gear_box_power_in >= 0:
+            elif has_energy_recuperation and gear_box_power_in < 0:
                 status = 2
 
         return status
