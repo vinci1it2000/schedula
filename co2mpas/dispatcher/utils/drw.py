@@ -534,7 +534,7 @@ def plot(dsp, workflow=False, dot=None, edge_data=None, view=False,
     def id_node(o):
         return '%s_%s' % (dot_name, hash(o))
 
-    if START in g.node and not nx.is_isolate(g, START):
+    if START in g.node and (len(g.node) == 1 or not nx.is_isolate(g, START)):
         _set_node(dot, START, dsp2dot_id)
     elif inputs:
         dot_u = _set_node(dot, START, dsp2dot_id)
