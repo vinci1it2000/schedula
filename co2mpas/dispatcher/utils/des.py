@@ -27,7 +27,7 @@ log = logging.getLogger(__name__)
 
 def get_attr_doc(doc, attr_name, get_param=True):
     if get_param:
-        res = re.search(r":param[\s]+%s:" % attr_name, doc)
+        res = re.search(r":param\b.*\b%s:" % attr_name, doc)
     else:
         res = re.search(r":returns?:", doc)
 

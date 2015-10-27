@@ -168,6 +168,7 @@ if not IS_PYPY:
                 '      ":obj:`b <>`", "Nice e."',
                 '      ":obj:`c <>`", "Nice f."',
                 '      ":obj:`d <>`", "Other args."',
+                '      ":obj:`e <>`", "Nice arg."',
                 '      ":obj:`sink <>`", "Sink node of the dispatcher that '
                 'collects all unused outputs."',
                 '      ":obj:`start <>`", "Starting node that identifies '
@@ -190,17 +191,22 @@ if not IS_PYPY:
             res[5] = '   Docstring 3'
             assert_result(self, res, 'dispatcher', 'dsp_2')
 
-    def fun2(e, *args):
+    def fun2(e, my_args, *args):
         """
         Fun2
 
         error
 
-        :param e:
+        :param None e:
             Nice e.
 
             error
-        :type e: None
+
+        :param my_args:
+            Nice arg.
+
+            error
+        :type my_args: None
 
         :param args:
             Other args.
@@ -222,7 +228,7 @@ if not IS_PYPY:
     dsp = Dispatcher(name='Pippo', description='Docstring 2\n\ngood')
     dsp.add_data(data_id='a', description='Description of a\n\nerror')
     dsp.add_function(function_id='fun1', description='Fun1\n\nerror')
-    dsp.add_function('fun2', fun2, ['b', 'd'], ['c'])
+    dsp.add_function('fun2', fun2, ['b', 'e', 'd'], ['c'])
     dsp.add_function('fun3', fun2, description='Fun3\n\nerror')
 
 
