@@ -116,17 +116,14 @@ def identify_gears(
     :rtype: np.array
     """
 
-    gb_speeds = calculate_gear_box_speeds_from_engine_speeds(
-        times, velocities, engine_speeds_out, velocity_speed_ratios)[0]
-
     vsr = [v for v in velocity_speed_ratios.items()]
 
-    ratios = velocities / gb_speeds
-
-    ratios[gb_speeds < MIN_ENGINE_SPEED] = 0
+    ratios = velocities / engine_speeds_out
 
     idle_speed = (idle_engine_speed[0] - idle_engine_speed[1],
                   idle_engine_speed[0] + idle_engine_speed[1])
+
+    ratios[engine_speeds_out < max(idle_speed[0], MIN_ENGINE_SPEED)] = 0
 
     id_gear = partial(identify_gear, idle_speed, vsr)
 
