@@ -140,11 +140,9 @@ def plot_time_series(
     """
 
     x_id = tuple(x_id)
+    x, x_id = dsp.get_node(*x_id)
     if x_label is None:
-        x, x_label = dsp.get_node(*x_id, des=True)
-        x_label = x_label[0]
-    else:
-        x = dsp.get_node(*x_id)
+        x_label = dsp.get_node(*x_id, node_attr='description')[0][0]
 
     if x_label:
         plt.xlabel(x_label)
@@ -162,20 +160,22 @@ def plot_time_series(
             des = y_label is None or 'label' not in data
             if des or 'y' not in data:
 
-                res = dsp.get_node(*y_id, des=des)
-                y, label = res if des else (res, None)
+                y, y_id = dsp.get_node(*y_id)
 
-                if label and y_label is None:
-                    y_label = label[0]
+                if des:
+                    label = dsp.get_node(*y_id, node_attr='description')[0][0]
+
+                if y_label is None:
+                    y_label = label
 
                 if 'label' not in data:
-                    data['label'] = label[0] or y_id[-1]
+                    data['label'] = label or y_id[-1]
 
                 if 'y' not in data:
                     data['y'] = y
 
             elif 'y' not in data:
-                data['y'] = dsp.get_node(*y_id)
+                data['y'] = dsp.get_node(*y_id)[0]
 
         x = data.pop('x', x)
         y = data.pop('y')
