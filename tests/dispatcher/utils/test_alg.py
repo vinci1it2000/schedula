@@ -144,7 +144,7 @@ class TestDispatcherGetSubNode(unittest.TestCase):
 
         dsp.add_function('dispatch', dispatch, ['input'], [SINK, 'h', 'i'])
 
-        dsp.dispatch()
+        dsp.dispatch(inputs={'f': 'new'})
 
         self.dsp = dsp
         self.fun = fun
@@ -154,40 +154,61 @@ class TestDispatcherGetSubNode(unittest.TestCase):
 
     def test_get_sub_node(self):
         dsp = self.dsp
-
-        o = get_sub_node(dsp, ('dispatch', 'b'))
+        path = ('dispatch', 'b')
+        o, p = get_sub_node(dsp, path)
         self.assertEqual(o, 5)
+        self.assertEqual(p, path)
 
-        o = get_sub_node(dsp, ('i',))
+        path = ('i',)
+        o, p = get_sub_node(dsp, path)
         self.assertEqual(o, 3)
+        self.assertEqual(p, path)
 
-        o = get_sub_node(dsp, ('i',), node_attr='')
+        o, p = get_sub_node(dsp, path, node_attr='')
         self.assertEqual(o, {'wait_inputs': False, 'type': 'data'})
+        self.assertEqual(p, path)
 
-        o = get_sub_node(dsp, ('dispatch', 'sub_dispatch'))
+        path = ('dispatch', 'sub_dispatch')
+        o, p = get_sub_node(dsp, path)
         self.assertEqual(o, self.sub_dispatch)
+        self.assertEqual(p, path)
 
-        o = get_sub_node(dsp, ('dispatch', 'sub_dispatch', 'module:fun'))
+        path = ('dispatch', 'sub_dispatch', 'module:fun')
+        o, p = get_sub_node(dsp, path)
         self.assertEqual(o, self.fun)
+        self.assertEqual(p, path)
 
-        o = get_sub_node(dsp, ('dispatch', 'sub_dispatch', 'fun'))
+        o, p = get_sub_node(dsp, ('dispatch', 'sub_dispatch', 'fun'))
         self.assertEqual(o, self.fun)
+        self.assertEqual(p, path)
 
-        o = get_sub_node(dsp, ('dispatch', 'sub_dispatch', 'module'))
+        o, p = get_sub_node(dsp, ('dispatch', 'sub_dispatch', 'module'))
         self.assertEqual(o, self.fun)
+        self.assertEqual(p, path)
 
-        o = get_sub_node(dsp, ('dispatch', SINK), node_attr='wait_inputs')
+        path = ('dispatch', SINK)
+        o, p = get_sub_node(dsp, path, node_attr='wait_inputs')
         self.assertEqual(o, True)
+        self.assertEqual(p, path)
 
-        o = get_sub_node(dsp, ('dispatch', SINK))
+        o, p = get_sub_node(dsp, path)
         del o['description'], o['function']
         self.assertEqual(o, {'type': 'data', 'wait_inputs': True})
+        self.assertEqual(p, path)
 
-        o = get_sub_node(dsp, ('dispatch', 'sub_dispatch', 'b'))
+        path = ('dispatch', 'sub_dispatch', 'b')
+        o, p = get_sub_node(dsp, path)
         self.assertEqual(o, 4)
+        self.assertEqual(p, path)
 
-        o = get_sub_node(dsp, ('dispatch', 'sub_dispatch', 'b'), node_attr=None)
+        o, p = get_sub_node(dsp, path, node_attr=None)
         self.assertEqual(o, {'wait_inputs': False, 'type': 'data'})
+        self.assertEqual(p, path)
+
+        path = ('f',)
+        o, p = get_sub_node(dsp, path)
+        self.assertEqual(o, 'new')
+        self.assertEqual(p, path)
 
         self.assertRaises(ValueError, get_sub_node, dsp, ('dispatch', 'b', 'c'))
         self.assertRaises(ValueError, get_sub_node, dsp, ('dispatch', 'e'))

@@ -222,6 +222,7 @@ def replace_remote_link(dsp, nodes_bunch, old_link, new_link=None,
         If True the link is inflow (parent), otherwise is outflow (child).
     :type is_parent: bool, optional
     """
+
     # Define link type.
     link_type = ['child', 'parent'][is_parent]
 
@@ -248,25 +249,42 @@ def replace_remote_link(dsp, nodes_bunch, old_link, new_link=None,
             node[attr] = [nl if l == old_link else l for l in node[attr]]
 
 
-def _get_node(nodes, node_id, function_module=True):
+def _get_node(nodes, node_id, _function_module=True):
     """
     Returns a dispatcher node that match the given node id.
 
     :param nodes:
+        Dispatcher nodes.
+    :type nodes: dict
+
     :param node_id:
-    :param function_module:
+        Node id.
+    :type node_id: str
+
+    :param _function_module:
+        If True `node_id` could be just the function name.
+    :type _function_module: bool, optional
+
     :return:
+         The dispatcher node and its id.
+    :rtype: (str, dict)
     """
+
     from .drw import _func_name
 
     try:
         return node_id, nodes[node_id]  # Return dispatcher node and its id.
     except KeyError:
-        if function_module:
-            nfm = {_func_name(k, False) if v['type'] != 'data' else k: (k, v)
-                   for k, v in nodes.items()}
+        if _function_module:
+
+            def f_name(n_id, attr):
+                if 'type' in attr and attr['type'] != 'data':
+                    return _func_name(n_id, False)
+                return n_id
+
+            nfm = {f_name(*v): v for v in nodes.items()}
             try:
-                return _get_node(nfm, node_id, function_module=False)[1]
+                return _get_node(nfm, node_id, _function_module=False)[1]
             except KeyError:
                 for n in (nfm, {k: (k, v) for k, v in nodes.items()}):
                     it = sorted(n.items())
@@ -276,8 +294,7 @@ def _get_node(nodes, node_id, function_module=True):
     raise KeyError
 
 
-def get_sub_node(dsp, path, node_attr='auto', des=False, _level=0,
-                 _dsp_name=NONE):
+def get_sub_node(dsp, path, node_attr='auto', _level=0, _dsp_name=NONE):
     """
     Returns a sub node of a dispatcher.
 
@@ -304,7 +321,7 @@ def get_sub_node(dsp, path, node_attr='auto', des=False, _level=0,
     :type node_attr: str
 
     :return:
-        A sub node of a dispatcher.
+        A sub node of a dispatcher and its path.
     :rtype: dict, function, SubDispatch, SubDispatchFunction
 
     **Example**:
@@ -330,9 +347,9 @@ def get_sub_node(dsp, path, node_attr='auto', des=False, _level=0,
     Get the sub node output::
 
         >>> get_sub_node(dsp, ('Sub-dispatcher', 'c'))
-        4
+        (4, ('Sub-dispatcher', 'c'))
         >>> get_sub_node(dsp, ('Sub-dispatcher', 'c'), node_attr='type')
-        'data'
+        ('data', ('Sub-dispatcher', 'c'))
 
     .. dispatcher:: sub_dsp
        :opt: workflow=True, graph_attr={'ratio': '1'}, depth=0
@@ -340,6 +357,8 @@ def get_sub_node(dsp, path, node_attr='auto', des=False, _level=0,
 
         >>> sub_dsp = get_sub_node(dsp, ('Sub-dispatcher',))
     """
+
+    path = list(path)
 
     if isinstance(dsp, SubDispatch):  # Take the dispatcher obj.
         dsp = dsp.dsp
@@ -351,7 +370,16 @@ def get_sub_node(dsp, path, node_attr='auto', des=False, _level=0,
 
     try:
         node_id, node = _get_node(dsp.nodes, node_id)  # Get dispatcher node.
+        path[_level] = node_id
     except KeyError:
+        if _level == len(path) - 1 and node_attr in ('auto', 'output'):
+            try:
+                # Get dispatcher node.
+                node_id, node = _get_node(dsp.data_output, node_id, False)
+                path[_level] = node_id
+                return node, tuple(path)
+            except KeyError:
+                pass
         msg = 'Path %s does not exist in %s dispatcher.' % (path, _dsp_name)
         raise ValueError(msg)
 
@@ -369,7 +397,7 @@ def get_sub_node(dsp, path, node_attr='auto', des=False, _level=0,
             raise ValueError(msg)
 
         # Continue the node search.
-        return get_sub_node(dsp, path, node_attr, des, _level, _dsp_name)
+        return get_sub_node(dsp, path, node_attr, _level, _dsp_name)
     else:
         data = EMPTY
         # Return the sub node.
@@ -378,14 +406,15 @@ def get_sub_node(dsp, path, node_attr='auto', des=False, _level=0,
                 node_attr = 'function'
             elif node_id in dsp.data_output:  # Return data output.
                 data = dsp.data_output[node_id]
+        elif node_attr == 'output':
+            data = dsp.data_output[node_id]
+        elif node_attr == 'description':  # Search and return node description.
+            data = search_node_description(node_id, node, dsp)
 
         if data is EMPTY:
             data = node.get(node_attr, node)
 
-        if des:  # Search and return node description.
-            return data, search_node_description(node_id, node, dsp)
-
-        return data  # Return the data
+        return data, tuple(path)  # Return the data
 
 
 # Modified from NetworkX library.

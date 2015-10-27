@@ -633,6 +633,11 @@ class Dispatcher(object):
             Sub-dispatcher node's description.
         :type description: str, optional
 
+        :param include_defaults:
+            If True the default values of the sub-dispatcher are added to the
+            current dispatcher.
+        :type include_defaults: bool, optional
+
         :param kwargs:
             Set additional node attributes using key=value.
         :type kwargs: keyword arguments, optional
@@ -901,7 +906,7 @@ class Dispatcher(object):
                     rl = node['remote_links'] = node.get('remote_links', [])
                     rl.append([remote_link, type])
 
-                return True
+                return
         except KeyError:
             pass
         raise ValueError('Input error: %s is not a data node' % data_id)
@@ -923,6 +928,10 @@ class Dispatcher(object):
         :param edges_bunch:
             A container of edge ids that will be removed.
         :type edges_bunch: list, iterable, optional
+
+        :param update_links:
+            If True the sub-dispatcher remote links are updated.
+        :type update_links: bool, optional
 
         :return:
             A sub-dispatcher.
@@ -1027,6 +1036,10 @@ class Dispatcher(object):
         :param reverse:
             If True the workflow graph is assumed as reversed.
         :type reverse: bool, optional
+
+        :param update_links:
+            If True the sub-dispatcher remote links are updated.
+        :type update_links: bool, optional
 
         :return:
             A sub-dispatcher
@@ -1174,7 +1187,7 @@ class Dispatcher(object):
 
         return sub_dsp  # Return the sub-dispatcher map.
 
-    def get_node(self, *node_ids, node_attr='auto', des=False):
+    def get_node(self, *node_ids, node_attr='auto'):
         """
         Returns a sub node of a dispatcher.
 
@@ -1199,14 +1212,16 @@ class Dispatcher(object):
               - for data node: its output, and if not exists, all its
                 attributes.
               - for function and sub-dispatcher nodes: the 'function' attribute.
+
+            When 'description', returns the "description" of the searched node,
+            searching also in function or sub-dispatcher input/output
+            description.
+
+            When 'output', returns the data node output.
         :type node_attr: str
 
-        :param des:
-            If True the node description is returned as second parameter.
-        :type des: bool
-
         :return:
-            A sub node of a dispatcher and its description (if des=True).
+            A sub node of a dispatcher and its real path.
         :rtype: dict, function, SubDispatch, SubDispatchFunction, tuple
 
         **Example**:
@@ -1232,9 +1247,9 @@ class Dispatcher(object):
         Get the sub node output::
 
             >>> dsp.get_node('Sub-dispatcher', 'c')
-            4
+            (4, ('Sub-dispatcher', 'c'))
             >>> dsp.get_node('Sub-dispatcher', 'c', node_attr='type')
-            'data'
+            ('data', ('Sub-dispatcher', 'c'))
 
         .. dispatcher:: sub_dsp
            :opt: workflow=True, graph_attr={'ratio': '1'}, depth=0
@@ -1244,7 +1259,7 @@ class Dispatcher(object):
         """
 
         # Returns the node.
-        return get_sub_node(self, node_ids, node_attr=node_attr, des=des)
+        return get_sub_node(self, node_ids, node_attr=node_attr)
 
     def copy(self):
         """
@@ -1279,7 +1294,7 @@ class Dispatcher(object):
 
         :param node_output:
             If True the node outputs are displayed with the workflow.
-        :type node_output: bool
+        :type node_output: bool, optional
 
         :param view:
             Open the rendered directed graph in the DOT language with the sys
@@ -1304,7 +1319,7 @@ class Dispatcher(object):
             If False the sub-dispatcher nodes are plotted on the same graph,
             otherwise they can be viewed clicking on the node that has an URL
             link.
-        :type nested: bool
+        :type nested: bool, optional
 
         :param kw_dot:
             Dot arguments:
@@ -1320,7 +1335,7 @@ class Dispatcher(object):
                 - edge_attr: Dict of (attribute, value) pairs set for all edges.
                 - body: Dict of (attribute, value) pairs to add to the graph
                   body.
-        :param kw_dot: dict
+        :param kw_dot: dict, optional
 
         :return:
             A directed graph source code in the DOT language.
@@ -1444,8 +1459,8 @@ class Dispatcher(object):
         self._set_wait_in(all_domain=False)  # Set data nodes to wait inputs.
 
         # Updates the reachable nodes and list of edges to be removed.
-        rm_cycles_iter(self.dmap, iter(sources), reached_nodes,
-                                edge_to_remove, self._wait_in)
+        rm_cycles_iter(self.dmap, iter(sources), reached_nodes, edge_to_remove,
+                       self._wait_in)
 
         self._set_wait_in(flag=None)  # Clean wait input flags.
 
@@ -1590,7 +1605,7 @@ class Dispatcher(object):
         # Nodes that are out of the dispatcher nodes.
         out_dsp_nodes = set(args[0]).difference(dsp.nodes)
 
-        if inputs:  # Add nodes that are out of the dispatcher nodes.
+        if out_dsp_nodes:  # Add nodes that are out of the dispatcher nodes.
             if no_call:
                 self.data_output.update({k: None for k in out_dsp_nodes})
             else:
@@ -2814,6 +2829,37 @@ class Dispatcher(object):
 
     def _set_sub_dsp_node_input(self, node_id, dsp_id, fringe, check_cutoff,
                                 no_call, initial_dist):
+        """
+        Initializes the sub-dispatcher and set its inputs.
+
+        :param node_id:
+            Input node to set.
+        :type node_id: str
+
+        :param dsp_id:
+            Sub-dispatcher node id.
+        :type dsp_id: str
+
+        :param fringe:
+            Heapq of closest available nodes.
+        :type fringe: list
+
+        :param check_cutoff:
+            Check the cutoff limit.
+        :type check_cutoff: function
+
+        :param no_call:
+            If True data node estimation function is not used.
+        :type no_call: bool
+
+        :param initial_dist:
+            Distance to reach the sub-dispatcher node.
+        :type initial_dist: int, float
+
+        :return:
+            If the input have been setted.
+        :rtype: bool
+        """
 
         # Namespace shortcuts.
         node = self.nodes[dsp_id]
