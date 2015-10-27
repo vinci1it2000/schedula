@@ -137,7 +137,8 @@ def parse_inputs(data, data_map, cycle_name):
 
     d = {'inputs': {}, 'targets': {}}
 
-    for k, v in data.items():
+    for i in data.items():
+        k, v = i
         if isinstance(v, float) and isnan(v) or _check_none(v):
             continue
 
@@ -162,6 +163,10 @@ def parse_inputs(data, data_map, cycle_name):
                 d[t][node_id] = v
             except EmptyValue:
                 pass
+            except Exception as ex:
+                print('Import error: %s\nWrong value: %s' % (i[0], str(i[1])))
+                raise ex
+
 
     return d['inputs'], d['targets']
 
