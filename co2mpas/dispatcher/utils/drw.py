@@ -11,11 +11,11 @@ It provides functions to plot dispatcher map and workflow.
 """
 
 __author__ = 'Vincenzo Arcidiacono'
+
 import urllib
 import numpy as np
 import pprint
 import inspect
-import os
 from tempfile import mkstemp, mkdtemp
 import networkx as nx
 from networkx.utils import default_opener
@@ -53,26 +53,25 @@ def _encode_file_name(s):
 
 
 def _init_filepath(directory, filename, nested, name, is_sub_dsp):
-    path = os.path.join(directory, filename)
+
+    path = Path(directory, filename)
+
+    if path and not path.parent:
+        path = path.absolute()
 
     if nested:
         name = name.replace('/', ' ').replace('.', ' ')
         if not is_sub_dsp:
             name = '%s/%s' % (name, name)
-        path = '%s/%s.gv' % ((path or mkdtemp('')).split('.')[0], name)
-
+        path = path or Path(mkdtemp(''))
+        path = path.parent.joinpath(path.name.split('.')[0], '%s.gv' % name)
     else:
-        path = (path or mkstemp('.gv')[1]).split('.')
+        path = path or Path(mkstemp('.gv')[1])
+        filename = path.name.split('.')
+        if not len(filename) > 1:
+            path = path.parent.joinpath('%s.gv' % filename[0])
 
-        if not len(path) > 1:
-            path = (path[0], 'gv')
-
-        path = '.'.join(path)
-
-    directory = os.path.dirname(path)
-    filename = os.path.basename(path)
-
-    return directory, _encode_file_name(filename)
+    return str(path.parent), _encode_file_name(path.name)
 
 
 def _init_dot(dsp, workflow, nested, is_sub_dsp, **kw_dot):
@@ -155,7 +154,8 @@ def _data_node_label(dot, k, values, attr=None, dist=None,
                     if node_output:
                         v['output'] = tooltip
 
-                directory = dot.filepath.split('.')[0]
+                path = Path(dot.filepath)
+                directory = path.parent.joinpath(path.name.split('.')[0])
                 filepath = _save_txt_output(directory, k, formatted_output)
                 if filepath is not None:
                     kw['URL'] = _url_rel_path(dot.directory, filepath)
@@ -328,7 +328,8 @@ def _set_func_out(dot, node_name, func, nested):
 
     kw = {}
     if nested and formatted_output:
-        directory = dot.filepath.split('.')[0]
+        path = Path(dot.filepath)
+        directory = path.parent.joinpath(path.name.split('.')[0])
         filepath = _save_txt_output(directory, node_name, formatted_output)
         if filepath is not None:
             kw['URL'] = _url_rel_path(dot.directory, filepath)
@@ -337,9 +338,7 @@ def _set_func_out(dot, node_name, func, nested):
 
 
 def _save_txt_output(directory, filename, output_lines):
-    filename = '%s.txt' % _encode_file_name(filename)
-    directory = directory
-    filepath = os.path.join(directory, filename)
+    filepath = str(Path(directory, '%s.txt' % _encode_file_name(filename)))
     try:
         mkdirs(filepath)
         with open(filepath, "w") as text_file:
@@ -404,8 +403,8 @@ def _set_edge(dot, dot_u, dot_v, attr=None, edge_data=None, **kw_dot):
 
 
 def _url_rel_path(directory, path):
-    url = os.path.join('.', os.path.relpath(path, directory))
-    url = urllib.parse.quote(url.replace(os.sep, '/'))
+    url = './%s' % Path('.', Path(path).relative_to(directory))
+    url = urllib.parse.quote(url)
     return url
 
 
