@@ -203,8 +203,31 @@ def _physical():
             'state_of_charges': 'state_of_charges',
             'start_demand': 'start_demand',
         }
-
     )
+
+    from .clutch import clutch
+
+    physical.add_dispatcher(
+        include_defaults=True,
+        dsp=clutch(),
+        dsp_id='clutch_model',
+        inputs={
+            'times': 'times',
+            'accelerations': 'accelerations',
+            'clutch_prediction_model': 'clutch_prediction_model',
+            'clutch_window': 'clutch_window',
+            'gear_shifts': 'gear_shifts',
+            'engine_speeds_out': 'engine_speeds_out',
+            'engine_speeds_out_hot': 'engine_speeds_out_hot',
+            'cold_start_speeds_delta': 'cold_start_speeds_delta',
+        },
+        outputs={
+            'clutch_speeds_delta': 'clutch_speeds_delta',
+            'clutch_window': 'clutch_window',
+            'clutch_prediction_model': 'clutch_prediction_model'
+        }
+    )
+
     from .engine import engine
 
     physical.add_dispatcher(
@@ -213,6 +236,7 @@ def _physical():
         dsp=engine(),
         inputs={
             'alternator_powers_demand': 'alternator_powers_demand',
+            'on_engine': 'on_engine',
             'engine_capacity': 'engine_capacity',
             'engine_is_turbo': 'engine_is_turbo',
             'engine_max_power': 'engine_max_power',
@@ -259,6 +283,7 @@ def _physical():
             'start_stop_activation_time': 'start_stop_activation_time',
             'times': 'times',
             'upper_bound_engine_speed': 'upper_bound_engine_speed',
+            'clutch_speeds_delta': 'clutch_speeds_delta'
         },
         outputs={
             'co2_emissions_model': 'co2_emissions_model',
@@ -278,6 +303,7 @@ def _physical():
             'engine_powers_out': 'engine_powers_out',
             'engine_speeds_out': 'engine_speeds_out',
             'engine_speeds_out_hot': 'engine_speeds_out_hot',
+            'cold_start_speeds_delta': 'cold_start_speeds_delta',
             'engine_starts': 'engine_starts',
             'engine_coolant_temperatures': 'engine_coolant_temperatures',
             'engine_thermostat_temperature': 'engine_thermostat_temperature',
@@ -382,6 +408,7 @@ def physical_calibration():
             'equivalent_gear_box_heat_capacity':
                 'equivalent_gear_box_heat_capacity',
             'gears': 'gears',
+            'gear_box_ratios': 'gear_box_ratios',
             'gear_box_efficiencies': 'gear_box_efficiencies',
             'gear_box_speeds_in': 'gear_box_speeds_in',
             'gear_box_temperatures': 'gear_box_temperatures',
@@ -389,6 +416,7 @@ def physical_calibration():
             'gear_box_torques_in': 'gear_box_torques_in',
             'gear_box_powers_in': 'gear_box_powers_in',
             'max_gear': 'max_gear',
+            'gear_shifts': 'gear_shifts'
         }
     )
     return physical_calibration
@@ -466,6 +494,7 @@ def physical_prediction():
             'gear_box_torques_in': 'gear_box_torques_in',
             'gear_box_powers_in': 'gear_box_powers_in',
             'max_gear': 'max_gear',
+            'gear_shifts': 'gear_shifts'
         }
     )
     return physical_prediction

@@ -202,7 +202,7 @@ def bin_split(x, bin_std=(0.01, 0.1), n_min=None, bins_min=None):
 
     def _stats(x):
         m = np.mean(x)
-        std = np.std(x) / m
+        std = abs(np.std(x) / m)
         return [m, std]
 
     _bin_split(x, *(_stats(x) + edges))

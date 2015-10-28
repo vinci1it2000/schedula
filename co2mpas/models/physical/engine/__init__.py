@@ -229,9 +229,16 @@ def engine():
     )
 
     engine.add_function(
-        function=calculate_engine_speeds_out_with_cold_start,
+        function=calculate_cold_start_speeds_delta,
         inputs=['cold_start_speed_model', 'engine_speeds_out_hot', 'on_engine',
                 'engine_coolant_temperatures'],
+        outputs=['cold_start_speeds_delta']
+    )
+
+    engine.add_function(
+        function=calculate_engine_speeds_out,
+        inputs=['on_engine', 'idle_engine_speed', 'engine_speeds_out_hot',
+                'cold_start_speeds_delta', 'clutch_speeds_delta'],
         outputs=['engine_speeds_out']
     )
 

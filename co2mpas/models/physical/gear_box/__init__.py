@@ -41,6 +41,12 @@ def _gear_box():
     )
 
     gear_box.add_function(
+        function=calculate_gear_shifts,
+        inputs=['gears'],
+        outputs=['gear_shifts']
+    )
+
+    gear_box.add_function(
         function=get_gear_box_efficiency_constants,
         inputs=['gear_box_type'],
         outputs=['gear_box_efficiency_constants'],
@@ -169,9 +175,15 @@ def _gear_box():
 
     gear_box.add_function(
         function=identify_velocity_speed_ratios,
-        inputs=['gear_box_speeds_in', 'velocities', 'idle_engine_speed'],
+        inputs=['engine_speeds_out', 'velocities', 'idle_engine_speed'],
         outputs=['velocity_speed_ratios'],
         weight=50
+    )
+
+    gear_box.add_function(
+        function=calculate_gear_box_ratios,
+        inputs=['velocity_speed_ratios', 'final_drive_ratio', 'r_dynamic'],
+        outputs=['gear_box_ratios']
     )
 
     gear_box.add_function(

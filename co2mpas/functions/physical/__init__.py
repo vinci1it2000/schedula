@@ -21,6 +21,7 @@ Modules:
     wheels
     final_drive
     gear_box
+    clutch
     electrics
     engine
     utils
@@ -121,18 +122,20 @@ def _comparison_model():
         'check_models': lambda error: error < -0.7,
         'comparison_func': lambda *args: -accuracy_score(*args)
     })
-
+    from co2mpas.models.physical import physical_prediction
     # cold_start_speed_model
     dsp.add_dispatcher(
         dsp_id='test cold_start_speed_model',
-        dsp=engine(),
+        dsp=physical_prediction(),
         inputs={
             'gear_box_speeds_in': 'gear_box_speeds_in',
             'on_engine': 'on_engine',
             'idle_engine_speed': 'idle_engine_speed',
             'engine_coolant_temperatures': 'engine_coolant_temperatures',
             'engine_thermostat_temperature': 'engine_thermostat_temperature',
-            'cold_start_speed_model': 'cold_start_speed_model'
+            'cold_start_speed_model': 'cold_start_speed_model',
+            'clutch_window': 'clutch_window',
+            'clutch_prediction_model': 'clutch_prediction_model'
         },
         outputs={
             'engine_speeds_out': 'engine_speeds_out'
@@ -141,7 +144,9 @@ def _comparison_model():
 
     models.append({
         'models': ('cold_start_speed_model', 'idle_engine_speed',
-                   'engine_thermostat_temperature', 'r_dynamic'),
+                   'engine_thermostat_temperature', 'r_dynamic',
+                   'clutch_window', 'clutch_prediction_model',
+                   'gear_box_ratios'),
         'targets': ('engine_speeds_out',),
         'check_models': lambda error: error < 100,
     })
@@ -460,14 +465,14 @@ def _extract_models(calibration_outputs, models_to_extract):
 
         params = tuple([calibration_outputs[i] for i in params])
 
-        from .engine import calculate_engine_speeds_out_with_cold_start as fun
+        from .engine import calculate_cold_start_speeds_delta as fun
 
         for name in ['cold_start_speed_model', 'cold_start_speed_model_v1']:
             if name not in calibration_outputs:
                 continue
 
             model = calibration_outputs[name]
-            s = fun(*((model, ) + params[1:]))
+            s = fun(*((model, ) + params[1:])) + params[1]
             heap.append((mean_absolute_error(params[0], s), name, model))
 
     if heap:

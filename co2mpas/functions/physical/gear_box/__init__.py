@@ -136,6 +136,22 @@ def identify_gears(
     return gear
 
 
+def calculate_gear_shifts(gears):
+    """
+    Returns when there is a gear shifting [-].
+
+    :param gears:
+        Gear vector [-].
+    :type gears: np.array
+
+    :return:
+        When there is a gear shifting [-].
+    :rtype: np.array
+    """
+
+    return np.append([False], np.diff(gears) != 0)
+
+
 def _speed_shift(times, speeds):
     speeds = InterpolatedUnivariateSpline(times, speeds, k=1)
 
@@ -721,7 +737,9 @@ def identify_velocity_speed_ratios(
 
     vsr = bin_split(velocities[b] / gear_box_speeds_in[b])[1]
 
-    vsr = {k + 1: v for k, v in enumerate(vsr)}
+    vsr = [v[-1] for v in vsr]
+
+    vsr = {k + 1: v for k, v in enumerate(sorted(vsr))}
 
     vsr[0] = 0.0
 
@@ -760,6 +778,16 @@ def identify_speed_velocity_ratios(gears, velocities, gear_box_speeds_in):
                 if k in gears})
 
     return svr
+
+
+def calculate_gear_box_ratios(
+        velocity_speed_ratios, final_drive_ratio, r_dynamic):
+
+    c = final_drive_ratio * 30 / (3.6 * pi * r_dynamic)
+
+    svr = calculate_velocity_speed_ratios(velocity_speed_ratios)
+
+    return {k: v / c for k, v in svr.items() if k != 0}
 
 
 def calculate_speed_velocity_ratios(

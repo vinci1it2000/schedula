@@ -636,11 +636,11 @@ def calculate_engine_speeds_out_hot(
     return s
 
 
-def calculate_engine_speeds_out_with_cold_start(
+def calculate_cold_start_speeds_delta(
         cold_start_speed_model, engine_speeds_out_hot, on_engine,
         engine_coolant_temperatures):
     """
-    Calculates the engine speed [RPM].
+    Calculates the engine speed delta due to the cold start [RPM].
 
     :param cold_start_speed_model:
         Cold start speed model.
@@ -659,14 +659,42 @@ def calculate_engine_speeds_out_with_cold_start(
     :type engine_coolant_temperatures: np.array
 
     :return:
+        Engine speed delta due to the cold start [RPM].
+    :rtype: np.array
+    """
+
+    delta_speeds = cold_start_speed_model(
+        engine_speeds_out_hot, on_engine, engine_coolant_temperatures)
+
+    return delta_speeds
+
+
+def calculate_engine_speeds_out(
+        on_engine, idle_engine_speed, engine_speeds_out_hot, *delta_speeds):
+    """
+    Calculates the engine speed [RPM].
+
+    :param engine_speeds_out_hot:
+        Engine speed at hot condition [RPM].
+    :type engine_speeds_out_hot: np.array
+
+    :return:
         Engine speed [RPM].
     :rtype: np.array
     """
 
-    add_speeds = cold_start_speed_model(
-        engine_speeds_out_hot, on_engine, engine_coolant_temperatures)
+    speeds = engine_speeds_out_hot.copy()
+    s = speeds[on_engine]
+    for delta in delta_speeds:
+        s += delta[on_engine]
 
-    return engine_speeds_out_hot + add_speeds
+    dn = idle_engine_speed[0]
+
+    s[s < dn] = dn
+
+    speeds[on_engine] = s
+
+    return speeds
 
 
 def calibrate_cold_start_speed_model(
