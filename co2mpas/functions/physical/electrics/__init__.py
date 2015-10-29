@@ -67,27 +67,27 @@ def identify_electric_loads(
 
     :param battery_currents:
         Low voltage battery current vector [A].
-    :type battery_currents: np.array
+    :type battery_currents: numpy.array
 
     :param alternator_currents:
         Alternator current vector [A].
-    :type alternator_currents: np.array
+    :type alternator_currents: numpy.array
 
     :param gear_box_powers_in:
         Gear box power [kW].
-    :type gear_box_powers_in: np.array
+    :type gear_box_powers_in: numpy.array
 
     :param times:
         Time vector [s].
-    :type times: np.array
+    :type times: numpy.array
 
     :param on_engine:
         If the engine is on [-].
-    :type on_engine: np.array
+    :type on_engine: numpy.array
 
     :param engine_starts:
         When the engine starts [-].
-    :type engine_starts: np.array
+    :type engine_starts: numpy.array
 
     :return:
         Vehicle electric load (engine off and on) and engine start demand [kW].
@@ -132,7 +132,7 @@ def identify_max_battery_charging_current(battery_currents):
 
     :param battery_currents:
         Low voltage battery current vector [A].
-    :type battery_currents: np.array
+    :type battery_currents: numpy.array
 
     :return:
          Maximum charging current of the battery [A].
@@ -149,15 +149,15 @@ def identify_alternator_charging_currents(
 
     :param alternator_currents:
         Alternator current vector [A].
-    :type alternator_currents: np.array
+    :type alternator_currents: numpy.array
 
     :param gear_box_powers_in:
         Gear box power [kW].
-    :type gear_box_powers_in: np.array
+    :type gear_box_powers_in: numpy.array
 
     :param on_engine:
         If the engine is on [-].
-    :type on_engine: np.array
+    :type on_engine: numpy.array
 
     :return:
         Mean charging currents of the alternator (for negative and positive
@@ -189,7 +189,7 @@ def calculate_state_of_charges(
 
     :param times:
         Time vector [s].
-    :type times: np.array
+    :type times: numpy.array
 
     :param initial_soc:
         Initial state of charge of the battery [%].
@@ -197,7 +197,7 @@ def calculate_state_of_charges(
 
     :param battery_currents:
         Low voltage battery current vector [A].
-    :type battery_currents: np.array
+    :type battery_currents: numpy.array
 
     :param max_battery_charging_current:
         Maximum charging current of the battery [A].
@@ -209,7 +209,7 @@ def calculate_state_of_charges(
         .. note::
 
             `state_of_charges` = 99 is equivalent to 99%.
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     soc = [initial_soc]
@@ -237,7 +237,7 @@ def calculate_alternator_powers_demand(
 
     :param alternator_currents:
         Alternator current vector [A].
-    :type alternator_currents: np.array
+    :type alternator_currents: numpy.array
 
     :param alternator_efficiency:
         Alternator efficiency [-].
@@ -245,7 +245,7 @@ def calculate_alternator_powers_demand(
 
     :return:
         Alternator power demand to the engine [kW].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     c = alternator_nominal_voltage / (1000.0 * alternator_efficiency)
@@ -260,20 +260,20 @@ def identify_charging_statuses(
 
     :param alternator_currents:
         Alternator current vector [A].
-    :type alternator_currents: np.array
+    :type alternator_currents: numpy.array
 
     :param gear_box_powers_in:
         Gear box power [kW].
-    :type gear_box_powers_in: np.array
+    :type gear_box_powers_in: numpy.array
 
     :param on_engine:
         If the engine is on [-].
-    :type on_engine: np.array
+    :type on_engine: numpy.array
 
     :return:
         The alternator status (0: off, 1: on, due to state of charge, 2: on due
         to BERS) [-].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     gb_p = gear_box_powers_in
@@ -320,7 +320,7 @@ def calibrate_alternator_status_model(
     :param alternator_statuses:
         The alternator status (0: off, 1: on, due to state of charge, 2: on due
         to BERS) [-].
-    :type alternator_statuses: np.array
+    :type alternator_statuses: numpy.array
 
     :param state_of_charges:
         State of charge of the battery [%].
@@ -328,11 +328,11 @@ def calibrate_alternator_status_model(
         .. note::
 
             `state_of_charges` = 99 is equivalent to 99%.
-    :type state_of_charges: np.array
+    :type state_of_charges: numpy.array
 
     :param gear_box_powers_in:
         Gear box power [kW].
-    :type gear_box_powers_in: np.array
+    :type gear_box_powers_in: numpy.array
 
     :return:
         A function that predicts the alternator status.
@@ -475,19 +475,19 @@ def predict_vehicle_electrics(
 
     :param times:
         Time vector [s].
-    :type times: np.array
+    :type times: numpy.array
 
     :param gear_box_powers_in:
         Gear box power [kW].
-    :type gear_box_powers_in: np.array
+    :type gear_box_powers_in: numpy.array
 
     :param on_engine:
         If the engine is on [-].
-    :type on_engine: np.array
+    :type on_engine: numpy.array
 
     :param engine_starts:
         When the engine starts [-].
-    :type engine_starts: np.array
+    :type engine_starts: numpy.array
 
     :return:
         Alternator and battery currents, state of charge, and alternator status

@@ -174,11 +174,11 @@ def identify_idle_engine_speed_out(velocities, engine_speeds_out):
 
     :param velocities:
         Velocity vector [km/h].
-    :type velocities: np.array
+    :type velocities: numpy.array
 
     :param engine_speeds_out:
         Engine speed vector [RPM].
-    :type engine_speeds_out: np.array
+    :type engine_speeds_out: numpy.array
 
     :returns:
         Idle engine speed and its standard deviation [RPM].
@@ -209,11 +209,11 @@ def identify_upper_bound_engine_speed(
 
     :param gears:
         Gear vector [-].
-    :type gears: np.array
+    :type gears: numpy.array
 
     :param engine_speeds_out:
          Engine speed vector [RPM].
-    :type engine_speeds_out: np.array
+    :type engine_speeds_out: numpy.array
 
     :param idle_engine_speed:
         Idle engine speed and its standard deviation [RPM].
@@ -249,15 +249,15 @@ def calibrate_engine_temperature_regression_model(
 
     :param engine_coolant_temperatures:
         Engine coolant temperature vector [°C].
-    :type engine_coolant_temperatures: np.array
+    :type engine_coolant_temperatures: numpy.array
 
     :param gear_box_powers_in:
         Gear box power vector [kW].
-    :type gear_box_powers_in: np.array
+    :type gear_box_powers_in: numpy.array
 
     :param gear_box_speeds_in:
         Gear box speed vector [RPM].
-    :type gear_box_speeds_in: np.array
+    :type gear_box_speeds_in: numpy.array
 
     :return:
         The calibrated engine temperature regression model.
@@ -292,11 +292,11 @@ def predict_engine_coolant_temperatures(
 
     :param gear_box_powers_in:
         Gear box power vector [kW].
-    :type gear_box_powers_in: np.array
+    :type gear_box_powers_in: numpy.array
 
     :param gear_box_speeds_in:
         Gear box speed vector [RPM].
-    :type gear_box_speeds_in: np.array
+    :type gear_box_speeds_in: numpy.array
 
     :param initial_temperature:
         Engine initial temperature [°C]
@@ -304,7 +304,7 @@ def predict_engine_coolant_temperatures(
 
     :return:
         Engine coolant temperature vector [°C].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     predict = model.predict
@@ -324,7 +324,7 @@ def identify_thermostat_engine_temperature(engine_coolant_temperatures):
 
     :param engine_coolant_temperatures:
         Engine coolant temperature vector [°C].
-    :type engine_coolant_temperatures: np.array
+    :type engine_coolant_temperatures: numpy.array
 
     :return:
         Thermostat engine temperature [°C].
@@ -348,11 +348,11 @@ def identify_normalization_engine_temperature(
 
     :param times:
         Time vector [s].
-    :type times: np.array
+    :type times: numpy.array
 
     :param engine_coolant_temperatures:
         Engine coolant temperature vector [°C].
-    :type engine_coolant_temperatures: np.array
+    :type engine_coolant_temperatures: numpy.array
 
     :return:
         Normalization engine temperature and its limits [°C].
@@ -374,7 +374,7 @@ def identify_initial_engine_temperature(engine_coolant_temperatures):
 
     :param engine_coolant_temperatures:
         Engine coolant temperature vector [°C].
-    :type engine_coolant_temperatures: np.array
+    :type engine_coolant_temperatures: numpy.array
 
     :return:
         Initial engine temperature [°C].
@@ -420,11 +420,11 @@ def identify_on_engine(times, engine_speeds_out, idle_engine_speed):
 
     :param times:
         Time vector [s].
-    :type times: np.array
+    :type times: numpy.array
 
     :param engine_speeds_out:
         Engine speed [RPM].
-    :type engine_speeds_out: np.array
+    :type engine_speeds_out: numpy.array
 
     :param idle_engine_speed:
         Idle engine speed and its standard deviation [RPM].
@@ -432,7 +432,7 @@ def identify_on_engine(times, engine_speeds_out, idle_engine_speed):
 
     :return:
         If the engine is on [-].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     on_engine = np.zeros(times.shape)
@@ -451,11 +451,11 @@ def identify_engine_starts(on_engine):
 
     :param on_engine:
         If the engine is on [-].
-    :type on_engine: np.array
+    :type on_engine: numpy.array
 
     :return:
         When the engine starts [-].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     return np.append(np.diff(np.array(on_engine, dtype=int)) > 0, False)
@@ -468,19 +468,19 @@ def calibrate_start_stop_model_v1(
 
     :param on_engine:
         If the engine is on [-].
-    :type on_engine: np.array
+    :type on_engine: numpy.array
 
     :param velocities:
         Velocity vector [km/h].
-    :type velocities: np.array
+    :type velocities: numpy.array
 
     :param accelerations:
         Acceleration vector [m/s2].
-    :type accelerations: np.array
+    :type accelerations: numpy.array
 
     :param engine_coolant_temperatures:
         Engine coolant temperature vector [°C].
-    :type engine_coolant_temperatures: np.array
+    :type engine_coolant_temperatures: numpy.array
 
     :return:
         Start/stop model.
@@ -506,15 +506,15 @@ def calibrate_start_stop_model(
 
     :param on_engine:
         If the engine is on [-].
-    :type on_engine: np.array
+    :type on_engine: numpy.array
 
     :param velocities:
         Velocity vector [km/h].
-    :type velocities: np.array
+    :type velocities: numpy.array
 
     :param accelerations:
         Acceleration vector [m/s2].
-    :type accelerations: np.array
+    :type accelerations: numpy.array
 
     :param start_stop_activation_time:
         Start-stop activation time threshold [s].
@@ -553,19 +553,19 @@ def predict_on_engine(
 
     :param times:
         Time vector [s].
-    :type times: np.array
+    :type times: numpy.array
 
     :param velocities:
         Velocity vector [km/h].
-    :type velocities: np.array
+    :type velocities: numpy.array
 
     :param accelerations:
         Acceleration vector [m/s2].
-    :type accelerations: np.array
+    :type accelerations: numpy.array
 
     :param engine_coolant_temperatures:
         Engine coolant temperature vector [°C].
-    :type engine_coolant_temperatures: np.array
+    :type engine_coolant_temperatures: numpy.array
 
     :param cycle_type:
         Cycle type (WLTP or NEDC).
@@ -577,7 +577,7 @@ def predict_on_engine(
 
     :return:
         If the engine is on [-].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     on_engine = model(times, velocities, accelerations,
@@ -609,11 +609,11 @@ def calculate_engine_speeds_out_hot(
 
     :param gear_box_speeds_in:
         Gear box speed [RPM].
-    :type gear_box_speeds_in: np.array
+    :type gear_box_speeds_in: numpy.array
 
     :param on_engine:
         If the engine is on [-].
-    :type on_engine: np.array
+    :type on_engine: numpy.array
 
     :param idle_engine_speed:
         Idle engine speed and its standard deviation [RPM].
@@ -621,7 +621,7 @@ def calculate_engine_speeds_out_hot(
 
     :return:
         Engine speed at hot condition [RPM].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     s = gear_box_speeds_in.copy()
@@ -645,19 +645,19 @@ def calculate_cold_start_speeds_delta(
 
     :param engine_speeds_out_hot:
         Engine speed at hot condition [RPM].
-    :type engine_speeds_out_hot: np.array
+    :type engine_speeds_out_hot: numpy.array
 
     :param on_engine:
         If the engine is on [-].
-    :type on_engine: np.array
+    :type on_engine: numpy.array
 
     :param engine_coolant_temperatures:
         Engine coolant temperature vector [°C].
-    :type engine_coolant_temperatures: np.array
+    :type engine_coolant_temperatures: numpy.array
 
     :return:
         Engine speed delta due to the cold start [RPM].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     delta_speeds = cold_start_speed_model(
@@ -673,11 +673,11 @@ def calculate_engine_speeds_out(
 
     :param engine_speeds_out_hot:
         Engine speed at hot condition [RPM].
-    :type engine_speeds_out_hot: np.array
+    :type engine_speeds_out_hot: numpy.array
 
     :return:
         Engine speed [RPM].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     speeds = engine_speeds_out_hot.copy()
@@ -704,27 +704,27 @@ def calibrate_cold_start_speed_model(
 
     :param velocities:
         Velocity vector [km/h].
-    :type velocities: np.array
+    :type velocities: numpy.array
 
     :param accelerations:
         Acceleration vector [m/s2].
-    :type accelerations: np.array
+    :type accelerations: numpy.array
 
     :param engine_speeds_out:
         Engine speed [RPM].
-    :type engine_speeds_out: np.array
+    :type engine_speeds_out: numpy.array
 
     :param engine_coolant_temperatures:
         Engine coolant temperature vector [°C].
-    :type engine_coolant_temperatures: np.array
+    :type engine_coolant_temperatures: numpy.array
 
     :param engine_speeds_out_hot:
         Engine speed at hot condition [RPM].
-    :type engine_speeds_out_hot: np.array
+    :type engine_speeds_out_hot: numpy.array
 
     :param on_engine:
         If the engine is on [-].
-    :type on_engine: np.array
+    :type on_engine: numpy.array
 
     :param idle_engine_speed:
         Idle engine speed and its standard deviation [RPM].
@@ -790,23 +790,23 @@ def calibrate_cold_start_speed_model_v1(
 
     :param times:
         Time vector [s].
-    :type times: np.array
+    :type times: numpy.array
 
     :param velocities:
         Velocity vector [km/h].
-    :type velocities: np.array
+    :type velocities: numpy.array
 
     :param accelerations:
         Acceleration vector [m/s2].
-    :type accelerations: np.array
+    :type accelerations: numpy.array
 
     :param engine_speeds_out:
         Engine speed [RPM].
-    :type engine_speeds_out: np.array
+    :type engine_speeds_out: numpy.array
 
     :param engine_coolant_temperatures:
         Engine coolant temperature vector [°C].
-    :type engine_coolant_temperatures: np.array
+    :type engine_coolant_temperatures: numpy.array
 
     :param idle_engine_speed:
         Idle engine speed and its standard deviation [RPM].
@@ -851,15 +851,15 @@ def calculate_engine_powers_out(
 
     :param gear_box_powers_in:
         Gear box power [kW].
-    :type gear_box_powers_in: np.array
+    :type gear_box_powers_in: numpy.array
 
     :param engine_speeds_out:
         Engine speed [RPM].
-    :type engine_speeds_out: np.array:param engine_speeds_out:
+    :type engine_speeds_out: numpy.array:param engine_speeds_out:
 
     :param on_engine:
         If the engine is on [-].
-    :type on_engine: np.array
+    :type on_engine: numpy.array
 
     :param engine_power_correction_function:
         A function to correct the engine power that exceed full load and
@@ -868,11 +868,11 @@ def calculate_engine_powers_out(
 
     :param alternator_powers_demand:
         Alternator power demand to the engine [kW].
-    :type alternator_powers_demand: np.array
+    :type alternator_powers_demand: numpy.array
 
     :return:
         Engine power [kW].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     p_on = gear_box_powers_in[on_engine]
@@ -895,19 +895,19 @@ def calculate_braking_powers(
 
     :param engine_speeds_out:
         Engine speed [RPM].
-    :type engine_speeds_out: np.array
+    :type engine_speeds_out: numpy.array
 
     :param engine_torques_in:
         Engine torque out [N*m].
-    :type engine_torques_in: np.array
+    :type engine_torques_in: numpy.array
 
     :param friction_powers:
         Friction power [kW].
-    :type friction_powers: np.array
+    :type friction_powers: numpy.array
 
     :return:
         Braking powers [kW].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     bp = engine_torques_in * engine_speeds_out * (pi / 30000.0)
@@ -925,11 +925,11 @@ def calculate_friction_powers(
 
     :param engine_speeds_out:
         Engine speed [RPM].
-    :type engine_speeds_out: np.array
+    :type engine_speeds_out: numpy.array
 
     :param piston_speeds:
         Piston speed [m/s].
-    :type piston_speeds: np.array
+    :type piston_speeds: numpy.array
 
     :param engine_loss_parameters:
         Engine parameter (loss, loss2).
@@ -941,7 +941,7 @@ def calculate_friction_powers(
 
     :return:
         Friction powers [kW].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     loss, loss2 = engine_loss_parameters
@@ -957,7 +957,7 @@ def calculate_mean_piston_speeds(engine_speeds_out, engine_stroke):
 
     :param engine_speeds_out:
         Engine speed vector [RPM].
-    :type engine_speeds_out: np.array
+    :type engine_speeds_out: numpy.array
 
     :param engine_stroke:
         Engine stroke [mm].
@@ -965,7 +965,7 @@ def calculate_mean_piston_speeds(engine_speeds_out, engine_stroke):
 
     :return:
         Mean piston speed vector [m/s].
-    :rtype: np.array, float
+    :rtype: numpy.array, float
     """
 
     return (engine_stroke / 30000.0) * engine_speeds_out

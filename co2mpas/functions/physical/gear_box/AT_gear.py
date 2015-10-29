@@ -307,11 +307,11 @@ def identify_gear_shifting_velocity_limits(gears, velocities):
 
     :param gears:
         Gear vector [-].
-    :type gears: np.array
+    :type gears: numpy.array
 
     :param velocities:
         Vehicle velocity [km/h].
-    :type velocities: np.array
+    :type velocities: numpy.array
 
     :return:
         Gear shifting velocity matrix.
@@ -395,19 +395,19 @@ def calibrate_gear_shifting_cmv(
 
     :param gears:
         Gear vector [-].
-    :type gears: np.array
+    :type gears: numpy.array
 
     :param engine_speeds_out:
         Engine speed vector [RPM].
-    :type engine_speeds_out: np.array
+    :type engine_speeds_out: numpy.array
 
     :param velocities:
         Vehicle velocity [km/h].
-    :type velocities: np.array
+    :type velocities: numpy.array
 
     :param accelerations:
         Vehicle acceleration [m/s2].
-    :type accelerations: np.array, float
+    :type accelerations: numpy.array, float
 
     :param velocity_speed_ratios:
         Constant velocity speed ratios of the gear box [km/(h*RPM)].
@@ -457,19 +457,19 @@ def calibrate_gear_shifting_cmv_hot_cold(
 
     :param gears:
         Gear vector [-].
-    :type gears: np.array
+    :type gears: numpy.array
 
     :param engine_speeds:
         Engine speed vector [RPM].
-    :type engine_speeds: np.array
+    :type engine_speeds: numpy.array
 
     :param velocities:
         Vehicle velocity [km/h].
-    :type velocities: np.array
+    :type velocities: numpy.array
 
     :param accelerations:
         Vehicle acceleration [m/s2].
-    :type accelerations: np.array, float
+    :type accelerations: numpy.array, float
 
     :param velocity_speed_ratios:
         Constant velocity speed ratios of the gear box [km/(h*RPM)].
@@ -503,7 +503,7 @@ def calibrate_gear_shifting_decision_tree(gears, *params):
 
     :param gears:
         Gear vector [-].
-    :type gears: np.array
+    :type gears: numpy.array
 
     :param params:
         Time series vectors.
@@ -566,15 +566,15 @@ def calibrate_gspv(gears, velocities, wheel_powers):
 
     :param gears:
         Gear vector [-].
-    :type gears: np.array
+    :type gears: numpy.array
 
     :param velocities:
         Vehicle velocity [km/h].
-    :type velocities: np.array
+    :type velocities: numpy.array
 
     :param wheel_powers:
         Power at wheels vector [kW].
-    :type wheel_powers: np.array
+    :type wheel_powers: numpy.array
 
     :return:
         Gear shifting power velocity matrix.
@@ -625,19 +625,19 @@ def calibrate_gspv_hot_cold(
 
     :param times:
         Time vector [s].
-    :type times: np.array
+    :type times: numpy.array
 
     :param gears:
         Gear vector [-].
-    :type gears: np.array
+    :type gears: numpy.array
 
     :param velocities:
         Vehicle velocity [km/h].
-    :type velocities: np.array
+    :type velocities: numpy.array
 
     :param wheel_powers:
          Power at wheels vector [kW].
-    :type wheel_powers: np.array
+    :type wheel_powers: numpy.array
 
     :param time_cold_hot_transition:
         Time at cold hot transition phase [s].
@@ -673,7 +673,7 @@ def prediction_gears_decision_tree(correct_gear, decision_tree, times, *params):
 
     :param times:
         Time vector [s].
-    :type times: np.array
+    :type times: numpy.array
 
     :param params:
         Time series vectors.
@@ -681,7 +681,7 @@ def prediction_gears_decision_tree(correct_gear, decision_tree, times, *params):
 
     :return:
         Predicted gears.
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     gear = [MIN_GEAR]
@@ -718,27 +718,27 @@ def prediction_gears_gsm(
 
     :param velocities:
         Vehicle velocity [km/h].
-    :type velocities: np.array
+    :type velocities: numpy.array
 
     :param accelerations:
         Vehicle acceleration [m/s2].
-    :type accelerations: np.array
+    :type accelerations: numpy.array
 
     :param times:
         Time vector [s].
 
         If None gears are predicted with cmv approach, otherwise with gspv.
-    :type times: np.array, optional
+    :type times: numpy.array, optional
 
     :param wheel_powers:
         Power at wheels vector [kW].
 
         If None gears are predicted with cmv approach, otherwise with gspv.
-    :type wheel_powers: np.array, optional
+    :type wheel_powers: numpy.array, optional
 
     :return:
         Predicted gears.
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     max_gear, min_gear = max(gsm), min(gsm)
@@ -802,25 +802,25 @@ def prediction_gears_gsm_hot_cold(
 
     :param times:
         Time vector [s].
-    :type times: np.array
+    :type times: numpy.array
 
     :param velocities:
         Vehicle velocity [km/h].
-    :type velocities: np.array
+    :type velocities: numpy.array
 
     :param accelerations:
         Vehicle acceleration [m/s2].
-    :type accelerations: np.array
+    :type accelerations: numpy.array
 
     :param wheel_powers:
         Power at wheels vector [kW].
 
         If None gears are predicted with cmv approach, otherwise with gspv.
-    :type wheel_powers: np.array, optional
+    :type wheel_powers: numpy.array, optional
 
     :return:
         Predicted gears [-].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     b = times <= time_cold_hot_transition
@@ -845,15 +845,15 @@ def calculate_error_coefficients(
 
     :param engine_speeds:
         Engine speed vector [RPM].
-    :type engine_speeds: np.array
+    :type engine_speeds: numpy.array
 
     :param predicted_engine_speeds:
         Predicted Engine speed vector [RPM].
-    :type predicted_engine_speeds: np.array
+    :type predicted_engine_speeds: numpy.array
 
     :param velocities:
         Vehicle velocity [km/h].
-    :type velocities: np.array
+    :type velocities: numpy.array
 
     :return:
         Correlation coefficient and mean absolute error.

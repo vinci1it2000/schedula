@@ -89,19 +89,19 @@ def identify_gears(
 
     :param times:
         Time vector [s].
-    :type times: np.array
+    :type times: numpy.array
 
     :param velocities:
         Velocity vector [km/h].
-    :type velocities: np.array
+    :type velocities: numpy.array
 
     :param accelerations:
         Acceleration vector [m/s2].
-    :type accelerations: np.array
+    :type accelerations: numpy.array
 
     :param engine_speeds_out:
         Engine speed [RPM].
-    :type engine_speeds_out: np.array
+    :type engine_speeds_out: numpy.array
 
     :param velocity_speed_ratios:
         Constant velocity speed ratios of the gear box [km/(h*RPM)].
@@ -113,7 +113,7 @@ def identify_gears(
 
     :return:
         Gear vector identified [-].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     vsr = [v for v in velocity_speed_ratios.items()]
@@ -142,11 +142,11 @@ def calculate_gear_shifts(gears):
 
     :param gears:
         Gear vector [-].
-    :type gears: np.array
+    :type gears: numpy.array
 
     :return:
         When there is a gear shifting [-].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     return np.append([False], np.diff(gears) != 0)
@@ -168,15 +168,15 @@ def calculate_gear_box_speeds_from_engine_speeds(
 
     :param times:
         Time vector [s].
-    :type times: np.array
+    :type times: numpy.array
 
     :param velocities:
         Velocity vector [km/h].
-    :type velocities: np.array
+    :type velocities: numpy.array
 
     :param engine_speeds_out:
         Engine speed vector [RPM].
-    :type engine_speeds_out: np.array
+    :type engine_speeds_out: numpy.array
 
     :param velocity_speed_ratios:
         Constant velocity speed ratios of the gear box [km/(h*RPM)].
@@ -294,19 +294,19 @@ def calculate_gear_box_torques(
 
     :param gear_box_powers_out:
         Gear box power vector [kW].
-    :type gear_box_powers_out: np.array
+    :type gear_box_powers_out: numpy.array
 
     :param gear_box_speeds_in:
         Engine speed vector [RPM].
-    :type gear_box_speeds_in: np.array
+    :type gear_box_speeds_in: numpy.array
 
     :param gear_box_speeds_out:
         Wheel speed vector [RPM].
-    :type gear_box_speeds_out: np.array
+    :type gear_box_speeds_out: numpy.array
 
     :return:
         Torque gear box vector [N*m].
-    :rtype: np.array
+    :rtype: numpy.array
 
     .. note:: Torque entering the gearbox can be from engine side
        (power mode or from wheels in motoring mode)
@@ -334,19 +334,19 @@ def calculate_gear_box_torques_in(
 
     :param gear_box_torques:
         Torque gear box vector [N*m].
-    :type gear_box_torques: np.array
+    :type gear_box_torques: numpy.array
 
     :param gear_box_speeds_in:
         Engine speed vector [RPM].
-    :type gear_box_speeds_in: np.array
+    :type gear_box_speeds_in: numpy.array
 
     :param gear_box_speeds_out:
         Wheel speed vector [RPM].
-    :type gear_box_speeds_out: np.array
+    :type gear_box_speeds_out: numpy.array
 
     :param gear_box_temperatures:
         Temperature vector [°C].
-    :type gear_box_temperatures: np.array
+    :type gear_box_temperatures: numpy.array
 
     :param gear_box_efficiency_parameters_cold_hot:
         Parameters of gear box efficiency model for cold/hot phases:
@@ -361,7 +361,7 @@ def calculate_gear_box_torques_in(
 
     :return:
         Torque required vector according to the temperature profile [N*m].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     par = gear_box_efficiency_parameters_cold_hot
@@ -391,15 +391,15 @@ def _gear_box_torques_in(
 
     :param gear_box_torques_out:
         Torque gear_box vector [N*m].
-    :type gear_box_torques_out: np.array
+    :type gear_box_torques_out: numpy.array
 
     :param gear_box_speeds_in:
         Engine speed vector [RPM].
-    :type gear_box_speeds_in: np.array
+    :type gear_box_speeds_in: numpy.array
 
     :param gear_box_speeds_out:
         Wheel speed vector [RPM].
-    :type gear_box_speeds_out: np.array
+    :type gear_box_speeds_out: numpy.array
 
     :param gear_box_efficiency_parameters_cold_hot:
         Parameters of gear box efficiency model:
@@ -411,7 +411,7 @@ def _gear_box_torques_in(
 
     :return:
         Torque required vector [N*m].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     tgb, es, ws = gear_box_torques_out, gear_box_speeds_in, gear_box_speeds_out
@@ -439,15 +439,15 @@ def correct_gear_box_torques_in(
 
     :param gear_box_torques_out:
         Torque gear_box vector [N*m].
-    :type gear_box_torques_out: np.array
+    :type gear_box_torques_out: numpy.array
 
     :param gear_box_torques_in:
         Torque required vector [N*m].
-    :type gear_box_torques_in: np.array
+    :type gear_box_torques_in: numpy.array
 
     :param gears:
         Gear vector [-].
-    :type gears: np.array
+    :type gears: numpy.array
 
     :param gear_box_ratios:
         Gear box ratios [-].
@@ -455,7 +455,7 @@ def correct_gear_box_torques_in(
 
     :return:
         Corrected Torque required vector [N*m].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     b = np.zeros(gears.shape, dtype=bool)
@@ -475,27 +475,27 @@ def calculate_gear_box_efficiencies_v2(
 
     :param gear_box_powers_out:
         Power at wheels vector [kW].
-    :type gear_box_powers_out: np.array
+    :type gear_box_powers_out: numpy.array
 
     :param gear_box_speeds_in:
         Engine speed vector [RPM].
-    :type gear_box_speeds_in: np.array
+    :type gear_box_speeds_in: numpy.array
 
     :param gear_box_speeds_out:
         Wheel speed vector [RPM].
-    :type gear_box_speeds_out: np.array
+    :type gear_box_speeds_out: numpy.array
 
     :param gear_box_torques_out:
         Torque gear_box vector [N*m].
-    :type gear_box_torques_out: np.array
+    :type gear_box_torques_out: numpy.array
 
     :param gear_box_torques_in:
         Torque required vector [N*m].
-    :type gear_box_torques_in: np.array
+    :type gear_box_torques_in: numpy.array
 
     :return:
         Gear box efficiency vector [-].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     wp = gear_box_powers_out
@@ -525,15 +525,15 @@ def calculate_torques_losses(gear_box_torques_in, gear_box_torques_out):
 
     :param gear_box_torques_in:
         Torque required vector [N*m].
-    :type gear_box_torques_in: np.array, float
+    :type gear_box_torques_in: numpy.array, float
 
     :param gear_box_torques_out:
         Torque gear_box vector [N*m].
-    :type gear_box_torques_out: np.array, float
+    :type gear_box_torques_out: numpy.array, float
 
     :return:
         Gear box torques losses [N*m].
-    :rtype: np.array, float
+    :rtype: numpy.array, float
     """
 
     return gear_box_torques_in - gear_box_torques_out
@@ -550,19 +550,19 @@ def calculate_gear_box_efficiencies_torques_temperatures(
 
     :param gear_box_powers_out:
         Power at wheels vector [kW].
-    :type gear_box_powers_out: np.array
+    :type gear_box_powers_out: numpy.array
 
     :param gear_box_speeds_in:
         Engine speed vector [RPM].
-    :type gear_box_speeds_in: np.array
+    :type gear_box_speeds_in: numpy.array
 
     :param gear_box_speeds_out:
         Wheel speed vector [RPM].
-    :type gear_box_speeds_out: np.array
+    :type gear_box_speeds_out: numpy.array
 
     :param gear_box_torques_out:
         Torque gear_box vector [N*m].
-    :type gear_box_torques_out: np.array
+    :type gear_box_torques_out: numpy.array
 
     :param gear_box_efficiency_parameters_cold_hot:
         Parameters of gear box efficiency model for cold/hot phases:
@@ -589,7 +589,7 @@ def calculate_gear_box_efficiencies_torques_temperatures(
 
     :param gears:
         Gear vector [-].
-    :type gears: np.array, optional
+    :type gears: numpy.array, optional
 
     :param gear_box_ratios:
         Gear box ratios [-].
@@ -648,11 +648,11 @@ def calculate_gear_box_speeds_in(gears, velocities, velocity_speed_ratios):
 
     :param gears:
         Gear vector [-].
-    :type gears: np.array
+    :type gears: numpy.array
 
     :param velocities:
         Velocity vector [km/h].
-    :type velocities: np.array
+    :type velocities: numpy.array
 
     :param velocity_speed_ratios:
         Constant velocity speed ratios of the gear box [km/(h*RPM)].
@@ -660,7 +660,7 @@ def calculate_gear_box_speeds_in(gears, velocities, velocity_speed_ratios):
 
     :return:
         Gear box speed vector [RPM].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     vsr = [0]
@@ -685,11 +685,11 @@ def calculate_gear_box_speeds_in_v1(
 
     :param gears:
         Gear vector [-].
-    :type gears: np.array
+    :type gears: numpy.array
 
     :param gear_box_speeds_out:
         Wheel speed vector [RPM].
-    :type gear_box_speeds_out: np.array
+    :type gear_box_speeds_out: numpy.array
 
     :param gear_box_ratios:
         Gear box ratios [-].
@@ -697,7 +697,7 @@ def calculate_gear_box_speeds_in_v1(
 
     :return:
         Gear box speed vector [RPM].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     d = {0: 0.0}
@@ -716,11 +716,11 @@ def identify_velocity_speed_ratios(
 
     :param gear_box_speeds_in:
         Gear box speed vector [RPM].
-    :type gear_box_speeds_in: np.array
+    :type gear_box_speeds_in: numpy.array
 
     :param velocities:
         Velocity vector [km/h].
-    :type velocities: np.array
+    :type velocities: numpy.array
 
     :param idle_engine_speed:
         Engine speed idle median and std [RPM].
@@ -752,15 +752,15 @@ def identify_speed_velocity_ratios(gears, velocities, gear_box_speeds_in):
 
     :param gears:
         Gear vector [-].
-    :type gears: np.array
+    :type gears: numpy.array
 
     :param velocities:
         Velocity vector [km/h].
-    :type velocities: np.array
+    :type velocities: numpy.array
 
     :param gear_box_speeds_in:
         Gear box speed vector [RPM].
-    :type gear_box_speeds_in: np.array
+    :type gear_box_speeds_in: numpy.array
 
     :return:
         Speed velocity ratios of the gear box [h*RPM/km].
@@ -854,15 +854,15 @@ def calculate_gear_box_powers_in(gear_box_torques_in, gear_box_speeds_in):
 
     :param gear_box_torques_in:
         Torque at the wheel [N*m].
-    :type gear_box_torques_in: np.array, float
+    :type gear_box_torques_in: numpy.array, float
 
     :param gear_box_speeds_in:
         Rotating speed of the wheel [RPM].
-    :type gear_box_speeds_in: np.array, float
+    :type gear_box_speeds_in: numpy.array, float
 
     :return:
         Gear box power [kW].
-    :rtype: np.array, float
+    :rtype: numpy.array, float
     """
     
     from co2mpas.functions.physical.wheels import calculate_wheel_powers

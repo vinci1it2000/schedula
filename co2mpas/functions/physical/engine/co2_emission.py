@@ -26,7 +26,7 @@ def calculate_normalized_engine_coolant_temperatures(
 
     :param engine_coolant_temperatures:
         Engine coolant temperature vector [°C].
-    :type engine_coolant_temperatures: np.array
+    :type engine_coolant_temperatures: numpy.array
 
     :param temperature_target:
         Normalization temperature [°C].
@@ -34,7 +34,7 @@ def calculate_normalized_engine_coolant_temperatures(
 
     :return:
         Normalized engine temperature vector [-].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     T = (engine_coolant_temperatures + 273.0) / (temperature_target + 273.0)
@@ -51,11 +51,11 @@ def calculate_brake_mean_effective_pressures(
 
     :param engine_speeds_out:
         Engine speed vector [RPM].
-    :type engine_speeds_out: np.array, float
+    :type engine_speeds_out: numpy.array, float
 
     :param engine_powers_out:
         Engine power vector [kW].
-    :type engine_powers_out: np.array, float
+    :type engine_powers_out: numpy.array, float
 
     :param engine_capacity:
         Engine capacity [cm3].
@@ -63,7 +63,7 @@ def calculate_brake_mean_effective_pressures(
 
     :return:
         Engine brake mean effective pressure vector [bar].
-    :rtype: np.array, float
+    :rtype: numpy.array, float
     """
 
     p = (1200000.0 / engine_capacity) * engine_powers_out / engine_speeds_out
@@ -154,27 +154,27 @@ def calculate_co2_emissions(
 
     :param engine_speeds_out:
         Engine speed vector [RPM].
-    :type engine_speeds_out: np.array
+    :type engine_speeds_out: numpy.array
 
     :param engine_powers_out:
         Engine power vector [kW].
-    :type engine_powers_out: np.array
+    :type engine_powers_out: numpy.array
 
     :param mean_piston_speeds:
         Mean piston speed vector [m/s].
-    :type mean_piston_speeds: np.array
+    :type mean_piston_speeds: numpy.array
 
     :param brake_mean_effective_pressures:
         Engine brake mean effective pressure vector [bar].
-    :type brake_mean_effective_pressures: np.array
+    :type brake_mean_effective_pressures: numpy.array
 
     :param engine_coolant_temperatures:
         Engine coolant temperature vector [°C].
-    :type engine_coolant_temperatures: np.array
+    :type engine_coolant_temperatures: numpy.array
 
     :param on_engine:
         If the engine is on [-].
-    :type on_engine: np.array
+    :type on_engine: numpy.array
 
     :param engine_fuel_lower_heating_value:
         Fuel lower heating value [kJ/kg].
@@ -212,11 +212,11 @@ def calculate_co2_emissions(
 
     :param sub_values:
         Boolean vector.
-    :type sub_values: np.array, optional
+    :type sub_values: numpy.array, optional
 
     :return:
         CO2 emissions vector [CO2g/s].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     # default params
@@ -284,27 +284,27 @@ def define_co2_emissions_model(
 
     :param engine_speeds_out:
         Engine speed vector [RPM].
-    :type engine_speeds_out: np.array
+    :type engine_speeds_out: numpy.array
 
     :param engine_powers_out:
         Engine power vector [kW].
-    :type engine_powers_out: np.array
+    :type engine_powers_out: numpy.array
 
     :param mean_piston_speeds:
         Mean piston speed vector [m/s].
-    :type mean_piston_speeds: np.array
+    :type mean_piston_speeds: numpy.array
 
     :param brake_mean_effective_pressures:
         Engine brake mean effective pressure vector [bar].
-    :type brake_mean_effective_pressures: np.array
+    :type brake_mean_effective_pressures: numpy.array
 
     :param engine_coolant_temperatures:
         Engine coolant temperature vector [°C].
-    :type engine_coolant_temperatures: np.array
+    :type engine_coolant_temperatures: numpy.array
 
     :param on_engine:
         If the engine is on [-].
-    :type on_engine: np.array
+    :type on_engine: numpy.array
 
     :param engine_fuel_lower_heating_value:
         Fuel lower heating value [kJ/kg].
@@ -373,7 +373,7 @@ def calculate_phases_distances(times, phases_integration_times, velocities):
 
     :param times:
         Time vector [s].
-    :type times: np.array
+    :type times: numpy.array
 
     :param phases_integration_times:
         Cycle phases integration times [s].
@@ -381,11 +381,11 @@ def calculate_phases_distances(times, phases_integration_times, velocities):
 
     :param velocities:
         Velocity vector [km/h].
-    :type velocities: np.array
+    :type velocities: numpy.array
 
     :return:
         Cycle phases distances [km].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     vel = velocities / 3600.0
@@ -404,7 +404,7 @@ def calculate_cumulative_co2(
 
     :param times:
         Time vector [s].
-    :type times: np.array
+    :type times: numpy.array
 
     :param phases_integration_times:
         Cycle phases integration times [s].
@@ -412,15 +412,15 @@ def calculate_cumulative_co2(
 
     :param co2_emissions:
         CO2 instantaneous emissions vector [CO2g/s].
-    :type co2_emissions: np.array
+    :type co2_emissions: numpy.array
 
     :param phases_distances:
         Cycle phases distances [km].
-    :type phases_distances: np.array, float, optional
+    :type phases_distances: numpy.array, float, optional
 
     :return:
         CO2 emission or cumulative CO2 of cycle phases [CO2g/km or CO2g].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     co2 = []
@@ -438,15 +438,15 @@ def calculate_cumulative_co2_v1(phases_co2_emissions, phases_distances):
 
     :param phases_co2_emissions:
         CO2 emission of cycle phases [CO2g/km].
-    :type phases_co2_emissions: np.array
+    :type phases_co2_emissions: numpy.array
 
     :param phases_distances:
         Cycle phases distances [km].
-    :type phases_distances: np.array
+    :type phases_distances: numpy.array
 
     :return:
         Cumulative CO2 of cycle phases [CO2g].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     return phases_co2_emissions * phases_distances
@@ -547,7 +547,7 @@ def identify_co2_emissions(
 
     :param times:
         Time vector [s].
-    :type times: np.array
+    :type times: numpy.array
 
     :param phases_integration_times:
         Cycle phases integration times [s].
@@ -555,11 +555,11 @@ def identify_co2_emissions(
 
     :param cumulative_co2_emissions:
         Cumulative CO2 of cycle phases [CO2g].
-    :type cumulative_co2_emissions: np.array
+    :type cumulative_co2_emissions: numpy.array
 
     :return:
         The instantaneous CO2 emission vector [CO2g/s].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     co2_emissions = co2_emissions_model(params_initial_guess)
@@ -584,7 +584,7 @@ def define_co2_error_function_on_emissions(co2_emissions_model, co2_emissions):
 
     :param co2_emissions:
         CO2 instantaneous emissions vector [CO2g/s].
-    :type co2_emissions: np.array
+    :type co2_emissions: numpy.array
 
     :return:
         Error function (according to co2 emissions time series) to calibrate the
@@ -614,11 +614,11 @@ def define_co2_error_function_on_phases(
 
     :param cumulative_co2_emissions:
         Cumulative CO2 of cycle phases [CO2g].
-    :type cumulative_co2_emissions: np.array
+    :type cumulative_co2_emissions: numpy.array
 
     :param times:
         Time vector [s].
-    :type times: np.array
+    :type times: numpy.array
 
     :param phases_integration_times:
         Cycle phases integration times [s].
@@ -666,7 +666,7 @@ def calibrate_co2_params(
 
     :param engine_coolant_temperatures:
         Engine coolant temperature vector [°C].
-    :type engine_coolant_temperatures: np.array, (np.array, ...)
+    :type engine_coolant_temperatures: numpy.array, (np.array, ...)
 
     :param co2_error_function_on_emissions:
         Error function (according to co2 emissions time series) to calibrate the
@@ -861,7 +861,7 @@ def predict_co2_emissions(co2_emissions_model, params):
 
     :return:
         CO2 instantaneous emissions vector [CO2g/s].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     return co2_emissions_model(params)
@@ -873,7 +873,7 @@ def calculate_fuel_consumptions(co2_emissions, fuel_carbon_content):
 
     :param co2_emissions:
         CO2 instantaneous emissions vector [CO2g/s].
-    :type co2_emissions: np.array
+    :type co2_emissions: numpy.array
 
     :param fuel_carbon_content:
         Fuel carbon content [CO2g/g].
@@ -881,7 +881,7 @@ def calculate_fuel_consumptions(co2_emissions, fuel_carbon_content):
 
     :return:
         The instantaneous fuel consumption vector [g/s].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     return co2_emissions / fuel_carbon_content
@@ -893,11 +893,11 @@ def calculate_co2_emission(phases_co2_emissions, phases_distances):
 
     :param phases_co2_emissions:
         CO2 emission of cycle phases [CO2g/km].
-    :type phases_co2_emissions: np.array
+    :type phases_co2_emissions: numpy.array
 
     :param phases_distances:
         Cycle phases distances [km].
-    :type phases_distances: np.array, float
+    :type phases_distances: numpy.array, float
 
     :return:
         CO2 emission value of the cycle [CO2g/km].

@@ -20,6 +20,7 @@ It contains a comprehensive list of all CO2MPAS software models and sub-models:
     wheels
     final_drive
     gear_box
+    clutch
     electrics
     engine
 

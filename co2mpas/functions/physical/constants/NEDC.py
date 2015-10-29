@@ -60,11 +60,11 @@ def nedc_velocities(times):
 
     :param times:
         Time vector [s].
-    :type times: np.array
+    :type times: numpy.array
 
     :return:
         Velocity vector [km/h].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     t, v = zip(*[
@@ -136,7 +136,7 @@ def nedc_gears(times, max_gear, k1=1, k2=2, k5=2):
 
     :param times:
         Time vector [s].
-    :type times: np.array
+    :type times: numpy.array
 
     :param max_gear:
         Maximum gear of the gear box [-].
@@ -156,7 +156,7 @@ def nedc_gears(times, max_gear, k1=1, k2=2, k5=2):
 
     :return:
         Gear vector [-].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     # part one
@@ -245,7 +245,7 @@ def nedc_times(frequency):
 
     :return:
         Time vector [s].
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     dt = 1 / frequency

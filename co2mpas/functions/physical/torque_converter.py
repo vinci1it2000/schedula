@@ -67,7 +67,7 @@ def torque_efficiencies(gear_box_speeds, engine_speed_coeff, exp_coeff):
     :param engine_speed_param:
     :param exp_param:
     :return:
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     # noinspection PyTypeChecker
@@ -113,11 +113,11 @@ def calculate_torque_engine_speeds_v1(
 
     :param gears:
         Gear vector.
-    :type gears: np.array
+    :type gears: numpy.array
 
     :param velocities:
         Velocity vector.
-    :type velocities: np.array
+    :type velocities: numpy.array
 
     :param velocity_speed_ratios:
         Constant velocity speed ratios of the gear box.
@@ -129,7 +129,7 @@ def calculate_torque_engine_speeds_v1(
 
     :return:
         Engine speed vector.
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     speeds = speed_shift(times, gear_box_speeds, accelerations)
@@ -157,15 +157,15 @@ def calculate_gear_box_speeds_from_engine_speeds(
 
     :param times:
         Time vector.
-    :type times: np.array
+    :type times: numpy.array
 
     :param velocities:
         Velocity vector.
-    :type velocities: np.array
+    :type velocities: numpy.array
 
     :param engine_speeds:
         Engine speed vector.
-    :type engine_speeds: np.array
+    :type engine_speeds: numpy.array
 
     :param velocity_speed_ratios:
         Constant velocity speed ratios of the gear box.

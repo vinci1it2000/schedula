@@ -85,7 +85,7 @@ def median_filter(x, y, dx_window):
 
     :return:
         Moving median-high of y values over a constant dx.
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     xy = [list(v) for v in zip(x, y)]
@@ -285,11 +285,11 @@ def clear_fluctuations(times, gears, dt_window):
 
     :param times:
         Time vector.
-    :type times: np.array
+    :type times: numpy.array
 
     :param gears:
         Gear vector.
-    :type gears: np.array
+    :type gears: numpy.array
 
     :param dt_window:
         Time window.
@@ -297,7 +297,7 @@ def clear_fluctuations(times, gears, dt_window):
 
     :return:
         Gear vector corrected from fluctuations.
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     xy = [list(v) for v in zip(times, gears)]
