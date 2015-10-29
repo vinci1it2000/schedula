@@ -267,20 +267,18 @@ def calibrate_engine_temperature_regression_model(
     temp = np.zeros(engine_coolant_temperatures.shape)
     temp[1:] = engine_coolant_temperatures[:-1]
 
-    kw = {
-        'random_state': 0,
-        'max_depth': 2,
-        'n_estimators': int(min(300, 0.25 * (len(temp) - 1)))
-    }
+    model = GradientBoostingRegressor(
+        random_state=0,
+        max_depth=2,
+        n_estimators=int(min(300, 0.25 * (len(temp) - 1))),
+        loss='huber',
+        alpha=0.99
+    )
 
-    model = GradientBoostingRegressor(**kw)
+    X = np.array([temp, gear_box_powers_in, gear_box_speeds_in]).T[1:]
+    dt = np.array(np.diff(engine_coolant_temperatures), np.float64, order='C')
 
-    X = np.array([temp, gear_box_powers_in, gear_box_speeds_in]).T
-
-    dt = np.diff(engine_coolant_temperatures)
-    model.fit(X[1:], np.array(dt, dtype=np.float64, order='C'))
-
-    return model
+    return model.fit(X, dt)
 
 
 def predict_engine_coolant_temperatures(
@@ -310,11 +308,10 @@ def predict_engine_coolant_temperatures(
     """
 
     predict = model.predict
-    it = zip(gear_box_powers_in[:-1], gear_box_speeds_in[:-1])
     t = initial_temperature
     temp = [initial_temperature]
     append = temp.append
-    for p, s in it:
+    for p, s in zip(gear_box_powers_in[:-1], gear_box_speeds_in[:-1]):
         t += predict([[t, p, s]])[0]
         append(t)
 

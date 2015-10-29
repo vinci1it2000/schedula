@@ -31,7 +31,6 @@ from .des import get_parent_func, search_node_description
 
 __all__ = ['plot']
 
-
 _encode_table = {
     '{': '\{',
     '}': '\}',
@@ -53,7 +52,6 @@ def _encode_file_name(s):
 
 
 def _init_filepath(directory, filename, nested, name, is_sub_dsp):
-
     path = Path(directory, filename)
 
     if path and not path.parent:
@@ -116,7 +114,6 @@ def _node_label(name, values):
 
 def _data_node_label(dot, k, values, attr=None, dist=None,
                      function_module=True, node_output=False, nested=False):
-
     kw = {}
     if not dist:
         v = attr.copy()
@@ -126,7 +123,7 @@ def _data_node_label(dot, k, values, attr=None, dist=None,
             d = values[k]
             v.update({'default': d['value']})
             if d['initial_dist']:
-                v['initial dist'] =  d['initial_dist']
+                v['initial dist'] = d['initial_dist']
 
         if not v['wait_inputs']:
             v.pop('wait_inputs')
@@ -164,7 +161,6 @@ def _data_node_label(dot, k, values, attr=None, dist=None,
 
 
 def _format_output(data, max_len=1000):
-
     tooltip, formatted_output = [''], ['']
     format = partial(pprint.pformat, compact=True)
     if inspect.isfunction(data):
@@ -197,7 +193,6 @@ def _get_link(dsp_id, dsp, node_id, tag, function_module):
 
 
 def _fun_node_label(node_id, node_name, attr=None, dist=None):
-
     exc = {'type', 'inputs', 'outputs', 'wait_inputs', 'function',
            'description', 'workflow'}
     if not dist:
@@ -249,7 +244,6 @@ def _set_node(dot, node_id, dsp2dot_id, dsp=None, node_attr=None, values=None,
               dist=None, function_module=True, edge_attr=None,
               workflow_node=False, depth=0, node_output=False, nested=False,
               **dot_kw):
-
     styles = {
         START: ('start', {'shape': 'egg', 'fillcolor': 'red'}),
         END: ('end', {'shape': 'egg', 'fillcolor': 'blue'}),
@@ -260,7 +254,7 @@ def _set_node(dot, node_id, dsp2dot_id, dsp=None, node_attr=None, values=None,
             'function': {'shape': 'record', 'fillcolor': 'springgreen'},
             'dispatcher': {'shape': 'record', 'fillcolor': 'springgreen',
                            'style': 'dashed, filled'}
-            }
+        }
     }
 
     node_type = node_attr['type'] if node_attr else 'data'
@@ -318,7 +312,6 @@ def _set_node(dot, node_id, dsp2dot_id, dsp=None, node_attr=None, values=None,
 
 
 def _set_func_out(dot, node_name, func, nested):
-
     formatted_output = None
 
     try:
@@ -351,7 +344,6 @@ def _save_txt_output(directory, filename, output_lines):
 
 def _set_sub_dsp(dot, dsp, dot_id, node_name, edge_attr, workflow, depth,
                  node_output, function_module=True, nested=False, **dot_kw):
-
     dot_kw['directory'] = dot_kw.get('directory', dot.directory)
 
     if nested:
@@ -375,7 +367,7 @@ def _set_sub_dsp(dot, dsp, dot_id, node_name, edge_attr, workflow, depth,
             ]
         }
         kw_sub.update(dot_kw)
-        kw_sub['name'] = html.escape(kw_sub['name'], quote=True).replace(':', '')
+        kw_sub['name'] = html.escape(kw_sub['name'], True).replace(':', '')
 
         dot_kw = {}
         sub_dot = Digraph(**kw_sub)
@@ -469,7 +461,8 @@ def plot(dsp, workflow=False, dot=None, edge_data=None, view=False,
             - name: Graph name used in the source code.
             - comment: Comment added to the first line of the source.
             - directory: (Sub)directory for source saving and rendering.
-            - filename: Filename for saving the source (defaults to name + '.gv').
+            - filename: Filename for saving the source (defaults to name + '.gv'
+              ).
             - format: Rendering output format ('pdf', 'png', ...).
             - engine: Layout command used ('dot', 'neato', ...).
             - encoding: Encoding for saving the source.
