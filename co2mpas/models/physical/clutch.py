@@ -46,7 +46,7 @@ def clutch():
     )
 
     clutch.add_function(
-        function=calculate_delta_speed_threshold,
+        function=calculate_clutch_speed_threshold,
         inputs=['clutch_speeds_delta'],
         outputs=['clutch_speed_threshold']
     )
