@@ -108,7 +108,7 @@ def check_writeable(data):
         If the data is writeable.
     :rtype: bool
     """
-    if isinstance(data, (str, float, int, np.ndarray)):
+    if isinstance(data, (str, float, int, np.integer, np.ndarray)):
         return True
     elif isinstance(data, dict):
         for v in data.values():
