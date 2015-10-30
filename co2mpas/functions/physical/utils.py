@@ -271,8 +271,8 @@ def interpolate_cloud(x, y):
             y.append(np.mean(v[b]))
 
         y[0] = y[1]
-        x.append(x[-1] + 1)
-        y.append(y[-1])
+        x.append(x[-1])
+        y.append(y[-1] * 1.1)
     else:
         x, y = ([0, 1], [np.mean(y)] * 2)
 
