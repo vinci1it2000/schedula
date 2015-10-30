@@ -249,7 +249,6 @@ def gear_box_calibration():
             'engine_coolant_temperatures': 'engine_coolant_temperatures',
             'time_cold_hot_transition': 'time_cold_hot_transition',
             'times': 'times',
-            'upper_bound_engine_speed': 'upper_bound_engine_speed',
             'vehicle_mass': 'inertia',
             'velocities': 'velocities',
             'velocity_speed_ratios': 'velocity_speed_ratios',

@@ -125,7 +125,8 @@ def correct_gear_full_load(
     if velocity > 100:
         return gear
 
-    p_norm = calculate_wheel_power(velocity, acceleration, road_loads, vehicle_mass)
+    p_norm = calculate_wheel_power(
+        velocity, acceleration, road_loads, vehicle_mass)
     p_norm /= max_engine_power
 
     r = max_engine_speed_at_max_power - idle_engine_speed[0]
@@ -146,7 +147,7 @@ def correct_gear_full_load(
 
 
 def correct_gear_v0(
-        velocity_speed_ratios, upper_bound_engine_speed, engine_max_power,
+        velocity_speed_ratios, mvl, engine_max_power,
         engine_max_speed_at_max_power, idle_engine_speed, full_load_curve,
         road_loads, vehicle_mass):
     """
@@ -158,9 +159,9 @@ def correct_gear_v0(
         Constant velocity speed ratios of the gear box [km/(h*RPM)].
     :type velocity_speed_ratios: dict
 
-    :param upper_bound_engine_speed:
-        Upper bound engine speed [RPM].
-    :type upper_bound_engine_speed: float
+    :param mvl:
+        Matrix velocity limits (upper and lower bound) [km/h].
+    :type mvl: OrderedDict
 
     :param engine_max_power:
         Maximum power [kW].
@@ -195,9 +196,8 @@ def correct_gear_v0(
     min_gear = min(velocity_speed_ratios)
 
     def correct_gear(velocity, acceleration, gear):
-        g = correct_gear_upper_bound_engine_speed(
-            velocity, acceleration, gear, velocity_speed_ratios, max_gear,
-            upper_bound_engine_speed)
+        g = correct_gear_mvl(
+            velocity, acceleration, gear, mvl, max_gear, min_gear)
 
         return correct_gear_full_load(
             velocity, acceleration, g, velocity_speed_ratios, engine_max_power,
@@ -207,7 +207,7 @@ def correct_gear_v0(
     return correct_gear
 
 
-def correct_gear_v1(velocity_speed_ratios, upper_bound_engine_speed):
+def correct_gear_v1(velocity_speed_ratios, mvl):
     """
     Returns a function to correct the gear predicted according to
     :func:`correct_gear_upper_bound_engine_speed`.
@@ -216,21 +216,20 @@ def correct_gear_v1(velocity_speed_ratios, upper_bound_engine_speed):
         Constant velocity speed ratios of the gear box [km/(h*RPM)].
     :type velocity_speed_ratios: dict
 
-    :param upper_bound_engine_speed:
-        Upper bound engine speed [RPM].
-    :type upper_bound_engine_speed: float
+    :param mvl:
+        Matrix velocity limits (upper and lower bound) [km/h].
+    :type mvl: OrderedDict
 
     :return:
         A function to correct the predicted gear.
     :rtype: function
     """
 
-    max_gear = max(velocity_speed_ratios)
+    max_gear, min_gear = max(velocity_speed_ratios), min(velocity_speed_ratios)
 
     def correct_gear(velocity, acceleration, gear):
-        return correct_gear_upper_bound_engine_speed(
-            velocity, acceleration, gear, velocity_speed_ratios, max_gear,
-            upper_bound_engine_speed)
+        return correct_gear_mvl(
+            velocity, acceleration, gear, mvl, max_gear, min_gear)
 
     return correct_gear
 
@@ -871,3 +870,132 @@ def calculate_error_coefficients(
     }
 
     return res
+
+
+def calibrate_mvl(
+        gears, engine_speeds_out, velocity_speed_ratios, idle_engine_speed):
+    """
+    Calibrates the matrix velocity limits (upper and lower bound) [km/h].
+
+    :param gears:
+        Gear vector [-].
+    :type gears: numpy.array
+
+    :param engine_speeds_out:
+        Engine speed vector [RPM].
+    :type engine_speeds_out: numpy.array
+
+    :param velocity_speed_ratios:
+        Constant velocity speed ratios of the gear box [km/(h*RPM)].
+    :type velocity_speed_ratios: dict
+
+    :param idle_engine_speed:
+        Engine speed idle median and std [RPM].
+    :type idle_engine_speed: (float, float)
+
+    :return:
+        Matrix velocity limits (upper and lower bound) [km/h].
+    :rtype: OrderedDict
+    """
+
+    vsr = velocity_speed_ratios
+
+    mvl = [[0, np.diff(idle_engine_speed)[0] * vsr[1]]]
+    max_gear = max(gears)
+    for k in range(1, max_gear + 1):
+        limits, speeds, b0 = [], [], False
+        if k in gears:
+            for b, s in zip(gears == k, engine_speeds_out):
+                if b:
+                    if b0:
+                        speeds.append(s)
+                    else:
+                        if len(speeds) > 1:
+                            limits.append([min(speeds), max(speeds)])
+                            speeds = [s]
+                b0 = b
+
+        mvl.append(list(np.median(limits, 0)) * vsr[k] if limits else mvl[-1])
+
+    mvl[-1][1] = INF
+
+    return OrderedDict(list(reversed(enumerate(mvl))))
+
+
+def correct_gear_mvl(
+        velocity, acceleration, gear, mvl, max_gear, min_gear):
+    """
+    Corrects the gear predicted according to upper and lower bound velocity
+    limits.
+
+    :param velocity:
+        Vehicle velocity [km/h].
+    :type velocity: float
+
+    :param acceleration:
+        Vehicle acceleration [m/s2].
+    :type acceleration: float
+
+    :param gear:
+        Predicted vehicle gear [-].
+    :type gear: int
+
+    :param max_gear:
+        Maximum gear [-].
+    :type max_gear: int
+
+    :param min_gear:
+        Minimum gear [-].
+    :type min_gear: int
+
+    :param mvl:
+        Matrix velocity limits (upper and lower bound) [km/h].
+    :type mvl: OrderedDict
+
+    :return:
+        A gear corrected according to upper bound engine speed [-].
+    :rtype: int
+    """
+
+    if abs(acceleration) < ACC_EPS and velocity > VEL_EPS:
+
+        while mvl[gear][1] < velocity and gear < max_gear:
+            gear += 1
+
+        while mvl[gear][0] > velocity and gear > min_gear:
+            gear -= 1
+
+    return gear
+
+
+def correct_gear_msl_v1(
+        velocity, acceleration, gear, mvl):
+    """
+    Corrects the gear predicted according to upper and lower bound velocity
+    limits.
+
+    :param velocity:
+        Vehicle velocity [km/h].
+    :type velocity: float
+
+    :param acceleration:
+        Vehicle acceleration [m/s2].
+    :type acceleration: float
+
+    :param gear:
+        Predicted vehicle gear [-].
+    :type gear: int
+
+    :param mvl:
+        Matrix velocity limits (upper and lower bound) [km/h].
+    :type mvl: OrderedDict
+
+    :return:
+        A gear corrected according to upper bound engine speed [-].
+    :rtype: int
+    """
+
+    if abs(acceleration) < ACC_EPS and velocity > VEL_EPS:
+        gear = next((k for k, v in mvl.items() if v[0] - velocity > 0), gear)
+
+    return gear

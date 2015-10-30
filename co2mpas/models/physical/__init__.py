@@ -252,7 +252,6 @@ def _physical():
             'full_load_speeds': 'full_load_speeds',
             'full_load_torques': 'full_load_torques',
             'full_load_powers': 'full_load_powers',
-            'gears': 'gears',
             'idle_engine_speed_median': 'idle_engine_speed_median',
             'idle_engine_speed_std': 'idle_engine_speed_std',
             'initial_temperature': 'initial_engine_temperature',
@@ -283,7 +282,6 @@ def _physical():
             'start_stop_model': 'start_stop_model',
             'start_stop_activation_time': 'start_stop_activation_time',
             'times': 'times',
-            'upper_bound_engine_speed': 'upper_bound_engine_speed',
             'clutch_speeds_delta': 'clutch_speeds_delta'
         },
         outputs={
@@ -319,7 +317,6 @@ def _physical():
             'on_engine': 'on_engine',
             'phases_co2_emissions': 'phases_co2_emissions',
             'start_stop_model': 'start_stop_model',
-            'upper_bound_engine_speed': 'upper_bound_engine_speed',
             'full_load_curve': 'full_load_curve',
             'engine_max_power': 'engine_max_power',
             'engine_max_speed_at_max_power': 'engine_max_speed_at_max_power'
@@ -363,7 +360,6 @@ def physical_calibration():
             'road_loads': 'road_loads',
             'engine_coolant_temperatures': 'engine_coolant_temperatures',
             'time_cold_hot_transition': 'time_cold_hot_transition',
-            'upper_bound_engine_speed': 'upper_bound_engine_speed',
             'vehicle_mass': 'vehicle_mass',
             'accelerations': 'accelerations',
             'engine_max_torque': 'engine_max_torque',

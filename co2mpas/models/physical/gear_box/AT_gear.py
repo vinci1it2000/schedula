@@ -34,10 +34,16 @@ def AT_gear():
         name='Automatic gear model',
         description='Defines an omni-comprehensive gear shifting model for '
                     'automatic vehicles.')
+    AT_gear.add_function(
+        function=calibrate_mvl,
+        inputs=['gears', 'engine_speeds_out', 'velocity_speed_ratios',
+                'idle_engine_speed'],
+        outputs=['MVL']
+    )
 
     AT_gear.add_function(
         function=correct_gear_v0,
-        inputs=['velocity_speed_ratios', 'upper_bound_engine_speed',
+        inputs=['velocity_speed_ratios', 'MVL',
                 'engine_max_power', 'engine_max_speed_at_max_power',
                 'idle_engine_speed', 'full_load_curve', 'road_loads',
                 'inertia'],
@@ -45,7 +51,7 @@ def AT_gear():
 
     AT_gear.add_function(
         function=correct_gear_v1,
-        inputs=['velocity_speed_ratios', 'upper_bound_engine_speed'],
+        inputs=['velocity_speed_ratios', 'MVL'],
         outputs=['correct_gear'],
         weight=50)
 

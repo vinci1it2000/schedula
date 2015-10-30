@@ -122,15 +122,6 @@ def engine():
         weight=5
     )
 
-    # Upper bound engine speed
-
-    # identify upper bound engine speed
-    engine.add_function(
-        function=identify_upper_bound_engine_speed,
-        inputs=['gears', 'engine_speeds_out', 'idle_engine_speed'],
-        outputs=['upper_bound_engine_speed']
-    )
-
     engine.add_function(
         function=calibrate_engine_temperature_regression_model,
         inputs=['engine_coolant_temperatures', 'gear_box_powers_in',
