@@ -395,8 +395,8 @@ def _set_edge(dot, dot_u, dot_v, attr=None, edge_data=None, **kw_dot):
 
 
 def _url_rel_path(directory, path):
-    url = './%s' % Path('.', Path(path).relative_to(directory))
-    url = urllib.parse.quote(url)
+    url = './%s' % Path(path).relative_to(directory)
+    url = urllib.parse.quote(url.replace('\\', '/'))
     return url
 
 
