@@ -234,6 +234,14 @@ def engine():
     )
 
     engine.add_function(
+        function=calculate_engine_speeds_out,
+        inputs=['on_engine', 'idle_engine_speed', 'engine_speeds_out_hot',
+                'cold_start_speeds_delta'],
+        outputs=['engine_speeds_out'],
+        weight=15
+    )
+
+    engine.add_function(
         function=dsp_utl.bypass,
         inputs=['engine_speeds_out_hot'],
         outputs=['engine_speeds_out'],

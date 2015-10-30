@@ -142,13 +142,19 @@ def _comparison_model():
         }
     )
 
+    def speed_get_models(selected_models, *args):
+        mods = ('clutch_window', 'clutch_prediction_model')
+        mods = {k: selected_models[k] for k in mods if k in selected_models}
+        mods.update(_get_models(selected_models, *args))
+        return mods
+
     models.append({
         'models': ('cold_start_speed_model', 'idle_engine_speed',
                    'engine_thermostat_temperature', 'r_dynamic',
-                   'clutch_window', 'clutch_prediction_model',
                    'gear_box_ratios'),
         'targets': ('engine_speeds_out',),
         'check_models': lambda error: error < 100,
+        'get_models': speed_get_models
     })
 
     # co2_params
@@ -301,16 +307,17 @@ def _comparison_model():
 
     def AT_get_models(selected_models, *args):
 
-        k = selected_models['origin AT_gear_shifting_model'][0]
-
-        return {k: selected_models[k]}
+        mods = (selected_models['origin AT_gear_shifting_model'][0],
+                'correct_gear', 'MVL')
+        return {k: selected_models[k] for k in mods if k in selected_models}
 
     models.append({
         'models': ('origin AT_gear_shifting_model', 'correct_gear',
-                   'upper_bound_engine_speed'),
+                   'MVL'),
         'targets': ('gears',),
         'get_inputs': AT_get_inputs,
         'get_models': AT_get_models,
+        'comparison_func': lambda *args: -accuracy_score(*args)
     })
 
     return dsp, models
@@ -448,7 +455,6 @@ def _show_calibration_failure_msg(failed_models):
 
 
 def _extract_models(calibration_outputs, models_to_extract):
-    calibration_outputs = calibration_outputs
     models = {}
 
     for k in models_to_extract:
@@ -478,7 +484,7 @@ def _extract_models(calibration_outputs, models_to_extract):
     if heap:
         heap = sorted(heap)
         models['cold_start_speed_model'] = heap[0][-1]
-        log.debug('cold_start_speed_model: %s with mean_absolute_error %.3f '
+        log.info('cold_start_speed_model: %s with mean_absolute_error %.3f '
                   '[RPM].', heap[0][1], heap[0][0])
         heap = [(v[1], v[0]) for v in heap]
         calibration_outputs['errors cold_start_speed_model'] = heap
@@ -508,11 +514,12 @@ def _extract_models(calibration_outputs, models_to_extract):
 
         models[k] = calibration_outputs[k]
         models['origin AT_gear_shifting_model'] = (k, e)
+        calibration_outputs['origin AT_gear_shifting_model'] = (k, e)
         tags = ['mean_absolute_error', 'correlation_coefficient']
         m = [(v[-1], {t: v for t, v in zip(tags, v[1])}) for v in m]
         calibration_outputs['errors AT_gear_shifting_model'] = m
 
-        log.debug('AT_gear_shifting_model: %s with mean_absolute_error %.3f '
+        log.info('AT_gear_shifting_model: %s with mean_absolute_error %.3f '
                   '[RPM]. and correlation_coefficient %.3f.', k, e[0], e[1])
 
     return models

@@ -29,7 +29,7 @@ The model is defined by a Dispatcher that wraps all the functions needed.
 
 
 from co2mpas.dispatcher import Dispatcher
-from co2mpas.dispatcher.utils import bypass
+from co2mpas.dispatcher.utils import bypass, SINK
 from co2mpas.functions.physical.constants.NEDC import *
 
 
@@ -208,13 +208,21 @@ def _physical():
 
     from .clutch import clutch
 
+    def clutch_domain(kwargs):
+        for k, v in kwargs.items():
+            if ':gear_box_type' in k or 'gear_box_type' == k:
+                return v == 'manual'
+        return False
+
     physical.add_dispatcher(
         include_defaults=True,
+        input_domain=clutch_domain,
         dsp=clutch(),
         dsp_id='clutch_model',
         inputs={
             'times': 'times',
             'accelerations': 'accelerations',
+            'gear_box_type': SINK,
             'clutch_prediction_model': 'clutch_prediction_model',
             'clutch_window': 'clutch_window',
             'gear_shifts': 'gear_shifts',
@@ -384,6 +392,7 @@ def physical_calibration():
         },
         outputs={
             'correct_gear': 'correct_gear',
+            'MVL': 'MVL',
             'CMV': 'CMV',
             'CMV_Cold_Hot': 'CMV_Cold_Hot',
             'DT_VA': 'DT_VA',
