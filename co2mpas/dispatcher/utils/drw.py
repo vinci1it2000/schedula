@@ -52,7 +52,12 @@ def _encode_file_name(s):
 
 
 def _init_filepath(directory, filename, nested, name, is_sub_dsp):
-    path = Path(directory, filename)
+    if directory or filename:
+        path = Path(directory, filename)
+    elif nested:
+        path = Path(mkdtemp(''))
+    else:
+        path = Path(mkstemp('.gv')[1])
 
     if path and not path.parent:
         path = path.absolute()
@@ -61,10 +66,8 @@ def _init_filepath(directory, filename, nested, name, is_sub_dsp):
         name = name.replace('/', ' ').replace('.', ' ')
         if not is_sub_dsp:
             name = '%s/%s' % (name, name)
-        path = path or Path(mkdtemp(''))
         path = path.parent.joinpath(path.name.split('.')[0], '%s.gv' % name)
     else:
-        path = path or Path(mkstemp('.gv')[1])
         filename = path.name.split('.')
         if not len(filename) > 1:
             path = path.parent.joinpath('%s.gv' % filename[0])
