@@ -255,6 +255,7 @@ def gear_box_calibration():
         },
         outputs={
             'correct_gear': 'correct_gear',
+            'MVL': 'MVL',
             'CMV': 'CMV',
             'CMV_Cold_Hot': 'CMV_Cold_Hot',
             'DT_VA': 'DT_VA',

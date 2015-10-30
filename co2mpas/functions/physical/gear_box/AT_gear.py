@@ -1,4 +1,4 @@
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Copyright 2015 European Commission (JRC);
 # Licensed under the EUPL (the 'Licence');
@@ -9,7 +9,6 @@
 It contains functions to predict the A/T gear shifting.
 """
 
-
 from collections import OrderedDict
 from itertools import chain
 import numpy as np
@@ -19,7 +18,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import mean_absolute_error
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.functions.physical.utils import median_filter, grouper, \
-    interpolate_cloud, clear_fluctuations
+    interpolate_cloud, clear_fluctuations, reject_outliers
 from co2mpas.functions.physical.constants import *
 from co2mpas.functions.physical.gear_box import calculate_gear_box_speeds_in
 from co2mpas.functions.physical.wheels import calculate_wheel_power
@@ -383,7 +382,7 @@ def correct_gsv_for_constant_velocities(gsv):
                   set_velocity(v[1], up_cns_vel, up_limit, up_delta))
         return limits
 
-    return {k: fun(v) for k, v in gsv.items()}
+    return gsv.__class__((k, fun(v)) for k, v in gsv.items())
 
 
 def calibrate_gear_shifting_cmv(
@@ -688,7 +687,7 @@ def prediction_gears_decision_tree(correct_gear, decision_tree, times, *params):
     predict = decision_tree.predict
 
     def predict_gear(*args):
-        g = predict(gear.__add__(list(args)))[0]
+        g = predict(gear + list(args))[0]
         gear[0] = correct_gear(args[0], args[1], g)
         return gear[0]
 
@@ -873,9 +872,14 @@ def calculate_error_coefficients(
 
 
 def calibrate_mvl(
-        gears, engine_speeds_out, velocity_speed_ratios, idle_engine_speed):
+        times, gears, engine_speeds_out, velocity_speed_ratios,
+        idle_engine_speed):
     """
     Calibrates the matrix velocity limits (upper and lower bound) [km/h].
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
 
     :param gears:
         Gear vector [-].
@@ -898,31 +902,41 @@ def calibrate_mvl(
     :rtype: OrderedDict
     """
 
+    idle = idle_engine_speed
+    mvl = [np.array([idle[0] - idle[1], idle[0] + idle[1]])]
+
+    def _get_limits(t, s):
+        it = (reject_outliers(s[t < TIME_WINDOW])[0]
+              for t in (t - t[0], t[-1] - t))
+        return list(sorted(it))
+
+    for k in range(1, int(max(gears)) + 1):
+        l, on = [], None
+        l_append = l.append
+
+        for i, b in enumerate(chain(gears == k, [False])):
+            if not b and not on is None:
+                l_append(_get_limits(times[on:i], engine_speeds_out[on:i]))
+                on = None
+
+            elif on is None and b:
+                on = i
+
+        if l:
+            min_s, max_s = zip(*l)
+            mvl.append(np.array([min(min_s), max(max_s)]))
+        else:
+            mvl.append(mvl[-1].copy())
+
     vsr = velocity_speed_ratios
+    mvl = [[k, tuple(v * vsr[k])] for k, v in reversed(list(enumerate(mvl[1:], 1)))]
+    mvl[0][1] = (mvl[0][1][0], INF)
+    mvl.append([0, (0, mvl[-1][1][0])])
 
-    mvl = [[0, np.diff(idle_engine_speed)[0] * vsr[1]]]
-    max_gear = max(gears)
-    for k in range(1, max_gear + 1):
-        limits, speeds, b0 = [], [], False
-        if k in gears:
-            for b, s in zip(gears == k, engine_speeds_out):
-                if b:
-                    if b0:
-                        speeds.append(s)
-                    else:
-                        if len(speeds) > 1:
-                            limits.append([min(speeds), max(speeds)])
-                            speeds = [s]
-                b0 = b
-
-        mvl.append(list(np.median(limits, 0)) * vsr[k] if limits else mvl[-1])
-
-    mvl[-1][1] = INF
-
-    return OrderedDict(list(reversed(enumerate(mvl))))
+    return correct_gsv_for_constant_velocities(OrderedDict(mvl))
 
 
-def correct_gear_mvl(
+def correct_gear_mvl_v1(
         velocity, acceleration, gear, mvl, max_gear, min_gear):
     """
     Corrects the gear predicted according to upper and lower bound velocity
@@ -957,7 +971,7 @@ def correct_gear_mvl(
     :rtype: int
     """
 
-    if abs(acceleration) < ACC_EPS and velocity > VEL_EPS:
+    if abs(acceleration) < ACC_EPS:
 
         while mvl[gear][1] < velocity and gear < max_gear:
             gear += 1
@@ -968,8 +982,8 @@ def correct_gear_mvl(
     return gear
 
 
-def correct_gear_msl_v1(
-        velocity, acceleration, gear, mvl):
+def correct_gear_mvl(
+        velocity, acceleration, gear, mvl, *args):
     """
     Corrects the gear predicted according to upper and lower bound velocity
     limits.
@@ -995,7 +1009,7 @@ def correct_gear_msl_v1(
     :rtype: int
     """
 
-    if abs(acceleration) < ACC_EPS and velocity > VEL_EPS:
-        gear = next((k for k, v in mvl.items() if v[0] - velocity > 0), gear)
+    if abs(acceleration) < ACC_EPS:
+        gear = next((k for k, v in mvl.items() if velocity - v[0] > 0), gear)
 
     return gear

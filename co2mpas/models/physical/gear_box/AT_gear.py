@@ -36,8 +36,8 @@ def AT_gear():
                     'automatic vehicles.')
     AT_gear.add_function(
         function=calibrate_mvl,
-        inputs=['gears', 'engine_speeds_out', 'velocity_speed_ratios',
-                'idle_engine_speed'],
+        inputs=['times', 'identified_gears', 'engine_speeds_out',
+                'velocity_speed_ratios', 'idle_engine_speed'],
         outputs=['MVL']
     )
 
@@ -166,7 +166,7 @@ def AT_gear():
 
     AT_gear.add_dispatcher(
         dsp_id='dt_vat_model',
-        input_domain=dt_domain,
+        input_domain=lambda *args, **kwargs: False,
         dsp=dt_vat(),
         inputs={
             'use_dt_gear_shifting': dsp_utl.SINK,
@@ -189,7 +189,7 @@ def AT_gear():
 
     AT_gear.add_dispatcher(
         dsp_id='dt_vatp_model',
-        input_domain=dt_domain,
+        input_domain=lambda *args, **kwargs: False,
         dsp=dt_vatp(),
         inputs={
             'use_dt_gear_shifting': dsp_utl.SINK,
