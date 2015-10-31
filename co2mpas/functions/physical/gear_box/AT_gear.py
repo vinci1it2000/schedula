@@ -59,7 +59,7 @@ def correct_gear_upper_bound_engine_speed(
     :rtype: int
     """
 
-    if abs(acceleration) < ACC_EPS and velocity > VEL_EPS:
+    if abs(acceleration) < ACC_EPS and velocity > VEL_EPS and gear:
 
         l = velocity / upper_bound_engine_speed
 
@@ -928,8 +928,8 @@ def calibrate_mvl(
         else:
             mvl.append(mvl[-1].copy())
 
-    vsr = velocity_speed_ratios
-    mvl = [[k, tuple(v * vsr[k])] for k, v in reversed(list(enumerate(mvl[1:], 1)))]
+    mvl = [[k, tuple(v * velocity_speed_ratios[k])]
+           for k, v in reversed(list(enumerate(mvl[1:], 1)))]
     mvl[0][1] = (mvl[0][1][0], INF)
     mvl.append([0, (0, mvl[-1][1][0])])
 

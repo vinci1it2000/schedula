@@ -116,7 +116,7 @@ def identify_gears(
     :rtype: numpy.array
     """
 
-    vsr = [v for v in velocity_speed_ratios.items()]
+    vsr = [v for v in velocity_speed_ratios.items() if v[0] != 0]
 
     ratios = velocities / engine_speeds_out
 
@@ -189,7 +189,7 @@ def calculate_gear_box_speeds_from_engine_speeds(
     """
 
     bins = [-INF, 0]
-    bins.extend([v for k, v in sorted(velocity_speed_ratios.items()) if k > 0])
+    bins.extend([v for k, v in sorted(velocity_speed_ratios.items()) if k != 0])
     bins.append(INF)
     bins = bins[:-1] + np.diff(bins) / 2
     bins[0] = 0
@@ -663,17 +663,14 @@ def calculate_gear_box_speeds_in(gears, velocities, velocity_speed_ratios):
     :rtype: numpy.array
     """
 
-    vsr = [0]
+    vsr = {0: 0.0}
+    vsr.update(velocity_speed_ratios)
 
-    def get_vsr(g):
-        vsr[0] = velocity_speed_ratios.get(g, vsr[0])
-        return float(vsr[0])
-
-    vsr = np.vectorize(get_vsr)(gears)
+    vsr = np.vectorize(vsr.get)(gears)
 
     speeds = velocities / vsr
 
-    speeds[(velocities < VEL_EPS) | (vsr == 0)] = 0
+    speeds[(velocities < VEL_EPS) | (vsr == 0.0)] = 0.0
 
     return speeds
 
@@ -731,7 +728,7 @@ def identify_velocity_speed_ratios(
     :rtype: dict
     """
 
-    idle_speed = idle_engine_speed[0] - idle_engine_speed[1]
+    idle_speed = idle_engine_speed[0] + idle_engine_speed[1]
 
     b = (gear_box_speeds_in > idle_speed) & (velocities > VEL_EPS)
 
@@ -767,21 +764,39 @@ def identify_speed_velocity_ratios(gears, velocities, gear_box_speeds_in):
     :rtype: dict
     """
 
-    svr = {0: INF}
-
     ratios = gear_box_speeds_in / velocities
 
     ratios[velocities < VEL_EPS] = 0
 
-    svr.update({k: reject_outliers(ratios[gears == k])[0]
-                for k in range(1, int(max(gears)) + 1)
-                if k in gears})
+    svr={k: reject_outliers(ratios[gears == k])[0]
+         for k in range(1, int(max(gears)) + 1)
+         if k in gears}
+    svr[0] = INF
 
     return svr
 
 
 def calculate_gear_box_ratios(
         velocity_speed_ratios, final_drive_ratio, r_dynamic):
+    """
+    Calculates gear box ratios [-].
+
+    :param velocity_speed_ratios:
+        Constant velocity speed ratios of the gear box [km/(h*RPM)].
+    :type velocity_speed_ratios: dict
+
+    :param final_drive_ratio:
+        Final drive ratio [-].
+    :type final_drive_ratio: float
+
+    :param r_dynamic:
+        Dynamic radius of the wheels [m].
+    :type r_dynamic: float
+
+    :return:
+        Gear box ratios [-].
+    :rtype: dict
+    """
 
     c = final_drive_ratio * 30 / (3.6 * pi * r_dynamic)
 
@@ -882,6 +897,7 @@ def identify_max_gear(speed_velocity_ratios):
         Maximum gear of the gear box [-].
     :rtype: int
     """
+
     return int(max(speed_velocity_ratios))
 
 
