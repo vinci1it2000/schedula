@@ -261,7 +261,7 @@ def calibrate_engine_temperature_regression_model(
 
     :return:
         The calibrated engine temperature regression model.
-    :rtype: sklearn.ensemble.GradientBoostingRegressor
+    :rtype: function
     """
 
     temp = np.zeros(engine_coolant_temperatures.shape)
@@ -278,7 +278,12 @@ def calibrate_engine_temperature_regression_model(
     X = np.array([temp, gear_box_powers_in, gear_box_speeds_in]).T[1:]
     dt = np.array(np.diff(engine_coolant_temperatures), np.float64, order='C')
 
-    return model.fit(X, dt)
+    predict = model.fit(X, dt).predict
+
+    def engine_temperature_regression_model(prev_temp, power, speed):
+        return prev_temp + predict([[prev_temp, power, speed]])[0]
+
+    return engine_temperature_regression_model
 
 
 def predict_engine_coolant_temperatures(
@@ -288,7 +293,7 @@ def predict_engine_coolant_temperatures(
 
     :param model:
         Engine temperature regression model.
-    :type model: sklearn.ensemble.GradientBoostingRegressor
+    :type model: function
 
     :param gear_box_powers_in:
         Gear box power vector [kW].
@@ -307,12 +312,10 @@ def predict_engine_coolant_temperatures(
     :rtype: numpy.array
     """
 
-    predict = model.predict
-    t = initial_temperature
-    temp = [initial_temperature]
+    t, temp = initial_temperature, [initial_temperature]
     append = temp.append
     for p, s in zip(gear_box_powers_in[:-1], gear_box_speeds_in[:-1]):
-        t += predict([[t, p, s]])[0]
+        t = model(t, p, s)
         append(t)
 
     return np.array(temp)
