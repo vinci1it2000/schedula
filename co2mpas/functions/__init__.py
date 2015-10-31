@@ -267,6 +267,7 @@ def _load_model_from_dill_file(fpath):
     log.info('Reading cached-file: %s', fpath)
     return dill.load(fpath)
 
+
 def _read_model_from_cache(inp_fpath, model_loader):
     """
     If intermediate cache-file (pickled) exists AND up-to-date with input, return its contents.
@@ -326,7 +327,7 @@ def _get_sheet_summary_actions():
     sheets = {
         'TRG NEDC': {
             'results': {
-                'output': 'prediction_cycle_targets',
+                'output': 'nedc_targets',
                 'check': check_printable,
                 'filters': filters
             },
