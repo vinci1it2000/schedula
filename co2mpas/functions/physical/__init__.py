@@ -67,6 +67,7 @@ def _compare_result(
 
 
 def _comparison_model():
+    cal_models = set()
     models = [{
         'models': ('max_gear',),
         'targets': (),
@@ -141,7 +142,7 @@ def _comparison_model():
             'engine_speeds_out': 'engine_speeds_out'
         }
     )
-
+    cal_models.update(['clutch_window', 'clutch_prediction_model'])
     def speed_get_models(selected_models, *args):
         mods = ('clutch_window', 'clutch_prediction_model')
         mods = {k: selected_models[k] for k in mods if k in selected_models}
@@ -319,8 +320,8 @@ def _comparison_model():
         'get_models': AT_get_models,
         'comparison_func': lambda *args: -accuracy_score(*args)
     })
-
-    return dsp, models
+    cal_models.update(chain.from_iterable(m['models'] for m in models))
+    return dsp, models, cal_models
 
 
 def _get_inputs(
@@ -365,10 +366,9 @@ def model_selector(*calibration_outputs, hide_warn_msgbox=False):
     models = {}
     models['origin calibrated_models'] = origin = {}
     models['errors calibrated_models'] = origin_errors = {}
-    dsp, _model_targets = _comparison_model()
+    dsp, _model_targets, m = _comparison_model()
 
     # get calibrated models and data for comparison
-    m = set(chain.from_iterable(m['models'] for m in _model_targets))
     id_tag = 'cycle_name'
 
     def get(i, o):

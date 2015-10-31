@@ -13,6 +13,7 @@ from scipy.optimize import brute
 from sklearn.linear_model import RANSACRegressor, LinearRegression
 import numpy as np
 from functools import partial
+from .constants import *
 
 
 def calculate_clutch_phases(times, gear_shifts, clutch_window):
@@ -135,7 +136,9 @@ def identify_clutch_window(
         except:
             return np.inf
 
-    return tuple(brute(error, [(0, -2), (0, 2)], Ns=21, finish=None))
+    dt = TIME_WINDOW / 2
+    Ns = int(dt / max(times[1] - times[0], 0.5)) + 1
+    return tuple(brute(error, [(0, -dt), (0, dt)], Ns=Ns, finish=None))
 
 
 def calibrate_clutch_prediction_model(
