@@ -506,8 +506,9 @@ def _extract_models(calibration_outputs, models_to_extract):
     for e, k in methods_ids.items():
         e = calibration_outputs.get(e, None)
         if e:
-            e = (e['mean_absolute_error'], e['correlation_coefficient'])
-            m.append((e[0] / e[1], e, k))
+            e = (e['accuracy_score'], e['mean_absolute_error'],
+                 e['correlation_coefficient'])
+            m.append((-e[0], e, k))
     if m:
         m = sorted(m)
         e, k = m[0][1:]
@@ -515,11 +516,13 @@ def _extract_models(calibration_outputs, models_to_extract):
         models[k] = calibration_outputs[k]
         models['origin AT_gear_shifting_model'] = (k, e)
         calibration_outputs['origin AT_gear_shifting_model'] = (k, e)
-        tags = ['mean_absolute_error', 'correlation_coefficient']
+        tags = ['accuracy_score', 'mean_absolute_error',
+                'correlation_coefficient']
         m = [(v[-1], {t: v for t, v in zip(tags, v[1])}) for v in m]
         calibration_outputs['errors AT_gear_shifting_model'] = m
 
-        log.info('AT_gear_shifting_model: %s with mean_absolute_error %.3f '
-                  '[RPM]. and correlation_coefficient %.3f.', k, e[0], e[1])
+        log.info('AT_gear_shifting_model: %s with accuracy_score %.3f, '
+                 'mean_absolute_error %.3f [RPM]. and correlation_coefficient '
+                 '%.3f.', k, e[0], e[1], e[2])
 
     return models

@@ -36,8 +36,8 @@ def AT_gear():
                     'automatic vehicles.')
     AT_gear.add_function(
         function=calibrate_mvl,
-        inputs=['times', 'identified_gears', 'engine_speeds_out',
-                'velocity_speed_ratios', 'idle_engine_speed'],
+        inputs=['identified_gears', 'velocities', 'velocity_speed_ratios',
+                'idle_engine_speed'],
         outputs=['MVL']
     )
 
@@ -297,7 +297,8 @@ def cmv():
     # calculate error coefficients
     cmv.add_function(
         function=calculate_error_coefficients,
-        inputs=['gear_box_speeds_in', 'engine_speeds_out', 'velocities'],
+        inputs=['identified_gears', 'gears', 'gear_box_speeds_in',
+                'engine_speeds_out', 'velocities'],
         outputs=['error_coefficients'])
 
     return cmv
@@ -346,7 +347,8 @@ def cmv_cold_hot():
     # calculate error coefficients
     cmv_cold_hot.add_function(
         function=calculate_error_coefficients,
-        inputs=['gear_box_speeds_in', 'engine_speeds_out', 'velocities'],
+        inputs=['identified_gears', 'gears', 'gear_box_speeds_in',
+                'engine_speeds_out', 'velocities'],
         outputs=['error_coefficients'])
 
     return cmv_cold_hot
@@ -396,7 +398,8 @@ def dt_va():
     # calculate error coefficients
     dt_va.add_function(
         function=calculate_error_coefficients,
-        inputs=['gear_box_speeds_in', 'engine_speeds_out', 'velocities'],
+        inputs=['identified_gears', 'gears', 'gear_box_speeds_in',
+                'engine_speeds_out', 'velocities'],
         outputs=['error_coefficients'])
 
     return dt_va
@@ -452,7 +455,8 @@ def dt_vap():
     # calculate error coefficients
     dt_vap.add_function(
         function=calculate_error_coefficients,
-        inputs=['gear_box_speeds_in', 'engine_speeds_out', 'velocities'],
+        inputs=['identified_gears', 'gears', 'gear_box_speeds_in',
+                'engine_speeds_out', 'velocities'],
         outputs=['error_coefficients'])
 
     return dt_vap
@@ -508,7 +512,8 @@ def dt_vat():
     # calculate error coefficients
     dt_vat.add_function(
         function=calculate_error_coefficients,
-        inputs=['gear_box_speeds_in', 'engine_speeds_out', 'velocities'],
+        inputs=['identified_gears', 'gears', 'gear_box_speeds_in',
+                'engine_speeds_out', 'velocities'],
         outputs=['error_coefficients'])
 
     return dt_vat
@@ -574,7 +579,8 @@ def dt_vatp():
     # calculate error coefficients
     dt_vatp.add_function(
         function=calculate_error_coefficients,
-        inputs=['gear_box_speeds_in', 'engine_speeds_out', 'velocities'],
+        inputs=['identified_gears', 'gears', 'gear_box_speeds_in',
+                'engine_speeds_out', 'velocities'],
         outputs=['error_coefficients'])
 
     return dt_vatp
@@ -619,7 +625,8 @@ def gspv():
     # calculate error coefficients
     gspv.add_function(
         function=calculate_error_coefficients,
-        inputs=['gear_box_speeds_in', 'engine_speeds_out', 'velocities'],
+        inputs=['identified_gears', 'gears', 'gear_box_speeds_in',
+                'engine_speeds_out', 'velocities'],
         outputs=['error_coefficients'])
 
     return gspv
@@ -667,7 +674,8 @@ def gspv_cold_hot():
     # calculate error coefficients
     gspv_cold_hot.add_function(
         function=calculate_error_coefficients,
-        inputs=['gear_box_speeds_in', 'engine_speeds_out', 'velocities'],
+        inputs=['identified_gears', 'gears', 'gear_box_speeds_in',
+                'engine_speeds_out', 'velocities'],
         outputs=['error_coefficients'])
 
     return gspv_cold_hot

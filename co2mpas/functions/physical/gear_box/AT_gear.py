@@ -15,7 +15,7 @@ import numpy as np
 from scipy.optimize import fmin
 from scipy.interpolate import InterpolatedUnivariateSpline
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_absolute_error, accuracy_score
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.functions.physical.utils import median_filter, grouper, \
     interpolate_cloud, clear_fluctuations, reject_outliers
@@ -837,7 +837,8 @@ def prediction_gears_gsm_hot_cold(
 
 
 def calculate_error_coefficients(
-        engine_speeds, predicted_engine_speeds, velocities):
+        identified_gears, gears, engine_speeds, predicted_engine_speeds,
+        velocities):
     """
     Calculates the prediction's error coefficients.
 
@@ -866,6 +867,7 @@ def calculate_error_coefficients(
     res = {
         'mean_absolute_error': mean_absolute_error(x, y),
         'correlation_coefficient': np.corrcoef(x, y)[0, 1],
+        'accuracy_score': accuracy_score(identified_gears, gears)
     }
 
     return res
