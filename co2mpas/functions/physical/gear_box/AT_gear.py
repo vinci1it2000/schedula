@@ -873,23 +873,13 @@ def calculate_error_coefficients(
     return res
 
 
-def calibrate_mvl(
-        times, gears, engine_speeds_out, velocity_speed_ratios,
-        idle_engine_speed):
+def calibrate_mvl(gears, velocities, velocity_speed_ratios, idle_engine_speed):
     """
     Calibrates the matrix velocity limits (upper and lower bound) [km/h].
-
-    :param times:
-        Time vector [s].
-    :type times: numpy.array
 
     :param gears:
         Gear vector [-].
     :type gears: numpy.array
-
-    :param engine_speeds_out:
-        Engine speed vector [RPM].
-    :type engine_speeds_out: numpy.array
 
     :param velocity_speed_ratios:
         Constant velocity speed ratios of the gear box [km/(h*RPM)].
@@ -906,27 +896,22 @@ def calibrate_mvl(
 
     idle = idle_engine_speed
     mvl = [np.array([idle[0] - idle[1], idle[0] + idle[1]])]
-
-    def _get_limits(t, s):
-        it = (reject_outliers(s[t < TIME_WINDOW])[0]
-              for t in (t - t[0], t[-1] - t))
-        return list(sorted(it))
-
     for k in range(1, int(max(gears)) + 1):
-        l, on = [], None
-        l_append = l.append
+        l, on, vsr = [], None, velocity_speed_ratios[k]
 
         for i, b in enumerate(chain(gears == k, [False])):
             if not b and not on is None:
-                l_append(_get_limits(times[on:i], engine_speeds_out[on:i]))
+                v = velocities[on:i]
+                l.append([min(v), max(v)])
                 on = None
 
             elif on is None and b:
                 on = i
 
         if l:
-            min_s, max_s = zip(*l)
-            mvl.append(np.array([min(min_s), max(max_s)]))
+            min_v, max_v = zip(*l)
+            l = [reject_outliers(min_v)[0], reject_outliers(max_v)[0]]
+            mvl.append(np.array([max(idle[0], l / vsr) for l in l]))
         else:
             mvl.append(mvl[-1].copy())
 
@@ -935,7 +920,7 @@ def calibrate_mvl(
     mvl[0][1] = (mvl[0][1][0], INF)
     mvl.append([0, (0, mvl[-1][1][0])])
 
-    return correct_gsv_for_constant_velocities(OrderedDict(mvl))
+    return OrderedDict(mvl)
 
 
 def correct_gear_mvl_v1(
@@ -984,8 +969,7 @@ def correct_gear_mvl_v1(
     return gear
 
 
-def correct_gear_mvl(
-        velocity, acceleration, gear, mvl, *args):
+def correct_gear_mvl(velocity, acceleration, gear, mvl, *args):
     """
     Corrects the gear predicted according to upper and lower bound velocity
     limits.
