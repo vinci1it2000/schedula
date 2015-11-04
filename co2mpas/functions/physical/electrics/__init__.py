@@ -22,6 +22,7 @@ Sub-Modules:
 
 import numpy as np
 from functools import partial
+from itertools import chain
 from sklearn.tree import DecisionTreeClassifier
 from co2mpas.functions.physical.utils import reject_outliers
 from co2mpas.functions.physical.constants import *
@@ -166,13 +167,30 @@ def identify_alternator_charging_currents(
     """
 
     a_c = alternator_currents
-
+    rjo = reject_outliers
     b = (a_c < 0.0) & on_engine
     p_neg = b & (gear_box_powers_in < 0)
     p_pos = b & (gear_box_powers_in > 0)
 
-    p_neg = reject_outliers(a_c[p_neg], med=np.mean)[0] if p_neg.any() else 0.0
-    p_pos = reject_outliers(a_c[p_pos], med=np.mean)[0] if p_pos.any() else 0.0
+    def get_range(x):
+        on = None
+        for i, b in enumerate(chain(x, [False])):
+            if not b and not on is None:
+                yield on, i
+                on = None
+
+            elif on is None and b:
+                on = i
+
+    if p_neg.any():
+        p_neg = rjo([rjo(a_c[i:j])[0] for i, j in get_range(p_neg)])[0]
+    else:
+        p_neg = 0.0
+
+    if p_pos.any():
+        p_pos = rjo([rjo(a_c[i:j])[0] for i, j in get_range(p_pos)])[0]
+    else:
+        p_pos = 0.0
 
     return p_neg, p_pos
 
@@ -281,33 +299,22 @@ def identify_charging_statuses(
     status = np.zeros(alternator_currents.shape)
     status[(alternator_currents < 0) & on_engine] = 2
 
-    it = (i
-          for i, (s, p) in enumerate(zip(status, gb_p))
-          if s == 2 and p >= 0)
-
     b1 = -1
 
     n = len(on_engine) - 1
 
-    while True:
-        b0 = next(it, None)
+    for b0, (s, p) in enumerate(zip(status, gb_p)):
+        if s == 2 and p >= 0 and b0 >= b1:
+            b1 = b0
 
-        if b0 is None:
-            break
+            while b1 < n and (status[b1] or not on_engine[b1]):
+                b1 += 1
 
-        if status[b0 - 1] or b0 < b1:
-            continue
+            while b1 > b0 and (gb_p[b1] < 0 or gb_p[b1] - gb_p[b1 - 1] > 0):
+                b1 -= 1
 
-        b1 = b0
-
-        while b1 < n and (status[b1] or not on_engine[b1]):
-            b1 += 1
-
-        while b1 > b0 and (gb_p[b1] < 0 or gb_p[b1] - gb_p[b1 - 1] > 0):
-            b1 -= 1
-
-        if b1 > b0:
-            status[b0:b1 + 1] = 1
+            if b1 > b0:
+                status[b0:b1 + 1] = 1
 
     return status
 
@@ -341,8 +348,9 @@ def calibrate_alternator_status_model(
 
     b = alternator_statuses == 2
     if b.any():
-        bers = DecisionTreeClassifier(random_state=0, max_depth=3)
-        bers.fit(np.array([gear_box_powers_in]).T, b)
+        bers = DecisionTreeClassifier(random_state=0, max_depth=2)
+        c = alternator_statuses != 1
+        bers.fit(np.array([gear_box_powers_in[c]]).T, b[c])
 
         bers_pred = bers.predict  # shortcut name
     else:
