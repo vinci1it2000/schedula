@@ -351,7 +351,9 @@ def identify_gear_shifting_velocity_limits(gears, velocities):
     return correct_gsv(gsv)
 
 
-def correct_gsv_for_constant_velocities(gsv):
+def correct_gsv_for_constant_velocities(
+        gsv, up_cns_vel = [15, 32, 50, 70], up_limit = 3.5, up_delta = -0.5,
+        down_cns_vel = [35, 50], down_limit = 3.5, down_delta = -1):
     """
     Corrects the gear shifting matrix velocity according to the NEDC velocities.
 
@@ -363,13 +365,6 @@ def correct_gsv_for_constant_velocities(gsv):
         A gear shifting velocity matrix corrected from NEDC velocities.
     :rtype: dict
     """
-
-    up_cns_vel = [15, 32, 50, 70]
-    up_limit = 3.5
-    up_delta = -0.5
-    down_cns_vel = [35, 50]
-    down_limit = 3.5
-    down_delta = -1
 
     def set_velocity(velocity, const_steps, limit, delta):
         for v in const_steps:
@@ -910,7 +905,7 @@ def calibrate_mvl(gears, velocities, velocity_speed_ratios, idle_engine_speed):
 
         if l:
             min_v, max_v = zip(*l)
-            l = [reject_outliers(min_v)[0], reject_outliers(max_v)[0]]
+            l = [sum(reject_outliers(min_v)), sum(reject_outliers(max_v))]
             mvl.append(np.array([max(idle[0], l / vsr) for l in l]))
         else:
             mvl.append(mvl[-1].copy())
@@ -920,7 +915,8 @@ def calibrate_mvl(gears, velocities, velocity_speed_ratios, idle_engine_speed):
     mvl[0][1] = (mvl[0][1][0], INF)
     mvl.append([0, (0, mvl[-1][1][0])])
 
-    return OrderedDict(mvl)
+    return correct_gsv_for_constant_velocities(
+        OrderedDict(mvl), up_cns_vel=[35, 50], down_cns_vel=[15, 32, 50, 70])
 
 
 def correct_gear_mvl_v1(
@@ -996,6 +992,7 @@ def correct_gear_mvl(velocity, acceleration, gear, mvl, *args):
     """
 
     if abs(acceleration) < ACC_EPS:
-        gear = next((k for k, v in mvl.items() if velocity - v[0] > 0), gear)
+        g = next((k for k, v in mvl.items() if velocity - v[0] > 0), gear)
+        gear = gear if g < gear and mvl[gear][1] > velocity else g
 
     return gear
