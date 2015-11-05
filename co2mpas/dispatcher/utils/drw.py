@@ -174,7 +174,7 @@ def _format_output(data, max_len=1000):
     except:
         pass
 
-    return '&#10;'.join(tooltip[:max_len]), formatted_output
+    return _html_encode('&#10;'.join(tooltip[:max_len])), formatted_output
 
 
 def _remote_links(label, links, node_id, function_module):
@@ -307,7 +307,7 @@ def _set_node(dot, node_id, dsp2dot_id, dsp=None, node_attr=None, values=None,
 
     if node_attr and dsp and 'tooltip' not in kw:
         tooltip = search_node_description(node_id, node_attr, dsp)[0]
-        kw['tooltip'] = tooltip or _html_encode(node_id)
+        kw['tooltip'] = _html_encode(tooltip or node_id)
 
     dot.node(dot_id, node_label, **kw)
 
