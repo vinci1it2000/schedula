@@ -180,6 +180,7 @@ def _physical():
             'state_of_charge_balance_window': 'state_of_charge_balance_window',
             'has_energy_recuperation': 'has_energy_recuperation',
             'alternator_status_model': 'alternator_status_model',
+            'idle_engine_speed': 'idle_engine_speed',
             'battery_capacity': 'battery_capacity',
             'battery_currents': 'battery_currents',
             'electric_load': 'electric_load',

@@ -187,7 +187,9 @@ def get_filters():
     _filters = {
         'PARAMETERS': {
             None: (float, empty),
+            'alternator_charging_currents': (_try_eval, list, empty),
             'co2_params': (_try_eval, dict, empty_dict),
+            'electric_load': (_try_eval, list, empty),
             'engine_is_turbo': (bool, empty),
             'engine_has_variable_valve_actuation': (bool, empty),
             'engine_has_cylinder_deactivation': (bool, empty),

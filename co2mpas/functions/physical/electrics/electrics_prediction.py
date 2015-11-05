@@ -180,7 +180,7 @@ def calculate_engine_start_current(
     :type engine_start: bool
 
     :param start_demand:
-         Engine start demand [kW].
+         Energy required to start engine [kJ].
     :type start_demand: float
 
     :param alternator_nominal_voltage:
@@ -200,7 +200,7 @@ def calculate_engine_start_current(
         den = delta_time * alternator_nominal_voltage
 
         if den:
-            return start_demand / den * 1000.0
+            return -start_demand / den * 1000.0
 
     return 0.0
 

@@ -32,7 +32,7 @@ from math import pi
 def calculate_engine_start_demand(
         engine_moment_inertia, idle_engine_speed, alternator_efficiency):
     """
-    Calculates the engine start demand [kW].
+    Calculates the energy required to start the engine [kJ].
 
     :param engine_moment_inertia:
         Engine moment of inertia [kg*m2].
@@ -47,13 +47,14 @@ def calculate_engine_start_demand(
     :type alternator_efficiency: float
 
     :return:
-        Engine start demand [kW].
+        Energy required to start engine [kJ].
     :rtype: float
     """
 
     w_idle = idle_engine_speed[0] / 30.0 * pi
+    dt = 1.0  # Assumed time for engine turn on [s].
 
-    return engine_moment_inertia / alternator_efficiency * w_idle ** 2
+    return engine_moment_inertia / alternator_efficiency * w_idle ** 2 / 2000 * dt
 
 
 def identify_electric_loads(
@@ -91,7 +92,8 @@ def identify_electric_loads(
     :type engine_starts: numpy.array
 
     :return:
-        Vehicle electric load (engine off and on) and engine start demand [kW].
+        Vehicle electric load (engine off and on) [kW] and energy required to
+        start engine [kJ].
     :rtype: ((float, float), float)
     """
 
@@ -122,7 +124,7 @@ def identify_electric_loads(
             if p < l:
                 start_demand.append(p - l)
 
-    start_demand = reject_outliers(start_demand)[0] if start_demand else 0.0
+    start_demand = -reject_outliers(start_demand)[0] if start_demand else 0.0
 
     return (off, on), start_demand
 
@@ -372,7 +374,7 @@ def calibrate_alternator_status_model(
     def model(prev_status, soc, gear_box_power_in):
         status = 0
 
-        if soc < 100:
+        if soc < 99.5:
             if soc < min_charge_soc:
                 status = 1
             elif charge_pred([prev_status, soc])[0] and soc <= max_charge_soc:
@@ -466,7 +468,7 @@ def predict_vehicle_electrics(
     :type alternator_nominal_voltage: float
 
     :param start_demand:
-         Engine start demand [kW].
+         Energy required to start engine [kJ].
     :type start_demand: float
 
     :param electric_load:
