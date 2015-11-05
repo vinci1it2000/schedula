@@ -35,6 +35,7 @@ from textwrap import dedent
 from sklearn.metrics import mean_absolute_error, accuracy_score
 from easygui import buttonbox
 from ...dispatcher import Dispatcher
+import co2mpas.dispatcher.utils as dsp_utl
 import numpy as np
 from itertools import zip_longest, chain
 import logging
@@ -49,15 +50,18 @@ def _compare_result(
     err, weights = [], []
 
     def to_list(*args):
-        if len(args) == 1:
-            return np.asarray(args[0], dtype=float)
-        else:
-            return [np.asarray(v, dtype=float) for v in args]
+        try:
+            if len(args) == 1:
+                return np.asarray(args[0], dtype=float)
+            else:
+                return [np.asarray(v, dtype=float) for v in args]
+        except TypeError:
+            return args[0] if len(args) == 1 else args
 
     for o, t, w in zip_longest(outputs_ids, target_ids, sample_weight,
                                fillvalue=1):
-        if o in model_results and t in target_results:
-            y = (target_results[t], model_results[o])
+        if o in model_results and (t in target_results or t is dsp_utl.NONE):
+            y = (target_results.get(t, None), model_results[o])
 
             e = comparison_function(*[to_list(x) for x in y])
             err.append(e)
@@ -152,7 +156,7 @@ def _comparison_model():
     models.append({
         'models': ('cold_start_speed_model', 'idle_engine_speed',
                    'engine_thermostat_temperature', 'r_dynamic',
-                   'gear_box_ratios'),
+                   'gear_box_ratios', 'velocity_speed_ratios'),
         'targets': ('engine_speeds_out',),
         'check_models': lambda error: error < 100,
         'get_models': speed_get_models
@@ -264,16 +268,10 @@ def _comparison_model():
     # AT_gear
     from co2mpas.models.physical.gear_box.AT_gear import AT_gear
 
-    at = AT_gear()
-
-    dsp.add_from_lists(
-        data_list=[{'data_id': k, 'default_value': v}
-                   for k, v in at.default_values.items()]
-    )
-
     dsp.add_dispatcher(
         dsp_id='test AT_gear',
-        dsp=at,
+        include_defaults=True,
+        dsp=AT_gear(),
         inputs={
             'correct_gear': 'correct_gear',
             'CMV': 'CMV',
@@ -285,14 +283,25 @@ def _comparison_model():
             'GSPV': 'GSPV',
             'GSPV_Cold_Hot': 'GSPV_Cold_Hot',
             'accelerations': 'accelerations',
-            'gear_box_powers_out': 'gear_box_powers_out',
+            'final_drive_powers_in': 'gear_box_powers_out',
+            'engine_speeds_out': 'engine_speeds_out',
             'engine_coolant_temperatures': 'engine_coolant_temperatures',
             'time_cold_hot_transition': 'time_cold_hot_transition',
             'times': 'times',
+            'gears': 'identified_gears',
+            'use_dt_gear_shifting': 'use_dt_gear_shifting',
+            'velocity_speed_ratios': 'velocity_speed_ratios',
             'velocities': 'velocities',
         },
         outputs={
-            'gears': 'gears',
+            'CMV_error_coefficients': 'error_coefficients',
+            'CMV_Cold_Hot_error_coefficients': 'error_coefficients',
+            'GSPV_error_coefficients': 'error_coefficients',
+            'GSPV_Cold_Hot_error_coefficients': 'error_coefficients',
+            'DT_VA_error_coefficients': 'error_coefficients',
+            'DT_VAT_error_coefficients': 'error_coefficients',
+            'DT_VAP_error_coefficients': 'error_coefficients',
+            'DT_VATP_error_coefficients': 'error_coefficients',
         }
     )
 
@@ -300,8 +309,11 @@ def _comparison_model():
 
         i = _get_inputs(extracted_models, *args, **kwargs)
 
-        k = i['origin AT_gear_shifting_model'][0]
+        for k in ('CMV', 'CMV_Cold_Hot', 'DT_VA', 'DT_VAT', 'DT_VAP', 'DT_VATP',
+                  'GSPV', 'GSPV_Cold_Hot',):
+            i.pop(k, None)
 
+        k = i['origin AT_gear_shifting_model'][0]
         i[k] = extracted_models[k]
 
         return i
@@ -325,13 +337,17 @@ def _comparison_model():
                 k = 'origin AT_gear_shifting_model'
                 extracted_models[k] = data[k]
 
+    def AT_comparison_func(targets, outputs):
+        return outputs['mean_absolute_error']
+
     models.append({
         'models': ('origin AT_gear_shifting_model', 'correct_gear',
                    'MVL'),
-        'targets': ('gears',),
+        'targets': (dsp_utl.NONE,),
+        'outputs': ('error_coefficients',),
         'get_inputs': AT_get_inputs,
         'get_models': AT_get_models,
-        'comparison_func': lambda *args: -accuracy_score(*args),
+        'comparison_func': AT_comparison_func,
         'post_processing': AT_post_processing
     })
 
@@ -408,10 +424,12 @@ def model_selector(*calibration_outputs, hide_warn_msgbox=False):
             err_ = [] if trgs else [float('inf')]
 
             for t in res_t:
-                if all(k not in t for k in trgs):
+                if all(k not in t and k is not dsp_utl.NONE for k in trgs):
                     continue
 
                 pred = dsp.dispatch(get_i(e_mods, t, **d), outs, shrink=True)[1]
+                if outs and all(k not in pred for k in outs):
+                    continue
                 err_.append(_compare_result(outs, trgs, pred, t, comp_func))
 
             m = get_m(e_mods, mods)
@@ -523,7 +541,7 @@ def _extract_models(calibration_outputs, models_to_extract):
         if e:
             e = (e['accuracy_score'], e['mean_absolute_error'],
                  e['correlation_coefficient'])
-            m.append((-e[0], e, k))
+            m.append((e[1], e, k))
     if m:
         m = sorted(m)
         e, k = m[0][1:]

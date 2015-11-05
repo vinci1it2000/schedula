@@ -423,7 +423,8 @@ def physical_calibration():
             'gear_box_torques_in': 'gear_box_torques_in',
             'gear_box_powers_in': 'gear_box_powers_in',
             'max_gear': 'max_gear',
-            'gear_shifts': 'gear_shifts'
+            'gear_shifts': 'gear_shifts',
+            'velocity_speed_ratios': 'velocity_speed_ratios',
         }
     )
     return physical_calibration
@@ -501,7 +502,8 @@ def physical_prediction():
             'gear_box_torques_in': 'gear_box_torques_in',
             'gear_box_powers_in': 'gear_box_powers_in',
             'max_gear': 'max_gear',
-            'gear_shifts': 'gear_shifts'
+            'gear_shifts': 'gear_shifts',
+            'velocity_speed_ratios': 'velocity_speed_ratios',
         }
     )
     return physical_prediction
