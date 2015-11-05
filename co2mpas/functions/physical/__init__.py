@@ -312,14 +312,29 @@ def _comparison_model():
                 'correct_gear', 'MVL')
         return {k: selected_models[k] for k in mods if k in selected_models}
 
+    def AT_post_processing(heap, extracted_models, *calibration_outputs):
+        if heap:
+
+            co = calibration_outputs
+
+            c_name = heap[0][-2]
+
+            data = next((o for o in co if o['cycle_name'] == c_name), {})
+
+            if data:
+                k = 'origin AT_gear_shifting_model'
+                extracted_models[k] = data[k]
+
     models.append({
         'models': ('origin AT_gear_shifting_model', 'correct_gear',
                    'MVL'),
         'targets': ('gears',),
         'get_inputs': AT_get_inputs,
         'get_models': AT_get_models,
-        'comparison_func': lambda *args: -accuracy_score(*args)
+        'comparison_func': lambda *args: -accuracy_score(*args),
+        'post_processing': AT_post_processing
     })
+
     cal_models.update(chain.from_iterable(m['models'] for m in models))
     return dsp, models, cal_models
 
