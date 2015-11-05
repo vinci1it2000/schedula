@@ -145,7 +145,7 @@ def parse_inputs(data, data_map, cycle_name):
         k = k.split(' ')
         n = len(k)
 
-        if n == 1 or k[-1].upper() == cycle_name:
+        if n == 1 or k[-1].upper() == cycle_name or k[0] == 'target':
 
             if n > 1 and k[0] == 'target':
                 k = k[1:]
