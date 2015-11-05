@@ -29,13 +29,13 @@ import logging
 import os
 import pathlib
 import re
-
+import co2mpas.dispatcher.utils as dsp_utl
 import dill
 from networkx.utils.decorators import open_file
 
 import numpy as np
 import pandas as pd
-
+from sklearn.metrics import mean_absolute_error, accuracy_score
 from .write_outputs import check_writeable
 
 
@@ -224,7 +224,10 @@ def _process_folder_files(
                 'wltp_h_inputs',
                 'wltp_l_inputs',
                 'nedc_inputs',
-                'nedc_targets'
+                'wltp_precondition_targets',
+                'wltp_h_targets',
+                'wltp_l_targets',
+                'nedc_targets',
             ]
 
             inps_n_outs = model.dispatch(inputs=input_files, outputs=outputs)[1]
@@ -452,7 +455,7 @@ def _parse_outputs(tag, data, check):
 
 def _extract_summary(summaries):
     s = {}
-    tags = ('co2_emission_value', 'phases_co2_emissions')
+    tags = ('co2_emission_value', 'phases_co2_emissions', 'comparison')
     if 'PRE NEDC' in summaries:
         for k, v in summaries['PRE NEDC'].items():
             if k == 'vehicle' or k[:11] == 'co2_params ':
@@ -505,3 +508,22 @@ def select_precondition_inputs(cycle_inputs, precondition_outputs):
         inputs['initial_state_of_charge'] = pre['state_of_charges'][-1]
 
     return inputs
+
+
+def compare_outputs_vs_targets(outputs, *targets):
+    comparison = {}
+    targets = dsp_utl.combine_dicts(*targets)
+    for k in set(targets).intersection(outputs):
+        t, o = targets[k], outputs[k]
+        k = 'comparison %s' % k
+        try:
+            comparison[k] = {
+                'mean_absolute_error': mean_absolute_error(t, o),
+                'correlation_coefficient': np.corrcoef(t, o)[0, 1],
+            }
+
+            comparison[k]['accuracy_score'] = accuracy_score(t, o),
+        except:
+            pass
+
+    return dsp_utl.combine_dicts(outputs, comparison)

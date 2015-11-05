@@ -215,9 +215,15 @@ def co2mpas_model(hide_warn_msgbox=False, prediction_WLTP=False):
         function_id='calibrate_physical_models',
         function=dsp_utl.SubDispatch(physical_calibration()),
         inputs=['wltp_precondition_inputs'],
-        outputs=['wltp_precondition_outputs'],
+        outputs=['wltp_precondition_outputs<0>'],
         description='Wraps all functions needed to calibrate the models to '
                     'predict light-vehicles\' CO2 emissions.'
+    )
+
+    co2mpas_model.add_function(
+        function=compare_outputs_vs_targets,
+        inputs=['wltp_precondition_outputs<0>', 'wltp_precondition_targets'],
+        outputs=['wltp_precondition_outputs']
     )
 
     ############################################################################
@@ -226,7 +232,7 @@ def co2mpas_model(hide_warn_msgbox=False, prediction_WLTP=False):
 
     co2mpas_model.add_function(
         function=select_precondition_inputs,
-        inputs=['wltp_h_inputs', 'wltp_precondition_outputs'],
+        inputs=['wltp_h_inputs', 'wltp_precondition_outputs<0>'],
         outputs=['calibration_wltp_h_inputs'],
     )
 
@@ -234,16 +240,22 @@ def co2mpas_model(hide_warn_msgbox=False, prediction_WLTP=False):
         function_id='calibrate_physical_models_with_wltp_h',
         function=dsp_utl.SubDispatch(physical_calibration()),
         inputs=['calibration_wltp_h_inputs'],
-        outputs=['calibration_wltp_h_outputs'],
+        outputs=['calibration_wltp_h_outputs<0>'],
         description='Wraps all functions needed to calibrate the models to '
                     'predict light-vehicles\' CO2 emissions.'
+    )
+
+    co2mpas_model.add_function(
+        function=compare_outputs_vs_targets,
+        inputs=['calibration_wltp_h_outputs<0>', 'wltp_h_targets'],
+        outputs=['calibration_wltp_h_outputs']
     )
 
     if prediction_WLTP:
 
         co2mpas_model.add_function(
             function=select_inputs_for_prediction,
-            inputs=['calibration_wltp_h_outputs'],
+            inputs=['calibration_wltp_h_outputs<0>'],
             outputs=['prediction_wltp_h_inputs']
         )
 
@@ -251,7 +263,14 @@ def co2mpas_model(hide_warn_msgbox=False, prediction_WLTP=False):
             function_id='predict_wltp_h',
             function=dsp_utl.SubDispatch(physical_prediction()),
             inputs=['calibrated_co2mpas_models', 'prediction_wltp_h_inputs'],
-            outputs=['prediction_wltp_h_outputs'],
+            outputs=['prediction_wltp_h_outputs<0>'],
+        )
+
+        co2mpas_model.add_function(
+            function=compare_outputs_vs_targets,
+            inputs=['prediction_wltp_h_outputs<0>', 'calibration_wltp_h_inputs',
+                    'wltp_h_targets'],
+            outputs=['prediction_wltp_h_outputs']
         )
 
     ############################################################################
@@ -260,7 +279,7 @@ def co2mpas_model(hide_warn_msgbox=False, prediction_WLTP=False):
 
     co2mpas_model.add_function(
         function=select_precondition_inputs,
-        inputs=['wltp_l_inputs', 'wltp_precondition_outputs'],
+        inputs=['wltp_l_inputs', 'wltp_precondition_outputs<0>'],
         outputs=['calibration_wltp_l_inputs'],
     )
 
@@ -268,16 +287,22 @@ def co2mpas_model(hide_warn_msgbox=False, prediction_WLTP=False):
         function_id='calibrate_physical_models_with_wltp_l',
         function=dsp_utl.SubDispatch(physical_calibration()),
         inputs=['calibration_wltp_l_inputs'],
-        outputs=['calibration_wltp_l_outputs'],
+        outputs=['calibration_wltp_l_outputs<0>'],
         description='Wraps all functions needed to calibrate the models to '
                     'predict light-vehicles\' CO2 emissions.'
+    )
+
+    co2mpas_model.add_function(
+        function=compare_outputs_vs_targets,
+        inputs=['calibration_wltp_l_outputs<0>', 'wltp_l_targets'],
+        outputs=['calibration_wltp_l_outputs']
     )
 
     if prediction_WLTP:
 
         co2mpas_model.add_function(
             function=select_inputs_for_prediction,
-            inputs=['calibration_wltp_l_outputs'],
+            inputs=['calibration_wltp_l_outputs<0>'],
             outputs=['prediction_wltp_l_inputs']
         )
 
@@ -285,7 +310,14 @@ def co2mpas_model(hide_warn_msgbox=False, prediction_WLTP=False):
             function_id='predict_wltp_l',
             function=dsp_utl.SubDispatch(physical_prediction()),
             inputs=['calibrated_co2mpas_models', 'prediction_wltp_l_inputs'],
-            outputs=['prediction_wltp_l_outputs'],
+            outputs=['prediction_wltp_l_outputs<0>'],
+        )
+
+        co2mpas_model.add_function(
+            function=compare_outputs_vs_targets,
+            inputs=['prediction_wltp_l_outputs<0>', 'calibration_wltp_l_inputs',
+                    'wltp_l_targets'],
+            outputs=['prediction_wltp_l_outputs']
         )
 
     ############################################################################
@@ -297,7 +329,8 @@ def co2mpas_model(hide_warn_msgbox=False, prediction_WLTP=False):
     co2mpas_model.add_function(
         function_id='extract_calibrated_models',
         function=partial(model_selector, hide_warn_msgbox=hide_warn_msgbox),
-        inputs=['calibration_wltp_h_outputs', 'calibration_wltp_l_outputs'],
+        inputs=['calibration_wltp_h_outputs<0>',
+                'calibration_wltp_l_outputs<0>'],
         outputs=['calibrated_co2mpas_models']
     )
 
@@ -305,7 +338,13 @@ def co2mpas_model(hide_warn_msgbox=False, prediction_WLTP=False):
         function_id='predict_nedc',
         function=dsp_utl.SubDispatch(physical_prediction()),
         inputs=['calibrated_co2mpas_models', 'nedc_inputs'],
-        outputs=['prediction_nedc_outputs'],
+        outputs=['prediction_nedc_outputs<0>'],
+    )
+
+    co2mpas_model.add_function(
+        function=compare_outputs_vs_targets,
+        inputs=['prediction_nedc_outputs<0>', 'nedc_targets'],
+        outputs=['prediction_nedc_outputs']
     )
 
     return co2mpas_model
@@ -478,7 +517,7 @@ def vehicle_processing_model(
     vehicle_processing_model.add_dispatcher(
         dsp=co2mpas_model(hide_warn_msgbox=hide_warn_msgbox,
                           prediction_WLTP=prediction_WLTP),
-        inputs={k: k for k in co2mpas_inputs},
+        inputs={k: k for k in chain(co2mpas_inputs, co2mpas_targets)},
         outputs={k: k for k in co2mpas_outputs}
     )
 
