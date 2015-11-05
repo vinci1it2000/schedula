@@ -290,6 +290,7 @@ def _comparison_model():
             'times': 'times',
             'gears': 'identified_gears',
             'use_dt_gear_shifting': 'use_dt_gear_shifting',
+            'specific_gear_shifting': 'specific_gear_shifting',
             'velocity_speed_ratios': 'velocity_speed_ratios',
             'velocities': 'velocities',
         },
@@ -313,7 +314,7 @@ def _comparison_model():
                   'GSPV', 'GSPV_Cold_Hot',):
             i.pop(k, None)
 
-        k = i['origin AT_gear_shifting_model'][0]
+        i['specific_gear_shifting'] = k = i['origin AT_gear_shifting_model'][0]
         i[k] = extracted_models[k]
 
         return i

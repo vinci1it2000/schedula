@@ -68,10 +68,22 @@ def AT_gear():
         outputs=['correct_gear'],
         weight=100)
 
+    AT_gear.add_data(
+        data_id='specific_gear_shifting',
+        default_value='ALL'
+    )
+
+    def at_domain(method):
+        def domain(kwargs):
+            return kwargs['specific_gear_shifting'] in ('ALL', method)
+        return domain
+
     AT_gear.add_dispatcher(
         dsp_id='cmv_model',
         dsp=cmv(),
+        input_domain=at_domain('CMV'),
         inputs={
+            'specific_gear_shifting': dsp_utl.SINK,
             'CMV': 'CMV',
             'accelerations': 'accelerations',
             'correct_gear': 'correct_gear',
@@ -91,8 +103,10 @@ def AT_gear():
     AT_gear.add_dispatcher(
         include_defaults=True,
         dsp_id='cmv_ch_model',
+        input_domain=at_domain('CMV_Cold_Hot'),
         dsp=cmv_cold_hot(),
         inputs={
+            'specific_gear_shifting': dsp_utl.SINK,
             'CMV_Cold_Hot': 'CMV_Cold_Hot',
             'accelerations': 'accelerations',
             'correct_gear': 'correct_gear',
@@ -116,15 +130,20 @@ def AT_gear():
         description='If to use decision tree classifiers to predict gears.'
     )
 
-    def dt_domain(kwargs):
-        return kwargs['use_dt_gear_shifting']
+    def dt_domain(method):
+        def domain(kwargs):
+            s = 'specific_gear_shifting'
+            dt = 'use_dt_gear_shifting'
+            return kwargs[s] == method or (kwargs[dt] and kwargs[s] == 'ALL')
+        return domain
 
     AT_gear.add_dispatcher(
         dsp_id='dt_va_model',
-        input_domain=dt_domain,
+        input_domain=dt_domain('DT_VA'),
         dsp=dt_va(),
         inputs={
             'use_dt_gear_shifting': dsp_utl.SINK,
+            'specific_gear_shifting': dsp_utl.SINK,
             'DT_VA': 'DT_VA',
             'accelerations': 'accelerations',
             'correct_gear': 'correct_gear',
@@ -143,10 +162,11 @@ def AT_gear():
 
     AT_gear.add_dispatcher(
         dsp_id='dt_vap_model',
-        input_domain=dt_domain,
+        input_domain=dt_domain('DT_VAP'),
         dsp=dt_vap(),
         inputs={
             'use_dt_gear_shifting': dsp_utl.SINK,
+            'specific_gear_shifting': dsp_utl.SINK,
             'DT_VAP': 'DT_VAP',
             'accelerations': 'accelerations',
             'correct_gear': 'correct_gear',
@@ -155,7 +175,7 @@ def AT_gear():
             'identified_gears': 'identified_gears',
             'times': 'times',
             'velocities': 'velocities',
-            'velocity_speed_ratios': 'velocity_speed_ratios'
+            'velocity_speed_ratios': 'velocity_speed_ratios',
         },
         outputs={
             'DT_VAP': 'DT_VAP',
@@ -170,6 +190,7 @@ def AT_gear():
         dsp=dt_vat(),
         inputs={
             'use_dt_gear_shifting': dsp_utl.SINK,
+            'specific_gear_shifting': dsp_utl.SINK,
             'DT_VAT': 'DT_VAT',
             'accelerations': 'accelerations',
             'correct_gear': 'correct_gear',
@@ -193,6 +214,7 @@ def AT_gear():
         dsp=dt_vatp(),
         inputs={
             'use_dt_gear_shifting': dsp_utl.SINK,
+            'specific_gear_shifting': dsp_utl.SINK,
             'DT_VATP': 'DT_VATP',
             'accelerations': 'accelerations',
             'correct_gear': 'correct_gear',
@@ -214,7 +236,9 @@ def AT_gear():
     AT_gear.add_dispatcher(
         dsp_id='gspv_model',
         dsp=gspv(),
+        input_domain=at_domain('GSPV'),
         inputs={
+            'specific_gear_shifting': dsp_utl.SINK,
             'GSPV': 'GSPV',
             'accelerations': 'accelerations',
             'correct_gear': 'correct_gear',
@@ -236,7 +260,9 @@ def AT_gear():
         include_defaults=True,
         dsp_id='gspv_ch_model',
         dsp=gspv_cold_hot(),
+        input_domain=at_domain('GSPV_Cold_Hot'),
         inputs={
+            'specific_gear_shifting': dsp_utl.SINK,
             'GSPV_Cold_Hot': 'GSPV_Cold_Hot',
             'accelerations': 'accelerations',
             'correct_gear': 'correct_gear',

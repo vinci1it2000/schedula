@@ -237,6 +237,7 @@ def gear_box_calibration():
         inputs={
             'accelerations': 'accelerations',
             'use_dt_gear_shifting': 'use_dt_gear_shifting',
+            'specific_gear_shifting': 'specific_gear_shifting',
             'engine_speeds_out': 'engine_speeds_out',
             'full_load_curve': 'full_load_curve',
             'gears': 'identified_gears',
@@ -303,6 +304,7 @@ def gear_box_prediction():
         dsp_id='AT_gear_shifting',
         inputs={
             'use_dt_gear_shifting': 'use_dt_gear_shifting',
+            'specific_gear_shifting': 'specific_gear_shifting',
             'correct_gear': 'correct_gear',
             'CMV': 'CMV',
             'CMV_Cold_Hot': 'CMV_Cold_Hot',
