@@ -87,10 +87,15 @@ def electrics():
         outputs=['alternator_status_model']
     )
 
+    electrics.add_data(
+        data_id='has_energy_recuperation',
+        default_value=True
+    )
+
     electrics.add_function(
         function=calibrate_alternator_status_model,
         inputs=['alternator_statuses', 'state_of_charges',
-                'gear_box_powers_in'],
+                'gear_box_powers_in', 'has_energy_recuperation'],
         outputs=['alternator_status_model'],
         weight=10
     )

@@ -322,7 +322,8 @@ def identify_charging_statuses(
 
 
 def calibrate_alternator_status_model(
-        alternator_statuses, state_of_charges, gear_box_powers_in):
+        alternator_statuses, state_of_charges, gear_box_powers_in,
+        has_energy_recuperation):
     """
     Calibrates the alternator status model.
 
@@ -343,13 +344,17 @@ def calibrate_alternator_status_model(
         Gear box power [kW].
     :type gear_box_powers_in: numpy.array
 
+    :param has_energy_recuperation:
+        Does the vehicle have energy recuperation features?
+    :type has_energy_recuperation: bool
+
     :return:
         A function that predicts the alternator status.
     :rtype: function
     """
 
     b = alternator_statuses == 2
-    if b.any():
+    if has_energy_recuperation and b.any():
         bers = DecisionTreeClassifier(random_state=0, max_depth=2)
         c = alternator_statuses != 1
         bers.fit(np.array([gear_box_powers_in[c]]).T, b[c])
