@@ -180,11 +180,9 @@ def calibrate_clutch_prediction_model(
     y = clutch_speeds_delta[b]
 
     if len(y) > 2:
-        X = np.array([accelerations[b]]).T
+        return model.fit(np.array([accelerations[b]]).T, y).predict
     else:
-        X, y = np.array([-1, 1]).T, [0, 0]
-
-    return model.fit(X, y).predict
+        return lambda *args: np.zeros((1, args[0].shape[1]))
 
 
 def predict_clutch_speeds_delta(clutch_model, clutch_phases, accelerations):
