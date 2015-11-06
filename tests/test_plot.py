@@ -17,7 +17,7 @@ init_logging(True)
 @ddt.ddt
 class TPlot(unittest.TestCase):
 
-    @ddt.data(*co2plot.get_models_path())
+    @ddt.data(*co2plot.get_model_paths())
     def test_plot_all_models(self, model):
         dot_graphs = co2plot.plot_model_graphs([model],
                                                view_in_browser=False,

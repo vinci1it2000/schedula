@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 log = logging.getLogger(__name__)
 
 
-def get_models_path(model_ids=None):
+def get_model_paths(model_ids=None):
     """
     Returns all CO2MPAS models import paths.
 
@@ -105,7 +105,7 @@ def plot_model_graphs(model_ids=None, view_in_browser=True, depth=-1, **kwargs):
         A list of directed graphs source code in the DOT language.
     :rtype: list
     """
-    models_path = get_models_path(model_ids=model_ids)
+    models_path = get_model_paths(model_ids=model_ids)
 
     log.info('Plotting graph for models: %s', models_path)
 

@@ -101,7 +101,7 @@ def build_version_string(verbose):
 def _cmd_modelgraph(opts):
     from co2mpas.functions import plot as co2plot
     if opts['--list']:
-        print('\n'.join(co2plot.get_models_path()))
+        print('\n'.join(co2plot.get_model_paths()))
     else:
         depth = opts['--depth']
         if depth:

@@ -105,7 +105,7 @@ class Modelgraph(unittest.TestCase):
         dfl = list(self.odl_dfl)
         dfl[1] = False
         self.plot_func.__defaults__ = tuple(dfl)
-        self.model = co2plot.get_models_path()[1]
+        self.model = co2plot.get_model_paths()[1]
     def tearDown(self):
         self.plot_func = co2plot.plot_model_graphs
         self.plot_func.__defaults__ = self.odl_dfl
