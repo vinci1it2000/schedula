@@ -113,7 +113,7 @@ files_exclude_regex = re.compile('^\w')
 def process_folder_files(
         input_folder, output_folder, plot_workflow=False,
         hide_warn_msgbox=False, extended_summary=False,
-        enable_prediction_WLTP=False):
+        enable_prediction_WLTP=False, with_output_file=True):
     """
     Processes all excel files in a folder with the model defined by
     :func:`co2mpas.models.architecture`.
@@ -134,7 +134,8 @@ def process_folder_files(
     summary, start_time = _process_folder_files(
         input_folder, output_folder=output_folder, plot_workflow=plot_workflow,
         hide_warn_msgbox=hide_warn_msgbox, extended_summary=extended_summary,
-        enable_prediction_WLTP=enable_prediction_WLTP, with_output_file=True)
+        enable_prediction_WLTP=enable_prediction_WLTP,
+        with_output_file=with_output_file)
 
     doday = start_time.strftime('%d_%b_%Y_%H_%M_%S')
 
