@@ -13,7 +13,6 @@ OVERWRITE_SEATBELT = os.environ.get('OVERWRITE_SEATBELT', False)
 
 RUN_ALL_DEMO_FILES = os.environ.get('RUN_ALL_DEMO_FILES', False)
 
-
 EPS = 2 * sys.float_info.epsilon
 
 ## Set to 0 to compare EXACT.
