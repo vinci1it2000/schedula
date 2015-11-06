@@ -22,6 +22,7 @@
 #   Copy docs-archive & rename sources package!
 # 10. Prepare email (and test).
 #
+
 my_dir=`dirname "$0"`
 cd $my_dir/..
 
