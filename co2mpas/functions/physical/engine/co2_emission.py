@@ -820,7 +820,8 @@ def calibrate_model_params(params_bounds, error_function, initial_guess=None):
         return res
 
     def finish(fun, x0, **kwargs):
-        res = minimize(fun, x0, bounds=params_bounds)#, method='SLSQP') ##See #7
+        ## See #7: Neither BFGS nor SLSQP fix "solution families".
+        res = minimize(fun, x0, bounds=params_bounds)#, method='SLSQP')
 
         if res.success:
             return res.x, res.success

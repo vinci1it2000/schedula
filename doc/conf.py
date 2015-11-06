@@ -48,6 +48,7 @@ extensions = [
     'sphinx.ext.doctest',
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
+    'sphinx.ext.extlinks',
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
@@ -79,7 +80,11 @@ master_doc = 'index'
 # General information about the project.
 project = 'CO2MPAS'
 copyright = '2014-2015, European Commission (JRC)'  # @ReservedAssignment
-author = 'Vincenzo Arcidiacono'
+author = 'see AUTHORS.rst'
+
+extlinks = {
+    'gh': ('https://github.com/JRCSTU/co2mpas/issues/%s', '#')
+}
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -120,7 +125,7 @@ add_module_names = False
 
 # If true, sectionauthor and moduleauthor directives will be shown in the
 # output. They are ignored by default.
-#show_authors = False
+show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'

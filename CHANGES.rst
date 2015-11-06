@@ -3,50 +3,50 @@ CO2MPAS Changes
 ###############
 .. _changes:
 
-v1.0.4, 6-Nov 2015
-==================
+v1.0.4b0, 7-Nov 2015
+====================
 Model-changes in comparison to v1.0.1:
 
 - Vehicle/Engine/Gearbox/Transmission:
 
-  - #13: If no `r_dynamic` given, attempt to identify it from ``G/V/N`` ratios.
-  - #14: Added clutch model for correcting RPMs. Power/losses still pending.
-  - #9: Start-Stop: new model based on the given `start_stop_activation_time`,
+  - :gh:`13`: If no `r_dynamic` given, attempt to identify it from ``G/V/N`` ratios.
+  - :gh:`14`: Added clutch model for correcting RPMs. Power/losses still pending.
+  - :gh:`9`: Start-Stop: new model based on the given `start_stop_activation_time`,
     failing back to previous model if not provided. It allows engine stops
     after the 'start_stop_activation_time'.
-  - #21: Set default value of `k5` equal to `max_gear` to resolve high rpm
+  - :gh:`21`: Set default value of `k5` equal to `max_gear` to resolve high rpm
     at EUDC deceleration.
-  - #18: FIX bug in `calculate_engine_start_current` function (zero division).
+  - :gh:`18`: FIX bug in `calculate_engine_start_current` function (zero division).
 
 - Alternator:
 
-  - #13: Predict alternator/battery currents if not privded.
-  - #17: Impose `no_BERS` option when ``has_energy_recuperation == False``.
+  - :gh:`13`: Predict alternator/battery currents if not privded.
+  - :gh:`17`: Impose `no_BERS` option when ``has_energy_recuperation == False``.
 
 - A/T:
 
-  - #28: Change selection criteria for A/T model
+  - :gh:`28`: Change selection criteria for A/T model
     (``accuracy_score-->mean_abs_error``); not tested due to lack of data.
-  - #34: Update *gspv* approach (cloud interpolation -> vertical limit).
-  - #35: Add *eco mode* (MVL) in the A/T model for velocity plateau.
+  - :gh:`34`: Update *gspv* approach (cloud interpolation -> vertical limit).
+  - :gh:`35`: Add *eco mode* (MVL) in the A/T model for velocity plateau.
     It selects the highest possible gear.
   - Add option to the input file in order to use a specific A/T model (
     ``specific_gear_shifting=A/T model name``).
 
 - Thermal:
 
-  - #33, #19: More improvements when fitting of the thermal model.
+  - :gh:`33`, :gh:`19`: More improvements when fitting of the thermal model.
 
-- Output & Summary:
+- Output & Summaries:
 
-  - #23: Add units and descriptions into output files as a 2nd header-line.
-  - #36, #37: Add comparison-metrics into the summary (target vs output).
+  - :gh:`23`: Add units and descriptions into output files as a 2nd header-line.
+  - :gh:`36`, :gh:`37`: Add comparison-metrics into the summary (target vs output).
     New cmd-line option [--only-summary] to skip saving vehicle-files.
 
 - Miscellaneous:
 
-  - Fix when input is 10 Hz.
-  - #20: Possible to plot workflows of nested models (see Ipython-notebook).
+  - Fixes for when input is 10 Hz.
+  - :gh:`20`: Possible to plot workflows of nested models (see Ipython-notebook).
   - Cache input-files in pickles, and read with up-to-date check.
   - Speedup workflow dispatcher internals.
 
