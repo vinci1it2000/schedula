@@ -350,6 +350,139 @@ To uninstall CO2MPAS type the following command, and confirm it with ``y``:
 Re-run the command *again*, to make sure that no dangling installations are left
 over; disregard any errors this time.
 
+Install multiple version of CO2MPAS in parallel
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In order to run and compare results from different CO2MPAS versions,
+you may use `virtualenv <http://docs.python-guide.org/en/latest/dev/virtualenvs/>`_
+command.
+
+The `virtualenv` command creates isolated python-environments ("children-venvs")
+where in each one you can install a different versions of CO2MPAS.
+
+.. Note::
+    The `virtualenv` command does NOT run under the "conda" python-environment.
+    Use the `conda` command in similar manner to create children-envs instead.
+
+
+1. Ensure `virtualenv` command installed in your "parent" python-environment,
+   i.e the "WinPython" you use:
+
+   .. code-block:: console
+
+        > pip install virtualenv
+
+   .. Note::
+      The `pip` command above has to run only once for each parent python-env.
+      If `virtualenv` is already installed, `pip` will exit gracefully.
+
+
+
+2. Ensure co2mpas uninstalled in your parent-env:
+
+   .. code-block:: console
+
+        > pip uninstall co2mpas
+
+   .. Warning::
+     It is important for the "parent" python-env NOT to have CO2MPAS installed!
+     The reasone is that you must set "children venvs" to inherit all packages
+     installed on their "parent" (i.e. `numpy` and `pandas`), and you cannot
+     update any inherited package from within a child-env.
+
+
+3. Choose where you want your "venvs" to reside:
+
+   .. code-block:: console
+
+        > cd <folder-for-your-venvs>
+
+
+
+4. Create the "venv", adding the `--system-site-packages` option to have
+   the child-venv inherit all "parent" packages (numpy, pandas),
+   and select a venv's  name to signify the version it will contains,
+   e.g. ``co2mpas_v1.0.1.venv`` (the ``.venv`` at the end is not required,
+   it is just for tagging the *venv* folders):
+
+   .. code-block:: console
+
+        > virtualenv --system-site-packages co2mpas_v1.0.1.venv.venv
+
+
+
+5. Workaround a `virtualenv bug <https://github.com/pypa/virtualenv/issues/93>`_
+   with `TCL/TK` on *Windows*!
+
+   This is technically the most "difficult" step, and is required so that
+   CO2MPAS can open GUI dialog-boxes, such as those for selecting
+   the *input/output* dialogs.
+
+   a. Open with an editor the ``co2mpas_v1.0.1.venv.venv\Scripts\activate.bat`` script,
+   b. locate the `set PATH=...` line towards the bottom of the file, and
+      append the following 2 lines::
+
+        set "TCL_LIBRARY=d:\WinPython-XX4bit-3.4.3.2\python-3.4.3.amd64\tcl\tcl8.6"
+        set "TK_LIBRARY=d:\WinPython-XXit-Y.Y.Y.Y\python-3.4.3.amd64\tcl\tk8.6"
+
+   .. Tip::
+       You have to **adapt the paths above** to match the `TCL` & `TK`
+       folder in your parent python-env.
+
+
+
+6. "Activate" the new "venv" by running the following command
+   (notice the dot(``.``) at the begining):
+
+   .. code-block:: console
+
+        > .\co2mpas_v1.0.1.venv.venv\Scripts\activate.bat
+
+   You must now see that your prompt has been prefixed with the venv's name.
+
+
+
+7. Install the co2mpas version you want inside the activated venv.
+   For instance, to install the older version `1.0.1`, run:
+
+   .. code-block:: console
+
+        > pip install co2mpas==1.0.1 --extra-index http://pypi.co2mpas.io/simple/ --trusted-host pypi.co2mpas.io
+
+   .. Tip::
+       To install a *pre-release* version such as `v1.0.4.b0`, you have to
+       append to the above command the ``--pre`` option.
+
+
+8. Check that what you get when running co2mpas is what you installed
+   (check both versions and paths):
+
+   .. code-block:: console
+
+        > co2mpas --version -v
+        co2mpas_version: X.X.X
+        co2mpas_path: <path-to-co2mpas-installation>
+        python_version: 3.4.3 (v3.4.3:9b73f1c3e601, Feb 24 2015, 22:44:40) [MSC v.1600 64 bit (AMD64)]
+        python_path: <path-to>\WinPython-XXbit-3.Y.Y.Y\python-3.Y.Y.Y
+
+   Enjoy!
+
+
+9. To "deactivate" the active venv, type:
+
+   .. code-block:: console
+
+        > deactivate
+
+   The prompt-prefix with the venv-name should now dissappear.  And if you
+   try to invoke ``co2mpas``, it should fail.
+
+
+
+.. Tip::
+    - Repeat steps 2-->5 to create venvs for different versions of co2mpas.
+    - Use steps (6: Activate) and (9: Deactivate) to switch between different
+      venvs.
+
 
 
 .. _usage:
