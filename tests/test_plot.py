@@ -9,16 +9,17 @@
 import unittest
 from co2mpas.functions import plot as co2plot
 from co2mpas.__main__ import init_logging
+import ddt
 
 init_logging(True)
 
 
+@ddt.ddt
 class TPlot(unittest.TestCase):
 
-    def test_plot_all_models(self):
-        models = co2plot.get_models_path()
-        for model in models:
-            dot_graphs = co2plot.plot_model_graphs([model],
-                                                   view_in_browser=False,
-                                                   depth=1)
-            self.assertGreaterEqual(len(dot_graphs), 1)
+    @ddt.data(*co2plot.get_models_path())
+    def test_plot_all_models(self, model):
+        dot_graphs = co2plot.plot_model_graphs([model],
+                                               view_in_browser=False,
+                                               depth=1)
+        self.assertGreaterEqual(len(dot_graphs), 1, model)
