@@ -46,7 +46,8 @@ def electrics_prediction():
     dsp.add_function(
         function=calculate_alternator_current,
         inputs=['alternator_status', 'on_engine', 'gear_box_power_in',
-                'alternator_charging_currents', 'engine_start_current'],
+                'alternator_current_model', 'engine_start_current',
+                'prev_battery_current', 'acceleration'],
         outputs=['alternator_current']
     )
 

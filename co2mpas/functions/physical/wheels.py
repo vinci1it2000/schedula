@@ -163,7 +163,7 @@ def identify_r_dynamic(
     Identifies the dynamic radius of the wheels [m].
 
     :param velocity_speed_ratios:
-
+        Constant velocity speed ratios of the gear box [km/(h*RPM)].
     :type velocity_speed_ratios: dict
 
     :param gear_box_ratios:
