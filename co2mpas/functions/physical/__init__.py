@@ -236,9 +236,10 @@ def _comparison_model():
         dsp_id='test alternator_status_model',
         dsp=electrics(),
         inputs={
+            'accelerations': 'accelerations',
             'battery_capacity': 'battery_capacity',
             'alternator_status_model': 'alternator_status_model',
-            'alternator_charging_currents': 'alternator_charging_currents',
+            'alternator_current_model': 'alternator_current_model',
             'max_battery_charging_current': 'max_battery_charging_current',
             'alternator_nominal_voltage': 'alternator_nominal_voltage',
             'start_demand': 'start_demand',
@@ -258,7 +259,7 @@ def _comparison_model():
     )
 
     models.append({
-        'models': ('alternator_charging_currents', 'start_demand',
+        'models': ('alternator_current_model', 'start_demand',
                    'max_battery_charging_current', 'electric_load',
                    'alternator_status_model'),
         'targets': ('alternator_currents', 'battery_currents'),

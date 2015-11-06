@@ -173,9 +173,11 @@ def _physical():
         dsp=electrics(),
         inputs={
             'alternator_charging_currents': 'alternator_charging_currents',
+            'alternator_current_model': 'alternator_current_model',
             'alternator_currents': 'alternator_currents',
             'alternator_efficiency': 'alternator_efficiency',
             'alternator_nominal_voltage': 'alternator_nominal_voltage',
+            'accelerations': 'accelerations',
             'state_of_charge_balance': 'state_of_charge_balance',
             'state_of_charge_balance_window': 'state_of_charge_balance_window',
             'has_energy_recuperation': 'has_energy_recuperation',
@@ -194,7 +196,7 @@ def _physical():
             'times': 'times',
         },
         outputs={
-            'alternator_charging_currents': 'alternator_charging_currents',
+            'alternator_current_model': 'alternator_current_model',
             'alternator_currents': 'alternator_currents',
             'alternator_statuses': 'alternator_statuses',
             'alternator_powers_demand': 'alternator_powers_demand',

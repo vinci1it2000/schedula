@@ -23,7 +23,7 @@ Sub-Modules:
 import numpy as np
 from functools import partial
 from itertools import chain
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from co2mpas.functions.physical.utils import reject_outliers
 from co2mpas.functions.physical.constants import *
 from math import pi
@@ -145,6 +145,7 @@ def identify_max_battery_charging_current(battery_currents):
     return max(battery_currents)
 
 
+# Not used.
 def identify_alternator_charging_currents(
         alternator_currents, gear_box_powers_in, on_engine):
     """
@@ -195,6 +196,99 @@ def identify_alternator_charging_currents(
         p_pos = 0.0
 
     return p_neg, p_pos
+
+
+def define_alternator_current_model(alternator_charging_currents):
+    """
+    Defines an alternator current model that predicts alternator current [A].
+
+    :param alternator_charging_currents:
+        Mean charging currents of the alternator (for negative and positive
+        power)[A].
+    :type alternator_charging_currents: (float, float)
+
+    :return:
+        Alternator current model.
+    :rtype: function
+    """
+
+    def model(alt_status, prev_soc, gb_power, on_engine, acc):
+        b = gb_power > 0 or (gb_power == 0 and acc >= 0)
+        return alternator_charging_currents[b]
+
+    return model
+
+
+def calibrate_alternator_current_model(
+        alternator_currents, gear_box_powers_in, on_engine, accelerations,
+        state_of_charges, alternator_statuses):
+    """
+    Calibrates an alternator current model that predicts alternator current [A].
+
+    :param alternator_currents:
+        Alternator current vector [A].
+    :type alternator_currents: numpy.array
+
+    :param gear_box_powers_in:
+        Gear box power [kW].
+    :type gear_box_powers_in: numpy.array
+
+    :param on_engine:
+        If the engine is on [-].
+    :type on_engine: numpy.array
+
+    :param accelerations:
+        Acceleration vector [m/s2].
+    :type accelerations: numpy.array
+
+    :param state_of_charges:
+        State of charge of the battery [%].
+
+        .. note::
+
+            `state_of_charges` = 99 is equivalent to 99%.
+    :type state_of_charges: numpy.array
+
+    :param alternator_statuses:
+        The alternator status (0: off, 1: on, due to state of charge, 2: on due
+        to BERS) [-].
+    :type alternator_statuses: numpy.array
+
+    :return:
+        Alternator current model.
+    :rtype: function
+    """
+
+    a_c = np.zeros(alternator_currents.shape)
+    b = (alternator_currents < 0.0) & on_engine
+    p_neg = b & (gear_box_powers_in < 0)
+    p_pos = b & (gear_box_powers_in > 0)
+
+    def get_range(x):
+        on = None
+        for i, b in enumerate(chain(x, [False])):
+            if not b and not on is None:
+                yield on, i
+                on = None
+
+            elif on is None and b:
+                on = i
+
+    for p in (p_neg, p_pos):
+        if p.any():
+            for i, j in get_range(p):
+                a_c[i:j] = reject_outliers(alternator_currents[i:j])[0]
+
+    dt = DecisionTreeRegressor(random_state=0)
+    b = (alternator_statuses[1:] > 0) & on_engine[1:]
+    dt.fit(np.array([alternator_statuses[1:], gear_box_powers_in[1:],
+                     accelerations[1:]]).T[b], alternator_currents[1:][b])
+    predict = dt.predict
+
+    def model(alt_status, prev_soc, gb_power, on_engine, acc):
+        return min(0.0, predict([alt_status, gb_power, acc]))
+
+    return model
 
 
 def calculate_state_of_charges(
@@ -443,10 +537,10 @@ def define_alternator_status_model(
 
 
 def predict_vehicle_electrics(
-        battery_capacity, alternator_status_model, alternator_charging_currents,
+        battery_capacity, alternator_status_model, alternator_current_model,
         max_battery_charging_current, alternator_nominal_voltage, start_demand,
         electric_load, initial_state_of_charge, times, gear_box_powers_in,
-        on_engine, engine_starts):
+        on_engine, engine_starts, accelerations):
     """
     Predicts alternator and battery currents, state of charge, and alternator
     status.
@@ -509,16 +603,19 @@ def predict_vehicle_electrics(
         [A, A, %, -].
     :rtype: (np.array, np.array, np.array, np.array)
     """
+
     from .electrics_prediction import _predict_electrics
+
     func = partial(
         _predict_electrics, battery_capacity, alternator_status_model,
-        alternator_charging_currents, max_battery_charging_current,
-        alternator_nominal_voltage, start_demand, electric_load)
+        alternator_current_model, max_battery_charging_current,
+        alternator_nominal_voltage, start_demand, electric_load, )
 
     delta_times = np.append([0], np.diff(times))
     o = (0, initial_state_of_charge, 0, None)
     res = [o]
-    for x in zip(delta_times, gear_box_powers_in, on_engine, engine_starts):
+    for x in zip(delta_times, gear_box_powers_in, on_engine, engine_starts,
+                 accelerations):
         o = tuple(func(*(x + o[1:])))
         res.append(o)
 
