@@ -154,7 +154,7 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function'):
 
 def search_node_description(node_id, node_attr, dsp):
 
-    if 'function' == node_attr['type']:
+    if node_attr['type'] in ('function', 'dispatcher'):
         func = get_parent_func(node_attr.get('function', None))
     else:
         func = None
