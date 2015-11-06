@@ -124,15 +124,16 @@ def engine():
 
     engine.add_function(
         function=calibrate_engine_temperature_regression_model,
-        inputs=['engine_coolant_temperatures', 'gear_box_powers_in',
+        inputs=['times', 'engine_coolant_temperatures', 'gear_box_powers_in',
                 'gear_box_speeds_in'],
         outputs=['engine_temperature_regression_model']
     )
 
     engine.add_function(
         function=predict_engine_coolant_temperatures,
-        inputs=['engine_temperature_regression_model', 'gear_box_powers_in',
-                'gear_box_speeds_in', 'initial_engine_temperature'],
+        inputs=['engine_temperature_regression_model', 'times',
+                'gear_box_powers_in', 'gear_box_speeds_in',
+                'initial_engine_temperature'],
         outputs=['engine_coolant_temperatures']
     )
 

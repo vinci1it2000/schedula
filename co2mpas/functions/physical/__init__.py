@@ -85,6 +85,7 @@ def _comparison_model():
         dsp_id='test engine_temperature_regression_model',
         dsp=engine(),
         inputs={
+            'times': 'times',
             'engine_temperature_regression_model':
                 'engine_temperature_regression_model',
             'gear_box_powers_in': 'gear_box_powers_in',

@@ -239,7 +239,8 @@ def identify_upper_bound_engine_speed(
 
 
 def calibrate_engine_temperature_regression_model(
-        engine_coolant_temperatures, gear_box_powers_in, gear_box_speeds_in):
+        times, engine_coolant_temperatures, gear_box_powers_in,
+        gear_box_speeds_in):
     """
     Calibrates an engine temperature regression model to predict engine
     temperatures.
@@ -276,18 +277,20 @@ def calibrate_engine_temperature_regression_model(
     )
 
     X = np.array([temp, gear_box_powers_in, gear_box_speeds_in]).T[1:]
-    dt = np.array(np.diff(engine_coolant_temperatures), np.float64, order='C')
+    dt = np.diff(engine_coolant_temperatures) / np.diff(times)
+    dt = np.array(dt, np.float64, order='C')
 
     predict = model.fit(X, dt).predict
 
-    def engine_temperature_regression_model(prev_temp, power, speed):
-        return prev_temp + predict([[prev_temp, power, speed]])[0]
+    def engine_temperature_regression_model(prev_temp, power, speed, delta_t):
+        return prev_temp + predict([[prev_temp, power, speed]])[0] * delta_t
 
     return engine_temperature_regression_model
 
 
 def predict_engine_coolant_temperatures(
-        model, gear_box_powers_in, gear_box_speeds_in, initial_temperature):
+        model, times, gear_box_powers_in, gear_box_speeds_in,
+        initial_temperature):
     """
     Predicts the engine temperature [°C].
 
@@ -314,8 +317,8 @@ def predict_engine_coolant_temperatures(
 
     t, temp = initial_temperature, [initial_temperature]
     append = temp.append
-    for p, s in zip(gear_box_powers_in[:-1], gear_box_speeds_in[:-1]):
-        t = model(t, p, s)
+    for a in zip(gear_box_powers_in[:-1], gear_box_speeds_in[:-1], np.diff(times)):
+        t = model(t, *a)
         append(t)
 
     return np.array(temp)
