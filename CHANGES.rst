@@ -22,34 +22,42 @@ Model-changes in comparison to v1.0.1:
   - #23: Add units and descriptions into output files as a 2nd header-line.
   - #36, #37: Add comparison-metrics into the summary (target vs output).
     New cmd-line option [--only-summary] to skip saving vehicle-files.
+
+- Wheels
+
+  - #13: `r_dynamic` identification. If no r_dynamic is available but gear ratio or speed to velocity ratios are provided       the model attempts to calculate r_dynamic
+
 - Clutch:
 
-  - #14: Add clutch model.
+  - #14: Added clutch model for RPM correction. Power correction pending.
 - Thermal:
 
   - #33: Improve fitting of thermal model.
-  - Model runs with 10 Hz data input.
+  
 - Alternator:
 
-  - #13: New model that predict the alternator currents.
-  - #13: Impose no BERS when has_energy_recuperation == False.
+  - #13: New model that predicts the alternator currents.
+  - #13: Impose no_BERS option when has_energy_recuperation == False.
   - Model can run without battery and alternator currents (providing
   `alternator_charging_currents`, `alternator_efficiency`,
   `alternator_nominal_voltage`, `battery_capacity`, `electric_load`,
   `max_battery_charging_current`, `state_of_charge_balance_window`, and
   `state_of_charge_balance`).
+  
   - #18: FIX bug in calculate_engine_start_current function (zero division).
+  
 - Engine:
 
   - #7: Change optimization method for fuel parameters (L-BFGS-B --> SLSQP).
   - #9: Start-Stop: new model based on the given 'start_stop_activation_time',
     failing back to previous model if not provided. It allows engine stops
     after the 'start_stop_activation_time'.
-  - #13: `r_dynamic` identification.
   - #21: Set default value of k5 equal to max_gear -resolves high rpm at EUDC
     deceleration.
+    
 - Software related:
 
+  - Model runs with 10 Hz data input.
   - #20: Update ipython UI.
   - #20: New feature to plot CO2MPAS model workflow in a nested format.
   - Cache input-files in pickles, and read with up-to-date check.
