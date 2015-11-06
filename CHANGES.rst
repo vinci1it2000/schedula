@@ -3,64 +3,53 @@ CO2MPAS Changes
 ###############
 .. _changes:
 
-v1.0.4, 6-Nov 2015, next release
-================================
+v1.0.4, 6-Nov 2015
+==================
 Model-changes in comparison to v1.0.1:
+
+- Vehicle/Engine/Gearbox/Transmission:
+
+  - #13: If no `r_dynamic` given, attempt to identify it from ``G/V/N`` ratios.
+  - #14: Added clutch model for correcting RPMs. Power/losses still pending.
+  - #9: Start-Stop: new model based on the given `start_stop_activation_time`,
+    failing back to previous model if not provided. It allows engine stops
+    after the 'start_stop_activation_time'.
+  - #21: Set default value of `k5` equal to `max_gear` to resolve high rpm
+    at EUDC deceleration.
+  - #18: FIX bug in `calculate_engine_start_current` function (zero division).
+
+- Alternator:
+
+  - #13: Predict alternator/battery currents if not privded.
+  - #17: Impose `no_BERS` option when ``has_energy_recuperation == False``.
 
 - A/T:
 
   - #28: Change selection criteria for A/T model
-    (accuracy_score-->mean_abs_error), this has not been tested due to lack of
-    data.
-  - #34: Update gspv approach (cloud interpolation -> vertical limit).
-  - #35: Add eco mode (MVL) in the A/T model for velocity plateau.
+    (``accuracy_score-->mean_abs_error``); not tested due to lack of data.
+  - #34: Update *gspv* approach (cloud interpolation -> vertical limit).
+  - #35: Add *eco mode* (MVL) in the A/T model for velocity plateau.
     It selects the highest possible gear.
   - Add option to the input file in order to use a specific A/T model (
-    specific_gear_shifting=A/T model name).
+    ``specific_gear_shifting=A/T model name``).
+
+- Thermal:
+
+  - #33, #19: More improvements when fitting of the thermal model.
+
 - Output & Summary:
 
   - #23: Add units and descriptions into output files as a 2nd header-line.
   - #36, #37: Add comparison-metrics into the summary (target vs output).
     New cmd-line option [--only-summary] to skip saving vehicle-files.
 
-- Wheels
+- Miscellaneous:
 
-  - #13: `r_dynamic` identification. If no r_dynamic is available but gear ratio or speed to velocity ratios are provided       the model attempts to calculate r_dynamic
-
-- Clutch:
-
-  - #14: Added clutch model for RPM correction. Power correction pending.
-- Thermal:
-
-  - #33: Improve fitting of thermal model.
-  
-- Alternator:
-
-  - #13: New model that predicts the alternator currents.
-  - #13: Impose no_BERS option when has_energy_recuperation == False.
-  - Model can run without battery and alternator currents (providing
-  `alternator_charging_currents`, `alternator_efficiency`,
-  `alternator_nominal_voltage`, `battery_capacity`, `electric_load`,
-  `max_battery_charging_current`, `state_of_charge_balance_window`, and
-  `state_of_charge_balance`).
-  
-  - #18: FIX bug in calculate_engine_start_current function (zero division).
-  
-- Engine:
-
-  - #7: Change optimization method for fuel parameters (L-BFGS-B --> SLSQP).
-  - #9: Start-Stop: new model based on the given 'start_stop_activation_time',
-    failing back to previous model if not provided. It allows engine stops
-    after the 'start_stop_activation_time'.
-  - #21: Set default value of k5 equal to max_gear -resolves high rpm at EUDC
-    deceleration.
-    
-- Software related:
-
-  - Model runs with 10 Hz data input.
-  - #20: Update ipython UI.
-  - #20: New feature to plot CO2MPAS model workflow in a nested format.
+  - Fix when input is 10 Hz.
+  - #20: Possible to plot workflows of nested models (see Ipython-notebook).
   - Cache input-files in pickles, and read with up-to-date check.
+  - Speedup workflow dispatcher internals.
+
 
 v1.0.3, 13-Oct 2015, CWG release
 ================================
