@@ -1,18 +1,22 @@
 from co2mpas.__main__ import init_logging
 from co2mpas.functions import _process_folder_files
 import json
-import logging
 import os
 import sys
 import tempfile
 import unittest
 
 
-OVERWRITE_SEATBELT = False # NOTE: Do not commit it as `True`!
+## Set this to `True` to update setbelt data.
+# NOTE: Do not commit it as `True`!
+OVERWRITE_SEATBELT = False
 EPS = 2 * sys.float_info.epsilon
-DATA_DIFF_RATIO = 2 * EPS
 
-init_logging(True)
+## setting to 0  compares EXACT.
+# NOTE: Do not commit it as none-zer0
+DATA_DIFF_RATIO = 0 # 2 * EPS
+
+init_logging(False)
 #logging.getLogger('pandalone.xleash').setLevel(logging.INFO)
 
 class SeatBelt(unittest.TestCase):
@@ -29,12 +33,16 @@ class SeatBelt(unittest.TestCase):
             for k, ov in old_summary.items():
 
                 nv = summary[k]
-                if isinstance(nv, str):
-                    ratio = DATA_DIFF_RATIO + 1 if nv != ov else 0
+                if DATA_DIFF_RATIO == 0:
+                    if nv != ov:
+                        err.append("Failed [%r]: %s !~= %s"%(k, nv, ov))
                 else:
-                    ratio = abs(nv - ov) / max(abs(min(nv, ov)), EPS)
-                if ratio > DATA_DIFF_RATIO:
-                    err.append(msg %(ratio, DATA_DIFF_RATIO, k, nv, ov))
+                    if isinstance(nv, str):
+                        ratio = DATA_DIFF_RATIO + 1 if nv != ov else 0
+                    else:
+                        ratio = abs(nv - ov) / max(abs(min(nv, ov)), EPS)
+                    if ratio > DATA_DIFF_RATIO:
+                        err.append(msg %(ratio, DATA_DIFF_RATIO, k, nv, ov))
 
             if err:
                 err = ["\nFailed summary[%i]:\n" % i] + err
@@ -48,6 +56,7 @@ class SeatBelt(unittest.TestCase):
     def test_demos(self):
         path = os.path.join(os.path.dirname(__file__), '..', 'co2mpas', 'demos')
         file = '%s/co2mpas_demo_1_full_data.xlsx' % path
+        #file = path  ## Read all demo files.
 
         res = _process_folder_files(
             file, hide_warn_msgbox=True, extended_summary=False,
