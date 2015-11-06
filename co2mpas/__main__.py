@@ -80,7 +80,7 @@ log = logging.getLogger(__name__)
 
 def init_logging(verbose):
     level = logging.DEBUG if verbose else logging.INFO
-    frmt = "%(asctime)-15s:%(levelname)s:%(name)s:%(message)s"
+    frmt = "%(asctime)-15s:%(levelname)5.5s:%(name)s:%(message)s"
     logging.basicConfig(level=level, format=frmt)
 
 

@@ -12,7 +12,7 @@ import unittest
 OVERWRITE_SEATBELT = False
 EPS = 2 * sys.float_info.epsilon
 
-## setting to 0  compares EXACT.
+## Set to 0 to compare EXACT.
 # NOTE: Do not commit it as none-zer0
 DATA_DIFF_RATIO = 0 # 2 * EPS
 
