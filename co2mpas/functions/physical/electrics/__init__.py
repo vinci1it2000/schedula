@@ -259,26 +259,6 @@ def calibrate_alternator_current_model(
     :rtype: function
     """
 
-    a_c = np.zeros(alternator_currents.shape)
-    b = (alternator_currents < 0.0) & on_engine
-    p_neg = b & (gear_box_powers_in < 0)
-    p_pos = b & (gear_box_powers_in > 0)
-
-    def get_range(x):
-        on = None
-        for i, b in enumerate(chain(x, [False])):
-            if not b and not on is None:
-                yield on, i
-                on = None
-
-            elif on is None and b:
-                on = i
-
-    for p in (p_neg, p_pos):
-        if p.any():
-            for i, j in get_range(p):
-                a_c[i:j] = reject_outliers(alternator_currents[i:j])[0]
-
     dt = DecisionTreeRegressor(random_state=0)
     b = (alternator_statuses[1:] > 0) & on_engine[1:]
     dt.fit(np.array([alternator_statuses[1:], gear_box_powers_in[1:],
