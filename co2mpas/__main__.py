@@ -8,7 +8,7 @@
 Predict NEDC CO2 emissions from WLTP cycles.
 
 Usage:
-    co2mpas [simulate] [-v] [--predict-wltp] [--more-output] [--no-warn-gui]
+    co2mpas [simulate] [-v] [--predict-wltp] [--report-stages] [--no-warn-gui]
                        [--plot-workflow] [--only-summary]
                        [-I <fpath>] [-O <fpath>]
     co2mpas demo       [-v] [-f] <folder>
@@ -19,17 +19,17 @@ Usage:
     co2mpas [-v] --version
     co2mpas --help
 
--I <fpath>       Input folder or file, prompted with GUI if missing [default: ./input]
--O <fpath>       Input folder or file, prompted with GUI if missing [default: ./output]
--l, --list       List available models.
---only-summary   Does not save vehicle outputs just the summary file.
---predict-wltp   Whether to predict also WLTP values.
---more-output    Output also per-vehicle output-files.
---no-warn-gui    Does not pause batch-run to report inconsistencies.
---plot-workflow  Open workflow-plot in browser, after run finished.
---depth=INTEGER  Limit the number of sub-dispatchers plotted (no limit by default).
--f, --force      Overwrite template/sample excel-file(s).
--v, --verbose    Print more verbosely messages.
+-I <fpath>         Input folder or file, prompted with GUI if missing [default: ./input]
+-O <fpath>         Input folder or file, prompted with GUI if missing [default: ./output]
+-l, --list         List available models.
+--only-summary     Does not save vehicle outputs just the summary file.
+--predict-wltp     Whether to predict also WLTP values.
+--report-stages    Add report-sheets with stage-scores into summary file.
+--no-warn-gui      Does not pause batch-run to report inconsistencies.
+--plot-workflow    Open workflow-plot in browser, after run finished.
+--depth=INTEGER    Limit the number of sub-dispatchers plotted (no limit by default).
+-f, --force        Overwrite template/sample excel-file(s).
+-v, --verbose      Print more verbosely messages.
 
 * Items enclosed in `[]` are optional.
 
@@ -231,7 +231,7 @@ def _run_batch(opts):
                          with_output_file=not opts['--only-summary'],
                          plot_workflow=opts['--plot-workflow'],
                          hide_warn_msgbox=opts['--no-warn-gui'],
-                         extended_summary=opts['--more-output'],
+                         extended_summary=opts['--report-stages'],
                          enable_prediction_WLTP=opts['--predict-wltp']),
 
 
