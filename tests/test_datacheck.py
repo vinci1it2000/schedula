@@ -9,7 +9,11 @@ import unittest
 
 ## Set this to `True` to update setbelt data.
 # NOTE: Do not commit it as `True`!
-OVERWRITE_SEATBELT = False
+OVERWRITE_SEATBELT = os.environ.get('OVERWRITE_SEATBELT', False)
+
+RUN_ALL_DEMO_FILES = os.environ.get('RUN_ALL_DEMO_FILES', False)
+
+
 EPS = 2 * sys.float_info.epsilon
 
 ## Set to 0 to compare EXACT.
@@ -55,8 +59,9 @@ class SeatBelt(unittest.TestCase):
 
     def test_demos(self):
         path = os.path.join(os.path.dirname(__file__), '..', 'co2mpas', 'demos')
-        file = '%s/co2mpas_demo_1_full_data.xlsx' % path
-        #file = path  ## Read all demo files.
+        file = (path
+                if RUN_ALL_DEMO_FILES
+                else '%s/co2mpas_demo_1_full_data.xlsx' % path)
 
         res = _process_folder_files(
             file, hide_warn_msgbox=True, extended_summary=False,
