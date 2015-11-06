@@ -149,7 +149,7 @@ def _data_node_label(dot, k, values, attr=None, dist=None,
                 tooltip, formatted_output = _format_output(values[k])
 
                 if tooltip:
-                    kw['tooltip'] = tooltip
+                    kw['tooltip'] = _html_encode(tooltip)
 
                     if node_output:
                         v['output'] = tooltip
@@ -174,7 +174,7 @@ def _format_output(data, max_len=1000):
     except:
         pass
 
-    return _html_encode('&#10;'.join(tooltip[:max_len])), formatted_output
+    return '&#10;'.join(tooltip[:max_len]), formatted_output
 
 
 def _remote_links(label, links, node_id, function_module):
