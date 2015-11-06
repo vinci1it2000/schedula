@@ -3,19 +3,56 @@ CO2MPAS Changes
 ###############
 .. _changes:
 
-v1.0.4, next 2015, next release
-===============================
-Model-changes in comparison to v1.0.1; released just to distribute
-the *all-in-one* archive, provide better instructions, and demonstrate ipython
-UI.
+v1.0.4, 6-Nov 2015, next release
+================================
+Model-changes in comparison to v1.0.1:
 
-- New start/stop model that use start_stop_activation_time.
-- Set default value of k5 equal to max_gear.
-- FIX calculate_engine_start_current (zero division).
-- Add units to output files.
-- Update ipython UI.
-- Cache input-files in pickles, and read with up-to-date check.
-- New feature to plot CO2MPAS model workflow in a nested format.
+- A/T:
+
+  - #28: Change selection criteria for A/T model
+    (accuracy_score-->mean_abs_error), this has not been tested due to lack of
+    data.
+  - #34: Update gspv approach (cloud interpolation -> vertical limit).
+  - #35: Add eco mode (MVL) in the A/T model for velocity plateau.
+    It selects the highest possible gear.
+  - Add option to the input file in order to use a specific A/T model (
+    specific_gear_shifting=A/T model name).
+- Output & Summary:
+
+  - #23: Add units and descriptions into output files as a 2nd header-line.
+  - #36, #37: Add comparison-metrics into the summary (target vs output).
+    New cmd-line option [--only-summary] to skip saving vehicle-files.
+- Clutch:
+
+  - #14: Add clutch model.
+- Thermal:
+
+  - #33: Improve fitting of thermal model.
+  - Model runs with 10 Hz data input.
+- Alternator:
+
+  - #13: New model that predict the alternator currents.
+  - #13: Impose no BERS when has_energy_recuperation == False.
+  - Model can run without battery and alternator currents (providing
+  `alternator_charging_currents`, `alternator_efficiency`,
+  `alternator_nominal_voltage`, `battery_capacity`, `electric_load`,
+  `max_battery_charging_current`, `state_of_charge_balance_window`, and
+  `state_of_charge_balance`).
+  - #18: FIX bug in calculate_engine_start_current function (zero division).
+- Engine:
+
+  - #7: Change optimization method for fuel parameters (L-BFGS-B --> SLSQP).
+  - #9: Start-Stop: new model based on the given 'start_stop_activation_time',
+    failing back to previous model if not provided. It allows engine stops
+    after the 'start_stop_activation_time'.
+  - #13: `r_dynamic` identification.
+  - #21: Set default value of k5 equal to max_gear -resolves high rpm at EUDC
+    deceleration.
+- Software related:
+
+  - #20: Update ipython UI.
+  - #20: New feature to plot CO2MPAS model workflow in a nested format.
+  - Cache input-files in pickles, and read with up-to-date check.
 
 v1.0.3, 13-Oct 2015, CWG release
 ================================
