@@ -76,15 +76,15 @@ def electrics_prediction():
         dsp=dsp,
         function_id='electric_sub_model',
         inputs=['battery_capacity', 'alternator_status_model',
-                'alternator_charging_currents', 'max_battery_charging_current',
+                'alternator_current_model', 'max_battery_charging_current',
                 'alternator_nominal_voltage',
                 'start_demand', 'electric_load',
 
                 'delta_time', 'gear_box_power_in',
                 'on_engine', 'engine_start',
 
-                'battery_state_of_charge', 'prev_alternator_status',
-                'prev_battery_current'],
+                'acceleration', 'battery_state_of_charge',
+                'prev_alternator_status', 'prev_battery_current'],
         outputs=['alternator_current', 'battery_state_of_charge',
                  'alternator_status', 'battery_current']
     )
