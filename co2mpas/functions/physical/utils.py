@@ -67,7 +67,7 @@ def sliding_window(xy, dx_window):
         yield window
 
 
-def median_filter(x, y, dx_window):
+def median_filter(x, y, dx_window, filter=median_high):
     """
     Calculates the moving median-high of y values over a constant dx.
 
@@ -92,7 +92,7 @@ def median_filter(x, y, dx_window):
     Y = []
     add = Y.append
     for v in sliding_window(xy, dx_window):
-        add(median_high(list(zip(*v))[1]))
+        add(filter(list(zip(*v))[1]))
     return np.array(Y)
 
 

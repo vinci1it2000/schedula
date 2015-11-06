@@ -29,7 +29,7 @@ from scipy.optimize import fmin
 from sklearn.metrics import mean_absolute_error
 from co2mpas.functions.physical.constants import *
 from co2mpas.functions.physical.utils import bin_split, reject_outliers, \
-    clear_fluctuations
+    clear_fluctuations, median_filter
 
 
 def get_full_load(fuel_type):
@@ -266,7 +266,8 @@ def calibrate_engine_temperature_regression_model(
     """
 
     temp = np.zeros(engine_coolant_temperatures.shape)
-    temp[1:] = engine_coolant_temperatures[:-1]
+    temp[1:] = median_filter(
+        times[:-1], engine_coolant_temperatures[:-1], TIME_WINDOW, np.mean)
 
     model = GradientBoostingRegressor(
         random_state=0,
