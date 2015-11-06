@@ -5,5 +5,5 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 """Authoritative project's PEP 440 version."""
-__version__ = version = "1.0.4.dev3"  # Also update README.rst & CHANGES.rst.
-__updated__ = "2015-10-15 18:20:57"
+__version__ = version = "1.0.4.b0"  # Also update README.rst & CHANGES.rst.
+__updated__ = "2015-11-06 21:05:22"
