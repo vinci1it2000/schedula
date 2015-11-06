@@ -1222,7 +1222,7 @@ class Dispatcher(object):
 
         :return:
             A sub node of a dispatcher and its real path.
-        :rtype: dict, function, SubDispatch, SubDispatchFunction, tuple
+        :rtype: tuple
 
         **Example**:
 
@@ -1255,7 +1255,7 @@ class Dispatcher(object):
            :opt: workflow=True, graph_attr={'ratio': '1'}, depth=0
            :code:
 
-            >>> sub_dsp = dsp.get_node('Sub-dispatcher')
+            >>> sub_dsp, sub_dsp_id = dsp.get_node('Sub-dispatcher')
         """
 
         # Returns the node.

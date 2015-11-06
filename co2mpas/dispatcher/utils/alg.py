@@ -355,7 +355,7 @@ def get_sub_node(dsp, path, node_attr='auto', _level=0, _dsp_name=NONE):
        :opt: workflow=True, graph_attr={'ratio': '1'}, depth=0
        :code:
 
-        >>> sub_dsp = get_sub_node(dsp, ('Sub-dispatcher',))
+        >>> sub_dsp = get_sub_node(dsp, ('Sub-dispatcher',))[0]
     """
 
     path = list(path)
