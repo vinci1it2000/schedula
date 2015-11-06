@@ -307,7 +307,6 @@ def _physical():
             'co2_params_bounds': 'co2_params_bounds',
             'co2_params_initial_guess': 'co2_params_initial_guess',
             'cold_start_speed_model': 'cold_start_speed_model',
-            'cold_start_speed_model_v1': 'cold_start_speed_model_v1',
             'engine_max_torque': 'engine_max_torque',
             'engine_moment_inertia': 'engine_moment_inertia',
             'engine_powers_out': 'engine_powers_out',

@@ -203,14 +203,22 @@ def engine():
                 'on_engine', 'idle_engine_speed',
                 'engine_normalization_temperature',
                 'engine_normalization_temperature_window'],
-        outputs=['cold_start_speed_model']
+        outputs=['cold_start_speed_model<0>']
     )
 
     engine.add_function(
         function=calibrate_cold_start_speed_model_v1,
         inputs=['times', 'velocities', 'accelerations', 'engine_speeds_out',
                 'engine_coolant_temperatures', 'idle_engine_speed'],
-        outputs=['cold_start_speed_model_v1']
+        outputs=['cold_start_speed_model<1>']
+    )
+
+    engine.add_function(
+        function=select_cold_start_speed_model,
+        inputs=['engine_speeds_out', 'engine_coolant_temperatures',
+                'engine_speeds_out_hot', 'on_engine',
+                'cold_start_speed_model<0>', 'cold_start_speed_model<1>'],
+        outputs=['cold_start_speed_model']
     )
 
     engine.add_function(

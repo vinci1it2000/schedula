@@ -846,6 +846,42 @@ def calibrate_cold_start_speed_model_v1(
     return model
 
 
+def select_cold_start_speed_model(
+        engine_speeds_out, engine_coolant_temperatures, engine_speeds_out_hot,
+        on_engine, *models):
+    """
+    Select the best cold start speed model.
+
+    :param engine_speeds_out:
+        Engine speed [RPM].
+    :type engine_speeds_out: numpy.array
+
+    :param engine_coolant_temperatures:
+        Engine coolant temperature vector [°C].
+    :type engine_coolant_temperatures: numpy.array
+
+    :param engine_speeds_out_hot:
+        Engine speed at hot condition [RPM].
+    :type engine_speeds_out_hot: numpy.array
+
+    :param on_engine:
+        If the engine is on [-].
+    :type on_engine: numpy.array
+
+    :return:
+        Cold start speed model.
+    :rtype: function
+    """
+
+    ds = engine_speeds_out - engine_speeds_out_hot
+    args = (engine_speeds_out_hot, on_engine, engine_coolant_temperatures)
+    delta, error = calculate_cold_start_speeds_delta, mean_absolute_error
+
+    err = [(error(ds, delta(*((model,) + args))), model) for model in models]
+
+    return list(sorted(err))[0][1]
+
+
 def calculate_engine_powers_out(
         gear_box_powers_in, engine_speeds_out, on_engine,
         engine_power_correction_function, alternator_powers_demand=None):

@@ -496,34 +496,6 @@ def _extract_models(calibration_outputs, models_to_extract):
         if k in calibration_outputs:
             models[k] = calibration_outputs[k]
 
-    # cold start model
-    params = ['engine_speeds_out', 'engine_speeds_out_hot', 'on_engine',
-              'engine_coolant_temperatures']
-
-    heap = []
-
-    if all(i in calibration_outputs for i in params):
-
-        params = tuple([calibration_outputs[i] for i in params])
-
-        from .engine import calculate_cold_start_speeds_delta as fun
-
-        for name in ['cold_start_speed_model', 'cold_start_speed_model_v1']:
-            if name not in calibration_outputs:
-                continue
-
-            model = calibration_outputs[name]
-            s = fun(*((model, ) + params[1:])) + params[1]
-            heap.append((mean_absolute_error(params[0], s), name, model))
-
-    if heap:
-        heap = sorted(heap)
-        models['cold_start_speed_model'] = heap[0][-1]
-        log.info('cold_start_speed_model: %s with mean_absolute_error %.3f '
-                  '[RPM].', heap[0][1], heap[0][0])
-        heap = [(v[1], v[0]) for v in heap]
-        calibration_outputs['errors cold_start_speed_model'] = heap
-
     # A/T gear shifting
     methods_ids = {
         'CMV_error_coefficients': 'CMV',
