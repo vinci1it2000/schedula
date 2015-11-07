@@ -17,10 +17,12 @@
 #
 # +++MANUAL+++
 # 8. Generate RELEASE_NOTES:
-#       start ./doc/_build/html/co2mpas_RelNotes.html ## & PrintAs 'co2mpas_RelNotes-v0.1.1.pdf'
+#    - open ./doc/_build/html/co2mpas_RelNotes.html ## & PrintAs 'co2mpas_RelNotes-v0.1.1.pdf'
 # 9. Prepare site at http://co2mpas.io/
-#   Copy docs-archive & rename sources package!
-# 10. Prepare email (and test).
+#    - Copy docs-archive & rename sources package!
+#    - Expand docs, link STABLE ad LATEST
+# 10. Prepare email (and test)
+#    - Use email-body to draft a new "Release" in github.
 #
 
 my_dir=`dirname "$0"`
