@@ -258,63 +258,60 @@ CO2MPAS installation
    .. Note::
         **Installing Behind Firewall:**
 
-        This previous step requires http-connectivity to Python's
-        "standard" repository (https://pypi.python.org/) and to co2mpas-site.
+        This previous step requires http-connectivity to Python's "standard"
+        repository (https://pypi.python.org/) and to co2mpas-site
+        (http://files.co2mpas.io).
         In case you are behind a **corporate proxy**, you may either:
 
-        a) Append the following option to all ``pip`` commands, appropriatly
+        a) Append the following option to all ``pip`` commands, appropriately
            adapted: ``--proxy http://user:password@yourProxyUrl:yourProxyPort``.
 
-           For averting any security deliberations, JRC cryptographically signes
-           all *final releases*, so that you or your IT staff may
-           `validate their authenticity
+           To avert any security deliberations for this http-proxy "tunnel",
+           JRC *cryptographically signs* all *final releases*, so that you or
+           your IT staff may `validate their authenticity
            <https://www.davidfischer.name/2012/05/signing-and-verifying-python-packages-with-pgp/>`_
            and detect *man-in-the-middle* attacks, however impossible.
 
         b) Download all *wheel* packages from `co2mpas-site
            <http://files.co2mpas.io>`_ for the specific version you are
-           interested in , and install them one by one:
+           interested in , and install them one by one (see next section).
 
            .. code-block:: console
 
-                REM Download MANUALLY all `*.whl` files contained in release folder
-                REM from co2mpas-site in some folder.
-                > cd <folder-where-wheels_downloaded>
-                > pip install *.whl
+               REM Download MANUALLY all `*.whl` files contained in release folder
+               REM from co2mpas-site in some folder.
+               > cd <folder-where-wheels_downloaded>
+               > pip install *.whl
 
 
    .. Warning::
-       If you cannot install CO2MPAS, re-run the command adding 2 *verbose*
-       flags ``-vv``, copy-paste the console-output, and send it to JRC.
+       If you cannot install CO2MPAS, re-run the ``pip`` command adding
+       2 *verbose* flags ``-vv``, copy-paste the console-output, and send it
+       to JRC.
 
 
 2. Check that when you run ``co2mpas``, the version executed is indeed the one
-   installed above:
+   installed above (check both version-identifiers and paths):
 
    .. code-block:: console
 
-        > python -v --version
-        co2mpas_version: 1.0.4b1
-        co2mpas_path: d:\co2mpas_ALLINONE-XXbit-v1.0.4b1\Apps\WinPython\python-3.4.3\lib\site-packages\co2mpas
-        python_path: D:\co2mpas_ALLINONE-XXbit-v1.0.4b1\WinPython\python-3.4.3
-        python_version: 3.4.3 (v3.4.3:9b73f1c3e601, Feb 24 2015, 22:44:40) [MSC v.1600 XXX]
-        PATH: D:\co2mpas_ALLINONE-XXbit-v1.0.4b1\WinPython...
+       > python -v --version
+       co2mpas_version: 1.0.4b1
+       co2mpas_path: d:\co2mpas_ALLINONE-XXbit-v1.0.4b1\Apps\WinPython\python-3.4.3\lib\site-packages\co2mpas
+       python_path: D:\co2mpas_ALLINONE-XXbit-v1.0.4b1\WinPython\python-3.4.3
+       python_version: 3.4.3 (v3.4.3:9b73f1c3e601, Feb 24 2015, 22:44:40) [MSC v.1600 XXX]
+       PATH: D:\co2mpas_ALLINONE-XXbit-v1.0.4b1\WinPython...
 
 
-.. Warning::
-    The above procedure installs the *latest* CO2MPAS, which
-    *might be more up-to-date than the version described here!*
+   .. Note::
+       The above procedure installs the *latest* CO2MPAS, which
+       **might be more up-to-date than the version described here!**
 
-    In that case you can either:
+       In that case you can either:
 
-    a) Visit the documents for version actually installed.
-    b) "Pin" the exact version you wish to install with a ``pip`` command
-       like this:
-
-       .. code-block:: console
-
-            > pip install co2mpas==1.0.4b1 ... # Other options, like above.
-
+       a) Visit the documents for the newer version actually installed.
+       b) "Pin" the exact version you wish to install with a ``pip`` command
+          (see section below).
 
 
 Install extras
@@ -331,7 +328,6 @@ option would both fail to run (see :ref:`debug`).
 
 Upgrade CO2MPAS
 ~~~~~~~~~~~~~~~
-
 1. Uninstall (see below) and re-install it.
 
 
@@ -350,8 +346,57 @@ To uninstall CO2MPAS type the following command, and confirm it with ``y``:
 Re-run the command *again*, to make sure that no dangling installations are left
 over; disregard any errors this time.
 
-Install multiple version of CO2MPAS in parallel
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Installing different version of CO2MPAS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+You may get multiple versions of CO2MPAS, from various places, but all
+require the use of ``pip`` command to install:
+
+- **Latest STABLE:**
+  use the default ``pip`` described command above.
+
+- **Latest PRE-RELEASE:**
+  append the ``--pre`` option in the ``pip`` command.
+
+- **Specific version:**
+  modify the ``pip`` command like that, with optionally appending ``--pre``:
+
+  .. code-block:: console
+
+      pip install co2mpas==1.0.1 ... # Other options, like above.
+
+- **Specific branch** from the sources (github):
+  use a command like that (e.g. ``dev``):
+
+      .. code-block:: console
+
+      pip install git+https://github.com/JRCSTU/co2mpas.git@dev
+
+- **Specific commit** from the sources (github):
+  use a command like that (e.g. ``dev``):
+
+  .. code-block:: console
+
+      pip install git+https://github.com/JRCSTU/co2mpas.git@2927346f4c513a
+
+- All of the above, but with internet through **http-proxy**:
+  append an appropriately adapted option: ``--proxy http://user:password@yourProxyUrl:yourProxyPort``.
+
+- All of the above, **without internet connectivity**:  download locally
+  all ``.whl`` files present in the desired version on `CO2MPAS site <http://files.co2mpas.io/>`_
+  and install them with a command like that:
+
+  .. code-block:: console
+
+      pip install *.whl
+
+..  Warning::
+    If you have already a CO2MPAS version install, don't foget to uninstall it
+    first.
+
+
+Install multiple versions of CO2MPAS in parallel
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 In order to run and compare results from different CO2MPAS versions,
 you may use `virtualenv <http://docs.python-guide.org/en/latest/dev/virtualenvs/>`_
 command.
@@ -361,7 +406,8 @@ where in each one you can install a different versions of CO2MPAS.
 
 .. Note::
     The `virtualenv` command does NOT run under the "conda" python-environment.
-    Use the `conda` command in similar manner to create children-envs instead.
+    Use the `conda command <http://conda.pydata.org/docs/using/envs.html>`_
+    in similar manner to create children-envs instead.
 
 
 1. Ensure `virtualenv` command installed in your "parent" python-environment,
@@ -369,7 +415,7 @@ where in each one you can install a different versions of CO2MPAS.
 
    .. code-block:: console
 
-        > pip install virtualenv
+       > pip install virtualenv
 
    .. Note::
       The `pip` command above has to run only once for each parent python-env.
@@ -381,7 +427,7 @@ where in each one you can install a different versions of CO2MPAS.
 
    .. code-block:: console
 
-        > pip uninstall co2mpas
+       > pip uninstall co2mpas
 
    .. Warning::
      It is important for the "parent" python-env NOT to have CO2MPAS installed!
@@ -390,30 +436,24 @@ where in each one you can install a different versions of CO2MPAS.
      update any inherited package from within a child-env.
 
 
-3. Choose where you want your "venvs" to reside:
+3. Move to the folder where you want your "venvs" to reside and create
+   the "venv" with this command:
 
    .. code-block:: console
 
-        > cd <folder-for-your-venvs>
+       > virtualenv --system-site-packages co2mpas_v1.0.1.venv.venv
 
+   The ``--system-site-packages`` option instructs the child-venv to inherit
+   all "parent" packages (numpy, pandas).
 
+   Select a venv's  name to signify the version it will contains,
+   e.g. ``co2mpas_v1.0.1.venv``.  The ``.venv`` at the end is not required,
+   it is just for tagging the *venv* folders.
 
-4. Create the "venv", adding the `--system-site-packages` option to have
-   the child-venv inherit all "parent" packages (numpy, pandas),
-   and select a venv's  name to signify the version it will contains,
-   e.g. ``co2mpas_v1.0.1.venv`` (the ``.venv`` at the end is not required,
-   it is just for tagging the *venv* folders):
-
-   .. code-block:: console
-
-        > virtualenv --system-site-packages co2mpas_v1.0.1.venv.venv
-
-
-
-5. Workaround a `virtualenv bug <https://github.com/pypa/virtualenv/issues/93>`_
+4. Workaround a `virtualenv bug <https://github.com/pypa/virtualenv/issues/93>`_
    with `TCL/TK` on *Windows*!
 
-   This is technically the most "difficult" step, and is required so that
+   This is technically the most "difficult" step, and it is required so that
    CO2MPAS can open GUI dialog-boxes, such as those for selecting
    the *input/output* dialogs.
 
@@ -428,10 +468,13 @@ where in each one you can install a different versions of CO2MPAS.
        You have to **adapt the paths above** to match the `TCL` & `TK`
        folder in your parent python-env.
 
+       If not, you will receive the following message while running CO2MPAS::
+
+           This probably means that Tcl wasn't installed properly.
 
 
-6. "Activate" the new "venv" by running the following command
-   (notice the dot(``.``) at the begining):
+5. "Activate" the new "venv" by running the following command
+   (notice the dot(``.``) at the begining of the command):
 
    .. code-block:: console
 
@@ -440,38 +483,17 @@ where in each one you can install a different versions of CO2MPAS.
    You must now see that your prompt has been prefixed with the venv's name.
 
 
+6. Install the co2mpas version you want inside the activated venv.
+   See the :ref:`co2mpas-install` section, above.
 
-7. Install the co2mpas version you want inside the activated venv.
-   For instance, to install the older version `1.0.1`, run:
+   Don't forget to check that what you get when running co2mpas is what you
+   installed.
 
-   .. code-block:: console
-
-        > pip install co2mpas==1.0.1 --extra-index http://pypi.co2mpas.io/simple/ --trusted-host pypi.co2mpas.io
-
-   .. Tip::
-       To install a *pre-release* version such as `v1.0.4b1`, you have to
-       append to the above command the ``--pre`` option.
-
-
-8. Check that what you get when running co2mpas is what you installed
-   (check both versions and paths):
+7. To "deactivate" the active venv, type:
 
    .. code-block:: console
 
-        > co2mpas --version -v
-        co2mpas_version: X.X.X
-        co2mpas_path: <path-to-co2mpas-installation>
-        python_version: 3.4.3 (v3.4.3:9b73f1c3e601, Feb 24 2015, 22:44:40) [MSC v.1600 64 bit (AMD64)]
-        python_path: <path-to>\WinPython-XXbit-3.Y.Y.Y\python-3.Y.Y.Y
-
-   Enjoy!
-
-
-9. To "deactivate" the active venv, type:
-
-   .. code-block:: console
-
-        > deactivate
+       > deactivate
 
    The prompt-prefix with the venv-name should now dissappear.  And if you
    try to invoke ``co2mpas``, it should fail.
@@ -605,20 +627,20 @@ starting point to try out.
 
    .. code-block:: console
 
-      $ co2mpas -I input -O output
-      Processing 'input' --> 'output'...
-      Processing: co2mpas_demo_1_full_data
-      ...
-      ...
-      Done! [90.765501 sec]
+       $ co2mpas -I input -O output
+       Processing 'input' --> 'output'...
+       Processing: co2mpas_demo_1_full_data
+       ...
+       ...
+       Done! [90.765501 sec]
 
 
 6. Inspect the results:
 
    .. code-block:: console
 
-      $ start output/*summary.xlsx       ## More summaries might exist in the folder from previous runs.
-      $ start output                     ## View the folder with all files generated.
+       $ start output/*summary.xlsx       ## More summaries might exist in the folder from previous runs.
+       $ start output                     ## View the folder with all files generated.
 
 
 Output files
@@ -672,7 +694,7 @@ excel-file:
 
    .. code-block:: console
 
-      $ start input/vehicle_1.xlsx        ## Opens the excel-file. Use `start` in *cmd.exe*.
+        $ start input/vehicle_1.xlsx        ## Opens the excel-file. Use `start` in *cmd.exe*.
 
    .. Tip::
        The generated file contains help descriptions to help you populate it
@@ -688,18 +710,18 @@ excel-file:
 
    .. code-block:: console
 
-      $ co2mpas -I ./input/vehicle_1.xlsx -O output
-      Processing './input/vehicle_1.xlsx' --> 'output'...
-      Processing: vehicle_1
-      ...
-      Done! [12.938986 sec]
+        $ co2mpas -I ./input/vehicle_1.xlsx -O output
+        Processing './input/vehicle_1.xlsx' --> 'output'...
+        Processing: vehicle_1
+        ...
+        Done! [12.938986 sec]
 
 5. Assuming you do receive any error, you may now inspect the results:
 
    .. code-block:: console
 
-      $ start output/*summary.xlsx       ## More summaries might open from previous runs.
-      $ start output                     ## View all files generated (see below).
+        $ start output/*summary.xlsx       ## More summaries might open from previous runs.
+        $ start output                     ## View all files generated (see below).
 
 
 6. In the case of errors, or if the results are not satisfactory, repeat the

@@ -22,7 +22,7 @@
 #    - Copy docs-archive & rename sources package!
 #    - Expand docs, link STABLE ad LATEST
 # 10. Prepare email (and test)
-#    - Use email-body to draft a new "Release" in github.
+#    - Use email-body to draft a new "Release" in github (https://github.com/JRCSTU/co2mpas/releases).
 #
 
 my_dir=`dirname "$0"`
