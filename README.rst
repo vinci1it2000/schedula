@@ -2,7 +2,7 @@
 CO2MPAS: Vehicle simulator predicting NEDC CO2 emissions from WLTP
 ##################################################################
 
-:Release:       1.0.4b0
+:Release:       1.0.4b1
 :Home:          http://co2mpas.io/
 :Releases:      http://files.co2mpas.io/
 :Sources:       https://github.com/JRCSTU/co2mpas
@@ -253,7 +253,7 @@ CO2MPAS installation
         Downloading http://pypi.co2mpas.io/packages/co2mpas-...
         ...
         Installing collected packages: co2mpas
-        Successfully installed co2mpas-1.0.4b0
+        Successfully installed co2mpas-1.0.4b1
 
    .. Note::
         **Installing Behind Firewall:**
@@ -294,11 +294,11 @@ CO2MPAS installation
    .. code-block:: console
 
         > python -v --version
-        co2mpas_version: 1.0.4b0
-        co2mpas_path: d:\co2mpas_ALLINONE-XXbit-v1.0.4b0\Apps\WinPython\python-3.4.3\lib\site-packages\co2mpas
-        python_path: D:\co2mpas_ALLINONE-XXbit-v1.0.4b0\WinPython\python-3.4.3
+        co2mpas_version: 1.0.4b1
+        co2mpas_path: d:\co2mpas_ALLINONE-XXbit-v1.0.4b1\Apps\WinPython\python-3.4.3\lib\site-packages\co2mpas
+        python_path: D:\co2mpas_ALLINONE-XXbit-v1.0.4b1\WinPython\python-3.4.3
         python_version: 3.4.3 (v3.4.3:9b73f1c3e601, Feb 24 2015, 22:44:40) [MSC v.1600 XXX]
-        PATH: D:\co2mpas_ALLINONE-XXbit-v1.0.4b0\WinPython...
+        PATH: D:\co2mpas_ALLINONE-XXbit-v1.0.4b1\WinPython...
 
 
 .. Warning::
@@ -313,7 +313,7 @@ CO2MPAS installation
 
        .. code-block:: console
 
-            > pip install co2mpas==1.0.4b0 ... # Other options, like above.
+            > pip install co2mpas==1.0.4b1 ... # Other options, like above.
 
 
 
@@ -449,7 +449,7 @@ where in each one you can install a different versions of CO2MPAS.
         > pip install co2mpas==1.0.1 --extra-index http://pypi.co2mpas.io/simple/ --trusted-host pypi.co2mpas.io
 
    .. Tip::
-       To install a *pre-release* version such as `v1.0.4b0`, you have to
+       To install a *pre-release* version such as `v1.0.4b1`, you have to
        append to the above command the ``--pre`` option.
 
 
