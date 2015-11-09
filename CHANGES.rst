@@ -37,7 +37,23 @@ Model-changes in comparison to v1.0.1:
 
   - :gh:`33`, :gh:`19`: More improvements when fitting of the thermal model.
 
-- Output & Summaries:
+- Input files:
+
+  - Input-files specify their own version number (currently at `2`).
+  - :gh:`9`: Enabled Start-Stop activation time cell.
+  - :gh:`25`, :gh:`38`: Add separate sheet for overriding engine's
+    fuel-consumption and thermal fitting parameters (trg, t)
+    (currently ALL or NONE have to be specified).
+  - Added Engine load (%) signal from OBD as input vector.
+    Currently not used but will improve significantly the accuracy of the
+    cold start model and the execution speed of the program.
+    JRC is working on a micro-phases like approach based on this signal.
+  - Gears vector not necessary anymore. However providing gears vector
+    improves the results for A/Ts and may also lead to better accuracies
+    in M/Ts in case the RPM or gear ratios values are not of good quality.
+    JRC is still analyzing the issue.
+
+- Output & Summary files:
 
   - :gh:`23`: Add units and descriptions into output files as a 2nd header-line.
   - :gh:`36`, :gh:`37`: Add comparison-metrics into the summary (target vs output).
