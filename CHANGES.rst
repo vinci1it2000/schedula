@@ -3,8 +3,8 @@ CO2MPAS Changes
 ###############
 .. _changes:
 
-v1.0.4b0, 7-Nov 2015
-====================
+v1.0.4, 9-Nov 2015: 3rd public release, mostly model changes
+============================================================
 Model-changes in comparison to v1.0.1:
 
 - Vehicle/Engine/Gearbox/Transmission:

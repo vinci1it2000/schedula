@@ -2,7 +2,7 @@
 #
 # Release checklist
 # =================
-# 1. Bump-ver & Update date in ./CHANGES.rst.
+# 1. Bump-ver & Update Date+Title in ./CHANGES.rst.
 # 2. REMOVE pip install --pre!!!
 # 3. Run TCs.
 # 4. Gen docs & check OK (i.e. diagrams??):
