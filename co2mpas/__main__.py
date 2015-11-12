@@ -59,7 +59,8 @@ Examples:
     co2mpas modelgraph gear_box_calibration
 
 """
-from co2mpas import __version__ as proj_ver, __file__ as proj_file
+from co2mpas import (__version__ as proj_ver, __file__ as proj_file,
+                     __updated__ as proj_date)
 from collections import OrderedDict
 import logging
 import os
@@ -89,6 +90,7 @@ def build_version_string(verbose):
     if verbose:
         v_infos = OrderedDict([
             ('co2mpas_version', proj_ver),
+            ('co2mpas_rel_date', proj_date),
             ('co2mpas_path', os.path.dirname(proj_file)),
             ('python_version', sys.version),
             ('python_path', sys.prefix),
