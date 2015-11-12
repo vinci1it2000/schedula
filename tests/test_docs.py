@@ -44,15 +44,38 @@ class Doctest(unittest.TestCase):
                 try:
                     compas_main.main('--version')
                 except SystemExit as ex:
-                    pass
+                    pass ## Cancel docopt's exit()
             ver_str = stdout.getvalue().strip()
             assert ver_str
-            m = re.match('co2mpas-([^ ]+)', ver_str)
-            self.assertIsNotNone(m, 'Version(%s) not found!' % ver_str)
+            regex = 'co2mpas-([^ ]+)'
+            m = re.match(regex, ver_str)
+            self.assertIsNotNone(m, 'Version(%s) not found in: \n%s' % (
+                    regex, ver_str))
             proj_ver = m.group(1)
             self.assertIn('co2mpas_version: %s' % proj_ver, ftext,
                           "Version(%s) not found in README cmd-line version-check!" %
                           ver)
+
+    def test_README_relDate_from_cmdline(self):
+        reldate = co2mpas.__updated__
+        mydir = os.path.dirname(__file__)
+        with open(readme_path) as fd:
+            ftext = fd.read()
+            with patch('sys.stdout', new=io.StringIO()) as stdout:
+                try:
+                    compas_main.main(*'-v --version'.split())
+                except SystemExit as ex:
+                    pass ## Cancel docopt's exit()
+            ver_str = stdout.getvalue().strip()
+            assert ver_str
+            regex = 'co2mpas_rel_date: (.+)'
+            m = re.search(regex, ver_str)
+            self.assertIsNotNone(m, 'RelDate(%s) not found in: \n%s!' % (
+                    regex, ver_str))
+            reldate_str = m.group(1)
+            self.assertIn('co2mpas_rel_date: %s' % reldate_str, ftext,
+                          "Version(%s) not found in README cmd-line version-check!" %
+                          reldate)
 
     def test_README_contains_main_help_msg(self):
         help_msg = compas_main.__doc__  # @UndefinedVariable
