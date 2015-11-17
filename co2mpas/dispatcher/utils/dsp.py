@@ -464,7 +464,7 @@ class SubDispatch(object):
                 msg = '\n  Unreachable output-targets: {}\n  Available ' \
                       'outputs: {}'.format(sorted(missed), sorted(o.keys()))
 
-                raise DispatcherError(msg, dsp, kw_plt)
+                raise DispatcherError(dsp, msg, kw_failure_plot=kw_plt)
         return o  # Return outputs.
 
     def plot(self, workflow=False, edge_data=EMPTY, view=True, depth=-1,
@@ -691,7 +691,7 @@ class SubDispatchFunction(SubDispatch):
                 # Raise error
                 msg = '\n  Unreachable output-targets: {}\n  Available ' \
                       'outputs: {}'.format(sorted(missed), sorted(available))
-                raise DispatcherError(msg, dsp, kw_plt)
+                raise DispatcherError(dsp, msg, kw_failure_plot=kw_plt)
 
         # Get initial default values.
         input_values, dist = dsp._get_initial_values(None, None, False)
@@ -756,7 +756,7 @@ class SubDispatchFunction(SubDispatch):
             # Raise error
             msg = '\n  Unreachable output-targets: {}\n  Available ' \
                   'outputs: {}'.format(sorted(missed), sorted(o.keys()))
-            raise DispatcherError(msg, dsp, kw_plt)
+            raise DispatcherError(dsp, msg, kw_failure_plot=kw_plt)
 
 
 class SubDispatchPipe(SubDispatchFunction):
@@ -875,7 +875,7 @@ class SubDispatchPipe(SubDispatchFunction):
                 # Raise error
                 msg = '\n  Unreachable output-targets: {}\n  Available ' \
                       'outputs: {}'.format(sorted(missed), sorted(available))
-                raise DispatcherError(msg, main_dsp, kw_plt)
+                raise DispatcherError(dsp, msg, kw_failure_plot=kw_plt)
 
         self.out_flow = out_flow = main_dsp.workflow.succ
         self.in_flow = out_flow[START]
@@ -1070,4 +1070,4 @@ class SubDispatchPipe(SubDispatchFunction):
             # Raise error
             msg = '\n  Unreachable output-targets: {}\n  Available ' \
                   'outputs: {}'.format(sorted(missed), sorted(o.keys()))
-            raise DispatcherError(msg, self.dsp)
+            raise DispatcherError(self.dsp, msg)

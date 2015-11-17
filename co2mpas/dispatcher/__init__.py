@@ -62,11 +62,12 @@ def _warning(dsp, raises):
     """
 
     if raises:
-        def warning(msg):
-            raise DispatcherError(msg, dsp)
+        def warning(*args, **kwargs):
+            raise DispatcherError(dsp, *args, **kwargs)
     else:
-        def warning(msg):
-            log.warning(msg, exc_info=1)
+        def warning(*args, **kwargs):
+            kwargs['exc_info'] = kwargs.get('exc_info', 1)
+            log.warning(*args, **kwargs)
     return warning
 
 

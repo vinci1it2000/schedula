@@ -16,12 +16,10 @@ __all__ = ['DispatcherError']
 
 
 class DispatcherError(ValueError):
-    def __init__(self, message, dsp, kw_failure_plot=None):
-        super(DispatcherError, self).__init__(message)
-        self.message = message
+    def __init__(self, dsp, *args, kw_failure_plot=None, **kwargs):
+        super(DispatcherError, self).__init__(*args, **kwargs)
         self.dsp = dsp
         self.kw_failure_plot = kw_failure_plot
-        self.__suppress_context__ = True
 
     def __str__(self, *args, **kwargs):
         if self.kw_failure_plot is not None:
