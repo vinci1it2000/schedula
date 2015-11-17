@@ -26,10 +26,13 @@ from itertools import chain
 from functools import partial
 from graphviz.tools import mkdirs
 import html
+import logging
 from pathlib import Path
 from .des import get_parent_func, search_node_description
 
 __all__ = ['plot']
+
+log = logging.getLogger(__name__)
 
 _encode_table = {
     '{': '\{',
@@ -563,6 +566,9 @@ def plot(dsp, workflow=False, dot=None, edge_data=None, view=False,
             _set_edge(dot, dsp2dot_id[u], dot_v, xlabel=str(i))
 
     if view:
-        default_opener(dot.render())
-
+        try:
+            render = dot.render()
+            default_opener(render)
+        except RuntimeError as ex:
+            log.warning('{}'.format(ex), exc_info=1)
     return dot
