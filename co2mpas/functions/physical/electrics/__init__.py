@@ -1,4 +1,4 @@
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Copyright 2015 European Commission (JRC);
 # Licensed under the EUPL (the 'Licence');
@@ -18,7 +18,6 @@ Sub-Modules:
 
     electrics_prediction
 """
-
 
 import numpy as np
 from functools import partial
@@ -261,9 +260,13 @@ def calibrate_alternator_current_model(
 
     dt = DecisionTreeRegressor(random_state=0)
     b = (alternator_statuses[1:] > 0) & on_engine[1:]
-    dt.fit(np.array([alternator_statuses[1:], gear_box_powers_in[1:],
-                     accelerations[1:]]).T[b], alternator_currents[1:][b])
-    predict = dt.predict
+
+    if b.any():
+        dt.fit(np.array([alternator_statuses[1:], gear_box_powers_in[1:],
+                         accelerations[1:]]).T[b], alternator_currents[1:][b])
+        predict = dt.predict
+    else:
+        predict = lambda *args, **kwargs: 0.0
 
     def model(alt_status, prev_soc, gb_power, on_engine, acc):
         return min(0.0, predict([alt_status, gb_power, acc]))
