@@ -9,7 +9,7 @@
 
 .. autosummary::
     :nosignatures:
-    :toctree: co2mpas/
+    :toctree: _build/co2mpas/
 
     ~models
     ~functions
