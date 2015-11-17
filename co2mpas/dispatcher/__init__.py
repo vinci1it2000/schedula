@@ -39,6 +39,7 @@ from .utils.cst import EMPTY, START, NONE, SINK
 from .utils.dsp import SubDispatch, bypass, combine_dicts
 from .utils.drw import plot
 from .utils.des import get_parent_func
+from .utils.exc import DispatcherError
 
 
 log = logging.getLogger(__name__)
@@ -46,7 +47,7 @@ log = logging.getLogger(__name__)
 __all__ = ['Dispatcher']
 
 
-def _warning(raises):
+def _warning(dsp, raises):
     """
     Returns a function that handle the error messages.
 
@@ -62,7 +63,7 @@ def _warning(raises):
 
     if raises:
         def warning(msg):
-            raise ValueError(msg)
+            raise DispatcherError(msg, dsp)
     else:
         def warning(msg):
             log.warning(msg, exc_info=1)
@@ -246,7 +247,7 @@ class Dispatcher(object):
         self.dist = {}
 
         #: A function that raises or logs warnings.
-        self.warning = _warning(raises)
+        self.warning = _warning(self, raises)
 
         #: A set of visited nodes from the dispatch.
         self._visited = set()
@@ -2765,8 +2766,8 @@ class Dispatcher(object):
 
         elif node_id in dists:  # The node w already estimated.
             if dist < dists[node_id]:  # Error for negative paths.
-                raise ValueError('Contradictory paths found: '
-                                 'negative weights?')
+                raise DispatcherError('Contradictory paths found: '
+                                      'negative weights?', self)
         elif node_id not in seen or dist < seen[node_id]:  # Check min dist.
             seen[node_id] = dist  # Update dist.
 

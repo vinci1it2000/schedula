@@ -26,6 +26,7 @@ from collections import OrderedDict
 import types
 from itertools import repeat, chain
 from .cst import START, NONE, EMPTY
+from .exc import DispatcherError
 from datetime import datetime
 
 
@@ -433,6 +434,39 @@ class SubDispatch(object):
         self.__name__ = dsp.name
         self.__doc__ = dsp.__doc__
 
+    def __call__(self, *input_dicts, copy_input_dicts=False):
+
+        # Combine input dictionaries.
+        i = combine_dicts(*input_dicts, copy=copy_input_dicts)
+
+        outs, dsp = self.outputs, self.dsp  # Namespace shortcuts.
+
+        # Dispatch the function calls.
+        w, o = dsp.dispatch(
+            i, outs, self.cutoff, self.inputs_dist, self.wildcard,
+            self.no_call, self.shrink, self.rm_unused_nds
+        )
+
+        # Save outputs.
+        self.workflow, self.data_output, self.dist = w, o, dsp.dist
+
+        # Set output.
+        if self.output_type in ('list', 'dict'):
+            try:
+                o = selector(outs, o, copy=False, output_type=self.output_type)
+            except KeyError:
+                # Plot the dispatcher workflow.
+                kw_plt = {'workflow': True} if self.failure_plot else None
+
+                missed = set(outs).difference(o) # Outputs not reached.
+
+                # Raise error
+                msg = '\n  Unreachable output-targets: {}\n  Available ' \
+                      'outputs: {}'.format(sorted(missed), sorted(o.keys()))
+
+                raise DispatcherError(msg, dsp, kw_plt)
+        return o  # Return outputs.
+
     def plot(self, workflow=False, edge_data=EMPTY, view=True, depth=-1,
              function_module=False, node_output=False, filename=None,
              nested=True, **kw_dot):
@@ -525,38 +559,6 @@ class SubDispatch(object):
                     depth=depth, function_module=function_module,
                     node_output=node_output, nested=nested, **kw_dot)
 
-    def __call__(self, *input_dicts, copy_input_dicts=False):
-
-        # Combine input dictionaries.
-        i = combine_dicts(*input_dicts, copy=copy_input_dicts)
-
-        outs, dsp = self.outputs, self.dsp  # Namespace shortcuts.
-
-        # Dispatch the function calls.
-        w, o = dsp.dispatch(
-            i, outs, self.cutoff, self.inputs_dist, self.wildcard,
-            self.no_call, self.shrink, self.rm_unused_nds
-        )
-
-        # Save outputs.
-        self.workflow, self.data_output, self.dist = w, o, dsp.dist
-
-        # Set output.
-        if self.output_type in ('list', 'dict'):
-            try:
-                o = selector(outs, o, copy=False, output_type=self.output_type)
-            except KeyError:
-                if self.failure_plot:
-                    dsp.plot(workflow=True)  # Plot the dispatcher workflow.
-
-                missed = set(outs).difference(o) # Outputs not reached.
-
-                # Raise error
-                msg = '\n  Unreachable output-targets: {}' \
-                      '\n  Available outputs: {}'
-                raise ValueError(msg.format(sorted(missed), sorted(o.keys())))
-        return o  # Return outputs.
-
 
 class ReplicateFunction(object):
     """
@@ -625,10 +627,10 @@ class SubDispatchFunction(SubDispatch):
     The created function raises a ValueError if un-valid inputs are
     provided::
 
-        >>> fun(1, 0)
+        >>> fun(1, 0)  # doctest: +IGNORE_EXCEPTION_DETAIL
         Traceback (most recent call last):
         ...
-        ValueError: 
+        DispatcherError:
           Unreachable output-targets: ...
           Available outputs: ...
 
@@ -681,15 +683,15 @@ class SubDispatchFunction(SubDispatch):
             missed = set(outputs).difference(dsp.nodes)  # Outputs not reached.
 
             if missed:  # If outputs are missing raise error.
-                if failure_plot:
-                    dsp.plot()  # Plot the shrink dispatcher.
+                # Plot the shrink dispatcher.
+                kw_plt = {} if failure_plot else None
 
                 available = dsp.data_nodes.keys()  # Available data nodes.
 
                 # Raise error
-                msg = '\n  Unreachable output-targets: {}' \
-                      '\n  Available outputs: {}'
-                raise ValueError(msg.format(sorted(missed), sorted(available)))
+                msg = '\n  Unreachable output-targets: {}\n  Available ' \
+                      'outputs: {}'.format(sorted(missed), sorted(available))
+                raise DispatcherError(msg, dsp, kw_plt)
 
         # Get initial default values.
         input_values, dist = dsp._get_initial_values(None, None, False)
@@ -746,14 +748,15 @@ class SubDispatchFunction(SubDispatch):
             return self.return_output(o)
 
         except KeyError:  # Unreached outputs.
-            if self.failure_plot:
-                dsp.plot(workflow=True)  # Plot the dispatcher workflow.
+            # Plot the dispatcher workflow.
+            kw_plt = {'workflow': True} if self.failure_plot else None
 
-            missed = set(self.outputs).difference(o) # Outputs not reached.
+            missed = set(self.outputs).difference(o)  # Outputs not reached.
 
             # Raise error
-            msg = '\n  Unreachable output-targets: {}\n  Available outputs: {}'
-            raise ValueError(msg.format(sorted(missed), sorted(o.keys())))
+            msg = '\n  Unreachable output-targets: {}\n  Available ' \
+                  'outputs: {}'.format(sorted(missed), sorted(o.keys()))
+            raise DispatcherError(msg, dsp, kw_plt)
 
 
 class SubDispatchPipe(SubDispatchFunction):
@@ -864,15 +867,15 @@ class SubDispatchPipe(SubDispatchFunction):
             missed = set(outputs).difference(main_dsp.nodes)
 
             if missed:  # If outputs are missing raise error.
-                if failure_plot:
-                    main_dsp.plot()  # Plot the dispatcher.
+                # Plot the dispatcher.
+                kw_plt = {} if failure_plot else None
 
                 available = main_dsp.data_nodes.keys()  # Available data nodes.
 
                 # Raise error
-                msg = '\n  Unreachable output-targets: {}' \
-                      '\n  Available outputs: {}'
-                raise ValueError(msg.format(sorted(missed), sorted(available)))
+                msg = '\n  Unreachable output-targets: {}\n  Available ' \
+                      'outputs: {}'.format(sorted(missed), sorted(available))
+                raise DispatcherError(msg, main_dsp, kw_plt)
 
         self.out_flow = out_flow = main_dsp.workflow.succ
         self.in_flow = out_flow[START]
@@ -1065,5 +1068,6 @@ class SubDispatchPipe(SubDispatchFunction):
             o = set(data_output) - set([v] + [k[0] for k in it])
             missed = set(self.outputs) - o
             # Raise error
-            msg = '\n  Unreachable output-targets: {}\n  Available outputs: {}'
-            raise ValueError(msg.format(sorted(missed), sorted(o.keys())))
+            msg = '\n  Unreachable output-targets: {}\n  Available ' \
+                  'outputs: {}'.format(sorted(missed), sorted(o.keys()))
+            raise DispatcherError(msg, self.dsp)
