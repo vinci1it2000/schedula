@@ -14,7 +14,7 @@ __author__ = 'Vincenzo Arcidiacono'
 
 from heapq import heappush, heappop
 from .gen import pairwise, counter
-from .constants import EMPTY, NONE
+from .cst import EMPTY, NONE
 from .dsp import SubDispatch
 from .des import get_parent_func, search_node_description
 from networkx import is_isolate

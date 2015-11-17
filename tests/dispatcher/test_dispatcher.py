@@ -11,7 +11,7 @@ import unittest
 import timeit
 import numpy as np
 from co2mpas.dispatcher import Dispatcher
-from co2mpas.dispatcher.utils.constants import START, EMPTY, SINK, NONE
+from co2mpas.dispatcher.utils.cst import START, EMPTY, SINK, NONE
 
 
 def _setup_dsp():

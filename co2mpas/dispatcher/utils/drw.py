@@ -20,7 +20,7 @@ from tempfile import mkstemp, mkdtemp
 import networkx as nx
 from networkx.utils import default_opener
 from graphviz import Digraph
-from .constants import START, SINK, END
+from .cst import START, SINK, END
 from .dsp import SubDispatch, SubDispatchFunction, combine_dicts
 from itertools import chain
 from functools import partial

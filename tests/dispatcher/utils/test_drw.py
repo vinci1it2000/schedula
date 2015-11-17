@@ -12,7 +12,7 @@ import doctest
 from graphviz.dot import Digraph
 from co2mpas.dispatcher import Dispatcher
 from co2mpas.dispatcher.utils.dsp import SubDispatch
-from co2mpas.dispatcher.utils.constants import SINK
+from co2mpas.dispatcher.utils.cst import SINK
 from co2mpas.dispatcher.utils.drw import plot
 
 

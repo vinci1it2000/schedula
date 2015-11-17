@@ -14,7 +14,7 @@ from networkx.classes.digraph import DiGraph
 from co2mpas.dispatcher.utils.alg import *
 from co2mpas.dispatcher.utils.dsp import SubDispatch, SubDispatchFunction
 from co2mpas.dispatcher import Dispatcher
-from co2mpas.dispatcher.utils.constants import SINK
+from co2mpas.dispatcher.utils.cst import SINK
 from functools import partial
 
 

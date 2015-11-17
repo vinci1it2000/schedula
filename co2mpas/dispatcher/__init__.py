@@ -35,7 +35,7 @@ from datetime import datetime
 from .utils.gen import AttrDict, counter, caller_name
 from .utils.alg import add_edge_fun, remove_edge_fun, rm_cycles_iter, \
     get_unused_node_id, add_func_edges, replace_remote_link, get_sub_node
-from .utils.constants import EMPTY, START, NONE, SINK
+from .utils.cst import EMPTY, START, NONE, SINK
 from .utils.dsp import SubDispatch, bypass, combine_dicts
 from .utils.drw import plot
 from .utils.des import get_parent_func

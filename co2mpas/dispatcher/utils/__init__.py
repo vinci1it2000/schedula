@@ -39,7 +39,7 @@ Sub-Modules:
     alg
     gen
     drw
-    constants
+    cst
     io
     des
 """
@@ -50,6 +50,6 @@ from .dsp import *
 from .alg import *
 from .gen import *
 from .drw import *
-from .constants import *
+from .cst import *
 from .io import *
 from .des import *
