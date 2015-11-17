@@ -81,7 +81,7 @@ def _physical():
 
     physical.add_function(
         function=add_args(nedc_velocities, n=1),
-        inputs=['cycle_type', 'times'],
+        inputs=['cycle_type', 'times', 'gear_box_type'],
         outputs=['velocities'],
         input_domain=nedc_velocities_domain
     )
