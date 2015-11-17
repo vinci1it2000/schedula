@@ -1261,6 +1261,40 @@ class Dispatcher(object):
         # Returns the node.
         return get_sub_node(self, node_ids, node_attr=node_attr)
 
+    @property
+    def data_nodes(self):
+        """
+        Returns all data nodes of the dispatcher.
+
+        :return:
+            All data nodes of the dispatcher.
+        :rtype: dict
+        """
+
+        return {k: v for k, v in self.nodes.items() if v['type'] == 'data'}
+
+    @property
+    def function_nodes(self):
+        """
+        Returns all function nodes of the dispatcher.
+
+        :return:
+            All data function of the dispatcher.
+        :rtype: dict
+        """
+        return {k: v for k, v in self.nodes.items() if v['type'] == 'function'}
+
+    @property
+    def sub_dsp_nodes(self):
+        """
+        Returns all sub-dispatcher nodes of the dispatcher.
+
+        :return:
+            All sub-dispatcher nodes of the dispatcher.
+        :rtype: dict
+        """
+        return {k: v for k, v in self.nodes.items() if v['type'] == 'dispatcher'}
+
     def copy(self):
         """
         Returns a copy of the Dispatcher.
