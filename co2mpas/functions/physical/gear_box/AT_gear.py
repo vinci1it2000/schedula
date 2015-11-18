@@ -12,16 +12,17 @@ It contains functions to predict the A/T gear shifting.
 from collections import OrderedDict
 from itertools import chain
 import numpy as np
+from copy import deepcopy
 from scipy.optimize import fmin
 from scipy.interpolate import InterpolatedUnivariateSpline
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.isotonic import IsotonicRegression
 from sklearn.metrics import mean_absolute_error, accuracy_score
 import co2mpas.dispatcher.utils as dsp_utl
-from co2mpas.functions.physical.utils import median_filter, grouper, \
-    interpolate_cloud, clear_fluctuations, reject_outliers
-from co2mpas.functions.physical.constants import *
-from co2mpas.functions.physical.gear_box import calculate_gear_box_speeds_in
-from co2mpas.functions.physical.wheels import calculate_wheel_power
+from ..utils import median_filter, grouper, clear_fluctuations, reject_outliers
+from ..constants import *
+from ..gear_box import calculate_gear_box_speeds_in
+from ..wheels import calculate_wheel_power
 
 
 def correct_gear_upper_bound_engine_speed(
@@ -352,8 +353,8 @@ def identify_gear_shifting_velocity_limits(gears, velocities):
 
 
 def correct_gsv_for_constant_velocities(
-        gsv, up_cns_vel = [15, 32, 50, 70], up_limit = 3.5, up_delta = -0.5,
-        down_cns_vel = [35, 50], down_limit = 3.5, down_delta = -1):
+        gsv, up_cns_vel=[15, 32, 50, 70], up_limit=3.5, up_delta=-0.5,
+        down_cns_vel=[35, 50], down_limit=3.5, down_delta=-1):
     """
     Corrects the gear shifting matrix velocity according to the NEDC velocities.
 
@@ -378,6 +379,89 @@ def correct_gsv_for_constant_velocities(
         return limits
 
     return gsv.__class__((k, fun(v)) for k, v in gsv.items())
+
+
+class CMV(OrderedDict):
+    def fit(self, correct_gear, gears, engine_speeds_out, velocities,
+            accelerations, velocity_speed_ratios):
+        self.clear()
+        self.update(identify_gear_shifting_velocity_limits(gears, velocities))
+
+        gear_id, velocity_limits = zip(*list(sorted(self.items()))[1:])
+
+        _inf = float('inf')
+
+        def update_gvs(vel_limits):
+            self[0] = (0, vel_limits[0])
+
+            limits = np.append(vel_limits[1:], _inf)
+            self.update(dict(zip(gear_id, grouper(limits, 2))))
+
+        def error_fun(vel_limits):
+            update_gvs(vel_limits)
+
+            g_pre = self.predict(np.array([velocities, accelerations]).T,
+                                 correct_gear=correct_gear)
+
+            speed_predicted = calculate_gear_box_speeds_in(
+                g_pre, velocities, velocity_speed_ratios)
+
+            return mean_absolute_error(engine_speeds_out, speed_predicted)
+
+        x0 = [self[0][1]].__add__(list(chain(*velocity_limits))[:-1])
+
+        x = fmin(error_fun, x0, disp=False)
+
+        update_gvs(x)
+
+        self.update(correct_gsv_for_constant_velocities(self))
+
+        return self
+
+    def plot(self):
+        import matplotlib.pylab as plt
+        for k, v in self.items():
+            kv = {}
+            for (s, l), x in zip((('down', '--'), ('up', '-')), v):
+                if x < INF:
+                    kv['label'] = 'Gear %d:%s-shift' % (k, s)
+                    kv['linestyle'] = l
+                    kv['color'] = plt.plot([x] * 2, [0, 1], **kv)[0]._color
+        plt.legend(loc='best')
+        plt.xlabel('Velocity [km/h]')
+
+    def predict(self, X, correct_gear=correct_gear_v3(), previous_gear=None,
+                times=None):
+
+        gear = previous_gear or min(self)
+
+        min_gear, max_gear = min(self), max(self)
+
+        gears = np.zeros(shape=len(X))
+
+        for i, (velocity, acceleration) in enumerate(X):
+            down, up = self[gear]
+
+            if not down <= velocity < up:
+                add = 1 if velocity >= up else -1
+                while min_gear <= gear <= max_gear:
+                    gear += add
+                    if gear in self:
+                        break
+                gear = max(min_gear, min(max_gear, gear))
+
+            g = correct_gear(velocity, acceleration, gear)
+
+            if g in self:
+                gear = g
+
+            gears[i] = gear = max(MIN_GEAR, gear)
+
+        if times is not None:
+            gears = median_filter(times, gears, TIME_WINDOW)
+            gears = clear_fluctuations(times, gears, TIME_WINDOW)
+
+        return gears
 
 
 def calibrate_gear_shifting_cmv(
@@ -411,34 +495,10 @@ def calibrate_gear_shifting_cmv(
     :rtype: dict
     """
 
-    gsv = identify_gear_shifting_velocity_limits(gears, velocities)
+    cmv = CMV().fit(correct_gear, gears, engine_speeds_out, velocities,
+                    accelerations, velocity_speed_ratios)
 
-    gear_id, velocity_limits = zip(*list(sorted(gsv.items()))[1:])
-
-    def update_gvs(vel_limits):
-        gsv[0] = (0, vel_limits[0])
-
-        limits = np.append(vel_limits[1:], float('inf'))
-        gsv.update(dict(zip(gear_id, grouper(limits, 2))))
-
-    def error_fun(vel_limits):
-        update_gvs(vel_limits)
-
-        g_pre = prediction_gears_gsm(
-            correct_gear, gsv, velocities, accelerations)
-
-        speed_predicted = calculate_gear_box_speeds_in(
-            g_pre, velocities, velocity_speed_ratios)
-
-        return mean_absolute_error(engine_speeds_out, speed_predicted)
-
-    x0 = [gsv[0][1]].__add__(list(chain(*velocity_limits))[:-1])
-
-    x = fmin(error_fun, x0, disp=False)
-
-    update_gvs(x)
-
-    return correct_gsv_for_constant_velocities(gsv)
+    return cmv
 
 
 def calibrate_gear_shifting_cmv_hot_cold(
@@ -553,6 +613,120 @@ def correct_gsv(gsv):
     return gsv
 
 
+class GSPV(dict):
+    def __init__(self):
+        super().__init__()
+        self.cloud = {}
+
+    def fit(self, gears, velocities, wheel_powers):
+
+        self.clear()
+
+        it = zip(velocities, wheel_powers, dsp_utl.pairwise(gears))
+
+        for v, p, (g0, g1) in it:
+            if v > VEL_EPS and g0 != g1:
+                x = self.get(g0, [[], [[], []]])
+                if g0 < g1 and p >= 0:
+                    x[1][0].append(p)
+                    x[1][1].append(v)
+                elif g0 > g1 and p <= 0:
+                    x[0].append(v)
+                else:
+                    continue
+                self[g0] = x
+
+        self[0] = [[0.0], [[0.0], [VEL_EPS]]]
+
+        self[max(self)][1] = [[0, 1], [INF] * 2]
+
+        def mean(x):
+            if x:
+                x = np.asarray(x)
+                return np.mean(x)
+            else:
+                return np.nan
+
+        self.cloud = deepcopy(self)
+
+        for k, v in self.items():
+
+            v[0] = InterpolatedUnivariateSpline([0, 1], [mean(v[0])] * 2, k=1)
+
+            if len(v[1][0]) > 2:
+                v[1] = _gspv_interpolate_cloud(*v[1])
+            else:
+                v[1] = [mean(v[1][1])] * 2
+                v[1] = InterpolatedUnivariateSpline([0, 1], v[1], k=1)
+
+        return self
+
+    @property
+    def limits(self):
+        limits = {}
+        X = [INF, 0]
+        for v in self.cloud.values():
+            X[0] = min(min(v[1][0]), X[0])
+            X[1] = max(max(v[1][0]), X[1])
+        X = list(np.linspace(*X))
+        X = [0] + X + [X[-1] * 1.1]
+        for k, func in self.items():
+            limits[k] = [(f(X), X) for f, x in zip(func, X)]
+        return limits
+
+    def plot(self):
+        import matplotlib.pylab as plt
+        for k, v in self.limits.items():
+            kv = {}
+            for (s, l), (x, y) in zip((('down', '--'), ('up', '-')), v):
+                if x[0] < INF:
+                    kv['label'] = 'Gear %d:%s-shift' % (k, s)
+                    kv['linestyle'] = l
+                    kv['color'] = plt.plot(x, y, **kv)[0]._color
+            cy, cx = self.cloud[k][1]
+            if cx[0] < INF:
+                kv.pop('label')
+                kv['linestyle'] = ''
+                kv['marker'] = 'o'
+                plt.plot(cx, cy, **kv)
+        plt.legend(loc='best')
+        plt.xlabel('Velocity [km/h]')
+        plt.ylabel('Power [kW]')
+
+    def predict(self, X, correct_gear=correct_gear_v3(), previous_gear=None,
+                times=None):
+
+        gear = previous_gear or min(self)
+
+        min_gear, max_gear = min(self), max(self)
+
+        gears = np.zeros(shape=len(X))
+
+        for i, (velocity, acceleration, wheel_power) in enumerate(X):
+            down, up = [func(wheel_power) for func in self[gear]]
+
+            if not down <= velocity < up:
+                add = 1 if velocity >= up else -1
+                while min_gear <= gear <= max_gear:
+                    gear += add
+                    if gear in self:
+                        break
+                gear = max(min_gear, min(max_gear, gear))
+
+            g = correct_gear(velocity, acceleration, gear)
+
+            if g in self:
+                gear = g
+
+            gears[i] = gear = max(MIN_GEAR, gear)
+
+        if times is not None:
+            gears = median_filter(times, gears, TIME_WINDOW)
+            gears = clear_fluctuations(times, gears, TIME_WINDOW)
+
+        return gears
+
+
 def calibrate_gspv(gears, velocities, wheel_powers):
     """
     Identifies gear shifting power velocity matrix.
@@ -574,41 +748,23 @@ def calibrate_gspv(gears, velocities, wheel_powers):
     :rtype: dict
     """
 
-    gspv = {}
+    gspv = GSPV()
 
-    it = zip(velocities, wheel_powers, dsp_utl.pairwise(gears))
-
-    for v, p, (g0, g1) in it:
-        if v > VEL_EPS and g0 != g1:
-            x = gspv.get(g0, [[], [[], []]])
-            if g0 < g1 and p >= 0:
-                x[1][0].append(p)
-                x[1][1].append(v)
-            elif g0 > g1 and p <= 0:
-                x[0].append(v)
-            else:
-                continue
-            gspv[g0] = x
-
-    gspv[0] = [[0], [[None], [VEL_EPS]]]
-
-    gspv[max(gspv)][1] = [[0, 1], [INF] * 2]
-
-    def mean(x):
-        x = np.asarray(x)
-        return np.mean(x) if x.any() else np.nan
-
-    for k, v in gspv.items():
-
-        v[0] = InterpolatedUnivariateSpline([0, 1], [mean(v[0])] * 2, k=1)
-
-        if len(v[1][0]) > 2:
-            v[1] = interpolate_cloud(*v[1])
-        else:
-            v[1] = [mean(v[1][1])] * 2
-            v[1] = InterpolatedUnivariateSpline([0, 1], v[1], k=1)
+    gspv.fit(gears, velocities, wheel_powers)
 
     return gspv
+
+
+def _gspv_interpolate_cloud(powers, velocities):
+
+    regressor = IsotonicRegression().fit(powers, velocities)
+
+    min_p, max_p = min(powers), max(powers)
+    x = np.linspace(min_p, max_p)
+    y = regressor.predict(x)
+    y = np.append(np.append(y[0], y), [y[-1]])
+    x = np.append(np.append([0.0], x), [max_p * 1.1])
+    return InterpolatedUnivariateSpline(x, y, k=1)
 
 
 def calibrate_gspv_hot_cold(
@@ -707,7 +863,7 @@ def prediction_gears_gsm(
 
     :param gsm:
         A gear shifting matrix (cmv or gspv).
-    :type gsm: dict
+    :type gsm: GSPV, CMV
 
     :param velocities:
         Vehicle velocity [km/h].
@@ -734,44 +890,12 @@ def prediction_gears_gsm(
     :rtype: numpy.array
     """
 
-    max_gear, min_gear = max(gsm), min(gsm)
+    X = [velocities, accelerations]
 
-    param = [min_gear, gsm[min_gear]]
-
-    def predict_gear(velocity, acceleration, wheel_power=None):
-        gear, (down, up) = param
-        if wheel_power is not None:
-            down, up = (down(wheel_power), up(wheel_power))
-        if not down <= velocity < up:
-            add = 1 if velocity >= up else -1
-            while min_gear <= gear <= max_gear:
-                gear += add
-                if gear in gsm:
-                    break
-            gear = max(min_gear, min(max_gear, gear))
-
-        g = correct_gear(velocity, acceleration, gear)
-
-        if g in gsm:
-            gear = g
-
-        param[0], param[1] = (gear, gsm[gear])
-
-        return max(MIN_GEAR, gear)
-
-    predict = np.vectorize(predict_gear)
-
-    args = [velocities, accelerations]
     if wheel_powers is not None:
-        args.append(wheel_powers)
+        X.append(wheel_powers)
 
-    gear = predict(*args)
-
-    if times is not None:
-        gear = median_filter(times, gear, TIME_WINDOW)
-        gear = clear_fluctuations(times, gear, TIME_WINDOW)
-
-    return gear
+    return gsm.predict(np.array(X).T, correct_gear=correct_gear, times=times)
 
 
 def prediction_gears_gsm_hot_cold(
