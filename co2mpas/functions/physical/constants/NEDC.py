@@ -231,7 +231,7 @@ def nedc_times(frequency):
 
     dt = 1 / frequency
 
-    return np.arange(0.0, 1180.0 + dt, dt)
+    return np.arange(1.0, 1180.0 + dt, dt)
 
 
 def _repeat_part_one(times, values):
