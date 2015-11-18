@@ -266,8 +266,11 @@ def calibrate_engine_temperature_regression_model(
     """
 
     temp = np.zeros(engine_coolant_temperatures.shape)
-    temp[1:] = median_filter(
-        times[:-1], engine_coolant_temperatures[:-1], TIME_WINDOW, np.mean)
+    if len(set(abs(np.diff(engine_coolant_temperatures)))) <= 3:
+        temp[1:] = median_filter(
+            times[:-1], engine_coolant_temperatures[:-1], TIME_WINDOW, np.mean)
+    else:
+        temp[1:] = engine_coolant_temperatures[:-1]
 
     model = GradientBoostingRegressor(
         random_state=0,
@@ -318,7 +321,8 @@ def predict_engine_coolant_temperatures(
 
     t, temp = initial_temperature, [initial_temperature]
     append = temp.append
-    for a in zip(gear_box_powers_in[:-1], gear_box_speeds_in[:-1], np.diff(times)):
+    dt = np.diff(times)
+    for a in zip(gear_box_powers_in[:-1], gear_box_speeds_in[:-1], dt):
         t = model(t, *a)
         append(t)
 
