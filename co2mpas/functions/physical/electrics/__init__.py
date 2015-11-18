@@ -437,6 +437,8 @@ def calibrate_alternator_status_model(
         bers.fit(np.array([gear_box_powers_in[c]]).T, b[c])
 
         bers_pred = bers.predict  # shortcut name
+    elif has_energy_recuperation:
+        bers_pred = lambda X: np.asarray(X) < 0
     else:
         bers_pred = lambda *args: (False,)
 
