@@ -389,7 +389,7 @@ def identify_charging_statuses(
             while b1 < n and (status[b1] or not on_engine[b1]):
                 b1 += 1
 
-            while b1 > b0 and (gb_p[b1] < 0 or gb_p[b1] - gb_p[b1 - 1] > 0):
+            while b1 > b0 and gb_p[b1] <= 0:
                 b1 -= 1
 
             if b1 > b0:
