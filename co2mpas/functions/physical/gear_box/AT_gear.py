@@ -640,6 +640,17 @@ class GSPV(dict):
 
         self[max(self)][1] = [[0, 1], [INF] * 2]
 
+        def line(k, v, i):
+            x = np.mean(np.asarray(v[i])) if v[i] else None
+            k_p = k - 1
+            while k_p > 0 and k_p not in self:
+                k_p -= 1
+            x_up = self[k_p][not i](0) if k_p >= 0 else x
+
+            if x is None or x > x_up:
+                x = x_up
+            return InterpolatedUnivariateSpline([0, 1], [x] * 2, k=1)
+
         def mean(x):
             if x:
                 x = np.asarray(x)
@@ -649,9 +660,8 @@ class GSPV(dict):
 
         self.cloud = deepcopy(self)
 
-        for k, v in self.items():
-
-            v[0] = InterpolatedUnivariateSpline([0, 1], [mean(v[0])] * 2, k=1)
+        for k, v in sorted(self.items()):
+            v[0] = line(k, v, 0)
 
             if len(v[1][0]) > 2:
                 v[1] = _gspv_interpolate_cloud(*v[1])
@@ -838,7 +848,7 @@ def prediction_gears_decision_tree(correct_gear, decision_tree, times, *params):
     predict = decision_tree.predict
 
     def predict_gear(*args):
-        g = predict(gear + list(args))[0]
+        g = predict([gear + list(args)])[0]
         gear[0] = correct_gear(args[0], args[1], g)
         return gear[0]
 
