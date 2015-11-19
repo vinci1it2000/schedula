@@ -269,7 +269,7 @@ def calibrate_alternator_current_model(
         predict = lambda *args, **kwargs: 0.0
 
     def model(alt_status, prev_soc, gb_power, on_engine, acc):
-        return min(0.0, predict([alt_status, gb_power, acc]))
+        return min(0.0, predict([(alt_status, gb_power, acc)]))
 
     return model
 
@@ -449,7 +449,7 @@ def calibrate_alternator_status_model(
         charge.fit(X, b)
 
         charge_pred = charge.predict  # shortcut name
-        soc = state_of_charges[b]
+        soc = state_of_charges[1:][b]
         min_charge_soc, max_charge_soc = min(soc), max(soc)
     else:
         charge_pred = lambda *args: (False,)
@@ -461,10 +461,10 @@ def calibrate_alternator_status_model(
         if soc < 99.5:
             if soc < min_charge_soc:
                 status = 1
-            elif charge_pred([prev_status, soc])[0] and soc <= max_charge_soc:
+            elif charge_pred([(prev_status, soc)])[0] and soc <= max_charge_soc:
                 status = 1
 
-            elif bers_pred([gear_box_power_in])[0]:
+            elif bers_pred([(gear_box_power_in,)])[0]:
                 status = 2
 
         return status
