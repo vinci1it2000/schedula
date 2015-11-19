@@ -125,7 +125,7 @@ def engine():
     engine.add_function(
         function=calibrate_engine_temperature_regression_model,
         inputs=['times', 'engine_coolant_temperatures', 'gear_box_powers_in',
-                'gear_box_speeds_in'],
+                'gear_box_speeds_in', 'on_engine'],
         outputs=['engine_temperature_regression_model']
     )
 
