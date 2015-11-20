@@ -118,7 +118,7 @@ def _physical():
         outputs={
             'f0': 'f0',
             'accelerations': 'accelerations',
-            'motive_powers': 'wheel_powers',
+            'motive_powers': 'motive_powers',
             'road_loads': 'road_loads',
         }
     )
@@ -136,10 +136,15 @@ def _physical():
             'gear_box_ratios': 'gear_box_ratios',
             'final_drive_ratio': 'final_drive_ratio',
             'velocity_speed_ratios': 'velocity_speed_ratios',
-            'wheel_powers': 'wheel_powers',
+            'motive_powers': 'motive_powers',
+            'engine_moment_inertia': 'engine_moment_inertia',
+            'gear_box_speeds_in': 'gear_box_speeds_in',
+            'alternator_nominal_power': 'alternator_nominal_power',
+            'has_energy_recuperation': 'has_energy_recuperation',
         },
         outputs={
             'r_dynamic': 'r_dynamic',
+            'wheel_powers': 'wheel_powers',
             'wheel_speeds': 'wheel_speeds',
             'wheel_torques': 'wheel_torques'
         }
@@ -197,6 +202,7 @@ def _physical():
         },
         outputs={
             'alternator_current_model': 'alternator_current_model',
+            'alternator_nominal_power': 'alternator_nominal_power',
             'alternator_currents': 'alternator_currents',
             'alternator_statuses': 'alternator_statuses',
             'alternator_powers_demand': 'alternator_powers_demand',

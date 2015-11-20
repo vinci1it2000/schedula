@@ -14,6 +14,7 @@ The model is defined by a Dispatcher that wraps all the functions needed.
 
 from co2mpas.dispatcher import Dispatcher
 from co2mpas.functions.physical.wheels import *
+import co2mpas.dispatcher.utils as dsp_utl
 
 
 def wheels():
@@ -65,6 +66,26 @@ def wheels():
                 'final_drive_ratio'],
         outputs=['r_dynamic'],
         weight=10
+    )
+
+    wheels.add_function(
+        function=calculates_brake_powers,
+        inputs=['engine_moment_inertia', 'motive_powers', 'gear_box_speeds_in',
+                'has_energy_recuperation', 'alternator_nominal_power'],
+        outputs=['brake_powers']
+    )
+
+    wheels.add_function(
+        function=calculates_brake_powers,
+        inputs=['engine_moment_inertia', 'motive_powers', 'gear_box_speeds_in'],
+        outputs=['brake_powers'],
+        weight=50
+    )
+
+    wheels.add_function(
+        function=dsp_utl.summation,
+        inputs=['motive_powers', 'brake_powers'],
+        outputs=['wheel_powers']
     )
 
     return wheels
