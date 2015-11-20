@@ -262,7 +262,7 @@ def _comparison_model():
     models.append({
         'models': ('alternator_current_model', 'start_demand',
                    'max_battery_charging_current', 'electric_load',
-                   'alternator_status_model'),
+                   'alternator_status_model', 'alternator_nominal_power'),
         'targets': ('alternator_currents', 'battery_currents'),
         'check_models': lambda error: error < 60,
     })

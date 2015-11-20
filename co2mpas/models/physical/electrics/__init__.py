@@ -130,4 +130,11 @@ def electrics():
                  'state_of_charges', 'alternator_statuses']
     )
 
+    electrics.add_function(
+        function_id='identify_alternator_nominal_power',
+        function=lambda x: abs(min(x)),
+        inputs=['alternator_powers_demand'],
+        outputs=['alternator_nominal_power']
+    )
+
     return electrics
