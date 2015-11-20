@@ -266,10 +266,10 @@ def calibrate_alternator_current_model(
                          accelerations[1:]]).T[b], alternator_currents[1:][b])
         predict = dt.predict
     else:
-        predict = lambda *args, **kwargs: 0.0
+        predict = lambda *args, **kwargs: [0.0]
 
     def model(alt_status, prev_soc, gb_power, on_engine, acc):
-        return min(0.0, predict([(alt_status, gb_power, acc)]))
+        return min(0.0, predict([(alt_status, gb_power, acc)])[0])
 
     return model
 

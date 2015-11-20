@@ -1070,7 +1070,6 @@ def calculate_engine_moment_inertia(engine_capacity, fuel_type):
     w = {
         'gasoline': 1,
         'diesel': 2
-
     }[fuel_type]
 
     return (0.05 + 0.1 * engine_capacity / 1000.0) * w
