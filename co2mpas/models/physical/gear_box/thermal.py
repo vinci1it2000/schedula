@@ -65,7 +65,7 @@ def thermal():
 
     thermal.add_function(
         function=calculate_gear_box_efficiency,
-        inputs=['gear_box_power_out', 'gear_box_speed_in', 'gear_box_speed_out',
+        inputs=['gear_box_power_out', 'gear_box_speed_in',
                 'gear_box_torque_out', 'gear_box_torque_in'],
         outputs=['gear_box_efficiency'],
     )

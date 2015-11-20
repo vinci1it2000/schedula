@@ -468,8 +468,8 @@ def correct_gear_box_torques_in(
 
 
 def calculate_gear_box_efficiencies_v2(
-        gear_box_powers_out, gear_box_speeds_in, gear_box_speeds_out,
-        gear_box_torques_out, gear_box_torques_in):
+        gear_box_powers_out, gear_box_speeds_in, gear_box_torques_out,
+        gear_box_torques_in):
     """
     Calculates gear box efficiency [-].
 
@@ -480,10 +480,6 @@ def calculate_gear_box_efficiencies_v2(
     :param gear_box_speeds_in:
         Engine speed vector [RPM].
     :type gear_box_speeds_in: numpy.array
-
-    :param gear_box_speeds_out:
-        Wheel speed vector [RPM].
-    :type gear_box_speeds_out: numpy.array
 
     :param gear_box_torques_out:
         Torque gear_box vector [N*m].
@@ -501,7 +497,6 @@ def calculate_gear_box_efficiencies_v2(
     wp = gear_box_powers_out
     tgb = gear_box_torques_out
     tr = gear_box_torques_in
-    ws = gear_box_speeds_out
     es = gear_box_speeds_in
 
     eff = np.zeros(wp.shape)
@@ -510,9 +505,7 @@ def calculate_gear_box_efficiencies_v2(
     b1 = b0 & (wp >= 0) & (es > MIN_ENGINE_SPEED) & (tr != 0)
     b = ((b0 & (wp < 0)) | b1)
 
-    s = np.where(b1, es, ws)
-
-    eff[b] = s[b] * tr[b] / wp[b] * (pi / 30000)
+    eff[b] = es[b] * tr[b] / wp[b] * (pi / 30000)
 
     eff[b1] = 1 / eff[b1]
 
@@ -768,9 +761,9 @@ def identify_speed_velocity_ratios(gears, velocities, gear_box_speeds_in):
 
     ratios[velocities < VEL_EPS] = 0
 
-    svr={k: reject_outliers(ratios[gears == k])[0]
-         for k in range(1, int(max(gears)) + 1)
-         if k in gears}
+    svr = {k: reject_outliers(ratios[gears == k])[0]
+           for k in range(1, int(max(gears)) + 1)
+           if k in gears}
     svr[0] = INF
 
     return svr
@@ -918,7 +911,7 @@ def calculate_equivalent_gear_box_heat_capacity(fuel_type, engine_max_power):
     :rtype: float
     """
 
-    _mass_coeff ={
+    _mass_coeff = {
         'diesel': 1.1,
         'gasoline': 1.0
     }

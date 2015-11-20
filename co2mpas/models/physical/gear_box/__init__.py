@@ -95,8 +95,7 @@ def _gear_box():
 
     gear_box.add_function(
         function=calculate_gear_box_efficiencies_v2,
-        inputs=['gear_box_powers_out', 'gear_box_speeds_in', 
-                'gear_box_speeds_out', 'gear_box_torques', 
+        inputs=['gear_box_powers_out', 'gear_box_speeds_in', 'gear_box_torques',
                 'gear_box_torques_in'],
         outputs=['gear_box_efficiencies'],
     )

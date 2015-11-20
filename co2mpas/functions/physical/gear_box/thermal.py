@@ -137,8 +137,8 @@ def correct_gear_box_torque_in(
 
 
 def calculate_gear_box_efficiency(
-        gear_box_power_out, gear_box_speed_in, gear_box_speed_out,
-        gear_box_torque_out, gear_box_torque_in):
+        gear_box_power_out, gear_box_speed_in, gear_box_torque_out,
+        gear_box_torque_in):
     """
     Calculates the gear box efficiency [N*m].
 
@@ -149,10 +149,6 @@ def calculate_gear_box_efficiency(
     :param gear_box_speed_in:
         Engine speed [RPM].
     :type gear_box_speed_in: float
-
-    :param gear_box_speed_out:
-        Wheel speed [RPM].
-    :type gear_box_speed_out: float
 
     :param gear_box_torque_out:
         Torque gear_box [N*m].
@@ -170,9 +166,9 @@ def calculate_gear_box_efficiency(
     if gear_box_torque_in == gear_box_torque_out:
         eff = 1
     else:
-        eff = gear_box_torque_in / gear_box_power_out * (pi / 30000)
-        s_in, s_out = gear_box_speed_in, gear_box_speed_out
-        eff = 1 / (s_in * eff) if gear_box_power_out > 0 else s_out * eff
+        s_in = gear_box_speed_in
+        eff = s_in * gear_box_torque_in / gear_box_power_out * (pi / 30000)
+        eff = 1 / eff if gear_box_power_out > 0 else eff
 
     return max(0, min(1, eff))
 
