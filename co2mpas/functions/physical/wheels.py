@@ -193,7 +193,8 @@ def identify_r_dynamic(
 
 def calculates_brake_powers(
         engine_moment_inertia, wheel_powers, gear_box_speeds_in,
-        has_energy_recuperation=False, alternator_nominal_power=0.0):
+        auxiliaries_torque_losses, has_energy_recuperation=False,
+        alternator_nominal_power=0.0):
     """
     Calculates power losses due to the breaking [kW].
 
@@ -208,6 +209,10 @@ def calculates_brake_powers(
     :param gear_box_speeds_in:
         Engine speed vector [RPM].
     :type gear_box_speeds_in: numpy.array
+
+    :param auxiliaries_torque_losses:
+        Engine torque losses due to engine auxiliaries [N*m].
+    :type auxiliaries_torque_losses: numpy.array
 
     :param has_energy_recuperation:
         Does the vehicle have energy recuperation features?
@@ -225,6 +230,10 @@ def calculates_brake_powers(
     b = wheel_powers <= 0
     speeds = np.append(np.diff(gear_box_speeds_in), [0])[b] / 30 * pi
     engine_powers_on_brake = engine_moment_inertia / 2000 * speeds**2
+
+    engine_powers_on_brake += calculate_wheel_powers(
+        auxiliaries_torque_losses, gear_box_speeds_in
+    )[b]
 
     if has_energy_recuperation:
         engine_powers_on_brake += abs(alternator_nominal_power)

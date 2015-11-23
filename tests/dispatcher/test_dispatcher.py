@@ -45,8 +45,8 @@ def _setup_dsp():
         return a - 4
 
     dsp.add_function('x - 4', function=x_4, inputs=['a'],
-                     outputs=['d'], weight_from={'a': 20},
-                     weight_to={'d': 20}, weight=20)
+                     outputs=['d'], inp_weight={'a': 20},
+                     out_weight={'d': 20}, weight=20)
 
     def x_y(e, d):
         return pow(e, d)
@@ -129,8 +129,8 @@ class TestCreateDispatcher(unittest.TestCase):
         fun_id = dsp.add_function(function_id='funny_id', function=my_log,
                                   inputs=['a', 'b'], outputs=['e'],
                                   input_domain=my_domain, weight=1,
-                                  weight_from={'a': 2, 'b': 3},
-                                  weight_to={'e': 4})
+                                  inp_weight={'a': 2, 'b': 3},
+                                  out_weight={'e': 4})
 
         self.assertEqual(fun_id, 'funny_id')
         res = {

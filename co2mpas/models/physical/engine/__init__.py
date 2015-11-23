@@ -260,7 +260,8 @@ def engine():
     engine.add_function(
         function=calculate_engine_powers_out,
         inputs=['gear_box_powers_in', 'engine_speeds_out', 'on_engine',
-                'engine_power_correction_function', 'alternator_powers_demand'],
+                'engine_power_correction_function', 'auxiliaries_power_losses',
+                'alternator_powers_demand'],
         outputs=['engine_powers_out']
     )
 
@@ -285,6 +286,24 @@ def engine():
         function=calculate_engine_moment_inertia,
         inputs=['engine_capacity', 'fuel_type'],
         outputs=['engine_moment_inertia']
+    )
+
+    engine.add_data(
+        data_id='auxiliaries_torque_loss',
+        default_value=0.0
+    )
+
+    engine.add_function(
+        function=calculate_auxiliaries_torque_losses,
+        inputs=['times', 'auxiliaries_torque_loss'],
+        outputs=['auxiliaries_torque_losses']
+    )
+
+    engine.add_function(
+        function_id='calculate_auxiliaries_power_losses',
+        function=calculate_wheel_powers,
+        inputs=['auxiliaries_torque_loss', 'engine_speeds_out'],
+        outputs=['auxiliaries_power_losses']
     )
 
     from co2mpas.models.physical.engine.co2_emission import co2_emission

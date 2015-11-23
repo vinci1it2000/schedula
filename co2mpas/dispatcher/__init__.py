@@ -439,7 +439,7 @@ class Dispatcher(object):
 
     def add_function(self, function_id=None, function=None, inputs=None,
                      outputs=None, input_domain=None, weight=None,
-                     weight_from=None, weight_to=None, description=None,
+                     inp_weight=None, out_weight=None, description=None,
                      **kwargs):
         """
         Add a single function node to dispatcher.
@@ -473,17 +473,17 @@ class Dispatcher(object):
             algorithm to estimate the minimum workflow.
         :type weight: float, int, optional
 
-        :param weight_from:
+        :param inp_weight:
             Edge weights from data nodes to the function node.
             It is a dictionary (key=data node id) with the weight coefficients
             used by the dispatch algorithm to estimate the minimum workflow.
-        :type weight_from: dict, optional
+        :type inp_weight: dict, optional
 
-        :param weight_to:
+        :param out_weight:
             Edge weights from the function node to data nodes.
             It is a dictionary (key=data node id) with the weight coefficients
             used by the dispatch algorithm to estimate the minimum workflow.
-        :type weight_to: dict, optional
+        :type out_weight: dict, optional
 
         :param description:
             Function node's description.
@@ -583,10 +583,10 @@ class Dispatcher(object):
         self.dmap.add_node(fun_id, attr_dict=attr_dict)
 
         # Add input edges.
-        n_data = add_func_edges(self, fun_id, inputs, weight_from, True)
+        n_data = add_func_edges(self, fun_id, inputs, inp_weight, True)
 
         # Add output edges.
-        add_func_edges(self, fun_id, outputs, weight_to, False, n_data)
+        add_func_edges(self, fun_id, outputs, out_weight, False, n_data)
 
         return fun_id  # Return function node id.
 
@@ -2642,6 +2642,9 @@ class Dispatcher(object):
         # A function to check if a dispatcher has been initialized.
         check_dsp = dsp_init.__contains__
 
+        # Namespaces shortcuts
+        dsp_init_add, pipe_append = dsp_init.add, pipe.append
+        dsp_closed_add = dsp_closed.add
         while fringe:
             # Visit the closest available node.
             n = (d, _, (v, dsp)) = heappop(fringe)
@@ -2649,16 +2652,16 @@ class Dispatcher(object):
             if dsp in dsp_closed:  # Skip terminated sub-dispatcher.
                 continue
 
-            dsp_init.add(dsp)  # Update initialized dispatcher sets.
+            dsp_init_add(dsp)  # Update initialized dispatcher sets.
 
-            pipe.append(n)  # Add node to the pipe.
+            pipe_append(n)  # Add node to the pipe.
 
             # Set and visit nodes.
             if not dsp._visit_nodes(v, d, fringe, check_cutoff, no_call):
                 if self is dsp:
                     break  # Reach all targets.
                 else:
-                    dsp_closed.add(dsp)  # Terminated sub-dispatcher.
+                    dsp_closed_add(dsp)  # Terminated sub-dispatcher.
 
             # See remote link node.
             dsp._see_remote_link_node(v, fringe, d, check_dsp)
@@ -2698,24 +2701,21 @@ class Dispatcher(object):
         """
 
         # Namespace shortcuts.
-        distances, add_visited, graph = self.dist, self._visited.add, self.dmap
         wf_rm_edge, wf_has_edge = self._wf_remove_edge, self.workflow.has_edge
-        edge_weight, check_targets = self._edge_length, self.check_targets
-        nodes = self.nodes
-        set_node_output = self._set_node_output
+        edge_weight, nodes = self._edge_length, self.nodes
 
-        distances[node_id] = dist  # Set minimum dist.
+        self.dist[node_id] = dist  # Set minimum dist.
 
-        add_visited(node_id)  # Update visited nodes.
+        self._visited.add(node_id)  # Update visited nodes.
 
-        if not set_node_output(node_id, no_call):  # Set node output.
+        if not self._set_node_output(node_id, no_call):  # Set node output.
             # Some error occurs or inputs are not in the function domain.
             return True
 
-        if check_targets(node_id):  # Check if the targets are satisfied.
+        if self.check_targets(node_id):  # Check if the targets are satisfied.
             return False  # Stop loop.
 
-        for w, e_data in graph[node_id].items():
+        for w, e_data in self.dmap[node_id].items():
             if not wf_has_edge(node_id, w):  # Check wildcard option.
                 continue
 
@@ -2758,11 +2758,12 @@ class Dispatcher(object):
         """
 
         # Namespace shortcuts.
-        seen, dists, check_wait_in = self.seen, self.dist, self.check_wait_in
+        seen, dists = self.seen, self.dist,
 
         wait_in = self.nodes[node_id]['wait_inputs']  # Wait inputs flag.
 
-        if check_wait_in(wait_in, node_id):  # Check if inputs are satisfied.
+        # Check if inputs are satisfied.
+        if self.check_wait_in(wait_in, node_id):
             pass  # Pass the node
 
         elif node_id in dists:  # The node w already estimated.

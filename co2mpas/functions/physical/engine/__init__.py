@@ -897,7 +897,8 @@ def select_cold_start_speed_model(
 
 def calculate_engine_powers_out(
         gear_box_powers_in, engine_speeds_out, on_engine,
-        engine_power_correction_function, alternator_powers_demand=None):
+        engine_power_correction_function, auxiliaries_power_losses,
+        alternator_powers_demand=None):
     """
     Calculates the engine power [kW].
 
@@ -918,16 +919,20 @@ def calculate_engine_powers_out(
         engine motoring curves.
     :type engine_power_correction_function: function
 
+    :param auxiliaries_power_losses:
+        Engine torque losses due to engine auxiliaries [N*m].
+    :type auxiliaries_power_losses: numpy.array
+
     :param alternator_powers_demand:
         Alternator power demand to the engine [kW].
-    :type alternator_powers_demand: numpy.array
+    :type alternator_powers_demand: numpy.array, optional
 
     :return:
         Engine power [kW].
     :rtype: numpy.array
     """
 
-    p_on = gear_box_powers_in[on_engine]
+    p_on = gear_box_powers_in[on_engine] + auxiliaries_power_losses[on_engine]
 
     if alternator_powers_demand is not None:
         p_on += np.abs(alternator_powers_demand[on_engine])
@@ -1073,3 +1078,22 @@ def calculate_engine_moment_inertia(engine_capacity, fuel_type):
     }[fuel_type]
 
     return (0.05 + 0.1 * engine_capacity / 1000.0) * w
+
+
+def calculate_auxiliaries_torque_losses(times, auxiliaries_torque_loss):
+    """
+    Calculates engine torque losses due to engine auxiliaries [N*m].
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
+
+    :param auxiliaries_torque_loss:
+        Torque losses due to engine auxiliaries [N*m].
+    :type auxiliaries_torque_loss: float
+
+    :return:
+        Engine torque losses due to engine auxiliaries [N*m].
+    :rtype: numpy.array
+    """
+
+    return np.ones(times.shape) * auxiliaries_torque_loss

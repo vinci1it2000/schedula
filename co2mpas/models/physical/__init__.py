@@ -141,6 +141,7 @@ def _physical():
             'gear_box_speeds_in': 'gear_box_speeds_in',
             'alternator_nominal_power': 'alternator_nominal_power',
             'has_energy_recuperation': 'has_energy_recuperation',
+            'auxiliaries_torque_losses': 'auxiliaries_torque_losses',
         },
         outputs={
             'r_dynamic': 'r_dynamic',
@@ -253,6 +254,7 @@ def _physical():
         dsp_id='engine_model',
         dsp=engine(),
         inputs={
+            'auxiliaries_torque_loss': 'auxiliaries_torque_loss',
             'alternator_powers_demand': 'alternator_powers_demand',
             'on_engine': 'on_engine',
             'engine_capacity': 'engine_capacity',
@@ -302,6 +304,8 @@ def _physical():
             'clutch_speeds_delta': 'clutch_speeds_delta'
         },
         outputs={
+            'auxiliaries_torque_losses': 'auxiliaries_torque_losses',
+            'auxiliaries_power_losses': 'auxiliaries_power_losses',
             'co2_emissions_model': 'co2_emissions_model',
             'co2_emission_value': 'co2_emission_value',
             'co2_emissions': 'co2_emissions',
