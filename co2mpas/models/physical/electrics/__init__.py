@@ -44,6 +44,11 @@ def electrics():
         description='Models the vehicle electrics.'
     )
 
+    electrics.add_data(
+        data_id='alternator_efficiency',
+        default_value=0.67
+    )
+
     electrics.add_function(
         function=calculate_engine_start_demand,
         inputs=['engine_moment_inertia', 'idle_engine_speed',
