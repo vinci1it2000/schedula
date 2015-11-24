@@ -104,7 +104,7 @@ def co2_emission():
                 'co2_error_function_on_emissions',
                 'co2_error_function_on_phases', 'co2_params_bounds',
                 'co2_params_initial_guess'],
-        outputs=['co2_params']
+        outputs=['co2_params', 'calibration_status']
     )
 
     co2_emission.add_function(

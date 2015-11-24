@@ -301,11 +301,13 @@ def _physical():
             'start_stop_model': 'start_stop_model',
             'start_stop_activation_time': 'start_stop_activation_time',
             'times': 'times',
-            'clutch_speeds_delta': 'clutch_speeds_delta'
+            'clutch_speeds_delta': 'clutch_speeds_delta',
+            'calibration_status': 'calibration_status'
         },
         outputs={
             'auxiliaries_torque_losses': 'auxiliaries_torque_losses',
             'auxiliaries_power_losses': 'auxiliaries_power_losses',
+            'calibration_status': 'calibration_status',
             'co2_emissions_model': 'co2_emissions_model',
             'co2_emission_value': 'co2_emission_value',
             'co2_emissions': 'co2_emissions',

@@ -337,7 +337,8 @@ def engine():
             'engine_normalization_temperature_window':
                 'engine_normalization_temperature_window',
             'times': 'times',
-            'velocities': 'velocities'
+            'velocities': 'velocities',
+            'calibration_status': 'calibration_status'
         },
         outputs={
             'co2_emissions_model': 'co2_emissions_model',
@@ -351,7 +352,8 @@ def engine():
             'co2_params_bounds': 'co2_params_bounds',
             'co2_params_initial_guess': 'co2_params_initial_guess',
             'fuel_consumptions': 'fuel_consumptions',
-            'phases_co2_emissions': 'phases_co2_emissions'
+            'phases_co2_emissions': 'phases_co2_emissions',
+            'calibration_status': 'calibration_status'
         }
     )
 

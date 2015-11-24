@@ -711,12 +711,15 @@ def calibrate_co2_params(
     hot = np.logical_not(cold)
 
     bounds, guess = co2_params_bounds, co2_params_initial_guess
+    success = []
 
     def calibrate(id_p, **kwargs):
         limits = {k: v for k, v in bounds.items() if k in id_p}
         initial = {k: v for k, v in guess.items() if k in id_p}
         f = partial(err_f, **kwargs)
-        return calibrate_model_params(limits, f, initial)
+        pa, s = calibrate_model_params(limits, f, initial)
+        success.append(s)
+        return pa
 
     hot_p = ['a2', 'a', 'b', 'c', 'l', 'l2']
 
@@ -730,8 +733,10 @@ def calibrate_co2_params(
         p['t'] = co2_params_initial_guess['t']
 
     bounds = restrict_bounds(bounds, p)
-    p = calibrate_model_params(bounds, co2_error_function_on_phases, p)
-    return p
+    p, s = calibrate_model_params(bounds, co2_error_function_on_phases, p)
+    success.append(s)
+    # print('calibration', success)
+    return p, success
 
 
 def restrict_bounds(co2_params_bounds, co2_params_initial_guess):
@@ -830,20 +835,20 @@ def calibrate_model_params(params_bounds, error_function, initial_guess=None):
 
     if initial_guess is None:
         step = 3.0
-        x = brute(error_func, params_bounds, Ns=step, finish=finish)
+        x, success = brute(error_func, params_bounds, Ns=step, finish=finish)
     else:
 
         l, u = np.asarray(params_bounds).T
 
         x0 = np.where(x0 <= l, l + EPS, np.where(x0 >= u, u - EPS, x0))
 
-        x = finish(error_func, x0)[0]
+        x, success = finish(error_func, x0)
 
     #x = [min(u, max(l, v)) for (l, u), v in zip(params_bounds, x)]
 
     update_params(x)
 
-    return params
+    return params, success
 
 
 def predict_co2_emissions(co2_emissions_model, params):

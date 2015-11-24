@@ -218,13 +218,13 @@ def _comparison_model():
         if len(co2_error_function_on_phases) <= 1:
             return
 
-        p = calibrate_model_params(
+        p, s = calibrate_model_params(
             bounds, co2_error_function_on_phases, initial_guess)
 
-        return {'co2_params': p}
+        return {'co2_params': p, 'calibration_status': s}
 
     models.append({
-        'models': ('co2_params',),
+        'models': ('co2_params', 'calibration_status'),
         'outputs': ('co2_emissions',),
         'targets': ('identified_co2_emissions',),
         'post_processing': calibrate_co2_params_with_all_calibration_cycles,
