@@ -264,10 +264,10 @@ def calculate_co2_emissions(
     fc[b] *= e_speeds[b] * (engine_capacity / (lhv * 1200))  # [g/sec]
 
     ec_p0 = calculate_p0(
-        p, engine_capacity, engine_stroke, idle_engine_speed[0], lhv
+        p, engine_capacity, engine_stroke, sum(idle_engine_speed), lhv
     )
-
-    fc[(e_powers <= ec_p0) | (e_speeds < MIN_ENGINE_SPEED) | (fc < 0)] = 0
+    b = (e_powers <= ec_p0) & (e_speeds > sum(idle_engine_speed))
+    fc[b | (e_speeds < MIN_ENGINE_SPEED) | (fc < 0)] = 0
 
     co2 = fc * fuel_carbon_content
 
