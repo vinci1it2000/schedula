@@ -98,7 +98,7 @@ def empty(value):
             return value
     except ValueError:
         if not np.isnan(value).any():
-            return np.nan_to_num(value)
+            return value
 
     raise EmptyValue()
 
