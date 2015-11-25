@@ -14,7 +14,7 @@ import numpy as np
 from functools import partial
 from scipy.integrate import trapz
 from scipy.optimize import brute, minimize
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_absolute_error
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.functions.physical.constants import *
 
@@ -596,7 +596,7 @@ def define_co2_error_function_on_emissions(co2_emissions_model, co2_emissions):
         x = co2_emissions if sub_values is None else co2_emissions[sub_values]
         y = co2_emissions_model(
             params, default_params=default_params, sub_values=sub_values)
-        return mean_squared_error(x, y)
+        return mean_absolute_error(x, y)
 
     return error_func
 
@@ -651,7 +651,7 @@ def define_co2_error_function_on_phases(
 
         cco2 = calculate_cumulative_co2(
             times, phases_integration_times, co2, phases_distances)
-        return mean_squared_error(phases_co2_emissions, cco2, w)
+        return mean_absolute_error(phases_co2_emissions, cco2, w)
 
     return error_func
 
