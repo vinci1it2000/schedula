@@ -694,12 +694,18 @@ def calibrate_co2_params(
 
     if hasattr(co2_error_function_on_phases, '__call__'):
         temps = engine_coolant_temperatures
+        cold = np.ones(temps.shape, dtype=bool)
+        cold[np.argmax(temps > co2_params_initial_guess['trg']):] = False
 
         def err_f(params, **kwargs):
             return co2_error_function_on_emissions(params, **kwargs)
 
     else:
         temps = np.array(engine_coolant_temperatures)
+        cold = np.ones(temps.shape, dtype=bool)
+        hot = np.argmax(temps > co2_params_initial_guess['trg'], axis=1)
+        for i, c in zip(hot, cold):
+            c[i:] = False
 
         def err_f(params, default_params, sub_values):
             it = zip(co2_error_function_on_emissions, sub_values)
@@ -707,7 +713,6 @@ def calibrate_co2_params(
             return sum(f(params, default_params=d, sub_values=b)
                        for f, b in it if b.any())
 
-    cold = temps < co2_params_initial_guess['trg']
     hot = np.logical_not(cold)
 
     bounds, guess = co2_params_bounds, co2_params_initial_guess
