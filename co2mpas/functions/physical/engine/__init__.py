@@ -269,12 +269,17 @@ def calibrate_engine_temperature_regression_model(
     :rtype: function
     """
 
-    temp = np.zeros(engine_coolant_temperatures.shape)
-    if len(set(abs(np.diff(engine_coolant_temperatures)))) <= 3:
-        temp[1:] = median_filter(
-            times[:-1], engine_coolant_temperatures[:-1], TIME_WINDOW, np.mean)
+    i = next(i for i, b in enumerate(on_engine) if b)
+    dt = np.diff(times[i:])
+    dT = np.diff(engine_coolant_temperatures[i:]) / dt
+
+    if sum((dT == 0) | (dT == 1) | (dT == -1)) / len(dT) > 0.5:
+        temp = median_filter(
+            times, engine_coolant_temperatures, TIME_WINDOW, np.mean)[i:]
+        dT = np.array(np.diff(temp) / dt, np.float64, order='C')
     else:
-        temp[1:] = engine_coolant_temperatures[:-1]
+        temp = engine_coolant_temperatures[i:]
+        dT = np.array(dT, np.float64, order='C')
 
     model = GradientBoostingRegressor(
         random_state=0,
@@ -284,12 +289,8 @@ def calibrate_engine_temperature_regression_model(
         alpha=0.99
     )
 
-    i = next(i for i, b in enumerate(on_engine) if b)
-    X = np.array([temp[i:], gear_box_powers_in[i:], gear_box_speeds_in[i:]])
-    dt = np.diff(engine_coolant_temperatures[i:]) / np.diff(times[i:])
-    dt = np.array(dt, np.float64, order='C')
-
-    predict = model.fit(X.T[1:], dt).predict
+    X = np.array([temp, gear_box_powers_in[i:], gear_box_speeds_in[i:]])
+    predict = model.fit(X.T[:-1], dT).predict
 
     def engine_temperature_regression_model(prev_temp, power, speed, delta_t):
         return prev_temp + predict([[prev_temp, power, speed]])[0] * delta_t
@@ -1083,6 +1084,7 @@ def calculate_engine_moment_inertia(engine_capacity, fuel_type):
 def calculate_auxiliaries_torque_losses(times, auxiliaries_torque_loss):
     """
     Calculates engine torque losses due to engine auxiliaries [N*m].
+
     :param times:
         Time vector [s].
     :type times: numpy.array

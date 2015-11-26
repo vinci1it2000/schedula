@@ -353,8 +353,8 @@ def identify_gear_shifting_velocity_limits(gears, velocities):
 
 
 def correct_gsv_for_constant_velocities(
-        gsv, up_cns_vel=[15, 32, 50, 70], up_limit=3.5, up_delta=-0.5,
-        down_cns_vel=[35, 50], down_limit=3.5, down_delta=-1):
+        gsv, up_cns_vel=(15, 32, 50, 70), up_limit=3.5, up_delta=-0.5,
+        down_cns_vel=(35, 50), down_limit=3.5, down_delta=-1):
     """
     Corrects the gear shifting matrix velocity according to the NEDC velocities.
 
