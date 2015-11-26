@@ -37,9 +37,10 @@ def calculate_normalized_engine_coolant_temperatures(
     :rtype: numpy.array
     """
 
-    T = (engine_coolant_temperatures + 273.0) / (temperature_target + 273.0)
-
-    T[T > 1] = 1.0
+    i = np.argmax(engine_coolant_temperatures > temperature_target)
+    T = np.ones(engine_coolant_temperatures.shape)
+    T[:i] = engine_coolant_temperatures[:i] + 273.0
+    T[:i] /= temperature_target + 273.0
 
     return T
 
