@@ -10,13 +10,16 @@ It contains functions that model the basic mechanics of the clutch.
 """
 
 from scipy.optimize import brute
+from sklearn.metrics import mean_squared_error
 from sklearn.linear_model import RANSACRegressor, LinearRegression
 import numpy as np
 from functools import partial
 from .constants import *
+import co2mpas.dispatcher.utils as dsp_utl
 
 
-def calculate_clutch_phases(times, gear_shifts, clutch_window):
+def calculate_clutch_phases(
+        times, gear_shifts, clutch_window=(-TIME_WINDOW/2, TIME_WINDOW/2)):
     """
     Calculate when the clutch is active [-].
 
@@ -83,7 +86,7 @@ def calculate_clutch_speed_threshold(clutch_speeds_delta):
         Threshold of engine speed delta due to the clutch [RPM].
     :rtype: float
     """
-    
+
     return np.std(clutch_speeds_delta) * 2
 
 
@@ -141,6 +144,22 @@ def identify_clutch_window(
     return tuple(brute(error, [(0, -dt), (0, dt)], Ns=Ns, finish=None))
 
 
+def _calibrate_clutch_prediction_model(
+        accelerations, delta_speeds, error_func, default_model):
+
+    if len(delta_speeds) > 2:
+        X = np.array([accelerations]).T
+        model = RANSACRegressor(
+            base_estimator=LinearRegression(fit_intercept=False),
+            random_state=0
+        ).fit(X, delta_speeds).predict
+
+    else:
+        model = default_model
+
+    return error_func(model), model
+
+
 def calibrate_clutch_prediction_model(
         clutch_phases, accelerations, clutch_speeds_delta,
         clutch_speed_threshold):
@@ -168,21 +187,21 @@ def calibrate_clutch_prediction_model(
     :rtype: function
     """
 
-    model = RANSACRegressor(
-        base_estimator=LinearRegression(fit_intercept=False),
-        random_state=0
-    )
-
     delta, threshold = clutch_speeds_delta, clutch_speed_threshold
+    phases, acc = clutch_phases, accelerations
 
-    b = clutch_phases & ((-threshold > delta) | (delta > threshold))
+    calibrate, counter = _calibrate_clutch_prediction_model, dsp_utl.counter()
+    y, X = delta[phases], np.array([acc[phases]]).T
+    error = lambda func: (mean_squared_error(y, func(X)), counter())
 
-    y = clutch_speeds_delta[b]
+    def no_clutch(X, *args):
+        return np.zeros(X.shape[0])
 
-    if len(y) > 2:
-        return model.fit(np.array([accelerations[b]]).T, y).predict
-    else:
-        return lambda *args: np.zeros((1, args[0].shape[1]))
+    models = [calibrate(acc[b], delta[b], error, no_clutch)
+              for b in [np.zeros(acc.shape, dtype=bool),
+                        phases & ((-threshold > delta) | (delta > threshold))]]
+
+    return min(models)[-1]
 
 
 def predict_clutch_speeds_delta(clutch_model, clutch_phases, accelerations):
