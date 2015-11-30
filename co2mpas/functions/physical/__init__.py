@@ -186,7 +186,8 @@ def _comparison_model():
         c_name = heap[0][-2] if heap else co[0]['cycle_name']
 
         def check(data):
-            keys = ('co2_params_initial_guess', 'co2_params_bounds')
+            keys = ('co2_params_initial_guess', 'co2_params_bounds',
+                    'is_cycle_hot')
             return all(p in data for p in keys)
 
         its = [(o for o in co if o['cycle_name'] == c_name and check(o)),
@@ -202,9 +203,13 @@ def _comparison_model():
             return
 
         from .engine.co2_emission import calibrate_model_params
-
         initial_guess = data['co2_params_initial_guess']
         bounds = data['co2_params_bounds']
+
+        if data['is_cycle_hot']:
+            f = lambda x: {k: v for k, v in x.items() if k not in ('t', 'trg')}
+            initial_guess = f(initial_guess)
+            bounds = f(bounds)
 
         #e_tag = 'engine_coolant_temperatures'
         #engine_coolant_temperatures = [o[e_tag] for o in co if e_tag in o]
