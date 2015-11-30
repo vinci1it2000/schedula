@@ -269,7 +269,7 @@ def calibrate_engine_temperature_regression_model(
     :rtype: function
     """
 
-    i = next(i for i, b in enumerate(on_engine) if b)
+    i = max(np.argmax(on_engine), np.argmax(times > 10))
     dt = np.diff(times[i:])
     dT = np.diff(engine_coolant_temperatures[i:]) / dt
 
@@ -891,9 +891,10 @@ def select_cold_start_speed_model(
     args = (engine_speeds_out_hot, on_engine, engine_coolant_temperatures)
     delta, error = calculate_cold_start_speeds_delta, mean_absolute_error
 
-    err = [(error(ds, delta(*((model,) + args))), model) for model in models]
+    err = [(error(ds, delta(*((model,) + args))), i, model)
+           for i, model in enumerate(models)]
 
-    return list(sorted(err))[0][1]
+    return list(sorted(err))[0][-1]
 
 
 def calculate_engine_powers_out(
