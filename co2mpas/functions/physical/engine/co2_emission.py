@@ -455,7 +455,7 @@ def calculate_cumulative_co2_v1(phases_co2_emissions, phases_distances):
 
 def select_initial_co2_emission_model_params_guess(
         engine_type, engine_normalization_temperature,
-        engine_normalization_temperature_window):
+        engine_normalization_temperature_window, is_cycle_hot=False):
     """
     Selects initial guess and bounds of co2 emission model params.
 
@@ -471,6 +471,10 @@ def select_initial_co2_emission_model_params_guess(
         Engine normalization temperature limits [°C].
     :type engine_normalization_temperature_window: (float, float)
 
+    :param is_cycle_hot:
+        Is an hot cycle?
+    :type is_cycle_hot: bool, optional
+
     :return:
         Initial guess and bounds of co2 emission model params.
     :rtype: (dict, dict)
@@ -478,7 +482,7 @@ def select_initial_co2_emission_model_params_guess(
 
     p = {
         'x0': {
-            't': 4.5,
+            't': 0.0 if is_cycle_hot else 4.5,
             'trg': engine_normalization_temperature
         },
         'bounds': {
@@ -660,7 +664,7 @@ def define_co2_error_function_on_phases(
 def calibrate_co2_params(
         engine_coolant_temperatures, co2_error_function_on_emissions,
         co2_error_function_on_phases, co2_params_bounds,
-        co2_params_initial_guess):
+        co2_params_initial_guess, is_cycle_hot=False):
     """
     Calibrates the CO2 emission model parameters (a2, b2, a, b, c, l, l2, t, trg
     ).
@@ -687,36 +691,26 @@ def calibrate_co2_params(
         Initial guess of CO2 emission model params.
     :type co2_params_initial_guess: dict
 
+    :param is_cycle_hot:
+        Is an hot cycle?
+    :type is_cycle_hot: bool, optional
+
     :return:
         Calibrated CO2 emission model parameters (a2, b2, a, b, c, l, l2, t,
         trg).
     :rtype: dict
     """
 
-    if hasattr(co2_error_function_on_phases, '__call__'):
-        temps = engine_coolant_temperatures
-        cold = np.ones(temps.shape, dtype=bool)
-        cold[np.argmax(temps > co2_params_initial_guess['trg']):] = False
+    bounds, guess = co2_params_bounds, co2_params_initial_guess
 
-        def err_f(params, **kwargs):
-            return co2_error_function_on_emissions(params, **kwargs)
-
-    else:
-        temps = np.array(engine_coolant_temperatures)
-        cold = np.ones(temps.shape, dtype=bool)
-        hot = np.argmax(temps > co2_params_initial_guess['trg'], axis=1)
-        for i, c in zip(hot, cold):
-            c[i:] = False
-
-        def err_f(params, default_params, sub_values):
-            it = zip(co2_error_function_on_emissions, sub_values)
-            d = default_params
-            return sum(f(params, default_params=d, sub_values=b)
-                       for f, b in it if b.any())
-
+    cold = np.zeros(engine_coolant_temperatures.shape, dtype=bool)
+    if not is_cycle_hot:
+        cold[:np.argmax(engine_coolant_temperatures > guess['trg'])] = True
     hot = np.logical_not(cold)
 
-    bounds, guess = co2_params_bounds, co2_params_initial_guess
+    def err_f(params, **kwargs):
+        return co2_error_function_on_emissions(params, **kwargs)
+
     success = []
 
     def calibrate(id_p, **kwargs):
@@ -732,16 +726,19 @@ def calibrate_co2_params(
     p = calibrate(hot_p, default_params={}, sub_values=hot)
 
     cold_p = ['t', 'trg']
-    if cold.any():
+    if not is_cycle_hot and cold.any():
         p.update(calibrate(cold_p, default_params=p, sub_values=cold))
     else:
-        p['trg'] = co2_params_initial_guess['trg']
-        p['t'] = co2_params_initial_guess['t']
+        p['trg'], p['t'] = guess['trg'], guess['t']
+        success.append(True)
 
     bounds = restrict_bounds(bounds, p)
+    if is_cycle_hot:
+        del bounds['t'], bounds['trg'], p['t'], p['trg']
+
     p, s = calibrate_model_params(bounds, co2_error_function_on_phases, p)
     success.append(s)
-    # print('calibration', success)
+
     return p, success
 
 

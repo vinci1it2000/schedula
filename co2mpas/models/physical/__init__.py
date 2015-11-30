@@ -257,6 +257,7 @@ def _physical():
             'auxiliaries_torque_loss': 'auxiliaries_torque_loss',
             'alternator_powers_demand': 'alternator_powers_demand',
             'on_engine': 'on_engine',
+            'is_cycle_hot': 'is_cycle_hot',
             'engine_capacity': 'engine_capacity',
             'engine_is_turbo': 'engine_is_turbo',
             'engine_max_power': 'engine_max_power',

@@ -208,6 +208,7 @@ def get_filters():
             'has_selective_catalytic_reduction': (bool, empty),
             'has_nox_storage_catalyst': (bool, empty),
             'idle_engine_speed': (_try_eval, list, empty),
+            'is_cycle_hot': (bool, empty),
             'phases_co2_emissions': (_try_eval, list, empty),
             'velocity_speed_ratios': (_try_eval, list, empty, index_dict),
             'road_loads': (_try_eval, list, empty),
