@@ -361,8 +361,8 @@ def select_phases_integration_times(cycle_type):
     """
 
     _integration_times = {
-        'WLTP': (0.0, 590.0, 1023.0, 1478.0, 1801.0),
-        'NEDC': (0.0, 780.0, 1181.0)
+        'WLTP': (0.0, 590.0, 1023.0, 1478.0, 1800.0),
+        'NEDC': (0.0, 780.0, 1180.0)
     }
 
     return _integration_times[cycle_type.upper()]
@@ -427,7 +427,7 @@ def calculate_cumulative_co2(
     co2 = []
 
     for t0, t1 in dsp_utl.pairwise(phases_integration_times):
-        b = (t0 <= times) & (times < t1)
+        b = (t0 <= times) & (times <= t1)
         co2.append(trapz(co2_emissions[b], times[b]))
 
     return np.array(co2) / phases_distances
