@@ -2766,8 +2766,8 @@ class Dispatcher(object):
 
         elif node_id in dists:  # The node w already estimated.
             if dist < dists[node_id]:  # Error for negative paths.
-                raise DispatcherError('Contradictory paths found: '
-                                      'negative weights?', self)
+                raise DispatcherError(self, 'Contradictory paths found: '
+                                            'negative weights?')
         elif node_id not in seen or dist < seen[node_id]:  # Check min dist.
             seen[node_id] = dist  # Update dist.
 

@@ -16,15 +16,9 @@ __all__ = ['DispatcherError']
 
 
 class DispatcherError(ValueError):
-    def __init__(self, dsp, *args, kw_failure_plot=None, **kwargs):
+    def __init__(self, dsp, *args, **kwargs):
         super(DispatcherError, self).__init__(*args, **kwargs)
-        self.dsp = dsp
-        self.kw_failure_plot = kw_failure_plot
-
-    def __str__(self, *args, **kwargs):
-        if self.kw_failure_plot is not None:
-            self.dsp.plot(**self.kw_failure_plot)
-        return ValueError.__str__(self, *args, **kwargs)
-
+        self.dsp = dsp.copy()
+        self.plot = self.dsp.plot
 
 

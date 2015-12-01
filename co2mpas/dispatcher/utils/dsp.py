@@ -366,7 +366,7 @@ class SubDispatch(object):
 
     def __init__(self, dsp, outputs=None, cutoff=None, inputs_dist=None,
                  wildcard=False, no_call=False, shrink=False,
-                 rm_unused_nds=False, output_type='all', failure_plot=False):
+                 rm_unused_nds=False, output_type='all'):
         """
         Initializes the Sub-dispatch.
 
@@ -410,11 +410,6 @@ class SubDispatch(object):
                 + 'dict': a :class:`~dispatcher.utils.AttrDict` with any outputs
                   listed in `outputs`.
         :type output_type: str
-
-        :param failure_plot:
-            Plot the dispatcher workflow in case of a failure due to unreachable
-            nodes.
-        :type failure_plot: bool
         """
 
         self.dsp = dsp
@@ -429,7 +424,6 @@ class SubDispatch(object):
         self.data_output = {}
         self.dist = {}
         self.workflow = DiGraph()
-        self.failure_plot = failure_plot
         self.__module__ = caller_name()
         self.__name__ = dsp.name
         self.__doc__ = dsp.__doc__
@@ -455,16 +449,13 @@ class SubDispatch(object):
             try:
                 o = selector(outs, o, copy=False, output_type=self.output_type)
             except KeyError:
-                # Plot the dispatcher workflow.
-                kw_plt = {'workflow': True} if self.failure_plot else None
-
                 missed = set(outs).difference(o) # Outputs not reached.
 
                 # Raise error
                 msg = '\n  Unreachable output-targets: {}\n  Available ' \
                       'outputs: {}'.format(sorted(missed), sorted(o.keys()))
 
-                raise DispatcherError(dsp, msg, kw_failure_plot=kw_plt)
+                raise DispatcherError(dsp, msg)
         return o  # Return outputs.
 
     def plot(self, workflow=False, edge_data=EMPTY, view=True, depth=-1,
@@ -641,7 +632,7 @@ class SubDispatchFunction(SubDispatch):
     """
 
     def __init__(self, dsp, function_id, inputs, outputs=None, cutoff=None,
-                 inputs_dist=None, failure_plot=False):
+                 inputs_dist=None):
         """
         Initializes the Sub-dispatch Function.
 
@@ -668,11 +659,6 @@ class SubDispatchFunction(SubDispatch):
         :param inputs_dist:
             Initial distances of input data nodes.
         :type inputs_dist: float, int, optional
-
-        :param failure_plot:
-            Plot the dispatcher workflow in case of a failure due to unreachable
-            nodes.
-        :type failure_plot: bool
         """
 
         # New shrink dispatcher.
@@ -683,15 +669,13 @@ class SubDispatchFunction(SubDispatch):
             missed = set(outputs).difference(dsp.nodes)  # Outputs not reached.
 
             if missed:  # If outputs are missing raise error.
-                # Plot the shrink dispatcher.
-                kw_plt = {} if failure_plot else None
 
                 available = dsp.data_nodes.keys()  # Available data nodes.
 
                 # Raise error
                 msg = '\n  Unreachable output-targets: {}\n  Available ' \
                       'outputs: {}'.format(sorted(missed), sorted(available))
-                raise DispatcherError(dsp, msg, kw_failure_plot=kw_plt)
+                raise DispatcherError(dsp, msg)
 
         # Get initial default values.
         input_values, dist = dsp._get_initial_values(None, None, False)
@@ -709,8 +693,7 @@ class SubDispatchFunction(SubDispatch):
 
         # Initialize as sub dispatch.
         super(SubDispatchFunction, self).__init__(
-            dsp, outputs, cutoff, dist, True, False, True, True, 'list',
-            failure_plot)
+            dsp, outputs, cutoff, dist, True, False, True, True, 'list')
 
         self.__module__ = caller_name()  # Set as who calls my caller.
 
@@ -748,15 +731,12 @@ class SubDispatchFunction(SubDispatch):
             return self.return_output(o)
 
         except KeyError:  # Unreached outputs.
-            # Plot the dispatcher workflow.
-            kw_plt = {'workflow': True} if self.failure_plot else None
-
             missed = set(self.outputs).difference(o)  # Outputs not reached.
 
             # Raise error
             msg = '\n  Unreachable output-targets: {}\n  Available ' \
                   'outputs: {}'.format(sorted(missed), sorted(o.keys()))
-            raise DispatcherError(dsp, msg, kw_failure_plot=kw_plt)
+            raise DispatcherError(dsp, msg)
 
 
 class SubDispatchPipe(SubDispatchFunction):
@@ -817,7 +797,7 @@ class SubDispatchPipe(SubDispatchFunction):
     """
 
     def __init__(self, dsp, function_id, inputs, outputs=None, cutoff=None,
-                 inputs_dist=None, failure_plot=False):
+                 inputs_dist=None):
         """
         Initializes the Sub-dispatch Function.
 
@@ -844,16 +824,11 @@ class SubDispatchPipe(SubDispatchFunction):
         :param inputs_dist:
             Initial distances of input data nodes.
         :type inputs_dist: float, int, optional
-
-        :param failure_plot:
-            Plot the dispatcher workflow in case of a failure due to unreachable
-            nodes.
-        :type failure_plot: bool
         """
 
         super(SubDispatchPipe, self).__init__(
             dsp, function_id, inputs, outputs=outputs, cutoff=cutoff,
-            inputs_dist=inputs_dist, failure_plot=failure_plot
+            inputs_dist=inputs_dist
         )
 
         main_dsp = self.dsp
@@ -867,15 +842,12 @@ class SubDispatchPipe(SubDispatchFunction):
             missed = set(outputs).difference(main_dsp.nodes)
 
             if missed:  # If outputs are missing raise error.
-                # Plot the dispatcher.
-                kw_plt = {} if failure_plot else None
-
                 available = main_dsp.data_nodes.keys()  # Available data nodes.
 
                 # Raise error
                 msg = '\n  Unreachable output-targets: {}\n  Available ' \
                       'outputs: {}'.format(sorted(missed), sorted(available))
-                raise DispatcherError(dsp, msg, kw_failure_plot=kw_plt)
+                raise DispatcherError(dsp, msg)
 
         self.out_flow = out_flow = main_dsp.workflow.succ
         self.in_flow = out_flow[START]
