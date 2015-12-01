@@ -171,7 +171,7 @@ def AT_gear():
             'accelerations': 'accelerations',
             'correct_gear': 'correct_gear',
             'engine_speeds_out': 'engine_speeds_out',
-            'gear_box_powers_out': 'gear_box_powers_out',
+            'motive_powers': 'motive_powers',
             'identified_gears': 'identified_gears',
             'times': 'times',
             'velocities': 'velocities',
@@ -219,7 +219,7 @@ def AT_gear():
             'accelerations': 'accelerations',
             'correct_gear': 'correct_gear',
             'engine_speeds_out': 'engine_speeds_out',
-            'gear_box_powers_out': 'gear_box_powers_out',
+            'motive_powers': 'motive_powers',
             'identified_gears': 'identified_gears',
             'engine_coolant_temperatures': 'engine_coolant_temperatures',
             'times': 'times',
@@ -243,7 +243,7 @@ def AT_gear():
             'accelerations': 'accelerations',
             'correct_gear': 'correct_gear',
             'engine_speeds_out': 'engine_speeds_out',
-            'gear_box_powers_out': 'gear_box_powers_out',
+            'motive_powers': 'motive_powers',
             'identified_gears': 'identified_gears',
             'times': 'times',
             'velocities': 'velocities',
@@ -267,7 +267,7 @@ def AT_gear():
             'accelerations': 'accelerations',
             'correct_gear': 'correct_gear',
             'engine_speeds_out': 'engine_speeds_out',
-            'gear_box_powers_out': 'gear_box_powers_out',
+            'motive_powers': 'motive_powers',
             'identified_gears': 'identified_gears',
             'time_cold_hot_transition': 'time_cold_hot_transition',
             'times': 'times',
@@ -454,22 +454,22 @@ def dt_vap():
     )
 
     dt_vap.add_data(
-        data_id='gear_box_powers_out',
-        description='Gear box power vector [kW].'
+        data_id='motive_powers',
+        description='Motive power [kW].'
     )
 
     # calibrate decision tree with velocity, acceleration & wheel power
     dt_vap.add_function(
         function=calibrate_gear_shifting_decision_tree,
         inputs=['identified_gears', 'velocities', 'accelerations',
-                'gear_box_powers_out'],
+                'motive_powers'],
         outputs=['DT_VAP'])
 
     # predict gears with decision tree with velocity, acceleration & wheel power
     dt_vap.add_function(
         function=prediction_gears_decision_tree,
         inputs=['correct_gear', 'DT_VAP', 'times', 'velocities',
-                'accelerations', 'gear_box_powers_out'],
+                'accelerations', 'motive_powers'],
         outputs=['gears'])
 
     # calculate engine speeds with predicted gears
@@ -575,8 +575,8 @@ def dt_vatp():
     )
 
     dt_vatp.add_data(
-        data_id='gear_box_powers_out',
-        description='Gear box power vector [kW].'
+        data_id='motive_powers',
+        description='Motive power [kW].'
     )
 
     # calibrate decision tree with velocity, acceleration, temperature
@@ -584,7 +584,7 @@ def dt_vatp():
     dt_vatp.add_function(
         function=calibrate_gear_shifting_decision_tree,
         inputs=['identified_gears', 'velocities', 'accelerations',
-                'engine_coolant_temperatures', 'gear_box_powers_out'],
+                'engine_coolant_temperatures', 'motive_powers'],
         outputs=['DT_VATP'])
 
     # predict gears with decision tree with velocity, acceleration, temperature
@@ -593,7 +593,7 @@ def dt_vatp():
         function=prediction_gears_decision_tree,
         inputs=['correct_gear', 'DT_VATP', 'times', 'velocities',
                 'accelerations', 'engine_coolant_temperatures',
-                'gear_box_powers_out'],
+                'motive_powers'],
         outputs=['gears'])
 
     # calculate engine speeds with predicted gears
@@ -632,14 +632,14 @@ def gspv():
     # calibrate corrected matrix velocity
     gspv.add_function(
         function=calibrate_gspv,
-        inputs=['identified_gears', 'velocities', 'gear_box_powers_out'],
+        inputs=['identified_gears', 'velocities', 'motive_powers'],
         outputs=['GSPV'])
 
     # predict gears with corrected matrix velocity
     gspv.add_function(
         function=prediction_gears_gsm,
         inputs=['correct_gear', 'GSPV', 'velocities', 'accelerations', 'times',
-                'gear_box_powers_out'],
+                'motive_powers'],
         outputs=['gears'])
 
     # calculate engine speeds with predicted gears
@@ -681,14 +681,14 @@ def gspv_cold_hot():
     gspv_cold_hot.add_function(
         function=calibrate_gspv_hot_cold,
         inputs=['times', 'identified_gears', 'velocities',
-                'gear_box_powers_out', 'time_cold_hot_transition'],
+                'motive_powers', 'time_cold_hot_transition'],
         outputs=['GSPV_Cold_Hot'])
 
     # predict gears with corrected matrix velocity
     gspv_cold_hot.add_function(
         function=prediction_gears_gsm_hot_cold,
         inputs=['correct_gear', 'GSPV_Cold_Hot', 'time_cold_hot_transition',
-                'times', 'velocities', 'accelerations', 'gear_box_powers_out'],
+                'times', 'velocities', 'accelerations', 'motive_powers'],
         outputs=['gears'])
 
     # calculate engine speeds with predicted gears

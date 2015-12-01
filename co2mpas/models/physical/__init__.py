@@ -386,6 +386,7 @@ def physical_calibration():
             'time_cold_hot_transition': 'time_cold_hot_transition',
             'vehicle_mass': 'vehicle_mass',
             'accelerations': 'accelerations',
+            'motive_powers': 'motive_powers',
             'engine_max_torque': 'engine_max_torque',
             'engine_speeds_out': 'engine_speeds_out',
             'final_drive_ratio': 'final_drive_ratio',
@@ -485,7 +486,7 @@ def physical_prediction():
             'engine_coolant_temperatures': 'engine_coolant_temperatures',
             'engine_max_power': 'engine_max_power',
             'time_cold_hot_transition': 'time_cold_hot_transition',
-
+            'motive_powers': 'motive_powers',
             'accelerations': 'accelerations',
             'engine_max_torque': 'engine_max_torque',
             'final_drive_ratio': 'final_drive_ratio',

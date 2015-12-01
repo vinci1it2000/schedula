@@ -290,7 +290,7 @@ def _comparison_model():
             'GSPV': 'GSPV',
             'GSPV_Cold_Hot': 'GSPV_Cold_Hot',
             'accelerations': 'accelerations',
-            'final_drive_powers_in': 'gear_box_powers_out',
+            'motive_powers': 'motive_powers',
             'engine_speeds_out': 'engine_speeds_out',
             'engine_coolant_temperatures': 'engine_coolant_temperatures',
             'time_cold_hot_transition': 'time_cold_hot_transition',
