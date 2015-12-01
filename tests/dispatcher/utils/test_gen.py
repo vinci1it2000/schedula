@@ -8,7 +8,7 @@
 
 from __future__ import division, print_function, unicode_literals
 
-from co2mpas.dispatcher.utils.gen import pairwise, Token, AttrDict
+from co2mpas.dispatcher.utils.gen import pairwise, Token
 import doctest
 import unittest
 
@@ -42,13 +42,3 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(list(pairwise([1, 2, 3])), [(1, 2), (2, 3)])
         pairwise([1, 2, 3, 4])
         self.assertEqual(list(pairwise([1])), [])
-
-    def test_attr_dict(self):
-        d = AttrDict({'a': 3, 'b': 4})
-        self.assertEqual(d.a, 'a')
-        self.assertEqual(d.pop('b'), 4)
-        c = d.copy()
-        self.assertEqual(d.popitem(), ('a', 3))
-        self.assertEqual(c.a, 'a')
-        c.clear()
-        self.assertEqual(c.__dict__, {})

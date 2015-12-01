@@ -32,7 +32,7 @@ from networkx import DiGraph, isolates
 from functools import partial
 from datetime import datetime
 
-from .utils.gen import AttrDict, counter, caller_name
+from .utils.gen import counter, caller_name
 from .utils.alg import add_edge_fun, remove_edge_fun, rm_cycles_iter, \
     get_unused_node_id, add_func_edges, replace_remote_link, get_sub_node
 from .utils.cst import EMPTY, START, NONE, SINK
@@ -222,8 +222,6 @@ class Dispatcher(object):
         #: The dispatcher's description.
         self.__doc__ = description
 
-        self.dmap.node = AttrDict(self.dmap.node)  # Replace dict with AttrDict.
-
         #: The function and data nodes of the dispatcher.
         self.nodes = self.dmap.node
 
@@ -242,7 +240,7 @@ class Dispatcher(object):
         self._pipe = []
 
         #: A dictionary with the dispatch outputs.
-        self.data_output = AttrDict()
+        self.data_output = {}
 
         #: A dictionary of distances from the `START` node.
         self.dist = {}
@@ -2416,7 +2414,7 @@ class Dispatcher(object):
         """
 
         # Clear previous outputs.
-        self.workflow, self.data_output = DiGraph(), AttrDict()
+        self.workflow, self.data_output = DiGraph(), {}
         self._visited, self._wf_add_edge = set(), add_edge_fun(self.workflow)
         self._wf_remove_edge = remove_edge_fun(self.workflow)
         self._wf_pred = self.workflow.pred

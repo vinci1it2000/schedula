@@ -18,14 +18,8 @@ __author__ = 'Vincenzo Arcidiacono'
 import inspect
 from itertools import tee, count
 
-try:
-    isidentifier = str.isidentifier
-except AttributeError:
-    import re
 
-    isidentifier = re.compile(r'[a-z_]\w*$', re.I).match
-
-__all__ = ['counter', 'Token', 'pairwise', 'AttrDict', 'caller_name']
+__all__ = ['counter', 'Token', 'pairwise', 'caller_name']
 
 if '__next__' in count.__dict__:
     def counter(start=0, step=1):
@@ -114,96 +108,6 @@ def pairwise(iterable):
     next(b, None)
 
     return zip(a, b)
-
-
-def _isidentifier(*args):
-    attr = set()
-
-    for a in args:
-        attr.update(a)
-
-    def my_isidentifier(self, key):
-        try:
-            return isidentifier(key) and key not in attr
-        except TypeError:
-            return False
-
-    return my_isidentifier
-
-
-class _Attr(str):
-    def __new__(cls, text, value=None):
-        self = str.__new__(cls, text)
-        self.value = value
-        return self
-
-    def __call__(self):
-        return self.value
-
-
-class AttrDict(dict):
-    """
-    It constructs a dictionary with extended attributes.
-
-    An extended attribute is a dictionary's attribute that has:
-
-        - `name` == `value` == `key`
-        - `attribute.__call__()` returns `value`
-
-    Example::
-
-        >>> o = object()
-        >>> d = AttrDict({'a': {'b': 3}, 'pop': 4, o: 5})
-        >>> d.a
-        'a'
-        >>> d.a()
-        {'b': 3}
-        >>> d.pop(o)
-        5
-        >>> d.pop('pop')
-        4
-        >>> c = d.copy()
-        >>> d.popitem()
-        ('a', {'b': 3})
-        >>> c.a
-        'a'
-        >>> c.a()
-        {'b': 3}
-        >>> c.clear()
-    """
-
-    isidentifier = _isidentifier(dict.__dict__, ['isidentifier'])
-
-    def __init__(self, *args, **kwargs):
-        super(AttrDict, self).__init__(*args, **kwargs)
-        self.__dict__ = {k: _Attr(k, v)
-                         for k, v in self.items()
-                         if self.isidentifier(k)}
-
-    def __setitem__(self, key, value):
-        super(AttrDict, self).__setitem__(key, value)
-        if self.isidentifier(key):
-            self.__dict__[key] = _Attr(key, value)
-
-    def __delitem__(self, key):
-        super(AttrDict, self).__delitem__(key)
-        self.__dict__.pop(key, None)
-
-    def pop(self, k, d=None):
-        self.__dict__.pop(k, None)
-        return super(AttrDict, self).pop(k, d)
-
-    def popitem(self):
-        k, v = super(AttrDict, self).popitem()
-        self.__dict__.pop(k, None)
-        return k, v
-
-    def clear(self):
-        super(AttrDict, self).clear()
-        self.__dict__ = {}
-
-    def copy(self):
-        return AttrDict(super(AttrDict, self).copy())
 
 
 def caller_name(skip=2):
