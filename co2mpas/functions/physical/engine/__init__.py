@@ -26,11 +26,11 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import GradientBoostingRegressor
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.optimize import fmin
-from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 from co2mpas.functions.physical.constants import *
 from co2mpas.functions.physical.utils import bin_split, reject_outliers, \
     clear_fluctuations, median_filter
-
+import co2mpas.dispatcher.utils as dsp_utl
 
 def get_full_load(fuel_type):
     """
@@ -238,9 +238,98 @@ def identify_upper_bound_engine_speed(
     return m + sd * 0.674490
 
 
+def _calibrate_engine_temperature_model(X, dT):
+    model = GradientBoostingRegressor(
+        random_state=0,
+        max_depth=2,
+        n_estimators=int(min(300, 0.25 * (len(dT) - 1))),
+        loss='huber',
+        alpha=0.99
+    )
+
+    predict = model.fit(X, dT).predict
+    n = X.shape[1] - 1
+
+    def temperature_model(delta_t, *args, initial_temperature=23):
+        t, temp = initial_temperature, [initial_temperature]
+        append = temp.append
+
+        for dt, a in zip(delta_t, zip(*args[:n])):
+            t += predict([(t,) + a])[0] * dt
+            append(t)
+
+        return np.array(temp)
+
+    return temperature_model
+
+
+def _calibrate_TPS(T, dT, gear_box_powers_in, gear_box_speeds_in):
+    X = np.array([T, gear_box_powers_in, gear_box_speeds_in]).T[:-1]
+    predict = GradientBoostingRegressor(
+        random_state=0,
+        max_depth=2,
+        n_estimators=int(min(300, 0.25 * (len(dT) - 1))),
+        loss='huber',
+        alpha=0.99
+    ).fit(X, dT).predict
+
+    def TPS(deltas_t, powers, speeds, *args, initial_temperature=23):
+        t, temp = initial_temperature, [initial_temperature]
+        append = temp.append
+
+        for dt, a in zip(deltas_t, zip(powers, speeds)):
+            t += predict([(t,) + a])[0] * dt
+            append(t)
+
+        return np.array(temp)
+
+    return TPS
+
+
+def _calibrate_TPSA(T, dT, gear_box_powers_in, gear_box_speeds_in, accelerations):
+    X = np.array([T, gear_box_powers_in, gear_box_speeds_in,
+                  accelerations]).T[:-1]
+    predict = GradientBoostingRegressor(
+        random_state=0,
+        max_depth=2,
+        n_estimators=int(min(300, 0.25 * (len(dT) - 1))),
+        loss='huber',
+        alpha=0.99
+    ).fit(X, dT).predict
+
+    def TPS(deltas_t, powers, speeds, vel, acc, *args, initial_temperature=23):
+        t, temp = initial_temperature, [initial_temperature]
+        append = temp.append
+
+        for dt, a in zip(deltas_t, zip(powers, speeds, acc)):
+            t += predict([(t,) + a])[0] * dt
+            append(t)
+
+        return np.array(temp)
+
+    return TPS
+
+
+def _get_samples(times, engine_coolant_temperatures, on_engine):
+    dt = np.diff(times)
+    dT = np.diff(engine_coolant_temperatures) / dt
+
+    i = max(np.argmax(on_engine), np.argmax(times > 10), np.argmax(dT != 0))
+    dt, dT = dt[i:], dT[i:]
+
+    if sum(dT == 0) / len(dT) > 0.5:
+        T = median_filter(
+            times, engine_coolant_temperatures, TIME_WINDOW, np.mean)[i:]
+        dT = np.array(np.diff(T) / dt, np.float64, order='C')
+    else:
+        T = engine_coolant_temperatures[i:]
+        dT = np.array(dT, np.float64, order='C')
+    return T, dT, dt, i
+
+
 def calibrate_engine_temperature_regression_model(
-        times, engine_coolant_temperatures, gear_box_powers_in,
-        gear_box_speeds_in, on_engine):
+        times, engine_coolant_temperatures, velocities, accelerations,
+        gear_box_powers_in, gear_box_speeds_in, on_engine):
     """
     Calibrates an engine temperature regression model to predict engine
     temperatures.
@@ -269,38 +358,29 @@ def calibrate_engine_temperature_regression_model(
     :rtype: function
     """
 
-    i = max(np.argmax(on_engine), np.argmax(times > 10))
-    dt = np.diff(times[i:])
-    dT = np.diff(engine_coolant_temperatures[i:]) / dt
+    T, dT, dt, i = _get_samples(times, engine_coolant_temperatures, on_engine)
+    p, s = gear_box_powers_in[i:], gear_box_speeds_in[i:]
+    v, a = velocities[i:], accelerations[i:]
 
-    if sum((dT == 0) | (dT == 1) | (dT == -1)) / len(dT) > 0.5:
-        temp = median_filter(
-            times, engine_coolant_temperatures, TIME_WINDOW, np.mean)[i:]
-        dT = np.array(np.diff(temp) / dt, np.float64, order='C')
-    else:
-        temp = engine_coolant_temperatures[i:]
-        dT = np.array(dT, np.float64, order='C')
+    models = [
+        _calibrate_TPS(T, dT, p, s),
+        _calibrate_TPSA(T, dT, p, s, a)
+    ]
 
-    model = GradientBoostingRegressor(
-        random_state=0,
-        max_depth=2,
-        n_estimators=int(min(300, 0.25 * (len(temp) - 1))),
-        loss='huber',
-        alpha=0.99
-    )
+    counter = dsp_utl.counter()
 
-    X = np.array([temp, gear_box_powers_in[i:], gear_box_speeds_in[i:]])
-    predict = model.fit(X.T[:-1], dT).predict
+    def error(model):
+        pred_T = model(dt, p, s, v, a, initial_temperature=T[0])
+        return (mean_squared_error(T, pred_T), counter()), model
 
-    def engine_temperature_regression_model(prev_temp, power, speed, delta_t):
-        return prev_temp + predict([[prev_temp, power, speed]])[0] * delta_t
+    models = [(error(m), m) for m in models]
 
-    return engine_temperature_regression_model
+    return min(models)[-1]
 
 
 def predict_engine_coolant_temperatures(
-        model, times, gear_box_powers_in, gear_box_speeds_in,
-        initial_temperature):
+        model, times, velocities, accelerations, gear_box_powers_in,
+        gear_box_speeds_in, initial_temperature):
     """
     Predicts the engine temperature [°C].
 
@@ -325,14 +405,11 @@ def predict_engine_coolant_temperatures(
     :rtype: numpy.array
     """
 
-    t, temp = initial_temperature, [initial_temperature]
-    append = temp.append
-    dt = np.diff(times)
-    for a in zip(gear_box_powers_in[:-1], gear_box_speeds_in[:-1], dt):
-        t = model(t, *a)
-        append(t)
+    T = model(np.diff(times), gear_box_powers_in, gear_box_speeds_in,
+              velocities, accelerations,
+              initial_temperature=initial_temperature)
 
-    return np.array(temp)
+    return T
 
 
 def identify_thermostat_engine_temperature(engine_coolant_temperatures):

@@ -97,6 +97,7 @@ def select_inputs_for_prediction(data):
         'f2',
         'initial_temperature',
         'upper_bound_engine_speed',
+        'use_dt_gear_shifting',
         'road_loads',
         'vehicle_mass',
     ]

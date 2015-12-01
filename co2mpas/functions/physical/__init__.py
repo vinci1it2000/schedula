@@ -88,6 +88,8 @@ def _comparison_model():
             'times': 'times',
             'engine_temperature_regression_model':
                 'engine_temperature_regression_model',
+            'velocities': 'velocities',
+            'accelerations': 'accelerations',
             'gear_box_powers_in': 'gear_box_powers_in',
             'gear_box_speeds_in': 'gear_box_speeds_in',
             'initial_temperature': 'initial_engine_temperature'
