@@ -52,7 +52,6 @@ def combine_dicts(*dicts, copy=False):
         [('a', 1), ('b', 2), ('c', 3)]
     """
 
-
     if len(dicts) == 1:  # Only one input dict.
         cd = dicts[0]
     else:
