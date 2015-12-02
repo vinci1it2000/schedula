@@ -13,7 +13,8 @@ import logging
 import numpy as np
 import pandas as pd
 import re
-
+from co2mpas._version import version
+import datetime
 
 log = logging.getLogger(__name__)
 
@@ -39,7 +40,7 @@ def parse_name(name, _standard_names=None):
     return name.capitalize()
 
 
-def write_output(output, file_name, sheet_names, data_descriptions):
+def write_output(output, file_name, sheet_names, data_descriptions, start_time):
     """
     Write the output in a excel file.
 
@@ -61,6 +62,10 @@ def write_output(output, file_name, sheet_names, data_descriptions):
     :param data_descriptions:
         Dictionary with data description.
     :type data_descriptions: dict
+
+    :param start_time:
+        When the vehicle simulation has started.
+    :type start_time: datetime.datetime
     """
 
     log.info("Writing output-file: %s", file_name)
@@ -94,6 +99,21 @@ def write_output(output, file_name, sheet_names, data_descriptions):
 
     series = pd.concat([series_headers, series])
     series.to_excel(writer, sheet_names[1], header=False, index=False)
+
+    _co2mpas_info(writer, start_time, sheet_names[2])
+
+
+def _co2mpas_info(writer, start_time, sheet_name='CO2MPAS_info'):
+
+    time_elapsed = (datetime.datetime.today() - start_time).total_seconds()
+
+    p = pd.DataFrame([
+        ('CO2MPAS version', version),
+        ('Simulation started', start_time.strftime('%Y/%m/%d-%H:%M:%S')),
+        ('Time elapsed', '%.3f sec' % time_elapsed)],
+        columns=['Parameter', 'Value'])
+
+    p.to_excel(writer, sheet_name, index=False)
 
 
 def check_writeable(data):

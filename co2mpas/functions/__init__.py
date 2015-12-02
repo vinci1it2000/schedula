@@ -36,7 +36,7 @@ from networkx.utils.decorators import open_file
 import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_absolute_error, accuracy_score
-from .write_outputs import check_writeable
+from .write_outputs import check_writeable, _co2mpas_info
 
 
 log = logging.getLogger(__name__)
@@ -144,6 +144,9 @@ def process_folder_files(
 
     for k, v in sorted(summary.items()):
         pd.DataFrame.from_records(v).to_excel(writer, k)
+
+    _co2mpas_info(writer, start_time)
+
     writer.close()
     time_elapsed = (datetime.datetime.today() - start_time).total_seconds()
     log.info('Done! [%s sec]', time_elapsed)
@@ -239,6 +242,8 @@ def _process_folder_files(
         inputs = _read_model_from_cache(fpath, model_builder)
 
         update_inputs(inputs, fname)
+
+        inputs['start_time'] = datetime.datetime.today()
 
         res = model.dispatch(inputs=inputs)
 

@@ -376,7 +376,7 @@ def write_outputs(prediction_WLTP=False):
 
     write_outputs.add_data(
         data_id='output_sheet_names',
-        default_value=('params', 'series'),
+        default_value=('params', 'series', 'CO2MPAS_info'),
         description='Names of xl-sheets to save parameters and data series.'
     )
 
@@ -389,7 +389,7 @@ def write_outputs(prediction_WLTP=False):
         function=write_output,
         inputs=['wltp_precondition_outputs',
                 'wltp_precondition_output_file_name', 'output_sheet_names',
-                'data_descriptions'],
+                'data_descriptions', 'start_time'],
     )
 
     ############################################################################
@@ -401,7 +401,7 @@ def write_outputs(prediction_WLTP=False):
         function=write_output,
         inputs=['calibration_wltp_h_outputs',
                 'calibration_wltp_h_output_file_name', 'output_sheet_names',
-                'data_descriptions'],
+                'data_descriptions', 'start_time'],
     )
 
     if prediction_WLTP:
@@ -410,7 +410,7 @@ def write_outputs(prediction_WLTP=False):
             function=write_output,
             inputs=['prediction_wltp_h_outputs',
                     'prediction_wltp_h_output_file_name', 'output_sheet_names',
-                    'data_descriptions'],
+                    'data_descriptions', 'start_time'],
         )
 
     ############################################################################
@@ -422,7 +422,7 @@ def write_outputs(prediction_WLTP=False):
         function=write_output,
         inputs=['calibration_wltp_l_outputs',
                 'calibration_wltp_l_output_file_name', 'output_sheet_names',
-                'data_descriptions'],
+                'data_descriptions', 'start_time'],
     )
 
     if prediction_WLTP:
@@ -431,7 +431,7 @@ def write_outputs(prediction_WLTP=False):
             function=write_output,
             inputs=['prediction_wltp_l_outputs',
                     'prediction_wltp_l_output_file_name', 'output_sheet_names',
-                    'data_descriptions'],
+                    'data_descriptions', 'start_time'],
         )
 
     ############################################################################
@@ -442,7 +442,7 @@ def write_outputs(prediction_WLTP=False):
         function_id='save_nedc_outputs',
         function=write_output,
         inputs=['prediction_nedc_outputs', 'prediction_nedc_output_file_name',
-                'output_sheet_names', 'data_descriptions'],
+                'output_sheet_names', 'data_descriptions', 'start_time'],
     )
 
     return write_outputs
@@ -524,7 +524,8 @@ def vehicle_processing_model(
     if with_output_file:
         vehicle_processing_model.add_dispatcher(
             dsp=write_outputs(prediction_WLTP=prediction_WLTP),
-            inputs={k: k for k in chain(co2mpas_outputs, output_file_names)},
+            inputs={k: k for k in chain(co2mpas_outputs, output_file_names,
+                                        ['start_time'])},
             outputs={dsp_utl.SINK: dsp_utl.SINK}
         )
 
