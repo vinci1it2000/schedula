@@ -47,30 +47,6 @@ log = logging.getLogger(__name__)
 __all__ = ['Dispatcher']
 
 
-def _warning(dsp, raises):
-    """
-    Returns a function that handle the error messages.
-
-    :param raises:
-        If True the dispatcher interrupt the dispatch when an error occur,
-        otherwise it logs a warning.
-    :type: bool
-
-    :return:
-        A function that handle the error messages.
-    :rtype: function
-    """
-
-    if raises:
-        def warning(*args, **kwargs):
-            raise DispatcherError(dsp, *args, **kwargs)
-    else:
-        def warning(*args, **kwargs):
-            kwargs['exc_info'] = kwargs.get('exc_info', 1)
-            log.warning(*args, **kwargs)
-    return warning
-
-
 class Dispatcher(object):
     """
     It provides a data structure to process a complex system of functions.
@@ -201,7 +177,7 @@ class Dispatcher(object):
         :param default_values:
             Data node default values. These will be used as input if it is not
             specified as inputs in the ArciDispatch algorithm.
-        :type default_values: dict, optional
+        :type default_values: dict[str, dict], optional
 
         :param raises:
             If True the dispatcher interrupt the dispatch when an error occur,
@@ -245,8 +221,8 @@ class Dispatcher(object):
         #: A dictionary of distances from the `START` node.
         self.dist = {}
 
-        #: A function that raises or logs warnings.
-        self.warning = _warning(self, raises)
+        #: If True the dispatcher interrupt the dispatch when an error occur.
+        self.raises = raises
 
         #: A set of visited nodes from the dispatch.
         self._visited = set()
@@ -294,7 +270,7 @@ class Dispatcher(object):
         :param default_value:
             Data node default value. This will be used as input if it is not
             specified as inputs in the ArciDispatch algorithm.
-        :type default_value: object, optional
+        :type default_value: T, optional
 
         :param initial_dist:
             Initial distance in the ArciDispatch algorithm when the data node
@@ -326,8 +302,8 @@ class Dispatcher(object):
         :type callback: function, optional
 
         :param remote_links:
-            List of parent or child dispatcher nodes e.g., [(dsp_id, dsp), ...].
-        :type remote_links: [[str, Dispatcher], ...], optional
+            List of parent or child dispatcher nodes e.g., [[dsp_id, dsp], ...].
+        :type remote_links: list[[str, Dispatcher]], optional
 
         :param description:
             Data node's description.
@@ -339,9 +315,10 @@ class Dispatcher(object):
 
         :return:
             Data node id.
-        :rtype: object
+        :rtype: str
 
-        .. seealso:: :func:`add_function`, :func:`add_from_lists`
+        .. seealso:: :func:`add_function`,  :func:`add_dispatcher`,
+           :func:`add_from_lists`
 
         \***********************************************************************
 
@@ -475,13 +452,13 @@ class Dispatcher(object):
             Edge weights from data nodes to the function node.
             It is a dictionary (key=data node id) with the weight coefficients
             used by the dispatch algorithm to estimate the minimum workflow.
-        :type inp_weight: dict, optional
+        :type inp_weight: dict[str, float | int], optional
 
         :param out_weight:
             Edge weights from the function node to data nodes.
             It is a dictionary (key=data node id) with the weight coefficients
             used by the dispatch algorithm to estimate the minimum workflow.
-        :type out_weight: dict, optional
+        :type out_weight: dict[str, float | int], optional
 
         :param description:
             Function node's description.
@@ -493,9 +470,10 @@ class Dispatcher(object):
 
         :return:
             Function node id.
-        :rtype: object
+        :rtype: str
 
-        .. seealso:: :func:`add_data`, :func:`add_from_lists`
+        .. seealso:: :func:`add_data`, :func:`add_dispatcher`,
+           :func:`add_from_lists`
 
         \***********************************************************************
 
@@ -589,22 +567,25 @@ class Dispatcher(object):
         return fun_id  # Return function node id.
 
     def add_dispatcher(self, dsp, inputs, outputs, dsp_id=None,
-                       input_domain=None, weight=None, weight_from=None,
+                       input_domain=None, weight=None, inp_weight=None,
                        description=None, include_defaults=False, **kwargs):
         """
         Add a single sub-dispatcher node to dispatcher.
 
         :param dsp:
-            Data node estimation function.
+            Child dispatcher that is added as sub-dispatcher node to the parent
+            dispatcher.
         :type dsp: Dispatcher
 
         :param inputs:
-            Ordered arguments (i.e., data node ids) needed by the function.
-        :type inputs: dict
+            Inputs mapping. Data node ids from parent dispatcher to child
+            sub-dispatcher.
+        :type inputs: dict[str, str]
 
         :param outputs:
-            Ordered results (i.e., data node ids) returned by the function.
-        :type outputs: dict
+            Outputs mapping. Data node ids from child sub-dispatcher to parent
+            dispatcher.
+        :type outputs: dict[str, str]
 
         :param dsp_id:
             Sub-dispatcher node id.
@@ -613,21 +594,24 @@ class Dispatcher(object):
 
         :param input_domain:
             A function that checks if input values satisfy the function domain.
-            This can be any function that takes the same inputs of the function
-            and returns True if input values satisfy the domain, otherwise
-            False. In this case the dispatch algorithm doesn't pass on the node.
-        :type input_domain: function, optional
+            This can be any function that takes the a dictionary with the inputs
+            of the sub-dispatcher node and returns True if input values satisfy
+            the domain, otherwise False.
+
+            .. note:: This function is invoked every time that a data node reach
+               the sub-dispatcher node.
+        :type input_domain: (dict) -> bool, optional
 
         :param weight:
             Node weight. It is a weight coefficient that is used by the dispatch
             algorithm to estimate the minimum workflow.
         :type weight: float, int, optional
 
-        :param weight_from:
-            Edge weights from data nodes to the function node.
+        :param inp_weight:
+            Edge weights from data nodes to the sub-dispatcher node.
             It is a dictionary (key=data node id) with the weight coefficients
             used by the dispatch algorithm to estimate the minimum workflow.
-        :type weight_from: dict, optional
+        :type inp_weight: dict[str, int | float], optional
 
         :param description:
             Sub-dispatcher node's description.
@@ -643,10 +627,11 @@ class Dispatcher(object):
         :type kwargs: keyword arguments, optional
 
         :return:
-            Function node id.
-        :rtype: object
+            Sub-dispatcher node id.
+        :rtype: str
 
-        .. seealso:: :func:`add_data`, :func:`add_from_lists`
+        .. seealso:: :func:`add_data`, :func:`add_function`,
+           :func:`add_from_lists`
 
         \***********************************************************************
 
@@ -655,29 +640,29 @@ class Dispatcher(object):
         .. testsetup::
             >>> dsp = Dispatcher(name='Dispatcher')
 
-        Add a function node::
+        Create a sub-dispatcher::
 
-            >>> def my_function(a, b):
-            ...     c = a + b
-            ...     d = a - b
-            ...     return c, d
-            ...
-            >>> dsp.add_function(function=my_function, inputs=['a', 'b'],
-            ...                  outputs=['c', 'd'])
-            '...dispatcher:my_function'
+            >>> sub_dsp = Dispatcher()
+            >>> sub_dsp.add_function('max', max, ['a', 'b'], ['c'])
+            'max'
 
-        Add a function node with domain::
+        Add the sub-dispatcher to the parent dispatcher::
 
-            >>> from math import log
-            >>> def my_log(a, b):
-            ...     return log(b - a)
+            >>> dsp.add_dispatcher(dsp_id='Sub-Dispatcher', dsp=sub_dsp,
+            ...                    inputs={'A': 'a', 'B': 'b'},
+            ...                    outputs={'c': 'C'})
+            'Sub-Dispatcher'
+
+        Add a sub-dispatcher node with domain::
+
+
+            >>> def my_domain(kwargs):
+            ...     return kwargs['C'] > 3
             ...
-            >>> def my_domain(a, b):
-            ...     return a < b
-            ...
-            >>> dsp.add_function(function=my_log, inputs=['a', 'b'],
-            ...                  outputs=['e'], input_domain=my_domain)
-            '...dispatcher:my_log'
+            >>> dsp.add_dispatcher(dsp_id='Sub-Dispatcher with domain',
+            ...                    dsp=sub_dsp, inputs={'C': 'a', 'D': 'b'},
+            ...                    outputs={'c': 'E'}, input_domain=my_domain)
+            'Sub-Dispatcher with domain'
         """
 
         if not dsp_id:  # Get the dsp id.
@@ -688,7 +673,7 @@ class Dispatcher(object):
 
         # Set zero as default input distances.
         _weight_from = dict.fromkeys(inputs.keys(), 0.0)
-        _weight_from.update(weight_from or {})
+        _weight_from.update(inp_weight or {})
 
         # Return dispatcher node id.
         dsp_id = self.add_function(
@@ -725,22 +710,22 @@ class Dispatcher(object):
 
         :param data_list:
             It is a list of data node kwargs to be loaded.
-        :type data_list: list, optional
+        :type data_list: list[dict], optional
 
         :param fun_list:
             It is a list of function node kwargs to be loaded.
-        :type fun_list: list, optional
+        :type fun_list: list[dict], optional
 
         :param dsp_list:
             It is a list of sub-dispatcher node kwargs to be loaded.
-        :type dsp_list: list, optional
+        :type dsp_list: list[dict], optional
 
         :returns:
 
             - Data node ids.
             - Function node ids.
             - Sub-dispatcher node ids.
-        :rtype: (list, list, list)
+        :rtype: (list[str], list[str], list[str])
 
         .. seealso:: :func:`add_data`, :func:`add_function`,
            :func:`add_dispatcher`
@@ -815,7 +800,9 @@ class Dispatcher(object):
 
         :param value:
             Data node default value.
-        :type value: object, optional
+
+            .. note:: If `EMPTY` the previous default value is removed.
+        :type value: T, optional
 
         :param initial_dist:
             Initial distance in the ArciDispatch algorithm when the data node
@@ -869,8 +856,8 @@ class Dispatcher(object):
         :type data_id: str
 
         :param remote_link:
-            Parent or child dispatcher (id, dsp).
-        :type remote_link: [str, Dispatcher]
+            Parent or child dispatcher and its node id (id, dsp).
+        :type remote_link: [str, Dispatcher], optional
 
         :param is_parent:
             If True the link is inflow (parent), otherwise is outflow (child).
@@ -923,18 +910,18 @@ class Dispatcher(object):
 
         :param nodes_bunch:
             A container of node ids which will be iterated through once.
-        :type nodes_bunch: list, iterable
+        :type nodes_bunch: list[str], iterable
 
         :param edges_bunch:
             A container of edge ids that will be removed.
-        :type edges_bunch: list, iterable, optional
+        :type edges_bunch: list[(str, str)], iterable, optional
 
         :param update_links:
             If True the sub-dispatcher remote links are updated.
         :type update_links: bool, optional
 
         :return:
-            A sub-dispatcher.
+            A dispatcher.
         :rtype: Dispatcher
 
         .. seealso:: :func:`get_sub_dsp_from_workflow`
@@ -1027,7 +1014,7 @@ class Dispatcher(object):
         :param sources:
             Source nodes for the breadth-first-search.
             A container of nodes which will be iterated through once.
-        :type sources: iterable
+        :type sources: list[str], iterable
 
         :param graph:
             A directed graph where evaluate the breadth-first-search.
@@ -1191,10 +1178,6 @@ class Dispatcher(object):
         """
         Returns a sub node of a dispatcher.
 
-        :param dsp:
-             A dispatcher object or a sub dispatch function.
-        :type dsp: dispatcher.Dispatcher, SubDispatch, SubDispatchFunction
-
         :param node_ids:
             A sequence of node ids or a single node id. The id order identifies
             a dispatcher sub-level.
@@ -1218,11 +1201,15 @@ class Dispatcher(object):
             description.
 
             When 'output', returns the data node output.
+
+            When 'default_value', returns the data node default value.
+
+            When `None`, returns the node attributes.
         :type node_attr: str
 
         :return:
-            A sub node of a dispatcher and its real path.
-        :rtype: tuple
+            Node attributes and its real path.
+        :rtype: (T, (str, ...))
 
         **Example**:
 
@@ -1268,7 +1255,7 @@ class Dispatcher(object):
 
         :return:
             All data nodes of the dispatcher.
-        :rtype: dict
+        :rtype: dict[str, dict]
         """
 
         return {k: v for k, v in self.nodes.items() if v['type'] == 'data'}
@@ -1280,8 +1267,9 @@ class Dispatcher(object):
 
         :return:
             All data function of the dispatcher.
-        :rtype: dict
+        :rtype: dict[str, dict]
         """
+
         return {k: v for k, v in self.nodes.items() if v['type'] == 'function'}
 
     @property
@@ -1291,8 +1279,9 @@ class Dispatcher(object):
 
         :return:
             All sub-dispatcher nodes of the dispatcher.
-        :rtype: dict
+        :rtype: dict[str, dict]
         """
+
         return {k: v for k, v in self.nodes.items() if v['type'] == 'dispatcher'}
 
     def copy(self):
@@ -1409,7 +1398,7 @@ class Dispatcher(object):
 
         :param sources:
             Input data nodes.
-        :type sources: iterable
+        :type sources: list[str], iterable
 
         :return:
             A new dispatcher without the unresolved cycles.
@@ -1512,11 +1501,11 @@ class Dispatcher(object):
 
         :param inputs:
             Input data values.
-        :type inputs: dict, iterable, optional
+        :type inputs: dict[str, T], list[str], iterable, optional
 
         :param outputs:
             Ending data nodes.
-        :type outputs: iterable, optional
+        :type outputs: list[str], iterable, optional
 
         :param cutoff:
             Depth to stop the search.
@@ -1524,7 +1513,7 @@ class Dispatcher(object):
 
         :param inputs_dist:
             Initial distances of input data nodes.
-        :type inputs_dist: float, int, optional
+        :type inputs_dist: dict[str, int | float], optional
 
         :param wildcard:
             If True, when the data node is used as input and target in the
@@ -1533,11 +1522,14 @@ class Dispatcher(object):
         :type wildcard: bool, optional
 
         :param no_call:
-            If True data node estimation function is not used.
+            If True data node estimation function is not used and the input
+            values are not used.
         :type no_call: bool, optional
 
         :param shrink:
             If True the dispatcher is shrink before the dispatch.
+
+            .. seealso:: :func:`shrink_dsp`
         :type shrink: bool, optional
 
         :param rm_unused_nds:
@@ -1550,8 +1542,6 @@ class Dispatcher(object):
             - workflow: A directed graph with data node estimations.
             - data_output: Dictionary of estimated data node outputs.
         :rtype: (DiGraph, AttrDict)
-
-        .. seealso:: :func:`shrink_dsp`
 
         \***********************************************************************
 
@@ -1655,11 +1645,11 @@ class Dispatcher(object):
 
         :param inputs:
             Input data nodes.
-        :type inputs: iterable, optional
+        :type inputs: list[str], iterable, optional
 
         :param outputs:
             Ending data nodes.
-        :type outputs: iterable, optional
+        :type outputs: list[str], iterable, optional
 
         :param cutoff:
             Depth to stop the search.
@@ -1667,7 +1657,7 @@ class Dispatcher(object):
 
         :param inputs_dist:
             Initial distances of input data nodes.
-        :type inputs_dist: float, int, optional
+        :type inputs_dist: dict[str, int | float], optional
 
         :param wildcard:
             If True, when the data node is used as input and target in the
@@ -1899,7 +1889,7 @@ class Dispatcher(object):
 
         :return:
             A function to terminate the ArciDispatch algorithm.
-        :rtype: function
+        :rtype: (str) -> bool
         """
 
         if self._targets:
@@ -1938,7 +1928,7 @@ class Dispatcher(object):
 
         :return:
             A function to stop the search.
-        :rtype: function
+        :rtype: (int | float) -> bool
         """
 
         if self._cutoff is not None:
@@ -1975,11 +1965,11 @@ class Dispatcher(object):
 
         :param edge:
             Edge attributes.
-        :type edge: dict
+        :type edge: dict[str, int | float]
 
         :param node_out:
             Node attributes.
-        :type node_out: dict
+        :type node_out: dict[str, int | float]
 
         :return:
             Edge length.
@@ -2006,7 +1996,7 @@ class Dispatcher(object):
 
             - node estimations with minimum distance from the starting node, and
             - `wait_inputs` flag
-        :rtype: (dict, bool)
+        :rtype: (dict[str, T], bool)
         """
 
         # Get data node estimations.
@@ -2041,7 +2031,7 @@ class Dispatcher(object):
 
         :return:
             A function to stop the search.
-        :rtype: function
+        :rtype: (bool, str) -> bool
         """
 
         wf_pred, pred = self._wf_pred, self._pred  # Namespace shortcuts.
@@ -2085,16 +2075,16 @@ class Dispatcher(object):
 
         :param inputs:
             Input data nodes.
-        :type inputs: iterable
+        :type inputs: list[str], iterable, optional
 
         :param outputs:
             Ending data nodes.
-        :type outputs: iterable
+        :type outputs: list[str], iterable, optional
         """
 
         w = self._wildcards = set()  # Clear wildcards.
 
-        if outputs:
+        if outputs and inputs:
             node = self.nodes  # Namespace shortcut.
 
             # Input data nodes that are in output_targets.
@@ -2145,11 +2135,11 @@ class Dispatcher(object):
 
         :param inputs:
             Input data nodes values.
-        :type inputs: iterable, None
+        :type inputs: dict[str, T], list[str], iterable, None
 
         :param initial_dist:
             Data node initial distances in the ArciDispatch algorithm.
-        :type initial_dist: dict, None
+        :type initial_dist: dict[str, int | float], None
 
         :param no_call:
             If True data node value is not None.
@@ -2157,7 +2147,7 @@ class Dispatcher(object):
 
         :return:
             Inputs' initial values.
-        :rtype: dict
+        :rtype: (dict[str, T], dict[str, int | float])
         """
 
         if no_call:
@@ -2221,7 +2211,7 @@ class Dispatcher(object):
 
         :param node_attr:
             Dictionary of node attributes.
-        :type node_attr: dict
+        :type node_attr: dict[str, T]
 
         :param no_call:
             If True data node estimations are not used.
@@ -2248,7 +2238,7 @@ class Dispatcher(object):
                         # Some error occurs.
                         msg = 'Estimation error at data node ({}) ' \
                               'due to: {}'.format(node_id, ex)
-                        self.warning(msg)  # Raise a Warning.
+                        self._warning(msg)  # Raise a Warning.
                         return False
                 else:
                     # Data node that has just one estimation value.
@@ -2265,7 +2255,7 @@ class Dispatcher(object):
                     # Is missing estimation function of data node or some error.
                     msg = 'Estimation error at data node ({}) ' \
                           'due to: {}'.format(node_id, ex)
-                    self.warning(msg)  # Raise a Warning
+                    self._warning(msg)  # Raise a Warning
                     return False
 
             if 'callback' in node_attr:  # Invoke callback func of data node.
@@ -2275,7 +2265,7 @@ class Dispatcher(object):
                 except Exception as ex:
                     msg = 'Callback error at data node ({}) ' \
                           'due to: {}'.format(node_id, ex)
-                    self.warning(msg)  # Raise a Warning.
+                    self._warning(msg)  # Raise a Warning.
 
             if value is not NONE:  # Set data output.
                 self.data_output[node_id] = value
@@ -2313,7 +2303,7 @@ class Dispatcher(object):
 
         :param node_attr:
             Dictionary of node attributes.
-        :type node_attr: dict
+        :type node_attr: dict[str, T]
 
         :param no_call:
             If True data node estimation function is not used.
@@ -2375,7 +2365,7 @@ class Dispatcher(object):
             # Is missing function of the node or args are not in the domain.
             msg = 'Estimation error at function node ({}) ' \
                   'due to: {}'.format(node_id, ex)
-            self.warning(msg)  # Raise a Warning.
+            self._warning(msg)  # Raise a Warning.
             return False
 
         for k, v in zip(o_nds, res):  # Set workflow.
@@ -2390,16 +2380,16 @@ class Dispatcher(object):
 
         :param inputs:
             Input data nodes.
-        :type inputs: iterable
+        :type inputs: dict[str, int | float], list[str], iterable
 
         :param input_value:
             A function that return the input value of a given data node.
             If input_values = {'a': 'value'} then 'value' == input_value('a')
-        :type input_value: function
+        :type input_value: (str) -> T
 
         :param inputs_dist:
             Initial distances of input data nodes.
-        :type inputs_dist: float, int
+        :type inputs_dist: dict[str, int | float], optional
 
         :param no_call:
             If True data node estimation function is not used.
@@ -2410,7 +2400,8 @@ class Dispatcher(object):
 
                 - fringe: Nodes not visited, but seen.
                 - check_cutoff: Check the cutoff limit.
-        :rtype: (list, function)
+        :rtype: (list[(float | int, bool, (str, Dispatcher)],
+                (int | float) -> bool)
         """
 
         # Clear previous outputs.
@@ -2450,11 +2441,11 @@ class Dispatcher(object):
 
         :param fringe:
             Heapq of closest available nodes.
-        :type fringe: list
+        :type fringe: list[(float | int, bool, (str, Dispatcher)]
 
         :param check_cutoff:
             Check the cutoff limit.
-        :type check_cutoff: function
+        :type check_cutoff: (int | float) -> bool
 
         :param no_call:
             If True data node estimation function is not used.
@@ -2466,7 +2457,7 @@ class Dispatcher(object):
 
         :param value:
             Data node value e.g., {'value': val}.
-        :type value: dict
+        :type value: dict[str, T]
 
         :param initial_dist:
             Data node initial distance in the ArciDispatch algorithm.
@@ -2534,11 +2525,11 @@ class Dispatcher(object):
 
         :param inputs:
             Input data values.
-        :type inputs: dict
+        :type inputs: dict[str, T]
 
         :param outputs:
             Ending data nodes.
-        :type outputs: iterable
+        :type outputs: list[str], iterable
 
         :param wildcard:
             If True, when the data node is used as input and target in the
@@ -2552,7 +2543,7 @@ class Dispatcher(object):
 
         :param inputs_dist:
             Initial distances of input data nodes.
-        :type inputs_dist: float, int, optional
+        :type inputs_dist: dict[str, int | float], optional
 
         :param no_call:
             If True data node estimation function is not used.
@@ -2571,7 +2562,8 @@ class Dispatcher(object):
                 - check_cutoff: Check the cutoff limit.
                 - no_call.
                 - remove_unused_func.
-        :rtype: (dict, list, function, bool, bool)
+        :rtype: (dict[str, T], list[(float | int, bool, (str, Dispatcher)],
+                 (int | float) -> bool, bool, bool)
         """
 
         # Get inputs and initial distances.
@@ -2609,11 +2601,11 @@ class Dispatcher(object):
 
         :param fringe:
             Heapq of closest available nodes.
-        :type fringe: list
+        :type fringe: list[(float | int, bool, (str, Dispatcher)]
 
         :param check_cutoff:
             Check the cutoff limit.
-        :type check_cutoff: function
+        :type check_cutoff: (int | float) -> bool
 
         :param no_call:
             If True data node estimation function is not used.
@@ -2628,7 +2620,7 @@ class Dispatcher(object):
 
             - workflow: A directed graph with data node estimations.
             - data_output: Dictionary of estimated data node outputs.
-        :rtype: (DiGraph, AttrDict)
+        :rtype: (DiGraph, dict[str, T])
         """
 
         # Initialized and terminated dispatcher sets.
@@ -2683,11 +2675,11 @@ class Dispatcher(object):
 
         :param fringe:
             Heapq of closest available nodes.
-        :type fringe: list
+        :type fringe: list[(float | int, bool, (str, Dispatcher)]
 
         :param check_cutoff:
             Check the cutoff limit.
-        :type check_cutoff: function
+        :type check_cutoff: (int | float) -> bool
 
         :param no_call:
             If True data node estimation function is not used.
@@ -2744,7 +2736,7 @@ class Dispatcher(object):
 
         :param fringe:
             Heapq of closest available nodes.
-        :type fringe: list
+        :type fringe: list[(float | int, bool, (str, Dispatcher)]
 
         :param dist:
             Distance from the starting node.
@@ -2804,15 +2796,15 @@ class Dispatcher(object):
 
         :param fringe:
             Heapq of closest available nodes.
-        :type fringe: list
+        :type fringe: list[(float | int, bool, (str, Dispatcher)]
 
         :param outputs:
             Ending data nodes.
-        :type outputs: iterable
+        :type outputs: list[str], iterable
 
         :param no_call:
             If True data node estimation function is not used.
-        :type no_call: bool, optional
+        :type no_call: bool
         """
 
         # Initialize as sub-dispatcher.
@@ -2832,7 +2824,7 @@ class Dispatcher(object):
 
         :param fringe:
             Heapq of closest available nodes.
-        :type fringe: list
+        :type fringe: list[(float | int, bool, (str, Dispatcher)]
 
         :param dist:
             Distance from the starting node.
@@ -2840,7 +2832,7 @@ class Dispatcher(object):
 
         :param check_dsp:
             A function to check if the remote dispatcher is ok.
-        :type check_dsp: function
+        :type check_dsp: (Dispatcher) -> bool
         """
 
         node = self.nodes[node_id]  # Namespace shortcut.
@@ -2877,11 +2869,11 @@ class Dispatcher(object):
 
         :param fringe:
             Heapq of closest available nodes.
-        :type fringe: list
+        :type fringe: list[(float | int, bool, (str, Dispatcher)]
 
         :param check_cutoff:
             Check the cutoff limit.
-        :type check_cutoff: function
+        :type check_cutoff: (int | float) -> bool
 
         :param no_call:
             If True data node estimation function is not used.
@@ -2932,3 +2924,17 @@ class Dispatcher(object):
                                    initial_dist)
 
         return True
+
+    def _warning(self, *args, **kwargs):
+        """
+        Handles the error messages.
+
+        .. note:: If `self.raises` is True the dispatcher interrupt the dispatch
+           when an error occur, otherwise it logs a warning.
+        """
+
+        if self.raises:
+            raise DispatcherError(self, *args, **kwargs)
+        else:
+            kwargs['exc_info'] = kwargs.get('exc_info', 1)
+            log.warning(*args, **kwargs)
