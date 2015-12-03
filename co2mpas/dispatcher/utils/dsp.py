@@ -70,7 +70,7 @@ def bypass(*inputs, copy=False):
 
     :param inputs:
         Inputs values.
-    :type inputs: (object, ...)
+    :type inputs: (T, ...)
 
     :param copy:
         If True, it returns a deepcopy of input values.
@@ -78,7 +78,7 @@ def bypass(*inputs, copy=False):
 
     :return:
         Same input values.
-    :rtype: tuple, object
+    :rtype: (T, ...), T
 
     Example::
 
@@ -243,7 +243,7 @@ def replicate_value(value, n=2, copy=True):
 
     :param value:
         Value to be replicated.
-    :type value: object
+    :type value: T
 
     :param copy:
         If True the list contains deep-copies of the value.
@@ -375,11 +375,15 @@ class SubDispatch(object):
 
         :param outputs:
             Ending data nodes.
-        :type outputs: iterable
+        :type outputs: list[str], iterable
 
         :param cutoff:
             Depth to stop the search.
         :type cutoff: float, int, optional
+
+        :param inputs_dist:
+            Initial distances of input data nodes.
+        :type inputs_dist: dict[str, int | float], optional
 
         :param wildcard:
             If True, when the data node is used as input and target in the
@@ -640,16 +644,16 @@ class SubDispatchFunction(SubDispatch):
         :type dsp: dispatcher.Dispatcher
 
         :param function_id:
-            Function node id.
+            Function name.
         :type function_id: str
 
         :param inputs:
             Input data nodes.
-        :type inputs: iterable
+        :type inputs: list[str], iterable
 
         :param outputs:
             Ending data nodes.
-        :type outputs: iterable
+        :type outputs: list[str], iterable, optional
 
         :param cutoff:
             Depth to stop the search.
@@ -657,7 +661,7 @@ class SubDispatchFunction(SubDispatch):
 
         :param inputs_dist:
             Initial distances of input data nodes.
-        :type inputs_dist: float, int, optional
+        :type inputs_dist: dict[str, int | float], optional
         """
 
         # New shrink dispatcher.
@@ -805,16 +809,16 @@ class SubDispatchPipe(SubDispatchFunction):
         :type dsp: dispatcher.Dispatcher
 
         :param function_id:
-            Function node id.
+            Function name.
         :type function_id: str
 
         :param inputs:
             Input data nodes.
-        :type inputs: iterable
+        :type inputs: list[str], iterable
 
         :param outputs:
             Ending data nodes.
-        :type outputs: iterable
+        :type outputs: list[str], iterable, optional
 
         :param cutoff:
             Depth to stop the search.
@@ -822,7 +826,7 @@ class SubDispatchPipe(SubDispatchFunction):
 
         :param inputs_dist:
             Initial distances of input data nodes.
-        :type inputs_dist: float, int, optional
+        :type inputs_dist: dict[str, int | float], optional
         """
 
         super(SubDispatchPipe, self).__init__(
@@ -907,9 +911,9 @@ class SubDispatchPipe(SubDispatchFunction):
             Data or function node id.
         :type node_id: str
 
-        :param no_call:
-            If True data node estimation function is not used.
-        :type no_call: bool
+        :param dsp:
+            The parent dispatcher.
+        :type dsp: dispatcher.Dispatcher
 
         :return:
             If the output have been evaluated correctly.
