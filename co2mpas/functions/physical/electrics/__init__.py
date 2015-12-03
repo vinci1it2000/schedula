@@ -375,7 +375,7 @@ def identify_charging_statuses(
 
     gb_p = gear_box_powers_in
 
-    status = np.zeros(alternator_currents.shape)
+    status = np.zeros_like(alternator_currents, dtype=int)
     status[(alternator_currents < 0) & on_engine] = 2
 
     b1 = -1

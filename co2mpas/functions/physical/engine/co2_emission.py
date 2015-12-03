@@ -38,7 +38,7 @@ def calculate_normalized_engine_coolant_temperatures(
     """
 
     i = np.argmax(engine_coolant_temperatures > temperature_target)
-    T = np.ones(engine_coolant_temperatures.shape)
+    T = np.ones_like(engine_coolant_temperatures, dtype=float)
     T[:i] = engine_coolant_temperatures[:i] + 273.0
     T[:i] /= temperature_target + 273.0
 
@@ -233,7 +233,7 @@ def calculate_co2_emissions(
 
     p.update(params)
     if sub_values is None:
-        sub_values = np.ones(mean_piston_speeds.shape, dtype=bool)
+        sub_values = np.ones_like(mean_piston_speeds, dtype=bool)
 
     # namespace shortcuts
     n_speeds = mean_piston_speeds[sub_values]
@@ -244,13 +244,13 @@ def calculate_co2_emissions(
     e_temp = engine_coolant_temperatures[sub_values]
     e_off = np.logical_not(on_engine[sub_values])
 
-    fc = np.zeros(e_temp.shape)
+    fc = np.zeros_like(e_powers)
 
     # Idle fc correction for temperature
     b = (e_speeds < idle_engine_speed[0] + MIN_ENGINE_SPEED)
 
     if p['t'] == 0:
-        n_temp = np.ones(e_temp.shape)
+        n_temp = np.ones_like(e_powers)
         fc[b] = engine_idle_fuel_consumption
     else:
         n_temp = calculate_normalized_engine_coolant_temperatures(e_temp, p['trg'])
@@ -638,7 +638,8 @@ def define_co2_error_function_on_phases(
     def error_func(params, default_params=None, phases=None):
 
         if phases:
-            co2, b = np.zeros(times.shape), np.zeros(times.shape, dtype=bool)
+            co2 = np.zeros_like(times, dtype=float)
+            b = np.zeros_like(times, dtype=bool)
             w = []
             it = enumerate(dsp_utl.pairwise(phases_integration_times))
             for i, (t0, t1) in it:
@@ -703,7 +704,7 @@ def calibrate_co2_params(
 
     bounds, guess = co2_params_bounds, co2_params_initial_guess
 
-    cold = np.zeros(engine_coolant_temperatures.shape, dtype=bool)
+    cold = np.zeros_like(engine_coolant_temperatures, dtype=bool)
     if not is_cycle_hot:
         cold[:np.argmax(engine_coolant_temperatures > guess['trg'])] = True
     hot = np.logical_not(cold)
@@ -803,7 +804,7 @@ def calibrate_model_params(params_bounds, error_function, initial_guess=None):
     :rtype: dict
     """
 
-    if hasattr(error_function, '__call__'):
+    if callable(error_function):
         error_f = error_function
     else:
         error_f = lambda p: sum(f(p) for f in error_function)

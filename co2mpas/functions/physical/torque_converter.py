@@ -79,8 +79,8 @@ def calculate_torque_converter_speeds(
 
     coeff, lower_limit = params
 
-    speeds = np.zeros(gear_box_speeds.shape)
-    ratios = np.ones(gear_box_speeds.shape)
+    speeds = np.zeros_like(gear_box_speeds)
+    ratios = np.ones_like(gear_box_speeds)
 
     b0 = gear_box_speeds <= lower_limit
 

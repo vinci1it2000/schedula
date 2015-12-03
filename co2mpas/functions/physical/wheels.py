@@ -238,7 +238,7 @@ def calculates_brake_powers(
     if has_energy_recuperation:
         engine_powers_on_brake += abs(alternator_nominal_power)
 
-    brake_powers = np.zeros(wheel_powers.shape)
+    brake_powers = np.zeros_like(wheel_powers)
     brake_powers[b] = wheel_powers[b] + engine_powers_on_brake
 
     brake_powers[brake_powers > 0] = 0

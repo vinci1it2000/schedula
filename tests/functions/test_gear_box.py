@@ -191,7 +191,7 @@ class TestGearBox_v1(unittest.TestCase):
         a = (self.wp, self.es, self.ws, self.tgb, self.pa, self.gbc, self.ts,
              self.Tr, self.st, self.g, self.gbr)
         res = fun(*a)
-        v = np.zeros(self.g.shape)
+        v = np.zeros_like(self.g)
         self.assertTrue(np.allclose(res[0], v + 1, 0, 0.001))
         self.assertTrue(np.allclose(res[1], self.tgb, 0, 0.001))
         self.assertTrue(np.allclose(res[2], v + self.st, 0, 0.001))

@@ -41,7 +41,7 @@ def calculate_clutch_phases(
     """
 
     dn, up = clutch_window
-    b = np.zeros(times.shape, dtype=bool)
+    b = np.zeros_like(times, dtype=bool)
 
     for t in times[gear_shifts]:
         b |= (t + dn <= times) & (times <= t + up)
@@ -198,7 +198,7 @@ def calibrate_clutch_prediction_model(
         return np.zeros(X.shape[0])
 
     models = [calibrate(acc[b], delta[b], error, no_clutch)
-              for b in [np.zeros(acc.shape, dtype=bool),
+              for b in [np.zeros_like(acc, dtype=bool),
                         phases & ((-threshold > delta) | (delta > threshold))]]
 
     return min(models)[-1]
@@ -225,7 +225,7 @@ def predict_clutch_speeds_delta(clutch_model, clutch_phases, accelerations):
     :rtype: numpy.array
     """
 
-    delta = np.zeros(accelerations.shape)
+    delta = np.zeros_like(accelerations, dtype=float)
     X = np.array([accelerations[clutch_phases]]).T
     delta[clutch_phases] = clutch_model(X)
 

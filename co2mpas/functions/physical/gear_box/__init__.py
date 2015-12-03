@@ -316,7 +316,7 @@ def calculate_gear_box_torques(
 
     x = np.where(gear_box_powers_out > 0, s_in, s_out)
 
-    y = np.zeros(gear_box_powers_out.shape)
+    y = np.zeros_like(gear_box_powers_out)
 
     b = x > MIN_ENGINE_SPEED
 
@@ -418,7 +418,7 @@ def _gear_box_torques_in(
 
     b = tgb < 0
 
-    y = np.zeros(tgb.shape)
+    y = np.zeros_like(tgb)
 
     par = gear_box_efficiency_parameters_cold_hot
 
@@ -458,7 +458,7 @@ def correct_gear_box_torques_in(
     :rtype: numpy.array
     """
 
-    b = np.zeros(gears.shape, dtype=bool)
+    b = np.zeros_like(gears, dtype=bool)
 
     for k, v in gear_box_ratios.items():
         if v == 1:
@@ -499,7 +499,7 @@ def calculate_gear_box_efficiencies_v2(
     tr = gear_box_torques_in
     es = gear_box_speeds_in
 
-    eff = np.zeros(wp.shape)
+    eff = np.zeros_like(wp)
 
     b0 = tr * tgb >= 0
     b1 = b0 & (wp >= 0) & (es > MIN_ENGINE_SPEED) & (tr != 0)

@@ -529,7 +529,7 @@ def identify_on_engine(times, engine_speeds_out, idle_engine_speed):
     :rtype: numpy.array
     """
 
-    on_engine = np.zeros(times.shape)
+    on_engine = np.zeros_like(times, dtype=int)
 
     b = engine_speeds_out > idle_engine_speed[0] - idle_engine_speed[1]
     on_engine[b] = 1
@@ -864,7 +864,7 @@ def calibrate_cold_start_speed_model(
             p = res[0]
 
     def model(speeds, on_engine, temperatures, *args):
-        add_speeds = np.zeros(speeds.shape)
+        add_speeds = np.zeros_like(speeds, dtype=float)
 
         if p > 0:
             s_o = (engine_normalization_temperature - temperatures) * p
@@ -926,7 +926,7 @@ def calibrate_cold_start_speed_model_v1(
     ds = abs((ds - idle) / (30.0 - min(engine_coolant_temperatures)))
 
     def model(speeds, on_engine, engine_coolant_temperatures, *args):
-        add_speeds = np.zeros(speeds.shape)
+        add_speeds = np.zeros_like(speeds, dtype=float)
 
         b = (engine_coolant_temperatures < 30.0) & on_engine
         s =  ds * (30.0 - engine_coolant_temperatures[b])
@@ -1018,7 +1018,7 @@ def calculate_engine_powers_out(
 
     p_on = engine_power_correction_function(engine_speeds_out[on_engine], p_on)
 
-    p = np.zeros(gear_box_powers_in.shape)
+    p = np.zeros_like(gear_box_powers_in, dtype=float)
     p[on_engine] = p_on
 
     return p
@@ -1176,4 +1176,4 @@ def calculate_auxiliaries_torque_losses(times, auxiliaries_torque_loss):
     :rtype: numpy.array
     """
 
-    return np.ones(times.shape) * auxiliaries_torque_loss
+    return np.ones_like(times, dtype=float) * auxiliaries_torque_loss

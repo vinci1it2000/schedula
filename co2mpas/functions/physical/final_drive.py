@@ -51,7 +51,7 @@ def calculate_final_drive_torque_losses(
     :rtype: numpy.array
     """
 
-    return np.ones(final_drive_torques_out.shape) * final_drive_torque_loss
+    return np.ones_like(final_drive_torques_out) * final_drive_torque_loss
 
 
 def calculate_final_drive_torque_losses_v1(
