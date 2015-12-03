@@ -15,7 +15,8 @@ import matplotlib
 matplotlib.use('Agg')
 from co2mpas.models.physical.engine import engine
 from co2mpas.models.physical import _physical
-from co2mpas.models.physical.engine.co2_emission import co2_emission
+from co2mpas.models.physical.electrics import electrics
+from co2mpas.models.physical.gear_box.AT_gear import AT_gear
 import co2mpas.dispatcher.utils as dsp_utl
 from sklearn.metrics import mean_absolute_error, accuracy_score
 import matplotlib.pyplot as plt
@@ -40,8 +41,10 @@ def shrink_dsp(dsp, inputs, outputs, *args, **kwargs):
 def run(data, dsp, inputs, outputs, *args, inputs_map={},
         select_outputs=dsp_utl.selector, **kwargs):
     data = dsp_utl.map_dict(inputs_map, data)
-
-    inputs = {k: v for k, v in data.items() if k in inputs}
+    if inputs is None:
+        inputs = {k: v for k, v in data.items() if k not in outputs}
+    else:
+        inputs = {k: v for k, v in data.items() if k in inputs}
     res = dsp.dispatch(inputs=inputs, outputs=outputs)
     return select_outputs(outputs, res[1])
 
@@ -59,20 +62,20 @@ def get_report(
             'prediction': list(y_pred),
             'metric': metric(y_true, y_pred)
         }
-        plot(directory, model_id, cycle_name, y_true, y_pred)
+        plot(directory, model_id, k, cycle_name, y_true, y_pred)
 
     return report
 
 
-def basic_plot(directory, model_id, cycle_name, y_true, y_pred):
+def basic_plot(directory, model_id, data_name, cycle_name, y_true, y_pred):
     figure = plt.figure(figsize=(20, 10))
 
     plt.plot(y_true, label='reference')
     plt.plot(y_pred, label='prediction')
-    plt.title('%s %s' % (model_id, cycle_name))
+    plt.title('%s %s %s' % (model_id, data_name, cycle_name))
     plt.legend()
     plt.grid()
-    fname = '%s_%s.jpg' % (model_id, cycle_name)
+    fname = '%s_%s_%s.jpg' % (model_id, data_name, cycle_name)
     figure.savefig(os.path.join(directory, fname))
 
     return figure
@@ -272,8 +275,69 @@ def define_sub_models():
                 'plots': [basic_plot]
             },
         },
+
+        'alternator_model': {
+            'calibration': {
+                'dsp': electrics(),
+                'inputs': None,
+                'outputs': [
+                    'alternator_current_model', 'start_demand',
+                    'max_battery_charging_current', 'electric_load',
+                    'alternator_status_model', 'alternator_nominal_power'
+                ]
+            },
+
+            'prediction': {
+                'dsp': electrics(),
+                'inputs': [
+                    'accelerations', 'battery_capacity',
+                    'alternator_status_model', 'alternator_current_model',
+                    'max_battery_charging_current',
+                    'alternator_nominal_voltage',  'start_demand',
+                    'electric_load', 'initial_state_of_charge', 'times',
+                    'gear_box_powers_in', 'on_engine', 'engine_starts'],
+                'outputs': ['alternator_currents', 'battery_currents',
+                            'state_of_charges', 'alternator_statuses'],
+                'targets': ['alternator_currents', 'battery_currents',
+                            'state_of_charges', 'alternator_statuses'],
+                'metrics': [mean_absolute_error] * 3 + [accuracy_score],
+                'plots': [basic_plot] * 4
+            },
+        },
     }
 
+    for at_model in ['CMV', 'CMV_Cold_Hot', 'DT_VA', 'DT_VAT', 'DT_VAP',
+                     'DT_VATP', 'GSPV', 'GSPV_Cold_Hot']:
+        sub_models['AT_model_%s' % at_model] = {
+            'calibration': {
+                'dsp': AT_gear(),
+                'inputs_map': {
+                    'gears': 'identified_gears',
+                },
+                'inputs': None,
+                'outputs': [
+                    'correct_gear', at_model,
+                ]
+            },
+
+            'prediction': {
+                'dsp': AT_gear(),
+                'inputs_map': {
+                    'gears': 'identified_gears'
+                },
+                'inputs': [
+                    'correct_gear', at_model,
+                    'accelerations', 'motive_powers', 'engine_speeds_out',
+                    'engine_coolant_temperatures', 'time_cold_hot_transition',
+                    'times', 'use_dt_gear_shifting',
+                    'specific_gear_shifting', 'velocity_speed_ratios',
+                    'velocities'],
+                'outputs': ['gears'],
+                'targets': ['gears'],
+                'metrics': [accuracy_score],
+                'plots': [basic_plot]
+            },
+        }
     return sub_models
 
 
@@ -302,7 +366,17 @@ class TestSubModules(unittest.TestCase):
         os.makedirs(path)
         cls.output_directory = path
 
-    @ddt.data('co2_params',
+    @ddt.data(
+              'AT_model_DT_VA',
+              'AT_model_DT_VAP',
+              'AT_model_DT_VAT',
+              'AT_model_DT_VATP',
+              'AT_model_CMV',
+              'AT_model_CMV_Cold_Hot',
+              'AT_model_GSPV',
+              'AT_model_GSPV_Cold_Hot',
+              'alternator_model',
+              'co2_params',
               'engine_speed_model',
               'engine_speed_model_no_clutch',
               'engine_coolant_temperature',
