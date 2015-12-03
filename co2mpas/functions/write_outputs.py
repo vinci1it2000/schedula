@@ -90,7 +90,12 @@ def write_output(output, file_name, sheet_names, data_descriptions, start_time):
         except ValueError:
             p.append((name, k, v))
 
-    index, p = zip(*[(k, (name, k, str(v))) for name, k, v in sorted(p)])
+    def str_data(data):
+        if isinstance(data, np.ndarray):
+            data = list(data)
+        return str(data)
+
+    index, p = zip(*[(k, (name, k, str_data(v))) for name, k, v in sorted(p)])
     p = pd.DataFrame(list(p),
                      index=index,
                      columns=['Parameter', 'Model Name', 'Value'])

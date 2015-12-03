@@ -43,7 +43,7 @@ def read_cycles_series(excel_file, sheet_name):
     return df
 
 
-def read_cycle_parameters(excel_file, parse_cols):
+def read_cycle_parameters(excel_file, parse_cols, sheet_id='Inputs'):
     """
     Reads vehicle's parameters.
 
@@ -60,9 +60,9 @@ def read_cycle_parameters(excel_file, parse_cols):
     :rtype: pandas.DataFrame
     """
 
-    sheet = _open_sheet_by_name_or_index(excel_file.book, 'book', 'Inputs')
+    sheet = _open_sheet_by_name_or_index(excel_file.book, 'book', sheet_id)
     cols = tuple(parse_cols.split(':'))
-    xl_ref = '#Inputs!%s2:%s_:["pipe", ["dict", "recurse"]]' % cols
+    xl_ref = '#%s!%s2:%s_:["pipe", ["dict", "recurse"]]' % ((sheet_id,) + cols)
 
     return lasso(xl_ref, sheet=sheet)
 
@@ -175,7 +175,14 @@ def _try_eval(data):
     return eval(data) if isinstance(data, str) else data
 
 
-def get_filters():
+def _try_float(data):
+    try:
+        return float(data)
+    except:
+        raise EmptyValue()
+
+
+def get_filters(from_outputs=False):
     """
     Returns the filters for parameters and series.
 
@@ -189,11 +196,13 @@ def get_filters():
             None: (float, empty),
             'alternator_charging_currents': (_try_eval, list, empty),
             'co2_params': (_try_eval, dict, empty_dict),
+            'cycle_type': (str, empty),
             'electric_load': (_try_eval, list, empty),
             'engine_is_turbo': (bool, empty),
             'engine_has_variable_valve_actuation': (bool, empty),
             'engine_has_cylinder_deactivation': (bool, empty),
             'engine_has_direct_injection': (bool, empty),
+            'engine_normalization_temperature_window': (_try_eval, list, empty),
             'engine_type': (str, empty),
             'fuel_type': (str, empty),
             'gear_box_ratios': (_try_eval, list, empty, index_dict),
@@ -222,10 +231,18 @@ def get_filters():
         }
     }
 
+    if from_outputs:
+        parameters = _filters['PARAMETERS']
+        parameters[None] = (_try_float, empty)
+        parameters['co2_params'] = (_try_eval, empty_dict)
+        parameters['gear_box_ratios'] = (_try_eval, empty_dict)
+        parameters['velocity_speed_ratios'] = (_try_eval, empty_dict)
+
+
     return _filters
 
 
-def merge_inputs(cycle_name, parameters, series):
+def merge_inputs(cycle_name, parameters, series, _filters=None):
     """
     Merges vehicle's parameters and cycle's time series.
 
@@ -247,16 +264,17 @@ def merge_inputs(cycle_name, parameters, series):
     :rtype: (dict, dict)
     """
 
-    _filters = get_filters()
+    _filters = _filters or get_filters()
 
     inputs, targets = {}, {}
+    inputs['cycle_type'] = cycle_name.split('-')[0]
+    inputs['cycle_name'] = cycle_name
     for data, map_tag in [(parameters, 'PARAMETERS'), (series, 'SERIES')]:
         i, t = parse_inputs(data, _filters[map_tag], cycle_name)
         inputs.update(i)
         targets.update(t)
 
-    inputs['cycle_type'] = cycle_name.split('-')[0]
-    inputs['cycle_name'] = cycle_name
+
 
     return inputs, targets
 

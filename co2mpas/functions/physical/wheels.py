@@ -152,7 +152,9 @@ def identify_r_dynamic_v1(
 
     speed_x_r_dyn_ratios = calculate_gear_box_speeds_in(gears, velocities, vsr)
 
-    r_dynamic = reject_outliers(speed_x_r_dyn_ratios / engine_speeds_out)[0]
+    r_dynamic = speed_x_r_dyn_ratios / engine_speeds_out
+    r_dynamic = r_dynamic[np.logical_not(np.isnan(r_dynamic))]
+    r_dynamic = reject_outliers(r_dynamic)[0]
 
     return r_dynamic
 

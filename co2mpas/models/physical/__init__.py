@@ -332,6 +332,8 @@ def _physical():
             'engine_type': 'engine_type',
             'engine_normalization_temperature':
                 'engine_normalization_temperature',
+            'engine_normalization_temperature_window':
+                'engine_normalization_temperature_window',
             'engine_temperature_regression_model':
                 'engine_temperature_regression_model',
             'fuel_consumptions': 'fuel_consumptions',
