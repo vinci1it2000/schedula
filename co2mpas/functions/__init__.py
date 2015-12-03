@@ -247,13 +247,7 @@ def _process_folder_files(
 
         res = model.dispatch(inputs=inputs)
 
-        s = _make_summary(sheets, *res, **{'vehicle': fname})
-
-        s.update(_extract_summary(s))
-
-        for k, v in s.items():
-            summary[k] = l = summary.get(k, [])
-            l.append(v)
+        add_vehicle_to_summary(summary, res[1], fname, res[0], sheets)
 
         if plot_workflow:
             try:
@@ -442,6 +436,18 @@ def _make_summary(sheets, workflow, results, **kwargs):
 
     return summary
 
+
+def add_vehicle_to_summary(summary, results, fname, workflow=None, sheets=None):
+
+    sheets = sheets or _get_sheet_summary_actions()
+
+    s = _make_summary(sheets, workflow, results, **{'vehicle': fname})
+
+    s.update(_extract_summary(s))
+
+    for k, v in s.items():
+        summary[k] = l = summary.get(k, [])
+        l.append(v)
 
 def _parse_outputs(tag, data, check):
 
