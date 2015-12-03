@@ -501,7 +501,7 @@ class TestDispatch(unittest.TestCase):
     def test_without_outputs(self):
         dsp = self.dsp
 
-        wk, o = dsp.dispatch({'a': 5, 'b': 6, 'f': 9})
+        o = dsp.dispatch({'a': 5, 'b': 6, 'f': 9})
         r = {'2 / (d + 1)', 'a', 'b', 'c', 'd', 'e', 'log(b - a)', 'min', START}
         w = {
             'a': {'log(b - a)': {'value': 5}, 'min': {'value': 5}},
@@ -515,15 +515,15 @@ class TestDispatch(unittest.TestCase):
             START: {'a': {'value': 5}, 'b': {'value': 6}}
         }
         self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 0, 'e': 2, 'f': 9})
-        self.assertEqual(set(wk.node), r)
-        self.assertEqual(wk.edge, w)
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
 
-        wk, o = dsp.dispatch({'a': 5, 'b': 6, 'f': 9}, shrink=True)
+        o = dsp.dispatch({'a': 5, 'b': 6, 'f': 9}, shrink=True)
         self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 0, 'e': 2, 'f': 9})
-        self.assertEqual(set(wk.node), r)
-        self.assertEqual(wk.edge, w)
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
 
-        wk, o = dsp.dispatch({'a': 5, 'b': 3})
+        o = dsp.dispatch({'a': 5, 'b': 3})
         r = {'2 / (d + 1)', 'a', 'b', 'c', 'd', 'e', 'log(b - a)', 'max', START,
              'x - 4'}
         w = {
@@ -539,17 +539,17 @@ class TestDispatch(unittest.TestCase):
             'x - 4': {'d': {'value': 1}}
         }
         self.assertEqual(o, {'a': 5, 'b': 3, 'c': 3, 'd': 1, 'e': 1})
-        self.assertEqual(set(wk.node), r)
-        self.assertEqual(wk.edge, w)
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
 
-        wk, o = dsp.dispatch({'a': 5, 'b': 3}, shrink=True)
+        o = dsp.dispatch({'a': 5, 'b': 3}, shrink=True)
         self.assertEqual(o, {'a': 5, 'b': 3, 'c': 3, 'd': 1, 'e': 1})
-        self.assertEqual(set(wk.node), r)
-        self.assertEqual(wk.edge, w)
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
 
     def test_no_call(self):
         dsp = self.dsp
-        wk, o = dsp.dispatch(['a', 'b'], no_call=True)
+        o = dsp.dispatch(['a', 'b'], no_call=True)
         r = {'2 / (d + 1)', 'a', 'b', 'c', 'd', 'e', 'log(b - a)', 'min', START}
         w = {
             'a': {'log(b - a)': {}, 'min': {}},
@@ -563,18 +563,18 @@ class TestDispatch(unittest.TestCase):
             START: {'a': {}, 'b': {}}
         }
         self.assertEqual(o, dict.fromkeys(['a', 'b', 'c', 'd', 'e'], NONE))
-        self.assertEqual(set(wk.node), r)
-        self.assertEqual(wk.edge, w)
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
 
-        wk, o = dsp.dispatch(['a', 'b'], no_call=True, shrink=True)
+        o = dsp.dispatch(['a', 'b'], no_call=True, shrink=True)
         self.assertEqual(o, dict.fromkeys(['a', 'b', 'c', 'd', 'e'], NONE))
-        self.assertEqual(set(wk.node), r)
-        self.assertEqual(wk.edge, w)
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
 
     def test_with_outputs(self):
         dsp = self.dsp
 
-        wk, o = dsp.dispatch({'a': 5, 'b': 6}, ['d'])
+        o = dsp.dispatch({'a': 5, 'b': 6}, ['d'])
         r = {'2 / (d + 1)', 'a', 'b', 'c', 'd', 'log(b - a)', 'max', 'min',
              START, 'x - 4', 'x ^ y'}
         w = {
@@ -593,29 +593,29 @@ class TestDispatch(unittest.TestCase):
             'x ^ y': {},
         }
         self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 0})
-        self.assertEqual(set(wk.node), r)
-        self.assertEqual(wk.edge, w)
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
 
-        wk, o = dsp.dispatch({'a': 5, 'b': 6}, ['d'], shrink=True)
+        o = dsp.dispatch({'a': 5, 'b': 6}, ['d'], shrink=True)
         n = {'2 / (d + 1)', 'max', 'x ^ y'}
         r = r - n
         w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
              for k in w.items() if k[0] not in n}
         self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 0})
-        self.assertEqual(set(wk.node), r)
-        self.assertEqual(wk.edge, w)
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
 
-        wk, o = dsp.dispatch({'a': 5, 'b': 6}, ['d'], rm_unused_nds=True)
+        o = dsp.dispatch({'a': 5, 'b': 6}, ['d'], rm_unused_nds=True)
         n = {'x - 4'}
         r = r - n
         w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
              for k in w.items() if k[0] not in n}
         self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 0})
-        self.assertEqual(set(wk.node), r)
-        self.assertEqual(wk.edge, w)
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
 
         dsp = self.dsp_of_dsp_1
-        wf, o = dsp.dispatch(inputs={'a': 3, 'b': 5, 'd': 10, 'e': 15})
+        o = dsp.dispatch(inputs={'a': 3, 'b': 5, 'd': 10, 'e': 15})
         r = {'a', 'b', 'c', 'd', 'e', 'max', START, 'sub_dsp'}
         w = {
             'a': {'max': {'value': 3}},
@@ -633,17 +633,17 @@ class TestDispatch(unittest.TestCase):
             'sub_dsp': {},
         }
         self.assertEqual(o, {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 15})
-        self.assertEqual(set(wf.node), r)
-        self.assertEqual(wf.edge, w)
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
 
-        wf, o = dsp.dispatch(
+        o = dsp.dispatch(
             inputs={'a': 3, 'b': 5, 'd': 10, 'e': 15},
             shrink=True)
         self.assertEqual(o, {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 15})
-        self.assertEqual(set(wf.node), r)
-        self.assertEqual(wf.edge, w)
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
 
-        wf, o = dsp.dispatch(inputs={'a': 3, 'b': 5, 'd': 10, 'e': 20})
+        o = dsp.dispatch(inputs={'a': 3, 'b': 5, 'd': 10, 'e': 20})
         r = {'a', 'b', 'c', 'd', 'e', 'f', 'max', START, 'sub_dsp'}
         w['d'] = {'sub_dsp': {'value': 10}}
         w['e'] = {'sub_dsp': {'value': 20}}
@@ -651,11 +651,11 @@ class TestDispatch(unittest.TestCase):
         w['sub_dsp'] = {'f': {'value': 7}}
         w[START]['e'] = {'value': 20}
         self.assertEqual(o, {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 20, 'f': 7})
-        self.assertEqual(set(wf.node), r)
-        self.assertEqual(wf.edge, w)
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
 
         dsp = self.dsp_of_dsp_2
-        wf, o = dsp.dispatch(
+        o = dsp.dispatch(
             inputs={'a': 3, 'b': 5, 'd': 10, 'e': 20},
             shrink=True)
         r = {'a', 'b', 'c', 'd', 'e', 'f', 'max', START, 'sub_dsp'}
@@ -699,24 +699,24 @@ class TestDispatch(unittest.TestCase):
             START: {'a': {'value': 10}},
         }
         self.assertEqual(o, {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 20, 'f': 4})
-        self.assertEqual(set(wf.node), r)
-        self.assertEqual(wf.edge, w)
-        self.assertEqual(wf.node['sub_dsp']['workflow'][0].edge, sw)
-        sd_wf = wf.node['sub_dsp']['workflow'][0]
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
+        self.assertEqual(dsp.workflow.node['sub_dsp']['workflow'][0].edge, sw)
+        sd_wf = dsp.workflow.node['sub_dsp']['workflow'][0]
         self.assertEqual(sd_wf.node['sub_sub_dsp']['workflow'][0].edge, ssw)
 
-        wf, o = dsp.dispatch(inputs={'a': 3, 'b': 5, 'd': 10, 'e': 20})
+        o = dsp.dispatch(inputs={'a': 3, 'b': 5, 'd': 10, 'e': 20})
         sw['e'] = {}
         sw['fun']['e'] = {'value': 10}
         self.assertEqual(o, {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 20, 'f': 4})
-        self.assertEqual(set(wf.node), r)
-        self.assertEqual(wf.edge, w)
-        self.assertEqual(wf.node['sub_dsp']['workflow'][0].edge, sw)
-        sd_wf = wf.node['sub_dsp']['workflow'][0]
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
+        self.assertEqual(dsp.workflow.node['sub_dsp']['workflow'][0].edge, sw)
+        sd_wf = dsp.workflow.node['sub_dsp']['workflow'][0]
         self.assertEqual(sd_wf.node['sub_sub_dsp']['workflow'][0].edge, ssw)
 
         dsp = self.dsp_of_dsp_3
-        wf, o = dsp.dispatch(
+        o = dsp.dispatch(
             inputs={'a': 3, 'b': 5, 'd': 10, 'e': 20},
             shrink=True)
         r.add('min')
@@ -727,26 +727,26 @@ class TestDispatch(unittest.TestCase):
         sw['fun'].pop('e')
 
         self.assertEqual(o, {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 20, 'f': 4})
-        self.assertEqual(set(wf.node), r)
-        self.assertEqual(wf.edge, w)
-        self.assertEqual(wf.node['sub_dsp']['workflow'][0].edge, sw)
-        sd_wf = wf.node['sub_dsp']['workflow'][0]
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
+        self.assertEqual(dsp.workflow.node['sub_dsp']['workflow'][0].edge, sw)
+        sd_wf = dsp.workflow.node['sub_dsp']['workflow'][0]
         self.assertEqual(sd_wf.node['sub_sub_dsp']['workflow'][0].edge, ssw)
 
-        wf, o = dsp.dispatch(inputs={'a': 3, 'b': 5, 'd': 10, 'e': 20})
+        o = dsp.dispatch(inputs={'a': 3, 'b': 5, 'd': 10, 'e': 20})
         sw['e'] = {}
         sw['fun']['e'] = {'value': 10}
         self.assertEqual(o, {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 20, 'f': 4})
-        self.assertEqual(set(wf.node), r)
-        self.assertEqual(wf.edge, w)
-        self.assertEqual(wf.node['sub_dsp']['workflow'][0].edge, sw)
-        sd_wf = wf.node['sub_dsp']['workflow'][0]
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
+        self.assertEqual(dsp.workflow.node['sub_dsp']['workflow'][0].edge, sw)
+        sd_wf = dsp.workflow.node['sub_dsp']['workflow'][0]
         self.assertEqual(sd_wf.node['sub_sub_dsp']['workflow'][0].edge, ssw)
 
     def test_cutoff(self):
         dsp = self.dsp_cutoff
 
-        wk, o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2)
+        o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2)
         r = {'a', 'b', 'c', 'log(b - a)', 'max', 'min', START}
         w = {
             'a': {'log(b - a)': {'value': 5}, 'min': {'value': 5}},
@@ -758,20 +758,20 @@ class TestDispatch(unittest.TestCase):
             START: {'a': {'value': 5}, 'b': {'value': 6}}
         }
         self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0})
-        self.assertEqual(set(wk.node), r)
-        self.assertEqual(wk.edge, w)
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
 
-        wk, o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2, shrink=True)
+        o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2, shrink=True)
         n = {'max', 'min'}
         r = r - n
         w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
              for k in w.items() if k[0] not in n}
         self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0})
-        self.assertEqual(set(wk.node), r)
-        self.assertEqual(wk.edge, w)
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
 
         dsp.weight = None
-        wk, o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2)
+        o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2)
         r = {'a', 'b', 'c', 'd', 'log(b - a)', 'max', 'min', START, 'x - 4'}
         w = {
             'a': {'log(b - a)': {'value': 5}, 'min': {'value': 5},
@@ -786,21 +786,21 @@ class TestDispatch(unittest.TestCase):
             START: {'a': {'value': 5}, 'b': {'value': 6}}
         }
         self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 1})
-        self.assertEqual(set(wk.node), r)
-        self.assertEqual(wk.edge, w)
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
 
-        wk, o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2, shrink=True)
+        o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2, shrink=True)
         n = {'max', 'min'}
         r = r - n
         w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
              for k in w.items() if k[0] not in n}
         self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 1})
-        self.assertEqual(set(wk.node), r)
-        self.assertEqual(wk.edge, w)
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
 
     def test_wildcard(self):
         dsp = self.dsp
-        wk, o = dsp.dispatch({'a': 5, 'b': 6}, ['a', 'b'], wildcard=True)
+        o = dsp.dispatch({'a': 5, 'b': 6}, ['a', 'b'], wildcard=True)
         r = {'2 / (d + 1)', 'a', 'b', 'c', 'd', 'e', 'log(b - a)', 'min', START,
              'x ^ y'}
         w = {
@@ -816,25 +816,25 @@ class TestDispatch(unittest.TestCase):
             'x ^ y': {'b': {'value': 1.0}}
         }
         self.assertEqual(o, {'b': 1, 'c': 0, 'd': 0, 'e': 2})
-        self.assertEqual(wk.edge, w)
-        self.assertEqual(set(wk.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
+        self.assertEqual(set(dsp.workflow.node), r)
 
-        wk, o = dsp.dispatch({'a': 5, 'b': 6}, ['a', 'b'], wildcard=True,
+        o = dsp.dispatch({'a': 5, 'b': 6}, ['a', 'b'], wildcard=True,
                              shrink=True)
         self.assertEqual(o, {'b': 1, 'c': 0, 'd': 0, 'e': 2})
-        self.assertEqual(wk.edge, w)
-        self.assertEqual(set(wk.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
+        self.assertEqual(set(dsp.workflow.node), r)
 
         dsp = self.dsp_wildcard_1
 
-        wk, o = dsp.dispatch({'a': 5, 'b': 6}, ['a', 'b'], wildcard=True)
-        self.assertEqual(set(wk.node), r)
-        self.assertEqual(wk.edge, w)
+        o = dsp.dispatch({'a': 5, 'b': 6}, ['a', 'b'], wildcard=True)
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
 
-        wk, o = dsp.dispatch({'a': 5, 'b': 6}, ['a', 'b'], wildcard=True,
+        o = dsp.dispatch({'a': 5, 'b': 6}, ['a', 'b'], wildcard=True,
                              shrink=True)
-        self.assertEqual(set(wk.node), r)
-        self.assertEqual(wk.edge, w)
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
 
         dsp = self.dsp_wildcard_2
         self.assertRaises(ValueError, dsp.dispatch, {'a': 5, 'b': 6},
@@ -849,7 +849,7 @@ class TestDispatch(unittest.TestCase):
     def test_input_dists(self):
         dsp = self.dsp_cutoff
 
-        wk, o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2, inputs_dist={'b': 1})
+        o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2, inputs_dist={'b': 1})
         r = {'a', 'b', 'log(b - a)', 'max', 'min', START}
         w = {
             'a': {'log(b - a)': {'value': 5}, 'min': {'value': 5}},
@@ -860,21 +860,21 @@ class TestDispatch(unittest.TestCase):
             START: {'a': {'value': 5}, 'b': {'value': 6}}
         }
         self.assertEqual(o, {'a': 5, 'b': 6})
-        self.assertEqual(set(wk.node), r)
-        self.assertEqual(wk.edge, w)
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
 
-        wk, o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2, shrink=True,
-                             inputs_dist={'b': 1})
+        o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2, shrink=True,
+                         inputs_dist={'b': 1})
         n = {'max', 'min'}
         r = r - n
         w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
              for k in w.items() if k[0] not in n}
         self.assertEqual(o, {'a': 5, 'b': 6})
-        self.assertEqual(set(wk.node), r)
-        self.assertEqual(wk.edge, w)
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
 
         dsp.weight = None
-        wk, o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2,
+        o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2,
                              inputs_dist={'b': 1})
         r = {'a', 'b', 'd', 'log(b - a)', 'max', 'min', START, 'x - 4'}
         w = {
@@ -889,21 +889,21 @@ class TestDispatch(unittest.TestCase):
             START: {'a': {'value': 5}, 'b': {'value': 6}}
         }
         self.assertEqual(o, {'a': 5, 'b': 6, 'd': 1})
-        self.assertEqual(set(wk.node), r)
-        self.assertEqual(wk.edge, w)
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
 
-        wk, o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2, shrink=True,
+        o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2, shrink=True,
                              inputs_dist={'b': 1})
         n = {'max', 'min'}
         r = r - n
         w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
              for k in w.items() if k[0] not in n}
         self.assertEqual(o, {'a': 5, 'b': 6, 'd': 1})
-        self.assertEqual(set(wk.node), r)
-        self.assertEqual(wk.edge, w)
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
 
         dsp = self.dsp
-        wk, o = dsp.dispatch({'a': 5, 'b': 6, 'd': 0}, ['a', 'b', 'd'],
+        o = dsp.dispatch({'a': 5, 'b': 6, 'd': 0}, ['a', 'b', 'd'],
                              wildcard=True, inputs_dist={'a': 1})
         r = {'2 / (d + 1)', 'a', 'b', 'c', 'd', 'e', 'max', 'min', START,
              'x ^ y'}
@@ -921,30 +921,30 @@ class TestDispatch(unittest.TestCase):
             'x ^ y': {'b': {'value': 1.0}}
         }
         self.assertEqual(o, {'b': 1, 'c': 6, 'd': 5, 'e': 2})
-        self.assertEqual(wk.edge, w)
-        self.assertEqual(set(wk.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
+        self.assertEqual(set(dsp.workflow.node), r)
 
-        wk, o = dsp.dispatch({'a': 5, 'b': 6, 'd': 0}, ['a', 'b', 'd'],
+        o = dsp.dispatch({'a': 5, 'b': 6, 'd': 0}, ['a', 'b', 'd'],
                              wildcard=True, shrink=True, inputs_dist={'a': 1})
         self.assertEqual(o, {'b': 1, 'c': 6, 'd': 5, 'e': 2})
-        self.assertEqual(wk.edge, w)
-        self.assertEqual(set(wk.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
+        self.assertEqual(set(dsp.workflow.node), r)
 
         dsp = self.dsp_wildcard_1
 
-        wk, o = dsp.dispatch({'a': 5, 'b': 6, 'd': 0}, ['a', 'b', 'd'],
+        o = dsp.dispatch({'a': 5, 'b': 6, 'd': 0}, ['a', 'b', 'd'],
                              wildcard=True, inputs_dist={'a': 2})
-        self.assertEqual(set(wk.node), r)
-        self.assertEqual(wk.edge, w)
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
 
-        wk, o = dsp.dispatch({'a': 5, 'b': 6, 'd': 0}, ['a', 'b', 'd'],
+        o = dsp.dispatch({'a': 5, 'b': 6, 'd': 0}, ['a', 'b', 'd'],
                              wildcard=True, shrink=True, inputs_dist={'a': 2})
-        self.assertEqual(set(wk.node), r)
-        self.assertEqual(wk.edge, w)
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
 
         dsp = self.dsp_dfl_input_dist
 
-        wk, o = dsp.dispatch({'a': 6, 'b': 5}, ['d'])
+        o = dsp.dispatch({'a': 6, 'b': 5}, ['d'])
         w = {
             'a': {'max': {'value': 6}},
             'b': {'min': {'value': 5}, 'max': {'value': 5}},
@@ -955,9 +955,9 @@ class TestDispatch(unittest.TestCase):
             START: {'b': {'value': 5}, 'c': {'value': 0}, 'a': {'value': 6}},
         }
         self.assertEqual({'a': 6, 'b': 5, 'c': 6, 'd': 5}, o)
-        self.assertEqual(wk.edge, w)
+        self.assertEqual(dsp.workflow.edge, w)
 
-        wk, o = dsp.dispatch({'a': 6, 'b': 5}, ['d'], inputs_dist={'a': 50})
+        o = dsp.dispatch({'a': 6, 'b': 5}, ['d'], inputs_dist={'a': 50})
         w = {
             'a': {},
             'b': {'min': {'value': 5}, 'max': {'value': 5}},
@@ -969,7 +969,7 @@ class TestDispatch(unittest.TestCase):
         }
 
         self.assertEqual({'b': 5, 'c': 0, 'd': 0}, o)
-        self.assertEqual(wk.edge, w)
+        self.assertEqual(dsp.workflow.edge, w)
 
 
 class TestBoundaryDispatch(unittest.TestCase):
@@ -1000,25 +1000,25 @@ class TestBoundaryDispatch(unittest.TestCase):
 
     def test_dispatch_functions_without_arguments(self):
         dsp = self.dsp
-        self.assertEqual(dsp.dispatch(outputs=['a', 'b'])[1], {'a': 3, 'b': 5})
+        self.assertEqual(dsp.dispatch(outputs=['a', 'b']), {'a': 3, 'b': 5})
 
     def test_deterministic_dispatch(self):
         dsp = self.dsp_1
 
-        o = dsp.dispatch(inputs={'a': 1, 'b': 3})[1]
+        o = dsp.dispatch(inputs={'a': 1, 'b': 3})
         self.assertEqual(o, {'a': 1, 'b': 3, 'c': 3})
 
         dsp = self.dsp_2
 
-        o = dsp.dispatch(inputs={'a': 1, 'b': 3})[1]
+        o = dsp.dispatch(inputs={'a': 1, 'b': 3})
         self.assertEqual(o, {'a': 1, 'b': 3, 'c': 1})
 
     def test_callback(self):
         dsp = self.dsp_3
-        o = dsp.dispatch(inputs={'a': 1, 'b': 5})[1]
+        o = dsp.dispatch(inputs={'a': 1, 'b': 5})
         self.assertEqual(o, {'a': 1, 'b': 5, 'c': 1.0})
 
-        o = dsp.dispatch(inputs={'a': 0, 'b': 5})[1]
+        o = dsp.dispatch(inputs={'a': 0, 'b': 5})
         self.assertEqual(o, {'a': 0, 'b': 5})
 
 

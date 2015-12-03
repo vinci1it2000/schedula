@@ -437,7 +437,7 @@ def model_selector(*calibration_outputs, hide_warn_msgbox=False):
                 if all(k not in t and k is not dsp_utl.NONE for k in trgs):
                     continue
 
-                pred = dsp.dispatch(get_i(e_mods, t, **d), outs, shrink=True)[1]
+                pred = dsp.dispatch(get_i(e_mods, t, **d), outs, shrink=True)
                 if outs and all(k not in pred for k in outs):
                     continue
                 err_.append(_compare_result(outs, trgs, pred, t, comp_func))

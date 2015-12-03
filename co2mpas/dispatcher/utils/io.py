@@ -86,7 +86,7 @@ def load_dispatcher(path):
         >>> save_dispatcher(dsp, file_name)
 
         >>> dsp = load_dispatcher(file_name)
-        >>> dsp.dispatch(inputs={'b': 3})[1]['c']
+        >>> dsp.dispatch(inputs={'b': 3})['c']
         3
     """
 
@@ -163,7 +163,7 @@ def load_default_values(dsp, path):
 
         >>> dsp = Dispatcher(dmap=dsp.dmap)
         >>> load_default_values(dsp, file_name)
-        >>> dsp.dispatch(inputs={'b': 3})[1]['c']
+        >>> dsp.dispatch(inputs={'b': 3})['c']
         3
     """
 
@@ -232,7 +232,7 @@ def load_map(dsp, path):
 
         >>> dsp = Dispatcher()
         >>> load_map(dsp, file_name)
-        >>> dsp.dispatch(inputs={'a': 1, 'b': 3})[1]['c']
+        >>> dsp.dispatch(inputs={'a': 1, 'b': 3})['c']
         3
     """
 

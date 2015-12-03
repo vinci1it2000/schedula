@@ -146,7 +146,7 @@ class Dispatcher(object):
 
     Dispatch the function calls to achieve the desired output data node `d`::
 
-        >>> workflow, outputs = dsp.dispatch(inputs={'a': 0}, outputs=['d'])
+        >>> outputs = dsp.dispatch(inputs={'a': 0}, outputs=['d'])
         (log(1) + 4) / 2 = 2.0
         >>> sorted(outputs.items())
         [('a', 0), ('b', 1), ('c', 1), ('d', 2.0)]
@@ -1062,7 +1062,7 @@ class Dispatcher(object):
 
         Dispatch with no calls in order to have a workflow::
 
-            >>> o = dsp.dispatch(inputs=['a', 'b'], no_call=True)[1]
+            >>> o = dsp.dispatch(inputs=['a', 'b'], no_call=True)
 
         Get sub-dispatcher from workflow inputs `a` and `b`::
 
@@ -1228,7 +1228,7 @@ class Dispatcher(object):
             >>> dsp.add_function('Sub-dispatcher', dispatch, ['a'], ['b'])
             'Sub-dispatcher'
 
-            >>> w, o = dsp.dispatch(inputs={'a': {'a': 3, 'b': 1}})
+            >>> o = dsp.dispatch(inputs={'a': {'a': 3, 'b': 1}})
             ...
 
         Get the sub node output::
@@ -1452,7 +1452,7 @@ class Dispatcher(object):
 
         The dispatch stops on data node `c` due to the unresolved cycle::
 
-            >>> res = dsp.dispatch(inputs={'a': 1})[1]
+            >>> res = dsp.dispatch(inputs={'a': 1})
             >>> sorted(res.items())
             [('a', 1), ('b', 3)]
 
@@ -1465,7 +1465,7 @@ class Dispatcher(object):
         Removing the unresolved cycle the dispatch continues to all nodes::
 
             >>> dsp_rm_cy = dsp.remove_cycles(['a', 'b'])
-            >>> res = dsp_rm_cy.dispatch(inputs={'a': 1})[1]
+            >>> res = dsp_rm_cy.dispatch(inputs={'a': 1})
             >>> sorted(res.items())
             [('a', 1), ('b', 3), ('c', 3.0), ('d', 1)]
 
@@ -1537,11 +1537,9 @@ class Dispatcher(object):
             workflow.
         :type rm_unused_nds: bool, optional
 
-        :returns:
-
-            - workflow: A directed graph with data node estimations.
-            - data_output: Dictionary of estimated data node outputs.
-        :rtype: (DiGraph, AttrDict)
+        :return:
+            Dictionary of estimated data node outputs.
+        :rtype: dict[str, T]
 
         \***********************************************************************
 
@@ -1575,7 +1573,7 @@ class Dispatcher(object):
 
         Dispatch without inputs. The default values are used as inputs::
 
-            >>> workflow, outputs = dsp.dispatch()
+            >>> outputs = dsp.dispatch()
             ...
             >>> sorted(outputs.items())
             [('a', 0), ('b', 5), ('c', 0), ('d', 1), ('e', 0.0)]
@@ -1588,7 +1586,7 @@ class Dispatcher(object):
 
         Dispatch until data node `c` is estimated::
 
-            >>> workflow, outputs = dsp.dispatch(outputs=['c'])
+            >>> outputs = dsp.dispatch(outputs=['c'])
             ...
             >>> sorted(outputs.items())
              [('a', 0), ('b', 5), ('c', 0), ('d', 1)]
@@ -1602,7 +1600,7 @@ class Dispatcher(object):
         Dispatch with one inputs. The default value of `a` is not used as
         inputs::
 
-            >>> workflow, outputs = dsp.dispatch(inputs={'a': 3})
+            >>> outputs = dsp.dispatch(inputs={'a': 3})
             ...
             >>> sorted(outputs.items())
              [('a', 3), ('b', 5), ('c', 3), ('d', 1)]
@@ -1624,7 +1622,10 @@ class Dispatcher(object):
                              no_call, rm_unused_nds)
 
         # Return the evaluated workflow graph and data outputs.
-        self.workflow, self.data_output = dsp._run(*args[1:])
+        self.data_output = dsp._run(*args[1:])
+
+        # Update workflow.
+        self.workflow = dsp.workflow
 
         # Nodes that are out of the dispatcher nodes.
         out_dsp_nodes = set(args[0]).difference(dsp.nodes)
@@ -1635,8 +1636,8 @@ class Dispatcher(object):
             else:
                 self.data_output.update({k: inputs[k] for k in out_dsp_nodes})
 
-        # Return the evaluated workflow graph and data outputs.
-        return self.workflow, self.data_output
+        # Return the evaluated data outputs.
+        return self.data_output
 
     def shrink_dsp(self, inputs=None, outputs=None, cutoff=None,
                    inputs_dist=None, wildcard=True):
@@ -1730,10 +1731,10 @@ class Dispatcher(object):
             self._set_wait_in(flag=False)  # Set all data nodes no wait inputs.
 
             # Evaluate the workflow graph without invoking functions.
-            wf, o = self.dispatch(inputs, outputs, cutoff, inputs_dist,
-                                  wildcard, True, False, True)
+            o = self.dispatch(inputs, outputs, cutoff, inputs_dist, wildcard,
+                              True, False, True)
 
-            edges = set(wf.edges())  # bfg edges.
+            edges = set(self.workflow.edges())  # bfg edges.
 
             # Set minimum initial distances.
             if inputs_dist:
@@ -1754,13 +1755,13 @@ class Dispatcher(object):
                         wi.remove(k)
 
                 # Evaluate the workflow graph without invoking functions.
-                wf, o = self.dispatch(inputs, outputs, cutoff, inputs_dist,
+                o = self.dispatch(inputs, outputs, cutoff, inputs_dist,
                                       wildcard, True, False, True)
 
-                edges.update(wf.edges())  # Update bfg edges.
+                edges.update(self.workflow.edges())  # Update bfg edges.
 
                 # Nodes to be visited.
-                n_d = (set(wf.node.keys()) - self._visited)
+                n_d = (set(self.workflow.node.keys()) - self._visited)
                 n_d = n_d.union(self._visited.intersection(wi))
                 if not n_d:
                     break  # Stop iteration.
@@ -2616,11 +2617,9 @@ class Dispatcher(object):
             workflow.
         :type rm_unused_nds: bool, optional
 
-        :returns:
-
-            - workflow: A directed graph with data node estimations.
-            - data_output: Dictionary of estimated data node outputs.
-        :rtype: (DiGraph, dict[str, T])
+        :return:
+            Dictionary of estimated data node outputs.
+        :rtype: dict[str, T]
         """
 
         # Initialized and terminated dispatcher sets.
@@ -2635,6 +2634,7 @@ class Dispatcher(object):
         # Namespaces shortcuts
         dsp_init_add, pipe_append = dsp_init.add, pipe.append
         dsp_closed_add = dsp_closed.add
+
         while fringe:
             # Visit the closest available node.
             n = (d, _, (v, dsp)) = heappop(fringe)
@@ -2659,7 +2659,7 @@ class Dispatcher(object):
         if rm_unused_nds:  # Remove unused function and sub-dispatcher nodes.
             self._remove_unused_nodes()
 
-        return self.workflow, self.data_output  # Workflow and data outputs.
+        return self.data_output  # Data outputs.
 
     def _visit_nodes(self, node_id, dist, fringe, check_cutoff, no_call=False):
         """

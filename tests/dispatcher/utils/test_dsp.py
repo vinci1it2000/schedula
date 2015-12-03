@@ -77,7 +77,7 @@ class TestDispatcherUtils(unittest.TestCase):
 
         dsp.add_function('fun', ReplicateFunction(fun), ['a', 'b'], ['c', 'd'])
 
-        o = dsp.dispatch(inputs={'a': 3, 'b': 4})[1]
+        o = dsp.dispatch(inputs={'a': 3, 'b': 4})
 
         self.assertEqual(o, {'a': 3, 'b': 4, 'c': (4, 2), 'd': (5, 3)})
 
@@ -107,8 +107,8 @@ class TestSubDispatcher(unittest.TestCase):
     def test_sub_dsp(self):
         from networkx.classes.digraph import DiGraph
 
-        w, o = self.dsp.dispatch(inputs={'d': {'a': 3}})
-
+        o = self.dsp.dispatch(inputs={'d': {'a': 3}})
+        w = self.dsp.workflow
         self.assertEqual(o['e'], {'a': 3, 'b': 4, 'c': 2})
         self.assertEqual(o['f'], {'c': 2})
         self.assertEqual(o['g'], (3, 2))

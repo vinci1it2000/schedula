@@ -355,10 +355,10 @@ class SubDispatch(object):
     .. dispatcher:: dsp
        :opt: workflow=True, graph_attr={'ratio': '1'}, depth=1
 
-        >>> w, o = dsp.dispatch(inputs={'d': {'a': 3}})
+        >>> o = dsp.dispatch(inputs={'d': {'a': 3}})
         >>> sorted(o['e'].items())
         [('a', 3), ('b', 4), ('c', 2)]
-        >>> w.node['Sub-dispatch']['workflow']
+        >>> dsp.workflow.node['Sub-dispatch']['workflow']
         (<...DiGraph object at 0x...>, {...}, {...})
 
     """
@@ -439,13 +439,13 @@ class SubDispatch(object):
         outs, dsp = self.outputs, self.dsp  # Namespace shortcuts.
 
         # Dispatch the function calls.
-        w, o = dsp.dispatch(
+        o = dsp.dispatch(
             i, outs, self.cutoff, self.inputs_dist, self.wildcard,
             self.no_call, self.shrink, self.rm_unused_nds
         )
 
         # Save outputs.
-        self.workflow, self.data_output, self.dist = w, o, dsp.dist
+        self.workflow, self.data_output, self.dist = dsp.workflow, o, dsp.dist
 
         # Set output.
         if self.output_type in ('list', 'dict'):
@@ -724,10 +724,10 @@ class SubDispatchFunction(SubDispatch):
         args = dsp._init_workflow(input_values, self.input_value,
                                   self.inputs_dist, False)
         # Dispatch outputs.
-        w, o = dsp._run(*args)
+        o = dsp._run(*args)
 
         # Save outputs.
-        self.data_output, self.workflow, self.dist = o, w, dsp.dist
+        self.data_output, self.workflow, self.dist = o, dsp.workflow, dsp.dist
 
         try:
             # Return outputs sorted.
@@ -836,7 +836,7 @@ class SubDispatchPipe(SubDispatchFunction):
 
         main_dsp = self.dsp
 
-        w, o, = main_dsp.dispatch(
+        o = main_dsp.dispatch(
             inputs=inputs, outputs=outputs, cutoff=cutoff,
             inputs_dist=inputs_dist, wildcard=True, no_call=True)
 
@@ -858,7 +858,7 @@ class SubDispatchPipe(SubDispatchFunction):
 
         # Set outputs.
         self.data_output = o
-        self.workflow = w
+        self.workflow = main_dsp.workflow
         self.dist = self.dsp.dist
 
         # Define the function to return outputs sorted.

@@ -341,7 +341,7 @@ def get_sub_node(dsp, path, node_attr='auto', _level=0, _dsp_name=NONE):
         >>> dsp.add_function('Sub-dispatcher', dispatch, ['a'], ['b'])
         'Sub-dispatcher'
 
-        >>> w, o = dsp.dispatch(inputs={'a': {'a': 3, 'b': 1}})
+        >>> o = dsp.dispatch(inputs={'a': {'a': 3, 'b': 1}})
         ...
 
     Get the sub node output::

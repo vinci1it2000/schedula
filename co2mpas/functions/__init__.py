@@ -235,7 +235,7 @@ def _process_folder_files(
                 'nedc_targets',
             ]
 
-            inps_n_outs = model.dispatch(inputs=input_files, outputs=outputs)[1]
+            inps_n_outs = model.dispatch(inputs=input_files, outputs=outputs)
 
             return {k: v for k, v in inps_n_outs.items() if k in outputs}
 
@@ -247,7 +247,7 @@ def _process_folder_files(
 
         res = model.dispatch(inputs=inputs)
 
-        add_vehicle_to_summary(summary, res[1], fname, res[0], sheets)
+        add_vehicle_to_summary(summary, res, fname, model.workflow, sheets)
 
         if plot_workflow:
             try:
@@ -448,6 +448,7 @@ def add_vehicle_to_summary(summary, results, fname, workflow=None, sheets=None):
     for k, v in s.items():
         summary[k] = l = summary.get(k, [])
         l.append(v)
+
 
 def _parse_outputs(tag, data, check):
 

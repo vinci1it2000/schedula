@@ -515,8 +515,8 @@ def plot(dsp, workflow=False, dot=None, edge_data=None, view=False,
        :opt: workflow=True, graph_attr={'ratio': '1'}
        :code:
 
-        >>> dsp.dispatch()
-        (..., ...)
+        >>> o = dsp.dispatch()
+        ...
         >>> wf = plot(dsp, workflow=True, graph_attr={'ratio': '1'})
     """
 
