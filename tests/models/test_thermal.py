@@ -3,36 +3,32 @@ Run TC with env-var CO2MPAS_DATA_FOLDER pointing your `co2pas-data.git` project.
 """
 
 from co2mpas.__main__ import init_logging
-import json
-from .. import _tutils as tutils
-import os
-import sys
-import pathlib
 import tempfile
 import unittest
 
+import functools as ft
 
+from .. import _tutils as tutils
+
+
+DATA_VERSION = '1'
+DATA_SUBFOLDER = 'thermal'
 
 init_logging(False)
 #logging.getLogger('pandalone.xleash').setLevel(logging.INFO)
 
-DATA_VERSION = 1
 class TThermal(unittest.TestCase):
 
 
-    def setUp(self):
-        try:
-            tc_data_folder = os.environ.get('CO2MPAS_DATA_FOLDER')
-        except KeyError:
-            raise Exception("Set your env-var `CO2MPAS_DATA_FOLDER`!")
-        if not tc_data_folder:
-            raise AssertionError("Empty env-var `CO2MPAS_DATA_FOLDER`!")
+    @classmethod
+    def setUpClass(cls):
+        ver_validator = ft.partial(tutils.default_ver_validator, DATA_VERSION)
 
-        self.CO2MPAS_DATA_FOLDER = pathlib.Path(tc_data_folder)
-        tutils.check_tc_data_version(self.CO2MPAS_DATA_FOLDER, DATA_VERSION)
+        cls.tc_module_folder = tutils.get_tc_data_fpath(
+                ver_validator, subfolder=DATA_SUBFOLDER)
 
     def test_smoke(self):
         tmpdir = tempfile.gettempdir()
-        tc_module_folder = self.CO2MPAS_DATA_FOLDER.joinpath('thermal')
+        print(self.tc_module_folder)
 
         ## proc-files
