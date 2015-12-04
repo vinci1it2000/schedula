@@ -2367,8 +2367,7 @@ class Dispatcher(object):
 
         except Exception as ex:
             # Is missing function of the node or args are not in the domain.
-            msg = 'Estimation error at function node ({}) ' \
-                  'due to: {}'.format(node_id, ex)
+            msg = "Failed dispatching '{}' due to: {!r}".format(node_id, ex)
             self._warning(msg)  # Raise a Warning.
             return False
 

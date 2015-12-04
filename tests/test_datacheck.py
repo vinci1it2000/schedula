@@ -21,6 +21,7 @@ DATA_DIFF_RATIO = 0 # 2 * EPS
 
 init_logging(False)
 #logging.getLogger('pandalone.xleash').setLevel(logging.INFO)
+log = logging.getLogger(__name__)
 
 class SeatBelt(unittest.TestCase):
 
@@ -66,7 +67,7 @@ class SeatBelt(unittest.TestCase):
             file, hide_warn_msgbox=True, extended_summary=False,
             with_output_file=False)[0]
 
-        print(res)
+        log.info(res)
         summaries = res['SUMMARY']
 
         tmpdir = tempfile.gettempdir()
