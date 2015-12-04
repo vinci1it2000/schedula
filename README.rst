@@ -295,7 +295,7 @@ CO2MPAS installation
 
    .. code-block:: console
 
-       > python -v --version
+       > co2mpas -v --version
        co2mpas_version: 1.0.5.dev3
        co2mpas_rel_date: 2015-11-12 13:27:13
        co2mpas_path: d:\co2mpas_ALLINONE-XXbit-v1.0.5.dev1\Apps\WinPython\python-3.4.3\lib\site-packages\co2mpas
