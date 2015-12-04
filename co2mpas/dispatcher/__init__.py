@@ -2240,9 +2240,8 @@ class Dispatcher(object):
                         value = node_attr['function'](kwargs)
                     except Exception as ex:
                         # Some error occurs.
-                        msg = 'Estimation error at data node ({}) ' \
-                              'due to: {}'.format(node_id, ex)
-                        self._warning(msg)  # Raise a Warning.
+                        msg = "Failed DISPATCHING '%s' due to:\n  %r"
+                        self._warning(msg, node_id, ex)
                         return False
                 else:
                     # Data node that has just one estimation value.
@@ -2257,9 +2256,8 @@ class Dispatcher(object):
                     value = node_attr['function'](kwargs)  # Evaluate output.
                 except Exception as ex:
                     # Is missing estimation function of data node or some error.
-                    msg = 'Estimation error at data node ({}) ' \
-                          'due to: {}'.format(node_id, ex)
-                    self._warning(msg)  # Raise a Warning
+                    msg = "Failed DISPATCHING '%s' due to:\n  %r"
+                    self._warning(msg, node_id, ex)
                     return False
 
             if 'callback' in node_attr:  # Invoke callback func of data node.
@@ -2267,9 +2265,8 @@ class Dispatcher(object):
                     # noinspection PyCallingNonCallable
                     node_attr['callback'](value)
                 except Exception as ex:
-                    msg = 'Callback error at data node ({}) ' \
-                          'due to: {}'.format(node_id, ex)
-                    self._warning(msg)  # Raise a Warning.
+                    msg = "Failed CALLBACKING '%s' due to:\n  %s"
+                    self._warning(msg, node_id, ex)
 
             if value is not NONE:  # Set data output.
                 self.data_output[node_id] = value
@@ -2346,13 +2343,10 @@ class Dispatcher(object):
                     not node_attr['input_domain'](*args):
                 return False  # Args are not respecting the domain.
             else:  # Use the estimation function of node.
-                fun = node_attr['function']  # Get function.
+                fun = node_attr['function']
 
-                attr = {'started': datetime.today()}  # Starting time.
-
-                res = fun(*args)  # Evaluate function.
-
-                # Time elapsed.
+                attr = {'started': datetime.today()}
+                res = fun(*args)
                 attr['duration'] = datetime.today() - attr['started']
 
                 fun = get_parent_func(fun)  # Get parent function (if nested).
@@ -2367,8 +2361,8 @@ class Dispatcher(object):
 
         except Exception as ex:
             # Is missing function of the node or args are not in the domain.
-            msg = "Failed dispatching '{}' due to: {!r}".format(node_id, ex)
-            self._warning(msg)  # Raise a Warning.
+            msg = "Failed DISPATCHING '%s' due to:\n  %r"
+            self._warning(msg, node_id, ex)
             return False
 
         for k, v in zip(o_nds, res):  # Set workflow.
@@ -2939,4 +2933,4 @@ class Dispatcher(object):
             raise DispatcherError(self, *args, **kwargs)
         else:
             kwargs['exc_info'] = kwargs.get('exc_info', 1)
-            log.warning(*args, **kwargs)
+            log.error(*args, **kwargs)
