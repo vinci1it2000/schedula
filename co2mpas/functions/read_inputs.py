@@ -34,9 +34,9 @@ def read_cycles_series(excel_file, sheet_name):
         A pandas DataFrame with cycle's time series.
     :rtype: pandas.DataFrame
     """
+
     try:
-        df = excel_file.parse(sheetname=sheet_name, skiprows=1,
-                              has_index_names=True)
+        df = excel_file.parse(sheetname=sheet_name, skiprows=1)
     except:
         df = pd.DataFrame()
 

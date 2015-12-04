@@ -17,9 +17,6 @@ from co2mpas.models.physical.engine import engine
 from co2mpas.models.physical import _physical
 from co2mpas.models.physical.electrics import electrics
 from co2mpas.models.physical.gear_box.AT_gear import AT_gear
-import co2mpas.dispatcher.utils as dsp_utl
-from sklearn.metrics import mean_absolute_error, accuracy_score
-import matplotlib.pyplot as plt
 import os
 import glob
 from co2mpas.models import load
