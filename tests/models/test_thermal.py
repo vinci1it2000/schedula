@@ -8,7 +8,7 @@ import unittest
 
 import functools as ft
 
-from .. import _tutils as tutils
+from tests import _tutils as tutils
 
 
 DATA_VERSION = '1'

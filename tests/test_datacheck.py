@@ -5,6 +5,7 @@ import os
 import sys
 import tempfile
 import unittest
+import logging
 
 
 ## Set this to `True` to update setbelt data.
