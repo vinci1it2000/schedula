@@ -31,9 +31,18 @@ import datetime
 import dill
 from networkx.utils import open_file
 import logging
-logging.getLogger('pandalone.xleash').setLevel(logging.INFO)
-log = logging.getLogger(__name__)
+from sklearn.metrics import mean_absolute_error, accuracy_score
 
+import co2mpas.dispatcher.utils as dsp_utl
+import matplotlib.pyplot as plt
+
+
+init_logging(None)
+
+matplotlib.use('Agg')
+
+log = logging.getLogger(__name__)
+logging.getLogger('pandalone.xleash').setLevel(logging.INFO)
 
 def shrink_dsp(dsp, inputs, outputs, *args, **kwargs):
     return dsp.shrink_dsp(inputs, outputs)
@@ -83,7 +92,7 @@ def basic_plot(directory, model_id, data_name, cycle_name, y_true, y_pred):
 
 
 def read_data(data_loader, directory):
-    log.info('Reading data...')
+    log.debug('Reading...')
     if os.path.isfile(directory):
         fpaths = [directory]
     else:
@@ -95,16 +104,18 @@ def read_data(data_loader, directory):
         if not files_exclude_regex.match(fname):
             continue
         fname = fname.split('_')
-        i = next(i for i, v in enumerate(fname) if 'NEDC' in v or 'WLTP' in v)
+        try:
+            i = next(i for i, v in enumerate(fname) if 'NEDC' in v or 'WLTP' in v)
+        except StopIteration:
+            log.warning('Invalid filename(%s)!', fpath)
+            continue
         fname = fname[i:]
         fname[0] = fname[0].split('-')[0].lower()
         vehicle_id = '_'.join(fname[1:])
 
         data[vehicle_id] = data.get(vehicle_id, {})
-        data[vehicle_id][fname[0]] = data_loader('series', fpath)[0]
-
-    log.info('Reading data done!')
-
+        data[vehicle_id][fname[0]] = data_loader('series', fpath)[0] # 0:input, 1:tagret
+    log.debug('Reading done!')
     return data
 
 
@@ -431,8 +442,8 @@ class TestSubModules(unittest.TestCase):
                 dsp = model['calibration']['dsp']
                 missing_inputs = set(dsp.data_nodes) - set(dsp.data_output)
                 missing_inputs -= set(model['calibration']['outputs'])
-                log.warn('Skipping --> Cannot calibrate %s for %s missing: %s',
-                         model_id, data_id, missing_inputs)
+                log.warning('Skipping --> Cannot calibrate %s for %s missing: %s',
+                            model_id, data_id, missing_inputs)
                 continue
             for cycle_name, reference in reference.items():
                 inputs = dsp_utl.combine_dicts({}, reference, calibrated)
