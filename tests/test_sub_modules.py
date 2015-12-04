@@ -32,6 +32,7 @@ import dill
 from networkx.utils import open_file
 import logging
 logging.getLogger('pandalone.xleash').setLevel(logging.INFO)
+log = logging.getLogger(__name__)
 
 
 def shrink_dsp(dsp, inputs, outputs, *args, **kwargs):
@@ -46,7 +47,7 @@ def run(data, dsp, inputs, outputs, *args, inputs_map={},
     else:
         inputs = {k: v for k, v in data.items() if k in inputs}
     res = dsp.dispatch(inputs=inputs, outputs=outputs)
-    return select_outputs(outputs, res[1])
+    return select_outputs(outputs, res)
 
 
 def get_report(
@@ -62,7 +63,7 @@ def get_report(
             'prediction': list(y_pred),
             'metric': metric(y_true, y_pred)
         }
-        plot(directory, model_id, k, cycle_name, y_true, y_pred)
+        plt.close(plot(directory, model_id, k, cycle_name, y_true, y_pred))
 
     return report
 
@@ -82,7 +83,7 @@ def basic_plot(directory, model_id, data_name, cycle_name, y_true, y_pred):
 
 
 def read_data(data_loader, directory):
-    logging.log(logging.INFO, 'Reading...')
+    log.info('Reading data...')
     if os.path.isfile(directory):
         fpaths = [directory]
     else:
@@ -101,7 +102,9 @@ def read_data(data_loader, directory):
 
         data[vehicle_id] = data.get(vehicle_id, {})
         data[vehicle_id][fname[0]] = data_loader('series', fpath)[0]
-    logging.log(logging.INFO, 'Reading done!')
+
+    log.info('Reading data done!')
+
     return data
 
 
@@ -306,13 +309,37 @@ def define_sub_models():
         },
     }
 
+    def AT_gear_calibration(at_model):
+        dsp = AT_gear()
+        sub_dsp = engine().get_sub_dsp([
+            'idle_engine_speed', 'full_load_speeds', 'full_load_torques',
+            'full_load_powers', 'calculate_full_load_powers',
+            'calculate_full_load_speeds', 'calculate_full_load',
+            'calculate_full_load<0>', 'fuel_type', 'get_full_load',
+            'full_load_curve'])
+
+        dsp.add_dispatcher(sub_dsp,
+                           {k: k for k in sub_dsp.data_nodes},
+                           {'full_load_curve': 'full_load_curve'})
+
+        dsp.get_node('%s_model' % at_model.replace('Cold_Hot', 'ch').lower(),
+                     node_attr=None)[0].pop('input_domain')
+        return dsp
+
+    def AT_gear_prediction(at_model):
+        dsp = AT_gear()
+        dsp.get_node('%s_model' % at_model.replace('Cold_Hot', 'ch').lower(),
+                     node_attr=None)[0].pop('input_domain')
+        return dsp
+
     for at_model in ['CMV', 'CMV_Cold_Hot', 'DT_VA', 'DT_VAT', 'DT_VAP',
                      'DT_VATP', 'GSPV', 'GSPV_Cold_Hot']:
         sub_models['AT_model_%s' % at_model] = {
             'calibration': {
-                'dsp': AT_gear(),
+                'dsp': AT_gear_calibration(at_model),
                 'inputs_map': {
                     'gears': 'identified_gears',
+                    'vehicle_mass': 'inertia'
                 },
                 'inputs': None,
                 'outputs': [
@@ -321,7 +348,7 @@ def define_sub_models():
             },
 
             'prediction': {
-                'dsp': AT_gear(),
+                'dsp': AT_gear_prediction(at_model),
                 'inputs_map': {
                     'gears': 'identified_gears'
                 },
@@ -396,35 +423,34 @@ class TestSubModules(unittest.TestCase):
             directory = os.path.join(model_directory, data_id)
             os.makedirs(directory)
             report = reports[data_id] = {}
-            logging.log(logging.INFO,
-                        'Calibrating %s for %s...' % (model_id, data_id))
+            log.info('Calibrating %s for %s...', model_id, data_id)
             try:
-                calibrated_models = run(reference['wltp'], **model['calibration'])
-                logging.log(logging.INFO,
-                            'Calibrating %s for %s done!' % (model_id, data_id))
+                calibrated = run(reference['wltp'], **model['calibration'])
+                log.info('Calibrating %s for %s done!', model_id, data_id)
             except KeyError:
-                logging.log(logging.INFO,
-                            'Cannot calibrate %s for %s --> skipping!' % (model_id, data_id))
+                dsp = model['calibration']['dsp']
+                missing_inputs = set(dsp.data_nodes) - set(dsp.data_output)
+                missing_inputs -= set(model['calibration']['outputs'])
+                log.warn('Skipping --> Cannot calibrate %s for %s missing: %s',
+                         model_id, data_id, missing_inputs)
                 continue
             for cycle_name, reference in reference.items():
-                inputs = dsp_utl.combine_dicts({}, reference, calibrated_models)
+                inputs = dsp_utl.combine_dicts({}, reference, calibrated)
 
-                logging.log(logging.INFO,
-                            'Predicting %s for %s-%s...' % (model_id, data_id, cycle_name))
+                log.info('Predicting %s for %s-%s...', model_id, data_id,
+                         cycle_name)
                 results = run(inputs, **model['prediction'])
-                logging.log(logging.INFO,
-                            'Predicting %s for %s-%s done!' % (model_id, data_id, cycle_name))
+                log.info('Predicting %s for %s-%s done!', model_id, data_id,
+                         cycle_name)
 
-                logging.log(logging.INFO,
-                            'Make report %s for %s-%s...' % (model_id, data_id, cycle_name))
+                log.info('Make report %s for %s-%s...', model_id, data_id,
+                         cycle_name)
                 report[cycle_name] = get_report(
                     directory, model_id, cycle_name, reference,
                     results, **prediction)
-                logging.log(logging.INFO,
-                            'Make report %s for %s-%s done!' % (model_id, data_id, cycle_name))
+                log.info('Make report %s for %s-%s done!', model_id, data_id,
+                         cycle_name)
 
-        logging.log(logging.INFO,
-                    'Save reports %s...' % model_id)
+        log.info('Save reports %s...', model_id)
         save_report(reports, os.path.join(model_directory, 'reports.dill'))
-        logging.log(logging.INFO,
-                    'Save reports %s done!' % model_id)
+        log.info('Save reports %s done!', model_id)

@@ -960,6 +960,9 @@ class Dispatcher(object):
             >>> sub_dsp.name = 'Sub-Dispatcher'
         """
 
+        # Get real paths.
+        nodes_bunch = [self.get_node(u)[1][0] for u in nodes_bunch]
+
         # Define an empty dispatcher.
         sub_dsp = self.__class__(dmap=self.dmap.subgraph(nodes_bunch))
         sub_dsp.weight = self.weight
@@ -967,7 +970,7 @@ class Dispatcher(object):
         sub_dsp.name = self.name
 
         # Namespace shortcuts for speed.
-        nodes, dmap_out_degree = sub_dsp.dmap.node, sub_dsp.dmap.out_degree
+        nodes, dmap_out_degree = sub_dsp.nodes, sub_dsp.dmap.out_degree
         dmap_dv, dmap_rm_edge = self.default_values, sub_dsp.dmap.remove_edge
         dmap_rm_node = sub_dsp.dmap.remove_node
 
@@ -1205,7 +1208,7 @@ class Dispatcher(object):
             When 'default_value', returns the data node default value.
 
             When `None`, returns the node attributes.
-        :type node_attr: str
+        :type node_attr: str, None, optional
 
         :return:
             Node attributes and its real path.
