@@ -533,9 +533,9 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
         co2mpas [simulate] [-v] [--predict-wltp] [--report-stages] [--no-warn-gui]
                            [--plot-workflow] [--only-summary]
                            [-I <fpath>] [-O <fpath>]
-        co2mpas demo       [-v] [-f] <folder>
-        co2mpas template   [-v] [-f] <excel-file-path> ...
-        co2mpas ipynb      [-v] [-f] <folder>
+        co2mpas demo       [-v] [-f] [<folder>]
+        co2mpas template   [-v] [-f] [<excel-file-path> ...]
+        co2mpas ipynb      [-v] [-f] [<folder>]
         co2mpas modelgraph [-v] --list
         co2mpas modelgraph [-v] [--depth=INTEGER] [<models> ...]
         co2mpas [-v] --version
@@ -550,7 +550,7 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
     --no-warn-gui      Does not pause batch-run to report inconsistencies.
     --plot-workflow    Open workflow-plot in browser, after run finished.
     --depth=INTEGER    Limit the number of sub-dispatchers plotted (no limit by default).
-    -f, --force        Overwrite template/sample excel-file(s).
+    -f, --force        Overwrite template/demo excel-file(s).
     -v, --verbose      Print more verbosely messages.
 
     * Items enclosed in `[]` are optional.

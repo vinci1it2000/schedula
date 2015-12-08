@@ -11,9 +11,9 @@ Usage:
     co2mpas [simulate] [-v] [--predict-wltp] [--report-stages] [--no-warn-gui]
                        [--plot-workflow] [--only-summary]
                        [-I <fpath>] [-O <fpath>]
-    co2mpas demo       [-v] [-f] <folder>
-    co2mpas template   [-v] [-f] <excel-file-path> ...
-    co2mpas ipynb      [-v] [-f] <folder>
+    co2mpas demo       [-v] [-f] [<folder>]
+    co2mpas template   [-v] [-f] [<excel-file-path> ...]
+    co2mpas ipynb      [-v] [-f] [<folder>]
     co2mpas modelgraph [-v] --list
     co2mpas modelgraph [-v] [--depth=INTEGER] [<models> ...]
     co2mpas [-v] --version
@@ -28,7 +28,7 @@ Usage:
 --no-warn-gui      Does not pause batch-run to report inconsistencies.
 --plot-workflow    Open workflow-plot in browser, after run finished.
 --depth=INTEGER    Limit the number of sub-dispatchers plotted (no limit by default).
--f, --force        Overwrite template/sample excel-file(s).
+-f, --force        Overwrite template/demo excel-file(s).
 -v, --verbose      Print more verbosely messages.
 
 * Items enclosed in `[]` are optional.
@@ -139,9 +139,19 @@ def _generate_files_from_streams(
 
 
 def _cmd_ipynb(opts):
-    dst_folder = opts['<folder>']
-    force = opts['--force']
-    file_category = 'IPYTHON NOTEBOOKS'
+    dst_folder = opts.get('<folder>', None)
+    is_gui = not dst_folder
+    if is_gui:
+        import easygui as eu
+        msg=("Select folder to store IPYTHON NOTEBOOKS:"
+                "\n(existing ones will be overwritten)")
+        dst_folder = eu.diropenbox(msg=msg,
+                              title='%s-v%s' % (proj_name, proj_ver))
+        if not dst_folder:
+            raise CmdException('User abort creating IPYTHON NOTEBOOKS.')
+
+    force = opts['--force'] or is_gui
+    file_category = 'IPYTHON NOTEBOOK'
     file_stream_pairs = _get_internal_file_streams('ipynbs', r'.*\.ipynb$')
     file_stream_pairs = sorted(file_stream_pairs.items())
     _generate_files_from_streams(dst_folder, file_stream_pairs,
@@ -156,12 +166,22 @@ def _get_input_template_fpath():
 
 
 def _cmd_template(opts):
-    dst_fpaths = opts['<excel-file-path>']
+    dst_fpaths = opts.get('<excel-file-path>', None)
+    is_gui = not dst_fpaths
+    if is_gui:
+        import easygui as eu
+        fpath = eu.filesavebox(msg='Create INPUT-TEMPLATE file as:',
+                              title='%s-v%s' % (proj_name, proj_ver),
+                              default='co2mpas_template.xlsx')
+        if not fpath:
+            raise CmdException('User abort creating INPUT-TEMPLATE file.')
+        dst_fpaths = [fpath]
+
     force = opts['--force']
     for fpath in dst_fpaths:
         if not fpath.endswith('.xlsx'):
             fpath = '%s.xlsx' % fpath
-        if os.path.exists(fpath) and not force:
+        if os.path.exists(fpath) and not force and not is_gui:
             raise CmdException(
                 "Writing file '%s' skipped, already exists! "
                 "Use '-f' to overwrite it." % fpath)
@@ -169,7 +189,7 @@ def _cmd_template(opts):
             raise CmdException(
                 "Expecting a file-name instead of directory '%s'!" % fpath)
 
-        log.info("Creating TEMPLATE INPUT file '%s'...", fpath)
+        log.info("Creating INPUT-TEMPLATE file '%s'...", fpath)
         stream = _get_input_template_fpath()
         with open(fpath, 'wb') as fd:
             shutil.copyfileobj(stream, fd, 16 * 1024)
@@ -196,9 +216,20 @@ def _get_internal_file_streams(internal_folder, incl_regex=None):
 
 
 def _cmd_demo(opts):
-    dst_folder = opts['<folder>']
-    force = opts['--force']
-    file_category = 'DEMO INPUT'
+    dst_folder = opts.get('<folder>', None)
+    is_gui = not dst_folder
+    if is_gui:
+        import easygui as eu
+        msg=("Select folder to store INPUT-DEMO files:"
+                "\n(existing ones will be overwritten)")
+        msg='Select folder to store DEMOS:\n(existing ones will be overwritten)'
+        dst_folder = eu.diropenbox(msg=msg,
+                              title='%s-v%s' % (proj_name, proj_ver))
+        if not dst_folder:
+            raise CmdException('User abort creating INPUT-DEMO files.')
+
+    force = opts['--force'] or is_gui
+    file_category = 'INPUT-DEMO'
     file_stream_pairs = _get_internal_file_streams('demos', r'.*\.xlsx$')
     file_stream_pairs = sorted(file_stream_pairs.items())
     _generate_files_from_streams(dst_folder, file_stream_pairs,
