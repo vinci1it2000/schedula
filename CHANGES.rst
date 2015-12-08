@@ -3,6 +3,14 @@ CO2MPAS Changes
 ###############
 .. _changes:
 
+v1.0.4.post1, x-Dec 2015: "No more console please", no model changes
+====================================================================
+
+- main: Failback to GUI when demo/template/ipynb folder not specified in
+  cmdline (prepare for Window's start-menu shortcuts).
+- #44 & #62: Minor fixes in input-files.
+
+
 v1.0.4, 9-Nov 2015: 3rd public release, mostly model changes
 ============================================================
 Model-changes in comparison to v1.0.1:
