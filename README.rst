@@ -6,7 +6,7 @@ CO2MPAS: Vehicle simulator predicting NEDC CO2 emissions from WLTP
 :Home:          http://co2mpas.io/
 :Releases:      http://files.co2mpas.io/
 :Sources:       https://github.com/JRCSTU/co2mpas
-:pypi-repo:     http://pypi.co2mpas.io/ (will move to standard Python-repo in the future)
+:pypi-repo:     https://pypi.python.org/pypi/co2mpas
 :Keywords:      CO2, fuel-consumption, WLTP, NEDC, vehicle, automotive,
                 EU, JRC, IET, STU, back-translation, policy,
                 simulator, engineering, scientific
@@ -77,7 +77,7 @@ follow the detailed instructions under sections :ref:`install` and
     ## NOTE: If behind proxy, specify additionally this option:
     ##    --proxy http://user:password@yourProxyUrl:yourProxyPort
     ##
-    $ pip install co2mpas --extra-index http://pypi.co2mpas.io/simple/ --trusted-host pypi.co2mpas.io
+    $ pip install co2mpas
 
     ## Where to store input and output files.
     ## In *Windows* cmd-prompt use `md` command instead.
@@ -248,7 +248,7 @@ CO2MPAS installation
 
    .. code-block:: console
 
-        > pip install co2mpas --extra-index http://pypi.co2mpas.io/simple/ --trusted-host pypi.co2mpas.io
+        > pip install co2mpas
         Collecting co2mpas
         Downloading http://pypi.co2mpas.io/packages/co2mpas-...
         ...
