@@ -72,6 +72,7 @@ from docopt import docopt
 
 
 class CmdException(Exception):
+    """Polite user-message avoiding ``exit(msg)`` when ``main()`` invoked from python."""
     pass
 
 proj_name = 'co2mpas'
@@ -148,7 +149,8 @@ def _cmd_ipynb(opts):
         msg=("Select folder to store IPYTHON NOTEBOOKS:"
                 "\n(existing ones will be overwritten)")
         dst_folder = eu.diropenbox(msg=msg,
-                              title='%s-v%s' % (proj_name, proj_ver))
+                                   title='%s-v%s' % (proj_name, proj_ver),
+                                   default=os.environ.get('HOME', '.'))
         if not dst_folder:
             raise CmdException('User abort creating IPYTHON NOTEBOOKS.')
 
@@ -224,9 +226,9 @@ def _cmd_demo(opts):
         import easygui as eu
         msg=("Select folder to store INPUT-DEMO files:"
                 "\n(existing ones will be overwritten)")
-        msg='Select folder to store DEMOS:\n(existing ones will be overwritten)'
         dst_folder = eu.diropenbox(msg=msg,
-                              title='%s-v%s' % (proj_name, proj_ver))
+                                   title='%s-v%s' % (proj_name, proj_ver),
+                                   default=os.environ.get('HOME', '.'))
         if not dst_folder:
             raise CmdException('User abort creating INPUT-DEMO files.')
 

@@ -11,6 +11,11 @@ v1.0.4.post1, x-Dec 2015: "No more console please", no model changes
 - #44 & #62: Minor fixes in input-files.
 - Install from official PyPi repo (simply type ``pip install co2mpas``).
 
+Known Limitations
+-----------------
+
+- Folder-selection dialogs still might appear beneath current window.
+
 
 v1.0.4, 9-Nov 2015: 3rd public release, mostly model changes
 ============================================================
