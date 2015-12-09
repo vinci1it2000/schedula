@@ -3,48 +3,15 @@ CO2MPAS All-In-One
 ##################
 A pre-populated folder with WinPython + CO2MPAS + Consoles for *Windows*.
 
-Generic Tips
-============
-
-- You may freely move & copy this folder around.
-  But prefer NOT TO HAVE SPACES IN THE PATH LEADING TO IT.
-
-- To view & edit textual files, such as ``.txt``, ``.bat`` or config-files
-  starting with dot(``.``), you may use the "ancient" Window *notepad* editor,
-  but it will save you from  a lot of trouble if you download and install
-  **notepad++** from: http://portableapps.com/apps/development/notepadpp_portable
-  (no admin-rights needed).
-
-  Even better if you combine it with the "gem" file-manager of the '90s,
-  **TotalCommander**, from http://www.ghisler.com/ (no admin-rights needed).
-  From inside this file-manager, ``F3`` key-shortcut views files.
-
-- The **Cygwin** POSIX-environment and its accompanying **bash-shell** are
-  a much better choice to give console-commands compare to `cmd.exe` prompt,
-  supporting *auto-completion* for various commands (with ``[TAB]``key) and
-  enhanced history search (with ``[UP]/[DOWN]`` cursor-keys).
-
-  There are MANY tutorials and crash-courses for bash:
-
-  - a concise one:
-    http://www.ks.uiuc.edu/Training/Tutorials/Reference/unixprimer.html
-  - a more detailed guide (just ignore the Linux-specific part):
-    http://linuxcommand.org/lc3_lts0020.php
-  - a useful poster with all fundamental bash-commands (eg. `ls`, `pwd`, `cd`):
-    http://www.improgrammer.net/linux-commands-cheat-sheet/
-
-- The console automatically copies into clipboard anything that is selected
-  with the mouse.  In case of errors, copy and paste the offending commands and
-  their error-messages to emails sent to JRC.
-
-- When a new CO2MPAS version comes out it is not necessary to download the full
-  ALLINONE archive, but you choose instead to just *upgrade* co2mpas.
-
-  Please follow the upgrade procedure in the main documentation.
+.. contents:: Table of Contents
+  :backlinks: top
+  :depth: 4
 
 
 1st steps
 =========
+
+0. Execute the ``INSTALL.bat`` script the first time after extracting the archive.
 
 1. Start up the console of your choice using the appropriate bat-file:
 
@@ -151,15 +118,61 @@ Generic Tips
    of the *Installation* section from the documents.
 
 
+Generic Tips
+============
+
+- You may freely move & copy this folder around.
+  But prefer NOT TO HAVE SPACES IN THE PATH LEADING TO IT.
+
+- To view & edit textual files, such as ``.txt``, ``.bat`` or config-files
+  starting with dot(``.``), you may use the "ancient" Window *notepad* editor,
+  but it will save you from  a lot of trouble if you download and install
+  **notepad++** from: http://portableapps.com/apps/development/notepadpp_portable
+  (no admin-rights needed).
+
+  Even better if you combine it with the "gem" file-manager of the '90s,
+  **TotalCommander**, from http://www.ghisler.com/ (no admin-rights needed).
+  From inside this file-manager, ``F3`` key-shortcut views files.
+
+- The **Cygwin** POSIX-environment and its accompanying **bash-shell** are
+  a much better choice to give console-commands compare to `cmd.exe` prompt,
+  supporting *auto-completion* for various commands (with ``[TAB]``key) and
+  enhanced history search (with ``[UP]/[DOWN]`` cursor-keys).
+
+  There are MANY tutorials and crash-courses for bash:
+
+  - a concise one:
+    http://www.ks.uiuc.edu/Training/Tutorials/Reference/unixprimer.html
+  - a more detailed guide (just ignore the Linux-specific part):
+    http://linuxcommand.org/lc3_lts0020.php
+  - a useful poster with all fundamental bash-commands (eg. `ls`, `pwd`, `cd`):
+    http://www.improgrammer.net/linux-commands-cheat-sheet/
+
+- The console automatically copies into clipboard anything that is selected
+  with the mouse.  In case of errors, copy and paste the offending commands and
+  their error-messages to emails sent to JRC.
+
+- When a new CO2MPAS version comes out it is not necessary to download the full
+  ALLINONE archive, but you choose instead to just *upgrade* co2mpas.
+
+  Please follow the upgrade procedure in the main documentation.
+
+
 
 File Contents
 =============
 ::
 
-    bash-console.bat                        ## Open a python+cygwin enabled `bash` console.
+    RUN_CO2MPAS.bat                         ## Asks for Input & Output folders, and runs CO2MPAS for all Excel-files in Input.
+    MAKE_TEMPLATE.bat                       ## Asks for a folder to store an empty CO2MPAS input-file.
+    MAKE_DEMOS.bat                          ## Asks for a folder to store demo CO2MPAS input-files.
+    MAKE_IPYTHON_NOTEBOOKS.bat              ## Asks for a folder to store IPYTHON NOTEBOOKS that run CO2MPAS and generate reports.
     cmd-console.bat                         ## Open a python+cygwin enabled `cmd.exe` console.
-    co2mpas-Batch                           ## Run CO2MPAS in batch-mode, asking for Input/Output folders.
-    co2mpas-env.bat                         ## Base script that sets environment variables for python+cygwin.
+    co2mpas-env.bat                         ## Sets env-vars for python+cygwin and launches arguments as new command
+                                            ## !!!!! DO NOT MODIFY !!!!! used by Windows StartMenu shortcuts.
+    bash-console.bat                        ## Open a python+cygwin enabled `bash` console.
+    CO2MPAS_logo.ico                        ## The logo used by the INSTALL.bat script.
+
 
     CO2MPAS/                                ## User's HOME directory containing release-files and tutorial-folders.
     CO2MPAS/tutorial/input/                 ## Pre-generated input demo-files.
