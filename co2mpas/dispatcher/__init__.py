@@ -700,7 +700,7 @@ class Dispatcher(object):
 
             # Set default values.
             for k, v in (v for v in inputs.items() if v[1] in dsp_dfl):
-                self.set_default_value(k, **dsp_dfl[v])
+                self.set_default_value(k, **dsp_dfl.pop(v))
 
         return dsp_id  # Return sub-dispatcher node id.
 
@@ -2371,6 +2371,19 @@ class Dispatcher(object):
 
         return True  # Return that the output have been evaluated correctly.
 
+    def _clear(self):
+        """
+        Clears the dispatcher structure.
+        """
+
+        self.workflow, self.data_output = DiGraph(), {}
+        self._visited, self._wf_add_edge = set(), add_edge_fun(self.workflow)
+        self._wf_remove_edge = remove_edge_fun(self.workflow)
+        self._wf_pred = self.workflow.pred
+        self.check_wait_in = self._check_wait_input_flag()
+        self.check_targets = self._check_targets()
+        self.dist, self.seen = {}, {}
+
     def _init_workflow(self, inputs, input_value, inputs_dist, no_call):
         """
         Initializes workflow, visited nodes, data output, and distance.
@@ -2402,18 +2415,12 @@ class Dispatcher(object):
         """
 
         # Clear previous outputs.
-        self.workflow, self.data_output = DiGraph(), {}
-        self._visited, self._wf_add_edge = set(), add_edge_fun(self.workflow)
-        self._wf_remove_edge = remove_edge_fun(self.workflow)
-        self._wf_pred = self.workflow.pred
-        self.check_wait_in = self._check_wait_input_flag()
-        self.check_targets = self._check_targets()
+        self._clear()
 
         # Namespace shortcuts for speed.
-        add_visited, wf_add_node = self._visited.add, self.workflow.add_node
         check_cutoff, add_value = self._check_cutoff(), self._add_initial_value
 
-        add_visited(START)  # Nodes visited by the algorithm.
+        self._visited.add(START)  # Nodes visited by the algorithm.
 
         # Dicts of distances.
         self.dist, self.seen = ({START: -1}, {START: -1})
@@ -2421,7 +2428,7 @@ class Dispatcher(object):
         fringe = []  # Use heapq with (distance, wait, label).
 
         # Add the starting node to the workflow graph.
-        wf_add_node(START, type='start')
+        self.workflow.add_node(START, type='start')
 
         inputs_dist = inputs_dist or {}  # Update input dist.
 
@@ -2572,7 +2579,7 @@ class Dispatcher(object):
         self._cutoff = cutoff  # Set cutoff parameter.
 
         # Set wildcards.
-        self._set_wildcards(*(inputs, outputs) if wildcard else ())
+        self._set_wildcards(*((inputs, outputs) if wildcard else ()))
 
         # Define a function that return the input value of a given data node.
         if no_call:
@@ -2786,7 +2793,7 @@ class Dispatcher(object):
 
             wf_remove_node(n)  # Remove unused node.
 
-    def _init_as_sub_dsp(self, fringe, outputs, no_call):
+    def _init_as_sub_dsp(self, fringe, outputs, no_call, initial_dist):
         """
         Initialize the dispatcher as sub-dispatcher and update the fringe.
 
@@ -2808,7 +2815,7 @@ class Dispatcher(object):
                                     False)[1]
 
         for f in dsp_fringe:  # Update the fringe.
-            heappush(fringe, f)
+            heappush(fringe, (initial_dist + f[0], 2, f[-1]))
 
     def _see_remote_link_node(self, node_id, fringe, dist, check_dsp):
         """
@@ -2889,11 +2896,6 @@ class Dispatcher(object):
         dsp, pred = node['function'], self._wf_pred[dsp_id]
         distances = self.dist
 
-        if len(pred) == 1:  # Initialize the sub-dispatcher.
-            dsp._init_as_sub_dsp(fringe, node['outputs'], no_call)
-            wf = (dsp.workflow, dsp.data_output, dsp.dist)
-            self.workflow.add_node(dsp_id, workflow=wf)
-
         iv_nodes = [node_id]  # Nodes do be added as initial values.
 
         if dsp_id not in distances:
@@ -2903,11 +2905,20 @@ class Dispatcher(object):
                     kwargs = {k: v['value'] for k, v in pred.items()}
 
                     if not node['input_domain'](kwargs):
+                        if len(pred) == 1:  # Clear the sub-dispatcher.
+                            dsp._clear()
                         return False  # Args are not respecting the domain.
                     else:
                         iv_nodes = pred  # Args respect the domain.
                 except:
+                    if len(pred) == 1:  # Clear the sub-dispatcher.
+                        dsp._clear()
                     return False  # Some error occurs.
+
+            # Initialize the sub-dispatcher.
+            dsp._init_as_sub_dsp(fringe, node['outputs'], no_call, initial_dist)
+            wf = (dsp.workflow, dsp.data_output, dsp.dist)
+            self.workflow.add_node(dsp_id, workflow=wf)
 
             distances[dsp_id] = initial_dist  # Update min distance.
 
