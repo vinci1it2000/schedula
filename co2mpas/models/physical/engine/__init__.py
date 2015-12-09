@@ -239,16 +239,8 @@ def engine():
     engine.add_function(
         function=calculate_engine_speeds_out,
         inputs=['on_engine', 'idle_engine_speed', 'engine_speeds_out_hot',
-                'cold_start_speeds_delta', 'clutch_speeds_delta'],
+                'cold_start_speeds_delta', 'clutch_TC_speeds_delta'],
         outputs=['engine_speeds_out']
-    )
-
-    engine.add_function(
-        function=calculate_engine_speeds_out,
-        inputs=['on_engine', 'idle_engine_speed', 'engine_speeds_out_hot',
-                'cold_start_speeds_delta'],
-        outputs=['engine_speeds_out'],
-        weight=15
     )
 
     engine.add_function(
@@ -260,7 +252,7 @@ def engine():
 
     engine.add_function(
         function=calculate_engine_powers_out,
-        inputs=['gear_box_powers_in', 'engine_speeds_out', 'on_engine',
+        inputs=['clutch_TC_powers', 'engine_speeds_out', 'on_engine',
                 'engine_power_correction_function', 'auxiliaries_power_losses',
                 'alternator_powers_demand'],
         outputs=['engine_powers_out']

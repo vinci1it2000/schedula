@@ -964,15 +964,15 @@ def select_cold_start_speed_model(
 
 
 def calculate_engine_powers_out(
-        gear_box_powers_in, engine_speeds_out, on_engine,
+        clutch_TC_powers, engine_speeds_out, on_engine,
         engine_power_correction_function, auxiliaries_power_losses,
         alternator_powers_demand=None):
     """
     Calculates the engine power [kW].
 
-    :param gear_box_powers_in:
+    :param clutch_TC_powers:
         Gear box power [kW].
-    :type gear_box_powers_in: numpy.array
+    :type clutch_TC_powers: numpy.array
 
     :param engine_speeds_out:
         Engine speed [RPM].
@@ -1000,14 +1000,14 @@ def calculate_engine_powers_out(
     :rtype: numpy.array
     """
 
-    p_on = gear_box_powers_in[on_engine] + auxiliaries_power_losses[on_engine]
+    p_on = clutch_TC_powers[on_engine] + auxiliaries_power_losses[on_engine]
 
     if alternator_powers_demand is not None:
         p_on += np.abs(alternator_powers_demand[on_engine])
 
     p_on = engine_power_correction_function(engine_speeds_out[on_engine], p_on)
 
-    p = np.zeros_like(gear_box_powers_in, dtype=float)
+    p = np.zeros_like(clutch_TC_powers, dtype=float)
     p[on_engine] = p_on
 
     return p

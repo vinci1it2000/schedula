@@ -194,7 +194,7 @@ def _physical():
             'electric_load': 'electric_load',
             'engine_moment_inertia': 'engine_moment_inertia',
             'engine_starts': 'engine_starts',
-            'gear_box_powers_in': 'gear_box_powers_in',
+            'clutch_TC_powers': 'clutch_TC_powers',
             'initial_state_of_charge': 'initial_state_of_charge',
             'max_battery_charging_current': 'max_battery_charging_current',
             'on_engine': 'on_engine',
@@ -216,34 +216,37 @@ def _physical():
         }
     )
 
-    from .clutch import clutch
-
-    def clutch_domain(kwargs):
-        for k, v in kwargs.items():
-            if ':gear_box_type' in k or 'gear_box_type' == k:
-                return v == 'manual'
-        return False
+    from .clutch_torque_converter import clutch_torque_converter
 
     physical.add_dispatcher(
         include_defaults=True,
-        input_domain=clutch_domain,
-        dsp=clutch(),
-        dsp_id='clutch_model',
+        dsp=clutch_torque_converter(),
+        dsp_id='clutch_torque_converter_model',
         inputs={
             'times': 'times',
+            'velocities': 'velocities',
             'accelerations': 'accelerations',
-            'gear_box_type': SINK,
-            'clutch_prediction_model': 'clutch_prediction_model',
+            'gear_box_type': 'gear_box_type',
+            'clutch_model': 'clutch_model',
             'clutch_window': 'clutch_window',
             'gear_shifts': 'gear_shifts',
             'engine_speeds_out': 'engine_speeds_out',
             'engine_speeds_out_hot': 'engine_speeds_out_hot',
             'cold_start_speeds_delta': 'cold_start_speeds_delta',
+            'torque_converter_model': 'torque_converter_model',
+            'stand_still_torque_ratio': 'stand_still_torque_ratio',
+            'lockup_speed_ratio': 'lockup_speed_ratio',
+            'gear_box_speeds_in': 'gear_box_speeds_in',
+            'gear_box_powers_in': 'gear_box_powers_in',
         },
         outputs={
-            'clutch_speeds_delta': 'clutch_speeds_delta',
+            'clutch_TC_speeds_delta': 'clutch_TC_speeds_delta',
             'clutch_window': 'clutch_window',
-            'clutch_prediction_model': 'clutch_prediction_model'
+            'clutch_model': 'clutch_model',
+            'torque_converter_model': 'torque_converter_model',
+            'stand_still_torque_ratio': 'stand_still_torque_ratio',
+            'lockup_speed_ratio': 'lockup_speed_ratio',
+            'clutch_TC_powers': 'clutch_TC_powers'
         }
     )
 
@@ -296,13 +299,13 @@ def _physical():
             'engine_type': 'engine_type',
             'fuel_carbon_content': 'fuel_carbon_content',
             'gear_box_speeds_in': 'gear_box_speeds_in',
-            'gear_box_powers_in': 'gear_box_powers_in',
+            'clutch_TC_powers': 'clutch_TC_powers',
             'gears': 'gears',
             'idle_engine_speed': 'idle_engine_speed',
             'start_stop_model': 'start_stop_model',
             'start_stop_activation_time': 'start_stop_activation_time',
             'times': 'times',
-            'clutch_speeds_delta': 'clutch_speeds_delta',
+            'clutch_TC_speeds_delta': 'clutch_TC_speeds_delta',
             'calibration_status': 'calibration_status'
         },
         outputs={

@@ -14,7 +14,7 @@ from sklearn.metrics import mean_squared_error
 from sklearn.linear_model import RANSACRegressor, LinearRegression
 import numpy as np
 from functools import partial
-from .constants import *
+from ..constants import *
 import co2mpas.dispatcher.utils as dsp_utl
 
 
@@ -49,39 +49,14 @@ def calculate_clutch_phases(
     return b
 
 
-def calculate_clutch_speeds_delta(
-        engine_speeds_out, engine_speeds_out_hot, cold_start_speeds_delta):
-    """
-    Calculates the engine speed delta due to the clutch [RPM].
-     
-    :param engine_speeds_out:
-        Engine speed [RPM].
-    :type engine_speeds_out: numpy.array
-    
-    :param engine_speeds_out_hot:
-        Engine speed at hot condition [RPM].
-    :type engine_speeds_out_hot: numpy.array
-    
-    :param cold_start_speeds_delta:
-        Engine speed delta due to the cold start [RPM].
-    :type cold_start_speeds_delta: numpy.array
-    
-    :return:
-        Engine speed delta due to the clutch [RPM].
-    :rtype: numpy.array
-    """
-
-    return engine_speeds_out - engine_speeds_out_hot - cold_start_speeds_delta
-
-
 def calculate_clutch_speed_threshold(clutch_speeds_delta):
     """
     Calculates the threshold of engine speed delta due to the clutch [RPM].
-     
-    :param clutch_speeds_delta: 
+
+    :param clutch_speeds_delta:
         Engine speed delta due to the clutch [RPM].
     :type clutch_speeds_delta: numpy.array
-    
+
     :return:
         Threshold of engine speed delta due to the clutch [RPM].
     :rtype: float
@@ -95,27 +70,27 @@ def identify_clutch_window(
         clutch_speed_threshold):
     """
     Identifies clutching time window [s].
-           
+
     :param times:
         Time vector [s].
     :type times: numpy.array
-    
+
     :param accelerations:
         Acceleration vector [m/s2].
     :type accelerations: numpy.array
-    
+
     :param gear_shifts:
         When there is a gear shifting [-].
     :type gear_shifts: numpy.array
-    
-    :param clutch_speeds_delta: 
+
+    :param clutch_speeds_delta:
         Engine speed delta due to the clutch [RPM].
     :type clutch_speeds_delta: numpy.array
-    
-    :param clutch_speed_threshold: 
+
+    :param clutch_speed_threshold:
         Threshold of engine speed delta due to the clutch [RPM].
     :type clutch_speed_threshold: float
-    
+
     :return:
         Clutching time window [s].
     :rtype: tuple
@@ -165,19 +140,19 @@ def calibrate_clutch_prediction_model(
         clutch_speed_threshold):
     """
     Calibrate clutch prediction model.
-    
-    :param clutch_phases: 
+
+    :param clutch_phases:
         When the clutch is active [-].
     :type clutch_phases: numpy.array
-    
+
     :param accelerations:
         Acceleration vector [m/s2].
     :type accelerations: numpy.array
-    
-    :param clutch_speeds_delta: 
+
+    :param clutch_speeds_delta:
         Engine speed delta due to the clutch [RPM].
     :type clutch_speeds_delta: numpy.array
-    
+
     :param clutch_speed_threshold:
         Threshold of engine speed delta due to the clutch [RPM].
     :type clutch_speed_threshold: float
@@ -230,3 +205,8 @@ def predict_clutch_speeds_delta(clutch_model, clutch_phases, accelerations):
     delta[clutch_phases] = clutch_model(X)
 
     return delta
+
+
+def default_values_k_factor_curve():
+    stand_still_torque_ratio, lockup_speed_ratio = 1.0, 0.0
+    return stand_still_torque_ratio, lockup_speed_ratio

@@ -60,7 +60,7 @@ def electrics():
     electrics.add_function(
         function=identify_electric_loads,
         inputs=['alternator_nominal_voltage', 'battery_currents',
-                'alternator_currents', 'gear_box_powers_in', 'times',
+                'alternator_currents', 'clutch_TC_powers', 'times',
                 'on_engine', 'engine_starts'],
         outputs=['electric_load', 'start_demand']
     )
@@ -74,7 +74,7 @@ def electrics():
 
     electrics.add_function(
         function=identify_charging_statuses,
-        inputs=['alternator_currents', 'gear_box_powers_in', 'on_engine'],
+        inputs=['alternator_currents', 'clutch_TC_powers', 'on_engine'],
         outputs=['alternator_statuses']
     )
 
@@ -100,7 +100,7 @@ def electrics():
     electrics.add_function(
         function=calibrate_alternator_status_model,
         inputs=['alternator_statuses', 'state_of_charges',
-                'gear_box_powers_in', 'has_energy_recuperation'],
+                'clutch_TC_powers', 'has_energy_recuperation'],
         outputs=['alternator_status_model'],
         weight=10
     )
@@ -119,7 +119,7 @@ def electrics():
 
     electrics.add_function(
         function=calibrate_alternator_current_model,
-        inputs=['alternator_currents', 'gear_box_powers_in', 'on_engine',
+        inputs=['alternator_currents', 'clutch_TC_powers', 'on_engine',
                 'accelerations', 'state_of_charges', 'alternator_statuses'],
         outputs=['alternator_current_model']
     )
@@ -129,7 +129,7 @@ def electrics():
         inputs=['battery_capacity', 'alternator_status_model',
                 'alternator_current_model', 'max_battery_charging_current',
                 'alternator_nominal_voltage', 'start_demand', 'electric_load',
-                'initial_state_of_charge', 'times', 'gear_box_powers_in',
+                'initial_state_of_charge', 'times', 'clutch_TC_powers',
                 'on_engine', 'engine_starts', 'accelerations'],
         outputs=['alternator_currents', 'battery_currents',
                  'state_of_charges', 'alternator_statuses']

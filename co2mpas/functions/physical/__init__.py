@@ -21,7 +21,7 @@ Modules:
     wheels
     final_drive
     gear_box
-    clutch
+    clutch_tc
     electrics
     engine
     utils
@@ -143,15 +143,17 @@ def _comparison_model():
             'engine_thermostat_temperature': 'engine_thermostat_temperature',
             'cold_start_speed_model': 'cold_start_speed_model',
             'clutch_window': 'clutch_window',
-            'clutch_prediction_model': 'clutch_prediction_model'
+            'clutch_model': 'clutch_model',
+            'torque_converter_model': 'torque_converter_model',
         },
         outputs={
             'engine_speeds_out': 'engine_speeds_out'
         }
     )
-    cal_models.update(['clutch_window', 'clutch_prediction_model'])
+    cal_models.update(['clutch_window', 'clutch_model',
+                       'torque_converter_model'])
     def speed_get_models(selected_models, *args):
-        mods = ('clutch_window', 'clutch_prediction_model')
+        mods = ('clutch_window', 'clutch_model', 'torque_converter_model')
         mods = {k: selected_models[k] for k in mods if k in selected_models}
         mods.update(_get_models(selected_models, *args))
         return mods
@@ -254,7 +256,7 @@ def _comparison_model():
             'electric_load': 'electric_load',
             'initial_state_of_charge': 'initial_state_of_charge',
             'times': 'times',
-            'gear_box_powers_in': 'gear_box_powers_in',
+            'clutch_TC_powers': 'clutch_TC_powers',
             'on_engine': 'on_engine',
             'engine_starts': 'engine_starts'
         },

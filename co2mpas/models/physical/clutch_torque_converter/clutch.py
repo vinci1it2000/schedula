@@ -12,7 +12,7 @@ The model is defined by a Dispatcher that wraps all the functions needed.
 """
 
 from co2mpas.dispatcher import Dispatcher
-from co2mpas.functions.physical.clutch import *
+from co2mpas.functions.physical.clutch_tc.clutch import *
 
 def clutch():
     """
@@ -39,13 +39,6 @@ def clutch():
     )
 
     clutch.add_function(
-        function=calculate_clutch_speeds_delta,
-        inputs=['engine_speeds_out', 'engine_speeds_out_hot',
-                'cold_start_speeds_delta'],
-        outputs=['clutch_speeds_delta']
-    )
-
-    clutch.add_function(
         function=calculate_clutch_speed_threshold,
         inputs=['clutch_speeds_delta'],
         outputs=['clutch_speed_threshold']
@@ -62,13 +55,18 @@ def clutch():
         function=calibrate_clutch_prediction_model,
         inputs=['clutch_phases', 'accelerations', 'clutch_speeds_delta',
                 'clutch_speed_threshold'],
-        outputs=['clutch_prediction_model']
+        outputs=['clutch_model']
     )
 
     clutch.add_function(
         function=predict_clutch_speeds_delta,
-        inputs=['clutch_prediction_model', 'clutch_phases', 'accelerations'],
+        inputs=['clutch_model', 'clutch_phases', 'accelerations'],
         outputs=['clutch_speeds_delta']
+    )
+
+    clutch.add_function(
+        function=default_values_k_factor_curve,
+        outputs=['stand_still_torque_ratio', 'lockup_speed_ratio']
     )
 
     return clutch
