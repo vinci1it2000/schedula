@@ -12,10 +12,11 @@ It provides constants for the NEDC cycle.
 
 
 import numpy as np
+from scipy.interpolate import interp1d
 import sys
 
 
-EPS = sys.float_info.epsilon
+EPS = sys.float_info.epsilon * 10
 
 
 def nedc_gears_domain(cycle_type, gear_box_type, *args):
@@ -139,77 +140,31 @@ def nedc_gears(times, max_gear, k1=1, k2=2, k5=2):
         Gear vector [-].
     :rtype: numpy.array
     """
-
+    EPS = 0.01
     # part one
     t, s = zip(*[
-        [0, 0],
-        [6, 0],
-        [6, k1],
-        [11, k1],
-        [11, 1],
-        [25, 1],
-        [25, k1],
-        [28, k1],
-        [28, 0],
-        [44, 0],
-        [44, k1],
-        [49, k1],
-        [49, 1],
-        [56, 1],
-        [56, 2],
-        [93, 2],
-        [93, k2],
-        [96, k2],
-        [96, 0],
-        [112, 0],
-        [112, k1],
-        [117, k1],
-        [117, 1],
-        [124, 1],
-        [124, 2],
-        [135, 2],
-        [135, 3],
-        [178, 3],
-        [178, 2],
-        [185, 2],
-        [185, k2],
-        [188, k2],
-        [188, 0],
-        [195, 0]
+        [0, 0], [6, 0], [6, k1], [11, k1], [11, 1], [25, 1], [25, k1], [28, k1],
+        [28, 0], [44, 0], [44, k1], [49, k1], [49, 1], [55 - EPS, 1],
+        [55 - EPS, 2], [93, 2], [93, k2], [96, k2], [96, 0], [112, 0],
+        [112, k1], [117, k1], [117, 1], [123 - EPS, 1], [123 - EPS, 2],
+        [134 - EPS, 2],  [134 - EPS, 3], [177 - EPS, 3], [177 - EPS, 2],
+        [185, 2], [185, k2], [188, k2], [188, 0], [195, 0]
     ])
 
     _t, shifting = _repeat_part_one(t, s)
 
     # part two
     t, s = zip(*[
-        [0, k1],
-        [20, k1],
-        [20, 1],
-        [27, 1],
-        [27, 2],
-        [38, 2],
-        [38, 3],
-        [48, 3],
-        [48, 4],
-        [61, 4],
-        [61, 5],
-        [115, 5],
-        [115, 4],
-        [201, 4],
-        [201, 5],
-        [286, 5],
-        [286, max_gear],
-        [370, max_gear],
-        [370, k5],
-        [380, k5],
-        [380, 0],
-        [400, 0]
+        [0, k1], [20, k1], [20, 1], [26 - EPS, 1], [26 - EPS, 2], [37 - EPS, 2],
+        [37 - EPS, 3], [47 - EPS, 3], [47 - EPS, 4], [61, 4], [61, 5], [115, 5],
+        [115, 4], [201, 4], [201, 5], [286, 5], [286, max_gear],
+        [370, max_gear], [370, k5], [380, k5], [380, 0], [400, 0]
     ])
 
     _t.extend(np.asarray(t) + _t[-1])
     shifting.extend(s)
 
-    s = np.interp(times, _t, shifting)
+    s = interp1d(_t, shifting, kind='nearest', assume_sorted=True)(times)
 
     s[s > max_gear] = max_gear
 
