@@ -194,7 +194,7 @@ def engine():
     engine.add_function(
         function=predict_on_engine,
         inputs=['start_stop_model', 'times', 'velocities', 'accelerations',
-                'engine_coolant_temperatures', 'cycle_type', 'gear_box_type'],
+                'engine_coolant_temperatures', 'gears'],
         outputs=['on_engine']
     )
 

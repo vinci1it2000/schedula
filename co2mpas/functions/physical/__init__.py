@@ -116,7 +116,7 @@ def _comparison_model():
             'accelerations': 'accelerations',
             'engine_coolant_temperatures': 'engine_coolant_temperatures',
             'cycle_type': 'cycle_type',
-            'gear_box_type': 'gear_box_type'
+            'gears': 'gears'
         },
         outputs={
             'on_engine': 'on_engine',

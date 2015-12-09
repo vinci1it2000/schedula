@@ -637,7 +637,7 @@ def calibrate_start_stop_model(
 
 def predict_on_engine(
         model, times, velocities, accelerations, engine_coolant_temperatures,
-        cycle_type, gear_box_type):
+        gears):
     """
     Predicts if the engine is on [-].
 
@@ -678,18 +678,7 @@ def predict_on_engine(
                       engine_coolant_temperatures)
     on_engine = np.array(on_engine, dtype=int)
 
-    # legislation imposition
-    if cycle_type == 'NEDC' and gear_box_type == 'manual':
-        legislation_on_engine = dict.fromkeys(
-            [11, 49, 117, 206, 244, 312, 401, 439, 507, 596, 634, 702],
-            5.0
-        )
-        legislation_on_engine[800] = 20.0
-
-        on_engine = np.array(on_engine)
-
-        for k, v in legislation_on_engine.items():
-            on_engine[((k - v) <= times) & (times <= k + 3)] = 1
+    on_engine[gears > 0] = 1
 
     on_engine = clear_fluctuations(times, on_engine, TIME_WINDOW)
 

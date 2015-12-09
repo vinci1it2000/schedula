@@ -297,7 +297,7 @@ def _physical():
             'fuel_carbon_content': 'fuel_carbon_content',
             'gear_box_speeds_in': 'gear_box_speeds_in',
             'gear_box_powers_in': 'gear_box_powers_in',
-            'gear_box_type': 'gear_box_type',
+            'gears': 'gears',
             'idle_engine_speed': 'idle_engine_speed',
             'start_stop_model': 'start_stop_model',
             'start_stop_activation_time': 'start_stop_activation_time',
