@@ -240,6 +240,8 @@ def _init_graph_data(dsp, workflow, edge_attr):
         else:
             args = [dsp, dsp.workflow, dsp.data_output, dsp.dist, edge_attr]
 
+    elif workflow is None:
+        args = [dsp, nx.DiGraph(), {}, {}, None]
     else:
         args = [dsp, dsp.dmap, dsp.default_values, {}, edge_attr or dsp.weight]
 
@@ -292,13 +294,16 @@ def _set_node(dot, node_id, dsp2dot_id, dsp=None, node_attr=None, values=None,
                         'dot_id': 'cluster_%s' % dot_id,
                         'node_name': node_name,
                         'edge_attr': edge_attr,
-                        'workflow': workflow_node.get('workflow', False),
                         'depth': depth,
                         'node_output': node_output,
                         'function_module': function_module,
                         'nested': nested,
                         'format': dot.format
                     }
+                    if 'workflow' in workflow_node:
+                        kwargs['workflow'] = workflow_node['workflow']
+                    else:
+                        kwargs['workflow'] = None if dist else False
 
                     kw.update(_set_sub_dsp(**kwargs))
                 else:
