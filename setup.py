@@ -8,6 +8,12 @@
 #
 from setuptools import setup, find_packages
 import os, io, re
+import sys
+
+
+if not sys.version_info[0] >= 3:
+    sys.exit("Sorry, Python %d is not supported!" % sys.version_info[0])
+
 
 proj_name = 'co2mpas'
 mydir = os.path.dirname(__file__)
