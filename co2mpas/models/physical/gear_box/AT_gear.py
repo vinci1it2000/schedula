@@ -1,4 +1,4 @@
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Copyright 2015 European Commission (JRC);
 # Licensed under the EUPL (the 'Licence');
@@ -51,7 +51,7 @@ def AT_gear():
 
     AT_gear.add_function(
         function=correct_gear_v1,
-        inputs=['velocity_speed_ratios', 'MVL'],
+        inputs=['velocity_speed_ratios', 'MVL', 'idle_engine_speed'],
         outputs=['correct_gear'],
         weight=50)
 
@@ -65,6 +65,7 @@ def AT_gear():
 
     AT_gear.add_function(
         function=correct_gear_v3,
+        inputs=['velocity_speed_ratios', 'idle_engine_speed'],
         outputs=['correct_gear'],
         weight=100)
 

@@ -19,6 +19,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.isotonic import IsotonicRegression
 from sklearn.metrics import mean_absolute_error, accuracy_score
 import co2mpas.dispatcher.utils as dsp_utl
+from functools import partial
 from ..utils import median_filter, grouper, clear_fluctuations, reject_outliers
 from ..constants import *
 from ..gear_box import calculate_gear_box_speeds_in
@@ -146,6 +147,17 @@ def correct_gear_full_load(
     return gear
 
 
+def basic_correct_gear(
+        velocity, acceleration, gear, velocity_speed_ratios, idle_engine_speed):
+    if gear == 0 and acceleration > 0:
+        gear = min(k for k in velocity_speed_ratios if k > 0)
+    elif gear > 1:
+        vsr, idle = velocity_speed_ratios, idle_engine_speed[0]
+        while gear > 1 and (gear not in vsr or velocity / vsr[gear] < idle):
+            gear -=1
+    return gear
+
+
 def correct_gear_v0(
         velocity_speed_ratios, mvl, engine_max_power,
         engine_max_speed_at_max_power, idle_engine_speed, full_load_curve,
@@ -199,15 +211,17 @@ def correct_gear_v0(
         g = correct_gear_mvl(
             velocity, acceleration, gear, mvl, max_gear, min_gear)
 
-        return correct_gear_full_load(
+        g = correct_gear_full_load(
             velocity, acceleration, g, velocity_speed_ratios, engine_max_power,
             engine_max_speed_at_max_power, idle_engine_speed, full_load_curve,
             road_loads, vehicle_mass, min_gear)
+        return basic_correct_gear(
+            velocity, acceleration, g, velocity_speed_ratios, idle_engine_speed)
 
     return correct_gear
 
 
-def correct_gear_v1(velocity_speed_ratios, mvl):
+def correct_gear_v1(velocity_speed_ratios, mvl, idle_engine_speed):
     """
     Returns a function to correct the gear predicted according to
     :func:`correct_gear_upper_bound_engine_speed`.
@@ -228,8 +242,10 @@ def correct_gear_v1(velocity_speed_ratios, mvl):
     max_gear, min_gear = max(velocity_speed_ratios), min(velocity_speed_ratios)
 
     def correct_gear(velocity, acceleration, gear):
-        return correct_gear_mvl(
+        g = correct_gear_mvl(
             velocity, acceleration, gear, mvl, max_gear, min_gear)
+        return basic_correct_gear(
+            velocity, acceleration, g, velocity_speed_ratios, idle_engine_speed)
 
     return correct_gear
 
@@ -277,15 +293,18 @@ def correct_gear_v2(
     min_gear = min(velocity_speed_ratios)
 
     def correct_gear(velocity, acceleration, gear):
-        return correct_gear_full_load(
+        g = correct_gear_full_load(
             velocity, acceleration, gear, velocity_speed_ratios,
             engine_max_power, engine_max_speed_at_max_power, idle_engine_speed,
             full_load_curve, road_loads, vehicle_mass, min_gear)
 
+        return basic_correct_gear(
+            velocity, acceleration, g, velocity_speed_ratios, idle_engine_speed)
+
     return correct_gear
 
 
-def correct_gear_v3():
+def correct_gear_v3(velocity_speed_ratios, idle_engine_speed):
     """
     Returns a function that does not correct the gear predicted.
 
@@ -294,9 +313,9 @@ def correct_gear_v3():
     :rtype: function
     """
 
-    def correct_gear(velocity, acceleration, gear):
-        return gear
-
+    correct_gear = partial(basic_correct_gear,
+                           velocity_speed_ratios=velocity_speed_ratios,
+                           idle_engine_speed=idle_engine_speed)
     return correct_gear
 
 
@@ -430,7 +449,7 @@ class CMV(OrderedDict):
         plt.legend(loc='best')
         plt.xlabel('Velocity [km/h]')
 
-    def predict(self, X, correct_gear=correct_gear_v3(), previous_gear=None,
+    def predict(self, X, correct_gear=lambda v, a, g: g, previous_gear=None,
                 times=None):
 
         gear = previous_gear or min(self)
@@ -703,7 +722,7 @@ class GSPV(dict):
         plt.xlabel('Velocity [km/h]')
         plt.ylabel('Power [kW]')
 
-    def predict(self, X, correct_gear=correct_gear_v3(), previous_gear=None,
+    def predict(self, X, correct_gear=lambda v, a, g: g, previous_gear=None,
                 times=None):
 
         gear = previous_gear or min(self)
