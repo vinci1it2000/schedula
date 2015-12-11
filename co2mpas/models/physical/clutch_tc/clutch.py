@@ -14,6 +14,7 @@ The model is defined by a Dispatcher that wraps all the functions needed.
 from co2mpas.dispatcher import Dispatcher
 from co2mpas.functions.physical.clutch_tc.clutch import *
 
+
 def clutch():
     """
     Defines the clutch model.
@@ -64,9 +65,20 @@ def clutch():
         outputs=['clutch_speeds_delta']
     )
 
+    clutch.add_data(
+        data_id='stand_still_torque_ratio',
+        default_value=1.0
+    )
+
+    clutch.add_data(
+        data_id='lockup_speed_ratio',
+        default_value=0.0
+    )
+
     clutch.add_function(
-        function=default_values_k_factor_curve,
-        outputs=['stand_still_torque_ratio', 'lockup_speed_ratio']
+        function=define_k_factor_curve,
+        inputs=['stand_still_torque_ratio', 'lockup_speed_ratio'],
+        outputs=['k_factor_curve']
     )
 
     return clutch

@@ -20,7 +20,7 @@ It contains a comprehensive list of all CO2MPAS software models and sub-models:
     wheels
     final_drive
     gear_box
-    clutch
+    clutch_tc
     electrics
     engine
 
@@ -216,7 +216,7 @@ def _physical():
         }
     )
 
-    from .clutch_torque_converter import clutch_torque_converter
+    from .clutch_tc import clutch_torque_converter
 
     physical.add_dispatcher(
         include_defaults=True,
@@ -229,6 +229,7 @@ def _physical():
             'gear_box_type': 'gear_box_type',
             'clutch_model': 'clutch_model',
             'clutch_window': 'clutch_window',
+            'gears': 'gears',
             'gear_shifts': 'gear_shifts',
             'engine_speeds_out': 'engine_speeds_out',
             'engine_speeds_out_hot': 'engine_speeds_out_hot',
@@ -299,6 +300,7 @@ def _physical():
             'engine_type': 'engine_type',
             'fuel_carbon_content': 'fuel_carbon_content',
             'gear_box_speeds_in': 'gear_box_speeds_in',
+            'gear_box_powers_in': 'gear_box_powers_in',
             'clutch_TC_powers': 'clutch_TC_powers',
             'gears': 'gears',
             'idle_engine_speed': 'idle_engine_speed',

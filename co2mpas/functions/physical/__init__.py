@@ -138,6 +138,7 @@ def _comparison_model():
         inputs={
             'gear_box_speeds_in': 'gear_box_speeds_in',
             'on_engine': 'on_engine',
+            'gears': 'gears',
             'idle_engine_speed': 'idle_engine_speed',
             'engine_coolant_temperatures': 'engine_coolant_temperatures',
             'engine_thermostat_temperature': 'engine_thermostat_temperature',

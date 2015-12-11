@@ -16,6 +16,7 @@ import numpy as np
 from functools import partial
 from ..constants import *
 import co2mpas.dispatcher.utils as dsp_utl
+from . import define_k_factor_curve
 
 
 def calculate_clutch_phases(
@@ -205,8 +206,3 @@ def predict_clutch_speeds_delta(clutch_model, clutch_phases, accelerations):
     delta[clutch_phases] = clutch_model(X)
 
     return delta
-
-
-def default_values_k_factor_curve():
-    stand_still_torque_ratio, lockup_speed_ratio = 1.0, 0.0
-    return stand_still_torque_ratio, lockup_speed_ratio

@@ -6,9 +6,20 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-It provides a clutch model.
+It provides a clutch and torque converter models.
 
 The model is defined by a Dispatcher that wraps all the functions needed.
+
+Sub-Modules:
+
+.. currentmodule:: co2mpas.models.physical.clutch_tc
+
+.. autosummary::
+    :nosignatures:
+    :toctree: clutch_tc/
+
+    clutch
+    torque_converter
 """
 
 from co2mpas.dispatcher import Dispatcher
@@ -35,22 +46,17 @@ def clutch_torque_converter():
     )
 
     clutch_torque_converter.add_function(
-        function=calculate_speeds_delta,
+        function=calculate_clutch_TC_speeds_delta,
         inputs=['engine_speeds_out', 'engine_speeds_out_hot',
                 'cold_start_speeds_delta'],
         outputs=['clutch_TC_speeds_delta']
     )
 
     clutch_torque_converter.add_function(
-        function=define_k_factor_curve,
-        inputs=['stand_still_torque_ratio', 'lockup_speed_ratio'],
-        outputs=['k_factor_curve']
-    )
-
-    clutch_torque_converter.add_function(
         function=calculate_clutch_TC_powers,
         inputs=['clutch_TC_speeds_delta', 'k_factor_curve',
-                'gear_box_speeds_in', 'gear_box_powers_in'],
+                'gear_box_speeds_in', 'gear_box_powers_in',
+                'engine_speeds_out'],
         outputs=['clutch_TC_powers']
     )
 
@@ -81,8 +87,7 @@ def clutch_torque_converter():
             'clutch_speeds_delta': 'clutch_TC_speeds_delta',
             'clutch_window': 'clutch_window',
             'clutch_model': 'clutch_model',
-            'stand_still_torque_ratio': 'stand_still_torque_ratio',
-            'lockup_speed_ratio': 'lockup_speed_ratio'
+            'k_factor_curve': 'k_factor_curve'
 
         }
     )
@@ -101,9 +106,11 @@ def clutch_torque_converter():
         dsp_id='torque_converter',
         inputs={
             'velocities': 'velocities',
+            'accelerations': 'accelerations',
             'gear_box_type': dsp_utl.SINK,
+            'gears': 'gears',
             'clutch_TC_speeds_delta': 'torque_converter_speeds_delta',
-            'gear_box_powers_in': 'gear_box_powers_in',
+            'engine_speeds_out_hot': 'gear_box_speeds_in',
             'torque_converter_model': 'torque_converter_model',
             'stand_still_torque_ratio': 'stand_still_torque_ratio',
             'lockup_speed_ratio': 'lockup_speed_ratio'
@@ -111,8 +118,7 @@ def clutch_torque_converter():
         outputs={
             'torque_converter_speeds_delta': 'clutch_TC_speeds_delta',
             'torque_converter_model': 'torque_converter_model',
-            'stand_still_torque_ratio': 'stand_still_torque_ratio',
-            'lockup_speed_ratio': 'lockup_speed_ratio',
+            'k_factor_curve': 'k_factor_curve'
         }
     )
 

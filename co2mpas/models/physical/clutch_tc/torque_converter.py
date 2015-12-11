@@ -34,21 +34,33 @@ def torque_converter():
     )
 
     torque_converter.add_function(
-        function=calibrate_torque_converter_prediction_model,
-        inputs=['velocities', 'gear_box_powers_in',
-                'torque_converter_speeds_delta'],
+        function=calibrate_torque_converter_model,
+        inputs=['torque_converter_speeds_delta', 'accelerations', 'velocities',
+                'gear_box_speeds_in', 'gears'],
         outputs=['torque_converter_model']
     )
 
     torque_converter.add_function(
         function=predict_torque_converter_speeds_delta,
-        inputs=['torque_converter_model', 'velocities', 'gear_box_powers_in'],
+        inputs=['torque_converter_model', 'accelerations', 'velocities',
+                'gear_box_speeds_in', 'gears'],
         outputs=['torque_converter_speeds_delta']
     )
 
+    torque_converter.add_data(
+        data_id='stand_still_torque_ratio',
+        default_value=1.9
+    )
+
+    torque_converter.add_data(
+        data_id='lockup_speed_ratio',
+        default_value=0.87
+    )
+
     torque_converter.add_function(
-        function=default_values_k_factor_curve,
-        outputs=['stand_still_torque_ratio', 'lockup_speed_ratio']
+        function=define_k_factor_curve,
+        inputs=['stand_still_torque_ratio', 'lockup_speed_ratio'],
+        outputs=['k_factor_curve']
     )
 
     return torque_converter

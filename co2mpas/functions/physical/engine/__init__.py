@@ -32,6 +32,7 @@ from co2mpas.functions.physical.utils import bin_split, reject_outliers, \
     clear_fluctuations, median_filter
 import co2mpas.dispatcher.utils as dsp_utl
 
+
 def get_full_load(fuel_type):
     """
     Returns vehicle full load curve.
@@ -971,7 +972,7 @@ def calculate_engine_powers_out(
     Calculates the engine power [kW].
 
     :param clutch_TC_powers:
-        Gear box power [kW].
+        Clutch or torque converter power [kW].
     :type clutch_TC_powers: numpy.array
 
     :param engine_speeds_out:
