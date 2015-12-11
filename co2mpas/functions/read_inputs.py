@@ -221,6 +221,7 @@ def get_filters(from_outputs=False):
             'phases_co2_emissions': (_try_eval, list, empty),
             'velocity_speed_ratios': (_try_eval, list, empty, index_dict),
             'road_loads': (_try_eval, list, empty),
+            'specific_gear_shifting': (str, empty),
             'full_load_speeds': (_try_eval, np.asarray, empty),
             'full_load_torques': (_try_eval, np.asarray, empty),
             'full_load_powers': (_try_eval, np.asarray, empty),
