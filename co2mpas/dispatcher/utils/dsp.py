@@ -20,7 +20,7 @@ __all__ = ['combine_dicts', 'bypass', 'summation', 'map_dict', 'map_list',
 from .gen import caller_name, Token
 from networkx.classes.digraph import DiGraph
 from copy import deepcopy
-from functools import partial
+from functools import partial, reduce
 from inspect import signature, Parameter, _POSITIONAL_OR_KEYWORD
 from collections import OrderedDict
 import types
@@ -111,7 +111,8 @@ def summation(*inputs):
         10.0
     """
 
-    return sum(inputs)  # Return the sum of the input values.
+    # Return the sum of the input values.
+    return reduce(lambda x, y: x + y, inputs)
 
 
 def map_dict(key_map, *dicts, copy=False):
@@ -197,7 +198,7 @@ def map_list(key_map, *inputs, copy=False):
     return combine_dicts(d, copy=copy)  # Return dict.
 
 
-def selector(keys, dictionary, copy=True, output_type='dict'):
+def selector(keys, dictionary, copy=True, output_type='dict', allow_miss=False):
     """
     Selects the chosen dictionary keys from the given dictionary.
 
@@ -213,6 +214,10 @@ def selector(keys, dictionary, copy=True, output_type='dict'):
         If True the output contains deep-copies of the values.
     :type copy: bool
 
+    :param allow_miss:
+        If True it does not raise when some key is missing in the dictionary.
+    :type allow_miss: bool
+
     :return:
         A dictionary with chosen dictionary keys if present in the sequence of
         dictionaries. These are combined with :func:`combine_dicts`.
@@ -225,12 +230,17 @@ def selector(keys, dictionary, copy=True, output_type='dict'):
         >>> sorted(fun({'a': 1, 'b': 2, 'c': 3}).items())
         [('a', 1), ('b', 2)]
     """
+    if not allow_miss:
+        check = lambda key: True
+    else:
+        check = lambda key: key in dictionary
 
     if output_type == 'list':  # Select as list.
-        return bypass(*[dictionary[k] for k in keys], copy=copy)
+        res = [dictionary[k] for k in keys if check(k)]
+        return deepcopy(res) if copy else res
 
     # Select as dict.
-    return combine_dicts({k: dictionary[k] for k in keys}, copy=copy)
+    return bypass({k: dictionary[k] for k in keys if  check(k)}, copy=copy)
 
 
 def replicate_value(value, n=2, copy=True):
@@ -552,6 +562,9 @@ class SubDispatch(object):
         return plot(self, workflow=workflow, edge_data=edge_data, view=view,
                     depth=depth, function_module=function_module,
                     node_output=node_output, nested=nested, **kw_dot)
+
+    def copy(self):
+        return deepcopy(self)
 
 
 class ReplicateFunction(object):
