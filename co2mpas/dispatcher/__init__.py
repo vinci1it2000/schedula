@@ -575,7 +575,7 @@ class Dispatcher(object):
         :param dsp:
             Child dispatcher that is added as sub-dispatcher node to the parent
             dispatcher.
-        :type dsp: Dispatcher
+        :type dsp: Dispatcher | dict[str, list]
 
         :param inputs:
             Inputs mapping. Data node ids from parent dispatcher to child
@@ -664,6 +664,9 @@ class Dispatcher(object):
             ...                    outputs={'c': 'E'}, input_domain=my_domain)
             'Sub-Dispatcher with domain'
         """
+
+        if not isinstance(dsp, Dispatcher):
+            dsp = Dispatcher(name=dsp_id or 'unknown').add_from_lists(**dsp)
 
         if not dsp_id:  # Get the dsp id.
             dsp_id = '%s:%s' % (dsp.__module__, dsp.name or 'unknown')
@@ -968,6 +971,7 @@ class Dispatcher(object):
         sub_dsp.weight = self.weight
         sub_dsp.__doc__ = self.__doc__
         sub_dsp.name = self.name
+        sub_dsp.raises = self.raises
 
         # Namespace shortcuts for speed.
         nodes, dmap_out_degree = sub_dsp.nodes, sub_dsp.dmap.out_degree
@@ -1089,6 +1093,7 @@ class Dispatcher(object):
         # Define an empty dispatcher map.
         sub_dsp, sub_dsp.weight = self.__class__(), self.weight
         sub_dsp.__doc__, sub_dsp.name = self.__doc__, self.name
+        sub_dsp.raises = self.raises
 
         if not graph:  # Set default graph.
             graph = self.workflow
@@ -1759,7 +1764,7 @@ class Dispatcher(object):
 
                 # Evaluate the workflow graph without invoking functions.
                 o = self.dispatch(inputs, outputs, cutoff, inputs_dist,
-                                      wildcard, True, False, True)
+                                  wildcard, True, False, True)
 
                 edges.update(self.workflow.edges())  # Update bfg edges.
 
@@ -1824,7 +1829,8 @@ class Dispatcher(object):
 
         # Namespace shortcuts.
         pred, succ, nodes = self.dmap.pred, self.dmap.succ, self.nodes
-        re_rl = replace_remote_link
+        re_rl, dist = replace_remote_link, old_dsp.dist
+        rm_edge = self.dmap.remove_edge
 
         for k, n in (v for v in nodes.items() if v[1]['type'] == 'dispatcher'):
             n = nodes[k] = n.copy()  # Unlink node references.
@@ -1834,9 +1840,24 @@ class Dispatcher(object):
             i = {l: m for l, m in n['inputs'].items() if l in i}
             o = {l: m for l, m in n['outputs'].items() if m in o}
 
+            if not from_outputs and dist:
+                max_d = max((dist[m], l) for l, m in o.items())
+
+                i = {l: m for l, m in i.items() if (dist[l], m) <= max_d}
+
+                for l in set(pred[k]) - set(i):
+                    rm_edge(l, k)
+
+                # Get initial dist.
+                d = {m: dist[l] for l, m in i.items()}
+            else:
+                d = None
+
+            srk_i = i.values() if not from_outputs and i else None
+            srk_o = o or None
+
             # Shrink the sub-dispatcher.
-            sub_dsp = n['function'].shrink_dsp(
-                i.values() if not from_outputs and i else None, o or None)
+            sub_dsp = n['function'].shrink_dsp(srk_i, srk_o, inputs_dist=d)
 
             # Get nodes with remote links (input and output).
             n_in = set(n['inputs'].values()).intersection(sub_dsp.nodes)
@@ -1856,6 +1877,10 @@ class Dispatcher(object):
 
             # Update sub-dispatcher node.
             n.update({'inputs': i, 'outputs': o, 'function': sub_dsp})
+
+            # Add missing nodes to sub-dispatcher
+            for l in set(i.values()) - set(sub_dsp.nodes):
+                sub_dsp.add_data(data_id=l)
 
     def _update_remote_links(self, new_dsp, old_dsp):
         """
