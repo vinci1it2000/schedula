@@ -136,6 +136,10 @@ def _comparison_model():
         dsp_id='test cold_start_speed_model',
         dsp=physical_prediction(),
         inputs={
+            'times': 'times',
+            'accelerations': 'accelerations',
+            'velocities': 'velocities',
+            'gear_box_type': 'gear_box_type',
             'gear_box_speeds_in': 'gear_box_speeds_in',
             'on_engine': 'on_engine',
             'gears': 'gears',
@@ -153,6 +157,7 @@ def _comparison_model():
     )
     cal_models.update(['clutch_window', 'clutch_model',
                        'torque_converter_model'])
+
     def speed_get_models(selected_models, *args):
         mods = ('clutch_window', 'clutch_model', 'torque_converter_model')
         mods = {k: selected_models[k] for k in mods if k in selected_models}

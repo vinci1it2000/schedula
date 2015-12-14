@@ -244,13 +244,6 @@ def engine():
     )
 
     engine.add_function(
-        function=dsp_utl.bypass,
-        inputs=['engine_speeds_out_hot'],
-        outputs=['engine_speeds_out'],
-        weight=50
-    )
-
-    engine.add_function(
         function=calculate_engine_powers_out,
         inputs=['clutch_TC_powers', 'engine_speeds_out', 'on_engine',
                 'engine_power_correction_function', 'auxiliaries_power_losses',
