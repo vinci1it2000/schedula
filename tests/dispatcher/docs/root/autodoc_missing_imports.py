@@ -1,3 +1,5 @@
+## STOP PyDev TESTING FAILURES:
+## Add ``--exclude_files=autodoc_missing*,conf.py`` into PyDev test-runner.
 
 import missing_module
 from missing_module import missing_name

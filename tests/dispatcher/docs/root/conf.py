@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+## STOP PyDev TESTING FAILURES:
+## Add ``--exclude_files=autodoc_missing*,conf.py`` into PyDev test-runner.
+
 import sys
 import os
 
