@@ -966,11 +966,15 @@ def select_cold_start_speed_model(
 
 
 def calculate_engine_powers_out(
-        clutch_TC_powers, engine_speeds_out, on_engine,
+        engine_moment_inertia, clutch_TC_powers, engine_speeds_out, on_engine,
         engine_power_correction_function, auxiliaries_power_losses,
         alternator_powers_demand=None):
     """
     Calculates the engine power [kW].
+
+    :param engine_moment_inertia:
+        Engine moment of inertia [kg*m2].
+    :type engine_moment_inertia: float
 
     :param clutch_TC_powers:
         Clutch or torque converter power [kW].
@@ -1011,6 +1015,11 @@ def calculate_engine_powers_out(
 
     p = np.zeros_like(clutch_TC_powers, dtype=float)
     p[on_engine] = p_on
+
+    engine_speeds_delta = np.ediff1d(engine_speeds_out, to_end=0)
+    engine_powers_on_inertia = engine_moment_inertia / 2000 * (2 * pi * engine_speeds_delta / 60)**2
+
+    p += engine_powers_on_inertia
 
     return p
 

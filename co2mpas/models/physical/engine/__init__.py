@@ -238,7 +238,7 @@ def engine():
 
     engine.add_function(
         function=calculate_engine_powers_out,
-        inputs=['clutch_TC_powers', 'engine_speeds_out', 'on_engine',
+        inputs=['engine_moment_inertia', 'clutch_TC_powers', 'engine_speeds_out', 'on_engine',
                 'engine_power_correction_function', 'auxiliaries_power_losses',
                 'alternator_powers_demand'],
         outputs=['engine_powers_out']
