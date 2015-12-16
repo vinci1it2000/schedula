@@ -1,3 +1,7 @@
+.. image:: doc/_static/CO2MPAS_logo.png
+   :width: 300 px
+   :align: center
+
 ##################################################################
 CO2MPAS: Vehicle simulator predicting NEDC CO2 emissions from WLTP
 ##################################################################
@@ -6,7 +10,7 @@ CO2MPAS: Vehicle simulator predicting NEDC CO2 emissions from WLTP
 :Home:          http://co2mpas.io/
 :Releases:      http://files.co2mpas.io/
 :Sources:       https://github.com/JRCSTU/co2mpas
-:pypi-repo:     http://pypi.co2mpas.io/ (will move to standard Python-repo in the future)
+:pypi-repo:     https://pypi.python.org/pypi/co2mpas
 :Keywords:      CO2, fuel-consumption, WLTP, NEDC, vehicle, automotive,
                 EU, JRC, IET, STU, back-translation, policy,
                 simulator, engineering, scientific
@@ -14,7 +18,6 @@ CO2MPAS: Vehicle simulator predicting NEDC CO2 emissions from WLTP
 :Copyright:     2015 European Commission (`JRC-IET
                 <https://ec.europa.eu/jrc/en/institutes/iet>`_)
 :License:       `EUPL 1.1+ <https://joinup.ec.europa.eu/software/page/eupl>`_
-
 
 **CO2MPAS** is backward-looking longitudinal-dynamics CO\ :sub:`2` and
 fuel-consumption simulator for light-duty vehicles (cars and vans),
@@ -77,7 +80,7 @@ follow the detailed instructions under sections :ref:`install` and
     ## NOTE: If behind proxy, specify additionally this option:
     ##    --proxy http://user:password@yourProxyUrl:yourProxyPort
     ##
-    $ pip install co2mpas --extra-index http://pypi.co2mpas.io/simple/ --trusted-host pypi.co2mpas.io
+    $ pip install co2mpas
 
     ## Where to store input and output files.
     ## In *Windows* cmd-prompt use `md` command instead.
@@ -135,16 +138,17 @@ instead of performing the above 2 steps separately.
   directories.
   Prefer to **extract it in a folder without any spaces in its path.**
 
-- If you have already downloaded a previous version of the *all-in-one*
-  archive, you may prefer to just upgrade CO2MPAS contained within.
-  Follow the instructions in the "Upgrade" section, below.
-
-- After installation, check that the version of CO2MPAS contained in the
-  archive corresponds to the latest/the one described in these instructions.
-  If not, follow the instructions in the "Upgrade" section, below.
+- Run ``INSTALL.bat`` script contained in the root of the unzipped folder.
+  It will install links for commons CO2MPAS tasks under your *Windows*
+  Start-Menu.
 
 - Visit the guidelines for its usage: :doc:`allinone`
   (also contained within the archive).
+
+.. Note::
+    If you have downloaded an *all-in-one* from previous version of CO2MPAS
+    you may upgrade CO2MPAS contained within.
+    Follow the instructions in the "Upgrade" section, below.
 
 
 Python Installation
@@ -248,7 +252,7 @@ CO2MPAS installation
 
    .. code-block:: console
 
-        > pip install co2mpas --extra-index http://pypi.co2mpas.io/simple/ --trusted-host pypi.co2mpas.io --pre
+        > pip install co2mpas --pre
         Collecting co2mpas
         Downloading http://pypi.co2mpas.io/packages/co2mpas-...
         ...
@@ -534,9 +538,9 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
         co2mpas [simulate] [-v] [--predict-wltp] [--report-stages] [--no-warn-gui]
                            [--plot-workflow] [--only-summary]
                            [-I <fpath>] [-O <fpath>]
-        co2mpas demo       [-v] [-f] <folder>
-        co2mpas template   [-v] [-f] <excel-file-path> ...
-        co2mpas ipynb      [-v] [-f] <folder>
+        co2mpas demo       [-v] [-f] [<folder>]
+        co2mpas template   [-v] [-f] [<excel-file-path> ...]
+        co2mpas ipynb      [-v] [-f] [<folder>]
         co2mpas modelgraph [-v] --list
         co2mpas modelgraph [-v] [--depth=INTEGER] [<models> ...]
         co2mpas [-v] --version
@@ -551,7 +555,7 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
     --no-warn-gui      Does not pause batch-run to report inconsistencies.
     --plot-workflow    Open workflow-plot in browser, after run finished.
     --depth=INTEGER    Limit the number of sub-dispatchers plotted (no limit by default).
-    -f, --force        Overwrite template/sample excel-file(s).
+    -f, --force        Overwrite template/demo excel-file(s).
     -v, --verbose      Print more verbosely messages.
 
     * Items enclosed in `[]` are optional.

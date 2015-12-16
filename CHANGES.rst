@@ -3,6 +3,26 @@ CO2MPAS Changes
 ###############
 .. _changes:
 
+v1.0.5, 11-Dec 2015: "No more console" release, no model changes
+================================================================
+
+- main: Failback to GUI when demo/template/ipynb folder not specified in
+  cmdline (prepare for Window's start-menu shortcuts).
+- Install from official PyPi repo (simply type ``pip install co2mpas``).
+- Add logo.
+
+- ALLINONE:
+
+  - FIX "empty" folder-selection lists bug.
+  - Renamed ``cmd-console.bat`` --> ``CONSOLE.bat``.
+  - By default store app's process STDOUT/STDERR into logs-files.
+  - Add ``INSTALL.bat`` script that creates menu-entries for most common
+    CO2MPAS task into *window StartMenu*.
+  - Known Issue: Folder-selection dialogs still might appear
+    beneath current window sometimes.
+
+
+
 v1.0.4, 9-Nov 2015: 3rd public release, mostly model changes
 ============================================================
 Model-changes in comparison to v1.0.1:
