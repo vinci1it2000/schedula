@@ -31,6 +31,7 @@ from co2mpas.functions.physical.constants import *
 from co2mpas.functions.physical.utils import bin_split, reject_outliers, \
     clear_fluctuations, median_filter
 import co2mpas.dispatcher.utils as dsp_utl
+from ..utils import argmax
 
 
 def get_full_load(fuel_type):
@@ -315,7 +316,7 @@ def _get_samples(times, engine_coolant_temperatures, on_engine):
     dt = np.diff(times)
     dT = np.diff(engine_coolant_temperatures) / dt
 
-    i = max(np.argmax(on_engine), np.argmax(times > 10), np.argmax(dT != 0))
+    i = max(argmax(on_engine), argmax(times > 10), argmax(dT != 0))
     dt, dT = dt[i:], dT[i:]
 
     if sum(dT == 0) / len(dT) > 0.5:

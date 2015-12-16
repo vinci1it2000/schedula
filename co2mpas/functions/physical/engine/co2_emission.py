@@ -17,6 +17,7 @@ from scipy.optimize import brute, minimize
 from sklearn.metrics import mean_absolute_error
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.functions.physical.constants import *
+from ..utils import argmax
 
 
 def calculate_normalized_engine_coolant_temperatures(
@@ -37,7 +38,7 @@ def calculate_normalized_engine_coolant_temperatures(
     :rtype: numpy.array
     """
 
-    i = np.argmax(engine_coolant_temperatures > temperature_target)
+    i = argmax(engine_coolant_temperatures > temperature_target)
     T = np.ones_like(engine_coolant_temperatures, dtype=float)
     T[:i] = engine_coolant_temperatures[:i] + 273.0
     T[:i] /= temperature_target + 273.0
@@ -706,7 +707,7 @@ def calibrate_co2_params(
 
     cold = np.zeros_like(engine_coolant_temperatures, dtype=bool)
     if not is_cycle_hot:
-        cold[:np.argmax(engine_coolant_temperatures > guess['trg'])] = True
+        cold[:argmax(engine_coolant_temperatures > guess['trg'])] = True
     hot = np.logical_not(cold)
 
     def err_f(params, **kwargs):
