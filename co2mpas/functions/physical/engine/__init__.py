@@ -165,7 +165,7 @@ def calculate_full_load(full_load_speeds, full_load_powers, idle_engine_speed):
     n_norm = (engine_max_speed_at_max_power - idle_engine_speed[0])
     n_norm = (np.asarray(full_load_speeds) - idle_engine_speed[0]) / n_norm
 
-    flc = InterpolatedUnivariateSpline(n_norm, p_norm)
+    flc = InterpolatedUnivariateSpline(n_norm, p_norm, ext=3)
 
     return flc, engine_max_power, engine_max_speed_at_max_power
 

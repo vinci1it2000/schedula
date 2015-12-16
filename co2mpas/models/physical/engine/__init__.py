@@ -87,13 +87,6 @@ def engine():
                  'engine_max_speed_at_max_power']
     )
 
-    engine.add_function(
-        function=calculate_full_load,
-        inputs=['full_load_speeds', 'full_load_powers', 'idle_engine_speed'],
-        outputs=['full_load_curve', 'engine_max_power',
-                 'engine_max_speed_at_max_power']
-    )
-
     # Idle engine speed
     engine.add_data(
         data_id='idle_engine_speed_median',
