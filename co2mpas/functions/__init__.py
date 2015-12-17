@@ -188,30 +188,23 @@ def _process_folder_files(
     summary = {}
 
     start_time = datetime.datetime.today()
-
-    if with_output_file:
-        output_file_format = '%s/%s-%s' % (output_folder,
-                start_time.strftime('%Y%m%d_%H%M%S'), '%s-%s.xlsx')
-
-        output_files = {
+    timestamp = start_time.strftime('%Y%m%d_%H%M%S')
+    output_files = {
+        'calibration_wltp_h_output_file_name': 'WLTP_H-calibrate',
+        'calibration_wltp_l_output_file_name': 'WLTP_L-calibrate',
+        'prediction_nedc_output_file_name': 'NEDC-predict',
+    }
+    if enable_prediction_WLTP:
+        output_files.update({
             'wltp_precondition_output_file_name': 'WLTP-predict',
-            'calibration_wltp_h_output_file_name': 'WLTP_H-calibrate',
             'prediction_wltp_h_output_file_name': 'WLTP_H-predict',
-            'calibration_wltp_l_output_file_name': 'WLTP_L-calibrate',
             'prediction_wltp_l_output_file_name': 'WLTP_L-predict',
-            'prediction_nedc_output_file_name': 'NEDC-predict',
-        }
-
-        def update_inputs(inputs, fname):
-            for k, v in output_files.items():
-                inputs[k] = output_file_format % (v, fname)
-    else:
-        update_inputs = lambda *args: None
+        })
 
     sheets = _get_sheet_summary_actions()
 
     for fpath in fpaths:
-        fname = os.path.basename(fpath).split('.')[0]
+        fname = os.path.splitext(os.path.basename(fpath))[0]
 
         if not files_exclude_regex.match(fname):
             log.info('Skipping: %s', fname)
@@ -239,7 +232,8 @@ def _process_folder_files(
 
         inputs = _read_model_from_cache(fpath, model_builder)
 
-        update_inputs(inputs, fname)
+        if with_output_file:
+            update_inputs(inputs, fname)
 
         inputs['start_time'] = datetime.datetime.today()
 
