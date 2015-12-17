@@ -138,9 +138,9 @@ def process_folder_files(
         enable_prediction_WLTP=enable_prediction_WLTP,
         with_output_file=with_output_file)
 
-    doday = start_time.strftime('%d_%b_%Y_%H_%M_%S')
+    timestamp = start_time.strftime('%Y%m%d_%H%M%S')
 
-    writer = pd.ExcelWriter('%s/%s_%s.xlsx' % (output_folder, doday, 'summary'))
+    writer = pd.ExcelWriter('%s/%s-summary.xlsx' % (output_folder, timestamp))
 
     for k, v in sorted(summary.items()):
         pd.DataFrame.from_records(v).to_excel(writer, k)
@@ -190,18 +190,16 @@ def _process_folder_files(
     start_time = datetime.datetime.today()
 
     if with_output_file:
-        output_file_format = (output_folder,
-                              start_time.strftime('%d_%b_%Y_%H_%M_%S'),
-                              '%s_%s.xlsx')
-        output_file_format = '%s/%s_%s' % output_file_format
+        output_file_format = '%s/%s-%s' % (output_folder,
+                start_time.strftime('%Y%m%d_%H%M%S'), '%s-%s.xlsx')
 
         output_files = {
-            'wltp_precondition_output_file_name': 'precondition_WLTP',
-            'calibration_wltp_h_output_file_name': 'calibration_WLTP-H',
-            'prediction_wltp_h_output_file_name': 'prediction_WLTP-H',
-            'calibration_wltp_l_output_file_name': 'calibration_WLTP-L',
-            'prediction_wltp_l_output_file_name': 'prediction_WLTP-L',
-            'prediction_nedc_output_file_name': 'prediction_NEDC',
+            'wltp_precondition_output_file_name': 'WLTP-predict',
+            'calibration_wltp_h_output_file_name': 'WLTP_H-calibrate',
+            'prediction_wltp_h_output_file_name': 'WLTP_H-predict',
+            'calibration_wltp_l_output_file_name': 'WLTP_L-calibrate',
+            'prediction_wltp_l_output_file_name': 'WLTP_L-predict',
+            'prediction_nedc_output_file_name': 'NEDC-predict',
         }
 
         def update_inputs(inputs, fname):
