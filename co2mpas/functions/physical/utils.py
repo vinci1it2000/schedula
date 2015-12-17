@@ -31,8 +31,12 @@ except AttributeError:
 
 __all__ = [
     'grouper', 'sliding_window', 'median_filter', 'reject_outliers',
-    'bin_split', 'interpolate_cloud', 'clear_fluctuations'
+    'bin_split', 'interpolate_cloud', 'clear_fluctuations', 'argmax'
 ]
+
+
+def argmax(values, axis=None, out=None):
+    return np.argmax(np.append(values, [True]), axis=axis, out=out)
 
 
 def grouper(iterable, n):
