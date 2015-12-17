@@ -69,3 +69,5 @@ target/
 /.settings
 /co2mpas/ipynbs/.ipynb_checkpoints/
 .co2mpas_cache
+/tests/data
+*xlsx

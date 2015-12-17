@@ -48,7 +48,7 @@ class TestDispatcherUtils(unittest.TestCase):
         self.assertEqual(selector(*args, copy=False), res)
 
         args = (['a', 'b'], {'a': 1, 'b': 2, 'c': 3})
-        self.assertEqual(selector(*args, output_type='list'), (1, 2))
+        self.assertSequenceEqual(selector(*args, output_type='list'), (1, 2))
 
         args = ['a', 'd'], {'a': 1, 'b': 1}
         self.assertRaises(KeyError, selector, *args, output_type='list')
@@ -111,7 +111,7 @@ class TestSubDispatcher(unittest.TestCase):
         w = self.dsp.workflow
         self.assertEqual(o['e'], {'a': 3, 'b': 4, 'c': 2})
         self.assertEqual(o['f'], {'c': 2})
-        self.assertEqual(o['g'], (3, 2))
+        self.assertSequenceEqual(o['g'], (3, 2))
         self.assertEqual(o['h'],  2)
         self.assertIsInstance(w.node['dispatch']['workflow'], tuple)
         self.assertIsInstance(w.node['dispatch']['workflow'][0], DiGraph)
