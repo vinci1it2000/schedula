@@ -35,8 +35,8 @@ __all__ = [
 ]
 
 
-def argmax(values, axis=None, out=None):
-    return np.argmax(np.append(values, [True]), axis=axis, out=out)
+def argmax(values, **kws):
+    return np.argmax(np.append(values, [True]), **kws)
 
 
 def grouper(iterable, n):
