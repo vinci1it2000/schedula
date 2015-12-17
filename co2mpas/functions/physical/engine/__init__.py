@@ -52,18 +52,20 @@ def get_full_load(fuel_type):
             np.linspace(0, 1.2, 13),
             [0.1, 0.198238659, 0.30313392, 0.410104642, 0.516920841,
              0.621300767, 0.723313491, 0.820780368, 0.901750158, 0.962968496,
-             0.995867804, 0.953356174, 0.85]),
+             0.995867804, 0.953356174, 0.85],
+            ext=3),
         'diesel': InterpolatedUnivariateSpline(
             np.linspace(0, 1.2, 13),
             [0.1, 0.278071182, 0.427366185, 0.572340499, 0.683251935,
              0.772776746, 0.846217049, 0.906754984, 0.94977083, 0.981937981,
-             1, 0.937598144, 0.85])
+             1, 0.937598144, 0.85],
+            ext=3)
     }
 
     return full_load[fuel_type]
 
 
-def get_engine_motoring_curve(fuel_type):
+def get_engine_motoring_curve_default(fuel_type): ### TO BE CORRECTED!!
     """
     Returns engine motoring curve.
 
@@ -80,14 +82,77 @@ def get_engine_motoring_curve(fuel_type):
         'gasoline': InterpolatedUnivariateSpline(
             np.linspace(0, 1.2, 13),
             [-0.2, -0.20758, -0.21752, -0.22982, -0.24448, -0.2615, -0.28088,
-             -0.30262, -0.32672, -0.35318, -0.382, -0.41318, -0.44672]),
+             -0.30262, -0.32672, -0.35318, -0.382, -0.41318, -0.44672],
+#             [-0.2*0.1, -0.20758*0.1, -0.21752*0.1, -0.22982*0.1, -0.24448*0.1, -0.2615*0.1, -0.28088*0.1,
+#              -0.30262*0.1, -0.32672*0.1, -0.35318*0.1, -0.382*0.1, -0.41318*0.1, -0.44672*0.1],
+            ext=3),
         'diesel': InterpolatedUnivariateSpline(
             np.linspace(0, 1.2, 13),
             [-0.2, -0.20758, -0.21752, -0.22982, -0.24448, -0.2615, -0.28088,
-             -0.30262, -0.32672, -0.35318, -0.382, -0.41318, -0.44672])
+             -0.30262, -0.32672, -0.35318, -0.382, -0.41318, -0.44672],
+            ext=3)
     }
 
     return engine_motoring_curve[fuel_type]
+
+
+def select_initial_friction_params(engine_type):
+    """
+    Selects initial guess of friction params l & l2 for the calculation of
+    the motoring curve.
+
+    :param engine_type:
+        Engine type (gasoline turbo, gasoline natural aspiration, diesel).
+    :type engine_type: str
+
+    :return:
+        Initial guess of friction params l & l2.
+    :rtype: float, float
+    """
+
+    params = {
+        'gasoline turbo': {
+                'l': -2.49882, 'l2': -0.0025
+        },
+        'gasoline natural aspiration': {
+                'l': -2.14063, 'l2': -0.00286
+        },
+        'diesel': {
+                'l': -1.55291, 'l2': -0.0076
+        }
+    }
+
+    return params[engine_type]['l'], params[engine_type]['l2']
+
+
+def get_engine_motoring_curve(engine_stroke, engine_capacity, friction_params):
+    """
+    Returns engine motoring curve.
+
+    :param engine_stroke:
+        Engine stroke [mm].
+    :type engine_stroke: float
+
+    :param engine_capacity:
+        Engine capacity [cm3].
+    :type engine_capacity: float
+
+    :param friction_params:
+        Engine initial friction params l & l2 [-].
+    :type friction_params: float, float
+
+    :return:
+        Engine motoring curve.
+    :rtype: function
+    """
+
+    loss, loss2 = friction_params
+
+    def dn_limit(engine_speeds):
+        piston_speeds = (engine_stroke / 30000.0) * engine_speeds
+        return (loss2 * piston_speeds ** 2 + loss) * engine_speeds * (engine_capacity / 1200000.0)
+
+    return dn_limit
 
 
 def define_engine_power_correction_function(
@@ -124,11 +189,13 @@ def define_engine_power_correction_function(
     """
 
     def engine_power_correction_function(engine_speeds, engine_powers):
+
         n_norm = (engine_max_speed_at_max_power - idle_engine_speed[0])
         n_norm = (np.asarray(engine_speeds) - idle_engine_speed[0]) / n_norm
 
         up_limit = full_load_curve(n_norm) * engine_max_power
-        dn_limit = engine_motoring_curve(n_norm) * engine_max_power
+#         dn_limit = engine_motoring_curve(n_norm) * engine_max_power
+        dn_limit = engine_motoring_curve(engine_speeds)
 
         up, dn = up_limit < engine_powers, dn_limit > engine_powers
 

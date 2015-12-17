@@ -51,8 +51,25 @@ def engine():
     )
 
     engine.add_function(
-        function=get_engine_motoring_curve,
+        function=get_engine_motoring_curve_default,
         inputs=['fuel_type'],
+        outputs=['engine_motoring_curve_default'],
+    )
+
+    engine.add_data(
+        data_id='is_cycle_hot',
+        default_value=False
+    )
+
+    engine.add_function(
+        function=select_initial_friction_params,
+        inputs=['engine_type'],
+        outputs=['initial_friction_params']
+    )
+
+    engine.add_function(
+        function=get_engine_motoring_curve,
+        inputs=['engine_stroke', 'engine_capacity', 'initial_friction_params'],
         outputs=['engine_motoring_curve']
     )
 
@@ -238,9 +255,9 @@ def engine():
 
     engine.add_function(
         function=calculate_engine_powers_out,
-        inputs=['engine_moment_inertia', 'clutch_TC_powers', 'engine_speeds_out', 'on_engine',
-                'engine_power_correction_function', 'auxiliaries_power_losses',
-                'alternator_powers_demand'],
+        inputs=['engine_moment_inertia', 'clutch_TC_powers', 'engine_speeds_out',
+                'on_engine', 'engine_power_correction_function',
+                'auxiliaries_power_losses', 'alternator_powers_demand'],
         outputs=['engine_powers_out']
     )
 
@@ -269,7 +286,7 @@ def engine():
 
     engine.add_data(
         data_id='auxiliaries_torque_loss',
-        default_value=0.0
+        default_value=0.5
     )
 
     engine.add_function(
