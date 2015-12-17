@@ -28,6 +28,7 @@ import logging
 import os
 import pathlib
 import re
+import shutil
 
 import dill
 from networkx.utils.decorators import open_file
@@ -237,6 +238,7 @@ def _process_folder_files(
             inputs.update(output_files)
 
         out_fpath = '%s/%s-%s.xlsx' % (output_folder, timestamp, fname)
+        shutil.copy(fpath, out_fpath)
         with pd.ExcelWriter(out_fpath) as excel_file:
             inputs[ 'excel_out_file'] = excel_file
             inputs['start_time'] = datetime.datetime.today()
