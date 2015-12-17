@@ -520,6 +520,12 @@ Usage
     The following commands are for the **bash console**, specifically tailored
     for the **all-in-one** archive.
 
+    The :doc:`allinone` contains additionally batch-files
+    (e.g. :file:`RUN_COMPAS.bat`, :file:`NEW_TEMPLATE.bat`, etc)
+    that offer roughly the same capabillities described below.
+    When you double-click them, the output from these commands gets to be
+    written in the :file:`ALLINONE/CO2MPAS/co2mpas.log` file.
+
 
 First ensure that the latest version of CO2MPAS is properly installed, and that
 its version match the version declared on this file.
