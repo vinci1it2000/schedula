@@ -40,13 +40,16 @@ def parse_name(name, _standard_names=None):
     return name.capitalize()
 
 
-def write_output(output, file_name, sheet_names, data_descriptions, start_time):
+def write_output(output, excel_file, file_name, sheet_names, data_descriptions, start_time):
     """
     Write the output in a excel file.
 
     :param output:
         The output to be saved in a excel file.
     :type output: dict
+
+    :param pd.ExcelWriter writer:
+        the file to write sheet into
 
     :param file_name:
         File name.
@@ -68,8 +71,7 @@ def write_output(output, file_name, sheet_names, data_descriptions, start_time):
     :type start_time: datetime.datetime
     """
 
-    log.info("Writing output-file: %s", file_name)
-    writer = pd.ExcelWriter(file_name)
+    log.info("Writing sheets(%s) for: %s", sheet_names, file_name)
 
     from .read_inputs import get_filters
     params = get_filters()['PARAMETERS'].keys()
@@ -100,12 +102,12 @@ def write_output(output, file_name, sheet_names, data_descriptions, start_time):
                      index=index,
                      columns=['Parameter', 'Model Name', 'Value'])
 
-    p.to_excel(writer, sheet_names[0], index=False)
+    shname = '%s-%s' % (file_name, sheet_names[0])
+    p.to_excel(excel_file, shname, index=False)
 
     series = pd.concat([series_headers, series])
-    series.to_excel(writer, sheet_names[1], header=False, index=False)
-
-    _co2mpas_info(writer, start_time, sheet_names[2])
+    shname = '%s-%s' % (file_name, sheet_names[1])
+    series.to_excel(excel_file, shname, header=False, index=False)
 
 
 def _co2mpas_info(writer, start_time, sheet_name='CO2MPAS_info'):

@@ -21,7 +21,6 @@ Modules:
     write_outputs
 
 """
-
 from collections import Iterable
 import datetime
 import glob
@@ -29,13 +28,15 @@ import logging
 import os
 import pathlib
 import re
-import co2mpas.dispatcher.utils as dsp_utl
+
 import dill
 from networkx.utils.decorators import open_file
+from sklearn.metrics import mean_absolute_error, accuracy_score
 
+import co2mpas.dispatcher.utils as dsp_utl
 import numpy as np
 import pandas as pd
-from sklearn.metrics import mean_absolute_error, accuracy_score
+
 from .write_outputs import check_writeable, _co2mpas_info
 
 
@@ -233,11 +234,17 @@ def _process_folder_files(
         inputs = _read_model_from_cache(fpath, model_builder)
 
         if with_output_file:
-            update_inputs(inputs, fname)
+            inputs.update(output_files)
 
-        inputs['start_time'] = datetime.datetime.today()
+        out_fpath = '%s/%s-%s.xlsx' % (output_folder, timestamp, fname)
+        with pd.ExcelWriter(out_fpath) as excel_file:
+            inputs[ 'excel_out_file'] = excel_file
+            inputs['start_time'] = datetime.datetime.today()
 
-        res = model.dispatch(inputs=inputs)
+            res = model.dispatch(inputs=inputs)
+
+            _co2mpas_info(excel_file, start_time, 'CO2MPAS_info')
+
 
         add_vehicle_to_summary(summary, res, fname, model.workflow, sheets)
 

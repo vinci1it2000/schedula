@@ -387,7 +387,7 @@ def write_outputs(prediction_WLTP=False):
     write_outputs.add_function(
         function_id='save_wltp_precondition_outputs',
         function=write_output,
-        inputs=['wltp_precondition_outputs',
+        inputs=['wltp_precondition_outputs', 'excel_out_file',
                 'wltp_precondition_output_file_name', 'output_sheet_names',
                 'data_descriptions', 'start_time'],
     )
@@ -399,7 +399,7 @@ def write_outputs(prediction_WLTP=False):
     write_outputs.add_function(
         function_id='save_calibration_wltp_h_outputs',
         function=write_output,
-        inputs=['calibration_wltp_h_outputs',
+        inputs=['calibration_wltp_h_outputs', 'excel_out_file',
                 'calibration_wltp_h_output_file_name', 'output_sheet_names',
                 'data_descriptions', 'start_time'],
     )
@@ -408,7 +408,7 @@ def write_outputs(prediction_WLTP=False):
         write_outputs.add_function(
             function_id='save_prediction_wltp_h_outputs',
             function=write_output,
-            inputs=['prediction_wltp_h_outputs',
+            inputs=['prediction_wltp_h_outputs', 'excel_out_file',
                     'prediction_wltp_h_output_file_name', 'output_sheet_names',
                     'data_descriptions', 'start_time'],
         )
@@ -420,7 +420,7 @@ def write_outputs(prediction_WLTP=False):
     write_outputs.add_function(
         function_id='save_calibration_wltp_l_outputs',
         function=write_output,
-        inputs=['calibration_wltp_l_outputs',
+        inputs=['calibration_wltp_l_outputs', 'excel_out_file',
                 'calibration_wltp_l_output_file_name', 'output_sheet_names',
                 'data_descriptions', 'start_time'],
     )
@@ -429,7 +429,7 @@ def write_outputs(prediction_WLTP=False):
         write_outputs.add_function(
             function_id='save_prediction_wltp_l_outputs',
             function=write_output,
-            inputs=['prediction_wltp_l_outputs',
+            inputs=['prediction_wltp_l_outputs', 'excel_out_file',
                     'prediction_wltp_l_output_file_name', 'output_sheet_names',
                     'data_descriptions', 'start_time'],
         )
@@ -441,7 +441,8 @@ def write_outputs(prediction_WLTP=False):
     write_outputs.add_function(
         function_id='save_nedc_outputs',
         function=write_output,
-        inputs=['prediction_nedc_outputs', 'prediction_nedc_output_file_name',
+        inputs=['prediction_nedc_outputs', 'excel_out_file',
+                'prediction_nedc_output_file_name',
                 'output_sheet_names', 'data_descriptions', 'start_time'],
     )
 
@@ -525,7 +526,7 @@ def vehicle_processing_model(
         vehicle_processing_model.add_dispatcher(
             dsp=write_outputs(prediction_WLTP=prediction_WLTP),
             inputs={k: k for k in chain(co2mpas_outputs, output_file_names,
-                                        ['start_time'])},
+                                        ['start_time',  'excel_out_file'])},
             outputs={dsp_utl.SINK: dsp_utl.SINK}
         )
 
