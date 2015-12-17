@@ -11,8 +11,9 @@ import os, io, re
 import sys
 
 
-if not sys.version_info[0] >= 3:
-    sys.exit("Sorry, Python %d is not supported!" % sys.version_info[0])
+if sys.version_info < (3, 4):
+    msg = "Sorry, Python >= 3.4 is required, but found: {}"
+    sys.exit(msg.format(sys.version_info))
 
 
 proj_name = 'co2mpas'
