@@ -542,7 +542,7 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
 
     Usage:
         co2mpas [simulate] [-v] [--predict-wltp] [--report-stages] [--no-warn-gui]
-                           [--plot-workflow] [--only-summary]
+                           [--plot-workflow] [--only-summary] [--out-template <fpath>]
                            [-I <fpath>] [-O <fpath>]
         co2mpas demo       [-v] [-f] [<folder>]
         co2mpas template   [-v] [-f] [<excel-file-path> ...]
@@ -552,17 +552,20 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
         co2mpas [-v] --version
         co2mpas --help
 
-    -I <fpath>         Input folder or file, prompted with GUI if missing [default: ./input]
-    -O <fpath>         Input folder or file, prompted with GUI if missing [default: ./output]
-    -l, --list         List available models.
-    --only-summary     Does not save vehicle outputs just the summary file.
-    --predict-wltp     Whether to predict also WLTP values.
-    --report-stages    Add report-sheets with stage-scores into summary file.
-    --no-warn-gui      Does not pause batch-run to report inconsistencies.
-    --plot-workflow    Open workflow-plot in browser, after run finished.
-    --depth=INTEGER    Limit the number of sub-dispatchers plotted (no limit by default).
-    -f, --force        Overwrite template/demo excel-file(s).
-    -v, --verbose      Print more verbosely messages.
+    -I <fpath>              Input folder or file, prompted with GUI if missing [default: ./input]
+    -O <fpath>              Input folder or file, prompted with GUI if missing [default: ./output]
+    -l, --list              List available models.
+    --only-summary          Does not save vehicle outputs just the summary file.
+    --predict-wltp          Whether to predict also WLTP values.
+    --report-stages         Add report-sheets with stage-scores into summary file.
+    --no-warn-gui           Does not pause batch-run to report inconsistencies.
+    --out-template <fpath>  A '*.xlsx' file to clone and append vehicle-results into it.
+                            By default, the input xlsx-file is used as output-template.
+                            To create "fresh" output xl-files, set '0' as <fpath>.
+    --plot-workflow         Open workflow-plot in browser, after run finished.
+    --depth=INTEGER         Limit the number of sub-dispatchers plotted (no limit by default).
+    -f, --force             Overwrite template/demo excel-file(s).
+    -v, --verbose           Print more verbosely messages.
 
     * Items enclosed in `[]` are optional.
 

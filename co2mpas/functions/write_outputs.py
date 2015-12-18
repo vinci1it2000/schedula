@@ -110,7 +110,7 @@ def write_output(output, excel_file, file_name, sheet_names, data_descriptions, 
     series.to_excel(excel_file, shname, header=False, index=False)
 
 
-def _co2mpas_info(writer, start_time, sheet_name='CO2MPAS_info'):
+def _co2mpas_info(writer, start_time, sheet_name='proc_infos'):
 
     time_elapsed = (datetime.datetime.today() - start_time).total_seconds()
 
