@@ -35,15 +35,12 @@ def calculate_normalized_engine_coolant_temperatures(
     :rtype: numpy.array
     """
 
-    max_theta = engine_coolant_temperatures.max()
-    hot_threshold_theta = (max_theta
-                           if temperature_target > max_theta
-                           else temperature_target)
-    first_hot_i = np.argmax(engine_coolant_temperatures >= hot_threshold_theta)
-    T = engine_coolant_temperatures + 273.0
-    if not (temperature_target > hot_threshold_theta):
-        T[first_hot_i:] = hot_threshold_theta + 273.0
-    T /= temperature_target + 273.0
+    i = np.argmax(engine_coolant_temperatures >= temperature_target)
+    if temperature_target > engine_coolant_temperatures.max():
+        i = len(engine_coolant_temperatures)
+    T = np.ones_like(engine_coolant_temperatures, dtype=float)
+    T[:i] = engine_coolant_temperatures[:i] + 273.0
+    T[:i] /= temperature_target + 273.0
 
     return T
 
