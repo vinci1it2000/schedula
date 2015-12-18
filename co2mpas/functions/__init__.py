@@ -21,7 +21,6 @@ Modules:
     write_outputs
 
 """
-
 from collections import Iterable
 import datetime
 import glob
@@ -29,13 +28,18 @@ import logging
 import os
 import pathlib
 import re
-import co2mpas.dispatcher.utils as dsp_utl
+import shutil
+
 import dill
 from networkx.utils.decorators import open_file
-
-import numpy as np
-import pandas as pd
+import openpyxl
 from sklearn.metrics import mean_absolute_error, accuracy_score
+
+import co2mpas.dispatcher.utils as dsp_utl
+import numpy as np
+import os.path as osp
+import pandas as pd
+
 from .write_outputs import check_writeable, _co2mpas_info
 
 
@@ -111,54 +115,49 @@ def select_inputs_for_prediction(data):
 files_exclude_regex = re.compile('^\w')
 
 
-def process_folder_files(
-        input_folder, output_folder, plot_workflow=False,
-        hide_warn_msgbox=False, extended_summary=False,
-        enable_prediction_WLTP=False, with_output_file=True):
+def process_folder_files(input_folder, output_folder, **kwds):
     """
-    Processes all excel files in a folder with the model defined by
-    :func:`co2mpas.models.architecture`.
+    Process all xls-files in a folder with CO2MPAS-model and produces summary.
 
-    :param input_folder:
+    :param str input_folder:
         Input folder.
-    :type input_folder: str
 
-    :param output_folder:
-        Output folder.
-    :type output_folder: str
+    :param str output_folder:
+        Where to store the results; the exact output-filenames will be::
 
-    :param plot_workflow:
-        If to show the CO2MPAS model workflow.
-    :type plot_workflow: bool, optional
+            <timestamp>-<input_filename>.xlsx
+
+    :param bool plot_workflow:
+        When true, it plots the CO2MPAS model workflow.
+
+    .. seealso::  :func:`_process_folder_files()` for more params.
     """
 
-    summary, start_time = _process_folder_files(
-        input_folder, output_folder=output_folder, plot_workflow=plot_workflow,
-        hide_warn_msgbox=hide_warn_msgbox, extended_summary=extended_summary,
-        enable_prediction_WLTP=enable_prediction_WLTP,
-        with_output_file=with_output_file)
+    summary, start_time = _process_folder_files(input_folder, output_folder,
+            **kwds)
 
-    doday = start_time.strftime('%d_%b_%Y_%H_%M_%S')
+    timestamp = start_time.strftime('%Y%m%d_%H%M%S')
 
-    writer = pd.ExcelWriter('%s/%s_%s.xlsx' % (output_folder, doday, 'summary'))
+    summary_xl_file = osp.join(output_folder, '%s-summary.xlsx' % timestamp)
+    with clone_and_extend_excel(summary_xl_file, None) as writer:
+        for k, v in sorted(summary.items()):
+            pd.DataFrame.from_records(v).to_excel(writer, k)
 
-    for k, v in sorted(summary.items()):
-        pd.DataFrame.from_records(v).to_excel(writer, k)
+        _co2mpas_info(writer, start_time)
 
-    _co2mpas_info(writer, start_time)
+        writer.save()
 
-    writer.close()
     time_elapsed = (datetime.datetime.today() - start_time).total_seconds()
     log.info('Done! [%s sec]', time_elapsed)
 
 
 def _process_folder_files(
-        input_folder, output_folder=None, plot_workflow=False,
+        input_folder, output_folder, plot_workflow=False,
         hide_warn_msgbox=False, extended_summary=False,
-        enable_prediction_WLTP=False, with_output_file=True):
+        enable_prediction_WLTP=False, with_output_file=True,
+        output_template_xl_fpath=None):
     """
-    Processes all excel files in a folder with the model defined by
-    :func:`co2mpas.models.architecture`.
+    Process all xls-files in a folder with CO2MPAS-model.
 
     :param input_folder:
         Input folder.
@@ -171,6 +170,16 @@ def _process_folder_files(
     :param plot_workflow:
         If to show the CO2MPAS model workflow.
     :type plot_workflow: bool, optional
+
+    :param output_template_xl_fpath:
+        The xlsx-file to use as template and import existing sheets from.
+
+        - If file already exists, a clone gets updated with new sheets.
+        - If it is None, it copies and uses the input-file as template.
+        - if it is `False`, it does not use any template and a fresh output
+          xlsx-file is created.
+    :type output_folder: None,False,str
+
     """
 
     from co2mpas.models import vehicle_processing_model
@@ -180,40 +189,31 @@ def _process_folder_files(
         hide_warn_msgbox=hide_warn_msgbox,
         prediction_WLTP=enable_prediction_WLTP)
 
-    if os.path.isfile(input_folder):
+    if osp.isfile(input_folder):
         fpaths = [input_folder]
     else:
-        fpaths = glob.glob(input_folder + '/*.xlsx')
+        fpaths = glob.glob(osp.join(input_folder, '*.xlsx'))
 
     summary = {}
 
     start_time = datetime.datetime.today()
-
-    if with_output_file:
-        output_file_format = (output_folder,
-                              start_time.strftime('%d_%b_%Y_%H_%M_%S'),
-                              '%s_%s.xlsx')
-        output_file_format = '%s/%s_%s' % output_file_format
-
-        output_files = {
-            'wltp_precondition_output_file_name': 'precondition_WLTP',
-            'calibration_wltp_h_output_file_name': 'calibration_WLTP-H',
-            'prediction_wltp_h_output_file_name': 'prediction_WLTP-H',
-            'calibration_wltp_l_output_file_name': 'calibration_WLTP-L',
-            'prediction_wltp_l_output_file_name': 'prediction_WLTP-L',
-            'prediction_nedc_output_file_name': 'prediction_NEDC',
-        }
-
-        def update_inputs(inputs, fname):
-            for k, v in output_files.items():
-                inputs[k] = output_file_format % (v, fname)
-    else:
-        update_inputs = lambda *args: None
+    timestamp = start_time.strftime('%Y%m%d_%H%M%S')
+    output_files = {
+        'calibration_wltp_h_output_file_name': 'WLTP_H-calibrate',
+        'calibration_wltp_l_output_file_name': 'WLTP_L-calibrate',
+        'prediction_nedc_output_file_name': 'NEDC-predict',
+    }
+    if enable_prediction_WLTP:
+        output_files.update({
+            'wltp_precondition_output_file_name': 'WLTP-precondition',
+            'prediction_wltp_h_output_file_name': 'WLTP_H-predict',
+            'prediction_wltp_l_output_file_name': 'WLTP_L-predict',
+        })
 
     sheets = _get_sheet_summary_actions()
 
     for fpath in fpaths:
-        fname = os.path.basename(fpath).split('.')[0]
+        fname = osp.splitext(osp.basename(fpath))[0]
 
         if not files_exclude_regex.match(fname):
             log.info('Skipping: %s', fname)
@@ -241,11 +241,22 @@ def _process_folder_files(
 
         inputs = _read_model_from_cache(fpath, model_builder)
 
-        update_inputs(inputs, fname)
+        if with_output_file:
+            inputs.update(output_files)
 
-        inputs['start_time'] = datetime.datetime.today()
+        out_fpath = osp.join(output_folder, '%s-%s.xlsx' % (timestamp, fname))
+        if output_template_xl_fpath is None:
+            output_template_xl_fpath = fpath
+        elif '0' == output_template_xl_fpath:
+            output_template_xl_fpath = False
+        with clone_and_extend_excel(out_fpath, output_template_xl_fpath) as excel_file:
+            inputs[ 'excel_out_file'] = excel_file
+            inputs['start_time'] = datetime.datetime.today()
 
-        res = model.dispatch(inputs=inputs)
+            res = model.dispatch(inputs=inputs)
+
+            _co2mpas_info(excel_file, start_time)
+
 
         add_vehicle_to_summary(summary, res, fname, model.workflow, sheets)
 
@@ -259,6 +270,35 @@ def _process_folder_files(
         summary = {'SUMMARY': summary['SUMMARY']}
 
     return summary, start_time
+
+def clone_and_extend_excel(out_xl_fpath, template_xl_fpath):
+    """
+    Returns a :class:`pd.ExcelWriter` that optionally appends sheets into pre-existing xlsx-file.
+
+    :param str xl_path:
+            The fresh file to create.
+    :param str template_xl_fpath:
+            If it evaluates to true, it must be a pre-existing *xlsx-file*
+            to clone, and have its sheets reused.
+    :raises FileNotFoundError:
+            If `template_xl_fpath` does not point to regular file.
+    :raises openpyxl.shared.exc.InvalidFileException:
+            If `template_xl_fpath` does not point to a *xlsx-file*.
+    """
+    if template_xl_fpath:
+        log.info('Writing into xl-file(%s) based on template(%s)...',
+                out_xl_fpath, template_xl_fpath)
+        shutil.copy(template_xl_fpath, out_xl_fpath)
+
+        book = openpyxl.load_workbook(out_xl_fpath)
+        writer = pd.ExcelWriter(out_xl_fpath, engine='openpyxl')
+        writer.book = book
+        writer.sheets = dict((ws.title, ws) for ws in book.worksheets)
+    else:
+        log.info('Writing into xl-file(%s)...', out_xl_fpath)
+        writer = pd.ExcelWriter(out_xl_fpath)
+
+    return writer
 
 
 @open_file(0, mode='wb')
