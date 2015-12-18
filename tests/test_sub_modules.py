@@ -41,6 +41,7 @@ matplotlib.use('Agg')
 log = logging.getLogger(__name__)
 logging.getLogger('pandalone.xleash').setLevel(logging.INFO)
 
+
 def shrink_dsp(dsp, inputs, outputs, *args, **kwargs):
     return dsp.shrink_dsp(inputs, outputs)
 
@@ -165,8 +166,7 @@ def define_sub_models():
                 'dsp': engine(),
                 'inputs': [
                     'start_stop_model', 'times', 'velocities', 'accelerations',
-                    'engine_coolant_temperatures', 'cycle_type',
-                    'gear_box_type'],
+                    'engine_coolant_temperatures', 'gears'],
                 'outputs': ['on_engine'],
                 'targets': ['on_engine'],
                 'metrics': [accuracy_score],
@@ -186,8 +186,7 @@ def define_sub_models():
                 'dsp': engine(),
                 'inputs': [
                     'start_stop_model', 'times', 'velocities', 'accelerations',
-                    'engine_coolant_temperatures', 'cycle_type',
-                    'gear_box_type'],
+                    'engine_coolant_temperatures', 'gears'],
                 'outputs': ['on_engine'],
                 'targets': ['on_engine'],
                 'metrics': [accuracy_score],
@@ -205,9 +204,12 @@ def define_sub_models():
                     'engine_normalization_temperature',
                     'engine_normalization_temperature_window', 'gear_shifts'],
                 'outputs': ['cold_start_speed_model',
-                            'clutch_prediction_model'],
+                            'clutch_model', 'clutch_window',
+                            'torque_converter_model'],
                 'select_outputs':
-                    partial(get_outputs, optionals=['clutch_prediction_model'])
+                    partial(get_outputs, optionals=['clutch_model',
+                                                    'clutch_window',
+                                                    'torque_converter_model'])
             },
 
             'prediction': {
@@ -216,33 +218,9 @@ def define_sub_models():
                     'gear_box_speeds_in', 'on_engine', 'idle_engine_speed',
                     'engine_coolant_temperatures', 'gear_box_type',
                     'engine_thermostat_temperature', 'cold_start_speed_model',
-                    'clutch_window', 'clutch_prediction_model',
-                    'clutch_window'],
-                'outputs': ['engine_speeds_out'],
-                'targets': ['engine_speeds_out'],
-                'metrics': [mean_absolute_error],
-                'plots': [basic_plot]
-            },
-        },
-
-        'engine_speed_model_no_clutch': {
-            'calibration': {
-                'dsp': _physical(),
-                'inputs': [
-                    'times', 'velocities', 'accelerations', 'engine_speeds_out',
-                    'engine_coolant_temperatures', 'gear_box_speeds_in',
-                    'on_engine', 'idle_engine_speed',
-                    'engine_normalization_temperature',
-                    'engine_normalization_temperature_window'],
-                'outputs': ['cold_start_speed_model'],
-            },
-
-            'prediction': {
-                'dsp': _physical(),
-                'inputs': [
-                    'gear_box_speeds_in', 'on_engine', 'idle_engine_speed',
-                    'engine_coolant_temperatures', 'gear_box_type',
-                    'engine_thermostat_temperature', 'cold_start_speed_model'],
+                    'clutch_window', 'clutch_model', 'torque_converter_model',
+                    'gears', 'accelerations', 'times', 'gear_shifts',
+                    'engine_speeds_out_hot', 'velocities'],
                 'outputs': ['engine_speeds_out'],
                 'targets': ['engine_speeds_out'],
                 'metrics': [mean_absolute_error],
@@ -294,19 +272,19 @@ def define_sub_models():
                 'outputs': [
                     'alternator_current_model', 'start_demand',
                     'max_battery_charging_current', 'electric_load',
-                    'alternator_status_model', 'alternator_nominal_power'
+                    'alternator_status_model', 'alternator_nominal_power',
                 ]
             },
 
             'prediction': {
                 'dsp': electrics(),
                 'inputs': [
-                    'accelerations', 'battery_capacity',
-                    'alternator_status_model', 'alternator_current_model',
-                    'max_battery_charging_current',
-                    'alternator_nominal_voltage',  'start_demand',
+                    'battery_capacity', 'max_battery_charging_current',
+                    'alternator_nominal_voltage', 'start_demand',
                     'electric_load', 'initial_state_of_charge', 'times',
-                    'gear_box_powers_in', 'on_engine', 'engine_starts'],
+                    'clutch_TC_powers', 'on_engine', 'engine_starts',
+                    'accelerations', 'alternator_status_model',
+                    'alternator_current_model'],
                 'outputs': ['alternator_currents', 'battery_currents',
                             'state_of_charges', 'alternator_statuses'],
                 'targets': ['alternator_currents', 'battery_currents',
@@ -323,7 +301,7 @@ def define_sub_models():
             'idle_engine_speed', 'full_load_speeds', 'full_load_torques',
             'full_load_powers', 'calculate_full_load_powers',
             'calculate_full_load_speeds', 'calculate_full_load',
-            'calculate_full_load<0>', 'fuel_type', 'get_full_load',
+            'fuel_type', 'get_full_load',
             'full_load_curve'])
 
         dsp.add_dispatcher(sub_dsp,
@@ -333,6 +311,7 @@ def define_sub_models():
         dsp.get_node('%s_model' % at_model.replace('Cold_Hot', 'ch').lower(),
                      node_attr=None)[0].pop('input_domain')
         return dsp
+
 
     def AT_gear_prediction(at_model):
         dsp = AT_gear()
@@ -411,12 +390,12 @@ class TestSubModules(unittest.TestCase):
               'AT_model_GSPV',
               'AT_model_GSPV_Cold_Hot',
               'alternator_model',
-              'co2_params',
               'engine_speed_model',
-              'engine_speed_model_no_clutch',
               'engine_coolant_temperature',
               'start_stop_model',
-              'start_stop_model_v1')
+              'start_stop_model_v1',
+              'co2_params',
+    )
     def test_sub_models(self, model_id):
         model = self.sub_models[model_id]
 
