@@ -2,6 +2,7 @@ from co2mpas.__main__ import init_logging
 from co2mpas.functions import _process_folder_files
 import json
 import os
+import os.path as osp
 import sys
 import tempfile
 import unittest
@@ -59,25 +60,26 @@ class SeatBelt(unittest.TestCase):
             self.fail('\n'.join(fail))
 
     def test_demos(self):
-        path = os.path.join(os.path.dirname(__file__), '..', 'co2mpas', 'demos')
-        file = (path
-                if RUN_ALL_DEMO_FILES
-                else '%s/co2mpas_demo_1_full_data.xlsx' % path)
+        with tempfile.TemporaryDirectory() as scratchdir:
+            path = osp.join(osp.dirname(__file__), '..', 'co2mpas', 'demos')
+            file = (path
+                    if RUN_ALL_DEMO_FILES
+                    else osp.join(path, 'co2mpas_demo_1_full_data.xlsx'))
 
-        res = _process_folder_files(
-            file, hide_warn_msgbox=True, extended_summary=False,
-            with_output_file=False)[0]
+            res = _process_folder_files(
+                file, scratchdir, hide_warn_msgbox=True, extended_summary=False,
+                with_output_file=False, output_template_xl_fpath=False)[0]
 
-        log.info(res)
-        summaries = res['SUMMARY']
+            log.info(res)
+            summaries = res['SUMMARY']
 
-        tmpdir = tempfile.gettempdir()
-        sum_file = os.path.join(tmpdir, 'co2mpas_seatbelt_demos.json')
+            tmpdir = tempfile.gettempdir()
+            sum_file = osp.join(tmpdir, 'co2mpas_seatbelt_demos.json')
 
-        if not OVERWRITE_SEATBELT and os.path.isfile(sum_file):
-            with open(sum_file, 'rt') as fd:
-                old_summaries = json.load(fd)
-                self._check_summaries(summaries, old_summaries)
-        else:
-            with open(sum_file, 'wt') as fd:
-                json.dump(summaries, fd)
+            if not OVERWRITE_SEATBELT and osp.isfile(sum_file):
+                with open(sum_file, 'rt') as fd:
+                    old_summaries = json.load(fd)
+                    self._check_summaries(summaries, old_summaries)
+            else:
+                with open(sum_file, 'wt') as fd:
+                    json.dump(summaries, fd)
