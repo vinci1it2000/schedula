@@ -41,7 +41,8 @@ def calculate_normalized_engine_coolant_temperatures(
                            else temperature_target)
     first_hot_i = np.argmax(engine_coolant_temperatures >= hot_threshold_theta)
     T = engine_coolant_temperatures + 273.0
-    T[first_hot_i:] = hot_threshold_theta + 273.0
+    if not (temperature_target > hot_threshold_theta):
+        T[first_hot_i:] = hot_threshold_theta + 273.0
     T /= temperature_target + 273.0
 
     return T
