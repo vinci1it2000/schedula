@@ -112,7 +112,7 @@ class TestSubDispatcher(unittest.TestCase):
         self.assertEqual(o['e'], {'a': 3, 'b': 4, 'c': 2})
         self.assertEqual(o['f'], {'c': 2})
         self.assertSequenceEqual(o['g'], (3, 2))
-        self.assertEqual(o['h'],  2)
+        self.assertEqual(o['h'],  [2])
         self.assertIsInstance(w.node['dispatch']['workflow'], tuple)
         self.assertIsInstance(w.node['dispatch']['workflow'][0], DiGraph)
         self.assertIsInstance(w.node['dispatch']['workflow'][1], dict)

@@ -666,7 +666,9 @@ class Dispatcher(object):
         """
 
         if not isinstance(dsp, Dispatcher):
-            dsp = Dispatcher(name=dsp_id or 'unknown').add_from_lists(**dsp)
+            kw = dsp
+            dsp = Dispatcher(name=dsp_id or 'unknown')
+            dsp.add_from_lists(**kw)
 
         if not dsp_id:  # Get the dsp id.
             dsp_id = '%s:%s' % (dsp.__module__, dsp.name or 'unknown')
@@ -1786,7 +1788,8 @@ class Dispatcher(object):
             # Get sub dispatcher breadth-first-search graph.
             dsp = self.get_sub_dsp_from_workflow(outputs, bfs_graph, True)
 
-            dsp._shrink_sub_dsp(self)  # Shrink sub-dispatcher nodes.
+            # Shrink sub-dispatcher nodes.
+            dsp._shrink_sub_dsp(self, inputs_dist=inputs_dist)
 
         elif outputs:
             # Make a first search.
@@ -1813,7 +1816,7 @@ class Dispatcher(object):
 
         return dsp  # Return the shrink sub dispatcher.
 
-    def _shrink_sub_dsp(self, old_dsp, from_outputs=False):
+    def _shrink_sub_dsp(self, old_dsp, from_outputs=False, inputs_dist=None):
         """
         Shrink sub-dispatcher nodes and update remote links.
 
@@ -1825,12 +1828,45 @@ class Dispatcher(object):
             If True the shrink of the sub-dispatcher nodes is made only from its
             outputs.
         :type from_outputs: bool, optional
+
+        :param inputs_dist:
+            Initial distances of input data nodes.
+        :type inputs_dist: dict[str, int | float], optional
         """
 
         # Namespace shortcuts.
         pred, succ, nodes = self.dmap.pred, self.dmap.succ, self.nodes
         re_rl, dist = replace_remote_link, old_dsp.dist
         rm_edge = self.dmap.remove_edge
+
+        if not from_outputs and dist:
+            in_dist, wc = inputs_dist, old_dsp._wildcards
+
+            def _in_dist(n_id):
+                if n_id in dist:
+                    return dist[n_id]
+                elif n_id in wc:
+                    return in_dist.get(n_id, 0.0)
+
+            def get_inp_dist(inp, out):
+                # Max distance of output node.
+                max_d = max((dist[m], l) for l, m in out.items())
+                in_d = {}
+
+                # Get initial dist and remove input node with d > max_d..
+                for l, m in list(inp.items()):
+                    in_d[m] = d = _in_dist(l)
+                    if (d, m) > max_d:
+                         in_d.pop(m), inp.pop(l)
+
+                for l in set(pred[k]) - set(inp):
+                    rm_edge(l, k)
+
+                return in_d
+
+        else:
+            def get_inp_dist(inp, out):
+                return None
 
         for k, n in (v for v in nodes.items() if v[1]['type'] == 'dispatcher'):
             n = nodes[k] = n.copy()  # Unlink node references.
@@ -1840,24 +1876,13 @@ class Dispatcher(object):
             i = {l: m for l, m in n['inputs'].items() if l in i}
             o = {l: m for l, m in n['outputs'].items() if m in o}
 
-            if not from_outputs and dist:
-                max_d = max((dist[m], l) for l, m in o.items())
-
-                i = {l: m for l, m in i.items() if (dist[l], m) <= max_d}
-
-                for l in set(pred[k]) - set(i):
-                    rm_edge(l, k)
-
-                # Get initial dist.
-                d = {m: dist[l] for l, m in i.items()}
-            else:
-                d = None
+            in_d = get_inp_dist(i, o)
 
             srk_i = i.values() if not from_outputs and i else None
             srk_o = o or None
 
             # Shrink the sub-dispatcher.
-            sub_dsp = n['function'].shrink_dsp(srk_i, srk_o, inputs_dist=d)
+            sub_dsp = n['function'].shrink_dsp(srk_i, srk_o, inputs_dist=in_d)
 
             # Get nodes with remote links (input and output).
             n_in = set(n['inputs'].values()).intersection(sub_dsp.nodes)
@@ -2305,9 +2330,14 @@ class Dispatcher(object):
         # namespace shortcuts for speed.
         n, has = self.nodes, self.workflow.has_edge
 
+        def no_visited_in_sub_dsp(u):
+            node = n[u]
+            if node['type'] == 'dispatcher' and has(u, node_id):
+                return node['inputs'][node_id] not in node['function']._visited
+            return True
+
         # List of functions.
-        succ_fun = [u for u in self._succ[node_id]
-                    if not (n[u]['type'] == 'dispatcher' and has(u, node_id))]
+        succ_fun = [u for u in self._succ[node_id] if no_visited_in_sub_dsp(u)]
 
         # Check if it has functions as outputs and wildcard condition.
         if succ_fun and succ_fun[0] not in self._visited:
@@ -2667,7 +2697,8 @@ class Dispatcher(object):
             # Visit the closest available node.
             n = (d, _, (v, dsp)) = heappop(fringe)
 
-            if dsp in dsp_closed:  # Skip terminated sub-dispatcher.
+            # Skip terminated sub-dispatcher or visited nodes.
+            if dsp in dsp_closed or (v is not START and v in dsp.dist):
                 continue
 
             dsp_init_add(dsp)  # Update initialized dispatcher sets.
@@ -2754,7 +2785,7 @@ class Dispatcher(object):
 
         return True
 
-    def _see_node(self, node_id, fringe, dist):
+    def _see_node(self, node_id, fringe, dist, w_wait_in=0):
         """
         See a node, updating seen and fringe.
 
@@ -2769,6 +2800,10 @@ class Dispatcher(object):
         :param dist:
             Distance from the starting node.
         :type dist: float, int
+
+        :param w_wait_in:
+            Additional weight for sorting correctly the nodes in the fringe.
+        :type w_wait_in: int, float
 
         :return:
             True if the node is visible, otherwise False.
@@ -2791,7 +2826,8 @@ class Dispatcher(object):
         elif node_id not in seen or dist < seen[node_id]:  # Check min dist.
             seen[node_id] = dist  # Update dist.
 
-            heappush(fringe, (dist, wait_in, (node_id, self)))  # Add to heapq.
+            # Add to heapq.
+            heappush(fringe, (dist, w_wait_in + int(wait_in), (node_id, self)))
 
             return True  # The node is visible.
         return False  # The node is not visible.
@@ -2880,7 +2916,8 @@ class Dispatcher(object):
                         # Donate the result to the child.
                         dsp._wf_add_edge(dsp_id, n_id, value=value)
 
-                        dsp._see_node(n_id, fringe, dist)  # See node.
+                        # See node.
+                        dsp._see_node(n_id, fringe, dist, w_wait_in=2)
 
     def _set_sub_dsp_node_input(self, node_id, dsp_id, fringe, check_cutoff,
                                 no_call, initial_dist):

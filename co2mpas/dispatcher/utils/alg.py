@@ -245,8 +245,9 @@ def replace_remote_link(dsp, nodes_bunch, old_link, new_link=None,
         nl = [new_link, link_type]  # Define new link.
 
         for node in (dsp.nodes[k] for k in nodes_bunch):  # Update remote links.
-            # Define new remote links.
-            node[attr] = [nl if l == old_link else l for l in node[attr]]
+            if attr in node:
+                # Define new remote links.
+                node[attr] = [nl if l == old_link else l for l in node[attr]]
 
 
 def _get_node(nodes, node_id, _function_module=True):

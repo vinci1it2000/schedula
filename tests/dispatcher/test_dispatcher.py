@@ -117,6 +117,13 @@ class TestCreateDispatcher(unittest.TestCase):
                                   outputs=['c', 'd'])
 
         self.assertEqual(fun_id, '%s:my_function' % __name__)
+        from functools import partial
+        partial_fun = partial(my_function)
+        fun_id = dsp.add_function(function=partial_fun,
+                                  inputs=['a', 'b'],
+                                  outputs=['c', 'd'])
+
+        self.assertEqual(fun_id, '%s:my_function<0>' % __name__)
 
         from math import log
 
@@ -143,6 +150,12 @@ class TestCreateDispatcher(unittest.TestCase):
                 'type': 'function',
                 'inputs': ['a', 'b'],
                 'function': my_function,
+                'outputs': ['c', 'd'],
+                'wait_inputs': True},
+            '%s:my_function<0>' % __name__: {
+                'type': 'function',
+                'inputs': ['a', 'b'],
+                'function': partial_fun,
                 'outputs': ['c', 'd'],
                 'wait_inputs': True},
             'funny_id': {
@@ -213,9 +226,13 @@ class TestCreateDispatcher(unittest.TestCase):
 
         dsp_id = dsp.add_dispatcher(sub_dsp, dsp_id='sub_dsp',
                                     inputs={'d': 'a', 'e': 'b'},
-                                    outputs={'c':'d', 'e':'e'})
+                                    outputs={'c':'d', 'e':'e'},
+                                    include_defaults=True)
 
         self.assertEqual(dsp_id, 'sub_dsp')
+
+        res = {'value': 1, 'initial_dist': 0.0}
+        self.assertEqual(dsp.default_values['d'], res)
 
     def test_load_from_lists(self):
         dsp = Dispatcher()
@@ -240,10 +257,25 @@ class TestCreateDispatcher(unittest.TestCase):
         fun_list = [
             {'function': fun1, 'inputs': ['a', 'b'], 'outputs': ['c']},
         ]
-        dsp.add_from_lists(data_list, fun_list)
+
+        dsp_list = [{
+            'dsp': {
+                'fun_list': [
+                    {'function': fun1, 'inputs': ['a', 'b'], 'outputs': ['c']}
+                ]
+            },
+            'inputs': {'A': 'a', 'B': 'b'},
+            'outputs': {'c': 'C'},
+            'dsp_id': 'sub-dsp'}
+        ]
+        dsp.add_from_lists(data_list, fun_list, dsp_list)
+
         res = {
             'a': {'wait_inputs': False, 'callback': callback, 'type': 'data'},
             'b': {'wait_inputs': False, 'type': 'data'},
+            'A': {'wait_inputs': False, 'type': 'data'},
+            'B': {'wait_inputs': False, 'type': 'data'},
+            'C': {'wait_inputs': False, 'type': 'data'},
             'c': {'wait_inputs': True, 'function': fun, 'type': 'data',
                   'wildcard': True},
             '%s:fun1' % __name__: {'inputs': ['a', 'b'],
@@ -251,7 +283,13 @@ class TestCreateDispatcher(unittest.TestCase):
                                 'function': fun1,
                                 'type': 'function',
                                 'outputs': ['c']},
+            'sub-dsp': {'function': dsp.nodes['sub-dsp']['function'],
+                        'outputs': {'c': 'C'},
+                        'inputs': {'A': 'a', 'B': 'b'},
+                        'type': 'dispatcher',
+                        'wait_inputs': True},
         }
+
         self.assertEqual(dsp.dmap.node, res)
 
     def test_set_default_value(self):
@@ -1140,6 +1178,22 @@ class TestShrinkDispatcher(unittest.TestCase):
             function_id='h', input_domain=bool, inputs=['b'], outputs=['e'])
         self.dsp_of_dsp = dsp
 
+        dsp = Dispatcher()
+        sub_dsp = Dispatcher()
+        sub_dsp.add_function(function_id='h', inputs=['a', 'b'], outputs=['c'],
+                             weight=10)
+        sub_dsp.add_function(function_id='h', inputs=['c'], outputs=['d'])
+        sub_dsp.add_function(function_id='h', inputs=['d'], outputs=['c'])
+
+        dsp.add_function(function_id='h', inputs=['c'], outputs=['d'])
+        dsp.add_dispatcher(
+            sub_dsp, {'a': 'a', 'b': 'b', 'd': 'd'},
+            {'c': 'c', 'a': 'b'},
+            dsp_id='sub_dsp'
+        )
+
+        self.dsp_of_dsp_1 = dsp
+
     def test_shrink_with_inputs_outputs(self):
 
         dsp = self.dsp_1
@@ -1290,6 +1344,28 @@ class TestShrinkDispatcher(unittest.TestCase):
              ('i', 'h<5>')]
         self.assertEqual(sorted(shrink_dsp.dmap.node), r)
         self.assertEqual(sorted(shrink_dsp.dmap.edges()), w)
+
+    def test_shrink_sub_dsp(self):
+        dsp = self.dsp_of_dsp_1
+
+        shrink_dsp = dsp.shrink_dsp(['a', 'b'])
+        sub_dsp = shrink_dsp.nodes['sub_dsp']['function']
+        r = ['a', 'b', 'c', 'd', 'h', 'sub_dsp']
+        w = [('a', 'sub_dsp'), ('b', 'sub_dsp'), ('c', 'h'), ('h', 'd'),
+             ('sub_dsp', 'b'), ('sub_dsp', 'c')]
+        sw = [('a', 'h'), ('b', 'h'), ('h', 'c')]
+        self.assertEqual(sorted(shrink_dsp.dmap.node), r)
+        self.assertEqual(sorted(shrink_dsp.dmap.edges()), w)
+        self.assertEqual(sorted(sub_dsp.dmap.edges()), sw)
+
+        shrink_dsp = dsp.shrink_dsp(['a', 'b'], inputs_dist={'a': 20})
+        sub_dsp = shrink_dsp.nodes['sub_dsp']['function']
+        w = [('a', 'sub_dsp'), ('b', 'sub_dsp'), ('c', 'h'), ('h', 'd'),
+             ('sub_dsp', 'c')]
+        self.assertEqual(sorted(shrink_dsp.dmap.node), r)
+        self.assertEqual(sorted(shrink_dsp.dmap.edges()), w)
+        self.assertEqual(sorted(sub_dsp.dmap.edges()), sw)
+
 
 # TODO: implement test for sub-dispatcher nodes
 class TestRemoveCycles(unittest.TestCase):
