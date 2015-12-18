@@ -33,20 +33,32 @@ import logging
 log = logging.getLogger(__name__)
 
 
+def _mean(values):
+
+    v = np.asarray(values)
+
+    if v.any():
+        return np.mean(v)
+    return np.nan
+
+
 def get_best_model(*data, hide_warn_msgbox=False):
 
     rank = []
 
     for d in data:
-        errors = []
-        for k, v in d.items():
-            if 'error' in k:
-                try:
-                    errors.append((np.mean(v, 1), v, k))
-                except IndexError:
-                    pass
-        errors = list(sorted(errors))
-        error = np.mean([v[:2] for v in errors])
+        errors = {k[-1]: v for k, v in d.items() if 'error' in k}
+        error = []
+
+        for k, v in errors.items():
+            l = [m for l, m in sorted(v[1].items())]
+
+            if np.asarray(l).any() and v[0]:
+                e = _mean(l), _mean(v[0])
+                error.append((e, l, v[0], k, v[1]))
+
+        errors = list(sorted(error))
+        error = _mean([v[0] for v in errors])
         rank.append([error, errors, d['data_in'], d['calibrated_models']])
 
     rank = list(sorted(rank))
@@ -94,13 +106,8 @@ def make_metrics(metrics, ref, pred, args):
     for k in set(ref).intersection(pred):
         m, r, p = metrics[k], ref[k], pred[k]
 
-        if m is None:
-            metric.append(None)
-        else:
-            try:
-                metric.append(m(r, p, *args))
-            except:
-                pass
+        if m is not None:
+            metric.append(m(r, p, *args))
 
     return metric
 
@@ -110,10 +117,15 @@ def check_limits(errors, up_limit=None, dn_limit=None):
     if up_limit:
         status['up_limit'] = [e > l if l is not None else True
                               for e, l in zip(errors, up_limit)]
+    else:
+        status['up_limit'] = [True] * len(errors)
 
     if dn_limit:
         status['dn_limit'] = [e < l if l is not None else True
                               for e, l in zip(errors, dn_limit)]
+    else:
+        status['dn_limit'] = [True] * len(errors)
+
 
     return status
 
@@ -176,10 +188,10 @@ def sub_models():
         'dsp': physical_prediction(),
         'models': ['r_dynamic', 'final_drive_ratio', 'gear_box_ratios',
                    'idle_engine_speed'],
-        'inputs': ['velocities', 'gears', 'on_engine'],
+        'inputs': ['velocities', 'gears', 'times', 'on_engine'],
         'outputs': ['engine_speeds_out_hot'],
         'targets': ['engine_speeds_out'],
-        'metrics_inputs': ['gears'],
+        'metrics_inputs': ['times', 'gears'],
         'metrics': [mean_absolute_error],
         'up_limit': [20],
     }

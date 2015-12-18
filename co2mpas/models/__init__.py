@@ -332,14 +332,18 @@ def co2mpas_model(hide_warn_msgbox=False, prediction_WLTP=False):
     #                                NEDC CYCLE
     ############################################################################
 
-    from co2mpas.functions.physical import model_selector
+    from co2mpas.models.model_selector import models_selector
+
+    selector = models_selector(
+            'WLTP-H', 'WLTP-L', hide_warn_msgbox=hide_warn_msgbox
+    )
 
     co2mpas_model.add_function(
         function_id='extract_calibrated_models',
-        function=partial(model_selector, hide_warn_msgbox=hide_warn_msgbox),
+        function=selector,
         inputs=['calibration_wltp_h_outputs<0>',
                 'calibration_wltp_l_outputs<0>'],
-        outputs=['calibrated_co2mpas_models']
+        outputs=['calibrated_co2mpas_models', 'selection_scores']
     )
 
     co2mpas_model.add_function(

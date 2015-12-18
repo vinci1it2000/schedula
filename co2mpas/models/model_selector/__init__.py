@@ -66,7 +66,7 @@ def models_selector(*data, hide_warn_msgbox=False):
 
 
     dsp.add_data(
-        data_id='errors',
+        data_id='scores',
         function=partial(dsp_utl.combine_dicts, {}),
         wait_inputs=True
     )
@@ -79,14 +79,14 @@ def models_selector(*data, hide_warn_msgbox=False):
         dsp.add_function(
             function=model_selector(k, data, data, v, hide_warn_msgbox),
             inputs=['CO2MPAS_results'],
-            outputs=['models', 'errors']
+            outputs=['models', 'scores']
         )
 
     func = dsp_utl.SubDispatchFunction(
         dsp=dsp,
         function_id='models_selector',
         inputs=data,
-        outputs=['models']
+        outputs=['models', 'scores']
     )
 
     return func
@@ -210,18 +210,17 @@ def model_error(name, data_id, data_out, setting):
 
     default_settings.update(setting)
 
-
     dsp.add_function(
         function_id='select_inputs',
-        function=partial(dsp_utl.selector, allow_miss=True),
-        inputs=['inputs', 'data'],
+        function=dsp_utl.map_dict,
+        inputs=['inputs_map', 'data'],
         outputs=['inputs<0>']
     )
 
     dsp.add_function(
         function_id='select_inputs',
-        function=dsp_utl.map_dict,
-        inputs=['inputs_map', 'inputs<0>'],
+        function=partial(dsp_utl.selector, allow_miss=True),
+        inputs=['inputs', 'inputs<0>'],
         outputs=['inputs<1>']
     )
 
