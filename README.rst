@@ -466,16 +466,22 @@ where in each one you can install a different versions of CO2MPAS.
    b. locate the `set PATH=...` line towards the bottom of the file, and
       append the following 2 lines::
 
-        set "TCL_LIBRARY=d:\WinPython-XX4bit-3.4.3.2\python-3.4.3.amd64\tcl\tcl8.6"
-        set "TK_LIBRARY=d:\WinPython-XXit-Y.Y.Y.Y\python-3.4.3.amd64\tcl\tk8.6"
+        set "TCL_LIBRARY=d:\WinPython-XX4bit-3.Y.Y.Y\python-3.Y.Y.amd64\tcl\tcl8.6"
+        set "TK_LIBRARY=d:\WinPython-XXit-3.Y.Y.Y\python-3.Y.Y.amd64\tcl\tk8.6"
 
    .. Tip::
-       You have to **adapt the paths above** to match the `TCL` & `TK`
-       folder in your parent python-env.
-
-       If not, you will receive the following message while running CO2MPAS::
+       If you don't modify the *activation-script*, you will receive
+       the following message while running CO2MPAS::
 
            This probably means that Tcl wasn't installed properly.
+
+       Ofcourse you have to **adapt the paths above** to match the `TCL` & `TK`
+       folder in your parent python-env.  For instance, in ALLINONE the lines
+       above would become::
+
+        set "TCL_LIBRARY=%WINPYTHON%\tcl\tcl8.6"
+        set "TK_LIBRARY=%WINPYTHON%\tcl\tk8.6"
+
 
 
 5. "Activate" the new "venv" by running the following command
