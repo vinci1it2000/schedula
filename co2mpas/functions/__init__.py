@@ -205,7 +205,7 @@ def _process_folder_files(
     }
     if enable_prediction_WLTP:
         output_files.update({
-            'wltp_precondition_output_file_name': 'WLTP-predict',
+            'wltp_precondition_output_file_name': 'WLTP-precondition',
             'prediction_wltp_h_output_file_name': 'WLTP_H-predict',
             'prediction_wltp_l_output_file_name': 'WLTP_L-predict',
         })
