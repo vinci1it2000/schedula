@@ -1752,6 +1752,9 @@ class Dispatcher(object):
             else:
                 inputs_dist = self.dist
 
+            # Set maximum distances
+            outputs_dist = inputs_dist.copy()
+
             self._set_wait_in(flag=True)  # Set data nodes to wait inputs.
 
             # Namespace shortcuts.
@@ -1768,6 +1771,7 @@ class Dispatcher(object):
                 o = self.dispatch(inputs, outputs, cutoff, inputs_dist,
                                   wildcard, True, False, True)
 
+                outputs_dist.update(self.dist)
                 edges.update(self.workflow.edges())  # Update bfg edges.
 
                 # Nodes to be visited.
@@ -1789,7 +1793,7 @@ class Dispatcher(object):
             dsp = self.get_sub_dsp_from_workflow(outputs, bfs_graph, True)
 
             # Shrink sub-dispatcher nodes.
-            dsp._shrink_sub_dsp(self, inputs_dist=inputs_dist)
+            dsp._shrink_sub_dsp(self, False, inputs_dist, outputs_dist)
 
         elif outputs:
             # Make a first search.
@@ -1816,7 +1820,8 @@ class Dispatcher(object):
 
         return dsp  # Return the shrink sub dispatcher.
 
-    def _shrink_sub_dsp(self, old_dsp, from_outputs=False, inputs_dist=None):
+    def _shrink_sub_dsp(self, old_dsp, from_outputs=False, inputs_dist=None,
+                        outputs_dist=None):
         """
         Shrink sub-dispatcher nodes and update remote links.
 
@@ -1832,6 +1837,10 @@ class Dispatcher(object):
         :param inputs_dist:
             Initial distances of input data nodes.
         :type inputs_dist: dict[str, int | float], optional
+
+        :param outputs_dist:
+            Maximum distances to the output data nodes.
+        :type outputs_dist: dict[str, int | float], optional
         """
 
         # Namespace shortcuts.
@@ -1850,7 +1859,7 @@ class Dispatcher(object):
 
             def get_inp_dist(inp, out):
                 # Max distance of output node.
-                max_d = max((dist[m], l) for l, m in out.items())
+                max_d = max((outputs_dist[m], l) for l, m in out.items())
                 in_d = {}
 
                 # Get initial dist and remove input node with d > max_d..
@@ -2173,9 +2182,14 @@ class Dispatcher(object):
             n_type = a['type']  # Namespace shortcut.
 
             # With a domain.
-            if all_domain and n_type == 'function' and 'input_domain' in a:
+            if all_domain and n_type in ('function', 'dispatcher') and 'input_domain' in a:
                 # Nodes estimated from functions with a domain function.
-                for k in a['outputs']:
+                if n_type == 'dispatcher':
+                    it = a['outputs'] .values()
+                else:
+                    it = a['outputs']
+
+                for k in it:
                     wait_in[k] = flag
 
             elif n_type == 'data' and a['wait_inputs']:  # Is waiting inputs.

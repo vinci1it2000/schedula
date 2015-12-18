@@ -718,8 +718,9 @@ class TestDispatch(unittest.TestCase):
             'b': {'min': {'value': 20}},
             'c': {'sub_sub_dsp': {'value': 10}},
             'd': {'fun': {'value': 7}},
+            'e': {},
             'f': {},
-            'fun': {'f': {'value': 4}},
+            'fun': {'e': {'value': 10}, 'f': {'value': 4}},
             'min': {'c': {'value': 10}},
             'sub_sub_dsp': {'d': {'value': 7}},
             START: {
@@ -761,8 +762,6 @@ class TestDispatch(unittest.TestCase):
         w['d']['min'] = {'value': 10}
         w['e']['min'] = {'value': 20}
         w['min'] = {}
-        del sw['e']
-        sw['fun'].pop('e')
 
         self.assertEqual(o, {'a': 3, 'b': 5, 'c': 5, 'd': 10, 'e': 20, 'f': 4})
         self.assertEqual(set(dsp.workflow.node), r)
