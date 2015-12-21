@@ -20,7 +20,7 @@ from tempfile import mkstemp, mkdtemp
 import networkx as nx
 from networkx.utils import default_opener
 from graphviz import Digraph
-from .cst import START, SINK, END
+from .cst import START, SINK, END, EMPTY
 from .dsp import SubDispatch, SubDispatchFunction, combine_dicts
 from itertools import chain
 from functools import partial
@@ -255,6 +255,7 @@ def _set_node(dot, node_id, dsp2dot_id, dsp=None, node_attr=None, values=None,
     styles = {
         START: ('start', {'shape': 'egg', 'fillcolor': 'red'}),
         END: ('end', {'shape': 'egg', 'fillcolor': 'blue'}),
+        EMPTY: ('empty', {'shape': 'egg', 'fillcolor': 'gray'}),
         SINK: ('sink', {'shape': 'egg', 'fillcolor': 'black',
                         'fontcolor': 'white'}),
         None: {
@@ -417,7 +418,7 @@ def _get_dsp2dot_id(dot, graph):
     def id_node(o):
         return html.escape('%s_%s' % (parent, hash(o)), quote=True)
 
-    return {k: id_node(k) for k in chain(graph.node, [START, END, SINK])}
+    return {k: id_node(k) for k in chain(graph.node, [START, END, SINK, EMPTY])}
 
 
 def plot(dsp, workflow=False, dot=None, edge_data=None, view=False,
@@ -530,12 +531,15 @@ def plot(dsp, workflow=False, dot=None, edge_data=None, view=False,
 
     dot = dot or _init_dot(dsp, workflow, nested, is_sub_dsp, **kw_dot)
 
-    dsp2dot_id = _get_dsp2dot_id(dot, g)
+    dsp2dot_id = _get_dsp2dot_id(dot, dsp.dmap)
 
     dot_name, dot_node = dot.name, dot.node
 
     def id_node(o):
         return '%s_%s' % (dot_name, hash(o))
+
+    if not g.node:
+        _set_node(dot, EMPTY, dsp2dot_id)
 
     if START in g.node and (len(g.node) == 1 or not nx.is_isolate(g, START)):
         _set_node(dot, START, dsp2dot_id)
@@ -568,8 +572,10 @@ def plot(dsp, workflow=False, dot=None, edge_data=None, view=False,
         dot_v = _set_node(dot, END, dsp2dot_id)
 
         for i, u in enumerate(outputs):
-            _set_edge(dot, dsp2dot_id[u], dot_v, xlabel=str(i))
-
+            try:
+                _set_edge(dot, dsp2dot_id[u], dot_v, xlabel=str(i))
+            except KeyError:
+                pass
     if view:
         try:
             render = dot.render()

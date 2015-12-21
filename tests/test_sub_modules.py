@@ -6,13 +6,13 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
+
+import matplotlib
+matplotlib.use('Agg')
 import unittest
 from co2mpas.__main__ import init_logging
 import ddt
-
 init_logging(True)
-import matplotlib
-matplotlib.use('Agg')
 from co2mpas.models.physical.engine import engine
 from co2mpas.models.physical import _physical
 from co2mpas.models.physical.electrics import electrics

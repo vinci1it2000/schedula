@@ -1,4 +1,4 @@
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Copyright 2015 European Commission (JRC);
 # Licensed under the EUPL (the 'Licence');
@@ -40,7 +40,8 @@ def parse_name(name, _standard_names=None):
     return name.capitalize()
 
 
-def write_output(output, excel_file, file_name, sheet_names, data_descriptions, start_time):
+def write_output(output, excel_file, file_name, sheet_names, data_descriptions,
+                 start_time):
     """
     Write the output in a excel file.
 

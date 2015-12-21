@@ -230,6 +230,7 @@ def selector(keys, dictionary, copy=True, output_type='dict', allow_miss=False):
         >>> sorted(fun({'a': 1, 'b': 2, 'c': 3}).items())
         [('a', 1), ('b', 2)]
     """
+
     if not allow_miss:
         check = lambda key: True
     else:
@@ -240,7 +241,7 @@ def selector(keys, dictionary, copy=True, output_type='dict', allow_miss=False):
         return deepcopy(res) if copy else res
 
     # Select as dict.
-    return bypass({k: dictionary[k] for k in keys if  check(k)}, copy=copy)
+    return bypass({k: dictionary[k] for k in keys if check(k)}, copy=copy)
 
 
 def replicate_value(value, n=2, copy=True):
