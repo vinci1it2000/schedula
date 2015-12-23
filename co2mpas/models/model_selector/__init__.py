@@ -10,19 +10,13 @@ It provides CO2MPAS model to predict light-vehicles' CO2 emissions.
 
 It contains a comprehensive list of all CO2MPAS software models and sub-models:
 
-.. currentmodule:: co2mpas.models.physical
+.. currentmodule:: co2mpas.models.model_selector
 
 .. autosummary::
     :nosignatures:
     :toctree: physical/
 
-    vehicle
-    wheels
-    final_drive
-    gear_box
-    clutch_tc
-    electrics
-    engine
+    co2_params
 
 The model is defined by a Dispatcher that wraps all the functions needed.
 """
@@ -60,10 +54,9 @@ def models_selector(*data, hide_warn_msgbox=False):
 
     dsp.add_data(
         data_id='models',
-        function=partial(dsp_utl.combine_dicts, {}),
+        function=combine_outputs,
         wait_inputs=True
     )
-
 
     dsp.add_data(
         data_id='scores',
@@ -76,8 +69,10 @@ def models_selector(*data, hide_warn_msgbox=False):
     for k, v in setting.items():
         v['dsp'] = v.pop('define_sub_model', define_sub_model)(**v)
         v['metrics'] = dsp_utl.map_list(v['targets'], *v['metrics'])
+        selector = v.pop('model_selector', model_selector)
         dsp.add_function(
-            function=model_selector(k, data, data, v, hide_warn_msgbox),
+            function=selector(k, data, data, v, hide_warn_msgbox),
+            function_id='%s selector' % k,
             inputs=['CO2MPAS_results'],
             outputs=['models', 'scores']
         )
@@ -93,26 +88,22 @@ def models_selector(*data, hide_warn_msgbox=False):
 
 
 def model_selector(name, data_in, data_out, setting, hide_warn_msgbox=False):
-    """
-    Defines the engine model.
-
-    .. dispatcher:: dsp
-
-        >>> dsp = model_selector()
-
-    :return:
-        The engine model.
-    :rtype: Dispatcher
-    """
 
     dsp = Dispatcher(
         name='%s selector' % name,
-        description='Select the calibrated models.',
+        description='Select the calibrated %s.' % name,
     )
 
     errors = []
 
-    get_model = setting.pop('get_best_model', get_best_model)
+    _sort_models = setting.pop('sort_models', sort_models)
+
+    if 'weights' in setting:
+        _weights = dsp_utl.map_list(setting['targets'], *setting.pop('weights'))
+    else:
+        _weights = None
+
+    _get_best_model = setting.pop('get_best_model', get_best_model)
 
     for i in data_in:
         e = ('error', i)
@@ -121,17 +112,24 @@ def model_selector(name, data_in, data_out, setting, hide_warn_msgbox=False):
 
         dsp.add_function(
             function=model_errors(name, i, data_out, setting),
-            inputs=[i] + list(data_out),
+            inputs=[i] + [k for k in data_out if k != i],
             outputs=[e]
         )
 
     dsp.add_function(
-        function=partial(get_model, hide_warn_msgbox=hide_warn_msgbox),
+        function=partial(_sort_models, weights=_weights),
         inputs=errors,
+        outputs=['rank']
+    )
+
+    dsp.add_function(
+        function=partial(_get_best_model, hide_warn_msgbox=hide_warn_msgbox),
+        inputs=['rank'],
         outputs=['model', 'errors']
     )
 
-    return dsp_utl.SubDispatch(dsp, outputs=['model', 'errors'])
+    return dsp_utl.SubDispatch(dsp, outputs=['model', 'errors'],
+                               output_type='list')
 
 
 def model_errors(name, data_id, data_out, setting):
@@ -146,6 +144,8 @@ def model_errors(name, data_id, data_out, setting):
         data_id='models',
         default_value=setting.pop('models')
     )
+
+    select_data = partial(dsp_utl.selector, allow_miss=True)
 
     dsp.add_function(
         function_id='select_models',
@@ -176,24 +176,13 @@ def model_errors(name, data_id, data_out, setting):
     func = dsp_utl.SubDispatchFunction(
         dsp=dsp,
         function_id=dsp.name,
-        inputs=set(data_out).union((data_id,))
+        inputs=[data_id] + [k for k in data_out if k != data_id]
     )
 
     return func
 
 
 def model_error(name, data_id, data_out, setting):
-    """
-    Defines the engine model.
-
-    .. dispatcher:: dsp
-
-        >>> dsp = model_selector()
-
-    :return:
-        The engine model.
-    :rtype: Dispatcher
-    """
 
     dsp = Dispatcher(
         name='%s-%s error vs %s' % (name, data_id, data_out),
@@ -203,12 +192,18 @@ def model_error(name, data_id, data_out, setting):
     default_settings = {
         'inputs_map': {},
         'targets': [],
-        'metrics_inputs': [],
+        'metrics_inputs': {},
         'up_limit': None,
         'dn_limit': None
     }
 
     default_settings.update(setting)
+
+    it = dsp_utl.selector(['up_limit', 'dn_limit'], default_settings).items()
+
+    for k, v in it:
+        if v is not None:
+            default_settings[k] = dsp_utl.map_list(setting['targets'], *v)
 
     dsp.add_function(
         function_id='select_inputs',
@@ -245,8 +240,8 @@ def model_error(name, data_id, data_out, setting):
 
     dsp.add_function(
         function_id='select_outputs',
-        function=partial(dsp_utl.selector, allow_miss=True),
-        inputs=['outputs', 'results'],
+        function=select_outputs,
+        inputs=['outputs', 'targets', 'results'],
         outputs=['predictions']
     )
 
@@ -279,8 +274,3 @@ def model_error(name, data_id, data_out, setting):
     )
 
     return func
-
-
-if __name__ == '__main__':
-    dsp = models_selector('WLTP-H', 'WLTP-L')
-    dsp.plot()

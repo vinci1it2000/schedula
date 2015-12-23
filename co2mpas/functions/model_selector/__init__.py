@@ -21,111 +21,149 @@ Modules:
 """
 
 
-from heapq import heappush
 from textwrap import dedent
 from sklearn.metrics import mean_absolute_error, accuracy_score
 from easygui import buttonbox
 import co2mpas.dispatcher.utils as dsp_utl
 import numpy as np
-from itertools import chain
+from ..physical.constants import *
 import logging
+from collections import OrderedDict
+from pprint import pformat
+from co2mpas.functions.physical.clutch_tc.clutch import calculate_clutch_phases
 
 log = logging.getLogger(__name__)
 
 
-def _mean(values):
+def _mean(values, weights=None):
 
     v = np.asarray(values)
-
-    if v.any():
-        return np.mean(v)
-    return np.nan
+    return np.average(v, weights=weights)
 
 
-def get_best_model(*data, hide_warn_msgbox=False):
-
+def sort_models(*data, weights=None):
+    weights = weights or {}
     rank = []
 
     for d in data:
         errors = {k[-1]: v for k, v in d.items() if 'error' in k}
-        error = []
+        scores = []
 
         for k, v in errors.items():
-            l = [m for l, m in sorted(v[1].items())]
+            l = [list(m.values()) for l, m in sorted(v[1].items()) if m]
 
-            if np.asarray(l).any() and v[0]:
-                e = _mean(l), _mean(v[0])
-                error.append((e, l, v[0], k, v[1]))
+            if v[0]:
+                l = _mean(l) if l else 1
+                keys, m = zip(*v[0].items())
+                e = l, _mean(m, weights=[weights.get(i, 1) for i in keys])
+                scores.append((e, l, v[0], k, v[1]))
 
-        errors = list(sorted(error))
-        error = _mean([v[0] for v in errors])
-        rank.append([error, errors, d['data_in'], d['calibrated_models']])
+        scores = list(sorted(scores))
+        if scores:
+            score = tuple(np.mean([e[0] for e in scores], axis=0))
+        else:
+            score = (1, np.nan)
 
-    rank = list(sorted(rank))
+        models = d['calibrated_models']
 
-    return rank[0][-1], [v[:-1] for v in rank]
+        score = (score[0], len(models), score[1])
 
+        rank.append([score, scores, errors, d['data_in'], models])
 
-def co2params_get_best_model(*data, hide_warn_msgbox=False):
-    return get_best_model(*data, hide_warn_msgbox=False)
-    rank = []
-
-    for d in data:
-        errors = [(np.mean(v, 1), v, k) for k, v in d.items() if 'error' in k]
-        errors = list(sorted(errors))
-        error = np.mean([v[:2] for v in errors])
-        rank.append([error, errors, d['data_in'], d['calibrated_models']])
-
-    rank = list(sorted(rank))
-
-    return rank[0][-1], [v[:-1] for v in rank]
+    return list(sorted(rank))
 
 
-def select_data(ids, data):
-    """
-
-    :param outputs:
-
-    :type outputs: dict
-
-    :param models_inputs:
-
-    :type models_inputs: list[list]
-
-    :return:
-
-    :rtype: list[dict]
-    """
-
-    return {k: v for k, v in data.items() if k in ids}
+def _check(rank, hide_warn_msgbox):
+    try:
+        status = rank[0][0][0]
+        return status == 1 or hide_warn_msgbox or _ask_model(rank[0][-1].keys())
+    except IndexError:
+        return True
 
 
-def make_metrics(metrics, ref, pred, args):
-    metric = []
+def _ask_model(failed_models):
+    msg = dedent("""\
+          The following models has failed the calibration:
+              %s.
 
-    for k in set(ref).intersection(pred):
-        m, r, p = metrics[k], ref[k], pred[k]
+          - Select `Yes` if want to continue and use the failed models.
+          - Select `No` if want to continue WITHOUT these models.
+          For more clarifications, please ask JRC.
+          """) % ',\n'.join(failed_models)
+    choices = ["Yes", "No"]
+    return buttonbox(msg, choices=choices) == choices[0]
 
-        if m is not None:
-            metric.append(m(r, p, *args))
+
+def get_best_model(rank, hide_warn_msgbox=False):
+    scores = OrderedDict()
+    for m in rank:
+        if m[1]:
+            scores[m[3]] = {'score': m[0],
+                            'errors': {k: v[0] for k, v in m[2].items()},
+                            'limits': {k: v[1] for k, v in m[2].items()},
+                            'models': tuple(m[-1].keys())
+                            }
+        else:
+            scores[m[3]] = {'models': tuple(m[-1].keys())}
+
+    if rank and _check(rank, hide_warn_msgbox):
+        msg = '\n  Models %s are selected from %s respect to targets' \
+              ' %s.\n  Scores: %s.'
+
+        m = rank[0]
+        scores[m[3]]['selected'] = True
+        log.info(msg, scores[m[3]]['models'], m[3], tuple(m[4].keys()),
+                 pformat(scores))
+
+        m = m[-1]
+
+    else:
+        m = {}
+
+    return m, scores
+
+
+def select_outputs(outputs, targets, results):
+
+    results = dsp_utl.selector(outputs, results, allow_miss=True)
+    results = dsp_utl.map_dict(dict(zip(outputs, targets)), results)
+
+    return OrderedDict((k, results[k]) for k in targets if k in results)
+
+
+def make_metrics(metrics, ref, pred, kwargs):
+    metric = OrderedDict()
+
+    for k, p in pred.items():
+        if k in ref:
+            m, r = metrics[k], ref[k]
+
+            if m is not None:
+                metric[k] = m(r, p, **kwargs)
 
     return metric
 
 
+def _check_limit(limit, errors, check=lambda e, l: e<=l):
+    if limit:
+        l = OrderedDict()
+        for k, e in errors.items():
+            if limit[k] is not None:
+                l[k] = check(e, limit[k])
+        return l
+
+
 def check_limits(errors, up_limit=None, dn_limit=None):
+
     status = {}
-    if up_limit:
-        status['up_limit'] = [e > l if l is not None else True
-                              for e, l in zip(errors, up_limit)]
-    else:
-        status['up_limit'] = [True] * len(errors)
 
-    if dn_limit:
-        status['dn_limit'] = [e < l if l is not None else True
-                              for e, l in zip(errors, dn_limit)]
-    else:
-        status['dn_limit'] = [True] * len(errors)
+    l = _check_limit(up_limit, errors, check=lambda e, l: e<=l)
+    if l:
+        status['up_limit'] = l
 
+    l = _check_limit(dn_limit, errors, check=lambda e, l: e>=l)
+    if l:
+        status['up_limit'] = l
 
     return status
 
@@ -139,17 +177,14 @@ def define_sub_model(dsp, inputs, outputs, models, **kwargs):
     return dsp_utl.SubDispatch(dsp.shrink_dsp(inputs, outputs))
 
 
-def defaults():
+def metric_engine_speed_model(y_true, y_pred, times, velocities, gear_shifts):
+    b = np.logical_not(calculate_clutch_phases(times, gear_shifts))
+    b &= velocities > VEL_EPS
+    return mean_absolute_error(y_true[b], y_pred[b])
 
-    d = {
-        'inputs_map': {},
-        'metrics_inputs': [],
-        'targets': [],
-        'dn_limit': None,
-        'up_limit': None
-    }
 
-    return d
+def combine_outputs(models):
+    return dsp_utl.combine_dicts(*models.values())
 
 
 def sub_models():
@@ -179,6 +214,7 @@ def sub_models():
         'outputs': ['on_engine', 'engine_starts'],
         'targets': ['on_engine', 'engine_starts'],
         'metrics': [accuracy_score] * 2,
+        'weights': [-1, -1],
         'dn_limit': [0.7] * 2,
     }
 
@@ -187,12 +223,12 @@ def sub_models():
     sub_models['engine_speed_model'] = {
         'dsp': physical_prediction(),
         'models': ['r_dynamic', 'final_drive_ratio', 'gear_box_ratios',
-                   'idle_engine_speed'],
+                   'idle_engine_speed', 'engine_thermostat_temperature'],
         'inputs': ['velocities', 'gears', 'times', 'on_engine'],
         'outputs': ['engine_speeds_out_hot'],
         'targets': ['engine_speeds_out'],
-        'metrics_inputs': ['times', 'gears'],
-        'metrics': [mean_absolute_error],
+        'metrics_inputs': ['times', 'velocities', 'gear_shifts'],
+        'metrics': [metric_engine_speed_model],
         'up_limit': [20],
     }
 
@@ -242,24 +278,27 @@ def sub_models():
     }
 
     from co2mpas.models.physical.engine.co2_emission import co2_emission
+    from co2mpas.models.model_selector.co2_params import co2_params_model_selector
     sub_models['co2_params'] = {
         'dsp': co2_emission(),
-        'models': ['co2_params'],
-        'get_best_model': co2params_get_best_model,
+        'model_selector': co2_params_model_selector,
+        'models': ['co2_params', 'calibration_status'],
         'inputs': ['co2_emissions_model'],
         'outputs': ['co2_emissions'],
-        'targets': ['co2_emissions'],
+        'targets': ['identified_co2_emissions'],
         'metrics': [mean_absolute_error],
+        'up_limit': [0.5]
     }
 
     from co2mpas.models.physical.electrics import electrics
 
     sub_models['alternator_model'] = {
         'dsp': electrics(),
-        'models': ['alternator_status_model', 'alternator_current_model'],
+        'models': ['alternator_status_model', 'alternator_current_model',
+                   'max_battery_charging_current', 'start_demand',
+                   'electric_load'],
         'inputs': [
-            'battery_capacity', 'max_battery_charging_current',
-            'alternator_nominal_voltage', 'start_demand', 'electric_load',
+            'battery_capacity', 'alternator_nominal_voltage',
             'initial_state_of_charge', 'times', 'clutch_TC_powers',
             'on_engine', 'engine_starts', 'accelerations'],
         'outputs': ['alternator_currents', 'battery_currents',
@@ -267,14 +306,15 @@ def sub_models():
         'targets': ['alternator_currents', 'battery_currents',
                     'state_of_charges', 'alternator_statuses'],
         'metrics': [mean_absolute_error] * 3 + [accuracy_score],
-        'up_limit': [60, 60, None, None]
+        'up_limit': [60, 60, None, None],
+        'weights': [1, 1, 0, 0]
     }
 
     from co2mpas.models.physical.gear_box.AT_gear import AT_gear
 
     sub_models['AT_model'] = {
         'dsp': AT_gear(),
-        'models_selector': AT_models_selector,
+        'select_models': AT_models_selector,
         'models': ['max_gear', 'correct_gear', 'MVL', 'CMV', 'CMV_Cold_Hot',
                    'DT_VA', 'DT_VAT', 'DT_VAP', 'DT_VATP', 'GSPV',
                    'GSPV_Cold_Hot'],
@@ -287,370 +327,10 @@ def sub_models():
         'outputs': ['gears', 'max_gear'],
         'targets': ['gears', 'max_gear'],
         'metrics': [accuracy_score, None],
+        'weights': [-1, 0]
     }
 
     return sub_models
-
-
-def calibrate_co2_params_with_all_calibration_cycles(heap, *data):
-    if len(calibration_outputs) <= 1:
-        return
-    co = calibration_outputs
-
-    c_name = heap[0][-2] if heap else co[0]['cycle_name']
-
-    def check(data):
-        keys = ('co2_params_initial_guess', 'co2_params_bounds',
-                'is_cycle_hot')
-        return all(p in data for p in keys)
-
-    its = [(o for o in co if o['cycle_name'] == c_name and check(o)),
-           (o for o in co if check(o))]
-
-    data = {}
-    for it in its:
-        data = next(it, {})
-        if data:
-            break
-
-    if not data:
-        return
-
-    from .engine.co2_emission import calibrate_model_params
-    initial_guess = data['co2_params_initial_guess']
-    bounds = data['co2_params_bounds']
-
-    if data['is_cycle_hot']:
-        f = lambda x: {k: v for k, v in x.items() if k not in ('t', 'trg')}
-        initial_guess = f(initial_guess)
-        bounds = f(bounds)
-
-    #e_tag = 'engine_coolant_temperatures'
-    #engine_coolant_temperatures = [o[e_tag] for o in co if e_tag in o]
-
-    #e_tag = 'co2_error_function_on_emissions'
-    #co2_error_function_on_emissions = [o[e_tag] for o in co if e_tag in o]
-
-    e_tag = 'co2_error_function_on_phases'
-    co2_error_function_on_phases = [o[e_tag] for o in co if e_tag in o]
-
-    if len(co2_error_function_on_phases) <= 1:
-        return
-
-    p, s = calibrate_model_params(
-        bounds, co2_error_function_on_phases, initial_guess)
-
-    return {'co2_params': p, 'calibration_status': s}
-
-
-
-def _comparison_model():
-
-    # co2_params
-    from co2mpas.models.physical.engine.co2_emission import co2_emission
-    dsp.add_dispatcher(
-        dsp_id='test co2_params',
-        dsp=co2_emission(),
-        inputs={
-            'co2_emissions_model': 'co2_emissions_model',
-            'co2_params': 'co2_params',
-        },
-        outputs={
-            'co2_emissions': 'co2_emissions'
-        }
-    )
-
-    def calibrate_co2_params_with_all_calibration_cycles(
-            heap, extracted_models, *calibration_outputs):
-        if len(calibration_outputs) <= 1:
-            return
-        co = calibration_outputs
-
-        c_name = heap[0][-2] if heap else co[0]['cycle_name']
-
-        def check(data):
-            keys = ('co2_params_initial_guess', 'co2_params_bounds',
-                    'is_cycle_hot')
-            return all(p in data for p in keys)
-
-        its = [(o for o in co if o['cycle_name'] == c_name and check(o)),
-               (o for o in co if check(o))]
-
-        data = {}
-        for it in its:
-            data = next(it, {})
-            if data:
-                break
-
-        if not data:
-            return
-
-        from .engine.co2_emission import calibrate_model_params
-        initial_guess = data['co2_params_initial_guess']
-        bounds = data['co2_params_bounds']
-
-        if data['is_cycle_hot']:
-            f = lambda x: {k: v for k, v in x.items() if k not in ('t', 'trg')}
-            initial_guess = f(initial_guess)
-            bounds = f(bounds)
-
-        #e_tag = 'engine_coolant_temperatures'
-        #engine_coolant_temperatures = [o[e_tag] for o in co if e_tag in o]
-
-        #e_tag = 'co2_error_function_on_emissions'
-        #co2_error_function_on_emissions = [o[e_tag] for o in co if e_tag in o]
-
-        e_tag = 'co2_error_function_on_phases'
-        co2_error_function_on_phases = [o[e_tag] for o in co if e_tag in o]
-
-        if len(co2_error_function_on_phases) <= 1:
-            return
-
-        p, s = calibrate_model_params(
-            bounds, co2_error_function_on_phases, initial_guess)
-
-        return {'co2_params': p, 'calibration_status': s}
-
-    models.append({
-        'models': ('co2_params', 'calibration_status'),
-        'outputs': ('co2_emissions',),
-        'targets': ('identified_co2_emissions',),
-        'post_processing': calibrate_co2_params_with_all_calibration_cycles,
-        'check_models': lambda error: error < 0.5,
-    })
-
-    # alternator_status_model
-    from co2mpas.models.physical.electrics import electrics
-    dsp.add_dispatcher(
-        dsp_id='test alternator_status_model',
-        dsp=electrics(),
-        inputs={
-            'accelerations': 'accelerations',
-            'battery_capacity': 'battery_capacity',
-            'alternator_status_model': 'alternator_status_model',
-            'alternator_current_model': 'alternator_current_model',
-            'max_battery_charging_current': 'max_battery_charging_current',
-            'alternator_nominal_voltage': 'alternator_nominal_voltage',
-            'start_demand': 'start_demand',
-            'electric_load': 'electric_load',
-            'initial_state_of_charge': 'initial_state_of_charge',
-            'times': 'times',
-            'clutch_TC_powers': 'clutch_TC_powers',
-            'on_engine': 'on_engine',
-            'engine_starts': 'engine_starts'
-        },
-        outputs={
-            'alternator_currents': 'alternator_currents',
-            'battery_currents': 'battery_currents',
-            'state_of_charges': 'state_of_charges',
-            'alternator_statuses': 'alternator_statuses'
-        }
-    )
-
-    models.append({
-        'models': ('alternator_current_model', 'start_demand',
-                   'max_battery_charging_current', 'electric_load',
-                   'alternator_status_model', 'alternator_nominal_power'),
-        'targets': ('alternator_currents', 'battery_currents'),
-        'check_models': lambda error: error < 60,
-    })
-
-    # AT_gear
-    from co2mpas.models.physical.gear_box.AT_gear import AT_gear
-
-    dsp.add_dispatcher(
-        dsp_id='test AT_gear',
-        include_defaults=True,
-        dsp=AT_gear(),
-        inputs={
-            'correct_gear': 'correct_gear',
-            'CMV': 'CMV',
-            'CMV_Cold_Hot': 'CMV_Cold_Hot',
-            'DT_VA': 'DT_VA',
-            'DT_VAT': 'DT_VAT',
-            'DT_VAP': 'DT_VAP',
-            'DT_VATP': 'DT_VATP',
-            'GSPV': 'GSPV',
-            'GSPV_Cold_Hot': 'GSPV_Cold_Hot',
-            'accelerations': 'accelerations',
-            'motive_powers': 'motive_powers',
-            'engine_speeds_out': 'engine_speeds_out',
-            'engine_coolant_temperatures': 'engine_coolant_temperatures',
-            'time_cold_hot_transition': 'time_cold_hot_transition',
-            'times': 'times',
-            'gears': 'identified_gears',
-            'use_dt_gear_shifting': 'use_dt_gear_shifting',
-            'specific_gear_shifting': 'specific_gear_shifting',
-            'velocity_speed_ratios': 'velocity_speed_ratios',
-            'velocities': 'velocities',
-        },
-        outputs={
-            'CMV_error_coefficients': 'error_coefficients',
-            'CMV_Cold_Hot_error_coefficients': 'error_coefficients',
-            'GSPV_error_coefficients': 'error_coefficients',
-            'GSPV_Cold_Hot_error_coefficients': 'error_coefficients',
-            'DT_VA_error_coefficients': 'error_coefficients',
-            'DT_VAT_error_coefficients': 'error_coefficients',
-            'DT_VAP_error_coefficients': 'error_coefficients',
-            'DT_VATP_error_coefficients': 'error_coefficients',
-        }
-    )
-
-    def AT_get_inputs(extracted_models, *args, **kwargs):
-
-        i = _get_inputs(extracted_models, *args, **kwargs)
-
-        for k in ('CMV', 'CMV_Cold_Hot', 'DT_VA', 'DT_VAT', 'DT_VAP', 'DT_VATP',
-                  'GSPV', 'GSPV_Cold_Hot',):
-            i.pop(k, None)
-
-        i['specific_gear_shifting'] = k = i['origin AT_gear_shifting_model'][0]
-        i[k] = extracted_models[k]
-
-        return i
-
-    def AT_get_models(selected_models, *args):
-
-        mods = (selected_models['origin AT_gear_shifting_model'][0],
-                'correct_gear', 'MVL')
-        return {k: selected_models[k] for k in mods if k in selected_models}
-
-    def AT_post_processing(heap, extracted_models, *calibration_outputs):
-        if heap:
-
-            co = calibration_outputs
-
-            c_name = heap[0][-2]
-
-            data = next((o for o in co if o['cycle_name'] == c_name), {})
-
-            if data:
-                k = 'origin AT_gear_shifting_model'
-                extracted_models[k] = data[k]
-
-    def AT_comparison_func(targets, outputs):
-        return outputs['mean_absolute_error']
-
-    models.append({
-        'models': ('origin AT_gear_shifting_model', 'correct_gear',
-                   'MVL'),
-        'targets': (dsp_utl.NONE,),
-        'outputs': ('error_coefficients',),
-        'get_inputs': AT_get_inputs,
-        'get_models': AT_get_models,
-        'comparison_func': AT_comparison_func,
-        'post_processing': AT_post_processing
-    })
-
-    cal_models.update(chain.from_iterable(m['models'] for m in models))
-    return dsp, models, cal_models
-
-
-def model_selector(*calibration_outputs, hide_warn_msgbox=False):
-    """
-    Selects the best calibrated models from many sources (e.g., WLTP, WLTP-L).
-
-    :param calibration_outputs:
-        A tuple of dictionaries that have all calibration cycle outputs.
-    :type calibration_outputs: (dict, ...)
-
-    :return:
-        The best calibrated models.
-    :rtype: dict
-    """
-
-    co = calibration_outputs
-    models = {}
-    models['origin calibrated_models'] = origin = {}
-    models['errors calibrated_models'] = origin_errors = {}
-    dsp, _model_targets, m = _comparison_model()
-
-    # get calibrated models and data for comparison
-    id_tag = 'cycle_name'
-
-    def get(i, o):
-        return _extract_models(o, m), o[id_tag], co[:i] + co[i + 1:], co[i]
-
-    em_rt = list(map(get, range(len(co)), co))
-
-    for d in _model_targets:
-        heap, mods = [], d['models']
-        trgs = d.get('targets', d.get('outputs', ()))
-        outs = d.get('outputs', d.get('targets', ()))
-        get_i = d.get('get_inputs', _get_inputs)
-        get_m = d.get('get_models', _get_models)
-        check_m = d.get('check_models', _check_models)
-        comp_func = d.get('comparison_func', mean_absolute_error)
-        post = d.get('post_processing', lambda *args: None)
-
-        def error_fun(e_mods, co_i, res_t, push=True):
-            if any(m not in e_mods for m in mods):
-                return None, False
-
-            err_ = [] if trgs else [float('inf')]
-
-            for t in res_t:
-                if all(k not in t and k is not dsp_utl.NONE for k in trgs):
-                    continue
-
-                pred = dsp.dispatch(get_i(e_mods, t, **d), outs, shrink=True)
-                if outs and all(k not in pred for k in outs):
-                    continue
-                err_.append(_compare_result(outs, trgs, pred, t, comp_func))
-
-            m = get_m(e_mods, mods)
-
-            err = np.mean(err_) if err_ else float('inf')
-
-            if err_ and push:
-                heappush(heap, (err, len(e_mods), co_i, m))
-
-            return (err, len(e_mods), co_i, m), err_
-
-        for v in em_rt:
-
-            push = not error_fun(*v[:-1])[1]
-
-            coi = v[-1]
-            res = error_fun(v[0], v[1], (coi,), push=push)[0]
-            if res:
-                err = res[0]
-                for k in res[-1]:
-                    coi['errors %s' % k] = err
-
-        e_mods = post(heap, models, *co)
-        if e_mods:
-            error_fun(e_mods, 'ALL', co)
-
-        if heap:
-            if not hide_warn_msgbox and not check_m(heap[0][0]) and \
-                    _show_calibration_failure_msg(mods):
-                continue
-            models.update(heap[0][-1])
-
-            rank = [(v[-2], v[0]) for v in sorted(heap)]
-
-            origin.update(dict.fromkeys(mods, rank[0][0]))
-            origin_errors.update(dict.fromkeys(mods, rank))
-
-            msg = '\nModels %s are selected from %s (%.3f) respect to targets' \
-                  ' %s.\n  Scores: %s.'
-            log.info(msg, mods, rank[0][0], rank[0][1], trgs, rank)
-
-    return models
-
-
-def _show_calibration_failure_msg(failed_models):
-    msg = dedent("""\
-          The following models has failed the calibration:
-              %s.
-
-          - Select `Yes` if want to continue and use the failed models.
-          - Select `No` if want to continue WITHOUT these models.
-          For more clarifications, please ask JRC.
-          """) % ',\n'.join(failed_models)
-    choices = ["Yes", "No"]
-    return buttonbox(msg, choices=choices) == 1
 
 
 def AT_models_selector(AT_models, data):
@@ -658,12 +338,10 @@ def AT_models_selector(AT_models, data):
     m = ['CMV', 'CMV_Cold_Hot', 'DT_VA', 'DT_VAT', 'DT_VAP', 'DT_VATP', 'GSPV',
          'GSPV_Cold_Hot']
 
-    m = set(AT_models).difference(m)
-
-    models = {k: data[k] for k in m if k in data}
+    models = {k: data[k] for k in set(AT_models).difference(m) if k in data}
 
     # A/T gear shifting
-    methods_ids = {'%s_error_coefficients': k for k in m}
+    methods_ids = {'%s_error_coefficients' % k: k for k in m}
 
     m = []
 

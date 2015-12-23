@@ -260,6 +260,7 @@ def _process_folder_files(
 
         if plot_workflow:
             try:
+                log.info('Plotting workflow of %s...', fname)
                 model.plot(workflow=True)
             except RuntimeError as ex:
                 log.warning(ex, exc_info=1)
@@ -268,6 +269,7 @@ def _process_folder_files(
         summary = {'SUMMARY': summary['SUMMARY']}
 
     return summary, start_time
+
 
 def clone_and_extend_excel(out_xl_fpath, template_xl_fpath):
     """
