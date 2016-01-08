@@ -66,9 +66,10 @@ def sort_models(*data, weights=None):
 
         models = d['calibrated_models']
 
-        score = (score[0], len(models), score[1])
+        if models:
+            score = (score[0], 1 / len(models), score[1])
 
-        rank.append([score, scores, errors, d['data_in'], models])
+            rank.append([score, scores, errors, d['data_in'], models])
 
     return list(sorted(rank))
 

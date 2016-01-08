@@ -133,6 +133,9 @@ def model_selector(name, data_in, data_out, setting, hide_warn_msgbox=False):
 
 
 def model_errors(name, data_id, data_out, setting):
+
+    name = ''.join(k[0].upper() for k in name.split('_'))
+
     dsp = Dispatcher(
         name='%s-%s errors' % (name, data_id),
         description='Calculates the error of calibrated model.',
