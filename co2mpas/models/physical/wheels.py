@@ -69,24 +69,8 @@ def wheels():
     )
 
     wheels.add_function(
-        function=calculates_brake_powers,
-        inputs=['engine_moment_inertia', 'motive_powers', 'gear_box_speeds_in',
-                'auxiliaries_torque_losses', 'has_energy_recuperation',
-                'alternator_nominal_power'],
-        outputs=['brake_powers']
-    )
-
-    wheels.add_function(
-        function=calculates_brake_powers,
-        inputs=['engine_moment_inertia', 'motive_powers', 'gear_box_speeds_in',
-                'auxiliaries_torque_losses'],
-        outputs=['brake_powers'],
-        weight=50
-    )
-
-    wheels.add_function(
-        function=dsp_utl.summation,
-        inputs=['motive_powers', 'brake_powers'],
+        function=dsp_utl.bypass,
+        inputs=['motive_powers'],
         outputs=['wheel_powers']
     )
 

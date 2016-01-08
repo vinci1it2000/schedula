@@ -245,4 +245,4 @@ def calculates_brake_powers(
 
     brake_powers[brake_powers > 0] = 0
 
-    return -brake_powers * 0
+    return -brake_powers

@@ -146,11 +146,11 @@ def get_engine_motoring_curve(engine_stroke, engine_capacity, friction_params):
     :rtype: function
     """
 
-    loss, loss2 = friction_params
+    l, l2 = np.array(friction_params) * (engine_capacity / 1200000.0)
+    l2 *= (engine_stroke / 30000.0) ** 2
 
     def dn_limit(engine_speeds):
-        piston_speeds = (engine_stroke / 30000.0) * engine_speeds
-        return (loss2 * piston_speeds ** 2 + loss) * engine_speeds * (engine_capacity / 1200000.0)
+        return (l2 * engine_speeds * engine_speeds + l) * engine_speeds
 
     return dn_limit
 
@@ -1084,8 +1084,8 @@ def calculate_engine_powers_out(
     p[on_engine] = p_on
 
     engine_speeds_delta = np.ediff1d(engine_speeds_out, to_end=0)
-    engine_powers_on_inertia = engine_moment_inertia / 2000 * (2 * pi * engine_speeds_delta / 60)**2
-
+    engine_powers_on_inertia = engine_moment_inertia / 2000 * (2 * pi / 60) ** 2
+    engine_powers_on_inertia *= engine_speeds_delta * engine_speeds_delta
     p += engine_powers_on_inertia
 
     return p
