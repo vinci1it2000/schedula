@@ -706,7 +706,7 @@ def calibrate_start_stop_model(
 
 def predict_on_engine(
         model, times, velocities, accelerations, engine_coolant_temperatures,
-        gears):
+        gears, gear_box_type):
     """
     Predicts if the engine is on [-].
 
@@ -730,9 +730,9 @@ def predict_on_engine(
         Engine coolant temperature vector [°C].
     :type engine_coolant_temperatures: numpy.array
 
-    :param cycle_type:
-        Cycle type (WLTP or NEDC).
-    :type cycle_type: str
+    :param gears:
+        Gear vector [-].
+    :type gears: numpy.array
 
     :param gear_box_type:
         Gear box type (manual or automatic).
@@ -747,7 +747,8 @@ def predict_on_engine(
                       engine_coolant_temperatures)
     on_engine = np.array(on_engine, dtype=int)
 
-    on_engine[gears > 0] = 1
+    if gear_box_type == 'manual':
+        on_engine[gears > 0] = 1
 
     on_engine = clear_fluctuations(times, on_engine, TIME_WINDOW)
 
