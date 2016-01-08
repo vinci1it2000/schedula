@@ -467,7 +467,7 @@ class SubDispatch(object):
 
                 # Raise error
                 msg = '\n  Unreachable output-targets: {}\n  Available ' \
-                      'outputs: {}'.format(sorted(missed), sorted(o.keys()))
+                      'outputs: {}'.format(missed, o.keys())
 
                 raise DispatcherError(dsp, msg)
         return o  # Return outputs.
@@ -549,7 +549,7 @@ class SubDispatch(object):
             'fun'
             >>> func = SubDispatch(dsp)
             >>> func.plot(view=False, graph_attr={'ratio': '1'})
-            <graphviz.dot.Digraph object at 0x...>
+            <co2mpas.dispatcher.utils.drw.Digraph object at 0x...>
         """
 
         if edge_data is EMPTY:
@@ -691,7 +691,7 @@ class SubDispatchFunction(SubDispatch):
 
                 # Raise error
                 msg = '\n  Unreachable output-targets: {}\n  Available ' \
-                      'outputs: {}'.format(sorted(missed), sorted(available))
+                      'outputs: {}'.format(missed, available)
                 raise DispatcherError(dsp, msg)
 
         # Get initial default values.
@@ -752,7 +752,7 @@ class SubDispatchFunction(SubDispatch):
 
             # Raise error
             msg = '\n  Unreachable output-targets: {}\n  Available ' \
-                  'outputs: {}'.format(sorted(missed), sorted(o.keys()))
+                  'outputs: {}'.format(missed, o.keys())
             raise DispatcherError(dsp, msg)
 
 
@@ -863,7 +863,7 @@ class SubDispatchPipe(SubDispatchFunction):
 
                 # Raise error
                 msg = '\n  Unreachable output-targets: {}\n  Available ' \
-                      'outputs: {}'.format(sorted(missed), sorted(available))
+                      'outputs: {}'.format(missed, available)
                 raise DispatcherError(dsp, msg)
 
         self.out_flow = out_flow = main_dsp.workflow.succ
@@ -1058,5 +1058,5 @@ class SubDispatchPipe(SubDispatchFunction):
             missed = set(self.outputs) - o
             # Raise error
             msg = '\n  Unreachable output-targets: {}\n  Available ' \
-                  'outputs: {}'.format(sorted(missed), sorted(o.keys()))
+                  'outputs: {}'.format(missed, o.keys())
             raise DispatcherError(self.dsp, msg)

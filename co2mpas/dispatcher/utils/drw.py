@@ -10,25 +10,26 @@
 It provides functions to plot dispatcher map and workflow.
 """
 
-__author__ = 'Vincenzo Arcidiacono'
-
+import graphviz as gviz
+import os
+import string
 import urllib
 import numpy as np
 import pprint
 import inspect
 from tempfile import mkstemp, mkdtemp
 import networkx as nx
-from networkx.utils import default_opener
-from graphviz import Digraph
 from .cst import START, SINK, END, EMPTY
 from .dsp import SubDispatch, SubDispatchFunction, combine_dicts
 from itertools import chain
 from functools import partial
-from graphviz.tools import mkdirs
 import html
 import logging
 from pathlib import Path
 from .des import get_parent_func, search_node_description
+from .io import mkdirs
+
+__author__ = 'Vincenzo Arcidiacono'
 
 __all__ = ['plot']
 
@@ -39,6 +40,35 @@ _encode_table = {
     '}': '\}',
     '|': '\|'
 }
+
+if os.name != 'nt':
+    Digraph = gviz.Digraph
+else:
+    import win32api
+
+
+    class Digraph(gviz.Digraph):
+        def save(self, filename=None, directory=None):
+
+            if filename is not None:
+                self.filename = filename
+            if directory is not None:
+                self.directory = directory
+
+            filepath = self.filepath
+
+            name = mkdirs(filepath)
+
+            data = gviz._compat.text_type(self.source)
+
+            with open(name, 'w', encoding=self.encoding) as fd:
+                fd.write(data)
+
+            return name
+
+        def render(self, *args, **kwargs):
+            path = super(Digraph, self).render(*args, **kwargs)
+            return win32api.GetLongPathName(path)
 
 
 def _encode_dot(s):
@@ -51,7 +81,17 @@ def _html_encode(s):
 
 
 def _encode_file_name(s):
-    return _html_encode(str(s))
+    """
+    Take a string and return a valid filename constructed from the string.
+
+    Uses a whitelist approach: any characters not present in valid_chars are
+    removed. Also spaces are replaced with underscores.
+    """
+
+    valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
+    filename = ''.join(c for c in s if c in valid_chars)
+    filename = filename.replace(' ', '_')  # I don't like spaces in filenames.
+    return filename
 
 
 def _init_filepath(directory, filename, nested, name, is_sub_dsp):
@@ -65,11 +105,13 @@ def _init_filepath(directory, filename, nested, name, is_sub_dsp):
     if path and not path.parent:
         path = path.absolute()
 
+    filename = os.path.basename(filename or name)
+
     if nested:
-        name = name.replace('/', ' ').replace('.', ' ')
+        filename = filename.replace('/', ' ').replace('.', ' ')
         if not is_sub_dsp:
-            name = '%s/%s' % (name, name)
-        path = path.parent.joinpath(path.name.split('.')[0], '%s.gv' % name)
+            filename = '%s/%s' % (filename, filename)
+        path = path.parent.joinpath(path.name.split('.')[0], '%s.gv' % filename)
     else:
         filename = path.name.split('.')
         if not len(filename) > 1:
@@ -96,8 +138,8 @@ def _init_dot(dsp, workflow, nested, is_sub_dsp, **kw_dot):
     kw['body'] = ['%s = %s' % (k, v) for k, v in kw['body'].items()]
 
     kw['directory'], kw['filename'] = _init_filepath(
-        kw.pop('directory', ''), kw.pop('filename', ''), nested, name,
-        is_sub_dsp)
+            kw.pop('directory', ''), kw.pop('filename', ''), nested, name,
+            is_sub_dsp)
 
     dot = Digraph(**kw)
 
@@ -273,8 +315,8 @@ def _set_node(dot, node_id, dsp2dot_id, dsp=None, node_attr=None, values=None,
     if node_id not in styles:
         if node_type == 'data':
             node_label, kwargs = _data_node_label(
-                dot, node_id, values, node_attr, dist, function_module,
-                node_output, nested)
+                    dot, node_id, values, node_attr, dist, function_module,
+                    node_output, nested)
             kw.update(kwargs)
 
         else:
@@ -343,15 +385,15 @@ def _set_func_out(dot, node_name, func, nested):
 
 
 def _save_txt_output(directory, filename, output_lines):
-    filepath = str(Path(directory, '%s.txt' % _encode_file_name(filename)))
-    try:
-        mkdirs(filepath)
-        with open(filepath, "w") as text_file:
-            text_file.write('\n'.join(output_lines))
-        return filepath
-    except:
-        pass
-    return None
+    filename = _encode_file_name('%s.txt' % str(filename))
+    filepath = str(Path(directory, filename))
+
+    name = mkdirs(filepath)
+
+    with open(name, "w") as text_file:
+        text_file.write('\n'.join(output_lines))
+
+    return filepath
 
 
 def _set_sub_dsp(dot, dsp, dot_id, node_name, edge_attr, workflow, depth,
@@ -365,7 +407,7 @@ def _set_sub_dsp(dot, dsp, dot_id, node_name, edge_attr, workflow, depth,
 
         def wrapper(*args, **kwargs):
             s_dot = plot(*args, is_sub_dsp=True, **kwargs)
-            path = s_dot.render()
+            path = s_dot.render(cleanup=True)
             return {'URL': _url_rel_path(dot.directory, path)}
 
     else:
@@ -578,8 +620,7 @@ def plot(dsp, workflow=False, dot=None, edge_data=None, view=False,
                 pass
     if view:
         try:
-            render = dot.render()
-            default_opener(render)
+            dot.render(cleanup=True, view=True)
         except RuntimeError as ex:
             log.warning('{}'.format(ex), exc_info=1)
     return dot
