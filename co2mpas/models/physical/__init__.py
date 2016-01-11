@@ -304,7 +304,9 @@ def _physical(hide_warn_msgbox=True):
             'start_stop_activation_time': 'start_stop_activation_time',
             'times': 'times',
             'clutch_TC_speeds_delta': 'clutch_TC_speeds_delta',
-            'calibration_status': 'calibration_status'
+            'calibration_status': 'calibration_status',
+            'status_start_stop_activation_time':
+                'status_start_stop_activation_time'
         },
         outputs={
             'auxiliaries_torque_losses': 'auxiliaries_torque_losses',
