@@ -180,7 +180,7 @@ def define_sub_model(dsp, inputs, outputs, models, **kwargs):
 
 def metric_engine_speed_model(y_true, y_pred, times, velocities, gear_shifts):
     b = np.logical_not(calculate_clutch_phases(times, gear_shifts))
-    b &= velocities > VEL_EPS
+    b &= (velocities > VEL_EPS) & (times > 30)
     return mean_absolute_error(y_true[b], y_pred[b])
 
 
@@ -209,9 +209,9 @@ def sub_models():
 
     sub_models['start_stop_model'] = {
         'dsp': engine(),
-        'models': ['start_stop_model'],
+        'models': ['start_stop_model', 'status_start_stop_activation_time'],
         'inputs': ['times', 'velocities', 'accelerations',
-                   'engine_coolant_temperatures', 'gears'],
+                   'engine_coolant_temperatures', 'gears', 'gear_box_type'],
         'outputs': ['on_engine', 'engine_starts'],
         'targets': ['on_engine', 'engine_starts'],
         'metrics': [accuracy_score] * 2,
