@@ -126,7 +126,7 @@ def _comparison_model():
     )
 
     models.append({
-        'models': ('start_stop_model',),
+        'models': ('start_stop_model', 'status_start_stop_activation_time'),
         'targets': ('on_engine',),
         'check_models': lambda error: error < -0.7,
         'comparison_func': lambda *args: -accuracy_score(*args)
@@ -503,7 +503,7 @@ def _show_calibration_failure_msg(failed_models):
           For more clarifications, please ask JRC.
           """) % ',\n'.join(failed_models)
     choices = ["Yes", "No"]
-    return buttonbox(msg, choices=choices) == 1
+    return buttonbox(msg, choices=choices) == "No"
 
 
 def _extract_models(calibration_outputs, models_to_extract):

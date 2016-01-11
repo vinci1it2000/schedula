@@ -28,10 +28,11 @@ from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.optimize import fmin
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from co2mpas.functions.physical.constants import *
-from co2mpas.functions.physical.utils import bin_split, reject_outliers, \
-    clear_fluctuations, median_filter
+from ..utils import bin_split, reject_outliers, clear_fluctuations, \
+    median_filter, argmax
 import co2mpas.dispatcher.utils as dsp_utl
-from ..utils import argmax
+from textwrap import dedent
+from easygui import buttonbox
 
 
 def get_full_load(fuel_type):
@@ -662,14 +663,47 @@ def calibrate_start_stop_model_v1(
     return model
 
 
+def _ask_start_stop_activation_time(start_stop_activation_time, first_stop):
+    """
+    Ask if to use the start stop activation time.
+
+    :param start_stop_activation_time:
+        Start-stop activation time threshold [s].
+    :type start_stop_activation_time: float
+
+    :param first_stop:
+        First time when the vehicle stops [s].
+    :type start_stop_activation_time: float
+
+    :return:
+        True
+    """
+    msg = dedent("""\
+          To you want to use %.2f as start_stop_activation_time although the
+          first stop identified in WLTP is at %.2f?
+
+          - Select `Yes` if want to continue and use %.2f as
+            start_stop_activation_time.
+          - Select `No` if want to continue with an another start stop model.
+          """) % (start_stop_activation_time, first_stop,
+                  start_stop_activation_time)
+    choices = ["Yes", "No"]
+    return buttonbox(msg, choices=choices) == "Yes"
+
+
 def calibrate_start_stop_model(
-        on_engine, velocities, accelerations, start_stop_activation_time):
+        on_engine, times, velocities, accelerations,
+        start_stop_activation_time, hide_warn_msgbox=True):
     """
     Calibrates an start/stop model to predict if the engine is on.
 
     :param on_engine:
         If the engine is on [-].
     :type on_engine: numpy.array
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
 
     :param velocities:
         Velocity vector [km/h].
@@ -684,9 +718,20 @@ def calibrate_start_stop_model(
     :type start_stop_activation_time: float
 
     :return:
-        Start/stop model.
-    :rtype: function
+        Start/stop model and if the first stop is after the start-stop
+        activation time threshold.
+    :rtype: function, bool
     """
+
+    sst = start_stop_activation_time
+
+    # first stop
+    fst = times[argmax(np.logical_not((times <= 10) | on_engine))]
+    status = fst > sst
+
+    if not hide_warn_msgbox and status and not \
+            _ask_start_stop_activation_time(sst, fst):
+        return dsp_utl.NONE, False
 
     dt = DecisionTreeClassifier(random_state=0, max_depth=4)
 
@@ -701,7 +746,7 @@ def calibrate_start_stop_model(
 
         return on_engine
 
-    return model
+    return model, status
 
 
 def predict_on_engine(

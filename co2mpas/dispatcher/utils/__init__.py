@@ -42,6 +42,7 @@ Sub-Modules:
     cst
     io
     des
+    exc
 """
 
 __author__ = 'Vincenzo Arcidiacono'
