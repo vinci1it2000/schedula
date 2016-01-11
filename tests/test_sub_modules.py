@@ -375,7 +375,7 @@ class TestSubModules(unittest.TestCase):
 
         path = os.path.join(os.path.dirname(__file__), '..', 'tests', 'data')
         cls.results_outputs = read_data(get_data_loader(), path)
-        date = datetime.datetime.today().strftime('%d_%b_%Y_%H_%M_%S')
+        date = datetime.datetime.today().strftime('%Y_%m_%d_%H_%M_%S')
         path = os.path.join(path, 'results', date)
         os.makedirs(path)
         cls.output_directory = path
