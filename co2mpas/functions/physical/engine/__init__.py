@@ -720,7 +720,7 @@ def calibrate_start_stop_model(
     :return:
         Start/stop model and if the first stop is after the start-stop
         activation time threshold.
-    :rtype: function, bool
+    :rtype: (function, str)
     """
 
     sst = start_stop_activation_time
@@ -731,7 +731,11 @@ def calibrate_start_stop_model(
 
     if not hide_warn_msgbox and status and not \
             _ask_start_stop_activation_time(sst, fst):
-        return dsp_utl.NONE, False
+        return dsp_utl.NONE, 'Disapproved'
+    elif status:
+        status = 'Approved'
+    else:
+        status = 'Authorized'
 
     dt = DecisionTreeClassifier(random_state=0, max_depth=4)
 
