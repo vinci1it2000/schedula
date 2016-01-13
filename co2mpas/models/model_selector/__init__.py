@@ -106,7 +106,7 @@ def model_selector(name, data_in, data_out, setting, hide_warn_msgbox=False):
     _get_best_model = setting.pop('get_best_model', get_best_model)
 
     for i in data_in:
-        e = ('error', i)
+        e = 'error/%s' % i
 
         errors.append(e)
 
@@ -167,13 +167,13 @@ def model_errors(name, data_id, data_out, setting):
         dsp.add_function(
             function=partial(dsp_utl.map_list, ['calibrated_models', 'data']),
             inputs=['calibrated_models', o],
-            outputs=[('input', o)]
+            outputs=['input/%s' % o]
         )
 
         dsp.add_function(
             function=model_error(name, data_id, o, setting),
-            inputs=[('input', o)],
-            outputs=[('error', o)]
+            inputs=['input/%s' % o],
+            outputs=['error/%s' % o]
         )
 
     func = dsp_utl.SubDispatchFunction(

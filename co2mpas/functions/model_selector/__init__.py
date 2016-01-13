@@ -46,7 +46,7 @@ def sort_models(*data, weights=None):
     rank = []
 
     for d in data:
-        errors = {k[-1]: v for k, v in d.items() if 'error' in k}
+        errors = {k[6:]: v for k, v in d.items() if  k.startswith('error/')}
         scores = []
 
         for k, v in errors.items():
@@ -283,7 +283,7 @@ def sub_models():
     sub_models['co2_params'] = {
         'dsp': co2_emission(),
         'model_selector': co2_params_model_selector,
-        'models': ['co2_params', 'calibration_status'],
+        'models': ['co2_params_calibrated', 'calibration_status'],
         'inputs': ['co2_emissions_model'],
         'outputs': ['co2_emissions'],
         'targets': ['identified_co2_emissions'],

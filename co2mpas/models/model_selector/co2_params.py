@@ -56,7 +56,7 @@ def co2_params_model_selector(
     _get_best_model = setting.pop('get_best_model', get_best_model)
 
     for i in chain(data_in, ['ALL']):
-        e = ('error', i)
+        e = 'error/%s' % i
 
         errors.append(e)
 

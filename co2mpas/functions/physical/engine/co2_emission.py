@@ -13,11 +13,11 @@ It contains functions to predict the CO2 emissions.
 import numpy as np
 from functools import partial
 from scipy.integrate import trapz
-from scipy.optimize import brute, minimize
 from sklearn.metrics import mean_absolute_error
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.functions.physical.constants import *
 from ..utils import argmax
+import lmfit
 
 
 def calculate_normalized_engine_coolant_temperatures(
@@ -123,21 +123,12 @@ def calculate_p0(params, engine_capacity, engine_stroke,
     :rtype: float
     """
 
-    p = {
-        'a2': 0.0, 'b2': 0.0,
-        'a': 0.0, 'b': 0.0, 'c': 0.0,
-        'l': 0.0, 'l2': 0.0,
-        't': 0.0, 'trg': 0.0
-    }
-
-    p.update(params)
-
     engine_cm_idle = idle_engine_speed_median * engine_stroke / 30000.0
 
     lhv = engine_fuel_lower_heating_value
     FMEP = _calculate_fuel_mean_effective_pressure
 
-    engine_wfb_idle, engine_wfa_idle = FMEP(p, engine_cm_idle, 0, 1)
+    engine_wfb_idle, engine_wfa_idle = FMEP(params, engine_cm_idle, 0, 1)
     engine_wfa_idle = (3600000.0 / lhv) / engine_wfa_idle
     engine_wfb_idle *= (3.0 * engine_capacity / lhv * idle_engine_speed_median)
 
@@ -149,7 +140,7 @@ def calculate_co2_emissions(
         brake_mean_effective_pressures, engine_coolant_temperatures, on_engine,
         engine_fuel_lower_heating_value, idle_engine_speed, engine_stroke,
         engine_capacity, engine_idle_fuel_consumption, fuel_carbon_content,
-        params, default_params=None, sub_values=None):
+        params, sub_values=None):
     """
     Calculates CO2 emissions [CO2g/s].
 
@@ -205,11 +196,7 @@ def calculate_co2_emissions(
         CO2 emission model parameters (a2, b2, a, b, c, l, l2, t, trg).
 
         The missing parameters are set equal to zero.
-    :type params: dict
-
-    :param default_params:
-        Default CO2 emission model parameters (a2, b2, a, b, c, l, l2, t, trg).
-    :type default_params: dict, optional
+    :type params: lmfit.Parameters
 
     :param sub_values:
         Boolean vector.
@@ -220,18 +207,8 @@ def calculate_co2_emissions(
     :rtype: numpy.array
     """
 
-    # default params
-    p = {
-        'a2': 0.0, 'b2': 0.0,
-        'a': 0.0, 'b': 0.0, 'c': 0.0,
-        'l': 0.0, 'l2': 0.0,
-        't': 0.0, 'trg': 0.0
-    }
+    p = params.valuesdict()
 
-    if default_params:
-        p.update(default_params.copy())
-
-    p.update(params)
     if sub_values is None:
         sub_values = np.ones_like(mean_piston_speeds, dtype=bool)
 
@@ -254,7 +231,7 @@ def calculate_co2_emissions(
         fc[b] = engine_idle_fuel_consumption
     else:
         n_temp = calculate_normalized_engine_coolant_temperatures(e_temp, p['trg'])
-        fc[b] =  engine_idle_fuel_consumption * np.power(n_temp[b], -p['t'])
+        fc[b] = engine_idle_fuel_consumption * np.power(n_temp[b], -p['t'])
 
     FMEP = partial(_calculate_fuel_mean_effective_pressure, p)
 
@@ -453,89 +430,6 @@ def calculate_cumulative_co2_v1(phases_co2_emissions, phases_distances):
     return phases_co2_emissions * phases_distances
 
 
-def select_initial_co2_emission_model_params_guess(
-        engine_type, engine_normalization_temperature,
-        engine_normalization_temperature_window, is_cycle_hot=False):
-    """
-    Selects initial guess and bounds of co2 emission model params.
-
-    :param engine_type:
-        Engine type (gasoline turbo, gasoline natural aspiration, diesel).
-    :type engine_type: str
-
-    :param engine_normalization_temperature:
-        Engine normalization temperature [°C].
-    :type engine_normalization_temperature: float
-
-    :param engine_normalization_temperature_window:
-        Engine normalization temperature limits [°C].
-    :type engine_normalization_temperature_window: (float, float)
-
-    :param is_cycle_hot:
-        Is an hot cycle?
-    :type is_cycle_hot: bool, optional
-
-    :return:
-        Initial guess and bounds of co2 emission model params.
-    :rtype: (dict, dict)
-    """
-
-    p = {
-        'x0': {
-            't': 0.0 if is_cycle_hot else 4.5,
-            'trg': engine_normalization_temperature
-        },
-        'bounds': {
-            't': (0.0, 8.0),
-            'trg': engine_normalization_temperature_window
-        }
-    }
-
-    params = {
-        'gasoline turbo': {
-            'x0': {
-                'a': 0.468678, 'b': 0.011859,
-                'c': -0.00069, 'a2': -0.00266,
-                'l': -2.49882, 'l2': -0.0025
-            },
-            'bounds': {
-                'a': (0.398589, 0.538767), 'b': (0.006558, 0.01716),
-                'c': (-0.00099, -0.00038), 'a2': (-0.00354, -0.00179),
-                'l': (-3.27698, -1.72066), 'l2': (-0.00796, 0.0)
-            }
-        },
-        'gasoline natural aspiration': {
-            'x0': {
-                'a': 0.4719, 'b': 0.01193,
-                'c': -0.00065, 'a2': -0.00385,
-                'l': -2.14063, 'l2': -0.00286
-            },
-            'bounds': {
-                'a': (0.40065, 0.54315), 'b': (-0.00247, 0.026333),
-                'c': (-0.00138, 0.0000888), 'a2': (-0.00663, -0.00107),
-                'l': (-3.17876, -1.1025), 'l2': (-0.00577, 0.0)
-            }
-        },
-        'diesel': {
-            'x0': {
-                'a': 0.391197, 'b': 0.028604,
-                'c': -0.00196, 'a2': -0.0012,
-                'l': -1.55291, 'l2': -0.0076
-            },
-            'bounds': {
-                'a': (0.346548, 0.435846), 'b': (0.002519, 0.054688),
-                'c': (-0.00386, -0.000057), 'a2': (-0.00233, -0.000064),
-                'l': (-2.2856, -0.82022), 'l2': (-0.01852, 0.0)
-            }
-        }
-    }
-
-    for k, v in params[engine_type].items():
-        p[k].update(v)
-
-    return p['x0'], p['bounds']
-
-
 def identify_co2_emissions(
         co2_emissions_model, params_initial_guess, times,
         phases_integration_times, cumulative_co2_emissions):
@@ -597,10 +491,9 @@ def define_co2_error_function_on_emissions(co2_emissions_model, co2_emissions):
     :rtype: function
     """
 
-    def error_func(params, default_params=None, sub_values=None):
+    def error_func(params, sub_values=None):
         x = co2_emissions if sub_values is None else co2_emissions[sub_values]
-        y = co2_emissions_model(
-            params, default_params=default_params, sub_values=sub_values)
+        y = co2_emissions_model(params, sub_values=sub_values)
         return mean_absolute_error(x, y)
 
     return error_func
@@ -635,7 +528,7 @@ def define_co2_error_function_on_phases(
     :rtype: function
     """
 
-    def error_func(params, default_params=None, phases=None):
+    def error_func(params, phases=None):
 
         if phases:
             co2 = np.zeros_like(times, dtype=float)
@@ -649,10 +542,9 @@ def define_co2_error_function_on_phases(
                 else:
                     w.append(0)
 
-            co2[b] = co2_emissions_model(
-                params, default_params=default_params, sub_values=b)
+            co2[b] = co2_emissions_model(params, sub_values=b)
         else:
-            co2 = co2_emissions_model(params, default_params=default_params)
+            co2 = co2_emissions_model(params)
             w = None # cumulative_co2_emissions
 
         cco2 = calculate_cumulative_co2(
@@ -660,199 +552,6 @@ def define_co2_error_function_on_phases(
         return mean_absolute_error(phases_co2_emissions, cco2, w)
 
     return error_func
-
-
-def calibrate_co2_params(
-        engine_coolant_temperatures, co2_error_function_on_emissions,
-        co2_error_function_on_phases, co2_params_bounds,
-        co2_params_initial_guess, is_cycle_hot=False):
-    """
-    Calibrates the CO2 emission model parameters (a2, b2, a, b, c, l, l2, t, trg
-    ).
-
-    :param engine_coolant_temperatures:
-        Engine coolant temperature vector [°C].
-    :type engine_coolant_temperatures: numpy.array, (np.array, ...)
-
-    :param co2_error_function_on_emissions:
-        Error function (according to co2 emissions time series) to calibrate the
-        CO2 emission model params.
-    :type co2_error_function_on_emissions: function, (function, ...)
-
-    :param co2_error_function_on_phases:
-        Error function (according to co2 emissions phases) to calibrate the CO2
-        emission model params.
-    :type co2_error_function_on_phases: function, (function, ...)
-
-    :param co2_params_bounds:
-        Bounds of CO2 emission model params (a2, b2, a, b, c, l, l2, t, trg).
-    :type co2_params_bounds: dict
-
-    :param co2_params_initial_guess:
-        Initial guess of CO2 emission model params.
-    :type co2_params_initial_guess: dict
-
-    :param is_cycle_hot:
-        Is an hot cycle?
-    :type is_cycle_hot: bool, optional
-
-    :return:
-        Calibrated CO2 emission model parameters (a2, b2, a, b, c, l, l2, t,
-        trg).
-    :rtype: dict
-    """
-
-    bounds, guess = co2_params_bounds, co2_params_initial_guess
-
-    cold = np.zeros_like(engine_coolant_temperatures, dtype=bool)
-    if not is_cycle_hot:
-        cold[:argmax(engine_coolant_temperatures > guess['trg'])] = True
-    hot = np.logical_not(cold)
-
-    def err_f(params, **kwargs):
-        return co2_error_function_on_emissions(params, **kwargs)
-
-    success = []
-
-    def calibrate(id_p, **kwargs):
-        limits = {k: v for k, v in bounds.items() if k in id_p}
-        initial = {k: v for k, v in guess.items() if k in id_p}
-        f = partial(err_f, **kwargs)
-        pa, s = calibrate_model_params(limits, f, initial)
-        success.append(s)
-        return pa
-
-    hot_p = ['a2', 'a', 'b', 'c', 'l', 'l2']
-
-    p = calibrate(hot_p, default_params={}, sub_values=hot)
-
-    cold_p = ['t', 'trg']
-    if not is_cycle_hot and cold.any():
-        p.update(calibrate(cold_p, default_params=p, sub_values=cold))
-    else:
-        p['trg'], p['t'] = guess['trg'], guess['t']
-        success.append(True)
-
-    bounds = restrict_bounds(bounds, p)
-    if is_cycle_hot:
-        del bounds['t'], bounds['trg'], p['t'], p['trg']
-
-    p, s = calibrate_model_params(bounds, co2_error_function_on_phases, p)
-    success.append(s)
-
-    return p, success
-
-
-def restrict_bounds(co2_params_bounds, co2_params_initial_guess):
-    """
-    Returns restricted bounds of CO2 emission model params (a2, b2, a, b, c, l,
-    l2, t, trg).
-
-    :param co2_params_bounds:
-        Bounds of CO2 emission model params (a2, b2, a, b, c, l, l2, t, trg).
-    :type co2_params_bounds: dict
-
-    :param co2_params_initial_guess:
-        Initial guess of CO2 emission model params (a2, b2, a, b, c, l, l2, t,
-        trg).
-    :type co2_params_initial_guess: dict
-
-    :return:
-        Restricted bounds of CO2 emission model params (a2, b2, a, b, c, l, l2,
-        t, trg).
-    :rtype: dict
-    """
-
-    mul = {
-        't': np.array([0.5, 1.5]), 'trg': np.array([0.9, 1.1]),
-        'a': np.array([0.8, 1.2]), 'b': np.array([0.8, 1.2]),
-        'c': np.array([1.2, 0.8]), 'a2': np.array([1.2, 0.8]),
-        'l': np.array([1.2, 0.8]), 'l2': np.array([1.2, 0.0]),
-    }
-
-    def _limits(k, v):
-        l = tuple(mul[k] * v)
-        if l[1] - l[0] < EPS:
-            l = np.mean(l)
-            l = (l - EPS, l + EPS)
-        return l
-
-    return {k: _limits(k, v) for k, v in co2_params_initial_guess.items()}
-
-
-def calibrate_model_params(params_bounds, error_function, initial_guess=None):
-    """
-    Calibrates the model params minimising the error_function.
-
-    :param params_bounds:
-        Bounds of model params.
-    :type params_bounds: dict
-
-    :param error_function:
-        Model error function.
-    :type error_function: function
-
-    :param initial_guess:
-        Initial guess of model params.
-
-        If not specified a brute force is used to identify the best initial
-        guess with in the bounds.
-    :type initial_guess: dict, optional
-
-    :return:
-        Calibrated model params.
-    :rtype: dict
-    """
-
-    if callable(error_function):
-        error_f = error_function
-    else:
-        error_f = lambda p: sum(f(p) for f in error_function)
-
-    param_keys, params_bounds = zip(*sorted(params_bounds.items()))
-
-    x0 = np.array([initial_guess[k] for k in param_keys])
-
-    params, min_e_and_p = {}, [np.inf, x0]
-
-    def update_params(params_values):
-        params.update({k: v for k, v in zip(param_keys, params_values)})
-
-    def error_func(params_values):
-        update_params(params_values)
-
-        res = error_f(params)
-
-        if res < min_e_and_p[0]:
-            min_e_and_p[0], min_e_and_p[1] = (res, params_values.copy())
-
-        return res
-
-    def finish(fun, x0, **kwargs):
-        ## See #7: Neither BFGS nor SLSQP fix "solution families".
-        res = minimize(fun, x0, bounds=params_bounds)#, method='SLSQP')
-
-        if res.success:
-            return res.x, res.success
-
-        return min_e_and_p[1], False
-
-    if initial_guess is None:
-        step = 3.0
-        x, success = brute(error_func, params_bounds, Ns=step, finish=finish)
-    else:
-
-        l, u = np.asarray(params_bounds).T
-
-        x0 = np.where(x0 <= l, l + EPS, np.where(x0 >= u, u - EPS, x0))
-
-        x, success = finish(error_func, x0)
-
-    #x = [min(u, max(l, v)) for (l, u), v in zip(params_bounds, x)]
-
-    update_params(x)
-
-    return params, success
 
 
 def predict_co2_emissions(co2_emissions_model, params):
@@ -922,3 +621,341 @@ def calculate_co2_emission(phases_co2_emissions, phases_distances):
         d = sum(phases_distances)
 
     return float(n / d)
+
+
+class Parameters(lmfit.Parameters):
+    def __deepcopy__(self, memo):
+        _pars = Parameters().__iadd__(super(Parameters, self).__deepcopy__(memo))
+
+        if hasattr(self, 'vary'):
+            _pars.vary = self.vary.copy()
+
+        return _pars
+
+    def store_vary(self):
+        self.vary = {k: v.vary for k, v in self.items()}
+
+    def load_vary(self):
+        self.set_vary(self.vary)
+
+    def set_vary(self, vary, default=False):
+        if not isinstance(vary, dict):
+            vary = dict.fromkeys(vary, default)
+
+        for k, b in vary.items():
+            self[k].set(vary=b)
+
+
+def _get_default_params():
+    default = {
+        'gasoline turbo': {
+            'a': {'value': 0.468678, 'min': 0.398589, 'max': 0.538767},
+            'b': {'value': 0.011859, 'min': 0.006558, 'max': 0.01716},
+            'c': {'value': -0.00069, 'min': -0.00099, 'max': -0.00038},
+            'a2': {'value': -0.00266, 'min': -0.00354, 'max': -0.00179},
+            'b2': {'value': 0, 'vary': False},
+            'l': {'value': -2.49882, 'min': -3.27698, 'max': -1.72066},
+            'l2': {'value': -0.0025, 'min': -0.00796, 'max': 0.0},
+        },
+        'gasoline natural aspiration': {
+            'a': {'value': 0.4719, 'min': 0.40065, 'max': 0.54315},
+            'b': {'value': 0.01193, 'min': -0.00247, 'max': 0.026333},
+            'c': {'value': -0.00065, 'min': -0.00138, 'max': 0.0000888},
+            'a2': {'value': -0.00385, 'min': -0.00663, 'max': -0.00107},
+            'b2': {'value': 0, 'vary': False},
+            'l': {'value': -2.14063, 'min': -3.17876, 'max': -1.1025},
+            'l2': {'value': -0.00286, 'min': -0.00577, 'max': 0.0},
+        },
+        'diesel': {
+            'a': {'value': 0.391197, 'min': 0.346548, 'max': 0.435846},
+            'b': {'value': 0.028604, 'min': 0.002519, 'max': 0.054688},
+            'c': {'value': -0.00196, 'min': -0.00386, 'max': -0.000057},
+            'a2': {'value': -0.0012, 'min': -0.00233, 'max': -0.000064},
+            'b2': {'value': 0, 'vary': False},
+            'l': {'value': -1.55291, 'min': -2.2856, 'max': -0.82022},
+            'l2': {'value': -0.0076, 'min': -0.01852, 'max': 0.0},
+        },
+    }
+
+    return default
+
+
+def define_initial_co2_emission_model_params_guess(
+        params, engine_type, engine_normalization_temperature,
+        engine_normalization_temperature_window, is_cycle_hot=False, bounds={}):
+    """
+    Selects initial guess and bounds of co2 emission model params.
+
+    :param engine_type:
+        Engine type (gasoline turbo, gasoline natural aspiration, diesel).
+    :type engine_type: str
+
+    :param engine_normalization_temperature:
+        Engine normalization temperature [°C].
+    :type engine_normalization_temperature: float
+
+    :param engine_normalization_temperature_window:
+        Engine normalization temperature limits [°C].
+    :type engine_normalization_temperature_window: (float, float)
+
+    :param is_cycle_hot:
+        Is an hot cycle?
+    :type is_cycle_hot: bool, optional
+
+    :return:
+        Initial guess and bounds of co2 emission model params.
+    :rtype: (dict, dict)
+    """
+
+    if isinstance(params, Parameters):
+        return dsp_utl.NONE
+
+    default = _get_default_params()[engine_type]
+    default['trg'] = {
+        'value': engine_normalization_temperature,
+        'min': engine_normalization_temperature_window[0],
+        'max': engine_normalization_temperature_window[1],
+        'vary': not (is_cycle_hot or 't' in params)
+    }
+    default['t'] = {
+        'value': 0.0 if is_cycle_hot else 4.5, 'min': 0.0, 'max': 8.0,
+        'vary': not (is_cycle_hot or 't' in params)
+    }
+
+    p = Parameters()
+
+    for k, kw in default.items():
+        kw['name'] = k
+        kw['value'] = params.get(k, kw['value'])
+
+        if k in bounds:
+            b = bounds[k]
+            kw['min'] = b.get('min', kw.get('min', None))
+            kw['max'] = b.get('max', kw.get('max', None))
+            kw['vary'] = b.get('vary', kw.get('vary', True))
+        elif 'vary' not in kw:
+            kw['vary'] = not k in params
+        p.add(**kw)
+
+    return p
+
+
+def calibrate_co2_params(
+        engine_coolant_temperatures, co2_error_function_on_emissions,
+        co2_error_function_on_phases, co2_params_initial_guess, is_cycle_hot):
+    """
+    Calibrates the CO2 emission model parameters (a2, b2, a, b, c, l, l2, t, trg
+    ).
+
+    :param engine_coolant_temperatures:
+        Engine coolant temperature vector [°C].
+    :type engine_coolant_temperatures: numpy.array, (np.array, ...)
+
+    :param co2_error_function_on_emissions:
+        Error function (according to co2 emissions time series) to calibrate the
+        CO2 emission model params.
+    :type co2_error_function_on_emissions: function, (function, ...)
+
+    :param co2_error_function_on_phases:
+        Error function (according to co2 emissions phases) to calibrate the CO2
+        emission model params.
+    :type co2_error_function_on_phases: function, (function, ...)
+
+    :param co2_params_bounds:
+        Bounds of CO2 emission model params (a2, b2, a, b, c, l, l2, t, trg).
+    :type co2_params_bounds: dict
+
+    :param co2_params_initial_guess:
+        Initial guess of CO2 emission model params.
+    :type co2_params_initial_guess: Parameters
+
+    :param is_cycle_hot:
+        Is an hot cycle?
+    :type is_cycle_hot: bool, optional
+
+    :return:
+        Calibrated CO2 emission model parameters (a2, b2, a, b, c, l, l2, t,
+        trg).
+    :rtype: dict
+    """
+
+    p = co2_params_initial_guess
+    p.store_vary()
+
+    cold = np.zeros_like(engine_coolant_temperatures, dtype=bool)
+    if not is_cycle_hot:
+        cold[:argmax(engine_coolant_temperatures > p['trg'].value)] = True
+    hot = np.logical_not(cold)
+
+    success = []
+
+    def calibrate(id_p, p, **kws):
+        p.set_vary(id_p, False)
+        p, s = calibrate_model_params(co2_error_function_on_emissions, p, **kws)
+        p.load_vary()
+        success.append(s)
+        return p
+
+    cold_p = ['t', 'trg']
+    p = calibrate(cold_p, p, sub_values=hot)
+
+    hot_p = ['a2', 'a', 'b', 'c', 'l', 'l2']
+    p = calibrate(hot_p, p, sub_values=cold)
+
+    p = restrict_bounds(p)
+
+    p, s = calibrate_model_params(co2_error_function_on_phases, p)
+    success.append(s)
+
+    return p, success
+
+
+def restrict_bounds(co2_params):
+    """
+    Returns restricted bounds of CO2 emission model params (a2, b2, a, b, c, l,
+    l2, t, trg).
+
+    :param co2_params:
+        CO2 emission model params (a2, b2, a, b, c, l, l2, t, trg).
+    :type co2_params: Parameters
+
+    :return:
+        Restricted bounds of CO2 emission model params (a2, b2, a, b, c, l, l2,
+        t, trg).
+    :rtype: dict
+    """
+    p = co2_params.copy()
+    mul = {
+        't': np.array([0.5, 1.5]), 'trg': np.array([0.9, 1.1]),
+        'a': np.array([0.8, 1.2]), 'b': np.array([0.8, 1.2]),
+        'c': np.array([1.2, 0.8]), 'a2': np.array([1.2, 0.8]),
+        'l': np.array([1.2, 0.8]), 'l2': np.array([1.2, 0.0]),
+    }
+
+    def _limits(k, v):
+        if k in mul:
+            l = tuple(mul[k] * v.value)
+            if l[1] - l[0] < EPS:
+                l = np.mean(l)
+                l = (l - EPS, l + EPS)
+            return l
+        else:
+            return v.min, v.max
+
+    for k, v in p.items():
+        v.min, v.max = _limits(k, v)
+    return p
+
+
+def calibrate_model_params(error_function, params, *ars, **kws):
+    """
+    Calibrates the model params minimising the error_function.
+
+    :param params_bounds:
+        Bounds of model params.
+    :type params_bounds: dict
+
+    :param error_function:
+        Model error function.
+    :type error_function: function
+
+    :param initial_guess:
+        Initial guess of model params.
+
+        If not specified a brute force is used to identify the best initial
+        guess with in the bounds.
+    :type initial_guess: dict, optional
+
+    :return:
+        Calibrated model params.
+    :rtype: dict
+    """
+
+    if callable(error_function):
+        error_f = error_function
+    else:
+        error_f = lambda p, *a, **k: sum(f(p, *a, **k) for f in error_function)
+
+    min_e_and_p = [np.inf, params.copy()]
+
+    def error_func(params, *args, **kwargs):
+        res = error_f(params, *args, **kwargs)
+
+        if res < min_e_and_p[0]:
+            min_e_and_p[0], min_e_and_p[1] = (res, params.copy())
+
+        return res
+
+    ## See #7: Neither BFGS nor SLSQP fix "solution families".
+    res = lmfit.minimize(error_func, params, args=ars, kws=kws, method='lbfgsb')
+
+    return (res.params if not res.status else min_e_and_p[1]), not res.status
+
+def minimize(fcn, params, method='leastsq', args=None, kws=None,
+             scale_covar=True, iter_cb=None, **fit_kws):
+    """
+    A general purpose curvefitting function
+    The minimize function takes a objective function to be minimized, a
+    dictionary (lmfit.parameter.Parameters) containing the model parameters,
+    and several optional arguments.
+
+    Parameters
+    ----------
+    fcn : callable
+        objective function that returns the residual (difference between
+        model and data) to be minimized in a least squares sense.  The
+        function must have the signature:
+        `fcn(params, *args, **kws)`
+    params : lmfit.parameter.Parameters object.
+        contains the Parameters for the model.
+    method : str, optional
+        Name of the fitting method to use.
+        One of:
+            'leastsq'                -    Levenberg-Marquardt (default)
+            'nelder'                 -    Nelder-Mead
+            'lbfgsb'                 -    L-BFGS-B
+            'powell'                 -    Powell
+            'cg'                     -    Conjugate-Gradient
+            'newton'                 -    Newton-CG
+            'cobyla'                 -    Cobyla
+            'tnc'                    -    Truncate Newton
+            'trust-ncg'              -    Trust Newton-CGn
+            'dogleg'                 -    Dogleg
+            'slsqp'                  -    Sequential Linear Squares Programming
+            'differential_evolution' -    differential evolution
+
+    args : tuple, optional
+        Positional arguments to pass to fcn.
+    kws : dict, optional
+        keyword arguments to pass to fcn.
+    iter_cb : callable, optional
+        Function to be called at each fit iteration. This function should
+        have the signature `iter_cb(params, iter, resid, *args, **kws)`,
+        where where `params` will have the current parameter values, `iter`
+        the iteration, `resid` the current residual array, and `*args`
+        and `**kws` as passed to the objective function.
+    scale_covar : bool, optional
+        Whether to automatically scale the covariance matrix (leastsq
+        only).
+    fit_kws : dict, optional
+        Options to pass to the minimizer being used.
+
+    Notes
+    -----
+    The objective function should return the value to be minimized. For the
+    Levenberg-Marquardt algorithm from leastsq(), this returned value must
+    be an array, with a length greater than or equal to the number of
+    fitting variables in the model. For the other methods, the return value
+    can either be a scalar or an array. If an array is returned, the sum of
+    squares of the array will be sent to the underlying fitting method,
+    effectively doing a least-squares optimization of the return values.
+
+    A common use for `args` and `kwds` would be to pass in other
+    data needed to calculate the residual, including such things as the
+    data array, dependent variable, uncertainties in the data, and other
+    data structures for the model calculation.
+    """
+    fitter = lmfit.Minimizer(fcn, params, fcn_args=args, fcn_kws=kws,
+                       iter_cb=iter_cb, scale_covar=scale_covar, **fit_kws)
+
+    return fitter.minimize(method=method)

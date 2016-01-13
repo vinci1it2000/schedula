@@ -248,13 +248,19 @@ def _process_folder_files(
             output_template_xl_fpath = fpath
         elif '0' == output_template_xl_fpath:
             output_template_xl_fpath = False
-        with clone_and_extend_excel(out_fpath, output_template_xl_fpath) as excel_file:
-            inputs['excel_out_file'] = excel_file
-            inputs['start_time'] = datetime.datetime.today()
 
+        inputs['start_time'] = datetime.datetime.today()
+
+        if with_output_file:
+
+            with clone_and_extend_excel(out_fpath, output_template_xl_fpath) as excel_file:
+                inputs['excel_out_file'] = excel_file
+
+                res = model.dispatch(inputs=inputs)
+
+                _co2mpas_info(excel_file, start_time)
+        else:
             res = model.dispatch(inputs=inputs)
-
-            _co2mpas_info(excel_file, start_time)
 
         add_vehicle_to_summary(summary, res, fname, model.workflow, sheets)
 

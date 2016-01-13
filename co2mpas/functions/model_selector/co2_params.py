@@ -55,7 +55,7 @@ def calibrate_co2_params_ALL(rank, *data, data_id=None):
         p, s = calibrate_model_params(
             bounds, co2_error_function_on_phases, initial_guess)
 
-        return {'co2_params': p, 'calibration_status': s}
+        return {'co2_params_calibrated': p, 'calibration_status': s}
     except:
         return {}
 
