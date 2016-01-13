@@ -715,7 +715,7 @@ def define_initial_co2_emission_model_params_guess(
         'value': engine_normalization_temperature,
         'min': engine_normalization_temperature_window[0],
         'max': engine_normalization_temperature_window[1],
-        'vary': not (is_cycle_hot or 't' in params)
+        'vary': not (is_cycle_hot or 'trg' in params)
     }
     default['t'] = {
         'value': 0.0 if is_cycle_hot else 4.5, 'min': 0.0, 'max': 8.0,
@@ -871,6 +871,9 @@ def calibrate_model_params(error_function, params, *ars, **kws):
     :rtype: dict
     """
 
+    if not any(p.vary for p in params.values()):
+        return params, True
+
     if callable(error_function):
         error_f = error_function
     else:
@@ -887,10 +890,12 @@ def calibrate_model_params(error_function, params, *ars, **kws):
         return res
 
     ## See #7: Neither BFGS nor SLSQP fix "solution families".
-    res = lmfit.minimize(error_func, params, args=ars, kws=kws, method='lbfgsb')
+    res = minimize(error_func, params, args=ars, kws=kws, method='lbfgsb')
 
     return (res.params if not res.status else min_e_and_p[1]), not res.status
 
+
+# correction of lmfit bug.
 def minimize(fcn, params, method='leastsq', args=None, kws=None,
              scale_covar=True, iter_cb=None, **fit_kws):
     """
@@ -955,7 +960,120 @@ def minimize(fcn, params, method='leastsq', args=None, kws=None,
     data array, dependent variable, uncertainties in the data, and other
     data structures for the model calculation.
     """
-    fitter = lmfit.Minimizer(fcn, params, fcn_args=args, fcn_kws=kws,
+    fitter = Minimizer(fcn, params, fcn_args=args, fcn_kws=kws,
                        iter_cb=iter_cb, scale_covar=scale_covar, **fit_kws)
 
     return fitter.minimize(method=method)
+
+
+class Minimizer(lmfit.Minimizer):
+    def scalar_minimize(self, method='Nelder-Mead', params=None, **kws):
+        """
+        Use one of the scalar minimization methods from
+        scipy.optimize.minimize.
+
+        Parameters
+        ----------
+        method : str, optional
+            Name of the fitting method to use.
+            One of:
+                'Nelder-Mead' (default)
+                'L-BFGS-B'
+                'Powell'
+                'CG'
+                'Newton-CG'
+                'COBYLA'
+                'TNC'
+                'trust-ncg'
+                'dogleg'
+                'SLSQP'
+                'differential_evolution'
+
+        params : Parameters, optional
+           Parameters to use as starting points.
+        kws : dict, optional
+            Minimizer options pass to scipy.optimize.minimize.
+
+        If the objective function returns a numpy array instead
+        of the expected scalar, the sum of squares of the array
+        will be used.
+
+        Note that bounds and constraints can be set on Parameters
+        for any of these methods, so are not supported separately
+        for those designed to use bounds. However, if you use the
+        differential_evolution option you must specify finite
+        (min, max) for each Parameter.
+
+        Returns
+        -------
+        success : bool
+            Whether the fit was successful.
+
+        """
+        from lmfit.minimizer import HAS_SCALAR_MIN
+        if not HAS_SCALAR_MIN:
+            raise NotImplementedError
+
+        result = self.prepare_fit(params=params)
+        vars   = result.init_vals
+        params = result.params
+
+        fmin_kws = dict(method=method,
+                        options={'maxiter': 1000 * (len(vars) + 1)})
+        fmin_kws.update(self.kws)
+        fmin_kws.update(kws)
+
+        # hess supported only in some methods
+        if 'hess' in fmin_kws and method not in ('Newton-CG',
+                                                 'dogleg', 'trust-ncg'):
+            fmin_kws.pop('hess')
+
+        # jac supported only in some methods (and Dfun could be used...)
+        if 'jac' not in fmin_kws and fmin_kws.get('Dfun', None) is not None:
+            self.jacfcn = fmin_kws.pop('jac')
+            fmin_kws['jac'] = self.__jacobian
+
+        if 'jac' in fmin_kws and method not in ('CG', 'BFGS', 'Newton-CG',
+                                                'dogleg', 'trust-ncg'):
+            self.jacfcn = None
+            fmin_kws.pop('jac')
+
+        if method == 'differential_evolution':
+            from lmfit.minimizer import _differential_evolution
+            fmin_kws['method'] = _differential_evolution
+            bounds = [(par.min, par.max) for par in params.values()]
+            if not np.all(np.isfinite(bounds)):
+                raise ValueError('With differential evolution finite bounds '
+                                 'are required for each parameter')
+            bounds = [(-np.pi / 2., np.pi / 2.)] * len(vars)
+            fmin_kws['bounds'] = bounds
+
+            # in scipy 0.14 this can be called directly from scipy_minimize
+            # When minimum scipy is 0.14 the following line and the else
+            # can be removed.
+            ret = _differential_evolution(self.penalty, vars, **fmin_kws)
+        else:
+            from lmfit.minimizer import scipy_minimize
+            ret = scipy_minimize(self.penalty, vars, **fmin_kws)
+
+        result.aborted = self._abort
+        self._abort = False
+
+        for attr, val in ret.items():
+            if not attr.startswith('_'):
+                setattr(result, attr, val)
+
+        result.chisqr = result.residual = self.__residual(ret.x)
+        result.nvarys = len(vars)
+        result.ndata = 1
+        result.nfree = 1
+        if isinstance(result.residual, np.ndarray):
+            result.chisqr = (result.chisqr**2).sum()
+            result.ndata = len(result.residual)
+            result.nfree = result.ndata - result.nvarys
+        result.redchi = result.chisqr / result.nfree
+        _log_likelihood = result.ndata * np.log(result.redchi)
+        result.aic = _log_likelihood + 2 * result.nvarys
+        result.bic = _log_likelihood + np.log(result.ndata) * result.nvarys
+
+        return result

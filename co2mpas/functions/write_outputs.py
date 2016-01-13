@@ -15,7 +15,7 @@ import pandas as pd
 import re
 from co2mpas._version import version
 import datetime
-
+from .physical.engine.co2_emission import Parameters
 log = logging.getLogger(__name__)
 
 
@@ -137,7 +137,7 @@ def check_writeable(data):
     :rtype: bool
     """
 
-    if isinstance(data, (str, float, int, np.integer, np.ndarray)):
+    if isinstance(data, (str, float, int, np.integer, np.ndarray, Parameters)):
         return True
     elif isinstance(data, dict):
         for v in data.values():

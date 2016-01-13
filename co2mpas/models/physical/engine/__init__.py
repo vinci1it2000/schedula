@@ -315,7 +315,10 @@ def engine(hide_warn_msgbox=True):
             'co2_emission_medium': 'co2_emission_medium',
             'co2_emission_high': 'co2_emission_high',
             'co2_emission_extra_high': 'co2_emission_extra_high',
+            'co2_emission_udc': 'co2_emission_udc',
+            'co2_emission_eudc': 'co2_emission_eudc',
             'co2_params': 'co2_params',
+            'co2_params_calibrated': ('co2_params_calibrated', 'co2_params'),
             'cycle_type': 'cycle_type',
             'is_cycle_hot': 'is_cycle_hot',
             'engine_capacity': 'engine_capacity',
@@ -347,13 +350,13 @@ def engine(hide_warn_msgbox=True):
             'co2_error_function_on_emissions':
                 'co2_error_function_on_emissions',
             'co2_error_function_on_phases': 'co2_error_function_on_phases',
-            'co2_params': 'co2_params',
-            'co2_params_bounds': 'co2_params_bounds',
+            'co2_params_calibrated': 'co2_params_calibrated',
             'co2_params_initial_guess': 'co2_params_initial_guess',
             'fuel_consumptions': 'fuel_consumptions',
             'phases_co2_emissions': 'phases_co2_emissions',
             'calibration_status': 'calibration_status'
-        }
+        },
+        inp_weight={'co2_params': EPS}
     )
 
     return engine

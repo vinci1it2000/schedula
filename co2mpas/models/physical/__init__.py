@@ -281,6 +281,7 @@ def _physical(hide_warn_msgbox=True):
             'co2_emission_high': 'co2_emission_high',
             'co2_emission_extra_high': 'co2_emission_extra_high',
             'co2_params': 'co2_params',
+            'co2_params_calibrated': 'co2_params_calibrated',
             'cycle_type': 'cycle_type',
             'engine_fuel_lower_heating_value':
                 'engine_fuel_lower_heating_value',
@@ -319,8 +320,7 @@ def _physical(hide_warn_msgbox=True):
             'co2_error_function_on_emissions':
                 'co2_error_function_on_emissions',
             'co2_error_function_on_phases': 'co2_error_function_on_phases',
-            'co2_params': 'co2_params',
-            'co2_params_bounds': 'co2_params_bounds',
+            'co2_params_calibrated': 'co2_params_calibrated',
             'co2_params_initial_guess': 'co2_params_initial_guess',
             'cold_start_speed_model': 'cold_start_speed_model',
             'engine_max_torque': 'engine_max_torque',
