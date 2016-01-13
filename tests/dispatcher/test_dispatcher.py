@@ -492,18 +492,37 @@ class TestDispatch(unittest.TestCase):
         dsp = Dispatcher()
         dsp.add_function('max', function=max, inputs=['a', 'b'], outputs=['c'])
         dsp.add_dispatcher(
-            sub_dsp, {'d': 'a', 'e': 'b'}, {'d':'c', 'e':'f'}, dsp_id='sub_dsp',
+            sub_dsp.copy(), {'d': 'a', 'e': 'b'}, {'d':'c', 'e':'f'},
+            dsp_id='sub_dsp',
             input_domain=dom
         )
         self.dsp_of_dsp_1 = dsp
+
+        sub_dsp.set_default_value('a', 2)
+        sub_dsp.set_default_value('b', 0)
+
+        dsp = Dispatcher()
+        dsp.add_function('max', function=max, inputs=['a', 'b'], outputs=['c'])
+        dsp.add_dispatcher(
+            sub_dsp.copy(), {'c': ('a', 'd')}, {'d': ('d', 'f'), 'e': 'g'},
+            dsp_id='sub_dsp', include_defaults=True
+        )
+        self.dsp_of_dsp_4 = dsp
+
+        dsp = Dispatcher()
+        dsp.add_function('max', function=max, inputs=['a', 'b'], outputs=['c'])
+        dsp.add_dispatcher(
+            sub_dsp.copy(), {'c': ('d', 'a')}, {'d': ('d', 'f'), 'e': 'g'},
+            dsp_id='sub_dsp', include_defaults=True
+        )
+        self.dsp_of_dsp_5 = dsp
+
         def fun(c):
             return c + 3, c - 3
 
         sub_sub_dsp = Dispatcher(name='sub_sub_dispatcher')
         sub_sub_dsp.add_function('fun', fun, inputs=['a'], outputs=['b', 'c'])
         sub_sub_dsp.add_function('min', min, inputs=['b', 'c'], outputs=['d'])
-
-
 
         sub_dsp = Dispatcher(name='sub_dispatcher')
         sub_dsp.add_data('a', 1)
@@ -524,6 +543,7 @@ class TestDispatch(unittest.TestCase):
             input_domain=dom
         )
         self.dsp_of_dsp_2 = dsp
+
         dsp = dsp.copy()
         dsp.add_function('min', min, ['d', 'e'], ['f'],
                          input_domain=lambda *args: False)
@@ -779,6 +799,59 @@ class TestDispatch(unittest.TestCase):
         self.assertEqual(dsp.workflow.node['sub_dsp']['workflow'][0].edge, sw)
         sd_wf = dsp.workflow.node['sub_dsp']['workflow'][0]
         self.assertEqual(sd_wf.node['sub_sub_dsp']['workflow'][0].edge, ssw)
+
+        dsp = self.dsp_of_dsp_4
+        o = dsp.dispatch(inputs={'a': 6, 'b': 5})
+        r = {'a', 'b', 'c', 'd', 'f', 'g', START, 'sub_dsp'}
+        w = {
+            'a': {},
+            'b': {},
+            'c': {'sub_dsp': {'value': 2}},
+            'd': {},
+            'f': {},
+            'g': {},
+            START: {'a': {'value': 6}, 'b': {'value': 5}, 'c': {'value': 2}},
+            'sub_dsp': {
+                'd': {'value': 2},
+                'f': {'value': 2},
+                'g': {'value': -3}
+            },
+        }
+        self.assertEqual(o, {'a': 6, 'b': 5, 'c': 2, 'd': 2, 'f': 2, 'g': -3})
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
+
+        o = dsp.dispatch(inputs={'a': 6, 'b': 5}, shrink=True)
+        self.assertEqual(o, {'a': 6, 'b': 5, 'c': 2, 'd': 2, 'f': 2, 'g': -3})
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
+
+        dsp = self.dsp_of_dsp_5
+        o = dsp.dispatch(inputs={'a': 6, 'b': 5})
+        r = {'a', 'b', 'c', 'd', 'f', 'g', 'max', START, 'sub_dsp'}
+        w = {
+            'a': {'max': {'value': 6}},
+            'b': {'max': {'value': 5}},
+            'c': {'sub_dsp': {'value': 6}},
+            'd': {},
+            'f': {},
+            'g': {},
+            'max': {'c': {'value': 6}},
+            START: {'a': {'value': 6}, 'b': {'value': 5}},
+            'sub_dsp': {
+                'd': {'value': 6},
+                'f': {'value': 6},
+                'g': {'value': -3}
+            },
+        }
+        self.assertEqual(o, {'a': 6, 'b': 5, 'c': 6, 'd': 6, 'f': 6, 'g': -3})
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
+
+        o = dsp.dispatch(inputs={'a': 6, 'b': 5}, shrink=True)
+        self.assertEqual(o, {'a': 6, 'b': 5, 'c': 6, 'd': 6, 'f': 6, 'g': -3})
+        self.assertEqual(set(dsp.workflow.node), r)
+        self.assertEqual(dsp.workflow.edge, w)
 
     def test_cutoff(self):
         dsp = self.dsp_cutoff

@@ -28,6 +28,8 @@ import logging
 from pathlib import Path
 from .des import get_parent_func, search_node_description
 from .io import mkdirs
+from .alg import stlp
+
 
 __author__ = 'Vincenzo Arcidiacono'
 
@@ -231,9 +233,9 @@ def _remote_links(label, links, node_id, function_module):
 def _get_link(dsp_id, dsp, node_id, tag, function_module):
     tag = {'child': 'outputs', 'parent': 'inputs'}[tag]
     if tag == 'inputs':
-        n = [k for k, v in dsp.nodes[dsp_id][tag].items() if v == node_id]
+        n = [k for k, v in dsp.nodes[dsp_id][tag].items() if node_id in stlp(v)]
     else:
-        n = [dsp.nodes[dsp_id][tag][node_id]]
+        n = stlp(dsp.nodes[dsp_id][tag][node_id])
 
     n = [_func_name(v, function_module) for v in n]
 

@@ -34,7 +34,8 @@ from datetime import datetime
 
 from .utils.gen import counter, caller_name
 from .utils.alg import add_edge_fun, remove_edge_fun, rm_cycles_iter, \
-    get_unused_node_id, add_func_edges, replace_remote_link, get_sub_node
+    get_unused_node_id, add_func_edges, replace_remote_link, get_sub_node, \
+    _children, stlp
 from .utils.cst import EMPTY, START, NONE, SINK
 from .utils.dsp import SubDispatch, bypass, combine_dicts
 from .utils.drw import plot
@@ -580,12 +581,12 @@ class Dispatcher(object):
         :param inputs:
             Inputs mapping. Data node ids from parent dispatcher to child
             sub-dispatcher.
-        :type inputs: dict[str, str]
+        :type inputs: dict[str, str | tuple]
 
         :param outputs:
             Outputs mapping. Data node ids from child sub-dispatcher to parent
             dispatcher.
-        :type outputs: dict[str, str]
+        :type outputs: dict[str, str | tuple]
 
         :param dsp_id:
             Sub-dispatcher node id.
@@ -680,9 +681,12 @@ class Dispatcher(object):
         _weight_from = dict.fromkeys(inputs.keys(), 0.0)
         _weight_from.update(inp_weight or {})
 
+        # Get children and parents nodes.
+        children, parents = _children(inputs), _children(outputs)
+
         # Return dispatcher node id.
         dsp_id = self.add_function(
-            dsp_id, dsp, inputs, outputs.values(), input_domain, weight,
+            dsp_id, dsp, inputs, parents, input_domain, weight,
             _weight_from, type='dispatcher', description=description, **kwargs)
 
         # Set proper outputs.
@@ -691,11 +695,11 @@ class Dispatcher(object):
         remote_link = [dsp_id, self]  # Define the remote link.
 
         # Unlink node reference.
-        for k in set(inputs.values()).union(outputs).intersection(dsp.nodes):
+        for k in children.union(outputs).intersection(dsp.nodes):
             dsp.nodes[k] = copy(dsp.nodes[k])
 
         # Set remote link.
-        for it, is_parent in [(inputs.values(), True), (outputs, False)]:
+        for it, is_parent in [(children, True), (outputs, False)]:
             for k in it:
                 dsp.set_data_remote_link(k, remote_link, is_parent=is_parent)
 
@@ -703,9 +707,21 @@ class Dispatcher(object):
         if include_defaults:
             dsp_dfl = dsp.default_values  # Namespace shortcut.
 
+            remove = set()  # Set of nodes to remove after the import.
+
             # Set default values.
-            for k, v in (v for v in inputs.items() if v[1] in dsp_dfl):
-                self.set_default_value(k, **dsp_dfl.pop(v))
+            for k, v in inputs.items():
+                if isinstance(v, str):
+                    if v in dsp_dfl:
+                        self.set_default_value(k, **dsp_dfl.pop(v))
+                else:
+                    if v[0] in dsp_dfl:
+                        self.set_default_value(k, **dsp_dfl.pop(v[0]))
+                    remove.update(v[1:])
+
+            # Remove default values
+            for k in remove:
+                dsp_dfl.pop(k, None)
 
         return dsp_id  # Return sub-dispatcher node id.
 
@@ -894,9 +910,9 @@ class Dispatcher(object):
                 else:
                     node = nodes[data_id]  # Namespace shortcuts.
 
-                    # Add remote link.
                     rl = node['remote_links'] = node.get('remote_links', [])
-                    rl.append([remote_link, type])
+                    if [remote_link, type] not in rl:  # Add remote link.
+                        rl.append([remote_link, type])
 
                 return
         except KeyError:
@@ -1808,7 +1824,7 @@ class Dispatcher(object):
 
             # Update sub-dispatcher edges.
             for k, v in (v for v in it if v[1]['type'] == 'dispatcher'):
-                o = set(out_e(k)) - {(k, u) for u in v['outputs'].values()}
+                o = set(out_e(k)) - {(k, u) for u in _children(v['outputs'])}
                 i = set(in_e(k)) - {(u, k) for u in v['inputs']}
                 rm_edges(i.union(o))  # Remove unreachable nodes.
 
@@ -1859,14 +1875,16 @@ class Dispatcher(object):
 
             def get_inp_dist(inp, out):
                 # Max distance of output node.
-                max_d = max((outputs_dist[m], l) for l, m in out.items())
+                max_d = max(max((outputs_dist[j], l) for j in m)
+                            for l, m in out.items())
                 in_d = {}
 
                 # Get initial dist and remove input node with d > max_d..
                 for l, m in list(inp.items()):
-                    in_d[m] = d = _in_dist(l)
-                    if (d, m) > max_d:
-                         in_d.pop(m), inp.pop(l)
+                    for j in m:
+                        in_d[j] = d = _in_dist(l)
+                        if (d, j) > max_d:
+                             in_d.pop(j), inp.pop(l)
 
                 for l in set(pred[k]) - set(inp):
                     rm_edge(l, k)
@@ -1881,20 +1899,22 @@ class Dispatcher(object):
             n = nodes[k] = n.copy()  # Unlink node references.
 
             # Get parent dispatcher inputs and outputs.
-            i, o = pred[k], succ[k]
+            i, o = pred[k], set(succ[k])
             i = {l: m for l, m in n['inputs'].items() if l in i}
-            o = {l: m for l, m in n['outputs'].items() if m in o}
+            o = {l: tuple(o.intersection(stlp(m)))
+                 for l, m in n['outputs'].items()
+                 if not o.isdisjoint(stlp(m))}
 
             in_d = get_inp_dist(i, o)
 
-            srk_i = i.values() if not from_outputs and i else None
+            srk_i = _children(i) if not from_outputs and i else None
             srk_o = o or None
 
             # Shrink the sub-dispatcher.
             sub_dsp = n['function'].shrink_dsp(srk_i, srk_o, inputs_dist=in_d)
 
             # Get nodes with remote links (input and output).
-            n_in = set(n['inputs'].values()).intersection(sub_dsp.nodes)
+            n_in = set(_children(n['inputs'])).intersection(sub_dsp.nodes)
             n_out = set(n['outputs']).intersection(sub_dsp.nodes)
 
             # Unlink node references.
@@ -1903,7 +1923,7 @@ class Dispatcher(object):
 
             # Update remote links.
             old_link, new_link = [k, old_dsp], [k, self]
-            rm_in, rm_out = n_in - set(i.values()), n_out - set(o)
+            rm_in, rm_out = n_in - set(_children(i)), n_out - set(o)
             re_rl(sub_dsp, n_in - rm_in, old_link, new_link, is_parent=True)
             re_rl(sub_dsp, rm_in, old_link, None, is_parent=True)
             re_rl(sub_dsp, n_out - rm_out, old_link, new_link, is_parent=False)
@@ -1913,7 +1933,7 @@ class Dispatcher(object):
             n.update({'inputs': i, 'outputs': o, 'function': sub_dsp})
 
             # Add missing nodes to sub-dispatcher
-            for l in set(i.values()) - set(sub_dsp.nodes):
+            for l in set(_children(i)) - set(sub_dsp.nodes):
                 sub_dsp.add_data(data_id=l)
 
     def _update_remote_links(self, new_dsp, old_dsp):
@@ -1936,7 +1956,7 @@ class Dispatcher(object):
             n = nodes[k] = n.copy()
             dsp = n['function']
 
-            n_in, n_out = set(n['inputs'].values()), set(n['outputs'])
+            n_in, n_out = set(_children(n['inputs'])), set(n['outputs'])
             n_in = n_in.intersection(dsp.nodes)
             n_out = n_out.intersection(dsp.nodes)
 
@@ -2921,17 +2941,16 @@ class Dispatcher(object):
             for (dsp_id, dsp), type in node['remote_links']:
                 if 'child' == type and check_dsp(dsp):
                     # Get node id of remote sub-dispatcher.
-                    n_id = dsp.nodes[dsp_id]['outputs'][node_id]
+                    for n_id in stlp(dsp.nodes[dsp_id]['outputs'][node_id]):
+                        b = n_id in dsp._visited  # Node has been visited.
 
-                    b = n_id in dsp._visited  # Node has been visited.
+                        # Input do not coincide with the output.
+                        if not (b or dsp.workflow.has_edge(n_id, dsp_id)):
+                            # Donate the result to the child.
+                            dsp._wf_add_edge(dsp_id, n_id, value=value)
 
-                    # Input do not coincide with the output.
-                    if not (b or dsp.workflow.has_edge(n_id, dsp_id)):
-                        # Donate the result to the child.
-                        dsp._wf_add_edge(dsp_id, n_id, value=value)
-
-                        # See node.
-                        dsp._see_node(n_id, fringe, dist, w_wait_in=2)
+                            # See node.
+                            dsp._see_node(n_id, fringe, dist, w_wait_in=2)
 
     def _set_sub_dsp_node_input(self, node_id, dsp_id, fringe, check_cutoff,
                                 no_call, initial_dist):
@@ -3000,11 +3019,12 @@ class Dispatcher(object):
 
         for n_id in iv_nodes:
             # Namespace shortcuts.
-            n, val = node['inputs'][n_id], pred[n_id]
+            val = pred[n_id]
 
-            # Add initial value to the sub-dispatcher.
-            dsp._add_initial_value(fringe, check_cutoff, no_call, n, val,
-                                   initial_dist)
+            for n in stlp(node['inputs'][n_id]):
+                # Add initial value to the sub-dispatcher.
+                dsp._add_initial_value(fringe, check_cutoff, no_call, n, val,
+                                       initial_dist)
 
         return True
 

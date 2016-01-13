@@ -250,6 +250,31 @@ def replace_remote_link(dsp, nodes_bunch, old_link, new_link=None,
                 node[attr] = [nl if l == old_link else l for l in node[attr]]
 
 
+def stlp(s):
+    if isinstance(s, str):
+        return (s, )
+    return s
+
+
+def _children(inputs):
+    """
+
+    :param inputs:
+    :return:
+    """
+    def _get(i):
+        for k, v in i.items():
+            if isinstance(v, str):
+                yield v
+            else:
+                for j in v:
+                    yield j
+
+        raise StopIteration
+
+    return set(_get(inputs))
+
+
 def _get_node(nodes, node_id, _function_module=True):
     """
     Returns a dispatcher node that match the given node id.
