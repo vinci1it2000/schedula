@@ -103,8 +103,9 @@ def model_selector(name, data_in, data_out, setting, hide_warn_msgbox=False):
     else:
         _weights = None
 
-    _get_best_model = setting.pop('get_best_model', get_best_model)
-
+    _get_best_model = partial(setting.pop('get_best_model', get_best_model),
+                              models_wo_err=setting.pop('models_wo_err', None),
+                              hide_warn_msgbox=hide_warn_msgbox)
     for i in data_in:
         e = 'error/%s' % i
 
@@ -123,7 +124,7 @@ def model_selector(name, data_in, data_out, setting, hide_warn_msgbox=False):
     )
 
     dsp.add_function(
-        function=partial(_get_best_model, hide_warn_msgbox=hide_warn_msgbox),
+        function=_get_best_model,
         inputs=['rank'],
         outputs=['model', 'errors']
     )

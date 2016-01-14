@@ -95,26 +95,36 @@ def _ask_model(failed_models):
     return buttonbox(msg, choices=choices) == choices[0]
 
 
-def get_best_model(rank, hide_warn_msgbox=False):
+def get_best_model(rank, models_wo_err=None, hide_warn_msgbox=False):
     scores = OrderedDict()
     for m in rank:
         if m[1]:
-            scores[m[3]] = {'score': m[0],
-                            'errors': {k: v[0] for k, v in m[2].items()},
-                            'limits': {k: v[1] for k, v in m[2].items()},
-                            'models': tuple(m[-1].keys())
-                            }
+            scores[m[3]] = {
+                'score': m[0],
+                'errors': {k: v[0] for k, v in m[2].items()},
+                'limits': {k: v[1] for k, v in m[2].items()},
+                'models': tuple(m[-1].keys())
+            }
         else:
             scores[m[3]] = {'models': tuple(m[-1].keys())}
 
     if rank and _check(rank, hide_warn_msgbox):
+        m = rank[0]
+        s = scores[m[3]]
+        models_wo_err = models_wo_err or []
+
+        if 'score' not in s and not set(s['models']).issubset(models_wo_err):
+            msg = '\n  Models %s need a score. \n' \
+                  '  Please report this bug to CO2MPAS team, \n' \
+                  '    providing the data to replicate it.'
+            m = set(s['models']).difference(models_wo_err)
+            raise ValueError(msg % str(m))
+
         msg = '\n  Models %s are selected from %s respect to targets' \
               ' %s.\n  Scores: %s.'
 
-        m = rank[0]
-        scores[m[3]]['selected'] = True
-        log.info(msg, scores[m[3]]['models'], m[3], tuple(m[4].keys()),
-                 pformat(scores))
+        s['selected'] = True
+        log.info(msg, s['models'], m[3], tuple(m[4].keys()), pformat(scores))
 
         m = m[-1]
 
@@ -180,7 +190,12 @@ def define_sub_model(dsp, inputs, outputs, models, **kwargs):
 
 def metric_engine_speed_model(y_true, y_pred, times, velocities, gear_shifts):
     b = np.logical_not(calculate_clutch_phases(times, gear_shifts))
-    b &= (velocities > VEL_EPS) & (times > 30)
+    b &= (velocities > VEL_EPS) & (times > 100)
+    return mean_absolute_error(y_true[b], y_pred[b])
+
+
+def metric_engine_cold_start_speed_model(y_true, y_pred, velocities):
+    b = (velocities < VEL_EPS)
     return mean_absolute_error(y_true[b], y_pred[b])
 
 
@@ -239,7 +254,7 @@ def sub_models():
     dsp.add_function(
         function=calculate_engine_speeds_out,
         inputs=['on_engine', 'idle_engine_speed', 'engine_speeds_out_hot',
-                 'cold_start_speeds_delta'],
+                'cold_start_speeds_delta'],
         outputs=['engine_speeds_out']
     )
 
@@ -250,7 +265,8 @@ def sub_models():
                    'on_engine', 'idle_engine_speed'],
         'outputs': ['engine_speeds_out'],
         'targets': ['engine_speeds_out'],
-        'metrics': [mean_absolute_error],
+        'metrics_inputs': ['velocities'],
+        'metrics': [metric_engine_cold_start_speed_model],
         'up_limit': [100],
     }
 
@@ -316,6 +332,7 @@ def sub_models():
     sub_models['AT_model'] = {
         'dsp': AT_gear(),
         'select_models': AT_models_selector,
+        'models_wo_err': ['max_gear'],
         'models': ['max_gear', 'correct_gear', 'MVL', 'CMV', 'CMV_Cold_Hot',
                    'DT_VA', 'DT_VAT', 'DT_VAP', 'DT_VATP', 'GSPV',
                    'GSPV_Cold_Hot'],
@@ -366,7 +383,7 @@ def AT_models_selector(AT_models, data):
         data['errors AT_gear_shifting_model'] = m
 
         log.info('AT_gear_shifting_model: %s with accuracy_score %.3f, '
-                 'mean_absolute_error %.3f [RPM]. and correlation_coefficient '
+                 'mean_absolute_error %.3f [RPM] and correlation_coefficient '
                  '%.3f.', k, e[0], e[1], e[2])
 
     return models
