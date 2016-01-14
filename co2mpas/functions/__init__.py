@@ -314,7 +314,7 @@ def _store_model_from_dill_file(fpath, model):
 
 @open_file(0, mode='rb')
 def _load_model_from_dill_file(fpath):
-    log.info('Reading cached-file: %s', fpath)
+    log.debug('Reading cached-file: %s', fpath)
     return dill.load(fpath)
 
 

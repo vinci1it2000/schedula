@@ -124,7 +124,7 @@ def get_best_model(rank, models_wo_err=None, hide_warn_msgbox=False):
               ' %s.\n  Scores: %s.'
 
         s['selected'] = True
-        log.info(msg, s['models'], m[3], tuple(m[4].keys()), pformat(scores))
+        log.debug(msg, s['models'], m[3], tuple(m[4].keys()), pformat(scores))
 
         m = m[-1]
 
