@@ -270,8 +270,6 @@ def _children(inputs):
                 for j in v:
                     yield j
 
-        raise StopIteration
-
     return set(_get(inputs))
 
 
