@@ -35,25 +35,18 @@ def calibrate_co2_params_ALL(rank, *data, data_id=None):
         d = next(d[cycle] for d in data if d['data_in'] == cycle)
 
         initial_guess = d['co2_params_initial_guess']
-        bounds = d['co2_params_bounds']
 
-        if d['is_cycle_hot']:
-            f = lambda x: {k: v for k, v in x.items() if k not in ('t', 'trg')}
-            initial_guess = f(initial_guess)
-            bounds = f(bounds)
-
-        co2_error_function_on_phases = []
+        err_func = []
         func_id = 'co2_error_function_on_phases'
         for d in data:
             d = d[d['data_in']]
             if func_id in d:
-                co2_error_function_on_phases.append(d[func_id])
+                err_func.append(d[func_id])
 
-        if len(co2_error_function_on_phases) <= 1:
+        if len(err_func) <= 1:
             return {}
 
-        p, s = calibrate_model_params(
-            bounds, co2_error_function_on_phases, initial_guess)
+        p, s = calibrate_model_params(err_func, initial_guess)
 
         return {'co2_params_calibrated': p, 'calibration_status': s}
     except:
