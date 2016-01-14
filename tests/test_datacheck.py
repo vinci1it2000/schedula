@@ -13,7 +13,9 @@ import logging
 # NOTE: Do not commit it as `True`!
 OVERWRITE_SEATBELT = os.environ.get('OVERWRITE_SEATBELT', False)
 
-RUN_ALL_DEMO_FILES = os.environ.get('RUN_ALL_DEMO_FILES', False)
+RUN_ALL_FILES = os.environ.get('RUN_ALL_FILES', False)
+
+RUN_INPUT_FOLDER = os.environ.get('RUN_INPUT_FOLDER', False)
 
 EPS = 2 * sys.float_info.epsilon
 
@@ -61,9 +63,12 @@ class SeatBelt(unittest.TestCase):
 
     def test_demos(self):
         with tempfile.TemporaryDirectory() as scratchdir:
-            path = osp.join(osp.dirname(__file__), '..', 'co2mpas', 'demos')
+            if RUN_INPUT_FOLDER:
+                path = osp.join(osp.dirname(__file__), '..', 'input')
+            else:
+                path = osp.join(osp.dirname(__file__), '..', 'co2mpas', 'demos')
             file = (path
-                    if RUN_ALL_DEMO_FILES
+                    if (RUN_ALL_FILES or RUN_INPUT_FOLDER)
                     else osp.join(path, 'co2mpas_demo_1_full_data.xlsx'))
 
             res = _process_folder_files(
