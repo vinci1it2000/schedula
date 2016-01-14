@@ -2426,6 +2426,7 @@ class Dispatcher(object):
         args = [args[k]['value'] for k in node_attr['inputs']]
         args = [v for v in args if v is not NONE]
 
+        attr = {'started': datetime.today()}
         try:
             # noinspection PyCallingNonCallable
             if 'input_domain' in node_attr and \
@@ -2433,8 +2434,6 @@ class Dispatcher(object):
                 return False  # Args are not respecting the domain.
             else:  # Use the estimation function of node.
                 fun = node_attr['function']
-
-                attr = {'started': datetime.today()}
                 res = fun(*args)
                 attr['duration'] = datetime.today() - attr['started']
 
@@ -2449,6 +2448,13 @@ class Dispatcher(object):
                 res = res if len(o_nds) > 1 else [res]
 
         except Exception as ex:
+            if isinstance(ex, DispatcherError):  # Save intermediate results.
+                dsp = get_parent_func(ex.dsp)
+                attr['workflow'] = (dsp.workflow, dsp.data_output, dsp.dist)
+                attr['duration'] = datetime.today() - attr['started']
+
+                # Save node.
+                self.workflow.add_node(node_id, **attr)
             # Is missing function of the node or args are not in the domain.
             msg = "Failed DISPATCHING '%s' due to:\n  %r"
             self._warning(msg, node_id, ex)

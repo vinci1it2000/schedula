@@ -84,6 +84,11 @@ class Token(str):
     def __hash__(self):
         return id(self)
 
+    def __copy__(self):
+        return self
+
+    def __deepcopy__(self, memo):
+        return self
 
 def pairwise(iterable):
     """

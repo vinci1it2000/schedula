@@ -11,6 +11,7 @@ from __future__ import division, print_function, unicode_literals
 from co2mpas.dispatcher.utils.gen import pairwise, Token
 import doctest
 import unittest
+from copy import copy, deepcopy
 
 
 class TestDoctest(unittest.TestCase):
@@ -29,6 +30,8 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(str(a), 'a')
         self.assertTrue(a >= 'a')
         self.assertNotEqual(a, Token('a'))
+        self.assertEqual(a, copy(a))
+        self.assertEqual(a, deepcopy(a))
         self.assertEqual(sorted(['c', a, 'b']), [a, 'b', 'c'])
 
         a = Token(1)
