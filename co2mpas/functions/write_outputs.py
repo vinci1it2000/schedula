@@ -15,7 +15,7 @@ import pandas as pd
 import re
 from co2mpas._version import version
 import datetime
-from .physical.engine.co2_emission import Parameters
+from lmfit import Parameters
 log = logging.getLogger(__name__)
 
 

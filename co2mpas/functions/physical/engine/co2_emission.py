@@ -623,25 +623,6 @@ def calculate_co2_emission(phases_co2_emissions, phases_distances):
     return float(n / d)
 
 
-class Parameters(lmfit.Parameters):
-    def __deepcopy__(self, memo):
-        _pars = Parameters()
-        _pars.__iadd__(super(Parameters, self).__deepcopy__(memo))
-        return _pars
-
-    def get_vary(self):
-        return {k: v.vary for k, v in self.items()}
-
-    def set_vary(self, vary, default=False):
-        if not isinstance(vary, dict):
-            vary = dict.fromkeys(vary, default)
-
-        for k, b in vary.items():
-            self[k].set(vary=b)
-
-        return self
-
-
 def _get_default_params():
     default = {
         'gasoline turbo': {
@@ -703,7 +684,7 @@ def define_initial_co2_emission_model_params_guess(
     :rtype: (dict, dict)
     """
 
-    if isinstance(params, Parameters):
+    if isinstance(params, lmfit.Parameters):
         return dsp_utl.NONE
 
     default = _get_default_params()[engine_type]
@@ -718,9 +699,9 @@ def define_initial_co2_emission_model_params_guess(
         'vary': not (is_cycle_hot or 't' in params)
     }
 
-    p = Parameters()
+    p = lmfit.Parameters()
 
-    for k, kw in default.items():
+    for k, kw in sorted(default.items()):
         kw['name'] = k
         kw['value'] = params.get(k, kw['value'])
 
@@ -734,6 +715,16 @@ def define_initial_co2_emission_model_params_guess(
         p.add(**kw)
 
     return p
+
+
+def _set_vary(params, vary, default=False):
+    if not isinstance(vary, dict):
+        vary =  dict.fromkeys(vary, default)
+
+    for k, b in vary.items():
+        params[k].set(vary=b)
+
+    return params
 
 
 def calibrate_co2_params(
@@ -775,8 +766,9 @@ def calibrate_co2_params(
     :rtype: dict
     """
 
-    p = co2_params_initial_guess
-    vary = p.get_vary()
+    p = co2_params_initial_guess.copy()
+    vary = {k: v.vary for k, v in p.items()}
+
     cold = np.zeros_like(engine_coolant_temperatures, dtype=bool)
     if not is_cycle_hot:
         cold[:argmax(engine_coolant_temperatures > p['trg'].value)] = True
@@ -785,9 +777,9 @@ def calibrate_co2_params(
     success = []
 
     def calibrate(id_p, p, **kws):
-        p.set_vary(id_p, False)
+        _set_vary(p, id_p, default=False)
         p, s = calibrate_model_params(co2_error_function_on_emissions, p, **kws)
-        p.set_vary(vary)
+        _set_vary(p, vary)
         success.append(s)
         return p
 
@@ -801,7 +793,7 @@ def calibrate_co2_params(
 
     p, s = calibrate_model_params(co2_error_function_on_phases, p)
     success.append(s)
-    p.set_vary(vary)
+    _set_vary(p, vary)
     return p, success
 
 
