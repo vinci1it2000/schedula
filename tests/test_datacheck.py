@@ -36,7 +36,7 @@ class SeatBelt(unittest.TestCase):
 
         for i, (summary, old_summary) in enumerate(zip(new_sums, old_sums)):
             err = []
-            for k, ov in old_summary.items():
+            for k, ov in sorted(old_summary.items()):
 
                 nv = summary[k]
                 if DATA_DIFF_RATIO == 0:

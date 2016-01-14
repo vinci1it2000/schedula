@@ -520,7 +520,7 @@ def _extract_summary(summaries):
         for k, v in summaries['PRE NEDC'].items():
             if k == 'vehicle' or k[:11] == 'co2_params ':
                 s[k] = v
-            elif any(i in k for i in tags):
+            elif any(i in k for i in tags) or 'calibration_status' in k:
                 s['NEDC %s' % k] = v
 
     sub_s = [
