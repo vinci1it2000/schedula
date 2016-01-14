@@ -630,7 +630,7 @@ def _get_default_params():
             'b': {'value': 0.011859, 'min': 0.006558, 'max': 0.01716},
             'c': {'value': -0.00069, 'min': -0.00099, 'max': -0.00038},
             'a2': {'value': -0.00266, 'min': -0.00354, 'max': -0.00179},
-            'b2': {'value': 0, 'vary': False},
+            'b2': {'value': 0, 'min': -1, 'max': 1, 'vary': False},
             'l': {'value': -2.49882, 'min': -3.27698, 'max': -1.72066},
             'l2': {'value': -0.0025, 'min': -0.00796, 'max': 0.0},
         },
@@ -639,7 +639,7 @@ def _get_default_params():
             'b': {'value': 0.01193, 'min': -0.00247, 'max': 0.026333},
             'c': {'value': -0.00065, 'min': -0.00138, 'max': 0.0000888},
             'a2': {'value': -0.00385, 'min': -0.00663, 'max': -0.00107},
-            'b2': {'value': 0, 'vary': False},
+            'b2': {'value': 0, 'min': -1, 'max': 1, 'vary': False},
             'l': {'value': -2.14063, 'min': -3.17876, 'max': -1.1025},
             'l2': {'value': -0.00286, 'min': -0.00577, 'max': 0.0},
         },
@@ -648,7 +648,7 @@ def _get_default_params():
             'b': {'value': 0.028604, 'min': 0.002519, 'max': 0.054688},
             'c': {'value': -0.00196, 'min': -0.00386, 'max': -0.000057},
             'a2': {'value': -0.0012, 'min': -0.00233, 'max': -0.000064},
-            'b2': {'value': 0, 'vary': False},
+            'b2': {'value': 0, 'min': -1, 'max': 1, 'vary': False},
             'l': {'value': -1.55291, 'min': -2.2856, 'max': -0.82022},
             'l2': {'value': -0.0076, 'min': -0.01852, 'max': 0.0},
         },
@@ -881,9 +881,19 @@ def calibrate_model_params(error_function, params, *ars, **kws):
         return res
 
     ## See #7: Neither BFGS nor SLSQP fix "solution families".
+    # leastsq: Improper input: N=6 must not exceed M=1.
+    # nelder is stable (20 runs, 4 vehicles) [average time 19s/4 vehicles].
+    # lbfgsb is unstable (2 runs, 4 vehicles) [average time 23s/4 vehicles].
+    # cg is stable (20 runs, 4 vehicles) [average time 37s/4 vehicles].
+    # newton: Jacobian is required for Newton-CG method
+    # cobyla is unstable (8 runs, 4 vehicles) [average time 16s/4 vehicles].
+    # tnc is unstable (6 runs, 4 vehicles) [average time 23s/4 vehicles].
+    # dogleg: Jacobian is required for dogleg minimization.
+    # slsqp is unstable (4 runs, 4 vehicles) [average time 18s/4 vehicles].
+    # differential_evolution is ... (... runs, 4 vehicles) [average time 270s/4 vehicles].
     res = minimize(error_func, params, args=ars, kws=kws, method='nelder')
 
-    return (res.params if not res.status else min_e_and_p[1]), not res.status
+    return (res.params if not res.success else min_e_and_p[1]), not res.success
 
 
 # correction of lmfit bug.
