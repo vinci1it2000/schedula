@@ -587,7 +587,7 @@ def plot(dsp, workflow=False, dot=None, edge_data=None, view=False,
 
     if START in g.node and (len(g.node) == 1 or not nx.is_isolate(g, START)):
         _set_node(dot, START, dsp2dot_id)
-    elif inputs:
+    elif inputs and set(inputs).issubset(g.node):
         dot_u = _set_node(dot, START, dsp2dot_id)
 
         for i, v in enumerate(inputs):
@@ -612,14 +612,11 @@ def plot(dsp, workflow=False, dot=None, edge_data=None, view=False,
     for u, v, a in g.edges_iter(data=True):
         _set_edge(dot, dsp2dot_id[u], dsp2dot_id[v], a, edge_data=None)
 
-    if outputs:
+    if outputs and set(outputs).issubset(g.node):
         dot_v = _set_node(dot, END, dsp2dot_id)
 
         for i, u in enumerate(outputs):
-            try:
-                _set_edge(dot, dsp2dot_id[u], dot_v, xlabel=str(i))
-            except KeyError:
-                pass
+            _set_edge(dot, dsp2dot_id[u], dot_v, xlabel=str(i))
     if view:
         try:
             dot.render(cleanup=True, view=True)
