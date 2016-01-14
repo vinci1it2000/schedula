@@ -717,12 +717,12 @@ def define_initial_co2_emission_model_params_guess(
     return p
 
 
-def _set_vary(params, vary, default=False):
-    if not isinstance(vary, dict):
-        vary =  dict.fromkeys(vary, default)
+def _set_attr(params, data, default=False, attr='vary'):
+    if not isinstance(data, dict):
+        data =  dict.fromkeys(data, default)
 
-    for k, b in vary.items():
-        params[k].set(vary=b)
+    for k, v in data.items():
+        params[k].set(**{attr: v})
 
     return params
 
@@ -768,23 +768,26 @@ def calibrate_co2_params(
 
     p = co2_params_initial_guess.copy()
     vary = {k: v.vary for k, v in p.items()}
+    values = {k: v._val for k, v in p.items()}
 
     cold = np.zeros_like(engine_coolant_temperatures, dtype=bool)
     if not is_cycle_hot:
         cold[:argmax(engine_coolant_temperatures > p['trg'].value)] = True
     hot = np.logical_not(cold)
 
-    success = []
+    success = [(True, p.valuesdict())]
 
     def calibrate(id_p, p, **kws):
-        _set_vary(p, id_p, default=False)
+        _set_attr(p, id_p, default=False)
         p, s = calibrate_model_params(co2_error_function_on_emissions, p, **kws)
-        _set_vary(p, vary)
-        success.append(s)
+        _set_attr(p, vary)
+        success.append((s, p.valuesdict()))
         return p
 
     cold_p = ['t', 'trg']
+    _set_attr(p, ['t'], default=0.0, attr='value')
     p = calibrate(cold_p, p, sub_values=hot)
+    _set_attr(p, {'t': values['t']}, attr='value')
 
     hot_p = ['a2', 'a', 'b', 'c', 'l', 'l2']
     p = calibrate(hot_p, p, sub_values=cold)
@@ -792,8 +795,9 @@ def calibrate_co2_params(
     p = restrict_bounds(p)
 
     p, s = calibrate_model_params(co2_error_function_on_phases, p)
-    success.append(s)
-    _set_vary(p, vary)
+    success.append((s, p.valuesdict()))
+    _set_attr(p, vary)
+
     return p, success
 
 
@@ -877,7 +881,7 @@ def calibrate_model_params(error_function, params, *ars, **kws):
         return res
 
     ## See #7: Neither BFGS nor SLSQP fix "solution families".
-    res = minimize(error_func, params, args=ars, kws=kws, method='lbfgsb')
+    res = minimize(error_func, params, args=ars, kws=kws, method='nelder')
 
     return (res.params if not res.status else min_e_and_p[1]), not res.status
 
