@@ -172,19 +172,19 @@ def co2_emission():
     )
 
     co2_emission.add_data(
-        data_id='co2_emission_udc',
+        data_id='co2_emission_UDC',
         description='CO2 emission on UDC NEDC phase [CO2g/km].'
     )
 
     co2_emission.add_data(
-        data_id='co2_emission_eudc',
+        data_id='co2_emission_EUDC',
         description='CO2 emission on EUDC NEDC phase [CO2g/km].'
     )
 
     co2_emission.add_function(
         function_id='merge_nedc_phases_co2_emission',
         function=dsp_utl.bypass,
-        inputs=['co2_emission_udc', 'co2_emission_eudc'],
+        inputs=['co2_emission_UDC', 'co2_emission_EUDC'],
         outputs=['phases_co2_emissions']
     )
 

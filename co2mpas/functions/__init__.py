@@ -515,8 +515,7 @@ def _parse_outputs(tag, data, check):
 
 def _extract_summary(summaries):
     s = {}
-    tags = ('co2_emission_value', 'phases_co2_emissions', 'comparison',
-            'co2_emission_EUDC', 'co2_emission_UDC')
+    tags = ('co2_emission_value', 'phases_co2_emissions', 'comparison')
     if 'PRE NEDC' in summaries:
         for k, v in summaries['PRE NEDC'].items():
             if k == 'vehicle' or k[:11] == 'co2_params ':
