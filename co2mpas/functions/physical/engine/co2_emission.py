@@ -883,7 +883,7 @@ def calibrate_model_params(error_function, params, *ars, **kws):
 
     ## See #7: Neither BFGS nor SLSQP fix "solution families".
     # leastsq: Improper input: N=6 must not exceed M=1.
-    # nelder is stable (20 runs, 4 vehicles) [average time 19s/4 vehicles].
+    # nelder is stable (838 runs, 4 vehicles) [average time 18s/4 vehicles].
     # lbfgsb is unstable (2 runs, 4 vehicles) [average time 23s/4 vehicles].
     # cg is stable (20 runs, 4 vehicles) [average time 37s/4 vehicles].
     # newton: Jacobian is required for Newton-CG method
@@ -891,7 +891,8 @@ def calibrate_model_params(error_function, params, *ars, **kws):
     # tnc is unstable (6 runs, 4 vehicles) [average time 23s/4 vehicles].
     # dogleg: Jacobian is required for dogleg minimization.
     # slsqp is unstable (4 runs, 4 vehicles) [average time 18s/4 vehicles].
-    # differential_evolution is ... (... runs, 4 vehicles) [average time 270s/4 vehicles].
+    # differential_evolution is unstable (1 runs, 4 vehicles)
+    #   [average time 270s/4 vehicles].
     res = minimize(error_func, params, args=ars, kws=kws, method='nelder')
 
     return (res.params if not res.success else min_e_and_p[1]), not res.success

@@ -26,51 +26,6 @@ from ..gear_box import calculate_gear_box_speeds_in
 from ..wheels import calculate_wheel_power
 
 
-def correct_gear_upper_bound_engine_speed(
-        velocity, acceleration, gear, velocity_speed_ratios, max_gear,
-        upper_bound_engine_speed):
-    """
-    Corrects the gear predicted according to upper bound engine speed.
-
-    :param velocity:
-        Vehicle velocity [km/h].
-    :type velocity: float
-
-    :param acceleration:
-        Vehicle acceleration [m/s2].
-    :type acceleration: float
-
-    :param gear:
-        Predicted vehicle gear [-].
-    :type gear: int
-
-    :param velocity_speed_ratios:
-        Constant velocity speed ratios of the gear box [km/(h*RPM)].
-    :type velocity_speed_ratios: dict
-
-    :param max_gear:
-        Maximum gear [-].
-    :type max_gear: int
-
-    :param upper_bound_engine_speed:
-        Upper bound engine speed [RPM].
-    :type upper_bound_engine_speed: float
-
-    :return:
-        A gear corrected according to upper bound engine speed [-].
-    :rtype: int
-    """
-
-    if abs(acceleration) < ACC_EPS and velocity > VEL_EPS and gear:
-
-        l = velocity / upper_bound_engine_speed
-
-        while velocity_speed_ratios[gear] < l and gear < max_gear:
-            gear += 1
-
-    return gear
-
-
 def correct_gear_full_load(
         velocity, acceleration, gear, velocity_speed_ratios, max_engine_power,
         max_engine_speed_at_max_power, idle_engine_speed, full_load_curve,
@@ -148,7 +103,36 @@ def correct_gear_full_load(
 
 
 def basic_correct_gear(
-        velocity, acceleration, gear, velocity_speed_ratios, idle_engine_speed):
+        velocity, acceleration, gear, velocity_speed_ratios, idle_engine_speed,
+        *args):
+    """
+    Corrects the gear predicted according to basic drive-ability rules.
+
+    :param velocity:
+        Vehicle velocity [km/h].
+    :type velocity: float
+
+    :param acceleration:
+        Vehicle acceleration [m/s2].
+    :type acceleration: float
+
+    :param gear:
+        Predicted vehicle gear [-].
+    :type gear: int
+
+    :param velocity_speed_ratios:
+        Constant velocity speed ratios of the gear box [km/(h*RPM)].
+    :type velocity_speed_ratios: dict
+
+    :param idle_engine_speed:
+        Engine speed idle median and std [RPM].
+    :type idle_engine_speed: (float, float)
+
+    :return:
+        A gear corrected according to basic drive-ability rules.
+    :rtype: int
+    """
+
     if gear == 0 and acceleration > 0:
         gear = min(k for k in velocity_speed_ratios if k > 0)
     elif gear > 1:
@@ -164,8 +148,7 @@ def correct_gear_v0(
         road_loads, vehicle_mass):
     """
     Returns a function to correct the gear predicted according to
-    :func:`correct_gear_upper_bound_engine_speed`
-    and :func:`correct_gear_full_load`.
+    :func:`correct_gear_mvl` and :func:`correct_gear_full_load`.
 
     :param velocity_speed_ratios:
         Constant velocity speed ratios of the gear box [km/(h*RPM)].
@@ -224,7 +207,7 @@ def correct_gear_v0(
 def correct_gear_v1(velocity_speed_ratios, mvl, idle_engine_speed):
     """
     Returns a function to correct the gear predicted according to
-    :func:`correct_gear_upper_bound_engine_speed`.
+    :func:`correct_gear_mvl`.
 
     :param velocity_speed_ratios:
         Constant velocity speed ratios of the gear box [km/(h*RPM)].
