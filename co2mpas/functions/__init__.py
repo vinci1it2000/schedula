@@ -245,15 +245,15 @@ def _process_folder_files(
 
         out_fpath = osp.join(output_folder, '%s-%s.xlsx' % (timestamp, fname))
         if output_template_xl_fpath is None:
-            output_template_xl_fpath = fpath
+            output_template = fpath
         elif '0' == output_template_xl_fpath:
-            output_template_xl_fpath = False
+            output_template = False
 
         inputs['start_time'] = datetime.datetime.today()
 
         if with_output_file:
 
-            with clone_and_extend_excel(out_fpath, output_template_xl_fpath) as excel_file:
+            with clone_and_extend_excel(out_fpath, output_template) as excel_file:
                 inputs['excel_out_file'] = excel_file
 
                 res = model.dispatch(inputs=inputs)
