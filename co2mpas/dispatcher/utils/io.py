@@ -14,7 +14,12 @@ __author__ = 'Vincenzo Arcidiacono'
 
 from networkx.utils import open_file
 from dill import dump, load
-import os, errno, win32api
+import os, errno
+
+try:
+    from win32api import GetShortPathName
+except ImportError:
+    GetShortPathName = lambda x: x
 
 __all__ = ['save_dispatcher', 'load_dispatcher', 'save_default_values',
            'load_default_values', 'save_map', 'load_map']
@@ -267,7 +272,7 @@ def makedirs(name, mode=0o777, exist_ok=False):
             return name
     try:
         if head:
-            name = os.path.join(win32api.GetShortPathName(head), tail)
+            name = os.path.join(GetShortPathName(head), tail)
         os.mkdir(name, mode)
     except OSError as e:
         if not exist_ok or e.errno != errno.EEXIST or not os.path.isdir(name):
@@ -283,4 +288,4 @@ def mkdirs(filename, mode=0o777):
     if head:
         head = makedirs(head, mode, exist_ok=True)
 
-    return os.path.join(win32api.GetShortPathName(head), tail)
+    return os.path.join(GetShortPathName(head), tail)
