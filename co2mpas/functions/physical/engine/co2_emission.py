@@ -18,6 +18,7 @@ import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.functions.physical.constants import *
 from ..utils import argmax
 import lmfit
+import copy
 
 
 def calculate_normalized_engine_coolant_temperatures(
@@ -766,7 +767,7 @@ def calibrate_co2_params(
     :rtype: dict
     """
 
-    p = co2_params_initial_guess.copy()
+    p = copy.copy(co2_params_initial_guess)
     vary = {k: v.vary for k, v in p.items()}
     values = {k: v._val for k, v in p.items()}
 
@@ -815,7 +816,7 @@ def restrict_bounds(co2_params):
         t, trg).
     :rtype: dict
     """
-    p = co2_params.copy()
+    p = copy.copy(co2_params)
     mul = {
         't': np.array([0.5, 1.5]), 'trg': np.array([0.9, 1.1]),
         'a': np.array([0.8, 1.2]), 'b': np.array([0.8, 1.2]),
@@ -870,13 +871,13 @@ def calibrate_model_params(error_function, params, *ars, **kws):
     else:
         error_f = lambda p, *a, **k: sum(f(p, *a, **k) for f in error_function)
 
-    min_e_and_p = [np.inf, params.copy()]
+    min_e_and_p = [np.inf, copy.copy(params)]
 
     def error_func(params, *args, **kwargs):
         res = error_f(params, *args, **kwargs)
 
         if res < min_e_and_p[0]:
-            min_e_and_p[0], min_e_and_p[1] = (res, params.copy())
+            min_e_and_p[0], min_e_and_p[1] = (res, copy.copy(params))
 
         return res
 
