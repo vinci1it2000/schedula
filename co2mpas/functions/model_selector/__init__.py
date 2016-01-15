@@ -23,7 +23,6 @@ Modules:
 
 from textwrap import dedent
 from sklearn.metrics import mean_absolute_error, accuracy_score
-from easygui import buttonbox
 import co2mpas.dispatcher.utils as dsp_utl
 import numpy as np
 from ..physical.constants import *
@@ -67,16 +66,17 @@ def sort_models(*data, weights=None):
         models = d['calibrated_models']
 
         if models:
-            score = (score[0], 1 / len(models), score[1])
+            score = {'l': score[0], 'n': len(models), 's': score[1]}
 
             rank.append([score, scores, errors, d['data_in'], models])
 
-    return list(sorted(rank))
+    f = lambda x: [(-x[0]['l'], -x[0]['n'], x[0]['s'])] + x[1:]
+    return list(sorted(rank, key=f))
 
 
 def _check(rank, hide_warn_msgbox):
     try:
-        status = rank[0][0][0]
+        status = rank[0][0]['l']
         return status == 1 or hide_warn_msgbox or _ask_model(rank[0][-1].keys())
     except IndexError:
         return True
@@ -92,7 +92,8 @@ def _ask_model(failed_models):
           For more clarifications, please ask JRC.
           """) % ',\n'.join(failed_models)
     choices = ["Yes", "No"]
-    return buttonbox(msg, choices=choices) == choices[0]
+    import easygui as eu
+    return eu.buttonbox(msg, choices=choices) == choices[0]
 
 
 def get_best_model(rank, models_wo_err=None, hide_warn_msgbox=False):

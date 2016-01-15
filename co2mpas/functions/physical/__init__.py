@@ -33,7 +33,6 @@ Modules:
 from heapq import heappush
 from textwrap import dedent
 from sklearn.metrics import mean_absolute_error, accuracy_score
-from easygui import buttonbox
 from ...dispatcher import Dispatcher
 import co2mpas.dispatcher.utils as dsp_utl
 import numpy as np
@@ -503,7 +502,8 @@ def _show_calibration_failure_msg(failed_models):
           For more clarifications, please ask JRC.
           """) % ',\n'.join(failed_models)
     choices = ["Yes", "No"]
-    return buttonbox(msg, choices=choices) == "No"
+    import easygui as eu
+    return eu.buttonbox(msg, choices=choices) == "No"
 
 
 def _extract_models(calibration_outputs, models_to_extract):

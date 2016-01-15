@@ -32,7 +32,7 @@ from ..utils import bin_split, reject_outliers, clear_fluctuations, \
     median_filter, argmax
 import co2mpas.dispatcher.utils as dsp_utl
 from textwrap import dedent
-from easygui import buttonbox
+
 
 
 def get_full_load(fuel_type):
@@ -688,7 +688,8 @@ def _ask_start_stop_activation_time(start_stop_activation_time, first_stop):
           """) % (start_stop_activation_time, first_stop,
                   start_stop_activation_time)
     choices = ["Yes", "No"]
-    return buttonbox(msg, choices=choices) == "Yes"
+    import easygui as eu
+    return eu.buttonbox(msg, choices=choices) == "Yes"
 
 
 def calibrate_start_stop_model(

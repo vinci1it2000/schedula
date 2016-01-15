@@ -56,4 +56,5 @@ def calibrate_co2_params_ALL(rank, *data, data_id=None):
 def co2_sort_models(rank, *data, weights=None):
     r = sort_models(*data, weights=None)
     r.extend(rank)
-    return list(sorted(r))
+    f = lambda x: [(-x[0]['l'], -x[0]['n'], x[0]['s'])] + x[1:]
+    return list(sorted(r, key=f))
