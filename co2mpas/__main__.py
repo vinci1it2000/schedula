@@ -92,6 +92,7 @@ def init_logging(verbose):
         level = logging.INFO
     frmt = "%(asctime)-15s:%(levelname)5.5s:%(name)s:%(message)s"
     logging.basicConfig(level=level, format=frmt)
+    logging.captureWarnings(True)
 
 
 def build_version_string(verbose):
