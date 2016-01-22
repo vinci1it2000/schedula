@@ -237,7 +237,7 @@ def model_error(name, data_id, data_out, setting):
     )
 
     dsp.add_function(
-        function=partial(default_settings.pop('dsp').copy(), {}),
+        function=partial(default_settings.pop('dsp'), {}),
         inputs=['prediction_inputs', 'calibrated_models'],
         outputs=['results']
     )
