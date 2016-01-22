@@ -74,7 +74,7 @@ def write_output(output, excel_file, file_name, sheet_names, data_descriptions,
 
     log.info("Writing sheets(%s) for: %s", sheet_names, file_name)
 
-    from .read_inputs import get_filters
+    from .io import get_filters
     params = get_filters()['PARAMETERS'].keys()
 
     p, s = ([], [])
@@ -179,3 +179,17 @@ def get_doc_description():
             else:
                 doc_descriptions[k] = des
     return doc_descriptions
+
+"""
+if output_template_xl_fpath is None:
+            output_template = fpath
+        elif '0' == output_template_xl_fpath:
+            output_template = False
+
+        if with_output_file:
+
+            with clone_and_extend_excel(out_fpath, output_template) as excel_file:
+                inputs['excel_out_file'] = excel_file
+
+                _co2mpas_info(excel_file, start_time)
+"""

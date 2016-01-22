@@ -9,13 +9,19 @@
 It contains functions to read vehicle inputs.
 """
 
-
+import logging
 import numpy as np
 from math import isnan
 import pandas as pd
 from collections import Iterable
 from pandalone.xleash import lasso
 from pandalone.xleash.io._xlrd import _open_sheet_by_name_or_index
+import shutil
+import openpyxl
+from itertools import chain
+
+
+log = logging.getLogger(__name__)
 
 
 def read_cycles_series(excel_file, sheet_name):
@@ -294,3 +300,84 @@ def index_dict(data):
     """
 
     return {k + 1: v for k, v in enumerate(data)}
+
+
+def clone_and_extend_excel(out_xl_fpath, template_xl_fpath=''):
+    """
+    Returns a :class:`pd.ExcelWriter` that optionally appends sheets into pre-existing xlsx-file.
+
+    :param str xl_path:
+            The fresh file to create.
+    :param str template_xl_fpath:
+            If it evaluates to true, it must be a pre-existing *xlsx-file*
+            to clone, and have its sheets reused.
+    :raises FileNotFoundError:
+            If `template_xl_fpath` does not point to regular file.
+    :raises openpyxl.shared.exc.InvalidFileException:
+            If `template_xl_fpath` does not point to a *xlsx-file*.
+    """
+
+    if template_xl_fpath:
+        log.info('Writing into xl-file(%s) based on template(%s)...',
+                out_xl_fpath, template_xl_fpath)
+        shutil.copy(template_xl_fpath, out_xl_fpath)
+
+        book = openpyxl.load_workbook(out_xl_fpath)
+        writer = pd.ExcelWriter(out_xl_fpath, engine='openpyxl')
+        writer.book = book
+        writer.sheets = dict((ws.title, ws) for ws in book.worksheets)
+    else:
+        log.info('Writing into xl-file(%s)...', out_xl_fpath)
+        writer = pd.ExcelWriter(out_xl_fpath)
+
+    return writer
+
+
+def write_to_excel(data, output_file_name, template=''):
+
+    if template:
+        log.debug('Writing into xl-file(%s) based on template(%s)...',
+                 output_file_name, template)
+        shutil.copy(template, output_file_name)
+
+        book = openpyxl.load_workbook(output_file_name)
+        writer = pd.ExcelWriter(output_file_name, engine='openpyxl')
+
+        writer.book = book
+        writer.sheets = dict((ws.title, ws) for ws in book.worksheets)
+    else:
+        log.debug('Writing into xl-file(%s)...', output_file_name)
+        writer = pd.ExcelWriter(output_file_name)
+
+    for k, v in sorted(_iter_d(data)):
+        shname = '-'.join(k)
+        if shname == 'comparison':
+            _df2excel(writer, shname, v)
+        elif shname == 'selection_scores':
+            i = 0
+            for v in v:
+                if _df2excel(writer, shname, v, startrow=i):
+                    i += v.shape[0] + 4
+        else:
+            _df2excel(writer, shname, v, index=False,
+                      header='time_series' not in k)
+
+    writer.save()
+    log.info('Written into xl-file(%s)...', output_file_name)
+
+
+def _df2excel(writer, shname, df, **kw):
+    if isinstance(df, pd.DataFrame) and not df.empty:
+        df.to_excel(writer, shname, **kw)
+        return True
+    return False
+
+
+def _iter_d(d, key=(), depth=-1):
+    if depth == 0:
+        return [(key, d)]
+
+    if isinstance(d, dict):
+        return list(chain(*[_iter_d(v, key=key + (k,), depth=depth - 1)
+                            for k, v in d.items()]))
+    return [(key, d)]

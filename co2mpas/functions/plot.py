@@ -8,11 +8,15 @@
 It contains plotting functions for models and/or output results.
 """
 
+import matplotlib
+matplotlib.use('Agg')
 import co2mpas.dispatcher.utils as dsp_utl
 import importlib
 import logging
 import sys
+import os
 import matplotlib.pyplot as plt
+from cycler import cycler
 
 log = logging.getLogger(__name__)
 
@@ -37,7 +41,7 @@ def get_model_paths(model_ids=None):
         'vehicle_processing_model',
         'load_inputs',
         'write_outputs',
-        'load',
+        'io',
         #+
         'physical.physical_calibration',
         'physical.physical_prediction',
@@ -191,3 +195,42 @@ def plot_time_series(
         plt.ylabel(y_label)
 
     plt.legend()
+
+
+def plot_time_series_v1(
+        fig, xs, ys, labels, title, y_label='', x_label='Time [s]'):
+
+    for x, y, l in zip(xs, ys, labels):
+        fig.plot(x, y, label=l)
+
+    fig.grid(True, color='grey', linestyle='-')
+    fig.set_title(title, fontsize=20)
+    fig.legend(loc='upper left', bbox_to_anchor=(-0.008, 1.018),
+               fancybox=True, shadow=True, ncol=2)
+    fig.set_xlabel(x_label)
+    fig.set_ylabel(y_label)
+    fig.set_prop_cycle(cycler('color', ['c', 'm', 'y', 'k']))
+    plt.setp(fig.get_xticklabels(), fontsize=10, visible=True)
+
+
+def make_cycle_graphs(data):
+    n = len(data)
+    if n:
+        fig, axarr = plt.subplots(n, 1, sharex=True, figsize=(12, 36))
+
+        for i, v in enumerate(data.values()):
+            try:
+                plot_time_series_v1(axarr[i], **v)
+            except:
+                pass
+        plt.subplots_adjust(hspace = .2)
+        plt.subplots_adjust(bottom=0.02, right=0.9, top=0.98)
+
+        return fig
+    return dsp_utl.NONE
+
+def save_cycle_graphs(fig, directory, fname, cycle_name='', tag=''):
+    fpath = os.path.join(directory, '%s_%s_%s.jpg' % (fname, cycle_name, tag))
+    fig.savefig(fpath, format='png', dpi = 300)
+    plt.close(fig)
+    return fpath

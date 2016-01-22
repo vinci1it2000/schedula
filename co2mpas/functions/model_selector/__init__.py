@@ -30,11 +30,14 @@ import logging
 from collections import OrderedDict
 from pprint import pformat
 from co2mpas.functions.physical.clutch_tc.clutch import calculate_clutch_phases
+from collections import Iterable
 
 log = logging.getLogger(__name__)
 
 
 def _mean(values, weights=None):
+    if isinstance(weights, Iterable):
+        values, weights = zip(*[v for v in zip(values, weights) if v[1]])
 
     v = np.asarray(values)
     return np.average(v, weights=weights)
@@ -66,18 +69,19 @@ def sort_models(*data, weights=None):
         models = d['calibrated_models']
 
         if models:
-            score = {'l': score[0], 'n': len(models), 's': score[1]}
+            score = {'success': score[0] == 1, 'n': len(models),
+                     'score': score[1]}
 
             rank.append([score, scores, errors, d['data_in'], models])
 
-    f = lambda x: [(-x[0]['l'], -x[0]['n'], x[0]['s'])] + x[1:]
+    f = lambda x: [(-x[0]['success'], -x[0]['n'], x[0]['score'])] + x[1:]
     return list(sorted(rank, key=f))
 
 
-def _check(rank, hide_warn_msgbox):
+def _check(best, hide_warn_msgbox):
     try:
-        status = rank[0][0]['l']
-        return status == 1 or hide_warn_msgbox or _ask_model(rank[0][-1].keys())
+        status = best[0]['success']
+        return status or hide_warn_msgbox or _ask_model(best[-1].keys())
     except IndexError:
         return True
 
@@ -108,8 +112,9 @@ def get_best_model(rank, models_wo_err=None, hide_warn_msgbox=False):
             }
         else:
             scores[m[3]] = {'models': tuple(m[-1].keys())}
-
-    if rank and _check(rank, hide_warn_msgbox):
+    if not rank:
+        m = {}
+    elif _check(rank[0], hide_warn_msgbox):
         m = rank[0]
         s = scores[m[3]]
         models_wo_err = models_wo_err or []
@@ -130,6 +135,7 @@ def get_best_model(rank, models_wo_err=None, hide_warn_msgbox=False):
         m = m[-1]
 
     else:
+        scores[rank[0][3]]['selected'] = False
         m = {}
 
     return m, scores
@@ -187,6 +193,10 @@ def define_sub_model(dsp, inputs, outputs, models, **kwargs):
     if inputs is not None:
         inputs = set(inputs).union(models)
     return dsp_utl.SubDispatch(dsp.shrink_dsp(inputs, outputs))
+
+
+def metric_calibration_status(y_true, y_pred):
+    return [v[0] for v in y_pred]
 
 
 def metric_engine_speed_model(y_true, y_pred, times, velocities, gear_shifts):
@@ -302,10 +312,11 @@ def sub_models():
         'model_selector': co2_params_model_selector,
         'models': ['co2_params_calibrated', 'calibration_status'],
         'inputs': ['co2_emissions_model'],
-        'outputs': ['co2_emissions'],
-        'targets': ['identified_co2_emissions'],
-        'metrics': [mean_absolute_error],
-        'up_limit': [0.5]
+        'outputs': ['co2_emissions', 'calibration_status'],
+        'targets': ['identified_co2_emissions', 'calibration_status'],
+        'metrics': [mean_absolute_error, metric_calibration_status],
+        'up_limit': [0.5, None],
+        'weights': [1, None]
     }
 
     from co2mpas.models.physical.electrics import electrics
