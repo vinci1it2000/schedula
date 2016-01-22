@@ -130,9 +130,9 @@ class TestDispatcherGetSubNode(unittest.TestCase):
             return a + 1, c, a - 1
 
         ss_dsp.add_function('module:fun', fun, ['a', 'e'], ['b', 'c', 'd'])
-
-        sub_disfun = partial(SubDispatchFunction(
-            ss_dsp, 'func', ['e', 'a'], ['c', 'd', 'b']), 5)
+        ss_dsp_func = SubDispatchFunction(
+            ss_dsp, 'func', ['e', 'a'], ['c', 'd', 'b'])
+        sub_disfun = partial(ss_dsp_func, 5)
 
         s_dsp = Dispatcher()
 
@@ -151,6 +151,7 @@ class TestDispatcherGetSubNode(unittest.TestCase):
         self.sub_dispatch = sub_disfun
         self.s_dsp = s_dsp
         self.ss_dsp = ss_dsp
+        self.ss_dsp_func = ss_dsp_func
 
     def test_get_sub_node(self):
         dsp = self.dsp
@@ -212,3 +213,15 @@ class TestDispatcherGetSubNode(unittest.TestCase):
 
         self.assertRaises(ValueError, get_sub_node, dsp, ('dispatch', 'b', 'c'))
         self.assertRaises(ValueError, get_sub_node, dsp, ('dispatch', 'e'))
+
+    @unittest.skip
+    def test_get_full_node_id(self):
+        ss_dsp = self.ss_dsp_func.dsp
+        dsp = self.dsp
+        v, parents = get_full_node_id('module:fun', ss_dsp)
+        self.assertEqual(v, ('dispatch', 'sub_dispatch', 'module:fun'))
+        self.assertEqual(parents, (dsp, self.s_dsp, ss_dsp))
+
+        v, dsp = get_full_node_id('module:fun', dsp)
+        self.assertEqual(v, ('module:fun',))
+        self.assertEqual(dsp, (self.dsp,))

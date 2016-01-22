@@ -152,7 +152,7 @@ def map_list(key_map, *inputs, copy=False):
 
     :param key_map:
         A list that maps the dict keys ({old key: new key}
-    :type key_map: [str, dict, ...]
+    :type key_map: list[str | dict | list]
 
     :param inputs:
         A sequence of dicts.
@@ -198,7 +198,7 @@ def map_list(key_map, *inputs, copy=False):
     return combine_dicts(d, copy=copy)  # Return dict.
 
 
-def selector(keys, dictionary, copy=True, output_type='dict', allow_miss=False):
+def selector(keys, dictionary, copy=False, output_type='dict', allow_miss=False):
     """
     Selects the chosen dictionary keys from the given dictionary.
 
@@ -303,15 +303,26 @@ class add_args(object):
         7
     """
 
-    def __init__(self, func, n=1):
-        self.func = func
-        self.n = n
-        self.__name__ = func.__name__
-        self.__doc__ = func.__doc__
-        self.__signature__ = _get_signature(func, n)
+    def __init__(self, func, n=1, callback=None):
+        try:
+            self.__name__ = func.__name__
+            self.__doc__ = func.__doc__
+            self.__signature__ = _get_signature(func, n)
+            self.func = func
+            self.n = n
+            self.callback = callback
+        except:
+            from .des import parent_func
+            add_args.__init__(self, parent_func(func), n=n, callback=callback)
+            self.func = func
 
     def __call__(self, *args, **kwargs):
-        return self.func(*args[self.n:], **kwargs)
+        res = self.func(*args[self.n:], **kwargs)
+
+        if self.callback:
+            self.callback(res, *args, **kwargs)
+
+        return res
 
 
 def _get_signature(func, n=1):
@@ -461,7 +472,7 @@ class SubDispatch(object):
         # Set output.
         if self.output_type in ('list', 'dict'):
             try:
-                o = selector(outs, o, copy=False, output_type=self.output_type)
+                o = selector(outs, o, output_type=self.output_type)
             except KeyError:
                 missed = set(outs).difference(o) # Outputs not reached.
 
@@ -470,6 +481,9 @@ class SubDispatch(object):
                       'outputs: {}'.format(missed, o.keys())
 
                 raise DispatcherError(dsp, msg)
+        elif self.output_type == 'dsp':
+            return dsp
+
         return o  # Return outputs.
 
     def plot(self, workflow=False, edge_data=EMPTY, view=True, depth=-1,
@@ -1008,8 +1022,8 @@ class SubDispatchPipe(SubDispatchFunction):
             # Time elapsed.
             attr['duration'] = datetime.today() - attr['started']
 
-            from .des import get_parent_func
-            fun = get_parent_func(fun)  # Get parent function (if nested).
+            from .des import parent_func
+            fun = parent_func(fun)  # Get parent function (if nested).
             if isinstance(fun, SubDispatch):  # Save intermediate results.
                 attr['workflow'] = (fun.workflow, fun.data_output, fun.dist)
 

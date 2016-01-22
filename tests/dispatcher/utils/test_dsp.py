@@ -43,7 +43,7 @@ class TestDispatcherUtils(unittest.TestCase):
 
         args = (['a', 'b'], {'a': 1, 'b': object(), 'c': 3})
         res = {'a': 1, 'b': args[1]['b']}
-        self.assertNotEqual(selector(*args), res)
+        self.assertEqual(selector(*args), res)
 
         self.assertEqual(selector(*args, copy=False), res)
 

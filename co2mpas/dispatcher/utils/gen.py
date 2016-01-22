@@ -90,6 +90,7 @@ class Token(str):
     def __deepcopy__(self, memo):
         return self
 
+
 def pairwise(iterable):
     """
     A sequence of overlapping sub-sequences.

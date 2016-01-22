@@ -4,7 +4,7 @@ from co2mpas.dispatcher import Dispatcher
 from co2mpas.dispatcher.utils.drw import plot, _func_name
 from co2mpas.dispatcher.utils.dsp import SubDispatch
 from co2mpas.dispatcher.utils.des import search_node_description, get_summary, \
-    get_parent_func
+    parent_func
 # ------------------------------------------------------------------------------
 # Doctest handling
 # ------------------------------------------------------------------------------
@@ -136,7 +136,7 @@ def _functions(lines, dsp, function_module, node_type='function'):
             return False
 
         if 'function' in node_attr:
-            func = get_parent_func(node_attr['function'])
+            func = parent_func(node_attr['function'])
             c = isinstance(func, (Dispatcher, SubDispatch))
             return c if node_type == 'dispatcher' else not c
         return node_attr['type'] == node_type

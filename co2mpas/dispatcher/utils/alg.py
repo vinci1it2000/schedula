@@ -16,11 +16,11 @@ from heapq import heappush, heappop
 from .gen import pairwise, counter
 from .cst import EMPTY, NONE
 from .dsp import SubDispatch
-from .des import get_parent_func, search_node_description
+from .des import parent_func, search_node_description
 from networkx import is_isolate
 
 
-__all__ = ['scc_fun', 'dijkstra', 'get_sub_node']
+__all__ = ['scc_fun', 'dijkstra', 'get_sub_node', 'get_full_node_id']
 
 
 # modified from NetworkX library
@@ -413,7 +413,7 @@ def get_sub_node(dsp, path, node_attr='auto', _level=0, _dsp_name=NONE):
 
         try:
             dsp = node['function']  # Get function or sub-dispatcher node.
-            dsp = get_parent_func(dsp)  # Get parent function.
+            dsp = parent_func(dsp)  # Get parent function.
         except KeyError:
             msg = 'Node of path %s at level %i is not a function or ' \
                   'sub-dispatcher node of %s ' \
@@ -442,6 +442,32 @@ def get_sub_node(dsp, path, node_attr='auto', _level=0, _dsp_name=NONE):
 
         return data, tuple(path)  # Return the data
 
+
+def get_full_node_id(node_id, dsp, l=None):
+    """
+    Returns the full node id.
+
+    :param node_id:
+        Node id.
+    :type node_id: str
+
+    :param dsp:
+        Parent dispatcher.
+    :type dsp: dispatcher.Dispatcher
+
+    :return:
+        Full node id.
+    :rtype: tuple[str]
+    """
+
+    def _(n, d):
+        if d._parent:
+            l = _(*d._parent)
+            l.append((n, d))
+            return l
+
+        return [(n, d)]
+    return zip(*_(node_id, dsp))
 
 # Modified from NetworkX library.
 def scc_fun(graph, nodes_bunch=None):

@@ -26,7 +26,7 @@ from functools import partial
 import html
 import logging
 from pathlib import Path
-from .des import get_parent_func, search_node_description
+from .des import parent_func, search_node_description
 from .io import mkdirs
 from .alg import stlp
 
@@ -258,7 +258,7 @@ def _fun_node_label(node_id, node_name, attr=None, dist=None):
 
 def _fun_attr(k, v):
     if k in ['input_domain']:
-        v = v.__name__
+        v = parent_func(v).__name__
     return _html_encode(v)
 
 
@@ -325,7 +325,7 @@ def _set_node(dot, node_id, dsp2dot_id, dsp=None, node_attr=None, values=None,
             node_name = _func_name(node_id, function_module)
             label_attr = workflow_node if dist else node_attr
             node_label = _fun_node_label(node_id, node_name, label_attr, dist)
-            fun, n_args = get_parent_func(node_attr.get('function', None), 0)
+            fun, n_args = parent_func(node_attr.get('function', None), 0)
 
             if node_type == 'dispatcher' or isinstance(fun, SubDispatch):
                 kw['style'] = 'dashed, filled'

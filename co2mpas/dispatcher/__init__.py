@@ -39,9 +39,8 @@ from .utils.alg import add_edge_fun, remove_edge_fun, rm_cycles_iter, \
 from .utils.cst import EMPTY, START, NONE, SINK
 from .utils.dsp import SubDispatch, bypass, combine_dicts
 from .utils.drw import plot
-from .utils.des import get_parent_func
+from .utils.des import parent_func
 from .utils.exc import DispatcherError
-
 
 log = logging.getLogger(__name__)
 
@@ -544,7 +543,7 @@ class Dispatcher(object):
                 # noinspection PyUnresolvedReferences
                 function_name = '%s:%s' % (func.__module__, func.__name__)
             except Exception as ex:
-                raise ValueError('Invalid function name due to:\n{}'.format(ex))
+                raise ValueError('Invalid function id due to:\n{}'.format(ex))
         else:
             function_name = function_id
 
@@ -581,12 +580,12 @@ class Dispatcher(object):
         :param inputs:
             Inputs mapping. Data node ids from parent dispatcher to child
             sub-dispatcher.
-        :type inputs: dict[str, str | tuple]
+        :type inputs: dict[str, str | list[str]]
 
         :param outputs:
             Outputs mapping. Data node ids from child sub-dispatcher to parent
             dispatcher.
-        :type outputs: dict[str, str | tuple]
+        :type outputs: dict[str, str | list[str]]
 
         :param dsp_id:
             Sub-dispatcher node id.
@@ -686,8 +685,9 @@ class Dispatcher(object):
 
         # Return dispatcher node id.
         dsp_id = self.add_function(
-            dsp_id, dsp, inputs, parents, input_domain, weight,
-            _weight_from, type='dispatcher', description=description, **kwargs)
+                dsp_id, dsp, inputs, parents, input_domain, weight,
+                _weight_from, type='dispatcher', description=description,
+                **kwargs)
 
         # Set proper outputs.
         self.nodes[dsp_id]['outputs'] = outputs
@@ -1128,7 +1128,10 @@ class Dispatcher(object):
             neighbors, dmap_succ = graph.neighbors_iter, self.dmap.succ
             succ, pred = sub_dsp.dmap.succ, sub_dsp.dmap.pred
 
-            def check_node_inputs(c):
+            def check_node_inputs(c, p):
+                if c == START:
+                    return True
+
                 node_attr = dmap_nodes[c]
 
                 if node_attr['type'] == 'function':
@@ -1150,7 +1153,13 @@ class Dispatcher(object):
             neighbors, dmap_succ = graph.predecessors_iter, self.dmap.pred
             pred, succ = sub_dsp.dmap.succ, sub_dsp.dmap.pred
 
-            def check_node_inputs(c):
+            def check_node_inputs(c, p):
+                if c == START:
+                    try:
+                        node_attr = dmap_nodes[p]
+                        return node_attr['type'] == 'data'
+                    except KeyError:
+                        return True
                 return False
 
         queue = deque([])
@@ -1185,7 +1194,7 @@ class Dispatcher(object):
             # Iterate parent's children.
             for child in family[parent]:
 
-                if child == START or check_node_inputs(child):
+                if check_node_inputs(child, parent):
                     continue
 
                 if child not in family:
@@ -1308,7 +1317,8 @@ class Dispatcher(object):
         :rtype: dict[str, dict]
         """
 
-        return {k: v for k, v in self.nodes.items() if v['type'] == 'dispatcher'}
+        return {k: v for k, v in self.nodes.items() if
+                v['type'] == 'dispatcher'}
 
     def copy(self):
         """
@@ -1884,7 +1894,7 @@ class Dispatcher(object):
                     for j in m:
                         in_d[j] = d = _in_dist(l)
                         if (d, j) > max_d:
-                             in_d.pop(j), inp.pop(l)
+                            in_d.pop(j), inp.pop(l)
 
                 for l in set(pred[k]) - set(inp):
                     rm_edge(l, k)
@@ -2202,10 +2212,11 @@ class Dispatcher(object):
             n_type = a['type']  # Namespace shortcut.
 
             # With a domain.
-            if all_domain and n_type in ('function', 'dispatcher') and 'input_domain' in a:
+            if all_domain and n_type in (
+            'function', 'dispatcher') and 'input_domain' in a:
                 # Nodes estimated from functions with a domain function.
                 if n_type == 'dispatcher':
-                    it = a['outputs'] .values()
+                    it = a['outputs'].values()
                 else:
                     it = a['outputs']
 
@@ -2355,7 +2366,7 @@ class Dispatcher(object):
             if value is not NONE:  # Set data output.
                 self.data_output[node_id] = value
 
-            value = {'value': value}   # Output value.
+            value = {'value': value}  # Output value.
         else:
             self.data_output[node_id] = NONE  # Set data output.
 
@@ -2437,7 +2448,7 @@ class Dispatcher(object):
                 res = fun(*args)
                 attr['duration'] = datetime.today() - attr['started']
 
-                fun = get_parent_func(fun)  # Get parent function (if nested).
+                fun = parent_func(fun)  # Get parent function (if nested).
                 if isinstance(fun, SubDispatch):  # Save intermediate results.
                     attr['workflow'] = (fun.workflow, fun.data_output, fun.dist)
 
@@ -2449,7 +2460,7 @@ class Dispatcher(object):
 
         except Exception as ex:
             if isinstance(ex, DispatcherError):  # Save intermediate results.
-                dsp = get_parent_func(ex.dsp)
+                dsp = parent_func(ex.dsp)
                 attr['workflow'] = (dsp.workflow, dsp.data_output, dsp.dist)
                 attr['duration'] = datetime.today() - attr['started']
 
@@ -2988,7 +2999,7 @@ class Dispatcher(object):
         :type initial_dist: int, float
 
         :return:
-            If the input have been setted.
+            If the input have been set.
         :rtype: bool
         """
 
