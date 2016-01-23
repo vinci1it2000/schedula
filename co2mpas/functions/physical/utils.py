@@ -21,6 +21,7 @@ from collections import OrderedDict
 import co2mpas.dispatcher.utils as dsp_utl
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline
+from scipy.misc import derivative as scipy_derivative
 
 try:
     isidentifier = str.isidentifier
@@ -31,7 +32,8 @@ except AttributeError:
 
 __all__ = [
     'grouper', 'sliding_window', 'median_filter', 'reject_outliers',
-    'bin_split', 'interpolate_cloud', 'clear_fluctuations', 'argmax'
+    'bin_split', 'interpolate_cloud', 'clear_fluctuations', 'argmax',
+    'derivative'
 ]
 
 
@@ -330,3 +332,9 @@ def clear_fluctuations(times, gears, dt_window):
                 up, dn = (None, None)
 
     return np.array([y[1] for y in xy])
+
+
+def derivative(x, y, dx=1, order=3, k=1):
+    func = InterpolatedUnivariateSpline(x, y, k=k)
+
+    return scipy_derivative(func, x, dx=dx, order=order)
