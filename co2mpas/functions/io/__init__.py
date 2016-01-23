@@ -56,10 +56,10 @@ def _comparison2df(data):
             d = {'param_id': i}
             d.update(j)
             r.append(d)
+    if res:
+        res = {'comparison': _dd2df(res, 'param_id', depth=3, axis=1)}
 
-    res = _dd2df(res, 'param_id', depth=3, axis=1)
-
-    return {'comparison': res}
+    return res
 
 
 def _dd2df(dd, index, depth=0, axis=1):
@@ -115,7 +115,8 @@ def _scores2df(data):
             _extend_errors_raws(df, k, m.get(i, {}), cycles[1:])
 
     idx = ['model_id', 'from', 'selected', 'passed', 'selected_models']
-    frames = [pd.DataFrame(dfs[k]).set_index(idx) for k in cycles]
+    c = [n for n in cycles if n in dfs]
+    frames = [pd.DataFrame(dfs[k]).set_index(idx) for k in c]
     df = pd.concat(frames, axis=1, keys=cycles)
 
     for k, v in list(edf.items()):

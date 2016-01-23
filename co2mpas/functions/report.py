@@ -308,31 +308,34 @@ def _map_cycle_report_graphs():
 
 def _get_cycle_time_series(data):
     ids = ['targets', 'calibrations', 'predictions']
-    d = dsp_utl.selector(ids, data, allow_miss=True)
-    d = dsp_utl.map_dict({k: k[:-1] for k in ids}, d)
+    data = dsp_utl.selector(ids, data, allow_miss=True)
+    data = dsp_utl.map_dict({k: k[:-1] for k in ids}, data)
     ts = 'time_series'
-    d = {k: v[ts] for k, v in d.items() if ts in v and v[ts]}
+    data = {k: v[ts] for k, v in data.items() if ts in v and v[ts]}
 
-    if 'target' in d and 'times' not in d['target']:
-        t = d['target'] = d['target'].copy()
-        if 'calibration' in d and 'times' in d['calibration']:
-            t['times'] = d['calibration']['times']
-        elif 'prediction' in d and 'times' in d['prediction']:
-            t['times'] = d['prediction']['times']
+    if 'target' in data and 'times' not in data['target']:
+        t = data['target'] = data['target'].copy()
+        if 'calibration' in data and 'times' in data['calibration']:
+            t['times'] = data['calibration']['times']
+        elif 'prediction' in data and 'times' in data['prediction']:
+            t['times'] = data['prediction']['times']
         else:
-            d.pop('target')
+            data.pop('target')
 
     _map = _map_cycle_report_graphs()
 
     for k, v in list(_map.items()):
         xs, ys, labels, label = [], [], [], v.pop('label', '')
 
-        def _append_data(data, s='%s'):
-            xs.append(data['times'])
-            ys.append(data[k])
-            labels.append(s % label)
+        def _append_data(d, s='%s'):
+            try:
+                xs.append(d['times'])
+                ys.append(d[k])
+                labels.append(s % label)
+            except KeyError:
+                pass
 
-        for i, j in d.items():
+        for i, j in data.items():
             if k in j:
                 _append_data(j, s=i + ' %s')
 

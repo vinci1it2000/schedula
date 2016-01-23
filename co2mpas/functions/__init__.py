@@ -251,7 +251,7 @@ def _process_folder_files(
         from .io import _get
         from .io.excel import _iter_d
 
-        for k, v in _iter_d(s):
+        for k, v in _iter_d(s, depth=2):
             _get(summary, *k, default=list).append(v)
 
         if plot_workflow:
