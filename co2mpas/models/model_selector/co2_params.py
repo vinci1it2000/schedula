@@ -79,7 +79,7 @@ def co2_params_model_selector(
     )
 
     dsp.add_function(
-        function=co2_sort_models,
+        function=partial(co2_sort_models, weights=_weights),
         inputs=['rank<0>'] + [errors[-1]],
         outputs=['rank']
     )

@@ -23,6 +23,7 @@ Modules:
 
 import logging
 from ..model_selector import sort_models
+import copy
 
 
 log = logging.getLogger(__name__)
@@ -48,14 +49,14 @@ def calibrate_co2_params_ALL(rank, *data, data_id=None):
         status = [(True, initial_guess), (None, None), (None, None)]
 
         p, s = calibrate_model_params(err_func, initial_guess)
-        status.append(s)
+        status.append((s, copy.copy(p)))
         return {'co2_params_calibrated': p, 'calibration_status': status}
     except:
         return {}
 
 
 def co2_sort_models(rank, *data, weights=None):
-    r = sort_models(*data, weights=None)
+    r = sort_models(*data, weights=weights)
     r.extend(rank)
     f = lambda x: [(-x[0]['success'], -x[0]['n'], x[0]['score'])] + x[1:]
     return list(sorted(r, key=f))
