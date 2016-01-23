@@ -381,19 +381,13 @@ def _calibrate_TPSA(T, dT, gear_box_powers_in, gear_box_speeds_in, accelerations
 
 
 def _get_samples(times, engine_coolant_temperatures, on_engine):
+    from ..utils import derivative
+    dT = derivative(times, engine_coolant_temperatures)[1:]
     dt = np.diff(times)
-    dT = np.diff(engine_coolant_temperatures) / dt
-
     i = max(argmax(on_engine), argmax(times > 10), argmax(dT != 0))
     dt, dT = dt[i:], dT[i:]
-
-    if sum(dT == 0) / len(dT) > 0.5:
-        T = median_filter(
-            times, engine_coolant_temperatures, TIME_WINDOW, np.mean)[i:]
-        dT = np.array(np.diff(T) / dt, np.float64, order='C')
-    else:
-        T = engine_coolant_temperatures[i:]
-        dT = np.array(dT, np.float64, order='C')
+    T = engine_coolant_temperatures[i:]
+    dT = np.array(dT, np.float64, order='C')
     return T, dT, dt, i
 
 
