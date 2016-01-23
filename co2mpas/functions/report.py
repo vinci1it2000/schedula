@@ -11,188 +11,9 @@ It contains reporting functions for output results.
 
 
 from collections import Iterable, OrderedDict
-from .write import check_writeable
 import numpy as np
 from sklearn.metrics import mean_absolute_error, accuracy_score
-from .plot import make_cycle_graphs
 import co2mpas.dispatcher.utils as dsp_utl
-
-
-def _get_sheet_summary_actions():
-    def check_printable(tag, data):
-        mods = {'errors calibrated_models', 'errors AT_gear_shifting_model',
-                'origin calibrated_models'}
-
-        if tag in mods:
-            return True
-
-        if not isinstance(data, str) and isinstance(data, Iterable):
-            return len(data) <= 10
-        return True
-
-    def basic_filter(value, data, tag):
-        try:
-            if not check_printable(tag, value):
-                b = value > 0
-                if b.any():
-                    return np.mean(value[b])
-                else:
-                    return
-        except:
-            pass
-        return value
-
-    filters = {None: (basic_filter,)}
-
-    sheets = {
-        'TRG NEDC': {
-            'results': {
-                'output': 'nedc_targets',
-                'check': check_printable,
-                'filters': filters
-            },
-        },
-        'PRE NEDC': {
-            'results': {
-                'output': 'prediction_nedc_outputs',
-                'check': check_printable,
-                'filters': filters
-            },
-        },
-        'CAL WLTP-H': {
-            'results': {
-                'output': 'calibration_wltp_h_outputs',
-                'check': check_printable,
-                'filters': filters
-            }
-        },
-        'CAL WLTP-PRECON': {
-            'results': {
-                'output': 'precondition_cycle_outputs',
-                'check': check_printable,
-                'filters': filters
-            }
-        },
-        'CAL WLTP-L': {
-            'results': {
-                'output': 'calibration_wltp_l_outputs',
-                'check': check_printable,
-                'filters': filters
-            }
-        },
-        'PRE WLTP-H': {
-            'results': {
-                'output': 'prediction_wltp_h_outputs',
-                'check': check_printable,
-                'filters': filters
-            }
-        },
-        'PRE WLTP-L': {
-            'results': {
-                'output': 'prediction_wltp_l_outputs',
-                'check': check_printable,
-                'filters': filters
-            }
-        },
-    }
-
-    return sheets
-
-
-def _make_summary(sheets, workflow, results, **kwargs):
-
-    summary = {}
-
-    for sheet, to_dos in sheets.items():
-
-        s = {}
-
-        for item, to_do in to_dos.items():
-            try:
-                item = eval(item)
-            except:
-                item = {}
-
-            if 'output' in to_do:
-                result = item.get(to_do['output'], {})
-            else:
-                result = {}
-
-            output_keys = to_do.get('output_keys', result.keys())
-
-            filters = to_do.get('filters', {})
-            post_processes = to_do.get('post_process', {})
-            check = to_do.get('check', lambda *args: True)
-
-            data = {}
-            data.update({k: result[k] for k in output_keys if k in result})
-            if not data:
-                continue
-            data.update(kwargs)
-
-            for k, v in sorted(data.items()):
-                try:
-                    for filter in filters.get(k, filters.get(None, ())):
-                        v = filter(v, data, k)
-
-                    if not check_writeable(v):
-                        continue
-
-                    s.update(_parse_outputs(k, v, check))
-                except Exception as ex:
-                    pass
-
-            for k, post_process in post_processes.items():
-                try:
-                    s.update(post_process(*tuple(eval(k))))
-                except:
-                    pass
-        if s:
-            summary[sheet] = s
-
-    return summary
-
-
-def add_vehicle_to_summary(summary, results, fname, workflow=None, sheets=None):
-
-    sheets = sheets or _get_sheet_summary_actions()
-
-    s = _make_summary(sheets, workflow, results, **{'vehicle': fname})
-
-    s.update(_extract_summary(s))
-
-    for k, v in s.items():
-        summary[k] = l = summary.get(k, [])
-        l.append(v)
-
-
-def _extract_summary(summaries):
-    s = {}
-    tags = ('co2_emission_value', 'phases_co2_emissions', 'comparison')
-    if 'PRE NEDC' in summaries:
-        for k, v in summaries['PRE NEDC'].items():
-            if k == 'vehicle' or k[:11] == 'co2_params ':
-                s[k] = v
-            elif any(i in k for i in tags) or 'calibration_status' in k:
-                s['NEDC %s' % k] = v
-
-    sub_s = [
-        ('target NEDC', 'TRG NEDC'),
-        ('target WLTP-H', 'CAL WLTP-H'),
-        ('target WLTP-L', 'CAL WLTP-L'),
-        ('WLTP-H', 'PRE WLTP-H'),
-        ('WLTP-L', 'PRE WLTP-L')
-    ]
-
-    for c, i in sub_s:
-        if i in summaries:
-            for k, v in summaries[i].items():
-                if any(i in k for i in tags):
-                    s['%s %s' % (c, k)] = v
-
-    return {'SUMMARY': s}
-
-
 
 
 def _metrics(t, o, metrics):
@@ -242,65 +63,97 @@ def compare_outputs_vs_targets(data):
     return res
 
 
-def make_graphs(data):
-    return make_cycle_graphs(_get_time_series(data))
-
-
 def _map_cycle_report_graphs():
     _map = OrderedDict()
 
     _map['fuel_consumptions'] = {
         'label': 'fuel consumption',
-        'title': 'Fuel consumption',
-        'y_label': 'Fuel consumption [g/s]'
+        'set': {
+            'title': {'name': 'Fuel consumption'},
+            'y_axis': {'name': 'Fuel consumption [g/s]'},
+            'x_axis': {'name': 'Time [s]'},
+            'legend': {'position': 'bottom'}
+        }
     }
 
     _map['engine_speeds_out'] = {
         'label': 'engine speed',
-        'title': 'Engine speed [RPM]',
-        'y_label': 'Engine speed [RPM]'
+        'set': {
+            'title': {'name': 'Engine speed [RPM]'},
+            'y_axis': {'name': 'Engine speed [RPM]'},
+            'x_axis': {'name': 'Time [s]'},
+            'legend': {'position': 'bottom'}
+        }
     }
 
     _map['engine_powers_out'] = {
         'label': 'engine power',
-        'title': 'Engine power [kW]',
-        'y_label': 'Engine power [kW]'
+        'set': {
+            'title': {'name': 'Engine power [kW]'},
+            'y_axis': {'name': 'Engine power [kW]'},
+            'x_axis': {'name': 'Time [s]'},
+            'legend': {'position': 'bottom'}
+        }
     }
 
     _map['velocities'] = {
         'label': 'velocity',
-        'title': 'Velocity [km/h]',
-        'y_label': 'Velocity [km/h]'
+        'set': {
+            'title': {'name': 'Velocity [km/h]'},
+            'y_axis': {'name': 'Velocity [km/h]'},
+            'x_axis': {'name': 'Time [s]'},
+            'legend': {'position': 'bottom'}
+        }
     }
 
     _map['engine_coolant_temperatures'] = {
         'label': 'engine coolant temperature',
-        'title': 'Engine temperature [°C]',
-        'y_label': 'Engine temperature [°C]'
+        'set': {
+            'title': {'name': 'Engine temperature [°C]'},
+            'y_axis': {'name': 'Engine temperature [°C]'},
+            'x_axis': {'name': 'Time [s]'},
+            'legend': {'position': 'bottom'}
+        }
     }
 
     _map['state_of_charges'] = {
         'label': 'SOC',
-        'title': 'State of charge [%]',
-        'y_label': 'State of charge [%]'
+        'set': {
+            'title': {'name': 'State of charge [%]'},
+            'y_axis': {'name': 'State of charge [%]'},
+            'x_axis': {'name': 'Time [s]'},
+            'legend': {'position': 'bottom'}
+        }
     }
 
     _map['battery_currents'] = {
         'label': 'battery current',
-        'title': 'Battery current [A]',
-        'y_label': 'Battery current [A]'
+        'set': {
+            'title': {'name': 'Battery current [A]'},
+            'y_axis': {'name': 'Battery current [A]'},
+            'x_axis': {'name': 'Time [s]'},
+            'legend': {'position': 'bottom'}
+        }
     }
 
     _map['alternator_currents'] = {
         'label': 'alternator current',
-        'title': 'Generator current [A]',
-        'y_label': 'Generator current [A]'
+        'set': {
+            'title': {'name': 'Generator current [A]'},
+            'y_axis': {'name': 'Generator current [A]'},
+            'x_axis': {'name': 'Time [s]'},
+            'legend': {'position': 'bottom'}
+        }
     }
 
     _map['gear_box_temperatures'] = {
         'label': 'gear box temperature',
-        'title': 'Gear box temperature [°C]',
-        'y_label': 'Gear box temperature [°C]'
+        'set': {
+            'title': {'name': 'Gear box temperature [°C]'},
+            'y_axis': {'name': 'Gear box temperature [°C]'},
+            'x_axis': {'name': 'Time [s]'},
+            'legend': {'position': 'bottom'}
+        }
     }
 
     return _map
@@ -347,15 +200,61 @@ def _get_cycle_time_series(data):
     return _map
 
 
-def _get_time_series(data):
-    res = {}
+def get_chart_reference(data):
+    r = {}
+    from .io.excel import _iter_d
+    from .io import _get
+    _map = _map_cycle_report_graphs()
 
-    for k, v in data.items():
-        r = _get_cycle_time_series(v)
-        if r:
-            res[k] = r
+    for k, v in sorted(_iter_d(data)):
+        if k[1] not in ('calibrations', 'predictions', 'targets'):
+            continue
+        m = _map.get(k[-1], None)
+        if m and k[-2] == 'time_series':
+            try:
+                d = {
+                    'x': _ref_targets(_search_times(k[:-1], data, v)),
+                    'y': _ref_targets(k),
+                    'label': '%s %s' % (k[1][:-1], m['label'])
+                }
+                _get(r, k[0], k[-1], 'series', default=list).append(d)
+            except:
+                pass
 
-    return res
+    for k, v in _iter_d(r, depth=2):
+        m = _map[k[1]]
+        m.pop('label', None)
+        v.update(m)
+
+    return r
+
+
+def _search_times(path, data, vector):
+    from .io import _get
+    t = 'times'
+    ts = 'time_series'
+
+    if t not in _get(data, *path):
+        if path[1] == 'targets':
+            c, v = data[path[0]], vector
+
+            for i in ('calibrations', 'predictions'):
+                if i in c and ts in c[i] and t in c[i][ts]:
+                    if len(c[i][ts][t]) == len(v):
+                        return (path[0], i) + path[2:] + (t,)
+
+    else:
+        return path + (t,)
+    raise
+
+
+def _ref_targets(path):
+    if path[1] == 'targets':
+        path = list(path)
+        path[1] = 'inputs'
+        path[-1] = 'target %s' % path[-1]
+
+    return path
 
 
 def _parse_outputs(tag, data):

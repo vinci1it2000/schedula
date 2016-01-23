@@ -17,7 +17,7 @@ from collections import Iterable
 from pandalone.xleash import lasso
 from pandalone.xleash.io._xlrd import _open_sheet_by_name_or_index
 import shutil
-import openpyxl
+import xlsxwriter
 from itertools import chain
 
 
@@ -245,7 +245,6 @@ def get_filters(from_outputs=False):
         parameters['gear_box_ratios'] = (_try_eval, empty_dict)
         parameters['velocity_speed_ratios'] = (_try_eval, empty_dict)
 
-
     return _filters
 
 
@@ -280,8 +279,6 @@ def merge_inputs(cycle_name, parameters, series, _filters=None):
         i, t = parse_inputs(data, _filters[map_tag], cycle_name)
         inputs.update(i)
         targets.update(t)
-
-
 
     return inputs, targets
 
@@ -340,27 +337,33 @@ def write_to_excel(data, output_file_name, template=''):
                  output_file_name, template)
         shutil.copy(template, output_file_name)
 
-        book = openpyxl.load_workbook(output_file_name)
-        writer = pd.ExcelWriter(output_file_name, engine='openpyxl')
+        book = xlsxwriter.Workbook(output_file_name)
+        writer = pd.ExcelWriter(output_file_name, engine='xlsxwriter')
 
         writer.book = book
         writer.sheets = dict((ws.title, ws) for ws in book.worksheets)
     else:
         log.debug('Writing into xl-file(%s)...', output_file_name)
-        writer = pd.ExcelWriter(output_file_name)
+        writer = pd.ExcelWriter(output_file_name, engine='xlsxwriter')
+        book = writer.book
 
     for k, v in sorted(_iter_d(data)):
-        shname = '-'.join(k)
-        if shname == 'comparison':
-            _df2excel(writer, shname, v)
-        elif shname == 'selection_scores':
+
+        if k[0] == 'comparison':
+            _df2excel(writer, k[0], v)
+        elif k[0] == 'selection_scores':
             i = 0
             for v in v:
-                if _df2excel(writer, shname, v, startrow=i):
+                if _df2excel(writer, k[0], v, startrow=i):
                     i += v.shape[0] + 4
-        else:
-            _df2excel(writer, shname, v, index=False,
+        elif k[0] != 'graphs':
+            _df2excel(writer, '-'.join(k), v, index=False,
                       header='time_series' not in k)
+
+    for k, v in sorted(_iter_d(data, depth=2)):
+        if k[0] == 'graphs':
+            shname = '-'.join(k)
+            _chart2excel(writer, shname, book, v)
 
     writer.save()
     log.info('Written into xl-file(%s)...', output_file_name)
@@ -372,6 +375,36 @@ def _df2excel(writer, shname, df, **kw):
         return True
     return False
 
+
+def _chart2excel(writer, shname, book, charts):
+    sheet = book.add_worksheet(shname)
+    m, h, w = 3, 300, 500
+
+    for i, (k, v) in enumerate(sorted(charts.items())):
+        chart = book.add_chart({'type': 'line'})
+        for s in v['series']:
+            chart.add_series({
+                'name': s['label'],
+                'categories': _search_data_ref(writer, s['x']),
+                'values': _search_data_ref(writer, s['y']),
+            })
+        chart.set_size({'width': w, 'height': h})
+
+        for s, o in v['set'].items():
+            eval('chart.set_%s(o)' % s)
+
+        n = int(i / m)
+        j = i - n * m
+        sheet.insert_chart('A1', chart, {'x_offset': w * n ,'y_offset': h * j})
+
+
+def _search_data_ref(writer, ref):
+    shname = '-'.join(ref[:-1])
+
+    sheet = writer.sheets[shname]
+    istr = sheet.str_table.string_table[ref[-1]]
+    col = next(k for k, v in sheet.table[1].items() if v.string == istr)
+    return [shname, 2, col, max(sheet.table), col]
 
 def _iter_d(d, key=(), depth=-1):
     if depth == 0:

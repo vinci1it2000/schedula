@@ -51,7 +51,7 @@ def report():
     )
 
     dsp.add_function(
-        function=make_graphs,
+        function=get_chart_reference,
         inputs=['output_data'],
         outputs=['graphs']
     )
