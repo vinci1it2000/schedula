@@ -10,8 +10,8 @@ It contains functions that model the basic mechanics of the vehicle.
 """
 
 
-import numpy as np
 from math import cos, sin
+from .utils import derivative
 
 
 def calculate_accelerations(times, velocities):
@@ -31,13 +31,7 @@ def calculate_accelerations(times, velocities):
     :rtype: numpy.array
     """
 
-    delta_time = np.diff(times)
-
-    x = times[:-1] + delta_time / 2
-
-    y = np.diff(velocities) / 3.6 / delta_time
-
-    return np.interp(times, x, y)
+    return derivative(times, velocities / 3.6, k=1, dx=1, order=3)
 
 
 def calculate_aerodynamic_resistances(f2, velocities):
