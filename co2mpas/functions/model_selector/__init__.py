@@ -400,8 +400,8 @@ def AT_models_selector(AT_models, data):
         m = [(v[-1], {t: v for t, v in zip(tags, v[1])}) for v in m]
         data['errors AT_gear_shifting_model'] = m
 
-        log.info('AT_gear_shifting_model: %s with accuracy_score %.3f, '
-                 'mean_absolute_error %.3f [RPM] and correlation_coefficient '
-                 '%.3f.', k, e[0], e[1], e[2])
+        log.debug('AT_gear_shifting_model: %s with accuracy_score %.3f, '
+                  'mean_absolute_error %.3f [RPM] and correlation_coefficient '
+                  '%.3f.', k, e[0], e[1], e[2])
 
     return models
