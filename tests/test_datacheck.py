@@ -1,12 +1,16 @@
 from co2mpas.__main__ import init_logging
-from co2mpas.functions import _process_folder_files
-import json
+from co2mpas.models import vehicle_processing_model
+from co2mpas.functions import _file_iterator, _iter_d
+import co2mpas.dispatcher.utils as dsp_utl
 import os
 import os.path as osp
 import sys
 import tempfile
 import unittest
 import logging
+import numpy as np
+from sklearn.metrics import mean_absolute_error
+from pprint import pformat
 
 
 ## Set this to `True` to update setbelt data.
@@ -29,60 +33,84 @@ log = logging.getLogger(__name__)
 
 class SeatBelt(unittest.TestCase):
 
-    def _check_summaries(self, new_sums, old_sums):
+    def _check_results(self, new_res, old_res):
 
         msg = "AssertionError: %f not less than or equal to %f\n" \
               "Failed [%r]: %s !~= %s"
 
         fail = []
 
-        for i, (summary, old_summary) in enumerate(zip(new_sums, old_sums)):
+        for i, (results, old_results) in enumerate(zip(new_res, old_res)):
             err = []
-            for k, ov in sorted(old_summary.items()):
+            results = dict(results)
+            for k, ov in old_results:
+                if k not in results:
+                    err.append("Failed [%r]: missing" % k)
+                    continue
 
-                nv = summary[k]
-                if DATA_DIFF_RATIO == 0:
-                    if nv != ov:
+                nv = results[k]
+                ratio = _has_difference(nv, ov)
+                if ratio:
+                    nv, ov = pformat(nv), pformat(ov)
+                    if DATA_DIFF_RATIO == 0:
                         err.append("Failed [%r]: %s !~= %s"%(k, nv, ov))
-                else:
-                    if isinstance(nv, str):
-                        ratio = DATA_DIFF_RATIO + 1 if nv != ov else 0
                     else:
-                        ratio = abs(nv - ov) / max(abs(min(nv, ov)), EPS)
-                    if ratio > DATA_DIFF_RATIO:
                         err.append(msg %(ratio, DATA_DIFF_RATIO, k, nv, ov))
 
             if err:
-                err = ["\nFailed summary[%i]:\n" % i] + err
-                err.append('  +--NEW: %s' % sorted(summary.items()))
-                err.append('  +--OLD: %s' % sorted(old_summary.items()))
+                err = ["\nFailed results[%i]:\n" % i] + err
+                err.append('  +--NEW: %s' % pformat(results))
+                err.append('  +--OLD: %s' % pformat(old_results))
                 fail.extend(err)
 
         if fail:
             self.fail('\n'.join(fail))
 
-    def test_demos(self):
-        with tempfile.TemporaryDirectory() as scratchdir:
-            mydir = osp.dirname(__file__)
-            path = RUN_INPUT_FOLDER or osp.join(mydir, '..', 'co2mpas', 'demos')
-            file = (path
-                    if (RUN_ALL_FILES or RUN_INPUT_FOLDER)
-                    else osp.join(path, 'co2mpas_demo_1_full_data.xlsx'))
+    def test_files(self):
+        mydir = osp.dirname(__file__)
+        path = RUN_INPUT_FOLDER or osp.join(mydir, '..', 'co2mpas', 'demos')
+        file = (path
+                if (RUN_ALL_FILES or RUN_INPUT_FOLDER)
+                else osp.join(path, 'co2mpas_demo_1_full_data.xlsx'))
 
-            res = _process_folder_files(
-                file, scratchdir, hide_warn_msgbox=True, extended_summary=False,
-                with_output_file=False, output_template_xl_fpath=False)[0]
+        model = vehicle_processing_model(hide_warn_msgbox=True)
 
-            log.info(res)
-            summaries = res['SUMMARY']
+        resultes = []
+        for fname, fpath in _file_iterator(file):
+            log.info('Processing: %s', fname)
 
-            tmpdir = tempfile.gettempdir()
-            sum_file = osp.join(tmpdir, 'co2mpas_seatbelt_demos.json')
+            inputs = {
+                'vehicle_name': fname,
+                'input_file_name': fpath,
+            }
+            r = model.dispatch(inputs=inputs, outputs=['report', 'summary'])
+            r = dsp_utl.selector(['report', 'summary'], r)
+            resultes.append(sorted(_iter_d(r)))
 
-            if not OVERWRITE_SEATBELT and osp.isfile(sum_file):
-                with open(sum_file, 'rt') as fd:
-                    old_summaries = json.load(fd)
-                    self._check_summaries(summaries, old_summaries)
-            else:
-                with open(sum_file, 'wt') as fd:
-                    json.dump(summaries, fd)
+        tmpdir = tempfile.gettempdir()
+        res_file = osp.join(tmpdir, 'co2mpas_seatbelt_demos.json')
+
+        if not OVERWRITE_SEATBELT and osp.isfile(res_file):
+            old_resultes = dsp_utl.load_dispatcher(res_file)
+            self._check_results(resultes, old_resultes)
+        else:
+            dsp_utl.save_dispatcher(resultes, res_file)
+
+
+def _has_difference(nv, ov):
+    if hasattr(nv, '__call__'):
+        return False
+
+    if DATA_DIFF_RATIO == 0 or isinstance(nv, str):
+        if isinstance(nv, np.ndarray):
+            return not (ov == nv).all()
+        return nv != ov
+    else:
+        if isinstance(nv, np.ndarray):
+            ratio = mean_absolute_error(ov, nv)
+        else:
+            ratio = abs(nv - ov) / max(abs(min(nv, ov)), EPS)
+
+        if ratio > DATA_DIFF_RATIO:
+            return ratio
+    return False

@@ -217,30 +217,21 @@ def _process_folder_files(
         hide_warn_msgbox=hide_warn_msgbox,
     )
 
-    if osp.isfile(input_folder):
-        fpaths = [input_folder]
-    else:
-        fpaths = glob.glob(osp.join(input_folder, '*.xlsx'))
-
     summary = {}
 
     start_time = datetime.datetime.today()
     timestamp = start_time.strftime('%Y%m%d_%H%M%S')
 
-    for fpath in fpaths:
-        fname = osp.splitext(osp.basename(fpath))[0]
-
-        if not files_exclude_regex.match(fname):
-            log.info('Skipping: %s', fname)
-            continue
-
+    for fname, fpath in _file_iterator(input_folder):
         log.info('Processing: %s', fname)
 
         inputs = {
             'vehicle_name': fname,
             'input_file_name': fpath,
             'extended_summary': extended_summary,
-            'start_time': datetime.datetime.today()
+            'start_time': datetime.datetime.today(),
+            'prediction_wltp': enable_prediction_WLTP,
+            'output_template': output_template_xl_fpath
         }
 
         if with_output_file:
@@ -260,6 +251,20 @@ def _process_folder_files(
                 log.warning(ex, exc_info=1)
 
     return summary, start_time
+
+
+def _file_iterator(input_folder):
+    if osp.isfile(input_folder):
+        fpaths = [input_folder]
+    else:
+        fpaths = glob.glob(osp.join(input_folder, '*.xlsx'))
+
+    for fpath in fpaths:
+        fname = osp.splitext(osp.basename(fpath))[0]
+
+        if not files_exclude_regex.match(fname):
+            continue
+        yield fname, fpath
 
 
 def _save_summary(fpath, start_time, summary):
