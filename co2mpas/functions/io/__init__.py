@@ -5,7 +5,7 @@ from .excel import *
 import logging
 import pandas as pd
 import lmfit
-
+from .. import _iter_d, _get
 
 log = logging.getLogger(__name__)
 
@@ -50,7 +50,6 @@ def convert2df(data, data_descriptions):
 
 def _comparison2df(data):
     res = {}
-    from .excel import _iter_d
 
     for k, v in _iter_d(data.get('comparison', {}), depth=3):
         r = _get(res, *k, default=list)
@@ -62,29 +61,6 @@ def _comparison2df(data):
         res = {'comparison': _dd2df(res, 'param_id', depth=3, axis=1)}
 
     return res
-
-
-def _dd2df(dd, index, depth=0, axis=1):
-    from .excel import _iter_d
-    for k, v in _iter_d(dd, depth=depth):
-        _get(dd, *k[:-1])[k[-1]] = pd.DataFrame(v).set_index(index)
-
-    for d in range(depth - 1, -1, -1):
-        for k, v in _iter_d(dd, depth=d):
-            keys, frames = zip(*sorted(v.items()))
-            df = pd.concat(frames, axis=1, keys=keys)
-            if k:
-                _get(dd, *k[:-1])[k[-1]] = df
-            else:
-                dd = df
-    return dd
-
-
-def _get(d, *i, default=dict):
-    if i:
-        r = d[i[0]] = d.get(i[0], default() if len(i) == 1 else {})
-        return _get(r, *i[1:], default=default)
-    return d
 
 
 def _cycle2df(data, data_descriptions):
@@ -303,3 +279,18 @@ def _time_series2df(data, data_descriptions):
         df[k] = v
 
     return pd.concat([df_headers, df], ignore_index=True, copy=False)
+
+
+def _dd2df(dd, index, depth=0, axis=1):
+    for k, v in _iter_d(dd, depth=depth):
+        _get(dd, *k[:-1])[k[-1]] = pd.DataFrame(v).set_index(index)
+
+    for d in range(depth - 1, -1, -1):
+        for k, v in _iter_d(dd, depth=d):
+            keys, frames = zip(*sorted(v.items()))
+            df = pd.concat(frames, axis=1, keys=keys)
+            if k:
+                _get(dd, *k[:-1])[k[-1]] = df
+            else:
+                dd = df
+    return dd

@@ -31,6 +31,7 @@ import os.path as osp
 import pandas as pd
 import co2mpas.dispatcher.utils as dsp_utl
 from .write import check_writeable, _co2mpas_info
+from itertools import chain
 
 log = logging.getLogger(__name__)
 
@@ -248,9 +249,6 @@ def _process_folder_files(
         res = model.dispatch(inputs=inputs)
         s = res.get('summary', {})
 
-        from .io import _get
-        from .io.excel import _iter_d
-
         for k, v in _iter_d(s, depth=2):
             _get(summary, *k, default=list).append(v)
 
@@ -266,8 +264,9 @@ def _process_folder_files(
 
 def _save_summary(fpath, start_time, summary):
     writer = pd.ExcelWriter(fpath)
-    from .io import _dd2df
     from .io.excel import _df2excel
+    from .io import _dd2df
+
     summary = _dd2df(summary, 'vehicle_name', depth=2)
 
     _df2excel(writer, 'summary', summary)
@@ -275,3 +274,20 @@ def _save_summary(fpath, start_time, summary):
     _co2mpas_info(writer, start_time)
 
     writer.save()
+
+
+def _iter_d(d, key=(), depth=-1):
+    if depth == 0:
+        return [(key, d)]
+
+    if isinstance(d, dict):
+        return list(chain(*[_iter_d(v, key=key + (k,), depth=depth - 1)
+                            for k, v in d.items()]))
+    return [(key, d)]
+
+
+def _get(d, *i, default=dict):
+    if i:
+        r = d[i[0]] = d.get(i[0], default() if len(i) == 1 else {})
+        return _get(r, *i[1:], default=default)
+    return d

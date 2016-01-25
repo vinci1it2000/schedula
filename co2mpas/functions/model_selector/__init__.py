@@ -48,7 +48,7 @@ def sort_models(*data, weights=None):
     rank = []
 
     for d in data:
-        errors = {k[6:]: v for k, v in d.items() if  k.startswith('error/')}
+        errors = {k[6:]: v for k, v in d.items() if k.startswith('error/')}
         scores = []
 
         for k, v in errors.items():
