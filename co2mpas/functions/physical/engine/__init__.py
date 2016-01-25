@@ -727,7 +727,11 @@ def calibrate_start_stop_model(
     sst = start_stop_activation_time
 
     # first stop
-    fst = times[argmax(np.logical_not((times <= 10) | on_engine))]
+    try:
+        fst = times[argmax(np.logical_not((times <= 10) | on_engine))]
+    except IndexError:
+        fst = float('inf')
+
     status = fst > sst
 
     if not hide_warn_msgbox and status and not \
