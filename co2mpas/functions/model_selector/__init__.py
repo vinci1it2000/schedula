@@ -37,10 +37,10 @@ log = logging.getLogger(__name__)
 
 def _mean(values, weights=None):
     if isinstance(weights, Iterable):
-        values, weights = zip(*[v for v in zip(values, weights) if v[1]])
+        values = [v * w for v, w in zip(values, weights) if w]
 
     v = np.asarray(values)
-    return np.average(v, weights=weights)
+    return np.average(v)
 
 
 def sort_models(*data, weights=None):
@@ -69,7 +69,8 @@ def sort_models(*data, weights=None):
         models = d['calibrated_models']
 
         if models:
-            score = {'success': score[0] == 1, 'n': len(models),
+            score = {'success': score[0] == 1,
+                     'n': len(models),
                      'score': score[1]}
 
             rank.append([score, scores, errors, d['data_in'], models])
