@@ -767,7 +767,7 @@ def calibrate_co2_params(
     :rtype: dict
     """
 
-    p = copy.copy(co2_params_initial_guess)
+    p = copy.deepcopy(co2_params_initial_guess)
     vary = {k: v.vary for k, v in p.items()}
     values = {k: v._val for k, v in p.items()}
 
@@ -816,7 +816,7 @@ def restrict_bounds(co2_params):
         t, trg).
     :rtype: dict
     """
-    p = copy.copy(co2_params)
+    p = copy.deepcopy(co2_params)
     mul = {
         't': np.array([0.5, 1.5]), 'trg': np.array([0.9, 1.1]),
         'a': np.array([0.8, 1.2]), 'b': np.array([0.8, 1.2]),
@@ -871,13 +871,13 @@ def calibrate_model_params(error_function, params, *ars, **kws):
     else:
         error_f = lambda p, *a, **k: sum(f(p, *a, **k) for f in error_function)
 
-    min_e_and_p = [np.inf, copy.copy(params)]
+    min_e_and_p = [np.inf, copy.deepcopy(params)]
 
     def error_func(params, *args, **kwargs):
         res = error_f(params, *args, **kwargs)
 
         if res < min_e_and_p[0]:
-            min_e_and_p[0], min_e_and_p[1] = (res, copy.copy(params))
+            min_e_and_p[0], min_e_and_p[1] = (res, copy.deepcopy(params))
 
         return res
 
@@ -895,7 +895,7 @@ def calibrate_model_params(error_function, params, *ars, **kws):
     #   [average time 270s/4 vehicles].
     res = minimize(error_func, params, args=ars, kws=kws, method='nelder')
 
-    return (res.params if not res.success else min_e_and_p[1]), not res.success
+    return (res.params if res.success else min_e_and_p[1]), res.success
 
 
 # correction of lmfit bug.
