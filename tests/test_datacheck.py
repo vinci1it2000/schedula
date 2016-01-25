@@ -11,7 +11,7 @@ import logging
 import numpy as np
 from sklearn.metrics import mean_absolute_error
 from pprint import pformat
-
+from scipy.interpolate import InterpolatedUnivariateSpline
 
 ## Set this to `True` to update setbelt data.
 # NOTE: Do not commit it as `True`!
@@ -59,8 +59,6 @@ class SeatBelt(unittest.TestCase):
 
             if err:
                 err = ["\nFailed results[%i]:\n" % i] + err
-                err.append('  +--NEW: %s' % pformat(results))
-                err.append('  +--OLD: %s' % pformat(old_results))
                 fail.extend(err)
 
         if fail:
@@ -93,18 +91,24 @@ class SeatBelt(unittest.TestCase):
         if not OVERWRITE_SEATBELT and osp.isfile(res_file):
             old_resultes = dsp_utl.load_dispatcher(res_file)
             self._check_results(resultes, old_resultes)
+            log.info('Comparing...')
         else:
+            os.environ["OVERWRITE_SEATBELT"] = '0'
             dsp_utl.save_dispatcher(resultes, res_file)
+            log.info('Overrating seat belt...')
 
 
 def _has_difference(nv, ov):
-    if hasattr(nv, '__call__'):
+    if hasattr(nv, '__call__') or (isinstance(nv, list) and isinstance(nv[0], InterpolatedUnivariateSpline)):
         return False
 
     if DATA_DIFF_RATIO == 0 or isinstance(nv, str):
-        if isinstance(nv, np.ndarray):
-            return not (ov == nv).all()
-        return nv != ov
+        try:
+            return not np.allclose(ov, nv)
+        except:
+            if isinstance(nv, np.ndarray):
+                return not (ov == nv).all()
+            return nv != ov
     else:
         if isinstance(nv, np.ndarray):
             ratio = mean_absolute_error(ov, nv)
