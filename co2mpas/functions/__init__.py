@@ -21,7 +21,6 @@ Modules:
     write_outputs
 
 """
-from collections import Iterable
 import datetime
 import glob
 import logging

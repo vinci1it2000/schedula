@@ -45,7 +45,7 @@ def compare_outputs_vs_targets(data):
     res = {}
     metrics = {
         'mean_absolute_error': mean_absolute_error,
-        'correlation_coefficient': lambda t, o: np.corrcoef(t, o)[0, 1],
+        'correlation_coefficient': lambda t, o: np.corrcoef(t, o)[0, 1] if len(t) > 1 else np.nan,
         'accuracy_score': accuracy_score,
     }
 
