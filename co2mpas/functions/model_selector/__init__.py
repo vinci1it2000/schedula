@@ -75,8 +75,13 @@ def sort_models(*data, weights=None):
 
             rank.append([score, scores, errors, d['data_in'], models])
 
-    f = lambda x: [(-x[0]['success'], -x[0]['n'], x[0]['score'])] + x[1:]
-    return list(sorted(rank, key=f))
+    return list(sorted(rank, key=_sorting_func))
+
+
+def _sorting_func(x):
+    s = 1 if np.isnan(x[0]['score']) else -int(x[0]['success'])
+
+    return [(s, -x[0]['n'], x[0]['score'])] + x[1:]
 
 
 def _check(best, hide_warn_msgbox):

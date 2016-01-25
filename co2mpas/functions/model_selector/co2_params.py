@@ -58,5 +58,5 @@ def calibrate_co2_params_ALL(rank, *data, data_id=None):
 def co2_sort_models(rank, *data, weights=None):
     r = sort_models(*data, weights=weights)
     r.extend(rank)
-    f = lambda x: [(-x[0]['success'], -x[0]['n'], x[0]['score'])] + x[1:]
-    return list(sorted(r, key=f))
+    from . import _sorting_func
+    return list(sorted(r, key=_sorting_func))
