@@ -45,7 +45,7 @@ class SeatBelt(unittest.TestCase):
             results = dict(results)
             for k, ov in old_results:
                 if k not in results:
-                    err.append("Failed [%r]: missing" % k)
+                    err.append("Failed [%s]: missing" % str(k))
                     continue
 
                 nv = results[k]
@@ -53,7 +53,7 @@ class SeatBelt(unittest.TestCase):
                 if ratio:
                     nv, ov = pformat(nv), pformat(ov)
                     if DATA_DIFF_RATIO == 0:
-                        err.append("Failed [%r]: %s !~= %s"%(k, nv, ov))
+                        err.append("Failed [%r]: %s !~= %s" %(k, nv, ov))
                     else:
                         err.append(msg %(ratio, DATA_DIFF_RATIO, k, nv, ov))
 

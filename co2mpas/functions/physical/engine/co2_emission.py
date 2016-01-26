@@ -883,7 +883,7 @@ def calibrate_model_params(error_function, params, *ars, **kws):
 
     ## See #7: Neither BFGS nor SLSQP fix "solution families".
     # leastsq: Improper input: N=6 must not exceed M=1.
-    # nelder is stable (838 runs, 4 vehicles) [average time 18s/4 vehicles].
+    # nelder is stable (297 runs, 14 vehicles) [average time 181s/14 vehicles].
     # lbfgsb is unstable (2 runs, 4 vehicles) [average time 23s/4 vehicles].
     # cg is stable (20 runs, 4 vehicles) [average time 37s/4 vehicles].
     # newton: Jacobian is required for Newton-CG method
