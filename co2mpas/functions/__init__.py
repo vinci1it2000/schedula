@@ -234,7 +234,8 @@ def _process_folder_files(
         }
 
         if with_output_file:
-            inputs['output_file_name'] = osp.join(output_folder, '%s-%s.xlsx' % (timestamp, fname))
+            ofname = '%s-%s.xlsx' % (timestamp, fname)
+            inputs['output_file_name'] = osp.join(output_folder, ofname)
 
         res = model.dispatch(inputs=inputs)
         s = res.get('summary', {})

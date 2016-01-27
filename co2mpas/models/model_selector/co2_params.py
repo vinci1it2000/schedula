@@ -53,7 +53,10 @@ def co2_params_model_selector(
     else:
         _weights = None
 
-    _get_best_model = setting.pop('get_best_model', get_best_model)
+    _get_best_model = partial(setting.pop('get_best_model', get_best_model),
+                              models_wo_err=setting.pop('models_wo_err', None),
+                              hide_warn_msgbox=hide_warn_msgbox,
+                              selector_id=dsp.name)
 
     for i in chain(data_in, ['ALL']):
         e = 'error/%s' % i

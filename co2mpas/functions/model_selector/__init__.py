@@ -84,15 +84,15 @@ def _sorting_func(x):
     return [(s, -x[0]['n'], x[0]['score'])] + x[1:]
 
 
-def _check(best, hide_warn_msgbox):
+def _check(best, hide_warn_msgbox, selector_id):
     try:
         status = best[0]['success']
-        return status or hide_warn_msgbox or _ask_model(best[-1].keys())
+        return status or hide_warn_msgbox or _ask_model(best[-1].keys(), selector_id)
     except IndexError:
         return True
 
 
-def _ask_model(failed_models):
+def _ask_model(failed_models, selector_id):
     msg = dedent("""\
           The following models has failed the calibration:
               %s.
@@ -103,10 +103,11 @@ def _ask_model(failed_models):
           """) % ',\n'.join(failed_models)
     choices = ["Yes", "No"]
     import easygui as eu
-    return eu.buttonbox(msg, choices=choices) == choices[0]
+    return eu.buttonbox(msg, choices=choices, title=selector_id) == choices[0]
 
 
-def get_best_model(rank, models_wo_err=None, hide_warn_msgbox=False):
+def get_best_model(
+        rank, models_wo_err=None, hide_warn_msgbox=False, selector_id=''):
     scores = OrderedDict()
     for m in rank:
         if m[1]:
@@ -120,17 +121,18 @@ def get_best_model(rank, models_wo_err=None, hide_warn_msgbox=False):
             scores[m[3]] = {'models': tuple(sorted(m[-1].keys()))}
     if not rank:
         m = {}
-    elif _check(rank[0], hide_warn_msgbox):
+    elif _check(rank[0], hide_warn_msgbox, selector_id):
         m = rank[0]
         s = scores[m[3]]
         models_wo_err = models_wo_err or []
 
         if 'score' not in s and not set(s['models']).issubset(models_wo_err):
-            msg = '\n  Models %s need a score. \n' \
+            msg = '\n  Selection error (%s):\n'\
+                  '  Models %s need a score. \n' \
                   '  Please report this bug to CO2MPAS team, \n' \
-                  '    providing the data to replicate it.'
+                  '  providing the data to replicate it.'
             m = set(s['models']).difference(models_wo_err)
-            raise ValueError(msg % str(m))
+            raise ValueError(msg % (selector_id, str(m)))
 
         msg = '\n  Models %s are selected from %s respect to targets' \
               ' %s.\n  Scores: %s.'

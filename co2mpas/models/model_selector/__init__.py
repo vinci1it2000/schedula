@@ -105,7 +105,8 @@ def model_selector(name, data_in, data_out, setting, hide_warn_msgbox=False):
 
     _get_best_model = partial(setting.pop('get_best_model', get_best_model),
                               models_wo_err=setting.pop('models_wo_err', None),
-                              hide_warn_msgbox=hide_warn_msgbox)
+                              hide_warn_msgbox=hide_warn_msgbox,
+                              selector_id=dsp.name)
     for i in data_in:
         e = 'error/%s' % i
 
