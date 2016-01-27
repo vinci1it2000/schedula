@@ -415,7 +415,6 @@ def physical_calibration(hide_warn_msgbox=True):
             'velocity_speed_ratios': 'velocity_speed_ratios',
         },
         outputs={
-            'correct_gear': 'correct_gear',
             'MVL': 'MVL',
             'CMV': 'CMV',
             'CMV_Cold_Hot': 'CMV_Cold_Hot',
@@ -481,7 +480,7 @@ def physical_prediction(hide_warn_msgbox=True):
         inputs={
             'use_dt_gear_shifting': 'use_dt_gear_shifting',
             'specific_gear_shifting': 'specific_gear_shifting',
-            'correct_gear': 'correct_gear',
+            'MVL': 'MVL',
             'CMV': 'CMV',
             'CMV_Cold_Hot': 'CMV_Cold_Hot',
             'DT_VA': 'DT_VA',
@@ -492,6 +491,9 @@ def physical_prediction(hide_warn_msgbox=True):
             'GSPV_Cold_Hot': 'GSPV_Cold_Hot',
             'engine_coolant_temperatures': 'engine_coolant_temperatures',
             'engine_max_power': 'engine_max_power',
+            'engine_max_speed_at_max_power': 'engine_max_speed_at_max_power',
+            'road_loads': 'road_loads',
+            'vehicle_mass': 'vehicle_mass',
             'time_cold_hot_transition': 'time_cold_hot_transition',
             'motive_powers': 'motive_powers',
             'accelerations': 'accelerations',
@@ -500,6 +502,7 @@ def physical_prediction(hide_warn_msgbox=True):
             'final_drive_powers_in': 'gear_box_powers_out',
             'final_drive_speeds_in': 'gear_box_speeds_out',
             'fuel_type': 'fuel_type',
+            'full_load_curve': 'full_load_curve',
             'gear_box_efficiency_constants': 'gear_box_efficiency_constants',
             'gear_box_efficiency_parameters_cold_hot':
                 'gear_box_efficiency_parameters_cold_hot',

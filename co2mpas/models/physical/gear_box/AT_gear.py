@@ -46,7 +46,7 @@ def AT_gear():
         inputs=['velocity_speed_ratios', 'MVL',
                 'engine_max_power', 'engine_max_speed_at_max_power',
                 'idle_engine_speed', 'full_load_curve', 'road_loads',
-                'inertia'],
+                'vehicle_mass'],
         outputs=['correct_gear'])
 
     AT_gear.add_function(
@@ -59,7 +59,7 @@ def AT_gear():
         function=correct_gear_v2,
         inputs=['velocity_speed_ratios', 'engine_max_power',
                 'engine_max_speed_at_max_power', 'idle_engine_speed',
-                'full_load_curve', 'road_loads', 'inertia'],
+                'full_load_curve', 'road_loads', 'vehicle_mass'],
         outputs=['correct_gear'],
         weight=50)
 
