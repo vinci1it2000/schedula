@@ -12,7 +12,7 @@ import timeit
 import numpy as np
 from co2mpas.dispatcher import Dispatcher
 from co2mpas.dispatcher.utils.cst import START, EMPTY, SINK, NONE
-
+from co2mpas.dispatcher.utils.dsp import SubDispatchFunction
 
 def _setup_dsp():
     dsp = Dispatcher()
@@ -1484,3 +1484,50 @@ class TestRemoveCycles(unittest.TestCase):
         res = [('a', 'max'), ('a', 'min'), ('b', 'max'), ('c', 'min'),
                ('max', 'c'), ('min', 'd')]
         self.assertEqual(sorted(dsp_woc.dmap.edges()), res)
+
+
+class TestPipe(unittest.TestCase):
+    def setUp(self):
+        dsp = Dispatcher()
+
+        dsp.add_function('max', max, ['a', 'b'], ['c'])
+        dsp.add_function('dict', dict, ['c'], ['d'])
+        f = SubDispatchFunction(dsp, 'SubDispatchFunction', ['a', 'b'], ['d'])
+        sub_dsp = Dispatcher()
+
+        sub_dsp.add_function('SubDispatchFunction', f, ['A', 'B'], ['D'])
+        sub_dsp.add_function('min', min, ['C', 'E'], ['F'])
+
+        dsp = Dispatcher()
+
+        dsp.add_dispatcher(
+            dsp_id='sub_dsp',
+            dsp=sub_dsp,
+            inputs={'a': 'A', 'b': 'B', 'c': 'C', 'e':'E'},
+            outputs={'F': 'f', 'D': 'd'}
+        )
+
+        dsp.add_function('max', max, ['f', 'a'], ['b'])
+        dsp.add_data('a', 1)
+        dsp.add_data('c', 2)
+        dsp.add_data('e', 3)
+        dsp.dispatch()
+        self.dsp = dsp
+
+    def test_pipe(self):
+        dsp = self.dsp
+        pipe = dsp.pipe
+        n = pipe[('sub_dsp', 'SubDispatchFunction')]
+        p = ['a', ('sub_dsp', 'A'), 'c', ('sub_dsp', 'C'), 'e',
+             ('sub_dsp', 'E'), ('sub_dsp', 'min'), ('sub_dsp', 'F'), 'f', 'max',
+             'b', ('sub_dsp', 'B'), ('sub_dsp', 'SubDispatchFunction')]
+        sp = ['a', 'b', 'max', 'c', 'dict']
+        self.assertEqual(p, list(pipe.keys()))
+        self.assertEqual(sp, list(n['sub_pipe'].keys()))
+        e = 'Failed DISPATCHING \'SubDispatchFunction\' due to:\n  ' \
+            'DispatcherError("\\n  Unreachable output-targets: {\'d\'}\\n  ' \
+            'Available outputs: dict_keys([\'c\', \'a\', \'b\'])",)'
+        self.assertEqual(e[:-18], n['error'][:-18])
+        e = 'Failed DISPATCHING \'dict\' due to:\n  ' \
+            'TypeError("\'int\' object is not iterable",)'
+        self.assertEqual(e, n['sub_pipe']['dict']['error'])

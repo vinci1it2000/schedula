@@ -35,22 +35,46 @@ Sub-Modules:
     :nosignatures:
     :toctree: utils/
 
-    dsp
     alg
-    gen
-    drw
     cst
-    io
     des
+    drw
+    dsp
     exc
+    gen
+    io
 """
 
 __author__ = 'Vincenzo Arcidiacono'
-
-from .dsp import *
+__all__ = []
+from . import alg
 from .alg import *
-from .gen import *
-from .drw import *
+__all__ += alg.__all__
+
+from . import cst
 from .cst import *
-from .io import *
+__all__ += cst.__all__
+
+from . import des
 from .des import *
+__all__ += des.__all__
+
+from . import drw
+from .drw import *
+__all__ += drw.__all__
+
+from . import dsp
+from .dsp import *
+__all__ += dsp.__all__
+
+from . import exc
+from .exc import *
+__all__ += exc.__all__
+
+from . import gen
+from .gen import *
+__all__ += gen.__all__
+
+from . import io
+from .io import *
+__all__ += io.__all__

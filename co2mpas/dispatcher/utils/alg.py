@@ -15,12 +15,13 @@ __author__ = 'Vincenzo Arcidiacono'
 from heapq import heappush, heappop
 from .gen import pairwise, counter
 from .cst import EMPTY, NONE
-from .dsp import SubDispatch
+from .dsp import SubDispatch, bypass
 from .des import parent_func, search_node_description
 from networkx import is_isolate
+from collections import OrderedDict
 
 
-__all__ = ['scc_fun', 'dijkstra', 'get_sub_node', 'get_full_node_id']
+__all__ = []
 
 
 # modified from NetworkX library
@@ -436,38 +437,14 @@ def get_sub_node(dsp, path, node_attr='auto', _level=0, _dsp_name=NONE):
             data = search_node_description(node_id, node, dsp)
         elif node_attr == 'default_value':
             data = dsp.default_values[node_id]
+        elif node_attr == 'dsp':
+            data = dsp
 
         if data is EMPTY:
             data = node.get(node_attr, node)
 
         return data, tuple(path)  # Return the data
 
-
-def get_full_node_id(node_id, dsp, l=None):
-    """
-    Returns the full node id.
-
-    :param node_id:
-        Node id.
-    :type node_id: str
-
-    :param dsp:
-        Parent dispatcher.
-    :type dsp: dispatcher.Dispatcher
-
-    :return:
-        Full node id.
-    :rtype: tuple[str]
-    """
-
-    def _(n, d):
-        if d._parent:
-            l = _(*d._parent)
-            l.append((n, d))
-            return l
-
-        return [(n, d)]
-    return zip(*_(node_id, dsp))
 
 # Modified from NetworkX library.
 def scc_fun(graph, nodes_bunch=None):
@@ -866,3 +843,47 @@ def rm_cycles_iter(graph, nodes_bunch, reached_nodes, edge_to_rm, wait_in):
 
         if data_n:  # No unresolved data nodes.
             rm_cycles_iter(sub_g, data_n, reached_nodes, edge_to_rm, wait_in)
+
+
+def get_full_pipe(dsp, base=()):
+    """
+    Returns the full pipe of a dispatch run.
+
+    :param dsp:
+         A dispatcher object.
+    :type dsp: dispatcher.Dispatcher
+
+    :param base:
+
+    :type base: tuple[str]
+
+    :return:
+    """
+
+    pipe = OrderedDict()
+
+    for p in dsp._pipe:
+        n, d = p[-1]
+        p = {'task': p}
+
+        if n in d._errors:
+            p['error'] = d._errors[n]
+
+        node_id = d.get_full_node_id(n)
+
+        if base != node_id[:len(base)]:
+            raise ValueError('%s != %s' % (node_id[:len(base)], base))
+
+        n_id = node_id[len(base):]
+
+        n = d.get_node(n, node_attr=None)[0]
+        if n['type'] == 'function' and 'function' in n:
+            func = parent_func(n['function'])
+            if isinstance(func, SubDispatch):
+                sp = get_full_pipe(func.dsp, base=node_id)
+                if sp:
+                    p['sub_pipe'] = sp
+
+        pipe[bypass(*n_id)] = p
+
+    return pipe

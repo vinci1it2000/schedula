@@ -12,8 +12,7 @@ It provides tools to find data, function, and sub-dispatcher node description.
 
 __author__ = 'Vincenzo Arcidiacono'
 
-__all__ = ['get_attr_doc', 'get_summary', 'search_node_description',
-           'parent_func']
+__all__ = ['parent_func', 'search_node_description']
 
 import re
 import logging

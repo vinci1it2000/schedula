@@ -26,16 +26,16 @@ __author__ = 'Vincenzo Arcidiacono'
 
 import logging
 from heapq import heappush, heappop
-from collections import deque
+from collections import deque, OrderedDict
 from copy import copy, deepcopy
 from networkx import DiGraph, isolates
-from functools import partial
 from datetime import datetime
+from itertools import chain
 
 from .utils.gen import counter, caller_name
 from .utils.alg import add_edge_fun, remove_edge_fun, rm_cycles_iter, \
     get_unused_node_id, add_func_edges, replace_remote_link, get_sub_node, \
-    _children, stlp
+    _children, stlp, get_full_pipe
 from .utils.cst import EMPTY, START, NONE, SINK
 from .utils.dsp import SubDispatch, bypass, combine_dicts
 from .utils.drw import plot
@@ -255,6 +255,12 @@ class Dispatcher(object):
         self._wait_in = {}
 
         self.__module__ = caller_name()  # Set as who calls my caller.
+
+        #: Parent dispatcher.
+        self._parent = None
+
+        #: Error logs.
+        self._errors = OrderedDict()
 
     def add_data(self, data_id=None, default_value=EMPTY, initial_dist=0.0,
                  wait_inputs=False, wildcard=None, function=None, callback=None,
@@ -519,6 +525,13 @@ class Dispatcher(object):
 
             outputs = [SINK]  # Update outputs.
 
+        # Get parent function.
+        func = parent_func(function)
+
+        if self._check_func_parent(func):
+            function = deepcopy(function)
+            func = parent_func(function)
+
         # Base function node attributes.
         attr_dict = {'type': 'function',
                      'inputs': inputs,
@@ -534,11 +547,6 @@ class Dispatcher(object):
 
         # Set function name.
         if function_id is None:
-            if isinstance(function, partial):  # Get parent function.
-                func = function.func
-            else:
-                func = function
-
             try:  # Set function name.
                 # noinspection PyUnresolvedReferences
                 function_name = '%s:%s' % (func.__module__, func.__name__)
@@ -554,6 +562,12 @@ class Dispatcher(object):
             attr_dict['weight'] = weight
 
         attr_dict.update(kwargs)  # Set additional attributes.
+
+        # Set parent.
+        if isinstance(func, SubDispatch):
+            func.dsp._parent = (fun_id, self)
+        elif isinstance(func, Dispatcher):
+            func._parent = (fun_id, self)
 
         # Add node to the dispatcher map.
         self.dmap.add_node(fun_id, attr_dict=attr_dict)
@@ -719,7 +733,7 @@ class Dispatcher(object):
                         self.set_default_value(k, **dsp_dfl.pop(v[0]))
                     remove.update(v[1:])
 
-            # Remove default values
+            # Remove default values.
             for k in remove:
                 dsp_dfl.pop(k, None)
 
@@ -990,6 +1004,7 @@ class Dispatcher(object):
         sub_dsp.__doc__ = self.__doc__
         sub_dsp.name = self.name
         sub_dsp.raises = self.raises
+        sub_dsp._parent = self._parent
 
         # Namespace shortcuts for speed.
         nodes, dmap_out_degree = sub_dsp.nodes, sub_dsp.dmap.out_degree
@@ -1024,6 +1039,8 @@ class Dispatcher(object):
         # Update remote links.
         if update_links:
             sub_dsp._update_remote_links(sub_dsp, self)
+
+        sub_dsp._update_children_parent()
 
         return sub_dsp  # Return the sub-dispatcher.
 
@@ -1111,7 +1128,7 @@ class Dispatcher(object):
         # Define an empty dispatcher map.
         sub_dsp, sub_dsp.weight = self.__class__(), self.weight
         sub_dsp.__doc__, sub_dsp.name = self.__doc__, self.name
-        sub_dsp.raises = self.raises
+        sub_dsp.raises, sub_dsp._parent = self.raises, self._parent
 
         if not graph:  # Set default graph.
             graph = self.workflow
@@ -1207,6 +1224,8 @@ class Dispatcher(object):
         if update_links:
             sub_dsp._update_remote_links(sub_dsp, self)
 
+        sub_dsp._update_children_parent()
+
         return sub_dsp  # Return the sub-dispatcher map.
 
     def get_node(self, *node_ids, node_attr='auto'):
@@ -1283,6 +1302,38 @@ class Dispatcher(object):
         # Returns the node.
         return get_sub_node(self, node_ids, node_attr=node_attr)
 
+    def get_full_node_id(self, *node_ids):
+        """
+        Returns the full node id.
+
+        :param node_ids:
+            A sequence of node ids or a single node id. The id order identifies
+            a dispatcher sub-level.
+
+            If it is empty it will return the full id of the dispatcher.
+        :type node_ids: str
+
+        :return:
+            Full node id and related .
+        :rtype: tuple[str], tuple[Dispatcher]
+        """
+
+        if not node_ids:
+            n, dsp = NONE, self
+        else:
+            n, dsp = node_ids[-1], self.get_node(*node_ids, node_attr='dsp')[0]
+
+        def _parent(n_id, d):
+            if d._parent:
+                l = _parent(*d._parent)
+                if n_id is not NONE:
+                    l.append(n_id)
+                return l
+
+            return [] if n_id is NONE else [n_id]
+
+        return tuple(_parent(n, dsp))
+
     @property
     def data_nodes(self):
         """
@@ -1319,6 +1370,11 @@ class Dispatcher(object):
 
         return {k: v for k, v in self.nodes.items() if
                 v['type'] == 'dispatcher'}
+
+    @property
+    def pipe(self):
+
+        return get_full_pipe(self)
 
     def copy(self):
         """
@@ -2488,7 +2544,7 @@ class Dispatcher(object):
         self._wf_pred = self.workflow.pred
         self.check_wait_in = self._check_wait_input_flag()
         self.check_targets = self._check_targets()
-        self.dist, self.seen = {}, {}
+        self.dist, self.seen, self._errors = {}, {}, OrderedDict()
 
     def _init_workflow(self, inputs, input_value, inputs_dist, no_call):
         """
@@ -3045,7 +3101,7 @@ class Dispatcher(object):
 
         return True
 
-    def _warning(self, *args, **kwargs):
+    def _warning(self, msg, node_id, ex, *args, **kwargs):
         """
         Handles the error messages.
 
@@ -3053,8 +3109,35 @@ class Dispatcher(object):
            when an error occur, otherwise it logs a warning.
         """
 
+        self._errors[node_id] = msg % ((node_id, ex) + args)
+
+        node_id = ','.join(self.get_full_node_id(node_id))
+
         if self.raises:
-            raise DispatcherError(self, *args, **kwargs)
+            raise DispatcherError(self, msg, node_id, ex, *args, **kwargs)
         else:
             kwargs['exc_info'] = kwargs.get('exc_info', 1)
-            log.error(*args, **kwargs)
+            log.error(msg, node_id, ex, *args, **kwargs)
+
+    def _update_children_parent(self):
+        it = chain(self.function_nodes.items(), self.sub_dsp_nodes.items())
+        for k, v in it:
+            try:
+                dsp = parent_func(v['function'])
+                if isinstance(dsp, SubDispatch):
+                    dsp.dsp._parent = (k, self)
+                elif isinstance(dsp, Dispatcher):
+                    dsp._parent = (k, self)
+            except KeyError:
+                pass
+
+    def _check_func_parent(self, func):
+        dsp = parent_func(func)
+
+        if isinstance(dsp, SubDispatch):
+            dsp = dsp.dsp
+
+        if isinstance(dsp, Dispatcher) and dsp._parent:
+            return dsp._parent[1] != self
+
+        return False

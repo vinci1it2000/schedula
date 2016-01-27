@@ -11,7 +11,7 @@ import unittest
 
 from networkx.classes.digraph import DiGraph
 
-from co2mpas.dispatcher.utils.alg import *
+from co2mpas.dispatcher.utils.alg import scc_fun, dijkstra, get_sub_node
 from co2mpas.dispatcher.utils.dsp import SubDispatch, SubDispatchFunction
 from co2mpas.dispatcher import Dispatcher
 from co2mpas.dispatcher.utils.cst import SINK
@@ -214,14 +214,14 @@ class TestDispatcherGetSubNode(unittest.TestCase):
         self.assertRaises(ValueError, get_sub_node, dsp, ('dispatch', 'b', 'c'))
         self.assertRaises(ValueError, get_sub_node, dsp, ('dispatch', 'e'))
 
-    @unittest.skip
     def test_get_full_node_id(self):
         ss_dsp = self.ss_dsp_func.dsp
         dsp = self.dsp
-        v, parents = get_full_node_id('module:fun', ss_dsp)
+        v = ss_dsp.get_full_node_id('module:fun')
         self.assertEqual(v, ('dispatch', 'sub_dispatch', 'module:fun'))
-        self.assertEqual(parents, (dsp, self.s_dsp, ss_dsp))
 
-        v, dsp = get_full_node_id('module:fun', dsp)
-        self.assertEqual(v, ('module:fun',))
-        self.assertEqual(dsp, (self.dsp,))
+        v = ss_dsp.get_full_node_id()
+        self.assertEqual(v, ('dispatch', 'sub_dispatch'))
+
+        v = dsp.get_full_node_id('input')
+        self.assertEqual(v, ('input',))
