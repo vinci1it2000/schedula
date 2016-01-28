@@ -11,6 +11,7 @@ matplotlib
 ## Pure python libs.
 #
 setuptools
+pypiwin32
 networkx
 dill
 graphviz
@@ -18,3 +19,4 @@ docopt
 six
 easygui
 pandalone
+xlsxwriter

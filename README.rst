@@ -61,7 +61,7 @@ Quickstart
       http://mridgers.github.io/clink/
 
     - You can adapt commands between the two shells with minor modifications
-      (i.e. ``ls <--> dir``, ``rm -r <--> deltree``).
+      (i.e. ``ls <--> dir``, ``rm -r <--> rmdir /s/q``).
 
     - You may download and install the *all-in-one* archive which contains
       both shells configured in a console supporting decent copy-paste and
