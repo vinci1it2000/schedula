@@ -36,7 +36,7 @@ def load():
 
     .. dispatcher:: dsp
 
-        >>> dsp = io().dsp
+        >>> dsp = load().dsp
     """
 
     # Initialize a dispatcher.

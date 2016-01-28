@@ -45,6 +45,8 @@ def convert2df(data, data_descriptions):
 
     res.update(_comparison2df(data))
 
+    res.update(_pipe2df(data))
+
     return res
 
 
@@ -61,6 +63,39 @@ def _comparison2df(data):
         res = {'comparison': _dd2df(res, 'param_id', depth=3, axis=1)}
 
     return res
+
+
+def _pipe2df(data):
+    res = {}
+
+    df, max_l = _pipe2list(data.get('pipe', {}))
+    if df:
+        df = pd.DataFrame(df)
+        res['pipe'] = df
+
+    return res
+
+
+def _pipe2list(pipe, i=0, source=[]):
+    res = []
+    f = lambda x: (x,) if isinstance(x, str) else x
+    max_l = i
+    idx = {'nodes L%d' % i: str(v) for i, v in enumerate(source)}
+    for k, v in pipe.items():
+        k = f(k)
+        d = {'nodes L%d' % i: str(k)}
+
+        if 'error' in v:
+            d['error'] = v['error']
+        d.update(idx)
+        res.append(d)
+
+        if 'sub_pipe' in v:
+            l, ml = _pipe2list(v['sub_pipe'], i=i+1, source=source + [k])
+            max_l = max(max_l, ml)
+            res.extend(l)
+
+    return res, max_l
 
 
 def _cycle2df(data, data_descriptions):

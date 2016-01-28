@@ -317,7 +317,7 @@ def write_to_excel(data, output_file_name, template=''):
 
     for k, v in sorted(_iter_d(data)):
 
-        if k[0] == 'comparison':
+        if k[0] in ('comparison', 'pipe'):
             _df2excel(writer, k[0], v)
         elif k[0] == 'selection_scores':
             i = 0

@@ -94,6 +94,8 @@ def parse_dsp_model(model):
         for k, v in i.items():
             i[k] = _split_by_data_format(v, param_ids)
 
+    res['pipe'] = model.pipe
+
     return res
 
 

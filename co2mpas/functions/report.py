@@ -14,6 +14,7 @@ from collections import Iterable, OrderedDict
 import numpy as np
 from sklearn.metrics import mean_absolute_error, accuracy_score
 import co2mpas.dispatcher.utils as dsp_utl
+from . import _iter_d, _get
 
 
 def _metrics(t, o, metrics):
@@ -202,10 +203,9 @@ def _get_cycle_time_series(data):
 
 def get_chart_reference(data):
     r = {}
-    from .io.excel import _iter_d
-    from .io import _get
-    _map = _map_cycle_report_graphs()
 
+    _map = _map_cycle_report_graphs()
+    data = dsp_utl.selector(['nedc', 'wltp_p', 'wltp_h', 'wltp_l'], data)
     for k, v in sorted(_iter_d(data)):
         if k[1] not in ('calibrations', 'predictions', 'targets'):
             continue
