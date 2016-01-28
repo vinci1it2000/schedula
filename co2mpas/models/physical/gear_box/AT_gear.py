@@ -633,7 +633,8 @@ def gspv():
     # calibrate corrected matrix velocity
     gspv.add_function(
         function=calibrate_gspv,
-        inputs=['identified_gears', 'velocities', 'motive_powers'],
+        inputs=['identified_gears', 'velocities', 'motive_powers',
+                'velocity_speed_ratios'],
         outputs=['GSPV'])
 
     # predict gears with corrected matrix velocity
@@ -682,7 +683,8 @@ def gspv_cold_hot():
     gspv_cold_hot.add_function(
         function=calibrate_gspv_hot_cold,
         inputs=['times', 'identified_gears', 'velocities',
-                'motive_powers', 'time_cold_hot_transition'],
+                'motive_powers', 'time_cold_hot_transition',
+                'velocity_speed_ratios'],
         outputs=['GSPV_Cold_Hot'])
 
     # predict gears with corrected matrix velocity
