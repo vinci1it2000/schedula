@@ -52,7 +52,7 @@ def report():
 
     dsp.add_function(
         function=get_chart_reference,
-        inputs=['output_data'],
+        inputs=['output_data', 'with_charts'],
         outputs=['graphs']
     )
 
@@ -68,4 +68,4 @@ def report():
         outputs=['summary']
     )
 
-    return dsp_utl.SubDispatchFunction(dsp, dsp.name, ['output_data', 'vehicle_name'], ['report', 'summary'])
+    return dsp_utl.SubDispatchFunction(dsp, dsp.name, ['output_data', 'vehicle_name', 'with_charts'], ['report', 'summary'])

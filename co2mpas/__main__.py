@@ -8,7 +8,7 @@
 Predict NEDC CO2 emissions from WLTP cycles.
 
 Usage:
-    co2mpas [simulate] [-v] [--predict-wltp] [--report-stages] [--no-warn-gui]
+    co2mpas [simulate] [-v] [--predict-wltp] [--charts] [--no-warn-gui]
                        [--plot-workflow] [--only-summary] [--out-template <fpath>]
                        [-I <fpath>] [-O <fpath>]
     co2mpas demo       [-v] [-f] [<folder>]
@@ -24,7 +24,7 @@ Usage:
 -l, --list              List available models.
 --only-summary          Does not save vehicle outputs just the summary file.
 --predict-wltp          Whether to predict also WLTP values.
---report-stages         Add report-sheets with stage-scores into summary file.
+--charts                Add basic charts to output file.
 --no-warn-gui           Does not pause batch-run to report inconsistencies.
 --out-template <fpath>  A '*.xlsx' file to clone and append vehicle-results into it.
                         By default, the input xlsx-file is used as output-template.
@@ -275,7 +275,7 @@ def _run_batch(opts):
                          with_output_file=not opts['--only-summary'],
                          plot_workflow=opts['--plot-workflow'],
                          hide_warn_msgbox=opts['--no-warn-gui'],
-                         extended_summary=opts['--report-stages'],
+                         with_charts=opts['--charts'],
                          enable_prediction_WLTP=opts['--predict-wltp'],
                          output_template_xl_fpath=opts['--out-template']),
 

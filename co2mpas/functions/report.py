@@ -201,9 +201,10 @@ def _get_cycle_time_series(data):
     return _map
 
 
-def get_chart_reference(data):
+def get_chart_reference(data, with_charts=False):
     r = {}
-
+    if not with_charts:
+        return r
     _map = _map_cycle_report_graphs()
     data = dsp_utl.selector(['nedc', 'wltp_p', 'wltp_h', 'wltp_l'], data)
     for k, v in sorted(_iter_d(data)):
@@ -213,12 +214,12 @@ def get_chart_reference(data):
         if m and k[-2] == 'time_series':
             try:
                 d = {
-                    'x': _ref_targets(_search_times(k[:-1], data, v)),
-                    'y': _ref_targets(k),
+                    'x': _ref_targets(_search_times(k[:-1], data, v), data),
+                    'y': _ref_targets(k, data),
                     'label': '%s %s' % (k[1][:-1], m['label'])
                 }
                 _get(r, k[0], k[-1], 'series', default=list).append(d)
-            except:
+            except TypeError:
                 pass
 
     for k, v in _iter_d(r, depth=2):
@@ -230,7 +231,6 @@ def get_chart_reference(data):
 
 
 def _search_times(path, data, vector):
-    from .io import _get
     t = 'times'
     ts = 'time_series'
 
@@ -245,13 +245,17 @@ def _search_times(path, data, vector):
 
     else:
         return path + (t,)
-    raise
+    raise TypeError
 
 
-def _ref_targets(path):
+def _ref_targets(path, data):
     if path[1] == 'targets':
+        d = data[path[0]]
+        p = next(p for p in ('inputs', 'calibrations', 'predictions')
+                 if path[-1] in d.get(p, {}).get('time_series', {}))
+
         path = list(path)
-        path[1] = 'inputs'
+        path[1] = p
         path[-1] = 'target %s' % path[-1]
 
     return path

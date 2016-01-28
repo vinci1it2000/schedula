@@ -79,7 +79,7 @@ def vehicle_processing_model(hide_warn_msgbox=False, prediction_WLTP=False):
 
     dsp.add_function(
         function=report(),
-        inputs=['output_data', 'vehicle_name'],
+        inputs=['output_data', 'vehicle_name', 'with_charts'],
         outputs=['report', 'summary'],
     )
 
