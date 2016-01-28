@@ -13,12 +13,20 @@ from sklearn.metrics import mean_absolute_error
 from pprint import pformat
 from scipy.interpolate import InterpolatedUnivariateSpline
 
+def _bool_env_var(var_name, default):
+    v = os.environ.get(var_name, default)
+    try:
+        if v.strip().lower() in ('', '0', 'off', 'false'):
+            return False
+    except AttributeError:
+        pass
+    return bool(v)
+
+
 ## Set this to `True` to update setbelt data.
 # NOTE: Do not commit it as `True`!
-OVERWRITE_SEATBELT = os.environ.get('OVERWRITE_SEATBELT', False)
-
-RUN_ALL_FILES = os.environ.get('RUN_ALL_FILES', False)
-
+OVERWRITE_SEATBELT = _bool_env_var('OVERWRITE_SEATBELT', False)
+RUN_ALL_FILES = _bool_env_var('RUN_ALL_FILES', False)
 RUN_INPUT_FOLDER = os.environ.get('RUN_INPUT_FOLDER', None)
 
 EPS = 2 * sys.float_info.epsilon
@@ -66,6 +74,10 @@ class SeatBelt(unittest.TestCase):
 
     def test_files(self):
         mydir = osp.dirname(__file__)
+        log.info("  OVERWRITE_SEATBELT: %s \n"
+                "  RUN_INPUT_FOLDER: %s \n"
+                "  RUN_ALL_FILES: %s ",
+                OVERWRITE_SEATBELT, RUN_INPUT_FOLDER, RUN_ALL_FILES)
         path = RUN_INPUT_FOLDER or osp.join(mydir, '..', 'co2mpas', 'demos')
         file = (path
                 if (RUN_ALL_FILES or RUN_INPUT_FOLDER)
