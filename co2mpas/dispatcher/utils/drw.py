@@ -44,7 +44,8 @@ _encode_table = {
 }
 
 if os.name != 'nt':
-    Digraph = gviz.Digraph
+    class Digraph(gviz.Digraph):
+        pass
 else:
     import win32api
 
