@@ -15,7 +15,7 @@ __author__ = 'Vincenzo Arcidiacono'
 from heapq import heappush, heappop
 from .gen import pairwise, counter
 from .cst import EMPTY, NONE
-from .dsp import SubDispatch, bypass
+from .dsp import SubDispatch, bypass, selector
 from .des import parent_func, search_node_description
 from networkx import is_isolate
 from collections import OrderedDict
@@ -198,8 +198,7 @@ def _add_edge_dmap_fun(graph, edges_weights=None):
     return add_edge  # Returns the function.
 
 
-def replace_remote_link(dsp, nodes_bunch, old_link, new_link=None,
-                        is_parent=True):
+def replace_remote_link(dsp, nodes_bunch, link_map):
     """
     Replaces or removes remote links.
 
@@ -223,32 +222,18 @@ def replace_remote_link(dsp, nodes_bunch, old_link, new_link=None,
         If True the link is inflow (parent), otherwise is outflow (child).
     :type is_parent: bool, optional
     """
+    nodes = dsp.nodes
+    for k in nodes_bunch:  # Update remote links.
+        node = nodes[k] = nodes[k].copy()
+        links = []
+        # Define new remote links.
+        for (n, d), t in node.pop('remote_links', []):
+            d = link_map.get(d, None)
 
-    # Define link type.
-    link_type = ['child', 'parent'][is_parent]
-
-    attr = 'remote_links'  # Namespace shortcut for speed.
-    old_link = [old_link, link_type]
-
-    # Define a function to check if update link.
-    def update(link):
-        return link == old_link
-
-    if new_link is None:  # Remove links.
-        for node in (dsp.nodes[k] for k in nodes_bunch):  # Update remote links.
-            # Define new remote links.
-            r_links = [l for l in node.pop(attr) if l != old_link]
-
-            if r_links:  # Update remote links.
-                node[attr] = r_links
-
-    else:  # Replace links.
-        nl = [new_link, link_type]  # Define new link.
-
-        for node in (dsp.nodes[k] for k in nodes_bunch):  # Update remote links.
-            if attr in node:
-                # Define new remote links.
-                node[attr] = [nl if l == old_link else l for l in node[attr]]
+            if d:
+                links.append([[n, d], t])
+        if links:
+            node['remote_links'] = links
 
 
 def stlp(s):
@@ -317,6 +302,90 @@ def _get_node(nodes, node_id, _function_module=True):
                     if n is not EMPTY:
                         return n
     raise KeyError
+
+
+def _update_remote_links(new_dsp, old_dsp):
+    """
+    Update the remote links (parent/child) in the new_dsp .
+
+    :param new_dsp:
+        New Dispatcher.
+    :type new_dsp: Dispatcher
+
+    :param old_dsp:
+        Old Dispatcher.
+    :type old_dsp: Dispatcher
+    """
+
+    _map = _map_remote_links(new_dsp, old_dsp)
+
+    def _update(dsp):
+        nodes = dsp.nodes
+        for k, n in dsp.sub_dsp_nodes.items():
+            n = nodes[k] = n.copy()
+            dsp = n['function']
+
+            n = set(_children(n['inputs'])).union(set(n['outputs']))
+
+            # Update remote links.
+            replace_remote_link(dsp, n.intersection(dsp.nodes), _map)
+
+            _update(dsp)
+
+    _update(new_dsp)
+
+
+def _map_remote_links(new_dsp, old_dsp):
+    """
+    Returns a map with old_dsp and new_dsp to update remote links.
+
+    :param new_dsp:
+        Old Dispatcher.
+    :type new_dsp: Dispatcher
+
+    :param old_dsp:
+        Old Dispatcher.
+    :type old_dsp: Dispatcher
+
+    :return:
+        A map with old_dsp and new_dsp.
+    :rtype: dict[Dispatcher, Dispatcher]
+    """
+
+    ref, nodes = {old_dsp: new_dsp}, old_dsp.nodes  # Namespace shortcuts.
+
+    for k, n in new_dsp.sub_dsp_nodes.items():
+        s, o = n['function'],  nodes[k]['function']
+        ref.update(_map_remote_links(s,o))
+
+    return ref
+
+
+def _update_io_attr_sub_dsp(dsp, attr):
+    """
+    Updates input and output of sub-dispatcher node attributes.
+
+    :param dsp:
+        A dispatcher.
+    :type dsp: dispatcher.Dispatcher
+
+    :param attr:
+        Sub-dispatcher node attributes.
+    :type attr: dict
+    """
+
+    # Namespace shortcuts.
+    nodes, o, i = dsp.nodes, attr['outputs'], {}
+
+    attr['outputs'] = selector(set(o).intersection(nodes), o)
+
+    for k, v in attr['inputs'].items():
+        j = tuple(j for j in stlp(v) if j in nodes)
+
+        if j:
+            i[k] = bypass(*j)
+
+    attr['inputs'] = i
 
 
 def get_sub_node(dsp, path, node_attr='auto', _level=0, _dsp_name=NONE):

@@ -30,14 +30,14 @@ from collections import deque, OrderedDict
 from copy import copy, deepcopy
 from networkx import DiGraph, isolates
 from datetime import datetime
-from itertools import chain
 
 from .utils.gen import counter, caller_name, Token
 from .utils.alg import add_edge_fun, remove_edge_fun, rm_cycles_iter, \
     get_unused_node_id, add_func_edges, replace_remote_link, get_sub_node, \
-    _children, stlp, get_full_pipe
-from .utils.cst import EMPTY, START, NONE, SINK
-from .utils.dsp import SubDispatch, bypass, combine_dicts
+    _children, stlp, get_full_pipe, _update_io_attr_sub_dsp,\
+    _map_remote_links, _update_remote_links
+from .utils.cst import EMPTY, START, NONE, SINK, END
+from .utils.dsp import SubDispatch, bypass, combine_dicts, selector
 from .utils.drw import plot
 from .utils.des import parent_func
 from .utils.exc import DispatcherError
@@ -933,7 +933,7 @@ class Dispatcher(object):
             pass
         raise ValueError('Input error: %s is not a data node' % data_id)
 
-    def get_sub_dsp(self, nodes_bunch, edges_bunch=None, update_links=False):
+    def get_sub_dsp(self, nodes_bunch, edges_bunch=None):
         """
         Returns the sub-dispatcher induced by given node and edge bunches.
 
@@ -950,10 +950,6 @@ class Dispatcher(object):
         :param edges_bunch:
             A container of edge ids that will be removed.
         :type edges_bunch: list[(str, str)], iterable, optional
-
-        :param update_links:
-            If True the sub-dispatcher remote links are updated.
-        :type update_links: bool, optional
 
         :return:
             A dispatcher.
@@ -1036,16 +1032,9 @@ class Dispatcher(object):
         # Set default values.
         sub_dsp.default_values = {k: dmap_dv[k] for k in dmap_dv if k in nodes}
 
-        # Update remote links.
-        if update_links:
-            sub_dsp._update_remote_links(sub_dsp, self)
-
-        sub_dsp._update_children_parent()
-
         return sub_dsp  # Return the sub-dispatcher.
 
-    def get_sub_dsp_from_workflow(self, sources, graph=None, reverse=False,
-                                  update_links=False):
+    def get_sub_dsp_from_workflow(self, sources, graph=None, reverse=False):
         """
         Returns the sub-dispatcher induced by the workflow from sources.
 
@@ -1065,10 +1054,6 @@ class Dispatcher(object):
         :param reverse:
             If True the workflow graph is assumed as reversed.
         :type reverse: bool, optional
-
-        :param update_links:
-            If True the sub-dispatcher remote links are updated.
-        :type update_links: bool, optional
 
         :return:
             A sub-dispatcher
@@ -1219,12 +1204,6 @@ class Dispatcher(object):
 
                 # Add attributes to both representations of edge: u-v and v-u.
                 nbrs[child] = pred[child][parent] = dmap_nbrs[child]
-
-        # Update remote links.
-        if update_links:
-            sub_dsp._update_remote_links(sub_dsp, self)
-
-        sub_dsp._update_children_parent()
 
         return sub_dsp  # Return the sub-dispatcher map.
 
@@ -1819,6 +1798,8 @@ class Dispatcher(object):
             >>> shrink_dsp.name = 'Sub-Dispatcher'
         """
 
+        bfs = None
+
         if inputs:
             self._set_wait_in(flag=False)  # Set all data nodes no wait inputs.
 
@@ -1826,20 +1807,30 @@ class Dispatcher(object):
             o = self.dispatch(inputs, outputs, cutoff, inputs_dist, wildcard,
                               True, False, True)
 
-            BFG = Token('bfg')
-
-            def _union_workflow(dsp, node_id=None, bfg={BFG: set()}):
+            def _union_workflow(dsp, node_id=None, bfs={NONE: set()}):
                 if node_id is not None:
-                    j = bfg[node_id] = bfg.get(node_id, {BFG: set()})
+                    j = bfs[node_id] = bfs.get(node_id, {NONE: set()})
                 else:
-                    j = bfg
-                j[BFG].update(dsp.workflow.edges())
+                    j = bfs
+                j[NONE].update(dsp.workflow.edges())
+
                 for n, a in dsp.sub_dsp_nodes.items():
                     if 'function' in a:
-                        _union_workflow(a['function'], node_id=n, bfg=j)
-                return bfg
+                        _union_workflow(a['function'], node_id=n, bfs=j)
+                return bfs
 
-            bfg = _union_workflow(self)  # bfg edges.
+            def _convert_bfs(bfs):
+                g = DiGraph()
+                g.add_edges_from(bfs[NONE])
+                bfs[NONE] = g
+
+                for k, v in bfs.items():
+                    if k is not NONE:
+                        _convert_bfs(v)
+
+                return bfs
+
+            bfs = _union_workflow(self)  # bfg edges.
 
             # Set minimum initial distances.
             if inputs_dist:
@@ -1853,16 +1844,11 @@ class Dispatcher(object):
             self._set_wait_in(flag=True)
 
             while True:  # Start shrinking loop.
-
                 # Evaluate the workflow graph without invoking functions.
                 o = self.dispatch(inputs, outputs, cutoff, inputs_dist,
                                   wildcard, True, False, False)
 
-                for k, v in self.dist.items():
-                    outputs_dist[k] = max(v, outputs_dist.get(k, v))
-                    inputs_dist[k] = min(v, inputs_dist.get(k, v))
-
-                _union_workflow(self, bfg=bfg)
+                _union_workflow(self, bfs=bfs)
 
                 n_d, status = self._remove_wait_in()
                 if not status:
@@ -1870,172 +1856,67 @@ class Dispatcher(object):
 
                 inputs = n_d.union(inputs)  # Update inputs.
 
-            # Update the breadth-first-search graph and outputs.
-            bfs_graph = DiGraph()
-            bfs_graph.add_edges_from(bfg[BFG])
-            outputs = outputs or o
-
             self._set_wait_in(flag=None)  # Clean wait input flags.
 
-            # Get sub dispatcher breadth-first-search graph.
-            dsp = self.get_sub_dsp_from_workflow(outputs, bfs_graph, True)
-
             # Shrink sub-dispatcher nodes.
-            dsp._shrink_sub_dsp(self, False, inputs_dist, outputs_dist)
+            outputs, bfs = outputs or o, _convert_bfs(bfs)
 
-        elif outputs:
-            # Make a first search.
-            dsp = self.get_sub_dsp_from_workflow(outputs, self.dmap, True)
+        elif not outputs:
+            return self.__class__()  # Empty Dispatcher.
 
-            # Shrink sub-dispatcher nodes from outputs.
-            dsp._shrink_sub_dsp(self, True)
+        # Get sub dispatcher breadth-first-search graph.
+        dsp = self._get_dsp_from_bfs(outputs, bfs_graphs=bfs)
 
-            # Namespace shortcuts.
-            in_e, out_e = dsp.dmap.in_edges, dsp.dmap.out_edges
-            rm_edges, it = dsp.dmap.remove_edges_from, dsp.nodes.items()
+        _update_remote_links(dsp, self)
 
-            # Update sub-dispatcher edges.
-            for k, v in (v for v in it if v[1]['type'] == 'dispatcher'):
-                o = set(out_e(k)) - {(k, u) for u in _children(v['outputs'])}
-                i = set(in_e(k)) - {(u, k) for u in v['inputs']}
-                rm_edges(i.union(o))  # Remove unreachable nodes.
-
-            # Get sub dispatcher breadth-first-search graph.
-            dsp = dsp.get_sub_dsp_from_workflow(outputs, dsp.dmap, True, True)
-
-        else:
-            dsp = self.__class__()  # Empty Dispatcher.
+        dsp._update_children_parent()
 
         return dsp  # Return the shrink sub dispatcher.
 
-    def _shrink_sub_dsp(self, old_dsp, from_outputs=False, inputs_dist=None,
-                        outputs_dist=None):
+    def _get_dsp_from_bfs(self, outputs, bfs_graphs=None):
         """
-        Shrink sub-dispatcher nodes and update remote links.
+        Returns the sub-dispatcher induced by the workflow from outputs.
 
-        :param old_dsp:
-            Old dispatcher object (to update remote links).
-        :type old_dsp: Dispatcher
+        :param outputs:
+            Ending data nodes.
+        :type outputs: list[str], iterable, optional
 
-        :param from_outputs:
-            If True the shrink of the sub-dispatcher nodes is made only from its
-            outputs.
-        :type from_outputs: bool, optional
+        :param bfs_graphs:
+            A dictionary with directed graphs where evaluate the
+            breadth-first-search.
+        :type bfs_graphs: dict[str | Token, DiGraph | dict], optional
 
-        :param inputs_dist:
-            Initial distances of input data nodes.
-        :type inputs_dist: dict[str, int | float], optional
-
-        :param outputs_dist:
-            Maximum distances to the output data nodes.
-        :type outputs_dist: dict[str, int | float], optional
+        :return:
+            A sub-dispatcher
+        :rtype: Dispatcher
         """
+
+        bfs = bfs_graphs[NONE] if bfs_graphs is not None else self.dmap
+
+        # Get sub dispatcher breadth-first-search graph.
+        dsp = self.get_sub_dsp_from_workflow(outputs, bfs, True)
 
         # Namespace shortcuts.
-        pred, succ, nodes = self.dmap.pred, self.dmap.succ, self.nodes
-        re_rl, dist = replace_remote_link, old_dsp.dist
-        rm_edge = self.dmap.remove_edge
+        in_e, out_e = dsp.dmap.in_edges, dsp.dmap.out_edges
+        succ, nodes, rm_edges = dsp._succ, dsp.nodes, dsp.dmap.remove_edges_from
 
-        if not from_outputs and dist:
-            in_dist, wc = inputs_dist, old_dsp._wildcards
+        for n in dsp.sub_dsp_nodes:
+            a = nodes[n] = nodes[n].copy()
+            bfs = bfs_graphs[n] if bfs_graphs is not None else None
 
-            def _in_dist(n_id):
-                if n_id in dist:
-                    return dist[n_id]
-                elif n_id in wc:
-                    return in_dist.get(n_id, 0.0)
+            o = succ[n]
+            o = {k for k, v in a['outputs'].items()
+                 if any(i in o for i in stlp(v))}
 
-            def get_inp_dist(inp, out):
-                # Max distance of output node.
-                max_d = max(max((outputs_dist[j], l) for j in m)
-                            for l, m in out.items())
-                in_d = {}
+            d = a['function'] = a['function']._get_dsp_from_bfs(o, bfs)
+            _update_io_attr_sub_dsp(d, a)
 
-                # Get initial dist and remove input node with d > max_d..
-                for l, m in list(inp.items()):
-                    for j in m:
-                        in_d[j] = d = _in_dist(l)
-                        if (d, j) > max_d:
-                            in_d.pop(j), inp.pop(l)
+            # Update sub-dispatcher edges.
+            o = set(out_e(n)) - {(n, u) for u in _children(a['outputs'])}
+            i = set(in_e(n)) - {(u, n) for u in a['inputs']}
+            rm_edges(i.union(o))  # Remove unreachable nodes.
 
-                for l in set(pred[k]) - set(inp):
-                    rm_edge(l, k)
-
-                return in_d
-
-        else:
-            def get_inp_dist(inp, out):
-                return None
-
-        for k, n in (v for v in nodes.items() if v[1]['type'] == 'dispatcher'):
-            n = nodes[k] = n.copy()  # Unlink node references.
-
-            # Get parent dispatcher inputs and outputs.
-            i, o = pred[k], set(succ[k])
-            i = {l: m for l, m in n['inputs'].items() if l in i}
-            o = {l: tuple(o.intersection(stlp(m)))
-                 for l, m in n['outputs'].items()
-                 if not o.isdisjoint(stlp(m))}
-
-            in_d = get_inp_dist(i, o)
-
-            srk_i = _children(i) if not from_outputs and i else None
-            srk_o = o or None
-
-            # Shrink the sub-dispatcher.
-            sub_dsp = n['function'].shrink_dsp(srk_i, srk_o, inputs_dist=in_d)
-
-            # Get nodes with remote links (input and output).
-            n_in = set(_children(n['inputs'])).intersection(sub_dsp.nodes)
-            n_out = set(n['outputs']).intersection(sub_dsp.nodes)
-
-            # Unlink node references.
-            for j in n_in.union(n_out):
-                sub_dsp.nodes[j] = sub_dsp.nodes[j].copy()
-
-            # Update remote links.
-            old_link, new_link = [k, old_dsp], [k, self]
-            rm_in, rm_out = n_in - set(_children(i)), n_out - set(o)
-            re_rl(sub_dsp, n_in - rm_in, old_link, new_link, is_parent=True)
-            re_rl(sub_dsp, rm_in, old_link, None, is_parent=True)
-            re_rl(sub_dsp, n_out - rm_out, old_link, new_link, is_parent=False)
-            re_rl(sub_dsp, rm_out, old_link, None, is_parent=False)
-
-            # Update sub-dispatcher node.
-            n.update({'inputs': i, 'outputs': o, 'function': sub_dsp})
-
-            # Add missing nodes to sub-dispatcher
-            for l in set(_children(i)) - set(sub_dsp.nodes):
-                sub_dsp.add_data(data_id=l)
-
-    def _update_remote_links(self, new_dsp, old_dsp):
-        """
-        Replace the old_dsp with the new_dsp in the remote links (parent/child).
-
-        :param new_dsp:
-            New Dispatcher.
-        :type new_dsp: Dispatcher
-
-        :param old_dsp:
-            New Dispatcher.
-        :type old_dsp: Dispatcher
-        """
-
-        nodes, re_rl = self.nodes, replace_remote_link  # Namespace shortcuts.
-
-        for k, n in (v for v in nodes.items() if v[1]['type'] == 'dispatcher'):
-            # Namespace shortcuts.
-            n = nodes[k] = n.copy()
-            dsp = n['function']
-
-            n_in, n_out = set(_children(n['inputs'])), set(n['outputs'])
-            n_in = n_in.intersection(dsp.nodes)
-            n_out = n_out.intersection(dsp.nodes)
-
-            # Update remote links.
-            old_link, new_link = [k, old_dsp], [k, new_dsp]
-            re_rl(dsp, n_in, old_link, new_link, is_parent=True)
-            re_rl(dsp, n_out, old_link, new_link, is_parent=False)
+        return dsp
 
     def _check_targets(self):
         """
@@ -2296,6 +2177,8 @@ class Dispatcher(object):
         return wait_in
 
     def _remove_wait_in(self):
+        c = counter()
+
         def _get_wait_in(dsp):
             w = set()
             L = []
@@ -2317,14 +2200,16 @@ class Dispatcher(object):
             n_d = n_d.union(dsp._visited.intersection(wi))
             wi = n_d.intersection(wi)
 
-            L += [(dsp.seen.get(k, float('inf')), k, dsp._wait_in) for k in wi]
+            L += [(dsp.seen.get(k, float('inf')), k, c(), dsp._wait_in) for k in wi]
 
             return set(n_d), L
 
-        l = sorted(_get_wait_in(self)[1])
+        L =_get_wait_in(self)[1]
+
+        l = sorted(L)
         n_d = set()
 
-        for d, k, w in l:
+        for d, k, _, w in l:
             if d == l[0][0]:
                 w[k] = False
                 if w is self._wait_in:
@@ -3168,17 +3053,16 @@ class Dispatcher(object):
             kwargs['exc_info'] = kwargs.get('exc_info', 1)
             log.error(msg, node_id, ex, *args, **kwargs)
 
-    def _update_children_parent(self):
-        it = chain(self.function_nodes.items(), self.sub_dsp_nodes.items())
-        for k, v in it:
-            try:
-                dsp = parent_func(v['function'])
-                if isinstance(dsp, SubDispatch):
-                    dsp.dsp._parent = (k, self)
-                elif isinstance(dsp, Dispatcher):
-                    dsp._parent = (k, self)
-            except KeyError:
-                pass
+    def _update_children_parent(self, parent=None):
+        self._parent = parent
+
+        for k, v in self.sub_dsp_nodes.items():
+            v['function']._update_children_parent((k, self))
+
+        for k, v in self.sub_dsp_nodes.items():
+            func = parent_func(v['function'])
+            if isinstance(func, SubDispatch):
+                func.dsp._update_children_parent((k, self))
 
     def _check_func_parent(self, func):
         dsp = parent_func(func)

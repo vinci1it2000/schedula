@@ -1379,7 +1379,7 @@ class TestShrinkDispatcher(unittest.TestCase):
 
         self.assertEqual(sorted(shrink_dsp.dmap.node), r)
         self.assertEqual(sorted(shrink_dsp.dmap.edges()), w)
-        self.assertEqual(sub_dsp.dmap.node, sn)
+        self.assertEqual(set(sub_dsp.dmap.node), set(sn))
         self.assertEqual(sorted(sub_dsp.dmap.edges()), sw)
 
     def test_shrink_with_inputs(self):
