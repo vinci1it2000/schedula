@@ -33,9 +33,9 @@ from datetime import datetime
 
 from .utils.gen import counter, caller_name, Token
 from .utils.alg import add_edge_fun, remove_edge_fun, rm_cycles_iter, \
-    get_unused_node_id, add_func_edges, replace_remote_link, get_sub_node, \
+    get_unused_node_id, add_func_edges, get_sub_node, \
     _children, stlp, get_full_pipe, _update_io_attr_sub_dsp,\
-    _map_remote_links, _update_remote_links
+    _map_remote_links, _update_remote_links, remove_links
 from .utils.cst import EMPTY, START, NONE, SINK, END
 from .utils.dsp import SubDispatch, bypass, combine_dicts, selector
 from .utils.drw import plot
@@ -1870,6 +1870,8 @@ class Dispatcher(object):
         _update_remote_links(dsp, self)
 
         dsp._update_children_parent()
+
+        remove_links(dsp)
 
         return dsp  # Return the shrink sub dispatcher.
 

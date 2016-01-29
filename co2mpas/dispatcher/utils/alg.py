@@ -15,7 +15,7 @@ __author__ = 'Vincenzo Arcidiacono'
 from heapq import heappush, heappop
 from .gen import pairwise, counter
 from .cst import EMPTY, NONE
-from .dsp import SubDispatch, bypass, selector
+from .dsp import SubDispatch, bypass, selector, map_dict
 from .des import parent_func, search_node_description
 from networkx import is_isolate
 from collections import OrderedDict
@@ -197,6 +197,47 @@ def _add_edge_dmap_fun(graph, edges_weights=None):
 
     return add_edge  # Returns the function.
 
+
+def remove_remote_link(dsp, nodes_bunch, type=('child', 'parent')):
+    nodes = dsp.nodes
+    for k in nodes_bunch:
+        node = nodes[k]
+        links = []
+        # Define new remote links.
+        for (n, d), t in node.pop('remote_links', []):
+            if not t in type:
+                links.append([[n, d], t])
+        if links:
+            node['remote_links'] = links
+
+
+def remove_links(dsp):
+
+    for k, a in dsp.data_nodes.items():
+        links = []
+        for (n, d), t in a.pop('remote_links', []):
+            if t == 'parent' and k in map_dict(d.nodes[n]['inputs'], d.dmap.pred[n]):
+                links.append([[n, d], t])
+            elif t == 'child' and k in map_dict({i: j for i, j in d.nodes[n]['outputs'].items()}, d.dmap.succ[n]):
+                links.append([[n, d], t])
+        if links:
+            a['remote_links'] = links
+
+    for n, a in dsp.sub_dsp_nodes.items():
+        remove_links(a['function'])
+        nodes = a['function'].nodes
+        i = a['inputs']
+        for k, v in list(i.items()):
+            j = tuple(i for i in stlp(v) if _has_remote(nodes[i], type='parent'))
+            if j:
+                i[k] = j
+            else:
+                i.pop(k)
+
+        a['outputs'] = {k: v for k, v in a['outputs'].items() if _has_remote(nodes[k], type='child')}
+
+def _has_remote(node, type=('child', 'parent')):
+    return any(v[1] in stlp(type) for v in node.get('remote_links', []))
 
 def replace_remote_link(dsp, nodes_bunch, link_map):
     """
