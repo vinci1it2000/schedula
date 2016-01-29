@@ -32,7 +32,7 @@ from networkx import DiGraph, isolates
 from datetime import datetime
 from itertools import chain
 
-from .utils.gen import counter, caller_name
+from .utils.gen import counter, caller_name, Token
 from .utils.alg import add_edge_fun, remove_edge_fun, rm_cycles_iter, \
     get_unused_node_id, add_func_edges, replace_remote_link, get_sub_node, \
     _children, stlp, get_full_pipe
@@ -1826,7 +1826,20 @@ class Dispatcher(object):
             o = self.dispatch(inputs, outputs, cutoff, inputs_dist, wildcard,
                               True, False, True)
 
-            edges = set(self.workflow.edges())  # bfg edges.
+            BFG = Token('bfg')
+
+            def _union_workflow(dsp, node_id=None, bfg={BFG: set()}):
+                if node_id is not None:
+                    j = bfg[node_id] = bfg.get(node_id, {BFG: set()})
+                else:
+                    j = bfg
+                j[BFG].update(dsp.workflow.edges())
+                for n, a in dsp.sub_dsp_nodes.items():
+                    if 'function' in a:
+                        _union_workflow(a['function'], node_id=n, bfg=j)
+                return bfg
+
+            bfg = _union_workflow(self)  # bfg edges.
 
             # Set minimum initial distances.
             if inputs_dist:
@@ -1835,38 +1848,31 @@ class Dispatcher(object):
                 inputs_dist = self.dist
 
             # Set maximum distances
-            outputs_dist = inputs_dist.copy()
-
-            self._set_wait_in(flag=True)  # Set data nodes to wait inputs.
-
-            # Namespace shortcuts.
-            wait_in = self._wait_in
-            wi = set(wait_in)
+            outputs_dist = {}
+            # Set data nodes to wait inputs.
+            self._set_wait_in(flag=True)
 
             while True:  # Start shrinking loop.
-                for k, v in wait_in.items():  # Update waiting data nodes.
-                    if v and k in inputs:
-                        wait_in[k] = False
-                        wi.remove(k)
 
                 # Evaluate the workflow graph without invoking functions.
                 o = self.dispatch(inputs, outputs, cutoff, inputs_dist,
-                                  wildcard, True, False, True)
+                                  wildcard, True, False, False)
 
-                outputs_dist.update(self.dist)
-                edges.update(self.workflow.edges())  # Update bfg edges.
+                for k, v in self.dist.items():
+                    outputs_dist[k] = max(v, outputs_dist.get(k, v))
+                    inputs_dist[k] = min(v, inputs_dist.get(k, v))
 
-                # Nodes to be visited.
-                n_d = (set(self.workflow.node.keys()) - self._visited)
-                n_d = n_d.union(self._visited.intersection(wi))
-                if not n_d:
+                _union_workflow(self, bfg=bfg)
+
+                n_d, status = self._remove_wait_in()
+                if not status:
                     break  # Stop iteration.
 
                 inputs = n_d.union(inputs)  # Update inputs.
 
             # Update the breadth-first-search graph and outputs.
             bfs_graph = DiGraph()
-            bfs_graph.add_edges_from(edges)
+            bfs_graph.add_edges_from(bfg[BFG])
             outputs = outputs or o
 
             self._set_wait_in(flag=None)  # Clean wait input flags.
@@ -2261,26 +2267,69 @@ class Dispatcher(object):
 
         wait_in = self._wait_in = {}  # Clear wait_in.
 
-        if flag is None:  # No set.
+        if flag is None: # No set.
+            for a in self.sub_dsp_nodes.values():
+                if 'function' in a:
+                    a['function']._set_wait_in(flag=flag)
             return
 
-        for n, a in self.nodes.items():
-            n_type = a['type']  # Namespace shortcut.
-
-            # With a domain.
-            if all_domain and n_type in (
-            'function', 'dispatcher') and 'input_domain' in a:
-                # Nodes estimated from functions with a domain function.
-                if n_type == 'dispatcher':
-                    it = a['outputs'].values()
-                else:
-                    it = a['outputs']
-
-                for k in it:
-                    wait_in[k] = flag
-
-            elif n_type == 'data' and a['wait_inputs']:  # Is waiting inputs.
+        for n, a in self.data_nodes.items():
+            if n is not SINK and a['wait_inputs']:
                 wait_in[n] = flag
+
+        if all_domain:
+            for a in self.function_nodes.values():
+                if 'input_domain' in a:
+                    wait_in.update(dict.fromkeys(a['outputs'], flag))
+
+            for n, a in self.sub_dsp_nodes.items():
+                if 'function' in a:
+                    w = a['function']._set_wait_in(flag=flag)
+
+                if 'input_domain' in a:
+                    wait_in.update(dict.fromkeys(a['outputs'].values(), flag))
+
+                elif 'function' in a:
+                    o = a['outputs']
+                    w = [o[k] for k in set(o).intersection(w)]
+                    wait_in.update(dict.fromkeys(w, flag))
+        return wait_in
+
+    def _remove_wait_in(self):
+        def _get_wait_in(dsp):
+            w = set()
+            L = []
+            for n, a in dsp.sub_dsp_nodes.items():
+                if 'function' in a:
+                    sub_dsp = a['function']
+                    n_d, l = _get_wait_in(sub_dsp)
+                    L += l
+                    wi = {k for k, v in sub_dsp._wait_in.items() if v is True}
+                    n_d = n_d.union(wi)
+                    o = a['outputs']
+                    w = w.union([o[k] for k in set(o).intersection(n_d)])
+
+            # Nodes to be visited.
+            wi = {k for k, v in dsp._wait_in.items() if v is True}
+
+            n_d = (set(dsp.workflow.node.keys()) - dsp._visited) - w
+
+            n_d = n_d.union(dsp._visited.intersection(wi))
+            wi = n_d.intersection(wi)
+
+            L += [(dsp.seen.get(k, float('inf')), k, dsp._wait_in) for k in wi]
+
+            return set(n_d), L
+
+        l = sorted(_get_wait_in(self)[1])
+        n_d = set()
+
+        for d, k, w in l:
+            if d == l[0][0]:
+                w[k] = False
+                if w is self._wait_in:
+                    n_d.add(k)
+        return n_d, l
 
     def _get_initial_values(self, inputs, initial_dist, no_call):
         """
