@@ -211,14 +211,35 @@ def remove_remote_link(dsp, nodes_bunch, type=('child', 'parent')):
             node['remote_links'] = links
 
 
+def _get_parent_nodes(dsp, sub_dsp_id, inputs=True):
+    if inputs:
+        key_map, d = dsp.nodes[sub_dsp_id]['inputs'], dsp.dmap.pred[sub_dsp_id]
+    else:
+        key_map = _invert_node_map(dsp.nodes[sub_dsp_id]['outputs'])
+        d = dsp.dmap.succ[sub_dsp_id]
+
+    return list(_iter_list_nodes(map_dict(key_map, d)))
+
+
+def _invert_node_map(_map):
+    r = {}
+    for i, v in _map.items():
+        for j in stlp(v):
+            if j in r:
+                r[j] = stlp(r[j]) + (i,)
+            else:
+                r[j] = i
+    return r
+
+
 def remove_links(dsp):
 
     for k, a in dsp.data_nodes.items():
         links = []
         for (n, d), t in a.pop('remote_links', []):
-            if t == 'parent' and k in map_dict(d.nodes[n]['inputs'], d.dmap.pred[n]):
+            if t == 'parent' and k in _get_parent_nodes(d, n, inputs=True):
                 links.append([[n, d], t])
-            elif t == 'child' and k in map_dict({i: j for i, j in d.nodes[n]['outputs'].items()}, d.dmap.succ[n]):
+            elif t == 'child' and k in _get_parent_nodes(d, n, inputs=False):
                 links.append([[n, d], t])
         if links:
             a['remote_links'] = links
@@ -236,8 +257,10 @@ def remove_links(dsp):
 
         a['outputs'] = {k: v for k, v in a['outputs'].items() if _has_remote(nodes[k], type='child')}
 
+
 def _has_remote(node, type=('child', 'parent')):
     return any(v[1] in stlp(type) for v in node.get('remote_links', []))
+
 
 def replace_remote_link(dsp, nodes_bunch, link_map):
     """
@@ -283,21 +306,23 @@ def stlp(s):
     return s
 
 
+def _iter_list_nodes(l):
+    for v in l:
+        if isinstance(v, str):
+            yield v
+        else:
+            for j in v:
+                yield j
+
+
 def _children(inputs):
     """
 
     :param inputs:
     :return:
     """
-    def _get(i):
-        for k, v in i.items():
-            if isinstance(v, str):
-                yield v
-            else:
-                for j in v:
-                    yield j
 
-    return set(_get(inputs))
+    return set(_iter_list_nodes(inputs.values()))
 
 
 def _get_node(nodes, node_id, _function_module=True):
@@ -997,3 +1022,34 @@ def get_full_pipe(dsp, base=()):
         pipe[bypass(*n_id)] = p
 
     return pipe
+
+
+def _sort_sk_wait_in(dsp):
+    c = counter()
+
+    def _get_sk_wait_in(dsp):
+        w = set()
+        L = []
+        for n, a in dsp.sub_dsp_nodes.items():
+            if 'function' in a:
+                sub_dsp = a['function']
+                n_d, l = _get_sk_wait_in(sub_dsp)
+                L += l
+                wi = {k for k, v in sub_dsp._wait_in.items() if v is True}
+                n_d = n_d.union(wi)
+                o = a['outputs']
+                w = w.union([o[k] for k in set(o).intersection(n_d)])
+
+        # Nodes to be visited.
+        wi = {k for k, v in dsp._wait_in.items() if v is True}
+
+        n_d = (set(dsp.workflow.node.keys()) - dsp._visited) - w
+
+        n_d = n_d.union(dsp._visited.intersection(wi))
+        wi = n_d.intersection(wi)
+
+        L += [(dsp._meet.get(k, float('inf')), k, c(), dsp._wait_in) for k in wi]
+
+        return set(n_d), L
+
+    return sorted(_get_sk_wait_in(dsp)[1])

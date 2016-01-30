@@ -206,7 +206,7 @@ class TestCreateDispatcher(unittest.TestCase):
             'type': 'dispatcher',
             'inputs': {'d': 'a', 'e': 'b'},
             'outputs': {'e': 'e', 'c': 'd'},
-            'wait_inputs': True,
+            'wait_inputs': False,
         }
         self.assertEqual(dsp.nodes[dsp_id], res)
 
@@ -287,7 +287,7 @@ class TestCreateDispatcher(unittest.TestCase):
                         'outputs': {'c': 'C'},
                         'inputs': {'A': 'a', 'B': 'b'},
                         'type': 'dispatcher',
-                        'wait_inputs': True},
+                        'wait_inputs': False},
         }
 
         self.assertEqual(dsp.dmap.node, res)

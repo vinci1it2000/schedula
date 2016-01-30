@@ -35,7 +35,7 @@ from .utils.gen import counter, caller_name, Token
 from .utils.alg import add_edge_fun, remove_edge_fun, rm_cycles_iter, \
     get_unused_node_id, add_func_edges, get_sub_node, \
     _children, stlp, get_full_pipe, _update_io_attr_sub_dsp,\
-    _map_remote_links, _update_remote_links, remove_links
+    _map_remote_links, _update_remote_links, remove_links, _sort_sk_wait_in
 from .utils.cst import EMPTY, START, NONE, SINK, END
 from .utils.dsp import SubDispatch, bypass, combine_dicts, selector
 from .utils.drw import plot
@@ -220,6 +220,12 @@ class Dispatcher(object):
 
         #: A dictionary of distances from the `START` node.
         self.dist = {}
+
+        #: A dictionary of seen distances from the `START` node.
+        self.seen = {}
+
+        #: A dictionary of meeting distances from the `START` node.
+        self._meet = {}
 
         #: If True the dispatcher interrupt the dispatch when an error occur.
         self.raises = raises
@@ -565,9 +571,9 @@ class Dispatcher(object):
 
         # Set parent.
         if isinstance(func, SubDispatch):
-            func.dsp._parent = (fun_id, self)
+            func.dsp._update_children_parent((fun_id, self))
         elif isinstance(func, Dispatcher):
-            func._parent = (fun_id, self)
+            func._update_children_parent((fun_id, self))
 
         # Add node to the dispatcher map.
         self.dmap.add_node(fun_id, attr_dict=attr_dict)
@@ -701,7 +707,7 @@ class Dispatcher(object):
         dsp_id = self.add_function(
                 dsp_id, dsp, inputs, parents, input_domain, weight,
                 _weight_from, type='dispatcher', description=description,
-                **kwargs)
+                wait_inputs=False, **kwargs)
 
         # Set proper outputs.
         self.nodes[dsp_id]['outputs'] = outputs
@@ -1869,7 +1875,7 @@ class Dispatcher(object):
 
         _update_remote_links(dsp, self)
 
-        dsp._update_children_parent()
+        dsp._update_children_parent(self._parent)
 
         remove_links(dsp)
 
@@ -2170,6 +2176,7 @@ class Dispatcher(object):
                     w = a['function']._set_wait_in(flag=flag)
 
                 if 'input_domain' in a:
+                    wait_in[n] = flag
                     wait_in.update(dict.fromkeys(a['outputs'].values(), flag))
 
                 elif 'function' in a:
@@ -2179,36 +2186,8 @@ class Dispatcher(object):
         return wait_in
 
     def _remove_wait_in(self):
-        c = counter()
 
-        def _get_wait_in(dsp):
-            w = set()
-            L = []
-            for n, a in dsp.sub_dsp_nodes.items():
-                if 'function' in a:
-                    sub_dsp = a['function']
-                    n_d, l = _get_wait_in(sub_dsp)
-                    L += l
-                    wi = {k for k, v in sub_dsp._wait_in.items() if v is True}
-                    n_d = n_d.union(wi)
-                    o = a['outputs']
-                    w = w.union([o[k] for k in set(o).intersection(n_d)])
-
-            # Nodes to be visited.
-            wi = {k for k, v in dsp._wait_in.items() if v is True}
-
-            n_d = (set(dsp.workflow.node.keys()) - dsp._visited) - w
-
-            n_d = n_d.union(dsp._visited.intersection(wi))
-            wi = n_d.intersection(wi)
-
-            L += [(dsp.seen.get(k, float('inf')), k, c(), dsp._wait_in) for k in wi]
-
-            return set(n_d), L
-
-        L =_get_wait_in(self)[1]
-
-        l = sorted(L)
+        l = _sort_sk_wait_in(self)
         n_d = set()
 
         for d, k, _, w in l:
@@ -2477,7 +2456,7 @@ class Dispatcher(object):
         self.workflow, self.data_output = DiGraph(), {}
         self._visited, self._wf_add_edge = set(), add_edge_fun(self.workflow)
         self._wf_remove_edge = remove_edge_fun(self.workflow)
-        self._wf_pred = self.workflow.pred
+        self._wf_pred, self._meet = self.workflow.pred, {}
         self.check_wait_in = self._check_wait_input_flag()
         self.check_targets = self._check_targets()
         self.dist, self.seen, self._errors = {}, {}, OrderedDict()
@@ -2521,7 +2500,7 @@ class Dispatcher(object):
         self._visited.add(START)  # Nodes visited by the algorithm.
 
         # Dicts of distances.
-        self.dist, self.seen = ({START: -1}, {START: -1})
+        self.dist, self.seen, self._meet = {START: -1}, {START: -1}, {START: -1}
 
         fringe = []  # Use heapq with (distance, wait, label).
 
@@ -2574,6 +2553,7 @@ class Dispatcher(object):
         nodes, seen, edge_weight = self.nodes, self.seen, self._edge_length
         wf_remove_edge, check_wait_in = self._wf_remove_edge, self.check_wait_in
         wf_add_edge, dsp_in = self._wf_add_edge, self._set_sub_dsp_node_input
+        update_view = self._update_meeting
 
         if data_id not in nodes:  # Data node is not in the dmap.
             return False
@@ -2594,6 +2574,8 @@ class Dispatcher(object):
                 # Evaluate distance.
                 vw_dist = initial_dist + edge_weight(edge_data, nodes[w])
 
+                update_view(w, vw_dist)  # Update view distance.
+
                 # Check the cutoff limit and if all inputs are satisfied.
                 if check_cutoff(vw_dist):
                     wf_remove_edge(data_id, w)  # Remove workflow edge.
@@ -2609,6 +2591,8 @@ class Dispatcher(object):
 
             return True
 
+        update_view(data_id, initial_dist)  # Update view distance.
+
         if check_cutoff(initial_dist):  # Check the cutoff limit.
             wf_remove_edge(START, data_id)  # Remove workflow edge.
         elif not check_wait_in(wait_in, data_id):  # Check inputs.
@@ -2619,6 +2603,19 @@ class Dispatcher(object):
 
             return True
         return False
+
+    def _update_meeting(self, node_id, dist):
+        """
+
+        :param node_id:
+        :param dist:
+        :return:
+        """
+        view = self._meet
+        if node_id in self._meet:
+            view[node_id] = max(dist, view[node_id])
+        else:
+            view[node_id] = dist
 
     def _init_run(self, inputs, outputs, wildcard, cutoff, inputs_dist, no_call,
                   rm_unused_nds):
@@ -2858,6 +2855,8 @@ class Dispatcher(object):
 
         wait_in = self.nodes[node_id]['wait_inputs']  # Wait inputs flag.
 
+        self._update_meeting(node_id, dist)  # Update view distance.
+
         # Check if inputs are satisfied.
         if self.check_wait_in(wait_in, node_id):
             pass  # Pass the node
@@ -3002,6 +3001,12 @@ class Dispatcher(object):
 
         iv_nodes = [node_id]  # Nodes do be added as initial values.
 
+        self._meet[dsp_id] = initial_dist  # Set view distance.
+
+        # Check if inputs are satisfied.
+        if self.check_wait_in(node['wait_inputs'], node_id):
+            return False  # Pass the node
+
         if dsp_id not in distances:
             if 'input_domain' in node and not no_call:
                 # noinspection PyBroadException
@@ -3061,7 +3066,7 @@ class Dispatcher(object):
         for k, v in self.sub_dsp_nodes.items():
             v['function']._update_children_parent((k, self))
 
-        for k, v in self.sub_dsp_nodes.items():
+        for k, v in self.function_nodes.items():
             func = parent_func(v['function'])
             if isinstance(func, SubDispatch):
                 func.dsp._update_children_parent((k, self))
