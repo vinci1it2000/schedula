@@ -83,7 +83,7 @@ def calculate_final_drive_torque_losses_v1(
     :rtype: numpy.array, float
     """
 
-    eff_fd = final_drive_efficiency ^ (n_wheel_drive - 1)
+    eff_fd = np.power(final_drive_efficiency, n_wheel_drive - 1)
 
     return (1 - eff_fd) / (eff_fd * final_drive_ratio) * final_drive_torques_out
 

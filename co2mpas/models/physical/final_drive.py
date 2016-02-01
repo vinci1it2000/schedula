@@ -51,6 +51,11 @@ def final_drive():
         default_value=0.98
     )
 
+    final_drive.add_data(
+        data_id='n_wheel_drive',
+        default_value=2
+    )
+
     final_drive.add_function(
         function=calculate_final_drive_torque_losses,
         inputs=['final_drive_torques_out', 'final_drive_torque_loss'],
