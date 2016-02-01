@@ -203,8 +203,10 @@ def _get_cycle_time_series(data):
 
 def get_chart_reference(data, with_charts=False):
     r = {}
+
     if not with_charts:
         return r
+
     _map = _map_cycle_report_graphs()
     data = dsp_utl.selector(['nedc', 'wltp_p', 'wltp_h', 'wltp_l'], data)
     for k, v in sorted(_iter_d(data)):
