@@ -35,7 +35,8 @@ from .utils.gen import counter, caller_name, Token
 from .utils.alg import add_edge_fun, remove_edge_fun, rm_cycles_iter, \
     get_unused_node_id, add_func_edges, get_sub_node, \
     _children, stlp, get_full_pipe, _update_io_attr_sub_dsp,\
-    _map_remote_links, _update_remote_links, remove_links, _sort_sk_wait_in
+    _map_remote_links, _update_remote_links, remove_links, _sort_sk_wait_in, \
+    _union_workflow, _convert_bfs
 from .utils.cst import EMPTY, START, NONE, SINK, END
 from .utils.dsp import SubDispatch, bypass, combine_dicts, selector
 from .utils.drw import plot
@@ -1813,28 +1814,7 @@ class Dispatcher(object):
             o = self.dispatch(inputs, outputs, cutoff, inputs_dist, wildcard,
                               True, False, True)
 
-            def _union_workflow(dsp, node_id=None, bfs={NONE: set()}):
-                if node_id is not None:
-                    j = bfs[node_id] = bfs.get(node_id, {NONE: set()})
-                else:
-                    j = bfs
-                j[NONE].update(dsp.workflow.edges())
-
-                for n, a in dsp.sub_dsp_nodes.items():
-                    if 'function' in a:
-                        _union_workflow(a['function'], node_id=n, bfs=j)
-                return bfs
-
-            def _convert_bfs(bfs):
-                g = DiGraph()
-                g.add_edges_from(bfs[NONE])
-                bfs[NONE] = g
-
-                for k, v in bfs.items():
-                    if k is not NONE:
-                        _convert_bfs(v)
-
-                return bfs
+            data_nodes = self.data_nodes  # Get data nodes.
 
             bfs = _union_workflow(self)  # bfg edges.
 
@@ -1844,8 +1824,6 @@ class Dispatcher(object):
             else:
                 inputs_dist = self.dist
 
-            # Set maximum distances
-            outputs_dist = {}
             # Set data nodes to wait inputs.
             self._set_wait_in(flag=True)
 
@@ -1854,17 +1832,19 @@ class Dispatcher(object):
                 o = self.dispatch(inputs, outputs, cutoff, inputs_dist,
                                   wildcard, True, False, False)
 
-                _union_workflow(self, bfs=bfs)
+                _union_workflow(self, bfs=bfs)  # Update bfs.
 
-                n_d, status = self._remove_wait_in()
+                n_d, status = self._remove_wait_in()  # Remove wait input flags.
+
                 if not status:
                     break  # Stop iteration.
 
-                inputs = n_d.union(inputs)  # Update inputs.
+                # Update inputs.
+                inputs = n_d.intersection(data_nodes).union(inputs)
 
             self._set_wait_in(flag=None)  # Clean wait input flags.
 
-            # Shrink sub-dispatcher nodes.
+            # Update outputs and convert bfs in DiGraphs.
             outputs, bfs = outputs or o, _convert_bfs(bfs)
 
         elif not outputs:
@@ -1873,11 +1853,11 @@ class Dispatcher(object):
         # Get sub dispatcher breadth-first-search graph.
         dsp = self._get_dsp_from_bfs(outputs, bfs_graphs=bfs)
 
-        _update_remote_links(dsp, self)
+        _update_remote_links(dsp, self)  # Update remote links.
 
-        dsp._update_children_parent(self._parent)
+        dsp._update_children_parent(self._parent)  # Update parents.
 
-        remove_links(dsp)
+        remove_links(dsp)  # Remove unused links.
 
         return dsp  # Return the shrink sub dispatcher.
 

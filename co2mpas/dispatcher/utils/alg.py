@@ -17,7 +17,7 @@ from .gen import pairwise, counter
 from .cst import EMPTY, NONE
 from .dsp import SubDispatch, bypass, selector, map_dict
 from .des import parent_func, search_node_description
-from networkx import is_isolate
+from networkx import is_isolate, DiGraph
 from collections import OrderedDict
 
 
@@ -1053,3 +1053,28 @@ def _sort_sk_wait_in(dsp):
         return set(n_d), L
 
     return sorted(_get_sk_wait_in(dsp)[1])
+
+
+def _union_workflow(dsp, node_id=None, bfs={NONE: set()}):
+    if node_id is not None:
+        j = bfs[node_id] = bfs.get(node_id, {NONE: set()})
+    else:
+        j = bfs
+    j[NONE].update(dsp.workflow.edges())
+
+    for n, a in dsp.sub_dsp_nodes.items():
+        if 'function' in a:
+            _union_workflow(a['function'], node_id=n, bfs=j)
+    return bfs
+
+
+def _convert_bfs(bfs):
+    g = DiGraph()
+    g.add_edges_from(bfs[NONE])
+    bfs[NONE] = g
+
+    for k, v in bfs.items():
+        if k is not NONE:
+            _convert_bfs(v)
+
+    return bfs
