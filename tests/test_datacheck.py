@@ -83,7 +83,8 @@ class SeatBelt(unittest.TestCase):
             }
             r = model.dispatch(inputs=inputs, outputs=['report', 'summary'])
             r = dsp_utl.selector(['report', 'summary'], r)
-            resultes.append(sorted(_iter_d(r)))
+            r.get('report', {}).pop('pipe', None)
+            resultes.append(sorted(_iter_d(r), key=lambda x: x[0]))
 
         tmpdir = tempfile.gettempdir()
         res_file = osp.join(tmpdir, 'co2mpas_seatbelt_demos.json')
