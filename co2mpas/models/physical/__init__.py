@@ -382,6 +382,7 @@ def physical_calibration(hide_warn_msgbox=True):
         dsp_id='gear_box_model',
         dsp=gear_box_calibration(),
         inputs={
+            'cycle_type': 'cycle_type',
             'use_dt_gear_shifting': 'use_dt_gear_shifting',
             'specific_gear_shifting': 'specific_gear_shifting',
             'fuel_type': 'fuel_type',
@@ -478,6 +479,7 @@ def physical_prediction(hide_warn_msgbox=True):
         dsp_id='gear_box_model',
         dsp=gear_box_prediction(),
         inputs={
+            'cycle_type': 'cycle_type',
             'use_dt_gear_shifting': 'use_dt_gear_shifting',
             'specific_gear_shifting': 'specific_gear_shifting',
             'MVL': 'MVL',

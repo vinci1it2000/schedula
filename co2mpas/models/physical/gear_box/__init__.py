@@ -65,9 +65,10 @@ def _gear_box():
         outputs=['gear_box_torques'],
     )
 
-    gear_box.add_data(
-        data_id='temperature_references',
-        default_value=(40, 80)
+    gear_box.add_function(
+        function=select_default_gear_box_temperature_references,
+        inputs=['cycle_type'],
+        outputs=['temperature_references']
     )
 
     gear_box.add_function(

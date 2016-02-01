@@ -943,3 +943,24 @@ def calculate_equivalent_gear_box_heat_capacity(fuel_type, engine_max_power):
     gear_box_mass = weighted_eng_mass * 0.15
 
     return _heat_capacity['oil'] * gear_box_mass
+
+
+def select_default_gear_box_temperature_references(cycle_type):
+    """
+    Selects the default value of gear box temperature references [°C].
+
+    :param cycle_type:
+        Cycle type (WLTP or NEDC).
+    :type cycle_type: str
+
+    :return:
+        Reference temperature [°C].
+    :rtype: (float, float)
+    """
+
+    temperature_references = {
+        'WLTP': (40, 80),
+        'NEDC': (40, 80)
+    }[cycle_type]
+
+    return temperature_references
