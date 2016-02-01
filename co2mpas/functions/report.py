@@ -253,8 +253,11 @@ def _search_times(path, data, vector):
 def _ref_targets(path, data):
     if path[1] == 'targets':
         d = data[path[0]]
-        p = next(p for p in ('inputs', 'calibrations', 'predictions')
-                 if path[-1] in d.get(p, {}).get('time_series', {}))
+        p = next((p for p in ('inputs', 'calibrations', 'predictions')
+                 if path[-1] in d.get(p, {}).get('time_series', {})), None)
+
+        if not p:
+            raise TypeError
 
         path = list(path)
         path[1] = p
