@@ -14,6 +14,7 @@ The model is defined by a Dispatcher that wraps all the functions needed.
 
 from co2mpas.dispatcher import Dispatcher
 from co2mpas.functions.physical.final_drive import *
+import co2mpas.dispatcher.utils as dsp_utl
 
 
 def final_drive():
@@ -57,11 +58,12 @@ def final_drive():
     )
 
     final_drive.add_function(
-        function=calculate_final_drive_torque_losses_v1,
-        inputs=['final_drive_torques_out', 'final_drive_ratio',
-                'final_drive_efficiency'],
+        function=dsp_utl.add_args(calculate_final_drive_torque_losses_v1, n=1),
+        inputs=['n_dyno_axes', 'n_wheel_drive', 'final_drive_torques_out',
+                'final_drive_ratio', 'final_drive_efficiency'],
         outputs=['final_drive_torque_losses'],
-        weight=5
+        weight=5,
+        input_domain=domain_final_drive_torque_losses_v1
     )
 
     final_drive.add_function(

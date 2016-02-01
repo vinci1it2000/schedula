@@ -100,6 +100,7 @@ def _physical(hide_warn_msgbox=True):
         dsp_id='vehicle_model',
         dsp=vehicle(),
         inputs={
+            'n_dyno_axes': 'n_dyno_axes',
             'aerodynamic_drag_coefficient': 'aerodynamic_drag_coefficient',
             'frontal_area': 'frontal_area',
             'air_density': 'air_density',
@@ -120,6 +121,7 @@ def _physical(hide_warn_msgbox=True):
             'accelerations': 'accelerations',
             'motive_powers': 'motive_powers',
             'road_loads': 'road_loads',
+            'n_dyno_axes': 'n_dyno_axes',
         }
     )
 
@@ -153,6 +155,8 @@ def _physical(hide_warn_msgbox=True):
         dsp_id='final_drive_model',
         dsp=final_drive(),
         inputs={
+            'n_dyno_axes': 'n_dyno_axes',
+            'n_wheel_drive': 'n_wheel_drive',
             'final_drive_efficiency': 'final_drive_efficiency',
             'final_drive_ratio': 'final_drive_ratio',
             'final_drive_torque_loss': 'final_drive_torque_loss',

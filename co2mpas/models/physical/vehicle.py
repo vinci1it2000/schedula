@@ -90,8 +90,14 @@ def vehicle():
     )
 
     vehicle.add_function(
-        function=select_inertial_factor,
+        function=select_default_n_dyno_axes,
         inputs=['cycle_type'],
+        outputs=['n_dyno_axes']
+    )
+
+    vehicle.add_function(
+        function=select_inertial_factor,
+        inputs=['n_dyno_axes'],
         outputs=['inertial_factor']
     )
 

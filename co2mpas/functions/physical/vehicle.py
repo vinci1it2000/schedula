@@ -186,24 +186,42 @@ def calculate_rotational_inertia_forces(
     return vehicle_mass * inertial_factor * accelerations / 100
 
 
-def select_inertial_factor(cycle_type):
+def select_default_n_dyno_axes(cycle_type):
     """
-    Selects the inertia factor [%] according to the cycle type (default is 3%).
+    Selects the default number of dyno axes[-].
 
     :param cycle_type:
         Cycle type (WLTP or NEDC).
     :type cycle_type: str
 
     :return:
+        Number of dyno axes [-].
+    :rtype: int
+    """
+
+    _dyno_axes = {
+        'WLTP': 2,
+        'NEDC': 1
+    }
+
+    return _dyno_axes.get(cycle_type.upper(), 2)
+
+
+def select_inertial_factor(n_dyno_axes):
+    """
+    Selects the inertia factor [%] according to the number of dyno axes.
+
+    :param n_dyno_axes:
+        Number of dyno axes [-].
+    :type n_dyno_axes: int
+
+    :return:
         Factor that considers the rotational inertia [%].
     :rtype: float
     """
 
-    _inertial_factor = {
-        'WLTP': 3,
-        'NEDC': 1.5
-    }
-    return _inertial_factor.get(cycle_type.upper(), 3)
+    return 1.5 * n_dyno_axes
+
 
 
 def calculate_motive_forces(

@@ -11,6 +11,8 @@ It contains functions that model the basic mechanics of the final drive.
 
 
 import numpy as np
+import logging
+log = logging.getLogger(__name__)
 
 
 def calculate_final_drive_speeds_in(final_drive_speeds_out, final_drive_ratio):
@@ -55,9 +57,14 @@ def calculate_final_drive_torque_losses(
 
 
 def calculate_final_drive_torque_losses_v1(
-        final_drive_torques_out, final_drive_ratio, final_drive_efficiency):
+        n_wheel_drive, final_drive_torques_out, final_drive_ratio,
+        final_drive_efficiency):
     """
     Calculates final drive torque losses [N*m].
+
+    :param n_wheel_drive:
+        Number of wheel drive [-].
+    :type n_wheel_drive: int
 
     :param final_drive_torques_out:
         Torque at the wheels [N*m].
@@ -76,10 +83,33 @@ def calculate_final_drive_torque_losses_v1(
     :rtype: numpy.array, float
     """
 
-    c = (1 - final_drive_efficiency)
-    c /= final_drive_efficiency * final_drive_ratio
+    eff_fd = final_drive_efficiency ^ (n_wheel_drive - 1)
 
-    return c * final_drive_torques_out
+    return (1 - eff_fd) / (eff_fd * final_drive_ratio) * final_drive_torques_out
+
+
+def domain_final_drive_torque_losses_v1(n_dyno_axes, n_wheel_drive, *args):
+    """
+    Check the validity of number of wheel drive respect to the dyno axes
+    assuming 2 wheels per axes.
+
+    :param n_dyno_axes:
+        Number of dyno axes [-].
+    :type n_dyno_axes: int
+
+    :param n_wheel_drive:
+        Number of wheel drive [-].
+    :type n_wheel_drive: int
+
+    :return:
+        True and log a waring if `n_wheel_drive` does not respect the domain.
+    :rtype: bool
+    """
+
+    if n_dyno_axes < n_wheel_drive / 2:
+        msg = 'WARNING: n_dyno_axes(%.2f) < n_wheel_drive(.2f) / 2!'
+        log.warning(msg, n_dyno_axes, n_wheel_drive)
+    return True
 
 
 def calculate_final_drive_torques_in(
