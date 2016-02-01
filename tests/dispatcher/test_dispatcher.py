@@ -424,7 +424,9 @@ class TestPerformance(unittest.TestCase):
         T = np.mean(timeit.repeat(
             "dsp.dispatch({'a': 5, 'b': 6})",
             'from %s import _setup_dsp; '
-            'dsp = _setup_dsp()' % __name__,
+            'dsp = _setup_dsp();'
+            "[v.pop('input_domain', 0) "
+            "for v in dsp.function_nodes.values()]" % __name__,
             repeat=3, number=1000))
         msg = 'Mean performance of %s with%s functions made in %f ms/call.\n' \
               'It is %.2f%% faster than Dispatcher.dispatch with functions.\n'
@@ -433,7 +435,9 @@ class TestPerformance(unittest.TestCase):
         t = np.mean(timeit.repeat(
             "dsp.dispatch({'a': 5, 'b': 6}, no_call=True)",
             'from %s import _setup_dsp; '
-            'dsp = _setup_dsp()' % __name__,
+            'dsp = _setup_dsp();'
+            "[v.pop('input_domain', 0) "
+            "for v in dsp.function_nodes.values()]" % __name__,
             repeat=3, number=1000))
         print(msg % ('Dispatcher.dispatch', 'out', t, (T - t) / T * 100))
 
@@ -442,6 +446,7 @@ class TestPerformance(unittest.TestCase):
             'from %s import _setup_dsp;'
             'from co2mpas.dispatcher.utils.dsp import SubDispatchFunction;'
             'dsp = _setup_dsp();'
+            "[v.pop('input_domain', 0) for v in dsp.function_nodes.values()];"
             'fun = SubDispatchFunction(dsp, "f", ["a", "b"], ["c", "d", "e"])'
             % __name__,
             repeat=3, number=1000))
@@ -452,6 +457,7 @@ class TestPerformance(unittest.TestCase):
             'from %s import _setup_dsp;'
             'from co2mpas.dispatcher.utils.dsp import SubDispatchPipe;'
             'dsp = _setup_dsp();'
+            "[v.pop('input_domain', 0) for v in dsp.function_nodes.values()];"
             'fun = SubDispatchPipe(dsp, "f", ["a", "b"], ["c", "d", "e"])'
             % __name__,
             repeat=3, number=1000))
