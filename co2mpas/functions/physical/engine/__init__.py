@@ -29,10 +29,9 @@ from scipy.optimize import fmin
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from co2mpas.functions.physical.constants import *
 from ..utils import bin_split, reject_outliers, clear_fluctuations, \
-    median_filter, argmax
+    derivative, argmax
 import co2mpas.dispatcher.utils as dsp_utl
 from textwrap import dedent
-
 
 
 def get_full_load(fuel_type):
@@ -367,7 +366,7 @@ def _calibrate_TPSA(T, dT, gear_box_powers_in, gear_box_speeds_in, accelerations
         alpha=0.99
     ).fit(X, dT).predict
 
-    def TPS(deltas_t, powers, speeds, vel, acc, *args, initial_temperature=23):
+    def TPSA(deltas_t, powers, speeds, vel, acc, *args, initial_temperature=23):
         t, temp = initial_temperature, [initial_temperature]
         append = temp.append
 
@@ -377,11 +376,11 @@ def _calibrate_TPSA(T, dT, gear_box_powers_in, gear_box_speeds_in, accelerations
 
         return np.array(temp)
 
-    return TPS
+    return TPSA
 
 
 def _get_samples(times, engine_coolant_temperatures, on_engine):
-    from ..utils import derivative
+
     dT = derivative(times, engine_coolant_temperatures)[1:]
     dt = np.diff(times)
     i = max(argmax(on_engine), argmax(times > 10), argmax(dT != 0))
@@ -423,6 +422,12 @@ def calibrate_engine_temperature_regression_model(
     """
 
     T, dT, dt, i = _get_samples(times, engine_coolant_temperatures, on_engine)
+
+    if not dT.size:
+        def DT0(deltas_t, powers, speeds, *args, initial_temperature=23):
+            return np.ones_like(powers, dtype=float) * initial_temperature
+        return DT0
+
     p, s = gear_box_powers_in[i:], gear_box_speeds_in[i:]
     v, a = velocities[i:], accelerations[i:]
 

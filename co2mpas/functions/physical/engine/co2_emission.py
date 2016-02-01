@@ -36,7 +36,7 @@ def calculate_normalized_engine_coolant_temperatures(
     :rtype: numpy.array
     """
 
-    first_hot_i = np.argmax(engine_coolant_temperatures >= temperature_target)
+    first_hot_i = argmax(engine_coolant_temperatures >= temperature_target)
     T = engine_coolant_temperatures + 273.0
     ## Only flatten-out hot-part if `max-theta` is above `trg`.
     if first_hot_i > 0:
@@ -713,6 +713,11 @@ def define_initial_co2_emission_model_params_guess(
             kw['vary'] = b.get('vary', kw.get('vary', True))
         elif 'vary' not in kw:
             kw['vary'] = not k in params
+
+        if 'min' in kw and 'max' in kw and kw['min'] == kw['max']:
+            kw['vary'] = False
+            kw['max'] = kw['min'] = None
+
         p.add(**kw)
 
     return p
@@ -773,7 +778,9 @@ def calibrate_co2_params(
 
     cold = np.zeros_like(engine_coolant_temperatures, dtype=bool)
     if not is_cycle_hot:
-        cold[:argmax(engine_coolant_temperatures > p['trg'].value)] = True
+        b = engine_coolant_temperatures > p['trg'].value
+        if b.any():
+            cold[:argmax(b)] = True
     hot = np.logical_not(cold)
 
     success = [(True, p.valuesdict())]
@@ -788,10 +795,14 @@ def calibrate_co2_params(
     cold_p = ['t', 'trg']
     _set_attr(p, ['t'], default=0.0, attr='value')
     p = calibrate(cold_p, p, sub_values=hot)
-    _set_attr(p, {'t': values['t']}, attr='value')
 
-    hot_p = ['a2', 'a', 'b', 'c', 'l', 'l2']
-    p = calibrate(hot_p, p, sub_values=cold)
+    if cold.any():
+        _set_attr(p, {'t': values['t']}, attr='value')
+        hot_p = ['a2', 'a', 'b', 'c', 'l', 'l2']
+        p = calibrate(hot_p, p, sub_values=cold)
+    else:
+        _set_attr(p, ['t'], default=0.0, attr='value')
+        _set_attr(p, cold_p, default=False)
 
     p = restrict_bounds(p)
 
@@ -836,6 +847,10 @@ def restrict_bounds(co2_params):
 
     for k, v in p.items():
         v.min, v.max = _limits(k, v)
+
+        if v.max == v.min:
+            v.set(min=None, max=None, vary=False)
+
     return p
 
 
