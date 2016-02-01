@@ -1055,17 +1055,18 @@ def _sort_sk_wait_in(dsp):
     return sorted(_get_sk_wait_in(dsp)[1])
 
 
-def _union_workflow(dsp, node_id=None, bfs={NONE: set()}):
+def _union_workflow(dsp, node_id=None, bfs=None):
     if node_id is not None:
         j = bfs[node_id] = bfs.get(node_id, {NONE: set()})
     else:
-        j = bfs
+        j = bfs or {NONE: set()}
+
     j[NONE].update(dsp.workflow.edges())
 
     for n, a in dsp.sub_dsp_nodes.items():
         if 'function' in a:
             _union_workflow(a['function'], node_id=n, bfs=j)
-    return bfs
+    return j
 
 
 def _convert_bfs(bfs):
