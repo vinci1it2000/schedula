@@ -21,7 +21,6 @@ Modules:
 """
 
 
-from textwrap import dedent
 from sklearn.metrics import mean_absolute_error, accuracy_score
 import co2mpas.dispatcher.utils as dsp_utl
 import numpy as np
@@ -84,30 +83,15 @@ def _sorting_func(x):
     return [(s, -x[0]['n'], x[0]['score'])] + x[1:]
 
 
-def _check(best, hide_warn_msgbox, selector_id):
+def _check(best, selector_id):
     try:
-        status = best[0]['success']
-        return status or hide_warn_msgbox or _ask_model(best[-1].keys(), selector_id)
+        return best[0]['success']
     except IndexError:
         return True
 
 
-def _ask_model(failed_models, selector_id):
-    msg = dedent("""\
-          The following models has failed the calibration:
-              %s.
-
-          - Select `Yes` if want to continue and use the failed models.
-          - Select `No` if want to continue WITHOUT these models.
-          For more clarifications, please ask JRC.
-          """) % ',\n'.join(failed_models)
-    choices = ["Yes", "No"]
-    import easygui as eu
-    return eu.buttonbox(msg, choices=choices, title=selector_id) == choices[0]
-
-
 def get_best_model(
-        rank, models_wo_err=None, hide_warn_msgbox=False, selector_id=''):
+        rank, models_wo_err=None, selector_id=''):
     scores = OrderedDict()
     for m in rank:
         if m[1]:
@@ -121,7 +105,7 @@ def get_best_model(
             scores[m[3]] = {'models': tuple(sorted(m[-1].keys()))}
     if not rank:
         m = {}
-    elif _check(rank[0], hide_warn_msgbox, selector_id):
+    elif _check(rank[0], selector_id):
         m = rank[0]
         s = scores[m[3]]
         models_wo_err = models_wo_err or []

@@ -4,7 +4,7 @@ import co2mpas.dispatcher.utils as dsp_utl
 from .physical import physical_calibration, physical_prediction
 
 
-def co2mpas_model(hide_warn_msgbox=False):
+def co2mpas_model():
     """
     Defines the CO2MPAS model.
 
@@ -39,9 +39,7 @@ def co2mpas_model(hide_warn_msgbox=False):
 
     dsp.add_function(
         function_id='calibrate_physical_models',
-        function=dsp_utl.SubDispatch(physical_calibration(
-            hide_warn_msgbox=hide_warn_msgbox
-        )),
+        function=dsp_utl.SubDispatch(physical_calibration()),
         inputs=['wltp_precondition_inputs'],
         outputs=['wltp_precondition_outputs'],
         description='Wraps all functions needed to calibrate the models to '
@@ -60,8 +58,7 @@ def co2mpas_model(hide_warn_msgbox=False):
 
     dsp.add_function(
         function_id='calibrate_physical_models_with_wltp_h',
-        function=dsp_utl.SubDispatch(physical_calibration(
-                hide_warn_msgbox=hide_warn_msgbox)),
+        function=dsp_utl.SubDispatch(physical_calibration()),
         inputs=['calibration_wltp_h_inputs'],
         outputs=['calibration_wltp_h_outputs'],
         description='Wraps all functions needed to calibrate the models to '
@@ -77,9 +74,7 @@ def co2mpas_model(hide_warn_msgbox=False):
 
     dsp.add_function(
         function_id='predict_wltp_h',
-        function=dsp_utl.SubDispatch(physical_prediction(
-            hide_warn_msgbox=hide_warn_msgbox
-        )),
+        function=dsp_utl.SubDispatch(physical_prediction()),
         inputs=['calibrated_co2mpas_models', 'prediction_wltp_h_inputs'],
         outputs=['prediction_wltp_h_outputs'],
     )
@@ -96,8 +91,7 @@ def co2mpas_model(hide_warn_msgbox=False):
 
     dsp.add_function(
         function_id='calibrate_physical_models_with_wltp_l',
-        function=dsp_utl.SubDispatch(physical_calibration(
-                hide_warn_msgbox=hide_warn_msgbox)),
+        function=dsp_utl.SubDispatch(physical_calibration()),
         inputs=['calibration_wltp_l_inputs'],
         outputs=['calibration_wltp_l_outputs'],
         description='Wraps all functions needed to calibrate the models to '
@@ -113,9 +107,7 @@ def co2mpas_model(hide_warn_msgbox=False):
 
     dsp.add_function(
         function_id='predict_wltp_l',
-        function=dsp_utl.SubDispatch(physical_prediction(
-            hide_warn_msgbox=hide_warn_msgbox
-        )),
+        function=dsp_utl.SubDispatch(physical_prediction()),
         inputs=['calibrated_co2mpas_models', 'prediction_wltp_l_inputs'],
         outputs=['prediction_wltp_l_outputs'],
     )
@@ -126,9 +118,7 @@ def co2mpas_model(hide_warn_msgbox=False):
 
     from co2mpas.models.model_selector import models_selector
 
-    selector = models_selector(
-        'WLTP-H', 'WLTP-L', hide_warn_msgbox=hide_warn_msgbox
-    )
+    selector = models_selector('WLTP-H', 'WLTP-L')
 
     dsp.add_function(
         function_id='extract_calibrated_models',
@@ -140,9 +130,7 @@ def co2mpas_model(hide_warn_msgbox=False):
 
     dsp.add_function(
         function_id='predict_nedc',
-        function=dsp_utl.SubDispatch(physical_prediction(
-            hide_warn_msgbox=hide_warn_msgbox
-        )),
+        function=dsp_utl.SubDispatch(physical_prediction()),
         inputs=['calibrated_co2mpas_models', 'nedc_inputs'],
         outputs=['prediction_nedc_outputs'],
     )

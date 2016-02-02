@@ -22,7 +22,7 @@ from itertools import chain
 
 
 def co2_params_model_selector(
-        name, data_in, data_out, setting, hide_warn_msgbox=False):
+        name, data_in, data_out, setting):
     """
     Defines the co2_params model selector.
 
@@ -55,7 +55,6 @@ def co2_params_model_selector(
 
     _get_best_model = partial(setting.pop('get_best_model', get_best_model),
                               models_wo_err=setting.pop('models_wo_err', None),
-                              hide_warn_msgbox=hide_warn_msgbox,
                               selector_id=dsp.name)
 
     for i in chain(data_in, ['ALL']):
@@ -88,7 +87,7 @@ def co2_params_model_selector(
     )
 
     dsp.add_function(
-        function=partial(_get_best_model, hide_warn_msgbox=hide_warn_msgbox),
+        function=_get_best_model,
         inputs=['rank'],
         outputs=['model', 'errors']
     )

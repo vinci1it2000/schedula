@@ -33,7 +33,7 @@ from co2mpas.dispatcher.utils import bypass, SINK
 from co2mpas.functions.physical.constants.NEDC import *
 
 
-def _physical(hide_warn_msgbox=True):
+def _physical():
     physical = Dispatcher(
         name='CO2MPAS physical model',
         description='Wraps all functions needed to calibrate and predict '
@@ -256,7 +256,7 @@ def _physical(hide_warn_msgbox=True):
     physical.add_dispatcher(
         include_defaults=True,
         dsp_id='engine_model',
-        dsp=engine(hide_warn_msgbox=hide_warn_msgbox),
+        dsp=engine(),
         inputs={
             'auxiliaries_torque_loss': 'auxiliaries_torque_loss',
             'alternator_powers_demand': 'alternator_powers_demand',
@@ -361,7 +361,7 @@ def _physical(hide_warn_msgbox=True):
     return physical
 
 
-def physical_calibration(hide_warn_msgbox=True):
+def physical_calibration():
     """
     Defines the physical calibration model.
 
@@ -458,7 +458,7 @@ def physical_calibration(hide_warn_msgbox=True):
     return physical_calibration
 
 
-def physical_prediction(hide_warn_msgbox=True):
+def physical_prediction():
     """
     Defines the physical prediction model.
 
@@ -471,7 +471,7 @@ def physical_prediction(hide_warn_msgbox=True):
     :rtype: Dispatcher
     """
 
-    physical_prediction = _physical(hide_warn_msgbox=hide_warn_msgbox)
+    physical_prediction = _physical()
 
     physical_prediction.name = 'CO2MPAS physical prediction model'
     physical_prediction.__doc__ = 'Wraps all functions needed to predict ' \
