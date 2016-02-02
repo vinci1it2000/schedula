@@ -325,7 +325,7 @@ def write_to_excel(data, output_file_name, template_file_name):
         if k[0] in ('comparison',):
             _df2excel(writer, k[0], v)
         elif k[0] in ('selection_scores', 'proc_info'):
-            i = 0
+            i = 1
             kw = {}
             if k[0] == 'selection_scores':
                 kw['named_ranges'] = ('columns',)
