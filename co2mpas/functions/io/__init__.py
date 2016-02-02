@@ -199,6 +199,7 @@ def _merge_targets(data, targets):
     _map = lambda x: 'target %s' % x
 
     def _sort(x):
+        x = stlp(x)[-1]
         if x.startswith('target '):
             return (x[7:], 1)
         return (x, 0)
@@ -209,7 +210,6 @@ def _merge_targets(data, targets):
 
         if 'time_series' == k:
             v.rename(columns=_map, inplace=True)
-            v.iloc[1, :] = v.iloc[1, :].apply(_map)
             axis = 1
         elif 'parameters' == k:
             v.rename(index=_map, inplace=True)
@@ -306,15 +306,12 @@ def _parameters2df(data, data_descriptions):
 
 
 def _time_series2df(data, data_descriptions):
-
-    df = pd.DataFrame()
-    df_headers = pd.DataFrame()
-
-    for k, v in sorted(data.items()):
-        df_headers[k] = (_parse_name(k, data_descriptions), k)
-        df[k] = v
-
-    return pd.concat([df_headers, df], ignore_index=True, copy=False)
+    if data:
+        it = sorted(data.items())
+        index = [(_parse_name(k, data_descriptions), k) for k, v in it]
+        index = pd.MultiIndex.from_tuples(index)
+        return pd.DataFrame(np.array([v for k, v in it]).T, columns=index)
+    return pd.DataFrame()
 
 
 def _dd2df(dd, index, depth=0, axis=1):

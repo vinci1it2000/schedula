@@ -18,7 +18,10 @@ from pandalone.xleash import lasso
 from pandalone.xleash.io._xlrd import _open_sheet_by_name_or_index
 import shutil
 import xlsxwriter
+from xlsxwriter.utility import xl_range_abs
 from .. import _iter_d
+from co2mpas.dispatcher.utils.alg import stlp
+from inspect import getfullargspec
 
 log = logging.getLogger(__name__)
 
@@ -324,8 +327,7 @@ def write_to_excel(data, output_file_name, template=''):
                 if _df2excel(writer, k[0], v, startrow=i):
                     i += v.shape[0] + 4
         elif k[0] != 'graphs':
-            _df2excel(writer, '-'.join(k), v, index=False,
-                      header='time_series' not in k)
+            _df2excel(writer, '-'.join(k), v, k0=1)
 
     for k, v in sorted(_iter_d(data, depth=2)):
         if k[0] == 'graphs':
@@ -336,9 +338,41 @@ def write_to_excel(data, output_file_name, template=''):
     log.info('Written into xl-file(%s)...', output_file_name)
 
 
-def _df2excel(writer, shname, df, **kw):
+def _get_defaults(func):
+    a = getfullargspec(func)
+    defaults = {}
+    if a.defaults:
+        defaults.update(zip(a.args[::-1], a.defaults[::-1]))
+    if a.kwonlydefaults:
+        defaults.update(a.kwonlydefaults)
+    return defaults
+
+
+def _df2excel(writer, shname, df, k0=0, **kw):
     if isinstance(df, pd.DataFrame) and not df.empty:
         df.to_excel(writer, shname, **kw)
+
+        defaults = _get_defaults(df.to_excel)
+        defaults.update(kw)
+        kw = defaults
+
+        book = writer.book
+
+        startrow, startcol = kw['startrow'], kw['startcol']
+
+        for col, (k, v) in enumerate(df.items(), start=startcol):
+            k = stlp(k)[k0:]
+            row = (startrow + len(k)) if kw['header'] else startrow
+            if kw['index']:
+                if isinstance(df.index, pd.MultiIndex):
+                    col += len(df.index.levels)
+                else:
+                    col += 1
+                if kw['header'] and isinstance(df.columns, pd.MultiIndex):
+                    row +=1
+            range_ref = xl_range_abs(row, col, row + len(v) - 1, col)
+            ref_name = '%s!%s' % (shname, '.'.join(k).replace(' ', '_').replace('-', '_'))
+            book.define_name(ref_name, '=%s!%s' % (shname, range_ref))
         return True
     return False
 
