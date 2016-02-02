@@ -182,6 +182,7 @@ def _physical(hide_warn_msgbox=True):
             'alternator_currents': 'alternator_currents',
             'alternator_efficiency': 'alternator_efficiency',
             'alternator_nominal_voltage': 'alternator_nominal_voltage',
+            'alternator_nominal_power': 'alternator_nominal_power',
             'accelerations': 'accelerations',
             'state_of_charge_balance': 'state_of_charge_balance',
             'state_of_charge_balance_window': 'state_of_charge_balance_window',

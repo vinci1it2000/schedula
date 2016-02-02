@@ -333,7 +333,7 @@ def sub_models():
         'dsp': electrics(),
         'models': ['alternator_status_model', 'alternator_current_model',
                    'max_battery_charging_current', 'start_demand',
-                   'electric_load'],
+                   'electric_load', 'alternator_nominal_power'],
         'inputs': [
             'battery_capacity', 'alternator_nominal_voltage',
             'initial_state_of_charge', 'times', 'clutch_TC_powers',
