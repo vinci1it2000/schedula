@@ -3,6 +3,206 @@ CO2MPAS Changes
 ###############
 .. _changes:
 
+v1.1.0, 05-Feb 2016: "Snow" release
+================================================================
+
+CHECKED ALL COMMITS TILL THE 2af8694 (the newest one).
+
+- A warning flag has been added in order to inform the user if the length is wrong.
+- Battery SOC balance and window not necessary in the inputs. Time series of alternator
+  current must be provided.
+
+- Temperature model:
+
+	- :gh:`79`: Enhance temperature model: do not take into account for the calibration
+	  the first 10secs and the points where Delta Temperature = 0.
+	- :gh:`94`: Fix of bug in ``calculate_normalized_engine_coolant_temperatures`` function.
+
+- S/S model:
+
+	- S/S operation is determined taken into account also the gearshifting (for MTs).
+	- :gh:`85`: Correction of legislation prescripted gearshifting.
+	- Fixed identification of first stop (`3def98f3fab9687d60a707fb0b211af4922c57a2`)
+	- :gh:`75`: Added warning message for WLTP if the S/S is not respected. (`72d668ec9180547f45d6bf49d1fd08968f0ae88a`)
+
+
+- Engine model:
+
+	- Fix of bug in ``get_full_load`` function; extrapolation.
+	- Motoring curve calculation updated. Now determined from the friction losses
+	  parameters of the engine.
+	- Added engine cut-off limits.
+	- The calculation of engine power should be corrected in order to be zero during
+	  idle.
+	- :gh:`82`: Engine inertia is added to the power calculation module.
+	- :gh:`50`: Auxiliares power losses have been added to the model.
+	- Enable possibility to run cycles with constant temperatures. (`93a419689324d8e051aa559d17b862d2912acd2d`)?
+	- :gh:`104`: Applied 'derivative' function to acceleration & temperature. (still open) (`7cda7d08454c0bf7c2ae63bafe24af0b5ec1db3f`)
+
+	- Optimizer:
+
+		- Fixed update datacheck results (nelder optimization method). (`190c0e5c8153861e0b34a4839f31d436b4d738fc`)
+		- Fixed `calibrate_model_params` results selection. (`84cc3ae84c0ceeca68236f95dd07260ab32654b4`)
+		- :gh:`25`: Fixed calibration method for hot part, imposing t=0. (`dedf02dee8c8dfac1cbbaa2c72e33146afb45e08`)
+		- :gh:`25`: Delete custom class `Parameters`. (`db57965c5e589d48f77e94fd45e4d2cc1a848907`)
+
+
+- Gearbox model:
+
+	- Added function for default temperature references. (`32e3ab1d9c49ca09e253e705697f073fc01eb415`)
+	- Rebuilt `correct_gear` on prediction. (`9c9375709117573ef4a75c52aeedd824304c656d`)
+	- Added log selection in debug. (`35d1f2da2000007fe68387900f78292e51f88b61`)
+	- Removed unused function `correct_gear_upper_bound_engine_speed`. (`f9cb7545ada65f79ac54c86ffd9556e7631ab5f9`)
+
+
+- Electrics model:
+
+	- :gh:`78`: Fix bug in ``calibrate_alternator_current_model`` function.
+	- :gh:`17`: Added a new alternator status model to bypass the DT.
+	- Added alternator_nominal_power as part of the alternator_model. (`29ab2cc81c7c64c0354a89ce3106a2d20abe9d72`)
+
+
+- Clutch model:
+
+	- :gh:`83`: Added a second clutch model - no clutch -, in case the first fails.
+	- :gh:`16`: Added torque converter sub-module.
+
+- IO:
+
+	- Initial SOC NEDC units in the input file corrected.
+	- :gh:`25`: Added option of 'freezing' the optimization parameters.
+	- :gh:`61`: Added dyno type and driveline type (2WD, 4WD) info on input; take that
+	  into account when specifying inertia coefs and drivetrain efficiency. (still open)
+	- Change default value of `final_drive_efficiency` to 0.98. (`24b935c39632b6e12202b15e6144c2897e813db2`)
+	- :gh:`64`: CO2MPAS version info added in output files.
+	- :gh:`44`: Corrected SOC balance and SOC window variables in template input file.
+	- :gh:`93`: Added success/fail flags related to the optimization steps for each
+	  cycle/vehicle, and global success/fail flags on the summary.
+	- Added status_start_stop_activation_time to cycle results. (`a03c6805480fbbbd416b34511a91be4ab94bb645`)
+	- Added html report with basic interactive graphs as an output.(still open)
+	- Added comparison between WLTP prediction vs WLTP inputs & WLTP calibrations
+	  in the report. (`f8b85d98eab85ea6a4f587f02707a05cef09c58e`)
+	- Added charts to the output file. (`5064efd364dd8418432ca1640b0db2610a66c838`)
+	- Fixed report outputs. (`405e57aef26e874554b620db5af2f9fdd10323f4`)
+	- :gh:`101`: Added target UDC and target EUDC to SUMMARY sheet. (`37fc8844461a43d27054b5de0e483793e0d29e38`)
+	- :gh:`96`: Unified file and implemented possibility to reuse template
+	  xlsx-file as output. (`3cb271725c6cdf1b0c11a536d19239cf39ebcb1a`)
+	- :gh:`96`: Added possibility to reuse output template xlsx-file. (`9e8256826d76094423c0088ae122bf3e00039103`)
+	- Renamed out-sheet CO2MPAS_info --> proc_infos. (`9e8256826d76094423c0088ae122bf3e00039103`)
+	- Fixed rogue out-excel-FDs; use pd.ExcelWriter as context-manager. (`9e8256826d76094423c0088ae122bf3e00039103`)
+	- :gh:`98`: Unified out-file. (`afd2299535f2f518199d654ad6f392d4a98041bb`)
+
+- Dispatcher:
+
+	- Fixed _parent link and added check inputs to sub_dispatcher. (`ad137cb3d851bb4027a03cac5c58e762705f26ec`)
+	- Fixed shrink remote_links. (`0ead90f5db3e8db336996fbd3c15edb3fa285cec`)
+	- Fixed shrink. (`5e2f2cc132cd00ee1a113c60d4d476289742fa21`)
+	- Fixed Doctest. (`09ae940f88a33672db4f813a217ecd6b40e2aad4`)
+	- Added pipe property and `get_full_node_id` method. (`19cc106462edf6385c4972d0f449a46ad1c51c9d`)
+	- `f2e9fab49d966ed53bfb3a27bed6130a49a3204c`:
+		- Fixed shrink.
+		- Added `dsp` as `output_type`.
+		- Added `callback` to `add_args`.
+		- Renamed `get_parent_func` to `parent_func`.
+		- Fixed `doc`.
+		- Added function `get_full_node_id`.
+	- Fixed deprecation warning. (`1e8157a005ec053cb21443164843a6e37da2c056`)
+	- Fixed inputs and outputs plots on failure mode. (`ac7e647b00d83f7dd2374b1db74570ba7fffdb3d`)
+	- Fixed Copy of Token.(`ad579b536303e327180a21bc34db1ad2875d6bae`)
+	- Added partial workflow of `sub_dsp` when a Dispatcher error is raised. (`ad579b536303e327180a21bc34db1ad2875d6bae`)
+	- Allow inputs and outputs forks on `sub_dsp`. (`1f2c5bb21f93212072f3b5a3a15317aa116af4f1`)
+	- Fixed windows nested plot. (`ac4b22db878309ac4c79cd4668a7fc7a991b1072`)
+	- Fixed plot empty `dsp`. (`92d85dbc0709c2f42c66e2182e3d3578fea1378b`)
+	- :gh:`98`: Fixed shrink sub-dsp adding max outputs_dist. (`e8fe6a959cad890434927bba57e1637bdcad602f`)
+	- Extended _set_wait_in to sub-dispatcher node with domains. (`e8fe6a959cad890434927bba57e1637bdcad602f`)
+	- :gh:`98`: Fixed add_dispatcher, replace_remote_link, and _shrink_sub_dsp. (`8329c30eb68770a7aee5b417bc7fa131d379a74a`)
+	- Fixed replace_remote_link for SINK node. (`8329c30eb68770a7aee5b417bc7fa131d379a74a`)
+	- Fixed add_dispatcher from dict instead of Dispatcher. (`8329c30eb68770a7aee5b417bc7fa131d379a74a`)
+	- Fixed _shrink_sub_dsp with wildcards. (`8329c30eb68770a7aee5b417bc7fa131d379a74a`)
+	- Fixed filter in set_node_out. (`8329c30eb68770a7aee5b417bc7fa131d379a74a`)
+	- Added skip for visited nodes in run loop. (`8329c30eb68770a7aee5b417bc7fa131d379a74a`)
+	- Added allow_miss option to selector. (`85e7053e4f4c48be9acc309c9e854faf69a7eeac`)
+
+- Model Selector:
+
+	- Fixed sorting function. (`99fffdeeeb9591df97c3f918cc74f2ae5d6d88bd`)
+	- Fixed model selection for negative weight. (`8e68b8a7ce18d198dc1122fb7bbd739beff693dc`)
+	- Fixed selection `co2_params`. (`42a5d1ba71215b0aea84d4988f8416db62ab0c90`)
+	- :gh:`76`: Filter first 30 seconds of engine speed. (`82b320a1210a354b30496ce70102da6a495c0684`)
+	- Fixed selection. (`9978fdd56850e2c0b88bdd6044818b0279020c52`)
+	- Added calibration of `co2_params` with two cycles. (`016e7060bdf1b270fb40e9eff174f6ccbbbb0a4f`)
+
+- Updated usage instructions about new ALLINONE batch-scripts. (`8bf39771a1b62c19cdbd79784a2acef0efda3050`)
+
+- Improved various file-path manipulations with os.path. (`9e8256826d76094423c0088ae122bf3e00039103`)
+- Corrected use of python func-signatures with kwds. (`9e8256826d76094423c0088ae122bf3e00039103`)
+- Improved func docstrings. (`9e8256826d76094423c0088ae122bf3e00039103`)
+- Added --out-template <fpath> opt. (`9e8256826d76094423c0088ae122bf3e00039103`)
+- :gh:`51`: Breaking system removed. (`ce836b01cb52da38326eab9080947b4a4ceb2fde`)
+
+- Increased time limit in `metric_engine_speed_model`. (`e8cabe104a470c57e67599ed2c13e8bfc5671c00`)
+- Added metric `metric_engine_cold_start_speed_model`. (`e8cabe104a470c57e67599ed2c13e8bfc5671c00`)
+- :gh:`94`: Fixed error related to argmax function. (`9a312afeb0dec9c7983434e655966d212a2bcd93`)
+- Capture and redirect warnings through logging. (`e82ae1a5daa4752f3e6e64d7172df7fde010f13f`)
+- Fixed datacheck for list of objs. (`6d705ab6dae8190e57022ff627687c80a3730319`)
+- Fixed remove RuntimeWarning. (`cc90400a68b958a7e6228244d0193b03b129ee35`)
+
+- :gh:`25`: Fixed regression from lmfit-param copy bug in >python-3.5. (`083fe047a094b24d010514d62df57e4591b7111e`)
+- Implement possibility to specify folder to run, on seatbelt. (`0bc80afcab36d0d72d443771e9caffcd8b08a5ee`)
+- Fixed import `win32api`. (`c87b0b0a5ff78f4305d371f8304405ba69e724a7`)
+- Implement log scores and reading files in debug. (`ca99955f0387adc9ac9e618f9ab7bf40b9397bac`)
+
+- Added skip saving WLTP-predict if not flagged. (`5e91993c6923c42b0edbe0731e5cc56dd11d24bd`)
+
+- :gh:`91`: Improved py-ver check on setup, also on 'main()'. (`ee2ed6f27d7ebc431b5f4e7c0d119f3ed23594bc`)
+- :gh:`99`: Fixed improper use of explicit named-kwds (instead of `**kwds`) in `np.argmax()`. (`dfc9823594e0f880e377f378570be4471fe7d60a`)
+- Fixed the 'out' kw-arg which was introduced in numpy-1.10 and as it was written
+  it failed in previous numpy-versions. (`dfc9823594e0f880e377f378570be4471fe7d60a`)
+
+- Implemented new architecture and output files. (`1a6a901f6c20aeaf95f8bc2bf66b6a28263bd69d`)
+- Improved virtualenv & TCL help on doc. (`5f32b3c423082261d8b5cdc5b44c3aaa2ef0a4d1`)
+- :gh:`81`: S/S model enhanced - engine starts when gear>0 (MT only).
+- :gh:`101`: Target UDC & EUDC added to the summary file.
+- :gh:`103`: Problem with simulation time resolved (caused by new IO).
+- :gh:`106`: Batch-runs always reuses the 1st template-out file resolved.
+- :gh:`107`: Seatbelt-TC enhanced to report sources of discrepancies. (`d652450799ca3440ac7ebdad9fccd1ae06ea2df7`)
+- :gh:`118`: Sporadic failures when running batch-files related to 'trg' param
+  fixed.
+- :gh:`99`: Bad 'argmax' commit: 9a312afeb0dec9c7
+- :gh:`98`: Recent dispatcher-changes (14-Dec-2015) broke TCs
+- :gh:`96`: Outputs combined in a single file, reusing user-specified excel-file
+  as OUT-template.
+- :gh:`91`: Raise a flag when python version <3.4 is used.
+- :gh:`69`: Logging-framework abuse resolved.
+- :gh:`59`: Remove auto-plotting side-effect from "__str__()" of failed workflows.
+- :gh:`58`: Mean abs error is used in the error functions instead of mean squared error.
+- :gh:`56`: Cold/hot parts distinction based on the first occurrence of trg;
+  trg not optimized.
+- :gh:`55`: Enhance thermal model by adding an additional regressor including the
+  acceleration.
+- :gh:`53`: Enabled possibility to simulate hot start cycles.
+- :gh:`52`: Added exception and optimizer failure message in summary of results.
+- :gh:`48`: Added brake model.
+- :gh:`46`: Fixed bug when alternator is always off.
+- :gh:`45`: Fixed bug in the GSPV matrix (ATs).
+- :gh:`42`, :gh:`43`: Add plot to the dispatcher properties.
+- :gh:`40`: Auto-generated files created by autosummary go into '_build' folder.
+- :gh:`63`: Test cases for the core models have been added. (still open)
+- :gh:`49`: Fixed bug in the estimation of the gear box efficiency for negative power. (still open)
+- :gh:`120`: Add capability of using name-ranges for out-columns in excel, to allow
+  for template-diagrams. (still open)
+- :gh:`114`: Added functionality: list platform & lib-versions in the results. (still open)
+- :gh:`102`: UI boxes appearance removed when running CO2MPAS. Errors/warning written
+  in the output files. (still open)
+- :gh:`97`: Added "run_infos" sheet to the output file, including info on the functions
+  run and the scores of the models. (still open)
+- :gh:`88`: Added check of input-excel files before running; raise message if invalid.(still open)
+- Added new model_selector function. (`e31024da9a5a199e18c7ffc985258a870379e24b`)
+- Removed bypass to calculate engine_speeds_out. (`6c9b33291eb6ba0bfec047d8003dc1e51f00e87e`)
+- :gh:`91`: Disallowed run on outdated python. (`b899c37d129dd44a502cf14df170d1340e38c486`)
+
+
+
 v1.0.5, 11-Dec 2015: "No more console" release, no model changes
 ================================================================
 
