@@ -101,8 +101,9 @@ def write_outputs():
 
     dsp.add_function(
         function=write_to_excel,
-        inputs=['dfs', 'output_file_name']
+        inputs=['dfs', 'output_file_name', 'template_file_name']
     )
 
     return dsp_utl.SubDispatchFunction(dsp, dsp.name, ['output_file_name',
+                                                       'template_file_name',
                                                        'output_data'])

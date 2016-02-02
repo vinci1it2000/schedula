@@ -123,8 +123,7 @@ def co2mpas_model():
     dsp.add_function(
         function_id='extract_calibrated_models',
         function=selector,
-        inputs=['calibration_wltp_h_outputs',
-                'calibration_wltp_l_outputs'],
+        inputs=['calibration_wltp_h_outputs', 'calibration_wltp_l_outputs'],
         outputs=['calibrated_co2mpas_models', 'selection_scores']
     )
 

@@ -300,3 +300,9 @@ def _get(d, *i, default=dict):
         r = d[i[0]] = d.get(i[0], default() if len(i) == 1 else {})
         return _get(r, *i[1:], default=default)
     return d
+
+
+def get_template_file_name(template_output, input_file_name):
+    if template_output == '-':
+        return input_file_name
+    return template_output

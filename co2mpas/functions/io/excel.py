@@ -303,12 +303,12 @@ def index_dict(data):
     return {k + 1: v for k, v in enumerate(data)}
 
 
-def write_to_excel(data, output_file_name, template=''):
+def write_to_excel(data, output_file_name, template_file_name):
 
-    if template:
+    if template_file_name:
         log.debug('Writing into xl-file(%s) based on template(%s)...',
-                 output_file_name, template)
-        shutil.copy(template, output_file_name)
+                  output_file_name, template_file_name)
+        shutil.copy(template_file_name, output_file_name)
 
         book = xlsxwriter.Workbook(output_file_name)
         writer = pd.ExcelWriter(output_file_name, engine='xlsxwriter')

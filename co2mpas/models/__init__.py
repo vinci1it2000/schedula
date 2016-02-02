@@ -23,7 +23,7 @@ import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher import Dispatcher
 from .io import load_inputs, write_outputs
 from .co2mpas import co2mpas_model
-from co2mpas.functions import parse_dsp_model
+from co2mpas.functions import parse_dsp_model, get_template_file_name
 from functools import partial
 from .report import report
 
@@ -99,8 +99,20 @@ def vehicle_processing_model(prediction_WLTP=False):
         return args[0]
 
     dsp.add_function(
+        function=get_template_file_name,
+        inputs=['output_template', 'input_file_name'],
+        outputs=['template_file_name']
+    )
+
+    dsp.add_data(
+        data_id='output_template',
+        default_value='',
+        initial_dist=10
+    )
+
+    dsp.add_function(
         function=write_outputs(),
-        inputs=['output_file_name', 'report'],
+        inputs=['output_file_name', 'template_file_name', 'report'],
         outputs=[dsp_utl.SINK],
         input_domain=check_first_arg
     )
