@@ -95,7 +95,7 @@ def write_outputs():
 
     dsp.add_function(
         function=convert2df,
-        inputs=['output_data', 'data_descriptions'],
+        inputs=['output_data', 'data_descriptions', 'start_time'],
         outputs=['dfs']
     )
 
@@ -106,4 +106,5 @@ def write_outputs():
 
     return dsp_utl.SubDispatchFunction(dsp, dsp.name, ['output_file_name',
                                                        'template_file_name',
-                                                       'output_data'])
+                                                       'output_data',
+                                                       'start_time'])

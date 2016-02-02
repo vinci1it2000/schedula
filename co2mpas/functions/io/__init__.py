@@ -38,7 +38,7 @@ def check_file_format(fpath, extensions=('.xlsx',)):
     return fpath.lower().endswith(extensions)
 
 
-def convert2df(data, data_descriptions):
+def convert2df(data, data_descriptions, start_time):
 
     res = {'graphs': data['graphs']} if 'graphs' in data else {}
 
@@ -48,7 +48,7 @@ def convert2df(data, data_descriptions):
 
     res.update(_comparison2df(data))
 
-    res.update(_proc_info2df(data))
+    res.update(_proc_info2df(data, start_time))
 
     return res
 
@@ -69,7 +69,7 @@ def _comparison2df(data):
 
 
 def _proc_info2df(data, start_time):
-    res = ()
+    res = (_co2mpas_info2df(start_time), _freeze2df())
 
     df, max_l = _pipe2list(data.get('pipe', {}))
 
@@ -77,9 +77,32 @@ def _proc_info2df(data, start_time):
         df = pd.DataFrame(df)
         setattr(df, 'name', 'pipe')
         res += (df,)
-    if res:
-        return {'proc_info': res}
-    return {}
+
+    return {'proc_info': res}
+
+
+def _co2mpas_info2df(start_time):
+
+    time_elapsed = (datetime.datetime.today() - start_time).total_seconds()
+
+    df = pd.DataFrame([
+        {'Parameter': 'CO2MPAS version', 'Value': version},
+        {'Parameter': 'Simulation started',
+         'Value': start_time.strftime('%Y/%m/%d-%H:%M:%S')},
+        {'Parameter': 'Time elapsed', 'Value': '%.3f sec' % time_elapsed}],
+    )
+    df.set_index(['Parameter'], inplace=True)
+    setattr(df, 'name', 'info')
+    return df
+
+
+def _freeze2df():
+    d = dict(v.split('==') for v in freeze())
+    d['version'] = 'version'
+    df = pd.DataFrame([d])
+    df.set_index(['version'], inplace=True)
+    setattr(df, 'name', 'versions')
+    return df
 
 
 def _pipe2list(pipe, i=0, source=()):

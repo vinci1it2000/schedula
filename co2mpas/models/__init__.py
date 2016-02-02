@@ -112,7 +112,8 @@ def vehicle_processing_model(prediction_WLTP=False):
 
     dsp.add_function(
         function=write_outputs(),
-        inputs=['output_file_name', 'template_file_name', 'report'],
+        inputs=['output_file_name', 'template_file_name', 'report',
+                'start_time'],
         outputs=[dsp_utl.SINK],
         input_domain=check_first_arg
     )
