@@ -7,7 +7,9 @@ import pandas as pd
 import lmfit
 from types import MethodType
 from .. import _iter_d, _get
-
+from pip.operations.freeze import freeze
+import datetime
+from co2mpas._version import version
 log = logging.getLogger(__name__)
 
 
@@ -46,7 +48,7 @@ def convert2df(data, data_descriptions):
 
     res.update(_comparison2df(data))
 
-    res.update(_pipe2df(data))
+    res.update(_proc_info2df(data))
 
     return res
 
@@ -66,18 +68,21 @@ def _comparison2df(data):
     return res
 
 
-def _pipe2df(data):
-    res = {}
+def _proc_info2df(data, start_time):
+    res = ()
 
     df, max_l = _pipe2list(data.get('pipe', {}))
+
     if df:
         df = pd.DataFrame(df)
-        res['pipe'] = df
+        setattr(df, 'name', 'pipe')
+        res += (df,)
+    if res:
+        return {'proc_info': res}
+    return {}
 
-    return res
 
-
-def _pipe2list(pipe, i=0, source=[]):
+def _pipe2list(pipe, i=0, source=()):
     res = []
     f = lambda x: (x,) if isinstance(x, str) else x
     max_l = i
@@ -92,7 +97,7 @@ def _pipe2list(pipe, i=0, source=[]):
         res.append(d)
 
         if 'sub_pipe' in v:
-            l, ml = _pipe2list(v['sub_pipe'], i=i+1, source=source + [k])
+            l, ml = _pipe2list(v['sub_pipe'], i=i+1, source=source + (k,))
             max_l = max(max_l, ml)
             res.extend(l)
 
@@ -147,6 +152,9 @@ def _scores2df(data):
 
     c = [n for n in cycles if n in edf]
     edf = pd.concat([edf[k] for k in c], axis=1, keys=c)
+
+    setattr(df, 'name', 'selections')
+    setattr(edf, 'name', 'scores')
 
     return {'selection_scores': (df, edf)}
 
@@ -213,7 +221,6 @@ def _merge_targets(data, targets):
             axis = 1
         elif 'parameters' == k:
             v.rename(index=_map, inplace=True)
-            v.iloc[:, 1] = v.iloc[:, 1].apply(_map)
             axis = 0
         else:
             continue
@@ -295,14 +302,22 @@ def _data2df(data, data_descriptions):
 
 
 def _parameters2df(data, data_descriptions):
-    p, index = [], []
+    df = []
 
     for k, v in sorted(data.items()):
         if check_writeable(v):
-            p.append((_parse_name(k, data_descriptions), k, _str_data(v)))
-            index.append(k)
-
-    return pd.DataFrame(p, index=index, columns=('Parameter', 'Model Name', 'Value'))
+            d = {
+                'Parameter': _parse_name(k, data_descriptions),
+                'Model Name': k,
+                'Value': _str_data(v)
+            }
+            df.append(d)
+    if df:
+        df = pd.DataFrame(df)
+        df.set_index(['Parameter', 'Model Name'], inplace=True)
+        return df
+    else:
+        return pd.DataFrame()
 
 
 def _time_series2df(data, data_descriptions):

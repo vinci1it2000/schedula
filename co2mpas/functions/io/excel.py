@@ -9,6 +9,7 @@
 It contains functions to read vehicle inputs.
 """
 
+
 import logging
 import numpy as np
 from math import isnan
@@ -22,6 +23,8 @@ from xlsxwriter.utility import xl_range_abs
 from .. import _iter_d
 from co2mpas.dispatcher.utils.alg import stlp
 from inspect import getfullargspec
+from itertools import chain
+
 
 log = logging.getLogger(__name__)
 
@@ -319,19 +322,28 @@ def write_to_excel(data, output_file_name, template=''):
 
     for k, v in sorted(_iter_d(data)):
 
-        if k[0] in ('comparison', 'pipe'):
+        if k[0] in ('comparison',):
             _df2excel(writer, k[0], v)
-        elif k[0] == 'selection_scores':
+        elif k[0] in ('selection_scores', 'proc_info'):
             i = 0
+            kw = {}
+            if k[0] == 'selection_scores':
+                kw['named_ranges'] = ('columns',)
+
             for v in v:
-                if _df2excel(writer, k[0], v, startrow=i):
-                    i += v.shape[0] + 4
+                corner = _df2excel(writer, k[0], v, startrow=i, **kw)
+                if corner:
+                    i = v.shape[0] + corner[0] + 2
         elif k[0] != 'graphs':
-            _df2excel(writer, '-'.join(k), v, k0=1)
+            if k[-1] == 'parameters':
+                k0, named_ranges, index = 1, ('rows',), True
+            else:
+                k0, named_ranges, index = 1, ('columns',), True
+            _df2excel(writer, '_'.join(k), v, k0, named_ranges, index=index)
 
     for k, v in sorted(_iter_d(data, depth=2)):
         if k[0] == 'graphs':
-            shname = '-'.join(k)
+            shname = '_'.join(k)
             _chart2excel(writer, shname, book, v)
 
     writer.save()
@@ -348,33 +360,81 @@ def _get_defaults(func):
     return defaults
 
 
-def _df2excel(writer, shname, df, k0=0, **kw):
+def _df2excel(writer, shname, df, k0=0, named_ranges=('columns', 'rows'), **kw):
     if isinstance(df, pd.DataFrame) and not df.empty:
         df.to_excel(writer, shname, **kw)
-
         defaults = _get_defaults(df.to_excel)
         defaults.update(kw)
         kw = defaults
 
-        book = writer.book
+        startrow, startcol = _get_corner(df, **kw)
 
-        startrow, startcol = kw['startrow'], kw['startcol']
+        if named_ranges:
+            _add_named_ranges(df, writer, shname, startrow, startcol,
+                              named_ranges, k0)
 
-        for col, (k, v) in enumerate(df.items(), start=startcol):
-            k = stlp(k)[k0:]
-            row = (startrow + len(k)) if kw['header'] else startrow
-            if kw['index']:
-                if isinstance(df.index, pd.MultiIndex):
-                    col += len(df.index.levels)
-                else:
-                    col += 1
-                if kw['header'] and isinstance(df.columns, pd.MultiIndex):
-                    row +=1
-            range_ref = xl_range_abs(row, col, row + len(v) - 1, col)
-            ref_name = '%s!%s' % (shname, '.'.join(k).replace(' ', '_').replace('-', '_'))
-            book.define_name(ref_name, '=%s!%s' % (shname, range_ref))
-        return True
-    return False
+        return startrow, startcol
+
+
+def _add_named_ranges(df, writer, shname, startrow, startcol, named_ranges, k0):
+    define_name = writer.book.define_name
+    tag = ()
+    if hasattr(df, 'name'):
+         tag +=  (df.name,)
+    ref = '!'.join([shname, '%s'])
+
+    it = ()
+
+    if 'columns' in named_ranges:
+        it += (_ranges_by_col(df, startrow, startcol),)
+
+    if 'rows' in named_ranges:
+        it += (_ranges_by_row(df, startrow, startcol),)
+
+    for k, range_ref in chain(*it):
+        if not isinstance(k, Iterable):
+            k = (str(k),)
+        elif isinstance(k, str):
+            k = (k,)
+        try:
+            ref_name = _ref_name(tag + k[k0:])
+            define_name(ref % ref_name, ref % range_ref)
+        except TypeError:
+            pass
+
+
+def _ref_name(name):
+    return '_' + '.'.join(name).replace(' ', '_').replace('-', '_')
+
+
+def _index_levels(index):
+    try:
+        return len(index.levels)
+    except:
+        return 1
+
+
+def _get_corner(df, startcol=0, startrow=0, index=False, header=True, **kw):
+    if header:
+        startrow += _index_levels(df.columns)
+
+        if index:
+            startrow += 1
+
+    if index:
+        startcol += _index_levels(df.index)
+
+    return startrow, startcol
+
+
+def _ranges_by_col(df, startrow, startcol):
+    for col, (k, v) in enumerate(df.items(), start=startcol):
+        yield k, xl_range_abs(startrow, col, startrow + len(v) - 1, col)
+
+
+def _ranges_by_row(df, startrow, startcol):
+    for row, (k, v) in enumerate(df.iterrows(), start=startrow):
+        yield k, xl_range_abs(row, startcol, row, startcol + len(v) - 1)
 
 
 def _chart2excel(writer, shname, book, charts):
@@ -386,8 +446,8 @@ def _chart2excel(writer, shname, book, charts):
         for s in v['series']:
             chart.add_series({
                 'name': s['label'],
-                'categories': _search_data_ref(writer, s['x']),
-                'values': _search_data_ref(writer, s['y']),
+                'categories': _data_ref(s['x']),
+                'values': _data_ref(s['y']),
             })
         chart.set_size({'width': w, 'height': h})
 
@@ -399,10 +459,5 @@ def _chart2excel(writer, shname, book, charts):
         sheet.insert_chart('A1', chart, {'x_offset': w * n ,'y_offset': h * j})
 
 
-def _search_data_ref(writer, ref):
-    shname = '-'.join(ref[:-1])
-
-    sheet = writer.sheets[shname]
-    istr = sheet.str_table.string_table[ref[-1]]
-    col = next(k for k, v in sheet.table[1].items() if v.string == istr)
-    return [shname, 2, col, max(sheet.table), col]
+def _data_ref(ref):
+    return '%s!%s' % ('_'.join(ref[:-1]), _ref_name((ref[-1],)))
