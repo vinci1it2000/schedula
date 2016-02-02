@@ -715,7 +715,7 @@ def define_initial_co2_emission_model_params_guess(
             kw['vary'] = not k in params
 
         if 'min' in kw and 'max' in kw and kw['min'] == kw['max']:
-            kw['vary'] = False
+            kw['vary'], kw['value'] = False, kw['min']
             kw['max'] = kw['min'] = None
 
         p.add(**kw)
@@ -801,6 +801,7 @@ def calibrate_co2_params(
         hot_p = ['a2', 'a', 'b', 'c', 'l', 'l2']
         p = calibrate(hot_p, p, sub_values=cold)
     else:
+        success.append((True, p.valuesdict()))
         _set_attr(p, ['t'], default=0.0, attr='value')
         _set_attr(p, cold_p, default=False)
 
@@ -849,7 +850,7 @@ def restrict_bounds(co2_params):
         v.min, v.max = _limits(k, v)
 
         if v.max == v.min:
-            v.set(min=None, max=None, vary=False)
+            v.set(value=v.min, min=None, max=None, vary=False)
 
     return p
 
