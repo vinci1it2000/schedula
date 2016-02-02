@@ -19,7 +19,13 @@ from . import _iter_d, _get
 
 def _metrics(t, o, metrics):
     res = {}
-    _ = lambda *x: x
+
+    def _(*x):
+        x = np.asarray(x)
+        if x.dtype is np.dtype(np.bool):
+            x = np.asarray(x, dtype=int)
+        return x
+
     t, o = _(t), _(o)
     for k, v in metrics.items():
         try:
@@ -46,7 +52,7 @@ def compare_outputs_vs_targets(data):
     res = {}
     metrics = {
         'mean_absolute_error': mean_absolute_error,
-        'correlation_coefficient': lambda t, o: np.corrcoef(t, o)[0, 1] if len(t) > 1 else np.nan,
+        'correlation_coefficient': lambda t, o: np.corrcoef(t, o)[0, 1] if t.size > 1 else np.nan,
         'accuracy_score': accuracy_score,
     }
 

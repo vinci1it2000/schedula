@@ -89,10 +89,15 @@ def parse_dsp_model(model):
     from .io import get_filters
     param_ids = get_filters()['PARAMETERS'].keys()
 
-    for i in {'nedc', 'wltp_h', 'wltp_l', 'wltp_p'}.intersection(res):
-        i = res[i]
-        for k, v in i.items():
-            i[k] = _split_by_data_format(v, param_ids)
+    for j in {'nedc', 'wltp_h', 'wltp_l', 'wltp_p'}.intersection(res):
+        d = res[j]
+        if j in ('wltp_h', 'wltp_l', 'wltp_p') and 'predictions' in d:
+            cal, pre_inp = d['calibrations'], out['prediction_%s_inputs' % j]
+            cal = dsp_utl.selector(set(cal) - set(pre_inp), cal)
+            d['targets'] = dsp_utl.combine_dicts(cal, d['targets'])
+
+        for k, v in d.items():
+            d[k] = _split_by_data_format(v, param_ids)
 
     res['pipe'] = model.pipe
 
