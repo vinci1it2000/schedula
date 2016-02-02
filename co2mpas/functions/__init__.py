@@ -188,9 +188,8 @@ def process_folder_files(input_folder, output_folder, **kwds):
 
 def _process_folder_files(
         input_folder, output_folder, plot_workflow=False,
-        hide_warn_msgbox=False, enable_prediction_WLTP=False,
-        with_output_file=True, output_template_xl_fpath=None,
-        with_charts=False):
+        enable_prediction_WLTP=False, with_output_file=True,
+        output_template_xl_fpath=None, with_charts=False):
     """
     Process all xls-files in a folder with CO2MPAS-model.
 
@@ -219,9 +218,7 @@ def _process_folder_files(
 
     from co2mpas.models import vehicle_processing_model
 
-    model = vehicle_processing_model(
-        hide_warn_msgbox=hide_warn_msgbox,
-    )
+    model = vehicle_processing_model()
 
     summary = {}
 

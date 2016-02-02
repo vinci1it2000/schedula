@@ -28,7 +28,7 @@ from functools import partial
 from .report import report
 
 
-def vehicle_processing_model(hide_warn_msgbox=False, prediction_WLTP=False):
+def vehicle_processing_model(prediction_WLTP=False):
     """
     Defines the vehicle-processing model.
 
@@ -65,7 +65,7 @@ def vehicle_processing_model(hide_warn_msgbox=False, prediction_WLTP=False):
     )
 
     dsp.add_function(
-        function=dsp_utl.SubDispatch(co2mpas_model(hide_warn_msgbox),
+        function=dsp_utl.SubDispatch(co2mpas_model(),
                                      output_type='dsp'),
         inputs=['dsp_inputs'],
         outputs=['dsp_model']

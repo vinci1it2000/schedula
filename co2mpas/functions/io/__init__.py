@@ -5,6 +5,7 @@ from .excel import *
 import logging
 import pandas as pd
 import lmfit
+from types import FunctionType, MethodType
 from .. import _iter_d, _get
 
 log = logging.getLogger(__name__)
@@ -258,9 +259,7 @@ def check_writeable(data):
     :rtype: bool
     """
 
-    if isinstance(data, (str, float, int, np.integer, np.ndarray, lmfit.Parameters)):
-        return True
-    elif isinstance(data, dict):
+    if isinstance(data, dict):
         for v in data.values():
             if not check_writeable(v):
                 return False
@@ -269,6 +268,8 @@ def check_writeable(data):
         for v in data:
             if not check_writeable(v):
                 return False
+        return True
+    elif not (hasattr(data, '__call__') or isinstance(data, MethodType)):
         return True
     return False
 

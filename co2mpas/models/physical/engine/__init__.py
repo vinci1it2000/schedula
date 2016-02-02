@@ -26,7 +26,7 @@ from co2mpas.functions.physical.engine import *
 import co2mpas.dispatcher.utils as dsp_utl
 
 
-def engine(hide_warn_msgbox=True):
+def engine():
     """
     Defines the engine model.
 
@@ -188,8 +188,7 @@ def engine(hide_warn_msgbox=True):
     )
 
     engine.add_function(
-        function=partial(calibrate_start_stop_model,
-                         hide_warn_msgbox=hide_warn_msgbox),
+        function=calibrate_start_stop_model,
         inputs=['on_engine', 'times', 'velocities', 'accelerations',
                 'start_stop_activation_time'],
         outputs=['start_stop_model', 'status_start_stop_activation_time']

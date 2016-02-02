@@ -31,7 +31,6 @@ from co2mpas.functions.physical.constants import *
 from ..utils import bin_split, reject_outliers, clear_fluctuations, \
     derivative, argmax
 import co2mpas.dispatcher.utils as dsp_utl
-from textwrap import dedent
 
 
 def get_full_load(fuel_type):
@@ -661,39 +660,9 @@ def calibrate_start_stop_model_v1(
 
     return model
 
-
-def _ask_start_stop_activation_time(start_stop_activation_time, first_stop):
-    """
-    Ask if to use the start stop activation time.
-
-    :param start_stop_activation_time:
-        Start-stop activation time threshold [s].
-    :type start_stop_activation_time: float
-
-    :param first_stop:
-        First time when the vehicle stops [s].
-    :type start_stop_activation_time: float
-
-    :return:
-        True
-    """
-    msg = dedent("""\
-          To you want to use %.2f as start_stop_activation_time although the
-          first stop identified in WLTP is at %.2f?
-
-          - Select `Yes` if want to continue and use %.2f as
-            start_stop_activation_time.
-          - Select `No` if want to continue with an another start stop model.
-          """) % (start_stop_activation_time, first_stop,
-                  start_stop_activation_time)
-    choices = ["Yes", "No"]
-    import easygui as eu
-    return eu.buttonbox(msg, choices=choices) == "Yes"
-
-
 def calibrate_start_stop_model(
         on_engine, times, velocities, accelerations,
-        start_stop_activation_time, hide_warn_msgbox=True):
+        start_stop_activation_time):
     """
     Calibrates an start/stop model to predict if the engine is on.
 
@@ -731,15 +700,7 @@ def calibrate_start_stop_model(
     except IndexError:
         fst = float('inf')
 
-    status = fst > sst
-
-    if not hide_warn_msgbox and status and not \
-            _ask_start_stop_activation_time(sst, fst):
-        return dsp_utl.NONE, 'Disapproved'
-    elif status:
-        status = 'Approved'
-    else:
-        status = 'Authorized'
+    status = bool(fst > sst)
 
     dt = DecisionTreeClassifier(random_state=0, max_depth=4)
 

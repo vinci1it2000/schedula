@@ -28,7 +28,7 @@ from functools import partial
 import co2mpas.dispatcher.utils as dsp_utl
 
 
-def models_selector(*data, hide_warn_msgbox=False):
+def models_selector(*data):
     """
     Defines the engine model.
 
@@ -71,7 +71,7 @@ def models_selector(*data, hide_warn_msgbox=False):
         v['metrics'] = dsp_utl.map_list(v['targets'], *v['metrics'])
         selector = v.pop('model_selector', model_selector)
         dsp.add_function(
-            function=selector(k, data, data, v, hide_warn_msgbox),
+            function=selector(k, data, data, v),
             function_id='%s selector' % k,
             inputs=['CO2MPAS_results'],
             outputs=['models', 'scores']
@@ -87,7 +87,7 @@ def models_selector(*data, hide_warn_msgbox=False):
     return func
 
 
-def model_selector(name, data_in, data_out, setting, hide_warn_msgbox=False):
+def model_selector(name, data_in, data_out, setting):
 
     dsp = Dispatcher(
         name='%s selector' % name,
@@ -105,7 +105,6 @@ def model_selector(name, data_in, data_out, setting, hide_warn_msgbox=False):
 
     _get_best_model = partial(setting.pop('get_best_model', get_best_model),
                               models_wo_err=setting.pop('models_wo_err', None),
-                              hide_warn_msgbox=hide_warn_msgbox,
                               selector_id=dsp.name)
     for i in data_in:
         e = 'error/%s' % i

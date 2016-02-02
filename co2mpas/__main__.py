@@ -8,8 +8,8 @@
 Predict NEDC CO2 emissions from WLTP cycles.
 
 Usage:
-    co2mpas [simulate] [-v] [--predict-wltp] [--charts] [--no-warn-gui]
-                       [--plot-workflow] [--only-summary] [--out-template <fpath>]
+    co2mpas [simulate] [-v] [--predict-wltp] [--charts] [--plot-workflow]
+                       [--only-summary] [--out-template <fpath>]
                        [-I <fpath>] [-O <fpath>]
     co2mpas demo       [-v] [-f] [<folder>]
     co2mpas template   [-v] [-f] [<excel-file-path> ...]
@@ -25,7 +25,6 @@ Usage:
 --only-summary          Does not save vehicle outputs just the summary file.
 --predict-wltp          Whether to predict also WLTP values.
 --charts                Add basic charts to output file.
---no-warn-gui           Does not pause batch-run to report inconsistencies.
 --out-template <fpath>  A '*.xlsx' file to clone and append vehicle-results into it.
                         By default, the input xlsx-file is used as output-template.
                         To create "fresh" output xl-files, set '0' as <fpath>.
@@ -274,7 +273,6 @@ def _run_batch(opts):
     process_folder_files(input_folder, output_folder,
                          with_output_file=not opts['--only-summary'],
                          plot_workflow=opts['--plot-workflow'],
-                         hide_warn_msgbox=opts['--no-warn-gui'],
                          with_charts=opts['--charts'],
                          enable_prediction_WLTP=opts['--predict-wltp'],
                          output_template_xl_fpath=opts['--out-template']),
