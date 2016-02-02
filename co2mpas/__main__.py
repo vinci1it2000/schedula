@@ -26,8 +26,8 @@ Usage:
 --predict-wltp          Whether to predict also WLTP values.
 --charts                Add basic charts to output file.
 --out-template <fpath>  A '*.xlsx' file to clone and append vehicle-results into it.
-                        By default, the input xlsx-file is used as output-template.
-                        To create "fresh" output xl-files, set '0' as <fpath>.
+                        By default, no output-template file is used.
+                        To use "fresh" the input xlsx-file, set '-' as <fpath>.
 --plot-workflow         Open workflow-plot in browser, after run finished.
 --depth=INTEGER         Limit the number of sub-dispatchers plotted (no limit by default).
 -f, --force             Overwrite template/demo excel-file(s).
