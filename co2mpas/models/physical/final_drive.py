@@ -48,7 +48,7 @@ def final_drive():
 
     final_drive.add_data(
         data_id='final_drive_efficiency',
-        default_value=0.98
+        default_value=1
     )
 
     final_drive.add_data(
