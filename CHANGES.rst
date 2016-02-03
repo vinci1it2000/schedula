@@ -53,7 +53,7 @@ Model-changes
 - **S/S model**:
 
   - :gh:`85`: Correct internally stored gear-shifting profiles according to legislation.
-  - :gh:`81`: MTs: correct S/S model output - start engine - when gear>0.
+  - :gh:`81`: MTs: correct S/S model output -start engine- when gear>0.
   - :gh:`75`, `3def98f3`, `72d668ec`: Fix gear-identification for initial time-steps for
     real-data; add warning message if WLTP does not respect input S/S activation time.
 
