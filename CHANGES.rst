@@ -6,120 +6,111 @@ CO2MPAS Changes
 v1.1.0, 05-Feb 2016: "Snow" release
 ================================================================
 
-CHECKED ALL COMMITS TILL THE d3827f5c60cd091278e62883e3a7fc4eba17a917 (the newest one).
-in comparison to v1.0.5:
+CO2MPAS changes as compared to v1.0.5:
 
 Model-changes
 -------------
 
 - **Engine model**:
 
-  - Fixed extrapolation in ``engine.get_full_load()``.
-  - Updated motoring curve calculation. Now determined from the friction
-    losses parameters of the engine.
-  - Added engine speed cut-off limits.
-  - Removed bypass to calculate ``engine_speeds_out``. (`6c9b33291e`)
-  - :gh:`118`: Possible to run cycles with constant temperatures. (`93a4196893`)?
+  - Fix extrapolation in ``engine.get_full_load()``, keeping constant the boundary values.
+  - Update ``engine.get_engine_motoring_curve_default()``. The default motoring curve
+    is now determined from the engine's friction losses parameters.
+  - Add engine speed cut-off limits.
+  - :gh:`104`, `7cda7d08`: Apply 'derivative' function for smoothing real data to acceleration
+    & temperature. (still open)
   - :gh:`82`: Add engine-inertia.
-  - :gh:`50`: Add auxiliares torque/power losses to the model.
-  - :gh:`104`: Appy 'derivative' function for smoothing real data to acceleration & temperature. (still open) (`7cda7d0845`)
+  - :gh:`50`: Add auxiliaries torque/power losses.
+
   - *Optimizer*:
 
-    - Fixed update datacheck results (*nelder* optimization method). (`190c0e5c81`)
-    - Fixed ``calibrate_model_params`` results selection. (`84cc3ae84c`)
-    - :gh:`25`: Fixed calibration method for hot part, imposing t=0. (`dedf02dee8`)
-    - :gh:`25`: Fixed regression from lmfit-param copy bug in >python-3.5. (`083fe047a0`)
-    - :gh:`25`: Deleted custom class ``Parameters``. (`db57965c5e`)
-    - :gh:`56`: Cold/hot parts distinction based on the first occurrence
-      of trg; trg not optimized.
-    - :gh:`118`: Fixed sporadic failures when running batch-files related
-      to 'trg' param.
-    - :gh:`58`: Changed error functions: mean abs error is used instead
-      of mean squared error.
+    - `84cc3ae8`: Fix ``co2_emission.calibrate_model_params()`` results selection.
+    - :gh:`58`: Change error functions: mean abs error is used instead of mean squared error.
+    - :gh:`56`: Cold/hot parts distinction based on the first occurrence of *trg*; *trg* not optimized.
+    - :gh:`25`, `dedf02de`, `083fe047`: Simplify calibration method for hot part of the cycle, imposing t=0 &
+      fix regression from ``lmfit-param.copy`` bug in >python-3.5.
 
 - **Temperature model**:
 
-  - :gh:`79`: Enhanced temperature model: the calibration does not take
-    into account the first 10secs and the points where Delta Temperature = 0.
-  - :gh:`94`: Fixed bug in ``calculate_normalized_engine_coolant_temperatures``
-    function.
-  - :gh:`55`: Enhance thermal model by adding an additional regressor including
-    the acceleration.
-  - :gh:`53`: Enabled possibility to simulate hot start cycles.
+  - :gh:`118`, :gh:`53`, `93a41968`: Add capability to run hot start cycles & fixed temperature cycles.
+  - :gh:`94`: Fix bug in ``co2_emission.calculate_normalized_engine_coolant_temperatures()``,
+    returning *0* when *trg* > max T in NEDC.
+  - :gh:`79`: Enhance temperature model: the calibration does not take into account
+    the first 10secs and the points where Delta Temperature = 0.
+  - :gh:`55`: Add an additional temperature model, f(previous_T, S, P, A); chose the
+    one which gives the best results.
 
 - **Gearbox model**:
 
-  - Added function for default temperature references. (`32e3ab1d9c`)
-  - Rebuilt ``correct_gear`` on prediction. (`9c93757091`)
-  - :gh:`45`: Fixed bug in the GSPV matrix (ATs).
-  - :gh:`49`: Fixed bug in the estimation of the gear box efficiency for
-    negative power. (still open)
+  - :gh:`49`: Fix bug in the estimation of the gear box efficiency for negative power,
+    leading to an overestimation of the gear box temperature. (still open)
+  - :gh:`45`: ATs: Fix bug in the *GSPV matrix* leading to vertical up-shifting lines.
 
 - **S/S model**:
 
-  - :gh:`75`, `3def98f3fab968`, `72d668ec918`, Fix gear-identification for
-    initial time-steps for real-data, add warning message if WLTP if input-the S/S not respected.
-  - :gh:`81`: S/S accounts also gear-shifting for MTs (apart from V, P, N, A).
   - :gh:`85`: Correct internally stored gear-shifting profiles according to legislation.
+  - :gh:`81`: MTs only: correct S/S model output - start engine - when gear>0.
+  - :gh:`75`, `3def98f3`, `72d668ec`: Fix gear-identification for initial time-steps for
+    real-data; add warning message if WLTP does not respect input S/S activation time.
 
 - **Electrics model**:
 
-  - Added alternator_nominal_power as part of the alternator_model. (`29ab2cc81c`)
-  - :gh:`78`: Fixed bug in ``calibrate_alternator_current_model`` function.
-  - :gh:`17`: Added a new alternator status model to bypass the DT.
-  - :gh:`46`: Fixed bug when alternator is always off.
+  - :gh:`78`, :gh:`46`: Fix bug in ``electrics.calibrate_alternator_current_model()``
+    for real cars, fix fitting error when alternator is always off.
+  - :gh:`17`: Add new alternator status model, bypassing the DT when ``battery_SOC_balance``
+    is given, ``has_energy_recuperation`` equals to one, but BERS not identified in WLTP. ???
 
 - **Clutch model**:
 
-  - :gh:`16`: Added torque converter sub-module.
-  - :gh:`83`: Added a second clutch model -no clutch-, in case the clutch
-    model fails.
+  - :gh:`83`: Add a second clutch model, equals to no-clutch, when clutch model fails.
+  - :gh:`16`: Add torque converter.
+
+- *Model selector*:
+
+  - :gh:`76`, `82b320a1`: Remove first 30 seconds for the engine speed model selection.
+  - `e8cabe10`: Add `model_selector.metric_engine_cold_start_speed_model()`. ???
+  - `016e7060`: Add calibration of `co2_params` with two cycles. ???
 
 IO & running CO2MPAS
 --------------------
 
 - **IO**:
 
-  - Corrected units in ``initial_SOC_NEDC`` in the input file.
-  - Added ``status_start_stop_activation_time`` to cycle results. (`a03c680548`)
-  - Added html report with basic interactive graphs as an output.(still open)
-  - Added comparison between WLTP prediction vs WLTP inputs & WLTP calibrations
-    in the report. (`f8b85d98ea`)
-  - Added charts to the output file. (`5064efd364`)
-  - Fixed rogue out-excel-FDs; use pd.ExcelWriter as context-manager. (`9e8256826d`)
-  - :gh:`61`: Added dyno type and driveline type (2WD, 4WD) info on input; those
-    are being taken into account when specifying inertia coefs and drivetrain
-    efficiency. Changed default value of ``final_drive_efficiency`` to 0.98. (still open) (`24b935c396`)
-  - :gh:`25`: Added option of 'freezing' the optimization parameters.
-  - :gh:`64`: CO2MPAS version info added in output files.
-  - :gh:`44`: Corrected ``battery_SOC_balance`` and ``battery_SOC_window`` as not *compulsory*
-    in the inputs. In contrast, time series of ``alternator_currents`` must be
-    provided.
-  - :gh:`93`: Added success/fail flags related to the optimization steps for each
-    cycle/vehicle, and global success/fail flags on the summary.
-  - :gh:`101`: Added target UDC and target EUDC to SUMMARY sheet. (`37fc884446`)
-  - :gh:`96`, :gh:`98`: Unified file and implemented possibility to reuse template
-    xlsx-file as output. (`3cb271725c`)(`9e8256826d`)(`b41f8b1026`)(`afd2299535`)
-  - :gh:`120`: Added named ranges on the excel sheets. (`1f15544db4`)
-  - :gh:`97`, :gh:`114`: Added packages version and CO2MPAS info to 'proc_info' sheet. (`ef67a1b08c`)
-  - :gh:`114`: Added functionality: list platform & lib-versions in the results. (still open)
-  - :gh:`52`: Added exception and optimizer failure message in summary of results.
-  - :gh:`120`: Add capability of using name-ranges for out-columns in excel, to
-    allow for template-diagrams. (still open)
-  - :gh:`97`: Added "run_infos" sheet to the output file, including info on the
-    functions run and the scores of the models. (still open)
+  - *Inputs*:
+
+  	- Add `fuel_carbon_content` input values for each cycle.
+    - Correct units in `initial_SOC_NEDC`.
+    - Replace `Battery SOC [%]` time series with `target state_of_charges`.
+	- :gh:`61`, `24b935c3`: Add dyno type and driveline type (2WD, 4WD) for each cycle.
+	  Those are used to specify inertia coefficients and drivetrain efficiency (default
+      efficiency for `final_drive_efficiency` changed to 0.98).(still open)
+	- :gh:`44`: Correct `battery_SOC_balance` and `battery_SOC_window` as not *compulsory*.
+	- :gh:`25`: Add option of 'freezing' the optimization parameters.
+
+  - *Outputs*:
+
+	- Add html report with basic interactive graphs.(still open)
+    - `a03c6805`: Add `status_start_stop_activation_time` to cycle results.
+	- `f8b85d98`: Add comparison between WLTP prediction vs WLTP inputs & WLTP calibration.
+	- `5064efd3`: Add charts.
+	- :gh:`120`, `1f15544d`: Add named ranges on the excel sheets.
+	- :gh:`102`: Write errors/warnings in the output.(still open)
+	- :gh:`101`, `37fc8844`: Add target UDC and target EUDC to the summary.
+	- :gh:`96`, :gh:`98`, `3cb27172`, `9e825682`, `b41f8b10`, `afd22995`: Unify
+	  output file and implement possibility to reuse template xlsx-file as output.
+	- :gh:`97`, :gh:`114`, :gh:`64`, `ef67a1b0`: Add packages and CO2MPAS versions,
+	  functions run info, and models' scores to the *proc_info* sheet.(still open)
+	- :gh:`93`, :gh:`52`: Add success/fail flags related to the optimization steps
+	  for each cycle, and global success/fail flags on the summary.
 
 - **Running CO2MPAS**:
 
-  - A warning flag has been added in order to inform the user if the length is wrong.
-  - Added --out-template <fpath> opt. (`9e8256826d`)
-  - Fixed remove RuntimeWarning. (`cc90400a68`)
-  - Added skip saving WLTP-predict if not flagged. (`5e91993c69`)
+  - `cc90400a`: Remove *Runtime Warning*.
+  - `9e825682`: Add option to allow the use of a specific output template.
+  - `5e91993c`: Add option to skip saving WLTP-predict.
+  - :gh:`102`: Remove UI boxes pop-up when running.
   - :gh:`91`: Raise a flag when python version <3.4 is used.
-  - :gh:`102`: UI boxes appearance removed when running CO2MPAS. Errors/warning written
-    in the output files. (still open)
-  - :gh:`88`: Added check of input-excel files before running; raise message
-   if invalid.(still open)
+  - :gh:`88`: Check input files before running; raise message if invalid.(still open)
 
 Software changes
 ----------------
@@ -151,18 +142,6 @@ Software changes
   - :gh:`42`, :gh:`43`: Add plot to the dispatcher properties.
   - :gh:`98`: Fixed `shrink sub-dsp` adding `max outputs_dist`. (`e8fe6a959c`)
   - :gh:`98`: Fixed `add_dispatcher`, `replace_remote_link`, and `_shrink_sub_dsp`. (`8329c30eb6`)
-
-- **Model selector**:
-
-  - Added `allow_miss` option to selector. (`85e7053e4f`)
-  - Fixed sorting function. (`99fffdeeeb`)
-  - Fixed model selection for negative weight. (`8e68b8a7ce`)
-  - Fixed selection `co2_params`. (`42a5d1ba71`)(`9978fdd568`)
-  - Added calibration of `co2_params` with two cycles. (`016e7060bd`)
-  - Added new `model_selector` function. (`e31024da9a`)
-  - Increased time limit in `metric_engine_speed_model`. (`e8cabe104a`)
-  - Added metric `metric_engine_cold_start_speed_model`. (`e8cabe104a`)
-  - :gh:`76`: Filter first 30 seconds of engine speed. (`82b320a121`)
 
 - **Software**:
 
