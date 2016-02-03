@@ -234,6 +234,7 @@ def get_filters(from_outputs=False):
             'full_load_speeds': (_try_eval, np.asarray, empty),
             'full_load_torques': (_try_eval, np.asarray, empty),
             'full_load_powers': (_try_eval, np.asarray, empty),
+            'VERSION': (str, empty),
         },
         'SERIES': {
             None: (np.asarray, empty),

@@ -204,7 +204,7 @@ def selector(keys, dictionary, copy=False, output_type='dict', allow_miss=False)
 
     :param keys:
         Keys to select.
-    :type keys: list
+    :type keys: list, tuple, set
 
     :param dictionary:
         A dictionary.

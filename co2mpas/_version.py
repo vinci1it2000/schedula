@@ -10,8 +10,11 @@
 __version__ = version = "1.1.0.dev3"  # Also update README.rst & CHANGES.rst.
 
 #: Input/Output file's version.
-__file_version__ = "2"
+__file_version__ = "2.1"
 
-# Please UPDATE TIMESTAMP WHEN BUMPING VERSIONS AND BEFORE RELASE.
+#: Compatible Input file's version.
+__input_file_version__ = "2"
+
+# Please UPDATE TIMESTAMP WHEN BUMPING VERSIONS AND BEFORE RELEASE.
 #: Release date.
 __updated__ = "2016-01-15 13:57:34"

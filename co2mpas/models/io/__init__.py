@@ -59,6 +59,11 @@ def load_inputs():
         weight=10
     )
 
+    dsp.add_data(
+        data_id='input_data',
+        function=check_data_version
+    )
+
     func = dsp_utl.SubDispatchFunction(
         dsp=dsp,
         function_id=dsp.name,

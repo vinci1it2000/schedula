@@ -9,8 +9,9 @@ from types import MethodType
 from .. import _iter_d, _get
 from pip.operations.freeze import freeze
 import datetime
-from co2mpas._version import version
+import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher.utils.alg import stlp
+from co2mpas._version import version, __input_file_version__
 log = logging.getLogger(__name__)
 
 
@@ -160,6 +161,10 @@ def _scores2df(data):
     idx = ['model_id', 'from', 'selected', 'passed', 'selected_models']
     c = [n for n in cycles if n in dfs]
     frames = [pd.DataFrame(dfs[k]).set_index(idx) for k in c]
+
+    if not frames:
+        return {}
+
     df = pd.concat(frames, axis=1, keys=cycles)
 
     for k, v in list(edf.items()):
@@ -382,3 +387,26 @@ def _dd2df(dd, index, depth=0, axis=1):
             else:
                 dd = df
     return dd
+
+
+def check_data_version(data):
+    data = list(data.values())[0]
+
+    k = ('nedc_inputs', 'wltp_h_inputs', 'wltp_l_inputs')
+
+    for k, v in dsp_utl.selector(k, data).items():
+        if 'VERSION' in v:
+            v, rv = v['VERSION'], tuple(__input_file_version__.split('.'))
+
+            if tuple(v.split('.')) >= rv:
+                continue
+
+            msg = "\n  Input file version >= %s is required, but found: %s."
+            log.error(msg, __input_file_version__, v)
+            return {}
+
+        msg = "\n  Input file version not found a version >= %s is required."
+        log.error(msg, __input_file_version__)
+        return {}
+
+    return data

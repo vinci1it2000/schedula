@@ -272,29 +272,30 @@ def _file_iterator(input_folder):
 
 
 def _save_summary(fpath, start_time, summary):
-    writer = pd.ExcelWriter(fpath, engine='xlsxwriter')
-    from .io.excel import _df2excel
-    from .io import _dd2df, _param_orders
+    if summary:
+        writer = pd.ExcelWriter(fpath, engine='xlsxwriter')
+        from .io.excel import _df2excel
+        from .io import _dd2df, _param_orders
 
-    summary = _dd2df(summary, 'vehicle_name', depth=2)
+        summary = _dd2df(summary, 'vehicle_name', depth=2)
 
-    _p_map = _param_orders()
+        _p_map = _param_orders()
 
-    def _sort(x):
-        x = list(x)
-        x[-1] = _p_map.get(x[-1], x[-1])
-        x[-2] = _p_map.get(x[-2], x[-2])
-        return x
+        def _sort(x):
+            x = list(x)
+            x[-1] = _p_map.get(x[-1], x[-1])
+            x[-2] = _p_map.get(x[-2], x[-2])
+            return x
 
-    c = sorted(summary.columns, key=_sort)
+        c = sorted(summary.columns, key=_sort)
 
-    summary = summary.reindex_axis(c, axis=1, copy=False)
+        summary = summary.reindex_axis(c, axis=1, copy=False)
 
-    _df2excel(writer, 'summary', summary)
+        _df2excel(writer, 'summary', summary)
 
-    _co2mpas_info(writer, start_time)
+        _co2mpas_info(writer, start_time)
 
-    writer.save()
+        writer.save()
 
 
 def _iter_d(d, key=(), depth=-1):
