@@ -29,7 +29,7 @@ The model is defined by a Dispatcher that wraps all the functions needed.
 
 
 from co2mpas.dispatcher import Dispatcher
-from co2mpas.dispatcher.utils import bypass, SINK
+import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.functions.physical.constants.NEDC import *
 
 
@@ -52,7 +52,7 @@ def _physical():
 
     physical.add_function(
         function_id='set_max_gear_as_default_k5',
-        function=bypass,
+        function=dsp_utl.bypass,
         inputs=['max_gear'],
         outputs=['k5']
     )
