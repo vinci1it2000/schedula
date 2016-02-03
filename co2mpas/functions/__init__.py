@@ -272,7 +272,7 @@ def _file_iterator(input_folder):
 
 
 def _save_summary(fpath, start_time, summary):
-    writer = pd.ExcelWriter(fpath)
+    writer = pd.ExcelWriter(fpath, engine='xlsxwriter')
     from .io.excel import _df2excel
     from .io import _dd2df
 

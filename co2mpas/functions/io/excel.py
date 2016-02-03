@@ -18,10 +18,9 @@ from collections import Iterable
 from pandalone.xleash import lasso
 from pandalone.xleash.io._xlrd import _open_sheet_by_name_or_index
 import shutil
-import xlsxwriter
+import openpyxl
 from xlsxwriter.utility import xl_range_abs
 from .. import _iter_d
-from co2mpas.dispatcher.utils.alg import stlp
 from inspect import getfullargspec
 from itertools import chain
 
@@ -310,15 +309,15 @@ def write_to_excel(data, output_file_name, template_file_name):
                   output_file_name, template_file_name)
         shutil.copy(template_file_name, output_file_name)
 
-        book = xlsxwriter.Workbook(output_file_name)
-        writer = pd.ExcelWriter(output_file_name, engine='xlsxwriter')
+        book = openpyxl.load_workbook(output_file_name)
+        writer = pd.ExcelWriter(output_file_name, engine='openpyxl',
+                                optimized_write=True, write_only=True)
 
         writer.book = book
-        writer.sheets = dict((ws.title, ws) for ws in book.worksheets)
+        writer.sheets.update(dict((ws.title, ws) for ws in book.worksheets))
     else:
         log.debug('Writing into xl-file(%s)...', output_file_name)
         writer = pd.ExcelWriter(output_file_name, engine='xlsxwriter')
-        book = writer.book
 
     for k, v in sorted(_iter_d(data)):
 
@@ -341,10 +340,13 @@ def write_to_excel(data, output_file_name, template_file_name):
                 k0, named_ranges, index = 1, ('columns',), True
             _df2excel(writer, '_'.join(k), v, k0, named_ranges, index=index)
 
-    for k, v in sorted(_iter_d(data, depth=2)):
-        if k[0] == 'graphs':
-            shname = '_'.join(k)
-            _chart2excel(writer, shname, book, v)
+    try:
+        for k, v in sorted(_iter_d(data, depth=2)):
+            if k[0] == 'graphs':
+                shname = '_'.join(k)
+                _chart2excel(writer, shname, v)
+    except:
+        pass
 
     writer.save()
     log.info('Written into xl-file(%s)...', output_file_name)
@@ -377,11 +379,22 @@ def _df2excel(writer, shname, df, k0=0, named_ranges=('columns', 'rows'), **kw):
 
 
 def _add_named_ranges(df, writer, shname, startrow, startcol, named_ranges, k0):
-    define_name = writer.book.define_name
+    try:
+        define_name = writer.book.define_name
+        ref = '!'.join([shname, '%s'])
+
+        def create_named_range(ref_name, range_ref):
+            define_name(ref % ref_name, ref % range_ref)
+    except:
+        define_name = writer.book.create_named_range
+        sheet = writer.sheets[shname]
+
+        def create_named_range(ref_name, range_ref):
+            define_name(ref_name, sheet, range_ref)
+
     tag = ()
     if hasattr(df, 'name'):
          tag +=  (df.name,)
-    ref = '!'.join([shname, '%s'])
 
     it = ()
 
@@ -396,11 +409,12 @@ def _add_named_ranges(df, writer, shname, startrow, startcol, named_ranges, k0):
             k = (str(k),)
         elif isinstance(k, str):
             k = (k,)
-        try:
-            ref_name = _ref_name(tag + k[k0:])
-            define_name(ref % ref_name, ref % range_ref)
-        except TypeError:
-            pass
+        if k:
+            try:
+                ref_name = _ref_name(tag + k[k0:])
+                create_named_range(ref_name, range_ref)
+            except TypeError:
+                pass
 
 
 def _ref_name(name):
@@ -437,12 +451,13 @@ def _ranges_by_row(df, startrow, startcol):
         yield k, xl_range_abs(row, startcol, row, startcol + len(v) - 1)
 
 
-def _chart2excel(writer, shname, book, charts):
-    sheet = book.add_worksheet(shname)
+def _chart2excel(writer, shname, charts):
+    sheet = writer.book.add_worksheet(shname)
+    add_chart = writer.book.add_chart
     m, h, w = 3, 300, 500
 
     for i, (k, v) in enumerate(sorted(charts.items())):
-        chart = book.add_chart({'type': 'line'})
+        chart = add_chart({'type': 'line'})
         for s in v['series']:
             chart.add_series({
                 'name': s['label'],
