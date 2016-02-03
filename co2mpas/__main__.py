@@ -8,42 +8,43 @@
 Predict NEDC CO2 emissions from WLTP cycles.
 
 Usage:
-    co2mpas [simulate] [-v] [--predict-wltp] [--charts] [--plot-workflow]
-                       [--only-summary] [--out-template <fpath>]
-                       [-I <fpath>] [-O <fpath>]
-    co2mpas demo       [-v] [-f] [<folder>]
-    co2mpas template   [-v] [-f] [<excel-file-path> ...]
-    co2mpas ipynb      [-v] [-f] [<folder>]
-    co2mpas modelgraph [-v] --list
-    co2mpas modelgraph [-v] [--depth=INTEGER] [<models> ...]
+    co2mpas [simulate]    [-v] [--predict-wltp]
+                          [--plot-workflow] [--only-summary]
+                          ([--out-template <xlsx-file>] | [--charts])
+                          [-I <fpath>] [-O <fpath>]
+    co2mpas demo          [-v] [-f] [<folder>]
+    co2mpas template      [-v] [-f] [<excel-file-path> ...]
+    co2mpas ipynb         [-v] [-f] [<folder>]
+    co2mpas modelgraph    [-v] --list
+    co2mpas modelgraph    [-v] [--depth=INTEGER] [<models> ...]
     co2mpas [-v] --version
     co2mpas --help
 
--I <fpath>              Input folder or file, prompted with GUI if missing [default: ./input]
--O <fpath>              Input folder or file, prompted with GUI if missing [default: ./output]
--l, --list              List available models.
---only-summary          Does not save vehicle outputs just the summary file.
---predict-wltp          Whether to predict also WLTP values.
---charts                Add basic charts to output file.
---out-template <fpath>  A '*.xlsx' file to clone and append vehicle-results into it.
-                        By default, no output-template file is used.
-                        To use "fresh" the input xlsx-file, set '-' as <fpath>.
---plot-workflow         Open workflow-plot in browser, after run finished.
---depth=INTEGER         Limit the number of sub-dispatchers plotted (no limit by default).
--f, --force             Overwrite template/demo excel-file(s).
--v, --verbose           Print more verbosely messages.
+-I <fpath>                  Input folder or file, prompted with GUI if missing [default: ./input]
+-O <fpath>                  Input folder or file, prompted with GUI if missing [default: ./output]
+-l, --list                  List available models.
+--only-summary              Does not save vehicle outputs just the summary file.
+--predict-wltp              Whether to predict also WLTP values.
+--charts                    Add basic charts to output file.
+--out-template <xlsx-file>  An '*.xlsx' file to clone and append model-results into it.
+                            By default, no output-template used.
+                            Set it to `-` to use the input xlsx-file as output-template.
+--plot-workflow             Open workflow-plot in browser, after run finished.
+--depth=INTEGER             Limit the number of sub-dispatchers plotted (no limit by default).
+-f, --force                 Overwrite template/demo excel-file(s).
+-v, --verbose               Print more verbosely messages.
 
 * Items enclosed in `[]` are optional.
 
 
 Sub-commands:
-    simulate    [default] Run simulation for all excel-files in input-folder (-I).
-    demo        Generate demo input-files inside <folder>.
-    template    Generate "empty" input-file at <excel-file-path>.
-    ipynb       Generate IPython notebooks inside <folder>; view them with cmd:
-                  ipython --notebook-dir=<folder>
-    modelgraph  List all or plot available models.  If no model(s) specified, all assumed.
-
+    simulate                [default] Run simulation for all excel-files in input-folder (-I).
+    demo                    Generate demo input-files inside <folder>.
+    template                Generate "empty" input-file at <excel-file-path>.
+    ipynb                   Generate IPython notebooks inside <folder>; view them with cmd:
+                              ipython --notebook-dir=<folder>
+    modelgraph              List all or plot available models.  If no model(s) specified, all assumed.
+-
 Examples:
 
     # Create sample-vehicles inside the `input` folder.
@@ -63,6 +64,7 @@ Examples:
 """
 from co2mpas import (__version__ as proj_ver, __file__ as proj_file,
                      __updated__ as proj_date)
+from co2mpas import autocompletion
 from collections import OrderedDict
 import logging
 import os
@@ -70,7 +72,7 @@ import re
 import shutil
 import sys
 
-from docopt import docopt
+import docopt
 
 
 class CmdException(Exception):
@@ -108,6 +110,15 @@ def build_version_string(verbose):
         v = ''.join('%s: %s\n' % kv for kv in v_infos.items())
     return v
 
+
+def print_autocompletions():
+    """
+    Prints the auto-completions list from docopt in stdout.
+
+    .. Note::
+        Must be registered as `setup.py` entry-point.
+    """
+    autocompletion.print_wordlist_from_docopt(__doc__)
 
 def _cmd_modelgraph(opts):
     from co2mpas.functions import plot as co2plot
@@ -281,10 +292,9 @@ def _run_batch(opts):
 def _main(*args):
     """Does not ``sys.exit()`` like :func:`main()` but throws any exception."""
 
-    opts = docopt(__doc__,
-                  argv=args or sys.argv[1:])
+    opts = docopt.docopt(__doc__, argv=args or sys.argv[1:])
 
-    verbose = opts['--verbose']
+    verbose = opts.get('--verbose', False)
     init_logging(verbose)
     if opts['--version']:
         v = build_version_string(verbose)

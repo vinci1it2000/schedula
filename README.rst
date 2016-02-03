@@ -520,8 +520,8 @@ where in each one you can install a different versions of CO2MPAS.
 
 .. _usage:
 
-Usage
-=====
+Console Usage
+=============
 .. Note::
     The following commands are for the **bash console**, specifically tailored
     for the **all-in-one** archive.
@@ -547,43 +547,43 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
     Predict NEDC CO2 emissions from WLTP cycles.
 
     Usage:
-        co2mpas [simulate] [-v] [--predict-wltp] [--report-stages] [--no-warn-gui]
-                           [--plot-workflow] [--only-summary] [--out-template <fpath>]
-                           [-I <fpath>] [-O <fpath>]
-        co2mpas demo       [-v] [-f] [<folder>]
-        co2mpas template   [-v] [-f] [<excel-file-path> ...]
-        co2mpas ipynb      [-v] [-f] [<folder>]
-        co2mpas modelgraph [-v] --list
-        co2mpas modelgraph [-v] [--depth=INTEGER] [<models> ...]
+        co2mpas [simulate]    [-v] [--predict-wltp]
+                              [--plot-workflow] [--only-summary]
+                              ([--out-template <xlsx-file>] | [--charts])
+                              [-I <fpath>] [-O <fpath>]
+        co2mpas demo          [-v] [-f] [<folder>]
+        co2mpas template      [-v] [-f] [<excel-file-path> ...]
+        co2mpas ipynb         [-v] [-f] [<folder>]
+        co2mpas modelgraph    [-v] --list
+        co2mpas modelgraph    [-v] [--depth=INTEGER] [<models> ...]
         co2mpas [-v] --version
         co2mpas --help
 
-    -I <fpath>              Input folder or file, prompted with GUI if missing [default: ./input]
-    -O <fpath>              Input folder or file, prompted with GUI if missing [default: ./output]
-    -l, --list              List available models.
-    --only-summary          Does not save vehicle outputs just the summary file.
-    --predict-wltp          Whether to predict also WLTP values.
-    --report-stages         Add report-sheets with stage-scores into summary file.
-    --no-warn-gui           Does not pause batch-run to report inconsistencies.
-    --out-template <fpath>  A '*.xlsx' file to clone and append vehicle-results into it.
-                            By default, the input xlsx-file is used as output-template.
-                            To create "fresh" output xl-files, set '0' as <fpath>.
-    --plot-workflow         Open workflow-plot in browser, after run finished.
-    --depth=INTEGER         Limit the number of sub-dispatchers plotted (no limit by default).
-    -f, --force             Overwrite template/demo excel-file(s).
-    -v, --verbose           Print more verbosely messages.
+    -I <fpath>                  Input folder or file, prompted with GUI if missing [default: ./input]
+    -O <fpath>                  Input folder or file, prompted with GUI if missing [default: ./output]
+    -l, --list                  List available models.
+    --only-summary              Does not save vehicle outputs just the summary file.
+    --predict-wltp              Whether to predict also WLTP values.
+    --charts                    Add basic charts to output file.
+    --out-template <xlsx-file>  An '*.xlsx' file to clone and append model-results into it.
+                                By default, no output-template used.
+                                Set it to `-` to use the input xlsx-file as output-template.
+    --plot-workflow             Open workflow-plot in browser, after run finished.
+    --depth=INTEGER             Limit the number of sub-dispatchers plotted (no limit by default).
+    -f, --force                 Overwrite template/demo excel-file(s).
+    -v, --verbose               Print more verbosely messages.
 
     * Items enclosed in `[]` are optional.
 
 
     Sub-commands:
-        simulate    [default] Run simulation for all excel-files in input-folder (-I).
-        demo        Generate demo input-files inside <folder>.
-        template    Generate "empty" input-file at <excel-file-path>.
-        ipynb       Generate IPython notebooks inside <folder>; view them with cmd:
-                      ipython --notebook-dir=<folder>
-        modelgraph  List all or plot available models.  If no model(s) specified, all assumed.
-
+        simulate                [default] Run simulation for all excel-files in input-folder (-I).
+        demo                    Generate demo input-files inside <folder>.
+        template                Generate "empty" input-file at <excel-file-path>.
+        ipynb                   Generate IPython notebooks inside <folder>; view them with cmd:
+                                  ipython --notebook-dir=<folder>
+        modelgraph              List all or plot available models.  If no model(s) specified, all assumed.
+    -
     Examples:
 
         # Create sample-vehicles inside the `input` folder.
@@ -599,6 +599,7 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
 
         # View a specific submodel on your browser.
         co2mpas modelgraph gear_box_calibration
+
 
 The default sub-command (``simulate``) accepts either a single **input-excel-file**
 or a folder with multiple input-files for each vehicle, and generates a
@@ -747,6 +748,13 @@ excel-file:
 6. In the case of errors, or if the results are not satisfactory, repeat the
    above procedure from step 3 to modify the vehicle and re-run the model.
    See also :ref:`debug`, below.
+
+Bash Autocompletion
+-------------------
+Add this command in your :file:`~/.bashrc` or type it in an open bash-console::
+
+    $ complete -fd -W "`co2mpas-autocompletions`" co2mpas
+
 
 
 Using IPython

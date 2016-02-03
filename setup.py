@@ -172,7 +172,8 @@ setup(
     tests_require=['nose>=1.0', 'ddt'],
     entry_points={
         'console_scripts': [
-            '%s = co2mpas.__main__:main' % proj_name,
+            '%(p)s = %(p)s.__main__:main' % {'p': proj_name},
+            '%(p)s-autocompletions = %(p)s.__main__:print_autocompletions' % {'p': proj_name},
         ],
     },
     options={
