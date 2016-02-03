@@ -20,20 +20,23 @@ from . import _iter_d, _get
 def _metrics(t, o, metrics):
     res = {}
 
-    def _(*x):
+    def _asarray(*x):
         x = np.asarray(x)
         if x.dtype is np.dtype(np.bool):
             x = np.asarray(x, dtype=int)
         return x
 
-    t, o = _(t), _(o)
-    for k, v in metrics.items():
-        try:
-            m = v(t, o)
-            if not np.isnan(m):
-                res[k] = m
-        except:
-            pass
+    try:
+        t, o = _asarray(t), _asarray(o)
+        for k, v in metrics.items():
+            try:
+                m = v(t, o)
+                if not np.isnan(m):
+                    res[k] = m
+            except:
+                pass
+    except ValueError:
+        pass
     return res
 
 
