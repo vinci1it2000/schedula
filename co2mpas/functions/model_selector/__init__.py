@@ -83,7 +83,7 @@ def _sorting_func(x):
     return [(s, -x[0]['n'], x[0]['score'])] + x[1:]
 
 
-def _check(best, selector_id):
+def _check(best):
     try:
         return best[0]['success']
     except IndexError:
@@ -105,7 +105,7 @@ def get_best_model(
             scores[m[3]] = {'models': tuple(sorted(m[-1].keys()))}
     if not rank:
         m = {}
-    elif _check(rank[0], selector_id):
+    else:
         m = rank[0]
         s = scores[m[3]]
         models_wo_err = models_wo_err or []
@@ -116,7 +116,7 @@ def get_best_model(
                   '  Please report this bug to CO2MPAS team, \n' \
                   '  providing the data to replicate it.'
             m = set(s['models']).difference(models_wo_err)
-            raise ValueError(msg % (selector_id, str(m)))
+            raise ValueError(msg % (selector_id[:-9], str(m)))
 
         msg = '\n  Models %s are selected from %s respect to targets' \
               ' %s.\n  Scores: %s.'
@@ -124,11 +124,10 @@ def get_best_model(
         s['selected'] = True
         log.debug(msg, s['models'], m[3], tuple(m[4].keys()), pformat(scores))
 
+        if not _check(m):
+            msg = '\n  Selection waring (%s): Models %s failed the calibration.'
+            log.info(msg, selector_id[:-9], str(set(s['models'])))
         m = m[-1]
-
-    else:
-        scores[rank[0][3]]['selected'] = False
-        m = {}
 
     return m, scores
 
