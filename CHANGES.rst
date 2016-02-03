@@ -13,30 +13,34 @@ Model-changes
 
 - **Engine model**:
 
-  - Fix extrapolation in ``engine.get_full_load()``, keeping constant the boundary values.
-  - Update ``engine.get_engine_motoring_curve_default()``. The default motoring curve
-    is now determined from the engine's friction losses parameters.
+  - Fix extrapolation in ``engine.get_full_load()``, keeping constant the boundary
+  	values.
+  - Update ``engine.get_engine_motoring_curve_default()``. The default motoring
+    curve is now determined from the engine's friction losses parameters.
   - Add engine speed cut-off limits.
-  - :gh:`104`, `7cda7d08`: Apply 'derivative' function for smoothing real data to acceleration
-    & temperature. (still open)
-  - :gh:`82`: Add engine-inertia.
-  - :gh:`50`: Add auxiliaries torque/power losses.
+  - :gh:`104`, `7cda7d08`: Apply 'derivative' function for smoothing real data to
+    acceleration & temperature. (still open)
+  - :gh:`82`, :gh:`50`: Add engine-inertia & auxiliaries torque/power losses.
 
   - *Optimizer*:
 
     - `84cc3ae8`: Fix ``co2_emission.calibrate_model_params()`` results selection.
-    - :gh:`58`: Change error functions: mean abs error is used instead of mean squared error.
-    - :gh:`56`: Cold/hot parts distinction based on the first occurrence of *trg*; *trg* not optimized.
-    - :gh:`25`, `dedf02de`, `083fe047`: Simplify calibration method for hot part of the cycle, imposing t=0 &
-      fix regression from ``lmfit-param.copy`` bug in >python-3.5.
+    - :gh:`58`: Change error functions: *mean abs error* is used instead of *mean
+      squared error*.
+    - :gh:`56`: Cold/hot parts distinction based on the first occurrence of *trg*;
+      *trg* not optimized.
+    - :gh:`25`, `dedf02de`, `083fe047`: Simplify calibration method for hot part
+      of the cycle, imposing t=0 & fix regression from ``lmfit-param.copy`` bug
+      in >python-3.5.
 
 - **Temperature model**:
 
-  - :gh:`118`, :gh:`53`, `93a41968`: Add capability to run hot start cycles & fixed temperature cycles.
+  - :gh:`118`, :gh:`53`, `93a41968`: Add capability to run hot start cycles & fixed
+  	temperature cycles.
   - :gh:`94`: Fix bug in ``co2_emission.calculate_normalized_engine_coolant_temperatures()``,
     returning *0* when *trg* > max T in NEDC.
   - :gh:`79`: Enhance temperature model: the calibration does not take into account
-    the first 10secs and the points where Delta Temperature = 0.
+    the first 10secs and the points where Delta T = 0.
   - :gh:`55`: Add an additional temperature model, f(previous_T, S, P, A); chose the
     one which gives the best results.
 
@@ -49,7 +53,7 @@ Model-changes
 - **S/S model**:
 
   - :gh:`85`: Correct internally stored gear-shifting profiles according to legislation.
-  - :gh:`81`: MTs only: correct S/S model output - start engine - when gear>0.
+  - :gh:`81`: MTs: correct S/S model output - start engine - when gear>0.
   - :gh:`75`, `3def98f3`, `72d668ec`: Fix gear-identification for initial time-steps for
     real-data; add warning message if WLTP does not respect input S/S activation time.
 
