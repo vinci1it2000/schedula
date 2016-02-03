@@ -10,6 +10,7 @@ from .. import _iter_d, _get
 from pip.operations.freeze import freeze
 import datetime
 from co2mpas._version import version
+from co2mpas.dispatcher.utils.alg import stlp
 log = logging.getLogger(__name__)
 
 
@@ -97,7 +98,7 @@ def _co2mpas_info2df(start_time):
 
 
 def _freeze2df():
-    d = dict(v.split('==') for v in freeze())
+    d = dict(v.split('==') for v in freeze() if '==' in v)
     d['version'] = 'version'
     df = pd.DataFrame([d])
     df.set_index(['version'], inplace=True)
