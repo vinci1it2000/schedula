@@ -227,14 +227,30 @@ def _extend_errors_raws(res, model_id, data, cycles):
     return res
 
 
+def _param_orders():
+    _map = {
+        'co2_emission_UDC': 'co2_emission 1',
+        'co2_emission_EUDC': 'co2_emission 2',
+        'co2_emission_low': 'co2_emission 1',
+        'co2_emission_medium': 'co2_emission 2',
+        'co2_emission_high': 'co2_emission 3',
+        'co2_emission_extra_high': 'co2_emission 4',
+        'co2_emission_value': 'co2_emission 5',
+        'target': '1',
+        'prediction': '2',
+        'calibration': '3'
+    }
+    return _map
+
+
 def _merge_targets(data, targets):
     _map = lambda x: 'target %s' % x
+    _p_map = _param_orders()
 
     def _sort(x):
         x = stlp(x)[-1]
-        if x.startswith('target '):
-            return (x[7:], 1)
-        return (x, 0)
+        i = 7 if x.startswith('target ') else 0
+        return (_p_map.get(x[i:], '0'), x[i:], i)
 
     for k, v in targets.items():
         if v.empty:
