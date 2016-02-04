@@ -158,6 +158,7 @@ setup(
         'six',
         'easygui',
         'pandalone',
+        'regex'
     ],
     packages=find_packages(exclude=['tests', 'doc']),
     package_data={'co2mpas': [
