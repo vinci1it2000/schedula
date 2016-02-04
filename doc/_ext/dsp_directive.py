@@ -115,8 +115,10 @@ def _table_heather(lines, title, dsp_name):
 
 
 def _data(lines, dsp):
-    nodes = dsp.nodes
-    data = [v for v in sorted(nodes.items()) if v[1]['type'] == 'data']
+    if isinstance(dsp, SubDispatch):
+        dsp = dsp.dsp
+
+    data = sorted(dsp.data_nodes.items())
     if data:
         _table_heather(lines, 'data', dsp.name)
 
@@ -131,6 +133,8 @@ def _data(lines, dsp):
 
 
 def _functions(lines, dsp, function_module, node_type='function'):
+    if isinstance(dsp, SubDispatch):
+        dsp = dsp.dsp
     def check_fun(node_attr):
         if node_attr['type'] not in ('function', 'dispatcher'):
             return False
@@ -209,7 +213,7 @@ class DispatcherDocumenter(DataDocumenter):
     @classmethod
     def can_document_member(cls, member, membername, isattr, parent):
         return (isinstance(parent, ModuleDocumenter)
-                and isinstance(member, Dispatcher))
+                and isinstance(member, (Dispatcher, SubDispatch)))
 
     def add_directive_header(self, sig):
         if not self.code:
