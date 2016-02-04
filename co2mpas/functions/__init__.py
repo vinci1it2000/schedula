@@ -29,7 +29,6 @@ import numpy as np
 import os.path as osp
 import pandas as pd
 import co2mpas.dispatcher.utils as dsp_utl
-from .write import check_writeable, _co2mpas_info
 from itertools import chain
 
 log = logging.getLogger(__name__)
@@ -275,8 +274,7 @@ def _save_summary(fpath, start_time, summary):
     if summary:
         writer = pd.ExcelWriter(fpath, engine='xlsxwriter')
         from .io.excel import _df2excel
-        from .io import _dd2df, _param_orders
-
+        from .io import _dd2df, _param_orders, _co2mpas_info2df
         summary = _dd2df(summary, 'vehicle_name', depth=2)
 
         _p_map = _param_orders()
@@ -292,8 +290,7 @@ def _save_summary(fpath, start_time, summary):
         summary = summary.reindex_axis(c, axis=1, copy=False)
 
         _df2excel(writer, 'summary', summary)
-
-        _co2mpas_info(writer, start_time)
+        _df2excel(writer, 'proc_info', _co2mpas_info2df(start_time))
 
         writer.save()
 

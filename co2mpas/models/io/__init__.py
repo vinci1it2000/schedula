@@ -7,10 +7,10 @@
 
 from co2mpas.dispatcher import Dispatcher
 from co2mpas.functions.io import *
+from co2mpas.functions.io.excel import write_to_excel
 from .excel import load_from_excel
 
 import co2mpas.dispatcher.utils as dsp_utl
-from co2mpas.functions.write import get_doc_description
 from functools import partial
 
 
