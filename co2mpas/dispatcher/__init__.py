@@ -1244,6 +1244,8 @@ class Dispatcher(object):
 
             When 'default_value', returns the data node default value.
 
+            When 'value_type', returns the data node value's type.
+
             When `None`, returns the node attributes.
         :type node_attr: str, None, optional
 

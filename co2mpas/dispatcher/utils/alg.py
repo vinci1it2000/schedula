@@ -570,6 +570,9 @@ def get_sub_node(dsp, path, node_attr='auto', _level=0, _dsp_name=NONE):
             data = dsp.data_output[node_id]
         elif node_attr == 'description':  # Search and return node description.
             data = search_node_description(node_id, node, dsp)
+        elif node_attr == 'value_type' and node['type'] == 'data':
+            # Search and return data node value's type.
+            data = search_node_description(node_id, node, dsp, node_attr)
         elif node_attr == 'default_value':
             data = dsp.default_values[node_id]
         elif node_attr == 'dsp':

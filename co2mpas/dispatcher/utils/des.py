@@ -24,12 +24,27 @@ from sphinx.ext.autodoc import getargspec
 log = logging.getLogger(__name__)
 
 
-def get_attr_doc(doc, attr_name, get_param=True):
-    if get_param:
-        res = re.search(r":param\b.*\b%s:" % attr_name, doc)
+def get_attr_doc(doc, attr_name, get_param=True, what='description'):
+    if what == 'value_type':
+        if get_param:
+            m = re.search(r":param\b.*\b%s:" % attr_name, doc)
+            if m:
+                es = r":param[\s]+(?P<types>.*)[\s]+%s:"
+                m = re.match(es % attr_name, m.group())
+                if m:
+                    m = m.groupdict()['types']
+                    if m:
+                        return m
+            es = r":type[\s]+%s:" % attr_name
+        else:
+            es = r":rtype:"
     else:
-        res = re.search(r":returns?:", doc)
+        if get_param:
+            es = r":param\b.*\b%s:" % attr_name
+        else:
+            es = r":returns?:"
 
+    res = re.search(es, doc)
     if res:
         return get_summary(doc[res.regs[0][1]:].split('\n'))
     else:
@@ -60,7 +75,8 @@ def get_summary(doc):
     return summary
 
 
-def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function'):
+def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function',
+                        what='description'):
     nodes = dsp.nodes
     des, link = ('', '')
     check = lambda *args: True
@@ -100,14 +116,14 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function'):
                 sub_dsp = fun.dsp
                 n_id = getattr(fun, node_attr)[n_ix]
                 n_att = sub_dsp.nodes[n_id]
-                d, l = search_node_description(n_id, n_att, sub_dsp)
+                d, l = search_node_description(n_id, n_att, sub_dsp, what)
 
             elif isinstance(fun, SubDispatch) and not where_succ:
                 if fun.output_type == 'list':
                     sub_dsp = fun.dsp
                     n_id = getattr(fun, node_attr)[n_ix]
                     n_att = sub_dsp.nodes[n_id]
-                    d, l = search_node_description(n_id, n_att, sub_dsp)
+                    d, l = search_node_description(n_id, n_att, sub_dsp, what)
 
             doc = fun.__doc__
             if not d and doc:
@@ -118,7 +134,7 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function'):
                 except IndexError:
                     attr_name = attr_name[1]
 
-                return get_attr_doc(doc, attr_name, where_succ), ''
+                return get_attr_doc(doc, attr_name, where_succ, what), ''
 
             return d, l
     else:
@@ -132,7 +148,7 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function'):
         def get_des(dsp_node):
             sub_dsp = dsp_node['function']
             n_id = get_id(dsp_node)
-            return search_node_description(n_id, sub_dsp.nodes[n_id], sub_dsp)
+            return search_node_description(n_id, sub_dsp.nodes[n_id], sub_dsp, what)
 
     for k, v in ((k, nodes[k]) for k in sorted(neighbors[node_id])):
         if v['type'] == node_type and check(k):
@@ -145,21 +161,21 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function'):
             return des, link
 
     if where_succ:
-        return _search_doc_in_func(dsp, node_id, False, node_type)
+        return _search_doc_in_func(dsp, node_id, False, node_type, what=what)
     elif node_type == 'function':
-        return _search_doc_in_func(dsp, node_id, True, 'dispatcher')
+        return _search_doc_in_func(dsp, node_id, True, 'dispatcher', what=what)
     return des, link
 
 
-def search_node_description(node_id, node_attr, dsp):
+def search_node_description(node_id, node_attr, dsp, what='description'):
 
     if node_attr['type'] in ('function', 'dispatcher'):
         func = parent_func(node_attr.get('function', None))
     else:
         func = None
 
-    if 'description' in node_attr:
-        des = node_attr['description']
+    if what in node_attr:
+        des = node_attr[what]
     elif func:
         des = func.__doc__ or ''
         if not des:
@@ -169,7 +185,7 @@ def search_node_description(node_id, node_attr, dsp):
             elif isinstance(func, SubDispatch):
                 des = func.dsp.name
     elif not func:
-        return _search_doc_in_func(dsp, node_id)
+        return _search_doc_in_func(dsp, node_id, what=what)
     else:
         des = ''
 
