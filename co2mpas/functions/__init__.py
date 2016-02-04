@@ -4,6 +4,7 @@
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+
 """
 It contains a list of all modules that contains functions of CO2MPAS.
 
@@ -16,9 +17,7 @@ Modules:
     :toctree: functions/
 
     io
-    co2mpas
-    physical
-    model_selector
+    co2mpas_model
     report
     plot
 """

@@ -13,12 +13,11 @@ import unittest
 from co2mpas.__main__ import init_logging
 import ddt
 init_logging(True)
-from co2mpas.models.physical.engine import engine
-from co2mpas.models.physical import _physical
-from co2mpas.models.physical.electrics import electrics
-from co2mpas.models.physical.gear_box.AT_gear import AT_gear
+from co2mpas.models.co2mpas_model.physical.engine import engine
+from co2mpas.models.co2mpas_model.physical import _physical
+from co2mpas.models.co2mpas_model.physical.electrics import electrics
+from co2mpas.models.co2mpas_model.physical.gear_box.AT_gear import AT_gear
 import os
-import glob
 from co2mpas.models.io import load_inputs
 from co2mpas.functions import _file_iterator
 from functools import partial

@@ -21,20 +21,23 @@ Modules:
     excel
 """
 
-import pathlib
-from .dill import *
-import logging
-import pandas as pd
-import lmfit
-from types import MethodType
-from .. import _iter_d, _get
-from pip.operations.freeze import freeze
 import datetime
-import co2mpas.dispatcher.utils as dsp_utl
-from co2mpas.dispatcher.utils.alg import stlp
-from co2mpas._version import version, __input_file_version__
+import logging
+import pathlib
 import re
+from types import MethodType
+
+import lmfit
 import numpy as np
+import pandas as pd
+from pip.operations.freeze import freeze
+
+import co2mpas.dispatcher.utils as dsp_utl
+from co2mpas._version import version, __input_file_version__
+from co2mpas.dispatcher.utils.alg import stlp
+from .dill import *
+from .. import _iter_d, _get
+
 log = logging.getLogger(__name__)
 
 
@@ -439,8 +442,8 @@ _re_units = re.compile('(\[.*\])')
 
 
 def get_doc_description():
-    from co2mpas.models.physical import physical_calibration
-    from co2mpas.models.physical import physical_prediction
+    from co2mpas.models.co2mpas_model.physical import physical_calibration
+    from co2mpas.models.co2mpas_model.physical import physical_prediction
     from co2mpas.dispatcher.utils import search_node_description
 
     doc_descriptions = {}
@@ -486,8 +489,8 @@ def parse_name(name, _standard_names=None):
 
 
 def get_types():
-    from co2mpas.models.physical import physical_calibration
-    from co2mpas.models.physical import physical_prediction
+    from co2mpas.models.co2mpas_model.physical import physical_calibration
+    from co2mpas.models.co2mpas_model.physical import physical_prediction
     from co2mpas.dispatcher.utils import search_node_description
 
     node_types = {}

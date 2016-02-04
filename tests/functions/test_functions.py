@@ -6,13 +6,13 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
-from co2mpas.functions.physical.engine import co2_emission
 import unittest
 
 import ddt
-
 import numpy as np
 import numpy.testing as npt
+
+from co2mpas.functions.co2mpas_model.physical.engine import co2_emission
 
 
 @ddt.ddt

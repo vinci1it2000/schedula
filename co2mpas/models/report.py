@@ -61,5 +61,4 @@ def report():
 
     inputs = ['output_data', 'vehicle_name', 'with_charts']
     outputs = ['report', 'summary']
-
     return dsp_utl.SubDispatchFunction(dsp, dsp.name, inputs, outputs)

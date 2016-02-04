@@ -8,7 +8,7 @@
 """
 It provides CO2MPAS software architecture.
 
-.. rubric:: Sub-modules
+Modules:
 
 .. currentmodule:: co2mpas.models
 
@@ -17,10 +17,7 @@ It provides CO2MPAS software architecture.
     :toctree: models/
 
     io
-    co2mpas
-    physical
-    report
-    model_selector
+    co2mpas_model
     report
 
 """
@@ -28,10 +25,10 @@ It provides CO2MPAS software architecture.
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher import Dispatcher
 from .io import load_inputs, write_outputs
-from .co2mpas import co2mpas_model
+from .co2mpas_model import co2mpas_model as _co2mpas_model
 from co2mpas.functions import parse_dsp_model, get_template_file_name
 from functools import partial
-from .report import report
+from .report import report as _report
 
 
 def vehicle_processing_model(prediction_WLTP=False):
@@ -71,7 +68,7 @@ def vehicle_processing_model(prediction_WLTP=False):
     )
 
     dsp.add_function(
-        function=dsp_utl.SubDispatch(co2mpas_model(),
+        function=dsp_utl.SubDispatch(_co2mpas_model(),
                                      output_type='dsp'),
         inputs=['dsp_inputs'],
         outputs=['dsp_model']
@@ -89,7 +86,7 @@ def vehicle_processing_model(prediction_WLTP=False):
     )
 
     dsp.add_function(
-        function=report(),
+        function=_report(),
         inputs=['output_data', 'vehicle_name', 'with_charts'],
         outputs=['report', 'summary'],
     )
