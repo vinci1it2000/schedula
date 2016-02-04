@@ -20,12 +20,124 @@ from pandalone.xleash.io._xlrd import _open_sheet_by_name_or_index
 import shutil
 import openpyxl
 from xlsxwriter.utility import xl_range_abs
-from .. import _iter_d
+from .. import _iter_d, _get
 from inspect import getfullargspec
 from itertools import chain
-
+import regex
+import co2mpas.dispatcher.utils as dsp_utl
+from co2mpas.dispatcher.utils.alg import stlp
 
 log = logging.getLogger(__name__)
+
+_re_params_name = regex.compile(
+        r"""
+            ^(?P<as>(target|input|calibration|prediction)[\s]+)?[\s]*
+            (?P<id>[^\s]*)[\s]*
+            (?P<cycle>WLTP-[HLP]{1}|NEDC)?$
+        """, regex.IGNORECASE | regex.X | regex.DOTALL)
+
+
+_re_sheet_name = regex.compile(
+        r"""(
+                ^(?P<cycle>(WLTP_[HLP]{1}|NEDC))_
+                (?P<as>(target|input|calibration|prediction)s)_
+                (?P<type>(parameter|time_serie)s)$
+            |
+                ^(?P<cycle>(WLTP-[HLP]{1}|NEDC))$
+        )""", regex.IGNORECASE | regex.X | regex.DOTALL)
+
+
+def parse_excel_file(file_path):
+    """
+    Reads cycle's time series.
+
+    :param excel_file:
+        An excel file.
+    :type excel_file: pandas.ExcelFile
+
+    :return:
+        A pandas DataFrame with cycle's time series.
+    :rtype: pandas.DataFrame
+    """
+    excel_file = pd.ExcelFile(file_path)
+    res = {}
+    defaults = {
+        'as': 'inputs',
+        'type': 'time_series'
+    }
+
+    _map = {'PARAMETERS': 'parameters', 'SERIES': 'time_series'}
+    _filters = dsp_utl.map_dict(_map, get_filters())
+
+    for sheet_name in excel_file.sheet_names:
+        if sheet_name == 'Inputs':
+            match = {
+                'as': 'inputs',
+                'type': 'parameters',
+                'cycle': ('nedc', 'wltp_h', 'wltp_l', 'wltp_p')
+            }
+        else:
+            match = _re_sheet_name.match(sheet_name)
+            if not match:
+                continue
+            match = {k: v.lower() for k, v in match.groupdict().items() if v}
+            match = dsp_utl.combine_dicts(defaults, match)
+
+        if match['type'] == 'parameters':
+            sheet = _open_sheet_by_name_or_index(excel_file.book, 'book', sheet_name)
+            xl_ref = '#%s!B2:C_:["pipe", ["dict", "recurse"]]' % sheet_name
+            data = lasso(xl_ref, sheet=sheet)
+        else:
+            data = excel_file.parse(sheetname=sheet_name, skiprows=1)
+
+        filters = _filters[match['type']]
+
+        for k, v, m in iter_values(data):
+            m = dsp_utl.combine_dicts(match, m)
+            v = parse_value(k, v, filters)
+            for c in stlp(m['cycle']):
+                _get(res, c.replace('-', '_'), m['as'])[k] = v
+    return res
+
+
+def iter_values(data):
+    """
+    Parses and fetch the data with a data map.
+
+    :param data:
+        Data to be parsed (key) and fetch (value) with filters.
+    :type data: dict, pd.DataFrame
+
+    :param data_map:
+        It maps the data as: data's key --> (parsed key, filters).
+    :type data_map: dict
+
+    :return:
+        Parsed and fetched data (inputs and targets).
+    :rtype: (dict, dict)
+    """
+
+    for k, v in data.items():
+        match = _re_params_name.match(k) if k is not None else None
+        if not match or (isinstance(v, float) and isnan(v) or _check_none(v)):
+            continue
+        match = {i: j.lower() for i, j in match.groupdict().items() if j}
+        i = match['id']
+        yield i, v, match
+
+
+def parse_value(key, value, data_map):
+    try:
+        for f in data_map[key if key in data_map else None]:
+            value = f(value)
+        return value
+
+    except EmptyValue:
+        pass
+    except Exception as ex:
+        pass
+        print('Import error: %s\nWrong value: %s' % (key, str(value)))
+        raise ex
 
 
 def read_cycles_series(excel_file, sheet_name):
@@ -149,9 +261,11 @@ def parse_inputs(data, data_map, cycle_name):
 
     for i in data.items():
         k, v = i
-        if isinstance(v, float) and isnan(v) or _check_none(v):
+        match = _re_params_name.match(k)
+        if not match or (isinstance(v, float) and isnan(v) or _check_none(v)):
             continue
 
+        match.groupdict()
         k = k.split(' ')
         n = len(k)
 
@@ -203,6 +317,7 @@ def get_filters(from_outputs=False):
     _filters = {
         'PARAMETERS': {
             None: (float, empty),
+            'cycle_name': (str, empty),
             'alternator_charging_currents': (_try_eval, list, empty),
             'co2_params': (_try_eval, dict, empty_dict),
             'cycle_type': (str, empty),
