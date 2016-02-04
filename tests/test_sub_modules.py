@@ -19,10 +19,8 @@ from co2mpas.models.physical.electrics import electrics
 from co2mpas.models.physical.gear_box.AT_gear import AT_gear
 import os
 import glob
-from co2mpas.models import load
-from co2mpas.functions.read_inputs import read_cycle_parameters, merge_inputs, \
-    get_filters
-from co2mpas.functions import files_exclude_regex
+from co2mpas.models.io import load_inputs
+from co2mpas.functions import _file_iterator
 from functools import partial
 import datetime
 import dill
@@ -91,34 +89,15 @@ def basic_plot(directory, model_id, data_name, cycle_name, y_true, y_pred):
 
 def read_data(data_loader, directory):
     log.debug('Reading...')
-    if os.path.isfile(directory):
-        fpaths = [directory]
-    else:
-        fpaths = glob.glob(directory + '/*.xlsx')
-
     data = {}
-    for fpath in fpaths:
-        fname = os.path.basename(fpath).split('.')[0]
-        if not files_exclude_regex.match(fname):
-            continue
-        fname = fname.split('_')
-        try:
-            i = next(i for i, v in enumerate(fname) if 'NEDC' in v or 'WLTP' in v)
-        except StopIteration:
-            log.warning('Invalid filename(%s)!', fpath)
-            continue
-        fname = fname[i:]
-        fname[0] = fname[0].split('-')[0].lower()
-        vehicle_id = '_'.join(fname[1:])
-
-        data[vehicle_id] = data.get(vehicle_id, {})
-        data[vehicle_id][fname[0]] = data_loader('series', fpath)[0] # 0:input, 1:tagret
+    for fname, fpath in _file_iterator(directory):
+        data[fname] = data_loader(fpath, type_file='output')[0] # 0:input, 1:tagret
     log.debug('Reading done!')
     return data
 
 
 def get_data_loader():
-    data_loader = load()
+    data_loader = load_inputs()
     get_node = data_loader.dsp.get_node
     node = get_node('load-parameters', node_attr=None)[0]
     node['function'] = partial(read_cycle_parameters, sheet_id='params')
