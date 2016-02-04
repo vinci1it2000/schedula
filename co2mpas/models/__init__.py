@@ -16,7 +16,13 @@ It provides CO2MPAS software architecture.
     :nosignatures:
     :toctree: models/
 
+    io
+    co2mpas
     physical
+    report
+    model_selector
+    report
+
 """
 
 import co2mpas.dispatcher.utils as dsp_utl
@@ -42,9 +48,9 @@ def vehicle_processing_model(prediction_WLTP=False):
     """
 
     dsp = Dispatcher(
-        name='CO2MPAS architecture',
-        description='Processes an excel file calibrating the models defined by '
-                    ':mod:`physical model<co2mpas.models.physical>`.'
+        name='CO2MPAS vehicle_processing_model',
+        description='Processes a vehicle from the file path to the write of its'
+                    ' outputs.'
     )
 
     dsp.add_function(

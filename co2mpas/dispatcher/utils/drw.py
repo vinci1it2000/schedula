@@ -44,13 +44,12 @@ _encode_table = {
 }
 
 if os.name != 'nt':
-    class Digraph(gviz.Digraph):
+    class _Digraph(gviz.Digraph):
         pass
 else:
     import win32api
 
-
-    class Digraph(gviz.Digraph):
+    class _Digraph(gviz.Digraph):
         def save(self, filename=None, directory=None):
 
             if filename is not None:
@@ -70,7 +69,7 @@ else:
             return name
 
         def render(self, *args, **kwargs):
-            path = super(Digraph, self).render(*args, **kwargs)
+            path = super(_Digraph, self).render(*args, **kwargs)
             return win32api.GetLongPathName(path)
 
 
@@ -144,7 +143,7 @@ def _init_dot(dsp, workflow, nested, is_sub_dsp, **kw_dot):
             kw.pop('directory', ''), kw.pop('filename', ''), nested, name,
             is_sub_dsp)
 
-    dot = Digraph(**kw)
+    dot = _Digraph(**kw)
 
     return dot
 
@@ -427,7 +426,7 @@ def _set_sub_dsp(dot, dsp, dot_id, node_name, edge_attr, workflow, depth,
         kw_sub['name'] = html.escape(kw_sub['name'], True).replace(':', '')
 
         dot_kw = {}
-        sub_dot = Digraph(**kw_sub)
+        sub_dot = _Digraph(**kw_sub)
 
         def wrapper(*args, **kwargs):
             s_dot = plot(*args, **kwargs)

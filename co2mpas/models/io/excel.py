@@ -6,17 +6,9 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-It provides CO2MPAS software architecture.
+It provides I/O models for excel.
 
-.. rubric:: Sub-modules
-
-.. currentmodule:: co2mpas.models
-
-.. autosummary::
-    :nosignatures:
-    :toctree: models/
-
-    physical
+The model is defined by a Dispatcher that wraps all the functions needed.
 """
 
 from co2mpas.dispatcher import Dispatcher
@@ -26,17 +18,17 @@ from co2mpas.functions import *
 import co2mpas.dispatcher.utils as dsp_utl
 
 
-def load():
+def _load():
     """
     Defines and returns a function that loads the vehicle data from a xl-file.
+
+    .. dispatcher:: dsp
+
+        >>> dsp = _load()
 
     :return:
         A sub-dispatch function.
     :rtype: SubDispatchFunction
-
-    .. dispatcher:: dsp
-
-        >>> dsp = load().dsp
     """
 
     # Initialize a dispatcher.
@@ -102,7 +94,7 @@ def load():
 
 def load_from_excel():
     """
-    Defines a module to io from files the inputs of the CO2MPAS model.
+    Defines a module to load from excel files the inputs of the CO2MPAS model.
 
     .. dispatcher:: dsp
 
@@ -115,8 +107,7 @@ def load_from_excel():
 
     dsp = Dispatcher(
         name='load_from_excel',
-        description='Loads from files the inputs for the '
-                    ':func:`CO2MPAS model<co2mpas_model>`.'
+        description='Loads from excel files the inputs for the CO2MPAS model.'
     )
 
     dsp.add_data(
@@ -140,7 +131,7 @@ def load_from_excel():
     ############################################################################
 
     dsp.add_function(
-        function=partial(load(), 'WLTP-Precon'),
+        function=partial(_load(), 'WLTP-Precon'),
         inputs=['wltp_precondition_input_file_name'],
         outputs=['wltp_precondition_inputs', 'wltp_precondition_targets'],
     )
@@ -151,7 +142,7 @@ def load_from_excel():
     ############################################################################
 
     dsp.add_function(
-        function=partial(load(), 'WLTP-H'),
+        function=partial(_load(), 'WLTP-H'),
         inputs=['wltp_h_input_file_name'],
         outputs=['wltp_h_inputs', 'wltp_h_targets'],
     )
@@ -161,7 +152,7 @@ def load_from_excel():
     ############################################################################
 
     dsp.add_function(
-        function=partial(load(), 'WLTP-L'),
+        function=partial(_load(), 'WLTP-L'),
         inputs=['wltp_l_input_file_name'],
         outputs=['wltp_l_inputs', 'wltp_l_targets'],
     )
@@ -171,7 +162,7 @@ def load_from_excel():
     ############################################################################
 
     dsp.add_function(
-        function=partial(load(), 'NEDC'),
+        function=partial(_load(), 'NEDC'),
         inputs=['nedc_input_file_name'],
         outputs=['nedc_inputs', 'nedc_targets'],
     )

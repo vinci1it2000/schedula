@@ -6,7 +6,7 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-It contains functions to read vehicle inputs.
+It contains functions to read/write inputs/outputs from/on excel.
 """
 
 

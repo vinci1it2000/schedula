@@ -75,6 +75,8 @@ def clutch():
         default_value=0.0
     )
 
+    from co2mpas.functions.physical.clutch_tc import define_k_factor_curve
+
     clutch.add_function(
         function=define_k_factor_curve,
         inputs=['stand_still_torque_ratio', 'lockup_speed_ratio'],

@@ -6,19 +6,19 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-It provides CO2MPAS model to predict light-vehicles' CO2 emissions.
+It provides models to compare/select the CO2MPAS calibrated models.
 
-It contains a comprehensive list of all CO2MPAS software models and sub-models:
+The model is defined by a Dispatcher that wraps all the functions needed.
+
+Sub-Modules:
 
 .. currentmodule:: co2mpas.models.model_selector
 
 .. autosummary::
     :nosignatures:
-    :toctree: physical/
+    :toctree: model_selector/
 
     co2_params
-
-The model is defined by a Dispatcher that wraps all the functions needed.
 """
 
 
@@ -30,15 +30,15 @@ import co2mpas.dispatcher.utils as dsp_utl
 
 def models_selector(*data):
     """
-    Defines the engine model.
+    Defines the models' selector model.
 
     .. dispatcher:: dsp
 
-        >>> dsp = models_selector()
+        >>> dsp = models_selector('WLTP-H', 'WLTP-L')
 
     :return:
-        The engine model.
-    :rtype: Dispatcher
+        The models' selector model.
+    :rtype: SubDispatchFunction
     """
 
     dsp = Dispatcher(
@@ -69,7 +69,7 @@ def models_selector(*data):
     for k, v in setting.items():
         v['dsp'] = v.pop('define_sub_model', define_sub_model)(**v)
         v['metrics'] = dsp_utl.map_list(v['targets'], *v['metrics'])
-        selector = v.pop('model_selector', model_selector)
+        selector = v.pop('model_selector', _selector)
         dsp.add_function(
             function=selector(k, data, data, v),
             function_id='%s selector' % k,
@@ -87,7 +87,7 @@ def models_selector(*data):
     return func
 
 
-def model_selector(name, data_in, data_out, setting):
+def _selector(name, data_in, data_out, setting):
 
     dsp = Dispatcher(
         name='%s selector' % name,
@@ -112,7 +112,7 @@ def model_selector(name, data_in, data_out, setting):
         errors.append(e)
 
         dsp.add_function(
-            function=model_errors(name, i, data_out, setting),
+            function=_errors(name, i, data_out, setting),
             inputs=[i] + [k for k in data_out if k != i],
             outputs=[e]
         )
@@ -133,7 +133,7 @@ def model_selector(name, data_in, data_out, setting):
                                output_type='list')
 
 
-def model_errors(name, data_id, data_out, setting):
+def _errors(name, data_id, data_out, setting):
 
     name = ''.join(k[0].upper() for k in name.split('_'))
 
@@ -146,7 +146,7 @@ def model_errors(name, data_id, data_out, setting):
 
     dsp.add_data(
         data_id='models',
-        default_value=setting.pop('models')
+        default_value=setting.pop('models', [])
     )
 
     select_data = partial(dsp_utl.selector, allow_miss=True)
@@ -172,7 +172,7 @@ def model_errors(name, data_id, data_out, setting):
         )
 
         dsp.add_function(
-            function=model_error(name, data_id, o, setting),
+            function=_error(name, data_id, o, setting),
             inputs=['input/%s' % o],
             outputs=['error/%s' % o]
         )
@@ -186,7 +186,7 @@ def model_errors(name, data_id, data_out, setting):
     return func
 
 
-def model_error(name, data_id, data_out, setting):
+def _error(name, data_id, data_out, setting):
 
     dsp = Dispatcher(
         name='%s-%s error vs %s' % (name, data_id, data_out),
@@ -237,7 +237,7 @@ def model_error(name, data_id, data_out, setting):
     )
 
     dsp.add_function(
-        function=partial(default_settings.pop('dsp'), {}),
+        function=partial(default_settings.pop('dsp', lambda x: x), {}),
         inputs=['prediction_inputs', 'calibrated_models'],
         outputs=['results']
     )

@@ -5,6 +5,22 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
+"""
+It provides I/O models.
+
+The model is defined by a Dispatcher that wraps all the functions needed.
+
+Sub-Modules:
+
+.. currentmodule:: co2mpas.models.io
+
+.. autosummary::
+    :nosignatures:
+    :toctree: io/
+
+    excel
+"""
+
 from co2mpas.dispatcher import Dispatcher
 from co2mpas.functions.io import *
 from co2mpas.functions.io.excel import write_to_excel
@@ -15,10 +31,21 @@ from functools import partial
 
 
 def load_inputs():
+    """
+    Defines a module to load the input file of the CO2MPAS model.
+
+    .. dispatcher:: dsp
+
+        >>> dsp = write_outputs()
+
+    :return:
+        The load input module.
+    :rtype: SubDispatchFunction
+    """
+
     dsp = Dispatcher(
         name='load_inputs',
-        description='Loads from files the inputs for the '
-                    ':func:`CO2MPAS model<co2mpas_model>`.'
+        description='Loads from files the inputs for the CO2MPAS model.'
     )
 
     dsp.add_function(
@@ -83,14 +110,13 @@ def write_outputs():
         >>> dsp = write_outputs()
 
     :return:
-        The write module.
-    :rtype: Dispatcher
+        The write outputs module.
+    :rtype: SubDispatchFunction
     """
 
     dsp = Dispatcher(
         name='write_outputs',
-        description='Writes on files the outputs of the '
-                    ':func:`CO2MPAS model<co2mpas_model>`.'
+        description='Writes on files the outputs of the CO2MPAS model.'
     )
 
     dsp.add_function(

@@ -13,7 +13,6 @@ import numpy as np
 from sklearn.metrics import mean_absolute_error
 from sklearn.ensemble import GradientBoostingRegressor
 from ..constants import VEL_EPS
-from . import define_k_factor_curve
 
 
 def _torque_converter_regressor_model(

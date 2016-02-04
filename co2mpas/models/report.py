@@ -6,17 +6,7 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-It provides CO2MPAS software architecture.
-
-.. rubric:: Sub-modules
-
-.. currentmodule:: co2mpas.models
-
-.. autosummary::
-    :nosignatures:
-    :toctree: models/
-
-    physical
+It provides reporting model.
 """
 
 from co2mpas.dispatcher import Dispatcher
@@ -27,21 +17,22 @@ import co2mpas.dispatcher.utils as dsp_utl
 
 def report():
     """
-    Defines and returns a function that loads the vehicle data from a xl-file.
-
-    :return:
-        A sub-dispatch function.
-    :rtype: Dispatcher
+    Defines and returns a function that produces a vehicle report from CO2MPAS
+    outputs.
 
     .. dispatcher:: dsp
 
         >>> dsp = report()
+
+    :return:
+        The reporting model.
+    :rtype: SubDispatchFunction
     """
 
     # Initialize a dispatcher.
     dsp = Dispatcher(
         name='make_report',
-        description='Loads the vehicle data from a xl-file.'
+        description='Produces a vehicle report from CO2MPAS outputs.'
     )
 
     dsp.add_function(
@@ -68,4 +59,7 @@ def report():
         outputs=['summary']
     )
 
-    return dsp_utl.SubDispatchFunction(dsp, dsp.name, ['output_data', 'vehicle_name', 'with_charts'], ['report', 'summary'])
+    inputs = ['output_data', 'vehicle_name', 'with_charts']
+    outputs = ['report', 'summary']
+
+    return dsp_utl.SubDispatchFunction(dsp, dsp.name, inputs, outputs)

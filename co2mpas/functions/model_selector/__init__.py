@@ -5,7 +5,7 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 """
-Contains a comprehensive list of all functions/formulas within CO2MPAS.
+It contains functions to compare/select the CO2MPAS calibrated models.
 
 Docstrings should provide sufficient understanding for any individual function.
 
@@ -15,9 +15,9 @@ Modules:
 
 .. autosummary::
     :nosignatures:
-    :toctree: physical/
+    :toctree: model_selector/
 
-    vehicle
+    co2_params
 """
 
 

@@ -5,7 +5,7 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 """
-It contains a list of all modules that contains functions/formulas of CO2MPAS.
+It contains a list of all modules that contains functions of CO2MPAS.
 
 Modules:
 
@@ -15,12 +15,14 @@ Modules:
     :nosignatures:
     :toctree: functions/
 
+    io
+    co2mpas
     physical
+    model_selector
+    report
     plot
-    read_inputs
-    write_outputs
-
 """
+
 import datetime
 import glob
 import logging

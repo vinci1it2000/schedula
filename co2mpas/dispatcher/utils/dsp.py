@@ -563,7 +563,7 @@ class SubDispatch(object):
             'fun'
             >>> func = SubDispatch(dsp)
             >>> func.plot(view=False, graph_attr={'ratio': '1'})
-            <co2mpas.dispatcher.utils.drw.Digraph object at 0x...>
+            <co2mpas.dispatcher.utils.drw._Digraph object at 0x...>
         """
 
         if edge_data is EMPTY:

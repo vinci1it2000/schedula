@@ -909,83 +909,22 @@ def calibrate_model_params(error_function, params, *ars, **kws):
     # slsqp is unstable (4 runs, 4 vehicles) [average time 18s/4 vehicles].
     # differential_evolution is unstable (1 runs, 4 vehicles)
     #   [average time 270s/4 vehicles].
-    res = minimize(error_func, params, args=ars, kws=kws, method='nelder')
+    res = _minimize(error_func, params, args=ars, kws=kws, method='nelder')
 
     return (res.params if res.success else min_e_and_p[1]), res.success
 
 
 # correction of lmfit bug.
-def minimize(fcn, params, method='leastsq', args=None, kws=None,
-             scale_covar=True, iter_cb=None, **fit_kws):
-    """
-    A general purpose curvefitting function
-    The minimize function takes a objective function to be minimized, a
-    dictionary (lmfit.parameter.Parameters) containing the model parameters,
-    and several optional arguments.
+def _minimize(fcn, params, method='leastsq', args=None, kws=None,
+              scale_covar=True, iter_cb=None, **fit_kws):
 
-    Parameters
-    ----------
-    fcn : callable
-        objective function that returns the residual (difference between
-        model and data) to be minimized in a least squares sense.  The
-        function must have the signature:
-        `fcn(params, *args, **kws)`
-    params : lmfit.parameter.Parameters object.
-        contains the Parameters for the model.
-    method : str, optional
-        Name of the fitting method to use.
-        One of:
-            'leastsq'                -    Levenberg-Marquardt (default)
-            'nelder'                 -    Nelder-Mead
-            'lbfgsb'                 -    L-BFGS-B
-            'powell'                 -    Powell
-            'cg'                     -    Conjugate-Gradient
-            'newton'                 -    Newton-CG
-            'cobyla'                 -    Cobyla
-            'tnc'                    -    Truncate Newton
-            'trust-ncg'              -    Trust Newton-CGn
-            'dogleg'                 -    Dogleg
-            'slsqp'                  -    Sequential Linear Squares Programming
-            'differential_evolution' -    differential evolution
-
-    args : tuple, optional
-        Positional arguments to pass to fcn.
-    kws : dict, optional
-        keyword arguments to pass to fcn.
-    iter_cb : callable, optional
-        Function to be called at each fit iteration. This function should
-        have the signature `iter_cb(params, iter, resid, *args, **kws)`,
-        where where `params` will have the current parameter values, `iter`
-        the iteration, `resid` the current residual array, and `*args`
-        and `**kws` as passed to the objective function.
-    scale_covar : bool, optional
-        Whether to automatically scale the covariance matrix (leastsq
-        only).
-    fit_kws : dict, optional
-        Options to pass to the minimizer being used.
-
-    Notes
-    -----
-    The objective function should return the value to be minimized. For the
-    Levenberg-Marquardt algorithm from leastsq(), this returned value must
-    be an array, with a length greater than or equal to the number of
-    fitting variables in the model. For the other methods, the return value
-    can either be a scalar or an array. If an array is returned, the sum of
-    squares of the array will be sent to the underlying fitting method,
-    effectively doing a least-squares optimization of the return values.
-
-    A common use for `args` and `kwds` would be to pass in other
-    data needed to calculate the residual, including such things as the
-    data array, dependent variable, uncertainties in the data, and other
-    data structures for the model calculation.
-    """
-    fitter = Minimizer(fcn, params, fcn_args=args, fcn_kws=kws,
-                       iter_cb=iter_cb, scale_covar=scale_covar, **fit_kws)
+    fitter = _Minimizer(fcn, params, fcn_args=args, fcn_kws=kws,
+                        iter_cb=iter_cb, scale_covar=scale_covar, **fit_kws)
 
     return fitter.minimize(method=method)
 
 
-class Minimizer(lmfit.Minimizer):
+class _Minimizer(lmfit.Minimizer):
     def scalar_minimize(self, method='Nelder-Mead', params=None, **kws):
         """
         Use one of the scalar minimization methods from

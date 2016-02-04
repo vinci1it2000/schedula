@@ -13,11 +13,11 @@ The model is defined by a Dispatcher that wraps all the functions needed.
 
 
 from co2mpas.dispatcher import Dispatcher
-from co2mpas.functions.model_selector import *
+from co2mpas.functions.model_selector import get_best_model
 from co2mpas.functions.model_selector.co2_params import *
 from functools import partial
 import co2mpas.dispatcher.utils as dsp_utl
-from ..model_selector import model_errors
+from . import _errors
 from itertools import chain
 
 
@@ -27,16 +27,13 @@ def co2_params_model_selector(
     Defines the co2_params model selector.
 
     .. dispatcher:: dsp
-        >>> from co2mpas.functions.model_selector import sub_models
-        >>> setting = sub_models()['co2_params']
-        >>> dsp_name, ids = 'co2_params', ('WLTP-H', 'WLTP-L')
-        >>> dsp = co2_params_model_selector(dsp_name, ids, ids, setting)
 
-    :param name:
+        >>> dsp_name, ids = 'co2_params', ('WLTP-H', 'WLTP-L')
+        >>> dsp = co2_params_model_selector(dsp_name, ids, ids, {})
 
     :return:
         The co2_params model selector.
-    :rtype: Dispatcher
+    :rtype: SubDispatch
     """
 
     dsp = Dispatcher(
@@ -63,7 +60,7 @@ def co2_params_model_selector(
         errors.append(e)
 
         dsp.add_function(
-            function=model_errors(name, i, data_out, setting),
+            function=_errors(name, i, data_out, setting),
             inputs=[i] + [k for k in data_out if k != i],
             outputs=[e]
         )

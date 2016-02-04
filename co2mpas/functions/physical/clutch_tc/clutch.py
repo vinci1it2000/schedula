@@ -16,7 +16,6 @@ import numpy as np
 from functools import partial
 from ..constants import *
 import co2mpas.dispatcher.utils as dsp_utl
-from . import define_k_factor_curve
 
 
 def calculate_clutch_phases(
