@@ -261,11 +261,9 @@ def parse_inputs(data, data_map, cycle_name):
 
     for i in data.items():
         k, v = i
-        match = _re_params_name.match(k)
-        if not match or (isinstance(v, float) and isnan(v) or _check_none(v)):
+        if (isinstance(v, float) and isnan(v) or _check_none(v)):
             continue
 
-        match.groupdict()
         k = k.split(' ')
         n = len(k)
 
