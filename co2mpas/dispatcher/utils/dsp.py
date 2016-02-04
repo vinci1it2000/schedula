@@ -603,7 +603,8 @@ class SubDispatchFunction(SubDispatch):
     """
     It converts a :func:`~dispatcher.Dispatcher` into a function.
 
-    That function takes a sequence of arguments as input of the dispatch.
+    That function takes a sequence of arguments or a key values as input of the
+    dispatch.
 
     :return:
         A function that executes the dispatch of the given `dsp`.
@@ -728,9 +729,6 @@ class SubDispatchFunction(SubDispatch):
 
         self.__module__ = caller_name()  # Set as who calls my caller.
 
-        # Define the function to populate the workflow.
-        self.input_value = lambda k: {'value': input_values[k]}
-
         # Define the function to return outputs sorted.
         if outputs is None:
             def return_output(o):
@@ -743,14 +741,31 @@ class SubDispatchFunction(SubDispatch):
                 return o[outputs[0]]
         self.return_output = return_output
 
-    def __call__(self, *args):
-        input_values, dsp = self.input_values, self.dsp  # Namespace shortcuts.
+    def __call__(self, *args, **kwargs):
+        # Namespace shortcuts.
+        dsp, inputs = self.dsp, map_list(self.inputs, *args)
 
-        input_values.update(dict(zip(self.inputs, args)))  # Update inputs.
+        # Check multiple values for the same argument.
+        i = next((i for i in kwargs if i in inputs), None)
+        if i:
+            msg = "%s() got multiple values for argument '%s'"
+            raise TypeError(msg % (dsp.name, i))
+
+        i = next((i for i in sorted(kwargs) if i not in dsp.nodes), None)
+        if i:
+            msg = "%s() got an unexpected keyword argument '%s'"
+            raise TypeError(msg % (dsp.name, i))
+
+
+        # Update inputs.
+        input_values = combine_dicts(self.input_values, inputs, kwargs)
+
+        # Define the function to populate the workflow.
+        i_val = lambda k: {'value': input_values[k]}
 
         # Initialize.
-        args = dsp._init_workflow(input_values, self.input_value,
-                                  self.inputs_dist, False)
+        args = dsp._init_workflow(input_values, i_val, self.inputs_dist, False)
+
         # Dispatch outputs.
         o = dsp._run(*args)
 

@@ -145,10 +145,15 @@ class TestSubDispatchFunction(unittest.TestCase):
         self.assertEqual(fun(2, 1), 1)
         self.assertRaises(ValueError, fun, 3, -1)
 
-        fun = SubDispatchFunction(self.dsp_2, 'F', ['a', 'b'], ['c', 'd'])
+        fun = SubDispatchFunction(self.dsp_2, 'F', ['b', 'a'], ['c', 'd'])
         # noinspection PyCallingNonCallable
-        self.assertEqual(fun(2, 1), [3, 2])
+        self.assertEqual(fun(1, 2), [3, 2])
+        self.assertEqual(fun(1, a=2), [3, 2])
+        self.assertEqual(fun(1, c=3), [3, 2])
 
         self.assertRaises(
             ValueError, SubDispatchFunction, self.dsp_2, 'F', ['a', 'c'], ['d']
         )
+
+        self.assertRaises(TypeError, fun, 2, 1, a=2, b=2)
+        self.assertRaises(TypeError, fun, 2, 1, a=2, b=2, e=0)
