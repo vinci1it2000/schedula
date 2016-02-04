@@ -180,16 +180,20 @@ def get_doc_description():
                 doc_descriptions[k] = des
     return doc_descriptions
 
-"""
-if output_template_xl_fpath is None:
-            output_template = fpath
-        elif '0' == output_template_xl_fpath:
-            output_template = False
 
-        if with_output_file:
+def get_types():
+    from co2mpas.models.physical import physical_calibration
+    from co2mpas.models.physical import physical_prediction
+    from co2mpas.dispatcher.utils import search_node_description
 
-            with clone_and_extend_excel(out_fpath, output_template) as excel_file:
-                inputs['excel_out_file'] = excel_file
+    node_types = {}
 
-                _co2mpas_info(excel_file, start_time)
-"""
+    for builder in [physical_calibration, physical_prediction]:
+        dsp = builder()
+        for k, v in dsp.data_nodes.items():
+            if k in node_types or v['type'] != 'data':
+                continue
+            des = search_node_description(k, v, dsp, 'value_type')[0]
+
+            node_types[k] = des.replace(' ', '').split(',')
+    return node_types
