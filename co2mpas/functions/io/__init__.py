@@ -394,7 +394,7 @@ def check_data_version(data):
 
     k = ('nedc_inputs', 'wltp_h_inputs', 'wltp_l_inputs')
 
-    for k, v in dsp_utl.selector(k, data).items():
+    for k, v in dsp_utl.selector(k, data, allow_miss=True).items():
         if 'VERSION' in v:
             v, rv = v['VERSION'], tuple(__input_file_version__.split('.'))
 
