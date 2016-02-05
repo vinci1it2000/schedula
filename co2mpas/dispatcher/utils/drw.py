@@ -101,18 +101,15 @@ def _init_filepath(directory, filename, nested, name, is_sub_dsp):
         path = Path(directory, filename)
     elif nested:
         path = Path(mkdtemp(''))
+        path = path.joinpath(name.replace('/', ' ').replace('.', ' ') or path.name)
     else:
         path = Path(mkstemp('.gv')[1])
 
     if path and not path.parent:
         path = path.absolute()
 
-    filename = os.path.basename(filename or name)
-
     if nested:
-        filename = filename.replace('/', ' ').replace('.', ' ')
-        if not is_sub_dsp:
-            filename = '%s/%s' % (filename, filename)
+        filename = path.name.split('.')[0]
         path = path.parent.joinpath(path.name.split('.')[0], '%s.gv' % filename)
     else:
         filename = path.name.split('.')
