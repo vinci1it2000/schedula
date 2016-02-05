@@ -49,7 +49,7 @@ def get_cache_fpath(fpath):
     except:
         pass
 
-    return str(cache_folder.joinpath('%s.dill' % fpath.name))
+    return str(cache_folder.joinpath('%s.%s.dill' % (fpath.name, version)))
 
 
 def check_cache_fpath_exists(fpath, cache_fpath):
