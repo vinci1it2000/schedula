@@ -451,7 +451,7 @@ def get_doc_description():
 
     for builder in [physical_calibration, physical_prediction]:
         dsp = builder()
-        for k, v in dsp.nodes.items():
+        for k, v in dsp.data_nodes.items():
             if k in doc_descriptions or v['type'] != 'data':
                 continue
             des = search_node_description(k, v, dsp)[0]

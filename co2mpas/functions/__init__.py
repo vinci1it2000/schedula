@@ -291,7 +291,31 @@ def _save_summary(fpath, start_time, summary):
 
         summary = summary.reindex_axis(c, axis=1, copy=False)
 
+        units = {
+            'co2_emission_UDC': '[CO2g/km]',
+            'co2_emission_EUDC': '[CO2g/km]',
+            'co2_params a': '[-]',
+            'co2_params b': '[s/m]',
+            'co2_params c': '[(s/m)^2]',
+            'co2_params a2': '[1/bar]',
+            'co2_params b2': '[s/(bar*m)]',
+            'co2_params l': '[bar]',
+            'co2_params l2': '[bar*(s/m)^2]',
+            'co2_params t': '[-]',
+            'co2_params trg': '[°C]',
+            'co2_emission_low': '[CO2g/km]',
+            'co2_emission_medium': '[CO2g/km]',
+            'co2_emission_high': '[CO2g/km]',
+            'co2_emission_extra_high': '[CO2g/km]',
+            'co2_emission_value': '[CO2g/km]',
+        }
+
+        c = [v + (units.get(v[-1], ' '),) for v in c]
+
+        summary.columns = pd.MultiIndex.from_tuples(c)
+
         _df2excel(writer, 'summary', summary)
+
         _df2excel(writer, 'proc_info', _co2mpas_info2df(start_time))
 
         writer.save()
