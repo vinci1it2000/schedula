@@ -18,7 +18,7 @@ from pandalone.xleash import lasso
 from pandalone.xleash.io._xlrd import _open_sheet_by_name_or_index
 import shutil
 import openpyxl
-from xlsxwriter.utility import xl_range_abs
+from xlsxwriter.utility import xl_range_abs, xl_rowcol_to_cell_fast
 from .. import _iter_d, _get
 from inspect import getfullargspec
 from itertools import chain
@@ -307,6 +307,7 @@ def write_to_excel(data, output_file_name, template_file_name):
             _df2excel(writer, k[0], v)
         elif k[0] in ('selection_scores', 'proc_info'):
             kw = {}
+            xlref = {}
             if k[0] == 'selection_scores':
                 kw = {'named_ranges': ('columns',)}
                 i, st = len(v) + 2, ('startrow', 0)
@@ -315,9 +316,13 @@ def write_to_excel(data, output_file_name, template_file_name):
             kw[st[0]]= i
 
             for v in v:
-                corner = _df2excel(writer, k[0], v, **kw)
+                corner, ref = _df2excel(writer, k[0], v, **kw)
+                xlref[v.name] = ref
                 if corner:
                     kw[st[0]] = v.shape[st[1]] + corner[st[1]] + 2
+            if xlref:
+                xlref = pd.DataFrame([xlref]).transpose()
+                _df2excel(writer, k[0], xlref, named_ranges=(), index=True, header=False)
 
         elif k[0] != 'graphs':
             if k[-1] == 'parameters':
@@ -355,13 +360,13 @@ def _df2excel(writer, shname, df, k0=0, named_ranges=('columns', 'rows'), **kw):
         defaults.update(kw)
         kw = defaults
 
-        startrow, startcol = _get_corner(df, **kw)
+        startrow, startcol, ref = _get_corner(df, **kw)
 
         if named_ranges:
             _add_named_ranges(df, writer, shname, startrow, startcol,
                               named_ranges, k0)
 
-        return startrow, startcol
+        return (startrow, startcol), ref
 
 
 def _add_named_ranges(df, writer, shname, startrow, startcol, named_ranges, k0):
@@ -415,16 +420,24 @@ def _index_levels(index):
 
 
 def _get_corner(df, startcol=0, startrow=0, index=False, header=True, **kw):
+    ref = {}
+
     if header:
-        startrow += _index_levels(df.columns)
+        i = _index_levels(df.columns)
+        ref['header'] = list(range(i))
+        startrow += i
 
         if index and isinstance(df.columns, pd.MultiIndex):
+            ref['skiprows'] = [i + 1]
             startrow += 1
 
     if index:
-        startcol += _index_levels(df.index)
-
-    return startrow, startcol
+        i = _index_levels(df.index)
+        ref['index_col'] = list(range(i))
+        startcol += i
+    landing = xl_rowcol_to_cell_fast(startrow, startcol)
+    ref = '#{}(L):..(DR):LURD:["df", {}]'.format(landing, ref)
+    return startrow, startcol, ref
 
 
 def _ranges_by_col(df, startrow, startcol):
