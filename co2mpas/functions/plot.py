@@ -94,7 +94,7 @@ def get_model_paths(model_ids=None):
         for model_id in model_ids - models:
             models.update(k for k in co2mpas_model if model_id in k)
 
-    return models
+    return sorted(models)
 
 
 def plot_model_graphs(model_ids=None, view_in_browser=True, depth=-1, **kwargs):
