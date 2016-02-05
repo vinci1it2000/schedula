@@ -303,7 +303,7 @@ def write_to_excel(data, output_file_name, template_file_name):
         log.debug('Writing into xl-file(%s)...', output_file_name)
         writer = pd.ExcelWriter(output_file_name, engine='xlsxwriter')
     xlref = {}
-    for k, v in sorted(_iter_d(data)):
+    for k, v in sorted(_iter_d(data, depth=3), key=lambda x:_sort_sheets(x[0])):
 
         if k[0] in ('comparison',):
             ref = _df2excel(writer, k[0], v)
@@ -334,14 +334,12 @@ def write_to_excel(data, output_file_name, template_file_name):
             ref = _df2excel(writer, '_'.join(k), v, k0, named_ranges, index=index)
             if ref:
                 xlref['_'.join(k)] = ref[1]
-
-    try:
-        for k, v in sorted(_iter_d(data, depth=2)):
-            if k[0] == 'graphs':
-                shname = '_'.join(k)
+        elif k[0] == 'graphs':
+            try:
+                shname = '_'.join(k[1:])
                 _chart2excel(writer, shname, v)
-    except:
-        pass
+            except:
+                pass
 
     if xlref:
         xlref = pd.DataFrame([xlref]).transpose()
@@ -349,6 +347,19 @@ def write_to_excel(data, output_file_name, template_file_name):
 
     writer.save()
     log.info('Written into xl-file(%s)...', output_file_name)
+
+
+def _sort_sheets(x):
+    imp = ['comparison', 'graphs', 'nedc', 'wltp_h',
+           'wltp_l', 'wltp_p', 'predictions', 'inputs', 'parameters',
+           'time_series', 'selection_scores']
+
+    w = ()
+    for i, k in enumerate(imp):
+        if k in x:
+            w = (i,) + _sort_sheets(set(x) - {k})[0]
+            break
+    return w or (100,), x
 
 
 def _get_defaults(func):

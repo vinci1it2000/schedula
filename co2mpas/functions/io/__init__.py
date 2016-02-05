@@ -68,7 +68,7 @@ def check_file_format(fpath, extensions=('.xlsx',)):
 
 def convert2df(data, data_descriptions, start_time):
 
-    res = {'graphs': data['graphs']} if 'graphs' in data else {}
+    res = {'graphs': {'graphs': data['graphs']}} if 'graphs' in data else {}
 
     res.update(_cycle2df(data, data_descriptions))
 
