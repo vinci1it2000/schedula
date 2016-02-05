@@ -236,10 +236,11 @@ def _process_folder_files(
             'output_template': output_template_xl_fpath,
             'with_charts': with_charts
         }
-
+        ofname = None
         if with_output_file:
-            ofname = '%s-%s.xlsx' % (timestamp, fname)
-            inputs['output_file_name'] = osp.join(output_folder, ofname)
+            ofname = '%s-%s' % (timestamp, fname)
+            ofname = osp.join(output_folder, ofname)
+            inputs['output_file_name'] = '%s.xlsx' % ofname
 
         res = model.dispatch(inputs=inputs)
         s = res.get('summary', {})
@@ -250,7 +251,7 @@ def _process_folder_files(
         if plot_workflow:
             try:
                 log.info('Plotting workflow of %s...', fname)
-                model.plot(workflow=True)
+                model.plot(workflow=True, filename=ofname)
             except RuntimeError as ex:
                 log.warning(ex, exc_info=1)
 
