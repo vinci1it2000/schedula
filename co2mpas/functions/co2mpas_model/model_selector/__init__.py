@@ -248,7 +248,7 @@ def sub_models():
         'targets': ['engine_speeds_out'],
         'metrics_inputs': ['times', 'velocities', 'gear_shifts'],
         'metrics': [metric_engine_speed_model],
-        'up_limit': [20],
+        'up_limit': [40],
     }
 
     dsp = engine()
