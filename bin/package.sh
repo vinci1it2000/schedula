@@ -3,7 +3,7 @@
 # Release checklist
 # =================
 # 1. Bump-ver & Update Date+Title in ./CHANGES.rst.
-# 2. REMOVE pip install --pre!!!
+# 2. (if FINAL)REMOVE `pip install --pre` from README!!!
 # 3. Run TCs.
 # 4. Gen docs & check OK (i.e. diagrams??):
 #       rm -r ./doc/_build/
@@ -13,7 +13,7 @@
 #       ./bin/package.sh
 # 7. Upload to PyPi:
 #    - DELETE any BETAS (but the last one?)!!
-#       - twine upload -r co2mpas -su <user> dist/* # Ignore warn about doc-package.
+#       - twine upload -su <gpg-user> dist/* # Ignore warn about doc-package.
 #
 # +++MANUAL+++
 # 8. Generate RELEASE_NOTES:
