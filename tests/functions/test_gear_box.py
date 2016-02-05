@@ -15,7 +15,7 @@ from co2mpas.functions.co2mpas_model.physical.gear_box import _gear_box_torques_
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):
-        import functions.co2mpas_model.physical.gear_box as mld
+        import co2mpas.functions.co2mpas_model.physical.gear_box as mld
 
         failure_count, test_count = doctest.testmod(
             mld, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS
