@@ -421,7 +421,7 @@ def _add_named_ranges(df, writer, shname, startrow, startcol, named_ranges, k0):
             k = (k,)
         if k:
             try:
-                ref_name = _ref_name(tag + k[k0:])
+                ref_name = regex.sub("[\W]", "_", _ref_name(tag + k[k0:]))
                 create_named_range(ref_name, range_ref)
             except TypeError:
                 pass
