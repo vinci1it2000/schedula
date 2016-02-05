@@ -26,6 +26,8 @@ import regex
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher.utils.alg import stlp
 from . import get_filters, EmptyValue
+import json
+
 log = logging.getLogger(__name__)
 
 _re_params_name = regex.compile(
@@ -300,36 +302,38 @@ def write_to_excel(data, output_file_name, template_file_name):
     else:
         log.debug('Writing into xl-file(%s)...', output_file_name)
         writer = pd.ExcelWriter(output_file_name, engine='xlsxwriter')
-
+    xlref = {}
     for k, v in sorted(_iter_d(data)):
 
         if k[0] in ('comparison',):
-            _df2excel(writer, k[0], v)
+            ref = _df2excel(writer, k[0], v)
+            if ref:
+                xlref[k[0]] = ref[1]
         elif k[0] in ('selection_scores', 'proc_info'):
             kw = {}
-            xlref = {}
+
             if k[0] == 'selection_scores':
                 kw = {'named_ranges': ('columns',)}
-                i, st = len(v) + 2, ('startrow', 0)
+                st = ('startrow', 0)
             else:
-                i, st = 4, ('startcol', 1)
-            kw[st[0]]= i
+                st = ('startcol', 1)
+            kw[st[0]]= 0
 
             for v in v:
-                corner, ref = _df2excel(writer, k[0], v, **kw)
-                xlref[v.name] = ref
-                if corner:
+                ref = _df2excel(writer, k[0], v, **kw)
+                if ref:
+                    corner, ref = ref
+                    xlref['%s/%s' % (k[0], v.name)] = ref
                     kw[st[0]] = v.shape[st[1]] + corner[st[1]] + 2
-            if xlref:
-                xlref = pd.DataFrame([xlref]).transpose()
-                _df2excel(writer, k[0], xlref, named_ranges=(), index=True, header=False)
 
         elif k[0] != 'graphs':
             if k[-1] == 'parameters':
                 k0, named_ranges, index = 1, ('rows',), True
             else:
                 k0, named_ranges, index = 1, ('columns',), True
-            _df2excel(writer, '_'.join(k), v, k0, named_ranges, index=index)
+            ref = _df2excel(writer, '_'.join(k), v, k0, named_ranges, index=index)
+            if ref:
+                xlref['_'.join(k)] = ref[1]
 
     try:
         for k, v in sorted(_iter_d(data, depth=2)):
@@ -338,6 +342,10 @@ def write_to_excel(data, output_file_name, template_file_name):
                 _chart2excel(writer, shname, v)
     except:
         pass
+
+    if xlref:
+        xlref = pd.DataFrame([xlref]).transpose()
+        _df2excel(writer, 'xlref', xlref, named_ranges=(), index=True, header=False)
 
     writer.save()
     log.info('Written into xl-file(%s)...', output_file_name)
@@ -361,7 +369,7 @@ def _df2excel(writer, shname, df, k0=0, named_ranges=('columns', 'rows'), **kw):
         kw = defaults
 
         startrow, startcol, ref = _get_corner(df, **kw)
-
+        ref = '#%s!%s' % (shname, ref)
         if named_ranges:
             _add_named_ranges(df, writer, shname, startrow, startcol,
                               named_ranges, k0)
@@ -436,7 +444,7 @@ def _get_corner(df, startcol=0, startrow=0, index=False, header=True, **kw):
         ref['index_col'] = list(range(i))
         startcol += i
     landing = xl_rowcol_to_cell_fast(startrow, startcol)
-    ref = '#{}(L):..(DR):LURD:["df", {}]'.format(landing, ref)
+    ref = '{}(L):..(DR):LURD:["df", {}]'.format(landing, json.dumps(ref))
     return startrow, startcol, ref
 
 
