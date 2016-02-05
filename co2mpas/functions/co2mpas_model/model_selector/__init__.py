@@ -126,8 +126,8 @@ def get_best_model(
         log.debug(msg, s['models'], m[3], tuple(m[4].keys()), pformat(scores))
 
         if not _check(m):
-            msg = '\n  Selection waring (%s): Models %s failed the calibration.'
-            log.info(msg, selector_id[:-9], str(set(s['models'])))
+            msg = '\n  %s warning: Models %s failed the calibration.'
+            log.warn(msg, selector_id.replace('_', ' ').capitalize(), str(set(s['models'])))
         m = m[-1]
 
     return m, scores

@@ -129,8 +129,9 @@ def _freeze2df():
     d['version'] = 'version'
     df = pd.DataFrame([d])
     df.set_index(['version'], inplace=True)
-    setattr(df, 'name', 'versions')
-    return df.transpose()
+    df = df.transpose()
+    setattr(df, 'name', 'packages')
+    return df
 
 
 def _pipe2list(pipe, i=0, source=()):
