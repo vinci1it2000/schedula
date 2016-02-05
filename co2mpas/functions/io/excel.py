@@ -306,15 +306,19 @@ def write_to_excel(data, output_file_name, template_file_name):
         if k[0] in ('comparison',):
             _df2excel(writer, k[0], v)
         elif k[0] in ('selection_scores', 'proc_info'):
-            i = 1
             kw = {}
             if k[0] == 'selection_scores':
-                kw['named_ranges'] = ('columns',)
+                kw = {'named_ranges': ('columns',)}
+                i, st = len(v) + 2, ('startrow', 0)
+            else:
+                i, st = 4, ('startcol', 1)
+            kw[st[0]]= i
 
             for v in v:
-                corner = _df2excel(writer, k[0], v, startrow=i, **kw)
+                corner = _df2excel(writer, k[0], v, **kw)
                 if corner:
-                    i = v.shape[0] + corner[0] + 2
+                    kw[st[0]] = v.shape[st[1]] + corner[st[1]] + 2
+
         elif k[0] != 'graphs':
             if k[-1] == 'parameters':
                 k0, named_ranges, index = 1, ('rows',), True
@@ -414,7 +418,7 @@ def _get_corner(df, startcol=0, startrow=0, index=False, header=True, **kw):
     if header:
         startrow += _index_levels(df.columns)
 
-        if index:
+        if index and isinstance(df.columns, pd.MultiIndex):
             startrow += 1
 
     if index:

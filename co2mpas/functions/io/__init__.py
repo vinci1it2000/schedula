@@ -130,7 +130,7 @@ def _freeze2df():
     df = pd.DataFrame([d])
     df.set_index(['version'], inplace=True)
     setattr(df, 'name', 'versions')
-    return df
+    return df.transpose()
 
 
 def _pipe2list(pipe, i=0, source=()):
