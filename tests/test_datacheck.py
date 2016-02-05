@@ -83,7 +83,7 @@ class SeatBelt(unittest.TestCase):
                 if (RUN_ALL_FILES or RUN_INPUT_FOLDER)
                 else osp.join(path, 'co2mpas_demo_1_full_data.xlsx'))
 
-        model = vehicle_processing_model(hide_warn_msgbox=True)
+        model = vehicle_processing_model()
 
         resultes = []
         for fname, fpath in _file_iterator(file):
