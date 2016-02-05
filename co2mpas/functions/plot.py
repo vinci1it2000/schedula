@@ -37,53 +37,62 @@ def get_model_paths(model_ids=None):
     :rtype: list
     """
 
-    co2maps_models = [
+    co2mpas_model = [
         'vehicle_processing_model',
-        'load_inputs',
-        'write_outputs',
-        'io',
         #+
-        'physical.physical_calibration',
-        'physical.physical_prediction',
+        'report.report',
+        'io.load_inputs',
+        'io.write_outputs',
         #++
-        'physical.vehicle.vehicle',
-        #++
-        'physical.wheels.wheels',
-        #++
-        'physical.final_drive.final_drive',
-        #++
-        'physical.gear_box.gear_box_calibration',
-        'physical.gear_box.gear_box_prediction',
-        #+++
-        'physical.gear_box.thermal.thermal',
-        #+++
-        'physical.gear_box.AT_gear.AT_gear',
-        'physical.gear_box.AT_gear.cmv',
-        'physical.gear_box.AT_gear.cmv_cold_hot',
-        'physical.gear_box.AT_gear.dt_va',
-        'physical.gear_box.AT_gear.dt_vap',
-        'physical.gear_box.AT_gear.dt_vat',
-        'physical.gear_box.AT_gear.dt_vatp',
-        'physical.gear_box.AT_gear.gspv',
-        'physical.gear_box.AT_gear.gspv_cold_hot',
-        #++
-        'physical.electrics.electrics',
-        #+++
-        'physical.electrics.electrics_prediction.electrics_prediction',
-        #++
-        'physical.engine.engine',
-        #+++
-        'physical.engine.co2_emission.co2_emission',
+        'io.excel.load_from_excel',
+        #+
+
+    ] + [
+        'co2mpas_model.%s' % k for k in
+        [
+            'co2mpas_model',
+            'model_selector.models_selector',
+            'model_selector.co2_params.co2_params_model_selector'
+        ] + ['physical.%s' % k for k in
+             [
+            'physical_calibration',
+            'physical_prediction',
+            'vehicle.vehicle',
+            'wheels.wheels',
+            'final_drive.final_drive',
+            'clutch_tc.clutch_torque_converter',
+            'clutch_tc.clutch_module.clutch',
+            'clutch_tc.torque_converter.torque_converter',
+            'electrics.electrics',
+            'electrics.electrics_prediction.electrics_prediction',
+            'engine.engine',
+            'engine.co2_emission.co2_emission',
+            'gear_box.gear_box_calibration',
+            'gear_box.gear_box_prediction',
+            'gear_box.thermal.thermal',
+            'gear_box.AT_gear.AT_gear',
+            'gear_box.AT_gear.cmv',
+            'gear_box.AT_gear.cmv_cold_hot',
+            'gear_box.AT_gear.dt_va',
+            'gear_box.AT_gear.dt_vap',
+            'gear_box.AT_gear.dt_vat',
+            'gear_box.AT_gear.dt_vatp',
+            'gear_box.AT_gear.gspv',
+            'gear_box.AT_gear.gspv_cold_hot',
+        ]]
     ]
 
-    co2maps_models = ['co2mpas.models.%s' % k for k in co2maps_models]
+
+
+    co2mpas_model = {'co2mpas.models.%s' % k for k in co2mpas_model}
 
     if not model_ids:
-        models = co2maps_models
+        models = co2mpas_model
     else:
-        models = set()
-        for model_id in model_ids:
-            models.update(k for k in co2maps_models if model_id in k)
+        model_ids = set(model_ids)
+        models = model_ids.intersection(co2mpas_model)
+        for model_id in model_ids - models:
+            models.update(k for k in co2mpas_model if model_id in k)
 
     return models
 

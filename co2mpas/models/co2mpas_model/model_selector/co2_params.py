@@ -22,19 +22,21 @@ from itertools import chain
 
 
 def co2_params_model_selector(
-        name, data_in, data_out, setting):
+        name='co2_params', data_in=('WLTP-H', 'WLTP-L'),
+        data_out=('WLTP-H', 'WLTP-L'), setting=None):
     """
     Defines the co2_params model selector.
 
     .. dispatcher:: dsp
 
-        >>> dsp_name, ids = 'co2_params', ('WLTP-H', 'WLTP-L')
-        >>> dsp = co2_params_model_selector(dsp_name, ids, ids, {})
+        >>> dsp = co2_params_model_selector()
 
     :return:
         The co2_params model selector.
     :rtype: SubDispatch
     """
+
+    setting = setting or {}
 
     dsp = Dispatcher(
         name='%s selector' % name,

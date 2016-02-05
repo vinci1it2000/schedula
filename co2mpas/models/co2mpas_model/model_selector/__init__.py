@@ -34,12 +34,14 @@ def models_selector(*data):
 
     .. dispatcher:: dsp
 
-        >>> dsp = models_selector('WLTP-H', 'WLTP-L')
+        >>> dsp = models_selector()
 
     :return:
         The models' selector model.
     :rtype: SubDispatchFunction
     """
+
+    data = data or ('WLTP-H', 'WLTP-L')
 
     dsp = Dispatcher(
         name='Models selector',
