@@ -83,7 +83,8 @@ copyright = '2014-2015, European Commission (JRC)'  # @ReservedAssignment
 author = 'see AUTHORS.rst'
 
 extlinks = {
-    'gh': ('https://github.com/JRCSTU/co2mpas/issues/%s', '#')
+    'gh': ('https://github.com/JRCSTU/co2mpas/issues/%s', '#'),
+    'git': ('https://github.com/JRCSTU/co2mpas/commit/%s', ''),
 }
 
 # The version info for the project you're documenting, acts as replacement for

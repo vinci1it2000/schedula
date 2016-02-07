@@ -1,182 +1,151 @@
 ###############
 CO2MPAS Changes
 ###############
+.. contents::
 .. _changes:
 
-v1.1.0, 05-Feb 2016: "Snow" release
+v1.1.0, 09-Feb 2016: "O'snow" release
 ================================================================
+This release contains mainly model & I/O changes.
+Several crucial bugs and enhancements have been been implemented based on
+assessments performed by LAT.
 
 CO2MPAS changes as compared to v1.0.5:
 
 Model-changes
 -------------
 
-- **Engine model**:
+- Engine model:
 
   - Fix extrapolation in ``engine.get_full_load()``, keeping constant the boundary
-  	values.
+    values.
   - Update ``engine.get_engine_motoring_curve_default()``. The default motoring
     curve is now determined from the engine's friction losses parameters.
   - Add engine speed cut-off limits.
-  - :gh:`104`, `7cda7d08`: Apply 'derivative' function for smoothing real data to
-    acceleration & temperature. (still open)
-  - :gh:`82`, :gh:`50`: Add engine-inertia & auxiliaries torque/power losses.
+  - :gh:`104`: Apply *derivative* scikit-function for smoothing
+    real data to acceleration & temperature.
+  - :gh:`82`, :gh:`50`: Add (partial) engine-inertia & auxiliaries torque/power
+    losses.
 
-  - *Optimizer*:
+  - Optimizer:
 
-    - `84cc3ae8`: Fix ``co2_emission.calibrate_model_params()`` results selection.
-    - :gh:`58`: Change error functions: *mean abs error* is used instead of *mean
-      squared error*.
+    - :git:`84cc3ae8`: Fix ``co2_emission.calibrate_model_params()`` results selection.
+    - :gh:`58`: Change error functions: *mean-abs-error* is used instead of
+      *mean-squared-error*.
     - :gh:`56`: Cold/hot parts distinction based on the first occurrence of *trg*;
       *trg* not optimized.
-    - :gh:`25`, `dedf02de`, `083fe047`: Simplify calibration method for hot part
-      of the cycle, imposing t=0 & fix regression from ``lmfit-param.copy`` bug
-      in >python-3.5.
+    - :gh:`25`: Simplify calibration method for hot part of the cycle,
+      imposing ``t=0``.
 
-- **Temperature model**:
+- Temperature model:
 
-  - :gh:`118`, :gh:`53`, `93a41968`: Add capability to run hot start cycles & fixed
-  	temperature cycles.
+  - :gh:`118`, :gh:`53`: Possible to run hot start cycles & fixed
+    temperature cycles.
   - :gh:`94`: Fix bug in ``co2_emission.calculate_normalized_engine_coolant_temperatures()``,
-    returning *0* when *trg* > max T in NEDC.
+    that returned *0* when ``target_Theta > max-Theta`` in NEDC.
   - :gh:`79`: Enhance temperature model: the calibration does not take into account
-    the first 10secs and the points where Delta T = 0.
-  - :gh:`55`: Add an additional temperature model, f(previous_T, S, P, A); chose the
-    one which gives the best results.
+    the first 10secs and the points where ``Delta-Theta = 0``.
+  - :gh:`55`: Add an additional temperature model, ``f(previous_T, S, P, A)``;
+    chose the one which gives the best results.
 
-- **Gearbox model**:
+- Gearbox model:
 
   - :gh:`49`: Fix bug in the estimation of the gear box efficiency for negative power,
     leading to an overestimation of the gear box temperature. (still open)
   - :gh:`45`: ATs: Fix bug in the *GSPV matrix* leading to vertical up-shifting lines.
 
-- **S/S model**:
+- S/S model:
 
-  - :gh:`85`: Correct internally stored gear-shifting profiles according to legislation.
-  - :gh:`81`: MTs: correct S/S model output -start engine- when gear>0.
-  - :gh:`75`, `3def98f3`, `72d668ec`: Fix gear-identification for initial time-steps for
-    real-data; add warning message if WLTP does not respect input S/S activation time.
+  - :gh:`85`: Correct internal gear-shifting profiles according to legislation.
+  - :gh:`81`: MTs: correct S/S model output -start engine- when ``gear > 0``.
+  - :gh:`75`, :git:`3def98f3`: Fix gear-identification for
+    initial time-steps for real-data; add warning message if WLTP does not
+    respect input S/S activation time.
 
-- **Electrics model**:
+- Electrics model:
 
   - :gh:`78`, :gh:`46`: Fix bug in ``electrics.calibrate_alternator_current_model()``
     for real cars, fix fitting error when alternator is always off.
   - :gh:`17`: Add new alternator status model, bypassing the DT when ``battery_SOC_balance``
-    is given, ``has_energy_recuperation`` equals to one, but BERS not identified in WLTP. ???
+    is given, ``has_energy_recuperation`` equals to one, but BERS is not
+    identified in WLTP. ???
 
-- **Clutch model**:
+- Clutch model:
 
   - :gh:`83`: Add a second clutch model, equals to no-clutch, when clutch model fails.
   - :gh:`16`: Add torque converter.
 
-- *Model selector*:
+- *Vehicle model*:
 
-  - :gh:`76`, `82b320a1`: Remove first 30 seconds for the engine speed model selection.
-  - `e8cabe10`: Add `model_selector.metric_engine_cold_start_speed_model()`. ???
-  - `016e7060`: Add calibration of `co2_params` with two cycles. ???
+  - :gh:`76`: Remove first 30 seconds for the engine speed model
+    selection.
+  - :git:`e8cabe10`, :git:`016e7060`: Rework model-selection code.
 
-IO & running CO2MPAS
---------------------
 
-- **IO**:
+IO
+--
 
-  - *Inputs*:
+- Inputs:
 
-  	- Add `fuel_carbon_content` input values for each cycle.
-    - Correct units in `initial_SOC_NEDC`.
-    - Replace `Battery SOC [%]` time series with `target state_of_charges`.
-	- :gh:`61`, `24b935c3`: Add dyno type and driveline type (2WD, 4WD) for each cycle.
-	  Those are used to specify inertia coefficients and drivetrain efficiency (default
-      efficiency for `final_drive_efficiency` changed to 0.98).(still open)
-	- :gh:`44`: Correct `battery_SOC_balance` and `battery_SOC_window` as not *compulsory*.
-	- :gh:`25`: Add option of 'freezing' the optimization parameters.
+  - Add `fuel_carbon_content` input values for each cycle.
+  - Correct units in `initial_SOC_NEDC`.
+  - Replace `Battery SOC [%]` time series with `target state_of_charges`.
+  - :gh:`61`, :gh:`119`: Add dyno type and driveline type (2WD, 4WD) for each cycle.
+    Those are used to specify inertia coefficients and drivetrain efficiency
+    (default efficiency for `final_drive_efficiency` changed to 0.98).(still open)
+  - :gh:`44`: Correct `battery_SOC_balance` and `battery_SOC_window` as
+    not *compulsory*.
+  - :gh:`25`: Add option of 'freezing' the optimization parameters.
 
-  - *Outputs*:
+- Outputs:
 
-	- Add html report with basic interactive graphs.(still open)
-    - `a03c6805`: Add `status_start_stop_activation_time` to cycle results.
-	- `f8b85d98`: Add comparison between WLTP prediction vs WLTP inputs & WLTP calibration.
-	- `5064efd3`: Add charts.
-	- :gh:`120`, `1f15544d`: Add named ranges on the excel sheets.
-	- :gh:`102`: Write errors/warnings in the output.(still open)
-	- :gh:`101`, `37fc8844`: Add target UDC and target EUDC to the summary.
-	- :gh:`96`, :gh:`98`, `3cb27172`, `9e825682`, `b41f8b10`, `afd22995`: Unify
-	  output file and implement possibility to reuse template xlsx-file as output.
-	- :gh:`97`, :gh:`114`, :gh:`64`, `ef67a1b0`: Add packages and CO2MPAS versions,
-	  functions run info, and models' scores to the *proc_info* sheet.(still open)
-	- :gh:`93`, :gh:`52`: Add success/fail flags related to the optimization steps
-	  for each cycle, and global success/fail flags on the summary.
+  - :gh:`96`: Produce a single excel with all infos in multiple sheets.
+  - Produce html report with basic interactive graphs.(still open)
+  - :git:`5064efd3`: Add charts in excel output.
+  - :gh:`120`, :gh:`123`: Use excel named-ranges for all columns -
+    possible to use specific xl-file as output template, utilizing those
+    named-ranges.
+  - :git:`a03c6805`: Add `status_start_stop_activation_time` to cycle results.
+  - :git:`f8b85d98`: Add comparison between WLTP prediction vs WLTP inputs &
+    WLTP calibration.
+  - :gh:`102`: Write errors/warnings in the output.(still open)
+  - :gh:`101`: Add target UDC and target EUDC to the summary.
+  - :gh:`97`, :gh:`114`, :gh:`64`: Add packages and CO2MPAS versions,
+    functions run info, and models' scores to the *proc_info* sheet.(still open)
+  - :gh:`93`, :gh:`52`: Add success/fail flags related to the optimization steps
+    for each cycle, and global success/fail flags on the summary.
 
-- **Running CO2MPAS**:
 
-  - `cc90400a`: Remove *Runtime Warning*.
-  - `9e825682`: Add option to allow the use of a specific output template.
-  - `5e91993c`: Add option to skip saving WLTP-predict.
-  - :gh:`102`: Remove UI boxes pop-up when running.
-  - :gh:`91`: Raise a flag when python version <3.4 is used.
-  - :gh:`88`: Check input files before running; raise message if invalid.(still open)
+Cmd-line (running CO2MPAS)
+--------------------------
 
-Software changes
-----------------
+- :gh:`88`: Don't produce results for incompatible ``VERSION`` in input-file.
+- :gh:`102`: Remove UI pop-up boxes when running - users have to check
+  the *scores* tables in the result xl-file.
+- :gh:`91`: Disallow installation and/or execution under ``python < 3.4``.
+- :gh:`5e91993c`: Add option to skip saving WLTP-prediction.
 
-- **Dispatcher**:
 
-  - Fixed `_parent` link and added check inputs to `sub_dispatcher`. (`ad137cb3d8`)
-  - Fixed `shrink remote_links`. (`0ead90f5db`)(`f2e9fab49d`)(`5e2f2cc132`)
-  - Fixed `Doctest`. (`09ae940f88`)
-  - Added `pipe` property and `get_full_node_id` method. (`f2e9fab49d`)(`19cc106462`)
-  - Added `dsp` as `output_type`. (`f2e9fab49d`)
-  - Added `callback` to `add_args`. (`f2e9fab49d`)
-  - Renamed `get_parent_func` to `parent_func`. (`f2e9fab49d`)
-  - Fixed `doc`. (`f2e9fab49d`)
-  - Fixed deprecation warning. (`1e8157a005`)
-  - Fixed inputs and outputs plots on failure mode. (`ac7e647b00`)
-  - Fixed Copy of `Token`.(`ad579b5363`)
-  - Added partial workflow of `sub_dsp` when a Dispatcher error is raised. (`ad579b5363`)
-  - Allow inputs and outputs forks on `sub_dsp`. (`1f2c5bb21f`)
-  - Fixed windows nested plot. (`ac4b22db87`)
-  - Fixed plot empty `dsp`. (`92d85dbc07`)
-  - Extended `_set_wait_in` to sub-dispatcher node with domains. (`e8fe6a959c`)
-  - Fixed `replace_remote_link` for `SINK` node. (`8329c30eb6`)
-  - Fixed `add_dispatcher` from `dict` instead of `Dispatcher`. (`8329c30eb6`)
-  - Fixed `_shrink_sub_dsp` with `wildcards`. (`8329c30eb6`)
-  - Fixed filter in `set_node_out`. (`8329c30eb6`)
-  - Added skip for visited nodes in run loop. (`8329c30eb6`)
-  - :gh:`59`: Remove auto-plotting side-effect from "__str__()" of failed workflows.
-  - :gh:`42`, :gh:`43`: Add plot to the dispatcher properties.
-  - :gh:`98`: Fixed `shrink sub-dsp` adding `max outputs_dist`. (`e8fe6a959c`)
-  - :gh:`98`: Fixed `add_dispatcher`, `replace_remote_link`, and `_shrink_sub_dsp`. (`8329c30eb6`)
+Internals
+---------
 
-- **Software**:
+- *dispatcher*: Functionality, performance, documentation and debugging
+  enhancements for the central module that is executing model-nodes.
+- :git:`1a6a901f6c`: Implemented new architecture for IO files.
+- :gh:`103`: Problem with simulation time resolved (caused by new IO).
+- :gh:`94`, :gh:`99`: Fixed error related to ``argmax()`` function.
+- :gh:`25`: Retrofit optimizer code to use *lmfit* library to provide for
+  easily playing with parameters and optimization-methods.
+- :gh:`107`: Add *Seatbelt-TC* reporting sources of discrepancies, to
+  investigate repeatability(:gh:`7`) and reproducibility(:gh:`6`) problems.
+- :gh:`63`: Add TCs for the core models. (still open)
 
-  - Improved various file-path manipulations with `os.path`. (`9e8256826d`)
-  - Corrected use of python `func-signatures` with kwds. (`9e8256826d`)
-  - Improved `func docstrings`. (`9e8256826d`)
-  - Added log selection in debug. (`35d1f2da20`)
-  - Capture and redirect warnings through logging. (`e82ae1a5da`)
-  - Fixed datacheck for list of objs. (`6d705ab6da`)
-  - Fixed import `win32api`. (`c87b0b0a5f`)
-  - Implement log scores and reading files in debug. (`ca99955f03`)
-  - Fixed the `out` kw-arg which was introduced in numpy-1.10 and as it was written
-    it failed in previous numpy-versions. (`dfc9823594`)
-  - Implemented new architecture and output files. (`1a6a901f6c`)
-  - Improved `virtualenv` & `TCL` help on doc. (`5f32b3c423`)
-  - :gh:`91`: Improved py-ver check on setup, also on `main()`. (`ee2ed6f27d`)
-  - :gh:`99`: Fixed improper use of explicit named-kwds (instead of `**kwds`)
-    in `np.argmax()`. (`dfc9823594`)
-  - :gh:`103`: Problem with simulation time resolved (caused by new IO).
-  - :gh:`94`, :gh:`99`: Fixed error related to argmax function. (`9a312afeb0`)
-  - :gh:`69`: Logging-framework abuse resolved.
-  - :gh:`40`: Auto-generated files created by autosummary go into `_build` folder.
 
-- **Miscelanous**
 
-  - Updated usage instructions about new ALLINONE batch-scripts. (`8bf39771a1`)
-  - Implement possibility to specify folder to run, on `Seatbelt-TC`. (`0bc80afcab`)
-  - :gh:`106`: Batch-runs always reuses the 1st template-out file resolved.
-  - :gh:`91`: Disallowed run on outdated python. (`b899c37d12`)
-  - :gh:`107`: `Seatbelt-TC` enhanced to report sources of discrepancies. (`d652450799`)
-  - :gh:`63`: Test cases for the core models have been added. (still open)
+v1.1.0-dev1, 18-Dec-2015: "Natale" internal JRC version
+================================================================
+Distributed before Christmas and included assessments from LAT.
+Model changes reported in "O'snow" release, above.
 
 
 
