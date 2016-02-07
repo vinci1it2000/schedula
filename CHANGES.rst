@@ -8,9 +8,10 @@ v1.1.0, 09-Feb 2016: "O'snow" release
 ================================================================
 This release contains mainly model & I/O changes.
 Several crucial bugs and enhancements have been been implemented based on
-assessments performed by LAT.
+assessments performed by LAT.  A concise study of this release's results
+and a high-level description of the model changes is contained in this `JRC-LAT presentation
+<http://files.co2mpas.io/CO2MPAS-1.1.0/2016_02_1-JRC_LAT_CO2MPAS_Osnow-validation_n_changelog.pptx>`_.
 
-CO2MPAS changes as compared to v1.0.5:
 
 Model-changes
 -------------
