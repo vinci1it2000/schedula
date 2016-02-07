@@ -8,31 +8,38 @@
 Predict NEDC CO2 emissions from WLTP cycles.
 
 Usage:
-    co2mpas [simulate]    [-v] [--predict-wltp]
-                          [--plot-workflow] [--only-summary]
-                          ([--out-template <xlsx-file>] | [--charts])
-                          [-I <fpath>] [-O <fpath>]
-    co2mpas demo          [-v] [-f] [<folder>]
-    co2mpas template      [-v] [-f] [<excel-file-path> ...]
-    co2mpas ipynb         [-v] [-f] [<folder>]
-    co2mpas modelgraph    [-v] --list
-    co2mpas modelgraph    [-v] [--depth=INTEGER] [<models> ...]
-    co2mpas [-v] --version
-    co2mpas --help
+  co2mpas [simulate]    [options] [--predict-wltp] [--plot-workflow] [--only-summary]
+                        ([--out-template <xlsx-file>] | [--charts])
+                        [-I <fpath>] [-O <fpath>]
+  co2mpas demo          [options] [-f] [<folder>]
+  co2mpas template      [options] [-f] [<excel-file-path> ...]
+  co2mpas ipynb         [options] [-f] [<folder>]
+  co2mpas modelgraph    [options] --list
+  co2mpas modelgraph    [options] [--depth=INTEGER] [<models> ...]
+  co2mpas [options] (--version | -V)
+  co2mpas --help
 
--I <fpath>                  Input folder or file, prompted with GUI if missing [default: ./input]
--O <fpath>                  Input folder or file, prompted with GUI if missing [default: ./output]
--l, --list                  List available models.
---only-summary              Does not save vehicle outputs just the summary file.
---predict-wltp              Whether to predict also WLTP values.
---charts                    Add basic charts to output file.
---out-template <xlsx-file>  An '*.xlsx' file to clone and append model-results into it.
-                            By default, no output-template used.
-                            Set it to `-` to use the input xlsx-file as output-template.
---plot-workflow             Open workflow-plot in browser, after run finished.
---depth=INTEGER             Limit the number of sub-dispatchers plotted (no limit by default).
--f, --force                 Overwrite template/demo excel-file(s).
--v, --verbose               Print more verbosely messages.
+Options:
+  -I <fpath>                  Input folder or file, prompted with GUI if missing [default: ./input]
+  -O <fpath>                  Input folder or file, prompted with GUI if missing [default: ./output]
+  -l, --list                  List available models.
+  --only-summary              Does not save vehicle outputs just the summary file.
+  --predict-wltp              Whether to predict also WLTP values.
+  --charts                    Add basic charts to output file.
+  --out-template <xlsx-file>  An '*.xlsx' file to clone and append model-results into it.
+                              By default, no output-template used.
+                              Set it to `-` to use the input xlsx-file as output-template.
+  --plot-workflow             Open workflow-plot in browser, after run finished.
+  --depth=INTEGER             Limit the number of sub-dispatchers plotted (no limit by default).
+  -f, --force                 Overwrite template/demo excel-file(s).
+  -V, --version               Print version of the program, with --verbose
+                              list release-date and installation details.
+  -h, --help                  Show this help message and exit.
+
+Miscellaneous:
+  -v, --verbose               Print more verbosely messages - overridden by --logconf.
+  --logconf <conf-file>       Path to a logging-configuration file
+                              (see https://docs.python.org/3/library/logging.config.html#configuration-file-format).
 
 * Items enclosed in `[]` are optional.
 
@@ -84,15 +91,19 @@ proj_name = 'co2mpas'
 log = logging.getLogger(__name__)
 
 
-def init_logging(verbose):
-    if verbose is None:
-        level = logging.WARNING
-    elif verbose:
-        level = logging.DEBUG
+def init_logging(verbose, frmt=None, logconf_file=None):
+    if logconf_file:
+        logging.config.fileConfig(logconf_file)
     else:
-        level = logging.INFO
-    frmt = "%(asctime)-15s:%(levelname)5.5s:%(name)s:%(message)s"
-    logging.basicConfig(level=level, format=frmt)
+        if verbose is None:
+            level = logging.WARNING
+        elif verbose:
+            level = logging.DEBUG
+        else: # Verbose: False
+            level = logging.INFO
+        if not frmt:
+            frmt = "%(asctime)-15s:%(levelname)5.5s:%(name)s:%(message)s"
+        logging.basicConfig(level=level, format=frmt)
     logging.captureWarnings(True)
 
 
@@ -295,7 +306,7 @@ def _main(*args):
     opts = docopt.docopt(__doc__, argv=args or sys.argv[1:])
 
     verbose = opts.get('--verbose', False)
-    init_logging(verbose)
+    init_logging(verbose, logconf_file=opts.get('--logconf'))
     if opts['--version']:
         v = build_version_string(verbose)
         print(v)

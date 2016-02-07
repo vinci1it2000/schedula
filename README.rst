@@ -200,7 +200,7 @@ It is not update-able, and has a quasi-regular release-cycle of 3 months.
 
    .. code-block:: console
 
-        > python --version
+        > python -V
         Python 3.4.3
 
         REM Check your python is indeed where you installed it.
@@ -234,7 +234,7 @@ It is not update-able, and has a semi-regular release-cycle of 3 months.
 
    .. code-block:: console
 
-        > python --version
+        > python -V
         Python 3.4.3 :: Anaconda 2.3.0 (64-bit)
 
         REM Check your python is indeed where you installed it.
@@ -548,31 +548,38 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
     Predict NEDC CO2 emissions from WLTP cycles.
 
     Usage:
-        co2mpas [simulate]    [-v] [--predict-wltp]
-                              [--plot-workflow] [--only-summary]
-                              ([--out-template <xlsx-file>] | [--charts])
-                              [-I <fpath>] [-O <fpath>]
-        co2mpas demo          [-v] [-f] [<folder>]
-        co2mpas template      [-v] [-f] [<excel-file-path> ...]
-        co2mpas ipynb         [-v] [-f] [<folder>]
-        co2mpas modelgraph    [-v] --list
-        co2mpas modelgraph    [-v] [--depth=INTEGER] [<models> ...]
-        co2mpas [-v] --version
-        co2mpas --help
+      co2mpas [simulate]    [options] [--predict-wltp] [--plot-workflow] [--only-summary]
+                            ([--out-template <xlsx-file>] | [--charts])
+                            [-I <fpath>] [-O <fpath>]
+      co2mpas demo          [options] [-f] [<folder>]
+      co2mpas template      [options] [-f] [<excel-file-path> ...]
+      co2mpas ipynb         [options] [-f] [<folder>]
+      co2mpas modelgraph    [options] --list
+      co2mpas modelgraph    [options] [--depth=INTEGER] [<models> ...]
+      co2mpas [options] (--version | -V)
+      co2mpas --help
 
-    -I <fpath>                  Input folder or file, prompted with GUI if missing [default: ./input]
-    -O <fpath>                  Input folder or file, prompted with GUI if missing [default: ./output]
-    -l, --list                  List available models.
-    --only-summary              Does not save vehicle outputs just the summary file.
-    --predict-wltp              Whether to predict also WLTP values.
-    --charts                    Add basic charts to output file.
-    --out-template <xlsx-file>  An '*.xlsx' file to clone and append model-results into it.
-                                By default, no output-template used.
-                                Set it to `-` to use the input xlsx-file as output-template.
-    --plot-workflow             Open workflow-plot in browser, after run finished.
-    --depth=INTEGER             Limit the number of sub-dispatchers plotted (no limit by default).
-    -f, --force                 Overwrite template/demo excel-file(s).
-    -v, --verbose               Print more verbosely messages.
+    Options:
+      -I <fpath>                  Input folder or file, prompted with GUI if missing [default: ./input]
+      -O <fpath>                  Input folder or file, prompted with GUI if missing [default: ./output]
+      -l, --list                  List available models.
+      --only-summary              Does not save vehicle outputs just the summary file.
+      --predict-wltp              Whether to predict also WLTP values.
+      --charts                    Add basic charts to output file.
+      --out-template <xlsx-file>  An '*.xlsx' file to clone and append model-results into it.
+                                  By default, no output-template used.
+                                  Set it to `-` to use the input xlsx-file as output-template.
+      --plot-workflow             Open workflow-plot in browser, after run finished.
+      --depth=INTEGER             Limit the number of sub-dispatchers plotted (no limit by default).
+      -f, --force                 Overwrite template/demo excel-file(s).
+      -V, --version               Print version of the program, with --verbose
+                                  list release-date and installation details.
+      -h, --help                  Show this help message and exit.
+
+    Miscellaneous:
+      -v, --verbose               Print more verbosely messages - overridden by --logconf.
+      --logconf <conf-file>       Path to a logging-configuration file
+                                  (see https://docs.python.org/3/library/logging.config.html#configuration-file-format).
 
     * Items enclosed in `[]` are optional.
 
@@ -754,7 +761,7 @@ Bash Autocompletion
 -------------------
 Add this command in your :file:`~/.bashrc` or type it in an open bash-console::
 
-    $ complete -fd -W "`co2mpas-autocompletions`" co2mpas
+    $ complete -fdev -W "`co2mpas-autocompletions`" co2mpas
 
 
 
