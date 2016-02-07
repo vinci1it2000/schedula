@@ -75,7 +75,7 @@ Model-changes
   - :gh:`83`: Add a second clutch model, equals to no-clutch, when clutch model fails.
   - :gh:`16`: Add torque converter.
 
-- *Vehicle model*:
+- Vehicle model:
 
   - :gh:`76`: Remove first 30 seconds for the engine speed model
     selection.
@@ -87,6 +87,15 @@ IO
 
 - Inputs:
 
+  - :gh:`62`: Compulsory fields in input data::
+
+        velocity_speed_ratios
+        co2_params
+        gear_box_ratios
+        full_load_speeds
+        full_load_torques
+        full_load_powers
+
   - Add `fuel_carbon_content` input values for each cycle.
   - Correct units in `initial_SOC_NEDC`.
   - Replace `Battery SOC [%]` time series with `target state_of_charges`.
@@ -96,6 +105,7 @@ IO
   - :gh:`44`: Correct `battery_SOC_balance` and `battery_SOC_window` as
     not *compulsory*.
   - :gh:`25`: Add option of 'freezing' the optimization parameters.
+
 
 - Outputs:
 
