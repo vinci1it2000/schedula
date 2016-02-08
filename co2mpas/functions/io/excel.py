@@ -400,11 +400,11 @@ def _add_named_ranges(df, writer, shname, startrow, startcol, named_ranges, k0):
         sheet = writer.sheets[shname]
 
         def create_named_range(ref_name, range_ref):
-            define_name(ref_name, sheet, range_ref)
+            define_name(ref_name, sheet, range_ref, scope=sheet)
 
     tag = ()
     if hasattr(df, 'name'):
-         tag +=  (df.name,)
+        tag +=  (df.name,)
 
     it = ()
 
