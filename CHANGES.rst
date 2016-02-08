@@ -74,6 +74,9 @@ Model-changes
 - Clutch model:
 
   - :gh:`83`: Add a second clutch model, equals to no-clutch, when clutch model fails.
+
+- Torque-converter model:
+
   - :gh:`16`: Add torque converter.
 
 - Vehicle model:
@@ -111,11 +114,13 @@ IO
 - Outputs:
 
   - :gh:`96`: Produce a single excel with all infos in multiple sheets.
-  - Produce html report with basic interactive graphs.(still open)
+  - :gh:`20`: Produce html report with basic interactive graphs (unfinished).
   - :git:`5064efd3`: Add charts in excel output.
   - :gh:`120`, :gh:`123`: Use excel named-ranges for all columns -
     possible to use specific xl-file as output template, utilizing those
     named-ranges.
+  - :gh:`130`: Add model's workflow-plots to the output folder with
+    ``--plot-workflow``.
   - :git:`a03c6805`: Add `status_start_stop_activation_time` to cycle results.
   - :git:`f8b85d98`: Add comparison between WLTP prediction vs WLTP inputs &
     WLTP calibration.
@@ -130,6 +135,7 @@ IO
 Cmd-line (running CO2MPAS)
 --------------------------
 
+- :gh:`5e91993c`: Add option to skip saving WLTP-prediction.
 - :gh:`88`: Raise warning (console & summary-file) if incompatible ``VERSION``
   detected in input-file.
 - :gh:`102`: Remove UI pop-up boxes when running - users have to check
