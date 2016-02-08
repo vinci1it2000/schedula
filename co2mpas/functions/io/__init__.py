@@ -428,13 +428,15 @@ def check_data_version(data):
             if tuple(v.split('.')) >= rv:
                 continue
 
-            msg = "\n  Input file version >= %s is required, but found: %s."
-            log.error(msg, __input_file_version__, v)
-            return {}
+            msg = "\n  Input file version %s. Please update your input " \
+                  "file with a version >= %s."
+            log.error(msg, v, __input_file_version__)
+            break
 
-        msg = "\n  Input file version not found a version >= %s is required."
+        msg = "\n  Input file version not found. Please update your input " \
+              "file with a version >= %s."
         log.error(msg, __input_file_version__)
-        return {}
+        break
 
     return data
 
