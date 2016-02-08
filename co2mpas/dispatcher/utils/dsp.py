@@ -88,7 +88,8 @@ def bypass(*inputs, copy=False):
         'a'
     """
 
-    inputs = inputs if len(inputs) > 1 else inputs[0]  # Same inputs.
+    if len(inputs) == 1:
+        inputs = inputs[0]  # Same inputs.
 
     return deepcopy(inputs) if copy else inputs  # Return inputs.
 
@@ -239,6 +240,8 @@ def selector(keys, dictionary, copy=False, output_type='dict', allow_miss=False)
     if output_type == 'list':  # Select as list.
         res = [dictionary[k] for k in keys if check(k)]
         return deepcopy(res) if copy else res
+    elif output_type == 'values':
+        return bypass(*[dictionary[k] for k in keys if check(k)], copy=copy)
 
     # Select as dict.
     return bypass({k: dictionary[k] for k in keys if check(k)}, copy=copy)
@@ -429,12 +432,11 @@ class SubDispatch(object):
         :param output_type:
             Type of function output:
 
-                + 'all': a :class:`~dispatcher.utils.AttrDict` with all dispatch
-                  outputs.
+                + 'all': a dictionary with all dispatch outputs.
                 + 'list': a list with all outputs listed in `outputs`.
-                + 'dict': a :class:`~dispatcher.utils.AttrDict` with any outputs
-                  listed in `outputs`.
-        :type output_type: str
+                + 'dict': a dictionary with any outputs listed in `outputs`.
+                + 'dsp': the computed dispatcher.
+        :type output_type: str, optional
         """
 
         self.dsp = dsp
