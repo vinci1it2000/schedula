@@ -157,6 +157,7 @@ setup(
         'docopt',
         'six',
         'easygui',
+        'mpld3',
         'pandalone',
         'regex'
     ],
