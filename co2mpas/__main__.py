@@ -15,7 +15,7 @@ Usage:
   co2mpas template      [options] [-f] [<excel-file-path> ...]
   co2mpas ipynb         [options] [-f] [<folder>]
   co2mpas modelgraph    [options] --list
-  co2mpas modelgraph    [options] [--depth=INTEGER] [<models> ...]
+  co2mpas modelgraph    [options] [--workflow-depth=INTEGER] [<models> ...]
   co2mpas [options] (--version | -V)
   co2mpas --help
 
@@ -30,7 +30,7 @@ Options:
                               By default, no output-template used.
                               Set it to `-` to use the input xlsx-file as output-template.
   --plot-workflow             Open workflow-plot in browser, after run finished.
-  --depth=INTEGER             Limit the number of sub-dispatchers plotted (no limit by default).
+  --workflow-depth=INTEGER    Limit the number of sub-dispatchers plotted (no limit by default).
   -f, --force                 Overwrite template/demo excel-file(s).
   -V, --version               Print version of the program, with --verbose
                               list release-date and installation details.
@@ -136,12 +136,12 @@ def _cmd_modelgraph(opts):
     if opts['--list']:
         print('\n'.join(co2plot.get_model_paths()))
     else:
-        depth = opts['--depth']
+        depth = opts['--workflow-depth']
         if depth:
             try:
                 depth = int(depth)
             except:
-                msg = "The '--depth' must be an integer!  Not %r."
+                msg = "The '--workflow-depth' must be an integer!  Not %r."
                 raise CmdException(msg % depth)
         else:
             depth = None
@@ -326,11 +326,9 @@ def _prompt_options():
 
 def _run_batch(opts):
     input_folder = _prompt_folder(folder_name='INPUT', fpath=opts['-I'])
-
     output_folder = _prompt_folder(folder_name='OUTPUT', fpath=opts['-O'])
 
     log.info("Processing '%s' --> '%s'...", input_folder, output_folder)
-
     from co2mpas.functions import process_folder_files
     process_folder_files(input_folder, output_folder,
                          with_output_file=not opts['--only-summary'],

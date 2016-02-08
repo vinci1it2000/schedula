@@ -611,7 +611,7 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
       co2mpas template      [options] [-f] [<excel-file-path> ...]
       co2mpas ipynb         [options] [-f] [<folder>]
       co2mpas modelgraph    [options] --list
-      co2mpas modelgraph    [options] [--depth=INTEGER] [<models> ...]
+      co2mpas modelgraph    [options] [--workflow-depth=INTEGER] [<models> ...]
       co2mpas [options] (--version | -V)
       co2mpas --help
 
@@ -626,7 +626,7 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
                                   By default, no output-template used.
                                   Set it to `-` to use the input xlsx-file as output-template.
       --plot-workflow             Open workflow-plot in browser, after run finished.
-      --depth=INTEGER             Limit the number of sub-dispatchers plotted (no limit by default).
+      --workflow-depth=INTEGER    Limit the number of sub-dispatchers plotted (no limit by default).
       -f, --force                 Overwrite template/demo excel-file(s).
       -V, --version               Print version of the program, with --verbose
                                   list release-date and installation details.
