@@ -693,7 +693,7 @@ starting point to try out.
     It is only for demonstration purposes that we decided to group them both
     under a hypothetical ``some-folder``.
 
-3. Create the demo vehicles inside the *input-folder* with the ``demo``
+2. Create the demo vehicles inside the *input-folder* with the ``demo``
    sub-command:
 
 
@@ -708,7 +708,7 @@ starting point to try out.
         You may run DEMOS with:
             co2mpas simulate -I input
 
-4. Run the simulator:
+3. Run the simulator:
 
    .. code-block:: console
 
@@ -720,7 +720,7 @@ starting point to try out.
        Done! [90.765501 sec]
 
 
-6. Inspect the results:
+4. Inspect the results:
 
    .. code-block:: console
 
@@ -730,22 +730,19 @@ starting point to try out.
 
 Output files
 ~~~~~~~~~~~~
-Below is the structure of the output-files produced for each vehicle::
+The output-files produced on each run are the following::
 
-    ## Input and calibrated values for electrics.
-    <timestamp>_precondition_WLTP_<inp-fname>.xls
+- `<timestamp>-<inp-fname>.xls`:
+  A file containing all the inputs and calculation results for each vehicle
+  contained in the batch-run: scalar-parameters and time series for target,
+  calibration and prediction phases, for all cycles.
+  In addition, the file contains all the specific submodel-functions that
+  generated the results, a comparison summary, and information on the python
+  libraries installed on the system (for investigating reproducibility issues).
 
-    ## Input and calibrated values.
-    <timestamp>_calibration_WLTP-H_<inp-fname>.xls
-
-    ## Input and calibrated values.
-    <timestamp>_calibration_WLTP-L_<inp-fname>.xls
-
-    ## Input and predicted values.
-    <timestamp>_prediction_NEDC_<inp-fname>.xls
-
-    ## Major CO2 values from all vehicles in the batch-run.
-    <timestamp>_summary.xls
+- `<timestamp>-summary.xls`:
+  Major CO2 emissions values, optimized CO2 parameters values and
+  success/fail flags of CO2MPAS submodels for all vehicles in the batch-run.
 
 
 Entering new vehicles
@@ -812,6 +809,35 @@ excel-file:
 6. In the case of errors, or if the results are not satisfactory, repeat the
    above procedure from step 3 to modify the vehicle and re-run the model.
    See also :ref:`debug`, below.
+
+
+Using custom output xl-files as templates
+-----------------------------------------
+You may have defined customized xl-files for summarizing time-series and
+scalar parameters.  To have CO2MPAS fill those "output-template" files with
+its results, execute it with the ``--out-template`` option.
+
+
+To create/modify one output-template yourself, do the following:
+
+1. Open a typical CO2MPAS output-file for some vehicle.
+
+2. Add one or more sheets and specify/referring CO2MPAS result-data using
+   `named-ranges <https://www.google.it/search?q=excel+named-ranges>`_.
+
+   .. Warning::
+   		Do not use simple/absolute excel references (e.g. "=B2").
+   		Use excel functions (indirect, lookup, offset, etc.) and array-functions
+   		together with string references to the named ranges
+   		(e.g. "=indirect("nedc_predictions_time_series!_fuel_consumptions")").
+
+3. (Optional) Delete the old sheets and save your file.
+
+4. Use that file together with the ``--out-template`` argument.
+
+.. tip::
+    You can find a template/dummy output-template file here:
+    http://files.co2mpas.io/CO2MPAS-1.1.0/CO2MPAS_out_template.xlsx
 
 
 
@@ -903,4 +929,3 @@ Debugging and investigating results
   in `CO2MPAS documentation <http://files.co2mpas.io/>`_ ensuring you are
   visiting the documents for the actual version you are using.
 
-.. _clink: http://mridgers.github.io/clink/
