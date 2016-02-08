@@ -206,6 +206,10 @@ def combine_outputs(models):
     return dsp_utl.combine_dicts(*models.values())
 
 
+def combine_scores(scores):
+    return {k: v for k, v in scores.items() if v}
+
+
 def sub_models():
     sub_models = {}
 

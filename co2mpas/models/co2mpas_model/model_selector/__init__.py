@@ -22,10 +22,9 @@ Sub-Modules:
 """
 
 from functools import partial
-
-import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher import Dispatcher
 from co2mpas.functions.co2mpas_model.model_selector import *
+import co2mpas.dispatcher.utils as dsp_utl
 
 
 def models_selector(*data):
@@ -62,7 +61,7 @@ def models_selector(*data):
 
     dsp.add_data(
         data_id='scores',
-        function=partial(dsp_utl.combine_dicts, {}),
+        function=combine_scores,
         wait_inputs=True
     )
 
