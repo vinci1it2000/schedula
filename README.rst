@@ -353,10 +353,13 @@ Re-run the command *again*, to make sure that no dangling installations are left
 over; disregard any errors this time.
 
 
-Installing different version of CO2MPAS
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Different ways of installation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 You may get multiple versions of CO2MPAS, from various places, but all
-require the use of ``pip`` command to install:
+require the use of ``pip`` command from a *console* to install:
+
+..  Warning::
+    In all cases below, remember to uninstall CO2MPAS if it's already installed.
 
 - **Latest STABLE:**
   use the default ``pip`` described command above.
@@ -371,38 +374,37 @@ require the use of ``pip`` command to install:
 
       pip install co2mpas==1.0.1 ... # Other options, like above.
 
-- **Specific branch** from the sources (github):
-  use a command like that (e.g. ``dev``):
+- **Specific branch** from the GitHub-sources:
 
-      .. code-block:: console
+  .. code-block:: console
 
       pip install git+https://github.com/JRCSTU/co2mpas.git@dev
 
-- **Specific commit** from the sources (github):
-  use a command like that (e.g. ``dev``):
+- **Specific commit** from the GitHub-sources:
 
   .. code-block:: console
 
       pip install git+https://github.com/JRCSTU/co2mpas.git@2927346f4c513a
 
-- All of the above, but with internet through **http-proxy**:
-  append an appropriately adapted option: ``--proxy http://user:password@yourProxyUrl:yourProxyPort``.
+- When you are **behind an http-proxy** (for all of the above):
+  append an appropriately adapted option
+  ``--proxy http://user:password@yourProxyUrl:yourProxyPort``.
 
-- All of the above, **without internet connectivity**:  download locally
-  all ``.whl`` files present in the desired version on `CO2MPAS site <http://files.co2mpas.io/>`_
-  and install them with a command like that:
+- **Without internet connectivity** (for all of the above):
+
+  1. Pre-download locally all files in the ``packages`` folder located in
+     the desired CO2MPAS version at `CO2MPAS site <http://files.co2mpas.io/>`_,
+     with "normal" browser.  Lets assume that you downloaded the packages in
+     the folder ``co2mpas_packages``.
+  2. Install them with a console-command like that:
 
   .. code-block:: console
 
-      pip install *.whl
-
-..  Warning::
-    If you have already a CO2MPAS version install, don't foget to uninstall it
-    first.
+      pip install co2mpas -f path/to/co2mpas_packages
 
 
-Install multiple versions of CO2MPAS in parallel
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Install Multiple versions in parallel
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 In order to run and compare results from different CO2MPAS versions,
 you may use `virtualenv <http://docs.python-guide.org/en/latest/dev/virtualenvs/>`_
 command.
@@ -413,7 +415,7 @@ where in each one you can install a different versions of CO2MPAS.
 .. Note::
     The `virtualenv` command does NOT run under the "conda" python-environment.
     Use the `conda command <http://conda.pydata.org/docs/using/envs.html>`_
-    in similar manner to create children-envs instead.
+    in similar manner to create child *conda-environments* instead.
 
 
 1. Ensure `virtualenv` command installed in your "parent" python-environment,
