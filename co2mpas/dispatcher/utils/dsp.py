@@ -988,22 +988,28 @@ class SubDispatchPipe(SubDispatchFunction):
                 value = node_attr['function'](kwargs)
             except Exception as ex:
                 # Some error occurs.
-                msg = 'Estimation error at data node ({}) ' \
-                      'due to: {}'.format(node_id, ex)
-                dsp.warning(msg)  # Raise a Warning.
+                msg = "Failed DISPATCHING '%s' due to:\n  %r"
+                dsp._warning(msg, node_id, ex)
                 return False
         else:
             # Data node that has just one estimation value.
             value = list(estimations.values())[0]['value']
+        try:
+            for f in node_attr.get('filters', ()):  # Apply filters to output.
+                value = f(value)
+        except Exception as ex:
+            # Some error occurs.
+            msg = "Failed DISPATCHING '%s' due to:\n  %r"
+            dsp._warning(msg, node_id, ex)
+            return False
 
         if 'callback' in node_attr:  # Invoke callback func of data node.
             try:
                 # noinspection PyCallingNonCallable
                 node_attr['callback'](value)
             except Exception as ex:
-                msg = 'Callback error at data node ({}) ' \
-                      'due to: {}'.format(node_id, ex)
-                dsp.warning(msg)  # Raise a Warning.
+                msg = "Failed CALLBACKING '%s' due to:\n  %s"
+                dsp._warning(msg, node_id, ex)
 
         if value is not NONE:  # Set data output.
             dsp.data_output[node_id] = value
@@ -1026,18 +1032,19 @@ class SubDispatchPipe(SubDispatchFunction):
         args = dsp._wf_pred[node_id]  # List of the function's arguments.
         args = [args[k]['value'] for k in node_attr['inputs']]
         args = [v for v in args if v is not NONE]
-
+        attr = {'started': datetime.today()}  # Starting time.
+        from .des import parent_func
         try:
             fun = node_attr['function']  # Get function.
 
-            attr = {'started': datetime.today()}  # Starting time.
-
             res = fun(*args)  # Evaluate function.
+
+            for f in node_attr.get('filters', ()):  # Apply filters to results.
+                res = f(res)
 
             # Time elapsed.
             attr['duration'] = datetime.today() - attr['started']
 
-            from .des import parent_func
             fun = parent_func(fun)  # Get parent function (if nested).
             if isinstance(fun, SubDispatch):  # Save intermediate results.
                 attr['workflow'] = (fun.workflow, fun.data_output, fun.dist)
@@ -1049,10 +1056,16 @@ class SubDispatchPipe(SubDispatchFunction):
             res = res if len(o_nds) > 1 else [res]
 
         except Exception as ex:
+            if isinstance(ex, DispatcherError):  # Save intermediate results.
+                fun = parent_func(ex.dsp)
+                attr['workflow'] = (fun.workflow, fun.data_output, fun.dist)
+                attr['duration'] = datetime.today() - attr['started']
+
+                # Save node.
+                self.workflow.add_node(node_id, **attr)
             # Is missing function of the node or args are not in the domain.
-            msg = 'Estimation error at function node ({}) ' \
-                  'due to: {}'.format(node_id, ex)
-            dsp.warning(msg)  # Raise a Warning.
+            msg = "Failed DISPATCHING '%s' due to:\n  %r"
+            dsp._warning(msg, node_id, ex)
             return False
 
         res = dict(zip(o_nds, res))

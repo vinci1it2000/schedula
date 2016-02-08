@@ -271,7 +271,7 @@ class Dispatcher(object):
 
     def add_data(self, data_id=None, default_value=EMPTY, initial_dist=0.0,
                  wait_inputs=False, wildcard=None, function=None, callback=None,
-                 remote_links=None, description=None, **kwargs):
+                 remote_links=None, description=None, filters=None, **kwargs):
         """
         Add a single data node to the dispatcher.
 
@@ -321,6 +321,11 @@ class Dispatcher(object):
         :param description:
             Data node's description.
         :type description: str, optional
+
+        :param filters:
+            A list of functions that are invoked after the invocation of the
+            main function.
+        :type filters: list[function], optional
 
         :param kwargs:
             Set additional node attributes using key=value.
@@ -405,6 +410,9 @@ class Dispatcher(object):
         if description is not None:  # Add description as node attribute.
             attr_dict['description'] = description
 
+        if filters:  # Add filters as node attribute.
+            attr_dict['filters'] = filters
+
         attr_dict.update(kwargs)  # Additional attributes.
 
         has_node = self.dmap.has_node  # Namespace shortcut for speed.
@@ -428,6 +436,7 @@ class Dispatcher(object):
     def add_function(self, function_id=None, function=None, inputs=None,
                      outputs=None, input_domain=None, weight=None,
                      inp_weight=None, out_weight=None, description=None,
+                     filters=None,
                      **kwargs):
         """
         Add a single function node to dispatcher.
@@ -476,6 +485,11 @@ class Dispatcher(object):
         :param description:
             Function node's description.
         :type description: str, optional
+
+        :param filters:
+            A list of functions that are invoked after the invocation of the
+            main function.
+        :type filters: list[function], optional
 
         :param kwargs:
             Set additional node attributes using key=value.
@@ -551,6 +565,9 @@ class Dispatcher(object):
 
         if description is not None:  # Add description as node attribute.
             attr_dict['description'] = description
+
+        if filters:  # Add filters as node attribute.
+            attr_dict['filters'] = filters
 
         # Set function name.
         if function_id is None:
@@ -2307,6 +2324,15 @@ class Dispatcher(object):
                     msg = "Failed DISPATCHING '%s' due to:\n  %r"
                     self._warning(msg, node_id, ex)
                     return False
+            try:
+                # Apply filters to output.
+                for f in node_attr.get('filters', ()):
+                    value = f(value)
+            except Exception as ex:
+                # Some error occurs.
+                msg = "Failed DISPATCHING '%s' due to:\n  %r"
+                self._warning(msg, node_id, ex)
+                return False
 
             if 'callback' in node_attr:  # Invoke callback func of data node.
                 try:
@@ -2399,6 +2425,11 @@ class Dispatcher(object):
             else:  # Use the estimation function of node.
                 fun = node_attr['function']
                 res = fun(*args)
+
+                # Apply filters to results.
+                for f in node_attr.get('filters', ()):
+                    res = f(res)
+
                 attr['duration'] = datetime.today() - attr['started']
 
                 fun = parent_func(fun)  # Get parent function (if nested).
