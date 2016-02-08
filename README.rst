@@ -520,6 +520,60 @@ where in each one you can install a different versions of CO2MPAS.
       venvs.
 
 
+Autocompletion
+-------------------
+In order to press `[Tab]` and get completions, do the following in your
+environment (ALLINONE is pre-configured with them):
+
+- Bash:
+  Add this command in your :file:`~/.bashrc` (or type it everytime in your
+  bash-console)::
+
+      complete -fdev -W "`co2mpas-autocompletions`" co2mpas
+
+
+- `cmd.exe` with clink_ environment:
+  Add this *lua* into a script named i.e. `co2mpas_autocompletion.lua` inside
+  your `clink/profile` folder::
+
+    .. code-block:: lua
+
+        --[[ clink-autocompletion for CO2MPAS
+        --]]
+        local handle = io.popen('co2mpas-autocompletions')
+        words_str = handle:read("*a")
+        handle:close()
+
+        function words_generator(prefix, first, last)
+            local cmd = 'co2mpas'
+            local prefix_len = #prefix
+
+            --print('P:'..prefix..', F:'..first..', L:'..last..', l:'..rl_state.line_buffer)
+            if prefix_len == 0 or rl_state.line_buffer:sub(1, cmd:len()) ~= cmd then
+                return false
+            end
+
+            for w in string.gmatch(words_str, "%S+") do
+                -- Add matching app-words.
+                --
+                if w:sub(1, prefix_len) == prefix then
+                    clink.add_match(w)
+                end
+
+                -- Add matching files & dirs.
+                --
+                full_path = true
+                nf = clink.match_files(prefix..'*', full_path)
+                if nf > 0 then
+                    clink.matches_are_files()
+                end
+            end
+            return clink.match_count() > 0
+        end
+
+        sort_id = 100
+        clink.register_match_generator(words_generator)
+
 
 .. _usage:
 
@@ -759,16 +813,10 @@ excel-file:
    above procedure from step 3 to modify the vehicle and re-run the model.
    See also :ref:`debug`, below.
 
-Bash Autocompletion
--------------------
-Add this command in your :file:`~/.bashrc` or type it in an open bash-console::
-
-    $ complete -fdev -W "`co2mpas-autocompletions`" co2mpas
 
 
-
-Using IPython
--------------
+Launch CO2MPAS from Jupyter(aka IPython)
+----------------------------------------
 You may enter the data for a single vehicle and run its simulation, plot its
 results and experiment in your browser using `IPython <http://ipython.org/>`_.
 
@@ -855,3 +903,4 @@ Debugging and investigating results
   in `CO2MPAS documentation <http://files.co2mpas.io/>`_ ensuring you are
   visiting the documents for the actual version you are using.
 
+.. _clink: http://mridgers.github.io/clink/

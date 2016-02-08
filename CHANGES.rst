@@ -10,7 +10,7 @@ This release contains mainly model & I/O changes.
 Several crucial bugs and enhancements have been been implemented based on
 assessments performed by LAT.  A concise study of this release's results
 and a high-level description of the model changes is contained in this `JRC-LAT presentation
-<http://files.co2mpas.io/CO2MPAS-1.1.0/2016_02_1-JRC_LAT_CO2MPAS_Osnow-validation_n_changelog.pptx>`_.
+<http://files.co2mpas.io/CO2MPAS-1.1.0/JRC_LAT_CO2MPAS_Osnow-validation_n_changelog.pptx>`_.
 
 
 Model-changes
@@ -130,7 +130,8 @@ IO
 Cmd-line (running CO2MPAS)
 --------------------------
 
-- :gh:`88`: Don't produce results for incompatible ``VERSION`` in input-file.
+- :gh:`88`: Raise warning (console & summary-file) if incompatible ``VERSION``
+  detected in input-file.
 - :gh:`102`: Remove UI pop-up boxes when running - users have to check
   the *scores* tables in the result xl-file.
 - :gh:`91`: Disallow installation and/or execution under ``python < 3.4``.
