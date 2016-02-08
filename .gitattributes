@@ -1,0 +1,8 @@
+## ZIP files:
+#  You need this into your global `~/.gitconfig`:
+#
+#   [diff "zip"]
+#       textconv = unzip -c -a
+*.pptx  diff=zip
+*.xlsx  diff=zip
+*.zip   diff=zip
