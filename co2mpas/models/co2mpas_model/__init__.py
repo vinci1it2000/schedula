@@ -23,7 +23,7 @@ The model is defined by a Dispatcher that wraps all the functions needed.
 """
 
 from co2mpas.functions.co2mpas_model import *
-from .physical import physical_calibration, physical_prediction
+from .physical import physical
 
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher import Dispatcher
@@ -64,7 +64,7 @@ def co2mpas_model():
 
     dsp.add_function(
         function_id='calibrate_physical_models',
-        function=dsp_utl.SubDispatch(physical_calibration()),
+        function=dsp_utl.SubDispatch(physical()),
         inputs=['wltp_precondition_inputs'],
         outputs=['wltp_precondition_outputs'],
         description='Wraps all functions needed to calibrate the models to '
@@ -83,7 +83,7 @@ def co2mpas_model():
 
     dsp.add_function(
         function_id='calibrate_physical_models_with_wltp_h',
-        function=dsp_utl.SubDispatch(physical_calibration()),
+        function=dsp_utl.SubDispatch(physical()),
         inputs=['calibration_wltp_h_inputs'],
         outputs=['calibration_wltp_h_outputs'],
         description='Wraps all functions needed to calibrate the models to '
@@ -99,7 +99,7 @@ def co2mpas_model():
 
     dsp.add_function(
         function_id='predict_wltp_h',
-        function=dsp_utl.SubDispatch(physical_prediction()),
+        function=dsp_utl.SubDispatch(physical()),
         inputs=['calibrated_co2mpas_models', 'prediction_wltp_h_inputs'],
         outputs=['prediction_wltp_h_outputs'],
     )
@@ -116,7 +116,7 @@ def co2mpas_model():
 
     dsp.add_function(
         function_id='calibrate_physical_models_with_wltp_l',
-        function=dsp_utl.SubDispatch(physical_calibration()),
+        function=dsp_utl.SubDispatch(physical()),
         inputs=['calibration_wltp_l_inputs'],
         outputs=['calibration_wltp_l_outputs'],
         description='Wraps all functions needed to calibrate the models to '
@@ -132,7 +132,7 @@ def co2mpas_model():
 
     dsp.add_function(
         function_id='predict_wltp_l',
-        function=dsp_utl.SubDispatch(physical_prediction()),
+        function=dsp_utl.SubDispatch(physical()),
         inputs=['calibrated_co2mpas_models', 'prediction_wltp_l_inputs'],
         outputs=['prediction_wltp_l_outputs'],
     )
@@ -154,7 +154,7 @@ def co2mpas_model():
 
     dsp.add_function(
         function_id='predict_nedc',
-        function=dsp_utl.SubDispatch(physical_prediction()),
+        function=dsp_utl.SubDispatch(physical()),
         inputs=['calibrated_co2mpas_models', 'nedc_inputs'],
         outputs=['prediction_nedc_outputs'],
     )

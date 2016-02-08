@@ -20,12 +20,14 @@ Sub-Modules:
     AT_gear
 """
 
-import co2mpas.dispatcher.utils as dsp_utl
+
 from co2mpas.dispatcher import Dispatcher
 from co2mpas.functions.co2mpas_model.physical.gear_box import *
+from .AT_gear import AT_gear
+import co2mpas.dispatcher.utils as dsp_utl
 
 
-def _gear_box():
+def gear_box():
 
     gear_box = Dispatcher(
         name='Gear box model',
@@ -203,37 +205,26 @@ def _gear_box():
         outputs=['equivalent_gear_box_heat_capacity']
     )
 
-    return gear_box
-
-
-def gear_box_calibration():
-    """
-    Defines the gear box calibration model.
-
-    .. dispatcher:: dsp
-
-        >>> dsp = gear_box_calibration()
-
-    :return:
-        The gear box calibration model.
-    :rtype: Dispatcher
-    """
-
-    gear_box_calibration = _gear_box()
-
-    from .AT_gear import AT_gear
-
     def domain_AT_gear_shifting(kwargs):
         for k, v in kwargs.items():
             if ':gear_box_type' in k or 'gear_box_type' == k:
                 return v == 'automatic'
         return False
 
-    gear_box_calibration.add_dispatcher(
+    gear_box.add_dispatcher(
         include_defaults=True,
         dsp=AT_gear(),
         dsp_id='AT_gear_shifting',
         inputs={
+            'MVL': 'MVL',
+            'CMV': 'CMV',
+            'CMV_Cold_Hot': 'CMV_Cold_Hot',
+            'DT_VA': 'DT_VA',
+            'DT_VAT': 'DT_VAT',
+            'DT_VAP': 'DT_VAP',
+            'DT_VATP': 'DT_VATP',
+            'GSPV': 'GSPV',
+            'GSPV_Cold_Hot': 'GSPV_Cold_Hot',
             'accelerations': 'accelerations',
             'use_dt_gear_shifting': 'use_dt_gear_shifting',
             'specific_gear_shifting': 'specific_gear_shifting',
@@ -254,6 +245,7 @@ def gear_box_calibration():
             'velocity_speed_ratios': 'velocity_speed_ratios',
         },
         outputs={
+            'gears': 'gears',
             'MVL': 'MVL',
             'CMV': 'CMV',
             'CMV_Cold_Hot': 'CMV_Cold_Hot',
@@ -276,59 +268,4 @@ def gear_box_calibration():
         },
         input_domain=domain_AT_gear_shifting
     )
-    return gear_box_calibration
-
-
-def gear_box_prediction():
-    """
-    Defines the gear box prediction model.
-
-    .. dispatcher:: dsp
-
-        >>> dsp = gear_box_prediction()
-
-    :return:
-        The gear box prediction model.
-    :rtype: Dispatcher
-    """
-
-    gear_box_prediction = _gear_box()
-
-    from .AT_gear import AT_gear
-
-    gear_box_prediction.add_dispatcher(
-        include_defaults=True,
-        dsp=AT_gear(),
-        dsp_id='AT_gear_shifting',
-        inputs={
-            'use_dt_gear_shifting': 'use_dt_gear_shifting',
-            'specific_gear_shifting': 'specific_gear_shifting',
-            'full_load_curve': 'full_load_curve',
-            'MVL': 'MVL',
-            'CMV': 'CMV',
-            'CMV_Cold_Hot': 'CMV_Cold_Hot',
-            'DT_VA': 'DT_VA',
-            'DT_VAT': 'DT_VAT',
-            'DT_VAP': 'DT_VAP',
-            'DT_VATP': 'DT_VATP',
-            'GSPV': 'GSPV',
-            'GSPV_Cold_Hot': 'GSPV_Cold_Hot',
-            'idle_engine_speed': 'idle_engine_speed',
-            'road_loads': 'road_loads',
-            'vehicle_mass': 'vehicle_mass',
-            'engine_max_power': 'engine_max_power',
-            'engine_max_speed_at_max_power': 'engine_max_speed_at_max_power',
-            'accelerations': 'accelerations',
-            'motive_powers': 'motive_powers',
-            'engine_coolant_temperatures': 'engine_coolant_temperatures',
-            'time_cold_hot_transition': 'time_cold_hot_transition',
-            'times': 'times',
-            'velocities': 'velocities',
-            'velocity_speed_ratios': 'velocity_speed_ratios',
-        },
-        outputs={
-            'gears': 'gears',
-        }
-    )
-
-    return gear_box_prediction
+    return gear_box

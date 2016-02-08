@@ -445,28 +445,26 @@ _re_units = re.compile('(\[.*\])')
 
 
 def get_doc_description():
-    from co2mpas.models.co2mpas_model.physical import physical_calibration
-    from co2mpas.models.co2mpas_model.physical import physical_prediction
+    from co2mpas.models.co2mpas_model.physical import physical
     from co2mpas.dispatcher.utils import search_node_description
 
     doc_descriptions = {}
 
-    for builder in [physical_calibration, physical_prediction]:
-        dsp = builder()
-        for k, v in dsp.data_nodes.items():
-            if k in doc_descriptions or v['type'] != 'data':
-                continue
-            des = search_node_description(k, v, dsp)[0]
-            if not des or len(des.split(' ')) > 4:
+    dsp = physical()
+    for k, v in dsp.data_nodes.items():
+        if k in doc_descriptions or v['type'] != 'data':
+            continue
+        des = search_node_description(k, v, dsp)[0]
+        if not des or len(des.split(' ')) > 4:
 
-                unit = _re_units.search(des)
-                if unit:
-                    unit = ' %s' % unit.group()
-                else:
-                    unit = ''
-                doc_descriptions[k] = '%s%s.' % (parse_name(k), unit)
+            unit = _re_units.search(des)
+            if unit:
+                unit = ' %s' % unit.group()
             else:
-                doc_descriptions[k] = des
+                unit = ''
+            doc_descriptions[k] = '%s%s.' % (parse_name(k), unit)
+        else:
+            doc_descriptions[k] = des
     return doc_descriptions
 
 
@@ -492,20 +490,18 @@ def parse_name(name, _standard_names=None):
 
 
 def get_types():
-    from co2mpas.models.co2mpas_model.physical import physical_calibration
-    from co2mpas.models.co2mpas_model.physical import physical_prediction
+    from co2mpas.models.co2mpas_model.physical import physical
     from co2mpas.dispatcher.utils import search_node_description
 
     node_types = {}
 
-    for builder in [physical_calibration, physical_prediction]:
-        dsp = builder()
-        for k, v in dsp.data_nodes.items():
-            if k in node_types or v['type'] != 'data':
-                continue
-            des = search_node_description(k, v, dsp, 'value_type')[0]
+    dsp = physical()
+    for k, v in dsp.data_nodes.items():
+        if k in node_types or v['type'] != 'data':
+            continue
+        des = search_node_description(k, v, dsp, 'value_type')[0]
 
-            node_types[k] = des.replace(' ', '').split(',')
+        node_types[k] = des.replace(' ', '').split(',')
     return node_types
 
 

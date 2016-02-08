@@ -15,7 +15,7 @@ from co2mpas.__main__ import init_logging
 import ddt
 init_logging(True)
 from co2mpas.models.co2mpas_model.physical.engine import engine
-from co2mpas.models.co2mpas_model.physical import _physical
+from co2mpas.models.co2mpas_model.physical import physical
 from co2mpas.models.co2mpas_model.physical.electrics import electrics
 from co2mpas.models.co2mpas_model.physical.gear_box.AT_gear import AT_gear
 import os
@@ -180,7 +180,7 @@ def define_sub_models():
 
         'engine_speed_model': {
             'calibration': {
-                'dsp': _physical(),
+                'dsp': physical(),
                 'inputs': [
                     'times', 'velocities', 'accelerations', 'engine_speeds_out',
                     'engine_coolant_temperatures', 'gear_box_speeds_in',
@@ -197,7 +197,7 @@ def define_sub_models():
             },
 
             'prediction': {
-                'dsp': _physical(),
+                'dsp': physical(),
                 'inputs': [
                     'gear_box_speeds_in', 'on_engine', 'idle_engine_speed',
                     'engine_coolant_temperatures', 'gear_box_type',

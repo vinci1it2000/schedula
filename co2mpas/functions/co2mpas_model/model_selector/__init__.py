@@ -241,10 +241,10 @@ def sub_models():
         'dn_limit': [0.7] * 2,
     }
 
-    from co2mpas.models.co2mpas_model.physical import physical_prediction
+    from co2mpas.models.co2mpas_model.physical import physical
 
     sub_models['engine_speed_model'] = {
-        'dsp': physical_prediction(),
+        'dsp': physical(),
         'models': ['r_dynamic', 'final_drive_ratio', 'gear_box_ratios',
                    'idle_engine_speed', 'engine_thermostat_temperature'],
         'inputs': ['velocities', 'gears', 'times', 'on_engine'],
@@ -344,10 +344,10 @@ def sub_models():
     sub_models['AT_model'] = {
         'dsp': AT_gear(),
         'select_models': AT_models_selector,
-        'models_wo_err': ['max_gear'],
+        'models_wo_err': ['max_gear', 'specific_gear_shifting'],
         'models': ['max_gear', 'MVL', 'CMV', 'CMV_Cold_Hot',
                    'DT_VA', 'DT_VAT', 'DT_VAP', 'DT_VATP', 'GSPV',
-                   'GSPV_Cold_Hot'],
+                   'GSPV_Cold_Hot', 'specific_gear_shifting'],
         'inputs': [
             'engine_max_power', 'engine_max_speed_at_max_power',
             'idle_engine_speed', 'full_load_curve', 'road_loads',
@@ -389,6 +389,7 @@ def AT_models_selector(AT_models, data):
         e, k = m[0][1:]
 
         models[k] = data[k]
+        models['specific_gear_shifting'] = k
         models['origin AT_gear_shifting_model'] = (k, e)
         data['origin AT_gear_shifting_model'] = (k, e)
         tags = ['accuracy_score', 'mean_absolute_error',

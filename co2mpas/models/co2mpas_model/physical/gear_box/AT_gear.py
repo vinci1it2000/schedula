@@ -84,7 +84,7 @@ def AT_gear():
         dsp=cmv(),
         input_domain=at_domain('CMV'),
         inputs={
-            'specific_gear_shifting': dsp_utl.SINK,
+            'specific_gear_shifting': 'specific_gear_shifting',
             'CMV': 'CMV',
             'accelerations': 'accelerations',
             'correct_gear': 'correct_gear',
@@ -107,7 +107,7 @@ def AT_gear():
         input_domain=at_domain('CMV_Cold_Hot'),
         dsp=cmv_cold_hot(),
         inputs={
-            'specific_gear_shifting': dsp_utl.SINK,
+            'specific_gear_shifting': 'specific_gear_shifting',
             'CMV_Cold_Hot': 'CMV_Cold_Hot',
             'accelerations': 'accelerations',
             'correct_gear': 'correct_gear',
@@ -144,7 +144,7 @@ def AT_gear():
         dsp=dt_va(),
         inputs={
             'use_dt_gear_shifting': dsp_utl.SINK,
-            'specific_gear_shifting': dsp_utl.SINK,
+            'specific_gear_shifting': 'specific_gear_shifting',
             'DT_VA': 'DT_VA',
             'accelerations': 'accelerations',
             'correct_gear': 'correct_gear',
@@ -167,7 +167,7 @@ def AT_gear():
         dsp=dt_vap(),
         inputs={
             'use_dt_gear_shifting': dsp_utl.SINK,
-            'specific_gear_shifting': dsp_utl.SINK,
+            'specific_gear_shifting': 'specific_gear_shifting',
             'DT_VAP': 'DT_VAP',
             'accelerations': 'accelerations',
             'correct_gear': 'correct_gear',
@@ -191,7 +191,7 @@ def AT_gear():
         dsp=dt_vat(),
         inputs={
             'use_dt_gear_shifting': dsp_utl.SINK,
-            'specific_gear_shifting': dsp_utl.SINK,
+            'specific_gear_shifting': 'specific_gear_shifting',
             'DT_VAT': 'DT_VAT',
             'accelerations': 'accelerations',
             'correct_gear': 'correct_gear',
@@ -215,7 +215,7 @@ def AT_gear():
         dsp=dt_vatp(),
         inputs={
             'use_dt_gear_shifting': dsp_utl.SINK,
-            'specific_gear_shifting': dsp_utl.SINK,
+            'specific_gear_shifting': 'specific_gear_shifting',
             'DT_VATP': 'DT_VATP',
             'accelerations': 'accelerations',
             'correct_gear': 'correct_gear',
@@ -239,7 +239,7 @@ def AT_gear():
         dsp=gspv(),
         input_domain=at_domain('GSPV'),
         inputs={
-            'specific_gear_shifting': dsp_utl.SINK,
+            'specific_gear_shifting': 'specific_gear_shifting',
             'GSPV': 'GSPV',
             'accelerations': 'accelerations',
             'correct_gear': 'correct_gear',
@@ -263,7 +263,7 @@ def AT_gear():
         dsp=gspv_cold_hot(),
         input_domain=at_domain('GSPV_Cold_Hot'),
         inputs={
-            'specific_gear_shifting': dsp_utl.SINK,
+            'specific_gear_shifting': 'specific_gear_shifting',
             'GSPV_Cold_Hot': 'GSPV_Cold_Hot',
             'accelerations': 'accelerations',
             'correct_gear': 'correct_gear',
@@ -317,9 +317,12 @@ def cmv():
 
     # calculate engine speeds with predicted gears
     cmv.add_function(
-        function=calculate_gear_box_speeds_in,
-        inputs=['gears', 'velocities', 'velocity_speed_ratios'],
-        outputs=['gear_box_speeds_in'])
+        function=dsp_utl.add_args(calculate_gear_box_speeds_in),
+        inputs=['specific_gear_shifting', 'gears', 'velocities',
+                'velocity_speed_ratios'],
+        outputs=['gear_box_speeds_in'],
+        input_domain=lambda *x: x[0] in ('ALL', 'CMV')
+    )
 
     # calculate error coefficients
     cmv.add_function(
@@ -367,9 +370,12 @@ def cmv_cold_hot():
 
     # calculate engine speeds with predicted gears
     cmv_cold_hot.add_function(
-        function=calculate_gear_box_speeds_in,
-        inputs=['gears', 'velocities', 'velocity_speed_ratios'],
-        outputs=['gear_box_speeds_in'])
+        function=dsp_utl.add_args(calculate_gear_box_speeds_in),
+        inputs=['specific_gear_shifting', 'gears', 'velocities',
+                'velocity_speed_ratios'],
+        outputs=['gear_box_speeds_in'],
+        input_domain=lambda *x: x[0] in ('ALL', 'CMV_Cold_Hot')
+    )
 
     # calculate error coefficients
     cmv_cold_hot.add_function(
@@ -418,9 +424,12 @@ def dt_va():
 
     # calculate engine speeds with predicted gears
     dt_va.add_function(
-        function=calculate_gear_box_speeds_in,
-        inputs=['gears', 'velocities', 'velocity_speed_ratios'],
-        outputs=['gear_box_speeds_in'])
+        function=dsp_utl.add_args(calculate_gear_box_speeds_in),
+        inputs=['specific_gear_shifting', 'gears', 'velocities',
+                'velocity_speed_ratios'],
+        outputs=['gear_box_speeds_in'],
+        input_domain=lambda *x: x[0] in ('ALL', 'DT_VA')
+    )
 
     # calculate error coefficients
     dt_va.add_function(
@@ -475,9 +484,12 @@ def dt_vap():
 
     # calculate engine speeds with predicted gears
     dt_vap.add_function(
-        function=calculate_gear_box_speeds_in,
-        inputs=['gears', 'velocities', 'velocity_speed_ratios'],
-        outputs=['gear_box_speeds_in'])
+        function=dsp_utl.add_args(calculate_gear_box_speeds_in),
+        inputs=['specific_gear_shifting', 'gears', 'velocities',
+                'velocity_speed_ratios'],
+        outputs=['gear_box_speeds_in'],
+        input_domain=lambda *x: x[0] in ('ALL', 'DT_VAP')
+    )
 
     # calculate error coefficients
     dt_vap.add_function(
@@ -532,9 +544,12 @@ def dt_vat():
 
     # calculate engine speeds with predicted gears
     dt_vat.add_function(
-        function=calculate_gear_box_speeds_in,
-        inputs=['gears', 'velocities', 'velocity_speed_ratios'],
-        outputs=['gear_box_speeds_in'])
+        function=dsp_utl.add_args(calculate_gear_box_speeds_in),
+        inputs=['specific_gear_shifting', 'gears', 'velocities',
+                'velocity_speed_ratios'],
+        outputs=['gear_box_speeds_in'],
+        input_domain=lambda *x: x[0] in ('ALL', 'DT_VAT')
+    )
 
     # calculate error coefficients
     dt_vat.add_function(
@@ -599,9 +614,12 @@ def dt_vatp():
 
     # calculate engine speeds with predicted gears
     dt_vatp.add_function(
-        function=calculate_gear_box_speeds_in,
-        inputs=['gears', 'velocities', 'velocity_speed_ratios'],
-        outputs=['gear_box_speeds_in'])
+        function=dsp_utl.add_args(calculate_gear_box_speeds_in),
+        inputs=['specific_gear_shifting', 'gears', 'velocities',
+                'velocity_speed_ratios'],
+        outputs=['gear_box_speeds_in'],
+        input_domain=lambda *x: x[0] in ('ALL', 'DT_VATP')
+    )
 
     # calculate error coefficients
     dt_vatp.add_function(
@@ -646,9 +664,12 @@ def gspv():
 
     # calculate engine speeds with predicted gears
     gspv.add_function(
-        function=calculate_gear_box_speeds_in,
-        inputs=['gears', 'velocities', 'velocity_speed_ratios'],
-        outputs=['gear_box_speeds_in'])
+        function=dsp_utl.add_args(calculate_gear_box_speeds_in),
+        inputs=['specific_gear_shifting', 'gears', 'velocities',
+                'velocity_speed_ratios'],
+        outputs=['gear_box_speeds_in'],
+        input_domain=lambda *x: x[0] in ('ALL', 'GSPV')
+    )
 
     # calculate error coefficients
     gspv.add_function(
@@ -696,9 +717,12 @@ def gspv_cold_hot():
 
     # calculate engine speeds with predicted gears
     gspv_cold_hot.add_function(
-        function=calculate_gear_box_speeds_in,
-        inputs=['gears', 'velocities', 'velocity_speed_ratios'],
-        outputs=['gear_box_speeds_in'])
+        function=dsp_utl.add_args(calculate_gear_box_speeds_in),
+        inputs=['specific_gear_shifting', 'gears', 'velocities',
+                'velocity_speed_ratios'],
+        outputs=['gear_box_speeds_in'],
+        input_domain=lambda *x: x[0] in ('ALL', 'GSPV_Cold_Hot')
+    )
 
     # calculate error coefficients
     gspv_cold_hot.add_function(

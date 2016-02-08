@@ -33,7 +33,7 @@ import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.functions.co2mpas_model.physical.constants.NEDC import *
 
 
-def _physical():
+def physical():
     physical = Dispatcher(
         name='CO2MPAS physical model',
         description='Wraps all functions needed to calibrate and predict '
@@ -358,35 +358,22 @@ def _physical():
         }
     )
 
-    return physical
+    from .gear_box import gear_box
 
-
-def physical_calibration():
-    """
-    Defines the physical calibration model.
-
-    .. dispatcher:: dsp
-
-        >>> dsp = physical_calibration()
-
-    :return:
-        The physical calibration model.
-    :rtype: Dispatcher
-    """
-
-    physical_calibration = _physical()
-
-    physical_calibration.name = 'CO2MPAS physical calibration model'
-    physical_calibration.__doc__ = 'Wraps all functions needed to calibrate ' \
-                                   'light-vehicles\' CO2 emissions.'
-
-    from .gear_box import gear_box_calibration
-
-    physical_calibration.add_dispatcher(
+    physical.add_dispatcher(
         include_defaults=True,
         dsp_id='gear_box_model',
-        dsp=gear_box_calibration(),
+        dsp=gear_box(),
         inputs={
+            'MVL': 'MVL',
+            'CMV': 'CMV',
+            'CMV_Cold_Hot': 'CMV_Cold_Hot',
+            'DT_VA': 'DT_VA',
+            'DT_VAT': 'DT_VAT',
+            'DT_VAP': 'DT_VAP',
+            'DT_VATP': 'DT_VATP',
+            'GSPV': 'GSPV',
+            'GSPV_Cold_Hot': 'GSPV_Cold_Hot',
             'cycle_type': 'cycle_type',
             'use_dt_gear_shifting': 'use_dt_gear_shifting',
             'specific_gear_shifting': 'specific_gear_shifting',
@@ -455,89 +442,4 @@ def physical_calibration():
             'velocity_speed_ratios': 'velocity_speed_ratios',
         }
     )
-    return physical_calibration
-
-
-def physical_prediction():
-    """
-    Defines the physical prediction model.
-
-    .. dispatcher:: dsp
-
-        >>> dsp = physical_prediction()
-
-    :return:
-        The physical prediction model.
-    :rtype: Dispatcher
-    """
-
-    physical_prediction = _physical()
-
-    physical_prediction.name = 'CO2MPAS physical prediction model'
-    physical_prediction.__doc__ = 'Wraps all functions needed to predict ' \
-                                  'light-vehicles\' CO2 emissions.'
-
-    from .gear_box import gear_box_prediction
-
-    physical_prediction.add_dispatcher(
-        include_defaults=True,
-        dsp_id='gear_box_model',
-        dsp=gear_box_prediction(),
-        inputs={
-            'cycle_type': 'cycle_type',
-            'use_dt_gear_shifting': 'use_dt_gear_shifting',
-            'specific_gear_shifting': 'specific_gear_shifting',
-            'MVL': 'MVL',
-            'CMV': 'CMV',
-            'CMV_Cold_Hot': 'CMV_Cold_Hot',
-            'DT_VA': 'DT_VA',
-            'DT_VAT': 'DT_VAT',
-            'DT_VAP': 'DT_VAP',
-            'DT_VATP': 'DT_VATP',
-            'GSPV': 'GSPV',
-            'GSPV_Cold_Hot': 'GSPV_Cold_Hot',
-            'engine_coolant_temperatures': 'engine_coolant_temperatures',
-            'engine_max_power': 'engine_max_power',
-            'engine_max_speed_at_max_power': 'engine_max_speed_at_max_power',
-            'road_loads': 'road_loads',
-            'vehicle_mass': 'vehicle_mass',
-            'time_cold_hot_transition': 'time_cold_hot_transition',
-            'motive_powers': 'motive_powers',
-            'accelerations': 'accelerations',
-            'engine_max_torque': 'engine_max_torque',
-            'final_drive_ratio': 'final_drive_ratio',
-            'final_drive_powers_in': 'gear_box_powers_out',
-            'final_drive_speeds_in': 'gear_box_speeds_out',
-            'fuel_type': 'fuel_type',
-            'full_load_curve': 'full_load_curve',
-            'gear_box_efficiency_constants': 'gear_box_efficiency_constants',
-            'gear_box_efficiency_parameters_cold_hot':
-                'gear_box_efficiency_parameters_cold_hot',
-            'gear_box_ratios': 'gear_box_ratios',
-            'initial_temperature': 'initial_gear_box_temperature',
-            'gear_box_type': 'gear_box_type',
-            'gears': 'gears',
-            'idle_engine_speed': 'idle_engine_speed',
-            'r_dynamic': 'r_dynamic',
-            'temperature_references': 'temperature_references',
-            'engine_thermostat_temperature': 'engine_thermostat_temperature',
-            'times': 'times',
-            'velocities': 'velocities',
-            'velocity_speed_ratios': 'velocity_speed_ratios',
-        },
-        outputs={
-            'equivalent_gear_box_heat_capacity':
-                'equivalent_gear_box_heat_capacity',
-            'gears': 'gears',
-            'gear_box_efficiencies': 'gear_box_efficiencies',
-            'gear_box_speeds_in': 'gear_box_speeds_in',
-            'gear_box_temperatures': 'gear_box_temperatures',
-            'gear_box_torque_losses': 'gear_box_torque_losses',
-            'gear_box_torques_in': 'gear_box_torques_in',
-            'gear_box_powers_in': 'gear_box_powers_in',
-            'max_gear': 'max_gear',
-            'gear_shifts': 'gear_shifts',
-            'velocity_speed_ratios': 'velocity_speed_ratios',
-        }
-    )
-    return physical_prediction
+    return physical
