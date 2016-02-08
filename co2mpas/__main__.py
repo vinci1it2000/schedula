@@ -284,6 +284,46 @@ def _prompt_folder(folder_name, fpath):
     return fpath
 
 
+def _prompt_options():
+    import easygui as eu
+
+    fields = ('predict-wltp', 'plot-workflow', 'only-summary', 'out-template',
+              'charts')
+    values = ('y/[n]', 'y/[n]', 'y/[n]', 'y/[n]/<xlsx-file>', 'y/[n]')
+
+    opt = eu.multenterbox(
+            msg='Select simulate options:',
+            title='%s-v%s' % (proj_name, proj_ver),
+            fields=fields,
+            values=values
+    )
+
+    if not opt:
+        raise CmdException('User abort.')
+
+    def parse_opt(f, r, v):
+        if v != r:
+            l = v.lower()
+            if f == 'out-template':
+
+                if l.endswith('.xlsx'):
+                    return ' --%s %s' % (f, v)
+                elif l == 'y':
+                    return ' --%s -' % f
+
+            elif l == 'y':
+                return ' --%s' % f
+
+            if l != 'n':
+                return ' --%s %s' % (f, v)
+
+        return ''
+
+    args = ''.join((parse_opt(f, r, o) for f, r, o in zip(fields, values, opt)))
+
+    return (os.path.realpath(__file__) + args).split(' ')
+
+
 def _run_batch(opts):
     input_folder = _prompt_folder(folder_name='INPUT', fpath=opts['-I'])
 
