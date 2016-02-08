@@ -430,7 +430,7 @@ def check_data_version(data):
 
             msg = "\n  Input file version %s. Please update your input " \
                   "file with a version >= %s."
-            log.error(msg, v, __input_file_version__)
+            log.warning(msg, v, __input_file_version__)
             break
 
         msg = "\n  Input file version not found. Please update your input " \
