@@ -28,6 +28,7 @@ from co2mpas.dispatcher.utils.alg import stlp
 from . import get_filters, EmptyValue
 import json
 
+
 log = logging.getLogger(__name__)
 
 _re_params_name = regex.compile(
@@ -52,14 +53,15 @@ def parse_excel_file(file_path):
     """
     Reads cycle's time series.
 
-    :param excel_file:
-        An excel file.
-    :type excel_file: pandas.ExcelFile
+    :param file_path:
+        Excel file path.
+    :type file_path: str
 
     :return:
         A pandas DataFrame with cycle's time series.
     :rtype: pandas.DataFrame
     """
+
     excel_file = pd.ExcelFile(file_path)
     res = {}
     defaults = {
@@ -86,11 +88,12 @@ def parse_excel_file(file_path):
             match = dsp_utl.combine_dicts(defaults, match)
 
         if match['type'] == 'parameters':
-            sheet = _open_sheet_by_name_or_index(excel_file.book, 'book', sheet_name)
             xl_ref = '#%s!B2:C_:["pipe", ["dict", "recurse"]]' % sheet_name
-            data = lasso(xl_ref, sheet=sheet)
         else:
-            data = excel_file.parse(sheetname=sheet_name, skiprows=1)
+            xl_ref = '#%s!A1(RD):..(RD):(RD):["df", {"header": [0], "skiprows": [0]}]' % sheet_name
+
+        sheet = _open_sheet_by_name_or_index(excel_file.book, 'book', sheet_name)
+        data = lasso(xl_ref, sheet=sheet)
 
         filters = _filters[match['type']]
 
@@ -99,20 +102,17 @@ def parse_excel_file(file_path):
             v = parse_value(k, v, filters)
             for c in stlp(m['cycle']):
                 _get(res, c.replace('-', '_'), m['as'])[k] = v
+
     return res
 
 
 def iter_values(data):
     """
-    Parses and fetch the data with a data map.
+    Parses the data with a data map.
 
     :param data:
         Data to be parsed (key) and fetch (value) with filters.
     :type data: dict, pd.DataFrame
-
-    :param data_map:
-        It maps the data as: data's key --> (parsed key, filters).
-    :type data_map: dict
 
     :return:
         Parsed and fetched data (inputs and targets).
@@ -159,9 +159,10 @@ def read_cycles_series(excel_file, sheet_name):
     :rtype: pandas.DataFrame
     """
 
+    # noinspection PyBroadException
     try:
         df = excel_file.parse(sheetname=sheet_name, skiprows=1)
-    except:
+    except Exception:
         df = pd.DataFrame()
 
     return df
@@ -178,6 +179,10 @@ def read_cycle_parameters(excel_file, parse_cols, sheet_id='Inputs'):
     :param parse_cols:
         Columns of the vehicle's parameters.
     :type parse_cols: tuple, str
+
+    :param sheet_id:
+        Sheet id.
+    :type sheet_id: str
 
     :return:
         A pandas DataFrame with vehicle's parameters.
@@ -203,6 +208,10 @@ def parse_inputs(data, data_map, cycle_name):
         It maps the data as: data's key --> (parsed key, filters).
     :type data_map: dict
 
+    :param cycle_name:
+        Cycle name.
+    :type cycle_name: str
+
     :return:
         Parsed and fetched data (inputs and targets).
     :rtype: (dict, dict)
@@ -212,7 +221,7 @@ def parse_inputs(data, data_map, cycle_name):
 
     for i in data.items():
         k, v = i
-        if (isinstance(v, float) and isnan(v) or _check_none(v)):
+        if isinstance(v, float) and isnan(v) or _check_none(v):
             continue
 
         k = k.split(' ')
