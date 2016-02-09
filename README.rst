@@ -472,19 +472,21 @@ where in each one you can install a different versions of CO2MPAS.
         set "TCL_LIBRARY=d:\WinPython-XX4bit-3.Y.Y.Y\python-3.Y.Y.amd64\tcl\tcl8.6"
         set "TK_LIBRARY=d:\WinPython-XXit-3.Y.Y.Y\python-3.Y.Y.amd64\tcl\tk8.6"
 
-   .. Tip::
+   .. Warning::
        If you don't modify the *activation-script*, you will receive
        the following message while running CO2MPAS::
 
            This probably means that Tcl wasn't installed properly.
 
-       Ofcourse you have to **adapt the paths above** to match the `TCL` & `TK`
+       Of course you have to **adapt the paths above** to match the `TCL` & `TK`
        folder in your parent python-env.  For instance, in ALLINONE the lines
        above would become::
 
         set "TCL_LIBRARY=%WINPYTHON%\tcl\tcl8.6"
         set "TK_LIBRARY=%WINPYTHON%\tcl\tk8.6"
 
+   .. Tip::
+        The ALLINONE archives already include this workaround ;-)
 
 
 5. "Activate" the new "venv" by running the following command
@@ -493,6 +495,12 @@ where in each one you can install a different versions of CO2MPAS.
    .. code-block:: console
 
         > .\co2mpas_v1.0.1.venv.venv\Scripts\activate.bat
+
+   Or type this in *bash*:
+
+   .. code-block:: console
+
+        $ source co2mpas_v1.0.1.venv.venv\Scripts\activate.bat
 
    You must now see that your prompt has been prefixed with the venv's name.
 
@@ -521,67 +529,68 @@ where in each one you can install a different versions of CO2MPAS.
 
 
 Autocompletion
--------------------
-In order to press `[Tab]` and get completions, do the following in your
+--------------
+In order to press ``[Tab]`` and get completions, do the following in your
 environment (ALLINONE is pre-configured with them):
 
-- Bash:
-  Add this command in your :file:`~/.bashrc` (or type it everytime in your
-  bash-console)::
+- For the clink_ environment, on `cmd.exe`, add the following *lua* script
+  inside clink's profile folder: ``clink/profile/co2mpas_autocompletion.lua``
+
+  .. code-block:: lua
+
+    --[[ clink-autocompletion for CO2MPAS
+    --]]
+    local handle = io.popen('co2mpas-autocompletions')
+    words_str = handle:read("*a")
+    handle:close()
+
+    function words_generator(prefix, first, last)
+        local cmd = 'co2mpas'
+        local prefix_len = #prefix
+
+        --print('P:'..prefix..', F:'..first..', L:'..last..', l:'..rl_state.line_buffer)
+        if prefix_len == 0 or rl_state.line_buffer:sub(1, cmd:len()) ~= cmd then
+            return false
+        end
+
+        for w in string.gmatch(words_str, "%S+") do
+            -- Add matching app-words.
+            --
+            if w:sub(1, prefix_len) == prefix then
+                clink.add_match(w)
+            end
+
+            -- Add matching files & dirs.
+            --
+            full_path = true
+            nf = clink.match_files(prefix..'*', full_path)
+            if nf > 0 then
+                clink.matches_are_files()
+            end
+        end
+        return clink.match_count() > 0
+    end
+
+    sort_id = 100
+    clink.register_match_generator(words_generator)
+
+- For the *bash* shell just add this command in your :file:`~/.bashrc`
+  (or type it every time you open a new console):
+
+  .. code-block:: console
 
       complete -fdev -W "`co2mpas-autocompletions`" co2mpas
 
 
-- `cmd.exe` with clink_ environment:
-  Add this *lua* into a script named i.e. `co2mpas_autocompletion.lua` inside
-  your `clink/profile` folder::
-
-    .. code-block:: lua
-
-        --[[ clink-autocompletion for CO2MPAS
-        --]]
-        local handle = io.popen('co2mpas-autocompletions')
-        words_str = handle:read("*a")
-        handle:close()
-
-        function words_generator(prefix, first, last)
-            local cmd = 'co2mpas'
-            local prefix_len = #prefix
-
-            --print('P:'..prefix..', F:'..first..', L:'..last..', l:'..rl_state.line_buffer)
-            if prefix_len == 0 or rl_state.line_buffer:sub(1, cmd:len()) ~= cmd then
-                return false
-            end
-
-            for w in string.gmatch(words_str, "%S+") do
-                -- Add matching app-words.
-                --
-                if w:sub(1, prefix_len) == prefix then
-                    clink.add_match(w)
-                end
-
-                -- Add matching files & dirs.
-                --
-                full_path = true
-                nf = clink.match_files(prefix..'*', full_path)
-                if nf > 0 then
-                    clink.matches_are_files()
-                end
-            end
-            return clink.match_count() > 0
-        end
-
-        sort_id = 100
-        clink.register_match_generator(words_generator)
-
 
 .. _usage:
 
-Console Usage
-=============
+Usage
+=====
 .. Note::
     The following commands are for the **bash console**, specifically tailored
-    for the **all-in-one** archive.
+    for the **all-in-one** archive.  In `cmd.exe` the commands are rougly similar,
+    but remember to substitute the slashes (`/`) in paths with backslashes(`\`).
 
     The :doc:`allinone` contains additionally batch-files
     (e.g. :file:`RUN_COMPAS.bat`, :file:`NEW_TEMPLATE.bat`, etc)
@@ -674,8 +683,8 @@ or a folder with multiple input-files for each vehicle, and generates a
 and (optionally) multiple **output-excel-files** for each vehicle run.
 
 
-Running Samples
----------------
+Running Demos
+-------------
 The simulator contains input-files for demo-vehicles that are a nice
 starting point to try out.
 
@@ -733,17 +742,17 @@ starting point to try out.
 
 Output files
 ------------
-The output-files produced on each run are the following::
+The output-files produced on each run are the following:
 
-- `<timestamp>-<inp-fname>.xls`:
-  A file containing all the inputs and calculation results for each vehicle
+- One file per vehicle, named as `<timestamp>-<inp-fname>.xls`:
+  This file contains all the inputs and calculation results for each vehicle
   contained in the batch-run: scalar-parameters and time series for target,
   calibration and prediction phases, for all cycles.
   In addition, the file contains all the specific submodel-functions that
   generated the results, a comparison summary, and information on the python
   libraries installed on the system (for investigating reproducibility issues).
 
-- `<timestamp>-summary.xls`:
+- A Summary-file named as `<timestamp>-summary.xls`:
   Major CO2 emissions values, optimized CO2 parameters values and
   success/fail flags of CO2MPAS submodels for all vehicles in the batch-run.
 
@@ -762,7 +771,7 @@ excel-file:
 
    .. code-block:: console
 
-        $ rm -r ./input/* ./output/*        Replace `rm` with `del` in *Windows* (`cmd.exe`)
+        $ rm -r ./input/* ./output/*      ## Replace `rm` with `del` in *Windows* (`cmd.exe`)
 
 
 2. Create an empty vehicle template-file (eg. ``vehicle_1.xlsx``) inside
@@ -933,10 +942,12 @@ Debugging and investigating results
   visiting the documents for the actual version you are using.
 
 
+.. _explanation:
 
-Explanation of the CO2MPAS model
-================================
-There are potentially eight models to calibrate and run within CO2MPAS:
+Explanation of the model
+========================
+There are potentially eight models to calibrate and run within CO2MPAS
+(see :doc:`reference`):
 
 1. ``AT_model``,
 2. ``electric_model``,
@@ -967,6 +978,8 @@ over both cycles, assuming that data for both WLTP_H and WLTP_L are provided.
     (when both are present).
 
 
+Model selection
+---------------
 To select which is the best calibration (from *WLTP_H* or *WLTP_L* or *ALL*)
 to be used in the prediction phase, the results of each stage are compared
 against the provided input data (used in the calibration).
@@ -979,10 +992,10 @@ is attributed to each calibration of each model as a result of this comparison.
     the average score achieved when compared against each one of the input cycles
     (*WLTP_H* and *WLTP_L*).
 
-    For example, the score of `electric_model` calibrated based on `*WLTP_H*`
+    For example, the score of `electric_model` calibrated based on *WLTP_H*
     when predicting *WLTP_H* is 20, and when predicting *WLTP_L* is 14.
     In this case the overall score of the the `electric_model` calibrated
-    based on `*WLTP_H*` is 17. Assuming that the calibration of the same model
+    based on *WLTP_H* is 17. Assuming that the calibration of the same model
     over *WLTP_L* was 18 and 12 respectively, this would give an overall score of 15.
 
     In this case the second calibration (*WLTP_L*) would be chosen for predicting the NEDC.
@@ -994,7 +1007,7 @@ even if it has achieved a worse score.
 
 The following table describes the scores, targets, and metrics for each model:
 
-.. image:: doc/_static/CO2MPAS_model_score_targets_limits.png
+.. image:: _static/CO2MPAS_model_score_targets_limits.png
    :width: 600 px
    :align: center
 

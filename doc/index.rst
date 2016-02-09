@@ -10,7 +10,7 @@
 
     install
     usage
-    allinone
+    explanation
     changes
     reference
 

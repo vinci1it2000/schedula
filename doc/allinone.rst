@@ -1,6 +1,6 @@
-##################
-CO2MPAS All-In-One
-##################
+##########################
+CO2MPAS All-In-One archive
+##########################
 A pre-populated folder with WinPython + CO2MPAS + Consoles for *Windows*.
 
 .. contents:: Table of Contents

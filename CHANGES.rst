@@ -6,7 +6,9 @@ CO2MPAS Changes
 
 v1.1.0, 09-Feb 2016: "O'snow" release
 ================================================================
-This release contains mainly model & I/O changes.
+This release contains mostly model changes; some internal restructurings have
+not affected the final user.
+
 Several crucial bugs and enhancements have been been implemented based on
 assessments performed by LAT.  A concise study of this release's results
 and a high-level description of the model changes is contained in this `JRC-LAT presentation
@@ -113,8 +115,6 @@ IO
 
 - Outputs:
 
-  - :gh:`136`: Add `section explaining the results
-    <Explanation of the results>`_
     in the documents:
   - :gh:`96`: Produce a single excel with all infos in multiple sheets.
   - :gh:`20`: Produce html report with basic interactive graphs (unfinished).
@@ -122,8 +122,6 @@ IO
   - :gh:`120`, :gh:`123`: Use excel named-ranges for all columns -
     possible to use specific xl-file as output template, utilizing those
     named-ranges.
-  - :gh:`130`: Add model's workflow-plots to the output folder with
-    ``--plot-workflow``.
   - :git:`a03c6805`: Add `status_start_stop_activation_time` to cycle results.
   - :git:`f8b85d98`: Add comparison between WLTP prediction vs WLTP inputs &
     WLTP calibration.
@@ -159,7 +157,18 @@ Cmd-line (running CO2MPAS)
   the *scores* tables in the result xl-file.
 - :gh:`91`: Disallow installation and/or execution under ``python < 3.4``.
 - :gh:`5e91993c`: Add option to skip saving WLTP-prediction.
+- :gh:`130`: Possible to plot workflow int the output folder with ``--plot-workflow``
+  option.
 
+
+Documentation
+-------------
+
+- :gh:`136`: Add section explaining the CO2MPAS selector model (:ref:`explanation`)
+  (to be augmented in the future)
+- Comprehensive JRC-LAT presemntation for validation and high-level summary
+  of model changes  (mentioned above).
+- New section on how to setup autocompletion for *bash* and *clink* on `cmd.exe`.
 
 Internals
 ---------
