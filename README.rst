@@ -28,7 +28,7 @@ into NEDC ones.
 It is an open-source project developed with Python-3.4,
 using Anaconda & WinPython under Windows 7, Anaconda under MacOS, and
 Linux's standard python environment.
-The program runs as a *console command*.
+The program runs as a *console command*, with various graphical UIs on the making.
 
 History
 =======
@@ -40,6 +40,7 @@ by European regulations. European Commission's *Joint Research Centre* has been
 assigned the development of this vehicle simulator to facilitate this
 adaptation.
 
+For recent activity, check the :doc:`changes`.
 
 
 Quickstart
