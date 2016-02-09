@@ -89,7 +89,7 @@ A pre-populated folder with WinPython + CO2MPAS + Consoles for *Windows*.
             D:\co2mpas_ALLINONE-XXbit-v1.0.2\Apps\Cygwin\bin\python
 
             > co2mpas --version
-            co2mpas-1.0.2 at D:\co2mpas_ALLINONE-XXbit-v1.0.2\Apps\WinPython-XXbit-3.4.3.5\python-3.4.3\lib\site-packages\co2mpas
+            co2mpas-1.1.0b1 at D:\co2mpas_ALLINONE-XXbit-v1.0.2\Apps\WinPython-XXbit-3.4.3.5\python-3.4.3\lib\site-packages\co2mpas
 
         - In *bash*, type:
 
@@ -99,7 +99,7 @@ A pre-populated folder with WinPython + CO2MPAS + Consoles for *Windows*.
             /cygdrive/d/co2mpas_ALLINONE-XXbit-v1.0.2/Apps/WinPython-XXbit-3.4.3.5/python-3.4.3/python
 
             > co2mpas --version
-            co2mpas-1.0.2 at D:\co2mpas_ALLINONE-XXbit-v1.0.2\Apps\WinPython-XXbit-3.4.3.5\python-3.4.3\lib\site-packages\co2mpas
+            co2mpas-1.1.0b1 at D:\co2mpas_ALLINONE-XXbit-v1.0.2\Apps\WinPython-XXbit-3.4.3.5\python-3.4.3\lib\site-packages\co2mpas
 
    In case of problems, copy-paste the output from the above commands and send
    it to JRC.

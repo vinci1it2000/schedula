@@ -18,7 +18,7 @@ from co2mpas import __main__ as compas_main
 
 mydir = os.path.dirname(__file__)
 readme_path = os.path.join(mydir, '..', 'README.rst')
-tutorial_path = os.path.join(mydir, '..', 'doc', 'tutorial.rst')
+allinone_path = os.path.join(mydir, '..', 'doc', 'allinone.rst')
 
 
 class Doctest(unittest.TestCase):
@@ -87,3 +87,12 @@ class Doctest(unittest.TestCase):
                 l = l.strip()
                 if l:
                     assert l in ftext, msg % (i, l)
+
+    def test_allinone_contains_version(self):
+        ver = co2mpas.__version__
+        mydir = os.path.dirname(__file__)
+        with open(allinone_path) as fd:
+            msg = "Version(%s) not found in %s header-lines!"
+            self.assertIn(ver, fd.read(), msg % (ver, allinone_path))
+
+
