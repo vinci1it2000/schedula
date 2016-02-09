@@ -119,9 +119,9 @@ def write_outputs():
         description='Writes on files the outputs of the CO2MPAS model.'
     )
 
-    dsp.add_function(
-        function=get_doc_description,
-        outputs=['data_descriptions']
+    dsp.add_data(
+        data_id='data_descriptions',
+        default_value=get_doc_description()
     )
 
     dsp.add_function(
