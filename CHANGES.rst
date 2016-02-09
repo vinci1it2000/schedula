@@ -4,7 +4,7 @@ CO2MPAS Changes
 .. contents::
 .. _changes:
 
-v1.1.0, 09-Feb 2016: "O'snow" release
+v1.1.1, 09-Feb 2016: "O'snow" release
 ================================================================
 This release contains mostly model changes; some internal restructurings have
 not affected the final user.
@@ -12,7 +12,7 @@ not affected the final user.
 Several crucial bugs and enhancements have been been implemented based on
 assessments performed by LAT.  A concise study of this release's results
 and a high-level description of the model changes is contained in this `JRC-LAT presentation
-<http://files.co2mpas.io/CO2MPAS-1.1.0/JRC_LAT_CO2MPAS_Osnow-validation_n_changelog.pptx>`_.
+<http://files.co2mpas.io/CO2MPAS-1.1.1/JRC_LAT_CO2MPAS_Osnow-validation_n_changelog.pptx>`_.
 
 
 Model-changes
@@ -169,7 +169,7 @@ Documentation
   of model changes  (mentioned above).
 - New section on how to setup autocompletion for *bash* and *clink* on `cmd.exe`.
 - Link to the "fatty" (~40Mb) `tutorial input xl-file
-  <http://files.co2mpas.io/CO2MPAS-1.1.0/co2mpas_tutorial_1_1_0.xls>`_.
+  <http://files.co2mpas.io/CO2MPAS-1.1.1/co2mpas_tutorial_1_1_0.xls>`_.
 
 
 Internals
