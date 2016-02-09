@@ -10,10 +10,10 @@ Predict NEDC CO2 emissions from WLTP cycles.
 Usage:
   co2mpas batch       [-v | --logconf <conf-file>]  [--predict-wltp] [--only-summary]
                       [--out-template <xlsx-file> | --charts] [--plot-workflow]
-                      [--gui] [-O <out-folder>]  [<input-path>]...
-  co2mpas demo        [-v | --logconf <conf-file>] [-f] [<folder>]
-  co2mpas template    [-v | --logconf <conf-file>] [-f] [<excel-file-path> ...]
-  co2mpas ipynb       [-v | --logconf <conf-file>] [-f] [<folder>]
+                      [-O <out-folder>]  [<input-path>]...  [--gui]
+  co2mpas demo        [-v | --logconf <conf-file>] [-f] [<folder>]  [--gui]
+  co2mpas template    [-v | --logconf <conf-file>] [-f] [<excel-file-path> ...]  [--gui]
+  co2mpas ipynb       [-v | --logconf <conf-file>] [-f] [<folder>]  [--gui]
   co2mpas modelgraph  [-v | --logconf <conf-file>]
                       [--list | [--graph-depth=INTEGER] [<models> ...]]
   co2mpas [-v | --logconf <conf-file>] (--version | -V)
@@ -22,7 +22,7 @@ Usage:
 Options:
   <input-path>                Input xlsx-file or folder.
   -O <folder>                 Output folder or file [default: .].
-  --gui                       Launches three GUI dialog-boxes to choose Input, Output and Options.
+  --gui                       Launches GUI dialog-boxes to choose Input, Output and Options.
                               [default: False].
   --only-summary              Does not save vehicle outputs just the summary file.
   --predict-wltp              Whether to predict also WLTP values.
@@ -176,10 +176,35 @@ def _generate_files_from_streams(
                 shutil.copyfileobj(stream, fd, 16 * 1024)
 
 
+def _cmd_demo(opts):
+    dst_folder = opts.get('<folder>', None)
+    is_gui = opts['--gui']
+    if is_gui and not dst_folder:
+        import easygui as eu
+        msg=("Select folder to store INPUT-DEMO files:"
+                "\n(existing ones will be overwritten)")
+        dst_folder = eu.diropenbox(msg=msg,
+                                   title='%s-v%s' % (proj_name, proj_ver),
+                                   default=os.environ.get('HOME', '.'))
+        if not dst_folder:
+            raise CmdException('User abort creating INPUT-DEMO files.')
+    elif not dst_folder:
+        raise CmdException('Missing destination folder for INPUT-DEMO files!')
+
+    force = opts['--force'] or is_gui
+    file_category = 'INPUT-DEMO'
+    file_stream_pairs = _get_internal_file_streams('demos', r'.*\.xlsx$')
+    file_stream_pairs = sorted(file_stream_pairs.items())
+    _generate_files_from_streams(dst_folder, file_stream_pairs,
+                                 force, file_category)
+    msg = "You may run DEMOS with:\n    co2mpas simulate %s"
+    log.info(msg, dst_folder)
+
+
 def _cmd_ipynb(opts):
     dst_folder = opts.get('<folder>', None)
-    is_gui = not dst_folder
-    if is_gui:
+    is_gui = opts['--gui']
+    if is_gui and not dst_folder:
         import easygui as eu
         msg=("Select folder to store IPYTHON NOTEBOOKS:"
                 "\n(existing ones will be overwritten)")
@@ -188,6 +213,8 @@ def _cmd_ipynb(opts):
                                    default=os.environ.get('HOME', '.'))
         if not dst_folder:
             raise CmdException('User abort creating IPYTHON NOTEBOOKS.')
+    elif not dst_folder:
+        raise CmdException('Missing destination folder for IPYTHON NOTEBOOKS!')
 
     force = opts['--force'] or is_gui
     file_category = 'IPYTHON NOTEBOOK'
@@ -206,8 +233,8 @@ def _get_input_template_fpath():
 
 def _cmd_template(opts):
     dst_fpaths = opts.get('<excel-file-path>', None)
-    is_gui = not dst_fpaths
-    if is_gui:
+    is_gui = opts['--gui']
+    if is_gui and not dst_fpaths:
         import easygui as eu
         fpath = eu.filesavebox(msg='Create INPUT-TEMPLATE file as:',
                               title='%s-v%s' % (proj_name, proj_ver),
@@ -215,6 +242,8 @@ def _cmd_template(opts):
         if not fpath:
             raise CmdException('User abort creating INPUT-TEMPLATE file.')
         dst_fpaths = [fpath]
+    elif not dst_fpaths:
+        raise CmdException('Missing destination filepath for INPUT-TEMPLATE!')
 
     force = opts['--force']
     for fpath in dst_fpaths:
@@ -252,29 +281,6 @@ def _get_internal_file_streams(internal_folder, incl_regex=None):
             osp.join(internal_folder, f))
             for f in samples
             if not incl_regex or incl_regex.match(f)}
-
-
-def _cmd_demo(opts):
-    dst_folder = opts.get('<folder>', None)
-    is_gui = not dst_folder
-    if is_gui:
-        import easygui as eu
-        msg=("Select folder to store INPUT-DEMO files:"
-                "\n(existing ones will be overwritten)")
-        dst_folder = eu.diropenbox(msg=msg,
-                                   title='%s-v%s' % (proj_name, proj_ver),
-                                   default=os.environ.get('HOME', '.'))
-        if not dst_folder:
-            raise CmdException('User abort creating INPUT-DEMO files.')
-
-    force = opts['--force'] or is_gui
-    file_category = 'INPUT-DEMO'
-    file_stream_pairs = _get_internal_file_streams('demos', r'.*\.xlsx$')
-    file_stream_pairs = sorted(file_stream_pairs.items())
-    _generate_files_from_streams(dst_folder, file_stream_pairs,
-                                 force, file_category)
-    msg = "You may run DEMOS with:\n    co2mpas simulate %s"
-    log.info(msg, dst_folder)
 
 
 def _prompt_folder(folder_name, fpath):

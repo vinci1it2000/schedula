@@ -601,15 +601,15 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
 .. code-block:: console
 
     $ co2mpas --help
-        Predict NEDC CO2 emissions from WLTP cycles.
+    Predict NEDC CO2 emissions from WLTP cycles.
 
-        Usage:
+    Usage:
       co2mpas batch       [-v | --logconf <conf-file>]  [--predict-wltp] [--only-summary]
                           [--out-template <xlsx-file> | --charts] [--plot-workflow]
-                          [--gui] [-O <out-folder>]  [<input-path>]...
-      co2mpas demo        [-v | --logconf <conf-file>] [-f] [<folder>]
-      co2mpas template    [-v | --logconf <conf-file>] [-f] [<excel-file-path> ...]
-      co2mpas ipynb       [-v | --logconf <conf-file>] [-f] [<folder>]
+                          [-O <out-folder>]  [<input-path>]...  [--gui]
+      co2mpas demo        [-v | --logconf <conf-file>] [-f] [<folder>]  [--gui]
+      co2mpas template    [-v | --logconf <conf-file>] [-f] [<excel-file-path> ...]  [--gui]
+      co2mpas ipynb       [-v | --logconf <conf-file>] [-f] [<folder>]  [--gui]
       co2mpas modelgraph  [-v | --logconf <conf-file>]
                           [--list | [--graph-depth=INTEGER] [<models> ...]]
       co2mpas [-v | --logconf <conf-file>] (--version | -V)
@@ -618,7 +618,7 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
     Options:
       <input-path>                Input xlsx-file or folder.
       -O <folder>                 Output folder or file [default: .].
-      --gui                       Launches three GUI dialog-boxes to choose Input, Output and Options.
+      --gui                       Launches GUI dialog-boxes to choose Input, Output and Options.
                                   [default: False].
       --only-summary              Does not save vehicle outputs just the summary file.
       --predict-wltp              Whether to predict also WLTP values.
