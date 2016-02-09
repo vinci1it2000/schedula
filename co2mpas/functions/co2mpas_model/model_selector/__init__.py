@@ -31,6 +31,9 @@ from pprint import pformat
 from co2mpas.functions.co2mpas_model.physical.clutch_tc.clutch import \
     calculate_clutch_phases
 from collections import Iterable
+from functools import partial
+from co2mpas.functions.co2mpas_model.physical.gear_box.AT_gear import \
+    calculate_error_coefficients, calculate_gear_box_speeds_in
 
 log = logging.getLogger(__name__)
 
@@ -340,21 +343,23 @@ def sub_models():
     }
 
     from co2mpas.models.co2mpas_model.physical.gear_box.AT_gear import AT_gear
+    AT_pred_inputs = [
+        'engine_max_power', 'engine_max_speed_at_max_power',
+        'idle_engine_speed', 'full_load_curve', 'road_loads', 'vehicle_mass',
+        'accelerations', 'motive_powers', 'engine_speeds_out',
+        'engine_coolant_temperatures', 'time_cold_hot_transition', 'times',
+        'use_dt_gear_shifting', 'specific_gear_shifting',
+        'velocity_speed_ratios', 'velocities', 'MVL'
+    ]
 
     sub_models['AT_model'] = {
         'dsp': AT_gear(),
-        'select_models': AT_models_selector,
+        'select_models': partial(AT_models_selector, AT_gear(), AT_pred_inputs),
         'models_wo_err': ['max_gear', 'specific_gear_shifting'],
         'models': ['max_gear', 'MVL', 'CMV', 'CMV_Cold_Hot',
                    'DT_VA', 'DT_VAT', 'DT_VAP', 'DT_VATP', 'GSPV',
                    'GSPV_Cold_Hot', 'specific_gear_shifting'],
-        'inputs': [
-            'engine_max_power', 'engine_max_speed_at_max_power',
-            'idle_engine_speed', 'full_load_curve', 'road_loads',
-            'vehicle_mass', 'accelerations', 'motive_powers',
-            'engine_speeds_out', 'engine_coolant_temperatures',
-            'time_cold_hot_transition', 'times', 'use_dt_gear_shifting',
-            'specific_gear_shifting', 'velocity_speed_ratios', 'velocities'],
+        'inputs': AT_pred_inputs,
         'define_sub_model': lambda dsp, **kwargs: dsp_utl.SubDispatch(dsp),
         'outputs': ['gears', 'max_gear'],
         'targets': ['gears', 'max_gear'],
@@ -365,40 +370,53 @@ def sub_models():
     return sub_models
 
 
-def AT_models_selector(AT_models, data):
+def AT_models_selector(dsp, AT_pred_inputs, models_ids, data):
 
-    m = ['CMV', 'CMV_Cold_Hot', 'DT_VA', 'DT_VAT', 'DT_VAP', 'DT_VATP', 'GSPV',
-         'GSPV_Cold_Hot']
+    # Namespace shortcuts.
+    try:
+        vel, vsr = data['velocities'], data['velocity_speed_ratios']
+        t_eng, t_gears = data['engine_speeds_out'], data['gears']
+    except KeyError:
+        return {}
 
-    models = {k: data[k] for k in set(AT_models).difference(m) if k in data}
+    sgs = 'specific_gear_shifting'
+    c_dicts, select, _g = dsp_utl.combine_dicts, dsp_utl.selector, dsp.dispatch
+    t_e = ('mean_absolute_error', 'accuracy_score', 'correlation_coefficient')
 
-    # A/T gear shifting
-    methods_ids = {'%s_error_coefficients' % k: k for k in m}
+    # AT_models to be assessed.
+    AT_m = {'CMV', 'CMV_Cold_Hot', 'DT_VA', 'DT_VAT', 'DT_VAP', 'DT_VATP',
+            'GSPV', 'GSPV_Cold_Hot'} if data[sgs] == 'ALL' else {data[sgs]}
 
-    m = []
+    # Other models to be taken from calibration output.
+    models = select(set(models_ids) - AT_m, data, allow_miss=True)
 
-    for e, k in methods_ids.items():
-        e = data.get(e, None)
-        if e:
-            e = (e['accuracy_score'], e['mean_absolute_error'],
-                 e['correlation_coefficient'])
-            m.append((e[1], e, k))
+    # Inputs to predict the gears.
+    inputs = select(AT_pred_inputs, data, allow_miss=True)
 
-    if m:
-        m = sorted(m)
-        e, k = m[0][1:]
+    def _err(model_id, model):
+        gears = dsp.dispatch(
+                inputs=c_dicts(inputs, {sgs: model_id, model_id: model}),
+                outputs=['gears']
+        )['gears']
 
-        models[k] = data[k]
-        models['specific_gear_shifting'] = k
-        models['origin AT_gear_shifting_model'] = (k, e)
-        data['origin AT_gear_shifting_model'] = (k, e)
-        tags = ['accuracy_score', 'mean_absolute_error',
-                'correlation_coefficient']
-        m = [(v[-1], {t: v for t, v in zip(tags, v[1])}) for v in m]
-        data['errors AT_gear_shifting_model'] = m
+        eng = calculate_gear_box_speeds_in(gears, vel, vsr)
 
-        log.debug('AT_gear_shifting_model: %s with accuracy_score %.3f, '
-                  'mean_absolute_error %.3f [RPM] and correlation_coefficient '
-                  '%.3f.', k, e[0], e[1], e[2])
+        return calculate_error_coefficients(t_gears, gears, t_eng, eng, vel)
+
+    def _sort(v):
+        e = select(t_e, v[0], output_type='list')
+        return (e[0], -e[1], -e[2]), v[1]
+
+    # Sort by error.
+    AT_m = select(AT_m, data, allow_miss=True)
+    rank = sorted(((_err(k, m), k, m) for k, m in AT_m.items()), key=_sort)
+
+    if rank:
+        data['scores AT_gear'] = OrderedDict((k, e) for e, k, m in rank)
+        e, k, m = rank[0]
+        models[sgs], models[k] = k, m
+        log.debug('AT_gear_shifting_model: %s with mean_absolute_error %.3f '
+                  '[RPM], accuracy_score %.3f, and correlation_coefficient '
+                  '%.3f.', k, *select(t_e, e))
 
     return models

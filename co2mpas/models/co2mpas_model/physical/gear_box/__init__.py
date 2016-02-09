@@ -230,7 +230,7 @@ def gear_box():
             'specific_gear_shifting': 'specific_gear_shifting',
             'engine_speeds_out': 'engine_speeds_out',
             'full_load_curve': 'full_load_curve',
-            'gears': 'identified_gears',
+            'gears': 'gears',
             'motive_powers': 'motive_powers',
             'gear_box_type': dsp_utl.SINK,
             'idle_engine_speed': 'idle_engine_speed',
@@ -255,16 +255,6 @@ def gear_box():
             'DT_VATP': 'DT_VATP',
             'GSPV': 'GSPV',
             'GSPV_Cold_Hot': 'GSPV_Cold_Hot',
-            'CMV_error_coefficients': 'CMV_error_coefficients',
-            'CMV_Cold_Hot_error_coefficients':
-                'CMV_Cold_Hot_error_coefficients',
-            'DT_VA_error_coefficients': 'DT_VA_error_coefficients',
-            'DT_VAT_error_coefficients': 'DT_VAT_error_coefficients',
-            'DT_VAP_error_coefficients': 'DT_VAP_error_coefficients',
-            'DT_VATP_error_coefficients': 'DT_VATP_error_coefficients',
-            'GSPV_error_coefficients': 'GSPV_error_coefficients',
-            'GSPV_Cold_Hot_error_coefficients':
-                'GSPV_Cold_Hot_error_coefficients',
         },
         input_domain=domain_AT_gear_shifting
     )

@@ -417,16 +417,6 @@ def physical():
             'DT_VATP': 'DT_VATP',
             'GSPV': 'GSPV',
             'GSPV_Cold_Hot': 'GSPV_Cold_Hot',
-            'CMV_error_coefficients': 'CMV_error_coefficients',
-            'CMV_Cold_Hot_error_coefficients':
-                'CMV_Cold_Hot_error_coefficients',
-            'DT_VA_error_coefficients': 'DT_VA_error_coefficients',
-            'DT_VAT_error_coefficients': 'DT_VAT_error_coefficients',
-            'DT_VAP_error_coefficients': 'DT_VAP_error_coefficients',
-            'DT_VATP_error_coefficients': 'DT_VATP_error_coefficients',
-            'GSPV_error_coefficients': 'GSPV_error_coefficients',
-            'GSPV_Cold_Hot_error_coefficients':
-                'GSPV_Cold_Hot_error_coefficients',
             'equivalent_gear_box_heat_capacity':
                 'equivalent_gear_box_heat_capacity',
             'gears': 'gears',
@@ -442,4 +432,5 @@ def physical():
             'velocity_speed_ratios': 'velocity_speed_ratios',
         }
     )
+
     return physical
