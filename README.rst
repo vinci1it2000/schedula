@@ -28,7 +28,7 @@ into NEDC ones.
 It is an open-source project developed with Python-3.4,
 using Anaconda & WinPython under Windows 7, Anaconda under MacOS, and
 Linux's standard python environment.
-The program runs as a *console command*, with various graphical UIs on the making.
+It runs as a *console command*, with various graphical UIs on the making.
 
 History
 =======

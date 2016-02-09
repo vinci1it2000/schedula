@@ -19,7 +19,9 @@
 # 8. Generate RELEASE_NOTES:
 #    - open ./doc/_build/html/co2mpas_RelNotes.html ## & PrintAs 'co2mpas_RelNotes-v0.1.1.pdf'
 # 9. Prepare site at http://co2mpas.io/
-#    - Copy docs-archive & rename sources package!
+#   - copy ALLINONES
+#   - copy `allinone/CO2MPAS/packages` dir created during:
+#            pip install co2mpas --download %home%\packages
 #    - Expand docs, link STABLE ad LATEST
 # 10. Prepare email (and test)
 #    - Use email-body to draft a new "Release" in github (https://github.com/JRCSTU/co2mpas/releases).

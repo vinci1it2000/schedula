@@ -197,7 +197,7 @@ def _cmd_demo(opts):
     file_stream_pairs = sorted(file_stream_pairs.items())
     _generate_files_from_streams(dst_folder, file_stream_pairs,
                                  force, file_category)
-    msg = "You may run DEMOS with:\n    co2mpas simulate %s"
+    msg = "You may run DEMOS with:\n    co2mpas batch %s"
     log.info(msg, dst_folder)
 
 
@@ -301,7 +301,7 @@ def _prompt_options():
     fields = ('predict-wltp', 'plot-workflow', 'only-summary', 'out-template',
               'charts')
     choices = ('y/[n]', 'y/[n]', 'y/[n]', 'y/[n]/<xlsx-file>', 'y/[n]')
-    for values in iter(lambda: eu.multenterbox(msg='Select simulate options:',
+    for values in iter(lambda: eu.multenterbox(msg='Select BATCH-run options:',
                     title='%s-v%s' % (proj_name, proj_ver),
                     fields=fields, values=choices),
             None):
@@ -361,7 +361,7 @@ def _run_batch(opts):
     input_paths = file_finder(input_paths)
     if not input_paths:
         raise CmdException("No <input-files> found! \n"
-                "\n  Try: co2mpas simulate <fpath-1>..."
+                "\n  Try: co2mpas batch <fpath-1>..."
                 "\n  or : co2mpas --gui"
                 "\n  or : co2mpas --help")
     if not osp.isdir(output_folder):
@@ -394,7 +394,7 @@ def _main(*args):
             _cmd_ipynb(opts)
         elif opts['modelgraph']:
             _cmd_modelgraph(opts)
-        else: #opts['simulate']:
+        else: #opts['batch']:
             _run_batch(opts)
 
 
