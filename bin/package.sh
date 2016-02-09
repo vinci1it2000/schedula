@@ -3,10 +3,10 @@
 # Release checklist
 # =================
 # 1. Bump-ver & Update Date+Title in ./CHANGES.rst.
-# 2. commit & TAG & push
-# 3. (if FINAL)REMOVE `pip install --pre` from README!!!
-# 4. Run TCs.
-# 5. Gen docs & check OK (i.e. diagrams??):
+# 2. (if FINAL)REMOVE `pip install --pre` from README!!!
+# 3. Run TCs.
+# 4. commit & TAG & push
+# 5. Gen docs in `cmd.exe` & check OK (i.e. diagrams??):
 #       rm -r ./doc/_build/
 #       python setup.py build_sphinx
 # 6. Build `wheel,` `sdist` , `doc` archives:

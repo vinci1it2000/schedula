@@ -8,6 +8,7 @@
 
 
 import matplotlib
+from co2mpas import file_finder
 matplotlib.use('Agg')
 import unittest
 from co2mpas.__main__ import init_logging
@@ -93,7 +94,7 @@ def basic_plot(directory, model_id, data_name, cycle_name, y_true, y_pred):
 def read_data(data_loader, directory):
     log.debug('Reading...')
     data = {}
-    for fpath in file_finder(directory):
+    for fpath in file_finder([directory]):
         fname = osp.splitext(osp.basename(fpath))[0]
         data[fname] = data_loader(fpath, type_file='output')[0] # 0:input, 1:tagret
     log.debug('Reading done!')

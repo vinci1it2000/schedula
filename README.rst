@@ -6,8 +6,8 @@
 CO2MPAS: Vehicle simulator predicting NEDC CO2 emissions from WLTP
 ##################################################################
 
-:Release:       1.1.0b2
-:Date:          2016-02-09 03:22:09
+:Release:       1.1.0
+:Date:          2016-02-09 05:43:39
 :Home:          http://co2mpas.io/
 :Releases:      http://files.co2mpas.io/
 :Sources:       https://github.com/JRCSTU/co2mpas
@@ -253,12 +253,12 @@ CO2MPAS installation
 
    .. code-block:: console
 
-        > pip install co2mpas --pre
+        > pip install co2mpas
         Collecting co2mpas
         Downloading http://pypi.co2mpas.io/packages/co2mpas-...
         ...
         Installing collected packages: co2mpas
-        Successfully installed co2mpas-1.1.0b2
+        Successfully installed co2mpas-1.1.0
 
    .. Note::
         **Installing Behind Firewall:**
@@ -301,8 +301,8 @@ CO2MPAS installation
    .. code-block:: console
 
        > co2mpas -vV
-       co2mpas_version: 1.1.0b2
-       co2mpas_rel_date: 2016-02-09 03:22:09
+       co2mpas_version: 1.1.0
+       co2mpas_rel_date: 2016-02-09 05:43:39
        co2mpas_path: d:\co2mpas_ALLINONE-XXbit-v1.0.5.dev1\Apps\WinPython\python-3.4.3\lib\site-packages\co2mpas
        python_path: D:\co2mpas_ALLINONE-XXbit-v1.0.5.dev1\WinPython\python-3.4.3
        python_version: 3.4.3 (v3.4.3:9b73f1c3e601, Feb 24 2015, 22:44:40) [MSC v.1600 XXX]
@@ -574,6 +574,7 @@ environment (ALLINONE is pre-configured with them):
     sort_id = 100
     clink.register_match_generator(words_generator)
 
+
 - For the *bash* shell just add this command in your :file:`~/.bashrc`
   (or type it every time you open a new console):
 
@@ -599,11 +600,12 @@ Usage
     written in the :file:`ALLINONE/CO2MPAS/co2mpas.log` file.
 
 
+
 First ensure that the latest version of CO2MPAS is properly installed, and that
 its version match the version declared on this file.
 
 The main entry for the simulator is the ``co2mpas`` console-command,
-which **is not visible, but it is installed in your PATH.**
+which **is not visible, but it is installed in your PATH**.
 To get the syntax of the ``co2mpas`` console-command, open a console where
 you have installed CO2MPAS (see :ref:`install` above) and type:
 
@@ -677,7 +679,7 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
         co2mpas modelgraph gear_box_calibration
 
 
-The default sub-command (``simulate``) accepts either a single **input-excel-file**
+The default sub-command (``batch``) accepts either a single **input-excel-file**
 or a folder with multiple input-files for each vehicle, and generates a
 **summary-excel-file** aggregating the major result-values from these vehicles,
 and (optionally) multiple **output-excel-files** for each vehicle run.
@@ -718,7 +720,7 @@ starting point to try out.
         Creating DEMO INPUT file 'input\co2mpas_demo_4_baseline_no_battery_currents - Copy.xlsx'...
         Creating DEMO INPUT file 'input\co2mpas_demo_5_baseline_no_gears.xlsx'...
         You may run DEMOS with:
-            co2mpas simulate -I input
+            co2mpas batch input
 
 3. Run the simulator on all demo-files:
 
@@ -764,7 +766,6 @@ But to be sure that your vehicle does not contain by accident any of
 the sample-data, use the ``template`` sub-command to make an *empty* input
 excel-file:
 
-
 1. Decide the *input/output* folders.  Assuming we are still in the ``tutorial``
    folder and we wish to re-use the ``input/output`` folders from the example
    above, we may clear all their contents with this:
@@ -788,7 +789,7 @@ excel-file:
 
    .. code-block:: console
 
-        $ start input/vehicle_1.xlsx        ## Opens the excel-file. Use `start` in *cmd.exe*.
+        $ start input/vehicle_1.xlsx      ## Opens the excel-file. Use `start` in *cmd.exe*.
 
    .. Tip::
        The generated file contains help descriptions to help you populate it
@@ -796,6 +797,11 @@ excel-file:
        (i.e. gear-box ratios) you may reference different parts of
        the spreadsheet following the syntax of the `"xlref" mini-language
        <https://pandalone.readthedocs.org/en/latest/reference.html#module-pandalone.xleash>`_.
+
+       You may also read the `tutorial input xl-file
+       <http://files.co2mpas.io/CO2MPAS-1.1.0/co2mpas_tutorial_1_1_0.xls>`_
+       to get an understanding of each scalar paramet and series required,
+       but DO NOT USE THIS "fatty" xl-file (~40Mb) when running the model.
 
    You may repeat these last 2 steps if you want to add more vehicles in
    the *batch-run*.
@@ -814,8 +820,8 @@ excel-file:
 
    .. code-block:: console
 
-        $ start output/*summary.xlsx       ## More summaries might open from previous runs.
-        $ start output                     ## View all files generated (see below).
+        $ start output/*summary.xlsx      ## More summaries might open from previous runs.
+        $ start output                    ## View all files generated (see below).
 
 
 6. In the case of errors, or if the results are not satisfactory, repeat the
@@ -966,7 +972,7 @@ For example, the electric_model contains the following functions/data:
 - ``alternator_status_model``,
 - ``electric_load``,
 - ``max_battery_charging_current``,
-- ``start_demand``,
+- ``start_demand``.
 
 These functions/data are calibrated/estimated based on the provided input
 (in the particular case: *alternator current*, *battery current*, and *initial SOC*)

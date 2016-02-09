@@ -93,7 +93,7 @@ IO
 
 - Inputs:
 
-  - :gh:`62`: Compulsory fields in input data::
+  - :gh:`62`: New compulsory fields in input data::
 
         velocity_speed_ratios
         co2_params
@@ -115,7 +115,6 @@ IO
 
 - Outputs:
 
-    in the documents:
   - :gh:`96`: Produce a single excel with all infos in multiple sheets.
   - :gh:`20`: Produce html report with basic interactive graphs (unfinished).
   - :git:`5064efd3`: Add charts in excel output.
@@ -165,10 +164,13 @@ Documentation
 -------------
 
 - :gh:`136`: Add section explaining the CO2MPAS selector model (:ref:`explanation`)
-  (to be augmented in the future)
-- Comprehensive JRC-LAT presemntation for validation and high-level summary
+  (to be augmented in the future).
+- Comprehensive JRC-LAT presentation for validation and high-level summary
   of model changes  (mentioned above).
 - New section on how to setup autocompletion for *bash* and *clink* on `cmd.exe`.
+- Link to the "fatty" (~40Mb) `tutorial input xl-file
+  <http://files.co2mpas.io/CO2MPAS-1.1.0/co2mpas_tutorial_1_1_0.xls>`_.
+
 
 Internals
 ---------

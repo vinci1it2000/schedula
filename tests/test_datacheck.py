@@ -86,7 +86,7 @@ class SeatBelt(unittest.TestCase):
         model = vehicle_processing_model()
 
         resultes = []
-        for fpath in file_finder(file):
+        for fpath in file_finder([file]):
             fname = osp.splitext(osp.basename(fpath))[0]
             log.info('Processing: %s', fname)
 
