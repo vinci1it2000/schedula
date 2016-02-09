@@ -384,7 +384,10 @@ def _main(*args):
     init_logging(verbose, logconf_file=opts.get('--logconf'))
     if opts['--version']:
         v = build_version_string(verbose)
-        print(v)
+        try:
+            sys.stdout.buffer.write(v.encode() + b'\n')
+        except:
+            print(v)
     else:
         if opts['template']:
             _cmd_template(opts)
