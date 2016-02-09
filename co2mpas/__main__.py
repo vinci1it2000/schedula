@@ -344,7 +344,7 @@ def file_finder(xlsx_fpaths):
         elif osp.isdir(f):
             files.update(glob.glob(osp.join(f, '*.xlsx')))
 
-    return [f for f in files if _input_file_regex.match(osp.basename(f))]
+    return [f for f in sorted(files) if _input_file_regex.match(osp.basename(f))]
 
 
 
