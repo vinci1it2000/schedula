@@ -6,8 +6,8 @@
 CO2MPAS: Vehicle simulator predicting NEDC CO2 emissions from WLTP
 ##################################################################
 
-:Release:       1.1.0
-:Date:          2016-02-09 05:43:39
+:Release:       1.1.1
+:Date:          2016-02-09 07:30:45
 :Home:          http://co2mpas.io/
 :Releases:      http://files.co2mpas.io/
 :Sources:       https://github.com/JRCSTU/co2mpas
@@ -259,7 +259,7 @@ CO2MPAS installation
         Downloading http://pypi.co2mpas.io/packages/co2mpas-...
         ...
         Installing collected packages: co2mpas
-        Successfully installed co2mpas-1.1.0
+        Successfully installed co2mpas-1.1.1
 
    .. Note::
         **Installing Behind Firewall:**
@@ -302,8 +302,8 @@ CO2MPAS installation
    .. code-block:: console
 
        > co2mpas -vV
-       co2mpas_version: 1.1.0
-       co2mpas_rel_date: 2016-02-09 05:43:39
+       co2mpas_version: 1.1.1
+       co2mpas_rel_date: 2016-02-09 07:30:45
        co2mpas_path: d:\co2mpas_ALLINONE-XXbit-v1.0.5.dev1\Apps\WinPython\python-3.4.3\lib\site-packages\co2mpas
        python_path: D:\co2mpas_ALLINONE-XXbit-v1.0.5.dev1\WinPython\python-3.4.3
        python_version: 3.4.3 (v3.4.3:9b73f1c3e601, Feb 24 2015, 22:44:40) [MSC v.1600 XXX]
@@ -618,10 +618,10 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
     Usage:
       co2mpas batch       [-v | --logconf <conf-file>]  [--predict-wltp] [--only-summary]
                           [--out-template <xlsx-file> | --charts] [--plot-workflow]
-                          [-O <out-folder>]  [<input-path>]...  [--gui]
-      co2mpas demo        [-v | --logconf <conf-file>] [-f] [<folder>]  [--gui]
+                          [-O <output-folder>]  [<input-path>]...  [--gui]
+      co2mpas demo        [-v | --logconf <conf-file>] [-f] [<output-folder>]  [--gui]
       co2mpas template    [-v | --logconf <conf-file>] [-f] [<excel-file-path> ...]  [--gui]
-      co2mpas ipynb       [-v | --logconf <conf-file>] [-f] [<folder>]  [--gui]
+      co2mpas ipynb       [-v | --logconf <conf-file>] [-f] [<output-folder>]  [--gui]
       co2mpas modelgraph  [-v | --logconf <conf-file>]
                           [--list | [--graph-depth=INTEGER] [<models> ...]]
       co2mpas [-v | --logconf <conf-file>] (--version | -V)
@@ -629,7 +629,7 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
 
     Options:
       <input-path>                Input xlsx-file or folder.
-      -O <folder>                 Output folder or file [default: .].
+      -O <output-folder>          Output folder or file [default: .].
       --gui                       Launches GUI dialog-boxes to choose Input, Output and Options.
                                   [default: False].
       --only-summary              Does not save vehicle outputs just the summary file.
@@ -656,10 +656,10 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
 
     Sub-commands:
         batch                   Run simulation for all <input-path> xlsx-files & folder.
-        demo                    Generate demo input-files inside <folder>.
+        demo                    Generate demo input-files inside <output-folder>.
         template                Generate "empty" input-file at <excel-file-path>.
-        ipynb                   Generate IPython notebooks inside <folder>; view them with cmd:
-                                  ipython --notebook-dir=<folder>
+        ipynb                   Generate IPython notebooks inside <output-folder>; view them with cmd:
+                                  ipython --notebook-dir=<output-folder>
         modelgraph              List all or plot available models.  If no model(s) specified, all assumed.
 
     Examples for `cmd.exe`:
@@ -800,7 +800,7 @@ excel-file:
        <https://pandalone.readthedocs.org/en/latest/reference.html#module-pandalone.xleash>`_.
 
        You may also read the `tutorial input xl-file
-       <http://files.co2mpas.io/CO2MPAS-1.1.0/co2mpas_tutorial_1_1_0.xls>`_
+       <http://files.co2mpas.io/CO2MPAS-1.1.1/co2mpas_tutorial_1_1_0.xls>`_
        to get an understanding of each scalar paramet and series required,
        but DO NOT USE THIS "fatty" xl-file (~40Mb) when running the model.
 
@@ -856,7 +856,7 @@ To create/modify one output-template yourself, do the following:
 
 .. tip::
     You can find a template/dummy output-template file here:
-    http://files.co2mpas.io/CO2MPAS-1.1.0/CO2MPAS_out_template.xlsx
+    http://files.co2mpas.io/CO2MPAS-1.1.1/CO2MPAS_out_template.xlsx
 
 
 

@@ -10,10 +10,10 @@ Predict NEDC CO2 emissions from WLTP cycles.
 Usage:
   co2mpas batch       [-v | --logconf <conf-file>]  [--predict-wltp] [--only-summary]
                       [--out-template <xlsx-file> | --charts] [--plot-workflow]
-                      [-O <out-folder>]  [<input-path>]...  [--gui]
-  co2mpas demo        [-v | --logconf <conf-file>] [-f] [<folder>]  [--gui]
+                      [-O <output-folder>]  [<input-path>]...  [--gui]
+  co2mpas demo        [-v | --logconf <conf-file>] [-f] [<output-folder>]  [--gui]
   co2mpas template    [-v | --logconf <conf-file>] [-f] [<excel-file-path> ...]  [--gui]
-  co2mpas ipynb       [-v | --logconf <conf-file>] [-f] [<folder>]  [--gui]
+  co2mpas ipynb       [-v | --logconf <conf-file>] [-f] [<output-folder>]  [--gui]
   co2mpas modelgraph  [-v | --logconf <conf-file>]
                       [--list | [--graph-depth=INTEGER] [<models> ...]]
   co2mpas [-v | --logconf <conf-file>] (--version | -V)
@@ -21,7 +21,7 @@ Usage:
 
 Options:
   <input-path>                Input xlsx-file or folder.
-  -O <folder>                 Output folder or file [default: .].
+  -O <output-folder>          Output folder or file [default: .].
   --gui                       Launches GUI dialog-boxes to choose Input, Output and Options.
                               [default: False].
   --only-summary              Does not save vehicle outputs just the summary file.
@@ -48,10 +48,10 @@ Miscellaneous:
 
 Sub-commands:
     batch                   Run simulation for all <input-path> xlsx-files & folder.
-    demo                    Generate demo input-files inside <folder>.
+    demo                    Generate demo input-files inside <output-folder>.
     template                Generate "empty" input-file at <excel-file-path>.
-    ipynb                   Generate IPython notebooks inside <folder>; view them with cmd:
-                              ipython --notebook-dir=<folder>
+    ipynb                   Generate IPython notebooks inside <output-folder>; view them with cmd:
+                              ipython --notebook-dir=<output-folder>
     modelgraph              List all or plot available models.  If no model(s) specified, all assumed.
 
 Examples for `cmd.exe`:
@@ -162,7 +162,7 @@ def _generate_files_from_streams(
             "Destination folder '%s' does not exist!" % dst_folder)
     if not osp.isdir(dst_folder):
         raise CmdException(
-            "Destination '%s' is not a <folder>!" % dst_folder)
+            "Destination '%s' is not a <output-folder>!" % dst_folder)
 
     for src_fname, stream in file_stream_pairs:
         dst_fpath = osp.join(dst_folder, src_fname)
@@ -177,7 +177,7 @@ def _generate_files_from_streams(
 
 
 def _cmd_demo(opts):
-    dst_folder = opts.get('<folder>', None)
+    dst_folder = opts.get('<output-folder>', None)
     is_gui = opts['--gui']
     if is_gui and not dst_folder:
         import easygui as eu
@@ -202,7 +202,7 @@ def _cmd_demo(opts):
 
 
 def _cmd_ipynb(opts):
-    dst_folder = opts.get('<folder>', None)
+    dst_folder = opts.get('<output-folder>', None)
     is_gui = opts['--gui']
     if is_gui and not dst_folder:
         import easygui as eu
@@ -352,15 +352,15 @@ def _run_batch(opts):
     input_paths = opts['<input-path>']
     output_folder =opts['-O']
     if opts['--gui']:
-        input_paths = _prompt_folder(folder_name='INPUT',
-                fpath=input_paths[-1] if input_paths else None)
+        input_paths = [_prompt_folder(folder_name='INPUT',
+                fpath=input_paths[-1] if input_paths else None)]
         output_folder = _prompt_folder(folder_name='OUTPUT', fpath=output_folder)
         opts.update(_prompt_options())
 
     log.info("Processing %r --> %r...", input_paths, output_folder)
     input_paths = file_finder(input_paths)
     if not input_paths:
-        raise CmdException("No <input-files> found! \n"
+        raise CmdException("No <input-path> found! \n"
                 "\n  Try: co2mpas batch <fpath-1>..."
                 "\n  or : co2mpas --gui"
                 "\n  or : co2mpas --help")
