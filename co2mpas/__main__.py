@@ -4,25 +4,26 @@
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
-"""
+r"""
 Predict NEDC CO2 emissions from WLTP cycles.
 
 Usage:
-  co2mpas [simulate]    [options] [--predict-wltp] [--plot-workflow] [--only-summary]
-                        ([--out-template <xlsx-file>] | [--charts])
-                        [-I <fpath>] [-O <fpath>]
-  co2mpas demo          [options] [-f] [<folder>]
-  co2mpas template      [options] [-f] [<excel-file-path> ...]
-  co2mpas ipynb         [options] [-f] [<folder>]
-  co2mpas modelgraph    [options] --list
-  co2mpas modelgraph    [options] [--workflow-depth=INTEGER] [<models> ...]
-  co2mpas [options] (--version | -V)
+  co2mpas batch       [-v | --logconf <conf-file>]  [--predict-wltp] [--only-summary]
+                      [--out-template <xlsx-file> | --charts] [--plot-workflow]
+                      [--gui] [-O <out-folder>]  [<input-path>]...
+  co2mpas demo        [-v | --logconf <conf-file>] [-f] [<folder>]
+  co2mpas template    [-v | --logconf <conf-file>] [-f] [<excel-file-path> ...]
+  co2mpas ipynb       [-v | --logconf <conf-file>] [-f] [<folder>]
+  co2mpas modelgraph  [-v | --logconf <conf-file>]
+                      [--list | [--graph-depth=INTEGER] [<models> ...]]
+  co2mpas [-v | --logconf <conf-file>] (--version | -V)
   co2mpas --help
 
 Options:
-  -I <fpath>                  Input folder or file, prompted with GUI if missing [default: ./input]
-  -O <fpath>                  Input folder or file, prompted with GUI if missing [default: ./output]
-  -l, --list                  List available models.
+  <input-path>                Input xlsx-file or folder.
+  -O <folder>                 Output folder or file [default: .].
+  --gui                       Launches three GUI dialog-boxes to choose Input, Output and Options.
+                              [default: False].
   --only-summary              Does not save vehicle outputs just the summary file.
   --predict-wltp              Whether to predict also WLTP values.
   --charts                    Add basic charts to output file.
@@ -30,7 +31,8 @@ Options:
                               By default, no output-template used.
                               Set it to `-` to use the input xlsx-file as output-template.
   --plot-workflow             Open workflow-plot in browser, after run finished.
-  --workflow-depth=INTEGER    Limit the number of sub-dispatchers plotted (no limit by default).
+  -l, --list                  List available models.
+  --graph-depth=INTEGER       Limit the levels of sub-models plotted (no limit by default).
   -f, --force                 Overwrite template/demo excel-file(s).
   -V, --version               Print version of the program, with --verbose
                               list release-date and installation details.
@@ -38,34 +40,35 @@ Options:
 
 Miscellaneous:
   -v, --verbose               Print more verbosely messages - overridden by --logconf.
-  --logconf <conf-file>       Path to a logging-configuration file
-                              (see https://docs.python.org/3/library/logging.config.html#configuration-file-format).
+  --logconf <conf-file>       Path to a logging-configuration file, according to:
+                                  https://docs.python.org/3/library/logging.config.html#configuration-file-format
 
 * Items enclosed in `[]` are optional.
 
 
 Sub-commands:
-    simulate                [default] Run simulation for all excel-files in input-folder (-I).
+    batch                   Run simulation for all <input-path> xlsx-files & folder.
     demo                    Generate demo input-files inside <folder>.
     template                Generate "empty" input-file at <excel-file-path>.
     ipynb                   Generate IPython notebooks inside <folder>; view them with cmd:
                               ipython --notebook-dir=<folder>
     modelgraph              List all or plot available models.  If no model(s) specified, all assumed.
--
-Examples:
 
-    # Create sample-vehicles inside the `input` folder.
-    # (the `input` folder must exist)
+Examples for `cmd.exe`:
+    # Create work folders ans fill them with sample-vehicles:
+    md input output
     co2mpas demo input
 
-    # Run the sample-vehicles just created.
-    # (the `output` folder must exist)
-    co2mpas -I input -O output
+    # Launch GUI dialog-boxes on the sample-vehicles just created:
+    co2mpas batch --gui input
 
-    # Create an empty vehicle-file inside `input` folder.
-    co2mpas template input/vehicle_1.xlsx
+    # or specify them with output-charts and workflow plots:
+    co2mpas batch input -O output --charts --plot-workflow
 
-    # View a specific submodel on your browser.
+    # Create an empty vehicle-file inside `input` folder:
+    co2mpas template input\vehicle_1.xlsx
+
+    # View a specific submodel on your browser:
     co2mpas modelgraph gear_box_calibration
 
 """
@@ -73,7 +76,9 @@ from co2mpas import (__version__ as proj_ver, __file__ as proj_file,
                      __updated__ as proj_date)
 from co2mpas import autocompletion
 from collections import OrderedDict
+import glob
 import logging
+from os import path as osp
 import os
 import re
 import shutil
@@ -113,7 +118,7 @@ def build_version_string(verbose):
         v_infos = OrderedDict([
             ('co2mpas_version', proj_ver),
             ('co2mpas_rel_date', proj_date),
-            ('co2mpas_path', os.path.dirname(proj_file)),
+            ('co2mpas_path', osp.dirname(proj_file)),
             ('python_version', sys.version),
             ('python_path', sys.prefix),
             ('PATH', os.environ.get('PATH', None)),
@@ -136,12 +141,12 @@ def _cmd_modelgraph(opts):
     if opts['--list']:
         print('\n'.join(co2plot.get_model_paths()))
     else:
-        depth = opts['--workflow-depth']
+        depth = opts['--graph-depth']
         if depth:
             try:
                 depth = int(depth)
             except:
-                msg = "The '--workflow-depth' must be an integer!  Not %r."
+                msg = "The '--graph-depth' must be an integer!  Not %r."
                 raise CmdException(msg % depth)
         else:
             depth = None
@@ -152,16 +157,16 @@ def _cmd_modelgraph(opts):
 
 def _generate_files_from_streams(
         dst_folder, file_stream_pairs, force, file_category):
-    if not os.path.exists(dst_folder):
+    if not osp.exists(dst_folder):
         raise CmdException(
             "Destination folder '%s' does not exist!" % dst_folder)
-    if not os.path.isdir(dst_folder):
+    if not osp.isdir(dst_folder):
         raise CmdException(
             "Destination '%s' is not a <folder>!" % dst_folder)
 
     for src_fname, stream in file_stream_pairs:
-        dst_fpath = os.path.join(dst_folder, src_fname)
-        if os.path.exists(dst_fpath) and not force:
+        dst_fpath = osp.join(dst_folder, src_fname)
+        if osp.exists(dst_fpath) and not force:
             msg = "Creating %s file '%s' skipped, already exists! \n  " \
                   "Use '-f' to overwrite it."
             log.info(msg, file_category, dst_fpath)
@@ -215,11 +220,11 @@ def _cmd_template(opts):
     for fpath in dst_fpaths:
         if not fpath.endswith('.xlsx'):
             fpath = '%s.xlsx' % fpath
-        if os.path.exists(fpath) and not force and not is_gui:
+        if osp.exists(fpath) and not force and not is_gui:
             raise CmdException(
                 "Writing file '%s' skipped, already exists! "
                 "Use '-f' to overwrite it." % fpath)
-        if os.path.isdir(fpath):
+        if osp.isdir(fpath):
             raise CmdException(
                 "Expecting a file-name instead of directory '%s'!" % fpath)
 
@@ -244,7 +249,7 @@ def _get_internal_file_streams(internal_folder, incl_regex=None):
         incl_regex = re.compile(incl_regex)
     return {f: pkg_resources.resource_stream(  # @UndefinedVariable
             __name__,
-            os.path.join(internal_folder, f))
+            osp.join(internal_folder, f))
             for f in samples
             if not incl_regex or incl_regex.match(f)}
 
@@ -268,12 +273,12 @@ def _cmd_demo(opts):
     file_stream_pairs = sorted(file_stream_pairs.items())
     _generate_files_from_streams(dst_folder, file_stream_pairs,
                                  force, file_category)
-    msg = "You may run DEMOS with:\n    co2mpas simulate -I %s"
+    msg = "You may run DEMOS with:\n    co2mpas simulate %s"
     log.info(msg, dst_folder)
 
 
 def _prompt_folder(folder_name, fpath):
-    while fpath and not (os.path.isfile(fpath) or os.path.isdir(fpath)):
+    while not fpath or not (os.path.isfile(fpath) or os.path.isdir(fpath)):
         log.info('Cannot find %s folder/file: %r', folder_name, fpath)
         import easygui as eu
         fpath = eu.diropenbox(msg='Select %s folder:' % folder_name,
@@ -289,48 +294,74 @@ def _prompt_options():
 
     fields = ('predict-wltp', 'plot-workflow', 'only-summary', 'out-template',
               'charts')
-    values = ('y/[n]', 'y/[n]', 'y/[n]', 'y/[n]/<xlsx-file>', 'y/[n]')
+    choices = ('y/[n]', 'y/[n]', 'y/[n]', 'y/[n]/<xlsx-file>', 'y/[n]')
+    for values in iter(lambda: eu.multenterbox(msg='Select simulate options:',
+                    title='%s-v%s' % (proj_name, proj_ver),
+                    fields=fields, values=choices),
+            None):
+        opts = {}
+        for (f, c, v) in zip(fields, choices, values):
+            if v and v != c:
+                o = '--%s' % f
+                vl = v.lower()
+                if f == 'out-template':
+                    if vl == 'y':
+                        opts[o] = '-'
+                    elif vl == 'n':
+                        opts[o] = False
+                    elif not vl.endswith('.xlsx'):
+                        eu.msgbox('The file %r has not .xlsx extension!'% v)
+                        break
+                    elif not osp.isfile(v):
+                        eu.msgbox('The xl-file %r does not exist!' % v)
+                        break
+                    else:
+                        opts[o] = v
+                elif vl == 'y':
+                    opts[o] = True
+                elif vl == 'n':
+                    opts[o] = False
+                else: # Invalid content
+                    break
+        else:
+            return opts
+    raise CmdException('User abort.')
 
-    opt = eu.multenterbox(
-            msg='Select simulate options:',
-            title='%s-v%s' % (proj_name, proj_ver),
-            fields=fields,
-            values=values
-    )
 
-    if not opt:
-        raise CmdException('User abort.')
+_input_file_regex = re.compile('^\w')
 
-    def parse_opt(f, r, v):
-        if v != r:
-            l = v.lower()
-            if f == 'out-template':
+def file_finder(xlsx_fpaths):
+    files = set()
+    for f in xlsx_fpaths:
+        if osp.isfile(f):
+            files.add(f)
+        elif osp.isdir(f):
+            files.update(glob.glob(osp.join(f, '*.xlsx')))
 
-                if l.endswith('.xlsx'):
-                    return ' --%s %s' % (f, v)
-                elif l == 'y':
-                    return ' --%s -' % f
+    return [f for f in files if _input_file_regex.match(osp.basename(f))]
 
-            elif l == 'y':
-                return ' --%s' % f
-
-            if l != 'n':
-                return ' --%s %s' % (f, v)
-
-        return ''
-
-    args = ''.join((parse_opt(f, r, o) for f, r, o in zip(fields, values, opt)))
-
-    return (os.path.realpath(__file__) + args).split(' ')
 
 
 def _run_batch(opts):
-    input_folder = _prompt_folder(folder_name='INPUT', fpath=opts['-I'])
-    output_folder = _prompt_folder(folder_name='OUTPUT', fpath=opts['-O'])
+    input_paths = opts['<input-path>']
+    output_folder =opts['-O']
+    if opts['--gui']:
+        input_paths = _prompt_folder(folder_name='INPUT',
+                fpath=input_paths[-1] if input_paths else None)
+        output_folder = _prompt_folder(folder_name='OUTPUT', fpath=output_folder)
+        opts.update(_prompt_options())
 
-    log.info("Processing '%s' --> '%s'...", input_folder, output_folder)
+    log.info("Processing %r --> %r...", input_paths, output_folder)
+    input_paths = file_finder(input_paths)
+    if not input_paths:
+        raise CmdException("No <input-files> found! \n"
+                "\n  Try: co2mpas simulate <fpath-1>..."
+                "\n  or : co2mpas --gui"
+                "\n  or : co2mpas --help")
+    if not osp.isdir(output_folder):
+        raise CmdException("Specify a folder for the '-O %s' option!" % output_folder)
     from co2mpas.functions import process_folder_files
-    process_folder_files(input_folder, output_folder,
+    process_folder_files(input_paths, output_folder,
                          with_output_file=not opts['--only-summary'],
                          plot_workflow=opts['--plot-workflow'],
                          with_charts=opts['--charts'],
@@ -357,9 +388,7 @@ def _main(*args):
             _cmd_ipynb(opts)
         elif opts['modelgraph']:
             _cmd_modelgraph(opts)
-        elif opts['simulate']:
-            _run_batch(opts)
-        else:
+        else: #opts['simulate']:
             _run_batch(opts)
 
 
@@ -367,7 +396,11 @@ def main(*args):
     try:
         _main(*args)
     except CmdException as ex:
+        log.info('%r', ex)
         exit(ex.args[0])
+    except Exception as ex:
+        log.error('%r', ex)
+        raise
 
 if __name__ == '__main__':
     if sys.version_info < (3, 4):

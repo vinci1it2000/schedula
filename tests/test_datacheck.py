@@ -1,6 +1,6 @@
-from co2mpas.__main__ import init_logging
+from co2mpas.__main__ import init_logging, file_finder
 from co2mpas.models import vehicle_processing_model
-from co2mpas.functions import _file_iterator, _iter_d
+from co2mpas.functions import _iter_d
 import co2mpas.dispatcher.utils as dsp_utl
 import os
 import os.path as osp
@@ -86,7 +86,8 @@ class SeatBelt(unittest.TestCase):
         model = vehicle_processing_model()
 
         resultes = []
-        for fname, fpath in _file_iterator(file):
+        for fpath in file_finder(file):
+            fname = osp.splitext(osp.basename(fpath))[0]
             log.info('Processing: %s', fname)
 
             inputs = {

@@ -4,7 +4,6 @@
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
-
 """
 It contains a list of all modules that contains functions of CO2MPAS.
 
@@ -24,13 +23,15 @@ Modules:
 
 import datetime
 import glob
+from itertools import chain
 import logging
 import re
+
+import co2mpas.dispatcher.utils as dsp_utl
 import numpy as np
 import os.path as osp
 import pandas as pd
-import co2mpas.dispatcher.utils as dsp_utl
-from itertools import chain
+
 
 log = logging.getLogger(__name__)
 
@@ -155,12 +156,12 @@ def _split_by_data_format(data, param_ids):
     return d
 
 
-def process_folder_files(input_folder, output_folder, **kwds):
+def process_folder_files(input_files, output_folder, **kwds):
     """
     Process all xls-files in a folder with CO2MPAS-model and produces summary.
 
-    :param str input_folder:
-        Input folder.
+    :param list input_files:
+        A list of input xl-files.
 
     :param str output_folder:
         Where to store the results; the exact output-filenames will be::
@@ -172,8 +173,7 @@ def process_folder_files(input_folder, output_folder, **kwds):
 
     .. seealso::  :func:`_process_folder_files()` for more params.
     """
-
-    summary, start_time = _process_folder_files(input_folder, output_folder,
+    summary, start_time = _process_folder_files(input_files, output_folder,
             **kwds)
 
     timestamp = start_time.strftime('%Y%m%d_%H%M%S')
@@ -187,15 +187,14 @@ def process_folder_files(input_folder, output_folder, **kwds):
 
 
 def _process_folder_files(
-        input_folder, output_folder, plot_workflow=False,
+        input_files, output_folder, plot_workflow=False,
         enable_prediction_WLTP=False, with_output_file=True,
         output_template_xl_fpath=None, with_charts=False):
     """
     Process all xls-files in a folder with CO2MPAS-model.
 
-    :param input_folder:
-        Input folder.
-    :type input_folder: str
+    :param list input_files:
+        A list of input xl-files.
 
     :param output_folder:
         Output folder.
@@ -225,8 +224,12 @@ def _process_folder_files(
     start_time = datetime.datetime.today()
     timestamp = start_time.strftime('%Y%m%d_%H%M%S')
 
-    for fname, fpath in _file_iterator(input_folder):
-        log.info('Processing: %s', fname)
+    for fpath in input_files:
+        fname = osp.splitext(osp.basename(fpath))[0]
+        if not osp.isfile(fpath):
+            log.warn('File  %r does not exist!', fpath)
+        else:
+            log.info('Processing: %s', fname)
 
         inputs = {
             'vehicle_name': fname,
@@ -256,20 +259,6 @@ def _process_folder_files(
                 log.warning(ex, exc_info=1)
 
     return summary, start_time
-
-
-def _file_iterator(input_folder):
-    if osp.isfile(input_folder):
-        fpaths = [input_folder]
-    else:
-        fpaths = glob.glob(osp.join(input_folder, '*.xlsx'))
-
-    for fpath in fpaths:
-        fname = osp.splitext(osp.basename(fpath))[0]
-
-        if not files_exclude_regex.match(fname):
-            continue
-        yield fname, fpath
 
 
 def _save_summary(fpath, start_time, summary):

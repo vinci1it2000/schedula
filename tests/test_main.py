@@ -84,7 +84,7 @@ class Main(unittest.TestCase):
                 tempfile.TemporaryDirectory() as out:
             cmd = "template %s/tt" % inp
             compas_main._main(*cmd.split())
-            cmd = "-I %s -O %s" % (inp, out)
+            cmd = "batch %s -O %s" % (inp, out)
             compas_main._main(*cmd.split())
 
     #@unittest.skip('Takes too long.')  # DO NOT COMIT AS SKIPPED!!
@@ -93,7 +93,7 @@ class Main(unittest.TestCase):
                 tempfile.TemporaryDirectory() as out:
             cmd = "demo %s" % inp
             compas_main._main(*cmd.split())
-            cmd = "-v -I %s -O %s" % (inp, out)
+            cmd = "-v batch %s -O %s" % (inp, out)
             compas_main._main(*cmd.split())
 
 
@@ -112,9 +112,9 @@ class Modelgraph(unittest.TestCase):
 
     @ddt.data(
         '',
-        '--dept -1',
-        '--dept 0',
-        '--dept 1',
+        '--graph-depth -1',
+        '--graph-depth 0',
+        '--graph-depth 1',
     )
     def test_plot_graphs_depth(self, case):
         cmd = "modelgraph %s %s" % (case, self.model)

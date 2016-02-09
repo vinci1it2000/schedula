@@ -95,7 +95,7 @@ follow the detailed instructions under sections :ref:`install` and
     ###################################################
 
     ## Run simulator.
-    $ co2mpas -I input -O output
+    $ co2mpas batch  input -O output
 
     ###################################################
     ## Inspect generated results inside `./output/`. ##
@@ -300,7 +300,7 @@ CO2MPAS installation
 
    .. code-block:: console
 
-       > co2mpas -v --version
+       > co2mpas -vV
        co2mpas_version: 1.1.0b1
        co2mpas_rel_date: 2016-02-08 11:54:16
        co2mpas_path: d:\co2mpas_ALLINONE-XXbit-v1.0.5.dev1\Apps\WinPython\python-3.4.3\lib\site-packages\co2mpas
@@ -601,24 +601,25 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
 .. code-block:: console
 
     $ co2mpas --help
-    Predict NEDC CO2 emissions from WLTP cycles.
+        Predict NEDC CO2 emissions from WLTP cycles.
 
-    Usage:
-      co2mpas [simulate]    [options] [--predict-wltp] [--plot-workflow] [--only-summary]
-                            ([--out-template <xlsx-file>] | [--charts])
-                            [-I <fpath>] [-O <fpath>]
-      co2mpas demo          [options] [-f] [<folder>]
-      co2mpas template      [options] [-f] [<excel-file-path> ...]
-      co2mpas ipynb         [options] [-f] [<folder>]
-      co2mpas modelgraph    [options] --list
-      co2mpas modelgraph    [options] [--workflow-depth=INTEGER] [<models> ...]
-      co2mpas [options] (--version | -V)
+        Usage:
+      co2mpas batch       [-v | --logconf <conf-file>]  [--predict-wltp] [--only-summary]
+                          [--out-template <xlsx-file> | --charts] [--plot-workflow]
+                          [--gui] [-O <out-folder>]  [<input-path>]...
+      co2mpas demo        [-v | --logconf <conf-file>] [-f] [<folder>]
+      co2mpas template    [-v | --logconf <conf-file>] [-f] [<excel-file-path> ...]
+      co2mpas ipynb       [-v | --logconf <conf-file>] [-f] [<folder>]
+      co2mpas modelgraph  [-v | --logconf <conf-file>]
+                          [--list | [--graph-depth=INTEGER] [<models> ...]]
+      co2mpas [-v | --logconf <conf-file>] (--version | -V)
       co2mpas --help
 
     Options:
-      -I <fpath>                  Input folder or file, prompted with GUI if missing [default: ./input]
-      -O <fpath>                  Input folder or file, prompted with GUI if missing [default: ./output]
-      -l, --list                  List available models.
+      <input-path>                Input xlsx-file or folder.
+      -O <folder>                 Output folder or file [default: .].
+      --gui                       Launches three GUI dialog-boxes to choose Input, Output and Options.
+                                  [default: False].
       --only-summary              Does not save vehicle outputs just the summary file.
       --predict-wltp              Whether to predict also WLTP values.
       --charts                    Add basic charts to output file.
@@ -626,7 +627,8 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
                                   By default, no output-template used.
                                   Set it to `-` to use the input xlsx-file as output-template.
       --plot-workflow             Open workflow-plot in browser, after run finished.
-      --workflow-depth=INTEGER    Limit the number of sub-dispatchers plotted (no limit by default).
+      -l, --list                  List available models.
+      --graph-depth=INTEGER       Limit the levels of sub-models plotted (no limit by default).
       -f, --force                 Overwrite template/demo excel-file(s).
       -V, --version               Print version of the program, with --verbose
                                   list release-date and installation details.
@@ -634,34 +636,35 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
 
     Miscellaneous:
       -v, --verbose               Print more verbosely messages - overridden by --logconf.
-      --logconf <conf-file>       Path to a logging-configuration file
-                                  (see https://docs.python.org/3/library/logging.config.html#configuration-file-format).
+      --logconf <conf-file>       Path to a logging-configuration file, according to:
+                                      https://docs.python.org/3/library/logging.config.html#configuration-file-format
 
     * Items enclosed in `[]` are optional.
 
 
     Sub-commands:
-        simulate                [default] Run simulation for all excel-files in input-folder (-I).
+        batch                   Run simulation for all <input-path> xlsx-files & folder.
         demo                    Generate demo input-files inside <folder>.
         template                Generate "empty" input-file at <excel-file-path>.
         ipynb                   Generate IPython notebooks inside <folder>; view them with cmd:
                                   ipython --notebook-dir=<folder>
         modelgraph              List all or plot available models.  If no model(s) specified, all assumed.
-    -
-    Examples:
 
-        # Create sample-vehicles inside the `input` folder.
-        # (the `input` folder must exist)
+    Examples for `cmd.exe`:
+        # Create work folders ans fill them with sample-vehicles:
+        md input output
         co2mpas demo input
 
-        # Run the sample-vehicles just created.
-        # (the `output` folder must exist)
-        co2mpas -I input -O output
+        # Launch GUI dialog-boxes on the sample-vehicles just created:
+        co2mpas batch --gui input
 
-        # Create an empty vehicle-file inside `input` folder.
-        co2mpas template input/vehicle_1.xlsx
+        # or specify them with output-charts and workflow plots:
+        co2mpas batch input -O output --charts --plot-workflow
 
-        # View a specific submodel on your browser.
+        # Create an empty vehicle-file inside `input` folder:
+        co2mpas template input\vehicle_1.xlsx
+
+        # View a specific submodel on your browser:
         co2mpas modelgraph gear_box_calibration
 
 
@@ -708,12 +711,12 @@ starting point to try out.
         You may run DEMOS with:
             co2mpas simulate -I input
 
-3. Run the simulator:
+3. Run the simulator on all demo-files:
 
    .. code-block:: console
 
-       $ co2mpas -I input -O output
-       Processing 'input' --> 'output'...
+       $ co2mpas batch input -O output
+       Processing ['input'] --> 'output'...
        Processing: co2mpas_demo_1_full_data
        ...
        ...
@@ -792,7 +795,7 @@ excel-file:
 
    .. code-block:: console
 
-        $ co2mpas -I ./input/vehicle_1.xlsx -O output
+        $ co2mpas batch ./input/vehicle_1.xlsx -O output
         Processing './input/vehicle_1.xlsx' --> 'output'...
         Processing: vehicle_1
         ...

@@ -135,6 +135,20 @@ IO
 Cmd-line (running CO2MPAS)
 --------------------------
 
+- Normalize `main()` syntax (see ``co2mpas --help``):
+
+  - Always require a subcommand (tip: try ``co2mpas batch <input-file-1>...``).
+  - Drop the ``-I`` option, support multiple input files & folders as simple
+    positional arguments in the command-line - ``-O`` now defaults to
+    current-folder!
+  - Report and halt if no input-files found.
+  - GUI dialog-boxes kick-in only if invoked with the  ``--gui`` option.
+    Added new dialog-box for cmd-line options (total GUIs 3 in number).
+  - Autocomomplete cmd-line with ``[Tab]`` both for `cmd.exe` and *bash*
+    (consoles pre-configured in ALLINONE).
+  - Support logging-configuration with a file.
+  - Other minor options renames and improvements.
+
 - :gh:`5e91993c`: Add option to skip saving WLTP-prediction.
 - :gh:`88`: Raise warning (console & summary-file) if incompatible ``VERSION``
   detected in input-file.

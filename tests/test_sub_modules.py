@@ -18,8 +18,8 @@ from co2mpas.models.co2mpas_model.physical import _physical
 from co2mpas.models.co2mpas_model.physical.electrics import electrics
 from co2mpas.models.co2mpas_model.physical.gear_box.AT_gear import AT_gear
 import os
+from os import path as osp
 from co2mpas.models.io import load_inputs
-from co2mpas.functions import _file_iterator
 from functools import partial
 import datetime
 import dill
@@ -29,6 +29,10 @@ from sklearn.metrics import mean_absolute_error, accuracy_score
 
 import co2mpas.dispatcher.utils as dsp_utl
 import matplotlib.pyplot as plt
+
+matplotlib.use('Agg')
+init_logging(True)
+
 
 
 init_logging(None)
@@ -89,7 +93,8 @@ def basic_plot(directory, model_id, data_name, cycle_name, y_true, y_pred):
 def read_data(data_loader, directory):
     log.debug('Reading...')
     data = {}
-    for fname, fpath in _file_iterator(directory):
+    for fpath in file_finder(directory):
+        fname = osp.splitext(osp.basename(fpath))[0]
         data[fname] = data_loader(fpath, type_file='output')[0] # 0:input, 1:tagret
     log.debug('Reading done!')
     return data
