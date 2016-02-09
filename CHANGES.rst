@@ -113,6 +113,9 @@ IO
 
 - Outputs:
 
+  - :gh:`136`: Add `section explaining the results
+    <Explanation of the results>`_
+    in the documents:
   - :gh:`96`: Produce a single excel with all infos in multiple sheets.
   - :gh:`20`: Produce html report with basic interactive graphs (unfinished).
   - :git:`5064efd3`: Add charts in excel output.

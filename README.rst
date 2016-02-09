@@ -732,7 +732,7 @@ starting point to try out.
 
 
 Output files
-~~~~~~~~~~~~
+------------
 The output-files produced on each run are the following::
 
 - `<timestamp>-<inp-fname>.xls`:
@@ -931,4 +931,71 @@ Debugging and investigating results
 - Inspect the functions mentioned in the workflow and models and search them
   in `CO2MPAS documentation <http://files.co2mpas.io/>`_ ensuring you are
   visiting the documents for the actual version you are using.
+
+
+
+Explanation of the CO2MPAS model
+================================
+There are potentially eight models to calibrate and run within CO2MPAS:
+
+1. ``AT_model``,
+2. ``electric_model``,
+3. ``clutch_torque_converter_model``,
+4. ``co2_params``,
+5. ``engine_cold_start_speed_model``,
+5. ``engine_coolant_temperature_model``,
+6. ``engine_speed_model``, and
+7. ``start_stop_model``.
+
+Each model is calibrated separately over *WLTP_H* and *WLTP_L*.
+A model can contain one or several functions predicting different quantities.
+For example, the electric_model contains the following functions/data:
+
+- ``alternator_current_model``,
+- ``alternator_status_model``,
+- ``electric_load``,
+- ``max_battery_charging_current``,
+- ``start_demand``,
+
+These functions/data are calibrated/estimated based on the provided input
+(in the particular case: *alternator current*, *battery current*, and *initial SOC*)
+over both cycles, assuming that data for both WLTP_H and WLTP_L are provided.
+
+.. Note::
+    The ``co2_params`` model has a third possible calibration configuration
+    (so called `ALL`) using data from both WLTP_H and WLTP_L combined
+    (when both are present).
+
+
+To select which is the best calibration (from *WLTP_H* or *WLTP_L* or *ALL*)
+to be used in the prediction phase, the results of each stage are compared
+against the provided input data (used in the calibration).
+The calibrated models are THEN used to recalculate (predict) the inputs of the
+*WLTP_H* and *WLTP_L* cycles. A **score** (weighted average of all computed metrics)
+is attributed to each calibration of each model as a result of this comparison.
+
+.. Note::
+    The overall score attributed to a specific calibration of a model is
+    the average score achieved when compared against each one of the input cycles
+    (*WLTP_H* and *WLTP_L*).
+
+    For example, the score of `electric_model` calibrated based on `*WLTP_H*`
+    when predicting *WLTP_H* is 20, and when predicting *WLTP_L* is 14.
+    In this case the overall score of the the `electric_model` calibrated
+    based on `*WLTP_H*` is 17. Assuming that the calibration of the same model
+    over *WLTP_L* was 18 and 12 respectively, this would give an overall score of 15.
+
+    In this case the second calibration (*WLTP_L*) would be chosen for predicting the NEDC.
+
+In addition to the above, a success flag is defined according to
+upper or lower limits of scores which have been defined empirically by the JRC.
+If a model fails these limits, priority is then given to a model that succeeds,
+even if it has achieved a worse score.
+
+The following table describes the scores, targets, and metrics for each model:
+
+.. image:: doc/_static/CO2MPAS_model_score_targets_limits.png
+   :width: 600 px
+   :align: center
+
 
