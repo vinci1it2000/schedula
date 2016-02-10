@@ -40,10 +40,10 @@ _re_params_name = regex.compile(
 
 
 _re_sheet_name = regex.compile(
-        r"""(
+        r"""((?P<output>
                 ^(?P<cycle>(WLTP_[HLP]{1}|NEDC))_
                 (?P<as>(target|input|calibration|prediction)s)_
-                (?P<type>(parameter|time_serie)s)$
+                (?P<type>(parameter|time_serie)s)$)
             |
                 ^(?P<cycle>(WLTP-[HLP]{1}|NEDC))$
         )""", regex.IGNORECASE | regex.X | regex.DOTALL)
@@ -65,17 +65,15 @@ def parse_excel_file(file_path):
     excel_file = pd.ExcelFile(file_path)
     res = {}
     defaults = {
+        'what': 'input',
         'as': 'inputs',
         'type': 'time_series'
     }
 
-    _map = {'PARAMETERS': 'parameters', 'SERIES': 'time_series'}
-
-    _filters = dsp_utl.map_dict(_map, get_filters())
-
     for sheet_name in excel_file.sheet_names:
         if sheet_name == 'Inputs':
             match = {
+                'what': 'input',
                 'as': 'inputs',
                 'type': 'parameters',
                 'cycle': ('nedc', 'wltp_h', 'wltp_l', 'wltp_p')
@@ -85,28 +83,27 @@ def parse_excel_file(file_path):
             if not match:
                 continue
             match = {k: v.lower() for k, v in match.groupdict().items() if v}
+            if 'output' in match:
+                match['what'] = 'output'
+                match.pop('output')
             match = dsp_utl.combine_dicts(defaults, match)
 
         if match['type'] == 'parameters':
             xl_ref = '#%s!B2:C_:["pipe", ["dict", "recurse"]]' % sheet_name
         else:
-            xl_ref = '#%s!A1(RD):..(RD):(RD):["df", {"header": [0], "skiprows": [0]}]' % sheet_name
+            xl_ref = '#%s!A2(RD):..(RD):RD:["df", {"header": 0}]' % sheet_name
 
         sheet = _open_sheet_by_name_or_index(excel_file.book, 'book', sheet_name)
         data = lasso(xl_ref, sheet=sheet)
 
-        filters = _filters[match['type']]
-
-        for k, v, m in iter_values(data):
-            m = dsp_utl.combine_dicts(match, m)
-            v = parse_value(k, v, filters)
+        for k, v, m in iter_values(data, default=match):
             for c in stlp(m['cycle']):
-                _get(res, c.replace('-', '_'), m['as'])[k] = v
+                _get(res, m['what'], c.replace('-', '_'), m['as'])[k] = v
 
     return res
 
 
-def iter_values(data):
+def iter_values(data, default=None):
     """
     Parses the data with a data map.
 
@@ -118,12 +115,16 @@ def iter_values(data):
         Parsed and fetched data (inputs and targets).
     :rtype: (dict, dict)
     """
-
+    default = default or {}
     for k, v in data.items():
         match = _re_params_name.match(k) if k is not None else None
         if not match or (isinstance(v, float) and isnan(v) or _check_none(v)):
             continue
         match = {i: j.lower() for i, j in match.groupdict().items() if j}
+        match = dsp_utl.combine_dicts(default, match)
+        match['as'] = match['as'].replace(' ', '')
+        if not match['as'].endswith('s'):
+            match['as'] += 's'
         i = match['id']
         yield i, v, match
 

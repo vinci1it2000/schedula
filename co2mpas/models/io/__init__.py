@@ -23,7 +23,8 @@ Sub-Modules:
 
 from co2mpas.dispatcher import Dispatcher
 from co2mpas.functions.io import *
-from co2mpas.functions.io.excel import write_to_excel
+from co2mpas.functions.io.excel import write_to_excel, parse_excel_file
+from co2mpas.functions.io.schema import validate_data
 from .excel import load_from_excel
 
 import co2mpas.dispatcher.utils as dsp_utl
@@ -64,26 +65,36 @@ def load_inputs():
         function_id='load_from_cache',
         function=dsp_utl.add_args(load_from_dill),
         inputs=['input_file_name', 'cache_file_name'],
-        outputs=['input_data'],
+        outputs=['validated_data'],
         input_domain=check_cache_fpath_exists
     )
 
     dsp.add_function(
-        function=dsp_utl.add_args(load_from_excel(), n=1, callback=save_dill),
-        inputs=['cache_file_name', 'input_file_name'],
-        outputs=['input_data'],
-        input_domain=dsp_utl.add_args(partial(check_file_format,
-                                              extensions=('.xlsx', '.xls'))),
+        function=parse_excel_file,
+        inputs=['input_file_name'],
+        outputs=['data'],
+        input_domain=partial(check_file_format, extensions=('.xlsx', '.xls')),
         weight=10
     )
 
     dsp.add_function(
-        function=dsp_utl.add_args(load_from_dill, n=1, callback=save_dill),
-        inputs=['cache_file_name', 'input_file_name'],
-        outputs=['input_data'],
-        input_domain=dsp_utl.add_args(partial(check_file_format,
-                                              extensions=('.dill',))),
+        function=load_from_dill,
+        inputs=['input_file_name'],
+        outputs=['data'],
+        input_domain=partial(check_file_format, extensions=('.dill',)),
         weight=10
+    )
+
+    dsp.add_function(
+        function=dsp_utl.add_args(validate_data, n=1, callback=save_dill),
+        inputs=['cache_file_name', 'data'],
+        outputs=['validated_data']
+    )
+
+    dsp.add_function(
+        function=dsp_utl.bypass,
+        inputs=['validated_data'],
+        outputs=['input_data']
     )
 
     dsp.add_data(
