@@ -266,7 +266,7 @@ def define_sub_models():
                     'battery_capacity', 'max_battery_charging_current',
                     'alternator_nominal_voltage', 'start_demand',
                     'electric_load', 'initial_state_of_charge', 'times',
-                    'clutch_TC_powers', 'on_engine', 'engine_starts',
+                    'clutch_tc_powers', 'on_engine', 'engine_starts',
                     'accelerations', 'alternator_status_model',
                     'alternator_current_model'],
                 'outputs': ['alternator_currents', 'battery_currents',

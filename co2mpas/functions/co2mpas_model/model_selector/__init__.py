@@ -289,7 +289,7 @@ def sub_models():
     dsp.add_function(
         function=calculate_engine_speeds_out,
         inputs=['on_engine', 'idle_engine_speed', 'engine_speeds_out_hot',
-                'clutch_TC_speeds_delta'],
+                'clutch_tc_speeds_delta'],
         outputs=['engine_speeds_out']
     )
 
@@ -331,7 +331,7 @@ def sub_models():
                    'electric_load', 'alternator_nominal_power'],
         'inputs': [
             'battery_capacity', 'alternator_nominal_voltage',
-            'initial_state_of_charge', 'times', 'clutch_TC_powers',
+            'initial_state_of_charge', 'times', 'clutch_tc_powers',
             'on_engine', 'engine_starts', 'accelerations'],
         'outputs': ['alternator_currents', 'battery_currents',
                     'state_of_charges', 'alternator_statuses'],

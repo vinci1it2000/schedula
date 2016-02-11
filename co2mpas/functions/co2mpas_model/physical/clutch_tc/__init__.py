@@ -82,14 +82,14 @@ def define_k_factor_curve(stand_still_torque_ratio=1.0, lockup_speed_ratio=0.0):
 
 
 def calculate_clutch_TC_powers(
-        clutch_TC_speeds_delta, k_factor_curve, gear_box_speeds_in,
+        clutch_tc_speeds_delta, k_factor_curve, gear_box_speeds_in,
         gear_box_powers_in, engine_speeds_out):
     """
     Calculates the power that flows in the clutch or torque converter [kW].
 
-    :param clutch_TC_speeds_delta:
+    :param clutch_tc_speeds_delta:
         Engine speed delta due to the clutch or torque converter [RPM].
-    :type clutch_TC_speeds_delta: numpy.array
+    :type clutch_tc_speeds_delta: numpy.array
 
     :param k_factor_curve:
         k factor curve.
@@ -117,7 +117,7 @@ def calculate_clutch_TC_powers(
     speed_in = np.where(is_not_eng2gb, gear_box_speeds_in, engine_speeds_out)
 
     ratios = np.ones_like(gear_box_powers_in, dtype=float)
-    b = (speed_in > 0) & (clutch_TC_speeds_delta != 0)
+    b = (speed_in > 0) & (clutch_tc_speeds_delta != 0)
     ratios[b] = speed_out[b] / speed_in[b]
 
     eff = k_factor_curve(ratios) * ratios

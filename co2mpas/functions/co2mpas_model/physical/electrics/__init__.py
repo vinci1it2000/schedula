@@ -58,7 +58,7 @@ def calculate_engine_start_demand(
 
 def identify_electric_loads(
         alternator_nominal_voltage, battery_currents, alternator_currents,
-        clutch_TC_powers, times, on_engine, engine_starts):
+        clutch_tc_powers, times, on_engine, engine_starts):
     """
     Identifies vehicle electric load and engine start demand [kW].
 
@@ -74,9 +74,9 @@ def identify_electric_loads(
         Alternator current vector [A].
     :type alternator_currents: numpy.array
 
-    :param clutch_TC_powers:
+    :param clutch_tc_powers:
         Clutch or torque converter power [kW].
-    :type clutch_TC_powers: numpy.array
+    :type clutch_tc_powers: numpy.array
 
     :param times:
         Time vector [s].
@@ -101,7 +101,7 @@ def identify_electric_loads(
 
     c = alternator_nominal_voltage / 1000.0
 
-    b = clutch_TC_powers >= 0
+    b = clutch_tc_powers >= 0
     bL = b & np.logical_not(on_engine) & (b_c < 0)
     bH = b & on_engine
 
@@ -146,7 +146,7 @@ def identify_max_battery_charging_current(battery_currents):
 
 # Not used.
 def identify_alternator_charging_currents(
-        alternator_currents, clutch_TC_powers, on_engine):
+        alternator_currents, clutch_tc_powers, on_engine):
     """
     Identifies the mean charging currents of the alternator [A].
 
@@ -154,9 +154,9 @@ def identify_alternator_charging_currents(
         Alternator current vector [A].
     :type alternator_currents: numpy.array
 
-    :param clutch_TC_powers:
+    :param clutch_tc_powers:
         Clutch or torque converter power [kW].
-    :type clutch_TC_powers: numpy.array
+    :type clutch_tc_powers: numpy.array
 
     :param on_engine:
         If the engine is on [-].
@@ -171,8 +171,8 @@ def identify_alternator_charging_currents(
     a_c = alternator_currents
     rjo = reject_outliers
     b = (a_c < 0.0) & on_engine
-    p_neg = b & (clutch_TC_powers < 0)
-    p_pos = b & (clutch_TC_powers > 0)
+    p_neg = b & (clutch_tc_powers < 0)
+    p_pos = b & (clutch_tc_powers > 0)
 
     def get_range(x):
         on = None
@@ -219,7 +219,7 @@ def define_alternator_current_model(alternator_charging_currents):
 
 
 def calibrate_alternator_current_model(
-        alternator_currents, clutch_TC_powers, on_engine, accelerations,
+        alternator_currents, clutch_tc_powers, on_engine, accelerations,
         state_of_charges, alternator_statuses):
     """
     Calibrates an alternator current model that predicts alternator current [A].
@@ -228,9 +228,9 @@ def calibrate_alternator_current_model(
         Alternator current vector [A].
     :type alternator_currents: numpy.array
 
-    :param clutch_TC_powers:
+    :param clutch_tc_powers:
         Clutch or torque converter power [kW].
-    :type clutch_TC_powers: numpy.array
+    :type clutch_tc_powers: numpy.array
 
     :param on_engine:
         If the engine is on [-].
@@ -262,7 +262,7 @@ def calibrate_alternator_current_model(
     b = (alternator_statuses[1:] > 0) & on_engine[1:]
 
     if b.any():
-        dt.fit(np.array([alternator_statuses[1:], clutch_TC_powers[1:],
+        dt.fit(np.array([alternator_statuses[1:], clutch_tc_powers[1:],
                          accelerations[1:]]).T[b], alternator_currents[1:][b])
         predict = dt.predict
     else:
@@ -351,7 +351,7 @@ def calculate_alternator_powers_demand(
 
 
 def identify_charging_statuses(
-        alternator_currents, clutch_TC_powers, on_engine):
+        alternator_currents, clutch_tc_powers, on_engine):
     """
     Identifies when the alternator is on due to 1:state of charge or 2:BERS [-].
 
@@ -359,9 +359,9 @@ def identify_charging_statuses(
         Alternator current vector [A].
     :type alternator_currents: numpy.array
 
-    :param clutch_TC_powers:
+    :param clutch_tc_powers:
         Clutch or torque converter power [kW].
-    :type clutch_TC_powers: numpy.array
+    :type clutch_tc_powers: numpy.array
 
     :param on_engine:
         If the engine is on [-].
@@ -373,7 +373,7 @@ def identify_charging_statuses(
     :rtype: numpy.array
     """
 
-    gb_p = clutch_TC_powers
+    gb_p = clutch_tc_powers
 
     status = np.zeros_like(alternator_currents, dtype=int)
     status[(alternator_currents < 0) & on_engine] = 2
@@ -399,7 +399,7 @@ def identify_charging_statuses(
 
 
 def calibrate_alternator_status_model(
-        alternator_statuses, state_of_charges, clutch_TC_powers,
+        alternator_statuses, state_of_charges, clutch_tc_powers,
         has_energy_recuperation):
     """
     Calibrates the alternator status model.
@@ -417,9 +417,9 @@ def calibrate_alternator_status_model(
             `state_of_charges` = 99 is equivalent to 99%.
     :type state_of_charges: numpy.array
 
-    :param clutch_TC_powers:
+    :param clutch_tc_powers:
         Clutch or torque converter power [kW].
-    :type clutch_TC_powers: numpy.array
+    :type clutch_tc_powers: numpy.array
 
     :param has_energy_recuperation:
         Does the vehicle have energy recuperation features?
@@ -434,7 +434,7 @@ def calibrate_alternator_status_model(
     if has_energy_recuperation and b.any():
         bers = DecisionTreeClassifier(random_state=0, max_depth=2)
         c = alternator_statuses != 1
-        bers.fit(np.array([clutch_TC_powers[c]]).T, b[c])
+        bers.fit(np.array([clutch_tc_powers[c]]).T, b[c])
 
         bers_pred = bers.predict  # shortcut name
     elif has_energy_recuperation:
@@ -524,7 +524,7 @@ def define_alternator_status_model(
 def predict_vehicle_electrics(
         battery_capacity, alternator_status_model, alternator_current_model,
         max_battery_charging_current, alternator_nominal_voltage, start_demand,
-        electric_load, initial_state_of_charge, times, clutch_TC_powers,
+        electric_load, initial_state_of_charge, times, clutch_tc_powers,
         on_engine, engine_starts, accelerations):
     """
     Predicts alternator and battery currents, state of charge, and alternator
@@ -571,9 +571,9 @@ def predict_vehicle_electrics(
         Time vector [s].
     :type times: numpy.array
 
-    :param clutch_TC_powers:
+    :param clutch_tc_powers:
         Clutch or torque converter power [kW].
-    :type clutch_TC_powers: numpy.array
+    :type clutch_tc_powers: numpy.array
 
     :param on_engine:
         If the engine is on [-].
@@ -599,7 +599,7 @@ def predict_vehicle_electrics(
     delta_times = np.append([0], np.diff(times))
     o = (0, initial_state_of_charge, 0, None)
     res = [o]
-    for x in zip(delta_times, clutch_TC_powers, on_engine, engine_starts,
+    for x in zip(delta_times, clutch_tc_powers, on_engine, engine_starts,
                  accelerations):
         o = tuple(func(*(x + o[1:])))
         res.append(o)

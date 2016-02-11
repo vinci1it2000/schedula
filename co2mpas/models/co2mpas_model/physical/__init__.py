@@ -194,7 +194,7 @@ def physical():
             'electric_load': 'electric_load',
             'engine_moment_inertia': 'engine_moment_inertia',
             'engine_starts': 'engine_starts',
-            'clutch_TC_powers': 'clutch_TC_powers',
+            'clutch_tc_powers': 'clutch_tc_powers',
             'initial_state_of_charge': 'initial_state_of_charge',
             'max_battery_charging_current': 'max_battery_charging_current',
             'on_engine': 'on_engine',
@@ -241,13 +241,13 @@ def physical():
             'gear_box_powers_in': 'gear_box_powers_in',
         },
         outputs={
-            'clutch_TC_speeds_delta': 'clutch_TC_speeds_delta',
+            'clutch_tc_speeds_delta': 'clutch_tc_speeds_delta',
             'clutch_window': 'clutch_window',
             'clutch_model': 'clutch_model',
             'torque_converter_model': 'torque_converter_model',
             'stand_still_torque_ratio': 'stand_still_torque_ratio',
             'lockup_speed_ratio': 'lockup_speed_ratio',
-            'clutch_TC_powers': 'clutch_TC_powers'
+            'clutch_tc_powers': 'clutch_tc_powers'
         }
     )
 
@@ -303,13 +303,13 @@ def physical():
             'gear_box_speeds_in': 'gear_box_speeds_in',
             'gear_box_powers_in': 'gear_box_powers_in',
             'gear_box_type': 'gear_box_type',
-            'clutch_TC_powers': 'clutch_TC_powers',
+            'clutch_tc_powers': 'clutch_tc_powers',
             'gears': 'gears',
             'idle_engine_speed': 'idle_engine_speed',
             'start_stop_model': 'start_stop_model',
             'start_stop_activation_time': 'start_stop_activation_time',
             'times': 'times',
-            'clutch_TC_speeds_delta': 'clutch_TC_speeds_delta',
+            'clutch_tc_speeds_delta': 'clutch_tc_speeds_delta',
             'calibration_status': 'calibration_status',
             'status_start_stop_activation_time':
                 'status_start_stop_activation_time'
