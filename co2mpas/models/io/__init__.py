@@ -115,7 +115,7 @@ def load_inputs():
     func = dsp_utl.SubDispatchFunction(
         dsp=dsp,
         function_id=dsp.name,
-        inputs=['input_file_name'],
+        inputs=['input_file_name', 'select_outputs'],
         outputs=['input_data']
     )
 
