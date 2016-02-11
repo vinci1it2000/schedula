@@ -34,6 +34,12 @@ def AT_gear():
         name='Automatic gear model',
         description='Defines an omni-comprehensive gear shifting model for '
                     'automatic vehicles.')
+
+    AT_gear.add_data(
+        data_id='eco_mode',
+        default_value=True
+    )
+
     AT_gear.add_function(
         function=calibrate_mvl,
         inputs=['gears', 'velocities', 'velocity_speed_ratios',
@@ -42,18 +48,23 @@ def AT_gear():
     )
 
     AT_gear.add_function(
-        function=correct_gear_v0,
-        inputs=['velocity_speed_ratios', 'MVL',
+        function=dsp_utl.add_args(correct_gear_v0, n=1),
+        inputs=['eco_mode', 'velocity_speed_ratios', 'MVL',
                 'engine_max_power', 'engine_max_speed_at_max_power',
                 'idle_engine_speed', 'full_load_curve', 'road_loads',
                 'vehicle_mass'],
-        outputs=['correct_gear'])
+        outputs=['correct_gear'],
+        input_domain=domain_eco_mode
+    )
 
     AT_gear.add_function(
-        function=correct_gear_v1,
-        inputs=['velocity_speed_ratios', 'MVL', 'idle_engine_speed'],
+        function=dsp_utl.add_args(correct_gear_v1, n=1),
+        inputs=['eco_mode', 'velocity_speed_ratios', 'MVL',
+                'idle_engine_speed'],
         outputs=['correct_gear'],
-        weight=50)
+        weight=50,
+        input_domain=domain_eco_mode
+    )
 
     AT_gear.add_function(
         function=correct_gear_v2,

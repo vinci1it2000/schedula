@@ -216,6 +216,7 @@ def gear_box():
         dsp=AT_gear(),
         dsp_id='AT_gear_shifting',
         inputs={
+            'eco_mode': 'eco_mode',
             'MVL': 'MVL',
             'CMV': 'CMV',
             'CMV_Cold_Hot': 'CMV_Cold_Hot',

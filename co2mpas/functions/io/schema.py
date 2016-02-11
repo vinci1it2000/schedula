@@ -252,6 +252,7 @@ def define_data_schema(read=True):
         'has_torque_converter': _bool,
         'is_cycle_hot': _bool,
         'use_dt_gear_shifting': _bool,
+        'eco_mode': _bool,
 
         'alternator_charging_currents': tuplefloat2,
         'alternator_current_model': function,

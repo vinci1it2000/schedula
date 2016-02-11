@@ -365,6 +365,7 @@ def physical():
         dsp_id='gear_box_model',
         dsp=gear_box(),
         inputs={
+            'eco_mode': 'eco_mode',
             'MVL': 'MVL',
             'CMV': 'CMV',
             'CMV_Cold_Hot': 'CMV_Cold_Hot',

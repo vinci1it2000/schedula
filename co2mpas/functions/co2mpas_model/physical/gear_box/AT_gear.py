@@ -1239,3 +1239,8 @@ class MVL(CMV):
             gear = gear if g < gear and self[gear][1] > velocity else g
 
         return gear
+
+
+def domain_eco_mode(eco_mode, *args):
+
+    return eco_mode
