@@ -58,15 +58,15 @@ def co2mpas_model():
     ############################################################################
 
     dsp.add_data(
-        data_id='wltp_precondition_inputs',
+        data_id='wltp_p_inputs',
         description='Dictionary that has all inputs of the calibration cycle.'
     )
 
     dsp.add_function(
         function_id='calibrate_physical_models',
         function=dsp_utl.SubDispatch(physical()),
-        inputs=['wltp_precondition_inputs'],
-        outputs=['wltp_precondition_outputs'],
+        inputs=['wltp_p_inputs'],
+        outputs=['wltp_p_outputs'],
         description='Wraps all functions needed to calibrate the models to '
                     'predict light-vehicles\' CO2 emissions.'
     )
@@ -77,7 +77,7 @@ def co2mpas_model():
 
     dsp.add_function(
         function=select_precondition_inputs,
-        inputs=['wltp_h_inputs', 'wltp_precondition_outputs'],
+        inputs=['wltp_h_inputs', 'wltp_p_outputs'],
         outputs=['calibration_wltp_h_inputs'],
     )
 
@@ -110,7 +110,7 @@ def co2mpas_model():
 
     dsp.add_function(
         function=select_precondition_inputs,
-        inputs=['wltp_l_inputs', 'wltp_precondition_outputs'],
+        inputs=['wltp_l_inputs', 'wltp_p_outputs'],
         outputs=['calibration_wltp_l_inputs'],
     )
 

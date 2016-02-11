@@ -71,9 +71,9 @@ def parse_dsp_model(model):
             'inputs': 'wltp_h_inputs',
         },
         'wltp_p': {
-            'calibrations': 'wltp_precondition_outputs',
-            'targets': 'wltp_precondition_targets',
-            'inputs': 'wltp_precondition_inputs',
+            'calibrations': 'wltp_p_outputs',
+            'targets': 'wltp_p_targets',
+            'inputs': 'wltp_p_inputs',
         }
     }
 
@@ -87,18 +87,15 @@ def parse_dsp_model(model):
     if 'selection_scores' in out:
         _map_scores(res, out['selection_scores'])
 
-    from .io import get_filters
-    param_ids = get_filters()['PARAMETERS'].keys()
-
     for j in {'nedc', 'wltp_h', 'wltp_l', 'wltp_p'}.intersection(res):
         d = res[j]
         if j in ('wltp_h', 'wltp_l', 'wltp_p') and 'predictions' in d:
             cal, pre_inp = d['calibrations'], out['prediction_%s_inputs' % j]
             cal = dsp_utl.selector(set(cal) - set(pre_inp), cal)
-            d['targets'] = dsp_utl.combine_dicts(cal, d['targets'])
+            d['targets'] = dsp_utl.combine_dicts(cal, d.get('targets', {}))
 
         for k, v in d.items():
-            d[k] = _split_by_data_format(v, param_ids)
+            d[k] = _split_by_data_format(v)
 
     res['pipe'] = model.pipe
 
@@ -141,14 +138,15 @@ def _map_scores(results, scores):
             v['predictions']['model_scores'] = model_scores
 
 
-def _split_by_data_format(data, param_ids):
+def _split_by_data_format(data):
 
     d = {}
     time_series = d['time_series'] = {}
     parameters = d['parameters'] = {}
+    s = data['times'].size if 'times' in data else None
 
     for k, v in data.items():
-        if isinstance(v, np.ndarray) and k not in param_ids:  # series
+        if isinstance(v, np.ndarray) and s == v.size:  # series
             time_series[k] = v
         else:  # params
             parameters[k] = v
