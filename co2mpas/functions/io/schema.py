@@ -268,7 +268,8 @@ def define_data_schema(read=True):
         'cycle_type': string,
         'cycle_name': string,
         'specific_gear_shifting': string,
-        'calibration_status': _type(type=And(Use(list), [(bool, OrderedDict)]),
+        'calibration_status': _type(type=And(Use(list),
+                                             [(bool, Or(OrderedDict, None))]),
                                     length=4,
                                     read=read),
         'electric_load': tuplefloat2,
@@ -341,7 +342,7 @@ def define_data_schema(read=True):
     }
 
     schema = {Optional(k): Or(Empty(), v) for k, v in schema.items()}
-    schema[Optional(str)] = _type(type=float, read=read)
+    schema[Optional(str)] = Or(_type(type=float, read=read), np_array)
 
     if not read:
         f = lambda x: x is dsp_utl.NONE

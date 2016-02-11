@@ -35,10 +35,10 @@ def calibrate_co2_params_ALL(rank, *data, data_id=None):
 
         if len(err_func) <= 1:
             return {}
-        status = [(True, initial_guess), (None, None), (None, None)]
+        status = [(True, initial_guess.valuesdict()), (None, None), (None, None)]
 
         p, s = calibrate_model_params(err_func, initial_guess)
-        status.append((s, copy.copy(p)))
+        status.append((s, p.valuesdict()))
         return {'co2_params_calibrated': p, 'calibration_status': status}
     except:
         return {}
