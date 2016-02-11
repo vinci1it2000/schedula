@@ -8,14 +8,11 @@ from lmfit import Parameters, Parameter
 from collections import Iterable, OrderedDict
 
 
-def validate_data(data, read=True):
+def validate_data(data, read_schema):
     res = {}
-
-    schema = define_data_schema(read=read)
-
+    validate = read_schema.validate
     for k, v in _iter_d(data, depth=3):
-        v = schema.validate(v)
-        v = {i: j for i, j in v.items() if j is not dsp_utl.NONE}
+        v = {i: j for i, j in validate(v).items() if j is not dsp_utl.NONE}
         _get(res, *k[:-1])[k[-1]] = v
 
     return res
@@ -37,11 +34,13 @@ class Empty(object):
             raise SchemaError('%r is not empty' % data, None)
 
 
-def _function(error=None, **kwargs):
+def _function(error=None, read=True, **kwargs):
     def _check_function(f):
         assert callable(f)
         return f
-    return Use(_check_function, error=error)
+    if read:
+        return Use(_check_function, error=error)
+    return And(_function(), Use(lambda x: dsp_utl.NONE), error=error)
 
 
 def _string(error=None, **kwargs):
@@ -110,7 +109,8 @@ def _np_array(dtype=None, error=None, read=True, **kwargs):
         c = Use(lambda x: np.asarray(x, dtype=dtype))
         return And(Or(c, And(_type(), c), Empty()), error=error)
     else:
-        return And(_np_array(dtype=dtype), Use(lambda x: x.tolist()), error=error)
+        return And(_np_array(dtype=dtype), Use(lambda x: x.tolist()),
+                   error=error)
 
 
 def _cmv(error=None, **kwargs):
@@ -155,186 +155,195 @@ def _parameters(error=None, read=True):
 
 
 def define_data_schema(read=True):
+    cmv = _cmv(read=read)
+    dtc = _dtc(read=read)
+    gspv = _gspv(read=read)
+    string = _string(read=read)
+    positive = _positive(read=read)
+    positive_int = _positive(type=int, read=read)
+    limits = _limits(read=read)
+    index_dict = _index_dict(read=read)
+    np_array = _np_array(read=read)
+    np_array_bool = _np_array(dtype=bool, read=read)
+    np_array_int = _np_array(dtype=int, read=read)
+    _bool = _type(type=bool, read=read)
+    function = _function(read=read)
+    tuplefloat2 = _type(type=And(Use(tuple), (float,)), length=2, read=read)
+    dictstrdict = _dict(format={str: dict}, read=read)
+    parameters = _parameters(read=read)
     schema = {
-        'CMV': _cmv(read=read),
-        'CMV_Cold_Hot': _dict(format={'hot': _cmv(read=read),
-                                      'cold': _cmv(read=read)}, read=read),
-        'DT_VA': _dtc(read=read),
-        'DT_VAP': _dtc(read=read),
-        'DT_VAT': _dtc(read=read),
-        'DT_VATP': _dtc(read=read),
-        'GSPV': _gspv(read=read),
-        'GSPV_Cold_Hot': _dict(format={'hot': _gspv(read=read),
-                                       'cold': _gspv(read=read)}, read=read),
+        'CMV': cmv,
+        'CMV_Cold_Hot': _dict(format={'hot': cmv, 'cold': cmv}, read=read),
+        'DT_VA': dtc,
+        'DT_VAP': dtc,
+        'DT_VAT': dtc,
+        'DT_VATP': dtc,
+        'GSPV': gspv,
+        'GSPV_Cold_Hot': _dict(format={'hot': gspv, 'cold': gspv}, read=read),
         'MVL': _mvl(read=read),
 
-        'VERSION': _string(error='VERSION should be a string.', read=read),
+        'VERSION': string,
         'fuel_type': _select(types=('gasoline', 'diesel'),
                              error='Allowed fuel_type: %s',
                              read=read),
-        'engine_fuel_lower_heating_value': _positive(read=read),
-        'fuel_carbon_content': _positive(read=read),
-        'engine_capacity': _positive(read=read),
-        'engine_stroke': _positive(read=read),
-        'engine_max_power': _positive(read=read),
-        'engine_max_speed_at_max_power': _positive(read=read),
-        'engine_max_speed': _positive(read=read),
-        'engine_max_torque': _positive(read=read),
-        'idle_engine_speed_median': _positive(read=read),
-        'engine_idle_fuel_consumption': _positive(read=read),
-        'final_drive_ratio': _positive(read=read),
-        'r_dynamic': _positive(read=read),
+        'engine_fuel_lower_heating_value': positive,
+        'fuel_carbon_content': positive,
+        'engine_capacity': positive,
+        'engine_stroke': positive,
+        'engine_max_power': positive,
+        'engine_max_speed_at_max_power': positive,
+        'engine_max_speed': positive,
+        'engine_max_torque': positive,
+        'idle_engine_speed_median': positive,
+        'engine_idle_fuel_consumption': positive,
+        'final_drive_ratio': positive,
+        'r_dynamic': positive,
         'gear_box_type': _select(types=('manual', 'automatic'),
                                  error='Allowed gear_box_type: %s',
                                  read=read),
-        'start_stop_activation_time': _positive(read=read),
-        'alternator_nominal_voltage': _positive(read=read),
-        'battery_capacity': _positive(read=read),
-        'state_of_charge_balance': _limits(read=read),
-        'state_of_charge_balance_window': _limits(read=read),
-        'initial_state_of_charge ': _limits(read=read),
-        'initial_temperature': _positive(read=read),
-        'idle_engine_speed_std': _positive(read=read),
-        'alternator_nominal_power': _positive(read=read),
+        'start_stop_activation_time': positive,
+        'alternator_nominal_voltage': positive,
+        'battery_capacity': positive,
+        'state_of_charge_balance': limits,
+        'state_of_charge_balance_window': limits,
+        'initial_state_of_charge ': limits,
+        'initial_temperature': positive,
+        'idle_engine_speed_std': positive,
+        'alternator_nominal_power': positive,
         'alternator_efficiency': _limits(limits=(0, 1), read=read),
-        'time_cold_hot_transition': _positive(read=read),
+        'time_cold_hot_transition': positive,
         'co2_params': _dict(format={str: float}),
-        'velocity_speed_ratios': _index_dict(read=read),
-        'gear_box_ratios': _index_dict(read=read),
-        'full_load_speeds': _np_array(read=read),
-        'full_load_torques': _np_array(read=read),
-        'full_load_powers': _np_array(read=read),
+        'velocity_speed_ratios': index_dict,
+        'gear_box_ratios': index_dict,
+        'full_load_speeds': np_array,
+        'full_load_torques': np_array,
+        'full_load_powers': np_array,
         
-        'vehicle_mass': _positive(read=read),
-        'f0_uncorrected': _positive(read=read),
-        'f1': _positive(read=read),
-        'f2': _positive(read=read),
-        'f0': _positive(read=read),
-        'correct_f0': _positive(read=read),
+        'vehicle_mass': positive,
+        'f0_uncorrected': positive,
+        'f1': positive,
+        'f2': positive,
+        'f0': positive,
+        'correct_f0': positive,
         
-        'co2_emission_low': _positive(read=read),
-        'co2_emission_medium': _positive(read=read),
-        'co2_emission_high': _positive(read=read),
-        'co2_emission_extra_high': _positive(read=read),
+        'co2_emission_low': positive,
+        'co2_emission_medium': positive,
+        'co2_emission_high': positive,
+        'co2_emission_extra_high': positive,
         
-        'co2_emission_UDC': _positive(read=read),
-        'co2_emission_EUDC': _positive(read=read),
-        'co2_emission_value': _positive(read=read),
-        'n_dyno_axes': _positive(type=int, read=read),
-        'n_wheel_drive': _positive(type=int, read=read),
+        'co2_emission_UDC': positive,
+        'co2_emission_EUDC': positive,
+        'co2_emission_value': positive,
+        'n_dyno_axes': positive_int,
+        'n_wheel_drive': positive_int,
         
-        'engine_is_turbo': _type(type=bool, read=read),
-        'has_start_stop': _type(type=bool, read=read),
-        'has_energy_recuperation': _type(type=bool, read=read),
-        'engine_has_variable_valve_actuation': _type(type=bool, read=read),
-        'has_thermal_management': _type(type=bool, read=read),
-        'engine_has_direct_injection': _type(type=bool, read=read),
-        'has_lean_burn': _type(type=bool, read=read),
-        'engine_has_cylinder_deactivation': _type(type=bool, read=read),
-        'has_exhausted_gas_recirculation': _type(type=bool, read=read),
-        'has_particle_filter': _type(type=bool, read=read),
-        'has_selective_catalytic_reduction': _type(type=bool, read=read),
-        'has_nox_storage_catalyst': _type(type=bool, read=read),
-        'has_torque_converter': _type(type=bool, read=read),
-        'is_cycle_hot': _type(type=bool, read=read),
-        'use_dt_gear_shifting': _type(type=bool, read=read),
+        'engine_is_turbo': _bool,
+        'has_start_stop': _bool,
+        'has_energy_recuperation': _bool,
+        'engine_has_variable_valve_actuation': _bool,
+        'has_thermal_management': _bool,
+        'engine_has_direct_injection': _bool,
+        'has_lean_burn': _bool,
+        'engine_has_cylinder_deactivation': _bool,
+        'has_exhausted_gas_recirculation': _bool,
+        'has_particle_filter': _bool,
+        'has_selective_catalytic_reduction': _bool,
+        'has_nox_storage_catalyst': _bool,
+        'has_torque_converter': _bool,
+        'is_cycle_hot': _bool,
+        'use_dt_gear_shifting': _bool,
 
-        'alternator_charging_currents': _type(length=2, read=read),
-        'alternator_current_model': _function(read=read),
-        'alternator_status_model': _function(read=read),
-        'clutch_model': _function(read=read),
-        'co2_emissions_model': _function(read=read),
-        'co2_error_function_on_emissions': _function(read=read),
-        'co2_error_function_on_phases': _function(read=read),
-        'cold_start_speed_model': _function(read=read),
-        'clutch_window': _type(type=And(Use(tuple), (float,)),
-                               length=2,
-                               read=read),
-        'co2_params_calibrated': _parameters(read=read),
-        'co2_params_initial_guess': _parameters(read=read),
-        'cycle_type': _type(type=str, read=read),
-        'cycle_name': _type(type=str, read=read),
-        'specific_gear_shifting': _type(type=str, read=read),
+        'alternator_charging_currents': tuplefloat2,
+        'alternator_current_model': function,
+        'alternator_status_model': function,
+        'clutch_model': function,
+        'co2_emissions_model': function,
+        'co2_error_function_on_emissions': function,
+        'co2_error_function_on_phases': function,
+        'cold_start_speed_model': function,
+        'clutch_window': tuplefloat2,
+        'co2_params_calibrated': parameters,
+        'co2_params_initial_guess': parameters,
+        'cycle_type': string,
+        'cycle_name': string,
+        'specific_gear_shifting': string,
         'calibration_status': _type(type=And(Use(list), [(bool, OrderedDict)]),
                                     length=4,
                                     read=read),
-        'electric_load': _type(type=And(Use(tuple), (float,)),
-                               length=2,
-                               read=read),
-        'engine_normalization_temperature_window': _type(
-                type=And(Use(tuple), (float,)),
-                length=2,
-                read=read),
-        'engine_temperature_regression_model': _function(read=read),
-        'engine_type': _type(type=str, read=read),
-        'full_load_curve': _function(read=read),
-        'gear_box_efficiency_constants': _dict(read=read),
-        'gear_box_efficiency_parameters_cold_hot': _dict(read=read),
-        'model_scores': _dict(format={str: dict}, read=read),
-        'scores': _dict(format={str: dict}, read=read),
+        'electric_load': tuplefloat2,
+        'engine_normalization_temperature_window': tuplefloat2,
+        'engine_temperature_regression_model': function,
+        'engine_type': string,
+        'full_load_curve': function,
+        'gear_box_efficiency_constants': dictstrdict,
+        'gear_box_efficiency_parameters_cold_hot': dictstrdict,
+        'model_scores': dictstrdict,
+        'scores': dictstrdict,
 
-        'status_start_stop_activation_time': _positive(read=read),
-        'idle_engine_speed': _type(type=And(Use(tuple), (float,)),
-                                   length=2,
-                                   read=read),
-        'k1': _positive(type=int, read=read),
-        'k2': _positive(type=int, read=read),
-        'k5': _positive(type=int, read=read),
-        'max_gear': _positive(type=int, read=read),
+        'status_start_stop_activation_time': positive,
+        'idle_engine_speed': tuplefloat2,
+        'k1': positive_int,
+        'k2': positive_int,
+        'k5': positive_int,
+        'max_gear': positive_int,
         
         'road_loads': _type(type=And(Use(tuple), (float,)),
                             length=3,
                             read=read),
-        'start_stop_model': _function(read=read),
-        'temperature_references': _type(type=And(Use(tuple), (float,)),
-                                        length=2,
-                                        read=read),
-        'torque_converter_model': _function(read=read),
+        'start_stop_model': function,
+        'temperature_references': tuplefloat2,
+        'torque_converter_model': function,
         'phases_co2_emissions': _type(type=And(Use(tuple), (float,)),
                                       length=(2, 4),
                                       read=read),
 
-        'accelerations': _np_array(read=read),
-        'alternator_currents': _np_array(read=read),
-        'alternator_powers_demand': _np_array(read=read),
-        'alternator_statuses': _np_array(dtype=int, read=read),
-        'auxiliaries_power_losses': _np_array(read=read),
-        'auxiliaries_torque_loss': _positive(read=read),
-        'auxiliaries_torque_losses': _np_array(read=read),
-        'battery_currents': _np_array(read=read),
-        'clutch_tc_powers': _np_array(read=read),
-        'clutch_tc_speeds_delta': _np_array(read=read),
-        'co2_emissions': _np_array(read=read),
-        'cold_start_speeds_delta': _np_array(read=read),
-        'engine_coolant_temperatures': _np_array(read=read),
-        'engine_powers_out': _np_array(read=read),
-        'engine_speeds_out': _np_array(read=read),
-        'engine_speeds_out_hot': _np_array(read=read),
-        'engine_starts': _np_array(dtype=bool, read=read),
-        'engine_loads': _np_array(read=read),
-        'final_drive_powers_in': _np_array(read=read),
-        'final_drive_speeds_in': _np_array(read=read),
-        'final_drive_torques_in': _np_array(read=read),
-        'fuel_consumptions': _np_array(read=read),
-        'gear_box_efficiencies': _np_array(read=read),
-        'gear_box_powers_in': _np_array(read=read),
-        'gear_box_speeds_in': _np_array(read=read),
-        'gear_box_temperatures': _np_array(read=read),
-        'gear_box_torque_losses': _np_array(read=read),
-        'gear_box_torques_in': _np_array(read=read),
-        'gear_shifts': _np_array(dtype=bool, read=read),
-        'gears': _np_array(dtype=int, read=read),
-        'identified_co2_emissions': _np_array(read=read),
-        'motive_powers': _np_array(read=read),
-        'on_engine': _np_array(dtype=bool),
-        'state_of_charges': _np_array(read=read),
-        'times': _np_array(read=read),
-        'velocities': _np_array(read=read),
-        'wheel_powers': _np_array(read=read),
-        'wheel_speeds': _np_array(read=read),
-        'wheel_torques': _np_array(read=read),
+        'accelerations': np_array,
+        'alternator_currents': np_array,
+        'alternator_powers_demand': np_array,
+        'alternator_statuses': np_array_int,
+        'auxiliaries_power_losses': np_array,
+        'auxiliaries_torque_loss': positive,
+        'auxiliaries_torque_losses': np_array,
+        'battery_currents': np_array,
+        'clutch_tc_powers': np_array,
+        'clutch_tc_speeds_delta': np_array,
+        'co2_emissions': np_array,
+        'cold_start_speeds_delta': np_array,
+        'engine_coolant_temperatures': np_array,
+        'engine_powers_out': np_array,
+        'engine_speeds_out': np_array,
+        'engine_speeds_out_hot': np_array,
+        'engine_starts': np_array_bool,
+        'engine_loads': np_array,
+        'final_drive_powers_in': np_array,
+        'final_drive_speeds_in': np_array,
+        'final_drive_torques_in': np_array,
+        'fuel_consumptions': np_array,
+        'gear_box_efficiencies': np_array,
+        'gear_box_powers_in': np_array,
+        'gear_box_speeds_in': np_array,
+        'gear_box_temperatures': np_array,
+        'gear_box_torque_losses': np_array,
+        'gear_box_torques_in': np_array,
+        'gear_shifts': np_array_bool,
+        'gears': np_array_int,
+        'identified_co2_emissions': np_array,
+        'motive_powers': np_array,
+        'on_engine': np_array_bool,
+        'state_of_charges': np_array,
+        'times': np_array,
+        'velocities': np_array,
+        'wheel_powers': np_array,
+        'wheel_speeds': np_array,
+        'wheel_torques': np_array,
 
     }
+
     schema = {Optional(k): Or(Empty(), v) for k, v in schema.items()}
     schema[Optional(str)] = _type(type=float, read=read)
+
+    if not read:
+        f = lambda x: x is dsp_utl.NONE
+        schema = {k: And(v, Or(f, Use(str))) for k, v in schema.items()}
+
     return Schema(schema)

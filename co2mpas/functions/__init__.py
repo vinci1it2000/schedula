@@ -143,7 +143,11 @@ def _split_by_data_format(data):
     d = {}
     time_series = d['time_series'] = {}
     parameters = d['parameters'] = {}
-    s = data['times'].size if 'times' in data else None
+
+    try:
+        s = max(v.size for v in data.values() if hasattr(v, 'size'))
+    except ValueError:
+        s = None
 
     for k, v in data.items():
         if isinstance(v, np.ndarray) and s == v.size:  # series

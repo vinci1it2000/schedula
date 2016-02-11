@@ -85,9 +85,14 @@ def load_inputs():
         weight=10
     )
 
+    dsp.add_data(
+        data_id='read_schema',
+        default_value=define_data_schema(read=True)
+    )
+
     dsp.add_function(
         function=dsp_utl.add_args(validate_data, n=1, callback=save_dill),
-        inputs=['cache_file_name', 'data'],
+        inputs=['cache_file_name', 'data', 'read_schema'],
         outputs=['validated_data']
     )
 
@@ -140,9 +145,15 @@ def write_outputs():
         default_value=get_doc_description()
     )
 
+    dsp.add_data(
+        data_id='write_schema',
+        default_value=define_data_schema(read=False)
+    )
+
     dsp.add_function(
         function=convert2df,
-        inputs=['output_data', 'data_descriptions', 'start_time'],
+        inputs=['output_data', 'data_descriptions', 'write_schema',
+                'start_time'],
         outputs=['dfs']
     )
 

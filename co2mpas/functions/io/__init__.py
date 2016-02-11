@@ -25,9 +25,6 @@ import datetime
 import logging
 import pathlib
 import re
-from types import MethodType
-
-import lmfit
 import numpy as np
 import pandas as pd
 from pip.operations.freeze import freeze
@@ -74,11 +71,11 @@ def build_input_data(data, select_outputs):
         return {}
 
 
-def convert2df(data, data_descriptions, start_time):
+def convert2df(data, data_descriptions, write_schema, start_time):
 
     res = {'graphs': {'graphs': data['graphs']}} if 'graphs' in data else {}
 
-    res.update(_cycle2df(data, data_descriptions))
+    res.update(_cycle2df(data, data_descriptions, write_schema))
 
     res.update(_scores2df(data))
 
@@ -164,14 +161,15 @@ def _pipe2list(pipe, i=0, source=()):
     return res, max_l
 
 
-def _cycle2df(data, data_descriptions):
+def _cycle2df(data, data_descriptions, write_schema):
     res = {}
 
     for i in {'nedc', 'wltp_h', 'wltp_l', 'wltp_p'}.intersection(data):
 
-        v = {k: _data2df(v, data_descriptions) for k, v in data[i].items()}
+        v = {k: _data2df(v, data_descriptions, write_schema)
+             for k, v in data[i].items()}
         v = {k: v for k, v in v.items() if v}
-        targets = v.pop('targets', None)
+        targets = v.pop('targets', {})
         if targets:
             _merge_targets(v, targets)
         res[i] = v
@@ -333,68 +331,33 @@ def _parse_name(name, _standard_names=None):
     return name.capitalize()
 
 
-def check_writeable(data):
-    """
-    Checks if a data is writeable.
-
-    :param data:
-        Data to be checked.
-    :type data: str, float, int, dict, list, tuple
-
-    :return:
-        If the data is writeable.
-    :rtype: bool
-    """
-
-    if isinstance(data, dict):
-        for v in data.values():
-            if not check_writeable(v):
-                return False
-        return True
-    elif isinstance(data, (list, tuple)):
-        for v in data:
-            if not check_writeable(v):
-                return False
-        return True
-    elif not (hasattr(data, '__call__') or isinstance(data, MethodType)):
-        return True
-    return False
-
-
-def _data2df(data, data_descriptions):
+def _data2df(data, data_descriptions, write_schema):
     res = {}
 
     for k, v in data.items():
         if 'time_series' == k:
             res[k] = _time_series2df(v, data_descriptions)
         elif 'parameters' == k:
-            res[k] = _parameters2df(v, data_descriptions)
+            res[k] = _parameters2df(v, data_descriptions, write_schema)
 
     return res
 
 
-def _parameters2df(data, data_descriptions):
+def _parameters2df(data, data_descriptions, write_schema):
     df = []
-    schema = define_data_schema(read=False)
-    for k, v in data.items():
-        try:
-            schema.validate({k: v})
-        except:
-            try:
-                schema.validate({k: v})
-            except:
-                pass
-    data = schema.validate(data)
+
+    data = write_schema.validate(data)
+    data = {k: v for k, v in data.items() if v is not dsp_utl.NONE}
     for k, v in sorted(data.items()):
-        if check_writeable(v):
-            d = {
-                'Parameter': _parse_name(k, data_descriptions),
-                'Model Name': k,
-                'Value': str(v)
-            }
-            df.append(d)
+        d = {
+            'Parameter': _parse_name(k, data_descriptions),
+            'Model Name': k,
+            'Value': v
+        }
+        df.append(d)
+
     if df:
-        df = pd.DataFrame(df)
+        df = pd.DataFrame(df,)
         df.set_index(['Parameter', 'Model Name'], inplace=True)
         return df
     else:
