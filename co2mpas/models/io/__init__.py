@@ -91,9 +91,14 @@ def load_inputs():
         outputs=['validated_data']
     )
 
+    dsp.add_data(
+        data_id='select_outputs',
+        default_value=False
+    )
+
     dsp.add_function(
-        function=dsp_utl.bypass,
-        inputs=['validated_data'],
+        function=build_input_data,
+        inputs=['validated_data', 'select_outputs'],
         outputs=['input_data']
     )
 

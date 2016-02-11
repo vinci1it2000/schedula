@@ -25,7 +25,6 @@ from itertools import chain
 import regex
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher.utils.alg import stlp
-from . import get_filters, EmptyValue
 import json
 
 
@@ -88,17 +87,28 @@ def parse_excel_file(file_path):
                 match.pop('output')
             match = dsp_utl.combine_dicts(defaults, match)
 
+        sheet = _open_sheet_by_name_or_index(excel_file.book, 'book', sheet_name)
+
         if match['type'] == 'parameters':
             xl_ref = '#%s!B2:C_:["pipe", ["dict", "recurse"]]' % sheet_name
+            data = lasso(xl_ref, sheet=sheet)
         else:
-            xl_ref = '#%s!A2(RD):..(RD):RD:["df", {"header": 0}]' % sheet_name
-
-        sheet = _open_sheet_by_name_or_index(excel_file.book, 'book', sheet_name)
-        data = lasso(xl_ref, sheet=sheet)
+            try:
+                xl_ref = '#%s!A2(R):.3:RD:["df", {"header": 0}]' % sheet_name
+                data = lasso(xl_ref, sheet=sheet)
+            except:
+                continue
+            data.dropna(how='all', inplace=True)
+            data.dropna(axis=1, how='any', inplace=True)
 
         for k, v, m in iter_values(data, default=match):
             for c in stlp(m['cycle']):
                 _get(res, m['what'], c.replace('-', '_'), m['as'])[k] = v
+
+    for k, v in _iter_d(res, depth=3):
+        if k[-1] != 'target':
+            v['cycle_type'] = v.get('cycle_type', k[-2].split('_')[0]).upper()
+            v['cycle_name'] = v.get('cycle_name', k[-2]).upper()
 
     return res
 
@@ -127,165 +137,6 @@ def iter_values(data, default=None):
             match['as'] += 's'
         i = match['id']
         yield i, v, match
-
-
-def parse_value(key, value, data_map):
-    try:
-        for f in data_map[key if key in data_map else None]:
-            value = f(value)
-        return value
-
-    except EmptyValue:
-        pass
-    except Exception as ex:
-        pass
-        print('Import error: %s\nWrong value: %s' % (key, str(value)))
-        raise ex
-
-
-def read_cycles_series(excel_file, sheet_name):
-    """
-    Reads cycle's time series.
-
-    :param excel_file:
-        An excel file.
-    :type excel_file: pandas.ExcelFile
-
-    :param sheet_name:
-        The sheet name where to read the time series.
-    :type sheet_name: str, int
-
-    :return:
-        A pandas DataFrame with cycle's time series.
-    :rtype: pandas.DataFrame
-    """
-
-    # noinspection PyBroadException
-    try:
-        df = excel_file.parse(sheetname=sheet_name, skiprows=1)
-    except Exception:
-        df = pd.DataFrame()
-
-    return df
-
-
-def read_cycle_parameters(excel_file, parse_cols, sheet_id='Inputs'):
-    """
-    Reads vehicle's parameters.
-
-    :param excel_file:
-        An excel file.
-    :type excel_file: pandas.ExcelFile
-
-    :param parse_cols:
-        Columns of the vehicle's parameters.
-    :type parse_cols: tuple, str
-
-    :param sheet_id:
-        Sheet id.
-    :type sheet_id: str
-
-    :return:
-        A pandas DataFrame with vehicle's parameters.
-    :rtype: pandas.DataFrame
-    """
-
-    sheet = _open_sheet_by_name_or_index(excel_file.book, 'book', sheet_id)
-    cols = tuple(parse_cols.split(':'))
-    xl_ref = '#%s!%s2:%s_:["pipe", ["dict", "recurse"]]' % ((sheet_id,) + cols)
-
-    return lasso(xl_ref, sheet=sheet)
-
-
-def parse_inputs(data, data_map, cycle_name):
-    """
-    Parses and fetch the data with a data map.
-
-    :param data:
-        Data to be parsed (key) and fetch (value) with filters.
-    :type data: dict, pd.DataFrame
-
-    :param data_map:
-        It maps the data as: data's key --> (parsed key, filters).
-    :type data_map: dict
-
-    :param cycle_name:
-        Cycle name.
-    :type cycle_name: str
-
-    :return:
-        Parsed and fetched data (inputs and targets).
-    :rtype: (dict, dict)
-    """
-
-    d = {'inputs': {}, 'targets': {}}
-
-    for i in data.items():
-        k, v = i
-        if isinstance(v, float) and isnan(v) or _check_none(v):
-            continue
-
-        k = k.split(' ')
-        n = len(k)
-
-        if n == 1 or k[-1].upper() == cycle_name or (n == 2 and k[0] == 'target'):
-
-            if n > 1 and k[0] == 'target':
-                k = k[1:]
-                t = 'targets'
-            else:
-                t = 'inputs'
-
-            node_id = k[0]
-
-            k = k[0] if k[0] in data_map else None
-
-            try:
-                for f in data_map[k]:
-                    v = f(v)
-                d[t][node_id] = v
-            except EmptyValue:
-                pass
-            except Exception as ex:
-                print('Import error: %s\nWrong value: %s' % (i[0], str(i[1])))
-                raise ex
-
-    return d['inputs'], d['targets']
-
-
-def merge_inputs(cycle_name, parameters, series, _filters=None):
-    """
-    Merges vehicle's parameters and cycle's time series.
-
-    :param cycle_name:
-        Cycle name (NEDC or WLTP).
-    :type cycle_name: str
-
-    :param parameters:
-        A pandas DataFrame with vehicle's parameters.
-    :type parameters: pd.DataFrame
-
-    :param series:
-        A pandas DataFrame with cycle's time series.
-    :type series: pd.DataFrame
-
-    :return:
-        A unique dict with vehicle's parameters and cycle's time series (inputs
-        and targets).
-    :rtype: (dict, dict)
-    """
-
-    _filters = _filters or get_filters()
-
-    inputs, targets = {}, {}
-    inputs['cycle_type'] = cycle_name.split('-')[0]
-    inputs['cycle_name'] = cycle_name
-    for data, map_tag in [(parameters, 'PARAMETERS'), (series, 'SERIES')]:
-        i, t = parse_inputs(data, _filters[map_tag], cycle_name)
-        inputs.update(i)
-        targets.update(t)
-
-    return inputs, targets
 
 
 def _check_none(v):

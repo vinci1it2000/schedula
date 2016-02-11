@@ -31,7 +31,7 @@ import lmfit
 import numpy as np
 import pandas as pd
 from pip.operations.freeze import freeze
-
+from .schema import define_data_schema
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas._version import version, __input_file_version__
 from co2mpas.dispatcher.utils.alg import stlp
@@ -64,6 +64,14 @@ def check_cache_fpath_exists(fpath, cache_fpath):
 
 def check_file_format(fpath, extensions=('.xlsx',)):
     return fpath.lower().endswith(extensions)
+
+
+def build_input_data(data, select_outputs):
+    i = {True: 'output', False: 'input'}[select_outputs]
+    try:
+        return {'_'.join(k): v for k, v in _iter_d(data[i], depth=2)}
+    except KeyError:
+        return {}
 
 
 def convert2df(data, data_descriptions, start_time):
@@ -353,14 +361,6 @@ def check_writeable(data):
     return False
 
 
-def _str_data(data):
-    if isinstance(data, np.ndarray):
-        data = list(data)
-    elif isinstance(data, lmfit.Parameters):
-        data = data.valuesdict()
-    return str(data)
-
-
 def _data2df(data, data_descriptions):
     res = {}
 
@@ -375,13 +375,22 @@ def _data2df(data, data_descriptions):
 
 def _parameters2df(data, data_descriptions):
     df = []
-
+    schema = define_data_schema(read=False)
+    for k, v in data.items():
+        try:
+            schema.validate({k: v})
+        except:
+            try:
+                schema.validate({k: v})
+            except:
+                pass
+    data = schema.validate(data)
     for k, v in sorted(data.items()):
         if check_writeable(v):
             d = {
                 'Parameter': _parse_name(k, data_descriptions),
                 'Model Name': k,
-                'Value': _str_data(v)
+                'Value': str(v)
             }
             df.append(d)
     if df:
@@ -505,133 +514,3 @@ def get_types():
     return node_types
 
 
-def get_filters(from_outputs=False):
-    """
-    Returns the filters for parameters and series.
-
-    :return:
-        Filters for parameters and series.
-    :rtype: dict
-    """
-
-    _filters = {
-        'PARAMETERS': {
-            None: (float, empty),
-            'cycle_name': (str, empty),
-            'alternator_charging_currents': (_try_eval, list, empty),
-            'co2_params': (_try_eval, dict, empty_dict),
-            'cycle_type': (str, empty),
-            'electric_load': (_try_eval, list, empty),
-            'engine_is_turbo': (bool, empty),
-            'engine_has_variable_valve_actuation': (bool, empty),
-            'engine_has_cylinder_deactivation': (bool, empty),
-            'engine_has_direct_injection': (bool, empty),
-            'engine_normalization_temperature_window': (_try_eval, list, empty),
-            'engine_type': (str, empty),
-            'fuel_type': (str, empty),
-            'gear_box_ratios': (_try_eval, list, empty, index_dict),
-            'gear_box_type': (str, empty),
-            'has_start_stop': (bool, empty),
-            'use_dt_gear_shifting': (bool, empty),
-            'has_energy_recuperation': (bool, empty),
-            'has_thermal_management': (bool, empty),
-            'has_lean_burn': (bool, empty),
-            'has_exhausted_gas_recirculation': (bool, empty),
-            'has_particle_filter': (bool, empty),
-            'has_selective_catalytic_reduction': (bool, empty),
-            'has_nox_storage_catalyst': (bool, empty),
-            'idle_engine_speed': (_try_eval, list, empty),
-            'is_cycle_hot': (bool, empty),
-            'phases_co2_emissions': (_try_eval, list, empty),
-            'velocity_speed_ratios': (_try_eval, list, empty, index_dict),
-            'road_loads': (_try_eval, list, empty),
-            'specific_gear_shifting': (str, empty),
-            'full_load_speeds': (_try_eval, np.asarray, empty),
-            'full_load_torques': (_try_eval, np.asarray, empty),
-            'full_load_powers': (_try_eval, np.asarray, empty),
-            'VERSION': (str, empty),
-        },
-        'SERIES': {
-            None: (np.asarray, empty),
-            'gears': (np.asarray, empty, np.around)
-        }
-    }
-
-    if from_outputs:
-        parameters = _filters['PARAMETERS']
-        parameters[None] = (_try_float, empty)
-        parameters['co2_params'] = (_try_eval, empty_dict)
-        parameters['gear_box_ratios'] = (_try_eval, empty_dict)
-        parameters['velocity_speed_ratios'] = (_try_eval, empty_dict)
-
-    return _filters
-
-
-class EmptyValue(Exception):
-    """Exception raised when there is an empty value."""
-    pass
-
-
-def empty(value):
-    """
-    Check if value is empty.
-
-    :param value:
-        A value to be checked.
-    :type value: any Python object
-
-    :return:
-        The checked value if it is not empty.
-    :rtype: any Python object
-
-    :raise:
-        If the value is empty.
-    :type: ValueError
-    """
-
-    try:
-        if value:
-            return value
-        elif isinstance(value, np.ndarray) and not value:
-            pass
-        elif value != '':
-            return value
-    except ValueError:
-        if not np.isnan(value).any():
-            return value
-
-    raise EmptyValue()
-
-
-def empty_dict(value, empty_value=None):
-    value = {k: v for k, v in value.items() if v != empty_value}
-    if value:
-        return value
-    raise EmptyValue()
-
-
-def _try_eval(data):
-    return eval(data) if isinstance(data, str) else data
-
-
-def _try_float(data):
-    try:
-        return float(data)
-    except:
-        raise EmptyValue()
-
-
-def index_dict(data):
-    """
-    Returns an indexed dict of the `data` with base 1.
-
-    :param data:
-        A lists to be indexed.
-    :type data: list
-
-    :return:
-        An indexed dict.
-    :rtype: dict
-    """
-
-    return {k + 1: v for k, v in enumerate(data)}
