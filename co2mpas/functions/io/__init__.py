@@ -71,7 +71,7 @@ def build_input_data(data, select_outputs):
         return {}
 
 
-def convert2df(data, data_descriptions, write_schema, start_time):
+def convert2df(data, start_time, data_descriptions, write_schema):
 
     res = {'graphs': {'graphs': data['graphs']}} if 'graphs' in data else {}
 

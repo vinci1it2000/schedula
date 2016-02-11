@@ -37,7 +37,7 @@ def load_inputs():
 
     .. dispatcher:: dsp
 
-        >>> dsp = write_outputs()
+        >>> dsp = load_inputs()
 
     :return:
         The load input module.
@@ -85,14 +85,11 @@ def load_inputs():
         weight=10
     )
 
-    dsp.add_data(
-        data_id='read_schema',
-        default_value=define_data_schema(read=True)
-    )
+    validate = partial(validate_data, read_schema=define_data_schema(read=True))
 
     dsp.add_function(
-        function=dsp_utl.add_args(validate_data, n=1, callback=save_dill),
-        inputs=['cache_file_name', 'data', 'read_schema'],
+        function=dsp_utl.add_args(validate, n=1, callback=save_dill),
+        inputs=['cache_file_name', 'data'],
         outputs=['validated_data']
     )
 
@@ -140,20 +137,11 @@ def write_outputs():
         description='Writes on files the outputs of the CO2MPAS model.'
     )
 
-    dsp.add_data(
-        data_id='data_descriptions',
-        default_value=get_doc_description()
-    )
-
-    dsp.add_data(
-        data_id='write_schema',
-        default_value=define_data_schema(read=False)
-    )
-
     dsp.add_function(
-        function=convert2df,
-        inputs=['output_data', 'data_descriptions', 'write_schema',
-                'start_time'],
+        function=partial(convert2df,
+                         data_descriptions=get_doc_description(),
+                         write_schema=define_data_schema(read=False)),
+        inputs=['output_data', 'start_time'],
         outputs=['dfs']
     )
 

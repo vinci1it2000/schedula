@@ -50,6 +50,11 @@ def vehicle_processing_model(prediction_WLTP=False):
                     ' outputs.'
     )
 
+    dsp.add_data(
+        data_id='select_outputs',
+        default_value=False
+    )
+
     dsp.add_function(
         function=load_inputs(),
         inputs=['input_file_name', 'select_outputs'],
