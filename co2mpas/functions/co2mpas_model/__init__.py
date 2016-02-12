@@ -103,14 +103,11 @@ def select_precondition_inputs(cycle_inputs, precondition_outputs):
     :rtype: dict
     """
 
-    inputs, pre = cycle_inputs.copy(), precondition_outputs
-
-    p = ('electric_load', 'battery_currents')
-    if not any(k in cycle_inputs for k in p) and p[0] in pre:
-        inputs['electric_load'] = pre['electric_load']
+    pre = precondition_outputs
 
     p = ('initial_state_of_charge', 'state_of_charges')
-    if not any(k in cycle_inputs for k in p) and p[0] in pre:
+    if not any(k in cycle_inputs for k in p) and p[1] in pre:
+        inputs = cycle_inputs.copy()
         inputs['initial_state_of_charge'] = pre['state_of_charges'][-1]
-
-    return inputs
+        return inputs
+    return cycle_inputs

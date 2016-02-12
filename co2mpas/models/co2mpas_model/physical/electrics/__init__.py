@@ -65,6 +65,11 @@ def electrics():
         outputs=['electric_load', 'start_demand']
     )
 
+    electrics.add_data(
+        data_id='initial_state_of_charge',
+        default_value=99
+    )
+
     electrics.add_function(
         function=calculate_state_of_charges,
         inputs=['battery_capacity', 'times', 'initial_state_of_charge',
