@@ -250,7 +250,7 @@ def _process_folder_files(
         res = model.dispatch(inputs=inputs)
         s = res.get('summary', {})
 
-        for k, v in _iter_d(s, depth=2):
+        for k, v in stack_nested_keys(s, depth=2):
             _get(summary, *k, default=list).append(v)
 
         if plot_workflow:
@@ -312,14 +312,12 @@ def _save_summary(fpath, start_time, summary):
         writer.save()
 
 
-def _iter_d(d, key=(), depth=-1):
-    if depth == 0:
-        return [(key, d)]
-
-    if isinstance(d, dict):
-        return list(chain(*[_iter_d(v, key=key + (k,), depth=depth - 1)
-                            for k, v in d.items()]))
-    return [(key, d)]
+def stack_nested_keys(adict, key=(), depth=-1):
+    if depth != 0 and hasattr(adict, 'items'):
+        for k, v in adict.items():
+            yield from stack_nested_keys(v, key=key + (k,), depth=depth - 1)
+    else:
+        yield key, adict
 
 
 def _get(d, *i, default=dict):

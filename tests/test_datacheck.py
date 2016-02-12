@@ -1,6 +1,6 @@
 from co2mpas.__main__ import init_logging, file_finder
 from co2mpas.models import vehicle_processing_model
-from co2mpas.functions import _iter_d
+from co2mpas.functions import stack_nested_keys
 import co2mpas.dispatcher.utils as dsp_utl
 import os
 import os.path as osp
@@ -97,7 +97,7 @@ class SeatBelt(unittest.TestCase):
             r = model.dispatch(inputs=inputs, outputs=['report', 'summary'])
             r = dsp_utl.selector(['report', 'summary'], r)
             r.get('report', {}).pop('pipe', None)
-            resultes.append(sorted(_iter_d(r), key=lambda x: x[0]))
+            resultes.append(sorted(stack_nested_keys(r), key=lambda x: x[0]))
 
         tmpdir = tempfile.gettempdir()
         res_file = osp.join(tmpdir, 'co2mpas_seatbelt_demos.json')

@@ -33,7 +33,7 @@ import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas._version import version, __input_file_version__
 from co2mpas.dispatcher.utils.alg import stlp
 from .dill import *
-from .. import _iter_d, _get
+from .. import stack_nested_keys, _get
 
 log = logging.getLogger(__name__)
 
@@ -64,9 +64,9 @@ def check_file_format(fpath, extensions=('.xlsx',)):
 
 
 def build_input_data(data, select_outputs):
-    i = {True: 'output', False: 'input'}[select_outputs]
+    i = {True: 'output', False: 'input'}[bool(select_outputs)]
     try:
-        return {'_'.join(k): v for k, v in _iter_d(data[i], depth=2)}
+        return {'_'.join(k): v for k, v in stack_nested_keys(data[i], depth=2)}
     except KeyError:
         return {}
 
@@ -89,7 +89,7 @@ def convert2df(data, start_time, data_descriptions, write_schema):
 def _comparison2df(data):
     res = {}
 
-    for k, v in _iter_d(data.get('comparison', {}), depth=3):
+    for k, v in stack_nested_keys(data.get('comparison', {}), depth=3):
         r = _get(res, *k, default=list)
         for i, j in v.items():
             d = {'param_id': i}
@@ -374,11 +374,11 @@ def _time_series2df(data, data_descriptions):
 
 
 def _dd2df(dd, index, depth=0, axis=1):
-    for k, v in _iter_d(dd, depth=depth):
+    for k, v in stack_nested_keys(dd, depth=depth):
         _get(dd, *k[:-1])[k[-1]] = pd.DataFrame(v).set_index(index)
 
     for d in range(depth - 1, -1, -1):
-        for k, v in _iter_d(dd, depth=d):
+        for k, v in stack_nested_keys(dd, depth=d):
             keys, frames = zip(*sorted(v.items()))
             df = pd.concat(frames, axis=1, keys=keys)
             if k:

@@ -19,7 +19,7 @@ from pandalone.xleash.io._xlrd import _open_sheet_by_name_or_index
 import shutil
 import openpyxl
 from xlsxwriter.utility import xl_range_abs, xl_rowcol_to_cell_fast
-from .. import _iter_d, _get
+from .. import stack_nested_keys, _get
 from inspect import getfullargspec
 from itertools import chain
 import regex
@@ -105,7 +105,7 @@ def parse_excel_file(file_path):
             for c in stlp(m['cycle']):
                 _get(res, m['what'], c.replace('-', '_'), m['as'])[k] = v
 
-    for k, v in _iter_d(res, depth=3):
+    for k, v in stack_nested_keys(res, depth=3):
         if k[-1] != 'target':
             v['cycle_type'] = v.get('cycle_type', k[-2].split('_')[0]).upper()
             v['cycle_name'] = v.get('cycle_name', k[-2]).upper()
@@ -164,7 +164,7 @@ def write_to_excel(data, output_file_name, template_file_name):
         log.debug('Writing into xl-file(%s)...', output_file_name)
         writer = pd.ExcelWriter(output_file_name, engine='xlsxwriter')
     xlref = {}
-    for k, v in sorted(_iter_d(data, depth=3), key=lambda x: _sort_sheets(x[0])):
+    for k, v in sorted(stack_nested_keys(data, depth=3), key=lambda x: _sort_sheets(x[0])):
 
         if k[0] in ('comparison',):
             ref = _df2excel(writer, k[0], v)

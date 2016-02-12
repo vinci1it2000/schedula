@@ -1,7 +1,7 @@
 from schema import Schema, Use, And, Or, Optional, SchemaError
 import numpy as np
 import co2mpas.dispatcher.utils as dsp_utl
-from .. import _iter_d, _get
+from .. import stack_nested_keys, _get
 from ..co2mpas_model.physical.gear_box.AT_gear import CMV, MVL, GSPV
 from sklearn.tree import DecisionTreeClassifier
 from lmfit import Parameters, Parameter
@@ -11,7 +11,7 @@ from collections import Iterable, OrderedDict
 def validate_data(data, read_schema):
     res = {}
     validate = read_schema.validate
-    for k, v in _iter_d(data, depth=3):
+    for k, v in stack_nested_keys(data, depth=3):
         v = {i: j for i, j in validate(v).items() if j is not dsp_utl.NONE}
         _get(res, *k[:-1])[k[-1]] = v
 

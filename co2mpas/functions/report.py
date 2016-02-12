@@ -14,7 +14,7 @@ from collections import Iterable, OrderedDict
 import numpy as np
 from sklearn.metrics import mean_absolute_error, accuracy_score
 import co2mpas.dispatcher.utils as dsp_utl
-from . import _iter_d, _get
+from . import stack_nested_keys, _get
 
 
 def _metrics(t, o, metrics):
@@ -218,7 +218,7 @@ def get_chart_reference(data, with_charts=False):
 
     _map = _map_cycle_report_graphs()
     data = dsp_utl.selector(['nedc', 'wltp_p', 'wltp_h', 'wltp_l'], data)
-    for k, v in sorted(_iter_d(data)):
+    for k, v in sorted(stack_nested_keys(data)):
         if k[1] not in ('calibrations', 'predictions', 'targets'):
             continue
         m = _map.get(k[-1], None)
@@ -233,7 +233,7 @@ def get_chart_reference(data, with_charts=False):
             except TypeError:
                 pass
 
-    for k, v in _iter_d(r, depth=2):
+    for k, v in stack_nested_keys(r, depth=2):
         m = _map[k[1]]
         m.pop('label', None)
         v.update(m)
