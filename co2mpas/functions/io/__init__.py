@@ -33,7 +33,7 @@ import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas._version import version, __input_file_version__
 from co2mpas.dispatcher.utils.alg import stlp
 from .dill import *
-from .. import stack_nested_keys, _get
+from .. import stack_nested_keys, get_nested_dicts
 
 log = logging.getLogger(__name__)
 
@@ -90,7 +90,7 @@ def _comparison2df(data):
     res = {}
 
     for k, v in stack_nested_keys(data.get('comparison', {}), depth=3):
-        r = _get(res, *k, default=list)
+        r = get_nested_dicts(res, *k, default=list)
         for i, j in v.items():
             d = {'param_id': i}
             d.update(j)
@@ -375,14 +375,14 @@ def _time_series2df(data, data_descriptions):
 
 def _dd2df(dd, index, depth=0, axis=1):
     for k, v in stack_nested_keys(dd, depth=depth):
-        _get(dd, *k[:-1])[k[-1]] = pd.DataFrame(v).set_index(index)
+        get_nested_dicts(dd, *k[:-1])[k[-1]] = pd.DataFrame(v).set_index(index)
 
     for d in range(depth - 1, -1, -1):
         for k, v in stack_nested_keys(dd, depth=d):
             keys, frames = zip(*sorted(v.items()))
             df = pd.concat(frames, axis=1, keys=keys)
             if k:
-                _get(dd, *k[:-1])[k[-1]] = df
+                get_nested_dicts(dd, *k[:-1])[k[-1]] = df
             else:
                 dd = df
     return dd

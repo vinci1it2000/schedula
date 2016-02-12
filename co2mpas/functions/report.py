@@ -14,7 +14,7 @@ from collections import Iterable, OrderedDict
 import numpy as np
 from sklearn.metrics import mean_absolute_error, accuracy_score
 import co2mpas.dispatcher.utils as dsp_utl
-from . import stack_nested_keys, _get
+from . import stack_nested_keys, get_nested_dicts
 
 
 def _metrics(t, o, metrics):
@@ -229,7 +229,7 @@ def get_chart_reference(data, with_charts=False):
                     'y': _ref_targets(k, data),
                     'label': '%s %s' % (k[1][:-1], m['label'])
                 }
-                _get(r, k[0], k[-1], 'series', default=list).append(d)
+                get_nested_dicts(r, k[0], k[-1], 'series', default=list).append(d)
             except TypeError:
                 pass
 
@@ -245,7 +245,7 @@ def _search_times(path, data, vector):
     t = 'times'
     ts = 'time_series'
 
-    if t not in _get(data, *path):
+    if t not in get_nested_dicts(data, *path):
         if path[1] == 'targets':
             c, v = data[path[0]], vector
 

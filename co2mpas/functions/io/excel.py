@@ -19,7 +19,7 @@ from pandalone.xleash.io._xlrd import _open_sheet_by_name_or_index
 import shutil
 import openpyxl
 from xlsxwriter.utility import xl_range_abs, xl_rowcol_to_cell_fast
-from .. import stack_nested_keys, _get
+from .. import stack_nested_keys, get_nested_dicts
 from inspect import getfullargspec
 from itertools import chain
 import regex
@@ -103,7 +103,7 @@ def parse_excel_file(file_path):
 
         for k, v, m in iter_values(data, default=match):
             for c in stlp(m['cycle']):
-                _get(res, m['what'], c.replace('-', '_'), m['as'])[k] = v
+                get_nested_dicts(res, m['what'], c.replace('-', '_'), m['as'])[k] = v
 
     for k, v in stack_nested_keys(res, depth=3):
         if k[-1] != 'target':

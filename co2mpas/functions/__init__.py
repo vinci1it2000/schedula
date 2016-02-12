@@ -251,7 +251,7 @@ def _process_folder_files(
         s = res.get('summary', {})
 
         for k, v in stack_nested_keys(s, depth=2):
-            _get(summary, *k, default=list).append(v)
+            get_nested_dicts(summary, *k, default=list).append(v)
 
         if plot_workflow:
             try:
@@ -320,11 +320,13 @@ def stack_nested_keys(adict, key=(), depth=-1):
         yield key, adict
 
 
-def _get(d, *i, default=dict):
-    if i:
-        r = d[i[0]] = d.get(i[0], default() if len(i) == 1 else {})
-        return _get(r, *i[1:], default=default)
-    return d
+def get_nested_dicts(nested_dict, *keys, default=None):
+    if keys:
+        default = default or dict
+        d = default() if len(keys) == 1 else {}
+        nd = nested_dict[keys[0]] = nested_dict.get(keys[0], d)
+        return get_nested_dicts(nd, *keys[1:], default=default)
+    return nested_dict
 
 
 def get_template_file_name(template_output, input_file_name):
