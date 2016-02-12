@@ -758,12 +758,13 @@ class SubDispatchFunction(SubDispatch):
             msg = "%s() got an unexpected keyword argument '%s'"
             raise TypeError(msg % (dsp.name, i))
 
-
         # Update inputs.
         input_values = combine_dicts(self.input_values, inputs, kwargs)
 
         # Define the function to populate the workflow.
         i_val = lambda k: {'value': input_values[k]}
+
+        dsp._targets = set(self.outputs or {})  # Clear old targets.
 
         # Initialize.
         args = dsp._init_workflow(input_values, i_val, self.inputs_dist, False)
