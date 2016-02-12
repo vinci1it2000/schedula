@@ -313,6 +313,7 @@ def _save_summary(fpath, start_time, summary):
 
 
 def stack_nested_keys(adict, key=(), depth=-1):
+    """Stacks the keys of nested-dictionaries into tuples and yields a list of k-v pairs. """
     if depth != 0 and hasattr(adict, 'items'):
         for k, v in adict.items():
             yield from stack_nested_keys(v, key=key + (k,), depth=depth - 1)
@@ -321,6 +322,7 @@ def stack_nested_keys(adict, key=(), depth=-1):
 
 
 def get_nested_dicts(nested_dict, *keys, default=None):
+    """Get/Initialize the value of nested-dictionaries."""
     if keys:
         default = default or dict
         d = default() if len(keys) == 1 else {}
