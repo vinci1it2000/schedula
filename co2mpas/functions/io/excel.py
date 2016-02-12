@@ -44,7 +44,7 @@ _re_sheet_name = regex.compile(
                 (?P<as>(target|input|calibration|prediction)s)_
                 (?P<type>(parameter|time_serie)s)$)
             |
-                ^(?P<cycle>(WLTP-[HLP]{1}|NEDC))$
+                ^(?P<cycle>(WLTP-[HLP]{1}|NEDC))(recon)?$
         )""", regex.IGNORECASE | regex.X | regex.DOTALL)
 
 
