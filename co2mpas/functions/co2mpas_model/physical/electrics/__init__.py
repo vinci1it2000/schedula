@@ -23,8 +23,8 @@ import numpy as np
 from functools import partial
 from itertools import chain
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
-from co2mpas.functions.co2mpas_model.physical.utils import reject_outliers
-from co2mpas.functions.co2mpas_model.physical.constants import *
+from ..utils import reject_outliers, argmax
+from ..constants import *
 from math import pi
 
 
@@ -449,8 +449,12 @@ def calibrate_alternator_status_model(
         charge.fit(X, b)
 
         charge_pred = charge.predict  # shortcut name
-        soc = state_of_charges[1:][b]
-        min_charge_soc, max_charge_soc = min(soc), max(soc)
+        soc = state_of_charges[1:]
+
+        i = argmax(np.logical_not(b)) if argmax(b) == 0 else 0
+        j = -argmax(np.logical_not(b[::-1])) if argmax(b[::-1]) == 0 else b.size
+        min_charge_soc = min(soc[b[i:]]) if i < b.size else 0
+        max_charge_soc = max(soc[b[:j]]) if -j < b.size else 100
     else:
         charge_pred = lambda *args: (False,)
         min_charge_soc, max_charge_soc = 0, 100
