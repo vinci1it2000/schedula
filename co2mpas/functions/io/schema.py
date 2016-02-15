@@ -170,7 +170,11 @@ def define_data_schema(read=True):
     np_array_int = _np_array(dtype=int, read=read)
     _bool = _type(type=bool, read=read)
     function = _function(read=read)
-    tuplefloat2 = _type(type=And(Use(tuple), (float,)), length=2, read=read)
+    tuplefloat2 = _type(
+            type=And(Use(tuple), (_type(float),)),
+            length=2,
+            read=read
+    )
     dictstrdict = _dict(format={str: dict}, read=read)
     parameters = _parameters(read=read)
     schema = {
@@ -291,13 +295,13 @@ def define_data_schema(read=True):
         'k5': positive_int,
         'max_gear': positive_int,
         
-        'road_loads': _type(type=And(Use(tuple), (float,)),
+        'road_loads': _type(type=And(Use(tuple), (_type(float),)),
                             length=3,
                             read=read),
         'start_stop_model': function,
         'temperature_references': tuplefloat2,
         'torque_converter_model': function,
-        'phases_co2_emissions': _type(type=And(Use(tuple), (float,)),
+        'phases_co2_emissions': _type(type=And(Use(tuple), (_type(float),)),
                                       length=(2, 4),
                                       read=read),
 
