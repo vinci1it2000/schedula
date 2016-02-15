@@ -384,9 +384,14 @@ def correct_gsv_for_constant_velocities(
 
 
 class CMV(OrderedDict):
-    def __init__(self, *args, **kwargs):
-        super(CMV, self).__init__(*args, **kwargs)
-        self.velocity_speed_ratios = {}
+    def __init__(self, *args, velocity_speed_ratios=None):
+        super(CMV, self).__init__(*args)
+        self.velocity_speed_ratios = velocity_speed_ratios or {}
+
+    def __repr__(self):
+        name, items = self.__class__.__name__, list(self.items())
+        vsr = self.velocity_speed_ratios
+        return '{}({}, velocity_speed_ratios={})'.format(name, items, vsr)
 
     def fit(self, correct_gear, gears, engine_speeds_out, velocities,
             accelerations, velocity_speed_ratios):
@@ -655,9 +660,16 @@ def correct_gsv(gsv):
 
 
 class GSPV(dict):
-    def __init__(self):
+    def __init__(self, cloud=None, velocity_speed_ratios=None):
         super(GSPV, self).__init__()
-        self.cloud = {}
+        self.cloud = cloud or {}
+        self.velocity_speed_ratios = velocity_speed_ratios or {}
+        if cloud:
+            self._fit_cloud()
+
+    def __repr__(self):
+        s = 'GSPV(cloud={}, velocity_speed_ratios={})'
+        return s.format(self.cloud, self.velocity_speed_ratios)
 
     def fit(self, gears, velocities, wheel_powers, velocity_speed_ratios):
         self.clear()
@@ -682,7 +694,7 @@ class GSPV(dict):
 
         self[max(self)][1] = [[0, 1], [INF] * 2]
 
-        self.cloud = deepcopy(self)
+        self.cloud = {k: deepcopy(v) for k, v in self.items()}
 
         self._fit_cloud()
 
@@ -1230,6 +1242,7 @@ class MVL(CMV):
                 OrderedDict(mvl), up_cns_vel=[35, 50],
                 down_cns_vel=[15, 32, 50, 70])
         )
+        str(self)
         return self
 
     def predict(self, velocity, acceleration, gear):

@@ -125,8 +125,10 @@ def _gspv(error=None, **kwargs):
     return _type(type=GSPV)
 
 
-def _dtc(error=None, **kwargs):
-    return _type(type=DecisionTreeClassifier)
+def _dtc(error=None, read=True, **kwargs):
+    if read:
+        return _type(type=DecisionTreeClassifier)
+    return And(_dtc(), Use(lambda x: dsp_utl.NONE), error=error)
 
 
 def _parameters2str(data):
