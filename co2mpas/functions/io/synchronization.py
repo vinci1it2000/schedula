@@ -20,27 +20,49 @@ def compute_shift(x, y):
     return shift
 
 
-def synchronization(*data, x_id='times', y_id='velocities'):
-    dx = np.median(np.diff(data[0][x_id])) / 2
-    m, M = float('inf'), -float('inf')
-    for d in data:
-        m, M = min(d[x_id], m), max(d[x_id], M)
+def synchronization(reference, *data, x_id='times', y_id='velocities'):
+    """
+    Returns the data re-sampled and synchronized respect to x axes (`x_id`) and
+    the reference signal `y_id`.
 
-    X = range(m, M, step=dx)
+    :param reference:
+
+    :type reference: dict
+
+    :param data:
+
+    :type data: list[dict]
+
+    :param x_id:
+    :type x_id: str, optional
+
+    :param y_id:
+    :type y_id: str, optional
+
+    :return:
+    :rtype: list[dict]
+    """
+
+    dx = np.median(np.diff(reference[x_id])) / 10
+    m, M = min(reference[x_id]), max(reference[x_id])
+    for d in data:
+        m, M = min(min(d[x_id]), m), max(max(d[x_id]), M)
+
+    X = np.linspace(m, M, int((M - m) / dx))
 
     splines = []
     for d in data:
-        s = {k: Spline(d[x_id], v, k=1) for k, v in d.items() if k != x_id}
+        s = {k: Spline(d[x_id], v, k=1, ext=3) for k, v in d.items() if k != x_id}
         splines.append(s)
 
-    Y = splines[0][y_id](X)
+    Y = Spline(reference[x_id], reference[y_id], k=1, ext=3)(X)
 
-    shifts = (compute_shift(Y, s[y_id](X)) * dx for s in splines[1:])
+    shifts = [compute_shift(Y, s[y_id](X)) * dx for s in splines]
 
-    X = data[0][x_id]
-    res = [data[0]]
-    for s, dx in zip(splines[1:], shifts):
-        d = {k: v(X) for k, v in s.items()}
+    X = reference[x_id]
+    res = []
+    for s, dx in zip(splines, shifts):
+        d = {k: v(X + dx) for k, v in s.items()}
         d[x_id] = X
         res.append(d)
 
