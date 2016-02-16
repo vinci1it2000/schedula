@@ -154,12 +154,7 @@ def write_to_excel(data, output_file_name, template_file_name):
                   output_file_name, template_file_name)
         shutil.copy(template_file_name, output_file_name)
 
-        book = openpyxl.load_workbook(output_file_name)
-        writer = pd.ExcelWriter(output_file_name, engine='openpyxl',
-                                optimized_write=True, write_only=True)
-
-        writer.book = book
-        writer.sheets.update(dict((ws.title, ws) for ws in book.worksheets))
+        writer = clone_excel(template_file_name, output_file_name)
     else:
         log.debug('Writing into xl-file(%s)...', output_file_name)
         writer = pd.ExcelWriter(output_file_name, engine='xlsxwriter')
@@ -208,6 +203,18 @@ def write_to_excel(data, output_file_name, template_file_name):
 
     writer.save()
     log.info('Written into xl-file(%s)...', output_file_name)
+
+
+def clone_excel(file_name, output_file_name):
+    shutil.copy(file_name, output_file_name)
+
+    book = openpyxl.load_workbook(output_file_name)
+    writer = pd.ExcelWriter(output_file_name, engine='openpyxl',
+                            optimized_write=True, write_only=True)
+
+    writer.book = book
+    writer.sheets.update(dict((ws.title, ws) for ws in book.worksheets))
+    return writer
 
 
 def _sort_sheets(x):

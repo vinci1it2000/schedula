@@ -8,16 +8,23 @@ r"""
 Predict NEDC CO2 emissions from WLTP cycles.
 
 Usage:
-  co2mpas batch       [-v | --logconf <conf-file>]  [--predict-wltp] [--only-summary]
-                      [--out-template <xlsx-file> | --charts] [--plot-workflow]
+  co2mpas batch       [-v | --logconf <conf-file>] [--predict-wltp]
+                      [--only-summary] [--out-template <xlsx-file> | --charts]
+                      [--plot-workflow]
                       [-O <output-folder>]  [<input-path>]...  [--gui]
-  co2mpas demo        [-v | --logconf <conf-file>] [-f] [<output-folder>]  [--gui]
-  co2mpas template    [-v | --logconf <conf-file>] [-f] [<excel-file-path> ...]  [--gui]
-  co2mpas ipynb       [-v | --logconf <conf-file>] [-f] [<output-folder>]  [--gui]
+  co2mpas demo        [-v | --logconf <conf-file>] [-f] [<output-folder>]
+                      [--gui]
+  co2mpas template    [-v | --logconf <conf-file>] [-f] [<excel-file-path> ...]
+                      [--gui]
+  co2mpas ipynb       [-v | --logconf <conf-file>] [-f] [<output-folder>]
+                      [--gui]
   co2mpas modelgraph  [-v | --logconf <conf-file>]
                       [--list | [--graph-depth=INTEGER] [<models> ...]]
-  co2mpas [-v | --logconf <conf-file>] (--version | -V)
-  co2mpas --help
+  co2mpas datasync    [-v | --logconf <conf-file>] [<input-file>] [<ref-sheet>]
+                      [<x-label>] [<y-label>] [<sync-sheets>]...
+                      [-O <output-file> | --suffix <suffix>]
+  co2mpas             [-v | --logconf <conf-file>] (--version | -V)
+  co2mpas             --help
 
 Options:
   <input-path>                Input xlsx-file or folder.
@@ -34,6 +41,7 @@ Options:
   -l, --list                  List available models.
   --graph-depth=INTEGER       Limit the levels of sub-models plotted (no limit by default).
   -f, --force                 Overwrite template/demo excel-file(s).
+  --suffix <suffix>           Suffix to added to the output file [default: sync].
   -V, --version               Print version of the program, with --verbose
                               list release-date and installation details.
   -h, --help                  Show this help message and exit.
@@ -135,6 +143,7 @@ def print_autocompletions():
         Must be registered as `setup.py` entry-point.
     """
     autocompletion.print_wordlist_from_docopt(__doc__)
+
 
 def _cmd_modelgraph(opts):
     from co2mpas.functions import plot as co2plot
@@ -336,6 +345,7 @@ def _prompt_options():
 
 _input_file_regex = re.compile('^\w')
 
+
 def file_finder(xlsx_fpaths):
     files = set()
     for f in xlsx_fpaths:
@@ -347,10 +357,26 @@ def file_finder(xlsx_fpaths):
     return [f for f in sorted(files) if _input_file_regex.match(osp.basename(f))]
 
 
+def _cmd_datasync(opts):
+    input_file = opts['<input-file>']
+    ref_sheet = opts['<ref-sheet>']
+    x_label = opts['<x-label>']
+    y_label = opts['<y-label>']
+    suffix = opts['--suffix']
+    if opts['-O'] != '.':
+        output_file = opts['-O']
+    else:
+        p = input_file.split('.')
+        output_file = '.'.join(p[:-1] + [opts['--suffix']] + [p[-1]])
+    sync_sheets = opts['<sync-sheets>']
+    from co2mpas.functions.io.synchronization import apply_datasync
+    apply_datasync(ref_sheet, sync_sheets, x_label, y_label, output_file,
+                   input_file, suffix)
+
 
 def _run_batch(opts):
     input_paths = opts['<input-path>']
-    output_folder =opts['-O']
+    output_folder = opts['-O']
     if opts['--gui']:
         input_paths = [_prompt_folder(folder_name='INPUT',
                 fpath=input_paths[-1] if input_paths else None)]
@@ -397,6 +423,8 @@ def _main(*args):
             _cmd_ipynb(opts)
         elif opts['modelgraph']:
             _cmd_modelgraph(opts)
+        elif opts['datasync']:
+            _cmd_datasync(opts)
         else: #opts['batch']:
             _run_batch(opts)
 

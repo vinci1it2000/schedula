@@ -1,6 +1,21 @@
+#!/usr/bin/env python
+#
+# Copyright 2014-2015 European Commission (JRC);
+# Licensed under the EUPL (the 'Licence');
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+
+import logging
 import numpy as np
 from numpy.fft import fft, ifft, fftshift
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline
+from pandalone.xleash import lasso, parse_xlref, SheetsFactory
+from itertools import chain
+from .excel import clone_excel
+from collections import OrderedDict
+import pandas as pd
+
+log = logging.getLogger(__name__)
 
 
 def cross_correlation_using_fft(x, y):
@@ -20,7 +35,7 @@ def compute_shift(x, y):
     return shift
 
 
-def synchronization(reference, *data, x_id='times', y_id='velocities'):
+def synchronization(reference, *data, x_label='times', y_label='velocities'):
     """
     Returns the data re-sampled and synchronized respect to x axes (`x_id`) and
     the reference signal `y_id`.
@@ -33,52 +48,93 @@ def synchronization(reference, *data, x_id='times', y_id='velocities'):
 
     :type data: list[dict]
 
-    :param x_id:
+    :param x_label:
     :type x_id: str, optional
 
-    :param y_id:
-    :type y_id: str, optional
+    :param y_label:
+    :type y_label: str, optional
 
     :return:
     :rtype: list[dict]
     """
 
-    dx = np.median(np.diff(reference[x_id])) / 10
-    m, M = min(reference[x_id]), max(reference[x_id])
+    dx = np.median(np.diff(reference[x_label])) / 10
+    m, M = min(reference[x_label]), max(reference[x_label])
+
     for d in data:
-        m, M = min(min(d[x_id]), m), max(max(d[x_id]), M)
+        m, M = min(min(d[x_label]), m), max(max(d[x_label]), M)
 
     X = np.linspace(m, M, int((M - m) / dx))
-    Y = Spline(reference[x_id], reference[y_id], k=1, ext=3)(X)
+    Y = Spline(reference[x_label], reference[y_label], k=1, ext=3)(X)
 
-    x = reference[x_id]
+    x = reference[x_label]
+
+    yield 0, reference
+
     for d in data:
-        s = {k: Spline(d[x_id], v, k=1, ext=3) if k != x_id else lambda *a: x
-             for k, v in d.items()}
+        s = OrderedDict([(k, Spline(d[x_label], v, k=1, ext=3))
+                         for k, v in d.items() if k != x_label])
 
-        shift = compute_shift(Y, np.nan_to_num(s[y_id](X))) * dx
+        shift = compute_shift(Y, np.nan_to_num(s[y_label](X))) * dx
 
-        x_shifted = x + shift
+        x_shift = x + shift
 
-        yield shift, {k: v(x_shifted) for k, v in s.items()}
+        r = [(k, v(x_shift)) for k, v in s.items()]
+
+        yield shift, reference.__class__(OrderedDict(r))
 
 
-if __name__ == '__main__':
-    import pandas as pd
-    import easygui as eu
-    file_path = eu.fileopenbox('choose', default='*.xlsx')
+def _parse_sheet_names(sheet_name, input_file=''):
+    try:
+        r = parse_xlref(sheet_name)
+        if not r['url_file']:
+            xl_ref = ''.join((input_file, sheet_name))
+        else:
+            xl_ref = sheet_name
+        sheet_name = r['xl_ref']
+    except:
+        xl_ref = '%s#%s!A1(RD):._:RD' % (input_file, sheet_name)
 
-    excel = pd.ExcelFile(file_path)
+    return {'sheet_name': sheet_name, 'xlref': xl_ref}
 
-    d = [pd.read_excel(excel, sn, header=1) for sn in excel.sheet_names]
 
-    res = [(0, d[0])] + [(s, pd.DataFrame(r)) for s, r in synchronization(*d)]
+def apply_datasync(
+        ref_sheet, sync_sheets, x_label, y_label, output_file, input_file='',
+        prefix='sync', suffix='sync'):
+    out_sheet = _parse_sheet_names(ref_sheet)['sheet_name']
+    sheets_factory = SheetsFactory()
+    if not sync_sheets:
+        book = sheets_factory.fetch_sheet(input_file, 0)._sheet.book
+        sync_sheets = set(book.sheet_names()).difference([out_sheet])
 
-    file_path = eu.filesavebox('save', default='*.xlsx')
-    writer = pd.ExcelWriter(file_path)
+    data, headers = [], []
+    for xl_ref in chain([ref_sheet], sync_sheets):
+        xlref = _parse_sheet_names(xl_ref, input_file=input_file)['xlref']
+        d = lasso(xlref, sheets_factory=sheets_factory)
+        i =[i for i, r in enumerate(d)
+            if any(isinstance(v, str) for v in r)]
+        ix = next(d[k] for k in i if all(v in d[k] for v in (x_label, y_label)))
+        i = max(i, default=0) + 1
 
-    for (s, df), sn in zip(res, excel.sheet_names):
-        print('%s is shifted by: %.3f' % (sn, s))
-        df.to_excel(writer, sn)
+        d, h = pd.DataFrame(d[i:], columns=ix), pd.DataFrame(d[:i], columns=ix)
+        d.dropna(how='all', inplace=True)
+        d.dropna(axis=1, how='any', inplace=True)
+        data.append(d)
+        headers.append(h)
 
+    res = list(synchronization(*data, x_label=x_label, y_label=y_label))
+
+    for h in headers[1:]:
+        h[y_label].iloc[-1] = '%s %s' % (suffix, h[y_label].iloc[-1])
+
+    frames = [h[df.columns].append(df) for (s, df), h in zip(res, headers)]
+    df = pd.concat(frames, axis=1)
+
+    if input_file:
+        writer = clone_excel(input_file, output_file)
+    else:
+        writer = pd.ExcelWriter(output_file)
+
+    df.to_excel(writer, out_sheet, header=False, index=False)
     writer.save()
+    return df
