@@ -43,7 +43,6 @@ def synchronization(reference, *data, x_id='times', y_id='velocities'):
     :rtype: list[dict]
     """
 
-    _spline = partial(Spline, k=1, ext=3)
     dx = np.median(np.diff(reference[x_id])) / 10
     m, M = min(reference[x_id]), max(reference[x_id])
     for d in data:
@@ -57,7 +56,7 @@ def synchronization(reference, *data, x_id='times', y_id='velocities'):
         s = {k: Spline(d[x_id], v, k=1, ext=3) if k != x_id else lambda *a: x
              for k, v in d.items()}
 
-        shift = compute_shift(Y, s[y_id](X)) * dx
+        shift = compute_shift(Y, np.nan_to_num(s[y_id](X))) * dx
 
         x_shifted = x + shift
 
