@@ -80,19 +80,20 @@ Examples for `cmd.exe`:
     co2mpas modelgraph gear_box_calibration
 
 """
-from co2mpas import (__version__ as proj_ver, __file__ as proj_file,
-                     __updated__ as proj_date)
-from co2mpas import autocompletion
-from collections import OrderedDict
 import glob
 import logging
-from os import path as osp
 import os
 import re
 import shutil
 import sys
+from collections import OrderedDict
+from os import path as osp
 
 import docopt
+
+from co2mpas import (__version__ as proj_ver, __file__ as proj_file,
+                     __updated__ as proj_date)
+from co2mpas import autocompletion
 
 
 class CmdException(Exception):
@@ -369,7 +370,7 @@ def _cmd_datasync(opts):
         p = input_file.split('.')
         output_file = '.'.join(p[:-1] + [opts['--suffix']] + [p[-1]])
     sync_sheets = opts['<sync-sheets>']
-    from co2mpas.functions.io.synchronization import apply_datasync
+    from .synchronization import apply_datasync
     apply_datasync(ref_sheet, sync_sheets, x_label, y_label, output_file,
                    input_file, suffix)
 

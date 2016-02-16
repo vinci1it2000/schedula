@@ -11,7 +11,7 @@ from numpy.fft import fft, ifft, fftshift
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 from pandalone.xleash import lasso, parse_xlref, SheetsFactory
 from itertools import chain
-from .excel import clone_excel
+from .functions.io.excel import clone_excel
 from collections import OrderedDict
 import pandas as pd
 
