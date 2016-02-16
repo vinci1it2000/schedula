@@ -370,7 +370,7 @@ def _cmd_datasync(opts):
         p = input_file.split('.')
         output_file = '.'.join(p[:-1] + [opts['--suffix']] + [p[-1]])
     sync_sheets = opts['<sync-sheets>']
-    from .synchronization import apply_datasync
+    from .datasync import apply_datasync
     apply_datasync(ref_sheet, sync_sheets, x_label, y_label, output_file,
                    input_file, suffix)
 
