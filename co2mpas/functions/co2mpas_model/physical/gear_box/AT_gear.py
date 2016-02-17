@@ -1242,7 +1242,7 @@ class MVL(CMV):
                 OrderedDict(mvl), up_cns_vel=[35, 50],
                 down_cns_vel=[15, 32, 50, 70])
         )
-        str(self)
+
         return self
 
     def predict(self, velocity, acceleration, gear):

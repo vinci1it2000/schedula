@@ -381,7 +381,7 @@ def identify_charging_statuses(
     b1 = -1
 
     n = len(on_engine) - 1
-
+    f = True
     for b0, (s, p) in enumerate(zip(status, gb_p)):
         if s == 2 and p >= 0 and b0 >= b1:
             b1 = b0
@@ -393,7 +393,10 @@ def identify_charging_statuses(
                 b1 -= 1
 
             if b1 > b0:
+                if f:
+                    b0 = 0
                 status[b0:b1 + 1] = 1
+            f = False
 
     return status
 
@@ -449,12 +452,12 @@ def calibrate_alternator_status_model(
         charge.fit(X, b)
 
         charge_pred = charge.predict  # shortcut name
-        soc = state_of_charges[1:]
+        soc = state_of_charges[1:][b]
 
         i = argmax(np.logical_not(b)) if argmax(b) == 0 else 0
         j = -argmax(np.logical_not(b[::-1])) if argmax(b[::-1]) == 0 else b.size
-        min_charge_soc = min(soc[b[i:]]) if i < b.size else 0
-        max_charge_soc = max(soc[b[:j]]) if -j < b.size else 100
+        min_charge_soc = min(soc[i:]) if i < b.size else 0
+        max_charge_soc = max(soc[:j]) if -j < b.size else 100
     else:
         charge_pred = lambda *args: (False,)
         min_charge_soc, max_charge_soc = 0, 100
