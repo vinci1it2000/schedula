@@ -12,7 +12,7 @@ from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 from pandalone.xleash import lasso, parse_xlref, SheetsFactory
 from itertools import chain
 from .functions.io.excel import clone_excel
-from collections import OrderedDict
+from collections import OrderedDict, Counter
 import pandas as pd
 
 log = logging.getLogger(__name__)
@@ -100,16 +100,19 @@ def _parse_sheet_names(sheet_name, input_file=''):
 
 def apply_datasync(
         ref_sheet, sync_sheets, x_label, y_label, output_file, input_file='',
-        prefix='sync', suffix='sync'):
+        prefix=False):
+
     out_sheet = _parse_sheet_names(ref_sheet)['sheet_name']
     sheets_factory = SheetsFactory()
+
     if not sync_sheets:
         book = sheets_factory.fetch_sheet(input_file, 0)._sheet.book
         sync_sheets = set(book.sheet_names()).difference([out_sheet])
 
     data, headers = [], []
     for xl_ref in chain([ref_sheet], sync_sheets):
-        xlref = _parse_sheet_names(xl_ref, input_file=input_file)['xlref']
+        xlref = _parse_sheet_names(xl_ref, input_file=input_file)
+        sheet_name, xlref = xlref['sheet_name'], xlref['xlref']
         d = lasso(xlref, sheets_factory=sheets_factory)
         i =[i for i, r in enumerate(d)
             if any(isinstance(v, str) for v in r)]
@@ -120,14 +123,25 @@ def apply_datasync(
         d.dropna(how='all', inplace=True)
         d.dropna(axis=1, how='any', inplace=True)
         data.append(d)
-        headers.append(h)
+        headers.append((sheet_name, h))
 
     res = list(synchronization(*data, x_label=x_label, y_label=y_label))
 
-    for h in headers[1:]:
-        h[y_label].iloc[-1] = '%s %s' % (suffix, h[y_label].iloc[-1])
+    if prefix:
+        ix = set()
+        for sn, h in headers:
+            ix.update(h.columns)
+    else:
+        ix = Counter()
+        for sn, h in headers:
+            ix.update(set(h.columns))
+        ix = {k for k, v in ix.items() if v > 1}
 
-    frames = [h[df.columns].append(df) for (s, df), h in zip(res, headers)]
+    for sn, h in headers[1:]:
+        for j in ix.intersection(h.columns):
+            h[j].iloc[-1] = '%s %s' % (sn, h[j].iloc[-1])
+
+    frames = [h[df.columns].append(df) for (s, df), (sn, h) in zip(res, headers)]
     df = pd.concat(frames, axis=1)
 
     if input_file:

@@ -10,8 +10,8 @@ Predict NEDC CO2 emissions from WLTP cycles.
 Usage:
   co2mpas batch       [-v | --logconf <conf-file>] [--predict-wltp]
                       [--only-summary] [--out-template <xlsx-file> | --charts]
-                      [--plot-workflow]
-                      [-O <output-folder>]  [<input-path>]...  [--gui]
+                      [--plot-workflow] [-O <output-folder>] [<input-path>]...
+                      [--gui]
   co2mpas demo        [-v | --logconf <conf-file>] [-f] [<output-folder>]
                       [--gui]
   co2mpas template    [-v | --logconf <conf-file>] [-f] [<excel-file-path> ...]
@@ -20,28 +20,41 @@ Usage:
                       [--gui]
   co2mpas modelgraph  [-v | --logconf <conf-file>]
                       [--list | [--graph-depth=INTEGER] [<models> ...]]
-  co2mpas datasync    [-v | --logconf <conf-file>] [<input-file>] [<ref-sheet>]
-                      [<x-label>] [<y-label>] [<sync-sheets>]...
-                      [-O <output-file> | --suffix <suffix>]
+  co2mpas datasync    [-v | --logconf <conf-file>] [-f] <input-path>
+                      <x-label> <y-label> <ref-sheet> [<sync-sheets>]...
+                      [-O <output-folder>] [--suffix <suffix>]
+                      [--prefix]
   co2mpas             [-v | --logconf <conf-file>] (--version | -V)
   co2mpas             --help
 
 Options:
   <input-path>                Input xlsx-file or folder.
   -O <output-folder>          Output folder or file [default: .].
-  --gui                       Launches GUI dialog-boxes to choose Input, Output and Options.
-                              [default: False].
+  --gui                       Launches GUI dialog-boxes to choose Input, Output
+                              and Options. [default: False].
   --only-summary              Does not save vehicle outputs just the summary file.
   --predict-wltp              Whether to predict also WLTP values.
   --charts                    Add basic charts to output file.
-  --out-template <xlsx-file>  An '*.xlsx' file to clone and append model-results into it.
+  --out-template <xlsx-file>  An '*.xlsx' file to clone and append model-results
+                              into it.
                               By default, no output-template used.
-                              Set it to `-` to use the input xlsx-file as output-template.
+                              Set it to `-` to use the input xlsx-file as
+                              output-template.
   --plot-workflow             Open workflow-plot in browser, after run finished.
   -l, --list                  List available models.
-  --graph-depth=INTEGER       Limit the levels of sub-models plotted (no limit by default).
+  --graph-depth=INTEGER       Limit the levels of sub-models plotted (no limit
+                              by default).
   -f, --force                 Overwrite template/demo excel-file(s).
-  --suffix <suffix>           Suffix to added to the output file [default: sync].
+  --suffix <suffix>           Suffix to added to the output file (datasync)
+                              [default: sync].
+  --prefix                    Add sheet name to all sync column names (datasync).
+  <x-label>                   Column label of x-axis used for data
+                              synchronisation (e.g. 'times').
+  <y-label>                   Label of y-axis used for data synchronisation.
+  <ref-sheet>                 Sheet where there are the reference signals.
+  <sync-sheets>               Synchronize and re-sample columns from these sheets
+                              into <ref-sheet>.
+                              If not given assumes all sheets except <ref-sheet>.
   -V, --version               Print version of the program, with --verbose
                               list release-date and installation details.
   -h, --help                  Show this help message and exit.
@@ -60,7 +73,10 @@ Sub-commands:
     template                Generate "empty" input-file at <excel-file-path>.
     ipynb                   Generate IPython notebooks inside <output-folder>; view them with cmd:
                               ipython --notebook-dir=<output-folder>
-    modelgraph              List all or plot available models.  If no model(s) specified, all assumed.
+    modelgraph              List all or plot available models. If no model(s) specified, all assumed.
+    datasync                Synchronise and re-sample time series from different
+                            sources. It saves results in a clone of the input
+                            file overwriting the <ref-sheet>.
 
 Examples for `cmd.exe`:
     # Create work folders ans fill them with sample-vehicles:
@@ -79,21 +95,24 @@ Examples for `cmd.exe`:
     # View a specific submodel on your browser:
     co2mpas modelgraph gear_box_calibration
 
-"""
-import glob
-import logging
-import os
-import re
-import shutil
-import sys
-from collections import OrderedDict
-from os import path as osp
+    # Synchronise and re-sample time series from different sources:
+    co2mpas datasync ../input times velocities WLTP-H WLTP-H_OBD -O ../output
 
-import docopt
+"""
 
 from co2mpas import (__version__ as proj_ver, __file__ as proj_file,
                      __updated__ as proj_date)
 from co2mpas import autocompletion
+from collections import OrderedDict
+import glob
+import logging
+from os import path as osp
+import os
+import re
+import shutil
+import sys
+
+import docopt
 
 
 class CmdException(Exception):
@@ -359,20 +378,41 @@ def file_finder(xlsx_fpaths):
 
 
 def _cmd_datasync(opts):
-    input_file = opts['<input-file>']
+    input_path = opts['<input-path>']
     ref_sheet = opts['<ref-sheet>']
     x_label = opts['<x-label>']
     y_label = opts['<y-label>']
     suffix = opts['--suffix']
-    if opts['-O'] != '.':
-        output_file = opts['-O']
-    else:
-        p = input_file.split('.')
-        output_file = '.'.join(p[:-1] + [opts['--suffix']] + [p[-1]])
+    prefix = opts['--prefix']
+    out_format = '%s.{}%s'.format(suffix)
+    out_folder = opts['-O']
     sync_sheets = opts['<sync-sheets>']
-    from .datasync import apply_datasync
-    apply_datasync(ref_sheet, sync_sheets, x_label, y_label, output_file,
-                   input_file, suffix)
+    force = opts['--force']
+    input_paths = file_finder(input_path)
+
+    if not input_paths:
+        raise CmdException("No <input-path> found! \n"
+                           "\n  Try: co2mpas --help")
+
+    if not osp.isdir(out_folder):
+        if force:
+            from co2mpas.dispatcher.utils.io import mkdirs
+            mkdirs(out_folder)
+        else:
+            raise CmdException("Specify a folder for "
+                               "the '-O %s' option!" % out_folder)
+
+    from co2mpas.datasync import apply_datasync
+    for input_file in input_paths:
+        basename = osp.basename(input_file)
+        output_file = osp.join(out_folder, out_format % osp.splitext(basename))
+
+        if not force and osp.isfile(output_file):
+            raise CmdException("Output file exists! \n"
+                               "\n To overwrite add '-f' option!")
+
+        apply_datasync(ref_sheet, sync_sheets, x_label, y_label, output_file,
+                       input_file, prefix)
 
 
 def _run_batch(opts):
