@@ -191,7 +191,8 @@ def process_folder_files(input_files, output_folder, **kwds):
 def _process_folder_files(
         input_files, output_folder, plot_workflow=False,
         enable_prediction_WLTP=False, with_output_file=True,
-        output_template_xl_fpath=None, with_charts=False):
+        output_template_xl_fpath=None, with_charts=False,
+        overwrite_cache=False):
     """
     Process all xls-files in a folder with CO2MPAS-model.
 
@@ -239,7 +240,8 @@ def _process_folder_files(
             'start_time': datetime.datetime.today(),
             'prediction_wltp': enable_prediction_WLTP,
             'output_template': output_template_xl_fpath,
-            'with_charts': with_charts
+            'with_charts': with_charts,
+            'overwrite_cache': overwrite_cache
         }
         ofname = None
         if with_output_file:

@@ -10,8 +10,8 @@ Predict NEDC CO2 emissions from WLTP cycles.
 Usage:
   co2mpas batch       [-v | --logconf <conf-file>] [--predict-wltp]
                       [--only-summary] [--out-template <xlsx-file> | --charts]
-                      [--plot-workflow] [-O <output-folder>] [<input-path>]...
-                      [--gui]
+                      [--plot-workflow] [--overwrite-cache] [-O <output-folder>]
+                      [<input-path>]... [--gui]
   co2mpas demo        [-v | --logconf <conf-file>] [-f] [<output-folder>]
                       [--gui]
   co2mpas template    [-v | --logconf <conf-file>] [-f] [<excel-file-path> ...]
@@ -33,6 +33,7 @@ Options:
   --gui                       Launches GUI dialog-boxes to choose Input, Output
                               and Options. [default: False].
   --only-summary              Does not save vehicle outputs just the summary file.
+  --overwrite-cache           Overwrites the cached file.
   --predict-wltp              Whether to predict also WLTP values.
   --charts                    Add basic charts to output file.
   --out-template <xlsx-file>  An '*.xlsx' file to clone and append model-results
@@ -439,7 +440,8 @@ def _run_batch(opts):
                          plot_workflow=opts['--plot-workflow'],
                          with_charts=opts['--charts'],
                          enable_prediction_WLTP=opts['--predict-wltp'],
-                         output_template_xl_fpath=opts['--out-template']),
+                         output_template_xl_fpath=opts['--out-template'],
+                         overwrite_cache=opts['--overwrite-cache']),
 
 
 def _main(*args):

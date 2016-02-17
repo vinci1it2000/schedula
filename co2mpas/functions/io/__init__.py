@@ -49,7 +49,9 @@ def get_cache_fpath(fpath):
     return str(cache_folder.joinpath('%s.%s.dill' % (fpath.name, version)))
 
 
-def check_cache_fpath_exists(fpath, cache_fpath):
+def check_cache_fpath_exists(overwrite_cache, fpath, cache_fpath):
+    if overwrite_cache:
+        return False
     cache_fpath = pathlib.Path(cache_fpath)
     if cache_fpath.exists():
         inp_stats = pathlib.Path(fpath).stat()   ## Will scream if INPUT does not exist.

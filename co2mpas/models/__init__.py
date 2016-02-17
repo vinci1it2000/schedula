@@ -55,9 +55,14 @@ def vehicle_processing_model(prediction_WLTP=False):
         default_value=False
     )
 
+    dsp.add_data(
+        data_id='overwrite_cache',
+        default_value=False
+    )
+
     dsp.add_function(
         function=load_inputs(),
-        inputs=['input_file_name', 'select_outputs'],
+        inputs=['input_file_name', 'select_outputs', 'overwrite_cache'],
         outputs=['input_data']
     )
 

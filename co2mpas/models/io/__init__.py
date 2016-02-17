@@ -56,15 +56,14 @@ def load_inputs():
     )
 
     dsp.add_data(
-        data_id='load_from_cache',
+        data_id='overwrite_cache',
         default_value=False,
-        initial_dist=10
     )
 
     dsp.add_function(
         function_id='load_from_cache',
-        function=dsp_utl.add_args(load_from_dill),
-        inputs=['input_file_name', 'cache_file_name'],
+        function=dsp_utl.add_args(load_from_dill, n=2),
+        inputs=['overwrite_cache', 'input_file_name', 'cache_file_name'],
         outputs=['validated_data'],
         input_domain=check_cache_fpath_exists
     )
@@ -112,7 +111,7 @@ def load_inputs():
     func = dsp_utl.SubDispatchFunction(
         dsp=dsp,
         function_id=dsp.name,
-        inputs=['input_file_name', 'select_outputs'],
+        inputs=['input_file_name', 'select_outputs', 'overwrite_cache'],
         outputs=['input_data']
     )
 
