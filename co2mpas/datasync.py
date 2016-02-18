@@ -8,7 +8,7 @@
 import logging
 import numpy as np
 from numpy.fft import fft, ifft, fftshift
-from scipy.interpolate import InterpolatedUnivariateSpline as Spline
+from functools import partial
 from pandalone.xleash import lasso, parse_xlref, SheetsFactory
 from itertools import chain
 from .functions.io.excel import clone_excel
@@ -35,14 +35,14 @@ def compute_shift(x, y):
     return shift
 
 
-def synchronization(reference, *data, x_label='times', y_label='velocities'):
+def synchronization(ref, *data, x_label='times', y_label='velocities'):
     """
     Returns the data re-sampled and synchronized respect to x axes (`x_id`) and
     the reference signal `y_id`.
 
-    :param reference:
+    :param ref:
 
-    :type reference: dict
+    :type ref: dict
 
     :param data:
 
@@ -58,30 +58,30 @@ def synchronization(reference, *data, x_label='times', y_label='velocities'):
     :rtype: list[dict]
     """
 
-    dx = np.median(np.diff(reference[x_label])) / 10
-    m, M = min(reference[x_label]), max(reference[x_label])
+    dx = float(np.median(np.diff(ref[x_label])) / 10)
+    m, M = min(ref[x_label]), max(ref[x_label])
 
     for d in data:
         m, M = min(min(d[x_label]), m), max(max(d[x_label]), M)
 
-    X = np.linspace(m, M, int((M - m) / dx))
-    Y = Spline(reference[x_label], reference[y_label], k=1, ext=3)(X)
+    X = np.arange(m, M + dx, dx)
+    Y = np.interp(X, ref[x_label], ref[y_label])
 
-    x = reference[x_label]
+    x = ref[x_label]
 
-    yield 0, reference
+    yield 0, ref
 
     for d in data:
-        s = OrderedDict([(k, Spline(d[x_label], v, k=1, ext=3))
+        s = OrderedDict([(k, partial(np.interp, xp=d[x_label], fp=v))
                          for k, v in d.items() if k != x_label])
 
-        shift = compute_shift(Y, np.nan_to_num(s[y_label](X))) * dx
+        shift = compute_shift(Y, s[y_label](X)) * dx
 
         x_shift = x + shift
 
         r = [(k, v(x_shift)) for k, v in s.items()]
 
-        yield shift, reference.__class__(OrderedDict(r))
+        yield shift, ref.__class__(OrderedDict(r))
 
 
 def _parse_sheet_names(sheet_name, input_file=''):
