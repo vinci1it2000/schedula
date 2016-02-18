@@ -1,7 +1,7 @@
 ## Dependencies for the *conda* package-manager.
 ## Use this command to install them::
 ##
-##      conda install --file requirements/miniconda.conda
+##      conda install --file requirements/exe.conda
 ##
 ## To install the rest deps of the project, use AFTERWARDS the "standard"::
 ##
