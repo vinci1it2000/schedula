@@ -446,21 +446,25 @@ def calibrate_alternator_status_model(
         bers_pred = lambda *args: (False,)
 
     b = alternator_statuses[1:] == 1
+    min_charge_soc, max_charge_soc = 0, 100
     if b.any():
         charge = DecisionTreeClassifier(random_state=0, max_depth=3)
         X = np.array([alternator_statuses[:-1], state_of_charges[1:]]).T
         charge.fit(X, b)
 
         charge_pred = charge.predict  # shortcut name
-        soc = state_of_charges[1:][b]
+        soc = state_of_charges[1:]
 
         i = argmax(np.logical_not(b)) if argmax(b) == 0 else 0
         j = -argmax(np.logical_not(b[::-1])) if argmax(b[::-1]) == 0 else b.size
-        min_charge_soc = min(soc[i:]) if i < b.size else 0
-        max_charge_soc = max(soc[:j]) if -j < b.size else 100
+        if i < b.size:
+            s = b[i:]
+            min_charge_soc = min(soc[i:][s] if s.any() else soc[b])
+        if -j < b.size:
+            s = b[:j]
+            max_charge_soc = max(soc[:j][s] if s.any() else soc[b])
     else:
         charge_pred = lambda *args: (False,)
-        min_charge_soc, max_charge_soc = 0, 100
 
     def model(prev_status, soc, gear_box_power_in):
         status = 0
