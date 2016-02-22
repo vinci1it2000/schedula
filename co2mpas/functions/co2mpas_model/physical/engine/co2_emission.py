@@ -784,13 +784,13 @@ def calibrate_co2_params(
             cold[:argmax(b)] = True
     hot = np.logical_not(cold)
 
-    success = [(True, p.valuesdict())]
+    success = [(True, copy.deepcopy(p))]
 
     def calibrate(id_p, p, **kws):
         _set_attr(p, id_p, default=False)
         p, s = calibrate_model_params(co2_error_function_on_emissions, p, **kws)
         _set_attr(p, vary)
-        success.append((s, p.valuesdict()))
+        success.append((s, copy.deepcopy(p)))
         return p
 
     cold_p = ['t', 'trg']
@@ -802,14 +802,14 @@ def calibrate_co2_params(
         hot_p = ['a2', 'a', 'b', 'c', 'l', 'l2']
         p = calibrate(hot_p, p, sub_values=cold)
     else:
-        success.append((True, p.valuesdict()))
+        success.append((True, copy.deepcopy(p)))
         _set_attr(p, ['t'], default=0.0, attr='value')
         _set_attr(p, cold_p, default=False)
 
     p = restrict_bounds(p)
 
     p, s = calibrate_model_params(co2_error_function_on_phases, p)
-    success.append((s, p.valuesdict()))
+    success.append((s, copy.deepcopy(p)))
     _set_attr(p, vary)
 
     return p, success

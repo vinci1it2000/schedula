@@ -276,7 +276,7 @@ def define_data_schema(read=True):
         'cycle_name': string,
         'specific_gear_shifting': string,
         'calibration_status': _type(type=And(Use(list),
-                                             [(bool, Or(OrderedDict, None))]),
+                                             [(bool, Or(parameters, None))]),
                                     length=4,
                                     read=read),
         'electric_load': tuplefloat2,
