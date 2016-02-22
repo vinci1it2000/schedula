@@ -202,9 +202,16 @@ def engine():
     )
 
     engine.add_function(
+        function=default_correct_start_stop_with_gears,
+        inputs=['gear_box_type'],
+        outputs=['correct_start_stop_with_gears']
+    )
+
+    engine.add_function(
         function=predict_on_engine,
         inputs=['start_stop_model', 'times', 'velocities', 'accelerations',
-                'engine_coolant_temperatures', 'gears', 'gear_box_type'],
+                'engine_coolant_temperatures', 'gears',
+                'correct_start_stop_with_gears'],
         outputs=['on_engine']
     )
 

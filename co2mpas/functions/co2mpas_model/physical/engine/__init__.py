@@ -661,6 +661,7 @@ def calibrate_start_stop_model_v1(
 
     return model
 
+
 def calibrate_start_stop_model(
         on_engine, times, velocities, accelerations,
         start_stop_activation_time):
@@ -721,7 +722,7 @@ def calibrate_start_stop_model(
 
 def predict_on_engine(
         model, times, velocities, accelerations, engine_coolant_temperatures,
-        gears, gear_box_type):
+        gears, correct_start_stop_with_gears):
     """
     Predicts if the engine is on [-].
 
@@ -749,9 +750,9 @@ def predict_on_engine(
         Gear vector [-].
     :type gears: numpy.array
 
-    :param gear_box_type:
-        Gear box type (manual or automatic).
-    :type gear_box_type: str
+    :param correct_start_stop_with_gears:
+        A flag to impose engine on when there is a gear > 0.
+    :type correct_start_stop_with_gears: bool
 
     :return:
         If the engine is on [-].
@@ -762,12 +763,28 @@ def predict_on_engine(
                       engine_coolant_temperatures)
     on_engine = np.array(on_engine, dtype=int)
 
-    if gear_box_type == 'manual':
+    if correct_start_stop_with_gears:
         on_engine[gears > 0] = 1
 
     on_engine = clear_fluctuations(times, on_engine, TIME_WINDOW)
 
     return np.array(on_engine, dtype=bool)
+
+
+def default_correct_start_stop_with_gears(gear_box_type):
+    """
+    Defines a flag that imposes the engine on when there is a gear > 0.
+
+    :param gear_box_type:
+        Gear box type (manual or automatic).
+    :type gear_box_type: str
+
+    :return:
+        A flag to impose engine on when there is a gear > 0.
+    :rtype: bool
+    """
+
+    return gear_box_type == 'manual'
 
 
 def calculate_engine_speeds_out_hot(
