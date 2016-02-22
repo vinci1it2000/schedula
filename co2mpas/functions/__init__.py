@@ -22,8 +22,6 @@ Modules:
 """
 
 import datetime
-import glob
-from itertools import chain
 import logging
 import re
 
@@ -228,41 +226,65 @@ def _process_folder_files(
     timestamp = start_time.strftime('%Y%m%d_%H%M%S')
 
     for fpath in input_files:
-        fname = osp.splitext(osp.basename(fpath))[0]
-        if not osp.isfile(fpath):
-            log.warn('File  %r does not exist!', fpath)
-        else:
-            log.info('Processing: %s', fname)
+        res = _process_vehicle(
+                model, fpath,
+                output_folder=output_folder,
+                timestamp=timestamp,
+                plot_workflow=plot_workflow,
+                enable_prediction_WLTP=enable_prediction_WLTP,
+                with_output_file=with_output_file,
+                output_template_xl_fpath=output_template_xl_fpath,
+                with_charts=with_charts,
+                overwrite_cache=overwrite_cache
+        )
 
-        inputs = {
-            'vehicle_name': fname,
-            'input_file_name': fpath,
-            'start_time': datetime.datetime.today(),
-            'prediction_wltp': enable_prediction_WLTP,
-            'output_template': output_template_xl_fpath,
-            'with_charts': with_charts,
-            'overwrite_cache': overwrite_cache
-        }
-        ofname = None
-        if with_output_file:
-            ofname = '%s-%s' % (timestamp, fname)
-            ofname = osp.join(output_folder, ofname)
-            inputs['output_file_name'] = '%s.xlsx' % ofname
-
-        res = model.dispatch(inputs=inputs)
-        s = res.get('summary', {})
-
-        for k, v in stack_nested_keys(s, depth=2):
-            get_nested_dicts(summary, *k, default=list).append(v)
-
-        if plot_workflow:
-            try:
-                log.info('Plotting workflow of %s...', fname)
-                model.plot(workflow=True, filename=ofname)
-            except RuntimeError as ex:
-                log.warning(ex, exc_info=1)
+        _add2summary(summary, res)
 
     return summary, start_time
+
+
+def _process_vehicle(
+        model, fpath, output_folder='.', timestamp='', plot_workflow=False,
+        enable_prediction_WLTP=False, with_output_file=False,
+        output_template_xl_fpath=None, with_charts=False,
+        overwrite_cache=False):
+    fname = osp.splitext(osp.basename(fpath))[0]
+    if not osp.isfile(fpath):
+        log.warn('File  %r does not exist!', fpath)
+    else:
+        log.info('Processing: %s', fname)
+
+    inputs = {
+        'vehicle_name': fname,
+        'input_file_name': fpath,
+        'start_time': datetime.datetime.today(),
+        'prediction_wltp': enable_prediction_WLTP,
+        'output_template': output_template_xl_fpath,
+        'with_charts': with_charts,
+        'overwrite_cache': overwrite_cache
+    }
+
+    ofname = None
+    if with_output_file:
+        ofname = '%s-%s' % (timestamp, fname)
+        ofname = osp.join(output_folder, ofname)
+        inputs['output_file_name'] = '%s.xlsx' % ofname
+
+    res = model.dispatch(inputs=inputs)
+
+    if plot_workflow:
+        try:
+            log.info('Plotting workflow of %s...', fname)
+            model.plot(workflow=True, filename=ofname)
+        except RuntimeError as ex:
+            log.warning(ex, exc_info=1)
+
+    return res
+
+
+def _add2summary(summary, res):
+    for k, v in stack_nested_keys(res.get('summary', {}), depth=2):
+        get_nested_dicts(summary, *k, default=list).append(v)
 
 
 def _save_summary(fpath, start_time, summary):
