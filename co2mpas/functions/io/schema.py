@@ -227,7 +227,6 @@ def define_data_schema(read=True):
         
         'vehicle_mass': positive,
         'f0_uncorrected': positive,
-        'f1': positive,
         'f2': positive,
         'f0': positive,
         'correct_f0': positive,
