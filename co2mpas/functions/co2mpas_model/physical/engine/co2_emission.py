@@ -1036,3 +1036,39 @@ class _Minimizer(lmfit.Minimizer):
         result.bic = _log_likelihood + np.log(result.ndata) * result.nvarys
 
         return result
+
+
+def calculate_willans_factors(
+        params, engine_fuel_lower_heating_value, engine_capacity,
+        engine_powers_out, mean_piston_speeds, brake_mean_effective_pressures,
+        engine_speeds_out):
+    """
+    :param params:
+        CO2 emission model parameters (a2, b2, a, b, c, l, l2, t, trg).
+
+        The missing parameters are set equal to zero.
+    :type params: dict
+
+    :param engine_fuel_lower_heating_value:
+        Fuel lower heating value [kJ/kg].
+    :type engine_fuel_lower_heating_value: float
+
+    :param engine_stroke:
+        Engine stroke [mm].
+    :type engine_stroke: float
+
+    :param engine_capacity:
+        Engine capacity [cm3].
+    :type engine_capacity: float
+
+    :return:
+    """
+
+    b = engine_powers_out > 0
+    n_speeds = np.average(mean_piston_speeds[b])
+    n_powers = np.average(brake_mean_effective_pressures[b])
+
+    engine_wfb, engine_wfa = _calculate_fuel_mean_effective_pressure(params, n_speeds, n_powers, 1)
+    willans_a = 3600000 / engine_fuel_lower_heating_value / engine_wfa
+
+    return
