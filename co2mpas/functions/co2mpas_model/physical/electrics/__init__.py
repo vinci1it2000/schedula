@@ -259,10 +259,16 @@ def calibrate_alternator_current_model(
     :rtype: function
     """
 
-    dt = DecisionTreeRegressor(random_state=0)
     b = (alternator_statuses[1:] > 0) & on_engine[1:]
 
     if b.any():
+        dt = GradientBoostingRegressor(
+                random_state=0,
+                max_depth=3,
+                n_estimators=int(min(300, 0.25 * (len(b) - 1))),
+                loss='huber',
+                alpha=0.99
+        )
         dt.fit(np.array([state_of_charges[:-1], alternator_statuses[1:],
                          clutch_tc_powers[1:], accelerations[1:]]).T[b],
                alternator_currents[1:][b])
