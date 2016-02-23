@@ -225,7 +225,7 @@ def _predict_electrics(
     alternator_current = calculate_alternator_current(
         alternator_status, on_engine, gear_box_power_in,
         alternator_current_model, engine_start_current,
-        prev_battery_current, acceleration)
+        battery_state_of_charge, acceleration)
 
     battery_current = calculate_battery_current(
         electric_load, alternator_current, alternator_nominal_voltage,

@@ -23,6 +23,7 @@ import numpy as np
 from functools import partial
 from itertools import chain
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
+from sklearn.ensemble import GradientBoostingRegressor
 from ..utils import reject_outliers, argmax
 from ..constants import *
 from math import pi
@@ -262,14 +263,15 @@ def calibrate_alternator_current_model(
     b = (alternator_statuses[1:] > 0) & on_engine[1:]
 
     if b.any():
-        dt.fit(np.array([alternator_statuses[1:], clutch_tc_powers[1:],
-                         accelerations[1:]]).T[b], alternator_currents[1:][b])
+        dt.fit(np.array([state_of_charges[:-1], alternator_statuses[1:],
+                         clutch_tc_powers[1:], accelerations[1:]]).T[b],
+               alternator_currents[1:][b])
         predict = dt.predict
     else:
         predict = lambda *args, **kwargs: [0.0]
 
     def model(alt_status, prev_soc, gb_power, on_engine, acc):
-        return min(0.0, predict([(alt_status, gb_power, acc)])[0])
+        return min(0.0, predict([(prev_soc, alt_status, gb_power, acc)])[0])
 
     return model
 
