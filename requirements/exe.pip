@@ -23,3 +23,4 @@ xlsxwriter
 regex
 schema
 lmfit
+tqdm

@@ -29,7 +29,7 @@ import co2mpas.dispatcher.utils as dsp_utl
 import numpy as np
 import os.path as osp
 import pandas as pd
-
+from tqdm import tqdm
 
 log = logging.getLogger(__name__)
 
@@ -225,7 +225,7 @@ def _process_folder_files(
     start_time = datetime.datetime.today()
     timestamp = start_time.strftime('%Y%m%d_%H%M%S')
 
-    for fpath in input_files:
+    for fpath in tqdm(input_files, bar_format='{l_bar}{bar}{r_bar}\n'):
         res = _process_vehicle(
                 model, fpath,
                 output_folder=output_folder,
