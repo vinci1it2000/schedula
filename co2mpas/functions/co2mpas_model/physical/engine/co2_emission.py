@@ -1039,15 +1039,14 @@ class _Minimizer(lmfit.Minimizer):
 
 
 def calculate_willans_factors(
-        params, engine_fuel_lower_heating_value, engine_capacity,
-        engine_powers_out, mean_piston_speeds, brake_mean_effective_pressures,
-        engine_speeds_out):
+        params, engine_fuel_lower_heating_value, engine_stroke, engine_capacity,
+        engine_speeds_out, engine_powers_out):
     """
     :param params:
         CO2 emission model parameters (a2, b2, a, b, c, l, l2, t, trg).
 
         The missing parameters are set equal to zero.
-    :type params: dict
+    :type params: lmfit.Parameters
 
     :param engine_fuel_lower_heating_value:
         Fuel lower heating value [kJ/kg].
@@ -1061,14 +1060,54 @@ def calculate_willans_factors(
         Engine capacity [cm3].
     :type engine_capacity: float
 
+    :param engine_speeds_out:
+        Engine speed vector [RPM].
+    :type engine_speeds_out: numpy.array
+
+    :param engine_powers_out:
+        Engine power vector [kW].
+    :type engine_powers_out: numpy.array
+
     :return:
+    :rtype: dict
     """
+    from . import calculate_mean_piston_speeds
+
+    p = params.valuesdict()
 
     b = engine_powers_out > 0
-    n_speeds = np.average(mean_piston_speeds[b])
-    n_powers = np.average(brake_mean_effective_pressures[b])
+    av_s = np.average(engine_speeds_out[b])
+    av_p = np.average(engine_powers_out[b])
 
-    engine_wfb, engine_wfa = _calculate_fuel_mean_effective_pressure(params, n_speeds, n_powers, 1)
-    willans_a = 3600000 / engine_fuel_lower_heating_value / engine_wfa
+    n_p = calculate_brake_mean_effective_pressures(av_s, av_p, engine_capacity)
+    n_s = calculate_mean_piston_speeds(av_s, engine_stroke)
 
-    return
+    FMEP = _calculate_fuel_mean_effective_pressure
+    f_mep, wfa = FMEP(p, n_s, n_p, 1)
+
+    c = engine_capacity / engine_fuel_lower_heating_value * av_s
+    fc = f_mep * c / 1200.0
+    ieff = av_p / (fc * engine_fuel_lower_heating_value) * 1000.0
+
+    willans_a = 3600000.0 / engine_fuel_lower_heating_value / wfa
+    willans_b = FMEP(p, n_s, 0, 1)[0] * c * 3.0
+
+    sfc = willans_a + willans_b / av_p
+
+    willans_eff = 3600000.0 / (sfc * engine_fuel_lower_heating_value)
+
+    factors = {
+        'av_engine_speeds_out': av_s,       # [RPM]
+        'av_engine_powers_out': av_p,       # [kW]
+        'engine_bmep': n_p,                 # [bar]
+        'mean_piston_speed': n_s,           # [m/s]
+        'fuel_mep': f_mep,                  # [bar]
+        'fuel_consumption': fc,             # [g/sec]
+        'willans_a': willans_a,             # [g/kWh]
+        'willans_b': willans_b,             # [g/h]
+        'specific_fuel_consumption': sfc,   # [g/kWh]
+        'indicated_efficiency': ieff,       # [-]
+        'willans_eff': willans_eff          # [-]
+    }
+
+    return factors

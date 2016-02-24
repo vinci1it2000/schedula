@@ -177,6 +177,7 @@ def define_data_schema(read=True):
     )
     dictstrdict = _dict(format={str: dict}, read=read)
     parameters = _parameters(read=read)
+    dictstrfloat = _dict(format={str: float}, read=read)
     schema = {
         'CMV': cmv,
         'CMV_Cold_Hot': _dict(format={'hot': cmv, 'cold': cmv}, read=read),
@@ -218,7 +219,8 @@ def define_data_schema(read=True):
         'alternator_nominal_power': positive,
         'alternator_efficiency': _limits(limits=(0, 1), read=read),
         'time_cold_hot_transition': positive,
-        'co2_params': _dict(format={str: float}),
+        'co2_params': dictstrfloat,
+        'willans_factors': dictstrfloat,
         'velocity_speed_ratios': index_dict,
         'gear_box_ratios': index_dict,
         'full_load_speeds': np_array,

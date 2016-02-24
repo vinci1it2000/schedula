@@ -188,4 +188,12 @@ def co2_emission():
         outputs=['phases_co2_emissions']
     )
 
+    co2_emission.add_function(
+        function=calculate_willans_factors,
+        inputs=['co2_params_calibrated', 'engine_fuel_lower_heating_value',
+                'engine_stroke', 'engine_capacity', 'engine_speeds_out',
+                'engine_powers_out'],
+        outputs=['willans_factors']
+    )
+
     return co2_emission
