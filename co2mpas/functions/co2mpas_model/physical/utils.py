@@ -310,7 +310,7 @@ def clear_fluctuations(times, gears, dt_window):
 
     for samples in sliding_window(xy, dt_window):
 
-        up, dn, m = (None, None, None)
+        up, dn = None, None
 
         x, y = zip(*samples)
 
@@ -323,8 +323,11 @@ def clear_fluctuations(times, gears, dt_window):
             if up and dn:
                 k0 = min(up[0], dn[0])
                 k1 = max(up[0], dn[0]) + 1
-
-                m = median_high(y) if m is None else m
+                if y[k0] == y[k1]:
+                    m = y[k0]
+                else:
+                    m = median_high(y[k0:k1])
+                    m = min([(abs(m - x), x) for x in (y[k0], y[k1])])[1]
 
                 for i in range(k0 + 1, k1):
                     samples[i][1] = m
