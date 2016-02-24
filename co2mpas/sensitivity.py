@@ -41,7 +41,8 @@ def run_sa(input_vehicle, input_parameters, output_folder):
 
     vehicle_name = inputs['vehicle_name']
     models = models['calibrated_co2mpas_models']
-    params = models['co2_params_calibrated']
+    params = models['calibration_status'][0][1]
+
     b = {k: (v.min, v.max - v.min)
          for k, v in models['calibration_status'][0][1].items()}
 
