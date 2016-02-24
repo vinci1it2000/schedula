@@ -1042,6 +1042,8 @@ def calculate_willans_factors(
         params, engine_fuel_lower_heating_value, engine_stroke, engine_capacity,
         engine_speeds_out, engine_powers_out):
     """
+    Calculates the Willans factors.
+
     :param params:
         CO2 emission model parameters (a2, b2, a, b, c, l, l2, t, trg).
 
@@ -1069,8 +1071,23 @@ def calculate_willans_factors(
     :type engine_powers_out: numpy.array
 
     :return:
+        Willans factors:
+
+        - av_engine_speeds_out [RPM]
+        - av_engine_powers_out [kW]
+        - engine_bmep [bar]
+        - mean_piston_speed [m/s]
+        - fuel_mep [bar]
+        - fuel_consumption [g/sec]
+        - willans_a [g/kWh]
+        - willans_b [g/h]
+        - specific_fuel_consumption [g/kWh]
+        - indicated_efficiency [-]
+        - willans_efficiency [-]
+
     :rtype: dict
     """
+
     from . import calculate_mean_piston_speeds
 
     p = params.valuesdict()
@@ -1107,7 +1124,7 @@ def calculate_willans_factors(
         'willans_b': willans_b,             # [g/h]
         'specific_fuel_consumption': sfc,   # [g/kWh]
         'indicated_efficiency': ieff,       # [-]
-        'willans_eff': willans_eff          # [-]
+        'willans_efficiency': willans_eff   # [-]
     }
 
     return factors

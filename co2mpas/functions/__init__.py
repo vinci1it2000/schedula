@@ -323,6 +323,17 @@ def _save_summary(fpath, start_time, summary):
             'co2_emission_high': '[CO2g/km]',
             'co2_emission_extra_high': '[CO2g/km]',
             'co2_emission_value': '[CO2g/km]',
+            'av_engine_speeds_out': '[RPM]',
+            'av_engine_powers_out': '[kW]',
+            'engine_bmep': '[bar]',
+            'mean_piston_speed': '[m/s]',
+            'fuel_mep': '[bar]',
+            'fuel_consumption': '[g/sec]',
+            'willans_a': '[g/kWh]',
+            'willans_b': '[g/h]',
+            'specific_fuel_consumption': '[g/kWh]',
+            'indicated_efficiency': '[-]',
+            'willans_efficiency': '[-]'
         }
 
         c = [v + (units.get(v[-1], ' '),) for v in c]

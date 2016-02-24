@@ -301,7 +301,7 @@ def extract_summary(data, vehicle_name):
     params_keys = [
         'co2_params', 'calibration_status', 'co2_params', 'model_scores',
         'scores', 'co2_params_calibrated', 'co2_emission_value',
-        'phases_co2_emissions'
+        'phases_co2_emissions', 'willans_factors'
     ] + wltp_phases + nedc_phases
 
     for k, v in dsp_utl.selector(keys, data, allow_miss=True).items():
@@ -332,6 +332,9 @@ def extract_summary(data, vehicle_name):
                     for n, m in it.items():
                         n = 'status %s' % n[:-9]
                         p[n] = m.get('score', {}).get('success', True)
+
+            if 'willans_factors' in p:
+                p.update(p.pop('willans_factors'))
 
             if p:
                 p['vehicle_name'] = vehicle_name

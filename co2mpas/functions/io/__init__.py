@@ -278,7 +278,18 @@ def _param_orders():
         'co2_emission_value': 'co2_emission 5',
         'target': '1',
         'prediction': '2',
-        'calibration': '3'
+        'calibration': '3',
+        'av_engine_speeds_out': 'willans 1',
+        'av_engine_powers_out': 'willans 2',
+        'engine_bmep': 'willans 3',
+        'mean_piston_speed': 'willans 4',
+        'fuel_mep': 'willans 5',
+        'fuel_consumption': 'willans 6',
+        'willans_a': 'willans 7',
+        'willans_b': 'willans 8',
+        'specific_fuel_consumption': 'willans 9',
+        'indicated_efficiency': 'willans 10',
+        'willans_efficiency': 'willans 11',
     }
     return _map
 
