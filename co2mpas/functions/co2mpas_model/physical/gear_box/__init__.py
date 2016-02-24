@@ -33,6 +33,7 @@ from scipy.optimize import brute
 from scipy.interpolate import InterpolatedUnivariateSpline
 from co2mpas.functions.co2mpas_model.physical.utils import median_filter, \
     clear_fluctuations
+from sklearn.metrics import mean_absolute_error
 
 
 def identify_gear(
@@ -134,7 +135,41 @@ def identify_gears(
 
     gear = clear_fluctuations(times, gear, TIME_WINDOW)
 
+    gear = correct_gear_shifts(times, ratios, gear, velocity_speed_ratios)
+
     return gear
+
+
+def correct_gear_shifts(times, ratios, gears, velocity_speed_ratios):
+    shifts = calculate_gear_shifts(gears)
+    vsr = np.vectorize(lambda v: velocity_speed_ratios.get(v, 0))
+    s = gears.size
+
+    def err(v, r):
+        return mean_absolute_error(ratios[slice(v - 1, v + 1, 1)], r)
+
+    k = 0
+    new_gears = np.zeros_like(gears)
+    dt = TIME_WINDOW / 2
+    for i in np.arange(s)[shifts]:
+        g = gears[slice(i - 1, i + 1, 1)]
+        if g[0] != 0 and g[-1] != 0:
+            t = times[i]
+            n = max(i - sum(((t - dt) <= times) & (times <= t)), k)
+            m = min(i + sum((t <= times) & (times <= (t + dt))), s)
+            j = brute(err, [slice(n, m, 1)], args=(vsr(g),), finish=None)
+        else:
+            j = i
+
+        x = slice(j - 1, j + 1, 1)
+        new_gears[x] = g
+        new_gears[k:x.start] = g[0]
+        k = x.stop
+
+    new_gears[k:] = new_gears[k - 1]
+
+    return new_gears
+
 
 
 def calculate_gear_shifts(gears):
