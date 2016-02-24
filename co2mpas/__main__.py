@@ -398,6 +398,8 @@ def _cmd_datasync(opts):
     if not osp.isdir(out_folder):
         if force:
             from co2mpas.dispatcher.utils.io import mkdirs
+            if not ''.endswith('/'):
+                out_folder = '%s/' % out_folder
             mkdirs(out_folder)
         else:
             raise CmdException("Specify a folder for "

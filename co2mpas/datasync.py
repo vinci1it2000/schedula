@@ -116,32 +116,34 @@ def apply_datasync(
         d = lasso(xlref, sheets_factory=sheets_factory)
         i =[i for i, r in enumerate(d)
             if any(isinstance(v, str) for v in r)]
-        ix = next(d[k] for k in i if all(v in d[k] for v in (x_label, y_label)))
+
+        k = next(k for k in i if all(v in d[k] for v in (x_label, y_label)))
+        ix = d[k]
         i = max(i, default=0) + 1
 
         d, h = pd.DataFrame(d[i:], columns=ix), pd.DataFrame(d[:i], columns=ix)
         d.dropna(how='all', inplace=True)
         d.dropna(axis=1, how='any', inplace=True)
         data.append(d)
-        headers.append((sheet_name, h))
+        headers.append((sheet_name, k, h))
 
     res = list(synchronization(*data, x_label=x_label, y_label=y_label))
 
     if prefix:
         ix = set()
-        for sn, h in headers:
+        for sn, i, h in headers:
             ix.update(h.columns)
     else:
         ix = Counter()
-        for sn, h in headers:
+        for sn, i, h in headers:
             ix.update(set(h.columns))
         ix = {k for k, v in ix.items() if v > 1}
 
-    for sn, h in headers[1:]:
+    for sn, i, h in headers[1:]:
         for j in ix.intersection(h.columns):
-            h[j].iloc[-1] = '%s %s' % (sn, h[j].iloc[-1])
+            h[j].iloc[i] = '%s %s' % (sn, h[j].iloc[i])
 
-    frames = [h[df.columns].append(df) for (s, df), (sn, h) in zip(res, headers)]
+    frames = [h[df.columns].append(df) for (s, df), (sn, i, h) in zip(res, headers)]
     df = pd.concat(frames, axis=1)
 
     if input_file:
