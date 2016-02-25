@@ -159,7 +159,8 @@ setup(
         'easygui',
         'mpld3',
         'pandalone',
-        'regex'
+        'regex',
+        'yaml',
     ],
     packages=find_packages(exclude=['tests', 'doc']),
     package_data={'co2mpas': [

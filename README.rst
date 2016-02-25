@@ -650,6 +650,8 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
       -v, --verbose               Print more verbosely messages - overridden by --logconf.
       --logconf <conf-file>       Path to a logging-configuration file, according to:
                                       https://docs.python.org/3/library/logging.config.html#configuration-file-format
+                                  If the file-extension is '.yaml' or '.yml', it reads a dict-schema from YAML:
+                                      https://docs.python.org/3.5/library/logging.config.html#logging-config-dictschema
 
     * Items enclosed in `[]` are optional.
 
