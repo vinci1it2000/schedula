@@ -1,4 +1,9 @@
 version: 1
+
+root:
+    level: DEBUG
+    handlers: [console]
+
 loggers:
     # PIL: {}
     # PIL.Image: {}
@@ -33,7 +38,8 @@ loggers:
     # pandas.io.gbq: {}
     # past: {}
     # past.translation: {}
-    # pip: {}
+    pip:
+        level: WARNING
     # pip._vendor: {}
     # pip._vendor.distlib: {}
     # pip._vendor.distlib.resources: {}
@@ -69,3 +75,22 @@ loggers:
     # pip.vcs.mercurial: {}
     # pip.vcs.subversion: {}
     # pip.wheel: {}
+
+formatters:
+    long:
+        format: \%(asctime)-15s:%(levelname)5.5s:%(name)s:%(message)s
+
+handlers:
+  console:
+    class : logging.StreamHandler
+    formatter: long
+    #level   : INFO
+    #filters: [allow_foo]
+    #stream  : ext://sys.stderr
+
+#   file:
+#     class : logging.handlers.RotatingFileHandler
+#     formatter: long
+#     filename: co2mpas.log
+#     maxBytes: 1024
+#     backupCount: 3
