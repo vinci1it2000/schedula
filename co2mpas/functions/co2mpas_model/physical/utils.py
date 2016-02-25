@@ -22,6 +22,9 @@ import co2mpas.dispatcher.utils as dsp_utl
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.misc import derivative as scipy_derivative
+from scipy.optimize import brute
+from sklearn.metrics import mean_absolute_error
+
 
 try:
     isidentifier = str.isidentifier
@@ -325,16 +328,33 @@ def clear_fluctuations(times, gears, dt_window):
                 k1 = max(up[0], dn[0]) + 1
                 if y[k0] == y[k1]:
                     m = y[k0]
+                    for v in samples[slice(k0 + 1, k1)]:
+                        v[1] = m
                 else:
-                    m = median_high(y[k0:k1])
-                    m = min([(abs(m - x), x) for x in (y[k0], y[k1])])[1]
+                    l, y1, y2 = k1 - k0 + 1, y[k0], y[k1]
+                    kx = k0 + int(brute(_err, [slice(0, l, 1)],
+                                        args=(y1, y2, y[k0:k1 + 1], l),
+                                        finish=None))
 
-                for i in range(k0 + 1, k1):
-                    samples[i][1] = m
+                    for v in samples[slice(k0 + 1, kx)]:
+                        v[1] = y1
+
+                    for v in samples[slice(kx, k1)]:
+                        v[1] = y2
 
                 up, dn = (None, None)
 
     return np.array([y[1] for y in xy])
+
+
+def _err(v, y1, y2, r, l):
+    return mean_absolute_error(_ys(y1, v) + _ys(y2, l - v), r)
+
+
+def _ys(y, n):
+    if n:
+        return (y,) * int(n)
+    return ()
 
 
 def derivative(x, y, dx=1, order=3, k=1):
