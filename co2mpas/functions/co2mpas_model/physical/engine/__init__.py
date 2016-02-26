@@ -307,31 +307,6 @@ def identify_upper_bound_engine_speed(
     return m + sd * 0.674490
 
 
-def _calibrate_engine_temperature_model(X, dT):
-    model = GradientBoostingRegressor(
-        random_state=0,
-        max_depth=2,
-        n_estimators=int(min(300, 0.25 * (len(dT) - 1))),
-        loss='huber',
-        alpha=0.99
-    )
-
-    predict = model.fit(X, dT).predict
-    n = X.shape[1] - 1
-
-    def temperature_model(delta_t, *args, initial_temperature=23):
-        t, temp = initial_temperature, [initial_temperature]
-        append = temp.append
-
-        for dt, a in zip(delta_t, zip(*args[:n])):
-            t += predict([(t,) + a])[0] * dt
-            append(t)
-
-        return np.array(temp)
-
-    return temperature_model
-
-
 def _calibrate_TPS(T, dT, gear_box_powers_in, gear_box_speeds_in):
     X = np.array([T, gear_box_powers_in, gear_box_speeds_in]).T[:-1]
     predict = GradientBoostingRegressor(
@@ -383,7 +358,7 @@ def _get_samples(times, engine_coolant_temperatures, on_engine):
 
     dT = derivative(times, engine_coolant_temperatures)[1:]
     dt = np.diff(times)
-    i = max(argmax(on_engine), argmax(times > 10), argmax(dT != 0))
+    i = argmax(on_engine)
     dt, dT = dt[i:], dT[i:]
     T = engine_coolant_temperatures[i:]
     dT = np.array(dT, np.float64, order='C')
