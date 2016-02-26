@@ -313,36 +313,21 @@ def clear_fluctuations(times, gears, dt_window):
 
     for samples in sliding_window(xy, dt_window):
 
-        up, dn = None, None
+        up, dn = False, False
 
         x, y = zip(*samples)
 
         for k, d in enumerate(np.diff(y)):
             if d > 0:
-                up = (k,)
+                up = True
             elif d < 0:
-                dn = (k,)
+                dn = True
 
             if up and dn:
-                k0 = min(up[0], dn[0])
-                k1 = max(up[0], dn[0]) + 1
-                if y[k0] == y[k1]:
-                    m = y[k0]
-                    for v in samples[slice(k0 + 1, k1)]:
-                        v[1] = m
-                else:
-                    l, y1, y2 = k1 - k0 + 1, y[k0], y[k1]
-                    kx = k0 + int(brute(_err, [slice(0, l, 1)],
-                                        args=(y1, y2, y[k0:k1 + 1], l),
-                                        finish=None))
-
-                    for v in samples[slice(k0 + 1, kx)]:
-                        v[1] = y1
-
-                    for v in samples[slice(kx, k1)]:
-                        v[1] = y2
-
-                up, dn = (None, None)
+                m = median_high(y)
+                for v in samples:
+                    v[1] = m
+                break
 
     return np.array([y[1] for y in xy])
 
