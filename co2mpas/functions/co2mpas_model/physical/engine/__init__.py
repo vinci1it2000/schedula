@@ -307,15 +307,17 @@ def identify_upper_bound_engine_speed(
     return m + sd * 0.674490
 
 
-def _calibrate_TPS(T, dT, gear_box_powers_in, gear_box_speeds_in):
+def _calibrate_TPS(T, dT, gear_box_powers_in, gear_box_speeds_in, **kw):
     X = np.array([T, gear_box_powers_in, gear_box_speeds_in]).T[:-1]
-    predict = GradientBoostingRegressor(
-        random_state=0,
-        max_depth=2,
-        n_estimators=int(min(300, 0.25 * (len(dT) - 1))),
-        loss='huber',
-        alpha=0.99
-    ).fit(X, dT).predict
+    opt = {
+        'random_state': 0,
+        'max_depth': 2,
+        'n_estimators': int(min(300, 0.25 * (len(dT) - 1))),
+        'loss': 'huber',
+        'alpha': 0.99
+    }
+    opt.update(kw)
+    predict = GradientBoostingRegressor(**opt).fit(X, dT).predict
 
     def TPS(deltas_t, powers, speeds, *args, initial_temperature=23):
         t, temp = initial_temperature, [initial_temperature]
@@ -330,16 +332,19 @@ def _calibrate_TPS(T, dT, gear_box_powers_in, gear_box_speeds_in):
     return TPS
 
 
-def _calibrate_TPSA(T, dT, gear_box_powers_in, gear_box_speeds_in, accelerations):
+def _calibrate_TPSA(T, dT, gear_box_powers_in, gear_box_speeds_in,
+                    accelerations, **kw):
     X = np.array([T, gear_box_powers_in, gear_box_speeds_in,
                   accelerations]).T[:-1]
-    predict = GradientBoostingRegressor(
-        random_state=0,
-        max_depth=2,
-        n_estimators=int(min(300, 0.25 * (len(dT) - 1))),
-        loss='huber',
-        alpha=0.99
-    ).fit(X, dT).predict
+    opt = {
+        'random_state': 0,
+        'max_depth': 2,
+        'n_estimators': int(min(300, 0.25 * (len(dT) - 1))),
+        'loss': 'huber',
+        'alpha': 0.99
+    }
+    opt.update(kw)
+    predict = GradientBoostingRegressor(**opt).fit(X, dT).predict
 
     def TPSA(deltas_t, powers, speeds, vel, acc, *args, initial_temperature=23):
         t, temp = initial_temperature, [initial_temperature]
@@ -408,7 +413,8 @@ def calibrate_engine_temperature_regression_model(
 
     models = [
         _calibrate_TPS(T, dT, p, s),
-        _calibrate_TPSA(T, dT, p, s, a)
+        _calibrate_TPSA(T, dT, p, s, a),
+        _calibrate_TPSA(T, dT, p, s, a, max_depth=3)
     ]
 
     counter = dsp_utl.counter()
