@@ -133,9 +133,9 @@ def identify_gears(
 
     gear = median_filter(times, gear, TIME_WINDOW)
 
-    gear = clear_fluctuations(times, gear, TIME_WINDOW)
-
     gear = correct_gear_shifts(times, ratios, gear, velocity_speed_ratios)
+
+    gear = clear_fluctuations(times, gear, TIME_WINDOW)
 
     return gear
 
@@ -143,7 +143,7 @@ def identify_gears(
 def correct_gear_shifts(times, ratios, gears, velocity_speed_ratios):
     shifts = calculate_gear_shifts(gears)
     vsr = np.vectorize(lambda v: velocity_speed_ratios.get(v, 0))
-    s = gears.size
+    s = len(gears)
 
     def err(v, r):
         return mean_absolute_error(ratios[slice(v - 1, v + 1, 1)], r)
@@ -169,7 +169,6 @@ def correct_gear_shifts(times, ratios, gears, velocity_speed_ratios):
     new_gears[k:] = new_gears[k - 1]
 
     return new_gears
-
 
 
 def calculate_gear_shifts(gears):
