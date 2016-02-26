@@ -114,7 +114,7 @@ import shutil
 import sys
 
 import docopt
-
+from tqdm import tqdm
 
 class CmdException(Exception):
     """Polite user-message avoiding ``exit(msg)`` when ``main()`` invoked from python."""
@@ -123,6 +123,7 @@ class CmdException(Exception):
 proj_name = 'co2mpas'
 
 log = logging.getLogger(__name__)
+logging.getLogger('pandalone.xleash.io').setLevel(logging.WARNING)
 
 
 def init_logging(verbose, frmt=None, logconf_file=None):
@@ -406,7 +407,7 @@ def _cmd_datasync(opts):
                                "the '-O %s' option!" % out_folder)
 
     from co2mpas.datasync import apply_datasync
-    for input_file in input_paths:
+    for input_file in tqdm(input_paths):
         basename = osp.basename(input_file)
         output_file = osp.join(out_folder, out_format % osp.splitext(basename))
 
