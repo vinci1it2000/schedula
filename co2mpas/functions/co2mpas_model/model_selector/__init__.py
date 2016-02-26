@@ -195,7 +195,9 @@ def metric_calibration_status(y_true, y_pred):
 
 
 def metric_engine_speed_model(y_true, y_pred, times, velocities, gear_shifts):
-    b = np.logical_not(calculate_clutch_phases(times, gear_shifts))
+    b = (-TIME_WINDOW, TIME_WINDOW)
+    b = calculate_clutch_phases(times, gear_shifts, clutch_window=b)
+    b = np.logical_not(b)
     b &= (velocities > VEL_EPS) & (times > 100)
     return mean_absolute_error(y_true[b], y_pred[b])
 
