@@ -294,22 +294,27 @@ def extract_summary(data, vehicle_name):
     keys = ('nedc', 'wltp_h', 'wltp_l', 'wltp_p')
     stages = ('calibrations', 'predictions', 'targets', 'inputs')
 
-    wltp_phases = ['co2_emission_low', 'co2_emission_medium',
-                   'co2_emission_high', 'co2_emission_extra_high']
-    nedc_phases = ['co2_emission_UDC', 'co2_emission_EUDC']
+    wltp_phases = ('co2_emission_low', 'co2_emission_medium',
+                   'co2_emission_high', 'co2_emission_extra_high')
+    nedc_phases = ('co2_emission_UDC', 'co2_emission_EUDC')
 
-    params_keys = [
+    target_keys = wltp_phases + nedc_phases + ('co2_emission_value',)
+
+    params_keys = (
         'co2_params', 'calibration_status', 'co2_params', 'model_scores',
-        'scores', 'co2_params_calibrated', 'co2_emission_value',
+        'scores', 'co2_params_calibrated',
         'phases_co2_emissions', 'willans_factors'
-    ] + wltp_phases + nedc_phases
+    ) + target_keys
 
     for k, v in dsp_utl.selector(keys, data, allow_miss=True).items():
         for i, j in (i for i in v.items() if i[0] in stages):
             if 'parameters' not in j:
                 continue
-
-            p = dsp_utl.selector(params_keys, j['parameters'], allow_miss=True)
+            if i in ('targets', 'inputs'):
+                p_keys = target_keys
+            else:
+                p_keys = params_keys
+            p = dsp_utl.selector(p_keys, j['parameters'], allow_miss=True)
 
             if i == 'predictions' or ('co2_params' in p and not p['co2_params']):
                 p.pop('co2_params', None)
