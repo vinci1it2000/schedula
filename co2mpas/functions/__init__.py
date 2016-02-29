@@ -185,6 +185,15 @@ def process_folder_files(input_files, output_folder, **kwds):
     time_elapsed = (datetime.datetime.today() - start_time).total_seconds()
     log.info('Done! [%s sec]', time_elapsed)
 
+class custom_tqdm(tqdm):
+
+    def format_meter(self, n, *args, **kwargs):
+        bar = tqdm.format_meter(n, *args, **kwargs)
+        try:
+            return '%s: Processing %s\n' % (bar, self.iterable[n])
+        except IndexError:
+            return bar
+
 
 def _process_folder_files(
         input_files, output_folder, plot_workflow=False,
@@ -225,7 +234,7 @@ def _process_folder_files(
     start_time = datetime.datetime.today()
     timestamp = start_time.strftime('%Y%m%d_%H%M%S')
 
-    for fpath in tqdm(input_files, bar_format='{l_bar}{bar}{r_bar}\n'):
+    for fpath in custom_tqdm(input_files, bar_format='{l_bar}{bar}{r_bar}'):
         res = _process_vehicle(
                 model, fpath,
                 output_folder=output_folder,
@@ -251,8 +260,6 @@ def _process_vehicle(
     fname = osp.splitext(osp.basename(fpath))[0]
     if not osp.isfile(fpath):
         log.warn('File  %r does not exist!', fpath)
-    else:
-        log.info('Processing: %s', fname)
 
     inputs = {
         'vehicle_name': fname,
