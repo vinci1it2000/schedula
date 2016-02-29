@@ -173,6 +173,7 @@ def process_folder_files(input_files, output_folder, **kwds):
 
     .. seealso::  :func:`_process_folder_files()` for more params.
     """
+
     summary, start_time = _process_folder_files(input_files, output_folder,
             **kwds)
 
