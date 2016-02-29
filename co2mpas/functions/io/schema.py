@@ -156,6 +156,10 @@ def _parameters(error=None, read=True):
         return And(_parameters(), Use(_parameters2str), error=error)
 
 
+def _compare_str(s, **kwargs):
+    return And(Use(str.lower), s.lower(), Use(lambda x: s))
+
+
 def define_data_schema(read=True):
     cmv = _cmv(read=read)
     dtc = _dtc(read=read)
@@ -178,18 +182,21 @@ def define_data_schema(read=True):
     dictstrdict = _dict(format={str: dict}, read=read)
     parameters = _parameters(read=read)
     dictstrfloat = _dict(format={str: float}, read=read)
-    schema = {
-        'CMV': cmv,
-        'CMV_Cold_Hot': _dict(format={'hot': cmv, 'cold': cmv}, read=read),
-        'DT_VA': dtc,
-        'DT_VAP': dtc,
-        'DT_VAT': dtc,
-        'DT_VATP': dtc,
-        'GSPV': gspv,
-        'GSPV_Cold_Hot': _dict(format={'hot': gspv, 'cold': gspv}, read=read),
-        'MVL': _mvl(read=read),
 
-        'VERSION': string,
+    schema = {
+        _compare_str('CMV'): cmv,
+        _compare_str('CMV_Cold_Hot'): _dict(format={'hot': cmv, 'cold': cmv},
+                                            read=read),
+        _compare_str('DT_VA'): dtc,
+        _compare_str('DT_VAP'): dtc,
+        _compare_str('DT_VAT'): dtc,
+        _compare_str('DT_VATP'): dtc,
+        _compare_str('GSPV'): gspv,
+        _compare_str('GSPV_Cold_Hot'): _dict(format={'hot': gspv, 'cold': gspv},
+                                             read=read),
+        _compare_str('MVL'): _mvl(read=read),
+
+        _compare_str('VERSION'): string,
         'fuel_type': _select(types=('gasoline', 'diesel'),
                              error='Allowed fuel_type: %s',
                              read=read),
@@ -238,8 +245,8 @@ def define_data_schema(read=True):
         'co2_emission_high': positive,
         'co2_emission_extra_high': positive,
         
-        'co2_emission_UDC': positive,
-        'co2_emission_EUDC': positive,
+        _compare_str('co2_emission_UDC'): positive,
+        _compare_str('co2_emission_EUDC'): positive,
         'co2_emission_value': positive,
         'n_dyno_axes': positive_int,
         'n_wheel_drive': positive_int,
