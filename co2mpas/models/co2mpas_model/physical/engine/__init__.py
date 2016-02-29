@@ -117,19 +117,18 @@ def engine():
         description='Standard deviation of idle engine speed [RPM].'
     )
 
+    # identify idle engine speed
+    engine.add_function(
+        function=identify_idle_engine_speed_out,
+        inputs=['velocities', 'engine_speeds_out'],
+        outputs=['idle_engine_speed_median', 'idle_engine_speed_std']
+    )
+
     # set idle engine speed tuple
     engine.add_function(
         function=dsp_utl.bypass,
         inputs=['idle_engine_speed_median', 'idle_engine_speed_std'],
         outputs=['idle_engine_speed']
-    )
-
-    # identify idle engine speed
-    engine.add_function(
-        function=identify_idle_engine_speed_out,
-        inputs=['velocities', 'engine_speeds_out'],
-        outputs=['idle_engine_speed'],
-        weight=5
     )
 
     engine.add_function(
