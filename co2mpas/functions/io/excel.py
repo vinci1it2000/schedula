@@ -162,7 +162,7 @@ def write_to_excel(data, output_file_name, template_file_name):
     for k, v in sorted(stack_nested_keys(data, depth=3), key=lambda x: _sort_sheets(x[0])):
 
         if k[0] in ('comparison',):
-            ref = _df2excel(writer, k[0], v)
+            ref = _df2excel(writer, k[0], v[0])
             if ref:
                 xlref[k[0]] = ref[1]
         elif k[0] in ('selection_scores', 'proc_info'):

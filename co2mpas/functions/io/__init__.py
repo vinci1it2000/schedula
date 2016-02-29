@@ -98,7 +98,7 @@ def _comparison2df(data):
             d.update(j)
             r.append(d)
     if res:
-        res = {'comparison': _dd2df(res, 'param_id', depth=3, axis=1)}
+        res = {'comparison': (_dd2df(res, 'param_id', depth=3, axis=1),)}
 
     return res
 
