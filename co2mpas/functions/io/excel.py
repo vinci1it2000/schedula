@@ -99,7 +99,13 @@ def parse_excel_file(file_path):
             except:
                 continue
             data.dropna(how='all', inplace=True)
-            data.dropna(axis=1, how='any', inplace=True)
+            data.dropna(axis=1, how='all', inplace=True)
+            mask = data.count(0) == len(data._get_axis(0))
+            drop = [k for k, v in mask.items() if not v]
+            if drop:
+                msg = 'Columns {} in {} contains nan.\n ' \
+                      'Please correct the inputs!'
+                raise ValueError(msg.format(drop, sheet_name))
 
         for k, v, m in iter_values(data, default=match):
             for c in stlp(m['cycle']):
