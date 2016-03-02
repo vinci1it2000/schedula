@@ -13,6 +13,7 @@ from co2mpas.functions import _process_vehicle, _add2summary, _save_summary
 from co2mpas.models import vehicle_processing_model
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.functions.co2mpas_model.physical.engine.co2_emission import _set_attr
+from co2mpas.__main__ import file_finder
 from copy import deepcopy
 import pandas as pd
 import datetime
@@ -20,7 +21,12 @@ import os.path as osp
 from tqdm import tqdm
 
 
-def run_sa(input_vehicle, input_parameters, output_folder):
+def run_sa(input_folder, input_parameters, output_folder):
+    for input_vehicle in file_finder([input_folder]):
+        _sa(input_vehicle, input_parameters, output_folder)
+
+
+def _sa(input_vehicle, input_parameters, output_folder):
     model = vehicle_processing_model()
     df = pd.read_csv(input_parameters, sep='\t', header=0)
 
@@ -56,10 +62,9 @@ def run_sa(input_vehicle, input_parameters, output_folder):
 
         _add2summary(summary, res)
 
-
     timestamp = start_time.strftime('%Y%m%d_%H%M%S')
 
-    summary_xl_file = osp.join(output_folder, '%s-summary.xlsx' % timestamp)
+    summary_xl_file = osp.join(output_folder, '%s-%s.xlsx' % (timestamp, vehicle_name))
 
     _save_summary(summary_xl_file, start_time, summary)
 
