@@ -360,8 +360,7 @@ def _calibrate_TPSA(T, dT, gear_box_powers_in, gear_box_speeds_in,
 
 
 def _get_samples(times, engine_coolant_temperatures, on_engine):
-
-    dT = derivative(times, engine_coolant_temperatures)[1:]
+    dT = derivative(times, engine_coolant_temperatures, dx=4, order=7)[1:]
     dt = np.diff(times)
     i = argmax(on_engine)
     dt, dT = dt[i:], dT[i:]
