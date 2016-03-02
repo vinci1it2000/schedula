@@ -74,23 +74,36 @@ def calculate_brake_mean_effective_pressures(
     return np.nan_to_num(p)
 
 
-def _calculate_fuel_mean_effective_pressure(
-        params, n_speeds, n_powers, n_temperatures):
-
+def _calculate_fuel_ABC(params, n_speeds, n_powers, n_temperatures):
     p = params
-
+    A = p['a2'] + p['b2'] * n_speeds
     B = p['a'] + (p['b'] + p['c'] * n_speeds) * n_speeds
     C = np.power(n_temperatures, -p['t']) * (p['l'] + p['l2'] * n_speeds**2)
     C -= n_powers
 
-    if p['a2'] == 0 and p['b2'] == 0:
+    return A, B, C
+
+
+def _calculate_fuel_mean_effective_pressure(
+        params, n_speeds, n_powers, n_temperatures):
+
+    A, B, C = _calculate_fuel_ABC(params, n_speeds, n_powers, n_temperatures)
+    return _calculate_fc(A, B, C)
+
+
+def _calculate_fc(A, B, C):
+    b = np.array(A, dtype=bool)
+    if b.all():
+        v = np.sqrt(np.abs(B**2 - 4.0 * A * C))
+        return (-B + v) / (2 * A), v
+    elif np.logical_not(b).all():
         return -C / B, B
-
-    A_2 = 2.0 * (p['a2'] + p['b2'] * n_speeds)
-
-    v = np.sqrt(np.abs(B**2 - 2.0 * A_2 * C))
-
-    return (-B + v) / A_2, v
+    else:
+        fc, v = np.zeros_like(C), np.zeros_like(C)
+        fc[b], v[b] = _calculate_fc(A[b], B[b], C[b])
+        b = np.logical_not(b)
+        fc[b], v[b] = _calculate_fc(A[b], B[b], C[b])
+        return fc, v
 
 
 def calculate_p0(params, engine_capacity, engine_stroke,
@@ -1128,3 +1141,47 @@ def calculate_willans_factors(
     }
 
     return factors
+
+
+def calculate_optimal_efficiency(params, mean_piston_speeds):
+    """
+    Calculates the optimal efficiency [-] and t.
+
+    :param params:
+        CO2 emission model parameters (a2, b2, a, b, c, l, l2, t, trg).
+
+        The missing parameters are set equal to zero.
+    :type params: lmfit.Parameters
+
+    :param mean_piston_speeds:
+        Mean piston speed vector [m/s].
+    :type mean_piston_speeds: numpy.array
+
+    :return:
+        Optimal efficiency and the respective parameters:
+
+        - mean_piston_speeds [m/s],
+        - engine_bmep [bar],
+        - efficiency [-].
+
+    :rtype: dict[str | tuple]
+    """
+
+    speeds = mean_piston_speeds
+    f = partial(_calculate_optimal_point, params)
+
+    x, y, e = zip(*[f(s) for s in np.linspace(min(speeds), max(speeds), 10)])
+
+    return {'mean_piston_speeds': x, 'engine_bmep': y, 'efficiency': e}
+
+
+def _calculate_optimal_point(params, n_speed):
+    A, B, C = _calculate_fuel_ABC(params, n_speed, 0, 1)
+    ac4, B2 = 4 * A * C, B**2
+    sabc = np.sqrt(ac4 * B2)
+    n = sabc - ac4
+
+    y = 2 * C - sabc / (2 * A)
+    eff = n / (B - np.sqrt(B2 - sabc - n))
+
+    return n_speed, y, eff

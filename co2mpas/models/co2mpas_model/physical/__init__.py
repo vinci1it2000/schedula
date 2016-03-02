@@ -357,7 +357,8 @@ def physical():
             'engine_max_speed_at_max_power': 'engine_max_speed_at_max_power',
             'status_start_stop_activation_time':
                 'status_start_stop_activation_time',
-            'willans_factors': 'willans_factors'
+            'willans_factors': 'willans_factors',
+            'optimal_efficiency': 'optimal_efficiency'
         }
     )
 

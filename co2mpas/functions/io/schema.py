@@ -182,6 +182,7 @@ def define_data_schema(read=True):
     dictstrdict = _dict(format={str: dict}, read=read)
     parameters = _parameters(read=read)
     dictstrfloat = _dict(format={str: float}, read=read)
+    dictstrtuple = _dict(format={str: tuple}, read=read)
 
     schema = {
         _compare_str('CMV'): cmv,
@@ -228,6 +229,7 @@ def define_data_schema(read=True):
         'time_cold_hot_transition': positive,
         'co2_params': dictstrfloat,
         'willans_factors': dictstrfloat,
+        'optimal_efficiency': dictstrtuple,
         'velocity_speed_ratios': index_dict,
         'gear_box_ratios': index_dict,
         'full_load_speeds': np_array,

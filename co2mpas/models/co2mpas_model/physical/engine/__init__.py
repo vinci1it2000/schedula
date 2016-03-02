@@ -360,7 +360,8 @@ def engine():
             'fuel_consumptions': 'fuel_consumptions',
             'phases_co2_emissions': 'phases_co2_emissions',
             'calibration_status': 'calibration_status',
-            'willans_factors': 'willans_factors'
+            'willans_factors': 'willans_factors',
+            'optimal_efficiency': 'optimal_efficiency'
         },
         inp_weight={'co2_params': EPS}
     )

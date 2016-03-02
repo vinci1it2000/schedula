@@ -196,4 +196,10 @@ def co2_emission():
         outputs=['willans_factors']
     )
 
+    co2_emission.add_function(
+        function=calculate_optimal_efficiency,
+        inputs=['co2_params_calibrated', 'mean_piston_speeds'],
+        outputs=['optimal_efficiency']
+    )
+
     return co2_emission
