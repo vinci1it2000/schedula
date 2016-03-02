@@ -18,7 +18,7 @@ Usage:
                       [--gui]
   co2mpas ipynb       [-v | --logconf <conf-file>] [-f] [<output-folder>]
                       [--gui]
-  co2mpas modelgraph  [-v | --logconf <conf-file>]
+  co2mpas modelgraph  [-v | --logconf <conf-file>] [-O <output-folder>]
                       [--list | [--graph-depth=INTEGER] [<models> ...]]
   co2mpas datasync    [-v | --logconf <conf-file>] [-f] <input-path>
                       <x-label> <y-label> <ref-sheet> [<sync-sheets>]...
@@ -181,7 +181,8 @@ def _cmd_modelgraph(opts):
                 raise CmdException(msg % depth)
         else:
             depth = None
-        dot_graphs = co2plot.plot_model_graphs(opts['<models>'], depth=depth)
+        dot_graphs = co2plot.plot_model_graphs(opts['<models>'], depth=depth,
+                                               output_folder=opts['-O'])
         if not dot_graphs:
             raise CmdException("No models plotted!")
 

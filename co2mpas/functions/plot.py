@@ -14,7 +14,7 @@ import co2mpas.dispatcher.utils as dsp_utl
 import importlib
 import logging
 import sys
-import os
+import os.path as osp
 import matplotlib.pyplot as plt
 from cycler import cycler
 
@@ -97,7 +97,8 @@ def get_model_paths(model_ids=None):
     return sorted(models)
 
 
-def plot_model_graphs(model_ids=None, view_in_browser=True, depth=-1, **kwargs):
+def plot_model_graphs(model_ids=None, view_in_browser=True,
+                      depth=-1, output_folder=None, **kwargs):
     """
     Plots the graph of CO2MPAS models.
 
@@ -132,8 +133,10 @@ def plot_model_graphs(model_ids=None, view_in_browser=True, depth=-1, **kwargs):
         module = sys.modules[module_path]
         dsp = getattr(module, object_name)()
         depth = -1 if depth is None else depth
-        dot = dsp_utl.plot(dsp, view=view_in_browser, function_module=False,
-                           depth=depth, nested=True, **kwargs)
+        filename = osp.join(output_folder, dsp.name) if output_folder else None
+        dot = dsp.plot(view=view_in_browser, depth=depth, filename=filename,
+                       **kwargs)
+
         dot_graphs.append(dot)
 
     return dot_graphs
@@ -239,7 +242,7 @@ def make_cycle_graphs(data):
     return dsp_utl.NONE
 
 def save_cycle_graphs(fig, directory, fname, cycle_name='', tag=''):
-    fpath = os.path.join(directory, '%s_%s_%s.jpg' % (fname, cycle_name, tag))
+    fpath = osp.join(directory, '%s_%s_%s.jpg' % (fname, cycle_name, tag))
     fig.savefig(fpath, format='png', dpi = 300)
     plt.close(fig)
     return fpath
