@@ -8,8 +8,6 @@
 It contains plotting functions for models and/or output results.
 """
 
-import matplotlib
-matplotlib.use('Agg')
 import co2mpas.dispatcher.utils as dsp_utl
 import importlib
 import logging
@@ -240,6 +238,7 @@ def make_cycle_graphs(data):
 
         return fig
     return dsp_utl.NONE
+
 
 def save_cycle_graphs(fig, directory, fname, cycle_name='', tag=''):
     fpath = osp.join(directory, '%s_%s_%s.jpg' % (fname, cycle_name, tag))
