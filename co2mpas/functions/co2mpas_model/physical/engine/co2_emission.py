@@ -69,7 +69,11 @@ def calculate_brake_mean_effective_pressures(
     :rtype: numpy.array, float
     """
 
-    p = (1200000.0 / engine_capacity) * engine_powers_out / engine_speeds_out
+    b = engine_speeds_out > MIN_ENGINE_SPEED
+
+    p = np.zeros_like(engine_powers_out)
+    p[b] = engine_powers_out[b] / engine_speeds_out[b]
+    p[b] *= 1200000.0 / engine_capacity
 
     return np.nan_to_num(p)
 
