@@ -122,14 +122,14 @@ def identify_clutch_window(
 def _calibrate_clutch_prediction_model(
         accelerations, delta_speeds, error_func, default_model):
 
-    if len(delta_speeds) > 2:
+    try:
         X = np.array([accelerations]).T
         model = RANSACRegressor(
             base_estimator=LinearRegression(fit_intercept=False),
             random_state=0
         ).fit(X, delta_speeds).predict
 
-    else:
+    except ValueError:
         model = default_model
 
     return error_func(model), model
