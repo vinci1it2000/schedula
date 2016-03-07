@@ -139,4 +139,15 @@ def vehicle():
         outputs=['f0', 'f1', 'f2']
     )
 
+    vehicle.add_data(
+        data_id='correct_f0',
+        default_value=False
+    )
+
+    vehicle.add_function(
+        function=apply_f0_correction,
+        inputs=['f0_uncorrected', 'correct_f0'],
+        outputs=['f0']
+    )
+
     return vehicle

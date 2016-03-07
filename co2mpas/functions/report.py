@@ -303,7 +303,7 @@ def extract_summary(data, vehicle_name):
     params_keys = (
         'co2_params', 'calibration_status', 'co2_params', 'model_scores',
         'scores', 'co2_params_calibrated',
-        'phases_co2_emissions', 'willans_factors'
+        'phases_co2_emissions', 'willans_factors', 'correct_f0',
     ) + target_keys
 
     for k, v in dsp_utl.selector(keys, data, allow_miss=True).items():

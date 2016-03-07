@@ -240,7 +240,7 @@ def define_data_schema(read=True):
         'f0_uncorrected': positive,
         'f2': positive,
         'f0': positive,
-        'correct_f0': positive,
+        'correct_f0': _bool,
         
         'co2_emission_low': positive,
         'co2_emission_medium': positive,

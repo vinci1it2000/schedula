@@ -106,6 +106,8 @@ def physical():
             'air_density': 'air_density',
             'angle_slope': 'angle_slope',
             'cycle_type': 'cycle_type',
+            'f0_uncorrected': 'f0_uncorrected',
+            'correct_f0': 'correct_f0',
             'f0': 'f0',
             'f1': 'f1',
             'f2': 'f2',
