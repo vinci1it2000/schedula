@@ -19,11 +19,16 @@ import pandas as pd
 import datetime
 import os.path as osp
 from tqdm import tqdm
+from multiprocessing import Pool
 
 
 def run_sa(input_folder, input_parameters, output_folder):
+    pool = Pool()
     for input_vehicle in file_finder([input_folder]):
-        _sa(input_vehicle, input_parameters, output_folder)
+         pool.apply_async(_sa, (input_vehicle, input_parameters, output_folder))
+
+    pool.close()
+    pool.join()
 
 
 def _sa(input_vehicle, input_parameters, output_folder):
