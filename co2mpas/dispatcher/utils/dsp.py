@@ -314,7 +314,7 @@ class add_args(object):
             self.func = func
             self.n = n
             self.callback = callback
-        except:
+        except AttributeError:
             from .des import parent_func
             add_args.__init__(self, parent_func(func), n=n, callback=callback)
             self.func = func
@@ -327,6 +327,13 @@ class add_args(object):
 
         return res
 
+    def __deepcopy__(self, memo):
+        cls = add_args(
+            func=deepcopy(self.func, memo),
+            n=self.n,
+            callback=deepcopy(self.callback, memo)
+        )
+        return cls
 
 def _get_signature(func, n=1):
     sig = signature(func)  # Get function signature.
