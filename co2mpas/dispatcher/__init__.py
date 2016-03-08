@@ -1915,6 +1915,9 @@ class Dispatcher(object):
             o = {k for k, v in a['outputs'].items()
                  if any(i in o for i in stlp(v))}
 
+            if 'input_domain' in a:
+                o = o.union(set(_children(a['inputs'])))
+
             d = a['function'] = a['function']._get_dsp_from_bfs(o, bfs)
             _update_io_attr_sub_dsp(d, a)
 
