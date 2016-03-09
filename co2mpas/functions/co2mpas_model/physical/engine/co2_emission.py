@@ -703,9 +703,6 @@ def define_initial_co2_emission_model_params_guess(
     :rtype: (dict, dict)
     """
 
-    if isinstance(params, lmfit.Parameters):
-        return dsp_utl.NONE
-
     default = _get_default_params()[engine_type]
     default['trg'] = {
         'value': engine_normalization_temperature,
@@ -732,8 +729,13 @@ def define_initial_co2_emission_model_params_guess(
         elif 'vary' not in kw:
             kw['vary'] = not k in params
 
+        if 'min' in kw and kw['value'] < kw['min']:
+            kw['min'] = kw['value'] - EPS
+        if 'max' in kw and kw['value'] > kw['max']:
+            kw['max'] = kw['value'] + EPS
+
         if 'min' in kw and 'max' in kw and kw['min'] == kw['max']:
-            kw['vary'], kw['value'] = False, kw['min']
+            kw['vary'] = False
             kw['max'] = kw['min'] = None
 
         p.add(**kw)
@@ -786,8 +788,8 @@ def calibrate_co2_params(
 
     :return:
         Calibrated CO2 emission model parameters (a2, b2, a, b, c, l, l2, t,
-        trg).
-    :rtype: dict
+        trg) and their calibration statuses.
+    :rtype: (lmfit.Parameters, list)
     """
 
     p = copy.deepcopy(co2_params_initial_guess)
@@ -1189,3 +1191,49 @@ def _calculate_optimal_point(params, n_speed):
     eff = n / (B - np.sqrt(B2 - sabc - n))
 
     return n_speed, y, eff
+
+
+def missing_co2_params(params, *args, _not=False):
+    """
+    Checks if all co2_params are defined.
+
+    :param params:
+        CO2 emission model parameters (a2, b2, a, b, c, l, l2, t, trg).
+    :type params: dict | lmfit.Parameters
+
+    :return:
+        If is missing some parameter.
+    :rtype: bool
+    """
+    s = {'a', 'b', 'c', 'a2', 'b2', 'l', 'l2', 't', 'trg'} == set(params)
+
+    if _not:
+        return s
+
+    return not s
+
+
+def define_co2_params_calibrated(params):
+    """
+    Defines the calibrated co2_params if all co2_params are given.
+
+    :param params:
+        CO2 emission model parameters (a2, b2, a, b, c, l, l2, t, trg).
+    :type params: dict | lmfit.Parameters
+
+    :return:
+        Calibrated CO2 emission model parameters (a2, b2, a, b, c, l, l2, t,
+        trg) and their calibration statuses.
+    :rtype: (lmfit.Parameters, list)
+    """
+
+    if isinstance(params, lmfit.Parameters):
+        p = params
+    else:
+        p = lmfit.Parameters()
+        for k, v in params.items():
+            p.add(k, value=v, vary=False)
+
+    success = [(None, copy.deepcopy(p))] * 4
+
+    return p, success

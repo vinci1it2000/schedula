@@ -74,7 +74,7 @@ def _eval(s, error=None, **kwargs):
 
 def _dict(format=None, error=None, **kwargs):
     format = format or {int: float}
-    c = Use(lambda x: {k: v for k, v in dict(x).items() if v})
+    c = Use(lambda x: {k: v for k, v in dict(x).items() if v is not None})
     return _eval(Or(Empty(), And(c, Or(Empty(), format))), error=error)
 
 
@@ -181,7 +181,7 @@ def define_data_schema(read=True):
     )
     dictstrdict = _dict(format={str: dict}, read=read)
     parameters = _parameters(read=read)
-    dictstrfloat = _dict(format={str: float}, read=read)
+    dictstrfloat = _dict(format={str: Use(float)}, read=read)
     dictstrtuple = _dict(format={str: tuple}, read=read)
 
     schema = {

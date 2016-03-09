@@ -62,7 +62,8 @@ def co2_emission():
         function=define_initial_co2_emission_model_params_guess,
         inputs=['co2_params', 'engine_type', 'engine_normalization_temperature',
                 'engine_normalization_temperature_window', 'is_cycle_hot'],
-        outputs=['co2_params_initial_guess']
+        outputs=['co2_params_initial_guess'],
+        input_domain=missing_co2_params
     )
 
     co2_emission.add_function(
@@ -110,6 +111,13 @@ def co2_emission():
                 'co2_error_function_on_phases', 'co2_params_initial_guess',
                 'is_cycle_hot'],
         outputs=['co2_params_calibrated', 'calibration_status']
+    )
+
+    co2_emission.add_function(
+        function=define_co2_params_calibrated,
+        inputs=['co2_params'],
+        outputs=['co2_params_calibrated', 'calibration_status'],
+        input_domain=partial(missing_co2_params, _not=True)
     )
 
     co2_emission.add_function(
