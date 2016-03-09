@@ -88,9 +88,10 @@ def parse_dsp_model(model):
     for j in {'nedc', 'wltp_h', 'wltp_l', 'wltp_p'}.intersection(res):
         d = res[j]
         if j in ('wltp_h', 'wltp_l', 'wltp_p') and 'predictions' in d:
-            cal, pre_inp = d['calibrations'], out['prediction_%s_inputs' % j]
-            cal = dsp_utl.selector(set(cal) - set(pre_inp), cal)
-            d['targets'] = dsp_utl.combine_dicts(cal, d.get('targets', {}))
+            cal_inp = out['calibration_%s_inputs' % j]
+            pre_inp = out['prediction_%s_inputs' % j]
+            cal_inp = dsp_utl.selector(set(cal_inp) - set(pre_inp), cal_inp)
+            d['targets'] = dsp_utl.combine_dicts(cal_inp, d.get('targets', {}))
 
         for k, v in d.items():
             d[k] = _split_by_data_format(v)
@@ -185,6 +186,7 @@ def process_folder_files(input_files, output_folder, **kwds):
 
     time_elapsed = (datetime.datetime.today() - start_time).total_seconds()
     log.info('Done! [%s sec]', time_elapsed)
+
 
 class custom_tqdm(tqdm):
 
