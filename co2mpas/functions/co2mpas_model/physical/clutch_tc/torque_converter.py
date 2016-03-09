@@ -12,7 +12,7 @@ It contains functions that model the basic mechanics of the torque converter.
 import numpy as np
 from sklearn.metrics import mean_absolute_error
 from sklearn.ensemble import GradientBoostingRegressor
-from ..constants import VEL_EPS
+from ..constants import VEL_EPS, ACC_EPS
 
 
 def _torque_converter_regressor_model(
@@ -36,7 +36,13 @@ def _torque_converter_regressor_model(
     predict = regressor.predict
 
     def model(X):
-        return predict(X)
+        d = np.zeros(X.shape[0])
+        a, v = X[:, 0], X[:, 1]
+        # From issue #179 add lock up mode in torque converter.
+        b = (v < 48) & (a > 0.3)
+        if b.any():
+            d[b] = predict(X[b])
+        return d
 
     return model
 
