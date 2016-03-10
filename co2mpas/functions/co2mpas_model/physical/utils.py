@@ -132,7 +132,7 @@ def reject_outliers(x, n=1, med=np.median, std=np.std):
     """
 
     x = np.asarray(x)
-    if not x.any():
+    if not x.size:
         return np.nan, np.nan
     m, s = med(x), std(x)
 
