@@ -3020,7 +3020,7 @@ class Dispatcher(object):
         self._meet[dsp_id] = initial_dist  # Set view distance.
 
         # Check if inputs are satisfied.
-        if self.check_wait_in(node['wait_inputs'], node_id):
+        if self.check_wait_in(node['wait_inputs'], dsp_id):
             return False  # Pass the node
 
         if dsp_id not in distances:
