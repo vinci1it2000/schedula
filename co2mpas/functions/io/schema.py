@@ -5,7 +5,7 @@ from .. import stack_nested_keys, get_nested_dicts
 from ..co2mpas_model.physical.gear_box.AT_gear import CMV, MVL, GSPV
 from sklearn.tree import DecisionTreeClassifier
 from lmfit import Parameters, Parameter
-from collections import Iterable, OrderedDict
+from collections import Iterable
 
 
 def validate_data(data, read_schema):

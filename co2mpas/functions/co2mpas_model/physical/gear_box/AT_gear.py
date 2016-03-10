@@ -389,7 +389,8 @@ class CMV(OrderedDict):
         self.velocity_speed_ratios = velocity_speed_ratios or {}
 
     def __repr__(self):
-        name, items = self.__class__.__name__, list(self.items())
+        name, _inf, sinf = self.__class__.__name__, float('inf'), "float('inf')"
+        items = [(k, v if v != _inf else sinf)for k, v in self.items()]
         vsr = self.velocity_speed_ratios
         return '{}({}, velocity_speed_ratios={})'.format(name, items, vsr)
 
