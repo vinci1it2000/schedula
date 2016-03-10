@@ -60,9 +60,15 @@ def vehicle_processing_model(prediction_WLTP=False):
         default_value=False
     )
 
+    dsp.add_data(
+        data_id='soft_validation',
+        default_value=False
+    )
+
     dsp.add_function(
         function=load_inputs(),
-        inputs=['input_file_name', 'select_outputs', 'overwrite_cache'],
+        inputs=['input_file_name', 'select_outputs', 'overwrite_cache',
+                'soft_validation'],
         outputs=['input_data']
     )
 

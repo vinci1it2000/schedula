@@ -202,7 +202,7 @@ def _process_folder_files(
         input_files, output_folder, plot_workflow=False,
         enable_prediction_WLTP=False, with_output_file=True,
         output_template_xl_fpath=None, with_charts=False,
-        overwrite_cache=False):
+        overwrite_cache=False, soft_validation=False):
     """
     Process all xls-files in a folder with CO2MPAS-model.
 
@@ -247,7 +247,8 @@ def _process_folder_files(
                 with_output_file=with_output_file,
                 output_template_xl_fpath=output_template_xl_fpath,
                 with_charts=with_charts,
-                overwrite_cache=overwrite_cache
+                overwrite_cache=overwrite_cache,
+                soft_validation=soft_validation
         )
 
         _add2summary(summary, res)
@@ -259,7 +260,7 @@ def _process_vehicle(
         model, fpath, output_folder='.', timestamp='', plot_workflow=False,
         enable_prediction_WLTP=False, with_output_file=False,
         output_template_xl_fpath=None, with_charts=False,
-        overwrite_cache=False):
+        overwrite_cache=False, soft_validation=False):
     fname = osp.splitext(osp.basename(fpath))[0]
     if not osp.isfile(fpath):
         log.warn('File  %r does not exist!', fpath)
@@ -271,7 +272,8 @@ def _process_vehicle(
         'prediction_wltp': enable_prediction_WLTP,
         'output_template': output_template_xl_fpath,
         'with_charts': with_charts,
-        'overwrite_cache': overwrite_cache
+        'overwrite_cache': overwrite_cache,
+        'soft_validation': soft_validation
     }
 
     ofname = None

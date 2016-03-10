@@ -38,15 +38,17 @@ from .. import stack_nested_keys, get_nested_dicts
 log = logging.getLogger(__name__)
 
 
-def get_cache_fpath(fpath):
+def get_cache_fpath(fpath, soft_validation):
     fpath = pathlib.Path(fpath)
     cache_folder = fpath.parent.joinpath('.co2mpas_cache')
     try:
         cache_folder.mkdir()
     except:
         pass
-
-    return str(cache_folder.joinpath('%s.%s.dill' % (fpath.name, version)))
+    ext = ('dill',)
+    if soft_validation:
+        ext = ('soft',) + ext
+    return str(cache_folder.joinpath('.'.join((fpath.name, version) + ext)))
 
 
 def check_cache_fpath_exists(overwrite_cache, fpath, cache_fpath):

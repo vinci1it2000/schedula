@@ -29,29 +29,38 @@ from ..constants import *
 from math import pi
 
 
-def identify_sign_currents(battery_currents, alternator_currents):
+def check_sign_currents(battery_currents, alternator_currents):
     """
-    Identifies the right sign of battery currents and alternator currents [-].
+    Checks if battery currents and alternator currents have the right signs.
 
     :param battery_currents:
+        Low voltage battery current vector [A].
+    :type battery_currents: numpy.array
+
     :param alternator_currents:
+        Alternator current vector [A].
+    :type alternator_currents: numpy.array
+
     :return:
+        If battery and alternator currents have the right signs.
+    :rtype: (bool, bool)
     """
+
     b_c, a_c = battery_currents, alternator_currents
 
-    sign = {True: 1, False: -1}
-    a = sign[reject_outliers(a_c, med=np.mean)[0] <= 0]
+    a = reject_outliers(a_c, med=np.mean)[0] <= 0
     c = np.correlate(a_c, b_c)[0]
+
     if c < 0:
         x = (a, a)
     elif c == 0:
         if any(b_c):
-            x = (sign[reject_outliers(b_c, med=np.mean)[0] <= 0], a)
+            x = (reject_outliers(b_c, med=np.mean)[0] <= 0, a)
         else:
-            x = (1, a)
+            x = (True, a)
     else:
-        x = (-a, a)
-    return np.array(x)
+        x = (not a, a)
+    return x
 
 
 def calculate_engine_start_demand(
@@ -123,7 +132,6 @@ def identify_electric_loads(
     """
 
     b_c, a_c = battery_currents, alternator_currents
-
     c = alternator_nominal_voltage / 1000.0
 
     b = clutch_tc_powers >= 0

@@ -51,7 +51,7 @@ def load_inputs():
 
     dsp.add_function(
         function=get_cache_fpath,
-        inputs=['input_file_name'],
+        inputs=['input_file_name', 'soft_validation'],
         outputs=['cache_file_name']
     )
 
@@ -84,11 +84,13 @@ def load_inputs():
         weight=10
     )
 
-    validate = partial(validate_data, read_schema=define_data_schema(read=True))
+    validate = partial(validate_data,
+                       read_schema=define_data_schema(read=True),
+                       cache=True)
 
     dsp.add_function(
-        function=dsp_utl.add_args(validate, n=1, callback=save_dill),
-        inputs=['cache_file_name', 'data'],
+        function=validate,
+        inputs=['data', 'cache_file_name', 'soft_validation'],
         outputs=['validated_data']
     )
 
@@ -111,7 +113,8 @@ def load_inputs():
     func = dsp_utl.SubDispatchFunction(
         dsp=dsp,
         function_id=dsp.name,
-        inputs=['input_file_name', 'select_outputs', 'overwrite_cache'],
+        inputs=['input_file_name', 'select_outputs', 'overwrite_cache',
+                'soft_validation'],
         outputs=['input_data']
     )
 

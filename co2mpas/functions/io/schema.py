@@ -6,14 +6,49 @@ from ..co2mpas_model.physical.gear_box.AT_gear import CMV, MVL, GSPV
 from sklearn.tree import DecisionTreeClassifier
 from lmfit import Parameters, Parameter
 from collections import Iterable
+from ..co2mpas_model.physical.electrics import check_sign_currents
+from .dill import save_dill
+
+import logging
+log = logging.getLogger(__name__)
 
 
-def validate_data(data, read_schema):
+def validate_data(
+        data, cache_file_name=None, soft_validation=False, cache=False,
+        read_schema=None):
     res = {}
     validate = read_schema.validate
-    for k, v in stack_nested_keys(data, depth=3):
-        v = {i: j for i, j in validate(v).items() if j is not dsp_utl.NONE}
+    errors = {}
+    for k, v in sorted(stack_nested_keys(data, depth=3)):
+        for i in list(v):
+            try:
+                j = validate({i: v.pop(i)})
+                if list(j.values())[0] is not dsp_utl.NONE:
+                    v.update(j)
+            except SchemaError as ex:
+                get_nested_dicts(errors, *k)[i] = ex
         get_nested_dicts(res, *k[:-1])[k[-1]] = v
+
+    if not soft_validation:
+        c = ('battery_currents', 'alternator_currents')
+        for k, v in stack_nested_keys(res, depth=3):
+            if set(c).issubset(v):
+                a = dsp_utl.selector(c, v, output_type='list')
+                s = check_sign_currents(*a)
+                s = ' and '.join([k for k, v in zip(c, s) if not v])
+                if s:
+                    msg = '{} should have the wrong sign!'.format(s)
+                    get_nested_dicts(errors, *k)[c] = SchemaError([], [msg])
+
+    if errors:
+        msg = ['\nInput cannot be parsed, due to:']
+        for k, v in stack_nested_keys(errors, depth=4):
+            msg.append('{} in {}: {}'.format(k[-1], '/'.join(k[:-1]), v))
+        log.error('\n  '.join(msg))
+        return {}
+
+    if cache:
+        save_dill(res, cache_file_name)
 
     return res
 
@@ -39,19 +74,18 @@ def _function(error=None, read=True, **kwargs):
         assert callable(f)
         return f
     if read:
+        error = error or 'should be a function!'
         return Use(_check_function, error=error)
     return And(_function(), Use(lambda x: dsp_utl.NONE), error=error)
 
 
 def _string(error=None, **kwargs):
+    error = error or 'should be a string!'
     return Use(str, error=error)
 
 
 def _select(types=(), error=None, **kwargs):
-    try:
-        error = '%s.' %(error % ', '.join(types))
-    except TypeError:
-        pass
+    error = error or 'should be one of {}!'.format(types)
     return And(str, Use(lambda x: x.lower()), lambda x: x in types, error=error)
 
 
@@ -60,20 +94,24 @@ def _check_positive(x):
 
 
 def _positive(type=float, error=None, **kwargs):
+    error = error or 'should be as {} and positive!'.format(type)
     return And(Use(type), _check_positive, error=error)
 
 
 def _limits(limits=(0, 100), error=None, **kwargs):
+    error = error or 'should be {} <= x <= {}!'.format(*limits)
     _check_limits = lambda x: limits[0] <= x <= limits[1]
     return And(Use(float), _check_limits, error=error)
 
 
 def _eval(s, error=None, **kwargs):
+    error = error or 'cannot be eval!'
     return Or(And(str, Use(lambda x: eval(x)), s), s, error=error)
 
 
 def _dict(format=None, error=None, **kwargs):
     format = format or {int: float}
+    error = error or 'should be a dict with this format {}!'.format(format)
     c = Use(lambda x: {k: v for k, v in dict(x).items() if v is not None})
     return _eval(Or(Empty(), And(c, Or(Empty(), format))), error=error)
 
@@ -91,20 +129,26 @@ def _check_length(length):
 
 def _type(type=None, error=None, length=None, **kwargs):
     type = type or tuple
+
     if length is not None:
+        error = error or 'should be as {} and ' \
+                         'with a length of {}!'.format(type, length)
         return And(_type(type=type), _check_length(length), error=error)
     if not isinstance(type, (Use, Schema, And, Or)):
         type = Or(type, Use(type))
+    error = error or 'should be as {}!'.format(type)
     return _eval(type, error=error)
 
 
 def _index_dict(error=None, **kwargs):
+    error = error or 'cannot be parsed as {}!'.format({int: float})
     c = {int: Use(float)}
     f = lambda x: {k: v for k, v in enumerate(x, start=1)}
     return Or(c, And(_dict(), c), And(_type(), Use(f), c), error=error)
 
 
 def _np_array(dtype=None, error=None, read=True, **kwargs):
+    error = error or 'cannot be parsed as np.array dtype={}!'.format(dtype)
     if read:
         c = Use(lambda x: np.asarray(x, dtype=dtype))
         return And(Or(c, And(_type(), c), Empty()), error=error)
@@ -114,20 +158,20 @@ def _np_array(dtype=None, error=None, read=True, **kwargs):
 
 
 def _cmv(error=None, **kwargs):
-    return _type(type=CMV)
+    return _type(type=CMV, error=error)
 
 
 def _mvl(error=None, **kwargs):
-    return _type(type=MVL)
+    return _type(type=MVL, error=error)
 
 
 def _gspv(error=None, **kwargs):
-    return _type(type=GSPV)
+    return _type(type=GSPV, error=error)
 
 
 def _dtc(error=None, read=True, **kwargs):
     if read:
-        return _type(type=DecisionTreeClassifier)
+        return _type(type=DecisionTreeClassifier, error=error)
     return And(_dtc(), Use(lambda x: dsp_utl.NONE), error=error)
 
 
@@ -151,7 +195,7 @@ def _parameters2str(data):
 
 def _parameters(error=None, read=True):
     if read:
-        return _type(type=Schema(Parameters), error=error)
+        return _type(type=Parameters, error=error)
     else:
         return And(_parameters(), Use(_parameters2str), error=error)
 
@@ -198,9 +242,7 @@ def define_data_schema(read=True):
         _compare_str('MVL'): _mvl(read=read),
 
         _compare_str('VERSION'): string,
-        'fuel_type': _select(types=('gasoline', 'diesel'),
-                             error='Allowed fuel_type: %s',
-                             read=read),
+        'fuel_type': _select(types=('gasoline', 'diesel'), read=read),
         'engine_fuel_lower_heating_value': positive,
         'fuel_carbon_content': positive,
         'engine_capacity': positive,
@@ -213,9 +255,7 @@ def define_data_schema(read=True):
         'engine_idle_fuel_consumption': positive,
         'final_drive_ratio': positive,
         'r_dynamic': positive,
-        'gear_box_type': _select(types=('manual', 'automatic'),
-                                 error='Allowed gear_box_type: %s',
-                                 read=read),
+        'gear_box_type': _select(types=('manual', 'automatic'), read=read),
         'start_stop_activation_time': positive,
         'alternator_nominal_voltage': positive,
         'battery_capacity': positive,
