@@ -708,7 +708,7 @@ def define_initial_co2_emission_model_params_guess(
         'value': engine_normalization_temperature,
         'min': engine_normalization_temperature_window[0],
         'max': engine_normalization_temperature_window[1],
-        'vary': not (is_cycle_hot or 'trg' in params)
+        'vary': False
     }
     default['t'] = {
         'value': 0.0 if is_cycle_hot else 4.5, 'min': 0.0, 'max': 8.0,
