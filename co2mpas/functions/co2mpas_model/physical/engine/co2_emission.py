@@ -810,7 +810,7 @@ def define_initial_co2_emission_model_params_guess(
         if 'min' in kw and 'max' in kw and kw['min'] == kw['max']:
             kw['vary'] = False
             kw['max'] = kw['min'] = None
-
+        kw['max'] = kw['min'] = None
         p.add(**kw)
 
     return p
