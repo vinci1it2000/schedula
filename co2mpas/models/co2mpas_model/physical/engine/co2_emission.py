@@ -43,13 +43,20 @@ def co2_emission():
     )
 
     co2_emission.add_function(
+        function=define_tau_function,
+        inputs=['engine_normalization_temperature', 'initial_engine_temperature'],
+        outputs=['tau_function']
+    )
+
+    co2_emission.add_function(
         function=define_co2_emissions_model,
         inputs=['engine_speeds_out', 'engine_powers_out',
                 'mean_piston_speeds', 'brake_mean_effective_pressures',
                 'engine_coolant_temperatures', 'on_engine',
                 'engine_fuel_lower_heating_value', 'idle_engine_speed',
                 'engine_stroke', 'engine_capacity',
-                'engine_idle_fuel_consumption', 'fuel_carbon_content'],
+                'engine_idle_fuel_consumption', 'fuel_carbon_content',
+                'tau_function'],
         outputs=['co2_emissions_model']
     )
 

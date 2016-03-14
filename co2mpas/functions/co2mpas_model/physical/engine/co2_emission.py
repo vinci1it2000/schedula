@@ -16,7 +16,7 @@ import lmfit
 import numpy as np
 from scipy.integrate import trapz
 from sklearn.metrics import mean_absolute_error
-
+from scipy.stats import lognorm, norm
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.functions.co2mpas_model.physical.constants import *
 from ..utils import argmax
@@ -78,11 +78,12 @@ def calculate_brake_mean_effective_pressures(
     return np.nan_to_num(p)
 
 
-def _calculate_fuel_ABC(params, n_speeds, n_powers, n_temperatures):
-    p = params
-    A = p['a2'] + p['b2'] * n_speeds
-    B = p['a'] + (p['b'] + p['c'] * n_speeds) * n_speeds
-    C = np.power(n_temperatures, -p['t']) * (p['l'] + p['l2'] * n_speeds**2)
+def _calculate_fuel_ABC(n_speeds, n_powers, n_temperatures,
+                        a2=0, b2=0, a=0, b=0, c=0, t=0, l=0, l2=0, **kw):
+
+    A = a2 + b2 * n_speeds
+    B = a + (b + c * n_speeds) * n_speeds
+    C = np.power(n_temperatures, -t) * (l + l2 * n_speeds**2)
     C -= n_powers
 
     return A, B, C
@@ -91,7 +92,8 @@ def _calculate_fuel_ABC(params, n_speeds, n_powers, n_temperatures):
 def _calculate_fuel_mean_effective_pressure(
         params, n_speeds, n_powers, n_temperatures):
 
-    A, B, C = _calculate_fuel_ABC(params, n_speeds, n_powers, n_temperatures)
+    A, B, C = _calculate_fuel_ABC(n_speeds, n_powers, n_temperatures, **params)
+
     return _calculate_fc(A, B, C)
 
 
@@ -159,7 +161,7 @@ def calculate_co2_emissions(
         brake_mean_effective_pressures, engine_coolant_temperatures, on_engine,
         engine_fuel_lower_heating_value, idle_engine_speed, engine_stroke,
         engine_capacity, engine_idle_fuel_consumption, fuel_carbon_content,
-        params, sub_values=None):
+        tau_function, params, sub_values=None):
     """
     Calculates CO2 emissions [CO2g/s].
 
@@ -245,21 +247,22 @@ def calculate_co2_emissions(
     # Idle fc correction for temperature
     b = (e_speeds < idle_engine_speed[0] + MIN_ENGINE_SPEED)
 
-    if p['t'] == 0:
+    if p['t0'] == 0 and p['t1'] == 0:
         n_temp = np.ones_like(e_powers)
         fc[b] = engine_idle_fuel_consumption
+        b = np.logical_not(b)
     else:
+        p['t'] = tau_function(p['t0'], p['t1'], e_temp)
         n_temp = calculate_normalized_engine_coolant_temperatures(e_temp, p['trg'])
-        fc[b] = engine_idle_fuel_consumption * np.power(n_temp[b], -p['t'])
+        fc[b] = engine_idle_fuel_consumption * np.power(n_temp[b], -p['t'][b])
+        b = np.logical_not(b)
+        p['t'] = p['t'][b]
 
     FMEP = partial(_calculate_fuel_mean_effective_pressure, p)
-
-    b = np.logical_not(b)
-
     fc[b] = FMEP(n_speeds[b], n_powers[b], n_temp[b])[0]  # FMEP [bar]
 
     fc[b] *= e_speeds[b] * (engine_capacity / (lhv * 1200))  # [g/sec]
-
+    p['t'] = 0
     ec_p0 = calculate_p0(
         p, engine_capacity, engine_stroke, sum(idle_engine_speed), lhv
     )
@@ -275,7 +278,8 @@ def define_co2_emissions_model(
         engine_speeds_out, engine_powers_out, mean_piston_speeds,
         brake_mean_effective_pressures, engine_coolant_temperatures, on_engine,
         engine_fuel_lower_heating_value, idle_engine_speed, engine_stroke,
-        engine_capacity, engine_idle_fuel_consumption, fuel_carbon_content):
+        engine_capacity, engine_idle_fuel_consumption, fuel_carbon_content,
+        tau_function):
     """
     Returns CO2 emissions model (see :func:`calculate_co2_emissions`).
 
@@ -337,7 +341,7 @@ def define_co2_emissions_model(
         mean_piston_speeds, brake_mean_effective_pressures,
         engine_coolant_temperatures, on_engine, engine_fuel_lower_heating_value,
         idle_engine_speed, engine_stroke, engine_capacity,
-        engine_idle_fuel_consumption, fuel_carbon_content
+        engine_idle_fuel_consumption, fuel_carbon_content, tau_function
     )
 
     return model
@@ -710,11 +714,15 @@ def define_initial_co2_emission_model_params_guess(
         'max': engine_normalization_temperature_window[1],
         'vary': False
     }
-    default['t'] = {
+    default['t0'] = {
         'value': 0.0 if is_cycle_hot else 4.5, 'min': 0.0, 'max': 8.0,
         'vary': not (is_cycle_hot or 't' in params)
     }
 
+    default['t1'] = {
+        'value': 0.0 if is_cycle_hot else 3.5, 'min': 0.0, 'max': 8.0,
+        'vary': not (is_cycle_hot or 't' in params)
+    }
     p = lmfit.Parameters()
 
     for k, kw in sorted(default.items()):
@@ -741,6 +749,21 @@ def define_initial_co2_emission_model_params_guess(
         p.add(**kw)
 
     return p
+
+
+def define_tau_function(
+        engine_normalization_temperature, initial_engine_temperature):
+    ti = 273 + initial_engine_temperature
+    t = (273 + engine_normalization_temperature) / ti - 1
+    mean = 40 * t + ti
+    m1 = 40 * t**2 + mean
+
+    f = lognorm(np.log(m1 / mean) / norm.ppf(0.95), 0, mean).cdf
+
+    def tau_function(t0, t1, temp):
+        return t0 - (t1 - t0) * f(temp + 273)
+
+    return tau_function
 
 
 def _set_attr(params, data, default=False, attr='vary'):
@@ -812,17 +835,17 @@ def calibrate_co2_params(
         success.append((s, copy.deepcopy(p)))
         return p
 
-    cold_p = ['t', 'trg']
-    _set_attr(p, ['t'], default=0.0, attr='value')
+    cold_p = ['t0', 't1']
+    _set_attr(p, ['t0', 't1'], default=0.0, attr='value')
     p = calibrate(cold_p, p, sub_values=hot)
 
     if cold.any():
-        _set_attr(p, {'t': values['t']}, attr='value')
+        _set_attr(p, {'t0': values['t0'], 't1': values['t1']}, attr='value')
         hot_p = ['a2', 'a', 'b', 'c', 'l', 'l2']
         p = calibrate(hot_p, p, sub_values=cold)
     else:
         success.append((True, copy.deepcopy(p)))
-        _set_attr(p, ['t'], default=0.0, attr='value')
+        _set_attr(p, ['t0', 't1'], default=0.0, attr='value')
         _set_attr(p, cold_p, default=False)
 
     p = restrict_bounds(p)
@@ -1179,7 +1202,7 @@ def calculate_optimal_efficiency(params, mean_piston_speeds):
 
 
 def _calculate_optimal_point(params, n_speed):
-    A, B, C = _calculate_fuel_ABC(params, n_speed, 0, 1)
+    A, B, C = _calculate_fuel_ABC(n_speed, 0, 1, **params)
     ac4, B2 = 4 * A * C, B**2
     sabc = np.sqrt(ac4 * B2)
     n = sabc - ac4

@@ -352,6 +352,7 @@ def engine():
             'times': 'times',
             'velocities': 'velocities',
             'calibration_status': 'calibration_status',
+            'initial_engine_temperature': 'initial_engine_temperature',
             'fuel_consumptions': 'fuel_consumptions',
             'co2_emissions': 'co2_emissions',
             'fuel_density': 'fuel_density'
