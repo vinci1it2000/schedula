@@ -151,7 +151,7 @@ def _np_array(dtype=None, error=None, read=True, **kwargs):
     error = error or 'cannot be parsed as np.array dtype={}!'.format(dtype)
     if read:
         c = Use(lambda x: np.asarray(x, dtype=dtype))
-        return And(Or(c, And(_type(), c), Empty()), error=error)
+        return Or(And(str, _eval(c)), c, And(_type(), c), Empty(), error=error)
     else:
         return And(_np_array(dtype=dtype), Use(lambda x: x.tolist()),
                    error=error)
