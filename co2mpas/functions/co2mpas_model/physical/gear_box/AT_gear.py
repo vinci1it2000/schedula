@@ -73,6 +73,10 @@ def correct_gear_full_load(
         Vehicle mass [kg].
     :type vehicle_mass: float
 
+    :param min_gear:
+        Minimum gear [-].
+    :type min_gear: int
+
     :return:
         A gear corrected according to full load curve.
     :rtype: int
@@ -187,12 +191,11 @@ def correct_gear_v0(
     :rtype: function
     """
 
-    max_gear = max(velocity_speed_ratios)
-    min_gear = min(velocity_speed_ratios)
+    max_gear, min_gear = max(velocity_speed_ratios), min(velocity_speed_ratios)
 
     def correct_gear(velocity, acceleration, gear):
         g = correct_gear_mvl(
-            velocity, acceleration, gear, mvl, max_gear, min_gear)
+            velocity, acceleration, gear, mvl)
 
         g = correct_gear_full_load(
             velocity, acceleration, g, velocity_speed_ratios, engine_max_power,
@@ -217,16 +220,17 @@ def correct_gear_v1(velocity_speed_ratios, mvl, idle_engine_speed):
         Matrix velocity limits (upper and lower bound) [km/h].
     :type mvl: OrderedDict
 
+    :param idle_engine_speed:
+        Engine speed idle median and std [RPM].
+    :type idle_engine_speed: (float, float)
+
     :return:
         A function to correct the predicted gear.
     :rtype: function
     """
 
-    max_gear, min_gear = max(velocity_speed_ratios), min(velocity_speed_ratios)
-
     def correct_gear(velocity, acceleration, gear):
-        g = correct_gear_mvl(
-            velocity, acceleration, gear, mvl, max_gear, min_gear)
+        g = correct_gear_mvl(velocity, acceleration, gear, mvl)
         return basic_correct_gear(
             velocity, acceleration, g, velocity_speed_ratios, idle_engine_speed)
 
@@ -290,6 +294,14 @@ def correct_gear_v2(
 def correct_gear_v3(velocity_speed_ratios, idle_engine_speed):
     """
     Returns a function that does not correct the gear predicted.
+
+    :param velocity_speed_ratios:
+        Constant velocity speed ratios of the gear box [km/(h*RPM)].
+    :type velocity_speed_ratios: dict
+
+    :param idle_engine_speed:
+        Engine speed idle median and std [RPM].
+    :type idle_engine_speed: (float, float)
 
     :return:
         A function to correct the predicted gear.
@@ -1228,7 +1240,7 @@ class MVL(CMV):
 
             if l:
                 min_v, max_v = zip(*l)
-                l = [sum(reject_outliers(min_v)), sum(reject_outliers(max_v))]
+                l = [sum(reject_outliers(min_v)), max(max_v)]
                 mvl.append(np.array([max(idle[0], l / vsr) for l in l]))
             else:
                 mvl.append(mvl[-1].copy())
@@ -1237,6 +1249,9 @@ class MVL(CMV):
                for k, v in reversed(list(enumerate(mvl[1:], 1)))]
         mvl[0][1] = (mvl[0][1][0], INF)
         mvl.append([0, (0, mvl[-1][1][0])])
+
+        for i, v in enumerate(mvl[1:]):
+            v[1] = (v[1][0], max(v[1][1], mvl[i][1][0] + VEL_EPS))
 
         self.clear()
         self.update(correct_gsv_for_constant_velocities(
@@ -1249,8 +1264,12 @@ class MVL(CMV):
     def predict(self, velocity, acceleration, gear):
 
         if abs(acceleration) < ACC_EPS:
-            g = next((k for k, v in self.items() if velocity - v[0] > 0), gear)
-            gear = gear if g < gear and self[gear][1] > velocity else g
+            g = next((k for k, v in self.items() if velocity > v[0]), gear)
+            gear = gear if g < gear else g
+
+        if gear:
+            while velocity > self[gear][1]:
+                gear += 1
 
         return gear
 
