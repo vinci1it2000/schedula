@@ -11,7 +11,7 @@ It contains functions that model the basic mechanics of the vehicle.
 
 
 from math import cos, sin
-from .utils import derivative
+from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 
 
 def calculate_accelerations(times, velocities):
@@ -31,7 +31,7 @@ def calculate_accelerations(times, velocities):
     :rtype: numpy.array
     """
 
-    return derivative(times, velocities / 3.6, k=1, dx=4, order=7)
+    return Spline(times, velocities / 3.6, k=3).derivative(1)(times)
 
 
 def calculate_aerodynamic_resistances(f2, velocities):

@@ -22,7 +22,6 @@ import co2mpas.dispatcher.utils as dsp_utl
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.misc import derivative as scipy_derivative
-from scipy.optimize import brute
 from sklearn.metrics import mean_absolute_error
 
 
