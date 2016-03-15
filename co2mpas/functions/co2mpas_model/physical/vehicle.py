@@ -31,7 +31,7 @@ def calculate_accelerations(times, velocities):
     :rtype: numpy.array
     """
 
-    return derivative(times, velocities / 3.6, k=1, dx=1, order=3)
+    return derivative(times, velocities / 3.6, k=1, dx=4, order=7)
 
 
 def calculate_aerodynamic_resistances(f2, velocities):
