@@ -390,8 +390,42 @@ def calculate_alternator_powers_demand(
     return alternator_currents * c
 
 
+def identify_alternator_current_threshold(
+        alternator_currents, velocities, on_engine):
+    """
+    Identifies the alternator current threshold [A] that identify when the
+    alternator is off.
+
+    :param alternator_currents:
+        Alternator current vector [A].
+    :type alternator_currents: numpy.array
+
+    :param velocities:
+        Velocity vector [km/h].
+    :type velocities: numpy.array
+
+    :param on_engine:
+        If the engine is on [-].
+    :type on_engine: numpy.array
+
+    :return:
+        Alternator current threshold [A].
+    :rtype: float
+    """
+
+    b, l = np.logical_not(on_engine), -float('inf')
+    if not b.any():
+        b, l = velocities < VEL_EPS, -1.0
+
+    b &= alternator_currents < 0
+    if b.any():
+        return min(0.0, max(reject_outliers(alternator_currents[b])[0], l))
+    return 0.0
+
+
 def identify_charging_statuses(
-        alternator_currents, clutch_tc_powers, on_engine):
+        alternator_currents, clutch_tc_powers, on_engine,
+        alternator_current_threshold):
     """
     Identifies when the alternator is on due to 1:state of charge or 2:BERS [-].
 
@@ -407,6 +441,10 @@ def identify_charging_statuses(
         If the engine is on [-].
     :type on_engine: numpy.array
 
+    :param alternator_current_threshold:
+        Alternator current threshold [A].
+    :type alternator_current_threshold: float
+
     :return:
         The alternator status (0: off, 1: on, due to state of charge, 2: on due
         to BERS) [-].
@@ -416,7 +454,7 @@ def identify_charging_statuses(
     gb_p = clutch_tc_powers
 
     status = np.zeros_like(alternator_currents, dtype=int)
-    status[(alternator_currents < 0) & on_engine] = 2
+    status[(alternator_currents < alternator_current_threshold) & on_engine] = 2
 
     b1 = -1
 

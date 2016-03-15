@@ -202,6 +202,7 @@ def physical():
             'on_engine': 'on_engine',
             'start_demand': 'start_demand',
             'times': 'times',
+            'velocities': 'velocities'
         },
         outputs={
             'alternator_current_model': 'alternator_current_model',

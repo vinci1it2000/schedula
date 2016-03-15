@@ -78,8 +78,15 @@ def electrics():
     )
 
     electrics.add_function(
+        function=identify_alternator_current_threshold,
+        inputs=['alternator_currents', 'velocities', 'on_engine'],
+        outputs=['alternator_current_threshold']
+    )
+
+    electrics.add_function(
         function=identify_charging_statuses,
-        inputs=['alternator_currents', 'clutch_tc_powers', 'on_engine'],
+        inputs=['alternator_currents', 'clutch_tc_powers', 'on_engine',
+                'alternator_current_threshold'],
         outputs=['alternator_statuses']
     )
 
