@@ -393,7 +393,7 @@ def calculate_alternator_powers_demand(
 def identify_alternator_current_threshold(
         alternator_currents, velocities, on_engine):
     """
-    Identifies the alternator current threshold [A] that identify when the
+    Identifies the alternator current threshold [A] that identifies when the
     alternator is off.
 
     :param alternator_currents:

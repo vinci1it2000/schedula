@@ -379,9 +379,21 @@ def calibrate_engine_temperature_regression_model(
     This model returns the delta temperature function of temperature (previous),
     acceleration, and power at the wheel.
 
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
+
     :param engine_coolant_temperatures:
         Engine coolant temperature vector [°C].
     :type engine_coolant_temperatures: numpy.array
+
+    :param velocities:
+        Velocity vector [km/h].
+    :type velocities: numpy.array
+
+    :param accelerations:
+        Acceleration vector [m/s2].
+    :type accelerations: numpy.array
 
     :param gear_box_powers_in:
         Gear box power vector [kW].
@@ -436,6 +448,18 @@ def predict_engine_coolant_temperatures(
     :param model:
         Engine temperature regression model.
     :type model: function
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
+
+    :param velocities:
+        Velocity vector [km/h].
+    :type velocities: numpy.array
+
+    :param accelerations:
+        Acceleration vector [m/s2].
+    :type accelerations: numpy.array
 
     :param gear_box_powers_in:
         Gear box power vector [kW].
