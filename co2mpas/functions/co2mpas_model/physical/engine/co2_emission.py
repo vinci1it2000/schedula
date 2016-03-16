@@ -751,14 +751,31 @@ def define_initial_co2_emission_model_params_guess(
     return p
 
 
-def define_tau_function(
+def calculate_after_treatment_temperature_threshold(
         engine_normalization_temperature, initial_engine_temperature):
+    """
+    Calculates the engine coolant temperature when the after treatment system
+    is warm [°C].
+
+    :param engine_normalization_temperature:
+        Engine normalization temperature [°C].
+    :type engine_normalization_temperature: float
+
+    :param initial_engine_temperature:
+    :return:
+    """
+
     ti = 273 + initial_engine_temperature
     t = (273 + engine_normalization_temperature) / ti - 1
-    mean = 40 * t + ti
-    m1 = 40 * t**2 + mean
+    T_mean = 40 * t + initial_engine_temperature
+    T_end = 40 * t**2 + T_mean
 
-    f = lognorm(np.log(m1 / mean) / norm.ppf(0.95), 0, mean).cdf
+    return T_mean, T_end
+
+
+def define_tau_function(after_treatment_temperature_threshold):
+    T_mean, T_end = np.array(after_treatment_temperature_threshold) + 273
+    f = lognorm(np.log(T_end / T_mean) / norm.ppf(0.95), 0, T_mean).cdf
 
     def tau_function(t0, t1, temp):
         return t0 - (t1 - t0) * f(temp + 273)
@@ -873,7 +890,8 @@ def restrict_bounds(co2_params):
     """
     p = copy.deepcopy(co2_params)
     mul = {
-        't': np.array([0.5, 1.5]), 'trg': np.array([0.9, 1.1]),
+        't1': np.array([0.5, 1.5]), 't2': np.array([0.5, 1.5]),
+        'trg': np.array([0.9, 1.1]),
         'a': np.array([0.8, 1.2]), 'b': np.array([0.8, 1.2]),
         'c': np.array([1.2, 0.8]), 'a2': np.array([1.2, 0.8]),
         'l': np.array([1.2, 0.8]), 'l2': np.array([1.2, 0.0]),
