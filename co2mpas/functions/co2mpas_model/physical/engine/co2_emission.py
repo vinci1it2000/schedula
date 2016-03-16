@@ -858,7 +858,8 @@ def restrict_bounds(co2_params):
 
     def _limits(k, v):
         if k in mul:
-            return tuple(mul[k] * v.value)
+            v = tuple(mul[k] * v.value)
+            return min(v), max(v)
         else:
             return v.min, v.max
 
