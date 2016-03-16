@@ -210,4 +210,11 @@ def co2_emission():
         outputs=['optimal_efficiency']
     )
 
+    co2_emission.add_function(
+        function=calibrate_co2_params_v1,
+        inputs=['co2_emissions_model', 'fuel_consumptions',
+                'fuel_carbon_content', 'co2_params_initial_guess'],
+        outputs=['co2_params_calibrated', 'calibration_status']
+    )
+
     return co2_emission

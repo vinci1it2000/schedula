@@ -529,9 +529,9 @@ def define_co2_error_function_on_phases(
         CO2 emissions model (co2_emissions = models(params)).
     :type co2_emissions_model: function
 
-    :param cumulative_co2_emissions:
+    :param phases_co2_emissions:
         Cumulative CO2 of cycle phases [CO2g].
-    :type cumulative_co2_emissions: numpy.array
+    :type phases_co2_emissions: numpy.array
 
     :param times:
         Time vector [s].
@@ -858,11 +858,7 @@ def restrict_bounds(co2_params):
 
     def _limits(k, v):
         if k in mul:
-            l = tuple(mul[k] * v.value)
-            if l[1] - l[0] < EPS:
-                l = np.mean(l)
-                l = (l - EPS, l + EPS)
-            return l
+            return tuple(mul[k] * v.value)
         else:
             return v.min, v.max
 
@@ -1235,5 +1231,45 @@ def define_co2_params_calibrated(params):
             p.add(k, value=v, vary=False)
 
     success = [(None, copy.deepcopy(p))] * 4
+
+    return p, success
+
+
+def calibrate_co2_params_v1(
+        co2_emissions_model, fuel_consumptions, fuel_carbon_content,
+        co2_params_initial_guess):
+    """
+    Calibrates the CO2 emission model parameters (a2, b2, a, b, c, l, l2, t, trg
+    ).
+
+    :param co2_emissions_model:
+        CO2 emissions model (co2_emissions = models(params)).
+    :type co2_emissions_model: function
+
+    :param fuel_consumptions:
+        Instantaneous fuel consumption vector [g/s].
+    :type fuel_consumptions: numpy.array
+
+    :param fuel_carbon_content:
+        Fuel carbon content [CO2g/g].
+    :type fuel_carbon_content: float
+
+    :param co2_params_initial_guess:
+        Initial guess of CO2 emission model params.
+    :type co2_params_initial_guess: Parameters:param co2_params_initial_guess:
+
+    :return:
+        Calibrated CO2 emission model parameters (a2, b2, a, b, c, l, l2, t,
+        trg) and their calibration statuses.
+    :rtype: (lmfit.Parameters, list)
+    """
+
+    co2 = fuel_consumptions * fuel_carbon_content
+    err = define_co2_error_function_on_emissions(co2_emissions_model, co2)
+    p = copy.deepcopy(co2_params_initial_guess)
+    success = [(True, copy.deepcopy(p))]
+
+    p, s = calibrate_model_params(err, p)
+    success += [(s, p), (None, None), (None, None)]
 
     return p, success

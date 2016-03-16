@@ -345,7 +345,9 @@ def engine():
                 'engine_normalization_temperature_window',
             'times': 'times',
             'velocities': 'velocities',
-            'calibration_status': 'calibration_status'
+            'calibration_status': 'calibration_status',
+            'fuel_consumptions': 'fuel_consumptions',
+            'co2_emissions': 'co2_emissions',
         },
         outputs={
             'co2_emissions_model': 'co2_emissions_model',
