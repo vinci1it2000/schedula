@@ -88,6 +88,13 @@ def co2_emission():
         function=identify_co2_emissions,
         inputs=['co2_emissions_model', 'co2_params_initial_guess', 'times',
                 'phases_integration_times', 'cumulative_co2_emissions'],
+        outputs=['identified_co2_emissions'],
+        weight=5
+    )
+
+    co2_emission.add_function(
+        function=dsp_utl.bypass,
+        inputs=['co2_emissions'],
         outputs=['identified_co2_emissions']
     )
 
