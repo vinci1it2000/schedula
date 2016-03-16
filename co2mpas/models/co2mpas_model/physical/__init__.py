@@ -317,6 +317,7 @@ def physical():
             'calibration_status': 'calibration_status',
             'status_start_stop_activation_time':
                 'status_start_stop_activation_time',
+            'co2_normalization_references': 'co2_normalization_references',
             'fuel_density': 'fuel_density'
         },
         outputs={
@@ -363,6 +364,11 @@ def physical():
                 'status_start_stop_activation_time',
             'willans_factors': 'willans_factors',
             'optimal_efficiency': 'optimal_efficiency',
+            'extended_phases_integration_times':
+                'extended_phases_integration_times',
+            'extended_phases_co2_emissions': 'extended_phases_co2_emissions',
+            'after_treatment_temperature_threshold':
+                'after_treatment_temperature_threshold',
             'phases_fuel_consumptions': 'phases_fuel_consumptions',
             'fuel_density': 'fuel_density'
         }

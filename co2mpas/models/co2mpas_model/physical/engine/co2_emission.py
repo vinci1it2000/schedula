@@ -43,9 +43,33 @@ def co2_emission():
     )
 
     co2_emission.add_function(
+        function=calculate_after_treatment_temperature_threshold,
+        inputs=['engine_normalization_temperature',
+                'initial_engine_temperature'],
+        outputs=['after_treatment_temperature_threshold']
+    )
+
+    co2_emission.add_function(
         function=define_tau_function,
-        inputs=['engine_normalization_temperature', 'initial_engine_temperature'],
+        inputs=['after_treatment_temperature_threshold'],
         outputs=['tau_function']
+    )
+
+    co2_emission.add_function(
+        function=calculate_extended_phases_integration_times,
+        inputs=['times', 'velocities', 'on_engine', 'phases_integration_times',
+                'engine_coolant_temperatures',
+                'after_treatment_temperature_threshold',
+                'co2_normalization_references'],
+        outputs=['extended_phases_integration_times'],
+    )
+
+    co2_emission.add_function(
+        function=calculate_extended_cumulative_co2_emissions,
+        inputs=['times', 'on_engine', 'extended_phases_integration_times',
+                'co2_normalization_references', 'phases_integration_times',
+                'phases_co2_emissions', 'phases_distances'],
+        outputs=['extended_cumulative_co2_emissions']
     )
 
     co2_emission.add_function(
@@ -86,6 +110,29 @@ def co2_emission():
     )
 
     co2_emission.add_function(
+        function=calculate_phases_distances,
+        inputs=['times', 'extended_phases_integration_times', 'velocities'],
+        outputs=['extended_phases_distances']
+    )
+
+    co2_emission.add_function(
+        function=calculate_phases_co2_emissions,
+        inputs=['extended_cumulative_co2_emissions',
+                'extended_phases_distances'],
+        outputs=['extended_phases_co2_emissions']
+    )
+
+    co2_emission.add_function(
+        function=dsp_utl.bypass,
+        inputs=['phases_integration_times', 'cumulative_co2_emissions',
+                'phases_distances'],
+        outputs=['extended_phases_integration_times',
+                 'extended_cumulative_co2_emissions',
+                 'extended_phases_distances'],
+        weight=5
+    )
+
+    co2_emission.add_function(
         function=calculate_cumulative_co2_v1,
         inputs=['phases_co2_emissions', 'phases_distances'],
         outputs=['cumulative_co2_emissions']
@@ -94,7 +141,8 @@ def co2_emission():
     co2_emission.add_function(
         function=identify_co2_emissions,
         inputs=['co2_emissions_model', 'co2_params_initial_guess', 'times',
-                'phases_integration_times', 'cumulative_co2_emissions'],
+                'extended_phases_integration_times',
+                'extended_cumulative_co2_emissions'],
         outputs=['identified_co2_emissions'],
         weight=5
     )

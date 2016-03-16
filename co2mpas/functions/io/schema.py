@@ -356,6 +356,10 @@ def define_data_schema(read=True):
         'phases_co2_emissions': _type(type=And(Use(tuple), (_type(float),)),
                                       length=(2, 4),
                                       read=read),
+        'extended_phases_co2_emissions':
+            _type(type=And(Use(tuple), (_type(float),)), read=read),
+        'extended_phases_integration_times':
+            _type(type=And(Use(tuple), (_type(float),)), read=read),
         'phases_fuel_consumptions': _type(type=And(Use(tuple), (_type(float),)),
                                           length=(2, 4),
                                           read=read),
@@ -377,7 +381,7 @@ def define_data_schema(read=True):
         'engine_speeds_out': np_array,
         'engine_speeds_out_hot': np_array,
         'engine_starts': np_array_bool,
-        'engine_loads': np_array,
+        'co2_normalization_references': np_array,
         'final_drive_powers_in': np_array,
         'final_drive_speeds_in': np_array,
         'final_drive_torques_in': np_array,

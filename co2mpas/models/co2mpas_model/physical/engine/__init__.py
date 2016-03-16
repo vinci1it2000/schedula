@@ -355,6 +355,7 @@ def engine():
             'initial_engine_temperature': 'initial_engine_temperature',
             'fuel_consumptions': 'fuel_consumptions',
             'co2_emissions': 'co2_emissions',
+            'co2_normalization_references': 'co2_normalization_references',
             'fuel_density': 'fuel_density'
         },
         outputs={
@@ -372,7 +373,12 @@ def engine():
             'calibration_status': 'calibration_status',
             'willans_factors': 'willans_factors',
             'optimal_efficiency': 'optimal_efficiency',
-            'phases_fuel_consumptions': 'phases_fuel_consumptions'
+            'phases_fuel_consumptions': 'phases_fuel_consumptions',
+            'extended_phases_integration_times':
+                'extended_phases_integration_times',
+            'extended_phases_co2_emissions': 'extended_phases_co2_emissions',
+            'after_treatment_temperature_threshold':
+                'after_treatment_temperature_threshold'
         },
         inp_weight={'co2_params': EPS}
     )
