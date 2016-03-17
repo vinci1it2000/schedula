@@ -22,7 +22,7 @@ Modules:
 import co2mpas.dispatcher.utils as dsp_utl
 
 
-def select_inputs_for_prediction(*data):
+def select_inputs_for_prediction(data, base=None):
     """
     Selects the data required to predict the CO2 emissions with CO2MPAS model.
 
@@ -36,8 +36,6 @@ def select_inputs_for_prediction(*data):
     """
 
     ids = [
-        'times',
-        'velocities',
         'aerodynamic_drag_coefficient',
         'air_density',
         'angle_slope',
@@ -80,12 +78,22 @@ def select_inputs_for_prediction(*data):
         'vehicle_mass',
     ]
 
-    data = dsp_utl.combine_dicts(*data)
+    ids_base = [
+        'times',
+        'velocities'
+    ]
+
+    if base:
+        data = dsp_utl.combine_dicts(data, base)
+    else:
+        base = data
 
     if data.get('gear_box_type', 'manual') == 'manual':
-        ids.append('gears')
+        ids_base.append('gears')
 
-    return dsp_utl.selector(ids, data, allow_miss=True)
+    data = dsp_utl.selector(ids, data, allow_miss=True)
+
+    return dsp_utl.combine_dicts(data, dsp_utl.selector(ids_base, base))
 
 
 def select_precondition_inputs(cycle_inputs, precondition_outputs):

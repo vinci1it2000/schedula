@@ -11,7 +11,7 @@ Usage:
   co2mpas batch       [-v | --logconf <conf-file>] [--predict-wltp]
                       [--only-summary] [--out-template <xlsx-file> | --charts]
                       [--plot-workflow] [--overwrite-cache] [-O <output-folder>]
-                      [--soft-validation] [--theoretic-wltp]
+                      [--soft-validation] [--no-theoretic-wltp]
                       [<input-path>]... [--gui]
   co2mpas demo        [-v | --logconf <conf-file>] [-f] [<output-folder>]
                       [--gui]
@@ -36,7 +36,7 @@ Options:
   --only-summary              Does not save vehicle outputs just the summary file.
   --overwrite-cache           Overwrites the cached file.
   --predict-wltp              Whether to predict also WLTP values.
-  --theoretic-wltp            Whether to predict also theoretic WLTP values.
+  --no-theoretic-wltp         Whether to not predict theoretic WLTP values.
   --charts                    Add basic charts to output file.
   --soft-validation           Partial data validation.
   --out-template <xlsx-file>  An '*.xlsx' file to clone and append model-results
@@ -460,7 +460,7 @@ def _run_batch(opts):
                          output_template_xl_fpath=opts['--out-template'],
                          overwrite_cache=opts['--overwrite-cache'],
                          soft_validation=opts['--soft-validation'],
-                         enable_theoretic_WLTP=opts['--theoretic-wltp'])
+                         enable_theoretic_WLTP=not opts['--no-theoretic-wltp'])
 
 
 def _main(*args):
