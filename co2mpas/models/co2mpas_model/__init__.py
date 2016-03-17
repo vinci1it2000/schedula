@@ -53,6 +53,11 @@ def co2mpas_model():
         default_value=False
     )
 
+    dsp.add_data(
+        data_id='theoretic_wltp',
+        default_value=False
+    )
+
     ############################################################################
     #                          PRECONDITIONING CYCLE
     ############################################################################
@@ -104,6 +109,21 @@ def co2mpas_model():
         outputs=['prediction_wltp_h_outputs'],
     )
 
+    dsp.add_function(
+        function=dsp_utl.add_args(select_inputs_for_prediction),
+        inputs=['theoretic_wltp', 'calibration_wltp_h_inputs',
+                'wltp_h_theoretics'],
+        outputs=['theoretic_wltp_h_inputs'],
+        input_domain=lambda *args: args[0]
+    )
+
+    dsp.add_function(
+        function_id='predict_theoretic_wltp_h',
+        function=dsp_utl.SubDispatch(physical()),
+        inputs=['calibrated_co2mpas_models', 'theoretic_wltp_h_inputs'],
+        outputs=['theoretic_wltp_h_outputs'],
+    )
+
     ############################################################################
     #                          WLTP - LOW CYCLE
     ############################################################################
@@ -135,6 +155,21 @@ def co2mpas_model():
         function=dsp_utl.SubDispatch(physical()),
         inputs=['calibrated_co2mpas_models', 'prediction_wltp_l_inputs'],
         outputs=['prediction_wltp_l_outputs'],
+    )
+
+    dsp.add_function(
+        function=dsp_utl.add_args(select_inputs_for_prediction),
+        inputs=['theoretic_wltp', 'calibration_wltp_l_inputs',
+                'wltp_l_theoretics'],
+        outputs=['theoretic_wltp_l_inputs'],
+        input_domain=lambda *args: args[0]
+    )
+
+    dsp.add_function(
+        function_id='predict_theoretic_wltp_l',
+        function=dsp_utl.SubDispatch(physical()),
+        inputs=['calibrated_co2mpas_models', 'theoretic_wltp_l_inputs'],
+        outputs=['theoretic_wltp_l_outputs'],
     )
 
     ############################################################################

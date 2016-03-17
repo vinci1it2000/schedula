@@ -32,7 +32,7 @@ log = logging.getLogger(__name__)
 
 _re_params_name = regex.compile(
         r"""
-            ^(?P<as>(target|input|calibration|prediction)[\s]+)?[\s]*
+            ^(?P<as>(target|input|calibration|prediction|theoretic)[\s]+)?[\s]*
             (?P<id>[^\s]*)[\s]*
             (?P<cycle>WLTP-[HLP]{1}|NEDC)?$
         """, regex.IGNORECASE | regex.X | regex.DOTALL)
@@ -41,10 +41,10 @@ _re_params_name = regex.compile(
 _re_sheet_name = regex.compile(
         r"""((?P<output>
                 ^(?P<cycle>(WLTP_[HLP]{1}|NEDC))_
-                (?P<as>(target|input|calibration|prediction)s)_
+                (?P<as>(target|input|calibration|prediction|theoretic)s)_
                 (?P<type>(parameter|time_serie)s)$)
             |
-                ^(?P<cycle>(WLTP-[HLP]{1}|NEDC))(recon)?$
+                ^(?P<cycle>(WLTP-[HLPT]{1}|NEDC))(recon)?$
         )""", regex.IGNORECASE | regex.X | regex.DOTALL)
 
 
@@ -75,7 +75,7 @@ def parse_excel_file(file_path):
                 'what': 'input',
                 'as': 'inputs',
                 'type': 'parameters',
-                'cycle': ('nedc', 'wltp_h', 'wltp_l', 'wltp_p')
+                'cycle': ('nedc', 'wltp_h', 'wltp_l', 'wltp_p', 'wltp_t')
             }
         else:
             match = _re_sheet_name.match(sheet_name)
@@ -108,6 +108,11 @@ def parse_excel_file(file_path):
                 raise ValueError(msg.format(drop, sheet_name))
 
         for k, v, m in iter_values(data, default=match):
+
+            if m['cycle'] == 'wltp_t':
+                m['cycle'] = ('wltp_h', 'wltp_l')
+                m['as'] = 'theoretics'
+
             for c in stlp(m['cycle']):
                 get_nested_dicts(res, m['what'], c.replace('-', '_'), m['as'])[k] = v
 
@@ -225,8 +230,8 @@ def clone_excel(file_name, output_file_name):
 
 def _sort_sheets(x):
     imp = ['comparison', 'graphs', 'nedc', 'wltp_h',
-           'wltp_l', 'wltp_p', 'predictions', 'inputs', 'parameters',
-           'time_series', 'selection_scores']
+           'wltp_l', 'wltp_p', 'predictions', 'theoretics', 'inputs',
+           'parameters', 'time_series', 'selection_scores']
 
     w = ()
     for i, k in enumerate(imp):

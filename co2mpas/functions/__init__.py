@@ -60,12 +60,14 @@ def parse_dsp_model(model):
             'calibrations': 'calibration_wltp_l_outputs',
             'targets': 'wltp_l_targets',
             'predictions': 'prediction_wltp_l_outputs',
+            'theoretics': 'theoretic_wltp_l_outputs',
             'inputs': 'wltp_l_inputs',
         },
         'wltp_h': {
             'calibrations': 'calibration_wltp_h_outputs',
             'targets': 'wltp_h_targets',
             'predictions': 'prediction_wltp_h_outputs',
+            'theoretics': 'theoretic_wltp_h_outputs',
             'inputs': 'wltp_h_inputs',
         },
         'wltp_p': {
@@ -202,7 +204,8 @@ def _process_folder_files(
         input_files, output_folder, plot_workflow=False,
         enable_prediction_WLTP=False, with_output_file=True,
         output_template_xl_fpath=None, with_charts=False,
-        overwrite_cache=False, soft_validation=False):
+        overwrite_cache=False, soft_validation=False,
+        enable_theoretic_WLTP=False):
     """
     Process all xls-files in a folder with CO2MPAS-model.
 
@@ -248,7 +251,8 @@ def _process_folder_files(
                 output_template_xl_fpath=output_template_xl_fpath,
                 with_charts=with_charts,
                 overwrite_cache=overwrite_cache,
-                soft_validation=soft_validation
+                soft_validation=soft_validation,
+                enable_theoretic_WLTP=enable_theoretic_WLTP
         )
 
         _add2summary(summary, res)
@@ -260,7 +264,8 @@ def _process_vehicle(
         model, fpath, output_folder='.', timestamp='', plot_workflow=False,
         enable_prediction_WLTP=False, with_output_file=False,
         output_template_xl_fpath=None, with_charts=False,
-        overwrite_cache=False, soft_validation=False):
+        overwrite_cache=False, soft_validation=False,
+        enable_theoretic_WLTP=False):
     fname = osp.splitext(osp.basename(fpath))[0]
     if not osp.isfile(fpath):
         log.warn('File  %r does not exist!', fpath)
@@ -270,10 +275,11 @@ def _process_vehicle(
         'input_file_name': fpath,
         'start_time': datetime.datetime.today(),
         'prediction_wltp': enable_prediction_WLTP,
+        'theoretic_wltp': enable_theoretic_WLTP,
         'output_template': output_template_xl_fpath,
         'with_charts': with_charts,
         'overwrite_cache': overwrite_cache,
-        'soft_validation': soft_validation
+        'soft_validation': soft_validation,
     }
 
     ofname = None

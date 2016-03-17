@@ -62,8 +62,11 @@ def compare_outputs_vs_targets(data):
     for k, v in data.items():
         if 'targets' in v:
             r = {}
-            for i in {'predictions', 'calibrations'}.intersection(v):
-                t, o = v['targets'], v[i]
+            t, i = v['targets'], v['inputs']
+
+            for i in {'predictions', 'calibrations', 'theoretics'}.intersection(v):
+                o = v[i]
+                o = dsp_utl.selector(set(o).difference(i), o)
                 c = _compare(t, o, func=_compare, metrics=metrics)
                 if c:
                     r[i] = c
@@ -170,7 +173,7 @@ def _map_cycle_report_graphs():
 
 
 def _get_cycle_time_series(data):
-    ids = ['targets', 'calibrations', 'predictions']
+    ids = ['targets', 'calibrations', 'predictions', 'theoretics']
     data = dsp_utl.selector(ids, data, allow_miss=True)
     data = dsp_utl.map_dict({k: k[:-1] for k in ids}, data)
     ts = 'time_series'
@@ -219,7 +222,7 @@ def get_chart_reference(data, with_charts=False):
     _map = _map_cycle_report_graphs()
     data = dsp_utl.selector(['nedc', 'wltp_p', 'wltp_h', 'wltp_l'], data)
     for k, v in sorted(stack_nested_keys(data)):
-        if k[1] not in ('calibrations', 'predictions', 'targets'):
+        if k[1] not in ('calibrations', 'predictions', 'targets', 'theoretics'):
             continue
         m = _map.get(k[-1], None)
         if m and k[-2] == 'time_series':
@@ -262,7 +265,8 @@ def _search_times(path, data, vector):
 def _ref_targets(path, data):
     if path[1] == 'targets':
         d = data[path[0]]
-        p = next((p for p in ('inputs', 'calibrations', 'predictions')
+        p = next((p for p in ('inputs', 'calibrations', 'predictions',
+                              'theoretics')
                  if path[-1] in d.get(p, {}).get('time_series', {})), None)
 
         if not p:
@@ -292,7 +296,7 @@ def _parse_outputs(tag, data):
 def extract_summary(data, vehicle_name):
     res = {}
     keys = ('nedc', 'wltp_h', 'wltp_l', 'wltp_p')
-    stages = ('calibrations', 'predictions', 'targets', 'inputs')
+    stages = ('calibrations', 'predictions', 'targets', 'inputs', 'theoretics')
 
     wltp_phases = ('co2_emission_low', 'co2_emission_medium',
                    'co2_emission_high', 'co2_emission_extra_high')
@@ -316,7 +320,7 @@ def extract_summary(data, vehicle_name):
                 p_keys = params_keys
             p = dsp_utl.selector(p_keys, j['parameters'], allow_miss=True)
 
-            if i == 'predictions' or ('co2_params' in p and not p['co2_params']):
+            if i in ('predictions', 'theoretics') or ('co2_params' in p and not p['co2_params']):
                 p.pop('co2_params', None)
                 if 'co2_params_calibrated' in p:
                     n = p.pop('co2_params_calibrated').valuesdict()

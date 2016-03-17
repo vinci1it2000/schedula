@@ -56,7 +56,7 @@ def check_cache_fpath_exists(overwrite_cache, fpath, cache_fpath):
         return False
     cache_fpath = pathlib.Path(cache_fpath)
     if cache_fpath.exists():
-        inp_stats = pathlib.Path(fpath).stat()   ## Will scream if INPUT does not exist.
+        inp_stats = pathlib.Path(fpath).stat()  ## Will scream if INPUT does not exist.
         cache_stats = cache_fpath.stat()
         if inp_stats.st_mtime <= cache_stats.st_mtime:
             return True
@@ -280,7 +280,8 @@ def _param_orders():
         'co2_emission_value': 'co2_emission 5',
         'target': '1',
         'prediction': '2',
-        'calibration': '3',
+        'calibration': '4',
+        'theoretic': '3',
         'av_engine_speeds_out': 'willans 01',
         'av_engine_powers_out': 'willans 02',
         'engine_bmep': 'willans 03',
