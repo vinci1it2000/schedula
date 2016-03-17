@@ -66,6 +66,8 @@ Miscellaneous:
   -v, --verbose               Print more verbosely messages - overridden by --logconf.
   --logconf <conf-file>       Path to a logging-configuration file, according to:
                                   https://docs.python.org/3/library/logging.config.html#configuration-file-format
+                              If the file-extension is '.yaml' or '.yml', it reads a dict-schema from YAML:
+                                  https://docs.python.org/3.5/library/logging.config.html#logging-config-dictschema
 
 * Items enclosed in `[]` are optional.
 
@@ -108,7 +110,8 @@ from co2mpas import (__version__ as proj_ver, __file__ as proj_file,
 from co2mpas import autocompletion
 from collections import OrderedDict
 import glob
-import logging
+import io
+import logging.config
 from os import path as osp
 import os
 import re
@@ -117,6 +120,8 @@ import sys
 
 import docopt
 from tqdm import tqdm
+import yaml
+
 
 class CmdException(Exception):
     """Polite user-message avoiding ``exit(msg)`` when ``main()`` invoked from python."""
@@ -130,7 +135,12 @@ logging.getLogger('pandalone.xleash.io').setLevel(logging.WARNING)
 
 def init_logging(verbose, frmt=None, logconf_file=None):
     if logconf_file:
-        logging.config.fileConfig(logconf_file)
+        if osp.splitext(logconf_file)[1] in '.yaml' or '.yml':
+            with io.open(logconf_file) as fd:
+                log_dict = yaml.safe_load(fd)
+                logging.config.dictConfig(log_dict)
+        else:
+            logging.config.fileConfig(logconf_file)
     else:
         if verbose is None:
             level = logging.WARNING
