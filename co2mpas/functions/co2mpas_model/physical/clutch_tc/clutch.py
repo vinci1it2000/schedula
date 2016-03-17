@@ -128,8 +128,7 @@ def _calibrate_clutch_prediction_model(
             base_estimator=LinearRegression(fit_intercept=False),
             random_state=0
         ).fit(X, delta_speeds).predict
-
-    except ValueError:
+    except ValueError:  # Setting MAD as residual_threshold is too low.
         model = default_model
 
     return error_func(model), model
