@@ -308,6 +308,12 @@ def engine():
         outputs=['auxiliaries_power_losses']
     )
 
+    engine.add_function(
+        function=default_fuel_density,
+        inputs=['fuel_type'],
+        outputs=['fuel_density']
+    )
+
     from co2mpas.models.co2mpas_model.physical.engine.co2_emission import \
         co2_emission
 
@@ -348,6 +354,7 @@ def engine():
             'calibration_status': 'calibration_status',
             'fuel_consumptions': 'fuel_consumptions',
             'co2_emissions': 'co2_emissions',
+            'fuel_density': 'fuel_density'
         },
         outputs={
             'co2_emissions_model': 'co2_emissions_model',
@@ -363,7 +370,8 @@ def engine():
             'phases_co2_emissions': 'phases_co2_emissions',
             'calibration_status': 'calibration_status',
             'willans_factors': 'willans_factors',
-            'optimal_efficiency': 'optimal_efficiency'
+            'optimal_efficiency': 'optimal_efficiency',
+            'phases_fuel_consumptions': 'phases_fuel_consumptions'
         },
         inp_weight={'co2_params': EPS}
     )

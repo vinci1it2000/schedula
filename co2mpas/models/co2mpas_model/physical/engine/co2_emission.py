@@ -224,4 +224,10 @@ def co2_emission():
         outputs=['co2_params_calibrated', 'calibration_status']
     )
 
+    co2_emission.add_function(
+        function=calculate_phases_fuel_consumptions,
+        inputs=['phases_co2_emissions', 'fuel_carbon_content', 'fuel_density'],
+        outputs=['phases_fuel_consumptions']
+    )
+
     return co2_emission

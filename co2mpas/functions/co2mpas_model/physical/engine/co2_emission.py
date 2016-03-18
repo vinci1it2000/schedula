@@ -1274,3 +1274,30 @@ def calibrate_co2_params_v1(
     success += [(s, p), (None, None), (None, None)]
 
     return p, success
+
+
+def calculate_phases_fuel_consumptions(
+        phases_co2_emissions, fuel_carbon_content, fuel_density):
+    """
+    Calculates cycle phases fuel consumption [l/100km].
+
+    :param phases_co2_emissions:
+        CO2 emission of cycle phases [CO2g/km].
+    :type phases_co2_emissions: numpy.array
+
+    :param fuel_carbon_content:
+        Fuel carbon content [CO2g/g].
+    :type fuel_carbon_content: float
+
+    :param fuel_density:
+        Fuel density [g/l].
+    :type fuel_density: float
+
+    :return:
+        Fuel consumption of cycle phases [l/100km].
+    :rtype: numpy.array
+    """
+
+    c = 100.0 / (fuel_density * fuel_carbon_content)
+
+    return phases_co2_emissions * c

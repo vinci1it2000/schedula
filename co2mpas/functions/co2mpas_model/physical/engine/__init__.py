@@ -1281,3 +1281,24 @@ def calculate_auxiliaries_torque_losses(times, auxiliaries_torque_loss):
     """
 
     return np.ones_like(times, dtype=float) * auxiliaries_torque_loss
+
+
+def default_fuel_density(fuel_type):
+    """
+    Returns the default fuel density [g/l].
+
+    :param fuel_type:
+        Fuel type (gasoline or diesel).
+    :type fuel_type: str
+
+    :return:
+        Fuel density [g/l].
+    :rtype: float
+    """
+
+    density = {
+        'gasoline': 750.0,
+        'diesel': 835.0
+    }[fuel_type]
+
+    return density

@@ -298,29 +298,31 @@ def extract_summary(data, vehicle_name):
     keys = ('nedc', 'wltp_h', 'wltp_l', 'wltp_p')
     stages = ('calibrations', 'predictions', 'targets', 'inputs', 'theoretics')
 
-    wltp_phases = ('co2_emission_low', 'co2_emission_medium',
-                   'co2_emission_high', 'co2_emission_extra_high')
-    nedc_phases = ('co2_emission_UDC', 'co2_emission_EUDC')
+    wltp_phases = ('low', 'medium', 'high', 'extra_high')
+    nedc_phases = ('UDC', 'EUDC')
 
-    target_keys = wltp_phases + nedc_phases + ('co2_emission_value',)
+    co2_target_keys = wltp_phases + nedc_phases + ('value',)
+    co2_target_keys = tuple('co2_emission_%s' % v for v in co2_target_keys)
 
     params_keys = (
         'co2_params', 'calibration_status', 'co2_params', 'model_scores',
         'scores', 'co2_params_calibrated',
         'phases_co2_emissions', 'willans_factors', 'correct_f0',
-    ) + target_keys
+        'phases_fuel_consumptions'
+    ) + co2_target_keys
 
     for k, v in dsp_utl.selector(keys, data, allow_miss=True).items():
         for i, j in (i for i in v.items() if i[0] in stages):
             if 'parameters' not in j:
                 continue
             if i in ('targets', 'inputs'):
-                p_keys = target_keys
+                p_keys = co2_target_keys
             else:
                 p_keys = params_keys
             p = dsp_utl.selector(p_keys, j['parameters'], allow_miss=True)
 
-            if i in ('predictions', 'theoretics') or ('co2_params' in p and not p['co2_params']):
+            if i in ('predictions', 'theoretics') or \
+                    ('co2_params' in p and not p['co2_params']):
                 p.pop('co2_params', None)
                 if 'co2_params_calibrated' in p:
                     n = p.pop('co2_params_calibrated').valuesdict()
@@ -328,7 +330,14 @@ def extract_summary(data, vehicle_name):
 
             if 'phases_co2_emissions' in p:
                 _map = nedc_phases if k == 'nedc' else wltp_phases
+                _map = tuple('co2_emission_%s' % v for v in _map)
                 p.update(dsp_utl.map_list(_map, *p.pop('phases_co2_emissions')))
+
+            if 'phases_fuel_consumptions' in p:
+                _map = nedc_phases if k == 'nedc' else wltp_phases
+                _map = tuple('fuel_consumption_%s' % v for v in _map)
+                a = p.pop('phases_fuel_consumptions')
+                p.update(dsp_utl.map_list(_map, *a))
 
             if 'calibration_status' in p:
                 n = 'calibration_status'

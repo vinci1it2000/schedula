@@ -316,7 +316,8 @@ def physical():
             'clutch_tc_speeds_delta': 'clutch_tc_speeds_delta',
             'calibration_status': 'calibration_status',
             'status_start_stop_activation_time':
-                'status_start_stop_activation_time'
+                'status_start_stop_activation_time',
+            'fuel_density': 'fuel_density'
         },
         outputs={
             'auxiliaries_torque_losses': 'auxiliaries_torque_losses',
@@ -361,7 +362,9 @@ def physical():
             'status_start_stop_activation_time':
                 'status_start_stop_activation_time',
             'willans_factors': 'willans_factors',
-            'optimal_efficiency': 'optimal_efficiency'
+            'optimal_efficiency': 'optimal_efficiency',
+            'phases_fuel_consumptions': 'phases_fuel_consumptions',
+            'fuel_density': 'fuel_density'
         }
     )
 
