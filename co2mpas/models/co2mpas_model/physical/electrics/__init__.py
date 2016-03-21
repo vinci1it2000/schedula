@@ -84,9 +84,15 @@ def electrics():
     )
 
     electrics.add_function(
+        function=identify_alternator_starts_windows,
+        inputs=['times', 'engine_starts', 'alternator_currents'],
+        outputs=['starts_windows']
+    )
+
+    electrics.add_function(
         function=identify_charging_statuses,
         inputs=['alternator_currents', 'clutch_tc_powers', 'on_engine',
-                'alternator_current_threshold'],
+                'alternator_current_threshold', 'starts_windows'],
         outputs=['alternator_statuses']
     )
 

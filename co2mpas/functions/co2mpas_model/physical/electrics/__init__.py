@@ -141,18 +141,16 @@ def identify_electric_loads(
     off = min(0.0, c * reject_outliers(b_c[bL], med=np.mean)[0])
     on = min(off, c * reject_outliers(b_c[bH] + a_c[bH], med=np.mean)[0])
 
-    dt = TIME_WINDOW / 2.0
     loads = [off, on]
     start_demand = []
 
-    for t in times[engine_starts]:
-        b = (t - dt <= times) & (times <= t + dt)
-        p = b_c[b] * c
+    for i, j in _starts_windows(times, engine_starts):
+        p = b_c[i:j] * c
         p[p > 0] = 0.0
-        p = np.trapz(p, x=times[b])
+        p = np.trapz(p, x=times[i:j])
 
         if p < 0:
-            l = np.trapz(np.choose(on_engine[b], loads), x=times[b])
+            l = np.trapz(np.choose(on_engine[i:j], loads), x=times[i:j])
             if p < l:
                 start_demand.append(p - l)
 
@@ -416,16 +414,54 @@ def identify_alternator_current_threshold(
     b, l = np.logical_not(on_engine), -float('inf')
     if not b.any():
         b, l = velocities < VEL_EPS, -1.0
+        b &= alternator_currents < 0
 
-    b &= alternator_currents < 0
     if b.any():
         return min(0.0, max(reject_outliers(alternator_currents[b])[0], l))
     return 0.0
 
 
+def _starts_windows(times, engine_starts):
+    dt = TIME_WINDOW / 2
+    j = 0
+    for t in times[engine_starts]:
+        i = np.searchsorted(times[j:], t - dt)
+        j = np.searchsorted(times[j:], t + dt) + i
+        yield i, j
+
+
+def identify_alternator_starts_windows(
+        times, engine_starts, alternator_currents):
+    """
+    Identifies the alternator starts windows [-].
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
+
+    :param engine_starts:
+        When the engine starts [-].
+    :type engine_starts: numpy.array
+
+    :param alternator_currents:
+        Alternator current vector [A].
+    :type alternator_currents: numpy.array
+
+    :return:
+        Alternator starts windows [-].
+    :rtype: numpy.array
+    """
+
+    starts_windows = np.zeros_like(times, dtype=bool)
+
+    for i, j in _starts_windows(times, engine_starts):
+        starts_windows[i:j] = (alternator_currents[i:j] > 0).any()
+    return starts_windows
+
+
 def identify_charging_statuses(
         alternator_currents, clutch_tc_powers, on_engine,
-        alternator_current_threshold):
+        alternator_current_threshold, starts_windows):
     """
     Identifies when the alternator is on due to 1:state of charge or 2:BERS [-].
 
@@ -455,6 +491,7 @@ def identify_charging_statuses(
 
     status = np.zeros_like(alternator_currents, dtype=int)
     status[(alternator_currents < alternator_current_threshold) & on_engine] = 2
+    off = np.logical_not(on_engine) | starts_windows
 
     b1 = -1
 
@@ -464,11 +501,12 @@ def identify_charging_statuses(
         if s == 2 and p >= 0 and b0 >= b1:
             b1 = b0
 
-            while b1 < n and (status[b1] or not on_engine[b1]):
+            while b1 < n and (status[b1] or off[b1]):
                 b1 += 1
 
-            while b1 > b0 and gb_p[b1] <= 0:
-                b1 -= 1
+            if b1 != n:
+                while b1 > b0 and gb_p[b1] <= 0:
+                    b1 -= 1
 
             if b1 > b0:
                 if f:
