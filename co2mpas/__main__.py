@@ -25,6 +25,10 @@ Usage:
                       <x-label> <y-label> <ref-sheet> [<sync-sheets>]...
                       [-O <output-folder>] [--suffix <suffix>]
                       [--prefix]
+  co2mpas sa          [-v | --logconf <conf-file>] [-f] [--predict-wltp]
+                      [-O <output-folder>] [--soft-validation]
+                      [--no-theoretic-wltp] [<input-path>] [<input-params>]
+                      [<defaults>]...
   co2mpas             [-v | --logconf <conf-file>] (--version | -V)
   co2mpas             --help
 
@@ -382,13 +386,13 @@ def _prompt_options():
 _input_file_regex = re.compile('^\w')
 
 
-def file_finder(xlsx_fpaths):
+def file_finder(xlsx_fpaths, file_ext='*.xlsx'):
     files = set()
     for f in xlsx_fpaths:
         if osp.isfile(f):
             files.add(f)
         elif osp.isdir(f):
-            files.update(glob.glob(osp.join(f, '*.xlsx')))
+            files.update(glob.glob(osp.join(f, file_ext)))
 
     return [f for f in sorted(files) if _input_file_regex.match(osp.basename(f))]
 
@@ -433,6 +437,35 @@ def _cmd_datasync(opts):
                        input_file, prefix)
 
 
+def _cmd_sa(opts):
+    input_path = opts['<input-path>']
+    defaults = opts['<defaults>']
+    out_folder = opts['-O']
+    force = opts['--force']
+    input_params = opts['<input-params>']
+    input_paths = file_finder(input_path)
+
+    if not input_paths:
+        raise CmdException("No <input-path> found! \n"
+                           "\n  Try: co2mpas --help")
+
+    if not osp.isdir(out_folder):
+        if force:
+            from co2mpas.dispatcher.utils.io import mkdirs
+            if not ''.endswith('/'):
+                out_folder = '%s/' % out_folder
+            mkdirs(out_folder)
+        else:
+            raise CmdException("Specify a folder for "
+                               "the '-O %s' option!" % out_folder)
+
+    from co2mpas.sensitivity import run_sa
+    run_sa(input_path, input_params, out_folder, *defaults,
+           enable_prediction_WLTP=opts['--predict-wltp'],
+           soft_validation=opts['--soft-validation'],
+           enable_theoretic_WLTP=not opts['--no-theoretic-wltp'])
+
+
 def _run_batch(opts):
     input_paths = opts['<input-path>']
     output_folder = opts['-O']
@@ -449,8 +482,17 @@ def _run_batch(opts):
                 "\n  Try: co2mpas batch <fpath-1>..."
                 "\n  or : co2mpas --gui"
                 "\n  or : co2mpas --help")
+
     if not osp.isdir(output_folder):
-        raise CmdException("Specify a folder for the '-O %s' option!" % output_folder)
+        if opts['--force']:
+            from co2mpas.dispatcher.utils.io import mkdirs
+            if not ''.endswith('/'):
+                output_folder = '%s/' % output_folder
+            mkdirs(output_folder)
+        else:
+            raise CmdException("Specify a folder for "
+                               "the '-O %s' option!" % output_folder)
+
     from co2mpas.functions import process_folder_files
     process_folder_files(input_paths, output_folder,
                          with_output_file=not opts['--only-summary'],
@@ -487,6 +529,8 @@ def _main(*args):
             _cmd_modelgraph(opts)
         elif opts['datasync']:
             _cmd_datasync(opts)
+        elif opts['sa']:
+            _cmd_sa(opts)
         else: #opts['batch']:
             _run_batch(opts)
 
