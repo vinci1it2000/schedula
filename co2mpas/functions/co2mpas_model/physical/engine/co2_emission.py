@@ -1295,9 +1295,9 @@ def calculate_phases_fuel_consumptions(
 
     :return:
         Fuel consumption of cycle phases [l/100km].
-    :rtype: numpy.array
+    :rtype: tuple
     """
 
     c = 100.0 / (fuel_density * fuel_carbon_content)
 
-    return phases_co2_emissions * c
+    return tuple(np.asarray(phases_co2_emissions) * c)
