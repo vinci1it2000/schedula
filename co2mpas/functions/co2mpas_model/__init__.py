@@ -93,7 +93,7 @@ def select_inputs_for_prediction(data, base=None):
 
     data = dsp_utl.selector(ids, data, allow_miss=True)
 
-    return dsp_utl.combine_dicts(data, dsp_utl.selector(ids_base, base))
+    return dsp_utl.combine_dicts(data, dsp_utl.selector(ids_base, base, allow_miss=True))
 
 
 def select_precondition_inputs(cycle_inputs, precondition_outputs):
