@@ -162,7 +162,7 @@ setup(
         'regex',
         'schema',
         'tqdm',
-        'yaml'
+        'pyyaml',
     ],
     packages=find_packages(exclude=['tests', 'doc']),
     package_data={'co2mpas': [
