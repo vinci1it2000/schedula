@@ -628,6 +628,28 @@ def identify_engine_starts(on_engine):
     return np.append(np.diff(np.array(on_engine, dtype=int)) > 0, False)
 
 
+class Start_stop_model(object):
+    def __init__(self, on_engine_pred=None, start_stop_activation_time=None):
+        self.on = on_engine_pred
+        self.start_stop_activation_time = start_stop_activation_time
+
+    def __call__(self, *args, **kwargs):
+        return self.predict(*args, **kwargs)
+
+    def fit(self, on_engine, *args):
+        self.on = DecisionTreeClassifier(random_state=0, max_depth=4)
+
+        self.on.fit(np.array(args).T, on_engine)
+        return self
+
+    def predict(self, times, *args):
+        on_engine = self.on.predict(np.array(args).T)
+        if self.start_stop_activation_time is not None:
+            on_engine[times <= self.start_stop_activation_time] = True
+
+        return on_engine
+
+
 def calibrate_start_stop_model_v1(
         on_engine, velocities, accelerations, engine_coolant_temperatures):
     """
@@ -654,14 +676,9 @@ def calibrate_start_stop_model_v1(
     :rtype: function
     """
 
-    dt = DecisionTreeClassifier(random_state=0, max_depth=4)
-
-    X = np.array([velocities, accelerations, engine_coolant_temperatures]).T
-
-    dt.fit(X, on_engine)
-
-    def model(times, vel, acc, temp, *args):
-        return dt.predict(np.array([vel, acc, temp]).T)
+    model = Start_stop_model().fit(
+        on_engine, velocities, accelerations, engine_coolant_temperatures
+    )
 
     return model
 
@@ -708,31 +725,22 @@ def calibrate_start_stop_model(
 
     status = bool(fst > sst)
 
-    dt = DecisionTreeClassifier(random_state=0, max_depth=4)
-
-    X = np.array([velocities, accelerations]).T
-
-    dt.fit(X, on_engine)
-
-    def model(times, vel, acc, *args):
-        on_engine = dt.predict(np.array([vel, acc]).T)
-
-        on_engine[times <= start_stop_activation_time] = True
-
-        return on_engine
+    model = Start_stop_model(start_stop_activation_time=sst).fit(
+        on_engine, velocities, accelerations
+    )
 
     return model, status
 
 
 def predict_on_engine(
-        model, times, velocities, accelerations, engine_coolant_temperatures,
-        gears, correct_start_stop_with_gears):
+        start_stop_model, times, velocities, accelerations,
+        engine_coolant_temperatures, gears, correct_start_stop_with_gears):
     """
     Predicts if the engine is on [-].
 
-    :param model:
+    :param start_stop_model:
         Start/stop model.
-    :type model: function
+    :type start_stop_model: Start_stop_model
 
     :param times:
         Time vector [s].
@@ -763,8 +771,9 @@ def predict_on_engine(
     :rtype: numpy.array
     """
 
-    on_engine = model(times, velocities, accelerations,
-                      engine_coolant_temperatures)
+    on_engine = start_stop_model(
+        times, velocities, accelerations, engine_coolant_temperatures
+    )
     on_engine = np.array(on_engine, dtype=int)
 
     if correct_start_stop_with_gears:
