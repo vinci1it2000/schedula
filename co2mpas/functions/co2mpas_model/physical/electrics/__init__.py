@@ -652,13 +652,13 @@ def define_alternator_status_model(
 
     if has_energy_recuperation:
         def bers_pred(X):
-            return X[0][0] < 0
+            return [X[0][0] < 0]
     else:
         def bers_pred(X):
-            return False
+            return [False]
 
     model = Alternator_status_model(
-        charge_pred=lambda X: X[0][0] == 1,
+        charge_pred=lambda X: [X[0][0] == 1],
         bers_pred=bers_pred,
         min_soc=state_of_charge_balance - state_of_charge_balance_window / 2,
         max_soc=state_of_charge_balance + state_of_charge_balance_window / 2
