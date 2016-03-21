@@ -517,6 +517,68 @@ def identify_charging_statuses(
     return status
 
 
+class Alternator_status_model(object):
+    def __init__(self, bers_pred=None, charge_pred=None, min_soc=0.0,
+                 max_soc=100.0):
+        self.bers = bers_pred
+        self.charge = charge_pred
+        self.max = max_soc
+        self.min = min_soc
+
+    def __call__(self, *args, **kwargs):
+        return self.predict(*args, **kwargs)
+
+    def fit(self, alternator_statuses, state_of_charges, clutch_tc_powers,
+            has_energy_recuperation):
+        b = alternator_statuses == 2
+        if has_energy_recuperation and b.any():
+            bers = DecisionTreeClassifier(random_state=0, max_depth=2)
+            c = alternator_statuses != 1
+            bers.fit(np.array([clutch_tc_powers[c]]).T, b[c])
+
+            self.bers = bers.predict  # shortcut name
+        elif has_energy_recuperation:
+            self.bers = lambda X: np.asarray(X) < 0
+        else:
+            self.bers = lambda *args: (False,)
+
+        b = alternator_statuses[1:] == 1
+        self.min, self.max = 0, 100.0
+        if b.any():
+            charge = DecisionTreeClassifier(random_state=0, max_depth=3)
+            X = np.array([alternator_statuses[:-1], state_of_charges[1:]]).T
+            charge.fit(X, b)
+
+            self.charge = charge.predict
+            soc = state_of_charges[1:]
+
+            i = argmax(np.logical_not(b)) if argmax(b) == 0 else 0
+            j = -argmax(np.logical_not(b[::-1])) if argmax(b[::-1]) == 0 else b.size
+            if i < b.size:
+                s = b[i:]
+                self.min = min(soc[i:][s] if s.any() else soc[b])
+            if -j < b.size:
+                s = b[:j]
+                self.max = max(soc[:j][s] if s.any() else soc[b])
+        else:
+            self.charge = lambda *args: (False,)
+
+        return self
+
+    def predict(self, prev_status, soc, gear_box_power_in):
+        status = 0
+
+        if soc < 99.5:
+            if soc < self.min or \
+                    (soc <= self.max and self.charge([(prev_status, soc)])[0]):
+                status = 1
+
+            elif self.bers([(gear_box_power_in,)])[0]:
+                status = 2
+
+        return status
+
+
 def calibrate_alternator_status_model(
         alternator_statuses, state_of_charges, clutch_tc_powers,
         has_energy_recuperation):
@@ -549,52 +611,10 @@ def calibrate_alternator_status_model(
     :rtype: function
     """
 
-    b = alternator_statuses == 2
-    if has_energy_recuperation and b.any():
-        bers = DecisionTreeClassifier(random_state=0, max_depth=2)
-        c = alternator_statuses != 1
-        bers.fit(np.array([clutch_tc_powers[c]]).T, b[c])
-
-        bers_pred = bers.predict  # shortcut name
-    elif has_energy_recuperation:
-        bers_pred = lambda X: np.asarray(X) < 0
-    else:
-        bers_pred = lambda *args: (False,)
-
-    b = alternator_statuses[1:] == 1
-    min_charge_soc, max_charge_soc = 0, 100
-    if b.any():
-        charge = DecisionTreeClassifier(random_state=0, max_depth=3)
-        X = np.array([alternator_statuses[:-1], state_of_charges[1:]]).T
-        charge.fit(X, b)
-
-        charge_pred = charge.predict  # shortcut name
-        soc = state_of_charges[1:]
-
-        i = argmax(np.logical_not(b)) if argmax(b) == 0 else 0
-        j = -argmax(np.logical_not(b[::-1])) if argmax(b[::-1]) == 0 else b.size
-        if i < b.size:
-            s = b[i:]
-            min_charge_soc = min(soc[i:][s] if s.any() else soc[b])
-        if -j < b.size:
-            s = b[:j]
-            max_charge_soc = max(soc[:j][s] if s.any() else soc[b])
-    else:
-        charge_pred = lambda *args: (False,)
-
-    def model(prev_status, soc, gear_box_power_in):
-        status = 0
-
-        if soc < 99.5:
-            if soc < min_charge_soc:
-                status = 1
-            elif charge_pred([(prev_status, soc)])[0] and soc <= max_charge_soc:
-                status = 1
-
-            elif bers_pred([(gear_box_power_in,)])[0]:
-                status = 2
-
-        return status
+    model = Alternator_status_model().fit(
+        alternator_statuses, state_of_charges, clutch_tc_powers,
+        has_energy_recuperation
+    )
 
     return model
 
@@ -630,20 +650,19 @@ def define_alternator_status_model(
     :rtype: function
     """
 
-    dn_soc = state_of_charge_balance - state_of_charge_balance_window / 2
-    up_soc = state_of_charge_balance + state_of_charge_balance_window / 2
+    if has_energy_recuperation:
+        def bers_pred(X):
+            return X[0][0] < 0
+    else:
+        def bers_pred(X):
+            return False
 
-    def model(prev_status, soc, gear_box_power_in):
-        status = 0
-
-        if soc < 100:
-            if soc < dn_soc or (prev_status == 1 and soc < up_soc):
-                status = 1
-
-            elif has_energy_recuperation and gear_box_power_in < 0:
-                status = 2
-
-        return status
+    model = Alternator_status_model(
+        charge_pred=lambda X: X[0][0] == 1,
+        bers_pred=bers_pred,
+        min_soc=state_of_charge_balance - state_of_charge_balance_window / 2,
+        max_soc=state_of_charge_balance + state_of_charge_balance_window / 2
+    )
 
     return model
 
@@ -663,7 +682,7 @@ def predict_vehicle_electrics(
 
     :param alternator_status_model:
         A function that predicts the alternator status.
-    :type alternator_status_model: function
+    :type alternator_status_model: Alternator_status_model
 
     :param alternator_charging_currents:
         Mean charging currents of the alternator (for negative and positive
