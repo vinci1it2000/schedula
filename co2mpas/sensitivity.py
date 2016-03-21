@@ -17,10 +17,12 @@ from co2mpas.functions.co2mpas_model.physical.engine.co2_emission import _set_at
 from co2mpas.functions.co2mpas_model.physical.engine import Start_stop_model
 from co2mpas.functions.co2mpas_model.physical.electrics import Alternator_status_model
 from co2mpas.__main__ import file_finder
+from co2mpas.functions.io.dill import save_dill, load_from_dill
 from copy import deepcopy
 import pandas as pd
 import datetime
 import os.path as osp
+import os
 from tqdm import tqdm
 from multiprocessing import Pool
 
@@ -87,16 +89,23 @@ def run_sa(input_folder, input_parameters, output_folder, *defaults, **kw):
             res = _process_vehicle(model, input_vehicle, **kw)
             for k, v in stack_nested_keys(res['dsp_model'].data_output, depth=2):
                 get_nested_dicts(default, *k[:-1])[k[-1]] = v
-        kw['default'] = default
+        if default:
+            p = datetime.datetime.today().strftime('%Y%m%d_%H%M%S.dill')
+            p = osp.join(output_folder, p)
+            save_dill(default, p)
+            kw['default'] = p
 
     pool = Pool()
     for input_vehicle in file_finder(input_folder):
         args = (input_vehicle, input_parameters, output_folder)
-        _sa(*args, **kw)
-        pool.apply_async(_sa, args, kwds=kw)
+        pool.apply_async(_sa, args, kw)
 
     pool.close()
     pool.join()
+    if 'default' in kw:
+        os.remove(kw['default'])
+
+
 
 
 def _sa(input_vehicle, input_parameters, output_folder, default=None, **kw):
@@ -122,16 +131,16 @@ def _sa(input_vehicle, input_parameters, output_folder, default=None, **kw):
     vehicle_name = inputs['vehicle_name']
 
     dsp_inputs = inputs['dsp_inputs'] = dsp_utl.selector(keys, val)
-    models = dsp_inputs['calibrated_co2mpas_models']
 
     if default:
-        default_models = default['dsp_model'].data_output
+        default = load_from_dill(default)
         for i, m in dsp_inputs.items():
-            if i in default_models:
-                for k, v in default_models[i].items():
+            if i in default and hasattr(m, 'items'):
+                for k, v in default[i].items():
                     if k not in m:
                         m[k] = v
 
+    models = deepcopy(dsp_inputs)
 
     for f in file_finder([input_parameters], file_ext='*.txt'):
         if vehicle_name in f:
@@ -141,15 +150,16 @@ def _sa(input_vehicle, input_parameters, output_folder, default=None, **kw):
     for i, c in tqdm(df.iterrows(), total=df.shape[0], disable=False):
         inputs['vehicle_name'] = '%s: %d' % (vehicle_name, i)
 
-        mds = dsp_inputs['calibrated_co2mpas_models'] = models.copy()
+        mds = dsp_inputs['calibrated_co2mpas_models'] = models['calibrated_co2mpas_models'].copy()
 
         for k, v in c.items():
             k = k.split('/')
-            get_nested_dicts(dsp_inputs, *k[:-1])[k[-1]] = v
+            d = get_nested_dicts(dsp_inputs, *k[:-1])
+            d[k[-1]] = v
 
             if k[-1] == 'has_start_stop':
                 if not v:
-                    m = models['start_stop_model']
+                    m = models['calibrated_co2mpas_models']['start_stop_model']
                     mds['start_stop_model'] = Start_stop_model(
                         on_engine_pred=m.on,
                         start_stop_activation_time=float('inf'),
@@ -157,9 +167,9 @@ def _sa(input_vehicle, input_parameters, output_folder, default=None, **kw):
                     )
             elif k[-1] == 'has_energy_recuperation':
                 if not v:
-                    m = models['alternator_status_model']
+                    m = models['calibrated_co2mpas_models']['alternator_status_model']
                     mds['alternator_status_model'] = Alternator_status_model(
-                        bers_pred=lambda X: False,
+                        bers_pred=lambda X: [False],
                         charge_pred=m.charge,
                         min_soc=m.min,
                         max_soc=m.max
