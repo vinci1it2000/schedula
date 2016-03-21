@@ -3,6 +3,8 @@ import numpy as np
 import co2mpas.dispatcher.utils as dsp_utl
 from .. import stack_nested_keys, get_nested_dicts
 from ..co2mpas_model.physical.gear_box.AT_gear import CMV, MVL, GSPV
+from ..co2mpas_model.physical.engine import Start_stop_model
+from ..co2mpas_model.physical.electrics import Alternator_status_model
 from sklearn.tree import DecisionTreeClassifier
 from lmfit import Parameters, Parameter
 from collections import Iterable
@@ -76,7 +78,7 @@ def _function(error=None, read=True, **kwargs):
     if read:
         error = error or 'should be a function!'
         return Use(_check_function, error=error)
-    return And(_function(), Use(lambda x: dsp_utl.NONE), error=error)
+    return _eval(And(_function(), Use(lambda x: dsp_utl.NONE), error=error))
 
 
 def _string(error=None, **kwargs):
