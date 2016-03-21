@@ -629,21 +629,23 @@ def identify_engine_starts(on_engine):
 
 
 class Start_stop_model(object):
-    def __init__(self, on_engine_pred=None, start_stop_activation_time=None):
+    def __init__(self, on_engine_pred=None, start_stop_activation_time=None,
+                 n_args=2):
         self.on = on_engine_pred
         self.start_stop_activation_time = start_stop_activation_time
+        self.n = n_args
 
     def __call__(self, *args, **kwargs):
         return self.predict(*args, **kwargs)
 
     def fit(self, on_engine, *args):
         self.on = DecisionTreeClassifier(random_state=0, max_depth=4)
-
         self.on.fit(np.array(args).T, on_engine)
+        self.n = len(args)
         return self
 
     def predict(self, times, *args):
-        on_engine = self.on.predict(np.array(args).T)
+        on_engine = self.on.predict(np.array(args[:self.n]).T)
         if self.start_stop_activation_time is not None:
             on_engine[times <= self.start_stop_activation_time] = True
 
