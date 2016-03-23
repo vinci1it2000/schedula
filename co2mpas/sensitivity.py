@@ -18,6 +18,7 @@ from co2mpas.functions.co2mpas_model.physical.engine import Start_stop_model
 from co2mpas.functions.co2mpas_model.physical.electrics import Alternator_status_model
 from co2mpas.__main__ import file_finder
 from co2mpas.functions.io.dill import save_dill, load_from_dill
+from co2mpas.functions.io.schema import define_data_schema
 from copy import deepcopy
 import pandas as pd
 import datetime
@@ -25,6 +26,7 @@ import os.path as osp
 import os
 from tqdm import tqdm
 from multiprocessing import Pool
+import numpy as np
 
 
 def run_sa_co2_params(input_folder, input_parameters, output_folder):
@@ -106,8 +108,6 @@ def run_sa(input_folder, input_parameters, output_folder, *defaults, **kw):
         os.remove(kw['default'])
 
 
-
-
 def _sa(input_vehicle, input_parameters, output_folder, default=None, **kw):
 
     model = vehicle_processing_model()
@@ -120,15 +120,22 @@ def _sa(input_vehicle, input_parameters, output_folder, default=None, **kw):
     _add2summary(summary, res)
 
     inputs = dsp_utl.selector(('with_charts', 'vehicle_name'), res)
-    val = res['dsp_model'].data_output
-    keys = set(val).difference(
-            ('prediction_nedc_outputs',
-             'prediction_wltp_l_outputs',
-             'prediction_wltp_h_outputs',
-             'theoretic_wltp_h_outputs',
-             'theoretic_wltp_l_outputs'))
-
     vehicle_name = inputs['vehicle_name']
+
+    for f in file_finder([input_parameters], file_ext='*.txt'):
+        if vehicle_name in f:
+            df = pd.read_csv(f, sep='\t', header=0)
+            break
+
+    var = set()
+    for k in df.columns:
+        k = k.split('/')[0].replace('_inputs', '_outputs')
+        if k == 'nedc_outputs':
+            k = 'prediction_nedc_outputs'
+        var.add(k)
+
+    val = res['dsp_model'].data_output
+    keys = set(val).difference(var)
 
     dsp_inputs = inputs['dsp_inputs'] = dsp_utl.selector(keys, val)
 
@@ -138,14 +145,20 @@ def _sa(input_vehicle, input_parameters, output_folder, default=None, **kw):
             if i in default and hasattr(m, 'items'):
                 for k, v in default[i].items():
                     if k not in m:
+                        if k in ('CMV', 'GSPV', 'MVL'):
+                            vsr = val['prediction_nedc_outputs']['velocity_speed_ratios']
+                            v.convert(vsr)
+                        elif k in ('CMV_Cold_Hot', 'GSPV_Cold_Hot'):
+                            vsr = val['prediction_nedc_outputs']['velocity_speed_ratios']
+                            for at in v.values():
+                                at.convert(vsr)
+                        elif k in ('torque_converter_model',):
+                            v = lambda X: np.zeros(X.shape[0])
                         m[k] = v
 
     models = deepcopy(dsp_inputs)
 
-    for f in file_finder([input_parameters], file_ext='*.txt'):
-        if vehicle_name in f:
-            df = pd.read_csv(f, sep='\t', header=0)
-            break
+    schema = define_data_schema()
 
     for i, c in tqdm(df.iterrows(), total=df.shape[0], disable=False):
         inputs['vehicle_name'] = '%s: %d' % (vehicle_name, i)
@@ -155,7 +168,7 @@ def _sa(input_vehicle, input_parameters, output_folder, default=None, **kw):
         for k, v in c.items():
             k = k.split('/')
             d = get_nested_dicts(dsp_inputs, *k[:-1])
-            d[k[-1]] = v
+            d.update(schema.validate({k[-1]: v}))
 
             if k[-1] == 'has_start_stop':
                 if not v:
