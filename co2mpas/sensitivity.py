@@ -27,6 +27,8 @@ import os
 from tqdm import tqdm
 from multiprocessing import Pool
 import numpy as np
+import regex
+from itertools import product
 
 
 def run_sa_co2_params(input_folder, input_parameters, output_folder):
@@ -127,15 +129,8 @@ def _sa(input_vehicle, input_parameters, output_folder, default=None, **kw):
             df = pd.read_csv(f, sep='\t', header=0)
             break
 
-    var = set()
-    for k in df.columns:
-        k = k.split('/')[0].replace('_inputs', '_outputs')
-        if k == 'nedc_outputs':
-            k = 'prediction_nedc_outputs'
-        var.add(k)
-
     val = res['dsp_model'].data_output
-    keys = set(val).difference(var)
+    keys = set(val).difference(_nodes2remove(df.columns))
 
     dsp_inputs = inputs['dsp_inputs'] = dsp_utl.selector(keys, val)
 
@@ -197,6 +192,52 @@ def _sa(input_vehicle, input_parameters, output_folder, default=None, **kw):
     summary_xl_file = osp.join(output_folder, '%s-%s.xlsx' % (timestamp, vehicle_name))
 
     _save_summary(summary_xl_file, start_time, summary)
+
+
+_re_node_name = regex.compile(
+        r"""
+            ^(?P<cycle>WLTP([-_]{1}[HLP]{1}|)|NEDC)
+            (?P<as>_(input|prediction)s)?$
+        """, regex.IGNORECASE | regex.X | regex.DOTALL)
+
+
+def _nodes2remove(params):
+    var = {k.split('/')[0] for k in params}
+    defaults = {
+        'as': {
+            'nedc': 'inputs',
+            'wltp_t': 'predictions',
+            None: ('inputs', 'predictions')
+        },
+        'cycle': {
+            'wltp_t': ('wltp_h', 'wltp_l'),
+            'wltp': ('wltp_h', 'wltp_l', 'wltp_p')
+        },
+        ('wltp_h', 'inputs'): ('calibration_wltp_h_inputs',
+                               'calibration_wltp_h_outputs'),
+        ('wltp_l', 'inputs'): ('calibration_wltp_l_inputs',
+                               'calibration_wltp_l_outputs'),
+        ('wltp_h', 'predictions'): ('prediction_wltp_h_inputs',
+                                    'prediction_wltp_h_outputs'),
+        ('wltp_l', 'predictions'): ('prediction_wltp_l_inputs',
+                                    'prediction_wltp_l_outputs'),
+        ('wltp_p', 'inputs'): ('wltp_p_outputs',),
+        ('nedc', 'inputs'): ('prediction_nedc_outputs',)
+    }
+    nodes = []
+    for k in var:
+        match =  _re_node_name.match(k)
+        if match:
+            c = match['cycle'].lower().replace('-', '_')
+            a = match['as'].lower().replace('_', '')
+            if not a:
+                a = defaults['as'].get(c, defaults['as'][None])
+
+            c = defaults['cycle'].get(c, c)
+            for v in product(dsp_utl.stlp(c), dsp_utl.stlp(a)):
+                if v in defaults:
+                    nodes.extend(defaults[v])
+    return nodes
 
 
 if __name__ == '__main__':
