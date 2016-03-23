@@ -75,7 +75,7 @@ def parse_excel_file(file_path):
                 'what': 'input',
                 'as': 'inputs',
                 'type': 'parameters',
-                'cycle': ('nedc', 'wltp_h', 'wltp_l', 'wltp_p', 'wltp_t')
+                'cycle': ('nedc', 'wltp_h', 'wltp_l', 'wltp_p')
             }
         else:
             match = _re_sheet_name.match(sheet_name)
@@ -108,13 +108,9 @@ def parse_excel_file(file_path):
                 raise ValueError(msg.format(drop, sheet_name))
 
         for k, v, m in iter_values(data, default=match):
-
-            if m['cycle'] == 'wltp_t':
-                m['cycle'] = ('wltp_h', 'wltp_l')
-                m['as'] = 'theoretics'
-
             for c in stlp(m['cycle']):
-                get_nested_dicts(res, m['what'], c.replace('-', '_'), m['as'])[k] = v
+                c = c.replace('-', '_')
+                get_nested_dicts(res, m['what'], c, m['as'])[k] = v
 
     for k, v in stack_nested_keys(res, depth=3):
         if k[-1] != 'target':
@@ -137,6 +133,11 @@ def iter_values(data, default=None):
     :rtype: (dict, dict)
     """
     default = default or {}
+
+    if default['cycle'] == 'wltp-t':
+        default['as'] = 'theoretics'
+        default['cycle'] = ('wltp_h', 'wltp_l')
+
     for k, v in data.items():
         match = _re_params_name.match(k) if k is not None else None
         if not match or (isinstance(v, float) and isnan(v) or _check_none(v)):
@@ -147,6 +148,11 @@ def iter_values(data, default=None):
         if not match['as'].endswith('s'):
             match['as'] += 's'
         i = match['id']
+
+        if match['cycle'] == 'wltp-t':
+            match['as'] = 'theoretics'
+            match['cycle'] = ('wltp_h', 'wltp_l')
+
         yield i, v, match
 
 
