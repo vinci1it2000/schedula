@@ -22,13 +22,17 @@ Modules:
 import co2mpas.dispatcher.utils as dsp_utl
 
 
-def select_inputs_for_prediction(data, base=None):
+def select_inputs_for_prediction(data, new_data=None):
     """
     Selects the data required to predict the CO2 emissions with CO2MPAS model.
 
     :param data:
-        Calibration output data.
+        Output data.
     :type data: dict
+
+    :param new_data:
+        New data.
+    :type new_data: dict
 
     :return:
         Data required to predict the CO2 emissions with CO2MPAS model.
@@ -36,64 +40,29 @@ def select_inputs_for_prediction(data, base=None):
     """
 
     ids = [
-        'aerodynamic_drag_coefficient',
-        'air_density',
-        'angle_slope',
-        'alternator_nominal_voltage',
-        'alternator_efficiency',
-        'battery_capacity',
-        'cycle_type',
-        'cycle_name',
-        'engine_capacity',
-        'engine_max_torque',
-        'engine_stroke',
-        'engine_thermostat_temperature',
-        'final_drive_efficiency',
-        'final_drive_ratio',
-        'frontal_area',
-        'fuel_type',
-        'gear_box_ratios',
-        'gear_box_type',
-        'idle_engine_speed',
-        'idle_engine_speed_median',
-        'idle_engine_speed_std',
-        'engine_max_power',
-        'engine_max_speed_at_max_power',
-        'r_dynamic',
-        'rolling_resistance_coeff',
-        'time_cold_hot_transition',
-        'velocity_speed_ratios',
-        'co2_params',
-        'engine_idle_fuel_consumption',
-        'engine_type',
-        'engine_is_turbo',
-        'engine_fuel_lower_heating_value',
-        'fuel_carbon_content',
-        'initial_state_of_charge',
-        'f0',
-        'f1',
-        'f2',
-        'initial_temperature',
-        'road_loads',
-        'vehicle_mass',
+        'angle_slope', 'alternator_nominal_voltage', 'alternator_efficiency',
+        'battery_capacity', 'cycle_type', 'cycle_name', 'engine_capacity',
+        'engine_max_torque', 'engine_stroke', 'engine_thermostat_temperature',
+        'final_drive_efficiency', 'final_drive_ratio', 'frontal_area',
+        'fuel_type', 'gear_box_ratios', 'gear_box_type', 'idle_engine_speed',
+        'idle_engine_speed_median', 'idle_engine_speed_std', 'engine_max_power',
+        'engine_max_speed_at_max_power', 'r_dynamic',
+        'rolling_resistance_coeff', 'time_cold_hot_transition',
+        'velocity_speed_ratios', 'co2_params', 'engine_idle_fuel_consumption',
+        'engine_type', 'engine_is_turbo', 'engine_fuel_lower_heating_value',
+        'fuel_carbon_content', 'initial_state_of_charge', 'f0', 'f1', 'f2',
+        'initial_temperature', 'vehicle_mass', 'times', 'velocities', 'gears'
     ]
-
-    ids_base = [
-        'times',
-        'velocities'
-    ]
-
-    if base:
-        data = dsp_utl.combine_dicts(data, base)
-    else:
-        base = data
-
-    if data.get('gear_box_type', 'manual') == 'manual':
-        ids_base.append('gears')
 
     data = dsp_utl.selector(ids, data, allow_miss=True)
 
-    return dsp_utl.combine_dicts(data, dsp_utl.selector(ids_base, base, allow_miss=True))
+    if new_data:
+        data = dsp_utl.combine_dicts(data, new_data)
+
+    if 'gear' in data and data.get('gear_box_type', None) == 'automatic':
+        data.pop('gears')
+
+    return data
 
 
 def select_precondition_inputs(cycle_inputs, precondition_outputs):

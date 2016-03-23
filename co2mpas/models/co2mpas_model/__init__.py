@@ -95,9 +95,15 @@ def co2mpas_model():
                     'predict light-vehicles\' CO2 emissions.'
     )
 
+    dsp.add_data(
+        data_id='wltp_h_predictions',
+        default_value={}
+    )
+
     dsp.add_function(
         function=dsp_utl.add_args(select_inputs_for_prediction),
-        inputs=['prediction_wltp', 'calibration_wltp_h_outputs'],
+        inputs=['prediction_wltp', 'calibration_wltp_h_outputs',
+                'wltp_h_predictions'],
         outputs=['prediction_wltp_h_inputs'],
         input_domain=lambda *args: args[0]
     )
@@ -143,11 +149,17 @@ def co2mpas_model():
                     'predict light-vehicles\' CO2 emissions.'
     )
 
+    dsp.add_data(
+        data_id='wltp_l_predictions',
+        default_value={}
+    )
+
     dsp.add_function(
         function=dsp_utl.add_args(select_inputs_for_prediction),
-        inputs=['prediction_wltp', 'calibration_wltp_l_outputs'],
+        inputs=['prediction_wltp', 'calibration_wltp_l_outputs',
+                'wltp_l_predictions'],
         outputs=['prediction_wltp_l_inputs'],
-    input_domain=lambda *args: args[0]
+        input_domain=lambda *args: args[0]
     )
 
     dsp.add_function(
