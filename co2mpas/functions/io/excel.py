@@ -32,7 +32,7 @@ log = logging.getLogger(__name__)
 
 _re_params_name = regex.compile(
         r"""
-            ^(?P<as>(target|input|calibration|prediction|theoretic)[\s]+)?[\s]*
+            ^(?P<as>(target|input|calibration|prediction)[\s]+)?[\s]*
             (?P<id>[^\s]*)[\s]*
             (?P<cycle>WLTP-[HLP]{1}|NEDC)?$
         """, regex.IGNORECASE | regex.X | regex.DOTALL)
@@ -41,10 +41,11 @@ _re_params_name = regex.compile(
 _re_sheet_name = regex.compile(
         r"""((?P<output>
                 ^(?P<cycle>(WLTP_[HLP]{1}|NEDC))_
-                (?P<as>(target|input|calibration|prediction|theoretic)s)_
+                (?P<as>(target|input|calibration|prediction)s)_
                 (?P<type>(parameter|time_serie)s)$)
             |
-                ^(?P<cycle>(WLTP-[HLPT]{1}|NEDC))(recon)?$
+                ^(?P<as>(target|input|calibration|prediction)s?)?[. ]?
+                (?P<cycle>(WLTP(-[HLP]{1}(recon)?)?|NEDC))?$
         )""", regex.IGNORECASE | regex.X | regex.DOTALL)
 
 
@@ -66,30 +67,21 @@ def parse_excel_file(file_path):
     defaults = {
         'what': 'input',
         'as': 'inputs',
-        'type': 'time_series'
     }
 
     for sheet_name in excel_file.sheet_names:
-        if sheet_name == 'Inputs':
-            match = {
-                'what': 'input',
-                'as': 'inputs',
-                'type': 'parameters',
-                'cycle': ('nedc', 'wltp_h', 'wltp_l', 'wltp_p')
-            }
-        else:
-            match = _re_sheet_name.match(sheet_name)
-            if not match:
-                continue
-            match = {k: v.lower() for k, v in match.groupdict().items() if v}
-            if 'output' in match:
-                match['what'] = 'output'
-                match.pop('output')
-            match = dsp_utl.combine_dicts(defaults, match)
+        match = _re_sheet_name.match(sheet_name)
+        if not match:
+            continue
+        match = {k: v.lower() for k, v in match.groupdict().items() if v}
+        if 'output' in match:
+            match['what'] = 'output'
+            match.pop('output')
+        match = dsp_utl.combine_dicts(defaults, match)
 
         sheet = _open_sheet_by_name_or_index(excel_file.book, 'book', sheet_name)
 
-        if match['type'] == 'parameters':
+        if 'cycle' not in match or match.get('type', None) == 'parameters':
             xl_ref = '#%s!B2:C_:["pipe", ["dict", "recurse"]]' % sheet_name
             data = lasso(xl_ref, sheet=sheet)
         else:
@@ -133,9 +125,9 @@ def iter_values(data, default=None):
     :rtype: (dict, dict)
     """
     default = default or {}
-
-    if default['cycle'] == 'wltp-t':
-        default['as'] = 'theoretics'
+    if 'cycle' not in default:
+        default['cycle'] = ('nedc', 'wltp_p', 'wltp_h', 'wltp_l')
+    elif default['cycle'] == 'wltp':
         default['cycle'] = ('wltp_h', 'wltp_l')
 
     for k, v in data.items():
@@ -149,8 +141,7 @@ def iter_values(data, default=None):
             match['as'] += 's'
         i = match['id']
 
-        if match['cycle'] == 'wltp-t':
-            match['as'] = 'theoretics'
+        if match['cycle'] == 'wltp':
             match['cycle'] = ('wltp_h', 'wltp_l')
 
         yield i, v, match
@@ -236,7 +227,7 @@ def clone_excel(file_name, output_file_name):
 
 def _sort_sheets(x):
     imp = ['comparison', 'graphs', 'nedc', 'wltp_h',
-           'wltp_l', 'wltp_p', 'predictions', 'theoretics', 'inputs',
+           'wltp_l', 'wltp_p', 'predictions', 'inputs',
            'parameters', 'time_series', 'selection_scores']
 
     w = ()

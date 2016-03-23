@@ -11,7 +11,7 @@ Usage:
   co2mpas batch       [-v | --logconf <conf-file>] [--predict-wltp]
                       [--only-summary] [--out-template <xlsx-file> | --charts]
                       [--plot-workflow] [--overwrite-cache] [-O <output-folder>]
-                      [--soft-validation] [--no-theoretic-wltp]
+                      [--soft-validation]
                       [<input-path>]... [--gui]
   co2mpas demo        [-v | --logconf <conf-file>] [-f] [<output-folder>]
                       [--gui]
@@ -27,7 +27,7 @@ Usage:
                       [--prefix]
   co2mpas sa          [-v | --logconf <conf-file>] [-f] [--predict-wltp]
                       [-O <output-folder>] [--soft-validation]
-                      [--no-theoretic-wltp] [<input-path>] [<input-params>]
+                      [<input-path>] [<input-params>]
                       [<defaults>]...
   co2mpas             [-v | --logconf <conf-file>] (--version | -V)
   co2mpas             --help
@@ -40,7 +40,6 @@ Options:
   --only-summary              Does not save vehicle outputs just the summary file.
   --overwrite-cache           Overwrites the cached file.
   --predict-wltp              Whether to predict also WLTP values.
-  --no-theoretic-wltp         Whether to not predict theoretic WLTP values.
   --charts                    Add basic charts to output file.
   --soft-validation           Partial data validation.
   --out-template <xlsx-file>  An '*.xlsx' file to clone and append model-results
@@ -462,8 +461,7 @@ def _cmd_sa(opts):
     from co2mpas.sensitivity import run_sa
     run_sa(input_path, input_params, out_folder, *defaults,
            enable_prediction_WLTP=opts['--predict-wltp'],
-           soft_validation=opts['--soft-validation'],
-           enable_theoretic_WLTP=not opts['--no-theoretic-wltp'])
+           soft_validation=opts['--soft-validation'])
 
 
 def _run_batch(opts):
@@ -501,8 +499,7 @@ def _run_batch(opts):
                          enable_prediction_WLTP=opts['--predict-wltp'],
                          output_template_xl_fpath=opts['--out-template'],
                          overwrite_cache=opts['--overwrite-cache'],
-                         soft_validation=opts['--soft-validation'],
-                         enable_theoretic_WLTP=not opts['--no-theoretic-wltp'])
+                         soft_validation=opts['--soft-validation'])
 
 
 def _main(*args):

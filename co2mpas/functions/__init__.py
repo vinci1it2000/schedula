@@ -60,14 +60,12 @@ def parse_dsp_model(model):
             'calibrations': 'calibration_wltp_l_outputs',
             'targets': 'wltp_l_targets',
             'predictions': 'prediction_wltp_l_outputs',
-            'theoretics': 'theoretic_wltp_l_outputs',
             'inputs': 'wltp_l_inputs',
         },
         'wltp_h': {
             'calibrations': 'calibration_wltp_h_outputs',
             'targets': 'wltp_h_targets',
             'predictions': 'prediction_wltp_h_outputs',
-            'theoretics': 'theoretic_wltp_h_outputs',
             'inputs': 'wltp_h_inputs',
         },
         'wltp_p': {
@@ -78,7 +76,6 @@ def parse_dsp_model(model):
     }
 
     out = model.data_output
-
     res = {}
     for k, v in _map.items():
         v = {j: i for i, j in v.items()}
@@ -89,11 +86,10 @@ def parse_dsp_model(model):
 
     for j in {'nedc', 'wltp_h', 'wltp_l', 'wltp_p'}.intersection(res):
         d = res[j]
-        if j in ('wltp_h', 'wltp_l', 'wltp_p') and 'predictions' in d:
-            cal_inp = out['calibration_%s_inputs' % j]
-            pre_inp = out['prediction_%s_inputs' % j]
-            cal_inp = dsp_utl.selector(set(cal_inp) - set(pre_inp), cal_inp)
-            d['targets'] = dsp_utl.combine_dicts(cal_inp, d.get('targets', {}))
+        if j in ('wltp_h', 'wltp_l') and 'predictions' in d:
+            o = out['calibration_%s_outputs' % j]
+            o = dsp_utl.selector(('co2_emission_value',), o, allow_miss=True)
+            d['targets'] = dsp_utl.combine_dicts(o, d.get('targets', {}))
 
         for k, v in d.items():
             d[k] = _split_by_data_format(v)
@@ -144,9 +140,10 @@ def _split_by_data_format(data):
     d = {}
     time_series = d['time_series'] = {}
     parameters = d['parameters'] = {}
-
+    p = ('full_load_speeds', 'full_load_torques', 'full_load_powers')
     try:
-        s = max(v.size for v in data.values() if hasattr(v, 'size'))
+        s = max(v.size for k, v in data.items()
+                if k not in p and isinstance(v, np.ndarray))
     except ValueError:
         s = None
 
@@ -204,8 +201,7 @@ def _process_folder_files(
         input_files, output_folder, plot_workflow=False,
         enable_prediction_WLTP=False, with_output_file=True,
         output_template_xl_fpath=None, with_charts=False,
-        overwrite_cache=False, soft_validation=False,
-        enable_theoretic_WLTP=False):
+        overwrite_cache=False, soft_validation=False):
     """
     Process all xls-files in a folder with CO2MPAS-model.
 
@@ -251,8 +247,7 @@ def _process_folder_files(
                 output_template_xl_fpath=output_template_xl_fpath,
                 with_charts=with_charts,
                 overwrite_cache=overwrite_cache,
-                soft_validation=soft_validation,
-                enable_theoretic_WLTP=enable_theoretic_WLTP
+                soft_validation=soft_validation
         )
 
         _add2summary(summary, res)
@@ -264,8 +259,7 @@ def _process_vehicle(
         model, fpath, output_folder='.', timestamp='', plot_workflow=False,
         enable_prediction_WLTP=False, with_output_file=False,
         output_template_xl_fpath=None, with_charts=False,
-        overwrite_cache=False, soft_validation=False,
-        enable_theoretic_WLTP=False):
+        overwrite_cache=False, soft_validation=False):
     fname = osp.splitext(osp.basename(fpath))[0]
     if not osp.isfile(fpath):
         log.warn('File  %r does not exist!', fpath)
@@ -275,7 +269,6 @@ def _process_vehicle(
         'input_file_name': fpath,
         'start_time': datetime.datetime.today(),
         'prediction_wltp': enable_prediction_WLTP,
-        'theoretic_wltp': enable_theoretic_WLTP,
         'output_template': output_template_xl_fpath,
         'with_charts': with_charts,
         'overwrite_cache': overwrite_cache,

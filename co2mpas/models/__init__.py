@@ -77,15 +77,9 @@ def vehicle_processing_model():
         default_value=False,
     )
 
-    dsp.add_data(
-        data_id='theoretic_wltp',
-        default_value=False,
-    )
-
     dsp.add_function(
-        function=partial(dsp_utl.map_list,
-                         ['theoretic_wltp', 'prediction_wltp', {}]),
-        inputs=['theoretic_wltp', 'prediction_wltp', 'input_data'],
+        function=partial(dsp_utl.map_list, ['prediction_wltp', {}]),
+        inputs=['prediction_wltp', 'input_data'],
         outputs=['dsp_inputs']
     )
 
