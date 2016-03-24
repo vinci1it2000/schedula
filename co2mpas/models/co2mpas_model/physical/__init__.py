@@ -320,7 +320,8 @@ def physical():
                 'status_start_stop_activation_time',
             'co2_normalization_references': 'co2_normalization_references',
             'fuel_density': 'fuel_density',
-            'phases_integration_times': 'phases_integration_times'
+            'phases_integration_times': 'phases_integration_times',
+            'enable_phases_willans': 'enable_phases_willans'
         },
         outputs={
             'auxiliaries_torque_losses': 'auxiliaries_torque_losses',
@@ -373,7 +374,8 @@ def physical():
             'after_treatment_temperature_threshold':
                 'after_treatment_temperature_threshold',
             'phases_fuel_consumptions': 'phases_fuel_consumptions',
-            'fuel_density': 'fuel_density'
+            'fuel_density': 'fuel_density',
+            'phases_willans_factors': 'phases_willans_factors'
         }
     )
 

@@ -271,6 +271,8 @@ def define_data_schema(read=True):
         'time_cold_hot_transition': positive,
         'co2_params': dictstrfloat,
         'willans_factors': dictstrfloat,
+        'phases_willans_factors': _type(
+            type=And(Use(tuple), (dictstrfloat,)), read=read),
         'optimal_efficiency': dictstrtuple,
         'velocity_speed_ratios': index_dict,
         'gear_box_ratios': index_dict,
@@ -312,6 +314,7 @@ def define_data_schema(read=True):
         'use_dt_gear_shifting': _bool,
         'eco_mode': _bool,
         'correct_start_stop_with_gears': _bool,
+        'enable_phases_willans': _bool,
 
         'alternator_charging_currents': tuplefloat2,
         'alternator_current_model': function,

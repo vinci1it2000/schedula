@@ -241,7 +241,6 @@ def calculate_co2_emissions(
     e_speeds = engine_speeds_out[sub_values]
     e_powers = engine_powers_out[sub_values]
     e_temp = engine_coolant_temperatures[sub_values]
-    e_off = np.logical_not(on_engine[sub_values])
 
     fc = np.zeros_like(e_powers)
 
@@ -1162,6 +1161,23 @@ class _Minimizer(lmfit.Minimizer):
         result.bic = _log_likelihood + np.log(result.ndata) * result.nvarys
 
         return result
+
+
+def calculate_phases_willans_factors(
+        params, engine_fuel_lower_heating_value, engine_stroke, engine_capacity,
+        times, phases_integration_times, engine_speeds_out, engine_powers_out):
+
+    factors = []
+
+    for p in phases_integration_times:
+        i, j = np.searchsorted(times, p)
+
+        factors.append(calculate_willans_factors(
+            params, engine_fuel_lower_heating_value, engine_stroke,
+            engine_capacity, engine_speeds_out[i:j], engine_powers_out[i:j]
+        ))
+
+    return factors
 
 
 def calculate_willans_factors(

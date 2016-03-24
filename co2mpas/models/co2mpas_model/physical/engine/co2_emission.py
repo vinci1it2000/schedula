@@ -267,6 +267,21 @@ def co2_emission():
         outputs=['willans_factors']
     )
 
+    co2_emission.add_data(
+        data_id='enable_phases_willans',
+        default_value=False
+    )
+
+    co2_emission.add_function(
+        function=dsp_utl.add_args(calculate_phases_willans_factors),
+        inputs=['enable_phases_willans', 'co2_params_calibrated',
+                'engine_fuel_lower_heating_value', 'engine_stroke',
+                'engine_capacity', 'times', 'phases_integration_times',
+                'engine_speeds_out', 'engine_powers_out'],
+        outputs=['phases_willans_factors'],
+        input_domain=lambda *args: args[0]
+    )
+
     co2_emission.add_function(
         function=calculate_optimal_efficiency,
         inputs=['co2_params_calibrated', 'mean_piston_speeds'],

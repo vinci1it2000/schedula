@@ -298,6 +298,16 @@ def _add2summary(summary, res):
         get_nested_dicts(summary, *k, default=list).append(v)
 
 
+def _get_contain(d, key, default=None):
+    try:
+        if key not in d:
+            key = next((k for k in d if key in k or k in key))
+
+        return d[key]
+    except (StopIteration, KeyError):
+        return default
+
+
 def _save_summary(fpath, start_time, summary):
     if summary:
         writer = pd.ExcelWriter(fpath, engine='xlsxwriter')
@@ -309,8 +319,8 @@ def _save_summary(fpath, start_time, summary):
 
         def _sort(x):
             x = list(x)
-            x[-1] = _p_map.get(x[-1], x[-1])
-            x[-2] = _p_map.get(x[-2], x[-2])
+            x[-1] = _get_contain(_p_map, x[-1], x[-1])
+            x[-2] = _get_contain(_p_map, x[-2], x[-2])
             return x
 
         c = sorted(summary.columns, key=_sort)
@@ -353,7 +363,7 @@ def _save_summary(fpath, start_time, summary):
             'willans_efficiency': '[-]'
         }
 
-        c = [v + (units.get(v[-1], ' '),) for v in c]
+        c = [v + (_get_contain(units, v[-1], ' '),) for v in c]
 
         summary.columns = pd.MultiIndex.from_tuples(c)
 
