@@ -22,7 +22,7 @@ Sub-Modules:
 from math import pi
 
 import numpy as np
-from scipy.interpolate import InterpolatedUnivariateSpline
+from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 from scipy.optimize import fmin
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error
@@ -48,13 +48,13 @@ def get_full_load(fuel_type):
     """
 
     full_load = {
-        'gasoline': InterpolatedUnivariateSpline(
+        'gasoline': Spline(
             np.linspace(0, 1.2, 13),
             [0.1, 0.198238659, 0.30313392, 0.410104642, 0.516920841,
              0.621300767, 0.723313491, 0.820780368, 0.901750158, 0.962968496,
              0.995867804, 0.953356174, 0.85],
             ext=3),
-        'diesel': InterpolatedUnivariateSpline(
+        'diesel': Spline(
             np.linspace(0, 1.2, 13),
             [0.1, 0.278071182, 0.427366185, 0.572340499, 0.683251935,
              0.772776746, 0.846217049, 0.906754984, 0.94977083, 0.981937981,
@@ -79,14 +79,14 @@ def get_engine_motoring_curve_default(fuel_type): ### TO BE CORRECTED!!
     """
 
     engine_motoring_curve = {
-        'gasoline': InterpolatedUnivariateSpline(
+        'gasoline': Spline(
             np.linspace(0, 1.2, 13),
             [-0.2, -0.20758, -0.21752, -0.22982, -0.24448, -0.2615, -0.28088,
              -0.30262, -0.32672, -0.35318, -0.382, -0.41318, -0.44672],
 #             [-0.2*0.1, -0.20758*0.1, -0.21752*0.1, -0.22982*0.1, -0.24448*0.1, -0.2615*0.1, -0.28088*0.1,
 #              -0.30262*0.1, -0.32672*0.1, -0.35318*0.1, -0.382*0.1, -0.41318*0.1, -0.44672*0.1],
             ext=3),
-        'diesel': InterpolatedUnivariateSpline(
+        'diesel': Spline(
             np.linspace(0, 1.2, 13),
             [-0.2, -0.20758, -0.21752, -0.22982, -0.24448, -0.2615, -0.28088,
              -0.30262, -0.32672, -0.35318, -0.382, -0.41318, -0.44672],
@@ -232,7 +232,7 @@ def calculate_full_load(full_load_speeds, full_load_powers, idle_engine_speed):
     n_norm = (engine_max_speed_at_max_power - idle_engine_speed[0])
     n_norm = (np.asarray(full_load_speeds) - idle_engine_speed[0]) / n_norm
 
-    flc = InterpolatedUnivariateSpline(n_norm, p_norm, ext=3)
+    flc = Spline(n_norm, p_norm, ext=3)
 
     return flc, engine_max_power, engine_max_speed_at_max_power
 
@@ -820,17 +820,17 @@ def calculate_engine_speeds_out_hot(
     :type idle_engine_speed: (float, float)
 
     :return:
-        Engine speed at hot condition [RPM].
-    :rtype: numpy.array
+        Engine speed at hot condition [RPM] and if the engine is in idle [-].
+    :rtype: (numpy.array, numpy.array)
     """
 
     s = gear_box_speeds_in.copy()
 
     s[np.logical_not(on_engine)] = 0
+    on_idle = on_engine & (s < idle_engine_speed[0])
+    s[on_idle] = idle_engine_speed[0]
 
-    s[on_engine & (s < idle_engine_speed[0])] = idle_engine_speed[0]
-
-    return s
+    return s, on_idle
 
 
 def calculate_cold_start_speeds_delta(
@@ -1081,11 +1081,15 @@ def select_cold_start_speed_model(
 
 
 def calculate_engine_powers_out(
-        engine_moment_inertia, clutch_tc_powers, engine_speeds_out, on_engine,
-        engine_power_correction_function, auxiliaries_power_losses,
-        alternator_powers_demand=None):
+        times, engine_moment_inertia, clutch_tc_powers, engine_speeds_out,
+        on_engine, engine_power_correction_function, auxiliaries_power_losses,
+        on_idle, alternator_powers_demand=None):
     """
     Calculates the engine power [kW].
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
 
     :param engine_moment_inertia:
         Engine moment of inertia [kg*m2].
@@ -1112,6 +1116,10 @@ def calculate_engine_powers_out(
         Engine torque losses due to engine auxiliaries [N*m].
     :type auxiliaries_power_losses: numpy.array
 
+    :param on_idle:
+        If the engine is on idle [-].
+    :type on_idle: numpy.array
+
     :param alternator_powers_demand:
         Alternator power demand to the engine [kW].
     :type alternator_powers_demand: numpy.array, optional
@@ -1121,20 +1129,18 @@ def calculate_engine_powers_out(
     :rtype: numpy.array
     """
 
-    p_on = clutch_tc_powers[on_engine] + auxiliaries_power_losses[on_engine]
+    p, b = np.zeros_like(clutch_tc_powers, dtype=float), on_engine
+    p[b] = clutch_tc_powers[b] + auxiliaries_power_losses[b]
 
     if alternator_powers_demand is not None:
-        p_on += np.abs(alternator_powers_demand[on_engine])
+        p[b] += alternator_powers_demand[b]
 
-    p_on = engine_power_correction_function(engine_speeds_out[on_engine], p_on)
+    p_inertia = engine_moment_inertia / 2000 * (2 * pi / 60) ** 2
+    p += p_inertia * derivative(times, engine_speeds_out) ** 2
 
-    p = np.zeros_like(clutch_tc_powers, dtype=float)
-    p[on_engine] = p_on
+    p = engine_power_correction_function(engine_speeds_out, p)
 
-    engine_speeds_delta = np.ediff1d(engine_speeds_out, to_end=0)
-    engine_powers_on_inertia = engine_moment_inertia / 2000 * (2 * pi / 60) ** 2
-    engine_powers_on_inertia *= engine_speeds_delta * engine_speeds_delta
-    p += engine_powers_on_inertia
+    p[on_idle & (p < 0)] = 0.0
 
     return p
 

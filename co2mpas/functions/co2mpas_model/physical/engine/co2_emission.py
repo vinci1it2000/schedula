@@ -112,8 +112,9 @@ def _calculate_fc(A, B, C):
         return fc, v
 
 
-def calculate_p0(params, engine_capacity, engine_stroke,
-                 idle_engine_speed_median, engine_fuel_lower_heating_value):
+def calculate_p0(
+        params, engine_capacity, engine_stroke, idle_engine_speed_median,
+        engine_fuel_lower_heating_value):
     """
     Calculates the engine power threshold limit [kW].
 
@@ -1217,7 +1218,7 @@ def calculate_willans_factors(
 
     p = params.valuesdict()
 
-    b = engine_powers_out > 0
+    b = engine_powers_out >= 0
     av_s = np.average(engine_speeds_out[b])
     av_p = np.average(engine_powers_out[b])
 

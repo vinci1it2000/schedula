@@ -385,7 +385,7 @@ def calculate_alternator_powers_demand(
 
     c = alternator_nominal_voltage / (1000.0 * alternator_efficiency)
 
-    return alternator_currents * c
+    return np.maximum(-alternator_currents * c, 0.0)
 
 
 def identify_alternator_current_threshold(

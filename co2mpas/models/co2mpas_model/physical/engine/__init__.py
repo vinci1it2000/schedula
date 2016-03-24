@@ -242,7 +242,7 @@ def engine():
     engine.add_function(
         function=calculate_engine_speeds_out_hot,
         inputs=['gear_box_speeds_in', 'on_engine', 'idle_engine_speed'],
-        outputs=['engine_speeds_out_hot']
+        outputs=['engine_speeds_out_hot', 'on_idle']
     )
 
     engine.add_function(
@@ -261,9 +261,10 @@ def engine():
 
     engine.add_function(
         function=calculate_engine_powers_out,
-        inputs=['engine_moment_inertia', 'clutch_tc_powers', 'engine_speeds_out',
-                'on_engine', 'engine_power_correction_function',
-                'auxiliaries_power_losses', 'alternator_powers_demand'],
+        inputs=['times', 'engine_moment_inertia', 'clutch_tc_powers',
+                'engine_speeds_out', 'on_engine',
+                'engine_power_correction_function', 'auxiliaries_power_losses',
+                'on_idle', 'alternator_powers_demand'],
         outputs=['engine_powers_out']
     )
 

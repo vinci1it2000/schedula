@@ -406,6 +406,7 @@ def define_data_schema(read=True):
         'identified_co2_emissions': np_array,
         'motive_powers': np_array,
         'on_engine': np_array_bool,
+        'on_idle': np_array_bool,
         'state_of_charges': np_array,
         'times': np_array,
         'velocities': np_array,
