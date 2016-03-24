@@ -1083,7 +1083,7 @@ def select_cold_start_speed_model(
 def calculate_engine_powers_out(
         times, engine_moment_inertia, clutch_tc_powers, engine_speeds_out,
         on_engine, engine_power_correction_function, auxiliaries_power_losses,
-        on_idle, alternator_powers_demand=None):
+        gear_box_type, on_idle, alternator_powers_demand=None):
     """
     Calculates the engine power [kW].
 
@@ -1116,6 +1116,10 @@ def calculate_engine_powers_out(
         Engine torque losses due to engine auxiliaries [N*m].
     :type auxiliaries_power_losses: numpy.array
 
+    :param gear_box_type:
+        Gear box type (manual or automatic).
+    :type gear_box_type: str
+
     :param on_idle:
         If the engine is on idle [-].
     :type on_idle: numpy.array
@@ -1130,7 +1134,12 @@ def calculate_engine_powers_out(
     """
 
     p, b = np.zeros_like(clutch_tc_powers, dtype=float), on_engine
-    p[b] = clutch_tc_powers[b] + auxiliaries_power_losses[b]
+    p[b] = clutch_tc_powers[b]
+
+    if gear_box_type == 'manual':
+        p[on_idle & (p < 0)] = 0.0
+
+    p[b] += auxiliaries_power_losses[b]
 
     if alternator_powers_demand is not None:
         p[b] += alternator_powers_demand[b]
@@ -1138,11 +1147,7 @@ def calculate_engine_powers_out(
     p_inertia = engine_moment_inertia / 2000 * (2 * pi / 60) ** 2
     p += p_inertia * derivative(times, engine_speeds_out) ** 2
 
-    p = engine_power_correction_function(engine_speeds_out, p)
-
-    p[on_idle & (p < 0)] = 0.0
-
-    return p
+    return engine_power_correction_function(engine_speeds_out, p)
 
 
 def calculate_braking_powers(

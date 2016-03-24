@@ -264,7 +264,7 @@ def engine():
         inputs=['times', 'engine_moment_inertia', 'clutch_tc_powers',
                 'engine_speeds_out', 'on_engine',
                 'engine_power_correction_function', 'auxiliaries_power_losses',
-                'on_idle', 'alternator_powers_demand'],
+                'gear_box_type', 'on_idle', 'alternator_powers_demand'],
         outputs=['engine_powers_out']
     )
 
