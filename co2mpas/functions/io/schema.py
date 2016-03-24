@@ -358,9 +358,16 @@ def define_data_schema(read=True):
         'phases_co2_emissions': _type(type=And(Use(tuple), (_type(float),)),
                                       length=(2, 4),
                                       read=read),
+        'phases_integration_times':
+            _type(type=And(Use(tuple), (And(Use(tuple), (_type(float),)),)),
+                  length=(2, 4),
+                  read=read),
         'extended_phases_co2_emissions':
             _type(type=And(Use(tuple), (_type(float),)), read=read),
         'extended_phases_integration_times':
+            _type(type=And(Use(tuple), (And(Use(tuple), (_type(float),)),)),
+                  read=read),
+        'extended_integration_times':
             _type(type=And(Use(tuple), (_type(float),)), read=read),
         'phases_fuel_consumptions': _type(type=And(Use(tuple), (_type(float),)),
                                           length=(2, 4),

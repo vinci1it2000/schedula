@@ -318,7 +318,8 @@ def physical():
             'status_start_stop_activation_time':
                 'status_start_stop_activation_time',
             'co2_normalization_references': 'co2_normalization_references',
-            'fuel_density': 'fuel_density'
+            'fuel_density': 'fuel_density',
+            'phases_integration_times': 'phases_integration_times'
         },
         outputs={
             'auxiliaries_torque_losses': 'auxiliaries_torque_losses',

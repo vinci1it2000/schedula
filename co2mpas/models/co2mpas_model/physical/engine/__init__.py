@@ -356,7 +356,8 @@ def engine():
             'fuel_consumptions': 'fuel_consumptions',
             'co2_emissions': 'co2_emissions',
             'co2_normalization_references': 'co2_normalization_references',
-            'fuel_density': 'fuel_density'
+            'fuel_density': 'fuel_density',
+            'phases_integration_times': 'phases_integration_times'
         },
         outputs={
             'co2_emissions_model': 'co2_emissions_model',

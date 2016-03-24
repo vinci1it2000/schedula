@@ -11,7 +11,7 @@ It contains functions to predict the CO2 emissions.
 
 import copy
 from functools import partial
-
+from itertools import chain
 import lmfit
 import numpy as np
 from scipy.integrate import trapz
@@ -365,7 +365,7 @@ def select_phases_integration_times(cycle_type):
         'NEDC': (0.0, 780.0, 1180.0)
     }
 
-    return _integration_times[cycle_type.upper()]
+    return tuple(dsp_utl.pairwise(_integration_times[cycle_type.upper()]))
 
 
 def calculate_phases_distances(times, phases_integration_times, velocities):
@@ -426,9 +426,9 @@ def calculate_cumulative_co2(
 
     co2 = []
 
-    for t0, t1 in dsp_utl.pairwise(phases_integration_times):
-        b = (t0 <= times) & (times <= t1)
-        co2.append(trapz(co2_emissions[b], times[b]))
+    for p in phases_integration_times:
+        i, j = np.searchsorted(times, p)
+        co2.append(trapz(co2_emissions[i:j], times[i:j]))
 
     return np.array(co2) / phases_distances
 
@@ -453,12 +453,13 @@ def calculate_cumulative_co2_v1(phases_co2_emissions, phases_distances):
     return phases_co2_emissions * phases_distances
 
 
-def calculate_extended_phases_integration_times(
+def calculate_extended_integration_times(
         times, velocities, on_engine, phases_integration_times,
         engine_coolant_temperatures, after_treatment_temperature_threshold,
         *args):
 
         lv, pit = velocities <= VEL_EPS, phases_integration_times
+        pit = set(chain(*pit))
         hv = np.logical_not(lv)
         j, l, phases = np.argmax(hv), len(lv), []
         while j < l:
@@ -479,7 +480,6 @@ def calculate_extended_phases_integration_times(
                 t = (t0 + t1) / 2
             phases.append(t)
 
-        phases.extend(pit)
         t = times[np.searchsorted(engine_coolant_temperatures,
                                   after_treatment_temperature_threshold[1])]
         phases.append(t)
@@ -488,29 +488,34 @@ def calculate_extended_phases_integration_times(
 
 
 def calculate_extended_cumulative_co2_emissions(
-        times, on_engine, extended_phases_integration_times,
+        times, on_engine, extended_integration_times,
         co2_normalization_references, phases_integration_times,
         phases_co2_emissions, phases_distances):
 
         r = co2_normalization_references.copy()
         r[np.logical_not(on_engine)] = 0
-        _cco2, pit,  = [], phases_integration_times
-        ipit = dsp_utl.pairwise(np.searchsorted(times, pit))
+        _cco2, phases = [], []
         cco2 = phases_co2_emissions * phases_distances
 
-        for cco2, (t0, t1), (i, j) in zip(cco2, dsp_utl.pairwise(pit), ipit):
+        for cco2, (t0, t1) in zip(cco2, phases_integration_times):
+            i, j = np.searchsorted(times, (t0, t1))
             if i == j:
                 continue
             v = trapz(r[i:j], times[i:j])
             c = [0.0]
-            p = [t for t in extended_phases_integration_times if t0 < t <= t1]
-            for k in np.searchsorted(times, p[:-1]):
+
+            p = [t for t in extended_integration_times if t0 < t < t1]
+
+            for k, t in zip(np.searchsorted(times, p), p):
+                phases.append((t0, t))
+                t0 = t
                 c.append(trapz(r[i:k], times[i:k]) / v)
+            phases.append((t0, t1))
             c.append(1.0)
 
             _cco2.extend(np.diff(c) * cco2)
 
-        return np.array(_cco2)
+        return np.array(_cco2), phases
 
 
 def calculate_phases_co2_emissions(cumulative_co2_emissions, phases_distances):
@@ -551,10 +556,8 @@ def identify_co2_emissions(
 
     co2_emissions = co2_emissions_model(params_initial_guess)
 
-    it = zip(cumulative_co2_emissions,
-             dsp_utl.pairwise(np.searchsorted(times, phases_integration_times)))
-
-    for cco2, (i, j) in it:
+    for cco2, p in zip(cumulative_co2_emissions, phases_integration_times):
+        i, j = np.searchsorted(times, p)
         co2_emissions[i:j] *= cco2 / trapz(co2_emissions[i:j], times[i:j])
 
     return co2_emissions
@@ -622,10 +625,10 @@ def define_co2_error_function_on_phases(
             co2 = np.zeros_like(times, dtype=float)
             b = np.zeros_like(times, dtype=bool)
             w = []
-            it = enumerate(dsp_utl.pairwise(phases_integration_times))
-            for i, (t0, t1) in it:
+            for i, p in enumerate(phases_integration_times):
                 if i in phases:
-                    b |= (t0 <= times) & (times < t1)
+                    m, n = np.searchsorted(times, p)
+                    b[m:n] = True
                     w.append(phases_co2_emissions[i])
                 else:
                     w.append(0)

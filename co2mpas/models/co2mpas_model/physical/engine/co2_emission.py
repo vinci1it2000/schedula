@@ -56,20 +56,21 @@ def co2_emission():
     )
 
     co2_emission.add_function(
-        function=calculate_extended_phases_integration_times,
+        function=calculate_extended_integration_times,
         inputs=['times', 'velocities', 'on_engine', 'phases_integration_times',
                 'engine_coolant_temperatures',
                 'after_treatment_temperature_threshold',
                 'co2_normalization_references'],
-        outputs=['extended_phases_integration_times'],
+        outputs=['extended_integration_times'],
     )
 
     co2_emission.add_function(
         function=calculate_extended_cumulative_co2_emissions,
-        inputs=['times', 'on_engine', 'extended_phases_integration_times',
+        inputs=['times', 'on_engine', 'extended_integration_times',
                 'co2_normalization_references', 'phases_integration_times',
                 'phases_co2_emissions', 'phases_distances'],
-        outputs=['extended_cumulative_co2_emissions']
+        outputs=['extended_cumulative_co2_emissions',
+                 'extended_phases_integration_times']
     )
 
     co2_emission.add_function(
