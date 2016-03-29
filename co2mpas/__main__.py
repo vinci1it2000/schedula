@@ -106,7 +106,6 @@ EXAMPLES::
 
 from co2mpas import (__version__ as proj_ver, __file__ as proj_file,
                      __updated__ as proj_date)
-from co2mpas import autocompletion
 from collections import OrderedDict
 import glob
 import io
@@ -174,7 +173,8 @@ def print_autocompletions():
     .. Note::
         Must be registered as `setup.py` entry-point.
     """
-    autocompletion.print_wordlist_from_docopt(__doc__)
+    from . import docoptutils
+    docoptutils.print_wordlist_from_docopt(__doc__)
 
 
 def _cmd_modelgraph(opts):

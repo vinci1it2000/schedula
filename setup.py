@@ -191,6 +191,14 @@ setup(
         'wltp',
         'cachetools',
     ],
+    extras_require={
+        'dice': [
+            'PyYAML',
+            'python-gpg',
+            'keyring',
+            'pbkdf2',
+        ],
+    },
     packages=find_packages(exclude=['tests', 'doc']),
     package_data={'co2mpas': [
             'demos/*.xlsx',
