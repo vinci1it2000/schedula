@@ -37,12 +37,11 @@ def calculate_normalized_engine_coolant_temperatures(
     :rtype: numpy.array
     """
 
-    first_hot_i = argmax(engine_coolant_temperatures >= temperature_target)
-    T = engine_coolant_temperatures + 273.0
+    i = np.searchsorted(engine_coolant_temperatures, temperature_target)
     ## Only flatten-out hot-part if `max-theta` is above `trg`.
-    if first_hot_i > 0:
-        T[first_hot_i:] = temperature_target + 273.0
-    T /= temperature_target + 273.0
+    T = np.ones_like(engine_coolant_temperatures, dtype=float)
+    T[:i] = engine_coolant_temperatures[:i] + 273.0
+    T[:i] /= temperature_target + 273.0
 
     return T
 
