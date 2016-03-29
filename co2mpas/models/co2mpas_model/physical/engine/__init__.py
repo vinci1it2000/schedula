@@ -242,7 +242,13 @@ def engine():
     engine.add_function(
         function=calculate_engine_speeds_out_hot,
         inputs=['gear_box_speeds_in', 'on_engine', 'idle_engine_speed'],
-        outputs=['engine_speeds_out_hot', 'on_idle']
+        outputs=['engine_speeds_out_hot']
+    )
+
+    engine.add_function(
+        function=identify_on_idle,
+        inputs=['velocities', 'engine_speeds_out', 'gears'],
+        outputs=['on_idle']
     )
 
     engine.add_function(

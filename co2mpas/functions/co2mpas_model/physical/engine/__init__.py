@@ -237,6 +237,33 @@ def calculate_full_load(full_load_speeds, full_load_powers, idle_engine_speed):
     return flc, engine_max_power, engine_max_speed_at_max_power
 
 
+def identify_on_idle(velocities, engine_speeds_out, gears):
+    """
+    Identifies when the engine is on idle [-].
+
+    :param velocities:
+        Velocity vector [km/h].
+    :type velocities: numpy.array
+
+    :param engine_speeds_out:
+        Engine speed vector [RPM].
+    :type engine_speeds_out: numpy.array
+
+    :param gears:
+        Gear vector [-].
+    :type gears: numpy.array
+
+    :return:
+        If the engine is on idle [-].
+    :rtype: numpy.array
+    """
+
+    on_idle = engine_speeds_out > MIN_ENGINE_SPEED
+    on_idle &= (gears == 0) | (velocities <= VEL_EPS)
+
+    return on_idle
+
+
 def identify_idle_engine_speed_out(velocities, engine_speeds_out):
     """
     Identifies engine speed idle and its standard deviation [RPM].
@@ -821,16 +848,14 @@ def calculate_engine_speeds_out_hot(
 
     :return:
         Engine speed at hot condition [RPM] and if the engine is in idle [-].
-    :rtype: (numpy.array, numpy.array)
+    :rtype: numpy.array
     """
 
     s = gear_box_speeds_in.copy()
 
     s[np.logical_not(on_engine)] = 0
-    on_idle = on_engine & (s < idle_engine_speed[0])
-    s[on_idle] = idle_engine_speed[0]
-
-    return s, on_idle
+    s[on_engine & (s < idle_engine_speed[0])] = idle_engine_speed[0]
+    return s
 
 
 def calculate_cold_start_speeds_delta(
