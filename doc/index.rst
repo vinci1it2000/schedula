@@ -9,6 +9,7 @@
 .. toctree::
 
     install
+    allinone
     usage
     explanation
     changes
