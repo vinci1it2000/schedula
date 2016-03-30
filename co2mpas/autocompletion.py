@@ -42,6 +42,7 @@ def _gen_docopt_subcmds(pattern):
     return (p.name for p in pattern.flat(docopt.Command))
 
 
+# noinspection PyIncorrectDocstring
 def get_wordlist_from_docopt(doc):
     """Parses docopt-string into a wordlist."""
     pattern = _parse_docopt(doc)
@@ -56,7 +57,7 @@ def _print_words(words):
         print(' '.join(s for s in words), end='')
 
 
-
+# noinspection PyIncorrectDocstring
 def print_wordlist_from_docopt(doc):
     """
     Use the output of this function with bash's `complete -W` option.
@@ -68,6 +69,7 @@ def print_wordlist_from_docopt(doc):
     _print_words(get_wordlist_from_docopt(doc))
 
 
+# noinspection PyIncorrectDocstring
 def do_autocomplete(doc, *args):
     """Auto-complete based on docopt-string - not to be invoke directly.
 

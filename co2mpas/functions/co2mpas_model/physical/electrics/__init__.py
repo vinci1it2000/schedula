@@ -243,6 +243,7 @@ def define_alternator_current_model(alternator_charging_currents):
     :rtype: function
     """
 
+    # noinspection PyUnusedLocal
     def model(alt_status, prev_soc, gb_power, on_engine, acc):
         b = gb_power > 0 or (gb_power == 0 and acc >= 0)
         return alternator_charging_currents[b]
@@ -307,6 +308,7 @@ def calibrate_alternator_current_model(
     else:
         predict = lambda *args, **kwargs: [0.0]
 
+    # noinspection PyUnusedLocal
     def model(alt_status, prev_soc, gb_power, on_engine, acc):
         return min(0.0, predict([(prev_soc, alt_status, gb_power, acc)])[0])
 
@@ -659,6 +661,7 @@ def define_alternator_status_model(
         def bers_pred(X):
             return [X[0][0] < 0]
     else:
+        # noinspection PyUnusedLocal
         def bers_pred(X):
             return [False]
 

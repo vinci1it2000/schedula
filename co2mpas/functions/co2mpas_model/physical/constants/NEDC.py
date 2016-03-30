@@ -19,6 +19,7 @@ import sys
 EPS = sys.float_info.epsilon * 10
 
 
+# noinspection PyUnusedLocal
 def nedc_gears_domain(cycle_type, gear_box_type, *args):
     """
     Returns if the cycle is NEDC and the gearbox is manual.
@@ -39,6 +40,7 @@ def nedc_gears_domain(cycle_type, gear_box_type, *args):
     return cycle_type == 'NEDC' and gear_box_type == 'manual'
 
 
+# noinspection PyUnusedLocal
 def nedc_velocities_domain(cycle_type, *args):
     """
     Returns if the cycle is NEDC.

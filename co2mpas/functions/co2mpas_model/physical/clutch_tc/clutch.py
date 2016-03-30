@@ -168,6 +168,7 @@ def calibrate_clutch_prediction_model(
     y, X = delta[phases], np.array([acc[phases]]).T
     error = lambda func: (mean_squared_error(y, func(X)), counter())
 
+    # noinspection PyUnusedLocal
     def no_clutch(X, *args):
         return np.zeros(X.shape[0])
 

@@ -74,6 +74,7 @@ class Empty(object):
             raise SchemaError('%r is not empty' % data, None)
 
 
+# noinspection PyUnusedLocal
 def _function(error=None, read=True, **kwargs):
     def _check_function(f):
         assert callable(f)
@@ -84,11 +85,13 @@ def _function(error=None, read=True, **kwargs):
     return _eval(And(_function(), Use(lambda x: dsp_utl.NONE), error=error))
 
 
+# noinspection PyUnusedLocal
 def _string(error=None, **kwargs):
     error = error or 'should be a string!'
     return Use(str, error=error)
 
 
+# noinspection PyUnusedLocal
 def _select(types=(), error=None, **kwargs):
     error = error or 'should be one of {}!'.format(types)
     return And(str, Use(lambda x: x.lower()), lambda x: x in types, error=error)
@@ -98,22 +101,26 @@ def _check_positive(x):
     return x >= 0
 
 
+# noinspection PyUnusedLocal
 def _positive(type=float, error=None, **kwargs):
     error = error or 'should be as {} and positive!'.format(type)
     return And(Use(type), _check_positive, error=error)
 
 
+# noinspection PyUnusedLocal
 def _limits(limits=(0, 100), error=None, **kwargs):
     error = error or 'should be {} <= x <= {}!'.format(*limits)
     _check_limits = lambda x: limits[0] <= x <= limits[1]
     return And(Use(float), _check_limits, error=error)
 
 
+# noinspection PyUnusedLocal
 def _eval(s, error=None, **kwargs):
     error = error or 'cannot be eval!'
     return Or(And(str, Use(lambda x: eval(x)), s), s, error=error)
 
 
+# noinspection PyUnusedLocal
 def _dict(format=None, error=None, **kwargs):
     format = format or {int: float}
     error = error or 'should be a dict with this format {}!'.format(format)
@@ -132,6 +139,7 @@ def _check_length(length):
     return check_length
 
 
+# noinspection PyUnusedLocal
 def _type(type=None, error=None, length=None, **kwargs):
     type = type or tuple
 
@@ -145,6 +153,7 @@ def _type(type=None, error=None, length=None, **kwargs):
     return _eval(type, error=error)
 
 
+# noinspection PyUnusedLocal
 def _index_dict(error=None, **kwargs):
     error = error or 'cannot be parsed as {}!'.format({int: float})
     c = {int: Use(float)}
@@ -152,6 +161,7 @@ def _index_dict(error=None, **kwargs):
     return Or(c, And(_dict(), c), And(_type(), Use(f), c), error=error)
 
 
+# noinspection PyUnusedLocal
 def _np_array(dtype=None, error=None, read=True, **kwargs):
     error = error or 'cannot be parsed as np.array dtype={}!'.format(dtype)
     if read:
@@ -162,18 +172,22 @@ def _np_array(dtype=None, error=None, read=True, **kwargs):
                    error=error)
 
 
+# noinspection PyUnusedLocal
 def _cmv(error=None, **kwargs):
     return _type(type=CMV, error=error)
 
 
+# noinspection PyUnusedLocal
 def _mvl(error=None, **kwargs):
     return _type(type=MVL, error=error)
 
 
+# noinspection PyUnusedLocal
 def _gspv(error=None, **kwargs):
     return _type(type=GSPV, error=error)
 
 
+# noinspection PyUnusedLocal
 def _dtc(error=None, read=True, **kwargs):
     if read:
         return _type(type=DecisionTreeClassifier, error=error)
@@ -205,6 +219,7 @@ def _parameters(error=None, read=True):
         return And(_parameters(), Use(_parameters2str), error=error)
 
 
+# noinspection PyUnusedLocal
 def _compare_str(s, **kwargs):
     return And(Use(str.lower), s.lower(), Use(lambda x: s))
 

@@ -185,6 +185,7 @@ def check_limits(errors, up_limit=None, dn_limit=None):
     return status
 
 
+# noinspection PyUnusedLocal
 def define_sub_model(dsp, inputs, outputs, models, **kwargs):
     missing = set(outputs).difference(dsp.nodes)
     if missing:
@@ -194,6 +195,7 @@ def define_sub_model(dsp, inputs, outputs, models, **kwargs):
     return dsp_utl.SubDispatch(dsp.shrink_dsp(inputs, outputs))
 
 
+# noinspection PyUnusedLocal
 def metric_calibration_status(y_true, y_pred):
     return [v[0] for v in y_pred]
 

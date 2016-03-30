@@ -18,6 +18,7 @@ import copy
 log = logging.getLogger(__name__)
 
 
+# noinspection PyUnusedLocal
 def calibrate_co2_params_ALL(rank, *data, data_id=None):
     try:
         from ..physical.engine.co2_emission import calibrate_model_params

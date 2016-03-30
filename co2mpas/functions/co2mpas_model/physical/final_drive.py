@@ -88,6 +88,7 @@ def calculate_final_drive_torque_losses_v1(
     return (1 - eff_fd) / (eff_fd * final_drive_ratio) * final_drive_torques_out
 
 
+# noinspection PyUnusedLocal
 def domain_final_drive_torque_losses_v1(n_dyno_axes, n_wheel_drive, *args):
     """
     Check the validity of number of wheel drive respect to the dyno axes

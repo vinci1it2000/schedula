@@ -106,6 +106,7 @@ def correct_gear_full_load(
     return gear
 
 
+# noinspection PyUnusedLocal
 def basic_correct_gear(
         velocity, acceleration, gear, velocity_speed_ratios, idle_engine_speed,
         *args):
@@ -1243,6 +1244,7 @@ def correct_gear_mvl_v1(
     return gear
 
 
+# noinspection PyUnusedLocal
 def correct_gear_mvl(velocity, acceleration, gear, mvl, *args):
     """
     Corrects the gear predicted according to upper and lower bound velocity
@@ -1327,6 +1329,7 @@ class MVL(CMV):
         return gear
 
 
+# noinspection PyUnusedLocal
 def domain_eco_mode(eco_mode, *args):
 
     return eco_mode
