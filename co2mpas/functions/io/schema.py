@@ -1,17 +1,19 @@
-from schema import Schema, Use, And, Or, Optional, SchemaError
+import logging
+from collections import Iterable
+
 import numpy as np
+from lmfit import Parameters, Parameter
+from schema import Schema, Use, And, Or, Optional, SchemaError
+from sklearn.tree import DecisionTreeClassifier
+
 import co2mpas.dispatcher.utils as dsp_utl
+from .dill import save_dill
 from .. import stack_nested_keys, get_nested_dicts
+from ..co2mpas_model.physical.electrics import check_sign_currents
 from ..co2mpas_model.physical.gear_box.AT_gear import CMV, MVL, GSPV
 from ..co2mpas_model.physical.engine import Start_stop_model
 from ..co2mpas_model.physical.electrics import Alternator_status_model
-from sklearn.tree import DecisionTreeClassifier
-from lmfit import Parameters, Parameter
-from collections import Iterable
-from ..co2mpas_model.physical.electrics import check_sign_currents
-from .dill import save_dill
 
-import logging
 log = logging.getLogger(__name__)
 
 
@@ -59,7 +61,8 @@ class Empty(object):
     def __repr__(self):
         return '%s' % self.__class__.__name__
 
-    def validate(self, data):
+    @staticmethod
+    def validate(data):
         try:
             empty = not (data or data == 0)
         except ValueError:
