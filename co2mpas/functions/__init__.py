@@ -187,7 +187,7 @@ def process_folder_files(input_files, output_folder, **kwds):
     log.info('Done! [%s sec]', time_elapsed)
 
 
-class custom_tqdm(tqdm):
+class _custom_tqdm(tqdm):
 
     def format_meter(self, n, *args, **kwargs):
         bar = tqdm.format_meter(n, *args, **kwargs)
@@ -236,7 +236,7 @@ def _process_folder_files(
     start_time = datetime.datetime.today()
     timestamp = start_time.strftime('%Y%m%d_%H%M%S')
 
-    for fpath in custom_tqdm(input_files, bar_format='{l_bar}{bar}{r_bar}'):
+    for fpath in _custom_tqdm(input_files, bar_format='{l_bar}{bar}{r_bar}'):
         res = _process_vehicle(
                 model, fpath,
                 output_folder=output_folder,
