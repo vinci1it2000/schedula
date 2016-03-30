@@ -12,7 +12,7 @@ It contains functions that model the basic mechanics of the torque converter.
 import numpy as np
 from sklearn.metrics import mean_absolute_error
 from sklearn.ensemble import GradientBoostingRegressor
-from ..constants import VEL_EPS, ACC_EPS
+from ..constants import VEL_EPS
 
 
 def _torque_converter_regressor_model(

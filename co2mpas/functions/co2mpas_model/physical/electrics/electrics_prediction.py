@@ -66,14 +66,25 @@ def calculate_alternator_current(
         Gear box power [kW].
     :type gear_box_power_in: float
 
-    :param alternator_charging_currents:
-        Mean charging currents of the alternator (for negative and positive
-        power) [A].
-    :type alternator_charging_currents: (float, float)
+    :param alternator_current_model:
+        Alternator current model.
+    :type alternator_current_model: function
 
     :param engine_start_current:
         Current demand to start the engine [A].
     :type engine_start_current: float
+
+    :param prev_battery_state_of_charge:
+        Previous state of charge of the battery [%].
+
+        .. note::
+
+            `prev_battery_state_of_charge` = 99 is equivalent to 99%.
+    :type prev_battery_state_of_charge: float
+
+    :param acceleration:
+        Acceleration [m/s2].
+    :type acceleration: float
 
     :return:
         Alternator current [A].

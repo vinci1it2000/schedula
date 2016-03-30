@@ -344,8 +344,10 @@ def _calibrate_TPS(T, dT, gear_box_powers_in, gear_box_speeds_in, **kw):
         'alpha': 0.99
     }
     opt.update(kw)
+    # noinspection PyUnresolvedReferences
     predict = GradientBoostingRegressor(**opt).fit(X, dT).predict
 
+    # noinspection PyUnusedLocal
     def TPS(deltas_t, powers, speeds, *args, initial_temperature=23):
         t, temp = initial_temperature, [initial_temperature]
         append = temp.append
@@ -371,8 +373,10 @@ def _calibrate_TPSA(T, dT, gear_box_powers_in, gear_box_speeds_in,
         'alpha': 0.99
     }
     opt.update(kw)
+    # noinspection PyUnresolvedReferences
     predict = GradientBoostingRegressor(**opt).fit(X, dT).predict
 
+    # noinspection PyUnusedLocal,PyUnusedLocal
     def TPSA(deltas_t, powers, speeds, vel, acc, *args, initial_temperature=23):
         t, temp = initial_temperature, [initial_temperature]
         append = temp.append
@@ -442,6 +446,7 @@ def calibrate_engine_temperature_regression_model(
     T, dT, dt, i = _get_samples(times, engine_coolant_temperatures, on_engine)
 
     if not dT.size:
+        # noinspection PyUnusedLocal
         def DT0(deltas_t, powers, speeds, *args, initial_temperature=23):
             return np.ones_like(powers, dtype=float) * initial_temperature
         return DT0
@@ -896,9 +901,21 @@ def calculate_engine_speeds_out(
     """
     Calculates the engine speed [RPM].
 
+    :param on_engine:
+        If the engine is on [-].
+    :type on_engine: numpy.array
+
+    :param idle_engine_speed:
+        Idle engine speed and its standard deviation [RPM].
+    :type idle_engine_speed: (float, float)
+
     :param engine_speeds_out_hot:
         Engine speed at hot condition [RPM].
     :type engine_speeds_out_hot: numpy.array
+
+    :param delta_speeds:
+        Delta engine speed [RPM].
+    :type delta_speeds: (numpy.array,)
 
     :return:
         Engine speed [RPM].
@@ -994,12 +1011,14 @@ def calibrate_cold_start_speed_model(
         if res[0] > 0.0 and err < err_0:
             p = res[0]
 
+    # noinspection PyUnusedLocal
     def model(speeds, on_engine, temperatures, *args):
         add_speeds = np.zeros_like(speeds, dtype=float)
 
         if p > 0:
             s_o = (engine_normalization_temperature - temperatures) * p
             b = on_engine & (s_o > speeds)
+            # noinspection PyUnresolvedReferences
             add_speeds[b] = s_o[b] - speeds[b]
 
         return add_speeds
@@ -1056,6 +1075,7 @@ def calibrate_cold_start_speed_model_v1(
 
     ds = abs((ds - idle) / (30.0 - min(engine_coolant_temperatures)))
 
+    # noinspection PyUnusedLocal
     def model(speeds, on_engine, engine_coolant_temperatures, *args):
         add_speeds = np.zeros_like(speeds, dtype=float)
 
@@ -1199,6 +1219,7 @@ def calculate_braking_powers(
 
     bp = engine_torques_in * engine_speeds_out * (pi / 30000.0)
 
+    # noinspection PyUnresolvedReferences
     bp[bp < friction_powers] = 0
 
     return bp
@@ -1252,7 +1273,7 @@ def calculate_mean_piston_speeds(engine_speeds_out, engine_stroke):
 
     :return:
         Mean piston speed vector [m/s].
-    :rtype: numpy.array, float
+    :rtype: numpy.array | float
     """
 
     return (engine_stroke / 30000.0) * engine_speeds_out

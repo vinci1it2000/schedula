@@ -151,6 +151,7 @@ def apply_datasync(
     else:
         writer = pd.ExcelWriter(output_file)
 
+    # noinspection PyUnresolvedReferences
     df.to_excel(writer, out_sheet, header=False, index=False)
     writer.save()
     return df

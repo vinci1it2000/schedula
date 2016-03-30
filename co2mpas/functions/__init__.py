@@ -167,11 +167,6 @@ def process_folder_files(input_files, output_folder, **kwds):
         Where to store the results; the exact output-filenames will be::
 
             <timestamp>-<input_filename>.xlsx
-
-    :param bool plot_workflow:
-        When true, it plots the CO2MPAS model workflow.
-
-    .. seealso::  :func:`_process_folder_files()` for more params.
     """
 
     summary, start_time = _process_folder_files(input_files, output_folder,
@@ -374,17 +369,55 @@ def _save_summary(fpath, start_time, summary):
         writer.save()
 
 
-def stack_nested_keys(adict, key=(), depth=-1):
-    """Stacks the keys of nested-dictionaries into tuples and yields a list of k-v pairs. """
-    if depth != 0 and hasattr(adict, 'items'):
-        for k, v in adict.items():
+def stack_nested_keys(nested_dict, key=(), depth=-1):
+    """
+    Stacks the keys of nested-dictionaries into tuples and yields a list of k-v pairs.
+
+    :param nested_dict:
+        Nested dictionary.
+    :type nested_dict: dict
+
+    :param key:
+        Initial keys.
+    :type key: tuple, optional
+
+    :param depth:
+        Maximum keys depth.
+    :type depth: int, optional
+
+    :return:
+        List of k-v pairs.
+    :rtype: generator
+    """
+
+    if depth != 0 and hasattr(nested_dict, 'items'):
+        for k, v in nested_dict.items():
             yield from stack_nested_keys(v, key=key + (k,), depth=depth - 1)
     else:
-        yield key, adict
+        yield key, nested_dict
 
 
 def get_nested_dicts(nested_dict, *keys, default=None):
-    """Get/Initialize the value of nested-dictionaries."""
+    """
+    Get/Initialize the value of nested-dictionaries.
+
+    :param nested_dict:
+        Nested dictionary.
+    :type nested_dict: dict
+
+    :param keys:
+        Nested keys.
+    :type keys: tuple
+
+    :param default:
+        Function used to initialize a new value.
+    :type default: function, optional
+
+    :return:
+        Value of nested-dictionary.
+    :rtype: generator
+    """
+
     if keys:
         default = default or dict
         d = default() if len(keys) == 1 else {}

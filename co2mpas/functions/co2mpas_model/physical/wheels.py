@@ -21,11 +21,11 @@ def calculate_wheel_power(velocities, accelerations, road_loads, vehicle_mass):
 
     :param velocities:
         Velocity [km/h].
-    :type velocities: numpy.array, float
+    :type velocities: numpy.array | float
 
     :param accelerations:
         Acceleration [m/s2].
-    :type accelerations: numpy.array, float
+    :type accelerations: numpy.array | float
 
     :param road_loads:
         Cycle road loads [N, N/(km/h), N/(km/h)^2].
@@ -37,7 +37,7 @@ def calculate_wheel_power(velocities, accelerations, road_loads, vehicle_mass):
 
     :return:
         Power at wheels [kW].
-    :rtype: numpy.array, float
+    :rtype: numpy.array | float
     """
 
     f0, f1, f2 = road_loads
@@ -55,15 +55,15 @@ def calculate_wheel_torques(wheel_powers, wheel_speeds):
 
     :param wheel_powers:
         Power at the wheels [kW].
-    :type wheel_powers: numpy.array, float
+    :type wheel_powers: numpy.array | float
 
     :param wheel_speeds:
         Rotating speed of the wheel [RPM].
-    :type wheel_speeds: numpy.array, float
+    :type wheel_speeds: numpy.array | float
 
     :return:
         Torque at the wheels [N*m].
-    :rtype: numpy.array, float
+    :rtype: numpy.array | float
     """
 
     if isinstance(wheel_speeds, np.ndarray):
@@ -77,15 +77,15 @@ def calculate_wheel_powers(wheel_torques, wheel_speeds):
 
     :param wheel_torques:
         Torque at the wheel [N*m].
-    :type wheel_torques: numpy.array, float
+    :type wheel_torques: numpy.array | float
 
     :param wheel_speeds:
         Rotating speed of the wheel [RPM].
-    :type wheel_speeds: numpy.array, float
+    :type wheel_speeds: numpy.array | float
 
     :return:
         Power at the wheels [kW].
-    :rtype: numpy.array, float
+    :rtype: numpy.array | float
     """
 
     return wheel_torques * wheel_speeds * (pi / 30000.0)
@@ -97,7 +97,7 @@ def calculate_wheel_speeds(velocities, r_dynamic):
 
     :param velocities:
         Vehicle velocity [km/h].
-    :type velocities: numpy.array, float
+    :type velocities: numpy.array | float
 
     :param r_dynamic:
         Dynamic radius of the wheels [m].
@@ -105,7 +105,7 @@ def calculate_wheel_speeds(velocities, r_dynamic):
 
     :return:
         Rotating speed of the wheel [RPM].
-    :rtype: numpy.array, float
+    :rtype: numpy.array | float
     """
 
     return velocities * (30.0 / (3.6 * pi * r_dynamic))

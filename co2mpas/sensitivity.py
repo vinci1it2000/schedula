@@ -13,6 +13,7 @@ from co2mpas.functions import _process_vehicle, _add2summary, _save_summary, \
     get_nested_dicts, stack_nested_keys
 from co2mpas.models import vehicle_processing_model
 import co2mpas.dispatcher.utils as dsp_utl
+from co2mpas.dispatcher.utils.alg import stlp
 from co2mpas.functions.co2mpas_model.physical.engine.co2_emission import _set_attr
 from co2mpas.functions.co2mpas_model.physical.engine import Start_stop_model
 from co2mpas.functions.co2mpas_model.physical.electrics import Alternator_status_model
@@ -123,7 +124,7 @@ def _sa(input_vehicle, input_parameters, output_folder, default=None, **kw):
 
     inputs = dsp_utl.selector(('with_charts', 'vehicle_name'), res)
     vehicle_name = inputs['vehicle_name']
-
+    df = pd.DataFrame()
     for f in file_finder([input_parameters], file_ext='*.txt'):
         if vehicle_name in f:
             df = pd.read_csv(f, sep='\t', header=0)
@@ -234,7 +235,7 @@ def _nodes2remove(params):
                 a = defaults['as'].get(c, defaults['as'][None])
 
             c = defaults['cycle'].get(c, c)
-            for v in product(dsp_utl.stlp(c), dsp_utl.stlp(a)):
+            for v in product(stlp(c), stlp(a)):
                 if v in defaults:
                     nodes.extend(defaults[v])
     return nodes

@@ -34,6 +34,18 @@ from co2mpas.functions.co2mpas_model.physical.constants.NEDC import *
 
 
 def physical():
+    """
+    Defines the CO2MPAS physical model.
+
+    .. dispatcher:: dsp
+
+        >>> dsp = physical()
+
+    :return:
+        The CO2MPAS physical model.
+    :rtype: Dispatcher
+    """
+
     physical = Dispatcher(
         name='CO2MPAS physical model',
         description='Wraps all functions needed to calibrate and predict '

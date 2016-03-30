@@ -44,11 +44,11 @@ def calculate_aerodynamic_resistances(f2, velocities):
 
     :param velocities:
         Velocity vector [km/h].
-    :type velocities: numpy.array, float
+    :type velocities: numpy.array | float
 
     :return:
         Aerodynamic resistance vector [N].
-    :rtype: numpy.array, float
+    :rtype: numpy.array | float
     """
 
     return f2 * velocities**2
@@ -73,7 +73,7 @@ def calculate_f2(
 
     :return:
         As used in the dyno and defined by respective guidelines [N/(km/h)^2].
-    :rtype: numpy.array, float
+    :rtype: numpy.array | float
     """
 
     c = aerodynamic_drag_coefficient * frontal_area * air_density
@@ -131,11 +131,11 @@ def calculate_velocity_resistances(f1, velocities):
 
     :param velocities:
         Velocity vector [km/h].
-    :type velocities: numpy.array, float
+    :type velocities: numpy.array | float
 
     :return:
         Forces function of velocity [N].
-    :rtype: numpy.array, float
+    :rtype: numpy.array | float
     """
 
     return f1 * velocities
@@ -176,11 +176,11 @@ def calculate_rotational_inertia_forces(
 
     :param accelerations:
         Acceleration vector [m/s2].
-    :type accelerations: numpy.array, float
+    :type accelerations: numpy.array | float
 
     :return:
         Rotational inertia forces [N].
-    :rtype: numpy.array, float
+    :rtype: numpy.array | float
     """
 
     return vehicle_mass * inertial_factor * accelerations / 100
@@ -236,7 +236,7 @@ def calculate_motive_forces(
 
     :param accelerations:
         Acceleration vector [m/s2].
-    :type accelerations: numpy.array, float
+    :type accelerations: numpy.array | float
 
     :param climbing_force:
         Vehicle climbing resistance [N].
@@ -248,19 +248,19 @@ def calculate_motive_forces(
 
     :param aerodynamic_resistances:
         Aerodynamic resistance vector [N].
-    :type aerodynamic_resistances: numpy.array, float
+    :type aerodynamic_resistances: numpy.array | float
 
     :param velocity_resistances:
         Forces function of velocity [N].
-    :type velocity_resistances: numpy.array, float
+    :type velocity_resistances: numpy.array | float
 
     :param rotational_inertia_forces:
         Rotational inertia forces [N].
-    :type rotational_inertia_forces: numpy.array, float
+    :type rotational_inertia_forces: numpy.array | float
 
     :return:
         Motive forces [N].
-    :rtype: numpy.array, float
+    :rtype: numpy.array | float
     """
 
     # namespace shortcuts
@@ -279,15 +279,15 @@ def calculate_motive_powers(motive_forces, velocities):
 
     :param motive_forces:
         Motive forces [N].
-    :type motive_forces: numpy.array, float
+    :type motive_forces: numpy.array | float
 
     :param velocities:
         Velocity vector [km/h].
-    :type velocities: numpy.array, float
+    :type velocities: numpy.array | float
 
     :return:
         Motive power [kW].
-    :rtype: numpy.array, float
+    :rtype: numpy.array | float
     """
 
     return motive_forces * velocities / 3600

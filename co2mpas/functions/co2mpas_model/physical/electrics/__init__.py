@@ -146,6 +146,7 @@ def identify_electric_loads(
 
     for i, j in _starts_windows(times, engine_starts):
         p = b_c[i:j] * c
+        # noinspection PyUnresolvedReferences
         p[p > 0] = 0.0
         p = np.trapz(p, x=times[i:j])
 
@@ -684,10 +685,9 @@ def predict_vehicle_electrics(
         A function that predicts the alternator status.
     :type alternator_status_model: Alternator_status_model
 
-    :param alternator_charging_currents:
-        Mean charging currents of the alternator (for negative and positive
-        power)[A].
-    :type alternator_charging_currents: (float, float)
+    :param alternator_current_model:
+        Alternator current model.
+    :type alternator_current_model: function
 
     :param max_battery_charging_current:
         Maximum charging current of the battery [A].
@@ -728,6 +728,10 @@ def predict_vehicle_electrics(
     :param engine_starts:
         When the engine starts [-].
     :type engine_starts: numpy.array
+
+    :param accelerations:
+        Acceleration vector [m/s2].
+    :type accelerations: numpy.array
 
     :return:
         Alternator and battery currents, state of charge, and alternator status

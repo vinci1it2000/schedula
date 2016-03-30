@@ -543,7 +543,7 @@ def calibrate_gear_shifting_cmv(
 
     :param accelerations:
         Vehicle acceleration [m/s2].
-    :type accelerations: numpy.array, float
+    :type accelerations: numpy.array
 
     :param velocity_speed_ratios:
         Constant velocity speed ratios of the gear box [km/(h*RPM)].
@@ -581,7 +581,7 @@ def calibrate_gear_shifting_cmv_hot_cold(
 
     :param accelerations:
         Vehicle acceleration [m/s2].
-    :type accelerations: numpy.array, float
+    :type accelerations: numpy.array
 
     :param velocity_speed_ratios:
         Constant velocity speed ratios of the gear box [km/(h*RPM)].
@@ -879,7 +879,8 @@ def calibrate_gspv(gears, velocities, wheel_powers, velocity_speed_ratios):
 
 def _gspv_interpolate_cloud(powers, velocities):
 
-    regressor = IsotonicRegression().fit(powers, velocities)
+    regressor = IsotonicRegression()
+    regressor.fit(powers, velocities)
 
     min_p, max_p = min(powers), max(powers)
     x = np.linspace(min_p, max_p)
@@ -1222,6 +1223,7 @@ def correct_gear_mvl(velocity, acceleration, gear, mvl, *args):
 
 
 class MVL(CMV):
+    # noinspection PyMethodOverriding,PyMethodOverriding
     def fit(self, gears, velocities, velocity_speed_ratios, idle_engine_speed):
         self.velocity_speed_ratios = velocity_speed_ratios
         idle = idle_engine_speed
@@ -1261,6 +1263,7 @@ class MVL(CMV):
 
         return self
 
+    # noinspection PyMethodOverriding
     def predict(self, velocity, acceleration, gear):
 
         if abs(acceleration) < ACC_EPS:

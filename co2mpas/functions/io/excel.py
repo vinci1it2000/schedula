@@ -93,6 +93,7 @@ def parse_excel_file(file_path):
             data.dropna(how='all', inplace=True)
             data.dropna(axis=1, how='all', inplace=True)
             mask = data.count(0) == len(data._get_axis(0))
+            # noinspection PyUnresolvedReferences
             drop = [k for k, v in mask.items() if not v]
             if drop:
                 msg = 'Columns {} in {} contains nan.\n ' \
@@ -314,6 +315,7 @@ def _index_levels(index):
         return 1
 
 
+# noinspection PyUnusedLocal
 def _get_corner(df, startcol=0, startrow=0, index=False, header=True, **kw):
     ref = {}
 

@@ -115,6 +115,7 @@ from co2mpas import autocompletion
 from collections import OrderedDict
 import glob
 import io
+import logging
 import logging.config
 from os import path as osp
 import os

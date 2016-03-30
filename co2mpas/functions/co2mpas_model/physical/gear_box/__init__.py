@@ -231,6 +231,7 @@ def calculate_gear_box_speeds_from_engine_speeds(
 
     speeds = _speed_shift(times, engine_speeds_out)
 
+    # noinspection PyUnresolvedReferences
     def error_fun(x):
         s = speeds(x)
 
@@ -553,15 +554,15 @@ def calculate_torques_losses(gear_box_torques_in, gear_box_torques_out):
 
     :param gear_box_torques_in:
         Torque required vector [N*m].
-    :type gear_box_torques_in: numpy.array, float
+    :type gear_box_torques_in: numpy.array | float
 
     :param gear_box_torques_out:
         Torque gear_box vector [N*m].
-    :type gear_box_torques_out: numpy.array, float
+    :type gear_box_torques_out: numpy.array | float
 
     :return:
         Gear box torques losses [N*m].
-    :rtype: numpy.array, float
+    :rtype: numpy.array | float
     """
 
     return gear_box_torques_in - gear_box_torques_out
@@ -897,15 +898,15 @@ def calculate_gear_box_powers_in(gear_box_torques_in, gear_box_speeds_in):
 
     :param gear_box_torques_in:
         Torque at the wheel [N*m].
-    :type gear_box_torques_in: numpy.array, float
+    :type gear_box_torques_in: numpy.array | float
 
     :param gear_box_speeds_in:
         Rotating speed of the wheel [RPM].
-    :type gear_box_speeds_in: numpy.array, float
+    :type gear_box_speeds_in: numpy.array | float
 
     :return:
         Gear box power [kW].
-    :rtype: numpy.array, float
+    :rtype: numpy.array | float
     """
     
     from co2mpas.functions.co2mpas_model.physical.wheels import \

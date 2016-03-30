@@ -34,6 +34,7 @@ def load_from_dill(fpath):
     return dill.load(fpath)
 
 
+# noinspection PyUnusedLocal
 @open_file(1, mode='wb')
 def save_dill(data, fpath, *args, **kwargs):
     log.debug('Writing dill-file: %s', fpath)

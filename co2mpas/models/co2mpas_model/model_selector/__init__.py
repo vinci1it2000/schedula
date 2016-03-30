@@ -21,10 +21,11 @@ Sub-Modules:
     co2_params
 """
 
-from functools import partial
+
 from co2mpas.dispatcher import Dispatcher
 from co2mpas.functions.co2mpas_model.model_selector import *
 import co2mpas.dispatcher.utils as dsp_utl
+from functools import partial
 
 
 def models_selector(*data):

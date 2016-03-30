@@ -53,11 +53,11 @@ def calculate_brake_mean_effective_pressures(
 
     :param engine_speeds_out:
         Engine speed vector [RPM].
-    :type engine_speeds_out: numpy.array, float
+    :type engine_speeds_out: numpy.array
 
     :param engine_powers_out:
         Engine power vector [kW].
-    :type engine_powers_out: numpy.array, float
+    :type engine_powers_out: numpy.array
 
     :param engine_capacity:
         Engine capacity [cm3].
@@ -65,7 +65,7 @@ def calculate_brake_mean_effective_pressures(
 
     :return:
         Engine brake mean effective pressure vector [bar].
-    :rtype: numpy.array, float
+    :rtype: numpy.array
     """
 
     b = engine_speeds_out > MIN_ENGINE_SPEED
@@ -77,6 +77,7 @@ def calculate_brake_mean_effective_pressures(
     return np.nan_to_num(p)
 
 
+# noinspection PyUnusedLocal
 def _calculate_fuel_ABC(n_speeds, n_powers, n_temperatures,
                         a2=0, b2=0, a=0, b=0, c=0, t=0, l=0, l2=0, **kw):
 
@@ -416,7 +417,7 @@ def calculate_cumulative_co2(
 
     :param phases_distances:
         Cycle phases distances [km].
-    :type phases_distances: numpy.array, float, optional
+    :type phases_distances: numpy.array | float, optional
 
     :return:
         CO2 emission or cumulative CO2 of cycle phases [CO2g/km or CO2g].
@@ -696,7 +697,7 @@ def calculate_co2_emission(phases_co2_emissions, phases_distances):
 
     :param phases_distances:
         Cycle phases distances [km].
-    :type phases_distances: numpy.array, float
+    :type phases_distances: numpy.array | float
 
     :return:
         CO2 emission value of the cycle [CO2g/km].
@@ -749,7 +750,7 @@ def _get_default_params():
 
 def define_initial_co2_emission_model_params_guess(
         params, engine_type, engine_normalization_temperature,
-        engine_normalization_temperature_window, is_cycle_hot=False, bounds={}):
+        engine_normalization_temperature_window, is_cycle_hot=False, bounds=None):
     """
     Selects initial guess and bounds of co2 emission model params.
 
@@ -773,7 +774,7 @@ def define_initial_co2_emission_model_params_guess(
         Initial guess and bounds of co2 emission model params.
     :rtype: (dict, dict)
     """
-
+    bounds = bounds or {}
     default = _get_default_params()[engine_type]
     default['trg'] = {
         'value': engine_normalization_temperature,
@@ -869,21 +870,17 @@ def calibrate_co2_params(
 
     :param engine_coolant_temperatures:
         Engine coolant temperature vector [°C].
-    :type engine_coolant_temperatures: numpy.array, (np.array, ...)
+    :type engine_coolant_temperatures: numpy.array
 
     :param co2_error_function_on_emissions:
         Error function (according to co2 emissions time series) to calibrate the
         CO2 emission model params.
-    :type co2_error_function_on_emissions: function, (function, ...)
+    :type co2_error_function_on_emissions: function
 
     :param co2_error_function_on_phases:
         Error function (according to co2 emissions phases) to calibrate the CO2
         emission model params.
-    :type co2_error_function_on_phases: function, (function, ...)
-
-    :param co2_params_bounds:
-        Bounds of CO2 emission model params (a2, b2, a, b, c, l, l2, t, trg).
-    :type co2_params_bounds: dict
+    :type co2_error_function_on_phases: function
 
     :param co2_params_initial_guess:
         Initial guess of CO2 emission model params.
@@ -891,7 +888,7 @@ def calibrate_co2_params(
 
     :param is_cycle_hot:
         Is an hot cycle?
-    :type is_cycle_hot: bool, optional
+    :type is_cycle_hot: bool
 
     :return:
         Calibrated CO2 emission model parameters (a2, b2, a, b, c, l, l2, t,
@@ -1036,6 +1033,7 @@ def calibrate_model_params(error_function, params, *ars, **kws):
     #   [average time 270s/4 vehicles].
     res = _minimize(error_func, params, args=ars, kws=kws, method='nelder')
 
+    # noinspection PyUnresolvedReferences
     return (res.params if res.success else min_e_and_p[1]), res.success
 
 
@@ -1151,6 +1149,7 @@ class _Minimizer(lmfit.Minimizer):
         result.ndata = 1
         result.nfree = 1
         if isinstance(result.residual, np.ndarray):
+            # noinspection PyUnresolvedReferences
             result.chisqr = (result.chisqr**2).sum()
             result.ndata = len(result.residual)
             result.nfree = result.ndata - result.nvarys

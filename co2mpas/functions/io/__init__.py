@@ -42,8 +42,9 @@ def get_cache_fpath(fpath, soft_validation):
     fpath = pathlib.Path(fpath)
     cache_folder = fpath.parent.joinpath('.co2mpas_cache')
     try:
+        # noinspection PyUnresolvedReferences
         cache_folder.mkdir()
-    except:
+    except: # dir exist
         pass
     ext = ('dill',)
     if soft_validation:
@@ -309,7 +310,7 @@ def _merge_targets(data, targets):
     def _sort(x):
         x = stlp(x)[-1]
         i = 7 if x.startswith('target ') else 0
-        return (_p_map.get(x[i:], '0'), x[i:], i)
+        return _p_map.get(x[i:], '0'), x[i:], i
 
     for k, v in targets.items():
         if v.empty:
@@ -401,7 +402,7 @@ def _dd2df(dd, index, depth=0, axis=1):
     for d in range(depth - 1, -1, -1):
         for k, v in stack_nested_keys(dd, depth=d):
             keys, frames = zip(*sorted(v.items()))
-            df = pd.concat(frames, axis=1, keys=keys)
+            df = pd.concat(frames, axis=axis, keys=keys)
             if k:
                 get_nested_dicts(dd, *k[:-1])[k[-1]] = df
             else:
