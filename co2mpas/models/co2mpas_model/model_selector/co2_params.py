@@ -21,6 +21,7 @@ from . import _errors
 from itertools import chain
 
 
+# noinspection PyIncorrectDocstring
 def co2_params_model_selector(
         name='co2_params', data_in=('WLTP-H', 'WLTP-L'),
         data_out=('WLTP-H', 'WLTP-L'), setting=None):

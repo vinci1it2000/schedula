@@ -366,9 +366,9 @@ def identify_gear_shifting_velocity_limits(gears, velocities):
     return correct_gsv(gsv)
 
 
-def correct_gsv_for_constant_velocities(
-        gsv, up_cns_vel=(15, 32, 50, 70), up_limit=3.5, up_delta=-0.5,
-        down_cns_vel=(35, 50), down_limit=3.5, down_delta=-1):
+def _correct_gsv_for_constant_velocities(
+        gsv, up_cns_vel=(15, 32, 50, 70), up_window=3.5, up_delta=-0.5,
+        dn_cns_vel=(35, 50), dn_window=3.5, dn_delta=-1):
     """
     Corrects the gear shifting matrix velocity according to the NEDC velocities.
 
@@ -376,20 +376,46 @@ def correct_gsv_for_constant_velocities(
         Gear shifting velocity matrix.
     :type gsv: dict
 
+    :param up_cns_vel:
+        Constant velocities to correct the upper limits [km/h].
+    :type up_cns_vel: tuple[float]
+
+    :param up_window:
+        Window to identify if the shifting matrix has limits close to
+        `up_cns_vel` [km/h].
+    :type up_window: float
+
+    :param up_delta:
+        Delta to add to the limit if this is close to `up_cns_vel` [km/h].
+    :type up_delta: float
+
+    :param dn_cns_vel:
+        Constant velocities to correct the bottom limits [km/h].
+    :type dn_cns_vel: tuple[float]
+
+    :param dn_window:
+        Window to identify if the shifting matrix has limits close to
+        `dn_cns_vel` [km/h].
+    :type dn_window: float
+
+    :param dn_delta:
+        Delta to add to the limit if this is close to `dn_cns_vel` [km/h].
+    :type dn_delta: float
+
     :return:
         A gear shifting velocity matrix corrected from NEDC velocities.
     :rtype: dict
     """
 
-    def set_velocity(velocity, const_steps, limit, delta):
+    def set_velocity(velocity, const_steps, window, delta):
         for v in const_steps:
-            if v < velocity < v + limit:
+            if v < velocity < v + window:
                 return v + delta
         return velocity
 
     def fun(v):
-        limits = (set_velocity(v[0], down_cns_vel, down_limit, down_delta),
-                  set_velocity(v[1], up_cns_vel, up_limit, up_delta))
+        limits = (set_velocity(v[0], dn_cns_vel, dn_window, dn_delta),
+                  set_velocity(v[1], up_cns_vel, up_window, up_delta))
         return limits
 
     return gsv.__class__((k, fun(v)) for k, v in gsv.items())
@@ -439,7 +465,7 @@ class CMV(OrderedDict):
 
         update_gvs(x)
 
-        self.update(correct_gsv_for_constant_velocities(self))
+        self.update(_correct_gsv_for_constant_velocities(self))
 
         return self
 
@@ -529,6 +555,10 @@ def calibrate_gear_shifting_cmv(
     """
     Calibrates a corrected matrix velocity to predict gears.
 
+    :param correct_gear:
+        A function to correct the predicted gear.
+    :type correct_gear: function
+
     :param gears:
         Gear vector [-].
     :type gears: numpy.array
@@ -566,6 +596,14 @@ def calibrate_gear_shifting_cmv_hot_cold(
     """
     Calibrates a corrected matrix velocity for cold and hot phases to predict
     gears.
+
+    :param correct_gear:
+        A function to correct the predicted gear.
+    :type correct_gear: function
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
 
     :param gears:
         Gear vector [-].
@@ -1090,6 +1128,14 @@ def calculate_error_coefficients(
     """
     Calculates the prediction's error coefficients.
 
+    :param identified_gears:
+        Identified gear vector [-].
+    :type identified_gears: numpy.array
+
+    :param gears:
+        Gear vector [-].
+    :type gears: numpy.array
+
     :param engine_speeds:
         Engine speed vector [RPM].
     :type engine_speeds: numpy.array
@@ -1128,6 +1174,10 @@ def calibrate_mvl(gears, velocities, velocity_speed_ratios, idle_engine_speed):
     :param gears:
         Gear vector [-].
     :type gears: numpy.array
+
+    :param velocities:
+        Vehicle velocity [km/h].
+    :type velocities: numpy.array
 
     :param velocity_speed_ratios:
         Constant velocity speed ratios of the gear box [km/(h*RPM)].
@@ -1256,9 +1306,9 @@ class MVL(CMV):
             v[1] = (v[1][0], max(v[1][1], mvl[i][1][0] + VEL_EPS))
 
         self.clear()
-        self.update(correct_gsv_for_constant_velocities(
+        self.update(_correct_gsv_for_constant_velocities(
                 OrderedDict(mvl), up_cns_vel=[35, 50],
-                down_cns_vel=[15, 32, 50, 70])
+                dn_cns_vel=[15, 32, 50, 70])
         )
 
         return self

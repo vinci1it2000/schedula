@@ -44,13 +44,38 @@ def argmax(values, **kws):
 
 
 def grouper(iterable, n):
-    """Collect data into fixed-length chunks or blocks"""
+    """
+    Collect data into fixed-length chunks or blocks.
+
+    :param iterable:
+        Iterable object.
+    :param iterable: iter
+
+    :param n:
+        Length chunks or blocks.
+    :type n: int
+    """
     args = [iter(iterable)] * n
     return zip(*args)
 
 
 def sliding_window(xy, dx_window):
-    "Returns a sliding window (of width dx) over data from the iterable"
+    """
+    Returns a sliding window (of width dx) over data from the iterable.
+
+    :param xy:
+        X and Y values.
+    :type xy: list[(float, float)]
+
+    :param dx_window:
+        dX window.
+    :type dx_window: float
+
+    :return:
+        Data (x & y) inside the time window.
+    :rtype: generator
+    """
+
     dx = dx_window / 2
     it = iter(xy)
     v = next(it)
@@ -90,6 +115,10 @@ def median_filter(x, y, dx_window, filter=median_high):
     :param dx_window:
         dx window.
     :type dx_window: float
+
+    :param filter:
+        Filter function.
+    :type filter: function
 
     :return:
         Moving median-high of y values over a constant dx.

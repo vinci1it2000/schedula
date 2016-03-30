@@ -462,7 +462,7 @@ def get_doc_description():
     return doc_descriptions
 
 
-def parse_name(name, _standard_names=None):
+def parse_name(name, standard_names=None):
     """
     Parses a column/row name.
 
@@ -470,13 +470,17 @@ def parse_name(name, _standard_names=None):
         Name to be parsed.
     :type name: str
 
+    :param standard_names:
+        Standard names to use instead parsing.
+    :type standard_names: dict[str, str], optional
+
     :return:
         The parsed name.
     :rtype: str
     """
 
-    if _standard_names and name in _standard_names:
-        return _standard_names[name]
+    if standard_names and name in standard_names:
+        return standard_names[name]
 
     name = name.replace('_', ' ')
 

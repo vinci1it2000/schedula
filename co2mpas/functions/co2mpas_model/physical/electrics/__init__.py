@@ -482,6 +482,10 @@ def identify_charging_statuses(
         Alternator current threshold [A].
     :type alternator_current_threshold: float
 
+    :param starts_windows:
+        Alternator starts windows [-].
+    :type starts_windows: numpy.array
+
     :return:
         The alternator status (0: off, 1: on, due to state of charge, 2: on due
         to BERS) [-].
