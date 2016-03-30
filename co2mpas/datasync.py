@@ -37,25 +37,28 @@ def compute_shift(x, y):
 
 def synchronization(ref, *data, x_label='times', y_label='velocities'):
     """
-    Returns the data re-sampled and synchronized respect to x axes (`x_id`) and
+    Yields the data re-sampled and synchronized respect to x axes (`x_id`) and
     the reference signal `y_id`.
 
     :param ref:
-
+        Reference data.
     :type ref: dict
 
     :param data:
-
+        Data to synchronize.
     :type data: list[dict]
 
     :param x_label:
-    :type x_id: str, optional
+        X label of the reference signal.
+    :type x_label: str, optional
 
     :param y_label:
+        Y label of the reference signal.
     :type y_label: str, optional
 
     :return:
-    :rtype: list[dict]
+        The re-sampled and synchronized data.
+    :rtype: generator
     """
 
     dx = float(np.median(np.diff(ref[x_label])) / 10)
