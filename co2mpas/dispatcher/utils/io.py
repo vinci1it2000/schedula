@@ -245,6 +245,7 @@ def load_map(dsp, path):
     dsp.__init__(dmap=load(path), default_values=dsp.default_values)
 
 
+# noinspection PyIncorrectDocstring
 def makedirs(name, mode=0o777, exist_ok=False):
     """makedirs(name [, mode=0o777][, exist_ok=False])
 
@@ -281,6 +282,7 @@ def makedirs(name, mode=0o777, exist_ok=False):
     return name
 
 
+# noinspection PyIncorrectDocstring
 def mkdirs(filename, mode=0o777):
     """Recursively create directories up to the path of filename as needed."""
     head, tail = os.path.split(filename)

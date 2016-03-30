@@ -1154,6 +1154,7 @@ class Dispatcher(object):
             neighbors, dmap_succ = graph.neighbors_iter, self.dmap.succ
             succ, pred = sub_dsp.dmap.succ, sub_dsp.dmap.pred
 
+            # noinspection PyUnusedLocal
             def check_node_inputs(c, p):
                 if c == START:
                     return True
@@ -1962,6 +1963,7 @@ class Dispatcher(object):
                 except KeyError:  # The node is not in the targets set.
                     return False
         else:
+            # noinspection PyUnusedLocal
             def check_targets(node_id):
                 return False
 
@@ -1998,6 +2000,7 @@ class Dispatcher(object):
                 return distance > cutoff  # Check cutoff distance.
 
         else:  # cutoff is None.
+            # noinspection PyUnusedLocal
             def check_cutoff(distance):
                 return False
 
@@ -2358,9 +2361,9 @@ class Dispatcher(object):
         # namespace shortcuts for speed.
         n, has = self.nodes, self.workflow.has_edge
 
-        def no_visited_in_sub_dsp(u):
-            node = n[u]
-            if node['type'] == 'dispatcher' and has(u, node_id):
+        def no_visited_in_sub_dsp(i):
+            node = n[i]
+            if node['type'] == 'dispatcher' and has(i, node_id):
                 return node['inputs'][node_id] not in node['function']._visited
             return True
 
@@ -2695,6 +2698,7 @@ class Dispatcher(object):
 
         # Define a function that return the input value of a given data node.
         if no_call:
+            # noinspection PyUnusedLocal
             def input_value(k):
                 return {}
         else:

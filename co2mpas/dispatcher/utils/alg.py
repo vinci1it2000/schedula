@@ -472,6 +472,14 @@ def get_sub_node(dsp, path, node_attr='auto', _level=0, _dsp_name=NONE):
           - for function and sub-dispatcher nodes: the 'function' attribute.
     :type node_attr: str
 
+    :param _level:
+        Path level.
+    :type _level: int
+
+    :param _dsp_name:
+        dsp name to show when the function raise a value error.
+    :type _dsp_name: str
+
     :return:
         A sub node of a dispatcher and its path.
     :rtype: dict | object, tuple[str]
@@ -515,7 +523,7 @@ def get_sub_node(dsp, path, node_attr='auto', _level=0, _dsp_name=NONE):
     if isinstance(dsp, SubDispatch):  # Take the dispatcher obj.
         dsp = dsp.dsp
 
-    if _dsp_name is NONE:  # Set origin dispatcher name for waring purpose.
+    if _dsp_name is NONE:  # Set origin dispatcher name for warning purpose.
         _dsp_name = dsp.name
 
     node_id = path[_level]  # Node id at given level.
@@ -1026,10 +1034,10 @@ def get_full_pipe(dsp, base=()):
 def _sort_sk_wait_in(dsp):
     c = counter()
 
-    def _get_sk_wait_in(dsp):
+    def _get_sk_wait_in(d):
         w = set()
         L = []
-        for n, a in dsp.sub_dsp_nodes.items():
+        for n, a in d.sub_dsp_nodes.items():
             if 'function' in a:
                 sub_dsp = a['function']
                 n_d, l = _get_sk_wait_in(sub_dsp)
@@ -1040,14 +1048,14 @@ def _sort_sk_wait_in(dsp):
                 w = w.union([o[k] for k in set(o).intersection(n_d)])
 
         # Nodes to be visited.
-        wi = {k for k, v in dsp._wait_in.items() if v is True}
+        wi = {k for k, v in d._wait_in.items() if v is True}
 
-        n_d = (set(dsp.workflow.node.keys()) - dsp._visited) - w
+        n_d = (set(d.workflow.node.keys()) - d._visited) - w
 
-        n_d = n_d.union(dsp._visited.intersection(wi))
+        n_d = n_d.union(d._visited.intersection(wi))
         wi = n_d.intersection(wi)
 
-        L += [(dsp._meet.get(k, float('inf')), k, c(), dsp._wait_in) for k in wi]
+        L += [(d._meet.get(k, float('inf')), k, c(), d._wait_in) for k in wi]
 
         return set(n_d), L
 

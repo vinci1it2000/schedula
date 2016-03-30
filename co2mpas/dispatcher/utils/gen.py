@@ -87,6 +87,7 @@ class Token(str):
     def __copy__(self):
         return self
 
+    # noinspection PyUnusedLocal
     def __deepcopy__(self, memo):
         return self
 

@@ -97,7 +97,7 @@ def _encode_file_name(s):
     return filename
 
 
-def _init_filepath(directory, filename, nested, name, is_sub_dsp):
+def _init_filepath(directory, filename, nested, name):
     if directory or filename:
         path = Path(directory, filename)
     elif nested:
@@ -120,7 +120,7 @@ def _init_filepath(directory, filename, nested, name, is_sub_dsp):
     return str(path.parent), _encode_file_name(path.name)
 
 
-def _init_dot(dsp, workflow, nested, is_sub_dsp, **kw_dot):
+def _init_dot(dsp, workflow, nested, **kw_dot):
     name = _encode_dot(dsp.name or '%s %d' % (type(dsp).__name__, id(dsp)))
 
     dfl_node_attr = {'style': 'filled'}
@@ -138,8 +138,8 @@ def _init_dot(dsp, workflow, nested, is_sub_dsp, **kw_dot):
     kw['body'] = ['%s = %s' % (k, v) for k, v in kw['body'].items()]
 
     kw['directory'], kw['filename'] = _init_filepath(
-            kw.pop('directory', ''), kw.pop('filename', ''), nested, name,
-            is_sub_dsp)
+            kw.pop('directory', ''), kw.pop('filename', ''), nested, name
+    )
 
     dot = _Digraph(**kw)
 
@@ -466,7 +466,7 @@ def _get_dsp2dot_id(dot, graph):
 
 def plot(dsp, workflow=False, dot=None, edge_data=None, view=False,
          depth=-1, function_module=True, node_output=True, nested=False,
-         is_sub_dsp=False, **kw_dot):
+         **kw_dot):
     """
     Plots the Dispatcher with a graph in the DOT language with Graphviz.
 
@@ -509,10 +509,6 @@ def plot(dsp, workflow=False, dot=None, edge_data=None, view=False,
         otherwise they can be viewed clicking on the node that has an URL
         link.
     :type nested: bool
-
-    :param is_sub_dsp:
-        Is a sub-dispatcher node?
-    :type is_sub_dsp: bool
 
     :param kw_dot:
         Dot arguments:
@@ -576,14 +572,9 @@ def plot(dsp, workflow=False, dot=None, edge_data=None, view=False,
     args = _init_graph_data(dsp, workflow, edge_data)
     dsp, g, val, dist, edge_data, inputs, outputs = args
 
-    dot = dot or _init_dot(dsp, workflow, nested, is_sub_dsp, **kw_dot)
+    dot = dot or _init_dot(dsp, workflow, nested, **kw_dot)
 
     dsp2dot_id = _get_dsp2dot_id(dot, dsp.dmap)
-
-    dot_name, dot_node = dot.name, dot.node
-
-    def id_node(o):
-        return '%s_%s' % (dot_name, hash(o))
 
     if not g.node:
         _set_node(dot, EMPTY, dsp2dot_id)

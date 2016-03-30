@@ -937,7 +937,7 @@ class SubDispatchPipe(SubDispatchFunction):
                 return o
         elif len(outputs) > 1:
             def return_output():
-                return [o[k] for k in outputs]
+                return [o[j] for j in outputs]
         else:
             def return_output():
                 return o[outputs[0]]
@@ -966,7 +966,7 @@ class SubDispatchPipe(SubDispatchFunction):
                     if k not in wildcards:
                         in_flow[k]['value'] = data_output[k] = value
 
-                    for _, edge_attr in out_flow[k].items():
+                    for j, edge_attr in out_flow[k].items():
                         edge_attr['value'] = value
 
             if i in dsp.workflow.node:
