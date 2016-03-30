@@ -214,6 +214,10 @@ def calculate_co2_emissions(
         Fuel carbon content [CO2g/g].
     :type fuel_carbon_content: float
 
+    :param tau_function:
+        Tau-function of the extended Willans curve.
+    :type tau_function: function
+
     :param params:
         CO2 emission model parameters (a2, b2, a, b, c, l, l2, t, trg).
 
@@ -330,6 +334,10 @@ def define_co2_emissions_model(
     :param fuel_carbon_content:
         Fuel carbon content [CO2g/g].
     :type fuel_carbon_content: float
+
+    :param tau_function:
+        Tau-function of the extended Willans curve.
+    :type tau_function: function
 
     :return:
         CO2 emissions model (co2_emissions = models(params)).
@@ -455,72 +463,153 @@ def calculate_cumulative_co2_v1(phases_co2_emissions, phases_distances):
 
 def calculate_extended_integration_times(
         times, velocities, on_engine, phases_integration_times,
-        engine_coolant_temperatures, after_treatment_temperature_threshold,
-        *args):
+        engine_coolant_temperatures, after_treatment_temperature_threshold):
+    """
+    Calculates the extended integration times [-].
 
-        lv, pit = velocities <= VEL_EPS, phases_integration_times
-        pit = set(chain(*pit))
-        hv = np.logical_not(lv)
-        j, l, phases = np.argmax(hv), len(lv), []
-        while j < l:
-            i = np.argmax(lv[j:]) + j
-            j = np.argmax(hv[i:]) + i
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
 
-            if i == j:
-                break
+    :param velocities:
+        Velocity vector [km/h].
+    :type velocities: numpy.array
 
-            t0, t1 = times[i], times[j]
-            if t1 - t0 < 20 or any(t0 <= x <= t1 for x in pit):
-                continue
+    :param on_engine:
+        If the engine is on [-].
+    :type on_engine: numpy.array
 
-            b = np.logical_not(on_engine[i:j])
-            if b.any() and not b.all():
-                t = np.median(times[i:j][b])
-            else:
-                t = (t0 + t1) / 2
-            phases.append(t)
+    :param phases_integration_times:
+        Cycle phases integration times [s].
+    :type phases_integration_times: tuple
 
-        t = times[np.searchsorted(engine_coolant_temperatures,
-                                  after_treatment_temperature_threshold[1])]
+    :param engine_coolant_temperatures:
+        Engine coolant temperature vector [°C].
+    :type engine_coolant_temperatures: numpy.array
+
+    :param after_treatment_temperature_threshold:
+        Engine coolant temperature threshold when the after treatment system is
+        warm [°C].
+    :type after_treatment_temperature_threshold: (float, float)
+
+    :return:
+        Extended cycle phases integration times [s].
+    :rtype: tuple
+    """
+
+    lv, pit = velocities <= VEL_EPS, phases_integration_times
+    pit = set(chain(*pit))
+    hv = np.logical_not(lv)
+    j, l, phases = np.argmax(hv), len(lv), []
+    while j < l:
+        i = np.argmax(lv[j:]) + j
+        j = np.argmax(hv[i:]) + i
+
+        if i == j:
+            break
+
+        t0, t1 = times[i], times[j]
+        if t1 - t0 < 20 or any(t0 <= x <= t1 for x in pit):
+            continue
+
+        b = np.logical_not(on_engine[i:j])
+        if b.any() and not b.all():
+            t = np.median(times[i:j][b])
+        else:
+            t = (t0 + t1) / 2
         phases.append(t)
 
-        return sorted(phases)
+    t = times[np.searchsorted(engine_coolant_temperatures,
+                              after_treatment_temperature_threshold[1])]
+    phases.append(t)
+
+    return sorted(phases)
 
 
 def calculate_extended_cumulative_co2_emissions(
         times, on_engine, extended_integration_times,
         co2_normalization_references, phases_integration_times,
         phases_co2_emissions, phases_distances):
+    """
+    Calculates the extended cumulative CO2 of cycle phases [CO2g].
 
-        r = co2_normalization_references.copy()
-        r[np.logical_not(on_engine)] = 0
-        _cco2, phases = [], []
-        cco2 = phases_co2_emissions * phases_distances
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
 
-        for cco2, (t0, t1) in zip(cco2, phases_integration_times):
-            i, j = np.searchsorted(times, (t0, t1))
-            if i == j:
-                continue
-            v = trapz(r[i:j], times[i:j])
-            c = [0.0]
+    :param on_engine:
+        If the engine is on [-].
+    :type on_engine: numpy.array
 
-            p = [t for t in extended_integration_times if t0 < t < t1]
+    :param extended_integration_times:
+        Extended cycle phases integration times [s].
+    :type extended_integration_times: tuple
 
-            for k, t in zip(np.searchsorted(times, p), p):
-                phases.append((t0, t))
-                t0 = t
-                c.append(trapz(r[i:k], times[i:k]) / v)
-            phases.append((t0, t1))
-            c.append(1.0)
+    :param co2_normalization_references:
+        CO2 normalization references (e.g., engine loads) [-].
+    :type co2_normalization_references: numpy.array
 
-            _cco2.extend(np.diff(c) * cco2)
+    :param phases_integration_times:
+        Cycle phases integration times [s].
+    :type phases_integration_times: tuple
 
-        return np.array(_cco2), phases
+    :param phases_co2_emissions:
+        CO2 emission of cycle phases [CO2g/km].
+    :type phases_co2_emissions: numpy.array
+
+    :param phases_distances:
+        Cycle phases distances [km].
+    :type phases_distances: numpy.array
+
+    :return:
+        Extended cumulative CO2 of cycle phases [CO2g].
+    :rtype: numpy.array
+    """
+
+    r = co2_normalization_references.copy()
+    r[np.logical_not(on_engine)] = 0
+    _cco2, phases = [], []
+    cco2 = phases_co2_emissions * phases_distances
+
+    for cco2, (t0, t1) in zip(cco2, phases_integration_times):
+        i, j = np.searchsorted(times, (t0, t1))
+        if i == j:
+            continue
+        v = trapz(r[i:j], times[i:j])
+        c = [0.0]
+
+        p = [t for t in extended_integration_times if t0 < t < t1]
+
+        for k, t in zip(np.searchsorted(times, p), p):
+            phases.append((t0, t))
+            t0 = t
+            c.append(trapz(r[i:k], times[i:k]) / v)
+        phases.append((t0, t1))
+        c.append(1.0)
+
+        _cco2.extend(np.diff(c) * cco2)
+
+    return np.array(_cco2), phases
 
 
 def calculate_phases_co2_emissions(cumulative_co2_emissions, phases_distances):
+    """
+    Calculates the CO2 emission of cycle phases [CO2g/km].
 
-        return cumulative_co2_emissions / phases_distances
+    :param cumulative_co2_emissions:
+        Cumulative CO2 of cycle phases [CO2g].
+    :type cumulative_co2_emissions: numpy.array
+
+    :param phases_distances:
+        Cycle phases distances [km].
+    :type phases_distances: numpy.array
+
+    :return:
+        CO2 emission of cycle phases [CO2g/km].
+    :rtype: numpy.array
+    """
+
+    return cumulative_co2_emissions / phases_distances
 
 
 def identify_co2_emissions(
@@ -612,6 +701,10 @@ def define_co2_error_function_on_phases(
     :param phases_integration_times:
         Cycle phases integration times [s].
     :type phases_integration_times: tuple
+
+    :param phases_distances:
+        Cycle phases distances [km].
+    :type phases_distances: numpy.array
 
     :return:
         Error function (according to co2 emissions phases) to calibrate the CO2
@@ -750,9 +843,14 @@ def _get_default_params():
 
 def define_initial_co2_emission_model_params_guess(
         params, engine_type, engine_normalization_temperature,
-        engine_normalization_temperature_window, is_cycle_hot=False, bounds=None):
+        engine_normalization_temperature_window, is_cycle_hot=False,
+        bounds=None):
     """
     Selects initial guess and bounds of co2 emission model params.
+
+    :param params:
+        CO2 emission model params (a2, b2, a, b, c, l, l2, t, trg).
+    :type params: dict
 
     :param engine_type:
         Engine type (gasoline turbo, gasoline natural aspiration, diesel).
@@ -770,10 +868,15 @@ def define_initial_co2_emission_model_params_guess(
         Is an hot cycle?
     :type is_cycle_hot: bool, optional
 
+    :param bounds:
+        Parameters bounds.
+    :type bounds: bool, optional
+
     :return:
-        Initial guess and bounds of co2 emission model params.
-    :rtype: (dict, dict)
+        Initial guess of co2 emission model params.
+    :rtype: lmfit.Parameters
     """
+
     bounds = bounds or {}
     default = _get_default_params()[engine_type]
     default['trg'] = {
@@ -830,7 +933,13 @@ def calculate_after_treatment_temperature_threshold(
     :type engine_normalization_temperature: float
 
     :param initial_engine_temperature:
+        Initial engine temperature [°C].
+    :type initial_engine_temperature: float
+
     :return:
+        Engine coolant temperature threshold when the after treatment system is
+        warm [°C].
+    :rtype: (float, float)
     """
 
     ti = 273 + initial_engine_temperature
@@ -842,6 +951,18 @@ def calculate_after_treatment_temperature_threshold(
 
 
 def define_tau_function(after_treatment_temperature_threshold):
+    """
+    Defines tau-function of the extended Willans curve.
+
+    :param after_treatment_temperature_threshold:
+        Engine coolant temperature threshold when the after treatment system is
+        warm [°C].
+    :type after_treatment_temperature_threshold: (float, float)
+
+    :return:
+        Tau-function of the extended Willans curve.
+    :rtype: function
+    """
     T_mean, T_end = np.array(after_treatment_temperature_threshold) + 273
     f = lognorm(np.log(T_end / T_mean) / norm.ppf(0.95), 0, T_mean).cdf
 
@@ -977,24 +1098,20 @@ def restrict_bounds(co2_params):
     return p
 
 
-def calibrate_model_params(error_function, params, *ars, **kws):
+def calibrate_model_params(error_function, params, *args, **kws):
     """
     Calibrates the model params minimising the error_function.
-
-    :param params_bounds:
-        Bounds of model params.
-    :type params_bounds: dict
 
     :param error_function:
         Model error function.
     :type error_function: function
 
-    :param initial_guess:
+    :param params:
         Initial guess of model params.
 
         If not specified a brute force is used to identify the best initial
         guess with in the bounds.
-    :type initial_guess: dict, optional
+    :type params: dict, optional
 
     :return:
         Calibrated model params.
@@ -1031,7 +1148,7 @@ def calibrate_model_params(error_function, params, *ars, **kws):
     # slsqp is unstable (4 runs, 4 vehicles) [average time 18s/4 vehicles].
     # differential_evolution is unstable (1 runs, 4 vehicles)
     #   [average time 270s/4 vehicles].
-    res = _minimize(error_func, params, args=ars, kws=kws, method='nelder')
+    res = _minimize(error_func, params, args=args, kws=kws, method='nelder')
 
     # noinspection PyUnresolvedReferences
     return (res.params if res.success else min_e_and_p[1]), res.success
@@ -1314,24 +1431,30 @@ def _calculate_optimal_point(params, n_speed):
     return n_speed, y, eff
 
 
+# noinspection PyUnusedLocal
 def missing_co2_params(params, *args, _not=False):
     """
-    Checks if all co2_params are defined.
+    Checks if all co2_params are not defined.
 
     :param params:
         CO2 emission model parameters (a2, b2, a, b, c, l, l2, t, trg).
     :type params: dict | lmfit.Parameters
 
+    :param _not:
+        If True the function checks if not all co2_params are defined.
+    :type _not: bool
+
     :return:
         If is missing some parameter.
     :rtype: bool
     """
-    s = {'a', 'b', 'c', 'a2', 'b2', 'l', 'l2', 't', 'trg'} == set(params)
+
+    s = {'a', 'b', 'c', 'a2', 'b2', 'l', 'l2', 't', 'trg'}
 
     if _not:
-        return s
+        return set(params).issuperset(s)
 
-    return not s
+    return not set(params).issuperset(s)
 
 
 def define_co2_params_calibrated(params):

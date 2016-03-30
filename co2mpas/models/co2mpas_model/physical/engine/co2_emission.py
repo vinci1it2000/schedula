@@ -59,8 +59,7 @@ def co2_emission():
         function=calculate_extended_integration_times,
         inputs=['times', 'velocities', 'on_engine', 'phases_integration_times',
                 'engine_coolant_temperatures',
-                'after_treatment_temperature_threshold',
-                'co2_normalization_references'],
+                'after_treatment_temperature_threshold'],
         outputs=['extended_integration_times'],
     )
 
