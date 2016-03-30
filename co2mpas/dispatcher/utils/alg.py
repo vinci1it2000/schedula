@@ -474,7 +474,7 @@ def get_sub_node(dsp, path, node_attr='auto', _level=0, _dsp_name=NONE):
 
     :return:
         A sub node of a dispatcher and its path.
-    :rtype: dict, function, SubDispatch, SubDispatchFunction
+    :rtype: dict | object, tuple[str]
 
     **Example**:
 
@@ -928,6 +928,10 @@ def rm_cycles_iter(graph, nodes_bunch, reached_nodes, edge_to_rm, wait_in):
     :param edge_to_rm:
         List of edges to be removed that will be updated during the iteration.
     :type edge_to_rm: list
+
+    :param wait_in:
+        Wait input flags.
+    :type wait_in: dict[str, bool]
     """
 
     # Namespace shortcut.

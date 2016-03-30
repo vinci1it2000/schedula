@@ -120,10 +120,17 @@ def caller_name(skip=2):
     """
     Get a name of a caller in the format module.class.method.
 
-    `skip` specifies how many levels of stack to skip while getting caller
-    name. skip=1 means "who calls me", skip=2 "who calls my caller" etc.
+    :param skip:
+        Levels of stack to skip
 
-    An empty string is returned if skipped levels exceed stack height
+        ..note:: Specifies how many levels of stack to skip while getting caller
+          name. skip=1 means "who calls me", skip=2 "who calls my caller" etc.
+    :type skip: int
+
+    :return:
+        The caller name or an empty string is returned if skipped levels exceed
+        stack height.
+    :rtype: str
     """
 
     stack = inspect.stack()

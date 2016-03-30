@@ -510,6 +510,10 @@ def plot(dsp, workflow=False, dot=None, edge_data=None, view=False,
         link.
     :type nested: bool
 
+    :param is_sub_dsp:
+        Is a sub-dispatcher node?
+    :type is_sub_dsp: bool
+
     :param kw_dot:
         Dot arguments:
 

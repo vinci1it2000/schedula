@@ -36,7 +36,7 @@ def combine_dicts(*dicts, copy=False):
 
     :param dicts:
         A sequence of dicts.
-    :type dicts: (dict, ...)
+    :type dicts: tuple[dict]
 
     :param copy:
         If True, it returns a deepcopy of input values.
@@ -126,7 +126,11 @@ def map_dict(key_map, *dicts, copy=False):
 
     :param dicts:
         A sequence of dicts.
-    :type dicts: (dict, ...)
+    :type dicts: tuple[dict]
+
+    :param copy:
+        If True, it returns a deepcopy of input values.
+    :type copy: bool, optional
 
     :return:
         A unique dict with new key values.
@@ -156,8 +160,12 @@ def map_list(key_map, *inputs, copy=False):
     :type key_map: list[str | dict | list]
 
     :param inputs:
-        A sequence of dicts.
-    :type inputs: (dict, int, float, list, tuple, ...)
+        A sequence of data.
+    :type inputs: tuple[dict | int | float | list | tuple]
+
+    :param copy:
+        If True, it returns a deepcopy of input values.
+    :type copy: bool, optional
 
     :return:
         A unique dict with new values.
@@ -214,6 +222,15 @@ def selector(keys, dictionary, copy=False, output_type='dict', allow_miss=False)
     :param copy:
         If True the output contains deep-copies of the values.
     :type copy: bool
+
+    :param output_type:
+        Type of function output:
+
+            + 'list': a list with all values listed in `keys`.
+            + 'dict': a dictionary with any outputs listed in `keys`.
+            + 'values': if output length == 1 return a single value otherwise a
+                        tuple with all values listed in `keys`.
+        :type output_type: str, optional
 
     :param allow_miss:
         If True it does not raise when some key is missing in the dictionary.
