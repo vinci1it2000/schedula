@@ -476,7 +476,7 @@ class SubDispatch(object):
         self.dist = {}
         self.workflow = DiGraph()
         self.__module__ = caller_name()
-        self.__name__ = dsp.name
+        self.name = self.__name__ = dsp.name
         self.__doc__ = dsp.__doc__
 
     def __call__(self, *input_dicts, copy_input_dicts=False):

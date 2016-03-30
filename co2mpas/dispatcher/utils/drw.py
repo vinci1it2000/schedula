@@ -406,7 +406,7 @@ def _set_sub_dsp(dot, dsp, dot_id, node_name, edge_attr, workflow, depth,
         dot_kw['filename'] = _encode_file_name(node_name)
 
         def wrapper(*args, **kwargs):
-            s_dot = plot(*args, is_sub_dsp=True, **kwargs)
+            s_dot = plot(*args, **kwargs)
             path = s_dot.render(cleanup=True)
             return {'URL': _url_rel_path(dot.directory, path)}
 
