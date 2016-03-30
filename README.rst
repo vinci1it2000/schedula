@@ -963,9 +963,9 @@ There are potentially eight models to calibrate and run within CO2MPAS
 3. ``clutch_torque_converter_model``,
 4. ``co2_params``,
 5. ``engine_cold_start_speed_model``,
-5. ``engine_coolant_temperature_model``,
-6. ``engine_speed_model``, and
-7. ``start_stop_model``.
+6. ``engine_coolant_temperature_model``,
+7. ``engine_speed_model``, and
+8. ``start_stop_model``.
 
 Each model is calibrated separately over *WLTP_H* and *WLTP_L*.
 A model can contain one or several functions predicting different quantities.
