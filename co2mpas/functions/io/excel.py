@@ -100,7 +100,7 @@ def parse_excel_file(file_path):
                       'Please correct the inputs!'
                 raise ValueError(msg.format(drop, sheet_name))
 
-        for k, v, m in iter_values(data, default=match):
+        for k, v, m in _iter_values(data, default=match):
             for c in stlp(m['cycle']):
                 c = c.replace('-', '_')
                 get_nested_dicts(res, m['what'], c, m['as'])[k] = v
@@ -113,18 +113,7 @@ def parse_excel_file(file_path):
     return res
 
 
-def iter_values(data, default=None):
-    """
-    Parses the data with a data map.
-
-    :param data:
-        Data to be parsed (key) and fetch (value) with filters.
-    :type data: dict, pd.DataFrame
-
-    :return:
-        Parsed and fetched data (inputs and targets).
-    :rtype: (dict, dict)
-    """
+def _iter_values(data, default=None):
     default = default or {}
     if 'cycle' not in default:
         default['cycle'] = ('nedc', 'wltp_p', 'wltp_h', 'wltp_l')
@@ -184,12 +173,12 @@ def write_to_excel(data, output_file_name, template_file_name):
                 st = ('startcol', 1)
             kw[st[0]]= 0
 
-            for v in v:
-                ref = _df2excel(writer, k[0], v, **kw)
+            for d in v:
+                ref = _df2excel(writer, k[0], d, **kw)
                 if ref:
                     corner, ref = ref
-                    xlref['%s/%s' % (k[0], v.name)] = ref
-                    kw[st[0]] = v.shape[st[1]] + corner[st[1]] + 2
+                    xlref['%s/%s' % (k[0], d.name)] = ref
+                    kw[st[0]] = d.shape[st[1]] + corner[st[1]] + 2
 
         elif k[0] != 'graphs':
             if k[-1] == 'parameters':

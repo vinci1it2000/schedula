@@ -41,8 +41,6 @@ def get_model_paths(model_ids=None):
         'report.report',
         'io.load_inputs',
         'io.write_outputs',
-        #++
-        'io.excel.load_from_excel',
         #+
 
     ] + [
@@ -53,8 +51,7 @@ def get_model_paths(model_ids=None):
             'model_selector.co2_params.co2_params_model_selector'
         ] + ['physical.%s' % k for k in
              [
-            'physical_calibration',
-            'physical_prediction',
+            'physical',
             'vehicle.vehicle',
             'wheels.wheels',
             'final_drive.final_drive',
@@ -65,8 +62,7 @@ def get_model_paths(model_ids=None):
             'electrics.electrics_prediction.electrics_prediction',
             'engine.engine',
             'engine.co2_emission.co2_emission',
-            'gear_box.gear_box_calibration',
-            'gear_box.gear_box_prediction',
+            'gear_box.gear_box',
             'gear_box.thermal.thermal',
             'gear_box.AT_gear.AT_gear',
             'gear_box.AT_gear.cmv',
@@ -79,8 +75,6 @@ def get_model_paths(model_ids=None):
             'gear_box.AT_gear.gspv_cold_hot',
         ]]
     ]
-
-
 
     co2mpas_model = {'co2mpas.models.%s' % k for k in co2mpas_model}
 
@@ -105,13 +99,24 @@ def plot_model_graphs(model_ids=None, view_in_browser=True,
         (e.g., ['co2mpas.models.physical.physical_calibration', 'engine', ...]).
 
         .. note:: It it is not specified all models will be plotted.
-    :type model_ids: list, None
+    :type model_ids: list|
 
-    :param int, None depth:
+    :param view_in_browser:
+        Open the rendered directed graph in the DOT language with the sys
+        default opener.
+    :type view_in_browser: bool, optional
+
+    :param output_folder:
+        Output folder.
+    :type output_folder: str
+
+    :param depth:
         Max level of sub-dispatch plots.  If `None` or negative, no limit.
+    :type depth: int, optional
 
-    :param dict kwargs:
+    :param kwargs:
         Optional :func:`dispatcher.utils.drw.dsp2dot` keywords.
+    :type kwargs: dict
 
     :return:
         A list of directed graphs source code in the DOT language.
@@ -146,11 +151,6 @@ def plot_time_series(
 
     :param dsp:
     :type dsp: co2mpas.dispatcher.Dispatcher
-    :param y_id:
-    :param title:
-    :param y_label:
-    :param x_id:
-    :param x_label:
     :return:
     """
 
