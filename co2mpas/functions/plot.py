@@ -8,13 +8,12 @@
 It contains plotting functions for models and/or output results.
 """
 
-import co2mpas.dispatcher.utils as dsp_utl
 import importlib
 import logging
 import sys
 import os.path as osp
 import matplotlib.pyplot as plt
-from cycler import cycler
+from co2mpas.dispatcher.utils.alg import stlp
 
 log = logging.getLogger(__name__)
 
@@ -148,13 +147,38 @@ def plot_model_graphs(model_ids=None, view_in_browser=True,
 def plot_time_series(
         dsp, x_id, *y_ids, title=None, x_label=None, y_label=None, **kwargs):
     """
+    Plot time series from the dsp.
 
     :param dsp:
+        Co2mpas model.
     :type dsp: co2mpas.dispatcher.Dispatcher
-    :return:
+
+    :param x_id:
+        Id of X axes.
+    :type x_id: str | tuple[str]
+
+    :param y_ids:
+        Ids of data to plot.
+    :type y_ids: tuple[dict | str | tuple[str]]
+
+    :param title:
+        Plot title.
+    :type title: str
+
+    :param x_label:
+        Label of X axes.
+    :type x_label: str
+
+    :param y_label:
+        Label of X axes.
+    :type y_label: str
+
+    :param kwargs:
+        Optional plot kwargs.
+    :type y_label: dict
     """
 
-    x_id = tuple(x_id)
+    x_id = stlp(x_id)
     x, x_id = dsp.get_node(*x_id)
     if x_label is None:
         x_label = dsp.get_node(*x_id, node_attr='description')[0][0]
@@ -170,7 +194,7 @@ def plot_time_series(
             data = {'id': data, 'x': x}
 
         if 'id' in data:
-            y_id = tuple(data.pop('id'))
+            y_id = stlp(data.pop('id'))
 
             des = y_label is None or 'label' not in data
             if des or 'y' not in data:
@@ -205,43 +229,3 @@ def plot_time_series(
         plt.ylabel(y_label)
 
     plt.legend()
-
-
-def plot_time_series_v1(
-        fig, xs, ys, labels, title, y_label='', x_label='Time [s]'):
-
-    for x, y, l in zip(xs, ys, labels):
-        fig.plot(x, y, label=l)
-
-    fig.grid(True, color='grey', linestyle='-')
-    fig.set_title(title, fontsize=20)
-    fig.legend(loc='upper left', bbox_to_anchor=(-0.008, 1.018),
-               fancybox=True, shadow=True, ncol=2)
-    fig.set_xlabel(x_label)
-    fig.set_ylabel(y_label)
-    fig.set_prop_cycle(cycler('color', ['c', 'm', 'y', 'k']))
-    plt.setp(fig.get_xticklabels(), fontsize=10, visible=True)
-
-
-def make_cycle_graphs(data):
-    n = len(data)
-    if n:
-        fig, axarr = plt.subplots(n, 1, sharex=True, figsize=(12, 36))
-
-        for i, v in enumerate(data.values()):
-            try:
-                plot_time_series_v1(axarr[i], **v)
-            except:
-                pass
-        plt.subplots_adjust(hspace = .2)
-        plt.subplots_adjust(bottom=0.02, right=0.9, top=0.98)
-
-        return fig
-    return dsp_utl.NONE
-
-
-def save_cycle_graphs(fig, directory, fname, cycle_name='', tag=''):
-    fpath = osp.join(directory, '%s_%s_%s.jpg' % (fname, cycle_name, tag))
-    fig.savefig(fpath, format='png', dpi = 300)
-    plt.close(fig)
-    return fpath
