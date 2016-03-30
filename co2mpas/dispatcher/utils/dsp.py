@@ -983,7 +983,8 @@ class SubDispatchPipe(SubDispatchFunction):
         elif node_type == 'function':  # Set function node.
             return self._set_function_node_output(dsp, node_id, node_attr)
 
-    def _set_data_node_output(self, dsp, node_id, node_attr):
+    @staticmethod
+    def _set_data_node_output(dsp, node_id, node_attr):
         # Get data node estimations.
         estimations = dsp._wf_pred[node_id]
 
@@ -1035,7 +1036,8 @@ class SubDispatchPipe(SubDispatchFunction):
             for u in dsp.workflow.succ[node_id]:  # Set workflow.
                 wf_add_edge(node_id, u, **value)
 
-    def _set_function_node_output(self, dsp, node_id, node_attr):
+    @staticmethod
+    def _set_function_node_output(dsp, node_id, node_attr):
         # Namespace shortcuts for speed.
         o_nds = node_attr['outputs']
 
@@ -1072,7 +1074,7 @@ class SubDispatchPipe(SubDispatchFunction):
                 attr['duration'] = datetime.today() - attr['started']
 
                 # Save node.
-                self.workflow.add_node(node_id, **attr)
+                dsp.workflow.add_node(node_id, **attr)
             # Is missing function of the node or args are not in the domain.
             msg = "Failed DISPATCHING '%s' due to:\n  %r"
             dsp._warning(msg, node_id, ex)
@@ -1097,18 +1099,18 @@ class SubDispatchPipe(SubDispatchFunction):
             for _, edge_attr in out_flow[k].items():
                 edge_attr['value'] = value
 
-        try:
-            it = iter(self.pipe)
-            for v, dsp in it:
+        it = iter(self.pipe)
+
+        for v, dsp in it:
+            try:
                 set_node(dsp, v)
+            except KeyError:  # Unreached outputs.
+                o = set(data_output) - set([v] + [k[0] for k in it])
+                missed = set(self.outputs) - o
+                # Raise error
+                msg = '\n  Unreachable output-targets: {}\n  Available ' \
+                      'outputs: {}'.format(missed, o.keys())
+                raise DispatcherError(self.dsp, msg)
 
-            # Return outputs sorted.
-            return self.return_output()
-
-        except KeyError:  # Unreached outputs.
-            o = set(data_output) - set([v] + [k[0] for k in it])
-            missed = set(self.outputs) - o
-            # Raise error
-            msg = '\n  Unreachable output-targets: {}\n  Available ' \
-                  'outputs: {}'.format(missed, o.keys())
-            raise DispatcherError(self.dsp, msg)
+        # Return outputs sorted.
+        return self.return_output()
