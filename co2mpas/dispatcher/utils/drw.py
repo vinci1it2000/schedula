@@ -61,6 +61,7 @@ else:
 
             name = mkdirs(filepath)
 
+            # noinspection PyUnresolvedReferences
             data = gviz._compat.text_type(self.source)
 
             with open(name, 'w', encoding=self.encoding) as fd:
@@ -449,6 +450,7 @@ def _set_edge(dot, dot_u, dot_v, attr=None, edge_data=None, **kw_dot):
 
 def _url_rel_path(directory, path):
     url = './%s' % Path(path).relative_to(directory)
+    # noinspection PyUnresolvedReferences
     url = urllib.parse.quote(url.replace('\\', '/'))
     return url
 

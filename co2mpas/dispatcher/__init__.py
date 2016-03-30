@@ -2183,6 +2183,7 @@ class Dispatcher(object):
 
                 elif 'function' in a:
                     o = a['outputs']
+                    # noinspection PyUnboundLocalVariable
                     w = [o[k] for k in set(o).intersection(w)]
                     wait_in.update(dict.fromkeys(w, flag))
         return wait_in

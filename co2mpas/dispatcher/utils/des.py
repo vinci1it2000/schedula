@@ -46,6 +46,7 @@ def get_attr_doc(doc, attr_name, get_param=True, what='description'):
 
     res = re.search(es, doc)
     if res:
+        # noinspection PyUnresolvedReferences
         return get_summary(doc[res.regs[0][1]:].split('\n'))
     else:
         return ''

@@ -274,17 +274,9 @@ def replace_remote_link(dsp, nodes_bunch, link_map):
         A container of nodes which will be iterated through once.
     :type nodes_bunch: iterable
 
-    :param old_link:
-        Remote link to be replaced or removed.
-    :type old_link: [str, dispatcher.Dispatcher]
-
-    :param new_link:
-        New remote link. If it is None the old link will be removed.
-    :type new_link: [str, dispatcher.Dispatcher], optional
-
-    :param is_parent:
-        If True the link is inflow (parent), otherwise is outflow (child).
-    :type is_parent: bool, optional
+    :param link_map:
+        A dictionary that maps the link keys ({old link: new link}
+    :type link_map: dict
     """
     nodes = dsp.nodes
     for k in nodes_bunch:  # Update remote links.
@@ -302,7 +294,7 @@ def replace_remote_link(dsp, nodes_bunch, link_map):
 
 def stlp(s):
     if isinstance(s, str):
-        return (s, )
+        return s,
     return s
 
 
@@ -407,11 +399,11 @@ def _map_remote_links(new_dsp, old_dsp):
 
     :param new_dsp:
         Old Dispatcher.
-    :type new_dsp: Dispatcher
+    :type new_dsp: dispatcher.Dispatcher
 
     :param old_dsp:
         Old Dispatcher.
-    :type old_dsp: Dispatcher
+    :type old_dsp: dispatcher.Dispatcher
 
     :return:
         A map with old_dsp and new_dsp.
