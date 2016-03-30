@@ -163,6 +163,8 @@ setup(
         'schema',
         'tqdm',
         'pyyaml',
+        'cycler',
+        'pip',
     ],
     packages=find_packages(exclude=['tests', 'doc']),
     package_data={'co2mpas': [

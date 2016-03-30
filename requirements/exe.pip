@@ -24,3 +24,5 @@ regex
 schema
 lmfit
 tqdm
+cycler
+pip
