@@ -230,6 +230,7 @@ def selector(keys, dictionary, copy=False, output_type='dict', allow_miss=False)
             + 'dict': a dictionary with any outputs listed in `keys`.
             + 'values': if output length == 1 return a single value otherwise a
                         tuple with all values listed in `keys`.
+
         :type output_type: str, optional
 
     :param allow_miss:

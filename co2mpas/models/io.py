@@ -9,16 +9,6 @@
 It provides I/O models.
 
 The model is defined by a Dispatcher that wraps all the functions needed.
-
-Sub-Modules:
-
-.. currentmodule:: co2mpas.models.io
-
-.. autosummary::
-    :nosignatures:
-    :toctree: io/
-
-    excel
 """
 
 from co2mpas.dispatcher import Dispatcher
