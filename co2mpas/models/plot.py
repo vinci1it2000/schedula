@@ -64,14 +64,14 @@ def get_model_paths(model_ids=None):
             'gear_box.gear_box',
             'gear_box.thermal.thermal',
             'gear_box.at_gear.at_gear',
-            'gear_box.at_gear.cmv',
-            'gear_box.at_gear.cmv_cold_hot',
-            'gear_box.at_gear.dt_va',
-            'gear_box.at_gear.dt_vap',
-            'gear_box.at_gear.dt_vat',
-            'gear_box.at_gear.dt_vatp',
-            'gear_box.at_gear.gspv',
-            'gear_box.at_gear.gspv_cold_hot',
+            'gear_box.at_gear.at_cmv',
+            'gear_box.at_gear.at_cmv_cold_hot',
+            'gear_box.at_gear.at_dt_va',
+            'gear_box.at_gear.at_dt_vap',
+            'gear_box.at_gear.at_dt_vat',
+            'gear_box.at_gear.at_dt_vatp',
+            'gear_box.at_gear.at_gspv',
+            'gear_box.at_gear.at_gspv_cold_hot',
         ]]
     ]
 
