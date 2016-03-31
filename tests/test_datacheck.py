@@ -73,7 +73,7 @@ class SeatBelt(unittest.TestCase):
 
     def test_files(self):
         mydir = osp.dirname(__file__)
-        log.info("  OVERWRITE_SEATBELT: %s \n"
+        log.info("\n  OVERWRITE_SEATBELT: %s \n"
                 "  RUN_INPUT_FOLDER: %s \n"
                 "  RUN_ALL_FILES: %s ",
                 OVERWRITE_SEATBELT, RUN_INPUT_FOLDER, RUN_ALL_FILES)
@@ -85,6 +85,7 @@ class SeatBelt(unittest.TestCase):
         model = vehicle_processing_model()
 
         resultes = []
+
         for fpath in file_finder([file]):
             fname = osp.splitext(osp.basename(fpath))[0]
             log.info('Processing: %s', fname)
@@ -97,6 +98,9 @@ class SeatBelt(unittest.TestCase):
             r = dsp_utl.selector(['report', 'summary'], r)
             r.get('report', {}).pop('pipe', None)
             resultes.append(sorted(stack_nested_keys(r), key=lambda x: x[0]))
+
+        if not resultes:
+            raise AssertionError("DataCheck found no input-files in %r!" % file)
 
         tmpdir = tempfile.gettempdir()
         res_file = osp.join(tmpdir, 'co2mpas_seatbelt_demos.json')
