@@ -16,6 +16,7 @@ import numpy as np
 from functools import partial
 from ..constants import *
 import co2mpas.dispatcher.utils as dsp_utl
+from co2mpas.dispatcher import Dispatcher
 
 
 def calculate_clutch_phases(
@@ -205,3 +206,74 @@ def predict_clutch_speeds_delta(clutch_model, clutch_phases, accelerations):
     delta[clutch_phases] = clutch_model(X)
 
     return delta
+
+
+def clutch():
+    """
+    Defines the clutch model.
+
+    .. dispatcher:: dsp
+
+        >>> dsp = clutch()
+
+    :return:
+        The clutch model.
+    :rtype: Dispatcher
+    """
+
+    dsp = Dispatcher(
+        name='Clutch',
+        description='Models the clutch.'
+    )
+
+    dsp.add_function(
+        function=calculate_clutch_phases,
+        inputs=['times', 'gear_shifts', 'clutch_window'],
+        outputs=['clutch_phases']
+    )
+
+    dsp.add_function(
+        function=calculate_clutch_speed_threshold,
+        inputs=['clutch_speeds_delta'],
+        outputs=['clutch_speed_threshold']
+    )
+
+    dsp.add_function(
+        function=identify_clutch_window,
+        inputs=['times', 'accelerations', 'gear_shifts',
+                'clutch_speeds_delta', 'clutch_speed_threshold'],
+        outputs=['clutch_window']
+    )
+
+    dsp.add_function(
+        function=calibrate_clutch_prediction_model,
+        inputs=['clutch_phases', 'accelerations', 'clutch_speeds_delta',
+                'clutch_speed_threshold'],
+        outputs=['clutch_model']
+    )
+
+    dsp.add_function(
+        function=predict_clutch_speeds_delta,
+        inputs=['clutch_model', 'clutch_phases', 'accelerations'],
+        outputs=['clutch_speeds_delta']
+    )
+
+    dsp.add_data(
+        data_id='stand_still_torque_ratio',
+        default_value=1.0
+    )
+
+    dsp.add_data(
+        data_id='lockup_speed_ratio',
+        default_value=0.0
+    )
+
+    from . import define_k_factor_curve
+
+    dsp.add_function(
+        function=define_k_factor_curve,
+        inputs=['stand_still_torque_ratio', 'lockup_speed_ratio'],
+        outputs=['k_factor_curve']
+    )
+
+    return dsp

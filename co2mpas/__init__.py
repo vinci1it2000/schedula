@@ -12,7 +12,6 @@
     :toctree: _build/co2mpas/
 
     ~models
-    ~functions
     ~dispatcher
 
 """

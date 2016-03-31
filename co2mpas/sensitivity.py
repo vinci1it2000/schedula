@@ -9,17 +9,17 @@
 It contains functions to make a sensitivity analysis.
 """
 
-from co2mpas.functions import _process_vehicle, _add2summary, _save_summary, \
+from .models import _process_vehicle, _add2summary, _save_summary, \
     get_nested_dicts, stack_nested_keys
-from co2mpas.models import vehicle_processing_model
+from .models import vehicle_processing_model
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher.utils.alg import stlp
-from co2mpas.functions.co2mpas_model.physical.engine.co2_emission import _set_attr
-from co2mpas.functions.co2mpas_model.physical.engine import Start_stop_model
-from co2mpas.functions.co2mpas_model.physical.electrics import Alternator_status_model
-from co2mpas.__main__ import file_finder
-from co2mpas.functions.io.dill import save_dill, load_from_dill
-from co2mpas.functions.io.schema import define_data_schema
+from .models.co2mpas_model.physical.engine.co2_emission import _set_attr
+from .models.co2mpas_model.physical.engine import Start_stop_model
+from .models.co2mpas_model.physical.electrics import Alternator_status_model
+from .__main__ import file_finder
+from .models.io.dill import save_dill, load_from_dill
+from .models.io.schema import define_data_schema
 from copy import deepcopy
 import pandas as pd
 import datetime

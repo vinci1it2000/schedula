@@ -4,11 +4,12 @@
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
-
 """
 It provides CO2MPAS model to predict light-vehicles' CO2 emissions.
 
-It contains a comprehensive list of all CO2MPAS software models and sub-models:
+Docstrings should provide sufficient understanding for any individual function.
+
+Modules:
 
 .. currentmodule:: co2mpas.models.co2mpas_model.physical
 
@@ -23,14 +24,13 @@ It contains a comprehensive list of all CO2MPAS software models and sub-models:
     clutch_tc
     electrics
     engine
-
-The model is defined by a Dispatcher that wraps all the functions needed.
+    utils
+    constants
 """
-
 
 from co2mpas.dispatcher import Dispatcher
 import co2mpas.dispatcher.utils as dsp_utl
-from co2mpas.functions.co2mpas_model.physical.constants.NEDC import *
+from .constants.NEDC import *
 
 
 def physical():

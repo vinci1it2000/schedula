@@ -185,7 +185,7 @@ def print_autocompletions():
 
 
 def _cmd_modelgraph(opts):
-    from co2mpas.functions import plot as co2plot
+    from .models import plot as co2plot
     if opts['--list']:
         print('\n'.join(co2plot.get_model_paths()))
     else:
@@ -492,7 +492,7 @@ def _run_batch(opts):
             raise CmdException("Specify a folder for "
                                "the '-O %s' option!" % output_folder)
 
-    from co2mpas.functions import process_folder_files
+    from co2mpas.models import process_folder_files
     process_folder_files(input_paths, output_folder,
                          with_output_file=not opts['--only-summary'],
                          plot_workflow=opts['--plot-workflow'],

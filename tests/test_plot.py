@@ -7,7 +7,7 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 import unittest
-from co2mpas.functions import plot as co2plot
+from co2mpas.models import plot as co2plot
 from co2mpas.__main__ import init_logging
 import ddt
 
