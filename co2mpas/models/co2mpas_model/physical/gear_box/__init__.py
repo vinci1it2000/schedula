@@ -1195,7 +1195,7 @@ def gear_box():
                 return v == 'automatic'
         return False
 
-    from .AT_gear import at_gear
+    from .A_T_gear import at_gear
     dsp.add_dispatcher(
         include_defaults=True,
         dsp=at_gear(),
