@@ -1281,7 +1281,79 @@ class _Minimizer(lmfit.Minimizer):
 
 def calculate_phases_willans_factors(
         params, engine_fuel_lower_heating_value, engine_stroke, engine_capacity,
-        times, phases_integration_times, engine_speeds_out, engine_powers_out):
+        times, phases_integration_times, engine_speeds_out, engine_powers_out,
+        velocities, accelerations, motive_powers):
+    """
+    Calculates the Willans factors for each phase.
+
+    :param params:
+        CO2 emission model parameters (a2, b2, a, b, c, l, l2, t, trg).
+
+        The missing parameters are set equal to zero.
+    :type params: lmfit.Parameters
+
+    :param engine_fuel_lower_heating_value:
+        Fuel lower heating value [kJ/kg].
+    :type engine_fuel_lower_heating_value: float
+
+    :param engine_stroke:
+        Engine stroke [mm].
+    :type engine_stroke: float
+
+    :param engine_capacity:
+        Engine capacity [cm3].
+    :type engine_capacity: float
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
+
+    :param phases_integration_times:
+        Cycle phases integration times [s].
+    :type phases_integration_times: tuple
+
+    :param engine_speeds_out:
+        Engine speed vector [RPM].
+    :type engine_speeds_out: numpy.array
+
+    :param engine_powers_out:
+        Engine power vector [kW].
+    :type engine_powers_out: numpy.array
+
+    :param velocities:
+        Velocity vector [km/h].
+    :type velocities: numpy.array
+
+    :param accelerations:
+        Acceleration vector [m/s2].
+    :type accelerations: numpy.array
+
+    :param motive_powers:
+        Motive power [kW].
+    :type motive_powers: numpy.array
+
+    :return:
+        Willans factors:
+
+        - av_velocities                         [kw/h]
+        - av_vel_pos_mov_pow                    [kw/h]
+        - av_pos_motive_powers                  [kW]
+        - av_neg_motive_powers                  [kW]
+        - av_pos_accelerations                  [m/s2]
+        - av_engine_speeds_out_pos_pow          [RPM]
+        - av_pos_engine_powers_out              [kW]
+        - engine_bmep_pos_pow                   [bar]
+        - mean_piston_speed_pos_pow             [m/s]
+        - fuel_mep_pos_pow                      [bar]
+        - fuel_consumption_pos_pow              [g/sec]
+        - willans_a                             [g/kWh]
+        - willans_b                             [g/h]
+        - specific_fuel_consumption             [g/kWh]
+        - indicated_efficiency                  [-]
+        - willans_efficiency                    [-]
+
+    :rtype: dict
+    """
 
     factors = []
 
@@ -1290,7 +1362,8 @@ def calculate_phases_willans_factors(
 
         factors.append(calculate_willans_factors(
             params, engine_fuel_lower_heating_value, engine_stroke,
-            engine_capacity, engine_speeds_out[i:j], engine_powers_out[i:j]
+            engine_capacity, engine_speeds_out[i:j], engine_powers_out[i:j],
+            velocities[i:j], accelerations[i:j], motive_powers[i:j]
         ))
 
     return factors
@@ -1298,7 +1371,8 @@ def calculate_phases_willans_factors(
 
 def calculate_willans_factors(
         params, engine_fuel_lower_heating_value, engine_stroke, engine_capacity,
-        engine_speeds_out, engine_powers_out):
+        engine_speeds_out, engine_powers_out, velocities, accelerations,
+        motive_powers):
     """
     Calculates the Willans factors.
 
@@ -1328,20 +1402,37 @@ def calculate_willans_factors(
         Engine power vector [kW].
     :type engine_powers_out: numpy.array
 
+    :param velocities:
+        Velocity vector [km/h].
+    :type velocities: numpy.array
+
+    :param accelerations:
+        Acceleration vector [m/s2].
+    :type accelerations: numpy.array
+
+    :param motive_powers:
+        Motive power [kW].
+    :type motive_powers: numpy.array
+
     :return:
         Willans factors:
 
-        - av_engine_speeds_out [RPM]
-        - av_engine_powers_out [kW]
-        - engine_bmep [bar]
-        - mean_piston_speed [m/s]
-        - fuel_mep [bar]
-        - fuel_consumption [g/sec]
-        - willans_a [g/kWh]
-        - willans_b [g/h]
-        - specific_fuel_consumption [g/kWh]
-        - indicated_efficiency [-]
-        - willans_efficiency [-]
+        - av_velocities                         [kw/h]
+        - av_vel_pos_mov_pow                    [kw/h]
+        - av_pos_motive_powers                  [kW]
+        - av_neg_motive_powers                  [kW]
+        - av_pos_accelerations                  [m/s2]
+        - av_engine_speeds_out_pos_pow          [RPM]
+        - av_pos_engine_powers_out              [kW]
+        - engine_bmep_pos_pow                   [bar]
+        - mean_piston_speed_pos_pow             [m/s]
+        - fuel_mep_pos_pow                      [bar]
+        - fuel_consumption_pos_pow              [g/sec]
+        - willans_a                             [g/kWh]
+        - willans_b                             [g/h]
+        - specific_fuel_consumption             [g/kWh]
+        - indicated_efficiency                  [-]
+        - willans_efficiency                    [-]
 
     :rtype: dict
     """
@@ -1350,40 +1441,59 @@ def calculate_willans_factors(
 
     p = params.valuesdict()
 
-    b = engine_powers_out >= 0
-    av_s = np.average(engine_speeds_out[b])
-    av_p = np.average(engine_powers_out[b])
-
-    n_p = calculate_brake_mean_effective_pressures(av_s, av_p, engine_capacity)
-    n_s = calculate_mean_piston_speeds(av_s, engine_stroke)
-
-    FMEP = _calculate_fuel_mean_effective_pressure
-    f_mep, wfa = FMEP(p, n_s, n_p, 1)
-
-    c = engine_capacity / engine_fuel_lower_heating_value * av_s
-    fc = f_mep * c / 1200.0
-    ieff = av_p / (fc * engine_fuel_lower_heating_value) * 1000.0
-
-    willans_a = 3600000.0 / engine_fuel_lower_heating_value / wfa
-    willans_b = FMEP(p, n_s, 0, 1)[0] * c * 3.0
-
-    sfc = willans_a + willans_b / av_p
-
-    willans_eff = 3600000.0 / (sfc * engine_fuel_lower_heating_value)
-
     factors = {
-        'av_engine_speeds_out': av_s,       # [RPM]
-        'av_engine_powers_out': av_p,       # [kW]
-        'engine_bmep': n_p,                 # [bar]
-        'mean_piston_speed': n_s,           # [m/s]
-        'fuel_mep': f_mep,                  # [bar]
-        'fuel_consumption': fc,             # [g/sec]
-        'willans_a': willans_a,             # [g/kWh]
-        'willans_b': willans_b,             # [g/h]
-        'specific_fuel_consumption': sfc,   # [g/kWh]
-        'indicated_efficiency': ieff,       # [-]
-        'willans_efficiency': willans_eff   # [-]
+        'av_velocities': np.average(velocities),  # [km/h]
     }
+
+    b = engine_powers_out >= 0
+    if b.any():
+        av_s = np.average(engine_speeds_out[b])
+        av_p = np.average(engine_powers_out[b])
+
+        n_p = calculate_brake_mean_effective_pressures(av_s, av_p,
+                                                       engine_capacity)
+        n_s = calculate_mean_piston_speeds(av_s, engine_stroke)
+
+        FMEP = _calculate_fuel_mean_effective_pressure
+        f_mep, wfa = FMEP(p, n_s, n_p, 1)
+
+        c = engine_capacity / engine_fuel_lower_heating_value * av_s
+        fc = f_mep * c / 1200.0
+        ieff = av_p / (fc * engine_fuel_lower_heating_value) * 1000.0
+
+        willans_a = 3600000.0 / engine_fuel_lower_heating_value / wfa
+        willans_b = FMEP(p, n_s, 0, 1)[0] * c * 3.0
+
+        sfc = willans_a + willans_b / av_p
+
+        willans_eff = 3600000.0 / (sfc * engine_fuel_lower_heating_value)
+
+        factors.update({
+            'av_engine_speeds_out_pos_pow': av_s,                 # [RPM]
+            'av_pos_engine_powers_out': av_p,                     # [kW]
+            'engine_bmep_pos_pow': n_p,                           # [bar]
+            'mean_piston_speed_pos_pow': n_s,                     # [m/s]
+            'fuel_mep_pos_pow': f_mep,                            # [bar]
+            'fuel_consumption_pos_pow': fc,                       # [g/sec]
+            'willans_a': willans_a,                               # [g/kWh]
+            'willans_b': willans_b,                               # [g/h]
+            'specific_fuel_consumption': sfc,                     # [g/kWh]
+            'indicated_efficiency': ieff,                         # [-]
+            'willans_efficiency': willans_eff                     # [-]
+        })
+
+    b = motive_powers > 0
+    if b.any():
+        factors['av_vel_pos_mov_pow'] = np.average(velocities[b])       # [km/h]
+        factors['av_pos_motive_powers'] = np.average(motive_powers[b])  # [kW]
+
+    b = accelerations > 0
+    if b.any():
+        factors['av_pos_accelerations'] = np.average(accelerations[b])  # [m/s2]
+
+    b = motive_powers < 0
+    if b.any():
+        factors['av_neg_motive_powers'] = np.average(motive_powers[b])  # [kW]
 
     return factors
 
@@ -1796,7 +1906,8 @@ def co2_emission():
         function=calculate_willans_factors,
         inputs=['co2_params_calibrated', 'engine_fuel_lower_heating_value',
                 'engine_stroke', 'engine_capacity', 'engine_speeds_out',
-                'engine_powers_out'],
+                'engine_powers_out', 'velocities', 'accelerations',
+                'motive_powers'],
         outputs=['willans_factors']
     )
 
@@ -1810,7 +1921,8 @@ def co2_emission():
         inputs=['enable_phases_willans', 'co2_params_calibrated',
                 'engine_fuel_lower_heating_value', 'engine_stroke',
                 'engine_capacity', 'times', 'phases_integration_times',
-                'engine_speeds_out', 'engine_powers_out'],
+                'engine_speeds_out', 'engine_powers_out', 'velocities',
+                'accelerations', 'motive_powers'],
         outputs=['phases_willans_factors'],
         input_domain=lambda *args: args[0]
     )

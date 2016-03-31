@@ -1709,7 +1709,9 @@ def engine():
             'co2_normalization_references': 'co2_normalization_references',
             'fuel_density': 'fuel_density',
             'phases_integration_times': 'phases_integration_times',
-            'enable_phases_willans': 'enable_phases_willans'
+            'enable_phases_willans': 'enable_phases_willans',
+            'accelerations': 'accelerations',
+            'motive_powers': 'motive_powers',
         },
         outputs={
             'co2_emissions_model': 'co2_emissions_model',

@@ -333,7 +333,8 @@ def physical():
             'co2_normalization_references': 'co2_normalization_references',
             'fuel_density': 'fuel_density',
             'phases_integration_times': 'phases_integration_times',
-            'enable_phases_willans': 'enable_phases_willans'
+            'enable_phases_willans': 'enable_phases_willans',
+            'motive_powers': 'motive_powers',
         },
         outputs={
             'auxiliaries_torque_losses': 'auxiliaries_torque_losses',
