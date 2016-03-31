@@ -185,7 +185,7 @@ def print_autocompletions():
 
 
 def _cmd_modelgraph(opts):
-    from .models import plot as co2plot
+    from co2mpas.models import plot as co2plot
     if opts['--list']:
         print('\n'.join(co2plot.get_model_paths()))
     else:
