@@ -616,32 +616,60 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
     Predict NEDC CO2 emissions from WLTP cycles.
 
     Usage:
-      co2mpas batch       [-v | --logconf <conf-file>]  [--predict-wltp] [--only-summary]
-                          [--out-template <xlsx-file> | --charts] [--plot-workflow]
-                          [-O <output-folder>]  [<input-path>]...  [--gui]
-      co2mpas demo        [-v | --logconf <conf-file>] [-f] [<output-folder>]  [--gui]
-      co2mpas template    [-v | --logconf <conf-file>] [-f] [<excel-file-path> ...]  [--gui]
-      co2mpas ipynb       [-v | --logconf <conf-file>] [-f] [<output-folder>]  [--gui]
-      co2mpas modelgraph  [-v | --logconf <conf-file>]
+      co2mpas batch       [-v | --logconf <conf-file>] [--predict-wltp]
+                          [--only-summary] [--out-template <xlsx-file> | --charts]
+                          [--plot-workflow] [--overwrite-cache] [-O <output-folder>]
+                          [--soft-validation]
+                          [<input-path>]... [--gui]
+      co2mpas demo        [-v | --logconf <conf-file>] [-f] [<output-folder>]
+                          [--gui]
+      co2mpas template    [-v | --logconf <conf-file>] [-f] [<excel-file-path> ...]
+                          [--gui]
+      co2mpas ipynb       [-v | --logconf <conf-file>] [-f] [<output-folder>]
+                          [--gui]
+      co2mpas modelgraph  [-v | --logconf <conf-file>] [-O <output-folder>]
                           [--list | [--graph-depth=INTEGER] [<models> ...]]
-      co2mpas [-v | --logconf <conf-file>] (--version | -V)
-      co2mpas --help
+      co2mpas datasync    [-v | --logconf <conf-file>] [-f] <input-path>
+                          <x-label> <y-label> <ref-sheet> [<sync-sheets>]...
+                          [-O <output-folder>] [--suffix <suffix>]
+                          [--prefix]
+      co2mpas sa          [-v | --logconf <conf-file>] [-f] [--predict-wltp]
+                          [-O <output-folder>] [--soft-validation]
+                          [<input-path>] [<input-params>]
+                          [<defaults>]...
+      co2mpas             [-v | --logconf <conf-file>] (--version | -V)
+      co2mpas             --help
 
     Options:
       <input-path>                Input xlsx-file or folder.
       -O <output-folder>          Output folder or file [default: .].
-      --gui                       Launches GUI dialog-boxes to choose Input, Output and Options.
-                                  [default: False].
+      --gui                       Launches GUI dialog-boxes to choose Input, Output
+                                  and Options. [default: False].
       --only-summary              Does not save vehicle outputs just the summary file.
+      --overwrite-cache           Overwrites the cached file.
       --predict-wltp              Whether to predict also WLTP values.
       --charts                    Add basic charts to output file.
-      --out-template <xlsx-file>  An '*.xlsx' file to clone and append model-results into it.
+      --soft-validation           Partial data validation.
+      --out-template <xlsx-file>  An '*.xlsx' file to clone and append model-results
+                                  into it.
                                   By default, no output-template used.
-                                  Set it to `-` to use the input xlsx-file as output-template.
+                                  Set it to `-` to use the input xlsx-file as
+                                  output-template.
       --plot-workflow             Open workflow-plot in browser, after run finished.
       -l, --list                  List available models.
-      --graph-depth=INTEGER       Limit the levels of sub-models plotted (no limit by default).
+      --graph-depth=INTEGER       Limit the levels of sub-models plotted (no limit
+                                  by default).
       -f, --force                 Overwrite template/demo excel-file(s).
+      --suffix <suffix>           Suffix to added to the output file (datasync)
+                                  [default: sync].
+      --prefix                    Add sheet name to all sync column names (datasync).
+      <x-label>                   Column label of x-axis used for data
+                                  synchronisation (e.g. 'times').
+      <y-label>                   Label of y-axis used for data synchronisation.
+      <ref-sheet>                 Sheet where there are the reference signals.
+      <sync-sheets>               Synchronize and re-sample columns from these sheets
+                                  into <ref-sheet>.
+                                  If not given assumes all sheets except <ref-sheet>.
       -V, --version               Print version of the program, with --verbose
                                   list release-date and installation details.
       -h, --help                  Show this help message and exit.
@@ -662,7 +690,10 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
         template                Generate "empty" input-file at <excel-file-path>.
         ipynb                   Generate IPython notebooks inside <output-folder>; view them with cmd:
                                   ipython --notebook-dir=<output-folder>
-        modelgraph              List all or plot available models.  If no model(s) specified, all assumed.
+        modelgraph              List all or plot available models. If no model(s) specified, all assumed.
+        datasync                Synchronise and re-sample time series from different
+                                sources. It saves results in a clone of the input
+                                file overwriting the <ref-sheet>.
 
     Examples for `cmd.exe`:
         # Create work folders ans fill them with sample-vehicles:
@@ -680,6 +711,9 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
 
         # View a specific submodel on your browser:
         co2mpas modelgraph gear_box_calibration
+
+        # Synchronise and re-sample time series from different sources:
+        co2mpas datasync ../input times velocities WLTP-H WLTP-H_OBD -O ../output
 
 
 The default sub-command (``batch``) accepts either a single **input-excel-file**
