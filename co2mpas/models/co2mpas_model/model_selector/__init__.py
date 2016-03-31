@@ -31,7 +31,7 @@ from pprint import pformat
 from ..physical.clutch_tc.clutch import calculate_clutch_phases
 from collections import Iterable
 from functools import partial
-from ..physical.gear_box.A_T_gear import \
+from ..physical.gear_box.at_gear import \
     calculate_error_coefficients, calculate_gear_box_speeds_in
 
 log = logging.getLogger(__name__)
@@ -346,7 +346,7 @@ def sub_models():
         'weights': [1, 1, 0, 0]
     }
 
-    from ..physical.gear_box.A_T_gear import at_gear
+    from ..physical.gear_box.at_gear import at_gear
     at_pred_inputs = [
         'engine_max_power', 'engine_max_speed_at_max_power',
         'idle_engine_speed', 'full_load_curve', 'road_loads', 'vehicle_mass',
