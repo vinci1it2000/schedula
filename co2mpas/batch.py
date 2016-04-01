@@ -5,20 +5,7 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 """
-It contains a list of all modules that contains functions of CO2MPAS.
-
-Modules:
-
-.. currentmodule:: co2mpas.batch
-
-.. autosummary::
-    :nosignatures:
-    :toctree: batch/
-
-    io
-    model
-    report
-    plot
+It contains functions to process vehicle files.
 """
 
 import datetime

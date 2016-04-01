@@ -11,7 +11,11 @@
     :nosignatures:
     :toctree: _build/co2mpas/
 
+    ~model
     ~batch
+    ~datasync
+    ~plot
+    ~sensitivity
     ~dispatcher
 
 """
