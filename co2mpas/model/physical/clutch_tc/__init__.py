@@ -11,7 +11,7 @@ converter.
 
 Sub-Modules:
 
-.. currentmodule:: co2mpas.batch.model.physical.clutch_tc
+.. currentmodule:: co2mpas.model.physical.clutch_tc
 
 .. autosummary::
     :nosignatures:

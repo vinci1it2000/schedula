@@ -9,7 +9,7 @@ It provides CO2MPAS architecture model.
 
 It contains a comprehensive list of all CO2MPAS software models and sub-models:
 
-.. currentmodule:: co2mpas.batch.model
+.. currentmodule:: co2mpas.model
 
 .. autosummary::
     :nosignatures:
@@ -93,7 +93,7 @@ def select_precondition_inputs(cycle_inputs, precondition_outputs):
     return cycle_inputs
 
 
-def co2mpas_model():
+def model():
     """
     Defines the CO2MPAS model.
 

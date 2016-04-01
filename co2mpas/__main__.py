@@ -109,23 +109,24 @@ Examples for `cmd.exe`:
 
 """
 
-from co2mpas import (__version__ as proj_ver, __file__ as proj_file,
-                     __updated__ as proj_date)
-from co2mpas import autocompletion
-from collections import OrderedDict
 import glob
 import io
 import logging
 import logging.config
-from os import path as osp
 import os
 import re
 import shutil
 import sys
+from collections import OrderedDict
+from os import path as osp
 
 import docopt
-from tqdm import tqdm
 import yaml
+from tqdm import tqdm
+
+from co2mpas import (__version__ as proj_ver, __file__ as proj_file,
+                     __updated__ as proj_date)
+from co2mpas import autocompletion
 
 
 class CmdException(Exception):
@@ -185,7 +186,7 @@ def print_autocompletions():
 
 
 def _cmd_modelgraph(opts):
-    from co2mpas.batch import plot as co2plot
+    import co2mpas.plot as co2plot
     if opts['--list']:
         print('\n'.join(co2plot.get_model_paths()))
     else:

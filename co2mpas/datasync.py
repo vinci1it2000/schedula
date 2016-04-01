@@ -6,14 +6,16 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 import logging
-import numpy as np
-from numpy.fft import fft, ifft, fftshift
-from functools import partial
-from pandalone.xleash import lasso, parse_xlref, SheetsFactory
-from itertools import chain
-from .batch.io.excel import clone_excel
 from collections import OrderedDict, Counter
+from functools import partial
+from itertools import chain
+
+import numpy as np
 import pandas as pd
+from numpy.fft import fft, ifft, fftshift
+from pandalone.xleash import lasso, parse_xlref, SheetsFactory
+
+from co2mpas.io.excel import clone_excel
 
 log = logging.getLogger(__name__)
 

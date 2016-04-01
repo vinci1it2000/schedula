@@ -23,14 +23,16 @@ Modules:
 
 import datetime
 import logging
-import re
-from co2mpas.dispatcher import Dispatcher
-from functools import partial
-import co2mpas.dispatcher.utils as dsp_utl
-import numpy as np
 import os.path as osp
+import re
+from functools import partial
+
+import numpy as np
 import pandas as pd
 from tqdm import tqdm
+
+import co2mpas.dispatcher.utils as dsp_utl
+from co2mpas.dispatcher import Dispatcher
 
 log = logging.getLogger(__name__)
 
@@ -305,8 +307,8 @@ def _get_contain(d, key, default=None):
 def _save_summary(fpath, start_time, summary):
     if summary:
         writer = pd.ExcelWriter(fpath, engine='xlsxwriter')
-        from .io.excel import _df2excel
-        from .io import _dd2df, _param_orders, _co2mpas_info2df
+        from co2mpas.io.excel import _df2excel
+        from co2mpas.io import _dd2df, _param_orders, _co2mpas_info2df
         summary = _dd2df(summary, 'vehicle_name', depth=2)
 
         _p_map = _param_orders()
@@ -460,7 +462,7 @@ def vehicle_processing_model():
         default_value=False
     )
 
-    from .io import load_inputs, write_outputs
+    from co2mpas.io import load_inputs, write_outputs
 
     dsp.add_function(
         function=load_inputs(),
@@ -480,9 +482,9 @@ def vehicle_processing_model():
         outputs=['dsp_inputs']
     )
 
-    from .model import co2mpas_model
+    from .model import model
     dsp.add_function(
-        function=dsp_utl.SubDispatch(co2mpas_model(), output_type='dsp'),
+        function=dsp_utl.SubDispatch(model(), output_type='dsp'),
         inputs=['dsp_inputs'],
         outputs=['dsp_model']
     )
@@ -498,7 +500,7 @@ def vehicle_processing_model():
         default_value=False
     )
 
-    from .report import report
+    from co2mpas.report import report
     dsp.add_function(
         function=report(),
         inputs=['output_data', 'vehicle_name', 'with_charts'],

@@ -10,7 +10,7 @@ It contains functions that model the basic mechanics of the engine.
 
 Sub-Modules:
 
-.. currentmodule:: co2mpas.batch.model.physical.engine
+.. currentmodule:: co2mpas.model.physical.engine
 
 .. autosummary::
     :nosignatures:
@@ -295,7 +295,7 @@ def identify_upper_bound_engine_speed(
     Identifies upper bound engine speed [RPM].
 
     It is used to correct the gear prediction for constant accelerations (see
-    :func:`co2mpas.batch.physical.at_gear.
+    :func:`co2mpas.model.physical.at_gear.
     correct_gear_upper_bound_engine_speed`).
 
     This is evaluated as the median value plus 0.67 standard deviation of the

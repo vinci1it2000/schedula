@@ -11,7 +11,7 @@ Docstrings should provide sufficient understanding for any individual function.
 
 Modules:
 
-.. currentmodule:: co2mpas.batch.model.physical
+.. currentmodule:: co2mpas.model.physical
 
 .. autosummary::
     :nosignatures:

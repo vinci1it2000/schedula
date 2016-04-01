@@ -9,13 +9,13 @@
 import doctest
 import unittest
 
-from co2mpas.batch.model.physical.gear_box import *
-from co2mpas.batch.model.physical.gear_box import _gear_box_torques_in
+from co2mpas.model.physical.gear_box import *
+from co2mpas.model.physical.gear_box import _gear_box_torques_in
 
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):
-        import co2mpas.batch.model.physical.gear_box as mld
+        import co2mpas.model.physical.gear_box as mld
 
         failure_count, test_count = doctest.testmod(
             mld, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS

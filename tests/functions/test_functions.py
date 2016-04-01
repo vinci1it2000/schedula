@@ -12,7 +12,7 @@ import ddt
 import numpy as np
 import numpy.testing as npt
 
-from co2mpas.batch.model.physical.engine import co2_emission
+from co2mpas.model.physical.engine import co2_emission
 
 
 @ddt.ddt

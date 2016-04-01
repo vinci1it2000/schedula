@@ -11,7 +11,7 @@ Docstrings should provide sufficient understanding for any individual function.
 
 Modules:
 
-.. currentmodule:: co2mpas.batch.io
+.. currentmodule:: co2mpas.io
 
 .. autosummary::
     :nosignatures:
@@ -33,7 +33,7 @@ import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas._version import version, __input_file_version__
 from co2mpas.dispatcher.utils.alg import stlp
 from .dill import *
-from .. import stack_nested_keys, get_nested_dicts
+from co2mpas.batch import stack_nested_keys, get_nested_dicts
 from co2mpas.dispatcher import Dispatcher
 from .excel import write_to_excel, parse_excel_file
 from .schema import validate_data

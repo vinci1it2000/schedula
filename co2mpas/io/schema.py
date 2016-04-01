@@ -8,11 +8,11 @@ from sklearn.tree import DecisionTreeClassifier
 
 import co2mpas.dispatcher.utils as dsp_utl
 from .dill import save_dill
-from .. import stack_nested_keys, get_nested_dicts
-from ..model.physical.electrics import check_sign_currents
-from ..model.physical.gear_box.at_gear import CMV, MVL, GSPV
-from ..model.physical.engine import Start_stop_model
-from ..model.physical.electrics import Alternator_status_model
+from co2mpas.batch import stack_nested_keys, get_nested_dicts
+from co2mpas.model.physical.electrics import check_sign_currents
+from co2mpas.model.physical.gear_box.at_gear import CMV, MVL, GSPV
+from co2mpas.model.physical.engine import Start_stop_model
+from co2mpas.model.physical.electrics import Alternator_status_model
 
 log = logging.getLogger(__name__)
 

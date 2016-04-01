@@ -19,7 +19,7 @@ from pandalone.xleash.io._xlrd import _open_sheet_by_name_or_index
 import shutil
 import openpyxl
 from xlsxwriter.utility import xl_range_abs, xl_rowcol_to_cell_fast
-from .. import stack_nested_keys, get_nested_dicts
+from co2mpas.batch import stack_nested_keys, get_nested_dicts
 from inspect import getfullargspec
 from itertools import chain
 import regex

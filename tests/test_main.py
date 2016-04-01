@@ -6,19 +6,20 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
-from co2mpas import __main__ as compas_main
-from co2mpas import __version__ as proj_ver
-from co2mpas.__main__ import init_logging
-from co2mpas.batch import plot as co2plot
 import glob
 import io
-import logging
 import os
 import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+
 import ddt
+
+from co2mpas import __main__ as compas_main
+from co2mpas import __version__ as proj_ver
+from co2mpas.__main__ import init_logging
+import co2mpas.plot as co2plot
 
 mydir = os.path.dirname(__file__)
 readme_path = os.path.join(mydir, '..', 'README.rst')

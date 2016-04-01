@@ -9,27 +9,29 @@
 It contains functions to make a sensitivity analysis.
 """
 
-from .batch import _process_vehicle, _add2summary, _save_summary, \
-    get_nested_dicts, stack_nested_keys
-from .batch import vehicle_processing_model
+
+import datetime
+import os
+import os.path as osp
+from copy import deepcopy
+from itertools import product
+from multiprocessing import Pool
+
+import numpy as np
+import pandas as pd
+import regex
+from tqdm import tqdm
+
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher.utils.alg import stlp
-from .batch.model.physical.engine.co2_emission import _set_attr
-from .batch.model.physical.engine import Start_stop_model
-from .batch.model.physical.electrics import Alternator_status_model
+from .io.schema import define_data_schema
+from .io.dill import save_dill, load_from_dill
 from .__main__ import file_finder
-from .batch.io.dill import save_dill, load_from_dill
-from .batch.io.schema import define_data_schema
-from copy import deepcopy
-import pandas as pd
-import datetime
-import os.path as osp
-import os
-from tqdm import tqdm
-from multiprocessing import Pool
-import numpy as np
-import regex
-from itertools import product
+from .batch import _process_vehicle, _add2summary, _save_summary, \
+    get_nested_dicts, stack_nested_keys, vehicle_processing_model
+from .model.physical.electrics import Alternator_status_model
+from .model.physical.engine import Start_stop_model
+from .model.physical.engine.co2_emission import _set_attr
 
 
 def run_sa_co2_params(input_folder, input_parameters, output_folder):

@@ -15,7 +15,7 @@ from collections import Iterable, OrderedDict
 import numpy as np
 from sklearn.metrics import mean_absolute_error, accuracy_score
 import co2mpas.dispatcher.utils as dsp_utl
-from . import stack_nested_keys, get_nested_dicts
+from co2mpas.batch import stack_nested_keys, get_nested_dicts
 
 
 def _metrics(t, o, metrics):

@@ -11,7 +11,7 @@ It provides constants for the CO2MPAS formulas.
 
 Sub-Modules:
 
-.. currentmodule:: co2mpas.batch.model.physical.constants
+.. currentmodule:: co2mpas.model.physical.constants
 
 .. autosummary::
     :nosignatures:
