@@ -302,7 +302,9 @@ def extract_summary(data, vehicle_name):
     nedc_phases = ('UDC', 'EUDC')
 
     co2_target_keys = wltp_phases + nedc_phases + ('value',)
+
     co2_target_keys = tuple('co2_emission_%s' % v for v in co2_target_keys)
+    co2_target_map = {k: '%s %s' % (k[:12], k[13:]) for k in co2_target_keys}
 
     params_keys = (
         'co2_params', 'calibration_status', 'co2_params', 'model_scores',
@@ -310,6 +312,8 @@ def extract_summary(data, vehicle_name):
         'phases_co2_emissions', 'willans_factors', 'correct_f0',
         'phases_fuel_consumptions', 'phases_willans_factors'
     ) + co2_target_keys
+
+
 
     for k, v in dsp_utl.selector(keys, data, allow_miss=True).items():
         for i, j in (i for i in v.items() if i[0] in stages):
@@ -364,6 +368,7 @@ def extract_summary(data, vehicle_name):
                     p.update({'%s phase %d' % (k, n): v for k, v in f.items()})
 
             if p:
+                p = dsp_utl.map_dict(co2_target_map, p)
                 p['vehicle_name'] = vehicle_name
                 r = res[k] = res.get(k, {})
                 r = res[k][i[:-1]] = r.get(i[:-1], {})
