@@ -100,6 +100,7 @@ class SeatBelt(unittest.TestCase):
             inputs = {
                 'vehicle_name': fname,
                 'input_file_name': fpath,
+                'prediction_wltp': True,
             }
             r = model.dispatch(inputs=inputs, outputs=['report', 'summary'])
             r = dsp_utl.selector(['report', 'summary'], r)
