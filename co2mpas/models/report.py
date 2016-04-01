@@ -329,12 +329,18 @@ def extract_summary(data, vehicle_name):
 
             if 'phases_co2_emissions' in p:
                 _map = nedc_phases if k == 'nedc' else wltp_phases
-                _map = tuple('co2_emission_%s' % v for v in _map)
+                l = len(p['phases_co2_emissions'])
+                if len(_map) != l:
+                    _map = ('phase %d' %m for m in range(l))
+                _map = tuple('co2_emission %s' % v for v in _map)
                 p.update(dsp_utl.map_list(_map, *p.pop('phases_co2_emissions')))
 
             if 'phases_fuel_consumptions' in p:
                 _map = nedc_phases if k == 'nedc' else wltp_phases
-                _map = tuple('fuel_consumption_%s' % v for v in _map)
+                l = len(p['phases_fuel_consumptions'])
+                if len(_map) != l:
+                    _map = ('phase %d' %m for m in range(l))
+                _map = tuple('fuel_consumption %s' % v for v in _map)
                 a = p.pop('phases_fuel_consumptions')
                 p.update(dsp_utl.map_list(_map, *a))
 

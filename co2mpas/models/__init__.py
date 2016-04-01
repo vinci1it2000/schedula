@@ -322,10 +322,6 @@ def _save_summary(fpath, start_time, summary):
         summary = summary.reindex_axis(c, axis=1, copy=False)
 
         units = {
-            'fuel_consumption_UDC': '[l/100km]',
-            'fuel_consumption_EUDC': '[l/100km]',
-            'co2_emission_UDC': '[CO2g/km]',
-            'co2_emission_EUDC': '[CO2g/km]',
             'co2_params a': '[-]',
             'co2_params b': '[s/m]',
             'co2_params c': '[(s/m)^2]',
@@ -335,14 +331,8 @@ def _save_summary(fpath, start_time, summary):
             'co2_params l2': '[bar*(s/m)^2]',
             'co2_params t': '[-]',
             'co2_params trg': '[°C]',
-            'fuel_consumption_low': '[l/100km]',
-            'fuel_consumption_medium': '[l/100km]',
-            'fuel_consumption_high': '[l/100km]',
-            'fuel_consumption_extra_high': '[l/100km]',
-            'co2_emission_low': '[CO2g/km]',
-            'co2_emission_medium': '[CO2g/km]',
-            'co2_emission_high': '[CO2g/km]',
-            'co2_emission_extra_high': '[CO2g/km]',
+            'fuel_consumption': '[l/100km]',
+            'co2_emission': '[CO2g/km]',
             'co2_emission_value': '[CO2g/km]',
             'av_velocities': '[kw/h]',
             'av_vel_pos_mov_pow': '[kw/h]',
