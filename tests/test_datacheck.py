@@ -103,7 +103,7 @@ class SeatBelt(unittest.TestCase):
             raise AssertionError("DataCheck found no input-files in %r!" % file)
 
         tmpdir = tempfile.gettempdir()
-        res_file = osp.join(tmpdir, 'co2mpas_seatbelt_demos.json')
+        res_file = osp.join(tmpdir, 'co2mpas_seatbelt_demos.dill')
 
         if not OVERWRITE_SEATBELT and osp.isfile(res_file):
             old_resultes = dsp_utl.load_dispatcher(res_file)
