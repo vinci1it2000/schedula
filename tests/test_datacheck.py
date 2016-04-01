@@ -47,6 +47,9 @@ class SeatBelt(unittest.TestCase):
 
         fail = []
 
+        if len(new_res) != len(old_res):
+            fail.extend('Mismatch in the number of vehicles: new(%i) != old(%i)' %
+                    (len(new_res), len(old_res)))
         for i, (results, old_results) in enumerate(zip(new_res, old_res)):
             err = []
             results = dict(results)
