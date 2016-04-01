@@ -11,7 +11,7 @@ from numpy.fft import fft, ifft, fftshift
 from functools import partial
 from pandalone.xleash import lasso, parse_xlref, SheetsFactory
 from itertools import chain
-from .models.io.excel import clone_excel
+from .batch.io.excel import clone_excel
 from collections import OrderedDict, Counter
 import pandas as pd
 

@@ -9,7 +9,7 @@
 from co2mpas import __main__ as compas_main
 from co2mpas import __version__ as proj_ver
 from co2mpas.__main__ import init_logging
-from co2mpas.models import plot as co2plot
+from co2mpas.batch import plot as co2plot
 import glob
 import io
 import logging

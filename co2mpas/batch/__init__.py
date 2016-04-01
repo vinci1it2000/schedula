@@ -9,11 +9,11 @@ It contains a list of all modules that contains functions of CO2MPAS.
 
 Modules:
 
-.. currentmodule:: co2mpas.models
+.. currentmodule:: co2mpas.batch
 
 .. autosummary::
     :nosignatures:
-    :toctree: models/
+    :toctree: batch/
 
     io
     model

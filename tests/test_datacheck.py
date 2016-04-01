@@ -1,5 +1,5 @@
 from co2mpas.__main__ import init_logging, file_finder
-from co2mpas.models import stack_nested_keys, vehicle_processing_model
+from co2mpas.batch import stack_nested_keys, vehicle_processing_model
 import co2mpas.dispatcher.utils as dsp_utl
 import os
 import os.path as osp

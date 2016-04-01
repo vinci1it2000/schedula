@@ -9,7 +9,7 @@ It provides CO2MPAS architecture model.
 
 It contains a comprehensive list of all CO2MPAS software models and sub-models:
 
-.. currentmodule:: co2mpas.models.model
+.. currentmodule:: co2mpas.batch.model
 
 .. autosummary::
     :nosignatures:

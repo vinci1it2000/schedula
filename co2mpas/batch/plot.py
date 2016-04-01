@@ -24,7 +24,7 @@ def get_model_paths(model_ids=None):
 
     :param model_ids:
         List of models to be returned
-        (e.g., ['co2mpas.models.physical.physical_calibration', 'engine', ...]).
+        (e.g., ['co2mpas.batch.physical.physical_calibration', 'engine', ...]).
 
         .. note:: It it is not specified all models will be returned.
     :type model_ids: list, None
@@ -75,7 +75,7 @@ def get_model_paths(model_ids=None):
         ]]
     ]
 
-    co2mpas_model = {'co2mpas.models.%s' % k for k in co2mpas_model}
+    co2mpas_model = {'co2mpas.batch.%s' % k for k in co2mpas_model}
 
     if not model_ids:
         models = co2mpas_model
@@ -95,7 +95,7 @@ def plot_model_graphs(model_ids=None, view_in_browser=True,
 
     :param model_ids:
         List of models to be plotted
-        (e.g., ['co2mpas.models.physical.physical_calibration', 'engine', ...]).
+        (e.g., ['co2mpas.batch.physical.physical_calibration', 'engine', ...]).
 
         .. note:: It it is not specified all models will be plotted.
     :type model_ids: list|
