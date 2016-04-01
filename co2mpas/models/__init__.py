@@ -16,7 +16,7 @@ Modules:
     :toctree: models/
 
     io
-    co2mpas_model
+    model
     report
     plot
 """
@@ -480,7 +480,7 @@ def vehicle_processing_model():
         outputs=['dsp_inputs']
     )
 
-    from .co2mpas_model import co2mpas_model
+    from .model import co2mpas_model
     dsp.add_function(
         function=dsp_utl.SubDispatch(co2mpas_model(), output_type='dsp'),
         inputs=['dsp_inputs'],

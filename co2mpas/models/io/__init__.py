@@ -448,7 +448,7 @@ _re_units = re.compile('(\[.*\])')
 
 
 def get_doc_description():
-    from ..co2mpas_model.physical import physical
+    from ..model.physical import physical
     from co2mpas.dispatcher.utils import search_node_description
 
     doc_descriptions = {}
@@ -497,7 +497,7 @@ def parse_name(name, standard_names=None):
 
 
 def get_types():
-    from ..co2mpas_model.physical import physical
+    from ..model.physical import physical
     from co2mpas.dispatcher.utils import search_node_description
 
     node_types = {}

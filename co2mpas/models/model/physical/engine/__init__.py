@@ -10,7 +10,7 @@ It contains functions that model the basic mechanics of the engine.
 
 Sub-Modules:
 
-.. currentmodule:: co2mpas.models.co2mpas_model.physical.engine
+.. currentmodule:: co2mpas.models.model.physical.engine
 
 .. autosummary::
     :nosignatures:

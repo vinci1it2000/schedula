@@ -9,11 +9,11 @@ It provides CO2MPAS architecture model.
 
 It contains a comprehensive list of all CO2MPAS software models and sub-models:
 
-.. currentmodule:: co2mpas.models.co2mpas_model
+.. currentmodule:: co2mpas.models.model
 
 .. autosummary::
     :nosignatures:
-    :toctree: co2mpas_model/
+    :toctree: model/
 
     physical
     model_selector
@@ -99,7 +99,7 @@ def co2mpas_model():
 
     .. dispatcher:: dsp
 
-        >>> dsp = co2mpas_model()
+        >>> dsp = model()
 
     :return:
         The CO2MPAS model.

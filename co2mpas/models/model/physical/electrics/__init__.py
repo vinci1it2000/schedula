@@ -10,7 +10,7 @@ It contains functions that model the electrics of the vehicle.
 
 Sub-Modules:
 
-.. currentmodule:: co2mpas.models.co2mpas_model.physical.electrics
+.. currentmodule:: co2mpas.models.model.physical.electrics
 
 .. autosummary::
     :nosignatures:

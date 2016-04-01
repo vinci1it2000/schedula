@@ -10,7 +10,7 @@ It contains functions that model the basic mechanics of the gear box.
 
 Sub-Modules:
 
-.. currentmodule:: co2mpas.models.co2mpas_model.physical.gear_box
+.. currentmodule:: co2mpas.models.model.physical.gear_box
 
 .. autosummary::
     :nosignatures:

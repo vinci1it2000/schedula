@@ -11,7 +11,7 @@ Docstrings should provide sufficient understanding for any individual function.
 
 Modules:
 
-.. currentmodule:: co2mpas.models.co2mpas_model.model_selector
+.. currentmodule:: co2mpas.models.model.model_selector
 
 .. autosummary::
     :nosignatures:

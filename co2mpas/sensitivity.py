@@ -14,9 +14,9 @@ from .models import _process_vehicle, _add2summary, _save_summary, \
 from .models import vehicle_processing_model
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher.utils.alg import stlp
-from .models.co2mpas_model.physical.engine.co2_emission import _set_attr
-from .models.co2mpas_model.physical.engine import Start_stop_model
-from .models.co2mpas_model.physical.electrics import Alternator_status_model
+from .models.model.physical.engine.co2_emission import _set_attr
+from .models.model.physical.engine import Start_stop_model
+from .models.model.physical.electrics import Alternator_status_model
 from .__main__ import file_finder
 from .models.io.dill import save_dill, load_from_dill
 from .models.io.schema import define_data_schema

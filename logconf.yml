@@ -14,11 +14,11 @@ loggers:
     # co2mpas.dispatcher.utils.des: {}
     # co2mpas.dispatcher.utils.drw: {}
     # co2mpas.functions: {}
-    # co2mpas.functions.co2mpas_model: {}
-    # co2mpas.functions.co2mpas_model.model_selector: {}
-    # co2mpas.functions.co2mpas_model.model_selector.co2_params: {}
-    # co2mpas.functions.co2mpas_model.physical: {}
-    # co2mpas.functions.co2mpas_model.physical.final_drive: {}
+    # co2mpas.functions.model: {}
+    # co2mpas.functions.model.model_selector: {}
+    # co2mpas.functions.model.model_selector.co2_params: {}
+    # co2mpas.functions.model.physical: {}
+    # co2mpas.functions.model.physical.final_drive: {}
     # co2mpas.functions.io: {}
     # co2mpas.functions.io.dill: {}
     # co2mpas.functions.io.excel: {}
