@@ -60,7 +60,7 @@ def select_inputs_for_prediction(data, new_data=None):
     if new_data:
         data = dsp_utl.combine_dicts(data, new_data)
 
-    if 'gear' in data and data.get('gear_box_type', None) == 'automatic':
+    if 'gears' in data and data.get('gear_box_type', None) == 'automatic':
         data.pop('gears')
 
     return data
