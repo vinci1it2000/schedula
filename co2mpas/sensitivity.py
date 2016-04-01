@@ -129,7 +129,7 @@ def _sa(input_vehicle, input_parameters, output_folder, default=None, **kw):
     df = pd.DataFrame()
     for f in file_finder([input_parameters], file_ext='*.txt'):
         if vehicle_name in f:
-            df = pd.read_csv(f, sep='\t', header=0)
+            df = pd.read_csv(f, sep='\t', header=0, index_col=0)
             break
 
     val = res['dsp_model'].data_output
