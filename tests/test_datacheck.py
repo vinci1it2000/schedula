@@ -84,9 +84,13 @@ class SeatBelt(unittest.TestCase):
 
         model = vehicle_processing_model()
 
-        resultes = []
+        results = []
 
-        for fpath in file_finder([file]):
+        inp_files = file_finder([file])
+        if not inp_files:
+            raise AssertionError("DataCheck found no input-files in %r!" % file)
+
+        for fpath in inp_files:
             fname = osp.splitext(osp.basename(fpath))[0]
             log.info('Processing: %s', fname)
 
@@ -97,22 +101,19 @@ class SeatBelt(unittest.TestCase):
             r = model.dispatch(inputs=inputs, outputs=['report', 'summary'])
             r = dsp_utl.selector(['report', 'summary'], r)
             r.get('report', {}).pop('pipe', None)
-            resultes.append(sorted(stack_nested_keys(r), key=lambda x: x[0]))
-
-        if not resultes:
-            raise AssertionError("DataCheck found no input-files in %r!" % file)
+            results.append(sorted(stack_nested_keys(r), key=lambda x: x[0]))
 
         tmpdir = tempfile.gettempdir()
         res_file = osp.join(tmpdir, 'co2mpas_seatbelt_demos.dill')
 
         if not OVERWRITE_SEATBELT and osp.isfile(res_file):
             old_resultes = dsp_utl.load_dispatcher(res_file)
-            self._check_results(resultes, old_resultes)
+            self._check_results(results, old_resultes)
             log.info('Comparing...')
         else:
             os.environ["OVERWRITE_SEATBELT"] = '0'
-            dsp_utl.save_dispatcher(resultes, res_file)
-            log.info('Overrating seat belt...')
+            dsp_utl.save_dispatcher(results, res_file)
+            log.info('Overwritten seat belt %r.', res_file)
 
 
 def _has_difference(nv, ov):
