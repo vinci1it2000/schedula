@@ -46,8 +46,8 @@ def get_model_paths(model_ids=None):
         'model.%s' % k for k in
         [
             'model',
-            'model_selector.models_selector',
-            'model_selector.co2_params.co2_params_model_selector'
+            'selector.selector',
+            'selector.co2_params.co2_params_selector'
         ] + ['physical.%s' % k for k in
              [
             'physical',

@@ -16,7 +16,7 @@ It contains a comprehensive list of all CO2MPAS software models and sub-models:
     :toctree: model/
 
     physical
-    model_selector
+    selector
 """
 
 import co2mpas.dispatcher.utils as dsp_utl
@@ -218,9 +218,9 @@ def model():
     #                                NEDC CYCLE
     ############################################################################
 
-    from .model_selector import models_selector
+    from .selector import selector
 
-    selector = models_selector('WLTP-H', 'WLTP-L')
+    selector = selector('WLTP-H', 'WLTP-L')
 
     dsp.add_function(
         function_id='extract_calibrated_models',

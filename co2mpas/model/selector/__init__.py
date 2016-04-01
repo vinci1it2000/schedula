@@ -11,11 +11,11 @@ Docstrings should provide sufficient understanding for any individual function.
 
 Modules:
 
-.. currentmodule:: co2mpas.model.model_selector
+.. currentmodule:: co2mpas.model.selector
 
 .. autosummary::
     :nosignatures:
-    :toctree: model_selector/
+    :toctree: selector/
 
     co2_params
 """
@@ -313,10 +313,10 @@ def sub_models():
     }
 
     from ..physical.engine.co2_emission import co2_emission
-    from .co2_params import co2_params_model_selector
+    from .co2_params import co2_params_selector
     sub_models['co2_params'] = {
         'dsp': co2_emission(),
-        'model_selector': co2_params_model_selector,
+        'selector': co2_params_selector,
         'models': ['co2_params_calibrated', 'calibration_status'],
         'inputs': ['co2_emissions_model'],
         'outputs': ['co2_emissions', 'calibration_status'],
@@ -426,13 +426,13 @@ def at_models_selector(dsp, at_pred_inputs, models_ids, data):
     return models
 
 
-def models_selector(*data):
+def selector(*data):
     """
     Defines the models' selector model.
 
     .. dispatcher:: dsp
 
-        >>> dsp = models_selector()
+        >>> dsp = selector()
 
     :return:
         The models' selector model.

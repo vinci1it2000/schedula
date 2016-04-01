@@ -15,8 +15,8 @@ loggers:
     # co2mpas.dispatcher.utils.drw: {}
     # co2mpas.functions: {}
     # co2mpas.functions.model: {}
-    # co2mpas.functions.model.model_selector: {}
-    # co2mpas.functions.model.model_selector.co2_params: {}
+    # co2mpas.functions.model.selector: {}
+    # co2mpas.functions.model.selector.co2_params: {}
     # co2mpas.functions.model.physical: {}
     # co2mpas.functions.model.physical.final_drive: {}
     # co2mpas.functions.io: {}

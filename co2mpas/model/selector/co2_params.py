@@ -57,7 +57,7 @@ def co2_sort_models(rank, *data, weights=None):
 
 
 # noinspection PyIncorrectDocstring
-def co2_params_model_selector(
+def co2_params_selector(
         name='co2_params', data_in=('WLTP-H', 'WLTP-L'),
         data_out=('WLTP-H', 'WLTP-L'), setting=None):
     """
@@ -65,7 +65,7 @@ def co2_params_model_selector(
 
     .. dispatcher:: dsp
 
-        >>> dsp = co2_params_model_selector()
+        >>> dsp = co2_params_selector()
 
     :return:
         The co2_params model selector.
