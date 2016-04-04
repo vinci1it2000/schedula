@@ -239,7 +239,7 @@ def _process_folder_files(
 
 
 def _process_vehicle(
-        model, fpath, output_folder='.', timestamp='', plot_workflow=False,
+        model, fpath, output_folder='.', timestamp=None, plot_workflow=False,
         enable_prediction_WLTP=False, with_output_file=False,
         output_template_xl_fpath=None, with_charts=False,
         overwrite_cache=False, soft_validation=False):
