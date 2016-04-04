@@ -26,7 +26,8 @@ Usage:
                       [-O <output-folder>] [--suffix <suffix>]
                       [--prefix]
   co2mpas sa          [-v | --logconf <conf-file>] [-f] [--predict-wltp]
-                      [-O <output-folder>] [--soft-validation]
+                      [-O <output-folder>] [--soft-validation] [--only-summary]
+                      [--out-template <xlsx-file> | --charts]
                       [<input-path>] [<input-params>]
                       [<defaults>]...
   co2mpas             [-v | --logconf <conf-file>] (--version | -V)
@@ -463,15 +464,21 @@ def _cmd_sa(opts):
     from co2mpas.sensitivity import run_sa
     run_sa(input_path, input_params, out_folder, *defaults,
            enable_prediction_WLTP=opts['--predict-wltp'],
-           soft_validation=opts['--soft-validation'])
+           soft_validation=opts['--soft-validation'],
+           with_output_file=not opts['--only-summary'],
+           with_charts=opts['--charts'],
+           output_template_xl_fpath=opts['--out-template']
+           )
 
 
 def _run_batch(opts):
     input_paths = opts['<input-path>']
     output_folder = opts['-O']
     if opts['--gui']:
-        input_paths = [_prompt_folder(folder_name='INPUT',
-                fpath=input_paths[-1] if input_paths else None)]
+        input_paths = [
+            _prompt_folder(folder_name='INPUT',
+                           fpath=input_paths[-1] if input_paths else None)
+        ]
         output_folder = _prompt_folder(folder_name='OUTPUT', fpath=output_folder)
         opts.update(_prompt_options())
 

@@ -93,7 +93,7 @@ def run_sa(input_folder, input_parameters, output_folder, *defaults, **kw):
         model = vehicle_processing_model()
         default = {}
         for input_vehicle in defaults:
-            res = _process_vehicle(model, input_vehicle, **kw)
+            res = _process_vehicle(model, input_vehicle, output_folder, **kw)
             for k, v in stack_nested_keys(res['dsp_model'].data_output, depth=2):
                 get_nested_dicts(default, *k[:-1])[k[-1]] = v
         if default:
@@ -105,7 +105,7 @@ def run_sa(input_folder, input_parameters, output_folder, *defaults, **kw):
     pool = Pool()
     for input_vehicle in file_finder(input_folder):
         args = (input_vehicle, input_parameters, output_folder)
-        pool.apply_async(_sa, args, kw)
+        _sa(*args, **kw)
 
     pool.close()
     pool.join()
@@ -121,12 +121,17 @@ def _sa(input_vehicle, input_parameters, output_folder, default=None, **kw):
 
     start_time = datetime.datetime.today()
 
-    res = _process_vehicle(model, input_vehicle, **kw)
+    res = _process_vehicle(model, input_vehicle, output_folder, **kw)
     _add2summary(summary, res)
 
-    inputs = dsp_utl.selector(('with_charts', 'vehicle_name'), res)
+    inputs = dsp_utl.selector(('with_charts', 'with_output_file',
+                               'output_folder', 'vehicle_name',
+                               'template_file_name', 'timestamp'), res)
+
     vehicle_name = inputs['vehicle_name']
+
     df = pd.DataFrame()
+
     for f in file_finder([input_parameters], file_ext='*.txt'):
         if vehicle_name in f:
             df = pd.read_csv(f, sep='\t', header=0, index_col=0)
@@ -159,7 +164,7 @@ def _sa(input_vehicle, input_parameters, output_folder, default=None, **kw):
     schema = define_data_schema()
 
     for i, c in tqdm(df.iterrows(), total=df.shape[0], disable=False):
-        inputs['vehicle_name'] = '%s: %d' % (vehicle_name, i)
+        inputs['vehicle_name'] = '%s_%d' % (vehicle_name, i)
 
         mds = dsp_inputs['calibrated_co2mpas_models'] = models['calibrated_co2mpas_models'].copy()
 
