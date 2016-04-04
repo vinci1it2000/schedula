@@ -1003,22 +1003,24 @@ def prediction_gears_decision_tree(correct_gear, decision_tree, times, *params):
     :rtype: numpy.array
     """
 
-    gear = [MIN_GEAR]
+    gears = [MIN_GEAR]
 
     predict = decision_tree.predict
 
     def predict_gear(*args):
-        g = predict([gear + list(args)])[0]
-        gear[0] = correct_gear(args[0], args[1], g)
-        return gear[0]
+        g = predict([gears + list(args)])[0]
+        gears[0] = correct_gear(args[0], args[1], g)
+        return gears[0]
 
-    gear = np.vectorize(predict_gear)(*params)
+    gears = np.vectorize(predict_gear)(*params)
 
-    gear[gear < MIN_GEAR] = MIN_GEAR
+    gears[gears < MIN_GEAR] = MIN_GEAR
 
-    gear = median_filter(times, gear, TIME_WINDOW)
+    gears = median_filter(times, gears, TIME_WINDOW)
 
-    return clear_fluctuations(times, gear, TIME_WINDOW)
+    gears = clear_fluctuations(times, gears, TIME_WINDOW)
+
+    return np.asarray(gears, dtype=int)
 
 
 def prediction_gears_gsm(
@@ -1064,8 +1066,8 @@ def prediction_gears_gsm(
 
     if wheel_powers is not None:
         X.append(wheel_powers)
-
-    return gsm.predict(np.array(X).T, correct_gear=correct_gear, times=times)
+    gears = gsm.predict(np.array(X).T, correct_gear=correct_gear, times=times)
+    return np.asarray(gears, dtype=int)
 
 
 def prediction_gears_gsm_hot_cold(
@@ -1112,17 +1114,17 @@ def prediction_gears_gsm_hot_cold(
 
     b = times <= time_cold_hot_transition
 
-    gear = []
+    gears = []
 
     for i in ['cold', 'hot']:
         args = [correct_gear, gsm[i], velocities[b], accelerations[b], times[b]]
         if wheel_powers is not None:
             args.append(wheel_powers[b])
 
-        gear = np.append(gear, prediction_gears_gsm(*args))
+        gears = np.append(gears, prediction_gears_gsm(*args))
         b = np.logical_not(b)
 
-    return gear
+    return np.asarray(gears, dtype=int)
 
 
 def calculate_error_coefficients(
