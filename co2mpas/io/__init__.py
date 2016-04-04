@@ -376,9 +376,14 @@ def _data2df(data, data_descriptions, write_schema):
 
 def _parameters2df(data, data_descriptions, write_schema):
     df = []
+    d = {}
+    for k, v in data.items():
+        try:
+            d.update(write_schema.validate({k: v}))
+        except schema.SchemaError as ex:
+            raise ValueError(k, ex)
 
-    data = write_schema.validate(data)
-    data = {k: v for k, v in data.items() if v is not dsp_utl.NONE}
+    data = {k: v for k, v in d.items() if v is not dsp_utl.NONE}
     for k, v in sorted(data.items()):
         d = {
             'Parameter': _parse_name(k, data_descriptions),

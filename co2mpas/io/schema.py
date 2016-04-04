@@ -1,5 +1,5 @@
 import logging
-from collections import Iterable
+from collections import Iterable, OrderedDict
 
 import numpy as np
 from lmfit import Parameters, Parameter
@@ -163,6 +163,7 @@ def _index_dict(error=None, **kwargs):
 
 # noinspection PyUnusedLocal
 def _np_array(dtype=None, error=None, read=True, **kwargs):
+    dtype = dtype or float
     error = error or 'cannot be parsed as np.array dtype={}!'.format(dtype)
     if read:
         c = Use(lambda x: np.asarray(x, dtype=dtype))
@@ -361,6 +362,7 @@ def define_data_schema(read=True):
         'gear_box_efficiency_parameters_cold_hot': dictstrdict,
         'model_scores': dictstrdict,
         'scores': dictstrdict,
+        'scores at_gear': _type(type=OrderedDict),
 
         'fuel_density': positive,
         'status_start_stop_activation_time': positive,
@@ -431,7 +433,6 @@ def define_data_schema(read=True):
         'wheel_powers': np_array,
         'wheel_speeds': np_array,
         'wheel_torques': np_array,
-
     }
 
     schema = {Optional(k): Or(Empty(), v) for k, v in schema.items()}
