@@ -8,7 +8,7 @@
 It contains functions to process vehicle files.
 """
 
-import datetime
+from datetime import datetime
 import logging
 import os.path as osp
 import re
@@ -168,7 +168,7 @@ def process_folder_files(input_files, output_folder, **kwds):
 
     _save_summary(summary_xl_file, start_time, summary)
 
-    time_elapsed = (datetime.datetime.today() - start_time).total_seconds()
+    time_elapsed = (datetime.today() - start_time).total_seconds()
     log.info('Done! [%s sec]', time_elapsed)
 
 
@@ -216,7 +216,7 @@ def _process_folder_files(
 
     summary = {}
 
-    start_time = datetime.datetime.today()
+    start_time = datetime.today()
     timestamp = start_time.strftime('%Y%m%d_%H%M%S')
 
     for fpath in _custom_tqdm(input_files, bar_format='{l_bar}{bar}{r_bar}'):
@@ -243,37 +243,52 @@ def _process_vehicle(
         enable_prediction_WLTP=False, with_output_file=False,
         output_template_xl_fpath=None, with_charts=False,
         overwrite_cache=False, soft_validation=False):
-    fname = osp.splitext(osp.basename(fpath))[0]
-    if not osp.isfile(fpath):
-        log.warn('File  %r does not exist!', fpath)
 
     inputs = {
-        'vehicle_name': fname,
         'input_file_name': fpath,
-        'start_time': datetime.datetime.today(),
         'prediction_wltp': enable_prediction_WLTP,
         'output_template': output_template_xl_fpath,
         'with_charts': with_charts,
         'overwrite_cache': overwrite_cache,
         'soft_validation': soft_validation,
+        'output_folder': output_folder,
+        'with_output_file': with_output_file
     }
 
-    ofname = None
-    if with_output_file:
-        ofname = '%s-%s' % (timestamp, fname)
-        ofname = osp.join(output_folder, ofname)
-        inputs['output_file_name'] = '%s.xlsx' % ofname
+    if timestamp is not None:
+        inputs['timestamp'] = timestamp
 
     res = model.dispatch(inputs=inputs)
 
     if plot_workflow:
         try:
-            log.info('Plotting workflow of %s...', fname)
+            ofname = None
+            if 'output_file_name' in res:
+                ofname = osp.splitext(res['output_file_name'])[0]
+            log.info('Plotting workflow of %s...', res['vehicle_name'])
             model.plot(workflow=True, filename=ofname)
         except RuntimeError as ex:
             log.warning(ex, exc_info=1)
 
     return res
+
+
+def default_start_time():
+    return datetime.today()
+
+
+def default_timestamp(start_time):
+    return start_time.strftime('%Y%m%d_%H%M%S')
+
+
+def default_vehicle_name(fpath):
+    return osp.splitext(osp.basename(fpath))[0]
+
+
+def default_output_file_name(output_folder, fname, timestamp):
+    ofname = '%s-%s' % (timestamp, fname)
+    ofname = osp.join(output_folder, ofname)
+    return '%s.xlsx' % ofname
 
 
 def _add2summary(summary, res):
@@ -415,6 +430,13 @@ def get_template_file_name(template_output, input_file_name):
     return template_output
 
 
+def isfile(fpath, *args):
+    if not osp.isfile(fpath):
+        log.warn('File  %r does not exist!', fpath)
+        return False
+    return True
+
+
 def vehicle_processing_model():
     """
     Defines the vehicle-processing model.
@@ -449,13 +471,45 @@ def vehicle_processing_model():
         default_value=False
     )
 
+    dsp.add_data(
+        data_id='with_output_file',
+        default_value=False
+    )
+
+    dsp.add_function(
+        function=default_vehicle_name,
+        inputs=['input_file_name'],
+        outputs=['vehicle_name']
+    )
+
+    dsp.add_function(
+        function=default_start_time,
+        outputs=['start_time']
+    )
+
+    dsp.add_function(
+        function=default_timestamp,
+        inputs=['start_time'],
+        outputs=['timestamp']
+
+    )
+
+    dsp.add_function(
+        function=dsp_utl.add_args(default_output_file_name),
+        inputs=['with_output_file', 'output_folder', 'vehicle_name',
+                'timestamp'],
+        outputs=['output_file_name'],
+        input_domain=lambda *args: args[0]
+    )
+
     from co2mpas.io import load_inputs, write_outputs
 
     dsp.add_function(
         function=load_inputs(),
         inputs=['input_file_name', 'select_outputs', 'overwrite_cache',
                 'soft_validation'],
-        outputs=['input_data']
+        outputs=['input_data'],
+        input_domain=isfile
     )
 
     dsp.add_data(
