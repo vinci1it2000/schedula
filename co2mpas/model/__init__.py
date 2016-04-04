@@ -49,7 +49,7 @@ def select_inputs_for_prediction(data, new_data=None):
         'idle_engine_speed_median', 'idle_engine_speed_std', 'engine_max_power',
         'engine_max_speed_at_max_power', 'r_dynamic',
         'rolling_resistance_coeff', 'time_cold_hot_transition',
-        'velocity_speed_ratios', 'co2_params', 'engine_idle_fuel_consumption',
+        'co2_params', 'engine_idle_fuel_consumption',
         'engine_type', 'engine_is_turbo', 'engine_fuel_lower_heating_value',
         'fuel_carbon_content', 'initial_state_of_charge', 'f0', 'f1', 'f2',
         'initial_temperature', 'vehicle_mass', 'times', 'velocities', 'gears'
@@ -60,8 +60,10 @@ def select_inputs_for_prediction(data, new_data=None):
     if new_data:
         data = dsp_utl.combine_dicts(data, new_data)
 
-    if 'gears' in data and data.get('gear_box_type', None) == 'automatic':
-        data.pop('gears')
+    if 'gears' in data:
+        if data.get('gear_box_type', 0) == 'automatic' or \
+                        len(data.get('velocities', ())) != len(data['gears']):
+            data.pop('gears')
 
     return data
 
