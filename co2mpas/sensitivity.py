@@ -52,7 +52,7 @@ def _sa_co2_params(input_vehicle, input_parameters, output_folder):
 
     start_time = datetime.datetime.today()
 
-    res = _process_vehicle(model, input_vehicle, enable_prediction_WLTP=True)
+    res = _process_vehicle(model, input_vehicle)
     _add2summary(summary, res)
 
     inputs = dsp_utl.selector(('with_charts', 'vehicle_name'), res)

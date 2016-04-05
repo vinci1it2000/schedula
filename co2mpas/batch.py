@@ -183,8 +183,7 @@ class _custom_tqdm(tqdm):
 
 
 def _process_folder_files(
-        input_files, output_folder, plot_workflow=False,
-        enable_prediction_WLTP=False, with_output_file=True,
+        input_files, output_folder, plot_workflow=False, with_output_file=True,
         output_template_xl_fpath=None, with_charts=False,
         overwrite_cache=False, soft_validation=False):
     """
@@ -225,7 +224,6 @@ def _process_folder_files(
                 output_folder=output_folder,
                 timestamp=timestamp,
                 plot_workflow=plot_workflow,
-                enable_prediction_WLTP=enable_prediction_WLTP,
                 with_output_file=with_output_file,
                 output_template_xl_fpath=output_template_xl_fpath,
                 with_charts=with_charts,
@@ -240,13 +238,11 @@ def _process_folder_files(
 
 def _process_vehicle(
         model, fpath, output_folder='.', timestamp=None, plot_workflow=False,
-        enable_prediction_WLTP=False, with_output_file=False,
-        output_template_xl_fpath=None, with_charts=False,
-        overwrite_cache=False, soft_validation=False):
+        with_output_file=False, output_template_xl_fpath=None,
+        with_charts=False, overwrite_cache=False, soft_validation=False):
 
     inputs = {
         'input_file_name': fpath,
-        'prediction_wltp': enable_prediction_WLTP,
         'output_template': output_template_xl_fpath,
         'with_charts': with_charts,
         'overwrite_cache': overwrite_cache,
@@ -508,19 +504,8 @@ def vehicle_processing_model():
         function=load_inputs(),
         inputs=['input_file_name', 'select_outputs', 'overwrite_cache',
                 'soft_validation'],
-        outputs=['input_data'],
+        outputs=['dsp_inputs'],
         input_domain=isfile
-    )
-
-    dsp.add_data(
-        data_id='prediction_wltp',
-        default_value=False,
-    )
-
-    dsp.add_function(
-        function=partial(dsp_utl.map_list, ['prediction_wltp', {}]),
-        inputs=['prediction_wltp', 'input_data'],
-        outputs=['dsp_inputs']
     )
 
     from .model import model

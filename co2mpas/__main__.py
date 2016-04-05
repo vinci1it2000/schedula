@@ -8,7 +8,7 @@ r"""
 Predict NEDC CO2 emissions from WLTP cycles.
 
 Usage:
-  co2mpas batch       [-v | --logconf <conf-file>] [--predict-wltp]
+  co2mpas batch       [-v | --logconf <conf-file>]
                       [--only-summary] [--out-template <xlsx-file> | --charts]
                       [--plot-workflow] [--overwrite-cache] [-O <output-folder>]
                       [--soft-validation]
@@ -25,7 +25,7 @@ Usage:
                       <x-label> <y-label> <ref-sheet> [<sync-sheets>]...
                       [-O <output-folder>] [--suffix <suffix>]
                       [--prefix]
-  co2mpas sa          [-v | --logconf <conf-file>] [-f] [--predict-wltp]
+  co2mpas sa          [-v | --logconf <conf-file>] [-f]
                       [-O <output-folder>] [--soft-validation] [--only-summary]
                       [--out-template <xlsx-file> | --charts]
                       [<input-path>] [<input-params>]
@@ -40,7 +40,6 @@ Options:
                               and Options. [default: False].
   --only-summary              Does not save vehicle outputs just the summary file.
   --overwrite-cache           Overwrites the cached file.
-  --predict-wltp              Whether to predict also WLTP values.
   --charts                    Add basic charts to output file.
   --soft-validation           Partial data validation.
   --out-template <xlsx-file>  An '*.xlsx' file to clone and append model-results
@@ -463,7 +462,6 @@ def _cmd_sa(opts):
 
     from co2mpas.sensitivity import run_sa
     run_sa(input_path, input_params, out_folder, *defaults,
-           enable_prediction_WLTP=opts['--predict-wltp'],
            soft_validation=opts['--soft-validation'],
            with_output_file=not opts['--only-summary'],
            with_charts=opts['--charts'],
@@ -505,7 +503,6 @@ def _run_batch(opts):
                          with_output_file=not opts['--only-summary'],
                          plot_workflow=opts['--plot-workflow'],
                          with_charts=opts['--charts'],
-                         enable_prediction_WLTP=opts['--predict-wltp'],
                          output_template_xl_fpath=opts['--out-template'],
                          overwrite_cache=opts['--overwrite-cache'],
                          soft_validation=opts['--soft-validation'])
