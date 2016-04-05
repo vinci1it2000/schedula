@@ -32,21 +32,19 @@ log = logging.getLogger(__name__)
 
 _re_params_name = regex.compile(
         r"""
-            ^(?P<as>(target|input|calibration|prediction)[\s]+)?[\s]*
-            (?P<id>[^\s]*)[\s]*
-            (?P<cycle>WLTP-[HLP]{1}|NEDC)?$
+            ^((?P<what>(target|input|output))s?)?[. ]?
+            ((?P<stage>(precondition|calibration|prediction))s?)?[. ]?
+            (?P<id>[^\s]*)[. ]?
+            ((?P<cycle>WLTP-[HLP]{1}|NEDC)(recon)?)?$
         """, regex.IGNORECASE | regex.X | regex.DOTALL)
 
 
 _re_sheet_name = regex.compile(
-        r"""((?P<output>
-                ^(?P<cycle>(WLTP_[HLP]{1}|NEDC))_
-                (?P<as>(target|input|calibration|prediction)s)_
-                (?P<type>(parameter|time_serie)s)$)
-            |
-                ^(?P<as>(target|input|calibration|prediction)s?)?[. ]?
-                (?P<cycle>(WLTP(-[HLP]{1}(recon)?)?|NEDC))?$
-        )""", regex.IGNORECASE | regex.X | regex.DOTALL)
+        r"""
+            ^((?P<what>(target|input|output))s?)?[. ]?
+            ((?P<stage>(precondition|calibration|prediction))s?)?[. ]?
+            ((?P<cycle>WLTP-[HLP]{1}|NEDC)(recon)?)?$
+        """, regex.IGNORECASE | regex.X | regex.DOTALL)
 
 
 def parse_excel_file(file_path):
@@ -64,9 +62,10 @@ def parse_excel_file(file_path):
 
     excel_file = pd.ExcelFile(file_path)
     res = {}
+
     defaults = {
         'what': 'input',
-        'as': 'inputs',
+        'stage': 'calibration',
     }
 
     for sheet_name in excel_file.sheet_names:
@@ -74,9 +73,7 @@ def parse_excel_file(file_path):
         if not match:
             continue
         match = {k: v.lower() for k, v in match.groupdict().items() if v}
-        if 'output' in match:
-            match['what'] = 'output'
-            match.pop('output')
+
         match = dsp_utl.combine_dicts(defaults, match)
 
         sheet = _open_sheet_by_name_or_index(excel_file.book, 'book', sheet_name)
@@ -103,12 +100,18 @@ def parse_excel_file(file_path):
         for k, v, m in _iter_values(data, default=match):
             for c in stlp(m['cycle']):
                 c = c.replace('-', '_')
-                get_nested_dicts(res, m['what'], c, m['as'])[k] = v
+                if c == 'wltp_p':
+                    stage = 'precondition'
+                elif c == 'nedc':
+                    stage = 'prediction'
+                else:
+                    stage = m['stage']
+                get_nested_dicts(res, m['what'], stage, c)[k] = v
 
     for k, v in stack_nested_keys(res, depth=3):
-        if k[-1] != 'target':
-            v['cycle_type'] = v.get('cycle_type', k[-2].split('_')[0]).upper()
-            v['cycle_name'] = v.get('cycle_name', k[-2]).upper()
+        if k[-2] != 'target':
+            v['cycle_type'] = v.get('cycle_type', k[-1].split('_')[0]).upper()
+            v['cycle_name'] = v.get('cycle_name', k[-1]).upper()
 
     return res
 
@@ -119,16 +122,24 @@ def _iter_values(data, default=None):
         default['cycle'] = ('nedc', 'wltp_p', 'wltp_h', 'wltp_l')
     elif default['cycle'] == 'wltp':
         default['cycle'] = ('wltp_h', 'wltp_l')
+    else:
+        default['cycle'] = default['cycle'].replace('-', '_')
 
     for k, v in data.items():
         match = _re_params_name.match(k) if k is not None else None
         if not match or (isinstance(v, float) and isnan(v) or _check_none(v)):
             continue
         match = {i: j.lower() for i, j in match.groupdict().items() if j}
+
+        if 'what' in match and match['what'] == 'target':
+            match['stage'] = 'prediction'
+
         match = dsp_utl.combine_dicts(default, match)
-        match['as'] = match['as'].replace(' ', '')
-        if not match['as'].endswith('s'):
-            match['as'] += 's'
+        match['stage'] = match['stage'].replace(' ', '')
+
+        if match['stage'] == 'input':
+            match['stage'] = 'calibration'
+
         i = match['id']
 
         if match['cycle'] == 'wltp':

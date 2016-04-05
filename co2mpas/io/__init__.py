@@ -73,9 +73,9 @@ def check_file_format(fpath, extensions=('.xlsx',)):
 
 
 def build_input_data(data, select_outputs):
-    i = {True: 'output', False: 'input'}[bool(select_outputs)]
     try:
-        return {'_'.join(k): v for k, v in stack_nested_keys(data[i], depth=2)}
+        return {'.'.join(k): v for k, v in stack_nested_keys(data, depth=3)}
+
     except KeyError:
         return {}
 

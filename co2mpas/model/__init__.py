@@ -125,17 +125,17 @@ def model():
     ############################################################################
 
     dsp.add_data(
-        data_id='wltp_p_inputs',
+        data_id='input.precondition.wltp_p',
         description='Dictionary that has all inputs of the calibration cycle.'
     )
 
     dsp.add_function(
-        function_id='calibrate_physical_models',
+        function_id='calculate_precondition_output',
         function=dsp_utl.SubDispatch(physical()),
-        inputs=['wltp_p_inputs'],
-        outputs=['wltp_p_outputs'],
-        description='Wraps all functions needed to calibrate the models to '
-                    'predict light-vehicles\' CO2 emissions.'
+        inputs=['input.precondition.wltp_p'],
+        outputs=['output.precondition.wltp_p'],
+        description='Wraps all functions needed to calculate the precondition '
+                    'outputs.'
     )
 
     ############################################################################
@@ -144,37 +144,38 @@ def model():
 
     dsp.add_function(
         function=select_precondition_inputs,
-        inputs=['wltp_h_inputs', 'wltp_p_outputs'],
-        outputs=['calibration_wltp_h_inputs'],
+        inputs=['input.calibration.wltp_h', 'output.precondition.wltp_p'],
+        outputs=['data.calibration.wltp_h'],
     )
 
     dsp.add_function(
-        function_id='calibrate_physical_models_with_wltp_h',
+        function_id='calibrate_with_wltp_h',
         function=dsp_utl.SubDispatch(physical()),
-        inputs=['calibration_wltp_h_inputs'],
-        outputs=['calibration_wltp_h_outputs'],
+        inputs=['data.calibration.wltp_h'],
+        outputs=['output.calibration.wltp_h'],
         description='Wraps all functions needed to calibrate the models to '
                     'predict light-vehicles\' CO2 emissions.'
     )
 
     dsp.add_data(
-        data_id='wltp_h_predictions',
+        data_id='input.prediction.wltp_h',
         default_value={}
     )
 
     dsp.add_function(
         function=dsp_utl.add_args(select_inputs_for_prediction),
-        inputs=['prediction_wltp', 'calibration_wltp_h_outputs',
-                'wltp_h_predictions'],
-        outputs=['prediction_wltp_h_inputs'],
+        inputs=['prediction_wltp', 'output.calibration.wltp_h',
+                'input.prediction.wltp_h'],
+        outputs=['data.prediction.wltp_h'],
         input_domain=lambda *args: args[0]
     )
 
     dsp.add_function(
         function_id='predict_wltp_h',
         function=dsp_utl.SubDispatch(physical()),
-        inputs=['calibrated_co2mpas_models', 'prediction_wltp_h_inputs'],
-        outputs=['prediction_wltp_h_outputs'],
+        inputs=['calibrated_models', 'data.prediction.wltp_h'],
+        outputs=['output.prediction.wltp_h'],
+        description='Wraps all functions needed to predict CO2 emissions.'
     )
 
     ############################################################################
@@ -183,37 +184,39 @@ def model():
 
     dsp.add_function(
         function=select_precondition_inputs,
-        inputs=['wltp_l_inputs', 'wltp_p_outputs'],
-        outputs=['calibration_wltp_l_inputs'],
+        inputs=['input.calibration.wltp_l', 'output.precondition.wltp_p'],
+        outputs=['data.calibration.wltp_l'],
     )
 
     dsp.add_function(
-        function_id='calibrate_physical_models_with_wltp_l',
+        function_id='calibrate_with_wltp_l',
         function=dsp_utl.SubDispatch(physical()),
-        inputs=['calibration_wltp_l_inputs'],
-        outputs=['calibration_wltp_l_outputs'],
+        inputs=['data.calibration.wltp_l'],
+        outputs=['output.calibration.wltp_l'],
         description='Wraps all functions needed to calibrate the models to '
                     'predict light-vehicles\' CO2 emissions.'
     )
 
     dsp.add_data(
-        data_id='wltp_l_predictions',
+        data_id='input.prediction.wltp_l',
         default_value={}
     )
 
     dsp.add_function(
         function=dsp_utl.add_args(select_inputs_for_prediction),
-        inputs=['prediction_wltp', 'calibration_wltp_l_outputs',
-                'wltp_l_predictions'],
-        outputs=['prediction_wltp_l_inputs'],
+        inputs=['prediction_wltp', 'output.calibration.wltp_l',
+                'input.prediction.wltp_l'],
+        outputs=['data.prediction.wltp_l'],
         input_domain=lambda *args: args[0]
     )
 
     dsp.add_function(
         function_id='predict_wltp_l',
         function=dsp_utl.SubDispatch(physical()),
-        inputs=['calibrated_co2mpas_models', 'prediction_wltp_l_inputs'],
-        outputs=['prediction_wltp_l_outputs'],
+        inputs=['calibrated_models', 'data.prediction.wltp_l'],
+        outputs=['output.prediction.wltp_l'],
+        description='Wraps all functions needed to predict CO2 emissions.'
+
     )
 
     ############################################################################
@@ -227,15 +230,15 @@ def model():
     dsp.add_function(
         function_id='extract_calibrated_models',
         function=selector,
-        inputs=['calibration_wltp_h_outputs', 'calibration_wltp_l_outputs'],
-        outputs=['calibrated_co2mpas_models', 'selection_scores']
+        inputs=['output.calibration.wltp_h', 'output.calibration.wltp_l'],
+        outputs=['calibrated_models', 'selection_scores']
     )
 
     dsp.add_function(
         function_id='predict_nedc',
         function=dsp_utl.SubDispatch(physical()),
-        inputs=['calibrated_co2mpas_models', 'nedc_inputs'],
-        outputs=['prediction_nedc_outputs'],
+        inputs=['calibrated_models', 'input.prediction.nedc'],
+        outputs=['output.prediction.nedc'],
     )
 
     return dsp

@@ -42,26 +42,26 @@ def parse_dsp_model(model):
 
     _map = {
         'nedc': {
-            'targets': 'nedc_targets',
-            'predictions': 'prediction_nedc_outputs',
-            'inputs': 'nedc_inputs',
+            'targets': 'target.prediction.nedc',
+            'predictions': 'output.prediction.nedc',
+            'inputs': 'input.prediction.nedc',
         },
         'wltp_l': {
-            'calibrations': 'calibration_wltp_l_outputs',
-            'targets': 'wltp_l_targets',
-            'predictions': 'prediction_wltp_l_outputs',
-            'inputs': 'wltp_l_inputs',
+            'calibrations': 'output.calibration.wltp_l',
+            'targets': 'target.prediction.wltp_l',
+            'predictions': 'output.prediction.wltp_l',
+            'inputs': 'input.calibration.wltp_l',
         },
         'wltp_h': {
-            'calibrations': 'calibration_wltp_h_outputs',
-            'targets': 'wltp_h_targets',
-            'predictions': 'prediction_wltp_h_outputs',
-            'inputs': 'wltp_h_inputs',
+            'calibrations': 'output.calibration.wltp_h',
+            'targets': 'target.prediction.wltp_h',
+            'predictions': 'output.prediction.wltp_h',
+            'inputs': 'input.calibration.wltp_h',
         },
         'wltp_p': {
-            'calibrations': 'wltp_p_outputs',
-            'targets': 'wltp_p_targets',
-            'inputs': 'wltp_p_inputs',
+            'calibrations': 'output.precondition.wltp_p',
+            'targets': 'target.precondition.wltp_p',
+            'inputs': 'input.precondition.wltp_p',
         }
     }
 
@@ -77,7 +77,7 @@ def parse_dsp_model(model):
     for j in {'nedc', 'wltp_h', 'wltp_l', 'wltp_p'}.intersection(res):
         d = res[j]
         if j in ('wltp_h', 'wltp_l') and 'predictions' in d:
-            o = out['calibration_%s_outputs' % j]
+            o = out['output.calibration.%s' % j]
             o = dsp_utl.selector(('co2_emission_value',), o, allow_miss=True)
             d['targets'] = dsp_utl.combine_dicts(o, d.get('targets', {}))
 

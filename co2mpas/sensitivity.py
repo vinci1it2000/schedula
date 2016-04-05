@@ -58,13 +58,13 @@ def _sa_co2_params(input_vehicle, input_parameters, output_folder):
     inputs = dsp_utl.selector(('with_charts', 'vehicle_name'), res)
     val = res['dsp_model'].data_output
     keys = set(val).difference(
-            ('prediction_nedc_outputs',
-             'prediction_wltp_l_outputs',
-             'prediction_wltp_h_outputs'))
+            ('output.prediction_nedc',
+             'output.prediction.wltp_l',
+             'output.prediction.wltp_h'))
     inputs['dsp_inputs'] = models = dsp_utl.selector(keys, val)
 
     vehicle_name = inputs['vehicle_name']
-    models = models['calibrated_co2mpas_models']
+    models = models['calibrated_models']
     params = models['calibration_status'][0][1]
 
     b = {k: (v.min, v.max - v.min)
@@ -149,10 +149,10 @@ def _sa(input_vehicle, input_parameters, output_folder, default=None, **kw):
                 for k, v in default[i].items():
                     if k not in m:
                         if k in ('CMV', 'GSPV', 'MVL'):
-                            vsr = val['prediction_nedc_outputs']['velocity_speed_ratios']
+                            vsr = val['output.prediction.nedc']['velocity_speed_ratios']
                             v.convert(vsr)
                         elif k in ('CMV_Cold_Hot', 'GSPV_Cold_Hot'):
-                            vsr = val['prediction_nedc_outputs']['velocity_speed_ratios']
+                            vsr = val['output.prediction.nedc']['velocity_speed_ratios']
                             for at in v.values():
                                 at.convert(vsr)
                         elif k in ('torque_converter_model',):
@@ -166,7 +166,7 @@ def _sa(input_vehicle, input_parameters, output_folder, default=None, **kw):
     for i, c in tqdm(df.iterrows(), total=df.shape[0], disable=False):
         inputs['vehicle_name'] = '%s_%d' % (vehicle_name, i)
 
-        mds = dsp_inputs['calibrated_co2mpas_models'] = models['calibrated_co2mpas_models'].copy()
+        mds = dsp_inputs['calibrated_models'] = models['calibrated_models'].copy()
 
         for k, v in c.items():
             k = k.split('/')
@@ -175,7 +175,7 @@ def _sa(input_vehicle, input_parameters, output_folder, default=None, **kw):
 
             if k[-1] == 'has_start_stop':
                 if not v:
-                    m = models['calibrated_co2mpas_models']['start_stop_model']
+                    m = models['calibrated_models']['start_stop_model']
                     mds['start_stop_model'] = Start_stop_model(
                         on_engine_pred=m.on,
                         start_stop_activation_time=float('inf'),
@@ -183,7 +183,7 @@ def _sa(input_vehicle, input_parameters, output_folder, default=None, **kw):
                     )
             elif k[-1] == 'has_energy_recuperation':
                 if not v:
-                    m = models['calibrated_co2mpas_models']['alternator_status_model']
+                    m = models['calibrated_models']['alternator_status_model']
                     mds['alternator_status_model'] = Alternator_status_model(
                         bers_pred=lambda X: [False],
                         charge_pred=m.charge,
