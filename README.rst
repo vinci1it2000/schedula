@@ -534,7 +534,7 @@ Autocompletion
 In order to press ``[Tab]`` and get completions, do the following in your
 environment (ALLINONE is pre-configured with them):
 
-- For the clink_ environment, on `cmd.exe`, add the following *lua* script
+- For the |clink|_ environment, on `cmd.exe`, add the following *lua* script
   inside clink's profile folder: ``clink/profile/co2mpas_autocompletion.lua``
 
   .. code-block:: lua
@@ -1055,3 +1055,5 @@ The following table describes the scores, targets, and metrics for each model:
    :align: center
 
 
+.. |clink| replace:: *Clink*
+.. _clink: http://mridgers.github.io/clink/
