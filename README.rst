@@ -6,7 +6,7 @@
 CO2MPAS: Vehicle simulator predicting NEDC CO2 emissions from WLTP
 ##################################################################
 
-:Release:       1.1.1
+:Release:       1.2.0rc
 :Date:          2016-02-09 07:30:45
 :Home:          http://co2mpas.io/
 :Releases:      http://files.co2mpas.io/
@@ -259,7 +259,7 @@ CO2MPAS installation
         Downloading http://pypi.co2mpas.io/packages/co2mpas-...
         ...
         Installing collected packages: co2mpas
-        Successfully installed co2mpas-1.1.1
+        Successfully installed co2mpas-1.2.0rc
 
    .. Note::
         **Installing Behind Firewall:**
@@ -302,7 +302,7 @@ CO2MPAS installation
    .. code-block:: console
 
        > co2mpas -vV
-       co2mpas_version: 1.1.1
+       co2mpas_version: 1.2.0rc
        co2mpas_rel_date: 2016-02-09 07:30:45
        co2mpas_path: d:\co2mpas_ALLINONE-XXbit-v1.0.5.dev1\Apps\WinPython\python-3.4.3\lib\site-packages\co2mpas
        python_path: D:\co2mpas_ALLINONE-XXbit-v1.0.5.dev1\WinPython\python-3.4.3
@@ -836,7 +836,7 @@ excel-file:
        <https://pandalone.readthedocs.org/en/latest/reference.html#module-pandalone.xleash>`_.
 
        You may also read the `tutorial input xl-file
-       <http://files.co2mpas.io/CO2MPAS-1.1.1/co2mpas_tutorial_1_1_0.xls>`_
+       <http://files.co2mpas.io/CO2MPAS-1.2.0rc/co2mpas_tutorial_1_1_0.xls>`_
        to get an understanding of each scalar paramet and series required,
        but DO NOT USE THIS "fatty" xl-file (~40Mb) when running the model.
 
@@ -892,7 +892,7 @@ To create/modify one output-template yourself, do the following:
 
 .. tip::
     You can find a template/dummy output-template file here:
-    http://files.co2mpas.io/CO2MPAS-1.1.1/CO2MPAS_out_template.xlsx
+    http://files.co2mpas.io/CO2MPAS-1.2.0rc/CO2MPAS_out_template.xlsx
 
 
 
