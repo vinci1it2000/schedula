@@ -1058,7 +1058,8 @@ class Dispatcher(object):
 
         return sub_dsp  # Return the sub-dispatcher.
 
-    def get_sub_dsp_from_workflow(self, sources, graph=None, reverse=False):
+    def get_sub_dsp_from_workflow(self, sources, graph=None, reverse=False,
+                                  add_missing=False, check_inputs=True):
         """
         Returns the sub-dispatcher induced by the workflow from sources.
 
@@ -1079,8 +1080,16 @@ class Dispatcher(object):
             If True the workflow graph is assumed as reversed.
         :type reverse: bool, optional
 
+        :param add_missing:
+            If True, missing function' inputs are added to the sub-dispatcher.
+        :type add_missing: bool, optional
+
+        :param check_inputs:
+            If True the missing function' inputs are not checked.
+        :type check_inputs: bool, optional
+
         :return:
-            A sub-dispatcher
+            A sub-dispatcher.
         :rtype: Dispatcher
 
         .. seealso:: :func:`get_sub_dsp`
@@ -1171,6 +1180,21 @@ class Dispatcher(object):
                         for p in node_attr['inputs']:
                             # add attributes to both representations of edge
                             succ[p][c] = s_pred[p] = dmap_succ[p][c]
+                    elif not check_inputs or add_missing:
+                        if add_missing:
+                            for p in set(node_attr['inputs']).difference(family):
+                                set_node_attr(p, add2family=False)
+
+                        set_node_attr(c)
+
+                        # namespace shortcuts for speed
+                        s_pred = pred[c]
+
+                        for p in set(node_attr['inputs']).intersection(family):
+                            # add attributes to both representations of edge
+                            succ[p][c] = s_pred[p] = dmap_succ[p][c]
+                        return False
+
                     return True
 
                 return False
@@ -1192,7 +1216,7 @@ class Dispatcher(object):
         queue = deque([])
 
         # Function to set node attributes.
-        def set_node_attr(n):
+        def set_node_attr(n, add2family=True):
             # Set node attributes.
             nodes[n] = dmap_nodes[n]
 
@@ -1202,9 +1226,10 @@ class Dispatcher(object):
             if n in dsp_dlt_val:
                 dlt_val[n] = dsp_dlt_val[n]  # Set the default value.
 
-            family[n] = neighbors(n)  # Append a new parent to the family.
+            if add2family:
+                family[n] = neighbors(n)  # Append a new parent to the family.
 
-            queue.append(n)
+                queue.append(n)
 
         # Set initial node attributes.
         for s in sources:
