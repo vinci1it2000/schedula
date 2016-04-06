@@ -420,6 +420,31 @@ def get_nested_dicts(nested_dict, *keys, default=None):
     return nested_dict
 
 
+def combine_nested_dicts(*nested_dicts, depth=-1):
+    """
+    Merge nested-dictionaries.
+
+    :param nested_dicts:
+        Nested dictionaries.
+    :type nested_dicts: tuple[dict]
+
+    :param depth:
+        Maximum keys depth.
+    :type depth: int, optional
+
+    :return:
+        Combined nested-dictionary.
+    :rtype: tuple[dict]
+    """
+
+    result = {}
+    for nested_dict in nested_dicts:
+        for k, v in stack_nested_keys(nested_dict, depth=depth):
+            get_nested_dicts(result, *k[:-1])[k[-1]] = v
+
+    return result
+
+
 def get_template_file_name(template_output, input_file_name):
     if template_output == '-':
         return input_file_name

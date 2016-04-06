@@ -163,7 +163,7 @@ def correct_gear_v0(
 
     :param mvl:
         Matrix velocity limits (upper and lower bound) [km/h].
-    :type mvl: OrderedDict
+    :type mvl: MVL
 
     :param engine_max_power:
         Maximum power [kW].
@@ -195,6 +195,8 @@ def correct_gear_v0(
     """
 
     max_gear, min_gear = max(velocity_speed_ratios), min(velocity_speed_ratios)
+
+    mvl = deepcopy(mvl).convert(velocity_speed_ratios)
 
     def correct_gear(velocity, acceleration, gear):
         g = correct_gear_mvl(
@@ -231,6 +233,8 @@ def correct_gear_v1(velocity_speed_ratios, mvl, idle_engine_speed):
         A function to correct the predicted gear.
     :rtype: function
     """
+
+    mvl = deepcopy(mvl).convert(velocity_speed_ratios)
 
     def correct_gear(velocity, acceleration, gear):
         g = correct_gear_mvl(velocity, acceleration, gear, mvl)
@@ -1024,14 +1028,18 @@ def prediction_gears_decision_tree(correct_gear, decision_tree, times, *params):
 
 
 def prediction_gears_gsm(
-        correct_gear, gsm, velocities, accelerations, times=None,
-        wheel_powers=None):
+        correct_gear, velocity_speed_ratios, gsm, velocities, accelerations,
+        times=None, wheel_powers=None):
     """
     Predicts gears with a gear shifting matrix (cmv or gspv) [-].
 
     :param correct_gear:
         A function to correct the gear predicted.
     :type correct_gear: function
+
+    :param velocity_speed_ratios:
+        Constant velocity speed ratios of the gear box [km/(h*RPM)].
+    :type velocity_speed_ratios: dict
 
     :param gsm:
         A gear shifting matrix (cmv or gspv).
@@ -1066,13 +1074,16 @@ def prediction_gears_gsm(
 
     if wheel_powers is not None:
         X.append(wheel_powers)
+
+    gsm = deepcopy(gsm).convert(velocity_speed_ratios)
+
     gears = gsm.predict(np.array(X).T, correct_gear=correct_gear, times=times)
     return np.asarray(gears, dtype=int)
 
 
 def prediction_gears_gsm_hot_cold(
-        correct_gear, gsm, time_cold_hot_transition, times, velocities,
-        accelerations, wheel_powers=None):
+        correct_gear, velocity_speed_ratios, gsm, time_cold_hot_transition,
+        times, velocities, accelerations, wheel_powers=None):
     """
     Predicts gears with a gear shifting matrix (cmv or gspv) for cold and hot
     phases [-].
@@ -1080,6 +1091,10 @@ def prediction_gears_gsm_hot_cold(
     :param correct_gear:
         A function to correct the gear predicted.
     :type correct_gear: function
+
+    :param velocity_speed_ratios:
+        Constant velocity speed ratios of the gear box [km/(h*RPM)].
+    :type velocity_speed_ratios: dict
 
     :param gsm:
         A gear shifting matrix (cmv or gspv).
@@ -1117,7 +1132,8 @@ def prediction_gears_gsm_hot_cold(
     gears = []
 
     for i in ['cold', 'hot']:
-        args = [correct_gear, gsm[i], velocities[b], accelerations[b], times[b]]
+        args = [correct_gear, velocity_speed_ratios, gsm[i], velocities[b],
+                accelerations[b], times[b]]
         if wheel_powers is not None:
             args.append(wheel_powers[b])
 
@@ -1627,7 +1643,8 @@ def at_cmv():
     # predict gears with corrected matrix velocity
     dsp.add_function(
         function=prediction_gears_gsm,
-        inputs=['correct_gear', 'CMV', 'velocities', 'accelerations', 'times'],
+        inputs=['correct_gear', 'velocity_speed_ratios', 'CMV', 'velocities',
+                'accelerations', 'times'],
         outputs=['gears'])
 
     return dsp
@@ -1663,8 +1680,9 @@ def at_cmv_cold_hot():
     # predict gears with corrected matrix velocity
     dsp.add_function(
         function=prediction_gears_gsm_hot_cold,
-        inputs=['correct_gear', 'CMV_Cold_Hot', 'time_cold_hot_transition',
-                'times', 'velocities', 'accelerations'],
+        inputs=['correct_gear', 'velocity_speed_ratios', 'CMV_Cold_Hot',
+                'time_cold_hot_transition', 'times', 'velocities',
+                'accelerations'],
         outputs=['gears'])
 
     return dsp
@@ -1877,8 +1895,8 @@ def at_gspv():
     # predict gears with corrected matrix velocity
     dsp.add_function(
         function=prediction_gears_gsm,
-        inputs=['correct_gear', 'GSPV', 'velocities', 'accelerations', 'times',
-                'motive_powers'],
+        inputs=['correct_gear', 'velocity_speed_ratios', 'GSPV', 'velocities',
+                'accelerations', 'times', 'motive_powers'],
         outputs=['gears'])
 
     return dsp
@@ -1914,8 +1932,9 @@ def at_gspv_cold_hot():
     # predict gears with corrected matrix velocity
     dsp.add_function(
         function=prediction_gears_gsm_hot_cold,
-        inputs=['correct_gear', 'GSPV_Cold_Hot', 'time_cold_hot_transition',
-                'times', 'velocities', 'accelerations', 'motive_powers'],
+        inputs=['correct_gear', 'velocity_speed_ratios', 'GSPV_Cold_Hot',
+                'time_cold_hot_transition', 'times', 'velocities',
+                'accelerations', 'motive_powers'],
         outputs=['gears'])
 
     return dsp

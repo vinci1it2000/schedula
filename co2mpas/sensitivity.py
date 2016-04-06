@@ -26,9 +26,10 @@ import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher.utils.alg import stlp
 from .io.schema import define_data_schema
 from .io.dill import save_dill, load_from_dill
+from .io.excel import parse_values
 from .__main__ import file_finder
 from .batch import _process_vehicle, _add2summary, _save_summary, \
-    get_nested_dicts, stack_nested_keys, vehicle_processing_model
+    get_nested_dicts, vehicle_processing_model, combine_nested_dicts
 from .model.physical.electrics import Alternator_status_model
 from .model.physical.engine import Start_stop_model
 from .model.physical.engine.co2_emission import _set_attr
@@ -88,24 +89,27 @@ def _sa_co2_params(input_vehicle, input_parameters, output_folder):
 
 
 def run_sa(input_folder, input_parameters, output_folder, *defaults, **kw):
-    defaults = file_finder(defaults)
-    if defaults:
+    fp = file_finder(defaults)
+    if fp:
         model = vehicle_processing_model()
-        default = {}
-        for input_vehicle in defaults:
-            res = _process_vehicle(model, input_vehicle, output_folder, **kw)
-            for k, v in stack_nested_keys(res['dsp_model'].data_output, depth=2):
-                get_nested_dicts(default, *k[:-1])[k[-1]] = v
-        if default:
-            p = datetime.datetime.today().strftime('%Y%m%d_%H%M%S.dill')
-            p = osp.join(output_folder, p)
-            save_dill(default, p)
-            kw['default'] = p
+        dfl = {}
+        for p in fp:
+            dsp = _process_vehicle(model, p, output_folder, **kw)['dsp_model']
+            out = dsp.data_output.get('calibrated_models', {})
+            if 'torque_converter_model' in out:
+                out['torque_converter_model'] = lambda X: np.zeros(X.shape[0])
+            dfl.update(out)
+
+        if dfl:
+            fp = datetime.datetime.today().strftime('%Y%m%d_%H%M%S.dill')
+            fp = osp.join(output_folder, fp)
+            save_dill(dfl, fp)
+            kw['default'] = fp
 
     pool = Pool()
     for input_vehicle in file_finder(input_folder):
         args = (input_vehicle, input_parameters, output_folder)
-        _sa(*args, **kw)
+        pool.apply_async(_sa, *args, **kw)
 
     pool.close()
     pool.join()
@@ -122,74 +126,66 @@ def _sa(input_vehicle, input_parameters, output_folder, default=None, **kw):
     start_time = datetime.datetime.today()
 
     res = _process_vehicle(model, input_vehicle, output_folder, **kw)
+    vehicle_name = res.get('vehicle_name', 'vehicle')
     _add2summary(summary, res)
 
-    inputs = dsp_utl.selector(('with_charts', 'with_output_file',
-                               'output_folder', 'vehicle_name',
-                               'template_file_name', 'timestamp'), res)
-
-    vehicle_name = inputs['vehicle_name']
-
+    dsp = model.get_sub_dsp_from_workflow(('dsp_inputs', 'vehicle_name'),
+                                          check_inputs=False)
+    inputs = dsp_utl.selector(set(res).difference(dsp.data_nodes), res)
+    inputs.pop('start_time', None)
     df = pd.DataFrame()
-
     for f in file_finder([input_parameters], file_ext='*.txt'):
         if vehicle_name in f:
             df = pd.read_csv(f, sep='\t', header=0, index_col=0)
             break
 
-    val = res['dsp_model'].data_output
-    keys = set(val).difference(_nodes2remove(df.columns))
-
-    dsp_inputs = inputs['dsp_inputs'] = dsp_utl.selector(keys, val)
+    dsp_model = res['dsp_model']
+    outputs = dsp_model.data_output
 
     if default:
-        default = load_from_dill(default)
-        for i, m in dsp_inputs.items():
-            if i in default and hasattr(m, 'items'):
-                for k, v in default[i].items():
-                    if k not in m:
-                        if k in ('CMV', 'GSPV', 'MVL'):
-                            vsr = val['output.prediction.nedc']['velocity_speed_ratios']
-                            v.convert(vsr)
-                        elif k in ('CMV_Cold_Hot', 'GSPV_Cold_Hot'):
-                            vsr = val['output.prediction.nedc']['velocity_speed_ratios']
-                            for at in v.values():
-                                at.convert(vsr)
-                        elif k in ('torque_converter_model',):
-                            v = lambda X: np.zeros(X.shape[0])
-                        m[k] = v
+        dfl = {'calibrated_models': load_from_dill(default)}
+        outputs = combine_nested_dicts(dfl, outputs, depth=2)
 
-    models = deepcopy(dsp_inputs)
-
-    schema = define_data_schema()
+    validate = define_data_schema().validate
 
     for i, c in tqdm(df.iterrows(), total=df.shape[0], disable=False):
         inputs['vehicle_name'] = '%s_%d' % (vehicle_name, i)
 
-        mds = dsp_inputs['calibrated_models'] = models['calibrated_models'].copy()
+        new_inputs = {}
+        for k, v in parse_values(c):
+            n, k = '.'.join(k[:-1]), k[-1]
+            d = get_nested_dicts(new_inputs, n)
+            d.update(validate({k: v}))
 
-        for k, v in c.items():
-            k = k.split('/')
-            d = get_nested_dicts(dsp_inputs, *k[:-1])
-            d.update(schema.validate({k[-1]: v}))
+            if k == 'has_start_stop':
+                if not v:
+                    n, k = 'calibrated_models', 'start_stop_model'
+                    if k not in d and k in outputs.get(n, {}):
+                        m = get_nested_dicts(outputs, n)[k]
+                        d[k] = Start_stop_model(
+                            on_engine_pred=m.on,
+                            start_stop_activation_time=float('inf'),
+                            n_args=m.n
+                        )
 
-            if k[-1] == 'has_start_stop':
+            elif k == 'has_energy_recuperation':
                 if not v:
-                    m = models['calibrated_models']['start_stop_model']
-                    mds['start_stop_model'] = Start_stop_model(
-                        on_engine_pred=m.on,
-                        start_stop_activation_time=float('inf'),
-                        n_args=m.n
-                    )
-            elif k[-1] == 'has_energy_recuperation':
-                if not v:
-                    m = models['calibrated_models']['alternator_status_model']
-                    mds['alternator_status_model'] = Alternator_status_model(
-                        bers_pred=lambda X: [False],
-                        charge_pred=m.charge,
-                        min_soc=m.min,
-                        max_soc=m.max
-                    )
+                    n, k = 'calibrated_models', 'alternator_status_model'
+                    if k not in d and k in outputs.get(n, {}):
+                        m = get_nested_dicts(outputs, n)[k]
+                        d[k] = Alternator_status_model(
+                            bers_pred=lambda X: [False],
+                            charge_pred=m.charge,
+                            min_soc=m.min,
+                            max_soc=m.max
+                        )
+
+        dsp = dsp_model.get_sub_dsp_from_workflow(new_inputs, check_inputs=False)
+        n = set(outputs) - set(dsp.data_nodes)
+        n.update(new_inputs)
+        inp = dsp_utl.selector(n, outputs)
+
+        inputs['dsp_inputs'] = combine_nested_dicts(inp, new_inputs, depth=2)
 
         res = model.dispatch(inputs=inputs)
 
@@ -197,7 +193,7 @@ def _sa(input_vehicle, input_parameters, output_folder, default=None, **kw):
 
     timestamp = start_time.strftime('%Y%m%d_%H%M%S')
 
-    summary_xl_file = osp.join(output_folder, '%s-%s.xlsx' % (timestamp, vehicle_name))
+    summary_xl_file = osp.join(output_folder, '%s-%s-summary.xlsx' % (timestamp, vehicle_name))
 
     _save_summary(summary_xl_file, start_time, summary)
 
