@@ -34,8 +34,17 @@ _re_params_name = regex.compile(
         r"""
             ^((?P<what>(target|input|output))s?)?[. ]?
             ((?P<stage>(precondition|calibration|prediction))s?)?[. ]?
+            ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC)(recon)?)?$
+            |
+            ^((?P<what>(target|input|output))s?)?[. ]?
+            ((?P<stage>(precondition|calibration|prediction))s?)?[. ]?
+            ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC)(recon)?)?[. ]?
+            (?P<id>[^\s]*)$
+            |
+            ^((?P<what>(target|input|output))s?)?[. ]?
+            ((?P<stage>(precondition|calibration|prediction))s?)?[. ]?
             (?P<id>[^\s]*)[. ]?
-            ((?P<cycle>WLTP-[HLP]{1}|NEDC)(recon)?)?$
+            ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC)(recon)?)?$
         """, regex.IGNORECASE | regex.X | regex.DOTALL)
 
 
@@ -43,7 +52,7 @@ _re_sheet_name = regex.compile(
         r"""
             ^((?P<what>(target|input|output))s?)?[. ]?
             ((?P<stage>(precondition|calibration|prediction))s?)?[. ]?
-            ((?P<cycle>WLTP-[HLP]{1}|NEDC)(recon)?)?$
+            ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC)(recon)?)?$
         """, regex.IGNORECASE | regex.X | regex.DOTALL)
 
 
@@ -97,27 +106,23 @@ def parse_excel_file(file_path):
                       'Please correct the inputs!'
                 raise ValueError(msg.format(drop, sheet_name))
 
-        for k, v, m in _iter_values(data, default=match):
-            for c in stlp(m['cycle']):
-                c = c.replace('-', '_')
-                if c == 'wltp_p':
-                    stage = 'precondition'
-                elif c == 'nedc':
-                    stage = 'prediction'
-                else:
-                    stage = m['stage']
-                get_nested_dicts(res, m['what'], stage, c)[k] = v
+        for k, v in parse_values(data, default=match):
+            get_nested_dicts(res, *k[:-1])[k[-1]] = v
 
     for k, v in stack_nested_keys(res, depth=3):
-        if k[-2] != 'target':
+        if k[0] != 'target':
             v['cycle_type'] = v.get('cycle_type', k[-1].split('_')[0]).upper()
             v['cycle_name'] = v.get('cycle_name', k[-1]).upper()
 
     return res
 
 
-def _iter_values(data, default=None):
-    default = default or {}
+def _isempty(val):
+    return isinstance(val, float) and isnan(val) or _check_none(val)
+
+
+def parse_values(data, default=None):
+    default = default or {'what': 'input'}
     if 'cycle' not in default:
         default['cycle'] = ('nedc', 'wltp_p', 'wltp_h', 'wltp_l')
     elif default['cycle'] == 'wltp':
@@ -127,7 +132,7 @@ def _iter_values(data, default=None):
 
     for k, v in data.items():
         match = _re_params_name.match(k) if k is not None else None
-        if not match or (isinstance(v, float) and isnan(v) or _check_none(v)):
+        if not match or _isempty(v):
             continue
         match = {i: j.lower() for i, j in match.groupdict().items() if j}
 
@@ -145,7 +150,15 @@ def _iter_values(data, default=None):
         if match['cycle'] == 'wltp':
             match['cycle'] = ('wltp_h', 'wltp_l')
 
-        yield i, v, match
+        for c in stlp(match['cycle']):
+            c = c.replace('-', '_')
+            if c == 'wltp_p':
+                stage = 'precondition'
+            elif c == 'nedc':
+                stage = 'prediction'
+            else:
+                stage = match['stage']
+            yield (match['what'], stage, c, i), v
 
 
 def _check_none(v):
