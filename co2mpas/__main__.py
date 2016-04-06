@@ -28,6 +28,7 @@ Usage:
   co2mpas sa          [-v | --logconf <conf-file>] [-f]
                       [-O <output-folder>] [--soft-validation] [--only-summary]
                       [--out-template <xlsx-file> | --charts]
+                      [--overwrite-cache]
                       [<input-path>] [<input-params>]
                       [<defaults>]...
   co2mpas             [-v | --logconf <conf-file>] (--version | -V)
@@ -465,7 +466,8 @@ def _cmd_sa(opts):
            soft_validation=opts['--soft-validation'],
            with_output_file=not opts['--only-summary'],
            with_charts=opts['--charts'],
-           output_template_xl_fpath=opts['--out-template']
+           output_template_xl_fpath=opts['--out-template'],
+           overwrite_cache=opts['--overwrite-cache'],
            )
 
 
