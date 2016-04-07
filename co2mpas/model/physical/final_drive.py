@@ -109,7 +109,7 @@ def domain_final_drive_torque_losses_v1(n_dyno_axes, n_wheel_drive, *args):
     """
 
     if n_dyno_axes < n_wheel_drive / 2:
-        msg = 'WARNING: n_dyno_axes(%.2f) < n_wheel_drive(.2f) / 2!'
+        msg = 'WARNING: n_dyno_axes(%d) < n_wheel_drive(%d) / 2!'
         log.warning(msg, n_dyno_axes, n_wheel_drive)
     return True
 

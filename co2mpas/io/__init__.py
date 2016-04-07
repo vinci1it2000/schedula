@@ -381,7 +381,7 @@ def _parameters2df(data, data_descriptions, write_schema):
         try:
             d.update(write_schema.validate({k: v}))
         except schema.SchemaError as ex:
-            raise ValueError(k, ex)
+            raise ValueError(k, v, ex)
 
     data = {k: v for k, v in d.items() if v is not dsp_utl.NONE}
     for k, v in sorted(data.items()):
