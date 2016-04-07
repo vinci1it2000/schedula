@@ -74,3 +74,4 @@ target/
 
 /*.xlsx
 tests/dispatcher/docs
+.ipynb_checkpoints/
