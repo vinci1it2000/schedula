@@ -292,14 +292,17 @@ def _add2summary(summary, res):
         get_nested_dicts(summary, *k, default=list).append(v)
 
 
-def _get_contain(d, key, default=None):
+def _get_contain(d, *keys, default=None):
     try:
-        if key not in d:
+        key = keys[-1]
+        if keys[-1] not in d:
             key = next((k for k in d if key in k or k in key))
 
         return d[key]
     except (StopIteration, KeyError):
-        return default
+        if len(keys) <= 1:
+            return default
+        return _get_contain(d, *keys[:-1], default=default)
 
 
 def _save_summary(fpath, start_time, summary):
@@ -313,8 +316,8 @@ def _save_summary(fpath, start_time, summary):
 
         def _sort(x):
             x = list(x)
-            x[-1] = _get_contain(_p_map, x[-1], x[-1])
-            x[-2] = _get_contain(_p_map, x[-2], x[-2])
+            x[-1] = _get_contain(_p_map, x[-1], default=x[-1])
+            x[-2] = _get_contain(_p_map, x[-2], default=x[-2])
             return x
 
         c = sorted(summary.columns, key=_sort)
@@ -352,7 +355,7 @@ def _save_summary(fpath, start_time, summary):
             'willans_efficiency': '[-]',
         }
 
-        c = [v + (_get_contain(units, v[-1], ' '),) for v in c]
+        c = [v + (_get_contain(units, *v, default=' '),) for v in c]
 
         summary.columns = pd.MultiIndex.from_tuples(c)
 
