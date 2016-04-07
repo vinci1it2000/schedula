@@ -94,7 +94,9 @@ def calibrate_torque_converter_model(
     X = np.array([accelerations, velocities, gear_box_speeds_in, gears]).T
     y = torque_converter_speeds_delta
 
-    return min([(mean_absolute_error(y, m(X)), m) for m in models])[-1]
+    models = enumerate(models)
+
+    return min([(mean_absolute_error(y, m(X)), i, m) for i, m in models])[-1]
 
 
 def predict_torque_converter_speeds_delta(
