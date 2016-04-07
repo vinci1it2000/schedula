@@ -209,12 +209,12 @@ def write_to_excel(data, output_file_name, template_file_name):
                 k0, named_ranges, index = 1, ('rows',), True
             else:
                 k0, named_ranges, index = 1, ('columns',), True
-            ref = _df2excel(writer, '_'.join(k), v, k0, named_ranges, index=index)
+            ref = _df2excel(writer, _sheet_name(k), v, k0, named_ranges, index=index)
             if ref:
-                xlref['_'.join(k)] = ref[1]
+                xlref[_sheet_name(k)] = ref[1]
         elif k[0] == 'graphs':
             try:
-                shname = '_'.join(k[1:])
+                shname = _sheet_name(k[1:])
                 _chart2excel(writer, shname, v)
             except:
                 pass
@@ -294,7 +294,7 @@ def _add_named_ranges(df, writer, shname, startrow, startcol, named_ranges, k0):
 
     tag = ()
     if hasattr(df, 'name'):
-        tag +=  (df.name,)
+        tag += (df.name,)
 
     it = ()
 
@@ -384,4 +384,8 @@ def _chart2excel(writer, shname, charts):
 
 
 def _data_ref(ref):
-    return '%s!%s' % ('_'.join(ref[:-1]), _ref_name((ref[-1],)))
+    return '%s!%s' % (_sheet_name(ref[:-1]), _ref_name((ref[-1],)))
+
+
+def _sheet_name(tags):
+    return '_'.join(tags)
