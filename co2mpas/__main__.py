@@ -467,7 +467,7 @@ def _cmd_sa(opts):
            with_output_file=not opts['--only-summary'],
            with_charts=opts['--charts'],
            output_template_xl_fpath=opts['--out-template'],
-           overwrite_cache=opts['--overwrite-cache'],
+           overwrite_cache=opts['--overwrite-cache']
            )
 
 
