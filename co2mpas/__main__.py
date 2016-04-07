@@ -348,13 +348,13 @@ def _prompt_folder(folder_name, fpath):
 
 def _prompt_options():
     import easygui as eu
-
-    fields = ('predict-wltp', 'plot-workflow', 'only-summary', 'out-template',
-              'charts')
-    choices = ('y/[n]', 'y/[n]', 'y/[n]', 'y/[n]/<xlsx-file>', 'y/[n]')
-    for values in iter(lambda: eu.multenterbox(msg='Select BATCH-run options:',
-                    title='%s-v%s' % (proj_name, proj_ver),
-                    fields=fields, values=choices),
+    fields = ['overwrite-cache', 'soft-validation', 'plot-workflow',
+              'only-summary', 'out-template', 'charts']
+    choices = ['y/[n]', 'y/[n]', 'y/[n]', 'y/[n]', 'y/[n]/<xlsx-file>', 'y/[n]']
+    for values in iter(lambda: eu.multenterbox(
+            msg='Select BATCH-run options:',
+            title='%s-v%s' % (proj_name, proj_ver),
+            fields=fields, values=choices),
             None):
         opts = {}
         for (f, c, v) in zip(fields, choices, values):
