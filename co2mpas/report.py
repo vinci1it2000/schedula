@@ -313,8 +313,6 @@ def extract_summary(data, vehicle_name):
         'phases_fuel_consumptions', 'phases_willans_factors'
     ) + co2_target_keys
 
-
-
     for k, v in dsp_utl.selector(keys, data, allow_miss=True).items():
         for i, j in (i for i in v.items() if i[0] in stages):
             if 'parameters' not in j:
@@ -370,9 +368,23 @@ def extract_summary(data, vehicle_name):
             if p:
                 p = dsp_utl.map_dict(co2_target_map, p)
                 p['vehicle_name'] = vehicle_name
-                r = res[k] = res.get(k, {})
-                r = res[k][i[:-1]] = r.get(i[:-1], {})
-                r.update(p)
+                get_nested_dicts(res, k, i[:-1]).update(p)
+
+    # delta
+    try:
+        delta = {}
+        co2_nedc = res['nedc']['prediction']['co2_emission value']
+        s = 'nedc - %s'
+        for k in ('wltp_h', 'wltp_l'):
+            try:
+                delta[s % k] = co2_nedc - res[k]['prediction']['co2_emission value']
+            except KeyError:
+                pass
+        if delta:
+            delta['vehicle_name'] = vehicle_name
+            get_nested_dicts(res, 'delta', 'co2_emission').update(delta)
+    except KeyError:
+        pass
 
     return res
 
