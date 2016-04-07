@@ -6,8 +6,9 @@
 # 2. (if FINAL)REMOVE `pip install --pre` from README!!!
 # 3. Run TCs.
 # 4. commit & TAG & push
-# 5. Gen docs in `cmd.exe` & check OK (i.e. diagrams??):
+# 5. Gen DOCS & MODEL in `cmd.exe` & check OK (i.e. diagrams??):
 #       rm -r ./doc/_build/
+#       co2mpas modelgraph -O doc/_static/ co2mpas.model.model
 #       python setup.py build_sphinx
 # 6. Build `wheel,` `sdist` , `doc` archives:
 #       ./bin/package.sh

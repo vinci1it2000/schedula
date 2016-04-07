@@ -987,29 +987,45 @@ Debugging and investigating results
 
 .. _explanation:
 
-Explanation of the model
-========================
-There are potentially eight models to calibrate and run within CO2MPAS
+Model
+=====
+Execution Model
+---------------
+The execution of CO2MPAS model for a single vehicle is a stepwise procedure
+of 4 stages: ``precondition``, ``calibration``, ``prediction``, ``target``.
+These are invoked repeatedly, and subsequently combined, for the various cycles,
+as shown in the "active" flow-diagram of the execution, below:
+
+.. image:: CO2MPAS%20model/CO2MPAS_model.gv.svg
+    :alt: Flow-diagram of the execution of various Stages and Cycles sub-models.
+    :width: 640
+
+.. Tip:: The models in the diagram are nested; explore by clikcing on them.
+
+
+Calibrated Physical Models
+--------------------------
+There are potentially eight models calibrated from input scalar-values and time-series
 (see :doc:`reference`):
 
-1. ``AT_model``,
-2. ``electric_model``,
-3. ``clutch_torque_converter_model``,
-4. ``co2_params``,
-5. ``engine_cold_start_speed_model``,
-6. ``engine_coolant_temperature_model``,
-7. ``engine_speed_model``, and
-8. ``start_stop_model``.
+1. *AT_model*,
+2. *electric_model*,
+3. *clutch_torque_converter_model*,
+4. *co2_params*,
+5. *engine_cold_start_speed_model*,
+6. *engine_coolant_temperature_model*,
+7. *engine_speed_model*, and
+8. *start_stop_model*.
 
 Each model is calibrated separately over *WLTP_H* and *WLTP_L*.
 A model can contain one or several functions predicting different quantities.
 For example, the electric_model contains the following functions/data:
 
-- ``alternator_current_model``,
-- ``alternator_status_model``,
-- ``electric_load``,
-- ``max_battery_charging_current``,
-- ``start_demand``.
+- *alternator_current_model*,
+- *alternator_status_model*,
+- *electric_load*,
+- *max_battery_charging_current*,
+- *start_demand*.
 
 These functions/data are calibrated/estimated based on the provided input
 (in the particular case: *alternator current*, *battery current*, and *initial SOC*)
