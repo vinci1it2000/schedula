@@ -109,7 +109,7 @@ def run_sa(input_folder, input_parameters, output_folder, *defaults, **kw):
     pool = Pool()
     for input_vehicle in file_finder(input_folder):
         args = (input_vehicle, input_parameters, output_folder)
-        pool.apply_async(_sa, *args, **kw)
+        pool.apply_async(_sa, args, kw)
 
     pool.close()
     pool.join()
@@ -183,7 +183,7 @@ def _sa(input_vehicle, input_parameters, output_folder, default=None, **kw):
         dsp = dsp_model.get_sub_dsp_from_workflow(new_inputs, check_inputs=False)
         n = set(outputs) - set(dsp.data_nodes)
         n.update(new_inputs)
-        inp = dsp_utl.selector(n, outputs)
+        inp = dsp_utl.selector(n, outputs, allow_miss=True)
 
         inputs['dsp_inputs'] = combine_nested_dicts(inp, new_inputs, depth=2)
 
