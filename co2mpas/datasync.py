@@ -109,7 +109,7 @@ def _parse_sheet_names(sheet_name, input_file=''):
 
 def apply_datasync(
         ref_sheet, sync_sheets, x_label, y_label, output_file, input_file='',
-        prefix=False):
+        prefix_cols=False):
 
     out_sheet = _parse_sheet_names(ref_sheet)['sheet_name']
     sheets_factory = xleash.SheetsFactory()
@@ -146,7 +146,7 @@ def apply_datasync(
 
     res = list(synchronization(*data, x_label=x_label, y_label=y_label))
 
-    if prefix:
+    if prefix_cols:
         ix = set()
         for sn, i, h in headers:
             ix.update(h.columns)
