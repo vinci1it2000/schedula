@@ -41,7 +41,7 @@ def validate_data(
                 s = check_sign_currents(*a)
                 s = ' and '.join([k for k, v in zip(c, s) if not v])
                 if s:
-                    msg = '{} should have the wrong sign!'.format(s)
+                    msg = "Probably '{}' have the wrong sign!".format(s)
                     get_nested_dicts(errors, *k)[c] = SchemaError([], [msg])
 
     if errors:
@@ -298,24 +298,24 @@ def define_data_schema(read=True):
         'full_load_speeds': np_array,
         'full_load_torques': np_array,
         'full_load_powers': np_array,
-        
+
         'vehicle_mass': positive,
         'f0_uncorrected': positive,
         'f2': positive,
         'f0': positive,
         'correct_f0': _bool,
-        
+
         'co2_emission_low': positive,
         'co2_emission_medium': positive,
         'co2_emission_high': positive,
         'co2_emission_extra_high': positive,
-        
+
         _compare_str('co2_emission_UDC'): positive,
         _compare_str('co2_emission_EUDC'): positive,
         'co2_emission_value': positive,
         'n_dyno_axes': positive_int,
         'n_wheel_drive': positive_int,
-        
+
         'engine_is_turbo': _bool,
         'has_start_stop': _bool,
         'has_energy_recuperation': _bool,
@@ -371,7 +371,7 @@ def define_data_schema(read=True):
         'k2': positive_int,
         'k5': positive_int,
         'max_gear': positive_int,
-        
+
         'road_loads': _type(type=And(Use(tuple), (_type(float),)),
                             length=3,
                             read=read),
