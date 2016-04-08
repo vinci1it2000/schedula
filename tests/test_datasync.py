@@ -5,13 +5,11 @@ import unittest
 
 from co2mpas import datasync, __main__
 import ddt
-from numpy import testing as npt
-from pandalone import xleash
 
 import os.path as osp
 import pandas as pd
 
-from . import _tutils as tutils
+from tests import _tutils as tutils
 
 
 init_logging(False)
@@ -22,6 +20,7 @@ mydir = osp.dirname(__file__)
 _sync_fname = 'datasync.xlsx'
 _synced_fname = 'datasync.sync.xlsx'
 _synced_prefcols_fname = 'datasync.sync.xlsx'
+
 
 def _read_expected(prefix_columns):
     fname = 'datasync-prefcols.sync.csv' if prefix_columns else 'datasync.sync.csv'
@@ -38,6 +37,7 @@ def _check_synced(tc, fpath, sheet, prefix_columns=False):
     exp_df = _read_expected(prefix_columns)
     synced_df = _read_synced(fpath, sheet)
     tc.assertTrue(exp_df.equals(synced_df), (synced_df, exp_df))
+
 
 @ddt.ddt
 class DataSync(unittest.TestCase):
@@ -60,7 +60,7 @@ class DataSync(unittest.TestCase):
 
 
     @ddt.data(
-            (_sync_fname, "Sheet1", ["Sheet2", "Sheet3"]),
+            (_sync_fname, "Sheet1", ["Sheet2", "Sheet3", "Sheet4"]),
             (_sync_fname, "Sheet1", None),
             (_sync_fname, "Sheet1", ()),
             (osp.join(mydir, _sync_fname), "Sheet1", ["Sheet2", "Sheet3"]),
@@ -81,7 +81,7 @@ class DataSync(unittest.TestCase):
             _check_synced(self, osp.join(d, _synced_fname), 'Sheet1', )
 
     @ddt.data(
-            (_sync_fname, "Sheet1", ["Sheet2", "Sheet3"]),
+            (_sync_fname, "Sheet1", ["Sheet2", "Sheet3", "Sheet4"]),
             (_sync_fname, "Sheet1", None),
             (_sync_fname, "Sheet1", ()),
             (_sync_fname, "Sheet1", []),
