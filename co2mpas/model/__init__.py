@@ -23,7 +23,7 @@ import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher import Dispatcher
 
 
-def select_prediction_inputs(data, new_data=None):
+def select_prediction_data(data, new_data=None):
     """
     Selects the data required to predict the CO2 emissions with CO2MPAS model.
 
@@ -68,7 +68,7 @@ def select_prediction_inputs(data, new_data=None):
     return data
 
 
-def select_precondition_inputs(cycle_inputs, precondition_outputs):
+def select_precondition_data(cycle_inputs, precondition_outputs):
     """
     Updates cycle inputs with the precondition outputs.
 
@@ -138,7 +138,7 @@ def model():
     ############################################################################
 
     dsp.add_function(
-        function=select_precondition_inputs,
+        function=select_precondition_data,
         inputs=['input.calibration.wltp_h', 'output.precondition.wltp_p'],
         outputs=['data.calibration.wltp_h'],
     )
@@ -158,7 +158,7 @@ def model():
     )
 
     dsp.add_function(
-        function=select_prediction_inputs,
+        function=select_prediction_data,
         inputs=['output.calibration.wltp_h', 'input.prediction.wltp_h'],
         outputs=['data.prediction.wltp_h']
     )
@@ -176,7 +176,7 @@ def model():
     ############################################################################
 
     dsp.add_function(
-        function=select_precondition_inputs,
+        function=select_precondition_data,
         inputs=['input.calibration.wltp_l', 'output.precondition.wltp_p'],
         outputs=['data.calibration.wltp_l'],
     )
@@ -196,7 +196,7 @@ def model():
     )
 
     dsp.add_function(
-        function=select_prediction_inputs,
+        function=select_prediction_data,
         inputs=['output.calibration.wltp_l', 'input.prediction.wltp_l'],
         outputs=['data.prediction.wltp_l']
     )
