@@ -165,6 +165,7 @@ setup(
         'pyyaml',
         'cycler',
         'pip',
+        'boltons',
     ],
     packages=find_packages(exclude=['tests', 'doc']),
     package_data={'co2mpas': [

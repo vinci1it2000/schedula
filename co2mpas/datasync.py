@@ -5,18 +5,21 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
-import logging
 from collections import OrderedDict, Counter
 from functools import partial
 from itertools import chain
+import logging
 
-import numpy as np
-import pandas as pd
+from boltons.setutils import IndexedSet
 from numpy.fft import fft, ifft, fftshift
 from pandalone import xleash
 
-from .io.excel import clone_excel
+import numpy as np
+import pandas as pd
+
 from .__main__ import CmdException
+from .io.excel import clone_excel
+
 
 log = logging.getLogger(__name__)
 
@@ -113,7 +116,7 @@ def apply_datasync(
 
     if not sync_sheets:
         book = sheets_factory.fetch_sheet(input_file, 0)._sheet.book
-        sync_sheets = set(book.sheet_names()).difference([out_sheet])
+        sync_sheets = IndexedSet(book.sheet_names()).difference([out_sheet])
 
     data, headers = [], []
     for xl_ref in chain([ref_sheet], sync_sheets):
