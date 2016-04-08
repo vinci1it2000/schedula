@@ -1,14 +1,17 @@
-from co2mpas import datasync
 from co2mpas.__main__ import main, init_logging
 import logging
 import tempfile
 import unittest
-from pandalone import xleash
-import pandas as pd
+
+from co2mpas import datasync, __main__
+import ddt
 from numpy import testing as npt
+from pandalone import xleash
 
 import os.path as osp
-import ddt
+import pandas as pd
+
+from . import _tutils as tutils
 
 
 init_logging(False)
@@ -18,9 +21,11 @@ mydir = osp.dirname(__file__)
 
 _sync_fname = 'datasync.xlsx'
 _synced_fname = 'datasync.sync.xlsx'
+_synced_prefcols_fname = 'datasync.sync.xlsx'
 
-def _read_expected():
-    df = pd.read_csv(osp.join(mydir, 'datasync.sync.csv'))
+def _read_expected(prefix_columns):
+    fname = 'datasync-prefcols.sync.csv' if prefix_columns else 'datasync.sync.csv'
+    df = pd.read_csv(osp.join(mydir, fname))
     return df
 
 
@@ -29,10 +34,10 @@ def _read_synced(fpath, sheet):
     return df
 
 
-def _check_synced(fpath, sheet):
-    exp_df = _read_expected()
+def _check_synced(tc, fpath, sheet, prefix_columns=False):
+    exp_df = _read_expected(prefix_columns)
     synced_df = _read_synced(fpath, sheet)
-    npt.assert_array_equal(exp_df, synced_df)
+    tc.assertTrue(exp_df.equals(synced_df), (synced_df, exp_df))
 
 @ddt.ddt
 class DataSync(unittest.TestCase):
@@ -51,7 +56,7 @@ class DataSync(unittest.TestCase):
             cmd = 'datasync -v %s x y1 %s %s -O %s' % (
                     inppath, ref_sheet, sync_sheets, d)
             main(*cmd.split())
-            _check_synced(osp.join(d, _synced_fname), 'Sheet1')
+            _check_synced(self, osp.join(d, _synced_fname), 'Sheet1')
 
 
     @ddt.data(
@@ -73,7 +78,7 @@ class DataSync(unittest.TestCase):
                     output_file=osp.join(d, _synced_fname),
                     input_file=inppath,
                     prefix=False)
-            _check_synced(osp.join(d, _synced_fname), 'Sheet1')
+            _check_synced(self, osp.join(d, _synced_fname), 'Sheet1', )
 
     @ddt.data(
             (_sync_fname, "Sheet1", ["Sheet2", "Sheet3"]),
@@ -92,4 +97,37 @@ class DataSync(unittest.TestCase):
                     output_file=osp.join(d, _synced_fname),
                     input_file=inppath,
                     prefix=False)
-            _check_synced(osp.join(d, _synced_fname), 'Sheet1')
+            _check_synced(self, osp.join(d, _synced_fname), 'Sheet1')
+
+
+    @ddt.data(False, True)
+    def test_prefix_columns(self, prefix_columns):
+        with tempfile.TemporaryDirectory(prefix='co2mpas_%s_'%__name__) as d:
+            datasync.apply_datasync(
+                    ref_sheet='Sheet1',
+                    sync_sheets=None,
+                    x_label='x',
+                    y_label='y1',
+                    output_file=osp.join(d, _synced_fname),
+                    input_file=_sync_fname,
+                    prefix=prefix_columns)
+            _check_synced(self, osp.join(d, _synced_fname), 'Sheet1', prefix_columns)
+
+
+    @ddt.data(
+            ('bad_x', 'y1'),
+            ('x', 'bad_y1'),
+            ('bad_x', 'bad_y'),
+            )
+    def test_bad_columns(self, case):
+        x, y = case
+        with tempfile.TemporaryDirectory(prefix='co2mpas_%s_'%__name__) as d:
+            with tutils.assertRaisesRegex(self, __main__.CmdException, 'not found in rows'):
+                datasync.apply_datasync(
+                        ref_sheet='Sheet1',
+                        sync_sheets=['Sheet2'],
+                        x_label=x,
+                        y_label=y,
+                        output_file=osp.join(d, _synced_fname),
+                        input_file=_sync_fname,
+                        prefix=False)

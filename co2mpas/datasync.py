@@ -122,12 +122,18 @@ def apply_datasync(
         d = xleash.lasso(xlref, sheets_factory=sheets_factory)
         if not d:
             continue
-        i =[i for i, r in enumerate(d)
+        str_row_indices = [i for i, r in enumerate(d)
             if any(isinstance(v, str) for v in r)]
 
-        k = next(k for k in i if all(v in d[k] for v in (x_label, y_label)))
+        req_cols = set([x_label, y_label])
+        for k in str_row_indices:
+            if set(d[k]) >= req_cols:
+                break
+        else:
+            raise CmdException("Columns(%r) not found in rows(%s) of sheet(%r)!" %
+                    ([x_label, y_label], str_row_indices, xlref))
         ix = d[k]
-        i = max(i, default=0) + 1
+        i = max(str_row_indices, default=0) + 1
 
         d, h = pd.DataFrame(d[i:], columns=ix), pd.DataFrame(d[:i], columns=ix)
         d.dropna(how='all', inplace=True)
