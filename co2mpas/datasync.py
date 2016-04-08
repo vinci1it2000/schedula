@@ -16,6 +16,7 @@ from numpy.fft import fft, ifft, fftshift
 from pandalone import xleash
 
 from .io.excel import clone_excel
+from .__main__ import CmdException
 
 log = logging.getLogger(__name__)
 
@@ -119,6 +120,8 @@ def apply_datasync(
         xlref = _parse_sheet_names(xl_ref, input_file=input_file)
         sheet_name, xlref = xlref['sheet_name'], xlref['xlref']
         d = xleash.lasso(xlref, sheets_factory=sheets_factory)
+        if not d:
+            continue
         i =[i for i, r in enumerate(d)
             if any(isinstance(v, str) for v in r)]
 
