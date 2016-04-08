@@ -13,9 +13,9 @@ from itertools import chain
 import numpy as np
 import pandas as pd
 from numpy.fft import fft, ifft, fftshift
-from pandalone.xleash import lasso, parse_xlref, SheetsFactory
+from pandalone import xleash
 
-from co2mpas.io.excel import clone_excel
+from .io.excel import clone_excel
 
 log = logging.getLogger(__name__)
 
@@ -91,7 +91,7 @@ def synchronization(ref, *data, x_label='times', y_label='velocities'):
 
 def _parse_sheet_names(sheet_name, input_file=''):
     try:
-        r = parse_xlref(sheet_name)
+        r = xleash.parse_xlref(sheet_name)
         if not r['url_file']:
             xl_ref = ''.join((input_file, sheet_name))
         else:
@@ -108,7 +108,7 @@ def apply_datasync(
         prefix=False):
 
     out_sheet = _parse_sheet_names(ref_sheet)['sheet_name']
-    sheets_factory = SheetsFactory()
+    sheets_factory = xleash.SheetsFactory()
 
     if not sync_sheets:
         book = sheets_factory.fetch_sheet(input_file, 0)._sheet.book
@@ -118,7 +118,7 @@ def apply_datasync(
     for xl_ref in chain([ref_sheet], sync_sheets):
         xlref = _parse_sheet_names(xl_ref, input_file=input_file)
         sheet_name, xlref = xlref['sheet_name'], xlref['xlref']
-        d = lasso(xlref, sheets_factory=sheets_factory)
+        d = xleash.lasso(xlref, sheets_factory=sheets_factory)
         i =[i for i, r in enumerate(d)
             if any(isinstance(v, str) for v in r)]
 
