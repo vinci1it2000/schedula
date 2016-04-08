@@ -11,8 +11,7 @@ Usage:
   co2mpas batch       [-v | --logconf <conf-file>]
                       [--only-summary] [--out-template <xlsx-file> | --charts]
                       [--plot-workflow] [--overwrite-cache] [-O <output-folder>]
-                      [--soft-validation]
-                      [<input-path>]... [--gui]
+                      [--soft-validation] [<input-path>]... [--gui]
   co2mpas demo        [-v | --logconf <conf-file>] [-f] [<output-folder>]
                       [--gui]
   co2mpas template    [-v | --logconf <conf-file>] [-f] [<excel-file-path> ...]
@@ -21,16 +20,13 @@ Usage:
                       [--gui]
   co2mpas modelgraph  [-v | --logconf <conf-file>] [-O <output-folder>]
                       [--list | [--graph-depth=INTEGER] [<models> ...]]
-  co2mpas datasync    [-v | --logconf <conf-file>] [-f] <input-path>
-                      <x-label> <y-label> <ref-sheet> [<sync-sheets>]...
-                      [-O <output-folder>] [--suffix <suffix>]
-                      [--prefix]
-  co2mpas sa          [-v | --logconf <conf-file>] [-f]
-                      [-O <output-folder>] [--soft-validation] [--only-summary]
+  co2mpas datasync    [-v | --logconf <conf-file>] [-f] [-O <output-folder>]
+                      [--suffix <suffix>] [--prefix] <input-path> <x-label>
+                      <y-label> <ref-sheet> [<sync-sheets>]...
+  co2mpas sa          [-v | --logconf <conf-file>] [-f] [-O <output-folder>]
+                      [--soft-validation] [--only-summary] [--overwrite-cache]
                       [--out-template <xlsx-file> | --charts]
-                      [--overwrite-cache]
-                      [<input-path>] [<input-params>]
-                      [<defaults>]...
+                      [<input-path>] [<input-params>] [<defaults>]...
   co2mpas             [-v | --logconf <conf-file>] (--version | -V)
   co2mpas             --help
 
