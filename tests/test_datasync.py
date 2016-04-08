@@ -56,8 +56,8 @@ class DataSync(unittest.TestCase):
     @ddt.data(
             (_sync_fname, "Sheet1", ["Sheet2", "Sheet3", "Sheet4"]),
             (_sync_fname, "Sheet1", None),
-            (osp.join(mydir, _sync_fname), "Sheet1", ["Sheet2", "Sheet3"]),
-            (osp.join(mydir, _sync_fname), "Sheet1", None),
+#             (osp.join(mydir, _sync_fname), "Sheet1", ["Sheet2", "Sheet3"]),
+#             (osp.join(mydir, _sync_fname), "Sheet1", None),
             )
     def test_main_smoke_test(self, case):
         inppath, ref_sheet, sync_sheets = case
@@ -73,9 +73,9 @@ class DataSync(unittest.TestCase):
             (_sync_fname, "Sheet1", ["Sheet2", "Sheet3", "Sheet4"]),
             (_sync_fname, "Sheet1", None),
             (_sync_fname, "Sheet1", ()),
-            (osp.join(mydir, _sync_fname), "Sheet1", ["Sheet2", "Sheet3"]),
-            (osp.join(mydir, _sync_fname), "Sheet1", None),
-            (osp.join(mydir, _sync_fname), "Sheet1", []),
+#             (osp.join(mydir, _sync_fname), "Sheet1", ["Sheet2", "Sheet3"]),
+#             (osp.join(mydir, _sync_fname), "Sheet1", None),
+#             (osp.join(mydir, _sync_fname), "Sheet1", []),
             )
     def test_api_smoke_test(self, case):
         inppath, ref_sheet, sync_sheets = case
