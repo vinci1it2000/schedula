@@ -374,7 +374,7 @@ def extract_summary(data, vehicle_name):
     try:
         delta = {}
         co2_nedc = res['nedc']['prediction']['co2_emission value']
-        s = 'nedc - %s'
+        s = 'nedc_%s_delta'
         for k in ('wltp_h', 'wltp_l'):
             try:
                 delta[s % k] = co2_nedc - res[k]['prediction']['co2_emission value']
