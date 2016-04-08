@@ -44,9 +44,9 @@ class DataSync(unittest.TestCase):
 
 
     @ddt.data(
-            (_sync_fname, "Sheet1", ["Sheet2"]),
+            (_sync_fname, "Sheet1", ["Sheet2", "Sheet3"]),
             (_sync_fname, "Sheet1", None),
-            (osp.join(mydir, _sync_fname), "Sheet1", ["Sheet2"]),
+            (osp.join(mydir, _sync_fname), "Sheet1", ["Sheet2", "Sheet3"]),
             (osp.join(mydir, _sync_fname), "Sheet1", None),
             )
     def test_main_smoke_test(self, case):
@@ -60,10 +60,10 @@ class DataSync(unittest.TestCase):
 
 
     @ddt.data(
-            (_sync_fname, "Sheet1", ["Sheet2"]),
+            (_sync_fname, "Sheet1", ["Sheet2", "Sheet3"]),
             (_sync_fname, "Sheet1", None),
             (_sync_fname, "Sheet1", ()),
-            (osp.join(mydir, _sync_fname), "Sheet1", ["Sheet2"]),
+            (osp.join(mydir, _sync_fname), "Sheet1", ["Sheet2", "Sheet3"]),
             (osp.join(mydir, _sync_fname), "Sheet1", None),
             (osp.join(mydir, _sync_fname), "Sheet1", []),
             )
