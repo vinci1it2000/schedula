@@ -1,3 +1,10 @@
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
+#
+# Copyright 2014 European Commission (JRC);
+# Licensed under the EUPL (the 'Licence');
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 from co2mpas.__main__ import init_logging, file_finder
 from co2mpas.batch import stack_nested_keys, vehicle_processing_model
 import co2mpas.dispatcher.utils as dsp_utl
