@@ -5,76 +5,88 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 r"""
-Shift and resample excel-tables.
+Shift and resample excel-tables; see http://co2mpas.io/usage.html#Synchronizing-time-series.
 
 Usage:
   datasync  [(-v | --verbose) | --logconf <conf-file>]
-            [--force | -f] [--out-frmt=<frmy>] [--prefix-cols] [-O <output-path>]
+            [--force | -f] [--out-frmt=<frmy>] [--prefix-cols] [-O <output>]
             <ref-sheet> <x-label> <y-label> [<sync-sheets> ...]
   datasync  [--verbose | -v]  (--version | -V)
   datasync  --help
 
 Options:
-  -O <output-path>             Output folder.  Fails if intermediate folders not exist
-                               and not --force. [default: .]
-  -f, --force                  Overwrite excel-file(s) and/or create any missing folders.
-  --out-frmt=<frmt>            printf format-string generate the output-filename from `fname` & `.ext`
-                               [default: %s.sync%s].
-  --prefix-cols                Prefix all synced column names with their source sheet-names.
-                               By default, only clashing column-names are prefixed.
-  <ref-sheet>                  The excel-sheet containing the reference table,
-                               in xl-ref notation e.g. folder/Book.xlsx#Sheet1!
-                               Synced columns will be appended into this table.
-                               For xl-refs see https://pandalone.readthedocs.org/en/latest/reference.html#module-pandalone.xleash
-  <x-label>                    Column-name of x-axis (e.g. 'times').
-  <y-label>                    Column-name of y-axis to cross-correlate between <ref-sheet>
-                               and all <sync-sheet>.
-  <sync-sheets>                Sheets to be synced, also in xl-ref notation.
-                               If unspecified, syncs all other non-empty sheets of <ref-sheet>.
+  -O <output>            Output folder or file path to write synchronized results:
+                         - Non-existent path: taken as the new file-path; fails
+                           if intermediate folders do not exist, unless --force.
+                         - Existent file: fails, unless --force.
+                         - Existent folder: writes a new file `<ref-file>.sync<.ext>`
+                           in that folder; --force required if that file exists.
+                         By default, use folder of the <ref-sheet>.
+  -f, --force            Overwrite excel-file(s) and/or create any missing folders.
+  --prefix-cols          Prefix all synced column names with their source sheet-names.
+                         By default, only clashing column-names are prefixed.
+  <ref-sheet>            The excel-sheet containing the reference table, in *xl-ref* notation;
+                         synced columns will be appended into this table.
+                         The captured table must contain <x_label> & <y_label> as column labels.
+                         If it missed the hash(`#`) symbol, file-path assumed and
+                         table is read from it 1st sheet .
+  <x-label>              Column-name of x-axis (e.g. 'times').
+  <y-label>              Column-name of y-axis to cross-correlate between <ref-sheet>
+                         and all <sync-sheet>.
+  <sync-sheets>          Sheets to be synced in relation to <ref-sheet>, also in *xl-ref* notation.
+                         All tables must contain <x_label> & <y_label> as column labels.
+                         Each xlref may omit file or sheet-name parts; in that case,
+                         those from the previous xlref(s) are reused.
+                         If an xlref misses the hash(`#`) symbol, assumed as *fragment* part.
+                         If non given, syncs all other non-empty sheets of <ref-sheet>.
 
 Miscellaneous:
-  -h, --help                   Show this help message and exit.
-  -V, --version                Print version of the program, with --verbose
-                               list release-date and installation details.
-  -v, --verbose                Print more verbosely messages - overridden by --logconf.
-  --logconf=<conf-file>        Path to a logging-configuration file, according to:
-                               See https://docs.python.org/3/library/logging.config.html#configuration-file-format
-                               Uses reads a dict-schema if file ends with '.yaml' or '.yml'.
-                               See https://docs.python.org/3.5/library/logging.config.html#logging-config-dictschema
+  -h, --help             Show this help message and exit.
+  -V, --version          Print version of the program, with --verbose
+                         list release-date and installation details.
+  -v, --verbose          Print more verbosely messages - overridden by --logconf.
+  --logconf=<conf-file>  Path to a logging-configuration file, according to:
+                         See https://docs.python.org/3/library/logging.config.html#configuration-file-format
+                         Uses reads a dict-schema if file ends with '.yaml' or '.yml'.
+                         See https://docs.python.org/3.5/library/logging.config.html#logging-config-dictschema
+
+* For xl-refs see: https://pandalone.readthedocs.org/en/latest/reference.html#module-pandalone.xleash
 
 Examples::
 
-    ## Sync all sheets of `wbook.xlsx`:
-    datasync folder/wbook.xlsx#Sheet1  times  velocity
+    ## Sync all other sheets of `wbook.xlsx` in comparison to the 1st sheet:
+    datasync folder/Book.xlsx  times  velocity
 
-    ## Sync selected sheets of `wbook.xlsx`:
-    datasync folder/wbook.xlsx#Sheet1  times  velocity Sheet1 Sheet2
+    ## Sync all sheets in comparison to 3rd sheet.
+    datasync folder/wbook.xlsx#Sheet3!  times  velocity
 
-    ## Sync Sheet1 from `other_wbook.xlsx` into `wbook.xlsx`:
-    datasync folder/wbook.xlsx#Sheet1!:  times  velocity other_wbook.xlsx#Sheet1!:
+    ## Note that integers as sheet-indexes are zero based!
+    datasync folder/wbook.xlsx#2!  times  velocity
+
+    ## Sync selected sheets of `wbook.xlsx` based on its 1st-sheet:
+    datasync folder/wbook.xlsx  times  velocity Sheet1 Sheet2
+
+    ## Sync 1st sheet of wbook-2 based on 1st sheet of wbook-1:
+    datasync wbook-1.xlsx  times  velocity wbook-2.xlsx#0!
 
     # Typical usage for CO2MPAS velocity time-series from Dyno and OBD:
     datasync -O ../output book.xlsx  times  velocities  WLTP-H  WLTP-H_OBD
 
-    ## View "big" version:
-    datasync -vV
-
 Known Limitations:
- * Absolute paths with drive-letters currently do not work
+ * File-URLs `file://d:/some/folder do not work
   (as of Apr-2016, pandalone-0.1.9).
 """
 from collections import OrderedDict, Counter
-import functools as fnt
-import itertools as itt
 import logging
 import os
-from pandalone import xleash
 import sys
 
 from boltons.setutils import IndexedSet
 import docopt
 from numpy.fft import fft, ifft, fftshift
+from pandalone import xleash
 
+import functools as fnt
 import numpy as np
 import os.path as osp
 import pandas as pd
@@ -83,6 +95,9 @@ from .__main__ import CmdException, init_logging, build_version_string
 
 
 log = logging.getLogger(__name__)
+
+
+synced_file_frmt = '%s.sync%s'
 
 
 def cross_correlation_using_fft(x, y):
@@ -102,29 +117,24 @@ def compute_shift(x, y):
     return shift
 
 
-def synchronization(ref, *data, x_label='times', y_label='velocities'):
+def _yield_synched_tables(ref, *data, x_label='times', y_label='velocities'):
     """
     Yields the data re-sampled and synchronized respect to x axes (`x_id`) and
     the reference signal `y_id`.
 
-    :param ref:
+    :param dict ref:
         Reference data.
-    :type ref: dict
-
     :param data:
-        Data to synchronize.
+        Data to  yield synched tables from.
     :type data: list[dict]
-
-    :param x_label:
+    :param str x_label:
         X label of the reference signal.
-    :type x_label: str, optional
-
-    :param y_label:
+    :param str y_label:
         Y label of the reference signal.
-    :type y_label: str, optional
 
     :return:
-        The re-sampled and synchronized data.
+        The re-sampled and synchronized data, as types of original `data`
+        (e.g. dicts or DataFrames).
     :rtype: generator
     """
 
@@ -154,58 +164,8 @@ def synchronization(ref, *data, x_label='times', y_label='velocities'):
         yield shift, ref.__class__(OrderedDict(r))
 
 
-def _parse_sheet_names(sheet_name, input_file=''):
-    try:
-        r = xleash.parse_xlref(sheet_name)
-        if not r['url_file']:
-            xl_ref = ''.join((input_file, sheet_name))
-        else:
-            xl_ref = sheet_name
-        sheet_name = r['xl_ref']
-    except:
-        xl_ref = '%s#%s!A1(RD):._:RD' % (input_file, sheet_name)
-
-    return {'sheet_name': sheet_name, 'xlref': xl_ref}
-
-
-def apply_datasync(
-        ref_sheet, sync_sheets, x_label, y_label, output_file, input_file='',
-        prefix_cols=False):
-
-    out_sheet = _parse_sheet_names(ref_sheet)['sheet_name']
-    sheets_factory = xleash.SheetsFactory()
-
-    if not sync_sheets:
-        book = sheets_factory.fetch_sheet(input_file, 0)._sheet.book
-        sync_sheets = IndexedSet(book.sheet_names()).difference([out_sheet])
-
-    data, headers = [], []
-    for xl_ref in itt.chain([ref_sheet], sync_sheets):
-        xlref = _parse_sheet_names(xl_ref, input_file=input_file)
-        sheet_name, xlref = xlref['sheet_name'], xlref['xlref']
-        d = xleash.lasso(xlref, sheets_factory=sheets_factory)
-        if not d:
-            continue
-        str_row_indices = [i for i, r in enumerate(d)
-            if any(isinstance(v, str) for v in r)]
-
-        req_cols = set([x_label, y_label])
-        for k in str_row_indices:
-            if set(d[k]) >= req_cols:
-                break
-        else:
-            raise CmdException("Columns(%r) not found in rows(%s) of sheet(%r)!" %
-                    ([x_label, y_label], str_row_indices, xlref))
-        ix = d[k]
-        i = max(str_row_indices, default=0) + 1
-
-        d, h = pd.DataFrame(d[i:], columns=ix), pd.DataFrame(d[:i], columns=ix)
-        d.dropna(how='all', inplace=True)
-        d.dropna(axis=1, how='any', inplace=True)
-        data.append(d)
-        headers.append((sheet_name, k, h))
-
-    res = list(synchronization(*data, x_label=x_label, y_label=y_label))
+def synchronize(headers, tables, x_label, y_label, prefix_cols):
+    res = list(_yield_synched_tables(*tables, x_label=x_label, y_label=y_label))
 
     if prefix_cols:
         ix = set()
@@ -226,50 +186,168 @@ def apply_datasync(
 
     return df
 
-def _do_datasync(opts):
-    ref_sheet = opts['<ref-sheet>']
-    x_label = opts['<x-label>']
-    y_label = opts['<y-label>']
-    prefix = opts['--prefix-cols']
-    out_folder = opts['-O']
-    out_frmt = opts['--out-frmt']
-    sync_sheets = opts['<sync-sheets>']
-    force = opts['--force']
 
-    if not osp.isdir(out_folder):
+
+def _guess_xlref_hash(xlref, bias_on_fragment):
+    if not xlref:
+        raise CmdException("An xlref cannot be empty-string!")
+    if '#' not in xlref:
+        xlref = ('#%s!' if bias_on_fragment else '%s#:') % xlref
+    return xlref
+
+def _get_rest_sheet_names(url_file, sheet, sheets_factory):
+    ## TODO: Move to pandalone.
+    book = sheets_factory.fetch_sheet(url_file, sheet)._sheet.book
+    return IndexedSet(book.sheet_names()) - [sheet]
+
+
+def collect_tables(ref_xlref, sync_xlrefs, required_labels):
+    """
+    Extract tables from ref and sync xlrefs.
+
+    Each xlref may omit file or sheet-name parts; in that case, those from
+    the previous xlref(s) are reused.
+    """
+    sheets_factory = xleash.SheetsFactory()
+
+    headers, tables = [], []  # Updated by func below.
+    def do_next_lasso(lasso, xlref):
+        """
+        :param str xlref:
+                an xlref that may not contain hash(`#`); in that case,
+                it is taken as `url_file` or `sh_name` depending on existence
+                of prev lasso's `url_file`.
+        :param Lasso lasso:
+                reuses `url_file` & `sheet` if missing from xlref
+        """
+
+        xlref = _guess_xlref_hash(xlref, bias_on_fragment=bool(lasso.url_file))
+        lasso = xleash.lasso(xlref,
+                sheets_factory=sheets_factory,
+                url_file=lasso.url_file,
+                sheet=lasso.sheet,
+                return_lasso=True)
+        values = lasso.values
+        if values: # Skip blank sheets.
+            str_row_indices = [i for i, r in enumerate(values)
+                if any(isinstance(v, str) for v in r)]
+
+            req_labels = IndexedSet(required_labels)
+            for k in str_row_indices:
+                if set(values[k]) >= req_labels:
+                    break
+            else:
+                raise CmdException("Columns(%r) not found in rows(%s) of sheet(%r)!" %
+                        (req_labels, str_row_indices, xlref))
+            ix = values[k]
+            i = max(str_row_indices, default=0) + 1
+
+            h = pd.DataFrame(values[:i], columns=ix)
+            headers.append((lasso.sh_name, k, h))
+
+            values = pd.DataFrame(values[i:], columns=ix)
+            values.dropna(how='all', inplace=True)
+            values.dropna(axis=1, how='any', inplace=True)
+            tables.append(values)
+
+        return lasso
+
+    lasso = do_next_lasso(xleash.Lasso(), ref_xlref)
+    ref_fpath = lasso.url_file
+    ref_sh_name = lasso.sheet.get_sheet_ids().ids[0]
+    if not sync_xlrefs:
+        sync_xlrefs = _get_rest_sheet_names(lasso.url_file, lasso.sh_name, sheets_factory)
+    for xlref in sync_xlrefs:
+        lasso = do_next_lasso(lasso, xlref)
+
+    return ref_fpath, ref_sh_name, headers, tables
+
+
+def _ensure_out_file(out_path, inp_path, force, out_frmt):
+    """
+    :param str out_path:
+            If `None`, same folder as `inp_path` assumed.
+    """
+    basename = osp.basename(inp_path)
+
+    if not out_path:
+        out_path = osp.dirname(inp_path)
+
+    if not osp.exists(out_path):
+        out_file = out_path
+        folders = osp.dirname(out_path)
+        if not osp.isdir(folders):
+            if force:
+                log.info('Creating intermediate folders: %r...', folders)
+                os.makedirs(folders)
+            else:
+                raise CmdException("Intermediate folders %r do not exist! \n"
+                        "Tip: specify --force to create them." % out_path)
+    elif osp.isfile(out_path):
+        out_file = out_path
+    elif osp.isdir(out_path):
+        out_file = osp.join(out_path, out_frmt % osp.splitext(basename))
+    else:
+        assert False, 'Unexpected file-type: %r' % out_path
+    assert out_file, (out_path, inp_path, force, out_frmt)
+
+    out_file = osp.abspath(osp.expanduser(osp.expandvars(out_file)))
+    if osp.isfile(out_file):
         if force:
-            os.makedirs(out_folder)
-        else:
-            raise CmdException("Folder %r not found!"
-                    "Specify --force to create intermediate folders." % out_folder)
-
-    input_fpath, ref_sheet, df = apply_datasync(
-            ref_sheet, sync_sheets, x_label, y_label, prefix)
-
-    basename = osp.basename(input_fpath)
-    output_file = osp.abspath(osp.join(out_folder, out_frmt % osp.splitext(basename)))
-
-    if osp.isfile(output_file):
-        if force:
-            log.info('Overwritting datasync-file: %r...', output_file)
+            log.info('Overwritting datasync-file: %r...', out_file)
         else:
             raise CmdException("Output file exists! \n"
                                "\n To overwrite add '-f' option!")
+    return out_file
 
-    if input_fpath: ## FIXME: condition always True
+
+def do_datasync(ref_xlref, sync_xlrefs, x_label, y_label,
+        out_path=None, prefix_cols=False, force=False):
+    """
+    :param str ref_xlref:
+            The :term:`xlref` capturing a table from a workbook-sheet to use as *reference*.
+            The table must contain `x_label`, `y_label` column labels.
+    :param ref_xlref:
+            A list of :term:`xlref` capturing tables from workbook-sheets,
+            to be *synced* in relation to *reference*.
+            All tables must contain `x_label`, `y_label` column labels.
+            Each xlref may omit file or sheet-name parts; in that case,
+            those from the previous xlref(s) are reused.
+    :type ref_xlref: [str]
+    :param bool prefix_cols:
+            Prefix all synced column names with their source sheet-names.
+            If not true, only clashing column-names are prefixed.
+    :param str out_path:
+            Output folder or file path to write synchronized results:
+            - Non-existent path: taken as the new file-path; fails
+              if intermediate folders do not exist, unless --force.
+            - Existent file: fails, unless --force.
+            - Existent folder: writes a new file `<ref-file>.sync<.ext>`
+              in that folder; --force required if that file exists.
+            If not true, use folder of the <ref-sheet>.
+    :param bool force:
+            When true, overwrites excel-file(s) and/or create missing folders.
+    """
+    ## strange API...
+    table_infos = collect_tables(ref_xlref, sync_xlrefs, (x_label, y_label))
+    ref_fpath, ref_sh_name, headers, tables = table_infos
+    df = synchronize(headers, tables, x_label, y_label, prefix_cols)
+
+    if ref_fpath: ## FIXME: condition always True
         from .io.excel import clone_excel
-        writer_fact = fnt.partial(clone_excel, input_fpath)
+        writer_fact = fnt.partial(clone_excel, ref_fpath)
     else:
         writer_fact = pd.ExcelWriter
 
-    with writer_fact(output_file) as writer:
+    out_file = _ensure_out_file(out_path, ref_fpath, force, synced_file_frmt)
+    with writer_fact(out_file) as writer:
         # noinspection PyUnresolvedReferences
-        df.to_excel(writer, ref_sheet, header=False, index=False)
+        df.to_excel(writer, ref_sh_name, header=False, index=False)
         writer.save()
 
 
-def _main(*args):
-    """Does not ``sys.exit()`` like :func:`main()` but throws any exception."""
+def main(*args):
+    """Does not ``sys.exit()`` like a when invoked as script, throws exceptions instead."""
 
     opts = docopt.docopt(__doc__, argv=args or sys.argv[1:])
 
@@ -283,22 +361,26 @@ def _main(*args):
         except:
             print(v)
     else:
-        _do_datasync(opts)
-
-
-def main(*args):
-    try:
-        _main(*args)
-    except CmdException as ex:
-        log.info('%r', ex)
-        exit(ex.args[0])
-    except Exception as ex:
-        log.error('%r', ex)
-        raise
+        do_datasync(
+                ref_xlref=opts['<ref-sheet>'],
+                sync_xlrefs=opts['<sync-sheets>'],
+                x_label=opts['<x-label>'],
+                y_label=opts['<y-label>'],
+                out_path=opts['-O'],
+                prefix_cols=opts['--prefix-cols'],
+                force=opts['--force'],
+        )
 
 
 if __name__ == '__main__':
     if sys.version_info < (3, 4):
         msg = "Sorry, Python >= 3.4 is required, but found: {}"
         sys.exit(msg.format(sys.version_info))
-    main()
+    try:
+        main()
+    except CmdException as ex:
+        log.info('%r', ex)
+        exit(ex.args[0])
+    except Exception as ex:
+        log.error('%r', ex)
+        raise

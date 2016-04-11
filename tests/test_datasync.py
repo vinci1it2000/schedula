@@ -70,7 +70,7 @@ _def_file = 'DEFILE'
 _def_ref = 'A1(RD):._:RD'
 
 @ddt.ddt
-class DataSync(unittest.TestCase):
+class HighSync(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -85,11 +85,12 @@ class DataSync(unittest.TestCase):
             (_file_url(_sync_fname), "Sheet1", None),  ## FAILS due to clone-excel!
             )
     def test_main_smoke_test(self, case):
-        inppath, ref_sheet, sync_sheets = case
+        inp_path, ref_sheet, sync_sheets = case
+        ref_xlref = '%s#%s!' % (inp_path, ref_sheet)
         sync_sheets = ' '.join(sync_sheets) if sync_sheets else ''
         with tempfile.TemporaryDirectory(prefix='co2mpas_%s_'%__name__) as d:
-            cmd = '-v -O %s %s x y1 %s %s' % (
-                    d, inppath, ref_sheet, sync_sheets)
+            cmd = '-v -O %s %s x y1 %s' % (
+                    d, ref_xlref, sync_sheets)
             datasync.main(*cmd.split())
             _check_synced(self, osp.join(d, _synced_fname), 'Sheet1')
 
@@ -104,16 +105,15 @@ class DataSync(unittest.TestCase):
             (_file_url(_sync_fname), "Sheet1", None), ## FAILS due to clone-excel!
             )
     def test_api_smoke_test(self, case):
-        inppath, ref_sheet, sync_sheets = case
+        inp_path, ref_sheet, sync_sheets = case
         with tempfile.TemporaryDirectory(prefix='co2mpas_%s_'%__name__) as d:
-            datasync.apply_datasync(
-                    ref_sheet=ref_sheet,
-                    sync_sheets=sync_sheets,
-                    x_label='x',
-                    y_label='y1',
-                    output_file=osp.join(d, _synced_fname),
-                    input_file=inppath,
-                    prefix_cols=False)
+            datasync.do_datasync(
+                    ref_xlref='%s#%s!' % (inp_path, ref_sheet),
+                    sync_xlrefs=sync_sheets,
+                    x_label='x', y_label='y1',
+                    out_path=osp.join(d, _synced_fname),
+                    prefix_cols=False,
+                    )
             _check_synced(self, osp.join(d, _synced_fname), 'Sheet1', )
 
     @ddt.data(
@@ -123,30 +123,28 @@ class DataSync(unittest.TestCase):
             (_sync_fname, "Sheet1", []),
             )
     def test_empty_sheet(self, case):
-        inppath, ref_sheet, sync_sheets = case
+        inp_path, ref_sheet, sync_sheets = case
         with tempfile.TemporaryDirectory(prefix='co2mpas_%s_'%__name__) as d:
-            datasync.apply_datasync(
-                    ref_sheet=ref_sheet,
-                    sync_sheets=sync_sheets,
-                    x_label='x',
-                    y_label='y1',
-                    output_file=osp.join(d, _synced_fname),
-                    input_file=inppath,
-                    prefix_cols=False)
+            datasync.do_datasync(
+                    ref_xlref='%s#%s!' % (inp_path, ref_sheet),
+                    sync_xlrefs=sync_sheets,
+                    x_label='x', y_label='y1',
+                    out_path=osp.join(d, _synced_fname),
+                    prefix_cols=False,
+                    )
             _check_synced(self, osp.join(d, _synced_fname), 'Sheet1')
 
 
     @ddt.data(False, True)
     def test_prefix_columns(self, prefix_columns):
         with tempfile.TemporaryDirectory(prefix='co2mpas_%s_'%__name__) as d:
-            datasync.apply_datasync(
-                    ref_sheet='Sheet1',
-                    sync_sheets=None,
-                    x_label='x',
-                    y_label='y1',
-                    output_file=osp.join(d, _synced_fname),
-                    input_file=_sync_fname,
-                    prefix_cols=prefix_columns)
+            datasync.do_datasync(
+                    ref_xlref='%s#Sheet1!' % _sync_fname,
+                    sync_xlrefs=None,
+                    x_label='x', y_label='y1',
+                    out_path=osp.join(d, _synced_fname),
+                    prefix_cols=prefix_columns,
+                    )
             _check_synced(self, osp.join(d, _synced_fname), 'Sheet1', prefix_columns)
 
 
@@ -160,24 +158,11 @@ class DataSync(unittest.TestCase):
         x, y = case
         with tempfile.TemporaryDirectory(prefix='co2mpas_%s_'%__name__) as d:
             with tutils.assertRaisesRegex(self, cmain.CmdException, 'not found in rows'):
-                datasync.apply_datasync(
-                        ref_sheet='Sheet1',
-                        sync_sheets=['Sheet2'],
-                        x_label=x,
-                        y_label=y,
-                        output_file=osp.join(d, _synced_fname),
-                        input_file=_sync_fname,
-                        prefix_cols=False)
-
-    @ddt.data(
-            ('sheet',       (_def_file, 'sheet', '%s#sheet!%s'%(_def_file, _def_ref))),
-            ('#sheet!:',    (_def_file, 'sheet', '%s#sheet!:'%_def_file)),
-            ('file#sheet!:',    (_def_file, 'sheet', '%s#sheet!:'%_def_file)),
-            #('file#sheet!:', ('file', 'sheet', ':')),
-            )
-    def test_parse_sheet_names(self, case):
-        xlurl, (file, sheet, xlref) = case
-        m = datasync._parse_sheet_names(xlurl, _def_file)
-        self.assertEqual(m['sheet_name'], xlurl, (m, case))
-        self.assertEqual(m['xlref'], xlref, (m, case))
+                datasync.do_datasync(
+                        ref_xlref='%s#Sheet1!' % _sync_fname,
+                        sync_xlrefs=['Sheet2'],
+                        x_label=x, y_label=y,
+                        out_path=osp.join(d, _synced_fname),
+                        prefix_cols=False,
+                        )
 
