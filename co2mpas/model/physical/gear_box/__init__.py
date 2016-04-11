@@ -144,6 +144,7 @@ def correct_gear_shifts(times, ratios, gears, velocity_speed_ratios):
     s = len(gears)
 
     def err(v, r):
+        v = int(v)
         return mean_absolute_error(ratios[slice(v - 1, v + 1, 1)], r)
 
     k = 0
@@ -155,9 +156,9 @@ def correct_gear_shifts(times, ratios, gears, velocity_speed_ratios):
             t = times[i]
             n = max(i - sum(((t - dt) <= times) & (times <= t)), k)
             m = min(i + sum((t <= times) & (times <= (t + dt))), s)
-            j = brute(err, [slice(n, m, 1)], args=(vsr(g),), finish=None)
+            j = int(brute(err, [slice(n, m, 1)], args=(vsr(g),), finish=None))
         else:
-            j = i
+            j = int(i)
 
         x = slice(j - 1, j + 1, 1)
         new_gears[x] = g
