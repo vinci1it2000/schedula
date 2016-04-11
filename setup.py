@@ -169,7 +169,7 @@ setup(
         'six',
         'easygui',
         'mpld3',
-        'pandalone',
+        'pandalone>=0.1.11', ## For datasync pascha-fixes.
         'regex',
         'schema',
         'tqdm',
@@ -191,6 +191,7 @@ setup(
     entry_points={
         'console_scripts': [
             '%(p)s = %(p)s.__main__:main' % {'p': proj_name},
+            'datasync = %(p)s.datasync:main' % {'p': proj_name},
             '%(p)s-autocompletions = %(p)s.__main__:print_autocompletions' % {'p': proj_name},
         ],
     },

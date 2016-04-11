@@ -866,6 +866,40 @@ excel-file:
    See also :ref:`debug`, below.
 
 
+Synchronizing time-series
+-------------------------
+The model might fail in case your time-series signals are time-shifted and/or
+with different sampling rates.  Even if thie model succeeds, the results will not
+the expected ones.
+
+As an aid tool, you may use the ``co2mpas datasync`` command-line tool to "re-sync"
+your data-tables. The syntax of this utility command is given by ``co2mpas --help``::
+
+    co2mpas datasync    [-v | --logconf <conf-file>] [-f]
+                        [-O <output-folder>] [--suffix <suffix>] [--prefix-columns]
+                        [--sync-sheets=<sheet-names>]
+                        <ref-sheet> <x-label> <y-label> <sync-path>...
+    Where:
+        <ref-sheet>                  Sheet-name containing the reference table; synced columns
+                                     will be appended into this table.
+        --sync-sheets=<sheet-names>  A comma-separated list of sheets to sync in comparison
+                                     to <ref-sheet>.  If none given, all sheets except <ref-sheet> assumed.
+        <x-label>                    Column-name of x-axis (e.g. 'times').
+        <y-label>                    Column-name of y-axis used for data synchronization.
+        --suffix=<suffix>            Suffix to add to the output file(s) [default: sync].
+        --prefix-columns             Prefix all synced column names with their source sheet-name.
+                                     By default, only clashing column-names are prefixed.
+
+The command accepts an excel-file (``<input-path>``) with 2 or more workbook-sheets
+containing data-tables to be synchronized. These are assumed to contain 2D cartesian data,
+all having (at least) ``<x-label>`` and ``<y-label>``column-names.
+One specific sheet is considered to be the "reference" X/Y values (the `<ref-sheet>`)
+and the data-columns to sync in one or more sheets named ``<sync-sheets>``.
+These will be shifted and resampled based on their *cross-correlation* with the
+corresponding columns in the reference-sheet.
+
+
+
 Using custom output xl-files as templates
 -----------------------------------------
 You may have defined customized xl-files for summarizing time-series and

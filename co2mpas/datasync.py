@@ -4,21 +4,82 @@
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+r"""
+Shift and resample excel-tables.
 
+Usage:
+  datasync  [(-v | --verbose) | --logconf <conf-file>]
+            [--force | -f] [--out-frmt=<frmy>] [--prefix-cols] [-O <output-path>]
+            <ref-sheet> <x-label> <y-label> [<sync-sheets> ...]
+  datasync  [--verbose | -v]  (--version | -V)
+  datasync  --help
+
+Options:
+  -O <output-path>             Output folder.  Fails if intermediate folders not exist
+                               and not --force. [default: .]
+  -f, --force                  Overwrite excel-file(s) and/or create any missing folders.
+  --out-frmt=<frmt>            printf format-string generate the output-filename from `fname` & `.ext`
+                               [default: %s.sync%s].
+  --prefix-cols                Prefix all synced column names with their source sheet-names.
+                               By default, only clashing column-names are prefixed.
+  <ref-sheet>                  The excel-sheet containing the reference table,
+                               in xl-ref notation e.g. folder/Book.xlsx#Sheet1!
+                               Synced columns will be appended into this table.
+                               For xl-refs see https://pandalone.readthedocs.org/en/latest/reference.html#module-pandalone.xleash
+  <x-label>                    Column-name of x-axis (e.g. 'times').
+  <y-label>                    Column-name of y-axis to cross-correlate between <ref-sheet>
+                               and all <sync-sheet>.
+  <sync-sheets>                Sheets to be synced, also in xl-ref notation.
+                               If unspecified, syncs all other non-empty sheets of <ref-sheet>.
+
+Miscellaneous:
+  -h, --help                   Show this help message and exit.
+  -V, --version                Print version of the program, with --verbose
+                               list release-date and installation details.
+  -v, --verbose                Print more verbosely messages - overridden by --logconf.
+  --logconf=<conf-file>        Path to a logging-configuration file, according to:
+                               See https://docs.python.org/3/library/logging.config.html#configuration-file-format
+                               Uses reads a dict-schema if file ends with '.yaml' or '.yml'.
+                               See https://docs.python.org/3.5/library/logging.config.html#logging-config-dictschema
+
+Examples::
+
+    ## Sync all sheets of `wbook.xlsx`:
+    datasync folder/wbook.xlsx#Sheet1  times  velocity
+
+    ## Sync selected sheets of `wbook.xlsx`:
+    datasync folder/wbook.xlsx#Sheet1  times  velocity Sheet1 Sheet2
+
+    ## Sync Sheet1 from `other_wbook.xlsx` into `wbook.xlsx`:
+    datasync folder/wbook.xlsx#Sheet1!:  times  velocity other_wbook.xlsx#Sheet1!:
+
+    # Typical usage for CO2MPAS velocity time-series from Dyno and OBD:
+    datasync -O ../output book.xlsx  times  velocities  WLTP-H  WLTP-H_OBD
+
+    ## View "big" version:
+    datasync -vV
+
+Known Limitations:
+ * Absolute paths with drive-letters currently do not work
+  (as of Apr-2016, pandalone-0.1.9).
+"""
 from collections import OrderedDict, Counter
-from functools import partial
-from itertools import chain
+import functools as fnt
+import itertools as itt
 import logging
+import os
+from pandalone import xleash
+import sys
 
 from boltons.setutils import IndexedSet
+import docopt
 from numpy.fft import fft, ifft, fftshift
-from pandalone import xleash
 
 import numpy as np
+import os.path as osp
 import pandas as pd
 
-from .__main__ import CmdException
-from .io.excel import clone_excel
+from .__main__ import CmdException, init_logging, build_version_string
 
 
 log = logging.getLogger(__name__)
@@ -81,7 +142,7 @@ def synchronization(ref, *data, x_label='times', y_label='velocities'):
     yield 0, ref
 
     for d in data:
-        s = OrderedDict([(k, partial(np.interp, xp=d[x_label], fp=v))
+        s = OrderedDict([(k, fnt.partial(np.interp, xp=d[x_label], fp=v))
                          for k, v in d.items() if k != x_label])
 
         shift = compute_shift(Y, s[y_label](X)) * dx
@@ -119,7 +180,7 @@ def apply_datasync(
         sync_sheets = IndexedSet(book.sheet_names()).difference([out_sheet])
 
     data, headers = [], []
-    for xl_ref in chain([ref_sheet], sync_sheets):
+    for xl_ref in itt.chain([ref_sheet], sync_sheets):
         xlref = _parse_sheet_names(xl_ref, input_file=input_file)
         sheet_name, xlref = xlref['sheet_name'], xlref['xlref']
         d = xleash.lasso(xlref, sheets_factory=sheets_factory)
@@ -160,15 +221,84 @@ def apply_datasync(
         for j in ix.intersection(h.columns):
             h[j].iloc[i] = '%s %s' % (sn, h[j].iloc[i])
 
-    frames = [h[df.columns].append(df) for (s, df), (sn, i, h) in zip(res, headers)]
+    frames = [h[df.columns].append(df) for (_, df), (sn, i, h) in zip(res, headers)]
     df = pd.concat(frames, axis=1)
 
-    if input_file:
-        writer = clone_excel(input_file, output_file)
-    else:
-        writer = pd.ExcelWriter(output_file)
-
-    # noinspection PyUnresolvedReferences
-    df.to_excel(writer, out_sheet, header=False, index=False)
-    writer.save()
     return df
+
+def _do_datasync(opts):
+    ref_sheet = opts['<ref-sheet>']
+    x_label = opts['<x-label>']
+    y_label = opts['<y-label>']
+    prefix = opts['--prefix-cols']
+    out_folder = opts['-O']
+    out_frmt = opts['--out-frmt']
+    sync_sheets = opts['<sync-sheets>']
+    force = opts['--force']
+
+    if not osp.isdir(out_folder):
+        if force:
+            os.makedirs(out_folder)
+        else:
+            raise CmdException("Folder %r not found!"
+                    "Specify --force to create intermediate folders." % out_folder)
+
+    input_fpath, ref_sheet, df = apply_datasync(
+            ref_sheet, sync_sheets, x_label, y_label, prefix)
+
+    basename = osp.basename(input_fpath)
+    output_file = osp.abspath(osp.join(out_folder, out_frmt % osp.splitext(basename)))
+
+    if osp.isfile(output_file):
+        if force:
+            log.info('Overwritting datasync-file: %r...', output_file)
+        else:
+            raise CmdException("Output file exists! \n"
+                               "\n To overwrite add '-f' option!")
+
+    if input_fpath: ## FIXME: condition always True
+        from .io.excel import clone_excel
+        writer_fact = fnt.partial(clone_excel, input_fpath)
+    else:
+        writer_fact = pd.ExcelWriter
+
+    with writer_fact(output_file) as writer:
+        # noinspection PyUnresolvedReferences
+        df.to_excel(writer, ref_sheet, header=False, index=False)
+        writer.save()
+
+
+def _main(*args):
+    """Does not ``sys.exit()`` like :func:`main()` but throws any exception."""
+
+    opts = docopt.docopt(__doc__, argv=args or sys.argv[1:])
+
+    verbose = opts.get('--verbose', False)
+    init_logging(verbose, logconf_file=opts.get('--logconf'))
+    if opts['--version']:
+        v = build_version_string(verbose)
+        try:
+            sys.stdout.buffer.write(v.encode() + b'\n')
+            sys.stdout.buffer.flush()
+        except:
+            print(v)
+    else:
+        _do_datasync(opts)
+
+
+def main(*args):
+    try:
+        _main(*args)
+    except CmdException as ex:
+        log.info('%r', ex)
+        exit(ex.args[0])
+    except Exception as ex:
+        log.error('%r', ex)
+        raise
+
+
+if __name__ == '__main__':
+    if sys.version_info < (3, 4):
+        msg = "Sorry, Python >= 3.4 is required, but found: {}"
+        sys.exit(msg.format(sys.version_info))
+    main()

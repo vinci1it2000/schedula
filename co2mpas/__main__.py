@@ -20,14 +20,11 @@ Usage:
                       [--gui]
   co2mpas modelgraph  [-v | --logconf <conf-file>] [-O <output-folder>]
                       [--list | [--graph-depth=INTEGER] [<models> ...]]
-  co2mpas datasync    [-v | --logconf <conf-file>] [-f] [-O <output-folder>]
-                      [--suffix <suffix>] [--prefix] <input-path> <x-label>
-                      <y-label> <ref-sheet> [<sync-sheets>]...
   co2mpas sa          [-v | --logconf <conf-file>] [-f] [-O <output-folder>]
                       [--soft-validation] [--only-summary] [--overwrite-cache]
                       [--out-template <xlsx-file> | --charts]
                       [<input-path>] [<input-params>] [<defaults>]...
-  co2mpas             [-v | --logconf <conf-file>] (--version | -V)
+  co2mpas             [--verbose | -v]  (--version | -V)
   co2mpas             --help
 
 Options:
@@ -49,21 +46,11 @@ Options:
   --graph-depth=INTEGER       Limit the levels of sub-models plotted (no limit
                               by default).
   -f, --force                 Overwrite template/demo excel-file(s).
-  --suffix <suffix>           Suffix to added to the output file (datasync)
-                              [default: sync].
-  --prefix                    Add sheet name to all sync column names (datasync).
-  <x-label>                   Column label of x-axis used for data
-                              synchronisation (e.g. 'times').
-  <y-label>                   Label of y-axis used for data synchronisation.
-  <ref-sheet>                 Sheet where there are the reference signals.
-  <sync-sheets>               Synchronize and re-sample columns from these sheets
-                              into <ref-sheet>.
-                              If not given assumes all sheets except <ref-sheet>.
-  -V, --version               Print version of the program, with --verbose
-                              list release-date and installation details.
-  -h, --help                  Show this help message and exit.
 
 Miscellaneous:
+  -h, --help                  Show this help message and exit.
+  -V, --version               Print version of the program, with --verbose
+                              list release-date and installation details.
   -v, --verbose               Print more verbosely messages - overridden by --logconf.
   --logconf <conf-file>       Path to a logging-configuration file, according to:
                                   https://docs.python.org/3/library/logging.config.html#configuration-file-format
@@ -109,7 +96,6 @@ Examples for `cmd.exe`:
 import glob
 import io
 import logging
-import logging.config
 import os
 import re
 import shutil
@@ -119,7 +105,6 @@ from os import path as osp
 
 import docopt
 import yaml
-from tqdm import tqdm
 
 from co2mpas import (__version__ as proj_ver, __file__ as proj_file,
                      __updated__ as proj_date)
@@ -395,46 +380,6 @@ def file_finder(xlsx_fpaths, file_ext='*.xlsx'):
     return [f for f in sorted(files) if _input_file_regex.match(osp.basename(f))]
 
 
-def _cmd_datasync(opts):
-    input_path = opts['<input-path>']
-    ref_sheet = opts['<ref-sheet>']
-    x_label = opts['<x-label>']
-    y_label = opts['<y-label>']
-    suffix = opts['--suffix']
-    prefix = opts['--prefix']
-    out_format = '%s.{}%s'.format(suffix)
-    out_folder = opts['-O']
-    sync_sheets = opts['<sync-sheets>']
-    force = opts['--force']
-    input_paths = file_finder(input_path)
-
-    if not input_paths:
-        raise CmdException("No <input-path> found! \n"
-                           "\n  Try: co2mpas --help")
-
-    if not osp.isdir(out_folder):
-        if force:
-            from co2mpas.dispatcher.utils.io import mkdirs
-            if not ''.endswith('/'):
-                out_folder = '%s/' % out_folder
-            mkdirs(out_folder)
-        else:
-            raise CmdException("Specify a folder for "
-                               "the '-O %s' option!" % out_folder)
-
-    from co2mpas.datasync import apply_datasync
-    for input_file in tqdm(input_paths):
-        basename = osp.basename(input_file)
-        output_file = osp.join(out_folder, out_format % osp.splitext(basename))
-
-        if not force and osp.isfile(output_file):
-            raise CmdException("Output file exists! \n"
-                               "\n To overwrite add '-f' option!")
-
-        apply_datasync(ref_sheet, sync_sheets, x_label, y_label, output_file,
-                       input_file, prefix)
-
-
 def _cmd_sa(opts):
     input_path = opts['<input-path>']
     defaults = opts['<defaults>']
@@ -528,8 +473,6 @@ def _main(*args):
             _cmd_ipynb(opts)
         elif opts['modelgraph']:
             _cmd_modelgraph(opts)
-        elif opts['datasync']:
-            _cmd_datasync(opts)
         elif opts['sa']:
             _cmd_sa(opts)
         else: #opts['batch']:
