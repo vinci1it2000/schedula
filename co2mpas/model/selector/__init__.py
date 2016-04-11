@@ -85,9 +85,16 @@ def sort_models(*data, weights=None):
 
 
 def _sorting_func(x):
-    s = 1 if np.isnan(x[0]['score']) else -int(x[0]['success'])
+    return _key_score(x[0]) + _key_scores(x[1]) + (x[3],)
 
-    return [(s, -x[0]['n'], x[0]['score'])] + x[1:]
+
+def _key_score(x):
+    s = 1 if np.isnan(x['score']) else -int(x['success'])
+    return s, -x['n'], x['score']
+
+
+def _key_scores(x):
+    return tuple(y[:2] for y in x)
 
 
 def _check(best):
@@ -330,9 +337,9 @@ def sub_models():
 
     sub_models['alternator_model'] = {
         'dsp': electrics(),
-        'models': ['alternator_status_model', 'alternator_current_model',
-                   'max_battery_charging_current', 'start_demand',
-                   'electric_load', 'alternator_nominal_power'],
+        'models': ['alternator_status_model', 'alternator_nominal_power',
+                   'alternator_current_model', 'max_battery_charging_current',
+                   'start_demand', 'electric_load', 'alternator_nominal_power'],
         'inputs': [
             'battery_capacity', 'alternator_nominal_voltage',
             'initial_state_of_charge', 'times', 'clutch_tc_powers',
