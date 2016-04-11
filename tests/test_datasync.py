@@ -39,7 +39,7 @@ _shfact = xleash.SheetsFactory()
 
 
 @ddt.ddt
-class UnitSync(unittest.TestCase):
+class TTables(unittest.TestCase):
     """UnitTest TCs for datasync."""
 
     @classmethod
@@ -71,16 +71,16 @@ class UnitSync(unittest.TestCase):
 #                     ('datasync.xlsx#Sheet1!', 'datasync.xlsx#Sheet2!', 'datasync2.xlsx#Sheet1!', 'datasync2.xlsx#Sheet2!')),
             )
     def test_collect_tables(self, case):
+        exp_ref_path, exp_ref_sheet = 'datasync.xlsx', 'Sheet1'
         (ref_xlref, *sync_xlrefs), exp_xlrefs = case
         required_labels = ('x', 'y1')
-        ref_fpath, ref_sh_name, headers, tables= datasync.collect_tables(
-                required_labels, ref_xlref, sync_xlrefs, _shfact)
-        exp_ref_path, exp_ref_sheet = 'datasync.xlsx', 'Sheet1'
-        self.assertEqual(ref_fpath, exp_ref_path)
-        self.assertEqual(ref_sh_name, exp_ref_sheet)
-        self.assertEquals(len(tables), len(exp_xlrefs))
-        self.assertEquals(len(headers), len(exp_xlrefs))
-        for d, xlref, in zip(tables, exp_xlrefs):
+        tables = datasync.Tables(required_labels, _shfact)
+        tables.collect_tables(ref_xlref, *sync_xlrefs)
+        self.assertEqual(tables.ref_fpath, exp_ref_path)
+        self.assertEqual(tables.ref_sh_name, exp_ref_sheet)
+        self.assertEquals(len(tables.tables), len(exp_xlrefs))
+        self.assertEquals(len(tables.headers), len(exp_xlrefs))
+        for d, xlref, in zip(tables.tables, exp_xlrefs):
             df = xleash.lasso('%s:"df"'%xlref, sheets_factory=_shfact)
             npt.assert_array_equal(d, df.values, xlref)
 
@@ -131,15 +131,15 @@ class HighSync(unittest.TestCase):
             (_sync_fname, "Sheet1", ["Sheet2", "Sheet3", "Sheet4"]),
             (_sync_fname, "Sheet1", None),
             (_abspath(_sync_fname), "Sheet1", ["Sheet2", "Sheet3"]),
-            (_abspath(_sync_fname), "Sheet1", None),
-            (_file_url(_sync_fname), "Sheet1", None),  ## FAILS due to clone-excel!
+            (_abspath(_sync_fname), "Sheet1", []),
+            (_file_url(_sync_fname), "Sheet1", []),  ## FAILS due to clone-excel!
             )
     def test_main_smoke_test(self, case):
         inp_path, ref_sheet, sync_sheets = case
         ref_xlref = '%s#%s!' % (inp_path, ref_sheet)
         sync_sheets = ' '.join(sync_sheets) if sync_sheets else ''
         with tempfile.TemporaryDirectory(prefix='co2mpas_%s_'%__name__) as d:
-            cmd = '-v -O %s %s x y1 %s' % (
+            cmd = '-v -O %s x y1 %s %s' % (
                     d, ref_xlref, sync_sheets)
             datasync.main(*cmd.split())
             _check_synced(self, osp.join(d, _synced_fname), 'Sheet1')
@@ -147,40 +147,33 @@ class HighSync(unittest.TestCase):
 
     @ddt.data(
             (_sync_fname, "Sheet1", ["Sheet2", "Sheet3", "Sheet4"]),
-            (_sync_fname, "Sheet1", None),
+            (_sync_fname, "Sheet1", []),
             (_sync_fname, "Sheet1", ()),
             (_abspath(_sync_fname), "Sheet1", ["Sheet2", "Sheet3"]),
-            (_abspath(_sync_fname), "Sheet1", None),
             (_abspath(_sync_fname), "Sheet1", []),
-            (_file_url(_sync_fname), "Sheet1", None), ## FAILS due to clone-excel!
+            (_file_url(_sync_fname), "Sheet1", []), ## FAILS due to clone-excel!
             )
     def test_api_smoke_test(self, case):
         inp_path, ref_sheet, sync_sheets = case
         with tempfile.TemporaryDirectory(prefix='co2mpas_%s_'%__name__) as d:
-            datasync.do_datasync(
-                    ref_xlref='%s#%s!' % (inp_path, ref_sheet),
-                    sync_xlrefs=sync_sheets,
-                    x_label='x', y_label='y1',
-                    out_path=osp.join(d, _synced_fname),
-                    prefix_cols=False,
+            datasync.do_datasync('x', 'y1',
+                    '%s#%s!' % (inp_path, ref_sheet),
+                    *sync_sheets,
+                    out_path=osp.join(d, _synced_fname)
                     )
             _check_synced(self, osp.join(d, _synced_fname), 'Sheet1', )
 
     @ddt.data(
             (_sync_fname, "Sheet1", ["Sheet2", "Sheet3", "Sheet4"]),
-            (_sync_fname, "Sheet1", None),
-            (_sync_fname, "Sheet1", ()),
             (_sync_fname, "Sheet1", []),
             )
     def test_empty_sheet(self, case):
         inp_path, ref_sheet, sync_sheets = case
         with tempfile.TemporaryDirectory(prefix='co2mpas_%s_'%__name__) as d:
-            datasync.do_datasync(
-                    ref_xlref='%s#%s!' % (inp_path, ref_sheet),
-                    sync_xlrefs=sync_sheets,
-                    x_label='x', y_label='y1',
-                    out_path=osp.join(d, _synced_fname),
-                    prefix_cols=False,
+            datasync.do_datasync('x', 'y1',
+                    '%s#%s!' % (inp_path, ref_sheet),
+                    *sync_sheets,
+                    out_path=osp.join(d, _synced_fname)
                     )
             _check_synced(self, osp.join(d, _synced_fname), 'Sheet1')
 
@@ -188,10 +181,8 @@ class HighSync(unittest.TestCase):
     @ddt.data(False, True)
     def test_prefix_columns(self, prefix_columns):
         with tempfile.TemporaryDirectory(prefix='co2mpas_%s_'%__name__) as d:
-            datasync.do_datasync(
-                    ref_xlref='%s#Sheet1!' % _sync_fname,
-                    sync_xlrefs=None,
-                    x_label='x', y_label='y1',
+            datasync.do_datasync('x', 'y1',
+                    '%s#Sheet1!' % _sync_fname,
                     out_path=osp.join(d, _synced_fname),
                     prefix_cols=prefix_columns,
                     )
@@ -207,11 +198,9 @@ class HighSync(unittest.TestCase):
         from . import _tutils as tutils # XXX import chaos if outside!
         x, y = case
         with tempfile.TemporaryDirectory(prefix='co2mpas_%s_'%__name__) as d:
-            with tutils.assertRaisesRegex(self, cmain.CmdException, 'not found in rows') as ex:
-                datasync.do_datasync(
-                        ref_xlref='%s#Sheet1!' % _sync_fname,
-                        sync_xlrefs=['Sheet2'],
-                        x_label=x, y_label=y,
+            with tutils.assertRaisesRegex(self, cmain.CmdException, 'not found in rows'):
+                datasync.do_datasync(x, y,
+                        '%s#Sheet1!' % _sync_fname,
+                        'Sheet2',
                         out_path=osp.join(d, _synced_fname),
-                        prefix_cols=False,
                         )

@@ -10,7 +10,7 @@ Shift and resample excel-tables; see http://co2mpas.io/usage.html#Synchronizing-
 Usage:
   datasync  [(-v | --verbose) | --logconf <conf-file>]
             [--force | -f] [--out-frmt=<frmy>] [--prefix-cols] [-O <output>]
-            <ref-sheet> <x-label> <y-label> [<sync-sheets> ...]
+            <x-label> <y-label> <ref-sheet> [<sync-sheets> ...]
   datasync  [--verbose | -v]  (--version | -V)
   datasync  --help
 
@@ -25,14 +25,14 @@ Options:
   -f, --force            Overwrite excel-file(s) and/or create any missing folders.
   --prefix-cols          Prefix all synced column names with their source sheet-names.
                          By default, only clashing column-names are prefixed.
+  <x-label>              Column-name of the common x-axis (e.g. 'times').
+  <y-label>              Column-name of y-axis cross-correlated between all <sync-sheet>
+                         and <ref-sheet>.
   <ref-sheet>            The excel-sheet containing the reference table, in *xl-ref* notation;
                          synced columns will be appended into this table.
                          The captured table must contain <x_label> & <y_label> as column labels.
                          If it missed the hash(`#`) symbol, file-path assumed and
                          table is read from it 1st sheet .
-  <x-label>              Column-name of x-axis (e.g. 'times').
-  <y-label>              Column-name of y-axis to cross-correlate between <ref-sheet>
-                         and all <sync-sheet>.
   <sync-sheets>          Sheets to be synced in relation to <ref-sheet>, also in *xl-ref* notation.
                          All tables must contain <x_label> & <y_label> as column labels.
                          Each xlref may omit file or sheet-name parts; in that case,
@@ -201,25 +201,29 @@ def _get_rest_sheet_names(url_file, sheet, sheets_factory):
     return IndexedSet(book.sheet_names()) - [sheet]
 
 
-def collect_tables(required_labels, ref_xlref, sync_xlrefs,
-        sheets_factory=None):
-    """
-    Extract tables from ref and sync xlrefs.
-
-    Each xlref may omit file or sheet-name parts; in that case, those from
-    the previous xlref(s) are reused.
-    """
-    if not sheets_factory:
-        sheets_factory = xleash.SheetsFactory()
+def sheet_name(lasso):
+    ## TODO: Move to pandalone.
+    return lasso.sheet.get_sheet_ids().ids[0]
 
 
-    def sheet_name(lasso):
-        ## TODO: Move to pandalone.
-        return lasso.sheet.get_sheet_ids().ids[0]
+class Tables(object):
+    ## Nice API, may adopt by pandalone.
+    _sheets_factory = None
+
+    def __init__(self, required_labels, sheets_factory=None):
+        self.required_labels = required_labels
+        if sheets_factory:
+            self._sheets_factory = sheets_factory
+        elif not self._sheets_factory:
+            ## Permit class-wide sheets-fact.
+            self._sheets_factory = xleash.SheetsFactory()
+        self.headers = []
+        self.tables = []
+        self.ref_fpath = None
+        self.ref_sh_name = None
 
 
-    headers, tables = [], []  # Updated by func below.
-    def _consume_next_xlref(lasso, xlref):
+    def _consume_next_xlref(self, xlref, lasso):
         """
         :param str xlref:
                 an xlref that may not contain hash(`#`); in that case,
@@ -231,39 +235,41 @@ def collect_tables(required_labels, ref_xlref, sync_xlrefs,
 
         xlref = _guess_xlref_hash(xlref, bias_on_fragment=bool(lasso.url_file))
         lasso = xleash.lasso(xlref,
-                sheets_factory=sheets_factory,
+                sheets_factory=self._sheets_factory,
                 url_file=lasso.url_file,
                 sheet=lasso.sheet,
                 return_lasso=True)
         values = lasso.values
         if values: # Skip blank sheets.
+            ## TODO: Convert column monkeybiz into pure-pandas using xleash.
             str_row_indices = [i for i, r in enumerate(values)
                 if any(isinstance(v, str) for v in r)]
 
-            req_labels = IndexedSet(required_labels)
+            req_labels = IndexedSet(self.required_labels)
             for k in str_row_indices:
                 if set(values[k]) >= req_labels:
                     break
             else:
                 raise CmdException("Columns %r not found in rows %r of sheet(%r)!" %
-                        (required_labels, str_row_indices, xlref))
+                        (self.required_labels, str_row_indices, xlref))
             ix = values[k]
             i = max(str_row_indices, default=0) + 1
 
             h = pd.DataFrame(values[:i], columns=ix)
-            headers.append((sheet_name(lasso), k, h))
+            self.headers.append((sheet_name(lasso), k, h))
 
             values = pd.DataFrame(values[i:], columns=ix)
             values.dropna(how='all', inplace=True)
             values.dropna(axis=1, how='any', inplace=True)
-            tables.append(values)
+            self.tables.append(values)
 
         return lasso
 
 
-    def consume_next_xlref(lasso, xlref, i):
+    def consume_next_xlref(self, xlref, lasso):
+        i = len(self.tables)
         try:
-            return _consume_next_xlref(lasso, xlref)
+            return self._consume_next_xlref(xlref, lasso)
         except CmdException as ex:
             raise CmdException('Cannot read sync-sheet(%i: %s) due to: %s' %
                     (i, xlref, ex.args[0]))
@@ -271,16 +277,24 @@ def collect_tables(required_labels, ref_xlref, sync_xlrefs,
             log.error('Failed reading sync-sheet(%i: %s) due to: %s', i, xlref, ex)
             raise
 
+    def collect_tables(self, ref_xlref, *sync_xlrefs):
+        """
+        Extract tables from ref and sync xlrefs.
 
-    lasso = consume_next_xlref(xleash.Lasso(), ref_xlref, 0)
-    ref_fpath = lasso.url_file
-    ref_sh_name = sheet_name(lasso)
-    if not sync_xlrefs:
-        sync_xlrefs = _get_rest_sheet_names(lasso.url_file, ref_sh_name, sheets_factory)
-    for i, xlref in enumerate(sync_xlrefs, 1):
-        lasso = consume_next_xlref(lasso, xlref, i)
+        Each xlref may omit file or sheet-name parts; in that case, those from
+        the previous xlref(s) are reused.
+        """
 
-    return ref_fpath, ref_sh_name, headers, tables
+        lasso = self.consume_next_xlref(ref_xlref, xleash.Lasso())
+        self.ref_fpath = lasso.url_file
+        self.ref_sh_name = sheet_name(lasso)
+        assert lasso.url_file and self.ref_sh_name, (lasso.url_file, self.ref_sh_name)
+        if not sync_xlrefs:
+            sync_xlrefs = _get_rest_sheet_names(lasso.url_file,
+                    self.ref_sh_name, self._sheets_factory)
+        for xlref in sync_xlrefs:
+            lasso = self.consume_next_xlref(xlref, lasso)
+
 
 
 def _ensure_out_file(out_path, inp_path, force, out_frmt):
@@ -321,8 +335,8 @@ def _ensure_out_file(out_path, inp_path, force, out_frmt):
     return out_file
 
 
-def do_datasync(ref_xlref, sync_xlrefs, x_label, y_label,
-        out_path=None, prefix_cols=False, force=False):
+def do_datasync(x_label, y_label, ref_xlref, *sync_xlrefs,
+        out_path=None, prefix_cols=False, force=False, sheets_factory=None):
     """
     :param str ref_xlref:
             The :term:`xl-ref` capturing a table from a workbook-sheet to use as *reference*.
@@ -347,22 +361,23 @@ def do_datasync(ref_xlref, sync_xlrefs, x_label, y_label,
             If not true, use folder of the <ref-sheet>.
     :param bool force:
             When true, overwrites excel-file(s) and/or create missing folders.
+    :param xleash.SheetsFactory sheets_factory:
+            cache of workbook-sheets
     """
-    ## strange API...
-    table_infos = collect_tables((x_label, y_label), ref_xlref, sync_xlrefs)
-    ref_fpath, ref_sh_name, headers, tables = table_infos
-    df = synchronize(headers, tables, x_label, y_label, prefix_cols)
+    tables = Tables((x_label, y_label), sheets_factory)
+    tables.collect_tables(ref_xlref, *sync_xlrefs)
+    df = synchronize(tables.headers, tables.tables, x_label, y_label, prefix_cols)
 
-    if ref_fpath: ## FIXME: condition always True
+    if tables.ref_fpath: ## FIXME: condition always True
         from .io.excel import clone_excel
-        writer_fact = fnt.partial(clone_excel, ref_fpath)
+        writer_fact = fnt.partial(clone_excel, tables.ref_fpath)
     else:
         writer_fact = pd.ExcelWriter
 
-    out_file = _ensure_out_file(out_path, ref_fpath, force, synced_file_frmt)
+    out_file = _ensure_out_file(out_path, tables.ref_fpath, force, synced_file_frmt)
     with writer_fact(out_file) as writer:
         # noinspection PyUnresolvedReferences
-        df.to_excel(writer, ref_sh_name, header=False, index=False)
+        df.to_excel(writer, tables.ref_sh_name, header=False, index=False)
         writer.save()
 
 
@@ -382,13 +397,11 @@ def main(*args):
             print(v)
     else:
         do_datasync(
-                ref_xlref=opts['<ref-sheet>'],
-                sync_xlrefs=opts['<sync-sheets>'],
-                x_label=opts['<x-label>'],
-                y_label=opts['<y-label>'],
+                opts['<x-label>'], opts['<y-label>'],
+                opts['<ref-sheet>'], *opts['<sync-sheets>'],
                 out_path=opts['-O'],
                 prefix_cols=opts['--prefix-cols'],
-                force=opts['--force'],
+                force=opts['--force']
         )
 
 
