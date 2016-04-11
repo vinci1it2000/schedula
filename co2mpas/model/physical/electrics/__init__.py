@@ -393,6 +393,34 @@ def calculate_alternator_powers_demand(
     return np.maximum(-alternator_currents * c, 0.0)
 
 
+def calculate_max_alternator_current(
+        alternator_nominal_voltage, alternator_nominal_power,
+        alternator_efficiency):
+    """
+    Calculates the max feasible alternator current [A].
+
+    :param alternator_nominal_voltage:
+        Alternator nominal voltage [V].
+    :type alternator_nominal_voltage: float
+
+    :param alternator_nominal_power:
+        Alternator nominal power [kW].
+    :type alternator_nominal_power: float
+
+    :param alternator_efficiency:
+        Alternator efficiency [-].
+    :type alternator_efficiency: float
+
+    :return:
+        Max feasible alternator current [A].
+    :rtype: float
+    """
+
+    c = alternator_nominal_power * 1000.0 * alternator_efficiency
+
+    return c / alternator_nominal_voltage
+
+
 def identify_alternator_current_threshold(
         alternator_currents, velocities, on_engine):
     """
@@ -678,10 +706,11 @@ def define_alternator_status_model(
 
 
 def predict_vehicle_electrics(
-        battery_capacity, alternator_status_model, alternator_current_model,
-        max_battery_charging_current, alternator_nominal_voltage, start_demand,
-        electric_load, initial_state_of_charge, times, clutch_tc_powers,
-        on_engine, engine_starts, accelerations):
+        battery_capacity, alternator_status_model, max_alternator_current,
+        alternator_current_model, max_battery_charging_current,
+        alternator_nominal_voltage, start_demand, electric_load,
+        initial_state_of_charge, times, clutch_tc_powers, on_engine,
+        engine_starts, accelerations):
     """
     Predicts alternator and battery currents, state of charge, and alternator
     status.
@@ -693,6 +722,10 @@ def predict_vehicle_electrics(
     :param alternator_status_model:
         A function that predicts the alternator status.
     :type alternator_status_model: Alternator_status_model
+
+    :param max_alternator_current:
+        Max feasible alternator current [A].
+    :type max_alternator_current: float
 
     :param alternator_current_model:
         Alternator current model.
@@ -752,8 +785,9 @@ def predict_vehicle_electrics(
 
     func = partial(
         _predict_electrics, battery_capacity, alternator_status_model,
-        alternator_current_model, max_battery_charging_current,
-        alternator_nominal_voltage, start_demand, electric_load, )
+        max_alternator_current, alternator_current_model,
+        max_battery_charging_current, alternator_nominal_voltage, start_demand,
+        electric_load)
 
     delta_times = np.append([0], np.diff(times))
     o = (0, initial_state_of_charge, 0, None)
@@ -887,19 +921,27 @@ def electrics():
     dsp.add_function(
         function=predict_vehicle_electrics,
         inputs=['battery_capacity', 'alternator_status_model',
-                'alternator_current_model', 'max_battery_charging_current',
-                'alternator_nominal_voltage', 'start_demand', 'electric_load',
-                'initial_state_of_charge', 'times', 'clutch_tc_powers',
-                'on_engine', 'engine_starts', 'accelerations'],
+                'max_alternator_current', 'alternator_current_model',
+                'max_battery_charging_current', 'alternator_nominal_voltage',
+                'start_demand', 'electric_load', 'initial_state_of_charge',
+                'times', 'clutch_tc_powers', 'on_engine', 'engine_starts',
+                'accelerations'],
         outputs=['alternator_currents', 'battery_currents',
                  'state_of_charges', 'alternator_statuses']
     )
 
     dsp.add_function(
         function_id='identify_alternator_nominal_power',
-        function=lambda x: abs(min(x)),
+        function=lambda x: max(x),
         inputs=['alternator_powers_demand'],
         outputs=['alternator_nominal_power']
+    )
+
+    dsp.add_function(
+        function=calculate_max_alternator_current,
+        inputs=['alternator_nominal_voltage', 'alternator_nominal_power',
+                'alternator_efficiency'],
+        outputs=['max_alternator_current']
     )
 
     return dsp

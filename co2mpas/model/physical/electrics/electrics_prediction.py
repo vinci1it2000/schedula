@@ -51,7 +51,7 @@ def calculate_battery_current(
 
 
 def calculate_alternator_current(
-        alternator_status, on_engine, gear_box_power_in,
+        alternator_status, on_engine, gear_box_power_in, max_alternator_current,
         alternator_current_model, engine_start_current,
         prev_battery_state_of_charge, acceleration):
     """
@@ -68,6 +68,10 @@ def calculate_alternator_current(
     :param gear_box_power_in:
         Gear box power [kW].
     :type gear_box_power_in: float
+
+    :param max_alternator_current:
+        Max feasible alternator current [A].
+    :type max_alternator_current: float
 
     :param alternator_current_model:
         Alternator current model.
@@ -98,6 +102,7 @@ def calculate_alternator_current(
         a_c = alternator_current_model(
             alternator_status, prev_battery_state_of_charge, gear_box_power_in,
             on_engine, acceleration)
+        a_c = max(a_c, -max_alternator_current)
     else:
         a_c = 0.0
 
@@ -223,11 +228,11 @@ def calculate_engine_start_current(
 
 
 def _predict_electrics(
-        battery_capacity, alternator_status_model, alternator_current_model,
-        max_battery_charging_current, alternator_nominal_voltage, start_demand,
-        electric_load, delta_time, gear_box_power_in, on_engine, engine_start,
-        acceleration, battery_state_of_charge, prev_alternator_status,
-        prev_battery_current):
+        battery_capacity, alternator_status_model, max_alternator_current,
+        alternator_current_model, max_battery_charging_current,
+        alternator_nominal_voltage, start_demand, electric_load, delta_time,
+        gear_box_power_in, on_engine, engine_start, acceleration,
+        battery_state_of_charge, prev_alternator_status, prev_battery_current):
 
     alternator_status = predict_alternator_status(
         alternator_status_model, prev_alternator_status,
@@ -237,7 +242,7 @@ def _predict_electrics(
         engine_start, start_demand, alternator_nominal_voltage, delta_time)
 
     alternator_current = calculate_alternator_current(
-        alternator_status, on_engine, gear_box_power_in,
+        alternator_status, on_engine, gear_box_power_in, max_alternator_current,
         alternator_current_model, engine_start_current,
         battery_state_of_charge, acceleration)
 
@@ -282,8 +287,8 @@ def electrics_prediction():
     dsp.add_function(
         function=calculate_alternator_current,
         inputs=['alternator_status', 'on_engine', 'gear_box_power_in',
-                'alternator_current_model', 'engine_start_current',
-                'prev_battery_current', 'acceleration'],
+                'max_alternator_current', 'alternator_current_model',
+                'engine_start_current', 'prev_battery_current', 'acceleration'],
         outputs=['alternator_current']
     )
 
@@ -312,8 +317,8 @@ def electrics_prediction():
         dsp=dsp,
         function_id='electric_sub_model',
         inputs=['battery_capacity', 'alternator_status_model',
-                'alternator_current_model', 'max_battery_charging_current',
-                'alternator_nominal_voltage',
+                'max_alternator_current', 'alternator_current_model',
+                'max_battery_charging_current', 'alternator_nominal_voltage',
                 'start_demand', 'electric_load',
 
                 'delta_time', 'gear_box_power_in',
