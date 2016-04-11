@@ -663,7 +663,6 @@ class Start_stop_model(object):
     def __init__(self, on_engine_pred=None, start_stop_activation_time=None,
                  n_args=2):
         self.on = on_engine_pred
-        self.start_stop_activation_time = start_stop_activation_time
         self.n = n_args
 
     def __call__(self, *args, **kwargs):
@@ -675,15 +674,15 @@ class Start_stop_model(object):
         self.n = len(args)
         return self
 
-    def predict(self, times, *args):
+    def predict(self, times, *args, start_stop_activation_time=None):
         on_engine = self.on.predict(np.array(args[:self.n]).T)
-        if self.start_stop_activation_time is not None:
-            on_engine[times <= self.start_stop_activation_time] = True
+        if start_stop_activation_time is not None:
+            on_engine[times <= start_stop_activation_time] = True
 
         return on_engine
 
 
-def calibrate_start_stop_model_v1(
+def calibrate_start_stop_model(
         on_engine, velocities, accelerations, engine_coolant_temperatures):
     """
     Calibrates an start/stop model to predict if the engine is on.
@@ -716,58 +715,10 @@ def calibrate_start_stop_model_v1(
     return model
 
 
-def calibrate_start_stop_model(
-        on_engine, times, velocities, accelerations,
-        start_stop_activation_time):
-    """
-    Calibrates an start/stop model to predict if the engine is on.
-
-    :param on_engine:
-        If the engine is on [-].
-    :type on_engine: numpy.array
-
-    :param times:
-        Time vector [s].
-    :type times: numpy.array
-
-    :param velocities:
-        Velocity vector [km/h].
-    :type velocities: numpy.array
-
-    :param accelerations:
-        Acceleration vector [m/s2].
-    :type accelerations: numpy.array
-
-    :param start_stop_activation_time:
-        Start-stop activation time threshold [s].
-    :type start_stop_activation_time: float
-
-    :return:
-        Start/stop model and if the first stop is after the start-stop
-        activation time threshold.
-    :rtype: (function, str)
-    """
-
-    sst = start_stop_activation_time
-
-    # first stop
-    try:
-        fst = times[argmax(np.logical_not((times <= 10) | on_engine))]
-    except IndexError:
-        fst = float('inf')
-
-    status = bool(fst > sst)
-
-    model = Start_stop_model(start_stop_activation_time=sst).fit(
-        on_engine, velocities, accelerations
-    )
-
-    return model, status
-
-
 def predict_on_engine(
         start_stop_model, times, velocities, accelerations,
-        engine_coolant_temperatures, gears, correct_start_stop_with_gears):
+        engine_coolant_temperatures, gears, correct_start_stop_with_gears,
+        start_stop_activation_time):
     """
     Predicts if the engine is on [-].
 
@@ -805,7 +756,8 @@ def predict_on_engine(
     """
 
     on_engine = start_stop_model(
-        times, velocities, accelerations, engine_coolant_temperatures
+        times, velocities, accelerations, engine_coolant_temperatures,
+        start_stop_activation_time=start_stop_activation_time
     )
     on_engine = np.array(on_engine, dtype=int)
 
@@ -1530,19 +1482,16 @@ def engine():
         outputs=['engine_starts']
     )
 
-    dsp.add_function(
-        function=calibrate_start_stop_model,
-        inputs=['on_engine', 'times', 'velocities', 'accelerations',
-                'start_stop_activation_time'],
-        outputs=['start_stop_model', 'status_start_stop_activation_time']
+    dsp.add_data(
+        data_id='start_stop_activation_time',
+        default_value=None
     )
 
     dsp.add_function(
-        function=calibrate_start_stop_model_v1,
+        function=calibrate_start_stop_model,
         inputs=['on_engine', 'velocities', 'accelerations',
                 'engine_coolant_temperatures'],
-        outputs=['start_stop_model'],
-        weight=10
+        outputs=['start_stop_model']
     )
 
     dsp.add_function(
@@ -1555,7 +1504,7 @@ def engine():
         function=predict_on_engine,
         inputs=['start_stop_model', 'times', 'velocities', 'accelerations',
                 'engine_coolant_temperatures', 'gears',
-                'correct_start_stop_with_gears'],
+                'correct_start_stop_with_gears', 'start_stop_activation_time'],
         outputs=['on_engine']
     )
 

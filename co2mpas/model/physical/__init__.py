@@ -328,8 +328,6 @@ def physical():
             'times': 'times',
             'clutch_tc_speeds_delta': 'clutch_tc_speeds_delta',
             'calibration_status': 'calibration_status',
-            'status_start_stop_activation_time':
-                'status_start_stop_activation_time',
             'co2_normalization_references': 'co2_normalization_references',
             'fuel_density': 'fuel_density',
             'phases_integration_times': 'phases_integration_times',
@@ -377,8 +375,6 @@ def physical():
             'full_load_curve': 'full_load_curve',
             'engine_max_power': 'engine_max_power',
             'engine_max_speed_at_max_power': 'engine_max_speed_at_max_power',
-            'status_start_stop_activation_time':
-                'status_start_stop_activation_time',
             'willans_factors': 'willans_factors',
             'optimal_efficiency': 'optimal_efficiency',
             'extended_phases_integration_times':

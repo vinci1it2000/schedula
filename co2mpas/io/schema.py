@@ -365,7 +365,6 @@ def define_data_schema(read=True):
         'scores at_gear': _type(type=OrderedDict),
 
         'fuel_density': positive,
-        'status_start_stop_activation_time': positive,
         'idle_engine_speed': tuplefloat2,
         'k1': positive_int,
         'k2': positive_int,

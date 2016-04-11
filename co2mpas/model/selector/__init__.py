@@ -248,10 +248,11 @@ def sub_models():
 
     sub_models['start_stop_model'] = {
         'dsp': engine(),
-        'models': ['start_stop_model', 'status_start_stop_activation_time'],
+        'models': ['start_stop_model'],
         'inputs': ['times', 'velocities', 'accelerations',
                    'engine_coolant_temperatures', 'gears',
-                   'correct_start_stop_with_gears'],
+                   'correct_start_stop_with_gears',
+                   'start_stop_activation_time'],
         'outputs': ['on_engine', 'engine_starts'],
         'targets': ['on_engine', 'engine_starts'],
         'metrics': [accuracy_score] * 2,
