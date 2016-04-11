@@ -96,9 +96,9 @@ def _read_expected(prefix_columns):
     txtio = io.StringIO(_synced_values)
     df = pd.read_csv(txtio, header=None)
     if prefix_columns:
-        df.columns = ('x,y1,y2,Sheet2 y1,Sheet2 y2,Sheet2 y3,Sheet3 y1,Sheet3 y2,Sheet3 OtherY'.split(','))
+        df.columns = ('x,y1,y2,Sheet2.y1,Sheet2.y2,Sheet2.y3,Sheet3.y1,Sheet3.y2,Sheet3.OtherY'.split(','))
     else:
-        df.columns = ('x,y1,y2,Sheet2 y1,Sheet2 y2,y3,Sheet3 y1,Sheet3 y2,OtherY'.split(','))
+        df.columns = ('x,y1,y2,Sheet2.y1,Sheet2.y2,y3,Sheet3.y1,Sheet3.y2,OtherY'.split(','))
     return df
 
 

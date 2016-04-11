@@ -179,7 +179,7 @@ def synchronize(headers, tables, x_label, y_label, prefix_cols):
 
     for sn, i, h in headers[1:]:
         for j in ix.intersection(h.columns):
-            h[j].iloc[i] = '%s %s' % (sn, h[j].iloc[i])
+            h[j].iloc[i] = '%s.%s' % (sn, h[j].iloc[i])
 
     frames = [h[df.columns].append(df) for (_, df), (sn, i, h) in zip(res, headers)]
     df = pd.concat(frames, axis=1)
@@ -223,8 +223,8 @@ def collect_tables(required_labels, ref_xlref, sync_xlrefs,
         """
         :param str xlref:
                 an xlref that may not contain hash(`#`); in that case,
-                it is taken as `url_file` or `sh_name` depending on existence
-                of prev lasso's `url_file`.
+                it is taken as *file-part* or as *fragment-part* depending
+                on the existence of prev lasso's `url_file`.
         :param Lasso lasso:
                 reuses `url_file` & `sheet` if missing from xlref
         """
@@ -325,10 +325,10 @@ def do_datasync(ref_xlref, sync_xlrefs, x_label, y_label,
         out_path=None, prefix_cols=False, force=False):
     """
     :param str ref_xlref:
-            The :term:`xlref` capturing a table from a workbook-sheet to use as *reference*.
+            The :term:`xl-ref` capturing a table from a workbook-sheet to use as *reference*.
             The table must contain `x_label`, `y_label` column labels.
     :param ref_xlref:
-            A list of :term:`xlref` capturing tables from workbook-sheets,
+            A list of :term:`xl-ref` capturing tables from workbook-sheets,
             to be *synced* in relation to *reference*.
             All tables must contain `x_label`, `y_label` column labels.
             Each xlref may omit file or sheet-name parts; in that case,
