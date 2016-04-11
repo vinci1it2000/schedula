@@ -14,6 +14,7 @@ from unittest.mock import patch
 
 import co2mpas
 from co2mpas import __main__ as compas_main
+from co2mpas import datasync
 
 
 mydir = os.path.dirname(__file__)
@@ -82,7 +83,18 @@ class Doctest(unittest.TestCase):
         mydir = os.path.dirname(__file__)
         with open(readme_path) as fd:
             ftext = fd.read()
-            msg = "Main help-line[%s] missing from README: \n  %s"
+            msg = "MAIN() help-line[%s] missing from README: \n  %s"
+            for i, l in enumerate(help_msg.split('\n')):
+                l = l.strip()
+                if l:
+                    assert l in ftext, msg % (i, l)
+
+    def test_README_contains_datasync_help_msg(self):
+        help_msg = datasync.__doc__  # @UndefinedVariable
+        mydir = os.path.dirname(__file__)
+        with open(readme_path) as fd:
+            ftext = fd.read()
+            msg = "DATASYNC() help-line[%s] missing from README: \n  %s"
             for i, l in enumerate(help_msg.split('\n')):
                 l = l.strip()
                 if l:

@@ -612,15 +612,13 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
 
 .. code-block:: console
 
-    $ co2mpas --help
-    Predict NEDC CO2 emissions from WLTP cycles.
+    Predict NEDC CO2 emissions from WLTP cycles; see http://http://co2mpas.io/.
 
     Usage:
-      co2mpas batch       [-v | --logconf <conf-file>] [--predict-wltp]
+      co2mpas batch       [-v | --logconf <conf-file>]
                           [--only-summary] [--out-template <xlsx-file> | --charts]
                           [--plot-workflow] [--overwrite-cache] [-O <output-folder>]
-                          [--soft-validation]
-                          [<input-path>]... [--gui]
+                          [--soft-validation] [<input-path>]... [--gui]
       co2mpas demo        [-v | --logconf <conf-file>] [-f] [<output-folder>]
                           [--gui]
       co2mpas template    [-v | --logconf <conf-file>] [-f] [<excel-file-path> ...]
@@ -629,15 +627,11 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
                           [--gui]
       co2mpas modelgraph  [-v | --logconf <conf-file>] [-O <output-folder>]
                           [--list | [--graph-depth=INTEGER] [<models> ...]]
-      co2mpas datasync    [-v | --logconf <conf-file>] [-f] <input-path>
-                          <x-label> <y-label> <ref-sheet> [<sync-sheets>]...
-                          [-O <output-folder>] [--suffix <suffix>]
-                          [--prefix]
-      co2mpas sa          [-v | --logconf <conf-file>] [-f] [--predict-wltp]
-                          [-O <output-folder>] [--soft-validation]
-                          [<input-path>] [<input-params>]
-                          [<defaults>]...
-      co2mpas             [-v | --logconf <conf-file>] (--version | -V)
+      co2mpas sa          [-v | --logconf <conf-file>] [-f] [-O <output-folder>]
+                          [--soft-validation] [--only-summary] [--overwrite-cache]
+                          [--out-template <xlsx-file> | --charts]
+                          [<input-path>] [<input-params>] [<defaults>]...
+      co2mpas             [--verbose | -v]  (--version | -V)
       co2mpas             --help
 
     Options:
@@ -647,7 +641,6 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
                                   and Options. [default: False].
       --only-summary              Does not save vehicle outputs just the summary file.
       --overwrite-cache           Overwrites the cached file.
-      --predict-wltp              Whether to predict also WLTP values.
       --charts                    Add basic charts to output file.
       --soft-validation           Partial data validation.
       --out-template <xlsx-file>  An '*.xlsx' file to clone and append model-results
@@ -660,21 +653,11 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
       --graph-depth=INTEGER       Limit the levels of sub-models plotted (no limit
                                   by default).
       -f, --force                 Overwrite template/demo excel-file(s).
-      --suffix <suffix>           Suffix to added to the output file (datasync)
-                                  [default: sync].
-      --prefix                    Add sheet name to all sync column names (datasync).
-      <x-label>                   Column label of x-axis used for data
-                                  synchronisation (e.g. 'times').
-      <y-label>                   Label of y-axis used for data synchronisation.
-      <ref-sheet>                 Sheet where there are the reference signals.
-      <sync-sheets>               Synchronize and re-sample columns from these sheets
-                                  into <ref-sheet>.
-                                  If not given assumes all sheets except <ref-sheet>.
-      -V, --version               Print version of the program, with --verbose
-                                  list release-date and installation details.
-      -h, --help                  Show this help message and exit.
 
     Miscellaneous:
+      -h, --help                  Show this help message and exit.
+      -V, --version               Print version of the program, with --verbose
+                                  list release-date and installation details.
       -v, --verbose               Print more verbosely messages - overridden by --logconf.
       --logconf <conf-file>       Path to a logging-configuration file, according to:
                                       https://docs.python.org/3/library/logging.config.html#configuration-file-format
@@ -714,6 +697,7 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
 
         # Synchronise and re-sample time series from different sources:
         co2mpas datasync ../input times velocities WLTP-H WLTP-H_OBD -O ../output
+
 
 
 The default sub-command (``batch``) accepts either a single **input-excel-file**
@@ -875,20 +859,42 @@ the expected ones.
 As an aid tool, you may use the ``co2mpas datasync`` command-line tool to "re-sync"
 your data-tables. The syntax of this utility command is given by ``co2mpas --help``::
 
-    co2mpas datasync    [-v | --logconf <conf-file>] [-f]
-                        [-O <output-folder>] [--suffix <suffix>] [--prefix-columns]
-                        [--sync-sheets=<sheet-names>]
-                        <ref-sheet> <x-label> <y-label> <sync-path>...
-    Where:
-        <ref-sheet>                  Sheet-name containing the reference table; synced columns
-                                     will be appended into this table.
-        --sync-sheets=<sheet-names>  A comma-separated list of sheets to sync in comparison
-                                     to <ref-sheet>.  If none given, all sheets except <ref-sheet> assumed.
-        <x-label>                    Column-name of x-axis (e.g. 'times').
-        <y-label>                    Column-name of y-axis used for data synchronization.
-        --suffix=<suffix>            Suffix to add to the output file(s) [default: sync].
-        --prefix-columns             Prefix all synced column names with their source sheet-name.
-                                     By default, only clashing column-names are prefixed.
+.. code-block:: console
+
+    Shift and resample excel-tables; see http://co2mpas.io/usage.html#Synchronizing-time-series.
+
+    Usage:
+      datasync  [(-v | --verbose) | --logconf <conf-file>]
+                [--force | -f] [--out-frmt=<frmy>] [--prefix-cols] [-O <output>]
+                <x-label> <y-label> <ref-sheet> [<sync-sheets> ...]
+      datasync  [--verbose | -v]  (--version | -V)
+      datasync  --help
+
+    Options:
+      -O <output>            Output folder or file path to write synchronized results:
+                             - Non-existent path: taken as the new file-path; fails
+                               if intermediate folders do not exist, unless --force.
+                             - Existent file: fails, unless --force.
+                             - Existent folder: writes a new file `<ref-file>.sync<.ext>`
+                               in that folder; --force required if that file exists.
+                             By default, use folder of the <ref-sheet>.
+      -f, --force            Overwrite excel-file(s) and/or create any missing folders.
+      --prefix-cols          Prefix all synced column names with their source sheet-names.
+                             By default, only clashing column-names are prefixed.
+      <x-label>              Column-name of the common x-axis (e.g. 'times').
+      <y-label>              Column-name of y-axis cross-correlated between all <sync-sheet>
+                             and <ref-sheet>.
+      <ref-sheet>            The excel-sheet containing the reference table, in *xl-ref* notation;
+                             synced columns will be appended into this table.
+                             The captured table must contain <x_label> & <y_label> as column labels.
+                             If it missed the hash(`#`) symbol, file-path assumed and
+                             table is read from it 1st sheet .
+      <sync-sheets>          Sheets to be synced in relation to <ref-sheet>, also in *xl-ref* notation.
+                             All tables must contain <x_label> & <y_label> as column labels.
+                             Each xlref may omit file or sheet-name parts; in that case,
+                             those from the previous xlref(s) are reused.
+                             If an xlref misses the hash(`#`) symbol, assumed as *fragment* part.
+                             If non given, syncs all other non-empty sheets of <ref-sheet>.
 
 The command accepts an excel-file (``<input-path>``) with 2 or more workbook-sheets
 containing data-tables to be synchronized. These are assumed to contain 2D cartesian data,

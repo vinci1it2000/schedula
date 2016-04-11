@@ -5,7 +5,7 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 r"""
-Predict NEDC CO2 emissions from WLTP cycles.
+Predict NEDC CO2 emissions from WLTP cycles; see http://http://co2mpas.io/.
 
 Usage:
   co2mpas batch       [-v | --logconf <conf-file>]
