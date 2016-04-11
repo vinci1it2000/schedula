@@ -853,11 +853,21 @@ excel-file:
 Synchronizing time-series
 -------------------------
 The model might fail in case your time-series signals are time-shifted and/or
-with different sampling rates.  Even if thie model succeeds, the results will not
-the expected ones.
+with different sampling rates.  Even if the run succeeds, the results will not
+be accurate enough.
 
-As an aid tool, you may use the ``co2mpas datasync`` command-line tool to "re-sync"
-your data-tables. The syntax of this utility command is given by ``co2mpas --help``::
+As an aid tool, you may use the ``datasync`` command-line tool to "re-sync"
+your data-tables. The command accepts one or more excel-files, all containing tables sharing
+2 common columns: ``<x-label>`` and ``<y-label>`` (assuming those tables
+as containing 2D cartesian data).
+
+The 1st sheet (`<ref-sheet>`) is considered to contain the "reference" X/Y values.
+and the data-columns to shift_and_resample are contained in one or more sheets
+(``<sync-sheet>``).
+These shifting is based on their *cross-correlation* , the resampling on
+the values of ``<x-label>`` columns among the different tables.
+
+For more details, read the syntax of this utility command as given by ``datasync --help``:
 
 .. code-block:: console
 
@@ -896,13 +906,43 @@ your data-tables. The syntax of this utility command is given by ``co2mpas --hel
                              If an xlref misses the hash(`#`) symbol, assumed as *fragment* part.
                              If non given, syncs all other non-empty sheets of <ref-sheet>.
 
-The command accepts an excel-file (``<input-path>``) with 2 or more workbook-sheets
-containing data-tables to be synchronized. These are assumed to contain 2D cartesian data,
-all having (at least) ``<x-label>`` and ``<y-label>``column-names.
-One specific sheet is considered to be the "reference" X/Y values (the `<ref-sheet>`)
-and the data-columns to sync in one or more sheets named ``<sync-sheets>``.
-These will be shifted and resampled based on their *cross-correlation* with the
-corresponding columns in the reference-sheet.
+    Miscellaneous:
+      -h, --help             Show this help message and exit.
+      -V, --version          Print version of the program, with --verbose
+                             list release-date and installation details.
+      -v, --verbose          Print more verbosely messages - overridden by --logconf.
+      --logconf=<conf-file>  Path to a logging-configuration file, according to:
+                             See https://docs.python.org/3/library/logging.config.html#configuration-file-format
+                             Uses reads a dict-schema if file ends with '.yaml' or '.yml'.
+                             See https://docs.python.org/3.5/library/logging.config.html#logging-config-dictschema
+
+    * For xl-refs see: https://pandalone.readthedocs.org/en/latest/reference.html#module-pandalone.xleash
+
+    Examples::
+
+        ## Sync all other sheets of `wbook.xlsx` in comparison to the 1st sheet:
+        datasync times  velocity  folder/Book.xlsx
+
+        ## Sync all sheets in comparison to 3rd sheet.
+        datasync times  velocity  folder/wbook.xlsx#Sheet3!
+
+        ## Note that integers as sheet-indexes are zero based!
+        datasync times  velocity  folder/wbook.xlsx#2!
+
+        ## Sync selected sheets of `wbook.xlsx` based on its 1st-sheet:
+        datasync times  velocity Sheet1 Sheet2  folder/wbook.xlsx
+
+        ## Sync 1st sheet of wbook-2 based on 1st sheet of wbook-1:
+        datasync times  velocity wbook-1.xlsx  wbook-2.xlsx#0!
+
+        # Typical usage for CO2MPAS velocity time-series from Dyno and OBD:
+        datasync -O ../output times  velocities  ../input/book.xlsx  WLTP-H  WLTP-H_OBD
+
+    Known Limitations:
+     * File-URLs `file://d:/some/folder do not work
+      (as of Apr-2016, pandalone-0.1.11).
+
+
 
 
 

@@ -55,26 +55,27 @@ Miscellaneous:
 Examples::
 
     ## Sync all other sheets of `wbook.xlsx` in comparison to the 1st sheet:
-    datasync folder/Book.xlsx  times  velocity
+    datasync times  velocity  folder/Book.xlsx
 
     ## Sync all sheets in comparison to 3rd sheet.
-    datasync folder/wbook.xlsx#Sheet3!  times  velocity
+    datasync times  velocity  folder/wbook.xlsx#Sheet3!
 
     ## Note that integers as sheet-indexes are zero based!
-    datasync folder/wbook.xlsx#2!  times  velocity
+    datasync times  velocity  folder/wbook.xlsx#2!
 
     ## Sync selected sheets of `wbook.xlsx` based on its 1st-sheet:
-    datasync folder/wbook.xlsx  times  velocity Sheet1 Sheet2
+    datasync times  velocity Sheet1 Sheet2  folder/wbook.xlsx
 
     ## Sync 1st sheet of wbook-2 based on 1st sheet of wbook-1:
-    datasync wbook-1.xlsx  times  velocity wbook-2.xlsx#0!
+    datasync times  velocity wbook-1.xlsx  wbook-2.xlsx#0!
 
     # Typical usage for CO2MPAS velocity time-series from Dyno and OBD:
-    datasync -O ../output book.xlsx  times  velocities  WLTP-H  WLTP-H_OBD
+    datasync -O ../output times  velocities  ../input/book.xlsx  WLTP-H  WLTP-H_OBD
 
 Known Limitations:
  * File-URLs `file://d:/some/folder do not work
-  (as of Apr-2016, pandalone-0.1.9).
+  (as of Apr-2016, pandalone-0.1.11).
+
 """
 from collections import OrderedDict, Counter
 import logging
