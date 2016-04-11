@@ -17,7 +17,7 @@ from numpy import testing as npt
 
 import os.path as osp
 import pandas as pd
-
+from pandalone import xleash
 
 cmain.init_logging(False)
 log = logging.getLogger(__name__)
@@ -34,6 +34,55 @@ def _abspath(fname):
 
 def _file_url(fname):
     return ('file://' + _abspath(fname)).replace('\\', '/')
+
+_shfact = xleash.SheetsFactory()
+
+
+@ddt.ddt
+class UnitSync(unittest.TestCase):
+    """UnitTest TCs for datasync."""
+
+    @classmethod
+    def setUpClass(cls):
+        os.chdir(mydir)
+
+    @ddt.data(
+            (('datasync.xlsx#Sheet1!', ),
+                    ('datasync.xlsx#Sheet1!', 'datasync.xlsx#Sheet2!', 'datasync.xlsx#Sheet3!')),
+            (('datasync.xlsx', ),
+                    ('datasync.xlsx#Sheet1!', 'datasync.xlsx#Sheet2!', 'datasync.xlsx#Sheet3!')),
+            (('datasync.xlsx#0!', ),
+                    ('datasync.xlsx#Sheet1!', 'datasync.xlsx#Sheet2!', 'datasync.xlsx#Sheet3!')),
+            (('datasync.xlsx#:', ),
+                    ('datasync.xlsx#Sheet1!', 'datasync.xlsx#Sheet2!', 'datasync.xlsx#Sheet3!')),
+            (('datasync.xlsx', '1', ),
+                    ('datasync.xlsx#Sheet1!', 'datasync.xlsx#Sheet2!')),
+
+            (('datasync.xlsx', 'datasync2.xlsx#:'),
+                    ('datasync.xlsx#Sheet1!', 'datasync2.xlsx#Sheet1!')),
+            (('datasync.xlsx', 'datasync2.xlsx#Sheet2!', 'Sheet1'),
+                    ('datasync.xlsx#Sheet1!', 'datasync2.xlsx#Sheet2!', 'datasync2.xlsx#Sheet1!')),
+            (('datasync.xlsx', 'datasync2.xlsx#Sheet2!', '0', '2'),
+                    ('datasync.xlsx#Sheet1!', 'datasync2.xlsx#Sheet2!', 'datasync2.xlsx#Sheet1!', 'datasync2.xlsx#Sheet3!')),
+            (('datasync.xlsx', 'datasync2.xlsx#1!'),
+                    ('datasync.xlsx#Sheet1!', 'datasync2.xlsx#Sheet2!')),
+
+#             (('datasync.xlsx', 'Sheet2', 'datasync2.xlsx', 'Sheet2'),
+#                     ('datasync.xlsx#Sheet1!', 'datasync.xlsx#Sheet2!', 'datasync2.xlsx#Sheet1!', 'datasync2.xlsx#Sheet2!')),
+            )
+    def test_collect_tables(self, case):
+        (ref_xlref, *sync_xlrefs), exp_xlrefs = case
+        required_labels = ('x', 'y1')
+        ref_fpath, ref_sh_name, headers, tables= datasync.collect_tables(
+                required_labels, ref_xlref, sync_xlrefs, _shfact)
+        exp_ref_path, exp_ref_sheet = 'datasync.xlsx', 'Sheet1'
+        self.assertEqual(ref_fpath, exp_ref_path)
+        self.assertEqual(ref_sh_name, exp_ref_sheet)
+        self.assertEquals(len(tables), len(exp_xlrefs))
+        self.assertEquals(len(headers), len(exp_xlrefs))
+        for d, xlref, in zip(tables, exp_xlrefs):
+            df = xleash.lasso('%s:"df"'%xlref, sheets_factory=_shfact)
+            npt.assert_array_equal(d, df.values, xlref)
 
 
 _synced_values = """
@@ -71,6 +120,7 @@ _def_ref = 'A1(RD):._:RD'
 
 @ddt.ddt
 class HighSync(unittest.TestCase):
+    """High-level TCs for datasync."""
 
     @classmethod
     def setUpClass(cls):
@@ -157,7 +207,7 @@ class HighSync(unittest.TestCase):
         from . import _tutils as tutils # XXX import chaos if outside!
         x, y = case
         with tempfile.TemporaryDirectory(prefix='co2mpas_%s_'%__name__) as d:
-            with tutils.assertRaisesRegex(self, cmain.CmdException, 'not found in rows'):
+            with tutils.assertRaisesRegex(self, cmain.CmdException, 'not found in rows') as ex:
                 datasync.do_datasync(
                         ref_xlref='%s#Sheet1!' % _sync_fname,
                         sync_xlrefs=['Sheet2'],
@@ -165,4 +215,3 @@ class HighSync(unittest.TestCase):
                         out_path=osp.join(d, _synced_fname),
                         prefix_cols=False,
                         )
-

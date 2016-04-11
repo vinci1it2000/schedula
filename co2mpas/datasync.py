@@ -201,17 +201,25 @@ def _get_rest_sheet_names(url_file, sheet, sheets_factory):
     return IndexedSet(book.sheet_names()) - [sheet]
 
 
-def collect_tables(ref_xlref, sync_xlrefs, required_labels):
+def collect_tables(required_labels, ref_xlref, sync_xlrefs,
+        sheets_factory=None):
     """
     Extract tables from ref and sync xlrefs.
 
     Each xlref may omit file or sheet-name parts; in that case, those from
     the previous xlref(s) are reused.
     """
-    sheets_factory = xleash.SheetsFactory()
+    if not sheets_factory:
+        sheets_factory = xleash.SheetsFactory()
+
+
+    def sheet_name(lasso):
+        ## TODO: Move to pandalone.
+        return lasso.sheet.get_sheet_ids().ids[0]
+
 
     headers, tables = [], []  # Updated by func below.
-    def do_next_lasso(lasso, xlref):
+    def _consume_next_xlref(lasso, xlref):
         """
         :param str xlref:
                 an xlref that may not contain hash(`#`); in that case,
@@ -237,13 +245,13 @@ def collect_tables(ref_xlref, sync_xlrefs, required_labels):
                 if set(values[k]) >= req_labels:
                     break
             else:
-                raise CmdException("Columns(%r) not found in rows(%s) of sheet(%r)!" %
-                        (req_labels, str_row_indices, xlref))
+                raise CmdException("Columns %r not found in rows %r of sheet(%r)!" %
+                        (required_labels, str_row_indices, xlref))
             ix = values[k]
             i = max(str_row_indices, default=0) + 1
 
             h = pd.DataFrame(values[:i], columns=ix)
-            headers.append((lasso.sh_name, k, h))
+            headers.append((sheet_name(lasso), k, h))
 
             values = pd.DataFrame(values[i:], columns=ix)
             values.dropna(how='all', inplace=True)
@@ -252,13 +260,25 @@ def collect_tables(ref_xlref, sync_xlrefs, required_labels):
 
         return lasso
 
-    lasso = do_next_lasso(xleash.Lasso(), ref_xlref)
+
+    def consume_next_xlref(lasso, xlref, i):
+        try:
+            return _consume_next_xlref(lasso, xlref)
+        except CmdException as ex:
+            raise CmdException('Cannot read sync-sheet(%i: %s) due to: %s' %
+                    (i, xlref, ex.args[0]))
+        except Exception as ex:
+            log.error('Failed reading sync-sheet(%i: %s) due to: %s', i, xlref, ex)
+            raise
+
+
+    lasso = consume_next_xlref(xleash.Lasso(), ref_xlref, 0)
     ref_fpath = lasso.url_file
-    ref_sh_name = lasso.sheet.get_sheet_ids().ids[0]
+    ref_sh_name = sheet_name(lasso)
     if not sync_xlrefs:
-        sync_xlrefs = _get_rest_sheet_names(lasso.url_file, lasso.sh_name, sheets_factory)
-    for xlref in sync_xlrefs:
-        lasso = do_next_lasso(lasso, xlref)
+        sync_xlrefs = _get_rest_sheet_names(lasso.url_file, ref_sh_name, sheets_factory)
+    for i, xlref in enumerate(sync_xlrefs, 1):
+        lasso = consume_next_xlref(lasso, xlref, i)
 
     return ref_fpath, ref_sh_name, headers, tables
 
@@ -329,7 +349,7 @@ def do_datasync(ref_xlref, sync_xlrefs, x_label, y_label,
             When true, overwrites excel-file(s) and/or create missing folders.
     """
     ## strange API...
-    table_infos = collect_tables(ref_xlref, sync_xlrefs, (x_label, y_label))
+    table_infos = collect_tables((x_label, y_label), ref_xlref, sync_xlrefs)
     ref_fpath, ref_sh_name, headers, tables = table_infos
     df = synchronize(headers, tables, x_label, y_label, prefix_cols)
 
