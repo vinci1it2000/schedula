@@ -15,7 +15,7 @@ CO2MPAS: Vehicle simulator predicting NEDC CO2 emissions from WLTP
 :Keywords:      CO2, fuel-consumption, WLTP, NEDC, vehicle, automotive,
                 EU, JRC, IET, STU, back-translation, policy,
                 simulator, engineering, scientific
-:Developers:    .. include:: ../AUTHORS.rst
+:Developers:    .. include:: AUTHORS.rst
 :Copyright:     2015 European Commission (`JRC-IET
                 <https://ec.europa.eu/jrc/en/institutes/iet>`_)
 :License:       `EUPL 1.1+ <https://joinup.ec.europa.eu/software/page/eupl>`_
@@ -592,7 +592,7 @@ Usage
 .. Note::
     The following commands are for the **bash console**, specifically tailored
     for the **all-in-one** archive.  In `cmd.exe` the commands are rougly similar,
-    but remember to substitute the slashes (`/`) in paths with backslashes(`\`).
+    but remember to substitute the slashes (`/`) in paths with backslashes(`\\`).
 
     The :doc:`allinone` contains additionally batch-files
     (e.g. :file:`RUN_COMPAS.bat`, :file:`NEW_TEMPLATE.bat`, etc)

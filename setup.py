@@ -6,9 +6,12 @@
 ##		pip install -r requirements.txt
 ## and then just code from inside this folder.
 #
-from setuptools import setup, find_packages
-import os, io, re
+import os
+import io
+import re
 import sys
+
+from setuptools import setup, find_packages
 
 
 if sys.version_info < (3, 4):
@@ -136,12 +139,20 @@ setup(
     ],
     setup_requires=[
         'setuptools',
-        'setuptools-git >= 0.3',
     ],
+    # build_requires=[
+    #     # PEP426-field actually not used by `pip` them, hence
+    #     # included in /requirements/developmnet.pip.
+    #     'setuptools',
+    #     'setuptools-git >= 0.3',
+    #     'wheel',
+    # ],
+    # dev_requires=[
+    #     # PEP426-field actually not used by `pip` them, hence
+    #     # included in /requirements/developmnet.pip.
+    #     'sphinx',
+    # ],
     install_requires=[
-        'setuptools',
-        'setuptools-git >= 0.3',
-        'wheel',
         'pypiwin32',
         'pandas',
         'xlsxwriter',

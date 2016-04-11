@@ -5,9 +5,9 @@
 
 -r exe.pip
 
-## Pure python libs.
-#
+## Pure python libs from Setup + Build + Dev + Test requirements.
 setuptools-git >= 0.3
 wheel
-nose
 sphinx
+nose
+ddt
