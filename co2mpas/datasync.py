@@ -10,7 +10,7 @@ Shift and resample excel-tables; see http://co2mpas.io/usage.html#Synchronizing-
 Usage:
   datasync  [(-v | --verbose) | --logconf <conf-file>]
             [--force | -f] [--out-frmt=<frmy>] [--prefix-cols] [-O <output>]
-            <x-label> <y-label> <ref-sheet> [<sync-sheets> ...]
+            <x-label> <y-label> <ref-table> [<sync-table> ...]
   datasync  [--verbose | -v]  (--version | -V)
   datasync  --help
 
@@ -18,27 +18,28 @@ Options:
   -O <output>            Output folder or file path to write synchronized results:
                          - Non-existent path: taken as the new file-path; fails
                            if intermediate folders do not exist, unless --force.
-                         - Existent file: fails, unless --force.
+                         - Existent file: file-path to overwrite if --force, fails otherwise.
                          - Existent folder: writes a new file `<ref-file>.sync<.ext>`
                            in that folder; --force required if that file exists.
-                         By default, use folder of the <ref-sheet>.
-  -f, --force            Overwrite excel-file(s) and/or create any missing folders.
+                         By default, use folder of the <ref-table>.
+  -f, --force            Overwrite excel-file(s) and create any missing intermediate folders.
   --prefix-cols          Prefix all synced column names with their source sheet-names.
                          By default, only clashing column-names are prefixed.
   <x-label>              Column-name of the common x-axis (e.g. 'times').
-  <y-label>              Column-name of y-axis cross-correlated between all <sync-sheet>
-                         and <ref-sheet>.
-  <ref-sheet>            The excel-sheet containing the reference table, in *xl-ref* notation;
+  <y-label>              Column-name of y-axis cross-correlated between all <sync-table>
+                         and <ref-table>.
+  <ref-table>            The reference table, in *xl-ref* notation (usually given as  `file#sheet!`);
                          synced columns will be appended into this table.
                          The captured table must contain <x_label> & <y_label> as column labels.
-                         If it missed the hash(`#`) symbol, file-path assumed and
-                         table is read from it 1st sheet .
-  <sync-sheets>          Sheets to be synced in relation to <ref-sheet>, also in *xl-ref* notation.
+                         If hash(`#`) symbol missing, assumed as file-path and
+                         the table is read from its 1st sheet .
+  <sync-table>           Sheets to be synced in relation to <ref-table>, also in *xl-ref* notation.
                          All tables must contain <x_label> & <y_label> as column labels.
                          Each xlref may omit file or sheet-name parts; in that case,
                          those from the previous xlref(s) are reused.
-                         If an xlref misses the hash(`#`) symbol, assumed as *fragment* part.
-                         If non given, syncs all other non-empty sheets of <ref-sheet>.
+                         If hash(`#`) symbol missing, assumed as sheet-name.
+                         If none given, all non-empty sheets of <ref-table> are synced
+                         against the 1st one.
 
 Miscellaneous:
   -h, --help             Show this help message and exit.
@@ -54,20 +55,21 @@ Miscellaneous:
 
 Examples::
 
-    ## Sync all other sheets of `wbook.xlsx` in comparison to the 1st sheet:
+    ## Read the full contents from all `wbook.xlsx` sheets as tables and
+    ## sync their columns using the table from the 1st sheet as reference:
     datasync times  velocity  folder/Book.xlsx
 
-    ## Sync all sheets in comparison to 3rd sheet.
-    datasync times  velocity  folder/wbook.xlsx#Sheet3!
+    ## Sync `Sheet1` using `Sheet3` as reference:
+    datasync times  velocity  wbook.xlsx#Sheet3!  Sheet1!
 
-    ## Note that integers as sheet-indexes are zero based!
-    datasync times  velocity  folder/wbook.xlsx#2!
+    ## The same as above- NOTE that sheet-indices are zero based!
+    datasync times  velocity  wbook.xlsx#2!  0
 
-    ## Sync selected sheets of `wbook.xlsx` based on its 1st-sheet:
-    datasync times  velocity Sheet1 Sheet2  folder/wbook.xlsx
-
-    ## Sync 1st sheet of wbook-2 based on 1st sheet of wbook-1:
-    datasync times  velocity wbook-1.xlsx  wbook-2.xlsx#0!
+    ## Complex Xlr-ref example:
+    ## Read the table in sheet2 of wbook-2 starting at D5 cell
+    ## or more Down 'n Right if that was empty, till Down n Right,
+    ## and sync this based on 1st sheet of wbook-1:
+    datasync times  velocity wbook-1.xlsx  wbook-2.xlsx#0!D5(DR):..(DR)
 
     # Typical usage for CO2MPAS velocity time-series from Dyno and OBD:
     datasync -O ../output times  velocities  ../input/book.xlsx  WLTP-H  WLTP-H_OBD
@@ -188,13 +190,13 @@ def synchronize(headers, tables, x_label, y_label, prefix_cols):
     return df
 
 
-def _guess_xlref_hash(xlref, bias_on_fragment):
+
+def _guess_xlref_without_hash(xlref, bias_on_fragment):
     if not xlref:
         raise CmdException("An xlref cannot be empty-string!")
     if '#' not in xlref:
         xlref = ('#%s!' if bias_on_fragment else '%s#:') % xlref
     return xlref
-
 
 def _get_rest_sheet_names(url_file, sheet, sheets_factory):
     ## TODO: Move to pandalone.
@@ -223,6 +225,7 @@ class Tables(object):
         self.ref_fpath = None
         self.ref_sh_name = None
 
+
     def _consume_next_xlref(self, xlref, lasso):
         """
         :param str xlref:
@@ -233,7 +236,7 @@ class Tables(object):
                 reuses `url_file` & `sheet` if missing from xlref
         """
 
-        xlref = _guess_xlref_hash(xlref, bias_on_fragment=bool(lasso.url_file))
+        xlref = _guess_xlref_without_hash(xlref, bias_on_fragment=bool(lasso.url_file))
         lasso = xleash.lasso(xlref,
                 sheets_factory=self._sheets_factory,
                 url_file=lasso.url_file,
@@ -265,6 +268,7 @@ class Tables(object):
 
         return lasso
 
+
     def consume_next_xlref(self, xlref, lasso):
         i = len(self.tables)
         try:
@@ -293,6 +297,7 @@ class Tables(object):
                     self.ref_sh_name, self._sheets_factory)
         for xlref in sync_xlrefs:
             lasso = self.consume_next_xlref(xlref, lasso)
+
 
 
 def _ensure_out_file(out_path, inp_path, force, out_frmt):
@@ -333,9 +338,8 @@ def _ensure_out_file(out_path, inp_path, force, out_frmt):
     return out_file
 
 
-def do_datasync(
-        x_label, y_label, ref_xlref, *sync_xlrefs, out_path=None,
-        prefix_cols=False, force=False, sheets_factory=None):
+def do_datasync(x_label, y_label, ref_xlref, *sync_xlrefs,
+        out_path=None, prefix_cols=False, force=False, sheets_factory=None):
     """
     :param str ref_xlref:
             The :term:`xl-ref` capturing a table from a workbook-sheet to use as *reference*.
@@ -357,7 +361,7 @@ def do_datasync(
             - Existent file: fails, unless --force.
             - Existent folder: writes a new file `<ref-file>.sync<.ext>`
               in that folder; --force required if that file exists.
-            If not true, use folder of the <ref-sheet>.
+            If not true, use folder of the <ref-table>.
     :param bool force:
             When true, overwrites excel-file(s) and/or create missing folders.
     :param xleash.SheetsFactory sheets_factory:
@@ -397,7 +401,7 @@ def main(*args):
     else:
         do_datasync(
                 opts['<x-label>'], opts['<y-label>'],
-                opts['<ref-sheet>'], *opts['<sync-sheets>'],
+                opts['<ref-table>'], *opts['<sync-table>'],
                 out_path=opts['-O'],
                 prefix_cols=opts['--prefix-cols'],
                 force=opts['--force']

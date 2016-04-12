@@ -857,16 +857,20 @@ with different sampling rates.  Even if the run succeeds, the results will not
 be accurate enough.
 
 As an aid tool, you may use the ``datasync`` command-line tool to "re-sync"
-your data-tables. The command accepts one or more excel-files, all containing tables sharing
-2 common columns: ``<x-label>`` and ``<y-label>`` (assuming those tables
-as containing 2D cartesian data).
+your data-tables. The command reads one or more tables from excel-files and
+synchronizes their columns.
+All tables must share 2 common columns: ``<x-label>`` and ``<y-label>``, as if
+those tables describe 2D cartesian data, with a common *X-axis* and multiple
+data-series on the *Y-Axis*.
 
-The 1st sheet (`<ref-sheet>`) is considered to contain the "reference" X/Y values.
-and the data-columns to shift_and_resample are contained in one or more sheets
-(``<sync-sheet>``).
-These shifting is based on their *cross-correlation* , the resampling on
-the values of ``<x-label>`` columns among the different tables.
+The 1st table given (`<ref-table>`) is considered to contain the "reference"
+X/Y values;  the data-columns to shift_and_resample are contained in one
+or more sheets (``<sync-table>``), possibly in different excel work-books.
+Shifting is based on their *cross-correlation* of ``<y-label>``;
+resampling, on the values of ``<x-label>`` columns among the different tables.
 
+All tables are read from excel-sheets using the `xl-ref syntax
+<https://pandalone.readthedocs.org/en/latest/reference.html#module-pandalone.xleash>`_.
 For more details, read the syntax of this utility command as given by ``datasync --help``:
 
 .. code-block:: console
@@ -876,7 +880,7 @@ For more details, read the syntax of this utility command as given by ``datasync
     Usage:
       datasync  [(-v | --verbose) | --logconf <conf-file>]
                 [--force | -f] [--out-frmt=<frmy>] [--prefix-cols] [-O <output>]
-                <x-label> <y-label> <ref-sheet> [<sync-sheets> ...]
+                <x-label> <y-label> <ref-table> [<sync-table> ...]
       datasync  [--verbose | -v]  (--version | -V)
       datasync  --help
 
@@ -884,27 +888,28 @@ For more details, read the syntax of this utility command as given by ``datasync
       -O <output>            Output folder or file path to write synchronized results:
                              - Non-existent path: taken as the new file-path; fails
                                if intermediate folders do not exist, unless --force.
-                             - Existent file: fails, unless --force.
+                             - Existent file: file-path to overwrite if --force, fails otherwise.
                              - Existent folder: writes a new file `<ref-file>.sync<.ext>`
                                in that folder; --force required if that file exists.
-                             By default, use folder of the <ref-sheet>.
-      -f, --force            Overwrite excel-file(s) and/or create any missing folders.
+                             By default, use folder of the <ref-table>.
+      -f, --force            Overwrite excel-file(s) and create any missing intermediate folders.
       --prefix-cols          Prefix all synced column names with their source sheet-names.
                              By default, only clashing column-names are prefixed.
       <x-label>              Column-name of the common x-axis (e.g. 'times').
-      <y-label>              Column-name of y-axis cross-correlated between all <sync-sheet>
-                             and <ref-sheet>.
-      <ref-sheet>            The excel-sheet containing the reference table, in *xl-ref* notation;
+      <y-label>              Column-name of y-axis cross-correlated between all <sync-table>
+                             and <ref-table>.
+      <ref-table>            The reference table, in *xl-ref* notation (usually given as  `file#sheet!`);
                              synced columns will be appended into this table.
                              The captured table must contain <x_label> & <y_label> as column labels.
-                             If it missed the hash(`#`) symbol, file-path assumed and
-                             table is read from it 1st sheet .
-      <sync-sheets>          Sheets to be synced in relation to <ref-sheet>, also in *xl-ref* notation.
+                             If hash(`#`) symbol missing, assumed as file-path and
+                             the table is read from its 1st sheet .
+      <sync-table>           Sheets to be synced in relation to <ref-table>, also in *xl-ref* notation.
                              All tables must contain <x_label> & <y_label> as column labels.
                              Each xlref may omit file or sheet-name parts; in that case,
                              those from the previous xlref(s) are reused.
-                             If an xlref misses the hash(`#`) symbol, assumed as *fragment* part.
-                             If non given, syncs all other non-empty sheets of <ref-sheet>.
+                             If hash(`#`) symbol missing, assumed as sheet-name.
+                             If none given, all non-empty sheets of <ref-table> are synced
+                             against the 1st one.
 
     Miscellaneous:
       -h, --help             Show this help message and exit.
@@ -920,20 +925,21 @@ For more details, read the syntax of this utility command as given by ``datasync
 
     Examples::
 
-        ## Sync all other sheets of `wbook.xlsx` in comparison to the 1st sheet:
+        ## Read the full contents from all `wbook.xlsx` sheets as tables and
+        ## sync their columns using the table from the 1st sheet as reference:
         datasync times  velocity  folder/Book.xlsx
 
-        ## Sync all sheets in comparison to 3rd sheet.
-        datasync times  velocity  folder/wbook.xlsx#Sheet3!
+        ## Sync `Sheet1` using `Sheet3` as reference:
+        datasync times  velocity  wbook.xlsx#Sheet3!  Sheet1!
 
-        ## Note that integers as sheet-indexes are zero based!
-        datasync times  velocity  folder/wbook.xlsx#2!
+        ## The same as above- NOTE that sheet-indices are zero based!
+        datasync times  velocity  wbook.xlsx#2!  0
 
-        ## Sync selected sheets of `wbook.xlsx` based on its 1st-sheet:
-        datasync times  velocity Sheet1 Sheet2  folder/wbook.xlsx
-
-        ## Sync 1st sheet of wbook-2 based on 1st sheet of wbook-1:
-        datasync times  velocity wbook-1.xlsx  wbook-2.xlsx#0!
+        ## Complex Xlr-ref example:
+        ## Read the table in sheet2 of wbook-2 starting at D5 cell
+        ## or more Down 'n Right if that was empty, till Down n Right,
+        ## and sync this based on 1st sheet of wbook-1:
+        datasync times  velocity wbook-1.xlsx  wbook-2.xlsx#0!D5(DR):..(DR)
 
         # Typical usage for CO2MPAS velocity time-series from Dyno and OBD:
         datasync -O ../output times  velocities  ../input/book.xlsx  WLTP-H  WLTP-H_OBD
@@ -941,8 +947,6 @@ For more details, read the syntax of this utility command as given by ``datasync
     Known Limitations:
      * File-URLs `file://d:/some/folder do not work
       (as of Apr-2016, pandalone-0.1.11).
-
-
 
 
 
