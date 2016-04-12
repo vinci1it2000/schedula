@@ -32,25 +32,25 @@ log = logging.getLogger(__name__)
 
 _re_params_name = regex.compile(
         r"""
-            ^((?P<what>(target|input|output))s?)?[. ]?
+            ^((?P<usage>(target|input|output|data))s?)?[. ]?
             ((?P<stage>(precondition|calibration|prediction))s?)?[. ]?
             ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC)(recon)?)?$
             |
-            ^((?P<what>(target|input|output))s?)?[. ]?
+            ^((?P<usage>(target|input|output|data))s?)?[. ]?
             ((?P<stage>(precondition|calibration|prediction))s?)?[. ]?
             ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC)(recon)?)?[. ]?
-            (?P<id>[^\s]*)$
+            (?P<param>[^\s]*)$
             |
-            ^((?P<what>(target|input|output))s?)?[. ]?
+            ^((?P<usage>(target|input|output|data))s?)?[. ]?
             ((?P<stage>(precondition|calibration|prediction))s?)?[. ]?
-            (?P<id>[^\s]*)[. ]?
+            (?P<param>[^\s]*)[. ]?
             ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC)(recon)?)?$
         """, regex.IGNORECASE | regex.X | regex.DOTALL)
 
 
 _re_sheet_name = regex.compile(
         r"""
-            ^((?P<what>(target|input|output))s?)?[. ]?
+            ^((?P<usage>(target|input|output|data))s?)?[. ]?
             ((?P<stage>(precondition|calibration|prediction))s?)?[. ]?
             ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC)(recon)?)?$
         """, regex.IGNORECASE | regex.X | regex.DOTALL)
@@ -73,7 +73,7 @@ def parse_excel_file(file_path):
     res = {}
 
     defaults = {
-        'what': 'input',
+        'usage': 'input',
         'stage': 'calibration',
     }
 
@@ -122,7 +122,7 @@ def _isempty(val):
 
 
 def parse_values(data, default=None):
-    default = default or {'what': 'input'}
+    default = default or {'usage': 'input'}
     if 'cycle' not in default:
         default['cycle'] = ('nedc', 'wltp_p', 'wltp_h', 'wltp_l')
     elif default['cycle'] == 'wltp':
@@ -136,7 +136,7 @@ def parse_values(data, default=None):
             continue
         match = {i: j.lower() for i, j in match.groupdict().items() if j}
 
-        if 'what' in match and match['what'] == 'target':
+        if 'usage' in match and match['usage'] == 'target':
             match['stage'] = 'prediction'
 
         match = dsp_utl.combine_dicts(default, match)
@@ -145,7 +145,7 @@ def parse_values(data, default=None):
         if match['stage'] == 'input':
             match['stage'] = 'calibration'
 
-        i = match['id']
+        i = match['param']
 
         if match['cycle'] == 'wltp':
             match['cycle'] = ('wltp_h', 'wltp_l')
@@ -158,7 +158,7 @@ def parse_values(data, default=None):
                 stage = 'prediction'
             else:
                 stage = match['stage']
-            yield (match['what'], stage, c, i), v
+            yield (match['usage'], stage, c, i), v
 
 
 def _check_none(v):

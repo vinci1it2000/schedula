@@ -1066,7 +1066,7 @@ Model
 Execution Model
 ---------------
 The execution of CO2MPAS model for a single vehicle is a stepwise procedure
-of 4 stages: ``precondition``, ``calibration``, ``prediction``, ``target``.
+of 3 stages: ``precondition``, ``calibration``, and ``prediction``.
 These are invoked repeatedly, and subsequently combined, for the various cycles,
 as shown in the "active" flow-diagram of the execution, below:
 
@@ -1077,33 +1077,69 @@ as shown in the "active" flow-diagram of the execution, below:
 .. Tip:: The models in the diagram are nested; explore by clicking on them.
 
 1. **Precondition:** identifies the initial state of the vehicle by running
-   a preconditioning *WLTP* cycle, before running the *WLTP-H* and *WLTP-L* cycles.
-   The inputs are defined by the ``input.precondition.wltp_p`` node, while
-   the outputs are stored in ``output.precondition.wltp_p``.
+   a preconditioning *WLTP* cycle, before running the *WLTP-H* and *WLTP-L*
+   cycles.
+   The inputs are defined by the ``input.precondition.wltp_p`` node,
+   while the outputs are stored in ``output.precondition.wltp_p``.
 
 2. **Calibration:** the scope of the stage is to identify, calibrate and select
-   the best physical models from the WLTP-H and WLTP-L inputs (``input.calibration.wltp_x``).
-   (see next sections).
-   If some of the inputs needed to calibrate the physical models are not provided
-   (e.g. ``initial_state_of_charge``), the model will select the missing ones from
-   precondition-stage's outputs (``output.precondition.wltp_p``).
-   Note that all data provided in ``input.calibration.wltp_x`` overwrite those in
-   ``output.precondition.wltp_p``.
+   (see next sections) the best physical models from the WLTP-H and WLTP-L
+   inputs (``input.calibration.wltp_x``).
+   If some of the inputs needed to calibrate the physical models are not
+   provided (e.g. ``initial_state_of_charge``), the model will select the
+   missing ones from precondition-stage's outputs
+   (``output.precondition.wltp_p``).
+   Note that all data provided in ``input.calibration.wltp_x`` overwrite those
+   in ``output.precondition.wltp_p``.
 
-3. **Prediction:** executed for the NEDC and as well as for the WLTP-H and WLTP-L
-   cycles. All predictions use the ``calibrated_models``. The inputs to predict the
-   cycles are defined by the user in ``input.prediction.xxx`` nodes. If some or all
-   inputs for the prediction of WLTP-H and WLTP-L cycles are not provided, the
-   model will select from ```output.calibration.wltp_x`` nodes a minimum set required
-   to predict CO2 emissions.
+3. **Prediction:** executed for the NEDC and as well as for the WLTP-H and
+   WLTP-L cycles. All predictions use the ``calibrated_models``. The inputs to
+   predict the cycles are defined by the user in ``input.prediction.xxx`` nodes.
+   If some or all inputs for the prediction of WLTP-H and WLTP-L cycles are not
+   provided, the model will select from ```output.calibration.wltp_x`` nodes a
+   minimum set required to predict CO2 emissions.
 
-4. **Target:** compares the CO2MPAS model outputs (``outputs.xxx.xxx``) with
-   target-values (``targets.xxx.xxx``) defined by the user. This is performed
-   in the ``report`` sub-model by ``compare_outputs_vs_targets()`` function.
 
-Excel input data naming conventions
+Excel input: data naming convention
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-blah, blah
+This section describes the data naming convention used in the official CO2MPAS
+template (``.xlsx`` file). The general naming conventions are the followings:
+
+- sheet names: <usage>s?.<stage>s?.<cycle>
+
+- parameter names: <usage>s?.<stage>s?.<param>.<cycle>
+                   <usage>s?.<stage>s?.<cycle>.<param>
+
+.. note:: explain `?`!!!!!
+
+1. **usage:**
+   - ``input`` [default]: values provided by the user as input to CO2MPAS.
+   - ``data``: values selected (see previous section) to calibrate the models
+     and to predict the CO2 emission.
+   - ``output``: CO2MPAS precondition, calibration, and prediction results.
+   - ``target``: reference-values (**NOT USED IN CALIBRATION OR PREDICTION**) to
+     be compared with the CO2MPAS results. This comparison is performed in the
+     `report` sub-model by `compare_outputs_vs_targets()` function.
+
+.. note::
+    explain the time series
+
+2. **stage:**
+   - ``precondition`` [imposed when: ``wltp-p`` is specified as **cycle**]:
+     data related to the precondition stage.
+   - ``calibration`` [default]: data related to the calibration stage.
+   - ``prediction`` [imposed when: ``nedc`` is specified as **cycle**]:
+     data related to the prediction stage.
+
+3. **cycle:**
+   - ``wltp-h`` [default]: data related to the *WLTP High* cycle.
+   - ``wltp-l`` [default]: data related to the *WLTP Low* cycle.
+   - ``wltp-p`` [default]: data related to the preconditioning *WLTP* cycle.
+   - ``nedc`` [default]: data related to the *NEDC* cycle.
+   - ``wltp``: is a shortcut to set values for both wltp-h and wltp-l cycles.
+
+4. **param:** any data node name (e.g. ``vehicle_mass``) used in the physical
+   model.
 
 
 Calibrated Physical Models
