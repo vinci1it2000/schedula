@@ -15,17 +15,7 @@ Usage:
   datasync  --help
 
 Options:
-  -O <output>            Output folder or file path to write synchronized results:
-                         - Non-existent path: taken as the new file-path; fails
-                           if intermediate folders do not exist, unless --force.
-                         - Existent file: file-path to overwrite if --force, fails otherwise.
-                         - Existent folder: writes a new file `<ref-file>.sync<.ext>`
-                           in that folder; --force required if that file exists.
-                         By default, use folder of the <ref-table>.
-  -f, --force            Overwrite excel-file(s) and create any missing intermediate folders.
-  --prefix-cols          Prefix all synced column names with their source sheet-names.
-                         By default, only clashing column-names are prefixed.
-  <x-label>              Column-name of the common x-axis (e.g. 'times').
+  <x-label>              Column-name of the common x-axis (e.g. 'times') to be resampled if needed.
   <y-label>              Column-name of y-axis cross-correlated between all <sync-table>
                          and <ref-table>.
   <ref-table>            The reference table, in *xl-ref* notation (usually given as  `file#sheet!`);
@@ -40,6 +30,16 @@ Options:
                          If hash(`#`) symbol missing, assumed as sheet-name.
                          If none given, all non-empty sheets of <ref-table> are synced
                          against the 1st one.
+  -O <output>            Output folder or file path to write synchronized results:
+                         - Non-existent path: taken as the new file-path; fails
+                           if intermediate folders do not exist, unless --force.
+                         - Existent file: file-path to overwrite if --force, fails otherwise.
+                         - Existent folder: writes a new file `<ref-file>.sync<.ext>`
+                           in that folder; --force required if that file exists.
+                         By default, use folder of the <ref-table>.
+  -f, --force            Overwrite excel-file(s) and create any missing intermediate folders.
+  --prefix-cols          Prefix all synced column names with their source sheet-names.
+                         By default, only clashing column-names are prefixed.
 
 Miscellaneous:
   -h, --help             Show this help message and exit.
@@ -73,10 +73,6 @@ Examples::
 
     # Typical usage for CO2MPAS velocity time-series from Dyno and OBD:
     datasync -O ../output times  velocities  ../input/book.xlsx  WLTP-H  WLTP-H_OBD
-
-Known Limitations:
- * File-URLs `file://d:/some/folder do not work
-  (as of Apr-2016, pandalone-0.1.11).
 
 """
 from collections import OrderedDict, Counter

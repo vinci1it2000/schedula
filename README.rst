@@ -856,22 +856,10 @@ The model might fail in case your time-series signals are time-shifted and/or
 with different sampling rates.  Even if the run succeeds, the results will not
 be accurate enough.
 
-As an aid tool, you may use the ``datasync`` command-line tool to "re-sync"
-your data-tables. The command reads one or more tables from excel-files and
-synchronizes their columns.
-All tables must share 2 common columns: ``<x-label>`` and ``<y-label>``, as if
-those tables describe 2D cartesian data, with a common *X-axis* and multiple
-data-series on the *Y-Axis*.
-
-The 1st table given (`<ref-table>`) is considered to contain the "reference"
-X/Y values;  the data-columns to shift_and_resample are contained in one
-or more sheets (``<sync-table>``), possibly in different excel work-books.
-Shifting is based on their *cross-correlation* of ``<y-label>``;
-resampling, on the values of ``<x-label>`` columns among the different tables.
-
-All tables are read from excel-sheets using the `xl-ref syntax
-<https://pandalone.readthedocs.org/en/latest/reference.html#module-pandalone.xleash>`_.
-For more details, read the syntax of this utility command as given by ``datasync --help``:
+As an aid tool, you may use the ``datasync`` command-line tool to "synchronize"
+your *data-tables*. This command reads one or more tables from excel-files and
+synchronizes their columns.  The syntax of this utility command is given
+by typing ``datasync --help`` in the command line:
 
 .. code-block:: console
 
@@ -885,17 +873,7 @@ For more details, read the syntax of this utility command as given by ``datasync
       datasync  --help
 
     Options:
-      -O <output>            Output folder or file path to write synchronized results:
-                             - Non-existent path: taken as the new file-path; fails
-                               if intermediate folders do not exist, unless --force.
-                             - Existent file: file-path to overwrite if --force, fails otherwise.
-                             - Existent folder: writes a new file `<ref-file>.sync<.ext>`
-                               in that folder; --force required if that file exists.
-                             By default, use folder of the <ref-table>.
-      -f, --force            Overwrite excel-file(s) and create any missing intermediate folders.
-      --prefix-cols          Prefix all synced column names with their source sheet-names.
-                             By default, only clashing column-names are prefixed.
-      <x-label>              Column-name of the common x-axis (e.g. 'times').
+      <x-label>              Column-name of the common x-axis (e.g. 'times') to be resampled if needed.
       <y-label>              Column-name of y-axis cross-correlated between all <sync-table>
                              and <ref-table>.
       <ref-table>            The reference table, in *xl-ref* notation (usually given as  `file#sheet!`);
@@ -911,42 +889,54 @@ For more details, read the syntax of this utility command as given by ``datasync
                              If none given, all non-empty sheets of <ref-table> are synced
                              against the 1st one.
 
-    Miscellaneous:
-      -h, --help             Show this help message and exit.
-      -V, --version          Print version of the program, with --verbose
-                             list release-date and installation details.
-      -v, --verbose          Print more verbosely messages - overridden by --logconf.
-      --logconf=<conf-file>  Path to a logging-configuration file, according to:
-                             See https://docs.python.org/3/library/logging.config.html#configuration-file-format
-                             Uses reads a dict-schema if file ends with '.yaml' or '.yml'.
-                             See https://docs.python.org/3.5/library/logging.config.html#logging-config-dictschema
 
-    * For xl-refs see: https://pandalone.readthedocs.org/en/latest/reference.html#module-pandalone.xleash
+All input tables must share 2 common columns: ``<x-label>`` and ``<y-label>``, as if
+those tables describe 2D cartesian data, with a common *X-axis* and multiple
+data-series on the *Y-Axis*.
 
-    Examples::
+.. Tip:: The ``<x-label>`` usually refers to the "time" dimension.
 
-        ## Read the full contents from all `wbook.xlsx` sheets as tables and
-        ## sync their columns using the table from the 1st sheet as reference:
-        datasync times  velocity  folder/Book.xlsx
+The 1st table given (`<ref-table>`) is considered to contain the "reference"
+X/Y values;  the data-columns to shift-and-resample are contained in one
+or more tables (``<sync-table>``) specified subsequently in the command line,
+that are possibly read from different excel work-books.
 
-        ## Sync `Sheet1` using `Sheet3` as reference:
-        datasync times  velocity  wbook.xlsx#Sheet3!  Sheet1!
+- *Shifting* is based on the *cross-correlation* of ``<y-label>`` columns;
+- *resampling* is based on the values of ``<x-label>`` columns among the
+  different tables.
 
-        ## The same as above- NOTE that sheet-indices are zero based!
-        datasync times  velocity  wbook.xlsx#2!  0
+All tables are read from excel-sheets using the `xl-ref syntax
+<https://pandalone.readthedocs.org/en/latest/reference.html#module-pandalone.xleash>`_,
+which is best explained with some examples.
 
-        ## Complex Xlr-ref example:
-        ## Read the table in sheet2 of wbook-2 starting at D5 cell
-        ## or more Down 'n Right if that was empty, till Down n Right,
-        ## and sync this based on 1st sheet of wbook-1:
-        datasync times  velocity wbook-1.xlsx  wbook-2.xlsx#0!D5(DR):..(DR)
 
-        # Typical usage for CO2MPAS velocity time-series from Dyno and OBD:
-        datasync -O ../output times  velocities  ../input/book.xlsx  WLTP-H  WLTP-H_OBD
+Examples
+~~~~~~~~
+- Read the full contents from all `wbook.xlsx` sheets as tables and
+  sync their columns using the table from the 1st sheet as reference::
 
-    Known Limitations:
-     * File-URLs `file://d:/some/folder do not work
-      (as of Apr-2016, pandalone-0.1.11).
+    datasync times  velocity  folder/Book.xlsx
+
+- Sync `Sheet1` using `Sheet3` as reference::
+
+    datasync times  velocity  wbook.xlsx#Sheet3!  Sheet1!
+
+- The same as above but with ingeres used to index excel-sheets::
+
+    datasync times  velocity  wbook.xlsx#2!  0
+
+  .. Note:: Sheet-indices are zero based!
+
+- A more complex *xlr-ref* example which reads the synce-table from sheet2
+  of wbook-2 starting at D5 cell, or more Down 'n Right if that was empty,
+  till the first empty cell Down n Right, and synchronizes that  based on
+  1st sheet of wbook-1::
+
+    datasync times  velocity wbook-1.xlsx  wbook-2.xlsx#0!D5(DR):..(DR)
+
+- Typical usage for CO2MPAS velocity time-series from Dyno and OBD::
+
+    datasync -O ../output times  velocities  ../input/book.xlsx  WLTP-H  WLTP-H_OBD
 
 
 

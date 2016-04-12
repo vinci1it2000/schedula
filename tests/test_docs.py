@@ -91,6 +91,8 @@ class Doctest(unittest.TestCase):
 
     def test_README_contains_datasync_help_msg(self):
         help_msg = datasync.__doc__  # @UndefinedVariable
+        help_msg = re.match(r'^(.+?)-O <output>', help_msg, re.DOTALL).group(1)
+        assert len(help_msg) > 200
         mydir = os.path.dirname(__file__)
         with open(readme_path) as fd:
             ftext = fd.read()
