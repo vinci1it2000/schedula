@@ -188,13 +188,13 @@ def synchronize(headers, tables, x_label, y_label, prefix_cols):
     return df
 
 
-
 def _guess_xlref_hash(xlref, bias_on_fragment):
     if not xlref:
         raise CmdException("An xlref cannot be empty-string!")
     if '#' not in xlref:
         xlref = ('#%s!' if bias_on_fragment else '%s#:') % xlref
     return xlref
+
 
 def _get_rest_sheet_names(url_file, sheet, sheets_factory):
     ## TODO: Move to pandalone.
@@ -222,7 +222,6 @@ class Tables(object):
         self.tables = []
         self.ref_fpath = None
         self.ref_sh_name = None
-
 
     def _consume_next_xlref(self, xlref, lasso):
         """
@@ -266,7 +265,6 @@ class Tables(object):
 
         return lasso
 
-
     def consume_next_xlref(self, xlref, lasso):
         i = len(self.tables)
         try:
@@ -295,7 +293,6 @@ class Tables(object):
                     self.ref_sh_name, self._sheets_factory)
         for xlref in sync_xlrefs:
             lasso = self.consume_next_xlref(xlref, lasso)
-
 
 
 def _ensure_out_file(out_path, inp_path, force, out_frmt):
@@ -336,8 +333,9 @@ def _ensure_out_file(out_path, inp_path, force, out_frmt):
     return out_file
 
 
-def do_datasync(x_label, y_label, ref_xlref, *sync_xlrefs,
-        out_path=None, prefix_cols=False, force=False, sheets_factory=None):
+def do_datasync(
+        x_label, y_label, ref_xlref, *sync_xlrefs, out_path=None,
+        prefix_cols=False, force=False, sheets_factory=None):
     """
     :param str ref_xlref:
             The :term:`xl-ref` capturing a table from a workbook-sheet to use as *reference*.
