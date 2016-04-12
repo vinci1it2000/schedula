@@ -1082,29 +1082,35 @@ as shown in the "active" flow-diagram of the execution, below:
 
 .. Tip:: The models in the diagram are nested; explore by clicking on them.
 
-The ``precondition`` stage is needed to identify the initial state of the
-vehicle before running the WLTP test. The inputs are defined by the
-`input.precondition.wltp_p` node. While the outputs are stored in
-`output.precondition.wltp_p`.
+1. **Precondition:** identifies the initial state of the vehicle by running
+   a preconditioning *WLTP* cycle, before running the *WLTP-H* and *WLTP-L* cycles.
+   The inputs are defined by the ``input.precondition.wltp_p`` node, while
+   the outputs are stored in ``output.precondition.wltp_p``.
 
-The scope of the ``calibration`` stage is to calibrate and extract the best
-physical models from the WLTP-H and WLTP-L inputs (`input.calibration.wltp_x`).
-If some of the inputs needed to calibrate the physical models are not provided
-(e.g. `initial_state_of_charge`), the model will select the missing ones from
-precondition-stage's outputs (`output.precondition.wltp_p`).
-Note that all data provided in `input.calibration.wltp_x` overwrite those in
-`output.precondition.wltp_p`.
+2. **Calibration:** the scope of the stage is to identify, calibrate and select
+   the best physical models from the WLTP-H and WLTP-L inputs (``input.calibration.wltp_x``).
+   (see next sections).
+   If some of the inputs needed to calibrate the physical models are not provided
+   (e.g. ``initial_state_of_charge``), the model will select the missing ones from
+   precondition-stage's outputs (``output.precondition.wltp_p``).
+   Note that all data provided in ``input.calibration.wltp_x`` overwrite those in
+   ``output.precondition.wltp_p``.
 
-The ``prediction`` is made for the NEDC and as well as for the WLTP-H and WLTP-L
-cycles. All predictions use the `calibrated_models`. The inputs to predict the
-cycles are defined by the user in `input.prediction.xxx` nodes. If some or all
-inputs for the prediction of WLTP-H and WLTP-L cycles are not provided, the
-model will select from `output.calibration.wltp_x` nodes a minimum set required
-to predict CO2 emissions.
+3. **Prediction:** executed for the NEDC and as well as for the WLTP-H and WLTP-L
+   cycles. All predictions use the ``calibrated_models``. The inputs to predict the
+   cycles are defined by the user in ``input.prediction.xxx`` nodes. If some or all
+   inputs for the prediction of WLTP-H and WLTP-L cycles are not provided, the
+   model will select from ```output.calibration.wltp_x`` nodes a minimum set required
+   to predict CO2 emissions.
 
-The main goal of ``target`` stage is to compare the CO2MPAS model outputs
-(`outputs.xxx.xxx`) with targets defined by the user. This is performed in the
-`report` sub-model by `compare_outputs_vs_targets` function.
+4. **Target:** compares the CO2MPAS model outputs (``outputs.xxx.xxx``) with
+   target-values (``targets.xxx.xxx``) defined by the user. This is performed
+   in the ``report`` sub-model by ``compare_outputs_vs_targets()`` function.
+
+Excel input data naming conventions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+blah, blah
+
 
 Calibrated Physical Models
 --------------------------
