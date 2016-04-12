@@ -68,7 +68,7 @@ def select_prediction_data(data, new_data=None):
     return data
 
 
-def select_precondition_data(cycle_inputs, precondition_outputs):
+def select_calibration_data(cycle_inputs, precondition_outputs):
     """
     Updates cycle inputs with the precondition outputs.
 
@@ -138,7 +138,7 @@ def model():
     ############################################################################
 
     dsp.add_function(
-        function=select_precondition_data,
+        function=select_calibration_data,
         inputs=['input.calibration.wltp_h', 'output.precondition.wltp_p'],
         outputs=['data.calibration.wltp_h'],
     )
@@ -176,7 +176,7 @@ def model():
     ############################################################################
 
     dsp.add_function(
-        function=select_precondition_data,
+        function=select_calibration_data,
         inputs=['input.calibration.wltp_l', 'output.precondition.wltp_p'],
         outputs=['data.calibration.wltp_l'],
     )
