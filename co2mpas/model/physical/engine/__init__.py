@@ -660,8 +660,7 @@ def identify_engine_starts(on_engine):
 
 
 class Start_stop_model(object):
-    def __init__(self, on_engine_pred=None, start_stop_activation_time=None,
-                 n_args=2):
+    def __init__(self, on_engine_pred=None, n_args=2):
         self.on = on_engine_pred
         self.n = n_args
 

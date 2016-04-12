@@ -164,9 +164,10 @@ def _sa(input_vehicle, input_parameters, output_folder, default=None, **kw):
                         m = get_nested_dicts(outputs, n)[k]
                         d[k] = Start_stop_model(
                             on_engine_pred=m.on,
-                            start_stop_activation_time=float('inf'),
                             n_args=m.n
                         )
+                        if 'start_stop_activation_time' not in d:
+                            d['start_stop_activation_time'] = float('inf')
 
             elif k == 'has_energy_recuperation':
                 if not v:
