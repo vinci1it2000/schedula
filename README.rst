@@ -1114,9 +1114,14 @@ These names are splitted in "parts", as explained below with examples:
 
                     input.precodintion.WLTP-H
                     └─┬─┘ └────┬─────┘ └─┬──┘
-      usage(optional)─┘        │         │
-      stage(optional)──────────┘         │
-      cycle(optional)────────────────────┘
+      usage───────────┘        │         │
+      stage────────────────────┘         │
+      cycle──────────────────────────────┘
+
+
+  All 3 parts above are optional, but at least one of them must be set on
+  a **sheet-name**; those defined are then used as defaults for all
+  **parameter-names** contained in that sheet.
 
 - **parameter-names**/**columns-names** parts::
 
@@ -1135,8 +1140,6 @@ These names are splitted in "parts", as explained below with examples:
       parameter─────────────────────────────────────────┘
 
 .. note::
-   - The **usage**, **stage**, and **cycle** parts, parsed from the **sheet-name**,
-     are used as defaults for all **parameter-names** defined inside that sheet.
    - The dot(``.``) may be replaced by space.
    - The **usage** and **stage** parts may end with an ``s``, denoting plural.
 

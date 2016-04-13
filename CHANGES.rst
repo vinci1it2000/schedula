@@ -26,9 +26,9 @@ while other changes improve the quality of model runs, namely,
 
 Model-changes
 -------------
-- :gh:`6`: Confirm that *co2mpas* runs reproducible in various setups (py2.4, py2.5,
-  fairly recent combinations of numpy/scipy libraries) - different results
-  are between 32bit-64bit.
+- :gh:`6`: Confirmed that *co2mpas* results are  reproducible in various setups
+  (py2.4, py2.5, with fairly recent combinations of numpy/scipy libraries);
+  results are expected to be differ between 32bit-64bit platforms.
 
 Engine model:
 ~~~~~~~~~~~~~
