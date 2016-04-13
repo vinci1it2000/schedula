@@ -4,7 +4,7 @@ CO2MPAS Changes
 .. contents::
 .. _changes:
 
-v1.1.2, 13-Apr 2016: "Pasqua" release
+v1.1.2, 13-Apr 2016: "Panino" release
 ================================================================
 This release contains both key model and software changes; additional capabilities
 have been added for the user, namely,

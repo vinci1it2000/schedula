@@ -75,3 +75,4 @@ target/
 /*.xlsx
 tests/dispatcher/docs
 .ipynb_checkpoints/
+doc/_static/CO2MPAS model/
