@@ -1101,17 +1101,38 @@ as shown in the "active" flow-diagram of the execution, below:
 
 
 Excel input: data naming convention
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------------------
 This section describes the data naming convention used in the official CO2MPAS
-template (``.xlsx`` file). The general naming conventions are the followings:
+template (``.xlsx`` file). There are two sensitive fields: **sheet-name** and
+**parameter-name**. The general naming conventions are:
 
-- sheet names: <usage>s?.<stage>s?.<cycle>
+- **sheet-name**::
 
-- parameter names: <usage>s?.<stage>s?.<param>.<cycle>
-                   <usage>s?.<stage>s?.<cycle>.<param>
+    (<usage>s?[. ])?(<stage>s?[. ])?(<cycle>)?
 
-.. note:: explain `?`!!!!!
+  .. note::
+     Blocks **usage**, **stage**, and **cycle** parsed from the **sheet-name**
+     are used as defaults for all data (i.e. **parameter-name**) defined inside
+     the sheet.
 
+- **parameter-name**::
+
+    (<usage>s?[. ])?(<stage>s?[. ])?<param>[. ](<cycle>)?
+    (<usage>s?[. ])?(<stage>s?[. ])?(<cycle>[. ])?<param>
+
+.. tip::
+   + ``()``: Parentheses above are used to define the scope and precedence of
+     the operators (among other uses).
+   + ``[]``: A bracket expression. Matches a single character that is contained
+     within the brackets. For example, [. ] matches "." or " ".
+   + ``?``: The question mark indicates zero or one occurrences of the preceding
+     element. For example, inputs? matches both "input" and "inputs".
+   + ``<>``: Defines a marked sub-expression. The string matched within the
+     parentheses can be recalled later. A marked sub-expression is also called a
+     block or capturing group.
+
+Blocks' description
+~~~~~~~~~~~~~~~~~~~
 1. **usage:**
    - ``input`` [default]: values provided by the user as input to CO2MPAS.
    - ``data``: values selected (see previous section) to calibrate the models
@@ -1121,9 +1142,6 @@ template (``.xlsx`` file). The general naming conventions are the followings:
      be compared with the CO2MPAS results. This comparison is performed in the
      `report` sub-model by `compare_outputs_vs_targets()` function.
 
-.. note::
-    explain the time series
-
 2. **stage:**
    - ``precondition`` [imposed when: ``wltp-p`` is specified as **cycle**]:
      data related to the precondition stage.
@@ -1132,20 +1150,37 @@ template (``.xlsx`` file). The general naming conventions are the followings:
      data related to the prediction stage.
 
 3. **cycle:**
-   - ``wltp-h`` [default]: data related to the *WLTP High* cycle.
-   - ``wltp-l`` [default]: data related to the *WLTP Low* cycle.
-   - ``wltp-p`` [default]: data related to the preconditioning *WLTP* cycle.
-   - ``nedc`` [default]: data related to the *NEDC* cycle.
-   - ``wltp``: is a shortcut to set values for both wltp-h and wltp-l cycles.
+   - ``nedc`` data related to the *NEDC* cycle.
+   - ``wltp-h`` data related to the *WLTP High* cycle.
+   - ``wltp-l`` data related to the *WLTP Low* cycle.
+   - ``wltp-precon``: data related to the preconditioning *WLTP* cycle.
+   - ``wltp-p``: is a shortcut of ``wltp-precon``.
+   - ``wltp``: is a shortcut to set values for both ``wltp-h`` and ``wltp-l``
+     cycles.
+   - ``all`` [default]: is a shortcut to set values for ``nedc``, ``wltp``, and
+     ``wltp-p`` cycles.
 
 4. **param:** any data node name (e.g. ``vehicle_mass``) used in the physical
    model.
 
+Sheet types
+~~~~~~~~~~~
+There are two sheet types, which are parsed according to their contained
+data:
+
+- **parameters** [parsed range is ``#B2:C_``]: scalar or not time-depended
+ values (e.g. ``r_dynamic``, ``gear_box_ratios``, ``full_load_speeds``).
+- **time-series** [parsed range is ``#A2:__``]: time-depended values (e.g.
+ ``times``, ``velocities``, ``gears``). Columns without values are skipped.
+ **COLUMNS MUST HAVE THE SAME LENGTH!**
+
+When **cycle** is missing in the **sheet-name**, the sheet is parsed as
+**parameters**, otherwise it is parsed as **time-series**.
 
 Calibrated Physical Models
 --------------------------
-There are potentially eight models calibrated from input scalar-values and time-series
-(see :doc:`reference`):
+There are potentially eight models calibrated from input scalar-values and
+time-series (see :doc:`reference`):
 
 1. *AT_model*,
 2. *electric_model*,
@@ -1167,8 +1202,9 @@ For example, the electric_model contains the following functions/data:
 - *start_demand*.
 
 These functions/data are calibrated/estimated based on the provided input
-(in the particular case: *alternator current*, *battery current*, and *initial SOC*)
-over both cycles, assuming that data for both WLTP_H and WLTP_L are provided.
+(in the particular case: *alternator current*, *battery current*, and
+*initial SOC*) over both cycles, assuming that data for both WLTP_H and WLTP_L
+are provided.
 
 .. Note::
     The ``co2_params`` model has a third possible calibration configuration
@@ -1182,21 +1218,24 @@ To select which is the best calibration (from *WLTP_H* or *WLTP_L* or *ALL*)
 to be used in the prediction phase, the results of each stage are compared
 against the provided input data (used in the calibration).
 The calibrated models are THEN used to recalculate (predict) the inputs of the
-*WLTP_H* and *WLTP_L* cycles. A **score** (weighted average of all computed metrics)
-is attributed to each calibration of each model as a result of this comparison.
+*WLTP_H* and *WLTP_L* cycles. A **score** (weighted average of all computed
+metrics) is attributed to each calibration of each model as a result of this
+comparison.
 
 .. Note::
     The overall score attributed to a specific calibration of a model is
-    the average score achieved when compared against each one of the input cycles
-    (*WLTP_H* and *WLTP_L*).
+    the average score achieved when compared against each one of the input
+    cycles (*WLTP_H* and *WLTP_L*).
 
     For example, the score of `electric_model` calibrated based on *WLTP_H*
     when predicting *WLTP_H* is 20, and when predicting *WLTP_L* is 14.
     In this case the overall score of the the `electric_model` calibrated
     based on *WLTP_H* is 17. Assuming that the calibration of the same model
-    over *WLTP_L* was 18 and 12 respectively, this would give an overall score of 15.
+    over *WLTP_L* was 18 and 12 respectively, this would give an overall score
+    of 15.
 
-    In this case the second calibration (*WLTP_L*) would be chosen for predicting the NEDC.
+    In this case the second calibration (*WLTP_L*) would be chosen for
+    predicting the NEDC.
 
 In addition to the above, a success flag is defined according to
 upper or lower limits of scores which have been defined empirically by the JRC.
