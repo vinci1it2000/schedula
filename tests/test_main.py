@@ -16,7 +16,7 @@ from unittest.mock import patch
 
 import ddt
 
-from co2mpas import __main__ as compas_main
+from co2mpas import __main__ as cmain
 from co2mpas import __version__ as proj_ver
 from co2mpas.__main__ import init_logging
 import co2mpas.plot as co2plot
@@ -33,7 +33,7 @@ class Main(unittest.TestCase):
         cmd = "-v --version"
         stdout = io.StringIO()
         with patch('sys.stdout', stdout):
-            compas_main._main(*cmd.split())
+            cmain._main(*cmd.split())
         s = stdout.getvalue()
         self.assertIn(proj_ver, s),
         self.assertIn(sys.prefix, s),
@@ -42,7 +42,7 @@ class Main(unittest.TestCase):
         cmd = "--version"
         stdout = io.StringIO()
         with patch('sys.stdout', stdout):
-            compas_main._main(*cmd.split())
+            cmain._main(*cmd.split())
         s = stdout.getvalue()
         self.assertIn(proj_ver, s),
         self.assertNotIn(sys.prefix, s),
@@ -54,7 +54,7 @@ class Main(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             gen_files = [os.path.join(d, f) for f in gen_files]
             cmd = "template %s" % ' '.join(gen_files)
-            compas_main._main(*cmd.split())
+            cmain._main(*cmd.split())
             files = os.listdir(path=d)
             self.assertSetEqual(set(files), set(exp_files))
 
@@ -65,7 +65,7 @@ class Main(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as d:
             cmd = "ipynb %s" % d
-            compas_main._main(*cmd.split())
+            cmain._main(*cmd.split())
             files = os.listdir(path=d)
             self.assertSetEqual(set(files), set(exp_files))
 
@@ -76,7 +76,7 @@ class Main(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as d:
             cmd = "demo %s" % d
-            compas_main._main(*cmd.split())
+            cmain._main(*cmd.split())
             files = os.listdir(path=d)
             self.assertSetEqual(set(files), set(exp_files))
 
@@ -84,18 +84,18 @@ class Main(unittest.TestCase):
         with tempfile.TemporaryDirectory() as inp, \
                 tempfile.TemporaryDirectory() as out:
             cmd = "template %s/tt" % inp
-            compas_main._main(*cmd.split())
+            cmain._main(*cmd.split())
             cmd = "batch %s -O %s" % (inp, out)
-            compas_main._main(*cmd.split())
+            cmain._main(*cmd.split())
 
     #@unittest.skip('Takes too long.')  # DO NOT COMIT AS SKIPPED!!
     def test_run_demos(self):
         with tempfile.TemporaryDirectory() as inp, \
                 tempfile.TemporaryDirectory() as out:
             cmd = "demo %s" % inp
-            compas_main._main(*cmd.split())
+            cmain._main(*cmd.split())
             cmd = "-v batch %s -O %s" % (inp, out)
-            compas_main._main(*cmd.split())
+            cmain._main(*cmd.split())
 
 
 @ddt.ddt
@@ -119,4 +119,4 @@ class Modelgraph(unittest.TestCase):
     )
     def test_plot_graphs_depth(self, case):
         cmd = "modelgraph %s %s" % (case, self.model)
-        compas_main._main(*cmd.split())
+        cmain._main(*cmd.split())

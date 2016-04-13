@@ -303,7 +303,7 @@ CO2MPAS installation
 
        > co2mpas -vV
        co2mpas_version: 1.2.0rc2
-       co2mpas_rel_date: 2016-04-12 00:23:54
+       co2mpas_rel_date: 2016-04-13 15:26:54
        co2mpas_path: d:\co2mpas_ALLINONE-XXbit-v1.0.5.dev1\Apps\WinPython\python-3.4.3\lib\site-packages\co2mpas
        python_path: D:\co2mpas_ALLINONE-XXbit-v1.0.5.dev1\WinPython\python-3.4.3
        python_version: 3.4.3 (v3.4.3:9b73f1c3e601, Feb 24 2015, 22:44:40) [MSC v.1600 XXX]
@@ -595,7 +595,7 @@ Usage
     but remember to substitute the slashes (`/`) in paths with backslashes(`\\`).
 
     The :doc:`allinone` contains additionally batch-files
-    (e.g. :file:`RUN_COMPAS.bat`, :file:`NEW_TEMPLATE.bat`, etc)
+    (e.g. :file:`RUN_CO2MPAS.bat`, :file:`NEW_TEMPLATE.bat`, etc)
     that offer roughly the same capabillities described below.
     When you double-click them, the output from these commands gets to be
     written in the :file:`ALLINONE/CO2MPAS/co2mpas.log` file.

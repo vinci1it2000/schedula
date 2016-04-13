@@ -13,7 +13,7 @@ import unittest
 from unittest.mock import patch
 
 import co2mpas
-from co2mpas import __main__ as compas_main
+from co2mpas import __main__ as cmain
 from co2mpas import datasync
 
 
@@ -43,7 +43,7 @@ class Doctest(unittest.TestCase):
             ftext = fd.read()
             with patch('sys.stdout', new=io.StringIO()) as stdout:
                 try:
-                    compas_main.main('--version')
+                    cmain.main('--version')
                 except SystemExit as ex:
                     pass ## Cancel docopt's exit()
             ver_str = stdout.getvalue().strip()
@@ -64,7 +64,7 @@ class Doctest(unittest.TestCase):
             ftext = fd.read()
             with patch('sys.stdout', new=io.StringIO()) as stdout:
                 try:
-                    compas_main.main(*'-v --version'.split())
+                    cmain.main(*'-v --version'.split())
                 except SystemExit as ex:
                     pass ## Cancel docopt's exit()
             ver_str = stdout.getvalue().strip()
@@ -79,7 +79,7 @@ class Doctest(unittest.TestCase):
                           reldate)
 
     def test_README_contains_main_help_msg(self):
-        help_msg = compas_main.__doc__  # @UndefinedVariable
+        help_msg = cmain.__doc__  # @UndefinedVariable
         mydir = os.path.dirname(__file__)
         with open(readme_path) as fd:
             ftext = fd.read()
