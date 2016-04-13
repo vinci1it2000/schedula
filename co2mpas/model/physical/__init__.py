@@ -46,43 +46,43 @@ def physical():
     :rtype: Dispatcher
     """
 
-    physical = Dispatcher(
+    dsp = Dispatcher(
         name='CO2MPAS physical model',
         description='Wraps all functions needed to calibrate and predict '
                     'light-vehicles\' CO2 emissions.'
     )
 
-    physical.add_data(
+    dsp.add_data(
         data_id='k1',
         default_value=1
     )
 
-    physical.add_data(
+    dsp.add_data(
         data_id='k2',
         default_value=2
     )
 
-    physical.add_function(
+    dsp.add_function(
         function_id='set_max_gear_as_default_k5',
         function=dsp_utl.bypass,
         inputs=['max_gear'],
         outputs=['k5']
     )
 
-    physical.add_data(
+    dsp.add_data(
         data_id='k5',
         default_value=2,
         initial_dist=10
     )
 
-    physical.add_data(
+    dsp.add_data(
         data_id='time_sample_frequency',
         default_value=1
     )
 
     from co2mpas.dispatcher.utils.dsp import add_args
 
-    physical.add_function(
+    dsp.add_function(
         function_id='nedc_gears',
         function=add_args(nedc_gears, n=2),
         inputs=['cycle_type', 'gear_box_type', 'times',
@@ -91,14 +91,14 @@ def physical():
         input_domain=nedc_gears_domain
     )
 
-    physical.add_function(
+    dsp.add_function(
         function=add_args(nedc_velocities, n=1),
         inputs=['cycle_type', 'times', 'gear_box_type'],
         outputs=['velocities'],
         input_domain=nedc_velocities_domain
     )
 
-    physical.add_function(
+    dsp.add_function(
         function=add_args(nedc_times, n=1),
         inputs=['cycle_type', 'time_sample_frequency'],
         outputs=['times'],
@@ -107,7 +107,7 @@ def physical():
 
     from .vehicle import vehicle
 
-    physical.add_dispatcher(
+    dsp.add_dispatcher(
         include_defaults=True,
         dsp_id='vehicle_model',
         dsp=vehicle(),
@@ -141,7 +141,7 @@ def physical():
 
     from .wheels import wheels
 
-    physical.add_dispatcher(
+    dsp.add_dispatcher(
         dsp_id='wheels_model',
         dsp=wheels(),
         inputs={
@@ -164,7 +164,7 @@ def physical():
 
     from .final_drive import final_drive
 
-    physical.add_dispatcher(
+    dsp.add_dispatcher(
         include_defaults=True,
         dsp_id='final_drive_model',
         dsp=final_drive(),
@@ -187,7 +187,7 @@ def physical():
 
     from .electrics import electrics
 
-    physical.add_dispatcher(
+    dsp.add_dispatcher(
         dsp_id='electric_model',
         dsp=electrics(),
         inputs={
@@ -208,7 +208,7 @@ def physical():
             'electric_load': 'electric_load',
             'engine_moment_inertia': 'engine_moment_inertia',
             'engine_starts': 'engine_starts',
-            'clutch_tc_powers': 'clutch_tc_powers',
+            'gear_box_powers_in': 'gear_box_powers_in',
             'initial_state_of_charge': 'initial_state_of_charge',
             'max_battery_charging_current': 'max_battery_charging_current',
             'on_engine': 'on_engine',
@@ -233,7 +233,7 @@ def physical():
 
     from .clutch_tc import clutch_torque_converter
 
-    physical.add_dispatcher(
+    dsp.add_dispatcher(
         include_defaults=True,
         dsp=clutch_torque_converter(),
         dsp_id='clutch_torque_converter_model',
@@ -268,7 +268,7 @@ def physical():
 
     from .engine import engine
 
-    physical.add_dispatcher(
+    dsp.add_dispatcher(
         include_defaults=True,
         dsp_id='engine_model',
         dsp=engine(),
@@ -390,7 +390,7 @@ def physical():
 
     from .gear_box import gear_box
 
-    physical.add_dispatcher(
+    dsp.add_dispatcher(
         include_defaults=True,
         dsp_id='gear_box_model',
         dsp=gear_box(),
@@ -464,4 +464,4 @@ def physical():
         }
     )
 
-    return physical
+    return dsp

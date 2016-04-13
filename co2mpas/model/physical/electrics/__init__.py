@@ -95,7 +95,7 @@ def calculate_engine_start_demand(
 
 def identify_electric_loads(
         alternator_nominal_voltage, battery_currents, alternator_currents,
-        clutch_tc_powers, times, on_engine, engine_starts):
+        gear_box_powers_in, times, on_engine, engine_starts):
     """
     Identifies vehicle electric load and engine start demand [kW].
 
@@ -111,9 +111,9 @@ def identify_electric_loads(
         Alternator current vector [A].
     :type alternator_currents: numpy.array
 
-    :param clutch_tc_powers:
-        Clutch or torque converter power [kW].
-    :type clutch_tc_powers: numpy.array
+    :param gear_box_powers_in:
+        Gear box power vector [kW].
+    :type gear_box_powers_in: numpy.array
 
     :param times:
         Time vector [s].
@@ -136,7 +136,7 @@ def identify_electric_loads(
     b_c, a_c = battery_currents, alternator_currents
     c = alternator_nominal_voltage / 1000.0
 
-    b = clutch_tc_powers >= 0
+    b = gear_box_powers_in >= 0
     bL = b & np.logical_not(on_engine) & (b_c < 0)
     bH = b & on_engine
 
@@ -180,7 +180,7 @@ def identify_max_battery_charging_current(battery_currents):
 
 # Not used.
 def identify_alternator_charging_currents(
-        alternator_currents, clutch_tc_powers, on_engine):
+        alternator_currents, gear_box_powers_in, on_engine):
     """
     Identifies the mean charging currents of the alternator [A].
 
@@ -188,9 +188,9 @@ def identify_alternator_charging_currents(
         Alternator current vector [A].
     :type alternator_currents: numpy.array
 
-    :param clutch_tc_powers:
-        Clutch or torque converter power [kW].
-    :type clutch_tc_powers: numpy.array
+    :param gear_box_powers_in:
+        Gear box power vector [kW].
+    :type gear_box_powers_in: numpy.array
 
     :param on_engine:
         If the engine is on [-].
@@ -205,8 +205,8 @@ def identify_alternator_charging_currents(
     a_c = alternator_currents
     rjo = reject_outliers
     b = (a_c < 0.0) & on_engine
-    p_neg = b & (clutch_tc_powers < 0)
-    p_pos = b & (clutch_tc_powers > 0)
+    p_neg = b & (gear_box_powers_in < 0)
+    p_pos = b & (gear_box_powers_in > 0)
 
     def get_range(x):
         on = None
@@ -254,7 +254,7 @@ def define_alternator_current_model(alternator_charging_currents):
 
 
 def calibrate_alternator_current_model(
-        alternator_currents, clutch_tc_powers, on_engine, accelerations,
+        alternator_currents, gear_box_powers_in, on_engine, accelerations,
         state_of_charges, alternator_statuses):
     """
     Calibrates an alternator current model that predicts alternator current [A].
@@ -263,9 +263,9 @@ def calibrate_alternator_current_model(
         Alternator current vector [A].
     :type alternator_currents: numpy.array
 
-    :param clutch_tc_powers:
-        Clutch or torque converter power [kW].
-    :type clutch_tc_powers: numpy.array
+    :param gear_box_powers_in:
+        Gear box power vector [kW].
+    :type gear_box_powers_in: numpy.array
 
     :param on_engine:
         If the engine is on [-].
@@ -304,7 +304,7 @@ def calibrate_alternator_current_model(
                 alpha=0.99
         )
         dt.fit(np.array([state_of_charges[:-1], alternator_statuses[1:],
-                         clutch_tc_powers[1:], accelerations[1:]]).T[b],
+                         gear_box_powers_in[1:], accelerations[1:]]).T[b],
                alternator_currents[1:][b])
         predict = dt.predict
     else:
@@ -493,7 +493,7 @@ def identify_alternator_starts_windows(
 
 
 def identify_charging_statuses(
-        alternator_currents, clutch_tc_powers, on_engine,
+        alternator_currents, gear_box_powers_in, on_engine,
         alternator_current_threshold, starts_windows):
     """
     Identifies when the alternator is on due to 1:state of charge or 2:BERS [-].
@@ -502,9 +502,9 @@ def identify_charging_statuses(
         Alternator current vector [A].
     :type alternator_currents: numpy.array
 
-    :param clutch_tc_powers:
-        Clutch or torque converter power [kW].
-    :type clutch_tc_powers: numpy.array
+    :param gear_box_powers_in:
+        Gear box power vector [kW].
+    :type gear_box_powers_in: numpy.array
 
     :param on_engine:
         If the engine is on [-].
@@ -524,7 +524,7 @@ def identify_charging_statuses(
     :rtype: numpy.array
     """
 
-    gb_p = clutch_tc_powers
+    gb_p = gear_box_powers_in
 
     status = np.zeros_like(alternator_currents, dtype=int)
     status[(alternator_currents < alternator_current_threshold) & on_engine] = 2
@@ -565,13 +565,13 @@ class Alternator_status_model(object):
     def __call__(self, *args, **kwargs):
         return self.predict(*args, **kwargs)
 
-    def fit(self, alternator_statuses, state_of_charges, clutch_tc_powers,
+    def fit(self, alternator_statuses, state_of_charges, gear_box_powers_in,
             has_energy_recuperation):
         b = alternator_statuses == 2
         if has_energy_recuperation and b.any():
             bers = DecisionTreeClassifier(random_state=0, max_depth=2)
             c = alternator_statuses != 1
-            bers.fit(np.array([clutch_tc_powers[c]]).T, b[c])
+            bers.fit(np.array([gear_box_powers_in[c]]).T, b[c])
 
             self.bers = bers.predict  # shortcut name
         elif has_energy_recuperation:
@@ -617,7 +617,7 @@ class Alternator_status_model(object):
 
 
 def calibrate_alternator_status_model(
-        alternator_statuses, state_of_charges, clutch_tc_powers,
+        alternator_statuses, state_of_charges, gear_box_powers_in,
         has_energy_recuperation):
     """
     Calibrates the alternator status model.
@@ -635,9 +635,9 @@ def calibrate_alternator_status_model(
             `state_of_charges` = 99 is equivalent to 99%.
     :type state_of_charges: numpy.array
 
-    :param clutch_tc_powers:
-        Clutch or torque converter power [kW].
-    :type clutch_tc_powers: numpy.array
+    :param gear_box_powers_in:
+        Gear box power vector [kW].
+    :type gear_box_powers_in: numpy.array
 
     :param has_energy_recuperation:
         Does the vehicle have energy recuperation features?
@@ -649,7 +649,7 @@ def calibrate_alternator_status_model(
     """
 
     model = Alternator_status_model().fit(
-        alternator_statuses, state_of_charges, clutch_tc_powers,
+        alternator_statuses, state_of_charges, gear_box_powers_in,
         has_energy_recuperation
     )
 
@@ -760,7 +760,7 @@ def define_electrics_model(
 
 
 def predict_vehicle_electrics(
-        electrics_model, initial_state_of_charge, times, clutch_tc_powers,
+        electrics_model, initial_state_of_charge, times, gear_box_powers_in,
         on_engine, engine_starts, accelerations):
     """
     Predicts alternator and battery currents, state of charge, and alternator
@@ -782,9 +782,9 @@ def predict_vehicle_electrics(
         Time vector [s].
     :type times: numpy.array
 
-    :param clutch_tc_powers:
-        Clutch or torque converter power [kW].
-    :type clutch_tc_powers: numpy.array
+    :param gear_box_powers_in:
+        Gear box power vector [kW].
+    :type gear_box_powers_in: numpy.array
 
     :param on_engine:
         If the engine is on [-].
@@ -807,7 +807,7 @@ def predict_vehicle_electrics(
     delta_times = np.append([0], np.diff(times))
     o = (0, initial_state_of_charge, 0, None)
     res = [o]
-    for x in zip(delta_times, clutch_tc_powers, on_engine, engine_starts,
+    for x in zip(delta_times, gear_box_powers_in, on_engine, engine_starts,
                  accelerations):
         o = tuple(electrics_model(*(x + o[1:])))
         res.append(o)
@@ -819,7 +819,7 @@ def predict_vehicle_electrics(
 
 def predict_vehicle_electrics_v1(
         electrics_model, start_stop_model, initial_state_of_charge, times,
-        clutch_tc_powers, engine_starts, accelerations):
+        gear_box_powers_in, engine_starts, accelerations):
     """
     Predicts alternator and battery currents, state of charge, and alternator
     status.
@@ -840,9 +840,9 @@ def predict_vehicle_electrics_v1(
         Time vector [s].
     :type times: numpy.array
 
-    :param clutch_tc_powers:
-        Clutch or torque converter power [kW].
-    :type clutch_tc_powers: numpy.array
+    :param gear_box_powers_in:
+        Gear box power vector [kW].
+    :type gear_box_powers_in: numpy.array
 
     :param on_engine:
         If the engine is on [-].
@@ -865,7 +865,7 @@ def predict_vehicle_electrics_v1(
     delta_times = np.append([0], np.diff(times))
     o = (0, initial_state_of_charge, 0, None)
     res = [o]
-    for x in zip(delta_times, clutch_tc_powers, on_engine, engine_starts,
+    for x in zip(delta_times, gear_box_powers_in, on_engine, engine_starts,
                  accelerations):
         o = tuple(electrics_model(*(x + o[1:])))
         res.append(o)
@@ -909,7 +909,7 @@ def electrics():
     dsp.add_function(
         function=identify_electric_loads,
         inputs=['alternator_nominal_voltage', 'battery_currents',
-                'alternator_currents', 'clutch_tc_powers', 'times',
+                'alternator_currents', 'gear_box_powers_in', 'times',
                 'on_engine', 'engine_starts'],
         outputs=['electric_load', 'start_demand']
     )
@@ -940,7 +940,7 @@ def electrics():
 
     dsp.add_function(
         function=identify_charging_statuses,
-        inputs=['alternator_currents', 'clutch_tc_powers', 'on_engine',
+        inputs=['alternator_currents', 'gear_box_powers_in', 'on_engine',
                 'alternator_current_threshold', 'starts_windows'],
         outputs=['alternator_statuses']
     )
@@ -967,7 +967,7 @@ def electrics():
     dsp.add_function(
         function=calibrate_alternator_status_model,
         inputs=['alternator_statuses', 'state_of_charges',
-                'clutch_tc_powers', 'has_energy_recuperation'],
+                'gear_box_powers_in', 'has_energy_recuperation'],
         outputs=['alternator_status_model'],
         weight=10
     )
@@ -986,7 +986,7 @@ def electrics():
 
     dsp.add_function(
         function=calibrate_alternator_current_model,
-        inputs=['alternator_currents', 'clutch_tc_powers', 'on_engine',
+        inputs=['alternator_currents', 'gear_box_powers_in', 'on_engine',
                 'accelerations', 'state_of_charges', 'alternator_statuses'],
         outputs=['alternator_current_model']
     )
@@ -1003,7 +1003,7 @@ def electrics():
     dsp.add_function(
         function=predict_vehicle_electrics,
         inputs=['electrics_model', 'initial_state_of_charge',
-                'times', 'clutch_tc_powers', 'on_engine', 'engine_starts',
+                'times', 'gear_box_powers_in', 'on_engine', 'engine_starts',
                 'accelerations'],
         outputs=['alternator_currents', 'battery_currents',
                  'state_of_charges', 'alternator_statuses']

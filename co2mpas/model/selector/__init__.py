@@ -343,7 +343,7 @@ def sub_models():
                    'start_demand', 'electric_load', 'alternator_nominal_power'],
         'inputs': [
             'battery_capacity', 'alternator_nominal_voltage',
-            'initial_state_of_charge', 'times', 'clutch_tc_powers',
+            'initial_state_of_charge', 'times', 'gear_box_powers_in',
             'on_engine', 'engine_starts', 'accelerations'],
         'outputs': ['alternator_currents', 'battery_currents',
                     'state_of_charges', 'alternator_statuses'],
