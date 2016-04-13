@@ -27,7 +27,7 @@ from scipy.interpolate import InterpolatedUnivariateSpline
 import numpy as np
 
 
-def calculate_clutch_TC_speeds_delta(
+def calculate_clutch_tc_speeds_delta(
         engine_speeds_out, engine_speeds_out_hot, cold_start_speeds_delta):
     """
     Calculates the engine speed delta due to the clutch [RPM].
@@ -83,7 +83,7 @@ def define_k_factor_curve(stand_still_torque_ratio=1.0, lockup_speed_ratio=0.0):
     return InterpolatedUnivariateSpline(x, y, k=1)
 
 
-def calculate_clutch_TC_powers(
+def calculate_clutch_tc_powers(
         clutch_tc_speeds_delta, k_factor_curve, gear_box_speeds_in,
         gear_box_powers_in, engine_speeds_out):
     """
@@ -145,20 +145,20 @@ def clutch_torque_converter():
     :rtype: Dispatcher
     """
 
-    clutch_torque_converter = Dispatcher(
+    dsp = Dispatcher(
         name='Clutch and torque-converter',
         description='Models the clutch and torque-converter.'
     )
 
-    clutch_torque_converter.add_function(
-        function=calculate_clutch_TC_speeds_delta,
+    dsp.add_function(
+        function=calculate_clutch_tc_speeds_delta,
         inputs=['engine_speeds_out', 'engine_speeds_out_hot',
                 'cold_start_speeds_delta'],
         outputs=['clutch_tc_speeds_delta']
     )
 
-    clutch_torque_converter.add_function(
-        function=calculate_clutch_TC_powers,
+    dsp.add_function(
+        function=calculate_clutch_tc_powers,
         inputs=['clutch_tc_speeds_delta', 'k_factor_curve',
                 'gear_box_speeds_in', 'gear_box_powers_in',
                 'engine_speeds_out'],
@@ -173,7 +173,7 @@ def clutch_torque_converter():
                 return v == 'manual'
         return False
 
-    clutch_torque_converter.add_dispatcher(
+    dsp.add_dispatcher(
         input_domain=clutch_domain,
         dsp=clutch(),
         dsp_id='clutch',
@@ -205,7 +205,7 @@ def clutch_torque_converter():
                 return v == 'automatic'
         return False
 
-    clutch_torque_converter.add_dispatcher(
+    dsp.add_dispatcher(
         input_domain=torque_converter_domain,
         dsp=torque_converter(),
         dsp_id='torque_converter',
@@ -227,4 +227,4 @@ def clutch_torque_converter():
         }
     )
 
-    return clutch_torque_converter
+    return dsp
