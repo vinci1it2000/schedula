@@ -32,27 +32,27 @@ log = logging.getLogger(__name__)
 
 _re_params_name = regex.compile(
         r"""
-            ^((?P<usage>(target|input|output|data))s?)?[. ]?
-            ((?P<stage>(precondition|calibration|prediction))s?)?[. ]?
-            ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC)(recon)?)?$
+            ^((?P<usage>(target|input|output|data))s?[. ]?)?
+            ((?P<stage>(precondition|calibration|prediction))s?[. ]?)?
+            ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC|ALL)(recon)?)?$
             |
-            ^((?P<usage>(target|input|output|data))s?)?[. ]?
-            ((?P<stage>(precondition|calibration|prediction))s?)?[. ]?
-            ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC)(recon)?)?[. ]?
+            ^((?P<usage>(target|input|output|data))s?[. ]?)?
+            ((?P<stage>(precondition|calibration|prediction))s?[. ]?)?
+            ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC|ALL)(recon)?[. ]?)?
             (?P<param>[^\s]*)$
             |
-            ^((?P<usage>(target|input|output|data))s?)?[. ]?
-            ((?P<stage>(precondition|calibration|prediction))s?)?[. ]?
-            (?P<param>[^\s]*)[. ]?
-            ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC)(recon)?)?$
+            ^((?P<usage>(target|input|output|data))s?[. ]?)?
+            ((?P<stage>(precondition|calibration|prediction))s?[. ]?)?
+            ((?P<param>[^\s.]*)[. ]?)?
+            ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC|ALL)(recon)?)?$
         """, regex.IGNORECASE | regex.X | regex.DOTALL)
 
 
 _re_sheet_name = regex.compile(
         r"""
-            ^((?P<usage>(target|input|output|data))s?)?[. ]?
-            ((?P<stage>(precondition|calibration|prediction))s?)?[. ]?
-            ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC)(recon)?)?$
+            ^((?P<usage>(target|input|output|data))s?[. ]?)?
+            ((?P<stage>(precondition|calibration|prediction))s?[. ]?)?
+            ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC|ALL)(recon)?)?$
         """, regex.IGNORECASE | regex.X | regex.DOTALL)
 
 
@@ -87,7 +87,7 @@ def parse_excel_file(file_path):
 
         sheet = _open_sheet_by_name_or_index(excel_file.book, 'book', sheet_name)
 
-        if 'cycle' not in match or match.get('type', None) == 'parameters':
+        if 'cycle' not in match:
             xl_ref = '#%s!B2:C_:["pipe", ["dict", "recurse"]]' % sheet_name
             data = lasso(xl_ref, sheet=sheet)
         else:
@@ -123,7 +123,7 @@ def _isempty(val):
 
 def parse_values(data, default=None):
     default = default or {'usage': 'input'}
-    if 'cycle' not in default:
+    if 'cycle' not in default or default['cycle'] == 'all':
         default['cycle'] = ('nedc', 'wltp_p', 'wltp_h', 'wltp_l')
     elif default['cycle'] == 'wltp':
         default['cycle'] = ('wltp_h', 'wltp_l')
@@ -149,6 +149,8 @@ def parse_values(data, default=None):
 
         if match['cycle'] == 'wltp':
             match['cycle'] = ('wltp_h', 'wltp_l')
+        elif match['cycle'] == 'all':
+            match['cycle'] = ('nedc', 'wltp_p', 'wltp_h', 'wltp_l')
 
         for c in stlp(match['cycle']):
             c = c.replace('-', '_')
