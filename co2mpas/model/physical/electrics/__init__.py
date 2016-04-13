@@ -705,15 +705,12 @@ def define_alternator_status_model(
     return model
 
 
-def predict_vehicle_electrics(
+def define_electrics_model(
         battery_capacity, alternator_status_model, max_alternator_current,
         alternator_current_model, max_battery_charging_current,
-        alternator_nominal_voltage, start_demand, electric_load,
-        initial_state_of_charge, times, clutch_tc_powers, on_engine,
-        engine_starts, accelerations):
+        alternator_nominal_voltage, start_demand, electric_load):
     """
-    Predicts alternator and battery currents, state of charge, and alternator
-    status.
+    Defines the electrics model.
 
     :param battery_capacity:
         Battery capacity [Ah].
@@ -746,6 +743,32 @@ def predict_vehicle_electrics(
     :param electric_load:
         Vehicle electric load (engine off and on) [kW].
     :type electric_load: (float, float)
+
+    :return:
+       Electrics model.
+    :rtype: function
+    """
+    from .electrics_prediction import _predict_electrics
+
+    electrics_model = partial(
+        _predict_electrics, battery_capacity, alternator_status_model,
+        max_alternator_current, alternator_current_model,
+        max_battery_charging_current, alternator_nominal_voltage, start_demand,
+        electric_load)
+
+    return electrics_model
+
+
+def predict_vehicle_electrics(
+        electrics_model, initial_state_of_charge, times, clutch_tc_powers,
+        on_engine, engine_starts, accelerations):
+    """
+    Predicts alternator and battery currents, state of charge, and alternator
+    status.
+
+    :param electrics_model:
+        Electrics model.
+    :type electrics_model: function
 
     :param initial_state_of_charge:
         Initial state of charge of the battery [%].
@@ -781,20 +804,70 @@ def predict_vehicle_electrics(
     :rtype: (np.array, np.array, np.array, np.array)
     """
 
-    from .electrics_prediction import _predict_electrics
+    delta_times = np.append([0], np.diff(times))
+    o = (0, initial_state_of_charge, 0, None)
+    res = [o]
+    for x in zip(delta_times, clutch_tc_powers, on_engine, engine_starts,
+                 accelerations):
+        o = tuple(electrics_model(*(x + o[1:])))
+        res.append(o)
 
-    func = partial(
-        _predict_electrics, battery_capacity, alternator_status_model,
-        max_alternator_current, alternator_current_model,
-        max_battery_charging_current, alternator_nominal_voltage, start_demand,
-        electric_load)
+    alt_c, soc, alt_stat, bat_c = zip(*res[1:])
+
+    return np.array(alt_c), np.array(bat_c), np.array(soc), np.array(alt_stat)
+
+
+def predict_vehicle_electrics_v1(
+        electrics_model, start_stop_model, initial_state_of_charge, times,
+        clutch_tc_powers, engine_starts, accelerations):
+    """
+    Predicts alternator and battery currents, state of charge, and alternator
+    status.
+
+    :param electrics_model:
+        Electrics model.
+    :type electrics_model: function
+
+    :param initial_state_of_charge:
+        Initial state of charge of the battery [%].
+
+        .. note::
+
+            `initial_state_of_charge` = 99 is equivalent to 99%.
+    :type initial_state_of_charge: float
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
+
+    :param clutch_tc_powers:
+        Clutch or torque converter power [kW].
+    :type clutch_tc_powers: numpy.array
+
+    :param on_engine:
+        If the engine is on [-].
+    :type on_engine: numpy.array
+
+    :param engine_starts:
+        When the engine starts [-].
+    :type engine_starts: numpy.array
+
+    :param accelerations:
+        Acceleration vector [m/s2].
+    :type accelerations: numpy.array
+
+    :return:
+        Alternator and battery currents, state of charge, and alternator status
+        [A, A, %, -].
+    :rtype: (np.array, np.array, np.array, np.array)
+    """
 
     delta_times = np.append([0], np.diff(times))
     o = (0, initial_state_of_charge, 0, None)
     res = [o]
     for x in zip(delta_times, clutch_tc_powers, on_engine, engine_starts,
                  accelerations):
-        o = tuple(func(*(x + o[1:])))
+        o = tuple(electrics_model(*(x + o[1:])))
         res.append(o)
 
     alt_c, soc, alt_stat, bat_c = zip(*res[1:])
@@ -919,11 +992,17 @@ def electrics():
     )
 
     dsp.add_function(
-        function=predict_vehicle_electrics,
+        function=define_electrics_model,
         inputs=['battery_capacity', 'alternator_status_model',
                 'max_alternator_current', 'alternator_current_model',
                 'max_battery_charging_current', 'alternator_nominal_voltage',
-                'start_demand', 'electric_load', 'initial_state_of_charge',
+                'start_demand', 'electric_load'],
+        outputs=['electrics_model']
+    )
+
+    dsp.add_function(
+        function=predict_vehicle_electrics,
+        inputs=['electrics_model', 'initial_state_of_charge',
                 'times', 'clutch_tc_powers', 'on_engine', 'engine_starts',
                 'accelerations'],
         outputs=['alternator_currents', 'battery_currents',
