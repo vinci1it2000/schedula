@@ -13,7 +13,7 @@ have been added for the user, namely,
   from the predicted NEDC (:gh:`186`, :gh:`211`),
 - the synchronization ``datasync`` command tool (:gh:`144`, :gh:`218`), and
 - improve and explain the `naming-conventions
-  <http://http://co2mpas.io/explanation.html#excel-input-data-naming-conventions>`_
+  <http://co2mpas.io/explanation.html#excel-input-data-naming-conventions>`_
   used in the model and in the input/output excel files (:gh:`215`);
 
 while other changes improve the quality of model runs, namely,
@@ -26,6 +26,10 @@ while other changes improve the quality of model runs, namely,
 
 Model-changes
 -------------
+- :gh:`6`: Confirm that *co2mpas* runs reproducible in various setups (py2.4, py2.5,
+  fairly recent combinations of numpy/scipy libraries) - different results
+  are between 32bit-64bit.
+
 Engine model:
 ~~~~~~~~~~~~~
 - :gh:`110`: Add a function to identify *on_idle* as ``engine_speeds_out > MIN_ENGINE_SPEED``
@@ -82,7 +86,7 @@ Clutch /Torque-converter/AT  models:
 IO
 --
 - :gh:`215`: improve and explain the `naming-conventions
-  <http://http://co2mpas.io/explanation.html#excel-input-data-naming-conventions>`_
+  <http://co2mpas.io/explanation.html#excel-input-data-naming-conventions>`_
   used in the model and in the input/output excel files;
   on model parameters internally and on model parameters used on the Input/Output excel files.
 
@@ -155,8 +159,16 @@ Internals
 Documentation
 -------------
 - improve and explain the `naming-conventions
-  <http://http://co2mpas.io/explanation.html#excel-input-data-naming-conventions>`_
+  <http://co2mpas.io/explanation.html#excel-input-data-naming-conventions>`_
   used in the model and in the input/output excel files (:gh:`215`);
+
+Known limitations:
+------------------
+- Even with 2 "high-quality" 2 pairs of WLTP H & L measurements, the final
+  fuel-consumption figure may values (but still within limits) due to the effect
+  of the `model-selection <http://co2mpas.io/explanation.html#model-selection>`_ ;
+  this effect can be avoided by providing a single *WLTP-H* or *WLTP-L* series
+  to calibrate the model.
 
 
 
