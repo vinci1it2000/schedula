@@ -921,7 +921,7 @@ Examples
 
     datasync times  velocity  wbook.xlsx#Sheet3!  Sheet1!
 
-- The same as above but with ingeres used to index excel-sheets::
+- The same as above but with integeres used to index excel-sheets::
 
     datasync times  velocity  wbook.xlsx#2!  0
 
