@@ -26,23 +26,23 @@ while other changes improve the quality of model runs, namely,
 
 Model-changes
 -------------
-- :gh:`6`: Confirm that *co2mpas* runs reproducible in various setups (py2.4, py2.5,
+- :gh:`6`: Confirm that *co2mpas* results are reproducible in various setups (py2.4, py2.5,
   fairly recent combinations of numpy/scipy libraries) - different results
-  are between 32bit-64bit.
+  are expected between 32bit-64bit.
 
 Engine model:
 ~~~~~~~~~~~~~
 - :gh:`110`: Add a function to identify *on_idle* as ``engine_speeds_out > MIN_ENGINE_SPEED``
   and ``gears = 0``, or ``engine_speeds_out > MIN_ENGINE_SPEED`` and ``velocities <= VEL_EPS``.
   When engine is idling, power flowing towards the engine is disengaged, and thus
-  engine power is equal to zero. This correction is applied only for manual cars
-  (not equiped with Torque Converter).
+  engine power is greater than or equal to zero. This correction is applied only for cars
+  not equiped with Torque Converter.
 - :git:`7340700`: Remove limits from the first step ``co2_params`` optimization.
-- :gh:`195`: Enable calibration of ``co2_params`` with (in order of priority):
+- :gh:`195`: Enable calibration of ``co2_params`` with vectorial inputs in addition to bag values (in order of priority):
     - ``fuel_consumptions``,
     - ``co2_emissions``,
-    - ``co2_normalization_references`` (e.g. engine loads or uncorrected co2 emissions), and
-    - bag values (``phases_co2_emissions``).
+    - ``co2_normalization_references`` (e.g. engine loads)
+    
   When either ``fuel_consumptions`` or ``co2_emissions`` are available, a direct
   calibration of the co2_emissions model is performed. When those are not available,
   the optimization takes place using the reference normalization signal - if available -
@@ -54,7 +54,7 @@ Engine model:
 - :git:`079642e`: Use ``scipy.interpolate.InterpolatedUnivariateSpline.derivative``
   for the calculation of ``accelerations``.
 - :git:`31f8ccc`: Fix prediction of unreliable rpm taking max gear and idle into account.
-- :gh:`169`: Add derivative function for the temperature signal.
+- :gh:`169`: Add derivative function for conditioning the temperature signal (resolves resolution issues).
 - :gh:`153`: Add ``correct_start_stop_with_gears`` function and flag; default value
   ``True`` for manuals and ``False`` for automatics. The functions *forces* the
   engine to start when gear goes from zero to one, independent of the status of
@@ -164,11 +164,10 @@ Documentation
 
 Known limitations:
 ------------------
-- Even with 2 "high-quality" 2 pairs of WLTP H & L measurements, the final
-  fuel-consumption figure may values (but still within limits) due to the effect
-  of the `model-selection <http://co2mpas.io/explanation.html#model-selection>`_ ;
-  this effect can be avoided by providing a single *WLTP-H* or *WLTP-L* series
-  to calibrate the model.
+- Model sensitivity. The sensitivity of CO2MPAS has been tested and foundwithin expected ranges 
+  when *just one WLTP cycle is given as input*. Providing both WLTP cycles (H & L)
+  means that 384 different model configurations are possible.  Due to the `model-selection process <http://co2mpas.io/explanation.html#model-selection>`_ ; even small changes in the inputs may lead to a different model configuration thus
+  significantly different results.
 
 
 
