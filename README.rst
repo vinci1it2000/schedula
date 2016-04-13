@@ -636,6 +636,7 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
 
     Options:
       <input-path>                Input xlsx-file or folder.
+                                  See http://http://co2mpas.io/explanation.html#excel-input-data-naming-conventions
       -O <output-folder>          Output folder or file [default: .].
       --gui                       Launches GUI dialog-boxes to choose Input, Output
                                   and Options. [default: False].
@@ -967,7 +968,7 @@ To create/modify one output-template yourself, do the following:
 .. tip::
     You can find a template/dummy output-template file here:
     http://files.co2mpas.io/CO2MPAS-1.2.0rc1/CO2MPAS_out_template.xlsx
-
+    or below in the :ref:`excel-model` section
 
 
 Launch CO2MPAS from Jupyter(aka IPython)
@@ -1099,50 +1100,61 @@ as shown in the "active" flow-diagram of the execution, below:
    provided, the model will select from ```output.calibration.wltp_x`` nodes a
    minimum set required to predict CO2 emissions.
 
+.. _excel-model
 
-Excel input: data naming convention
------------------------------------
-This section describes the data naming convention used in the official CO2MPAS
-template (``.xlsx`` file). There are two sensitive fields: **sheet-name** and
-**parameter-name**. The general naming conventions are:
+Excel input: data naming conventions
+------------------------------------
+This section describes the data naming convention used in the CO2MPAS template
+(``.xlsx`` file). In it, the names used as **sheet-names**, **parameter-names**
+and **column-names** are "sensitive", in the sense that they construct a
+*data-values tree* which is then fed into into the simulation model as input.
+These names are splitted in "parts", as explained below with examples:
 
-- **sheet-name**::
+- **sheet-names** parts::
 
-    (<usage>s?[. ])?(<stage>s?[. ])?(<cycle>)?
+                    input.precodintion.WLTP-H
+                    └─┬─┘ └────┬─────┘ └─┬──┘
+      usage(optional)─┘        │         │
+      stage(optional)──────────┘         │
+      cycle(optional)────────────────────┘
 
-  .. note::
-     Blocks **usage**, **stage**, and **cycle** parsed from the **sheet-name**
-     are used as defaults for all data (i.e. **parameter-name**) defined inside
-     the sheet.
+- **parameter-names**/**columns-names** parts::
 
-- **parameter-name**::
+                    target.prediction.initial_state_of_charge.WLTP-H
+                    └─┬─┘ └────┬────┘ └──────────┬──────────┘ └──┬─┘
+      usage(optional)─┘        │                 │               │
+      stage(optional)──────────┘                 │               │
+      parameter──────────────────────────────────┘               │
+      cycle(optional)────────────────────────────────────────────┘
 
-    (<usage>s?[. ])?(<stage>s?[. ])?<param>[. ](<cycle>)?
-    (<usage>s?[. ])?(<stage>s?[. ])?(<cycle>[. ])?<param>
+  OR with the last 2 parts reversed::
 
-.. tip::
-   + ``()``: Parentheses above are used to define the scope and precedence of
-     the operators (among other uses).
-   + ``[]``: A bracket expression. Matches a single character that is contained
-     within the brackets. For example, [. ] matches "." or " ".
-   + ``?``: The question mark indicates zero or one occurrences of the preceding
-     element. For example, inputs? matches both "input" and "inputs".
-   + ``<>``: Defines a marked sub-expression. The string matched within the
-     parentheses can be recalled later. A marked sub-expression is also called a
-     block or capturing group.
+                    target.prediction.WLTP-H.initial_state_of_charge
+                                      └──┬─┘ └──────────┬──────────┘
+      cycle(optional)────────────────────┘              │
+      parameter─────────────────────────────────────────┘
 
-Blocks' description
-~~~~~~~~~~~~~~~~~~~
+.. note::
+   - The **usage**, **stage**, and **cycle** parts, parsed from the **sheet-name**,
+     are used as defaults for all **parameter-names** defined inside that sheet.
+   - The dot(``.``) may be replaced by space.
+   - The **usage** and **stage** parts may end with an ``s``, denoting plural.
+
+
+Description of the name-parts
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 1. **usage:**
+
    - ``input`` [default]: values provided by the user as input to CO2MPAS.
    - ``data``: values selected (see previous section) to calibrate the models
      and to predict the CO2 emission.
    - ``output``: CO2MPAS precondition, calibration, and prediction results.
    - ``target``: reference-values (**NOT USED IN CALIBRATION OR PREDICTION**) to
      be compared with the CO2MPAS results. This comparison is performed in the
-     `report` sub-model by `compare_outputs_vs_targets()` function.
+     *report* sub-model by ``compare_outputs_vs_targets()`` function.
 
 2. **stage:**
+
    - ``precondition`` [imposed when: ``wltp-p`` is specified as **cycle**]:
      data related to the precondition stage.
    - ``calibration`` [default]: data related to the calibration stage.
@@ -1150,6 +1162,7 @@ Blocks' description
      data related to the prediction stage.
 
 3. **cycle:**
+
    - ``nedc`` data related to the *NEDC* cycle.
    - ``wltp-h`` data related to the *WLTP High* cycle.
    - ``wltp-l`` data related to the *WLTP Low* cycle.
@@ -1157,8 +1170,8 @@ Blocks' description
    - ``wltp-p``: is a shortcut of ``wltp-precon``.
    - ``wltp``: is a shortcut to set values for both ``wltp-h`` and ``wltp-l``
      cycles.
-   - ``all`` [default]: is a shortcut to set values for ``nedc``, ``wltp``, and
-     ``wltp-p`` cycles.
+   - ``all`` [default]: is a shortcut to set values for ``nedc``, ``wltp``,
+     and ``wltp-p`` cycles.
 
 4. **param:** any data node name (e.g. ``vehicle_mass``) used in the physical
    model.
@@ -1169,10 +1182,10 @@ There are two sheet types, which are parsed according to their contained
 data:
 
 - **parameters** [parsed range is ``#B2:C_``]: scalar or not time-depended
- values (e.g. ``r_dynamic``, ``gear_box_ratios``, ``full_load_speeds``).
+  values (e.g. ``r_dynamic``, ``gear_box_ratios``, ``full_load_speeds``).
 - **time-series** [parsed range is ``#A2:__``]: time-depended values (e.g.
- ``times``, ``velocities``, ``gears``). Columns without values are skipped.
- **COLUMNS MUST HAVE THE SAME LENGTH!**
+  ``times``, ``velocities``, ``gears``). Columns without values are skipped.
+  **COLUMNS MUST HAVE THE SAME LENGTH!**
 
 When **cycle** is missing in the **sheet-name**, the sheet is parsed as
 **parameters**, otherwise it is parsed as **time-series**.

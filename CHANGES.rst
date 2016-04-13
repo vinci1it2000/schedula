@@ -7,122 +7,128 @@ CO2MPAS Changes
 v1.1.2, 13-Apr 2016: "Pasqua" release
 ================================================================
 This release contains both key model and software changes; additional capabilities
-have been added for the user, namely
+have been added for the user, namely,
 
 - the capability to accept a **theoretical WLTP** cycle and predict its difference
   from the predicted NEDC (:gh:`186`, :gh:`211`),
 - the synchronization ``datasync`` command tool (:gh:`144`, :gh:`218`), and
-- improve the `naming-conventions
-  <http://http://co2mpas.io/explanation.html#excel-input-data-naming-convention>`_
-  on model parameters used on the input/output excel files (:gh:`215`);
+- improve and explain the `naming-conventions
+  <http://http://co2mpas.io/explanation.html#excel-input-data-naming-conventions>`_
+  used in the model and in the input/output excel files (:gh:`215`);
 
-while other changes improve the quality of model runs, namely
+while other changes improve the quality of model runs, namely,
 
 - the introduction of schema to check input values(:gh:`60`, :gh:`80`),
 - several model changes improving the consumption of real-measurement data-series, and
-- several crucial engineering fixes and enhancements implmeneted based on LAT's assessment
-  of the "O'Snow" release.
+- several crucial engineering fixes and enhancements, including fixes based on
+  LAT's assessment of the "O'Snow" release.
 
 
 Model-changes
 -------------
-- Engine model:
-  - :gh:`110`: Add a function to identify *on_idle* as ``engine_speeds_out > MIN_ENGINE_SPEED``
-    and ``gears = 0``, or ``engine_speeds_out > MIN_ENGINE_SPEED`` and ``velocities <= VEL_EPS``.
-    When engine is idling, power flowing towards the engine is disengaged, and thus
-    engine power is equal to zero. This correction is applied only for manual cars
-    (not equiped with Torque Converter).
-  - :git:`7340700`: Remove limits from the first step ``co2_params`` optimization.
-  - :gh:`195`: Enable calibration of ``co2_params`` with (in order of priority):
+Engine model:
+~~~~~~~~~~~~~
+- :gh:`110`: Add a function to identify *on_idle* as ``engine_speeds_out > MIN_ENGINE_SPEED``
+  and ``gears = 0``, or ``engine_speeds_out > MIN_ENGINE_SPEED`` and ``velocities <= VEL_EPS``.
+  When engine is idling, power flowing towards the engine is disengaged, and thus
+  engine power is equal to zero. This correction is applied only for manual cars
+  (not equiped with Torque Converter).
+- :git:`7340700`: Remove limits from the first step ``co2_params`` optimization.
+- :gh:`195`: Enable calibration of ``co2_params`` with (in order of priority):
     - ``fuel_consumptions``,
     - ``co2_emissions``,
     - ``co2_normalization_references`` (e.g. engine loads or uncorrected co2 emissions), and
     - bag values (``phases_co2_emissions``).
+  When either ``fuel_consumptions`` or ``co2_emissions`` are available, a direct
+  calibration of the co2_emissions model is performed. When those are not available,
+  the optimization takes place using the reference normalization signal - if available -
+  to redefine the initial solution and then optimize based on the bag values.
+- :git:`346963a`: Add ``tau_function`` and make thermal exponent (parameter *t*)
+  a function of temperature.
+- :git:`9d7dd77`: Remove parameter *trg* from the optimization, keep temperature
+  target as defined by the identification phase.
+- :git:`079642e`: Use ``scipy.interpolate.InterpolatedUnivariateSpline.derivative``
+  for the calculation of ``accelerations``.
+- :git:`31f8ccc`: Fix prediction of unreliable rpm taking max gear and idle into account.
+- :gh:`169`: Add derivative function for the temperature signal.
+- :gh:`153`: Add ``correct_start_stop_with_gears`` function and flag; default value
+  ``True`` for manuals and ``False`` for automatics. The functions *forces* the
+  engine to start when gear goes from zero to one, independent of the status of
+  the clutch.
+- :gh:`47`: Exclude first seconds when the engine is off before performing the
+  temperature model calibration.
 
-    When either ``fuel_consumptions`` or ``co2_emissions`` are available, a direct
-    calibration of the co2_emissions model is performed. When those are not available,
-    the optimization takes place using the reference normalization signal - if available -
-    to redefine the initial solution and then optimize based on the bag values.
-  - :git:`346963a`: Add ``tau_function`` and make thermal exponent (parameter *t*)
-    a function of temperature.
-  - :git:`9d7dd77`: Remove parameter *trg* from the optimization, keep temperature
-    target as defined by the identification phase.
-  - :git:`079642e`: Use ``scipy.interpolate.InterpolatedUnivariateSpline.derivative``
-    for the calculation of ``accelerations``.
-  - :git:`31f8ccc`: Fix prediction of unreliable rpm taking max gear and idle into account.
-  - :gh:`169`: Add derivative function for the temperature signal.
-  - :gh:`153`: Add ``correct_start_stop_with_gears`` function and flag; default value
-    ``True`` for manuals and ``False`` for automatics. The functions *forces* the
-    engine to start when gear goes from zero to one, independent of the status of
-    the clutch.
-  - :gh:`47`: Exclude first seconds when the engine is off before performing the
-    temperature model calibration.
+Electrics model:
+~~~~~~~~~~~~~~~~
+- :gh:`200`: Fix identification of ``alternator_status_threshold`` and ``charging_statuses``
+  for cars with no break eenergy-recuperation-system(BERS). Engine start windows and
+  positive alternator currents are now excluded from the calibration.
+- :gh:`192`: Add ``alternator_current_threshold`` in the identification of the
+  ``charging_statuses``.
+- :gh:`149`: Fix identification of the charging status at the beginning of the
+  cycle.
+- :gh:`149`, :gh:`157`: Fix identification of minimum and maximum state of charge.
+- :gh:`149`: Add previous state of charge to the alternator current model calibration.
+  Use GradientBoostingRegressor instead of DecisionTreeRegressor, due to over-fitting
+  of the later.
 
-- Electrics model:
-  - :gh:`200`: Fix identification of ``alternator_status_threshold`` and ``charging_statuses``
-    for cars with no break eenergy-recuperation-system(BERS). Engine start windows and
-    positive alternator currents are now excluded from the calibration.
-  - :gh:`192`: Add ``alternator_current_threshold`` in the identification of the
-    ``charging_statuses``.
-  - :gh:`149`: Fix identification of the charging status at the beginning of the
-    cycle.
-  - :gh:`149`, :gh:`157`: Fix identification of minimum and maximum state of charge.
-  - :gh:`149`: Add previous state of charge to the alternator current model calibration.
-    Use GradientBoostingRegressor instead of DecisionTreeRegressor, due to over-fitting
-    of the later.
+Clutch /Torque-converter/AT  models:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- :gh:`179`: Add lock up mode in the torque converter module.
+- :gh:`161`: Apply ``correct_gear_shifts`` function before clearing the fluctuations
+  on the ``AT_gear`` model.
 
-- Clutch /TorqueConverter/AT  models:
-  - :gh:`179`: Add lock up mode in the torque converter module.
-  - :gh:`161`: Apply ``correct_gear_shifts`` function before clearing the fluctuations
-    on the ``AT_gear`` model.
 
 IO
 --
-- :gh:`215`: Improve the `naming-conventions
-  <http://http://co2mpas.io/explanation.html#excel-input-data-naming-convention>`_
+- :gh:`215`: improve and explain the `naming-conventions
+  <http://http://co2mpas.io/explanation.html#excel-input-data-naming-conventions>`_
+  used in the model and in the input/output excel files;
   on model parameters internally and on model parameters used on the Input/Output excel files.
-- Input:
-  - :gh:`186`, :gh:`211`: Add a ``theoretical_WLTP`` sheet on the inputs. If inputs are provided,
-    calculate the additional theoretical cycles on the prediction and add the results
-    on the outputs.
-  - :gh:`60`, :gh:`80`: Add schema to validate shape/type/bounds/etc of input data.
-    As an example, the sign of the electric currents is now validated before running
-    the model. The user can add the flag ``--soft-validation`` to skip this validation.
-  - :git:`113b09b`: Fix pinning of ``co2_params``, add capability to fix parameters
-    outside predefined limits.
-  - :gh:`104`: Add ``eco_mode`` flag. Apply ``correct_gear`` function when
-    ``eco_mode = True``.
-  - :gh:`143`: Use electrics from the preconditioning cycle to calculate initial state
-    of charge for the WLTP. Default initial state of charge is set equal to 99%.
+
+Input:
+~~~~~~
+- :gh:`186`, :gh:`211`: Add a ``theoretical_WLTP`` sheet on the inputs. If inputs are provided,
+  calculate the additional theoretical cycles on the prediction and add the results
+  on the outputs.
+- :gh:`60`, :gh:`80`: Add schema to validate shape/type/bounds/etc of input data.
+  As an example, the sign of the electric currents is now validated before running
+  the model. The user can add the flag ``--soft-validation`` to skip this validation.
+- :git:`113b09b`: Fix pinning of ``co2_params``, add capability to fix parameters
+  outside predefined limits.
+- :gh:`104`: Add ``eco_mode`` flag. Apply ``correct_gear`` function when
+  ``eco_mode = True``.
+- :gh:`143`: Use electrics from the preconditioning cycle to calculate initial state
+  of charge for the WLTP. Default initial state of charge is set equal to 99%.
+
+Output:
+~~~~~~~
+- :gh:`198`: Add calculation of *willans factors* for each phase.
+- :gh:`164`: Add fuel consumption ``[l/100km]``, total and per subphase, in the output file.
+- :gh:`173`: Fix metrics and error messages on the calibration of the clutch model
+  (specifically related to calibration failures when data are not of adequate quality).
+- :gh:`180`: Remove calibration outputs from the charts. Target signals are not
+  presented if not provided by the user.
+- :gh:`158`: Add ``apply_f0_correction`` function and report ``correct_f0`` in the
+  summary, when the flag for the preconditioning correction is *True* in the input.
+- :gh:`168`: Add flag/error message when input data are missing and/or vectors
+  have not the same length or contain empty cells.
+- :gh:`154`: Add ``calculate_optimal_efficiency`` function. The function returns
+  the engine piston speeds and bmep for the calibrated co2 params, when the
+  efficiency is maximum.
+- :gh:`155`: Add *simple willans factors* calculation on the physical model and
+  on the outputs, along with average positive power, average speed when power is
+  positive, and average fuel consumption.
+- :gh:`160`: Add process bar to the console when running batch simulations.
+- :gh:`163`: Add sample logconf-file with all loggers; ``pandalone.xleash.io`` logger silenced bye default.
 
 
-- Output:
-  - :gh:`198`: Add calculation of *willans factors* for each phase.
-  - :gh:`164`: Add fuel consumption ``[l/100km]``, total and per subphase, in the output file.
-  - :gh:`173`: Fix metrics and error messages on the calibration of the clutch model
-    (specifically related to calibration failures when data are not of adequate quality).
-  - :gh:`180`: Remove calibration outputs from the charts. Target signals are not
-    presented if not provided by the user.
-  - :gh:`158`: Add ``apply_f0_correction`` function and report ``correct_f0`` in the
-    summary, when the flag for the preconditioning correction is *True* in the input.
-  - :gh:`168`: Add flag/error message when input data are missing and/or vectors
-    have not the same length or contain empty cells.
-  - :gh:`154`: Add ``calculate_optimal_efficiency`` function. The function returns
-    the engine piston speeds and bmep for the calibrated co2 params, when the
-    efficiency is maximum.
-  - :gh:`155`: Add *simple willans factors* calculation on the physical model and
-    on the outputs, along with average positive power, average speed when power is
-    positive, and average fuel consumption.
-  - :gh:`160`: Add process bar to the console when running batch simulations.
-  - :gh:`163`: Add sample logconf-file with all loggers; ``pandalone.xleash.io`` logger silenced bye default.
+Jupyter notebooks:
+------------------
+- :gh:`171`: Fix ``simVehicle.ipynb`` notebook of *O'snow*.
 
-- Jupyter notebooks:
-  - :gh:`171`: Fix ``simVehicle.ipynb`` notebook of *O'snow*.
-
-
-Cmd-line (running CO2MPAS)
---------------------------
-
+Cmd-line
+--------
 - :gh:`60`, :gh:`80`: Add flag ``--soft-validation`` to skip schema validation
   of the inputs.
 - :gh:`144`, :gh:`145`, :gh:`148`, :gh:`29`, :gh:`218`: Add ``datasync`` command.
@@ -136,7 +142,6 @@ Cmd-line (running CO2MPAS)
   sensitivity-analysis; not fully documented yet.
 - :git:`284a7df`: Add output folder option for the model graphs.
 
-
 Internals
 ---------
 - :gh:`135`: Merge physical calibration and prediction models in a unique physical
@@ -147,6 +152,11 @@ Internals
 - :gh:`131`: ``test_sub_modules.py`` deleted. Not actually used and difficult
   in the maintenance. To be re-drafted when will be of use.
 
+Documentation
+-------------
+- improve and explain the `naming-conventions
+  <http://http://co2mpas.io/explanation.html#excel-input-data-naming-conventions>`_
+  used in the model and in the input/output excel files (:gh:`215`);
 
 
 
@@ -163,119 +173,113 @@ and a high-level description of the model changes is contained in this `JRC-LAT 
 
 Model-changes
 -------------
+Engine model:
+~~~~~~~~~~~~~
+- Fix extrapolation in ``engine.get_full_load()``, keeping constant the boundary
+  values.
+- Update ``engine.get_engine_motoring_curve_default()``. The default motoring
+  curve is now determined from the engine's friction losses parameters.
+- Add engine speed cut-off limits.
+- :gh:`104`: Apply *derivative* scikit-function for smoothing
+  real data to acceleration & temperature.
+- :gh:`82`, :gh:`50`: Add (partial) engine-inertia & auxiliaries torque/power
+  losses.
+- Optimizer:
 
-- Engine model:
+  - :git:`84cc3ae8`: Fix ``co2_emission.calibrate_model_params()`` results selection.
+  - :gh:`58`: Change error functions: *mean-abs-error* is used instead of
+    *mean-squared-error*.
+  - :gh:`56`: Cold/hot parts distinction based on the first occurrence of *trg*;
+    *trg* not optimized.
+  - :gh:`25`: Simplify calibration method for hot part of the cycle,
+    imposing ``t=0``.
 
-  - Fix extrapolation in ``engine.get_full_load()``, keeping constant the boundary
-    values.
-  - Update ``engine.get_engine_motoring_curve_default()``. The default motoring
-    curve is now determined from the engine's friction losses parameters.
-  - Add engine speed cut-off limits.
-  - :gh:`104`: Apply *derivative* scikit-function for smoothing
-    real data to acceleration & temperature.
-  - :gh:`82`, :gh:`50`: Add (partial) engine-inertia & auxiliaries torque/power
-    losses.
+Temperature model:
+~~~~~~~~~~~~~~~~~~
+- :gh:`118`, :gh:`53`: Possible to run hot start cycles & fixed
+  temperature cycles.
+- :gh:`94`: Fix bug in ``co2_emission.calculate_normalized_engine_coolant_temperatures()``,
+  that returned *0* when ``target_Theta > max-Theta`` in NEDC.
+- :gh:`79`: Enhance temperature model: the calibration does not take into account
+  the first 10secs and the points where ``Delta-Theta = 0``.
+- :gh:`55`: Add an additional temperature model, ``f(previous_T, S, P, A)``;
+  chose the one which gives the best results.
 
-  - Optimizer:
+Gearbox model:
+~~~~~~~~~~~~~~
+- :gh:`49`: Fix bug in the estimation of the gear box efficiency for negative power,
+  leading to an overestimation of the gear box temperature. (still open)
+- :gh:`45`: ATs: Fix bug in the *GSPV matrix* leading to vertical up-shifting lines.
 
-    - :git:`84cc3ae8`: Fix ``co2_emission.calibrate_model_params()`` results selection.
-    - :gh:`58`: Change error functions: *mean-abs-error* is used instead of
-      *mean-squared-error*.
-    - :gh:`56`: Cold/hot parts distinction based on the first occurrence of *trg*;
-      *trg* not optimized.
-    - :gh:`25`: Simplify calibration method for hot part of the cycle,
-      imposing ``t=0``.
-
-- Temperature model:
-
-  - :gh:`118`, :gh:`53`: Possible to run hot start cycles & fixed
-    temperature cycles.
-  - :gh:`94`: Fix bug in ``co2_emission.calculate_normalized_engine_coolant_temperatures()``,
-    that returned *0* when ``target_Theta > max-Theta`` in NEDC.
-  - :gh:`79`: Enhance temperature model: the calibration does not take into account
-    the first 10secs and the points where ``Delta-Theta = 0``.
-  - :gh:`55`: Add an additional temperature model, ``f(previous_T, S, P, A)``;
-    chose the one which gives the best results.
-
-- Gearbox model:
-
-  - :gh:`49`: Fix bug in the estimation of the gear box efficiency for negative power,
-    leading to an overestimation of the gear box temperature. (still open)
-  - :gh:`45`: ATs: Fix bug in the *GSPV matrix* leading to vertical up-shifting lines.
-
-- S/S model:
-
-  - :gh:`85`: Correct internal gear-shifting profiles according to legislation.
-  - :gh:`81`: MTs: correct S/S model output -start engine- when ``gear > 0``.
-  - :gh:`75`, :git:`3def98f3`: Fix gear-identification for
-    initial time-steps for real-data; add warning message if WLTP does not
-    respect input S/S activation time.
+S/S model:
+~~~~~~~~~~~~~
+- :gh:`85`: Correct internal gear-shifting profiles according to legislation.
+- :gh:`81`: MTs: correct S/S model output -start engine- when ``gear > 0``.
+- :gh:`75`, :git:`3def98f3`: Fix gear-identification for
+  initial time-steps for real-data; add warning message if WLTP does not
+  respect input S/S activation time.
 
 - Electrics model:
+~~~~~~~~~~~~~~~~~~~
+- :gh:`78`, :gh:`46`: Fix bug in ``electrics.calibrate_alternator_current_model()``
+  for real cars, fix fitting error when alternator is always off.
+- :gh:`17`: Add new alternator status model, bypassing the DT when ``battery_SOC_balance``
+  is given, ``has_energy_recuperation`` equals to one, but BERS is not
+  identified in WLTP. ???
 
-  - :gh:`78`, :gh:`46`: Fix bug in ``electrics.calibrate_alternator_current_model()``
-    for real cars, fix fitting error when alternator is always off.
-  - :gh:`17`: Add new alternator status model, bypassing the DT when ``battery_SOC_balance``
-    is given, ``has_energy_recuperation`` equals to one, but BERS is not
-    identified in WLTP. ???
+- Clutch/Torque-converter models:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- :gh:`83`: Add a second clutch model, equals to no-clutch, when clutch model fails.
+- :gh:`16`: Add torque converter.
 
-- Clutch model:
-
-  - :gh:`83`: Add a second clutch model, equals to no-clutch, when clutch model fails.
-
-- Torque-converter model:
-
-  - :gh:`16`: Add torque converter.
-
-- Vehicle model:
-
-  - :gh:`76`: Remove first 30 seconds for the engine speed model
-    selection.
-  - :git:`e8cabe10`, :git:`016e7060`: Rework model-selection code.
+Vehicle model:
+~~~~~~~~~~~~~~~
+- :gh:`76`: Remove first 30 seconds for the engine speed model
+  selection.
+- :git:`e8cabe10`, :git:`016e7060`: Rework model-selection code.
 
 
 IO
 --
 
-- Inputs:
+Inputs:
+~~~~~~~~~
+- :gh:`62`: New compulsory fields in input data::
 
-  - :gh:`62`: New compulsory fields in input data::
+      velocity_speed_ratios
+      co2_params
+      gear_box_ratios
+      full_load_speeds
+      full_load_torques
+      full_load_powers
 
-        velocity_speed_ratios
-        co2_params
-        gear_box_ratios
-        full_load_speeds
-        full_load_torques
-        full_load_powers
+- Add `fuel_carbon_content` input values for each cycle.
+- Correct units in `initial_SOC_NEDC`.
+- Replace `Battery SOC [%]` time series with `target state_of_charges`.
+- :gh:`61`, :gh:`119`: Add dyno type and driveline type (2WD, 4WD) for each cycle.
+  Those are used to specify inertia coefficients and drivetrain efficiency
+  (default efficiency for `final_drive_efficiency` changed to 0.98).(still open)
+- :gh:`44`: Correct `battery_SOC_balance` and `battery_SOC_window` as
+  not *compulsory*.
+- :gh:`25`: Add option of 'freezing' the optimization parameters.
 
-  - Add `fuel_carbon_content` input values for each cycle.
-  - Correct units in `initial_SOC_NEDC`.
-  - Replace `Battery SOC [%]` time series with `target state_of_charges`.
-  - :gh:`61`, :gh:`119`: Add dyno type and driveline type (2WD, 4WD) for each cycle.
-    Those are used to specify inertia coefficients and drivetrain efficiency
-    (default efficiency for `final_drive_efficiency` changed to 0.98).(still open)
-  - :gh:`44`: Correct `battery_SOC_balance` and `battery_SOC_window` as
-    not *compulsory*.
-  - :gh:`25`: Add option of 'freezing' the optimization parameters.
-
-
-- Outputs:
-
-  - :gh:`96`: Produce a single excel with all infos in multiple sheets.
-  - :gh:`20`: Produce html report with basic interactive graphs (unfinished).
-  - :git:`5064efd3`: Add charts in excel output.
-  - :gh:`120`, :gh:`123`: Use excel named-ranges for all columns -
-    possible to use specific xl-file as output template, utilizing those
-    named-ranges.
-  - :git:`a03c6805`: Add `status_start_stop_activation_time` to cycle results.
-  - :git:`f8b85d98`: Add comparison between WLTP prediction vs WLTP inputs &
-    WLTP calibration.
-  - :gh:`102`: Write errors/warnings in the output.(still open)
-  - :gh:`101`: Add target UDC and target EUDC to the summary.
-  - :gh:`97`, :gh:`114`, :gh:`64`: Add packages and CO2MPAS versions,
-    functions run info, and models' scores to the *proc_info* sheet.(still open)
-  - :gh:`93`, :gh:`52`: Add success/fail flags related to the optimization steps
-    for each cycle, and global success/fail flags on the summary.
+Outputs:
+~~~~~~~~~~~~~
+- :gh:`96`: Produce a single excel with all infos in multiple sheets.
+- :gh:`20`: Produce html report with basic interactive graphs (unfinished).
+- :git:`5064efd3`: Add charts in excel output.
+- :gh:`120`, :gh:`123`: Use excel named-ranges for all columns -
+  possible to use specific xl-file as output template, utilizing those
+  named-ranges.
+- :git:`a03c6805`: Add `status_start_stop_activation_time` to cycle results.
+- :git:`f8b85d98`: Add comparison between WLTP prediction vs WLTP inputs &
+  WLTP calibration.
+- :gh:`102`: Write errors/warnings in the output.(still open)
+- :gh:`101`: Add target UDC and target EUDC to the summary.
+- :gh:`97`, :gh:`114`, :gh:`64`: Add packages and CO2MPAS versions,
+  functions run info, and models' scores to the *proc_info* sheet.(still open)
+- :gh:`93`, :gh:`52`: Add success/fail flags related to the optimization steps
+  for each cycle, and global success/fail flags on the summary.
 
 
 Cmd-line (running CO2MPAS)

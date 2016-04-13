@@ -29,6 +29,7 @@ Usage:
 
 Options:
   <input-path>                Input xlsx-file or folder.
+                              See http://http://co2mpas.io/explanation.html#excel-input-data-naming-conventions
   -O <output-folder>          Output folder or file [default: .].
   --gui                       Launches GUI dialog-boxes to choose Input, Output
                               and Options. [default: False].
