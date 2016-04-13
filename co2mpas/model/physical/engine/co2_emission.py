@@ -1482,8 +1482,9 @@ def calculate_willans_factors(
     b = engine_powers_out >= 0
     if b.any():
         p = params.valuesdict()
-        av_s = av(engine_speeds_out[b], weights=w)
-        av_p = av(engine_powers_out[b], weights=w)
+        _w = w[b]
+        av_s = av(engine_speeds_out[b], weights=_w)
+        av_p = av(engine_powers_out[b], weights=_w)
 
         n_p = calculate_brake_mean_effective_pressures(av_s, av_p,
                                                        engine_capacity)
