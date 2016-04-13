@@ -9,7 +9,7 @@ Shift and resample excel-tables; see http://co2mpas.io/usage.html#Synchronizing-
 
 Usage:
   datasync  [(-v | --verbose) | --logconf <conf-file>]
-            [--force | -f] [--out-frmt=<frmy>] [--prefix-cols] [-O <output>]
+            [--force | -f] [--no-clone] [--prefix-cols] [-O <output>]
             <x-label> <y-label> <ref-table> [<sync-table> ...]
   datasync  [--verbose | -v]  (--version | -V)
   datasync  --help
@@ -40,6 +40,8 @@ Options:
   -f, --force            Overwrite excel-file(s) and create any missing intermediate folders.
   --prefix-cols          Prefix all synced column names with their source sheet-names.
                          By default, only clashing column-names are prefixed.
+  --no-clone             Do not clone excel-sheets contained in <ref-table> workbook
+                         into output.
 
 Miscellaneous:
   -h, --help             Show this help message and exit.
@@ -335,7 +337,8 @@ def _ensure_out_file(out_path, inp_path, force, out_frmt):
 
 
 def do_datasync(x_label, y_label, ref_xlref, *sync_xlrefs,
-        out_path=None, prefix_cols=False, force=False, sheets_factory=None):
+        out_path=None, prefix_cols=False, force=False, sheets_factory=None,
+        no_clone=False):
     """
     :param str ref_xlref:
             The :term:`xl-ref` capturing a table from a workbook-sheet to use as *reference*.
@@ -360,6 +363,9 @@ def do_datasync(x_label, y_label, ref_xlref, *sync_xlrefs,
             If not true, use folder of the <ref-table>.
     :param bool force:
             When true, overwrites excel-file(s) and/or create missing folders.
+    :param bool bo_clone:
+            When true, do not clone excel-sheets contained in <ref-table> workbook
+            into output.
     :param xleash.SheetsFactory sheets_factory:
             cache of workbook-sheets
     """
@@ -367,11 +373,11 @@ def do_datasync(x_label, y_label, ref_xlref, *sync_xlrefs,
     tables.collect_tables(ref_xlref, *sync_xlrefs)
     df = synchronize(tables.headers, tables.tables, x_label, y_label, prefix_cols)
 
-    if tables.ref_fpath: ## FIXME: condition always True
+    if no_clone:
+        writer_fact = pd.ExcelWriter
+    else:
         from .io.excel import clone_excel
         writer_fact = fnt.partial(clone_excel, tables.ref_fpath)
-    else:
-        writer_fact = pd.ExcelWriter
 
     out_file = _ensure_out_file(out_path, tables.ref_fpath, force, synced_file_frmt)
     with writer_fact(out_file) as writer:
@@ -400,7 +406,8 @@ def main(*args):
                 opts['<ref-table>'], *opts['<sync-table>'],
                 out_path=opts['-O'],
                 prefix_cols=opts['--prefix-cols'],
-                force=opts['--force']
+                force=opts['--force'],
+                no_clone=opts['--no-clone']
         )
 
 

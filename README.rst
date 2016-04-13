@@ -859,7 +859,7 @@ be accurate enough.
 As an aid tool, you may use the ``datasync`` command-line tool to "synchronize"
 your *data-tables*. This command reads one or more tables from excel-files and
 synchronizes their columns.  The syntax of this utility command is given
-by typing ``datasync --help`` in the command line:
+by typing ``datasync --help`` in the command line (listing below just the main fields):
 
 .. code-block:: console
 
@@ -867,7 +867,7 @@ by typing ``datasync --help`` in the command line:
 
     Usage:
       datasync  [(-v | --verbose) | --logconf <conf-file>]
-                [--force | -f] [--out-frmt=<frmy>] [--prefix-cols] [-O <output>]
+                [--force | -f] [--no-clone] [--prefix-cols] [-O <output>]
                 <x-label> <y-label> <ref-table> [<sync-table> ...]
       datasync  [--verbose | -v]  (--version | -V)
       datasync  --help
@@ -936,7 +936,7 @@ Examples
 
 - Typical usage for CO2MPAS velocity time-series from Dyno and OBD::
 
-    datasync -O ../output times  velocities  ../input/book.xlsx  WLTP-H  WLTP-H_OBD
+    datasync -O ../output times  velocities  ../input/book.xlsx#WLTP-H  WLTP-H_OBD
 
 
 
