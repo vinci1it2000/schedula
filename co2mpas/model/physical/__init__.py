@@ -213,6 +213,11 @@ def physical():
             'max_battery_charging_current': 'max_battery_charging_current',
             'on_engine': 'on_engine',
             'start_demand': 'start_demand',
+            'start_stop_model': 'start_stop_model',
+            'engine_coolant_temperatures': 'engine_coolant_temperatures',
+            'gears': 'gears',
+            'correct_start_stop_with_gears': 'correct_start_stop_with_gears',
+            'start_stop_activation_time': 'start_stop_activation_time',
             'times': 'times',
             'velocities': 'velocities'
         },
@@ -228,6 +233,8 @@ def physical():
             'max_battery_charging_current': 'max_battery_charging_current',
             'state_of_charges': 'state_of_charges',
             'start_demand': 'start_demand',
+            'on_engine': 'on_engine',
+            'engine_starts': 'engine_starts'
         }
     )
 
@@ -273,6 +280,7 @@ def physical():
         dsp_id='engine_model',
         dsp=engine(),
         inputs={
+            'state_of_charges': 'state_of_charges',
             'auxiliaries_torque_loss': 'auxiliaries_torque_loss',
             'alternator_powers_demand': 'alternator_powers_demand',
             'on_engine': 'on_engine',

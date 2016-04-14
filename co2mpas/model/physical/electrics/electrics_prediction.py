@@ -231,8 +231,8 @@ def _predict_electrics(
         battery_capacity, alternator_status_model, max_alternator_current,
         alternator_current_model, max_battery_charging_current,
         alternator_nominal_voltage, start_demand, electric_load, delta_time,
-        gear_box_power_in, on_engine, engine_start, acceleration,
-        battery_state_of_charge, prev_alternator_status, prev_battery_current):
+        gear_box_power_in, acceleration, on_engine, engine_start,
+        prev_alternator_status, prev_battery_current, battery_state_of_charge):
 
     alternator_status = predict_alternator_status(
         alternator_status_model, prev_alternator_status,
@@ -254,8 +254,8 @@ def _predict_electrics(
         battery_state_of_charge, battery_capacity,
         delta_time, battery_current, prev_battery_current)
 
-    return alternator_current, battery_state_of_charge, alternator_status, \
-           battery_current
+    return alternator_current, alternator_status, battery_current, \
+           battery_state_of_charge
 
 
 def electrics_prediction():
@@ -313,21 +313,18 @@ def electrics_prediction():
         outputs=['engine_start_current']
     )
 
-    electrics_prediction = dsp_utl.SubDispatchPipe(
+    func = dsp_utl.SubDispatchPipe(
         dsp=dsp,
         function_id='electric_sub_model',
         inputs=['battery_capacity', 'alternator_status_model',
                 'max_alternator_current', 'alternator_current_model',
                 'max_battery_charging_current', 'alternator_nominal_voltage',
-                'start_demand', 'electric_load',
-
-                'delta_time', 'gear_box_power_in',
-                'on_engine', 'engine_start',
-
-                'acceleration', 'battery_state_of_charge',
-                'prev_alternator_status', 'prev_battery_current'],
-        outputs=['alternator_current', 'battery_state_of_charge',
-                 'alternator_status', 'battery_current']
+                'start_demand', 'electric_load', 'delta_time',
+                'gear_box_power_in', 'acceleration', 'on_engine',
+                'engine_start', 'prev_alternator_status',
+                'prev_battery_current', 'battery_state_of_charge'],
+        outputs=['alternator_current', 'alternator_status', 'battery_current',
+                 'battery_state_of_charge']
     )
 
-    return electrics_prediction
+    return func

@@ -659,30 +659,9 @@ def identify_engine_starts(on_engine):
     return np.append(np.diff(np.array(on_engine, dtype=int)) > 0, False)
 
 
-class Start_stop_model(object):
-    def __init__(self, on_engine_pred=None, n_args=2):
-        self.on = on_engine_pred
-        self.n = n_args
-
-    def __call__(self, *args, **kwargs):
-        return self.predict(*args, **kwargs)
-
-    def fit(self, on_engine, *args):
-        self.on = DecisionTreeClassifier(random_state=0, max_depth=4)
-        self.on.fit(np.array(args).T, on_engine)
-        self.n = len(args)
-        return self
-
-    def predict(self, times, *args, start_stop_activation_time=None):
-        on_engine = self.on.predict(np.array(args[:self.n]).T)
-        if start_stop_activation_time is not None:
-            on_engine[times <= start_stop_activation_time] = True
-
-        return on_engine
-
-
 def calibrate_start_stop_model(
-        on_engine, velocities, accelerations, engine_coolant_temperatures):
+        on_engine, velocities, accelerations, engine_coolant_temperatures,
+        state_of_charges):
     """
     Calibrates an start/stop model to predict if the engine is on.
 
@@ -702,28 +681,101 @@ def calibrate_start_stop_model(
         Engine coolant temperature vector [°C].
     :type engine_coolant_temperatures: numpy.array
 
+    :param state_of_charges:
+        State of charge of the battery [%].
+
+        .. note::
+
+            `state_of_charges` = 99 is equivalent to 99%.
+    :type state_of_charges: numpy.array
+
     :return:
         Start/stop model.
     :rtype: function
     """
-
-    model = Start_stop_model().fit(
-        on_engine, velocities, accelerations, engine_coolant_temperatures
-    )
+    soc = np.zeros_like(state_of_charges)
+    soc[0], soc[1:] = state_of_charges[0], state_of_charges[:-1]
+    model = StartStopModel()
+    model.fit(np.array((velocities, accelerations, engine_coolant_temperatures,
+                        soc)).T, on_engine)
 
     return model
 
 
-def predict_on_engine(
+class StartStopModel(object):
+    def __init__(self):
+        self.model = DecisionTreeClassifier(random_state=0, max_depth=5)
+
+    def __call__(self, *args, **kwargs):
+        return self.predict(*args, **kwargs)
+
+    def fit(self, X, y):
+        self.model.fit(X, y)
+        return self
+
+    def predict(self, times, *args, start_stop_activation_time=None, gears=None,
+                correct_start_stop_with_gears=False):
+
+        gen = self.yield_on_start(
+            times, *args, gears=gears,
+            correct_start_stop_with_gears=correct_start_stop_with_gears,
+            start_stop_activation_time=start_stop_activation_time)
+
+        on_eng, eng_starts = zip(*list(gen))
+
+        return np.array(on_eng, dtype=bool), np.array(eng_starts, dtype=bool)
+
+    def yield_on_start(self, times, *args,
+                       start_stop_activation_time=None, gears=None,
+                       correct_start_stop_with_gears=False):
+
+        to_predict = self.when_predict_on_engine(
+            times, start_stop_activation_time, gears,
+            correct_start_stop_with_gears
+        )
+
+        return self._yield_on_start(times, to_predict, *args)
+
+    def _yield_on_start(self, times, to_predict, *args):
+        prev, t_last_start, predict = True, times[0], self.model.predict
+
+        for t, p, X in zip(times, to_predict, zip(*args)):
+            if t >= t_last_start and p:
+                on = bool(predict([X])[0])
+            else:
+                on = True
+            start = prev != on and on
+
+            yield on, start
+            prev = on
+            if start:
+                t_last_start = t + TIME_WINDOW
+
+    @staticmethod
+    def when_predict_on_engine(
+            times, start_stop_activation_time=None, gears=None,
+            correct_start_stop_with_gears=False):
+        to_predict = np.ones_like(times, dtype=bool)
+
+        if start_stop_activation_time is not None:
+            to_predict[times <= start_stop_activation_time] = False
+
+        if correct_start_stop_with_gears:
+            to_predict[gears > 0] = False
+
+        return to_predict
+
+
+def predict_engine_start_stop(
         start_stop_model, times, velocities, accelerations,
-        engine_coolant_temperatures, gears, correct_start_stop_with_gears,
-        start_stop_activation_time):
+        engine_coolant_temperatures, state_of_charges, gears,
+        correct_start_stop_with_gears, start_stop_activation_time):
     """
-    Predicts if the engine is on [-].
+    Predicts if the engine is on and when the engine starts.
 
     :param start_stop_model:
         Start/stop model.
-    :type start_stop_model: Start_stop_model
+    :type start_stop_model: StartStopModel
 
     :param times:
         Time vector [s].
@@ -741,6 +793,14 @@ def predict_on_engine(
         Engine coolant temperature vector [°C].
     :type engine_coolant_temperatures: numpy.array
 
+    :param state_of_charges:
+        State of charge of the battery [%].
+
+        .. note::
+
+            `state_of_charges` = 99 is equivalent to 99%.
+    :type state_of_charges: numpy.array
+
     :param gears:
         Gear vector [-].
     :type gears: numpy.array
@@ -749,23 +809,22 @@ def predict_on_engine(
         A flag to impose engine on when there is a gear > 0.
     :type correct_start_stop_with_gears: bool
 
+    :param start_stop_activation_time:
+        Start-stop activation time threshold [s].
+    :type start_stop_activation_time: float
+
     :return:
-        If the engine is on [-].
-    :rtype: numpy.array
+        If the engine is on and when the engine starts [-, -].
+    :rtype: numpy.array, numpy.array
     """
 
-    on_engine = start_stop_model(
+    on_engine, engine_starts = start_stop_model(
         times, velocities, accelerations, engine_coolant_temperatures,
-        start_stop_activation_time=start_stop_activation_time
-    )
-    on_engine = np.array(on_engine, dtype=int)
+        state_of_charges, gears=gears,
+        correct_start_stop_with_gears=correct_start_stop_with_gears,
+        start_stop_activation_time=start_stop_activation_time)
 
-    if correct_start_stop_with_gears:
-        on_engine[gears > 0] = 1
-
-    on_engine = clear_fluctuations(times, on_engine, TIME_WINDOW)
-
-    return np.array(on_engine, dtype=bool)
+    return on_engine, engine_starts
 
 
 def default_correct_start_stop_with_gears(gear_box_type):
@@ -1568,7 +1627,7 @@ def engine():
     dsp.add_function(
         function=calibrate_start_stop_model,
         inputs=['on_engine', 'velocities', 'accelerations',
-                'engine_coolant_temperatures'],
+                'engine_coolant_temperatures', 'state_of_charges'],
         outputs=['start_stop_model']
     )
 
@@ -1579,11 +1638,12 @@ def engine():
     )
 
     dsp.add_function(
-        function=predict_on_engine,
+        function=predict_engine_start_stop,
         inputs=['start_stop_model', 'times', 'velocities', 'accelerations',
-                'engine_coolant_temperatures', 'gears',
-                'correct_start_stop_with_gears', 'start_stop_activation_time'],
-        outputs=['on_engine']
+                'engine_coolant_temperatures', 'state_of_charges',
+                'gears', 'correct_start_stop_with_gears',
+                'start_stop_activation_time'],
+        outputs=['on_engine', 'engine_starts']
     )
 
     dsp.add_function(
