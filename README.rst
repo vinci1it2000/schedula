@@ -328,7 +328,7 @@ In order to visualize the *design-time models* and *run-time workflows*
 you need to install the **Graphviz** visualization library  from:
 http://www.graphviz.org/.
 
-If you skip this step, the ``graphplot`` sub-command and the ``--plot-workflow``
+If you skip this step, the ``modelgraph`` sub-command and the ``--plot-workflow``
 option would both fail to run (see :ref:`debug`).
 
 
@@ -612,47 +612,51 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
 
 .. code-block:: console
 
-    Predict NEDC CO2 emissions from WLTP cycles; see http://http://co2mpas.io/.
+    Predict NEDC CO2 emissions from WLTP; try the `batch` cmd; read http://co2mpas.io/.
 
     Usage:
-      co2mpas batch       [-v | --logconf <conf-file>]
-                          [--only-summary] [--out-template <xlsx-file> | --charts]
-                          [--plot-workflow] [--overwrite-cache] [-O <output-folder>]
-                          [--soft-validation] [<input-path>]... [--gui]
-      co2mpas demo        [-v | --logconf <conf-file>] [-f] [<output-folder>]
-                          [--gui]
-      co2mpas template    [-v | --logconf <conf-file>] [-f] [<excel-file-path> ...]
-                          [--gui]
-      co2mpas ipynb       [-v | --logconf <conf-file>] [-f] [<output-folder>]
-                          [--gui]
-      co2mpas modelgraph  [-v | --logconf <conf-file>] [-O <output-folder>]
-                          [--list | [--graph-depth=INTEGER] [<models> ...]]
-      co2mpas sa          [-v | --logconf <conf-file>] [-f] [-O <output-folder>]
+      co2mpas batch       [options] [--gui]
+                          [--overwrite-cache]
+                          [--out-template=<xlsx-file> | --charts]
+                          [--plot-workflow]  [-O=<output-folder>]
+                          [--only-summary]  [--soft-validation]
+                          [<input-path>]...
+      co2mpas demo        [options] [--gui]
+                          [-f] [<output-folder>]
+      co2mpas template    [options] [--gui] [-f] [<excel-file-path> ...]
+      co2mpas ipynb       [options] [--gui] [-f] [<output-folder>]
+      co2mpas modelgraph  [options] [-O=<output-folder>]
+                          (--list | [--graph-depth=<levels>] [<models> ...])
+      co2mpas sa          [options] [-f] [-O=<output-folder>]
                           [--soft-validation] [--only-summary] [--overwrite-cache]
-                          [--out-template <xlsx-file> | --charts]
+                          [--out-template=<xlsx-file> | --charts]
                           [<input-path>] [<input-params>] [<defaults>]...
       co2mpas             [--verbose | -v]  (--version | -V)
       co2mpas             --help
 
+    Syntax tip:
+      The brackets `[ ]`, parens `( )`, pipes `|` and ellipsis `...` signify
+      "optional", "required", "mutually exclusive", and "repeating elements";
+      for more syntax-help see: http://docopt.org/
+
     Options:
-      <input-path>                Input xlsx-file or folder.
-                                  See http://http://co2mpas.io/explanation.html#excel-input-data-naming-conventions
-      -O <output-folder>          Output folder or file [default: .].
+      <input-path>                Input xlsx-file or folder. Assumes current-dir if missing.
+      -O=<output-folder>          Output folder or file [default: .].
       --gui                       Launches GUI dialog-boxes to choose Input, Output
                                   and Options. [default: False].
       --only-summary              Does not save vehicle outputs just the summary file.
       --overwrite-cache           Overwrites the cached file.
       --charts                    Add basic charts to output file.
       --soft-validation           Partial data validation.
-      --out-template <xlsx-file>  An '*.xlsx' file to clone and append model-results
+      --out-template=<xlsx-file>  An '*.xlsx' file to clone and append model-results
                                   into it.
                                   By default, no output-template used.
                                   Set it to `-` to use the input xlsx-file as
                                   output-template.
       --plot-workflow             Open workflow-plot in browser, after run finished.
       -l, --list                  List available models.
-      --graph-depth=INTEGER       Limit the levels of sub-models plotted (no limit
-                                  by default).
+      --graph-depth=<levels>      An integer to Limit the levels of sub-models plotted
+                                  (no limit by default).
       -f, --force                 Overwrite template/demo excel-file(s).
 
     Miscellaneous:
@@ -660,44 +664,46 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
       -V, --version               Print version of the program, with --verbose
                                   list release-date and installation details.
       -v, --verbose               Print more verbosely messages - overridden by --logconf.
-      --logconf <conf-file>       Path to a logging-configuration file, according to:
-                                      https://docs.python.org/3/library/logging.config.html#configuration-file-format
+      --logconf=<conf-file>       Path to a logging-configuration file, according to:
+                                    https://docs.python.org/3/library/logging.config.html#configuration-file-format
                                   If the file-extension is '.yaml' or '.yml', it reads a dict-schema from YAML:
-                                      https://docs.python.org/3.5/library/logging.config.html#logging-config-dictschema
+                                    https://docs.python.org/3.5/library/logging.config.html#logging-config-dictschema
 
-    * Items enclosed in `[]` are optional.
 
 
     Sub-commands:
-        batch                   Run simulation for all <input-path> xlsx-files & folder.
+        batch                   Simulate vehicle for all <input-path> excel-files & folder.
+                                If no <input-path> given, reads all excel-files from current-dir.
+                                Use the `template` cmd to generate the excel-file, and
+                                read this for explanations of the param names:
+                                  http://co2mpas.io/explanation.html#excel-input-data-naming-conventions
         demo                    Generate demo input-files inside <output-folder>.
         template                Generate "empty" input-file at <excel-file-path>.
         ipynb                   Generate IPython notebooks inside <output-folder>; view them with cmd:
-                                  ipython --notebook-dir=<output-folder>
-        modelgraph              List all or plot available models. If no model(s) specified, all assumed.
-        datasync                Synchronise and re-sample time series from different
-                                sources. It saves results in a clone of the input
-                                file overwriting the <ref-sheet>.
+                                  jupyter --notebook-dir=<output-folder>
+        modelgraph              List or plot available models. If no model(s) specified, all assumed.
+        sa                      (undocumented - subject to change)
 
-    Examples for `cmd.exe`:
-        # Create work folders ans fill them with sample-vehicles:
+    Examples for `cmd.exe` (don't enter the lines with `#`)::
+
+        # Create work folders and then fill `input` with sample-vehicles:
         md input output
-        co2mpas demo input
+        co2mpas  demo  input
 
         # Launch GUI dialog-boxes on the sample-vehicles just created:
-        co2mpas batch --gui input
+        co2mpas  batch  --gui  input
 
         # or specify them with output-charts and workflow plots:
-        co2mpas batch input -O output --charts --plot-workflow
+        co2mpas  batch  input  -O output  --charts  --plot-workflow
 
         # Create an empty vehicle-file inside `input` folder:
-        co2mpas template input\vehicle_1.xlsx
+        co2mpas  template  input\vehicle_1.xlsx
 
         # View a specific submodel on your browser:
-        co2mpas modelgraph gear_box_calibration
+        co2mpas  modelgraph  co2mpas.model.physical.wheels.wheels
 
-        # Synchronise and re-sample time series from different sources:
-        co2mpas datasync ../input times velocities WLTP-H WLTP-H_OBD -O ../output
+        # View full version specs:
+        co2mpas -vV
 
 
 
@@ -819,11 +825,6 @@ excel-file:
        (i.e. gear-box ratios) you may reference different parts of
        the spreadsheet following the syntax of the `"xlref" mini-language
        <https://pandalone.readthedocs.org/en/latest/reference.html#module-pandalone.xleash>`_.
-
-       You may also read the `tutorial input xl-file
-       <http://files.co2mpas.io/CO2MPAS-1.2.0rc2/co2mpas_tutorial_1_1_0.xls>`_
-       to get an understanding of each scalar paramet and series required,
-       but DO NOT USE THIS "fatty" xl-file (~40Mb) when running the model.
 
    You may repeat these last 2 steps if you want to add more vehicles in
    the *batch-run*.
@@ -967,7 +968,7 @@ To create/modify one output-template yourself, do the following:
 
 .. tip::
     You can find a template/dummy output-template file here:
-    http://files.co2mpas.io/CO2MPAS-1.2.0rc2/CO2MPAS_out_template.xlsx
+    http://files.co2mpas.io/CO2MPAS-1.2.0/CO2MPAS_out_template.xlsx
     or below in the :ref:`excel-model` section
 
 
@@ -1142,6 +1143,13 @@ These names are splitted in "parts", as explained below with examples:
 .. note::
    - The dot(``.``) may be replaced by space.
    - The **usage** and **stage** parts may end with an ``s``, denoting plural.
+
+.. tip::
+    You may also read the `tutorial input xl-file
+    <http://files.co2mpas.io/CO2MPAS-1.2.0/co2mpas_tutorial_1_2_0.xls>`_
+    to get an understanding of each scalar paramet and series required,
+    but DO NOT USE THIS "fatty" xl-file (~40Mb) when running the model.
+
 
 
 Description of the name-parts
