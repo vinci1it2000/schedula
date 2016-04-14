@@ -5,9 +5,16 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 r"""
-Predict NEDC CO2 emissions from WLTP; try the `batch` cmd; read http://co2mpas.io/.
+Predict NEDC CO2 emissions from WLTP.
 
-Usage:
+:Home:         http://co2mpas.io/
+:Copyright:    2015 European Commission (JRC-IET <https://ec.europa.eu/jrc/en/institutes/iet>
+:License:       EUPL 1.1+ <https://joinup.ec.europa.eu/software/page/eupl>
+
+Use the `batch` sub-command to simulate a vehicle contained in an excel-file.
+
+
+USAGE:
   co2mpas batch       [options] [--gui]
                       [--overwrite-cache]
                       [--out-template=<xlsx-file> | --charts]
@@ -32,20 +39,19 @@ Syntax tip:
   "optional", "required", "mutually exclusive", and "repeating elements";
   for more syntax-help see: http://docopt.org/
 
-Options:
+
+OPTIONS:
   <input-path>                Input xlsx-file or folder. Assumes current-dir if missing.
   -O=<output-folder>          Output folder or file [default: .].
   --gui                       Launches GUI dialog-boxes to choose Input, Output
                               and Options. [default: False].
-  --only-summary              Does not save vehicle outputs just the summary file.
-  --overwrite-cache           Overwrites the cached file.
+  --only-summary              Do not save vehicle outputs, just the summary file.
+  --overwrite-cache           Overwrite the cached file.
   --charts                    Add basic charts to output file.
-  --soft-validation           Partial data validation.
-  --out-template=<xlsx-file>  An '*.xlsx' file to clone and append model-results
-                              into it.
-                              By default, no output-template used.
-                              Set it to `-` to use the input xlsx-file as
-                              output-template.
+  --soft-validation           Validate only partially input-data (no schema).
+  --out-template=<xlsx-file>  Clone the given excel-file and appends model-results into it.
+                              By default, results are appended into an empty excel-file.
+                              Use `--out-template=-` to use input excel-files as templates.
   --plot-workflow             Open workflow-plot in browser, after run finished.
   -l, --list                  List available models.
   --graph-depth=<levels>      An integer to Limit the levels of sub-models plotted
@@ -63,21 +69,22 @@ Miscellaneous:
                                 https://docs.python.org/3.5/library/logging.config.html#logging-config-dictschema
 
 
-
-Sub-commands:
+SUB-COMMANDS:
     batch                   Simulate vehicle for all <input-path> excel-files & folder.
                             If no <input-path> given, reads all excel-files from current-dir.
-                            Use the `template` cmd to generate the excel-file, and
-                            read this for explanations of the param names:
+                            Read this for explanations of the param names:
                               http://co2mpas.io/explanation.html#excel-input-data-naming-conventions
-    demo                    Generate demo input-files inside <output-folder>.
-    template                Generate "empty" input-file at <excel-file-path>.
+    demo                    Generate demo input-files for the `batch` cmd inside <output-folder>.
+    template                Generate "empty" input-file for the `batch` cmd as <excel-file-path>.
     ipynb                   Generate IPython notebooks inside <output-folder>; view them with cmd:
                               jupyter --notebook-dir=<output-folder>
     modelgraph              List or plot available models. If no model(s) specified, all assumed.
     sa                      (undocumented - subject to change)
 
-Examples for `cmd.exe` (don't enter the lines with `#`)::
+
+EXAMPLES::
+
+    # Don't enter lines starting with `#`.
 
     # Create work folders and then fill `input` with sample-vehicles:
     md input output
@@ -90,7 +97,7 @@ Examples for `cmd.exe` (don't enter the lines with `#`)::
     co2mpas  batch  input  -O output  --charts  --plot-workflow
 
     # Create an empty vehicle-file inside `input` folder:
-    co2mpas  template  input\vehicle_1.xlsx
+    co2mpas  template  input/vehicle_1.xlsx
 
     # View a specific submodel on your browser:
     co2mpas  modelgraph  co2mpas.model.physical.wheels.wheels

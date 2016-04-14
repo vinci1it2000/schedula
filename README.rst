@@ -250,10 +250,12 @@ It is not update-able, and has a semi-regular release-cycle of 3 months.
 CO2MPAS installation
 --------------------
 1. Install CO2MPAS executable internally into your python-environment with
-   the following console-command:
+   the following console-commands (there is no prob if the 1st `uninstall`
+   command fails):
 
    .. code-block:: console
 
+        > pip uninstall co2mpas
         > pip install co2mpas
         Collecting co2mpas
         Downloading http://pypi.co2mpas.io/packages/co2mpas-...
@@ -612,9 +614,16 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
 
 .. code-block:: console
 
-    Predict NEDC CO2 emissions from WLTP; try the `batch` cmd; read http://co2mpas.io/.
+    Predict NEDC CO2 emissions from WLTP.
 
-    Usage:
+    :Home:         http://co2mpas.io/
+    :Copyright:    2015 European Commission (JRC-IET <https://ec.europa.eu/jrc/en/institutes/iet>
+    :License:       EUPL 1.1+ <https://joinup.ec.europa.eu/software/page/eupl>
+
+    Use the `batch` sub-command to simulate a vehicle contained in an excel-file.
+
+
+    USAGE:
       co2mpas batch       [options] [--gui]
                           [--overwrite-cache]
                           [--out-template=<xlsx-file> | --charts]
@@ -639,20 +648,19 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
       "optional", "required", "mutually exclusive", and "repeating elements";
       for more syntax-help see: http://docopt.org/
 
-    Options:
+
+    OPTIONS:
       <input-path>                Input xlsx-file or folder. Assumes current-dir if missing.
       -O=<output-folder>          Output folder or file [default: .].
       --gui                       Launches GUI dialog-boxes to choose Input, Output
                                   and Options. [default: False].
-      --only-summary              Does not save vehicle outputs just the summary file.
-      --overwrite-cache           Overwrites the cached file.
+      --only-summary              Do not save vehicle outputs, just the summary file.
+      --overwrite-cache           Overwrite the cached file.
       --charts                    Add basic charts to output file.
-      --soft-validation           Partial data validation.
-      --out-template=<xlsx-file>  An '*.xlsx' file to clone and append model-results
-                                  into it.
-                                  By default, no output-template used.
-                                  Set it to `-` to use the input xlsx-file as
-                                  output-template.
+      --soft-validation           Validate only partially input-data (no schema).
+      --out-template=<xlsx-file>  Clone the given excel-file and appends model-results into it.
+                                  By default, results are appended into an empty excel-file.
+                                  Use `--out-template=-` to use input excel-files as templates.
       --plot-workflow             Open workflow-plot in browser, after run finished.
       -l, --list                  List available models.
       --graph-depth=<levels>      An integer to Limit the levels of sub-models plotted
@@ -670,21 +678,22 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
                                     https://docs.python.org/3.5/library/logging.config.html#logging-config-dictschema
 
 
-
-    Sub-commands:
+    SUB-COMMANDS:
         batch                   Simulate vehicle for all <input-path> excel-files & folder.
                                 If no <input-path> given, reads all excel-files from current-dir.
-                                Use the `template` cmd to generate the excel-file, and
-                                read this for explanations of the param names:
+                                Read this for explanations of the param names:
                                   http://co2mpas.io/explanation.html#excel-input-data-naming-conventions
-        demo                    Generate demo input-files inside <output-folder>.
-        template                Generate "empty" input-file at <excel-file-path>.
+        demo                    Generate demo input-files for the `batch` cmd inside <output-folder>.
+        template                Generate "empty" input-file for the `batch` cmd as <excel-file-path>.
         ipynb                   Generate IPython notebooks inside <output-folder>; view them with cmd:
                                   jupyter --notebook-dir=<output-folder>
         modelgraph              List or plot available models. If no model(s) specified, all assumed.
         sa                      (undocumented - subject to change)
 
-    Examples for `cmd.exe` (don't enter the lines with `#`)::
+
+    EXAMPLES::
+
+        # Don't enter lines starting with `#`.
 
         # Create work folders and then fill `input` with sample-vehicles:
         md input output
@@ -697,13 +706,14 @@ you have installed CO2MPAS (see :ref:`install` above) and type:
         co2mpas  batch  input  -O output  --charts  --plot-workflow
 
         # Create an empty vehicle-file inside `input` folder:
-        co2mpas  template  input\vehicle_1.xlsx
+        co2mpas  template  input/vehicle_1.xlsx
 
         # View a specific submodel on your browser:
         co2mpas  modelgraph  co2mpas.model.physical.wheels.wheels
 
         # View full version specs:
         co2mpas -vV
+
 
 
 
@@ -1120,9 +1130,9 @@ These names are splitted in "parts", as explained below with examples:
       cycle──────────────────────────────┘
 
 
-  All 3 parts above are optional, but at least one of them must be set on
-  a **sheet-name**; those defined are then used as defaults for all
-  **parameter-names** contained in that sheet.
+  All 3 parts above are optional, but at least one of them must be present on
+  a **sheet-name**; those parts are then used as defaults for all **parameter-names**
+  contained in that sheet.
 
 - **parameter-names**/**columns-names** parts::
 
@@ -1142,13 +1152,14 @@ These names are splitted in "parts", as explained below with examples:
 
 .. note::
    - The dot(``.``) may be replaced by space.
-   - The **usage** and **stage** parts may end with an ``s``, denoting plural.
+   - The **usage** and **stage** parts may end with an ``s``, denoting plural,
+     and are case-insensitive, e.g. ``Inputs``.
 
 .. tip::
-    You may also read the `tutorial input xl-file
-    <http://files.co2mpas.io/CO2MPAS-1.2.0/co2mpas_tutorial_1_2_0.xls>`_
+    You may also read the `"annotated" input excel-file
+    <http://files.co2mpas.io/CO2MPAS-1.2.0/co2mpas-annotated_input-1.2.0.xls>`_
     to get an understanding of each scalar paramet and series required,
-    but DO NOT USE THIS "fatty" xl-file (~40Mb) when running the model.
+    but **DO NOT USE THIS "fatty" xl-file (~10Mb) when running the model.**
 
 
 
