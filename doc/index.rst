@@ -1,4 +1,4 @@
-.. image:: _static/CO2MPAS_logo.png
+.. image:: _static/CO2MPAS_banner.png
    :width: 300 px
    :align: center
 
