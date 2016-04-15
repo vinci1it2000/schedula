@@ -15,19 +15,19 @@ Use the `batch` sub-command to simulate a vehicle contained in an excel-file.
 
 
 USAGE:
-  co2mpas batch       [options] [--gui]
+  co2mpas batch       [-v | --logconf=<conf-file>] [--gui]
                       [--overwrite-cache]
                       [--out-template=<xlsx-file> | --charts]
                       [--plot-workflow]  [-O=<output-folder>]
                       [--only-summary]  [--soft-validation]
                       [<input-path>]...
-  co2mpas demo        [options] [--gui]
+  co2mpas demo        [-v | --logconf=<conf-file>] [--gui]
                       [-f] [<output-folder>]
-  co2mpas template    [options] [--gui] [-f] [<excel-file-path> ...]
-  co2mpas ipynb       [options] [--gui] [-f] [<output-folder>]
-  co2mpas modelgraph  [options] [-O=<output-folder>]
+  co2mpas template    [-v | --logconf=<conf-file>] [--gui] [-f] [<excel-file-path> ...]
+  co2mpas ipynb       [-v | --logconf=<conf-file>] [--gui] [-f] [<output-folder>]
+  co2mpas modelgraph  [-v | --logconf=<conf-file>] [-O=<output-folder>]
                       (--list | [--graph-depth=<levels>] [<models> ...])
-  co2mpas sa          [options] [-f] [-O=<output-folder>]
+  co2mpas sa          [-v | --logconf=<conf-file>] [-f] [-O=<output-folder>]
                       [--soft-validation] [--only-summary] [--overwrite-cache]
                       [--out-template=<xlsx-file> | --charts]
                       [<input-path>] [<input-params>] [<defaults>]...

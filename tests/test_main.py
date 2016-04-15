@@ -94,7 +94,7 @@ class Main(unittest.TestCase):
                 tempfile.TemporaryDirectory() as out:
             cmd = "demo %s" % inp
             cmain._main(*cmd.split())
-            cmd = "-v batch %s -O %s" % (inp, out)
+            cmd = "batch -v -O %s %s" % (out, inp)
             cmain._main(*cmd.split())
 
 
