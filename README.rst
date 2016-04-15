@@ -586,6 +586,9 @@ environment (ALLINONE is pre-configured with them):
       complete -fdev -W "`co2mpas-autocompletions`" co2mpas
 
 
+.. |clink| replace:: *Clink*
+.. _clink: http://mridgers.github.io/clink/
+
 
 .. _usage:
 
@@ -723,10 +726,28 @@ or a folder with multiple input-files for each vehicle, and generates a
 and (optionally) multiple **output-excel-files** for each vehicle run.
 
 
-Running Demos
--------------
+Demo files
+----------
 The simulator contains input-files for demo-vehicles that are a nice
-starting point to try out.
+starting point to try out:
+
+==  ======  ======  ==========  ==========  ===========  ===  ====  ==========
+id  manual  precon  cal WLTP-H  cal WLTP-L  theoretical  S/S  BERS  correct_f0
+==  ======  ======  ==========  ==========  ===========  ===  ====  ==========
+0     X       X          X           X                                  X
+1     X                  X           X                    X     X
+2             X          X           X
+3     X                  X           X                    X             X
+4             X                      X                          X
+5     X                  X           X                          X       X
+6                        X           X           X        X
+7                        X                                X     X
+8     X                  X           X                                  X
+9                        X           X
+10    X                  X           X                    X     X       X
+==  ======  ======  ==========  ==========  ===========  ===  ====  ==========
+
+To run them, do the following:
 
 1. Choose a folder where you will store the *input* and *output* files:
 
@@ -778,31 +799,13 @@ starting point to try out.
        Done! [90.765501 sec]
 
 
-4. Inspect the results:
+4. Inspect the results (explained in the next section):
 
    .. code-block:: console
 
        $ start output/*summary.xlsx       ## More summaries might exist in the folder from previous runs.
        $ start output                     ## View the folder with all files generated.
 
-Demo files:
-~~~~~~~~~~~
-
-==  ======  ======  ==========  ==========  ===========  ===  ====  ==========
-id  manual  precon  cal WLTP-H  cal WLTP-L  theoretical  S/S  BERS  correct_f0
-==  ======  ======  ==========  ==========  ===========  ===  ====  ==========
-0     X       X          X           X                                  X
-1     X                  X           X                    X     X
-2             X          X           X
-3     X                  X           X                    X             X
-4             X                      X                          X
-5     X                  X           X                          X       X
-6                        X           X           X        X
-7                        X                                X     X
-8     X                  X           X                                  X
-9                        X           X
-10    X                  X           X                    X     X       X
-==  ======  ======  ==========  ==========  ===========  ===  ====  ==========
 
 Output files
 ------------
@@ -819,6 +822,11 @@ The output-files produced on each run are the following:
 - A Summary-file named as `<timestamp>-summary.xls`:
   Major CO2 emissions values, optimized CO2 parameters values and
   success/fail flags of CO2MPAS submodels for all vehicles in the batch-run.
+
+.. tip::
+
+    Additionally, a sample output file is provide here:
+    http://files.co2mpas.io/CO2MPAS-1.2.0/CO2MPAS-empty_output-1.2.0.xlsx
 
 
 Entering new vehicles
@@ -865,10 +873,8 @@ excel-file:
        to get an understanding of each scalar paramet and series required,
        but **DO NOT USE THIS "fatty" xl-file (~10Mb) when running the model.**
 
-       Additionally, a sample output - file here:
-       http://files.co2mpas.io/CO2MPAS-1.2.0/CO2MPAS-empty_output-1.2.0.xlsx
-       or below in the :ref:`excel-model` section
-
+       For an explanation of the naming of the fields, read below the
+       :ref:`excel-model` section
 
    You may repeat these last 2 steps if you want to add more vehicles in
    the *batch-run*.
@@ -1140,7 +1146,7 @@ as shown in the "active" flow-diagram of the execution, below:
    provided, the model will select from ```output.calibration.wltp_x`` nodes a
    minimum set required to predict CO2 emissions.
 
-.. _excel-model
+.. _excel-model:
 
 Excel input: data naming conventions
 ------------------------------------
@@ -1305,6 +1311,3 @@ The following table describes the scores, targets, and metrics for each model:
    :width: 600 px
    :align: center
 
-
-.. |clink| replace:: *Clink*
-.. _clink: http://mridgers.github.io/clink/

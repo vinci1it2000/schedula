@@ -30,8 +30,8 @@ Model-changes
   (py2.4, py2.5, with fairly recent combinations of numpy/scipy libraries);
   results are expected to differ between 32bit-64bit platforms.
 
-Engine model:
-~~~~~~~~~~~~~
+Engine model
+~~~~~~~~~~~~
 - :gh:`110`: Add a function to identify *on_idle* as ``engine_speeds_out > MIN_ENGINE_SPEED``
   and ``gears = 0``, or ``engine_speeds_out > MIN_ENGINE_SPEED`` and ``velocities <= VEL_EPS``.
   When engine is idling, power flowing towards the engine is disengaged, and thus
@@ -62,8 +62,8 @@ Engine model:
 - :gh:`47`: Exclude first seconds when the engine is off before performing the
   temperature model calibration.
 
-Electrics model:
-~~~~~~~~~~~~~~~~
+Electrics model
+~~~~~~~~~~~~~~~
 - :gh:`200`: Fix identification of ``alternator_status_threshold`` and ``charging_statuses``
   for cars with no break eenergy-recuperation-system(BERS). Engine start windows and
   positive alternator currents are now excluded from the calibration.
@@ -76,8 +76,8 @@ Electrics model:
   Use GradientBoostingRegressor instead of DecisionTreeRegressor, due to over-fitting
   of the later.
 
-Clutch /Torque-converter/AT  models:
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Clutch /Torque-converter/AT models
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - :gh:`179`: Add lock up mode in the torque converter module.
 - :gh:`161`: Apply ``correct_gear_shifts`` function before clearing the fluctuations
   on the ``AT_gear`` model.
@@ -90,8 +90,8 @@ IO
   used in the model and in the input/output excel files;
   on model parameters internally and on model parameters used on the Input/Output excel files.
 
-Input:
-~~~~~~
+Input
+~~~~~
 - :gh:`186`, :gh:`211`: Add a ``theoretical_WLTP`` sheet on the inputs. If inputs are provided,
   calculate the additional theoretical cycles on the prediction and add the results
   on the outputs.
@@ -105,8 +105,8 @@ Input:
 - :gh:`143`: Use electrics from the preconditioning cycle to calculate initial state
   of charge for the WLTP. Default initial state of charge is set equal to 99%.
 
-Output:
-~~~~~~~
+Output
+~~~~~~
 - :gh:`198`: Add calculation of *willans factors* for each phase.
 - :gh:`164`: Add fuel consumption ``[l/100km]``, total and per subphase, in the output file.
 - :gh:`173`: Fix metrics and error messages on the calibration of the clutch model
@@ -127,8 +127,8 @@ Output:
 - :gh:`163`: Add sample logconf-file with all loggers; ``pandalone.xleash.io`` logger silenced bye default.
 
 
-Jupyter notebooks:
-------------------
+Jupyter notebooks
+-----------------
 - :gh:`171`: Fix ``simVehicle.ipynb`` notebook of *O'snow*.
 
 Cmd-line
@@ -162,8 +162,8 @@ Documentation
   <http://co2mpas.io/explanation.html#excel-input-data-naming-conventions>`_
   used in the model and in the input/output excel files (:gh:`215`);
 
-Known limitations:
-------------------
+Known limitations
+-----------------
 - *Model sensitivity*: The sensitivity of CO2MPAS to moderately differing input
   time-series has been tested and found within expected ranges when
   *a single measured WLTP cycle is given as input* on each run - if both
@@ -187,8 +187,8 @@ and a high-level description of the model changes is contained in this `JRC-LAT 
 
 Model-changes
 -------------
-Engine model:
-~~~~~~~~~~~~~
+Engine model
+~~~~~~~~~~~~
 - Fix extrapolation in ``engine.get_full_load()``, keeping constant the boundary
   values.
 - Update ``engine.get_engine_motoring_curve_default()``. The default motoring
@@ -208,8 +208,8 @@ Engine model:
   - :gh:`25`: Simplify calibration method for hot part of the cycle,
     imposing ``t=0``.
 
-Temperature model:
-~~~~~~~~~~~~~~~~~~
+Temperature model
+~~~~~~~~~~~~~~~~~
 - :gh:`118`, :gh:`53`: Possible to run hot start cycles & fixed
   temperature cycles.
 - :gh:`94`: Fix bug in ``co2_emission.calculate_normalized_engine_coolant_temperatures()``,
@@ -219,35 +219,35 @@ Temperature model:
 - :gh:`55`: Add an additional temperature model, ``f(previous_T, S, P, A)``;
   chose the one which gives the best results.
 
-Gearbox model:
-~~~~~~~~~~~~~~
+Gearbox model
+~~~~~~~~~~~~~
 - :gh:`49`: Fix bug in the estimation of the gear box efficiency for negative power,
   leading to an overestimation of the gear box temperature. (still open)
 - :gh:`45`: ATs: Fix bug in the *GSPV matrix* leading to vertical up-shifting lines.
 
-S/S model:
-~~~~~~~~~~~~~
+S/S model
+~~~~~~~~~
 - :gh:`85`: Correct internal gear-shifting profiles according to legislation.
 - :gh:`81`: MTs: correct S/S model output -start engine- when ``gear > 0``.
 - :gh:`75`, :git:`3def98f3`: Fix gear-identification for
   initial time-steps for real-data; add warning message if WLTP does not
   respect input S/S activation time.
 
-- Electrics model:
-~~~~~~~~~~~~~~~~~~~
+Electrics model
+~~~~~~~~~~~~~~~
 - :gh:`78`, :gh:`46`: Fix bug in ``electrics.calibrate_alternator_current_model()``
   for real cars, fix fitting error when alternator is always off.
 - :gh:`17`: Add new alternator status model, bypassing the DT when ``battery_SOC_balance``
   is given, ``has_energy_recuperation`` equals to one, but BERS is not
   identified in WLTP. ???
 
-- Clutch/Torque-converter models:
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Clutch/Torque-converter models
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - :gh:`83`: Add a second clutch model, equals to no-clutch, when clutch model fails.
 - :gh:`16`: Add torque converter.
 
-Vehicle model:
-~~~~~~~~~~~~~~~
+Vehicle model
+~~~~~~~~~~~~~
 - :gh:`76`: Remove first 30 seconds for the engine speed model
   selection.
 - :git:`e8cabe10`, :git:`016e7060`: Rework model-selection code.

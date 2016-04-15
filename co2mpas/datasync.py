@@ -341,10 +341,10 @@ def do_datasync(x_label, y_label, ref_xlref, *sync_xlrefs,
         no_clone=False):
     """
     :param str ref_xlref:
-            The :term:`xl-ref` capturing a table from a workbook-sheet to use as *reference*.
+            The `xl-ref` capturing a table from a workbook-sheet to use as *reference*.
             The table must contain `x_label`, `y_label` column labels.
     :param ref_xlref:
-            A list of :term:`xl-ref` capturing tables from workbook-sheets,
+            A list of `xl-ref` capturing tables from workbook-sheets,
             to be *synced* in relation to *reference*.
             All tables must contain `x_label`, `y_label` column labels.
             Each xlref may omit file or sheet-name parts; in that case,
