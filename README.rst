@@ -829,12 +829,22 @@ excel-file:
 
         $ start input/vehicle_1.xlsx      ## Opens the excel-file. Use `start` in *cmd.exe*.
 
-   .. Tip::
-       The generated file contains help descriptions to help you populate it
-       with vehicle data.  For items where an array of values is required
-       (i.e. gear-box ratios) you may reference different parts of
-       the spreadsheet following the syntax of the `"xlref" mini-language
-       <https://pandalone.readthedocs.org/en/latest/reference.html#module-pandalone.xleash>`_.
+   The generated file contains help descriptions to help you populate it
+   with vehicle data.  For items where an array of values is required
+   (i.e. gear-box ratios) you may reference different parts of
+   the spreadsheet following the syntax of the `"xlref" mini-language
+   <https://pandalone.readthedocs.org/en/latest/reference.html#module-pandalone.xleash>`_.
+
+   .. tip::
+       You may also read the `"annotated" input excel-file
+       <http://files.co2mpas.io/CO2MPAS-1.2.0/co2mpas-annotated_input-1.2.0.xls>`_
+       to get an understanding of each scalar paramet and series required,
+       but **DO NOT USE THIS "fatty" xl-file (~10Mb) when running the model.**
+
+       Additionally, a sample output - file here:
+       http://files.co2mpas.io/CO2MPAS-1.2.0/CO2MPAS-empty_output-1.2.0.xlsx
+       or below in the :ref:`excel-model` section
+
 
    You may repeat these last 2 steps if you want to add more vehicles in
    the *batch-run*.
@@ -976,11 +986,6 @@ To create/modify one output-template yourself, do the following:
 
 4. Use that file together with the ``--out-template`` argument.
 
-.. tip::
-    You can find a template/dummy output-template file here:
-    http://files.co2mpas.io/CO2MPAS-1.2.0/CO2MPAS_out_template.xlsx
-    or below in the :ref:`excel-model` section
-
 
 Launch CO2MPAS from Jupyter(aka IPython)
 ----------------------------------------
@@ -1059,10 +1064,10 @@ Debugging and investigating results
 
   .. code-block:: console
 
-        $ co2mpas modelgraph gear_box_calibration
+        $ co2mpas modelgraph co2mpas.model.physical.wheels.wheels
 
-  .. image:: _static/GearModel.png
-    :alt: Flow-diagram of the Gear-calibration model.
+  .. image:: _static/Wheel%20model/Wheel_model.gv.svg
+    :alt: Flow-diagram Wheel-to-Engine speed ratio calculations.
     :height: 240
     :width: 320
 
@@ -1082,7 +1087,7 @@ of 3 stages: ``precondition``, ``calibration``, and ``prediction``.
 These are invoked repeatedly, and subsequently combined, for the various cycles,
 as shown in the "active" flow-diagram of the execution, below:
 
-.. image:: CO2MPAS%20model/CO2MPAS_model.gv.svg
+.. image:: _static/CO2MPAS%20model/CO2MPAS_model.gv.svg
     :alt: Flow-diagram of the execution of various Stages and Cycles sub-models.
     :width: 640
 
@@ -1154,13 +1159,6 @@ These names are splitted in "parts", as explained below with examples:
    - The dot(``.``) may be replaced by space.
    - The **usage** and **stage** parts may end with an ``s``, denoting plural,
      and are case-insensitive, e.g. ``Inputs``.
-
-.. tip::
-    You may also read the `"annotated" input excel-file
-    <http://files.co2mpas.io/CO2MPAS-1.2.0/co2mpas-annotated_input-1.2.0.xls>`_
-    to get an understanding of each scalar paramet and series required,
-    but **DO NOT USE THIS "fatty" xl-file (~10Mb) when running the model.**
-
 
 
 Description of the name-parts

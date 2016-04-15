@@ -6,30 +6,33 @@
 # 2. (if FINAL)REMOVE `pip install --pre` from README!!!
 # 3. Run TCs.
 # 4. commit & TAG & push
-# 5. Gen DOCS & MODEL in `cmd.exe` & check OK (i.e. diagrams??):
-#       rm -r ./doc/ _build/  "doc/_static/CO2MPAS model/"
-#       co2mpas modelgraph -O doc/_static/ co2mpas.model.model
-#       python setup.py build_sphinx
-# 6. Build `wheel,` `sdist` , `doc` archives:
+# 5. Gen DOCS & MODEL in `cmd.exe` & check OK (i.e. diagrams??)
+#    and build `wheel,` `sdist` , `doc` archives:
 #       ./bin/package.sh
-# 7. Upload to PyPi:
+# 6. Upload to PyPi:
 #    - DELETE any BETAS (but the last one?)!!
 #       - twine upload -su <gpg-user> dist/* # Ignore warn about doc-package.
 #
 # +++MANUAL+++
-# 8. Generate RELEASE_NOTES:
+# 7. Generate RELEASE_NOTES:
 #    - open ./doc/_build/html/co2mpas_RelNotes.html ## & PrintAs 'co2mpas_RelNotes-v0.1.1.pdf'
-# 9. Prepare site at http://co2mpas.io/
+# 8. Prepare site at http://co2mpas.io/
 #   - copy ALLINONES
 #   - copy `allinone/CO2MPAS/packages` dir created during:
 #            pip install co2mpas --download %home%\packages
 #    - Expand docs, link STABLE ad LATEST
-# 10. Prepare email (and test)
+# 9. Prepare email (and test)
 #    - Use email-body to draft a new "Release" in github (https://github.com/JRCSTU/co2mpas/releases).
 #
 
 my_dir=`dirname "$0"`
 cd $my_dir/..
+
+## Generate Site:
+rm -r ./doc/_build/
+cmd /C python setup.py build_sphinx
+cmd /C co2mpas modelgraph -O doc/_build/html/_static/ co2mpas.model.model co2mpas.model.physical.wheels.wheels
+
 
 rm -rf build/* dist/*
 python setup.py build bdist_wheel sdist

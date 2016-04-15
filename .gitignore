@@ -76,4 +76,5 @@ target/
 tests/dispatcher/docs
 .ipynb_checkpoints/
 doc/_static/CO2MPAS model/
+doc/_static/Wheel model/
 /tests/load_inputs
