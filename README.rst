@@ -281,7 +281,7 @@ CO2MPAS installation
            and detect *man-in-the-middle* attacks, however impossible.
 
         b) Download all *wheel* packages from `co2mpas-site
-           <http://files.co2mpas.io>`_ for the specific version you are
+           <http://files.co2mpas.io/CO2MPAS-1.2.0/packages/>`_ for the specific version you are
            interested in , and install them one by one (see next section).
 
            .. code-block:: console
@@ -396,7 +396,7 @@ require the use of ``pip`` command from a *console* to install:
 - **Without internet connectivity** (for all of the above):
 
   1. Pre-download locally all files in the ``packages`` folder located in
-     the desired CO2MPAS version at `CO2MPAS site <http://files.co2mpas.io/>`_,
+     the desired CO2MPAS version at `CO2MPAS site <http://files.co2mpas.io/CO2MPAS-1.2.0/packages/>`_,
      with "normal" browser.  Lets assume that you downloaded the packages in
      the folder ``co2mpas_packages``.
   2. Install them with a console-command like that:
