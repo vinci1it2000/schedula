@@ -31,7 +31,6 @@ from .__main__ import file_finder
 from .batch import _process_vehicle, _add2summary, _save_summary, \
     get_nested_dicts, vehicle_processing_model, combine_nested_dicts
 from .model.physical.electrics import Alternator_status_model
-from .model.physical.engine import Start_stop_model
 from .model.physical.engine.co2_emission import _set_attr
 
 
@@ -158,16 +157,8 @@ def _sa(input_vehicle, input_parameters, output_folder, default=None, **kw):
             d.update(validate({k: v}))
 
             if k == 'has_start_stop':
-                if not v:
-                    n, k = 'calibrated_models', 'start_stop_model'
-                    if k not in d and k in outputs.get(n, {}):
-                        m = get_nested_dicts(outputs, n)[k]
-                        d[k] = Start_stop_model(
-                            on_engine_pred=m.on,
-                            n_args=m.n
-                        )
-                        if 'start_stop_activation_time' not in d:
-                            d['start_stop_activation_time'] = float('inf')
+                if not v and 'start_stop_activation_time' not in d:
+                    d['start_stop_activation_time'] = float('inf')
 
             elif k == 'has_energy_recuperation':
                 if not v:
@@ -197,52 +188,6 @@ def _sa(input_vehicle, input_parameters, output_folder, default=None, **kw):
     summary_xl_file = osp.join(output_folder, '%s-%s-summary.xlsx' % (timestamp, vehicle_name))
 
     _save_summary(summary_xl_file, start_time, summary)
-
-
-_re_node_name = regex.compile(
-        r"""
-            ^(?P<cycle>WLTP([-_]{1}[HLP]{1}|)|NEDC)
-            (?P<as>_(input|prediction)s)?$
-        """, regex.IGNORECASE | regex.X | regex.DOTALL)
-
-
-def _nodes2remove(params):
-    var = {k.split('/')[0] for k in params}
-    defaults = {
-        'as': {
-            'nedc': 'inputs',
-            'wltp_t': 'predictions',
-            None: ('inputs', 'predictions')
-        },
-        'cycle': {
-            'wltp_t': ('wltp_h', 'wltp_l'),
-            'wltp': ('wltp_h', 'wltp_l', 'wltp_p')
-        },
-        ('wltp_h', 'inputs'): ('calibration_wltp_h_inputs',
-                               'calibration_wltp_h_outputs'),
-        ('wltp_l', 'inputs'): ('calibration_wltp_l_inputs',
-                               'calibration_wltp_l_outputs'),
-        ('wltp_h', 'predictions'): ('prediction_wltp_h_inputs',
-                                    'prediction_wltp_h_outputs'),
-        ('wltp_l', 'predictions'): ('prediction_wltp_l_inputs',
-                                    'prediction_wltp_l_outputs'),
-        ('wltp_p', 'inputs'): ('wltp_p_outputs',),
-        ('nedc', 'inputs'): ('prediction_nedc_outputs',)
-    }
-    nodes = []
-    for k in var:
-        match =  _re_node_name.match(k)
-        if match:
-            c = match['cycle'].lower().replace('-', '_')
-            a = match['as'].lower().replace('_', '')
-            if not a:
-                a = defaults['as'].get(c, defaults['as'][None])
-
-            c = defaults['cycle'].get(c, c)
-            for v in product(stlp(c), stlp(a)):
-                if v in defaults:
-                    nodes.extend(defaults[v])
-    return nodes
 
 
 if __name__ == '__main__':
