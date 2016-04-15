@@ -23,6 +23,10 @@ while other changes improve the quality of model runs, namely,
 - several crucial engineering fixes and enhancements, including fixes based on
   LAT's assessment of the "O'Snow" release.
 
+The study of this release's results are contained in `these 3 report files
+<https://jrcstu.github.io/co2mpas/>`_ for *manual*,  *automatic* and *real* cars,
+respectively.
+
 
 Model-changes
 -------------
