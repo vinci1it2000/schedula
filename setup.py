@@ -153,7 +153,6 @@ setup(
     #     'sphinx',
     # ],
     install_requires=[
-        'pypiwin32',
         'pandas',
         'xlsxwriter',
         'sklearn',

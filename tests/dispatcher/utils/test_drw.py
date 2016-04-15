@@ -14,6 +14,8 @@ from co2mpas.dispatcher import Dispatcher
 from co2mpas.dispatcher.utils.dsp import SubDispatch
 from co2mpas.dispatcher.utils.cst import SINK
 from co2mpas.dispatcher.utils.drw import plot
+import tempfile
+import os.path as osp
 
 
 class TestDoctest(unittest.TestCase):
@@ -42,7 +44,7 @@ class TestDispatcherDraw(unittest.TestCase):
 
         dispatch = SubDispatch(s_dsp, ['b', 'c', 'd'], output_type='list')
         dsp = Dispatcher()
-        dsp.add_data('input', default_value={'a': {'a': 3}})
+        dsp.add_data('input', default_value={'a': {'a': 3, 'funcs': fun}})
 
         dsp.add_function('dispatch', dispatch, ['input'], [SINK, 'h', 'i'])
 
@@ -67,4 +69,14 @@ class TestDispatcherDraw(unittest.TestCase):
         f = plot(dsp, function_module=True)
         self.assertIsInstance(f, Digraph)
 
+    def test_long_path(self):
+        dsp = self.dsp
+        filename = osp.join(tempfile.TemporaryDirectory().name, 'a' * 200)
+        d = dsp.plot(filename=filename, view=False)
+        self.assertIsInstance(d, Digraph)
 
+    def test_view_long_path(self):
+        dsp = self.dsp
+        filename = osp.join(tempfile.TemporaryDirectory().name, 'a' * 200)
+        d = dsp.plot(filename=filename, view=True)
+        self.assertIsInstance(d, Digraph)

@@ -27,7 +27,6 @@ import html
 import logging
 from pathlib import Path
 from .des import parent_func, search_node_description
-from .io import mkdirs
 from .alg import stlp
 
 
@@ -37,41 +36,24 @@ __all__ = ['plot']
 
 log = logging.getLogger(__name__)
 
-_encode_table = {
-    '{': '\{',
-    '}': '\}',
-    '|': '\|'
-}
+_UNC = u'\\\\?\\'
 
-if os.name != 'nt':
-    class _Digraph(gviz.Digraph):
-        pass
-else:
-    import win32api
 
-    class _Digraph(gviz.Digraph):
-        def save(self, filename=None, directory=None):
+def uncpath(p):
+    return _UNC + os.path.abspath(p)
 
-            if filename is not None:
-                self.filename = filename
-            if directory is not None:
-                self.directory = directory
 
-            filepath = self.filepath
+class _Digraph(gviz.Digraph):
 
-            name = mkdirs(filepath)
+    @property
+    def filepath(self):
+        return uncpath(os.path.join(self.directory, self.filename))
 
-            # noinspection PyUnresolvedReferences
-            data = gviz._compat.text_type(self.source)
-
-            with open(name, 'w', encoding=self.encoding) as fd:
-                fd.write(data)
-
-            return name
-
-        def render(self, *args, **kwargs):
-            path = super(_Digraph, self).render(*args, **kwargs)
-            return win32api.GetLongPathName(path)
+    @staticmethod
+    def _view_windows(filepath):
+        """Start filepath with its associated application (windows)."""
+        filepath = os.path.relpath(filepath, uncpath(os.getcwd()))
+        os.startfile(os.path.normpath(filepath))
 
 
 def _encode_dot(s):
@@ -79,8 +61,8 @@ def _encode_dot(s):
 
 
 def _html_encode(s):
-    s = ''.join(_encode_table.get(c, c) for c in str(s))
-    return html.escape(s)
+    s = _encode_dot(s).replace('{', '\{').replace('}', '\}').replace('|', '\|')
+    return html.escape(s).replace('\n', '&#10;')
 
 
 def _encode_file_name(s):
@@ -116,7 +98,6 @@ def _init_filepath(directory, filename, nested, name):
         filename = path.name.split('.')
         if not len(filename) > 1:
             path = path.parent.joinpath('%s.gv' % filename[0])
-
     return str(path.parent), _encode_file_name(path.name)
 
 
@@ -208,18 +189,17 @@ def _data_node_label(dot, k, values, attr=None, dist=None,
     return _node_label(k, v), kw
 
 
-def _format_output(data, max_len=1000):
-    tooltip, formatted_output = [''], ['']
+def _format_output(data, max_len=100):
     format = partial(pprint.pformat, compact=True)
     if inspect.isfunction(data):
         inspect.getsource(data)
-    try:
-        tooltip = format(data).split('\n')
-        formatted_output = format(np.asarray(data).tolist()).split('\n')
-    except:
-        pass
 
-    return '&#10;'.join(tooltip[:max_len]), formatted_output
+    tooltip = format(data).split('\n')
+
+    formatted_output = format(np.asarray(data).tolist()).split('\n')
+    tooltip = '&#10;'.join(tooltip) if len(tooltip) < max_len else ''
+
+    return tooltip, formatted_output
 
 
 def _remote_links(label, links, node_id, function_module):
@@ -387,10 +367,10 @@ def _set_func_out(dot, node_name, func, nested):
 def _save_txt_output(directory, filename, output_lines):
     filename = _encode_file_name('%s.txt' % str(filename))
     filepath = str(Path(directory, filename))
+    if not os.path.isdir(str(directory)):
+        os.makedirs(str(directory))
 
-    name = mkdirs(filepath)
-
-    with open(name, "w") as text_file:
+    with open(filepath, "w") as text_file:
         text_file.write('\n'.join(output_lines))
 
     return filepath
@@ -407,7 +387,8 @@ def _set_sub_dsp(dot, dsp, dot_id, node_name, edge_attr, workflow, depth,
 
         def wrapper(*args, **kwargs):
             s_dot = plot(*args, **kwargs)
-            path = s_dot.render(cleanup=True)
+            s_dot.render(cleanup=True)
+            path = '%s.%s' % (s_dot.filepath, s_dot._format)
             return {'URL': _url_rel_path(dot.directory, path)}
 
     else:
@@ -421,7 +402,7 @@ def _set_sub_dsp(dot, dsp, dot_id, node_name, edge_attr, workflow, depth,
             ]
         }
         kw_sub.update(dot_kw)
-        kw_sub['name'] = html.escape(kw_sub['name'], True).replace(':', '')
+        kw_sub['name'] = html.unescape(kw_sub['name']).replace(':', '')
 
         dot_kw = {}
         sub_dot = _Digraph(**kw_sub)
@@ -449,7 +430,7 @@ def _set_edge(dot, dot_u, dot_v, attr=None, edge_data=None, **kw_dot):
 
 
 def _url_rel_path(directory, path):
-    url = './%s' % Path(path).relative_to(directory)
+    url = './%s' % Path(path).relative_to(uncpath(directory))
     # noinspection PyUnresolvedReferences
     url = urllib.parse.quote(url.replace('\\', '/'))
     return url
@@ -459,7 +440,7 @@ def _get_dsp2dot_id(dot, graph):
     parent = dot.name
 
     def id_node(o):
-        return html.escape('%s_%s' % (parent, hash(o)), quote=True)
+        return html.unescape('%s_%s' % (parent, hash(o)))
 
     return {k: id_node(k) for k in chain(graph.node, [START, END, SINK, EMPTY])}
 
