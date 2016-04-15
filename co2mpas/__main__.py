@@ -8,7 +8,7 @@ r"""
 Predict NEDC CO2 emissions from WLTP.
 
 :Home:         http://co2mpas.io/
-:Copyright:    2015 European Commission (JRC-IET <https://ec.europa.eu/jrc/en/institutes/iet>
+:Copyright:    2015-2016 European Commission (JRC-IET <https://ec.europa.eu/jrc/en/institutes/iet>
 :License:       EUPL 1.1+ <https://joinup.ec.europa.eu/software/page/eupl>
 
 Use the `batch` sub-command to simulate a vehicle contained in an excel-file.
