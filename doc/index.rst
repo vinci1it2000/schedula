@@ -3,9 +3,8 @@
 .. image:: _static/CO2MPAS_banner.svg
    :width: 300 px
    :align: center
-
 .. include:: ../README.rst
-    :start-after:  :align: center
+    :start-after: .. _start-opening:
     :end-before: .. _end-opening:
 
 .. toctree::

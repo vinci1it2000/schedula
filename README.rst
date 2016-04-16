@@ -6,6 +6,7 @@
 CO2MPAS: Vehicle simulator predicting NEDC CO2 emissions from WLTP
 ##################################################################
 
+.. _start-opening:
 :Release:       1.3.1b1
 :Date:          2016-07-14 17:12:00
 :Home:          http://co2mpas.io/
@@ -25,10 +26,10 @@ fuel-consumption simulator for light-duty vehicles (cars and vans),
 specially crafted to back-translate consumption figures from WLTP cycles
 into NEDC ones.
 
-It is an open-source project developed with Python-3.4,
+It is an open-source project developed with Python-3.4+,
 using Anaconda & WinPython under Windows 7, Anaconda under MacOS, and
 Linux's standard python environment.
-It runs as a *console command*, with various graphical UIs on the making.
+It runs as a *console command* consuming (mostly) excel-files with input-data.
 
 History
 =======
