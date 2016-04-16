@@ -26,6 +26,7 @@ from ..utils import median_filter, grouper, clear_fluctuations, reject_outliers
 from ..constants import *
 from ..gear_box import calculate_gear_box_speeds_in
 from ..wheels import calculate_wheel_power
+from pprint import pformat
 
 
 def correct_gear_full_load(
@@ -431,12 +432,18 @@ def _correct_gsv_for_constant_velocities(
 class CMV(OrderedDict):
     def __init__(self, *args, velocity_speed_ratios=None):
         super(CMV, self).__init__(*args)
+        if args and isinstance(args[0], CMV):
+            if velocity_speed_ratios:
+                self.convert(velocity_speed_ratios)
+            else:
+                velocity_speed_ratios = args[0].velocity_speed_ratios
+
         self.velocity_speed_ratios = velocity_speed_ratios or {}
 
     def __repr__(self):
         name, _inf, sinf = self.__class__.__name__, float('inf'), "float('inf')"
         items = [(k, v if v != _inf else sinf)for k, v in self.items()]
-        vsr = self.velocity_speed_ratios
+        vsr = pformat(self.velocity_speed_ratios)
         return '{}({}, velocity_speed_ratios={})'.format(name, items, vsr)
 
     def fit(self, correct_gear, gears, engine_speeds_out, velocities,
@@ -718,16 +725,26 @@ def correct_gsv(gsv):
 
 
 class GSPV(dict):
-    def __init__(self, cloud=None, velocity_speed_ratios=None):
-        super(GSPV, self).__init__()
-        self.cloud = cloud or {}
+    def __init__(self, *args, cloud=None, velocity_speed_ratios=None):
+        super(GSPV, self).__init__(*args)
+        if args and isinstance(args[0], GSPV):
+            if not cloud:
+                self.cloud = args[0].cloud
+            if velocity_speed_ratios:
+                self.convert(velocity_speed_ratios)
+            else:
+                velocity_speed_ratios = args[0].velocity_speed_ratios
+        else:
+            self.cloud = cloud or {}
+
         self.velocity_speed_ratios = velocity_speed_ratios or {}
         if cloud:
             self._fit_cloud()
 
     def __repr__(self):
         s = 'GSPV(cloud={}, velocity_speed_ratios={})'
-        return s.format(self.cloud, self.velocity_speed_ratios)
+        vsr = pformat(self.velocity_speed_ratios)
+        return s.format(pformat(self.cloud), vsr)
 
     def fit(self, gears, velocities, wheel_powers, velocity_speed_ratios):
         self.clear()
