@@ -5,7 +5,7 @@ import numpy as np
 from lmfit import Parameters, Parameter
 from schema import Schema, Use, And, Or, Optional, SchemaError
 from sklearn.tree import DecisionTreeClassifier
-
+from pprint import pformat
 import co2mpas.dispatcher.utils as dsp_utl
 from .dill import save_dill
 from co2mpas.batch import stack_nested_keys, get_nested_dicts
@@ -121,11 +121,25 @@ def _eval(s, error=None, **kwargs):
 
 
 # noinspection PyUnusedLocal
-def _dict(format=None, error=None, **kwargs):
+def _dict(format=None, error=None, read=True, **kwargs):
     format = format or {int: float}
     error = error or 'should be a dict with this format {}!'.format(format)
     c = Use(lambda x: {k: v for k, v in dict(x).items() if v is not None})
-    return _eval(Or(Empty(), And(c, Or(Empty(), format))), error=error)
+    if read:
+        return _eval(Or(Empty(), And(c, Or(Empty(), format))), error=error)
+    else:
+        return And(_dict(format=format, error=error), Use(pformat))
+
+
+# noinspection PyUnusedLocal
+def _ordict(format=None, error=None, read=True, **kwargs):
+    format = format or {int: float}
+    error = error or 'should be a OrderedDict with this format {}!'.format(format)
+    c = Use(OrderedDict)
+    if read:
+        return _eval(Or(Empty(), And(c, Or(Empty(), format))), error=error)
+    else:
+        return And(_dict(format=format, error=error), Use(pformat))
 
 
 def _check_length(length):
@@ -202,15 +216,15 @@ def _parameters2str(data):
             s.append("('%s', %s)" % (k, _parameters2str(v)))
         return 'Parameters(None, OrderedDict([%s]))' % ', '.join(s)
     elif isinstance(data, Parameter):
-        d = {
-            'name': "'%s'" % data.name,
-            'vary': data.vary,
-            'max': data.max,
-            'min': data.min,
-            'expr': "'%s'" % data._expr if data._expr else 'None',
-            'value': data._val
-         }
-        return 'Parameter(%s)' % ', '.join('%s=%s' % v for v in d.items())
+        d = [
+            ('name', "'%s'" % data.name),
+            ('vary', data.vary),
+            ('max', data.max),
+            ('min', data.min),
+            ('expr', "'%s'" % data._expr if data._expr else 'None'),
+            ('value', data._val)
+        ]
+        return 'Parameter(%s)' % ', '.join('%s=%s' % v for v in d)
 
 
 def _parameters(error=None, read=True):
@@ -245,6 +259,7 @@ def define_data_schema(read=True):
             read=read
     )
     dictstrdict = _dict(format={str: dict}, read=read)
+    ordictstrdict = _ordict(format={str: dict}, read=read)
     parameters = _parameters(read=read)
     dictstrfloat = _dict(format={str: Use(float)}, read=read)
     dictstrtuple = _dict(format={str: tuple}, read=read)
@@ -362,7 +377,7 @@ def define_data_schema(read=True):
         'gear_box_efficiency_parameters_cold_hot': dictstrdict,
         'model_scores': dictstrdict,
         'scores': dictstrdict,
-        'scores at_gear': _type(type=OrderedDict),
+        'scores at_gear': ordictstrdict,
 
         'fuel_density': positive,
         'idle_engine_speed': tuplefloat2,
