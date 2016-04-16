@@ -1,6 +1,8 @@
+.. meta::
+    :theme-color:   #CCCC00
 .. image:: doc/_static/CO2MPAS_banner.png
-   :width: 300 px
-   :align: center
+   :width:          300 px
+   :align:          center
 
 ##################################################################
 CO2MPAS: Vehicle simulator predicting NEDC CO2 emissions from WLTP
