@@ -17,7 +17,7 @@ import logging
 import numpy as np
 from sklearn.metrics import mean_absolute_error
 from pprint import pformat
-from scipy.interpolate import InterpolatedUnivariateSpline
+from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 
 def _bool_env_var(var_name, default):
     v = os.environ.get(var_name, default)
@@ -45,6 +45,7 @@ init_logging(False)
 #logging.getLogger('pandalone.xleash').setLevel(logging.INFO)
 log = logging.getLogger(__name__)
 
+
 class SeatBelt(unittest.TestCase):
 
     def _check_results(self, new_res, old_res):
@@ -55,8 +56,8 @@ class SeatBelt(unittest.TestCase):
         fail = []
 
         if len(new_res) != len(old_res):
-            fail.append('Mismatch in the number of vehicles: new(%i) != old(%i)' %
-                    (len(new_res), len(old_res)))
+            fail.append('Mismatch in the number of vehicles: '
+                        'new(%i) != old(%i)' % (len(new_res), len(old_res)))
         for i, (results, old_results) in enumerate(zip(new_res, old_res)):
             err = []
             results = dict(results)
@@ -84,8 +85,8 @@ class SeatBelt(unittest.TestCase):
     def test_files(self):
         mydir = osp.dirname(__file__)
         log.info("\n  OVERWRITE_SEATBELT: %s \n"
-                "  RUN_INPUT_FOLDER: %s \n"
-                "  RUN_ALL_FILES: %s ",
+                 "  RUN_INPUT_FOLDER: %s \n"
+                 "  RUN_ALL_FILES: %s ",
                 OVERWRITE_SEATBELT, RUN_INPUT_FOLDER, RUN_ALL_FILES)
         path = RUN_INPUT_FOLDER or osp.join(mydir, '..', 'co2mpas', 'demos')
         file = (path
@@ -128,7 +129,8 @@ class SeatBelt(unittest.TestCase):
 
 
 def _has_difference(nv, ov):
-    if hasattr(nv, '__call__') or (isinstance(nv, list) and isinstance(nv[0], InterpolatedUnivariateSpline)):
+    if hasattr(nv, '__call__') or hasattr(nv, 'predict') or \
+            (isinstance(nv, list) and isinstance(nv[0], Spline)):
         return False
 
     if DATA_DIFF_RATIO == 0 or isinstance(nv, str):
