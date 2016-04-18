@@ -4,7 +4,7 @@
 
 .. include:: ../README.rst
     :start-after:  :align: center
-    :end-before: _end-opening:
+    :end-before: .. _end-opening:
 
 .. toctree::
 

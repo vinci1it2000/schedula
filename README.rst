@@ -1,8 +1,8 @@
 .. meta::
     :theme-color:   #CCCC00
 .. image:: doc/_static/CO2MPAS_banner.png
-   :width:          300 px
-   :align:          center
+   :width: 300 px
+   :align: center
 
 ##################################################################
 CO2MPAS: Vehicle simulator predicting NEDC CO2 emissions from WLTP
@@ -135,7 +135,7 @@ instead of performing the above 2 steps separately.
 - Download **all-in-one archive** from
   http://files.co2mpas.io/.
   Ensure that you download the correct 32/64 architecture for your PC
-  (the 64bit archive CANNOT run on 32bit PCs, but the opposite is possible).
+  (the 64bit archive CANNOT run on 32bit PCs).
 
 - Use the original `"7z" extraxtor <http://portableapps.com/apps/utilities/7-zip_portable>`_,
   since "plain-zip" produces out-of-memory errors when expanding long
@@ -177,8 +177,8 @@ packages updated to their latest versions, you may skip this 1st stage.
     Therefore we suggest that you download one of the following two
     *scientific-python* distributions:
 
-      #. `WinPython <https://winpython.github.io/>`_ **python-3** (prefer 64 bit)
-      #. `Anaconda <http://continuum.io/downloads>`_ **python-3** (prefer 64 bit)
+      #. `WinPython <https://winpython.github.io/>`_ **python-3** (64 bit)
+      #. `Anaconda <http://continuum.io/downloads>`_ **python-3** (64 bit)
 
 
 
@@ -189,7 +189,7 @@ binaries for *Windows* containing all the scientific packages, and much more.
 It is not update-able, and has a quasi-regular release-cycle of 3 months.
 
 
-1. Install the latest python-3 (preferably 64 bit) from https://winpython.github.io/.
+1. Install the latest **python-3.4+  64 bit** from https://winpython.github.io/.
    Prefer an **installation-folder without any spaces leading to it**.
 
 2. Open the WinPython's command-prompt console, by locating the folder where
@@ -221,7 +221,7 @@ The *Anaconda* distribution is a non-standard Python environment that
 for *Windows* containing all the scientific packages we need, and much more.
 It is not update-able, and has a semi-regular release-cycle of 3 months.
 
-1. Install Anaconda python 3.4 (preferably 64 bit) from http://continuum.io/downloads.
+1. Install Anaconda **python-3.4+ 64 bit** from http://continuum.io/downloads.
    Prefer an **installation-folder without any spaces leading to it**.
 
    .. Note::
@@ -286,10 +286,10 @@ CO2MPAS installation
        > co2mpas -vV
        co2mpas_version: 1.2.0
        co2mpas_rel_date: 2016-04-18 16:06:04
-       co2mpas_path: d:\co2mpas_ALLINONE-XXbit-v1.0.5.dev1\Apps\WinPython\python-3.4.3\lib\site-packages\co2mpas
-       python_path: D:\co2mpas_ALLINONE-XXbit-v1.0.5.dev1\WinPython\python-3.4.3
+       co2mpas_path: d:\co2mpas_ALLINONE-64bit-v1.0.5.dev1\Apps\WinPython\python-3.4.3\lib\site-packages\co2mpas
+       python_path: D:\co2mpas_ALLINONE-64bit-v1.0.5.dev1\WinPython\python-3.4.3
        python_version: 3.4.3 (v3.4.3:9b73f1c3e601, Feb 24 2015, 22:44:40) [MSC v.1600 XXX]
-       PATH: D:\co2mpas_ALLINONE-XXbit-v1.0.5.dev1\WinPython...
+       PATH: D:\co2mpas_ALLINONE-64bit-v1.0.5.dev1\WinPython...
 
 
    .. Note::
@@ -466,8 +466,8 @@ where in each one you can install a different versions of CO2MPAS.
    b. locate the `set PATH=...` line towards the bottom of the file, and
       append the following 2 lines::
 
-        set "TCL_LIBRARY=d:\WinPython-XX4bit-3.Y.Y.Y\python-3.Y.Y.amd64\tcl\tcl8.6"
-        set "TK_LIBRARY=d:\WinPython-XXit-3.Y.Y.Y\python-3.Y.Y.amd64\tcl\tk8.6"
+        set "TCL_LIBRARY=d:\WinPython-64bit-3.Y.Y.Y\python-3.Y.Y.amd64\tcl\tcl8.6"
+        set "TK_LIBRARY=d:\WinPython-64bit-3.Y.Y.Y\python-3.Y.Y.amd64\tcl\tk8.6"
 
    .. Warning::
        If you don't modify the *activation-script*, you will receive
@@ -607,9 +607,7 @@ its version match the version declared on this file.
 The main entry for the simulator is the ``co2mpas`` console-command,
 which **is not visible, but it is installed in your PATH**.
 To get the syntax of the ``co2mpas`` console-command, open a console where
-you have installed CO2MPAS (see :ref:`install` above) and type:
-
-.. code-block:: console
+you have installed CO2MPAS (see :ref:`install` above) and type::
 
     Predict NEDC CO2 emissions from WLTP.
 
@@ -905,9 +903,8 @@ be accurate enough.
 As an aid tool, you may use the ``datasync`` command-line tool to "synchronize"
 your *data-tables*. This command reads one or more tables from excel-files and
 synchronizes their columns.  The syntax of this utility command is given
-by typing ``datasync --help`` in the command line (listing below just the main fields):
-
-.. code-block:: console
+by typing ``datasync --help`` in the command line
+(listing below just the main fields)::
 
     Shift and resample excel-tables; see http://co2mpas.io/usage.html#Synchronizing-time-series.
 
