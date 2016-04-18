@@ -12,6 +12,7 @@ It provides functions to plot dispatcher map and workflow.
 
 import graphviz as gviz
 import os
+import os.path as osp
 import string
 import urllib
 import numpy as np
@@ -40,20 +41,25 @@ _UNC = u'\\\\?\\'
 
 
 def uncpath(p):
-    return _UNC + os.path.abspath(p)
+    return _UNC + osp.abspath(p)
 
 
 class _Digraph(gviz.Digraph):
 
     @property
     def filepath(self):
-        return uncpath(os.path.join(self.directory, self.filename))
+        return uncpath(osp.join(self.directory, self.filename))
 
-    @staticmethod
-    def _view_windows(filepath):
+    def _view_windows(self, filepath):
         """Start filepath with its associated application (windows)."""
-        filepath = os.path.relpath(filepath, uncpath(os.getcwd()))
-        os.startfile(os.path.normpath(filepath))
+        try:
+            super(_Digraph, self)._view_windows(filepath)
+        except FileNotFoundError as ex:
+            if osp.isfile(filepath):
+                raise ValueError('The file path is too long. It cannot '
+                                 'be opened by Windows!')
+            else:
+                raise ex
 
 
 def _encode_dot(s):
@@ -367,7 +373,7 @@ def _set_func_out(dot, node_name, func, nested):
 def _save_txt_output(directory, filename, output_lines):
     filename = _encode_file_name('%s.txt' % str(filename))
     filepath = str(Path(directory, filename))
-    if not os.path.isdir(str(directory)):
+    if not osp.isdir(str(directory)):
         os.makedirs(str(directory))
 
     with open(filepath, "w") as text_file:

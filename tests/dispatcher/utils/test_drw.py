@@ -8,7 +8,7 @@
 
 import unittest
 import doctest
-
+import platform
 from graphviz.dot import Digraph
 from co2mpas.dispatcher import Dispatcher
 from co2mpas.dispatcher.utils.dsp import SubDispatch
@@ -16,6 +16,8 @@ from co2mpas.dispatcher.utils.cst import SINK
 from co2mpas.dispatcher.utils.drw import plot
 import tempfile
 import os.path as osp
+
+PLATFORM = platform.system().lower()
 
 
 class TestDoctest(unittest.TestCase):
@@ -75,8 +77,8 @@ class TestDispatcherDraw(unittest.TestCase):
         d = dsp.plot(filename=filename, view=False)
         self.assertIsInstance(d, Digraph)
 
+    @unittest.skipIf(PLATFORM != 'windows', 'Your sys can open long path file.')
     def test_view_long_path(self):
         dsp = self.dsp
         filename = osp.join(tempfile.TemporaryDirectory().name, 'a' * 200)
-        d = dsp.plot(filename=filename, view=True)
-        self.assertIsInstance(d, Digraph)
+        self.assertRaises(ValueError, dsp.plot, filename=filename, view=True)
