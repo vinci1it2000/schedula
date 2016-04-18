@@ -24,7 +24,7 @@ import co2mpas.dispatcher.utils as dsp_utl
 from functools import partial
 from ..utils import median_filter, grouper, clear_fluctuations, reject_outliers
 from ..constants import *
-from ..gear_box import calculate_gear_box_speeds_in
+from .mechanical import calculate_gear_box_speeds_in
 from ..wheels import calculate_wheel_power
 from pprint import pformat
 

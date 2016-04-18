@@ -264,6 +264,7 @@ def define_data_schema(read=True):
     dictstrtuple = _dict(format={str: tuple}, read=read)
 
     schema = {
+        _compare_str('CVT'): function,
         _compare_str('CMV'): cmv,
         _compare_str('CMV_Cold_Hot'): _dict(format={'hot': cmv, 'cold': cmv},
                                             read=read),
@@ -290,7 +291,8 @@ def define_data_schema(read=True):
         'engine_idle_fuel_consumption': positive,
         'final_drive_ratio': positive,
         'r_dynamic': positive,
-        'gear_box_type': _select(types=('manual', 'automatic'), read=read),
+        'gear_box_type': _select(types=('manual', 'automatic', 'cvt'),
+                                 read=read),
         'start_stop_activation_time': positive,
         'alternator_nominal_voltage': positive,
         'battery_capacity': positive,

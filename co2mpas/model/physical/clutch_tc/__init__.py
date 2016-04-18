@@ -202,7 +202,7 @@ def clutch_torque_converter():
     def torque_converter_domain(kwargs):
         for k, v in kwargs.items():
             if ':gear_box_type' in k or 'gear_box_type' == k:
-                return v == 'automatic'
+                return v in ('cvt', 'automatic')
         return False
 
     dsp.add_dispatcher(

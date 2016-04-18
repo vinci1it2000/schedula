@@ -265,8 +265,9 @@ def sub_models():
     sub_models['engine_speed_model'] = {
         'dsp': physical(),
         'models': ['r_dynamic', 'final_drive_ratio', 'gear_box_ratios',
-                   'idle_engine_speed', 'engine_thermostat_temperature'],
-        'inputs': ['velocities', 'gears', 'times', 'on_engine'],
+                   'idle_engine_speed', 'engine_thermostat_temperature', 'CVT'],
+        'inputs': ['velocities', 'gears', 'times', 'on_engine', 'gear_box_type',
+                   'accelerations', 'final_drive_powers_in'],
         'outputs': ['engine_speeds_out_hot'],
         'targets': ['engine_speeds_out'],
         'metrics_inputs': ['times', 'velocities', 'gear_shifts'],

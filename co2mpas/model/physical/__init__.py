@@ -403,6 +403,8 @@ def physical():
         dsp_id='gear_box_model',
         dsp=gear_box(),
         inputs={
+            'on_engine': 'on_engine',
+            'CVT': 'CVT',
             'eco_mode': 'eco_mode',
             'MVL': 'MVL',
             'CMV': 'CMV',
@@ -447,6 +449,7 @@ def physical():
             'velocity_speed_ratios': 'velocity_speed_ratios',
         },
         outputs={
+            'CVT': 'CVT',
             'MVL': 'MVL',
             'CMV': 'CMV',
             'CMV_Cold_Hot': 'CMV_Cold_Hot',
