@@ -4,7 +4,7 @@ CO2MPAS Changes
 .. contents::
 .. _changes:
 
-v1.2.1, 19-Apr 2016: "Panino" release
+v1.2.2, file-ver: 2.2, 19-Apr 2016: "Panino" release
 ================================================================
 This release contains both key model and software changes; additional capabilities
 have been added for the user, namely,
@@ -178,7 +178,7 @@ Known limitations
 
 
 
-v1.1.1, 09-Feb 2016: "O'snow" release
+v1.1.1, file-ver: 2.1, 09-Feb 2016: "O'snow" release
 ================================================================
 This release contains mostly model changes; some internal restructurings have
 not affected the final user.

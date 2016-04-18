@@ -2,7 +2,8 @@
 #
 # Release checklist
 # =================
-# 1. Bump-ver & Update Date+Title in ./CHANGES.rst.
+# 0. Bump-ver + Bump FILE-ver (if necsesary).
+# 1. Update Date+Title in ./CHANGES.rst.
 # 2. (if FINAL)REMOVE `pip install --pre` from README!!!
 # 3. Run TCs.
 # 4. commit & TAG & push
