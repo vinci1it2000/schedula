@@ -2159,10 +2159,10 @@ class Dispatcher(object):
         w = self._wildcards = set()  # Clear wildcards.
 
         if outputs and inputs:
-            node = self.nodes  # Namespace shortcut.
+            node, wi = self.nodes, self._wait_in.get  # Namespace shortcut.
 
             # Input data nodes that are in output_targets.
-            w_crd = {u: node[u] for u in inputs if u in outputs}
+            w_crd = {u: node[u] for u in inputs if u in outputs or wi(u, False)}
 
             # Data nodes without the wildcard.
             w.update([k for k, v in w_crd.items() if v.get('wildcard', True)])
