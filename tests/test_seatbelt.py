@@ -131,8 +131,8 @@ class SeatBelt(unittest.TestCase):
             results.append(sorted(stack_nested_keys(r), key=lambda x: x[0]))
 
         if not OVERWRITE_SEATBELT and osp.isfile(res_file):
-            self._check_results(results, old_results)
             log.info('Comparing...')
+            self._check_results(results, old_results)
         else:
             os.environ["OVERWRITE_SEATBELT"] = '0'
             dsp_utl.save_dispatcher(results, res_file)
