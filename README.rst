@@ -397,7 +397,7 @@ require the use of ``pip`` command from a *console* to install:
 
      .. code-block:: console
 
-        pip install co2mpas  --no-index  -f=path/to/co2mpas_packages
+        pip install co2mpas  --no-index  -f path/to/co2mpas_packages
 
 
 Install Multiple versions in parallel
