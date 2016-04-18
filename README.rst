@@ -265,40 +265,18 @@ CO2MPAS installation
         Installing collected packages: co2mpas
         Successfully installed co2mpas-1.2.0rc4
 
-   .. Note::
-        **Installing Behind Firewall:**
-
-        This previous step requires http-connectivity to Python's "standard"
-        repository (https://pypi.python.org/) and to co2mpas-site
-        (http://files.co2mpas.io).
-        In case you are behind a **corporate proxy**, you may either:
-
-        a) Append the following option to all ``pip`` commands, appropriately
-           adapted: ``--proxy http://user:password@yourProxyUrl:yourProxyPort``.
-
-           To avert any security deliberations for this http-proxy "tunnel",
-           JRC *cryptographically signs* all *final releases*, so that you or
-           your IT staff may `validate their authenticity
-           <https://www.davidfischer.name/2012/05/signing-and-verifying-python-packages-with-pgp/>`_
-           and detect *man-in-the-middle* attacks, however impossible.
-
-        b) Download all *wheel* packages from `co2mpas-site
-           <http://files.co2mpas.io/CO2MPAS-1.2.0/packages/>`_ for the specific version you are
-           interested in , and install them one by one (see next section).
-
-           .. code-block:: console
-
-               REM Download MANUALLY all `*.whl` files contained in release folder
-               REM from co2mpas-site in some folder.
-               > cd <folder-where-wheels_downloaded>
-               > pip install *.whl
-
-
    .. Warning::
-       If you cannot install CO2MPAS, re-run the ``pip`` command adding
-       2 *verbose* flags ``-vv``, copy-paste the console-output, and send it
-       to JRC.
+        **Installation failures:**
 
+        The previous step require http-connectivity for ``pip`` command to
+        Python's "standard" repository (https://pypi.python.org/) and to
+        co2mpas-site (http://files.co2mpas.io).
+        In case you are behind a **corporate proxy**, you may try one of the methods
+        described in section `Different ways of installation`_, below.
+
+        If all methods to install CO2MPAS fail, re-run ``pip`` command adding
+        extra *verbose* flags ``-vv``, copy-paste the console-output, and report it
+        to JRC.
 
 2. Check that when you run ``co2mpas``, the version executed is indeed the one
    installed above (check both version-identifiers and paths):
@@ -391,21 +369,35 @@ require the use of ``pip`` command from a *console* to install:
 
       pip install git+https://github.com/JRCSTU/co2mpas.git@2927346f4c513a
 
-- When you are **behind an http-proxy** (for all of the above):
+- **Speed-up download**:
+  append  the ``--use-mirrors`` option in the ``pip`` command.
+
+- (for all of the above) When you are **behind an http-proxy**:
   append an appropriately adapted option
   ``--proxy http://user:password@yourProxyUrl:yourProxyPort``.
 
-- **Without internet connectivity** (for all of the above):
+  .. Important::
+      To avert any security deliberations for this http-proxy "tunnel",
+      JRC *cryptographically signs* all *final releases*, so that you or
+      your IT staff may `validate their authenticity
+      <https://www.davidfischer.name/2012/05/signing-and-verifying-python-packages-with-pgp/>`_
+      and detect *man-in-the-middle* attacks, however impossible.
 
-  1. Pre-download locally all files in the ``packages`` folder located in
-     the desired CO2MPAS version at `CO2MPAS site <http://files.co2mpas.io/CO2MPAS-1.2.0/packages/>`_,
-     with "normal" browser.  Lets assume that you downloaded the packages in
-     the folder ``co2mpas_packages``.
-  2. Install them with a console-command like that:
+- (for all of the above) **Without internet connectivity** or when the above
+  proxy cmd fails:
 
-  .. code-block:: console
+  1. With with a "regular" browser and when connected to the Internet,
+     pre-download locally all files present in the ``packages`` folder
+     located in the desired CO2MPAS version in the *CO2MPAS site*
+     (e.g. http://files.co2mpas.io/CO2MPAS-1.2.0/packages/).
 
-      pip install co2mpas -f path/to/co2mpas_packages
+  2. Install *co2mpas*, referencing the above folder.
+     Assuming that you downloaded the packages in the folder ``path/to/co2mpas_packages``,
+     use a console-command like this:
+
+     .. code-block:: console
+
+        pip install co2mpas  --no-index  -f=path/to/co2mpas_packages
 
 
 Install Multiple versions in parallel
@@ -431,8 +423,8 @@ where in each one you can install a different versions of CO2MPAS.
        > pip install virtualenv
 
    .. Note::
-      The `pip` command above has to run only once for each parent python-env.
-      If `virtualenv` is already installed, `pip` will exit gracefully.
+      The ``pip`` command above has to run only once for each parent python-env.
+      If `virtualenv` is already installed, ``pip`` will exit gracefully.
 
 
 
