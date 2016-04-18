@@ -4,7 +4,7 @@ CO2MPAS Changes
 .. contents::
 .. _changes:
 
-v1.1.2, 13-Apr 2016: "Panino" release
+v1.1.2, 18-Apr 2016: "Panino" release
 ================================================================
 This release contains both key model and software changes; additional capabilities
 have been added for the user, namely,
@@ -19,9 +19,9 @@ have been added for the user, namely,
 while other changes improve the quality of model runs, namely,
 
 - the introduction of schema to check input values(:gh:`60`, :gh:`80`),
-- several model changes improving the consumption of real-measurement data-series, and
-- several crucial engineering fixes and enhancements, including fixes based on
-  LAT's assessment of the "O'Snow" release.
+- several model changes improving the handling of real-measurement data-series, and
+- several crucial engineering fixes and enhancements on the model-calculations,
+  including fixes based on  LAT's assessment of the "O'Snow" release.
 
 The study of this release's results are contained in `these 3 report files
 <https://jrcstu.github.io/co2mpas/>`_ for *manual*,  *automatic* and *real* cars,
@@ -32,7 +32,7 @@ Model-changes
 -------------
 - :gh:`6`: Confirmed that *co2mpas* results are  reproducible in various setups
   (py2.4, py2.5, with fairly recent combinations of numpy/scipy libraries);
-  results are expected to differ between 32bit-64bit platforms.
+  results are still expected to differ between 32bit-64bit platforms.
 
 Engine model
 ~~~~~~~~~~~~
