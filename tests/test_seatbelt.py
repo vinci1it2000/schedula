@@ -34,6 +34,7 @@ def _bool_env_var(var_name, default):
 OVERWRITE_SEATBELT = _bool_env_var('OVERWRITE_SEATBELT', False)
 RUN_ALL_FILES = _bool_env_var('RUN_ALL_FILES', False)
 RUN_INPUT_FOLDER = os.environ.get('RUN_INPUT_FOLDER', None)
+SEATBELT_FILE = os.environ.get('SEATBELT_FILE', None)
 
 EPS = 2 * sys.float_info.epsilon
 
@@ -84,10 +85,24 @@ class SeatBelt(unittest.TestCase):
 
     def test_files(self):
         mydir = osp.dirname(__file__)
+        if SEATBELT_FILE and osp.isfile(SEATBELT_FILE):
+            res_file = SEATBELT_FILE
+        else:
+            tmpdir = tempfile.gettempdir()
+            res_file = osp.join(tmpdir, 'co2mpas_seatbelt_demos.dill')
+
         log.info("\n  OVERWRITE_SEATBELT: %s \n"
                  "  RUN_INPUT_FOLDER: %s \n"
-                 "  RUN_ALL_FILES: %s ",
-                OVERWRITE_SEATBELT, RUN_INPUT_FOLDER, RUN_ALL_FILES)
+                 "  RUN_ALL_FILES: %s \n"
+                 "  SEATBELT_FILE: %s",
+                 OVERWRITE_SEATBELT, RUN_INPUT_FOLDER, RUN_ALL_FILES, res_file)
+
+        if not OVERWRITE_SEATBELT and osp.isfile(res_file):
+            old_results = dsp_utl.load_dispatcher(res_file)
+            log.info("Old results loaded!")
+        else:
+            old_results = None
+
         path = RUN_INPUT_FOLDER or osp.join(mydir, '..', 'co2mpas', 'demos')
         file = (path
                 if (RUN_ALL_FILES or RUN_INPUT_FOLDER)
@@ -115,12 +130,8 @@ class SeatBelt(unittest.TestCase):
             r.get('report', {}).pop('pipe', None)
             results.append(sorted(stack_nested_keys(r), key=lambda x: x[0]))
 
-        tmpdir = tempfile.gettempdir()
-        res_file = osp.join(tmpdir, 'co2mpas_seatbelt_demos.dill')
-
         if not OVERWRITE_SEATBELT and osp.isfile(res_file):
-            old_resultes = dsp_utl.load_dispatcher(res_file)
-            self._check_results(results, old_resultes)
+            self._check_results(results, old_results)
             log.info('Comparing...')
         else:
             os.environ["OVERWRITE_SEATBELT"] = '0'
