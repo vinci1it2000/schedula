@@ -184,8 +184,8 @@ class _custom_tqdm(tqdm):
 
 def _process_folder_files(
         input_files, output_folder, plot_workflow=False, with_output_file=True,
-        output_template_xl_fpath=None, with_charts=False,
-        overwrite_cache=False, soft_validation=False):
+        output_template_xl_fpath=None, overwrite_cache=False,
+        soft_validation=False):
     """
     Process all xls-files in a folder with CO2MPAS-model.
 
@@ -226,7 +226,6 @@ def _process_folder_files(
                 plot_workflow=plot_workflow,
                 with_output_file=with_output_file,
                 output_template_xl_fpath=output_template_xl_fpath,
-                with_charts=with_charts,
                 overwrite_cache=overwrite_cache,
                 soft_validation=soft_validation
         )
@@ -239,12 +238,11 @@ def _process_folder_files(
 def _process_vehicle(
         model, fpath, output_folder='.', timestamp=None, plot_workflow=False,
         with_output_file=False, output_template_xl_fpath=None,
-        with_charts=False, overwrite_cache=False, soft_validation=False):
+        overwrite_cache=False, soft_validation=False):
 
     inputs = {
         'input_file_name': fpath,
         'output_template': output_template_xl_fpath,
-        'with_charts': with_charts,
         'overwrite_cache': overwrite_cache,
         'soft_validation': soft_validation,
         'output_folder': output_folder,
@@ -557,7 +555,7 @@ def vehicle_processing_model():
 
     dsp.add_data(
         data_id='with_charts',
-        default_value=False
+        default_value=True
     )
 
     from co2mpas.report import report

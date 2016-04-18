@@ -16,20 +16,20 @@ Use the `batch` sub-command to simulate a vehicle contained in an excel-file.
 
 USAGE:
   co2mpas batch       [-v | --logconf=<conf-file>] [--gui]
-                      [--overwrite-cache]
-                      [--out-template=<xlsx-file> | --charts]
-                      [--plot-workflow]  [-O=<output-folder>]
-                      [--only-summary]  [--soft-validation]
+                      [--overwrite-cache] [--out-template=<xlsx-file>]
+                      [--plot-workflow] [-O=<output-folder>]
+                      [--only-summary] [--soft-validation]
                       [<input-path>]...
   co2mpas demo        [-v | --logconf=<conf-file>] [--gui]
                       [-f] [<output-folder>]
-  co2mpas template    [-v | --logconf=<conf-file>] [--gui] [-f] [<excel-file-path> ...]
+  co2mpas template    [-v | --logconf=<conf-file>] [--gui] [-f]
+                      [<excel-file-path> ...]
   co2mpas ipynb       [-v | --logconf=<conf-file>] [--gui] [-f] [<output-folder>]
   co2mpas modelgraph  [-v | --logconf=<conf-file>] [-O=<output-folder>]
                       (--list | [--graph-depth=<levels>] [<models> ...])
   co2mpas sa          [-v | --logconf=<conf-file>] [-f] [-O=<output-folder>]
                       [--soft-validation] [--only-summary] [--overwrite-cache]
-                      [--out-template=<xlsx-file> | --charts]
+                      [--out-template=<xlsx-file>]
                       [<input-path>] [<input-params>] [<defaults>]...
   co2mpas             [--verbose | -v]  (--version | -V)
   co2mpas             --help
@@ -47,7 +47,6 @@ OPTIONS:
                               and Options. [default: False].
   --only-summary              Do not save vehicle outputs, just the summary file.
   --overwrite-cache           Overwrite the cached file.
-  --charts                    Add basic charts to output file.
   --soft-validation           Validate only partially input-data (no schema).
   --out-template=<xlsx-file>  Clone the given excel-file and appends model-results into it.
                               By default, results are appended into an empty excel-file.
@@ -94,7 +93,7 @@ EXAMPLES::
     co2mpas  batch  --gui  input
 
     # or specify them with output-charts and workflow plots:
-    co2mpas  batch  input  -O output  --charts  --plot-workflow
+    co2mpas  batch  input  -O output  --plot-workflow
 
     # Create an empty vehicle-file inside `input` folder:
     co2mpas  template  input/vehicle_1.xlsx
@@ -422,7 +421,6 @@ def _cmd_sa(opts):
     run_sa(input_path, input_params, out_folder, *defaults,
            soft_validation=opts['--soft-validation'],
            with_output_file=not opts['--only-summary'],
-           with_charts=opts['--charts'],
            output_template_xl_fpath=opts['--out-template'],
            overwrite_cache=opts['--overwrite-cache']
            )
@@ -461,7 +459,6 @@ def _run_batch(opts):
     process_folder_files(input_paths, output_folder,
                          with_output_file=not opts['--only-summary'],
                          plot_workflow=opts['--plot-workflow'],
-                         with_charts=opts['--charts'],
                          output_template_xl_fpath=opts['--out-template'],
                          overwrite_cache=opts['--overwrite-cache'],
                          soft_validation=opts['--soft-validation'])
