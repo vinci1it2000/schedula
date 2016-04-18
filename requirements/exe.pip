@@ -5,24 +5,25 @@
 pandas
 numpy
 scipy
-sklearn
+scikit-learn
 matplotlib
 
 ## Pure python libs.
 #
 setuptools
-pypiwin32
 networkx
 dill
 graphviz
 docopt
 six
 easygui
-pandalone
+pandalone>=0.1.11
 xlsxwriter
 regex
 schema
-lmfit
+lmfit>=0.9.2
 tqdm
-cycler
 pip
+pyyaml
+cycler
+boltons

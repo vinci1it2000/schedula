@@ -155,7 +155,7 @@ setup(
     install_requires=[
         'pandas',
         'xlsxwriter',
-        'sklearn',
+        'scikit-learn',
         'numpy',
         'scipy',
         'lmfit>=0.9.2',
