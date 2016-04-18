@@ -85,21 +85,21 @@ A pre-populated folder with WinPython + CO2MPAS + Consoles for *Windows*.
 
             REM The python-interpreter that comes 1st is what we care about.
             > where python
-            D:\co2mpas_ALLINONE-64bit-v1.0.2\Apps\WinPython-64bit-3.4.3.5\python-3.4.3\python.exe
-            D:\co2mpas_ALLINONE-64bit-v1.0.2\Apps\Cygwin\bin\python
+            D:\co2mpas_ALLINONE-64bit-v1.2.1\Apps\WinPython-64bit-3.4.3.5\python-3.4.3\python.exe
+            D:\co2mpas_ALLINONE-64bit-v1.2.1\Apps\Cygwin\bin\python
 
             > co2mpas --version
-            co2mpas-1.2.0 at D:\co2mpas_ALLINONE-64bit-v1.0.2\Apps\WinPython-64bit-3.4.3.5\python-3.4.3\lib\site-packages\co2mpas
+            co2mpas-1.2.1 at D:\co2mpas_ALLINONE-64bit-v1.2.1\Apps\WinPython-64bit-3.4.3.5\python-3.4.3\lib\site-packages\co2mpas
 
         - In *bash*, type:
 
           .. code-block:: console
 
             > which python
-            /cygdrive/d/co2mpas_ALLINONE-64bit-v1.0.2/Apps/WinPython-64bit-3.4.3.5/python-3.4.3/python
+            /cygdrive/d/co2mpas_ALLINONE-64bit-v1.2.1/Apps/WinPython-64bit-3.4.3.5/python-3.4.3/python
 
             > co2mpas --version
-            co2mpas-1.2.0 at D:\co2mpas_ALLINONE-64bit-v1.0.2\Apps\WinPython-64bit-3.4.3.5\python-3.4.3\lib\site-packages\co2mpas
+            co2mpas-1.2.1 at D:\co2mpas_ALLINONE-64bit-v1.2.1\Apps\WinPython-64bit-3.4.3.5\python-3.4.3\lib\site-packages\co2mpas
 
    In case of problems, copy-paste the output from the above commands and send
    it to JRC.
