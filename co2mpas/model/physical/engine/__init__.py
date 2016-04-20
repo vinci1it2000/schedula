@@ -16,6 +16,7 @@ Sub-Modules:
     :nosignatures:
     :toctree: engine/
 
+    thermal
     co2_emission
 """
 
@@ -24,11 +25,10 @@ from math import pi
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 from scipy.optimize import fmin
-from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.metrics import mean_absolute_error
 from sklearn.tree import DecisionTreeClassifier
-import co2mpas.dispatcher.utils as dsp_utl
 from ..constants import *
+from .thermal import *
 from ..utils import bin_split, reject_outliers, clear_fluctuations, \
     derivative, argmax, get_inliers
 
@@ -331,189 +331,6 @@ def identify_upper_bound_engine_speed(
     m, sd = reject_outliers(engine_speeds_out[dom])
 
     return m + sd * 0.674490
-
-
-def _calibrate_TPS(T, dT, gear_box_powers_in, gear_box_speeds_in, **kw):
-    X = np.array([T, gear_box_powers_in, gear_box_speeds_in]).T[:-1]
-    opt = {
-        'random_state': 0,
-        'max_depth': 2,
-        'n_estimators': int(min(300, 0.25 * (len(dT) - 1))),
-        'loss': 'huber',
-        'alpha': 0.99
-    }
-    opt.update(kw)
-    # noinspection PyUnresolvedReferences
-    predict = GradientBoostingRegressor(**opt).fit(X, dT).predict
-
-    # noinspection PyUnusedLocal
-    def TPS(deltas_t, powers, speeds, *args, initial_temperature=23):
-        t, temp = initial_temperature, [initial_temperature]
-        append = temp.append
-
-        for dt, a in zip(deltas_t, zip(powers, speeds)):
-            t += predict([(t,) + a])[0] * dt
-            append(t)
-
-        return np.array(temp)
-
-    return TPS
-
-
-def _calibrate_TPSA(T, dT, gear_box_powers_in, gear_box_speeds_in,
-                    accelerations, **kw):
-    X = np.array([T, gear_box_powers_in, gear_box_speeds_in,
-                  accelerations]).T[:-1]
-    opt = {
-        'random_state': 0,
-        'max_depth': 2,
-        'n_estimators': int(min(300, 0.25 * (len(dT) - 1))),
-        'loss': 'huber',
-        'alpha': 0.99
-    }
-    opt.update(kw)
-    # noinspection PyUnresolvedReferences
-    predict = GradientBoostingRegressor(**opt).fit(X, dT).predict
-
-    # noinspection PyUnusedLocal,PyUnusedLocal
-    def TPSA(deltas_t, powers, speeds, vel, acc, *args, initial_temperature=23):
-        t, temp = initial_temperature, [initial_temperature]
-        append = temp.append
-
-        for dt, a in zip(deltas_t, zip(powers, speeds, acc)):
-            t += predict([(t,) + a])[0] * dt
-            append(t)
-
-        return np.array(temp)
-
-    return TPSA
-
-
-def _get_samples(times, engine_coolant_temperatures, on_engine):
-    dT = derivative(times, engine_coolant_temperatures, dx=4, order=7)[1:]
-    dt = np.diff(times)
-    i = argmax(on_engine)
-    dt, dT = dt[i:], dT[i:]
-    T = engine_coolant_temperatures[i:]
-    dT = np.array(dT, np.float64, order='C')
-    return T, dT, dt, i
-
-
-def calibrate_engine_temperature_regression_model(
-        times, engine_coolant_temperatures, velocities, accelerations,
-        gear_box_powers_in, gear_box_speeds_in, on_engine):
-    """
-    Calibrates an engine temperature regression model to predict engine
-    temperatures.
-
-    This model returns the delta temperature function of temperature (previous),
-    acceleration, and power at the wheel.
-
-    :param times:
-        Time vector [s].
-    :type times: numpy.array
-
-    :param engine_coolant_temperatures:
-        Engine coolant temperature vector [°C].
-    :type engine_coolant_temperatures: numpy.array
-
-    :param velocities:
-        Velocity vector [km/h].
-    :type velocities: numpy.array
-
-    :param accelerations:
-        Acceleration vector [m/s2].
-    :type accelerations: numpy.array
-
-    :param gear_box_powers_in:
-        Gear box power vector [kW].
-    :type gear_box_powers_in: numpy.array
-
-    :param gear_box_speeds_in:
-        Gear box speed vector [RPM].
-    :type gear_box_speeds_in: numpy.array
-
-    :param on_engine:
-        If the engine is on [-].
-    :type on_engine: numpy.array
-
-    :return:
-        The calibrated engine temperature regression model.
-    :rtype: function
-    """
-
-    T, dT, dt, i = _get_samples(times, engine_coolant_temperatures, on_engine)
-
-    if not dT.size:
-        # noinspection PyUnusedLocal
-        def DT0(deltas_t, powers, speeds, *args, initial_temperature=23):
-            return np.ones_like(powers, dtype=float) * initial_temperature
-        return DT0
-
-    p, s = gear_box_powers_in[i:], gear_box_speeds_in[i:]
-    v, a = velocities[i:], accelerations[i:]
-
-    models = [
-        _calibrate_TPS(T, dT, p, s),
-        _calibrate_TPSA(T, dT, p, s, a),
-        _calibrate_TPSA(T, dT, p, s, a, max_depth=3)
-    ]
-
-    counter = dsp_utl.counter()
-
-    def error(model):
-        pred_T = model(dt, p, s, v, a, initial_temperature=T[0])
-        return (mean_squared_error(T, pred_T), counter()), model
-
-    models = [(error(m), m) for m in models]
-
-    return min(models)[-1]
-
-
-def predict_engine_coolant_temperatures(
-        model, times, velocities, accelerations, gear_box_powers_in,
-        gear_box_speeds_in, initial_temperature):
-    """
-    Predicts the engine temperature [°C].
-
-    :param model:
-        Engine temperature regression model.
-    :type model: function
-
-    :param times:
-        Time vector [s].
-    :type times: numpy.array
-
-    :param velocities:
-        Velocity vector [km/h].
-    :type velocities: numpy.array
-
-    :param accelerations:
-        Acceleration vector [m/s2].
-    :type accelerations: numpy.array
-
-    :param gear_box_powers_in:
-        Gear box power vector [kW].
-    :type gear_box_powers_in: numpy.array
-
-    :param gear_box_speeds_in:
-        Gear box speed vector [RPM].
-    :type gear_box_speeds_in: numpy.array
-
-    :param initial_temperature:
-        Engine initial temperature [°C]
-    :type initial_temperature: float
-
-    :return:
-        Engine coolant temperature vector [°C].
-    :rtype: numpy.array
-    """
-
-    T = model(np.diff(times), gear_box_powers_in, gear_box_speeds_in,
-              velocities, accelerations,
-              initial_temperature=initial_temperature)
-
-    return T
 
 
 def identify_thermostat_engine_temperature(engine_coolant_temperatures):
@@ -1567,16 +1384,15 @@ def engine():
 
     dsp.add_function(
         function=calibrate_engine_temperature_regression_model,
-        inputs=['times', 'engine_coolant_temperatures', 'velocities',
-                'accelerations', 'gear_box_powers_in', 'gear_box_speeds_in',
-                'on_engine'],
+        inputs=['times', 'engine_coolant_temperatures', 'accelerations',
+                'gear_box_powers_in', 'gear_box_speeds_in', 'on_engine'],
         outputs=['engine_temperature_regression_model']
     )
 
     dsp.add_function(
         function=predict_engine_coolant_temperatures,
-        inputs=['engine_temperature_regression_model', 'times', 'velocities',
-                'accelerations', 'gear_box_powers_in', 'gear_box_speeds_in',
+        inputs=['engine_temperature_regression_model', 'times', 'accelerations',
+                'gear_box_powers_in', 'gear_box_speeds_in',
                 'initial_engine_temperature'],
         outputs=['engine_coolant_temperatures']
     )

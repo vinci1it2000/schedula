@@ -238,7 +238,7 @@ def sub_models():
             'initial_temperature': 'initial_engine_temperature'
         },
         'models': ['engine_temperature_regression_model'],
-        'inputs': ['times', 'velocities', 'accelerations', 'gear_box_powers_in',
+        'inputs': ['times', 'accelerations', 'gear_box_powers_in',
                    'gear_box_speeds_in', 'initial_engine_temperature'],
         'outputs': ['engine_coolant_temperatures'],
         'targets': ['engine_coolant_temperatures'],
