@@ -532,7 +532,7 @@ class CMV(OrderedDict):
         if velocity_speed_ratios != self.velocity_speed_ratios:
 
             vsr, n_vsr = self.velocity_speed_ratios, velocity_speed_ratios
-            it = [(vsr[k], v[0], v[1]) for k, v in self.items()]
+            it = [(vsr.get(k, 0), v[0], v[1]) for k, v in self.items()]
 
             K, X = zip(*[(k, v) for k, v in sorted(n_vsr.items())])
 
@@ -886,7 +886,7 @@ class GSPV(dict):
             cloud = self.cloud = {}
 
             for p in np.linspace(*limits):
-                it = [[vsr[k]] + [func(p) for func in v]
+                it = [[vsr.get(k, 0)] + [func(p) for func in v]
                       for k, v in self.items()]
 
                 L, U = _convert_limits(it, X)
