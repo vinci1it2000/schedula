@@ -562,23 +562,23 @@ class StartStopModel(object):
 
     def _yield_on_start(self, times, to_predict, *args, simple=False):
         if simple:
-            predict = self.simple.predict
-            args = args[:2]
+            predict, args = self.simple.predict, args[:2]
         else:
             predict = self.model.predict
-        prev, t_last_start = True, times[0]
-
+        on, prev, t_switch = True, True, times[0]
         for t, p, X in zip(times, to_predict, zip(*args)):
-            if t >= t_last_start and p:
-                on = bool(predict([X])[0])
-            else:
+            if not p:
                 on = True
+            elif t >= t_switch or X[0] > VEL_EPS or abs(X[1]) > ACC_EPS:
+                on = bool(predict([X])[0])
+
             start = prev != on and on
             on_start = [on, start]
             yield on_start
-            prev, start = on_start
-            if start:
-                t_last_start = t + TIME_WINDOW
+            on = on_start[0]
+            if prev != on:
+                t_switch = t + TIME_WINDOW
+                prev = on
 
     @staticmethod
     def when_predict_on_engine(
