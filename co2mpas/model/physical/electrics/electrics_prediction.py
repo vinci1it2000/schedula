@@ -101,7 +101,7 @@ def calculate_alternator_current(
     if alternator_status and on_engine and engine_start_current == 0:
         a_c = alternator_current_model(
             alternator_status, prev_battery_state_of_charge, gear_box_power_in,
-            on_engine, acceleration)
+            acceleration)
         a_c = max(a_c, -max_alternator_current)
     else:
         a_c = 0.0

@@ -246,7 +246,7 @@ def define_alternator_current_model(alternator_charging_currents):
     """
 
     # noinspection PyUnusedLocal
-    def model(alt_status, prev_soc, gb_power, on_engine, acc):
+    def model(alt_status, prev_soc, gb_power, acc):
         b = gb_power > 0 or (gb_power == 0 and acc >= 0)
         return alternator_charging_currents[b]
 
@@ -311,7 +311,7 @@ def calibrate_alternator_current_model(
         predict = lambda *args, **kwargs: [0.0]
 
     # noinspection PyUnusedLocal
-    def model(alt_status, prev_soc, gb_power, on_engine, acc):
+    def model(alt_status, prev_soc, gb_power, acc):
         return min(0.0, predict([(prev_soc, alt_status, gb_power, acc)])[0])
 
     return model
@@ -705,6 +705,30 @@ def define_alternator_status_model(
     return model
 
 
+class ElectricModel(object):
+    def __init__(self, battery_capacity, alternator_status_model,
+                 max_alternator_current, alternator_current_model,
+                 max_battery_charging_current, alternator_nominal_voltage,
+                 start_demand, electric_load):
+        self.battery_capacity = battery_capacity
+        self.alternator_status_model = alternator_status_model
+        self.max_alternator_current = max_alternator_current
+        self.alternator_current_model = alternator_current_model
+        self.max_battery_charging_current = max_battery_charging_current
+        self.alternator_nominal_voltage = alternator_nominal_voltage
+        self.start_demand = start_demand
+        self.electric_load = electric_load
+        from .electrics_prediction import _predict_electrics
+        self.predict = partial(
+            _predict_electrics, battery_capacity, alternator_status_model,
+            max_alternator_current, alternator_current_model,
+            max_battery_charging_current, alternator_nominal_voltage,
+            start_demand, electric_load)
+
+    def __call__(self, *args, **kwargs):
+        return self.predict(*args, **kwargs)
+
+
 def define_electrics_model(
         battery_capacity, alternator_status_model, max_alternator_current,
         alternator_current_model, max_battery_charging_current,
@@ -749,10 +773,8 @@ def define_electrics_model(
     :rtype: function
     """
 
-    from .electrics_prediction import _predict_electrics
-
-    electrics_model = partial(
-        _predict_electrics, battery_capacity, alternator_status_model,
+    electrics_model = ElectricModel(
+        battery_capacity, alternator_status_model,
         max_alternator_current, alternator_current_model,
         max_battery_charging_current, alternator_nominal_voltage, start_demand,
         electric_load)
@@ -894,8 +916,15 @@ def predict_vehicle_electrics_and_engine_start_stop(
     o = (0, 0, None, initial_state_of_charge)
     args = np.append([0], np.diff(times)), gear_box_powers_in, accelerations
     eng, ele = [], [o]
+
+    min_soc = electrics_model.alternator_status_model.min
     for i, (on_eng, dt, p, a) in enumerate(zip(gen, *args)):
+
+        if o[-1] < min_soc and not on_eng[0]:
+            on_eng[0], on_eng[1] = True, not eng[-1][-1]
+
         o = tuple(electrics_model(dt, p, a, *on_eng, *o[1:]))
+
         soc[i + 1] = o[-1]
         ele.append(o)
         eng.append(on_eng)
