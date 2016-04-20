@@ -32,7 +32,12 @@ def calculate_accelerations(times, velocities):
     :rtype: numpy.array
     """
 
-    return Spline(times, velocities / 3.6, k=3).derivative(1)(times)
+    acc = Spline(times, velocities / 3.6, k=3).derivative(1)(times)
+    b = (velocities[:-1] == 0) & (velocities[1:] == velocities[:-1])
+    acc[:-1][b] = 0
+    if b[-1]:
+        acc[-1] = 0
+    return acc
 
 
 def calculate_aerodynamic_resistances(f2, velocities):
