@@ -1,4 +1,4 @@
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Copyright 2015 European Commission (JRC);
 # Licensed under the EUPL (the 'Licence');
@@ -7,17 +7,6 @@
 
 """
 It contains functions that model the basic mechanics of the gear box.
-
-Sub-Modules:
-
-.. currentmodule:: co2mpas.model.physical.gear_box
-
-.. autosummary::
-    :nosignatures:
-    :toctree: gear_box/
-
-    thermal
-    at_gear
 """
 
 
@@ -54,15 +43,6 @@ def predict_gear_box_speeds_in_and_gears(
     X = np.array((velocities, accelerations, gear_box_powers_out)).T
 
     return cvt(X), np.ones_like(gear_box_powers_out, dtype=int), 1
-    y = engine_speeds_out
-    s, speeds = gear_box_speeds_out[0], []
-    append = speeds.append
-
-    for a in zip(gear_box_speeds_out, gear_box_powers_out):
-        s = max(0.0, cvt([(s,) + a])[0])
-        append(s)
-
-    return np.array(speeds), np.ones_like(gear_box_speeds_out, dtype=int), 1
 
 
 def cvt_model():
@@ -71,7 +51,7 @@ def cvt_model():
 
     .. dispatcher:: dsp
 
-        >>> dsp = gear_box()
+        >>> dsp = cvt_model()
 
     :return:
         The gear box model.
@@ -95,7 +75,8 @@ def cvt_model():
         function=predict_gear_box_speeds_in_and_gears,
         inputs=['CVT', 'velocities', 'accelerations',
                 'gear_box_powers_out'],
-        outputs=['gear_box_speeds_in', 'gears', 'max_gear']
+        outputs=['gear_box_speeds_in', 'gears', 'max_gear'],
+        out_weight={'gear_box_speeds_in': 6}
     )
 
     return dsp
