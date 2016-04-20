@@ -513,8 +513,8 @@ def calibrate_start_stop_model(
     soc = np.zeros_like(state_of_charges)
     soc[0], soc[1:] = state_of_charges[0], state_of_charges[:-1]
     model = StartStopModel()
-    model.fit(np.array((velocities, accelerations, engine_coolant_temperatures,
-                        soc)).T, on_engine)
+    model.fit(on_engine,
+              velocities, accelerations, engine_coolant_temperatures, soc)
 
     return model
 
@@ -522,12 +522,16 @@ def calibrate_start_stop_model(
 class StartStopModel(object):
     def __init__(self):
         self.model = DecisionTreeClassifier(random_state=0, max_depth=5)
+        self.simple = DecisionTreeClassifier(random_state=0, max_depth=3)
 
     def __call__(self, *args, **kwargs):
         return self.predict(*args, **kwargs)
 
-    def fit(self, X, y):
-        self.model.fit(X, y)
+    def fit(self, on_engine, velocities, accelerations, *args):
+
+        X = np.array((velocities, accelerations) + args).T
+        self.simple.fit(X[:, :2], on_engine)
+        self.model.fit(X, on_engine)
         return self
 
     def predict(self, times, *args, start_stop_activation_time=None, gears=None,
@@ -544,17 +548,25 @@ class StartStopModel(object):
 
     def yield_on_start(self, times, *args,
                        start_stop_activation_time=None, gears=None,
-                       correct_start_stop_with_gears=False):
+                       correct_start_stop_with_gears=False, simple=None):
 
         to_predict = self.when_predict_on_engine(
             times, start_stop_activation_time, gears,
             correct_start_stop_with_gears
         )
 
-        return self._yield_on_start(times, to_predict, *args)
+        if simple is None:
+            simple = start_stop_activation_time is not None
 
-    def _yield_on_start(self, times, to_predict, *args):
-        prev, t_last_start, predict = True, times[0], self.model.predict
+        return self._yield_on_start(times, to_predict, *args, simple=simple)
+
+    def _yield_on_start(self, times, to_predict, *args, simple=False):
+        if simple:
+            predict = self.simple.predict
+            args = args[:2]
+        else:
+            predict = self.model.predict
+        prev, t_last_start = True, times[0]
 
         for t, p, X in zip(times, to_predict, zip(*args)):
             if t >= t_last_start and p:
@@ -562,9 +574,9 @@ class StartStopModel(object):
             else:
                 on = True
             start = prev != on and on
-
-            yield on, start
-            prev = on
+            on_start = [on, start]
+            yield on_start
+            prev, start = on_start
             if start:
                 t_last_start = t + TIME_WINDOW
 
