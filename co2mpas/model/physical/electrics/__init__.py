@@ -26,6 +26,7 @@ from functools import partial
 from itertools import chain
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import GradientBoostingRegressor
+from scipy.stats import linregress
 from ..utils import reject_outliers, argmax
 from ..constants import *
 from math import pi
@@ -565,8 +566,8 @@ class Alternator_status_model(object):
     def __call__(self, *args, **kwargs):
         return self.predict(*args, **kwargs)
 
-    def fit(self, alternator_statuses, state_of_charges, gear_box_powers_in,
-            has_energy_recuperation):
+    def fit(self, times, alternator_statuses, state_of_charges,
+            gear_box_powers_in, has_energy_recuperation):
         b = alternator_statuses == 2
         if has_energy_recuperation and b.any():
             bers = DecisionTreeClassifier(random_state=0, max_depth=2)
@@ -587,16 +588,24 @@ class Alternator_status_model(object):
             charge.fit(X, b)
 
             self.charge = charge.predict
-            soc = state_of_charges[1:]
 
-            i = argmax(np.logical_not(b)) if argmax(b) == 0 else 0
-            j = -argmax(np.logical_not(b[::-1])) if argmax(b[::-1]) == 0 else b.size
-            if i < b.size:
-                s = b[i:]
-                self.min = min(soc[i:][s] if s.any() else soc[b])
-            if -j < b.size:
-                s = b[:j]
-                self.max = max(soc[:j][s] if s.any() else soc[b])
+            soc, times = state_of_charges[1:], times[1:]
+            s = np.logical_not(b)
+            J = -argmax(s[::-1]) if argmax(b[::-1]) == 0 else b.size
+            j = I = argmax(s) if argmax(b) == 0 else 0
+            i, step = None, []
+
+            while J > j != i:
+                i = argmax(b[j:]) + j
+                j = argmax(s[i:]) + i
+                if j != i and linregress(times[i:j], soc[i:j])[0] >= 0:
+                    step.extend(soc[i:j])
+
+            if step:
+                if I < b.size:
+                    self.min = min(step)
+                if -J < b.size:
+                    self.max = max(step)
         else:
             self.charge = lambda *args: (False,)
 
@@ -617,7 +626,7 @@ class Alternator_status_model(object):
 
 
 def calibrate_alternator_status_model(
-        alternator_statuses, state_of_charges, gear_box_powers_in,
+        times, alternator_statuses, state_of_charges, gear_box_powers_in,
         has_energy_recuperation):
     """
     Calibrates the alternator status model.
@@ -649,7 +658,7 @@ def calibrate_alternator_status_model(
     """
 
     model = Alternator_status_model().fit(
-        alternator_statuses, state_of_charges, gear_box_powers_in,
+        times, alternator_statuses, state_of_charges, gear_box_powers_in,
         has_energy_recuperation
     )
 
@@ -1027,7 +1036,7 @@ def electrics():
 
     dsp.add_function(
         function=calibrate_alternator_status_model,
-        inputs=['alternator_statuses', 'state_of_charges',
+        inputs=['times', 'alternator_statuses', 'state_of_charges',
                 'gear_box_powers_in', 'has_energy_recuperation'],
         outputs=['alternator_status_model'],
         weight=10
