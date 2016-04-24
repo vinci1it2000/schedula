@@ -726,6 +726,7 @@ def gear_box():
             'gears': 'gears',
             'gear_box_ratios': 'gear_box_ratios',
             'velocity_speed_ratios': 'velocity_speed_ratios',
+            'speed_velocity_ratios': 'speed_velocity_ratios',
             'gear_box_speeds_in': 'gear_box_speeds_in',
             'max_gear': 'max_gear',
         },

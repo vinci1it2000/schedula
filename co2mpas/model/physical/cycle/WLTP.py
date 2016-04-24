@@ -60,7 +60,8 @@ def calculate_unladen_mass(vehicle_mass, driver_mass):
     return vehicle_mass - driver_mass
 
 
-def calculate_max_velocity(engine_max_speed_at_max_power, gear_box_ratios):
+def calculate_max_velocity(
+        engine_max_speed_at_max_power, speed_velocity_ratios):
     """
     Calculates max vehicle velocity [km/h].
 
@@ -68,16 +69,18 @@ def calculate_max_velocity(engine_max_speed_at_max_power, gear_box_ratios):
         Rated engine speed [RPM].
     :type engine_max_speed_at_max_power: float
 
-    :param gear_box_ratios:
-        Gear box ratios [-].
-    :type gear_box_ratios: dict
+    :param speed_velocity_ratios:
+        Speed velocity ratios of the gear box [h*RPM/km].
+    :type speed_velocity_ratios: dict
 
     :return:
         Max vehicle velocity [km/h].
     :rtype: float
     """
 
-    return engine_max_speed_at_max_power / gear_box_ratios[max(gear_box_ratios)]
+    svr = speed_velocity_ratios[max(speed_velocity_ratios)]
+
+    return engine_max_speed_at_max_power / svr
 
 
 def calculate_wltp_class(
@@ -225,7 +228,7 @@ def wltp_velocities(
 
 def wltp_gears(
         full_load_curve, velocities, accelerations, motive_powers,
-        gear_box_ratios, idle_engine_speed, engine_max_speed_at_max_power,
+        speed_velocity_ratios, idle_engine_speed, engine_max_speed_at_max_power,
         engine_max_power, wltp_base_model, initial_gears=None):
     """
     Returns the gear shifting profile according to WLTP [-].
@@ -246,9 +249,9 @@ def wltp_gears(
         Motive power [kW].
     :type motive_powers: numpy.array
 
-    :param gear_box_ratios:
-        Gear box ratios [-].
-    :type gear_box_ratios: dict
+    :param speed_velocity_ratios:
+        Speed velocity ratios of the gear box [h*RPM/km].
+    :type speed_velocity_ratios: dict
 
     :param idle_engine_speed:
         Engine speed idle median and std [RPM].
@@ -276,13 +279,13 @@ def wltp_gears(
     """
 
     n_min_drive = None
-    gbr = [v for k, v in sorted(gear_box_ratios.items()) if k]
+    svr = [v for k, v in sorted(speed_velocity_ratios.items()) if k]
 
     n_norm = np.arange(0.0, 1.21, 0.01)
     load_curve = {'n_norm': n_norm, 'p_norm': full_load_curve(n_norm)}
 
     res = run_cycle(
-        velocities, accelerations, motive_powers, gbr, idle_engine_speed[0],
+        velocities, accelerations, motive_powers, svr, idle_engine_speed[0],
         n_min_drive, engine_max_speed_at_max_power, engine_max_power,
         load_curve, wltp_base_model)
 
@@ -380,7 +383,7 @@ def wltp_cycle():
 
     dsp.add_function(
         function=calculate_max_velocity,
-        inputs=['engine_max_speed_at_max_power', 'gear_box_ratios'],
+        inputs=['engine_max_speed_at_max_power', 'speed_velocity_ratios'],
         outputs=['max_velocity']
     )
 
@@ -447,7 +450,7 @@ def wltp_cycle():
     dsp.add_function(
         function=dsp_utl.add_args(wltp_gears),
         inputs=['gear_box_type', 'full_load_curve', 'velocities',
-                'accelerations', 'motive_powers', 'gear_box_ratios',
+                'accelerations', 'motive_powers', 'speed_velocity_ratios',
                 'idle_engine_speed', 'engine_max_speed_at_max_power',
                 'engine_max_power', 'wltp_base_model'],
         outputs=['gears'],

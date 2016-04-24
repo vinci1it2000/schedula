@@ -92,7 +92,7 @@ def cycle():
             'velocities': 'velocities',
             'accelerations': 'accelerations',
             'motive_powers': 'motive_powers',
-            'gear_box_ratios': 'gear_box_ratios',
+            'speed_velocity_ratios': 'speed_velocity_ratios',
             'idle_engine_speed': 'idle_engine_speed',
             'inertial_factor': 'inertial_factor',
             'downscale_phases': 'downscale_phases',
