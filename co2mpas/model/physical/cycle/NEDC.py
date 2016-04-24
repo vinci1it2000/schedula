@@ -14,7 +14,8 @@ It provides constants for the NEDC cycle.
 import numpy as np
 from scipy.interpolate import interp1d
 import sys
-
+import co2mpas.dispatcher.utils as dsp_utl
+from co2mpas.dispatcher import Dispatcher
 
 EPS = sys.float_info.epsilon * 10
 
@@ -200,3 +201,73 @@ def _repeat_part_one(times, values):
         v.extend(values)
 
     return t, v
+
+
+def nedc_cycle():
+    """
+    Defines the wltp cycle model.
+
+    .. dispatcher:: dsp
+
+        >>> dsp = nedc_cycle()
+
+    :return:
+        The wltp cycle model.
+    :rtype: Dispatcher
+    """
+
+    dsp = Dispatcher(
+        name='NEDC cycle model',
+        description='Returns the theoretical times, velocities, and gears of '
+                    'NEDC.'
+    )
+
+    dsp.add_data(
+        data_id='k1',
+        default_value=1
+    )
+
+    dsp.add_data(
+        data_id='k2',
+        default_value=2
+    )
+
+    dsp.add_function(
+        function_id='set_max_gear_as_default_k5',
+        function=dsp_utl.bypass,
+        inputs=['max_gear'],
+        outputs=['k5']
+    )
+
+    dsp.add_data(
+        data_id='k5',
+        default_value=2,
+        initial_dist=10
+    )
+
+    dsp.add_data(
+        data_id='time_sample_frequency',
+        default_value=1
+    )
+
+    dsp.add_function(
+        function_id='nedc_gears',
+        function=dsp_utl.add_args(nedc_gears),
+        inputs=['gear_box_type', 'times', 'max_gear', 'k1', 'k2', 'k5'],
+        outputs=['gears'],
+        input_domain=lambda *args: args[0] == 'manual'
+    )
+
+    dsp.add_function(
+        function=nedc_velocities,
+        inputs=['times', 'gear_box_type'],
+        outputs=['velocities']
+    )
+
+    dsp.add_function(
+        function=nedc_times,
+        inputs=['time_sample_frequency'],
+        outputs=['times']
+    )
+
+    return dsp

@@ -189,7 +189,7 @@ def get_downscale_phases(class_data):
     return class_data['downscale']['phases']
 
 
-def calculate_velocities(
+def wltp_velocities(
         downscale_factor, class_velocities, downscale_phases, times):
     """
     Returns the downscaled velocity profile [km/h].
@@ -223,7 +223,7 @@ def calculate_velocities(
     return v
 
 
-def calculate_gears(
+def wltp_gears(
         full_load_curve, velocities, accelerations, motive_powers,
         gear_box_ratios, idle_engine_speed, engine_max_speed_at_max_power,
         engine_max_power, wltp_base_model, initial_gears=None):
@@ -320,7 +320,7 @@ def get_class_data(wltc_data, wltp_class):
     :rtype: dict
     """
 
-    return wltc_data[wltp_class]
+    return wltc_data['classes'][wltp_class]
 
 
 def wltp_cycle():
@@ -338,12 +338,24 @@ def wltp_cycle():
 
     dsp = Dispatcher(
         name='WLTP cycle model',
-        description='Returns the theoretical times, velocities, and gears.'
+        description='Returns the theoretical times, velocities, and gears of '
+                    'WLTP.'
     )
 
     dsp.add_data(
         data_id='wltp_base_model',
         default_value=_get_model_base()
+    )
+
+    dsp.add_data(
+        data_id='time_sample_frequency',
+        default_value=1.0
+    )
+
+    dsp.add_function(
+        function=wltp_times,
+        inputs=['time_sample_frequency'],
+        outputs=['times']
     )
 
     dsp.add_function(
@@ -392,18 +404,18 @@ def wltp_cycle():
     )
 
     from ..vehicle import vehicle
-    func = dsp_utl.SubDispatchPipe(
+    func = dsp_utl.SubDispatchFunction(
         dsp=vehicle(),
         function_id='calculate_class_powers',
         inputs=['vehicle_mass', 'velocities', 'climbing_force', 'road_loads',
-                'inertial_factor'],
+                'inertial_factor', 'times'],
         outputs=['motive_powers']
     )
 
     dsp.add_function(
         function=func,
         inputs=['vehicle_mass', 'class_velocities', 'climbing_force',
-                'road_loads', 'inertial_factor'],
+                'road_loads', 'inertial_factor', 'times'],
         outputs=['class_powers']
     )
 
@@ -426,14 +438,14 @@ def wltp_cycle():
     )
 
     dsp.add_function(
-        function=calculate_velocities,
+        function=wltp_velocities,
         inputs=['downscale_factor', 'class_velocities', 'downscale_phases',
                 'times'],
         outputs=['velocities']
     )
 
     dsp.add_function(
-        function=dsp_utl.add_args(calculate_gears),
+        function=dsp_utl.add_args(wltp_gears),
         inputs=['gear_box_type', 'full_load_curve', 'velocities',
                 'accelerations', 'motive_powers', 'gear_box_ratios',
                 'idle_engine_speed', 'engine_max_speed_at_max_power',

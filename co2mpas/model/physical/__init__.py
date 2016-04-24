@@ -29,8 +29,6 @@ Modules:
 """
 
 from co2mpas.dispatcher import Dispatcher
-import co2mpas.dispatcher.utils as dsp_utl
-from .constants.NEDC import *
 
 
 def physical():
@@ -52,57 +50,44 @@ def physical():
                     'light-vehicles\' CO2 emissions.'
     )
 
-    dsp.add_data(
-        data_id='k1',
-        default_value=1
-    )
-
-    dsp.add_data(
-        data_id='k2',
-        default_value=2
-    )
-
-    dsp.add_function(
-        function_id='set_max_gear_as_default_k5',
-        function=dsp_utl.bypass,
-        inputs=['max_gear'],
-        outputs=['k5']
-    )
-
-    dsp.add_data(
-        data_id='k5',
-        default_value=2,
-        initial_dist=10
-    )
-
-    dsp.add_data(
-        data_id='time_sample_frequency',
-        default_value=1
-    )
-
-    from co2mpas.dispatcher.utils.dsp import add_args
-
-    dsp.add_function(
-        function_id='nedc_gears',
-        function=add_args(nedc_gears, n=2),
-        inputs=['cycle_type', 'gear_box_type', 'times',
-                'max_gear', 'k1', 'k2', 'k5'],
-        outputs=['gears'],
-        input_domain=nedc_gears_domain
-    )
-
-    dsp.add_function(
-        function=add_args(nedc_velocities, n=1),
-        inputs=['cycle_type', 'times', 'gear_box_type'],
-        outputs=['velocities'],
-        input_domain=nedc_velocities_domain
-    )
-
-    dsp.add_function(
-        function=add_args(nedc_times, n=1),
-        inputs=['cycle_type', 'time_sample_frequency'],
-        outputs=['times'],
-        input_domain=nedc_velocities_domain
+    from .cycle import cycle
+    dsp.add_dispatcher(
+        include_defaults=True,
+        dsp_id='cycle_model',
+        dsp=cycle(),
+        inputs={
+            'cycle_type': 'cycle_type',
+            'k1': 'k1',
+            'k2': 'k2',
+            'k5': 'k5',
+            'max_gear': 'max_gear',
+            'time_sample_frequency': 'time_sample_frequency',
+            'gear_box_type': 'gear_box_type',
+            'times': 'times',
+            'velocities': 'velocities',
+            'accelerations': 'accelerations',
+            'motive_powers': 'motive_powers',
+            'gear_box_ratios': 'gear_box_ratios',
+            'idle_engine_speed': 'idle_engine_speed',
+            'inertial_factor': 'inertial_factor',
+            'downscale_phases': 'downscale_phases',
+            'climbing_force': 'climbing_force',
+            'full_load_curve': 'full_load_curve',
+            'downscale_factor': 'downscale_factor',
+            'downscale_factor_threshold': 'downscale_factor_threshold',
+            'vehicle_mass': 'vehicle_mass',
+            'driver_mass': 'driver_mass',
+            'road_loads': 'road_loads',
+            'engine_max_power': 'engine_max_power',
+            'engine_max_speed_at_max_power': 'engine_max_speed_at_max_power',
+            'max_velocity': 'max_velocity',
+            'wltp_class': 'wltp_class'
+        },
+        outputs={
+            'times': 'times',
+            'velocities': 'velocities',
+            'gears': 'gears'
+        }
     )
 
     from .vehicle import vehicle
@@ -132,6 +117,8 @@ def physical():
         },
         outputs={
             'f0': 'f0',
+            'climbing_force': 'climbing_force',
+            'inertial_factor': 'inertial_factor',
             'accelerations': 'accelerations',
             'motive_powers': 'motive_powers',
             'road_loads': 'road_loads',
