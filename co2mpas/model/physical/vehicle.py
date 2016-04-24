@@ -229,7 +229,6 @@ def select_inertial_factor(n_dyno_axes):
     return 1.5 * n_dyno_axes
 
 
-
 def calculate_motive_forces(
         vehicle_mass, accelerations, climbing_force, aerodynamic_resistances,
         rolling_resistance, velocity_resistances, rotational_inertia_forces):
