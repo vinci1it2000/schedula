@@ -31,9 +31,6 @@ MIN_GEAR = 0
 #: Maximum Dt in speed shift equation [s].
 MAX_DT_SHIFT = 3.0
 
-#: Maximum m in speed shift equation [s3/m].
-MAX_M_SHIFT = 1
-
 #: Minimum vehicle engine speed [RPM].
 MIN_ENGINE_SPEED = 10.0
 
