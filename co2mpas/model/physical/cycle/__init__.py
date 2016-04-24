@@ -7,17 +7,18 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-It provides constants for the CO2MPAS formulas.
+It provides the model to calculate theoretical times, velocities, and gears.
 
 Sub-Modules:
 
-.. currentmodule:: co2mpas.model.physical.constants
+.. currentmodule:: co2mpas.model.physical.cycle
 
 .. autosummary::
     :nosignatures:
-    :toctree: constants/
+    :toctree: cycle/
 
     NEDC
+    WLTP
 
 """
 
