@@ -257,6 +257,7 @@ def define_data_schema(read=True):
             length=2,
             read=read
     )
+    tuplefloat = _type(type=And(Use(tuple), (_type(float),)), read=read)
     dictstrdict = _dict(format={str: dict}, read=read)
     ordictstrdict = _ordict(format={str: dict}, read=read)
     parameters = _parameters(read=read)
@@ -291,6 +292,9 @@ def define_data_schema(read=True):
         'engine_idle_fuel_consumption': positive,
         'final_drive_ratio': positive,
         'r_dynamic': positive,
+        'wltp_class': _select(types=('class1', 'class2', 'class3a', 'class3b'),
+                              read=read),
+        'downscale_phases': tuplefloat,
         'gear_box_type': _select(types=('manual', 'automatic', 'cvt'),
                                  read=read),
         'start_stop_activation_time': positive,
@@ -393,20 +397,16 @@ def define_data_schema(read=True):
         'start_stop_model': function,
         'temperature_references': tuplefloat2,
         'torque_converter_model': function,
-        'phases_co2_emissions': _type(type=And(Use(tuple), (_type(float),)),
-                                      read=read),
+        'phases_co2_emissions': tuplefloat,
         'phases_integration_times':
             _type(type=And(Use(tuple), (And(Use(tuple), (_type(float),)),)),
                   read=read),
-        'extended_phases_co2_emissions':
-            _type(type=And(Use(tuple), (_type(float),)), read=read),
+        'extended_phases_co2_emissions': tuplefloat,
         'extended_phases_integration_times':
             _type(type=And(Use(tuple), (And(Use(tuple), (_type(float),)),)),
                   read=read),
-        'extended_integration_times':
-            _type(type=And(Use(tuple), (_type(float),)), read=read),
-        'phases_fuel_consumptions': _type(type=And(Use(tuple), (_type(float),)),
-                                          read=read),
+        'extended_integration_times': tuplefloat,
+        'phases_fuel_consumptions': tuplefloat,
 
         'accelerations': np_array,
         'alternator_currents': np_array,
