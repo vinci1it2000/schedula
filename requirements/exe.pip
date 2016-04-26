@@ -27,3 +27,4 @@ pip
 pyyaml
 cycler
 boltons
+pykalman
