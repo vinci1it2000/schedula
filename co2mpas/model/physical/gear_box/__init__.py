@@ -796,6 +796,7 @@ def gear_box():
             'accelerations': 'accelerations',
             'gear_box_powers_out': 'gear_box_powers_out',
             'CVT': 'CVT',
+            'idle_engine_speed': 'idle_engine_speed'
         },
         outputs={
             'CVT': 'CVT',

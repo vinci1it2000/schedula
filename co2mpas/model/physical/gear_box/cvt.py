@@ -13,6 +13,7 @@ It contains functions that model the basic mechanics of the gear box.
 from co2mpas.dispatcher import Dispatcher
 import numpy as np
 from sklearn.ensemble import GradientBoostingRegressor
+from ..constants import *
 
 
 def calibrate_cvt(
@@ -45,8 +46,10 @@ def predict_gear_box_speeds_in_and_gears(
     return cvt(X), np.ones_like(gear_box_powers_out, dtype=int), 1
 
 
-def identify_max_speed_velocity_ratio(velocities, engine_speeds_out):
-    return max(engine_speeds_out / velocities)
+def identify_max_speed_velocity_ratio(
+        velocities, engine_speeds_out, idle_engine_speed):
+    b = (velocities > VEL_EPS) & (engine_speeds_out > idle_engine_speed[0])
+    return max(engine_speeds_out[b] / velocities[b])
 
 
 def cvt_model():
@@ -85,7 +88,7 @@ def cvt_model():
 
     dsp.add_function(
         function=identify_max_speed_velocity_ratio,
-        inputs=['velocities', 'engine_speeds_out'],
+        inputs=['velocities', 'engine_speeds_out', 'idle_engine_speed'],
         outputs=['max_speed_velocity_ratio']
     )
 
