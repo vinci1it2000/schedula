@@ -682,11 +682,11 @@ def calculate_engine_speeds_out_hot(
 
     :param gear_box_speeds_in:
         Gear box speed [RPM].
-    :type gear_box_speeds_in: numpy.array
+    :type gear_box_speeds_in: numpy.array, float
 
     :param on_engine:
         If the engine is on [-].
-    :type on_engine: numpy.array
+    :type on_engine: numpy.array, bool
 
     :param idle_engine_speed:
         Idle engine speed and its standard deviation [RPM].
@@ -694,13 +694,17 @@ def calculate_engine_speeds_out_hot(
 
     :return:
         Engine speed at hot condition [RPM] and if the engine is in idle [-].
-    :rtype: numpy.array
+    :rtype: numpy.array, float
     """
 
-    s = gear_box_speeds_in.copy()
+    if isinstance(gear_box_speeds_in, float):
+        s = max(idle_engine_speed[0], gear_box_speeds_in) if on_engine else 0
+    else:
+        s = gear_box_speeds_in.copy()
 
-    s[np.logical_not(on_engine)] = 0
-    s[on_engine & (s < idle_engine_speed[0])] = idle_engine_speed[0]
+        s[np.logical_not(on_engine)] = 0
+        s[on_engine & (s < idle_engine_speed[0])] = idle_engine_speed[0]
+
     return s
 
 
@@ -1400,14 +1404,14 @@ def engine():
     dsp.add_function(
         function=calibrate_engine_temperature_regression_model,
         inputs=['times', 'engine_coolant_temperatures', 'accelerations',
-                'gear_box_powers_in', 'gear_box_speeds_in', 'on_engine'],
+                'gear_box_powers_in', 'engine_speeds_out_hot', 'on_engine'],
         outputs=['engine_temperature_regression_model']
     )
 
     dsp.add_function(
         function=predict_engine_coolant_temperatures,
         inputs=['engine_temperature_regression_model', 'times', 'accelerations',
-                'gear_box_powers_in', 'gear_box_speeds_in',
+                'gear_box_powers_in', 'engine_speeds_out_hot',
                 'initial_engine_temperature'],
         outputs=['engine_coolant_temperatures']
     )

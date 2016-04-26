@@ -18,7 +18,6 @@ from ..utils import derivative, argmax
 
 class ThermalModel(object):
     def __init__(self):
-        self.model = None
         self.predict = None
 
     def __call__(self, *args, **kwargs):
@@ -79,9 +78,9 @@ class ThermalModel(object):
         a = gear_box_powers_in[i:], gear_box_speeds_in[i:], accelerations[i:]
 
         models = [
-            _calibrate_TPS(T, dT, *a[:2]),
-            _calibrate_TPSA(T, dT, *a),
-            _calibrate_TPSA(T, dT, *a, max_depth=3)
+            TPS().fit(T, dT, *a[:2]),
+            TPSA().fit(T, dT, *a),
+            TPSA().fit(T, dT, *a, max_depth=3)
         ]
 
         counter = dsp_utl.counter()
@@ -90,70 +89,50 @@ class ThermalModel(object):
             pred_T = model(dt, *a, initial_temperature=T[0])
             return (mean_squared_error(T, pred_T), counter()), model
 
-        models = [(error(f), (f, m)) for f, m in models]
+        models = [(error(m),  m) for m in models]
 
-        self.predict, self.model = min(models)[-1]
+        self.predict = min(models)[-1]
 
         return self
 
 
-def _calibrate_TPS(T, dT, gear_box_powers_in, gear_box_speeds_in, **kw):
-    X = np.array([T, gear_box_powers_in, gear_box_speeds_in]).T[:-1]
-    opt = {
-        'random_state': 0,
-        'max_depth': 2,
-        'n_estimators': int(min(300, 0.25 * (len(dT) - 1))),
-        'loss': 'huber',
-        'alpha': 0.99
-    }
-    opt.update(kw)
-    # noinspection PyUnresolvedReferences
-    model = GradientBoostingRegressor(**opt)
-    model.fit(X, dT)
-    predict = model.predict
+class TPS(object):
+    def __init__(self):
+        self.predict = None
 
-    # noinspection PyUnusedLocal
-    def TPS(deltas_t, powers, speeds, *args, initial_temperature=23):
+    def __call__(self, deltas_t, *args, initial_temperature=23):
         t, temp = initial_temperature, [initial_temperature]
         append = temp.append
 
-        for dt, a in zip(deltas_t, zip(powers, speeds)):
-            t += predict([(t,) + a])[0] * dt
+        for dt, a in zip(deltas_t, zip(*args)):
+            t += self.delta(dt, *a, prev_temperature=t)
             append(t)
 
         return np.array(temp)
 
-    return TPS, model
+    def fit(self, T, dT, *args, **kw):
+        X = np.array((T,) + args).T[:-1]
+        opt = {
+            'random_state': 0,
+            'max_depth': 2,
+            'n_estimators': int(min(300, 0.25 * (len(dT) - 1))),
+            'loss': 'huber',
+            'alpha': 0.99
+        }
+        opt.update(kw)
+        # noinspection PyUnresolvedReferences
+        model = GradientBoostingRegressor(**opt)
+        model.fit(X, dT)
+        self.predict = predict = model.predict
+        return self
+
+    def delta(self, dt, power, speed, acc, *args, prev_temperature=23):
+        return self.predict([(prev_temperature, power, speed)])[0] * dt
 
 
-def _calibrate_TPSA(T, dT, gear_box_powers_in, gear_box_speeds_in,
-                    accelerations, **kw):
-    X = np.array([T, gear_box_powers_in, gear_box_speeds_in,
-                  accelerations]).T[:-1]
-    opt = {
-        'random_state': 0,
-        'max_depth': 2,
-        'n_estimators': int(min(300, 0.25 * (len(dT) - 1))),
-        'loss': 'huber',
-        'alpha': 0.99
-    }
-    opt.update(kw)
-    # noinspection PyUnresolvedReferences
-    model = GradientBoostingRegressor(**opt)
-    model.fit(X, dT)
-    predict = model.predict
-    # noinspection PyUnusedLocal,PyUnusedLocal
-    def TPSA(deltas_t, powers, speeds, acc, *args, initial_temperature=23):
-        t, temp = initial_temperature, [initial_temperature]
-        append = temp.append
-
-        for dt, a in zip(deltas_t, zip(powers, speeds, acc)):
-            t += predict([(t,) + a])[0] * dt
-            append(t)
-
-        return np.array(temp)
-
-    return TPSA, model
+class TPSA(TPS):
+    def delta(self, dt, power, speed, acc, *args, prev_temperature=23):
+        return self.predict([(prev_temperature, power, speed, acc)])[0] * dt
 
 
 def _get_samples(times, engine_coolant_temperatures, on_engine):
@@ -168,7 +147,7 @@ def _get_samples(times, engine_coolant_temperatures, on_engine):
 
 def calibrate_engine_temperature_regression_model(
         times, engine_coolant_temperatures, accelerations,
-        gear_box_powers_in, gear_box_speeds_in, on_engine):
+        gear_box_powers_in, engine_speeds_out_hot, on_engine):
     """
     Calibrates an engine temperature regression model to predict engine
     temperatures.
@@ -196,9 +175,9 @@ def calibrate_engine_temperature_regression_model(
         Gear box power vector [kW].
     :type gear_box_powers_in: numpy.array
 
-    :param gear_box_speeds_in:
+    :param engine_speeds_out_hot:
         Gear box speed vector [RPM].
-    :type gear_box_speeds_in: numpy.array
+    :type engine_speeds_out_hot: numpy.array
 
     :param on_engine:
         If the engine is on [-].
@@ -211,7 +190,7 @@ def calibrate_engine_temperature_regression_model(
 
     model = ThermalModel().fit(
         times, engine_coolant_temperatures, accelerations, gear_box_powers_in,
-        gear_box_speeds_in, on_engine
+        engine_speeds_out_hot, on_engine
     )
 
     return model
@@ -219,7 +198,7 @@ def calibrate_engine_temperature_regression_model(
 
 def predict_engine_coolant_temperatures(
         model, times, accelerations, gear_box_powers_in,
-        gear_box_speeds_in, initial_temperature):
+        engine_speeds_out_hot, initial_temperature):
     """
     Predicts the engine temperature [°C].
 
@@ -243,9 +222,9 @@ def predict_engine_coolant_temperatures(
         Gear box power vector [kW].
     :type gear_box_powers_in: numpy.array
 
-    :param gear_box_speeds_in:
+    :param engine_speeds_out_hot:
         Gear box speed vector [RPM].
-    :type gear_box_speeds_in: numpy.array
+    :type engine_speeds_out_hot: numpy.array
 
     :param initial_temperature:
         Engine initial temperature [°C]
@@ -256,7 +235,7 @@ def predict_engine_coolant_temperatures(
     :rtype: numpy.array
     """
 
-    T = model(np.diff(times), gear_box_powers_in, gear_box_speeds_in,
+    T = model(np.diff(times), gear_box_powers_in, engine_speeds_out_hot,
               accelerations, initial_temperature=initial_temperature)
 
     return T
