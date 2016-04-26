@@ -664,7 +664,7 @@ def default_correct_start_stop_with_gears(gear_box_type):
     Defines a flag that imposes the engine on when there is a gear > 0.
 
     :param gear_box_type:
-        Gear box type (manual or automatic).
+        Gear box type (manual or automatic or cvt).
     :type gear_box_type: str
 
     :return:
@@ -1079,7 +1079,7 @@ def calculate_engine_powers_out(
     :type auxiliaries_power_losses: numpy.array
 
     :param gear_box_type:
-        Gear box type (manual or automatic).
+        Gear box type (manual or automatic or cvt).
     :type gear_box_type: str
 
     :param on_idle:

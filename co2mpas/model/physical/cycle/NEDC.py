@@ -30,7 +30,7 @@ def nedc_gears_domain(cycle_type, gear_box_type, *args):
     :type cycle_type: str
 
     :param gear_box_type:
-        Gear box type (manual or automatic).
+        Gear box type (manual or automatic or cvt).
     :type gear_box_type: str
 
     :return:
@@ -67,7 +67,7 @@ def nedc_velocities(times, gear_box_type):
     :type times: numpy.array
 
     :param gear_box_type:
-        Gear box type (manual or automatic).
+        Gear box type (manual or automatic or cvt).
     :type gear_box_type: str
 
     :return:
@@ -99,7 +99,11 @@ def nedc_velocities(times, gear_box_type):
             [201, 70], [251, 70], [286, 100], [316, 100], [336, 120],
             [346, 120], [362, 80], [370, 50], [380, 0], [400, 0]]
         }
-    }[gear_box_type]
+    }
+
+    parts['cvt'] = parts['automatic']
+
+    parts = parts[gear_box_type]
 
     t, v = zip(*parts['part one'])
 
