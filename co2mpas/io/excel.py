@@ -368,7 +368,7 @@ def _chart2excel(writer, shname, charts):
     m, h, w = 3, 300, 500
 
     for i, (k, v) in enumerate(sorted(charts.items())):
-        chart = add_chart({'type': 'line'})
+        chart = add_chart({'type': 'scatter', 'subtype': 'straight'})
         for s in v['series']:
             chart.add_series({
                 'name': s['label'],
