@@ -50,7 +50,7 @@ def get_gear_box_efficiency_constants(gear_box_type):
     Returns vehicle gear box efficiency constants (gbp00, gbp10, and gbp01).
 
     :param gear_box_type:
-        Gear box type (manual or automatic).
+        Gear box type (manual or automatic or cvt).
     :type gear_box_type: str
 
     :return:
@@ -801,7 +801,8 @@ def gear_box():
             'CVT': 'CVT',
             'gear_box_speeds_in': 'gear_box_speeds_in',
             'gears': 'gears',
-            'max_gear': 'max_gear'
+            'max_gear': 'max_gear',
+            'max_speed_velocity_ratio': 'max_speed_velocity_ratio'
         },
         input_domain=is_cvt
     )

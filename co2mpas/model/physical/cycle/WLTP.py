@@ -60,8 +60,24 @@ def calculate_unladen_mass(vehicle_mass, driver_mass):
     return vehicle_mass - driver_mass
 
 
+def calculate_max_speed_velocity_ratio(speed_velocity_ratios):
+    """
+    Calculates the maximum speed velocity ratio of the gear box [h*RPM/km].
+
+    :param speed_velocity_ratios:
+        Speed velocity ratios of the gear box [h*RPM/km].
+    :type speed_velocity_ratios: dict
+
+    :return:
+        Maximum speed velocity ratio of the gear box [h*RPM/km].
+    :rtype: float
+    """
+
+    return speed_velocity_ratios[max(speed_velocity_ratios)]
+
+
 def calculate_max_velocity(
-        engine_max_speed_at_max_power, speed_velocity_ratios):
+        engine_max_speed_at_max_power, max_speed_velocity_ratio):
     """
     Calculates max vehicle velocity [km/h].
 
@@ -69,18 +85,16 @@ def calculate_max_velocity(
         Rated engine speed [RPM].
     :type engine_max_speed_at_max_power: float
 
-    :param speed_velocity_ratios:
-        Speed velocity ratios of the gear box [h*RPM/km].
-    :type speed_velocity_ratios: dict
+    :param max_speed_velocity_ratio:
+        Maximum speed velocity ratio of the gear box [h*RPM/km].
+    :type max_speed_velocity_ratio: float
 
     :return:
         Max vehicle velocity [km/h].
     :rtype: float
     """
 
-    svr = speed_velocity_ratios[max(speed_velocity_ratios)]
-
-    return engine_max_speed_at_max_power / svr
+    return engine_max_speed_at_max_power / max_speed_velocity_ratio
 
 
 def calculate_wltp_class(
@@ -385,8 +399,14 @@ def wltp_cycle():
     )
 
     dsp.add_function(
+        function=calculate_max_speed_velocity_ratio,
+        inputs=['speed_velocity_ratios'],
+        outputs=['max_speed_velocity_ratio']
+    )
+
+    dsp.add_function(
         function=calculate_max_velocity,
-        inputs=['engine_max_speed_at_max_power', 'speed_velocity_ratios'],
+        inputs=['engine_max_speed_at_max_power', 'max_speed_velocity_ratio'],
         outputs=['max_velocity']
     )
 

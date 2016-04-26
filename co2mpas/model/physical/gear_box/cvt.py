@@ -45,6 +45,10 @@ def predict_gear_box_speeds_in_and_gears(
     return cvt(X), np.ones_like(gear_box_powers_out, dtype=int), 1
 
 
+def identify_max_speed_velocity_ratio(velocities, engine_speeds_out):
+    return max(engine_speeds_out / velocities)
+
+
 def cvt_model():
     """
     Defines the gear box model.
@@ -77,6 +81,12 @@ def cvt_model():
                 'gear_box_powers_out'],
         outputs=['gear_box_speeds_in', 'gears', 'max_gear'],
         out_weight={'gear_box_speeds_in': 6}
+    )
+
+    dsp.add_function(
+        function=identify_max_speed_velocity_ratio,
+        inputs=['velocities', 'engine_speeds_out'],
+        outputs=['max_speed_velocity_ratio']
     )
 
     return dsp

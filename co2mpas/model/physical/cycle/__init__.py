@@ -106,7 +106,8 @@ def cycle():
             'engine_max_power': 'engine_max_power',
             'engine_max_speed_at_max_power': 'engine_max_speed_at_max_power',
             'max_velocity': 'max_velocity',
-            'wltp_class': 'wltp_class'
+            'wltp_class': 'wltp_class',
+            'max_speed_velocity_ratio': 'max_speed_velocity_ratio'
         },
         outputs={
             'times': 'times',
