@@ -374,7 +374,10 @@ def identify_normalization_engine_temperature(
     :rtype: (float, (float, float))
     """
 
-    t = engine_coolant_temperatures[(1000 < times) & (times < 1780)]
+    t, b = engine_coolant_temperatures, (1000 < times) & (times < 1780)
+
+    if b.any():
+        t = t[b]
 
     m, s = reject_outliers(t, n=2)
 
