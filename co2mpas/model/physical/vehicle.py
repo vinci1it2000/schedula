@@ -13,6 +13,32 @@ import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher import Dispatcher
 from math import cos, sin
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline
+from pykalman import KalmanFilter
+import numpy as np
+
+
+def calculate_velocities(times, obd_velocities):
+    """
+    Filters the obd velocities [km/h].
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
+
+    :param obd_velocities:
+        OBD velocity vector [km/h].
+    :type obd_velocities: numpy.array
+
+    :return:
+        Velocity vector [km/h].
+    :rtype: numpy.array
+    """
+
+    dt = float(np.median(np.diff(times)))
+    t = np.arange(times[0], times[-1] + dt, dt)
+    v = np.interp(t, times, obd_velocities)
+
+    return np.interp(times, t, KalmanFilter().em(v).smooth(v)[0].T[0])
 
 
 def calculate_accelerations(times, velocities):
@@ -337,6 +363,12 @@ def vehicle():
     dsp = Dispatcher(
         name='Vehicle free body diagram',
         description='Calculates forces and power acting on the vehicle.'
+    )
+
+    dsp.add_function(
+        function=calculate_velocities,
+        inputs=['times', 'obd_velocities'],
+        outputs=['velocities']
     )
 
     dsp.add_function(

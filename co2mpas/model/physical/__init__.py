@@ -97,6 +97,7 @@ def physical():
         dsp_id='vehicle_model',
         dsp=vehicle(),
         inputs={
+            'obd_velocities': 'obd_velocities',
             'n_dyno_axes': 'n_dyno_axes',
             'aerodynamic_drag_coefficient': 'aerodynamic_drag_coefficient',
             'frontal_area': 'frontal_area',
@@ -117,6 +118,7 @@ def physical():
         },
         outputs={
             'f0': 'f0',
+            'velocities': 'velocities',
             'climbing_force': 'climbing_force',
             'inertial_factor': 'inertial_factor',
             'accelerations': 'accelerations',

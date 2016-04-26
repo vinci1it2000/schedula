@@ -446,6 +446,7 @@ def define_data_schema(read=True):
         'state_of_charges': np_array,
         'times': np_array,
         'velocities': np_array,
+        _compare_str('obd_velocities'): np_array,
         'wheel_powers': np_array,
         'wheel_speeds': np_array,
         'wheel_torques': np_array,
