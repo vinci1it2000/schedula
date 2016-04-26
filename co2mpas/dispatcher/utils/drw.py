@@ -18,6 +18,7 @@ import urllib
 import numpy as np
 import pprint
 import inspect
+import platform
 from tempfile import mkstemp, mkdtemp
 import networkx as nx
 from .cst import START, SINK, END, EMPTY
@@ -37,7 +38,9 @@ __all__ = ['plot']
 
 log = logging.getLogger(__name__)
 
-_UNC = u'\\\\?\\'
+PLATFORM = platform.system().lower()
+
+_UNC = u'\\\\?\\' if PLATFORM == 'windows' else ''
 
 
 def uncpath(p):
