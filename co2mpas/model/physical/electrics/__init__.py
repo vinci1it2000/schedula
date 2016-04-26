@@ -849,102 +849,6 @@ def predict_vehicle_electrics(
     return np.array(alt_c), np.array(bat_c), np.array(soc), np.array(alt_stat)
 
 
-def predict_vehicle_electrics_and_engine_start_stop(
-        electrics_model, start_stop_model, initial_state_of_charge, times,
-        gear_box_powers_in, velocities, accelerations,
-        engine_coolant_temperatures, gears, start_stop_activation_time,
-        correct_start_stop_with_gears):
-    """
-    Predicts alternator and battery currents, state of charge, alternator
-    status, if the engine is on and when the engine starts.
-
-    :param electrics_model:
-        Electrics model.
-    :type electrics_model: function
-
-    :param start_stop_model:
-        Start/stop model.
-    :type start_stop_model: StartStopModel
-
-    :param initial_state_of_charge:
-        Initial state of charge of the battery [%].
-
-        .. note::
-
-            `initial_state_of_charge` = 99 is equivalent to 99%.
-    :type initial_state_of_charge: float
-
-    :param times:
-        Time vector [s].
-    :type times: numpy.array
-
-    :param gear_box_powers_in:
-        Gear box power vector [kW].
-    :type gear_box_powers_in: numpy.array
-
-    :param velocities:
-        Velocity vector [km/h].
-    :type velocities: numpy.array
-
-    :param accelerations:
-        Acceleration vector [m/s2].
-    :type accelerations: numpy.array
-
-    :param engine_coolant_temperatures:
-        Engine coolant temperature vector [°C].
-    :type engine_coolant_temperatures: numpy.array
-
-    :param gears:
-        Gear vector [-].
-    :type gears: numpy.array
-
-    :param start_stop_activation_time:
-        Start-stop activation time threshold [s].
-    :type start_stop_activation_time: float
-
-    :param correct_start_stop_with_gears:
-        A flag to impose engine on when there is a gear > 0.
-    :type correct_start_stop_with_gears: bool
-
-    :return:
-        Alternator and battery currents, state of charge, alternator status,
-        if the engine is on and when the engine starts.
-        [A, A, %, -, -, -].
-    :rtype: (np.array, np.array, np.array, np.array)
-    """
-
-    soc = np.zeros((len(times) + 1,), dtype=float)
-    soc[0] = initial_state_of_charge
-
-    gen = start_stop_model.yield_on_start(
-        times, velocities, accelerations, engine_coolant_temperatures, soc,
-        gears=gears, start_stop_activation_time=start_stop_activation_time,
-        correct_start_stop_with_gears=correct_start_stop_with_gears
-    )
-
-    o = (0, 0, None, initial_state_of_charge)
-    args = np.append([0], np.diff(times)), gear_box_powers_in, accelerations
-    eng, ele = [], [o]
-
-    min_soc = electrics_model.alternator_status_model.min
-    for i, (on_eng, dt, p, a) in enumerate(zip(gen, *args)):
-
-        if o[-1] < min_soc and not on_eng[0]:
-            on_eng[0], on_eng[1] = True, not eng[-1][-1]
-
-        o = tuple(electrics_model(dt, p, a, *on_eng, *o[1:]))
-
-        soc[i + 1] = o[-1]
-        ele.append(o)
-        eng.append(on_eng)
-
-    alt_c, alt_stat, bat_c, _ = zip(*ele[1:])
-    on, st = zip(*eng)
-
-    on, st = np.array(on, dtype=bool), np.array(st, dtype=bool)
-    return np.array(alt_c), np.array(bat_c), soc[1:], np.array(alt_stat), on, st
-
-
 def electrics():
     """
     Defines the electrics model.
@@ -1077,17 +981,6 @@ def electrics():
                 'accelerations'],
         outputs=['alternator_currents', 'battery_currents',
                  'state_of_charges', 'alternator_statuses']
-    )
-
-    dsp.add_function(
-        function=predict_vehicle_electrics_and_engine_start_stop,
-        inputs=['electrics_model', 'start_stop_model',
-                'initial_state_of_charge', 'times', 'gear_box_powers_in',
-                'velocities', 'accelerations', 'engine_coolant_temperatures',
-                'gears', 'start_stop_activation_time',
-                'correct_start_stop_with_gears'],
-        outputs=['alternator_currents', 'battery_currents', 'state_of_charges',
-                 'alternator_statuses', 'on_engine', 'engine_starts']
     )
 
     dsp.add_function(

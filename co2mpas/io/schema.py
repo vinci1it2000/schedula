@@ -377,6 +377,7 @@ def define_data_schema(read=True):
         'electric_load': tuplefloat2,
         'engine_normalization_temperature_window': tuplefloat2,
         'engine_temperature_regression_model': function,
+        'electrics_model': function,
         'engine_type': string,
         'full_load_curve': function,
         'gear_box_efficiency_constants': dictstrdict,
