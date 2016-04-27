@@ -1257,7 +1257,7 @@ def calculate_auxiliaries_torque_losses(times, auxiliaries_torque_loss):
     :type times: numpy.array
 
     :param auxiliaries_torque_loss:
-        Torque losses due to engine auxiliaries [N*m].
+        Constant torque loss due to engine auxiliaries [N*m].
     :type auxiliaries_torque_loss: float
 
     :return:
@@ -1287,6 +1287,40 @@ def default_fuel_density(fuel_type):
     }[fuel_type]
 
     return density
+
+
+def calculate_auxiliaries_power_losses(
+        auxiliaries_torque_losses, engine_speeds_out, on_engine,
+        auxiliaries_power_loss):
+    """
+    Calculates engine power losses due to engine auxiliaries [kW].
+
+    :param auxiliaries_torque_losses:
+        Engine torque losses due to engine auxiliaries [N*m].
+    :type auxiliaries_torque_losses: numpy.array
+
+    :param engine_speeds_out:
+        Engine speed [RPM].
+    :type engine_speeds_out: numpy.array
+
+    :param on_engine:
+        If the engine is on [-].
+    :type on_engine: numpy.array
+
+    :param auxiliaries_power_loss:
+        Constant power loss due to engine auxiliaries [kW].
+    :type auxiliaries_power_loss: float
+
+    :return:
+        Engine power losses due to engine auxiliaries [kW].
+    :rtype: numpy.array
+    """
+
+    from ..wheels import calculate_wheel_powers
+    p = calculate_wheel_powers(auxiliaries_torque_losses, engine_speeds_out)
+    if auxiliaries_power_loss:
+        p[on_engine] += auxiliaries_power_loss
+    return p
 
 
 def engine():
@@ -1554,6 +1588,11 @@ def engine():
         default_value=0.5
     )
 
+    dsp.add_data(
+        data_id='auxiliaries_power_loss',
+        default_value=0.0
+    )
+
     dsp.add_function(
         function=calculate_auxiliaries_torque_losses,
         inputs=['times', 'auxiliaries_torque_loss'],
@@ -1561,9 +1600,9 @@ def engine():
     )
 
     dsp.add_function(
-        function_id='calculate_auxiliaries_power_losses',
-        function=calculate_wheel_powers,
-        inputs=['auxiliaries_torque_loss', 'engine_speeds_out'],
+        function=calculate_auxiliaries_power_losses,
+        inputs=['auxiliaries_torque_losses', 'engine_speeds_out', 'on_engine',
+                'auxiliaries_power_loss'],
         outputs=['auxiliaries_power_losses']
     )
 
