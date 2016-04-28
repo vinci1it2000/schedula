@@ -254,7 +254,7 @@ def wltp_gears(
 
     :param full_load_curve:
         Vehicle full load curve.
-    :type full_load_curve: Spline
+    :type full_load_curve: scipy.interpolate.InterpolatedUnivariateSpline
 
     :param velocities:
         Velocity vector [km/h].

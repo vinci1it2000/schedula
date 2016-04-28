@@ -296,7 +296,7 @@ def interpolate_cloud(x, y):
 
     :return:
         A function that interpolate a cloud of points.
-    :rtype: InterpolatedUnivariateSpline
+    :rtype: scipy.interpolate.InterpolatedUnivariateSpline
     """
 
     p = np.asarray(x)

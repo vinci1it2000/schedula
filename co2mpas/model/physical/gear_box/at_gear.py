@@ -66,7 +66,7 @@ def correct_gear_full_load(
 
     :param full_load_curve:
         Vehicle full load curve.
-    :type full_load_curve: Spline
+    :type full_load_curve: scipy.interpolate.InterpolatedUnivariateSpline
 
     :param road_loads:
         Cycle road loads [N, N/(km/h), N/(km/h)^2].
@@ -180,7 +180,7 @@ def correct_gear_v0(
 
     :param full_load_curve:
         Vehicle full load curve.
-    :type full_load_curve: Spline
+    :type full_load_curve: scipy.interpolate.InterpolatedUnivariateSpline
 
     :param road_loads:
         Cycle road loads [N, N/(km/h), N/(km/h)^2].
@@ -270,7 +270,7 @@ def correct_gear_v2(
 
     :param full_load_curve:
         Vehicle full load curve.
-    :type full_load_curve: Spline
+    :type full_load_curve: scipy.interpolate.InterpolatedUnivariateSpline
 
     :param road_loads:
         Cycle road loads [N, N/(km/h), N/(km/h)^2].

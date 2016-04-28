@@ -45,7 +45,7 @@ def get_full_load(fuel_type):
 
     :return:
         Vehicle normalized full load curve.
-    :rtype: InterpolatedUnivariateSpline
+    :rtype: scipy.interpolate.InterpolatedUnivariateSpline
     """
 
     full_load = {
@@ -66,7 +66,7 @@ def get_full_load(fuel_type):
     return full_load[fuel_type]
 
 
-def get_engine_motoring_curve_default(fuel_type): ### TO BE CORRECTED!!
+def get_engine_motoring_curve_default(fuel_type):  ## TO BE CORRECTED!!
     """
     Returns engine motoring curve.
 
@@ -76,7 +76,7 @@ def get_engine_motoring_curve_default(fuel_type): ### TO BE CORRECTED!!
 
     :return:
         Vehicle normalized engine motoring curve.
-    :rtype: InterpolatedUnivariateSpline
+    :rtype: scipy.interpolate.InterpolatedUnivariateSpline
     """
 
     engine_motoring_curve = {
@@ -176,7 +176,7 @@ def calculate_max_available_engine_powers(
 
     :param full_load_curve:
         Vehicle normalized full load curve.
-    :type full_load_curve: InterpolatedUnivariateSpline
+    :type full_load_curve: scipy.interpolate.InterpolatedUnivariateSpline
 
     :param engine_speeds_out:
         Engine speed vector [RPM].
@@ -201,11 +201,11 @@ def define_engine_power_correction_function(
 
     :param full_load_curve:
         Vehicle normalized full load curve.
-    :type full_load_curve: InterpolatedUnivariateSpline
+    :type full_load_curve: scipy.interpolate.InterpolatedUnivariateSpline
 
     :param engine_motoring_curve:
         Vehicle normalized engine motoring curve.
-    :type engine_motoring_curve: InterpolatedUnivariateSpline
+    :type engine_motoring_curve: scipy.interpolate.InterpolatedUnivariateSpline
 
     :param engine_max_power:
         Maximum power [kW].
@@ -257,7 +257,7 @@ def calculate_full_load(full_load_speeds, full_load_powers, idle_engine_speed):
 
     :return:
         Vehicle full load curve, Maximum power [kW], Rated engine speed [RPM].
-    :rtype: (InterpolatedUnivariateSpline, float, float)
+    :rtype: (scipy.interpolate.InterpolatedUnivariateSpline, float, float)
     """
 
     v = list(zip(full_load_powers, full_load_speeds))
