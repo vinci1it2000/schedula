@@ -234,7 +234,7 @@ def define_engine_power_correction_function(
 
         up, dn = up_l < engine_powers, dn_l > engine_powers
 
-        return np.where(up, up_l, np.where(dn, dn_l, engine_powers)), up, dn
+        return np.where(up, up_l, np.where(dn, dn_l, engine_powers))
 
     return engine_power_correction_function
 
