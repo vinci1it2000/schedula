@@ -1079,7 +1079,7 @@ def restrict_bounds(co2_params):
     """
     p = copy.deepcopy(co2_params)
     mul = {
-        't0': np.array([0.5, 1.5]), 't1': np.array([0.5, 1.5]),
+        't1': np.array([0.5, 1.5]), 't2': np.array([0.5, 1.5]),
         'trg': np.array([0.9, 1.1]),
         'a': np.array([0.8, 1.2]), 'b': np.array([0.8, 1.2]),
         'c': np.array([1.2, 0.8]), 'a2': np.array([1.2, 0.8]),
@@ -1097,8 +1097,7 @@ def restrict_bounds(co2_params):
         v.min, v.max = _limits(k, v)
 
         if v.max == v.min:
-            v.set(value=v.min, vary=False)
-            v.min, v.max = None, None
+            v.set(value=v.min, min=None, max=None, vary=False)
 
     return p
 
