@@ -22,13 +22,15 @@ Sub-Modules:
 
 from co2mpas.dispatcher import Dispatcher
 from math import pi
-import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 from scipy.optimize import fmin
 from sklearn.metrics import mean_absolute_error
 from sklearn.tree import DecisionTreeClassifier
 from ..constants import *
 from .thermal import *
+import co2mpas.dispatcher.utils as dsp_utl
+from functools import partial
+import numpy as np
 from ..utils import bin_split, reject_outliers, clear_fluctuations, \
     derivative, argmax, get_inliers
 
@@ -154,6 +156,42 @@ def get_engine_motoring_curve(engine_stroke, engine_capacity, friction_params):
     return dn_limit
 
 
+def calculate_max_available_engine_powers(
+        engine_max_speed_at_max_power, idle_engine_speed, engine_max_power,
+        full_load_curve, engine_speeds_out):
+    """
+    Calculates the maximum available engine power [kW].
+
+    :param engine_max_speed_at_max_power:
+        Rated engine speed [RPM].
+    :type engine_max_speed_at_max_power: float
+
+    :param idle_engine_speed:
+        Engine speed idle median and std [RPM].
+    :type idle_engine_speed: (float, float)
+
+    :param engine_max_power:
+        Maximum power [kW].
+    :type engine_max_power: float
+
+    :param full_load_curve:
+        Vehicle normalized full load curve.
+    :type full_load_curve: InterpolatedUnivariateSpline
+
+    :param engine_speeds_out:
+        Engine speed vector [RPM].
+    :type engine_speeds_out: numpy.array | float
+
+    :return:
+        Maximum available engine power [kW].
+    :rtype: numpy.array | float
+    """
+    n_norm = (engine_max_speed_at_max_power - idle_engine_speed[0])
+    n_norm = (np.asarray(engine_speeds_out) - idle_engine_speed[0]) / n_norm
+
+    return full_load_curve(n_norm) * engine_max_power
+
+
 def define_engine_power_correction_function(
         full_load_curve, engine_motoring_curve, engine_max_power,
         idle_engine_speed, engine_max_speed_at_max_power):
@@ -187,18 +225,16 @@ def define_engine_power_correction_function(
     :rtype: function
     """
 
+    max_p = partial(calculate_max_available_engine_powers,
+                    engine_max_speed_at_max_power, idle_engine_speed,
+                    engine_max_power, full_load_curve)
+
     def engine_power_correction_function(engine_speeds, engine_powers):
+        up_l, dn_l = max_p(engine_speeds), engine_motoring_curve(engine_speeds)
 
-        n_norm = (engine_max_speed_at_max_power - idle_engine_speed[0])
-        n_norm = (np.asarray(engine_speeds) - idle_engine_speed[0]) / n_norm
+        up, dn = up_l < engine_powers, dn_l > engine_powers
 
-        up_limit = full_load_curve(n_norm) * engine_max_power
-#         dn_limit = engine_motoring_curve(n_norm) * engine_max_power
-        dn_limit = engine_motoring_curve(engine_speeds)
-
-        up, dn = up_limit < engine_powers, dn_limit > engine_powers
-
-        return np.where(up, up_limit, np.where(dn, dn_limit, engine_powers))
+        return np.where(up, up_l, np.where(dn, dn_l, engine_powers)), up, dn
 
     return engine_power_correction_function
 
