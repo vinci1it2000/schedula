@@ -71,7 +71,7 @@ class ThermalModel(object):
         if not dT.size:
             # noinspection PyUnusedLocal
             def DT0(deltas_t, powers, speeds, *args, initial_temperature=23):
-                return np.ones_like(powers, dtype=float) * initial_temperature
+                return np.tile((initial_temperature,), powers.shape)
 
             return DT0
 
