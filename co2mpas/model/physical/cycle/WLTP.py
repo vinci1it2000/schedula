@@ -151,7 +151,7 @@ def get_class_velocities(class_data, times):
 
 def calculate_downscale_factor(
         class_data, downscale_factor_threshold, max_velocity, engine_max_power,
-        class_powers):
+        class_powers, times):
     """
     Calculates velocity downscale factor [-].
 
@@ -175,6 +175,10 @@ def calculate_downscale_factor(
         Class motive power [kW].
     :type class_powers: numpy.array
 
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
+
     :return:
         Velocity downscale factor [-].
     :rtype: float
@@ -182,6 +186,7 @@ def calculate_downscale_factor(
 
     dsc_data = class_data['downscale']
     p_max_values = dsc_data['p_max_values']
+    p_max_values[0] = np.searchsorted(times, p_max_values[0])
     downsc_coeffs = dsc_data['factor_coeffs']
     dsc_v_split = dsc_data.get('v_max_split', None)
     downscale_factor = calcDownscaleFactor(
@@ -454,7 +459,7 @@ def wltp_cycle():
     dsp.add_function(
         function=calculate_downscale_factor,
         inputs=['class_data', 'downscale_factor_threshold', 'max_velocity',
-                'engine_max_power', 'class_powers'],
+                'engine_max_power', 'class_powers', 'times'],
         outputs=['downscale_factor']
     )
 
