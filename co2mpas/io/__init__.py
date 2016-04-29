@@ -19,6 +19,7 @@ Modules:
 
     dill
     excel
+    schema
 """
 
 import datetime

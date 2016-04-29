@@ -141,7 +141,7 @@ def predict_vehicle_electrics_and_engine_behavior(
 
     on, st = np.array(on, dtype=bool), np.array(st, dtype=bool)
     alt_c, bat_c, alt_sts = np.array(alt_c), np.array(bat_c), np.array(alt_sts)
-    return alt_c, bat_c, soc[1:], alt_sts, on, st, eng_s, temp[1:]
+    return alt_c, bat_c, soc[1:], alt_sts, on, st, np.array(eng_s), temp[1:]
 
 
 def physical():
