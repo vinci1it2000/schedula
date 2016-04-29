@@ -206,17 +206,25 @@ def metric_calibration_status(y_true, y_pred):
     return [v[0] for v in y_pred]
 
 
-def metric_engine_speed_model(y_true, y_pred, times, velocities, gear_shifts):
+def metric_engine_speed_model(
+        y_true, y_pred, times, velocities, gear_shifts, on_engine):
     b = (-TIME_WINDOW, TIME_WINDOW)
     b = calculate_clutch_phases(times, gear_shifts, clutch_window=b)
     b = np.logical_not(b)
-    b &= (velocities > VEL_EPS) & (times > 100)
+    b &= (velocities > VEL_EPS) & (times > 100) & on_engine
     return mean_absolute_error(y_true[b], y_pred[b])
 
 
-def metric_engine_cold_start_speed_model(y_true, y_pred, velocities):
-    b = (velocities < VEL_EPS)
-    return mean_absolute_error(y_true[b], y_pred[b])
+def metric_engine_cold_start_speed_model(y_true, y_pred, velocities, on_engine):
+    b = (velocities < VEL_EPS) & on_engine
+    if b.any():
+        return mean_absolute_error(y_true[b], y_pred[b])
+    else:
+        return mean_absolute_error(y_true[on_engine], y_pred[on_engine])
+
+
+def metric_clutch_torque_converter_model(y_true, y_pred, on_engine):
+    return mean_absolute_error(y_true[on_engine], y_pred[on_engine])
 
 
 def combine_outputs(models):
@@ -228,11 +236,11 @@ def combine_scores(scores):
 
 
 def sub_models():
-    sub_models = {}
+    models = {}
 
     from ..physical.engine import engine
 
-    sub_models['engine_coolant_temperature_model'] = {
+    models['engine_coolant_temperature_model'] = {
         'dsp': engine(),
         'inputs_map': {
             'initial_temperature': 'initial_engine_temperature'
@@ -246,7 +254,7 @@ def sub_models():
         'up_limit': [3],
     }
 
-    sub_models['start_stop_model'] = {
+    models['start_stop_model'] = {
         'dsp': engine(),
         'models': ['start_stop_model'],
         'inputs': ['times', 'velocities', 'accelerations',
@@ -262,7 +270,7 @@ def sub_models():
 
     from ..physical import physical
 
-    sub_models['engine_speed_model'] = {
+    models['engine_speed_model'] = {
         'dsp': physical(),
         'models': ['r_dynamic', 'final_drive_ratio', 'gear_box_ratios',
                    'idle_engine_speed', 'engine_thermostat_temperature', 'CVT',
@@ -271,7 +279,7 @@ def sub_models():
                    'accelerations', 'final_drive_powers_in'],
         'outputs': ['engine_speeds_out_hot'],
         'targets': ['engine_speeds_out'],
-        'metrics_inputs': ['times', 'velocities', 'gear_shifts'],
+        'metrics_inputs': ['times', 'velocities', 'gear_shifts', 'on_engine'],
         'metrics': [metric_engine_speed_model],
         'up_limit': [40],
     }
@@ -286,14 +294,14 @@ def sub_models():
         outputs=['engine_speeds_out']
     )
 
-    sub_models['engine_cold_start_speed_model'] = {
+    models['engine_cold_start_speed_model'] = {
         'dsp': dsp,
         'models': ['cold_start_speed_model'],
         'inputs': ['engine_speeds_out_hot', 'engine_coolant_temperatures',
                    'on_engine', 'idle_engine_speed'],
         'outputs': ['engine_speeds_out'],
         'targets': ['engine_speeds_out'],
-        'metrics_inputs': ['velocities'],
+        'metrics_inputs': ['velocities', 'on_engine'],
         'metrics': [metric_engine_cold_start_speed_model],
         'up_limit': [100],
     }
@@ -309,7 +317,7 @@ def sub_models():
         outputs=['engine_speeds_out']
     )
 
-    sub_models['clutch_torque_converter_model'] = {
+    models['clutch_torque_converter_model'] = {
         'dsp': dsp,
         'models': ['clutch_window', 'clutch_model', 'torque_converter_model'],
         'inputs': ['gear_box_speeds_in', 'on_engine', 'idle_engine_speed',
@@ -318,13 +326,14 @@ def sub_models():
         'define_sub_model': lambda dsp, **kwargs: dsp_utl.SubDispatch(dsp),
         'outputs': ['engine_speeds_out'],
         'targets': ['engine_speeds_out'],
-        'metrics': [mean_absolute_error],
+        'metrics_inputs': ['on_engine'],
+        'metrics': [metric_clutch_torque_converter_model],
         'up_limit': [100],
     }
 
     from ..physical.engine.co2_emission import co2_emission
     from .co2_params import co2_params_selector
-    sub_models['co2_params'] = {
+    models['co2_params'] = {
         'dsp': co2_emission(),
         'selector': co2_params_selector,
         'models': ['co2_params_calibrated', 'calibration_status'],
@@ -338,7 +347,7 @@ def sub_models():
 
     from ..physical.electrics import electrics
 
-    sub_models['alternator_model'] = {
+    models['alternator_model'] = {
         'dsp': electrics(),
         'models': ['alternator_status_model', 'alternator_nominal_power',
                    'alternator_current_model', 'max_battery_charging_current',
@@ -366,7 +375,7 @@ def sub_models():
         'velocity_speed_ratios', 'velocities', 'MVL', 'eco_mode'
     ]
 
-    sub_models['at_model'] = {
+    models['at_model'] = {
         'dsp': at_gear(),
         'select_models': partial(at_models_selector, at_gear(), at_pred_inputs),
         'models_wo_err': ['max_gear', 'specific_gear_shifting'],
@@ -381,7 +390,7 @@ def sub_models():
         'weights': [-1, 0]
     }
 
-    return sub_models
+    return models
 
 
 def at_models_selector(dsp, at_pred_inputs, models_ids, data):
