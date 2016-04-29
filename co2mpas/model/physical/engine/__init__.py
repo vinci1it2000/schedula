@@ -323,6 +323,36 @@ def calculate_engine_max_torque(
     return engine_max_power / engine_max_speed_at_max_power * 30000.0 / pi * c
 
 
+def calculate_engine_max_power(
+        engine_max_torque, engine_max_speed_at_max_power, fuel_type):
+    """
+    Calculates engine nominal power [kW].
+
+    :param engine_max_torque:
+        Engine nominal torque [N*m].
+    :type engine_max_torque: float
+
+    :param engine_max_speed_at_max_power:
+        Engine nominal speed at engine nominal power [RPM].
+    :type engine_max_speed_at_max_power: float
+
+    :param fuel_type:
+        Fuel type (gasoline or diesel).
+    :type fuel_type: str
+
+    :return:
+        Engine nominal power [kW].
+    :rtype: float
+    """
+
+    c = {
+        'gasoline': 1.25,
+        'diesel': 1.1
+    }[fuel_type]
+
+    return engine_max_torque * engine_max_speed_at_max_power / 30000.0 * pi / c
+
+
 def identify_on_engine(times, engine_speeds_out, idle_engine_speed):
     """
     Identifies if the engine is on [-].
@@ -1445,6 +1475,13 @@ def engine():
         inputs=['engine_max_power', 'engine_max_speed_at_max_power',
                 'fuel_type'],
         outputs=['engine_max_torque']
+    )
+
+    dsp.add_function(
+        function=calculate_engine_max_torque,
+        inputs=['engine_max_torque', 'engine_max_speed_at_max_power',
+                'fuel_type'],
+        outputs=['engine_max_power']
     )
 
     dsp.add_function(
