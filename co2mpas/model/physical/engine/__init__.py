@@ -29,7 +29,6 @@ from sklearn.tree import DecisionTreeClassifier
 from ..constants import *
 from .thermal import *
 import co2mpas.dispatcher.utils as dsp_utl
-from functools import partial
 import numpy as np
 from ..utils import bin_split, reject_outliers, clear_fluctuations, \
     derivative, argmax, get_inliers
@@ -66,37 +65,6 @@ def get_full_load(fuel_type):
     return full_load[fuel_type]
 
 
-def get_engine_motoring_curve_default(fuel_type):  ## TO BE CORRECTED!!
-    """
-    Returns engine motoring curve.
-
-    :param fuel_type:
-        Vehicle fuel type (diesel or gasoline).
-    :type fuel_type: str
-
-    :return:
-        Vehicle normalized engine motoring curve.
-    :rtype: scipy.interpolate.InterpolatedUnivariateSpline
-    """
-
-    engine_motoring_curve = {
-        'gasoline': Spline(
-            np.linspace(0, 1.2, 13),
-            [-0.2, -0.20758, -0.21752, -0.22982, -0.24448, -0.2615, -0.28088,
-             -0.30262, -0.32672, -0.35318, -0.382, -0.41318, -0.44672],
-#             [-0.2*0.1, -0.20758*0.1, -0.21752*0.1, -0.22982*0.1, -0.24448*0.1, -0.2615*0.1, -0.28088*0.1,
-#              -0.30262*0.1, -0.32672*0.1, -0.35318*0.1, -0.382*0.1, -0.41318*0.1, -0.44672*0.1],
-            ext=3),
-        'diesel': Spline(
-            np.linspace(0, 1.2, 13),
-            [-0.2, -0.20758, -0.21752, -0.22982, -0.24448, -0.2615, -0.28088,
-             -0.30262, -0.32672, -0.35318, -0.382, -0.41318, -0.44672],
-            ext=3)
-    }
-
-    return engine_motoring_curve[fuel_type]
-
-
 def select_initial_friction_params(engine_type):
     """
     Selects initial guess of friction params l & l2 for the calculation of
@@ -124,119 +92,6 @@ def select_initial_friction_params(engine_type):
     }
 
     return params[engine_type]['l'], params[engine_type]['l2']
-
-
-def get_engine_motoring_curve(engine_stroke, engine_capacity, friction_params):
-    """
-    Returns engine motoring curve.
-
-    :param engine_stroke:
-        Engine stroke [mm].
-    :type engine_stroke: float
-
-    :param engine_capacity:
-        Engine capacity [cm3].
-    :type engine_capacity: float
-
-    :param friction_params:
-        Engine initial friction params l & l2 [-].
-    :type friction_params: float, float
-
-    :return:
-        Engine motoring curve.
-    :rtype: function
-    """
-
-    l, l2 = np.array(friction_params) * (engine_capacity / 1200000.0)
-    l2 *= (engine_stroke / 30000.0) ** 2
-
-    def dn_limit(engine_speeds):
-        return (l2 * engine_speeds * engine_speeds + l) * engine_speeds
-
-    return dn_limit
-
-
-def calculate_max_available_engine_powers(
-        engine_max_speed_at_max_power, idle_engine_speed, engine_max_power,
-        full_load_curve, engine_speeds_out):
-    """
-    Calculates the maximum available engine power [kW].
-
-    :param engine_max_speed_at_max_power:
-        Rated engine speed [RPM].
-    :type engine_max_speed_at_max_power: float
-
-    :param idle_engine_speed:
-        Engine speed idle median and std [RPM].
-    :type idle_engine_speed: (float, float)
-
-    :param engine_max_power:
-        Maximum power [kW].
-    :type engine_max_power: float
-
-    :param full_load_curve:
-        Vehicle normalized full load curve.
-    :type full_load_curve: scipy.interpolate.InterpolatedUnivariateSpline
-
-    :param engine_speeds_out:
-        Engine speed vector [RPM].
-    :type engine_speeds_out: numpy.array | float
-
-    :return:
-        Maximum available engine power [kW].
-    :rtype: numpy.array | float
-    """
-    n_norm = (engine_max_speed_at_max_power - idle_engine_speed[0])
-    n_norm = (np.asarray(engine_speeds_out) - idle_engine_speed[0]) / n_norm
-
-    return full_load_curve(n_norm) * engine_max_power
-
-
-def define_engine_power_correction_function(
-        full_load_curve, engine_motoring_curve, engine_max_power,
-        idle_engine_speed, engine_max_speed_at_max_power):
-    """
-    Defines a function to correct the engine power that exceed full load and
-    engine motoring curves.
-
-    :param full_load_curve:
-        Vehicle normalized full load curve.
-    :type full_load_curve: scipy.interpolate.InterpolatedUnivariateSpline
-
-    :param engine_motoring_curve:
-        Vehicle normalized engine motoring curve.
-    :type engine_motoring_curve: scipy.interpolate.InterpolatedUnivariateSpline
-
-    :param engine_max_power:
-        Maximum power [kW].
-    :type engine_max_power: float
-
-    :param idle_engine_speed:
-        Engine speed idle median and std [RPM].
-    :type idle_engine_speed: (float, float)
-
-    :param engine_max_speed_at_max_power:
-        Rated engine speed [RPM].
-    :type engine_max_speed_at_max_power: float
-
-    :return:
-        A function to correct the engine power that exceed full load and
-        engine motoring curves.
-    :rtype: function
-    """
-
-    max_p = partial(calculate_max_available_engine_powers,
-                    engine_max_speed_at_max_power, idle_engine_speed,
-                    engine_max_power, full_load_curve)
-
-    def engine_power_correction_function(engine_speeds, engine_powers):
-        up_l, dn_l = max_p(engine_speeds), engine_motoring_curve(engine_speeds)
-
-        up, dn = up_l < engine_powers, dn_l > engine_powers
-
-        return np.where(up, up_l, np.where(dn, dn_l, engine_powers))
-
-    return engine_power_correction_function
 
 
 def calculate_full_load(full_load_speeds, full_load_powers, idle_engine_speed):
@@ -604,20 +459,20 @@ class StartStopModel(object):
             predict, args = self.simple.predict, args[:2]
         else:
             predict = self.model.predict
-        on, prev, t_switch = True, True, times[0]
+        on, prev, t_switch_on = True, True, times[0]
         for t, p, X in zip(times, to_predict, zip(*args)):
             if not p:
                 on = True
-            elif t >= t_switch or X[0] > VEL_EPS or abs(X[1]) > ACC_EPS:
+            elif t >= t_switch_on:
                 on = bool(predict([X])[0])
 
             start = prev != on and on
             on_start = [on, start]
             yield on_start
             on = on_start[0]
-            if prev != on:
-                t_switch = t + TIME_WINDOW
-                prev = on
+            if on and prev != on:
+                t_switch_on = t + TIME_WINDOW
+            prev = on
 
     @staticmethod
     def when_predict_on_engine(
@@ -1078,12 +933,12 @@ def _select_cold_start_speed_model(
     return list(sorted(err))[0][-1]
 
 
-def calculate_engine_powers_out(
+def calculate_uncorrected_engine_powers_out(
         times, engine_moment_inertia, clutch_tc_powers, engine_speeds_out,
-        on_engine, engine_power_correction_function, auxiliaries_power_losses,
-        gear_box_type, on_idle, alternator_powers_demand=None):
+        on_engine, auxiliaries_power_losses, gear_box_type, on_idle,
+        alternator_powers_demand=None):
     """
-    Calculates the engine power [kW].
+    Calculates the uncorrected engine power [kW].
 
     :param times:
         Time vector [s].
@@ -1099,16 +954,11 @@ def calculate_engine_powers_out(
 
     :param engine_speeds_out:
         Engine speed [RPM].
-    :type engine_speeds_out: numpy.array:param engine_speeds_out:
+    :type engine_speeds_out: numpy.array
 
     :param on_engine:
         If the engine is on [-].
     :type on_engine: numpy.array
-
-    :param engine_power_correction_function:
-        A function to correct the engine power that exceed full load and
-        engine motoring curves.
-    :type engine_power_correction_function: function
 
     :param auxiliaries_power_losses:
         Engine torque losses due to engine auxiliaries [N*m].
@@ -1127,7 +977,7 @@ def calculate_engine_powers_out(
     :type alternator_powers_demand: numpy.array, optional
 
     :return:
-        Engine power [kW].
+        Uncorrected engine power [kW].
     :rtype: numpy.array
     """
 
@@ -1145,7 +995,111 @@ def calculate_engine_powers_out(
     p_inertia = engine_moment_inertia / 2000 * (2 * pi / 60) ** 2
     p += p_inertia * derivative(times, engine_speeds_out) ** 2
 
-    return engine_power_correction_function(engine_speeds_out, p)
+    return p
+
+
+def calculate_min_available_engine_powers_out(
+        engine_stroke, engine_capacity, friction_params, engine_speeds_out):
+    """
+    Calculates the minimum available engine power (i.e., engine motoring curve).
+
+    :param engine_stroke:
+        Engine stroke [mm].
+    :type engine_stroke: float
+
+    :param engine_capacity:
+        Engine capacity [cm3].
+    :type engine_capacity: float
+
+    :param friction_params:
+        Engine initial friction params l & l2 [-].
+    :type friction_params: float, float
+
+    :param engine_speeds_out:
+        Engine speed [RPM].
+    :type engine_speeds_out: numpy.array | float
+
+    :return:
+        Minimum available engine power [kW].
+    :rtype: numpy.array | float
+    """
+
+    l, l2 = np.array(friction_params) * (engine_capacity / 1200000.0)
+    l2 *= (engine_stroke / 30000.0) ** 2
+
+    return (l2 * engine_speeds_out * engine_speeds_out + l) * engine_speeds_out
+
+
+def calculate_max_available_engine_powers_out(
+        engine_max_speed_at_max_power, idle_engine_speed, engine_max_power,
+        full_load_curve, engine_speeds_out):
+    """
+    Calculates the maximum available engine power [kW].
+
+    :param engine_max_speed_at_max_power:
+        Rated engine speed [RPM].
+    :type engine_max_speed_at_max_power: float
+
+    :param idle_engine_speed:
+        Engine speed idle median and std [RPM].
+    :type idle_engine_speed: (float, float)
+
+    :param engine_max_power:
+        Maximum power [kW].
+    :type engine_max_power: float
+
+    :param full_load_curve:
+        Vehicle normalized full load curve.
+    :type full_load_curve: scipy.interpolate.InterpolatedUnivariateSpline
+
+    :param engine_speeds_out:
+        Engine speed vector [RPM].
+    :type engine_speeds_out: numpy.array | float
+
+    :return:
+        Maximum available engine power [kW].
+    :rtype: numpy.array | float
+    """
+
+    n_norm = (engine_max_speed_at_max_power - idle_engine_speed[0])
+    n_norm = (np.asarray(engine_speeds_out) - idle_engine_speed[0]) / n_norm
+
+    return full_load_curve(n_norm) * engine_max_power
+
+
+def correct_engine_powers_out(
+        max_available_engine_powers_out, min_available_engine_powers_out,
+        uncorrected_engine_powers_out):
+    """
+    Corrects the engine powers out according to the available powers and
+    returns the missing and brake power [kW].
+
+    :param max_available_engine_powers_out:
+        Maximum available engine power [kW].
+    :type max_available_engine_powers_out: numpy.array
+
+    :param min_available_engine_powers_out:
+        Minimum available engine power [kW].
+    :type min_available_engine_powers_out: numpy.array
+
+    :param uncorrected_engine_powers_out:
+        Uncorrected engine power [kW].
+    :type uncorrected_engine_powers_out: numpy.array
+
+    :return:
+        Engine, missing, and braking powers [kW].
+    :rtype: numpy.array, numpy.array, numpy.array
+    """
+
+    ul, dl = max_available_engine_powers_out, min_available_engine_powers_out
+    p = uncorrected_engine_powers_out
+
+    up, dn = ul < p, dl > p
+
+    missing_powers, brake_powers = np.zeros_like(p), np.zeros_like(p)
+    missing_powers[up], brake_powers[dn] = p[up] - ul[up], dl[dn] - p[dn]
+
+    return np.where(up, ul, np.where(dn, dl, p)), missing_powers, brake_powers
 
 
 def calculate_braking_powers(
@@ -1384,12 +1338,6 @@ def engine():
         weight=20
     )
 
-    dsp.add_function(
-        function=get_engine_motoring_curve_default,
-        inputs=['fuel_type'],
-        outputs=['engine_motoring_curve_default'],
-    )
-
     dsp.add_data(
         data_id='is_cycle_hot',
         default_value=False
@@ -1399,19 +1347,6 @@ def engine():
         function=select_initial_friction_params,
         inputs=['engine_type'],
         outputs=['initial_friction_params']
-    )
-
-    dsp.add_function(
-        function=get_engine_motoring_curve,
-        inputs=['engine_stroke', 'engine_capacity', 'initial_friction_params'],
-        outputs=['engine_motoring_curve']
-    )
-
-    dsp.add_function(
-        function=define_engine_power_correction_function,
-        inputs=['full_load_curve', 'engine_motoring_curve', 'engine_max_power',
-                'idle_engine_speed', 'engine_max_speed_at_max_power'],
-        outputs=['engine_power_correction_function']
     )
 
     from ..wheels import calculate_wheel_powers, calculate_wheel_torques
@@ -1588,12 +1523,33 @@ def engine():
     )
 
     dsp.add_function(
-        function=calculate_engine_powers_out,
+        function=calculate_uncorrected_engine_powers_out,
         inputs=['times', 'engine_moment_inertia', 'clutch_tc_powers',
-                'engine_speeds_out', 'on_engine',
-                'engine_power_correction_function', 'auxiliaries_power_losses',
+                'engine_speeds_out', 'on_engine', 'auxiliaries_power_losses',
                 'gear_box_type', 'on_idle', 'alternator_powers_demand'],
-        outputs=['engine_powers_out']
+        outputs=['uncorrected_engine_powers_out']
+    )
+
+    dsp.add_function(
+        function=calculate_min_available_engine_powers_out,
+        inputs=['engine_stroke', 'engine_capacity', 'initial_friction_params',
+                'engine_speeds_out'],
+        outputs=['min_available_engine_powers_out']
+    )
+
+    dsp.add_function(
+        function=calculate_max_available_engine_powers_out,
+        inputs=['engine_max_speed_at_max_power', 'idle_engine_speed',
+                'engine_max_power', 'full_load_curve', 'engine_speeds_out'],
+        outputs=['max_available_engine_powers_out']
+    )
+
+    dsp.add_function(
+        function=correct_engine_powers_out,
+        inputs=['max_available_engine_powers_out',
+                'min_available_engine_powers_out',
+                'uncorrected_engine_powers_out'],
+        outputs=['engine_powers_out', 'missing_powers', 'brake_powers']
     )
 
     dsp.add_function(

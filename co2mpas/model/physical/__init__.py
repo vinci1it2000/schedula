@@ -112,8 +112,8 @@ def predict_vehicle_electrics_and_engine_behavior(
     )
 
     e = (0, 0, None, initial_state_of_charge)
-    args = np.append([0], np.diff(
-        times)), gear_box_powers_in, accelerations, gear_box_speeds_in
+    args = np.append([0], np.diff(times)), gear_box_powers_in, accelerations
+    args += (gear_box_speeds_in,)
     eng, ele = [], [e]
 
     min_soc = electrics_model.alternator_status_model.min
@@ -123,7 +123,7 @@ def predict_vehicle_electrics_and_engine_behavior(
     for i, (on_eng, dt, p, a, s) in enumerate(zip(gen, *args)):
 
         if e[-1] < min_soc and not on_eng[0]:
-            on_eng[0], on_eng[1] = True, not eng[-1][-1]
+            on_eng[0], on_eng[1] = True, not eng[-1][-2]
 
         eng_s = calculate_engine_speeds_out_hot(s, on_eng[0], idle_engine_speed)
 
@@ -584,7 +584,8 @@ def physical():
                 'start_stop_activation_time', 'correct_start_stop_with_gears'],
         outputs=['alternator_currents', 'battery_currents', 'state_of_charges',
                  'alternator_statuses', 'on_engine', 'engine_starts',
-                 'engine_speeds_out_hot', 'engine_coolant_temperatures']
+                 'engine_speeds_out_hot', 'engine_coolant_temperatures'],
+        weight=10
     )
 
     return dsp
