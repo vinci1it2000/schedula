@@ -178,7 +178,7 @@ def nedc_gears(times, max_gear, k1=1, k2=2, k5=2):
     return s
 
 
-def nedc_times(frequency):
+def nedc_time_length(frequency):
     """
     Returns the time vector with constant time step [s].
 
@@ -191,9 +191,7 @@ def nedc_times(frequency):
     :rtype: numpy.array
     """
 
-    dt = 1 / frequency
-
-    return np.arange(1.0, 1180.0 + dt, dt)
+    return 1180.0 * frequency
 
 
 def _repeat_part_one(times, values):
@@ -269,9 +267,10 @@ def nedc_cycle():
     )
 
     dsp.add_function(
-        function=nedc_times,
+        function=nedc_time_length,
         inputs=['time_sample_frequency'],
-        outputs=['times']
+        outputs=['time_length'],
+        weight=5
     )
 
     return dsp

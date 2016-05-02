@@ -24,6 +24,7 @@ Sub-Modules:
 
 from co2mpas.dispatcher import Dispatcher
 import co2mpas.dispatcher.utils as dsp_utl
+import numpy as np
 
 
 def is_nedc(kwargs):
@@ -38,6 +39,28 @@ def is_wltp(kwargs):
         if ':cycle_type' in k or 'cycle_type' == k:
             return v == 'WLTP'
     return False
+
+
+def cycle_times(frequency, time_length):
+    """
+    Returns the time vector with constant time step [s].
+
+    :param frequency:
+        Time frequency [1/s].
+    :type frequency: float
+
+    :param time_length:
+        Maximum time [s].
+    :type time_length: float
+
+    :return:
+        Time vector [s].
+    :rtype: numpy.array
+    """
+
+    dt = 1 / frequency
+
+    return np.arange(0.0, time_length, dtype=float) * dt
 
 
 def cycle():
@@ -68,14 +91,15 @@ def cycle():
             'k2': 'k2',
             'k5': 'k5',
             'max_gear': 'max_gear',
-            'time_sample_frequency': 'time_sample_frequency',
             'gear_box_type': 'gear_box_type',
-            'times': 'times'
+            'times': 'times',
+            'time_sample_frequency': 'time_sample_frequency'
         },
         outputs={
             'times': 'times',
             'velocities': 'velocities',
-            'gears': 'gears'
+            'gears': 'gears',
+            'time_length': 'time_length'
         },
         input_domain=is_nedc
     )
@@ -86,7 +110,6 @@ def cycle():
         dsp=wltp_cycle(),
         inputs={
             'cycle_type': dsp_utl.SINK,
-            'time_sample_frequency': 'time_sample_frequency',
             'gear_box_type': 'gear_box_type',
             'times': 'times',
             'velocities': 'velocities',
@@ -107,14 +130,35 @@ def cycle():
             'engine_max_speed_at_max_power': 'engine_max_speed_at_max_power',
             'max_velocity': 'max_velocity',
             'wltp_class': 'wltp_class',
-            'max_speed_velocity_ratio': 'max_speed_velocity_ratio'
+            'max_speed_velocity_ratio': 'max_speed_velocity_ratio',
+            'time_sample_frequency': 'time_sample_frequency'
         },
         outputs={
             'times': 'times',
             'velocities': 'velocities',
-            'gears': 'gears'
+            'gears': 'gears',
+            'time_length': 'time_length'
         },
         input_domain=is_wltp
+    )
+
+    dsp.add_function(
+        function=cycle_times,
+        inputs=['time_sample_frequency', 'time_length'],
+        outputs=['times']
+    )
+
+    dsp.add_function(
+        function=len,
+        inputs=['velocities'],
+        outputs=['time_length']
+    )
+
+    dsp.add_function(
+        function=len,
+        inputs=['gears'],
+        outputs=['time_length'],
+        weight=1
     )
 
     return dsp

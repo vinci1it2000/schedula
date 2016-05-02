@@ -22,7 +22,7 @@ import co2mpas.dispatcher.utils as dsp_utl
 EPS = sys.float_info.epsilon * 10
 
 
-def wltp_times(frequency):
+def wltp_time_length(frequency):
     """
     Returns the time vector with constant time step [s].
 
@@ -34,10 +34,7 @@ def wltp_times(frequency):
         Time vector [s].
     :rtype: numpy.array
     """
-
-    dt = 1 / frequency
-
-    return np.arange(0.0, 1800.0 + dt, dt)
+    return 1800.0 * frequency
 
 
 def calculate_unladen_mass(vehicle_mass, driver_mass):
@@ -378,9 +375,10 @@ def wltp_cycle():
     )
 
     dsp.add_function(
-        function=wltp_times,
+        function=wltp_time_length,
         inputs=['time_sample_frequency'],
-        outputs=['times']
+        outputs=['time_length'],
+        weight=5
     )
 
     dsp.add_function(
