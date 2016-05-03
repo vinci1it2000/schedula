@@ -13,7 +13,7 @@ import numpy as np
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.metrics import mean_squared_error
 import co2mpas.dispatcher.utils as dsp_utl
-from ..utils import derivative, argmax
+from ..utils import derivative, argmax, get_inliers
 
 
 class ThermalModel(object):
@@ -65,17 +65,14 @@ class ThermalModel(object):
         :rtype: function
         """
 
-        T, dT, dt, i = _get_samples(times, engine_coolant_temperatures,
+        T, dT, dt, b = _get_samples(times, engine_coolant_temperatures,
                                     on_engine)
 
         if not dT.size:
-            # noinspection PyUnusedLocal
-            def DT0(deltas_t, powers, speeds, *args, initial_temperature=23):
-                return np.tile((initial_temperature,), powers.shape)
+            self.predict = DT0()
+            return self
 
-            return DT0
-
-        a = gear_box_powers_in[i:], gear_box_speeds_in[i:], accelerations[i:]
+        a = gear_box_powers_in[b], gear_box_speeds_in[b], accelerations[b]
 
         models = [
             TPS().fit(T, dT, *a[:2]),
@@ -96,10 +93,18 @@ class ThermalModel(object):
         return self
 
 
-class TPS(object):
+class DT0(object):
     def __init__(self):
         self.predict = None
 
+    def __call__(self, deltas_t, *args, initial_temperature=23):
+        return np.tile((initial_temperature,), args[0].shape)
+
+    def delta(self, dt, power, speed, acc, *args, prev_temperature=23):
+        return 0.0
+
+
+class TPS(DT0):
     def __call__(self, deltas_t, *args, initial_temperature=23):
         t, temp = initial_temperature, [initial_temperature]
         append = temp.append
@@ -138,11 +143,10 @@ class TPSA(TPS):
 def _get_samples(times, engine_coolant_temperatures, on_engine):
     dT = derivative(times, engine_coolant_temperatures, dx=4, order=7)[1:]
     dt = np.diff(times)
-    i = argmax(on_engine)
-    dt, dT = dt[i:], dT[i:]
-    T = engine_coolant_temperatures[i:]
-    dT = np.array(dT, np.float64, order='C')
-    return T, dT, dt, i
+    b = np.ones_like(times, dtype=bool)
+    b[:-1] = (times[:-1] > times[argmax(on_engine)]) & get_inliers(dT, n=3)[0]
+    dt, dT, T = dt[b[:-1]], dT[b[:-1]], engine_coolant_temperatures[b]
+    return T, np.array(dT, np.float64, order='C'), dt, b
 
 
 def calibrate_engine_temperature_regression_model(
