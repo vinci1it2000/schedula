@@ -114,7 +114,7 @@ def predict_vehicle_electrics_and_engine_behavior(
     e = (0, 0, None, initial_state_of_charge)
     args = np.append([0], np.diff(times)), gear_box_powers_in, accelerations
     args += (gear_box_speeds_in,)
-    eng, ele = [], [e]
+    eng, ele = [(True, False)], [e]
 
     min_soc = electrics_model.alternator_status_model.min
 
@@ -137,7 +137,7 @@ def predict_vehicle_electrics_and_engine_behavior(
         eng.append([eng_s] + on_eng)
 
     alt_c, alt_sts, bat_c, _ = zip(*ele[1:])
-    eng_s, on, st = zip(*eng)
+    eng_s, on, st = zip(*eng[1:])
 
     on, st = np.array(on, dtype=bool), np.array(st, dtype=bool)
     alt_c, bat_c, alt_sts = np.array(alt_c), np.array(bat_c), np.array(alt_sts)
