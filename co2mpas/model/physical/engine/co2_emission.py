@@ -1476,7 +1476,7 @@ def calculate_willans_factors(
         'av_velocities': av(velocities, weights=w),  # [km/h]
     }
 
-    f['distance'] = f['av_velocities'] * (times[-1] - times[0])  # [km]
+    f['distance'] = f['av_velocities'] * (times[-1] - times[0]) / 3600.0  # [km]
 
     b = engine_powers_out >= 0
     if b.any():
