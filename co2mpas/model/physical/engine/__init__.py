@@ -630,8 +630,8 @@ def calculate_engine_speeds_out_hot(
 
 
 def calculate_cold_start_speeds_delta(
-        cold_start_speed_model, engine_speeds_out_hot, on_engine,
-        engine_coolant_temperatures):
+        cold_start_speed_model, idle_engine_speed, engine_speeds_out_hot,
+        on_engine, engine_coolant_temperatures):
     """
     Calculates the engine speed delta due to the cold start [RPM].
 
@@ -657,7 +657,9 @@ def calculate_cold_start_speeds_delta(
     """
 
     delta_speeds = cold_start_speed_model(
-        engine_speeds_out_hot, on_engine, engine_coolant_temperatures)
+        idle_engine_speed[0], engine_speeds_out_hot, on_engine,
+        engine_coolant_temperatures
+    )
 
     return delta_speeds
 
@@ -768,7 +770,7 @@ def calibrate_cold_start_speed_model(
 
     model = _select_cold_start_speed_model(
         engine_speeds_out, engine_coolant_temperatures, engine_speeds_out_hot,
-        on_engine, *models
+        on_engine, idle_engine_speed, *models
     )
 
     return model
@@ -850,14 +852,14 @@ def _calibrate_cold_start_speed_model(
             p = res[0]
 
     # noinspection PyUnusedLocal
-    def model(speeds, on_engine, temperatures, *args):
+    def model(idle, speeds, on_engine, temperatures, *args):
         add_speeds = np.zeros_like(speeds, dtype=float)
 
         if p > 0:
             s_o = (engine_normalization_temperature - temperatures) * p
             b = on_engine & (s_o > speeds)
             # noinspection PyUnresolvedReferences
-            add_speeds[b] = s_o[b] - speeds[b]
+            add_speeds[b] = np.minimum(s_o[b] - speeds[b], idle / 2)
 
         return add_speeds
 
@@ -914,11 +916,11 @@ def _calibrate_cold_start_speed_model_v1(
     ds = abs((ds - idle) / (30.0 - min(engine_coolant_temperatures)))
 
     # noinspection PyUnusedLocal
-    def model(speeds, on_engine, engine_coolant_temperatures, *args):
+    def model(idle, speeds, on_engine, engine_coolant_temperatures, *args):
         add_speeds = np.zeros_like(speeds, dtype=float)
 
         b = (engine_coolant_temperatures < 30.0) & on_engine
-        s =  ds * (30.0 - engine_coolant_temperatures[b])
+        s =  np.minimum(ds * (30.0 - engine_coolant_temperatures[b]), idle / 2)
         add_speeds[b] = np.where(speeds[b] < s + idle, s, add_speeds[b])
 
         return add_speeds
@@ -928,7 +930,7 @@ def _calibrate_cold_start_speed_model_v1(
 
 def _select_cold_start_speed_model(
         engine_speeds_out, engine_coolant_temperatures, engine_speeds_out_hot,
-        on_engine, *models):
+        on_engine, idle_engine_speed, *models):
     """
     Select the best cold start speed model.
 
@@ -954,7 +956,7 @@ def _select_cold_start_speed_model(
     """
 
     ds = engine_speeds_out - engine_speeds_out_hot
-    args = (engine_speeds_out_hot, on_engine, engine_coolant_temperatures)
+    args = (idle_engine_speed, engine_speeds_out_hot, on_engine, engine_coolant_temperatures)
     delta, error = calculate_cold_start_speeds_delta, mean_absolute_error
 
     err = [(error(ds, delta(*((model,) + args))), i, model)
@@ -1547,7 +1549,8 @@ def engine():
 
     dsp.add_function(
         function=calculate_cold_start_speeds_delta,
-        inputs=['cold_start_speed_model', 'engine_speeds_out_hot', 'on_engine',
+        inputs=['cold_start_speed_model', 'idle_engine_speed',
+                'engine_speeds_out_hot', 'on_engine',
                 'engine_coolant_temperatures'],
         outputs=['cold_start_speeds_delta']
     )
