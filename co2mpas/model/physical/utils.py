@@ -133,6 +133,16 @@ def median_filter(x, y, dx_window, filter=median_high):
     return np.array(Y)
 
 
+def get_inliers(x, n=1, med=np.median, std=np.std):
+    x = np.asarray(x)
+    if not x.size:
+        return np.zeros_like(x, dtype=bool), np.nan, np.nan
+    m, s = med(x), std(x)
+
+    y = n > (abs(x - m) / s)
+    return y, m, s
+
+
 def reject_outliers(x, n=1, med=np.median, std=np.std):
     """
     Calculates the median and standard deviation of the sample rejecting the
@@ -159,15 +169,10 @@ def reject_outliers(x, n=1, med=np.median, std=np.std):
     :rtype: (float, float)
     """
 
-    x = np.asarray(x)
-    if not x.size:
-        return np.nan, np.nan
-    m, s = med(x), std(x)
-
-    y = n > (abs(x - m) / s)
+    y, m, s = get_inliers(x, n=n, med=med, std=std)
 
     if y.any():
-        y = x[y]
+        y = np.asarray(x)[y]
 
         m, s = med(y), std(y)
 
