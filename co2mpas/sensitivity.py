@@ -87,6 +87,7 @@ def _sa_co2_params(input_vehicle, input_parameters, output_folder):
 
 def _compute_default_models(path, output_folder, **kw):
     fp = file_finder(path)
+
     if fp:
         model = vehicle_processing_model()
         dfl = {}
@@ -103,6 +104,7 @@ def _compute_default_models(path, output_folder, **kw):
             save_dill(dfl, fp)
 
             return {'default': fp}
+
     return {}
 
 
