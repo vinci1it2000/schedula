@@ -50,8 +50,8 @@ def check_sign_currents(battery_currents, alternator_currents):
 
     b_c, a_c = battery_currents, alternator_currents
 
-    a = reject_outliers(a_c, med=np.mean)[0] <= 0
-    c = np.correlate(a_c, b_c)[0]
+    a = reject_outliers(a_c, med=np.mean)[0] <= 1.0
+    c = np.cov(a_c, b_c)[0][1]
 
     if c < 0:
         x = (a, a)
@@ -87,10 +87,10 @@ def calculate_engine_start_demand(
     :rtype: float
     """
 
-    w_idle = idle_engine_speed[0] / 30.0 * pi
+    idle = idle_engine_speed[0] / 30.0 * pi
     dt = 1.0  # Assumed time for engine turn on [s].
 
-    return engine_moment_inertia / alternator_efficiency * w_idle ** 2 / 2000 * dt
+    return engine_moment_inertia / alternator_efficiency * idle ** 2 / 2000 * dt
 
 
 def identify_electric_loads(
