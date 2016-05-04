@@ -295,7 +295,7 @@ def wltp_gears(
     """
 
     n_min_drive = None
-    svr = [v for k, v in sorted(speed_velocity_ratios.items())]
+    svr = [v for k, v in sorted(speed_velocity_ratios.items()) if k]
 
     n_norm = np.arange(0.0, 1.21, 0.01)
     load_curve = {'n_norm': n_norm, 'p_norm': full_load_curve(n_norm)}
@@ -313,7 +313,6 @@ def wltp_gears(
     # Apply Driveability-rules.
     applyDriveabilityRules(velocities, accelerations, gears, res[1], res[-1])
 
-    gears -= 1
     gears[gears < 0] = 0
 
     return gears
