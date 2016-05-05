@@ -519,10 +519,13 @@ def calculate_extended_integration_times(
         else:
             t = (t0 + t1) / 2
         phases.append(t)
-
-    t = times[np.searchsorted(engine_coolant_temperatures,
-                              after_treatment_temperature_threshold[1])]
-    phases.append(t)
+    try:
+        i = np.searchsorted(engine_coolant_temperatures,
+                            after_treatment_temperature_threshold[1])
+        t = times[i]
+        phases.append(t)
+    except IndexError:
+        pass
 
     return sorted(phases)
 
