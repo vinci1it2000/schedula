@@ -378,8 +378,8 @@ require the use of ``pip`` command from a *console* to install:
 
   .. Important::
       To avert any security deliberations for this http-proxy "tunnel",
-      JRC *cryptographically signs* all *final releases*, so that you or
-      your IT staff may `validate their authenticity
+      JRC *cryptographically signs* all *final releases* with ``GPG key ID: 9CF277C40A8A1B08``
+      so that you or your IT staff may `validate their authenticity
       <https://www.davidfischer.name/2012/05/signing-and-verifying-python-packages-with-pgp/>`_
       and detect *man-in-the-middle* attacks, however impossible.
 
