@@ -16,6 +16,10 @@ import co2mpas.dispatcher.utils as dsp_utl
 from ..utils import derivative, argmax, get_inliers
 
 
+def check_initial_temperature(initial_temperature, engine_coolant_temperatures):
+    return abs(initial_temperature - engine_coolant_temperatures[0]) <= 0.5
+
+
 class ThermalModel(object):
     def __init__(self):
         self.predict = None

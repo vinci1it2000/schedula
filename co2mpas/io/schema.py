@@ -9,11 +9,32 @@ from pprint import pformat
 import co2mpas.dispatcher.utils as dsp_utl
 from .dill import save_dill
 from co2mpas.batch import stack_nested_keys, get_nested_dicts
+from co2mpas.model.physical.engine.thermal import check_initial_temperature
 from co2mpas.model.physical.electrics import check_sign_currents
 from co2mpas.model.physical.gear_box.at_gear import CMV, MVL, GSPV
 from co2mpas.model.physical.electrics import Alternator_status_model
 
 log = logging.getLogger(__name__)
+
+
+def hard_validation(data):
+    c = ('battery_currents', 'alternator_currents')
+    t1 = ('initial_temperature', 'engine_coolant_temperatures')
+    t2 = ('initial_engine_temperature', 'engine_coolant_temperatures')
+    if set(c).issubset(data):
+        a = dsp_utl.selector(c, data, output_type='list')
+        s = check_sign_currents(*a)
+        s = ' and '.join([k for k, v in zip(c, s) if not v])
+        if s:
+            msg = "Probably '{}' have the wrong sign!".format(s)
+            yield c, msg
+    for t in (t1, t2):
+        if set(t).issubset(data):
+            a = dsp_utl.selector(t, data, output_type='list')
+            if check_initial_temperature(*a):
+                msg = "Inconsistent '{}' respect to {}!".format(*t)
+                yield t, msg
+            break
 
 
 def validate_data(
@@ -33,15 +54,9 @@ def validate_data(
         get_nested_dicts(res, *k[:-1])[k[-1]] = v
 
     if not soft_validation:
-        c = ('battery_currents', 'alternator_currents')
         for k, v in stack_nested_keys(res, depth=3):
-            if set(c).issubset(v):
-                a = dsp_utl.selector(c, v, output_type='list')
-                s = check_sign_currents(*a)
-                s = ' and '.join([k for k, v in zip(c, s) if not v])
-                if s:
-                    msg = "Probably '{}' have the wrong sign!".format(s)
-                    get_nested_dicts(errors, *k)[c] = SchemaError([], [msg])
+            for c, msg in hard_validation(data):
+                get_nested_dicts(errors, *k)[c] = SchemaError([], [msg])
 
     if errors:
         msg = ['\nInput cannot be parsed, due to:']
