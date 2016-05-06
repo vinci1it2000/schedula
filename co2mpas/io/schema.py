@@ -77,12 +77,15 @@ class Empty(object):
 
     @staticmethod
     def validate(data):
+        if isinstance(data, str) and data == 'EMPTY':
+            return dsp_utl.EMPTY
+
         try:
             empty = not (data or data == 0)
         except ValueError:
             empty = np.isnan(data).all()
 
-        if empty or (isinstance(data, str) and data == 'NONE'):
+        if empty:
             return dsp_utl.NONE
         else:
             raise SchemaError('%r is not empty' % data, None)
