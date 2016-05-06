@@ -43,16 +43,17 @@ def select_prediction_data(data, new_data=(), theoretical=True):
     ids = [
         'angle_slope', 'alternator_nominal_voltage', 'alternator_efficiency',
         'battery_capacity', 'cycle_type', 'cycle_name', 'engine_capacity',
-        'engine_max_torque', 'engine_stroke', 'engine_thermostat_temperature',
-        'final_drive_efficiency', 'final_drive_ratio', 'frontal_area',
-        'fuel_type', 'gear_box_ratios', 'gear_box_type', 'idle_engine_speed',
-        'idle_engine_speed_median', 'idle_engine_speed_std', 'engine_max_power',
-        'engine_max_speed_at_max_power', 'r_dynamic',
+        'engine_stroke', 'engine_thermostat_temperature',
+        'final_drive_efficiency', 'frontal_area',
+        'aerodynamic_drag_coefficient', 'fuel_type',
+        'gear_box_type', 'engine_max_power', 'engine_max_speed_at_max_power',
         'rolling_resistance_coeff', 'time_cold_hot_transition',
-        'co2_params', 'engine_idle_fuel_consumption',
-        'engine_type', 'engine_is_turbo', 'engine_fuel_lower_heating_value',
-        'fuel_carbon_content', 'initial_state_of_charge', 'f0', 'f1', 'f2',
-        'initial_temperature', 'vehicle_mass'
+        'engine_idle_fuel_consumption', 'engine_type', 'engine_is_turbo',
+        'engine_fuel_lower_heating_value', 'has_start_stop',
+        'has_energy_recuperation', 'fuel_carbon_content',
+        'initial_state_of_charge', 'f0', 'f1', 'f2',
+        'initial_temperature', 'vehicle_mass', 'full_load_speeds',
+        'full_load_powers', 'eco_mode'
     ]
 
     if not theoretical:
