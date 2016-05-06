@@ -169,6 +169,7 @@ def physical():
         dsp_id='cycle_model',
         dsp=cycle(),
         inputs={
+            'wltp_base_model': 'wltp_base_model',
             'cycle_type': 'cycle_type',
             'k1': 'k1',
             'k2': 'k2',
@@ -489,7 +490,9 @@ def physical():
                 'after_treatment_temperature_threshold',
             'phases_fuel_consumptions': 'phases_fuel_consumptions',
             'fuel_density': 'fuel_density',
-            'phases_willans_factors': 'phases_willans_factors'
+            'phases_willans_factors': 'phases_willans_factors',
+            'missing_powers': 'missing_powers',
+            'brake_powers': 'brake_powers'
         }
     )
 

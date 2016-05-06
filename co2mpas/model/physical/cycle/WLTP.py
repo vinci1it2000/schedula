@@ -344,6 +344,11 @@ def get_class_data(wltc_data, wltp_class):
     return wltc_data['classes'][wltp_class]
 
 
+def define_wltp_base_model(base_model):
+
+    return dsp_utl.combine_dicts(_get_model_base(), base_model)
+
+
 def wltp_cycle():
     """
     Defines the wltp cycle model.
@@ -365,7 +370,13 @@ def wltp_cycle():
 
     dsp.add_data(
         data_id='wltp_base_model',
-        default_value=_get_model_base()
+        default_value={}
+    )
+
+    dsp.add_function(
+        function=define_wltp_base_model,
+        inputs=['wltp_base_model'],
+        outputs=['base_model']
     )
 
     dsp.add_data(
@@ -382,7 +393,7 @@ def wltp_cycle():
 
     dsp.add_function(
         function=get_dfl,
-        inputs=['wltp_base_model'],
+        inputs=['base_model'],
         outputs=['driver_mass', 'resistance_coeffs_regression_curves',
                  'wltc_data']
     )
@@ -478,7 +489,7 @@ def wltp_cycle():
         inputs=['gear_box_type', 'full_load_curve', 'velocities',
                 'accelerations', 'motive_powers', 'speed_velocity_ratios',
                 'idle_engine_speed', 'engine_max_speed_at_max_power',
-                'engine_max_power', 'wltp_base_model'],
+                'engine_max_power', 'base_model'],
         outputs=['gears'],
         input_domain=lambda *args: args[0] == 'manual'
     )

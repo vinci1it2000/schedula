@@ -112,6 +112,7 @@ def cycle():
             'cycle_type': dsp_utl.SINK,
             'gear_box_type': 'gear_box_type',
             'times': 'times',
+            'wltp_base_model': 'wltp_base_model',
             'velocities': 'velocities',
             'accelerations': 'accelerations',
             'motive_powers': 'motive_powers',
