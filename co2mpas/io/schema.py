@@ -82,7 +82,7 @@ class Empty(object):
         except ValueError:
             empty = np.isnan(data).all()
 
-        if empty:
+        if empty or (isinstance(data, str) and data == 'NONE'):
             return dsp_utl.NONE
         else:
             raise SchemaError('%r is not empty' % data, None)
@@ -294,6 +294,7 @@ def define_data_schema(read=True):
         _compare_str('MVL'): _mvl(read=read),
 
         _compare_str('VERSION'): string,
+        'wltp_base_model': _dict(format=dict, read=read),
         'fuel_type': _select(types=('gasoline', 'diesel'), read=read),
         'engine_fuel_lower_heating_value': positive,
         'fuel_carbon_content': positive,
