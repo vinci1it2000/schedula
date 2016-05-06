@@ -310,7 +310,7 @@ def extract_summary(data, vehicle_name):
         'co2_params', 'calibration_status', 'co2_params', 'model_scores',
         'scores', 'co2_params_calibrated',
         'phases_co2_emissions', 'willans_factors', 'correct_f0',
-        'phases_fuel_consumptions', 'phases_willans_factors'
+        'phases_fuel_consumptions', 'phases_willans_factors', 'missing_powers'
     ) + co2_target_keys
 
     for k, v in dsp_utl.selector(keys, data, allow_miss=True).items():
@@ -328,6 +328,9 @@ def extract_summary(data, vehicle_name):
                 if 'co2_params_calibrated' in p:
                     n = p.pop('co2_params_calibrated').valuesdict()
                     p.update(_parse_outputs('co2_params', n))
+
+            if 'missing_powers' in p:
+                p['sufficient_power'] = not p.pop('missing_powers').any()
 
             if 'phases_co2_emissions' in p:
                 _map = nedc_phases if k == 'nedc' else wltp_phases
