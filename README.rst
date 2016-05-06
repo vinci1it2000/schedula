@@ -44,7 +44,6 @@ adaptation.
 
 For recent activity, check the :doc:`changes`.
 
-
 Quickstart
 ==========
 .. Tip::

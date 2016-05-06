@@ -48,10 +48,11 @@ def yield_sphinx_only_markup(lines):
         # Selected Sphinx-only Roles.
         #
         (r':abbr:`([^`]+)`',        r'\1'),
-        (r':ref:`([^`]+)`',         r'ref:`\1`_'),
+        (r':ref:`([^`]+)`',         r'ref: *\1*'),
         (r':term:`([^`]+)`',        r'**\1**'),
         (r':dfn:`([^`]+)`',         r'**\1**'),
-        (r':(samp|guilabel|menuselection):`([^`]+)`',        r'``\2``'),
+        (r':(samp|guilabel|menuselection):`([^`]+)`',
+                                    r'``\2``'),
 
 
         # Sphinx-only roles:
@@ -69,12 +70,13 @@ def yield_sphinx_only_markup(lines):
         (r'\.\. seealso',           r'info'),
         (r'\.\. glossary',          r'rubric'),
         (r'\.\. figure::',          r'.. '),
-        (r'\.\. image::',          r'.. '),
+        (r'\.\. image::',           r'.. '),
 
 
         # Other
         #
         (r'\|version\|',              r'x.x.x'),
+        (r'\.\. include:: AUTHORS',   r'see: AUTHORS'),
     ]
 
     regex_subs = [(re.compile(regex, re.IGNORECASE), sub)
