@@ -318,7 +318,9 @@ def physical():
             'on_engine': 'on_engine',
             'start_demand': 'start_demand',
             'times': 'times',
-            'velocities': 'velocities'
+            'velocities': 'velocities',
+            'alternator_statuses': 'alternator_statuses',
+            'state_of_charges': 'state_of_charges',
         },
         outputs={
             'alternator_current_model': 'alternator_current_model',
@@ -439,6 +441,8 @@ def physical():
             'phases_integration_times': 'phases_integration_times',
             'enable_phases_willans': 'enable_phases_willans',
             'motive_powers': 'motive_powers',
+            'engine_starts': 'engine_starts',
+            'engine_speeds_out_hot': 'engine_speeds_out_hot',
         },
         outputs={
             'auxiliaries_torque_losses': 'auxiliaries_torque_losses',
