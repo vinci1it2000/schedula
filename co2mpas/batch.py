@@ -441,7 +441,7 @@ def combine_nested_dicts(*nested_dicts, depth=-1):
 
     :return:
         Combined nested-dictionary.
-    :rtype: tuple[dict]
+    :rtype: dict
     """
 
     result = {}
