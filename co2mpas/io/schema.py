@@ -322,7 +322,6 @@ def define_data_schema(read=True):
         'state_of_charge_balance': limits,
         'state_of_charge_balance_window': limits,
         'initial_state_of_charge ': limits,
-        'initial_temperature': positive,
         'idle_engine_speed_std': positive,
         'alternator_nominal_power': positive,
         'alternator_efficiency': _limits(limits=(0, 1), read=read),
