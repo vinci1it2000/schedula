@@ -180,10 +180,14 @@ def _set_extra_models(data_id, value, data, outputs):
 
 def _new_inp(data, outputs, dsp_model, validate):
     new_inputs = {}
+    remove = []
     for k, v in parse_values(data):
         n, k = '.'.join(k[:-1]), k[-1]
         d = get_nested_dicts(new_inputs, n)
-        d.update(validate({k: v}))
+        k, v = next(iter(validate({k: v}).items()))
+        d[k] = v
+        if v is dsp_utl.EMPTY:
+            remove.append((n, k))
 
         _set_extra_models(k, v, d, outputs)
 
@@ -193,8 +197,12 @@ def _new_inp(data, outputs, dsp_model, validate):
     n.update(new_inputs)
 
     inp = dsp_utl.selector(n, outputs, allow_miss=True)
+    d = combine_nested_dicts(inp, new_inputs, depth=2)
 
-    return combine_nested_dicts(inp, new_inputs, depth=2)
+    for n, k in remove:
+        get_nested_dicts(d, n).pop(k)
+
+    return d
 
 
 def _sa(input_vehicle, input_parameters, output_folder, default=None, **kw):

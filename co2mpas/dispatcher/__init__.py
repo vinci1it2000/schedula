@@ -2265,9 +2265,6 @@ class Dispatcher(object):
             if inputs is not None:  # Update initial values with input values.
                 initial_values.update(inputs)
 
-            initial_values = {k: v for k, v in initial_values.items()
-                              if v is not EMPTY}
-
         # Set initial values.
         initial_distances = {k: v['initial_dist']
                              for k, v in self.default_values.items()
