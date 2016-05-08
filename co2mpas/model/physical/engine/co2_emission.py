@@ -1285,7 +1285,8 @@ class _Minimizer(lmfit.Minimizer):
 def calculate_phases_willans_factors(
         params, engine_fuel_lower_heating_value, engine_stroke, engine_capacity,
         times, phases_integration_times, engine_speeds_out, engine_powers_out,
-        velocities, accelerations, motive_powers, engine_coolant_temperatures):
+        velocities, accelerations, motive_powers, engine_coolant_temperatures,
+        missing_powers):
     """
     Calculates the Willans factors for each phase.
 
@@ -1339,6 +1340,10 @@ def calculate_phases_willans_factors(
         Engine coolant temperature vector [°C].
     :type engine_coolant_temperatures: numpy.array
 
+    :param missing_powers:
+        Missing engine power [kW].
+    :type missing_powers: numpy.array
+
     :return:
         Willans factors:
 
@@ -1377,7 +1382,7 @@ def calculate_phases_willans_factors(
             params, engine_fuel_lower_heating_value, engine_stroke,
             engine_capacity, engine_speeds_out[i:j], engine_powers_out[i:j],
             times[i:j], velocities[i:j], accelerations[i:j], motive_powers[i:j],
-            engine_coolant_temperatures[i:j]
+            engine_coolant_temperatures[i:j], missing_powers[i:j]
         ))
 
     return factors
@@ -1386,7 +1391,7 @@ def calculate_phases_willans_factors(
 def calculate_willans_factors(
         params, engine_fuel_lower_heating_value, engine_stroke, engine_capacity,
         engine_speeds_out, engine_powers_out, times, velocities, accelerations,
-        motive_powers, engine_coolant_temperatures):
+        motive_powers, engine_coolant_temperatures, missing_powers):
     """
     Calculates the Willans factors.
 
@@ -1436,6 +1441,10 @@ def calculate_willans_factors(
         Engine coolant temperature vector [°C].
     :type engine_coolant_temperatures: numpy.array
 
+    :param missing_powers:
+        Missing engine power [kW].
+    :type missing_powers: numpy.array
+
     :return:
         Willans factors:
 
@@ -1474,6 +1483,7 @@ def calculate_willans_factors(
 
     f = {
         'av_velocities': av(velocities, weights=w),  # [km/h]
+        'sufficient_power': not missing_powers.any()
     }
 
     f['distance'] = f['av_velocities'] * (times[-1] - times[0]) / 3600.0  # [km]
@@ -1951,7 +1961,8 @@ def co2_emission():
         inputs=['co2_params_calibrated', 'engine_fuel_lower_heating_value',
                 'engine_stroke', 'engine_capacity', 'engine_speeds_out',
                 'engine_powers_out', 'times', 'velocities', 'accelerations',
-                'motive_powers', 'engine_coolant_temperatures'],
+                'motive_powers', 'engine_coolant_temperatures',
+                'missing_powers'],
         outputs=['willans_factors']
     )
 
@@ -1967,7 +1978,7 @@ def co2_emission():
                 'engine_capacity', 'times', 'phases_integration_times',
                 'engine_speeds_out', 'engine_powers_out', 'velocities',
                 'accelerations', 'motive_powers',
-                'engine_coolant_temperatures'],
+                'engine_coolant_temperatures', 'missing_powers'],
         outputs=['phases_willans_factors'],
         input_domain=lambda *args: args[0]
     )

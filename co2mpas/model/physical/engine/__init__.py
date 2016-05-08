@@ -1690,6 +1690,7 @@ def engine():
             'enable_phases_willans': 'enable_phases_willans',
             'accelerations': 'accelerations',
             'motive_powers': 'motive_powers',
+            'missing_powers': 'missing_powers'
         },
         outputs={
             'co2_emissions_model': 'co2_emissions_model',
