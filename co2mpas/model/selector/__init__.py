@@ -379,10 +379,9 @@ def sub_models():
     models['at_model'] = {
         'dsp': at_gear(),
         'select_models': partial(at_models_selector, at_gear(), at_pred_inputs),
-        'models_wo_err': ['max_gear', 'specific_gear_shifting'],
-        'models': ['max_gear', 'MVL', 'CMV', 'CMV_Cold_Hot',
-                   'DT_VA', 'DT_VAT', 'DT_VAP', 'DT_VATP', 'GSPV',
-                   'GSPV_Cold_Hot', 'specific_gear_shifting'],
+        'models': ['MVL', 'CMV', 'CMV_Cold_Hot', 'DT_VA', 'DT_VAT', 'DT_VAP',
+                   'DT_VATP', 'GSPV', 'GSPV_Cold_Hot',
+                   'specific_gear_shifting'],
         'inputs': at_pred_inputs,
         'define_sub_model': lambda dsp, **kwargs: dsp_utl.SubDispatch(dsp),
         'outputs': ['gears', 'max_gear'],
@@ -395,21 +394,21 @@ def sub_models():
 
 
 def at_models_selector(dsp, at_pred_inputs, models_ids, data):
-
+    sgs = 'specific_gear_shifting'
     # Namespace shortcuts.
     try:
         vel, vsr = data['velocities'], data['velocity_speed_ratios']
         t_eng, t_gears = data['engine_speeds_out'], data['gears']
+        at_m = data[sgs]
     except KeyError:
         return {}
 
-    sgs = 'specific_gear_shifting'
     c_dicts, select, _g = dsp_utl.combine_dicts, dsp_utl.selector, dsp.dispatch
     t_e = ('mean_absolute_error', 'accuracy_score', 'correlation_coefficient')
 
     # at_models to be assessed.
     at_m = {'CMV', 'CMV_Cold_Hot', 'DT_VA', 'DT_VAT', 'DT_VAP', 'DT_VATP',
-            'GSPV', 'GSPV_Cold_Hot'} if data[sgs] == 'ALL' else {data[sgs]}
+            'GSPV', 'GSPV_Cold_Hot'} if at_m == 'ALL' else {at_m}
 
     # Other models to be taken from calibration output.
     models = select(set(models_ids) - at_m, data, allow_miss=True)

@@ -1346,8 +1346,8 @@ class MVL(CMV):
 
         self.clear()
         self.update(_correct_gsv_for_constant_velocities(
-                OrderedDict(mvl), up_cns_vel=[35, 50],
-                dn_cns_vel=[15, 32, 50, 70])
+                OrderedDict(mvl), up_cns_vel=(35, 50),
+                dn_cns_vel=(15, 32, 50, 70))
         )
 
         return self
@@ -1370,6 +1370,26 @@ class MVL(CMV):
 def domain_eco_mode(eco_mode, *args):
 
     return eco_mode
+
+
+def default_specific_gear_shifting(*args):
+    return 'ALL'
+
+
+def at_domain(method):
+    def domain(kwargs):
+        return kwargs['specific_gear_shifting'] in ('ALL', method)
+
+    return domain
+
+
+def dt_domain(method):
+    def domain(kwargs):
+        s = 'specific_gear_shifting'
+        dt = 'use_dt_gear_shifting'
+        return kwargs[s] == method or (kwargs[dt] and kwargs[s] == 'ALL')
+
+    return domain
 
 
 def at_gear():
@@ -1435,15 +1455,10 @@ def at_gear():
         outputs=['correct_gear'],
         weight=100)
 
-    dsp.add_data(
-        data_id='specific_gear_shifting',
-        default_value='ALL'
+    dsp.add_function(
+        function=default_specific_gear_shifting,
+        outputs=['specific_gear_shifting']
     )
-
-    def at_domain(method):
-        def domain(kwargs):
-            return kwargs['specific_gear_shifting'] in ('ALL', method)
-        return domain
 
     dsp.add_dispatcher(
         dsp_id='cmv_model',
@@ -1494,13 +1509,6 @@ def at_gear():
         default_value=False,
         description='If to use decision tree classifiers to predict gears.'
     )
-
-    def dt_domain(method):
-        def domain(kwargs):
-            s = 'specific_gear_shifting'
-            dt = 'use_dt_gear_shifting'
-            return kwargs[s] == method or (kwargs[dt] and kwargs[s] == 'ALL')
-        return domain
 
     dsp.add_dispatcher(
         dsp_id='dt_va_model',

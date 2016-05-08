@@ -769,6 +769,7 @@ def gear_box():
             'velocity_speed_ratios': 'velocity_speed_ratios',
         },
         outputs={
+            'specific_gear_shifting': 'specific_gear_shifting',
             'gears': 'gears',
             'MVL': 'MVL',
             'CMV': 'CMV',

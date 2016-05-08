@@ -573,7 +573,8 @@ def physical():
             'max_gear': 'max_gear',
             'gear_shifts': 'gear_shifts',
             'velocity_speed_ratios': 'velocity_speed_ratios',
-            'max_speed_velocity_ratio': 'max_speed_velocity_ratio'
+            'max_speed_velocity_ratio': 'max_speed_velocity_ratio',
+            'specific_gear_shifting': 'specific_gear_shifting'
         }
     )
 
