@@ -93,7 +93,8 @@ def cycle():
             'max_gear': 'max_gear',
             'gear_box_type': 'gear_box_type',
             'times': 'times',
-            'time_sample_frequency': 'time_sample_frequency'
+            'time_sample_frequency': 'time_sample_frequency',
+            'gears': 'gears'
         },
         outputs={
             'times': 'times',
@@ -132,7 +133,8 @@ def cycle():
             'max_velocity': 'max_velocity',
             'wltp_class': 'wltp_class',
             'max_speed_velocity_ratio': 'max_speed_velocity_ratio',
-            'time_sample_frequency': 'time_sample_frequency'
+            'time_sample_frequency': 'time_sample_frequency',
+            'gears': 'gears'
         },
         outputs={
             'times': 'times',
