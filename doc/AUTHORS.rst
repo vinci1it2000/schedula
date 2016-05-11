@@ -1,3 +1,1 @@
-:orphan:
-
 .. include:: ../AUTHORS.rst
