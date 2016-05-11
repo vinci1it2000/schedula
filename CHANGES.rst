@@ -4,8 +4,24 @@ CO2MPAS Changes
 .. contents::
 .. _changes:
 
+v1.2.3, file-ver: 2.2, 11-May 2016: "Panino/Sandwich" release
+=============================================================
+1st "Panino" POSTFIX release.
+It is not accompanied by a ALLINONE archive - install it with these 2 commands
+(i.e. in the ALLINONE console)::
+
+    pip uninstall co2mpas
+    pip install co2mpas
+
+- thermal model calibration is done filtering out ``dT/dt`` outliers,
+- the validation of currents' signs has been relaxed, accepting small errors
+  in the inputs, and
+- bugs regarding hot cycles and function
+  ``calculate_extended_integration_times`` have been fixed.
+
+
 v1.2.2, file-ver: 2.2, 19-Apr 2016: "Panino" release
-================================================================
+====================================================
 This release contains both key model and software changes; additional capabilities
 have been added for the user, namely,
 
@@ -177,9 +193,25 @@ Known limitations
   significantly different fuel-consumption figures between the runs.
 
 
+v1.1.1.fix2, file-ver: 2.1, 09-March 2016: "O'Udo" 2nd release
+==============================================================
+2nd POSTFIX release.
+
+- electrics, :gh:`143`: Add default value ``initial_state_of_charge := 99``.
+- clutch, :gh:`173`: FIX calibration failures with a `No inliers found` by
+  `ransac.py` error.
+
+
+v1.1.1.fix1, file-ver: 2.1, 03-March 2016: "O'Udo" 1st release
+==============================================================
+1st POSTFIX release.
+
+- :gh:`169`, :gh:`169`: modified theta-filtering for real-data.
+- :gh:`171`: update forgotten ``simVehicle.ipynb`` notebook to run ok.
+
 
 v1.1.1, file-ver: 2.1, 09-Feb 2016: "O'snow" release
-================================================================
+====================================================
 This release contains mostly model changes; some internal restructurings have
 not affected the final user.
 
@@ -261,7 +293,7 @@ IO
 --
 
 Inputs:
-~~~~~~~~~
+~~~~~~~
 - :gh:`62`: New compulsory fields in input data::
 
       velocity_speed_ratios
@@ -282,7 +314,7 @@ Inputs:
 - :gh:`25`: Add option of 'freezing' the optimization parameters.
 
 Outputs:
-~~~~~~~~~~~~~
+~~~~~~~~
 - :gh:`96`: Produce a single excel with all infos in multiple sheets.
 - :gh:`20`: Produce html report with basic interactive graphs (unfinished).
 - :git:`5064efd3`: Add charts in excel output.
@@ -357,7 +389,7 @@ Internals
 
 
 v1.1.0-dev1, 18-Dec-2015: "Natale" internal JRC version
-================================================================
+=======================================================
 Distributed before Christmas and included assessments from LAT.
 Model changes reported in "O'snow" release, above.
 
