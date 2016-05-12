@@ -6,7 +6,7 @@ CO2MPAS Changes
 
 
 v1.2.4, file-ver: 2.2, 12-May 2016: "Panino/Sandwich" release ("PS")
-=====================================================================
+====================================================================
 2nd POST-Panino release.
 It contains the minor filtering fixes from ``1.2.3`` EXCEPT from
 the thermal changes, so as to maintain the model behavior of ``1.2.2``.
@@ -14,9 +14,8 @@ the thermal changes, so as to maintain the model behavior of ``1.2.2``.
 It is not accompanied by an ALLINONE archive.
 
 
-
 v1.2.3, file-ver: 2.2, 11-May 2016: retracted release
-=============================================================
+=====================================================
 1st POST-Panino release, retracted due to unwanted thermal model changes,
 and not accompanied by a ALLINONE archive.
 

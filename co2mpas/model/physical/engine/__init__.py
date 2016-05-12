@@ -391,10 +391,11 @@ def _calibrate_TPSA(T, dT, gear_box_powers_in, gear_box_speeds_in,
 def _get_samples(times, engine_coolant_temperatures, on_engine):
     dT = derivative(times, engine_coolant_temperatures, dx=4, order=7)[1:]
     dt = np.diff(times)
-    b = np.ones_like(times, dtype=bool)
-    b[:-1] = (times[:-1] > times[argmax(on_engine)]) & get_inliers(dT, n=3)[0]
-    dt, dT, T = dt[b[:-1]], dT[b[:-1]], engine_coolant_temperatures[b]
-    return T, np.array(dT, np.float64, order='C'), dt, b
+    i = argmax(on_engine)
+    dt, dT = dt[i:], dT[i:]
+    T = engine_coolant_temperatures[i:]
+    dT = np.array(dT, np.float64, order='C')
+    return T, dT, dt, i
 
 
 def calibrate_engine_temperature_regression_model(
@@ -440,7 +441,7 @@ def calibrate_engine_temperature_regression_model(
     :rtype: function
     """
 
-    T, dT, dt, b = _get_samples(times, engine_coolant_temperatures, on_engine)
+    T, dT, dt, i = _get_samples(times, engine_coolant_temperatures, on_engine)
 
     if not dT.size:
         # noinspection PyUnusedLocal
@@ -448,8 +449,8 @@ def calibrate_engine_temperature_regression_model(
             return np.ones_like(powers, dtype=float) * initial_temperature
         return DT0
 
-    p, s = gear_box_powers_in[b], gear_box_speeds_in[b]
-    v, a = velocities[b], accelerations[b]
+    p, s = gear_box_powers_in[i:], gear_box_speeds_in[i:]
+    v, a = velocities[i:], accelerations[i:]
 
     models = [
         _calibrate_TPS(T, dT, p, s),
