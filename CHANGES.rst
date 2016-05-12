@@ -4,20 +4,28 @@ CO2MPAS Changes
 .. contents::
 .. _changes:
 
-v1.2.3, file-ver: 2.2, 11-May 2016: "Panino/Sandwich" release
+
+v1.2.4, file-ver: 2.2, 12-May 2016: "Panino/Sandwich" release ("PS")
+=====================================================================
+2nd POST-Panino release.
+It contains the minor filtering fixes from ``1.2.3`` EXCEPT from
+the thermal changes, so as to maintain the model behavior of ``1.2.2``.
+
+It is not accompanied by an ALLINONE archive.
+
+
+
+v1.2.3, file-ver: 2.2, 11-May 2016: retracted release
 =============================================================
-1st "Panino" POSTFIX release.
-It is not accompanied by a ALLINONE archive - install it with these 2 commands
-(i.e. in the ALLINONE console)::
+1st POST-Panino release, retracted due to unwanted thermal model changes,
+and not accompanied by a ALLINONE archive.
 
-    pip uninstall co2mpas
-    pip install co2mpas
-
-- thermal model calibration is done filtering out ``dT/dt`` outliers,
+- Thermal model calibration is done filtering out ``dT/dt`` outliers,
 - the validation of currents' signs has been relaxed, accepting small errors
   in the inputs, and
-- bugs regarding hot cycles and function
-  ``calculate_extended_integration_times`` have been fixed.
+- Minor fixes in ``calculate_extended_integration_times`` function, used for
+  hot-cycles.
+
 
 
 v1.2.2, file-ver: 2.2, 19-Apr 2016: "Panino" release
