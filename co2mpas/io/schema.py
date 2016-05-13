@@ -32,7 +32,7 @@ def hard_validation(data):
         if set(t).issubset(data):
             a = dsp_utl.selector(t, data, output_type='list')
             if check_initial_temperature(*a):
-                msg = "Inconsistent '{}' respect to {}!".format(*t)
+                msg = "Inconsistent '{}' with respect to {} vector!".format(*t)
                 yield t, msg
             break
 
