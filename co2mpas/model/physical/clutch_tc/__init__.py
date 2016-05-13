@@ -206,10 +206,13 @@ def clutch_torque_converter():
         return False
 
     dsp.add_dispatcher(
+        include_defaults=True,
         input_domain=torque_converter_domain,
         dsp=torque_converter(),
         dsp_id='torque_converter',
         inputs={
+            'lock_up_tc_limits': 'lock_up_tc_limits',
+            'calibration_tc_speed_threshold': 'calibration_tc_speed_threshold',
             'velocities': 'velocities',
             'accelerations': 'accelerations',
             'gear_box_type': dsp_utl.SINK,

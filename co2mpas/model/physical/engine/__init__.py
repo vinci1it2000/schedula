@@ -180,6 +180,7 @@ def identify_idle_engine_speed_out(velocities, engine_speeds_out):
     return idle_speed[-1], idle_speed[1]
 
 
+# not used.
 def identify_upper_bound_engine_speed(
         gears, engine_speeds_out, idle_engine_speed):
     """
@@ -960,7 +961,8 @@ def _select_cold_start_speed_model(
     """
 
     ds = engine_speeds_out - engine_speeds_out_hot
-    args = (idle_engine_speed, engine_speeds_out_hot, on_engine, engine_coolant_temperatures)
+    args = (idle_engine_speed, engine_speeds_out_hot, on_engine,
+            engine_coolant_temperatures)
     delta, error = calculate_cold_start_speeds_delta, mean_absolute_error
 
     err = [(error(ds, delta(*((model,) + args))), i, model)

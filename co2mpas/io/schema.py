@@ -297,6 +297,7 @@ def define_data_schema(read=True):
         _compare_str('MVL'): _mvl(read=read),
 
         _compare_str('VERSION'): string,
+        'lock_up_tc_limits': tuplefloat2,
         'wltp_base_model': _dict(format=dict, read=read),
         'fuel_type': _select(types=('gasoline', 'diesel'), read=read),
         'engine_fuel_lower_heating_value': positive,

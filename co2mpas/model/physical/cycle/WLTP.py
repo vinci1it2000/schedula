@@ -13,16 +13,12 @@ It provides constants for the WLTP cycle.
 
 from wltp.experiment import *
 import numpy as np
-import sys
 from wltp.model import _get_model_base
 from co2mpas.dispatcher import Dispatcher
 import co2mpas.dispatcher.utils as dsp_utl
 import logging
 
 logging.getLogger('wltp.experiment').setLevel(logging.WARNING)
-
-
-EPS = sys.float_info.epsilon * 10
 
 
 def wltp_time_length(frequency):

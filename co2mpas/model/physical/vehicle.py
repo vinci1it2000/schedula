@@ -343,7 +343,7 @@ def apply_f0_correction(f0_uncorrected, correct_f0):
     """
 
     if correct_f0:
-        return f0_uncorrected - 6
+        return f0_uncorrected - 6.0
     return f0_uncorrected
 
 

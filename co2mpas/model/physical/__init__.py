@@ -259,6 +259,7 @@ def physical():
     from .wheels import wheels
 
     dsp.add_dispatcher(
+        include_defaults=True,
         dsp_id='wheels_model',
         dsp=wheels(),
         inputs={
@@ -309,9 +310,11 @@ def physical():
     from .electrics import electrics
 
     dsp.add_dispatcher(
+        include_defaults=True,
         dsp_id='electric_model',
         dsp=electrics(),
         inputs={
+            'delta_time_engine_starter': 'delta_time_engine_starter',
             'alternator_charging_currents': 'alternator_charging_currents',
             'alternator_current_model': 'alternator_current_model',
             'alternator_currents': 'alternator_currents',
@@ -378,6 +381,8 @@ def physical():
             'lockup_speed_ratio': 'lockup_speed_ratio',
             'gear_box_speeds_in': 'gear_box_speeds_in',
             'gear_box_powers_in': 'gear_box_powers_in',
+            'lock_up_tc_limits': 'lock_up_tc_limits',
+            'calibration_tc_speed_threshold': 'calibration_tc_speed_threshold'
         },
         outputs={
             'clutch_tc_speeds_delta': 'clutch_tc_speeds_delta',

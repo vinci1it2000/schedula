@@ -14,10 +14,12 @@ from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.metrics import mean_squared_error
 import co2mpas.dispatcher.utils as dsp_utl
 from ..utils import derivative, argmax, get_inliers
+from ..constants import *
 
 
 def check_initial_temperature(initial_temperature, engine_coolant_temperatures):
-    return abs(initial_temperature - engine_coolant_temperatures[0]) <= 0.5
+    dT = abs(initial_temperature - engine_coolant_temperatures[0])
+    return dT <= MAX_VALIDATE_DTEMP
 
 
 class ThermalModel(object):

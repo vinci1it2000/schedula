@@ -85,7 +85,7 @@ def correct_gear_full_load(
     :rtype: int
     """
 
-    if velocity > 100:
+    if velocity > THRESHOLD_VEL_FULL_LOAD_CORR:
         return gear
 
     p_norm = calculate_wheel_power(
@@ -375,8 +375,9 @@ def identify_gear_shifting_velocity_limits(gears, velocities):
 
 
 def _correct_gsv_for_constant_velocities(
-        gsv, up_cns_vel=(15, 32, 50, 70), up_window=3.5, up_delta=-0.5,
-        dn_cns_vel=(35, 50), dn_window=3.5, dn_delta=-1):
+        gsv, up_cns_vel=CON_VEL_UP_SHIFT, up_window=VEL_UP_WINDOW,
+        up_delta=DV_UP_SHIFT, dn_cns_vel=CON_VEL_DN_SHIFT,
+        dn_window=VEL_DN_WINDOW, dn_delta=DV_DN_SHIFT):
     """
     Corrects the gear shifting matrix velocity according to the NEDC velocities.
 
@@ -1346,8 +1347,8 @@ class MVL(CMV):
 
         self.clear()
         self.update(_correct_gsv_for_constant_velocities(
-                OrderedDict(mvl), up_cns_vel=(35, 50),
-                dn_cns_vel=(15, 32, 50, 70))
+                OrderedDict(mvl), up_cns_vel=CON_VEL_DN_SHIFT,
+                dn_cns_vel=CON_VEL_UP_SHIFT)
         )
 
         return self

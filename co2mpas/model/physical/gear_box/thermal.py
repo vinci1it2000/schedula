@@ -12,6 +12,7 @@ It contains functions to calculate torque losses and the gear box temperature.
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher import Dispatcher
 from math import pi
+from ..constants import *
 
 
 def evaluate_gear_box_torque_in(
@@ -251,7 +252,7 @@ def thermal():
 
     thermal.add_data(
         data_id='temperature_references',
-        default_value=(40, 80)
+        default_value=(40.0, 80.0)
     )
 
     thermal.add_function(

@@ -51,7 +51,7 @@ def check_sign_currents(battery_currents, alternator_currents):
 
     b_c, a_c = battery_currents, alternator_currents
 
-    a = reject_outliers(a_c, med=np.mean)[0] <= 1.0
+    a = reject_outliers(a_c, med=np.mean)[0] <= MAX_VALIDATE_POS_CURR
     c = np.cov(a_c, b_c)[0][1]
 
     if c < 0:
@@ -67,7 +67,8 @@ def check_sign_currents(battery_currents, alternator_currents):
 
 
 def calculate_engine_start_demand(
-        engine_moment_inertia, idle_engine_speed, alternator_efficiency):
+        engine_moment_inertia, idle_engine_speed, alternator_efficiency,
+        delta_time_engine_starter):
     """
     Calculates the energy required to start the engine [kJ].
 
@@ -83,13 +84,17 @@ def calculate_engine_start_demand(
         Alternator efficiency [-].
     :type alternator_efficiency: float
 
+    :param delta_time_engine_starter:
+        Time elapsed to turn on the engine with electric starter [s].
+    :type delta_time_engine_starter: float
+
     :return:
         Energy required to start engine [kJ].
     :rtype: float
     """
 
     idle = idle_engine_speed[0] / 30.0 * pi
-    dt = 1.0  # Assumed time for engine turn on [s].
+    dt = delta_time_engine_starter  # Assumed time for engine turn on [s].
 
     return engine_moment_inertia / alternator_efficiency * idle ** 2 / 2000 * dt
 
@@ -447,7 +452,7 @@ def identify_alternator_current_threshold(
 
     b, l = np.logical_not(on_engine), -float('inf')
     if not b.any():
-        b, l = velocities < VEL_EPS, -1.0
+        b, l = velocities < VEL_EPS, THRESHOLD_ALT_CURR
         b &= alternator_currents < 0
 
     if b.any():
@@ -877,10 +882,15 @@ def electrics():
         default_value=0.67
     )
 
+    dsp.add_data(
+        data_id='delta_time_engine_starter',
+        default_value=1.0
+    )
+
     dsp.add_function(
         function=calculate_engine_start_demand,
         inputs=['engine_moment_inertia', 'idle_engine_speed',
-                'alternator_efficiency'],
+                'alternator_efficiency', 'delta_time_engine_starter'],
         outputs=['start_demand'],
         weight=100
     )
@@ -895,7 +905,7 @@ def electrics():
 
     dsp.add_data(
         data_id='initial_state_of_charge',
-        default_value=99
+        default_value=99.0
     )
 
     dsp.add_function(

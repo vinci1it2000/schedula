@@ -13,11 +13,8 @@ It provides constants for the NEDC cycle.
 
 import numpy as np
 from scipy.interpolate import interp1d
-import sys
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher import Dispatcher
-
-EPS = sys.float_info.epsilon * 10
 
 
 # noinspection PyUnusedLocal
@@ -249,7 +246,7 @@ def nedc_cycle():
 
     dsp.add_data(
         data_id='time_sample_frequency',
-        default_value=1
+        default_value=1.0
     )
 
     dsp.add_function(

@@ -225,7 +225,7 @@ def final_drive():
 
     dsp.add_data(
         data_id='final_drive_efficiency',
-        default_value=1
+        default_value=1.0
     )
 
     dsp.add_data(
