@@ -14,6 +14,9 @@ from co2mpas.dispatcher import Dispatcher
 import numpy as np
 from math import pi
 from .utils import reject_outliers
+from .gear_box.mechanical import calculate_speed_velocity_ratios, \
+    calculate_velocity_speed_ratios, calculate_gear_box_speeds_in, \
+    identify_gears
 
 
 def calculate_wheel_power(velocities, accelerations, road_loads, vehicle_mass):
@@ -143,9 +146,6 @@ def identify_r_dynamic_v1(
     :rtype: float
     """
 
-    from .gear_box.mechanical import calculate_speed_velocity_ratios, \
-        calculate_velocity_speed_ratios, calculate_gear_box_speeds_in
-
     svr = calculate_speed_velocity_ratios(
         gear_box_ratios, final_drive_ratio, 1.0)
 
@@ -156,6 +156,65 @@ def identify_r_dynamic_v1(
     r_dynamic = speed_x_r_dyn_ratios / engine_speeds_out
     r_dynamic = r_dynamic[np.logical_not(np.isnan(r_dynamic))]
     r_dynamic = reject_outliers(r_dynamic)[0]
+
+    return r_dynamic
+
+
+def identify_r_dynamic_v2(
+        times, velocities, accelerations, r_wheels, engine_speeds_out,
+        gear_box_ratios, final_drive_ratio, idle_engine_speed):
+    """
+    Identifies the dynamic radius of the wheels [m].
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
+
+    :param velocities:
+        Vehicle velocity [km/h].
+    :type velocities: numpy.array
+
+    :param accelerations:
+        Vehicle acceleration [m/s2].
+    :type accelerations: numpy.array
+
+    :param r_wheels:
+        Radius of the wheels [m].
+    :type r_wheels: float
+
+    :param engine_speeds_out:
+        Engine speed [RPM].
+    :type engine_speeds_out: numpy.array
+
+    :param gear_box_ratios:
+        Gear box ratios [-].
+    :type gear_box_ratios: dict
+
+    :param final_drive_ratio:
+        Final drive ratio [-].
+    :type final_drive_ratio: float
+
+    :param idle_engine_speed:
+        Engine speed idle median and std [RPM].
+    :type idle_engine_speed: (float, float)
+
+    :return:
+        Dynamic radius of the wheels [m].
+    :rtype: float
+    """
+
+    svr = calculate_speed_velocity_ratios(
+        gear_box_ratios, final_drive_ratio, r_wheels
+    )
+
+    gears = identify_gears(
+        times, velocities, accelerations, engine_speeds_out,
+        calculate_velocity_speed_ratios(svr), idle_engine_speed
+    )
+
+    r_dynamic = identify_r_dynamic_v1(
+        velocities, gears, engine_speeds_out, gear_box_ratios, final_drive_ratio
+    )
 
     return r_dynamic
 
@@ -298,6 +357,15 @@ def wheels():
                 'final_drive_ratio'],
         outputs=['r_dynamic'],
         weight=10
+    )
+
+    dsp.add_function(
+        function=identify_r_dynamic_v2,
+        inputs=['times', 'velocities', 'accelerations', 'r_wheels',
+                'engine_speeds_out', 'gear_box_ratios', 'final_drive_ratio',
+                'idle_engine_speed'],
+        outputs=['r_dynamic'],
+        weight=11
     )
 
     dsp.add_function(

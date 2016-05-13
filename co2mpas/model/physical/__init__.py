@@ -262,6 +262,10 @@ def physical():
         dsp_id='wheels_model',
         dsp=wheels(),
         inputs={
+            'times': 'times',
+            'idle_engine_speed': 'idle_engine_speed',
+            'accelerations': 'accelerations',
+            'r_wheels': 'r_wheels',
             'r_dynamic': 'r_dynamic',
             'velocities': 'velocities',
             'gears': 'gears',
