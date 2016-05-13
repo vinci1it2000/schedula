@@ -143,7 +143,7 @@ def identify_r_dynamic_v1(
     :rtype: float
     """
 
-    from .gear_box import calculate_speed_velocity_ratios, \
+    from .gear_box.mechanical import calculate_speed_velocity_ratios, \
         calculate_velocity_speed_ratios, calculate_gear_box_speeds_in
 
     svr = calculate_speed_velocity_ratios(
@@ -182,7 +182,7 @@ def identify_r_dynamic(
     :rtype: float
     """
 
-    from .gear_box import calculate_speed_velocity_ratios
+    from .gear_box.mechanical import calculate_speed_velocity_ratios
 
     svr = calculate_speed_velocity_ratios(
         gear_box_ratios, final_drive_ratio, 1.0)

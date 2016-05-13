@@ -31,7 +31,7 @@ from .thermal import *
 import co2mpas.dispatcher.utils as dsp_utl
 import numpy as np
 from ..utils import bin_split, reject_outliers, clear_fluctuations, \
-    derivative, argmax, get_inliers
+    derivative
 
 
 def get_full_load(fuel_type):
@@ -638,6 +638,10 @@ def calculate_cold_start_speeds_delta(
     :param cold_start_speed_model:
         Cold start speed model.
     :type cold_start_speed_model: function
+
+    :param idle_engine_speed:
+        Engine speed idle median and std [RPM].
+    :type idle_engine_speed: (float, float)
 
     :param engine_speeds_out_hot:
         Engine speed at hot condition [RPM].

@@ -26,7 +26,6 @@ from math import pi
 import numpy as np
 import co2mpas.dispatcher.utils as dsp_utl
 from ..constants import *
-from sklearn.ensemble import GradientBoostingRegressor
 
 
 def calculate_gear_shifts(gears):

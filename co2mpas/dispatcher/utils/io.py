@@ -14,7 +14,6 @@ __author__ = 'Vincenzo Arcidiacono'
 
 from networkx.utils import open_file
 from dill import dump, load
-import os, errno
 
 try:
     from win32api import GetShortPathName

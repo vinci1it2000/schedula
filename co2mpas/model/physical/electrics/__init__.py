@@ -598,6 +598,7 @@ class Alternator_status_model(object):
             while J > j != i:
                 i = argmax(b[j:]) + j
                 j = argmax(s[i:]) + i
+                # noinspection PyUnresolvedReferences
                 if j != i and linregress(times[i:j], soc[i:j])[0] >= 0:
                     step.extend(soc[i:j])
 
@@ -630,6 +631,10 @@ def calibrate_alternator_status_model(
         has_energy_recuperation):
     """
     Calibrates the alternator status model.
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
 
     :param alternator_statuses:
         The alternator status (0: off, 1: on, due to state of charge, 2: on due

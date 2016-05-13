@@ -1479,6 +1479,7 @@ def calculate_willans_factors(
 
     w = np.zeros_like(times, dtype=float)
     t = (times[:-1] + times[1:]) / 2
+    # noinspection PyUnresolvedReferences
     w[0], w[1:-1], w[-1] = t[0] - times[0], np.diff(t), times[-1] - t[-1]
 
     f = {

@@ -44,10 +44,6 @@ class ThermalModel(object):
             Engine coolant temperature vector [°C].
         :type engine_coolant_temperatures: numpy.array
 
-        :param velocities:
-            Velocity vector [km/h].
-        :type velocities: numpy.array
-
         :param accelerations:
             Acceleration vector [m/s2].
         :type accelerations: numpy.array
@@ -66,7 +62,7 @@ class ThermalModel(object):
 
         :return:
             The calibrated engine temperature regression model.
-        :rtype: function
+        :rtype: ThermalModel
         """
 
         T, dT, dt, b = _get_samples(times, engine_coolant_temperatures,
@@ -132,7 +128,7 @@ class TPS(DT0):
         # noinspection PyUnresolvedReferences
         model = GradientBoostingRegressor(**opt)
         model.fit(X, dT)
-        self.predict = predict = model.predict
+        self.predict = model.predict
         return self
 
     def delta(self, dt, power, speed, acc, *args, prev_temperature=23):
@@ -170,10 +166,6 @@ def calibrate_engine_temperature_regression_model(
     :param engine_coolant_temperatures:
         Engine coolant temperature vector [°C].
     :type engine_coolant_temperatures: numpy.array
-
-    :param velocities:
-        Velocity vector [km/h].
-    :type velocities: numpy.array
 
     :param accelerations:
         Acceleration vector [m/s2].
@@ -217,10 +209,6 @@ def predict_engine_coolant_temperatures(
     :param times:
         Time vector [s].
     :type times: numpy.array
-
-    :param velocities:
-        Velocity vector [km/h].
-    :type velocities: numpy.array
 
     :param accelerations:
         Acceleration vector [m/s2].

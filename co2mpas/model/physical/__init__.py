@@ -50,6 +50,14 @@ def predict_vehicle_electrics_and_engine_behavior(
         Start/stop model.
     :type start_stop_model: StartStopModel
 
+    :param engine_temperature_regression_model:
+        The calibrated engine temperature regression model.
+    :type engine_temperature_regression_model: ThermalModel
+
+    :param initial_engine_temperature:
+        Engine initial temperature [°C]
+    :type initial_engine_temperature: float
+
     :param initial_state_of_charge:
         Initial state of charge of the battery [%].
 
@@ -58,9 +66,17 @@ def predict_vehicle_electrics_and_engine_behavior(
             `initial_state_of_charge` = 99 is equivalent to 99%.
     :type initial_state_of_charge: float
 
+    :param idle_engine_speed:
+        Idle engine speed and its standard deviation [RPM].
+    :type idle_engine_speed: (float, float)
+
     :param times:
         Time vector [s].
     :type times: numpy.array
+
+    :param gear_box_speeds_in:
+        Gear box speed vector [RPM].
+    :type gear_box_speeds_in: numpy.array
 
     :param gear_box_powers_in:
         Gear box power vector [kW].
@@ -73,10 +89,6 @@ def predict_vehicle_electrics_and_engine_behavior(
     :param accelerations:
         Acceleration vector [m/s2].
     :type accelerations: numpy.array
-
-    :param engine_coolant_temperatures:
-        Engine coolant temperature vector [°C].
-    :type engine_coolant_temperatures: numpy.array
 
     :param gears:
         Gear vector [-].

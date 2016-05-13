@@ -363,7 +363,7 @@ def do_datasync(x_label, y_label, ref_xlref, *sync_xlrefs,
             If not true, use folder of the <ref-table>.
     :param bool force:
             When true, overwrites excel-file(s) and/or create missing folders.
-    :param bool bo_clone:
+    :param bool no_clone:
             When true, do not clone excel-sheets contained in <ref-table> workbook
             into output.
     :param xleash.SheetsFactory sheets_factory:

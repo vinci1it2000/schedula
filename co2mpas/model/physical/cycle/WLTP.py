@@ -311,9 +311,11 @@ def wltp_gears(
     if initial_gears:
         gears = initial_gears.copy()
     else:
+        # noinspection PyUnresolvedReferences
         gears = res[0]
 
     # Apply Driveability-rules.
+    # noinspection PyUnresolvedReferences
     applyDriveabilityRules(velocities, accelerations, gears, res[1], res[-1])
 
     gears[gears < 0] = 0

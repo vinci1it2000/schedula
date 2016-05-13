@@ -35,6 +35,10 @@ def select_prediction_data(data, new_data=(), theoretical=True):
         New data.
     :type new_data: dict
 
+    :param theoretical:
+        If false
+    :type theoretical: bool
+
     :return:
         Data required to predict the CO2 emissions with CO2MPAS model.
     :rtype: dict
