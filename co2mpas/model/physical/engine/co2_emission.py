@@ -1484,17 +1484,20 @@ def calculate_willans_factors(
 
     f = {
         'av_velocities': av(velocities, weights=w),  # [km/h]
-        'sufficient_power': not missing_powers.any()
+        'sufficient_power': not missing_powers.any(),
+        'max_power_required': max(engine_powers_out + missing_powers)
     }
 
     f['distance'] = f['av_velocities'] * (times[-1] - times[0]) / 3600.0  # [km]
 
     b = engine_powers_out >= 0
     if b.any():
+
         p = params.valuesdict()
         _w = w[b]
         av_s = av(engine_speeds_out[b], weights=_w)
         av_p = av(engine_powers_out[b], weights=_w)
+        av_mp = av(missing_powers[b], weights=_w)
 
         n_p = calculate_brake_mean_effective_pressures(av_s, av_p,
                                                        engine_capacity)
@@ -1517,6 +1520,7 @@ def calculate_willans_factors(
         f.update({
             'av_engine_speeds_out_pos_pow': av_s,                 # [RPM]
             'av_pos_engine_powers_out': av_p,                     # [kW]
+            'av_missing_powers_pos_pow': av_mp,                   # [kW]
             'engine_bmep_pos_pow': n_p,                           # [bar]
             'mean_piston_speed_pos_pow': n_s,                     # [m/s]
             'fuel_mep_pos_pow': f_mep,                            # [bar]
