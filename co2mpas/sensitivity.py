@@ -15,11 +15,8 @@ import os
 import os.path as osp
 from copy import deepcopy
 from multiprocessing import Pool
-
-import numpy as np
 import pandas as pd
 from tqdm import tqdm
-
 import co2mpas.dispatcher.utils as dsp_utl
 from .io.schema import define_data_schema
 from .io.dill import save_dill, load_from_dill
@@ -30,6 +27,7 @@ from .batch import _process_vehicle, _add2summary, _save_summary, \
 from .model.physical.electrics import Alternator_status_model
 from .model.physical.engine.co2_emission import _set_attr
 from pandalone.xleash import lasso
+from .model.physical.clutch_tc.torque_converter import no_torque_converter
 
 
 def run_sa_co2_params(input_folder, input_parameters, output_folder):
@@ -95,7 +93,7 @@ def _compute_default_models(path, output_folder, **kw):
             dsp = _process_vehicle(model, p, output_folder, **kw)['dsp_model']
             out = dsp.data_output.get('calibrated_models', {})
             if 'torque_converter_model' in out:
-                out['torque_converter_model'] = lambda X: np.zeros(X.shape[0])
+                out['torque_converter_model'] = no_torque_converter
             dfl.update(out)
 
         if dfl:

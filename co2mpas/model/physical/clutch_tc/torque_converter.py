@@ -50,6 +50,10 @@ def _torque_converter_regressor_model(
     return model
 
 
+def no_torque_converter(lock_up_limits, X):
+    return np.zeros(X.shape[0])
+
+
 def calibrate_torque_converter_model(
         lock_up_tc_limits, calibration_tc_speed_threshold,
         torque_converter_speeds_delta, accelerations, velocities,
@@ -89,9 +93,6 @@ def calibrate_torque_converter_model(
         Torque converter model.
     :rtype: function
     """
-
-    def no_torque_converter(lock_up_limits, X):
-        return np.zeros(X.shape[0])
 
     regressor = _torque_converter_regressor_model(
         calibration_tc_speed_threshold, torque_converter_speeds_delta,
