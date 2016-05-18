@@ -16,42 +16,63 @@ from ..constants import *
 from co2mpas.dispatcher import Dispatcher
 
 
-def _torque_converter_regressor_model(
-        speed_threshold, torque_converter_speeds_delta,
-        accelerations, velocities, *args):
+class TorqueConverter(object):
+    def __init__(self):
+        self.predict = self.no_torque_converter
+        self.regressor = None
 
-    X = np.array((accelerations, velocities) + args).T
-    y = torque_converter_speeds_delta
+    def __call__(self, *args, **kwargs):
+        return self.predict(*args, **kwargs)
 
-    regressor = GradientBoostingRegressor(
-        random_state=0,
-        max_depth=2,
-        n_estimators=int(min(300, 0.25 * (len(y) - 1))),
-        loss='huber',
-        alpha=0.99
-    )
+    def fit(self, lock_up_tc_limits, calibration_tc_speed_threshold,
+            torque_converter_speeds_delta, accelerations, velocities,
+            gear_box_speeds_in, gears):
 
-    b = (accelerations == 0) & (abs(y) > speed_threshold) & (velocities < VEL_EPS)
-    b = np.logical_not(b)
+        X = np.array((accelerations, velocities, gear_box_speeds_in, gears)).T
+        y = torque_converter_speeds_delta
 
-    regressor.fit(X[b, :], y[b])
-    predict = regressor.predict
+        regressor = GradientBoostingRegressor(
+            random_state=0,
+            max_depth=2,
+            n_estimators=int(min(300, 0.25 * (len(y) - 1))),
+            loss='huber',
+            alpha=0.99
+        )
 
-    def model(lock_up_limits, X):
+        b = (accelerations == 0) & (abs(y) > calibration_tc_speed_threshold)
+        b = np.logical_not(b & (velocities < VEL_EPS))
+        regressor.fit(X[b, :], y[b])
+        self.regressor = regressor
+
+        models = [
+            self.torque_converter,
+            self.no_torque_converter
+        ]
+
+        X = np.array([accelerations, velocities, gear_box_speeds_in, gears]).T
+        y = torque_converter_speeds_delta
+
+        models = enumerate(models)
+        a = lock_up_tc_limits, X
+        m = min([(mean_absolute_error(y, m(*a)), i, m) for i, m in models])[-1]
+
+        self.predict = m
+
+        return self
+
+    @staticmethod
+    def no_torque_converter(lock_up_limits, X):
+        return np.zeros(X.shape[0])
+
+    def torque_converter(self, lock_up_limits, X):
         lm_vel, lm_acc = lock_up_limits
         d = np.zeros(X.shape[0])
         a, v = X[:, 0], X[:, 1]
         # From issue #179 add lock up mode in torque converter.
         b = (v < lm_vel) & (a > lm_acc)
         if b.any():
-            d[b] = predict(X[b])
+            d[b] = self.regressor.predict(X[b])
         return d
-
-    return model
-
-
-def no_torque_converter(lock_up_limits, X):
-    return np.zeros(X.shape[0])
 
 
 def calibrate_torque_converter_model(
@@ -91,24 +112,15 @@ def calibrate_torque_converter_model(
 
     :return:
         Torque converter model.
-    :rtype: function
+    :rtype: TorqueConverter
     """
 
-    regressor = _torque_converter_regressor_model(
-        calibration_tc_speed_threshold, torque_converter_speeds_delta,
-        accelerations, velocities, gear_box_speeds_in, gears)
+    model = TorqueConverter()
+    model.fit(lock_up_tc_limits, calibration_tc_speed_threshold,
+              torque_converter_speeds_delta, accelerations, velocities,
+              gear_box_speeds_in, gears)
 
-    models = [
-        regressor,
-        no_torque_converter
-    ]
-
-    X = np.array([accelerations, velocities, gear_box_speeds_in, gears]).T
-    y = torque_converter_speeds_delta
-
-    models = enumerate(models)
-    a = lock_up_tc_limits, X
-    return min([(mean_absolute_error(y, m(*a)), i, m) for i, m in models])[-1]
+    return model
 
 
 def predict_torque_converter_speeds_delta(
@@ -123,7 +135,7 @@ def predict_torque_converter_speeds_delta(
 
     :param torque_converter_model:
         Torque converter model.
-    :type torque_converter_model: function
+    :type torque_converter_model: TorqueConverter
 
     :param accelerations:
         Acceleration vector [m/s2].
