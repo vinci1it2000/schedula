@@ -446,6 +446,7 @@ def physical():
                 'engine_normalization_temperature_window',
             'engine_thermostat_temperature': 'engine_thermostat_temperature',
             'engine_type': 'engine_type',
+            'fuel_carbon_content_percentage': 'fuel_carbon_content_percentage',
             'fuel_carbon_content': 'fuel_carbon_content',
             'gear_box_speeds_in': 'gear_box_speeds_in',
             'gear_box_powers_in': 'gear_box_powers_in',
@@ -467,6 +468,8 @@ def physical():
             'engine_speeds_out_hot': 'engine_speeds_out_hot',
         },
         outputs={
+            'fuel_carbon_content_percentage': 'fuel_carbon_content_percentage',
+            'fuel_carbon_content': 'fuel_carbon_content',
             'auxiliaries_torque_losses': 'auxiliaries_torque_losses',
             'auxiliaries_power_losses': 'auxiliaries_power_losses',
             'calibration_status': 'calibration_status',

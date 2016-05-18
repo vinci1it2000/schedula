@@ -1678,6 +1678,7 @@ def engine():
             'engine_normalization_temperature':
                 'engine_normalization_temperature',
             'engine_type': 'engine_type',
+            'fuel_carbon_content_percentage': 'fuel_carbon_content_percentage',
             'fuel_carbon_content': 'fuel_carbon_content',
             'idle_engine_speed': 'idle_engine_speed',
             'mean_piston_speeds': 'mean_piston_speeds',
@@ -1719,7 +1720,9 @@ def engine():
             'extended_phases_co2_emissions': 'extended_phases_co2_emissions',
             'after_treatment_temperature_threshold':
                 'after_treatment_temperature_threshold',
-            'phases_willans_factors': 'phases_willans_factors'
+            'phases_willans_factors': 'phases_willans_factors',
+            'fuel_carbon_content_percentage': 'fuel_carbon_content_percentage',
+            'fuel_carbon_content': 'fuel_carbon_content'
         },
         inp_weight={'co2_params': EPS}
     )

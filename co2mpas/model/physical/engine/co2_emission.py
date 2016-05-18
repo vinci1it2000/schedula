@@ -23,6 +23,37 @@ from ..constants import *
 from ..utils import argmax
 
 
+def calculate_fuel_carbon_content(fuel_carbon_content_percentage):
+    """
+    Calculates the fuel carbon content as CO2g/g.
+
+    :param fuel_carbon_content_percentage:
+        Fuel carbon content [%].
+    :type fuel_carbon_content_percentage: float
+
+    :return:
+        Fuel carbon content [CO2g/g].
+    :rtype: float
+    """
+    return fuel_carbon_content_percentage / 100.0 * 44.0 / 12.0
+
+
+def calculate_fuel_carbon_content_percentage(fuel_carbon_content):
+    """
+    Calculates the fuel carbon content as %.
+
+    :param fuel_carbon_content:
+        Fuel carbon content [CO2g/g].
+    :type fuel_carbon_content: float
+
+    :return:
+        Fuel carbon content [%].
+    :rtype: float
+    """
+
+    return fuel_carbon_content / calculate_fuel_carbon_content(1.0)
+
+
 def calculate_normalized_engine_coolant_temperatures(
         engine_coolant_temperatures, temperature_target):
     """
@@ -1737,6 +1768,18 @@ def co2_emission():
         name='Engine CO2 emission sub model',
         description='Calculates temperature, efficiency, '
                     'torque loss of gear box'
+    )
+
+    dsp.add_function(
+        function=calculate_fuel_carbon_content_percentage,
+        inputs=['fuel_carbon_content'],
+        outputs=['fuel_carbon_content_percentage']
+    )
+
+    dsp.add_function(
+        function=calculate_fuel_carbon_content,
+        inputs=['fuel_carbon_content_percentage'],
+        outputs=['fuel_carbon_content']
     )
 
     dsp.add_function(
