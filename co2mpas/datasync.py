@@ -86,7 +86,7 @@ from boltons.setutils import IndexedSet
 import docopt
 from numpy.fft import fft, ifft, fftshift
 from pandalone import xleash
-
+import co2mpas.dispatcher.utils as dsp_utl
 import functools as fnt
 import numpy as np
 import os.path as osp
@@ -108,7 +108,8 @@ def cross_correlation_using_fft(x, y):
     return fftshift(cc)
 
 
-# shift &lt; 0 means that y starts 'shift' time steps before x # shift &gt; 0 means that y starts 'shift' time steps after x
+# shift &lt; 0 means that y starts 'shift' time steps before x
+# shift &gt; 0 means that y starts 'shift' time steps after x
 def compute_shift(x, y):
     assert len(x) == len(y)
     c = cross_correlation_using_fft(x, y)
@@ -146,14 +147,14 @@ def _yield_synched_tables(ref, *data, x_label='times', y_label='velocities'):
         m, M = min(min(d[x_label]), m), max(max(d[x_label]), M)
 
     X = np.arange(m, M + dx, dx)
-    Y = np.interp(X, ref[x_label], ref[y_label])
+    Y = re_sampling(X, ref[x_label], ref[y_label])
 
     x = ref[x_label]
 
     yield 0, ref
 
     for d in data:
-        s = OrderedDict([(k, fnt.partial(np.interp, xp=d[x_label], fp=v))
+        s = OrderedDict([(k, fnt.partial(re_sampling, xp=d[x_label], fp=v))
                          for k, v in d.items() if k != x_label])
 
         shift = compute_shift(Y, s[y_label](X)) * dx
@@ -163,6 +164,46 @@ def _yield_synched_tables(ref, *data, x_label='times', y_label='velocities'):
         r = [(k, v(x_shift)) for k, v in s.items()]
 
         yield shift, ref.__class__(OrderedDict(r))
+
+
+def re_sampling(x, xp, fp):
+    """
+    Re-samples data maintaining the signal integral.
+
+    :param x:
+        The x-coordinates of the re-sampled values.
+    :type x: np.array
+
+    :param xp:
+        The x-coordinates of the data points.
+    :type xp: np.array
+
+    :param fp:
+        The y-coordinates of the data points, same length as xp.
+    :type fp: np.array
+
+    :return:
+        Re-sampled y-values.
+    :rtype: np.array
+    """
+
+    xp, fp, x = np.asarray(xp), np.asarray(fp), np.asarray(x)
+    y = np.zeros_like(x)
+    f = fnt.partial(np.interp, xp=xp, fp=fp)
+    y0 = y[0] = f(x[0])
+    for k, (x0, x1) in enumerate(dsp_utl.pairwise(x), start=1):
+        b = (x0 < xp) & (xp < x1)
+        if b.any():
+            n = sum(b) + 2
+            X, Y = np.zeros(n), np.zeros(n)
+            X[0], X[1:-1], X[-1] = x0, xp[b], x1,
+            Y[0], Y[1:-1], Y[-1] = f(x0), fp[b], f(x1)
+            dI = np.trapz(Y, X) / (x1 - x0)
+        else:
+            dI = f((x0 + x1) / 2)
+        y0 = y[k] = 2 * dI - y0
+
+    return y
 
 
 def synchronize(headers, tables, x_label, y_label, prefix_cols):
@@ -182,11 +223,11 @@ def synchronize(headers, tables, x_label, y_label, prefix_cols):
         for j in ix.intersection(h.columns):
             h[j].iloc[i] = '%s.%s' % (sn, h[j].iloc[i])
 
-    frames = [h[df.columns].append(df) for (_, df), (sn, i, h) in zip(res, headers)]
+    frames = [h[df.columns].append(df)
+              for (_, df), (sn, i, h) in zip(res, headers)]
     df = pd.concat(frames, axis=1)
 
     return df
-
 
 
 def _guess_xlref_without_hash(xlref, bias_on_fragment):
@@ -195,6 +236,7 @@ def _guess_xlref_without_hash(xlref, bias_on_fragment):
     if '#' not in xlref:
         xlref = ('#%s!' if bias_on_fragment else '%s#:') % xlref
     return xlref
+
 
 def _get_rest_sheet_names(url_file, sheet, sheets_factory):
     ## TODO: Move to pandalone.
@@ -297,7 +339,6 @@ class Tables(object):
             lasso = self.consume_next_xlref(xlref, lasso)
 
 
-
 def _ensure_out_file(out_path, inp_path, force, out_frmt):
     """
     :param str out_path:
@@ -337,8 +378,8 @@ def _ensure_out_file(out_path, inp_path, force, out_frmt):
 
 
 def do_datasync(x_label, y_label, ref_xlref, *sync_xlrefs,
-        out_path=None, prefix_cols=False, force=False, sheets_factory=None,
-        no_clone=False):
+                out_path=None, prefix_cols=False, force=False,
+                sheets_factory=None, no_clone=False):
     """
     :param str ref_xlref:
             The `xl-ref` capturing a table from a workbook-sheet to use as *reference*.

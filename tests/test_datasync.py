@@ -14,7 +14,7 @@ import unittest
 
 import ddt
 from numpy import testing as npt
-
+import numpy as np
 import os.path as osp
 import pandas as pd
 from pandalone import xleash
@@ -204,3 +204,33 @@ class HighSync(unittest.TestCase):
                         'Sheet2',
                         out_path=osp.join(d, _synced_fname),
                         )
+
+class TestReSampling(unittest.TestCase):
+    def test_integral(self):
+        x = np.linspace(0, 1, num=100)
+        y = np.sin(x)
+        i = np.trapz(y, x)
+
+        X = np.linspace(0, 1, num=10)
+        Y = datasync.re_sampling(X, x, y)
+        I = np.trapz(Y, X)
+        self.assertAlmostEquals(i, I, msg='Down-sampling integral mismatch!')
+
+        X[1:-1] = np.sort(np.random.random_sample(8))
+        Y = datasync.re_sampling(X, x, y)
+        I = np.trapz(Y, X)
+        self.assertAlmostEquals(
+            i, I, msg='Nonuniform Down-sampling integral mismatch!'
+        )
+
+        X = np.linspace(0, 1, num=1000)
+        Y = datasync.re_sampling(X, x, y)
+        I = np.trapz(Y, X)
+        self.assertAlmostEquals(i, I, msg='Up-sampling integral mismatch!')
+
+        X[1:-1] = np.sort(np.random.random_sample(998))
+        Y = datasync.re_sampling(X, x, y)
+        I = np.trapz(Y, X)
+        self.assertAlmostEquals(
+            i, I, msg='Nonuniform Up-sampling integral mismatch!'
+        )
