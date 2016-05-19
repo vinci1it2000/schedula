@@ -100,7 +100,8 @@ def cycle():
             'times': 'times',
             'velocities': 'velocities',
             'gears': 'gears',
-            'time_length': 'time_length'
+            'time_length': 'time_length',
+            'initial_temperature': 'initial_temperature'
         },
         input_domain=is_nedc
     )
@@ -140,7 +141,8 @@ def cycle():
             'times': 'times',
             'velocities': 'velocities',
             'gears': 'gears',
-            'time_length': 'time_length'
+            'time_length': 'time_length',
+            'initial_temperature': 'initial_temperature'
         },
         input_domain=is_wltp
     )

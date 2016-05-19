@@ -214,7 +214,8 @@ def physical():
         outputs={
             'times': 'times',
             'velocities': 'velocities',
-            'gears': 'gears'
+            'gears': 'gears',
+            'initial_temperature': 'initial_temperature'
         }
     )
 

@@ -222,6 +222,11 @@ def nedc_cycle():
     )
 
     dsp.add_data(
+        data_id='initial_temperature',
+        default_value=25.0
+    )
+
+    dsp.add_data(
         data_id='k1',
         default_value=1
     )

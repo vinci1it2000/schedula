@@ -370,6 +370,11 @@ def wltp_cycle():
     )
 
     dsp.add_data(
+        data_id='initial_temperature',
+        default_value=23.0
+    )
+
+    dsp.add_data(
         data_id='wltp_base_model',
         default_value={}
     )

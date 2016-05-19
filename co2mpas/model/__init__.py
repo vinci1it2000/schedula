@@ -56,7 +56,7 @@ def select_prediction_data(data, new_data=(), theoretical=True):
         'engine_fuel_lower_heating_value', 'has_start_stop',
         'has_energy_recuperation', 'fuel_carbon_content',
         'initial_state_of_charge', 'f0', 'f1', 'f2',
-        'initial_temperature', 'vehicle_mass', 'full_load_speeds',
+        'vehicle_mass', 'full_load_speeds',
         'full_load_powers', 'eco_mode'
     ]
 
