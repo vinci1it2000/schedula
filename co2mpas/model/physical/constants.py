@@ -61,7 +61,7 @@ VEL_DN_WINDOW = 3.5
 DV_DN_SHIFT = -1
 
 #: Maximum allowed dT for the initial temperature check [°C].
-MAX_VALIDATE_DTEMP = 0.5
+MAX_VALIDATE_DTEMP = 2
 
 #: Maximum allowed positive current for the alternator currents check [A].
 MAX_VALIDATE_POS_CURR = 1.0

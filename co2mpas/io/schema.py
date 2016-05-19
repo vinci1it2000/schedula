@@ -19,8 +19,6 @@ log = logging.getLogger(__name__)
 
 def hard_validation(data):
     c = ('battery_currents', 'alternator_currents')
-    t1 = ('initial_temperature', 'engine_coolant_temperatures')
-    t2 = ('initial_engine_temperature', 'engine_coolant_temperatures')
     if set(c).issubset(data):
         a = dsp_utl.selector(c, data, output_type='list')
         s = check_sign_currents(*a)
@@ -28,13 +26,16 @@ def hard_validation(data):
         if s:
             msg = "Probably '{}' have the wrong sign!".format(s)
             yield c, msg
-    for t in (t1, t2):
-        if set(t).issubset(data):
-            a = dsp_utl.selector(t, data, output_type='list')
-            if check_initial_temperature(*a):
-                msg = "Inconsistent '{}' with respect to {} vector!".format(*t)
-                yield t, msg
-            break
+
+    t = ('initial_temperature', 'engine_coolant_temperatures',
+         'engine_speeds_out', 'idle_engine_speed_median')
+    if set(t).issubset(data):
+        a = dsp_utl.selector(t, data, output_type='list')
+        if check_initial_temperature(*a):
+            msg = "Initial engine temperature outside permissible limits " \
+                  "according to GTR!"
+            yield t, msg
+
 
 
 def validate_data(

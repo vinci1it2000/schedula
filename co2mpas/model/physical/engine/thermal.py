@@ -17,9 +17,15 @@ from ..utils import derivative, argmax, get_inliers
 from ..constants import *
 
 
-def check_initial_temperature(initial_temperature, engine_coolant_temperatures):
-    dT = abs(initial_temperature - engine_coolant_temperatures[0])
-    return dT <= MAX_VALIDATE_DTEMP
+def check_initial_temperature(
+        initial_temperature, engine_coolant_temperatures,
+        engine_speeds_out, idle_engine_speed_median):
+
+    b = engine_speeds_out > (idle_engine_speed_median - 50.0)
+    i = np.searchsorted(b, (True,))[0] + 1
+    t = np.mean(engine_coolant_temperatures[:i])
+    dT = abs(initial_temperature - t)
+    return dT <= MAX_VALIDATE_DTEMP and t <= 25.0
 
 
 class ThermalModel(object):
