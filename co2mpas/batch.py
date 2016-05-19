@@ -15,7 +15,7 @@ import re
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-
+from functools import partial
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher import Dispatcher
 
@@ -517,7 +517,6 @@ def vehicle_processing_model():
         function=default_timestamp,
         inputs=['start_time'],
         outputs=['timestamp']
-
     )
 
     dsp.add_function(
@@ -585,10 +584,19 @@ def vehicle_processing_model():
         initial_dist=10
     )
 
+    main_flags = ('output_template', 'overwrite_cache', 'soft_validation',
+                  'with_charts')
+
+    dsp.add_function(
+        function=partial(dsp_utl.map_list, main_flags),
+        inputs=main_flags,
+        outputs=['main_flags']
+    )
+
     dsp.add_function(
         function=write_outputs(),
         inputs=['output_file_name', 'template_file_name', 'report',
-                'start_time'],
+                'start_time', 'main_flags'],
         outputs=[dsp_utl.SINK],
         input_domain=check_first_arg
     )

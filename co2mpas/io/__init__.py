@@ -81,7 +81,7 @@ def build_input_data(data, select_outputs):
         return {}
 
 
-def convert2df(data, start_time, data_descriptions, write_schema):
+def convert2df(data, start_time, main_flags, data_descriptions, write_schema):
 
     res = {'graphs': {'graphs': data['graphs']}} if 'graphs' in data else {}
 
@@ -91,7 +91,7 @@ def convert2df(data, start_time, data_descriptions, write_schema):
 
     res.update(_comparison2df(data))
 
-    res.update(_proc_info2df(data, start_time))
+    res.update(_proc_info2df(data, start_time, main_flags))
 
     return res
 
@@ -111,8 +111,8 @@ def _comparison2df(data):
     return res
 
 
-def _proc_info2df(data, start_time):
-    res = (_co2mpas_info2df(start_time), _freeze2df())
+def _proc_info2df(data, start_time, main_flags):
+    res = (_co2mpas_info2df(start_time, main_flags), _freeze2df())
 
     df, max_l = _pipe2list(data.get('pipe', {}))
 
@@ -124,16 +124,19 @@ def _proc_info2df(data, start_time):
     return {'proc_info': res}
 
 
-def _co2mpas_info2df(start_time):
+def _co2mpas_info2df(start_time, main_flags=None):
 
     time_elapsed = (datetime.datetime.today() - start_time).total_seconds()
+    info = [
+        ('CO2MPAS version', version),
+        ('Simulation started', start_time.strftime('%Y/%m/%d-%H:%M:%S')),
+        ('Time elapsed', '%.3f sec' % time_elapsed)
+    ]
 
-    df = pd.DataFrame([
-        {'Parameter': 'CO2MPAS version', 'Value': version},
-        {'Parameter': 'Simulation started',
-         'Value': start_time.strftime('%Y/%m/%d-%H:%M:%S')},
-        {'Parameter': 'Time elapsed', 'Value': '%.3f sec' % time_elapsed}],
-    )
+    if main_flags:
+        info.extend(sorted(main_flags.items()))
+
+    df = pd.DataFrame(info, columns=['Parameter', 'Value'])
     df.set_index(['Parameter'], inplace=True)
     setattr(df, 'name', 'info')
     return df
@@ -636,16 +639,16 @@ def write_outputs():
         function=partial(convert2df,
                          data_descriptions=get_doc_description(),
                          write_schema=define_data_schema(read=False)),
-        inputs=['output_data', 'start_time'],
+        inputs=['output_data', 'start_time', 'main_flags'],
         outputs=['dfs']
     )
 
     dsp.add_function(
         function=write_to_excel,
-        inputs=['dfs', 'output_file_name', 'template_file_name']
+        inputs=['dfs', 'output_file_name', 'template_file_name', 'main_flags']
     )
 
-    return dsp_utl.SubDispatchFunction(dsp, dsp.name, ['output_file_name',
-                                                       'template_file_name',
-                                                       'output_data',
-                                                       'start_time'])
+    inp = ['output_file_name', 'template_file_name', 'output_data',
+           'start_time', 'main_flags']
+
+    return dsp_utl.SubDispatchFunction(dsp, dsp.name, inp)

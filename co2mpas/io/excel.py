@@ -171,7 +171,7 @@ def _check_none(v):
     return False
 
 
-def write_to_excel(data, output_file_name, template_file_name):
+def write_to_excel(data, output_file_name, template_file_name, main_flags):
 
     if template_file_name:
         log.debug('Writing into xl-file(%s) based on template(%s)...',
