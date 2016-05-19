@@ -2960,7 +2960,7 @@ class Dispatcher(object):
         """
 
         # Initialize as sub-dispatcher.
-        dsp_fringe = self._init_run({}, outputs, True, None, None, no_call,
+        dsp_fringe = self._init_run({}, outputs, False, None, None, no_call,
                                     False)[1]
 
         for f in dsp_fringe:  # Update the fringe.
