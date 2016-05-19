@@ -242,9 +242,6 @@ def sub_models():
 
     models['engine_coolant_temperature_model'] = {
         'dsp': engine(),
-        'inputs_map': {
-            'initial_temperature': 'initial_engine_temperature'
-        },
         'models': ['engine_temperature_regression_model'],
         'inputs': ['times', 'accelerations', 'gear_box_powers_in',
                    'engine_speeds_out_hot', 'initial_engine_temperature'],

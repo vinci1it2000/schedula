@@ -426,6 +426,7 @@ def physical():
             'idle_engine_speed_median': 'idle_engine_speed_median',
             'idle_engine_speed_std': 'idle_engine_speed_std',
             'initial_temperature': 'initial_engine_temperature',
+            'initial_engine_temperature': 'initial_engine_temperature',
             'velocities': 'velocities',
             'accelerations': 'accelerations',
             'co2_emission_low': 'co2_emission_low',
@@ -502,7 +503,7 @@ def physical():
                 'engine_temperature_regression_model',
             'fuel_consumptions': 'fuel_consumptions',
             'idle_engine_speed': 'idle_engine_speed',
-            'initial_engine_temperature': 'initial_temperature',
+            'initial_engine_temperature': 'initial_engine_temperature',
             'on_engine': 'on_engine',
             'on_idle': 'on_idle',
             'phases_co2_emissions': 'phases_co2_emissions',
@@ -522,7 +523,8 @@ def physical():
             'phases_willans_factors': 'phases_willans_factors',
             'missing_powers': 'missing_powers',
             'brake_powers': 'brake_powers'
-        }
+        },
+        inp_weight={'initial_temperature': 5}
     )
 
     from .gear_box import gear_box
@@ -567,6 +569,8 @@ def physical():
                 'gear_box_efficiency_parameters_cold_hot',
             'gear_box_ratios': 'gear_box_ratios',
             'initial_temperature': 'initial_gear_box_temperature',
+            'initial_engine_temperature': 'initial_gear_box_temperature',
+            'initial_gear_box_temperature': 'initial_gear_box_temperature',
             'gear_box_type': 'gear_box_type',
             'gears': 'gears',
             'idle_engine_speed': 'idle_engine_speed',
@@ -604,14 +608,15 @@ def physical():
             'velocity_speed_ratios': 'velocity_speed_ratios',
             'max_speed_velocity_ratio': 'max_speed_velocity_ratio',
             'specific_gear_shifting': 'specific_gear_shifting'
-        }
+        },
+        inp_weight={'initial_temperature': 5}
     )
 
     dsp.add_function(
         function=predict_vehicle_electrics_and_engine_behavior,
         inputs=['electrics_model', 'start_stop_model',
                 'engine_temperature_regression_model',
-                'initial_temperature', 'initial_state_of_charge',
+                'initial_engine_temperature', 'initial_state_of_charge',
                 'idle_engine_speed', 'times', 'gear_box_speeds_in',
                 'gear_box_powers_in', 'velocities', 'accelerations', 'gears',
                 'start_stop_activation_time', 'correct_start_stop_with_gears'],
