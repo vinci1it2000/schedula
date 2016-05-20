@@ -15,7 +15,7 @@ import copy
 from co2mpas.dispatcher import Dispatcher
 from functools import partial
 import co2mpas.dispatcher.utils as dsp_utl
-from . import _errors, get_best_model, sort_models
+from . import _errors, get_best_model, sort_models, _selector
 from itertools import chain
 
 log = logging.getLogger(__name__)
@@ -71,40 +71,13 @@ def co2_params_selector(
         The co2_params model selector.
     :rtype: SubDispatch
     """
-
-    setting = setting or {}
-
-    dsp = Dispatcher(
-        name='%s selector' % name,
-        description='Select the calibrated models.',
-    )
-
-    errors = []
-
-    _sort_models = setting.pop('sort_models', sort_models)
-
-    if 'weights' in setting:
-        _weights = dsp_utl.map_list(setting['targets'], *setting.pop('weights'))
-    else:
-        _weights = None
-
-    _get_best_model = partial(setting.pop('get_best_model', get_best_model),
-                              models_wo_err=setting.pop('models_wo_err', None),
-                              selector_id=dsp.name)
-
-    for i in chain(data_in, ['ALL']):
-        e = 'error/%s' % i
-
-        errors.append(e)
-
-        dsp.add_function(
-            function=_errors(name, i, data_out, setting),
-            inputs=[i] + [k for k in data_out if k != i],
-            outputs=[e]
-        )
+    dsp = _selector(name, data_in + ('ALL',), data_out, setting).dsp
+    n = dsp.get_node('sort_models', node_attr=None)[0]
+    errors, sort_models = n['inputs'], n['function']
+    dsp.dmap.remove_node('sort_models')
 
     dsp.add_function(
-        function=partial(_sort_models, weights=_weights),
+        function=sort_models,
         inputs=errors[:-1],
         outputs=['rank<0>']
     )
@@ -116,15 +89,9 @@ def co2_params_selector(
     )
 
     dsp.add_function(
-        function=partial(co2_sort_models, weights=_weights),
+        function=partial(co2_sort_models, **sort_models.keywords),
         inputs=['rank<0>'] + [errors[-1]],
         outputs=['rank']
-    )
-
-    dsp.add_function(
-        function=_get_best_model,
-        inputs=['rank'],
-        outputs=['model', 'errors']
     )
 
     return dsp_utl.SubDispatch(dsp, outputs=['model', 'errors'],

@@ -333,7 +333,7 @@ def sub_models():
     from .co2_params import co2_params_selector
     models['co2_params'] = {
         'dsp': co2_emission(),
-        'selector': co2_params_selector,
+        'model_selector': co2_params_selector,
         'models': ['co2_params_calibrated', 'calibration_status'],
         'inputs': ['co2_emissions_model'],
         'outputs': ['co2_emissions', 'calibration_status'],
@@ -481,6 +481,18 @@ def selector(*data):
     )
 
     setting = sub_models()
+    m = list(setting)
+
+    dsp.add_data(
+        data_id='error_settings',
+        default_value={}
+    )
+
+    dsp.add_function(
+        function=partial(split_error_settings, m),
+        inputs=['error_settings'],
+        outputs=['error_settings/%s' % k for k in m]
+    )
 
     for k, v in setting.items():
         v['dsp'] = v.pop('define_sub_model', define_sub_model)(**v)
@@ -489,18 +501,22 @@ def selector(*data):
         dsp.add_function(
             function=selector(k, data, data, v),
             function_id='%s selector' % k,
-            inputs=['CO2MPAS_results'],
+            inputs=['CO2MPAS_results', 'error_settings/%s' % k],
             outputs=['models', 'scores']
         )
 
     func = dsp_utl.SubDispatchFunction(
         dsp=dsp,
         function_id='models_selector',
-        inputs=data,
+        inputs=('error_settings',) + data,
         outputs=['models', 'scores']
     )
 
     return func
+
+
+def split_error_settings(models_ids, error_settings):
+    return list(error_settings.get(k, {}) for k in models_ids)
 
 
 def _selector(name, data_in, data_out, setting):
@@ -522,6 +538,12 @@ def _selector(name, data_in, data_out, setting):
     _get_best_model = partial(setting.pop('get_best_model', get_best_model),
                               models_wo_err=setting.pop('models_wo_err', None),
                               selector_id=dsp.name)
+
+    dsp.add_data(
+        data_id='error_settings',
+        default_value={}
+    )
+
     for i in data_in:
         e = 'error/%s' % i
 
@@ -529,17 +551,19 @@ def _selector(name, data_in, data_out, setting):
 
         dsp.add_function(
             function=_errors(name, i, data_out, setting),
-            inputs=[i] + [k for k in data_out if k != i],
+            inputs=['error_settings', i] + [k for k in data_out if k != i],
             outputs=[e]
         )
 
     dsp.add_function(
+        function_id='sort_models',
         function=partial(_sort_models, weights=_weights),
         inputs=errors,
         outputs=['rank']
     )
 
     dsp.add_function(
+        function_id='get_best_model',
         function=_get_best_model,
         inputs=['rank'],
         outputs=['model', 'errors']
@@ -579,6 +603,11 @@ def _errors(name, data_id, data_out, setting):
         default_value=data_id
     )
 
+    dsp.add_data(
+        data_id='error_settings',
+        default_value={}
+    )
+
     for o in data_out:
 
         dsp.add_function(
@@ -589,14 +618,15 @@ def _errors(name, data_id, data_out, setting):
 
         dsp.add_function(
             function=_error(name, data_id, o, setting),
-            inputs=['input/%s' % o],
+            inputs=['input/%s' % o, 'error_settings'],
             outputs=['error/%s' % o]
         )
 
+    i = ['error_settings', data_id] + [k for k in data_out if k != data_id]
     func = dsp_utl.SubDispatchFunction(
         dsp=dsp,
         function_id=dsp.name,
-        inputs=[data_id] + [k for k in data_out if k != data_id]
+        inputs=i
     )
 
     return func

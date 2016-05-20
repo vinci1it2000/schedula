@@ -226,10 +226,16 @@ def model():
 
     selector = selector('WLTP-H', 'WLTP-L')
 
+    dsp.add_data(
+        data_id='config.error_settings',
+        default_value={}
+    )
+
     dsp.add_function(
         function_id='extract_calibrated_models',
         function=selector,
-        inputs=['output.calibration.wltp_h', 'output.calibration.wltp_l'],
+        inputs=['config.error_settings', 'output.calibration.wltp_h',
+                'output.calibration.wltp_l'],
         outputs=['calibrated_models', 'selection_scores']
     )
 
