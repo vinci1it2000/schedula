@@ -29,6 +29,7 @@ from sklearn.ensemble import GradientBoostingRegressor
 from scipy.stats import linregress
 from ..utils import reject_outliers, argmax
 from ..constants import *
+from co2mpas.io.constants import con_vals
 from math import pi
 
 
@@ -51,7 +52,7 @@ def check_sign_currents(battery_currents, alternator_currents):
 
     b_c, a_c = battery_currents, alternator_currents
 
-    a = reject_outliers(a_c, med=np.mean)[0] <= MAX_VALIDATE_POS_CURR
+    a = reject_outliers(a_c, med=np.mean)[0] <= con_vals.MAX_VALIDATE_POS_CURR
     c = np.cov(a_c, b_c)[0][1]
 
     if c < 0:
@@ -433,7 +434,8 @@ def calculate_max_alternator_current(
 
 
 def identify_alternator_current_threshold(
-        alternator_currents, velocities, on_engine, stop_velocity):
+        alternator_currents, velocities, on_engine, stop_velocity,
+        alternator_off_threshold):
     """
     Identifies the alternator current threshold [A] that identifies when the
     alternator is off.
@@ -454,6 +456,10 @@ def identify_alternator_current_threshold(
         Maximum velocity to consider the vehicle stopped [km/h].
     :type stop_velocity: float
 
+    :param alternator_off_threshold:
+        Maximum negative current for being considered the alternator off [A].
+    :type alternator_off_threshold: float
+
     :return:
         Alternator current threshold [A].
     :rtype: float
@@ -461,7 +467,7 @@ def identify_alternator_current_threshold(
 
     b, l = np.logical_not(on_engine), -float('inf')
     if not b.any():
-        b, l = velocities < stop_velocity, THRESHOLD_ALT_CURR
+        b, l = velocities < stop_velocity, alternator_off_threshold
         b &= alternator_currents < 0
 
     if b.any():
@@ -933,10 +939,15 @@ def electrics():
         default_value=VEL_EPS
     )
 
+    dsp.add_data(
+        data_id='alternator_off_threshold',
+        default_value=THRESHOLD_ALT_CURR
+    )
+
     dsp.add_function(
         function=identify_alternator_current_threshold,
         inputs=['alternator_currents', 'velocities', 'on_engine',
-                'stop_velocity'],
+                'stop_velocity', 'alternator_off_threshold'],
         outputs=['alternator_current_threshold']
     )
 

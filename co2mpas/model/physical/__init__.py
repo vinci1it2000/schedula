@@ -480,7 +480,8 @@ def physical():
             'alternator_statuses': 'alternator_statuses',
             'state_of_charges': 'state_of_charges',
             'stop_velocity': 'stop_velocity',
-            'alternator_start_window_width': 'alternator_start_window_width'
+            'alternator_start_window_width': 'alternator_start_window_width',
+            'alternator_off_threshold': 'alternator_off_threshold'
         },
         outputs={
             'alternator_current_model': 'alternator_current_model',
