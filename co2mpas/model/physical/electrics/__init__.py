@@ -29,42 +29,7 @@ from sklearn.ensemble import GradientBoostingRegressor
 from scipy.stats import linregress
 from ..utils import reject_outliers, argmax
 from ..constants import *
-from co2mpas.io.constants import con_vals
 from math import pi
-
-
-def check_sign_currents(battery_currents, alternator_currents):
-    """
-    Checks if battery currents and alternator currents have the right signs.
-
-    :param battery_currents:
-        Low voltage battery current vector [A].
-    :type battery_currents: numpy.array
-
-    :param alternator_currents:
-        Alternator current vector [A].
-    :type alternator_currents: numpy.array
-
-    :return:
-        If battery and alternator currents have the right signs.
-    :rtype: (bool, bool)
-    """
-
-    b_c, a_c = battery_currents, alternator_currents
-
-    a = reject_outliers(a_c, med=np.mean)[0] <= con_vals.MAX_VALIDATE_POS_CURR
-    c = np.cov(a_c, b_c)[0][1]
-
-    if c < 0:
-        x = (a, a)
-    elif c == 0:
-        if any(b_c):
-            x = (reject_outliers(b_c, med=np.mean)[0] <= 0, a)
-        else:
-            x = (True, a)
-    else:
-        x = (not a, a)
-    return x
 
 
 def calculate_engine_start_demand(

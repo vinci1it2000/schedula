@@ -54,11 +54,5 @@ VEL_DN_WINDOW = 3.5
 #: Delta to add to the limit if this is close to `CON_VEL_DN_SHIFT` [km/h].
 DV_DN_SHIFT = -1
 
-#: Maximum allowed dT for the initial temperature check [°C].
-MAX_VALIDATE_DTEMP = 2
-
-#: Maximum allowed positive current for the alternator currents check [A].
-MAX_VALIDATE_POS_CURR = 1.0
-
 #: Maximum allowed negative current for the alternator being considered off [A].
 THRESHOLD_ALT_CURR = -1.0

@@ -9,33 +9,11 @@ from pprint import pformat
 import co2mpas.dispatcher.utils as dsp_utl
 from .dill import save_dill
 from co2mpas.batch import stack_nested_keys, get_nested_dicts
-from co2mpas.model.physical.engine.thermal import check_initial_temperature
-from co2mpas.model.physical.electrics import check_sign_currents
+from .validations import hard_validation
 from co2mpas.model.physical.gear_box.at_gear import CMV, MVL, GSPV
 from co2mpas.model.physical.electrics import Alternator_status_model
 
 log = logging.getLogger(__name__)
-
-
-def hard_validation(data):
-    c = ('battery_currents', 'alternator_currents')
-    if set(c).issubset(data):
-        a = dsp_utl.selector(c, data, output_type='list')
-        s = check_sign_currents(*a)
-        s = ' and '.join([k for k, v in zip(c, s) if not v])
-        if s:
-            msg = "Probably '{}' have the wrong sign!".format(s)
-            yield c, msg
-
-    t = ('initial_temperature', 'engine_coolant_temperatures',
-         'engine_speeds_out', 'idle_engine_speed_median')
-    if set(t).issubset(data):
-        a = dsp_utl.selector(t, data, output_type='list')
-        if check_initial_temperature(*a):
-            msg = "Initial engine temperature outside permissible limits " \
-                  "according to GTR!"
-            yield t, msg
-
 
 
 def validate_data(
