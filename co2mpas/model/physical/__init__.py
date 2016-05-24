@@ -37,7 +37,7 @@ def predict_vehicle_electrics_and_engine_behavior(
         initial_engine_temperature, initial_state_of_charge, idle_engine_speed,
         times, gear_box_speeds_in, gear_box_powers_in, velocities,
         accelerations, gears, start_stop_activation_time,
-        correct_start_stop_with_gears):
+        correct_start_stop_with_gears, min_time_engine_on_after_start):
     """
     Predicts alternator and battery currents, state of charge, alternator
     status, if the engine is on and when the engine starts.
@@ -102,6 +102,10 @@ def predict_vehicle_electrics_and_engine_behavior(
         A flag to impose engine on when there is a gear > 0.
     :type correct_start_stop_with_gears: bool
 
+    :param min_time_engine_on_after_start:
+        Minimum time of engine on after a start [s].
+    :type min_time_engine_on_after_start: float
+
     :return:
         Alternator and battery currents, state of charge, alternator status,
         if the engine is on and when the engine starts.
@@ -120,7 +124,8 @@ def predict_vehicle_electrics_and_engine_behavior(
     gen = start_stop_model.yield_on_start(
         times, velocities, accelerations, temp, soc,
         gears=gears, start_stop_activation_time=start_stop_activation_time,
-        correct_start_stop_with_gears=correct_start_stop_with_gears
+        correct_start_stop_with_gears=correct_start_stop_with_gears,
+        min_time_engine_on_after_start=min_time_engine_on_after_start
     )
 
     e = (0, 0, None, initial_state_of_charge)
@@ -276,6 +281,9 @@ def physical():
             'final_drive_ratio': 'final_drive_ratio',
             'velocity_speed_ratios': 'velocity_speed_ratios',
             'motive_powers': 'motive_powers',
+            'stop_velocity': 'stop_velocity',
+            'plateau_acceleration': 'plateau_acceleration',
+            'change_gear_window_width': 'change_gear_window_width'
         },
         outputs={
             'r_dynamic': 'r_dynamic',
@@ -305,6 +313,135 @@ def physical():
             'final_drive_powers_in': 'final_drive_powers_in',
             'final_drive_speeds_in': 'final_drive_speeds_in',
             'final_drive_torques_in': 'final_drive_torques_in',
+        }
+    )
+
+    from .gear_box import gear_box
+
+    dsp.add_dispatcher(
+        include_defaults=True,
+        dsp_id='gear_box_model',
+        dsp=gear_box(),
+        inputs={
+            'on_engine': 'on_engine',
+            'CVT': 'CVT',
+            'eco_mode': 'eco_mode',
+            'MVL': 'MVL',
+            'CMV': 'CMV',
+            'CMV_Cold_Hot': 'CMV_Cold_Hot',
+            'DT_VA': 'DT_VA',
+            'DT_VAT': 'DT_VAT',
+            'DT_VAP': 'DT_VAP',
+            'DT_VATP': 'DT_VATP',
+            'GSPV': 'GSPV',
+            'GSPV_Cold_Hot': 'GSPV_Cold_Hot',
+            'cycle_type': 'cycle_type',
+            'use_dt_gear_shifting': 'use_dt_gear_shifting',
+            'specific_gear_shifting': 'specific_gear_shifting',
+            'fuel_type': 'fuel_type',
+            'full_load_curve': 'full_load_curve',
+            'engine_max_power': 'engine_max_power',
+            'engine_max_speed_at_max_power': 'engine_max_speed_at_max_power',
+            'road_loads': 'road_loads',
+            'engine_coolant_temperatures': 'engine_coolant_temperatures',
+            'time_cold_hot_transition': 'time_cold_hot_transition',
+            'vehicle_mass': 'vehicle_mass',
+            'accelerations': 'accelerations',
+            'motive_powers': 'motive_powers',
+            'engine_max_torque': 'engine_max_torque',
+            'engine_speeds_out': 'engine_speeds_out',
+            'final_drive_ratio': 'final_drive_ratio',
+            'final_drive_powers_in': 'gear_box_powers_out',
+            'final_drive_speeds_in': 'gear_box_speeds_out',
+            'gear_box_efficiency_constants': 'gear_box_efficiency_constants',
+            'gear_box_efficiency_parameters_cold_hot':
+                'gear_box_efficiency_parameters_cold_hot',
+            'gear_box_ratios': 'gear_box_ratios',
+            'initial_temperature': 'initial_gear_box_temperature',
+            'initial_engine_temperature': 'initial_gear_box_temperature',
+            'initial_gear_box_temperature': 'initial_gear_box_temperature',
+            'gear_box_type': 'gear_box_type',
+            'gears': 'gears',
+            'idle_engine_speed': 'idle_engine_speed',
+            'r_dynamic': 'r_dynamic',
+            'temperature_references': 'temperature_references',
+            'engine_thermostat_temperature': 'engine_thermostat_temperature',
+            'times': 'times',
+            'velocities': 'velocities',
+            'velocity_speed_ratios': 'velocity_speed_ratios',
+            'stop_velocity': 'stop_velocity',
+            'plateau_acceleration': 'plateau_acceleration',
+            'change_gear_window_width': 'change_gear_window_width',
+            'min_engine_on_speed': 'min_engine_on_speed',
+            'max_velocity_full_load_correction':
+                'max_velocity_full_load_correction'
+        },
+        outputs={
+            'CVT': 'CVT',
+            'MVL': 'MVL',
+            'CMV': 'CMV',
+            'CMV_Cold_Hot': 'CMV_Cold_Hot',
+            'DT_VA': 'DT_VA',
+            'DT_VAT': 'DT_VAT',
+            'DT_VAP': 'DT_VAP',
+            'DT_VATP': 'DT_VATP',
+            'GSPV': 'GSPV',
+            'GSPV_Cold_Hot': 'GSPV_Cold_Hot',
+            'equivalent_gear_box_heat_capacity':
+                'equivalent_gear_box_heat_capacity',
+            'gears': 'gears',
+            'gear_box_ratios': 'gear_box_ratios',
+            'speed_velocity_ratios': 'speed_velocity_ratios',
+            'gear_box_efficiencies': 'gear_box_efficiencies',
+            'gear_box_speeds_in': 'gear_box_speeds_in',
+            'gear_box_temperatures': 'gear_box_temperatures',
+            'gear_box_torque_losses': 'gear_box_torque_losses',
+            'gear_box_torques_in': 'gear_box_torques_in',
+            'gear_box_powers_in': 'gear_box_powers_in',
+            'max_gear': 'max_gear',
+            'gear_shifts': 'gear_shifts',
+            'velocity_speed_ratios': 'velocity_speed_ratios',
+            'max_speed_velocity_ratio': 'max_speed_velocity_ratio',
+            'specific_gear_shifting': 'specific_gear_shifting'
+        },
+        inp_weight={'initial_temperature': 5}
+    )
+
+    from .clutch_tc import clutch_torque_converter
+
+    dsp.add_dispatcher(
+        include_defaults=True,
+        dsp=clutch_torque_converter(),
+        dsp_id='clutch_torque_converter_model',
+        inputs={
+            'times': 'times',
+            'velocities': 'velocities',
+            'accelerations': 'accelerations',
+            'gear_box_type': 'gear_box_type',
+            'clutch_model': 'clutch_model',
+            'clutch_window': 'clutch_window',
+            'gears': 'gears',
+            'gear_shifts': 'gear_shifts',
+            'engine_speeds_out': 'engine_speeds_out',
+            'engine_speeds_out_hot': 'engine_speeds_out_hot',
+            'cold_start_speeds_delta': 'cold_start_speeds_delta',
+            'torque_converter_model': 'torque_converter_model',
+            'stand_still_torque_ratio': 'stand_still_torque_ratio',
+            'lockup_speed_ratio': 'lockup_speed_ratio',
+            'gear_box_speeds_in': 'gear_box_speeds_in',
+            'gear_box_powers_in': 'gear_box_powers_in',
+            'lock_up_tc_limits': 'lock_up_tc_limits',
+            'calibration_tc_speed_threshold': 'calibration_tc_speed_threshold',
+            'stop_velocity': 'stop_velocity',
+        },
+        outputs={
+            'clutch_tc_speeds_delta': 'clutch_tc_speeds_delta',
+            'clutch_window': 'clutch_window',
+            'clutch_model': 'clutch_model',
+            'torque_converter_model': 'torque_converter_model',
+            'stand_still_torque_ratio': 'stand_still_torque_ratio',
+            'lockup_speed_ratio': 'lockup_speed_ratio',
+            'clutch_tc_powers': 'clutch_tc_powers'
         }
     )
 
@@ -342,6 +479,8 @@ def physical():
             'velocities': 'velocities',
             'alternator_statuses': 'alternator_statuses',
             'state_of_charges': 'state_of_charges',
+            'stop_velocity': 'stop_velocity',
+            'alternator_start_window_width': 'alternator_start_window_width'
         },
         outputs={
             'alternator_current_model': 'alternator_current_model',
@@ -356,43 +495,6 @@ def physical():
             'state_of_charges': 'state_of_charges',
             'start_demand': 'start_demand',
             'electrics_model': 'electrics_model'
-        }
-    )
-
-    from .clutch_tc import clutch_torque_converter
-
-    dsp.add_dispatcher(
-        include_defaults=True,
-        dsp=clutch_torque_converter(),
-        dsp_id='clutch_torque_converter_model',
-        inputs={
-            'times': 'times',
-            'velocities': 'velocities',
-            'accelerations': 'accelerations',
-            'gear_box_type': 'gear_box_type',
-            'clutch_model': 'clutch_model',
-            'clutch_window': 'clutch_window',
-            'gears': 'gears',
-            'gear_shifts': 'gear_shifts',
-            'engine_speeds_out': 'engine_speeds_out',
-            'engine_speeds_out_hot': 'engine_speeds_out_hot',
-            'cold_start_speeds_delta': 'cold_start_speeds_delta',
-            'torque_converter_model': 'torque_converter_model',
-            'stand_still_torque_ratio': 'stand_still_torque_ratio',
-            'lockup_speed_ratio': 'lockup_speed_ratio',
-            'gear_box_speeds_in': 'gear_box_speeds_in',
-            'gear_box_powers_in': 'gear_box_powers_in',
-            'lock_up_tc_limits': 'lock_up_tc_limits',
-            'calibration_tc_speed_threshold': 'calibration_tc_speed_threshold'
-        },
-        outputs={
-            'clutch_tc_speeds_delta': 'clutch_tc_speeds_delta',
-            'clutch_window': 'clutch_window',
-            'clutch_model': 'clutch_model',
-            'torque_converter_model': 'torque_converter_model',
-            'stand_still_torque_ratio': 'stand_still_torque_ratio',
-            'lockup_speed_ratio': 'lockup_speed_ratio',
-            'clutch_tc_powers': 'clutch_tc_powers'
         }
     )
 
@@ -468,6 +570,10 @@ def physical():
             'motive_powers': 'motive_powers',
             'engine_starts': 'engine_starts',
             'engine_speeds_out_hot': 'engine_speeds_out_hot',
+            'stop_velocity': 'stop_velocity',
+            'plateau_acceleration': 'plateau_acceleration',
+            'min_time_engine_on_after_start': 'min_time_engine_on_after_start',
+            'min_engine_on_speed': 'min_engine_on_speed'
         },
         outputs={
             'fuel_carbon_content_percentage': 'fuel_carbon_content_percentage',
@@ -528,91 +634,6 @@ def physical():
         inp_weight={'initial_temperature': 5}
     )
 
-    from .gear_box import gear_box
-
-    dsp.add_dispatcher(
-        include_defaults=True,
-        dsp_id='gear_box_model',
-        dsp=gear_box(),
-        inputs={
-            'on_engine': 'on_engine',
-            'CVT': 'CVT',
-            'eco_mode': 'eco_mode',
-            'MVL': 'MVL',
-            'CMV': 'CMV',
-            'CMV_Cold_Hot': 'CMV_Cold_Hot',
-            'DT_VA': 'DT_VA',
-            'DT_VAT': 'DT_VAT',
-            'DT_VAP': 'DT_VAP',
-            'DT_VATP': 'DT_VATP',
-            'GSPV': 'GSPV',
-            'GSPV_Cold_Hot': 'GSPV_Cold_Hot',
-            'cycle_type': 'cycle_type',
-            'use_dt_gear_shifting': 'use_dt_gear_shifting',
-            'specific_gear_shifting': 'specific_gear_shifting',
-            'fuel_type': 'fuel_type',
-            'full_load_curve': 'full_load_curve',
-            'engine_max_power': 'engine_max_power',
-            'engine_max_speed_at_max_power': 'engine_max_speed_at_max_power',
-            'road_loads': 'road_loads',
-            'engine_coolant_temperatures': 'engine_coolant_temperatures',
-            'time_cold_hot_transition': 'time_cold_hot_transition',
-            'vehicle_mass': 'vehicle_mass',
-            'accelerations': 'accelerations',
-            'motive_powers': 'motive_powers',
-            'engine_max_torque': 'engine_max_torque',
-            'engine_speeds_out': 'engine_speeds_out',
-            'final_drive_ratio': 'final_drive_ratio',
-            'final_drive_powers_in': 'gear_box_powers_out',
-            'final_drive_speeds_in': 'gear_box_speeds_out',
-            'gear_box_efficiency_constants': 'gear_box_efficiency_constants',
-            'gear_box_efficiency_parameters_cold_hot':
-                'gear_box_efficiency_parameters_cold_hot',
-            'gear_box_ratios': 'gear_box_ratios',
-            'initial_temperature': 'initial_gear_box_temperature',
-            'initial_engine_temperature': 'initial_gear_box_temperature',
-            'initial_gear_box_temperature': 'initial_gear_box_temperature',
-            'gear_box_type': 'gear_box_type',
-            'gears': 'gears',
-            'idle_engine_speed': 'idle_engine_speed',
-            'r_dynamic': 'r_dynamic',
-            'temperature_references': 'temperature_references',
-            'engine_thermostat_temperature': 'engine_thermostat_temperature',
-            'times': 'times',
-            'velocities': 'velocities',
-            'velocity_speed_ratios': 'velocity_speed_ratios',
-        },
-        outputs={
-            'CVT': 'CVT',
-            'MVL': 'MVL',
-            'CMV': 'CMV',
-            'CMV_Cold_Hot': 'CMV_Cold_Hot',
-            'DT_VA': 'DT_VA',
-            'DT_VAT': 'DT_VAT',
-            'DT_VAP': 'DT_VAP',
-            'DT_VATP': 'DT_VATP',
-            'GSPV': 'GSPV',
-            'GSPV_Cold_Hot': 'GSPV_Cold_Hot',
-            'equivalent_gear_box_heat_capacity':
-                'equivalent_gear_box_heat_capacity',
-            'gears': 'gears',
-            'gear_box_ratios': 'gear_box_ratios',
-            'speed_velocity_ratios': 'speed_velocity_ratios',
-            'gear_box_efficiencies': 'gear_box_efficiencies',
-            'gear_box_speeds_in': 'gear_box_speeds_in',
-            'gear_box_temperatures': 'gear_box_temperatures',
-            'gear_box_torque_losses': 'gear_box_torque_losses',
-            'gear_box_torques_in': 'gear_box_torques_in',
-            'gear_box_powers_in': 'gear_box_powers_in',
-            'max_gear': 'max_gear',
-            'gear_shifts': 'gear_shifts',
-            'velocity_speed_ratios': 'velocity_speed_ratios',
-            'max_speed_velocity_ratio': 'max_speed_velocity_ratio',
-            'specific_gear_shifting': 'specific_gear_shifting'
-        },
-        inp_weight={'initial_temperature': 5}
-    )
-
     dsp.add_function(
         function=predict_vehicle_electrics_and_engine_behavior,
         inputs=['electrics_model', 'start_stop_model',
@@ -620,7 +641,8 @@ def physical():
                 'initial_engine_temperature', 'initial_state_of_charge',
                 'idle_engine_speed', 'times', 'gear_box_speeds_in',
                 'gear_box_powers_in', 'velocities', 'accelerations', 'gears',
-                'start_stop_activation_time', 'correct_start_stop_with_gears'],
+                'start_stop_activation_time', 'correct_start_stop_with_gears',
+                'min_time_engine_on_after_start'],
         outputs=['alternator_currents', 'battery_currents', 'state_of_charges',
                  'alternator_statuses', 'on_engine', 'engine_starts',
                  'engine_speeds_out_hot', 'engine_coolant_temperatures'],

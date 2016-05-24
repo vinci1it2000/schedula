@@ -174,6 +174,7 @@ def clutch_torque_converter():
         return False
 
     dsp.add_dispatcher(
+        include_defaults=True,
         input_domain=clutch_domain,
         dsp=clutch(),
         dsp_id='clutch',
@@ -186,14 +187,14 @@ def clutch_torque_converter():
             'clutch_tc_speeds_delta': 'clutch_speeds_delta',
             'gear_shifts': 'gear_shifts',
             'stand_still_torque_ratio': 'stand_still_torque_ratio',
-            'lockup_speed_ratio': 'lockup_speed_ratio'
+            'lockup_speed_ratio': 'lockup_speed_ratio',
+            'max_clutch_window_width': 'max_clutch_window_width'
         },
         outputs={
             'clutch_speeds_delta': 'clutch_tc_speeds_delta',
             'clutch_window': 'clutch_window',
             'clutch_model': 'clutch_model',
             'k_factor_curve': 'k_factor_curve'
-
         }
     )
 
@@ -213,6 +214,7 @@ def clutch_torque_converter():
         inputs={
             'lock_up_tc_limits': 'lock_up_tc_limits',
             'calibration_tc_speed_threshold': 'calibration_tc_speed_threshold',
+            'stop_velocity': 'stop_velocity',
             'velocities': 'velocities',
             'accelerations': 'accelerations',
             'gear_box_type': dsp_utl.SINK,

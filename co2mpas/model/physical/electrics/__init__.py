@@ -101,7 +101,8 @@ def calculate_engine_start_demand(
 
 def identify_electric_loads(
         alternator_nominal_voltage, battery_currents, alternator_currents,
-        gear_box_powers_in, times, on_engine, engine_starts):
+        gear_box_powers_in, times, on_engine, engine_starts,
+        alternator_start_window_width):
     """
     Identifies vehicle electric load and engine start demand [kW].
 
@@ -133,6 +134,10 @@ def identify_electric_loads(
         When the engine starts [-].
     :type engine_starts: numpy.array
 
+    :param alternator_start_window_width:
+        Alternator start window width [s].
+    :type alternator_start_window_width: float
+
     :return:
         Vehicle electric load (engine off and on) [kW] and energy required to
         start engine [kJ].
@@ -151,8 +156,8 @@ def identify_electric_loads(
 
     loads = [off, on]
     start_demand = []
-
-    for i, j in _starts_windows(times, engine_starts):
+    dt = alternator_start_window_width / 2
+    for i, j in _starts_windows(times, engine_starts, dt):
         p = b_c[i:j] * c
         # noinspection PyUnresolvedReferences
         p[p > 0] = 0.0
@@ -428,7 +433,7 @@ def calculate_max_alternator_current(
 
 
 def identify_alternator_current_threshold(
-        alternator_currents, velocities, on_engine):
+        alternator_currents, velocities, on_engine, stop_velocity):
     """
     Identifies the alternator current threshold [A] that identifies when the
     alternator is off.
@@ -445,6 +450,10 @@ def identify_alternator_current_threshold(
         If the engine is on [-].
     :type on_engine: numpy.array
 
+    :param stop_velocity:
+        Maximum velocity to consider the vehicle stopped [km/h].
+    :type stop_velocity: float
+
     :return:
         Alternator current threshold [A].
     :rtype: float
@@ -452,7 +461,7 @@ def identify_alternator_current_threshold(
 
     b, l = np.logical_not(on_engine), -float('inf')
     if not b.any():
-        b, l = velocities < VEL_EPS, THRESHOLD_ALT_CURR
+        b, l = velocities < stop_velocity, THRESHOLD_ALT_CURR
         b &= alternator_currents < 0
 
     if b.any():
@@ -460,17 +469,17 @@ def identify_alternator_current_threshold(
     return 0.0
 
 
-def _starts_windows(times, engine_starts):
-    dt = TIME_WINDOW / 2
+def _starts_windows(times, engine_starts, dt):
     j = 0
     for t in times[engine_starts]:
-        i = np.searchsorted(times[j:], t - dt)
-        j = np.searchsorted(times[j:], t + dt) + i
+        i = np.searchsorted(times[j:], (t - dt,))[0]
+        j = np.searchsorted(times[j:], (t + dt,))[0] + i
         yield i, j
 
 
 def identify_alternator_starts_windows(
-        times, engine_starts, alternator_currents):
+        times, engine_starts, alternator_currents,
+        alternator_start_window_width):
     """
     Identifies the alternator starts windows [-].
 
@@ -486,14 +495,18 @@ def identify_alternator_starts_windows(
         Alternator current vector [A].
     :type alternator_currents: numpy.array
 
+    :param alternator_start_window_width:
+        Alternator start window width [s].
+    :type alternator_start_window_width: float
+
     :return:
         Alternator starts windows [-].
     :rtype: numpy.array
     """
 
     starts_windows = np.zeros_like(times, dtype=bool)
-
-    for i, j in _starts_windows(times, engine_starts):
+    dt = alternator_start_window_width / 2
+    for i, j in _starts_windows(times, engine_starts, dt):
         starts_windows[i:j] = (alternator_currents[i:j] > 0).any()
     return starts_windows
 
@@ -899,7 +912,7 @@ def electrics():
         function=identify_electric_loads,
         inputs=['alternator_nominal_voltage', 'battery_currents',
                 'alternator_currents', 'gear_box_powers_in', 'times',
-                'on_engine', 'engine_starts'],
+                'on_engine', 'engine_starts', 'alternator_start_window_width'],
         outputs=['electric_load', 'start_demand']
     )
 
@@ -915,15 +928,27 @@ def electrics():
         outputs=['state_of_charges']
     )
 
+    dsp.add_data(
+        data_id='stop_velocity',
+        default_value=VEL_EPS
+    )
+
     dsp.add_function(
         function=identify_alternator_current_threshold,
-        inputs=['alternator_currents', 'velocities', 'on_engine'],
+        inputs=['alternator_currents', 'velocities', 'on_engine',
+                'stop_velocity'],
         outputs=['alternator_current_threshold']
+    )
+
+    dsp.add_data(
+        data_id='alternator_start_window_width',
+        default_value=TIME_WINDOW
     )
 
     dsp.add_function(
         function=identify_alternator_starts_windows,
-        inputs=['times', 'engine_starts', 'alternator_currents'],
+        inputs=['times', 'engine_starts', 'alternator_currents',
+                'alternator_start_window_width'],
         outputs=['starts_windows']
     )
 

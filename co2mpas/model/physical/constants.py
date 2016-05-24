@@ -16,10 +16,10 @@ import sys
 #: Machine error.
 EPS = sys.float_info.epsilon
 
-#: Minimum vehicle velocity [km/h].
-VEL_EPS = 1 + EPS
+#: Maximum velocity to consider the vehicle stopped [km/h].
+VEL_EPS = 1.0 + EPS
 
-#: Minimum vehicle acceleration [m/s2].
+#: Maximum acceleration to be at constant velocity [m/s2].
 ACC_EPS = 0.1 + EPS
 
 #: Infinite value.
@@ -27,9 +27,6 @@ INF = 10000.0
 
 #: Minimum gear [-].
 MIN_GEAR = 0
-
-#: Maximum dt in speed shift equation [s].
-MAX_DT_SHIFT = 3.0
 
 #: Minimum vehicle engine speed [RPM].
 MIN_ENGINE_SPEED = 10.0
@@ -40,8 +37,8 @@ TIME_WINDOW = 4.0
 #: Threshold vehicle velocity for gear correction due to full load curve [km/h].
 THRESHOLD_VEL_FULL_LOAD_CORR = 100.0
 
-#: Constant velocities to correct the upper limits [km/h].
-CON_VEL_UP_SHIFT = (15, 32, 50, 70)
+#: Constant velocities to correct the upper limits for NEDC [km/h].
+CON_VEL_UP_SHIFT = (15.0, 32.0, 50.0, 70.0)
 
 #: Window to identify if the shifting matrix has limits close to
 # `CON_VEL_UP_SHIFT` [km/h].
@@ -50,8 +47,8 @@ VEL_UP_WINDOW = 3.5
 #: Delta to add to the limit if this is close to `CON_VEL_UP_SHIFT` [km/h].
 DV_UP_SHIFT = -0.5
 
-#: Constant velocities to correct the bottom limits [km/h].
-CON_VEL_DN_SHIFT = (35, 50)
+#: Constant velocities to correct the bottom limits for NEDC[km/h].
+CON_VEL_DN_SHIFT = (35.0, 50.0)
 
 #: Window to identify if the shifting matrix has limits close to
 # `CON_VEL_DN_SHIFT` [km/h].

@@ -127,7 +127,9 @@ def calculate_full_load(full_load_speeds, full_load_powers, idle_engine_speed):
     return flc, engine_max_power, engine_max_speed_at_max_power
 
 
-def identify_on_idle(velocities, engine_speeds_out, gears):
+def identify_on_idle(
+        velocities, engine_speeds_out, gears, stop_velocity,
+        min_engine_on_speed):
     """
     Identifies when the engine is on idle [-].
 
@@ -143,18 +145,27 @@ def identify_on_idle(velocities, engine_speeds_out, gears):
         Gear vector [-].
     :type gears: numpy.array
 
+    :param stop_velocity:
+        Maximum velocity to consider the vehicle stopped [km/h].
+    :type stop_velocity: float
+
+    :param min_engine_on_speed:
+        Minimum engine speed to consider the engine to be on [RPM].
+    :type min_engine_on_speed: float
+
     :return:
         If the engine is on idle [-].
     :rtype: numpy.array
     """
 
-    on_idle = engine_speeds_out > MIN_ENGINE_SPEED
-    on_idle &= (gears == 0) | (velocities <= VEL_EPS)
+    on_idle = engine_speeds_out > min_engine_on_speed
+    on_idle &= (gears == 0) | (velocities <= stop_velocity)
 
     return on_idle
 
 
-def identify_idle_engine_speed_out(velocities, engine_speeds_out):
+def identify_idle_engine_speed_out(
+        velocities, engine_speeds_out, stop_velocity, min_engine_on_speed):
     """
     Identifies engine speed idle and its standard deviation [RPM].
 
@@ -166,12 +177,20 @@ def identify_idle_engine_speed_out(velocities, engine_speeds_out):
         Engine speed vector [RPM].
     :type engine_speeds_out: numpy.array
 
+    :param stop_velocity:
+        Maximum velocity to consider the vehicle stopped [km/h].
+    :type stop_velocity: float
+
+    :param min_engine_on_speed:
+        Minimum engine speed to consider the engine to be on [RPM].
+    :type min_engine_on_speed: float
+
     :returns:
         Idle engine speed and its standard deviation [RPM].
     :rtype: (float, float)
     """
 
-    b = (velocities < VEL_EPS) & (engine_speeds_out > MIN_ENGINE_SPEED)
+    b = (velocities < stop_velocity) & (engine_speeds_out > min_engine_on_speed)
 
     x = engine_speeds_out[b]
 
@@ -398,7 +417,7 @@ def identify_engine_starts(on_engine):
     :rtype: numpy.array
     """
 
-    return np.append(np.diff(np.array(on_engine, dtype=int)) > 0, False)
+    return np.append(np.diff(np.array(on_engine, dtype=int)) > 0, (False,))
 
 
 def calibrate_start_stop_model(
@@ -438,8 +457,9 @@ def calibrate_start_stop_model(
     soc = np.zeros_like(state_of_charges)
     soc[0], soc[1:] = state_of_charges[0], state_of_charges[:-1]
     model = StartStopModel()
-    model.fit(on_engine,
-              velocities, accelerations, engine_coolant_temperatures, soc)
+    model.fit(
+        on_engine, velocities, accelerations, engine_coolant_temperatures, soc
+    )
 
     return model
 
@@ -460,12 +480,15 @@ class StartStopModel(object):
         return self
 
     def predict(self, times, *args, start_stop_activation_time=None, gears=None,
-                correct_start_stop_with_gears=False):
+                correct_start_stop_with_gears=False,
+                min_time_engine_on_after_start=0.0):
 
         gen = self.yield_on_start(
             times, *args, gears=gears,
             correct_start_stop_with_gears=correct_start_stop_with_gears,
-            start_stop_activation_time=start_stop_activation_time)
+            start_stop_activation_time=start_stop_activation_time,
+            min_time_engine_on_after_start=min_time_engine_on_after_start
+        )
 
         on_eng, eng_starts = zip(*list(gen))
 
@@ -473,7 +496,8 @@ class StartStopModel(object):
 
     def yield_on_start(self, times, *args,
                        start_stop_activation_time=None, gears=None,
-                       correct_start_stop_with_gears=False, simple=None):
+                       correct_start_stop_with_gears=False, simple=None,
+                       min_time_engine_on_after_start=0.0):
 
         to_predict = self.when_predict_on_engine(
             times, start_stop_activation_time, gears,
@@ -482,10 +506,12 @@ class StartStopModel(object):
 
         if simple is None:
             simple = start_stop_activation_time is not None
+        dt = min_time_engine_on_after_start
+        return self._yield_on_start(times, to_predict, *args, simple=simple,
+                                    min_time_engine_on_after_start=dt)
 
-        return self._yield_on_start(times, to_predict, *args, simple=simple)
-
-    def _yield_on_start(self, times, to_predict, *args, simple=False):
+    def _yield_on_start(self, times, to_predict, *args, simple=False,
+                        min_time_engine_on_after_start=0.0):
         if simple:
             predict, args = self.simple.predict, args[:2]
         else:
@@ -502,7 +528,7 @@ class StartStopModel(object):
             yield on_start
             on = on_start[0]
             if on and prev != on:
-                t_switch_on = t + TIME_WINDOW
+                t_switch_on = t + min_time_engine_on_after_start
             prev = on
 
     @staticmethod
@@ -523,7 +549,8 @@ class StartStopModel(object):
 def predict_engine_start_stop(
         start_stop_model, times, velocities, accelerations,
         engine_coolant_temperatures, state_of_charges, gears,
-        correct_start_stop_with_gears, start_stop_activation_time):
+        correct_start_stop_with_gears, start_stop_activation_time,
+        min_time_engine_on_after_start):
     """
     Predicts if the engine is on and when the engine starts.
 
@@ -567,6 +594,10 @@ def predict_engine_start_stop(
         Start-stop activation time threshold [s].
     :type start_stop_activation_time: float
 
+    :param min_time_engine_on_after_start:
+        Minimum time of engine on after a start [s].
+    :type min_time_engine_on_after_start: float
+
     :return:
         If the engine is on and when the engine starts [-, -].
     :rtype: numpy.array, numpy.array
@@ -576,7 +607,8 @@ def predict_engine_start_stop(
         times, velocities, accelerations, engine_coolant_temperatures,
         state_of_charges, gears=gears,
         correct_start_stop_with_gears=correct_start_stop_with_gears,
-        start_stop_activation_time=start_stop_activation_time)
+        start_stop_activation_time=start_stop_activation_time,
+        min_time_engine_on_after_start=min_time_engine_on_after_start)
 
     return on_engine, engine_starts
 
@@ -713,7 +745,8 @@ def calibrate_cold_start_speed_model(
         times, velocities, accelerations, engine_speeds_out,
         engine_coolant_temperatures, engine_speeds_out_hot, on_engine,
         idle_engine_speed, engine_normalization_temperature,
-        engine_normalization_temperature_window):
+        engine_normalization_temperature_window, stop_velocity,
+        plateau_acceleration):
     """
     Calibrates the cold start speed model.
 
@@ -757,6 +790,14 @@ def calibrate_cold_start_speed_model(
         Normalization engine temperature window [°C].
     :type engine_normalization_temperature_window: (float, float)
 
+    :param stop_velocity:
+        Maximum velocity to consider the vehicle stopped [km/h].
+    :type stop_velocity: float
+
+    :param plateau_acceleration:
+        Maximum acceleration to be at constant velocity [m/s2].
+    :type plateau_acceleration: float
+
     :return:
         Cold start speed model.
     :rtype: function
@@ -767,10 +808,12 @@ def calibrate_cold_start_speed_model(
             velocities, accelerations, engine_speeds_out,
             engine_coolant_temperatures, engine_speeds_out_hot, on_engine,
             idle_engine_speed, engine_normalization_temperature,
-            engine_normalization_temperature_window),
+            engine_normalization_temperature_window, stop_velocity,
+            plateau_acceleration),
         _calibrate_cold_start_speed_model_v1(
             times, velocities, accelerations, engine_speeds_out,
-            engine_coolant_temperatures, idle_engine_speed)
+            engine_coolant_temperatures, idle_engine_speed, stop_velocity,
+            plateau_acceleration)
     )
 
     model = _select_cold_start_speed_model(
@@ -785,7 +828,8 @@ def _calibrate_cold_start_speed_model(
         velocities, accelerations, engine_speeds_out,
         engine_coolant_temperatures, engine_speeds_out_hot, on_engine,
         idle_engine_speed, engine_normalization_temperature,
-        engine_normalization_temperature_window):
+        engine_normalization_temperature_window, stop_velocity,
+        plateau_acceleration):
     """
     Calibrates the cold start speed model.
 
@@ -825,13 +869,22 @@ def _calibrate_cold_start_speed_model(
         Normalization engine temperature window [°C].
     :type engine_normalization_temperature_window: (float, float)
 
+    :param stop_velocity:
+        Maximum velocity to consider the vehicle stopped [km/h].
+    :type stop_velocity: float
+
+    :param plateau_acceleration:
+        Maximum acceleration to be at constant velocity [m/s2].
+    :type plateau_acceleration: float
+
     :return:
         Cold start speed model.
     :rtype: function
     """
 
     b = engine_coolant_temperatures < engine_normalization_temperature_window[0]
-    b &= (velocities < VEL_EPS) & (abs(accelerations) < ACC_EPS)
+    b &= (velocities < stop_velocity)
+    b &= (abs(accelerations) < plateau_acceleration)
     b &= (idle_engine_speed[0] < engine_speeds_out)
 
     p = 0.0
@@ -873,7 +926,8 @@ def _calibrate_cold_start_speed_model(
 
 def _calibrate_cold_start_speed_model_v1(
         times, velocities, accelerations, engine_speeds_out,
-        engine_coolant_temperatures, idle_engine_speed):
+        engine_coolant_temperatures, idle_engine_speed, stop_velocity,
+        plateau_acceleration):
     """
     Calibrates the cold start speed model.
 
@@ -901,13 +955,22 @@ def _calibrate_cold_start_speed_model_v1(
         Idle engine speed and its standard deviation [RPM].
     :type idle_engine_speed: (float, float)
 
+    :param stop_velocity:
+        Maximum velocity to consider the vehicle stopped [km/h].
+    :type stop_velocity: float
+
+    :param plateau_acceleration:
+        Maximum acceleration to be at constant velocity [m/s2].
+    :type plateau_acceleration: float
+
     :return:
         Cold start speed model.
     :rtype: function
     """
 
     b = (times < 10) & (engine_speeds_out > idle_engine_speed[0])
-    b &= (velocities < VEL_EPS) & (abs(accelerations) < ACC_EPS)
+    b &= (velocities < stop_velocity)
+    b &= (abs(accelerations) < plateau_acceleration)
 
     idle = idle_engine_speed[0]
 
@@ -1426,7 +1489,8 @@ def engine():
     # identify idle engine speed
     dsp.add_function(
         function=identify_idle_engine_speed_out,
-        inputs=['velocities', 'engine_speeds_out'],
+        inputs=['velocities', 'engine_speeds_out', 'stop_velocity',
+                'min_engine_on_speed'],
         outputs=['idle_engine_speed_median', 'idle_engine_speed_std']
     )
 
@@ -1522,13 +1586,23 @@ def engine():
         outputs=['correct_start_stop_with_gears']
     )
 
+    dsp.add_data(
+        data_id='min_time_engine_on_after_start',
+        default_value=TIME_WINDOW
+    )
+
     dsp.add_function(
         function=predict_engine_start_stop,
         inputs=['start_stop_model', 'times', 'velocities', 'accelerations',
                 'engine_coolant_temperatures', 'state_of_charges',
                 'gears', 'correct_start_stop_with_gears',
-                'start_stop_activation_time'],
+                'start_stop_activation_time', 'min_time_engine_on_after_start'],
         outputs=['on_engine', 'engine_starts']
+    )
+
+    dsp.add_data(
+        data_id='plateau_acceleration',
+        default_value=ACC_EPS
     )
 
     dsp.add_function(
@@ -1537,7 +1611,8 @@ def engine():
                 'engine_coolant_temperatures', 'engine_speeds_out_hot',
                 'on_engine', 'idle_engine_speed',
                 'engine_normalization_temperature',
-                'engine_normalization_temperature_window'],
+                'engine_normalization_temperature_window', 'stop_velocity',
+                'plateau_acceleration'],
         outputs=['cold_start_speed_model']
     )
 
@@ -1549,7 +1624,8 @@ def engine():
 
     dsp.add_function(
         function=identify_on_idle,
-        inputs=['velocities', 'engine_speeds_out', 'gears'],
+        inputs=['velocities', 'engine_speeds_out', 'gears', 'stop_velocity',
+                'min_engine_on_speed'],
         outputs=['on_idle']
     )
 
@@ -1697,7 +1773,9 @@ def engine():
             'enable_phases_willans': 'enable_phases_willans',
             'accelerations': 'accelerations',
             'motive_powers': 'motive_powers',
-            'missing_powers': 'missing_powers'
+            'missing_powers': 'missing_powers',
+            'stop_velocity': 'stop_velocity',
+            'min_engine_on_speed': 'min_engine_on_speed'
         },
         outputs={
             'co2_emissions_model': 'co2_emissions_model',

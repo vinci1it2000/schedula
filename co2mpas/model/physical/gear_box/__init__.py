@@ -26,6 +26,7 @@ from math import pi
 import numpy as np
 import co2mpas.dispatcher.utils as dsp_utl
 from ..constants import *
+from functools import partial
 
 
 def calculate_gear_shifts(gears):
@@ -118,7 +119,8 @@ def calculate_gear_box_efficiency_parameters_cold_hot(
 
 
 def calculate_gear_box_torques(
-        gear_box_powers_out, gear_box_speeds_in, gear_box_speeds_out):
+        gear_box_powers_out, gear_box_speeds_in, gear_box_speeds_out,
+        min_engine_on_speed):
     """
     Calculates torque entering the gear box [N*m].
 
@@ -134,6 +136,10 @@ def calculate_gear_box_torques(
         Wheel speed vector [RPM].
     :type gear_box_speeds_out: numpy.array
 
+    :param min_engine_on_speed:
+        Minimum engine speed to consider the engine to be on [RPM].
+    :type min_engine_on_speed: float
+
     :return:
         Torque gear box vector [N*m].
     :rtype: numpy.array
@@ -148,7 +154,7 @@ def calculate_gear_box_torques(
 
     y = np.zeros_like(gear_box_powers_out)
 
-    b = x > MIN_ENGINE_SPEED
+    b = x > min_engine_on_speed
 
     y[b] = gear_box_powers_out[b] / x[b]
 
@@ -158,7 +164,7 @@ def calculate_gear_box_torques(
 def calculate_gear_box_torques_in(
         gear_box_torques, gear_box_speeds_in, gear_box_speeds_out,
         gear_box_temperatures, gear_box_efficiency_parameters_cold_hot,
-        temperature_references):
+        temperature_references, min_engine_on_speed):
     """
     Calculates torque required according to the temperature profile [N*m].
 
@@ -189,6 +195,10 @@ def calculate_gear_box_torques_in(
         Cold and hot reference temperatures [°C].
     :type temperature_references: tuple
 
+    :param min_engine_on_speed:
+        Minimum engine speed to consider the engine to be on [RPM].
+    :type min_engine_on_speed: float
+
     :return:
         Torque required vector according to the temperature profile [N*m].
     :rtype: numpy.array
@@ -197,7 +207,7 @@ def calculate_gear_box_torques_in(
     par = gear_box_efficiency_parameters_cold_hot
     T_cold, T_hot = temperature_references
     t_out, e_s, gb_s = gear_box_torques, gear_box_speeds_in, gear_box_speeds_out
-    fun = _gear_box_torques_in
+    fun = partial(_gear_box_torques_in, min_engine_on_speed)
 
     t = fun(t_out, e_s, gb_s, par['hot'])
 
@@ -214,10 +224,14 @@ def calculate_gear_box_torques_in(
 
 
 def _gear_box_torques_in(
-        gear_box_torques_out, gear_box_speeds_in, gear_box_speeds_out,
-        gear_box_efficiency_parameters_cold_hot):
+        min_engine_on_speed, gear_box_torques_out, gear_box_speeds_in,
+        gear_box_speeds_out, gear_box_efficiency_parameters_cold_hot):
     """
     Calculates torque required according to the temperature profile [N*m].
+
+    :param min_engine_on_speed:
+        Minimum engine speed to consider the engine to be on [RPM].
+    :type min_engine_on_speed: float
 
     :param gear_box_torques_out:
         Torque gear_box vector [N*m].
@@ -255,7 +269,8 @@ def _gear_box_torques_in(
     y[b] = (par['gbp01'] * tgb[b] - par['gbp10'] * ws[b] - par['gbp00']) * ws[b]
     y[b] /= es[b]
 
-    b = (np.logical_not(b)) & (es > MIN_ENGINE_SPEED) & (ws > MIN_ENGINE_SPEED)
+    b = (np.logical_not(b)) & (es > min_engine_on_speed)
+    b &= (ws > min_engine_on_speed)
 
     y[b] = (tgb[b] - par['gbp10'] * es[b] - par['gbp00']) / par['gbp01']
 
@@ -299,7 +314,7 @@ def correct_gear_box_torques_in(
 
 def calculate_gear_box_efficiencies_v2(
         gear_box_powers_out, gear_box_speeds_in, gear_box_torques_out,
-        gear_box_torques_in):
+        gear_box_torques_in, min_engine_on_speed):
     """
     Calculates gear box efficiency [-].
 
@@ -319,6 +334,10 @@ def calculate_gear_box_efficiencies_v2(
         Torque required vector [N*m].
     :type gear_box_torques_in: numpy.array
 
+    :param min_engine_on_speed:
+        Minimum engine speed to consider the engine to be on [RPM].
+    :type min_engine_on_speed: float
+
     :return:
         Gear box efficiency vector [-].
     :rtype: numpy.array
@@ -332,7 +351,7 @@ def calculate_gear_box_efficiencies_v2(
     eff = np.zeros_like(wp)
 
     b0 = tr * tgb >= 0
-    b1 = b0 & (wp >= 0) & (es > MIN_ENGINE_SPEED) & (tr != 0)
+    b1 = b0 & (wp >= 0) & (es > min_engine_on_speed) & (tr != 0)
     b = ((b0 & (wp < 0)) | b1)
 
     eff[b] = es[b] * tr[b] / wp[b] * (pi / 30000)
@@ -552,8 +571,8 @@ def select_default_gear_box_temperature_references(cycle_type):
     """
 
     temperature_references = {
-        'WLTP': (40, 80),
-        'NEDC': (40, 80)
+        'WLTP': (40.0, 80.0),
+        'NEDC': (40.0, 80.0)
     }[cycle_type]
 
     return temperature_references
@@ -616,10 +635,15 @@ def gear_box():
         outputs=['gear_box_efficiency_parameters_cold_hot'],
     )
 
+    dsp.add_data(
+        data_id='min_engine_on_speed',
+        default_value=MIN_ENGINE_SPEED
+    )
+
     dsp.add_function(
         function=calculate_gear_box_torques,
         inputs=['gear_box_powers_out', 'gear_box_speeds_in',
-                'gear_box_speeds_out'],
+                'gear_box_speeds_out', 'min_engine_on_speed'],
         outputs=['gear_box_torques'],
     )
 
@@ -634,7 +658,7 @@ def gear_box():
         inputs=['gear_box_torques', 'gear_box_speeds_in',
                 'gear_box_speeds_out', 'gear_box_temperatures',
                 'gear_box_efficiency_parameters_cold_hot',
-                'temperature_references'],
+                'temperature_references', 'min_engine_on_speed'],
         outputs=['gear_box_torques_in<0>']
     )
 
@@ -655,7 +679,7 @@ def gear_box():
     dsp.add_function(
         function=calculate_gear_box_efficiencies_v2,
         inputs=['gear_box_powers_out', 'gear_box_speeds_in', 'gear_box_torques',
-                'gear_box_torques_in'],
+                'gear_box_torques_in', 'min_engine_on_speed'],
         outputs=['gear_box_efficiencies'],
     )
 
@@ -720,6 +744,9 @@ def gear_box():
             'gears': 'gears',
             'idle_engine_speed': 'idle_engine_speed',
             'r_dynamic': 'r_dynamic',
+            'stop_velocity': 'stop_velocity',
+            'plateau_acceleration': 'plateau_acceleration',
+            'change_gear_window_width': 'change_gear_window_width'
         },
         outputs={
             'gears': 'gears',
@@ -766,6 +793,12 @@ def gear_box():
             'vehicle_mass': 'vehicle_mass',
             'velocities': 'velocities',
             'velocity_speed_ratios': 'velocity_speed_ratios',
+            'stop_velocity': 'stop_velocity',
+            'plateau_acceleration': 'plateau_acceleration',
+            'change_gear_window_width': 'change_gear_window_width',
+            'max_velocity_full_load_correction':
+                'max_velocity_full_load_correction',
+            'cycle_type': 'cycle_type'
         },
         outputs={
             'specific_gear_shifting': 'specific_gear_shifting',
@@ -796,7 +829,8 @@ def gear_box():
             'accelerations': 'accelerations',
             'gear_box_powers_out': 'gear_box_powers_out',
             'CVT': 'CVT',
-            'idle_engine_speed': 'idle_engine_speed'
+            'idle_engine_speed': 'idle_engine_speed',
+            'stop_velocity': 'stop_velocity'
         },
         outputs={
             'CVT': 'CVT',

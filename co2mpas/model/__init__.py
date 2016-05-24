@@ -56,8 +56,12 @@ def select_prediction_data(data, new_data=(), theoretical=True):
         'engine_fuel_lower_heating_value', 'has_start_stop',
         'has_energy_recuperation', 'fuel_carbon_content',
         'initial_state_of_charge', 'f0', 'f1', 'f2',
-        'vehicle_mass', 'full_load_speeds',
-        'full_load_powers', 'eco_mode'
+        'vehicle_mass', 'full_load_speeds', 'plateau_acceleration',
+        'full_load_powers', 'eco_mode', 'stand_still_torque_ratio',
+        'lockup_speed_ratio', 'change_gear_window_width',
+        'alternator_start_window_width', 'stop_velocity',
+        'min_time_engine_on_after_start', 'min_engine_on_speed',
+        'max_velocity_full_load_correction'
     ]
 
     if not theoretical:

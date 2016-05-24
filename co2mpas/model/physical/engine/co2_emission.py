@@ -69,7 +69,7 @@ def calculate_normalized_engine_coolant_temperatures(
     :rtype: numpy.array
     """
 
-    i = np.searchsorted(engine_coolant_temperatures, temperature_target)
+    i = np.searchsorted(engine_coolant_temperatures, (temperature_target,))[0]
     ## Only flatten-out hot-part if `max-theta` is above `trg`.
     T = np.ones_like(engine_coolant_temperatures, dtype=float)
     T[:i] = engine_coolant_temperatures[:i] + 273.0
@@ -79,7 +79,8 @@ def calculate_normalized_engine_coolant_temperatures(
 
 
 def calculate_brake_mean_effective_pressures(
-        engine_speeds_out, engine_powers_out, engine_capacity):
+        engine_speeds_out, engine_powers_out, engine_capacity,
+        min_engine_on_speed):
     """
     Calculates engine brake mean effective pressure [bar].
 
@@ -95,12 +96,16 @@ def calculate_brake_mean_effective_pressures(
         Engine capacity [cm3].
     :type engine_capacity: float
 
+    :param min_engine_on_speed:
+        Minimum engine speed to consider the engine to be on [RPM].
+    :type min_engine_on_speed: float
+
     :return:
         Engine brake mean effective pressure vector [bar].
     :rtype: numpy.array
     """
 
-    b = engine_speeds_out > MIN_ENGINE_SPEED
+    b = engine_speeds_out > min_engine_on_speed
 
     p = np.zeros_like(engine_powers_out)
     p[b] = engine_powers_out[b] / engine_speeds_out[b]
@@ -194,7 +199,7 @@ def calculate_co2_emissions(
         brake_mean_effective_pressures, engine_coolant_temperatures, on_engine,
         engine_fuel_lower_heating_value, idle_engine_speed, engine_stroke,
         engine_capacity, engine_idle_fuel_consumption, fuel_carbon_content,
-        tau_function, params, sub_values=None):
+        min_engine_on_speed, tau_function, params, sub_values=None):
     """
     Calculates CO2 emissions [CO2g/s].
 
@@ -281,7 +286,7 @@ def calculate_co2_emissions(
     fc = np.zeros_like(e_powers)
 
     # Idle fc correction for temperature
-    b = (e_speeds < idle_engine_speed[0] + MIN_ENGINE_SPEED)
+    b = (e_speeds < idle_engine_speed[0] + min_engine_on_speed)
 
     if p['t0'] == 0 and p['t1'] == 0:
         n_temp = np.ones_like(e_powers)
@@ -303,7 +308,7 @@ def calculate_co2_emissions(
         p, engine_capacity, engine_stroke, sum(idle_engine_speed), lhv
     )
     b = (e_powers <= ec_p0) & (e_speeds > sum(idle_engine_speed))
-    fc[b | (e_speeds < MIN_ENGINE_SPEED) | (fc < 0)] = 0
+    fc[b | (e_speeds < min_engine_on_speed) | (fc < 0)] = 0
 
     co2 = fc * fuel_carbon_content
 
@@ -315,7 +320,7 @@ def define_co2_emissions_model(
         brake_mean_effective_pressures, engine_coolant_temperatures, on_engine,
         engine_fuel_lower_heating_value, idle_engine_speed, engine_stroke,
         engine_capacity, engine_idle_fuel_consumption, fuel_carbon_content,
-        tau_function):
+        min_engine_on_speed, tau_function):
     """
     Returns CO2 emissions model (see :func:`calculate_co2_emissions`).
 
@@ -367,6 +372,10 @@ def define_co2_emissions_model(
         Fuel carbon content [CO2g/g].
     :type fuel_carbon_content: float
 
+    :param min_engine_on_speed:
+        Minimum engine speed to consider the engine to be on [RPM].
+    :type min_engine_on_speed: float
+
     :param tau_function:
         Tau-function of the extended Willans curve.
     :type tau_function: function
@@ -381,7 +390,8 @@ def define_co2_emissions_model(
         mean_piston_speeds, brake_mean_effective_pressures,
         engine_coolant_temperatures, on_engine, engine_fuel_lower_heating_value,
         idle_engine_speed, engine_stroke, engine_capacity,
-        engine_idle_fuel_consumption, fuel_carbon_content, tau_function
+        engine_idle_fuel_consumption, fuel_carbon_content, min_engine_on_speed,
+        tau_function
     )
 
     return model
@@ -495,7 +505,8 @@ def calculate_cumulative_co2_v1(phases_co2_emissions, phases_distances):
 
 def calculate_extended_integration_times(
         times, velocities, on_engine, phases_integration_times,
-        engine_coolant_temperatures, after_treatment_temperature_threshold):
+        engine_coolant_temperatures, after_treatment_temperature_threshold,
+        stop_velocity):
     """
     Calculates the extended integration times [-].
 
@@ -524,12 +535,16 @@ def calculate_extended_integration_times(
         warm [°C].
     :type after_treatment_temperature_threshold: (float, float)
 
+    :param stop_velocity:
+        Maximum velocity to consider the vehicle stopped [km/h].
+    :type stop_velocity: float
+
     :return:
         Extended cycle phases integration times [s].
     :rtype: tuple
     """
 
-    lv, pit = velocities <= VEL_EPS, phases_integration_times
+    lv, pit = velocities <= stop_velocity, phases_integration_times
     pit = set(chain(*pit))
     hv = np.logical_not(lv)
     j, l, phases = np.argmax(hv), len(lv), []
@@ -552,7 +567,7 @@ def calculate_extended_integration_times(
         phases.append(t)
     try:
         i = np.searchsorted(engine_coolant_temperatures,
-                            after_treatment_temperature_threshold[1])
+                            (after_treatment_temperature_threshold[1],))[0]
         t = times[i]
         phases.append(t)
     except IndexError:
@@ -1315,9 +1330,9 @@ class _Minimizer(lmfit.Minimizer):
 
 def calculate_phases_willans_factors(
         params, engine_fuel_lower_heating_value, engine_stroke, engine_capacity,
-        times, phases_integration_times, engine_speeds_out, engine_powers_out,
-        velocities, accelerations, motive_powers, engine_coolant_temperatures,
-        missing_powers):
+        min_engine_on_speed, times, phases_integration_times, engine_speeds_out,
+        engine_powers_out, velocities, accelerations, motive_powers,
+        engine_coolant_temperatures, missing_powers):
     """
     Calculates the Willans factors for each phase.
 
@@ -1338,6 +1353,10 @@ def calculate_phases_willans_factors(
     :param engine_capacity:
         Engine capacity [cm3].
     :type engine_capacity: float
+
+    :param min_engine_on_speed:
+        Minimum engine speed to consider the engine to be on [RPM].
+    :type min_engine_on_speed: float
 
     :param times:
         Time vector [s].
@@ -1411,8 +1430,9 @@ def calculate_phases_willans_factors(
 
         factors.append(calculate_willans_factors(
             params, engine_fuel_lower_heating_value, engine_stroke,
-            engine_capacity, engine_speeds_out[i:j], engine_powers_out[i:j],
-            times[i:j], velocities[i:j], accelerations[i:j], motive_powers[i:j],
+            engine_capacity, min_engine_on_speed, engine_speeds_out[i:j],
+            engine_powers_out[i:j], times[i:j], velocities[i:j],
+            accelerations[i:j], motive_powers[i:j],
             engine_coolant_temperatures[i:j], missing_powers[i:j]
         ))
 
@@ -1421,8 +1441,9 @@ def calculate_phases_willans_factors(
 
 def calculate_willans_factors(
         params, engine_fuel_lower_heating_value, engine_stroke, engine_capacity,
-        engine_speeds_out, engine_powers_out, times, velocities, accelerations,
-        motive_powers, engine_coolant_temperatures, missing_powers):
+        min_engine_on_speed, engine_speeds_out, engine_powers_out, times,
+        velocities, accelerations, motive_powers, engine_coolant_temperatures,
+        missing_powers):
     """
     Calculates the Willans factors.
 
@@ -1443,6 +1464,10 @@ def calculate_willans_factors(
     :param engine_capacity:
         Engine capacity [cm3].
     :type engine_capacity: float
+
+    :param min_engine_on_speed:
+        Minimum engine speed to consider the engine to be on [RPM].
+    :type min_engine_on_speed: float
 
     :param engine_speeds_out:
         Engine speed vector [RPM].
@@ -1530,8 +1555,9 @@ def calculate_willans_factors(
         av_p = av(engine_powers_out[b], weights=_w)
         av_mp = av(missing_powers[b], weights=_w)
 
-        n_p = calculate_brake_mean_effective_pressures(av_s, av_p,
-                                                       engine_capacity)
+        n_p = calculate_brake_mean_effective_pressures(
+            av_s, av_p, engine_capacity, min_engine_on_speed
+        )
         n_s = calculate_mean_piston_speeds(av_s, engine_stroke)
 
         FMEP = _calculate_fuel_mean_effective_pressure
@@ -1784,7 +1810,8 @@ def co2_emission():
 
     dsp.add_function(
         function=calculate_brake_mean_effective_pressures,
-        inputs=['engine_speeds_out', 'engine_powers_out', 'engine_capacity'],
+        inputs=['engine_speeds_out', 'engine_powers_out', 'engine_capacity',
+                'min_engine_on_speed'],
         outputs=['brake_mean_effective_pressures']
     )
 
@@ -1801,11 +1828,21 @@ def co2_emission():
         outputs=['tau_function']
     )
 
+    dsp.add_data(
+        data_id='stop_velocity',
+        default_value=VEL_EPS
+    )
+
+    dsp.add_data(
+        data_id='min_engine_on_speed',
+        default_value=MIN_ENGINE_SPEED
+    )
+
     dsp.add_function(
         function=calculate_extended_integration_times,
         inputs=['times', 'velocities', 'on_engine', 'phases_integration_times',
                 'engine_coolant_temperatures',
-                'after_treatment_temperature_threshold'],
+                'after_treatment_temperature_threshold', 'stop_velocity'],
         outputs=['extended_integration_times'],
     )
 
@@ -1826,7 +1863,7 @@ def co2_emission():
                 'engine_fuel_lower_heating_value', 'idle_engine_speed',
                 'engine_stroke', 'engine_capacity',
                 'engine_idle_fuel_consumption', 'fuel_carbon_content',
-                'tau_function'],
+                'min_engine_on_speed', 'tau_function'],
         outputs=['co2_emissions_model']
     )
 
@@ -2007,9 +2044,9 @@ def co2_emission():
     dsp.add_function(
         function=calculate_willans_factors,
         inputs=['co2_params_calibrated', 'engine_fuel_lower_heating_value',
-                'engine_stroke', 'engine_capacity', 'engine_speeds_out',
-                'engine_powers_out', 'times', 'velocities', 'accelerations',
-                'motive_powers', 'engine_coolant_temperatures',
+                'engine_stroke', 'engine_capacity', 'min_engine_on_speed',
+                'engine_speeds_out', 'engine_powers_out', 'times', 'velocities',
+                'accelerations', 'motive_powers', 'engine_coolant_temperatures',
                 'missing_powers'],
         outputs=['willans_factors']
     )
@@ -2023,10 +2060,11 @@ def co2_emission():
         function=dsp_utl.add_args(calculate_phases_willans_factors),
         inputs=['enable_phases_willans', 'co2_params_calibrated',
                 'engine_fuel_lower_heating_value', 'engine_stroke',
-                'engine_capacity', 'times', 'phases_integration_times',
-                'engine_speeds_out', 'engine_powers_out', 'velocities',
-                'accelerations', 'motive_powers',
-                'engine_coolant_temperatures', 'missing_powers'],
+                'engine_capacity', 'min_engine_on_speed', 'times',
+                'phases_integration_times', 'engine_speeds_out',
+                'engine_powers_out', 'velocities', 'accelerations',
+                'motive_powers', 'engine_coolant_temperatures',
+                'missing_powers'],
         outputs=['phases_willans_factors'],
         input_domain=lambda *args: args[0]
     )

@@ -17,10 +17,11 @@ from functools import partial
 from ..constants import *
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher import Dispatcher
+from . import define_k_factor_curve
 
 
 def calculate_clutch_phases(
-        times, gear_shifts, clutch_window=(-TIME_WINDOW/2, TIME_WINDOW/2)):
+        times, gear_shifts, clutch_window):
     """
     Calculate when the clutch is active [-].
 
@@ -68,7 +69,7 @@ def calculate_clutch_speed_threshold(clutch_speeds_delta):
 
 def identify_clutch_window(
         times, accelerations, gear_shifts, clutch_speeds_delta,
-        clutch_speed_threshold):
+        clutch_speed_threshold, max_clutch_window_width):
     """
     Identifies clutching time window [s].
 
@@ -91,6 +92,10 @@ def identify_clutch_window(
     :param clutch_speed_threshold:
         Threshold of engine speed delta due to the clutch [RPM].
     :type clutch_speed_threshold: float
+
+    :param max_clutch_window_width:
+        Maximum clutch window width [s].
+    :type max_clutch_window_width: float
 
     :return:
         Clutching time window [s].
@@ -115,9 +120,9 @@ def identify_clutch_window(
         except:
             return np.inf
 
-    dt = TIME_WINDOW / 2
+    dt = max_clutch_window_width / 2
     Ns = int(dt / max(times[1] - times[0], 0.5)) + 1
-    return tuple(brute(error, [(0, -dt), (0, dt)], Ns=Ns, finish=None))
+    return tuple(brute(error, ((0, -dt), (0, dt)), Ns=Ns, finish=None))
 
 
 def _calibrate_clutch_prediction_model(
@@ -208,6 +213,20 @@ def predict_clutch_speeds_delta(clutch_model, clutch_phases, accelerations):
     return delta
 
 
+def default_clutch_k_factor_curve():
+    """
+    Returns a default k factor curve for a generic clutch.
+
+    :return:
+        k factor curve.
+    :rtype: function
+    """
+
+    stand_still_torque_ratio, lockup_speed_ratio = 1.0, 0.0
+
+    return define_k_factor_curve(stand_still_torque_ratio, lockup_speed_ratio)
+
+
 def clutch():
     """
     Defines the clutch model.
@@ -238,10 +257,16 @@ def clutch():
         outputs=['clutch_speed_threshold']
     )
 
+    dsp.add_data(
+        data_id='max_clutch_window_width',
+        default_value=TIME_WINDOW
+    )
+
     dsp.add_function(
         function=identify_clutch_window,
         inputs=['times', 'accelerations', 'gear_shifts',
-                'clutch_speeds_delta', 'clutch_speed_threshold'],
+                'clutch_speeds_delta', 'clutch_speed_threshold',
+                'max_clutch_window_width'],
         outputs=['clutch_window']
     )
 
@@ -258,22 +283,16 @@ def clutch():
         outputs=['clutch_speeds_delta']
     )
 
-    dsp.add_data(
-        data_id='stand_still_torque_ratio',
-        default_value=1.0
-    )
-
-    dsp.add_data(
-        data_id='lockup_speed_ratio',
-        default_value=0.0
-    )
-
-    from . import define_k_factor_curve
-
     dsp.add_function(
         function=define_k_factor_curve,
         inputs=['stand_still_torque_ratio', 'lockup_speed_ratio'],
         outputs=['k_factor_curve']
+    )
+
+    dsp.add_function(
+        function=default_clutch_k_factor_curve,
+        outputs=['k_factor_curve'],
+        weight=2
     )
 
     return dsp

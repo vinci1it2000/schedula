@@ -207,16 +207,17 @@ def metric_calibration_status(y_true, y_pred):
 
 
 def metric_engine_speed_model(
-        y_true, y_pred, times, velocities, gear_shifts, on_engine):
-    b = (-TIME_WINDOW, TIME_WINDOW)
-    b = calculate_clutch_phases(times, gear_shifts, clutch_window=b)
+        y_true, y_pred, times, velocities, gear_shifts, on_engine,
+        stop_velocity):
+    b = calculate_clutch_phases(times, gear_shifts, (-4.0, 4.0))
     b = np.logical_not(b)
-    b &= (velocities > VEL_EPS) & (times > 100) & on_engine
+    b &= (velocities > stop_velocity) & (times > 100) & on_engine
     return mean_absolute_error(y_true[b], y_pred[b])
 
 
-def metric_engine_cold_start_speed_model(y_true, y_pred, velocities, on_engine):
-    b = (velocities < VEL_EPS) & on_engine
+def metric_engine_cold_start_speed_model(
+        y_true, y_pred, velocities, on_engine, stop_velocity):
+    b = (velocities < stop_velocity) & on_engine
     if b.any():
         return mean_absolute_error(y_true[b], y_pred[b])
     else:
@@ -257,7 +258,8 @@ def sub_models():
         'inputs': ['times', 'velocities', 'accelerations',
                    'engine_coolant_temperatures', 'state_of_charges',
                    'gears', 'correct_start_stop_with_gears',
-                   'start_stop_activation_time'],
+                   'start_stop_activation_time',
+                   'min_time_engine_on_after_start'],
         'outputs': ['on_engine', 'engine_starts'],
         'targets': ['on_engine', 'engine_starts'],
         'metrics': [accuracy_score] * 2,
@@ -277,7 +279,8 @@ def sub_models():
                    'accelerations', 'final_drive_powers_in'],
         'outputs': ['engine_speeds_out_hot'],
         'targets': ['engine_speeds_out'],
-        'metrics_inputs': ['times', 'velocities', 'gear_shifts', 'on_engine'],
+        'metrics_inputs': ['times', 'velocities', 'gear_shifts', 'on_engine',
+                           'stop_velocity'],
         'metrics': [metric_engine_speed_model],
         'up_limit': [40],
     }
@@ -299,7 +302,7 @@ def sub_models():
                    'on_engine', 'idle_engine_speed'],
         'outputs': ['engine_speeds_out'],
         'targets': ['engine_speeds_out'],
-        'metrics_inputs': ['velocities', 'on_engine'],
+        'metrics_inputs': ['velocities', 'on_engine', 'stop_velocity'],
         'metrics': [metric_engine_cold_start_speed_model],
         'up_limit': [100],
     }
@@ -320,7 +323,8 @@ def sub_models():
         'models': ['clutch_window', 'clutch_model', 'torque_converter_model'],
         'inputs': ['gear_box_speeds_in', 'on_engine', 'idle_engine_speed',
                    'gear_box_type', 'gears', 'accelerations', 'times',
-                   'gear_shifts', 'engine_speeds_out_hot', 'velocities'],
+                   'gear_shifts', 'engine_speeds_out_hot', 'velocities',
+                   'lock_up_tc_limits'],
         'define_sub_model': lambda dsp, **kwargs: dsp_utl.SubDispatch(dsp),
         'outputs': ['engine_speeds_out'],
         'targets': ['engine_speeds_out'],
@@ -347,9 +351,10 @@ def sub_models():
 
     models['alternator_model'] = {
         'dsp': electrics(),
-        'models': ['alternator_status_model', 'alternator_nominal_power',
+        'models': ['alternator_status_model', 'alternator_nominal_voltage',
                    'alternator_current_model', 'max_battery_charging_current',
-                   'start_demand', 'electric_load', 'alternator_nominal_power'],
+                   'start_demand', 'electric_load', 'alternator_nominal_power',
+                   'alternator_efficiency'],
         'inputs': [
             'battery_capacity', 'alternator_nominal_voltage',
             'initial_state_of_charge', 'times', 'gear_box_powers_in',
@@ -370,7 +375,9 @@ def sub_models():
         'accelerations', 'motive_powers', 'engine_speeds_out',
         'engine_coolant_temperatures', 'time_cold_hot_transition', 'times',
         'use_dt_gear_shifting', 'specific_gear_shifting',
-        'velocity_speed_ratios', 'velocities', 'MVL', 'eco_mode'
+        'velocity_speed_ratios', 'velocities', 'MVL', 'eco_mode',
+        'change_gear_window_width', 'stop_velocity', 'plateau_acceleration',
+        'max_velocity_full_load_correction', 'cycle_type'
     ]
 
     models['at_model'] = {
@@ -378,7 +385,8 @@ def sub_models():
         'select_models': partial(at_models_selector, at_gear(), at_pred_inputs),
         'models': ['MVL', 'CMV', 'CMV_Cold_Hot', 'DT_VA', 'DT_VAT', 'DT_VAP',
                    'DT_VATP', 'GSPV', 'GSPV_Cold_Hot',
-                   'specific_gear_shifting'],
+                   'specific_gear_shifting', 'change_gear_window_width',
+                   'max_velocity_full_load_correction', 'plateau_acceleration'],
         'inputs': at_pred_inputs,
         'define_sub_model': lambda dsp, **kwargs: dsp_utl.SubDispatch(dsp),
         'outputs': ['gears', 'max_gear'],
@@ -396,7 +404,7 @@ def at_models_selector(dsp, at_pred_inputs, models_ids, data):
     try:
         vel, vsr = data['velocities'], data['velocity_speed_ratios']
         t_eng, t_gears = data['engine_speeds_out'], data['gears']
-        at_m = data[sgs]
+        sv, at_m = data['stop_velocity'], data[sgs]
     except KeyError:
         return {}
 
@@ -419,9 +427,9 @@ def at_models_selector(dsp, at_pred_inputs, models_ids, data):
                 outputs=['gears']
         )['gears']
 
-        eng = calculate_gear_box_speeds_in(gears, vel, vsr)
+        eng = calculate_gear_box_speeds_in(gears, vel, vsr, sv)
 
-        return calculate_error_coefficients(t_gears, gears, t_eng, eng, vel)
+        return calculate_error_coefficients(t_gears, gears, t_eng, eng, vel, sv)
 
     def _sort(v):
         e = select(t_e, v[0], output_type='list')

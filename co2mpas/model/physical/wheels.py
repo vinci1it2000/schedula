@@ -17,6 +17,7 @@ from .utils import reject_outliers
 from .gear_box.mechanical import calculate_speed_velocity_ratios, \
     calculate_velocity_speed_ratios, calculate_gear_box_speeds_in, \
     identify_gears
+from .constants import *
 
 
 def calculate_wheel_power(velocities, accelerations, road_loads, vehicle_mass):
@@ -117,7 +118,7 @@ def calculate_wheel_speeds(velocities, r_dynamic):
 
 def identify_r_dynamic_v1(
         velocities, gears, engine_speeds_out, gear_box_ratios,
-        final_drive_ratio):
+        final_drive_ratio, stop_velocity):
     """
     Identifies the dynamic radius of the wheels [m].
 
@@ -141,6 +142,10 @@ def identify_r_dynamic_v1(
         Final drive ratio [-].
     :type final_drive_ratio: float
 
+    :param stop_velocity:
+        Maximum velocity to consider the vehicle stopped [km/h].
+    :type stop_velocity: float
+
     :return:
         Dynamic radius of the wheels [m].
     :rtype: float
@@ -151,7 +156,9 @@ def identify_r_dynamic_v1(
 
     vsr = calculate_velocity_speed_ratios(svr)
 
-    speed_x_r_dyn_ratios = calculate_gear_box_speeds_in(gears, velocities, vsr)
+    speed_x_r_dyn_ratios = calculate_gear_box_speeds_in(
+        gears, velocities, vsr, stop_velocity
+    )
 
     r_dynamic = speed_x_r_dyn_ratios / engine_speeds_out
     r_dynamic = r_dynamic[np.logical_not(np.isnan(r_dynamic))]
@@ -162,7 +169,8 @@ def identify_r_dynamic_v1(
 
 def identify_r_dynamic_v2(
         times, velocities, accelerations, r_wheels, engine_speeds_out,
-        gear_box_ratios, final_drive_ratio, idle_engine_speed):
+        gear_box_ratios, final_drive_ratio, idle_engine_speed, stop_velocity,
+        plateau_acceleration, change_gear_window_width):
     """
     Identifies the dynamic radius of the wheels [m].
 
@@ -198,6 +206,18 @@ def identify_r_dynamic_v2(
         Engine speed idle median and std [RPM].
     :type idle_engine_speed: (float, float)
 
+    :param stop_velocity:
+        Maximum velocity to consider the vehicle stopped [km/h].
+    :type stop_velocity: float
+
+    :param plateau_acceleration:
+        Maximum acceleration to be at constant velocity [m/s2].
+    :type plateau_acceleration: float
+
+    :param change_gear_window_width:
+        Time window used to apply gear change filters [s].
+    :type change_gear_window_width: float
+
     :return:
         Dynamic radius of the wheels [m].
     :rtype: float
@@ -209,11 +229,13 @@ def identify_r_dynamic_v2(
 
     gears = identify_gears(
         times, velocities, accelerations, engine_speeds_out,
-        calculate_velocity_speed_ratios(svr), idle_engine_speed
+        calculate_velocity_speed_ratios(svr), stop_velocity,
+        plateau_acceleration, change_gear_window_width, idle_engine_speed
     )
 
     r_dynamic = identify_r_dynamic_v1(
-        velocities, gears, engine_speeds_out, gear_box_ratios, final_drive_ratio
+        velocities, gears, engine_speeds_out, gear_box_ratios,
+        final_drive_ratio, stop_velocity
     )
 
     return r_dynamic
@@ -354,16 +376,32 @@ def wheels():
     dsp.add_function(
         function=identify_r_dynamic_v1,
         inputs=['velocities', 'gears', 'engine_speeds_out', 'gear_box_ratios',
-                'final_drive_ratio'],
+                'final_drive_ratio', 'stop_velocity'],
         outputs=['r_dynamic'],
         weight=10
+    )
+
+    dsp.add_data(
+        data_id='stop_velocity',
+        default_value=VEL_EPS
+    )
+
+    dsp.add_data(
+        data_id='plateau_acceleration',
+        default_value=ACC_EPS
+    )
+
+    dsp.add_data(
+        data_id='change_gear_window_width',
+        default_value=TIME_WINDOW
     )
 
     dsp.add_function(
         function=identify_r_dynamic_v2,
         inputs=['times', 'velocities', 'accelerations', 'r_wheels',
                 'engine_speeds_out', 'gear_box_ratios', 'final_drive_ratio',
-                'idle_engine_speed'],
+                'idle_engine_speed', 'stop_velocity', 'plateau_acceleration',
+                'change_gear_window_width'],
         outputs=['r_dynamic'],
         weight=11
     )
