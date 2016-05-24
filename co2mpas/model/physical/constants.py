@@ -25,9 +25,6 @@ ACC_EPS = 0.1 + EPS
 #: Infinite value.
 INF = 10000.0
 
-#: Minimum gear [-].
-MIN_GEAR = 0
-
 #: Minimum vehicle engine speed [RPM].
 MIN_ENGINE_SPEED = 10.0
 

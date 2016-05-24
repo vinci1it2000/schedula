@@ -592,7 +592,7 @@ class CMV(OrderedDict):
             if g in self:
                 gear = g
 
-            gears[i] = gear = max(MIN_GEAR, gear)
+            gears[i] = gear
 
         if times is not None:
             gears = gear_filter(times, gears)
@@ -946,7 +946,7 @@ class GSPV(dict):
             if g in self:
                 gear = g
 
-            gears[i] = gear = max(MIN_GEAR, gear)
+            gears[i] = gear
 
         if times is not None:
             gears = gear_filter(times, gears)
@@ -1121,7 +1121,7 @@ def prediction_gears_decision_tree(
     :rtype: numpy.array
     """
 
-    gears = [MIN_GEAR]
+    gears = [0]
 
     predict = decision_tree.predict
 
@@ -1131,8 +1131,6 @@ def prediction_gears_decision_tree(
         return gears[0]
 
     gears = np.vectorize(predict_gear)(*params)
-
-    gears[gears < MIN_GEAR] = MIN_GEAR
 
     gears = gear_filter(times, gears)
 
