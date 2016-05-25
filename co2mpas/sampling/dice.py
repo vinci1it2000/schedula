@@ -29,7 +29,7 @@ import functools as ft
 import itertools as itt
 import os.path as osp
 
-from .__main__ import CmdException
+from ..__main__ import CmdException
 
 
 log = logging.getLogger(__name__)
