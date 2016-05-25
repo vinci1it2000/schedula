@@ -1649,7 +1649,7 @@ def missing_co2_params(params, *args, _not=False):
     :rtype: bool
     """
 
-    s = {'a', 'b', 'c', 'a2', 'b2', 'l', 'l2', 't', 'trg'}
+    s = {'a', 'b', 'c', 'a2', 'b2', 'l', 'l2', 't0', 't1', 'trg'}
 
     if _not:
         return set(params).issuperset(s)
