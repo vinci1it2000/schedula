@@ -19,4 +19,4 @@ __input_file_version__ = "2"
 
 # Please UPDATE TIMESTAMP WHEN BUMPING VERSIONS AND BEFORE RELEASE.
 #: Release date.
-__updated__ = "2016-05-05 18:04:00"
+__updated__ = "2016-05-25 12:49:00"

@@ -9,7 +9,7 @@ CO2MPAS: Vehicle simulator predicting NEDC CO2 emissions from WLTP
 ##################################################################
 
 :Release:       1.3.0.dev1
-:Date:          2016-05-12 16:46:00
+:Date:          2016-05-25 12:49:00
 :Home:          http://co2mpas.io/
 :Releases:      http://files.co2mpas.io/
 :Sources:       https://github.com/JRCSTU/co2mpas
@@ -284,7 +284,7 @@ CO2MPAS installation
 
        > co2mpas -vV
        co2mpas_version: 1.3.0.dev1
-       co2mpas_rel_date: 2016-05-12 16:46:00
+       co2mpas_rel_date: 2016-05-25 12:49:00
        co2mpas_path: d:\co2mpas_ALLINONE-64bit-v1.3.0.dev1\Apps\WinPython\python-3.4.3\lib\site-packages\co2mpas
        python_path: D:\co2mpas_ALLINONE-64bit-v1.3.0.dev1\WinPython\python-3.4.3
        python_version: 3.4.3 (v3.4.3:9b73f1c3e601, Feb 24 2015, 22:44:40) [MSC v.1600 XXX]
