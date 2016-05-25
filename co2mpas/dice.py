@@ -5,24 +5,31 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 #
-## Sign and  send/receive sampling emails
+"""Sign and  send/receive sampling emails"""
 # see https://pymotw.com/2/imaplib/ for IMAP example.
-from email.mime.text import MIMEText
-import logging
-import smtplib
-import imaplib
-import itertools as itt
-import re
-from .__main__ import CmdException
-import configparser
-import os.path as osp
-import io
-from boltons.setutils import IndexedSet as iset
-from toolz import dicttoolz
-import inspect
-import pbkdf2
-import keyring
 import base64
+from collections import defaultdict, MutableMapping
+import configparser
+from email.mime.text import MIMEText
+import imaplib
+import inspect
+import io
+import logging
+import re
+import re
+import smtplib
+
+from boltons.setutils import IndexedSet as iset
+import hiyapyco
+import keyring
+from toolz import dicttoolz
+from toolz import itertoolz as itz
+
+import functools as ft
+import itertools as itt
+import os.path as osp
+
+from .__main__ import CmdException
 
 
 log = logging.getLogger(__name__)
@@ -35,26 +42,90 @@ _default_cfg = """
     default_recipients: co2mpas@jrc.ec.europa.eu, EC-CO2-LDV-IMPLEMENTATION@ec.europa.eu
     other_recipients:
     sender:
-    mail_server.user
     SMTP.ssl: on
-    SMTP.host: %(mail_server.user)s
+    SMTP.host:
     SMTP.user:
     SMTP.kwds:
-    IMAPv4.ssl: on
-    IMAPv4.host: %(mail_server.user)s
     IMAPv4.user:
+    IMAPv4.ssl: on
+    IMAPv4.host:
     IMAPv4.kwds:
     gpg.trusted_user_ids: CO2MPAS JRC-master <co2mpas@jrc.ec.europa.eu>
 """
 
 _opts_to_remove_before_cfg_write = ['default_recipients', 'timestamping_address']
 ## TODO: Move to other file
-def read_config(projname, override_fpaths=(), default_fpaths=()):
-    cfg_fpaths = list(override_fpaths) + [osp.expanduser(frmt % projname)
-            for frmt in ('%s.cfg', '~/.%s.cfg')] + list(default_fpaths)
+def read_config_ini(projname, override_fpaths=(), default_fpaths=()):
+    cfg_fpaths = list(override_fpaths) + [
+                                          osp.expanduser(frmt % projname)
+                                          for frmt in ('%s.cfg', '~/.%s.cfg')
+                                         ] + list(default_fpaths)
     config = configparser.ConfigParser()
     cfg = config.read(cfg_fpaths, encoding='utf-8')
     return cfg
+
+def splitnest(dic, sep=r'\.', factory=None):
+    """
+    Splits keys by separator and *nests* them in a new mapping (from factory).
+
+    :param dic:     The mapping to split and nest its keys.
+    :param str sep: the split-separator regex
+    :param factory: The factory-function for the nested mappings.
+                    By default `None`, it uses the type of the input `dic`.
+                    Note that when `None`, it might fail if the constructor
+                    of `dic` type expects specific args, such as `defaultdict`.
+
+    >>> RES == {'a': {'b': {'c': {'d': 44}}, 'c': 2}, 'b': 3}
+    >>> dice.splitnest({'a.b': 1, 'a-c': 2, 'b': 3, 'a.b.c,d':44}, '[.,-]') == RES
+    True
+
+    >>> dice.splitnest({'abc': 1})
+    {'abc': 1}
+
+    >>> dice.splitnest({})
+    {}
+    """
+    def set_subkeys(d, subkeys, v):
+        """
+        >>> d = {}
+        >>> set_subkeys(d, ['a','b',], 3)
+        >>> d
+        {'a': {'b': 3}}
+
+        >>> set_subkeys(d, ['a','b',], 4)
+        >>> d
+        {'a': {'b': 4}}
+
+        >>> set_subkeys(d, ['a','b', 'c'], 5)
+        >>> d
+        {'a': {'b': {'c' : 5}}
+
+        >>> set_subkeys(d, ['a'], 0)
+        >>> d
+        {'a': 0}
+        """
+        k, subkeys = subkeys[0], subkeys[1:]
+        if subkeys:
+            try:
+                set_subkeys(d[k], subkeys, v)
+            except:
+                d[k] = factory()
+                set_subkeys(d[k], subkeys, v)
+        else:
+            d[k] = v
+
+    sep = re.compile(sep)
+    if factory:
+        ndic = factory()
+    else:
+        factory = type(dic)
+        ndic = factory()
+    for k, v in dic.items():
+        subkeys = [sk for sk in sep.split(k) if sk]
+        if subkeys:
+            set_subkeys(ndic, subkeys, v)
+    return ndic
+
 
 def store_config(cfg, projname):
     for opt in _opts_to_remove_before_cfg_write:
@@ -63,18 +134,23 @@ def store_config(cfg, projname):
     with io.open(fpath, 'wt', encoding='utf-8') as fd:
         cfg.write(fd)
 
+def store_secret(master_pswd, key, secret):
+    """
+    Uses Microsoft's DPPAPI to store the actual passwords.
 
-def _get_secret_service(service, master_password, project=_project):
-    return pbkdf2.crypt(service + master_password, base64.b64encode(project))
-
-def set_pswd(secret_service, user, pswd):
+    :param str master_pswd:     master-password given by the user
+    """
     kr=keyring.get_keyring()
-    kr.set_password(secret_service, user, pswd)
+    kr.set_password('%s.%s' %(_project, master_pswd), key, secret)
 
-def get_pswd(secret_service, user, pswd):
-    """Uses Microsoft's DPPAPI to store the actual passwords."""
+def retrieve_secret(master_pswd, key):
+    """
+    Uses Microsoft's DPPAPI to store the actual passwords.
+
+    :param str master_pswd:     master-password given by the user
+    """
     kr=keyring.get_keyring()
-    kr.set_password(secret_service, user, pswd)
+    return kr.get_password('%s.%s' %(_project, master_pswd), key)
 
 def which(program):
     ## From: http://stackoverflow.com/a/377028/548792
@@ -205,7 +281,8 @@ def receive_timestamped_email(host, login_cb, ssl=False, **srv_kwds):
         srv = (imaplib.IMAP4_SSL(host, **srv_kwds)
                 if ssl else imaplib.IMAP4(host, **srv_kwds))
         repl = srv.login(user, pswd)
-        """GMAIL-2FAuth: imaplib.error: b'[ALERT] Application-specific password required: https://support.google.com/accounts/answer/185833 (Failure)'"""
+        """GMAIL-2FAuth: imaplib.error: b'[ALERT] Application-specific password required:
+        https://support.google.com/accounts/answer/185833 (Failure)'"""
         log.debug("Sent %s-user/pswd, server replied: %s", prompt, repl)
         return srv
 

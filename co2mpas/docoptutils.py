@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 #
 # Copyright 2014-2015 European Commission (JRC);
 # Licensed under the EUPL (the 'Licence');
