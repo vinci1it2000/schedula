@@ -338,7 +338,8 @@ def sub_models():
     models['co2_params'] = {
         'dsp': co2_emission(),
         'model_selector': co2_params_selector,
-        'models': ['co2_params_calibrated', 'calibration_status'],
+        'models': ['co2_params_calibrated', 'calibration_status',
+                   'initial_friction_params'],
         'inputs': ['co2_emissions_model'],
         'outputs': ['co2_emissions', 'calibration_status'],
         'targets': ['identified_co2_emissions', 'calibration_status'],

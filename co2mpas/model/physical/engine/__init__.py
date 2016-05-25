@@ -50,34 +50,23 @@ def get_full_load(fuel_type):
     return Spline(*FULL_LOAD[fuel_type], ext=3)
 
 
-
-def select_initial_friction_params(engine_type):
+def select_initial_friction_params(co2_params_initial_guess):
     """
     Selects initial guess of friction params l & l2 for the calculation of
     the motoring curve.
 
-    :param engine_type:
-        Engine type (gasoline turbo, gasoline natural aspiration, diesel).
-    :type engine_type: str
+    :param co2_params_initial_guess:
+        Initial guess of CO2 emission model params.
+    :type co2_params_initial_guess: lmfit.Parameters
 
     :return:
         Initial guess of friction params l & l2.
     :rtype: float, float
     """
 
-    params = {
-        'gasoline turbo': {
-                'l': -2.49882, 'l2': -0.0025
-        },
-        'gasoline natural aspiration': {
-                'l': -2.14063, 'l2': -0.00286
-        },
-        'diesel': {
-                'l': -1.55291, 'l2': -0.0076
-        }
-    }
+    params = co2_params_initial_guess.valuesdict()
 
-    return params[engine_type]['l'], params[engine_type]['l2']
+    return dsp_utl.selector(('l', 'l2'), params, output_type='list')
 
 
 def calculate_full_load(full_load_speeds, full_load_powers, idle_engine_speed):
@@ -1418,7 +1407,7 @@ def engine():
 
     dsp.add_function(
         function=select_initial_friction_params,
-        inputs=['engine_type'],
+        inputs=['co2_params_initial_guess'],
         outputs=['initial_friction_params']
     )
 
