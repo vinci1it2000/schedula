@@ -443,7 +443,7 @@ def identify_alternator_current_threshold(
 def _starts_windows(times, engine_starts, dt):
     j = 0
     for t in times[engine_starts]:
-        i = np.searchsorted(times[j:], (t - dt,))[0]
+        i = np.searchsorted(times[j:], (t - dt,))[0] + j
         j = np.searchsorted(times[i:], (t + dt,))[0] + i
         yield i, j
 
