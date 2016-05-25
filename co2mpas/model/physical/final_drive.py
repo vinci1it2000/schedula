@@ -241,7 +241,7 @@ def final_drive():
     )
 
     dsp.add_function(
-        function=dsp_utl.add_args(calculate_final_drive_torque_losses_v1, n=1),
+        function=dsp_utl.add_args(calculate_final_drive_torque_losses_v1),
         inputs=['n_dyno_axes', 'n_wheel_drive', 'final_drive_torques_out',
                 'final_drive_ratio', 'final_drive_efficiency'],
         outputs=['final_drive_torque_losses'],

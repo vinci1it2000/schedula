@@ -13,7 +13,6 @@ It contains functions to predict the A/T gear shifting.
 from co2mpas.dispatcher import Dispatcher
 from collections import OrderedDict
 from itertools import chain
-import numpy as np
 from copy import deepcopy
 from scipy.optimize import fmin
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline
@@ -27,6 +26,7 @@ from ..defaults import *
 from .mechanical import calculate_gear_box_speeds_in
 from ..wheels import calculate_wheel_power
 from pprint import pformat
+import numpy as np
 
 
 def correct_gear_full_load(
@@ -100,8 +100,8 @@ def correct_gear_full_load(
 
     vsr = velocity_speed_ratios
 
-    def flc(gear):
-        x = (velocity / vsr[gear] - idle_engine_speed[0]) / r
+    def flc(g):
+        x = (velocity / vsr[g] - idle_engine_speed[0]) / r
         return full_load_curve(x)
 
     while gear > min_gear and (gear not in vsr or p_norm > flc(gear)):
@@ -860,9 +860,9 @@ class GSPV(dict):
         return self
 
     def _fit_cloud(self):
-        def line(k, v, i):
-            x = np.mean(np.asarray(v[i])) if v[i] else None
-            k_p = k - 1
+        def line(n, m, i):
+            x = np.mean(np.asarray(m[i])) if m[i] else None
+            k_p = n - 1
             while k_p > 0 and k_p not in self:
                 k_p -= 1
             x_up = self[k_p][not i](0) if k_p >= 0 else x
@@ -1575,7 +1575,7 @@ def at_gear():
     )
 
     dsp.add_function(
-        function=dsp_utl.add_args(correct_gear_v0, n=1),
+        function=dsp_utl.add_args(correct_gear_v0),
         inputs=['eco_mode', 'cycle_type', 'velocity_speed_ratios', 'MVL',
                 'engine_max_power', 'engine_max_speed_at_max_power',
                 'idle_engine_speed', 'full_load_curve', 'road_loads',
@@ -1586,7 +1586,7 @@ def at_gear():
     )
 
     dsp.add_function(
-        function=dsp_utl.add_args(correct_gear_v1, n=1),
+        function=dsp_utl.add_args(correct_gear_v1),
         inputs=['eco_mode', 'cycle_type', 'velocity_speed_ratios', 'MVL',
                 'idle_engine_speed', 'plateau_acceleration'],
         outputs=['correct_gear'],

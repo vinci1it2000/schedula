@@ -1,4 +1,5 @@
-#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# !/usr/bin/env python
 #
 # Copyright 2014-2015 European Commission (JRC);
 # Licensed under the EUPL (the 'Licence');
@@ -504,6 +505,6 @@ def main(*args):
 
 if __name__ == '__main__':
     if sys.version_info < (3, 4):
-        msg = "Sorry, Python >= 3.4 is required, but found: {}"
-        sys.exit(msg.format(sys.version_info))
+        sys.exit("Sorry, Python >= 3.4 is required,"
+                 " but found: {}".format(sys.version_info))
     main()

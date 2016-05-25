@@ -48,6 +48,7 @@ log = logging.getLogger(__name__)
 def get_cache_fpath(fpath, soft_validation):
     fpath = pathlib.Path(fpath)
     cache_folder = fpath.parent.joinpath('.co2mpas_cache')
+    # noinspection PyBroadException
     try:
         # noinspection PyUnresolvedReferences
         cache_folder.mkdir()
@@ -330,8 +331,8 @@ def _merge_targets(data, targets):
 
     def _sort(x):
         x = stlp(x)[-1]
-        i = 7 if x.startswith('target ') else 0
-        return _p_map.get(x[i:], '0'), x[i:], i
+        j = 7 if x.startswith('target ') else 0
+        return _p_map.get(x[j:], '0'), x[j:], i
 
     for k, v in targets.items():
         if v.empty:

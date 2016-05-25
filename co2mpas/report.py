@@ -30,6 +30,7 @@ def _metrics(t, o, metrics):
     try:
         t, o = _asarray(t), _asarray(o)
         for k, v in metrics.items():
+            # noinspection PyBroadException
             try:
                 m = v(t, o)
                 if not np.isnan(m):
@@ -52,11 +53,15 @@ def _compare(targets, outputs, func=_metrics, **kw):
     return res
 
 
+def _correlation_coefficient(t, o):
+    return np.corrcoef(t, o)[0, 1] if t.size > 1 else np.nan
+
+
 def compare_outputs_vs_targets(data):
     res = {}
     metrics = {
         'mean_absolute_error': mean_absolute_error,
-        'correlation_coefficient': lambda t, o: np.corrcoef(t, o)[0, 1] if t.size > 1 else np.nan,
+        'correlation_coefficient': _correlation_coefficient,
         'accuracy_score': accuracy_score,
     }
 

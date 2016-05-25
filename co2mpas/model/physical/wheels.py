@@ -11,13 +11,13 @@ It contains functions that model the basic mechanics of the wheels.
 
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher import Dispatcher
-import numpy as np
 from math import pi
 from .utils import reject_outliers
 from .gear_box.mechanical import calculate_speed_velocity_ratios, \
     calculate_velocity_speed_ratios, calculate_gear_box_speeds_in, \
     identify_gears
 from .defaults import *
+import numpy as np
 
 
 def calculate_wheel_power(velocities, accelerations, road_loads, vehicle_mass):

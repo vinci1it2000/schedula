@@ -91,10 +91,10 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function',
 
     if node_type == 'function':
         if not where_succ:
-            def check(k):
-                if dsp.dmap.out_degree(k) == 1:
+            def check(n):
+                if dsp.dmap.out_degree(n) == 1:
                     return True
-                func = parent_func(dsp.nodes[k].get('function', None))
+                func = parent_func(dsp.nodes[n].get('function', None))
                 return isinstance(func, SubDispatch)
 
         def get_des(func_node):
@@ -140,11 +140,12 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function',
             return d, l
     else:
         if where_succ:
-            get_id = lambda node: node[node_attr][node_id]
+            def get_id(node):
+                return node[node_attr][node_id]
         else:
             def get_id(node):
                 it = node[node_attr].items()
-                return next(k for k, v in it if v == node_id)
+                return next(n for n, m in it if m == node_id)
 
         def get_des(dsp_node):
             sub_dsp = dsp_node['function']
@@ -153,6 +154,7 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function',
 
     for k, v in ((k, nodes[k]) for k in sorted(neighbors[node_id])):
         if v['type'] == node_type and check(k):
+            # noinspection PyBroadException
             try:
                 des, link = get_des(v)
             except:
@@ -200,7 +202,7 @@ def get_link(*items):
     for v in items:
         try:
             return '%s.%s' % (v.__module__, v.__name__)
-        except:
+        except AttributeError:
             pass
     return ''
 

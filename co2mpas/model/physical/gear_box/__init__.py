@@ -61,6 +61,10 @@ def get_gear_box_efficiency_constants(gear_box_type):
     return GEAR_BOX_EFF_CONSTANTS[gear_box_type]
 
 
+def _linear(x, m, q):
+    return x * m + q
+
+
 def calculate_gear_box_efficiency_parameters_cold_hot(
         gear_box_efficiency_constants, engine_max_torque):
     """
@@ -90,8 +94,6 @@ def calculate_gear_box_efficiency_parameters_cold_hot(
             return obj.get(key, default)
         except AttributeError:
             return default
-
-    _linear = lambda x, m, q: x * m + q
 
     par = {'hot': {}, 'cold': {}}
 

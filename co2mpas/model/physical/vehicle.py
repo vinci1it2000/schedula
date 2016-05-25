@@ -59,7 +59,7 @@ def calculate_accelerations(times, velocities):
     :rtype: numpy.array
     """
 
-    acc = Spline(times, velocities / 3.6, k=3).derivative(1)(times)
+    acc = Spline(times, velocities / 3.6, k=3).derivative()(times)
     b = (velocities[:-1] == 0) & (velocities[1:] == velocities[:-1])
     acc[:-1][b] = 0
     if b[-1]:

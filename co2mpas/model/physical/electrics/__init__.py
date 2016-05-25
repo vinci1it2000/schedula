@@ -558,14 +558,15 @@ class Alternator_status_model(object):
     def fit(self, times, alternator_statuses, state_of_charges,
             gear_box_powers_in, has_energy_recuperation):
         b = alternator_statuses == 2
-        if has_energy_recuperation and b.any():
-            bers = DecisionTreeClassifier(random_state=0, max_depth=2)
-            c = alternator_statuses != 1
-            bers.fit(np.array([gear_box_powers_in[c]]).T, b[c])
+        if has_energy_recuperation:
+            if b.any():
+                bers = DecisionTreeClassifier(random_state=0, max_depth=2)
+                c = alternator_statuses != 1
+                bers.fit(np.array([gear_box_powers_in[c]]).T, b[c])
 
-            self.bers = bers.predict  # shortcut name
-        elif has_energy_recuperation:
-            self.bers = lambda X: np.asarray(X) < 0
+                self.bers = bers.predict  # shortcut name
+            else:
+                self.bers = lambda x: np.asarray(x) < 0
         else:
             self.bers = lambda *args: (False,)
 

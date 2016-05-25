@@ -1,6 +1,16 @@
+# -*- coding: utf-8 -*-
+#
+# Copyright 2015 European Commission (JRC);
+# Licensed under the EUPL (the 'Licence');
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+
+"""
+It provides CO2MPAS schema parse/validator.
+"""
+
 import logging
 from collections import Iterable, OrderedDict
-
 import numpy as np
 from lmfit import Parameters, Parameter
 from schema import Schema, Use, And, Or, Optional, SchemaError

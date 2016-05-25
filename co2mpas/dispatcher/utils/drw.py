@@ -48,11 +48,14 @@ def uncpath(p):
 
 
 class _Digraph(gviz.Digraph):
+    def __init__(self, *args, **kwargs):
+        super(_Digraph, self).__init__(*args, **kwargs)
 
     @property
     def filepath(self):
         return uncpath(osp.join(self.directory, self.filename))
 
+    # noinspection PyMethodOverriding
     def _view_windows(self, filepath):
         """Start filepath with its associated application (windows)."""
         try:
@@ -93,7 +96,8 @@ def _init_filepath(directory, filename, nested, name):
         path = Path(directory, filename)
     elif nested:
         path = Path(mkdtemp(''))
-        path = path.joinpath(name.replace('/', ' ').replace('.', ' ') or path.name)
+        name = name.replace('/', ' ').replace('.', ' ')
+        path = path.joinpath(name or path.name)
     else:
         path = Path(mkstemp('.gv')[1])
 
@@ -199,11 +203,11 @@ def _data_node_label(dot, k, values, attr=None, dist=None,
 
 
 def _format_output(data, max_len=100):
-    format = partial(pprint.pformat, compact=True)
+    frm = partial(pprint.pformat, compact=True)
     if inspect.isfunction(data):
         inspect.getsource(data)
 
-    tooltip = format(data).split('\n')
+    tooltip = frm(data).split('\n')
 
     formatted_output = format(np.asarray(data).tolist()).split('\n')
     tooltip = '&#10;'.join(tooltip) if len(tooltip) < max_len else ''
@@ -357,6 +361,7 @@ def _set_node(dot, node_id, dsp2dot_id, dsp=None, node_attr=None, values=None,
 def _set_func_out(dot, node_name, func, nested):
     formatted_output = None
 
+    # noinspection PyBroadException
     try:
         formatted_output = inspect.getsource(func).split('\n')
     except:

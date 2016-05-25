@@ -91,6 +91,7 @@ def parse_excel_file(file_path):
             xl_ref = '#%s!B2:C_:["pipe", ["dict", "recurse"]]' % sheet_name
             data = lasso(xl_ref, sheet=sheet)
         else:
+            # noinspection PyBroadException
             try:
                 xl_ref = '#%s!A2(R):.3:RD:["df", {"header": 0}]' % sheet_name
                 data = lasso(xl_ref, sheet=sheet)
@@ -281,18 +282,19 @@ def _df2excel(writer, shname, df, k0=0, named_ranges=('columns', 'rows'), **kw):
 
 
 def _add_named_ranges(df, writer, shname, startrow, startcol, named_ranges, k0):
+    # noinspection PyBroadException
     try:
         define_name = writer.book.define_name
         ref = '!'.join([shname, '%s'])
 
-        def create_named_range(ref_name, range_ref):
-            define_name(ref % ref_name, ref % range_ref)
-    except:
+        def create_named_range(ref_n, ref_r):
+            define_name(ref % ref_n, ref % ref_r)
+    except:  # Use other pkg.
         define_name = writer.book.create_named_range
         sheet = writer.sheets[shname]
 
-        def create_named_range(ref_name, range_ref):
-            define_name(ref_name, sheet, range_ref, scope=sheet)
+        def create_named_range(ref_n, ref_r):
+            define_name(ref_n, sheet, ref_r, scope=sheet)
 
     tag = ()
     if hasattr(df, 'name'):
@@ -324,6 +326,7 @@ def _ref_name(name):
 
 
 def _index_levels(index):
+    # noinspection PyBroadException
     try:
         return len(index.levels)
     except:

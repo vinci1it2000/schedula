@@ -147,7 +147,7 @@ def predict_vehicle_electrics_and_engine_behavior(
         t += thermal_model(dt, p, eng_s, a, prev_temperature=t)
         temp[i + 1] = t
 
-        e = tuple(electrics_model(dt, p, a, *on_eng, *e[1:]))
+        e = tuple(electrics_model(dt, p, a, *(tuple(on_eng) + tuple(e[1:]))))
 
         soc[i + 1] = e[-1]
         ele.append(e)

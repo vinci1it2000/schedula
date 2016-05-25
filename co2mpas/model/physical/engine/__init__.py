@@ -945,23 +945,23 @@ def _calibrate_cold_start_speed_model_v1(
     b &= (velocities < stop_velocity)
     b &= (abs(accelerations) < plateau_acceleration)
 
-    idle = idle_engine_speed[0]
+    idl = idle_engine_speed[0]
     dn, up = COLD_START_SPEED_MODEL_V1_PARAMS['delta_speed_limits']
     if b.any():
         ds = np.mean(engine_speeds_out[b])
-        if ds <= idle * dn:
-            ds = idle * up
+        if ds <= idl * dn:
+            ds = idl * up
     else:
-        ds = idle * up
+        ds = idl * up
     max_T = COLD_START_SPEED_MODEL_V1_PARAMS['max_temperature']
-    ds = abs((ds - idle) / (max_T - min(engine_coolant_temperatures)))
+    ds = abs((ds - idl) / (max_T - min(engine_coolant_temperatures)))
 
     # noinspection PyUnusedLocal
-    def model(idle, speeds, on_engine, engine_coolant_temperatures, *args):
+    def model(idle, speeds, on_e, engine_coolant_temp, *args):
         add_speeds = np.zeros_like(speeds, dtype=float)
 
-        b = (engine_coolant_temperatures < max_T) & on_engine
-        s =  np.minimum(ds * (max_T - engine_coolant_temperatures[b]), idle / 2)
+        b = (engine_coolant_temp < max_T) & on_e
+        s =  np.minimum(ds * (max_T - engine_coolant_temp[b]), idle / 2)
         add_speeds[b] = np.where(speeds[b] < s + idle, s, add_speeds[b])
 
         return add_speeds

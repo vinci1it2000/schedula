@@ -938,7 +938,7 @@ class SubDispatchPipe(SubDispatchFunction):
                 return o
         elif len(outputs) > 1:
             def return_output():
-                return [o[j] for j in outputs]
+                return [o[n] for n in outputs]
         else:
             def return_output():
                 return o[outputs[0]]

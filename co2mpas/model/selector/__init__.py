@@ -23,16 +23,15 @@ Modules:
 from co2mpas.dispatcher import Dispatcher
 from sklearn.metrics import mean_absolute_error, accuracy_score
 import co2mpas.dispatcher.utils as dsp_utl
-from ..physical.defaults import *
 import logging
 from collections import OrderedDict
 from pprint import pformat
 from ..physical.clutch_tc.clutch import calculate_clutch_phases
-import numpy as np
 from collections import Iterable
 from functools import partial
 from ..physical.gear_box.at_gear import \
     calculate_error_coefficients, calculate_gear_box_speeds_in
+import numpy as np
 
 log = logging.getLogger(__name__)
 
@@ -140,7 +139,8 @@ def get_best_model(
 
         if not _check(m):
             msg = '\n  %s warning: Models %s failed the calibration.'
-            log.warn(msg, selector_id.replace('_', ' ').capitalize(), str(set(s['models'])))
+            selector_name = selector_id.replace('_', ' ').capitalize()
+            log.warn(msg, selector_name, str(set(s['models'])))
         m = m[-1]
 
     return m, scores
@@ -167,7 +167,7 @@ def make_metrics(metrics, ref, pred, kwargs):
     return metric
 
 
-def _check_limit(limit, errors, check=lambda e, l: e<=l):
+def _check_limit(limit, errors, check=lambda e, l: e <= l):
     if limit:
         l = OrderedDict()
         for k, e in errors.items():
@@ -180,13 +180,13 @@ def check_limits(errors, up_limit=None, dn_limit=None):
 
     status = {}
 
-    l = _check_limit(up_limit, errors, check=lambda e, l: e<=l)
-    if l:
-        status['up_limit'] = l
+    limit = _check_limit(up_limit, errors, check=lambda e, l: e <= l)
+    if limit:
+        status['up_limit'] = limit
 
-    l = _check_limit(dn_limit, errors, check=lambda e, l: e>=l)
-    if l:
-        status['up_limit'] = l
+    limit = _check_limit(dn_limit, errors, check=lambda e, l: e >= l)
+    if limit:
+        status['up_limit'] = limit
 
     return status
 
@@ -490,13 +490,13 @@ def selector(*data):
     )
 
     setting = sub_models()
-    m = list(setting)
 
     dsp.add_data(
         data_id='error_settings',
         default_value={}
     )
 
+    m = list(setting)
     dsp.add_function(
         function=partial(split_error_settings, m),
         inputs=['error_settings'],
@@ -506,9 +506,8 @@ def selector(*data):
     for k, v in setting.items():
         v['dsp'] = v.pop('define_sub_model', define_sub_model)(**v)
         v['metrics'] = dsp_utl.map_list(v['targets'], *v['metrics'])
-        selector = v.pop('model_selector', _selector)
         dsp.add_function(
-            function=selector(k, data, data, v),
+            function=v.pop('model_selector', _selector)(k, data, data, v),
             function_id='%s selector' % k,
             inputs=['CO2MPAS_results', 'error_settings/%s' % k],
             outputs=['models', 'scores']
@@ -591,7 +590,7 @@ def _errors(name, data_id, data_out, setting):
         description='Calculates the error of calibrated model.',
     )
 
-    setting=setting.copy()
+    setting = setting.copy()
 
     dsp.add_data(
         data_id='models',

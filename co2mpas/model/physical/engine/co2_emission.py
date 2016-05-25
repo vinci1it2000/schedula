@@ -14,13 +14,13 @@ import copy
 from functools import partial
 from itertools import chain
 import lmfit
-import numpy as np
 from scipy.integrate import trapz
 from sklearn.metrics import mean_absolute_error
 from scipy.stats import lognorm, norm
 import co2mpas.dispatcher.utils as dsp_utl
 from ..defaults import *
 from ..utils import argmax
+import numpy as np
 
 
 def calculate_fuel_carbon_content(fuel_carbon_content_percentage):
@@ -250,6 +250,10 @@ def calculate_co2_emissions(
     :param fuel_carbon_content:
         Fuel carbon content [CO2g/g].
     :type fuel_carbon_content: float
+
+    :param min_engine_on_speed:
+        Minimum engine speed to consider the engine to be on [RPM].
+    :type min_engine_on_speed: float
 
     :param tau_function:
         Tau-function of the extended Willans curve.

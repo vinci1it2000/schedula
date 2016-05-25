@@ -114,6 +114,7 @@ def identify_clutch_window(
     def error(v):
         clutch_phases = phs(v) & ((-threshold > delta) | (delta > threshold))
         y = delta[clutch_phases]
+        # noinspection PyBroadException
         try:
             X = np.array([accelerations[clutch_phases]]).T
             return -model.fit(X, y).score(X, y)
@@ -138,6 +139,11 @@ def _calibrate_clutch_prediction_model(
         model = default_model
 
     return error_func(model), model
+
+
+# noinspection PyUnusedLocal
+def _no_clutch(X, *args):
+    return np.zeros(X.shape[0])
 
 
 def calibrate_clutch_prediction_model(
@@ -174,11 +180,7 @@ def calibrate_clutch_prediction_model(
     y, X = delta[phases], np.array([acc[phases]]).T
     error = lambda func: (mean_squared_error(y, func(X)), counter())
 
-    # noinspection PyUnusedLocal
-    def no_clutch(X, *args):
-        return np.zeros(X.shape[0])
-
-    models = [calibrate(acc[b], delta[b], error, no_clutch)
+    models = [calibrate(acc[b], delta[b], error, _no_clutch)
               for b in [np.zeros_like(acc, dtype=bool),
                         phases & ((-threshold > delta) | (delta > threshold))]]
 

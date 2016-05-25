@@ -12,17 +12,14 @@ It contains models to compare/select the calibrated co2_params.
 
 import logging
 import copy
-from co2mpas.dispatcher import Dispatcher
 from functools import partial
 import co2mpas.dispatcher.utils as dsp_utl
-from . import _errors, get_best_model, sort_models, _selector
-from itertools import chain
-
 log = logging.getLogger(__name__)
 
 
 # noinspection PyUnusedLocal
 def calibrate_co2_params_ALL(rank, *data, data_id=None):
+    # noinspection PyBroadException
     try:
         from ..physical.engine.co2_emission import calibrate_model_params
         cycle = rank[0][3]
@@ -50,9 +47,9 @@ def calibrate_co2_params_ALL(rank, *data, data_id=None):
 
 
 def co2_sort_models(rank, *data, weights=None):
+    from . import _sorting_func, sort_models
     r = sort_models(*data, weights=weights)
     r.extend(rank)
-    from . import _sorting_func
     return list(sorted(r, key=_sorting_func))
 
 
@@ -71,6 +68,7 @@ def co2_params_selector(
         The co2_params model selector.
     :rtype: SubDispatch
     """
+    from . import _selector
     dsp = _selector(name, data_in + ('ALL',), data_out, setting).dsp
     n = dsp.get_node('sort_models', node_attr=None)[0]
     errors, sort_models = n['inputs'], n['function']
