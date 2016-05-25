@@ -19,7 +19,7 @@ from scipy.integrate import trapz
 from sklearn.metrics import mean_absolute_error
 from scipy.stats import lognorm, norm
 import co2mpas.dispatcher.utils as dsp_utl
-from ..constants import *
+from ..defaults import *
 from ..utils import argmax
 
 
@@ -410,12 +410,7 @@ def select_phases_integration_times(cycle_type):
     :rtype: tuple
     """
 
-    _integration_times = {
-        'WLTP': (0.0, 590.0, 1023.0, 1478.0, 1800.0),
-        'NEDC': (0.0, 780.0, 1180.0)
-    }
-
-    return tuple(dsp_utl.pairwise(_integration_times[cycle_type.upper()]))
+    return tuple(dsp_utl.pairwise(INTEGRATION_TIMES[cycle_type.upper()]))
 
 
 def calculate_phases_distances(times, phases_integration_times, velocities):
@@ -857,40 +852,6 @@ def calculate_co2_emission(phases_co2_emissions, phases_distances):
     return float(n / d)
 
 
-def _get_default_params():
-    default = {
-        'gasoline turbo': {
-            'a': {'value': 0.468678, 'min': 0.398589, 'max': 0.538767},
-            'b': {'value': 0.011859, 'min': 0.006558, 'max': 0.01716},
-            'c': {'value': -0.00069, 'min': -0.00099, 'max': -0.00038},
-            'a2': {'value': -0.00266, 'min': -0.00354, 'max': -0.00179},
-            'b2': {'value': 0, 'min': -1, 'max': 1, 'vary': False},
-            'l': {'value': -2.49882, 'min': -3.27698, 'max': -1.72066},
-            'l2': {'value': -0.0025, 'min': -0.00796, 'max': 0.0},
-        },
-        'gasoline natural aspiration': {
-            'a': {'value': 0.4719, 'min': 0.40065, 'max': 0.54315},
-            'b': {'value': 0.01193, 'min': -0.00247, 'max': 0.026333},
-            'c': {'value': -0.00065, 'min': -0.00138, 'max': 0.0000888},
-            'a2': {'value': -0.00385, 'min': -0.00663, 'max': -0.00107},
-            'b2': {'value': 0, 'min': -1, 'max': 1, 'vary': False},
-            'l': {'value': -2.14063, 'min': -3.17876, 'max': -1.1025},
-            'l2': {'value': -0.00286, 'min': -0.00577, 'max': 0.0},
-        },
-        'diesel': {
-            'a': {'value': 0.391197, 'min': 0.346548, 'max': 0.435846},
-            'b': {'value': 0.028604, 'min': 0.002519, 'max': 0.054688},
-            'c': {'value': -0.00196, 'min': -0.00386, 'max': -0.000057},
-            'a2': {'value': -0.0012, 'min': -0.00233, 'max': -0.000064},
-            'b2': {'value': 0, 'min': -1, 'max': 1, 'vary': False},
-            'l': {'value': -1.55291, 'min': -2.2856, 'max': -0.82022},
-            'l2': {'value': -0.0076, 'min': -0.01852, 'max': 0.0},
-        },
-    }
-
-    return default
-
-
 def define_initial_co2_emission_model_params_guess(
         params, engine_type, engine_normalization_temperature,
         engine_normalization_temperature_window, is_cycle_hot=False,
@@ -928,22 +889,18 @@ def define_initial_co2_emission_model_params_guess(
     """
 
     bounds = bounds or {}
-    default = _get_default_params()[engine_type]
+    default = copy.deepcopy(DEFAULT_CO2_PARAMS)[engine_type]
     default['trg'] = {
         'value': engine_normalization_temperature,
         'min': engine_normalization_temperature_window[0],
         'max': engine_normalization_temperature_window[1],
         'vary': False
     }
-    default['t0'] = {
-        'value': 0.0 if is_cycle_hot else 4.5, 'min': 0.0, 'max': 8.0,
-        'vary': not (is_cycle_hot or 't' in params)
-    }
 
-    default['t1'] = {
-        'value': 0.0 if is_cycle_hot else 3.5, 'min': 0.0, 'max': 8.0,
-        'vary': not (is_cycle_hot or 't' in params)
-    }
+    if is_cycle_hot:
+        default['t0'].update({'value': 0.0, 'vary': False})
+        default['t1'].update({'value': 0.0, 'vary': False})
+
     p = lmfit.Parameters()
 
     for k, kw in sorted(default.items()):
@@ -1023,6 +980,29 @@ def define_tau_function(after_treatment_temperature_threshold):
 
 
 def _set_attr(params, data, default=False, attr='vary'):
+    """
+    Set attribute to CO2 emission model parameters.
+
+    :param params:
+        CO2 emission model parameters (a2, b2, a, b, c, l, l2, t, trg).
+    :type params: lmfit.Parameters
+
+    :param data:
+        Parameter ids to be set or key/value to set.
+    :type data: list | dict
+
+    :param default:
+        Default value to set if a list of parameters ids is provided.
+    :type default: bool | float
+
+    :param attr:
+        Parameter attribute to set.
+    :type attr: str
+
+    :return:
+        CO2 emission model parameters.
+    :rtype: lmfit.Parameters
+    """
     if not isinstance(data, dict):
         data =  dict.fromkeys(data, default)
 
@@ -1124,17 +1104,10 @@ def restrict_bounds(co2_params):
     :rtype: dict
     """
     p = copy.deepcopy(co2_params)
-    mul = {
-        't1': np.array([0.5, 1.5]), 't2': np.array([0.5, 1.5]),
-        'trg': np.array([0.9, 1.1]),
-        'a': np.array([0.8, 1.2]), 'b': np.array([0.8, 1.2]),
-        'c': np.array([1.2, 0.8]), 'a2': np.array([1.2, 0.8]),
-        'l': np.array([1.2, 0.8]), 'l2': np.array([1.2, 0.0]),
-    }
 
     def _limits(k, v):
-        if k in mul:
-            v = tuple(mul[k] * v.value)
+        if k in RESTRICT_CO2_PARAMS_MULTIPLIERS:
+            v = tuple(RESTRICT_CO2_PARAMS_MULTIPLIERS[k] * v.value)
             return min(v), max(v)
         else:
             return v.min, v.max
@@ -1869,7 +1842,7 @@ def co2_emission():
 
     dsp.add_data(
         data_id='is_cycle_hot',
-        default_value=False
+        default_value=IS_CYCLE_HOT
     )
 
     dsp.add_function(
@@ -1973,7 +1946,7 @@ def co2_emission():
 
     dsp.add_data(
         data_id='co2_params',
-        default_value={}
+        default_value=CO2_PARAMS.copy()
     )
 
     dsp.add_function(
@@ -2053,7 +2026,9 @@ def co2_emission():
 
     dsp.add_data(
         data_id='enable_phases_willans',
-        default_value=False
+        default_value=ENABLE_WILLANS_PHASES,
+        description='Enable the calculation of Willans coefficients for '
+                    'all phases?'
     )
 
     dsp.add_function(

@@ -574,7 +574,8 @@ def physical():
             'stop_velocity': 'stop_velocity',
             'plateau_acceleration': 'plateau_acceleration',
             'min_time_engine_on_after_start': 'min_time_engine_on_after_start',
-            'min_engine_on_speed': 'min_engine_on_speed'
+            'min_engine_on_speed': 'min_engine_on_speed',
+            'initial_friction_params': 'initial_friction_params'
         },
         outputs={
             'fuel_carbon_content_percentage': 'fuel_carbon_content_percentage',
@@ -630,7 +631,8 @@ def physical():
             'fuel_density': 'fuel_density',
             'phases_willans_factors': 'phases_willans_factors',
             'missing_powers': 'missing_powers',
-            'brake_powers': 'brake_powers'
+            'brake_powers': 'brake_powers',
+            'initial_friction_params': 'initial_friction_params'
         },
         inp_weight={'initial_temperature': 5}
     )

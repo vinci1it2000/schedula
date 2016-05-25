@@ -9,12 +9,12 @@
 It contains functions that model the basic mechanics of the torque converter.
 """
 
-import numpy as np
 from sklearn.metrics import mean_absolute_error
 from sklearn.ensemble import GradientBoostingRegressor
 from . import define_k_factor_curve
-from ..constants import *
+from ..defaults import *
 from co2mpas.dispatcher import Dispatcher
+import numpy as np
 
 
 class TorqueConverter(object):
@@ -178,9 +178,9 @@ def default_tc_k_factor_curve():
     :rtype: function
     """
 
-    stand_still_torque_ratio, lockup_speed_ratio = 1.9, 0.87
+    a = TC_STAND_STILL_TORQUE_RATIO, TC_LOCKUP_SPEED_RATIO
 
-    return define_k_factor_curve(stand_still_torque_ratio, lockup_speed_ratio)
+    return define_k_factor_curve(*a)
 
 
 def torque_converter():
@@ -203,7 +203,7 @@ def torque_converter():
 
     dsp.add_data(
         data_id='calibration_tc_speed_threshold',
-        default_value=100.0
+        default_value=CALIBRATION_TC_SPEED_THRESHOLD
     )
 
     dsp.add_data(
@@ -213,7 +213,7 @@ def torque_converter():
 
     dsp.add_data(
         data_id='lock_up_tc_limits',
-        default_value=(48.0, 0.3)
+        default_value=LOCKUP_TC_LIMITS
     )
 
     dsp.add_function(

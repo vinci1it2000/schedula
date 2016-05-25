@@ -11,9 +11,9 @@ It contains functions that model the basic mechanics of a CVT.
 
 
 from co2mpas.dispatcher import Dispatcher
-import numpy as np
 from sklearn.ensemble import GradientBoostingRegressor
-from ..constants import *
+from ..defaults import *
+import numpy as np
 
 
 def calibrate_cvt(

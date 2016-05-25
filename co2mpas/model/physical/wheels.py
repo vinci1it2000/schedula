@@ -17,7 +17,7 @@ from .utils import reject_outliers
 from .gear_box.mechanical import calculate_speed_velocity_ratios, \
     calculate_velocity_speed_ratios, calculate_gear_box_speeds_in, \
     identify_gears
-from .constants import *
+from .defaults import *
 
 
 def calculate_wheel_power(velocities, accelerations, road_loads, vehicle_mass):

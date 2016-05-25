@@ -21,14 +21,14 @@ Sub-Modules:
 
 
 from co2mpas.dispatcher import Dispatcher
-import numpy as np
 from functools import partial
 from itertools import chain
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import GradientBoostingRegressor
 from scipy.stats import linregress
 from ..utils import reject_outliers, argmax
-from ..constants import *
+from ..defaults import *
+import numpy as np
 from math import pi
 
 
@@ -444,7 +444,7 @@ def _starts_windows(times, engine_starts, dt):
     j = 0
     for t in times[engine_starts]:
         i = np.searchsorted(times[j:], (t - dt,))[0]
-        j = np.searchsorted(times[j:], (t + dt,))[0] + i
+        j = np.searchsorted(times[i:], (t + dt,))[0] + i
         yield i, j
 
 
@@ -863,12 +863,12 @@ def electrics():
 
     dsp.add_data(
         data_id='alternator_efficiency',
-        default_value=0.67
+        default_value=ALTERNATOR_EFFICIENCY
     )
 
     dsp.add_data(
         data_id='delta_time_engine_starter',
-        default_value=1.0
+        default_value=DELTA_TIME_ENGINE_STARTER
     )
 
     dsp.add_function(
@@ -889,7 +889,7 @@ def electrics():
 
     dsp.add_data(
         data_id='initial_state_of_charge',
-        default_value=99.0
+        default_value=INITIAL_SOC
     )
 
     dsp.add_function(
@@ -951,7 +951,7 @@ def electrics():
 
     dsp.add_data(
         data_id='has_energy_recuperation',
-        default_value=True
+        default_value=HAS_ENERGY_RECUPERATION
     )
 
     dsp.add_function(

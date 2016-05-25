@@ -12,12 +12,12 @@ It contains functions that model the basic mechanics of the gear box.
 
 from co2mpas.dispatcher import Dispatcher
 from math import pi
-import numpy as np
-from ..constants import *
+from ..defaults import *
 from functools import partial
 from scipy.stats import binned_statistic
 from scipy.optimize import brute
 from scipy.interpolate import InterpolatedUnivariateSpline
+import numpy as np
 from ..utils import median_filter, bin_split, reject_outliers, clear_fluctuations
 from sklearn.metrics import mean_absolute_error
 from . import calculate_gear_shifts

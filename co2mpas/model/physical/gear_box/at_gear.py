@@ -23,7 +23,7 @@ from sklearn.metrics import mean_absolute_error, accuracy_score
 import co2mpas.dispatcher.utils as dsp_utl
 from functools import partial
 from ..utils import median_filter, grouper, clear_fluctuations, reject_outliers
-from ..constants import *
+from ..defaults import *
 from .mechanical import calculate_gear_box_speeds_in
 from ..wheels import calculate_wheel_power
 from pprint import pformat
@@ -1503,7 +1503,7 @@ def domain_eco_mode(eco_mode, *args):
 
 
 def default_specific_gear_shifting(*args):
-    return 'ALL'
+    return SPECIFIC_GEAR_SHIFTING
 
 
 def at_domain(method):
@@ -1542,7 +1542,8 @@ def at_gear():
 
     dsp.add_data(
         data_id='eco_mode',
-        default_value=True
+        default_value=ECO_MODE,
+        description='Apply the eco-mode gear shifting?'
     )
 
     dsp.add_data(
@@ -1613,6 +1614,11 @@ def at_gear():
         outputs=['specific_gear_shifting']
     )
 
+    dsp.add_data(
+        data_id='specific_gear_shifting',
+        description='Specific gear shifting model.'
+    )
+
     dsp.add_dispatcher(
         dsp_id='cmv_model',
         dsp=at_cmv(),
@@ -1665,7 +1671,7 @@ def at_gear():
 
     dsp.add_data(
         data_id='use_dt_gear_shifting',
-        default_value=False,
+        default_value=USE_DT_GEAR_SHIFTING,
         description='If to use decision tree classifiers to predict gears.'
     )
 
@@ -1868,7 +1874,10 @@ def at_cmv_cold_hot():
         name='Corrected Matrix Velocity Approach with Cold/Hot'
     )
 
-    dsp.add_data('time_cold_hot_transition', 300.0)
+    dsp.add_data(
+        data_id='time_cold_hot_transition',
+        default_value=AT_TIME_COLD_HOT_TRANSITION
+    )
 
     dsp.add_data(
         data_id='stop_velocity',
@@ -2133,7 +2142,10 @@ def at_gspv_cold_hot():
         name='Gear Shifting Power Velocity Approach with Cold/Hot'
     )
 
-    dsp.add_data('time_cold_hot_transition', 300.0)
+    dsp.add_data(
+        data_id='time_cold_hot_transition',
+        default_value=AT_TIME_COLD_HOT_TRANSITION
+    )
 
     dsp.add_data(
         data_id='stop_velocity',

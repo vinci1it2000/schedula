@@ -26,7 +26,7 @@ from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 from scipy.optimize import fmin
 from sklearn.metrics import mean_absolute_error
 from sklearn.tree import DecisionTreeClassifier
-from ..constants import *
+from ..defaults import *
 from .thermal import *
 import co2mpas.dispatcher.utils as dsp_utl
 import numpy as np
@@ -47,22 +47,8 @@ def get_full_load(fuel_type):
     :rtype: scipy.interpolate.InterpolatedUnivariateSpline
     """
 
-    full_load = {
-        'gasoline': Spline(
-            np.linspace(0, 1.2, 13),
-            [0.1, 0.198238659, 0.30313392, 0.410104642, 0.516920841,
-             0.621300767, 0.723313491, 0.820780368, 0.901750158, 0.962968496,
-             0.995867804, 0.953356174, 0.85],
-            ext=3),
-        'diesel': Spline(
-            np.linspace(0, 1.2, 13),
-            [0.1, 0.278071182, 0.427366185, 0.572340499, 0.683251935,
-             0.772776746, 0.846217049, 0.906754984, 0.94977083, 0.981937981,
-             1, 0.937598144, 0.85],
-            ext=3)
-    }
+    return Spline(*FULL_LOAD[fuel_type], ext=3)
 
-    return full_load[fuel_type]
 
 
 def select_initial_friction_params(engine_type):
@@ -284,7 +270,7 @@ def identify_normalization_engine_temperature(
         Normalization engine temperature and its limits [°C].
     :rtype: (float, (float, float))
     """
-
+    #TODO: make var.
     t, b = engine_coolant_temperatures, (1000 < times) & (times < 1780)
 
     if b.any():
@@ -335,10 +321,7 @@ def calculate_engine_max_torque(
     :rtype: float
     """
 
-    c = {
-        'gasoline': 1.25,
-        'diesel': 1.1
-    }[fuel_type]
+    c = ENGINE_MAX_TORQUE_PARAMS[fuel_type]
 
     return engine_max_power / engine_max_speed_at_max_power * 30000.0 / pi * c
 
@@ -365,10 +348,7 @@ def calculate_engine_max_power(
     :rtype: float
     """
 
-    c = {
-        'gasoline': 1.25,
-        'diesel': 1.1
-    }[fuel_type]
+    c = ENGINE_MAX_TORQUE_PARAMS[fuel_type]
 
     return engine_max_torque * engine_max_speed_at_max_power / 30000.0 * pi / c
 
@@ -923,7 +903,7 @@ def _calibrate_cold_start_speed_model(
 
     return model
 
-
+#TODO: PARMS
 def _calibrate_cold_start_speed_model_v1(
         times, velocities, accelerations, engine_speeds_out,
         engine_coolant_temperatures, idle_engine_speed, stop_velocity,
@@ -1331,10 +1311,7 @@ def calculate_engine_moment_inertia(engine_capacity, fuel_type):
     :rtype: float
     """
 
-    w = {
-        'gasoline': 1,
-        'diesel': 2
-    }[fuel_type]
+    w = ENGINE_MOMENT_INERTIA_PARAMS[fuel_type]
 
     return (0.05 + 0.1 * engine_capacity / 1000.0) * w
 
@@ -1372,12 +1349,7 @@ def default_fuel_density(fuel_type):
     :rtype: float
     """
 
-    density = {
-        'gasoline': 750.0,
-        'diesel': 835.0
-    }[fuel_type]
-
-    return density
+    return FUEL_DENSITY[fuel_type]
 
 
 def calculate_auxiliaries_power_losses(
@@ -1441,7 +1413,7 @@ def engine():
 
     dsp.add_data(
         data_id='is_cycle_hot',
-        default_value=False
+        default_value=IS_CYCLE_HOT
     )
 
     dsp.add_function(
@@ -1482,7 +1454,7 @@ def engine():
     # default value
     dsp.add_data(
         data_id='idle_engine_speed_std',
-        default_value=100.0,
+        default_value=IDLE_ENGINE_SPEED_STD,
         description='Standard deviation of idle engine speed [RPM].'
     )
 
@@ -1570,7 +1542,7 @@ def engine():
 
     dsp.add_data(
         data_id='start_stop_activation_time',
-        default_value=None
+        default_value=START_STOP_ACTIVATION_TIME
     )
 
     dsp.add_function(
@@ -1682,7 +1654,7 @@ def engine():
 
     dsp.add_data(
         data_id='engine_is_turbo',
-        default_value=True
+        default_value=ENGINE_IS_TURBO
     )
 
     dsp.add_function(
@@ -1699,12 +1671,12 @@ def engine():
 
     dsp.add_data(
         data_id='auxiliaries_torque_loss',
-        default_value=0.5
+        default_value=AUX_TORQUE_LOSS
     )
 
     dsp.add_data(
         data_id='auxiliaries_power_loss',
-        default_value=0.0
+        default_value=AUX_POWER_LOSS
     )
 
     dsp.add_function(

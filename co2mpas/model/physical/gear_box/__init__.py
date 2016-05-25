@@ -23,10 +23,10 @@ Sub-Modules:
 
 from co2mpas.dispatcher import Dispatcher
 from math import pi
-import numpy as np
 import co2mpas.dispatcher.utils as dsp_utl
-from ..constants import *
+from ..defaults import *
 from functools import partial
+import numpy as np
 
 
 def calculate_gear_shifts(gears):
@@ -57,22 +57,8 @@ def get_gear_box_efficiency_constants(gear_box_type):
         Vehicle gear box efficiency constants (gbp00, gbp10, and gbp01).
     :rtype: dict
     """
-    
-    gb_eff_constants = {
-        'automatic': {
-            'gbp00': {'m': -0.0054, 'q': {'hot': -1.9682, 'cold': -3.9682}},
-            'gbp10': {'q': {'hot': -0.0012, 'cold': -0.0016}},
-            'gbp01': {'q': {'hot': 0.965, 'cold': 0.965}},
-        },
-        'manual': {
-            'gbp00': {'m': -0.0034, 'q': {'hot': -0.3119, 'cold': -0.7119}},
-            'gbp10': {'q': {'hot': -0.00018, 'cold': 0}},
-            'gbp01': {'q': {'hot': 0.97, 'cold': 0.97}},
-        }
-    }
-    gb_eff_constants['cvt'] = gb_eff_constants['automatic']
 
-    return gb_eff_constants[gear_box_type]
+    return GEAR_BOX_EFF_CONSTANTS[gear_box_type]
 
 
 def calculate_gear_box_efficiency_parameters_cold_hot(
@@ -523,59 +509,20 @@ def calculate_equivalent_gear_box_heat_capacity(fuel_type, engine_max_power):
     :rtype: float
     """
 
-    _mass_coeff = {
-        'diesel': 1.1,
-        'gasoline': 1.0
-    }
+    _mass_coeff = GEAR_BOX_HEAT_CAP_CONSTANTS['mass_coeff']
     # Engine mass empirical formula based on web data found for engines weighted
     # according DIN 70020-GZ
     eng_mass = (0.4208 * engine_max_power + 60.0) * _mass_coeff[fuel_type]  # kg
 
-    _mass_percentage = {
-        'coolant': 0.04,     # coolant: 50%/50% (0.85*4.186)
-        'oil': 0.055,
-        'crankcase': 0.18,   # crankcase: cast iron
-        'cyl_head': 0.09,    # cyl_head: aluminium
-        'pistons': 0.025,    # crankshaft: steel
-        'crankshaft': 0.08   # pistons: aluminium
-    }
+    _mass_percentage = GEAR_BOX_HEAT_CAP_CONSTANTS['mass_percentage']
 
-    # Cp in J/K
-    _heat_capacity = {
-        'coolant': 0.85 * 4186.0,
-        'oil': 2090.0,
-        'crankcase': 526.0,
-        'cyl_head': 940.0,
-        'pistons': 940.0,
-        'crankshaft': 526.0
-    }
+    _heat_capacity = GEAR_BOX_HEAT_CAP_CONSTANTS['heat_capacity']  # Cp in J/K
 
     weighted_eng_mass = sum(v * eng_mass for v in _mass_percentage.values())
 
     gear_box_mass = weighted_eng_mass * 0.15
 
     return _heat_capacity['oil'] * gear_box_mass
-
-
-def select_default_gear_box_temperature_references(cycle_type):
-    """
-    Selects the default value of gear box temperature references [°C].
-
-    :param cycle_type:
-        Cycle type (WLTP or NEDC).
-    :type cycle_type: str
-
-    :return:
-        Reference temperature [°C].
-    :rtype: (float, float)
-    """
-
-    temperature_references = {
-        'WLTP': (40.0, 80.0),
-        'NEDC': (40.0, 80.0)
-    }[cycle_type]
-
-    return temperature_references
 
 
 def is_automatic(kwargs):
@@ -647,10 +594,9 @@ def gear_box():
         outputs=['gear_box_torques'],
     )
 
-    dsp.add_function(
-        function=select_default_gear_box_temperature_references,
-        inputs=['cycle_type'],
-        outputs=['temperature_references']
+    dsp.add_data(
+        data_id='temperature_references',
+        default_value=GEAR_BOX_REF_TEMPS
     )
 
     dsp.add_function(

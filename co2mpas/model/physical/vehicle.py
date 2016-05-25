@@ -14,6 +14,7 @@ from co2mpas.dispatcher import Dispatcher
 from math import cos, sin
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 from pykalman import KalmanFilter
+from .defaults import *
 import numpy as np
 
 
@@ -231,12 +232,7 @@ def select_default_n_dyno_axes(cycle_type):
     :rtype: int
     """
 
-    _dyno_axes = {
-        'WLTP': 2,
-        'NEDC': 1
-    }
-
-    return _dyno_axes.get(cycle_type.upper(), 2)
+    return DYNO_AXES.get(cycle_type.upper(), 2)
 
 
 def select_inertial_factor(n_dyno_axes):
@@ -334,7 +330,7 @@ def apply_f0_correction(f0_uncorrected, correct_f0):
     :type f0_uncorrected: float
 
     :param correct_f0:
-        If a different preconditioning cycle was used for WLTP and NEDC.
+        A different preconditioning cycle was used for WLTP and NEDC?
     :type correct_f0: bool
 
     :return:
@@ -385,7 +381,7 @@ def vehicle():
 
     dsp.add_data(
         data_id='air_density',
-        default_value=1.2,
+        default_value=AIR_DENSITY,
     )
 
     dsp.add_function(
@@ -404,7 +400,7 @@ def vehicle():
 
     dsp.add_data(
         data_id='angle_slope',
-        default_value=0,
+        default_value=ANGLE_SLOPE,
     )
 
     dsp.add_function(
@@ -478,7 +474,7 @@ def vehicle():
 
     dsp.add_data(
         data_id='correct_f0',
-        default_value=False
+        default_value=CORRECT_F0
     )
 
     dsp.add_function(

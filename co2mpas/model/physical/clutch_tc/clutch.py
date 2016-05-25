@@ -12,12 +12,12 @@ It contains functions that model the basic mechanics of the clutch.
 from scipy.optimize import brute
 from sklearn.metrics import mean_squared_error
 from sklearn.linear_model import RANSACRegressor, LinearRegression
-import numpy as np
 from functools import partial
-from ..constants import *
+from ..defaults import *
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher import Dispatcher
 from . import define_k_factor_curve
+import numpy as np
 
 
 def calculate_clutch_phases(
@@ -222,9 +222,9 @@ def default_clutch_k_factor_curve():
     :rtype: function
     """
 
-    stand_still_torque_ratio, lockup_speed_ratio = 1.0, 0.0
+    a = CLUTCH_STAND_STILL_TORQUE_RATIO, CLUTCH_LOCKUP_SPEED_RATIO
 
-    return define_k_factor_curve(stand_still_torque_ratio, lockup_speed_ratio)
+    return define_k_factor_curve(*a)
 
 
 def clutch():

@@ -12,12 +12,13 @@ It provides constants for the WLTP cycle.
 
 
 from wltp.experiment import *
-import numpy as np
 from wltp.model import _get_model_base
 from co2mpas.dispatcher import Dispatcher
 import co2mpas.dispatcher.utils as dsp_utl
 import logging
-
+from ..defaults import *
+from copy import deepcopy
+import numpy as np
 logging.getLogger('wltp.experiment').setLevel(logging.WARNING)
 
 
@@ -33,7 +34,7 @@ def wltp_time_length(frequency):
         Time vector [s].
     :rtype: numpy.array
     """
-    return 1800.0 * frequency
+    return WLTP_TIME * frequency
 
 
 def calculate_unladen_mass(vehicle_mass, driver_mass):
@@ -371,12 +372,12 @@ def wltp_cycle():
 
     dsp.add_data(
         data_id='initial_temperature',
-        default_value=23.0
+        default_value=INITIAL_TEMPERATURE_WLTP
     )
 
     dsp.add_data(
         data_id='wltp_base_model',
-        default_value={}
+        default_value=deepcopy(WLTP_BASE_MODEL)
     )
 
     dsp.add_function(
@@ -387,7 +388,7 @@ def wltp_cycle():
 
     dsp.add_data(
         data_id='time_sample_frequency',
-        default_value=1.0
+        default_value=TIME_SAMPLE_FREQUENCY
     )
 
     dsp.add_function(
@@ -467,7 +468,7 @@ def wltp_cycle():
 
     dsp.add_data(
         data_id='downscale_factor_threshold',
-        default_value=0.01
+        default_value=DOWNSCALE_FACTOR_THRESHOLD
     )
 
     dsp.add_function(

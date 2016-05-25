@@ -23,12 +23,12 @@ Modules:
 from co2mpas.dispatcher import Dispatcher
 from sklearn.metrics import mean_absolute_error, accuracy_score
 import co2mpas.dispatcher.utils as dsp_utl
-import numpy as np
-from ..physical.constants import *
+from ..physical.defaults import *
 import logging
 from collections import OrderedDict
 from pprint import pformat
 from ..physical.clutch_tc.clutch import calculate_clutch_phases
+import numpy as np
 from collections import Iterable
 from functools import partial
 from ..physical.gear_box.at_gear import \
