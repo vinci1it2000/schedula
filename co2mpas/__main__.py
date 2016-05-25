@@ -410,7 +410,7 @@ def _cmd_sa(opts):
 
     if not osp.isdir(out_folder):
         if force:
-            from co2mpas.dispatcher.utils.io import mkdirs
+            from graphviz.tools import mkdirs
             if not ''.endswith('/'):
                 out_folder = '%s/' % out_folder
             mkdirs(out_folder)
@@ -449,7 +449,7 @@ def _run_batch(opts):
 
     if not osp.isdir(output_folder):
         if opts['--force']:
-            from co2mpas.dispatcher.utils.io import mkdirs
+            from graphviz.tools import mkdirs
             if not ''.endswith('/'):
                 output_folder = '%s/' % output_folder
             mkdirs(output_folder)
