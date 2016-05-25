@@ -259,17 +259,18 @@ def identify_normalization_engine_temperature(
         Normalization engine temperature and its limits [°C].
     :rtype: (float, (float, float))
     """
-    #TODO: make var.
-    t, b = engine_coolant_temperatures, (1000 < times) & (times < 1780)
 
-    if b.any():
-        t = t[b]
+    p = np.array((NORM_ENGINE_TEMP_PARAMS['p0'], NORM_ENGINE_TEMP_PARAMS['p1']))
+    p0, p1 = (times[-1] - times[0]) * p + times[0]
+    t = engine_coolant_temperatures[(p0 < times) & (times < p1)]
 
     m, s = reject_outliers(t, n=2)
 
     max_temp = max(t)
 
-    return m - s, (m - 3 * s, max_temp)
+    n_std = NORM_ENGINE_TEMP_PARAMS['n_std']
+
+    return m - s, (m - n_std * s, max_temp)
 
 
 def identify_initial_engine_temperature(engine_coolant_temperatures):
@@ -666,7 +667,8 @@ def calculate_cold_start_speeds_delta(
         idle_engine_speed[0], engine_speeds_out_hot, on_engine,
         engine_coolant_temperatures
     )
-
+    max_delta = idle_engine_speed[0] * MAX_COLD_START_SPEED_DELTA_PERCENTAGE
+    delta_speeds[delta_speeds > max_delta] = max_delta
     return delta_speeds
 
 
@@ -892,7 +894,7 @@ def _calibrate_cold_start_speed_model(
 
     return model
 
-#TODO: PARMS
+
 def _calibrate_cold_start_speed_model_v1(
         times, velocities, accelerations, engine_speeds_out,
         engine_coolant_temperatures, idle_engine_speed, stop_velocity,
@@ -937,27 +939,29 @@ def _calibrate_cold_start_speed_model_v1(
     :rtype: function
     """
 
-    b = (times < 10) & (engine_speeds_out > idle_engine_speed[0])
+    t = times[0] + COLD_START_SPEED_MODEL_V1_PARAMS['first_seconds']
+
+    b = (times < t) & (engine_speeds_out > idle_engine_speed[0])
     b &= (velocities < stop_velocity)
     b &= (abs(accelerations) < plateau_acceleration)
 
     idle = idle_engine_speed[0]
-
+    dn, up = COLD_START_SPEED_MODEL_V1_PARAMS['delta_speed_limits']
     if b.any():
         ds = np.mean(engine_speeds_out[b])
-        if ds <= idle * 1.05:
-            ds = idle * 1.2
+        if ds <= idle * dn:
+            ds = idle * up
     else:
-        ds = idle * 1.2
-
-    ds = abs((ds - idle) / (30.0 - min(engine_coolant_temperatures)))
+        ds = idle * up
+    max_T = COLD_START_SPEED_MODEL_V1_PARAMS['max_temperature']
+    ds = abs((ds - idle) / (max_T - min(engine_coolant_temperatures)))
 
     # noinspection PyUnusedLocal
     def model(idle, speeds, on_engine, engine_coolant_temperatures, *args):
         add_speeds = np.zeros_like(speeds, dtype=float)
 
-        b = (engine_coolant_temperatures < 30.0) & on_engine
-        s =  np.minimum(ds * (30.0 - engine_coolant_temperatures[b]), idle / 2)
+        b = (engine_coolant_temperatures < max_T) & on_engine
+        s =  np.minimum(ds * (max_T - engine_coolant_temperatures[b]), idle / 2)
         add_speeds[b] = np.where(speeds[b] < s + idle, s, add_speeds[b])
 
         return add_speeds

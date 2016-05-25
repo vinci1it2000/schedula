@@ -307,3 +307,20 @@ FUEL_DENSITY ={
     'gasoline': 750.0,
     'diesel': 835.0
 }
+
+#: Normalization engine temperature params.
+NORM_ENGINE_TEMP_PARAMS = {
+    'n_std': 3,
+    'p0': 1000.0 / 1800.0,
+    'p1': 1780.0 / 1800.0
+}
+
+#: Cold start engine speed model v1 params.
+COLD_START_SPEED_MODEL_V1_PARAMS = {
+    'first_seconds': 10.0,  # [s]
+    'delta_speed_limits': (1.05, 1.2),  # [-, -]
+    'max_temperature': 30.0  # [°C]
+}
+
+#: Maximum cold start speed delta percentage of idle [-].
+MAX_COLD_START_SPEED_DELTA_PERCENTAGE = 0.5
