@@ -508,6 +508,7 @@ def physical():
         inputs={
             'state_of_charges': 'state_of_charges',
             'auxiliaries_torque_loss': 'auxiliaries_torque_loss',
+            'auxiliaries_power_loss': 'auxiliaries_power_loss',
             'alternator_powers_demand': 'alternator_powers_demand',
             'on_engine': 'on_engine',
             'on_idle': 'on_idle',
