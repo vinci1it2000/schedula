@@ -6,3 +6,4 @@
 *.pptx  diff=zip
 *.xlsx  diff=zip
 *.zip   diff=zip
+co2mpas/sampling/dice.ipynb filter=dropoutput_ipynb
