@@ -13,6 +13,7 @@ import configparser
 from email.mime.text import MIMEText
 import imaplib
 import inspect
+import os
 import io
 import logging
 import re
@@ -152,25 +153,29 @@ def retrieve_secret(master_pswd, key):
     kr=keyring.get_keyring()
     return kr.get_password('%s.%s' %(_project, master_pswd), key)
 
-def which(program):
+def where(program, path=None):
     ## From: http://stackoverflow.com/a/377028/548792
-    import os
-    def is_exe(fpath):
-        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+    winprog_exts = ('.bat', 'com', '.exe')
+    def is_exec(fpath):
+        return os.path.isfile(fpath) and os.access(fpath, os.X_OK) and (
+                os.name != 'nt' or fpath.lower()[-4:] in winprog_exts)
 
-    fpath, fname = os.path.split(program)
-    if fpath:
-        if is_exe(program):
-            return program
-    else:
-        for path in os.environ["PATH"].split(os.pathsep):
-            path = path.strip('"')
-            exe_file = os.path.join(path, program)
-            if is_exe(exe_file):
-                return exe_file
+    progs = []
+    if not path:
+        path = os.environ["PATH"]
+    for folder in path.split(os.pathsep):
+        folder = folder.strip('"')
+        if folder:
+            exe_path = os.path.join(folder, program)
+            for f in [exe_path] + ['%s%s'%(exe_path, e) for e in winprog_exts]:
+                if is_exec(f):
+                    progs.append(f)
 
-    return None
+    return progs
 
+def which(program):
+    progs = where(program)
+    return progs and progs[0]
 
 def gpg_del_gened_key(gpg, fingerprint):
     log.debug('Deleting secret+pub: %s', fingerprint)
