@@ -12,7 +12,7 @@ It contains functions that model the basic mechanics of the final drive.
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher import Dispatcher
 import logging
-from .defaults import *
+from .defaults import dfl
 import numpy as np
 log = logging.getLogger(__name__)
 
@@ -215,7 +215,7 @@ def final_drive():
 
     dsp.add_data(
         data_id='final_drive_ratio',
-        default_value=FINAL_DRIVE_RATIO
+        default_value=dfl.values.final_drive_ratio
     )
 
     dsp.add_function(
@@ -226,12 +226,12 @@ def final_drive():
 
     dsp.add_data(
         data_id='final_drive_efficiency',
-        default_value=FINAL_DRIVE_EFFICIENCY
+        default_value=dfl.values.final_drive_efficiency
     )
 
     dsp.add_data(
         data_id='n_wheel_drive',
-        default_value=N_WHEEL_DRIVE
+        default_value=dfl.values.n_wheel_drive
     )
 
     dsp.add_function(

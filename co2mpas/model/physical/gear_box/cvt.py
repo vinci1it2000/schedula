@@ -12,7 +12,7 @@ It contains functions that model the basic mechanics of a CVT.
 
 from co2mpas.dispatcher import Dispatcher
 from sklearn.ensemble import GradientBoostingRegressor
-from ..defaults import *
+from ..defaults import dfl
 import numpy as np
 
 
@@ -163,7 +163,7 @@ def cvt_model():
 
     dsp.add_data(
         data_id='stop_velocity',
-        default_value=VEL_EPS
+        default_value=dfl.values.stop_velocity
     )
 
     dsp.add_function(

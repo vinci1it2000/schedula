@@ -1,4 +1,4 @@
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Copyright 2015 European Commission (JRC);
 # Licensed under the EUPL (the 'Licence');
@@ -12,7 +12,7 @@ It contains functions to calculate torque losses and the gear box temperature.
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher import Dispatcher
 from math import pi
-from ..defaults import *
+from ..defaults import dfl
 
 
 def evaluate_gear_box_torque_in(
@@ -55,7 +55,7 @@ def evaluate_gear_box_torque_in(
 def calculate_gear_box_torque_in(
         gear_box_torque_out, gear_box_speed_in, gear_box_speed_out,
         gear_box_temperature, gear_box_efficiency_parameters_cold_hot,
-        temperature_references):
+        gear_box_temperature_references):
     """
     Calculates torque required according to the temperature profile [N*m].
 
@@ -82,9 +82,9 @@ def calculate_gear_box_torque_in(
             - 'cold': `gbp00`, `gbp10`, `gbp01`
     :type gear_box_efficiency_parameters_cold_hot: dict
 
-    :param temperature_references:
+    :param gear_box_temperature_references:
         Cold and hot reference temperatures [°C].
-    :type temperature_references: tuple
+    :type gear_box_temperature_references: tuple
 
     :return:
         Torque required according to the temperature profile [N*m].
@@ -92,7 +92,7 @@ def calculate_gear_box_torque_in(
     """
 
     par = gear_box_efficiency_parameters_cold_hot
-    T_cold, T_hot = temperature_references
+    T_cold, T_hot = gear_box_temperature_references
     t_out = gear_box_torque_out
     e_s, gb_s = gear_box_speed_in, gear_box_speed_out
 
@@ -251,8 +251,8 @@ def thermal():
     )
 
     dsp.add_data(
-        data_id='temperature_references',
-        default_value=GEAR_BOX_REF_TEMPS
+        data_id='gear_box_temperature_references',
+        default_value=dfl.values.gear_box_temperature_references
     )
 
     dsp.add_function(
@@ -260,7 +260,7 @@ def thermal():
         inputs=['gear_box_torque_out', 'gear_box_speed_in',
                 'gear_box_speed_out', 'gear_box_temperature',
                 'gear_box_efficiency_parameters_cold_hot',
-                'temperature_references'],
+                'gear_box_temperature_references'],
         outputs=['gear_box_torque_in<0>']
     )
 

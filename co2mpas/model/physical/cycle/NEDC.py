@@ -10,11 +10,10 @@
 It provides constants for the NEDC cycle.
 """
 
-
 from scipy.interpolate import interp1d
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher import Dispatcher
-from ..defaults import *
+from ..defaults import dfl
 import numpy as np
 
 
@@ -75,28 +74,34 @@ def nedc_velocities(times, gear_box_type):
 
     parts = {
         'manual':
-            {'part one': [
-                [0, 0], [11, 0], [15, 15], [23, 15], [25, 10], [28, 0], [49, 0],
-                [54, 15], [56, 15], [61, 32], [85, 32],  [93, 10], [96, 0],
-                [117, 0], [122, 15], [124, 15], [133, 35], [135, 35], [143, 50],
-                [155, 50], [163, 35], [176, 35], [178, 35], [185, 10], [188, 0],
-                [195, 0]],
-            'part two':[
-                [0, 0], [20, 0], [25, 15], [27, 15], [36, 35], [38, 35],
-                [46, 50], [48, 50], [61, 70], [111, 70], [119, 50], [188, 50],
-                [201, 70], [251, 70], [286, 100], [316, 100], [336, 120],
-                [346, 120], [362, 80], [370, 50], [380, 0], [400, 0]]
+            {
+                'part one': [
+                    [0, 0], [11, 0], [15, 15], [23, 15], [25, 10], [28, 0],
+                    [49, 0], [54, 15], [56, 15], [61, 32], [85, 32], [93, 10],
+                    [96, 0], [117, 0], [122, 15], [124, 15], [133, 35],
+                    [135, 35], [143, 50], [155, 50], [163, 35], [176, 35],
+                    [178, 35], [185, 10], [188, 0], [195, 0]
+                ],
+                'part two': [
+                    [0, 0], [20, 0], [25, 15], [27, 15], [36, 35], [38, 35],
+                    [46, 50], [48, 50], [61, 70], [111, 70], [119, 50],
+                    [188, 50], [201, 70], [251, 70], [286, 100], [316, 100],
+                    [336, 120], [346, 120], [362, 80], [370, 50], [380, 0],
+                    [400, 0]
+                ]
             },
         'automatic':
-            {'part one': [
-                [0, 0], [11, 0], [15, 15], [23, 15], [25, 10], [28, 0], [49, 0],
-                [61, 32], [85, 32], [93, 10], [96, 0], [117, 0], [143, 50],
-                [155, 50], [163, 35], [176, 35], [178, 35], [185, 10], [188, 0],
-                [195, 0]],
-            'part two': [
-                [0, 0], [20, 0], [61, 70], [111, 70], [119, 50], [188, 50],
-                [201, 70], [251, 70], [286, 100], [316, 100], [336, 120],
-                [346, 120], [362, 80], [370, 50], [380, 0], [400, 0]]
+            {
+                'part one': [
+                    [0, 0], [11, 0], [15, 15], [23, 15], [25, 10], [28, 0],
+                    [49, 0], [61, 32], [85, 32], [93, 10], [96, 0], [117, 0],
+                    [143, 50], [155, 50], [163, 35], [176, 35], [178, 35],
+                    [185, 10], [188, 0], [195, 0]
+                ],
+                'part two': [
+                    [0, 0], [20, 0], [61, 70], [111, 70], [119, 50], [188, 50],
+                    [201, 70], [251, 70], [286, 100], [316, 100], [336, 120],
+                    [346, 120], [362, 80], [370, 50], [380, 0], [400, 0]]
             }
     }
 
@@ -153,7 +158,7 @@ def nedc_gears(times, max_gear, k1=1, k2=2, k5=2):
         [28, 0], [44, 0], [44, k1], [49, k1], [49, 1], [55 - eps, 1],
         [55 - eps, 2], [93, 2], [93, k2], [96, k2], [96, 0], [112, 0],
         [112, k1], [117, k1], [117, 1], [123 - eps, 1], [123 - eps, 2],
-        [134 - eps, 2],  [134 - eps, 3], [177 - eps, 3], [177 - eps, 2],
+        [134 - eps, 2], [134 - eps, 3], [177 - eps, 3], [177 - eps, 2],
         [185, 2], [185, k2], [188, k2], [188, 0], [195, 0]
     ])
 
@@ -190,7 +195,7 @@ def nedc_time_length(frequency):
     :rtype: numpy.array
     """
 
-    return NEDC_TIME * frequency
+    return dfl.functions.nedc_time_length.TIME * frequency
 
 
 def _repeat_part_one(times, values):
@@ -225,18 +230,18 @@ def nedc_cycle():
 
     dsp.add_data(
         data_id='initial_temperature',
-        default_value=INITIAL_TEMPERATURE_NEDC,
+        default_value=dfl.values.initial_temperature_NEDC,
         description='Initial temperature of the test cell [°C].'
     )
 
     dsp.add_data(
         data_id='k1',
-        default_value=K1
+        default_value=dfl.values.k1
     )
 
     dsp.add_data(
         data_id='k2',
-        default_value=K2
+        default_value=dfl.values.k2
     )
 
     dsp.add_function(
@@ -248,13 +253,13 @@ def nedc_cycle():
 
     dsp.add_data(
         data_id='k5',
-        default_value=K5,
+        default_value=dfl.values.k5,
         initial_dist=10
     )
 
     dsp.add_data(
         data_id='time_sample_frequency',
-        default_value=TIME_SAMPLE_FREQUENCY
+        default_value=dfl.values.time_sample_frequency
     )
 
     dsp.add_function(

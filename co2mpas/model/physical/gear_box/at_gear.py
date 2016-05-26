@@ -158,11 +158,17 @@ def _upgrade_gsm(gsm, velocity_speed_ratios, cycle_type):
     gsm = deepcopy(gsm).convert(velocity_speed_ratios)
     if cycle_type == 'NEDC':
         if isinstance(gsm, MVL):
+            par = dfl.functions.correct_constant_velocity
             gsm.correct_constant_velocity(
-                up_cns_vel=CON_VEL_DN_SHIFT, dn_cns_vel=CON_VEL_UP_SHIFT
+                up_cns_vel=par.CON_VEL_DN_SHIFT, dn_cns_vel=par.CON_VEL_UP_SHIFT
             )
         elif isinstance(gsm, CMV):
-            gsm.correct_constant_velocity()
+            par = dfl.functions.correct_constant_velocity
+            gsm.correct_constant_velocity(
+                up_cns_vel=par.CON_VEL_UP_SHIFT, up_window=par.VEL_UP_WINDOW,
+                up_delta=par.DV_UP_SHIFT, dn_cns_vel=par.CON_VEL_DN_SHIFT,
+                dn_window=par.VEL_DN_WINDOW, dn_delta=par.DV_DN_SHIFT
+            )
     return gsm
 
 
@@ -426,7 +432,8 @@ def identify_gear_shifting_velocity_limits(gears, velocities, stop_velocity):
     return correct_gsv(gsv, stop_velocity)
 
 
-def define_gear_filter(change_gear_window_width):
+def define_gear_filter(
+        change_gear_window_width=dfl.values.change_gear_window_width):
     """
     Defines a gear filter function.
 
@@ -503,9 +510,8 @@ class CMV(OrderedDict):
         return self
 
     def correct_constant_velocity(
-            self, up_cns_vel=CON_VEL_UP_SHIFT, up_window=VEL_UP_WINDOW,
-            up_delta=DV_UP_SHIFT, dn_cns_vel=CON_VEL_DN_SHIFT,
-            dn_window=VEL_DN_WINDOW, dn_delta=DV_DN_SHIFT):
+            self, up_cns_vel=(), up_window=0.0, up_delta=0.0, dn_cns_vel=(),
+            dn_window=0.0, dn_delta=0.0):
         """
         Corrects the gear shifting matrix velocity for constant velocities.
 
@@ -568,7 +574,7 @@ class CMV(OrderedDict):
         plt.xlabel('Velocity [km/h]')
 
     def predict(self, X, correct_gear=lambda v, a, g: g, previous_gear=None,
-                times=None, gear_filter=define_gear_filter(TIME_WINDOW)):
+                times=None, gear_filter=define_gear_filter()):
 
         gear = previous_gear or min(self)
 
@@ -922,7 +928,7 @@ class GSPV(dict):
         plt.ylabel('Power [kW]')
 
     def predict(self, X, correct_gear=lambda v, a, g: g, previous_gear=None,
-                times=None, gear_filter=define_gear_filter(TIME_WINDOW)):
+                times=None,gear_filter=define_gear_filter()):
 
         gear = previous_gear or min(self)
 
@@ -1440,7 +1446,9 @@ def correct_gear_mvl(velocity, acceleration, gear, mvl, *args):
 
 
 class MVL(CMV):
-    def __init__(self, *args, plateau_acceleration=ACC_EPS, **kwargs):
+    def __init__(self, *args,
+                 plateau_acceleration=dfl.values.plateau_acceleration,
+                 **kwargs):
         super(MVL, self).__init__(*args, **kwargs)
         self.plateau_acceleration = plateau_acceleration
         
@@ -1503,7 +1511,7 @@ def domain_eco_mode(eco_mode, *args):
 
 
 def default_specific_gear_shifting(*args):
-    return SPECIFIC_GEAR_SHIFTING
+    return dfl.functions.default_specific_gear_shifting.SPECIFIC_GEAR_SHIFTING
 
 
 def at_domain(method):
@@ -1542,13 +1550,13 @@ def at_gear():
 
     dsp.add_data(
         data_id='eco_mode',
-        default_value=ECO_MODE,
+        default_value=dfl.values.eco_mode,
         description='Apply the eco-mode gear shifting?'
     )
 
     dsp.add_data(
         data_id='plateau_acceleration',
-        default_value=ACC_EPS
+        default_value=dfl.values.plateau_acceleration
     )
 
     dsp.add_function(
@@ -1560,7 +1568,7 @@ def at_gear():
 
     dsp.add_data(
         data_id='change_gear_window_width',
-        default_value=TIME_WINDOW
+        default_value=dfl.values.change_gear_window_width
     )
 
     dsp.add_function(
@@ -1571,7 +1579,7 @@ def at_gear():
 
     dsp.add_data(
         data_id='max_velocity_full_load_correction',
-        default_value=THRESHOLD_VEL_FULL_LOAD_CORR
+        default_value=dfl.values.max_velocity_full_load_correction
     )
 
     dsp.add_function(
@@ -1671,7 +1679,7 @@ def at_gear():
 
     dsp.add_data(
         data_id='use_dt_gear_shifting',
-        default_value=USE_DT_GEAR_SHIFTING,
+        default_value=dfl.values.use_dt_gear_shifting,
         description='If to use decision tree classifiers to predict gears.'
     )
 
@@ -1835,7 +1843,7 @@ def at_cmv():
 
     dsp.add_data(
         data_id='stop_velocity',
-        default_value=VEL_EPS
+        default_value=dfl.values.stop_velocity
     )
 
     # calibrate corrected matrix velocity
@@ -1876,12 +1884,12 @@ def at_cmv_cold_hot():
 
     dsp.add_data(
         data_id='time_cold_hot_transition',
-        default_value=AT_TIME_COLD_HOT_TRANSITION
+        default_value=dfl.values.time_cold_hot_transition
     )
 
     dsp.add_data(
         data_id='stop_velocity',
-        default_value=VEL_EPS
+        default_value=dfl.values.stop_velocity
     )
 
     # calibrate corrected matrix velocity cold/hot
@@ -2104,7 +2112,7 @@ def at_gspv():
 
     dsp.add_data(
         data_id='stop_velocity',
-        default_value=VEL_EPS
+        default_value=dfl.values.stop_velocity
     )
 
     # calibrate corrected matrix velocity
@@ -2144,12 +2152,12 @@ def at_gspv_cold_hot():
 
     dsp.add_data(
         data_id='time_cold_hot_transition',
-        default_value=AT_TIME_COLD_HOT_TRANSITION
+        default_value=dfl.values.time_cold_hot_transition
     )
 
     dsp.add_data(
         data_id='stop_velocity',
-        default_value=VEL_EPS
+        default_value=dfl.values.stop_velocity
     )
 
     # calibrate corrected matrix velocity

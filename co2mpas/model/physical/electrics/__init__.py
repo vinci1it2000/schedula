@@ -27,7 +27,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import GradientBoostingRegressor
 from scipy.stats import linregress
 from ..utils import reject_outliers, argmax
-from ..defaults import *
+from ..defaults import dfl
 import numpy as np
 from math import pi
 
@@ -864,12 +864,12 @@ def electrics():
 
     dsp.add_data(
         data_id='alternator_efficiency',
-        default_value=ALTERNATOR_EFFICIENCY
+        default_value=dfl.values.alternator_efficiency
     )
 
     dsp.add_data(
         data_id='delta_time_engine_starter',
-        default_value=DELTA_TIME_ENGINE_STARTER
+        default_value=dfl.values.delta_time_engine_starter
     )
 
     dsp.add_function(
@@ -890,7 +890,7 @@ def electrics():
 
     dsp.add_data(
         data_id='initial_state_of_charge',
-        default_value=INITIAL_SOC
+        default_value=dfl.values.initial_state_of_charge
     )
 
     dsp.add_function(
@@ -902,12 +902,12 @@ def electrics():
 
     dsp.add_data(
         data_id='stop_velocity',
-        default_value=VEL_EPS
+        default_value=dfl.values.stop_velocity
     )
 
     dsp.add_data(
         data_id='alternator_off_threshold',
-        default_value=THRESHOLD_ALT_CURR
+        default_value=dfl.values.alternator_off_threshold
     )
 
     dsp.add_function(
@@ -919,7 +919,7 @@ def electrics():
 
     dsp.add_data(
         data_id='alternator_start_window_width',
-        default_value=TIME_WINDOW
+        default_value=dfl.values.alternator_start_window_width
     )
 
     dsp.add_function(
@@ -952,7 +952,7 @@ def electrics():
 
     dsp.add_data(
         data_id='has_energy_recuperation',
-        default_value=HAS_ENERGY_RECUPERATION
+        default_value=dfl.values.has_energy_recuperation
     )
 
     dsp.add_function(

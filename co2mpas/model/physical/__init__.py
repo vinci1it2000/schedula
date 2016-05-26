@@ -133,13 +133,13 @@ def predict_vehicle_electrics_and_engine_behavior(
     args += (gear_box_speeds_in,)
     eng, ele = [(True, False)], [e]
 
-    #min_soc = electrics_model.alternator_status_model.min
+    # min_soc = electrics_model.alternator_status_model.min
 
     thermal_model = engine_temperature_regression_model.predict.delta
 
     for i, (on_eng, dt, p, a, s) in enumerate(zip(gen, *args)):
 
-        #if e[-1] < min_soc and not on_eng[0]:
+        # if e[-1] < min_soc and not on_eng[0]:
         #    on_eng[0], on_eng[1] = True, not eng[-1][-2]
 
         eng_s = calculate_engine_speeds_out_hot(s, on_eng[0], idle_engine_speed)
@@ -364,7 +364,8 @@ def physical():
             'gears': 'gears',
             'idle_engine_speed': 'idle_engine_speed',
             'r_dynamic': 'r_dynamic',
-            'temperature_references': 'temperature_references',
+            'gear_box_temperature_references':
+                'gear_box_temperature_references',
             'engine_thermostat_temperature': 'engine_thermostat_temperature',
             'times': 'times',
             'velocities': 'velocities',

@@ -1,4 +1,4 @@
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Copyright 2015 European Commission (JRC);
 # Licensed under the EUPL (the 'Licence');
@@ -16,7 +16,7 @@ from .utils import reject_outliers
 from .gear_box.mechanical import calculate_speed_velocity_ratios, \
     calculate_velocity_speed_ratios, calculate_gear_box_speeds_in, \
     identify_gears
-from .defaults import *
+from .defaults import dfl
 import numpy as np
 
 
@@ -383,17 +383,17 @@ def wheels():
 
     dsp.add_data(
         data_id='stop_velocity',
-        default_value=VEL_EPS
+        default_value=dfl.values.stop_velocity
     )
 
     dsp.add_data(
         data_id='plateau_acceleration',
-        default_value=ACC_EPS
+        default_value=dfl.values.plateau_acceleration
     )
 
     dsp.add_data(
         data_id='change_gear_window_width',
-        default_value=TIME_WINDOW
+        default_value=dfl.values.change_gear_window_width
     )
 
     dsp.add_function(

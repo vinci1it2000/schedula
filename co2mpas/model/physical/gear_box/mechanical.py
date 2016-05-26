@@ -1,4 +1,4 @@
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Copyright 2015 European Commission (JRC);
 # Licensed under the EUPL (the 'Licence');
@@ -18,62 +18,58 @@ from scipy.stats import binned_statistic
 from scipy.optimize import brute
 from scipy.interpolate import InterpolatedUnivariateSpline
 import numpy as np
-from ..utils import median_filter, bin_split, reject_outliers, clear_fluctuations
+from ..utils import median_filter, bin_split, reject_outliers, \
+    clear_fluctuations
 from sklearn.metrics import mean_absolute_error
 from . import calculate_gear_shifts
 
 
-def identify_gear(
-        idle_engine_speed, vsr, stop_velocity, plateau_acceleration, ratio,
-        velocity, acceleration):
+def _identify_gear(idle, vsr, stop_vel, plateau_acc, ratio, vel, acc):
     """
     Identifies a gear [-].
 
-    :param idle_engine_speed:
-        Engine speed idle median and std [RPM].
-    :type idle_engine_speed: (float, float)
+    :param idle:
+        Engine speed idle median and median + std [RPM].
+    :type idle: (float, float)
 
     :param vsr:
         Constant velocity speed ratios of the gear box [km/(h*RPM)].
     :type vsr: iterable
 
-    :param stop_velocity:
+    :param stop_vel:
         Maximum velocity to consider the vehicle stopped [km/h].
-    :type stop_velocity: float
+    :type stop_vel: float
 
-    :param plateau_acceleration:
+    :param plateau_acc:
         Maximum acceleration to be at constant velocity [m/s2].
-    :type plateau_acceleration: float
+    :type plateau_acc: float
 
     :param ratio:
         Vehicle velocity speed ratio [km/(h*RPM)].
     :type ratio: float
 
-    :param velocity:
+    :param vel:
         Vehicle velocity [km/h].
-    :type velocity: float
+    :type vel: float
 
-    :param acceleration:
+    :param acc:
         Vehicle acceleration [m/s2].
-    :type acceleration: float
+    :type acc: float
 
     :return:
         A gear [-].
     :rtype: int
     """
 
-    if velocity <= stop_velocity:
+    if vel <= stop_vel:
         return 0
 
     m, (gear, vs) = min((abs(v - ratio), (k, v)) for k, v in vsr)
 
-    if (acceleration < 0
-        and (velocity <= idle_engine_speed[0] * vs
-             or abs(velocity / idle_engine_speed[1] - ratio) < m)):
+    if acc < 0 and (vel <= idle[0] * vs or abs(vel / idle[1] - ratio) < m):
         return 0
 
-    if gear == 0 and ((velocity > stop_velocity and acceleration > 0)
-                      or acceleration > plateau_acceleration):
+    if gear == 0 and ((vel > stop_vel and acc > 0) or acc > plateau_acc):
         return 1
 
     return gear
@@ -136,7 +132,7 @@ def identify_gears(
 
     ratios[engine_speeds_out < idle_speed[0]] = 0
 
-    id_gear = partial(identify_gear, idle_speed, vsr, stop_velocity,
+    id_gear = partial(_identify_gear, idle_speed, vsr, stop_velocity,
                       plateau_acceleration)
 
     gear = list(map(id_gear, *(ratios, velocities, accelerations)))
@@ -192,7 +188,7 @@ def _speed_shift(times, speeds):
     return shift
 
 
-#not used
+# not used
 def calculate_gear_box_speeds_from_engine_speeds(
         times, velocities, engine_speeds_out, velocity_speed_ratios,
         shift_window=6.0):
@@ -524,17 +520,17 @@ def mechanical():
 
     dsp.add_data(
         data_id='stop_velocity',
-        default_value=VEL_EPS
+        default_value=dfl.values.stop_velocity
     )
 
     dsp.add_data(
         data_id='plateau_acceleration',
-        default_value=ACC_EPS
+        default_value=dfl.values.plateau_acceleration
     )
 
     dsp.add_data(
         data_id='change_gear_window_width',
-        default_value=TIME_WINDOW
+        default_value=dfl.values.change_gear_window_width
     )
 
     dsp.add_function(

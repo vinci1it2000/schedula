@@ -405,7 +405,7 @@ def define_data_schema(read=True):
                             length=3,
                             read=read),
         'start_stop_model': function,
-        'temperature_references': tuplefloat2,
+        'gear_box_temperature_references': tuplefloat2,
         'torque_converter_model': function,
         'phases_co2_emissions': tuplefloat,
         'phases_integration_times':

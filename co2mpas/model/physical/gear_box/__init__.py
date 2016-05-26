@@ -1,4 +1,4 @@
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Copyright 2015 European Commission (JRC);
 # Licensed under the EUPL (the 'Licence');
@@ -24,7 +24,7 @@ Sub-Modules:
 from co2mpas.dispatcher import Dispatcher
 from math import pi
 import co2mpas.dispatcher.utils as dsp_utl
-from ..defaults import *
+from ..defaults import dfl
 from functools import partial
 import numpy as np
 
@@ -58,7 +58,7 @@ def get_gear_box_efficiency_constants(gear_box_type):
     :rtype: dict
     """
 
-    return GEAR_BOX_EFF_CONSTANTS[gear_box_type]
+    return dfl.functions.get_gear_box_efficiency_constants.PARAMS[gear_box_type]
 
 
 def _linear(x, m, q):
@@ -152,7 +152,7 @@ def calculate_gear_box_torques(
 def calculate_gear_box_torques_in(
         gear_box_torques, gear_box_speeds_in, gear_box_speeds_out,
         gear_box_temperatures, gear_box_efficiency_parameters_cold_hot,
-        temperature_references, min_engine_on_speed):
+        gear_box_temperature_references, min_engine_on_speed):
     """
     Calculates torque required according to the temperature profile [N*m].
 
@@ -179,9 +179,9 @@ def calculate_gear_box_torques_in(
             - 'cold': `gbp00`, `gbp10`, `gbp01`
     :type gear_box_efficiency_parameters_cold_hot: dict
 
-    :param temperature_references:
+    :param gear_box_temperature_references:
         Cold and hot reference temperatures [°C].
-    :type temperature_references: tuple
+    :type gear_box_temperature_references: tuple
 
     :param min_engine_on_speed:
         Minimum engine speed to consider the engine to be on [RPM].
@@ -193,7 +193,7 @@ def calculate_gear_box_torques_in(
     """
 
     par = gear_box_efficiency_parameters_cold_hot
-    T_cold, T_hot = temperature_references
+    T_cold, T_hot = gear_box_temperature_references
     t_out, e_s, gb_s = gear_box_torques, gear_box_speeds_in, gear_box_speeds_out
     fun = partial(_gear_box_torques_in, min_engine_on_speed)
 
@@ -373,8 +373,8 @@ def calculate_gear_box_efficiencies_torques_temperatures(
         gear_box_powers_out, gear_box_speeds_in, gear_box_speeds_out,
         gear_box_torques_out, gear_box_efficiency_parameters_cold_hot,
         equivalent_gear_box_heat_capacity, thermostat_temperature,
-        temperature_references, initial_gear_box_temperature, gears=None,
-        gear_box_ratios=None):
+        gear_box_temperature_references, initial_gear_box_temperature,
+        gears=None, gear_box_ratios=None):
     """
     Calculates gear box efficiency [-], torque in [N*m], and temperature [°C].
 
@@ -409,9 +409,9 @@ def calculate_gear_box_efficiencies_torques_temperatures(
         Thermostat temperature [°C].
     :type thermostat_temperature: float
 
-    :param temperature_references:
+    :param gear_box_temperature_references:
         Reference temperature [°C].
-    :type temperature_references: (float, float)
+    :type gear_box_temperature_references: (float, float)
 
     :param initial_gear_box_temperature:
         initial_gear_box_temperature [°C].
@@ -435,15 +435,16 @@ def calculate_gear_box_efficiencies_torques_temperatures(
 
     inputs = ['thermostat_temperature', 'equivalent_gear_box_heat_capacity',
               'gear_box_efficiency_parameters_cold_hot',
-              'temperature_references',
+              'gear_box_temperature_references',
               'gear_box_power_out', 'gear_box_speed_out', 'gear_box_speed_in',
               'gear_box_torque_out']
 
     outputs = ['gear_box_temperature', 'gear_box_torque_in',
                'gear_box_efficiency']
 
-    dfl = (thermostat_temperature, equivalent_gear_box_heat_capacity,
-           gear_box_efficiency_parameters_cold_hot, temperature_references)
+    base = (thermostat_temperature, equivalent_gear_box_heat_capacity,
+           gear_box_efficiency_parameters_cold_hot,
+           gear_box_temperature_references)
 
     it = (gear_box_powers_out, gear_box_speeds_out, gear_box_speeds_in,
           gear_box_torques_out)
@@ -451,7 +452,7 @@ def calculate_gear_box_efficiencies_torques_temperatures(
     if gear_box_ratios and gears is not None:
         inputs = ['gear_box_ratios'] + inputs
         inputs.append('gear')
-        dfl = (gear_box_ratios, ) + dfl
+        base = (gear_box_ratios, ) + base
         it = it + (gears, )
 
     inputs.append('gear_box_temperature')
@@ -462,7 +463,7 @@ def calculate_gear_box_efficiencies_torques_temperatures(
     res = []
     o = [initial_gear_box_temperature]
     for args in zip(*it):
-        o = fun(*(dfl + args + (o[0], )))
+        o = fun(*(base + args + (o[0], )))
         res.append(o)
 
     temp, to_in, eff = zip(*res)
@@ -510,15 +511,15 @@ def calculate_equivalent_gear_box_heat_capacity(fuel_type, engine_max_power):
        Equivalent gear box heat capacity [kg*J/K].
     :rtype: float
     """
-
-    _mass_coeff = GEAR_BOX_HEAT_CAP_CONSTANTS['mass_coeff']
+    par = dfl.functions.calculate_equivalent_gear_box_heat_capacity.PARAMS
+    _mass_coeff = par['mass_coeff']
     # Engine mass empirical formula based on web data found for engines weighted
     # according DIN 70020-GZ
     eng_mass = (0.4208 * engine_max_power + 60.0) * _mass_coeff[fuel_type]  # kg
 
-    _mass_percentage = GEAR_BOX_HEAT_CAP_CONSTANTS['mass_percentage']
+    _mass_percentage = par['mass_percentage']
 
-    _heat_capacity = GEAR_BOX_HEAT_CAP_CONSTANTS['heat_capacity']  # Cp in J/K
+    _heat_capacity = par['heat_capacity']  # Cp in J/K
 
     weighted_eng_mass = sum(v * eng_mass for v in _mass_percentage.values())
 
@@ -586,7 +587,7 @@ def gear_box():
 
     dsp.add_data(
         data_id='min_engine_on_speed',
-        default_value=MIN_ENGINE_SPEED
+        default_value=dfl.values.min_engine_on_speed
     )
 
     dsp.add_function(
@@ -597,8 +598,8 @@ def gear_box():
     )
 
     dsp.add_data(
-        data_id='temperature_references',
-        default_value=GEAR_BOX_REF_TEMPS
+        data_id='gear_box_temperature_references',
+        default_value=dfl.values.gear_box_temperature_references
     )
 
     dsp.add_function(
@@ -606,7 +607,7 @@ def gear_box():
         inputs=['gear_box_torques', 'gear_box_speeds_in',
                 'gear_box_speeds_out', 'gear_box_temperatures',
                 'gear_box_efficiency_parameters_cold_hot',
-                'temperature_references', 'min_engine_on_speed'],
+                'gear_box_temperature_references', 'min_engine_on_speed'],
         outputs=['gear_box_torques_in<0>']
     )
 
@@ -643,7 +644,7 @@ def gear_box():
                 'gear_box_speeds_out', 'gear_box_torques',
                 'gear_box_efficiency_parameters_cold_hot',
                 'equivalent_gear_box_heat_capacity',
-                'engine_thermostat_temperature', 'temperature_references',
+                'engine_thermostat_temperature', 'gear_box_temperature_references',
                 'initial_gear_box_temperature', 'gears', 'gear_box_ratios'],
         outputs=['gear_box_efficiencies', 'gear_box_torques_in',
                  'gear_box_temperatures'],
@@ -656,7 +657,7 @@ def gear_box():
                 'gear_box_speeds_out', 'gear_box_torques',
                 'gear_box_efficiency_parameters_cold_hot',
                 'equivalent_gear_box_heat_capacity',
-                'engine_thermostat_temperature', 'temperature_references',
+                'engine_thermostat_temperature', 'gear_box_temperature_references',
                 'initial_gear_box_temperature'],
         outputs=['gear_box_efficiencies', 'gear_box_torques_in',
                  'gear_box_temperatures'],

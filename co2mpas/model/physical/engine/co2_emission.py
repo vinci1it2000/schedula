@@ -1,4 +1,4 @@
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Copyright 2015 European Commission (JRC);
 # Licensed under the EUPL (the 'Licence');
@@ -413,8 +413,8 @@ def select_phases_integration_times(cycle_type):
         Cycle phases integration times [s].
     :rtype: tuple
     """
-
-    return tuple(dsp_utl.pairwise(INTEGRATION_TIMES[cycle_type.upper()]))
+    i_times = dfl.functions.select_phases_integration_times.INTEGRATION_TIMES
+    return tuple(dsp_utl.pairwise(i_times[cycle_type.upper()]))
 
 
 def calculate_phases_distances(times, phases_integration_times, velocities):
@@ -893,7 +893,8 @@ def define_initial_co2_emission_model_params_guess(
     """
 
     bounds = bounds or {}
-    default = copy.deepcopy(DEFAULT_CO2_PARAMS)[engine_type]
+    par = dfl.functions.define_initial_co2_emission_model_params_guess
+    default = copy.deepcopy(par.CO2_PARAMS)[engine_type]
     default['trg'] = {
         'value': engine_normalization_temperature,
         'min': engine_normalization_temperature_window[0],
@@ -1108,12 +1109,13 @@ def restrict_bounds(co2_params):
     :rtype: dict
     """
     p = copy.deepcopy(co2_params)
+    m = dfl.functions.restrict_bounds.CO2_PARAMS_LIMIT_MULTIPLIERS
 
     def _limits(k, v):
-        if k in RESTRICT_CO2_PARAMS_MULTIPLIERS:
-            v = tuple(RESTRICT_CO2_PARAMS_MULTIPLIERS[k] * v.value)
+        try:
+            v = tuple(m[k] * v.value)
             return min(v), max(v)
-        else:
+        except KeyError:
             return v.min, v.max
 
     for k, v in p.items():
@@ -1807,12 +1809,12 @@ def co2_emission():
 
     dsp.add_data(
         data_id='stop_velocity',
-        default_value=VEL_EPS
+        default_value=dfl.values.stop_velocity
     )
 
     dsp.add_data(
         data_id='min_engine_on_speed',
-        default_value=MIN_ENGINE_SPEED
+        default_value=dfl.values.min_engine_on_speed
     )
 
     dsp.add_function(
@@ -1846,7 +1848,7 @@ def co2_emission():
 
     dsp.add_data(
         data_id='is_cycle_hot',
-        default_value=IS_CYCLE_HOT
+        default_value=dfl.values.is_cycle_hot
     )
 
     dsp.add_function(
@@ -1950,7 +1952,7 @@ def co2_emission():
 
     dsp.add_data(
         data_id='co2_params',
-        default_value=CO2_PARAMS.copy()
+        default_value=dfl.values.co2_params.copy()
     )
 
     dsp.add_function(
@@ -2030,7 +2032,7 @@ def co2_emission():
 
     dsp.add_data(
         data_id='enable_phases_willans',
-        default_value=ENABLE_WILLANS_PHASES,
+        default_value=dfl.values.enable_phases_willans,
         description='Enable the calculation of Willans coefficients for '
                     'all phases?'
     )

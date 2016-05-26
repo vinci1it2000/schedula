@@ -12,7 +12,7 @@ It contains functions that model the basic mechanics of the torque converter.
 from sklearn.metrics import mean_absolute_error
 from sklearn.ensemble import GradientBoostingRegressor
 from . import define_k_factor_curve
-from ..defaults import *
+from ..defaults import dfl
 from co2mpas.dispatcher import Dispatcher
 import numpy as np
 
@@ -164,9 +164,9 @@ def predict_torque_converter_speeds_delta(
     :rtype: numpy.array
     """
 
-    X = np.array([accelerations, velocities, gear_box_speeds_in, gears]).T
+    x = np.array([accelerations, velocities, gear_box_speeds_in, gears]).T
 
-    return torque_converter_model(lock_up_tc_limits, X)
+    return torque_converter_model(lock_up_tc_limits, x)
 
 
 def default_tc_k_factor_curve():
@@ -177,8 +177,8 @@ def default_tc_k_factor_curve():
         k factor curve.
     :rtype: function
     """
-
-    a = TC_STAND_STILL_TORQUE_RATIO, TC_LOCKUP_SPEED_RATIO
+    par = dfl.functions.default_tc_k_factor_curve
+    a = par.STAND_STILL_TORQUE_RATIO, par.LOCKUP_SPEED_RATIO
 
     return define_k_factor_curve(*a)
 
@@ -203,17 +203,17 @@ def torque_converter():
 
     dsp.add_data(
         data_id='calibration_tc_speed_threshold',
-        default_value=CALIBRATION_TC_SPEED_THRESHOLD
+        default_value=dfl.values.calibration_tc_speed_threshold
     )
 
     dsp.add_data(
         data_id='stop_velocity',
-        default_value=VEL_EPS
+        default_value=dfl.values.stop_velocity
     )
 
     dsp.add_data(
         data_id='lock_up_tc_limits',
-        default_value=LOCKUP_TC_LIMITS
+        default_value=dfl.values.lock_up_tc_limits
     )
 
     dsp.add_function(

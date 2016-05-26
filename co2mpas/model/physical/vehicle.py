@@ -1,4 +1,4 @@
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Copyright 2015 European Commission (JRC);
 # Licensed under the EUPL (the 'Licence');
@@ -14,7 +14,7 @@ from co2mpas.dispatcher import Dispatcher
 from math import cos, sin
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 from pykalman import KalmanFilter
-from .defaults import *
+from .defaults import dfl
 import numpy as np
 
 
@@ -59,7 +59,7 @@ def calculate_accelerations(times, velocities):
     :rtype: numpy.array
     """
 
-    acc = Spline(times, velocities / 3.6, k=3).derivative()(times)
+    acc = Spline(times, velocities / 3.6).derivative()(times)
     b = (velocities[:-1] == 0) & (velocities[1:] == velocities[:-1])
     acc[:-1][b] = 0
     if b[-1]:
@@ -231,8 +231,8 @@ def select_default_n_dyno_axes(cycle_type):
         Number of dyno axes [-].
     :rtype: int
     """
-
-    return DYNO_AXES.get(cycle_type.upper(), 2)
+    par = dfl.functions.select_default_n_dyno_axes
+    return par.DYNO_AXES.get(cycle_type.upper(), 2)
 
 
 def select_inertial_factor(n_dyno_axes):
@@ -251,6 +251,7 @@ def select_inertial_factor(n_dyno_axes):
     return 1.5 * n_dyno_axes
 
 
+# noinspection PyPep8Naming
 def calculate_motive_forces(
         vehicle_mass, accelerations, climbing_force, aerodynamic_resistances,
         rolling_resistance, velocity_resistances, rotational_inertia_forces):
@@ -381,7 +382,7 @@ def vehicle():
 
     dsp.add_data(
         data_id='air_density',
-        default_value=AIR_DENSITY,
+        default_value=dfl.values.air_density,
     )
 
     dsp.add_function(
@@ -400,7 +401,7 @@ def vehicle():
 
     dsp.add_data(
         data_id='angle_slope',
-        default_value=ANGLE_SLOPE,
+        default_value=dfl.values.angle_slope,
     )
 
     dsp.add_function(
@@ -474,7 +475,7 @@ def vehicle():
 
     dsp.add_data(
         data_id='correct_f0',
-        default_value=CORRECT_F0
+        default_value=dfl.values.correct_f0
     )
 
     dsp.add_function(

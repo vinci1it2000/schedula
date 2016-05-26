@@ -1,4 +1,4 @@
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Copyright 2015 European Commission (JRC);
 # Licensed under the EUPL (the 'Licence');
@@ -61,26 +61,26 @@ class ThermalModel(object):
         :rtype: ThermalModel
         """
 
-        T, dT, dt, b = _get_samples(times, engine_coolant_temperatures,
-                                    on_engine)
+        temp, dtemp, dt, b = _get_samples(times, engine_coolant_temperatures,
+                                          on_engine)
 
-        if not dT.size:
+        if not dtemp.size:
             self.predict = DT0()
             return self
 
         a = gear_box_powers_in[b], gear_box_speeds_in[b], accelerations[b]
 
         models = [
-            TPS().fit(T, dT, *a[:2]),
-            TPSA().fit(T, dT, *a),
-            TPSA().fit(T, dT, *a, max_depth=3)
+            TPS().fit(temp, dtemp, *a[:2]),
+            TPSA().fit(temp, dtemp, *a),
+            TPSA().fit(temp, dtemp, *a, max_depth=3)
         ]
 
         counter = dsp_utl.counter()
 
         def error(model):
-            pred_T = model(dt, *a, initial_temperature=T[0])
-            return (mean_squared_error(T, pred_T), counter()), model
+            pred_temp = model(dt, *a, initial_temperature=temp[0])
+            return (mean_squared_error(temp, pred_temp), counter()), model
 
         models = [(error(m),  m) for m in models]
 
@@ -111,19 +111,19 @@ class TPS(DT0):
 
         return np.array(temp)
 
-    def fit(self, T, dT, *args, **kw):
-        X = np.array((T,) + args).T[:-1]
+    def fit(self, temp, dtemp, *args, **kw):
+        x = np.array((temp,) + args).T[:-1]
         opt = {
             'random_state': 0,
             'max_depth': 2,
-            'n_estimators': int(min(300, 0.25 * (len(dT) - 1))),
+            'n_estimators': int(min(300, 0.25 * (len(dtemp) - 1))),
             'loss': 'huber',
             'alpha': 0.99
         }
         opt.update(kw)
         # noinspection PyUnresolvedReferences
         model = GradientBoostingRegressor(**opt)
-        model.fit(X, dT)
+        model.fit(x, dtemp)
         self.predict = model.predict
         return self
 
@@ -137,12 +137,13 @@ class TPSA(TPS):
 
 
 def _get_samples(times, engine_coolant_temperatures, on_engine):
-    dT = derivative(times, engine_coolant_temperatures, dx=4, order=7)[1:]
+    dtemp = derivative(times, engine_coolant_temperatures, dx=4, order=7)[1:]
     dt = np.diff(times)
     b = np.ones_like(times, dtype=bool)
-    b[:-1] = (times[:-1] > times[argmax(on_engine)]) & get_inliers(dT, n=3)[0]
-    dt, dT, T = dt[b[:-1]], dT[b[:-1]], engine_coolant_temperatures[b]
-    return T, np.array(dT, np.float64, order='C'), dt, b
+    first_on = times[argmax(on_engine)]
+    b[:-1] = (times[:-1] > first_on) & get_inliers(dtemp, n=3)[0]
+    dt, dtemp, temp = dt[b[:-1]], dtemp[b[:-1]], engine_coolant_temperatures[b]
+    return temp, np.array(dtemp, np.float64, order='C'), dt, b
 
 
 def calibrate_engine_temperature_regression_model(
@@ -227,7 +228,7 @@ def predict_engine_coolant_temperatures(
     :rtype: numpy.array
     """
 
-    T = model(np.diff(times), gear_box_powers_in, engine_speeds_out_hot,
-              accelerations, initial_temperature=initial_temperature)
+    temp = model(np.diff(times), gear_box_powers_in, engine_speeds_out_hot,
+                 accelerations, initial_temperature=initial_temperature)
 
-    return T
+    return temp

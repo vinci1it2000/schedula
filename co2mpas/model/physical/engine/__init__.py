@@ -1,4 +1,4 @@
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Copyright 2015 European Commission (JRC);
 # Licensed under the EUPL (the 'Licence');
@@ -47,7 +47,7 @@ def get_full_load(fuel_type):
     :rtype: scipy.interpolate.InterpolatedUnivariateSpline
     """
 
-    return Spline(*FULL_LOAD[fuel_type], ext=3)
+    return Spline(*dfl.functions.get_full_load.FULL_LOAD[fuel_type], ext=3)
 
 
 def select_initial_friction_params(co2_params_initial_guess):
@@ -259,18 +259,15 @@ def identify_normalization_engine_temperature(
         Normalization engine temperature and its limits [°C].
     :rtype: (float, (float, float))
     """
-
-    p = np.array((NORM_ENGINE_TEMP_PARAMS['p0'], NORM_ENGINE_TEMP_PARAMS['p1']))
-    p0, p1 = (times[-1] - times[0]) * p + times[0]
+    p = dfl.functions.identify_normalization_engine_temperature.PARAMS
+    p0, p1 = (times[-1] - times[0]) * np.array((p['p0'], p['p1'])) + times[0]
     t = engine_coolant_temperatures[(p0 < times) & (times < p1)]
 
     m, s = reject_outliers(t, n=2)
 
     max_temp = max(t)
 
-    n_std = NORM_ENGINE_TEMP_PARAMS['n_std']
-
-    return m - s, (m - n_std * s, max_temp)
+    return m - s, (m - p['n_std'] * s, max_temp)
 
 
 def identify_initial_engine_temperature(engine_coolant_temperatures):
@@ -311,7 +308,7 @@ def calculate_engine_max_torque(
     :rtype: float
     """
 
-    c = ENGINE_MAX_TORQUE_PARAMS[fuel_type]
+    c = dfl.functions.calculate_engine_max_torque.PARAMS[fuel_type]
 
     return engine_max_power / engine_max_speed_at_max_power * 30000.0 / pi * c
 
@@ -338,12 +335,14 @@ def calculate_engine_max_power(
     :rtype: float
     """
 
-    c = ENGINE_MAX_TORQUE_PARAMS[fuel_type]
+    c = calculate_engine_max_torque(1, engine_max_speed_at_max_power, fuel_type)
 
-    return engine_max_torque * engine_max_speed_at_max_power / 30000.0 * pi / c
+    return engine_max_torque / c
 
 
-def identify_on_engine(times, engine_speeds_out, idle_engine_speed):
+def identify_on_engine(
+        times, engine_speeds_out, idle_engine_speed,
+        min_time_engine_on_after_start):
     """
     Identifies if the engine is on [-].
 
@@ -359,6 +358,10 @@ def identify_on_engine(times, engine_speeds_out, idle_engine_speed):
         Idle engine speed and its standard deviation [RPM].
     :type idle_engine_speed: (float, float)
 
+    :param min_time_engine_on_after_start:
+        Minimum time of engine on after a start [s].
+    :type min_time_engine_on_after_start: float
+
     :return:
         If the engine is on [-].
     :rtype: numpy.array
@@ -369,7 +372,8 @@ def identify_on_engine(times, engine_speeds_out, idle_engine_speed):
     b = engine_speeds_out > idle_engine_speed[0] - idle_engine_speed[1]
     on_engine[b] = 1
 
-    on_engine = clear_fluctuations(times, on_engine, TIME_WINDOW)
+    on_engine = clear_fluctuations(times, on_engine,
+                                   min_time_engine_on_after_start)
 
     return np.array(on_engine, dtype=bool)
 
@@ -667,7 +671,8 @@ def calculate_cold_start_speeds_delta(
         idle_engine_speed[0], engine_speeds_out_hot, on_engine,
         engine_coolant_temperatures
     )
-    max_delta = idle_engine_speed[0] * MAX_COLD_START_SPEED_DELTA_PERCENTAGE
+    par = dfl.functions.calculate_cold_start_speeds_delta
+    max_delta = idle_engine_speed[0] * par.MAX_COLD_START_SPEED_DELTA_PERCENTAGE
     delta_speeds[delta_speeds > max_delta] = max_delta
     return delta_speeds
 
@@ -938,22 +943,22 @@ def _calibrate_cold_start_speed_model_v1(
         Cold start speed model.
     :rtype: function
     """
-
-    t = times[0] + COLD_START_SPEED_MODEL_V1_PARAMS['first_seconds']
+    par = dfl.functions.calibrate_cold_start_speed_model_v1.PARAMS
+    t = times[0] + par['first_seconds']
 
     b = (times < t) & (engine_speeds_out > idle_engine_speed[0])
     b &= (velocities < stop_velocity)
     b &= (abs(accelerations) < plateau_acceleration)
 
     idl = idle_engine_speed[0]
-    dn, up = COLD_START_SPEED_MODEL_V1_PARAMS['delta_speed_limits']
+    dn, up = par['delta_speed_limits']
     if b.any():
         ds = np.mean(engine_speeds_out[b])
         if ds <= idl * dn:
             ds = idl * up
     else:
         ds = idl * up
-    max_T = COLD_START_SPEED_MODEL_V1_PARAMS['max_temperature']
+    max_T = par['max_temperature']
     ds = abs((ds - idl) / (max_T - min(engine_coolant_temperatures)))
 
     # noinspection PyUnusedLocal
@@ -1304,7 +1309,7 @@ def calculate_engine_moment_inertia(engine_capacity, fuel_type):
     :rtype: float
     """
 
-    w = ENGINE_MOMENT_INERTIA_PARAMS[fuel_type]
+    w = dfl.functions.calculate_engine_moment_inertia.PARAMS[fuel_type]
 
     return (0.05 + 0.1 * engine_capacity / 1000.0) * w
 
@@ -1342,7 +1347,7 @@ def default_fuel_density(fuel_type):
     :rtype: float
     """
 
-    return FUEL_DENSITY[fuel_type]
+    return dfl.functions.default_fuel_density.FUEL_DENSITY[fuel_type]
 
 
 def calculate_auxiliaries_power_losses(
@@ -1406,7 +1411,7 @@ def engine():
 
     dsp.add_data(
         data_id='is_cycle_hot',
-        default_value=IS_CYCLE_HOT
+        default_value=dfl.values.is_cycle_hot
     )
 
     dsp.add_function(
@@ -1447,7 +1452,7 @@ def engine():
     # default value
     dsp.add_data(
         data_id='idle_engine_speed_std',
-        default_value=IDLE_ENGINE_SPEED_STD,
+        default_value=dfl.values.idle_engine_speed_std,
         description='Standard deviation of idle engine speed [RPM].'
     )
 
@@ -1523,7 +1528,8 @@ def engine():
 
     dsp.add_function(
         function=identify_on_engine,
-        inputs=['times', 'engine_speeds_out', 'idle_engine_speed'],
+        inputs=['times', 'engine_speeds_out', 'idle_engine_speed',
+                'min_time_engine_on_after_start'],
         outputs=['on_engine']
     )
 
@@ -1535,7 +1541,7 @@ def engine():
 
     dsp.add_data(
         data_id='start_stop_activation_time',
-        default_value=START_STOP_ACTIVATION_TIME
+        default_value=dfl.values.start_stop_activation_time
     )
 
     dsp.add_function(
@@ -1553,7 +1559,7 @@ def engine():
 
     dsp.add_data(
         data_id='min_time_engine_on_after_start',
-        default_value=TIME_WINDOW
+        default_value=dfl.values.min_time_engine_on_after_start
     )
 
     dsp.add_function(
@@ -1567,7 +1573,7 @@ def engine():
 
     dsp.add_data(
         data_id='plateau_acceleration',
-        default_value=ACC_EPS
+        default_value=dfl.values.plateau_acceleration
     )
 
     dsp.add_function(
@@ -1647,7 +1653,7 @@ def engine():
 
     dsp.add_data(
         data_id='engine_is_turbo',
-        default_value=ENGINE_IS_TURBO
+        default_value=dfl.values.engine_is_turbo
     )
 
     dsp.add_function(
@@ -1664,12 +1670,12 @@ def engine():
 
     dsp.add_data(
         data_id='auxiliaries_torque_loss',
-        default_value=AUX_TORQUE_LOSS
+        default_value=dfl.values.auxiliaries_torque_loss
     )
 
     dsp.add_data(
         data_id='auxiliaries_power_loss',
-        default_value=AUX_POWER_LOSS
+        default_value=dfl.values.auxiliaries_power_loss
     )
 
     dsp.add_function(

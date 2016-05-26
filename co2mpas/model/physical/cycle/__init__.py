@@ -122,7 +122,7 @@ def cycle():
             'idle_engine_speed': 'idle_engine_speed',
             'inertial_factor': 'inertial_factor',
             'downscale_phases': 'downscale_phases',
-            'climbing_force':'climbing_force',
+            'climbing_force': 'climbing_force',
             'full_load_curve': 'full_load_curve',
             'downscale_factor': 'downscale_factor',
             'downscale_factor_threshold': 'downscale_factor_threshold',

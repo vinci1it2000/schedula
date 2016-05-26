@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 
 
 # noinspection PyUnusedLocal
-def calibrate_co2_params_ALL(rank, *data, data_id=None):
+def calibrate_co2_params_all(rank, *data, data_id=None):
     # noinspection PyBroadException
     try:
         from ..physical.engine.co2_emission import calibrate_model_params
@@ -81,7 +81,7 @@ def co2_params_selector(
     )
 
     dsp.add_function(
-        function=partial(calibrate_co2_params_ALL, data_id=data_in),
+        function=partial(calibrate_co2_params_all, data_id=data_in),
         inputs=['rank<0>'] + errors[:-1],
         outputs=['ALL']
     )

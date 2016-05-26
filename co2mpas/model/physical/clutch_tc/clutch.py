@@ -13,7 +13,7 @@ from scipy.optimize import brute
 from sklearn.metrics import mean_squared_error
 from sklearn.linear_model import RANSACRegressor, LinearRegression
 from functools import partial
-from ..defaults import *
+from ..defaults import dfl
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher import Dispatcher
 from . import define_k_factor_curve
@@ -223,8 +223,8 @@ def default_clutch_k_factor_curve():
         k factor curve.
     :rtype: function
     """
-
-    a = CLUTCH_STAND_STILL_TORQUE_RATIO, CLUTCH_LOCKUP_SPEED_RATIO
+    par = dfl.functions.default_clutch_k_factor_curve
+    a = par.STAND_STILL_TORQUE_RATIO, par.LOCKUP_SPEED_RATIO
 
     return define_k_factor_curve(*a)
 
@@ -261,7 +261,7 @@ def clutch():
 
     dsp.add_data(
         data_id='max_clutch_window_width',
-        default_value=TIME_WINDOW
+        default_value=dfl.values.max_clutch_window_width
     )
 
     dsp.add_function(
