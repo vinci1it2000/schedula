@@ -37,7 +37,8 @@ def predict_vehicle_electrics_and_engine_behavior(
         initial_engine_temperature, initial_state_of_charge, idle_engine_speed,
         times, gear_box_speeds_in, gear_box_powers_in, velocities,
         accelerations, gears, start_stop_activation_time,
-        correct_start_stop_with_gears, min_time_engine_on_after_start):
+        correct_start_stop_with_gears, min_time_engine_on_after_start,
+        has_start_stop):
     """
     Predicts alternator and battery currents, state of charge, alternator
     status, if the engine is on and when the engine starts.
@@ -106,6 +107,10 @@ def predict_vehicle_electrics_and_engine_behavior(
         Minimum time of engine on after a start [s].
     :type min_time_engine_on_after_start: float
 
+    :param has_start_stop:
+        Does the vehicle have start/stop system?
+    :type has_start_stop: bool
+
     :return:
         Alternator and battery currents, state of charge, alternator status,
         if the engine is on and when the engine starts.
@@ -125,7 +130,8 @@ def predict_vehicle_electrics_and_engine_behavior(
         times, velocities, accelerations, temp, soc,
         gears=gears, start_stop_activation_time=start_stop_activation_time,
         correct_start_stop_with_gears=correct_start_stop_with_gears,
-        min_time_engine_on_after_start=min_time_engine_on_after_start
+        min_time_engine_on_after_start=min_time_engine_on_after_start,
+        has_start_stop=has_start_stop
     )
 
     e = (0, 0, None, initial_state_of_charge)
@@ -577,7 +583,8 @@ def physical():
             'plateau_acceleration': 'plateau_acceleration',
             'min_time_engine_on_after_start': 'min_time_engine_on_after_start',
             'min_engine_on_speed': 'min_engine_on_speed',
-            'initial_friction_params': 'initial_friction_params'
+            'initial_friction_params': 'initial_friction_params',
+            'has_start_stop': 'has_start_stop'
         },
         outputs={
             'fuel_carbon_content_percentage': 'fuel_carbon_content_percentage',
@@ -647,7 +654,7 @@ def physical():
                 'idle_engine_speed', 'times', 'gear_box_speeds_in',
                 'gear_box_powers_in', 'velocities', 'accelerations', 'gears',
                 'start_stop_activation_time', 'correct_start_stop_with_gears',
-                'min_time_engine_on_after_start'],
+                'min_time_engine_on_after_start', 'has_start_stop'],
         outputs=['alternator_currents', 'battery_currents', 'state_of_charges',
                  'alternator_statuses', 'on_engine', 'engine_starts',
                  'engine_speeds_out_hot', 'engine_coolant_temperatures'],

@@ -29,6 +29,9 @@ class Values(utl.Constants):
     #: Maximum acceleration to be at constant velocity [m/s2].
     plateau_acceleration = 0.1 + EPS
 
+    #: Does the vehicle have start/stop system?
+    has_start_stop = True
+
     #: Minimum vehicle engine speed [RPM].
     min_engine_on_speed = 10.0
 

@@ -259,7 +259,7 @@ def sub_models():
                    'engine_coolant_temperatures', 'state_of_charges',
                    'gears', 'correct_start_stop_with_gears',
                    'start_stop_activation_time',
-                   'min_time_engine_on_after_start'],
+                   'min_time_engine_on_after_start', 'has_start_stop'],
         'outputs': ['on_engine', 'engine_starts'],
         'targets': ['on_engine', 'engine_starts'],
         'metrics': [accuracy_score] * 2,

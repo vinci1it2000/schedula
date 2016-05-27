@@ -154,7 +154,6 @@ def _init_sa(path, output_folder, default_path, **kw):
 
     validate = define_data_schema().validate
 
-
     return model, summary, vehicle_name, inputs, outputs, dsp_model, validate
 
 

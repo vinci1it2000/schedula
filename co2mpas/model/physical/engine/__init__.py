@@ -447,7 +447,6 @@ class StartStopModel(object):
         return self.predict(*args, **kwargs)
 
     def fit(self, on_engine, velocities, accelerations, *args):
-
         X = np.array((velocities, accelerations) + args).T
         self.simple.fit(X[:, :2], on_engine)
         self.model.fit(X, on_engine)
@@ -455,13 +454,14 @@ class StartStopModel(object):
 
     def predict(self, times, *args, start_stop_activation_time=None, gears=None,
                 correct_start_stop_with_gears=False,
-                min_time_engine_on_after_start=0.0):
+                min_time_engine_on_after_start=0.0, has_start_stop=True):
 
         gen = self.yield_on_start(
             times, *args, gears=gears,
             correct_start_stop_with_gears=correct_start_stop_with_gears,
             start_stop_activation_time=start_stop_activation_time,
-            min_time_engine_on_after_start=min_time_engine_on_after_start
+            min_time_engine_on_after_start=min_time_engine_on_after_start,
+            has_start_stop=has_start_stop
         )
 
         on_eng, eng_starts = zip(*list(gen))
@@ -471,18 +471,21 @@ class StartStopModel(object):
     def yield_on_start(self, times, *args,
                        start_stop_activation_time=None, gears=None,
                        correct_start_stop_with_gears=False, simple=None,
-                       min_time_engine_on_after_start=0.0):
+                       min_time_engine_on_after_start=0.0,
+                       has_start_stop=True):
+        if has_start_stop:
+            to_predict = self.when_predict_on_engine(
+                times, start_stop_activation_time, gears,
+                correct_start_stop_with_gears
+            )
 
-        to_predict = self.when_predict_on_engine(
-            times, start_stop_activation_time, gears,
-            correct_start_stop_with_gears
-        )
-
-        if simple is None:
-            simple = start_stop_activation_time is not None
-        dt = min_time_engine_on_after_start
-        return self._yield_on_start(times, to_predict, *args, simple=simple,
-                                    min_time_engine_on_after_start=dt)
+            if simple is None:
+                simple = start_stop_activation_time is not None
+            dt = min_time_engine_on_after_start
+            return self._yield_on_start(times, to_predict, *args, simple=simple,
+                                        min_time_engine_on_after_start=dt)
+        else:
+            return self._yield_no_start_stop(times)
 
     def _yield_on_start(self, times, to_predict, *args, simple=False,
                         min_time_engine_on_after_start=0.0):
@@ -506,6 +509,16 @@ class StartStopModel(object):
             prev = on
 
     @staticmethod
+    def _yield_no_start_stop(times):
+        on, prev = True, True
+        for _ in times:
+            on = True
+            start = prev != on and on
+            on_start = [on, start]
+            yield on_start
+            prev = on_start[0]
+
+    @staticmethod
     def when_predict_on_engine(
             times, start_stop_activation_time=None, gears=None,
             correct_start_stop_with_gears=False):
@@ -524,7 +537,7 @@ def predict_engine_start_stop(
         start_stop_model, times, velocities, accelerations,
         engine_coolant_temperatures, state_of_charges, gears,
         correct_start_stop_with_gears, start_stop_activation_time,
-        min_time_engine_on_after_start):
+        min_time_engine_on_after_start, has_start_stop):
     """
     Predicts if the engine is on and when the engine starts.
 
@@ -572,6 +585,10 @@ def predict_engine_start_stop(
         Minimum time of engine on after a start [s].
     :type min_time_engine_on_after_start: float
 
+    :param has_start_stop:
+        Does the vehicle have start/stop system?
+    :type has_start_stop: bool
+
     :return:
         If the engine is on and when the engine starts [-, -].
     :rtype: numpy.array, numpy.array
@@ -582,7 +599,9 @@ def predict_engine_start_stop(
         state_of_charges, gears=gears,
         correct_start_stop_with_gears=correct_start_stop_with_gears,
         start_stop_activation_time=start_stop_activation_time,
-        min_time_engine_on_after_start=min_time_engine_on_after_start)
+        min_time_engine_on_after_start=min_time_engine_on_after_start,
+        has_start_stop=has_start_stop
+    )
 
     return on_engine, engine_starts
 
@@ -1562,12 +1581,18 @@ def engine():
         default_value=dfl.values.min_time_engine_on_after_start
     )
 
+    dsp.add_data(
+        data_id='has_start_stop',
+        default_value=dfl.values.has_start_stop
+    )
+
     dsp.add_function(
         function=predict_engine_start_stop,
         inputs=['start_stop_model', 'times', 'velocities', 'accelerations',
                 'engine_coolant_temperatures', 'state_of_charges',
                 'gears', 'correct_start_stop_with_gears',
-                'start_stop_activation_time', 'min_time_engine_on_after_start'],
+                'start_stop_activation_time', 'min_time_engine_on_after_start',
+                'has_start_stop'],
         outputs=['on_engine', 'engine_starts']
     )
 
