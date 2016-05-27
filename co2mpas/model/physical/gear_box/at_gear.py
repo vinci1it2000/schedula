@@ -928,7 +928,7 @@ class GSPV(dict):
         plt.ylabel('Power [kW]')
 
     def predict(self, X, correct_gear=lambda v, a, g: g, previous_gear=None,
-                times=None,gear_filter=define_gear_filter()):
+                times=None, gear_filter=define_gear_filter()):
 
         gear = previous_gear or min(self)
 
@@ -985,7 +985,7 @@ class GSPV(dict):
                     c[1][0].append(p)
                     c[1][1].append(u)
 
-            cloud[0] = [[0.0], [[0.0], [self[0](0.0)]]]
+            cloud[0] = [[0.0], [[0.0], [self[0][1](0.0)]]]
             cloud[max(cloud)][1] = [[0, 1], [INF] * 2]
 
             self._fit_cloud()
