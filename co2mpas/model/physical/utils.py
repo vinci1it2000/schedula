@@ -14,15 +14,17 @@ numerical operations.
 """
 
 
-import sys
+from collections import OrderedDict
 import math
 from statistics import median_high
-from collections import OrderedDict
-import co2mpas.dispatcher.utils as dsp_utl
-import numpy as np
+import sys
+
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.misc import derivative as scipy_derivative
 from sklearn.metrics import mean_absolute_error
+
+import co2mpas.dispatcher.utils as dsp_utl
+import numpy as np
 
 
 try:
@@ -139,7 +141,7 @@ def get_inliers(x, n=1, med=np.median, std=np.std):
         return np.zeros_like(x, dtype=bool), np.nan, np.nan
     m, s = med(x), std(x)
 
-    y = n > (abs(x - m) / s)
+    y = n > (np.abs(x - m) / s)
     return y, m, s
 
 
@@ -205,7 +207,7 @@ def bin_split(x, bin_std=(0.01, 0.1), n_min=None, bins_min=None):
     """
 
     x = np.asarray(x)
-    edges = [min(x), max(x) + sys.float_info.epsilon * 2]
+    edges = [x.min(), x.max() + sys.float_info.epsilon * 2]
 
     max_bin_size = edges[1] - edges[0]
     min_bin_size = max_bin_size / len(x)
@@ -244,7 +246,7 @@ def bin_split(x, bin_std=(0.01, 0.1), n_min=None, bins_min=None):
 
     def _stats(x):
         m = np.mean(x)
-        std = abs(np.std(x) / m)
+        std = np.abs(np.std(x) / m)
         return [m, std]
 
     _bin_split(x, *(_stats(x) + edges))
