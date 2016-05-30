@@ -556,19 +556,16 @@ class Alternator_status_model(object):
         return self.predict(*args, **kwargs)
 
     def fit(self, times, alternator_statuses, state_of_charges,
-            gear_box_powers_in, has_energy_recuperation):
+            gear_box_powers_in):
         b = alternator_statuses == 2
-        if has_energy_recuperation:
-            if b.any():
-                bers = DecisionTreeClassifier(random_state=0, max_depth=2)
-                c = alternator_statuses != 1
-                bers.fit(np.array([gear_box_powers_in[c]]).T, b[c])
+        if b.any():
+            bers = DecisionTreeClassifier(random_state=0, max_depth=2)
+            c = alternator_statuses != 1
+            bers.fit(np.array([gear_box_powers_in[c]]).T, b[c])
 
-                self.bers = bers.predict  # shortcut name
-            else:
-                self.bers = lambda x: np.asarray(x) < 0
+            self.bers = bers.predict  # shortcut name
         else:
-            self.bers = lambda *args: (False,)
+            self.bers = lambda x: np.asarray(x) < 0
 
         b = alternator_statuses[1:] == 1
         self.min, self.max = 0, 100.0
@@ -602,23 +599,22 @@ class Alternator_status_model(object):
 
         return self
 
-    def predict(self, prev_status, soc, gear_box_power_in):
+    def predict(self, has_energy_rec, prev, soc, gear_box_power_in):
         status = 0
 
         if soc < 99.5:
-            if soc < self.min or \
-                    (soc <= self.max and self.charge([(prev_status, soc)])[0]):
+            x = [(prev, soc)]
+            if soc < self.min or (soc <= self.max and self.charge(x)[0]):
                 status = 1
 
-            elif self.bers([(gear_box_power_in,)])[0]:
+            elif has_energy_rec and self.bers([(gear_box_power_in,)])[0]:
                 status = 2
 
         return status
 
 
 def calibrate_alternator_status_model(
-        times, alternator_statuses, state_of_charges, gear_box_powers_in,
-        has_energy_recuperation):
+        times, alternator_statuses, state_of_charges, gear_box_powers_in):
     """
     Calibrates the alternator status model.
 
@@ -643,26 +639,20 @@ def calibrate_alternator_status_model(
         Gear box power vector [kW].
     :type gear_box_powers_in: numpy.array
 
-    :param has_energy_recuperation:
-        Does the vehicle have energy recuperation features?
-    :type has_energy_recuperation: bool
-
     :return:
         A function that predicts the alternator status.
     :rtype: function
     """
 
     model = Alternator_status_model().fit(
-        times, alternator_statuses, state_of_charges, gear_box_powers_in,
-        has_energy_recuperation
+        times, alternator_statuses, state_of_charges, gear_box_powers_in
     )
 
     return model
 
 
 def define_alternator_status_model(
-        state_of_charge_balance, state_of_charge_balance_window,
-        has_energy_recuperation):
+        state_of_charge_balance, state_of_charge_balance_window):
     """
     Defines the alternator status model.
 
@@ -682,22 +672,13 @@ def define_alternator_status_model(
             `state_of_charge_balance_window` = 2 is equivalent to 2%.
     :type state_of_charge_balance_window: float
 
-    :param has_energy_recuperation:
-        Does the vehicle have energy recuperation features?
-    :type has_energy_recuperation: bool
-
     :return:
         A function that predicts the alternator status.
     :rtype: function
     """
 
-    if has_energy_recuperation:
-        def bers_pred(X):
-            return [X[0][0] < 0]
-    else:
-        # noinspection PyUnusedLocal
-        def bers_pred(X):
-            return [False]
+    def bers_pred(X):
+        return [X[0][0] < 0]
 
     model = Alternator_status_model(
         charge_pred=lambda X: [X[0][0] == 1],
@@ -713,7 +694,7 @@ class ElectricModel(object):
     def __init__(self, battery_capacity, alternator_status_model,
                  max_alternator_current, alternator_current_model,
                  max_battery_charging_current, alternator_nominal_voltage,
-                 start_demand, electric_load):
+                 start_demand, electric_load, has_energy_recuperation):
         self.battery_capacity = battery_capacity
         self.alternator_status_model = alternator_status_model
         self.max_alternator_current = max_alternator_current
@@ -722,9 +703,11 @@ class ElectricModel(object):
         self.alternator_nominal_voltage = alternator_nominal_voltage
         self.start_demand = start_demand
         self.electric_load = electric_load
+        self.has_energy_recuperation = has_energy_recuperation
         from .electrics_prediction import _predict_electrics
         self.predict = partial(
-            _predict_electrics, battery_capacity, alternator_status_model,
+            _predict_electrics, battery_capacity,
+            partial(alternator_status_model, has_energy_recuperation),
             max_alternator_current, alternator_current_model,
             max_battery_charging_current, alternator_nominal_voltage,
             start_demand, electric_load)
@@ -736,7 +719,8 @@ class ElectricModel(object):
 def define_electrics_model(
         battery_capacity, alternator_status_model, max_alternator_current,
         alternator_current_model, max_battery_charging_current,
-        alternator_nominal_voltage, start_demand, electric_load):
+        alternator_nominal_voltage, start_demand, electric_load,
+        has_energy_recuperation):
     """
     Defines the electrics model.
 
@@ -772,6 +756,10 @@ def define_electrics_model(
         Vehicle electric load (engine off and on) [kW].
     :type electric_load: (float, float)
 
+    :param has_energy_recuperation:
+        Does the vehicle have energy recuperation features?
+    :type has_energy_recuperation: bool
+
     :return:
        Electrics model.
     :rtype: function
@@ -781,7 +769,7 @@ def define_electrics_model(
         battery_capacity, alternator_status_model,
         max_alternator_current, alternator_current_model,
         max_battery_charging_current, alternator_nominal_voltage, start_demand,
-        electric_load)
+        electric_load, has_energy_recuperation)
 
     return electrics_model
 
@@ -945,8 +933,7 @@ def electrics():
 
     dsp.add_function(
         function=define_alternator_status_model,
-        inputs=['state_of_charge_balance', 'state_of_charge_balance_window',
-                'has_energy_recuperation'],
+        inputs=['state_of_charge_balance', 'state_of_charge_balance_window'],
         outputs=['alternator_status_model']
     )
 
@@ -987,7 +974,7 @@ def electrics():
         inputs=['battery_capacity', 'alternator_status_model',
                 'max_alternator_current', 'alternator_current_model',
                 'max_battery_charging_current', 'alternator_nominal_voltage',
-                'start_demand', 'electric_load'],
+                'start_demand', 'electric_load', 'has_energy_recuperation'],
         outputs=['electrics_model']
     )
 
