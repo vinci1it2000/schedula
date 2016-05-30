@@ -61,19 +61,18 @@ def validate_data(
 
 
 def validate_plan(plan, cache_file_name=None, cache=False, read_schema=None):
+    if plan is None:
+        return None
     validated_plan, validate = [], read_schema.validate
     for i, d in plan.iterrows():
         inputs = {}
         d.dropna(how='all', inplace=True)
         for k, v in d.items():
-            if k == 'base':
-                base = v
-            else:
-                k = k.split('.')
-                n, k = '.'.join(k[:-1]), k[-1]
-                data = get_nested_dicts(inputs, n)
-                k, v = next(iter(validate({k: v}).items()))
-                data[k] = v
+            k = k.split('.')
+            n, k = '.'.join(k[:-1]), k[-1]
+            data = get_nested_dicts(inputs, n)
+            k, v = next(iter(validate({k: v}).items()))
+            data[k] = v
 
         validated_plan.append((i, inputs))
     if cache:

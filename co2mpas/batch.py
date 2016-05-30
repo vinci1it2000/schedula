@@ -183,7 +183,7 @@ class _custom_tqdm(tqdm):
 def _process_folder_files(
         input_files, output_folder, plot_workflow=False, with_output_file=True,
         output_template_xl_fpath=None, overwrite_cache=False,
-        soft_validation=False):
+        soft_validation=False, read_plan=False):
     """
     Process all xls-files in a folder with CO2MPAS-model.
 
@@ -218,14 +218,15 @@ def _process_folder_files(
 
     for fpath in _custom_tqdm(input_files, bar_format='{l_bar}{bar}{r_bar}'):
         res = _process_vehicle(
-                model, fpath,
-                output_folder=output_folder,
-                timestamp=timestamp,
-                plot_workflow=plot_workflow,
-                with_output_file=with_output_file,
-                output_template_xl_fpath=output_template_xl_fpath,
-                overwrite_cache=overwrite_cache,
-                soft_validation=soft_validation
+            model, fpath,
+            output_folder=output_folder,
+            timestamp=timestamp,
+            plot_workflow=plot_workflow,
+            with_output_file=with_output_file,
+            output_template_xl_fpath=output_template_xl_fpath,
+            overwrite_cache=overwrite_cache,
+            soft_validation=soft_validation,
+            read_plan=read_plan
         )
 
         _add2summary(summary, res)
@@ -236,7 +237,7 @@ def _process_folder_files(
 def _process_vehicle(
         model, fpath, output_folder='.', timestamp=None, plot_workflow=False,
         with_output_file=False, output_template_xl_fpath=None,
-        overwrite_cache=False, soft_validation=False):
+        overwrite_cache=False, soft_validation=False, read_plan=False):
 
     inputs = {
         'input_file_name': fpath,
@@ -244,7 +245,8 @@ def _process_vehicle(
         'overwrite_cache': overwrite_cache,
         'soft_validation': soft_validation,
         'output_folder': output_folder,
-        'with_output_file': with_output_file
+        'with_output_file': with_output_file,
+        'read_plan': read_plan
     }
 
     if timestamp is not None:
@@ -529,10 +531,15 @@ def vehicle_processing_model():
 
     from co2mpas.io import load_inputs, write_outputs
 
+    dsp.add_data(
+        data_id='read_plan',
+        default_value=False
+    )
+
     dsp.add_function(
         function=load_inputs(),
         inputs=['input_file_name', 'select_outputs', 'overwrite_cache',
-                'soft_validation'],
+                'soft_validation', 'read_plan'],
         outputs=['dsp_inputs', 'validated_plan'],
         input_domain=isfile
     )

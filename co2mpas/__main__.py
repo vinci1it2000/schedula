@@ -19,7 +19,7 @@ USAGE:
   co2mpas batch       [-v | --logconf=<conf-file>] [--gui]
                       [--overwrite-cache] [--out-template=<xlsx-file>]
                       [--plot-workflow] [-O=<output-folder>]
-                      [--only-summary] [--soft-validation]
+                      [--only-summary] [--soft-validation] [--plan]
                       [<input-path>]...
   co2mpas demo        [-v | --logconf=<conf-file>] [--gui]
                       [-f] [<output-folder>]
@@ -462,7 +462,8 @@ def _run_batch(opts):
                          plot_workflow=opts['--plot-workflow'],
                          output_template_xl_fpath=opts['--out-template'],
                          overwrite_cache=opts['--overwrite-cache'],
-                         soft_validation=opts['--soft-validation'])
+                         soft_validation=opts['--soft-validation'],
+                         read_plan=opts['--plan'])
 
 
 def _main(*args):

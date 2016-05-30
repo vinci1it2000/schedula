@@ -113,13 +113,21 @@ def parse_excel_file(file_path, read_plan):
                 plans[n].fillna(value=v, inplace=True)
             else:
                 plans[n] = v
+
         if 'base' not in plans:
             plans['base'] = file_path
         else:
             plans['base'].fillna(file_path)
 
+        if 'defaults' not in plans:
+            plans['defaults'] = ()
+        else:
+            plans['defaults'].fillna(())
+
+        plans['run_id'] = plans.index
+        plans.set_index(['run_id', 'base', 'defaults'], inplace=True)
     else:
-        plans = dsp_utl.NONE
+        plans = None
 
     return res.get('run', {}), plans
 

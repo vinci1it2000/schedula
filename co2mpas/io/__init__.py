@@ -583,7 +583,7 @@ def load_inputs():
 
     dsp.add_data(
         data_id='read_plan',
-        default_value=True,
+        default_value=False,
     )
 
     dsp.add_function(
@@ -636,7 +636,7 @@ def load_inputs():
         dsp=dsp,
         function_id=dsp.name,
         inputs=['input_file_name', 'select_outputs', 'overwrite_cache',
-                'soft_validation'],
+                'soft_validation', 'read_plan'],
         outputs=['input_data', 'validated_plan']
     )
 

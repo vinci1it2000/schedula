@@ -18,12 +18,13 @@ from multiprocessing import Pool
 import pandas as pd
 from tqdm import tqdm
 import co2mpas.dispatcher.utils as dsp_utl
+from .io import check_cache_fpath_exists, get_cache_fpath
 from .io.schema import define_data_schema
 from .io.dill import save_dill, load_from_dill
 from .io.excel import parse_values
 from .__main__ import file_finder
 from .batch import _process_vehicle, _add2summary, _save_summary, \
-    get_nested_dicts, vehicle_processing_model, combine_nested_dicts
+    get_nested_dicts, vehicle_processing_model, combine_nested_dicts, stack_nested_keys
 from .model.physical.electrics import Alternator_status_model
 from .model.physical.engine.co2_emission import _set_attr
 from pandalone.xleash import lasso
@@ -157,24 +158,6 @@ def _init_sa(path, output_folder, default_path, **kw):
     return model, summary, vehicle_name, inputs, outputs, dsp_model, validate
 
 
-def _set_extra_models(data_id, value, data, outputs):
-    if data_id == 'has_start_stop':
-        if not value and 'start_stop_activation_time' not in data:
-            data['start_stop_activation_time'] = float('inf')
-
-    elif data_id == 'has_energy_recuperation':
-        if not value:
-            n, data_id = 'calibrated_models', 'alternator_status_model'
-            if data_id not in data and data_id in outputs.get(n, {}):
-                m = get_nested_dicts(outputs, n)[data_id]
-                data[data_id] = Alternator_status_model(
-                    bers_pred=lambda X: [False],
-                    charge_pred=m.charge,
-                    min_soc=m.min,
-                    max_soc=m.max
-                )
-
-
 def _new_inp(data, outputs, dsp_model, validate):
     new_inputs = {}
     remove = []
@@ -225,6 +208,83 @@ def _sa(input_vehicle, input_parameters, output_folder, default=None, **kw):
     summary_xl_file = osp.join(output_folder, summary_xl_file)
 
     _save_summary(summary_xl_file, start_time, summary)
+
+from cachetools import cached, LRUCache
+
+@cached(LRUCache(20))
+def get_results(model, fpath, output_folder, **kw):
+    cache_fpath = get_cache_fpath(fpath, ext=('res', 'plan', 'dill',))
+
+    if check_cache_fpath_exists(False, fpath, cache_fpath):
+        res = load_from_dill(cache_fpath)
+    else:
+        res = _process_vehicle(model, fpath, output_folder, **kw)
+        save_dill(res, cache_fpath)
+
+    return res
+
+
+def build_default_models(model, paths, output_folder, **kw):
+
+    dfl = {}
+    for path in file_finder(paths):
+        res = get_results(model, path, output_folder, **kw)
+        out = res['dsp_model'].data_output.get('calibrated_models', {})
+        if 'torque_converter_model' in out:
+            out['torque_converter_model'] = TorqueConverter()
+        dfl.update(out)
+
+    return dfl
+
+
+def make_simulation_plan(plan, output_folder, **kw):
+    if not plan:
+        return None
+    model, summary = vehicle_processing_model(), {}
+
+    run_modes = tuple(model.get_sub_dsp_from_workflow(
+        ('dsp_inputs', 'vehicle_name'), check_inputs=False, graph=model.dmap
+    ).data_nodes) + ('start_time', 'vehicle_name')
+
+    for (i, base_fpath, defaults_fpats), p in tqdm(plan, disable=False):
+        base = get_results(model, base_fpath, output_folder, **kw)
+        _add2summary(summary, base)
+        vehicle_name = base.get('vehicle_name', 'vehicle')
+        inputs = dsp_utl.selector(set(base).difference(run_modes), base)
+        dsp_model = base['dsp_model']
+        outputs = dsp_model.data_output
+
+        dfl = build_default_models(model, eval(defaults_fpats), output_folder, **kw)
+        if dfl:
+            dfl = {'calibrated_models': dfl}
+            outputs = combine_nested_dicts(dfl, outputs, depth=2)
+
+        inputs['vehicle_name'] = '%s_%d' % (vehicle_name, i)
+
+        inputs['dsp_inputs'] = define_new_inputs(p, outputs, dsp_model)
+
+        res = model.dispatch(inputs=inputs)
+
+        _add2summary(summary, res)
+
+
+def define_new_inputs(data, base, dsp_model):
+    remove = []
+    for k, v in stack_nested_keys(data, depth=2):
+        if v is dsp_utl.EMPTY:
+            remove.append(k)
+
+    dsp = dsp_model.get_sub_dsp_from_workflow(data, check_inputs=False)
+    n = set(base) - set(dsp.data_nodes)
+    n.update(data)
+
+    inp = dsp_utl.selector(n, base, allow_miss=True)
+    d = combine_nested_dicts(inp, data, depth=2)
+
+    for n, k in remove:
+        get_nested_dicts(d, n).pop(k)
+
+    return d
 
 
 if __name__ == '__main__':

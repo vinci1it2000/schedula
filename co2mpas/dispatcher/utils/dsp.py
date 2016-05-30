@@ -353,6 +353,7 @@ class add_args(object):
         )
         return cls
 
+
 def _get_signature(func, n=1):
     sig = signature(func)  # Get function signature.
 
