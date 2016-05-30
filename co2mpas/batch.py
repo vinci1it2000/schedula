@@ -533,7 +533,7 @@ def vehicle_processing_model():
         function=load_inputs(),
         inputs=['input_file_name', 'select_outputs', 'overwrite_cache',
                 'soft_validation'],
-        outputs=['dsp_inputs'],
+        outputs=['dsp_inputs', 'validated_plan'],
         input_domain=isfile
     )
 

@@ -32,16 +32,19 @@ log = logging.getLogger(__name__)
 
 _re_params_name = regex.compile(
         r"""
-            ^((?P<usage>(target|input|output|data))s?[. ]?)?
+            ^((?P<scope>(plan|run))[. ]?)?
+            ((?P<usage>(target|input|output|data))s?[. ]?)?
             ((?P<stage>(precondition|calibration|prediction))s?[. ]?)?
             ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC|ALL)(recon)?)?$
             |
-            ^((?P<usage>(target|input|output|data))s?[. ]?)?
+            ^((?P<scope>(plan|run))[. ]?)?
+            ((?P<usage>(target|input|output|data))s?[. ]?)?
             ((?P<stage>(precondition|calibration|prediction))s?[. ]?)?
             ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC|ALL)(recon)?[. ]?)?
             (?P<param>[^\s]*)$
             |
-            ^((?P<usage>(target|input|output|data))s?[. ]?)?
+            ^((?P<scope>(plan|run))[. ]?)?
+            ((?P<usage>(target|input|output|data))s?[. ]?)?
             ((?P<stage>(precondition|calibration|prediction))s?[. ]?)?
             ((?P<param>[^\s.]*)[. ]?)?
             ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC|ALL)(recon)?)?$
@@ -50,29 +53,35 @@ _re_params_name = regex.compile(
 
 _re_sheet_name = regex.compile(
         r"""
-            ^((?P<usage>(target|input|output|data))s?[. ]?)?
+            ^((?P<scope>(plan|run))[. ]?)?
+            ((?P<usage>(target|input|output|data))s?[. ]?)?
             ((?P<stage>(precondition|calibration|prediction))s?[. ]?)?
             ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC|ALL)(recon)?)?$
         """, regex.IGNORECASE | regex.X | regex.DOTALL)
 
 
-def parse_excel_file(file_path):
+def parse_excel_file(file_path, read_plan):
     """
-    Reads cycle's time series.
+    Reads cycle's data and simulation plans.
 
     :param file_path:
         Excel file path.
     :type file_path: str
 
+    :param read_plan:
+        Read simulation plan?
+    :type read_plan: bool
+
     :return:
         A pandas DataFrame with cycle's time series.
-    :rtype: pandas.DataFrame
+    :rtype: dict, pandas.DataFrame
     """
 
     excel_file = pd.ExcelFile(file_path)
-    res = {}
+    res, plans = {}, []
 
     defaults = {
+        'scope': 'run',
         'usage': 'input',
         'stage': 'calibration',
     }
@@ -86,36 +95,79 @@ def parse_excel_file(file_path):
         match = dsp_utl.combine_dicts(defaults, match)
 
         sheet = _open_sheet_by_name_or_index(excel_file.book, 'book', sheet_name)
+        if match['scope'] == 'run':
+            _parse_run_data(res,match, sheet, sheet_name)
+        elif read_plan:
+            _parse_plan_data(plans, match, sheet, sheet_name)
 
-        if 'cycle' not in match:
-            xl_ref = '#%s!B2:C_:["pipe", ["dict", "recurse"]]' % sheet_name
-            data = lasso(xl_ref, sheet=sheet)
-        else:
-            # noinspection PyBroadException
-            try:
-                xl_ref = '#%s!A2(R):.3:RD:["df", {"header": 0}]' % sheet_name
-                data = lasso(xl_ref, sheet=sheet)
-            except:
-                continue
-            data.dropna(how='all', inplace=True)
-            data.dropna(axis=1, how='all', inplace=True)
-            mask = data.count(0) == len(data._get_axis(0))
-            # noinspection PyUnresolvedReferences
-            drop = [k for k, v in mask.items() if not v]
-            if drop:
-                msg = 'Columns {} in {} contains nan.\n ' \
-                      'Please correct the inputs!'
-                raise ValueError(msg.format(drop, sheet_name))
-
-        for k, v in parse_values(data, default=match):
-            get_nested_dicts(res, *k[:-1])[k[-1]] = v
-
-    for k, v in stack_nested_keys(res, depth=3):
+    for k, v in stack_nested_keys(res.get('run', {}), depth=3):
         if k[0] != 'target':
             v['cycle_type'] = v.get('cycle_type', k[-1].split('_')[0]).upper()
             v['cycle_name'] = v.get('cycle_name', k[-1]).upper()
 
-    return res
+    if read_plan:
+        plans = pd.concat(plans, axis=1, copy=False, verify_integrity=True)
+        for k, v in stack_nested_keys(res.get('plan', {}), depth=4):
+            n = '.'.join(k)
+            if n in plans:
+                plans[n].fillna(value=v, inplace=True)
+            else:
+                plans[n] = v
+        if 'base' not in plans:
+            plans['base'] = file_path
+        else:
+            plans['base'].fillna(file_path)
+
+    else:
+        plans = dsp_utl.NONE
+
+    return res.get('run', {}), plans
+
+
+def _parse_run_data(res, match, sheet, sheet_name):
+    if 'cycle' not in match:
+        xl_ref = '#%s!B2:C_:["pipe", ["dict", "recurse"]]' % sheet_name
+        data = lasso(xl_ref, sheet=sheet)
+    else:
+        # noinspection PyBroadException
+        try:
+            xl_ref = '#%s!A2(R):.3:RD:["df", {"header": 0}]' % sheet_name
+            data = lasso(xl_ref, sheet=sheet)
+        except:
+            return {}
+        data.dropna(how='all', inplace=True)
+        data.dropna(axis=1, how='all', inplace=True)
+        mask = data.count(0) == len(data._get_axis(0))
+        # noinspection PyUnresolvedReferences
+        drop = [k for k, v in mask.items() if not v]
+        if drop:
+            msg = 'Columns {} in {} contains nan.\n ' \
+                  'Please correct the inputs!'
+            raise ValueError(msg.format(drop, sheet_name))
+
+    for k, v in parse_values(data, default=match):
+        get_nested_dicts(res, *k[:-1])[k[-1]] = v
+
+
+def _parse_plan_data(plans, match, sheet, sheet_name):
+    # noinspection PyBroadException
+    try:
+        xl_ref = '#%s!A1(R):._:R:["pipe", ["recurse", ["df", {"header": 0}]]]'
+        data = lasso(xl_ref % sheet_name, sheet=sheet)
+    except:
+        return {}
+    if 'run_id' not in data:
+        data['run_id'] = data.index + 1
+
+    data.set_index(['run_id'], inplace=True)
+    data.dropna(how='all', inplace=True)
+    data.dropna(axis=1, how='all', inplace=True)
+
+    plan = pd.DataFrame()
+
+    for k, v in parse_values(data, default=match):
+        plan['.'.join(k[1:])] = v
+    plans.append(plan)
 
 
 def _isempty(val):
@@ -123,7 +175,9 @@ def _isempty(val):
 
 
 def parse_values(data, default=None):
-    default = default or {'usage': 'input'}
+    default = default or {'scope': 'run'}
+    if 'usage' not in default:
+        default['usage'] = 'input'
     if 'cycle' not in default or default['cycle'] == 'all':
         default['cycle'] = ('nedc', 'wltp_p', 'wltp_h', 'wltp_l')
     elif default['cycle'] == 'wltp':
@@ -161,7 +215,7 @@ def parse_values(data, default=None):
                 stage = 'prediction'
             else:
                 stage = match['stage']
-            yield (match['usage'], stage, c, i), v
+            yield (match['scope'], match['usage'], stage, c, i), v
 
 
 def _check_none(v):

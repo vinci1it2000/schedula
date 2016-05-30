@@ -12,6 +12,7 @@
     :toctree: _build/co2mpas/
 
     ~model
+    ~io
     ~batch
     ~datasync
     ~plot

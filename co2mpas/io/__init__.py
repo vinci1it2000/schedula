@@ -38,14 +38,14 @@ from co2mpas.dispatcher.utils.alg import stlp
 from .dill import *
 from co2mpas.batch import stack_nested_keys, get_nested_dicts
 from co2mpas.dispatcher import Dispatcher
-from .excel import write_to_excel, parse_excel_file
-from .schema import validate_data
+from .excel import write_to_excel, parse_excel_file, parse_values
+from .schema import validate_data, validate_plan
 from functools import partial
 
 log = logging.getLogger(__name__)
 
 
-def get_cache_fpath(fpath, soft_validation):
+def get_cache_fpath(fpath, soft_validation=False, ext=('dill',)):
     fpath = pathlib.Path(fpath)
     cache_folder = fpath.parent.joinpath('.co2mpas_cache')
     # noinspection PyBroadException
@@ -54,7 +54,6 @@ def get_cache_fpath(fpath, soft_validation):
         cache_folder.mkdir()
     except: # dir exist
         pass
-    ext = ('dill',)
     if soft_validation:
         ext = ('soft',) + ext
     return str(cache_folder.joinpath('.'.join((fpath.name, version) + ext)))
@@ -72,7 +71,7 @@ def check_cache_fpath_exists(overwrite_cache, fpath, cache_fpath):
     return False
 
 
-def check_file_format(fpath, extensions=('.xlsx',)):
+def check_file_format(fpath, *args, extensions=('.xlsx',)):
     return fpath.lower().endswith(extensions)
 
 
@@ -554,13 +553,20 @@ def load_inputs():
         outputs=['cache_file_name']
     )
 
+    dsp.add_function(
+        function_id='get_plan_cache_fpath',
+        function=partial(get_cache_fpath, ext=('plan', 'dill')),
+        inputs=['input_file_name'],
+        outputs=['plan_cache_file_name']
+    )
+
     dsp.add_data(
         data_id='overwrite_cache',
         default_value=False,
     )
 
     dsp.add_function(
-        function_id='load_from_cache',
+        function_id='load_data_from_cache',
         function=dsp_utl.add_args(load_from_dill, n=2),
         inputs=['overwrite_cache', 'input_file_name', 'cache_file_name'],
         outputs=['validated_data'],
@@ -568,9 +574,22 @@ def load_inputs():
     )
 
     dsp.add_function(
+        function_id='load_plan_from_cache',
+        function=dsp_utl.add_args(load_from_dill, n=2),
+        inputs=['overwrite_cache', 'input_file_name', 'plan_cache_file_name'],
+        outputs=['validated_plan'],
+        input_domain=check_cache_fpath_exists
+    )
+
+    dsp.add_data(
+        data_id='read_plan',
+        default_value=True,
+    )
+
+    dsp.add_function(
         function=parse_excel_file,
-        inputs=['input_file_name'],
-        outputs=['data'],
+        inputs=['input_file_name', 'read_plan'],
+        outputs=['data', 'plan'],
         input_domain=partial(check_file_format, extensions=('.xlsx', '.xls')),
         weight=10
     )
@@ -583,14 +602,18 @@ def load_inputs():
         weight=10
     )
 
-    validate = partial(validate_data,
-                       read_schema=define_data_schema(read=True),
-                       cache=True)
+    read_schema = define_data_schema(read=True)
 
     dsp.add_function(
-        function=validate,
+        function=partial(validate_data, read_schema=read_schema, cache=True),
         inputs=['data', 'cache_file_name', 'soft_validation'],
         outputs=['validated_data']
+    )
+
+    dsp.add_function(
+        function=partial(validate_plan, read_schema=read_schema, cache=True),
+        inputs=['plan', 'plan_cache_file_name'],
+        outputs=['validated_plan']
     )
 
     dsp.add_data(
@@ -614,7 +637,7 @@ def load_inputs():
         function_id=dsp.name,
         inputs=['input_file_name', 'select_outputs', 'overwrite_cache',
                 'soft_validation'],
-        outputs=['input_data']
+        outputs=['input_data', 'validated_plan']
     )
 
     return func

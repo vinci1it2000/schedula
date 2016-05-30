@@ -28,7 +28,7 @@ USAGE:
   co2mpas ipynb       [-v | --logconf=<conf-file>] [--gui] [-f] [<output-folder>]
   co2mpas modelgraph  [-v | --logconf=<conf-file>] [-O=<output-folder>]
                       (--list | [--graph-depth=<levels>] [<models> ...])
-  co2mpas sa          [-v | --logconf=<conf-file>] [-f] [-O=<output-folder>]
+  co2mpas plan        [-v | --logconf=<conf-file>] [-f] [-O=<output-folder>]
                       [--soft-validation] [--only-summary] [--overwrite-cache]
                       [--out-template=<xlsx-file>]
                       [<input-path>] [<input-params>] [<defaults>]...
@@ -79,7 +79,7 @@ SUB-COMMANDS:
     ipynb                   Generate IPython notebooks inside <output-folder>; view them with cmd:
                               jupyter --notebook-dir=<output-folder>
     modelgraph              List or plot available models. If no model(s) specified, all assumed.
-    sa                      (undocumented - subject to change)
+    plan                    (undocumented - subject to change)
 
 
 EXAMPLES::
@@ -396,7 +396,7 @@ def file_finder(xlsx_fpaths, file_ext='*.xlsx'):
     return [f for f in sorted(files) if _input_file_regex.match(osp.basename(f))]
 
 
-def _cmd_sa(opts):
+def _cmd_plan(opts):
     input_path = opts['<input-path>']
     defaults = opts['<defaults>']
     out_folder = opts['-O']
@@ -418,7 +418,7 @@ def _cmd_sa(opts):
             raise CmdException("Specify a folder for "
                                "the '-O %s' option!" % out_folder)
 
-    from co2mpas.sensitivity import run_sa
+    from co2mpas.plan import run_sa
     run_sa(input_path, input_params, out_folder, *defaults,
            soft_validation=opts['--soft-validation'],
            with_output_file=not opts['--only-summary'],
@@ -487,8 +487,8 @@ def _main(*args):
             _cmd_ipynb(opts)
         elif opts['modelgraph']:
             _cmd_modelgraph(opts)
-        elif opts['sa']:
-            _cmd_sa(opts)
+        elif opts['plan']:
+            _cmd_plan(opts)
         else: #opts['batch']:
             _run_batch(opts)
 

@@ -60,6 +60,27 @@ def validate_data(
     return res
 
 
+def validate_plan(plan, cache_file_name=None, cache=False, read_schema=None):
+    validated_plan, validate = [], read_schema.validate
+    for i, d in plan.iterrows():
+        inputs = {}
+        d.dropna(how='all', inplace=True)
+        for k, v in d.items():
+            if k == 'base':
+                base = v
+            else:
+                k = k.split('.')
+                n, k = '.'.join(k[:-1]), k[-1]
+                data = get_nested_dicts(inputs, n)
+                k, v = next(iter(validate({k: v}).items()))
+                data[k] = v
+
+        validated_plan.append((i, inputs))
+    if cache:
+        save_dill(validated_plan, cache_file_name)
+    return validated_plan
+
+
 class Empty(object):
     def __repr__(self):
         return '%s' % self.__class__.__name__
