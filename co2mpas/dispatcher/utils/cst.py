@@ -14,7 +14,7 @@ __author__ = 'Vincenzo Arcidiacono'
 
 from .gen import Token
 
-__all__ = ['EMPTY', 'START', 'NONE', 'SINK']
+__all__ = ['EMPTY', 'START', 'NONE', 'SINK', 'SELF']
 
 #: It is used set and unset empty values.
 #:
@@ -44,3 +44,6 @@ SINK.__doc__ = 'Sink node of the dispatcher that collects all unused outputs.'
 #:
 #: .. seealso:: :func:`~dispatcher.utils.dsp.SubDispatchFunction`
 END = Token('end')
+
+#: Self node of the dispatcher is a node that contains the dispatcher.
+SELF = Token('self')

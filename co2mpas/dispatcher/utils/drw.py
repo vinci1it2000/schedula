@@ -21,7 +21,7 @@ import inspect
 import platform
 from tempfile import mkstemp, mkdtemp
 import networkx as nx
-from .cst import START, SINK, END, EMPTY
+from .cst import START, SINK, END, EMPTY, SELF
 from .dsp import SubDispatch, SubDispatchFunction, combine_dicts
 from itertools import chain
 from functools import partial
@@ -289,6 +289,7 @@ def _set_node(dot, node_id, dsp2dot_id, dsp=None, node_attr=None, values=None,
               **dot_kw):
     styles = {
         START: ('start', {'shape': 'egg', 'fillcolor': 'red'}),
+        SELF: ('self', {'shape': 'egg', 'fillcolor': 'orange'}),
         END: ('end', {'shape': 'egg', 'fillcolor': 'blue'}),
         EMPTY: ('empty', {'shape': 'egg', 'fillcolor': 'gray'}),
         SINK: ('sink', {'shape': 'egg', 'fillcolor': 'black',
@@ -456,7 +457,7 @@ def _get_dsp2dot_id(dot, graph):
     def id_node(o):
         return html.unescape('%s_%s' % (parent, hash(o)))
 
-    return {k: id_node(k) for k in chain(graph.node, [START, END, SINK, EMPTY])}
+    return {k: id_node(k) for k in chain(graph.node, [START, END, SINK, EMPTY, SELF])}
 
 
 def plot(dsp, workflow=False, dot=None, edge_data=None, view=False,

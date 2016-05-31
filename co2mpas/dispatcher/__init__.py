@@ -37,7 +37,7 @@ from .utils.alg import add_edge_fun, remove_edge_fun, rm_cycles_iter, \
     _children, stlp, get_full_pipe, _update_io_attr_sub_dsp,\
     _map_remote_links, _update_remote_links, remove_links, _sort_sk_wait_in, \
     _union_workflow, _convert_bfs
-from .utils.cst import EMPTY, START, NONE, SINK, END
+from .utils.cst import EMPTY, START, NONE, SINK, END, SELF
 from .utils.dsp import SubDispatch, bypass, combine_dicts, selector
 from .utils.drw import plot
 from .utils.des import parent_func
@@ -391,6 +391,8 @@ class Dispatcher(object):
             default_value, description = NONE, START.__doc__
         elif data_id is SINK:
             wait_inputs, function, description = True, bypass, SINK.__doc__
+        elif data_id is SELF:
+            default_value, description = self, SELF.__doc__
 
         # Base data node attributes.
         attr_dict = {'type': 'data', 'wait_inputs': wait_inputs}
