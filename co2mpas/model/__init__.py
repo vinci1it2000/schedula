@@ -240,7 +240,18 @@ def model():
         function=selector,
         inputs=['config.error_settings', 'output.calibration.wltp_h',
                 'output.calibration.wltp_l'],
-        outputs=['data.prediction.models', 'data.calibration.model_scores']
+        outputs=['data.calibration.models', 'data.calibration.model_scores']
+    )
+
+    dsp.add_data(
+        data_id='input.prediction.models',
+        default_value={}
+    )
+
+    dsp.add_function(
+        function=dsp_utl.combine_dicts,
+        inputs=['data.calibration.models', 'input.prediction.models'],
+        outputs=['data.prediction.models']
     )
 
     dsp.add_function(
