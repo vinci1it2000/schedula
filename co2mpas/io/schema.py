@@ -26,9 +26,17 @@ from co2mpas.model.physical.electrics import Alternator_status_model
 log = logging.getLogger(__name__)
 
 
-def validate_data(
-        data, cache_file_name=None, soft_validation=False, cache=False,
-        read_schema=None):
+def validate_data(data, soft_validation, read_schema=None):
+
+    plan = validate_plan(data['plan'], read_schema)
+
+    inputs = validate_inputs(data['run'], soft_validation, read_schema)
+    inputs = {'.'.join(k): v for k, v in stack_nested_keys(inputs, depth=3)}
+
+    return inputs, plan
+
+
+def validate_inputs(data, soft_validation=False, read_schema=None):
     res = {}
     validate = read_schema.validate
     errors = {}
@@ -54,15 +62,10 @@ def validate_data(
         log.error('\n  '.join(msg))
         return {}
 
-    if cache:
-        save_dill(res, cache_file_name)
-
     return res
 
 
-def validate_plan(plan, cache_file_name=None, cache=False, read_schema=None):
-    if plan is None:
-        return None
+def validate_plan(plan, read_schema=None):
     validated_plan, validate = [], read_schema.validate
     for i, d in plan.iterrows():
         inputs = {}
@@ -75,8 +78,6 @@ def validate_plan(plan, cache_file_name=None, cache=False, read_schema=None):
             data[k] = v
 
         validated_plan.append((i, inputs))
-    if cache:
-        save_dill(validated_plan, cache_file_name)
     return validated_plan
 
 

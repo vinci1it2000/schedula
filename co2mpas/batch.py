@@ -183,7 +183,7 @@ class _custom_tqdm(tqdm):
 def _process_folder_files(
         input_files, output_folder, plot_workflow=False, with_output_file=True,
         output_template_xl_fpath=None, overwrite_cache=False,
-        soft_validation=False, read_plan=False):
+        soft_validation=False, plan=False):
     """
     Process all xls-files in a folder with CO2MPAS-model.
 
@@ -226,7 +226,7 @@ def _process_folder_files(
             output_template_xl_fpath=output_template_xl_fpath,
             overwrite_cache=overwrite_cache,
             soft_validation=soft_validation,
-            read_plan=read_plan
+            plan=plan
         )
 
         _add2summary(summary, res)
@@ -237,7 +237,7 @@ def _process_folder_files(
 def _process_vehicle(
         model, fpath, output_folder='.', timestamp=None, plot_workflow=False,
         with_output_file=False, output_template_xl_fpath=None,
-        overwrite_cache=False, soft_validation=False, read_plan=False):
+        overwrite_cache=False, soft_validation=False, plan=False):
 
     inputs = {
         'input_file_name': fpath,
@@ -246,7 +246,7 @@ def _process_vehicle(
         'soft_validation': soft_validation,
         'output_folder': output_folder,
         'with_output_file': with_output_file,
-        'read_plan': read_plan
+        'plan': plan
     }
 
     if timestamp is not None:
@@ -458,13 +458,6 @@ def get_template_file_name(template_output, input_file_name):
     return template_output
 
 
-def isfile(fpath, *args):
-    if not osp.isfile(fpath):
-        log.warn('File  %r does not exist!', fpath)
-        return False
-    return True
-
-
 def vehicle_processing_model():
     """
     Defines the vehicle-processing model.
@@ -531,17 +524,17 @@ def vehicle_processing_model():
 
     from co2mpas.io import load_inputs, write_outputs
 
-    dsp.add_data(
-        data_id='read_plan',
-        default_value=False
-    )
-
-    dsp.add_function(
-        function=load_inputs(),
-        inputs=['input_file_name', 'select_outputs', 'overwrite_cache',
-                'soft_validation', 'read_plan'],
-        outputs=['dsp_inputs', 'validated_plan'],
-        input_domain=isfile
+    dsp.add_dispatcher(
+        dsp=load_inputs(),
+        inputs={
+            'input_file_name': 'input_file_name',
+            'overwrite_cache': 'overwrite_cache',
+            'soft_validation': 'soft_validation'
+        },
+        outputs={
+            'validated_data': 'dsp_inputs',
+            'validated_plan': 'validated_plan'
+        }
     )
 
     from .model import model

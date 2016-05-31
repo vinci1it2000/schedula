@@ -60,17 +60,13 @@ _re_sheet_name = regex.compile(
         """, regex.IGNORECASE | regex.X | regex.DOTALL)
 
 
-def parse_excel_file(file_path, read_plan):
+def parse_excel_file(file_path):
     """
     Reads cycle's data and simulation plans.
 
     :param file_path:
         Excel file path.
     :type file_path: str
-
-    :param read_plan:
-        Read simulation plan?
-    :type read_plan: bool
 
     :return:
         A pandas DataFrame with cycle's time series.
@@ -97,7 +93,7 @@ def parse_excel_file(file_path, read_plan):
         sheet = _open_sheet_by_name_or_index(excel_file.book, 'book', sheet_name)
         if match['scope'] == 'run':
             _parse_run_data(res,match, sheet, sheet_name)
-        elif read_plan:
+        elif match['scope'] == 'plan':
             _parse_plan_data(plans, match, sheet, sheet_name)
 
     for k, v in stack_nested_keys(res.get('run', {}), depth=3):
@@ -105,7 +101,7 @@ def parse_excel_file(file_path, read_plan):
             v['cycle_type'] = v.get('cycle_type', k[-1].split('_')[0]).upper()
             v['cycle_name'] = v.get('cycle_name', k[-1]).upper()
 
-    if read_plan:
+    if plans:
         plans = pd.concat(plans, axis=1, copy=False, verify_integrity=True)
         for k, v in stack_nested_keys(res.get('plan', {}), depth=4):
             n = '.'.join(k)
@@ -120,16 +116,17 @@ def parse_excel_file(file_path, read_plan):
             plans['base'].fillna(file_path)
 
         if 'defaults' not in plans:
-            plans['defaults'] = ()
+            plans['defaults'] = '()'
         else:
-            plans['defaults'].fillna(())
+            plans['defaults'].fillna('()')
 
         plans['run_id'] = plans.index
         plans.set_index(['run_id', 'base', 'defaults'], inplace=True)
+        res['plan'] = plans
     else:
-        plans = None
+        res['plan'] = pd.DataFrame()
 
-    return res.get('run', {}), plans
+    return res
 
 
 def _parse_run_data(res, match, sheet, sheet_name):

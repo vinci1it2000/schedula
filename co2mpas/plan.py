@@ -225,7 +225,6 @@ def get_results(model, fpath, output_folder, **kw):
 
 
 def build_default_models(model, paths, output_folder, **kw):
-
     dfl = {}
     for path in file_finder(paths):
         res = get_results(model, path, output_folder, **kw)
@@ -235,37 +234,6 @@ def build_default_models(model, paths, output_folder, **kw):
         dfl.update(out)
 
     return dfl
-
-
-def make_simulation_plan(plan, output_folder, **kw):
-    if not plan:
-        return None
-    model, summary = vehicle_processing_model(), {}
-
-    run_modes = tuple(model.get_sub_dsp_from_workflow(
-        ('dsp_inputs', 'vehicle_name'), check_inputs=False, graph=model.dmap
-    ).data_nodes) + ('start_time', 'vehicle_name')
-
-    for (i, base_fpath, defaults_fpats), p in tqdm(plan, disable=False):
-        base = get_results(model, base_fpath, output_folder, **kw)
-        _add2summary(summary, base)
-        vehicle_name = base.get('vehicle_name', 'vehicle')
-        inputs = dsp_utl.selector(set(base).difference(run_modes), base)
-        dsp_model = base['dsp_model']
-        outputs = dsp_model.data_output
-
-        dfl = build_default_models(model, eval(defaults_fpats), output_folder, **kw)
-        if dfl:
-            dfl = {'data.prediction.models': dfl}
-            outputs = combine_nested_dicts(dfl, outputs, depth=2)
-
-        inputs['vehicle_name'] = '%s_%d' % (vehicle_name, i)
-
-        inputs['dsp_inputs'] = define_new_inputs(p, outputs, dsp_model)
-
-        res = model.dispatch(inputs=inputs)
-
-        _add2summary(summary, res)
 
 
 def define_new_inputs(data, base, dsp_model):
@@ -285,6 +253,34 @@ def define_new_inputs(data, base, dsp_model):
         get_nested_dicts(d, n).pop(k)
 
     return d
+
+
+def make_simulation_plan(plan, output_folder, **kw):
+    model, summary = vehicle_processing_model(), {}
+
+    run_modes = tuple(model.get_sub_dsp_from_workflow(
+        ('dsp_inputs', 'vehicle_name'), check_inputs=False, graph=model.dmap
+    ).data_nodes) + ('start_time', 'vehicle_name')
+
+    for (i, base_fpath, defaults_fpats), p in tqdm(plan, disable=False):
+        base = get_results(model, base_fpath, output_folder, **kw)
+        _add2summary(summary, base)
+        vehicle_name = '%s:%d' % (base.get('vehicle_name', 'vehicle'), i)
+        inputs = dsp_utl.selector(set(base).difference(run_modes), base)
+        inputs['vehicle_name'] = vehicle_name
+        dsp_model = base['dsp_model']
+        outputs = dsp_model.data_output
+
+        dfl = build_default_models(model, eval(defaults_fpats), output_folder, **kw)
+        if dfl:
+            dfl = {'data.prediction.models': dfl}
+            outputs = combine_nested_dicts(dfl, outputs, depth=2)
+
+        inputs['dsp_inputs'] = define_new_inputs(p, outputs, dsp_model)
+
+        res = model.dispatch(inputs=inputs)
+
+        _add2summary(summary, res)
 
 
 if __name__ == '__main__':

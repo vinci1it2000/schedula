@@ -463,7 +463,7 @@ def _run_batch(opts):
                          output_template_xl_fpath=opts['--out-template'],
                          overwrite_cache=opts['--overwrite-cache'],
                          soft_validation=opts['--soft-validation'],
-                         read_plan=opts['--plan'])
+                         plan=opts['--plan'])
 
 
 def _main(*args):

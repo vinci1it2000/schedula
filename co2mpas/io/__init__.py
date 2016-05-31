@@ -45,7 +45,7 @@ from functools import partial
 log = logging.getLogger(__name__)
 
 
-def get_cache_fpath(fpath, soft_validation=False, ext=('dill',)):
+def get_cache_fpath(fpath, ext=('dill',)):
     fpath = pathlib.Path(fpath)
     cache_folder = fpath.parent.joinpath('.co2mpas_cache')
     # noinspection PyBroadException
@@ -54,8 +54,6 @@ def get_cache_fpath(fpath, soft_validation=False, ext=('dill',)):
         cache_folder.mkdir()
     except: # dir exist
         pass
-    if soft_validation:
-        ext = ('soft',) + ext
     return str(cache_folder.joinpath('.'.join((fpath.name, version) + ext)))
 
 
@@ -73,14 +71,6 @@ def check_cache_fpath_exists(overwrite_cache, fpath, cache_fpath):
 
 def check_file_format(fpath, *args, extensions=('.xlsx',)):
     return fpath.lower().endswith(extensions)
-
-
-def build_input_data(data, select_outputs):
-    try:
-        return {'.'.join(k): v for k, v in stack_nested_keys(data, depth=3)}
-
-    except KeyError:
-        return {}
 
 
 def convert2df(data, start_time, main_flags, data_descriptions, write_schema):
@@ -549,15 +539,8 @@ def load_inputs():
 
     dsp.add_function(
         function=get_cache_fpath,
-        inputs=['input_file_name', 'soft_validation'],
-        outputs=['cache_file_name']
-    )
-
-    dsp.add_function(
-        function_id='get_plan_cache_fpath',
-        function=partial(get_cache_fpath, ext=('plan', 'dill')),
         inputs=['input_file_name'],
-        outputs=['plan_cache_file_name']
+        outputs=['cache_file_name']
     )
 
     dsp.add_data(
@@ -569,29 +552,16 @@ def load_inputs():
         function_id='load_data_from_cache',
         function=dsp_utl.add_args(load_from_dill, n=2),
         inputs=['overwrite_cache', 'input_file_name', 'cache_file_name'],
-        outputs=['validated_data'],
+        outputs=['data'],
         input_domain=check_cache_fpath_exists
-    )
-
-    dsp.add_function(
-        function_id='load_plan_from_cache',
-        function=dsp_utl.add_args(load_from_dill, n=2),
-        inputs=['overwrite_cache', 'input_file_name', 'plan_cache_file_name'],
-        outputs=['validated_plan'],
-        input_domain=check_cache_fpath_exists
-    )
-
-    dsp.add_data(
-        data_id='read_plan',
-        default_value=False,
     )
 
     dsp.add_function(
         function=parse_excel_file,
-        inputs=['input_file_name', 'read_plan'],
-        outputs=['data', 'plan'],
+        inputs=['input_file_name'],
+        outputs=['data'],
         input_domain=partial(check_file_format, extensions=('.xlsx', '.xls')),
-        weight=10
+        weight=5
     )
 
     dsp.add_function(
@@ -599,48 +569,28 @@ def load_inputs():
         inputs=['input_file_name'],
         outputs=['data'],
         input_domain=partial(check_file_format, extensions=('.dill',)),
-        weight=10
-    )
-
-    read_schema = define_data_schema(read=True)
-
-    dsp.add_function(
-        function=partial(validate_data, read_schema=read_schema, cache=True),
-        inputs=['data', 'cache_file_name', 'soft_validation'],
-        outputs=['validated_data']
+        weight=5
     )
 
     dsp.add_function(
-        function=partial(validate_plan, read_schema=read_schema, cache=True),
-        inputs=['plan', 'plan_cache_file_name'],
-        outputs=['validated_plan']
+        function_id='cache_parsed_data',
+        function=save_dill,
+        inputs=['data', 'cache_file_name']
+    )
+
+    dsp.add_function(
+        function=partial(validate_data, read_schema=define_data_schema()),
+        inputs=['data', 'soft_validation'],
+        outputs=['validated_data', 'validated_plan'],
+        weight=1
     )
 
     dsp.add_data(
-        data_id='select_outputs',
-        default_value=False
-    )
-
-    dsp.add_function(
-        function=build_input_data,
-        inputs=['validated_data', 'select_outputs'],
-        outputs=['input_data']
-    )
-
-    dsp.add_data(
-        data_id='input_data',
+        data_id='validated_data',
         function=check_data_version
     )
 
-    func = dsp_utl.SubDispatchFunction(
-        dsp=dsp,
-        function_id=dsp.name,
-        inputs=['input_file_name', 'select_outputs', 'overwrite_cache',
-                'soft_validation', 'read_plan'],
-        outputs=['input_data', 'validated_plan']
-    )
-
-    return func
+    return dsp
 
 
 def write_outputs():
