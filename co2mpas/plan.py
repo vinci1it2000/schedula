@@ -61,7 +61,7 @@ def _sa_co2_params(input_vehicle, input_parameters, output_folder):
     inputs['dsp_inputs'] = models = dsp_utl.selector(keys, val)
 
     vehicle_name = inputs['vehicle_name']
-    models = models['calibrated_models']
+    models = models['data.prediction.models']
     params = models['calibration_status'][0][1]
 
     b = {k: (v.min, v.max - v.min)
@@ -92,7 +92,7 @@ def _compute_default_models(path, output_folder, **kw):
         dfl = {}
         for p in fp:
             dsp = _process_vehicle(model, p, output_folder, **kw)['dsp_model']
-            out = dsp.data_output.get('calibrated_models', {})
+            out = dsp.data_output.get('data.prediction.models', {})
             if 'torque_converter_model' in out:
                 out['torque_converter_model'] = TorqueConverter()
             dfl.update(out)
@@ -150,7 +150,7 @@ def _init_sa(path, output_folder, default_path, **kw):
     outputs = dsp_model.data_output
 
     if default_path:
-        dfl = {'calibrated_models': load_from_dill(default_path)}
+        dfl = {'data.prediction.models': load_from_dill(default_path)}
         outputs = combine_nested_dicts(dfl, outputs, depth=2)
 
     validate = define_data_schema().validate
@@ -229,7 +229,7 @@ def build_default_models(model, paths, output_folder, **kw):
     dfl = {}
     for path in file_finder(paths):
         res = get_results(model, path, output_folder, **kw)
-        out = res['dsp_model'].data_output.get('calibrated_models', {})
+        out = res['dsp_model'].data_output.get('data.prediction.models', {})
         if 'torque_converter_model' in out:
             out['torque_converter_model'] = TorqueConverter()
         dfl.update(out)
@@ -256,7 +256,7 @@ def make_simulation_plan(plan, output_folder, **kw):
 
         dfl = build_default_models(model, eval(defaults_fpats), output_folder, **kw)
         if dfl:
-            dfl = {'calibrated_models': dfl}
+            dfl = {'data.prediction.models': dfl}
             outputs = combine_nested_dicts(dfl, outputs, depth=2)
 
         inputs['vehicle_name'] = '%s_%d' % (vehicle_name, i)

@@ -69,8 +69,8 @@ def parse_dsp_model(model):
         v = {j: i for i, j in v.items()}
         res[k] = dsp_utl.map_dict(v, dsp_utl.selector(v, out, allow_miss=True))
 
-    if 'selection_scores' in out:
-        _map_scores(res, out['selection_scores'])
+    if 'data.calibration.model_scores' in out:
+        _map_scores(res, out['data.calibration.model_scores'])
 
     for j in {'nedc', 'wltp_h', 'wltp_l', 'wltp_p'}.intersection(res):
         d = res[j]
@@ -88,7 +88,7 @@ def parse_dsp_model(model):
 
 
 def _map_scores(results, scores):
-    scores = results['selection_scores'] = scores.copy()
+    scores = results['data.calibration.model_scores'] = scores.copy()
 
     for k, v in scores.items():
         for i, j in v.items():

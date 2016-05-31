@@ -252,10 +252,10 @@ def write_to_excel(data, output_file_name, template_file_name, main_flags):
             ref = _df2excel(writer, k[0], v[0])
             if ref:
                 xlref[k[0]] = ref[1]
-        elif k[0] in ('selection_scores', 'proc_info'):
+        elif k[0] in ('data_calibration_model_scores', 'proc_info'):
             kw = {}
 
-            if k[0] == 'selection_scores':
+            if k[0] == 'data_calibration_model_scores':
                 kw = {'named_ranges': ('columns',)}
                 st = ('startrow', 0)
             else:
@@ -307,7 +307,7 @@ def clone_excel(file_name, output_file_name):
 def _sort_sheets(x):
     imp = ['comparison', 'graphs', 'nedc', 'wltp_h',
            'wltp_l', 'wltp_p', 'predictions', 'inputs',
-           'parameters', 'time_series', 'selection_scores']
+           'parameters', 'time_series', 'data_calibration_model_scores']
 
     w = ()
     for i, k in enumerate(imp):

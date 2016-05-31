@@ -178,7 +178,7 @@ def model():
     dsp.add_function(
         function_id='predict_wltp_h',
         function=dsp_utl.SubDispatch(physical()),
-        inputs=['calibrated_models', 'data.prediction.wltp_h'],
+        inputs=['data.prediction.models', 'data.prediction.wltp_h'],
         outputs=['output.prediction.wltp_h'],
         description='Wraps all functions needed to predict CO2 emissions.'
     )
@@ -216,7 +216,7 @@ def model():
     dsp.add_function(
         function_id='predict_wltp_l',
         function=dsp_utl.SubDispatch(physical()),
-        inputs=['calibrated_models', 'data.prediction.wltp_l'],
+        inputs=['data.prediction.models', 'data.prediction.wltp_l'],
         outputs=['output.prediction.wltp_l'],
         description='Wraps all functions needed to predict CO2 emissions.'
 
@@ -240,13 +240,13 @@ def model():
         function=selector,
         inputs=['config.error_settings', 'output.calibration.wltp_h',
                 'output.calibration.wltp_l'],
-        outputs=['calibrated_models', 'selection_scores']
+        outputs=['data.prediction.models', 'data.calibration.model_scores']
     )
 
     dsp.add_function(
         function_id='predict_nedc',
         function=dsp_utl.SubDispatch(physical()),
-        inputs=['calibrated_models', 'input.prediction.nedc'],
+        inputs=['data.prediction.models', 'input.prediction.nedc'],
         outputs=['output.prediction.nedc'],
     )
 

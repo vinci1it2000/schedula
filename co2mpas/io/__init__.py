@@ -195,7 +195,7 @@ def _cycle2df(data, data_descriptions, write_schema):
 def _scores2df(data):
     dfs, edf = {}, {}
     cycles = ('ALL', 'WLTP-H', 'WLTP-L')
-    for k, m in sorted(data.get('selection_scores', {}).items()):
+    for k, m in sorted(data.get('data.calibration.model_scores', {}).items()):
 
         d = _get_selection_raw(k, m['best'])
         m = m['scores']
@@ -233,7 +233,7 @@ def _scores2df(data):
     setattr(df, 'name', 'selections')
     setattr(edf, 'name', 'scores')
 
-    return {'selection_scores': (df, edf)}
+    return {'data_calibration_model_scores': (df, edf)}
 
 
 def _get_selection_raw(model_id, data):
