@@ -30,7 +30,7 @@ def validate_data(data, soft_validation, read_schema=None):
 
     plan = validate_plan(data['plan'], read_schema)
 
-    inputs = validate_inputs(data['run'], soft_validation, read_schema)
+    inputs = validate_inputs(data['job'], soft_validation, read_schema)
     inputs = {'.'.join(k): v for k, v in stack_nested_keys(inputs, depth=3)}
 
     return inputs, plan
