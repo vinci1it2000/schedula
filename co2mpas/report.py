@@ -219,12 +219,8 @@ def _get_cycle_time_series(data):
     return _map
 
 
-def get_chart_reference(data, with_charts=False):
+def get_chart_reference(data):
     r = {}
-
-    if not with_charts:
-        return r
-
     _map = _map_cycle_report_graphs()
     data = dsp_utl.selector(['nedc', 'wltp_p', 'wltp_h', 'wltp_l'], data)
     for k, v in sorted(stack_nested_keys(data)):
@@ -425,7 +421,7 @@ def report():
 
     dsp.add_function(
         function=get_chart_reference,
-        inputs=['output_data', 'with_charts'],
+        inputs=['output_data'],
         outputs=['graphs']
     )
 
@@ -441,6 +437,6 @@ def report():
         outputs=['summary']
     )
 
-    inputs = ['output_data', 'vehicle_name', 'with_charts']
+    inputs = ['output_data', 'vehicle_name']
     outputs = ['report', 'summary']
     return dsp_utl.SubDispatchFunction(dsp, dsp.name, inputs, outputs)

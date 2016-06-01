@@ -478,11 +478,6 @@ def vehicle_processing_model():
     )
 
     dsp.add_data(
-        data_id='select_outputs',
-        default_value=False
-    )
-
-    dsp.add_data(
         data_id='overwrite_cache',
         default_value=False
     )
@@ -550,15 +545,10 @@ def vehicle_processing_model():
         outputs=['output_data']
     )
 
-    dsp.add_data(
-        data_id='with_charts',
-        default_value=True
-    )
-
     from co2mpas.report import report
     dsp.add_function(
         function=report(),
-        inputs=['output_data', 'vehicle_name', 'with_charts'],
+        inputs=['output_data', 'vehicle_name'],
         outputs=['report', 'summary'],
     )
 
@@ -584,8 +574,7 @@ def vehicle_processing_model():
         initial_dist=10
     )
 
-    main_flags = ('output_template', 'overwrite_cache', 'soft_validation',
-                  'with_charts')
+    main_flags = ('output_template', 'overwrite_cache', 'soft_validation')
 
     dsp.add_function(
         function=partial(dsp_utl.map_list, main_flags),
