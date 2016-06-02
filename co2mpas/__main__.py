@@ -422,7 +422,7 @@ def _cmd_plan(opts):
     run_sa(input_path, input_params, out_folder, *defaults,
            soft_validation=opts['--soft-validation'],
            with_output_file=not opts['--only-summary'],
-           output_template_xl_fpath=opts['--out-template'],
+           output_template=opts['--out-template'],
            overwrite_cache=opts['--overwrite-cache']
            )
 
@@ -460,7 +460,7 @@ def _run_batch(opts):
     process_folder_files(input_paths, output_folder,
                          with_output_file=not opts['--only-summary'],
                          plot_workflow=opts['--plot-workflow'],
-                         output_template_xl_fpath=opts['--out-template'],
+                         output_template=opts['--out-template'],
                          overwrite_cache=opts['--overwrite-cache'],
                          soft_validation=opts['--soft-validation'],
                          plan=opts['--plan'])

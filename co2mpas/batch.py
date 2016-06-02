@@ -182,8 +182,8 @@ class _custom_tqdm(tqdm):
 
 def _process_folder_files(
         input_files, output_folder, plot_workflow=False, with_output_file=True,
-        output_template_xl_fpath=None, overwrite_cache=False,
-        soft_validation=False, plan=False):
+        output_template=None, overwrite_cache=False, soft_validation=False,
+        plan=False):
     """
     Process all xls-files in a folder with CO2MPAS-model.
 
@@ -198,7 +198,7 @@ def _process_folder_files(
         If to show the CO2MPAS model workflow.
     :type plot_workflow: bool, optional
 
-    :param output_template_xl_fpath:
+    :param output_template:
         The xlsx-file to use as template and import existing sheets from.
 
         - If file already exists, a clone gets updated with new sheets.
@@ -215,56 +215,50 @@ def _process_folder_files(
 
     start_time = datetime.today()
     timestamp = start_time.strftime('%Y%m%d_%H%M%S')
-
+    kw = {
+        'output_folder': output_folder,
+        'timestamp': timestamp,
+        'plot_workflow': plot_workflow,
+        'with_output_file': with_output_file,
+        'output_template': output_template,
+        'overwrite_cache': overwrite_cache,
+        'soft_validation': soft_validation,
+        'plan': plan
+    }
     for fpath in _custom_tqdm(input_files, bar_format='{l_bar}{bar}{r_bar}'):
-        res = _process_vehicle(
-            model, fpath,
-            output_folder=output_folder,
-            timestamp=timestamp,
-            plot_workflow=plot_workflow,
-            with_output_file=with_output_file,
-            output_template_xl_fpath=output_template_xl_fpath,
-            overwrite_cache=overwrite_cache,
-            soft_validation=soft_validation,
-            plan=plan
-        )
-
-        _add2summary(summary, res)
+        res = _process_vehicle(model, input_file_name=fpath, **kw)
+        _add2summary(summary, res.get('summary', {}))
 
     return summary, start_time
 
 
 def _process_vehicle(
-        model, fpath, output_folder='.', timestamp=None, plot_workflow=False,
-        with_output_file=False, output_template_xl_fpath=None,
-        overwrite_cache=False, soft_validation=False, plan=False):
+        model, plot_workflow=False, **kw):
 
     inputs = {
-        'input_file_name': fpath,
-        'output_template': output_template_xl_fpath,
-        'overwrite_cache': overwrite_cache,
-        'soft_validation': soft_validation,
-        'output_folder': output_folder,
-        'with_output_file': with_output_file,
-        'plan': plan
+        'plot_workflow': plot_workflow
     }
 
-    if timestamp is not None:
-        inputs['timestamp'] = timestamp
+    res = model.dispatch(inputs=dsp_utl.combine_dicts(inputs, kw))
 
-    res = model.dispatch(inputs=inputs)
+    plot_model_workflow(model, **res)
 
-    if plot_workflow:
+    return res
+
+
+def plot_model_workflow(
+        model, force=False, plot_workflow=False, output_file_name=None,
+        vehicle_name='', **kw):
+
+    if plot_workflow or force:
         try:
             ofname = None
-            if 'output_file_name' in res:
-                ofname = osp.splitext(res['output_file_name'])[0]
-            log.info('Plotting workflow of %s...', res['vehicle_name'])
+            if output_file_name:
+                ofname = osp.splitext(output_file_name)[0]
+            log.info('Plotting workflow of %s...', vehicle_name)
             model.plot(workflow=True, filename=ofname)
         except RuntimeError as ex:
             log.warning(ex, exc_info=1)
-
-    return res
 
 
 def default_start_time():
@@ -279,15 +273,18 @@ def default_vehicle_name(fpath):
     return osp.splitext(osp.basename(fpath))[0]
 
 
-def default_output_file_name(output_folder, fname, timestamp):
+def default_output_file_name(output_folder, fname, timestamp, plan=False):
     ofname = '%s-%s' % (timestamp, fname)
     ofname = osp.join(output_folder, ofname)
+
+    if plan:
+        return '%s-plan_summary.xlsx' % ofname
     return '%s.xlsx' % ofname
 
 
-def _add2summary(summary, res):
-    for k, v in stack_nested_keys(res.get('summary', {}), depth=2):
-        get_nested_dicts(summary, *k, default=list).append(v)
+def _add2summary(total_summary, summary):
+    for k, v in stack_nested_keys(summary, depth=2):
+        get_nested_dicts(total_summary, *k, default=list).append(v)
 
 
 def _get_contain(d, *keys, default=None):
@@ -305,7 +302,6 @@ def _get_contain(d, *keys, default=None):
 
 def _save_summary(fpath, start_time, summary):
     if summary:
-        writer = pd.ExcelWriter(fpath, engine='xlsxwriter')
         from co2mpas.io.excel import _df2excel
         from co2mpas.io import _dd2df, _param_orders, _co2mpas_info2df
         summary = _dd2df(summary, 'vehicle_name', depth=2)
@@ -362,6 +358,8 @@ def _save_summary(fpath, start_time, summary):
         c = [v + (_get_contain(units, *v, default=' '),) for v in c]
 
         summary.columns = pd.MultiIndex.from_tuples(c)
+
+        writer = pd.ExcelWriter(fpath, engine='xlsxwriter')
 
         _df2excel(writer, 'summary', summary)
 
@@ -458,6 +456,10 @@ def get_template_file_name(template_output, input_file_name):
     return template_output
 
 
+def check_first_arg(*args):
+    return args[0]
+
+
 def vehicle_processing_model():
     """
     Defines the vehicle-processing model.
@@ -510,33 +512,27 @@ def vehicle_processing_model():
     )
 
     dsp.add_function(
-        function=dsp_utl.add_args(default_output_file_name),
+        function=dsp_utl.add_args(default_output_file_name, n=1),
         inputs=['with_output_file', 'output_folder', 'vehicle_name',
-                'timestamp'],
+                'timestamp', 'plan'],
         outputs=['output_file_name'],
-        input_domain=lambda *args: args[0]
+        input_domain=lambda *args: args[0] or args[-1]
     )
 
     from co2mpas.io import load_inputs, write_outputs
 
-    dsp.add_dispatcher(
-        dsp=load_inputs(),
-        inputs={
-            'input_file_name': 'input_file_name',
-            'overwrite_cache': 'overwrite_cache',
-            'soft_validation': 'soft_validation'
-        },
-        outputs={
-            'validated_data': 'dsp_inputs',
-            'validated_plan': 'validated_plan'
-        }
+    dsp.add_function(
+        function=load_inputs(),
+        inputs=['input_file_name', 'overwrite_cache', 'soft_validation'],
+        outputs=['validated_data', 'validated_plan']
     )
 
     from .model import model
     dsp.add_function(
-        function=dsp_utl.SubDispatch(model(), output_type='dsp'),
-        inputs=['dsp_inputs'],
-        outputs=['dsp_model']
+        function=dsp_utl.add_args(dsp_utl.SubDispatch(model(), output_type='dsp')),
+        inputs=['plan', 'validated_data'],
+        outputs=['dsp_model'],
+        input_domain=lambda *args: not args[0]
     )
 
     dsp.add_function(
@@ -559,9 +555,6 @@ def vehicle_processing_model():
         weight=1
     )
 
-    def check_first_arg(*args):
-        return args[0]
-
     dsp.add_function(
         function=get_template_file_name,
         inputs=['output_template', 'input_file_name'],
@@ -574,7 +567,8 @@ def vehicle_processing_model():
         initial_dist=10
     )
 
-    main_flags = ('output_template', 'overwrite_cache', 'soft_validation')
+    main_flags = ('template_file_name', 'overwrite_cache', 'soft_validation',
+                  'with_output_file', 'plot_workflow', 'plan')
 
     dsp.add_function(
         function=partial(dsp_utl.map_list, main_flags),
@@ -588,6 +582,27 @@ def vehicle_processing_model():
                 'start_time', 'main_flags'],
         outputs=[dsp_utl.SINK],
         input_domain=check_first_arg
+    )
+
+    dsp.add_data(
+        data_id='plan',
+        default_value=False
+    )
+
+    from .plan import make_simulation_plan
+    dsp.add_function(
+        function=dsp_utl.add_args(make_simulation_plan),
+        inputs=['plan', 'validated_plan', 'timestamp', 'output_folder',
+                'main_flags'],
+        outputs=['plan_summary'],
+        input_domain=check_first_arg
+    )
+
+    dsp.add_function(
+        function_id='write_simulation_plan',
+        function=_save_summary,
+        inputs=['output_file_name', 'start_time', 'plan_summary'],
+        outputs=[dsp_utl.SINK]
     )
 
     return dsp

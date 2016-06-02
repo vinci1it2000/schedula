@@ -418,7 +418,7 @@ def _dd2df(dd, index, depth=0, axis=1):
     for d in range(depth - 1, -1, -1):
         for k, v in stack_nested_keys(dd, depth=d):
             keys, frames = zip(*sorted(v.items()))
-            df = pd.concat(frames, axis=axis, keys=keys)
+            df = pd.concat(frames, axis=axis, keys=keys, verify_integrity=True)
             if k:
                 get_nested_dicts(dd, *k[:-1])[k[-1]] = df
             else:
@@ -590,7 +590,14 @@ def load_inputs():
         function=check_data_version
     )
 
-    return dsp
+    func = dsp_utl.SubDispatchFunction(
+        dsp=dsp,
+        function_id=dsp.name,
+        inputs=['input_file_name', 'overwrite_cache', 'soft_validation'],
+        outputs=['validated_data', 'validated_plan']
+    )
+
+    return func
 
 
 def write_outputs():

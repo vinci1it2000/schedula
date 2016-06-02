@@ -92,7 +92,7 @@ def parse_excel_file(file_path):
 
         sheet = _open_sheet_by_name_or_index(excel_file.book, 'book', sheet_name)
         if match['scope'] == 'job':
-            _parse_job_data(res,match, sheet, sheet_name)
+            _parse_job_data(res, match, sheet, sheet_name)
         elif match['scope'] == 'plan':
             _parse_plan_data(plans, match, sheet, sheet_name)
 
@@ -101,32 +101,41 @@ def parse_excel_file(file_path):
             v['cycle_type'] = v.get('cycle_type', k[-1].split('_')[0]).upper()
             v['cycle_name'] = v.get('cycle_name', k[-1]).upper()
 
-    if plans:
-        plans = pd.concat(plans, axis=1, copy=False, verify_integrity=True)
-        for k, v in stack_nested_keys(res.get('plan', {}), depth=4):
-            n = '.'.join(k)
-            if n in plans:
-                plans[n].fillna(value=v, inplace=True)
-            else:
-                plans[n] = v
-
-        if 'base' not in plans:
-            plans['base'] = file_path
-        else:
-            plans['base'].fillna(file_path)
-
-        if 'defaults' not in plans:
-            plans['defaults'] = '()'
-        else:
-            plans['defaults'].fillna('()')
-
-        plans['job_id'] = plans.index
-        plans.set_index(['job_id', 'base', 'defaults'], inplace=True)
-        res['plan'] = plans
-    else:
-        res['plan'] = pd.DataFrame()
+    res['plan'] = _finalize_plan(res, plans, file_path)
 
     return res
+
+
+def _finalize_plan(res, plans, file_path):
+    if not plans:
+        return pd.DataFrame()
+
+    for k, v in stack_nested_keys(res.get('plan', {}), depth=4):
+        n = '.'.join(k)
+        m = '.'.join(k[:-1])
+        for p in plans:
+            if any(c.startswith(m) for c in p.columns):
+                if n in p:
+                    p[n].fillna(value=v, inplace=True)
+                else:
+                    p[n] = v
+
+    plans = pd.concat(plans, axis=1, copy=False, verify_integrity=True)
+
+    if 'base' not in plans:
+        plans['base'] = file_path
+    else:
+        plans['base'].fillna(file_path)
+
+    if 'defaults' not in plans:
+        plans['defaults'] = '()'
+    else:
+        plans['defaults'].fillna('()')
+
+    plans['job_id'] = plans.index
+    plans.set_index(['job_id', 'base', 'defaults'], inplace=True)
+
+    return plans
 
 
 def _parse_job_data(res, match, sheet, sheet_name):
