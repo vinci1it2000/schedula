@@ -183,8 +183,7 @@ class _custom_tqdm(tqdm):
 
 def _process_folder_files(
         input_files, output_folder, plot_workflow=False, with_output_file=True,
-        output_template=None, overwrite_cache=False, soft_validation=False,
-        plan=False):
+        output_template=None, overwrite_cache=False, soft_validation=False):
     """
     Process all xls-files in a folder with CO2MPAS-model.
 
@@ -223,8 +222,7 @@ def _process_folder_files(
         'with_output_file': with_output_file,
         'output_template': output_template,
         'overwrite_cache': overwrite_cache,
-        'soft_validation': soft_validation,
-        'plan': plan
+        'soft_validation': soft_validation
     }
     for fpath in _custom_tqdm(input_files, bar_format='{l_bar}{bar}{r_bar}'):
         res = _process_vehicle(model, input_file_name=fpath, **kw)
@@ -274,18 +272,22 @@ def default_vehicle_name(fpath):
     return osp.splitext(osp.basename(fpath))[0]
 
 
-def default_output_file_name(output_folder, fname, timestamp, plan=False):
+def default_output_file_name(output_folder, fname, timestamp):
     ofname = '%s-%s' % (timestamp, fname)
     ofname = osp.join(output_folder, ofname)
 
-    if plan:
-        return '%s-plan_summary.xlsx' % ofname
     return '%s.xlsx' % ofname
 
 
-def _add2summary(total_summary, summary):
+def _add2summary(total_summary, summary, base_keys=None):
+    base_keys = base_keys or {}
     for k, v in co2_utl.stack_nested_keys(summary, depth=2):
-        co2_utl.get_nested_dicts(total_summary, *k, default=list).append(v)
+        d = co2_utl.get_nested_dicts(total_summary, *k, default=list)
+        if isinstance(v, list):
+            for j in v:
+                d.append(dsp_utl.combine_dicts(j, base_keys))
+        else:
+            d.append(dsp_utl.combine_dicts(v, base_keys))
 
 
 def _get_contain(d, *keys, default=None):
@@ -375,8 +377,8 @@ def get_template_file_name(template_output, input_file_name):
     return template_output
 
 
-def check_first_arg(*args):
-    return args[0]
+def check_first_arg(first, *args):
+    return bool(first)
 
 
 def vehicle_processing_model():
@@ -433,17 +435,24 @@ def vehicle_processing_model():
     dsp.add_function(
         function=dsp_utl.add_args(default_output_file_name, n=1),
         inputs=['with_output_file', 'output_folder', 'vehicle_name',
-                'timestamp', 'plan'],
+                'timestamp'],
         outputs=['output_file_name'],
-        input_domain=lambda *args: args[0] or args[-1]
+        input_domain=lambda *args: args[0]
     )
 
-    from co2mpas.io import load_inputs, write_outputs
+    from .io import load_inputs, write_outputs
 
-    dsp.add_function(
-        function=load_inputs(),
-        inputs=['input_file_name', 'overwrite_cache', 'soft_validation'],
-        outputs=['validated_data', 'validated_plan']
+    dsp.add_dispatcher(
+        dsp=load_inputs(),
+        inputs={
+            'input_file_name': 'input_file_name',
+            'overwrite_cache': 'overwrite_cache',
+            'soft_validation': 'soft_validation'
+        },
+        outputs={
+            'validated_data': 'validated_data',
+            'validated_plan': 'validated_plan'
+        }
     )
 
     from .model import model
@@ -460,7 +469,7 @@ def vehicle_processing_model():
         outputs=['output_data']
     )
 
-    from co2mpas.report import report
+    from .report import report
     dsp.add_function(
         function=report(),
         inputs=['output_data', 'vehicle_name'],
@@ -487,7 +496,7 @@ def vehicle_processing_model():
     )
 
     main_flags = ('template_file_name', 'overwrite_cache', 'soft_validation',
-                  'with_output_file', 'plot_workflow', 'plan')
+                  'with_output_file', 'plot_workflow')
 
     dsp.add_function(
         function=partial(dsp_utl.map_list, main_flags),
@@ -503,9 +512,11 @@ def vehicle_processing_model():
         input_domain=check_first_arg
     )
 
-    dsp.add_data(
-        data_id='plan',
-        default_value=False
+    dsp.add_function(
+        function_id='has_plan',
+        function=check_first_arg,
+        inputs=['validated_plan'],
+        outputs=['plan']
     )
 
     from .plan import make_simulation_plan
@@ -513,15 +524,8 @@ def vehicle_processing_model():
         function=dsp_utl.add_args(make_simulation_plan),
         inputs=['plan', 'validated_plan', 'timestamp', 'output_folder',
                 'main_flags'],
-        outputs=['plan_summary'],
+        outputs=['summary'],
         input_domain=check_first_arg
-    )
-
-    dsp.add_function(
-        function_id='write_simulation_plan',
-        function=_save_summary,
-        inputs=['output_file_name', 'start_time', 'plan_summary'],
-        outputs=[dsp_utl.SINK]
     )
 
     return dsp

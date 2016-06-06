@@ -128,9 +128,9 @@ def _finalize_plan(res, plans, file_path):
         plans['base'].fillna(file_path)
 
     if 'defaults' not in plans:
-        plans['defaults'] = '()'
+        plans['defaults'] = ''
     else:
-        plans['defaults'].fillna('()')
+        plans['defaults'].fillna('')
 
     plans['job_id'] = plans.index
     plans.set_index(['job_id', 'base', 'defaults'], inplace=True)

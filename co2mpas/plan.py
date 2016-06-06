@@ -20,14 +20,16 @@ from cachetools import cached, LRUCache
 
 
 @cached(LRUCache(maxsize=256))
-def get_results(model, fpath, **kw):
-    cache_fpath = get_cache_fpath(fpath, ext=('res', 'plan', 'dill',))
+def get_results(model, fpath, overwrite_cache=False, **kw):
+    cache_fpath = get_cache_fpath(fpath, ext=('res', 'job', 'dill',))
 
-    if check_cache_fpath_exists(False, fpath, cache_fpath):
+    if check_cache_fpath_exists(overwrite_cache, fpath, cache_fpath):
         res = load_from_dill(cache_fpath)
     else:
         kw = {k: v for k, v in kw.items() if k != 'plot_workflow'}
-        res = _process_vehicle(model, input_file_name=fpath, **kw)
+        res = _process_vehicle(model,
+                               input_file_name=fpath,
+                               overwrite_cache=overwrite_cache, **kw)
         save_dill(res, cache_fpath)
 
     return res
@@ -35,6 +37,7 @@ def get_results(model, fpath, **kw):
 
 def build_default_models(model, paths, output_folder, **kw):
     dfl = {}
+    paths = eval(paths or '()')
     for path in file_finder(paths):
         res = get_results(model, path, output_folder, **kw)
         out = res['dsp_model'].data_output.get('data.prediction.models', {})
@@ -78,37 +81,41 @@ def make_simulation_plan(plan, timestamp, output_folder, main_flags):
     }
 
     kw = dsp_utl.combine_dicts(main_flags, kw)
-    names = set()
     for (i, base_fpath, defaults_fpats), p in tqdm(plan, disable=False):
         base = get_results(model, base_fpath, **kw)
-        name = base.get('vehicle_name', 'vehicle')
-        if name not in names:
-            names.add(name)
-            _add2summary(summary, base.get('summary', {}))
-        name = '%s:%d' % (name, i)
+        name = '%s:%d' % (base.get('vehicle_name', 'vehicle'), i)
 
-        if name not in names:
-            inputs = dsp_utl.selector(set(base).difference(run_modes), base)
-            inputs['vehicle_name'] = name
-            dsp_model = base['dsp_model']
-            outputs = dsp_model.data_output
+        inputs = dsp_utl.selector(set(base).difference(run_modes), base)
+        inputs['vehicle_name'] = name
+        dsp_model = base['dsp_model']
+        outputs = dsp_model.data_output
 
-            dfl = build_default_models(model, eval(defaults_fpats), **kw)
-            if dfl:
-                dfl = {'data.prediction.models': dfl}
-                outputs = co2_utl.combine_nested_dicts(dfl, outputs, depth=2)
+        dfl = build_default_models(model, defaults_fpats, **kw)
+        if dfl:
+            dfl = {'data.prediction.models': dfl}
+            outputs = co2_utl.combine_nested_dicts(dfl, outputs, depth=2)
 
-            inputs['validated_data'] = define_new_inputs(p, outputs, dsp_model)
-            inputs.update(kw)
-            res = _process_vehicle(model, **inputs)
-            names.add(name)
-            _add2summary(summary, filter_summary(p, res.get('summary', {})))
+        inputs['validated_data'] = define_new_inputs(p, outputs, dsp_model)
+        inputs.update(kw)
+        res = _process_vehicle(model, **inputs)
+
+        s = filter_summary(p, res.get('summary', {}))
+        base_keys = {
+            'vehicle_name': (defaults_fpats, base_fpath, name),
+        }
+        _add2summary(summary, s, base_keys)
 
     return summary
 
 
 def filter_summary(changes, summary):
-    l = [tuple(k.split('.')[:0:-1]) for k in changes]
+    l, variations = [], {}
+    for k, v in changes.items():
+        k = tuple(k.split('.')[:0:-1])
+        l.append(k)
+        k = k[0], 'plan %s' % k[1]
+        co2_utl.get_nested_dicts(variations, *k).update(v)
+
     s = {}
     d = ('delta', 'co2_emission')
     if ('nedc', 'prediction') in l:
@@ -129,4 +136,4 @@ def filter_summary(changes, summary):
         if k in l:
             co2_utl.get_nested_dicts(s, *k[:-1])[k[-1]] = v
 
-    return s
+    return co2_utl.combine_nested_dicts(s, variations, depth=2)

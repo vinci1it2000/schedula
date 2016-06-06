@@ -12,6 +12,7 @@ It provides CO2MPAS schema parse/validator.
 import logging
 from collections import Iterable, OrderedDict
 import numpy as np
+import pandas as pd
 from lmfit import Parameters, Parameter
 from schema import Schema, Use, And, Or, Optional, SchemaError
 from sklearn.tree import DecisionTreeClassifier
@@ -26,8 +27,7 @@ log = logging.getLogger(__name__)
 
 
 def validate_data(data, soft_validation, read_schema=None):
-
-    plan = validate_plan(data['plan'], read_schema)
+    plan = validate_plan(data.get('plan', pd.DataFrame([])), read_schema)
 
     inputs = validate_inputs(data['job'], soft_validation, read_schema)
     inputs = {'.'.join(k): v

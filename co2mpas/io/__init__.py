@@ -285,9 +285,12 @@ def _param_orders():
         'fuel_consumption medium': 'fuel_consumption 2',
         'fuel_consumption high': 'fuel_consumption 3',
         'fuel_consumption extra_high': 'fuel_consumption 4',
-        'target': '1',
-        'prediction': '2',
-        'calibration': '3',
+        'plan target': '1',
+        'target': '2',
+        'plan prediction': '3',
+        'prediction': '4',
+        'plan calibration': '5',
+        'calibration': '6',
         'av_velocities': 'willans 01',
         'distance': 'willans 02',
         'init_temp': 'willans 03',
@@ -413,7 +416,8 @@ def _time_series2df(data, data_descriptions):
 
 def _dd2df(dd, index, depth=0, axis=1):
     for k, v in co2_utl.stack_nested_keys(dd, depth=depth):
-        df = pd.DataFrame(v).set_index(index)
+        df = pd.DataFrame(v)
+        df.set_index(index, inplace=True)
         co2_utl.get_nested_dicts(dd, *k[:-1])[k[-1]] = df
 
     for d in range(depth - 1, -1, -1):
@@ -591,14 +595,7 @@ def load_inputs():
         function=check_data_version
     )
 
-    func = dsp_utl.SubDispatchFunction(
-        dsp=dsp,
-        function_id=dsp.name,
-        inputs=['input_file_name', 'overwrite_cache', 'soft_validation'],
-        outputs=['validated_data', 'validated_plan']
-    )
-
-    return func
+    return dsp
 
 
 def write_outputs():

@@ -19,7 +19,7 @@ USAGE:
   co2mpas batch       [-v | --logconf=<conf-file>] [--gui] [-f]
                       [--overwrite-cache] [--out-template=<xlsx-file>]
                       [--plot-workflow] [-O=<output-folder>]
-                      [--only-summary] [--soft-validation] [--plan]
+                      [--only-summary] [--soft-validation]
                       [<input-path>]...
   co2mpas demo        [-v | --logconf=<conf-file>] [--gui] [-f]
                       [<output-folder>]
@@ -44,8 +44,6 @@ OPTIONS:
   -O=<output-folder>          Output folder or file [default: .].
   --gui                       Launches GUI dialog-boxes to choose Input, Output
                               and Options. [default: False].
-  --plan                      Launch the simulation plan contained inside the
-                              input file(s).
   --only-summary              Do not save vehicle outputs, just the summary.
   --overwrite-cache           Overwrite the cached file.
   --soft-validation           Validate only partially input-data (no schema).
@@ -351,8 +349,7 @@ def _prompt_options(opts):
         'plot-workflow': 'y/[n]',
         'only-summary': 'y/[n]',
         'out-template': 'y/[n]/<xlsx-file>',
-        'force': 'y/[n]',
-        'plan': 'y/[n]'
+        'force': 'y/[n]'
     }
 
     fields, choices = zip(*((k, v) for k, v in fields.items() if not opts['--%s' % k]))
@@ -443,8 +440,7 @@ def _run_batch(opts):
                          plot_workflow=opts['--plot-workflow'],
                          output_template=opts['--out-template'],
                          overwrite_cache=opts['--overwrite-cache'],
-                         soft_validation=opts['--soft-validation'],
-                         plan=opts['--plan'])
+                         soft_validation=opts['--soft-validation'])
 
 
 def _main(*args):
@@ -482,6 +478,7 @@ def main(*args):
     except Exception as ex:
         log.error('%r', ex)
         raise
+
 
 if __name__ == '__main__':
     if sys.version_info < (3, 4):
