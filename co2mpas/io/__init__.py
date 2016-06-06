@@ -41,7 +41,7 @@ from co2mpas.dispatcher import Dispatcher
 from .excel import write_to_excel, parse_excel_file, parse_values
 from .schema import validate_data, validate_plan
 from functools import partial
-
+from pandalone.xleash import lasso
 log = logging.getLogger(__name__)
 
 
@@ -575,6 +575,14 @@ def load_inputs():
         outputs=['data'],
         input_domain=partial(check_file_format, extensions=('.dill',)),
         weight=5
+    )
+
+    dsp.add_function(
+        function_id='load_from_xlasso',
+        function=lasso,
+        inputs=['input_file_name'],
+        outputs=['data'],
+        weight=10
     )
 
     dsp.add_function(

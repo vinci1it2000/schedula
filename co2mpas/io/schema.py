@@ -29,7 +29,7 @@ log = logging.getLogger(__name__)
 def validate_data(data, soft_validation, read_schema=None):
     plan = validate_plan(data.get('plan', pd.DataFrame([])), read_schema)
 
-    inputs = validate_inputs(data['job'], soft_validation, read_schema)
+    inputs = validate_inputs(data.get('job', {}), soft_validation, read_schema)
     inputs = {'.'.join(k): v
               for k, v in co2_utl.stack_nested_keys(inputs, depth=3)}
 
@@ -37,9 +37,7 @@ def validate_data(data, soft_validation, read_schema=None):
 
 
 def validate_inputs(data, soft_validation=False, read_schema=None):
-    res = {}
-    validate = read_schema.validate
-    errors = {}
+    res, errors, validate = {}, {}, read_schema.validate
     for k, v in sorted(co2_utl.stack_nested_keys(data, depth=3)):
         for i in list(v):
             try:
