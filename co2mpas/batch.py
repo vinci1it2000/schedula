@@ -18,6 +18,7 @@ from tqdm import tqdm
 from functools import partial
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher import Dispatcher
+import co2mpas.utils as co2_utl
 
 log = logging.getLogger(__name__)
 
@@ -283,8 +284,8 @@ def default_output_file_name(output_folder, fname, timestamp, plan=False):
 
 
 def _add2summary(total_summary, summary):
-    for k, v in stack_nested_keys(summary, depth=2):
-        get_nested_dicts(total_summary, *k, default=list).append(v)
+    for k, v in co2_utl.stack_nested_keys(summary, depth=2):
+        co2_utl.get_nested_dicts(total_summary, *k, default=list).append(v)
 
 
 def _get_contain(d, *keys, default=None):
@@ -366,88 +367,6 @@ def _save_summary(fpath, start_time, summary):
         _df2excel(writer, 'proc_info', _co2mpas_info2df(start_time))
 
         writer.save()
-
-
-def stack_nested_keys(nested_dict, key=(), depth=-1):
-    """
-    Stacks the keys of nested-dictionaries into tuples and yields a list of k-v pairs.
-
-    :param nested_dict:
-        Nested dictionary.
-    :type nested_dict: dict
-
-    :param key:
-        Initial keys.
-    :type key: tuple, optional
-
-    :param depth:
-        Maximum keys depth.
-    :type depth: int, optional
-
-    :return:
-        List of k-v pairs.
-    :rtype: generator
-    """
-
-    if depth != 0 and hasattr(nested_dict, 'items'):
-        for k, v in nested_dict.items():
-            yield from stack_nested_keys(v, key=key + (k,), depth=depth - 1)
-    else:
-        yield key, nested_dict
-
-
-def get_nested_dicts(nested_dict, *keys, default=None):
-    """
-    Get/Initialize the value of nested-dictionaries.
-
-    :param nested_dict:
-        Nested dictionary.
-    :type nested_dict: dict
-
-    :param keys:
-        Nested keys.
-    :type keys: tuple
-
-    :param default:
-        Function used to initialize a new value.
-    :type default: function, optional
-
-    :return:
-        Value of nested-dictionary.
-    :rtype: generator
-    """
-
-    if keys:
-        default = default or dict
-        d = default() if len(keys) == 1 else {}
-        nd = nested_dict[keys[0]] = nested_dict.get(keys[0], d)
-        return get_nested_dicts(nd, *keys[1:], default=default)
-    return nested_dict
-
-
-def combine_nested_dicts(*nested_dicts, depth=-1):
-    """
-    Merge nested-dictionaries.
-
-    :param nested_dicts:
-        Nested dictionaries.
-    :type nested_dicts: tuple[dict]
-
-    :param depth:
-        Maximum keys depth.
-    :type depth: int, optional
-
-    :return:
-        Combined nested-dictionary.
-    :rtype: dict
-    """
-
-    result = {}
-    for nested_dict in nested_dicts:
-        for k, v in stack_nested_keys(nested_dict, depth=depth):
-            get_nested_dicts(result, *k[:-1])[k[-1]] = v
-
-    return result
 
 
 def get_template_file_name(template_output, input_file_name):

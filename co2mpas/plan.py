@@ -10,11 +10,11 @@ It contains functions to make a sensitivity analysis.
 """
 from tqdm import tqdm
 import co2mpas.dispatcher.utils as dsp_utl
+import co2mpas.utils as co2_utl
 from .io import check_cache_fpath_exists, get_cache_fpath
 from .io.dill import save_dill, load_from_dill
 from .__main__ import file_finder
-from .batch import _process_vehicle, _add2summary, \
-    get_nested_dicts, vehicle_processing_model, combine_nested_dicts, stack_nested_keys
+from .batch import _process_vehicle, _add2summary, vehicle_processing_model
 from .model.physical.clutch_tc.torque_converter import TorqueConverter
 from cachetools import cached, LRUCache
 
@@ -47,7 +47,7 @@ def build_default_models(model, paths, output_folder, **kw):
 
 def define_new_inputs(data, base, dsp_model):
     remove = []
-    for k, v in stack_nested_keys(data, depth=2):
+    for k, v in co2_utl.stack_nested_keys(data, depth=2):
         if v is dsp_utl.EMPTY:
             remove.append(k)
 
@@ -56,10 +56,10 @@ def define_new_inputs(data, base, dsp_model):
     n.update(data)
 
     inp = dsp_utl.selector(n, base, allow_miss=True)
-    d = combine_nested_dicts(inp, data, depth=2)
+    d = co2_utl.combine_nested_dicts(inp, data, depth=2)
 
     for n, k in remove:
-        get_nested_dicts(d, n).pop(k)
+        co2_utl.get_nested_dicts(d, n).pop(k)
 
     return d
 
@@ -96,7 +96,7 @@ def make_simulation_plan(plan, timestamp, output_folder, main_flags):
             dfl = build_default_models(model, eval(defaults_fpats), **kw)
             if dfl:
                 dfl = {'data.prediction.models': dfl}
-                outputs = combine_nested_dicts(dfl, outputs, depth=2)
+                outputs = co2_utl.combine_nested_dicts(dfl, outputs, depth=2)
 
             inputs['validated_data'] = define_new_inputs(p, outputs, dsp_model)
             inputs.update(kw)
@@ -122,10 +122,11 @@ def filter_summary(changes, summary):
                     if (k, 'prediction') in l]
             if keys:
                 keys += ['vehicle_name']
-                get_nested_dicts(s, *d).update(dsp_utl.selector(keys, delta))
+                d = co2_utl.get_nested_dicts(s, *d)
+                d.update(dsp_utl.selector(keys, delta))
 
-    for k, v in stack_nested_keys(summary, depth=2):
+    for k, v in co2_utl.stack_nested_keys(summary, depth=2):
         if k in l:
-            get_nested_dicts(s, *k[:-1])[k[-1]] = v
+            co2_utl.get_nested_dicts(s, *k[:-1])[k[-1]] = v
 
     return s

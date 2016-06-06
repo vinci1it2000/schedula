@@ -36,7 +36,7 @@ import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas._version import version, __input_file_version__
 from co2mpas.dispatcher.utils.alg import stlp
 from .dill import *
-from co2mpas.batch import stack_nested_keys, get_nested_dicts
+import co2mpas.utils as co2_utl
 from co2mpas.dispatcher import Dispatcher
 from .excel import write_to_excel, parse_excel_file, parse_values
 from .schema import validate_data, validate_plan
@@ -91,8 +91,8 @@ def convert2df(data, start_time, main_flags, data_descriptions, write_schema):
 def _comparison2df(data):
     res = {}
 
-    for k, v in stack_nested_keys(data.get('comparison', {}), depth=3):
-        r = get_nested_dicts(res, *k, default=list)
+    for k, v in co2_utl.stack_nested_keys(data.get('comparison', {}), depth=3):
+        r = co2_utl.get_nested_dicts(res, *k, default=list)
         for i, j in v.items():
             d = {'param_id': i}
             d.update(j)
@@ -412,15 +412,16 @@ def _time_series2df(data, data_descriptions):
 
 
 def _dd2df(dd, index, depth=0, axis=1):
-    for k, v in stack_nested_keys(dd, depth=depth):
-        get_nested_dicts(dd, *k[:-1])[k[-1]] = pd.DataFrame(v).set_index(index)
+    for k, v in co2_utl.stack_nested_keys(dd, depth=depth):
+        df = pd.DataFrame(v).set_index(index)
+        co2_utl.get_nested_dicts(dd, *k[:-1])[k[-1]] = df
 
     for d in range(depth - 1, -1, -1):
-        for k, v in stack_nested_keys(dd, depth=d):
+        for k, v in co2_utl.stack_nested_keys(dd, depth=d):
             keys, frames = zip(*sorted(v.items()))
             df = pd.concat(frames, axis=axis, keys=keys, verify_integrity=True)
             if k:
-                get_nested_dicts(dd, *k[:-1])[k[-1]] = df
+                co2_utl.get_nested_dicts(dd, *k[:-1])[k[-1]] = df
             else:
                 dd = df
     return dd

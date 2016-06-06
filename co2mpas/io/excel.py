@@ -19,7 +19,7 @@ from pandalone.xleash.io._xlrd import _open_sheet_by_name_or_index
 import shutil
 import openpyxl
 from xlsxwriter.utility import xl_range_abs, xl_rowcol_to_cell_fast
-from co2mpas.batch import stack_nested_keys, get_nested_dicts
+import co2mpas.utils as co2_utl
 from inspect import getfullargspec
 from itertools import chain
 import regex
@@ -96,7 +96,7 @@ def parse_excel_file(file_path):
         elif match['scope'] == 'plan':
             _parse_plan_data(plans, match, sheet, sheet_name)
 
-    for k, v in stack_nested_keys(res.get('job', {}), depth=3):
+    for k, v in co2_utl.stack_nested_keys(res.get('job', {}), depth=3):
         if k[0] != 'target':
             v['cycle_type'] = v.get('cycle_type', k[-1].split('_')[0]).upper()
             v['cycle_name'] = v.get('cycle_name', k[-1]).upper()
@@ -110,7 +110,7 @@ def _finalize_plan(res, plans, file_path):
     if not plans:
         return pd.DataFrame()
 
-    for k, v in stack_nested_keys(res.get('plan', {}), depth=4):
+    for k, v in co2_utl.stack_nested_keys(res.get('plan', {}), depth=4):
         n = '.'.join(k)
         m = '.'.join(k[:-1])
         for p in plans:
@@ -160,7 +160,7 @@ def _parse_job_data(res, match, sheet, sheet_name):
             raise ValueError(msg.format(drop, sheet_name))
 
     for k, v in parse_values(data, default=match):
-        get_nested_dicts(res, *k[:-1])[k[-1]] = v
+        co2_utl.get_nested_dicts(res, *k[:-1])[k[-1]] = v
 
 
 def _parse_plan_data(plans, match, sheet, sheet_name):
@@ -252,7 +252,9 @@ def write_to_excel(data, output_file_name, template_file_name, main_flags):
         log.debug('Writing into xl-file(%s)...', output_file_name)
         writer = pd.ExcelWriter(output_file_name, engine='xlsxwriter')
     xlref = {}
-    for k, v in sorted(stack_nested_keys(data, depth=3), key=lambda x: _sort_sheets(x[0])):
+
+    gen = co2_utl.stack_nested_keys(data, depth=3)
+    for k, v in sorted(gen, key=_sort_sheets):
 
         if k[0] in ('comparison',):
             ref = _df2excel(writer, k[0], v[0])
@@ -311,6 +313,7 @@ def clone_excel(file_name, output_file_name):
 
 
 def _sort_sheets(x):
+    x = x[0]
     imp = ['comparison', 'graphs', 'nedc', 'wltp_h',
            'wltp_l', 'wltp_p', 'predictions', 'inputs',
            'parameters', 'time_series', 'data_calibration_model_scores']
@@ -318,7 +321,7 @@ def _sort_sheets(x):
     w = ()
     for i, k in enumerate(imp):
         if k in x:
-            w = (i,) + _sort_sheets(set(x) - {k})[0]
+            w = (i,) + _sort_sheets((set(x) - {k},))[0]
             break
     return w or (100,), x
 

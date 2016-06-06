@@ -17,8 +17,7 @@ from schema import Schema, Use, And, Or, Optional, SchemaError
 from sklearn.tree import DecisionTreeClassifier
 from pprint import pformat
 import co2mpas.dispatcher.utils as dsp_utl
-from .dill import save_dill
-from co2mpas.batch import stack_nested_keys, get_nested_dicts
+import co2mpas.utils as co2_utl
 from .validations import hard_validation
 from co2mpas.model.physical.gear_box.at_gear import CMV, MVL, GSPV
 from co2mpas.model.physical.electrics import Alternator_status_model
@@ -31,7 +30,8 @@ def validate_data(data, soft_validation, read_schema=None):
     plan = validate_plan(data['plan'], read_schema)
 
     inputs = validate_inputs(data['job'], soft_validation, read_schema)
-    inputs = {'.'.join(k): v for k, v in stack_nested_keys(inputs, depth=3)}
+    inputs = {'.'.join(k): v
+              for k, v in co2_utl.stack_nested_keys(inputs, depth=3)}
 
     return inputs, plan
 
@@ -40,24 +40,24 @@ def validate_inputs(data, soft_validation=False, read_schema=None):
     res = {}
     validate = read_schema.validate
     errors = {}
-    for k, v in sorted(stack_nested_keys(data, depth=3)):
+    for k, v in sorted(co2_utl.stack_nested_keys(data, depth=3)):
         for i in list(v):
             try:
                 j = validate({i: v.pop(i)})
                 if list(j.values())[0] is not dsp_utl.NONE:
                     v.update(j)
             except SchemaError as ex:
-                get_nested_dicts(errors, *k)[i] = ex
-        get_nested_dicts(res, *k[:-1])[k[-1]] = v
+                co2_utl.get_nested_dicts(errors, *k)[i] = ex
+        co2_utl.get_nested_dicts(res, *k[:-1])[k[-1]] = v
 
     if not soft_validation:
-        for k, v in stack_nested_keys(res, depth=3):
+        for k, v in co2_utl.stack_nested_keys(res, depth=3):
             for c, msg in hard_validation(data):
-                get_nested_dicts(errors, *k)[c] = SchemaError([], [msg])
+                co2_utl.get_nested_dicts(errors, *k)[c] = SchemaError([], [msg])
 
     if errors:
         msg = ['\nInput cannot be parsed, due to:']
-        for k, v in stack_nested_keys(errors, depth=4):
+        for k, v in co2_utl.stack_nested_keys(errors, depth=4):
             msg.append('{} in {}: {}'.format(k[-1], '/'.join(k[:-1]), v))
         log.error('\n  '.join(msg))
         return {}
@@ -73,7 +73,7 @@ def validate_plan(plan, read_schema=None):
         for k, v in d.items():
             k = k.split('.')
             n, k = '.'.join(k[:-1]), k[-1]
-            data = get_nested_dicts(inputs, n)
+            data = co2_utl.get_nested_dicts(inputs, n)
             k, v = next(iter(validate({k: v}).items()))
             data[k] = v
 

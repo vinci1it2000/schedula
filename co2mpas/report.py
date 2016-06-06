@@ -15,7 +15,7 @@ from collections import Iterable, OrderedDict
 import numpy as np
 from sklearn.metrics import mean_absolute_error, accuracy_score
 import co2mpas.dispatcher.utils as dsp_utl
-from co2mpas.batch import stack_nested_keys, get_nested_dicts
+import co2mpas.utils as co2_utl
 
 
 def _metrics(t, o, metrics):
@@ -223,7 +223,7 @@ def get_chart_reference(data):
     r = {}
     _map = _map_cycle_report_graphs()
     data = dsp_utl.selector(['nedc', 'wltp_p', 'wltp_h', 'wltp_l'], data)
-    for k, v in sorted(stack_nested_keys(data)):
+    for k, v in sorted(co2_utl.stack_nested_keys(data)):
         if k[1] not in ('calibrations', 'predictions', 'targets'):
             continue
         m = _map.get(k[-1], None)
@@ -234,11 +234,12 @@ def get_chart_reference(data):
                     'y': _ref_targets(k, data),
                     'label': '%s %s' % (k[1][:-1], m['label'])
                 }
-                get_nested_dicts(r, k[0], k[-1], 'series', default=list).append(d)
+                k = k[0], k[-1], 'series'
+                co2_utl.get_nested_dicts(r, *k, default=list).append(d)
             except TypeError:
                 pass
 
-    for k, v in stack_nested_keys(r, depth=2):
+    for k, v in co2_utl.stack_nested_keys(r, depth=2):
         m = _map[k[1]]
         m.pop('label', None)
         v.update(m)
@@ -250,7 +251,7 @@ def _search_times(path, data, vector):
     t = 'times'
     ts = 'time_series'
 
-    if t not in get_nested_dicts(data, *path):
+    if t not in co2_utl.get_nested_dicts(data, *path):
         if path[1] == 'targets':
             c, v = data[path[0]], vector
 
@@ -372,7 +373,7 @@ def extract_summary(data, vehicle_name):
             if p:
                 p = dsp_utl.map_dict(co2_target_map, p)
                 p['vehicle_name'] = vehicle_name
-                get_nested_dicts(res, k, i[:-1]).update(p)
+                co2_utl.get_nested_dicts(res, k, i[:-1]).update(p)
 
     # delta
     try:
@@ -386,7 +387,7 @@ def extract_summary(data, vehicle_name):
                 pass
         if delta:
             delta['vehicle_name'] = vehicle_name
-            get_nested_dicts(res, 'delta', 'co2_emission').update(delta)
+            co2_utl.get_nested_dicts(res, 'delta', 'co2_emission').update(delta)
     except KeyError:
         pass
 
