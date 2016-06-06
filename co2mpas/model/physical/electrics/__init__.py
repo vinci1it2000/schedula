@@ -945,7 +945,7 @@ def electrics():
     dsp.add_function(
         function=calibrate_alternator_status_model,
         inputs=['times', 'alternator_statuses', 'state_of_charges',
-                'gear_box_powers_in', 'has_energy_recuperation'],
+                'gear_box_powers_in'],
         outputs=['alternator_status_model'],
         weight=10
     )
