@@ -29,3 +29,4 @@ cycler
 boltons
 pykalman
 wltp
+cachetools
