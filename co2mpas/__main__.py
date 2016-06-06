@@ -16,22 +16,19 @@ Use the `batch` sub-command to simulate a vehicle contained in an excel-file.
 
 
 USAGE:
-  co2mpas batch       [-v | --logconf=<conf-file>] [--gui]
+  co2mpas batch       [-v | --logconf=<conf-file>] [--gui] [-f]
                       [--overwrite-cache] [--out-template=<xlsx-file>]
                       [--plot-workflow] [-O=<output-folder>]
                       [--only-summary] [--soft-validation] [--plan]
                       [<input-path>]...
-  co2mpas demo        [-v | --logconf=<conf-file>] [--gui]
-                      [-f] [<output-folder>]
+  co2mpas demo        [-v | --logconf=<conf-file>] [--gui] [-f]
+                      [<output-folder>]
   co2mpas template    [-v | --logconf=<conf-file>] [--gui] [-f]
                       [<excel-file-path> ...]
-  co2mpas ipynb       [-v | --logconf=<conf-file>] [--gui] [-f] [<output-folder>]
+  co2mpas ipynb       [-v | --logconf=<conf-file>] [--gui] [-f]
+                      [<output-folder>]
   co2mpas modelgraph  [-v | --logconf=<conf-file>] [-O=<output-folder>]
                       (--list | [--graph-depth=<levels>] [<models> ...])
-  co2mpas plan        [-v | --logconf=<conf-file>] [-f] [-O=<output-folder>]
-                      [--soft-validation] [--only-summary] [--overwrite-cache]
-                      [--out-template=<xlsx-file>]
-                      [<input-path>] [<input-params>] [<defaults>]...
   co2mpas             [--verbose | -v]  (--version | -V)
   co2mpas             --help
 
@@ -42,21 +39,25 @@ Syntax tip:
 
 
 OPTIONS:
-  <input-path>                Input xlsx-file or folder. Assumes current-dir if missing.
+  <input-path>                Input xlsx-file or folder. Assumes current-dir if
+                              missing.
   -O=<output-folder>          Output folder or file [default: .].
   --gui                       Launches GUI dialog-boxes to choose Input, Output
                               and Options. [default: False].
-  --only-summary              Do not save vehicle outputs, just the summary file.
+  --plan                      Launch the simulation plan contained inside the
+                              input file(s).
+  --only-summary              Do not save vehicle outputs, just the summary.
   --overwrite-cache           Overwrite the cached file.
   --soft-validation           Validate only partially input-data (no schema).
-  --out-template=<xlsx-file>  Clone the given excel-file and appends model-results into it.
-                              By default, results are appended into an empty excel-file.
-                              Use `--out-template=-` to use input excel-files as templates.
+  --out-template=<xlsx-file>  Clone the given excel-file and appends results
+                              into it. By default, results are appended into an
+                              empty excel-file. Use `--out-template=-` to use
+                              input excel-files as templates.
   --plot-workflow             Open workflow-plot in browser, after run finished.
   -l, --list                  List available models.
-  --graph-depth=<levels>      An integer to Limit the levels of sub-models plotted
-                              (no limit by default).
-  -f, --force                 Overwrite template/demo excel-file(s).
+  --graph-depth=<levels>      An integer to Limit the levels of sub-models
+                              plotted (no limit by default).
+  -f, --force                 Overwrite output/template/demo excel-file(s).
 
 Miscellaneous:
   -h, --help                  Show this help message and exit.
@@ -79,7 +80,6 @@ SUB-COMMANDS:
     ipynb                   Generate IPython notebooks inside <output-folder>; view them with cmd:
                               jupyter --notebook-dir=<output-folder>
     modelgraph              List or plot available models. If no model(s) specified, all assumed.
-    plan                    (undocumented - subject to change)
 
 
 EXAMPLES::
@@ -343,11 +343,23 @@ def _prompt_folder(folder_name, fpath):
     return fpath
 
 
-def _prompt_options():
+def _prompt_options(opts):
     import easygui as eu
-    fields = ['overwrite-cache', 'soft-validation', 'plot-workflow',
-              'only-summary', 'out-template', 'charts']
-    choices = ['y/[n]', 'y/[n]', 'y/[n]', 'y/[n]', 'y/[n]/<xlsx-file>', 'y/[n]']
+    fields = {
+        'overwrite-cache': 'y/[n]',
+        'soft-validation': 'y/[n]',
+        'plot-workflow': 'y/[n]',
+        'only-summary': 'y/[n]',
+        'out-template': 'y/[n]/<xlsx-file>',
+        'force': 'y/[n]',
+        'plan': 'y/[n]'
+    }
+
+    fields, choices = zip(*((k, v) for k, v in fields.items() if not opts['--%s' % k]))
+
+    if not fields:
+        return {}
+
     for values in iter(lambda: eu.multenterbox(
             msg='Select BATCH-run options:',
             title='%s-v%s' % (proj_name, proj_ver),
@@ -396,37 +408,6 @@ def file_finder(xlsx_fpaths, file_ext='*.xlsx'):
     return [f for f in sorted(files) if _input_file_regex.match(osp.basename(f))]
 
 
-def _cmd_plan(opts):
-    input_path = opts['<input-path>']
-    defaults = opts['<defaults>']
-    out_folder = opts['-O']
-    force = opts['--force']
-    input_params = opts['<input-params>']
-    input_paths = file_finder(input_path)
-
-    if not input_paths:
-        raise CmdException("No <input-path> found! \n"
-                           "\n  Try: co2mpas --help")
-
-    if not osp.isdir(out_folder):
-        if force:
-            from graphviz.tools import mkdirs
-            if not ''.endswith('/'):
-                out_folder = '%s/' % out_folder
-            mkdirs(out_folder)
-        else:
-            raise CmdException("Specify a folder for "
-                               "the '-O %s' option!" % out_folder)
-
-    from co2mpas.plan import run_sa
-    run_sa(input_path, input_params, out_folder, *defaults,
-           soft_validation=opts['--soft-validation'],
-           with_output_file=not opts['--only-summary'],
-           output_template=opts['--out-template'],
-           overwrite_cache=opts['--overwrite-cache']
-           )
-
-
 def _run_batch(opts):
     input_paths = opts['<input-path>']
     output_folder = opts['-O']
@@ -436,7 +417,7 @@ def _run_batch(opts):
                            fpath=input_paths[-1] if input_paths else None)
         ]
         output_folder = _prompt_folder(folder_name='OUTPUT', fpath=output_folder)
-        opts.update(_prompt_options())
+        opts.update(_prompt_options(opts))
 
     log.info("Processing %r --> %r...", input_paths, output_folder)
     input_paths = file_finder(input_paths)
@@ -488,8 +469,6 @@ def _main(*args):
             _cmd_ipynb(opts)
         elif opts['modelgraph']:
             _cmd_modelgraph(opts)
-        elif opts['plan']:
-            _cmd_plan(opts)
         else: #opts['batch']:
             _run_batch(opts)
 

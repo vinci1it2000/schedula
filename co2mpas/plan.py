@@ -6,7 +6,7 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-It contains functions to make a sensitivity analysis.
+It contains functions to make a simulation plan.
 """
 from tqdm import tqdm
 import co2mpas.dispatcher.utils as dsp_utl
