@@ -11,8 +11,7 @@ It provides constants for the CO2MPAS formulas.
 """
 
 import sys
-import numpy as np
-import co2mpas.utils as utl
+import co2mpas.utils as co2_utl
 
 #: Machine error.
 EPS = sys.float_info.epsilon
@@ -22,7 +21,7 @@ INF = 10000.0
 
 
 #: Container of node default values.
-class Values(utl.Constants):
+class Values(co2_utl.Constants):
     #: Maximum velocity to consider the vehicle stopped [km/h].
     stop_velocity = 1.0 + EPS
 
@@ -153,8 +152,8 @@ class Values(utl.Constants):
 
 
 #: Container of internal function parameters.
-class Functions(utl.Constants):
-    class correct_constant_velocity(utl.Constants):
+class Functions(co2_utl.Constants):
+    class correct_constant_velocity(co2_utl.Constants):
         #: Constant velocities to correct the upper limits for NEDC [km/h].
         CON_VEL_UP_SHIFT = (15.0, 32.0, 50.0, 70.0)
 
@@ -175,7 +174,7 @@ class Functions(utl.Constants):
         #: Delta to add to the limit if this is close to `CON_VEL_DN_SHIFT` [km/h].
         DV_DN_SHIFT = -1
 
-    class define_initial_co2_emission_model_params_guess(utl.Constants):
+    class define_initial_co2_emission_model_params_guess(co2_utl.Constants):
         #: Initial guess CO2 emission model params.
         CO2_PARAMS = {
             'gasoline turbo': {
@@ -213,54 +212,52 @@ class Functions(utl.Constants):
             }
         }
 
-    class restrict_bounds(utl.Constants):
+    class restrict_bounds(co2_utl.Constants):
         #: Multipliers applied into the `restrict_bounds` function.
         CO2_PARAMS_LIMIT_MULTIPLIERS = {
-            't1': np.array([0.5, 1.5]), 't2': np.array([0.5, 1.5]),
-            'trg': np.array([0.9, 1.1]),
-            'a': np.array([0.8, 1.2]), 'b': np.array([0.8, 1.2]),
-            'c': np.array([1.2, 0.8]), 'a2': np.array([1.2, 0.8]),
-            'l': np.array([1.2, 0.8]), 'l2': np.array([1.2, 0.0]),
+            't0': (0.5, 1.5), 't1': (0.5, 1.5), 'trg': (0.9, 1.1),
+            'a': (0.8, 1.2), 'b': (0.8, 1.2), 'c': (1.2, 0.8),
+            'a2': (1.2, 0.8), 'l': (1.2, 0.8), 'l2': (1.2, 0.0),
         }
 
-    class default_specific_gear_shifting(utl.Constants):
+    class default_specific_gear_shifting(co2_utl.Constants):
         #: Specific gear shifting model.
         SPECIFIC_GEAR_SHIFTING = 'ALL'
 
-    class nedc_time_length(utl.Constants):
+    class nedc_time_length(co2_utl.Constants):
         #: NEDC cycle time [s].
         TIME = 1180.0
 
-    class wltp_time_length(utl.Constants):
+    class wltp_time_length(co2_utl.Constants):
         #: WLTP cycle time [s].
         TIME = 1800.0
 
-    class default_clutch_k_factor_curve(utl.Constants):
+    class default_clutch_k_factor_curve(co2_utl.Constants):
         #: Torque ratio when speed ratio==0 for clutch model.
         STAND_STILL_TORQUE_RATIO = 1.0
 
         #: Minimum speed ratio where torque ratio==1 for clutch model.
         LOCKUP_SPEED_RATIO = 0.0
 
-    class default_tc_k_factor_curve(utl.Constants):
+    class default_tc_k_factor_curve(co2_utl.Constants):
         #: Torque ratio when speed ratio==0 for torque converter model.
         STAND_STILL_TORQUE_RATIO = 1.9
 
         #: Minimum speed ratio where torque ratio==1 for torque converter model.
         LOCKUP_SPEED_RATIO = 0.87
 
-    class select_default_n_dyno_axes(utl.Constants):
+    class select_default_n_dyno_axes(co2_utl.Constants):
         #: Number of dyno axes [-].
         DYNO_AXES = {'WLTP': 2, 'NEDC': 1}
 
-    class select_phases_integration_times(utl.Constants):
+    class select_phases_integration_times(co2_utl.Constants):
         #: Cycle phases integration times [s].
         INTEGRATION_TIMES = {
             'WLTP': (0.0, 590.0, 1023.0, 1478.0, 1800.0),
             'NEDC': (0.0, 780.0, 1180.0)
         }
 
-    class get_gear_box_efficiency_constants(utl.Constants):
+    class get_gear_box_efficiency_constants(co2_utl.Constants):
         #: Vehicle gear box efficiency constants (gbp00, gbp10, and gbp01).
         PARAMS = {
             'automatic': {
@@ -280,7 +277,7 @@ class Functions(utl.Constants):
             }
         }
 
-    class calculate_equivalent_gear_box_heat_capacity(utl.Constants):
+    class calculate_equivalent_gear_box_heat_capacity(co2_utl.Constants):
         #: Equivalent gear box heat capacity parameters.
         PARAMS = {
             'mass_coeff': {
@@ -306,45 +303,45 @@ class Functions(utl.Constants):
             }
         }
 
-    class get_full_load(utl.Constants):
+    class get_full_load(co2_utl.Constants):
         #: Vehicle normalized full load curve.
         FULL_LOAD = {
             'gasoline': (
-                np.linspace(0, 1.2, 13),
+                [0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2],
                 [0.1, 0.198238659, 0.30313392, 0.410104642, 0.516920841,
-                 0.621300767, 0.723313491, 0.820780368, 0.901750158, 0.962968496,
-                 0.995867804, 0.953356174, 0.85]
+                 0.621300767, 0.723313491, 0.820780368, 0.901750158,
+                 0.962968496, 0.995867804, 0.953356174, 0.85]
             ),
             'diesel': (
-                np.linspace(0, 1.2, 13),
+                [0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2],
                 [0.1, 0.278071182, 0.427366185, 0.572340499, 0.683251935,
                  0.772776746, 0.846217049, 0.906754984, 0.94977083, 0.981937981,
                  1, 0.937598144, 0.85]
             )
         }
 
-    class calculate_engine_max_torque(utl.Constants):
+    class calculate_engine_max_torque(co2_utl.Constants):
         #: Engine nominal torque params.
         PARAMS = {
             'gasoline': 1.25,
             'diesel': 1.1
         }
 
-    class calculate_engine_moment_inertia(utl.Constants):
+    class calculate_engine_moment_inertia(co2_utl.Constants):
         #: Engine moment of inertia params.
         PARAMS = {
             'gasoline': 1,
             'diesel': 2
         }
 
-    class default_fuel_density(utl.Constants):
+    class default_fuel_density(co2_utl.Constants):
         #: Fuel density [g/l].
         FUEL_DENSITY = {
             'gasoline': 750.0,
             'diesel': 835.0
         }
 
-    class identify_normalization_engine_temperature(utl.Constants):
+    class identify_normalization_engine_temperature(co2_utl.Constants):
         #: Normalization engine temperature params.
         PARAMS = {
             'n_std': 3,
@@ -352,7 +349,7 @@ class Functions(utl.Constants):
             'p1': 1780.0 / 1800.0
         }
 
-    class calibrate_cold_start_speed_model_v1(utl.Constants):
+    class calibrate_cold_start_speed_model_v1(co2_utl.Constants):
         #: Cold start engine speed model v1 params.
         PARAMS = {
             'first_seconds': 10.0,  # [s]
@@ -360,12 +357,12 @@ class Functions(utl.Constants):
             'max_temperature': 30.0  # [°C]
         }
 
-    class calculate_cold_start_speeds_delta(utl.Constants):
+    class calculate_cold_start_speeds_delta(co2_utl.Constants):
         #: Maximum cold start speed delta percentage of idle [-].
         MAX_COLD_START_SPEED_DELTA_PERCENTAGE = 0.5
 
 
-class Defaults(utl.Constants):
+class Defaults(co2_utl.Constants):
     values = Values()
     functions = Functions()
 

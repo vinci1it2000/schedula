@@ -22,7 +22,7 @@ from sklearn.metrics import mean_absolute_error
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher import Dispatcher
 import co2mpas.utils as co2_utl
-from ..defaults import *
+from ..defaults import dfl, EPS
 
 
 def calculate_fuel_carbon_content(fuel_carbon_content_percentage):
@@ -59,15 +59,22 @@ def calculate_fuel_carbon_content_percentage(fuel_carbon_content):
 def calculate_normalized_engine_coolant_temperatures(
         engine_coolant_temperatures, temperature_target):
     """
-    Kelvinize and flatten theta after reaching `temperature_target` or max-value.
+    Calculates the normalized engine coolant temperatures [-].
 
-    :param numpy.array engine_coolant_temperatures:
-        theta vector [°C].
-    :param float temperature_target:
+    ..note::
+        Engine coolant temperatures are first converted in kelvin and then
+        normalized. The results is between ``[0, 1]``.
+
+    :param engine_coolant_temperatures:
+        Engine coolant temperature vector [°C].
+    :type engine_coolant_temperatures: numpy.array
+
+    :param temperature_target:
         Normalization temperature [°C].
+    :type temperature_target: float
 
     :return:
-        Normalized theta [°K] between ``[0, 1]``.
+        Normalized engine coolant temperature [-].
     :rtype: numpy.array
     """
 
@@ -1115,7 +1122,7 @@ def restrict_bounds(co2_params):
 
     def _limits(k, v):
         try:
-            v = tuple(m[k] * v.value)
+            v = tuple(np.asarray(m[k]) * v.value)
             return min(v), max(v)
         except KeyError:
             return v.min, v.max
