@@ -9,18 +9,20 @@
 It contains functions to predict the CO2 emissions.
 """
 
-from co2mpas.dispatcher import Dispatcher
 import copy
 from functools import partial
 from itertools import chain
+
 import lmfit
-from scipy.integrate import trapz
-from sklearn.metrics import mean_absolute_error
-from scipy.stats import lognorm, norm
-import co2mpas.dispatcher.utils as dsp_utl
-from ..defaults import *
-from ..utils import argmax
 import numpy as np
+from scipy.integrate import trapz
+from scipy.stats import lognorm, norm
+from sklearn.metrics import mean_absolute_error
+
+import co2mpas.dispatcher.utils as dsp_utl
+from co2mpas.dispatcher import Dispatcher
+import co2mpas.utils as co2_utl
+from ..defaults import *
 
 
 def calculate_fuel_carbon_content(fuel_carbon_content_percentage):
@@ -1060,7 +1062,7 @@ def calibrate_co2_params(
     if not is_cycle_hot:
         b = engine_coolant_temperatures > p['trg'].value
         if b.any():
-            cold[:argmax(b)] = True
+            cold[:co2_utl.argmax(b)] = True
     hot = np.logical_not(cold)
 
     success = [(True, copy.deepcopy(p))]

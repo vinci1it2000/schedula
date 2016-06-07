@@ -19,17 +19,18 @@ Sub-Modules:
     electrics_prediction
 """
 
-
-from co2mpas.dispatcher import Dispatcher
 from functools import partial
 from itertools import chain
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import GradientBoostingRegressor
-from scipy.stats import linregress
-from ..utils import reject_outliers, argmax
-from ..defaults import dfl
-import numpy as np
 from math import pi
+
+import numpy as np
+from scipy.stats import linregress
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.tree import DecisionTreeClassifier
+
+from co2mpas.dispatcher import Dispatcher
+import co2mpas.utils as co2_utl
+from ..defaults import dfl
 
 
 def calculate_engine_start_demand(
@@ -117,8 +118,8 @@ def identify_electric_loads(
     bL = b & np.logical_not(on_engine) & (b_c < 0)
     bH = b & on_engine
 
-    off = min(0.0, c * reject_outliers(b_c[bL], med=np.mean)[0])
-    on = min(off, c * reject_outliers(b_c[bH] + a_c[bH], med=np.mean)[0])
+    off = min(0.0, c * co2_utl.reject_outliers(b_c[bL], med=np.mean)[0])
+    on = min(off, c * co2_utl.reject_outliers(b_c[bH] + a_c[bH], med=np.mean)[0])
 
     loads = [off, on]
     start_demand = []
@@ -134,7 +135,7 @@ def identify_electric_loads(
             if p < l:
                 start_demand.append(p - l)
 
-    start_demand = -reject_outliers(start_demand)[0] if start_demand else 0.0
+    start_demand = -co2_utl.reject_outliers(start_demand)[0] if start_demand else 0.0
 
     return (off, on), start_demand
 
@@ -180,7 +181,7 @@ def identify_alternator_charging_currents(
     """
 
     a_c = alternator_currents
-    rjo = reject_outliers
+    rjo = co2_utl.reject_outliers
     b = (a_c < 0.0) & on_engine
     p_neg = b & (gear_box_powers_in < 0)
     p_pos = b & (gear_box_powers_in > 0)
@@ -436,7 +437,7 @@ def identify_alternator_current_threshold(
         b &= alternator_currents < 0
 
     if b.any():
-        return min(0.0, max(reject_outliers(alternator_currents[b])[0], l))
+        return min(0.0, max(co2_utl.reject_outliers(alternator_currents[b])[0], l))
     return 0.0
 
 
@@ -578,13 +579,13 @@ class Alternator_status_model(object):
 
             soc, times = state_of_charges[1:], times[1:]
             s = np.logical_not(b)
-            J = -argmax(s[::-1]) if argmax(b[::-1]) == 0 else b.size
-            j = I = argmax(s) if argmax(b) == 0 else 0
+            J = -co2_utl.argmax(s[::-1]) if co2_utl.argmax(b[::-1]) == 0 else b.size
+            j = I = co2_utl.argmax(s) if co2_utl.argmax(b) == 0 else 0
             i, step = None, []
 
             while J > j != i:
-                i = argmax(b[j:]) + j
-                j = argmax(s[i:]) + i
+                i = co2_utl.argmax(b[j:]) + j
+                j = co2_utl.argmax(s[i:]) + i
                 # noinspection PyUnresolvedReferences
                 if j != i and linregress(times[i:j], soc[i:j])[0] >= 0:
                     step.extend(soc[i:j])

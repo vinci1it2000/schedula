@@ -12,8 +12,9 @@ It contains functions that model the engine coolant temperature.
 import numpy as np
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.metrics import mean_squared_error
+
 import co2mpas.dispatcher.utils as dsp_utl
-from ..utils import derivative, argmax, get_inliers
+import co2mpas.utils as co2_utl
 
 
 class ThermalModel(object):
@@ -137,11 +138,11 @@ class TPSA(TPS):
 
 
 def _get_samples(times, engine_coolant_temperatures, on_engine):
-    dtemp = derivative(times, engine_coolant_temperatures, dx=4, order=7)[1:]
+    dtemp = co2_utl.derivative(times, engine_coolant_temperatures, dx=4, order=7)[1:]
     dt = np.diff(times)
     b = np.ones_like(times, dtype=bool)
-    first_on = times[argmax(on_engine)]
-    b[:-1] = (times[:-1] > first_on) & get_inliers(dtemp, n=3)[0]
+    first_on = times[co2_utl.argmax(on_engine)]
+    b[:-1] = (times[:-1] > first_on) & co2_utl.get_inliers(dtemp, n=3)[0]
     dt, dtemp, temp = dt[b[:-1]], dtemp[b[:-1]], engine_coolant_temperatures[b]
     return temp, np.array(dtemp, np.float64, order='C'), dt, b
 

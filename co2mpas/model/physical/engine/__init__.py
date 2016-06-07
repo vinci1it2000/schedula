@@ -20,19 +20,21 @@ Sub-Modules:
     co2_emission
 """
 
-from co2mpas.dispatcher import Dispatcher
 from math import pi
+
+import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 from scipy.optimize import fmin
 from sklearn.metrics import mean_absolute_error
 from sklearn.tree import DecisionTreeClassifier
-from ..defaults import *
-from .thermal import *
-import co2mpas.dispatcher.utils as dsp_utl
-import numpy as np
-from ..utils import bin_split, reject_outliers, clear_fluctuations, \
-    derivative
 
+import co2mpas.dispatcher.utils as dsp_utl
+from co2mpas.dispatcher import Dispatcher
+import co2mpas.utils as co2_utl
+
+
+from .thermal import *
+from ..defaults import *
 
 def get_full_load(fuel_type):
     """
@@ -169,7 +171,7 @@ def identify_idle_engine_speed_out(
 
     x = engine_speeds_out[b]
 
-    idle_speed = bin_split(x, bin_std=(0.01, 0.3))[1][0]
+    idle_speed = co2_utl.bin_split(x, bin_std=(0.01, 0.3))[1][0]
 
     return idle_speed[-1], idle_speed[1]
 
@@ -214,7 +216,7 @@ def identify_upper_bound_engine_speed(
 
     dom = (engine_speeds_out > idle_speed) & (gears < max_gear)
 
-    m, sd = reject_outliers(engine_speeds_out[dom])
+    m, sd = co2_utl.reject_outliers(engine_speeds_out[dom])
 
     return m + sd * 0.674490
 
@@ -232,7 +234,7 @@ def identify_thermostat_engine_temperature(engine_coolant_temperatures):
     :rtype: float
     """
 
-    m, s = reject_outliers(engine_coolant_temperatures, n=2)
+    m, s = co2_utl.reject_outliers(engine_coolant_temperatures, n=2)
 
     max_temp = max(engine_coolant_temperatures)
 
@@ -263,7 +265,7 @@ def identify_normalization_engine_temperature(
     p0, p1 = (times[-1] - times[0]) * np.array((p['p0'], p['p1'])) + times[0]
     t = engine_coolant_temperatures[(p0 < times) & (times < p1)]
 
-    m, s = reject_outliers(t, n=2)
+    m, s = co2_utl.reject_outliers(t, n=2)
 
     max_temp = max(t)
 
@@ -372,8 +374,9 @@ def identify_on_engine(
     b = engine_speeds_out > idle_engine_speed[0] - idle_engine_speed[1]
     on_engine[b] = 1
 
-    on_engine = clear_fluctuations(times, on_engine,
-                                   min_time_engine_on_after_start)
+    on_engine = co2_utl.clear_fluctuations(
+        times, on_engine, min_time_engine_on_after_start
+    )
 
     return np.array(on_engine, dtype=bool)
 
@@ -898,7 +901,7 @@ def _calibrate_cold_start_speed_model(
 
             return mean_absolute_error(e_real, np.where(c, speeds, e_hot))
 
-        x0 = [1.0 / reject_outliers(dT / e_real)[0]]
+        x0 = [1.0 / co2_utl.reject_outliers(dT / e_real)[0]]
         res, err = fmin(error_func, x0, disp=False, full_output=True)[0:2]
 
         if res[0] > 0.0 and err < err_0:
@@ -1091,7 +1094,7 @@ def calculate_uncorrected_engine_powers_out(
         p[b] += alternator_powers_demand[b]
 
     p_inertia = engine_moment_inertia / 2000 * (2 * pi / 60) ** 2
-    p += p_inertia * derivative(times, engine_speeds_out) ** 2
+    p += p_inertia * co2_utl.derivative(times, engine_speeds_out) ** 2
 
     return p
 

@@ -9,15 +9,17 @@
 It contains functions that model the basic mechanics of the wheels.
 """
 
+from math import pi
+
+import numpy as np
+
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher import Dispatcher
-from math import pi
-from .utils import reject_outliers
+import co2mpas.utils as co2_utl
+from .defaults import dfl
 from .gear_box.mechanical import calculate_speed_velocity_ratios, \
     calculate_velocity_speed_ratios, calculate_gear_box_speeds_in, \
     identify_gears
-from .defaults import dfl
-import numpy as np
 
 
 def calculate_wheel_power(velocities, accelerations, road_loads, vehicle_mass):
@@ -162,7 +164,7 @@ def identify_r_dynamic_v1(
 
     r_dynamic = speed_x_r_dyn_ratios / engine_speeds_out
     r_dynamic = r_dynamic[np.logical_not(np.isnan(r_dynamic))]
-    r_dynamic = reject_outliers(r_dynamic)[0]
+    r_dynamic = co2_utl.reject_outliers(r_dynamic)[0]
 
     return r_dynamic
 
@@ -263,14 +265,12 @@ def identify_r_dynamic(
     :rtype: float
     """
 
-    from .gear_box.mechanical import calculate_speed_velocity_ratios
-
     svr = calculate_speed_velocity_ratios(
         gear_box_ratios, final_drive_ratio, 1.0)
 
     r = [vs / svr[k] for k, vs in velocity_speed_ratios.items()]
 
-    r_dynamic = reject_outliers(r)[0]
+    r_dynamic = co2_utl.reject_outliers(r)[0]
 
     return r_dynamic
 

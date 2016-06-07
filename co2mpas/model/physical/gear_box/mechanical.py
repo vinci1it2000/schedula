@@ -9,19 +9,19 @@
 It contains functions that model the basic mechanics of the gear box.
 """
 
+from functools import partial
+from math import pi
+
+import numpy as np
+from scipy.interpolate import InterpolatedUnivariateSpline
+from scipy.optimize import brute
+from scipy.stats import binned_statistic
+from sklearn.metrics import mean_absolute_error
 
 from co2mpas.dispatcher import Dispatcher
-from math import pi
-from ..defaults import *
-from functools import partial
-from scipy.stats import binned_statistic
-from scipy.optimize import brute
-from scipy.interpolate import InterpolatedUnivariateSpline
-import numpy as np
-from ..utils import median_filter, bin_split, reject_outliers, \
-    clear_fluctuations
-from sklearn.metrics import mean_absolute_error
+import co2mpas.utils as co2_utl
 from . import calculate_gear_shifts
+from ..defaults import *
 
 
 def _identify_gear(idle, vsr, stop_vel, plateau_acc, ratio, vel, acc):
@@ -137,11 +137,11 @@ def identify_gears(
 
     gear = list(map(id_gear, *(ratios, velocities, accelerations)))
 
-    gear = median_filter(times, gear, change_gear_window_width)
+    gear = co2_utl.median_filter(times, gear, change_gear_window_width)
 
     gear = _correct_gear_shifts(times, ratios, gear, velocity_speed_ratios)
 
-    gear = clear_fluctuations(times, gear, change_gear_window_width)
+    gear = co2_utl.clear_fluctuations(times, gear, change_gear_window_width)
 
     return gear
 
@@ -348,7 +348,7 @@ def identify_velocity_speed_ratios(
 
     b = (gear_box_speeds_in > idle_speed) & (velocities > stop_velocity)
 
-    vsr = bin_split(velocities[b] / gear_box_speeds_in[b])[1]
+    vsr = co2_utl.bin_split(velocities[b] / gear_box_speeds_in[b])[1]
 
     vsr = [v[-1] for v in vsr]
 
@@ -389,7 +389,7 @@ def identify_speed_velocity_ratios(
 
     ratios[velocities < stop_velocity] = 0
 
-    svr = {k: reject_outliers(ratios[gears == k])[0]
+    svr = {k: co2_utl.reject_outliers(ratios[gears == k])[0]
            for k in range(1, int(max(gears)) + 1)
            if k in gears}
     svr[0] = INF

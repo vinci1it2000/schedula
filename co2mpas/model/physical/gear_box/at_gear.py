@@ -9,24 +9,25 @@
 It contains functions to predict the A/T gear shifting.
 """
 
-
-from co2mpas.dispatcher import Dispatcher
 from collections import OrderedDict
-from itertools import chain
 from copy import deepcopy
-from scipy.optimize import fmin
+from functools import partial
+from itertools import chain
+from pprint import pformat
+
+import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline
-from sklearn.tree import DecisionTreeClassifier
+from scipy.optimize import fmin
 from sklearn.isotonic import IsotonicRegression
 from sklearn.metrics import mean_absolute_error, accuracy_score
+from sklearn.tree import DecisionTreeClassifier
+
 import co2mpas.dispatcher.utils as dsp_utl
-from functools import partial
-from ..utils import median_filter, grouper, clear_fluctuations, reject_outliers
-from ..defaults import *
+from co2mpas.dispatcher import Dispatcher
+import co2mpas.utils as co2_utl
 from .mechanical import calculate_gear_box_speeds_in
+from ..defaults import *
 from ..wheels import calculate_wheel_power
-from pprint import pformat
-import numpy as np
 
 
 def correct_gear_full_load(
@@ -447,9 +448,9 @@ def define_gear_filter(
     """
 
     def gear_filter(times, gears):
-        gears = median_filter(times, gears, change_gear_window_width)
+        gears = co2_utl.median_filter(times, gears, change_gear_window_width)
 
-        gears = clear_fluctuations(times, gears, change_gear_window_width)
+        gears = co2_utl.clear_fluctuations(times, gears, change_gear_window_width)
 
         return np.asarray(gears, dtype=int)
 
@@ -488,7 +489,7 @@ class CMV(OrderedDict):
             self[0] = (0, vel_limits[0])
 
             limits = np.append(vel_limits[1:], (_inf,))
-            self.update(dict(zip(gear_id, grouper(limits, 2))))
+            self.update(dict(zip(gear_id, co2_utl.grouper(limits, 2))))
 
         def error_fun(vel_limits):
             update_gvs(vel_limits)
@@ -1472,7 +1473,7 @@ class MVL(CMV):
 
             if l:
                 min_v, max_v = zip(*l)
-                l = [sum(reject_outliers(min_v)), max(max_v)]
+                l = [sum(co2_utl.reject_outliers(min_v)), max(max_v)]
                 mvl.append(np.array([max(idle[0], l / vsr) for l in l]))
             else:
                 mvl.append(mvl[-1].copy())

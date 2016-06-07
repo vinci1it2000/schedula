@@ -10,10 +10,12 @@
 It provides the CO2MPAS validation formulas.
 """
 
-from .constants import con_vals
 import numpy as np
-from ..model.physical.utils import reject_outliers
+
 import co2mpas.dispatcher.utils as dsp_utl
+import co2mpas.utils as co2_utl
+from .constants import con_vals
+
 
 def hard_validation(data):
     c = ('battery_currents', 'alternator_currents')
@@ -58,14 +60,15 @@ def check_sign_currents(battery_currents, alternator_currents):
 
     b_c, a_c = battery_currents, alternator_currents
 
-    a = reject_outliers(a_c, med=np.mean)[0] <= con_vals.MAX_VALIDATE_POS_CURR
+    a = co2_utl.reject_outliers(a_c, med=np.mean)[0]
+    a = a <= con_vals.MAX_VALIDATE_POS_CURR
     c = np.cov(a_c, b_c)[0][1]
 
     if c < 0:
         x = (a, a)
     elif c == 0:
         if any(b_c):
-            x = (reject_outliers(b_c, med=np.mean)[0] <= 0, a)
+            x = (co2_utl.reject_outliers(b_c, med=np.mean)[0] <= 0, a)
         else:
             x = (True, a)
     else:
