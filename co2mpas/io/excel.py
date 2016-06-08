@@ -170,7 +170,10 @@ def _parse_plan_data(plans, match, sheet, sheet_name):
     # noinspection PyBroadException
     xl_ref = '#%s!A1(R):._:R:"recurse"'
     data = lasso(xl_ref % sheet_name, sheet=sheet)
-    data = pd.DataFrame(data[1:], columns=data[0])
+    try:
+        data = pd.DataFrame(data[1:], columns=data[0])
+    except IndexError:
+        return None
     if 'id' not in data:
         data['id'] = data.index + 1
 
