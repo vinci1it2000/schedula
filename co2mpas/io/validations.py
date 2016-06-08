@@ -22,7 +22,7 @@ def hard_validation(data):
     try:
         a = dsp_utl.selector(c, data, output_type='list')
         s = check_sign_currents(*a)
-        if s:
+        if not all(s):
             s = ' and '.join([k for k, v in zip(c, s) if not v])
             msg = "Probably '{}' have the wrong sign!".format(s)
             yield c, msg
@@ -33,7 +33,7 @@ def hard_validation(data):
          'engine_speeds_out', 'idle_engine_speed_median')
     try:
         a = dsp_utl.selector(t, data, output_type='list')
-        if check_initial_temperature(*a):
+        if not check_initial_temperature(*a):
             msg = "Initial engine temperature outside permissible limits " \
                   "according to GTR!"
             yield t, msg
@@ -105,7 +105,7 @@ def check_initial_temperature(
 
     idle = idle_engine_speed_median - con_vals.DELTA_RPM2VALIDATE_TEMP
     b = engine_speeds_out > idle
-    i = np.searchsorted(b, (True,))[0] + 1
+    i = co2_utl.argmax(b) + 1
     t = np.mean(engine_coolant_temperatures[:i])
     dT = abs(initial_temperature - t)
     return dT <= con_vals.MAX_VALIDATE_DTEMP and t <= con_vals.MAX_INITIAL_TEMP
