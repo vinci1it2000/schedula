@@ -80,10 +80,14 @@ def make_simulation_plan(plan, timestamp, output_folder, main_flags):
         'timestamp': timestamp,
     }
 
-    kw = dsp_utl.combine_dicts(main_flags, kw)
+    kw, bases = dsp_utl.combine_dicts(main_flags, kw), set()
     for (i, base_fpath, defaults_fpats), p in tqdm(plan, disable=False):
         base = get_results(model, base_fpath, **kw)
-        name = '%s:%d' % (base.get('vehicle_name', 'vehicle'), i)
+        name = base['vehicle_name']
+        if name not in bases:
+            _add2summary(summary, base.get('summary', {}))
+            bases.add(name)
+        name = '{}-{}'.format(name, i)
 
         inputs = dsp_utl.selector(set(base).difference(run_modes), base)
         inputs['vehicle_name'] = name
