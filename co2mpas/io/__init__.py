@@ -42,6 +42,7 @@ from .excel import write_to_excel, parse_excel_file, parse_values
 from .schema import validate_data, validate_plan
 from functools import partial
 from pandalone.xleash import lasso
+from pandalone.xleash._parse import parse_xlref
 log = logging.getLogger(__name__)
 
 
@@ -524,6 +525,14 @@ def get_types():
     return node_types
 
 
+def check_xlasso(input_file_name):
+    try:
+        parse_xlref(input_file_name)
+        return True
+    except SyntaxError:
+        return False
+
+
 def load_inputs():
     """
     Defines a module to load the input file of the CO2MPAS model.
@@ -582,7 +591,8 @@ def load_inputs():
         function=lasso,
         inputs=['input_file_name'],
         outputs=['data'],
-        weight=10
+        input_domain=check_xlasso,
+        weight=5
     )
 
     dsp.add_function(
