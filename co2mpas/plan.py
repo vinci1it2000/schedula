@@ -17,6 +17,7 @@ from .__main__ import file_finder
 from .batch import _process_vehicle, _add2summary, vehicle_processing_model
 from .model.physical.clutch_tc.torque_converter import TorqueConverter
 from cachetools import cached, LRUCache
+from copy import deepcopy
 
 
 @cached(LRUCache(maxsize=256))
@@ -27,9 +28,10 @@ def get_results(model, fpath, overwrite_cache=False, **kw):
         res = load_from_dill(cache_fpath)
     else:
         kw = {k: v for k, v in kw.items() if k != 'plot_workflow'}
-        res = _process_vehicle(model,
-                               input_file_name=fpath,
-                               overwrite_cache=overwrite_cache, **kw)
+        res = deepcopy(_process_vehicle(model,
+                                        input_file_name=fpath,
+                                        overwrite_cache=overwrite_cache, **kw))
+
         save_dill(res, cache_fpath)
 
     return res
