@@ -165,11 +165,9 @@ def _parse_base_data(res, match, sheet, sheet_name):
 
 def _parse_plan_data(plans, match, sheet, sheet_name):
     # noinspection PyBroadException
-    try:
-        xl_ref = '#%s!A1(R):._:R:["pipe", ["recurse", ["df", {"header": 0}]]]'
-        data = lasso(xl_ref % sheet_name, sheet=sheet)
-    except:
-        return {}
+    xl_ref = '#%s!A1(R):._:R:"recurse"'
+    data = lasso(xl_ref % sheet_name, sheet=sheet)
+    data = pd.DataFrame(data[1:], columns=data[0])
     if 'id' not in data:
         data['id'] = data.index + 1
 
@@ -236,7 +234,7 @@ def _check_none(v):
     if v is None:
         return True
     elif isinstance(v, Iterable) and not isinstance(v, str) and len(v) <= 1:
-        return _check_none(v[0]) if len(v) == 1 else True
+        return _check_none(next(iter(v))) if len(v) == 1 else True
     return False
 
 
