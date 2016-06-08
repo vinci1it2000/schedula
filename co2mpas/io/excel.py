@@ -32,18 +32,18 @@ log = logging.getLogger(__name__)
 
 _re_params_name = regex.compile(
         r"""
-            ^((?P<scope>(plan|job))[. ]?)?
-            ((?P<usage>(target|input|output|data))s?[. ]?)?
-            ((?P<stage>(precondition|calibration|prediction))s?[. ]?)?
-            ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC|ALL)(recon)?)?$
+            ^(?P<param>((plan|base)|
+                        (target|input|output|data)|
+                        ((precondition|calibration|prediction)s?)|
+                        (WLTP([-_]{1}[HLP]{1})?|NEDC|ALL)(recon)?))$
             |
-            ^((?P<scope>(plan|job))[. ]?)?
+            ^((?P<scope>(plan|base))[. ]?)?
             ((?P<usage>(target|input|output|data))s?[. ]?)?
             ((?P<stage>(precondition|calibration|prediction))s?[. ]?)?
             ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC|ALL)(recon)?[. ]?)?
             (?P<param>[^\s]*)$
             |
-            ^((?P<scope>(plan|job))[. ]?)?
+            ^((?P<scope>(plan|base))[. ]?)?
             ((?P<usage>(target|input|output|data))s?[. ]?)?
             ((?P<stage>(precondition|calibration|prediction))s?[. ]?)?
             ((?P<param>[^\s.]*)[. ]?)?
@@ -53,7 +53,7 @@ _re_params_name = regex.compile(
 
 _re_sheet_name = regex.compile(
         r"""
-            ^((?P<scope>(plan|job))[. ]?)?
+            ^((?P<scope>(plan|base))[. ]?)?
             ((?P<usage>(target|input|output|data))s?[. ]?)?
             ((?P<stage>(precondition|calibration|prediction))s?[. ]?)?
             ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC|ALL)(recon)?)?$
@@ -77,7 +77,7 @@ def parse_excel_file(file_path):
     res, plans = {}, []
 
     defaults = {
-        'scope': 'job',
+        'scope': 'base',
         'usage': 'input',
         'stage': 'calibration',
     }
@@ -91,12 +91,12 @@ def parse_excel_file(file_path):
         match = dsp_utl.combine_dicts(defaults, match)
 
         sheet = _open_sheet_by_name_or_index(excel_file.book, 'book', sheet_name)
-        if match['scope'] == 'job':
-            _parse_job_data(res, match, sheet, sheet_name)
+        if match['scope'] == 'base':
+            _parse_base_data(res, match, sheet, sheet_name)
         elif match['scope'] == 'plan':
             _parse_plan_data(plans, match, sheet, sheet_name)
 
-    for k, v in co2_utl.stack_nested_keys(res.get('job', {}), depth=3):
+    for k, v in co2_utl.stack_nested_keys(res.get('base', {}), depth=3):
         if k[0] != 'target':
             v['cycle_type'] = v.get('cycle_type', k[-1].split('_')[0]).upper()
             v['cycle_name'] = v.get('cycle_name', k[-1]).upper()
@@ -132,13 +132,13 @@ def _finalize_plan(res, plans, file_path):
     else:
         plans['defaults'].fillna('')
 
-    plans['job_id'] = plans.index
-    plans.set_index(['job_id', 'base', 'defaults'], inplace=True)
+    plans['id'] = plans.index
+    plans.set_index(['id', 'base', 'defaults'], inplace=True)
 
     return plans
 
 
-def _parse_job_data(res, match, sheet, sheet_name):
+def _parse_base_data(res, match, sheet, sheet_name):
     if 'cycle' not in match:
         xl_ref = '#%s!B2:C_:["pipe", ["dict", "recurse"]]' % sheet_name
         data = lasso(xl_ref, sheet=sheet)
@@ -170,10 +170,10 @@ def _parse_plan_data(plans, match, sheet, sheet_name):
         data = lasso(xl_ref % sheet_name, sheet=sheet)
     except:
         return {}
-    if 'job_id' not in data:
-        data['job_id'] = data.index + 1
+    if 'id' not in data:
+        data['id'] = data.index + 1
 
-    data.set_index(['job_id'], inplace=True)
+    data.set_index(['id'], inplace=True)
     data.dropna(how='all', inplace=True)
     data.dropna(axis=1, how='all', inplace=True)
 
@@ -189,7 +189,7 @@ def _isempty(val):
 
 
 def parse_values(data, default=None):
-    default = default or {'scope': 'job'}
+    default = default or {'scope': 'base'}
     if 'usage' not in default:
         default['usage'] = 'input'
     if 'cycle' not in default or default['cycle'] == 'all':

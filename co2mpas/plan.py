@@ -21,7 +21,7 @@ from cachetools import cached, LRUCache
 
 @cached(LRUCache(maxsize=256))
 def get_results(model, fpath, overwrite_cache=False, **kw):
-    cache_fpath = get_cache_fpath(fpath, ext=('res', 'job', 'dill',))
+    cache_fpath = get_cache_fpath(fpath, ext=('res', 'base', 'dill',))
 
     if check_cache_fpath_exists(overwrite_cache, fpath, cache_fpath):
         res = load_from_dill(cache_fpath)
