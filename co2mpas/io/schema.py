@@ -38,44 +38,56 @@ def validate_data(data, soft_validation, read_schema=None):
 
 def validate_inputs(data, soft_validation=False, read_schema=None):
     res, errors, validate = {}, {}, read_schema.validate
-    for k, v in sorted(co2_utl.stack_nested_keys(data, depth=3)):
-        for i in list(v):
-            try:
-                j = validate({i: v.pop(i)})
-                if list(j.values())[0] is not dsp_utl.NONE:
-                    v.update(j)
-            except SchemaError as ex:
-                co2_utl.get_nested_dicts(errors, *k)[i] = ex
-        co2_utl.get_nested_dicts(res, *k[:-1])[k[-1]] = v
+    for k, v in sorted(co2_utl.stack_nested_keys(data, depth=4)):
+        d = co2_utl.get_nested_dicts(res, *k[:-1])
+        _add_validated_input(d, validate, k, v, errors)
 
     if not soft_validation:
         for k, v in co2_utl.stack_nested_keys(res, depth=3):
-            for c, msg in hard_validation(data):
+            for c, msg in hard_validation(v):
                 co2_utl.get_nested_dicts(errors, *k)[c] = SchemaError([], [msg])
 
-    if errors:
-        msg = ['\nInput cannot be parsed, due to:']
-        for k, v in co2_utl.stack_nested_keys(errors, depth=4):
-            msg.append('{} in {}: {}'.format(k[-1], '/'.join(k[:-1]), v))
-        log.error('\n  '.join(msg))
+    if _log_errors_msg(errors):
         return {}
 
     return res
 
 
-def validate_plan(plan, read_schema=None):
-    validated_plan, validate = [], read_schema.validate
-    for i, d in plan.iterrows():
-        inputs = {}
-        d.dropna(how='all', inplace=True)
-        for k, v in d.items():
-            k = k.split('.')
-            n, k = '.'.join(k[:-1]), k[-1]
-            data = co2_utl.get_nested_dicts(inputs, n)
-            k, v = next(iter(validate({k: v}).items()))
+def _add_validated_input(data, validate, keys, value, errors):
+    try:
+        k, v = next(iter(validate({keys[-1]: value}).items()))
+        if v is not dsp_utl.NONE:
             data[k] = v
+    except SchemaError as ex:
+        co2_utl.get_nested_dicts(errors, *keys[:-1])[keys[-1]] = ex
+
+
+def _log_errors_msg(errors):
+    if errors:
+        msg = ['\nInput cannot be parsed, due to:']
+        for k, v in co2_utl.stack_nested_keys(errors, depth=4):
+            msg.append('{} in {}: {}'.format(k[-1], '/'.join(k[:-1]), v))
+        log.error('\n  '.join(msg))
+        return True
+    return False
+
+
+def validate_plan(plan, read_schema=None):
+    validated_plan, errors, validate = [], {}, read_schema.validate
+    for i, data in plan.iterrows():
+        inputs = {}
+        data.dropna(how='all', inplace=True)
+        plan_id = 'plan id:{}'.format(i[0])
+        for k, v in data.items():
+            k = (plan_id,) + tuple(k.split('.'))
+            d = co2_utl.get_nested_dicts(inputs, '.'.join(k[1:-1]))
+            _add_validated_input(d, validate, k, v, errors)
 
         validated_plan.append((i, inputs))
+
+    if _log_errors_msg(errors):
+        return []
+
     return validated_plan
 
 
