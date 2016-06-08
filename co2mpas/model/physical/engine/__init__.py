@@ -36,6 +36,7 @@ import co2mpas.utils as co2_utl
 from .thermal import *
 from ..defaults import *
 
+
 def get_full_load(fuel_type):
     """
     Returns vehicle full load curve.
@@ -171,7 +172,8 @@ def identify_idle_engine_speed_out(
 
     x = engine_speeds_out[b]
 
-    idle_speed = co2_utl.bin_split(x, bin_std=(0.01, 0.3))[1][0]
+    bin_std = dfl.functions.identify_idle_engine_speed_out.LIMITS_BIN_STD
+    idle_speed = co2_utl.bin_split(x, bin_std=bin_std)[1][0]
 
     return idle_speed[-1], idle_speed[1]
 

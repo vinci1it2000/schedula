@@ -153,6 +153,10 @@ class Values(co2_utl.Constants):
 
 #: Container of internal function parameters.
 class Functions(co2_utl.Constants):
+    class identify_idle_engine_speed_out(co2_utl.Constants):
+        #: Bin standard deviation limits [-].
+        LIMITS_BIN_STD = (0.01, 0.3)
+
     class correct_constant_velocity(co2_utl.Constants):
         #: Constant velocities to correct the upper limits for NEDC [km/h].
         CON_VEL_UP_SHIFT = (15.0, 32.0, 50.0, 70.0)
@@ -161,7 +165,8 @@ class Functions(co2_utl.Constants):
         # `CON_VEL_UP_SHIFT` [km/h].
         VEL_UP_WINDOW = 3.5
 
-        #: Delta to add to the limit if this is close to `CON_VEL_UP_SHIFT` [km/h].
+        #: Delta to add to the limit if this is close to `CON_VEL_UP_SHIFT`
+        # [km/h].
         DV_UP_SHIFT = -0.5
 
         #: Constant velocities to correct the bottom limits for NEDC[km/h].
@@ -171,7 +176,8 @@ class Functions(co2_utl.Constants):
         # `CON_VEL_DN_SHIFT` [km/h].
         VEL_DN_WINDOW = 3.5
 
-        #: Delta to add to the limit if this is close to `CON_VEL_DN_SHIFT` [km/h].
+        #: Delta to add to the limit if this is close to `CON_VEL_DN_SHIFT`
+        # [km/h].
         DV_DN_SHIFT = -1
 
     class define_initial_co2_emission_model_params_guess(co2_utl.Constants):
