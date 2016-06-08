@@ -1144,46 +1144,54 @@ This section describes the data naming convention used in the CO2MPAS template
 (``.xlsx`` file). In it, the names used as **sheet-names**, **parameter-names**
 and **column-names** are "sensitive", in the sense that they construct a
 *data-values tree* which is then fed into into the simulation model as input.
-These names are splitted in "parts", as explained below with examples:
+These names are split in "parts", as explained below with examples:
 
 - **sheet-names** parts::
 
-                    input.precodintion.WLTP-H
-                    └─┬─┘ └────┬─────┘ └─┬──┘
-      usage───────────┘        │         │
-      stage────────────────────┘         │
-      cycle──────────────────────────────┘
+                  base.input.precondition.WLTP-H
+                  └┬─┘ └─┬─┘ └────┬─────┘ └─┬──┘
+      scope────────┘     │        │         │
+      usage──────────────┘        │         │
+      stage───────────────────────┘         │
+      cycle─────────────────────────────────┘
 
 
-  All 3 parts above are optional, but at least one of them must be present on
-  a **sheet-name**; those parts are then used as defaults for all **parameter-names**
-  contained in that sheet.
+  All 4 parts above are optional, but at least one of them must be present on
+  a **sheet-name**; those parts are then used as defaults for all
+  **parameter-names** contained in that sheet.
 
 - **parameter-names**/**columns-names** parts::
 
-                    target.prediction.initial_state_of_charge.WLTP-H
-                    └─┬─┘ └────┬────┘ └──────────┬──────────┘ └──┬─┘
-      usage(optional)─┘        │                 │               │
-      stage(optional)──────────┘                 │               │
-      parameter──────────────────────────────────┘               │
-      cycle(optional)────────────────────────────────────────────┘
+                     plan.target.prediction.initial_state_of_charge.WLTP-H
+                     └┬─┘ └─┬─┘ └────┬────┘ └──────────┬──────────┘ └──┬─┘
+      scope(optional)─┘     │        │                 │               │
+      usage(optional)───────┘        │                 │               │
+      stage(optional)────────────────┘                 │               │
+      parameter────────────────────────────────────────┘               │
+      cycle(optional)──────────────────────────────────────────────────┘
 
   OR with the last 2 parts reversed::
 
-                    target.prediction.WLTP-H.initial_state_of_charge
-                                      └──┬─┘ └──────────┬──────────┘
-      cycle(optional)────────────────────┘              │
-      parameter─────────────────────────────────────────┘
+                    plan.target.prediction.WLTP-H.initial_state_of_charge
+                                           └──┬─┘ └──────────┬──────────┘
+      cycle(optional)─────────────────────────┘              │
+      parameter──────────────────────────────────────────────┘
 
 .. note::
    - The dot(``.``) may be replaced by space.
    - The **usage** and **stage** parts may end with an ``s``, denoting plural,
-     and are case-insensitive, e.g. ``Inputs``.
+     and are not case-insensitive, e.g. ``Inputs``.
 
 
 Description of the name-parts
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-1. **usage:**
+1. **scope:**
+
+   - ``base`` [default]: values provided by the user as input to CO2MPAS.
+   - ``plan``: values selected (see previous section) to calibrate the models
+     and to predict the CO2 emission.
+
+2. **usage:**
 
    - ``input`` [default]: values provided by the user as input to CO2MPAS.
    - ``data``: values selected (see previous section) to calibrate the models
@@ -1193,7 +1201,7 @@ Description of the name-parts
      be compared with the CO2MPAS results. This comparison is performed in the
      *report* sub-model by ``compare_outputs_vs_targets()`` function.
 
-2. **stage:**
+3. **stage:**
 
    - ``precondition`` [imposed when: ``wltp-p`` is specified as **cycle**]:
      data related to the precondition stage.
@@ -1201,7 +1209,7 @@ Description of the name-parts
    - ``prediction`` [imposed when: ``nedc`` is specified as **cycle**]:
      data related to the prediction stage.
 
-3. **cycle:**
+4. **cycle:**
 
    - ``nedc`` data related to the *NEDC* cycle.
    - ``wltp-h`` data related to the *WLTP High* cycle.
@@ -1213,22 +1221,25 @@ Description of the name-parts
    - ``all`` [default]: is a shortcut to set values for ``nedc``, ``wltp``,
      and ``wltp-p`` cycles.
 
-4. **param:** any data node name (e.g. ``vehicle_mass``) used in the physical
+5. **param:** any data node name (e.g. ``vehicle_mass``) used in the physical
    model.
 
 Sheet types
 ~~~~~~~~~~~
-There are two sheet types, which are parsed according to their contained
+There are three sheet types, which are parsed according to their contained
 data:
 
+- **variations** [parsed range is ``#A1:__``]: table of scalar and time-depended
+  values used into the simulation plan as variation from the base model.
 - **parameters** [parsed range is ``#B2:C_``]: scalar or not time-depended
   values (e.g. ``r_dynamic``, ``gear_box_ratios``, ``full_load_speeds``).
 - **time-series** [parsed range is ``#A2:__``]: time-depended values (e.g.
   ``times``, ``velocities``, ``gears``). Columns without values are skipped.
   **COLUMNS MUST HAVE THE SAME LENGTH!**
 
-When **cycle** is missing in the **sheet-name**, the sheet is parsed as
-**parameters**, otherwise it is parsed as **time-series**.
+When **scope** is ``plan``, the sheet is parsed as **variations**. If **scope**
+is ``base`` and **cycle** is missing in the **sheet-name**, the sheet is parsed
+as **parameters**, otherwise it is parsed as **time-series**.
 
 Calibrated Physical Models
 --------------------------
@@ -1300,4 +1311,3 @@ The following table describes the scores, targets, and metrics for each model:
 .. image:: _static/CO2MPAS_model_score_targets_limits.png
    :width: 600 px
    :align: center
-
