@@ -82,6 +82,8 @@ def parse_excel_file(file_path):
         'stage': 'calibration',
     }
 
+    book = excel_file.book
+
     for sheet_name in excel_file.sheet_names:
         match = _re_sheet_name.match(sheet_name)
         if not match:
@@ -90,7 +92,7 @@ def parse_excel_file(file_path):
 
         match = dsp_utl.combine_dicts(defaults, match)
 
-        sheet = _open_sheet_by_name_or_index(excel_file.book, 'book', sheet_name)
+        sheet = _open_sheet_by_name_or_index(book, 'book', sheet_name)
         if match['scope'] == 'base':
             _parse_base_data(res, match, sheet, sheet_name)
         elif match['scope'] == 'plan':
@@ -106,6 +108,7 @@ def parse_excel_file(file_path):
     return res
 
 
+# noinspection PyUnresolvedReferences
 def _finalize_plan(res, plans, file_path):
     if not plans:
         return pd.DataFrame()
@@ -120,22 +123,22 @@ def _finalize_plan(res, plans, file_path):
                 else:
                     p[n] = v
 
-    plans = pd.concat(plans, axis=1, copy=False, verify_integrity=True)
+    plan = pd.concat(plans, axis=1, copy=False, verify_integrity=True)
 
-    if 'base' not in plans:
-        plans['base'] = file_path
+    if 'base' not in plan:
+        plan['base'] = file_path
     else:
-        plans['base'].fillna(file_path)
+        plan['base'].fillna(file_path)
 
-    if 'defaults' not in plans:
-        plans['defaults'] = ''
+    if 'defaults' not in plan:
+        plan['defaults'] = ''
     else:
-        plans['defaults'].fillna('')
+        plan['defaults'].fillna('')
 
-    plans['id'] = plans.index
-    plans.set_index(['id', 'base', 'defaults'], inplace=True)
+    plan['id'] = plan.index
+    plan.set_index(['id', 'base', 'defaults'], inplace=True)
 
-    return plans
+    return plan
 
 
 def _parse_base_data(res, match, sheet, sheet_name):
@@ -238,7 +241,7 @@ def _check_none(v):
     return False
 
 
-def write_to_excel(data, output_file_name, template_file_name, main_flags):
+def write_to_excel(data, output_file_name, template_file_name):
 
     if template_file_name:
         log.debug('Writing into xl-file(%s) based on template(%s)...',
