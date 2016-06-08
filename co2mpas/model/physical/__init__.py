@@ -587,6 +587,8 @@ def physical():
             'has_start_stop': 'has_start_stop'
         },
         outputs={
+            'idle_engine_speed_median': 'idle_engine_speed_median',
+            'idle_engine_speed_std': 'idle_engine_speed_std',
             'fuel_carbon_content_percentage': 'fuel_carbon_content_percentage',
             'fuel_carbon_content': 'fuel_carbon_content',
             'auxiliaries_torque_losses': 'auxiliaries_torque_losses',
