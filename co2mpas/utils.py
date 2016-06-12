@@ -280,6 +280,22 @@ def reject_outliers(x, n=1, med=np.median, std=np.std):
     return m, s
 
 
+def ret_v(v):
+    """
+    Returns a function that return the argument v.
+
+    :param v:
+        Object to be returned.
+    :type v: object
+
+    :return:
+        Function that return the argument v.
+    :rtype: function
+    """
+
+    return lambda: v
+
+
 def bin_split(x, bin_std=(0.01, 0.1), n_min=None, bins_min=None):
     """
     Splits the input data with variable bins.
