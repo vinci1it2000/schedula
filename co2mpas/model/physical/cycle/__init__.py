@@ -60,7 +60,7 @@ def cycle_times(frequency, time_length):
 
     dt = 1 / frequency
 
-    return np.arange(0.0, time_length, dtype=float) * dt
+    return np.arange(0.0, time_length + 1, dtype=float) * dt
 
 
 def cycle():
