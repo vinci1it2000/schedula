@@ -146,7 +146,7 @@ def init_logging(verbose, frmt=None, logconf_file=None):
             level = logging.WARNING
         elif verbose:
             level = logging.DEBUG
-        else: # Verbose: False
+        else:  # Verbose: False
             level = logging.INFO
         if not frmt:
             frmt = "%(asctime)-15s:%(levelname)5.5s:%(name)s:%(message)s"

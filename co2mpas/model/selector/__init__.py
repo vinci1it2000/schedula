@@ -29,10 +29,9 @@ from pprint import pformat
 from ..physical.clutch_tc.clutch import calculate_clutch_phases
 from collections import Iterable
 from functools import partial
-from ..physical.gear_box.at_gear import \
-    calculate_error_coefficients, calculate_gear_box_speeds_in
+from ..physical.gear_box import at_gear
 import numpy as np
-
+import co2mpas.utils as co2_utl
 log = logging.getLogger(__name__)
 
 
@@ -134,7 +133,6 @@ def get_best_model(
         msg = '\n  Models %s are selected from %s respect to targets' \
               ' %s.\n  Scores: %s.'
 
-        s['selected'] = True
         log.debug(msg, s['models'], m[3], tuple(m[4].keys()), pformat(scores))
 
         if not _check(m):
@@ -428,9 +426,11 @@ def at_models_selector(dsp, at_pred_inputs, models_ids, data):
                 outputs=['gears']
         )['gears']
 
-        eng = calculate_gear_box_speeds_in(gears, vel, vsr, sv)
-
-        return calculate_error_coefficients(t_gears, gears, t_eng, eng, vel, sv)
+        eng = at_gear.calculate_gear_box_speeds_in(gears, vel, vsr, sv)
+        err = at_gear.calculate_error_coefficients(
+            t_gears, gears, t_eng, eng, vel, sv
+        )
+        return err
 
     def _sort(v):
         e = select(t_e, v[0], output_type='list')
@@ -441,7 +441,7 @@ def at_models_selector(dsp, at_pred_inputs, models_ids, data):
     rank = sorted(((_err(k, m), k, m) for k, m in at_m.items()), key=_sort)
 
     if rank:
-        data['scores at_gear'] = OrderedDict((k, e) for e, k, m in rank)
+        data['at_scores'] = OrderedDict((k, e) for e, k, m in rank)
         e, k, m = rank[0]
         models[sgs], models[k] = k, m
         log.debug('at_gear_shifting_model: %s with mean_absolute_error %.3f '

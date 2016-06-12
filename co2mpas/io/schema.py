@@ -423,7 +423,7 @@ def define_data_schema(read=True):
         'gear_box_efficiency_parameters_cold_hot': dictstrdict,
         'model_scores': dictstrdict,
         'scores': dictstrdict,
-        'scores at_gear': ordictstrdict,
+        'at_scores': ordictstrdict,
 
         'fuel_density': positive,
         'idle_engine_speed': tuplefloat2,
