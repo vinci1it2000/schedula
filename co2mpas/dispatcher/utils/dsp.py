@@ -30,7 +30,7 @@ from .exc import DispatcherError
 from datetime import datetime
 
 
-def combine_dicts(*dicts, copy=False):
+def combine_dicts(*dicts, copy=False, base=None):
     """
     Combines multiple dicts in one.
 
@@ -42,6 +42,10 @@ def combine_dicts(*dicts, copy=False):
         If True, it returns a deepcopy of input values.
     :type copy: bool, optional
 
+    :param base:
+        Base dict where combine multiple dicts in one.
+    :type base: dict, optional
+
     :return:
         A unique dict.
     :rtype: dict
@@ -52,10 +56,10 @@ def combine_dicts(*dicts, copy=False):
         [('a', 1), ('b', 2), ('c', 3)]
     """
 
-    if len(dicts) == 1:  # Only one input dict.
-        cd = dicts[0]
+    if len(dicts) == 1 and base is None:  # Only one input dict.
+        cd = dicts[0].copy()
     else:
-        cd = {}  # Initialize empty dict.
+        cd = {} if base is None else base  # Initialize empty dict.
 
         for d in dicts:  # Combine dicts.
             cd.update(d)
@@ -116,7 +120,7 @@ def summation(*inputs):
     return reduce(lambda x, y: x + y, inputs)
 
 
-def map_dict(key_map, *dicts, copy=False):
+def map_dict(key_map, *dicts, copy=False, base=None):
     """
     Returns a dict with new key values.
 
@@ -131,6 +135,10 @@ def map_dict(key_map, *dicts, copy=False):
     :param copy:
         If True, it returns a deepcopy of input values.
     :type copy: bool, optional
+
+    :param base:
+        Base dict where combine multiple dicts in one.
+    :type base: dict, optional
 
     :return:
         A unique dict with new key values.
@@ -148,10 +156,10 @@ def map_dict(key_map, *dicts, copy=False):
     get = key_map.get  # Namespace shortcut.
 
     # Return mapped dict.
-    return combine_dicts({get(k, k): v for k, v in it}, copy=copy)
+    return combine_dicts({get(k, k): v for k, v in it}, copy=copy, base=base)
 
 
-def map_list(key_map, *inputs, copy=False):
+def map_list(key_map, *inputs, copy=False, base=None):
     """
     Returns a new dict.
 
@@ -166,6 +174,10 @@ def map_list(key_map, *inputs, copy=False):
     :param copy:
         If True, it returns a deepcopy of input values.
     :type copy: bool, optional
+
+    :param base:
+        Base dict where combine multiple dicts in one.
+    :type base: dict, optional
 
     :return:
         A unique dict with new values.
@@ -194,17 +206,17 @@ def map_list(key_map, *inputs, copy=False):
         [('a', 1), ('b', 2), ('c', 3), ('d', 4)]
     """
 
-    d = {}  # Initialize empty dict.
+    d = {} if base is None else base  # Initialize empty dict.
 
     for m, v in zip(key_map, inputs):
         if isinstance(m, dict):
-            d.update(map_dict(m, v))   # Apply a map dict.
+            map_dict(m, v, base=d)   # Apply a map dict.
         elif isinstance(m, list):
-            d.update(map_list(m, *v))  # Apply a map list.
+            map_list(m, *v, base=d)  # Apply a map list.
         else:
             d[m] = v  # Apply map.
 
-    return combine_dicts(d, copy=copy)  # Return dict.
+    return combine_dicts(copy=copy, base=d)  # Return dict.
 
 
 def selector(keys, dictionary, copy=False, output_type='dict', allow_miss=False):
