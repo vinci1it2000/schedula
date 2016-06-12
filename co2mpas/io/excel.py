@@ -31,42 +31,53 @@ import json
 log = logging.getLogger(__name__)
 
 _re_params_name = regex.compile(
-        r"""
-            ^(?P<param>((plan|base)|
-                        (target|input|output|data)|
-                        ((precondition|calibration|prediction)s?)|
-                        (WLTP([-_]{1}[HLP]{1})?|NEDC|ALL)(recon)?))$
-            |
-            ^((?P<scope>(plan|base))[. ]?)?
-            ((?P<usage>(target|input|output|data))s?[. ]?)?
-            ((?P<stage>(precondition|calibration|prediction))s?[. ]?)?
-            ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC|ALL)(recon)?[. ]?)?
-            (?P<param>[^\s]*)$
-            |
-            ^((?P<scope>(plan|base))[. ]?)?
-            ((?P<usage>(target|input|output|data))s?[. ]?)?
-            ((?P<stage>(precondition|calibration|prediction))s?[. ]?)?
-            ((?P<param>[^\s.]*)[. ]?)?
-            ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC|ALL)(recon)?)?$
-        """, regex.IGNORECASE | regex.X | regex.DOTALL)
+    r"""
+        ^(?P<param>((plan|base)|
+                    (target|input|output|data)|
+                    ((precondition|calibration|prediction)s?)|
+                    (WLTP([-_]{1}[HLP]{1})?|NEDC|ALL)(recon)?))$
+        |
+        ^((?P<scope>(plan|base))[. ]{1})?
+        ((?P<usage>(target|input|output|data))s?[. ]{1})?
+        ((?P<stage>(precondition|calibration|prediction))s?[. ]{1})?
+        ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC|ALL)(recon)?[. ]{1})?
+        (?P<param>[^\s]*)$
+        |
+        ^((?P<scope>(plan|base))[. ]{1})?
+        ((?P<usage>(target|input|output|data))s?[. ]{1})?
+        ((?P<stage>(precondition|calibration|prediction))s?[. ]{1})?
+        ((?P<param>[^\s.]*))?
+        ([. ]{1}(?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC|ALL)(recon)?)?$
+    """, regex.IGNORECASE | regex.X | regex.DOTALL)
 
 
-_re_sheet_name = regex.compile(
-        r"""
-            ^((?P<scope>(plan|base))[. ]?)?
-            ((?P<usage>(target|input|output|data))s?[. ]?)?
-            ((?P<stage>(precondition|calibration|prediction))s?[. ]?)?
-            ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC|ALL)(recon)?)?$
-        """, regex.IGNORECASE | regex.X | regex.DOTALL)
+_re_input_sheet_name = regex.compile(
+    r"""
+        ^((?P<scope>(plan|base))[. ]?)?
+        ((?P<usage>(target|input|output|data))s?[. ]?)?
+        ((?P<stage>(precondition|calibration|prediction))s?[. ]?)?
+        ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC|ALL)(recon)?[. ]?)?
+        ((?P<type>(pa|ts|pl)))?$$
+    """, regex.IGNORECASE | regex.X | regex.DOTALL)
 
 
-def parse_excel_file(file_path):
+def parse_excel_file(
+        file_path, re_sheet_name=_re_input_sheet_name,
+        re_params_name=_re_params_name):
     """
     Reads cycle's data and simulation plans.
 
     :param file_path:
         Excel file path.
     :type file_path: str
+
+    :param re_sheet_name:
+        Regular expression to parse sheet names.
+    :type re_sheet_name: regex.Regex
+
+    :param re_params_name:
+        Regular expression to parse param names.
+    :type re_params_name: regex.Regex
 
     :return:
         A pandas DataFrame with cycle's time series.
@@ -76,16 +87,12 @@ def parse_excel_file(file_path):
     excel_file = pd.ExcelFile(file_path)
     res, plans = {}, []
 
-    defaults = {
-        'scope': 'base',
-        'usage': 'input',
-        'stage': 'calibration',
-    }
+    defaults = {'scope': 'base'}
 
     book = excel_file.book
 
     for sheet_name in excel_file.sheet_names:
-        match = _re_sheet_name.match(sheet_name)
+        match = re_sheet_name.match(sheet_name)
         if not match:
             continue
         match = {k: v.lower() for k, v in match.groupdict().items() if v}
@@ -94,9 +101,9 @@ def parse_excel_file(file_path):
 
         sheet = _open_sheet_by_name_or_index(book, 'book', sheet_name)
         if match['scope'] == 'base':
-            _parse_base_data(res, match, sheet, sheet_name)
+            _parse_base_data(res, match, sheet, sheet_name, re_params_name)
         elif match['scope'] == 'plan':
-            _parse_plan_data(plans, match, sheet, sheet_name)
+            _parse_plan_data(plans, match, sheet, sheet_name, re_params_name)
 
     for k, v in co2_utl.stack_nested_keys(res.get('base', {}), depth=3):
         if k[0] != 'target':
@@ -141,8 +148,17 @@ def _finalize_plan(res, plans, file_path):
     return plan
 
 
-def _parse_base_data(res, match, sheet, sheet_name):
-    if 'cycle' not in match:
+def _parse_base_data(
+        res, match, sheet, sheet_name, re_params_name=_re_params_name):
+    r = {}
+    defaults = {'usage': 'input', 'stage': 'calibration'}
+
+    if 'type' not in match:
+        match['type'] = 'pa' if 'cycle' not in match else 'ts'
+
+    match = dsp_utl.combine_dicts(defaults, match)
+
+    if match['type'] == 'pa':
         xl_ref = '#%s!B2:C_:["pipe", ["dict", "recurse"]]' % sheet_name
         data = lasso(xl_ref, sheet=sheet)
     else:
@@ -162,11 +178,29 @@ def _parse_base_data(res, match, sheet, sheet_name):
                   'Please correct the inputs!'
             raise ValueError(msg.format(drop, sheet_name))
 
-    for k, v in parse_values(data, default=match):
-        co2_utl.get_nested_dicts(res, *k[:-1])[k[-1]] = v
+    for k, v in parse_values(data, match, re_params_name):
+        co2_utl.get_nested_dicts(r, *k[:-1])[k[-1]] = v
+
+    n = (match['scope'], 'target')
+    if match['type'] == 'ts' and co2_utl.are_in_nested_dicts(r, *n):
+        t = co2_utl.get_nested_dicts(r, *n)
+        for k, v in co2_utl.stack_nested_keys(t, key=n, depth=2):
+            if 'times' not in v:
+                n = list(k + ('times',))
+                n[1] = match['usage']
+                if co2_utl.are_in_nested_dicts(r, *n):
+                    v['times'] = co2_utl.get_nested_dicts(r, *n)
+                else:
+                    for i, j in co2_utl.stack_nested_keys(r, depth=4):
+                        if 'times' in j:
+                            v['times'] = j['times']
+                            break
+
+    co2_utl.combine_nested_dicts(r, depth=5, base=res)
 
 
-def _parse_plan_data(plans, match, sheet, sheet_name):
+def _parse_plan_data(
+        plans, match, sheet, sheet_name, re_params_name=_re_params_name):
     # noinspection PyBroadException
     xl_ref = '#%s!A1(R):._:R:"recurse"'
     data = lasso(xl_ref % sheet_name, sheet=sheet)
@@ -183,7 +217,7 @@ def _parse_plan_data(plans, match, sheet, sheet_name):
 
     plan = pd.DataFrame()
 
-    for k, v in parse_values(data, default=match):
+    for k, v in parse_values(data, match, re_params_name):
         plan['.'.join(k[1:])] = v
     plans.append(plan)
 
@@ -192,7 +226,7 @@ def _isempty(val):
     return isinstance(val, float) and isnan(val) or _check_none(val)
 
 
-def parse_values(data, default=None):
+def parse_values(data, default=None, re_params_name=_re_params_name):
     default = default or {'scope': 'base'}
     if 'usage' not in default:
         default['usage'] = 'input'
@@ -204,12 +238,12 @@ def parse_values(data, default=None):
         default['cycle'] = default['cycle'].replace('-', '_')
 
     for k, v in data.items():
-        match = _re_params_name.match(k) if k is not None else None
+        match = re_params_name.match(k) if k is not None else None
         if not match or _isempty(v):
             continue
         match = {i: j.lower() for i, j in match.groupdict().items() if j}
 
-        if 'usage' in match and match['usage'] == 'target':
+        if 'stage' not in match and match.get('usage', None) == 'target':
             match['stage'] = 'prediction'
 
         match = dsp_utl.combine_dicts(default, match)
@@ -244,6 +278,28 @@ def _check_none(v):
     return False
 
 
+def _write_sheets(writer, sheet_name, data, down=True, **kw):
+    if isinstance(data, pd.DataFrame):
+        if sheet_name.endswith('pa'):
+            kw = {'named_ranges': ('rows',), 'index': True, 'k0': 1}
+        elif sheet_name.endswith('ts'):
+            kw = {'named_ranges': ('columns',), 'index': False, 'k0': 1}
+        return [_df2excel(writer, sheet_name, data, **kw)]
+    else:
+        down = not sheet_name.endswith('proc_info')
+        refs = []
+        for d in data:
+            ref = _write_sheets(writer, sheet_name, d, down=down, **kw)[0]
+            refs.append(ref)
+            if ref:
+                corner = ref[0]
+                if down:
+                    kw['startrow'] = d.shape[0] + corner[0] + 2
+                else:
+                    kw['startcol'] = d.shape[1] + corner[1] + 2
+        return refs
+
+
 def write_to_excel(data, output_file_name, template_file_name):
 
     if template_file_name:
@@ -255,50 +311,18 @@ def write_to_excel(data, output_file_name, template_file_name):
     else:
         log.debug('Writing into xl-file(%s)...', output_file_name)
         writer = pd.ExcelWriter(output_file_name, engine='xlsxwriter')
-    xlref = {}
-
-    gen = co2_utl.stack_nested_keys(data, depth=3)
-    for k, v in sorted(gen, key=_sort_sheets):
-
-        if k[0] in ('comparison',):
-            ref = _df2excel(writer, k[0], v[0])
-            if ref:
-                xlref[k[0]] = ref[1]
-        elif k[0] in ('data_calibration_model_scores', 'proc_info'):
-            kw = {}
-
-            if k[0] == 'data_calibration_model_scores':
-                kw = {'named_ranges': ('columns',)}
-                st = ('startrow', 0)
-            else:
-                st = ('startcol', 1)
-            kw[st[0]]= 0
-
-            for d in v:
-                ref = _df2excel(writer, k[0], d, **kw)
-                if ref:
-                    corner, ref = ref
-                    xlref['%s/%s' % (k[0], d.name)] = ref
-                    kw[st[0]] = d.shape[st[1]] + corner[st[1]] + 2
-
-        elif k[0] != 'graphs':
-            if k[-1] == 'parameters':
-                k0, named_ranges, index = 1, ('rows',), True
-            else:
-                k0, named_ranges, index = 1, ('columns',), True
-            ref = _df2excel(writer, _sheet_name(k), v, k0, named_ranges, index=index)
-            if ref:
-                xlref[_sheet_name(k)] = ref[1]
-        elif k[0] == 'graphs':
-            try:
-                shname = _sheet_name(k[1:])
-                _chart2excel(writer, shname, v)
-            except:
-                pass
+    xlref = []
+    for k, v in sorted(data.items(), key=_sort_sheets):
+        if not k.startswith('graphs.'):
+            xlref.extend(_write_sheets(writer, k, v))
+        else:
+            _chart2excel(writer, k, v)
 
     if xlref:
-        xlref = pd.DataFrame([xlref]).transpose()
-        _df2excel(writer, 'xlref', xlref, named_ranges=(), index=True, header=False)
+        xlref = sorted(dsp_utl.combine_dicts(*[x[1] for x in xlref]).items())
+        xlref = pd.DataFrame(xlref)
+        xlref.set_index([0], inplace=True)
+        _df2excel(writer, 'xlref', xlref, 0, (), index=True, header=False)
 
     writer.save()
     log.info('Written into xl-file(%s)...', output_file_name)
@@ -318,14 +342,13 @@ def clone_excel(file_name, output_file_name):
 
 def _sort_sheets(x):
     x = x[0]
-    imp = ['comparison', 'graphs', 'nedc', 'wltp_h',
-           'wltp_l', 'wltp_p', 'predictions', 'inputs',
-           'parameters', 'time_series', 'data_calibration_model_scores']
+    imp = ['comparison', 'graphs', 'plan', 'nedc', 'wltp_h', 'wltp_l', 'wltp_p',
+           'predictions', 'inputs', 'pa', 'ts']
 
     w = ()
     for i, k in enumerate(imp):
         if k in x:
-            w = (i,) + _sort_sheets((set(x) - {k},))[0]
+            w = (i,) + _sort_sheets((x.replace(k, ''),))[0]
             break
     return w or (100,), x
 
@@ -340,15 +363,33 @@ def _get_defaults(func):
     return defaults
 
 
+def _multi_index_df2excel(writer, shname, df, index=True, **kw):
+    try:
+        df.to_excel(writer, shname, index=index, **kw)
+    except NotImplementedError as ex:
+        if not index and isinstance(df.columns, pd.MultiIndex):
+            kw = kw.copy()
+            if kw.pop('header', True):
+                header = pd.DataFrame([c for c in df.columns]).T
+                header.to_excel(writer, shname, index=False, header=False, **kw)
+                kw['startrow'] = kw.get('startrow', 0) + header.shape[0]
+            values = pd.DataFrame(df.values)
+            values.to_excel(writer, shname, index=False, header=False, **kw)
+        else:
+            raise ex
+
+
 def _df2excel(writer, shname, df, k0=0, named_ranges=('columns', 'rows'), **kw):
     if isinstance(df, pd.DataFrame) and not df.empty:
-        df.to_excel(writer, shname, **kw)
+        _multi_index_df2excel(writer, shname, df, **kw)
         defaults = _get_defaults(df.to_excel)
         defaults.update(kw)
         kw = defaults
 
         startrow, startcol, ref = _get_corner(df, **kw)
-        ref = '#%s!%s' % (shname, ref)
+
+        ref_name = (shname, df.name) if hasattr(df, 'name') else (shname,)
+        ref = {'.'.join(ref_name): '#%s!%s' % (shname, ref)}
         if named_ranges:
             _add_named_ranges(df, writer, shname, startrow, startcol,
                               named_ranges, k0)
@@ -390,14 +431,14 @@ def _add_named_ranges(df, writer, shname, startrow, startcol, named_ranges, k0):
             k = (k,)
         if k:
             try:
-                ref_name = regex.sub("[\W]", "_", _ref_name(tag + k[k0:]))
-                create_named_range(ref_name, range_ref)
+                k = tag + k[k0:]
+                create_named_range(_ref_name(*k), range_ref)
             except TypeError:
                 pass
 
 
-def _ref_name(name):
-    return '_' + '.'.join(name).replace(' ', '_').replace('-', '_')
+def _ref_name(*names):
+    return '_{}'.format(regex.sub("[\W]", "_", '.'.join(names)))
 
 
 def _index_levels(index):
@@ -464,8 +505,8 @@ def _chart2excel(writer, shname, charts):
 
 
 def _data_ref(ref):
-    return '%s!%s' % (_sheet_name(ref[:-1]), _ref_name((ref[-1],)))
+    return '%s!%s' % (_sheet_name(ref[:-1]), _ref_name(ref[-1]))
 
 
 def _sheet_name(tags):
-    return '_'.join(tags)
+    return '.'.join(tags)

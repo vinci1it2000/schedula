@@ -39,110 +39,21 @@ def parse_dsp_model(model):
     :rtype: dict[dict]
     """
 
-    _map = {
-        'nedc': {
-            'targets': 'target.prediction.nedc',
-            'predictions': 'output.prediction.nedc',
-            'inputs': 'input.prediction.nedc',
-        },
-        'wltp_l': {
-            'calibrations': 'output.calibration.wltp_l',
-            'targets': 'target.prediction.wltp_l',
-            'predictions': 'output.prediction.wltp_l',
-            'inputs': 'input.calibration.wltp_l',
-        },
-        'wltp_h': {
-            'calibrations': 'output.calibration.wltp_h',
-            'targets': 'target.prediction.wltp_h',
-            'predictions': 'output.prediction.wltp_h',
-            'inputs': 'input.calibration.wltp_h',
-        },
-        'wltp_p': {
-            'calibrations': 'output.precondition.wltp_p',
-            'targets': 'target.precondition.wltp_p',
-            'inputs': 'input.precondition.wltp_p',
-        }
-    }
-
-    out = model.data_output
     res = {}
-    for k, v in _map.items():
-        v = {j: i for i, j in v.items()}
-        res[k] = dsp_utl.map_dict(v, dsp_utl.selector(v, out, allow_miss=True))
+    for k, v in model.data_output.items():
+        co2_utl.get_nested_dicts(res, *k.split('.'), default=co2_utl.ret_v(v))
 
-    if 'data.calibration.model_scores' in out:
-        _map_scores(res, out['data.calibration.model_scores'])
-
-    for j in {'nedc', 'wltp_h', 'wltp_l', 'wltp_p'}.intersection(res):
-        d = res[j]
-        if j in ('wltp_h', 'wltp_l') and 'predictions' in d:
-            o = out['output.calibration.%s' % j]
-            o = dsp_utl.selector(('co2_emission_value',), o, allow_miss=True)
-            d['targets'] = dsp_utl.combine_dicts(o, d.get('targets', {}))
-
-        for k, v in d.items():
-            d[k] = _split_by_data_format(v)
+    for k, v in co2_utl.stack_nested_keys(res, depth=3):
+        n, k = k[:-1], k[-1]
+        if n == ('output', 'calibration') and k in ('wltp_l', 'wltp_h'):
+            v = dsp_utl.selector(('co2_emission_value',), v, allow_miss=True)
+            if v:
+                d = co2_utl.get_nested_dicts(res, 'target', 'prediction')
+                d[k] = dsp_utl.combine_dicts(v, d[k])
 
     res['pipe'] = model.pipe
 
     return res
-
-
-def _map_scores(results, scores):
-    scores = results['data.calibration.model_scores'] = scores.copy()
-
-    for k, v in scores.items():
-        for i, j in v.items():
-            i = i.lower().replace('-', '_')
-            if i not in results:
-                continue
-            cal = results[i]['calibrations']
-            s = cal['scores'] = cal.get('scores', {})
-            s[k] = j
-
-    model_scores = {}
-
-    for k, v in scores.items():
-        try:
-            c, d = next(iter(v.items()))
-            model_scores[k] = dsp_utl.combine_dicts({'cycle': c}, d)
-            scores[k] = {
-                'scores': v,
-                'best': {
-                    'from': c,
-                    'passed': d.get('score', {}).get('success', None),
-                    'selected': d['selected'],
-                    'selected_models': d['models']
-                }
-            }
-
-        except StopIteration:
-            pass
-
-    for k, v in results.items():
-        if 'predictions' in v:
-            v['predictions']['model_scores'] = model_scores
-
-
-def _split_by_data_format(data):
-
-    d = {}
-    time_series = d['time_series'] = {}
-    parameters = d['parameters'] = {}
-    p = ('full_load_speeds', 'full_load_torques', 'full_load_powers')
-    try:
-        s = max(v.size for k, v in data.items()
-                if k not in p and isinstance(v, np.ndarray))
-    except ValueError:
-        s = None
-
-    for k, v in data.items():
-        if isinstance(v, np.ndarray) and s == v.size:  # series
-            time_series[k] = v
-        else:  # params
-            parameters[k] = v
-
-    return d
 
 
 def process_folder_files(input_files, output_folder, **kwds):

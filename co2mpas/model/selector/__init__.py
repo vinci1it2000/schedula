@@ -231,7 +231,22 @@ def combine_outputs(models):
 
 
 def combine_scores(scores):
-    return {k: v for k, v in scores.items() if v}
+    scores = {k: v for k, v in scores.items() if v}
+    if not scores:
+        return {}
+    s = {}
+    for (k, c), v in co2_utl.stack_nested_keys(scores, depth=2):
+        r = {'models': v['models']} if 'models' in v else {}
+        r.update(v.get('score', {}))
+        co2_utl.get_nested_dicts(s, k, c, default=co2_utl.ret_v(r))
+
+        if not co2_utl.are_in_nested_dicts(s, k, 'best'):
+            best = dsp_utl.selector(('models', 'success'), r)
+            best['selected_models'] = best.pop('models')
+            best['from'] = c
+            co2_utl.get_nested_dicts(s, k, 'best', default=co2_utl.ret_v(best))
+
+    return {'selections': s, 'scores': scores}
 
 
 def sub_models():

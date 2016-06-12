@@ -10,7 +10,7 @@ It contains reporting functions for output results.
 """
 
 from co2mpas.dispatcher import Dispatcher
-from functools import partial
+from copy import deepcopy
 from collections import Iterable, OrderedDict
 import numpy as np
 from sklearn.metrics import mean_absolute_error, accuracy_score
@@ -18,7 +18,7 @@ import co2mpas.dispatcher.utils as dsp_utl
 import co2mpas.utils as co2_utl
 
 
-def _metrics(t, o, metrics):
+def _compare(t, o, metrics):
     res = {}
 
     def _asarray(*x):
@@ -42,22 +42,23 @@ def _metrics(t, o, metrics):
     return res
 
 
-def _compare(targets, outputs, func=_metrics, **kw):
-    res = {}
-    for k, v in targets.items():
-        if k in outputs:
-            r = func(v, outputs[k], **kw)
-            if r:
-                res[k] = r
-
-    return res
-
-
 def _correlation_coefficient(t, o):
     return np.corrcoef(t, o)[0, 1] if t.size > 1 else np.nan
 
 
 def compare_outputs_vs_targets(data):
+    """
+    Compares model outputs vs targets.
+
+    :param data:
+        Model data.
+    :type data: dict
+
+    :return:
+        Comparison results.
+    :rtype: dict
+    """
+
     res = {}
     metrics = {
         'mean_absolute_error': mean_absolute_error,
@@ -65,19 +66,14 @@ def compare_outputs_vs_targets(data):
         'accuracy_score': accuracy_score,
     }
 
-    for k, v in data.items():
-        if 'targets' in v:
-            r = {}
-            t, i = v['targets'], v['inputs']
+    for k, t in co2_utl.stack_nested_keys(data.get('target', {}), depth=3):
+        if not co2_utl.are_in_nested_dicts(data, 'output', *k):
+            continue
 
-            for i in {'predictions', 'calibrations'}.intersection(v):
-                o = v[i]
-                o = dsp_utl.selector(set(o).difference(i), o)
-                c = _compare(t, o, func=_compare, metrics=metrics)
-                if c:
-                    r[i] = c
-            if r:
-                res[k] = r
+        o = co2_utl.get_nested_dicts(data, 'output', *k)
+        v = _compare(t, o, metrics=metrics)
+        if v:
+            co2_utl.get_nested_dicts(res, *k, default=co2_utl.ret_v(v))
 
     return res
 
@@ -182,7 +178,7 @@ def _get_cycle_time_series(data):
     ids = ['targets', 'calibrations', 'predictions']
     data = dsp_utl.selector(ids, data, allow_miss=True)
     data = dsp_utl.map_dict({k: k[:-1] for k in ids}, data)
-    ts = 'time_series'
+    ts = 'ts'
     data = {k: v[ts] for k, v in data.items() if ts in v and v[ts]}
 
     if 'target' in data and 'times' not in data['target']:
@@ -219,25 +215,25 @@ def _get_cycle_time_series(data):
     return _map
 
 
-def get_chart_reference(data):
+def get_chart_reference(report):
     r = {}
     _map = _map_cycle_report_graphs()
-    data = dsp_utl.selector(['nedc', 'wltp_p', 'wltp_h', 'wltp_l'], data)
-    for k, v in sorted(co2_utl.stack_nested_keys(data)):
-        if k[1] not in ('calibrations', 'predictions', 'targets'):
-            continue
-        m = _map.get(k[-1], None)
-        if m and k[-2] == 'time_series':
-            try:
-                d = {
-                    'x': _ref_targets(_search_times(k[:-1], data, v), data),
-                    'y': _ref_targets(k, data),
-                    'label': '%s %s' % (k[1][:-1], m['label'])
-                }
-                k = k[0], k[-1], 'series'
-                co2_utl.get_nested_dicts(r, *k, default=list).append(d)
-            except TypeError:
-                pass
+    from .io.excel import _re_params_name, _sheet_name
+    out = report.get('output', {})
+    for k, v in co2_utl.stack_nested_keys(out, key=('output',), depth=3):
+        if k[-1] == 'ts' and 'times' in v:
+            label = '{}/%s'.format(_sheet_name(k))
+            for i, j in v.items():
+                param_id = _re_params_name.match(i)['param']
+                m = _map.get(param_id, None)
+                if m:
+                    d = {
+                        'x': k + ('times',),
+                        'y': k + (i,),
+                        'label': label % i
+                    }
+                    n = k[2], param_id, 'series'
+                    co2_utl.get_nested_dicts(r, *n, default=list).append(d)
 
     for k, v in co2_utl.stack_nested_keys(r, depth=2):
         m = _map[k[1]]
@@ -249,7 +245,7 @@ def get_chart_reference(data):
 
 def _search_times(path, data, vector):
     t = 'times'
-    ts = 'time_series'
+    ts = 'ts'
 
     if t not in co2_utl.get_nested_dicts(data, *path):
         if path[1] == 'targets':
@@ -269,7 +265,7 @@ def _ref_targets(path, data):
     if path[1] == 'targets':
         d = data[path[0]]
         p = next((p for p in ('inputs', 'calibrations', 'predictions')
-                 if path[-1] in d.get(p, {}).get('time_series', {})), None)
+                 if path[-1] in d.get(p, {}).get('ts', {})), None)
 
         if not p:
             raise TypeError
@@ -317,13 +313,13 @@ def extract_summary(data, vehicle_name):
 
     for k, v in dsp_utl.selector(keys, data, allow_miss=True).items():
         for i, j in (i for i in v.items() if i[0] in stages):
-            if 'parameters' not in j:
+            if 'pa' not in j:
                 continue
             if i in ('targets', 'inputs'):
                 p_keys = co2_target_keys
             else:
                 p_keys = params_keys
-            p = dsp_utl.selector(p_keys, j['parameters'], allow_miss=True)
+            p = dsp_utl.selector(p_keys, j['pa'], allow_miss=True)
 
             if i == 'predictions' or ('co2_params' in p and not p['co2_params']):
                 p.pop('co2_params', None)
@@ -394,6 +390,155 @@ def extract_summary(data, vehicle_name):
     return res
 
 
+def _add_special_data2report(data, report, to_keys, *from_keys):
+
+    if from_keys[-1] != 'times' and co2_utl.are_in_nested_dicts(data, *from_keys):
+        v = co2_utl.get_nested_dicts(data, *from_keys)
+        n = to_keys + ('{}.{}'.format(from_keys[0], from_keys[-1]),)
+        co2_utl.get_nested_dicts(report, *n, default=co2_utl.ret_v(v))
+        return True, v
+    return False, None
+
+
+def _split_by_data_format(data):
+
+    d = {}
+    p = ('full_load_speeds', 'full_load_torques', 'full_load_powers')
+    try:
+        s = max(v.size for k, v in data.items()
+                if k not in p and isinstance(v, np.ndarray))
+    except ValueError:
+        s = None
+
+    for k, v in data.items():
+        if isinstance(v, np.ndarray) and s == v.size:  # series
+            co2_utl.get_nested_dicts(d, 'ts')[k] = v
+        else:  # params
+            co2_utl.get_nested_dicts(d, 'pa')[k] = v
+
+    return d
+
+
+def re_sample_targets(data):
+    res = {}
+    for k, v in co2_utl.stack_nested_keys(data.get('target', {}), depth=2):
+        if co2_utl.are_in_nested_dicts(data, 'output', *k):
+            o = co2_utl.get_nested_dicts(data, 'output', *k)
+            o = _split_by_data_format(o)
+            t = dsp_utl.selector(o, _split_by_data_format(v))
+
+            if 'times' not in t.get('ts', {}) or 'times' not in o['ts']:
+                t.pop('ts', None)
+            else:
+                time_series = t['ts']
+                x, xp = o['ts']['times'], time_series.pop('times')
+                if not _is_equal(x, xp):
+                    for i, fp in time_series.items():
+                        time_series[i] = np.interp(x, xp, fp)
+            v = dsp_utl.combine_dicts(*t.values())
+            co2_utl.get_nested_dicts(res, *k, default=co2_utl.ret_v(v))
+
+    return res
+
+
+def format_report_output(data):
+    res = {}
+    for k, v in co2_utl.stack_nested_keys(data.get('output', {}), depth=3):
+        _add_special_data2report(data, res, k[:-1], 'target', *k)
+
+        s, iv = _add_special_data2report(data, res, k[:-1], 'input', *k)
+        if not s or (s and not _is_equal(iv, v)):
+            co2_utl.get_nested_dicts(res, *k, default=co2_utl.ret_v(v))
+
+    output = {}
+    for k, v in co2_utl.stack_nested_keys(res, depth=2):
+        v = _split_by_data_format(v)
+        co2_utl.get_nested_dicts(output, *k, default=co2_utl.ret_v(v))
+
+    return output
+
+
+def _format_scores(scores):
+    res = {}
+    for k, j in co2_utl.stack_nested_keys(scores, depth=3):
+        if k[-1] in ('limits', 'errors'):
+            model_id = k[0]
+            extra_field = ('score',) if k[-1] == 'errors' else ()
+            for i, v in co2_utl.stack_nested_keys(j):
+                i = (model_id, i[-1], k[1],) + i[:-1] + extra_field
+                co2_utl.get_nested_dicts(res, *i, default=co2_utl.ret_v(v))
+    sco = {}
+    for k, v in co2_utl.stack_nested_keys(res, depth=4):
+        v.update(dsp_utl.map_list(['model_id', 'param_id'], *k[:2]))
+        co2_utl.get_nested_dicts(sco, *k[2:], default=list).append(v)
+    return sco
+
+
+def _format_selections(selections):
+    res = {}
+    for model_id, d in selections.items():
+        d = deepcopy(d)
+        best = d.pop('best')
+        for k, v in d.items():
+            v.update(best)
+            v['model_id'] = model_id
+            co2_utl.get_nested_dicts(res, k, default=list).append(v)
+    return res
+
+
+def format_report_scores(data):
+    res = {}
+    scores = 'data', 'calibration', 'model_scores'
+    if co2_utl.are_in_nested_dicts(data, *scores):
+        n = scores + ('selections',)
+        selections = _format_selections(co2_utl.get_nested_dicts(data, *n))
+        if selections:
+            co2_utl.get_nested_dicts(res, *n, default=co2_utl.ret_v(selections))
+
+        n = scores + ('scores',)
+        scores = _format_scores(co2_utl.get_nested_dicts(data, *n))
+        if scores:
+            co2_utl.get_nested_dicts(res, *n, default=co2_utl.ret_v(scores))
+
+    return res
+
+
+def get_report_output_data(data):
+    data = data.copy()
+    report = {'pipe': data['pipe']}
+    target = re_sample_targets(data)
+    if target:
+        data['target'] = target
+
+    comparison = compare_outputs_vs_targets(data)
+    if comparison:
+        report['comparison'] = comparison
+
+    output = format_report_output(data)
+    if output:
+        report['output'] = output
+
+    scores = format_report_scores(data)
+    if scores:
+        co2_utl.combine_nested_dicts(scores, base=report)
+
+    graphs = get_chart_reference(report)
+    if graphs:
+        report['graphs'] = graphs
+
+    return report
+
+
+def _is_equal(v, iv):
+    try:
+        if v == iv:
+            return True
+    except ValueError:
+        if (v == iv).all():
+            return True
+    return False
+
+
 def report():
     """
     Defines and returns a function that produces a vehicle report from CO2MPAS
@@ -415,20 +560,8 @@ def report():
     )
 
     dsp.add_function(
-        function=compare_outputs_vs_targets,
+        function=get_report_output_data,
         inputs=['output_data'],
-        outputs=['comparison']
-    )
-
-    dsp.add_function(
-        function=get_chart_reference,
-        inputs=['output_data'],
-        outputs=['graphs']
-    )
-
-    dsp.add_function(
-        function=partial(dsp_utl.map_list, ['comparison', 'graphs', {}]),
-        inputs=['comparison', 'graphs', 'output_data'],
         outputs=['report']
     )
 

@@ -28,21 +28,21 @@ import datetime
 import logging
 import pathlib
 import re
-import numpy as np
 import pandas as pd
 from pip.operations.freeze import freeze
 from .schema import define_data_schema
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas._version import version, __input_file_version__
-from co2mpas.dispatcher.utils.alg import stlp
 from .dill import *
 import co2mpas.utils as co2_utl
 from co2mpas.dispatcher import Dispatcher
-from .excel import write_to_excel, parse_excel_file, parse_values
+from .excel import write_to_excel, parse_excel_file, _sheet_name, \
+    _re_params_name
 from .schema import validate_data, validate_plan
 from functools import partial
 from pandalone.xleash import lasso
 from pandalone.xleash._parse import parse_xlref
+from collections import OrderedDict
 log = logging.getLogger(__name__)
 
 
@@ -74,34 +74,31 @@ def check_file_format(fpath, *args, extensions=('.xlsx',)):
     return fpath.lower().endswith(extensions)
 
 
-def convert2df(data, start_time, main_flags, data_descriptions, write_schema):
+def convert2df(report, start_time, main_flags, data_descriptions, write_schema):
 
-    res = {'graphs': {'graphs': data['graphs']}} if 'graphs' in data else {}
+    res = {'graphs.%s' % k: v for k, v in report.get('graphs', {}).items()}
 
-    res.update(_cycle2df(data, data_descriptions, write_schema))
+    res.update(_cycle2df(report, data_descriptions, write_schema))
 
-    res.update(_scores2df(data))
+    res.update(_scores2df(report))
 
-    res.update(_comparison2df(data))
+    res.update(_comparison2df(report))
 
-    res.update(_proc_info2df(data, start_time, main_flags))
+    res.update(_proc_info2df(report, start_time, main_flags))
 
     return res
 
 
 def _comparison2df(data):
     res = {}
-
     for k, v in co2_utl.stack_nested_keys(data.get('comparison', {}), depth=3):
-        r = co2_utl.get_nested_dicts(res, *k, default=list)
-        for i, j in v.items():
-            d = {'param_id': i}
-            d.update(j)
-            r.append(d)
-    if res:
-        res = {'comparison': (_dd2df(res, 'param_id', depth=3, axis=1),)}
+        l = co2_utl.get_nested_dicts(res, *k[:-1], default=list)
+        l.append(dsp_utl.combine_dicts({'param_id': k[-1]}, v))
 
-    return res
+    if res:
+        return {'comparison': (_dd2df(res, 'param_id', depth=2),)}
+
+    return {}
 
 
 def _proc_info2df(data, start_time, main_flags):
@@ -169,69 +166,46 @@ def _pipe2list(pipe, i=0, source=()):
 
 def _cycle2df(data, data_descriptions, write_schema):
     res = {}
+    out = data.get('output', {})
+    for k, v in co2_utl.stack_nested_keys(out, key=('output',), depth=3):
+        if not v:
+            continue
 
-    for i in {'nedc', 'wltp_h', 'wltp_l', 'wltp_p'}.intersection(data):
+        n, k = _sheet_name(k), k[-1]
+        if 'ts' == k:
+            df = _time_series2df(v, data_descriptions)
+        elif 'pa' == k:
+            df = _parameters2df(v, data_descriptions, write_schema)
+        else:
+            continue
 
-        v = {k: _data2df(v, data_descriptions, write_schema)
-             for k, v in data[i].items()}
-        v = {k: v for k, v in v.items() if v}
-        targets = v.pop('targets', {})
-        if targets:
-            _merge_targets(v, targets)
-        res[i] = v
-
+        if df is not None:
+            res[n] = df
     return res
 
 
 def _scores2df(data):
-    dfs, edf = {}, {}
-    cycles = ('ALL', 'WLTP-H', 'WLTP-L')
-    for k, m in sorted(data.get('data.calibration.model_scores', {}).items()):
-
-        d = _get_selection_raw(k, m['best'])
-        m = m['scores']
-        for i in cycles:
-            df = dfs[i] = dfs.get(i, [])
-            df.append(_get_scores_raw(d, m.get(i, {})))
-
-            df = edf[i] = edf.get(i, {})
-            _extend_errors_raws(df, k, m.get(i, {}), cycles[1:])
-
-    idx = ['model_id', 'from', 'selected', 'passed', 'selected_models']
-    c = [n for n in cycles if n in dfs]
-    frames = [pd.DataFrame(dfs[k]).set_index(idx) for k in c]
-
-    if not frames:
+    n = ('data', 'calibration', 'model_scores')
+    if not co2_utl.are_in_nested_dicts(data, *n):
         return {}
 
-    df = pd.concat(frames, axis=1, keys=cycles)
+    scores = co2_utl.get_nested_dicts(data, *n)
 
-    for k, v in list(edf.items()):
-        for n, m in list(v.items()):
-            if m:
-                v[n] = pd.DataFrame(m).set_index(['model_id', 'param_id'])
-            else:
-                v.pop(n)
-        if not v:
-            edf.pop(k)
-            continue
-        c = [n for n in cycles if n in v]
-        edf[k] = pd.concat([v[n] for n in c], axis=1, keys=c)
-
-    c = [n for n in cycles if n in edf]
-    edf = pd.concat([edf[k] for k in c], axis=1, keys=c)
-
+    idx = ['model_id', 'from', 'success', 'selected_models']
+    df = _dd2df(scores['selections'], idx, depth=1)
     setattr(df, 'name', 'selections')
+
+    idx = ['model_id', 'param_id']
+    edf = _dd2df(scores['scores'], idx, depth=2)
     setattr(edf, 'name', 'scores')
 
-    return {'data_calibration_model_scores': (df, edf)}
+    return {'.'.join(n): (df, edf)}
 
 
 def _get_selection_raw(model_id, data):
     d = {
         'from': None,
         'passed': None,
-        'selected': False,
         'selected_models': None,
         'model_id': model_id
     }
@@ -318,35 +292,6 @@ def _param_orders():
     return _map
 
 
-def _merge_targets(data, targets):
-    _map = lambda x: 'target %s' % x
-    _p_map = _param_orders()
-
-    def _sort(x):
-        x = stlp(x)[-1]
-        j = 7 if x.startswith('target ') else 0
-        return _p_map.get(x[j:], '0'), x[j:], i
-
-    for k, v in targets.items():
-        if v.empty:
-            continue
-
-        if 'time_series' == k:
-            v.rename(columns=_map, inplace=True)
-            axis = 1
-        elif 'parameters' == k:
-            v.rename(index=_map, inplace=True)
-            axis = 0
-        else:
-            continue
-
-        for i in ['predictions', 'calibrations', 'inputs']:
-            if i in data and k in data[i] and not data[i][k].empty:
-                data[i][k] = pd.concat([data[i][k], v], axis=axis, copy=False)
-                c = sorted(data[i][k].axes[axis], key=_sort)
-                data[i][k] = data[i][k].reindex_axis(c, axis=axis, copy=False)
-
-
 def _parse_name(name, _standard_names=None):
     """
     Parses a column/row name.
@@ -368,68 +313,52 @@ def _parse_name(name, _standard_names=None):
     return name.capitalize()
 
 
-def _data2df(data, data_descriptions, write_schema):
-    res = {}
-
-    for k, v in data.items():
-        if 'time_series' == k:
-            res[k] = _time_series2df(v, data_descriptions)
-        elif 'parameters' == k:
-            res[k] = _parameters2df(v, data_descriptions, write_schema)
-
-    return res
-
-
 def _parameters2df(data, data_descriptions, write_schema):
     df = []
-    d = {}
-    for k, v in data.items():
+    for s, k, v in sorted((_param_score(k), k, v) for k, v in data.items()):
         try:
-            d.update(write_schema.validate({k: v}))
+            param_id, v = next(iter(write_schema.validate({s[1]: v}).items()))
+            if v is not dsp_utl.NONE:
+                df.append({
+                    'Parameter': _parse_name(param_id, data_descriptions),
+                    'Model Name': k,
+                    'Value': v
+                })
         except schema.SchemaError as ex:
             raise ValueError(k, v, ex)
 
-    data = {k: v for k, v in d.items() if v is not dsp_utl.NONE}
-    for k, v in sorted(data.items()):
-        d = {
-            'Parameter': _parse_name(k, data_descriptions),
-            'Model Name': k,
-            'Value': v
-        }
-        df.append(d)
-
     if df:
-        df = pd.DataFrame(df,)
+        df = pd.DataFrame(df)
         df.set_index(['Parameter', 'Model Name'], inplace=True)
         return df
     else:
-        return pd.DataFrame()
+        return None
+
+
+def _param_score(param_id):
+    match = _re_params_name.match(param_id)
+    match = {i: (j or '').lower() for i, j in match.groupdict().items()}
+    keys = ('scope', 'param', 'cycle', 'usage', 'stage')
+    return dsp_utl.selector(keys, match, output_type='list')
 
 
 def _time_series2df(data, data_descriptions):
-    if data:
-        it = sorted(data.items())
-        index = [(_parse_name(k, data_descriptions), k) for k, v in it]
-        index = pd.MultiIndex.from_tuples(index)
-        return pd.DataFrame(np.array([v for k, v in it]).T, columns=index)
-    return pd.DataFrame()
+    df = OrderedDict()
+    for s, k, v in sorted((_param_score(k), k, v) for k, v in data.items()):
+        df[(_parse_name(s[1], data_descriptions), k)] = v
+    return pd.DataFrame(df)
 
 
-def _dd2df(dd, index, depth=0, axis=1):
+def _dd2df(dd, index=None, depth=0):
+    frames = []
     for k, v in co2_utl.stack_nested_keys(dd, depth=depth):
         df = pd.DataFrame(v)
-        df.set_index(index, inplace=True)
-        co2_utl.get_nested_dicts(dd, *k[:-1])[k[-1]] = df
+        if index is not None:
+            df.set_index(index, inplace=True)
+        df.columns = pd.MultiIndex.from_tuples([k + (i,) for i in df.columns])
+        frames.append(df)
 
-    for d in range(depth - 1, -1, -1):
-        for k, v in co2_utl.stack_nested_keys(dd, depth=d):
-            keys, frames = zip(*sorted(v.items()))
-            df = pd.concat(frames, axis=axis, keys=keys, verify_integrity=True)
-            if k:
-                co2_utl.get_nested_dicts(dd, *k[:-1])[k[-1]] = df
-            else:
-                dd = df
-    return dd
+    return pd.concat(frames, copy=False, axis=1, verify_integrity=True)
 
 
 def check_data_version(data):
