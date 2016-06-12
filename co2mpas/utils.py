@@ -152,17 +152,23 @@ def combine_nested_dicts(*nested_dicts, depth=-1, base=None):
         Maximum keys depth.
     :type depth: int, optional
 
+    :param base:
+        Base dict where combine multiple dicts in one.
+    :type base: dict, optional
+
     :return:
         Combined nested-dictionary.
     :rtype: dict
     """
 
-    result = {}
+    if base is None:
+        base = {}
+
     for nested_dict in nested_dicts:
         for k, v in stack_nested_keys(nested_dict, depth=depth):
-            get_nested_dicts(result, *k[:-1])[k[-1]] = v
+            get_nested_dicts(base, *k[:-1])[k[-1]] = v
 
-    return result
+    return base
 
 
 def argmax(values, **kws):
