@@ -115,7 +115,32 @@ def get_nested_dicts(nested_dict, *keys, default=None):
     return nested_dict
 
 
-def combine_nested_dicts(*nested_dicts, depth=-1):
+def are_in_nested_dicts(nested_dict, *keys):
+    """
+    Nested keys are inside of nested-dictionaries.
+
+    :param nested_dict:
+        Nested dictionary.
+    :type nested_dict: dict
+
+    :param keys:
+        Nested keys.
+    :type keys: tuple
+
+    :return:
+        True if nested keys are inside of nested-dictionaries, otherwise False.
+    :rtype: bool
+    """
+
+    if keys:
+        try:
+            return are_in_nested_dicts(nested_dict[keys[0]], *keys[1:])
+        except KeyError:
+            return False
+    return True
+
+
+def combine_nested_dicts(*nested_dicts, depth=-1, base=None):
     """
     Merge nested-dictionaries.
 
