@@ -280,19 +280,14 @@ def _check_none(v):
 
 def _write_sheets(writer, sheet_name, data, down=True, **kw):
     if isinstance(data, pd.DataFrame):
-        if sheet_name.endswith('pa'):
-            kw = {'named_ranges': ('rows',), 'index': True, 'k0': 1}
-        elif sheet_name.endswith('ts'):
-            kw = {'named_ranges': ('columns',), 'index': False, 'k0': 1}
         return [_df2excel(writer, sheet_name, data, **kw)]
     else:
-        down = not sheet_name.endswith('proc_info')
         refs = []
         for d in data:
-            ref = _write_sheets(writer, sheet_name, d, down=down, **kw)[0]
-            refs.append(ref)
-            if ref:
-                corner = ref[0]
+            ref = _write_sheets(writer, sheet_name, d, down=not down, **kw)
+            refs.extend(ref)
+            if ref[-1]:
+                corner = ref[-1][0]
                 if down:
                     kw['startrow'] = d.shape[0] + corner[0] + 2
                 else:
@@ -314,7 +309,14 @@ def write_to_excel(data, output_file_name, template_file_name):
     xlref = []
     for k, v in sorted(data.items(), key=_sort_sheets):
         if not k.startswith('graphs.'):
-            xlref.extend(_write_sheets(writer, k, v))
+            if k.endswith('pa'):
+                kw = {'named_ranges': ('rows',), 'index': True, 'k0': 1}
+            elif k.endswith('ts'):
+                kw = {'named_ranges': ('columns',), 'index': False, 'k0': 1}
+            else:
+                kw = {}
+            down = not k.endswith('proc_info')
+            xlref.extend(_write_sheets(writer, k, v, down=down, **kw))
         else:
             _chart2excel(writer, k, v)
 
@@ -342,7 +344,7 @@ def clone_excel(file_name, output_file_name):
 
 def _sort_sheets(x):
     x = x[0]
-    imp = ['comparison', 'graphs', 'plan', 'nedc', 'wltp_h', 'wltp_l', 'wltp_p',
+    imp = ['summary', 'graphs', 'plan', 'nedc', 'wltp_h', 'wltp_l', 'wltp_p',
            'predictions', 'inputs', 'pa', 'ts']
 
     w = ()

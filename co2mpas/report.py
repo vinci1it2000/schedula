@@ -212,9 +212,6 @@ def _format_dict(gen, str_format='%s', func=lambda x: x):
 
 
 def _extract_summary_from_output(report, extracted):
-    p_wltp, p_nedc = ('low', 'medium', 'high', 'extra_high'), ('UDC', 'EUDC')
-    keys = tuple('co2_emission_%s' % v for v in (p_wltp + p_nedc + ('value',)))
-    keys += ('has_sufficient_power',)
     for k, v in co2_utl.stack_nested_keys(report.get('output', {}), depth=2):
         k = k[::-1]
         for u, i, j in _param_names_values(v.get('pa', {})):
@@ -224,23 +221,25 @@ def _extract_summary_from_output(report, extracted):
             elif i == 'calibration_status':
                 o = _format_dict(enumerate(j), 'status co2_params step %d',
                                  lambda x: x[0])
-            elif i in ('phases_co2_emissions', 'phases_fuel_consumptions'):
-                _map = p_nedc if k[0] == 'nedc' else p_wltp
-                if len(_map) != len(j):
-                    o = _format_dict(enumerate(j),
-                                     '{}_phase %d'.format(i[7:-1]))
-                else:
-                    o = _format_dict(zip(_map, j), '{}_%s'.format(i[7:-1]))
             elif i == 'willans_factors':
                 o = j
             elif i == 'phases_willans_factors':
                 for n, m in enumerate(j):
                     o.update(_format_dict(m.items(), '%s phase {}'.format(n)))
-            elif i in keys:
+            elif i == 'has_sufficient_power':
                 o = {i: j}
 
             if o:
                 co2_utl.get_nested_dicts(extracted, *(k + (u,))).update(o)
+
+
+def _extract_summary_from_summary(report, extracted):
+    for w in ('co2_values', 'fuel_consumption_values'):
+        if co2_utl.are_in_nested_dicts(report, 'summary', w):
+            w = co2_utl.get_nested_dicts(report, 'summary', w)
+            for k, v in co2_utl.stack_nested_keys(w, depth=3):
+                if v:
+                    co2_utl.get_nested_dicts(extracted, *k).update(v)
 
 
 def _extract_summary_from_model_scores(report, extracted):
@@ -265,6 +264,8 @@ def _extract_summary_from_model_scores(report, extracted):
 
 def extract_summary(report, vehicle_name):
     extracted = {}
+
+    _extract_summary_from_summary(report, extracted)
 
     _extract_summary_from_output(report, extracted)
 
@@ -409,16 +410,83 @@ def calculate_delta(data):
     return d
 
 
+def get_selection(data):
+    res = []
+    n = ('data', 'calibration', 'model_scores', 'selections')
+    if co2_utl.are_in_nested_dicts(data, *n):
+        for k, v in co2_utl.get_nested_dicts(data, *n).items():
+            d = dsp_utl.selector(('from', 'status'), v['best'])
+            d['model_id'] = k
+            res.append(d)
+    return res
+
+
+def get_co2_values(data, what='co2_emission'):
+    keys = ('input', 'target', 'output')
+    data = dsp_utl.selector(keys, data, allow_miss=True)
+
+    p_wltp, p_nedc = ('low', 'medium', 'high', 'extra_high'), ('UDC', 'EUDC')
+    keys = tuple('_'.join((what, v)) for v in (p_wltp + p_nedc + ('value',)))
+    keys += ('phases_%ss' % what,)
+    res = {}
+    for k, v in co2_utl.stack_nested_keys(data, depth=3):
+        k = k[::-1]
+        v = dsp_utl.selector(keys, v, allow_miss=True)
+        if keys[-1] in v:
+            o = v.pop(keys[-1])
+            _map = p_nedc if k[0] == 'nedc' else p_wltp
+            if len(_map) != len(o):
+                gen, text = enumerate(o), '{}_phase %d'
+            else:
+                gen, text = zip(_map, o), '{}_%s'
+            v.update(_format_dict(gen, text.format(what)))
+        if v:
+            co2_utl.get_nested_dicts(res, *k, default=co2_utl.ret_v(v))
+
+    return res
+
+
+def format_report_summary(data):
+    summary = {}
+    comparison = compare_outputs_vs_targets(data)
+    if comparison:
+        summary['comparison'] = comparison
+
+    delta = calculate_delta(data)
+    if delta:
+        summary['delta'] = delta
+
+    selection = get_selection(data)
+    if selection:
+        summary['selection'] = selection
+
+    co2_values = get_co2_values(data)
+    if selection:
+        summary['co2_values'] = co2_values
+
+    fc_values = get_co2_values(data, what='fuel_consumption')
+    if selection:
+        summary['fuel_consumption_values'] = fc_values
+
+    return summary
+
+
 def get_report_output_data(data):
+    """
+    Produces a vehicle report from CO2MPAS outputs.
+
+    :param data:
+    :return:
+    """
     data = data.copy()
     report = {'pipe': data['pipe']}
     target = re_sample_targets(data)
     if target:
         data['target'] = target
 
-    comparison = compare_outputs_vs_targets(data)
-    if comparison:
-        report['comparison'] = comparison
+    summary = format_report_summary(data)
+    if summary:
+        report['summary'] = summary
 
     output = format_report_output(data)
     if output:
@@ -427,10 +495,6 @@ def get_report_output_data(data):
     scores = format_report_scores(data)
     if scores:
         co2_utl.combine_nested_dicts(scores, base=report)
-
-    delta = calculate_delta(data)
-    if delta:
-        report['delta'] = delta
 
     graphs = get_chart_reference(report)
     if graphs:

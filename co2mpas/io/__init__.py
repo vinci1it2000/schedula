@@ -82,23 +82,53 @@ def convert2df(report, start_time, main_flags, data_descriptions, write_schema):
 
     res.update(_scores2df(report))
 
-    res.update(_comparison2df(report))
+    res.update(_summary2df(report))
 
     res.update(_proc_info2df(report, start_time, main_flags))
 
     return res
 
 
-def _comparison2df(data):
+def _summary2df(data):
+    res = []
+    summary = data.get('summary', {})
+
+    for w in ('co2_values', 'fuel_consumption_values'):
+        if w in summary:
+            r = []
+            for k, v in co2_utl.stack_nested_keys(summary[w], depth=3):
+                v = dsp_utl.map_list([{}, 'cycle', 'stage', 'usage'], v, *k)
+                r.append(v)
+            df = pd.DataFrame(r)
+            df.set_index(['cycle', 'stage', 'usage'], inplace=True)
+            setattr(df, 'name', w)
+            res.append(df)
+
+    if 'selection' in summary:
+        df = pd.DataFrame(summary['selection'])
+        df.set_index(['model_id'], inplace=True)
+        setattr(df, 'name', 'selection')
+        res.append(df)
+
+    if 'comparison' in summary:
+        df = _comparison2df(summary['comparison'])
+        if df is not None:
+            setattr(df, 'name', 'comparison')
+            res.append(df)
+
+    if res:
+        return {'summary': res}
+    return {}
+
+
+def _comparison2df(comparison):
     res = {}
-    for k, v in co2_utl.stack_nested_keys(data.get('comparison', {}), depth=3):
+    for k, v in co2_utl.stack_nested_keys(comparison, depth=3):
         l = co2_utl.get_nested_dicts(res, *k[:-1], default=list)
         l.append(dsp_utl.combine_dicts({'param_id': k[-1]}, v))
 
     if res:
-        return {'comparison': (_dd2df(res, 'param_id', depth=2),)}
-
-    return {}
+        return _dd2df(res, 'param_id', depth=2)
 
 
 def _proc_info2df(data, start_time, main_flags):
