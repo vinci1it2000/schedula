@@ -192,7 +192,7 @@ def default_output_file_name(output_folder, fname, timestamp):
 
 def _add2summary(total_summary, summary, base_keys=None):
     base_keys = base_keys or {}
-    for k, v in co2_utl.stack_nested_keys(summary, depth=2):
+    for k, v in co2_utl.stack_nested_keys(summary, depth=3):
         d = co2_utl.get_nested_dicts(total_summary, *k, default=list)
         if isinstance(v, list):
             for j in v:
@@ -218,7 +218,7 @@ def _save_summary(fpath, start_time, summary):
     if summary:
         from co2mpas.io.excel import _df2excel
         from co2mpas.io import _dd2df, _param_orders, _co2mpas_info2df
-        summary = _dd2df(summary, 'vehicle_name', depth=2)
+        summary = _dd2df(summary, 'vehicle_name', depth=3)
 
         _p_map = _param_orders()
 

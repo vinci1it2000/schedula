@@ -16,6 +16,7 @@ import numpy as np
 from sklearn.metrics import mean_absolute_error, accuracy_score
 import co2mpas.dispatcher.utils as dsp_utl
 import co2mpas.utils as co2_utl
+from .io.excel import _re_params_name, _sheet_name
 
 
 def _compare(t, o, metrics):
@@ -174,51 +175,8 @@ def _map_cycle_report_graphs():
     return _map
 
 
-def _get_cycle_time_series(data):
-    ids = ['targets', 'calibrations', 'predictions']
-    data = dsp_utl.selector(ids, data, allow_miss=True)
-    data = dsp_utl.map_dict({k: k[:-1] for k in ids}, data)
-    ts = 'ts'
-    data = {k: v[ts] for k, v in data.items() if ts in v and v[ts]}
-
-    if 'target' in data and 'times' not in data['target']:
-        t = data['target'] = data['target'].copy()
-        if 'calibration' in data and 'times' in data['calibration']:
-            t['times'] = data['calibration']['times']
-        elif 'prediction' in data and 'times' in data['prediction']:
-            t['times'] = data['prediction']['times']
-        else:
-            data.pop('target')
-
-    _map = _map_cycle_report_graphs()
-
-    for k, v in list(_map.items()):
-        xs, ys, labels, label = [], [], [], v.pop('label', '')
-
-        def _append_data(d, s='%s'):
-            try:
-                xs.append(d['times'])
-                ys.append(d[k])
-                labels.append(s % label)
-            except KeyError:
-                pass
-
-        for i, j in data.items():
-            if k in j:
-                _append_data(j, s=i + ' %s')
-
-        if ys:
-            v.update({'xs': xs, 'ys': ys, 'labels': labels})
-        else:
-            _map.pop(k)
-
-    return _map
-
-
 def get_chart_reference(report):
-    r = {}
-    _map = _map_cycle_report_graphs()
-    from .io.excel import _re_params_name, _sheet_name
+    r, _map = {}, _map_cycle_report_graphs()
     out = report.get('output', {})
     for k, v in co2_utl.stack_nested_keys(out, key=('output',), depth=3):
         if k[-1] == 'ts' and 'times' in v:
@@ -243,155 +201,85 @@ def get_chart_reference(report):
     return r
 
 
-def _search_times(path, data, vector):
-    t = 'times'
-    ts = 'ts'
-
-    if t not in co2_utl.get_nested_dicts(data, *path):
-        if path[1] == 'targets':
-            c, v = data[path[0]], vector
-
-            for i in ('calibrations', 'predictions'):
-                if i in c and ts in c[i] and t in c[i][ts]:
-                    if len(c[i][ts][t]) == len(v):
-                        return (path[0], i) + path[2:] + (t,)
-
-    else:
-        return path + (t,)
-    raise TypeError
+def _param_names_values(data):
+    for k, v in data.items():
+        m = _re_params_name.match(k)
+        yield m['usage'] or 'output', m['param'], v
 
 
-def _ref_targets(path, data):
-    if path[1] == 'targets':
-        d = data[path[0]]
-        p = next((p for p in ('inputs', 'calibrations', 'predictions')
-                 if path[-1] in d.get(p, {}).get('ts', {})), None)
-
-        if not p:
-            raise TypeError
-
-        path = list(path)
-        path[1] = p
-        path[-1] = 'target %s' % path[-1]
-
-    return path
+def _format_dict(gen, str_format='%s', func=lambda x: x):
+    return {str_format % k: func(v) for k, v in gen}
 
 
-def _parse_outputs(tag, data):
+def _extract_summary_from_output(report, extracted):
+    p_wltp, p_nedc = ('low', 'medium', 'high', 'extra_high'), ('UDC', 'EUDC')
+    keys = tuple('co2_emission_%s' % v for v in (p_wltp + p_nedc + ('value',)))
+    keys += ('has_sufficient_power',)
+    for k, v in co2_utl.stack_nested_keys(report.get('output', {}), depth=2):
+        k = k[::-1]
+        for u, i, j in _param_names_values(v.get('pa', {})):
+            o = {}
+            if i == 'co2_params_calibrated':
+                o = _format_dict(j.valuesdict().items(), 'co2_params %s')
+            elif i == 'calibration_status':
+                o = _format_dict(enumerate(j), 'status co2_params step %d',
+                                 lambda x: x[0])
+            elif i in ('phases_co2_emissions', 'phases_fuel_consumptions'):
+                _map = p_nedc if k[0] == 'nedc' else p_wltp
+                if len(_map) != len(j):
+                    o = _format_dict(enumerate(j),
+                                     '{}_phase %d'.format(i[7:-1]))
+                else:
+                    o = _format_dict(zip(_map, j), '{}_%s'.format(i[7:-1]))
+            elif i == 'willans_factors':
+                o = j
+            elif i == 'phases_willans_factors':
+                for n, m in enumerate(j):
+                    o.update(_format_dict(m.items(), '%s phase {}'.format(n)))
+            elif i in keys:
+                o = {i: j}
 
-    res = {}
-
-    if not isinstance(data, str) and isinstance(data, Iterable):
-        it = data.items() if hasattr(data, 'items') else enumerate(data)
-        for k, v in it:
-            res.update(_parse_outputs("%s %s" % (tag, k), v))
-    else:
-        res[tag] = data
-
-    return res
+            if o:
+                co2_utl.get_nested_dicts(extracted, *(k + (u,))).update(o)
 
 
-def extract_summary(data, vehicle_name):
-    res = {}
-    keys = ('nedc', 'wltp_h', 'wltp_l', 'wltp_p')
-    stages = ('calibrations', 'predictions', 'targets', 'inputs')
+def _extract_summary_from_model_scores(report, extracted):
+    n = ('data', 'calibration', 'model_scores', 'selections')
+    if co2_utl.are_in_nested_dicts(report, *n):
+        sel = co2_utl.get_nested_dicts(report, *n)
+        n, status = ('calibration', 'output'), {}
 
-    wltp_phases = ('low', 'medium', 'high', 'extra_high')
-    nedc_phases = ('UDC', 'EUDC')
+        for k, v in sel.items():
+            gen = ((d['model_id'], d['success']) for d in v if 'success' in d)
+            o = _format_dict(gen, 'status %s')
+            co2_utl.get_nested_dicts(extracted, k, *n).update(o)
 
-    co2_target_keys = wltp_phases + nedc_phases + ('value',)
+            gen = ((d['model_id'], d['status']) for d in v)
+            status.update(_format_dict(gen, 'status %s'))
 
-    co2_target_keys = tuple('co2_emission_%s' % v for v in co2_target_keys)
-    co2_target_map = {k: '%s %s' % (k[:12], k[13:]) for k in co2_target_keys}
+        n = ('prediction', 'output')
+        for k in extracted:
+            if co2_utl.are_in_nested_dicts(extracted, k, n[0]):
+                co2_utl.get_nested_dicts(extracted, k, *n).update(status)
 
-    params_keys = (
-        'co2_params', 'calibration_status', 'co2_params', 'model_scores',
-        'scores', 'co2_params_calibrated',
-        'phases_co2_emissions', 'willans_factors', 'correct_f0',
-        'phases_fuel_consumptions', 'phases_willans_factors', 'missing_powers'
-    ) + co2_target_keys
 
-    for k, v in dsp_utl.selector(keys, data, allow_miss=True).items():
-        for i, j in (i for i in v.items() if i[0] in stages):
-            if 'pa' not in j:
-                continue
-            if i in ('targets', 'inputs'):
-                p_keys = co2_target_keys
-            else:
-                p_keys = params_keys
-            p = dsp_utl.selector(p_keys, j['pa'], allow_miss=True)
+def extract_summary(report, vehicle_name):
+    extracted = {}
 
-            if i == 'predictions' or ('co2_params' in p and not p['co2_params']):
-                p.pop('co2_params', None)
-                if 'co2_params_calibrated' in p:
-                    n = p.pop('co2_params_calibrated').valuesdict()
-                    p.update(_parse_outputs('co2_params', n))
+    _extract_summary_from_output(report, extracted)
 
-            if 'missing_powers' in p:
-                p['sufficient_power'] = not p.pop('missing_powers').any()
+    _extract_summary_from_model_scores(report, extracted)
 
-            if 'phases_co2_emissions' in p:
-                _map = nedc_phases if k == 'nedc' else wltp_phases
-                l = len(p['phases_co2_emissions'])
-                if len(_map) != l:
-                    _map = ('phase %d' %m for m in range(l))
-                _map = tuple('co2_emission %s' % v for v in _map)
-                p.update(dsp_utl.map_list(_map, *p.pop('phases_co2_emissions')))
+    if 'delta' in report:
+        co2_utl.combine_nested_dicts({'delta': report['delta']}, base=extracted)
 
-            if 'phases_fuel_consumptions' in p:
-                _map = nedc_phases if k == 'nedc' else wltp_phases
-                l = len(p['phases_fuel_consumptions'])
-                if len(_map) != l:
-                    _map = ('phase %d' %m for m in range(l))
-                _map = tuple('fuel_consumption %s' % v for v in _map)
-                a = p.pop('phases_fuel_consumptions')
-                p.update(dsp_utl.map_list(_map, *a))
+    for k, v in co2_utl.stack_nested_keys(extracted, depth=3):
+        v['vehicle_name'] = vehicle_name
 
-            if 'calibration_status' in p:
-                n = 'calibration_status'
-                p.update(_parse_outputs('status co2_params step',
-                                        [m[0] for m in p.pop(n)]))
-
-            if 'model_scores' in p or 'scores' in p:
-                it = p.pop('model_scores', {}) or p.pop('scores', {})
-                if p:
-                    for n, m in it.items():
-                        n = 'status %s' % n[:-9]
-                        p[n] = m.get('score', {}).get('success', True)
-
-            if 'willans_factors' in p:
-                p.update(p.pop('willans_factors'))
-
-            if 'phases_willans_factors' in p:
-                for n, f in enumerate(p.pop('phases_willans_factors')):
-                    p.update({'%s phase %d' % (k, n): v for k, v in f.items()})
-
-            if p:
-                p = dsp_utl.map_dict(co2_target_map, p)
-                p['vehicle_name'] = vehicle_name
-                co2_utl.get_nested_dicts(res, k, i[:-1]).update(p)
-
-    # delta
-    try:
-        delta = {}
-        co2_nedc = res['nedc']['prediction']['co2_emission value']
-        s = 'nedc_%s_delta'
-        for k in ('wltp_h', 'wltp_l'):
-            try:
-                delta[s % k] = co2_nedc - res[k]['prediction']['co2_emission value']
-            except KeyError:
-                pass
-        if delta:
-            delta['vehicle_name'] = vehicle_name
-            co2_utl.get_nested_dicts(res, 'delta', 'co2_emission').update(delta)
-    except KeyError:
-        pass
-
-    return res
+    return extracted
 
 
 def _add_special_data2report(data, report, to_keys, *from_keys):
-
     if from_keys[-1] != 'times' and co2_utl.are_in_nested_dicts(data, *from_keys):
         v = co2_utl.get_nested_dicts(data, *from_keys)
         n = to_keys + ('{}.{}'.format(from_keys[0], from_keys[-1]),)
@@ -503,6 +391,24 @@ def format_report_scores(data):
     return res
 
 
+def calculate_delta(data):
+    # delta
+    n = ['output', 'prediction', 'nedc', 'co2_emission_value']
+
+    if not co2_utl.are_in_nested_dicts(data, *n):
+        return {}
+
+    d, co2_nedc = {}, co2_utl.get_nested_dicts(data, *n)
+    for k in ('wltp_h', 'wltp_l'):
+        n[2] = k
+        if not co2_utl.are_in_nested_dicts(data, *n):
+            continue
+        dco2 = co2_nedc - co2_utl.get_nested_dicts(data, *n)
+        co2_utl.get_nested_dicts(d, 'nedc', *n[2:], default=co2_utl.ret_v(dco2))
+
+    return d
+
+
 def get_report_output_data(data):
     data = data.copy()
     report = {'pipe': data['pipe']}
@@ -521,6 +427,10 @@ def get_report_output_data(data):
     scores = format_report_scores(data)
     if scores:
         co2_utl.combine_nested_dicts(scores, base=report)
+
+    delta = calculate_delta(data)
+    if delta:
+        report['delta'] = delta
 
     graphs = get_chart_reference(report)
     if graphs:
