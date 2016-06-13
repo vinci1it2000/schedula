@@ -191,7 +191,7 @@ def _scores2df(data):
 
     scores = co2_utl.get_nested_dicts(data, *n)
 
-    idx = ['model_id', 'from', 'success', 'selected_models']
+    idx = ['model_id', 'from', 'status', 'selected_models']
     df = _dd2df(scores['selections'], idx, depth=1)
     setattr(df, 'name', 'selections')
 

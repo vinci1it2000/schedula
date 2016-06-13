@@ -228,7 +228,7 @@ def model():
 
     from .selector import selector
 
-    selector = selector('WLTP-H', 'WLTP-L')
+    selector = selector('wltp_h', 'wltp_l')
 
     dsp.add_data(
         data_id='config.error_settings',

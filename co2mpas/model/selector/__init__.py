@@ -231,7 +231,7 @@ def combine_outputs(models):
 
 
 def combine_scores(scores):
-    scores = {k: v for k, v in scores.items() if v}
+    scores = {k[:-9]: v for k, v in scores.items() if v}
     if not scores:
         return {}
     s = {}
@@ -241,8 +241,8 @@ def combine_scores(scores):
         co2_utl.get_nested_dicts(s, k, c, default=co2_utl.ret_v(r))
 
         if not co2_utl.are_in_nested_dicts(s, k, 'best'):
-            best = dsp_utl.selector(('models', 'success'), r)
-            best['selected_models'] = best.pop('models')
+            keys = {'models': 'selected_models', 'success': 'status'}
+            best = dsp_utl.map_dict(keys, dsp_utl.selector(keys, r))
             best['from'] = c
             co2_utl.get_nested_dicts(s, k, 'best', default=co2_utl.ret_v(best))
 
@@ -479,7 +479,7 @@ def selector(*data):
     :rtype: SubDispatchFunction
     """
 
-    data = data or ('WLTP-H', 'WLTP-L')
+    data = data or ('wltp_h', 'wltp_l')
 
     dsp = Dispatcher(
         name='Models selector',
