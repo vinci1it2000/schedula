@@ -383,6 +383,7 @@ def define_data_schema(read=True):
         'has_thermal_management': _bool,
         'engine_has_direct_injection': _bool,
         'has_lean_burn': _bool,
+        'has_sufficient_power': _bool,
         'engine_has_cylinder_deactivation': _bool,
         'has_exhausted_gas_recirculation': _bool,
         'has_particle_filter': _bool,

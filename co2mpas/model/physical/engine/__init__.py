@@ -1408,6 +1408,23 @@ def calculate_auxiliaries_power_losses(
     return p
 
 
+def check_vehicle_has_sufficient_power(missing_powers):
+    """
+    Checks if the vehicle has sufficient power.
+
+    :param missing_powers:
+        Missing powers [kW].
+    :type missing_powers: numpy.array
+
+    :return:
+        If the vehicle has sufficient power.
+    :rtype: bool
+    """
+
+    return not missing_powers.any()
+
+
+
 def engine():
     """
     Defines the engine model.
@@ -1673,6 +1690,12 @@ def engine():
                 'min_available_engine_powers_out',
                 'uncorrected_engine_powers_out'],
         outputs=['engine_powers_out', 'missing_powers', 'brake_powers']
+    )
+
+    dsp.add_function(
+        function=check_vehicle_has_sufficient_power,
+        inputs=['missing_powers'],
+        outputs=['has_sufficient_power']
     )
 
     dsp.add_function(
