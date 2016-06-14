@@ -21,20 +21,16 @@ Sub-Modules:
 """
 
 from math import pi
-
+from .thermal import *
+from ..defaults import *
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 from scipy.optimize import fmin
 from sklearn.metrics import mean_absolute_error
 from sklearn.tree import DecisionTreeClassifier
-
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher import Dispatcher
 import co2mpas.utils as co2_utl
-
-
-from .thermal import *
-from ..defaults import *
 
 
 def get_full_load(fuel_type):
