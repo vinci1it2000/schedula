@@ -27,7 +27,7 @@ Modules:
 import datetime
 import logging
 import pathlib
-import re
+import regex
 import pandas as pd
 from pip.operations.freeze import freeze
 from .schema import define_data_schema
@@ -40,9 +40,11 @@ from .excel import write_to_excel, parse_excel_file, _sheet_name, \
     _re_params_name
 from .schema import validate_data, validate_plan
 from functools import partial
+from itertools import product, zip_longest
 from pandalone.xleash import lasso
 from pandalone.xleash._parse import parse_xlref
 from collections import OrderedDict
+from cachetools import cached
 log = logging.getLogger(__name__)
 
 
@@ -70,6 +72,7 @@ def check_cache_fpath_exists(overwrite_cache, fpath, cache_fpath):
     return False
 
 
+# noinspection PyUnusedLocal
 def check_file_format(fpath, *args, extensions=('.xlsx',)):
     return fpath.lower().endswith(extensions)
 
@@ -89,20 +92,48 @@ def convert2df(report, start_time, main_flags, data_descriptions, write_schema):
     return res
 
 
+def _make_summarydf(
+        nested_dict, index=None, depth=0, add_units=True,
+        parts=()):
+    df = _dd2df(nested_dict, index=index, depth=depth)
+    p = _param_orders()
+    p = dsp_utl.selector(parts + ('param',), p, output_type='list')
+    gen = partial(zip_longest, p[:-1], fillvalue=p[-1])
+    c = sorted(df.columns, key=lambda x: [_match_part(m, v) for m, v in gen(x)])
+    df = df.reindex_axis(c, axis=1, copy=False)
+    if add_units:
+        c = _add_units(c)
+    df.columns = pd.MultiIndex.from_tuples(c)
+    return df
+
+
+def _rm_sub_parts(parts):
+    try:
+        p = parts[0]
+    except IndexError:
+        return ()
+    r = '%s_' % p
+    return (p,) + _rm_sub_parts(tuple(v.replace(r, '') for v in parts[1:]))
+
+
 def _summary2df(data):
     res = []
     summary = data.get('summary', {})
 
-    for w in ('co2_values', 'fuel_consumption_values'):
-        if w in summary:
-            r = []
-            for k, v in co2_utl.stack_nested_keys(summary[w], depth=3):
-                v = dsp_utl.map_list([{}, 'cycle', 'stage', 'usage'], v, *k)
-                r.append(v)
-            df = pd.DataFrame(r)
-            df.set_index(['cycle', 'stage', 'usage'], inplace=True)
-            setattr(df, 'name', w)
-            res.append(df)
+    if 'results' in summary:
+        r = {}
+        fun = partial(dsp_utl.map_list, [{}, 'cycle', 'stage', 'usage'])
+        for n, m in summary['results'].items():
+            gen = ((fun(v, *k),)
+                   for k, v in co2_utl.stack_nested_keys(m, depth=3))
+            v = [v[0] for v in _yield_sorted_params(gen)]
+            co2_utl.get_nested_dicts(r, n, default=co2_utl.ret_v(v))
+
+        df = _make_summarydf(r, index=['cycle', 'stage', 'usage'], depth=1)
+        c = list(map(_rm_sub_parts, df.columns))
+        df.columns = pd.MultiIndex.from_tuples(c)
+        setattr(df, 'name', 'results')
+        res.append(df)
 
     if 'selection' in summary:
         df = pd.DataFrame(summary['selection'])
@@ -232,96 +263,6 @@ def _scores2df(data):
     return {'.'.join(n): (df, edf)}
 
 
-def _get_selection_raw(model_id, data):
-    d = {
-        'from': None,
-        'passed': None,
-        'selected_models': None,
-        'model_id': model_id
-    }
-    d.update(data)
-    return d
-
-
-def _get_scores_raw(idx, data):
-    d = {
-        'score': None,
-        'n': None,
-        'success': None,
-        'models': data.get('models', None)
-    }
-    d.update(data.get('score', {}))
-    d.update(idx)
-    return d
-
-
-def _extend_errors_raws(res, model_id, data, cycles):
-    for i in cycles:
-        r = res[i] = res.get(i, [])
-        errors = data.get('errors', {}).get(i, {})
-        limits = data.get('limits', {}).get(i, {})
-        for k, v in errors.items():
-
-            d = {
-                'up_limit': limits.get('up_limit', {}).get(k, None),
-                'dn_limit': limits.get('dn_limit', {}).get(k, None),
-                'score': v,
-                'param_id': k,
-                'model_id': model_id
-            }
-
-            r.append(d)
-
-    return res
-
-
-def _param_orders():
-    _map = {
-        'co2_emission UDC': 'co2_emission 1',
-        'co2_emission EUDC': 'co2_emission 2',
-        'co2_emission low': 'co2_emission 1',
-        'co2_emission medium': 'co2_emission 2',
-        'co2_emission high': 'co2_emission 3',
-        'co2_emission extra_high': 'co2_emission 4',
-        'co2_emission_value': 'co2_emission 5',
-        'fuel_consumption UDC': 'fuel_consumption 1',
-        'fuel_consumption EUDC': 'fuel_consumption 2',
-        'fuel_consumption low': 'fuel_consumption 1',
-        'fuel_consumption medium': 'fuel_consumption 2',
-        'fuel_consumption high': 'fuel_consumption 3',
-        'fuel_consumption extra_high': 'fuel_consumption 4',
-        'plan target': '1',
-        'target': '2',
-        'plan prediction': '3',
-        'prediction': '4',
-        'plan calibration': '5',
-        'calibration': '6',
-        'av_velocities': 'willans 01',
-        'distance': 'willans 02',
-        'init_temp': 'willans 03',
-        'av_temp': 'willans 04',
-        'end_temp': 'willans 05',
-        'av_vel_pos_mov_pow': 'willans 06',
-        'av_pos_motive_powers': 'willans 07',
-        'sec_pos_mov_pow': 'willans 08',
-        'av_neg_motive_powers': 'willans 09',
-        'sec_neg_mov_pow': 'willans 10',
-        'av_pos_accelerations': 'willans 11',
-        'av_engine_speeds_out_pos_pow': 'willans 12',
-        'av_pos_engine_powers_out': 'willans 13',
-        'engine_bmep_pos_pow': 'willans 14',
-        'mean_piston_speed_pos_pow': 'willans 15',
-        'fuel_mep_pos_pow': 'willans 16',
-        'fuel_consumption_pos_pow': 'willans 17',
-        'willans_a': 'willans 18',
-        'willans_b': 'willans 19',
-        'specific_fuel_consumption': 'willans 20',
-        'indicated_efficiency': 'willans 21',
-        'willans_efficiency': 'willans 22',
-    }
-    return _map
-
-
 def _parse_name(name, _standard_names=None):
     """
     Parses a column/row name.
@@ -345,9 +286,11 @@ def _parse_name(name, _standard_names=None):
 
 def _parameters2df(data, data_descriptions, write_schema):
     df = []
-    for s, k, v in sorted((_param_score(k), k, v) for k, v in data.items()):
+    validate = write_schema.validate
+    gen = ((_param_parts(k), k, v) for k, v in data.items())
+    for s, k, v in _yield_sorted_params(gen):
         try:
-            param_id, v = next(iter(write_schema.validate({s[1]: v}).items()))
+            param_id, v = next(iter(validate({s['param']: v}).items()))
             if v is not dsp_utl.NONE:
                 df.append({
                     'Parameter': _parse_name(param_id, data_descriptions),
@@ -365,21 +308,136 @@ def _parameters2df(data, data_descriptions, write_schema):
         return None
 
 
-def _param_score(param_id):
-    match = _re_params_name.match(param_id)
-    match = {i: (j or '').lower() for i, j in match.groupdict().items()}
-    keys = ('scope', 'param', 'cycle', 'usage', 'stage')
-    return dsp_utl.selector(keys, match, output_type='list')
+@cached({})
+def _param_orders():
+    x = ('co2_emission', 'fuel_consumption')
+    y = ('low', 'medium', 'high', 'extra_high', 'UDC', 'EUDC', 'value')
+    param = tuple(map('_'.join, product(x, y))) + ('status',)
+
+    param += (
+        'av_velocities', 'distance', 'init_temp', 'av_temp', 'end_temp',
+        'av_vel_pos_mov_pow', 'av_pos_motive_powers',
+        'av_missing_powers_pos_pow', 'sec_pos_mov_pow', 'av_neg_motive_powers',
+        'sec_neg_mov_pow', 'av_pos_accelerations',
+        'av_engine_speeds_out_pos_pow', 'av_pos_engine_powers_out',
+        'engine_bmep_pos_pow', 'mean_piston_speed_pos_pow', 'fuel_mep_pos_pow',
+        'fuel_consumption_pos_pow', 'willans_a', 'willans_b',
+        'specific_fuel_consumption', 'indicated_efficiency',
+        'willans_efficiency')
+
+    _map = {
+        'scope': ('plan', 'base'),
+        'usage': ('target', 'input', 'output', 'data'),
+        'stage': ('precondition', 'calibration', 'prediction'),
+        'cycle': ('all', 'nedc', 'wltp_h', 'wltp_l', 'wltp_p'),
+        'type': ('pa', 'ts', 'pl'),
+        'param': param
+    }
+    _map = {k: {j: str(i).zfill(3) for i, j in enumerate(v)}
+            for k, v in _map.items()}
+
+    return _map
+
+
+@cached({})
+def _param_units():
+    units = ((k, _re_units.search(v)) for k, v in get_doc_description().items())
+    units = {k: v.group() for k, v in units if v}
+    units.update({
+        'co2_params a': '[-]',
+        'co2_params b': '[s/m]',
+        'co2_params c': '[(s/m)^2]',
+        'co2_params a2': '[1/bar]',
+        'co2_params b2': '[s/(bar*m)]',
+        'co2_params l': '[bar]',
+        'co2_params l2': '[bar*(s/m)^2]',
+        'co2_params t': '[-]',
+        'co2_params trg': '[°C]',
+        'fuel_consumption': '[l/100km]',
+        'co2_emission': '[CO2g/km]',
+        'av_velocities': '[kw/h]',
+        'av_vel_pos_mov_pow': '[kw/h]',
+        'av_pos_motive_powers': '[kW]',
+        'av_neg_motive_powers': '[kW]',
+        'distance': '[km]',
+        'init_temp': '[°C]',
+        'av_temp': '[°C]',
+        'end_temp': '[°C]',
+        'sec_pos_mov_pow': '[s]',
+        'sec_neg_mov_pow': '[s]',
+        'av_pos_accelerations': '[m/s2]',
+        'av_engine_speeds_out_pos_pow': '[RPM]',
+        'av_pos_engine_powers_out': '[kW]',
+        'engine_bmep_pos_pow': '[bar]',
+        'mean_piston_speed_pos_pow': '[m/s]',
+        'fuel_mep_pos_pow': '[bar]',
+        'fuel_consumption_pos_pow': '[g/sec]',
+        'willans_a': '[g/kW]',
+        'willans_b': '[g]',
+        'specific_fuel_consumption': '[g/kWh]',
+        'indicated_efficiency': '[-]',
+        'willans_efficiency': '[-]',
+    })
+
+    return units
+
+
+def _match_part(map, *parts, default=None):
+    part = parts[-1]
+    try:
+        return map[part],
+    except KeyError:
+        for k, v in sorted(map.items(), key=lambda x: x[1]):
+            if k in part:
+                return v, part
+        part = part if default is None else default
+        if len(parts) <= 1:
+            return part,
+        return _match_part(map, *parts[:-1], default=part)
+
+
+def _add_units(gen, map=None, default=' '):
+    map = map if map is not None else _param_units()
+    return [v + (_match_part(map, *v, default=default)[0],) for v in gen]
+
+
+def _param_scores(
+        parts, score_map=None,
+        keys=('scope', 'param', 'cycle', 'usage', 'stage', 'type')):
+    score_map = score_map or _param_orders()
+    return tuple(_match_part(score_map[k], parts[k]) if k in parts else ''
+                 for k in keys)
+
+
+def _param_parts(param_id):
+    match = _re_params_name.match(param_id).groupdict().items()
+    return {i: regex.sub("[\W]", "_", (j or '').lower()) for i, j in match}
+
+
+def _yield_sorted_params(
+        gen, score_map=None,
+        keys=('scope', 'param', 'cycle', 'usage', 'stage', 'type')):
+    score_map = score_map or _param_orders()
+    return sorted(gen, key=lambda x: _param_scores(x[0], score_map, keys))
 
 
 def _time_series2df(data, data_descriptions):
     df = OrderedDict()
-    for s, k, v in sorted((_param_score(k), k, v) for k, v in data.items()):
-        df[(_parse_name(s[1], data_descriptions), k)] = v
+    gen = ((_param_parts(k), k, v) for k, v in data.items())
+    for s, k, v in _yield_sorted_params(gen):
+        df[(_parse_name(s['param'], data_descriptions), k)] = v
     return pd.DataFrame(df)
 
 
 def _dd2df(dd, index=None, depth=0):
+    """
+
+    :param dd:
+    :param index:
+    :param depth:
+    :return:
+    :rtype: pandas.DataFrame
+    """
     frames = []
     for k, v in co2_utl.stack_nested_keys(dd, depth=depth):
         df = pd.DataFrame(v)
@@ -416,9 +474,10 @@ def check_data_version(data):
     return data
 
 
-_re_units = re.compile('(\[.*\])')
+_re_units = regex.compile('(\[.*\])')
 
 
+@cached({})
 def get_doc_description():
     from ..model.physical import physical
     from co2mpas.dispatcher.utils import search_node_description

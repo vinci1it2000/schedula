@@ -12,7 +12,6 @@ from datetime import datetime
 import logging
 import os.path as osp
 import re
-import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from functools import partial
@@ -156,6 +155,7 @@ def _process_vehicle(
     return res
 
 
+# noinspection PyUnusedLocal
 def plot_model_workflow(
         model, force=False, plot_workflow=False, output_file_name=None,
         vehicle_name='', **kw):
@@ -217,61 +217,9 @@ def _get_contain(d, *keys, default=None):
 def _save_summary(fpath, start_time, summary):
     if summary:
         from co2mpas.io.excel import _df2excel
-        from co2mpas.io import _dd2df, _param_orders, _co2mpas_info2df
-        summary = _dd2df(summary, 'vehicle_name', depth=3)
-
-        _p_map = _param_orders()
-
-        def _sort(x):
-            x = list(x)
-            x[-1] = _get_contain(_p_map, x[-1], default=x[-1])
-            x[-2] = _get_contain(_p_map, x[-2], default=x[-2])
-            return x
-
-        c = sorted(summary.columns, key=_sort)
-
-        summary = summary.reindex_axis(c, axis=1, copy=False)
-
-        units = {
-            'co2_params a': '[-]',
-            'co2_params b': '[s/m]',
-            'co2_params c': '[(s/m)^2]',
-            'co2_params a2': '[1/bar]',
-            'co2_params b2': '[s/(bar*m)]',
-            'co2_params l': '[bar]',
-            'co2_params l2': '[bar*(s/m)^2]',
-            'co2_params t': '[-]',
-            'co2_params trg': '[°C]',
-            'fuel_consumption': '[l/100km]',
-            'co2_emission': '[CO2g/km]',
-            'co2_emission_value': '[CO2g/km]',
-            'av_velocities': '[kw/h]',
-            'av_vel_pos_mov_pow': '[kw/h]',
-            'av_pos_motive_powers': '[kW]',
-            'av_neg_motive_powers': '[kW]',
-            'distance': '[km]',
-            'init_temp': '[°C]',
-            'av_temp': '[°C]',
-            'end_temp': '[°C]',
-            'sec_pos_mov_pow': '[s]',
-            'sec_neg_mov_pow': '[s]',
-            'av_pos_accelerations': '[m/s2]',
-            'av_engine_speeds_out_pos_pow': '[RPM]',
-            'av_pos_engine_powers_out': '[kW]',
-            'engine_bmep_pos_pow': '[bar]',
-            'mean_piston_speed_pos_pow': '[m/s]',
-            'fuel_mep_pos_pow': '[bar]',
-            'fuel_consumption_pos_pow': '[g/sec]',
-            'willans_a': '[g/kW]',
-            'willans_b': '[g]',
-            'specific_fuel_consumption': '[g/kWh]',
-            'indicated_efficiency': '[-]',
-            'willans_efficiency': '[-]',
-        }
-
-        c = [v + (_get_contain(units, *v, default=' '),) for v in c]
-
-        summary.columns = pd.MultiIndex.from_tuples(c)
+        from co2mpas.io import _make_summarydf, _co2mpas_info2df
+        summary = _make_summarydf(summary, index='vehicle_name', depth=3,
+                                  parts=('cycle', 'stage', 'usage'))
 
         writer = pd.ExcelWriter(fpath, engine='xlsxwriter')
 

@@ -11,7 +11,7 @@ It contains reporting functions for output results.
 
 from co2mpas.dispatcher import Dispatcher
 from copy import deepcopy
-from collections import Iterable, OrderedDict
+from collections import OrderedDict
 import numpy as np
 from sklearn.metrics import mean_absolute_error, accuracy_score
 import co2mpas.dispatcher.utils as dsp_utl
@@ -234,12 +234,13 @@ def _extract_summary_from_output(report, extracted):
 
 
 def _extract_summary_from_summary(report, extracted):
-    for w in ('co2_values', 'fuel_consumption_values'):
-        if co2_utl.are_in_nested_dicts(report, 'summary', w):
-            w = co2_utl.get_nested_dicts(report, 'summary', w)
-            for k, v in co2_utl.stack_nested_keys(w, depth=3):
-                if v:
-                    co2_utl.get_nested_dicts(extracted, *k).update(v)
+    n = ('summary', 'results')
+    if co2_utl.are_in_nested_dicts(report, *n):
+        for j, w in co2_utl.get_nested_dicts(report, *n).items():
+            if j in ('co2_emission', 'fuel_consumption'):
+                for k, v in co2_utl.stack_nested_keys(w, depth=3):
+                    if v:
+                        co2_utl.get_nested_dicts(extracted, *k).update(v)
 
 
 def _extract_summary_from_model_scores(report, extracted):
@@ -421,27 +422,48 @@ def get_selection(data):
     return res
 
 
-def get_co2_values(data, what='co2_emission'):
-    keys = ('input', 'target', 'output')
-    data = dsp_utl.selector(keys, data, allow_miss=True)
-
+def get_phases_values(data, what='co2_emission', base=None):
     p_wltp, p_nedc = ('low', 'medium', 'high', 'extra_high'), ('UDC', 'EUDC')
     keys = tuple('_'.join((what, v)) for v in (p_wltp + p_nedc + ('value',)))
     keys += ('phases_%ss' % what,)
-    res = {}
-    for k, v in co2_utl.stack_nested_keys(data, depth=3):
-        k = k[::-1]
-        v = dsp_utl.selector(keys, v, allow_miss=True)
+
+    def update(k, v):
         if keys[-1] in v:
             o = v.pop(keys[-1])
             _map = p_nedc if k[0] == 'nedc' else p_wltp
             if len(_map) != len(o):
-                gen, text = enumerate(o), '{}_phase %d'
+                v.update(_format_dict(enumerate(o), '{} phase %d'.format(what)))
             else:
-                gen, text = zip(_map, o), '{}_%s'
-            v.update(_format_dict(gen, text.format(what)))
+                v.update(_format_dict(zip(_map, o), '{}_%s'.format(what)))
+        return v
+
+    return get_values(data, keys, tag=(what,), update=update, base=base)
+
+
+def get_values(data, keys, tag=(), update=lambda k, v: v, base=None):
+    k = ('input', 'target', 'output')
+    data = dsp_utl.selector(k, data, allow_miss=True)
+
+    base = {} if base is None else base
+    for k, v in co2_utl.stack_nested_keys(data, depth=3):
+        k = k[::-1]
+        v = dsp_utl.selector(keys, v, allow_miss=True)
+        v = update(k, v)
+
         if v:
-            co2_utl.get_nested_dicts(res, *k, default=co2_utl.ret_v(v))
+            k = tag + k
+            co2_utl.get_nested_dicts(base, *k, default=co2_utl.ret_v(v))
+
+    return base
+
+
+def get_summary_results(data):
+    res = {}
+    for k in ('co2_emission', 'fuel_consumption'):
+        get_phases_values(data, what=k, base=res)
+    keys = ('f0', 'f1', 'f2', 'vehicle_mass', 'gear_box_type', 'has_start_stop',
+            'r_dynamic')
+    get_values(data, keys, tag=('vehicle',), base=res)
 
     return res
 
@@ -460,13 +482,9 @@ def format_report_summary(data):
     if selection:
         summary['selection'] = selection
 
-    co2_values = get_co2_values(data)
-    if selection:
-        summary['co2_values'] = co2_values
-
-    fc_values = get_co2_values(data, what='fuel_consumption')
-    if selection:
-        summary['fuel_consumption_values'] = fc_values
+    results = get_summary_results(data)
+    if results:
+        summary['results'] = results
 
     return summary
 
