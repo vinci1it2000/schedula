@@ -195,7 +195,7 @@ def nedc_time_length(frequency):
     :rtype: numpy.array
     """
 
-    return dfl.functions.nedc_time_length.TIME * frequency
+    return dfl.functions.nedc_time_length.TIME * frequency + 1
 
 
 def _repeat_part_one(times, values):

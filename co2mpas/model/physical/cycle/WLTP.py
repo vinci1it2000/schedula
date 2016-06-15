@@ -34,7 +34,7 @@ def wltp_time_length(frequency):
         Time vector [s].
     :rtype: numpy.array
     """
-    return dfl.functions.wltp_time_length.TIME * frequency
+    return dfl.functions.wltp_time_length.TIME * frequency + 1
 
 
 def calculate_unladen_mass(vehicle_mass, driver_mass):
