@@ -229,9 +229,6 @@ def _cycle2df(data, data_descriptions, write_schema):
     res = {}
     out = data.get('output', {})
     for k, v in co2_utl.stack_nested_keys(out, key=('output',), depth=3):
-        if not v:
-            continue
-
         n, k = _sheet_name(k), k[-1]
         if 'ts' == k:
             df = _time_series2df(v, data_descriptions)
@@ -432,9 +429,6 @@ def _time_series2df(data, data_descriptions):
 def _dd2df(dd, index=None, depth=0):
     """
 
-    :param dd:
-    :param index:
-    :param depth:
     :return:
     :rtype: pandas.DataFrame
     """

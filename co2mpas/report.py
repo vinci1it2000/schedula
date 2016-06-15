@@ -315,7 +315,7 @@ def re_sample_targets(data):
         if co2_utl.are_in_nested_dicts(data, 'output', *k):
             o = co2_utl.get_nested_dicts(data, 'output', *k)
             o = _split_by_data_format(o)
-            t = dsp_utl.selector(o, _split_by_data_format(v))
+            t = dsp_utl.selector(o, _split_by_data_format(v), allow_miss=True)
 
             if 'times' not in t.get('ts', {}) or 'times' not in o['ts']:
                 t.pop('ts', None)

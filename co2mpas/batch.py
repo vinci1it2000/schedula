@@ -42,13 +42,13 @@ def parse_dsp_model(model):
     for k, v in model.data_output.items():
         co2_utl.get_nested_dicts(res, *k.split('.'), default=co2_utl.ret_v(v))
 
-    for k, v in co2_utl.stack_nested_keys(res, depth=3):
+    for k, v in list(co2_utl.stack_nested_keys(res, depth=3)):
         n, k = k[:-1], k[-1]
         if n == ('output', 'calibration') and k in ('wltp_l', 'wltp_h'):
             v = dsp_utl.selector(('co2_emission_value',), v, allow_miss=True)
             if v:
                 d = co2_utl.get_nested_dicts(res, 'target', 'prediction')
-                d[k] = dsp_utl.combine_dicts(v, d[k])
+                d[k] = dsp_utl.combine_dicts(v, d.get(k, {}))
 
     res['pipe'] = model.pipe
 
