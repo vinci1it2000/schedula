@@ -87,7 +87,7 @@ from boltons.setutils import IndexedSet
 import docopt
 from numpy.fft import fft, ifft, fftshift
 from pandalone import xleash
-import co2mpas.dispatcher.utils as dsp_utl
+from scipy.integrate import cumtrapz
 import functools as fnt
 import numpy as np
 import os.path as osp
@@ -188,23 +188,20 @@ def re_sampling(x, xp, fp):
     :rtype: np.array
     """
 
-    xp, fp, x = np.asarray(xp), np.asarray(fp), np.asarray(x)
-    y = np.zeros_like(x)
-    f = fnt.partial(np.interp, xp=xp, fp=fp)
-    y0 = y[0] = f(x[0])
-    for k, (x0, x1) in enumerate(dsp_utl.pairwise(x), start=1):
-        b = (x0 < xp) & (xp < x1)
-        if b.any():
-            n = sum(b) + 2
-            X, Y = np.zeros(n), np.zeros(n)
-            X[0], X[1:-1], X[-1] = x0, xp[b], x1,
-            Y[0], Y[1:-1], Y[-1] = f(x0), fp[b], f(x1)
-            dI = np.trapz(Y, X) / (x1 - x0)
-        else:
-            dI = f((x0 + x1) / 2)
-        y0 = y[k] = 2 * dI - y0
+    x, fp = np.asarray(x, dtype=float), np.asarray(fp, dtype=float)
+    xp, y = np.asarray(xp, dtype=float), np.zeros_like(x)
+    n = len(x)
+    X, dx = np.zeros(n + 1), np.zeros(n + 1)
+    dx[1:-1] = np.diff(x)
+    X[0], X[1:-1], X[-1] = x[0], x[:-1] + dx[1:-1] / 2, x[-1]
+    I = np.diff(np.interp(X, xp, cumtrapz(fp, xp, initial=0)))
 
-    return y
+    dx /= 8.0
+    A = np.diag((dx[:-1] + dx[1:]) * 3.0)
+    i, j = np.indices(A.shape)
+    A[i == j - 1] = A[i - 1 == j] = dx[1:-1]
+
+    return np.linalg.solve(A, I)
 
 
 def synchronize(headers, tables, x_label, y_label, prefix_cols):
