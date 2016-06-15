@@ -117,14 +117,14 @@ def make_simulation_plan(plan, timestamp, output_folder, main_flags):
 def filter_summary(changes, summary):
     l, variations = [], {}
     for k, v in changes.items():
-        k = tuple(k.split('.')[:0:-1])
-        l.append(k)
-        k = k[0], 'plan %s' % k[1]
+        k = tuple(k.split('.')[::-1])
+        l.append(k[:-1])
+        k = k[:-1] + ('plan.%s' % k[-1],)
         co2_utl.get_nested_dicts(variations, *k).update(v)
 
     s = {}
     d = ('delta', 'co2_emission')
-    if ('nedc', 'prediction') in l:
+    if ('nedc', 'prediction', 'output') in l:
         l.append(('delta', 'co2_emission'))
     else:
         delta = summary.get('delta', {}).get('co2_emission', {})
@@ -138,8 +138,8 @@ def filter_summary(changes, summary):
                 d = co2_utl.get_nested_dicts(s, *d)
                 d.update(dsp_utl.selector(keys, delta))
 
-    for k, v in co2_utl.stack_nested_keys(summary, depth=2):
-        if k in l:
-            co2_utl.get_nested_dicts(s, *k[:-1])[k[-1]] = v
+    for k, v in co2_utl.stack_nested_keys(summary, depth=3):
+        if k[:-1] in l:
+            co2_utl.get_nested_dicts(s, *k, default=co2_utl.ret_v(v))
 
-    return co2_utl.combine_nested_dicts(s, variations, depth=2)
+    return co2_utl.combine_nested_dicts(s, variations, depth=3)

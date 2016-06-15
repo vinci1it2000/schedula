@@ -193,7 +193,7 @@ def re_sampling(x, xp, fp):
     n = len(x)
     X, dx = np.zeros(n + 1), np.zeros(n + 1)
     dx[1:-1] = np.diff(x)
-    X[0], X[1:-1], X[-1] = x[0], x[:-1] + dx[1:-1] / 2, x[-1]
+
     I = np.diff(np.interp(X, xp, cumtrapz(fp, xp, initial=0)))
 
     dx /= 8.0
