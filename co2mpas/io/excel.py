@@ -218,7 +218,9 @@ def _parse_plan_data(
     plan = pd.DataFrame()
 
     for k, v in parse_values(data, match, re_params_name):
-        plan['.'.join(k[1:])] = v
+        k = k[-1] if k[-1] in ('base', 'defaults') else '.'.join(k[1:])
+        plan[k] = v
+
     plans.append(plan)
 
 
