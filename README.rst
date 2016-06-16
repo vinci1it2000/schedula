@@ -618,22 +618,19 @@ you have installed CO2MPAS (see :ref:`install` above) and type::
 
 
     USAGE:
-      co2mpas batch       [-v | --logconf=<conf-file>] [--gui]
-                          [--overwrite-cache]
-                          [--out-template=<xlsx-file> | --charts]
-                          [--plot-workflow]  [-O=<output-folder>]
-                          [--only-summary]  [--soft-validation]
+      co2mpas batch       [-v | --logconf=<conf-file>] [--gui] [-f]
+                          [--overwrite-cache] [--out-template=<xlsx-file>]
+                          [--plot-workflow] [-O=<output-folder>]
+                          [--only-summary] [--soft-validation]
                           [<input-path>]...
-      co2mpas demo        [-v | --logconf=<conf-file>] [--gui]
-                          [-f] [<output-folder>]
-      co2mpas template    [-v | --logconf=<conf-file>] [--gui] [-f] [<excel-file-path> ...]
-      co2mpas ipynb       [-v | --logconf=<conf-file>] [--gui] [-f] [<output-folder>]
+      co2mpas demo        [-v | --logconf=<conf-file>] [--gui] [-f]
+                          [<output-folder>]
+      co2mpas template    [-v | --logconf=<conf-file>] [--gui] [-f]
+                          [<excel-file-path> ...]
+      co2mpas ipynb       [-v | --logconf=<conf-file>] [--gui] [-f]
+                          [<output-folder>]
       co2mpas modelgraph  [-v | --logconf=<conf-file>] [-O=<output-folder>]
                           (--list | [--graph-depth=<levels>] [<models> ...])
-      co2mpas sa          [-v | --logconf=<conf-file>] [-f] [-O=<output-folder>]
-                          [--soft-validation] [--only-summary] [--overwrite-cache]
-                          [--out-template=<xlsx-file> | --charts]
-                          [<input-path>] [<input-params>] [<defaults>]...
       co2mpas             [--verbose | -v]  (--version | -V)
       co2mpas             --help
 
@@ -644,22 +641,23 @@ you have installed CO2MPAS (see :ref:`install` above) and type::
 
 
     OPTIONS:
-      <input-path>                Input xlsx-file or folder. Assumes current-dir if missing.
+      <input-path>                Input xlsx-file or folder. Assumes current-dir if
+                                  missing.
       -O=<output-folder>          Output folder or file [default: .].
       --gui                       Launches GUI dialog-boxes to choose Input, Output
                                   and Options. [default: False].
-      --only-summary              Do not save vehicle outputs, just the summary file.
+      --only-summary              Do not save vehicle outputs, just the summary.
       --overwrite-cache           Overwrite the cached file.
-      --charts                    Add basic charts to output file.
       --soft-validation           Validate only partially input-data (no schema).
-      --out-template=<xlsx-file>  Clone the given excel-file and appends model-results into it.
-                                  By default, results are appended into an empty excel-file.
-                                  Use `--out-template=-` to use input excel-files as templates.
+      --out-template=<xlsx-file>  Clone the given excel-file and appends results
+                                  into it. By default, results are appended into an
+                                  empty excel-file. Use `--out-template=-` to use
+                                  input excel-files as templates.
       --plot-workflow             Open workflow-plot in browser, after run finished.
       -l, --list                  List available models.
-      --graph-depth=<levels>      An integer to Limit the levels of sub-models plotted
-                                  (no limit by default).
-      -f, --force                 Overwrite template/demo excel-file(s).
+      --graph-depth=<levels>      An integer to Limit the levels of sub-models
+                                  plotted (no limit by default).
+      -f, --force                 Overwrite output/template/demo excel-file(s).
 
     Miscellaneous:
       -h, --help                  Show this help message and exit.
@@ -682,7 +680,6 @@ you have installed CO2MPAS (see :ref:`install` above) and type::
         ipynb                   Generate IPython notebooks inside <output-folder>; view them with cmd:
                                   jupyter --notebook-dir=<output-folder>
         modelgraph              List or plot available models. If no model(s) specified, all assumed.
-        sa                      (undocumented - subject to change)
 
 
     EXAMPLES::
@@ -697,7 +694,7 @@ you have installed CO2MPAS (see :ref:`install` above) and type::
         co2mpas  batch  --gui  input
 
         # or specify them with output-charts and workflow plots:
-        co2mpas  batch  input  -O output  --charts  --plot-workflow
+        co2mpas  batch  input  -O output  --plot-workflow
 
         # Create an empty vehicle-file inside `input` folder:
         co2mpas  template  input/vehicle_1.xlsx
@@ -707,8 +704,6 @@ you have installed CO2MPAS (see :ref:`install` above) and type::
 
         # View full version specs:
         co2mpas -vV
-
-
 
 
 The default sub-command (``batch``) accepts either a single **input-excel-file**
