@@ -167,6 +167,12 @@ def _yield_synched_tables(ref, *data, x_label='times', y_label='velocities'):
         yield shift, ref.__class__(OrderedDict(r))
 
 
+def _cum_integral(x, xp, fp):
+    X = np.unique(np.concatenate((x, xp)))
+    Y = np.interp(X, xp, fp, left=0.0, right=0.0)
+    return cumtrapz(Y, X, initial=0)[np.searchsorted(X, x)]
+
+
 def re_sampling(x, xp, fp):
     """
     Re-samples data maintaining the signal integral.
@@ -189,12 +195,12 @@ def re_sampling(x, xp, fp):
     """
 
     x, fp = np.asarray(x, dtype=float), np.asarray(fp, dtype=float)
-    xp, y = np.asarray(xp, dtype=float), np.zeros_like(x)
+    xp = np.asarray(xp, dtype=float)
     n = len(x)
     X, dx = np.zeros(n + 1), np.zeros(n + 1)
     dx[1:-1] = np.diff(x)
-
-    I = np.diff(np.interp(X, xp, cumtrapz(fp, xp, initial=0)))
+    X[0], X[1:-1], X[-1] = x[0], x[:-1] + dx[1:-1] / 2, x[-1]
+    I = np.diff(_cum_integral(X, xp, fp))
 
     dx /= 8.0
     A = np.diag((dx[:-1] + dx[1:]) * 3.0)
