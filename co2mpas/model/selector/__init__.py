@@ -549,8 +549,7 @@ def _selector(name, data_in, data_out, setting):
         description='Select the calibrated %s.' % name,
     )
 
-    errors = []
-
+    errors, setting = [], setting or {}
     _sort_models = setting.pop('sort_models', sort_models)
 
     if 'weights' in setting:
