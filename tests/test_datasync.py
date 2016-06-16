@@ -82,7 +82,7 @@ class TTables(unittest.TestCase):
         self.assertEquals(len(tables.headers), len(exp_xlrefs))
         for d, xlref, in zip(tables.tables, exp_xlrefs):
             df = xleash.lasso('%s:"df"'%xlref, sheets_factory=_shfact)
-            npt.assert_array_equal(d, df.values, xlref)
+            npt.assert_array_almost_equal(d, df.values, err_msg=xlref)
 
 
 _synced_values = """
@@ -110,7 +110,7 @@ def _read_synced(fpath, sheet):
 def _check_synced(tc, fpath, sheet, prefix_columns=False):
     exp_df = _read_expected(prefix_columns)
     synced_df = _read_synced(fpath, sheet)
-    npt.assert_array_equal(exp_df, synced_df, 'VALUES mismatch!')
+    npt.assert_array_almost_equal(exp_df, synced_df, err_msg='VALUES mismatch!')
     npt.assert_array_equal(exp_df.columns, synced_df.columns, 'COLUMNS mismatch!')
     npt.assert_array_equal(exp_df.index, synced_df.index, 'INDEX mismatch!')
 
