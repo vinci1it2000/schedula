@@ -6,7 +6,8 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 from co2mpas.__main__ import init_logging, file_finder
-from co2mpas.batch import stack_nested_keys, vehicle_processing_model
+from co2mpas.batch import vehicle_processing_model
+import co2mpas.utils as co2_utl
 import co2mpas.dispatcher.utils as dsp_utl
 import os
 import os.path as osp
@@ -128,7 +129,7 @@ class SeatBelt(unittest.TestCase):
             r = model.dispatch(inputs=inputs, outputs=['report', 'summary'])
             r = dsp_utl.selector(['report', 'summary'], r)
             r.get('report', {}).pop('pipe', None)
-            results.append(sorted(stack_nested_keys(r), key=lambda x: x[0]))
+            results.append(sorted(co2_utl.stack_nested_keys(r)))
 
         if not OVERWRITE_SEATBELT and osp.isfile(res_file):
             log.info('Comparing...')

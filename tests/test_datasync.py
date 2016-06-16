@@ -195,7 +195,7 @@ class HighSync(unittest.TestCase):
             ('bad_x', 'bad_y'),
             )
     def test_bad_columns(self, case):
-        from . import _tutils as tutils # XXX import chaos if outside!
+        from tests import _tutils as tutils # XXX import chaos if outside!
         x, y = case
         with tempfile.TemporaryDirectory(prefix='co2mpas_%s_'%__name__) as d:
             with tutils.assertRaisesRegex(self, cmain.CmdException, 'not found in rows'):
