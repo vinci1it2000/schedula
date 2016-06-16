@@ -27,6 +27,8 @@ import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 from scipy.optimize import fmin
 from sklearn.metrics import mean_absolute_error
+from sklearn.pipeline import Pipeline
+from sklearn.feature_selection import SelectFromModel
 from sklearn.tree import DecisionTreeClassifier
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher import Dispatcher
@@ -439,18 +441,32 @@ def calibrate_start_stop_model(
     return model
 
 
+class DefaultStartStopModel(object):
+    def predict(self, X):
+        X = np.asarray(X)
+        VEL = dfl.functions.DefaultStartStopModel.stop_velocity
+        ACC = dfl.functions.DefaultStartStopModel.plateau_acceleration
+        return (X[:, 0] < VEL) & (X[:, 1] <= ACC)
+
+
 class StartStopModel(object):
     def __init__(self):
-        self.model = DecisionTreeClassifier(random_state=0, max_depth=5)
-        self.simple = DecisionTreeClassifier(random_state=0, max_depth=3)
+        self.model = DefaultStartStopModel()
 
     def __call__(self, *args, **kwargs):
         return self.predict(*args, **kwargs)
 
     def fit(self, on_engine, velocities, accelerations, *args):
-        X = np.array((velocities, accelerations) + args).T
-        self.simple.fit(X[:, :2], on_engine)
-        self.model.fit(X, on_engine)
+        if on_engine.all():
+            self.model = DefaultStartStopModel()
+        else:
+            X = np.array((velocities, accelerations) + args).T
+            model = DecisionTreeClassifier(random_state=0, max_depth=4)
+            self.model = Pipeline([
+                ('feature_selection', SelectFromModel(model)),
+                ('classification', model)
+            ])
+            self.model.fit(X, on_engine)
         return self
 
     def predict(self, times, *args, start_stop_activation_time=None, gears=None,
@@ -471,7 +487,7 @@ class StartStopModel(object):
 
     def yield_on_start(self, times, *args,
                        start_stop_activation_time=None, gears=None,
-                       correct_start_stop_with_gears=False, simple=None,
+                       correct_start_stop_with_gears=False,
                        min_time_engine_on_after_start=0.0,
                        has_start_stop=True):
         if has_start_stop:
@@ -479,22 +495,17 @@ class StartStopModel(object):
                 times, start_stop_activation_time, gears,
                 correct_start_stop_with_gears
             )
-
-            if simple is None:
-                simple = start_stop_activation_time is not None
             dt = min_time_engine_on_after_start
-            return self._yield_on_start(times, to_predict, *args, simple=simple,
+            return self._yield_on_start(times, to_predict, *args,
                                         min_time_engine_on_after_start=dt)
         else:
             return self._yield_no_start_stop(times)
 
-    def _yield_on_start(self, times, to_predict, *args, simple=False,
+    def _yield_on_start(self, times, to_predict, *args,
                         min_time_engine_on_after_start=0.0):
-        if simple:
-            predict, args = self.simple.predict, args[:2]
-        else:
-            predict = self.model.predict
+
         on, prev, t_switch_on = True, True, times[0]
+        predict = self.model.predict
         for t, p, X in zip(times, to_predict, zip(*args)):
             if not p:
                 on = True

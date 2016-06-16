@@ -88,7 +88,7 @@ class Values(co2_utl.Constants):
     engine_is_turbo = True
 
     #: Start-stop activation time threshold [s].
-    start_stop_activation_time = None
+    start_stop_activation_time = 30
 
     #: Standard deviation of idle engine speed [RPM].
     idle_engine_speed_std = 100.0
@@ -156,6 +156,13 @@ class Functions(co2_utl.Constants):
     class identify_idle_engine_speed_out(co2_utl.Constants):
         #: Bin standard deviation limits [-].
         LIMITS_BIN_STD = (0.01, 0.3)
+
+    class DefaultStartStopModel(co2_utl.Constants):
+        #: Maximum allowed velocity to stop the engine [km/h].
+        stop_velocity = 2.0
+
+        #: Minimum acceleration to switch on the engine [m/s2].
+        plateau_acceleration = 0.05
 
     class correct_constant_velocity(co2_utl.Constants):
         #: Constant velocities to correct the upper limits for NEDC [km/h].
