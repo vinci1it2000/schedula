@@ -55,9 +55,8 @@ def sort_models(*data, weights=None):
             return x[0], x[1], tuple(x[2].values()), x[3]
 
         for k, v in errors.items():
-            l = [list(m.values()) for l, m in sorted(v[1].items()) if m]
-
             if v[0]:
+                l = [list(m.values()) for l, m in sorted(v[1].items()) if m]
                 l = _mean(l) if l else 1
                 keys, m = zip(*v[0].items())
                 e = l, _mean(m, weights=[weights.get(i, 1) for i in keys])
@@ -66,16 +65,15 @@ def sort_models(*data, weights=None):
         scores = list(sorted(scores, key=_sort))
         if scores:
             score = tuple(np.mean([e[0] for e in scores], axis=0))
-        else:
-            score = (1, np.nan)
 
-        models = d['calibrated_models']
+            models = d['calibrated_models']
 
-        if models:
-            score = {
-                'success': score[0] == 1,
-                'n': len(models),
-                'score': score[1]}
+            if models:
+                score = {
+                    'success': score[0] == 1,
+                    'n': len(models),
+                    'score': score[1]
+                }
 
             rank.append([score, scores, errors, d['data_in'], models])
 
