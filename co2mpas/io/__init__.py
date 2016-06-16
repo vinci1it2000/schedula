@@ -320,13 +320,14 @@ def _param_orders():
         'engine_bmep_pos_pow', 'mean_piston_speed_pos_pow', 'fuel_mep_pos_pow',
         'fuel_consumption_pos_pow', 'willans_a', 'willans_b',
         'specific_fuel_consumption', 'indicated_efficiency',
-        'willans_efficiency')
+        'willans_efficiency'
+    )
 
     _map = {
         'scope': ('plan', 'base'),
         'usage': ('target', 'input', 'output', 'data'),
         'stage': ('precondition', 'calibration', 'prediction'),
-        'cycle': ('all', 'nedc', 'wltp_h', 'wltp_l', 'wltp_p'),
+        'cycle': ('delta', 'all', 'nedc', 'wltp_h', 'wltp_l', 'wltp_p'),
         'type': ('pa', 'ts', 'pl'),
         'param': param
     }

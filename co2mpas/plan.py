@@ -114,32 +114,40 @@ def make_simulation_plan(plan, timestamp, output_folder, main_flags):
     return summary
 
 
+def _add_delta2filtered_summary(changes, summary, base=None):
+    ref, cycles = '%sprediction.output', {'nedc', 'wltp_h', 'wltp_l'}
+    value = 'co2_emission_value'
+    base = {} if base is None else base
+
+    def check(cycle):
+        return value in changes.get(ref % cycle, {})
+
+    for c in cycles:
+        if not co2_utl.are_in_nested_dicts(summary, 'delta', c):
+            continue
+        sub_cycles = cycles - {c}
+        if check(c) or all(check(k) for k in sub_cycles):
+            gen = sub_cycles
+        else:
+            gen = (k for k in sub_cycles if check(k))
+        for k in gen:
+            n = 'delta', c, k, value
+            if co2_utl.are_in_nested_dicts(summary, *n):
+                v = co2_utl.get_nested_dicts(summary, *n)
+                co2_utl.get_nested_dicts(base, *n, default=co2_utl.ret_v(v))
+    return base
+
+
 def filter_summary(changes, summary):
-    l, variations = [], {}
+    l, variations = [], _add_delta2filtered_summary(changes, summary)
     for k, v in changes.items():
         k = tuple(k.split('.')[::-1])
         l.append(k[:-1])
         k = k[:-1] + ('plan.%s' % k[-1],)
         co2_utl.get_nested_dicts(variations, *k).update(v)
 
-    s = {}
-    d = ('delta', 'co2_emission')
-    if ('nedc', 'prediction', 'output') in l:
-        l.append(('delta', 'co2_emission'))
-    else:
-        delta = summary.get('delta', {}).get('co2_emission', {})
-
-        if delta:
-            keys = ['nedc_%s_delta' % k
-                    for k in ('wltp_h', 'wltp_l')
-                    if (k, 'prediction') in l]
-            if keys:
-                keys += ['vehicle_name']
-                d = co2_utl.get_nested_dicts(s, *d)
-                d.update(dsp_utl.selector(keys, delta))
-
     for k, v in co2_utl.stack_nested_keys(summary, depth=3):
         if k[:-1] in l:
-            co2_utl.get_nested_dicts(s, *k, default=co2_utl.ret_v(v))
+            co2_utl.get_nested_dicts(variations, *k, default=co2_utl.ret_v(v))
 
-    return co2_utl.combine_nested_dicts(s, variations, depth=3)
+    return variations

@@ -242,6 +242,10 @@ def _extract_summary_from_summary(report, extracted):
                     if v:
                         co2_utl.get_nested_dicts(extracted, *k).update(v)
 
+    n = ('summary', 'delta')
+    if co2_utl.are_in_nested_dicts(report, *n):
+        extracted['delta'] = co2_utl.get_nested_dicts(report, *n)
+
 
 def _extract_summary_from_model_scores(report, extracted):
     n = ('data', 'calibration', 'model_scores', 'selections')
@@ -271,9 +275,6 @@ def extract_summary(report, vehicle_name):
     _extract_summary_from_output(report, extracted)
 
     _extract_summary_from_model_scores(report, extracted)
-
-    if 'delta' in report:
-        co2_utl.combine_nested_dicts({'delta': report['delta']}, base=extracted)
 
     for k, v in co2_utl.stack_nested_keys(extracted, depth=3):
         v['vehicle_name'] = vehicle_name
