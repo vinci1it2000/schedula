@@ -43,6 +43,7 @@ Sub-Modules:
     exc
     gen
     io
+    web
 """
 
 __author__ = 'Vincenzo Arcidiacono'
@@ -78,3 +79,7 @@ __all__ += gen.__all__
 from . import io
 from .io import *
 __all__ += io.__all__
+
+from . import web
+from .web import *
+__all__ += web.__all__
