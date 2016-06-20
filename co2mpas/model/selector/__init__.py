@@ -262,10 +262,10 @@ def sub_models():
         'metrics': [mean_absolute_error],
         'up_limit': [3],
     }
-
+    from ..physical.engine.start_stop import start_stop
     models['start_stop_model'] = {
-        'dsp': engine(),
-        'models': ['start_stop_model'],
+        'dsp': start_stop(),
+        'models': ['start_stop_model', 'use_basic_start_stop'],
         'inputs': ['times', 'velocities', 'accelerations',
                    'engine_coolant_temperatures', 'state_of_charges',
                    'gears', 'correct_start_stop_with_gears',

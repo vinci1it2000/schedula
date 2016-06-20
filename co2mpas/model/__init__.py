@@ -61,7 +61,8 @@ def select_prediction_data(data, new_data=(), theoretical=True):
         'lockup_speed_ratio', 'change_gear_window_width',
         'alternator_start_window_width', 'stop_velocity',
         'min_time_engine_on_after_start', 'min_engine_on_speed',
-        'max_velocity_full_load_correction', 'has_energy_recuperation'
+        'max_velocity_full_load_correction', 'has_energy_recuperation',
+        'is_hybrid'
     ]
 
     if not theoretical:

@@ -38,7 +38,7 @@ def predict_vehicle_electrics_and_engine_behavior(
         times, gear_box_speeds_in, gear_box_powers_in, velocities,
         accelerations, gears, start_stop_activation_time,
         correct_start_stop_with_gears, min_time_engine_on_after_start,
-        has_start_stop):
+        has_start_stop, use_basic_start_stop):
     """
     Predicts alternator and battery currents, state of charge, alternator
     status, if the engine is on and when the engine starts.
@@ -111,6 +111,14 @@ def predict_vehicle_electrics_and_engine_behavior(
         Does the vehicle have start/stop system?
     :type has_start_stop: bool
 
+    :param use_basic_start_stop:
+        If True the basic start stop model is applied, otherwise complex one.
+
+        ..note:: The basic start stop model is function of velocity and
+          acceleration. While, the complex model is function of velocity,
+          acceleration, temperature, and battery state of charge.
+    :type use_basic_start_stop: bool
+
     :return:
         Alternator and battery currents, state of charge, alternator status,
         if the engine is on and when the engine starts.
@@ -131,7 +139,7 @@ def predict_vehicle_electrics_and_engine_behavior(
         gears=gears, start_stop_activation_time=start_stop_activation_time,
         correct_start_stop_with_gears=correct_start_stop_with_gears,
         min_time_engine_on_after_start=min_time_engine_on_after_start,
-        has_start_stop=has_start_stop
+        has_start_stop=has_start_stop, use_basic_start_stop=use_basic_start_stop
     )
 
     e = (0, 0, None, initial_state_of_charge)
@@ -513,6 +521,8 @@ def physical():
         dsp_id='engine_model',
         dsp=engine(),
         inputs={
+
+            'is_hybrid': 'is_hybrid',
             'state_of_charges': 'state_of_charges',
             'auxiliaries_torque_loss': 'auxiliaries_torque_loss',
             'auxiliaries_power_loss': 'auxiliaries_power_loss',
@@ -584,7 +594,8 @@ def physical():
             'min_time_engine_on_after_start': 'min_time_engine_on_after_start',
             'min_engine_on_speed': 'min_engine_on_speed',
             'initial_friction_params': 'initial_friction_params',
-            'has_start_stop': 'has_start_stop'
+            'use_basic_start_stop': 'use_basic_start_stop',
+            'has_start_stop': 'has_start_stop',
         },
         outputs={
             'has_sufficient_power': 'has_sufficient_power',
@@ -644,7 +655,8 @@ def physical():
             'phases_willans_factors': 'phases_willans_factors',
             'missing_powers': 'missing_powers',
             'brake_powers': 'brake_powers',
-            'initial_friction_params': 'initial_friction_params'
+            'initial_friction_params': 'initial_friction_params',
+            'use_basic_start_stop': 'use_basic_start_stop',
         },
         inp_weight={'initial_temperature': 5}
     )
@@ -657,7 +669,8 @@ def physical():
                 'idle_engine_speed', 'times', 'gear_box_speeds_in',
                 'gear_box_powers_in', 'velocities', 'accelerations', 'gears',
                 'start_stop_activation_time', 'correct_start_stop_with_gears',
-                'min_time_engine_on_after_start', 'has_start_stop'],
+                'min_time_engine_on_after_start', 'has_start_stop',
+                'use_basic_start_stop'],
         outputs=['alternator_currents', 'battery_currents', 'state_of_charges',
                  'alternator_statuses', 'on_engine', 'engine_starts',
                  'engine_speeds_out_hot', 'engine_coolant_temperatures'],

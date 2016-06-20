@@ -379,6 +379,8 @@ def define_data_schema(read=True):
         'engine_is_turbo': _bool,
         'has_start_stop': _bool,
         'has_energy_recuperation': _bool,
+        'use_basic_start_stop': _bool,
+        'is_hybrid': _bool,
         'engine_has_variable_valve_actuation': _bool,
         'has_thermal_management': _bool,
         'engine_has_direct_injection': _bool,
