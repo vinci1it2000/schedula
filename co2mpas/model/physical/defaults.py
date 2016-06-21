@@ -165,7 +165,7 @@ class Functions(co2_utl.Constants):
         stop_velocity = 2.0
 
         #: Minimum acceleration to switch on the engine [m/s2].
-        plateau_acceleration = 0.05
+        plateau_acceleration = 1 / 3.6
 
     class correct_constant_velocity(co2_utl.Constants):
         #: Constant velocities to correct the upper limits for NEDC [km/h].
