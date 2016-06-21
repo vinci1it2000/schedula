@@ -563,10 +563,8 @@ def physical():
             'engine_idle_fuel_consumption': 'engine_idle_fuel_consumption',
             'engine_powers_out': 'engine_powers_out',
             'engine_stroke': 'engine_stroke',
-            'engine_normalization_temperature':
-                'engine_normalization_temperature',
-            'engine_normalization_temperature_window':
-                'engine_normalization_temperature_window',
+            'engine_thermostat_temperature_window':
+                'engine_thermostat_temperature_window',
             'engine_thermostat_temperature': 'engine_thermostat_temperature',
             'engine_type': 'engine_type',
             'fuel_carbon_content_percentage': 'fuel_carbon_content_percentage',
@@ -627,10 +625,8 @@ def physical():
             'engine_coolant_temperatures': 'engine_coolant_temperatures',
             'engine_thermostat_temperature': 'engine_thermostat_temperature',
             'engine_type': 'engine_type',
-            'engine_normalization_temperature':
-                'engine_normalization_temperature',
-            'engine_normalization_temperature_window':
-                'engine_normalization_temperature_window',
+            'engine_thermostat_temperature_window':
+                'engine_thermostat_temperature_window',
             'engine_temperature_regression_model':
                 'engine_temperature_regression_model',
             'fuel_consumptions': 'fuel_consumptions',

@@ -406,7 +406,7 @@ def calculate_gear_box_efficiencies_torques_temperatures(
     :type equivalent_gear_box_heat_capacity: float
 
     :param thermostat_temperature:
-        Thermostat temperature [°C].
+        Engine thermostat temperature [°C].
     :type thermostat_temperature: float
 
     :param gear_box_temperature_references:

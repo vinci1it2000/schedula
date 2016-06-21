@@ -194,7 +194,7 @@ def calculate_gear_box_temperature(
     :type equivalent_gear_box_heat_capacity: float
 
     :param thermostat_temperature:
-        Thermostat temperature [°C].
+        Engine thermostat temperature [°C].
     :type thermostat_temperature: float
 
     :return:

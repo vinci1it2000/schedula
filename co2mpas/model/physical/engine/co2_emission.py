@@ -1805,7 +1805,7 @@ def co2_emission():
 
     dsp.add_function(
         function=calculate_after_treatment_temperature_threshold,
-        inputs=['engine_normalization_temperature',
+        inputs=['engine_thermostat_temperature',
                 'initial_engine_temperature'],
         outputs=['after_treatment_temperature_threshold']
     )
@@ -1862,8 +1862,8 @@ def co2_emission():
 
     dsp.add_function(
         function=define_initial_co2_emission_model_params_guess,
-        inputs=['co2_params', 'engine_type', 'engine_normalization_temperature',
-                'engine_normalization_temperature_window', 'is_cycle_hot'],
+        inputs=['co2_params', 'engine_type', 'engine_thermostat_temperature',
+                'engine_thermostat_temperature_window', 'is_cycle_hot'],
         outputs=['co2_params_initial_guess'],
         input_domain=missing_co2_params
     )

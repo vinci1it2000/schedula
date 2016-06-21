@@ -218,33 +218,10 @@ def identify_upper_bound_engine_speed(
     return m + sd * 0.674490
 
 
-def identify_thermostat_engine_temperature(engine_coolant_temperatures):
-    """
-    Identifies thermostat engine temperature and its limits [°C].
-
-    :param engine_coolant_temperatures:
-        Engine coolant temperature vector [°C].
-    :type engine_coolant_temperatures: numpy.array
-
-    :return:
-        Thermostat engine temperature [°C].
-    :rtype: float
-    """
-
-    m, s = co2_utl.reject_outliers(engine_coolant_temperatures, n=2)
-
-    max_temp = max(engine_coolant_temperatures)
-
-    if max_temp - m > s:
-        m = max_temp
-
-    return m
-
-
-def identify_normalization_engine_temperature(
+def identify_engine_thermostat_temperature(
         times, engine_coolant_temperatures):
     """
-    Identifies normalization engine temperature and its limits [°C].
+    Identifies thermostat engine temperature and its limits [°C].
 
     :param times:
         Time vector [s].
@@ -255,7 +232,7 @@ def identify_normalization_engine_temperature(
     :type engine_coolant_temperatures: numpy.array
 
     :return:
-        Normalization engine temperature and its limits [°C].
+        Engine thermostat temperature and its limits [°C].
     :rtype: (float, (float, float))
     """
     p = dfl.functions.identify_normalization_engine_temperature.PARAMS
@@ -495,7 +472,7 @@ def calibrate_cold_start_speed_model(
     :type idle_engine_speed: (float, float)
 
     :param engine_normalization_temperature:
-        Normalization engine temperature [°C].
+        Engine thermostat temperature [°C].
     :type engine_normalization_temperature: float
 
     :param engine_normalization_temperature_window:
@@ -574,7 +551,7 @@ def _calibrate_cold_start_speed_model(
     :type idle_engine_speed: (float, float)
 
     :param engine_normalization_temperature:
-        Normalization engine temperature [°C].
+        Engine thermostat temperature [°C].
     :type engine_normalization_temperature: float
 
     :param engine_normalization_temperature_window:
@@ -1246,16 +1223,10 @@ def engine():
     )
 
     dsp.add_function(
-        function=identify_thermostat_engine_temperature,
-        inputs=['engine_coolant_temperatures'],
-        outputs=['engine_thermostat_temperature']
-    )
-
-    dsp.add_function(
-        function=identify_normalization_engine_temperature,
+        function=identify_engine_thermostat_temperature,
         inputs=['times', 'engine_coolant_temperatures'],
-        outputs=['engine_normalization_temperature',
-                 'engine_normalization_temperature_window']
+        outputs=['engine_thermostat_temperature',
+                 'engine_thermostat_temperature_window']
     )
 
     dsp.add_function(
@@ -1322,8 +1293,8 @@ def engine():
         inputs=['times', 'velocities', 'accelerations', 'engine_speeds_out',
                 'engine_coolant_temperatures', 'engine_speeds_out_hot',
                 'on_engine', 'idle_engine_speed',
-                'engine_normalization_temperature',
-                'engine_normalization_temperature_window', 'stop_velocity',
+                'engine_thermostat_temperature',
+                'engine_thermostat_temperature_window', 'stop_velocity',
                 'plateau_acceleration'],
         outputs=['cold_start_speed_model']
     )
@@ -1469,16 +1440,16 @@ def engine():
             'engine_speeds_out': 'engine_speeds_out',
             'engine_stroke': 'engine_stroke',
             'engine_coolant_temperatures': 'engine_coolant_temperatures',
-            'engine_normalization_temperature':
-                'engine_normalization_temperature',
+            'engine_thermostat_temperature':
+                'engine_thermostat_temperature',
             'engine_type': 'engine_type',
             'fuel_carbon_content_percentage': 'fuel_carbon_content_percentage',
             'fuel_carbon_content': 'fuel_carbon_content',
             'idle_engine_speed': 'idle_engine_speed',
             'mean_piston_speeds': 'mean_piston_speeds',
             'on_engine': 'on_engine',
-            'engine_normalization_temperature_window':
-                'engine_normalization_temperature_window',
+            'engine_thermostat_temperature_window':
+                'engine_thermostat_temperature_window',
             'times': 'times',
             'velocities': 'velocities',
             'calibration_status': 'calibration_status',
