@@ -377,6 +377,15 @@ class Functions(co2_utl.Constants):
         #: Maximum cold start speed delta percentage of idle [-].
         MAX_COLD_START_SPEED_DELTA_PERCENTAGE = 0.5
 
+    class _yield_on_start(co2_utl.Constants):
+        #: Minimum velocity that allow to switch off stop the engine after an
+        #: off [km/h].
+        VEL = 1.0
+
+        #: Minimum acceleration that allow to switch off stop the engine after
+        #: an off [m/s2].
+        ACC = 0.05
+
 
 class Defaults(co2_utl.Constants):
     values = Values()

@@ -215,15 +215,17 @@ class StartStopModel(object):
                         *args, min_time_engine_on_after_start=0.0,
                         use_basic_start_stop=True):
 
-        on, prev, t_switch_on = True, True, times[0]
+        on, prev, t_switch_on, can_off = True, True, times[0], False
         model = self.base if use_basic_start_stop else self.model
         predict = model.predict
         args = (velocities, accelerations) + args
+        const = dfl.functions._yield_on_start
+        VEL, ACC = const.VEL, const.ACC
         for t, p, X in zip(times, to_predict, zip(*args)):
-            if not p:
-                on = True
-            elif t >= t_switch_on:
+            if p and can_off and t >= t_switch_on:
                 on = bool(predict([X])[0])
+            else:
+                on = True
 
             start = prev != on and on
             on_start = [on, start]
@@ -231,6 +233,11 @@ class StartStopModel(object):
             on = on_start[0]
             if on and prev != on:
                 t_switch_on = t + min_time_engine_on_after_start
+                can_off = False
+
+            if not can_off:
+                can_off = (X[0] > VEL) or (X[1] > ACC)
+
             prev = on
 
     @staticmethod
