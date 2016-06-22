@@ -30,15 +30,16 @@ Modules:
 
 from co2mpas.dispatcher import Dispatcher
 import numpy as np
+from functools import partial
 
 
 def predict_vehicle_electrics_and_engine_behavior(
         electrics_model, start_stop_model, engine_temperature_regression_model,
         initial_engine_temperature, initial_state_of_charge, idle_engine_speed,
-        times, gear_box_speeds_in, gear_box_powers_in, velocities,
-        accelerations, gears, start_stop_activation_time,
+        times, final_drive_powers_in, gear_box_speeds_in, gear_box_powers_in,
+        velocities, accelerations, gears, start_stop_activation_time,
         correct_start_stop_with_gears, min_time_engine_on_after_start,
-        has_start_stop, use_basic_start_stop):
+        has_start_stop, use_basic_start_stop, max_engine_coolant_temperature):
     """
     Predicts alternator and battery currents, state of charge, alternator
     status, if the engine is on and when the engine starts.
@@ -144,21 +145,22 @@ def predict_vehicle_electrics_and_engine_behavior(
 
     e = (0, 0, None, initial_state_of_charge)
     args = np.append([0], np.diff(times)), gear_box_powers_in, accelerations
-    args += (gear_box_speeds_in,)
+    args += (gear_box_speeds_in, final_drive_powers_in)
     eng, ele = [(True, False)], [e]
 
     # min_soc = electrics_model.alternator_status_model.min
 
-    thermal_model = engine_temperature_regression_model.predict.delta
+    thermal_model = partial(engine_temperature_regression_model.delta,
+                            max_temp=max_engine_coolant_temperature)
 
-    for i, (on_eng, dt, p, a, s) in enumerate(zip(gen, *args)):
+    for i, (on_eng, dt, p, a, s, fdp) in enumerate(zip(gen, *args)):
 
         # if e[-1] < min_soc and not on_eng[0]:
         #    on_eng[0], on_eng[1] = True, not eng[-1][-2]
 
         eng_s = calculate_engine_speeds_out_hot(s, on_eng[0], idle_engine_speed)
 
-        t += thermal_model(dt, p, eng_s, a, prev_temperature=t)
+        t += thermal_model(dt, fdp, eng_s, a, prev_temperature=t)
         temp[i + 1] = t
 
         e = tuple(electrics_model(dt, p, a, *(tuple(on_eng) + tuple(e[1:]))))
@@ -570,7 +572,7 @@ def physical():
             'fuel_carbon_content_percentage': 'fuel_carbon_content_percentage',
             'fuel_carbon_content': 'fuel_carbon_content',
             'gear_box_speeds_in': 'gear_box_speeds_in',
-            'gear_box_powers_in': 'gear_box_powers_in',
+            'final_drive_powers_in': 'final_drive_powers_in',
             'gear_box_type': 'gear_box_type',
             'clutch_tc_powers': 'clutch_tc_powers',
             'gears': 'gears',
@@ -594,6 +596,7 @@ def physical():
             'initial_friction_params': 'initial_friction_params',
             'use_basic_start_stop': 'use_basic_start_stop',
             'has_start_stop': 'has_start_stop',
+            'max_engine_coolant_temperature': 'max_engine_coolant_temperature'
         },
         outputs={
             'has_sufficient_power': 'has_sufficient_power',
@@ -653,6 +656,7 @@ def physical():
             'brake_powers': 'brake_powers',
             'initial_friction_params': 'initial_friction_params',
             'use_basic_start_stop': 'use_basic_start_stop',
+            'max_engine_coolant_temperature': 'max_engine_coolant_temperature'
         },
         inp_weight={'initial_temperature': 5}
     )
@@ -662,11 +666,12 @@ def physical():
         inputs=['electrics_model', 'start_stop_model',
                 'engine_temperature_regression_model',
                 'initial_engine_temperature', 'initial_state_of_charge',
-                'idle_engine_speed', 'times', 'gear_box_speeds_in',
-                'gear_box_powers_in', 'velocities', 'accelerations', 'gears',
-                'start_stop_activation_time', 'correct_start_stop_with_gears',
+                'idle_engine_speed', 'times', 'final_drive_powers_in',
+                'gear_box_speeds_in', 'gear_box_powers_in', 'velocities',
+                'accelerations', 'gears', 'start_stop_activation_time',
+                'correct_start_stop_with_gears',
                 'min_time_engine_on_after_start', 'has_start_stop',
-                'use_basic_start_stop'],
+                'use_basic_start_stop', 'max_engine_coolant_temperature'],
         outputs=['alternator_currents', 'battery_currents', 'state_of_charges',
                  'alternator_statuses', 'on_engine', 'engine_starts',
                  'engine_speeds_out_hot', 'engine_coolant_temperatures'],

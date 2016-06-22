@@ -218,50 +218,6 @@ def identify_upper_bound_engine_speed(
     return m + sd * 0.674490
 
 
-def identify_engine_thermostat_temperature(
-        times, engine_coolant_temperatures):
-    """
-    Identifies thermostat engine temperature and its limits [°C].
-
-    :param times:
-        Time vector [s].
-    :type times: numpy.array
-
-    :param engine_coolant_temperatures:
-        Engine coolant temperature vector [°C].
-    :type engine_coolant_temperatures: numpy.array
-
-    :return:
-        Engine thermostat temperature and its limits [°C].
-    :rtype: (float, (float, float))
-    """
-    p = dfl.functions.identify_normalization_engine_temperature.PARAMS
-    p0, p1 = (times[-1] - times[0]) * np.array((p['p0'], p['p1'])) + times[0]
-    t = engine_coolant_temperatures[(p0 < times) & (times < p1)]
-
-    m, s = co2_utl.reject_outliers(t, n=2)
-
-    max_temp = max(t)
-
-    return m - s, (m - p['n_std'] * s, max_temp)
-
-
-def identify_initial_engine_temperature(engine_coolant_temperatures):
-    """
-    Identifies initial engine temperature [°C].
-
-    :param engine_coolant_temperatures:
-        Engine coolant temperature vector [°C].
-    :type engine_coolant_temperatures: numpy.array
-
-    :return:
-        Initial engine temperature [°C].
-    :rtype: float
-    """
-
-    return float(engine_coolant_temperatures[0])
-
-
 def calculate_engine_max_torque(
         engine_max_power, engine_max_speed_at_max_power, fuel_type):
     """
@@ -1207,32 +1163,36 @@ def engine():
         outputs=['idle_engine_speed_median', 'idle_engine_speed_std']
     )
 
-    dsp.add_function(
-        function=calibrate_engine_temperature_regression_model,
-        inputs=['times', 'engine_coolant_temperatures', 'accelerations',
-                'gear_box_powers_in', 'engine_speeds_out_hot', 'on_engine'],
-        outputs=['engine_temperature_regression_model']
-    )
-
-    dsp.add_function(
-        function=predict_engine_coolant_temperatures,
-        inputs=['engine_temperature_regression_model', 'times', 'accelerations',
-                'gear_box_powers_in', 'engine_speeds_out_hot',
-                'initial_engine_temperature'],
-        outputs=['engine_coolant_temperatures']
-    )
-
-    dsp.add_function(
-        function=identify_engine_thermostat_temperature,
-        inputs=['times', 'engine_coolant_temperatures'],
-        outputs=['engine_thermostat_temperature',
-                 'engine_thermostat_temperature_window']
-    )
-
-    dsp.add_function(
-        function=identify_initial_engine_temperature,
-        inputs=['engine_coolant_temperatures'],
-        outputs=['initial_engine_temperature']
+    from .thermal import thermal
+    dsp.add_dispatcher(
+        include_defaults=True,
+        dsp=thermal(),
+        dsp_id='thermal',
+        inputs={
+            'times': 'times',
+            'on_engine': 'on_engine',
+            'accelerations': 'accelerations',
+            'engine_coolant_temperatures': 'engine_coolant_temperatures',
+            'final_drive_powers_in': 'final_drive_powers_in',
+            'idle_engine_speed': 'idle_engine_speed',
+            'engine_speeds_out_hot': 'engine_speeds_out_hot',
+            'engine_temperature_regression_model':
+                'engine_temperature_regression_model',
+            'initial_engine_temperature': 'initial_engine_temperature',
+            'engine_thermostat_temperature': 'engine_thermostat_temperature',
+            'engine_thermostat_temperature_window':
+                'engine_thermostat_temperature_window',
+            'max_engine_coolant_temperature': 'max_engine_coolant_temperature'
+        },
+        outputs={
+            'engine_temperature_regression_model':
+                'engine_temperature_regression_model',
+            'engine_thermostat_temperature': 'engine_thermostat_temperature',
+            'engine_thermostat_temperature_window':
+                'engine_thermostat_temperature_window',
+            'initial_engine_temperature': 'initial_engine_temperature',
+            'max_engine_coolant_temperature': 'max_engine_coolant_temperature'
+        }
     )
 
     dsp.add_function(

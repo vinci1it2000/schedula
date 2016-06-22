@@ -250,18 +250,19 @@ def combine_scores(scores):
 def sub_models():
     models = {}
 
-    from ..physical.engine import engine
-
+    from ..physical.engine.thermal import thermal
     models['engine_coolant_temperature_model'] = {
-        'dsp': engine(),
-        'models': ['engine_temperature_regression_model'],
-        'inputs': ['times', 'accelerations', 'gear_box_powers_in',
+        'dsp': thermal(),
+        'models': ['engine_temperature_regression_model',
+                   'max_engine_coolant_temperature'],
+        'inputs': ['times', 'accelerations', 'final_drive_powers_in',
                    'engine_speeds_out_hot', 'initial_engine_temperature'],
         'outputs': ['engine_coolant_temperatures'],
         'targets': ['engine_coolant_temperatures'],
         'metrics': [mean_absolute_error],
         'up_limit': [3],
     }
+
     from ..physical.engine.start_stop import start_stop
     models['start_stop_model'] = {
         'dsp': start_stop(),
@@ -284,10 +285,10 @@ def sub_models():
         'dsp': physical(),
         'models': ['r_dynamic', 'final_drive_ratio', 'gear_box_ratios',
                    'idle_engine_speed_median', 'idle_engine_speed_std',
-                   'engine_thermostat_temperature', 'CVT',
-                   'max_speed_velocity_ratio'],
+                   'CVT', 'max_speed_velocity_ratio'],
         'inputs': ['velocities', 'gears', 'times', 'on_engine', 'gear_box_type',
-                   'accelerations', 'final_drive_powers_in'],
+                   'accelerations', 'final_drive_powers_in',
+                   'engine_thermostat_temperature'],
         'outputs': ['engine_speeds_out_hot'],
         'targets': ['engine_speeds_out'],
         'metrics_inputs': ['times', 'velocities', 'gear_shifts', 'on_engine',
@@ -296,8 +297,8 @@ def sub_models():
         'up_limit': [40],
     }
 
+    from ..physical.engine import engine, calculate_engine_speeds_out
     dsp = engine()
-    from ..physical.engine import calculate_engine_speeds_out
 
     dsp.add_function(
         function=calculate_engine_speeds_out,

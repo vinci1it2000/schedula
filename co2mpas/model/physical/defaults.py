@@ -357,14 +357,6 @@ class Functions(co2_utl.Constants):
             'diesel': 835.0
         }
 
-    class identify_normalization_engine_temperature(co2_utl.Constants):
-        #: Normalization engine temperature params.
-        PARAMS = {
-            'n_std': 3,
-            'p0': 1000.0 / 1800.0,
-            'p1': 1780.0 / 1800.0
-        }
-
     class calibrate_cold_start_speed_model_v1(co2_utl.Constants):
         #: Cold start engine speed model v1 params.
         PARAMS = {
