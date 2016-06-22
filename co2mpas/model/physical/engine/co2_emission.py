@@ -1067,9 +1067,8 @@ def calibrate_co2_params(
 
     cold = np.zeros_like(engine_coolant_temperatures, dtype=bool)
     if not is_cycle_hot:
-        b = engine_coolant_temperatures > p['trg'].value
-        if b.any():
-            cold[:co2_utl.argmax(b)] = True
+        i = co2_utl.argmax(engine_coolant_temperatures >= p['trg'].value)
+        cold[:i] = True
     hot = np.logical_not(cold)
 
     success = [(True, copy.deepcopy(p))]
@@ -1082,8 +1081,9 @@ def calibrate_co2_params(
         return p
 
     cold_p = ['t0', 't1']
-    _set_attr(p, ['t0', 't1'], default=0.0, attr='value')
-    p = calibrate(cold_p, p, sub_values=hot)
+    if hot.any():
+        _set_attr(p, ['t0', 't1'], default=0.0, attr='value')
+        p = calibrate(cold_p, p, sub_values=hot)
 
     if cold.any():
         _set_attr(p, {'t0': values['t0'], 't1': values['t1']}, attr='value')
