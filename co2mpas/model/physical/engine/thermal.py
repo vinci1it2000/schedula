@@ -11,7 +11,8 @@ It contains functions that model the engine coolant temperature.
 
 import numpy as np
 from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.linear_model import RANSACRegressor
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.linear_model import RANSACRegressor, LinearRegression
 import co2mpas.utils as co2_utl
 from sklearn.feature_selection import SelectFromModel
 from co2mpas.dispatcher import Dispatcher
@@ -102,9 +103,11 @@ class ThermalModel(object):
         model = RANSACRegressor(
             base_estimator=self.base_model,
             random_state=0,
-            min_samples=0.85
+            min_samples=0.85,
+            max_trials=10
         )
         model.fit(spl[:, :-1], spl[:, -1])
+        spl = spl[model.inlier_mask_]
 
         mask = SelectFromModel(model.estimator_, '0.8*median', 1).get_support()
         if mask[1:].all():
@@ -115,15 +118,15 @@ class ThermalModel(object):
             mask[0] = True
             # noinspection PyTypeChecker
             mask = np.where(mask)[0]
-            self.model = model.fit(spl[:, mask], spl[:, -1])
+            self.model = model.estimator_.fit(spl[:, mask], spl[:, -1])
             self.mask = mask[1:] - 1
 
-        model = RANSACRegressor(
-            base_estimator=self.base_model,
-            random_state=0,
-            min_samples=0.85
-        )
-        model.fit(spl[:, (-1,) + tuple(range(1, len(args) + 1))], spl[:, 0])
+        spl = spl[:, (-1,) + tuple(range(1, len(args) + 1)) + (0,)]
+        t_max, t_min = spl[:, -1].max(), spl[:, -1].min()
+        spl = spl[(t_max - (t_max - t_min) / 3) <= spl[:, -1]]
+
+        model = GradientBoostingRegressor(random_state=0)
+        model.fit(spl[:, :-1], spl[:, -1])
         self.inverse = model
 
         return self
@@ -261,13 +264,7 @@ def identify_engine_thermostat_temperature_window(
     thr = engine_thermostat_temperature
     # noinspection PyTypeChecker
     std = np.sqrt(np.mean((engine_coolant_temperatures - thr) ** 2))
-    window = thr - std, thr + std
-    import matplotlib.pyplot as plt
-    ones = np.ones_like(engine_coolant_temperatures)
-    for t in (thr,) + window:
-        plt.plot(ones * t)
-    plt.plot(engine_coolant_temperatures)
-    return window
+    return thr - std, thr + std
 
 
 def identify_engine_thermostat_temperature(
@@ -289,7 +286,10 @@ def identify_engine_thermostat_temperature(
     """
 
     model = engine_temperature_regression_model.inverse
-    return model.predict([(0, 0, sum(idle_engine_speed), 0)])[0]
+    ratio = np.arange(1, 1.5, 0.1) * idle_engine_speed[0]
+    spl = np.zeros((len(ratio), 4))
+    spl[:, 2] = ratio
+    return np.median(model.predict(spl))
 
 
 def identify_initial_engine_temperature(engine_coolant_temperatures):
