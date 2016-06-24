@@ -11,8 +11,8 @@ It contains functions that model the engine coolant temperature.
 
 import numpy as np
 from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.linear_model import RANSACRegressor, LinearRegression
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import RANSACRegressor
 import co2mpas.utils as co2_utl
 from sklearn.feature_selection import SelectFromModel
 from co2mpas.dispatcher import Dispatcher
@@ -63,12 +63,26 @@ def _build_samples(
     return np.concatenate(arr, axis=1)[co2_utl.argmax(on_engine):, :]
 
 
+class _SelectFromModel(SelectFromModel):
+    def _get_support_mask(self):
+        # SelectFromModel can directly call on transform.
+        if self.prefit:
+            estimator = self.estimator
+        elif hasattr(self, 'estimator_'):
+            estimator = self.estimator_
+        else:
+            raise ValueError(
+                'Either fit the model before transform or set "prefit=True"'
+                ' while passing the fitted estimator to the constructor.')
+        sfm = SelectFromModel(estimator.estimator_, self.threshold, True)
+        return sfm._get_support_mask()
+
+
 class ThermalModel(object):
     def __init__(self):
         self.model = None
         self.mask = None
-        self.inverse = None
-        self.base_model = GradientBoostingRegressor(random_state=0)
+        self.base_model = GradientBoostingRegressor
 
     def fit(self, on_engine, temperature_derivatives, temperatures,
             *args):
@@ -100,26 +114,35 @@ class ThermalModel(object):
             temperature_derivatives, temperatures, on_engine, *args
         )
 
+        opt = {
+            'random_state': 0,
+            'max_depth': 2,
+            'n_estimators': int(min(300, 0.25 * (len(spl) - 1))),
+            'loss': 'huber',
+            'alpha': 0.99
+        }
+
         model = RANSACRegressor(
-            base_estimator=self.base_model,
+            base_estimator=self.base_model(**opt),
             random_state=0,
             min_samples=0.85,
             max_trials=10
         )
+        model = Pipeline([
+            ('feature_selection', _SelectFromModel(model, '0.8*median')),
+            ('classification', model)
+        ])
         model.fit(spl[:, :-1], spl[:, -1])
-        spl = spl[model.inlier_mask_]
 
-        mask = SelectFromModel(model.estimator_, '0.8*median', 1).get_support()
-        if mask[1:].all():
-            self.model = model
-            self.mask = None
+        inlier_mask = model.steps[-1][-1].inlier_mask_
+        print(sum(inlier_mask) / len(inlier_mask))
+        if sum(inlier_mask) / len(inlier_mask) < 0.6:
+            self.model = self.base_model(**opt)
+            self.model.fit(spl[:, :-1], spl[:, -1])
+            self.mask = np.arange(spl.shape[1] - 1)
         else:
-            # noinspection PyUnresolvedReferences
-            mask[0] = True
-            # noinspection PyTypeChecker
-            mask = np.where(mask)[0]
-            self.model = model.estimator_.fit(spl[:, mask], spl[:, -1])
-            self.mask = mask[1:] - 1
+            self.model = model.steps[-1][-1]
+            self.mask = np.where(model.steps[0][-1]._get_support_mask())[0]
 
         spl = spl[:, (-1,) + tuple(range(1, len(args) + 1)) + (0,)]
         t_max, t_min = spl[:, -1].max(), spl[:, -1].min()
@@ -142,10 +165,11 @@ class ThermalModel(object):
         return temp
 
     def delta(self, dt, *args, prev_temperature=23, max_temp=100.0):
-        if self.mask is not None:
-            args = tuple([args[i] for i in self.mask])
-        delta_temp = self.model.predict([(prev_temperature,) + args])[0] * dt
+        delta_temp = self._derivative(prev_temperature, *args) * dt
         return min(delta_temp, max_temp - prev_temperature)
+
+    def _derivative(self, *args):
+        return self.model.predict(np.array([args])[:, self.mask])[0]
 
 
 def calibrate_engine_temperature_regression_model(
