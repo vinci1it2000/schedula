@@ -174,7 +174,7 @@ def _parse_base_data(
         # noinspection PyUnresolvedReferences
         drop = [k for k, v in mask.items() if not v]
         if drop:
-            msg = 'Columns {} in {} contains nan.\n ' \
+            msg = 'Columns {} in {} sheet contains nan.\n ' \
                   'Please correct the inputs!'
             raise ValueError(msg.format(drop, sheet_name))
 
