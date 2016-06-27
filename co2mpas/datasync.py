@@ -9,10 +9,11 @@ r"""
 Shift and resample excel-tables; see http://co2mpas.io/usage.html#Synchronizing-time-series.
 
 Usage:
-  datasync  [(-v | --verbose) | --logconf <conf-file>]
+  datasync  [(-v | --verbose) | --logconf <conf-file>] [--interpolation <method>]
             [--force | -f] [--no-clone] [--prefix-cols] [-O <output>]
             <x-label> <y-label> <ref-table> [<sync-table> ...]
   datasync  [--verbose | -v]  (--version | -V)
+  datasync  [--interp-methods | -l]
   datasync  --help
 
 Options:
@@ -43,6 +44,18 @@ Options:
                          By default, only clashing column-names are prefixed.
   --no-clone             Do not clone excel-sheets contained in <ref-table> workbook
                          into output.
+  --interpolation        Interpolation method used in the resampling
+                         [default: linear]: 'linear', 'nearest', 'zero',
+                         'slinear', 'quadratic', 'cubic', 'barycentric',
+                         'polynomial', 'spline' is passed to
+                         scipy.interpolate.interp1d. Both 'polynomial' and
+                         'spline' require that you also specify an order (int),
+                         e.g. df.interpolate(--re-sampling=polynomial4).
+                         'krogh', 'piecewise_polynomial', 'pchip' and 'akima'
+                         are all wrappers around the scipy interpolation methods
+                         of similar names. 'integral'
+  -l, --interp-methods   List of all interpolation methods that can be used in
+                         the resampling.
 
 Miscellaneous:
   -h, --help             Show this help message and exit.
@@ -78,22 +91,24 @@ Examples::
     datasync -O ../output times  velocities  ../input/book.xlsx  WLTP-H  WLTP-H_OBD
 
 """
+
 from collections import OrderedDict, Counter
 import logging
 import os
 import sys
-
+import regex
 from boltons.setutils import IndexedSet
 import docopt
 from numpy.fft import fft, ifft, fftshift
 from pandalone import xleash
 from scipy.integrate import cumtrapz
+import scipy.interpolate as sci
 import functools as fnt
 import numpy as np
 import os.path as osp
 import pandas as pd
 
-from .__main__ import CmdException, init_logging, build_version_string
+from co2mpas.__main__ import CmdException, init_logging, build_version_string
 
 
 log = logging.getLogger(__name__)
@@ -120,7 +135,36 @@ def compute_shift(x, y):
     return shift
 
 
-def _yield_synched_tables(ref, *data, x_label='times', y_label='velocities'):
+def _interp_wrapper(func, x, xp, fp, **kw):
+    return np.nan_to_num(func(xp, fp, **kw)(x))
+
+
+_re_interpolation_method = regex.compile(
+    r"""
+        ^(?P<kind>\D+)$
+        |
+        ^(?P<kind>(spline|polynomial))(?P<order>\d+)?$
+    """, regex.IGNORECASE | regex.X | regex.DOTALL)
+
+
+def _interpolation_methods():
+    methods = ('linear', 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
+               'spline', 'polynomial', 'barycentric')
+    kw = dict(fill_value=0, copy=False)
+    methods = {k: fnt.partial(_interp_wrapper, sci.interp1d, kind=k, **kw)
+               for k in methods}
+
+    methods['krogh'] = fnt.partial(_interp_wrapper, sci.KroghInterpolator)
+    methods['piecewise_polynomial'] = fnt.partial(_interp_wrapper,
+                                                  sci.PiecewisePolynomial)
+    methods['pchip'] = fnt.partial(_interp_wrapper, sci.PchipInterpolator)
+    methods['akima'] = fnt.partial(_interp_wrapper, sci.Akima1DInterpolator)
+    methods['integral'] = integral_interpolation
+    return methods
+
+
+def _yield_synched_tables(ref, *data, x_label='times', y_label='velocities',
+                          interpolation_method='linear'):
     """
     Yields the data re-sampled and synchronized respect to x axes (`x_id`) and
     the reference signal `y_id`.
@@ -141,6 +185,21 @@ def _yield_synched_tables(ref, *data, x_label='times', y_label='velocities'):
     :rtype: generator
     """
 
+    methods = _interpolation_methods()
+    try:
+        kw = _re_interpolation_method.match(interpolation_method)
+        if kw:
+            kw = {k: v for k, v in kw.groupdict().items() if v is not None}
+            if 'order' in kw:
+                kw['order'] = int(kw['order'])
+            re_sampling = fnt.partial(methods[kw.pop('kind').lower()], **kw)
+        else:
+            raise KeyError
+    except KeyError:
+        raise ValueError('%s is not implemented as re-sampling method!\n'
+                         'Please choose one of: \n '
+                         '%s', interpolation_method, ', '.join(sorted(methods)))
+
     dx = float(np.median(np.diff(ref[x_label])) / 10)
     m, M = min(ref[x_label]), max(ref[x_label])
 
@@ -148,17 +207,17 @@ def _yield_synched_tables(ref, *data, x_label='times', y_label='velocities'):
         m, M = min(min(d[x_label]), m), max(max(d[x_label]), M)
 
     X = np.arange(m, M + dx, dx)
-    Y = re_sampling(X, ref[x_label], ref[y_label])
+    Y = methods['linear'](X, ref[x_label], ref[y_label])
 
     x = ref[x_label]
 
     yield 0, ref
-
     for d in data:
+        y = methods['linear'](X, d[x_label], d[y_label])
+        shift = compute_shift(Y, y) * dx
+
         s = OrderedDict([(k, fnt.partial(re_sampling, xp=d[x_label], fp=v))
                          for k, v in d.items() if k != x_label])
-
-        shift = compute_shift(Y, s[y_label](X)) * dx
 
         x_shift = x + shift
 
@@ -173,7 +232,7 @@ def _cum_integral(x, xp, fp):
     return cumtrapz(Y, X, initial=0)[np.searchsorted(X, x)]
 
 
-def re_sampling(x, xp, fp):
+def integral_interpolation(x, xp, fp):
     """
     Re-samples data maintaining the signal integral.
 
@@ -210,8 +269,10 @@ def re_sampling(x, xp, fp):
     return np.linalg.solve(A, I)
 
 
-def synchronize(headers, tables, x_label, y_label, prefix_cols):
-    res = list(_yield_synched_tables(*tables, x_label=x_label, y_label=y_label))
+def synchronize(headers, tables, x_label, y_label, prefix_cols,
+                interpolation_method='linear'):
+    res = list(_yield_synched_tables(*tables, x_label=x_label, y_label=y_label,
+                                     interpolation_method=interpolation_method))
 
     if prefix_cols:
         ix = set()
@@ -269,7 +330,6 @@ class Tables(object):
         self.ref_fpath = None
         self.ref_sh_name = None
 
-
     def _consume_next_xlref(self, xlref, lasso):
         """
         :param str xlref:
@@ -311,7 +371,6 @@ class Tables(object):
             self.tables.append(values)
 
         return lasso
-
 
     def consume_next_xlref(self, xlref, lasso):
         i = len(self.tables)
@@ -383,7 +442,8 @@ def _ensure_out_file(out_path, inp_path, force, out_frmt):
 
 def do_datasync(x_label, y_label, ref_xlref, *sync_xlrefs,
                 out_path=None, prefix_cols=False, force=False,
-                sheets_factory=None, no_clone=False):
+                sheets_factory=None, no_clone=False,
+                interpolation_method='linear'):
     """
     :param str ref_xlref:
             The `xl-ref` capturing a table from a workbook-sheet to use as *reference*.
@@ -416,7 +476,8 @@ def do_datasync(x_label, y_label, ref_xlref, *sync_xlrefs,
     """
     tables = Tables((x_label, y_label), sheets_factory)
     tables.collect_tables(ref_xlref, *sync_xlrefs)
-    df = synchronize(tables.headers, tables.tables, x_label, y_label, prefix_cols)
+    df = synchronize(tables.headers, tables.tables, x_label, y_label,
+                     prefix_cols, interpolation_method=interpolation_method)
 
     if no_clone:
         writer_fact = pd.ExcelWriter
@@ -445,6 +506,15 @@ def main(*args):
             sys.stdout.buffer.flush()
         except:
             print(v)
+    elif opts['--interp-methods']:
+        msg = 'List of all interpolation methods:\n%s\n'
+        msg = msg % ', '.join(sorted(_interpolation_methods()))
+        try:
+            sys.stdout.buffer.write(msg)
+            sys.stdout.buffer.flush()
+        except:
+            print(msg)
+        print( )
     else:
         do_datasync(
                 opts['<x-label>'], opts['<y-label>'],
@@ -452,7 +522,8 @@ def main(*args):
                 out_path=opts['-O'],
                 prefix_cols=opts['--prefix-cols'],
                 force=opts['--force'],
-                no_clone=opts['--no-clone']
+                no_clone=opts['--no-clone'],
+                interpolation_method=opts['--interpolation'],
         )
 
 
