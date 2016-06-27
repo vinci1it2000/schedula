@@ -55,27 +55,45 @@ def identify_max_engine_coolant_temperature(engine_coolant_temperatures):
     return engine_coolant_temperatures.max()
 
 
-def _build_samples(
-        temperature_derivatives, engine_coolant_temperatures, on_engine,
-        *args):
+def _build_samples(on_engine, temperature_derivatives,
+                   engine_coolant_temperatures, *args):
     arr = (np.array([engine_coolant_temperatures[:-1]]).T, np.array(args).T[1:],
            np.array([temperature_derivatives[1:]]).T)
-    return np.concatenate(arr, axis=1)[co2_utl.argmax(on_engine):, :]
+    return np.concatenate(arr, axis=1)
+
+
+def _filter_samples(spl, on_engine, thermostat):
+    b = (np.abs(spl[:, -1]) <= 0.001) & on_engine[1:]
+    b = np.logical_not(b)
+    b[:co2_utl.argmax(on_engine)] = False
+    b[co2_utl.argmax(thermostat < spl[:, 0]):] = True
+    return spl[b]
 
 
 class _SelectFromModel(SelectFromModel):
+    def __init__(self, *args, in_mask=(), **kwargs):
+        super(_SelectFromModel, self).__init__(*args, **kwargs)
+        self._in_mask = in_mask
+
     def _get_support_mask(self):
-        # SelectFromModel can directly call on transform.
-        if self.prefit:
-            estimator = self.estimator
-        elif hasattr(self, 'estimator_'):
-            estimator = self.estimator_
-        else:
-            raise ValueError(
-                'Either fit the model before transform or set "prefit=True"'
-                ' while passing the fitted estimator to the constructor.')
-        sfm = SelectFromModel(estimator.estimator_, self.threshold, True)
-        return sfm._get_support_mask()
+        try:
+            mask = super(_SelectFromModel, self)._get_support_mask()
+        except ValueError:
+            # SelectFromModel can directly call on transform.
+            if self.prefit:
+                estimator = self.estimator
+            elif hasattr(self, 'estimator_'):
+                estimator = self.estimator_
+            else:
+                raise ValueError(
+                    'Either fit the model before transform or set "prefit=True"'
+                    ' while passing the fitted estimator to the constructor.')
+            sfm = SelectFromModel(estimator.estimator_, self.threshold, True)
+            mask = sfm._get_support_mask()
+
+        for i in self._in_mask:
+            mask[i] = True
+        return mask
 
 
 class ThermalModel(object):
@@ -84,8 +102,8 @@ class ThermalModel(object):
         self.mask = None
         self.base_model = GradientBoostingRegressor
 
-    def fit(self, on_engine, temperature_derivatives, temperatures,
-            *args):
+    def fit(self, idle_engine_speed, on_engine, temperature_derivatives,
+            temperatures, *args):
         """
         Calibrates an engine temperature regression model to predict engine
         temperatures.
@@ -110,10 +128,11 @@ class ThermalModel(object):
         :rtype: ThermalModel
         """
 
-        spl = _build_samples(
-            temperature_derivatives, temperatures, on_engine, *args
-        )
+        spl = _build_samples(on_engine, temperature_derivatives, temperatures,
+                             *args)
+        self.thermostat = self._identify_thermostat(spl, idle_engine_speed)
 
+        spl = _filter_samples(spl, on_engine, self.thermostat)
         opt = {
             'random_state': 0,
             'max_depth': 2,
@@ -121,38 +140,60 @@ class ThermalModel(object):
             'loss': 'huber',
             'alpha': 0.99
         }
-
         model = RANSACRegressor(
             base_estimator=self.base_model(**opt),
             random_state=0,
             min_samples=0.85,
             max_trials=10
         )
+
         model = Pipeline([
-            ('feature_selection', _SelectFromModel(model, '0.8*median')),
+            ('feature_selection', _SelectFromModel(model, '0.8*median',
+                                                   in_mask=(0, 2))),
             ('classification', model)
         ])
         model.fit(spl[:, :-1], spl[:, -1])
 
-        inlier_mask = model.steps[-1][-1].inlier_mask_
-        print(sum(inlier_mask) / len(inlier_mask))
-        if sum(inlier_mask) / len(inlier_mask) < 0.6:
-            self.model = self.base_model(**opt)
-            self.model.fit(spl[:, :-1], spl[:, -1])
-            self.mask = np.arange(spl.shape[1] - 1)
-        else:
-            self.model = model.steps[-1][-1]
-            self.mask = np.where(model.steps[0][-1]._get_support_mask())[0]
+        self.model = model.steps[-1][-1]
+        self.mask = np.where(model.steps[0][-1]._get_support_mask())[0]
 
-        spl = spl[:, (-1,) + tuple(range(1, len(args) + 1)) + (0,)]
+        self.min_temp = spl[:, 0].min()
+        spl = spl[:co2_utl.argmax(self.thermostat <= spl[:, 0])]
+        
+        if not spl.any():
+            self.min_temp = -float('inf')
+            return self
+        spl = spl[:co2_utl.argmax(np.percentile(spl[:, 0], 60) <= spl[:, 0])]
+        opt = {
+            'random_state': 0,
+            'max_depth': 2,
+            'n_estimators': int(min(300, 0.25 * (len(spl) - 1))),
+            'loss': 'huber',
+            'alpha': 0.99
+        }
+        model = self.base_model(**opt)
+        model = Pipeline([
+            ('feature_selection', _SelectFromModel(model, '0.8*median',
+                                                   in_mask=(1,))),
+            ('classification', model)
+        ])
+        model.fit(spl[:, 1:-1], spl[:, -1])
+        self.cold = model.steps[-1][-1]
+        self.mask_cold = np.where(model.steps[0][-1]._get_support_mask())[0] + 1
+
+        return self
+
+    def _identify_thermostat(self, spl, idle_engine_speed):
+        spl = spl[:, (-1,) + tuple(range(1, spl.shape[1] - 1)) + (0,)]
         t_max, t_min = spl[:, -1].max(), spl[:, -1].min()
         spl = spl[(t_max - (t_max - t_min) / 3) <= spl[:, -1]]
 
         model = GradientBoostingRegressor(random_state=0)
         model.fit(spl[:, :-1], spl[:, -1])
-        self.inverse = model
-
-        return self
+        ratio = np.arange(1, 1.5, 0.1) * idle_engine_speed[0]
+        spl = np.zeros((len(ratio), 4))
+        spl[:, 2] = ratio
+        return np.median(model.predict(spl))
 
     def __call__(self, deltas_t, *args, initial_temperature=23, max_temp=100.0):
         delta, temp = self.delta, np.zeros(len(deltas_t) + 1, dtype=float)
@@ -165,15 +206,20 @@ class ThermalModel(object):
         return temp
 
     def delta(self, dt, *args, prev_temperature=23, max_temp=100.0):
-        delta_temp = self._derivative(prev_temperature, *args) * dt
+        if prev_temperature < self.min_temp:
+            model, mask = self.cold, self.mask_cold
+        else:
+            model, mask = self.model, self.mask
+
+        delta_temp = self._derivative(model, mask, prev_temperature, *args) * dt
         return min(delta_temp, max_temp - prev_temperature)
 
-    def _derivative(self, *args):
-        return self.model.predict(np.array([args])[:, self.mask])[0]
+    def _derivative(self, model, mask, *args):
+        return model.predict(np.array([args])[:, mask])[0]
 
 
 def calibrate_engine_temperature_regression_model(
-        on_engine, engine_temperature_derivatives,
+        idle_engine_speed, on_engine, engine_temperature_derivatives,
         engine_coolant_temperatures, gear_box_powers_in,
         engine_speeds_out_hot, accelerations):
     """
@@ -214,8 +260,9 @@ def calibrate_engine_temperature_regression_model(
 
     model = ThermalModel()
     model.fit(
-        on_engine, engine_temperature_derivatives, engine_coolant_temperatures,
-        gear_box_powers_in, engine_speeds_out_hot, accelerations
+        idle_engine_speed, on_engine, engine_temperature_derivatives,
+        engine_coolant_temperatures, gear_box_powers_in, engine_speeds_out_hot,
+        accelerations
     )
 
     return model
@@ -291,8 +338,7 @@ def identify_engine_thermostat_temperature_window(
     return thr - std, thr + std
 
 
-def identify_engine_thermostat_temperature(
-        engine_temperature_regression_model, idle_engine_speed):
+def identify_engine_thermostat_temperature(engine_temperature_regression_model):
     """
     Identifies thermostat engine temperature and its limits [°C].
 
@@ -309,11 +355,7 @@ def identify_engine_thermostat_temperature(
     :rtype: float
     """
 
-    model = engine_temperature_regression_model.inverse
-    ratio = np.arange(1, 1.5, 0.1) * idle_engine_speed[0]
-    spl = np.zeros((len(ratio), 4))
-    spl[:, 2] = ratio
-    return np.median(model.predict(spl))
+    return engine_temperature_regression_model.thermostat
 
 
 def identify_initial_engine_temperature(engine_coolant_temperatures):
@@ -364,9 +406,9 @@ def thermal():
 
     dsp.add_function(
         function=calibrate_engine_temperature_regression_model,
-        inputs=['on_engine', 'engine_temperature_derivatives',
-                'engine_coolant_temperatures', 'final_drive_powers_in',
-                'engine_speeds_out_hot', 'accelerations'],
+        inputs=['idle_engine_speed', 'on_engine',
+                'engine_temperature_derivatives', 'engine_coolant_temperatures',
+                'final_drive_powers_in', 'engine_speeds_out_hot', 'accelerations'],
         outputs=['engine_temperature_regression_model']
     )
 
@@ -381,7 +423,7 @@ def thermal():
 
     dsp.add_function(
         function=identify_engine_thermostat_temperature,
-        inputs=['engine_temperature_regression_model', 'idle_engine_speed'],
+        inputs=['engine_temperature_regression_model'],
         outputs=['engine_thermostat_temperature']
     )
 

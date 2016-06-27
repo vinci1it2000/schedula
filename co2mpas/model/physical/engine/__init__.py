@@ -1191,7 +1191,8 @@ def engine():
             'engine_thermostat_temperature_window':
                 'engine_thermostat_temperature_window',
             'initial_engine_temperature': 'initial_engine_temperature',
-            'max_engine_coolant_temperature': 'max_engine_coolant_temperature'
+            'max_engine_coolant_temperature': 'max_engine_coolant_temperature',
+            'engine_temperature_derivatives': 'engine_temperature_derivatives'
         }
     )
 

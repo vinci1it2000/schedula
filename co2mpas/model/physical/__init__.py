@@ -656,7 +656,8 @@ def physical():
             'brake_powers': 'brake_powers',
             'initial_friction_params': 'initial_friction_params',
             'use_basic_start_stop': 'use_basic_start_stop',
-            'max_engine_coolant_temperature': 'max_engine_coolant_temperature'
+            'max_engine_coolant_temperature': 'max_engine_coolant_temperature',
+            'engine_temperature_derivatives': 'engine_temperature_derivatives'
         },
         inp_weight={'initial_temperature': 5}
     )
