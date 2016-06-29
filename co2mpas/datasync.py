@@ -9,7 +9,7 @@ r"""
 Shift and resample excel-tables; see http://co2mpas.io/usage.html#Synchronizing-time-series.
 
 Usage:
-  datasync  [(-v | --verbose) | --logconf <conf-file>] [--interpolation <method>]
+  datasync  [(-v | --verbose) | --logconf <conf-file>] [--interp <method>]
             [--force | -f] [--no-clone] [--prefix-cols] [-O <output>]
             <x-label> <y-label> <ref-table> [<sync-table> ...]
   datasync  [--verbose | -v]  (--version | -V)
@@ -38,13 +38,13 @@ Options:
                          - Existent file: file-path to overwrite if --force, fails otherwise.
                          - Existent folder: writes a new file `<ref-file>.sync<.ext>`
                            in that folder; --force required if that file exists.
-                         By default, use folder of the <ref-table>.
+                         [default: .].
   -f, --force            Overwrite excel-file(s) and create any missing intermediate folders.
   --prefix-cols          Prefix all synced column names with their source sheet-names.
                          By default, only clashing column-names are prefixed.
   --no-clone             Do not clone excel-sheets contained in <ref-table> workbook
                          into output.
-  --interpolation        Interpolation method used in the resampling
+  --interp <method>      Interpolation method used in the resampling
                          [default: linear]: 'linear', 'nearest', 'zero',
                          'slinear', 'quadratic', 'cubic', 'barycentric',
                          'polynomial', 'spline' is passed to
@@ -150,7 +150,7 @@ _re_interpolation_method = regex.compile(
 def _interpolation_methods():
     methods = ('linear', 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
                'spline', 'polynomial', 'barycentric')
-    kw = dict(fill_value=0, copy=False)
+    kw = dict(fill_value=0, copy=False, bounds_error=False)
     methods = {k: fnt.partial(_interp_wrapper, sci.interp1d, kind=k, **kw)
                for k in methods}
 
@@ -409,9 +409,6 @@ def _ensure_out_file(out_path, inp_path, force, out_frmt):
     """
     basename = osp.basename(inp_path)
 
-    if not out_path:
-        out_path = osp.dirname(inp_path)
-
     if not osp.exists(out_path):
         out_file = out_path
         folders = osp.dirname(out_path)
@@ -482,7 +479,7 @@ def do_datasync(x_label, y_label, ref_xlref, *sync_xlrefs,
     if no_clone:
         writer_fact = pd.ExcelWriter
     else:
-        from .io.excel import clone_excel
+        from co2mpas.io.excel import clone_excel
         writer_fact = fnt.partial(clone_excel, tables.ref_fpath)
 
     out_file = _ensure_out_file(out_path, tables.ref_fpath, force, synced_file_frmt)
@@ -508,7 +505,7 @@ def main(*args):
             print(v)
     elif opts['--interp-methods']:
         msg = 'List of all interpolation methods:\n%s\n'
-        msg = msg % ', '.join(sorted(_interpolation_methods()))
+        msg %= ', '.join(sorted(_interpolation_methods()))
         try:
             sys.stdout.buffer.write(msg)
             sys.stdout.buffer.flush()
@@ -523,7 +520,7 @@ def main(*args):
                 prefix_cols=opts['--prefix-cols'],
                 force=opts['--force'],
                 no_clone=opts['--no-clone'],
-                interpolation_method=opts['--interpolation'],
+                interpolation_method=opts['--interp'],
         )
 
 
