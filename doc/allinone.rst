@@ -113,9 +113,54 @@ A pre-populated folder with WinPython + CO2MPAS + Consoles for *Windows*.
    that they cannot overwrite existing files.  Ignore the messages or use
    the `--force` option to overwrite them.
 
-5. When a new CO2MPAS version is out, you may *upgrade* to it, and avoid
-   re-downloading the *all-in-one* archive.  Read the respective sub-section
-   of the *Installation* section from the documents.
+
+Upgrade CO2MPAS
+===============
+Not all releases are accompanied by ALLINONE archives.
+So when a new CO2MPAS version is out, you may wish to upgrade to it.
+
+Upgrade CO2MPAS
+---------------
+Uninstall and re-install it::
+
+    pip uninstall co2mpas
+    pip install co2mpas
+
+
+Upgrade CO2MPAS in a corporate environment
+------------------------------------------
+1. Use your browser to download the "wheel" package `co2mpas-X.X.X-py2.py3-none-any.whl`
+   from this location: https://files.co2mpas.io/CO2MPAS-X.X.X/
+   and place it inside your ALLINONE's home-folder: ``co2mpas_ALLINONE-64bit-X.X.X\CO2MPAS\``
+
+2. Launch the ALLINONE console into your home-folder (it opens there by default).
+
+3. Use `pip` to install the wheel-package with a command like that::
+
+    pip install co2mpas-X.X.X-py2.py3-none-any.whl
+
+  .. Note::
+    if you downloaded the whl-package somewhere else,
+    you don't have to move it inside the `CO2MPAS folder`;  you can specify its path
+    in the command-line, like this::
+
+        pip install D:\Users\John\Downloads\co2mpas-X.X.X-py2.py3-none-any.whl
+
+4. Verify that the installed version is the correct one by checking the output
+   of this command::
+
+    co2mpas -vV
+
+
+.. Tip::
+
+    Don't forget verify that the installed version is the correct one by checking
+    the output of this command::
+
+        co2mpas -vV
+
+    You may find more information in the `Installation
+    <https://co2mpas.io/install.html#co2mpas-installation>`_  section of the documentation.
 
 
 Generic Tips

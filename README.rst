@@ -314,8 +314,8 @@ option would both fail to run (see :ref:`debug`).
 
 
 
-Upgrade CO2MPAS
-~~~~~~~~~~~~~~~
+Upgrade CO2MPAS (with internet connectivity)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 1. Uninstall (see below) and re-install it.
 
 
@@ -377,8 +377,12 @@ require the use of ``pip`` command from a *console* to install:
 
   .. Important::
       To avert any security deliberations for this http-proxy "tunnel",
-      JRC *cryptographically signs* all *final releases* with ``GPG key ID: 9CF277C40A8A1B08``
-      so that you or your IT staff may `validate their authenticity
+      JRC *cryptographically signs* all *final releases* with one of those
+      keys:
+      - ``GPG key ID: 9CF277C40A8A1B08`` form @ankostis
+      - ``GPG key ID: 1831F9C2294A33CC`` for @vinci1it2000
+
+      Your IT staff may `validate their authenticity
       <https://www.davidfischer.name/2012/05/signing-and-verifying-python-packages-with-pgp/>`_
       and detect *man-in-the-middle* attacks, however impossible.
 
