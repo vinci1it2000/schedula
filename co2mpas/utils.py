@@ -413,7 +413,7 @@ def bin_split(x, bin_std=(0.01, 0.1), n_min=None, bins_min=None):
                 y = x[(e_min <= x) & (x < e_max)]
                 m, std = _stats(y)
                 if std < bin_std[1]:
-                    n = v0[1][3] + v1[1][3]
+                    n = v0[1][-1] + v1[1][-1]
                     bins[k0 + 1] = (
                         (e_min, e_max), [np.median(y), std / n, std, m, n])
                     del bins[k0]
