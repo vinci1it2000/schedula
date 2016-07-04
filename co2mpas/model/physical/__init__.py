@@ -523,7 +523,6 @@ def physical():
         dsp_id='engine_model',
         dsp=engine(),
         inputs={
-
             'is_hybrid': 'is_hybrid',
             'state_of_charges': 'state_of_charges',
             'auxiliaries_torque_loss': 'auxiliaries_torque_loss',
@@ -657,7 +656,8 @@ def physical():
             'initial_friction_params': 'initial_friction_params',
             'use_basic_start_stop': 'use_basic_start_stop',
             'max_engine_coolant_temperature': 'max_engine_coolant_temperature',
-            'engine_temperature_derivatives': 'engine_temperature_derivatives'
+            'engine_temperature_derivatives': 'engine_temperature_derivatives',
+            'cold_start_speeds_phases': 'cold_start_speeds_phases'
         },
         inp_weight={'initial_temperature': 5}
     )

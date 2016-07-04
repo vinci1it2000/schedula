@@ -212,12 +212,12 @@ def metric_engine_speed_model(
 
 
 def metric_engine_cold_start_speed_model(
-        y_true, y_pred, velocities, on_engine, stop_velocity):
-    b = (velocities < stop_velocity) & on_engine
+        y_true, y_pred, cold_start_speeds_phases):
+    b = cold_start_speeds_phases
     if b.any():
         return mean_absolute_error(y_true[b], y_pred[b])
     else:
-        return mean_absolute_error(y_true[on_engine], y_pred[on_engine])
+        return 0
 
 
 def metric_clutch_torque_converter_model(y_true, y_pred, on_engine):
@@ -314,7 +314,7 @@ def sub_models():
                    'on_engine', 'idle_engine_speed'],
         'outputs': ['engine_speeds_out'],
         'targets': ['engine_speeds_out'],
-        'metrics_inputs': ['velocities', 'on_engine', 'stop_velocity'],
+        'metrics_inputs': ['cold_start_speeds_phases'],
         'metrics': [metric_engine_cold_start_speed_model],
         'up_limit': [100],
     }

@@ -361,13 +361,13 @@ class Functions(co2_utl.Constants):
         #: Cold start engine speed model v1 params.
         PARAMS = {
             'first_seconds': 10.0,  # [s]
-            'delta_speed_limits': (1.05, 1.2),  # [-, -]
+            'delta_speed_limits': (0.05, 0.2),  # [-, -]
             'max_temperature': 30.0  # [°C]
         }
 
     class calculate_cold_start_speeds_delta(co2_utl.Constants):
         #: Maximum cold start speed delta percentage of idle [-].
-        MAX_COLD_START_SPEED_DELTA_PERCENTAGE = 0.5
+        MAX_COLD_START_SPEED_DELTA_PERCENTAGE = 1.0
 
     class _yield_on_start(co2_utl.Constants):
         #: Minimum velocity that allow to switch off stop the engine after an

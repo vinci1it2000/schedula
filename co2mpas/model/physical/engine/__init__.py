@@ -25,8 +25,6 @@ from .thermal import *
 from ..defaults import *
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline
-from scipy.optimize import fmin
-from sklearn.metrics import mean_absolute_error
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher import Dispatcher
 import co2mpas.utils as co2_utl
@@ -305,47 +303,6 @@ def calculate_engine_speeds_out_hot(
     return s
 
 
-def calculate_cold_start_speeds_delta(
-        cold_start_speed_model, idle_engine_speed, engine_speeds_out_hot,
-        on_engine, engine_coolant_temperatures):
-    """
-    Calculates the engine speed delta due to the cold start [RPM].
-
-    :param cold_start_speed_model:
-        Cold start speed model.
-    :type cold_start_speed_model: function
-
-    :param idle_engine_speed:
-        Engine speed idle median and std [RPM].
-    :type idle_engine_speed: (float, float)
-
-    :param engine_speeds_out_hot:
-        Engine speed at hot condition [RPM].
-    :type engine_speeds_out_hot: numpy.array
-
-    :param on_engine:
-        If the engine is on [-].
-    :type on_engine: numpy.array
-
-    :param engine_coolant_temperatures:
-        Engine coolant temperature vector [°C].
-    :type engine_coolant_temperatures: numpy.array
-
-    :return:
-        Engine speed delta due to the cold start [RPM].
-    :rtype: numpy.array
-    """
-
-    delta_speeds = cold_start_speed_model(
-        idle_engine_speed[0], engine_speeds_out_hot, on_engine,
-        engine_coolant_temperatures
-    )
-    par = dfl.functions.calculate_cold_start_speeds_delta
-    max_delta = idle_engine_speed[0] * par.MAX_COLD_START_SPEED_DELTA_PERCENTAGE
-    delta_speeds[delta_speeds > max_delta] = max_delta
-    return delta_speeds
-
-
 def calculate_engine_speeds_out(
         on_engine, idle_engine_speed, engine_speeds_out_hot, *delta_speeds):
     """
@@ -384,301 +341,6 @@ def calculate_engine_speeds_out(
     speeds[on_engine] = s
 
     return speeds
-
-
-def calibrate_cold_start_speed_model(
-        times, velocities, accelerations, engine_speeds_out,
-        engine_coolant_temperatures, engine_speeds_out_hot, on_engine,
-        idle_engine_speed, engine_normalization_temperature,
-        engine_normalization_temperature_window, stop_velocity,
-        plateau_acceleration):
-    """
-    Calibrates the cold start speed model.
-
-    :param times:
-        Time vector [s].
-    :type times: numpy.array
-
-    :param velocities:
-        Velocity vector [km/h].
-    :type velocities: numpy.array
-
-    :param accelerations:
-        Acceleration vector [m/s2].
-    :type accelerations: numpy.array
-
-    :param engine_speeds_out:
-        Engine speed [RPM].
-    :type engine_speeds_out: numpy.array
-
-    :param engine_coolant_temperatures:
-        Engine coolant temperature vector [°C].
-    :type engine_coolant_temperatures: numpy.array
-
-    :param engine_speeds_out_hot:
-        Engine speed at hot condition [RPM].
-    :type engine_speeds_out_hot: numpy.array
-
-    :param on_engine:
-        If the engine is on [-].
-    :type on_engine: numpy.array
-
-    :param idle_engine_speed:
-        Idle engine speed and its standard deviation [RPM].
-    :type idle_engine_speed: (float, float)
-
-    :param engine_normalization_temperature:
-        Engine thermostat temperature [°C].
-    :type engine_normalization_temperature: float
-
-    :param engine_normalization_temperature_window:
-        Normalization engine temperature window [°C].
-    :type engine_normalization_temperature_window: (float, float)
-
-    :param stop_velocity:
-        Maximum velocity to consider the vehicle stopped [km/h].
-    :type stop_velocity: float
-
-    :param plateau_acceleration:
-        Maximum acceleration to be at constant velocity [m/s2].
-    :type plateau_acceleration: float
-
-    :return:
-        Cold start speed model.
-    :rtype: function
-    """
-
-    models = (
-        _calibrate_cold_start_speed_model(
-            velocities, accelerations, engine_speeds_out,
-            engine_coolant_temperatures, engine_speeds_out_hot, on_engine,
-            idle_engine_speed, engine_normalization_temperature,
-            engine_normalization_temperature_window, stop_velocity,
-            plateau_acceleration),
-        _calibrate_cold_start_speed_model_v1(
-            times, velocities, accelerations, engine_speeds_out,
-            engine_coolant_temperatures, idle_engine_speed, stop_velocity,
-            plateau_acceleration)
-    )
-
-    model = _select_cold_start_speed_model(
-        engine_speeds_out, engine_coolant_temperatures, engine_speeds_out_hot,
-        on_engine, idle_engine_speed, *models
-    )
-
-    return model
-
-
-def _calibrate_cold_start_speed_model(
-        velocities, accelerations, engine_speeds_out,
-        engine_coolant_temperatures, engine_speeds_out_hot, on_engine,
-        idle_engine_speed, engine_normalization_temperature,
-        engine_normalization_temperature_window, stop_velocity,
-        plateau_acceleration):
-    """
-    Calibrates the cold start speed model.
-
-    :param velocities:
-        Velocity vector [km/h].
-    :type velocities: numpy.array
-
-    :param accelerations:
-        Acceleration vector [m/s2].
-    :type accelerations: numpy.array
-
-    :param engine_speeds_out:
-        Engine speed [RPM].
-    :type engine_speeds_out: numpy.array
-
-    :param engine_coolant_temperatures:
-        Engine coolant temperature vector [°C].
-    :type engine_coolant_temperatures: numpy.array
-
-    :param engine_speeds_out_hot:
-        Engine speed at hot condition [RPM].
-    :type engine_speeds_out_hot: numpy.array
-
-    :param on_engine:
-        If the engine is on [-].
-    :type on_engine: numpy.array
-
-    :param idle_engine_speed:
-        Idle engine speed and its standard deviation [RPM].
-    :type idle_engine_speed: (float, float)
-
-    :param engine_normalization_temperature:
-        Engine thermostat temperature [°C].
-    :type engine_normalization_temperature: float
-
-    :param engine_normalization_temperature_window:
-        Normalization engine temperature window [°C].
-    :type engine_normalization_temperature_window: (float, float)
-
-    :param stop_velocity:
-        Maximum velocity to consider the vehicle stopped [km/h].
-    :type stop_velocity: float
-
-    :param plateau_acceleration:
-        Maximum acceleration to be at constant velocity [m/s2].
-    :type plateau_acceleration: float
-
-    :return:
-        Cold start speed model.
-    :rtype: function
-    """
-
-    b = engine_coolant_temperatures < engine_normalization_temperature_window[0]
-    b &= (velocities < stop_velocity)
-    b &= (abs(accelerations) < plateau_acceleration)
-    b &= (idle_engine_speed[0] < engine_speeds_out)
-
-    p = 0.0
-
-    if b.any():
-        dT = engine_normalization_temperature - engine_coolant_temperatures[b]
-        e_real, e_hot = engine_speeds_out[b], engine_speeds_out_hot[b]
-        on, err_0 = on_engine[b], mean_absolute_error(e_real, e_hot)
-
-        def error_func(x):
-            speeds = dT * x[0]
-            c = on & (speeds > e_hot)
-
-            if not c.any():
-                return err_0
-
-            return mean_absolute_error(e_real, np.where(c, speeds, e_hot))
-
-        x0 = [1.0 / co2_utl.reject_outliers(dT / e_real)[0]]
-        res, err = fmin(error_func, x0, disp=False, full_output=True)[0:2]
-
-        if res[0] > 0.0 and err < err_0:
-            p = res[0]
-
-    # noinspection PyUnusedLocal
-    def model(idle, speeds, on_engine, temperatures, *args):
-        add_speeds = np.zeros_like(speeds, dtype=float)
-
-        if p > 0:
-            s_o = (engine_normalization_temperature - temperatures) * p
-            b = on_engine & (s_o > speeds)
-            # noinspection PyUnresolvedReferences
-            add_speeds[b] = np.minimum(s_o[b] - speeds[b], idle / 2)
-
-        return add_speeds
-
-    return model
-
-
-def _calibrate_cold_start_speed_model_v1(
-        times, velocities, accelerations, engine_speeds_out,
-        engine_coolant_temperatures, idle_engine_speed, stop_velocity,
-        plateau_acceleration):
-    """
-    Calibrates the cold start speed model.
-
-    :param times:
-        Time vector [s].
-    :type times: numpy.array
-
-    :param velocities:
-        Velocity vector [km/h].
-    :type velocities: numpy.array
-
-    :param accelerations:
-        Acceleration vector [m/s2].
-    :type accelerations: numpy.array
-
-    :param engine_speeds_out:
-        Engine speed [RPM].
-    :type engine_speeds_out: numpy.array
-
-    :param engine_coolant_temperatures:
-        Engine coolant temperature vector [°C].
-    :type engine_coolant_temperatures: numpy.array
-
-    :param idle_engine_speed:
-        Idle engine speed and its standard deviation [RPM].
-    :type idle_engine_speed: (float, float)
-
-    :param stop_velocity:
-        Maximum velocity to consider the vehicle stopped [km/h].
-    :type stop_velocity: float
-
-    :param plateau_acceleration:
-        Maximum acceleration to be at constant velocity [m/s2].
-    :type plateau_acceleration: float
-
-    :return:
-        Cold start speed model.
-    :rtype: function
-    """
-    par = dfl.functions.calibrate_cold_start_speed_model_v1.PARAMS
-    t = times[0] + par['first_seconds']
-
-    b = (times < t) & (engine_speeds_out > idle_engine_speed[0])
-    b &= (velocities < stop_velocity)
-    b &= (abs(accelerations) < plateau_acceleration)
-
-    idl = idle_engine_speed[0]
-    dn, up = par['delta_speed_limits']
-    if b.any():
-        ds = np.mean(engine_speeds_out[b])
-        if ds <= idl * dn:
-            ds = idl * up
-    else:
-        ds = idl * up
-    max_T = par['max_temperature']
-    ds = abs((ds - idl) / (max_T - min(engine_coolant_temperatures)))
-
-    # noinspection PyUnusedLocal
-    def model(idle, speeds, on_e, engine_coolant_temp, *args):
-        add_speeds = np.zeros_like(speeds, dtype=float)
-
-        b = (engine_coolant_temp < max_T) & on_e
-        s =  np.minimum(ds * (max_T - engine_coolant_temp[b]), idle / 2)
-        add_speeds[b] = np.where(speeds[b] < s + idle, s, add_speeds[b])
-
-        return add_speeds
-
-    return model
-
-
-def _select_cold_start_speed_model(
-        engine_speeds_out, engine_coolant_temperatures, engine_speeds_out_hot,
-        on_engine, idle_engine_speed, *models):
-    """
-    Select the best cold start speed model.
-
-    :param engine_speeds_out:
-        Engine speed [RPM].
-    :type engine_speeds_out: numpy.array
-
-    :param engine_coolant_temperatures:
-        Engine coolant temperature vector [°C].
-    :type engine_coolant_temperatures: numpy.array
-
-    :param engine_speeds_out_hot:
-        Engine speed at hot condition [RPM].
-    :type engine_speeds_out_hot: numpy.array
-
-    :param on_engine:
-        If the engine is on [-].
-    :type on_engine: numpy.array
-
-    :return:
-        Cold start speed model.
-    :rtype: function
-    """
-
-    ds = engine_speeds_out - engine_speeds_out_hot
-    args = (idle_engine_speed, engine_speeds_out_hot, on_engine,
-            engine_coolant_temperatures)
-    delta, error = calculate_cold_start_speeds_delta, mean_absolute_error
-
-    err = [(error(ds, delta(*((model,) + args))), i, model)
-           for i, model in enumerate(models)]
-
-    return list(sorted(err))[0][-1]
 
 
 def calculate_uncorrected_engine_powers_out(
@@ -1250,17 +912,6 @@ def engine():
     )
 
     dsp.add_function(
-        function=calibrate_cold_start_speed_model,
-        inputs=['times', 'velocities', 'accelerations', 'engine_speeds_out',
-                'engine_coolant_temperatures', 'engine_speeds_out_hot',
-                'on_engine', 'idle_engine_speed',
-                'engine_thermostat_temperature',
-                'engine_thermostat_temperature_window', 'stop_velocity',
-                'plateau_acceleration'],
-        outputs=['cold_start_speed_model']
-    )
-
-    dsp.add_function(
         function=calculate_engine_speeds_out_hot,
         inputs=['gear_box_speeds_in', 'on_engine', 'idle_engine_speed'],
         outputs=['engine_speeds_out_hot']
@@ -1268,17 +919,33 @@ def engine():
 
     dsp.add_function(
         function=identify_on_idle,
-        inputs=['velocities', 'engine_speeds_out', 'gears', 'stop_velocity',
+        inputs=['velocities', 'engine_speeds_out_hot', 'gears', 'stop_velocity',
                 'min_engine_on_speed'],
         outputs=['on_idle']
     )
+    from .cold_start import cold_start
 
-    dsp.add_function(
-        function=calculate_cold_start_speeds_delta,
-        inputs=['cold_start_speed_model', 'idle_engine_speed',
-                'engine_speeds_out_hot', 'on_engine',
-                'engine_coolant_temperatures'],
-        outputs=['cold_start_speeds_delta']
+    dsp.add_dispatcher(
+        dsp=cold_start(),
+        inputs={
+            'engine_speeds_out': 'engine_speeds_out',
+            'engine_speeds_out_hot': 'engine_speeds_out_hot',
+            'engine_coolant_temperatures': 'engine_coolant_temperatures',
+            'engine_thermostat_temperature': 'engine_thermostat_temperature',
+            'engine_thermostat_temperature_window':
+                'engine_thermostat_temperature_window',
+            'on_idle': 'on_idle',
+            'cold_start_speeds_phases': 'cold_start_speeds_phases',
+            'idle_engine_speed': 'idle_engine_speed',
+            'times': 'times',
+            'on_engine': 'on_engine',
+            'cold_start_speed_model': 'cold_start_speed_model'
+        },
+        outputs={
+            'cold_start_speeds_phases': 'cold_start_speeds_phases',
+            'cold_start_speeds_delta': 'cold_start_speeds_delta',
+            'cold_start_speed_model': 'cold_start_speed_model'
+        }
     )
 
     dsp.add_function(
