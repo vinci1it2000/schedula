@@ -297,8 +297,9 @@ def sub_models():
         'up_limit': [40],
     }
 
-    from ..physical.engine import engine, calculate_engine_speeds_out
-    dsp = engine()
+    from ..physical.engine import calculate_engine_speeds_out
+    from ..physical.engine.cold_start import cold_start
+    dsp = cold_start()
 
     dsp.add_function(
         function=calculate_engine_speeds_out,
@@ -314,7 +315,7 @@ def sub_models():
                    'on_engine', 'idle_engine_speed'],
         'outputs': ['engine_speeds_out'],
         'targets': ['engine_speeds_out'],
-        'metrics_inputs': ['cold_start_speeds_phases'],
+        'metrics_inputs': ['cold_start_speeds_phases', 'times', 'on_engine'],
         'metrics': [metric_engine_cold_start_speed_model],
         'up_limit': [100],
     }

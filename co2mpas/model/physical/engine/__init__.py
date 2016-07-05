@@ -937,7 +937,6 @@ def engine():
             'on_idle': 'on_idle',
             'cold_start_speeds_phases': 'cold_start_speeds_phases',
             'idle_engine_speed': 'idle_engine_speed',
-            'times': 'times',
             'on_engine': 'on_engine',
             'cold_start_speed_model': 'cold_start_speed_model'
         },
