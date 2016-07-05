@@ -66,6 +66,44 @@ def calculate_engine_start_demand(
     return engine_moment_inertia / alternator_efficiency * idle ** 2 / 2000 * dt
 
 
+def _build_samples(curr, soc, *args):
+    arr = (np.array([soc[:-1]]).T, np.array(args).T[1:], np.array([curr[1:]]).T)
+    return np.concatenate(arr, axis=1)
+
+
+def identify_alternator_initialization_time(
+        alternator_currents, gear_box_powers_in, on_engine, accelerations,
+        state_of_charges, alternator_statuses, times):
+
+    if alternator_statuses[0] == 1:
+        n, i = len(on_engine), co2_utl.argmax(alternator_statuses != 1)
+        opt = {
+            'random_state': 0, 'max_depth': 2, 'loss': 'huber', 'alpha': 0.99
+        }
+
+        spl = _build_samples(
+            alternator_currents, state_of_charges, alternator_statuses,
+            gear_box_powers_in, accelerations
+        )
+
+        j = i if n / i > 3 else 0
+        opt['n_estimators'] = int(min(100, 0.25 * (n - j)))
+        model = GradientBoostingRegressor(**opt)
+        model.fit(spl[j:][:, :-1], spl[j:][:, -1])
+        err = np.abs(spl[:, -1] - model.predict(spl[:, :-1]))
+        sets = np.array(co2_utl.get_inliers(err)[0], dtype=int)[:i]
+
+        reg = DecisionTreeClassifier(max_depth=1)
+        reg.fit(np.array((times[1:i],)).T, sets)
+        l, r = reg.tree_.children_left[0], reg.tree_.children_right[0]
+        l, r = np.argmax(reg.tree_.value[l]), np.argmax(reg.tree_.value[r])
+        if l != r:
+            return reg.tree_.threshold[0] - times[0]
+        elif l == r == 0:
+            return times[i] - times[0]
+    return 0.0
+
+
 def identify_electric_loads(
         alternator_nominal_voltage, battery_currents, alternator_currents,
         gear_box_powers_in, times, on_engine, engine_starts,
@@ -880,6 +918,14 @@ def electrics():
     dsp.add_data(
         data_id='initial_state_of_charge',
         default_value=dfl.values.initial_state_of_charge
+    )
+
+    dsp.add_function(
+        function=identify_alternator_initialization_time,
+        inputs=['alternator_currents', 'gear_box_powers_in', 'on_engine',
+                'accelerations', 'state_of_charges', 'alternator_statuses',
+                'times'],
+        outputs=['alternator_initialization_time']
     )
 
     dsp.add_function(
