@@ -367,7 +367,7 @@ def sub_models():
         'models': ['alternator_status_model', 'alternator_nominal_voltage',
                    'alternator_current_model', 'max_battery_charging_current',
                    'start_demand', 'electric_load', 'alternator_nominal_power',
-                   'alternator_efficiency'],
+                   'alternator_efficiency', 'alternator_initialization_time'],
         'inputs': [
             'battery_capacity', 'alternator_nominal_voltage',
             'initial_state_of_charge', 'times', 'gear_box_powers_in',

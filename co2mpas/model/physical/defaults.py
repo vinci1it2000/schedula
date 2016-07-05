@@ -228,6 +228,9 @@ class Functions(co2_utl.Constants):
             }
         }
 
+    class identify_charging_statuses(co2_utl.Constants):
+        time_window = 4
+
     class restrict_bounds(co2_utl.Constants):
         #: Multipliers applied into the `restrict_bounds` function.
         CO2_PARAMS_LIMIT_MULTIPLIERS = {
