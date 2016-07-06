@@ -10,11 +10,11 @@
 It provides constants for the CO2MPAS formulas.
 """
 
-import sys
+import numpy as np
 import co2mpas.utils as co2_utl
 
 #: Machine error.
-EPS = sys.float_info.epsilon
+EPS = np.finfo(np.float32).eps
 
 #: Infinite value.
 INF = 10000.0

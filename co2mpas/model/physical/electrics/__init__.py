@@ -29,7 +29,7 @@ from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.tree import DecisionTreeClassifier
 from co2mpas.dispatcher import Dispatcher
 import co2mpas.utils as co2_utl
-from ..defaults import dfl
+from ..defaults import dfl, EPS
 from sklearn.pipeline import Pipeline
 from ..engine.thermal import _SelectFromModel
 
@@ -84,11 +84,10 @@ def identify_charging_statuses_and_alternator_initialization_time(
         accelerations):
     statuses = identify_charging_statuses(
         times, alternator_currents, gear_box_powers_in, on_engine,
-        alternator_current_threshold, starts_windows, state_of_charges,
-        accelerations, 0)
+        alternator_current_threshold, starts_windows, 0)
     alternator_initialization_time = identify_alternator_initialization_time(
         alternator_currents, gear_box_powers_in, on_engine, accelerations,
-        state_of_charges, statuses, times
+        state_of_charges, statuses, times, alternator_current_threshold
     )
     _set_alt_init_status(times, alternator_initialization_time, statuses)
     return statuses, alternator_initialization_time
@@ -96,8 +95,8 @@ def identify_charging_statuses_and_alternator_initialization_time(
 
 def identify_charging_statuses(
         times, alternator_currents, gear_box_powers_in, on_engine,
-        alternator_current_threshold, starts_windows, state_of_charges,
-        accelerations, alternator_initialization_time):
+        alternator_current_threshold, starts_windows,
+        alternator_initialization_time):
     """
     Identifies when the alternator is on due to 1:state of charge or 2:BERS [-].
 
@@ -135,12 +134,20 @@ def identify_charging_statuses(
 
     status = np.zeros_like(alternator_currents, dtype=int)
     status[(alternator_currents < alternator_current_threshold) & on_engine] = 2
-    off = np.logical_not(on_engine) | starts_windows
+    off = ~on_engine | starts_windows
 
     b1 = -1
 
     n = len(on_engine) - 1
-    f = True
+
+    def _rollback(i):
+        i -= 1
+        while i > 0 and status[i] == 0:
+            i -= 1
+        while i > 0 and status[i] == 2:
+            i -= 1
+        return i
+
     for b0, (s, p) in enumerate(zip(status, gb_p)):
         if s == 2 and p >= 0 and b0 >= b1:
             b1 = b0
@@ -149,17 +156,21 @@ def identify_charging_statuses(
                 b1 += 1
 
             if b1 != n:
-                while b1 > b0 and gb_p[b1] <= 0:
+                while b1 > b0 and gb_p[b1] <= 0 and not off[b1]:
                     b1 -= 1
 
             if b1 > b0:
-                if f:
-                    b0 = 0
+                while b0 > 1 and status[b0 - 1] == 2:
+                    b0 -= 1
+                i = _rollback(b0)
+                if i == 0 or status[i] == 1:
+                    b0 = i
                 status[b0:b1 + 1] = 1
-            f = False
 
-    time_window = dfl.functions.identify_charging_statuses.time_window
-    status = co2_utl.clear_fluctuations(times, status, time_window)
+    i = _rollback(n + 1)
+    if status[i] == 1:
+        status[i:n] = 1
+
     _set_alt_init_status(times, alternator_initialization_time, status)
 
     return status
@@ -167,7 +178,8 @@ def identify_charging_statuses(
 
 def identify_alternator_initialization_time(
         alternator_currents, gear_box_powers_in, on_engine, accelerations,
-        state_of_charges, alternator_statuses, times):
+        state_of_charges, alternator_statuses, times,
+        alternator_current_threshold):
     """
 
 
@@ -205,7 +217,8 @@ def identify_alternator_initialization_time(
     """
 
     if alternator_statuses[0] == 1:
-        n, i = len(on_engine), co2_utl.argmax(alternator_statuses != 1)
+        s = alternator_currents < alternator_current_threshold
+        n, i = len(on_engine), co2_utl.argmax((s[:-1] != s[1:]) & s[:-1])
         i = min(n - 1, i)
         opt = {
             'random_state': 0, 'max_depth': 2, 'loss': 'huber', 'alpha': 0.99
@@ -216,21 +229,22 @@ def identify_alternator_initialization_time(
             gear_box_powers_in, accelerations
         )
 
-        j = min(i, int(n / 3))
+        j = min(i, int(n / 2))
         opt['n_estimators'] = int(min(100, 0.25 * (n - j))) or 1
         model = GradientBoostingRegressor(**opt)
         model.fit(spl[j:][:, :-1], spl[j:][:, -1])
         err = np.abs(spl[:, -1] - model.predict(spl[:, :-1]))
         sets = np.array(co2_utl.get_inliers(err)[0], dtype=int)[:i]
+        if sum(sets) / i < 0.5 or i > j:
+            reg = DecisionTreeClassifier(max_depth=1, random_state=0)
+            reg.fit(np.array((times[1:i + 1],)).T, sets)
+            l, r = reg.tree_.children_left[0], reg.tree_.children_right[0]
+            l, r = np.argmax(reg.tree_.value[l]), np.argmax(reg.tree_.value[r])
+            if l == 0 and r == 1:
+                return reg.tree_.threshold[0] - times[0]
+            elif r == 0 and not i > j:
+                return times[i] - times[0]
 
-        reg = DecisionTreeClassifier(max_depth=1, random_state=0)
-        reg.fit(np.array((times[1:i + 1],)).T, sets)
-        l, r = reg.tree_.children_left[0], reg.tree_.children_right[0]
-        l, r = np.argmax(reg.tree_.value[l]), np.argmax(reg.tree_.value[r])
-        if l != r:
-            return reg.tree_.threshold[0] - times[0]
-        elif l == r == 0:
-            return times[i] - times[0]
     elif alternator_statuses[0] == 3:
         i = co2_utl.argmax(alternator_statuses != 3)
         return times[i] - times[0]
@@ -670,16 +684,13 @@ def identify_alternator_current_threshold(
 
 
 def _starts_windows(times, engine_starts, dt):
-    j = 0
-    for t in times[engine_starts]:
-        i = np.searchsorted(times[j:], (t - dt,))[0] + j
-        j = np.searchsorted(times[i:], (t + dt,))[0] + i
-        yield i, j
+    ts = times[engine_starts]
+    return np.searchsorted(times, np.column_stack((ts - dt, ts + dt + EPS)))
 
 
 def identify_alternator_starts_windows(
         times, engine_starts, alternator_currents,
-        alternator_start_window_width):
+        alternator_start_window_width, alternator_current_threshold):
     """
     Identifies the alternator starts windows [-].
 
@@ -699,6 +710,10 @@ def identify_alternator_starts_windows(
         Alternator start window width [s].
     :type alternator_start_window_width: float
 
+    :param alternator_current_threshold:
+        Alternator current threshold [A].
+    :type alternator_current_threshold: float
+
     :return:
         Alternator starts windows [-].
     :rtype: numpy.array
@@ -707,7 +722,8 @@ def identify_alternator_starts_windows(
     starts_windows = np.zeros_like(times, dtype=bool)
     dt = alternator_start_window_width / 2
     for i, j in _starts_windows(times, engine_starts, dt):
-        starts_windows[i:j] = (alternator_currents[i:j] > 0).any()
+        b = (alternator_currents[i:j] >= alternator_current_threshold).any()
+        starts_windows[i:j] = b
     return starts_windows
 
 
@@ -722,13 +738,11 @@ class Alternator_status_model(object):
     def __call__(self, *args, **kwargs):
         return self.predict(*args, **kwargs)
 
-    # noinspection PyUnresolvedReferences
-    def fit(self, times, alternator_statuses, state_of_charges,
-            gear_box_powers_in):
+    def _fit_bers(self, alternator_statuses, gear_box_powers_in):
         b = alternator_statuses == 2
         if b.any():
             bers = DecisionTreeClassifier(random_state=0, max_depth=2)
-            c = alternator_statuses != 1
+            c = (alternator_statuses != 1)
             # noinspection PyUnresolvedReferences
             bers.fit(np.array([gear_box_powers_in[c]]).T, b[c])
 
@@ -736,42 +750,50 @@ class Alternator_status_model(object):
         else:
             self.bers = lambda x: np.asarray(x) < 0
 
+    def _fit_charge(self, alternator_statuses, state_of_charges):
         b = alternator_statuses[1:] == 1
-        self.min, self.max = 0, 100.0
         if b.any():
             charge = DecisionTreeClassifier(random_state=0, max_depth=3)
             X = np.array([alternator_statuses[:-1], state_of_charges[1:]]).T
             charge.fit(X, b)
-
             self.charge = charge.predict
-
-            soc, times = state_of_charges[1:], times[1:]
-            s = np.logical_not(b)
-            J = b.size if co2_utl.argmax(b[::-1]) else -co2_utl.argmax(s[::-1])
-            j = I = co2_utl.argmax(s) if co2_utl.argmax(b) == 0 else 0
-            i, step = None, []
-
-            while J > j != i:
-                i = co2_utl.argmax(b[j:]) + j
-                j = co2_utl.argmax(s[i:]) + i
-                # noinspection PyUnresolvedReferences
-                if j != i and linregress(times[i:j], soc[i:j])[0] >= 0:
-                    step.extend(soc[i:j])
-
-            if step:
-                if I < b.size:
-                    self.min = min(step)
-                if -J < b.size:
-                    self.max = max(step)
         else:
             self.charge = lambda *args: (False,)
+
+    def _fit_boundaries(self, alternator_statuses, state_of_charges, times):
+        n = len(alternator_statuses)
+        s = np.zeros(n + 2, dtype=bool)
+        s[1:-1] = alternator_statuses == 1
+        mask = np.column_stack((s[1:], s[:-1])) & (s[:-1] != s[1:])[:, None]
+        mask = np.where(mask)[0].reshape((-1, 2))
+        self.max = _min = 100.0
+        self.min = _max = 0.0
+        for i, j in mask[:-1]:
+            soc = state_of_charges[i:j]
+            if linregress(times[i:j], soc)[0] >= 0:
+                if i > 0:
+                    self.min = _min = min(_min, soc.min())
+                if j < n:
+                    self.max = _max = max(_max, soc.max())
+
+    # noinspection PyUnresolvedReferences
+    def fit(self, times, alternator_statuses, state_of_charges,
+            gear_box_powers_in):
+
+        i = co2_utl.argmax(alternator_statuses != 3)
+
+        status, soc = alternator_statuses[i:], state_of_charges[i:]
+
+        self._fit_bers(status, gear_box_powers_in[i:])
+        self._fit_charge(status, soc)
+        self._fit_boundaries(status, soc, times[i:])
 
         return self
 
     def predict(self, has_energy_rec, init_time, time, prev, soc, power):
         status = 0
 
-        if soc < 99.5:
+        if soc < 100:
             x = [(prev, soc)]
             if time < init_time:
                 status = 3
@@ -1061,7 +1083,6 @@ def electrics():
         function=identify_charging_statuses,
         inputs=['times', 'alternator_currents', 'gear_box_powers_in',
                 'on_engine', 'alternator_current_threshold', 'starts_windows',
-                'state_of_charges', 'accelerations',
                 'alternator_initialization_time'],
         outputs=['alternator_statuses']
     )
@@ -1079,7 +1100,7 @@ def electrics():
         function=identify_alternator_initialization_time,
         inputs=['alternator_currents', 'gear_box_powers_in', 'on_engine',
                 'accelerations', 'state_of_charges', 'alternator_statuses',
-                'times'],
+                'times', 'alternator_current_threshold'],
         outputs=['alternator_initialization_time']
     )
 
@@ -1115,7 +1136,8 @@ def electrics():
     dsp.add_function(
         function=identify_alternator_starts_windows,
         inputs=['times', 'engine_starts', 'alternator_currents',
-                'alternator_start_window_width'],
+                'alternator_start_window_width',
+                'alternator_current_threshold'],
         outputs=['starts_windows']
     )
 
