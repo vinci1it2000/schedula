@@ -315,7 +315,7 @@ def sub_models():
                    'on_engine', 'idle_engine_speed'],
         'outputs': ['engine_speeds_out'],
         'targets': ['engine_speeds_out'],
-        'metrics_inputs': ['cold_start_speeds_phases', 'times', 'on_engine'],
+        'metrics_inputs': ['cold_start_speeds_phases'],
         'metrics': [metric_engine_cold_start_speed_model],
         'up_limit': [100],
     }

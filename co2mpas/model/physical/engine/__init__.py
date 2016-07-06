@@ -932,8 +932,6 @@ def engine():
             'engine_speeds_out_hot': 'engine_speeds_out_hot',
             'engine_coolant_temperatures': 'engine_coolant_temperatures',
             'engine_thermostat_temperature': 'engine_thermostat_temperature',
-            'engine_thermostat_temperature_window':
-                'engine_thermostat_temperature_window',
             'on_idle': 'on_idle',
             'cold_start_speeds_phases': 'cold_start_speeds_phases',
             'idle_engine_speed': 'idle_engine_speed',

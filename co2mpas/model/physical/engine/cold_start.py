@@ -10,53 +10,23 @@ It contains functions that model the engine cold start.
 """
 
 from functools import partial
-from scipy.optimize import fmin
-from sklearn.metrics import r2_score, mean_absolute_error
+from sklearn.metrics import mean_absolute_error
+from sklearn.tree import DecisionTreeRegressor
 import co2mpas.utils as co2_utl
 import numpy as np
 import co2mpas.dispatcher.utils as dsp_utl
-from ..defaults import dfl
 from co2mpas.dispatcher import Dispatcher
+import lmfit
+from .co2_emission import calibrate_model_params
 
 
 def identify_cold_start_speeds_phases(
-        engine_speeds_out, engine_speeds_out_hot, engine_coolant_temperatures,
-        engine_thermostat_temperature_window, on_idle, on_engine, times):
-    """
-    Identifies the phases when engine speed is affected by the cold start [-].
+        engine_coolant_temperatures, engine_thermostat_temperature, on_idle):
 
-    :param engine_speeds_out:
-        Engine speed vector [RPM].
-    :type engine_speeds_out: numpy.array
-
-    :param engine_speeds_out_hot:
-        Engine speed at hot condition [RPM].
-    :type engine_speeds_out_hot: numpy.array
-
-    :param engine_coolant_temperatures:
-        Engine coolant temperature vector [°C].
-    :type engine_coolant_temperatures: numpy.array
-
-    :param engine_thermostat_temperature_window:
-        Thermostat engine temperature limits [°C].
-    :type engine_thermostat_temperature_window: (float, float)
-
-    :param on_idle:
-        If the engine is on idle [-].
-    :type on_idle: numpy.array
-
-
-    :return:
-        Phases when engine speed is affected by the cold start [-].
-    :rtype: numpy.array
-    """
-
-    p = engine_coolant_temperatures < engine_thermostat_temperature_window[0]
-    p &= on_idle & (engine_speeds_out_hot < engine_speeds_out)
-    b = on_engine[:-1] != on_engine[1:]
-    for i, j in ele._starts_windows(times[1:], b, 1.0):
-        p[i + 1:j + 1] = False
-
+    temp = engine_coolant_temperatures
+    i = co2_utl.argmax(temp > engine_thermostat_temperature)
+    p = on_idle.copy()
+    p[i:] = False
     return p
 
 
@@ -83,63 +53,82 @@ def identify_cold_start_speeds_delta(
     """
     speeds = np.zeros_like(engine_speeds_out, dtype=float)
     b = cold_start_speeds_phases
-    speeds[b] = engine_speeds_out[b] - engine_speeds_out_hot[b]
+    speeds[b] = np.maximum(0, engine_speeds_out[b] - engine_speeds_out_hot[b])
     return speeds
 
-def _css_model_v1(x, idle, on_eng, temp, speeds, *args, **kw):
+
+def _css_model(
+        idle, on_eng, temp, speeds, *args, ds=0, m=np.inf, temp_limit=30, **kw):
     add_speeds = np.zeros_like(on_eng, dtype=float)
-    ds, temp_limit = x
-    b = on_eng & (temp_limit > temp)
-    add_speeds[b] = np.maximum((ds + 1) * idle - speeds[b], 0)
+    if ds > 0:
+        b = on_eng & (temp <= temp_limit)
+        if b.any():
+            if not np.isinf(m):
+                ds = np.minimum(ds, (temp_limit - temp[b]) * m)
+            add_speeds[b] = np.maximum((ds + 1) * idle - speeds[b], 0)
     return add_speeds
 
 
-def _css_model_v2(x, idle, on_eng, temp, speeds, *args, **kw):
-    add_speeds = np.zeros_like(on_eng, dtype=float)
-    ds, m, temp_limit = x
-    b = on_eng & (temp_limit > temp)
-    delta = ((temp_limit - temp[b]) * m + 1) * idle - speeds[b]
-    add_speeds[b] = np.maximum(np.minimum(ds * idle, delta), 0)
-    return add_speeds
+def _correct_ds_css(min_t, ds=0, m=np.inf, temp_limit=30):
+    if not np.isinf(m):
+        ds = min(ds, (temp_limit - min_t) * m)
+    return ds
 
-def _calibrate_model(
-        target, speed_hot, *args, model=None, x0=None, ind=0, **kw):
-    x0 = np.asarray(x0)
 
-    def _func(x):
-        return speed_hot + model(x, *args, **kw)
+def _calibrate_css_model(target, *args, x0=None, ind=0):
 
     def _err(x):
-        return mean_absolute_error(target, _func(x))
+        return mean_absolute_error(target, _css_model(*args, **x.valuesdict()))
 
-    es, err = fmin(_err, x0, disp=False, full_output=True)[0:2]
-    err = (round(-r2_score(target, _func(es)), 1), round(err))
-    return err, ind, partial(model, es, **kw)
+    p = calibrate_model_params(_err, x0)[0]
+
+    p['ds'].set(value=_correct_ds_css(p['temp_limit'].min, **p.valuesdict()))
+
+    return round(_err(p)), ind, partial(_css_model, **p.valuesdict())
 
 
-def _calibrate_models(
-        phases, idle, thermostat, on_eng, temp, speeds_hot, speeds):
-    delta = np.maximum(0.0, speeds[phases] - speeds_hot[phases])
-    p = phases & (speeds != idle)
-    val = co2_utl.reject_outliers((thermostat - temp[p]) / (speeds[p] - idle))
-    p = 1.0 / (val[0] * idle)
-    ds = np.mean(delta[temp[phases] <= np.percentile(temp[phases], 40)]) / idle
-    func = partial(_calibrate_model, speeds, speeds_hot, idle, on_eng, temp,
-                   speeds_hot)
-    c = dsp_utl.counter()
+def _identify_temp_limit(delta, temp):
+    reg = DecisionTreeRegressor(random_state=0, max_leaf_nodes=10)
+    reg.fit(temp[:, None], delta)
+    t = np.unique(temp)
+    i = np.searchsorted(t, np.unique(reg.tree_.threshold))
+    n = len(t) - 1
+    if i[-1] != n:
+        i = np.append(i, (n,))
 
-    models = sorted((
-        func(model=_css_model_v1, x0=[ds, np.mean(temp[phases])], ind=c()),
-        func(model=_css_model_v2, x0=[ds, p, thermostat], ind=c()),
-    ))
+    return t[i]
 
-    return models[0][-1]
+
+def _calibrate_models(delta, temp, speeds_hot, speeds, on_eng, idle, phases):
+    func = partial(_calibrate_css_model, delta, idle, on_eng, temp, speeds_hot)
+
+    ind = dsp_utl.counter()
+    best = (np.inf, _css_model)
+    delta, temp = delta[phases], temp[phases]
+    ds = delta / idle
+    p = lmfit.Parameters()
+    t_min, t_max = temp.min(), temp.max()
+    if t_min < t_max:
+        p.add('temp_limit', 0, min=t_min, max=t_max)
+    else:
+        p.add('temp_limit', 0, vary=False)
+
+    p.add('ds', 0, min=0)
+    p.add('m', 0, min=0)
+    for t in _identify_temp_limit(delta, temp):
+        p['temp_limit'].set(value=t)
+        ds_max = ds[temp <= t].max()
+        if ds_max > 0:
+            p['ds'].set(max=ds_max)
+            best = min(func(x0=p, ind=ind()), best)
+
+    return best[-1]
 
 
 def calibrate_cold_start_speed_model(
-        idle_engine_speed, on_idle, on_engine, engine_coolant_temperatures,
-        engine_speeds_out_hot, engine_speeds_out, engine_thermostat_temperature,
-        engine_thermostat_temperature_window):
+        cold_start_speeds_phases, cold_start_speeds_delta, idle_engine_speed,
+        on_engine, engine_coolant_temperatures, engine_speeds_out_hot,
+        engine_speeds_out):
     """
     Calibrates the engine cold start speed model.
 
@@ -180,29 +169,11 @@ def calibrate_cold_start_speed_model(
     :rtype: function
     """
 
-    p = engine_coolant_temperatures <= engine_thermostat_temperature_window[0]
-    p &= on_idle
-    b = engine_coolant_temperatures <= engine_thermostat_temperature
     model = _calibrate_models(
-        p[b], idle_engine_speed[0], engine_thermostat_temperature,
-        on_engine[b], engine_coolant_temperatures[b], engine_speeds_out_hot[b],
-        engine_speeds_out[b]
+        cold_start_speeds_delta, engine_coolant_temperatures,
+        engine_speeds_out_hot, engine_speeds_out, on_engine,
+        idle_engine_speed[0], cold_start_speeds_phases
     )
-
-    if dsp_utl.parent_func(model) is _css_model_v1:
-        x = partial(
-            calculate_cold_start_speeds_delta, model, on_engine,
-            engine_coolant_temperatures, engine_speeds_out_hot,
-            idle_engine_speed
-        )
-        x0, temp = x(), np.unique(engine_coolant_temperatures)
-        i = int(np.searchsorted(temp, model.args[0][1]))
-        for j, t in enumerate(temp[i:], start=i):
-            t0 = model.args[0][1]
-            model.args[0][1] = t
-            if not np.array_equal(x(), x0):
-                model.args[0][1] = t0
-                break
 
     return model
 
@@ -242,12 +213,7 @@ def calculate_cold_start_speeds_delta(
         idle, on_engine, engine_coolant_temperatures, engine_speeds_out_hot
     )
 
-    par = dfl.functions.calculate_cold_start_speeds_delta
-    max_delta = idle * par.MAX_COLD_START_SPEED_DELTA_PERCENTAGE
-    delta[delta > max_delta] = max_delta
-    delta[(idle + delta < engine_speeds_out_hot) | (delta < 0)] = 0
-
-    return delta, delta > 0
+    return delta
 
 
 def cold_start():
@@ -270,10 +236,8 @@ def cold_start():
 
     dsp.add_function(
         function=identify_cold_start_speeds_phases,
-        inputs=['engine_speeds_out', 'engine_speeds_out_hot',
-                'engine_coolant_temperatures',
-                'engine_thermostat_temperature_window', 'on_idle', 'on_engine',
-                'times'],
+        inputs=['engine_coolant_temperatures', 'engine_thermostat_temperature',
+                'on_idle'],
         outputs=['cold_start_speeds_phases']
     )
 
@@ -286,10 +250,9 @@ def cold_start():
 
     dsp.add_function(
         function=calibrate_cold_start_speed_model,
-        inputs=['idle_engine_speed', 'on_idle', 'on_engine',
-                'engine_coolant_temperatures', 'engine_speeds_out_hot',
-                'engine_speeds_out', 'engine_thermostat_temperature',
-                'engine_thermostat_temperature_window'],
+        inputs=['cold_start_speeds_phases', 'cold_start_speeds_delta',
+                'idle_engine_speed', 'on_engine', 'engine_coolant_temperatures',
+                'engine_speeds_out_hot', 'engine_speeds_out'],
         outputs=['cold_start_speed_model']
     )
 
@@ -298,7 +261,7 @@ def cold_start():
         inputs=['cold_start_speed_model', 'on_engine',
                 'engine_coolant_temperatures', 'engine_speeds_out_hot',
                 'idle_engine_speed'],
-        outputs=['cold_start_speeds_delta', 'cold_start_speeds_phases']
+        outputs=['cold_start_speeds_delta']
     )
 
     return dsp
