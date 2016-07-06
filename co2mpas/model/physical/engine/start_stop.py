@@ -14,8 +14,7 @@ from sklearn.feature_selection import SelectFromModel
 from sklearn.preprocessing import FunctionTransformer
 from sklearn.tree import DecisionTreeClassifier
 import numpy as np
-import co2mpas.utils as co2_utl
-from co2mpas.model.physical.defaults import dfl
+from co2mpas.model.physical.defaults import dfl, EPS
 from co2mpas.dispatcher import Dispatcher
 
 
@@ -46,16 +45,14 @@ def identify_on_engine(
     :rtype: numpy.array
     """
 
-    on_engine = np.zeros_like(times, dtype=int)
+    on_engine = engine_speeds_out > idle_engine_speed[0] - idle_engine_speed[1]
+    mask = np.where(identify_engine_starts(on_engine))[0] + 1
+    ts = np.asarray(times[mask], dtype=float)
+    ts += min_time_engine_on_after_start + EPS
+    for i, j in zip(mask, np.searchsorted(times, ts)):
+        on_engine[i:j] = True
 
-    b = engine_speeds_out > idle_engine_speed[0] - idle_engine_speed[1]
-    on_engine[b] = 1
-
-    on_engine = co2_utl.clear_fluctuations(
-        times, on_engine, min_time_engine_on_after_start
-    )
-
-    return np.array(on_engine, dtype=bool)
+    return on_engine
 
 
 def identify_engine_starts(on_engine):
@@ -71,7 +68,9 @@ def identify_engine_starts(on_engine):
     :rtype: numpy.array
     """
 
-    return np.append(np.diff(np.array(on_engine, dtype=int)) > 0, (False,))
+    engine_starts = np.zeros_like(on_engine, dtype=bool)
+    engine_starts[:-1] = on_engine[1:] & (on_engine[:-1] != on_engine[1:])
+    return engine_starts
 
 
 def default_use_basic_start_stop_model(is_hybrid):
