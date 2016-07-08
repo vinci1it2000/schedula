@@ -20,8 +20,7 @@ from . import define_k_factor_curve
 import numpy as np
 
 
-def calculate_clutch_phases(
-        times, gear_shifts, clutch_window):
+def calculate_clutch_phases(times, gear_shifts, clutch_window):
     """
     Calculate when the clutch is active [-].
 
@@ -51,6 +50,35 @@ def calculate_clutch_phases(
     return b
 
 
+def identify_clutch_speeds_delta(
+        clutch_phases, engine_speeds_out, engine_speeds_out_hot,
+        cold_start_speeds_delta):
+    """
+    Identifies the engine speed delta due to the clutch [RPM].
+
+    :param engine_speeds_out:
+        Engine speed [RPM].
+    :type engine_speeds_out: numpy.array
+
+    :param engine_speeds_out_hot:
+        Engine speed at hot condition [RPM].
+    :type engine_speeds_out_hot: numpy.array
+
+    :param cold_start_speeds_delta:
+        Engine speed delta due to the cold start [RPM].
+    :type cold_start_speeds_delta: numpy.array
+
+    :return:
+        Engine speed delta due to the clutch or torque converter [RPM].
+    :rtype: numpy.array
+    """
+    delta = np.zeros_like(clutch_phases, dtype=float)
+    s, h, c = engine_speeds_out, engine_speeds_out_hot, cold_start_speeds_delta
+    b = clutch_phases
+    delta[b] = s[b] - h[b] - c[b]
+    return delta
+
+
 def calculate_clutch_speed_threshold(clutch_speeds_delta):
     """
     Calculates the threshold of engine speed delta due to the clutch [RPM].
@@ -68,8 +96,9 @@ def calculate_clutch_speed_threshold(clutch_speeds_delta):
 
 
 def identify_clutch_window(
-        times, accelerations, gear_shifts, clutch_speeds_delta,
-        clutch_speed_threshold, max_clutch_window_width):
+        times, accelerations, gear_shifts, engine_speeds_out,
+        engine_speeds_out_hot, cold_start_speeds_delta,
+        max_clutch_window_width):
     """
     Identifies clutching time window [s].
 
@@ -109,7 +138,8 @@ def identify_clutch_window(
 
     phs = partial(calculate_clutch_phases, times, gear_shifts)
 
-    delta, threshold = clutch_speeds_delta, clutch_speed_threshold
+    delta = engine_speeds_out - engine_speeds_out_hot - cold_start_speeds_delta
+    threshold = np.std(delta) * 2
 
     def error(v):
         clutch_phases = phs(v) & ((-threshold > delta) | (delta > threshold))
@@ -147,8 +177,7 @@ def _no_clutch(X, *args):
 
 
 def calibrate_clutch_prediction_model(
-        clutch_phases, accelerations, clutch_speeds_delta,
-        clutch_speed_threshold):
+        clutch_phases, accelerations, clutch_speeds_delta):
     """
     Calibrate clutch prediction model.
 
@@ -173,7 +202,7 @@ def calibrate_clutch_prediction_model(
     :rtype: function
     """
 
-    delta, threshold = clutch_speeds_delta, clutch_speed_threshold
+    delta = clutch_speeds_delta
     phases, acc = clutch_phases, accelerations
 
     calibrate, counter = _calibrate_clutch_prediction_model, dsp_utl.counter()
@@ -181,8 +210,7 @@ def calibrate_clutch_prediction_model(
     error = lambda func: (mean_squared_error(y, func(X)), counter())
 
     models = [calibrate(acc[b], delta[b], error, _no_clutch)
-              for b in [np.zeros_like(acc, dtype=bool),
-                        phases & ((-threshold > delta) | (delta > threshold))]]
+              for b in [np.zeros_like(acc, dtype=bool), phases]]
 
     return min(models)[-1]
 
@@ -266,16 +294,22 @@ def clutch():
 
     dsp.add_function(
         function=identify_clutch_window,
-        inputs=['times', 'accelerations', 'gear_shifts',
-                'clutch_speeds_delta', 'clutch_speed_threshold',
+        inputs=['times', 'accelerations', 'gear_shifts', 'engine_speeds_out',
+                'engine_speeds_out_hot', 'cold_start_speeds_delta',
                 'max_clutch_window_width'],
         outputs=['clutch_window']
     )
 
     dsp.add_function(
+        function=identify_clutch_speeds_delta,
+        inputs=['clutch_phases', 'engine_speeds_out', 'engine_speeds_out_hot',
+                'cold_start_speeds_delta'],
+        outputs=['clutch_speeds_delta']
+    )
+
+    dsp.add_function(
         function=calibrate_clutch_prediction_model,
-        inputs=['clutch_phases', 'accelerations', 'clutch_speeds_delta',
-                'clutch_speed_threshold'],
+        inputs=['clutch_phases', 'accelerations', 'clutch_speeds_delta'],
         outputs=['clutch_model']
     )
 

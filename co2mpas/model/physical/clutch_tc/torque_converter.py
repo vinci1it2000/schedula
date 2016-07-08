@@ -17,6 +17,31 @@ from co2mpas.dispatcher import Dispatcher
 import numpy as np
 
 
+def identify_torque_converter_speeds_delta(
+        engine_speeds_out, engine_speeds_out_hot, cold_start_speeds_delta):
+    """
+    Calculates the engine speed delta due to the clutch [RPM].
+
+    :param engine_speeds_out:
+        Engine speed [RPM].
+    :type engine_speeds_out: numpy.array
+
+    :param engine_speeds_out_hot:
+        Engine speed at hot condition [RPM].
+    :type engine_speeds_out_hot: numpy.array
+
+    :param cold_start_speeds_delta:
+        Engine speed delta due to the cold start [RPM].
+    :type cold_start_speeds_delta: numpy.array
+
+    :return:
+        Engine speed delta due to the clutch or torque converter [RPM].
+    :rtype: numpy.array
+    """
+
+    return engine_speeds_out - engine_speeds_out_hot - cold_start_speeds_delta
+
+
 class TorqueConverter(object):
     def __init__(self):
         self.predict = self.no_torque_converter
@@ -214,6 +239,13 @@ def torque_converter():
     dsp.add_data(
         data_id='lock_up_tc_limits',
         default_value=dfl.values.lock_up_tc_limits
+    )
+
+    dsp.add_function(
+        function=identify_torque_converter_speeds_delta,
+        inputs=['engine_speeds_out', 'engine_speeds_out_hot',
+                'cold_start_speeds_delta'],
+        outputs=['torque_converter_speeds_delta']
     )
 
     dsp.add_function(
