@@ -283,12 +283,14 @@ def sub_models():
 
     models['engine_speed_model'] = {
         'dsp': physical(),
+        'select_models': tyre_models_selector,
         'models': ['r_dynamic', 'final_drive_ratio', 'gear_box_ratios',
                    'idle_engine_speed_median', 'idle_engine_speed_std',
-                   'CVT', 'max_speed_velocity_ratio'],
+                   'CVT', 'max_speed_velocity_ratio',
+                   'tyre_dynamic_rolling_coefficient'],
         'inputs': ['velocities', 'gears', 'times', 'on_engine', 'gear_box_type',
                    'accelerations', 'final_drive_powers_in',
-                   'engine_thermostat_temperature'],
+                   'engine_thermostat_temperature', 'r_wheels'],
         'outputs': ['engine_speeds_out_hot'],
         'targets': ['engine_speeds_out'],
         'metrics_inputs': ['times', 'velocities', 'gear_shifts', 'on_engine',
@@ -408,6 +410,13 @@ def sub_models():
         'weights': [-1, 0]
     }
 
+    return models
+
+
+def tyre_models_selector(models_ids, data):
+    models = dsp_utl.selector(models_ids, data, allow_miss=True)
+    if 'tyre_dynamic_rolling_coefficient' in models:
+        models.pop('r_dynamic', None)
     return models
 
 

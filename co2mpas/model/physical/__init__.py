@@ -288,7 +288,11 @@ def physical():
             'times': 'times',
             'idle_engine_speed': 'idle_engine_speed',
             'accelerations': 'accelerations',
+            'tyre_code': 'tyre_code',
+            'tyre_dimensions': 'tyre_dimensions',
             'r_wheels': 'r_wheels',
+            'tyre_dynamic_rolling_coefficient':
+                'tyre_dynamic_rolling_coefficient',
             'r_dynamic': 'r_dynamic',
             'velocities': 'velocities',
             'gears': 'gears',
@@ -302,11 +306,16 @@ def physical():
             'change_gear_window_width': 'change_gear_window_width'
         },
         outputs={
+            'tyre_code': 'tyre_code',
+            'tyre_dynamic_rolling_coefficient':
+                'tyre_dynamic_rolling_coefficient',
+            'r_wheels': 'r_wheels',
             'r_dynamic': 'r_dynamic',
             'wheel_powers': 'wheel_powers',
             'wheel_speeds': 'wheel_speeds',
             'wheel_torques': 'wheel_torques'
-        }
+        },
+        inp_weight={'r_dynamic': 3}
     )
 
     from .final_drive import final_drive

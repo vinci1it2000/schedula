@@ -276,6 +276,18 @@ def _compare_str(s, **kwargs):
     return And(Use(str.lower), s.lower(), Use(lambda x: s))
 
 
+def _tyre_code(error=None, **kwargs):
+    error = error or 'invalid tyre code!'
+    from ..model.physical.wheels import _re_tyre_code
+    return And(str, _re_tyre_code.match, error=error)
+
+
+def _tyre_dimensions(error=None, **kwargs):
+    error = error or 'invalid format for tyre dimensions!'
+    from ..model.physical.wheels import _format_tyre_dimensions
+    return And(_dict(format=dict), Use(_format_tyre_dimensions), error=error)
+
+
 def define_data_schema(read=True):
     cmv = _cmv(read=read)
     dtc = _dtc(read=read)
@@ -301,7 +313,8 @@ def define_data_schema(read=True):
     parameters = _parameters(read=read)
     dictstrfloat = _dict(format={str: Use(float)}, read=read)
     dictstrtuple = _dict(format={str: tuple}, read=read)
-
+    tyre_code = _tyre_code(read=read)
+    tyre_dimensions = _tyre_dimensions(read=read)
     schema = {
         _compare_str('CVT'): function,
         _compare_str('CMV'): cmv,
@@ -318,6 +331,8 @@ def define_data_schema(read=True):
 
         _compare_str('VERSION'): string,
         'lock_up_tc_limits': tuplefloat2,
+        'tyre_dimensions': tyre_dimensions,
+        'tyre_code': tyre_code,
         'wltp_base_model': _dict(format=dict, read=read),
         'fuel_type': _select(types=('gasoline', 'diesel'), read=read),
         'engine_fuel_lower_heating_value': positive,

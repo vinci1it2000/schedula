@@ -20,6 +20,10 @@ from .defaults import dfl
 from .gear_box.mechanical import calculate_speed_velocity_ratios, \
     calculate_velocity_speed_ratios, calculate_gear_box_speeds_in, \
     identify_gears
+import regex
+import logging
+import schema
+log = logging.getLogger(__name__)
 
 
 def calculate_wheel_power(velocities, accelerations, road_loads, vehicle_mass):
@@ -330,6 +334,145 @@ def calculates_brake_powers(
     return -brake_powers
 
 
+def identify_tyre_dynamic_rolling_coefficient(r_wheels, r_dynamic):
+    """
+    Identifies the dynamic rolling coefficient [-].
+
+    :param r_wheels:
+        Radius of the wheels [m].
+    :type r_wheels: float
+
+    :param r_dynamic:
+        Dynamic radius of the wheels [m].
+    :type r_dynamic: float
+
+    :return:
+        Dynamic rolling coefficient [-].
+    :rtype: float
+    """
+
+    return r_dynamic / r_wheels
+
+
+def calculate_r_dynamic(r_wheels, tyre_dynamic_rolling_coefficient):
+    """
+    Calculates the dynamic radius of the wheels [m].
+
+    :param r_wheels:
+        Radius of the wheels [m].
+    :type r_wheels: float
+
+    :param tyre_dynamic_rolling_coefficient:
+        Dynamic rolling coefficient [-].
+    :type tyre_dynamic_rolling_coefficient: float
+
+    :return:
+        Dynamic radius of the wheels [m].
+    :rtype: float
+    """
+
+    return tyre_dynamic_rolling_coefficient * r_wheels
+
+
+_re_tyre_code = regex.compile(
+    r"""
+    ^(?P<use>([a-z]){1,2})?\s*
+    (?P<nominal_section_width>(\d){3})\s*
+    \/\s*
+    (?P<aspect_ratio>(\d){2,3})?
+    ((\s*(?P<carcass>[a-z])\s*)|\s+)
+    (?P<diameter>(\d){1,2})
+    (\s+(?P<load_index>(\d){2,3}))?\s*
+    (?P<speed_rating>[a-z]\d?)?\s*
+    (?P<additional_marks>.*)?$
+    """, regex.IGNORECASE | regex.X | regex.DOTALL)
+
+
+def _format_tyre_code(
+        nominal_section_width, aspect_ratio, diameter, use='', carcass='',
+        load_index='', speed_rating='', additional_marks=''):
+    parts = (
+        '%s%d/%d%s%d' % (use, nominal_section_width, aspect_ratio,
+                         carcass or ' ', diameter),
+        '%s%s' % (load_index, speed_rating),
+        additional_marks
+    )
+    return ' '.join(p for p in parts if p)
+
+
+def _format_tyre_dimensions(tyre_dimensions):
+    frt = schema.Schema({
+        schema.Optional('additional_marks'): schema.Use(str),
+        'aspect_ratio': schema.Use(int),
+        schema.Optional('carcass'): schema.Use(str),
+        'diameter': schema.Use(int),
+        schema.Optional('load_index'): schema.Use(int),
+        'nominal_section_width': schema.Use(int),
+        schema.Optional('speed_rating'): schema.Use(str),
+        schema.Optional('use'): schema.Use(str),
+    })
+    m = {k: v for k, v in tyre_dimensions.items() if v is not None}
+    return frt.validate(m)
+
+
+def define_tyre_code(tyre_dimensions):
+    """
+    Returns the tyre code from the tyre dimensions.
+
+    :param tyre_dimensions:
+        Tyre dimensions.
+
+        .. note:: The fields are : use, nominal_section_width, aspect_ratio,
+           carcass, diameter, load_index, speed_rating, and additional_marks.
+    :type tyre_dimensions: dict
+
+    :return:
+
+    """
+    return _format_tyre_code(**tyre_dimensions)
+
+
+def calculate_r_wheels(tyre_dimensions):
+    """
+    Calculates the radius of the wheels [m] from the tyre dimensions.
+
+    :param tyre_dimensions:
+        Tyre dimensions.
+
+        .. note:: The fields are : use, nominal_section_width, aspect_ratio,
+           carcass, diameter, load_index, speed_rating, and additional_marks.
+    :type tyre_dimensions: dict
+
+    :return:
+        Radius of the wheels [m].
+    :rtype: float
+    """
+    a = tyre_dimensions['aspect_ratio'] / 100  # Aspect ratio is Height/Width.
+    w = tyre_dimensions['nominal_section_width'] / 1000  # Width is in mm.
+    dr = tyre_dimensions['diameter'] * 0.0254  # Rim is in inches.
+    return a * w + dr / 2
+
+
+def calculate_tyre_dimensions(tyre_code):
+    """
+    Calculates the tyre dimensions from the tyre code.
+
+    :param tyre_code:
+        Tyre code (e.g.,P225/70R14).
+    :type tyre_code: str
+
+    :return:
+        Tyre dimensions.
+    :rtype: dict
+    """
+
+    try:
+        m = _re_tyre_code.match(tyre_code).groupdict()
+        return _format_tyre_dimensions(m)
+    except (AttributeError, schema.SchemaError):
+        raise ValueError('Invalid tyre code: %s', tyre_code)
+
+
 def wheels():
     """
     Defines the wheels model.
@@ -394,6 +537,36 @@ def wheels():
     dsp.add_data(
         data_id='change_gear_window_width',
         default_value=dfl.values.change_gear_window_width
+    )
+
+    dsp.add_function(
+        function=calculate_tyre_dimensions,
+        inputs=['tyre_code'],
+        outputs=['tyre_dimensions']
+    )
+
+    dsp.add_function(
+        function=calculate_r_wheels,
+        inputs=['tyre_dimensions'],
+        outputs=['r_wheels']
+    )
+
+    dsp.add_function(
+        function=define_tyre_code,
+        inputs=['tyre_dimensions'],
+        outputs=['tyre_code']
+    )
+
+    dsp.add_function(
+        function=calculate_r_dynamic,
+        inputs=['r_wheels', 'tyre_dynamic_rolling_coefficient'],
+        outputs=['r_dynamic']
+    )
+
+    dsp.add_function(
+        function=identify_tyre_dynamic_rolling_coefficient,
+        inputs=['r_wheels', 'r_dynamic'],
+        outputs=['tyre_dynamic_rolling_coefficient']
     )
 
     dsp.add_function(
