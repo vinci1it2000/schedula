@@ -269,10 +269,9 @@ def identify_r_dynamic(
     :rtype: float
     """
 
-    svr = calculate_speed_velocity_ratios(
-        gear_box_ratios, final_drive_ratio, 1.0)
+    svr = calculate_speed_velocity_ratios(gear_box_ratios, final_drive_ratio, 1)
 
-    r = [vs / svr[k] for k, vs in velocity_speed_ratios.items()]
+    r = [svr[k] * vs for k, vs in velocity_speed_ratios.items() if k]
 
     r_dynamic = co2_utl.reject_outliers(r)[0]
 
