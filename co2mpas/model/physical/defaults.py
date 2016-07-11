@@ -10,11 +10,11 @@
 It provides constants for the CO2MPAS formulas.
 """
 
-import sys
+import numpy as np
 import co2mpas.utils as co2_utl
 
 #: Machine error.
-EPS = sys.float_info.epsilon
+EPS = np.finfo(np.float32).eps
 
 #: Infinite value.
 INF = 10000.0
@@ -227,6 +227,9 @@ class Functions(co2_utl.Constants):
                 't1': {'value': 3.5, 'min': 0.0, 'max': 8.0},
             }
         }
+
+    class identify_charging_statuses(co2_utl.Constants):
+        time_window = 4
 
     class restrict_bounds(co2_utl.Constants):
         #: Multipliers applied into the `restrict_bounds` function.

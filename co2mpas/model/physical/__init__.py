@@ -133,7 +133,7 @@ def predict_vehicle_electrics_and_engine_behavior(
     soc[0] = initial_state_of_charge
 
     temp = np.zeros((len(times) + 1,), dtype=float)
-    t = temp[0] = initial_engine_temperature
+    T = temp[0] = initial_engine_temperature
 
     gen = start_stop_model.yield_on_start(
         times, velocities, accelerations, temp, soc,
@@ -145,7 +145,7 @@ def predict_vehicle_electrics_and_engine_behavior(
 
     e = (0, 0, None, initial_state_of_charge)
     args = np.append([0], np.diff(times)), gear_box_powers_in, accelerations
-    args += (gear_box_speeds_in, final_drive_powers_in)
+    args += (gear_box_speeds_in, final_drive_powers_in, times)
     eng, ele = [(True, False)], [e]
 
     # min_soc = electrics_model.alternator_status_model.min
@@ -153,17 +153,17 @@ def predict_vehicle_electrics_and_engine_behavior(
     thermal_model = partial(engine_temperature_regression_model.delta,
                             max_temp=max_engine_coolant_temperature)
 
-    for i, (on_eng, dt, p, a, s, fdp) in enumerate(zip(gen, *args)):
+    for i, (on_eng, dt, p, a, s, fdp, t) in enumerate(zip(gen, *args)):
 
         # if e[-1] < min_soc and not on_eng[0]:
         #    on_eng[0], on_eng[1] = True, not eng[-1][-2]
 
         eng_s = calculate_engine_speeds_out_hot(s, on_eng[0], idle_engine_speed)
 
-        t += thermal_model(dt, fdp, eng_s, a, prev_temperature=t)
-        temp[i + 1] = t
+        T += thermal_model(dt, fdp, eng_s, a, prev_temperature=T)
+        temp[i + 1] = T
 
-        e = tuple(electrics_model(dt, p, a, *(tuple(on_eng) + tuple(e[1:]))))
+        e = tuple(electrics_model(dt, p, a, t, *(tuple(on_eng) + tuple(e[1:]))))
 
         soc[i + 1] = e[-1]
         ele.append(e)
@@ -507,7 +507,8 @@ def physical():
             'state_of_charges': 'state_of_charges',
             'stop_velocity': 'stop_velocity',
             'alternator_start_window_width': 'alternator_start_window_width',
-            'alternator_off_threshold': 'alternator_off_threshold'
+            'alternator_off_threshold': 'alternator_off_threshold',
+            'alternator_initialization_time': 'alternator_initialization_time'
         },
         outputs={
             'alternator_current_model': 'alternator_current_model',
@@ -521,7 +522,8 @@ def physical():
             'max_battery_charging_current': 'max_battery_charging_current',
             'state_of_charges': 'state_of_charges',
             'start_demand': 'start_demand',
-            'electrics_model': 'electrics_model'
+            'electrics_model': 'electrics_model',
+            'alternator_initialization_time': 'alternator_initialization_time'
         }
     )
 

@@ -71,9 +71,10 @@ def _filter_samples(spl, on_engine, thermostat):
 
 
 class _SelectFromModel(SelectFromModel):
-    def __init__(self, *args, in_mask=(), **kwargs):
+    def __init__(self, *args, in_mask=(), out_mask=(), **kwargs):
         super(_SelectFromModel, self).__init__(*args, **kwargs)
         self._in_mask = in_mask
+        self._out_mask = out_mask
 
     def _get_support_mask(self):
         try:
@@ -91,8 +92,12 @@ class _SelectFromModel(SelectFromModel):
             sfm = SelectFromModel(estimator.estimator_, self.threshold, True)
             mask = sfm._get_support_mask()
 
+        for i in self._out_mask:
+            mask[i] = False
+
         for i in self._in_mask:
             mask[i] = True
+
         return mask
 
 
