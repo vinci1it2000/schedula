@@ -406,7 +406,7 @@ def calculate_delta(data):
         n[2] = k
         if not co2_utl.are_in_nested_dicts(data, *n):
             continue
-        dco2 = co2_nedc - co2_utl.get_nested_dicts(data, *n)
+        dco2 = co2_utl.get_nested_dicts(data, *n) - co2_nedc
         co2_utl.get_nested_dicts(d, 'nedc', *n[2:], default=co2_utl.ret_v(dco2))
 
     return d
