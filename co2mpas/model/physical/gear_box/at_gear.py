@@ -1506,9 +1506,9 @@ class MVL(CMV):
 
 
 # noinspection PyUnusedLocal
-def domain_eco_mode(eco_mode, *args):
+def domain_fuel_saving_at_strategy(fuel_saving_at_strategy, *args):
 
-    return eco_mode
+    return fuel_saving_at_strategy
 
 
 def default_specific_gear_shifting(*args):
@@ -1550,8 +1550,8 @@ def at_gear():
                     'automatic vehicles.')
 
     dsp.add_data(
-        data_id='eco_mode',
-        default_value=dfl.values.eco_mode,
+        data_id='fuel_saving_at_strategy',
+        default_value=dfl.values.fuel_saving_at_strategy,
         description='Apply the eco-mode gear shifting?'
     )
 
@@ -1585,22 +1585,22 @@ def at_gear():
 
     dsp.add_function(
         function=dsp_utl.add_args(correct_gear_v0),
-        inputs=['eco_mode', 'cycle_type', 'velocity_speed_ratios', 'MVL',
+        inputs=['fuel_saving_at_strategy', 'cycle_type', 'velocity_speed_ratios', 'MVL',
                 'engine_max_power', 'engine_max_speed_at_max_power',
                 'idle_engine_speed', 'full_load_curve', 'road_loads',
                 'vehicle_mass', 'max_velocity_full_load_correction',
                 'plateau_acceleration'],
         outputs=['correct_gear'],
-        input_domain=domain_eco_mode
+        input_domain=domain_fuel_saving_at_strategy
     )
 
     dsp.add_function(
         function=dsp_utl.add_args(correct_gear_v1),
-        inputs=['eco_mode', 'cycle_type', 'velocity_speed_ratios', 'MVL',
+        inputs=['fuel_saving_at_strategy', 'cycle_type', 'velocity_speed_ratios', 'MVL',
                 'idle_engine_speed', 'plateau_acceleration'],
         outputs=['correct_gear'],
         weight=50,
-        input_domain=domain_eco_mode
+        input_domain=domain_fuel_saving_at_strategy
     )
 
     dsp.add_function(

@@ -350,7 +350,7 @@ def physical():
         inputs={
             'on_engine': 'on_engine',
             'CVT': 'CVT',
-            'eco_mode': 'eco_mode',
+            'fuel_saving_at_strategy': 'fuel_saving_at_strategy',
             'MVL': 'MVL',
             'CMV': 'CMV',
             'CMV_Cold_Hot': 'CMV_Cold_Hot',
@@ -363,7 +363,7 @@ def physical():
             'cycle_type': 'cycle_type',
             'use_dt_gear_shifting': 'use_dt_gear_shifting',
             'specific_gear_shifting': 'specific_gear_shifting',
-            'fuel_type': 'fuel_type',
+            'ignition_type': 'ignition_type',
             'full_load_curve': 'full_load_curve',
             'engine_max_power': 'engine_max_power',
             'engine_max_speed_at_max_power': 'engine_max_speed_at_max_power',
@@ -532,7 +532,6 @@ def physical():
         dsp_id='engine_model',
         dsp=engine(),
         inputs={
-
             'is_hybrid': 'is_hybrid',
             'state_of_charges': 'state_of_charges',
             'auxiliaries_torque_loss': 'auxiliaries_torque_loss',
@@ -552,6 +551,7 @@ def physical():
             'engine_temperature_regression_model':
                 'engine_temperature_regression_model',
             'cold_start_speed_model': 'cold_start_speed_model',
+            'ignition_type': 'ignition_type',
             'fuel_type': 'fuel_type',
             'full_load_speeds': 'full_load_speeds',
             'full_load_torques': 'full_load_torques',
@@ -608,6 +608,7 @@ def physical():
             'max_engine_coolant_temperature': 'max_engine_coolant_temperature'
         },
         outputs={
+            'ignition_type': 'ignition_type',
             'has_sufficient_power': 'has_sufficient_power',
             'idle_engine_speed_median': 'idle_engine_speed_median',
             'idle_engine_speed_std': 'idle_engine_speed_std',
@@ -666,7 +667,9 @@ def physical():
             'initial_friction_params': 'initial_friction_params',
             'use_basic_start_stop': 'use_basic_start_stop',
             'max_engine_coolant_temperature': 'max_engine_coolant_temperature',
-            'engine_temperature_derivatives': 'engine_temperature_derivatives'
+            'engine_temperature_derivatives': 'engine_temperature_derivatives',
+            'engine_fuel_lower_heating_value':
+                'engine_fuel_lower_heating_value',
         },
         inp_weight={'initial_temperature': 5}
     )

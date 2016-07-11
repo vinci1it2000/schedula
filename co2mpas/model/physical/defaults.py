@@ -73,7 +73,7 @@ class Values(co2_utl.Constants):
     n_wheel_drive = 2
 
     #: Apply the eco-mode gear shifting?
-    eco_mode = True
+    fuel_saving_at_strategy = True
 
     #: Is the vehicle hybrid?
     is_hybrid = False
@@ -193,7 +193,7 @@ class Functions(co2_utl.Constants):
     class define_initial_co2_emission_model_params_guess(co2_utl.Constants):
         #: Initial guess CO2 emission model params.
         CO2_PARAMS = {
-            'gasoline turbo': {
+            'positive turbo': {
                 'a': {'value': 0.468678, 'min': 0.398589, 'max': 0.538767},
                 'b': {'value': 0.011859, 'min': 0.006558, 'max': 0.01716},
                 'c': {'value': -0.00069, 'min': -0.00099, 'max': -0.00038},
@@ -204,7 +204,7 @@ class Functions(co2_utl.Constants):
                 't0': {'value': 4.5, 'min': 0.0, 'max': 8.0},
                 't1': {'value': 3.5, 'min': 0.0, 'max': 8.0},
             },
-            'gasoline natural aspiration': {
+            'positive natural aspiration': {
                 'a': {'value': 0.4719, 'min': 0.40065, 'max': 0.54315},
                 'b': {'value': 0.01193, 'min': -0.00247, 'max': 0.026333},
                 'c': {'value': -0.00065, 'min': -0.00138, 'max': 0.0000888},
@@ -215,7 +215,7 @@ class Functions(co2_utl.Constants):
                 't0': {'value': 4.5, 'min': 0.0, 'max': 8.0},
                 't1': {'value': 3.5, 'min': 0.0, 'max': 8.0},
             },
-            'diesel': {
+            'compression': {
                 'a': {'value': 0.391197, 'min': 0.346548, 'max': 0.435846},
                 'b': {'value': 0.028604, 'min': 0.002519, 'max': 0.054688},
                 'c': {'value': -0.00196, 'min': -0.00386, 'max': -0.000057},
@@ -297,8 +297,8 @@ class Functions(co2_utl.Constants):
         #: Equivalent gear box heat capacity parameters.
         PARAMS = {
             'mass_coeff': {
-                'diesel': 1.1,
-                'gasoline': 1.0
+                'compression': 1.1,
+                'positive': 1.0
             },
             'mass_percentage': {
                 'coolant': 0.04,  # coolant: 50%/50% (0.85*4.186)
@@ -322,13 +322,13 @@ class Functions(co2_utl.Constants):
     class get_full_load(co2_utl.Constants):
         #: Vehicle normalized full load curve.
         FULL_LOAD = {
-            'gasoline': (
+            'positive': (
                 [0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2],
                 [0.1, 0.198238659, 0.30313392, 0.410104642, 0.516920841,
                  0.621300767, 0.723313491, 0.820780368, 0.901750158,
                  0.962968496, 0.995867804, 0.953356174, 0.85]
             ),
-            'diesel': (
+            'compression': (
                 [0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2],
                 [0.1, 0.278071182, 0.427366185, 0.572340499, 0.683251935,
                  0.772776746, 0.846217049, 0.906754984, 0.94977083, 0.981937981,
@@ -339,22 +339,50 @@ class Functions(co2_utl.Constants):
     class calculate_engine_max_torque(co2_utl.Constants):
         #: Engine nominal torque params.
         PARAMS = {
-            'gasoline': 1.25,
-            'diesel': 1.1
+            'positive': 1.25,
+            'compression': 1.1
         }
 
     class calculate_engine_moment_inertia(co2_utl.Constants):
         #: Engine moment of inertia params.
         PARAMS = {
-            'gasoline': 1,
-            'diesel': 2
+            'positive': 1,
+            'compression': 2
         }
-
+    #TODO: add default fuel densities.
     class default_fuel_density(co2_utl.Constants):
         #: Fuel density [g/l].
         FUEL_DENSITY = {
             'gasoline': 750.0,
-            'diesel': 835.0
+            'diesel': 835.0,
+            #'LPG': ,
+            #'NG': ,
+            #'ethanol': ,
+            #'biodiesel': ,
+        }
+
+    #TODO: add default fuel lower heating values.
+    class default_fuel_lower_heating_value(co2_utl.Constants):
+        #: Fuel lower heating value [kJ/kg].
+        LHV = {
+            #'gasoline': ,
+            #'diesel': ,
+            #'LPG': ,
+            #'NG': ,
+            #'ethanol': ,
+            #'biodiesel': ,
+        }
+
+    #TODO: add default fuel carbon content.
+    class default_fuel_carbon_content(co2_utl.Constants):
+        #: Fuel carbon content [CO2g/g].
+        CARBON_CONTENT = {
+            #'gasoline': ,
+            #'diesel': ,
+            #'LPG': ,
+            #'NG': ,
+            #'ethanol': ,
+            #'biodiesel': ,
         }
 
     class calibrate_cold_start_speed_model_v1(co2_utl.Constants):

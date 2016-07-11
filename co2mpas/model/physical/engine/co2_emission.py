@@ -25,6 +25,54 @@ import co2mpas.utils as co2_utl
 from ..defaults import dfl, EPS
 
 
+def default_fuel_density(fuel_type):
+    """
+    Returns the default fuel density [g/l].
+
+    :param fuel_type:
+        Fuel type (diesel, gasoline, LPG, NG, ethanol, biodiesel).
+    :type fuel_type: str
+
+    :return:
+        Fuel density [g/l].
+    :rtype: float
+    """
+
+    return dfl.functions.default_fuel_density.FUEL_DENSITY[fuel_type]
+
+
+def default_fuel_carbon_content(fuel_type):
+    """
+    Returns the default fuel carbon content [CO2g/g].
+
+    :param fuel_type:
+        Fuel type (diesel, gasoline, LPG, NG, ethanol, biodiesel).
+    :type fuel_type: str
+
+    :return:
+        Fuel carbon content [CO2g/g].
+    :rtype: float
+    """
+
+    return dfl.functions.default_fuel_carbon_content.CARBON_CONTENT[fuel_type]
+
+
+def default_engine_fuel_lower_heating_value(fuel_type):
+    """
+    Returns the default fuel lower heating value [kJ/kg].
+
+    :param fuel_type:
+        Fuel type (diesel, gasoline, LPG, NG, ethanol, biodiesel).
+    :type fuel_type: str
+
+    :return:
+        Fuel lower heating value [kJ/kg].
+    :rtype: float
+    """
+
+    return dfl.functions.default_fuel_lower_heating_value.LHV[fuel_type]
+
+
 def calculate_fuel_carbon_content(fuel_carbon_content_percentage):
     """
     Calculates the fuel carbon content as CO2g/g.
@@ -877,7 +925,7 @@ def define_initial_co2_emission_model_params_guess(
     :type params: dict
 
     :param engine_type:
-        Engine type (gasoline turbo, gasoline natural aspiration, diesel).
+        Engine type (positive turbo, positive natural aspiration, compression).
     :type engine_type: str
 
     :param engine_normalization_temperature:
@@ -1782,6 +1830,18 @@ def co2_emission():
         name='Engine CO2 emission sub model',
         description='Calculates temperature, efficiency, '
                     'torque loss of gear box'
+    )
+
+    dsp.add_function(
+        function=default_engine_fuel_lower_heating_value,
+        inputs=['fuel_type'],
+        outputs=['engine_fuel_lower_heating_value'],
+    )
+
+    dsp.add_function(
+        function=default_fuel_carbon_content,
+        inputs=['fuel_type'],
+        outputs=['fuel_carbon_content'],
     )
 
     dsp.add_function(

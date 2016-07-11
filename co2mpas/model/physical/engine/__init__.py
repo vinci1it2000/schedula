@@ -32,20 +32,20 @@ from co2mpas.dispatcher import Dispatcher
 import co2mpas.utils as co2_utl
 
 
-def get_full_load(fuel_type):
+def get_full_load(ignition_type):
     """
     Returns vehicle full load curve.
 
-    :param fuel_type:
-        Vehicle fuel type (diesel or gasoline).
-    :type fuel_type: str
+    :param ignition_type:
+        Engine ignition type (positive or compression).
+    :type ignition_type: str
 
     :return:
         Vehicle normalized full load curve.
     :rtype: scipy.interpolate.InterpolatedUnivariateSpline
     """
 
-    return Spline(*dfl.functions.get_full_load.FULL_LOAD[fuel_type], ext=3)
+    return Spline(*dfl.functions.get_full_load.FULL_LOAD[ignition_type], ext=3)
 
 
 def select_initial_friction_params(co2_params_initial_guess):
@@ -219,7 +219,7 @@ def identify_upper_bound_engine_speed(
 
 
 def calculate_engine_max_torque(
-        engine_max_power, engine_max_speed_at_max_power, fuel_type):
+        engine_max_power, engine_max_speed_at_max_power, ignition_type):
     """
     Calculates engine nominal torque [N*m].
 
@@ -231,22 +231,22 @@ def calculate_engine_max_torque(
         Engine nominal speed at engine nominal power [RPM].
     :type engine_max_speed_at_max_power: float
 
-    :param fuel_type:
-        Fuel type (gasoline or diesel).
-    :type fuel_type: str
+    :param ignition_type:
+        Engine ignition type (positive or compression).
+    :type ignition_type: str
 
     :return:
         Engine nominal torque [N*m].
     :rtype: float
     """
 
-    c = dfl.functions.calculate_engine_max_torque.PARAMS[fuel_type]
+    c = dfl.functions.calculate_engine_max_torque.PARAMS[ignition_type]
 
     return engine_max_power / engine_max_speed_at_max_power * 30000.0 / pi * c
 
 
 def calculate_engine_max_power(
-        engine_max_torque, engine_max_speed_at_max_power, fuel_type):
+        engine_max_torque, engine_max_speed_at_max_power, ignition_type):
     """
     Calculates engine nominal power [kW].
 
@@ -258,16 +258,17 @@ def calculate_engine_max_power(
         Engine nominal speed at engine nominal power [RPM].
     :type engine_max_speed_at_max_power: float
 
-    :param fuel_type:
-        Fuel type (gasoline or diesel).
-    :type fuel_type: str
+    :param ignition_type:
+        Engine ignition type (positive or compression).
+    :type ignition_type: str
 
     :return:
         Engine nominal power [kW].
     :rtype: float
     """
 
-    c = calculate_engine_max_torque(1, engine_max_speed_at_max_power, fuel_type)
+    c = calculate_engine_max_torque(1, engine_max_speed_at_max_power,
+                                    ignition_type)
 
     return engine_max_torque / c
 
@@ -934,34 +935,34 @@ def calculate_mean_piston_speeds(engine_speeds_out, engine_stroke):
     return (engine_stroke / 30000.0) * engine_speeds_out
 
 
-def calculate_engine_type(fuel_type, engine_is_turbo):
+def calculate_engine_type(ignition_type, engine_is_turbo):
     """
     Calculates the engine type (gasoline turbo, gasoline natural aspiration,
     diesel).
 
-    :param fuel_type:
-        Fuel type (gasoline or diesel).
-    :type fuel_type: str
+    :param ignition_type:
+        Engine ignition type (positive or compression).
+    :type ignition_type: str
 
     :param engine_is_turbo:
         If the engine is equipped with any kind of charging.
     :type engine_is_turbo: bool
 
     :return:
-        Engine type (gasoline turbo, gasoline natural aspiration, diesel).
+        Engine type (positive turbo, positive natural aspiration, compression).
     :rtype: str
     """
 
-    engine_type = fuel_type
+    engine_type = ignition_type
 
-    if fuel_type == 'gasoline':
+    if ignition_type == 'positive':
         engine_type = 'turbo' if engine_is_turbo else 'natural aspiration'
-        engine_type = '%s %s' % (fuel_type, engine_type)
+        engine_type = '%s %s' % (ignition_type, engine_type)
 
     return engine_type
 
 
-def calculate_engine_moment_inertia(engine_capacity, fuel_type):
+def calculate_engine_moment_inertia(engine_capacity, ignition_type):
     """
     Calculates engine moment of inertia [kg*m2].
 
@@ -969,16 +970,16 @@ def calculate_engine_moment_inertia(engine_capacity, fuel_type):
         Engine capacity [cm3].
     :type engine_capacity: float
 
-    :param fuel_type:
-        Fuel type (gasoline or diesel).
-    :type fuel_type: str
+    :param ignition_type:
+        Engine ignition type (positive or compression).
+    :type ignition_type: str
 
     :return:
         Engine moment of inertia [kg*m2].
     :rtype: float
     """
 
-    w = dfl.functions.calculate_engine_moment_inertia.PARAMS[fuel_type]
+    w = dfl.functions.calculate_engine_moment_inertia.PARAMS[ignition_type]
 
     return (0.05 + 0.1 * engine_capacity / 1000.0) * w
 
@@ -1001,22 +1002,6 @@ def calculate_auxiliaries_torque_losses(times, auxiliaries_torque_loss):
     """
 
     return np.ones_like(times, dtype=float) * auxiliaries_torque_loss
-
-
-def default_fuel_density(fuel_type):
-    """
-    Returns the default fuel density [g/l].
-
-    :param fuel_type:
-        Fuel type (gasoline or diesel).
-    :type fuel_type: str
-
-    :return:
-        Fuel density [g/l].
-    :rtype: float
-    """
-
-    return dfl.functions.default_fuel_density.FUEL_DENSITY[fuel_type]
 
 
 def calculate_auxiliaries_power_losses(
@@ -1069,6 +1054,42 @@ def check_vehicle_has_sufficient_power(missing_powers):
     return not missing_powers.any()
 
 
+def default_ignition_type_v1(fuel_type):
+    """
+    Returns the default ignition type according to the fuel type.
+
+    :param fuel_type:
+        Fuel type (diesel, gasoline, LPG, NG, ethanol, biodiesel).
+    :type fuel_type: str
+
+    :return:
+        Engine ignition type (positive or compression).
+    :rtype: str
+    """
+
+    if 'diesel' in fuel_type:
+        return 'compression'
+    return 'positive'
+
+
+def default_ignition_type(engine_type):
+    """
+    Returns the default ignition type according to the fuel type.
+
+    :param engine_type:
+        Engine type (positive turbo, positive natural aspiration, compression).
+    :type engine_type: str
+
+    :return:
+        Engine ignition type (positive or compression).
+    :rtype: str
+    """
+
+    if 'compression' in engine_type:
+        return 'compression'
+    return 'positive'
+
+
 def engine():
     """
     Defines the engine model.
@@ -1088,8 +1109,21 @@ def engine():
     )
 
     dsp.add_function(
-        function=get_full_load,
+        function=default_ignition_type,
+        inputs=['engine_type'],
+        outputs=['ignition_type']
+    )
+
+    dsp.add_function(
+        function=default_ignition_type_v1,
         inputs=['fuel_type'],
+        outputs=['ignition_type'],
+        weight=1
+    )
+
+    dsp.add_function(
+        function=get_full_load,
+        inputs=['ignition_type'],
         outputs=['full_load_curve'],
         weight=20
     )
@@ -1199,14 +1233,14 @@ def engine():
     dsp.add_function(
         function=calculate_engine_max_torque,
         inputs=['engine_max_power', 'engine_max_speed_at_max_power',
-                'fuel_type'],
+                'ignition_type'],
         outputs=['engine_max_torque']
     )
 
     dsp.add_function(
         function=calculate_engine_max_torque,
         inputs=['engine_max_torque', 'engine_max_speed_at_max_power',
-                'fuel_type'],
+                'ignition_type'],
         outputs=['engine_max_power']
     )
 
@@ -1337,13 +1371,13 @@ def engine():
 
     dsp.add_function(
         function=calculate_engine_type,
-        inputs=['fuel_type', 'engine_is_turbo'],
+        inputs=['ignition_type', 'engine_is_turbo'],
         outputs=['engine_type']
     )
 
     dsp.add_function(
         function=calculate_engine_moment_inertia,
-        inputs=['engine_capacity', 'fuel_type'],
+        inputs=['engine_capacity', 'ignition_type'],
         outputs=['engine_moment_inertia']
     )
 
@@ -1368,12 +1402,6 @@ def engine():
         inputs=['auxiliaries_torque_losses', 'engine_speeds_out', 'on_engine',
                 'auxiliaries_power_loss'],
         outputs=['auxiliaries_power_losses']
-    )
-
-    dsp.add_function(
-        function=default_fuel_density,
-        inputs=['fuel_type'],
-        outputs=['fuel_density']
     )
 
     from .co2_emission import co2_emission
@@ -1418,14 +1446,15 @@ def engine():
             'fuel_consumptions': 'fuel_consumptions',
             'co2_emissions': 'co2_emissions',
             'co2_normalization_references': 'co2_normalization_references',
-            'fuel_density': 'fuel_density',
+            'fuel_type': 'fuel_type',
             'phases_integration_times': 'phases_integration_times',
             'enable_phases_willans': 'enable_phases_willans',
             'accelerations': 'accelerations',
             'motive_powers': 'motive_powers',
             'missing_powers': 'missing_powers',
             'stop_velocity': 'stop_velocity',
-            'min_engine_on_speed': 'min_engine_on_speed'
+            'min_engine_on_speed': 'min_engine_on_speed',
+            'fuel_density': 'fuel_density',
         },
         outputs={
             'co2_emissions_model': 'co2_emissions_model',
@@ -1450,7 +1479,9 @@ def engine():
                 'after_treatment_temperature_threshold',
             'phases_willans_factors': 'phases_willans_factors',
             'fuel_carbon_content_percentage': 'fuel_carbon_content_percentage',
-            'fuel_carbon_content': 'fuel_carbon_content'
+            'fuel_carbon_content': 'fuel_carbon_content',
+            'engine_fuel_lower_heating_value':
+                'engine_fuel_lower_heating_value',
         },
         inp_weight={'co2_params': EPS}
     )

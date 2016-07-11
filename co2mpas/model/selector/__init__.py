@@ -390,7 +390,7 @@ def sub_models():
         'accelerations', 'motive_powers', 'engine_speeds_out',
         'engine_coolant_temperatures', 'time_cold_hot_transition', 'times',
         'use_dt_gear_shifting', 'specific_gear_shifting',
-        'velocity_speed_ratios', 'velocities', 'MVL', 'eco_mode',
+        'velocity_speed_ratios', 'velocities', 'MVL', 'fuel_saving_at_strategy',
         'change_gear_window_width', 'stop_velocity', 'plateau_acceleration',
         'max_velocity_full_load_correction', 'cycle_type'
     ]

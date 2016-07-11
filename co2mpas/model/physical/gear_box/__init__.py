@@ -495,13 +495,14 @@ def calculate_gear_box_powers_in(gear_box_torques_in, gear_box_speeds_in):
     return calculate_wheel_powers(gear_box_torques_in, gear_box_speeds_in)
 
 
-def calculate_equivalent_gear_box_heat_capacity(fuel_type, engine_max_power):
+def calculate_equivalent_gear_box_heat_capacity(
+        ignition_type, engine_max_power):
     """
     Calculates the equivalent gear box heat capacity [kg*J/K].
 
-    :param fuel_type:
-        Vehicle fuel type (diesel or gasoline).
-    :type fuel_type: str
+    :param ignition_type:
+        Engine ignition type (positive or compression).
+    :type ignition_type: str
 
     :param engine_max_power:
         Engine nominal power [kW].
@@ -515,7 +516,8 @@ def calculate_equivalent_gear_box_heat_capacity(fuel_type, engine_max_power):
     _mass_coeff = par['mass_coeff']
     # Engine mass empirical formula based on web data found for engines weighted
     # according DIN 70020-GZ
-    eng_mass = (0.4208 * engine_max_power + 60.0) * _mass_coeff[fuel_type]  # kg
+    # kg
+    eng_mass = (0.4208 * engine_max_power + 60.0) * _mass_coeff[ignition_type]
 
     _mass_percentage = par['mass_percentage']
 
@@ -673,7 +675,7 @@ def gear_box():
 
     dsp.add_function(
         function=calculate_equivalent_gear_box_heat_capacity,
-        inputs=['fuel_type', 'engine_max_power'],
+        inputs=['ignition_type', 'engine_max_power'],
         outputs=['equivalent_gear_box_heat_capacity']
     )
 
@@ -715,7 +717,7 @@ def gear_box():
         dsp=at_gear(),
         dsp_id='at_gear_shifting',
         inputs={
-            'eco_mode': 'eco_mode',
+            'fuel_saving_at_strategy': 'fuel_saving_at_strategy',
             'MVL': 'MVL',
             'CMV': 'CMV',
             'CMV_Cold_Hot': 'CMV_Cold_Hot',
