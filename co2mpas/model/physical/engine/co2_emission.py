@@ -1831,18 +1831,21 @@ def co2_emission():
         description='Calculates temperature, efficiency, '
                     'torque loss of gear box'
     )
-
-    dsp.add_function(
-        function=default_engine_fuel_lower_heating_value,
-        inputs=['fuel_type'],
-        outputs=['engine_fuel_lower_heating_value'],
+    dsp.add_data(
+        data_id='fuel_type'
     )
+    #dsp.add_function(
+    #    function=default_engine_fuel_lower_heating_value,
+    #    inputs=['fuel_type'],
+    #    outputs=['engine_fuel_lower_heating_value'],
+    #)
 
-    dsp.add_function(
-        function=default_fuel_carbon_content,
-        inputs=['fuel_type'],
-        outputs=['fuel_carbon_content'],
-    )
+    #dsp.add_function(
+    #    function=default_fuel_carbon_content,
+    #    inputs=['fuel_type'],
+    #    outputs=['fuel_carbon_content'],
+    #    weight=3
+    #)
 
     dsp.add_function(
         function=calculate_fuel_carbon_content_percentage,
