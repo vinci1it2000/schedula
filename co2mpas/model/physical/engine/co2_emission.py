@@ -915,7 +915,7 @@ def calculate_co2_emission(phases_co2_emissions, phases_distances):
 
 def define_initial_co2_emission_model_params_guess(
         params, engine_type, engine_normalization_temperature,
-        engine_normalization_temperature_window, is_cycle_hot=False,
+        engine_thermostat_temperature_window, is_cycle_hot=False,
         bounds=None):
     """
     Selects initial guess and bounds of co2 emission model params.
@@ -932,9 +932,9 @@ def define_initial_co2_emission_model_params_guess(
         Engine normalization temperature [°C].
     :type engine_normalization_temperature: float
 
-    :param engine_normalization_temperature_window:
-        Engine normalization temperature limits [°C].
-    :type engine_normalization_temperature_window: (float, float)
+    :param engine_thermostat_temperature_window:
+        Thermostat engine temperature limits [°C].
+    :type engine_thermostat_temperature_window: (float, float)
 
     :param is_cycle_hot:
         Is an hot cycle?
@@ -954,8 +954,8 @@ def define_initial_co2_emission_model_params_guess(
     default = copy.deepcopy(par.CO2_PARAMS)[engine_type]
     default['trg'] = {
         'value': engine_normalization_temperature,
-        'min': engine_normalization_temperature_window[0],
-        'max': engine_normalization_temperature_window[1],
+        'min': engine_thermostat_temperature_window[0],
+        'max': engine_thermostat_temperature_window[1],
         'vary': False
     }
 

@@ -672,6 +672,7 @@ def physical():
             'engine_temperature_derivatives': 'engine_temperature_derivatives',
             'engine_fuel_lower_heating_value':
                 'engine_fuel_lower_heating_value',
+            'cold_start_speeds_phases': 'cold_start_speeds_phases'
         },
         inp_weight={'initial_temperature': 5}
     )

@@ -251,7 +251,7 @@ def calibrate_engine_temperature_regression_model(
     :type gear_box_powers_in: numpy.array
 
     :param engine_speeds_out_hot:
-        Gear box speed vector [RPM].
+        Engine speed at hot condition [RPM].
     :type engine_speeds_out_hot: numpy.array
 
     :param accelerations:
@@ -296,7 +296,7 @@ def predict_engine_coolant_temperatures(
     :type gear_box_powers_in: numpy.array
 
     :param engine_speeds_out_hot:
-        Gear box speed vector [RPM].
+        Engine speed at hot condition [RPM].
     :type engine_speeds_out_hot: numpy.array
 
     :param initial_temperature:
