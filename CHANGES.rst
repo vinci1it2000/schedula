@@ -7,6 +7,12 @@ CO2MPAS Changes
 vX.X.X, file-ver: X.X, XX-XXX 2016: "XXXXXXXXXXX" release
 ====================================================================
 
+# Starting from v1.2.4, commit: 5a821e3
+
+
+
+
+
 
 v1.2.5, file-ver: 2.2, 25-May 2016: "Panino/Sandwich" release ("PS")
 ====================================================================
