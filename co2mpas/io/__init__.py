@@ -447,10 +447,9 @@ def _dd2df(dd, index=None, depth=0):
 
 def check_data_version(data):
     data = list(data.values())[0]
-
-    k = ('nedc_inputs', 'wltp_h_inputs', 'wltp_l_inputs')
-
-    for k, v in dsp_utl.selector(k, data, allow_miss=True).items():
+    for k, v in data.items():
+        if not k.startswith('input.'):
+            continue
         if 'VERSION' in v:
             v, rv = v['VERSION'], tuple(__input_file_version__.split('.'))
 
