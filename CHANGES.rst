@@ -4,6 +4,10 @@ CO2MPAS Changes
 .. contents::
 .. _changes:
 
+vX.X.X, file-ver: X.X, XX-XXX 2016: "XXXXXXXXXXX" release
+====================================================================
+
+
 v1.2.5, file-ver: 2.2, 25-May 2016: "Panino/Sandwich" release ("PS")
 ====================================================================
 3nd POST-Panino release.
