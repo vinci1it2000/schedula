@@ -1963,7 +1963,7 @@ def co2_emission():
         outputs=['extended_phases_integration_times',
                  'extended_cumulative_co2_emissions',
                  'extended_phases_distances'],
-        weight=5
+        weight=300
     )
 
     dsp.add_function(
