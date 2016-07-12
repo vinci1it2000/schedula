@@ -352,6 +352,10 @@ class Functions(co2_utl.Constants):
             'positive': 1,
             'compression': 2
         }
+    class calculate_co2_emissions(co2_utl.Constants):
+        # idle ratio to define the fuel cutoff [-].
+        cutoff_idle_ratio = 1.1
+
     #TODO: add default fuel densities.
     class default_fuel_density(co2_utl.Constants):
         #: Fuel density [g/l].

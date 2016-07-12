@@ -365,10 +365,13 @@ def calculate_co2_emissions(
 
     fc[b] *= e_speeds[b] * (engine_capacity / (lhv * 1200))  # [g/sec]
     p['t'] = 0
+
+    par = dfl.functions.calculate_co2_emissions
+    idle_cutoff = idle_engine_speed[0] * par.cutoff_idle_ratio
     ec_p0 = calculate_p0(
-        p, engine_capacity, engine_stroke, sum(idle_engine_speed), lhv
+        p, engine_capacity, engine_stroke, idle_cutoff, lhv
     )
-    b = (e_powers <= ec_p0) & (e_speeds > sum(idle_engine_speed))
+    b = (e_powers <= ec_p0) & (e_speeds > idle_cutoff)
     fc[b | (e_speeds < min_engine_on_speed) | (fc < 0)] = 0
 
     co2 = fc * fuel_carbon_content
