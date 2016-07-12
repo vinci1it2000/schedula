@@ -9,6 +9,96 @@ vX.X.X, file-ver: X.X, XX-XXX 2016: "XXXXXXXXXXX" release
 
 # Starting from v1.2.4, commit: 5a821e3
 
+:git:`73b3eff`: Correct identification formula for r dynamic, by comparing ide-
+ntified vs given velocity to speed ratios.
+
+:git:`368caca`: Hide defaults engine_fuel_lower_heating_value and 
+fuel_carbon_content + FIX fuel_carbon_content calculation order.
+
+:git:`48a836e`: clutch & torque converter: Fix identification of the clutch and
+torque converter delta speeds. Now they are calculated as 
+``delta_speeds = engine_speeds_out - engine_speeds_out_hot - cold_start_speeds_delta``.
+
+:git:`5618f51`, :gh:`240`, :gh:`246`: IO: Remove fuel consumption in l/100km from the outputs. Add
+`ignition_type` node and rename `eco_mode` with `fuel_saving_at_strategy`. 
+Add new fuel_types: 'LPG', 'NG',  'ethanol', 'biodiesel'.
+Remove fuel densities from model.
+
+:gh:`240`, :git:`d477f15`, :git:`f23562f`, :git:`5618f51`, :git:`7696c6d`, :git:`21b42ba`
+Inputs: 
+Fuel Carbon Content: Changed to grams of carbon per gram of fuel, and use `fuel_carbon_content_percentage`
+instead of `fuel_carbon_content`.
+Engine Max Power: The variable `engine_max_power` now corresponds to the rated engine power.
+Ammend gearbox types with CVT.
+Alternator maximum power is now compulsory.
+Removed `f0_uncorrected` and `correct_f0` from the inputs.
+Renamed `eco_mode` to `fuel_saving_at_strategy`, with ``False`` as the default value.
+Put default equals to ``False`` for: `engine_is_turbo`, `has_start_stop`, `has_energy_recuperation`.
+New Inputs:
+Engine Type - values: positive ignition or compression ignition
+Tyre Dimension WLTP - no difference between high and low
+F0 - represents the corrected one (according to the preconditioning effect)   
+Road Loads (F0, F1, F2) for both NEDC-High and NEDC-Low
+Drive mode - Set 2 or 4 wheel drive for a NEDC-High or NEDC-Low vehicle
+
+:gh:`248`, :git:`c19c9a8`: Modify **Delta Calculation** as ``delta = co2_wltp - co2_nedc``.
+
+:gh:`229`, :git:`a932f3b`:, :git:`501bbd9`:, :git:`efe8040`:, :git:`5b52828`:, :git:`85b59c3`:, :git:`ff81bd3`:
+Add formula to calculate the `r_dynamic` from `r_wheels` and `tyre_dimensions`.
+In order to identify the `r_dynamic`: 
+- Co2mpas is launched with `r_dynamic = r_wheels`,
+- Co2mpas is re-run using the identified `gears` from the previous run and neglecting the `r_dynamic`
+- The identified `r_dynamic` is used now as the correct value.
+
+:git:`f17a7bc`:, :git:`70fbef3`:, :git:`e7e3198`:
+Alternator model: Enhance calibration and identification of the alternator model.
+An _initialization alternator model_ is added and used for the first seconds of the
+alternator's operation. (VINZ pls provide more details!!)
+
+:git:`4362cca`:, :git:`b8db380`:, :git:`5d8e644`: 
+Start stop model: Improve identification and performance of `start_stop_model`: enhance
+engine starting points identification and add `min_time_engine_on_after_start` to
+_clear_ fluctuations / continuous start and stops of the engine. (VINZ?)
+FIX logic of `DefaultStartStopModel` + correct anomalous starts when vehicle stops.
+FIX Start stop model: During a vehicle stop the engine cannot be switched on and off (just on).
+Move start/stop functions in a separate module. Add two nodes `use_basic_start_stop` and `is_hybrid`.
+Differentiate the start stop model behavior: basic and complex models. The basic start stop model 
+is function of velocity and acceleration. While, the complex model is function of velocity, 
+acceleration, temperature, and battery state of charge.
+
+:git:`0759127`: FIX bin_split `n`.
+
+:gh:`232`, :git:`a858e32`:, :git:`d47c5db`: **Datasync Tool**:
+Change default directory for writing results to ``current dir``.
+Set `bounds_error` to `False`.
+Change interpolation method as an input via ``interp`` + method.
+
+
+:git:`5b40660`:, :git:`2056cef`, :git:`3aec3cf`, 
+**Thermal Model**
+(I don't even want to try understanding the various changes and the end result,
+Vinz, please provide a short description of the changes.)
+Boost thermal model calibration.
+Update the thermal model.
++ Filter outliers.
++ Select major features.
++ Use `final_drive_powers_in` as input of the thermal model instead the `gear_box_powers_in`.
++ Update the identify_engine_thermostat_temperature using a calibrated thermal model.
+
+:git:`63f86c3`: Fix `params` calibration when cycle is _fully_ cold.
+:git:`fef1cc5`: Unify `engine_thermostat_temperature` with `normalization_engine_temperature` (deleted) and
+rename `engine_normalization_temperature_window` in `engine_thermostat_temperature_window`.
+
+
+
+
+
+
+
+
+
+
+
 
 
 
