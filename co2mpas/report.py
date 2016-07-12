@@ -178,10 +178,11 @@ def _map_cycle_report_graphs():
 def get_chart_reference(report):
     r, _map = {}, _map_cycle_report_graphs()
     out = report.get('output', {})
-    for k, v in co2_utl.stack_nested_keys(out, key=('output',), depth=3):
+    it = co2_utl.stack_nested_keys(out, key=('output',), depth=3)
+    for k, v in sorted(it):
         if k[-1] == 'ts' and 'times' in v:
             label = '{}/%s'.format(_sheet_name(k))
-            for i, j in v.items():
+            for i, j in sorted(v.items()):
                 param_id = _re_params_name.match(i)['param']
                 m = _map.get(param_id, None)
                 if m:
