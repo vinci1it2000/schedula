@@ -154,7 +154,11 @@ def _summary2df(data):
 
 def _comparison2df(comparison):
     res = {}
-    for k, v in co2_utl.stack_nested_keys(comparison, depth=3):
+    it = co2_utl.stack_nested_keys(comparison, depth=3)
+    keys = ['usage', 'cycle', 'param']
+    gen = [(dsp_utl.map_list(keys, *k), k, v) for k, v in it]
+
+    for s, k, v in _yield_sorted_params(gen, keys=keys):
         l = co2_utl.get_nested_dicts(res, *k[:-1], default=list)
         l.append(dsp_utl.combine_dicts({'param_id': k[-1]}, v))
 

@@ -417,7 +417,7 @@ def get_selection(data):
     res = []
     n = ('data', 'calibration', 'model_scores', 'selections')
     if co2_utl.are_in_nested_dicts(data, *n):
-        for k, v in co2_utl.get_nested_dicts(data, *n).items():
+        for k, v in sorted(co2_utl.get_nested_dicts(data, *n).items()):
             d = dsp_utl.selector(('from', 'status'), v['best'])
             d['model_id'] = k
             res.append(d)
