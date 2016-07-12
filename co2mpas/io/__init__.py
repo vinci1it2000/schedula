@@ -327,7 +327,8 @@ def _param_orders():
         'scope': ('plan', 'base'),
         'usage': ('target', 'input', 'output', 'data'),
         'stage': ('precondition', 'calibration', 'prediction'),
-        'cycle': ('delta', 'all', 'nedc', 'wltp_h', 'wltp_l', 'wltp_p'),
+        'cycle': ('delta', 'all', 'nedc_h', 'nedc_l', 'wltp_h', 'wltp_l',
+                  'wltp_p'),
         'type': ('pa', 'ts', 'pl'),
         'param': param
     }

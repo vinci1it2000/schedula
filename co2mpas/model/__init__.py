@@ -224,7 +224,7 @@ def model():
     )
 
     ############################################################################
-    #                                NEDC CYCLE
+    #                            MODEL SELECTOR
     ############################################################################
 
     from .selector import selector
@@ -255,11 +255,26 @@ def model():
         outputs=['data.prediction.models']
     )
 
+    ############################################################################
+    #                            NEDC - HIGH CYCLE
+    ############################################################################
+
     dsp.add_function(
-        function_id='predict_nedc',
+        function_id='predict_nedc_h',
         function=dsp_utl.SubDispatch(physical()),
-        inputs=['data.prediction.models', 'input.prediction.nedc'],
-        outputs=['output.prediction.nedc'],
+        inputs=['data.prediction.models', 'input.prediction.nedc_h'],
+        outputs=['output.prediction.nedc_h'],
+    )
+
+    ############################################################################
+    #                            NEDC - LOW CYCLE
+    ############################################################################
+
+    dsp.add_function(
+        function_id='predict_nedc_l',
+        function=dsp_utl.SubDispatch(physical()),
+        inputs=['data.prediction.models', 'input.prediction.nedc_l'],
+        outputs=['output.prediction.nedc_l'],
     )
 
     return dsp

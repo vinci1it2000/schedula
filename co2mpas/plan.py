@@ -115,7 +115,7 @@ def make_simulation_plan(plan, timestamp, output_folder, main_flags):
 
 
 def _add_delta2filtered_summary(changes, summary, base=None):
-    cycles = {'nedc', 'wltp_h', 'wltp_l'}
+    cycles = {'nedc_h', 'nedc_l', 'wltp_h', 'wltp_l'}
     value = 'co2_emission_value'
     ref = 'prediction', 'output', value
     base = {} if base is None else base

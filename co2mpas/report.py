@@ -396,18 +396,18 @@ def format_report_scores(data):
 
 def calculate_delta(data):
     # delta
-    n = ['output', 'prediction', 'nedc', 'co2_emission_value']
-
-    if not co2_utl.are_in_nested_dicts(data, *n):
-        return {}
-
-    d, co2_nedc = {}, co2_utl.get_nested_dicts(data, *n)
-    for k in ('wltp_h', 'wltp_l'):
-        n[2] = k
-        if not co2_utl.are_in_nested_dicts(data, *n):
+    n, d = ['output', 'prediction', 'cycle', 'co2_emission_value'], {}
+    for k in ('%s_h', '%s_l'):
+        co2 = []
+        for c in ('nedc', 'wltp'):
+            n[2] = k % c
+            if co2_utl.are_in_nested_dicts(data, *n):
+                co2.append(co2_utl.get_nested_dicts(data, *n))
+        try:
+            dco2 = co2_utl.ret_v(np.diff(co2)[0])
+        except IndexError:
             continue
-        dco2 = co2_utl.get_nested_dicts(data, *n) - co2_nedc
-        co2_utl.get_nested_dicts(d, 'nedc', *n[2:], default=co2_utl.ret_v(dco2))
+        co2_utl.get_nested_dicts(d, k % 'nedc', *n[2:], default=dco2)
 
     return d
 
@@ -431,7 +431,7 @@ def get_phases_values(data, what='co2_emission', base=None):
     def update(k, v):
         if keys[-1] in v:
             o = v.pop(keys[-1])
-            _map = p_nedc if k[0] == 'nedc' else p_wltp
+            _map = p_nedc if 'nedc' in k[0] else p_wltp
             if len(_map) != len(o):
                 v.update(_format_dict(enumerate(o), '{} phase %d'.format(what)))
             else:

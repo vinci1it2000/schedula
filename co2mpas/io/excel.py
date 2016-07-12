@@ -35,19 +35,25 @@ _re_params_name = regex.compile(
         ^(?P<param>((plan|base)|
                     (target|input|output|data)|
                     ((precondition|calibration|prediction)s?)|
-                    (WLTP([-_]{1}[HLP]{1})?|NEDC|ALL)(recon)?))$
+                    (WLTP([-_]{1}[HLP]{1})?|
+                     NEDC([-_]{1}[HL]{1})?|
+                     ALL)(recon)?))$
         |
         ^((?P<scope>(plan|base))[. ]{1})?
         ((?P<usage>(target|input|output|data))s?[. ]{1})?
         ((?P<stage>(precondition|calibration|prediction))s?[. ]{1})?
-        ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC|ALL)(recon)?[. ]{1})?
+        ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|
+                   NEDC([-_]{1}[HL]{1})?|
+                   ALL)(recon)?[. ]{1})?
         (?P<param>[^\s]*)$
         |
         ^((?P<scope>(plan|base))[. ]{1})?
         ((?P<usage>(target|input|output|data))s?[. ]{1})?
         ((?P<stage>(precondition|calibration|prediction))s?[. ]{1})?
         ((?P<param>[^\s.]*))?
-        ([. ]{1}(?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC|ALL)(recon)?)?$
+        ([. ]{1}(?P<cycle>WLTP([-_]{1}[HLP]{1})?|
+                          NEDC([-_]{1}[HL]{1})?|
+                          ALL)(recon)?)?$
     """, regex.IGNORECASE | regex.X | regex.DOTALL)
 
 
@@ -56,7 +62,9 @@ _re_input_sheet_name = regex.compile(
         ^((?P<scope>(plan|base))[. ]?)?
         ((?P<usage>(target|input|output|data))s?[. ]?)?
         ((?P<stage>(precondition|calibration|prediction))s?[. ]?)?
-        ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|NEDC|ALL)(recon)?[. ]?)?
+        ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|
+                   NEDC([-_]{1}[HL]{1})?|
+                   ALL)(recon)?[. ]?)?
         ((?P<type>(pa|ts|pl)))?$$
     """, regex.IGNORECASE | regex.X | regex.DOTALL)
 
@@ -233,9 +241,11 @@ def parse_values(data, default=None, re_params_name=_re_params_name):
     if 'usage' not in default:
         default['usage'] = 'input'
     if 'cycle' not in default or default['cycle'] == 'all':
-        default['cycle'] = ('nedc', 'wltp_p', 'wltp_h', 'wltp_l')
+        default['cycle'] = ('nedc_h', 'nedc_l', 'wltp_p', 'wltp_h', 'wltp_l')
     elif default['cycle'] == 'wltp':
         default['cycle'] = ('wltp_h', 'wltp_l')
+    elif default['cycle'] == 'nedc':
+        default['cycle'] = ('nedc_h', 'nedc_l')
     else:
         default['cycle'] = default['cycle'].replace('-', '_')
 
@@ -258,14 +268,16 @@ def parse_values(data, default=None, re_params_name=_re_params_name):
 
         if match['cycle'] == 'wltp':
             match['cycle'] = ('wltp_h', 'wltp_l')
+        elif match['cycle'] == 'nedc':
+            match['cycle'] = ('nedc_h', 'nedc_l')
         elif match['cycle'] == 'all':
-            match['cycle'] = ('nedc', 'wltp_p', 'wltp_h', 'wltp_l')
+            match['cycle'] = ('nedc_h', 'nedc_l', 'wltp_p', 'wltp_h', 'wltp_l')
 
         for c in stlp(match['cycle']):
             c = c.replace('-', '_')
             if c == 'wltp_p':
                 stage = 'precondition'
-            elif c == 'nedc':
+            elif 'nedc' in c:
                 stage = 'prediction'
             else:
                 stage = match['stage']
@@ -346,8 +358,8 @@ def clone_excel(file_name, output_file_name):
 
 def _sort_sheets(x):
     x = x[0]
-    imp = ['summary', 'graphs', 'plan', 'nedc', 'wltp_h', 'wltp_l', 'wltp_p',
-           'predictions', 'inputs', 'pa', 'ts']
+    imp = ['summary', 'graphs', 'plan', 'nedc_h', 'nedc_l', 'wltp_h', 'wltp_l',
+           'wltp_p', 'predictions', 'inputs', 'pa', 'ts']
 
     w = ()
     for i, k in enumerate(imp):
