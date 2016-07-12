@@ -19,6 +19,7 @@ log = logging.getLogger(__name__)
 
 # noinspection PyUnusedLocal
 def calibrate_co2_params_all(rank, *data, data_id=None):
+    res = {}
     # noinspection PyBroadException
     try:
         from ..physical.engine.co2_emission import calibrate_model_params
@@ -41,10 +42,12 @@ def calibrate_co2_params_all(rank, *data, data_id=None):
 
         p, s = calibrate_model_params(err_func, initial_guess)
         status.append((s, copy.deepcopy(p)))
-        return {'co2_params_calibrated': p, 'calibration_status': status}
+        res['initial_friction_params'] = d['initial_friction_params']
+        res.update({'co2_params_calibrated': p, 'calibration_status': status})
     except:
-        return {}
+        pass
 
+    return res
 
 def co2_sort_models(rank, *data, weights=None):
     from . import _sorting_func, sort_models
