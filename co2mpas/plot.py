@@ -51,6 +51,9 @@ def get_model_paths(model_ids=None):
         ] + ['physical.%s' % k for k in
              [
             'physical',
+            'cycle.cycle',
+            'cycle.NEDC.nedc_cycle',
+            'cycle.WLTP.wltp_cycle',
             'vehicle.vehicle',
             'wheels.wheels',
             'final_drive.final_drive',
@@ -61,7 +64,12 @@ def get_model_paths(model_ids=None):
             'electrics.electrics_prediction.electrics_prediction',
             'engine.engine',
             'engine.co2_emission.co2_emission',
+            'engine.cold_start.cold_start',
+            'engine.start_stop.start_stop',
+            'engine.thermal.thermal',
             'gear_box.gear_box',
+            'gear_box.mechanical.mechanical',
+            'gear_box.cvt.cvt_model',
             'gear_box.thermal.thermal',
             'gear_box.at_gear.at_gear',
             'gear_box.at_gear.at_cmv',
