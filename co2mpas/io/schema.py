@@ -282,8 +282,9 @@ def _convert_str(old_str, new_str, **kwargs):
 
 def _tyre_code(error=None, **kwargs):
     error = error or 'invalid tyre code!'
-    from ..model.physical.wheels import _re_tyre_code
-    return And(str, _re_tyre_code.match, error=error)
+    from ..model.physical.wheels import _re_tyre_code_iso, _re_tyre_code_numeric
+    c = Or(_re_tyre_code_iso.match, _re_tyre_code_numeric.match)
+    return And(str, c , error=error)
 
 
 def _tyre_dimensions(error=None, **kwargs):
