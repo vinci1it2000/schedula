@@ -9,23 +9,75 @@ vX.X.X, file-ver: X.X, XX-XXX 2016: "XXXXXXXXXXX" release
 
 # Starting from v1.2.4, commit: 5a821e3
 
-:git:`73b3eff`: Correct identification formula for r dynamic, by comparing ide-
-ntified vs given velocity to speed ratios.
 
-:git:`368caca`: Hide defaults engine_fuel_lower_heating_value and 
-fuel_carbon_content + FIX fuel_carbon_content calculation order.
 
-:git:`48a836e`: clutch & torque converter: Fix identification of the clutch and
-torque converter delta speeds. Now they are calculated as 
-``delta_speeds = engine_speeds_out - engine_speeds_out_hot - cold_start_speeds_delta``.
 
-:git:`5618f51`, :gh:`240`, :gh:`246`: IO: Remove fuel consumption in l/100km from the outputs. Add
-`ignition_type` node and rename `eco_mode` with `fuel_saving_at_strategy`. 
-Add new fuel_types: 'LPG', 'NG',  'ethanol', 'biodiesel'.
+******************MICHALIS***************************************
+**QUBE RELEASE**
+:gh:`243`: [OPEN] Release Qube (ex "solstice")!
+:gh:`189`: [OPEN]Create a new PUBLIC co2mpas-repo
+
+**SOFTWARE**
+:gh:`248`, :git:`c19c9a8`: Modify **Delta Calculation** as ``delta = co2_wltp - co2_nedc``.
+
+:gh:`238`: In the current version of the model, v.1.2.5, when creating the input file co2mpas template input the fresh .xlsx file allows to enter values on the fuel_params tab and so did he. When setting a = 0 and a2 = 0, out of the bounds of the default parameters (as read from def _get_default_params():), the model runs and does not provide any warning. Results, as shown in the image, differ by 10 gCO2/km on NEDC.
+Output: When the user sets some parameter out of the default bounds, does not mean that the calibration has failed. Mr. Exner has not understood the code.
+
+:gh:`198`, :gh:`237`: (:git:`2533ce1`, :git:`f0ba87f`, :git:`6313008`, :git:`62a7df2`),
+
+Design a cmd line tool that is able to handle simulation plans. (CONTINUATION OF #198)
+
+The scope of this tool is to calibrate a vehicle model (base model) once and then run multiple variations on those inputs .
+The Idea is to have an additional "part" in the data name. This could be named scope, and it can have two values:
+plan: all parameters that are set in the simulation plan,
+run: all parameters that goes to the normal execution of CO2MPAS.
+In this way we can have an additional sheet named plan that can be parsed. This sheet contains a table where each row is a single simulation, while the columns names are the parameters that the user want to change.
+We should add three special columns names:
+id: Identifies the variation id.
+base: this is a file path of a CO2MPAS excel input, this model will be used as new base vehicle.
+defaults: this is a a list of file paths. The calibrated models of these files are used as default models of the base model. This behavior is needed to simulate, for example, a manual car (base) as A/T, because the A/T strategy and the torque converter are not in the base model.
+
+The following classes were created:
+class Start_stop_model
+class Alternator_status_model
+
+The "sa" option while running co2mpas was added in order to load "only" xlsx files:
+co2mpas sa          [-v | --logconf <conf-file>] [-f] [--predict-wltp]
+   [-O <output-folder>] [--soft-validation]
+   [--no-theoretic-wltp] [<input-path>] [<input-params>]
+   [<defaults>]...
+
+:gh:`225` (:git:`178d9f5`): Implement the WLTP pkg within CO2MPAS for calculating theoretical velocities and gear shifting.
+Now we can simulate manual vehicles without assign the gears
+
+:gh:`227`: [OPEN] CO2MPAS needs better error handling.
+To be discussed and agreed...
+
+- :gh:`197`: [OPEN] Remove main flags, treat all Input-data consistently with a Layered design
+Main flags are:
+
+- output_template,
+- overwrite_cache,
+- soft_validation, and
+- with_charts.
+
+- :gh:`67`: [OPEN] Sampling: Random number generator through Timestamping server.
+Design based on Identifying "risky" paths first.
+the random-sampling must not relate to the execution of a CO2MPAS model, but it must somehow relate unequivocally to the vehicle.
+Updated the opening with the Design of the sampling functionality, "The Dice".
+
+:gh:`223`, :git:`246e9e7`: Create a "Base-model" with all constants and numbers present in the code of model-functions
+Seatblet repeatability questioned
+Running twice seatbelt fails!
+Fixed so that there is repeatability between MAC OS and Windows (os library to make the check)
+
+**MODELING**
+:git:`5618f51`, :gh:`240`, :gh:`246`: IO: Remove fuel consumption in l/100km from the outputs. Add `ignition_type` node and rename `eco_mode` with `fuel_saving_at_strategy`.
+Add new fuel_types: "LPG", "NG",  "ethanol", "biodiesel".
 Remove fuel densities from model.
 
 :gh:`240`, :git:`d477f15`, :git:`f23562f`, :git:`5618f51`, :git:`7696c6d`, :git:`21b42ba`
-Inputs: 
+Inputs:
 Fuel Carbon Content: Changed to grams of carbon per gram of fuel, and use `fuel_carbon_content_percentage`
 instead of `fuel_carbon_content`.
 Engine Max Power: The variable `engine_max_power` now corresponds to the rated engine power.
@@ -37,44 +89,142 @@ Put default equals to ``False`` for: `engine_is_turbo`, `has_start_stop`, `has_e
 New Inputs:
 Engine Type - values: positive ignition or compression ignition
 Tyre Dimension WLTP - no difference between high and low
-F0 - represents the corrected one (according to the preconditioning effect)   
+F0 - represents the corrected one (according to the preconditioning effect)
 Road Loads (F0, F1, F2) for both NEDC-High and NEDC-Low
 Drive mode - Set 2 or 4 wheel drive for a NEDC-High or NEDC-Low vehicle
 
-:gh:`248`, :git:`c19c9a8`: Modify **Delta Calculation** as ``delta = co2_wltp - co2_nedc``.
+:gh:`239`: Change carbon content definition in input file according to acea feedback.
+Output: The new input file for declaration mode considers fuel carbon content as gC per gFuel according to the approved regulation.
 
-:gh:`229`, :git:`a932f3b`:, :git:`501bbd9`:, :git:`efe8040`:, :git:`5b52828`:, :git:`85b59c3`:, :git:`ff81bd3`:
-Add formula to calculate the `r_dynamic` from `r_wheels` and `tyre_dimensions`.
-In order to identify the `r_dynamic`: 
-- Co2mpas is launched with `r_dynamic = r_wheels`,
-- Co2mpas is re-run using the identified `gears` from the previous run and neglecting the `r_dynamic`
-- The identified `r_dynamic` is used now as the correct value.
-
-:git:`f17a7bc`:, :git:`70fbef3`:, :git:`e7e3198`:
-Alternator model: Enhance calibration and identification of the alternator model.
-An _initialization alternator model_ is added and used for the first seconds of the
-alternator's operation. (VINZ pls provide more details!!)
-
-:git:`4362cca`:, :git:`b8db380`:, :git:`5d8e644`: 
-Start stop model: Improve identification and performance of `start_stop_model`: enhance
-engine starting points identification and add `min_time_engine_on_after_start` to
-_clear_ fluctuations / continuous start and stops of the engine. (VINZ?)
-FIX logic of `DefaultStartStopModel` + correct anomalous starts when vehicle stops.
-FIX Start stop model: During a vehicle stop the engine cannot be switched on and off (just on).
-Move start/stop functions in a separate module. Add two nodes `use_basic_start_stop` and `is_hybrid`.
-Differentiate the start stop model behavior: basic and complex models. The basic start stop model 
-is function of velocity and acceleration. While, the complex model is function of velocity, 
-acceleration, temperature, and battery state of charge.
-
-:git:`0759127`: FIX bin_split `n`.
+:gh:`232`: Problems with co2mpas resampling algorithm
+It seems that the algorithm just picks one value every n values (n = frequency in hz). The right thing to do is integration and derivation of the signal.
+Output: Currently the algorithm is not a simple interpolation, because it is respecting the integral. It works for down-sampling and oversampling.
 
 :gh:`232`, :git:`a858e32`:, :git:`d47c5db`: **Datasync Tool**:
 Change default directory for writing results to ``current dir``.
 Set `bounds_error` to `False`.
 Change interpolation method as an input via ``interp`` + method.
 
+:gh:`230`: TA & TS do not have gCO2/gfuel change formula in co2mpas input/software.
+Technical services do not know the gCO2/g/fuel value, they just have carbon percentage in the fuel. The relevant input should change.
+Output: Functions "calculate_fuel_carbon_content" and "calculate_fuel_carbon_content_percentage" have been implemented.
 
-:git:`5b40660`:, :git:`2056cef`, :git:`3aec3cf`, 
+:gh:`214`, (:git:`af749ea`, :git:`9467de4`, :git:`0d3d74d`, :git:`84de44e`, :git:`440a5b0`, :git:`e4809d1):
+The model should check the initial temperature provided by the user with that of the OBD time series. If the difference is greater than 0.5C a message should be raised to the user and simulation should not take place.
+Added check initial temperature on hard validation.
+
+:gh:`213`: Link alternator nominal power to max allowable energy recuperation. The amount of energy recuperated should not exceed the maximum alternator power provided by the user or calculated by the model.
+Output: I've used the "alternator_nominal_power" to calculate the maximum feasible alternator current "max_alternator_current".
+
+max_alternator_current = alternator_nominal_power * 1000.0 * alternator_efficiency
+max_alternator_current /= alternator_nominal_voltage
+Then this is used as limit in the prediction of the alternator current as follows:
+
+a_c = alternator_current_model(alternator_status, prev_battery_state_of_charge, gear_box_power_in, on_engine, acceleration)
+a_c = max(a_c, -max_alternator_current)
+
+**S/S**
+:gh:`212` (:git:`d911c85`): The start stop time provided by the user should override any model estimated start stop operation.
+
+Description: The start stop time provided by the user should override any model estimated start stop operation. In any case the start stop operation should be function of time (the time when the model shifts from t0 to t1), and battery soc.
+
+Link `start_stop_model` with the `electrics_model` done.
+
+The electric model now uses as input the gear_box_powers instead the clutch_tc_powers. The clutch_tc_powers is function of the on_engine which leads to a loop.
+
+:git:`bbe134e`: S/S do not force engine on when SOC<minSOC.
+
+:gh:`210`: The definition of the fuel cut off boundary was modified.
+The 1.1 rule has been implemented (so cutoff limit is rpm idle *1.1 not rpm idle as it was). Before the cutoff limit was idle + std where std=100 (not idle).
+
+:gh:`100`: Since one WLTP vehicle L and H of a family may result in either 1 or 2 NEDC vehicle configurations we should give the possibility to have either 1 or 2 sets of NEDC Mass and RLs.
+According to pavlovicj: There will be a lot of cases where co2mpas needs to simulate just one delta (no NEDC family, only NEDC-h).
+Output: Now co2mpas predicts two NEDC -H and -L. If you need to predict just one NEDC, the user can fill the fields of the relative NEDC and leave others blank.
+
+:gh:`229`, :git:`a932f3b`:, :git:`501bbd9`:, :git:`efe8040`:, :git:`5b52828`:, :git:`85b59c3`:, :git:`ff81bd3`:
+Add formula to calculate the `r_dynamic` from `r_wheels` and `tyre_dimensions`.
+In order to identify the `r_dynamic`:
+- Co2mpas is launched with `r_dynamic = r_wheels`,
+- Co2mpas is re-run using the identified `gears` from the previous run and neglecting the `r_dynamic`
+- The identified `r_dynamic` is used now as the correct value.
+
+:gh:`245`: [OPEN] Need to remove the constant torque loss component from the gearbox losses for the official runs.
+Output: The vehicle gear box efficiency constant gbp00 is set to zero.
+
+:gh:`244`: [OPEN] Update cold start RPM model. The idea is to :
+(1) have one single model instead of 2 or 3
+(2) be able to capture a flat extra RPM profile (so extra RPMs are constant and don't change with temperature, or possibly also changing with temperature).
+The proposal is to replace existing functions with an S shaped function.
+We refer to the model that calculates extra RPMs due to cold start. It has nothing to do (at least directly) with the prediction of temperatures.
+Output: Vinz has implemented the three linear model :git:`7e23efd`. This is easy to calibrate and the shape is almost the same. Results expected...
+
+**Thermal model**
+:gh:`242`:Update the thermal model as follows:
+(1) Filter outliers in thermal model calibration.
+(2) Select major features thermal model calibration.
+(3) Use final_drive_powers_in as input of the thermal model instead the gear_box_powers_in.
+(4) Update the identify_engine_thermostat_temperature using a calibrated thermal model.
+
+3 alternative thermal approaches proposed:
+(1) MachineLearning regressor (i.e. DecisionTree) + DataConditioning: that is what we currently have.
+(2) Physical Model (ala Simulink).
+(3) Global fitting of some function based on some X/Y axes
+
+Output: Vinz - The results with the latest version are good so I'm closing this issue.
+
+**Dispatcher**
+:git:`c6b46a2`: dsp: Skip initial_values with NONE.
+
+:gh:`231`: [OPEN] JFFME2: The TA and TS don't align data as we expect.
+So the synchronization done by technical services is not as precise as we need for CO2MPAS.
+We probably need to add a correlation check + relevant messages at least for the common signal (velocity) and maybe propose to the user to run the synchronization tool (automatically).
+
+:gh:`207`: [OPEN] Try adding the extra co2 point also in the 3rd step of the optimization.
+It looks in the end that using the normalized FC thing can help reduce the error of cold start. We should therefore add the extra point also in the third step of the optimization process (???)
+
+:gh:`204`: [OPEN] Re assess the use of normalized FC signal.
+This continues from :gh:`195` (Make calibration of co2_params with fuel_consumptions or co2_emissions or engine_loads) but should be done with (1)the entire MT batch database (new one) and compare to the new reference and (2)the updated real cars once we update them.
+Ouput: [Results for the full batch of manuals using the pascua base co2mpas version] Overall, there is no improvement in the model performance on any cycle in terms of co2 emission prediction error when using the normalized FC signal.
+
+:gh:`87`: [OPEN] AT - Idle Fuel Consumption. For AT vehicles, idling Fc should include torque converter losses.
+CWG said that the idle fc input should be verifiable by the technical service so it should be the one the vehicle exhibits in warm conditions (so not the engine). It then becomes a matter of input value definition.
+This relates to us making some corrections in the torque converter losses. But before doing so we need to ask LAT to re check what is the status of the bug based on the Pasqua release. If the problem is not so pronounced we close it. If it remains we need to add a correction function. (???)
+
+:gh:`175`, :git:`0b7b4ba`, :git:`40eeccb`, :git:`814fbee`, :git:`a90862c`: [OPEN] From wltp rpm use a regressor to calculate NEDC rpm based on the initial parameter values calculate optimal cm-BMEP curve.
+So from optimal cm-bmep curve and NEDC rpm, calculate NEDC engine out BMEP.
+
+
+**ORPHAN GIT COMMITS**
+:git:`73b3eff`: Correct identification formula for r dynamic, by comparing identified vs given velocity to speed ratios.
+
+:git:`368caca`: Hide defaults engine_fuel_lower_heating_value and
+fuel_carbon_content + FIX fuel_carbon_content calculation order.
+
+:git:`48a836e`: clutch & torque converter: Fix identification of the clutch and
+torque converter delta speeds. Now they are calculated as
+``delta_speeds = engine_speeds_out - engine_speeds_out_hot - cold_start_speeds_delta``.
+
+
+:git:`f17a7bc`:, :git:`70fbef3`:, :git:`e7e3198`:
+Alternator model: Enhance calibration and identification of the alternator model.
+An _initialization alternator model_ is added and used for the first seconds of the
+alternator's operation. (VINZ pls provide more details!!)
+
+:git:`4362cca`:, :git:`b8db380`:, :git:`5d8e644`:
+Start stop model: Improve identification and performance of `start_stop_model`: enhance
+engine starting points identification and add `min_time_engine_on_after_start` to
+_clear_ fluctuations / continuous start and stops of the engine. (VINZ?)
+FIX logic of `DefaultStartStopModel` + correct anomalous starts when vehicle stops.
+FIX Start stop model: During a vehicle stop the engine cannot be switched on and off (just on).
+Move start/stop functions in a separate module. Add two nodes `use_basic_start_stop` and `is_hybrid`.
+Differentiate the start stop model behavior: basic and complex models. The basic start stop model
+is function of velocity and acceleration. While, the complex model is function of velocity,
+acceleration, temperature, and battery state of charge.
+
+:git:`0759127`: FIX bin_split `n`.
+
+
+:git:`5b40660`:, :git:`2056cef`, :git:`3aec3cf`,
 **Thermal Model**
 (I don't even want to try understanding the various changes and the end result,
 Vinz, please provide a short description of the changes.)
@@ -89,27 +239,6 @@ Update the thermal model.
 :git:`fef1cc5`: Unify `engine_thermostat_temperature` with `normalization_engine_temperature` (deleted) and
 rename `engine_normalization_temperature_window` in `engine_thermostat_temperature_window`.
 
-
-******************MICHALIS***************************************
-:git:``:
-:git:``:
-:git:``:
-:git:``:
-:git:``:
-:git:``:
-
-
-:git:`c6b46a2`: dsp: Skip initial_values with NONE.
-
-**Hard and Soft validation**
-:git:`af749ea`, :git:`9467de4`, :git:`0d3d74d`, :git:`84de44e`, :git:`440a5b0`, :git:`e4809d1
-
-- :gh:`214`: The model should check the initial temperature provided by the user with that of the OBD time series. If the difference is greater than 0.5C a message should be raised to the user and simulation should not take place.
-
-Add check initial temperature on hard validation.
-
-**S/S Model**
-:git:`bbe134e`: S/S do not force engine on when SOC<minSOC.
 
 :git:`925327c`: FIX `cold_start_speed_model` limiting the max delta.
 On `calculate_cold_start_speeds_delta`, `idle_engine_speed` was added.
@@ -163,10 +292,6 @@ Function added to use Kalman Filters in order to smooth the noise in the obd vel
 :git:`1314fe2`, :git:`c778f27`, :git:`357fccb`, :git:`cbbc7e9`, :git:`a62d3d4`, :git:`55643c3`, :gh:`186`: Predict also Theoretical WLTP H & L cycles
 Support a new theoretical_WLTP sheet with a table of 3 time-series: V, G_H & G_L
 
-:git:`178d9f5`, :gh:`225`: Implement the WLTP pkg within CO2MPAS for calculating theoretical velocities and gear shifting.
-Now we can simulate manual vehicles without assign the gears
-
-
 :git:`c3b5ab9`: alternator - Improve alternator logic.
 Modifies the "Alternator_status_model" class. This is a first modification, the current state is different from the one of this commit.
 
@@ -176,75 +301,14 @@ The fuction that returns the acceleration from velocity series sets teh first va
 :git:`0550114`:
 Under gear_box model of the physical layer, the conversion of the model changed (def convert function).
 
-:git:`0b7b4ba`, :git:`40eeccb`, :git:`814fbee`, :git:`a90862c`
-
-- :gh:`175` (open): From wltp rpm use a regressor to calculate NEDC rpm
-based on the initial parameter values calculate optimal cm-BMEP curve.
-So from optimal cm-bmep curve and NEDC rpm, calculate NEDC engine out BMEP.
-
 :git:`7ffffa0`: FIX wild card with _wait_in
 In the _set_wildcards function, _wait_in was added in the wildcards.
-
-:git:`77f9b7f`: Remove `--charts` flag.
-
-- :gh:`197`: Remove main flags, treat all Input-data consistently with a Layered design
-Main flags are:
-
-- output_template,
-- overwrite_cache,
-- soft_validation, and
-- with_charts.
-
-
-:git:`d911c85`:
-
-- :gh:`212`: The start stop time provided by the user should override any model estimated start stop operation.
-
-Description:
-The start stop time provided by the user should override any model estimated start stop operation. In any case the start stop operation should be function of time (the time when the model shifts from t0 to t1), and battery soc.
-
-Link `start_stop_model` with the `electrics_model` done.
-
-The electric model now uses as input the gear_box_powers instead the clutch_tc_powers. The clutch_tc_powers is function of the on_engine which leads to a loop.
 
 :git:`4ca913f`: Rename functions with `_TC_` in `_tc_`.
 Notes: Seems trial (to be removed??), There is no issue assigned to
 
 :git:`c07689d`: The function "define_electrics_model" added in order to take into account electric vehicle models as well.
-
 There is no issue assigned to
-
-:git:`2533ce1`, :git:`f0ba87f`, :git:`6313008`, :git:`62a7df2`: Build a cmd tool to run simulation plans.
-
-- :gh:`198`, :gh:`237`: Closed
-
-Design a cmd line tool that is able to handle simulation plans. (CONTINUATION OF #198)
-
-The scope of this tool is to calibrate a vehicle model (base model) once and then run multiple variations on those inputs .
-The Idea is to have an additional "part" in the data name. This could be named scope, and it can have two values:
-plan: all parameters that are set in the simulation plan,
-run: all parameters that goes to the normal execution of CO2MPAS.
-In this way we can have an additional sheet named plan that can be parsed. This sheet contains a table where each row is a single simulation, while the columns names are the parameters that the user want to change.
-We should add three special columns names:
-id: Identifies the variation id.
-base: this is a file path of a CO2MPAS excel input, this model will be used as new base vehicle.
-defaults: this is a a list of file paths. The calibrated models of these files are used as default models of the base model. This behavior is needed to simulate, for example, a manual car (base) as A/T, because the A/T strategy and the torque converter are not in the base model.
-
-The following classes were created:
-class Start_stop_model
-class Alternator_status_model
-
-The "sa" option while running co2mpas was added in order to load "only" xlsx files:
-co2mpas sa          [-v | --logconf <conf-file>] [-f] [--predict-wltp]
-   [-O <output-folder>] [--soft-validation]
-   [--no-theoretic-wltp] [<input-path>] [<input-params>]
-   [<defaults>]...
-
-:git:`246e9e7`: Create a "Base-model" with all constants and numbers present in the code of model-functions
-- :gh:`223`: Seatblet repeatability questioned
-
-Running twice seatbelt fails!
-Fixed so that there is repeatability between MAC OS and Windows (os library to make the check)
 
 
 v1.2.5, file-ver: 2.2, 25-May 2016: "Panino/Sandwich" release ("PS")
