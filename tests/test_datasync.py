@@ -212,24 +212,24 @@ class TestReSampling(unittest.TestCase):
         i = np.trapz(y, x)
 
         X = np.linspace(0, 1, num=10)
-        Y = datasync.re_sampling(X, x, y)
+        Y = datasync.integral_interpolation(X, x, y)
         I = np.trapz(Y, X)
         self.assertAlmostEquals(i, I, msg='Down-sampling integral mismatch!')
 
         X[1:-1] = np.sort(np.random.random_sample(8))
-        Y = datasync.re_sampling(X, x, y)
+        Y = datasync.integral_interpolation(X, x, y)
         I = np.trapz(Y, X)
         self.assertAlmostEquals(
             i, I, msg='Nonuniform Down-sampling integral mismatch!'
         )
 
         X = np.linspace(0, 1, num=1000)
-        Y = datasync.re_sampling(X, x, y)
+        Y = datasync.integral_interpolation(X, x, y)
         I = np.trapz(Y, X)
         self.assertAlmostEquals(i, I, msg='Up-sampling integral mismatch!')
 
         X[1:-1] = np.sort(np.random.random_sample(998))
-        Y = datasync.re_sampling(X, x, y)
+        Y = datasync.integral_interpolation(X, x, y)
         I = np.trapz(Y, X)
         self.assertAlmostEquals(
             i, I, msg='Nonuniform Up-sampling integral mismatch!'
