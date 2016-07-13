@@ -90,18 +90,161 @@ Update the thermal model.
 rename `engine_normalization_temperature_window` in `engine_thermostat_temperature_window`.
 
 
+******************MICHALIS***************************************
+:git:``:
+:git:``:
+:git:``:
+:git:``:
+:git:``:
+:git:``:
 
 
+:git:`c6b46a2`: dsp: Skip initial_values with NONE.
+
+**Hard and Soft validation**
+:git:`af749ea`, :git:`9467de4`, :git:`0d3d74d`, :git:`84de44e`, :git:`440a5b0`, :git:`e4809d1
+
+- :gh:`214`: The model should check the initial temperature provided by the user with that of the OBD time series. If the difference is greater than 0.5C a message should be raised to the user and simulation should not take place.
+
+Add check initial temperature on hard validation.
+
+**S/S Model**
+:git:`bbe134e`: S/S do not force engine on when SOC<minSOC.
+
+:git:`925327c`: FIX `cold_start_speed_model` limiting the max delta.
+On `calculate_cold_start_speeds_delta`, `idle_engine_speed` was added.
+
+:git:`7d80f03`: FIX engine_behavior in `predict_vehicle_electrics_and_engine_behavior`.
+
+:git:`c1598a6`: FIX thermal model filtering out DT outliers.
+
+:git:`b58ce1b`: FIX willans `distance` (division by 3600).
+
+:git:`4209148`: FIX assessment of  `time_sample_frequency`.
+
+:git:`71baf52`:Function that calculates engine nominal power [kW] added.
+
+:git:`bcba255`: selector: Improve metrics.
+**Selector**
+In the `metrics_inputs`, `on_engine` added.
+
+:git:`94469c7`: FIX waring `calculate_extended_integration_times`.
+Instead of t1 and t0, t2 and t1 array names are used.
+
+:git:`1eb2bff`: FIX function `engine_power_correction_function`
+In the engine model, the engine_power_correction_function returns one value
+
+:git:`71bfd95`: FIX Doc `scipy.interpolate.InterpolatedUnivariateSpline`.
+Documentation edits
+
+:git:`0816e64`: Add function `calculate_max_available_engine_powers`.
+Calculates the maximum available engine power [kW].
+
+:git:`bfbbb75`: Add constant `auxiliaries_power_loss`.
+Added function that calculates engine power losses due to engine auxiliaries [kW].
+
+:git:`a3f9001`: Add wltp python library in the setup.
+
+:git:`2d80593`: FIX `view_long_path`for no windows platforms.
+- :gh:`219`: Remove pypiwin32 library
+
+:git:`2024df7`: Summary report: Use scatter chart type.
+
+:git:`ca5e136`: Add pykalman in requirements
+Library added in the setup requirements.
+
+:git:`dbc92b0`: FIX `normalization_engine_temperature` when no wltp cycle is provided.
+
+:git:`1a700b6`: Add function to treat `obd_velocities`.
+**Engine Model**
+Function added to use Kalman Filters in order to smooth the noise in the obd velocities [km/h].
 
 
+:git:`1314fe2`, :git:`c778f27`, :git:`357fccb`, :git:`cbbc7e9`, :git:`a62d3d4`, :git:`55643c3`, :gh:`186`: Predict also Theoretical WLTP H & L cycles
+Support a new theoretical_WLTP sheet with a table of 3 time-series: V, G_H & G_L
+
+:git:`178d9f5`, :gh:`225`: Implement the WLTP pkg within CO2MPAS for calculating theoretical velocities and gear shifting.
+Now we can simulate manual vehicles without assign the gears
 
 
+:git:`c3b5ab9`: alternator - Improve alternator logic.
+Modifies the "Alternator_status_model" class. This is a first modification, the current state is different from the one of this commit.
+
+:git:`8ded622`: FIX Acc when vel ==0
+The fuction that returns the acceleration from velocity series sets teh first value of the vector equal to zero.
+
+:git:`0550114`:
+Under gear_box model of the physical layer, the conversion of the model changed (def convert function).
+
+:git:`0b7b4ba`, :git:`40eeccb`, :git:`814fbee`, :git:`a90862c`
+
+- :gh:`175` (open): From wltp rpm use a regressor to calculate NEDC rpm
+based on the initial parameter values calculate optimal cm-BMEP curve.
+So from optimal cm-bmep curve and NEDC rpm, calculate NEDC engine out BMEP.
+
+:git:`7ffffa0`: FIX wild card with _wait_in
+In the _set_wildcards function, _wait_in was added in the wildcards.
+
+:git:`77f9b7f`: Remove `--charts` flag.
+
+- :gh:`197`: Remove main flags, treat all Input-data consistently with a Layered design
+Main flags are:
+
+- output_template,
+- overwrite_cache,
+- soft_validation, and
+- with_charts.
 
 
+:git:`d911c85`:
 
+- :gh:`212`: The start stop time provided by the user should override any model estimated start stop operation.
 
+Description:
+The start stop time provided by the user should override any model estimated start stop operation. In any case the start stop operation should be function of time (the time when the model shifts from t0 to t1), and battery soc.
 
+Link `start_stop_model` with the `electrics_model` done.
 
+The electric model now uses as input the gear_box_powers instead the clutch_tc_powers. The clutch_tc_powers is function of the on_engine which leads to a loop.
+
+:git:`4ca913f`: Rename functions with `_TC_` in `_tc_`.
+Notes: Seems trial (to be removed??), There is no issue assigned to
+
+:git:`c07689d`: The function "define_electrics_model" added in order to take into account electric vehicle models as well.
+
+There is no issue assigned to
+
+:git:`2533ce1`, :git:`f0ba87f`, :git:`6313008`, :git:`62a7df2`: Build a cmd tool to run simulation plans.
+
+- :gh:`198`, :gh:`237`: Closed
+
+Design a cmd line tool that is able to handle simulation plans. (CONTINUATION OF #198)
+
+The scope of this tool is to calibrate a vehicle model (base model) once and then run multiple variations on those inputs .
+The Idea is to have an additional "part" in the data name. This could be named scope, and it can have two values:
+plan: all parameters that are set in the simulation plan,
+run: all parameters that goes to the normal execution of CO2MPAS.
+In this way we can have an additional sheet named plan that can be parsed. This sheet contains a table where each row is a single simulation, while the columns names are the parameters that the user want to change.
+We should add three special columns names:
+id: Identifies the variation id.
+base: this is a file path of a CO2MPAS excel input, this model will be used as new base vehicle.
+defaults: this is a a list of file paths. The calibrated models of these files are used as default models of the base model. This behavior is needed to simulate, for example, a manual car (base) as A/T, because the A/T strategy and the torque converter are not in the base model.
+
+The following classes were created:
+class Start_stop_model
+class Alternator_status_model
+
+The "sa" option while running co2mpas was added in order to load "only" xlsx files:
+co2mpas sa          [-v | --logconf <conf-file>] [-f] [--predict-wltp]
+   [-O <output-folder>] [--soft-validation]
+   [--no-theoretic-wltp] [<input-path>] [<input-params>]
+   [<defaults>]...
+
+:git:`246e9e7`: Create a "Base-model" with all constants and numbers present in the code of model-functions
+- :gh:`223`: Seatblet repeatability questioned
+
+Running twice seatbelt fails!
+Fixed so that there is repeatability between MAC OS and Windows (os library to make the check)
 
 
 v1.2.5, file-ver: 2.2, 25-May 2016: "Panino/Sandwich" release ("PS")
