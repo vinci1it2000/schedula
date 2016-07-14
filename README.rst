@@ -644,6 +644,7 @@ you have installed CO2MPAS (see :ref:`install` above) and type::
       <input-path>                Input xlsx-file or folder. Assumes current-dir if
                                   missing.
       -O=<output-folder>          Output folder or file [default: .].
+      <excel-file-path>           Output file.
       --gui                       Launches GUI dialog-boxes to choose Input, Output
                                   and Options. [default: False].
       --only-summary              Do not save vehicle outputs, just the summary.
@@ -903,28 +904,70 @@ by typing ``datasync --help`` in the command line
     Shift and resample excel-tables; see http://co2mpas.io/usage.html#Synchronizing-time-series.
 
     Usage:
-      datasync  [(-v | --verbose) | --logconf <conf-file>]
-                [--force | -f] [--no-clone] [--prefix-cols] [-O <output>]
-                <x-label> <y-label> <ref-table> [<sync-table> ...]
-      datasync  [--verbose | -v]  (--version | -V)
-      datasync  --help
+      datasync          [(-v | --verbose) | --logconf <conf-file>] [--force | -f]
+                        [--interp <method>] [--no-clone] [--prefix-cols]
+                        [-O <output>] <x-label> <y-label> <ref-table>
+                        [<sync-table> ...]
+      datasync          [--verbose | -v]  (--version | -V)
+      datasync          [--interp-methods | -l]
+      datasync          --help
+      datasync template [-f] [--cycle <cycle>] [<excel-file-path> ...]
 
     Options:
-      <x-label>              Column-name of the common x-axis (e.g. 'times') to be resampled if needed.
-      <y-label>              Column-name of y-axis cross-correlated between all <sync-table>
-                             and <ref-table>.
-      <ref-table>            The reference table, in *xl-ref* notation (usually given as  `file#sheet!`);
-                             synced columns will be appended into this table.
-                             The captured table must contain <x_label> & <y_label> as column labels.
+      <x-label>              Column-name of the common x-axis (e.g. 'times') to be
+                             re-sampled if needed.
+      <y-label>              Column-name of y-axis cross-correlated between all
+                             <sync-table> and <ref-table>.
+      <ref-table>            The reference table, in *xl-ref* notation (usually
+                             given as `file#sheet!`); synced columns will be
+                             appended into this table.
+                             The captured table must contain <x_label> & <y_label>
+                             as column labels.
                              If hash(`#`) symbol missing, assumed as file-path and
                              the table is read from its 1st sheet .
-      <sync-table>           Sheets to be synced in relation to <ref-table>, also in *xl-ref* notation.
-                             All tables must contain <x_label> & <y_label> as column labels.
-                             Each xlref may omit file or sheet-name parts; in that case,
-                             those from the previous xlref(s) are reused.
+      <sync-table>           Sheets to be synced in relation to <ref-table>, also in
+                             *xl-ref* notation.
+                             All tables must contain <x_label> & <y_label> as column
+                             labels.
+                             Each xlref may omit file or sheet-name parts; in that
+                             case, those from the previous xlref(s) are reused.
                              If hash(`#`) symbol missing, assumed as sheet-name.
-                             If none given, all non-empty sheets of <ref-table> are synced
-                             against the 1st one.
+                             If none given, all non-empty sheets of <ref-table> are
+                             synced against the 1st one.
+      -O <output>            Output folder or file path to write the results:
+                             - Non-existent path: taken as the new file-path; fails
+                               if intermediate folders do not exist, unless --force.
+                             - Existent file: file-path to overwrite if --force,
+                               fails otherwise.
+                             - Existent folder: writes a new file
+                               `<ref-file>.sync<.ext>` in that folder; --force
+                               required if that file exists.
+                             [default: .].
+      -f, --force            Overwrite excel-file(s) and create any missing
+                             intermediate folders.
+      --prefix-cols          Prefix all synced column names with their source
+                             sheet-names. By default, only clashing column-names are
+                             prefixed.
+      --no-clone             Do not clone excel-sheets contained in <ref-table>
+                             workbook into output.
+      --interp <method>      Interpolation method used in the resampling
+                             [default: linear]: 'linear', 'nearest', 'zero',
+                             'slinear', 'quadratic', 'cubic', 'barycentric',
+                             'polynomial', 'spline' is passed to
+                             scipy.interpolate.interp1d. Both 'polynomial' and
+                             'spline' require that you also specify an order (int),
+                             e.g. df.interpolate(--interp=polynomial4).
+                             'krogh', 'piecewise_polynomial', 'pchip' and 'akima'
+                             are all wrappers around the scipy interpolation methods
+                             of similar names. 'integral'
+      -l, --interp-methods   List of all interpolation methods that can be used in
+                             the resampling.
+      --cycle <cycle>        If set (e.g., --cycle=nedc.manual), the <ref-table> is
+                             populated with the theoretical velocity profile.
+                             Options: 'nedc.manual', 'nedc.automatic',
+                             'wltp.class1', 'wltp.class2', 'wltp.class3a', and
+                             'wltp.class3b'.
+      <excel-file-path>      Output file.
 
 
 All input tables must share 2 common columns: ``<x-label>`` and ``<y-label>``, as if
