@@ -71,11 +71,11 @@ def calculate_full_load(full_load_speeds, full_load_powers, idle_engine_speed):
 
     :param full_load_speeds:
         T1 map speed vector [RPM].
-    :type full_load_speeds: list
+    :type full_load_speeds: numpy.array
 
-    :param full_load_powers: list
+    :param full_load_powers:
         T1 map power vector [kW].
-    :type full_load_powers: list
+    :type full_load_powers: numpy.array
 
     :param idle_engine_speed:
         Engine speed idle median and std [RPM].
@@ -86,16 +86,48 @@ def calculate_full_load(full_load_speeds, full_load_powers, idle_engine_speed):
     :rtype: (scipy.interpolate.InterpolatedUnivariateSpline, float, float)
     """
 
-    v = list(zip(full_load_powers, full_load_speeds))
-    engine_max_power, engine_max_speed_at_max_power = max(v)
+    pn = np.array((full_load_speeds, full_load_powers))
+    max_speed_at_max_power, max_power = pn[:, np.argmax(pn[0])]
+    pn[1] /= max_power
+    idle = idle_engine_speed[0]
+    pn[0] = (pn[0] - idle) / (max_speed_at_max_power - idle)
 
-    p_norm = np.asarray(full_load_powers) / engine_max_power
-    n_norm = (engine_max_speed_at_max_power - idle_engine_speed[0])
-    n_norm = (np.asarray(full_load_speeds) - idle_engine_speed[0]) / n_norm
+    return Spline(*pn, ext=3), max_power, max_speed_at_max_power
 
-    flc = Spline(n_norm, p_norm, ext=3)
 
-    return flc, engine_max_power, engine_max_speed_at_max_power
+def calculate_full_load_speeds_and_powers(
+        full_load_curve, engine_max_power, engine_max_speed_at_max_power,
+        idle_engine_speed):
+    """
+    Calculates the full load speeds and powers [RPM, kW].
+
+    :param full_load_curve:
+        Vehicle normalized full load curve.
+    :type full_load_curve: scipy.interpolate.InterpolatedUnivariateSpline
+
+    :param engine_max_power:
+        Engine nominal power [kW].
+    :type engine_max_power: float
+
+    :param engine_max_speed_at_max_power:
+        Engine nominal speed at engine nominal power [RPM].
+    :type engine_max_speed_at_max_power: float
+
+    :param idle_engine_speed:
+        Engine speed idle median and std [RPM].
+    :type idle_engine_speed: (float, float)
+
+    :return:
+         T1 map speed [RPM] and power [kW] vectors.
+    :rtype: (numpy.array, numpy.array)
+    """
+
+    n_norm = np.arange(0.0, 1.21, 0.01)
+    full_load_powers = full_load_curve(n_norm) * engine_max_power
+    idle = idle_engine_speed[0]
+    full_load_speeds = n_norm * (engine_max_speed_at_max_power - idle) + idle
+
+    return full_load_speeds, full_load_powers
 
 
 def identify_on_idle(
@@ -815,6 +847,13 @@ def engine():
         function=calculate_wheel_torques,
         inputs=['full_load_powers', 'full_load_torques'],
         outputs=['full_load_speeds']
+    )
+
+    dsp.add_function(
+        function=calculate_full_load_speeds_and_powers,
+        inputs=['full_load_curve', 'engine_max_power',
+                'engine_max_speed_at_max_power', 'idle_engine_speed'],
+        outputs=['full_load_speeds', 'full_load_powers']
     )
 
     dsp.add_function(
