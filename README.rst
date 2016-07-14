@@ -1143,17 +1143,19 @@ These names are split in "parts", as explained below with examples:
 
 - **sheet-names** parts::
 
-                  base.input.precondition.WLTP-H
-                  └┬─┘ └─┬─┘ └────┬─────┘ └─┬──┘
-      scope────────┘     │        │         │
-      usage──────────────┘        │         │
-      stage───────────────────────┘         │
-      cycle─────────────────────────────────┘
+                  base.input.precondition.WLTP-H.ts
+                  └┬─┘ └─┬─┘ └────┬─────┘ └─┬──┘ └┬┘
+      scope────────┘     │        │         │     │
+      usage──────────────┘        │         │     │
+      stage───────────────────────┘         │     │
+      cycle─────────────────────────────────┘     │
+      sheet_type──────────────────────────────────┘
 
 
-  All 4 parts above are optional, but at least one of them must be present on
+  First 4 parts above are optional, but at least one of them must be present on
   a **sheet-name**; those parts are then used as defaults for all
-  **parameter-names** contained in that sheet.
+  **parameter-names** contained in that sheet. **type** is optional and specify
+  the type of sheet.
 
 - **parameter-names**/**columns-names** parts::
 
@@ -1206,11 +1208,14 @@ Description of the name-parts
 
 4. **cycle:**
 
-   - ``nedc`` data related to the *NEDC* cycle.
-   - ``wltp-h`` data related to the *WLTP High* cycle.
-   - ``wltp-l`` data related to the *WLTP Low* cycle.
+   - ``nedc-h``: data related to the *NEDC High* cycle.
+   - ``nedc-l``: data related to the *NEDC Low* cycle.
+   - ``wltp-h``: data related to the *WLTP High* cycle.
+   - ``wltp-l``: data related to the *WLTP Low* cycle.
    - ``wltp-precon``: data related to the preconditioning *WLTP* cycle.
    - ``wltp-p``: is a shortcut of ``wltp-precon``.
+   - ``nedc``: is a shortcut to set values for both ``nedc-h`` and ``nedc-l``
+     cycles.
    - ``wltp``: is a shortcut to set values for both ``wltp-h`` and ``wltp-l``
      cycles.
    - ``all`` [default]: is a shortcut to set values for ``nedc``, ``wltp``,
@@ -1219,22 +1224,21 @@ Description of the name-parts
 5. **param:** any data node name (e.g. ``vehicle_mass``) used in the physical
    model.
 
-Sheet types
-~~~~~~~~~~~
-There are three sheet types, which are parsed according to their contained
-data:
+6. **sheet_type:** there are three sheet types, which are parsed according to
+   their contained data:
 
-- **variations** [parsed range is ``#A1:__``]: table of scalar and time-depended
-  values used into the simulation plan as variation from the base model.
-- **parameters** [parsed range is ``#B2:C_``]: scalar or not time-depended
-  values (e.g. ``r_dynamic``, ``gear_box_ratios``, ``full_load_speeds``).
-- **time-series** [parsed range is ``#A2:__``]: time-depended values (e.g.
-  ``times``, ``velocities``, ``gears``). Columns without values are skipped.
-  **COLUMNS MUST HAVE THE SAME LENGTH!**
+   - **pl** [parsed range is ``#A1:__``]: table of scalar and time-depended
+   values used into the simulation plan as variation from the base model.
+   - **pa** [parsed range is ``#B2:C_``]: scalar or not time-depended
+   values (e.g. ``r_dynamic``, ``gear_box_ratios``, ``full_load_speeds``).
+   - **ts** [parsed range is ``#A2:__``]: time-depended values (e.g.
+   ``times``, ``velocities``, ``gears``). Columns without values are skipped.
+   **COLUMNS MUST HAVE THE SAME LENGTH!**
 
-When **scope** is ``plan``, the sheet is parsed as **variations**. If **scope**
-is ``base`` and **cycle** is missing in the **sheet-name**, the sheet is parsed
-as **parameters**, otherwise it is parsed as **time-series**.
+   ..note:: If it is not defined, the default value follows these rules:
+     When **scope** is ``plan``, the sheet is parsed as **pl**.
+     If **scope** is ``base`` and **cycle** is missing in the **sheet-name**,
+     the sheet is parsed as **pa**, otherwise it is parsed as **ts**.
 
 Calibrated Physical Models
 --------------------------
