@@ -16,8 +16,10 @@
     ~batch
     ~datasync
     ~plot
-    ~sensitivity
+    ~plan
     ~dispatcher
+    ~utils
+    ~report
 
 """
 from ._version import (__version__, __updated__, __file_version__)

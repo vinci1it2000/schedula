@@ -24,8 +24,7 @@ Modules:
     clutch_tc
     electrics
     engine
-    utils
-    constants
+    defaults
 """
 
 from co2mpas.dispatcher import Dispatcher
