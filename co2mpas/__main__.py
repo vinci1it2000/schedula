@@ -42,6 +42,7 @@ OPTIONS:
   <input-path>                Input xlsx-file or folder. Assumes current-dir if
                               missing.
   -O=<output-folder>          Output folder or file [default: .].
+  <excel-file-path>           Output file.
   --gui                       Launches GUI dialog-boxes to choose Input, Output
                               and Options. [default: False].
   --only-summary              Do not save vehicle outputs, just the summary.
@@ -283,8 +284,8 @@ def _cmd_template(opts):
     if is_gui and not dst_fpaths:
         import easygui as eu
         fpath = eu.filesavebox(msg='Create INPUT-TEMPLATE file as:',
-                              title='%s-v%s' % (proj_name, proj_ver),
-                              default='co2mpas_template.xlsx')
+                               title='%s-v%s' % (proj_name, proj_ver),
+                               default='co2mpas_template.xlsx')
         if not fpath:
             raise CmdException('User abort creating INPUT-TEMPLATE file.')
         dst_fpaths = [fpath]

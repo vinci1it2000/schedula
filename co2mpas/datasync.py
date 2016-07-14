@@ -9,53 +9,69 @@ r"""
 Shift and resample excel-tables; see http://co2mpas.io/usage.html#Synchronizing-time-series.
 
 Usage:
-  datasync  [(-v | --verbose) | --logconf <conf-file>] [--interp <method>]
-            [--force | -f] [--no-clone] [--prefix-cols] [-O <output>]
-            <x-label> <y-label> <ref-table> [<sync-table> ...]
-  datasync  [--verbose | -v]  (--version | -V)
-  datasync  [--interp-methods | -l]
-  datasync  --help
+  datasync          [(-v | --verbose) | --logconf <conf-file>] [--force | -f]
+                    [--interp <method>] [--no-clone] [--prefix-cols]
+                    [-O <output>] <x-label> <y-label> <ref-table>
+                    [<sync-table> ...]
+  datasync          [--verbose | -v]  (--version | -V)
+  datasync          [--interp-methods | -l]
+  datasync          --help
+  datasync          [-f] --template [--cycle <cycle>] [<excel-file-path> ...]
 
 Options:
-  <x-label>              Column-name of the common x-axis (e.g. 'times') to be resampled if needed.
-  <y-label>              Column-name of y-axis cross-correlated between all <sync-table>
-                         and <ref-table>.
-  <ref-table>            The reference table, in *xl-ref* notation (usually given as  `file#sheet!`);
-                         synced columns will be appended into this table.
-                         The captured table must contain <x_label> & <y_label> as column labels.
+  <x-label>              Column-name of the common x-axis (e.g. 'times') to be
+                         re-sampled if needed.
+  <y-label>              Column-name of y-axis cross-correlated between all
+                         <sync-table> and <ref-table>.
+  <ref-table>            The reference table, in *xl-ref* notation (usually
+                         given as `file#sheet!`); synced columns will be
+                         appended into this table.
+                         The captured table must contain <x_label> & <y_label>
+                         as column labels.
                          If hash(`#`) symbol missing, assumed as file-path and
                          the table is read from its 1st sheet .
-  <sync-table>           Sheets to be synced in relation to <ref-table>, also in *xl-ref* notation.
-                         All tables must contain <x_label> & <y_label> as column labels.
-                         Each xlref may omit file or sheet-name parts; in that case,
-                         those from the previous xlref(s) are reused.
+  <sync-table>           Sheets to be synced in relation to <ref-table>, also in
+                         *xl-ref* notation.
+                         All tables must contain <x_label> & <y_label> as column
+                         labels.
+                         Each xlref may omit file or sheet-name parts; in that
+                         case, those from the previous xlref(s) are reused.
                          If hash(`#`) symbol missing, assumed as sheet-name.
-                         If none given, all non-empty sheets of <ref-table> are synced
-                         against the 1st one.
-  -O <output>            Output folder or file path to write synchronized results:
+                         If none given, all non-empty sheets of <ref-table> are
+                         synced against the 1st one.
+  -O <output>            Output folder or file path to write the results:
                          - Non-existent path: taken as the new file-path; fails
                            if intermediate folders do not exist, unless --force.
-                         - Existent file: file-path to overwrite if --force, fails otherwise.
-                         - Existent folder: writes a new file `<ref-file>.sync<.ext>`
-                           in that folder; --force required if that file exists.
+                         - Existent file: file-path to overwrite if --force,
+                           fails otherwise.
+                         - Existent folder: writes a new file
+                           `<ref-file>.sync<.ext>` in that folder; --force
+                           required if that file exists.
                          [default: .].
-  -f, --force            Overwrite excel-file(s) and create any missing intermediate folders.
-  --prefix-cols          Prefix all synced column names with their source sheet-names.
-                         By default, only clashing column-names are prefixed.
-  --no-clone             Do not clone excel-sheets contained in <ref-table> workbook
-                         into output.
+  -f, --force            Overwrite excel-file(s) and create any missing
+                         intermediate folders.
+  --prefix-cols          Prefix all synced column names with their source
+                         sheet-names. By default, only clashing column-names are
+                         prefixed.
+  --no-clone             Do not clone excel-sheets contained in <ref-table>
+                         workbook into output.
   --interp <method>      Interpolation method used in the resampling
                          [default: linear]: 'linear', 'nearest', 'zero',
                          'slinear', 'quadratic', 'cubic', 'barycentric',
                          'polynomial', 'spline' is passed to
                          scipy.interpolate.interp1d. Both 'polynomial' and
                          'spline' require that you also specify an order (int),
-                         e.g. df.interpolate(--re-sampling=polynomial4).
+                         e.g. df.interpolate(--interp=polynomial4).
                          'krogh', 'piecewise_polynomial', 'pchip' and 'akima'
                          are all wrappers around the scipy interpolation methods
                          of similar names. 'integral'
   -l, --interp-methods   List of all interpolation methods that can be used in
                          the resampling.
+  --template             List of all interpolation methods that can be used in
+                         the resampling.
+  --cycle <cycle>        List of all interpolation methods that can be used in
+                         the resampling.
+  <excel-file-path>      Output file [default: ./template.xlsx].
 
 Miscellaneous:
   -h, --help             Show this help message and exit.
@@ -73,23 +89,24 @@ Examples::
 
     ## Read the full contents from all `wbook.xlsx` sheets as tables and
     ## sync their columns using the table from the 1st sheet as reference:
-    datasync times  velocity  folder/Book.xlsx
+    datasync times  velocities  folder/Book.xlsx
 
     ## Sync `Sheet1` using `Sheet3` as reference:
-    datasync times  velocity  wbook.xlsx#Sheet3!  Sheet1!
+    datasync times  velocities  wbook.xlsx#Sheet3!  Sheet1!
 
     ## The same as above- NOTE that sheet-indices are zero based!
-    datasync times  velocity  wbook.xlsx#2!  0
+    datasync times  velocities  wbook.xlsx#2!  0
 
     ## Complex Xlr-ref example:
     ## Read the table in sheet2 of wbook-2 starting at D5 cell
     ## or more Down 'n Right if that was empty, till Down n Right,
     ## and sync this based on 1st sheet of wbook-1:
-    datasync times  velocity wbook-1.xlsx  wbook-2.xlsx#0!D5(DR):..(DR)
+    datasync times  velocities wbook-1.xlsx  wbook-2.xlsx#0!D5(DR):..(DR)
 
-    # Typical usage for CO2MPAS velocity time-series from Dyno and OBD:
-    datasync -O ../output times  velocities  ../input/book.xlsx  WLTP-H  WLTP-H_OBD
-
+    ## Typical usage for CO2MPAS velocity time-series from Dyno and OBD
+    ## (the ref sheet contains the theoretical velocity profile):
+    datasync --template --cycle wltp.class3b book.xlsx
+    datasync -O ./output times velocities book.xlsx#ref  dyno obd
 """
 
 from collections import OrderedDict, Counter
@@ -107,9 +124,13 @@ import functools as fnt
 import numpy as np
 import os.path as osp
 import pandas as pd
-
+from co2mpas import __version__ as proj_ver
 from co2mpas.__main__ import CmdException, init_logging, build_version_string
-
+from co2mpas.model.physical.cycle import cycle
+from openpyxl import load_workbook
+import shutil
+import co2mpas.dispatcher.utils as dsp_utl
+proj_name = 'datasync'
 
 log = logging.getLogger(__name__)
 
@@ -488,6 +509,88 @@ def do_datasync(x_label, y_label, ref_xlref, *sync_xlrefs,
         df.to_excel(writer, tables.ref_sh_name, header=False, index=False)
         writer.save()
 
+def _get_input_template_fpath():
+    import pkg_resources
+
+    fname = 'datasync_template.xlsx'
+    return pkg_resources.resource_stream(__name__, fname)
+
+
+_re_template = regex.compile(
+    r"""
+    ^(?P<cycle_type>nedc)(.(?P<gear_box_type>(manual|automatic)))?$
+    |
+    ^(?P<cycle_type>wltp)(.(?P<wltp_class>(class([12]|3[ab]))))?$
+    """, regex.IGNORECASE | regex.X | regex.DOTALL)
+
+
+def _get_theoretical(profile):
+    defaults = {
+        'cycle_type': 'WLTP',
+        'gear_box_type': 'manual',
+        'wltp_class': 'class3b',
+        'downscale_factor': 0
+    }
+    profile = dsp_utl.combine_dicts(defaults, {k: v for k, v in profile.items() if v})
+    profile['cycle_type'] = profile['cycle_type'].upper()
+    profile['wltp_class'] = profile['wltp_class'].lower()
+    profile['gear_box_type'] = profile['gear_box_type'].lower()
+
+    res = cycle().dispatch(inputs=profile, outputs=['times', 'velocities'])
+    data = dsp_utl.selector(['times', 'velocities'], res, output_type='list')
+    return pd.DataFrame(data).T
+
+
+def _cmd_template(opts):
+    dst_fpaths = opts.get('<excel-file-path>', None)
+
+    is_gui = opts.get('--gui', False)
+    if is_gui and not dst_fpaths:
+        import easygui as eu
+        fpath = eu.filesavebox(msg='Create INPUT-TEMPLATE file as:',
+                               title='%s-v%s' % (proj_name, proj_ver),
+                               default='template.xlsx')
+        if not fpath:
+            raise CmdException('User abort creating INPUT-TEMPLATE file.')
+        dst_fpaths = [fpath]
+    elif not dst_fpaths:
+        raise CmdException('Missing destination filepath for INPUT-TEMPLATE!')
+    if opts['--cycle'] is not None:
+
+        profile = _re_template.match(opts['--cycle'])
+        if profile is None:
+            raise CmdException('Cycle %s not allowed' % opts['--cycle'])
+        df = _get_theoretical(profile.groupdict())
+        def overwrite_ref(fpath):
+            book = load_workbook(fpath)
+            writer = pd.ExcelWriter(fpath, engine='openpyxl')
+            writer.book = book
+            writer.sheets = dict((ws.title, ws) for ws in book.worksheets)
+            df.to_excel(writer, "ref", index=False, startrow=2, header=False)
+            writer.save()
+    else:
+        def overwrite_ref(fpath):
+            pass
+    template = _get_input_template_fpath()
+    force = opts['--force']
+    for fpath in dst_fpaths:
+        if not fpath.endswith('.xlsx'):
+            fpath = '%s.xlsx' % fpath
+        if osp.exists(fpath) and not force and not is_gui:
+            raise CmdException(
+                "Writing file '%s' skipped, already exists! "
+                "Use '-f' to overwrite it." % fpath)
+        if osp.isdir(fpath):
+            raise CmdException(
+                "Expecting a file-name instead of directory '%s'!" % fpath)
+
+        log.info("Creating INPUT-TEMPLATE file '%s'...", fpath)
+
+        with open(fpath, 'wb') as fd:
+            shutil.copyfileobj(template, fd, 16 * 1024)
+
+        overwrite_ref(fpath)
+
 
 def main(*args):
     """Does not ``sys.exit()`` like a when invoked as script, throws exceptions instead."""
@@ -511,7 +614,8 @@ def main(*args):
             sys.stdout.buffer.flush()
         except:
             print(msg)
-        print( )
+    elif opts['--template']:
+        _cmd_template(opts)
     else:
         do_datasync(
                 opts['<x-label>'], opts['<y-label>'],
