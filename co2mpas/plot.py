@@ -106,7 +106,7 @@ def plot_model_graphs(model_ids=None, view_in_browser=True,
         (e.g., ['co2mpas.physical.physical', 'engine', ...]).
 
         .. note:: It it is not specified all models will be plotted.
-    :type model_ids: list|
+    :type model_ids: list|tuple
 
     :param view_in_browser:
         Open the rendered directed graph in the DOT language with the sys
