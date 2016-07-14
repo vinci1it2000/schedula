@@ -16,7 +16,7 @@ Usage:
   datasync          [--verbose | -v]  (--version | -V)
   datasync          [--interp-methods | -l]
   datasync          --help
-  datasync          --template [-f] [--cycle <cycle>] [<excel-file-path> ...]
+  datasync template [-f] [--cycle <cycle>] [<excel-file-path> ...]
 
 Options:
   <x-label>              Column-name of the common x-axis (e.g. 'times') to be
@@ -67,14 +67,12 @@ Options:
                          of similar names. 'integral'
   -l, --interp-methods   List of all interpolation methods that can be used in
                          the resampling.
-  --template             Generate "empty" input-file for the `datasync` cmd as
-                         <excel-file-path>.
   --cycle <cycle>        If set (e.g., --cycle=nedc.manual), the <ref-table> is
                          populated with the theoretical velocity profile.
                          Options: 'nedc.manual', 'nedc.automatic',
                          'wltp.class1', 'wltp.class2', 'wltp.class3a', and
                          'wltp.class3b'.
-  <excel-file-path>      Output file [default: ./template.xlsx].
+  <excel-file-path>      Output file.
 
 Miscellaneous:
   -h, --help             Show this help message and exit.
@@ -87,6 +85,11 @@ Miscellaneous:
                          See https://docs.python.org/3.5/library/logging.config.html#logging-config-dictschema
 
 * For xl-refs see: https://pandalone.readthedocs.org/en/latest/reference.html#module-pandalone.xleash
+
+SUB-COMMANDS:
+    template             Generate "empty" input-file for the `datasync` cmd as
+                         <excel-file-path>.
+
 
 Examples::
 
@@ -108,8 +111,8 @@ Examples::
 
     ## Typical usage for CO2MPAS velocity time-series from Dyno and OBD
     ## (the ref sheet contains the theoretical velocity profile):
-    datasync --template --cycle wltp.class3b book.xlsx
-    datasync -O ./output times velocities book.xlsx#ref  dyno obd
+    datasync template --cycle wltp.class3b template.xlsx
+    datasync -O ./output times velocities template.xlsx#ref dyno obd
 """
 
 from collections import OrderedDict, Counter
@@ -534,7 +537,8 @@ def _get_theoretical(profile):
         'wltp_class': 'class3b',
         'downscale_factor': 0
     }
-    profile = dsp_utl.combine_dicts(defaults, {k: v for k, v in profile.items() if v})
+    profile = {k: v for k, v in profile.items() if v}
+    profile = dsp_utl.combine_dicts(defaults, profile)
     profile['cycle_type'] = profile['cycle_type'].upper()
     profile['wltp_class'] = profile['wltp_class'].lower()
     profile['gear_box_type'] = profile['gear_box_type'].lower()
@@ -617,7 +621,7 @@ def main(*args):
             sys.stdout.buffer.flush()
         except:
             print(msg)
-    elif opts['--template']:
+    elif opts['template']:
         _cmd_template(opts)
     else:
         do_datasync(
