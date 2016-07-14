@@ -16,7 +16,7 @@ Usage:
   datasync          [--verbose | -v]  (--version | -V)
   datasync          [--interp-methods | -l]
   datasync          --help
-  datasync          [-f] --template [--cycle <cycle>] [<excel-file-path> ...]
+  datasync          --template [-f] [--cycle <cycle>] [<excel-file-path> ...]
 
 Options:
   <x-label>              Column-name of the common x-axis (e.g. 'times') to be
@@ -67,10 +67,13 @@ Options:
                          of similar names. 'integral'
   -l, --interp-methods   List of all interpolation methods that can be used in
                          the resampling.
-  --template             List of all interpolation methods that can be used in
-                         the resampling.
-  --cycle <cycle>        List of all interpolation methods that can be used in
-                         the resampling.
+  --template             Generate "empty" input-file for the `datasync` cmd as
+                         <excel-file-path>.
+  --cycle <cycle>        If set (e.g., --cycle=nedc.manual), the <ref-table> is
+                         populated with the theoretical velocity profile.
+                         Options: 'nedc.manual', 'nedc.automatic',
+                         'wltp.class1', 'wltp.class2', 'wltp.class3a', and
+                         'wltp.class3b'.
   <excel-file-path>      Output file [default: ./template.xlsx].
 
 Miscellaneous:
@@ -518,9 +521,9 @@ def _get_input_template_fpath():
 
 _re_template = regex.compile(
     r"""
-    ^(?P<cycle_type>nedc)(.(?P<gear_box_type>(manual|automatic)))?$
+    ^(?P<cycle_type>nedc)(.(?P<gear_box_type>(manual|automatic)))$
     |
-    ^(?P<cycle_type>wltp)(.(?P<wltp_class>(class([12]|3[ab]))))?$
+    ^(?P<cycle_type>wltp)(.(?P<wltp_class>(class([12]|3[ab]))))$
     """, regex.IGNORECASE | regex.X | regex.DOTALL)
 
 
