@@ -51,16 +51,25 @@ def yield_sphinx_only_markup(lines):
         (r':ref:`([^`]+)`',         r'ref: *\1*'),
         (r':term:`([^`]+)`',        r'**\1**'),
         (r':dfn:`([^`]+)`',         r'**\1**'),
-        (r':(samp|guilabel|menuselection):`([^`]+)`',
+        (r':(samp|guilabel|menuselection|doc|file):`([^`]+)`',
                                     r'``\2``'),
-
 
         # Sphinx-only roles:
         #        :foo:`bar`   --> foo(``bar``)
         #        :a:foo:`bar` XXX afoo(``bar``)
         #
         #(r'(:(\w+))?:(\w+):`([^`]*)`', r'\2\3(``\4``)'),
-        (r':(\w+):`([^`]*)`', r'\1(`\2`)'),
+        #(r':(\w+):`([^`]*)`', r'\1(`\2`)'),
+        # emphasis
+        # literal
+        # code
+        # math
+        # pep-reference
+        # rfc-reference
+        # strong
+        # subscript, sub
+        # superscript, sup
+        # title-reference
 
 
         # Sphinx-only Directives.
