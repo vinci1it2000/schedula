@@ -8,6 +8,10 @@
     :end-before: .. _end-opening:
 
 .. toctree::
+    :maxdepth: 4
+    :numbered:
+    :caption: Table of Contents
+    :name: mastertoc
 
     install
     allinone
@@ -23,4 +27,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
