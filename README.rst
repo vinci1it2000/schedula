@@ -115,6 +115,11 @@ follow the detailed instructions under sections :ref:`install` and
 
 Install
 =======
+.. Warning::
+    In *Windows* we strongly advise **AGAINST installing standard Python distribution!**
+
+    Read the `Python Installation`_ section, below, to see why.
+
 The installation procedure has 2-stages:
 
 1. Install (or Upgrade) Python (2 choices under *Windows*).
