@@ -1,6 +1,4 @@
-.. meta::
-    :theme-color:   #CCCC00
-.. image:: doc/_static/CO2MPAS_banner.png
+.. image:: doc/_static/CO2MPAS_logo.png
    :width: 300 px
    :align: center
 
@@ -1280,12 +1278,12 @@ Description of the name-parts
    their contained data:
 
    - **pl** [parsed range is ``#A1:__``]: table of scalar and time-depended
-   values used into the simulation plan as variation from the base model.
+     values used into the simulation plan as variation from the base model.
    - **pa** [parsed range is ``#B2:C_``]: scalar or not time-depended
-   values (e.g. ``r_dynamic``, ``gear_box_ratios``, ``full_load_speeds``).
+     values (e.g. ``r_dynamic``, ``gear_box_ratios``, ``full_load_speeds``).
    - **ts** [parsed range is ``#A2:__``]: time-depended values (e.g.
-   ``times``, ``velocities``, ``gears``). Columns without values are skipped.
-   **COLUMNS MUST HAVE THE SAME LENGTH!**
+     ``times``, ``velocities``, ``gears``). Columns without values are skipped.
+     **COLUMNS MUST HAVE THE SAME LENGTH!**
 
    ..note:: If it is not defined, the default value follows these rules:
      When **scope** is ``plan``, the sheet is parsed as **pl**.
