@@ -1018,10 +1018,19 @@ Examples
 
     datasync times  velocity wbook-1.xlsx  wbook-2.xlsx#0!D5(DR):..(DR)
 
-- Typical usage for |CO2MPAS| velocity time-series from Dyno and OBD::
+- Typical usage for |CO2MPAS| velocity time-series from Dyno and OBD:
 
-    datasync -O ../output times  velocities  ../input/book.xlsx#WLTP-H  WLTP-H_OBD
+  1. Create a template pre-populated with the theoretical velocity profile::
 
+       datasync template --cycle wltp.class3b template.xlsx
+
+  .. note:: the ref sheet contains the theoretical velocity profile.
+
+  2. Fill the dyno and obd sheet with the raw data. Synchronize the data::
+
+       datasync -O ./output times velocities template.xlsx#ref dyno obd
+
+  3. Copy paste the synchronized signal into the CO2MPAS template.
 
 Simulation plan
 ---------------
