@@ -459,17 +459,16 @@ def check_data_version(data):
             v, rv = v['VERSION'], tuple(__input_file_version__.split('.'))
 
             if tuple(v.split('.')) >= rv:
-                continue
+                break
 
             msg = "\n  Input file version %s. Please update your input " \
                   "file with a version >= %s."
             log.warning(msg, v, __input_file_version__)
             break
-
+    else:
         msg = "\n  Input file version not found. Please update your input " \
               "file with a version >= %s."
         log.error(msg, __input_file_version__)
-        break
 
     return data
 
