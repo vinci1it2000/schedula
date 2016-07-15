@@ -153,6 +153,9 @@ class Values(co2_utl.Constants):
     #: Limits (vel, acc) when torque converter is active [km/h, m/s].
     lock_up_tc_limits = (48.0, 0.3)
 
+    #: Empirical value in case of CVT [-].
+    tyre_dynamic_rolling_coefficient = 0.975
+
 
 #: Container of internal function parameters.
 class Functions(co2_utl.Constants):

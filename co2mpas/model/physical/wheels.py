@@ -640,6 +640,12 @@ def wheels():
         weight=5
     )
 
+    dsp.add_data(
+        data_id='tyre_dynamic_rolling_coefficient',
+        default_value=dfl.values.tyre_dynamic_rolling_coefficient,
+        initial_dist=50
+    )
+
     dsp.add_function(
         function=calculate_r_dynamic,
         inputs=['r_wheels', 'tyre_dynamic_rolling_coefficient'],
