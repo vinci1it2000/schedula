@@ -3,9 +3,9 @@
    :align: left
 .. _start-opening:
 
-############################################################################
+######################################################################
 |CO2MPAS|: Vehicle simulator predicting NEDC |CO2| emissions from WLTP
-############################################################################
+######################################################################
 
 :Release:       1.3.1b1
 :Date:          2016-07-14 17:12:00
@@ -1023,6 +1023,24 @@ Examples
     datasync -O ../output times  velocities  ../input/book.xlsx#WLTP-H  WLTP-H_OBD
 
 
+Simulation plan
+---------------
+This feature enables the possibility to launch the co2mpas model multiple times,
+planning some variations of the vehicle parameters that are provided in a single
+input file (so called **base** model). Variations are provided in additional
+sheets which names start with ``plan.``. These sheets contains a table where
+each row is a single simulation, while the columns names are the parameters that
+the user want to change.
+
+These tables have three special columns names:
+- **id**: Identifies the variation id.
+- **base**: this is a file path of a CO2MPAS excel input, this model will be
+  used as new base vehicle.
+- **defaults**: this is a a list of file paths. The calibrated models of these
+  files are used as default models of the **base** model. This behavior is
+  needed to simulate, for example, a manual car (**base**) as A/T, because
+  the A/T strategy and the torque converter are not in the **base** model.
+
 
 Using custom output xl-files as templates
 -----------------------------------------
@@ -1050,7 +1068,7 @@ To create/modify one output-template yourself, do the following:
 
 
 Launch |CO2MPAS| from Jupyter(aka IPython)
----------------------------------------------------
+------------------------------------------
 You may enter the data for a single vehicle and run its simulation, plot its
 results and experiment in your browser using `IPython <http://ipython.org/>`_.
 
