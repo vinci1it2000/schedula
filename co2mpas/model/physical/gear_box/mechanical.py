@@ -20,6 +20,7 @@ from . import calculate_gear_shifts
 from ..defaults import *
 import co2mpas.utils as co2_utl
 import numpy as np
+from sklearn.cluster import MeanShift, estimate_bandwidth
 
 
 def _identify_gear(idle, vsr, stop_vel, plateau_acc, ratio, vel, acc):
@@ -345,12 +346,13 @@ def identify_velocity_speed_ratios(
     idle_speed = idle_engine_speed[0] + idle_engine_speed[1]
 
     b = (gear_box_speeds_in > idle_speed) & (velocities > stop_velocity)
+    x = (velocities[b] / gear_box_speeds_in[b])[:, None]
 
-    vsr = co2_utl.bin_split(velocities[b] / gear_box_speeds_in[b])[1]
+    bandwidth = estimate_bandwidth(x, quantile=0.2)
+    ms = MeanShift(bandwidth=bandwidth, bin_seeding=True)
+    ms.fit(x)
 
-    vsr = [v[-1] for v in vsr]
-
-    vsr = {k + 1: v for k, v in enumerate(sorted(vsr))}
+    vsr = {k + 1: v for k, v in enumerate(sorted(ms.cluster_centers_[:, 0]))}
 
     vsr[0] = 0.0
 
