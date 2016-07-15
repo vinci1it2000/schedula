@@ -38,7 +38,7 @@ def read_text_lines(fname):
         return fd.readlines()
 
 
-def yield_sphinx_only_markup(lines):
+def yield_rst_only_markup(lines):
     """
     :param file_inp:     a `filename` or ``sys.stdin``?
     :param file_out:     a `filename` or ``sys.stdout`?`
@@ -108,7 +108,7 @@ def yield_sphinx_only_markup(lines):
 proj_ver = read_project_version()
 readme_lines = read_text_lines('README.rst')
 description = readme_lines[1]
-long_desc = ''.join(yield_sphinx_only_markup(readme_lines))
+long_desc = ''.join(yield_rst_only_markup(readme_lines))
 download_url = 'https://github.com/JRCSTU/%s/tarball/v%s' % (proj_name, proj_ver)
 
 setup(

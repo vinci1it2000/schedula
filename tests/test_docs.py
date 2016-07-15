@@ -9,6 +9,8 @@
 import io
 import os
 import re
+import sys
+import subprocess
 import unittest
 from unittest.mock import patch
 
@@ -18,6 +20,7 @@ from co2mpas import datasync
 
 
 mydir = os.path.dirname(__file__)
+proj_path = os.path.join(mydir, '..')
 readme_path = os.path.join(mydir, '..', 'README.rst')
 allinone_path = os.path.join(mydir, '..', 'doc', 'allinone.rst')
 
@@ -102,6 +105,7 @@ class Doctest(unittest.TestCase):
                 if l:
                     assert l in ftext, msg % (i, l)
 
+
     def test_allinone_contains_version(self):
         ver = co2mpas.__version__
         mydir = os.path.dirname(__file__)
@@ -109,4 +113,17 @@ class Doctest(unittest.TestCase):
             msg = "Version(%s) not found in %s header-lines!"
             self.assertIn(ver, fd.read(), msg % (ver, allinone_path))
 
+    def test_README_as_PyPi_landing_page(self):
+        from docutils import core as dcore
+
+        long_desc = subprocess.check_output(
+                'python setup.py --long-description'.split(),
+                cwd=proj_path)
+        self.assertIsNotNone(long_desc, 'Long_desc is null!')
+
+        with patch('sys.exit'):
+            dcore.publish_string(long_desc, enable_exit_status=False,
+                    settings_overrides={ # see `docutils.frontend` for more.
+                            'halt_level': 2 # 2=WARN, 1=INFO
+                    })
 
