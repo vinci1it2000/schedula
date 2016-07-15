@@ -253,7 +253,7 @@ It is not update-able, and has a semi-regular release-cycle of 3 months.
 .. _co2mpas-install:
 
 |CO2MPAS| installation
--------------------------------
+----------------------
 1. Install |CO2MPAS| executable internally into your python-environment with
    the following console-commands (there is no prob if the 1st `uninstall`
    command fails):
@@ -319,12 +319,12 @@ option would both fail to run (see :ref:`debug`).
 
 
 Upgrade |CO2MPAS| (with internet connectivity)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 1. Uninstall (see below) and re-install it.
 
 
 Uninstall |CO2MPAS|
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 To uninstall |CO2MPAS| type the following command, and confirm it with ``y``:
 
 .. code-block:: console
@@ -1042,6 +1042,7 @@ each row is a single simulation, while the columns names are the parameters that
 the user want to change.
 
 These tables have three special columns names:
+
 - **id**: Identifies the variation id.
 - **base**: this is a file path of a CO2MPAS excel input, this model will be
   used as new base vehicle.
