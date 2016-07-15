@@ -56,6 +56,10 @@ def identify_clutch_speeds_delta(
     """
     Identifies the engine speed delta due to the clutch [RPM].
 
+    :param clutch_phases:
+        When the clutch is active [-].
+    :type clutch_phases: numpy.array
+
     :param engine_speeds_out:
         Engine speed [RPM].
     :type engine_speeds_out: numpy.array
@@ -114,13 +118,17 @@ def identify_clutch_window(
         When there is a gear shifting [-].
     :type gear_shifts: numpy.array
 
-    :param clutch_speeds_delta:
-        Engine speed delta due to the clutch [RPM].
-    :type clutch_speeds_delta: numpy.array
+    :param engine_speeds_out:
+        Engine speed [RPM].
+    :type engine_speeds_out: numpy.array
 
-    :param clutch_speed_threshold:
-        Threshold of engine speed delta due to the clutch [RPM].
-    :type clutch_speed_threshold: float
+    :param engine_speeds_out_hot:
+        Engine speed at hot condition [RPM].
+    :type engine_speeds_out_hot: numpy.array
+
+    :param cold_start_speeds_delta:
+        Engine speed delta due to the cold start [RPM].
+    :type cold_start_speeds_delta: numpy.array
 
     :param max_clutch_window_width:
         Maximum clutch window width [s].
@@ -158,7 +166,6 @@ def identify_clutch_window(
 
 def _calibrate_clutch_prediction_model(
         accelerations, delta_speeds, error_func, default_model):
-
     try:
         X = np.array([accelerations]).T
         model = RANSACRegressor(
@@ -192,10 +199,6 @@ def calibrate_clutch_prediction_model(
     :param clutch_speeds_delta:
         Engine speed delta due to the clutch [RPM].
     :type clutch_speeds_delta: numpy.array
-
-    :param clutch_speed_threshold:
-        Threshold of engine speed delta due to the clutch [RPM].
-    :type clutch_speed_threshold: float
 
     :return:
         Clutch prediction model.

@@ -11,7 +11,6 @@ It contains functions that model the basic mechanics of the gear box.
 
 from functools import partial
 from math import pi
-import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.optimize import brute
 from scipy.stats import binned_statistic
@@ -20,6 +19,7 @@ from co2mpas.dispatcher import Dispatcher
 from . import calculate_gear_shifts
 from ..defaults import *
 import co2mpas.utils as co2_utl
+import numpy as np
 
 
 def _identify_gear(idle, vsr, stop_vel, plateau_acc, ratio, vel, acc):

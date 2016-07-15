@@ -338,6 +338,7 @@ def _set_node(dot, node_id, dsp2dot_id, dsp=None, node_attr=None, values=None,
                         'format': dot.format
                     }
                     if 'workflow' in workflow_node:
+                        # noinspection PyUnresolvedReferences
                         kwargs['workflow'] = workflow_node['workflow']
                     else:
                         kwargs['workflow'] = None if dist else False
@@ -456,8 +457,8 @@ def _get_dsp2dot_id(dot, graph):
 
     def id_node(o):
         return html.unescape('%s_%s' % (parent, hash(o)))
-
-    return {k: id_node(k) for k in chain(graph.node, [START, END, SINK, EMPTY, SELF])}
+    tkn = [START, END, SINK, EMPTY, SELF]
+    return {k: id_node(k) for k in chain(graph.node, tkn)}
 
 
 def plot(dsp, workflow=False, dot=None, edge_data=None, view=False,

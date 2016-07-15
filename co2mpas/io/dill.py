@@ -10,12 +10,14 @@ It contains functions to read/write inputs/outputs from/on a .dill file.
 """
 
 import logging
+
 log = logging.getLogger(__name__)
 
 import dill
 from networkx.utils.decorators import open_file
 
 __all__ = ['load_from_dill', 'save_dill']
+
 
 @open_file(0, mode='rb')
 def load_from_dill(fpath):

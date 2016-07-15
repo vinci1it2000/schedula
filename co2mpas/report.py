@@ -284,7 +284,8 @@ def extract_summary(report, vehicle_name):
 
 
 def _add_special_data2report(data, report, to_keys, *from_keys):
-    if from_keys[-1] != 'times' and co2_utl.are_in_nested_dicts(data, *from_keys):
+    if from_keys[-1] != 'times' and \
+            co2_utl.are_in_nested_dicts(data, *from_keys):
         v = co2_utl.get_nested_dicts(data, *from_keys)
         n = to_keys + ('{}.{}'.format(from_keys[0], from_keys[-1]),)
         co2_utl.get_nested_dicts(report, *n, default=co2_utl.ret_v(v))
@@ -528,6 +529,7 @@ def _is_equal(v, iv):
         if v == iv:
             return True
     except ValueError:
+        # noinspection PyUnresolvedReferences
         if (v == iv).all():
             return True
     return False

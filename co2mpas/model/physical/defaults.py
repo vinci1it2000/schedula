@@ -352,44 +352,45 @@ class Functions(co2_utl.Constants):
             'positive': 1,
             'compression': 2
         }
+
     class calculate_co2_emissions(co2_utl.Constants):
         # idle ratio to define the fuel cutoff [-].
         cutoff_idle_ratio = 1.1
 
-    #TODO: add default fuel densities.
+    # TODO: add default fuel densities.
     class default_fuel_density(co2_utl.Constants):
         #: Fuel density [g/l].
         FUEL_DENSITY = {
             'gasoline': 750.0,
             'diesel': 835.0,
-            #'LPG': ,
-            #'NG': ,
-            #'ethanol': ,
-            #'biodiesel': ,
+            # 'LPG': ,
+            # 'NG': ,
+            # 'ethanol': ,
+            # 'biodiesel': ,
         }
 
-    #TODO: add default fuel lower heating values.
+    # TODO: add default fuel lower heating values.
     class default_fuel_lower_heating_value(co2_utl.Constants):
         #: Fuel lower heating value [kJ/kg].
         LHV = {
-            #'gasoline': ,
-            #'diesel': ,
-            #'LPG': ,
-            #'NG': ,
-            #'ethanol': ,
-            #'biodiesel': ,
+            # 'gasoline': ,
+            # 'diesel': ,
+            # 'LPG': ,
+            # 'NG': ,
+            # 'ethanol': ,
+            # 'biodiesel': ,
         }
 
-    #TODO: add default fuel carbon content.
+    # TODO: add default fuel carbon content.
     class default_fuel_carbon_content(co2_utl.Constants):
         #: Fuel carbon content [CO2g/g].
         CARBON_CONTENT = {
-            #'gasoline': ,
-            #'diesel': ,
-            #'LPG': ,
-            #'NG': ,
-            #'ethanol': ,
-            #'biodiesel': ,
+            # 'gasoline': ,
+            # 'diesel': ,
+            # 'LPG': ,
+            # 'NG': ,
+            # 'ethanol': ,
+            # 'biodiesel': ,
         }
 
     class calibrate_cold_start_speed_model_v1(co2_utl.Constants):

@@ -517,7 +517,7 @@ def _chart2excel(writer, shname, charts):
 
         n = int(i / m)
         j = i - n * m
-        sheet.insert_chart('A1', chart, {'x_offset': w * n ,'y_offset': h * j})
+        sheet.insert_chart('A1', chart, {'x_offset': w * n, 'y_offset': h * j})
 
 
 def _data_ref(ref):

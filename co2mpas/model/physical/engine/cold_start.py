@@ -99,7 +99,7 @@ def _identify_temp_limit(delta, temp):
     return t[i]
 
 
-def _calibrate_models(delta, temp, speeds_hot, speeds, on_eng, idle, phases):
+def _calibrate_models(delta, temp, speeds_hot, on_eng, idle, phases):
     func = partial(_calibrate_css_model, delta, idle, on_eng, temp, speeds_hot)
 
     ind = dsp_utl.counter()
@@ -127,30 +127,21 @@ def _calibrate_models(delta, temp, speeds_hot, speeds, on_eng, idle, phases):
 
 def calibrate_cold_start_speed_model(
         cold_start_speeds_phases, cold_start_speeds_delta, idle_engine_speed,
-        on_engine, engine_coolant_temperatures, engine_speeds_out_hot,
-        engine_speeds_out):
+        on_engine, engine_coolant_temperatures, engine_speeds_out_hot):
     """
     Calibrates the engine cold start speed model.
 
-    :param idle_engine_speed:
-        Engine speed idle median and std [RPM].
-    :type idle_engine_speed: (float, float)
-
-    :param engine_thermostat_temperature:
-        Engine thermostat temperature [°C].
-    :type engine_thermostat_temperature: float
-
-    :param times:
-        Time vector [s].
-    :type times: numpy.array
+    :param cold_start_speeds_phases:
+        Phases when engine speed is affected by the cold start [-].
+    :type cold_start_speeds_phases: numpy.array
 
     :param cold_start_speeds_delta:
         Engine speed delta due to the cold start [RPM].
     :type cold_start_speeds_delta: numpy.array
 
-    :param cold_start_speeds_phases:
-        Phases when engine speed is affected by the cold start [-].
-    :type cold_start_speeds_phases: numpy.array
+    :param idle_engine_speed:
+        Engine speed idle median and std [RPM].
+    :type idle_engine_speed: (float, float)
 
     :param on_engine:
         If the engine is on [-].
@@ -171,8 +162,8 @@ def calibrate_cold_start_speed_model(
 
     model = _calibrate_models(
         cold_start_speeds_delta, engine_coolant_temperatures,
-        engine_speeds_out_hot, engine_speeds_out, on_engine,
-        idle_engine_speed[0], cold_start_speeds_phases
+        engine_speeds_out_hot, on_engine, idle_engine_speed[0],
+        cold_start_speeds_phases
     )
 
     return model
@@ -252,7 +243,7 @@ def cold_start():
         function=calibrate_cold_start_speed_model,
         inputs=['cold_start_speeds_phases', 'cold_start_speeds_delta',
                 'idle_engine_speed', 'on_engine', 'engine_coolant_temperatures',
-                'engine_speeds_out_hot', 'engine_speeds_out'],
+                'engine_speeds_out_hot'],
         outputs=['cold_start_speed_model']
     )
 

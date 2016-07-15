@@ -124,6 +124,10 @@ def identify_charging_statuses(
         Alternator starts windows [-].
     :type starts_windows: numpy.array
 
+    :param alternator_initialization_time:
+        Alternator initialization time delta [s].
+    :type alternator_initialization_time: float
+
     :return:
         The alternator status (0: off, 1: on, due to state of charge, 2: on due
         to BERS) [-].
@@ -181,8 +185,7 @@ def identify_alternator_initialization_time(
         state_of_charges, alternator_statuses, times,
         alternator_current_threshold):
     """
-
-
+    Identifies the alternator initialization time delta [s].
 
     :param alternator_currents:
         Alternator current vector [A].
@@ -208,12 +211,22 @@ def identify_alternator_initialization_time(
             `state_of_charges` = 99 is equivalent to 99%.
     :type state_of_charges: numpy.array
 
-    :param uncorrected_alternator_statuses:
+    :param alternator_statuses:
         The alternator status (0: off, 1: on, due to state of charge, 2: on due
         to BERS) [-].
     :type alternator_statuses: numpy.array
+
     :param times:
+        Time vector [s].
+    :type times: numpy.array
+
+    :param alternator_current_threshold:
+        Alternator current threshold [A].
+    :type alternator_current_threshold: float
+
     :return:
+        Alternator initialization time delta [s].
+    :rtype: float
     """
 
     if alternator_statuses[0] == 1:
@@ -522,6 +535,10 @@ def calibrate_alternator_current_model(
     :param accelerations:
         Acceleration vector [m/s2].
     :type accelerations: numpy.array
+
+    :param alternator_initialization_time:
+        Alternator initialization time delta [s].
+    :type alternator_initialization_time: float
 
     :return:
         Alternator current model.
@@ -956,6 +973,14 @@ def define_electrics_model(
     :param has_energy_recuperation:
         Does the vehicle have energy recuperation features?
     :type has_energy_recuperation: bool
+
+    :param alternator_initialization_time:
+        Alternator initialization time delta [s].
+    :type alternator_initialization_time: float
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
 
     :return:
        Electrics model.

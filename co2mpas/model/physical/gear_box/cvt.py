@@ -145,7 +145,6 @@ def cvt_model():
         description='Models the gear box.'
     )
 
-
     dsp.add_function(
         function=calibrate_cvt,
         inputs=['on_engine', 'engine_speeds_out', 'velocities', 'accelerations',

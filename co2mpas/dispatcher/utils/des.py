@@ -150,7 +150,8 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function',
         def get_des(dsp_node):
             sub_dsp = dsp_node['function']
             n_id = get_id(dsp_node)
-            return search_node_description(n_id, sub_dsp.nodes[n_id], sub_dsp, what)
+            return search_node_description(n_id, sub_dsp.nodes[n_id], sub_dsp,
+                                           what)
 
     for k, v in ((k, nodes[k]) for k in sorted(neighbors[node_id])):
         if v['type'] == node_type and check(k):
@@ -211,6 +212,7 @@ def parent_func(func, input_id=None):
 
     if isinstance(func, partial):
         if input_id is not None:
+            # noinspection PyTypeChecker
             input_id += len(func.args)
         return parent_func(func.func, input_id=input_id)
 

@@ -41,7 +41,8 @@ def predict_vehicle_electrics_and_engine_behavior(
         has_start_stop, use_basic_start_stop, max_engine_coolant_temperature):
     """
     Predicts alternator and battery currents, state of charge, alternator
-    status, if the engine is on and when the engine starts.
+    status, if the engine is on and when the engine starts, the engine speed at
+    hot condition, and the engine coolant temperature.
 
     :param electrics_model:
         Electrics model.
@@ -74,6 +75,10 @@ def predict_vehicle_electrics_and_engine_behavior(
     :param times:
         Time vector [s].
     :type times: numpy.array
+
+    :param final_drive_powers_in:
+        Final drive power in [kW].
+    :type final_drive_powers_in: numpy.array
 
     :param gear_box_speeds_in:
         Gear box speed vector [RPM].
@@ -119,11 +124,16 @@ def predict_vehicle_electrics_and_engine_behavior(
           acceleration, temperature, and battery state of charge.
     :type use_basic_start_stop: bool
 
+    :param max_engine_coolant_temperature:
+        Maximum engine coolant temperature [°C].
+    :type max_engine_coolant_temperature: float
+
     :return:
         Alternator and battery currents, state of charge, alternator status,
-        if the engine is on and when the engine starts.
-        [A, A, %, -, -, -].
-    :rtype: (np.array, np.array, np.array, np.array)
+        if the engine is on and when the engine starts, the engine speed at hot
+        condition, and the engine coolant temperature.
+        [A, A, %, -, -, -, RPM, °C].
+    :rtype: tuple[np.array]
     """
 
     from .engine import calculate_engine_speeds_out_hot

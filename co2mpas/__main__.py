@@ -453,6 +453,7 @@ def _main(*args):
     init_logging(verbose, logconf_file=opts.get('--logconf'))
     if opts['--version']:
         v = build_version_string(verbose)
+        # noinspection PyBroadException
         try:
             sys.stdout.buffer.write(v.encode() + b'\n')
         except:
@@ -466,7 +467,7 @@ def _main(*args):
             _cmd_ipynb(opts)
         elif opts['modelgraph']:
             _cmd_modelgraph(opts)
-        else: #opts['batch']:
+        else:
             _run_batch(opts)
 
 

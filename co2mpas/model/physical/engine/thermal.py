@@ -55,8 +55,7 @@ def identify_max_engine_coolant_temperature(engine_coolant_temperatures):
     return engine_coolant_temperatures.max()
 
 
-def _build_samples(on_engine, temperature_derivatives,
-                   engine_coolant_temperatures, *args):
+def _build_samples(temperature_derivatives, engine_coolant_temperatures, *args):
     arr = (np.array([engine_coolant_temperatures[:-1]]).T, np.array(args).T[1:],
            np.array([temperature_derivatives[1:]]).T)
     return np.concatenate(arr, axis=1)
@@ -101,11 +100,16 @@ class _SelectFromModel(SelectFromModel):
         return mask
 
 
+# noinspection PyMethodMayBeStatic,PyMethodMayBeStatic
 class ThermalModel(object):
-    def __init__(self):
+    def __init__(self, thermostat=100.0):
         self.model = None
         self.mask = None
+        self.cold = None
+        self.mask_cold = None
         self.base_model = GradientBoostingRegressor
+        self.thermostat = thermostat
+        self.min_temp = -float('inf')
 
     def fit(self, idle_engine_speed, on_engine, temperature_derivatives,
             temperatures, *args):
@@ -115,6 +119,10 @@ class ThermalModel(object):
 
         This model returns the delta temperature function of temperature
         (previous), acceleration, and power at the wheel.
+
+        :param idle_engine_speed:
+            Engine speed idle median and std [RPM].
+        :type idle_engine_speed: (float, float)
 
         :param on_engine:
             If the engine is on [-].
@@ -133,8 +141,7 @@ class ThermalModel(object):
         :rtype: ThermalModel
         """
 
-        spl = _build_samples(on_engine, temperature_derivatives, temperatures,
-                             *args)
+        spl = _build_samples(temperature_derivatives, temperatures, *args)
         self.thermostat = self._identify_thermostat(spl, idle_engine_speed)
 
         spl = _filter_samples(spl, on_engine, self.thermostat)
@@ -219,7 +226,8 @@ class ThermalModel(object):
         delta_temp = self._derivative(model, mask, prev_temperature, *args) * dt
         return min(delta_temp, max_temp - prev_temperature)
 
-    def _derivative(self, model, mask, *args):
+    @staticmethod
+    def _derivative(model, mask, *args):
         return model.predict(np.array([args])[:, mask])[0]
 
 
@@ -233,6 +241,10 @@ def calibrate_engine_temperature_regression_model(
 
     This model returns the delta temperature function of temperature (previous),
     acceleration, and power at the wheel.
+
+    :param idle_engine_speed:
+        Engine speed idle median and std [RPM].
+    :type idle_engine_speed: (float, float)
 
     :param on_engine:
         If the engine is on [-].
@@ -351,10 +363,6 @@ def identify_engine_thermostat_temperature(engine_temperature_regression_model):
         The calibrated engine temperature regression model.
     :type engine_temperature_regression_model: ThermalModel
 
-    :param idle_engine_speed:
-        Idle engine speed and its standard deviation [RPM].
-    :type idle_engine_speed: (float, float)
-
     :return:
         Engine thermostat temperature [°C].
     :rtype: float
@@ -413,7 +421,8 @@ def thermal():
         function=calibrate_engine_temperature_regression_model,
         inputs=['idle_engine_speed', 'on_engine',
                 'engine_temperature_derivatives', 'engine_coolant_temperatures',
-                'final_drive_powers_in', 'engine_speeds_out_hot', 'accelerations'],
+                'final_drive_powers_in', 'engine_speeds_out_hot',
+                'accelerations'],
         outputs=['engine_temperature_regression_model']
     )
 

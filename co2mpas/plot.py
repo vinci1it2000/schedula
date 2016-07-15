@@ -36,11 +36,11 @@ def get_model_paths(model_ids=None):
 
     co2mpas_model = [
         'batch.vehicle_processing_model',
-        #+
+        # +
         'report.report',
         'io.load_inputs',
         'io.write_outputs',
-        #+
+        # +
 
     ] + [
         'model.%s' % k for k in
@@ -50,37 +50,38 @@ def get_model_paths(model_ids=None):
             'selector.co2_params.co2_params_selector'
         ] + ['physical.%s' % k for k in
              [
-            'physical',
-            'cycle.cycle',
-            'cycle.NEDC.nedc_cycle',
-            'cycle.WLTP.wltp_cycle',
-            'vehicle.vehicle',
-            'wheels.wheels',
-            'final_drive.final_drive',
-            'clutch_tc.clutch_torque_converter',
-            'clutch_tc.clutch.clutch',
-            'clutch_tc.torque_converter.torque_converter',
-            'electrics.electrics',
-            'electrics.electrics_prediction.electrics_prediction',
-            'engine.engine',
-            'engine.co2_emission.co2_emission',
-            'engine.cold_start.cold_start',
-            'engine.start_stop.start_stop',
-            'engine.thermal.thermal',
-            'gear_box.gear_box',
-            'gear_box.mechanical.mechanical',
-            'gear_box.cvt.cvt_model',
-            'gear_box.thermal.thermal',
-            'gear_box.at_gear.at_gear',
-            'gear_box.at_gear.at_cmv',
-            'gear_box.at_gear.at_cmv_cold_hot',
-            'gear_box.at_gear.at_dt_va',
-            'gear_box.at_gear.at_dt_vap',
-            'gear_box.at_gear.at_dt_vat',
-            'gear_box.at_gear.at_dt_vatp',
-            'gear_box.at_gear.at_gspv',
-            'gear_box.at_gear.at_gspv_cold_hot',
-        ]]
+                 'physical',
+                 'cycle.cycle',
+                 'cycle.NEDC.nedc_cycle',
+                 'cycle.WLTP.wltp_cycle',
+                 'vehicle.vehicle',
+                 'wheels.wheels',
+                 'final_drive.final_drive',
+                 'clutch_tc.clutch_torque_converter',
+                 'clutch_tc.clutch.clutch',
+                 'clutch_tc.torque_converter.torque_converter',
+                 'electrics.electrics',
+                 'electrics.electrics_prediction.electrics_prediction',
+                 'engine.engine',
+                 'engine.co2_emission.co2_emission',
+                 'engine.cold_start.cold_start',
+                 'engine.start_stop.start_stop',
+                 'engine.thermal.thermal',
+                 'gear_box.gear_box',
+                 'gear_box.mechanical.mechanical',
+                 'gear_box.cvt.cvt_model',
+                 'gear_box.thermal.thermal',
+                 'gear_box.at_gear.at_gear',
+                 'gear_box.at_gear.at_cmv',
+                 'gear_box.at_gear.at_cmv_cold_hot',
+                 'gear_box.at_gear.at_dt_va',
+                 'gear_box.at_gear.at_dt_vap',
+                 'gear_box.at_gear.at_dt_vat',
+                 'gear_box.at_gear.at_dt_vatp',
+                 'gear_box.at_gear.at_gspv',
+                 'gear_box.at_gear.at_gspv_cold_hot',
+             ]
+             ]
     ]
 
     co2mpas_model = {'co2mpas.%s' % k for k in co2mpas_model}

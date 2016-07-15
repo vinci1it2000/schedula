@@ -210,7 +210,7 @@ def map_list(key_map, *inputs, copy=False, base=None):
 
     for m, v in zip(key_map, inputs):
         if isinstance(m, dict):
-            map_dict(m, v, base=d)   # Apply a map dict.
+            map_dict(m, v, base=d)  # Apply a map dict.
         elif isinstance(m, list):
             map_list(m, *v, base=d)  # Apply a map list.
         else:
@@ -219,7 +219,8 @@ def map_list(key_map, *inputs, copy=False, base=None):
     return combine_dicts(copy=copy, base=d)  # Return dict.
 
 
-def selector(keys, dictionary, copy=False, output_type='dict', allow_miss=False):
+def selector(keys, dictionary, copy=False, output_type='dict',
+             allow_miss=False):
     """
     Selects the chosen dictionary keys from the given dictionary.
 
@@ -514,7 +515,7 @@ class SubDispatch(object):
             try:
                 o = selector(outs, o, output_type=self.output_type)
             except KeyError:
-                missed = set(outs).difference(o) # Outputs not reached.
+                missed = set(outs).difference(o)  # Outputs not reached.
 
                 # Raise error
                 msg = '\n  Unreachable output-targets: {}\n  Available ' \
@@ -628,7 +629,6 @@ class ReplicateFunction(object):
     """
 
     def __init__(self, function, *args, **kwargs):
-
         self.function = partial(function, *args, **kwargs)
         self.__module__ = caller_name()
         self.__name__ = function.__name__
@@ -1055,11 +1055,11 @@ class SubDispatchPipe(SubDispatchFunction):
 
         if value is not NONE:  # Set data output.
             dsp.data_output[node_id] = value
-            value = {'value': value}   # Output value.
+            value = {'value': value}  # Output value.
 
         else:
             dsp.data_output.pop(node_id, None)
-            value = {}   # Output value.
+            value = {}  # Output value.
 
         wf_add_edge = dsp._wf_add_edge
 

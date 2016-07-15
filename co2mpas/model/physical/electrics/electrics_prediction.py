@@ -94,7 +94,7 @@ def calculate_alternator_current(
     :type acceleration: float
 
     :param time:
-        Time after engine start [s].
+        Time [s].
     :type time: float
 
     :return:
@@ -168,6 +168,10 @@ def predict_alternator_status(
     :param alternator_status_model:
          Function that predicts the alternator status.
     :type alternator_status_model: function
+
+    :param time:
+        Time [s].
+    :type time: float
 
     :param prev_status:
         Previous alternator status [-].
@@ -277,7 +281,7 @@ def electrics_prediction():
 
     dsp = Dispatcher(
         name='Electric sub model',
-        description=''
+        description='Electric sub model to predict the alternator loads'
     )
 
     dsp.add_function(

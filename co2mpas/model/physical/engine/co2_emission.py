@@ -127,7 +127,7 @@ def calculate_normalized_engine_coolant_temperatures(
     """
 
     i = np.searchsorted(engine_coolant_temperatures, (temperature_target,))[0]
-    ## Only flatten-out hot-part if `max-theta` is above `trg`.
+    # Only flatten-out hot-part if `max-theta` is above `trg`.
     T = np.ones_like(engine_coolant_temperatures, dtype=float)
     T[:i] = engine_coolant_temperatures[:i] + 273.0
     T[:i] /= temperature_target + 273.0
@@ -174,10 +174,9 @@ def calculate_brake_mean_effective_pressures(
 # noinspection PyUnusedLocal
 def _calculate_fuel_ABC(n_speeds, n_powers, n_temperatures,
                         a2=0, b2=0, a=0, b=0, c=0, t=0, l=0, l2=0, **kw):
-
     A = a2 + b2 * n_speeds
     B = a + (b + c * n_speeds) * n_speeds
-    C = np.power(n_temperatures, -t) * (l + l2 * n_speeds**2)
+    C = np.power(n_temperatures, -t) * (l + l2 * n_speeds ** 2)
     C -= n_powers
 
     return A, B, C
@@ -185,7 +184,6 @@ def _calculate_fuel_ABC(n_speeds, n_powers, n_temperatures,
 
 def _calculate_fuel_mean_effective_pressure(
         params, n_speeds, n_powers, n_temperatures):
-
     A, B, C = _calculate_fuel_ABC(n_speeds, n_powers, n_temperatures, **params)
 
     return _calculate_fc(A, B, C)
@@ -194,7 +192,7 @@ def _calculate_fuel_mean_effective_pressure(
 def _calculate_fc(A, B, C):
     b = np.array(A, dtype=bool)
     if b.all():
-        v = np.sqrt(np.abs(B**2 - 4.0 * A * C))
+        v = np.sqrt(np.abs(B ** 2 - 4.0 * A * C))
         return (-B + v) / (2 * A), v
     elif np.logical_not(b).all():
         return -C / B, B
@@ -355,7 +353,8 @@ def calculate_co2_emissions(
         b = np.logical_not(b)
     else:
         p['t'] = tau_function(p['t0'], p['t1'], e_temp)
-        n_temp = calculate_normalized_engine_coolant_temperatures(e_temp, p['trg'])
+        func = calculate_normalized_engine_coolant_temperatures
+        n_temp = func(e_temp, p['trg'])
         fc[b] = engine_idle_fuel_consumption * np.power(n_temp[b], -p['t'][b])
         b = np.logical_not(b)
         p['t'] = p['t'][b]
@@ -838,7 +837,7 @@ def define_co2_error_function_on_phases(
             co2[b] = co2_emissions_model(params, sub_values=b)
         else:
             co2 = co2_emissions_model(params)
-            w = None # cumulative_co2_emissions
+            w = None  # cumulative_co2_emissions
 
         cco2 = calculate_cumulative_co2(
             times, phases_integration_times, co2, phases_distances)
@@ -978,7 +977,7 @@ def define_initial_co2_emission_model_params_guess(
             kw['max'] = b.get('max', kw.get('max', None))
             kw['vary'] = b.get('vary', kw.get('vary', True))
         elif 'vary' not in kw:
-            kw['vary'] = not k in params
+            kw['vary'] = k not in params
 
         if 'min' in kw and kw['value'] < kw['min']:
             kw['min'] = kw['value'] - EPS
@@ -1017,7 +1016,7 @@ def calculate_after_treatment_temperature_threshold(
     ti = 273 + initial_engine_temperature
     t = (273 + engine_normalization_temperature) / ti - 1
     T_mean = 40 * t + initial_engine_temperature
-    T_end = 40 * t**2 + T_mean
+    T_end = 40 * t ** 2 + T_mean
 
     return T_mean, T_end
 
@@ -1069,7 +1068,7 @@ def _set_attr(params, data, default=False, attr='vary'):
     :rtype: lmfit.Parameters
     """
     if not isinstance(data, dict):
-        data =  dict.fromkeys(data, default)
+        data = dict.fromkeys(data, default)
 
     for k, v in data.items():
         params[k].set(**{attr: v})
@@ -1213,7 +1212,8 @@ def calibrate_model_params(error_function, params, *args, **kws):
     if callable(error_function):
         error_f = error_function
     else:
-        error_f = lambda p, *a, **k: sum(f(p, *a, **k) for f in error_function)
+        def error_f(p, *a, **k):
+            return sum(f(p, *a, **k) for f in error_function)
 
     min_e_and_p = [np.inf, copy.deepcopy(params)]
 
@@ -1225,7 +1225,7 @@ def calibrate_model_params(error_function, params, *args, **kws):
 
         return res
 
-    ## See #7: Neither BFGS nor SLSQP fix "solution families".
+    # See #7: Neither BFGS nor SLSQP fix "solution families".
     # leastsq: Improper input: N=6 must not exceed M=1.
     # nelder is stable (297 runs, 14 vehicles) [average time 181s/14 vehicles].
     # lbfgsb is unstable (2 runs, 4 vehicles) [average time 23s/4 vehicles].
@@ -1236,7 +1236,7 @@ def calibrate_model_params(error_function, params, *args, **kws):
     # dogleg: Jacobian is required for dogleg minimization.
     # slsqp is unstable (4 runs, 4 vehicles) [average time 18s/4 vehicles].
     # differential_evolution is unstable (1 runs, 4 vehicles)
-    #   [average time 270s/4 vehicles].
+    # [average time 270s/4 vehicles].
     res = _minimize(error_func, params, args=args, kws=kws, method='nelder')
 
     # noinspection PyUnresolvedReferences
@@ -1246,7 +1246,6 @@ def calibrate_model_params(error_function, params, *args, **kws):
 # correction of lmfit bug.
 def _minimize(fcn, params, method='leastsq', args=None, kws=None,
               scale_covar=True, iter_cb=None, **fit_kws):
-
     fitter = _Minimizer(fcn, params, fcn_args=args, fcn_kws=kws,
                         iter_cb=iter_cb, scale_covar=scale_covar, **fit_kws)
 
@@ -1302,7 +1301,7 @@ class _Minimizer(lmfit.Minimizer):
             raise NotImplementedError
 
         result = self.prepare_fit(params=params)
-        vars   = result.init_vals
+        vars = result.init_vals
         params = result.params
 
         fmin_kws = dict(method=method,
@@ -1356,7 +1355,7 @@ class _Minimizer(lmfit.Minimizer):
         result.nfree = 1
         if isinstance(result.residual, np.ndarray):
             # noinspection PyUnresolvedReferences
-            result.chisqr = (result.chisqr**2).sum()
+            result.chisqr = (result.chisqr ** 2).sum()
             result.ndata = len(result.residual)
             result.nfree = result.ndata - result.nvarys
         result.redchi = result.chisqr / result.nfree
@@ -1587,7 +1586,6 @@ def calculate_willans_factors(
 
     b = engine_powers_out >= 0
     if b.any():
-
         p = params.valuesdict()
         _w = w[b]
         av_s = av(engine_speeds_out[b], weights=_w)
@@ -1614,26 +1612,26 @@ def calculate_willans_factors(
         willans_eff = 3600000.0 / (sfc * engine_fuel_lower_heating_value)
 
         f.update({
-            'av_engine_speeds_out_pos_pow': av_s,                 # [RPM]
-            'av_pos_engine_powers_out': av_p,                     # [kW]
-            'av_missing_powers_pos_pow': av_mp,                   # [kW]
-            'engine_bmep_pos_pow': n_p,                           # [bar]
-            'mean_piston_speed_pos_pow': n_s,                     # [m/s]
-            'fuel_mep_pos_pow': f_mep,                            # [bar]
-            'fuel_consumption_pos_pow': fc,                       # [g/sec]
-            'willans_a': willans_a,                               # [g/kW]
-            'willans_b': willans_b,                               # [g]
-            'specific_fuel_consumption': sfc,                     # [g/kWh]
-            'indicated_efficiency': ieff,                         # [-]
-            'willans_efficiency': willans_eff                     # [-]
+            'av_engine_speeds_out_pos_pow': av_s,  # [RPM]
+            'av_pos_engine_powers_out': av_p,  # [kW]
+            'av_missing_powers_pos_pow': av_mp,  # [kW]
+            'engine_bmep_pos_pow': n_p,  # [bar]
+            'mean_piston_speed_pos_pow': n_s,  # [m/s]
+            'fuel_mep_pos_pow': f_mep,  # [bar]
+            'fuel_consumption_pos_pow': fc,  # [g/sec]
+            'willans_a': willans_a,  # [g/kW]
+            'willans_b': willans_b,  # [g]
+            'specific_fuel_consumption': sfc,  # [g/kWh]
+            'indicated_efficiency': ieff,  # [-]
+            'willans_efficiency': willans_eff  # [-]
         })
 
     b = motive_powers > 0
     if b.any():
         _w = w[b]
-        f['av_vel_pos_mov_pow'] = av(velocities[b], weights=_w)       # [km/h]
+        f['av_vel_pos_mov_pow'] = av(velocities[b], weights=_w)  # [km/h]
         f['av_pos_motive_powers'] = av(motive_powers[b], weights=_w)  # [kW]
-        f['sec_pos_mov_pow'] = np.sum(_w)                             # [s]
+        f['sec_pos_mov_pow'] = np.sum(_w)  # [s]
 
     b = accelerations > 0
     if b.any():
@@ -1644,11 +1642,11 @@ def calculate_willans_factors(
     if b.any():
         _w = w[b]
         f['av_neg_motive_powers'] = av(motive_powers[b], weights=_w)  # [kW]
-        f['sec_neg_mov_pow'] = np.sum(_w)                             # [s]
+        f['sec_neg_mov_pow'] = np.sum(_w)  # [s]
 
-    f['init_temp'] = engine_coolant_temperatures[0]                   # [°C]
-    f['av_temp'] = av(engine_coolant_temperatures, weights=w)         # [°C]
-    f['end_temp'] = engine_coolant_temperatures[-1]                   # [°C]
+    f['init_temp'] = engine_coolant_temperatures[0]  # [°C]
+    f['av_temp'] = av(engine_coolant_temperatures, weights=w)  # [°C]
+    f['end_temp'] = engine_coolant_temperatures[-1]  # [°C]
 
     return f
 
@@ -1687,7 +1685,7 @@ def calculate_optimal_efficiency(params, mean_piston_speeds):
 
 def _calculate_optimal_point(params, n_speed):
     A, B, C = _calculate_fuel_ABC(n_speed, 0, 1, **params)
-    ac4, B2 = 4 * A * C, B**2
+    ac4, B2 = 4 * A * C, B ** 2
     sabc = np.sqrt(ac4 * B2)
     n = sabc - ac4
 
@@ -1837,18 +1835,18 @@ def co2_emission():
     dsp.add_data(
         data_id='fuel_type'
     )
-    #dsp.add_function(
+    # dsp.add_function(
     #    function=default_engine_fuel_lower_heating_value,
     #    inputs=['fuel_type'],
     #    outputs=['engine_fuel_lower_heating_value'],
-    #)
+    # )
 
-    #dsp.add_function(
+    # dsp.add_function(
     #    function=default_fuel_carbon_content,
     #    inputs=['fuel_type'],
     #    outputs=['fuel_carbon_content'],
     #    weight=3
-    #)
+    # )
 
     dsp.add_function(
         function=calculate_fuel_carbon_content_percentage,

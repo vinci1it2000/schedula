@@ -55,7 +55,7 @@ def get_cache_fpath(fpath, ext=('dill',)):
     try:
         # noinspection PyUnresolvedReferences
         cache_folder.mkdir()
-    except: # dir exist
+    except:  # dir exist
         pass
     return str(cache_folder.joinpath('.'.join((fpath.name, version) + ext)))
 
@@ -65,7 +65,7 @@ def check_cache_fpath_exists(overwrite_cache, fpath, cache_fpath):
         return False
     cache_fpath = pathlib.Path(cache_fpath)
     if cache_fpath.exists():
-        inp_stats = pathlib.Path(fpath).stat()  ## Will scream if INPUT does not exist.
+        inp_stats = pathlib.Path(fpath).stat()  # Will scream if INPUT does not exist.
         cache_stats = cache_fpath.stat()
         if inp_stats.st_mtime <= cache_stats.st_mtime:
             return True
@@ -209,7 +209,8 @@ def _freeze2df():
 
 def _pipe2list(pipe, i=0, source=()):
     res = []
-    f = lambda x: (x,) if isinstance(x, str) else x
+    def f(x):
+        return (x,) if isinstance(x, str) else x
     max_l = i
     idx = {'nodes L%d' % i: str(v) for i, v in enumerate(source)}
     for k, v in pipe.items():

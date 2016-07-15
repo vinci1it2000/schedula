@@ -147,7 +147,10 @@ def _positive(type=float, error=None, **kwargs):
 # noinspection PyUnusedLocal
 def _limits(limits=(0, 100), error=None, **kwargs):
     error = error or 'should be {} <= x <= {}!'.format(*limits)
-    _check_limits = lambda x: limits[0] <= x <= limits[1]
+
+    def _check_limits(x):
+        return limits[0] <= x <= limits[1]
+
     return And(Use(float), _check_limits, error=error)
 
 
@@ -171,7 +174,8 @@ def _dict(format=None, error=None, read=True, **kwargs):
 # noinspection PyUnusedLocal
 def _ordict(format=None, error=None, read=True, **kwargs):
     format = format or {int: float}
-    error = error or 'should be a OrderedDict with this format {}!'.format(format)
+    msg = 'should be a OrderedDict with this format {}!'
+    error = error or msg.format(format)
     c = Use(OrderedDict)
     if read:
         return _eval(Or(Empty(), And(c, Or(Empty(), format))), error=error)
@@ -208,7 +212,10 @@ def _type(type=None, error=None, length=None, **kwargs):
 def _index_dict(error=None, **kwargs):
     error = error or 'cannot be parsed as {}!'.format({int: float})
     c = {int: Use(float)}
-    f = lambda x: {k: v for k, v in enumerate(x, start=1)}
+
+    def f(x):
+        return {k: v for k, v in enumerate(x, start=1)}
+
     return Or(c, And(_dict(), c), And(_type(), Use(f), c), error=error)
 
 
@@ -284,7 +291,7 @@ def _tyre_code(error=None, **kwargs):
     error = error or 'invalid tyre code!'
     from ..model.physical.wheels import _re_tyre_code_iso, _re_tyre_code_numeric
     c = Or(_re_tyre_code_iso.match, _re_tyre_code_numeric.match)
-    return And(str, c , error=error)
+    return And(str, c, error=error)
 
 
 def _tyre_dimensions(error=None, **kwargs):
@@ -522,7 +529,10 @@ def define_data_schema(read=True):
     schema[Optional(str)] = Or(_type(type=float, read=read), np_array)
 
     if not read:
-        f = lambda x: x is dsp_utl.NONE
+
+        def f(x):
+            return x is dsp_utl.NONE
+
         schema = {k: And(v, Or(f, Use(str))) for k, v in schema.items()}
 
     return Schema(schema)

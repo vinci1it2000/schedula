@@ -54,7 +54,7 @@ def get_wordlist_from_docopt(doc):
 
 def _print_words(words):
     if words:
-        ## Avoid '^M' under Windows, or else, bash ignores command.
+        # Avoid '^M' under Windows, or else, bash ignores command.
         print(' '.join(s for s in words), end='')
 
 
@@ -95,8 +95,8 @@ def do_autocomplete(doc, *args):
                          if opt and opt.startswith(prefix))
     else:
         words_gen.append(subcmd
-                for subcmd in _gen_docopt_subcmds(pattern)
-                if subcmd and subcmd.startswith(prefix))
+                         for subcmd in _gen_docopt_subcmds(pattern)
+                         if subcmd and subcmd.startswith(prefix))
         files = glob.glob("{}*".format(prefix))
         words_gen.append(files)
 

@@ -15,7 +15,6 @@ from functools import partial
 from itertools import chain
 from pprint import pformat
 
-import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 from scipy.optimize import fmin
 from sklearn.isotonic import IsotonicRegression
@@ -28,6 +27,7 @@ from ..defaults import *
 import co2mpas.utils as co2_utl
 from .mechanical import calculate_gear_box_speeds_in
 from ..wheels import calculate_wheel_power
+import numpy as np
 
 
 def correct_gear_full_load(
@@ -151,7 +151,7 @@ def basic_correct_gear(
     elif gear > 1:
         vsr, idle = velocity_speed_ratios, idle_engine_speed[0]
         while gear > 1 and (gear not in vsr or velocity / vsr[gear] < idle):
-            gear -=1
+            gear -= 1
     return gear
 
 
@@ -450,7 +450,9 @@ def define_gear_filter(
     def gear_filter(times, gears):
         gears = co2_utl.median_filter(times, gears, change_gear_window_width)
 
-        gears = co2_utl.clear_fluctuations(times, gears, change_gear_window_width)
+        gears = co2_utl.clear_fluctuations(
+            times, gears, change_gear_window_width
+        )
 
         return np.asarray(gears, dtype=int)
 
@@ -1463,7 +1465,7 @@ class MVL(CMV):
             l, on, vsr = [], None, velocity_speed_ratios[k]
 
             for i, b in enumerate(chain(gears == k, [False])):
-                if not b and not on is None:
+                if not b and on is not None:
                     v = velocities[on:i]
                     l.append([min(v), max(v)])
                     on = None
@@ -1585,19 +1587,20 @@ def at_gear():
 
     dsp.add_function(
         function=dsp_utl.add_args(correct_gear_v0),
-        inputs=['fuel_saving_at_strategy', 'cycle_type', 'velocity_speed_ratios', 'MVL',
-                'engine_max_power', 'engine_max_speed_at_max_power',
-                'idle_engine_speed', 'full_load_curve', 'road_loads',
-                'vehicle_mass', 'max_velocity_full_load_correction',
-                'plateau_acceleration'],
+        inputs=['fuel_saving_at_strategy', 'cycle_type',
+                'velocity_speed_ratios', 'MVL', 'engine_max_power',
+                'engine_max_speed_at_max_power', 'idle_engine_speed',
+                'full_load_curve', 'road_loads', 'vehicle_mass',
+                'max_velocity_full_load_correction', 'plateau_acceleration'],
         outputs=['correct_gear'],
         input_domain=domain_fuel_saving_at_strategy
     )
 
     dsp.add_function(
         function=dsp_utl.add_args(correct_gear_v1),
-        inputs=['fuel_saving_at_strategy', 'cycle_type', 'velocity_speed_ratios', 'MVL',
-                'idle_engine_speed', 'plateau_acceleration'],
+        inputs=['fuel_saving_at_strategy', 'cycle_type',
+                'velocity_speed_ratios', 'MVL', 'idle_engine_speed',
+                'plateau_acceleration'],
         outputs=['correct_gear'],
         weight=50,
         input_domain=domain_fuel_saving_at_strategy
@@ -1645,7 +1648,7 @@ def at_gear():
             'stop_velocity': 'stop_velocity',
             'gear_filter': 'gear_filter',
             'cycle_type': 'cycle_type'
-    },
+        },
         outputs={
             'CMV': 'CMV',
             'gears': 'gears',

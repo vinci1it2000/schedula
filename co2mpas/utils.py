@@ -60,7 +60,8 @@ class Constants(dict):
 
 def stack_nested_keys(nested_dict, key=(), depth=-1):
     """
-    Stacks the keys of nested-dictionaries into tuples and yields a list of k-v pairs.
+    Stacks the keys of nested-dictionaries into tuples and yields a list of
+    k-v pairs.
 
     :param nested_dict:
         Nested dictionary.
@@ -380,8 +381,8 @@ def bin_split(x, bin_std=(0.01, 0.1), n_min=None, bins_min=None):
                       bin_size > min_bin_size,
                       n > n_min,
                       (m_y1 - m_y0) / bin_size > 0.2
-                 ])
-                ]) and (std_y0 > bin_std[0] or std_y1 > bin_std[0]):
+                      ])
+                 ]) and (std_y0 > bin_std[0] or std_y1 > bin_std[0]):
 
             edges.append(m)
             _bin_split(y0, m_y0, std_y0, x_min, m)

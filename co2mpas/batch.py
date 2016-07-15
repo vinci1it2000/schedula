@@ -68,8 +68,9 @@ def process_folder_files(input_files, output_folder, **kwds):
             <timestamp>-<input_filename>.xlsx
     """
 
-    summary, start_time = _process_folder_files(input_files, output_folder,
-            **kwds)
+    summary, start_time = _process_folder_files(
+        input_files, output_folder, **kwds
+    )
 
     timestamp = start_time.strftime('%Y%m%d_%H%M%S')
 
@@ -292,7 +293,7 @@ def vehicle_processing_model():
     )
 
     dsp.add_function(
-        function=dsp_utl.add_args(default_output_file_name, n=1),
+        function=dsp_utl.add_args(default_output_file_name),
         inputs=['with_output_file', 'output_folder', 'vehicle_name',
                 'timestamp'],
         outputs=['output_file_name'],
@@ -316,7 +317,8 @@ def vehicle_processing_model():
 
     from .model import model
     dsp.add_function(
-        function=dsp_utl.add_args(dsp_utl.SubDispatch(model(), output_type='dsp')),
+        function=dsp_utl.add_args(dsp_utl.SubDispatch(model(),
+                                                      output_type='dsp')),
         inputs=['plan', 'validated_data'],
         outputs=['dsp_model'],
         input_domain=lambda *args: not args[0]

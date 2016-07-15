@@ -331,18 +331,18 @@ def _guess_xlref_without_hash(xlref, bias_on_fragment):
 
 
 def _get_rest_sheet_names(url_file, sheet, sheets_factory):
-    ## TODO: Move to pandalone.
+    # TODO: Move to pandalone.
     book = sheets_factory.fetch_sheet(url_file, sheet)._sheet.book
     return IndexedSet(book.sheet_names()) - [sheet]
 
 
 def sheet_name(lasso):
-    ## TODO: Move to pandalone.
+    # TODO: Move to pandalone.
     return lasso.sheet.get_sheet_ids().ids[0]
 
 
 class Tables(object):
-    ## Nice API, may adopt by pandalone.
+    # Nice API, may adopt by pandalone.
     _sheets_factory = None
 
     def __init__(self, required_labels, sheets_factory=None):
@@ -350,7 +350,7 @@ class Tables(object):
         if sheets_factory:
             self._sheets_factory = sheets_factory
         elif not self._sheets_factory:
-            ## Permit class-wide sheets-fact.
+            # Permit class-wide sheets-fact.
             self._sheets_factory = xleash.SheetsFactory()
         self.headers = []
         self.tables = []
@@ -367,25 +367,27 @@ class Tables(object):
                 reuses `url_file` & `sheet` if missing from xlref
         """
 
-        xlref = _guess_xlref_without_hash(xlref, bias_on_fragment=bool(lasso.url_file))
+        xlref = _guess_xlref_without_hash(xlref,
+                                          bias_on_fragment=bool(lasso.url_file))
         lasso = xleash.lasso(xlref,
-                sheets_factory=self._sheets_factory,
-                url_file=lasso.url_file,
-                sheet=lasso.sheet,
-                return_lasso=True)
+                             sheets_factory=self._sheets_factory,
+                             url_file=lasso.url_file,
+                             sheet=lasso.sheet,
+                             return_lasso=True)
         values = lasso.values
-        if values: # Skip blank sheets.
-            ## TODO: Convert column monkeybiz into pure-pandas using xleash.
+        if values:  # Skip blank sheets.
+            # TODO: Convert column monkeybiz into pure-pandas using xleash.
             str_row_indices = [i for i, r in enumerate(values)
-                if any(isinstance(v, str) for v in r)]
+                               if any(isinstance(v, str) for v in r)]
 
             req_labels = IndexedSet(self.required_labels)
             for k in str_row_indices:
                 if set(values[k]) >= req_labels:
                     break
             else:
-                raise CmdException("Columns %r not found in rows %r of sheet(%r)!" %
-                        (self.required_labels, str_row_indices, xlref))
+                raise CmdException(
+                    "Columns %r not found in rows %r of sheet(%r)!" %
+                    (self.required_labels, str_row_indices, xlref))
             ix = values[k]
             i = max(str_row_indices, default=0) + 1
 
@@ -405,9 +407,10 @@ class Tables(object):
             return self._consume_next_xlref(xlref, lasso)
         except CmdException as ex:
             raise CmdException('Cannot read sync-sheet(%i: %s) due to: %s' %
-                    (i, xlref, ex.args[0]))
+                               (i, xlref, ex.args[0]))
         except Exception as ex:
-            log.error('Failed reading sync-sheet(%i: %s) due to: %s', i, xlref, ex)
+            log.error('Failed reading sync-sheet(%i: %s) due to: %s',
+                      i, xlref, ex)
             raise
 
     def collect_tables(self, ref_xlref, *sync_xlrefs):
@@ -421,10 +424,12 @@ class Tables(object):
         lasso = self.consume_next_xlref(ref_xlref, xleash.Lasso())
         self.ref_fpath = lasso.url_file
         self.ref_sh_name = sheet_name(lasso)
-        assert lasso.url_file and self.ref_sh_name, (lasso.url_file, self.ref_sh_name)
+        assert lasso.url_file and self.ref_sh_name, (lasso.url_file,
+                                                     self.ref_sh_name)
         if not sync_xlrefs:
-            sync_xlrefs = _get_rest_sheet_names(lasso.url_file,
-                    self.ref_sh_name, self._sheets_factory)
+            sync_xlrefs = _get_rest_sheet_names(
+                lasso.url_file, self.ref_sh_name, self._sheets_factory
+            )
         for xlref in sync_xlrefs:
             lasso = self.consume_next_xlref(xlref, lasso)
 
@@ -444,8 +449,9 @@ def _ensure_out_file(out_path, inp_path, force, out_frmt):
                 log.info('Creating intermediate folders: %r...', folders)
                 os.makedirs(folders)
             else:
-                raise CmdException("Intermediate folders %r do not exist! \n"
-                        "Tip: specify --force to create them." % out_path)
+                raise CmdException(
+                    "Intermediate folders %r do not exist! \n"
+                    "Tip: specify --force to create them." % out_path)
     elif osp.isfile(out_path):
         out_file = out_path
     elif osp.isdir(out_path):
@@ -469,10 +475,15 @@ def do_datasync(x_label, y_label, ref_xlref, *sync_xlrefs,
                 sheets_factory=None, no_clone=False,
                 interpolation_method='linear'):
     """
+
+    :param str x_label:
+            `x` column label.
+    :param str y_label:
+            `y` column label.
     :param str ref_xlref:
             The `xl-ref` capturing a table from a workbook-sheet to use as *reference*.
             The table must contain `x_label`, `y_label` column labels.
-    :param ref_xlref:
+    :param sync_xlrefs:
             A list of `xl-ref` capturing tables from workbook-sheets,
             to be *synced* in relation to *reference*.
             All tables must contain `x_label`, `y_label` column labels.
@@ -497,6 +508,8 @@ def do_datasync(x_label, y_label, ref_xlref, *sync_xlrefs,
             into output.
     :param xleash.SheetsFactory sheets_factory:
             cache of workbook-sheets
+    :param str interpolation_method:
+            Interpolation method.
     """
     tables = Tables((x_label, y_label), sheets_factory)
     tables.collect_tables(ref_xlref, *sync_xlrefs)
@@ -509,11 +522,13 @@ def do_datasync(x_label, y_label, ref_xlref, *sync_xlrefs,
         from co2mpas.io.excel import clone_excel
         writer_fact = fnt.partial(clone_excel, tables.ref_fpath)
 
-    out_file = _ensure_out_file(out_path, tables.ref_fpath, force, synced_file_frmt)
+    out_file = _ensure_out_file(out_path, tables.ref_fpath, force,
+                                synced_file_frmt)
     with writer_fact(out_file) as writer:
         # noinspection PyUnresolvedReferences
         df.to_excel(writer, tables.ref_sh_name, header=False, index=False)
         writer.save()
+
 
 def _get_input_template_fpath():
     import pkg_resources
@@ -568,6 +583,7 @@ def _cmd_template(opts):
         if profile is None:
             raise CmdException('Cycle %s not allowed' % opts['--cycle'])
         df = _get_theoretical(profile.groupdict())
+
         def overwrite_ref(fpath):
             book = load_workbook(fpath)
             writer = pd.ExcelWriter(fpath, engine='openpyxl')
@@ -608,6 +624,7 @@ def main(*args):
     init_logging(verbose, logconf_file=opts.get('--logconf'))
     if opts['--version']:
         v = build_version_string(verbose)
+        # noinspection PyBroadException
         try:
             sys.stdout.buffer.write(v.encode() + b'\n')
             sys.stdout.buffer.flush()
@@ -616,6 +633,7 @@ def main(*args):
     elif opts['--interp-methods']:
         msg = 'List of all interpolation methods:\n%s\n'
         msg %= ', '.join(sorted(_interpolation_methods()))
+        # noinspection PyBroadException
         try:
             sys.stdout.buffer.write(msg)
             sys.stdout.buffer.flush()

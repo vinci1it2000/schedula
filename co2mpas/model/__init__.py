@@ -57,12 +57,12 @@ def select_prediction_data(data, new_data=(), theoretical=True):
         'has_energy_recuperation', 'fuel_carbon_content_percentage',
         'initial_state_of_charge', 'f0', 'f1', 'f2',
         'vehicle_mass', 'full_load_speeds', 'plateau_acceleration',
-        'full_load_powers', 'fuel_saving_at_strategy', 'stand_still_torque_ratio',
-        'lockup_speed_ratio', 'change_gear_window_width',
-        'alternator_start_window_width', 'stop_velocity',
-        'min_time_engine_on_after_start', 'min_engine_on_speed',
-        'max_velocity_full_load_correction', 'has_energy_recuperation',
-        'is_hybrid', 'tyre_code'
+        'full_load_powers', 'fuel_saving_at_strategy',
+        'stand_still_torque_ratio', 'lockup_speed_ratio',
+        'change_gear_window_width', 'alternator_start_window_width',
+        'stop_velocity', 'min_time_engine_on_after_start',
+        'min_engine_on_speed', 'max_velocity_full_load_correction',
+        'has_energy_recuperation', 'is_hybrid', 'tyre_code'
     ]
 
     if not theoretical:

@@ -20,7 +20,6 @@ from .des import parent_func, search_node_description
 from networkx import is_isolate, DiGraph
 from collections import OrderedDict
 
-
 __all__ = []
 
 
@@ -233,7 +232,6 @@ def _invert_node_map(_map):
 
 
 def remove_links(dsp):
-
     for k, a in dsp.data_nodes.items():
         links = []
         for (n, d), t in a.pop('remote_links', []):
@@ -249,13 +247,15 @@ def remove_links(dsp):
         nodes = a['function'].nodes
         i = a['inputs']
         for k, v in list(i.items()):
-            j = tuple(i for i in stlp(v) if _has_remote(nodes[i], type='parent'))
+            j = tuple(
+                i for i in stlp(v) if _has_remote(nodes[i], type='parent'))
             if j:
                 i[k] = j
             else:
                 i.pop(k)
 
-        a['outputs'] = {k: v for k, v in a['outputs'].items() if _has_remote(nodes[k], type='child')}
+        a['outputs'] = {k: v for k, v in a['outputs'].items() if
+                        _has_remote(nodes[k], type='child')}
 
 
 def _has_remote(node, type=('child', 'parent')):
@@ -413,8 +413,8 @@ def _map_remote_links(new_dsp, old_dsp):
     ref, nodes = {old_dsp: new_dsp}, old_dsp.nodes  # Namespace shortcuts.
 
     for k, n in new_dsp.sub_dsp_nodes.items():
-        s, o = n['function'],  nodes[k]['function']
-        ref.update(_map_remote_links(s,o))
+        s, o = n['function'], nodes[k]['function']
+        ref.update(_map_remote_links(s, o))
 
     return ref
 

@@ -49,6 +49,7 @@ def calibrate_co2_params_all(rank, *data, data_id=None):
 
     return res
 
+
 def co2_sort_models(rank, *data, weights=None):
     from . import _sorting_func, sort_models
     r = sort_models(*data, weights=weights)

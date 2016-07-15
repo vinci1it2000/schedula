@@ -139,7 +139,8 @@ def calibrate_start_stop_model(
 
 
 class DefaultStartStopModel(object):
-    def predict(self, X):
+    @staticmethod
+    def predict(X):
         X = np.asarray(X)
         VEL = dfl.functions.DefaultStartStopModel.stop_velocity
         ACC = dfl.functions.DefaultStartStopModel.plateau_acceleration

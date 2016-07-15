@@ -535,7 +535,8 @@ def calculate_tyre_dimensions(tyre_code):
         Tyre dimensions.
     :rtype: dict
     """
-    for c, _r in (('iso', _re_tyre_code_iso), ('numeric', _re_tyre_code_numeric)):
+    it = ('iso', _re_tyre_code_iso), ('numeric', _re_tyre_code_numeric)
+    for c, _r in it:
         try:
             m = _r.match(tyre_code).groupdict()
             m['code'] = c
