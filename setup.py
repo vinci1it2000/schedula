@@ -177,7 +177,7 @@ setup(
         'sphinx',
         'docopt',
         'six',
-        'easygui',
+        'easygui!=0.98',
         'mpld3',
         'pandalone>=0.1.11', ## For datasync pascha-fixes.
         'regex',
