@@ -4,60 +4,48 @@ CO2MPAS Changes
 .. contents::
 .. _changes:
 
-v1.3.1, file-ver: 2.2.1, 15-Jul 2016: "Qube" release
+v1.3.1, file-ver: 2.2.1, 18-Jul 2016: "Qube" release
 ====================================================
 
 This release contains both key model and software changes; additional
-capabilities have been added for the user, namely,
+capabilities have been added for the user, namely:
 
-- the prediction (by default) of **WLTP** cycle with the theoretical velocity
-  and gear shifting profiles,
-- the prediction of two **NEDC** cycles High and Low,
-- more interpolation methods and custom template according to the cycle to be
-  synchronized added in the ``datasync`` command tool, and
-- the ``simulation plan``, i.e. co2mpas model can be launched multiple times,
-  planning some variations of the vehicle parameters that are provided in a
-  single input file.
+- the prediction (by default) of *WLTP* cycle with the theoretical velocity
+  and gear shifting profiles (do not use it for *declaration* purposes, read
+  "Known limitations" for this release, below);
+- predict in a single run both *High/Low NEDC* cycles from *WLTP* ones;
+- the ``datasync`` command supports more interpolation methods and templates
+  for the typical need to synchronize dyno/OBD data;
+- the new template file follows the regulation for the "declaration mode"
+  (among others, tire-codes);
+- the `simulation plan <https://co2mpas.io/#simulation-plan>`_ feature which
+  allows running co2mpas-model multiple times within a single launch,
+  and having a single input file specifying variations on the input-data.
 
-while other changes improve the quality of model runs, namely,
+while several model changes improved the handling of real-measurement
+data-series.
 
-- the new template file that follows the regulation, and
-- several model changes improving the handling of real-measurement data-series.
-
-The study of this release's results are contained in `these 3 report files
-<https://jrcstu.github.io/co2mpas/>`_ for *manual*, *automatic* and *real* cars,
-respectively.
+The study of this release's results are contained in these 3 reports:
+`manual <http://jrcstu.github.io/co2mpas/v1.3.x/validation_manual_cases.html>`_,
+`automatic <http://jrcstu.github.io/co2mpas/v1.3.x/validation_automatic_cases.html>`_,
+and `real <http://jrcstu.github.io/co2mpas/v1.3.x/validation_real_cases.html>`_
+cars, respectively.
 
 
 Model-changes
 -------------
-- :gh:`100`: Now co2mpas can predict NEDC -H and -L cycles. If just one NEDC is
-  needed, the user can fill the fields of the relative NEDC and leave others
-  blank.
+- :gh:`100`: Now co2mpas can predict bot *NEDC H/L* cycles.
+  If just one NEDC is needed, the user can fill the fields of the relative NEDC
+  and leave others blank.
 
 - :gh:`225` (:git:`178d9f5`): Implement the WLTP pkg within CO2MPAS for
   calculating theoretical velocities and gear shifting.
-  Now co2mpas is predicting by default the **WLTP** cycle with the theoretical
+  Now co2mpas is predicting by default the *WLTP* cycle with the theoretical
   velocity and gear shifting profiles. If velocity and/or gear shifting profiles
   are not respecting the profiles declared by the manufacturer, the correct
   theoretical profiles can be provided (as in the previous version) using the
   ``prediction.WLTP`` sheet.
 
-- :gh:`198`, :gh:`237`: Add the **simulation plan** feature. This enables the
-  possibility to launch the co2mpas model multiple times, planning some
-  variations of the vehicle parameters that are provided in a single input file
-  (so called **base** model). Variations are provided in additional sheets which
-  names start with ``plan.``. These sheets contains a table where each row is a
-  single simulation, while the columns names are the parameters that the user
-  want to change.
-  These tables have three special columns names:
-  - **id**: Identifies the variation id.
-  - **base**: this is a file path of a CO2MPAS excel input, this model will be
-    used as new base vehicle.
-  - **defaults**: this is a a list of file paths. The calibrated models of these
-    files are used as default models of the **base** model. This behavior is
-    needed to simulate, for example, a manual car (**base**) as A/T, because
-    the A/T strategy and the torque converter are not in the **base** model.
 
 Thermal model
 ~~~~~~~~~~~~~
@@ -72,10 +60,12 @@ Thermal model
   4. Update the ``identify_engine_thermostat_temperature`` using a simplified
      thermal model.
 
+
 Engine model
 ~~~~~~~~~~~~
-- :git:`bfbbb75`: Add new node ``auxiliaries_power_loss`` to calculates engine
-  power losses due to engine auxiliaries [kW]. Default value is 0 kW.
+- :git:`bfbbb75`: Add ``auxiliaries_power_loss`` calculation node for engine
+  power losses due to engine auxiliaries [kW]. By default, no auxiliaries
+  assumed (0 kW).
 
 - :git:`0816e64`: Add functions to calculate the ``max_available_engine_powers``
   and the ``missing_powers``. The latest tells if the vehicle has sufficient
@@ -84,29 +74,33 @@ Engine model
 - :git:`71baf52`: Add inverse function to calculate engine nominal power [kW]
   from ``engine_max_torque`` and ``engine_max_speed_at_max_power``.
 
+
 Vehicle model
 ~~~~~~~~~~~~~
 - :git:`1a700b6`: Add function to treat ``obd_velocities`` and produce the
   ``velocities``. This function uses a Kalman Filter in order to smooth the
-  noise in the obd velocities [km/h].
+  noise in the OBD velocities [km/h], and it takes a considerable time to run
+  (~5min is not uncommon, depending on the sampling frequency).
 
 - :git:`8ded622`: FIX acceleration when adjacent velocities are zero. This error
   was due to the interpolation function that does not like discontinuities.
+
 
 Electrics model
 ~~~~~~~~~~~~~~~
 - :git:`f17a7bc`, :git:`70fbef3`, :git:`e7e3198`: Enhance calibration and
   identification of the alternator model. A new model has been added to model
   the initialization of the alternator. This is used for the first seconds of
-  the alternator's operation. It corresponds to a new alternator status == 3.
+  the alternator's operation. It corresponds to a new alternator ``status: 3``.
 
 - :gh:`213`: Link alternator nominal power to max allowable energy recuperation.
   The amount of energy recuperated should not exceed the maximum alternator
   power provided by the user or calculated by the model.
 
-- :git:`5d8e644`: In order to link the **start stop model** with the
-  **electric model**, the latest uses as input the ``gear_box_powers`` instead
+- :git:`5d8e644`: In order to link the *start stop model* with the
+  *electric model*, the latest uses as input the ``gear_box_powers`` instead
   of the ``clutch_tc_powers``.
+
 
 Clutch /Torque-converter/AT models
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -125,10 +119,11 @@ Wheels model
   introduced to calculate the ``r_dynamic`` from the ``r_wheels``. This new
   calibrated coefficient belong to the ``engine_speed_model``.
 
+
 Start/Stop model
 ~~~~~~~~~~~~~~~~
 - :git:`4362cca`, :git:`b8db380`, :git:`5d8e644`: Improve identification and
-  performance of `start_stop_model`:
+  performance of *start stop model*:
 
   + Add a ``DefaultStartStopModel`` if this cannot be identified from the data.
   + Impose that during a vehicle stop (i.e., `vel == 0`) the engine cannot be
@@ -141,30 +136,25 @@ Start/Stop model
     battery state of charge. If ``use_basic_start_stop`` is not defined, the
     basic model is used as default, except when the vehicle is hybrid.
 
+
 CO2 model
 ~~~~~~~~~
-- :git:`fef1cc5`: Unify ``engine_thermostat_temperature`` with
-  ``normalization_engine_temperature``. The latest node has been deleted.
-
-- :git:`fef1cc5`: Rename ``engine_normalization_temperature_window`` in
-  ``engine_thermostat_temperature_window``.
-
-- :git:`94469c7`: FIX coefficient names (``t0`` <-- ``t2``) in function
-  ``calculate_extended_integration_times``.
-
-- :git:`368caca`: Remove calculation of fuel consumption / km.
-
 - :gh:`210`: The definition of the fuel cut off boundary has been modified.
   Now `idle_cutoff=idle * 1.1`
 
 - :gh:`230`: Add a function to calculate ``fuel_carbon_content`` from
   ``fuel_carbon_content_percentage``.
 
+- :git:`fef1cc5`, :git:`fef1cc5`, :git:`94469c7`: minor reorganizations of
+  the model
+
+
 Engine cold start model
 ~~~~~~~~~~~~~~~~~~~~~~~
 - :gh:`244`: Update cold start RPM model. Now there is a single model that is a
   three linear model function of the temperature and three coefficients that are
   calibrated.
+
 
 Datasync
 --------
@@ -175,12 +165,11 @@ Datasync
 - :gh:`232`: Add more interpolation methods that the user can use for the
   signals' resampling.
 
+
 IO
 --
-- :gh:`215`: extend the explanation of the simulation plan in the
-  `naming-conventions
-  <http://co2mpas.io/explanation.html#excel-input-data-naming-conventions>`_
-  used in the model and in the input/output excel files.
+- :gh:`198`, :gh:`237`, :gh:`215`: Support *simulation plan* in input files.
+
 
 Input
 ~~~~~
@@ -195,7 +184,6 @@ Input
   ``fuel_saving_at_strategy``. New fuel_types: ``LPG``, ``NG``, ``ethanol``, and
   ``biodiesel``.
 
-- :gh:`246`: Remove fuel consumption in l/100km from the outputs.
 
 Output
 ~~~~~~
@@ -203,20 +191,30 @@ Output
 - :gh:`248`: FIX **Delta Calculation** following the regulation.
   ``delta = co2_wltp - co2_nedc``.
 - :git:`26f994c`: Replace ``comparison`` sheet with ``summary`` sheet.
+- :gh:`246`, :git:`368caca`: Remove fuel consumption in l/100km from the outputs.
+
 
 Cmd-line
 --------
 - :gh:`197`: Remove ``--with-charts`` flag. Now the output has always charts.
 
+
 Known limitations
 -----------------
-- *Model sensitivity*: The sensitivity of CO2MPAS to moderately differing input
-  time-series has been tested and found within expected ranges when
-  *a single measured WLTP cycle is given as input* on each run - if both
-  WLTP H & L cycles are given, even small changes in those paired time-series
-  may force the `model-selector <http://co2mpas.io/explanation.html#model-selection>`
-  to choose different combinations of calibrated model, thus arriving in
-  significantly different fuel-consumption figures between the runs.
+
+1. **Model sensitivity**: The sensitivity of CO2MPAS to moderately differing input
+   time-series has been tested and found within expected ranges when
+   *a single measured WLTP cycle is given as input* on each run - if both
+   WLTP H & L cycles are given, even small changes in those paired time-series
+   may force the `model-selector <http://co2mpas.io/explanation.html#model-selection>`
+   to choose different combinations of calibrated model, thus arriving in
+   significantly different fuel-consumption figures between the runs.
+2. **Theoretical WLTP**: The theoretical WLTP cycles produced MUST NOT
+   be used for declaration - the profiles, both for Velocities and GearShifts
+   are not up-to-date with the GTR.
+   Specifically, these profiles are generated by the `python WLTP project
+   <wltp.io>`_ which it still produces *GTR phase-1a* profiles.
+
 
 
 v1.2.5, file-ver: 2.2, 25-May 2016: "Panino/Sandwich" release ("PS")

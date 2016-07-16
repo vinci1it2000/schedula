@@ -48,14 +48,12 @@ OPTIONS:
   --only-summary              Do not save vehicle outputs, just the summary.
   --overwrite-cache           Overwrite the cached file.
   --soft-validation           Validate only partially input-data (no schema).
-  --out-template=<xlsx-file>  Clone the given excel-file and appends results
-                              into it. By default, results are appended into an
-                              empty excel-file. Use `--out-template=-` to use
-                              input excel-files as templates.
+  --out-template=<xlsx-file>  Clone the given excel-file and appends results into it.
+                              By default, results are appended into an empty excel-file.
+                              Use `--out-template=-` to use input-file as template.
   --plot-workflow             Open workflow-plot in browser, after run finished.
   -l, --list                  List available models.
-  --graph-depth=<levels>      An integer to Limit the levels of sub-models
-                              plotted (no limit by default).
+  --graph-depth=<levels>      An integer to Limit the levels of sub-models plotted.
   -f, --force                 Overwrite output/template/demo excel-file(s).
 
 Miscellaneous:
@@ -70,15 +68,15 @@ Miscellaneous:
 
 
 SUB-COMMANDS:
-    batch                   Simulate vehicle for all <input-path> excel-files & folder.
-                            If no <input-path> given, reads all excel-files from current-dir.
-                            Read this for explanations of the param names:
-                              http://co2mpas.io/explanation.html#excel-input-data-naming-conventions
-    demo                    Generate demo input-files for the `batch` cmd inside <output-folder>.
-    template                Generate "empty" input-file for the `batch` cmd as <excel-file-path>.
-    ipynb                   Generate IPython notebooks inside <output-folder>; view them with cmd:
-                              jupyter --notebook-dir=<output-folder>
-    modelgraph              List or plot available models. If no model(s) specified, all assumed.
+    batch           Simulate vehicle for all <input-path> excel-files & folder.
+                    If no <input-path> given, reads all excel-files from current-dir.
+                    Read this for explanations of the param names:
+                      http://co2mpas.io/explanation.html#excel-input-data-naming-conventions
+    demo            Generate demo input-files for the `batch` cmd inside <output-folder>.
+    template        Generate "empty" input-file for the `batch` cmd as <excel-file-path>.
+    ipynb           Generate IPython notebooks inside <output-folder>; view them with cmd:
+                      jupyter --notebook-dir=<output-folder>
+    modelgraph      List or plot available models. If no model(s) specified, all assumed.
 
 
 EXAMPLES::
@@ -106,22 +104,21 @@ EXAMPLES::
 
 """
 
+from co2mpas import (__version__ as proj_ver, __file__ as proj_file,
+                     __updated__ as proj_date)
+from co2mpas import autocompletion
+from collections import OrderedDict
 import glob
 import io
 import logging
+from os import path as osp
 import os
 import re
 import shutil
 import sys
-from collections import OrderedDict
-from os import path as osp
 
 import docopt
 import yaml
-
-from co2mpas import (__version__ as proj_ver, __file__ as proj_file,
-                     __updated__ as proj_date)
-from co2mpas import autocompletion
 
 
 class CmdException(Exception):

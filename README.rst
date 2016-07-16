@@ -654,14 +654,12 @@ you have installed |CO2MPAS| (see :ref:`install` above) and type::
       --only-summary              Do not save vehicle outputs, just the summary.
       --overwrite-cache           Overwrite the cached file.
       --soft-validation           Validate only partially input-data (no schema).
-      --out-template=<xlsx-file>  Clone the given excel-file and appends results
-                                  into it. By default, results are appended into an
-                                  empty excel-file. Use `--out-template=-` to use
-                                  input excel-files as templates.
+      --out-template=<xlsx-file>  Clone the given excel-file and appends results into it.
+                                  By default, results are appended into an empty excel-file.
+                                  Use `--out-template=-` to use input-file as template.
       --plot-workflow             Open workflow-plot in browser, after run finished.
       -l, --list                  List available models.
-      --graph-depth=<levels>      An integer to Limit the levels of sub-models
-                                  plotted (no limit by default).
+      --graph-depth=<levels>      An integer to Limit the levels of sub-models plotted.
       -f, --force                 Overwrite output/template/demo excel-file(s).
 
     Miscellaneous:
@@ -676,15 +674,15 @@ you have installed |CO2MPAS| (see :ref:`install` above) and type::
 
 
     SUB-COMMANDS:
-        batch                   Simulate vehicle for all <input-path> excel-files & folder.
-                                If no <input-path> given, reads all excel-files from current-dir.
-                                Read this for explanations of the param names:
-                                  http://co2mpas.io/explanation.html#excel-input-data-naming-conventions
-        demo                    Generate demo input-files for the `batch` cmd inside <output-folder>.
-        template                Generate "empty" input-file for the `batch` cmd as <excel-file-path>.
-        ipynb                   Generate IPython notebooks inside <output-folder>; view them with cmd:
-                                  jupyter --notebook-dir=<output-folder>
-        modelgraph              List or plot available models. If no model(s) specified, all assumed.
+        batch           Simulate vehicle for all <input-path> excel-files & folder.
+                        If no <input-path> given, reads all excel-files from current-dir.
+                        Read this for explanations of the param names:
+                          http://co2mpas.io/explanation.html#excel-input-data-naming-conventions
+        demo            Generate demo input-files for the `batch` cmd inside <output-folder>.
+        template        Generate "empty" input-file for the `batch` cmd as <excel-file-path>.
+        ipynb           Generate IPython notebooks inside <output-folder>; view them with cmd:
+                          jupyter --notebook-dir=<output-folder>
+        modelgraph      List or plot available models. If no model(s) specified, all assumed.
 
 
     EXAMPLES::
@@ -893,6 +891,117 @@ excel-file:
    See also :ref:`debug`, below.
 
 
+Simulation plan
+---------------
+It is possible to launch co2mpas once, and have it run the model multiple times,
+with variations on the input-data, all contained in a single
+(or more) input file(s).
+
+The data for **base model** are contained in the regular sheets, and any
+variations are provided in additional sheets which names starting with
+the ``plan.`` prefix.
+These sheets must contain a table where each row is a single simulation,
+while the columns names are the parameters that the user want to vary.
+The columns of these tables must contain the following special names:
+
+- **id**: Identifies the variation id.
+- **base**: this is a file path of a CO2MPAS excel input, this model will be
+  used as new base vehicle.
+- **defaults**: this is a a list of file paths. The calibrated models of these
+  files are used as default models of the **base** model. This behavior is
+  needed to simulate, for example, a manual car (**base**) as A/T, because
+  the A/T strategy and the torque converter are not in the **base** model.
+
+
+Using custom output xl-files as templates
+-----------------------------------------
+You may have defined customized xl-files for summarizing time-series and
+scalar parameters.  To have |CO2MPAS| fill those "output-template" files with
+its results, execute it with the ``--out-template`` option.
+
+
+To create/modify one output-template yourself, do the following:
+
+1. Open a typical |CO2MPAS| output-file for some vehicle.
+
+2. Add one or more sheets and specify/referring |CO2MPAS| result-data using
+   `named-ranges <https://www.google.it/search?q=excel+named-ranges>`_.
+
+   .. Warning::
+   		Do not use simple/absolute excel references (e.g. "=B2").
+   		Use excel functions (indirect, lookup, offset, etc.) and array-functions
+   		together with string references to the named ranges
+   		(e.g. "=indirect("nedc_predictions_time_series!_fuel_consumptions")").
+
+3. (Optional) Delete the old sheets and save your file.
+
+4. Use that file together with the ``--out-template`` argument.
+
+
+Launch |CO2MPAS| from Jupyter(aka IPython)
+------------------------------------------
+You may enter the data for a single vehicle and run its simulation, plot its
+results and experiment in your browser using `IPython <http://ipython.org/>`_.
+
+The usage pattern is similar to "demos" but requires to have **ipython**
+installed:
+
+1. Ensure *ipython* with *notebook* "extra" is installed:
+
+   .. Warning::
+        This step requires too many libraries to provide as standalone files,
+        so unless you have it already installed, you will need a proper
+        *http-connectivity* to the standard python-repo.
+
+   .. code-block:: console
+
+        $ pip install ipython[notebook]
+        Installing collected packages: ipython[notebook]
+        ...
+        Successfully installed ipython-x.x.x notebook-x.x.x
+
+
+2. Then create the demo ipython-notebook(s) into some folder
+   (i.e. assuming the same setup from above, ``tutorial/input``):
+
+   .. code-block:: console
+
+        $ pwd                     ## Check our current folder (``cd`` alone for Windows).
+        .../tutorial
+
+        $ co2mpas ipynb ./input
+
+3. Start-up the server and open a browser page to run the vehicle-simulation:
+
+   .. code-block:: console
+
+        $ ipython notebook ./input
+
+4. A new window should open to your default browser (AVOID IEXPLORER) listing
+   the ``simVehicle.ipynb`` notebook (and all the demo xls-files).
+   Click on the ``*.ippynb`` file to "load" the notebook in a new tab.
+
+   The results are of a simulation run already pre-generated for this notebook
+   but you may run it yourself again, by clicking the menu::
+
+        "menu" --> `Cell` --> `Run All`
+
+   And watch it as it re-calculates *cell* by cell.
+
+5. You may edit the python code on the cells by selecting them and clicking
+   ``Enter`` (the frame should become green), and then re-run them,
+   with ``Ctrl + Enter``.
+
+   Navigate your self around by taking the tutorial at::
+
+        "menu" --> `Help` --> `User Interface Tour`
+
+   And study the example code and diagrams.
+
+6. When you have finished, return to the console and issue twice ``Ctrl + C``
+   to shutdown the *ipython-server*.
+
+
 Synchronizing time-series
 -------------------------
 The model might fail in case your time-series signals are time-shifted and/or
@@ -1032,114 +1141,6 @@ Examples
 
   3. Copy paste the synchronized signal into the CO2MPAS template.
 
-Simulation plan
----------------
-This feature enables the possibility to launch the co2mpas model multiple times,
-planning some variations of the vehicle parameters that are provided in a single
-input file (so called **base** model). Variations are provided in additional
-sheets which names start with ``plan.``. These sheets contains a table where
-each row is a single simulation, while the columns names are the parameters that
-the user want to change.
-
-These tables have three special columns names:
-
-- **id**: Identifies the variation id.
-- **base**: this is a file path of a CO2MPAS excel input, this model will be
-  used as new base vehicle.
-- **defaults**: this is a a list of file paths. The calibrated models of these
-  files are used as default models of the **base** model. This behavior is
-  needed to simulate, for example, a manual car (**base**) as A/T, because
-  the A/T strategy and the torque converter are not in the **base** model.
-
-
-Using custom output xl-files as templates
------------------------------------------
-You may have defined customized xl-files for summarizing time-series and
-scalar parameters.  To have |CO2MPAS| fill those "output-template" files with
-its results, execute it with the ``--out-template`` option.
-
-
-To create/modify one output-template yourself, do the following:
-
-1. Open a typical |CO2MPAS| output-file for some vehicle.
-
-2. Add one or more sheets and specify/referring |CO2MPAS| result-data using
-   `named-ranges <https://www.google.it/search?q=excel+named-ranges>`_.
-
-   .. Warning::
-   		Do not use simple/absolute excel references (e.g. "=B2").
-   		Use excel functions (indirect, lookup, offset, etc.) and array-functions
-   		together with string references to the named ranges
-   		(e.g. "=indirect("nedc_predictions_time_series!_fuel_consumptions")").
-
-3. (Optional) Delete the old sheets and save your file.
-
-4. Use that file together with the ``--out-template`` argument.
-
-
-Launch |CO2MPAS| from Jupyter(aka IPython)
-------------------------------------------
-You may enter the data for a single vehicle and run its simulation, plot its
-results and experiment in your browser using `IPython <http://ipython.org/>`_.
-
-The usage pattern is similar to "demos" but requires to have **ipython**
-installed:
-
-1. Ensure *ipython* with *notebook* "extra" is installed:
-
-   .. Warning::
-        This step requires too many libraries to provide as standalone files,
-        so unless you have it already installed, you will need a proper
-        *http-connectivity* to the standard python-repo.
-
-   .. code-block:: console
-
-        $ pip install ipython[notebook]
-        Installing collected packages: ipython[notebook]
-        ...
-        Successfully installed ipython-x.x.x notebook-x.x.x
-
-
-2. Then create the demo ipython-notebook(s) into some folder
-   (i.e. assuming the same setup from above, ``tutorial/input``):
-
-   .. code-block:: console
-
-        $ pwd                     ## Check our current folder (``cd`` alone for Windows).
-        .../tutorial
-
-        $ co2mpas ipynb ./input
-
-3. Start-up the server and open a browser page to run the vehicle-simulation:
-
-   .. code-block:: console
-
-        $ ipython notebook ./input
-
-4. A new window should open to your default browser (AVOID IEXPLORER) listing
-   the ``simVehicle.ipynb`` notebook (and all the demo xls-files).
-   Click on the ``*.ippynb`` file to "load" the notebook in a new tab.
-
-   The results are of a simulation run already pre-generated for this notebook
-   but you may run it yourself again, by clicking the menu::
-
-        "menu" --> `Cell` --> `Run All`
-
-   And watch it as it re-calculates *cell* by cell.
-
-5. You may edit the python code on the cells by selecting them and clicking
-   ``Enter`` (the frame should become green), and then re-run them,
-   with ``Ctrl + Enter``.
-
-   Navigate your self around by taking the tutorial at::
-
-        "menu" --> `Help` --> `User Interface Tour`
-
-   And study the example code and diagrams.
-
-6. When you have finished, return to the console and issue twice ``Ctrl + C``
-   to shutdown the *ipython-server*.
-
 
 .. _debug:
 
@@ -1148,6 +1149,12 @@ Debugging and investigating results
 
 - Make sure that you have installed `graphviz`, and when running the simulation,
   append also the ``--plot-workflow`` option.
+
+  .. code-block:: console
+
+        $ co2mpas batch --plot-workflow bad-file.xlsx
+
+  A browser tab will open at the end with the nodes processed.
 
 - Use the ``modelgraph`` sub-command to plot the offending model (or just
   out of curiosity).  For instance:
