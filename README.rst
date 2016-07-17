@@ -43,10 +43,11 @@ adaptation.
 
 For recent activity, check the :doc:`changes`.
 
+
 Quickstart
 ==========
 .. Tip::
-    **About console-commands:**
+    **About console-commands appearing in the examples of the documentation:**
 
     - Console-commands beginning with ``$`` symbol are for the ``bash`` shell
       (UNIX).
@@ -69,11 +70,12 @@ Quickstart
       both shells configured in a console supporting decent copy-paste and
       resizing capabilities (see :ref:`all-in-one`).
 
-
-IF you have familiarity with v1 release AND IF you already have a full-blown
-*python-3 environment* (i.e. *Linux* or the *all-in-one* archive) you can
-immediately start working with the following *bash* commands; otherwise
-follow the detailed instructions under sections :ref:`install` and
+IF you are familiar with python, AND
+IF you already have a full-blown *python-3 environment*
+(i.e. *Linux* or the *all-in-one* archive), AND
+IF you have familiarity with v1 release, THEN
+you can immediately start working with the following *bash* commands;
+otherwise follow the detailed instructions under sections :ref:`install` and
 :ref:`usage`.
 
 .. code-block:: console
@@ -109,26 +111,27 @@ follow the detailed instructions under sections :ref:`install` and
   :depth: 4
 
 
-
 .. _install:
 
 Install
 =======
-.. Warning::
-    In *Windows* we strongly advise **AGAINST installing standard Python distribution!**
+These are the installation options:
 
-    Read the `Python Installation`_ section, below, to see why.
+A. On *Windows* you may install the latest *all-In-One* archive and
+   ensure it contains (or upgrade to) the latest ``co2mpas`` python package;
+   alternatively, you may perform the following 2 steps.
 
-The installation procedure has 2-stages:
+   .. Tip::
+      **This is the easiest procedure for all non-technical users.**
 
-1. Install (or Upgrade) Python (2 choices under *Windows*).
-2. Install |CO2MPAS|:
-    a. Install (or Upgrade) executable.
-    b. (optional) Install documents.
-    c. (optional) Install sources.
+B. Manually install everything needed:
+   1. Install (or Upgrade) Python (2 choices under *Windows*), then proceed to
+   2. install the ``co2mpas`` python package:
 
-On *Windows* you may alternatively install the *all-In-One* archive
-instead of performing the above 2 steps separately.
+     a. Install (or Upgrade) executable.
+     b. (optional) Install documents.
+     c. (optional) Install sources.
+
 
 
 .. _all-in-one:
@@ -214,7 +217,7 @@ It is not update-able, and has a quasi-regular release-cycle of 3 months.
         ....
 
 
-4. Use this console and follow :ref:`co2mpas-install` instructions, below.
+4. Use this console and follow :ref:`install-co2mpas-package` instructions, below.
 
 
 
@@ -247,13 +250,13 @@ It is not update-able, and has a semi-regular release-cycle of 3 months.
         > where python
         ....
 
-4. Use this console and follow :ref:`co2mpas-install` instructions, below.
+4. Use this console and follow :ref:`install-co2mpas-package` instructions, below.
 
 
-.. _co2mpas-install:
+.. _install-co2mpas-package:
 
-|CO2MPAS| installation
-----------------------
+Install ``co2mpas`` package
+---------------------------
 1. Install |CO2MPAS| executable internally into your python-environment with
    the following console-commands (there is no prob if the 1st `uninstall`
    command fails):
@@ -510,7 +513,7 @@ where in each one you can install a different versions of |CO2MPAS|.
 
 
 6. Install the co2mpas version you want inside the activated venv.
-   See the :ref:`co2mpas-install` section, above.
+   See the :ref:`install-co2mpas-package` section, above.
 
    Don't forget to check that what you get when running co2mpas is what you
    installed.
