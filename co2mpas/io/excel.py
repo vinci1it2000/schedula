@@ -26,6 +26,8 @@ import regex
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher.utils.alg import stlp
 import json
+import os.path as osp
+from functools import partial
 
 
 log = logging.getLogger(__name__)
@@ -139,16 +141,25 @@ def _finalize_plan(res, plans, file_path):
                     p[n] = v
 
     plan = pd.concat(plans, axis=1, copy=False, verify_integrity=True)
-
+    func = partial(osp.join, osp.dirname(file_path))
     if 'base' not in plan:
         plan['base'] = file_path
     else:
         plan['base'].fillna(file_path)
+        plan['base'] = plan['base'].apply(func)
+
+    plan['base'] = plan['base'].apply(osp.normpath)
 
     if 'defaults' not in plan:
         plan['defaults'] = ''
     else:
         plan['defaults'].fillna('')
+        def _func(x):
+            if x:
+                return str(tuple(osp.normpath(func(v)) for v in tuple(eval(x))))
+            else:
+                return x
+        plan['defaults'] = plan['defaults'].apply(_func)
 
     plan['id'] = plan.index
     plan.set_index(['id', 'base', 'defaults'], inplace=True)
