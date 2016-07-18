@@ -18,9 +18,6 @@ capabilities have been added for the user, namely:
   for the typical need to synchronize dyno/OBD data;
 - the new template file follows the regulation for the "declaration mode"
   (among others, tire-codes);
-- the `simulation plan <https://co2mpas.io/usage.html#simulation-plan>`_ feature which
-  allows running co2mpas-model multiple times within a single launch,
-  and having a single input file specifying variations on the input-data.
 
 while several model changes improved the handling of real-measurement
 data-series.
@@ -37,7 +34,6 @@ Model-changes
 - :gh:`100`: Now co2mpas can predict bot *NEDC H/L* cycles.
   If just one NEDC is needed, the user can fill the fields of the relative NEDC
   and leave others blank.
-
 - :gh:`225` (:git:`178d9f5`): Implement the WLTP pkg within CO2MPAS for
   calculating theoretical velocities and gear shifting.
   Now co2mpas is predicting by default the *WLTP* cycle with the theoretical
@@ -66,11 +62,9 @@ Engine model
 - :git:`bfbbb75`: Add ``auxiliaries_power_loss`` calculation node for engine
   power losses due to engine auxiliaries [kW]. By default, no auxiliaries
   assumed (0 kW).
-
 - :git:`0816e64`: Add functions to calculate the ``max_available_engine_powers``
   and the ``missing_powers``. The latest tells if the vehicle has sufficient
   power to drive the cycle.
-
 - :git:`71baf52`: Add inverse function to calculate engine nominal power [kW]
   from ``engine_max_torque`` and ``engine_max_speed_at_max_power``.
 
@@ -81,7 +75,6 @@ Vehicle model
   ``velocities``. This function uses a Kalman Filter in order to smooth the
   noise in the OBD velocities [km/h], and it takes a considerable time to run
   (~5min is not uncommon, depending on the sampling frequency).
-
 - :git:`8ded622`: FIX acceleration when adjacent velocities are zero. This error
   was due to the interpolation function that does not like discontinuities.
 
@@ -92,11 +85,9 @@ Electrics model
   identification of the alternator model. A new model has been added to model
   the initialization of the alternator. This is used for the first seconds of
   the alternator's operation. It corresponds to a new alternator ``status: 3``.
-
 - :gh:`213`: Link alternator nominal power to max allowable energy recuperation.
   The amount of energy recuperated should not exceed the maximum alternator
   power provided by the user or calculated by the model.
-
 - :git:`5d8e644`: In order to link the *start stop model* with the
   *electric model*, the latest uses as input the ``gear_box_powers`` instead
   of the ``clutch_tc_powers``.
@@ -161,14 +152,14 @@ Datasync
 - :gh:`231`: The synchronization done by technical services is not as precise as
   expected for CO2MPAS. Thus, the tool provides custom template according to the
   cycle to be synchronized.
-
 - :gh:`232`: Add more interpolation methods that the user can use for the
   signals' resampling.
 
 
 IO
 --
-- :gh:`198`, :gh:`237`, :gh:`215`: Support *simulation plan* in input files.
+- :gh:`198`, :gh:`237`, :gh:`215`: Support `simulation plan
+  <https://co2mpas.io/usage.html#simulation-plan>`_  in input files.
 
 
 Input
@@ -177,9 +168,7 @@ Input
   OBD time series. If the difference is greater than 0.5C a message is raised to
   the user and simulation does not take place. This can be disabled with adding
   to cmd ``--soft-validation``.
-
 - :gh:`240`: Update the comments of the parameters in the input template.
-
 - :gh:`240`: Add ``ignition_type`` node and rename ``eco_mode`` with
   ``fuel_saving_at_strategy``. New fuel_types: ``LPG``, ``NG``, ``ethanol``, and
   ``biodiesel``.
