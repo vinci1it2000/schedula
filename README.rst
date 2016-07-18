@@ -143,14 +143,30 @@ B. Manually install everything needed:
   Ensure that you download the correct 32/64 architecture for your PC
   (the 64bit archive CANNOT run on 32bit PCs).
 
+  .. Tip::
+     Search in older releases if the latest does not contain an ALLINONE archive,
+     ansd remember to upgrade |co2mpas| afterwords.
+
+
 - Use the original `"7z" extraxtor <http://portableapps.com/apps/utilities/7-zip_portable>`_,
   since "plain-zip" produces out-of-memory errors when expanding long
   directories.
-  Prefer to **extract it in a folder without any spaces in its path.**
+
+  .. Note::
+     Prefer to **extract it in a folder without any spaces in its path.**
+  .. image:: _static/ExtractCo2mpasALLINONE.gif
+   :width: 400px
+   :alt: Extract Co2mpas-ALLINONE into Desktop
+   :align: center
 
 - Run ``INSTALL.bat`` script contained in the root of the unzipped folder.
   It will install links for commons |CO2MPAS| tasks under your *Windows*
   Start-Menu.
+
+  .. image:: _static/InstallCo2mpasALLINONEShortcuts.gif
+   :width: 400 px
+   :alt: Install Co2mpas-ALLINONE shortcupts into Window Start-menu.
+   :align: center
 
 - Visit the guidelines for its usage: :doc:`allinone`
   (also contained within the archive).
@@ -278,7 +294,7 @@ Install ``co2mpas`` package
         Python's "standard" repository (https://pypi.python.org/) and to
         co2mpas-site (http://files.co2mpas.io).
         In case you are behind a **corporate proxy**, you may try one of the methods
-        described in section `Different ways of installation`_, below.
+        described in section `Alternative installation methods`_, below.
 
         If all methods to install |CO2MPAS| fail, re-run ``pip`` command adding
         extra *verbose* flags ``-vv``, copy-paste the console-output, and report it
@@ -342,8 +358,8 @@ Re-run the command *again*, to make sure that no dangling installations are left
 over; disregard any errors this time.
 
 
-Different ways of installation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Alternative installation methods
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 You may get multiple versions of |CO2MPAS|, from various places, but all
 require the use of ``pip`` command from a *console* to install:
 
