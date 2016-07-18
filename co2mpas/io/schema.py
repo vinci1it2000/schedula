@@ -131,7 +131,8 @@ def _string(error=None, **kwargs):
 # noinspection PyUnusedLocal
 def _select(types=(), error=None, **kwargs):
     error = error or 'should be one of {}!'.format(types)
-    return And(str, Use(lambda x: x.lower()), lambda x: x in types, error=error)
+    types = {k.lower(): k for k in types}
+    return And(str, Use(lambda x: types[x.lower()]), error=error)
 
 
 def _check_positive(x):
