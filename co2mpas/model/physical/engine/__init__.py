@@ -87,7 +87,7 @@ def calculate_full_load(full_load_speeds, full_load_powers, idle_engine_speed):
     """
 
     pn = np.array((full_load_speeds, full_load_powers))
-    max_speed_at_max_power, max_power = pn[:, np.argmax(pn[0])]
+    max_speed_at_max_power, max_power = pn[:, np.argmax(pn[1])]
     pn[1] /= max_power
     idle = idle_engine_speed[0]
     pn[0] = (pn[0] - idle) / (max_speed_at_max_power - idle)
