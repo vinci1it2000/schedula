@@ -398,6 +398,63 @@ def wltp_cycle():
         weight=5
     )
 
+    dsp.add_dispatcher(
+        dsp=calculate_wltp_velocities(),
+        inputs={
+            'times': 'times',
+            'base_model': 'base_model',
+            'velocities': 'velocities',
+            'speed_velocity_ratios': 'speed_velocity_ratios',
+            'inertial_factor': 'inertial_factor',
+            'downscale_phases': 'downscale_phases',
+            'climbing_force': 'climbing_force',
+            'downscale_factor': 'downscale_factor',
+            'downscale_factor_threshold': 'downscale_factor_threshold',
+            'vehicle_mass': 'vehicle_mass',
+            'driver_mass': 'driver_mass',
+            'road_loads': 'road_loads',
+            'engine_max_power': 'engine_max_power',
+            'engine_max_speed_at_max_power': 'engine_max_speed_at_max_power',
+            'max_velocity': 'max_velocity',
+            'wltp_class': 'wltp_class',
+            'max_speed_velocity_ratio': 'max_speed_velocity_ratio'
+        },
+        outputs={
+            'velocities': 'velocities'
+        }
+    )
+
+    dsp.add_function(
+        function=dsp_utl.add_args(wltp_gears),
+        inputs=['gear_box_type', 'full_load_curve', 'velocities',
+                'accelerations', 'motive_powers', 'speed_velocity_ratios',
+                'idle_engine_speed', 'engine_max_speed_at_max_power',
+                'engine_max_power', 'base_model'],
+        outputs=['gears'],
+        input_domain=lambda *args: args[0] == 'manual'
+    )
+
+    return dsp
+
+
+def calculate_wltp_velocities():
+    """
+    Defines the wltp cycle model.
+
+    .. dispatcher:: dsp
+
+        >>> dsp = calculate_wltp_velocities()
+
+    :return:
+        The wltp cycle model.
+    :rtype: Dispatcher
+    """
+
+    dsp = Dispatcher(
+        name='WLTP velocities model',
+        description='Returns the theoretical velocities of WLTP.'
+    )
+
     dsp.add_function(
         function=get_dfl,
         inputs=['base_model'],
@@ -489,16 +546,6 @@ def wltp_cycle():
         inputs=['downscale_factor', 'class_velocities', 'downscale_phases',
                 'times'],
         outputs=['velocities']
-    )
-
-    dsp.add_function(
-        function=dsp_utl.add_args(wltp_gears),
-        inputs=['gear_box_type', 'full_load_curve', 'velocities',
-                'accelerations', 'motive_powers', 'speed_velocity_ratios',
-                'idle_engine_speed', 'engine_max_speed_at_max_power',
-                'engine_max_power', 'base_model'],
-        outputs=['gears'],
-        input_domain=lambda *args: args[0] == 'manual'
     )
 
     return dsp

@@ -97,7 +97,6 @@ def cycle():
             'gears': 'gears'
         },
         outputs={
-            'times': 'times',
             'velocities': 'velocities',
             'gears': 'gears',
             'time_length': 'time_length',
@@ -138,7 +137,6 @@ def cycle():
             'gears': 'gears'
         },
         outputs={
-            'times': 'times',
             'velocities': 'velocities',
             'gears': 'gears',
             'time_length': 'time_length',
