@@ -146,7 +146,7 @@ def _finalize_plan(res, plans, file_path):
         plan['base'] = file_path
     else:
         plan['base'].fillna(file_path)
-        plan['base'] = plan['base'].apply(func)
+        plan['base'] = plan['base'].apply(lambda x: x or file_path).apply(func)
 
     plan['base'] = plan['base'].apply(osp.normpath)
 
@@ -235,7 +235,8 @@ def _parse_plan_data(
     data.dropna(axis=1, how='all', inplace=True)
 
     plan = pd.DataFrame()
-
+    defaults = {'usage': 'input', 'stage': 'calibration'}
+    match = dsp_utl.combine_dicts(defaults, match)
     for k, v in parse_values(data, match, re_params_name):
         k = k[-1] if k[-1] in ('base', 'defaults') else '.'.join(k[1:])
         plan[k] = v
