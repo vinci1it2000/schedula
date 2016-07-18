@@ -713,21 +713,21 @@ Demo files
 The simulator contains input-files for demo-vehicles that are a nice
 starting point to try out:
 
-== == ========== ========== === ==== ========== ========== ======== ====
-id AT cal WLTP-H cal WLTP-L S/S BERS trg NEDC-H trg NEDC-L pre WLTP plan
-== == ========== ========== === ==== ========== ========== ======== ====
-0          X          X                  X
-1          X          X      X    X      X
-2   X      X          X                             X
-3          X          X      X           X                    X
-4   X                 X           X                 X
-5          X          X           X      X
-6   X      X          X      X           X                    X
-7   X      X                 X    X      X
-8          X          X                  X          X
-9          X          X                  X                           X
-10  X      X          X      X    X      X
-== == ========== ========== === ==== ========== ========== ======== ====
+======= == ========== ========== === ==== ========== ========== ======== ====
+id      AT cal WLTP-H cal WLTP-L S/S BERS trg NEDC-H trg NEDC-L pre WLTP plan
+======= == ========== ========== === ==== ========== ========== ======== ====
+   0           X          X                  X
+   1           X          X      X    X      X
+   2    X      X          X                             X
+   3           X          X      X           X                    X
+   4    X                 X           X                 X
+   5           X          X           X      X
+   6    X      X          X      X           X                    X
+   7    X      X                 X    X      X
+   8           X          X                  X          X
+   9    X      X          X      X    X      X
+simplan          X          X                  X                           X
+======= == ========== ========== === ==== ========== ========== ======== ====
 
 To run them, do the following:
 
@@ -780,6 +780,10 @@ To run them, do the following:
        ...
        Done! [499.579 sec]
 
+   .. Note::
+      The last demo-file, the "simulation-plan" will take longer to complete,
+      and, for demonstration purposes, some some of the actual models will fail;
+      check the *summary file*.
 
 4. Inspect the results (explained in the next section):
 
