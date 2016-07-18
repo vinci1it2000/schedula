@@ -182,8 +182,8 @@ def _interpolation_methods():
                for k in methods}
 
     methods['krogh'] = fnt.partial(_interp_wrapper, sci.KroghInterpolator)
-    methods['piecewise_polynomial'] = fnt.partial(_interp_wrapper,
-                                                  sci.PiecewisePolynomial)
+    fr_dev = fnt.partial(_interp_wrapper, sci.BPoly.from_derivatives)
+    methods['piecewise_polynomial'] = methods['from_derivatives'] = fr_dev
     methods['pchip'] = fnt.partial(_interp_wrapper, sci.PchipInterpolator)
     methods['akima'] = fnt.partial(_interp_wrapper, sci.Akima1DInterpolator)
     methods['integral'] = integral_interpolation
