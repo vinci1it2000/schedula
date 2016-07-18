@@ -105,6 +105,9 @@ class Values(co2_utl.Constants):
     #: Enable the calculation of Willans coefficients for all phases?
     enable_phases_willans = False
 
+    #: Enable the calculation of Willans coefficients for the cycle?
+    enable_willans = False
+
     #: Alternator efficiency [-].
     alternator_efficiency = 0.67
 

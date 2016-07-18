@@ -606,6 +606,7 @@ def physical():
             'fuel_density': 'fuel_density',
             'phases_integration_times': 'phases_integration_times',
             'enable_phases_willans': 'enable_phases_willans',
+            'enable_willans': 'enable_willans',
             'motive_powers': 'motive_powers',
             'engine_starts': 'engine_starts',
             'engine_speeds_out_hot': 'engine_speeds_out_hot',

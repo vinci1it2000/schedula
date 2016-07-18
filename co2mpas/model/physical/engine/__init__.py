@@ -1151,6 +1151,7 @@ def engine():
             'co2_normalization_references': 'co2_normalization_references',
             'fuel_type': 'fuel_type',
             'phases_integration_times': 'phases_integration_times',
+            'enable_willans': 'enable_willans',
             'enable_phases_willans': 'enable_phases_willans',
             'accelerations': 'accelerations',
             'motive_powers': 'motive_powers',

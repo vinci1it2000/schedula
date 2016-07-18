@@ -427,6 +427,7 @@ def define_data_schema(read=True):
         _convert_str('eco_mode', 'fuel_saving_at_strategy'): _bool,
         'correct_start_stop_with_gears': _bool,
         'enable_phases_willans': _bool,
+        'enable_willans': _bool,
 
         'alternator_charging_currents': tuplefloat2,
         'alternator_current_model': function,

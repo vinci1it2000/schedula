@@ -2093,14 +2093,23 @@ def co2_emission():
         outputs=['phases_co2_emissions']
     )
 
+    dsp.add_data(
+        data_id='enable_willans',
+        default_value=dfl.values.enable_willans,
+        description='Enable the calculation of Willans coefficients for '
+                    'the cycle?'
+    )
+
     dsp.add_function(
-        function=calculate_willans_factors,
-        inputs=['co2_params_calibrated', 'engine_fuel_lower_heating_value',
-                'engine_stroke', 'engine_capacity', 'min_engine_on_speed',
-                'engine_speeds_out', 'engine_powers_out', 'times', 'velocities',
-                'accelerations', 'motive_powers', 'engine_coolant_temperatures',
+        function=dsp_utl.add_args(calculate_willans_factors),
+        inputs=['enable_willans', 'co2_params_calibrated',
+                'engine_fuel_lower_heating_value', 'engine_stroke',
+                'engine_capacity', 'min_engine_on_speed', 'engine_speeds_out',
+                'engine_powers_out', 'times', 'velocities', 'accelerations',
+                'motive_powers', 'engine_coolant_temperatures',
                 'missing_powers'],
-        outputs=['willans_factors']
+        outputs=['willans_factors'],
+        input_domain=lambda *args: args[0]
     )
 
     dsp.add_data(
