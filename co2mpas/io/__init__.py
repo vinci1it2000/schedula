@@ -442,8 +442,10 @@ def _dd2df(dd, index=None, depth=0):
     frames = []
     for k, v in co2_utl.stack_nested_keys(dd, depth=depth):
         df = pd.DataFrame(v)
+        df.drop_duplicates(subset=index, inplace=True)
         if index is not None:
             df.set_index(index, inplace=True)
+
         df.columns = pd.MultiIndex.from_tuples([k + (i,) for i in df.columns])
         frames.append(df)
 
