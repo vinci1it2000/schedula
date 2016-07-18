@@ -487,38 +487,7 @@ where in each one you can install a different versions of |co2mpas|.
    e.g. ``co2mpas_v1.0.1.venv``.  The ``.venv`` at the end is not required,
    it is just for tagging the *venv* folders.
 
-4. Workaround a `virtualenv bug <https://github.com/pypa/virtualenv/issues/93>`_
-   with `TCL/TK` on *Windows*!
-
-   This is technically the most "difficult" step, and it is required so that
-   |co2mpas| can open GUI dialog-boxes, such as those for selecting
-   the *input/output* dialogs.
-
-   a. Open with an editor the ``co2mpas_v1.0.1.venv.venv\Scripts\activate.bat`` script,
-   b. locate the `set PATH=...` line towards the bottom of the file, and
-      append the following 2 lines::
-
-        set "TCL_LIBRARY=d:\WinPython-64bit-3.Y.Y.Y\python-3.Y.Y.amd64\tcl\tcl8.6"
-        set "TK_LIBRARY=d:\WinPython-64bit-3.Y.Y.Y\python-3.Y.Y.amd64\tcl\tk8.6"
-
-   .. Warning::
-       If you don't modify the *activation-script*, you will receive
-       the following message while running |co2mpas|::
-
-           This probably means that Tcl wasn't installed properly.
-
-       Of course you have to **adapt the paths above** to match the `TCL` & `TK`
-       folder in your parent python-env.  For instance, in ALLINONE the lines
-       above would become::
-
-        set "TCL_LIBRARY=%WINPYTHON%\tcl\tcl8.6"
-        set "TK_LIBRARY=%WINPYTHON%\tcl\tk8.6"
-
-   .. Tip::
-        The ALLINONE archives already include this workaround ;-)
-
-
-5. "Activate" the new "venv" by running the following command
+4. "Activate" the new "venv" by running the following command
    (notice the dot(``.``) at the begining of the command):
 
    .. code-block:: console
