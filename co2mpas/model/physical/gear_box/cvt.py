@@ -157,7 +157,7 @@ def cvt_model():
         inputs=['CVT', 'velocities', 'accelerations',
                 'gear_box_powers_out'],
         outputs=['gear_box_speeds_in', 'gears', 'max_gear'],
-        out_weight={'gear_box_speeds_in': 6}
+        out_weight={'gear_box_speeds_in': 10}
     )
 
     dsp.add_data(
