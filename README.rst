@@ -812,7 +812,7 @@ The output-files produced on each run are the following:
 .. tip::
 
     Additionally, a sample output file is provide here:
-    http://files.co2mpas.io/CO2MPAS-1.3.1/co2mpas-empty_output-2.2.xlsx
+    http://files.co2mpas.io/CO2MPAS-1.3.1/co2mpas-empty_output-2.2.1.xlsx
 
 
 Entering new vehicles
