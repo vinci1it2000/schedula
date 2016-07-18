@@ -4,7 +4,7 @@
 .. _start-opening:
 
 ######################################################################
-|CO2MPAS|: Vehicle simulator predicting NEDC |CO2| emissions from WLTP
+|co2mpas|: Vehicle simulator predicting NEDC |CO2| emissions from WLTP
 ######################################################################
 
 :Release:       1.3.1.rc0
@@ -21,7 +21,7 @@
                 <https://ec.europa.eu/jrc/en/institutes/iet>`_)
 :License:       `EUPL 1.1+ <https://joinup.ec.europa.eu/software/page/eupl>`_
 
-|CO2MPAS| is backward-looking longitudinal-dynamics |CO2| and
+|co2mpas| is backward-looking longitudinal-dynamics |CO2| and
 fuel-consumption simulator for light-duty M1 & N1 vehicles (cars and vans),
 specially crafted to back-translate consumption figures from WLTP cycles
 into NEDC ones, according to the *EU* legislation.
@@ -152,26 +152,34 @@ B. Manually install everything needed:
 
   .. Note::
      Prefer to **extract it in a folder without any spaces in its path.**
-  .. image:: _static/ExtractCo2mpasALLINONE.gif
+  .. image:: _static/Co2mpasALLINONE-Extract.gif
    :scale: 75%
    :alt: Extract Co2mpas-ALLINONE into Desktop
    :align: center
 
 - Run ``INSTALL.bat`` script contained in the root of the unzipped folder.
-  It will install links for commons |CO2MPAS| tasks under your *Windows*
+  It will install links for commons |co2mpas| tasks under your *Windows*
   Start-Menu.
 
-  .. image:: _static/InstallCo2mpasALLINONEShortcuts.gif
+  .. image:: _static/Co2mpasALLINONE-InstallShortcuts.gif
    :scale: 75%
    :alt: Install Co2mpas-ALLINONE shortcupts into Window Start-menu.
    :align: center
+
+- Use *Windows start-menu* to launch |co2mpas| CONSOLE or the GUI dialog-boxes.
+
+  .. image:: _static/Co2mpasALLINONE-LaunchConsoleShortcut.gif
+   :scale: 75%
+   :alt: Launch CO2MPAS from Window Start-menu.
+   :align: center
+
 
 - Visit the guidelines for its usage: :doc:`allinone`
   (also contained within the archive).
 
 .. Note::
-    If you have downloaded an *all-in-one* from previous version of |CO2MPAS|
-    you may upgrade |CO2MPAS| contained within.
+    If you have downloaded an *all-in-one* from previous version of |co2mpas|
+    you may upgrade |co2mpas| contained within.
     Follow the instructions in the "Upgrade" section, below.
 
 
@@ -271,7 +279,7 @@ It is not update-able, and has a semi-regular release-cycle of 3 months.
 
 Install ``co2mpas`` package
 ---------------------------
-1. Install |CO2MPAS| executable internally into your python-environment with
+1. Install |co2mpas| executable internally into your python-environment with
    the following console-commands (there is no prob if the 1st `uninstall`
    command fails):
 
@@ -294,7 +302,7 @@ Install ``co2mpas`` package
         In case you are behind a **corporate proxy**, you may try one of the methods
         described in section `Alternative installation methods`_, below.
 
-        If all methods to install |CO2MPAS| fail, re-run ``pip`` command adding
+        If all methods to install |co2mpas| fail, re-run ``pip`` command adding
         extra *verbose* flags ``-vv``, copy-paste the console-output, and report it
         to JRC.
 
@@ -313,7 +321,7 @@ Install ``co2mpas`` package
 
 
    .. Note::
-       The above procedure installs the *latest* |CO2MPAS|, which
+       The above procedure installs the *latest* |co2mpas|, which
        **might be more up-to-date than the version described here!**
 
        In that case you can either:
@@ -325,7 +333,7 @@ Install ``co2mpas`` package
 
 Install extras
 ~~~~~~~~~~~~~~
-Internally |CO2MPAS| uses an algorithmic scheduler to execute model functions.
+Internally |co2mpas| uses an algorithmic scheduler to execute model functions.
 In order to visualize the *design-time models* and *run-time workflows*
 you need to install the **Graphviz** visualization library  from:
 http://www.graphviz.org/.
@@ -335,14 +343,14 @@ option would both fail to run (see :ref:`debug`).
 
 
 
-Upgrade |CO2MPAS| (with internet connectivity)
+Upgrade |co2mpas| (with internet connectivity)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 1. Uninstall (see below) and re-install it.
 
 
-Uninstall |CO2MPAS|
+Uninstall |co2mpas|
 ~~~~~~~~~~~~~~~~~~~
-To uninstall |CO2MPAS| type the following command, and confirm it with ``y``:
+To uninstall |co2mpas| type the following command, and confirm it with ``y``:
 
 .. code-block:: console
 
@@ -358,11 +366,11 @@ over; disregard any errors this time.
 
 Alternative installation methods
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-You may get multiple versions of |CO2MPAS|, from various places, but all
+You may get multiple versions of |co2mpas|, from various places, but all
 require the use of ``pip`` command from a *console* to install:
 
 ..  Warning::
-    In all cases below, remember to uninstall |CO2MPAS| if it's already installed.
+    In all cases below, remember to uninstall |co2mpas| if it's already installed.
 
 - **Latest STABLE:**
   use the default ``pip`` described command above.
@@ -412,7 +420,7 @@ require the use of ``pip`` command from a *console* to install:
 
   1. With with a "regular" browser and when connected to the Internet,
      pre-download locally all files present in the ``packages`` folder
-     located in the desired |CO2MPAS| version in the *|CO2MPAS| site*
+     located in the desired |co2mpas| version in the *|co2mpas| site*
      (e.g. http://files.co2mpas.io/CO2MPAS-1.3.1.rc0/packages/).
 
   2. Install *co2mpas*, referencing the above folder.
@@ -426,12 +434,12 @@ require the use of ``pip`` command from a *console* to install:
 
 Install Multiple versions in parallel
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-In order to run and compare results from different |CO2MPAS| versions,
+In order to run and compare results from different |co2mpas| versions,
 you may use `virtualenv <http://docs.python-guide.org/en/latest/dev/virtualenvs/>`_
 command.
 
 The `virtualenv` command creates isolated python-environments ("children-venvs")
-where in each one you can install a different versions of |CO2MPAS|.
+where in each one you can install a different versions of |co2mpas|.
 
 .. Note::
     The `virtualenv` command does NOT run under the "conda" python-environment.
@@ -459,13 +467,8 @@ where in each one you can install a different versions of |CO2MPAS|.
        > pip uninstall co2mpas
 
    .. Warning::
-<<<<<<< HEAD
-     It is important for the "parent" python-env NOT to have |CO2MPAS| installed!
-     The reasone is that you must set "children venvs" to inherit all packages
-=======
      It is important for the "parent" python-env NOT to have |co2mpas| installed!
      The reason is that you must set "children venvs" to inherit all packages
->>>>>>> 5f72a3c... doc: 2nd final vic, uncapitalize |co2mpas|.
      installed on their "parent" (i.e. `numpy` and `pandas`), and you cannot
      update any inherited package from within a child-env.
 
@@ -488,7 +491,7 @@ where in each one you can install a different versions of |CO2MPAS|.
    with `TCL/TK` on *Windows*!
 
    This is technically the most "difficult" step, and it is required so that
-   |CO2MPAS| can open GUI dialog-boxes, such as those for selecting
+   |co2mpas| can open GUI dialog-boxes, such as those for selecting
    the *input/output* dialogs.
 
    a. Open with an editor the ``co2mpas_v1.0.1.venv.venv\Scripts\activate.bat`` script,
@@ -500,7 +503,7 @@ where in each one you can install a different versions of |CO2MPAS|.
 
    .. Warning::
        If you don't modify the *activation-script*, you will receive
-       the following message while running |CO2MPAS|::
+       the following message while running |co2mpas|::
 
            This probably means that Tcl wasn't installed properly.
 
@@ -626,13 +629,13 @@ Usage
 
 
 
-First ensure that the latest version of |CO2MPAS| is properly installed, and that
+First ensure that the latest version of |co2mpas| is properly installed, and that
 its version match the version declared on this file.
 
 The main entry for the simulator is the ``co2mpas`` console-command,
 which **is not visible, but it is installed in your PATH**.
 To get the syntax of the ``co2mpas`` console-command, open a console where
-you have installed |CO2MPAS| (see :ref:`install` above) and type::
+you have installed |co2mpas| (see :ref:`install` above) and type::
 
     Predict NEDC CO2 emissions from WLTP.
 
@@ -832,7 +835,7 @@ The output-files produced on each run are the following:
 
 - A Summary-file named as `<timestamp>-summary.xls`:
   Major |CO2| emissions values, optimized |CO2| parameters values and
-  success/fail flags of |CO2MPAS| submodels for all vehicles in the batch-run.
+  success/fail flags of |co2mpas| submodels for all vehicles in the batch-run.
 
 .. tip::
 
@@ -938,15 +941,15 @@ The columns of these tables must contain the following special names:
 Using custom output xl-files as templates
 -----------------------------------------
 You may have defined customized xl-files for summarizing time-series and
-scalar parameters.  To have |CO2MPAS| fill those "output-template" files with
+scalar parameters.  To have |co2mpas| fill those "output-template" files with
 its results, execute it with the ``--out-template`` option.
 
 
 To create/modify one output-template yourself, do the following:
 
-1. Open a typical |CO2MPAS| output-file for some vehicle.
+1. Open a typical |co2mpas| output-file for some vehicle.
 
-2. Add one or more sheets and specify/referring |CO2MPAS| result-data using
+2. Add one or more sheets and specify/referring |co2mpas| result-data using
    `named-ranges <https://www.google.it/search?q=excel+named-ranges>`_.
 
    .. Warning::
@@ -960,7 +963,7 @@ To create/modify one output-template yourself, do the following:
 4. Use that file together with the ``--out-template`` argument.
 
 
-Launch |CO2MPAS| from Jupyter(aka IPython)
+Launch |co2mpas| from Jupyter(aka IPython)
 ------------------------------------------
 You may enter the data for a single vehicle and run its simulation, plot its
 results and experiment in your browser using `IPython <http://ipython.org/>`_.
@@ -1149,7 +1152,7 @@ Examples
 
     datasync times  velocity wbook-1.xlsx  wbook-2.xlsx#0!D5(DR):..(DR)
 
-- Typical usage for |CO2MPAS| velocity time-series from Dyno and OBD:
+- Typical usage for |co2mpas| velocity time-series from Dyno and OBD:
 
   1. Create a template pre-populated with the theoretical velocity profile::
 
@@ -1239,7 +1242,7 @@ as shown in the "active" flow-diagram of the execution, below:
 
 Excel input: data naming conventions
 ------------------------------------
-This section describes the data naming convention used in the |CO2MPAS| template
+This section describes the data naming convention used in the |co2mpas| template
 (``.xlsx`` file). In it, the names used as **sheet-names**, **parameter-names**
 and **column-names** are "sensitive", in the sense that they construct a
 *data-values tree* which is then fed into into the simulation model as input.
@@ -1288,18 +1291,18 @@ Description of the name-parts
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 1. **scope:**
 
-   - ``base`` [default]: values provided by the user as input to |CO2MPAS|.
+   - ``base`` [default]: values provided by the user as input to |co2mpas|.
    - ``plan``: values selected (see previous section) to calibrate the models
      and to predict the |CO2| emission.
 
 2. **usage:**
 
-   - ``input`` [default]: values provided by the user as input to |CO2MPAS|.
+   - ``input`` [default]: values provided by the user as input to |co2mpas|.
    - ``data``: values selected (see previous section) to calibrate the models
      and to predict the |CO2| emission.
-   - ``output``: |CO2MPAS| precondition, calibration, and prediction results.
+   - ``output``: |co2mpas| precondition, calibration, and prediction results.
    - ``target``: reference-values (**NOT USED IN CALIBRATION OR PREDICTION**) to
-     be compared with the |CO2MPAS| results. This comparison is performed in the
+     be compared with the |co2mpas| results. This comparison is performed in the
      *report* sub-model by ``compare_outputs_vs_targets()`` function.
 
 3. **stage:**
@@ -1417,7 +1420,7 @@ The following table describes the scores, targets, and metrics for each model:
 
 .. _substs:
 
-.. |CO2MPAS| replace:: CO\ :sub:`2`\ MPAS
+.. |co2mpas| replace:: CO\ :sub:`2`\ MPAS
 .. |CO2| replace:: CO\ :sub:`2`
 .. |clink| replace:: *Clink*
 .. _clink: http://mridgers.github.io/clink/
