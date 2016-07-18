@@ -138,10 +138,8 @@ B. Manually install everything needed:
 
 *All-In-One* Installation under Windows
 ---------------------------------------
-- Download **all-in-one archive** from
-  http://files.co2mpas.io/.
-  Ensure that you download the correct 32/64 architecture for your PC
-  (the 64bit archive CANNOT run on 32bit PCs).
+- Download **all-in-one archive** from http://files.co2mpas.io/
+  (it only runs on **64bit PCs**).
 
   .. Tip::
      Search in older releases if the latest does not contain an ALLINONE archive,
@@ -155,7 +153,7 @@ B. Manually install everything needed:
   .. Note::
      Prefer to **extract it in a folder without any spaces in its path.**
   .. image:: _static/ExtractCo2mpasALLINONE.gif
-   :width: 400px
+   :scale: 75%
    :alt: Extract Co2mpas-ALLINONE into Desktop
    :align: center
 
@@ -164,7 +162,7 @@ B. Manually install everything needed:
   Start-Menu.
 
   .. image:: _static/InstallCo2mpasALLINONEShortcuts.gif
-   :width: 400 px
+   :scale: 75%
    :alt: Install Co2mpas-ALLINONE shortcupts into Window Start-menu.
    :align: center
 
@@ -461,8 +459,13 @@ where in each one you can install a different versions of |CO2MPAS|.
        > pip uninstall co2mpas
 
    .. Warning::
+<<<<<<< HEAD
      It is important for the "parent" python-env NOT to have |CO2MPAS| installed!
      The reasone is that you must set "children venvs" to inherit all packages
+=======
+     It is important for the "parent" python-env NOT to have |co2mpas| installed!
+     The reason is that you must set "children venvs" to inherit all packages
+>>>>>>> 5f72a3c... doc: 2nd final vic, uncapitalize |co2mpas|.
      installed on their "parent" (i.e. `numpy` and `pandas`), and you cannot
      update any inherited package from within a child-env.
 
@@ -998,7 +1001,7 @@ installed:
 
 4. A new window should open to your default browser (AVOID IEXPLORER) listing
    the ``simVehicle.ipynb`` notebook (and all the demo xls-files).
-   Click on the ``*.ippynb`` file to "load" the notebook in a new tab.
+   Click on the ``*.ipynb`` file to "load" the notebook in a new tab.
 
    The results are of a simulation run already pre-generated for this notebook
    but you may run it yourself again, by clicking the menu::

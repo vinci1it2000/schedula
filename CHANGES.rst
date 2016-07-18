@@ -18,7 +18,7 @@ capabilities have been added for the user, namely:
   for the typical need to synchronize dyno/OBD data;
 - the new template file follows the regulation for the "declaration mode"
   (among others, tire-codes);
-- the `simulation plan <https://co2mpas.io/#simulation-plan>`_ feature which
+- the `simulation plan <https://co2mpas.io/usage.html#simulation-plan>`_ feature which
   allows running co2mpas-model multiple times within a single launch,
   and having a single input file specifying variations on the input-data.
 
@@ -192,11 +192,8 @@ Output
   ``delta = co2_wltp - co2_nedc``.
 - :git:`26f994c`: Replace ``comparison`` sheet with ``summary`` sheet.
 - :gh:`246`, :git:`368caca`: Remove fuel consumption in l/100km from the outputs.
-
-
-Cmd-line
---------
-- :gh:`197`: Remove ``--with-charts`` flag. Now the output has always charts.
+- :gh:`197`: Remove ``--charts`` flag. Now the output excel-file always
+  contains charts by default.
 
 
 ALLINONE
