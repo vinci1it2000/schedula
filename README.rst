@@ -7,8 +7,8 @@
 |CO2MPAS|: Vehicle simulator predicting NEDC |CO2| emissions from WLTP
 ######################################################################
 
-:Release:       1.3.1b2
-:Date:          2016-07-15 18:10:00
+:Release:       1.3.1.rc0
+:Date:          2016-07-18 17:48:05
 :Home:          http://co2mpas.io/
 :Releases:      http://files.co2mpas.io/
 :Sources:       https://github.com/JRCSTU/co2mpas
@@ -285,7 +285,7 @@ Install ``co2mpas`` package
         Downloading http://pypi.co2mpas.io/packages/co2mpas-...
         ...
         Installing collected packages: co2mpas
-        Successfully installed co2mpas-1.3.1b2
+        Successfully installed co2mpas-1.3.1.rc0
 
    .. Warning::
         **Installation failures:**
@@ -306,12 +306,12 @@ Install ``co2mpas`` package
    .. code-block:: console
 
        > co2mpas -vV
-       co2mpas_version: 1.3.1b2
-       co2mpas_rel_date: 2016-07-15 18:10:00
-       co2mpas_path: d:\co2mpas_ALLINONE-64bit-v1.3.1b2\Apps\WinPython\python-3.4.3\lib\site-packages\co2mpas
-       python_path: D:\co2mpas_ALLINONE-64bit-v1.3.1b2\WinPython\python-3.4.3
+       co2mpas_version: 1.3.1.rc0
+       co2mpas_rel_date: 2016-07-18 17:48:05
+       co2mpas_path: d:\co2mpas_ALLINONE-64bit-v1.3.1.rc0\Apps\WinPython\python-3.4.3\lib\site-packages\co2mpas
+       python_path: D:\co2mpas_ALLINONE-64bit-v1.3.1.rc0\WinPython\python-3.4.3
        python_version: 3.4.3 (v3.4.3:9b73f1c3e601, Feb 24 2015, 22:44:40) [MSC v.1600 XXX]
-       PATH: D:\co2mpas_ALLINONE-64bit-v1.3.1b2\WinPython...
+       PATH: D:\co2mpas_ALLINONE-64bit-v1.3.1.rc0\WinPython...
 
 
    .. Note::
@@ -415,7 +415,7 @@ require the use of ``pip`` command from a *console* to install:
   1. With with a "regular" browser and when connected to the Internet,
      pre-download locally all files present in the ``packages`` folder
      located in the desired |CO2MPAS| version in the *|CO2MPAS| site*
-     (e.g. http://files.co2mpas.io/CO2MPAS-1.3.1b2/packages/).
+     (e.g. http://files.co2mpas.io/CO2MPAS-1.3.1.rc0/packages/).
 
   2. Install *co2mpas*, referencing the above folder.
      Assuming that you downloaded the packages in the folder ``path/to/co2mpas_packages``,
@@ -834,7 +834,7 @@ The output-files produced on each run are the following:
 .. tip::
 
     Additionally, a sample output file is provide here:
-    http://files.co2mpas.io/CO2MPAS-1.3.1b2/co2mpas-empty_output-2.2.xlsx
+    http://files.co2mpas.io/CO2MPAS-1.3.1.rc0/co2mpas-empty_output-2.2.xlsx
 
 
 Entering new vehicles
@@ -877,7 +877,7 @@ excel-file:
 
    .. tip::
        You may also read the `"annotated" input excel-file
-       <http://files.co2mpas.io/CO2MPAS-1.3.1b2/co2mpas-annotated_input-2.2.xls>`_
+       <http://files.co2mpas.io/CO2MPAS-1.3.1.rc0/co2mpas-annotated_input-2.2.xls>`_
        to get an understanding of each scalar paramet and series required,
        but **DO NOT USE THIS "fatty" xl-file (~10Mb) when running the model.**
 
