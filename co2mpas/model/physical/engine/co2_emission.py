@@ -1700,12 +1700,10 @@ def calculate_optimal_efficiency(params, mean_piston_speeds):
     :rtype: dict[str | tuple]
     """
 
-    speeds = mean_piston_speeds
-    f = partial(_calculate_optimal_point, params)
+    n_s = np.linspace(mean_piston_speeds.min(), mean_piston_speeds.max(), 10)
+    bmep, eff = _calculate_optimal_point(params, n_s)
 
-    x, y, e = zip(*[f(s) for s in np.linspace(min(speeds), max(speeds), 10)])
-
-    return {'mean_piston_speeds': x, 'engine_bmep': y, 'efficiency': e}
+    return {'mean_piston_speeds': n_s, 'engine_bmep': bmep, 'efficiency': eff}
 
 
 def _calculate_optimal_point(params, n_speed):
@@ -1717,7 +1715,7 @@ def _calculate_optimal_point(params, n_speed):
     y = 2 * C - sabc / (2 * A)
     eff = n / (B - np.sqrt(B2 - sabc - n))
 
-    return n_speed, y, eff
+    return y, eff
 
 
 # noinspection PyUnusedLocal
