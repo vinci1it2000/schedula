@@ -11,7 +11,6 @@ It contains functions that model the basic mechanics of the vehicle.
 
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher import Dispatcher
-from math import cos, sin
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 from pykalman import KalmanFilter
 from .defaults import dfl
@@ -131,7 +130,7 @@ def calculate_rolling_resistance(f0, angle_slope):
     :rtype: float
     """
 
-    return f0 * cos(angle_slope)
+    return f0 * np.cos(angle_slope)
 
 
 def calculate_f0(vehicle_mass, rolling_resistance_coeff):
@@ -191,7 +190,7 @@ def calculate_climbing_force(vehicle_mass, angle_slope):
     :rtype: float
     """
 
-    return vehicle_mass * 9.81 * sin(angle_slope)
+    return vehicle_mass * 9.81 * np.sin(angle_slope)
 
 
 def calculate_rotational_inertia_forces(
