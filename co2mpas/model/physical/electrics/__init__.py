@@ -422,19 +422,19 @@ def define_alternator_current_model(alternator_charging_currents):
     :rtype: function
     """
 
-    # noinspection PyUnusedLocal
-    def model(alt_status, prev_soc, gb_power, acc):
-        b = gb_power > 0 or (gb_power == 0 and acc >= 0)
-        return alternator_charging_currents[b]
-
-    return model
+    return AlternatorCurrentModel(alternator_charging_currents)
 
 
 class AlternatorCurrentModel(object):
-    def __init__(self):
-        self.model = None
+    def __init__(self, alternator_charging_currents=(0, 0)):
+        def default_model(X):
+            time, prev_soc, alt_status, gb_power, acc = X.T
+            b = gb_power > 0 or (gb_power == 0 and acc >= 0)
+
+            return np.where(b, *alternator_charging_currents)
+        self.model = default_model
         self.mask = None
-        self.init_model = None
+        self.init_model = default_model
         self.init_mask = None
         self.base_model = GradientBoostingRegressor
 
