@@ -1157,6 +1157,8 @@ def calibrate_co2_params(
     if hot.any():
         _set_attr(p, ['t0', 't1'], default=0.0, attr='value')
         p = calibrate(cold_p, p, sub_values=hot)
+    else:
+        success.append((True, copy.deepcopy(p)))
 
     if cold.any():
         _set_attr(p, {'t0': values['t0'], 't1': values['t1']}, attr='value')
