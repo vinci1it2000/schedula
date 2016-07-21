@@ -100,12 +100,19 @@ class _SelectFromModel(SelectFromModel):
         return mask
 
 
+class NoDelta(object):
+    @staticmethod
+    def predict(X, *args):
+        return np.zeros(X.shape[0])
+
+
 # noinspection PyMethodMayBeStatic,PyMethodMayBeStatic
 class ThermalModel(object):
     def __init__(self, thermostat=100.0):
-        self.model = None
+        default_model = NoDelta()
+        self.model = default_model
         self.mask = None
-        self.cold = None
+        self.cold = default_model
         self.mask_cold = None
         self.base_model = GradientBoostingRegressor
         self.thermostat = thermostat
