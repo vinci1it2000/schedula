@@ -18,6 +18,8 @@ Sub-Modules:
 
     thermal
     co2_emission
+    cold_start
+    start_stop
 """
 
 from math import pi
@@ -44,25 +46,6 @@ def get_full_load(ignition_type):
     """
 
     return Spline(*dfl.functions.get_full_load.FULL_LOAD[ignition_type], ext=3)
-
-
-def select_initial_friction_params(co2_params_initial_guess):
-    """
-    Selects initial guess of friction params l & l2 for the calculation of
-    the motoring curve.
-
-    :param co2_params_initial_guess:
-        Initial guess of CO2 emission model params.
-    :type co2_params_initial_guess: lmfit.Parameters
-
-    :return:
-        Initial guess of friction params l & l2.
-    :rtype: float, float
-    """
-
-    params = co2_params_initial_guess.valuesdict()
-
-    return dsp_utl.selector(('l', 'l2'), params, output_type='list')
 
 
 def calculate_full_load(full_load_speeds, full_load_powers, idle_engine_speed):
@@ -827,12 +810,6 @@ def engine():
         default_value=dfl.values.is_cycle_hot
     )
 
-    dsp.add_function(
-        function=select_initial_friction_params,
-        inputs=['co2_params_initial_guess'],
-        outputs=['initial_friction_params']
-    )
-
     from ..wheels import calculate_wheel_powers, calculate_wheel_torques
 
     dsp.add_function(
@@ -1186,6 +1163,7 @@ def engine():
             'fuel_carbon_content': 'fuel_carbon_content',
             'engine_fuel_lower_heating_value':
                 'engine_fuel_lower_heating_value',
+            'initial_friction_params': 'initial_friction_params'
         },
         inp_weight={'co2_params': EPS}
     )

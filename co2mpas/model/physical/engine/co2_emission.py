@@ -915,6 +915,25 @@ def calculate_co2_emission(phases_co2_emissions, phases_distances):
     return float(n / d)
 
 
+def _select_initial_friction_params(co2_params_initial_guess):
+    """
+    Selects initial guess of friction params l & l2 for the calculation of
+    the motoring curve.
+
+    :param co2_params_initial_guess:
+        Initial guess of CO2 emission model params.
+    :type co2_params_initial_guess: lmfit.Parameters
+
+    :return:
+        Initial guess of friction params l & l2.
+    :rtype: float, float
+    """
+
+    params = co2_params_initial_guess.valuesdict()
+
+    return dsp_utl.selector(('l', 'l2'), params, output_type='list')
+
+
 def define_initial_co2_emission_model_params_guess(
         params, engine_type, engine_normalization_temperature,
         engine_thermostat_temperature_window, is_cycle_hot=False,
@@ -947,8 +966,8 @@ def define_initial_co2_emission_model_params_guess(
     :type bounds: bool, optional
 
     :return:
-        Initial guess of co2 emission model params.
-    :rtype: lmfit.Parameters
+        Initial guess of co2 emission model params and of friction params.
+    :rtype: lmfit.Parameters, list[float]
     """
 
     bounds = bounds or {}
@@ -990,7 +1009,11 @@ def define_initial_co2_emission_model_params_guess(
         kw['max'] = kw['min'] = None
         p.add(**kw)
 
-    return p
+    friction_params = _select_initial_friction_params(p)
+    if not missing_co2_params(params):
+        p = dsp_utl.NONE
+
+    return p, friction_params
 
 
 def calculate_after_treatment_temperature_threshold(
@@ -1928,8 +1951,7 @@ def co2_emission():
         function=define_initial_co2_emission_model_params_guess,
         inputs=['co2_params', 'engine_type', 'engine_thermostat_temperature',
                 'engine_thermostat_temperature_window', 'is_cycle_hot'],
-        outputs=['co2_params_initial_guess'],
-        input_domain=missing_co2_params
+        outputs=['co2_params_initial_guess', 'initial_friction_params'],
     )
 
     dsp.add_function(
