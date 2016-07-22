@@ -22,21 +22,6 @@ import numpy as np
 logging.getLogger('wltp.experiment').setLevel(logging.WARNING)
 
 
-def wltp_time_length(frequency):
-    """
-    Returns the time vector with constant time step [s].
-
-    :param frequency:
-        Time frequency [1/s].
-    :type frequency: float
-
-    :return:
-        Time vector [s].
-    :rtype: numpy.array
-    """
-    return dfl.functions.wltp_time_length.TIME * frequency + 1
-
-
 def calculate_unladen_mass(vehicle_mass, driver_mass):
     """
     Calculate unladen mass [kg].
@@ -143,7 +128,9 @@ def get_class_velocities(class_data, times):
     """
 
     vel = np.asarray(class_data['cycle'], dtype=float)
-    return np.interp(times, range(len(vel)), vel)
+    n = int(np.ceil(times[-1] / len(vel)))
+    vel = np.concatenate((vel,) * n)
+    return np.interp(times, np.arange(len(vel)), vel)
 
 
 def calculate_downscale_factor(
@@ -372,7 +359,15 @@ def wltp_cycle():
 
     dsp.add_data(
         data_id='initial_temperature',
-        default_value=dfl.values.initial_temperature_WLTP
+        default_value=dfl.values.initial_temperature_WLTP,
+        description='Initial temperature of the test cell [°C].'
+    )
+
+    dsp.add_data(
+        data_id='max_time',
+        default_value=dfl.values.max_time_WLTP,
+        description='Maximum time [s].',
+        initial_dist=5
     )
 
     dsp.add_data(
@@ -389,13 +384,6 @@ def wltp_cycle():
     dsp.add_data(
         data_id='time_sample_frequency',
         default_value=dfl.values.time_sample_frequency
-    )
-
-    dsp.add_function(
-        function=wltp_time_length,
-        inputs=['time_sample_frequency'],
-        outputs=['time_length'],
-        weight=5
     )
 
     dsp.add_dispatcher(

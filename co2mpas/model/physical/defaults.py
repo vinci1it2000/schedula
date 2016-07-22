@@ -22,6 +22,12 @@ INF = 10000.0
 
 #: Container of node default values.
 class Values(co2_utl.Constants):
+    #: NEDC cycle time [s].
+    max_time_NEDC = 1180.0
+
+    #: WLTP cycle time [s].
+    max_time_WLTP = 1800.0
+
     #: Maximum velocity to consider the vehicle stopped [km/h].
     stop_velocity = 1.0 + EPS
 
@@ -248,14 +254,6 @@ class Functions(co2_utl.Constants):
     class default_specific_gear_shifting(co2_utl.Constants):
         #: Specific gear shifting model.
         SPECIFIC_GEAR_SHIFTING = 'ALL'
-
-    class nedc_time_length(co2_utl.Constants):
-        #: NEDC cycle time [s].
-        TIME = 1180.0
-
-    class wltp_time_length(co2_utl.Constants):
-        #: WLTP cycle time [s].
-        TIME = 1800.0
 
     class default_clutch_k_factor_curve(co2_utl.Constants):
         #: Torque ratio when speed ratio==0 for clutch model.

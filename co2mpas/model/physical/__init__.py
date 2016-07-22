@@ -239,7 +239,8 @@ def physical():
             'max_velocity': 'max_velocity',
             'wltp_class': 'wltp_class',
             'max_speed_velocity_ratio': 'max_speed_velocity_ratio',
-            'gears': 'gears'
+            'gears': 'gears',
+            'max_time': 'max_time',
         },
         outputs={
             'times': 'times',
