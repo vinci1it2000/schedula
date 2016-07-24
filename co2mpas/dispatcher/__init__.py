@@ -898,7 +898,7 @@ class Dispatcher(object):
 
         try:
             if self.dmap.node[data_id]['type'] == 'data':  # Check if data node.
-                if value == EMPTY:
+                if value is EMPTY:
                     self.default_values.pop(data_id, None)  # Remove default.
                 else:  # Add default.
                     self.default_values[data_id] = {
