@@ -92,9 +92,27 @@ class _custom_tqdm(tqdm):
             return bar
 
 
-def _process_folder_files(
-        input_files, output_folder, plot_workflow=False, with_output_file=True,
-        output_template=None, overwrite_cache=False, soft_validation=False):
+def _yield_folder_files_results(
+        start_time, input_files, output_folder, plot_workflow=False,
+        with_output_file=True, output_template=None, overwrite_cache=False,
+        soft_validation=False, model=None):
+    model = model or vehicle_processing_model()
+    timestamp = start_time.strftime('%Y%m%d_%H%M%S')
+    kw = {
+        'output_folder': output_folder,
+        'timestamp': timestamp,
+        'plot_workflow': plot_workflow,
+        'with_output_file': with_output_file,
+        'output_template': output_template,
+        'overwrite_cache': overwrite_cache,
+        'soft_validation': soft_validation
+    }
+
+    for fpath in _custom_tqdm(input_files, bar_format='{l_bar}{bar}{r_bar}'):
+        yield _process_vehicle(model, input_file_name=fpath, **kw)
+
+
+def _process_folder_files(*args, **kwargs):
     """
     Process all xls-files in a folder with CO2MPAS-model.
 
@@ -119,24 +137,10 @@ def _process_folder_files(
     :type output_folder: None,False,str
 
     """
-
-    model = vehicle_processing_model()
+    start_time = datetime.today()
 
     summary = {}
-
-    start_time = datetime.today()
-    timestamp = start_time.strftime('%Y%m%d_%H%M%S')
-    kw = {
-        'output_folder': output_folder,
-        'timestamp': timestamp,
-        'plot_workflow': plot_workflow,
-        'with_output_file': with_output_file,
-        'output_template': output_template,
-        'overwrite_cache': overwrite_cache,
-        'soft_validation': soft_validation
-    }
-    for fpath in _custom_tqdm(input_files, bar_format='{l_bar}{bar}{r_bar}'):
-        res = _process_vehicle(model, input_file_name=fpath, **kw)
+    for res in _yield_folder_files_results(start_time, *args, **kwargs):
         _add2summary(summary, res.get('summary', {}))
 
     return summary, start_time
