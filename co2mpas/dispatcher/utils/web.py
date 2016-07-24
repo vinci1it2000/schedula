@@ -14,6 +14,8 @@ __author__ = 'Vincenzo Arcidiacono'
 
 from co2mpas.dispatcher.utils.gen import caller_name
 from functools import partial
+import logging
+log = logging.getLogger(__name__)
 
 __all__ = ['create_app', 'add_dsp_url_rules']
 
@@ -60,6 +62,13 @@ def _func_handler_maker(func):
     return func_handler
 
 
+def _add_rule(add_rule, *args, **kwargs):
+    try:
+        add_rule(*args, **kwargs)
+    except ValueError as ex:
+        log.warn(ex)
+
+
 def add_dsp_url_rules(dsp, app, rule, edit_data=False, methods=('POST',),
                       func_handler_maker=_func_handler_maker, **options):
     """
@@ -95,7 +104,8 @@ def add_dsp_url_rules(dsp, app, rule, edit_data=False, methods=('POST',),
     """
 
     options['methods'] = methods
-    rules, add_rule, set_value = [rule], app.add_url_rule, dsp.set_default_value
+    add_rule = partial(_add_rule, app.add_url_rule)
+    rules, set_value = [rule], dsp.set_default_value
     add_rule(rule, rule, func_handler_maker(dsp.dispatch), **options)
     rule += '%s/'
 
