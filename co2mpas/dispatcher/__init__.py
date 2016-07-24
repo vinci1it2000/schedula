@@ -42,6 +42,8 @@ from .utils.dsp import SubDispatch, bypass, combine_dicts, selector
 from .utils.drw import plot
 from .utils.des import parent_func
 from .utils.exc import DispatcherError
+from .utils.web import create_app
+
 
 log = logging.getLogger(__name__)
 
@@ -1514,6 +1516,25 @@ class Dispatcher(object):
                     depth=depth, function_module=function_module,
                     node_output=node_output, nested=nested, **kw_dot)
 
+    def web(self, import_name=None, **options):
+        """
+        Creates a dispatcher Flask app.
+
+        :param import_name:
+            The name of the application package.
+        :type import_name: str, optional
+
+        :param options:
+            Flask options.
+        :type options: dict, optional
+
+        :return:
+            Flask app based on the given dispatcher.
+        :rtype: flask.Flask
+        """
+        import_name = import_name or '/'.join((caller_name(), self.name))
+        return create_app(self, import_name=import_name, **options)
+
     def remove_cycles(self, sources):
         """
         Returns a new dispatcher removing unresolved cycles.
@@ -1619,7 +1640,7 @@ class Dispatcher(object):
 
     def dispatch(self, inputs=None, outputs=None, cutoff=None, inputs_dist=None,
                  wildcard=False, no_call=False, shrink=False,
-                 rm_unused_nds=False):
+                 rm_unused_nds=False, select_output_kw=None):
         """
         Evaluates the minimum workflow and data outputs of the dispatcher
         model from given inputs.
@@ -1760,6 +1781,9 @@ class Dispatcher(object):
                 self.data_output.update({k: None for k in out_dsp_nodes})
             else:
                 self.data_output.update({k: inputs[k] for k in out_dsp_nodes})
+
+        if select_output_kw:
+            return selector(dictionary=self.data_output, **select_output_kw)
 
         # Return the evaluated data outputs.
         return self.data_output
