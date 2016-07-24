@@ -275,6 +275,7 @@ def physical():
             'vehicle_mass': 'vehicle_mass',
             'velocities': 'velocities',
             'road_loads': 'road_loads',
+            'angle_slopes': 'angle_slopes'
         },
         outputs={
             'f0': 'f0',
@@ -285,6 +286,7 @@ def physical():
             'motive_powers': 'motive_powers',
             'road_loads': 'road_loads',
             'n_dyno_axes': 'n_dyno_axes',
+            'angle_slopes': 'angle_slopes'
         }
     )
 
@@ -618,7 +620,8 @@ def physical():
             'initial_friction_params': 'initial_friction_params',
             'use_basic_start_stop': 'use_basic_start_stop',
             'has_start_stop': 'has_start_stop',
-            'max_engine_coolant_temperature': 'max_engine_coolant_temperature'
+            'max_engine_coolant_temperature': 'max_engine_coolant_temperature',
+            'angle_slopes': 'angle_slopes'
         },
         outputs={
             'ignition_type': 'ignition_type',

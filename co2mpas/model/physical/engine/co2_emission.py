@@ -1395,7 +1395,7 @@ def calculate_phases_willans_factors(
         params, engine_fuel_lower_heating_value, engine_stroke, engine_capacity,
         min_engine_on_speed, times, phases_integration_times, engine_speeds_out,
         engine_powers_out, velocities, accelerations, motive_powers,
-        engine_coolant_temperatures, missing_powers):
+        engine_coolant_temperatures, missing_powers, angle_slopes):
     """
     Calculates the Willans factors for each phase.
 
@@ -1457,10 +1457,15 @@ def calculate_phases_willans_factors(
         Missing engine power [kW].
     :type missing_powers: numpy.array
 
+    :param angle_slopes:
+        Angle slope vector [rad].
+    :type angle_slopes: numpy.array
+
     :return:
         Willans factors:
 
         - av_velocities                         [km/h]
+        - av_slope                              [rad]
         - distance                              [km]
         - init_temp                             [°C]
         - av_temp                               [°C]
@@ -1496,7 +1501,8 @@ def calculate_phases_willans_factors(
             engine_capacity, min_engine_on_speed, engine_speeds_out[i:j],
             engine_powers_out[i:j], times[i:j], velocities[i:j],
             accelerations[i:j], motive_powers[i:j],
-            engine_coolant_temperatures[i:j], missing_powers[i:j]
+            engine_coolant_temperatures[i:j], missing_powers[i:j],
+            angle_slopes[i:j]
         ))
 
     return factors
@@ -1506,7 +1512,7 @@ def calculate_willans_factors(
         params, engine_fuel_lower_heating_value, engine_stroke, engine_capacity,
         min_engine_on_speed, engine_speeds_out, engine_powers_out, times,
         velocities, accelerations, motive_powers, engine_coolant_temperatures,
-        missing_powers):
+        missing_powers, angle_slopes):
     """
     Calculates the Willans factors.
 
@@ -1564,10 +1570,15 @@ def calculate_willans_factors(
         Missing engine power [kW].
     :type missing_powers: numpy.array
 
+    :param angle_slopes:
+        Angle slope vector [rad].
+    :type angle_slopes: numpy.array
+
     :return:
         Willans factors:
 
         - av_velocities                         [km/h]
+        - av_slope                              [rad]
         - distance                              [km]
         - init_temp                             [°C]
         - av_temp                               [°C]
@@ -1603,6 +1614,7 @@ def calculate_willans_factors(
 
     f = {
         'av_velocities': av(velocities, weights=w),  # [km/h]
+        'av_slope': av(angle_slopes, weights=w),
         'has_sufficient_power': not missing_powers.any(),
         'max_power_required': max(engine_powers_out + missing_powers)
     }
@@ -2129,7 +2141,7 @@ def co2_emission():
                 'engine_capacity', 'min_engine_on_speed', 'engine_speeds_out',
                 'engine_powers_out', 'times', 'velocities', 'accelerations',
                 'motive_powers', 'engine_coolant_temperatures',
-                'missing_powers'],
+                'missing_powers', 'angle_slopes'],
         outputs=['willans_factors'],
         input_domain=lambda *args: args[0]
     )
@@ -2149,7 +2161,7 @@ def co2_emission():
                 'phases_integration_times', 'engine_speeds_out',
                 'engine_powers_out', 'velocities', 'accelerations',
                 'motive_powers', 'engine_coolant_temperatures',
-                'missing_powers'],
+                'missing_powers', 'angle_slopes'],
         outputs=['phases_willans_factors'],
         input_domain=lambda *args: args[0]
     )

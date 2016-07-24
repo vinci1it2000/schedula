@@ -1136,6 +1136,7 @@ def engine():
             'stop_velocity': 'stop_velocity',
             'min_engine_on_speed': 'min_engine_on_speed',
             'fuel_density': 'fuel_density',
+            'angle_slopes': 'angle_slopes'
         },
         outputs={
             'co2_emissions_model': 'co2_emissions_model',
