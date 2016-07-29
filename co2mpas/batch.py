@@ -25,13 +25,13 @@ log = logging.getLogger(__name__)
 files_exclude_regex = re.compile('^\w')
 
 
-def parse_dsp_model(model):
+def parse_dsp_solution(solution):
     """
     Parses the co2mpas model results.
 
-    :param model:
+    :param solution:
         Co2mpas model after dispatching.
-    :type model: co2mpas.dispatcher.Dispatcher
+    :type solution: co2mpas.dispatcher.Solution
 
     :return:
         Mapped outputs.
@@ -39,7 +39,7 @@ def parse_dsp_model(model):
     """
 
     res = {}
-    for k, v in model.data_output.items():
+    for k, v in solution.items():
         co2_utl.get_nested_dicts(res, *k.split('.'), default=co2_utl.ret_v(v))
 
     for k, v in list(co2_utl.stack_nested_keys(res, depth=3)):
@@ -50,7 +50,7 @@ def parse_dsp_model(model):
                 d = co2_utl.get_nested_dicts(res, 'target', 'prediction')
                 d[k] = dsp_utl.combine_dicts(v, d.get(k, {}))
 
-    res['pipe'] = model.pipe
+    res['pipe'] = solution.pipe
 
     return res
 
@@ -321,16 +321,15 @@ def vehicle_processing_model():
 
     from .model import model
     dsp.add_function(
-        function=dsp_utl.add_args(dsp_utl.SubDispatch(model(),
-                                                      output_type='dsp')),
+        function=dsp_utl.add_args(dsp_utl.SubDispatch(model())),
         inputs=['plan', 'validated_data'],
-        outputs=['dsp_model'],
+        outputs=['dsp_solution'],
         input_domain=lambda *args: not args[0]
     )
 
     dsp.add_function(
-        function=parse_dsp_model,
-        inputs=['dsp_model'],
+        function=parse_dsp_solution,
+        inputs=['dsp_solution'],
         outputs=['output_data']
     )
 

@@ -144,7 +144,7 @@ class TestDispatcherGetSubNode(unittest.TestCase):
 
         dsp.add_function('dispatch', dispatch, ['input'], [SINK, 'h', 'i'])
 
-        dsp.dispatch(inputs={'f': 'new'})
+        self.sol = dsp.dispatch(inputs={'f': 'new'})
 
         self.dsp = dsp
         self.fun = fun

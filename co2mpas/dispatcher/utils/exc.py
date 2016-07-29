@@ -16,12 +16,9 @@ __all__ = ['DispatcherError']
 
 
 class DispatcherError(ValueError):
-    def __init__(self, dsp, *args, **kwargs):
+    def __init__(self, sol, *args, **kwargs):
         super(DispatcherError, self).__init__(*args, **kwargs)
-        try:
-            self.dsp = dsp.copy()
-        except TypeError:
-            self.dsp = dsp
-        self.plot = self.dsp.plot
+        self.sol = sol
+        self.plot = self.sol.plot
 
 

@@ -17,17 +17,16 @@ __all__ = ['combine_dicts', 'bypass', 'summation', 'map_dict', 'map_list',
            'SubDispatch', 'ReplicateFunction', 'SubDispatchFunction',
            'SubDispatchPipe']
 
-from .gen import caller_name, Token
-from networkx.classes.digraph import DiGraph
+import types
+from collections import OrderedDict
 from copy import deepcopy
 from functools import partial, reduce
 from inspect import signature, Parameter, _POSITIONAL_OR_KEYWORD
-from collections import OrderedDict
-import types
 from itertools import repeat, chain
-from .cst import START, NONE, EMPTY
+
+from .cst import EMPTY
 from .exc import DispatcherError
-from datetime import datetime
+from .gen import caller_name, Token
 
 
 def combine_dicts(*dicts, copy=False, base=None):
@@ -422,8 +421,8 @@ class SubDispatch(object):
         >>> o = dsp.dispatch(inputs={'d': {'a': 3}})
         >>> sorted(o['e'].items())
         [('a', 3), ('b', 4), ('c', 2)]
-        >>> dsp.workflow.node['Sub-dispatch']['workflow']
-        (<...DiGraph object at 0x...>, {...}, {...})
+        >>> o.workflow.node['Sub-dispatch']['solution']
+        Solution([('a', 3), ('b', 4), ('c', 2)])
 
     """
 
@@ -474,7 +473,6 @@ class SubDispatch(object):
                 + 'all': a dictionary with all dispatch outputs.
                 + 'list': a list with all outputs listed in `outputs`.
                 + 'dict': a dictionary with any outputs listed in `outputs`.
-                + 'dsp': the computed dispatcher.
         :type output_type: str, optional
         """
 
@@ -487,45 +485,47 @@ class SubDispatch(object):
         self.output_type = output_type
         self.inputs_dist = inputs_dist
         self.rm_unused_nds = rm_unused_nds
-        self.data_output = {}
-        self.dist = {}
-        self.workflow = DiGraph()
         self.__module__ = caller_name()
         self.name = self.__name__ = dsp.name
         self.__doc__ = dsp.__doc__
+        from .sol import Solution
+        self.solution = Solution()
 
-    def __call__(self, *input_dicts, copy_input_dicts=False):
+    def __call__(self, *input_dicts, copy_input_dicts=False, _sol_output=None):
 
         # Combine input dictionaries.
         i = combine_dicts(*input_dicts, copy=copy_input_dicts)
 
-        outs, dsp = self.outputs, self.dsp  # Namespace shortcuts.
-
         # Dispatch the function calls.
-        o = dsp.dispatch(
-            i, outs, self.cutoff, self.inputs_dist, self.wildcard,
+        self.solution = self.dsp.dispatch(
+            i, self.outputs, self.cutoff, self.inputs_dist, self.wildcard,
             self.no_call, self.shrink, self.rm_unused_nds
         )
 
-        # Save outputs.
-        self.workflow, self.data_output, self.dist = dsp.workflow, o, dsp.dist
+        return self._return(self.solution, _sol_output)
+
+    def _return(self, solution, _sol_output):
+        outs = self.outputs
+
+        # Store solution.
+        if _sol_output is not None:
+            _sol_output['solution'] = solution
 
         # Set output.
-        if self.output_type in ('list', 'dict'):
+        if self.output_type != 'all':
             try:
-                o = selector(outs, o, output_type=self.output_type)
+                # Save outputs.
+                return selector(outs, solution, output_type=self.output_type)
             except KeyError:
-                missed = set(outs).difference(o)  # Outputs not reached.
+                missed = set(outs).difference(solution)  # Outputs not reached.
 
                 # Raise error
                 msg = '\n  Unreachable output-targets: {}\n  Available ' \
-                      'outputs: {}'.format(missed, o.keys())
+                      'outputs: {}'.format(missed, solution.keys())
 
-                raise DispatcherError(dsp, msg)
-        elif self.output_type == 'dsp':
-            return dsp
+                raise DispatcherError(solution, msg)
 
-        return o  # Return outputs.
+        return solution  # Return outputs.
 
     def plot(self, workflow=False, edge_data=EMPTY, view=True, depth=-1,
              function_module=False, node_output=False, filename=None,
@@ -614,6 +614,9 @@ class SubDispatch(object):
             kw_dot['filename'] = filename
 
         from .drw import plot
+
+        if workflow is True:
+            workflow = self.solution
 
         return plot(self, workflow=workflow, edge_data=edge_data, view=view,
                     depth=depth, function_module=function_module,
@@ -704,7 +707,7 @@ class SubDispatchFunction(SubDispatch):
     """
 
     def __init__(self, dsp, function_id, inputs, outputs=None, cutoff=None,
-                 inputs_dist=None):
+                 inputs_dist=None, shrink=True):
         """
         Initializes the Sub-dispatch Function.
 
@@ -733,9 +736,9 @@ class SubDispatchFunction(SubDispatch):
         :type inputs_dist: dict[str, int | float], optional
         """
 
-        # New shrink dispatcher.
-        dsp = dsp.shrink_dsp(inputs, outputs, cutoff=cutoff,
-                             inputs_dist=inputs_dist)
+        if shrink:
+            dsp = dsp.shrink_dsp(inputs, outputs, cutoff=cutoff,
+                                 inputs_dist=inputs_dist)
 
         if outputs:
             missed = set(outputs).difference(dsp.nodes)  # Outputs not reached.
@@ -747,43 +750,38 @@ class SubDispatchFunction(SubDispatch):
                 # Raise error
                 msg = '\n  Unreachable output-targets: {}\n  Available ' \
                       'outputs: {}'.format(missed, available)
-                raise DispatcherError(dsp, msg)
-
-        # Get initial default values.
-        input_values, dist = dsp._get_initial_values(None, None, False)
-        dist = {k: v for k, v in dist.items() if k not in inputs}
-        if inputs_dist:
-            dist.update(inputs_dist)
+                raise ValueError(msg)
 
         # Set internal proprieties
-        self.input_values = input_values
         self.inputs = inputs
-
-        dsp._set_wildcards(inputs, outputs)  # Set wildcards.
-
         dsp.name = function_id  # Set dsp name equal to function id.
+        wildcard = True
+        no_call = False
+        from co2mpas.dispatcher.utils.sol import Solution
+        self._sol = sol = Solution(
+            dsp, dict.fromkeys(inputs, None), outputs, wildcard, None,
+            inputs_dist, no_call, False
+        )
+
 
         # Initialize as sub dispatch.
         super(SubDispatchFunction, self).__init__(
-            dsp, outputs, cutoff, dist, True, False, True, True, 'list')
+            dsp, outputs, cutoff, sol.inputs_dist, wildcard, no_call,
+            True, True, 'list'
+        )
 
         self.__module__ = caller_name()  # Set as who calls my caller.
 
         # Define the function to return outputs sorted.
         if outputs is None:
-            def return_output(o):
-                return o
-        elif len(outputs) > 1:
-            def return_output(o):
-                return [o[k] for k in outputs]
-        else:
-            def return_output(o):
-                return o[outputs[0]]
-        self.return_output = return_output
+            self.output_type = 'all'
+        elif len(outputs) == 1:
+            self.output_type = 'values'
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, _sol_output=None, **kwargs):
         # Namespace shortcuts.
         dsp, inputs = self.dsp, map_list(self.inputs, *args)
+        self.solution = sol = self._sol.copy_structure()
 
         # Check multiple values for the same argument.
         i = next((i for i in kwargs if i in inputs), None)
@@ -797,33 +795,19 @@ class SubDispatchFunction(SubDispatch):
             raise TypeError(msg % (dsp.name, i))
 
         # Update inputs.
-        input_values = combine_dicts(self.input_values, inputs, kwargs)
+        input_values = combine_dicts(sol.inputs, inputs, kwargs)
 
         # Define the function to populate the workflow.
         i_val = lambda k: {'value': input_values[k]}
 
-        dsp._targets = set(self.outputs or {})  # Clear old targets.
-
         # Initialize.
-        args = dsp._init_workflow(input_values, i_val, self.inputs_dist, False)
+        sol._init_workflow(input_values, i_val, self.inputs_dist, False)
 
         # Dispatch outputs.
-        o = dsp._run(*args)
+        sol.run()
 
-        # Save outputs.
-        self.data_output, self.workflow, self.dist = o, dsp.workflow, dsp.dist
-
-        try:
-            # Return outputs sorted.
-            return self.return_output(o)
-
-        except KeyError:  # Unreached outputs.
-            missed = set(self.outputs).difference(o)  # Outputs not reached.
-
-            # Raise error
-            msg = '\n  Unreachable output-targets: {}\n  Available ' \
-                  'outputs: {}'.format(missed, o.keys())
-            raise DispatcherError(dsp, msg)
+        # Return outputs sorted.
+        return self._return(sol, _sol_output)
 
 
 class SubDispatchPipe(SubDispatchFunction):
@@ -884,7 +868,7 @@ class SubDispatchPipe(SubDispatchFunction):
     """
 
     def __init__(self, dsp, function_id, inputs, outputs=None, cutoff=None,
-                 inputs_dist=None):
+                 inputs_dist=None, no_domain=True):
         """
         Initializes the Sub-dispatch Function.
 
@@ -913,235 +897,58 @@ class SubDispatchPipe(SubDispatchFunction):
         :type inputs_dist: dict[str, int | float], optional
         """
 
+        from co2mpas.dispatcher.utils.sol import Solution
+        self.solution = sol = Solution(
+            dsp, inputs, outputs, True, cutoff, inputs_dist, True, True,
+            no_domain=no_domain
+        )
+        sol.run()
+        from .alg import _union_workflow, _convert_bfs
+        bfs = _union_workflow(sol)
+        o, bfs = outputs or sol, _convert_bfs(bfs)
+        dsp = dsp._get_dsp_from_bfs(o, bfs_graphs=bfs)
+
         super(SubDispatchPipe, self).__init__(
             dsp, function_id, inputs, outputs=outputs, cutoff=cutoff,
-            inputs_dist=inputs_dist
+            inputs_dist=inputs_dist, shrink=False
         )
-
-        main_dsp = self.dsp
-
-        o = main_dsp.dispatch(
-            inputs=inputs, outputs=outputs, cutoff=cutoff,
-            inputs_dist=inputs_dist, wildcard=True, no_call=True)
-
-        if outputs:
-            # Outputs not reached.
-            missed = set(outputs).difference(main_dsp.nodes)
-
-            if missed:  # If outputs are missing raise error.
-                available = main_dsp.data_nodes.keys()  # Available data nodes.
-
-                # Raise error
-                msg = '\n  Unreachable output-targets: {}\n  Available ' \
-                      'outputs: {}'.format(missed, available)
-                raise DispatcherError(dsp, msg)
-
-        self.out_flow = out_flow = main_dsp.workflow.succ
-        self.in_flow = out_flow[START]
-        self.wildcards = main_dsp._wildcards
-
-        # Set outputs.
-        self.data_output = o
-        self.workflow = main_dsp.workflow
-        self.dist = self.dsp.dist
-
-        # Define the function to return outputs sorted.
-        if outputs is None:
-            def return_output():
-                return o
-        elif len(outputs) > 1:
-            def return_output():
-                return [o[n] for n in outputs]
-        else:
-            def return_output():
-                return o[outputs[0]]
-        self.return_output = return_output
-
         self.__module__ = caller_name()  # Set as who calls my caller.
+        self._sol.no_call = True
+        self._sol._init_workflow()
+        self._sol.run()
+        self._sol.no_call = False
 
-        self.pipe, rm_nds_dsp = [], set()
-        add_to_pipe, add_rm_nds_set = self.pipe.append, rm_nds_dsp.add
+        def _make_tks(v, s):
+            nxt_nds = s.workflow[v]
+            nxt_dsp = [n for n in nxt_nds if s.nodes[n]['type'] == 'dispatcher']
+            nxt_dsp = [(n, s._edge_length(s.dmap[v][n], s.nodes[n]))
+                       for n in nxt_dsp]
+            return v, s, nxt_nds, nxt_dsp
 
-        for d, _, (i, dsp) in self.dsp._pipe:
+        self.pipe = [_make_tks(*v['task'][-1]) for v in self._sol.pipe.values()]
 
-            if not dsp in rm_nds_dsp:
-                add_rm_nds_set(dsp)
+    def __call__(self, *args, _sol_output=None):
+        dsp, inputs = self.dsp, map_list(self.inputs, *args)
+        key_map, sub_dsp = {}, {}
+        for k, s in self._sol.sub_dsp.items():
+            ns = s.copy_structure(dist=1)
+            ns.sub_dsp = sub_dsp
+            key_map[s] = ns
+            sub_dsp[k] = ns
 
-                dsp._remove_unused_nodes()
+        sol = key_map[self._sol]
+        sol.inputs.update(inputs)
 
-                out_flow = dsp.workflow.succ
-                in_flow = out_flow[START]
-                data_output = dsp.data_output
-                wildcards = dsp._wildcards
+        for s in sub_dsp.values():
+            s._init_workflow(clean=False)
 
-                it = dsp._get_initial_values(None, None, True)[0].items()
-                for k, value in it:
-
-                    if k not in wildcards:
-                        in_flow[k]['value'] = data_output[k] = value
-
-                    for j, edge_attr in out_flow[k].items():
-                        edge_attr['value'] = value
-
-            if i in dsp.workflow.node:
-                add_to_pipe((i, dsp))
-                dsp.nodes[i]['distance'] = d
-
-    def _set_node_output(self, dsp, node_id):
-        """
-        Set the node outputs from node inputs.
-
-        :param node_id:
-            Data or function node id.
-        :type node_id: str
-
-        :param dsp:
-            The parent dispatcher.
-        :type dsp: dispatcher.Dispatcher
-
-        :return:
-            If the output have been evaluated correctly.
-        :rtype: bool
-        """
-
-        # Namespace shortcuts.
-        node_attr = dsp.nodes[node_id]
-        node_type = node_attr['type']
-
-        if node_type == 'data':  # Set data node.
-            return self._set_data_node_output(dsp, node_id, node_attr)
-
-        elif node_type == 'function':  # Set function node.
-            return self._set_function_node_output(dsp, node_id, node_attr)
-
-    @staticmethod
-    def _set_data_node_output(dsp, node_id, node_attr):
-        # Get data node estimations.
-        estimations = dsp._wf_pred[node_id]
-
-        # Check if node has multiple estimations and it is not waiting inputs.
-        if len(estimations) > 1:
-            estimations.pop(START, None)
-
-        if 'function' in node_attr:  # Evaluate output.
-            try:
-                kwargs = {k: v['value'] for k, v in estimations.items()}
-                # noinspection PyCallingNonCallable
-                value = node_attr['function'](kwargs)
-            except Exception as ex:
-                # Some error occurs.
-                msg = "Failed DISPATCHING '%s' due to:\n  %r"
-                dsp._warning(msg, node_id, ex)
-                return False
-        else:
-            # Data node that has just one estimation value.
-            value = list(estimations.values())[0]['value']
-        try:
-            for f in node_attr.get('filters', ()):  # Apply filters to output.
-                value = f(value)
-        except Exception as ex:
-            # Some error occurs.
-            msg = "Failed DISPATCHING '%s' due to:\n  %r"
-            dsp._warning(msg, node_id, ex)
-            return False
-
-        if 'callback' in node_attr:  # Invoke callback func of data node.
-            try:
-                # noinspection PyCallingNonCallable
-                node_attr['callback'](value)
-            except Exception as ex:
-                msg = "Failed CALLBACKING '%s' due to:\n  %s"
-                dsp._warning(msg, node_id, ex)
-
-        if value is not NONE:  # Set data output.
-            dsp.data_output[node_id] = value
-            value = {'value': value}  # Output value.
-
-        else:
-            dsp.data_output.pop(node_id, None)
-            value = {}  # Output value.
-
-        wf_add_edge = dsp._wf_add_edge
-
-        if node_id not in dsp._wildcards:
-            for u in dsp.workflow.succ[node_id]:  # Set workflow.
-                wf_add_edge(node_id, u, **value)
-
-    @staticmethod
-    def _set_function_node_output(dsp, node_id, node_attr):
-        # Namespace shortcuts for speed.
-        o_nds = node_attr['outputs']
-
-        args = dsp._wf_pred[node_id]  # List of the function's arguments.
-        args = [args[k]['value'] for k in node_attr['inputs']]
-        args = [v for v in args if v is not NONE]
-        attr = {'started': datetime.today()}  # Starting time.
-        from .des import parent_func
-        try:
-            fun = node_attr['function']  # Get function.
-
-            res = fun(*args)  # Evaluate function.
-
-            for f in node_attr.get('filters', ()):  # Apply filters to results.
-                res = f(res)
-
-            # Time elapsed.
-            attr['duration'] = datetime.today() - attr['started']
-
-            fun = parent_func(fun)  # Get parent function (if nested).
-            if isinstance(fun, SubDispatch):  # Save intermediate results.
-                attr['workflow'] = (fun.workflow, fun.data_output, fun.dist)
-
-            # Save node.
-            dsp.workflow.node[node_id].update(attr)
-
-            # List of function results.
-            res = res if len(o_nds) > 1 else [res]
-
-        except Exception as ex:
-            if isinstance(ex, DispatcherError):  # Save intermediate results.
-                fun = parent_func(ex.dsp)
-                attr['workflow'] = (fun.workflow, fun.data_output, fun.dist)
-                attr['duration'] = datetime.today() - attr['started']
-
-                # Save node.
-                dsp.workflow.add_node(node_id, **attr)
-            # Is missing function of the node or args are not in the domain.
-            msg = "Failed DISPATCHING '%s' due to:\n  %r"
-            dsp._warning(msg, node_id, ex)
-            return False
-
-        res = dict(zip(o_nds, res))
-        wf_add_edge = dsp._wf_add_edge
-        for k in dsp.workflow.succ[node_id]:  # Set workflow.
-            wf_add_edge(node_id, k, value=res[k])
-
-        return True  # Return that the output have been evaluated correctly.
-
-    def __call__(self, *args):
-        out_flow, in_flow = self.out_flow, self.in_flow
-        data_output, wildcards = self.data_output, self.wildcards
-        set_node = self._set_node_output
-
-        for k, value in zip(self.inputs, args):
-            if k not in wildcards:
-                in_flow[k]['value'] = data_output[k] = value
-
-            for _, edge_attr in out_flow[k].items():
-                edge_attr['value'] = value
-
-        it = iter(self.pipe)
-
-        for v, dsp in it:
-            try:
-                set_node(dsp, v)
-            except KeyError:  # Unreached outputs.
-                o = set(data_output) - set([v] + [k[0] for k in it])
-                missed = set(self.outputs) - o
-                # Raise error
-                msg = '\n  Unreachable output-targets: {}\n  Available ' \
-                      'outputs: {}'.format(missed, o.keys())
-                raise DispatcherError(self.dsp, msg)
+        for v, s, nxt_nds, nxt_dsp in self.pipe:
+            s = key_map[s]
+            if not s._set_node_output(v, False, next_nds=nxt_nds):
+                break
+            for n, vw_d in nxt_dsp:
+                s._set_sub_dsp_node_input(v, n, [], s.check_cutoff, False, vw_d)
+            s._see_remote_link_node(v)
 
         # Return outputs sorted.
-        return self.return_output()
+        return self._return(sol, _sol_output)

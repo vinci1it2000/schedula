@@ -82,7 +82,6 @@ class TestDispatcherUtils(unittest.TestCase):
         self.assertEqual(o, {'a': 3, 'b': 4, 'c': (4, 2), 'd': (5, 3)})
 
 
-
 class TestSubDispatcher(unittest.TestCase):
     def setUp(self):
         sub_dsp = Dispatcher()
@@ -105,18 +104,15 @@ class TestSubDispatcher(unittest.TestCase):
         self.dsp = dsp
 
     def test_sub_dsp(self):
-        from networkx.classes.digraph import DiGraph
+        from co2mpas.dispatcher.utils.sol import Solution
 
         o = self.dsp.dispatch(inputs={'d': {'a': 3}})
-        w = self.dsp.workflow
+        w = o.workflow
         self.assertEqual(o['e'], {'a': 3, 'b': 4, 'c': 2})
         self.assertEqual(o['f'], {'c': 2})
         self.assertSequenceEqual(o['g'], (3, 2))
         self.assertEqual(o['h'],  [2])
-        self.assertIsInstance(w.node['dispatch']['workflow'], tuple)
-        self.assertIsInstance(w.node['dispatch']['workflow'][0], DiGraph)
-        self.assertIsInstance(w.node['dispatch']['workflow'][1], dict)
-        self.assertIsInstance(w.node['dispatch']['workflow'][2], dict)
+        self.assertIsInstance(w.node['dispatch']['solution'], Solution)
 
 
 class TestSubDispatchFunction(unittest.TestCase):
@@ -157,3 +153,65 @@ class TestSubDispatchFunction(unittest.TestCase):
 
         self.assertRaises(TypeError, fun, 2, 1, a=2, b=2)
         self.assertRaises(TypeError, fun, 2, 1, a=2, b=2, e=0)
+
+
+class TestSubDispatchPipe(unittest.TestCase):
+    def setUp(self):
+        dsp = Dispatcher()
+        dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
+        dsp.add_function(function=min, inputs=['c', 'b'], outputs=['a'],
+                         input_domain=lambda c, b: c * b > 0)
+        self.dsp_1 = dsp
+
+        dsp = Dispatcher()
+
+        def f(a, b):
+            return a + b, a - b
+
+        dsp.add_function(function=f, inputs=['a', 'b'], outputs=['c', SINK])
+        dsp.add_function(function=f, inputs=['c', 'b'], outputs=[SINK, 'd'])
+        self.dsp_2 = dsp
+
+        dsp = Dispatcher()
+
+        dsp.add_function(function=f, inputs=['a', 'b'], outputs=['c', 'd'],
+                         out_weight={'d': 100})
+        dsp.add_dispatcher(dsp=self.dsp_1.copy(), inputs={'a': 'a', 'b': 'b'},
+                           outputs={'c': 'd'})
+        self.dsp_3 = dsp
+
+        dsp = Dispatcher()
+
+        dsp.add_function(function=SubDispatchFunction(
+            self.dsp_3, 'f', ['b', 'a'], ['c', 'd']),
+            inputs=['b', 'a'], outputs=['c', 'd'], out_weight={'d': 100}
+        )
+        dsp.add_dispatcher(dsp=self.dsp_1.copy(), inputs={'a': 'a', 'b': 'b'},
+                           outputs={'c': 'd'})
+        self.dsp_4 = dsp
+
+
+    def test_sub_dispatch_function(self):
+
+        fun = SubDispatchPipe(self.dsp_1, 'F', ['a', 'b'], ['a'])
+        self.assertEqual(fun.__name__, 'F')
+
+        # noinspection PyCallingNonCallable
+        self.assertEqual(fun(2, 1), 1)
+        self.assertRaises(ValueError, fun, 3, -1)
+
+        fun = SubDispatchPipe(self.dsp_2, 'F', ['b', 'a'], ['c', 'd'])
+        # noinspection PyCallingNonCallable
+        self.assertEqual(fun(1, 2), [3, 2])
+
+        self.assertRaises(
+            ValueError, SubDispatchFunction, self.dsp_2, 'F', ['a', 'c'], ['d']
+        )
+
+        fun = SubDispatchPipe(self.dsp_3, 'F', ['b', 'a'], ['c', 'd'])
+        # noinspection PyCallingNonCallable
+        self.assertEqual(fun(5, 20), [25, 20])
+
+        fun = SubDispatchPipe(self.dsp_4, 'F', ['b', 'a'], ['c', 'd'])
+        # noinspection PyCallingNonCallable
+        self.assertEqual(fun(5, 20), [25, 20])

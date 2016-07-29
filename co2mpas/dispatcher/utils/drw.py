@@ -263,17 +263,15 @@ def _init_graph_data(dsp, workflow, edge_attr):
         func_in_out = [dsp.inputs, dsp.outputs]
         dsp = dsp.dsp
     elif isinstance(dsp, SubDispatch):
-        if dsp.data_output != 'all':
+        if dsp.output_type != 'all':
             func_in_out = [[], dsp.outputs]
         dsp = dsp.dsp
 
     if workflow:
         edge_attr = edge_attr or 'value'
-
-        if isinstance(workflow, tuple):
-            args = list((dsp,) + workflow + (edge_attr,))
-        else:
-            args = [dsp, dsp.workflow, dsp.data_output, dsp.dist, edge_attr]
+        from .sol import Solution
+        sol = workflow if isinstance(workflow, Solution) else dsp.solution
+        args = [dsp, sol.workflow, sol, sol.dist, edge_attr]
 
     elif workflow is None:
         args = [dsp, nx.DiGraph(), {}, {}, None]

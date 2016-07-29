@@ -43,6 +43,7 @@ Sub-Modules:
     exc
     gen
     io
+    sol
     web
 """
 
@@ -87,6 +88,11 @@ from . import io
 from .io import *
 
 __all__ += io.__all__
+
+from . import sol
+from .sol import *
+
+__all__ += sol.__all__
 
 from . import web
 from .web import *

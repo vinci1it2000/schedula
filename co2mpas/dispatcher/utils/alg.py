@@ -446,7 +446,8 @@ def _update_io_attr_sub_dsp(dsp, attr):
     attr['inputs'] = i
 
 
-def get_sub_node(dsp, path, node_attr='auto', _level=0, _dsp_name=NONE):
+def get_sub_node(dsp, path, node_attr='auto', solution=NONE, _level=0,
+                 _dsp_name=NONE):
     """
     Returns a sub node of a dispatcher.
 
@@ -470,7 +471,7 @@ def get_sub_node(dsp, path, node_attr='auto', _level=0, _dsp_name=NONE):
 
           - for data node: its output, and if not exists, all its attributes.
           - for function and sub-dispatcher nodes: the 'function' attribute.
-    :type node_attr: str
+    :type node_attr: str | None
 
     :param _level:
         Path level.
@@ -526,6 +527,9 @@ def get_sub_node(dsp, path, node_attr='auto', _level=0, _dsp_name=NONE):
     if _dsp_name is NONE:  # Set origin dispatcher name for warning purpose.
         _dsp_name = dsp.name
 
+    if solution is NONE:  # Set origin dispatcher name for warning purpose.
+        solution = dsp.solution
+
     node_id = path[_level]  # Node id at given level.
 
     try:
@@ -535,7 +539,7 @@ def get_sub_node(dsp, path, node_attr='auto', _level=0, _dsp_name=NONE):
         if _level == len(path) - 1 and node_attr in ('auto', 'output'):
             try:
                 # Get dispatcher node.
-                node_id, node = _get_node(dsp.data_output, node_id, False)
+                node_id, node = _get_node(solution, node_id, False)
                 path[_level] = node_id
                 return node, tuple(path)
             except KeyError:
@@ -548,26 +552,35 @@ def get_sub_node(dsp, path, node_attr='auto', _level=0, _dsp_name=NONE):
     if _level < len(path):  # Is not path leaf?.
 
         try:
-            dsp = node['function']  # Get function or sub-dispatcher node.
-            dsp = parent_func(dsp)  # Get parent function.
+            if node['type'] == 'function':
+                try:
+                    solution = solution.sub_dsp[dsp]
+                    solution = solution.workflow.node[node_id]['solution']
+                except KeyError:
+                    pass
+                dsp = parent_func(node['function'])  # Get parent function.
+            else:
+                dsp = node['function']  # Get function or sub-dispatcher node.
+
         except KeyError:
             msg = 'Node of path %s at level %i is not a function or ' \
                   'sub-dispatcher node of %s ' \
                   'dispatcher.' % (path, _level, _dsp_name)
             raise ValueError(msg)
 
+
         # Continue the node search.
-        return get_sub_node(dsp, path, node_attr, _level, _dsp_name)
+        return get_sub_node(dsp, path, node_attr, solution, _level, _dsp_name)
     else:
         data = EMPTY
         # Return the sub node.
         if node_attr == 'auto':  # Auto.
             if node['type'] != 'data':  # Return function.
                 node_attr = 'function'
-            elif node_id in dsp.data_output:  # Return data output.
-                data = dsp.data_output[node_id]
+            elif node_id in solution.sub_dsp.get(dsp, ()): # Return data output.
+                data = solution.sub_dsp[dsp][node_id]
         elif node_attr == 'output':
-            data = dsp.data_output[node_id]
+            data = solution.sub_dsp[dsp][node_id]
         elif node_attr == 'description':  # Search and return node description.
             data = search_node_description(node_id, node, dsp)
         elif node_attr == 'value_type' and node['type'] == 'data':
@@ -987,7 +1000,7 @@ def rm_cycles_iter(graph, nodes_bunch, reached_nodes, edge_to_rm, wait_in):
             rm_cycles_iter(sub_g, data_n, reached_nodes, edge_to_rm, wait_in)
 
 
-def get_full_pipe(dsp, base=()):
+def get_full_pipe(sol, base=()):
     """
     Returns the full pipe of a dispatch run.
 
@@ -1004,12 +1017,13 @@ def get_full_pipe(dsp, base=()):
 
     pipe = OrderedDict()
 
-    for p in dsp._pipe:
-        n, d = p[-1]
+    for p in sol._pipe:
+        n, s = p[-1]
+        d = s.dsp
         p = {'task': p}
 
-        if n in d._errors:
-            p['error'] = d._errors[n]
+        if n in s._errors:
+            p['error'] = s._errors[n]
 
         node_id = d.get_full_node_id(n)
 
@@ -1018,61 +1032,65 @@ def get_full_pipe(dsp, base=()):
 
         n_id = node_id[len(base):]
 
-        n = d.get_node(n, node_attr=None)[0]
+        n, path = d.get_node(n, node_attr=None)
         if n['type'] == 'function' and 'function' in n:
-            func = parent_func(n['function'])
-            if isinstance(func, SubDispatch):
-                sp = get_full_pipe(func.dsp, base=node_id)
+            try:
+                sub_sol = s.workflow.node[path[-1]]['solution']
+                sp = get_full_pipe(sub_sol, base=node_id)
                 if sp:
                     p['sub_pipe'] = sp
+            except KeyError:
+                pass
 
         pipe[bypass(*n_id)] = p
 
     return pipe
 
 
-def _sort_sk_wait_in(dsp):
+def _sort_sk_wait_in(sol):
     c = counter()
 
-    def _get_sk_wait_in(d):
+    def _get_sk_wait_in(s):
         w = set()
         L = []
-        for n, a in d.sub_dsp_nodes.items():
-            if 'function' in a:
-                sub_dsp = a['function']
-                n_d, l = _get_sk_wait_in(sub_dsp)
+        for n, a in s.dsp.sub_dsp_nodes.items():
+            if 'function' in a and a['function'] in s.sub_dsp:
+                sub_sol = s.sub_dsp[a['function']]
+                n_d, l = _get_sk_wait_in(sub_sol)
                 L += l
-                wi = {k for k, v in sub_dsp._wait_in.items() if v is True}
+                wi = {k for k, v in sub_sol._wait_in.items() if v is True}
                 n_d = n_d.union(wi)
                 o = a['outputs']
                 w = w.union([o[k] for k in set(o).intersection(n_d)])
 
         # Nodes to be visited.
-        wi = {k for k, v in d._wait_in.items() if v is True}
+        wi = {k for k, v in s._wait_in.items() if v is True}
 
-        n_d = (set(d.workflow.node.keys()) - d._visited) - w
+        n_d = (set(s.workflow.node.keys()) - s._visited) - w
 
-        n_d = n_d.union(d._visited.intersection(wi))
+        n_d = n_d.union(s._visited.intersection(wi))
         wi = n_d.intersection(wi)
 
-        L += [(d._meet.get(k, float('inf')), k, c(), d._wait_in) for k in wi]
+        L += [(s._meet.get(k, float('inf')), k, c(), s._wait_in) for k in wi]
 
         return set(n_d), L
 
-    return sorted(_get_sk_wait_in(dsp)[1])
+    return sorted(_get_sk_wait_in(sol)[1])
 
 
-def _union_workflow(dsp, node_id=None, bfs=None):
+def _union_workflow(sol, node_id=None, bfs=None):
     if node_id is not None:
         j = bfs[node_id] = bfs.get(node_id, {NONE: set()})
     else:
         j = bfs or {NONE: set()}
 
-    j[NONE].update(dsp.workflow.edges())
+    j[NONE].update(sol.workflow.edges())
 
-    for n, a in dsp.sub_dsp_nodes.items():
+    for n, a in sol.dsp.sub_dsp_nodes.items():
         if 'function' in a:
-            _union_workflow(a['function'], node_id=n, bfs=j)
+            s = sol.sub_dsp.get(a['function'], None)
+            if s:
+                _union_workflow(s, node_id=n, bfs=j)
     return j
 
 
