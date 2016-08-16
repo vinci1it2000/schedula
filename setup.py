@@ -215,6 +215,7 @@ setup(
             '%(p)s = %(p)s.__main__:main' % {'p': proj_name},
             'datasync = %(p)s.datasync:main' % {'p': proj_name},
             '%(p)s-autocompletions = %(p)s.__main__:print_autocompletions' % {'p': proj_name},
+            'co2dice = %(p)s.sampling.diceui:main' % {'p': proj_name},
         ],
     },
     options={
