@@ -7,26 +7,31 @@
 #
 """Sign and  send/receive sampling emails"""
 # see https://pymotw.com/2/imaplib/ for IMAP example.
+
 import base64
 from collections import defaultdict, MutableMapping
 import configparser
 from email.mime.text import MIMEText
 import imaplib
 import inspect
-import os
+import pprint
 import io
 import logging
+import os
 import re
 import re
+import shutil
 import smtplib
 
-from boltons.setutils import IndexedSet as iset
+from boltons.setutils import IndexedSet as iset, IndexedSet
+import gnupg
 import hiyapyco
 import keyring
 from toolz import dicttoolz
 from toolz import itertoolz as itz
 
 import functools as ft
+import pandas as pd
 import itertools as itt
 import os.path as osp
 
@@ -176,6 +181,42 @@ def where(program, path=None):
 def which(program):
     progs = where(program)
     return progs and progs[0]
+
+def _describe_gpg(gpg):
+    gpg_path = gpg.gpgbinary
+    if not osp.isabs(gpg_path):
+        gpg_path = shutil.which(gpg_path)
+
+    ver = str(gpg.version)
+    nprivkeys = len(gpg.list_keys(True))
+    nallkeys = len(gpg.list_keys())
+    return gpg_path, ver, nprivkeys, nallkeys
+
+
+def collect_gpgs():
+    inc_errors=1
+    gpg_kws={}
+    gpg_paths = IndexedSet(itt.chain.from_iterable(where(prog) for prog in ('gpg2', 'gpg')))
+    gnupghome = osp.expanduser('~/.gnupg')
+    gpg_avail = []
+    for gpg_path in gpg_paths:
+        try:
+            gpg = gnupg.GPG(gpgbinary=gpg_path, **gpg_kws)
+            row = _describe_gpg(gpg)
+        except Exception as ex:
+            #raise
+            if inc_errors:
+                row = (gpg_path, '%s: %s' % (type(ex).__name__, str(ex)), None, None)
+            else:
+                continue
+        gpg_avail.append(row)
+
+    cols= ['GnuPG path', 'Version', '#PRIV', '#TOTAL']
+    gpg_avail = pd.DataFrame(gpg_avail, columns=cols)
+    return gpg_avail
+
+
+gpg_avail = collect_gpgs()
 
 def gpg_del_gened_key(gpg, fingerprint):
     log.debug('Deleting secret+pub: %s', fingerprint)

@@ -7,17 +7,20 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 from co2mpas import (__version__, __updated__, __copyright__, __license__)
 from co2mpas.__main__ import init_logging
+from co2mpas.sampling import dice
 from collections import Counter, OrderedDict
+import io
 import logging
+import pprint
 import sys
 from textwrap import dedent
-from tkinter import StringVar, ttk, tix
+from tkinter import StringVar, ttk, filedialog, tix
+import tkinter as tk
 import traceback
 
 from PIL import Image, ImageTk
 
 import pkg_resources as pkg
-import tkinter as tk
 
 
 __commit__ = ""
@@ -237,9 +240,19 @@ class LogPanel(tk.LabelFrame):
         self._update_title()
 
     def save_log(self):
-        self._log_text
-        root = tix.Tk()
-        fb = tix.tix_filedialog()
+        import datetime
+        now = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+        fname = 'co2dice-%s.log' % now
+        fname = filedialog.SaveAs(parent=self,
+                title='Select filename to save the Log',
+                initialfile=fname,
+                defaultextension='.log',
+                filetypes=[('log', '*.log'), ('txt', '*.txt'), ('*', '*')],
+        ).show()
+        if fname:
+            txt = self._log_text.get(1.0, tk.END)
+            with io.open(fname, 'wt+') as fd:
+                fd.write(txt)
 
     def _write_log_record(self, record):
         try:
@@ -298,21 +311,34 @@ class _MainPanel(tk.Frame):
         self.buttons_frame = tk.Frame(main)
         self.buttons_frame.pack(side=tk.RIGHT, fill=tk.Y)
 
-        self.store_btn = tk.Button(self.buttons_frame, text="Store...", command=lambda: log.warning('Not Implemented!'),
-                              padx=_pad, pady=_pad)
+        self.store_btn = tk.Button(self.buttons_frame, text="Store...",
+                command=lambda: log.warning('Not Implemented!'),
+                padx=_pad, pady=_pad)
         self.store_btn.pack(side=tk.BOTTOM, fill=tk.X)
 
-        self.reset_btn = tk.Button(self.buttons_frame, text="Reset", fg="red", command=self._do_reset,
-                                   padx=_pad, pady=_pad)
+        self.reset_btn = tk.Button(self.buttons_frame, text="Reset", fg="red",
+                command=self._do_reset,
+                padx=_pad, pady=_pad)
         self.reset_btn.pack(side=tk.BOTTOM, fill=tk.X)
 
-        self.run_btn = tk.Button(self.buttons_frame, text="Run", fg="green", command=self._do_run,
-                                 padx=_pad, pady=_pad)
+        self.run_btn = tk.Button(self.buttons_frame, text="Run", fg="green",
+                command=self._do_run,
+                padx=_pad, pady=_pad)
         self.run_btn.pack(side=tk.BOTTOM, fill=tk.X)
 
         nb.add(main, text='main')
-        prefs = tk.Frame(self, **_raised)
+        prefs = self._make_prefs(nb)
         nb.add(prefs, text='Preferences')
+
+    def _make_prefs(self, nb):
+        prefs = tk.Frame(nb, **_raised)
+        lb = tk.Listbox(prefs, font=("Consolas", 8, ))
+
+        for row in pprint.pformat(dice.gpg_avail, width=120, compact=1).split('\n'):
+            lb.insert(tk.END, row)
+        lb.pack(side=tk.LEFT, fill=tk.X, expand=1)
+
+        return prefs
 
     def _do_reset(self):
         logging.error(
