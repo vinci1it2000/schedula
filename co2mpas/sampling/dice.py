@@ -14,6 +14,8 @@ import configparser
 from email.mime.text import MIMEText
 import imaplib
 import inspect
+import subprocess
+from subprocess import CalledProcessError
 import pprint
 import io
 import logging
@@ -158,7 +160,7 @@ def retrieve_secret(master_pswd, key):
     kr=keyring.get_keyring()
     return kr.get_password('%s.%s' %(_project, master_pswd), key)
 
-def where(program, path=None):
+def py_where(program, path=None):
     ## From: http://stackoverflow.com/a/377028/548792
     winprog_exts = ('.bat', 'com', '.exe')
     def is_exec(fpath):
@@ -175,12 +177,25 @@ def where(program, path=None):
             for f in [exe_path] + ['%s%s'%(exe_path, e) for e in winprog_exts]:
                 if is_exec(f):
                     progs.append(f)
-
     return progs
 
+
+def where(program):
+    try:
+        res = subprocess.check_output('where "%s"' % program,
+                universal_newlines=True)
+        return res and [s.strip()
+                       for s in res.split('\n') if s.strip()]
+    except CalledProcessError:
+        return []
+    except:
+        return py_where(program)
+
+
 def which(program):
-    progs = where(program)
-    return progs and progs[0]
+    res = where(program)
+    return res[0] if res else None
+
 
 def _describe_gpg(gpg):
     gpg_path = gpg.gpgbinary
