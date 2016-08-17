@@ -194,9 +194,10 @@ setup(
     extras_require={
         'dice': [
             'PyYAML',
-            'python-gpg',
+            'python-gpg>=2.0.8', ## Due to https://github.com/gitpython-developers/GitPython/issues/332
+            'gitpython',
+            'HiYaPyCo',
             'keyring',
-            'pbkdf2',
         ],
     },
     packages=find_packages(exclude=['tests', 'doc']),

@@ -10,18 +10,18 @@
 
 import base64
 from collections import defaultdict, MutableMapping
+import locale
 import configparser
 from email.mime.text import MIMEText
 import imaplib
 import inspect
 import subprocess
-from subprocess import CalledProcessError
 import pprint
 import io
 import logging
 import os
 import re
-import re
+import tempfile
 import shutil
 import smtplib
 
@@ -186,7 +186,7 @@ def where(program):
                 universal_newlines=True)
         return res and [s.strip()
                        for s in res.split('\n') if s.strip()]
-    except CalledProcessError:
+    except subprocess.CalledProcessError:
         return []
     except:
         return py_where(program)
@@ -281,7 +281,6 @@ def gpg_gen_interesting_keys(gpg, name_real, name_email, key_length,
                 gpg_del_gened_key(gpg, key.fingerprint)
     return keys
 
-
 def _log_into_server(login_cb, login_cmd, prompt):
     """
     Connects a credential-source(`login_db`) to a consumer(`login_cmd`).
@@ -357,14 +356,80 @@ def receive_timestamped_email(host, login_cb, ssl=False, **srv_kwds):
         if resp:
             log.warning('While closing %s srv responded: %s', prompt, resp)
 
+def git_read_bytes(obj):
+    bytes_sink = io.BytesIO()
+    obj.stream_data(bytes_sink)
+    return bytes_sink.getvalue()
 
-class Signer(object):
 
-    def __init__(self, my_gpg_key):
-        gpg_prog = 'gpg2.exe'
-        gpg2_path = which(prog)
-        self.assertIsNotNone(gpg2_path)
-        gpg=gnupg.GPG(r'C:\Program Files (x86)\GNU\GnuPG\gpg2.exe')
-        self.my_gpg_key
-        self._cfg = read_config('co2mpas')
+_PGP_SIGNATURE  = b'-----BEGIN PGP SIGNATURE-----'
+_PGP_MESSAGE    = b'-----BEGIN PGP MESSAGE-----'
+
+def split_detached_signed(tag: bytes) -> (bytes, bytes):
+    """
+    Look at GPG signed content (e.g. the message of a signed tag object),
+    whose payload is followed by a detached signature on it, and
+    split these two; do nothing if there is no signature following.
+
+    :param tag:
+            As fetched from ``git cat-file tag v1.2.1``.
+    :return:
+            A 2-tuple(sig, msg), None if no sig found.
+    """
+    nl = b'\n'
+    lines = tag.split(nl)
+    for i, l in enumerate(lines):
+        if l.startswith(_PGP_SIGNATURE) or l.startswith(_PGP_MESSAGE):
+            return nl.join(lines[i:]), nl.join(lines[:i]) + nl
+
+
+class DiceGPG(gnupg.GPG):
+    def __init__(self, *args, **kws):
+        super().__init__(*args, **kws)
+
+    def verify_detached_armor(self, sig: str, data: str):
+    #def verify_file(self, file, data_filename=None):
+        """Verify `sig` on the `data`."""
+        logger = gnupg.logger
+        #with tempfile.NamedTemporaryFile(mode='wt+',
+        #                encoding='latin-1') as sig_fp:
+        #sig_fp.write(sig)
+        #sig_fp.flush(); sig_fp.seek(0) ## paranoid seek(), Windows at least)
+        #sig_fn = sig_fp.name
+        sig_fn = osp.join(tempfile.gettempdir(), 'sig.sig')
+        logger.debug('Wrote sig to temp file: %r', sig_fn)
+
+        args = ['--verify', gnupg.no_quote(sig_fn), '-']
+        result = self.result_map['verify'](self)
+        data_stream = io.BytesIO(data.encode(self.encoding))
+        self._handle_io(args, data_stream, result, binary=True)
+        return result
+
+
+    def verify_detached(self, sig: bytes, msg: bytes):
+        with tempfile.NamedTemporaryFile('wb+', prefix='co2dice_') as sig_fp:
+            with tempfile.NamedTemporaryFile('wb+', prefix='co2dice_') as msg_fp:
+                sig_fp.write(sig)
+                sig_fp.flush()
+                sig_fp.seek(0) ## paranoid seek(), Windows at least)
+
+                msg_fp.write(msg)
+                msg_fp.flush();
+                msg_fp.seek(0)
+
+                sig_fn = gnupg.no_quote(sig_fp.name)
+                msg_fn = gnupg.no_quote(msg_fp.name)
+                args = ['--verify', sig_fn, msg_fn]
+                result = self.result_map['verify'](self)
+                p = self._open_subprocess(args)
+                self._collect_output(p, result, stdin=p.stdin)
+                return result
+
+def __init__(self, my_gpg_key):
+    gpg_prog = 'gpg2.exe'
+    gpg2_path = which(prog)
+    self.assertIsNotNone(gpg2_path)
+    gpg=gnupg.GPG(r'C:\Program Files (x86)\GNU\GnuPG\gpg2.exe')
+    self.my_gpg_key
+    self._cfg = read_config('co2mpas')
 
