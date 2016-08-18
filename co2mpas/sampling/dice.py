@@ -17,6 +17,7 @@ import imaplib
 import inspect
 import subprocess
 import pprint
+from pandalone.pandata import resolve_path
 import io
 import logging
 import os
@@ -29,6 +30,7 @@ from boltons.setutils import IndexedSet as iset, IndexedSet
 import gnupg
 import hiyapyco
 import keyring
+import textwrap
 from toolz import dicttoolz
 from toolz import itertoolz as itz
 
@@ -37,39 +39,56 @@ import pandas as pd
 import itertools as itt
 import os.path as osp
 
-from ..__main__ import CmdException
+from co2mpas.__main__ import CmdException
 
 
 log = logging.getLogger(__name__)
 
 _project = 'co2mpas'
 
-_default_cfg = """
-[dice]
-    timestamping_address: post@stamper.itconsult.co.uk
-    default_recipients: co2mpas@jrc.ec.europa.eu, EC-CO2-LDV-IMPLEMENTATION@ec.europa.eu
-    other_recipients:
-    sender:
-    SMTP.ssl: on
-    SMTP.host:
-    SMTP.user:
-    SMTP.kwds:
-    IMAPv4.user:
-    IMAPv4.ssl: on
-    IMAPv4.host:
-    IMAPv4.kwds:
-    gpg.trusted_user_ids: CO2MPAS JRC-master <co2mpas@jrc.ec.europa.eu>
-"""
+_default_cfg = textwrap.dedent("""
+        ---
+        dice:
+            timestamping_address: post@stamper.itconsult.co.uk
+            default_recipients: [co2mpas@jrc.ec.europa.eu,EC-CO2-LDV-IMPLEMENTATION@ec.europa.eu]
+            #other_recipients:
+            #sender:
+        SMTP:
+            ssl: on
+            #host:
+            #user:
+            #login:
+            #kwds:
+        IMAPv4:
+            ssl: on
+            #user:
+            #host:
+            #kwds:
+        gpg:
+            trusted_user_ids: [CO2MPAS JRC-master <co2mpas@jrc.ec.europa.eu>]
+        """)
 
 _opts_to_remove_before_cfg_write = ['default_recipients', 'timestamping_address']
 ## TODO: Move to other file
-def read_config_ini(projname, override_fpaths=(), default_fpaths=()):
-    cfg_fpaths = list(override_fpaths) + [
-                                          osp.expanduser(frmt % projname)
-                                          for frmt in ('%s.cfg', '~/.%s.cfg')
-                                         ] + list(default_fpaths)
-    config = configparser.ConfigParser()
-    cfg = config.read(cfg_fpaths, encoding='utf-8')
+def read_config(projname, override_fpaths=(), default_fpaths=()):
+    home_cfg = osp.normpath(osp.expanduser('~/.%s.cfg' % projname))
+    cwd_cfg = osp.abspath(('%s.cfg' % projname))
+    if not osp.isfile(home_cfg):
+        log.info('Creating home config-file %r...', home_cfg)
+        os.makedirs(osp.dirname(home_cfg), exist_ok=True)
+        with io.open(home_cfg, 'wt') as fp:
+            fp.write(_default_cfg)
+
+    cfg_fpaths = list(override_fpaths) + [home_cfg, cwd_cfg] + list(default_fpaths)
+    cfg = hiyapyco.load(cfg_fpaths,
+            method=hiyapyco.METHOD_MERGE,
+            interpolate=True, # (default: False)
+            castinterpolated=True, # (default: False)
+            usedefaultyamlloader=False, # (default: False)
+            loglevel=logging.INFO,
+            failonmissingfiles=False, #  (default: True)
+            #loglevelmissingfiles
+    )
     return cfg
 
 def splitnest(dic, sep=r'\.', factory=None):
@@ -231,7 +250,7 @@ def collect_gpgs():
     return gpg_avail
 
 
-gpg_avail = collect_gpgs()
+#gpg_avail = collect_gpgs()
 
 def gpg_del_gened_key(gpg, fingerprint):
     log.debug('Deleting secret+pub: %s', fingerprint)
@@ -433,3 +452,18 @@ def __init__(self, my_gpg_key):
     self.my_gpg_key
     self._cfg = read_config('co2mpas')
 
+def main():
+    import traitlets as trt
+    from traitlets.config import Application
+
+    class DiceApp(Application):
+
+        foo = trt.Integer(3).tag(config=True)
+
+        def start(self):
+            print('g', self.foo)
+
+    DiceApp.launch_instance('dice --DiceApp.foo=5'.split())
+
+if __name__ == '__main__':
+    main()

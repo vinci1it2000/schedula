@@ -21,7 +21,7 @@ from co2mpas.__main__ import init_logging
 from co2mpas.sampling import dice
 
 
-init_logging(False)
+init_logging(True)
 
 log = logging.getLogger(__name__)
 
@@ -73,8 +73,7 @@ q1mI64ULC1SlW2KBKdGV0xDcq+YA3GoXhD5FDPS70cTQ+DBkx1lUa6xmZgBR0uE=
 -----END PGP SIGNATURE-----
 """
 
-_signed_tag = {'v1.2.1': """
-object 76bcb73a24bfc40d6480a1a3050d743b02f71625
+_signed_tags = {'v1.2.1': [b"""object 76bcb73a24bfc40d6480a1a3050d743b02f71625
 type commit
 tag v1.2.1
 tagger Kostis Anagnostopoulos <ankostis@gmail.com> 1461012303 +0200
@@ -87,14 +86,14 @@ Panino release-no2:
 - input-schema.
 
 See https://github.com/JRCSTU/co2mpas/releases/tag/v1.2.0
------BEGIN PGP SIGNATURE-----
+""", b"""-----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1
 
 iEYEABECAAYFAlcVR08ACgkQnPJ3xAqKGwi9sQCeJ4qO6a30FqBMoDJhW5esS+Q0
 uYMAn3l0GhwyCkob9OQ9EBjqETse+LoE
 =W4tm
 -----END PGP SIGNATURE-----
-"""}
+"""]}
 
 _timestamped_msg = """
 
@@ -175,20 +174,33 @@ class TGit(unittest.TestCase):
         tag = tagref.tag
         self.assertEqual(tag.hexsha, '66a4def7930187427b9abc9200b1b981fa22ea6e')
 
-class Tsampling(unittest.TestCase):
-
     def test_parse_git_tags(self):
         gpg = dice.DiceGPG(verbose=1)
         repo = gitrepo()
         tag = repo.tag('refs/tags/v1.2.1').tag
         tag_bytes = dice.git_read_bytes(tag)
         res = dice.split_detached_signed(tag_bytes)
+        self.assertIsInstance(res, tuple)
         self.assertEqual(len(res), 2)
 
-        sig = res[0]#.encode(sys.getdefaultencoding())
-        msg = res[1]#.encode(sys.getdefaultencoding())
+        sig, msg = res
+        gpg = dice.DiceGPG(verbose=1)
         ver = gpg.verify_detached(sig, msg)
-        self.assertTrue(ver)
+        self.assertTrue(ver, ver)
+
+class TGPG(unittest.TestCase):
+    def test_pverify_git_tags(self):
+        gpg = dice.DiceGPG(verbose=1)
+        for _, (msg, sig) in _signed_tags.items():
+            msg = msg.replace(b'\n\r', b'\n')
+            ver = gpg.verify_detached(sig, msg)
+            self.assertTrue(ver, ver)
+
+class TDice(unittest.TestCase):
+
+    def test_read_config(self):
+        cfg = dice.read_config('co2dice')
+        print(cfg)
 
     @unittest.skip('FFF')
     def test_send_email(self):
