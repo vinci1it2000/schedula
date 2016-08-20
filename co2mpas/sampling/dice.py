@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/b in/env python
 #
 # Copyright 2014-2015 European Commission (JRC);
 # Licensed under the EUPL (the 'Licence');
@@ -11,6 +11,7 @@
 import base64
 from collections import defaultdict, MutableMapping
 import locale
+import copy
 import configparser
 from email.mime.text import MIMEText
 import imaplib
@@ -31,8 +32,11 @@ import gnupg
 import hiyapyco
 import keyring
 import textwrap
+from traitlets.config import ConfigFileNotFound
 from toolz import dicttoolz
 from toolz import itertoolz as itz
+import traitlets as trt
+from traitlets.config import Application, Configurable, SingletonConfigurable, get_config, catch_config_error
 
 import functools as ft
 import pandas as pd
@@ -40,11 +44,13 @@ import itertools as itt
 import os.path as osp
 
 from co2mpas.__main__ import CmdException
+from co2mpas._version import *
 
 
 log = logging.getLogger(__name__)
 
 _project = 'co2mpas'
+appname = 'co2dice'
 
 _default_cfg = textwrap.dedent("""
         ---
@@ -69,6 +75,30 @@ _default_cfg = textwrap.dedent("""
         """)
 
 _opts_to_remove_before_cfg_write = ['default_recipients', 'timestamping_address']
+
+def get_home_dir():
+    """Get the real path of the home directory"""
+    homedir = osp.expanduser('~')
+    # Next line will make things work even when /home/ is a symlink to
+    # /usr/home as it is on FreeBSD, for example
+    homedir = osp.realpath(homedir)
+    return homedir
+
+
+def app_config_dir():
+    """Get the config directory for this platform and user.
+
+    Returns CO2DICE_CONFIG_DIR if defined, else ~/.co2dice
+    """
+
+    env = os.environ
+    home_dir = get_home_dir()
+
+    if env.get('CO2DICE_CONFIG_DIR'):
+        return env['CO2DICE_CONFIG_DIR']
+
+    return osp.abspath(osp.join(home_dir, '.co2dice'))
+
 ## TODO: Move to other file
 def read_config(projname, override_fpaths=(), default_fpaths=()):
     home_cfg = osp.normpath(osp.expanduser('~/.%s.cfg' % projname))
@@ -153,6 +183,27 @@ def splitnest(dic, sep=r'\.', factory=None):
             set_subkeys(ndic, subkeys, v)
     return ndic
 
+_NOT_SET = object()
+def dotget_storage_value(key, default=_NOT_SET):
+    if '.' in key:
+        path = key.split('.')
+        key = path[0]
+        path = key[1:]
+    else:
+        path = None
+
+    if not key in store:
+        value = default
+    else:
+        value = store[key]
+        if path:
+            if value is None:
+                value = default ## Missing path replaed by default
+            value = dice.splitnest(value).get(path, default)
+    if value is _NOT_SET:
+        raise KeyError('key')
+    return value
+
 
 def store_config(cfg, projname):
     for opt in _opts_to_remove_before_cfg_write:
@@ -183,16 +234,16 @@ def py_where(program, path=None):
     ## From: http://stackoverflow.com/a/377028/548792
     winprog_exts = ('.bat', 'com', '.exe')
     def is_exec(fpath):
-        return os.path.isfile(fpath) and os.access(fpath, os.X_OK) and (
+        return osp.isfile(fpath) and os.access(fpath, os.X_OK) and (
                 os.name != 'nt' or fpath.lower()[-4:] in winprog_exts)
 
     progs = []
     if not path:
         path = os.environ["PATH"]
-    for folder in path.split(os.pathsep):
+    for folder in path.split(ospsep):
         folder = folder.strip('"')
         if folder:
-            exe_path = os.path.join(folder, program)
+            exe_path = osp.join(folder, program)
             for f in [exe_path] + ['%s%s'%(exe_path, e) for e in winprog_exts]:
                 if is_exec(f):
                     progs.append(f)
@@ -444,7 +495,7 @@ class DiceGPG(gnupg.GPG):
                 self._collect_output(p, result, stdin=p.stdin)
                 return result
 
-def __init__(self, my_gpg_key):
+def __GPG__init__(self, my_gpg_key):
     gpg_prog = 'gpg2.exe'
     gpg2_path = which(prog)
     self.assertIsNotNone(gpg2_path)
@@ -452,18 +503,136 @@ def __init__(self, my_gpg_key):
     self.my_gpg_key
     self._cfg = read_config('co2mpas')
 
-def main():
-    import traitlets as trt
-    from traitlets.config import Application
+base_aliases = {
+    'log-level' : 'Application.log_level',
+    'config' : 'DiceApp.config_file',
+}
 
-    class DiceApp(Application):
+base_flags = {
+    'debug': ({'Application' : {'log_level' : logging.DEBUG}},
+            "set log level to logging.DEBUG (maximize logging output)"),
+    'generate-config': ({'JupyterApp': {'generate_config': True}},
+        "generate default config file"),
+    'y': ({'JupyterApp': {'answer_yes': True}},
+        "Answer yes to any questions instead of prompting."),
+}
 
-        foo = trt.Integer(3).tag(config=True)
+class DiceApp(Application):
+    name = appname
+    description = 'co2dice cmd-line tool: sign/archive/send/receive/validate emails for Type Approval sampling.'
+    version = co2mpas._version.
+    #examples = """TODO: Write cmd-line examples."""
 
-        def start(self):
-            print('g', self.foo)
+    def load_config_file2(self, suppress_errors=True):
+        """Load the config file.
 
-    DiceApp.launch_instance('dice --DiceApp.foo=5'.split())
+        By default, errors in loading config are handled, and a warning
+        printed on screen. For testing, the suppress_errors option is set
+        to False, so errors will make tests fail.
+        """
+
+        self.log.debug("Searching %s for config files", self.config_file_paths)
+        base_config = 'co2dice_config'
+        try:
+            super(DiceApp, self).load_config_file(
+                base_config,
+                path=self.config_file_paths,
+            )
+        except ConfigFileNotFound:
+            # ignore errors loading parent
+            self.log.debug("Config file %s not found", base_config)
+            pass
+
+        if self.config_file:
+            path, config_file_name = osp.split(self.config_file)
+        else:
+            path = self.config_file_paths
+            config_file_name = self.config_file_name
+
+            if not config_file_name or (config_file_name == base_config):
+                return
+
+        try:
+            super(DiceApp, self).load_config_file(
+                config_file_name,
+                path=path
+            )
+        except ConfigFileNotFound:
+            self.log.debug("Config file not found, skipping: %s", config_file_name)
+        except Exception:
+            # For testing purposes.
+            if not suppress_errors:
+                raise
+            self.log.warn("Error loading config file: %s" %
+                            config_file_name, exc_info=True)
+
+    @catch_config_error
+    def initialize(self, argv=None):
+        ## Ensure all singleton-configurables will receive configs.
+        #
+        for cl in self.classes:
+            if type(self) != cl:
+                cl.instance(parent=self)
+
+        ## Parse cl-args to detect sub-commands
+        #  and re-apply them after file-configs loaded.
+        #  (trick copied from `jupyter-core`)
+        self.parse_command_line(argv)
+        cl_config = copy.deepcopy(self.config)
+        self.load_config_file('.%s_config' % appname,
+                              path=[osp.join('~', '.%s' % appname), ])
+        self.update_config(cl_config)
+
+    def start(self):
+        print(self.subapp, self.classes)
+        print('AAA', self.extra_args)
+        print('CC', self.classes)
+        print('C', self.config)
+        print(self.document_config_options())
+#         print(self.generate_config_file())
+
+        return super().start()
+
+
+class Mail(SingletonConfigurable):
+    decription = """Generic mail configuration parameters (both for SMTP & IMAP)."""
+
+#     host = trt.CUnicode(None,
+#             help="""The SMTP/IMAP server, e.g. 'smtp.gmail.com'.""").tag(config=True)
+#
+#     port = trt.CInt(None,
+#             help="""The SMTP/IMAP server's port, usually 587/465 for SSL, 25 otherwise.""").tag(config=True)
+#
+#     ssl = trt.CBool(True,
+#             help="""Whether to talk TLS/SSL to the SMTP/IMAP server; configure `port` separately!""").tag(config=True)
+#
+    user = trt.CUnicode(None, allow_none=True,
+            help="""""").tag(config=True)
+#
+#     login = trt.CaselessStrEnum('login simple'.split(), default_value=None, allow_none=True,
+#             help="""Which mechanism """).tag(config=True)
+#
+#     kwds = trt.Dict().tag(config=True)
+
+    bar = trt.Integer(4).tag(config=True)
+    def start(self):
+        print('MAIL')
+
+class MailApp(Mail):
+    description = """FFFF"""
+    def start(self):
+        print('MAIL')
+
+def main(**kwds):
+    argv = '--Mail.port=6 --Mail.user="ggg" abc def'.split()
+    argv = '--Mail.user="ggg" abc def'.split()
+    #argv = '--DiceApp.raise_config_file_errors=True'
+    app = DiceApp.launch_instance(argv,
+                classes=[Mail],
+                #subcommands={'mail': (MailApp, 'Anything')},
+                #raise_config_file_errors=True,
+                )
 
 if __name__ == '__main__':
     main()
+    from jupyter_core import application

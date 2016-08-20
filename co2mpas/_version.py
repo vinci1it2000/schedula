@@ -19,4 +19,8 @@ __input_file_version__ = "2"
 
 # Please UPDATE TIMESTAMP WHEN BUMPING VERSIONS AND BEFORE RELEASE.
 #: Release date.
-__updated__ = "2016-07-18 20:37:01"
+__updated__ = "2016-08-20 19:30:26"
+
+__copyright__ = "Copyright (C) 2015 European Commission (JRC)"
+__license__   = "EUPL 1.1+"
+
