@@ -5,13 +5,13 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 #
-"""Sign and  send/receive sampling emails"""
-# see https://pymotw.com/2/imaplib/ for IMAP example.
+"""co2dice: prepare/sign/send/receive/validate/archive Type Approval sampling emails of *co2mpas*."""
 
 import base64
 from collections import defaultdict, MutableMapping
 import locale
 import copy
+import errno
 import configparser
 from email.mime.text import MIMEText
 import imaplib
@@ -19,6 +19,7 @@ import inspect
 import subprocess
 import pprint
 from pandalone.pandata import resolve_path
+from pandalone import utils as pndl_utils
 import io
 import logging
 import os
@@ -43,14 +44,19 @@ import pandas as pd
 import itertools as itt
 import os.path as osp
 
-from co2mpas.__main__ import CmdException
-from co2mpas._version import *
+from co2mpas.__main__ import CmdException, init_logging
+from co2mpas import __uri__  # @UnusedImport
+from co2mpas._version import (__version__, __updated__, __file_version__,   # @UnusedImport
+                              __input_file_version__, __copyright__, __license__)  # @UnusedImport
+__title__ = 'co2dice'
+__summary__   = __doc__.split('\n')[0]
 
 
-log = logging.getLogger(__name__)
+log = logging.getLogger(__name__) #TODO: Replace with App logger.
+_mydir = osp.dirname(__file__)
+CONF_VAR_NAME = '%s_CONFIG_FILE' % __title__.upper()
 
 _project = 'co2mpas'
-appname = 'co2dice'
 
 _default_cfg = textwrap.dedent("""
         ---
@@ -403,7 +409,7 @@ def _parse_list_response(line):
     mailbox_name = mailbox_name.strip('"')
     return (flags, delimiter, mailbox_name)
 
-
+# see https://pymotw.com/2/imaplib/ for IMAP example.
 def receive_timestamped_email(host, login_cb, ssl=False, **srv_kwds):
     prompt = 'IMAP(%r)' % host
 
@@ -503,136 +509,259 @@ def __GPG__init__(self, my_gpg_key):
     self.my_gpg_key
     self._cfg = read_config('co2mpas')
 
-base_aliases = {
-    'log-level' : 'Application.log_level',
-    'config' : 'DiceApp.config_file',
-}
+#####
+## TODO: Move to pandalone
+_is_dir_regex = re.compile(r'[^/\\][/\\]$')
 
-base_flags = {
-    'debug': ({'Application' : {'log_level' : logging.DEBUG}},
-            "set log level to logging.DEBUG (maximize logging output)"),
-    'generate-config': ({'JupyterApp': {'generate_config': True}},
-        "generate default config file"),
-    'y': ({'JupyterApp': {'answer_yes': True}},
-        "Answer yes to any questions instead of prompting."),
-}
+def normpath(path):
+    """Like :func:`osp.normpath()`, but preserving last slash."""
+    p = osp.normpath(path)
+    if _is_dir_regex.search(path) and p[-1] != os.sep:
+        p = p + osp.sep
+    return p
 
-class DiceApp(Application):
-    name = appname
-    description = 'co2dice cmd-line tool: sign/archive/send/receive/validate emails for Type Approval sampling.'
-    version = co2mpas._version.
-    #examples = """TODO: Write cmd-line examples."""
+def abspath(path):
+    """Like :func:`osp.abspath()`, but preserving last slash."""
+    p = osp.abspath(path)
+    if _is_dir_regex.search(path) and p[-1] != os.sep:
+        p = p + osp.sep
+    return p
 
-    def load_config_file2(self, suppress_errors=True):
-        """Load the config file.
+## TODO: Move path-util to pandalone.
+def convpath(fpath, abs_path=True, exp_user=True, exp_vars=True):
+    """Without any flags, just pass through :func:`osp.normpath`. """
+    if exp_user:
+        fpath = osp.expanduser(fpath)
+    if exp_vars:
+        ## Mask UNC '\\server\share$\path` from expansion.
+        fpath = fpath.replace('$\\', '_UNC_PATH_HERE_')
+        fpath = osp.expandvars(fpath)
+        fpath = fpath.replace('_UNC_PATH_HERE_', '$\\')
+    fpath = abspath(fpath) if abs_path else normpath(fpath)
+    return fpath
 
-        By default, errors in loading config are handled, and a warning
-        printed on screen. For testing, the suppress_errors option is set
-        to False, so errors will make tests fail.
-        """
+def ensure_dir_exists(path, mode=0o755):
+    """ensure that a directory exists
 
-        self.log.debug("Searching %s for config files", self.config_file_paths)
-        base_config = 'co2dice_config'
+    If it doesn't exist, try to create it and protect against a race condition
+    if another process is doing the same.
+
+    The default permissions are 755, which differ from os.makedirs default of 777.
+    """
+    if not os.path.exists(path):
         try:
-            super(DiceApp, self).load_config_file(
-                base_config,
-                path=self.config_file_paths,
-            )
-        except ConfigFileNotFound:
-            # ignore errors loading parent
-            self.log.debug("Config file %s not found", base_config)
-            pass
-
-        if self.config_file:
-            path, config_file_name = osp.split(self.config_file)
-        else:
-            path = self.config_file_paths
-            config_file_name = self.config_file_name
-
-            if not config_file_name or (config_file_name == base_config):
-                return
-
-        try:
-            super(DiceApp, self).load_config_file(
-                config_file_name,
-                path=path
-            )
-        except ConfigFileNotFound:
-            self.log.debug("Config file not found, skipping: %s", config_file_name)
-        except Exception:
-            # For testing purposes.
-            if not suppress_errors:
+            os.makedirs(path, mode=mode)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
                 raise
-            self.log.warn("Error loading config file: %s" %
-                            config_file_name, exc_info=True)
-
-    @catch_config_error
-    def initialize(self, argv=None):
-        ## Ensure all singleton-configurables will receive configs.
-        #
-        for cl in self.classes:
-            if type(self) != cl:
-                cl.instance(parent=self)
-
-        ## Parse cl-args to detect sub-commands
-        #  and re-apply them after file-configs loaded.
-        #  (trick copied from `jupyter-core`)
-        self.parse_command_line(argv)
-        cl_config = copy.deepcopy(self.config)
-        self.load_config_file('.%s_config' % appname,
-                              path=[osp.join('~', '.%s' % appname), ])
-        self.update_config(cl_config)
-
-    def start(self):
-        print(self.subapp, self.classes)
-        print('AAA', self.extra_args)
-        print('CC', self.classes)
-        print('C', self.config)
-        print(self.document_config_options())
-#         print(self.generate_config_file())
-
-        return super().start()
-
+    elif not os.path.isdir(path):
+        raise IOError("%r exists but is not a directory" % path)
+#####
 
 class Mail(SingletonConfigurable):
-    decription = """Generic mail configuration parameters (both for SMTP & IMAP)."""
+    decription = """Generic mail configuration parameters, both for SMTP(sending emails) & IMAP(receiving emails)."""
 
-#     host = trt.CUnicode(None,
-#             help="""The SMTP/IMAP server, e.g. 'smtp.gmail.com'.""").tag(config=True)
-#
-#     port = trt.CInt(None,
-#             help="""The SMTP/IMAP server's port, usually 587/465 for SSL, 25 otherwise.""").tag(config=True)
-#
-#     ssl = trt.CBool(True,
-#             help="""Whether to talk TLS/SSL to the SMTP/IMAP server; configure `port` separately!""").tag(config=True)
-#
+    host = trt.CUnicode('',
+            help="""The SMTP/IMAP server, e.g. 'smtp.gmail.com'."""
+            ).tag(config=True)
+
+    port = trt.CInt(587,
+            help="""The SMTP/IMAP server's port, usually 587/465 for SSL, 25 otherwise."""
+            ).tag(config=True)
+
+    ssl = trt.CBool(True,
+            help="""Whether to talk TLS/SSL to the SMTP/IMAP server; configure `port` separately!"""
+            ).tag(config=True)
+
     user = trt.CUnicode(None, allow_none=True,
-            help="""""").tag(config=True)
-#
-#     login = trt.CaselessStrEnum('login simple'.split(), default_value=None, allow_none=True,
-#             help="""Which mechanism """).tag(config=True)
-#
-#     kwds = trt.Dict().tag(config=True)
+            help="""The user to authenticate with the SMTP/IMAP server."""
+            ).tag(config=True)
 
-    bar = trt.Integer(4).tag(config=True)
-    def start(self):
-        print('MAIL')
+    kwds = trt.Dict(
+            help="""Any key-value pairs passed to the SMTP/IMAP mail-client libraries."""
+            ).tag(config=True)
+
+class SMTP(Mail):
+    login = trt.CaselessStrEnum('login simple'.split(), default_value=None, allow_none=True,
+            help="""Which SMTP mechanism to use to authenticate: [ login | simple | <None> ]. """
+             ).tag(config=True)
+
 
 class MailApp(Mail):
     description = """FFFF"""
     def start(self):
         print('MAIL')
 
-def main(**kwds):
-    argv = '--Mail.port=6 --Mail.user="ggg" abc def'.split()
-    argv = '--Mail.user="ggg" abc def'.split()
-    #argv = '--DiceApp.raise_config_file_errors=True'
-    app = DiceApp.launch_instance(argv,
-                classes=[Mail],
+
+def default_config_fname():
+    """The config-file's basename (no path or extension) to search when not explicetely specified."""
+    return '%s_config' % __title__
+
+def default_config_dir():
+    """The folder of to user's config-file."""
+    return convpath('~/.%s' % __title__)
+
+def default_config_fpath():
+    """The full path of to user's config-file, without extension."""
+    return osp.join(default_config_dir(), default_config_fname())
+
+
+base_aliases = {
+    'log-level' : 'Application.log_level',
+    'config' : 'DiceApp.config_files',
+    ## 'generate-config' : 'DiceApp.generate_config', # Too much help.
+}
+
+base_flags = {
+    'debug': ({'Application' : {'log_level' : logging.DEBUG}},
+            "Set log level to logging.DEBUG (maximize logging output)."),
+    'gen-config': ({'DiceApp': {'generate_config': True}},
+                        """
+                        Store config defaults into `{confdir}`.
+                        Note: It OVERRIDES any pre-existing configuration file!
+                        """.format(confdir=convpath('~/.%s_config.py' % __title__))),
+}
+class DiceApp(Application):
+    name        = __title__
+    description = __summary__
+    version     = __version__
+    #examples = """TODO: Write cmd-line examples."""
+
+    config_files = trt.Unicode(None, allow_none=True,
+            help="""
+            Absolute/relative path(s) to config files to OVERRIDE default configs.
+            Multiple paths are separated by '{pathsep}' in descending order.
+            Any extensions are ignored, and '.json' or '.py' are searched (in this order).
+            If the path specified resolves to a folder, the filename `{appname}_config.[json | py]` is appended;
+            Any command-line values take precendance over the `{confvar}` envvar.
+            Use `--generate-config` to produce a skeleton of the config-file.
+            """.format(appname=__title__, confvar=CONF_VAR_NAME, pathsep=osp.pathsep)
+            ).tag(config=True)
+
+    generate_config = trt.Union((trt.Bool(False), trt.Unicode()),
+            help="""
+            Store config defaults into path specified or into `{confpath}` if True.
+            Note: It OVERWRITES any pre-existing configuration file!
+            """.format(confpath=convpath('~/.%s_config.py' % __title__))
+            ).tag(config=True) ## aliased
+
+    aliases = base_aliases
+    flags = base_flags
+
+
+    @property
+    def user_config_fpaths(self):
+        fpaths = []
+        config_files = os.environ.get(CONF_VAR_NAME, self.config_files)
+        if config_files:
+            def _procfpath(p):
+                p = convpath(p)
+                if osp.isdir(p):
+                    p = osp.join(p, default_config_fname())
+                else:
+                    p = osp.splitext(p)[0]
+                return p
+
+            fpaths = config_files.split(osp.pathsep)
+            fpaths = [_procfpath(p) for p in fpaths]
+
+        return fpaths
+
+    @property
+    def load_config_files(self):
+        """Load default user-specified overrides config files.
+
+
+        Config-files in descending orders:
+
+        - user-overrides:
+          - :envvar:`<APPNAME>_CONFIG_FILE`, or if not set,
+          - :attr:`config_file`;
+
+        - default config-files:
+            - ~/.<appname>/<appname>_config.{json,py} and
+            - <this-file's-folder>/<appname>_config.{json,py}.
+        """
+        paths = [default_config_fpath(), _mydir] # List is in descending priority order.
+        self.load_config_file(default_config_fname(), path=paths)
+
+        user_conf_fpaths = self.build_config_fpaths
+        for fp in user_conf_fpaths[::-1]:
+            cdir, cfname = osp.split(fp)
+            self.load_config_file(cfname, path=cdir)
+
+    def write_default_config(self):
+        if self.generate_config:
+            if isinstance(self.generate_config, bool):
+                config_file = '%s.py' % default_config_fpath()
+            else:
+                config_file = convpath(self.generate_config)
+            config_text = self.generate_config_file()
+
+            op = 'Over-writting' if osp.isfile(config_file) else 'Writting'
+            log.info('%s config-file %r...', op, config_file)
+            ensure_dir_exists(os.path.dirname(config_file), 0o700)
+            with io.open(config_file, mode='wt') as fp:
+                fp.write(config_text)
+
+
+    @property
+    def _dispatching(self):
+        """True if dispatching to another command, or running ourselves."""
+        return bool(self.generate_config or self.subapp)
+
+    def __init__(self,
+                classes=None,
                 #subcommands={'mail': (MailApp, 'Anything')},
-                #raise_config_file_errors=True,
-                )
+                raise_config_file_errors=True,
+                **kwds):
+        if classes is None:
+            classes = [Mail]#, SMTP]
+        super().__init__(classes=classes, **kwds)
+
+    @catch_config_error
+    def initialize(self, argv=None):
+        ## Ensure all singleton-configurables will receive configs.
+        #
+        for cl in self.classes:
+            if type(self) != cl and issubclass(cl, SingletonConfigurable):
+                cl.instance(parent=self)
+                # Plain configurables must be configured manualy.
+
+        ## Parse cl-args before file-configs
+        #  to detect sub-commands and update any :attr:`config_file`,
+        #  load file-confis, and re-apply cmd-line configs as overrides.
+        #  (trick copied from `jupyter-core`)
+        self.parse_command_line(argv)
+        if self._dispatching:
+            return # Avoid contaminations with user if generating-config.
+        cl_config = copy.deepcopy(self.config)
+        self.load_config_files()
+        self.update_config(cl_config)
+
+    def start(self):
+        if self.generate_config:
+            self.write_default_config()
+            return  #raise NoStart()
+
+        print(self.subapp, self.classes)
+        print('AAA', self.extra_args)
+        print('CC', self.classes)
+        print('C', self.config)
+        print(self.document_config_options())
+
+        return super().start()
+
+
+def main(*argv, **app_init_kwds):
+    app_init_kwds['raise_config_file_errors'] = True
+    #argv = '--debug --log-level=0 --Mail.port=6 --Mail.user="ggg" abc def'.split()
+    #argv = '--Mail.user="ggg" abc def'.split()
+    #argv = '--DiceApp.raise_config_file_errors=True'.split()
+    argv = '--help-all'.split()
+    #argv = '--gen-config'.split()
+    DiceApp.launch_instance(argv, kwargs=app_init_kwds)
 
 if __name__ == '__main__':
+    init_logging(verbose=False)
     main()
-    from jupyter_core import application

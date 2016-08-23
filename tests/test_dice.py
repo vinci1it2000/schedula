@@ -9,8 +9,11 @@
 from getpass import getpass
 import io
 import git
+import ddt
+import tempfile
 import logging
 import sys
+from unittest import mock
 import os.path as osp
 import unittest
 
@@ -196,7 +199,37 @@ class TGPG(unittest.TestCase):
             ver = gpg.verify_detached(sig, msg)
             self.assertTrue(ver, ver)
 
+@ddt.ddt
 class TDice(unittest.TestCase):
+
+    # @ddt.data(
+    #     ('0', Exception())
+    #     ('5', Exception())
+    #     ('True', '__DEFAULT__'),
+    #     ('foo', '%s.py' % dice.convpath('foo')),
+    #     ('./foo', '%s.py' % dice.convpath('./foo')),
+    #     ('./foo', '%s.py' % dice.convpath('./foo')),
+    #     ('~/foo', '%s.py' % dice.convpath('~/foo')),
+    # )
+    # def test_gen_config(self, case):
+    #     inp, exp_path = case
+    #     with tempfile.TemporaryDirectory() as tmpdir:
+    #         confile = osp.join(tmpdir, 'confile')
+    #         with mock.patch('dice.default_config_fpath', lambda: confile):
+    #             argv = dice.main(['--generate-config', inp])
+    #             if isinstance(exp_path, Exception):
+    #                 with self.assertLogs(logger='DiceApp', level=50) as cm:
+    #                     dice.main(argv)
+    #                 self.assertIn("The 'generate_config' trait of a DiceApp instance must be a boolean", cm)
+    #                 return
+    #             if exp_path == '__DEFAULT__':
+    #                 exp_fpath = '%s.py' % confile
+    #             else:
+    #                 if not osp.isabs(exp_fpath):
+    #                     exp_fpath =  = dice.convpath(exp_path)
+    #
+    #             dice.main(argv)
+    #             self.assertTrue(osp.isfile(exp_fpath), (inp, exp_fpath))
 
     def test_read_config(self):
         cfg = dice.read_config('co2dice')
