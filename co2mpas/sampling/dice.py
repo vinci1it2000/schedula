@@ -11,10 +11,12 @@ import base64
 from collections import defaultdict, MutableMapping
 import locale
 import copy
+import git # from *gitpython* distribution
 import errno
 import configparser
 from email.mime.text import MIMEText
 import imaplib
+import json
 import inspect
 import subprocess
 import pprint
@@ -24,13 +26,13 @@ import io
 import logging
 import os
 import re
+import sys
 import tempfile
 import shutil
 import smtplib
 
 from boltons.setutils import IndexedSet as iset, IndexedSet
 import gnupg
-import hiyapyco
 import keyring
 import textwrap
 from traitlets.config import ConfigFileNotFound
@@ -53,10 +55,14 @@ __summary__   = __doc__.split('\n')[0]
 
 
 log = logging.getLogger(__name__) #TODO: Replace with App logger.
-_mydir = osp.dirname(__file__)
-CONF_VAR_NAME = '%s_CONFIG_FILE' % __title__.upper()
+# from traitlets import log as tlog
+# log = tlog.get_logger()
 
-_project = 'co2mpas'
+try:
+    _mydir = osp.dirname(__file__)
+except:
+    mydir = '.'
+CONF_VAR_NAME = '%s_CONFIG_FILE' % __title__.upper()
 
 _default_cfg = textwrap.dedent("""
         ---
@@ -105,136 +111,23 @@ def app_config_dir():
 
     return osp.abspath(osp.join(home_dir, '.co2dice'))
 
-## TODO: Move to other file
-def read_config(projname, override_fpaths=(), default_fpaths=()):
-    home_cfg = osp.normpath(osp.expanduser('~/.%s.cfg' % projname))
-    cwd_cfg = osp.abspath(('%s.cfg' % projname))
-    if not osp.isfile(home_cfg):
-        log.info('Creating home config-file %r...', home_cfg)
-        os.makedirs(osp.dirname(home_cfg), exist_ok=True)
-        with io.open(home_cfg, 'wt') as fp:
-            fp.write(_default_cfg)
-
-    cfg_fpaths = list(override_fpaths) + [home_cfg, cwd_cfg] + list(default_fpaths)
-    cfg = hiyapyco.load(cfg_fpaths,
-            method=hiyapyco.METHOD_MERGE,
-            interpolate=True, # (default: False)
-            castinterpolated=True, # (default: False)
-            usedefaultyamlloader=False, # (default: False)
-            loglevel=logging.INFO,
-            failonmissingfiles=False, #  (default: True)
-            #loglevelmissingfiles
-    )
-    return cfg
-
-def splitnest(dic, sep=r'\.', factory=None):
-    """
-    Splits keys by separator and *nests* them in a new mapping (from factory).
-
-    :param dic:     The mapping to split and nest its keys.
-    :param str sep: the split-separator regex
-    :param factory: The factory-function for the nested mappings.
-                    By default `None`, it uses the type of the input `dic`.
-                    Note that when `None`, it might fail if the constructor
-                    of `dic` type expects specific args, such as `defaultdict`.
-
-    >>> RES == {'a': {'b': {'c': {'d': 44}}, 'c': 2}, 'b': 3}
-    >>> dice.splitnest({'a.b': 1, 'a-c': 2, 'b': 3, 'a.b.c,d':44}, '[.,-]') == RES
-    True
-
-    >>> dice.splitnest({'abc': 1})
-    {'abc': 1}
-
-    >>> dice.splitnest({})
-    {}
-    """
-    def set_subkeys(d, subkeys, v):
-        """
-        >>> d = {}
-        >>> set_subkeys(d, ['a','b',], 3)
-        >>> d
-        {'a': {'b': 3}}
-
-        >>> set_subkeys(d, ['a','b',], 4)
-        >>> d
-        {'a': {'b': 4}}
-
-        >>> set_subkeys(d, ['a','b', 'c'], 5)
-        >>> d
-        {'a': {'b': {'c' : 5}}
-
-        >>> set_subkeys(d, ['a'], 0)
-        >>> d
-        {'a': 0}
-        """
-        k, subkeys = subkeys[0], subkeys[1:]
-        if subkeys:
-            try:
-                set_subkeys(d[k], subkeys, v)
-            except:
-                d[k] = factory()
-                set_subkeys(d[k], subkeys, v)
-        else:
-            d[k] = v
-
-    sep = re.compile(sep)
-    if factory:
-        ndic = factory()
-    else:
-        factory = type(dic)
-        ndic = factory()
-    for k, v in dic.items():
-        subkeys = [sk for sk in sep.split(k) if sk]
-        if subkeys:
-            set_subkeys(ndic, subkeys, v)
-    return ndic
-
-_NOT_SET = object()
-def dotget_storage_value(key, default=_NOT_SET):
-    if '.' in key:
-        path = key.split('.')
-        key = path[0]
-        path = key[1:]
-    else:
-        path = None
-
-    if not key in store:
-        value = default
-    else:
-        value = store[key]
-        if path:
-            if value is None:
-                value = default ## Missing path replaed by default
-            value = dice.splitnest(value).get(path, default)
-    if value is _NOT_SET:
-        raise KeyError('key')
-    return value
-
-
-def store_config(cfg, projname):
-    for opt in _opts_to_remove_before_cfg_write:
-        cfg.remove_option('dice', opt)
-    fpath = osp.expanduser('~/.%s.cfg' % projname)
-    with io.open(fpath, 'wt', encoding='utf-8') as fd:
-        cfg.write(fd)
-
 def store_secret(master_pswd, key, secret):
     """
-    Uses Microsoft's DPPAPI to store the actual passwords.
+    Uses Microsoft's DPPAPI to store sensitive infos (e.g. passwords).
 
     :param str master_pswd:     master-password given by the user
     """
     kr=keyring.get_keyring()
-    kr.set_password('%s.%s' %(_project, master_pswd), key, secret)
+    kr.set_password('%s.%s' %(__title__, master_pswd), key, secret)
 
 def retrieve_secret(master_pswd, key):
     """
-    Uses Microsoft's DPPAPI to store the actual passwords.
+    Uses Microsoft's DPPAPI to store sensitive infos (e.g. passwords).
 
     :param str master_pswd:     master-password given by the user
     """
     kr=keyring.get_keyring()
-    return kr.get_password('%s.%s' %(_project, master_pswd), key)
+    return kr.get_password('%s.%s' %(__title__, master_pswd), key)
 
 def py_where(program, path=None):
     ## From: http://stackoverflow.com/a/377028/548792
@@ -556,42 +449,8 @@ def ensure_dir_exists(path, mode=0o755):
                 raise
     elif not os.path.isdir(path):
         raise IOError("%r exists but is not a directory" % path)
+
 #####
-
-class Mail(SingletonConfigurable):
-    decription = """Generic mail configuration parameters, both for SMTP(sending emails) & IMAP(receiving emails)."""
-
-    host = trt.CUnicode('',
-            help="""The SMTP/IMAP server, e.g. 'smtp.gmail.com'."""
-            ).tag(config=True)
-
-    port = trt.CInt(587,
-            help="""The SMTP/IMAP server's port, usually 587/465 for SSL, 25 otherwise."""
-            ).tag(config=True)
-
-    ssl = trt.CBool(True,
-            help="""Whether to talk TLS/SSL to the SMTP/IMAP server; configure `port` separately!"""
-            ).tag(config=True)
-
-    user = trt.CUnicode(None, allow_none=True,
-            help="""The user to authenticate with the SMTP/IMAP server."""
-            ).tag(config=True)
-
-    kwds = trt.Dict(
-            help="""Any key-value pairs passed to the SMTP/IMAP mail-client libraries."""
-            ).tag(config=True)
-
-class SMTP(Mail):
-    login = trt.CaselessStrEnum('login simple'.split(), default_value=None, allow_none=True,
-            help="""Which SMTP mechanism to use to authenticate: [ login | simple | <None> ]. """
-             ).tag(config=True)
-
-
-class MailApp(Mail):
-    description = """FFFF"""
-    def start(self):
-        print('MAIL')
-
 
 def default_config_fname():
     """The config-file's basename (no path or extension) to search when not explicetely specified."""
@@ -606,20 +465,130 @@ def default_config_fpath():
     return osp.join(default_config_dir(), default_config_fname())
 
 
+
+class Dice(Configurable):
+    name = 'dice'
+    user_name = trt.Unicode('<Name Surname>',
+            help="""The Name & Surname of the default user invoking the app.  Must not be empty!"""
+            ).tag(config=True)
+    user_email = trt.Unicode('<email-address>',
+            help="""The email address of the default user invoking the app. Must not be empty!"""
+            ).tag(config=True)
+
+    @trt.validate('user_name', 'user_email')
+    def _valid_user(self, proposal):
+        value = proposal['value']
+        if not value:
+            raise trt.TraitError('%s.%s must not be empty!'
+                                 % (proposal['owner'].name, proposal['trait'].name))
+        return value
+
+
+class Project(Dice):
+    name='Project'
+    decription = """Configuration parameters for the git-based storage holding the TA projects."""
+    repo_path = trt.Unicode('repo',
+            help="""
+            The path to the Git repository to store TA files (signed and exchanged).
+            If relative, it joined against default config-dir: '{confdir}'
+            """.format(confdir=default_config_dir())).tag(config=True)
+    skip_reset_settings = trt.Bool(False,
+            help="""
+            Set to false, not to re-write default git's config-settings on app start up.
+            Git settings include user-name and email address.
+            """).tag(config=True)
+
+    def __init__(self, **kwds):
+        super().__init__(**kwds)
+        repo_path = self.repo_path
+        if not osp.isabs(repo_path):
+            repo_path = osp.join(default_config_dir(), repo_path)
+        repo_path = convpath(repo_path)
+        if osp.isdir(repo_path):
+            log.info('Opening git-repo %r...', repo_path)
+            self.repo = git.Repo(repo_path)
+        else:
+            log.info('Creating new git-repo %r...', repo_path)
+            ensure_dir_exists(repo_path)
+            self.repo = git.Repo.init(repo_path)
+
+        if not self.skip_reset_settings:
+            self._write_repo_configs()
+
+    def _write_repo_configs(self):
+        with self.repo.config_writer() as cw:
+            cw.set_value('core', 'filemode', False)
+            cw.set_value('core', 'ignorecase', False)
+            cw.set_value('user', 'email', self.user_email)
+            cw.set_value('user', 'name', self.user_name)
+
+class GPG(Configurable):
+    exec_path = trt.Unicode(None, allow_none=True,
+            help="""
+            The path to GnuPG executable; if None, the first one in PATH variable is used: '{gpgexec}'.
+            """.format(gpgexec=convpath(which('gpg')))).tag(config=True)
+
+    home = trt.Unicode(None, allow_none=True,
+            help="""
+            The default home directory containing the keys; if None given and nor env-var GNUPGHOME exist,
+            the executable decides (e.g. `~/.gpg` on POSIX, `%APPDATA%\Roaming\GnuPG` on Windows).
+            """).tag(config=True)
+
+class Mail(Configurable):
+    decription = """Generic mail configuration parameters, both for SMTP(sending emails) & IMAP(receiving emails)."""
+
+    host = trt.Unicode('',
+            help="""The SMTP/IMAP server, e.g. 'smtp.gmail.com'."""
+            ).tag(config=True)
+
+    port = trt.Int(587,
+            help="""The SMTP/IMAP server's port, usually 587/465 for SSL, 25 otherwise."""
+            ).tag(config=True)
+
+    ssl = trt.Bool(True,
+            help="""Whether to talk TLS/SSL to the SMTP/IMAP server; configure `port` separately!"""
+            ).tag(config=True)
+
+    user = trt.Unicode(None, allow_none=True,
+            help="""The user to authenticate with the SMTP/IMAP server."""
+            ).tag(config=True)
+
+class SMTP(Mail):
+    login = trt.CaselessStrEnum('login simple'.split(), default_value=None, allow_none=True,
+            help="""Which SMTP mechanism to use to authenticate: [ login | simple | <None> ]. """
+             ).tag(config=True)
+
+    kwds = trt.Dict(
+            help="""Any key-value pairs passed to the SMTP/IMAP mail-client libraries."""
+            ).tag(config=True)
+
+
+class IMAP(Mail):
+    pass
+
+
+class GenConfigCmd(Application):
+    name = 'gen-conf'
+    description = """
+            Store config defaults into path(s) specified or into '{confpath}' if none specified.
+            If the path specified resolves to a folder, the filename `{appname}_config.py` is appended;
+            Note: It OVERWRITES any pre-existing configuration file(s)!
+            """.format(confpath=convpath('~/.%s_config.py' % __title__), appname=__title__)
+
+    def start(self):
+        extra_args = self.extra_args or [None]
+        for fpath in extra_args:
+            self.parent.write_default_config(fpath)
+
+
+
 base_aliases = {
     'log-level' : 'Application.log_level',
-    'config' : 'DiceApp.config_files',
-    ## 'generate-config' : 'DiceApp.generate_config', # Too much help.
 }
 
 base_flags = {
     'debug': ({'Application' : {'log_level' : logging.DEBUG}},
             "Set log level to logging.DEBUG (maximize logging output)."),
-    'gen-config': ({'DiceApp': {'generate_config': True}},
-                        """
-                        Store config defaults into `{confdir}`.
-                        Note: It OVERRIDES any pre-existing configuration file!
-                        """.format(confdir=convpath('~/.%s_config.py' % __title__))),
 }
 class DiceApp(Application):
     name        = __title__
@@ -634,16 +603,9 @@ class DiceApp(Application):
             Any extensions are ignored, and '.json' or '.py' are searched (in this order).
             If the path specified resolves to a folder, the filename `{appname}_config.[json | py]` is appended;
             Any command-line values take precendance over the `{confvar}` envvar.
-            Use `--generate-config` to produce a skeleton of the config-file.
+            Use `gen-conf` sub-command to produce a skeleton of the config-file.
             """.format(appname=__title__, confvar=CONF_VAR_NAME, pathsep=osp.pathsep)
             ).tag(config=True)
-
-    generate_config = trt.Union((trt.Bool(False), trt.Unicode()),
-            help="""
-            Store config defaults into path specified or into `{confpath}` if True.
-            Note: It OVERWRITES any pre-existing configuration file!
-            """.format(confpath=convpath('~/.%s_config.py' % __title__))
-            ).tag(config=True) ## aliased
 
     aliases = base_aliases
     flags = base_flags
@@ -667,7 +629,6 @@ class DiceApp(Application):
 
         return fpaths
 
-    @property
     def load_config_files(self):
         """Load default user-specified overrides config files.
 
@@ -682,86 +643,99 @@ class DiceApp(Application):
             - ~/.<appname>/<appname>_config.{json,py} and
             - <this-file's-folder>/<appname>_config.{json,py}.
         """
-        paths = [default_config_fpath(), _mydir] # List is in descending priority order.
+        # Load "standard" configs,
+        #      path-list in descending priority order.
+        #
+        paths = list(IndexedSet([default_config_dir(), _mydir]))
         self.load_config_file(default_config_fname(), path=paths)
 
-        user_conf_fpaths = self.build_config_fpaths
+        # Load "user" configs.
+        #
+        user_conf_fpaths = self.user_config_fpaths
         for fp in user_conf_fpaths[::-1]:
             cdir, cfname = osp.split(fp)
             self.load_config_file(cfname, path=cdir)
 
-    def write_default_config(self):
-        if self.generate_config:
-            if isinstance(self.generate_config, bool):
-                config_file = '%s.py' % default_config_fpath()
-            else:
-                config_file = convpath(self.generate_config)
-            config_text = self.generate_config_file()
+    def write_default_config(self, config_file=None):
+        if not config_file:
+            config_file = '%s.py' % default_config_fpath()
+        else:
+            config_file = convpath(config_file)
+            if osp.isdir(config_file):
+                config_file = osp.join(config_file, default_config_fname())
+            config_file = pndl_utils.ensure_file_ext(config_file, '.py')
 
-            op = 'Over-writting' if osp.isfile(config_file) else 'Writting'
-            log.info('%s config-file %r...', op, config_file)
-            ensure_dir_exists(os.path.dirname(config_file), 0o700)
-            with io.open(config_file, mode='wt') as fp:
-                fp.write(config_text)
+        op = 'Over-writting' if osp.isfile(config_file) else 'Writting'
+        log.info('%s config-file %r...', op, config_file)
+        ensure_dir_exists(os.path.dirname(config_file), 0o700)
+        config_text = self.generate_config_file();
+        with io.open(config_file, mode='wt') as fp:
+            fp.write(config_text)
 
 
-    @property
-    def _dispatching(self):
+    @catch_config_error
+    def initialize_subcommand(self, subc, argv=None):
+        """Copied from parent to workaround: https://github.com/ipython/traitlets/issues/286"""
+        subapp, _ = self.subcommands.get(subc)
+        self.__class__.clear_instance()
+        self.subapp = subapp.instance(parent=self)
+        self.subapp.initialize(argv)
+
+    def _is_dispatching(self):
         """True if dispatching to another command, or running ourselves."""
-        return bool(self.generate_config or self.subapp)
+        return bool(self.subapp)
 
     def __init__(self,
-                classes=None,
-                #subcommands={'mail': (MailApp, 'Anything')},
                 raise_config_file_errors=True,
                 **kwds):
-        if classes is None:
-            classes = [Mail]#, SMTP]
-        super().__init__(classes=classes, **kwds)
+        ## Disable logging-format configs, because it is
+        #    miss-applied on loger's handlers, which might be null..
+        DiceApp.log_format.tag(config=False)
+        DiceApp.log_datefmt.tag(config=False)
+
+        classes = [Mail, SMTP, IMAP, Project, GPG]
+        subcommands = {'gen-conf': (GenConfigCmd, GenConfigCmd.description)}
+
+        super().__init__(classes=classes,
+                         subcommands=subcommands,
+                         raise_config_file_errors=raise_config_file_errors,
+                         **kwds)
 
     @catch_config_error
     def initialize(self, argv=None):
-        ## Ensure all singleton-configurables will receive configs.
-        #
-        for cl in self.classes:
-            if type(self) != cl and issubclass(cl, SingletonConfigurable):
-                cl.instance(parent=self)
-                # Plain configurables must be configured manualy.
-
-        ## Parse cl-args before file-configs
-        #  to detect sub-commands and update any :attr:`config_file`,
-        #  load file-confis, and re-apply cmd-line configs as overrides.
-        #  (trick copied from `jupyter-core`)
+        ## Invoked after __init__() by App.launch_instance() to read configs.
+        #  It parses cl-args before file-configs, to detect sub-commands
+        #  and update any :attr:`config_file`,
+        #  load file-configs, and then re-apply cmd-line configs as overrides
+        #  (trick copied from `jupyter-core`).
         self.parse_command_line(argv)
-        if self._dispatching:
+        if self._is_dispatching():
             return # Avoid contaminations with user if generating-config.
         cl_config = copy.deepcopy(self.config)
         self.load_config_files()
         self.update_config(cl_config)
 
     def start(self):
-        if self.generate_config:
-            self.write_default_config()
-            return  #raise NoStart()
-
-        print(self.subapp, self.classes)
-        print('AAA', self.extra_args)
-        print('CC', self.classes)
-        print('C', self.config)
-        print(self.document_config_options())
-
-        return super().start()
+        if self.subapp is not None:
+            return self.subapp.start()
+        else:
+            print('my-conf', self.config)
+            g = Project(parent=self)
+            print('g.username', g.user_name, g.user_email)
+            cr = g.repo.config_reader()
+            print(cr.get_value('user', 'name'))
 
 
-def main(*argv, **app_init_kwds):
+def main(*argv, log=log, **app_init_kwds):
     app_init_kwds['raise_config_file_errors'] = True
     #argv = '--debug --log-level=0 --Mail.port=6 --Mail.user="ggg" abc def'.split()
     #argv = '--Mail.user="ggg" abc def'.split()
     #argv = '--DiceApp.raise_config_file_errors=True'.split()
-    argv = '--help-all'.split()
-    #argv = '--gen-config'.split()
-    DiceApp.launch_instance(argv, kwargs=app_init_kwds)
+    #argv = '--help-all'.split()
+    #argv = 'gen-conf'.split()
+    argv = '--debug'.split()
+    DiceApp.launch_instance(argv or sys.argv, log=log, **app_init_kwds)
 
 if __name__ == '__main__':
-    init_logging(verbose=False)
+    init_logging(verbose=True)
     main()
