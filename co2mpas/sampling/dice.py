@@ -464,10 +464,22 @@ def default_config_fpath():
     """The full path of to user's config-file, without extension."""
     return osp.join(default_config_dir(), default_config_fname())
 
+_camel_to_snake_regex = re.compile('(?<=[a-z0-9])([A-Z]+)') #('(?!^)([A-Z]+)')
+def camel_to_snake_case(s):
+    """Trurns `'CO2DiceApp' --> 'co2_dice_app'. """
+    return _camel_to_snake_regex.sub(r'_\1', s).lower()
+
+def camel_to_cmd_name(s):
+    """Trurns `'CO2DiceApp' --> 'co2-dice-app'. """
+    return camel_to_snake_case(s).replace('_', '-')
+
+def build_subapps(subapp_classes):
+    return {camel_to_cmd_name(sa.__name__.split('.')[-1]): (sa, sa.description)
+            for sa in subapp_classes}
+
 
 
 class Dice(Configurable):
-    name = 'dice'
     user_name = trt.Unicode('<Name Surname>',
             help="""The Name & Surname of the default user invoking the app.  Must not be empty!"""
             ).tag(config=True)
@@ -484,9 +496,60 @@ class Dice(Configurable):
         return value
 
 
-class Project(Dice):
+base_aliases = {
+    'log-level' : 'Application.log_level',
+}
+
+base_flags = {
+    'debug': ({'Application' : {'log_level' : logging.DEBUG}},
+            "Set log level to logging.DEBUG (maximize logging output)."),
+}
+
+class App(Application):
+    @trt.default('name')
+    def _name(self):
+        return camel_to_snake_case(self.__class__.__name__)
+
+    @catch_config_error
+    def initialize_subcommand(self, subc, argv=None):
+        """Copied from parent to workaround: https://github.com/ipython/traitlets/issues/286"""
+        subapp, _ = self.subcommands.get(subc)
+        self.__class__.clear_instance()
+        self.subapp = subapp.instance(parent=self)
+        self.subapp.initialize(argv)
+
+    def _is_dispatching(self):
+        """True if dispatching to another command, or running ourselves."""
+        return bool(self.subapp)
+
+    def __init__(self,
+                **kwds):
+        ## Disable logging-format configs, because it is
+        #    miss-applied on loger's handlers, which might be null..
+        App.log_format.tag(config=False)
+        App.log_datefmt.tag(config=False)
+
+        super().__init__(log=logging.getLogger(self.name),
+                         aliases = base_aliases.copy(),
+                         flags = base_flags.copy(),
+                         **kwds)
+
+
+
+class Project(App, Dice):
+    class New(App, Dice):
+        description="Create a new project."
+        def start(self):
+            print('Creating...')
+
+    class Open(App, Dice):
+        description="Open an existing project."
+
+    class List(App, Dice):
+        description="List all projects."
+
     name='Project'
-    decription = """Configuration parameters for the git-based storage holding the TA projects."""
+    description = """Configuration parameters for the git-based storage holding the TA projects."""
     repo_path = trt.Unicode('repo',
             help="""
             The path to the Git repository to store TA files (signed and exchanged).
@@ -498,8 +561,14 @@ class Project(Dice):
             Git settings include user-name and email address.
             """).tag(config=True)
 
-    def __init__(self, **kwds):
-        super().__init__(**kwds)
+    def __init__(self,
+                **kwds):
+        subcommands = [Project.New, Project.Open, Project.List]
+        super().__init__(
+                classses=subcommands,
+                subcommands=build_subapps(subcommands),
+                **kwds)
+
         repo_path = self.repo_path
         if not osp.isabs(repo_path):
             repo_path = osp.join(default_config_dir(), repo_path)
@@ -535,7 +604,7 @@ class GPG(Configurable):
             """).tag(config=True)
 
 class Mail(Configurable):
-    decription = """Generic mail configuration parameters, both for SMTP(sending emails) & IMAP(receiving emails)."""
+    description = """Generic mail configuration parameters, both for SMTP(sending emails) & IMAP(receiving emails)."""
 
     host = trt.Unicode('',
             help="""The SMTP/IMAP server, e.g. 'smtp.gmail.com'."""
@@ -567,8 +636,7 @@ class IMAP(Mail):
     pass
 
 
-class GenConfigCmd(Application):
-    name = 'gen-conf'
+class GenConfig(App):
     description = """
             Store config defaults into path(s) specified or into '{confpath}' if none specified.
             If the path specified resolves to a folder, the filename `{appname}_config.py` is appended;
@@ -582,15 +650,7 @@ class GenConfigCmd(Application):
 
 
 
-base_aliases = {
-    'log-level' : 'Application.log_level',
-}
-
-base_flags = {
-    'debug': ({'Application' : {'log_level' : logging.DEBUG}},
-            "Set log level to logging.DEBUG (maximize logging output)."),
-}
-class DiceApp(Application):
+class DiceApp(App):
     name        = __title__
     description = __summary__
     version     = __version__
@@ -606,10 +666,6 @@ class DiceApp(Application):
             Use `gen-conf` sub-command to produce a skeleton of the config-file.
             """.format(appname=__title__, confvar=CONF_VAR_NAME, pathsep=osp.pathsep)
             ).tag(config=True)
-
-    aliases = base_aliases
-    flags = base_flags
-
 
     @property
     def user_config_fpaths(self):
@@ -673,32 +729,10 @@ class DiceApp(Application):
             fp.write(config_text)
 
 
-    @catch_config_error
-    def initialize_subcommand(self, subc, argv=None):
-        """Copied from parent to workaround: https://github.com/ipython/traitlets/issues/286"""
-        subapp, _ = self.subcommands.get(subc)
-        self.__class__.clear_instance()
-        self.subapp = subapp.instance(parent=self)
-        self.subapp.initialize(argv)
-
-    def _is_dispatching(self):
-        """True if dispatching to another command, or running ourselves."""
-        return bool(self.subapp)
-
     def __init__(self,
-                raise_config_file_errors=True,
                 **kwds):
-        ## Disable logging-format configs, because it is
-        #    miss-applied on loger's handlers, which might be null..
-        DiceApp.log_format.tag(config=False)
-        DiceApp.log_datefmt.tag(config=False)
-
-        classes = [Mail, SMTP, IMAP, Project, GPG]
-        subcommands = {'gen-conf': (GenConfigCmd, GenConfigCmd.description)}
-
-        super().__init__(classes=classes,
-                         subcommands=subcommands,
-                         raise_config_file_errors=raise_config_file_errors,
+        super().__init__(classes=[Mail, SMTP, IMAP, Project, GPG],
+                         subcommands=build_subapps([GenConfig, Project]),
                          **kwds)
 
     @catch_config_error
@@ -719,6 +753,8 @@ class DiceApp(Application):
         if self.subapp is not None:
             return self.subapp.start()
         else:
+            raise CmdException('Specify one sub-command from: %s'
+                               % ', '.join(self.subcommands.keys()))
             print('my-conf', self.config)
             g = Project(parent=self)
             print('g.username', g.user_name, g.user_email)
@@ -726,16 +762,25 @@ class DiceApp(Application):
             print(cr.get_value('user', 'name'))
 
 
-def main(*argv, log=log, **app_init_kwds):
+def main(*argv, **app_init_kwds):
     app_init_kwds['raise_config_file_errors'] = True
     #argv = '--debug --log-level=0 --Mail.port=6 --Mail.user="ggg" abc def'.split()
     #argv = '--Mail.user="ggg" abc def'.split()
     #argv = '--DiceApp.raise_config_file_errors=True'.split()
-    #argv = '--help-all'.split()
-    #argv = 'gen-conf'.split()
-    argv = '--debug'.split()
-    DiceApp.launch_instance(argv or sys.argv, log=log, **app_init_kwds)
+    argv = '--help-all'.split()
+    argv = 'gen-config'.split()
+    #argv = '--debug'.split()
+    #argv = 'project help'.split()
+    #argv = ''.split()
+    DiceApp.launch_instance(argv or sys.argv, **app_init_kwds)
 
 if __name__ == '__main__':
-    init_logging(verbose=True)
-    main()
+    try:
+        init_logging(verbose=True)
+        main()
+    except CmdException as ex:
+        log.info('%r', ex)
+        exit(ex.args[0])
+    except Exception as ex:
+        log.error('%r', ex)
+        raise
