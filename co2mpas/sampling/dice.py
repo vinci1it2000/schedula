@@ -8,7 +8,7 @@
 """co2dice: prepare/sign/send/receive/validate/archive Type Approval sampling emails of *co2mpas*."""
 
 import base64
-from collections import defaultdict, MutableMapping
+from collections import defaultdict, MutableMapping, OrderedDict
 import locale
 import copy
 import git # from *gitpython* distribution
@@ -492,16 +492,30 @@ class Spec(LoggingConfigurable):
 
 
 class GitSpec(Spec):
-    """A git-based repository storing the TA projects (containing signed-files and sampling-resonses)."""
+    """A git-based repository storing the TA projects (containing signed-files and sampling-resonses).
+
+    Git Command Debugging and Customization:
+
+    - :envvar:`GIT_PYTHON_TRACE`: If set to non-0,
+      all executed git commands will be shown as they happen
+      If set to full, the executed git command _and_ its entire output on stdout and stderr
+      will be shown as they happen
+
+      NOTE: All logging is outputted using a Python logger, so make sure your program is configured
+      to show INFO-level messages. If this is not the case, try adding the following to your program:
+
+    - :envvar:`GIT_PYTHON_GIT_EXECUTABLE`: If set, it should contain the full path to the git executable, e.g.
+      ``c:\Program Files (x86)\Git\bin\git.exe on windows`` or ``/usr/bin/git`` on linux.
+    """
 
     repo_path = trt.Unicode('repo',
             help="""
             The path to the Git repository to store TA files (signed and exchanged).
             If relative, it joined against default config-dir: '{confdir}'
             """.format(confdir=default_config_dir())).tag(config=True)
-    skip_reset_settings = trt.Bool(False,
+    reset_settings = trt.Bool(False,
             help="""
-            Set to false, not to re-write default git's config-settings on app start up.
+            Set to `True`, not to re-write default git's config-settings on app start up.
             Git settings include user-name and email address.
             """).tag(config=True)
 
@@ -513,13 +527,14 @@ class GitSpec(Spec):
         if osp.isdir(repo_path):
             log.info('Opening git-repo %r...', repo_path)
             self.repo = git.Repo(repo_path)
+            if self.reset_settings:
+                self._write_repo_configs()
         else:
             log.info('Creating new git-repo %r...', repo_path)
             ensure_dir_exists(repo_path)
             self.repo = git.Repo.init(repo_path)
-
-        if not self.skip_reset_settings:
             self._write_repo_configs()
+
 
     def _write_repo_configs(self):
         with self.repo.config_writer() as cw:
@@ -589,8 +604,8 @@ _conf_classes = [GitSpec, GpgSpec, MailSpec, SmtpSpec, ImapSpec]
 
 
 def build_sub_cmds(subapp_classes):
-    return {camel_to_cmd_name(sa.__name__): (sa, sa.__doc__)
-            for sa in subapp_classes}
+    return OrderedDict((camel_to_cmd_name(sa.__name__), (sa, sa.__doc__))
+            for sa in subapp_classes)
 
 _base_aliases = {
     'log-level' :       'Application.log_level',
@@ -688,6 +703,29 @@ class Cmd(Spec, Application):
         with io.open(config_file, mode='wt') as fp:
             fp.write(config_text)
 
+    def print_subcommands(self):
+        """Print the subcommand part of the help."""
+        from ipython_genutils.text import indent, wrap_paragraphs, dedent
+
+        if not self.subcommands:
+            return
+
+        lines = ["Subcommands"]
+        lines.append('-'*len(lines[0]))
+        lines.append('')
+        for p in wrap_paragraphs(self.subcommand_description.format(
+                    app=self.name)):
+            lines.append(p)
+            lines.append('')
+        for subc, (cls, hlp) in self.subcommands.items():
+            if self.default_subcmd == subc:
+                subc = '%s (default)' % subc
+            lines.append(subc)
+
+            if hlp:
+                lines.append(indent(dedent(hlp.strip())))
+        lines.append('')
+        print(os.linesep.join(lines))
 
     def __init__(self, **kwds):
         ## Disable logging-format configs, because it is
@@ -771,26 +809,30 @@ class GenConfig(Cmd):
 
 
 class Project(Cmd):
-    """The `co2dice` sub-cmd to administer the storage holding the TA projects."""
+    """
+    The `co2dice` sub-cmd to administer the storage holding the TA projects.
+    """
 
     examples = """
     To get the list with the status of all existing projects, try:
 
         co2dice project list
     """
+
+
     class New(Cmd):
-        """The `project` sub-cmd to create a new project."""
+        """Create a new project.  This action is eeded before anything else"""
         def start(self):
             print('Creating...')
             print(self.name, self.description)
 
     class Open(Cmd):
-        """The `project` sub-cmd to open an existing project."""
+        """Open an existing project."""
         def start(self):
             print('OPEN...')
 
     class List(Cmd):
-        """The `project` sub-cmd to list all projects."""
+        """List all projects."""
         #gs = GitSpec(parent=self)
         def start(self):
             print('LLIS"')
@@ -802,6 +844,10 @@ class Project(Cmd):
         super().__init__(
                 subcommands=build_sub_cmds(subcommands),
                 **kwds)
+        self.aliases.update({
+            'reset-git-settings' :    'GitSpec.reset_settings',
+        })
+
 
 
 class Main(Cmd):
@@ -827,11 +873,11 @@ def main(*argv, **app_init_kwds):
     #argv = 'gen-config help'.split()
     #argv = '--debug --log-level=0 --Mail.port=6 --Mail.user="ggg" abc def'.split()
     #argv = 'project --help-all'.split()
-    #argv = 'project help'.split()
+    argv = 'project help'.split()
     #argv = '--debug'.split()
     #argv = 'project new help'.split()
     #argv = 'project list'.split()
-    argv = 'project'.split()
+    #argv = 'project'.split()
     Main.launch_instance(argv or sys.argv, **app_init_kwds)
 
 if __name__ == '__main__':
