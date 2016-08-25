@@ -14,6 +14,7 @@ import copy
 import git # from *gitpython* distribution
 import errno
 import configparser
+import types
 from email.mime.text import MIMEText
 import imaplib
 import json
@@ -39,7 +40,7 @@ from traitlets.config import ConfigFileNotFound
 from toolz import dicttoolz
 from toolz import itertoolz as itz
 import traitlets as trt
-from traitlets.config import Application, Configurable, LoggingConfigurable, get_config, catch_config_error
+from traitlets.config import Application, Configurable, LoggingConfigurable, SingletonConfigurable, get_config, catch_config_error
 
 import functools as ft
 import pandas as pd
@@ -491,7 +492,7 @@ class Spec(LoggingConfigurable):
         return value
 
 
-class GitSpec(Spec):
+class GitSpec(SingletonConfigurable, Spec):
     """A git-based repository storing the TA projects (containing signed-files and sampling-resonses).
 
     Git Command Debugging and Customization:
@@ -544,7 +545,7 @@ class GitSpec(Spec):
             cw.set_value('user', 'name', self.user_name)
 
 
-class GpgSpec(Spec):
+class GpgSpec(SingletonConfigurable, Spec):
     """Provider of GnuPG high-level methods."""
 
     exec_path = trt.Unicode(None, allow_none=True,
@@ -705,6 +706,7 @@ class Cmd(Spec, Application):
 
     def print_subcommands(self):
         """Print the subcommand part of the help."""
+        ## Overridden, to print "default" sub-cmd.
         from ipython_genutils.text import indent, wrap_paragraphs, dedent
 
         if not self.subcommands:
@@ -728,11 +730,6 @@ class Cmd(Spec, Application):
         print(os.linesep.join(lines))
 
     def __init__(self, **kwds):
-        ## Disable logging-format configs, because it is
-        #    miss-applied on loger's handlers, which might be null.
-        Cmd.log_format.tag(config=False)
-        Cmd.log_datefmt.tag(config=False)
-
         subcmds_list = [cmd for cmd, _ in kwds.get('subcommands', {}).values()]
         super().__init__(
             classes=subcmds_list + _conf_classes,
@@ -771,14 +768,19 @@ class Cmd(Spec, Application):
 
     def start(self):
         if self.subapp is not None:
-            return self.subapp.start()
+            pass
         elif self.default_subcmd:
             self.initialize_subcommand(self.default_subcmd, self.argv)
-            return self.subapp.start()
         else:
             raise CmdException('Specify one of the sub-commands: %s'
                                % ', '.join(self.subcommands.keys()))
+        return self.subapp.start()
 
+
+## Disable logging-format configs, because it is
+#    miss-applied on loger's handlers, which might be null.
+Cmd.log_format.tag(config=False)
+Cmd.log_datefmt.tag(config=False)
 
 class GenConfig(Cmd):
     """
@@ -833,9 +835,10 @@ class Project(Cmd):
 
     class List(Cmd):
         """List all projects."""
-        #gs = GitSpec(parent=self)
         def start(self):
-            print('LLIS"')
+            repo = GitSpec.instance(parent=self).repo
+            for ref in repo.heads:
+                yield self.parent.examine_project(ref)
 
     default_subcmd = 'list'
 
@@ -845,10 +848,11 @@ class Project(Cmd):
                 subcommands=build_sub_cmds(subcommands),
                 **kwds)
         self.aliases.update({
-            'reset-git-settings' :    'GitSpec.reset_settings',
+            'reset-git-settings': 'GitSpec.reset_settings',
         })
 
-
+    def examine_project(self, branch_ref):
+        return '<branch_ref>: %s' % branch_ref
 
 class Main(Cmd):
     """The parent command."""
@@ -873,17 +877,27 @@ def main(*argv, **app_init_kwds):
     #argv = 'gen-config help'.split()
     #argv = '--debug --log-level=0 --Mail.port=6 --Mail.user="ggg" abc def'.split()
     #argv = 'project --help-all'.split()
-    argv = 'project help'.split()
+    #argv = 'project help'.split()
     #argv = '--debug'.split()
     #argv = 'project new help'.split()
     #argv = 'project list'.split()
-    #argv = 'project'.split()
-    Main.launch_instance(argv or sys.argv, **app_init_kwds)
+    argv = 'project'.split()
+
+    #Main.launch_instance(argv or None, **app_init_kwds) ## Does not return `start()`1
+    app = Main.instance(**app_init_kwds)
+    app.initialize(argv or None)
+    return app.start()
 
 if __name__ == '__main__':
     try:
         init_logging(verbose=True)
-        main()
+        res = main()
+        if res:
+            if isinstance(res, types.GeneratorType):
+                for i in res:
+                    print(i)
+            else:
+                print(res)
     except CmdException as ex:
         log.info('%r', ex)
         exit(ex.args[0])
