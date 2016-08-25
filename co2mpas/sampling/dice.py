@@ -54,7 +54,7 @@ __title__ = 'co2dice'
 __summary__   = __doc__.split('\n')[0]
 
 
-log = logging.getLogger(__name__) #TODO: Replace with App logger.
+log = logging.getLogger(__name__)
 # from traitlets import log as tlog
 # log = tlog.get_logger()
 
@@ -71,17 +71,6 @@ _default_cfg = textwrap.dedent("""
             default_recipients: [co2mpas@jrc.ec.europa.eu,EC-CO2-LDV-IMPLEMENTATION@ec.europa.eu]
             #other_recipients:
             #sender:
-        SMTP:
-            ssl: on
-            #host:
-            #user:
-            #login:
-            #kwds:
-        IMAPv4:
-            ssl: on
-            #user:
-            #host:
-            #kwds:
         gpg:
             trusted_user_ids: [CO2MPAS JRC-master <co2mpas@jrc.ec.europa.eu>]
         """)
@@ -459,14 +448,10 @@ def camel_to_cmd_name(s):
     """Trurns `'CO2DiceApp' --> 'co2-dice-app'. """
     return camel_to_snake_case(s).replace('_', '-')
 
-def build_sub_cmds(subapp_classes):
-    return {camel_to_cmd_name(sa.__name__): (sa, sa.description)
-            for sa in subapp_classes}
-
 #####
 
 ###################
-## Configurables ##
+##     Specs     ##
 ###################
 
 def default_config_fname():
@@ -483,7 +468,7 @@ def default_config_fpath():
 
 
 
-class Conf(LoggingConfigurable):
+class Spec(LoggingConfigurable):
     """Common properties for all configurables."""
 
     user_name = trt.Unicode('<Name Surname>',
@@ -506,7 +491,7 @@ class Conf(LoggingConfigurable):
         return value
 
 
-class GitConf(Conf):
+class GitSpec(Spec):
     """A git-based repository storing the TA projects (containing signed-files and sampling-resonses)."""
 
     repo_path = trt.Unicode('repo',
@@ -527,11 +512,11 @@ class GitConf(Conf):
         repo_path = convpath(repo_path)
         if osp.isdir(repo_path):
             log.info('Opening git-repo %r...', repo_path)
-            self.repo = git.GitConf(repo_path)
+            self.repo = git.Repo(repo_path)
         else:
             log.info('Creating new git-repo %r...', repo_path)
             ensure_dir_exists(repo_path)
-            self.repo = git.GitConf.init(repo_path)
+            self.repo = git.Repo.init(repo_path)
 
         if not self.skip_reset_settings:
             self._write_repo_configs()
@@ -544,7 +529,7 @@ class GitConf(Conf):
             cw.set_value('user', 'name', self.user_name)
 
 
-class GPG(Conf):
+class GpgSpec(Spec):
     """Provider of GnuPG high-level methods."""
 
     exec_path = trt.Unicode(None, allow_none=True,
@@ -559,7 +544,7 @@ class GPG(Conf):
             """).tag(config=True)
 
 
-class Mail(Conf):
+class MailSpec(Spec):
     """Common parameters and methods for both SMTP(sending emails) & IMAP(receiving emails)."""
 
     host = trt.Unicode('',
@@ -579,7 +564,7 @@ class Mail(Conf):
             ).tag(config=True)
 
 
-class SMTP(Mail):
+class SmtpSpec(MailSpec):
     """Parameters and methods for SMTP(sending emails)."""
 
     login = trt.CaselessStrEnum('login simple'.split(), default_value=None, allow_none=True,
@@ -591,19 +576,25 @@ class SMTP(Mail):
             ).tag(config=True)
 
 
-class IMAP(Mail):
+class ImapSpec(MailSpec):
     """Parameters and methods for IMAP(receiving emails)."""
 
 
 ###################
 ##    Commands   ##
 ###################
+
 #: INFO: Add HERE all CONFs.
-_conf_classes = [GitConf, GPG, Mail, SMTP, IMAP]
+_conf_classes = [GitSpec, GpgSpec, MailSpec, SmtpSpec, ImapSpec]
+
+
+def build_sub_cmds(subapp_classes):
+    return {camel_to_cmd_name(sa.__name__): (sa, sa.__doc__)
+            for sa in subapp_classes}
 
 _base_aliases = {
     'log-level' :       'Application.log_level',
-    'config-files' :    'App.config_files',
+    'config-files' :    'Cmd.config_files',
 }
 
 _base_flags = {
@@ -611,18 +602,19 @@ _base_flags = {
             "Set log level to logging.DEBUG (maximize logging output)."),
 }
 
-class App(Conf, Application):
+class Cmd(Spec, Application):
     """Common machinery for all (sub-)commands. """
     ## INFO: Do not use it directly; inherit it.
 
     @trt.default('name')
     def _name(self):
-        print('NAME', self.__class__.__name__)
         return camel_to_snake_case(self.__class__.__name__)
+
+    description = '' ## So that dynamic-default rule, below, runs on subclasses.
 
     @trt.default('description')
     def _description(self):
-        return self.__class__.__doc__
+        return self.__class__.__doc__ or '<no description>'
 
     config_files = trt.Unicode(None, allow_none=True,
             help="""
@@ -700,10 +692,9 @@ class App(Conf, Application):
     def __init__(self, **kwds):
         ## Disable logging-format configs, because it is
         #    miss-applied on loger's handlers, which might be null.
-        App.log_format.tag(config=False)
-        App.log_datefmt.tag(config=False)
+        Cmd.log_format.tag(config=False)
+        Cmd.log_datefmt.tag(config=False)
 
-        print(kwds.get('subcommands', {}))
         subcmds_list = [cmd for cmd, _ in kwds.get('subcommands', {}).values()]
         super().__init__(
             classes=subcmds_list + _conf_classes,
@@ -725,7 +716,7 @@ class App(Conf, Application):
 
     @catch_config_error
     def initialize(self, argv=None):
-        ## Invoked after __init__() by App.launch_instance() to read configs.
+        ## Invoked after __init__() by Cmd.launch_instance() to read configs.
         #  It parses cl-args before file-configs, to detect sub-commands
         #  and update any :attr:`config_file`,
         #  load file-configs, and then re-apply cmd-line configs as overrides
@@ -745,14 +736,17 @@ class App(Conf, Application):
                                % ', '.join(self.subcommands.keys()))
 
 
-class GenConfig(App):
-    ## Class-docstring CANNOT contain string-interpolations!
-    description = """
-    A `co2dice` sub-cmd to store config defaults into specified path(s), or into '{confpath}' if unspecified.
+class GenConfig(Cmd):
+    """
+    A `co2dice` sub-cmd that stores config defaults into specified path(s).
+    Any cmd-arguments are taken as the paths to generate into;
+    '{confpath}' assumed if no args given.
+    If a path resolves to a folder, the filename `{appname}_config.py` is appended.
 
-    If the path specified resolves to a folder, the filename `{appname}_config.py` is appended;
     Note: It OVERWRITES any pre-existing configuration file(s)!
-    """.format(confpath=convpath('~/.%s_config.py' % __title__), appname=__title__)
+    """
+    ## Class-docstring CANNOT contain string-interpolations!
+    #.format(confpath=convpath('~/.%s_config.py' % __title__), appname=__title__)
 
     examples="""
     Generate a config-file at your home folder:
@@ -770,19 +764,24 @@ class GenConfig(App):
             self.parent.write_default_config(fpath)
 
 
-class Project(App):
+class Project(Cmd):
     """The `co2dice` sub-cmd to administer the storage holding the TA projects."""
 
-    class New(App):
+    examples = """
+    To get the list with the status of all existing projects, try:
+
+        co2dice project list
+    """
+    class New(Cmd):
         """The `project` sub-cmd to create a new project."""
         def start(self):
             print('Creating...')
             print(self.name, self.description)
 
-    class Open(App):
+    class Open(Cmd):
         """The `project` sub-cmd to open an existing project."""
 
-    class List(App):
+    class List(Cmd):
         """The `project` sub-cmd to list all projects."""
 
     def __init__(self, **kwds):
@@ -792,7 +791,9 @@ class Project(App):
                 **kwds)
 
 
-class Main(App):
+class Main(Cmd):
+    """The parent command."""
+
     name        = __title__
     description = __summary__
     version     = __version__
@@ -806,12 +807,17 @@ class Main(App):
 def main(*argv, **app_init_kwds):
     app_init_kwds['raise_config_file_errors'] = True
     #argv = ''.split()
-    argv = 'gen-config'.split()
-    #argv = 'gen-config help'.split()
+    #argv = '--help'.split()
     #argv = '--help-all'.split()
+    #argv = 'gen-config'.split()
+    #argv = 'gen-config --help-all'.split()
+    #argv = 'gen-config help'.split()
     #argv = '--debug --log-level=0 --Mail.port=6 --Mail.user="ggg" abc def'.split()
+    #argv = 'project --help-all'.split()
+    #argv = 'project help'.split()
     #argv = '--debug'.split()
     #argv = 'project new help'.split()
+    argv = 'project list'.split()
     Main.launch_instance(argv or sys.argv, **app_init_kwds)
 
 if __name__ == '__main__':
