@@ -39,7 +39,7 @@ from traitlets.config import ConfigFileNotFound
 from toolz import dicttoolz
 from toolz import itertoolz as itz
 import traitlets as trt
-from traitlets.config import Application, Configurable, SingletonConfigurable, get_config, catch_config_error
+from traitlets.config import Application, Configurable, LoggingConfigurable, get_config, catch_config_error
 
 import functools as ft
 import pandas as pd
@@ -450,10 +450,27 @@ def ensure_dir_exists(path, mode=0o755):
     elif not os.path.isdir(path):
         raise IOError("%r exists but is not a directory" % path)
 
+_camel_to_snake_regex = re.compile('(?<=[a-z0-9])([A-Z]+)') #('(?!^)([A-Z]+)')
+def camel_to_snake_case(s):
+    """Trurns `'CO2DiceApp' --> 'co2_dice_app'. """
+    return _camel_to_snake_regex.sub(r'_\1', s).lower()
+
+def camel_to_cmd_name(s):
+    """Trurns `'CO2DiceApp' --> 'co2-dice-app'. """
+    return camel_to_snake_case(s).replace('_', '-')
+
+def build_sub_cmds(subapp_classes):
+    return {camel_to_cmd_name(sa.__name__): (sa, sa.description)
+            for sa in subapp_classes}
+
 #####
 
+###################
+## Configurables ##
+###################
+
 def default_config_fname():
-    """The config-file's basename (no path or extension) to search when not explicetely specified."""
+    """The config-file's basename (no path or extension) to search when not explicitly specified."""
     return '%s_config' % __title__
 
 def default_config_dir():
@@ -464,28 +481,21 @@ def default_config_fpath():
     """The full path of to user's config-file, without extension."""
     return osp.join(default_config_dir(), default_config_fname())
 
-_camel_to_snake_regex = re.compile('(?<=[a-z0-9])([A-Z]+)') #('(?!^)([A-Z]+)')
-def camel_to_snake_case(s):
-    """Trurns `'CO2DiceApp' --> 'co2_dice_app'. """
-    return _camel_to_snake_regex.sub(r'_\1', s).lower()
-
-def camel_to_cmd_name(s):
-    """Trurns `'CO2DiceApp' --> 'co2-dice-app'. """
-    return camel_to_snake_case(s).replace('_', '-')
-
-def build_subapps(subapp_classes):
-    return {camel_to_cmd_name(sa.__name__.split('.')[-1]): (sa, sa.description)
-            for sa in subapp_classes}
 
 
+class Conf(LoggingConfigurable):
+    """Common properties for all configurables."""
 
-class Dice(Configurable):
     user_name = trt.Unicode('<Name Surname>',
             help="""The Name & Surname of the default user invoking the app.  Must not be empty!"""
             ).tag(config=True)
     user_email = trt.Unicode('<email-address>',
             help="""The email address of the default user invoking the app. Must not be empty!"""
             ).tag(config=True)
+
+    @trt.default('log')
+    def _log(self):
+        return logging.getLogger(self.name)
 
     @trt.validate('user_name', 'user_email')
     def _valid_user(self, proposal):
@@ -496,60 +506,9 @@ class Dice(Configurable):
         return value
 
 
-base_aliases = {
-    'log-level' : 'Application.log_level',
-}
+class GitConf(Conf):
+    """A git-based repository storing the TA projects (containing signed-files and sampling-resonses)."""
 
-base_flags = {
-    'debug': ({'Application' : {'log_level' : logging.DEBUG}},
-            "Set log level to logging.DEBUG (maximize logging output)."),
-}
-
-class App(Application):
-    @trt.default('name')
-    def _name(self):
-        return camel_to_snake_case(self.__class__.__name__)
-
-    @catch_config_error
-    def initialize_subcommand(self, subc, argv=None):
-        """Copied from parent to workaround: https://github.com/ipython/traitlets/issues/286"""
-        subapp, _ = self.subcommands.get(subc)
-        self.__class__.clear_instance()
-        self.subapp = subapp.instance(parent=self)
-        self.subapp.initialize(argv)
-
-    def _is_dispatching(self):
-        """True if dispatching to another command, or running ourselves."""
-        return bool(self.subapp)
-
-    def __init__(self,
-                **kwds):
-        ## Disable logging-format configs, because it is
-        #    miss-applied on loger's handlers, which might be null..
-        App.log_format.tag(config=False)
-        App.log_datefmt.tag(config=False)
-
-        super().__init__(log=logging.getLogger(self.name),
-                         aliases = base_aliases.copy(),
-                         flags = base_flags.copy(),
-                         **kwds)
-
-
-
-class Project(App, Dice):
-    class New(App, Dice):
-        description="Create a new project."
-        def start(self):
-            print('Creating...')
-
-    class Open(App, Dice):
-        description="Open an existing project."
-
-    class List(App, Dice):
-        description="List all projects."
-
-    name='Project'
-    description = """Configuration parameters for the git-based storage holding the TA projects."""
     repo_path = trt.Unicode('repo',
             help="""
             The path to the Git repository to store TA files (signed and exchanged).
@@ -561,25 +520,18 @@ class Project(App, Dice):
             Git settings include user-name and email address.
             """).tag(config=True)
 
-    def __init__(self,
-                **kwds):
-        subcommands = [Project.New, Project.Open, Project.List]
-        super().__init__(
-                classses=subcommands,
-                subcommands=build_subapps(subcommands),
-                **kwds)
-
+    def __init__(self, **kwds):
         repo_path = self.repo_path
         if not osp.isabs(repo_path):
             repo_path = osp.join(default_config_dir(), repo_path)
         repo_path = convpath(repo_path)
         if osp.isdir(repo_path):
             log.info('Opening git-repo %r...', repo_path)
-            self.repo = git.Repo(repo_path)
+            self.repo = git.GitConf(repo_path)
         else:
             log.info('Creating new git-repo %r...', repo_path)
             ensure_dir_exists(repo_path)
-            self.repo = git.Repo.init(repo_path)
+            self.repo = git.GitConf.init(repo_path)
 
         if not self.skip_reset_settings:
             self._write_repo_configs()
@@ -591,7 +543,10 @@ class Project(App, Dice):
             cw.set_value('user', 'email', self.user_email)
             cw.set_value('user', 'name', self.user_name)
 
-class GPG(Configurable):
+
+class GPG(Conf):
+    """Provider of GnuPG high-level methods."""
+
     exec_path = trt.Unicode(None, allow_none=True,
             help="""
             The path to GnuPG executable; if None, the first one in PATH variable is used: '{gpgexec}'.
@@ -603,8 +558,9 @@ class GPG(Configurable):
             the executable decides (e.g. `~/.gpg` on POSIX, `%APPDATA%\Roaming\GnuPG` on Windows).
             """).tag(config=True)
 
-class Mail(Configurable):
-    description = """Generic mail configuration parameters, both for SMTP(sending emails) & IMAP(receiving emails)."""
+
+class Mail(Conf):
+    """Common parameters and methods for both SMTP(sending emails) & IMAP(receiving emails)."""
 
     host = trt.Unicode('',
             help="""The SMTP/IMAP server, e.g. 'smtp.gmail.com'."""
@@ -622,7 +578,10 @@ class Mail(Configurable):
             help="""The user to authenticate with the SMTP/IMAP server."""
             ).tag(config=True)
 
+
 class SMTP(Mail):
+    """Parameters and methods for SMTP(sending emails)."""
+
     login = trt.CaselessStrEnum('login simple'.split(), default_value=None, allow_none=True,
             help="""Which SMTP mechanism to use to authenticate: [ login | simple | <None> ]. """
              ).tag(config=True)
@@ -633,28 +592,37 @@ class SMTP(Mail):
 
 
 class IMAP(Mail):
-    pass
+    """Parameters and methods for IMAP(receiving emails)."""
 
 
-class GenConfig(App):
-    description = """
-            Store config defaults into path(s) specified or into '{confpath}' if none specified.
-            If the path specified resolves to a folder, the filename `{appname}_config.py` is appended;
-            Note: It OVERWRITES any pre-existing configuration file(s)!
-            """.format(confpath=convpath('~/.%s_config.py' % __title__), appname=__title__)
+###################
+##    Commands   ##
+###################
+#: INFO: Add HERE all CONFs.
+_conf_classes = [GitConf, GPG, Mail, SMTP, IMAP]
 
-    def start(self):
-        extra_args = self.extra_args or [None]
-        for fpath in extra_args:
-            self.parent.write_default_config(fpath)
+_base_aliases = {
+    'log-level' :       'Application.log_level',
+    'config-files' :    'App.config_files',
+}
 
+_base_flags = {
+    'debug': ({'Application' : {'log_level' : logging.DEBUG}},
+            "Set log level to logging.DEBUG (maximize logging output)."),
+}
 
+class App(Conf, Application):
+    """Common machinery for all (sub-)commands. """
+    ## INFO: Do not use it directly; inherit it.
 
-class DiceApp(App):
-    name        = __title__
-    description = __summary__
-    version     = __version__
-    #examples = """TODO: Write cmd-line examples."""
+    @trt.default('name')
+    def _name(self):
+        print('NAME', self.__class__.__name__)
+        return camel_to_snake_case(self.__class__.__name__)
+
+    @trt.default('description')
+    def _description(self):
+        return self.__class__.__doc__
 
     config_files = trt.Unicode(None, allow_none=True,
             help="""
@@ -663,7 +631,7 @@ class DiceApp(App):
             Any extensions are ignored, and '.json' or '.py' are searched (in this order).
             If the path specified resolves to a folder, the filename `{appname}_config.[json | py]` is appended;
             Any command-line values take precendance over the `{confvar}` envvar.
-            Use `gen-conf` sub-command to produce a skeleton of the config-file.
+            Use `gen-config` sub-command to produce a skeleton of the config-file.
             """.format(appname=__title__, confvar=CONF_VAR_NAME, pathsep=osp.pathsep)
             ).tag(config=True)
 
@@ -729,11 +697,31 @@ class DiceApp(App):
             fp.write(config_text)
 
 
-    def __init__(self,
-                **kwds):
-        super().__init__(classes=[Mail, SMTP, IMAP, Project, GPG],
-                         subcommands=build_subapps([GenConfig, Project]),
-                         **kwds)
+    def __init__(self, **kwds):
+        ## Disable logging-format configs, because it is
+        #    miss-applied on loger's handlers, which might be null.
+        App.log_format.tag(config=False)
+        App.log_datefmt.tag(config=False)
+
+        print(kwds.get('subcommands', {}))
+        subcmds_list = [cmd for cmd, _ in kwds.get('subcommands', {}).values()]
+        super().__init__(
+            classes=subcmds_list + _conf_classes,
+            aliases = _base_aliases.copy(),
+            flags = _base_flags.copy(),
+            **kwds)
+
+    @catch_config_error
+    def initialize_subcommand(self, subc, argv=None):
+        """Copied from parent to workaround: https://github.com/ipython/traitlets/issues/286"""
+        subapp, _ = self.subcommands.get(subc)
+        self.__class__.clear_instance()
+        self.subapp = subapp.instance(parent=self)
+        self.subapp.initialize(argv)
+
+    def _is_dispatching(self):
+        """True if dispatching to another command, or running ourselves."""
+        return bool(self.subapp)
 
     @catch_config_error
     def initialize(self, argv=None):
@@ -753,26 +741,78 @@ class DiceApp(App):
         if self.subapp is not None:
             return self.subapp.start()
         else:
-            raise CmdException('Specify one sub-command from: %s'
+            raise CmdException('Specify one of the sub-commands: %s'
                                % ', '.join(self.subcommands.keys()))
-            print('my-conf', self.config)
-            g = Project(parent=self)
-            print('g.username', g.user_name, g.user_email)
-            cr = g.repo.config_reader()
-            print(cr.get_value('user', 'name'))
+
+
+class GenConfig(App):
+    ## Class-docstring CANNOT contain string-interpolations!
+    description = """
+    A `co2dice` sub-cmd to store config defaults into specified path(s), or into '{confpath}' if unspecified.
+
+    If the path specified resolves to a folder, the filename `{appname}_config.py` is appended;
+    Note: It OVERWRITES any pre-existing configuration file(s)!
+    """.format(confpath=convpath('~/.%s_config.py' % __title__), appname=__title__)
+
+    examples="""
+    Generate a config-file at your home folder:
+
+        co2dice gen-config ~/my_conf
+
+    Re-use this custom config-file:
+
+        co2dice --config-files=~/my_conf  ...
+    """
+
+    def start(self):
+        extra_args = self.extra_args or [None]
+        for fpath in extra_args:
+            self.parent.write_default_config(fpath)
+
+
+class Project(App):
+    """The `co2dice` sub-cmd to administer the storage holding the TA projects."""
+
+    class New(App):
+        """The `project` sub-cmd to create a new project."""
+        def start(self):
+            print('Creating...')
+            print(self.name, self.description)
+
+    class Open(App):
+        """The `project` sub-cmd to open an existing project."""
+
+    class List(App):
+        """The `project` sub-cmd to list all projects."""
+
+    def __init__(self, **kwds):
+        subcommands = [Project.New, Project.Open, Project.List]
+        super().__init__(
+                subcommands=build_sub_cmds(subcommands),
+                **kwds)
+
+
+class Main(App):
+    name        = __title__
+    description = __summary__
+    version     = __version__
+    #examples = """TODO: Write cmd-line examples."""
+
+    def __init__(self, **kwds):
+        ## INFO: Add HERE all top-level sub-CMDs.
+        super().__init__(subcommands=build_sub_cmds([GenConfig, Project]))
 
 
 def main(*argv, **app_init_kwds):
     app_init_kwds['raise_config_file_errors'] = True
-    #argv = '--debug --log-level=0 --Mail.port=6 --Mail.user="ggg" abc def'.split()
-    #argv = '--Mail.user="ggg" abc def'.split()
-    #argv = '--DiceApp.raise_config_file_errors=True'.split()
-    argv = '--help-all'.split()
-    argv = 'gen-config'.split()
-    #argv = '--debug'.split()
-    #argv = 'project help'.split()
     #argv = ''.split()
-    DiceApp.launch_instance(argv or sys.argv, **app_init_kwds)
+    argv = 'gen-config'.split()
+    #argv = 'gen-config help'.split()
+    #argv = '--help-all'.split()
+    #argv = '--debug --log-level=0 --Mail.port=6 --Mail.user="ggg" abc def'.split()
+    #argv = '--debug'.split()
+    #argv = 'project new help'.split()
+    Main.launch_instance(argv or sys.argv, **app_init_kwds)
 
 if __name__ == '__main__':
     try:
