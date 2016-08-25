@@ -728,8 +728,14 @@ class Cmd(Spec, Application):
         self.load_config_files()
         self.update_config(cl_config)
 
+    default_subcmd = trt.Unicode(None, allow_none=True,
+                                 help="The name of the sub-command to use if unspecified.")
+
     def start(self):
         if self.subapp is not None:
+            return self.subapp.start()
+        elif self.default_subcmd:
+            self.initialize_subcommand(self.default_subcmd, self.argv)
             return self.subapp.start()
         else:
             raise CmdException('Specify one of the sub-commands: %s'
@@ -780,9 +786,16 @@ class Project(Cmd):
 
     class Open(Cmd):
         """The `project` sub-cmd to open an existing project."""
+        def start(self):
+            print('OPEN...')
 
     class List(Cmd):
         """The `project` sub-cmd to list all projects."""
+        #gs = GitSpec(parent=self)
+        def start(self):
+            print('LLIS"')
+
+    default_subcmd = 'list'
 
     def __init__(self, **kwds):
         subcommands = [Project.New, Project.Open, Project.List]
@@ -817,7 +830,8 @@ def main(*argv, **app_init_kwds):
     #argv = 'project help'.split()
     #argv = '--debug'.split()
     #argv = 'project new help'.split()
-    argv = 'project list'.split()
+    #argv = 'project list'.split()
+    argv = 'project'.split()
     Main.launch_instance(argv or sys.argv, **app_init_kwds)
 
 if __name__ == '__main__':
