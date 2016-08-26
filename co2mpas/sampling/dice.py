@@ -604,9 +604,17 @@ class ImapSpec(MailSpec):
 _conf_classes = [GitSpec, GpgSpec, MailSpec, SmtpSpec, ImapSpec]
 
 
+def app_help(app_class):
+    desc = app_class.class_traits().get('description')
+    return (isinstance(desc, str) and desc
+        or (isinstance(app_class.description, str) and app_class.description)
+        or app_class.__doc__)
+
 def build_sub_cmds(subapp_classes):
-    return OrderedDict((camel_to_cmd_name(sa.__name__), (sa, sa.__doc__))
-            for sa in subapp_classes)
+    """Builds an ordered-dictionary of ``cmd-name --> (cmd-class, help-msg)``. """
+
+    return OrderedDict((camel_to_cmd_name(sa.__name__), (sa, app_help(sa)))
+                       for sa in subapp_classes)
 
 _base_aliases = {
     'log-level' :       'Application.log_level',
@@ -630,7 +638,7 @@ class Cmd(Spec, Application):
 
     @trt.default('description')
     def _description(self):
-        return self.__class__.__doc__ or '<no description>'
+        return __doc__ or '<no description>'
 
     config_files = trt.Unicode(None, allow_none=True,
             help="""
@@ -690,12 +698,12 @@ class Cmd(Spec, Application):
 
     def write_default_config(self, config_file=None):
         if not config_file:
-            config_file = '%s.py' % default_config_fpath()
+            config_file = default_config_fpath()
         else:
             config_file = convpath(config_file)
             if osp.isdir(config_file):
                 config_file = osp.join(config_file, default_config_fname())
-            config_file = pndl_utils.ensure_file_ext(config_file, '.py')
+        config_file = pndl_utils.ensure_file_ext(config_file, '.py')
 
         op = 'Over-writting' if osp.isfile(config_file) else 'Writting'
         log.info('%s config-file %r...', op, config_file)
@@ -729,17 +737,11 @@ class Cmd(Spec, Application):
         lines.append('')
         print(os.linesep.join(lines))
 
-    def __init__(self, **kwds):
-        subcmds_list = [cmd for cmd, _ in kwds.get('subcommands', {}).values()]
-        super().__init__(
-            classes=subcmds_list + _conf_classes,
-            aliases = _base_aliases.copy(),
-            flags = _base_flags.copy(),
-            **kwds)
-
     @catch_config_error
     def initialize_subcommand(self, subc, argv=None):
-        """Copied from parent to workaround: https://github.com/ipython/traitlets/issues/286"""
+        """Initialize a subcommand named `subc` with `argv`, or `sys.argv` if `None` (default)."""
+        ## INFO: Overriden to set parent on subcmds and inherit config,
+        #  see https://github.com/ipython/traitlets/issues/286
         subapp, _ = self.subcommands.get(subc)
         self.__class__.clear_instance()
         self.subapp = subapp.instance(parent=self)
@@ -748,6 +750,14 @@ class Cmd(Spec, Application):
     def _is_dispatching(self):
         """True if dispatching to another command, or running ourselves."""
         return bool(self.subapp)
+
+    def __init__(self, **kwds):
+        subcmds_list = [cmd for cmd, _ in kwds.get('subcommands', {}).values()]
+        super().__init__(
+            classes=subcmds_list + _conf_classes,
+            aliases = _base_aliases.copy(),
+            flags = _base_flags.copy(),
+            **kwds)
 
     @catch_config_error
     def initialize(self, argv=None):
@@ -787,12 +797,14 @@ class GenConfig(Cmd):
     A `co2dice` sub-cmd that stores config defaults into specified path(s).
     Any cmd-arguments are taken as the paths to generate into;
     '{confpath}' assumed if no args given.
-    If a path resolves to a folder, the filename `{appname}_config.py` is appended.
+    If a path resolves to a folder, the filename '{appname}_config.py' is appended.
 
     Note: It OVERWRITES any pre-existing configuration file(s)!
     """
+
     ## Class-docstring CANNOT contain string-interpolations!
-    #.format(confpath=convpath('~/.%s_config.py' % __title__), appname=__title__)
+    description = __doc__.format(confpath=convpath('~/.%s_config.py' % __title__),
+                                 appname=__title__)
 
     examples="""
     Generate a config-file at your home folder:
@@ -825,7 +837,7 @@ class Project(Cmd):
     class New(Cmd):
         """Create a new project.  This action is eeded before anything else"""
         def start(self):
-            print('Creating...')
+            self.log.info('Creating...')
             print(self.name, self.description)
 
     class Open(Cmd):
@@ -868,9 +880,13 @@ class Main(Cmd):
 
 
 def main(*argv, **app_init_kwds):
+    """
+    :return:
+            May yield, so check if a type:`GeneratorType`.
+    """
     app_init_kwds['raise_config_file_errors'] = True
     #argv = ''.split()
-    #argv = '--help'.split()
+    argv = '--help'.split()
     #argv = '--help-all'.split()
     #argv = 'gen-config'.split()
     #argv = 'gen-config --help-all'.split()
@@ -881,7 +897,7 @@ def main(*argv, **app_init_kwds):
     #argv = '--debug'.split()
     #argv = 'project new help'.split()
     #argv = 'project list'.split()
-    argv = 'project'.split()
+    #argv = 'project'.split()
 
     #Main.launch_instance(argv or None, **app_init_kwds) ## Does not return `start()`1
     app = Main.instance(**app_init_kwds)
@@ -902,5 +918,5 @@ if __name__ == '__main__':
         log.info('%r', ex)
         exit(ex.args[0])
     except Exception as ex:
-        log.error('%r', ex)
+        log.error('Launch failed due to: %s', ex, exc_info=1)
         raise
