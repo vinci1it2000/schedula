@@ -10,6 +10,7 @@
 from collections import defaultdict, MutableMapping, OrderedDict
 import git # from *gitpython* distribution
 import types
+from typing import Sequence, Text
 from email.mime.text import MIMEText
 import imaplib
 import subprocess
@@ -22,6 +23,7 @@ import os
 import re
 import sys
 import tempfile
+import json
 import shutil
 import smtplib
 
@@ -43,7 +45,8 @@ from co2mpas.__main__ import CmdException, init_logging
 from co2mpas import __uri__  # @UnusedImport
 from co2mpas._version import (__version__, __updated__, __file_version__,   # @UnusedImport
                               __input_file_version__, __copyright__, __license__)  # @UnusedImport
-from co2mpas.sampling.baseapp import APPNAME, Cmd, Spec, GenConfig, build_sub_cmds
+from co2mpas.sampling.baseapp import (APPNAME, Cmd, Spec, GenConfig, build_sub_cmds,
+    chain_cmds) # @UnusedImport
 from co2mpas.sampling.baseapp import convpath, default_config_dir,ensure_dir_exists ##TODO: move to pandalone
 
 __title__   = APPNAME
@@ -237,12 +240,13 @@ def _log_into_server(login_cb, login_cmd, prompt):
     Connects a credential-source(`login_db`) to a consumer(`login_cmd`).
 
     :param login_cb:
-            An object with 2 methods::
+        An object with 2 methods::
 
-                ask_user_pswd(prompt) --> (user, pswd)  ## or `None` to abort.
-                report_failure(obj)
+            ask_user_pswd(prompt) --> (user, pswd)  ## or `None` to abort.
+            report_failure(obj)
+
     :param login_cmd:
-            A function like::
+        A function like::
 
                 login_cmd(user, pswd) --> xyz  ## `xyz` might be the server.
     """
@@ -323,9 +327,9 @@ def split_detached_signed(tag: bytes) -> (bytes, bytes):
     split these two; do nothing if there is no signature following.
 
     :param tag:
-            As fetched from ``git cat-file tag v1.2.1``.
+        As fetched from ``git cat-file tag v1.2.1``.
     :return:
-            A 2-tuple(sig, msg), None if no sig found.
+        A 2-tuple(sig, msg), None if no sig found.
     """
     nl = b'\n'
     lines = tag.split(nl)
@@ -413,20 +417,22 @@ class GitSpec(SingletonConfigurable, Spec):
             """.format(confdir=default_config_dir())).tag(config=True)
     reset_settings = trt.Bool(False,
             help="""
-            Set to `True` to re-write default git's config-settings on app start up.
+            When enabled, re-writes default git's config-settings on app start up.
             Git settings include user-name and email address, so this option might be usefull
             when the regular owner running the app has changed.
             """).tag(config=True)
 
     def __init__(self, **kwds):
+        super().__init__(**kwds)
         repo_path = self.repo_path
         if not osp.isabs(repo_path):
             repo_path = osp.join(default_config_dir(), repo_path)
         repo_path = convpath(repo_path)
         if osp.isdir(repo_path):
-            log.info('Opening git-repo %r...', repo_path)
+            log.debug('Opening git-repo %r...', repo_path)
             self.repo = git.Repo(repo_path)
             if self.reset_settings:
+                log.info('Resetting to default settings of git-repo %r...', self.repo.git_dir)
                 self._write_repo_configs()
         else:
             log.info('Creating new git-repo %r...', repo_path)
@@ -441,6 +447,10 @@ class GitSpec(SingletonConfigurable, Spec):
             cw.set_value('core', 'ignorecase', False)
             cw.set_value('user', 'email', self.user_email)
             cw.set_value('user', 'name', self.user_name)
+            cw.set_value('alias', 'lg',
+                     r"log --graph --abbrev-commit --decorate --date=relative --format=format:'%C(bold blue)%h%C(reset) "
+                     r"- %C(bold green)(%ar)%C(reset) %C(white)%s%C(reset) %C(dim white)- "
+                     r"%an%C(reset)%C(bold yellow)%d%C(reset)' --all")
 
 
 class GpgSpec(SingletonConfigurable, Spec):
@@ -504,7 +514,10 @@ _conf_classes = [GitSpec, GpgSpec, MailSpec, SmtpSpec, ImapSpec]
 
 class Project(Cmd):
     """
-    The `co2dice` sub-cmd to administer the storage holding the TA projects.
+    The `co2dice` sub-cmd to administer the TA of *projects*.
+
+    A *project* in necessary to store all CO2MPAS files for a single vehicle,
+    and to track its sampling procedure.
     """
 
     examples = """
@@ -514,38 +527,121 @@ class Project(Cmd):
     """
 
 
-    class New(Cmd):
-        """Create a new project.  This action is eeded before anything else"""
+    class Create(Cmd):
+        """Create a new project."""
         def start(self):
-            self.log.info('Creating...')
-            print(self.name, self.description)
+            nargs = len(self.extra_args)
+            if nargs != 1:
+                raise CmdException('Specify exactly a SINGLE project-name to create, not: %s' % self.extra_args)
+            return self.parent.create(self.extra_args[0])
 
     class Open(Cmd):
-        """Open an existing project."""
+        """Make an existing project the *current*.  Returns the *current* if no args specified."""
         def start(self):
-            print('OPEN...')
+            nargs = len(self.extra_args)
+            if nargs == 0:
+                res = self.parent._repo.active_branch
+            elif nargs == 1:
+                res = self.parent.open(self.extra_args[0])
+            else:
+                raise CmdException('Specify exactly a SINGLE project-name to open, not: %s' % self.extra_args)
+            return res
 
     class List(Cmd):
-        """List all projects."""
+        """List information about specified projects (all projects by default)."""
         def start(self):
-            repo = GitSpec.instance(parent=self).repo
-            for ref in repo.heads:
-                yield self.parent.examine_project(ref)
+            return self.parent.list(*self.extra_args)
 
-    default_subcmd = 'list'
+    #default_subcmd = 'list'
 
     def __init__(self, **kwds):
-        subcommands = [Project.New, Project.Open, Project.List]
+        subcommands = [Project.Create, Project.Open, Project.List]
         super().__init__(
-                subcommands=build_sub_cmds(subcommands),
+                subcommands=build_sub_cmds(*subcommands),
                 **kwds)
         self.classes.extend(_conf_classes)
-        self.aliases.update({
-            'reset-git-settings': 'GitSpec.reset_settings',
-        })
+        self.flags['reset-git-settings'] = ({'GitSpec': {'reset_settings': True}}, GitSpec.reset_settings.help)
 
-    def examine_project(self, branch_ref):
-        return '<branch_ref>: %s' % branch_ref
+    @property
+    def _repo(self):
+        return GitSpec.instance(parent=self).repo
+
+    def _make_commit_msg(self, projname, status, msg):
+        msg = '\n'.join(textwrap.wrap(msg, width=50))
+        return json.dumps(OrderedDict([
+            ('projname', projname),
+            ('status', status),
+            ('msg', msg),
+        ]))
+
+    def _commit(self, projname, msg, status=None, *modified_fpaths):
+        repo = self._repo
+        index = repo.index
+        if status:
+            status_fpath = osp.join(repo.working_tree_dir, 'STATUS.txt')
+            with io.open(status_fpath, 'wt') as fp:
+                fp.write(status)
+            modified_fpaths += (status_fpath, )
+        index.add(modified_fpaths)
+        index.commit(self._make_commit_msg(projname, status, msg))
+
+    def exists(self, projname: str, validate=False):
+        """
+        :param projname: some branch ref
+        """
+        repo = self._repo
+        found = projname in repo.refs
+        if validate:
+            proj = repo.refs[projname]
+            try:
+                json.loads(proj.commit.message)
+            except Exception as ex:
+                found = False
+                log.debug('Found the non-project reference %r in project-db'
+                       ', due to: %s', projname, ex, exc_info=1)
+        return found
+
+    def create(self, projname: str):
+        """
+        :param projname: some branch ref
+        """
+        self.log.info('Creating project %r...', projname)
+        repo = self._repo
+        if self.exists(projname):
+            raise CmdException('Project %r already exists!' % projname)
+        repo.git.checkout(projname, orphan=True)
+        status = 'empty'
+        self._commit(projname, status, 'Project created.')
+
+    def open(self, projname: str):
+        """
+        :param projname: some branch ref
+        """
+        self.log.info('Opening project %r...', projname)
+        if self.exists(projname):
+            raise CmdException('Project %r already exists!' % projname)
+        self._repo.create_head(projname)
+
+    def list(self, *projnames: str):
+        """
+        :param projnames: some branch ref, or none for all
+        :retun: yield any match projects, or all if `projnames` were empty.
+        """
+        self.log.info('Listing %s projects...', projnames or 'all')
+        refs = self._repo.heads
+        if projnames and refs:
+            refs =  iset(projnames) & iset(refs)
+        for ref in refs:
+            if self.exists(ref):
+                yield self.examine(ref)
+
+    def examine(self, projname: str):
+        """
+        :param projname: some branch ref
+        """
+        return projname
+        #return '<branch_ref>: %s' % proj_name # TODO: Impl proj-examine.
+
 
 class Main(Cmd):
     """The parent command."""
@@ -556,17 +652,60 @@ class Main(Cmd):
     #examples = """TODO: Write cmd-line examples."""
 
     def __init__(self, **kwds):
+        super().__init__(**kwds)
         ## INFO: Add HERE all top-level sub-CMDs.
-        super().__init__(subcommands=build_sub_cmds([GenConfig, Project]))
+        self.subcommands=build_sub_cmds(GenConfig, Project)
         self.classes.extend(_conf_classes)
 
+def make_app(**app_init_kwds):
+    return Main.instance(**app_init_kwds)
 
-def main(*argv, **app_init_kwds):
+def run_cmd(cmd: Cmd, argv: Sequence[Text]=None):
     """
+    Executes a (possibly nested) command, and print its (possibly lazy) results to `stdout`.
+
+    Remember to have logging setup properly before invoking this.
+
+    :param cmd:
+        Use :func:`make_app()`, or :func:`chain_cmds()` if you want to prepare
+        a nested cmd instead.
+    :param argv:
+        If `None`, use :data:`sys.argv`; use ``[]`` to explicitely use no-args.
     :return:
-            May yield, so check if a type:`GeneratorType`.
+        May yield, so check if a type:`GeneratorType`.
     """
-    app_init_kwds['raise_config_file_errors'] = True
+    cmd.initialize(argv)
+    res = cmd.start()
+    if res:
+        if isinstance(res, types.GeneratorType):
+            for i in res:
+                print(i)
+        else:
+            print(res)
+
+def main(*argv, verbose=None, **app_init_kwds):
+    ## Invoked from cmd-line, so suppress debug-logging by default.
+    init_logging(verbose=verbose)
+    try:
+        ##Main.launch_instance(argv or None, **app_init_kwds) ## NO No, does not return `start()`!
+        app = make_app(**app_init_kwds)
+        run_cmd(app, argv or None)
+    except (CmdException, trt.TraitError) as ex:  #TODO: alias CmdException --> TraitError??
+        ## Suppress stack-trace for "expected" errors.
+        log.debug('App exited due to: %s', ex, exc_info=1)
+        exit(ex.args[0])
+    except Exception as ex:
+        ## Shell will see any exception x2, but we have to log it anyways,
+        #  in case log has been redirected to a file.
+        #
+        log.error('Launch failed due to: %s', ex, exc_info=1)
+        raise ex
+
+if __name__ == '__main__':
+    # Invoked from IDEs, so enable debug-logging.
+    init_logging(verbose=True)
+
+    ## DEBUG AID ARGS, remember to delete them once developed.
     #argv = ''.split()
     #argv = '--help'.split()
     #argv = '--help-all'.split()
@@ -575,30 +714,19 @@ def main(*argv, **app_init_kwds):
     #argv = 'gen-config help'.split()
     #argv = '--debug --log-level=0 --Mail.port=6 --Mail.user="ggg" abc def'.split()
     #argv = 'project --help-all'.split()
-    #argv = 'project help'.split()
     #argv = '--debug'.split()
-    #argv = 'project new help'.split()
+    #argv = 'project list --help-all'.split()
+    argv = 'project --GitSpec.reset_settings=True'.split()
+    argv = 'project list --reset-git-settings'.split()
+    argv = 'project --reset-git-settings'.split()
     #argv = 'project list'.split()
-    argv = 'project'.split()
+    #argv = 'project list  --reset-git-settings'.split()
+    #argv = '--debug'.split()
+    #argv = 'project list --help'.split()
+    #argv = 'project list'.split()
+    #argv = 'project'.split()
+    #argv = 'project create one'.split()
+    main(*argv)
 
-    #Main.launch_instance(argv or None, **app_init_kwds) ## Does not return `start()`1
-    app = Main.instance(**app_init_kwds)
-    app.initialize(argv or None)
-    return app.start()
-
-if __name__ == '__main__':
-    try:
-        init_logging(verbose=True)
-        res = main()
-        if res:
-            if isinstance(res, types.GeneratorType):
-                for i in res:
-                    print(i)
-            else:
-                print(res)
-    except CmdException as ex:
-        log.info('%r', ex)
-        exit(ex.args[0])
-    except Exception as ex:
-        log.error('Launch failed due to: %s', ex, exc_info=1)
-        raise
+    #run_cmd(chain_cmds([Main, Project, Project.Create], argv=['project_foo']))
+    #run_cmd(chain_cmds([Main, Project, Project.List], argv=['project_foo']))

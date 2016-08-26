@@ -6,13 +6,18 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 #
 """
-An *ipython traitlets* framework for apps with hierarchical commands(class:`App`) utilizing configurables (class:`Spec`).
+An *ipython traitlets* framework for apps with hierarchical chain of commands(class:`App`) utilizing configurables (class:`Spec`).
 
-To run the app use this code copied from :method:
-        May yield, so check if a type:`GeneratorType`.
-app = Main.instance(**app_init_kwds)
-app.initialize(argv or None)
-return app.start()
+To run a base command, use this code::
+
+    app = Main.instance(**app_init_kwds)
+    app.initialize(argv or None) ## Uses `sys.argv` if `argv` is `None`.
+    return app.start()
+
+To run nested commands, use :func:`baseapp.chain_cmds()` like that::
+
+    app = chain_cmds(Main, Project, Project.List)
+    return app.start()
 """
 
 from collections import OrderedDict
@@ -22,6 +27,7 @@ import io
 import os
 from pandalone import utils as pndl_utils
 import re
+from typing import Sequence, Text
 
 from boltons.setutils import IndexedSet as iset
 from ipython_genutils.text import indent, wrap_paragraphs, dedent
@@ -155,7 +161,7 @@ def app_help(app_class):
         or (isinstance(app_class.description, str) and app_class.description)
         or app_class.__doc__)
 
-def build_sub_cmds(subapp_classes):
+def build_sub_cmds(*subapp_classes):
     """Builds an ordered-dictionary of ``cmd-name --> (cmd-class, help-msg)``. """
 
     return OrderedDict((camel_to_cmd_name(sa.__name__), (sa, app_help(sa)))
@@ -259,14 +265,17 @@ class Cmd(Spec, Application):
         for p in wrap_paragraphs(self.subcommand_description.format(
                     app=self.name)):
             lines.append(p)
-            lines.append('')
+        lines.append('')
         for subc, (cls, hlp) in self.subcommands.items():
             if self.default_subcmd == subc:
-                subc = '%s (default)' % subc
+                subc = '%s[*]' % subc
             lines.append(subc)
 
             if hlp:
                 lines.append(indent(dedent(hlp.strip())))
+        if self.default_subcmd:
+            lines.append('')
+            lines.append("""Note: The asterisk '[*]' marks the "default" subcommand, executed if none specified.""")
         lines.append('')
         print(os.linesep.join(lines))
 
@@ -286,15 +295,24 @@ class Cmd(Spec, Application):
 
     def __init__(self, **kwds):
         subcmds_list = [cmd for cmd, _ in kwds.get('subcommands', {}).values()]
-        super().__init__(classes=subcmds_list + [Spec], **kwds)
-        self.aliases.update({
-            'log-level' :       'Application.log_level',
-            'config-files' :    'Cmd.config_files',
-        })
-        self.flags.update({
-            'debug': ({'Application' : {'log_level' : 0}},
-            "Set log level to logging.DEBUG (maximize logging output)."),
-        })
+        super().__init__(
+            classes=subcmds_list + [Spec],
+             **kwds)
+        ## Inherit config aliases/flags from up the cmd-chain.
+        #
+        if self.parent:
+            self.aliases = copy.deepcopy(self.parent.aliases)
+            self.flags = copy.deepcopy(self.parent.flags)
+            self.classes += self.parent.classes
+        else:
+            self.aliases['config-files'] = 'Cmd.config_files'
+            self.flags['debug'] = ({'Application' : {
+                    'log_level' : 0,
+                    'raise_config_file_errors': True,
+                }},
+                "Set log level to logging.DEBUG (maximize logging output).")
+
+
 
     @catch_config_error
     def initialize(self, argv=None):
@@ -329,6 +347,10 @@ class Cmd(Spec, Application):
 Cmd.log_format.tag(config=False)
 Cmd.log_datefmt.tag(config=False)
 
+## Expose `raise_config_file_errors` instead of relying only on
+#  :envvar:`TRAITLETS_APPLICATION_RAISE_CONFIG_FILE_ERROR`.
+Cmd.raise_config_file_errors.tag(config=True)
+
 class GenConfig(Cmd):
     """
     Store config defaults into specified path(s), read from :attr:`extra_args` (cmd-arguments);
@@ -356,3 +378,36 @@ class GenConfig(Cmd):
         extra_args = self.extra_args or [None]
         for fpath in extra_args:
             self.parent.write_default_config(fpath)
+
+def chain_cmds(app_classes: Sequence[type(Application)],
+               argv: Sequence[Text]=None,
+               **root_kwds):
+    """
+    Instantiate(optionally) a list of ``[cmd, subcmd, ...]`` and link each one as child of its predecessor.
+
+    :param argv:
+        cmdline args for the the 1st cmd.
+        Make sure they do not specify some cub-cmds.
+        Do NOT replace with `sys.argv` if none.
+        Note: you have to "know" the correct nesting-order of the commands ;-)
+    :return:
+        the 1st cmd, to invoke :meth:`start()` on it
+    """
+    if not app_classes:
+        raise ValueError("No cmds to chained passed in!")
+
+    app_classes = list(app_classes)
+    root = app = None
+    for app_cl in app_classes:
+        if not isinstance(app_cl, type(Application)):
+                    raise ValueError("Expected an Application-class instance, got %r!" % app_cl)
+        if not root:
+            ## The 1st cmd is always orphan, and gets returned.
+            root = app = app_cl(**root_kwds)
+        else:
+            app.subapp = app = app_cl(parent=app)
+        app.initialize(argv or [])
+
+    app_classes[0]._instance=app
+    return root
+
