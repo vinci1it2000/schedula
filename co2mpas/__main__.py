@@ -139,11 +139,11 @@ def init_logging(verbose, frmt=None, logconf_file=None):
         else:
             logging.config.fileConfig(logconf_file)
     else:
-        if verbose is None:
+        if verbose is False:
             level = logging.WARNING
         elif verbose:
             level = logging.DEBUG
-        else:  # Verbose: False
+        else:  # Verbose: None
             level = logging.INFO
         if not frmt:
             frmt = "%(asctime)-15s:%(levelname)5.5s:%(name)s:%(message)s"
@@ -446,7 +446,7 @@ def _main(*args):
 
     opts = docopt.docopt(__doc__, argv=args or sys.argv[1:])
 
-    verbose = opts.get('--verbose', False)
+    verbose = opts.get('--verbose', None)
     init_logging(verbose, logconf_file=opts.get('--logconf'))
     if opts['--version']:
         v = build_version_string(verbose)
