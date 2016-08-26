@@ -32,7 +32,7 @@ import tempfile
 import shutil
 import smtplib
 
-from boltons.setutils import IndexedSet as iset, IndexedSet
+from boltons.setutils import IndexedSet as iset
 import gnupg
 import keyring
 import textwrap
@@ -56,13 +56,11 @@ __summary__   = __doc__.split('\n')[0]
 
 
 log = logging.getLogger(__name__)
-# from traitlets import log as tlog
-# log = tlog.get_logger()
 
 try:
     _mydir = osp.dirname(__file__)
 except:
-    mydir = '.'
+    _mydir = '.'
 CONF_VAR_NAME = '%s_CONFIG_FILE' % __title__.upper()
 
 _default_cfg = textwrap.dedent("""
@@ -170,7 +168,7 @@ def _describe_gpg(gpg):
 def collect_gpgs():
     inc_errors=1
     gpg_kws={}
-    gpg_paths = IndexedSet(itt.chain.from_iterable(where(prog) for prog in ('gpg2', 'gpg')))
+    gpg_paths = iset(itt.chain.from_iterable(where(prog) for prog in ('gpg2', 'gpg')))
     gnupghome = osp.expanduser('~/.gnupg')
     gpg_avail = []
     for gpg_path in gpg_paths:
@@ -442,11 +440,11 @@ def ensure_dir_exists(path, mode=0o755):
 
 _camel_to_snake_regex = re.compile('(?<=[a-z0-9])([A-Z]+)') #('(?!^)([A-Z]+)')
 def camel_to_snake_case(s):
-    """Trurns `'CO2DiceApp' --> 'co2_dice_app'. """
+    """Turns `'CO2DiceApp' --> 'co2_dice_app'. """
     return _camel_to_snake_regex.sub(r'_\1', s).lower()
 
 def camel_to_cmd_name(s):
-    """Trurns `'CO2DiceApp' --> 'co2-dice-app'. """
+    """Turns `'CO2DiceApp' --> 'co2-dice-app'. """
     return camel_to_snake_case(s).replace('_', '-')
 
 #####
@@ -677,7 +675,7 @@ class Cmd(Spec, Application):
         # Load "standard" configs,
         #      path-list in descending priority order.
         #
-        paths = list(IndexedSet([default_config_dir(), _mydir]))
+        paths = list(iset([default_config_dir(), _mydir]))
         self.load_config_file(default_config_fname(), path=paths)
 
         # Load "user" configs.
@@ -697,7 +695,7 @@ class Cmd(Spec, Application):
         config_file = pndl_utils.ensure_file_ext(config_file, '.py')
 
         op = 'Over-writting' if osp.isfile(config_file) else 'Writting'
-        log.info('%s config-file %r...', op, config_file)
+        self.log.info('%s config-file %r...', op, config_file)
         ensure_dir_exists(os.path.dirname(config_file), 0o700)
         config_text = self.generate_config_file();
         with io.open(config_file, mode='wt') as fp:
@@ -791,9 +789,8 @@ Cmd.log_datefmt.tag(config=False)
 
 class GenConfig(Cmd):
     """
-    A `co2dice` sub-cmd that stores config defaults into specified path(s).
-    Any cmd-arguments are taken as the paths to generate into;
-    '{confpath}' assumed if no args given.
+    Store config defaults into specified path(s), read from :attr:`extra_args` (cmd-arguments);
+    '{confpath}' assumed if none specified.
     If a path resolves to a folder, the filename '{appname}_config.py' is appended.
 
     Note: It OVERWRITES any pre-existing configuration file(s)!
@@ -885,12 +882,12 @@ def main(*argv, **app_init_kwds):
     #argv = ''.split()
     argv = '--help'.split()
     #argv = '--help-all'.split()
-    #argv = 'gen-config'.split()
+    argv = 'gen-config'.split()
     #argv = 'gen-config --help-all'.split()
     #argv = 'gen-config help'.split()
     #argv = '--debug --log-level=0 --Mail.port=6 --Mail.user="ggg" abc def'.split()
     #argv = 'project --help-all'.split()
-    argv = 'project help'.split()
+    #argv = 'project help'.split()
     #argv = '--debug'.split()
     #argv = 'project new help'.split()
     #argv = 'project list'.split()
