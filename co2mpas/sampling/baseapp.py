@@ -126,6 +126,7 @@ def default_config_fpath():
 
 
 
+## TODO: Move to dice
 class Spec(LoggingConfigurable):
     """Common properties for all configurables."""
 

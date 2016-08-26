@@ -7,9 +7,10 @@
 #
 """co2dice: prepare/sign/send/receive/validate/archive Type Approval sampling emails of *co2mpas*."""
 
-from collections import defaultdict, MutableMapping, OrderedDict
+from collections import defaultdict, MutableMapping, OrderedDict, namedtuple
 import git # from *gitpython* distribution
 import types
+from datetime import datetime
 from typing import Sequence, Text
 from email.mime.text import MIMEText
 import imaplib
@@ -392,6 +393,9 @@ def __GPG__init__(self, my_gpg_key):
 ##     Specs     ##
 ###################
 
+PROJECT_VERSION = '0.0.1'  ## TODO: Move to `co2mpas/_version.py`.
+PROJECT_STATUSES = '<invalid> empty full signed dice_sent sampled'.split()
+CommitMsg = namedtuple('CommitMsg', 'project state msg format_version')
 
 class GitSpec(SingletonConfigurable, Spec):
     """A git-based repository storing the TA projects (containing signed-files and sampling-resonses).
@@ -452,26 +456,29 @@ class GitSpec(SingletonConfigurable, Spec):
                      r"- %C(bold green)(%ar)%C(reset) %C(white)%s%C(reset) %C(dim white)- "
                      r"%an%C(reset)%C(bold yellow)%d%C(reset)' --all")
 
-    def _make_commit_msg(self, projname, status, msg):
+    def _make_commit_msg(self, projname, state, msg):
         msg = '\n'.join(textwrap.wrap(msg, width=50))
-        return json.dumps(OrderedDict([
-            ('projname', projname),
-            ('status', status),
-            ('msg', msg),
-        ]))
+        return json.dumps(CommitMsg(projname, state, msg, PROJECT_VERSION)._asdict())
 
-    def _commit(self, projname, msg, status=None, *modified_fpaths):
+    def _parse_commit_msg(self, msg, scream=False):
+        """
+        :return: a :class:`CommitMsg` instance, or `None` if cannot parse.
+        """
+        try:
+            return json.loads(msg,
+                    object_hook=lambda seq: CommitMsg(**seq))
+        except Exception as ex:
+            if scream:
+                raise
+            else:
+                log.debug('Found the non-project commit-msg in project-db'
+                       ', due to: %s\n %s', ex, msg, exc_info=1)
+
+    def _commit(self, index, projname, state, msg):
         repo = self.repo
-        index = repo.index
-        if status:
-            status_fpath = osp.join(repo.working_tree_dir, 'STATUS.txt')
-            with io.open(status_fpath, 'wt') as fp:
-                fp.write(status)
-            modified_fpaths += (status_fpath, )
-        index.add(modified_fpaths)
-        index.commit(self._make_commit_msg(projname, status, msg))
+        index.commit(self._make_commit_msg(projname, state, msg))
 
-    def exists(self, projname: str, validate=False):
+    def exists(self, projname: Text, validate=False):
         """
         :param projname: some branch ref
         """
@@ -479,13 +486,15 @@ class GitSpec(SingletonConfigurable, Spec):
         found = projname in repo.refs
         if validate:
             proj = repo.refs[projname]
-            try:
-                json.loads(proj.commit.message)
-            except Exception as ex:
-                found = False
-                log.debug('Found the non-project reference %r in project-db'
-                       ', due to: %s', projname, ex, exc_info=1)
+            found = bool(self._parse_commit_msg(proj.commit.message))
         return found
+
+    def _make_readme(self, projname):
+        return textwrap.dedent("""
+        This is the CO2MPAS-project named %r (see https://co2mpas.io/ for more).
+
+        - created: %s
+        """ %(projname, datetime.now()))
 
     def create(self, projname: str):
         """
@@ -496,8 +505,13 @@ class GitSpec(SingletonConfigurable, Spec):
         if self.exists(projname):
             raise CmdException('Project %r already exists!' % projname)
         repo.git.checkout(projname, orphan=True)
-        status = 'empty'
-        self._commit(projname, status, 'Project created.')
+
+        index = repo.index
+        state_fpath = osp.join(repo.working_tree_dir, 'CO2MPAS')
+        with io.open(state_fpath, 'wt') as fp:
+            fp.write(self._make_readme(projname))
+        index.add([state_fpath])
+        self._commit(index, projname, 'empty', 'Project created.')
 
     def open(self, projname: str):
         """
@@ -508,6 +522,13 @@ class GitSpec(SingletonConfigurable, Spec):
             raise CmdException('Project %r already exists!' % projname)
         self.repo.create_head(projname)
 
+    def _yield_projects(self, refs=None):
+        if not refs:
+            refs = self.repo.heads
+        for ref in refs:
+            if self.exists(ref):
+                yield self.examine(ref)
+
     def list(self, *projnames: str):
         """
         :param projnames: some branch ref, or none for all
@@ -517,9 +538,7 @@ class GitSpec(SingletonConfigurable, Spec):
         refs = self.repo.heads
         if projnames and refs:
             refs =  iset(projnames) & iset(refs)
-        for ref in refs:
-            if self.exists(ref):
-                yield self.examine(ref)
+        yield from self._yield_projects(refs)
 
     def examine(self, projname: str):
         """
@@ -528,6 +547,54 @@ class GitSpec(SingletonConfigurable, Spec):
         #return '<branch_ref>: %s' % proj_name # TODO: Impl proj-examine.
         return projname
 
+    def infos(self, verbose=False, as_json=False):
+        """
+        :retun: text message with infos.
+        """
+        repo = self.repo
+        infos = OrderedDict()
+        proj = repo.active_branch
+        if not proj:
+            infos['current'] = '<none>'
+        else:
+            cmt = proj.commit
+            tre = cmt.tree
+            cmsg = self._parse_commit_msg(cmt.message)
+            if not cmsg:
+                cproj_infos = OrderedDict([
+                        ('name', proj.name),
+                        ('state', '<invalid>'),
+                        ('msg', cmt.message),
+                ])
+            else:
+                cproj_infos = cmsg._asdict()
+                cproj_infos.update([
+                        ('author', '%s <%s>' % (cmt.author.name, cmt.author.email) ),
+                        ('last_date', str(cmt.authored_datetime)),
+                        ('tree_SHA', tre.hexsha),
+                        ('revisions_count', itz.count(cmt.iter_parents())),
+                        ('files_count', itz.count(tre.list_traverse())),
+            ])
+            infos['current'] = cproj_infos
+        if verbose:
+            git_exec = repo.git.git_exec_name
+            if git_exec == 'git':
+                git_exec = which('git')
+
+            infos['git'] = OrderedDict([
+                    ('repo_path', repo.working_tree_dir),
+                    ('projects_count', itz.count(self._yield_projects()) ),
+                    ('exec_path', repo.git.git_exec_name),
+                    ('exec_version', '.'.join(str(v) for v in repo.git.version_info)),
+            ])
+
+
+        if as_json:
+            txt = json.dumps(infos, indent=4)
+        else:
+            txt = pprint.pformat(infos)
+
+        return txt
 
 class GpgSpec(SingletonConfigurable, Spec):
     """Provider of GnuPG high-level methods."""
@@ -593,8 +660,7 @@ class Project(Cmd):
     """
 
     examples = """
-    To get the list with the status of all existing projects,
-    and their status, try:
+    To get the list with the status of all existing projects, try:
 
         co2dice project list
     """
@@ -608,35 +674,58 @@ class Project(Cmd):
     class Create(_SubCmd):
         """Create a new project."""
         def start(self):
-            nargs = len(self.extra_args)
-            if nargs != 1:
-                raise CmdException('Specify exactly a SINGLE project-name to create, not: %s' % self.extra_args)
+            if len(self.extra_args) != 1:
+                raise CmdException('Cmd %r takes a SINGLE project-name to create, recieved %r!'
+                                   % (self.name, self.extra_args))
             return self.gitspec.create(self.extra_args[0])
 
     class Open(_SubCmd):
         """Make an existing project the *current*.  Returns the *current* if no args specified."""
         def start(self):
-            nargs = len(self.extra_args)
-            if nargs == 0:
-                res = self.gitspec._repo.active_branch
-            elif nargs == 1:
-                res = self.gitspec.open(self.extra_args[0])
-            else:
-                raise CmdException('Specify exactly a SINGLE project-name to open, not: %s' % self.extra_args)
-            return res
+            if len(self.extra_args) != 1:
+                raise CmdException("Cmd %r takes a SINGLE project-name to open, received: %r!"
+                                   % (self.name, self.extra_args))
+            return self.gitspec.open(self.extra_args[0])
 
     class List(_SubCmd):
-        """List information about specified projects (all projects by default)."""
+        """List information about the specified projects (or all if no projects specified)."""
         def start(self):
             return self.gitspec.list(*self.extra_args)
 
-    #default_subcmd = 'list'
+    class Infos(_SubCmd):
+        """Print a text message with current-project, status, and repo-config data if --verbose."""
+
+        verbose = trt.Bool(False,
+               help="""Wheter to include also info about the repo-configuration."""
+               ).tag(config=True)
+
+        json = trt.Bool(False,
+               help="""Wheter to print infos JSON-formated (suitable for automated parsing)."""
+               ).tag(config=True)
+
+        def __init__(self, **kwds):
+            super().__init__(**kwds)
+            self.flags.update({
+                    'verbose':  ({'Infos': {'verbose': True}}, Project.Infos.verbose.help),
+                    'json':     ({'Infos': {'json': True}}, Project.Infos.json.help),
+            })
+
+        def start(self):
+            if len(self.extra_args) != 0:
+                raise CmdException('Cmd %r takes no args, received %r!'
+                                   % (self.name, self.extra_args))
+            return self.gitspec.infos(self.verbose, self.json)
+
+    default_subcmd = 'info'
 
     def __init__(self, **kwds):
         with self.hold_trait_notifications():
-            self.subcommands = build_sub_cmds(Project.Create, Project.Open, Project.List)
+            self.subcommands = build_sub_cmds(Project.Infos, Project.Create, Project.Open, Project.List)
             super().__init__(**kwds)
             self.flags['reset-git-settings'] = ({'GitSpec': {'reset_settings': True}}, GitSpec.reset_settings.help)
+            #: INFO: Add HERE all CONFs.
+            conf_classes = [GitSpec]
+            self.classes = list(iset(self.classes) | iset(conf_classes))
 
 
 
@@ -650,17 +739,11 @@ class Main(Cmd):
 
     def __init__(self, **kwds):
         with self.hold_trait_notifications():
+            ## INFO: Add HERE all top-level sub-CMDs.
             self.subcommands=build_sub_cmds(GenConfig, Project)
             super().__init__(**kwds)
-            #: INFO: Add HERE all CONFs.
-            conf_classes = [GitSpec, GpgSpec, MailSpec, SmtpSpec, ImapSpec]
-            ## INFO: Add HERE all top-level sub-CMDs.
-            self.classes = list(iset(self.classes) | iset(conf_classes))
 
 
-
-def make_app(**app_init_kwds):
-    return Main.instance(**app_init_kwds)
 
 def run_cmd(cmd: Cmd, argv: Sequence[Text]=None):
     """
@@ -685,13 +768,17 @@ def run_cmd(cmd: Cmd, argv: Sequence[Text]=None):
         else:
             print(res)
 
-def main(*argv, verbose=None, **app_init_kwds):
+def main(argv=None, verbose=None, **app_init_kwds):
+    """
+    :param argv:
+        If `None`, use :data:`sys.argv`; use ``[]`` to explicitely use no-args.
+    """
     ## Invoked from cmd-line, so suppress debug-logging by default.
     init_logging(verbose=verbose)
     try:
         ##Main.launch_instance(argv or None, **app_init_kwds) ## NO No, does not return `start()`!
-        app = make_app(**app_init_kwds)
-        run_cmd(app, argv or None)
+        app = Main.instance(**app_init_kwds)
+        run_cmd(app, argv)
     except (CmdException, trt.TraitError) as ex:  #TODO: alias CmdException --> TraitError??
         ## Suppress stack-trace for "expected" errors.
         log.debug('App exited due to: %s', ex, exc_info=1)
@@ -703,10 +790,13 @@ def main(*argv, verbose=None, **app_init_kwds):
         log.error('Launch failed due to: %s', ex, exc_info=1)
         raise ex
 
+
+
 if __name__ == '__main__':
     # Invoked from IDEs, so enable debug-logging.
     init_logging(verbose=True)
 
+    argv = None
     ## DEBUG AID ARGS, remember to delete them once developed.
     #argv = ''.split()
     #argv = '--help'.split()
@@ -719,7 +809,10 @@ if __name__ == '__main__':
     #argv = '--debug'.split()
     #argv = 'project list --help-all'.split()
 #     argv = 'project --GitSpec.reset_settings=True'.split()
-    argv = 'project list --reset-git-settings'.split()
+    #argv = 'project --reset-git-settings'.split()
+    #argv = 'project infos'.split()
+#     argv = 'project infos --verbose'.split()
+    argv = 'project infos --verbose --json'.split()
 #     argv = 'project list  --GitSpec.reset_settings=True'.split()
     #argv = '--GitSpec.reset_settings=True'.split()
     #argv = 'project list'.split()
@@ -729,7 +822,7 @@ if __name__ == '__main__':
     #argv = 'project list'.split()
     #argv = 'project'.split()
     #argv = 'project create one'.split()
-    main(*argv)
+    main(argv)
 
     #run_cmd(chain_cmds([Main, Project, Project.Create], argv=['project_foo']))
     #run_cmd(chain_cmds([Main, Project, Project.List], argv=['project_foo']))
