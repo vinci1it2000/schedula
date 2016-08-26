@@ -516,8 +516,9 @@ class GitSpec(SingletonConfigurable, Spec):
             """.format(confdir=default_config_dir())).tag(config=True)
     reset_settings = trt.Bool(False,
             help="""
-            Set to `True`, not to re-write default git's config-settings on app start up.
-            Git settings include user-name and email address.
+            Set to `True` to re-write default git's config-settings on app start up.
+            Git settings include user-name and email address, so this option might be usefull
+            when the regular owner running the app has changed.
             """).tag(config=True)
 
     def __init__(self, **kwds):
@@ -615,16 +616,6 @@ def build_sub_cmds(subapp_classes):
 
     return OrderedDict((camel_to_cmd_name(sa.__name__), (sa, app_help(sa)))
                        for sa in subapp_classes)
-
-_base_aliases = {
-    'log-level' :       'Application.log_level',
-    'config-files' :    'Cmd.config_files',
-}
-
-_base_flags = {
-    'debug': ({'Application' : {'log_level' : logging.DEBUG}},
-            "Set log level to logging.DEBUG (maximize logging output)."),
-}
 
 class Cmd(Spec, Application):
     """Common machinery for all (sub-)commands. """
@@ -755,9 +746,15 @@ class Cmd(Spec, Application):
         subcmds_list = [cmd for cmd, _ in kwds.get('subcommands', {}).values()]
         super().__init__(
             classes=subcmds_list + _conf_classes,
-            aliases = _base_aliases.copy(),
-            flags = _base_flags.copy(),
             **kwds)
+        self.aliases.update({
+            'log-level' :       'Application.log_level',
+            'config-files' :    'Cmd.config_files',
+        })
+        self.flags.update({
+            'debug': ({'Application' : {'log_level' : logging.DEBUG}},
+            "Set log level to logging.DEBUG (maximize logging output)."),
+        })
 
     @catch_config_error
     def initialize(self, argv=None):
@@ -893,7 +890,7 @@ def main(*argv, **app_init_kwds):
     #argv = 'gen-config help'.split()
     #argv = '--debug --log-level=0 --Mail.port=6 --Mail.user="ggg" abc def'.split()
     #argv = 'project --help-all'.split()
-    #argv = 'project help'.split()
+    argv = 'project help'.split()
     #argv = '--debug'.split()
     #argv = 'project new help'.split()
     #argv = 'project list'.split()
