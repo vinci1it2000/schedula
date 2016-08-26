@@ -452,6 +452,82 @@ class GitSpec(SingletonConfigurable, Spec):
                      r"- %C(bold green)(%ar)%C(reset) %C(white)%s%C(reset) %C(dim white)- "
                      r"%an%C(reset)%C(bold yellow)%d%C(reset)' --all")
 
+    def _make_commit_msg(self, projname, status, msg):
+        msg = '\n'.join(textwrap.wrap(msg, width=50))
+        return json.dumps(OrderedDict([
+            ('projname', projname),
+            ('status', status),
+            ('msg', msg),
+        ]))
+
+    def _commit(self, projname, msg, status=None, *modified_fpaths):
+        repo = self.repo
+        index = repo.index
+        if status:
+            status_fpath = osp.join(repo.working_tree_dir, 'STATUS.txt')
+            with io.open(status_fpath, 'wt') as fp:
+                fp.write(status)
+            modified_fpaths += (status_fpath, )
+        index.add(modified_fpaths)
+        index.commit(self._make_commit_msg(projname, status, msg))
+
+    def exists(self, projname: str, validate=False):
+        """
+        :param projname: some branch ref
+        """
+        repo = self.repo
+        found = projname in repo.refs
+        if validate:
+            proj = repo.refs[projname]
+            try:
+                json.loads(proj.commit.message)
+            except Exception as ex:
+                found = False
+                log.debug('Found the non-project reference %r in project-db'
+                       ', due to: %s', projname, ex, exc_info=1)
+        return found
+
+    def create(self, projname: str):
+        """
+        :param projname: some branch ref
+        """
+        self.log.info('Creating project %r...', projname)
+        repo = self.repo
+        if self.exists(projname):
+            raise CmdException('Project %r already exists!' % projname)
+        repo.git.checkout(projname, orphan=True)
+        status = 'empty'
+        self._commit(projname, status, 'Project created.')
+
+    def open(self, projname: str):
+        """
+        :param projname: some branch ref
+        """
+        self.log.info('Opening project %r...', projname)
+        if self.exists(projname):
+            raise CmdException('Project %r already exists!' % projname)
+        self.repo.create_head(projname)
+
+    def list(self, *projnames: str):
+        """
+        :param projnames: some branch ref, or none for all
+        :retun: yield any match projects, or all if `projnames` were empty.
+        """
+        self.log.info('Listing %s projects...', projnames or 'all')
+        refs = self.repo.heads
+        if projnames and refs:
+            refs =  iset(projnames) & iset(refs)
+        for ref in refs:
+            if self.exists(ref):
+                yield self.examine(ref)
+
+    def examine(self, projname: str):
+        """
+        :param projname: some branch ref
+        """
+        #return '<branch_ref>: %s' % proj_name # TODO: Impl proj-examine.
+        return projname
+
 
 class GpgSpec(SingletonConfigurable, Spec):
     """Provider of GnuPG high-level methods."""
@@ -508,139 +584,60 @@ class ImapSpec(MailSpec):
 ##    Commands   ##
 ###################
 
-#: INFO: Add HERE all CONFs.
-_conf_classes = [GitSpec, GpgSpec, MailSpec, SmtpSpec, ImapSpec]
-
-
 class Project(Cmd):
     """
     The `co2dice` sub-cmd to administer the TA of *projects*.
 
-    A *project* in necessary to store all CO2MPAS files for a single vehicle,
-    and to track its sampling procedure.
+    A *project* stores all CO2MPAS files for a single vehicle,
+    and tracks the sampling procedure.
     """
 
     examples = """
-    To get the list with the status of all existing projects, try:
+    To get the list with the status of all existing projects,
+    and their status, try:
 
         co2dice project list
     """
 
 
-    class Create(Cmd):
+    class _SubCmd(Cmd):
+        @property
+        def gitspec(self):
+            return GitSpec.instance(parent=self)
+
+    class Create(_SubCmd):
         """Create a new project."""
         def start(self):
             nargs = len(self.extra_args)
             if nargs != 1:
                 raise CmdException('Specify exactly a SINGLE project-name to create, not: %s' % self.extra_args)
-            return self.parent.create(self.extra_args[0])
+            return self.gitspec.create(self.extra_args[0])
 
-    class Open(Cmd):
+    class Open(_SubCmd):
         """Make an existing project the *current*.  Returns the *current* if no args specified."""
         def start(self):
             nargs = len(self.extra_args)
             if nargs == 0:
-                res = self.parent._repo.active_branch
+                res = self.gitspec._repo.active_branch
             elif nargs == 1:
-                res = self.parent.open(self.extra_args[0])
+                res = self.gitspec.open(self.extra_args[0])
             else:
                 raise CmdException('Specify exactly a SINGLE project-name to open, not: %s' % self.extra_args)
             return res
 
-    class List(Cmd):
+    class List(_SubCmd):
         """List information about specified projects (all projects by default)."""
         def start(self):
-            return self.parent.list(*self.extra_args)
+            return self.gitspec.list(*self.extra_args)
 
     #default_subcmd = 'list'
 
     def __init__(self, **kwds):
-        subcommands = [Project.Create, Project.Open, Project.List]
-        super().__init__(
-                subcommands=build_sub_cmds(*subcommands),
-                **kwds)
-        self.classes.extend(_conf_classes)
-        self.flags['reset-git-settings'] = ({'GitSpec': {'reset_settings': True}}, GitSpec.reset_settings.help)
+        with self.hold_trait_notifications():
+            self.subcommands = build_sub_cmds(Project.Create, Project.Open, Project.List)
+            super().__init__(**kwds)
+            self.flags['reset-git-settings'] = ({'GitSpec': {'reset_settings': True}}, GitSpec.reset_settings.help)
 
-    @property
-    def _repo(self):
-        return GitSpec.instance(parent=self).repo
-
-    def _make_commit_msg(self, projname, status, msg):
-        msg = '\n'.join(textwrap.wrap(msg, width=50))
-        return json.dumps(OrderedDict([
-            ('projname', projname),
-            ('status', status),
-            ('msg', msg),
-        ]))
-
-    def _commit(self, projname, msg, status=None, *modified_fpaths):
-        repo = self._repo
-        index = repo.index
-        if status:
-            status_fpath = osp.join(repo.working_tree_dir, 'STATUS.txt')
-            with io.open(status_fpath, 'wt') as fp:
-                fp.write(status)
-            modified_fpaths += (status_fpath, )
-        index.add(modified_fpaths)
-        index.commit(self._make_commit_msg(projname, status, msg))
-
-    def exists(self, projname: str, validate=False):
-        """
-        :param projname: some branch ref
-        """
-        repo = self._repo
-        found = projname in repo.refs
-        if validate:
-            proj = repo.refs[projname]
-            try:
-                json.loads(proj.commit.message)
-            except Exception as ex:
-                found = False
-                log.debug('Found the non-project reference %r in project-db'
-                       ', due to: %s', projname, ex, exc_info=1)
-        return found
-
-    def create(self, projname: str):
-        """
-        :param projname: some branch ref
-        """
-        self.log.info('Creating project %r...', projname)
-        repo = self._repo
-        if self.exists(projname):
-            raise CmdException('Project %r already exists!' % projname)
-        repo.git.checkout(projname, orphan=True)
-        status = 'empty'
-        self._commit(projname, status, 'Project created.')
-
-    def open(self, projname: str):
-        """
-        :param projname: some branch ref
-        """
-        self.log.info('Opening project %r...', projname)
-        if self.exists(projname):
-            raise CmdException('Project %r already exists!' % projname)
-        self._repo.create_head(projname)
-
-    def list(self, *projnames: str):
-        """
-        :param projnames: some branch ref, or none for all
-        :retun: yield any match projects, or all if `projnames` were empty.
-        """
-        self.log.info('Listing %s projects...', projnames or 'all')
-        refs = self._repo.heads
-        if projnames and refs:
-            refs =  iset(projnames) & iset(refs)
-        for ref in refs:
-            if self.exists(ref):
-                yield self.examine(ref)
-
-    def examine(self, projname: str):
-        """
-        :param projname: some branch ref
-        """
-        return projname
-        #return '<branch_ref>: %s' % proj_name # TODO: Impl proj-examine.
 
 
 class Main(Cmd):
@@ -652,10 +649,15 @@ class Main(Cmd):
     #examples = """TODO: Write cmd-line examples."""
 
     def __init__(self, **kwds):
-        super().__init__(**kwds)
-        ## INFO: Add HERE all top-level sub-CMDs.
-        self.subcommands=build_sub_cmds(GenConfig, Project)
-        self.classes.extend(_conf_classes)
+        with self.hold_trait_notifications():
+            self.subcommands=build_sub_cmds(GenConfig, Project)
+            super().__init__(**kwds)
+            #: INFO: Add HERE all CONFs.
+            conf_classes = [GitSpec, GpgSpec, MailSpec, SmtpSpec, ImapSpec]
+            ## INFO: Add HERE all top-level sub-CMDs.
+            self.classes = list(iset(self.classes) | iset(conf_classes))
+
+
 
 def make_app(**app_init_kwds):
     return Main.instance(**app_init_kwds)
@@ -716,9 +718,10 @@ if __name__ == '__main__':
     #argv = 'project --help-all'.split()
     #argv = '--debug'.split()
     #argv = 'project list --help-all'.split()
-    argv = 'project --GitSpec.reset_settings=True'.split()
+#     argv = 'project --GitSpec.reset_settings=True'.split()
     argv = 'project list --reset-git-settings'.split()
-    argv = 'project --reset-git-settings'.split()
+#     argv = 'project list  --GitSpec.reset_settings=True'.split()
+    #argv = '--GitSpec.reset_settings=True'.split()
     #argv = 'project list'.split()
     #argv = 'project list  --reset-git-settings'.split()
     #argv = '--debug'.split()

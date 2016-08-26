@@ -139,7 +139,7 @@ class Spec(LoggingConfigurable):
     @trt.default('log')
     def _log(self):
         import logging
-        return logging.getLogger(self.name)
+        return logging.getLogger(self.__class__.__name__)
 
     @trt.validate('user_name', 'user_email')
     def _valid_user(self, proposal):
@@ -294,23 +294,28 @@ class Cmd(Spec, Application):
         return bool(self.subapp)
 
     def __init__(self, **kwds):
-        subcmds_list = [cmd for cmd, _ in kwds.get('subcommands', {}).values()]
-        super().__init__(
-            classes=subcmds_list + [Spec],
-             **kwds)
-        ## Inherit config aliases/flags from up the cmd-chain.
-        #
-        if self.parent:
-            self.aliases = copy.deepcopy(self.parent.aliases)
-            self.flags = copy.deepcopy(self.parent.flags)
-            self.classes += self.parent.classes
-        else:
-            self.aliases['config-files'] = 'Cmd.config_files'
-            self.flags['debug'] = ({'Application' : {
-                    'log_level' : 0,
-                    'raise_config_file_errors': True,
-                }},
-                "Set log level to logging.DEBUG (maximize logging output).")
+        with self.hold_trait_notifications():
+            super().__init__(**kwds)
+            ## Inherit config-related stuff from up the cmd-chain.
+            #
+            classes = self.classes
+            if self.parent:
+                self.aliases = copy.deepcopy(self.parent.aliases)
+                self.flags = copy.deepcopy(self.parent.flags)
+                classes += self.parent.classes
+            else:
+                ## Set some nice defaults.
+                #
+                self.aliases['config-files'] = 'Cmd.config_files'
+                self.flags['debug'] = ({'Application' : {
+                        'log_level' : 0,
+                        'raise_config_file_errors': True,
+
+                    }},
+                    "Set log level to logging.DEBUG (maximize logging output).")
+                self.classes.append(Spec)
+            subcmds_classes = [cmd for cmd, _ in self.subcommands.values()]
+            self.classes = list(iset(subcmds_classes) | iset(classes))
 
 
 
