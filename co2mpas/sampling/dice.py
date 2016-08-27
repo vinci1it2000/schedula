@@ -42,7 +42,7 @@ import pandas as pd
 import itertools as itt
 import os.path as osp
 
-from co2mpas.__main__ import CmdException, init_logging
+from co2mpas.__main__ import init_logging
 from co2mpas import __uri__  # @UnusedImport
 from co2mpas._version import (__version__, __updated__, __file_version__,   # @UnusedImport
                               __input_file_version__, __copyright__, __license__)  # @UnusedImport
@@ -60,6 +60,9 @@ try:
     _mydir = osp.dirname(__file__)
 except:
     _mydir = '.'
+
+CmdException = trt.TraitError
+ProjectNotFoundException = trt.TraitError
 
 _default_cfg = textwrap.dedent("""
         ---
@@ -389,6 +392,7 @@ def __GPG__init__(self, my_gpg_key):
     self.my_gpg_key
     self._cfg = read_config('co2mpas')
 
+
 ###################
 ##     Specs     ##
 ###################
@@ -396,6 +400,10 @@ def __GPG__init__(self, my_gpg_key):
 PROJECT_VERSION = '0.0.1'  ## TODO: Move to `co2mpas/_version.py`.
 PROJECT_STATUSES = '<invalid> empty full signed dice_sent sampled'.split()
 CommitMsg = namedtuple('CommitMsg', 'project state msg format_version')
+
+def _get_ref(refs, ref, default=None):
+    return ref and ref in refs and refs[ref] or default
+
 
 class GitSpec(SingletonConfigurable, Spec):
     """A git-based repository storing the TA projects (containing signed-files and sampling-resonses).
@@ -425,6 +433,15 @@ class GitSpec(SingletonConfigurable, Spec):
             Git settings include user-name and email address, so this option might be usefull
             when the regular owner running the app has changed.
             """).tag(config=True)
+
+    ## Useless, see https://github.com/ipython/traitlets/issues/287
+    # @trt.validate('repo_path')
+    # def _normalize_path(self, proposal):
+    #     repo_path = proposal['value']
+    #     if not osp.isabs(repo_path):
+    #         repo_path = osp.join(default_config_dir(), repo_path)
+    #     repo_path = convpath(repo_path)
+    # return repo_path
 
     def __init__(self, **kwds):
         super().__init__(**kwds)
@@ -475,7 +492,6 @@ class GitSpec(SingletonConfigurable, Spec):
                        ', due to: %s\n %s', ex, msg, exc_info=1)
 
     def _commit(self, index, projname, state, msg):
-        repo = self.repo
         index.commit(self._make_commit_msg(projname, state, msg))
 
     def exists(self, projname: Text, validate=False):
@@ -544,16 +560,31 @@ class GitSpec(SingletonConfigurable, Spec):
         """
         :param projname: some branch ref
         """
-        #return '<branch_ref>: %s' % proj_name # TODO: Impl proj-examine.
+#         repo = self.repo
+#         proj = self.repo.refs[projname]
+#         if not proj:
+#             raise ProjectNotFoundException('Project %r does not exist!' % projname)
+#         else:
+#             cmt = proj.commit
+#             tre = cmt.tree
+#             cmsg = self._parse_commit_msg(cmt.message)
+#             if not cmsg:
+#                 ('author', '%s <%s>' % (cmt.author.name, cmt.author.email) ),
+#                 ('last_date', str(cmt.authored_datetime)),
+#                 ('tree_SHA', tre.hexsha),
+#                 ('revisions_count', itz.count(cmt.iter_parents())),
+#                 ('files_count', itz.count(tre.list_traverse())),
+#         #return '<branch_ref>: %s' % proj_name # TODO: Impl proj-examine.
         return projname
 
-    def infos(self, verbose=False, as_json=False):
+    def infos(self, project=None, verbose=False, as_text=False):
         """
+        :param project: use current branch if unspecified.
         :retun: text message with infos.
         """
         repo = self.repo
         infos = OrderedDict()
-        proj = repo.active_branch
+        proj = _get_ref(repo.heads, project, repo.active_branch)
         if not proj:
             infos['current'] = '<none>'
         else:
@@ -588,13 +619,10 @@ class GitSpec(SingletonConfigurable, Spec):
                     ('exec_version', '.'.join(str(v) for v in repo.git.version_info)),
             ])
 
+        if as_text:
+            infos = json.dumps(infos, indent=2)
+        return infos
 
-        if as_json:
-            txt = json.dumps(infos, indent=4)
-        else:
-            txt = pprint.pformat(infos)
-
-        return txt
 
 class GpgSpec(SingletonConfigurable, Spec):
     """Provider of GnuPG high-level methods."""
@@ -694,38 +722,29 @@ class Project(Cmd):
 
     class Infos(_SubCmd):
         """Print a text message with current-project, status, and repo-config data if --verbose."""
-
-        verbose = trt.Bool(False,
-               help="""Wheter to include also info about the repo-configuration."""
-               ).tag(config=True)
-
-        json = trt.Bool(False,
-               help="""Wheter to print infos JSON-formated (suitable for automated parsing)."""
-               ).tag(config=True)
-
-        def __init__(self, **kwds):
-            super().__init__(**kwds)
-            self.flags.update({
-                    'verbose':  ({'Infos': {'verbose': True}}, Project.Infos.verbose.help),
-                    'json':     ({'Infos': {'json': True}}, Project.Infos.json.help),
-            })
+        verbose = trt.Union((trt.Integer(), trt.Bool(False)),
+               help="""
+               Whether to include also info about the repo-configuration.
+               Can be a boolean (# TODO: or 0, 1, 2).
+               """).tag(config=True)
 
         def start(self):
             if len(self.extra_args) != 0:
                 raise CmdException('Cmd %r takes no args, received %r!'
                                    % (self.name, self.extra_args))
-            return self.gitspec.infos(self.verbose, self.json)
+            return self.gitspec.infos(self.verbose, as_text=True)
 
-    default_subcmd = 'info'
 
     def __init__(self, **kwds):
         with self.hold_trait_notifications():
-            self.subcommands = build_sub_cmds(Project.Infos, Project.Create, Project.Open, Project.List)
             super().__init__(**kwds)
-            self.flags['reset-git-settings'] = ({'GitSpec': {'reset_settings': True}}, GitSpec.reset_settings.help)
-            #: INFO: Add HERE all CONFs.
-            conf_classes = [GitSpec]
-            self.classes = list(iset(self.classes) | iset(conf_classes))
+            self.conf_classes = [Spec, GitSpec]
+            self.subcommands = build_sub_cmds(Project.Infos, Project.Create, Project.Open, Project.List)
+            self.default_subcmd = 'infos'
+            self.cmd_flags = {
+                'reset-git-settings': ({'GitSpec': {'reset_settings': True}}, GitSpec.reset_settings.help),
+                'verbose':  ({'Infos': {'verbose': True}}, Project.Infos.verbose.help),
+            }
 
 
 
@@ -739,9 +758,9 @@ class Main(Cmd):
 
     def __init__(self, **kwds):
         with self.hold_trait_notifications():
-            ## INFO: Add HERE all top-level sub-CMDs.
-            self.subcommands=build_sub_cmds(GenConfig, Project)
             super().__init__(**kwds)
+            self.default_subcmd = 'project'
+            self.subcommands=build_sub_cmds(Project, GenConfig)
 
 
 
@@ -779,7 +798,7 @@ def main(argv=None, verbose=None, **app_init_kwds):
         ##Main.launch_instance(argv or None, **app_init_kwds) ## NO No, does not return `start()`!
         app = Main.instance(**app_init_kwds)
         run_cmd(app, argv)
-    except (CmdException, trt.TraitError) as ex:  #TODO: alias CmdException --> TraitError??
+    except (CmdException, trt.TraitError) as ex:
         ## Suppress stack-trace for "expected" errors.
         log.debug('App exited due to: %s', ex, exc_info=1)
         exit(ex.args[0])
@@ -800,19 +819,20 @@ if __name__ == '__main__':
     ## DEBUG AID ARGS, remember to delete them once developed.
     #argv = ''.split()
     #argv = '--help'.split()
-    #argv = '--help-all'.split()
+    argv = '--help-all'.split()
     #argv = 'gen-config'.split()
     #argv = 'gen-config --help-all'.split()
     #argv = 'gen-config help'.split()
     #argv = '--debug --log-level=0 --Mail.port=6 --Mail.user="ggg" abc def'.split()
-    #argv = 'project --help-all'.split()
+    argv = 'project --help-all'.split()
     #argv = '--debug'.split()
     #argv = 'project list --help-all'.split()
 #     argv = 'project --GitSpec.reset_settings=True'.split()
     #argv = 'project --reset-git-settings'.split()
+    #argv = 'project infos --help-all'.split()
     #argv = 'project infos'.split()
 #     argv = 'project infos --verbose'.split()
-    argv = 'project infos --verbose --json'.split()
+#     argv = 'project infos --verbose'.split()
 #     argv = 'project list  --GitSpec.reset_settings=True'.split()
     #argv = '--GitSpec.reset_settings=True'.split()
     #argv = 'project list'.split()
@@ -820,7 +840,7 @@ if __name__ == '__main__':
     #argv = '--debug'.split()
     #argv = 'project list --help'.split()
     #argv = 'project list'.split()
-    #argv = 'project'.split()
+    argv = 'project'.split()
     #argv = 'project create one'.split()
     main(argv)
 

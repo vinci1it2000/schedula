@@ -23,7 +23,9 @@ To run nested commands, use :func:`baseapp.chain_cmds()` like that::
 from collections import OrderedDict
 import copy
 import errno
+from toolz import dicttoolz as dtz, itertoolz as itz
 import io
+import logging
 import os
 from pandalone import utils as pndl_utils
 import re
@@ -31,9 +33,8 @@ from typing import Sequence, Text
 
 from boltons.setutils import IndexedSet as iset
 from ipython_genutils.text import indent, wrap_paragraphs, dedent
-from traitlets.config import Application, LoggingConfigurable, catch_config_error
+from traitlets.config import Application, Configurable, LoggingConfigurable, catch_config_error
 
-from co2mpas.__main__ import CmdException
 import os.path as osp
 import traitlets as trt
 
@@ -47,6 +48,7 @@ try:
 except:
     _mydir = '.'
 
+CmdException = trt.TraitError
 
 ###############################
 ##  TODO: Move to pandalone  ##
@@ -168,7 +170,7 @@ def build_sub_cmds(*subapp_classes):
     return OrderedDict((camel_to_cmd_name(sa.__name__), (sa, app_help(sa)))
                        for sa in subapp_classes)
 
-class Cmd(Spec, Application):
+class Cmd(Application):
     """Common machinery for all (sub-)commands. """
     ## INFO: Do not use it directly; inherit it.
 
@@ -192,6 +194,11 @@ class Cmd(Spec, Application):
             Use `gen-config` sub-command to produce a skeleton of the config-file.
             """.format(appname=APPNAME, confvar=CONF_VAR_NAME, pathsep=osp.pathsep)
             ).tag(config=True)
+
+    @trt.default('log')
+    def _log(self):
+        ## Use a regular logger.
+        return logging.getLogger(self.__class__.__name__)
 
     @property
     def user_config_fpaths(self):
@@ -276,7 +283,7 @@ class Cmd(Spec, Application):
                 lines.append(indent(dedent(hlp.strip())))
         if self.default_subcmd:
             lines.append('')
-            lines.append("""Note: The asterisk '[*]' marks the "default" subcommand, executed if none specified.""")
+            lines.append("""Note: The asterisk '[*]' marks the "default" sub-command to run when none specified.""")
         lines.append('')
         print(os.linesep.join(lines))
 
@@ -290,34 +297,64 @@ class Cmd(Spec, Application):
         self.subapp = subapp.instance(parent=self)
         self.subapp.initialize(argv)
 
-    def _is_dispatching(self):
-        """True if dispatching to another command, or running ourselves."""
-        return bool(self.subapp)
+    conf_classes = trt.List(trt.Type(Configurable), default_value=[],
+            help="""
+            Any *configurables* found in this prop up the cmd-chain are merged,
+            along with any subcommands, into :attr:`classes`.
+            """)
 
-    def __init__(self, **kwds):
-        with self.hold_trait_notifications():
-            super().__init__(**kwds)
-            ## Inherit config-related stuff from up the cmd-chain.
+    cmd_aliases = trt.Dict({},
+            help="Any *flags* found in this prop up the cmd-chain are merged into :attr:`aliases`. """)
+
+    cmd_flags = trt.Dict({},
+            help="Any *flags* found in this prop up the cmd-chain are merged into :attr:`flags`. """)
+
+    @trt.observe('parent', 'conf_classes', 'cmd_aliases', 'cmd_flags', 'default_subcmd', 'subcommands')
+    def _inherit_parent_cmd(self, change):
+        """ Inherit config-related stuff from up the cmd-chain. """
+        if self.parent:
+            ## Collect parents with `self` on the head.
             #
-            classes = self.classes
-            if self.parent:
-                self.aliases = copy.deepcopy(self.parent.aliases)
-                self.flags = copy.deepcopy(self.parent.flags)
-                classes += self.parent.classes
-            else:
-                ## Set some nice defaults.
-                #
-                self.aliases['config-files'] = 'Cmd.config_files'
-                self.flags['debug'] = ({'Application' : {
-                        'log_level' : 0,
-                        'raise_config_file_errors': True,
+            cmd_chain = []
+            pcl = self
+            while pcl:
+                cmd_chain.append(pcl)
+                pcl = pcl.parent
 
-                    }},
-                    "Set log level to logging.DEBUG (maximize logging output).")
-                self.classes.append(Spec)
-            subcmds_classes = [cmd for cmd, _ in self.subcommands.values()]
-            self.classes = list(iset(subcmds_classes) | iset(classes))
+            ## Merge  CMDs/SPECs with parents at the tail,
+            #  collect separately, to prepend CMDs before SPECs.
+            #
+            cmd_classes = [cmd.__class__ for cmd in cmd_chain]
+            conf_classes = list(itz.concat(cmd.conf_classes for cmd in cmd_chain))
 
+            ## Merge aliases/flags reversed.
+            #
+            cmd_aliases = dtz.merge(cmd.cmd_aliases for cmd in cmd_chain[::-1])
+            cmd_flags = dtz.merge(cmd.cmd_flags for cmd in cmd_chain[::-1])
+        else:
+            ## Set some nice defaults for root-CMDs.
+            #
+            cmd_classes = [self.__class__ ]
+            conf_classes = list(self.conf_classes)
+            self.cmd_aliases = cmd_aliases = {'config-files': 'Cmd.config_files'}
+            self.cmd_flags = cmd_flags = {'debug': ({'Application' : {
+                    'log_level' : 0,
+                    'raise_config_file_errors': True,
+                }},
+                "Set log level to logging.DEBUG (more logging) and fail on configuration errors.")
+            }
+
+        subc_tuple = self.subcommands.get(self.default_subcmd)
+        if subc_tuple:
+            cmd_classes.append(subc_tuple[0])
+        self.classes = list(iset(cmd_classes + conf_classes))
+        self.aliases.update(cmd_aliases)
+        self.flags.update(cmd_flags)
+
+
+    def _is_dispatching(self):
+        """True if dispatching to another command."""
+        return bool(self.subapp)
 
 
     @catch_config_error
@@ -329,7 +366,9 @@ class Cmd(Spec, Application):
         #  (trick copied from `jupyter-core`).
         self.parse_command_line(argv)
         if self._is_dispatching():
-            return # Avoid contaminations with user if generating-config.
+            ## Only the final child gets file-configs.
+            #  Also avoid contaminations with user if generating-config.
+            return
         cl_config = copy.deepcopy(self.config)
         self.load_config_files()
         self.update_config(cl_config)
@@ -355,7 +394,8 @@ Cmd.log_datefmt.tag(config=False)
 
 ## Expose `raise_config_file_errors` instead of relying only on
 #  :envvar:`TRAITLETS_APPLICATION_RAISE_CONFIG_FILE_ERROR`.
-Cmd.raise_config_file_errors.tag(config=True)
+Application.raise_config_file_errors.tag(config=True)
+Cmd.raise_config_file_errors.help='Whether failing to load config files should prevent startup.'
 
 class GenConfig(Cmd):
     """
