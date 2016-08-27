@@ -19,6 +19,7 @@ To run nested commands, use :func:`baseapp.chain_cmds()` like that::
     app = chain_cmds(Main, Project, Project.List)
     return app.start()
 """
+## INFO: Modify the following variables on a different application.
 
 from collections import OrderedDict
 import copy
@@ -28,6 +29,7 @@ import logging
 import os
 from pandalone import utils as pndl_utils
 import re
+import subprocess
 from typing import Sequence, Text
 
 from boltons.setutils import IndexedSet as iset
@@ -35,12 +37,11 @@ from ipython_genutils.text import indent, wrap_paragraphs, dedent
 from toolz import dicttoolz as dtz, itertoolz as itz
 from traitlets.config import Application, Configurable, LoggingConfigurable, catch_config_error
 
+from co2mpas.__main__ import init_logging
 import os.path as osp
 import traitlets as trt
 
-from co2mpas.__main__ import init_logging
 
-## INFO: Modify the following variables on a different application.
 APPNAME = 'co2dice'
 CONF_VAR_NAME = '%s_CONFIG_FILE' % APPNAME.upper()
 
@@ -107,6 +108,44 @@ def camel_to_snake_case(s):
 def camel_to_cmd_name(s):
     """Turns `'CO2DiceApp' --> 'co2-dice-app'. """
     return camel_to_snake_case(s).replace('_', '-')
+
+
+def py_where(program, path=None):
+    ## From: http://stackoverflow.com/a/377028/548792
+    winprog_exts = ('.bat', 'com', '.exe')
+    def is_exec(fpath):
+        return osp.isfile(fpath) and os.access(fpath, os.X_OK) and (
+                os.name != 'nt' or fpath.lower()[-4:] in winprog_exts)
+
+    progs = []
+    if not path:
+        path = os.environ["PATH"]
+    for folder in path.split(osp.sep):
+        folder = folder.strip('"')
+        if folder:
+            exe_path = osp.join(folder, program)
+            for f in [exe_path] + ['%s%s'%(exe_path, e) for e in winprog_exts]:
+                if is_exec(f):
+                    progs.append(f)
+    return progs
+
+
+def where(program):
+    try:
+        res = subprocess.check_output('where "%s"' % program,
+                universal_newlines=True)
+        return res and [s.strip()
+                       for s in res.split('\n') if s.strip()]
+    except subprocess.CalledProcessError:
+        return []
+    except:
+        return py_where(program)
+
+
+def which(program):
+    res = where(program)
+    return res[0] if res else None
+
 
 ###############################
 
@@ -267,17 +306,67 @@ class Cmd(Application):
             return
 
         lines = []
-        for m, (cfg, help) in self.flags.items():
-            prefix = '--' if len(m) > 1 else '-'
-            lines.append(prefix+m)
-            lines.append(indent(dedent(help.strip())))
-            cfg_list = ['%s.%s=%s' %(clname, prop, val)
-                        for clname, props_dict
-                        in cfg.items() for prop, val in props_dict.items()]
-            cfg_txt = "Equivalent to: %s" % cfg_list
-            lines.append(indent(dedent(cfg_txt)))
+        for m, (cfg, fhelp) in self.flags.items():
+            try:
+                prefix = '--' if len(m) > 1 else '-'
+                lines.append(prefix+m)
+                lines.append(indent(dedent(fhelp.strip())))
+                cfg_list = ['%s.%s=%s' %(clname, prop, val)
+                            for clname, props_dict
+                            in cfg.items() for prop, val in props_dict.items()]
+                cfg_txt = "Equivalent to: %s" % cfg_list
+                lines.append(indent(dedent(cfg_txt)))
+            except Exception as ex:
+                self.log.error('Failed collecting help-message for flag %r, due to: %s',
+                               m, ex, exc_info=1)
         # lines.append('')
         print(os.linesep.join(lines))
+
+    def print_help(self, classes=False):
+        """Print the help for each Configurable class in self.classes.
+
+        If classes=False (the default), only flags and aliases are printed.
+        """
+        ## TODO: Remove if https://github.com/ipython/traitlets/issues/296
+        self.print_description()
+        self.print_subcommands()
+        self.print_options()
+
+        if classes:
+            help_classes = self._classes_in_config_sample()
+            if help_classes:
+                print("Class parameters")
+                print("----------------")
+                print()
+                for p in wrap_paragraphs(self.keyvalue_description):
+                    print(p)
+                    print()
+
+            for cls in help_classes:
+                cls.class_print_help()
+                print()
+        else:
+            print("To see all available configurables, use `--help-all`")
+            print()
+
+        self.print_examples()
+
+    @classmethod
+    def class_get_help(cls, inst=None):
+        """Get the help string for this class in ReST format.
+
+        If `inst` is given, it's current trait values will be used in place of
+        class defaults.
+        """
+        assert inst is None or isinstance(inst, cls)
+        final_help = []
+        base_classes = ','.join(p.__name__ for p in cls.__bases__)
+        final_help.append(u'%s(%s) options' % (cls.__name__, base_classes))
+        final_help.append(len(final_help[0])*u'-')
+        for k, v in sorted(cls.class_traits(config=True).items()):
+            help = cls.class_get_trait_help(v, inst)
+            final_help.append(help)
+        return '\n'.join(final_help)
 
     def print_subcommands(self):
         """Print the subcommand part of the help."""
@@ -386,8 +475,7 @@ class Cmd(Application):
         #
         cls = type(self)
         if 'description' not in kwds:
-            cdesc = cls.__doc__
-            kwds['description'] = cls.__doc__  ## Defaults are nto applied sometimes...
+            kwds['description'] = cls.__doc__
 
         if 'name ' not in kwds:
             kwds['name'] = camel_to_snake_case(cls.__name__)
