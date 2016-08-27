@@ -702,7 +702,7 @@ class Project(Cmd):
 
     class Create(_SubCmd):
         """Create a new project."""
-        def start(self):
+        def run(self):
             if len(self.extra_args) != 1:
                 raise CmdException('Cmd %r takes a SINGLE project-name to create, recieved %r!'
                                    % (self.name, self.extra_args))
@@ -710,7 +710,7 @@ class Project(Cmd):
 
     class Open(_SubCmd):
         """Make an existing project the *current*.  Returns the *current* if no args specified."""
-        def start(self):
+        def run(self):
             if len(self.extra_args) != 1:
                 raise CmdException("Cmd %r takes a SINGLE project-name to open, received: %r!"
                                    % (self.name, self.extra_args))
@@ -718,7 +718,7 @@ class Project(Cmd):
 
     class List(_SubCmd):
         """List information about the specified projects (or all if no projects specified)."""
-        def start(self):
+        def run(self):
             return self.gitspec.list(*self.extra_args)
 
     class Infos(_SubCmd):
@@ -729,7 +729,7 @@ class Project(Cmd):
                Can be a boolean (# TODO: or 0, 1, 2).
                """).tag(config=True)
 
-        def start(self):
+        def run(self):
             if len(self.extra_args) != 0:
                 raise CmdException('Cmd %r takes no args, received %r!'
                                    % (self.name, self.extra_args))
@@ -770,24 +770,7 @@ class Main(Cmd):
             super().__init__(**kwds)
             self.default_subcmd = 'project'
             self.subcommands = build_sub_cmds(Project, GenConfig)
-            self.cmd_flags = {
-                'debug': ({
-                    'Application' : {
-                        'log_level' : 0,
-                    },
-                    'Cmd' : {
-                        'raise_config_file_errors': True,
-                    },
-                    'Main' : {
-                        'print_config': True,
-                    }
-                }, "Log more logging, fail on configuration errors, and print configuration on startup.")
-            }
 
-    def start(self):
-        if self.print_config:
-            log.info('Running cmd %r with config: \n%s', self.config)
-        return super().start()
 
 
 ## INFO: Add al conf-classes here
@@ -815,7 +798,7 @@ class GenConfig(Cmd):
             co2dice --config-files=~/my_conf  ...
         """)
 
-    def start(self):
+    def run(self):
         ## INFO: Add al conf-classes here
         self.classes = [
               Project, Project.Infos, Project.Create, Project.Open, Project.List,

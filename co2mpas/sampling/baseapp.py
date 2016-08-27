@@ -366,8 +366,9 @@ class Cmd(Application):
                     },
                     'Cmd' : {
                         'raise_config_file_errors': True,
+                        'print_config': True,
                     },
-                }, "Log more, fail on configuration errors.")
+                }, "Log more logging, fail on configuration errors, and print configuration on each cmd startup.")
             }
 
         cmd_classes = [type(cmd) for cmd in cmd_chain]
@@ -399,15 +400,28 @@ class Cmd(Application):
         self.load_config_files()
         self.update_config(cl_config)
 
+    print_config = trt.Bool(False,
+            help="""Enable it to print the configurations before launching any command."""
+    ).tag(config=True)
+
     def start(self):
+        if self.print_config:
+            self.log.info('Running cmd %r with config: \n%s', self.name, self.config)
+
         if self.subapp is not None:
             pass
         elif self.default_subcmd:
             self.initialize_subcommand(self.default_subcmd, self.argv)
         else:
-            raise CmdException('Specify one of the sub-commands: %s'
-                               % ', '.join(self.subcommands.keys()))
+            return self.run()
+
         return self.subapp.start()
+
+    def run(self):
+        """Leaf sub-commands must inherit this instead of :meth:`start()` without invoking :func:`super()`."""
+        raise CmdException('Specify one of the sub-commands: %s'
+                           % ', '.join(self.subcommands.keys()))
+
 
 ## Disable logging-format configs, because their observer
 #    works on on loger's handlers, which might be null.
