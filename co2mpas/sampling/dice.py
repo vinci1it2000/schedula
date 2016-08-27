@@ -444,24 +444,29 @@ class GitSpec(SingletonConfigurable, Spec):
     #     repo_path = convpath(repo_path)
     # return repo_path
 
-    def __init__(self, **kwds):
-        super().__init__(**kwds)
-        repo_path = self.repo_path
-        if not osp.isabs(repo_path):
-            repo_path = osp.join(default_config_dir(), repo_path)
-        repo_path = convpath(repo_path)
-        if osp.isdir(repo_path):
-            self.log.debug('Opening git-repo %r...', repo_path)
-            self.repo = git.Repo(repo_path)
-            if self.reset_settings:
-                self.log.info('Resetting to default settings of git-repo %r...', self.repo.git_dir)
-                self._write_repo_configs()
-        else:
-            self.log.info('Creating new git-repo %r...', repo_path)
-            ensure_dir_exists(repo_path)
-            self.repo = git.Repo.init(repo_path)
-            self._write_repo_configs()
+    __repo = None
 
+    @property
+    def repo(self):
+        if not self.__repo:
+            repo_path = self.repo_path
+            if not osp.isabs(repo_path):
+                repo_path = osp.join(default_config_dir(), repo_path)
+            repo_path = convpath(repo_path)
+            ensure_dir_exists(repo_path)
+            try:
+                self.log.debug('Opening repo %r...', repo_path)
+                self.__repo = git.Repo(repo_path)
+                if self.reset_settings:
+                    self.log.info('Resetting to default settings of repo %r...',
+                                  self.__repo.git_dir)
+                    self._write_repo_configs()
+            except git.InvalidGitRepositoryError as ex:
+                self.log.info("...failed opening repo '%s', initializing a new repo %r...",
+                              ex, repo_path)
+                self.__repo = git.Repo.init(repo_path)
+                self._write_repo_configs()
+        return self.__repo
 
     def _write_repo_configs(self):
         with self.repo.config_writer() as cw:
