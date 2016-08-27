@@ -356,21 +356,12 @@ class Cmd(Application):
             cmd_aliases = dtz.merge(cmd.cmd_aliases for cmd in cmd_chain[::-1])
             cmd_flags = dtz.merge(cmd.cmd_flags for cmd in cmd_chain[::-1])
         else:
-            ## Set some nice defaults for root-CMDs.
-            #
+            ## We are root.
+
             cmd_chain = [self]
             conf_classes = list(self.conf_classes)
-            self.cmd_aliases = cmd_aliases = {'config-files': 'Cmd.config_files'}
-            self.cmd_flags = cmd_flags = {'debug': ({
-                    'Application' : {
-                        'log_level' : 0,
-                    },
-                    'Cmd' : {
-                        'raise_config_file_errors': True,
-                        'print_config': True,
-                    },
-                }, "Log more logging, fail on configuration errors, and print configuration on each cmd startup.")
-            }
+            cmd_aliases = self.cmd_aliases
+            cmd_flags = self.cmd_flags
 
         cmd_classes = [type(cmd) for cmd in cmd_chain]
         self.classes = list(iset(cmd_classes + conf_classes))
@@ -394,14 +385,31 @@ class Cmd(Application):
         ## Traits defaults are not alwasys applied...
         #
         cls = type(self)
-        desc = kwds.get('description')
-        cdesc = cls.__doc__
-        if not desc and cdesc:
-            kwds['description'] = cdesc  ## Defaults are nto applied sometimes...
+        if 'description' not in kwds:
+            cdesc = cls.__doc__
+            kwds['description'] = cls.__doc__  ## Defaults are nto applied sometimes...
 
-        name = kwds.get('name')
-        if not name:
+        if 'name ' not in kwds:
             kwds['name'] = camel_to_snake_case(cls.__name__)
+
+        ## Set some nice defaults for root-CMDs.
+        #
+        if 'cmd_aliases' not in kwds:
+            kwds['cmd_aliases'] = {
+                'config-files': 'Cmd.config_files',
+            }
+        if 'cmd_flags' not in kwds:
+                kwds['cmd_flags'] = {'debug': ({
+                    'Application' : {
+                        'log_level' : 0,
+                    },
+                    'Cmd' : {
+                        'raise_config_file_errors': True,
+                        'print_config': True,
+                    },
+                }, "Log more logging, fail on configuration errors, "
+                   "and print configuration on each cmd startup.")
+        }
 
         super().__init__(**kwds)
 
@@ -432,7 +440,7 @@ class Cmd(Application):
 
     def start(self):
         if self.print_config:
-            self.log.info('Running cmd %r with config: \n%s', self.name, self.config)
+            self.log.info('Running cmd %r with config: \n  %s', self.name, self.config)
 
         if self.subapp is not None:
             pass
