@@ -687,11 +687,11 @@ class Project(Cmd):
     and tracks the sampling procedure.
     """
 
-    examples = """
-    To get the list with the status of all existing projects, try:
+    examples = trt.Unicode("""
+        To get the list with the status of all existing projects, try:
 
-        co2dice project list
-    """
+            co2dice project list
+        """)
 
 
     class _SubCmd(Cmd):
@@ -742,8 +742,12 @@ class Project(Cmd):
             self.subcommands = build_sub_cmds(Project.Infos, Project.Create, Project.Open, Project.List)
             self.default_subcmd = 'infos'
             self.cmd_flags = {
-                'reset-git-settings': ({'GitSpec': {'reset_settings': True}}, GitSpec.reset_settings.help),
-                'verbose':  ({'Infos': {'verbose': True}}, Project.Infos.verbose.help),
+                'reset-git-settings': ({
+                        'GitSpec': {'reset_settings': True}
+                    }, GitSpec.reset_settings.help),
+                'verbose':  ({
+                        'Infos': {'verbose': True}
+                    }, Project.Infos.verbose.help),
             }
 
 
@@ -756,13 +760,33 @@ class Main(Cmd):
     version     = __version__
     #examples = """TODO: Write cmd-line examples."""
 
+    print_config = trt.Bool(False,
+            help="""Enable it to print the configurations before launching any command."""
+    ).tag(config=True)
+
     def __init__(self, **kwds):
         with self.hold_trait_notifications():
             super().__init__(**kwds)
             self.default_subcmd = 'project'
-            self.subcommands=build_sub_cmds(Project, GenConfig)
+            self.subcommands = build_sub_cmds(Project, GenConfig)
+            self.cmd_flags = {
+                'debug': ({
+                    'Application' : {
+                        'log_level' : 0,
+                    },
+                    'Cmd' : {
+                        'raise_config_file_errors': True,
+                    },
+                    'Main' : {
+                        'print_config': True,
+                    }
+                }, "Set log level to logging.DEBUG (more logging) and fail on configuration errors."),
+            }
 
-
+    def start(self):
+        if self.print_config:
+            log.info('Running cmd %r with config: \n%s', self.config)
+        return super().start()
 
 def run_cmd(cmd: Cmd, argv: Sequence[Text]=None):
     """
@@ -809,6 +833,9 @@ def main(argv=None, verbose=None, **app_init_kwds):
         log.error('Launch failed due to: %s', ex, exc_info=1)
         raise ex
 
+## INFO: Add al conf-classes here
+GenConfig.conf_classes.default_value = [Spec, GitSpec, Main,
+                                        Project, Project.Infos, Project.Create, Project.Open, Project.List]
 
 
 if __name__ == '__main__':
@@ -818,13 +845,14 @@ if __name__ == '__main__':
     argv = None
     ## DEBUG AID ARGS, remember to delete them once developed.
     #argv = ''.split()
+    argv = '--debug'.split()
     #argv = '--help'.split()
     argv = '--help-all'.split()
     #argv = 'gen-config'.split()
     #argv = 'gen-config --help-all'.split()
     #argv = 'gen-config help'.split()
     #argv = '--debug --log-level=0 --Mail.port=6 --Mail.user="ggg" abc def'.split()
-    argv = 'project --help-all'.split()
+    #argv = 'project --help-all'.split()
     #argv = '--debug'.split()
     #argv = 'project list --help-all'.split()
 #     argv = 'project --GitSpec.reset_settings=True'.split()
@@ -832,7 +860,7 @@ if __name__ == '__main__':
     #argv = 'project infos --help-all'.split()
     #argv = 'project infos'.split()
 #     argv = 'project infos --verbose'.split()
-#     argv = 'project infos --verbose'.split()
+    argv = 'project infos --verbose --debug'.split()
 #     argv = 'project list  --GitSpec.reset_settings=True'.split()
     #argv = '--GitSpec.reset_settings=True'.split()
     #argv = 'project list'.split()
@@ -840,7 +868,7 @@ if __name__ == '__main__':
     #argv = '--debug'.split()
     #argv = 'project list --help'.split()
     #argv = 'project list'.split()
-    argv = 'project'.split()
+    #argv = 'project'.split()
     #argv = 'project create one'.split()
     main(argv)
 

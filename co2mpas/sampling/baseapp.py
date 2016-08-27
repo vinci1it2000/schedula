@@ -23,7 +23,6 @@ To run nested commands, use :func:`baseapp.chain_cmds()` like that::
 from collections import OrderedDict
 import copy
 import errno
-from toolz import dicttoolz as dtz, itertoolz as itz
 import io
 import logging
 import os
@@ -33,6 +32,7 @@ from typing import Sequence, Text
 
 from boltons.setutils import IndexedSet as iset
 from ipython_genutils.text import indent, wrap_paragraphs, dedent
+from toolz import dicttoolz as dtz, itertoolz as itz
 from traitlets.config import Application, Configurable, LoggingConfigurable, catch_config_error
 
 import os.path as osp
@@ -142,7 +142,7 @@ class Spec(LoggingConfigurable):
     @trt.default('log')
     def _log(self):
         import logging
-        return logging.getLogger(self.__class__.__name__)
+        return logging.getLogger(type(self).__name__)
 
     @trt.validate('user_name', 'user_email')
     def _valid_user(self, proposal):
@@ -176,9 +176,8 @@ class Cmd(Application):
 
     @trt.default('name')
     def _name(self):
-        return camel_to_snake_case(self.__class__.__name__)
+        return camel_to_snake_case(type(self).__name__)
 
-    description = '' ## So that dynamic-default rule, below, runs on subclasses.
 
     @trt.default('description')
     def _description(self):
@@ -198,7 +197,7 @@ class Cmd(Application):
     @trt.default('log')
     def _log(self):
         ## Use a regular logger.
-        return logging.getLogger(self.__class__.__name__)
+        return logging.getLogger(type(self).__name__)
 
     @property
     def user_config_fpaths(self):
@@ -292,10 +291,16 @@ class Cmd(Application):
         """Initialize a subcommand named `subc` with `argv`, or `sys.argv` if `None` (default)."""
         ## INFO: Overriden to set parent on subcmds and inherit config,
         #  see https://github.com/ipython/traitlets/issues/286
-        subapp, _ = self.subcommands.get(subc)
-        self.__class__.clear_instance()
+        subcmd_tuple = self.subcommands.get(subc)
+        assert subcmd_tuple, "Cannot find sub-cmd %r in sub-cmds of %r: %s" % (
+            subc, self.name, list(self.subcommands.keys()))
+        subapp, _ = subcmd_tuple
+        type(self).clear_instance()
         self.subapp = subapp.instance(parent=self)
         self.subapp.initialize(argv)
+
+    default_subcmd = trt.Unicode(None, allow_none=True,
+            help="The name of the sub-command to use if unspecified.")
 
     conf_classes = trt.List(trt.Type(Configurable), default_value=[],
             help="""
@@ -309,22 +314,22 @@ class Cmd(Application):
     cmd_flags = trt.Dict({},
             help="Any *flags* found in this prop up the cmd-chain are merged into :attr:`flags`. """)
 
-    @trt.observe('parent', 'conf_classes', 'cmd_aliases', 'cmd_flags', 'default_subcmd', 'subcommands')
+    @trt.observe('parent', 'conf_classes', 'cmd_aliases', 'cmd_flags', 'subapp', 'subcommands')
     def _inherit_parent_cmd(self, change):
         """ Inherit config-related stuff from up the cmd-chain. """
         if self.parent:
-            ## Collect parents with `self` on the head.
+            ## Collect parents, ordered like that:
+            #    subapp, self, parent1, ...
             #
             cmd_chain = []
-            pcl = self
+            pcl = self.subapp if self.subapp else self
             while pcl:
                 cmd_chain.append(pcl)
                 pcl = pcl.parent
 
-            ## Merge  CMDs/SPECs with parents at the tail,
-            #  collect separately, to prepend CMDs before SPECs.
+            ## Collect separately and merge  SPECs separately,
+            #  to prepend them before SPECs at the end.
             #
-            cmd_classes = [cmd.__class__ for cmd in cmd_chain]
             conf_classes = list(itz.concat(cmd.conf_classes for cmd in cmd_chain))
 
             ## Merge aliases/flags reversed.
@@ -334,23 +339,26 @@ class Cmd(Application):
         else:
             ## Set some nice defaults for root-CMDs.
             #
-            cmd_classes = [self.__class__ ]
+            cmd_chain = [self]
             conf_classes = list(self.conf_classes)
             self.cmd_aliases = cmd_aliases = {'config-files': 'Cmd.config_files'}
-            self.cmd_flags = cmd_flags = {'debug': ({'Application' : {
-                    'log_level' : 0,
-                    'raise_config_file_errors': True,
-                }},
-                "Set log level to logging.DEBUG (more logging) and fail on configuration errors.")
+            self.cmd_flags = cmd_flags = {'debug': ({
+                    'Application' : {
+                        'log_level' : 0,
+                    },
+                    'Cmd' : {
+                        'raise_config_file_errors': True,
+                    },
+                }, "Set log level to logging.DEBUG (more logging) and fail on configuration errors.")
             }
 
-        subc_tuple = self.subcommands.get(self.default_subcmd)
-        if subc_tuple:
-            cmd_classes.append(subc_tuple[0])
+        cmd_classes = [type(cmd) for cmd in cmd_chain]
         self.classes = list(iset(cmd_classes + conf_classes))
         self.aliases.update(cmd_aliases)
         self.flags.update(cmd_flags)
 
+    def __init__(self, **kwds):
+        super().__init__(**kwds)
 
     def _is_dispatching(self):
         """True if dispatching to another command."""
@@ -373,9 +381,6 @@ class Cmd(Application):
         self.load_config_files()
         self.update_config(cl_config)
 
-    default_subcmd = trt.Unicode(None, allow_none=True,
-                                 help="The name of the sub-command to use if unspecified.")
-
     def start(self):
         if self.subapp is not None:
             pass
@@ -386,16 +391,21 @@ class Cmd(Application):
                                % ', '.join(self.subcommands.keys()))
         return self.subapp.start()
 
-
 ## Disable logging-format configs, because their observer
 #    works on on loger's handlers, which might be null.
 Cmd.log_format.tag(config=False)
 Cmd.log_datefmt.tag(config=False)
 
+## So that dynamic-default rules apply.
+#
+Cmd.description.default_value = ''
+Cmd.name.default_value = ''
+
 ## Expose `raise_config_file_errors` instead of relying only on
 #  :envvar:`TRAITLETS_APPLICATION_RAISE_CONFIG_FILE_ERROR`.
 Application.raise_config_file_errors.tag(config=True)
-Cmd.raise_config_file_errors.help='Whether failing to load config files should prevent startup.'
+Cmd.raise_config_file_errors.help = 'Whether failing to load config files should prevent startup.'
+
 
 class GenConfig(Cmd):
     """
@@ -406,24 +416,27 @@ class GenConfig(Cmd):
     Note: It OVERWRITES any pre-existing configuration file(s)!
     """
 
+
     ## Class-docstring CANNOT contain string-interpolations!
-    description = __doc__.format(confpath=convpath('~/.%s_config.py' % APPNAME),
-                                 appname=APPNAME)
+    description = trt.Unicode(__doc__.format(confpath=convpath('~/.%s_config.py' % APPNAME),
+                                 appname=APPNAME))
 
-    examples="""
-    Generate a config-file at your home folder:
+    examples = trt.Unicode("""
+        Generate a config-file at your home folder:
 
-        co2dice gen-config ~/my_conf
+            co2dice gen-config ~/my_conf
 
-    Re-use this custom config-file:
+        Re-use this custom config-file:
 
-        co2dice --config-files=~/my_conf  ...
-    """
+            co2dice --config-files=~/my_conf  ...
+        """)
 
     def start(self):
         extra_args = self.extra_args or [None]
         for fpath in extra_args:
             self.parent.write_default_config(fpath)
+
+
 
 def chain_cmds(app_classes: Sequence[type(Application)],
                argv: Sequence[Text]=None,
