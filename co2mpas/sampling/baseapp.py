@@ -377,6 +377,18 @@ class Cmd(Application):
         self.flags.update(cmd_flags)
 
     def __init__(self, **kwds):
+        ## Traits defaults are not alwasys applied...
+        #
+        cls = type(self)
+        desc = kwds.get('description')
+        cdesc = cls.__doc__
+        if not desc and cdesc:
+            kwds['description'] = cdesc  ## Defaults are nto applied sometimes...
+
+        name = kwds.get('name')
+        if not name:
+            kwds['name'] = camel_to_snake_case(cls.__name__)
+
         super().__init__(**kwds)
 
     def _is_dispatching(self):
