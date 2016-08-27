@@ -38,6 +38,7 @@ from traitlets.config import Application, Configurable, LoggingConfigurable, cat
 import os.path as osp
 import traitlets as trt
 
+from co2mpas.__main__ import init_logging
 
 ## INFO: Modify the following variables on a different application.
 APPNAME = 'co2dice'
@@ -376,6 +377,19 @@ class Cmd(Application):
         self.aliases.update(cmd_aliases)
         self.flags.update(cmd_flags)
 
+    @trt.observe('log_level')
+    def _init_logging(self, change):
+        log_level = change['new']
+        if isinstance(log_level, str):
+            log_level = getattr(logging, log_level)
+        if log_level <= logging.DEBUG:
+            verbose = True
+        elif log_level == logging.INFO:
+            verbose = None
+        else:
+            verbose = False
+        init_logging(verbose=verbose)
+
     def __init__(self, **kwds):
         ## Traits defaults are not alwasys applied...
         #
@@ -433,6 +447,7 @@ class Cmd(Application):
         """Leaf sub-commands must inherit this instead of :meth:`start()` without invoking :func:`super()`."""
         raise CmdException('Specify one of the sub-commands: %s'
                            % ', '.join(self.subcommands.keys()))
+
 
 
 ## Disable logging-format configs, because their observer

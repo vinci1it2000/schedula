@@ -47,7 +47,7 @@ from co2mpas.__main__ import init_logging
 from co2mpas import __uri__  # @UnusedImport
 from co2mpas._version import (__version__, __updated__, __file_version__,   # @UnusedImport
                               __input_file_version__, __copyright__, __license__)  # @UnusedImport
-from co2mpas.sampling.baseapp import (APPNAME, Cmd, Spec, build_sub_cmds,
+from co2mpas.sampling.baseapp import (APPNAME, Application, Cmd, Spec, build_sub_cmds,
     chain_cmds) # @UnusedImport
 from co2mpas.sampling.baseapp import convpath, default_config_dir,ensure_dir_exists ##TODO: move to pandalone
 
@@ -451,13 +451,13 @@ class GitSpec(SingletonConfigurable, Spec):
             repo_path = osp.join(default_config_dir(), repo_path)
         repo_path = convpath(repo_path)
         if osp.isdir(repo_path):
-            log.debug('Opening git-repo %r...', repo_path)
+            self.log.debug('Opening git-repo %r...', repo_path)
             self.repo = git.Repo(repo_path)
             if self.reset_settings:
-                log.info('Resetting to default settings of git-repo %r...', self.repo.git_dir)
+                self.log.info('Resetting to default settings of git-repo %r...', self.repo.git_dir)
                 self._write_repo_configs()
         else:
-            log.info('Creating new git-repo %r...', repo_path)
+            self.log.info('Creating new git-repo %r...', repo_path)
             ensure_dir_exists(repo_path)
             self.repo = git.Repo.init(repo_path)
             self._write_repo_configs()
@@ -489,7 +489,7 @@ class GitSpec(SingletonConfigurable, Spec):
             if scream:
                 raise
             else:
-                log.debug('Found the non-project commit-msg in project-db'
+                self.log.warn('Found the non-project commit-msg in project-db'
                        ', due to: %s\n %s', ex, msg, exc_info=1)
 
     def _commit(self, index, projname, state, msg):
@@ -682,10 +682,10 @@ class ImapSpec(MailSpec):
 
 class Project(Cmd):
     """
-    The `co2dice` sub-cmd to administer the TA of *projects*.
+    Administer the storage repo of TA *projects*.
 
     A *project* stores all CO2MPAS files for a single vehicle,
-    and tracks the sampling procedure.
+    and tracks its sampling procedure.
     """
 
     examples = trt.Unicode("""
@@ -756,8 +756,8 @@ class Project(Cmd):
 class Main(Cmd):
     """The parent command."""
 
-    name        = __title__
-    description = __summary__
+    name        = trt.Unicode(__title__)
+    description = trt.Unicode(__summary__)
     version     = __version__
     #examples = """TODO: Write cmd-line examples."""
 
@@ -766,12 +766,13 @@ class Main(Cmd):
     ).tag(config=True)
 
     def __init__(self, **kwds):
-        with self.hold_trait_notifications():
-            super().__init__(**kwds)
+#         with self.hold_trait_notifications():
+            super().__init__(
+                name=__title__,
+                description=__summary__,
+                **kwds)
             self.default_subcmd = 'project'
             self.subcommands = build_sub_cmds(Project, GenConfig)
-
-
 
 ## INFO: Add al conf-classes here
 class GenConfig(Cmd):
@@ -838,8 +839,6 @@ def main(argv=None, verbose=None, **app_init_kwds):
     :param argv:
         If `None`, use :data:`sys.argv`; use ``[]`` to explicitely use no-args.
     """
-    ## Invoked from cmd-line, so suppress debug-logging by default.
-    init_logging(verbose=verbose)
     try:
         ##Main.launch_instance(argv or None, **app_init_kwds) ## NO No, does not return `start()`!
         app = Main.instance(**app_init_kwds)
