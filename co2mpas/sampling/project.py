@@ -40,20 +40,21 @@ ProjectNotFoundException = trt.TraitError
 
 
 from co2mpas.dispatcher import Dispatcher
+import inspect
 class UFD(Dispatcher):
     def __init__(self, fun_tuples, **kwds):
         super().__init__(**kwds)
         self.add_funs(fun_tuples)
 
-    def add_fun(self, fun, inp, out, **kwd):
-        assert isinstance(inp, Sequence), ('inp!', fun, inp, out, kwd)
-        assert isinstance(out, Sequence), ('out!', fun, inp, out, kwd)
+    def add_fun(self, fun, out, **kwd):
+        assert isinstance(out, Sequence), ('out!', fun, out, kwd)
+        inp = kwd.pop('inp', list(inspect.signature(fun).parameters.keys()))
         self.add_function(function=fun, inputs=inp, outputs=out, **kwd)
 
     def add_funs(self, fun_tuples):
-        for f, inp, out, *kwds in fun_tuples:
+        for f, out, *kwds in fun_tuples:
             kwds = kwds and kwds[0] or {}
-            self.add_fun(f, inp, out, **kwds)
+            self.add_fun(f, out, **kwds)
 
 
 
@@ -268,61 +269,63 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
             verbose = self.verbose
 
         fun_tuples = [
-            (lambda start: self.repo, ['infos'], ['repo']),
+            (lambda infos: self.repo,           ['repo']),
 
             (lambda repo: _get_ref(repo.heads, project, repo.active_branch),
-                    ['repo'], ['ref']),
+                                                ['ref']),
 
-            (lambda ref: ref.commit, ['ref'], ['cmt']),
+            (lambda ref: ref.commit,            ['cmt']),
 
-            (lambda cmt: cmt.tree, ['cmt'], ['tree']),
-            (lambda cmt: cmt.message, ['cmt'], ['cmsg']),
+            (lambda cmt: cmt.tree,              ['tree']),
+            (lambda cmt: cmt.message,           ['cmsg']),
             (lambda cmt: '<invalid: %s>' % cmt.message,
-                    ['cmt'], ['cmsg'], {'weight': 10}),
+                                                ['cmsg'], {'weight': 10}),
             (lambda cmt: '%s <%s>' % (cmt.author.name, cmt.author.email),
-                    ['cmt'], ['author']),
-            (lambda cmt: str(cmt.authored_datetime), ['cmt'], ['last_cdate']),
-            (lambda cmt: cmt.hexsha, ['cmt'], ['commit_SHA']),
+                                                ['author']),
+            (lambda cmt: str(cmt.authored_datetime),
+                                                ['last_cdate']),
+            (lambda cmt: cmt.hexsha,            ['commit_SHA']),
             (lambda cmt: itz.count(cmt.iter_parents()),
-                    ['cmt'], ['revs_count']),
+                                                ['revs_count']),
 
-            (lambda cmsg: dict(self._parse_commit_msg(cmsg)._asdict()),
-                    ['cmsg'], ['msg']),
+            #(lambda cmsg: dict(self._parse_commit_msg(cmsg)._asdict()),
+            #                                    ['msg']),
+            (lambda cmsg: list(self._parse_commit_msg(cmsg)),
+                                                CommitMsg._fields),
 
-            (lambda tree: tree.hexsha, ['tree'], ['tree_SHA']),
+            (lambda tree: tree.hexsha,          ['tree_SHA']),
             (lambda tree: itz.count(tree.list_traverse()),
-                    ['tree'], ['files_count']),
+                                                ['files_count']),
 
             (lambda repo: '.'.join(str(v) for v in repo.git.version_info),
-                    ['repo'], ['exec_version']),
-            (lambda repo: len(repo.heads), ['repo'], ['heads_count']),
+                                                ['exec_version']),
+            (lambda repo: len(repo.heads),      ['heads_count']),
             (lambda repo: itz.count(self._yield_projects()),
-                    ['repo'], ['projects_count']),
-            (lambda repo: len(repo.tags), ['repo'], ['tags_count']),
+                                                ['projects_count']),
+            (lambda repo: len(repo.tags),       ['tags_count']),
 
-            (lambda repo: self.read_git_settings(),
-                    ['repo'], ['git_settings']),
+            (lambda repo: self.read_git_settings(), ['git_settings']),
         ]
 
 
         only_verbose = ['files_count']
-        def with_fallback(f, inp, out, *k):
+        def with_fallback(f, out, *k):
             "Duplicates a rule, returning ``'<invalid>'``, or hides it."
             ## FIXME: How to hide when multiple outputs?
             if not verbose and out[0] in only_verbose:
                 return ()
             if k:
-                t1 = (f, inp, out, k[0])
+                t1 = (f, out, k[0])
                 k2 = k[0].copy()
             else:
-                t1 = (f, inp, out)
+                t1 = (f, out)
                 k2 = {}
             k2['weight'] = 50
             if isinstance(out, (list, tuple)):
                 invalue = '<invalid>' * len(out)
             else:
                 invalue = '<invalid>'
-            return (t1, (lambda *a, **k: invalue, inp, out, k2) )
+            return (t1, (lambda *a, **k: invalue, out, k2) )
 
         fault_tolerant_tuples = itz.concat(with_fallback(*f) for f in fun_tuples)
         infos = UFD(fault_tolerant_tuples).dispatch({'infos': 'run'},)
