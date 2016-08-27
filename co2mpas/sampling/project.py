@@ -18,13 +18,12 @@ from boltons.setutils import IndexedSet as iset
 import git  # From: pip install gitpython
 from toolz import itertoolz as itz
 from traitlets.config import SingletonConfigurable
-from traitlets.config import get_config
 
 from co2mpas import __uri__  # @UnusedImport
 from co2mpas._version import (__version__, __updated__, __file_version__,   # @UnusedImport
                               __input_file_version__, __copyright__, __license__)  # @UnusedImport
 from co2mpas.sampling import dice, baseapp
-from co2mpas.sampling.baseapp import convpath, ensure_dir_exists, which
+from co2mpas.sampling.baseapp import convpath, ensure_dir_exists, which # TODO: to move to pandalone.
 import os.path as osp
 import traitlets as trt
 
@@ -229,11 +228,13 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
 #         #return '<branch_ref>: %s' % proj_name # TODO: Impl proj-examine.
         return projname
 
-    def infos(self, project=None, verbose=False, as_text=False):
+    def infos(self, project=None, verbose=None, as_text=False):
         """
         :param project: use current branch if unspecified.
         :retun: text message with infos.
         """
+        if verbose is None:
+            verbose = self.verbose
         repo = self.repo
         infos = OrderedDict()
         proj = _get_ref(repo.heads, project, repo.active_branch)
@@ -327,17 +328,12 @@ class Project(baseapp.Cmd):
 
     class Infos(_SubCmd):
         """Print a text message with current-project, status, and repo-config data if --verbose."""
-        verbose = trt.Union((trt.Integer(), trt.Bool(False)),
-               help="""
-               Whether to include also info about the repo-configuration.
-               Can be a boolean (# TODO: or 0, 1(==True), 2).
-               """).tag(config=True)
 
         def run(self):
             if len(self.extra_args) != 0:
                 raise CmdException('Cmd %r takes no args, received %r!'
                                    % (self.name, self.extra_args))
-            return self.gitspec.infos(self.verbose, as_text=True)
+            return self.gitspec.infos(as_text=True)
 
 
     def __init__(self, **kwds):
@@ -350,19 +346,21 @@ class Project(baseapp.Cmd):
                 'reset-git-settings': ({
                         'GitSpec': {'reset_settings': True},
                     }, GitSpec.reset_settings.help),
-                'verbose':  ({
-                        'Infos': {'verbose': True},
-                    }, Project.Infos.verbose.help),
             }
 
 
 if __name__ == '__main__':
+    from traitlets.config import get_config
     # Invoked from IDEs, so enable debug-logging.
-    get_config().Application.log_level=True
+    c = get_config()
+    c.Application.log_level=0
+    #c.Spec.log_level='ERROR'
 
     argv = None
     ## DEBUG AID ARGS, remember to delete them once developed.
     #argv = ''.split()
     #argv = '--debug'.split()
 
-    dice.run_cmd(baseapp.chain_cmds([dice.Main, Project, Project.List], argv=['project_foo']))
+    dice.run_cmd(baseapp.chain_cmds(
+        [dice.Main, Project, Project.List],
+        config=c))#argv=['project_foo']))

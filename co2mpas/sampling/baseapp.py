@@ -54,6 +54,7 @@ CmdException = trt.TraitError
 
 ###############################
 ##  TODO: Move to pandalone  ##
+
 _is_dir_regex = re.compile(r'[^/\\][/\\]$')
 
 def normpath(path):
@@ -150,10 +151,6 @@ def which(program):
 ###############################
 
 
-###################
-##     Specs     ##
-###################
-
 def default_config_fname():
     """The config-file's basename (no path or extension) to search when not explicitly specified."""
     return '%s_config' % APPNAME
@@ -167,10 +164,39 @@ def default_config_fpath():
     return osp.join(default_config_dir(), default_config_fname())
 
 
+###################
+##     Specs     ##
+###################
 
-## TODO: Move to dice
 class Spec(LoggingConfigurable):
     """Common properties for all configurables."""
+
+    @trt.default('log')
+    def _log(self):
+        return logging.getLogger(type(self).__name__)
+
+    # The log level for the application
+    log_level = trt.Enum((0,10,20,30,40,50,'DEBUG','INFO','WARN','ERROR','CRITICAL'),
+                    default_value=logging.WARN,
+                    help="Set the log level by value or name.").tag(config=True)
+
+    @trt.observe('log_level')
+    def _log_level_changed(self, change):
+        """Adjust the log level when log_level is set."""
+        new = change['new']
+        if isinstance(new, str):
+            new = getattr(logging, new)
+            self.log_level = new
+        self.log.setLevel(new)
+
+    verbose = trt.Union((trt.Integer(), trt.Bool(False)),
+            ## INFO: Add verbose flag explanations here.
+            help="""
+            Various sub-commands increase their verbosity (not to be confused with --debug):
+            Can be a boolean or 0, 1(==True), 2, ....
+
+            - project infos: Whether to include also info about the repo-configuration.
+            """).tag(config=True)
 
     user_name = trt.Unicode('<Name Surname>',
             help="""The Name & Surname of the default user invoking the app.  Must not be empty!"""
@@ -179,9 +205,6 @@ class Spec(LoggingConfigurable):
             help="""The email address of the default user invoking the app. Must not be empty!"""
             ).tag(config=True)
 
-    @trt.default('log')
-    def _log(self):
-        return logging.getLogger(type(self).__name__)
 
     @trt.validate('user_name', 'user_email')
     def _valid_user(self, proposal):
@@ -190,6 +213,8 @@ class Spec(LoggingConfigurable):
             raise trt.TraitError('%s.%s must not be empty!'
                                  % (proposal['owner'].name, proposal['trait'].name))
         return value
+
+
 
 
 ###################
@@ -487,16 +512,23 @@ class Cmd(Application):
                 'config-files': 'Cmd.config_files',
             }
         if 'cmd_flags' not in kwds:
-                kwds['cmd_flags'] = {'debug': ({
-                    'Application' : {
-                        'log_level' : 0,
+                kwds['cmd_flags'] = {
+                    'debug': ({
+                        'Application' : {'log_level' : 0},
+                        'Spec' : {'log_level' : 0},
+                        'Cmd' : {
+                            'raise_config_file_errors': True,
+                            'print_config': True,
+                        },
                     },
-                    'Cmd' : {
-                        'raise_config_file_errors': True,
-                        'print_config': True,
+                    "Log more logging, fail on configuration errors, "
+                    "and print configuration on each cmd startup."
+                    ),
+                    'verbose':  ({
+                        'Spec': {'verbose': True},
                     },
-                }, "Log more logging, fail on configuration errors, "
-                   "and print configuration on each cmd startup.")
+                    Spec.verbose.help
+                    ),
         }
 
         super().__init__(**kwds)
@@ -568,6 +600,8 @@ def chain_cmds(app_classes: Sequence[type(Application)],
                **root_kwds):
     """
     Instantiate(optionally) a list of ``[cmd, subcmd, ...]`` and link each one as child of its predecessor.
+
+    TODO: FIX `chain_cmds()`, argv not working!
 
     :param argv:
         cmdline args for the the 1st cmd.

@@ -34,14 +34,15 @@ import gnupg
 import keyring
 from toolz import dicttoolz
 from toolz import itertoolz as itz
-from traitlets.config import SingletonConfigurable
+from traitlets.config import LoggingConfigurable, SingletonConfigurable
 from traitlets.config import get_config
 
 from co2mpas import __uri__  # @UnusedImport
 from co2mpas.__main__ import init_logging
 from co2mpas._version import (__version__, __updated__, __file_version__,   # @UnusedImport
                               __input_file_version__, __copyright__, __license__)  # @UnusedImport
-from co2mpas.sampling.baseapp import (APPNAME, Application, Cmd, Spec, build_sub_cmds,
+from co2mpas.sampling import baseapp
+from co2mpas.sampling.baseapp import (APPNAME, Cmd, build_sub_cmds,
                                       chain_cmds)  # @UnusedImport
 from co2mpas.sampling.baseapp import convpath, default_config_dir, ensure_dir_exists
 from co2mpas.sampling.baseapp import where, which
@@ -364,7 +365,8 @@ def __GPG__init__(self, my_gpg_key):
 ##     Specs     ##
 ###################
 
-class GpgSpec(SingletonConfigurable, Spec):
+
+class GpgSpec(SingletonConfigurable, baseapp.Spec):
     """Provider of GnuPG high-level methods."""
 
     exec_path = trt.Unicode(None, allow_none=True,
@@ -379,7 +381,7 @@ class GpgSpec(SingletonConfigurable, Spec):
             """).tag(config=True)
 
 
-class MailSpec(Spec):
+class MailSpec(baseapp.Spec):
     """Common parameters and methods for both SMTP(sending emails) & IMAP(receiving emails)."""
 
     host = trt.Unicode('',
@@ -474,7 +476,7 @@ class GenConfig(Cmd):
         self.classes = [
               pp, pp.Infos, pp.Add, pp.Open, pp.List,
               GenConfig,
-              Spec, proj.GitSpec, Main,
+              baseapp.Spec, proj.GitSpec, Main,
         ]
         extra_args = self.extra_args or [None]
         for fpath in extra_args:
@@ -559,5 +561,9 @@ if __name__ == '__main__':
     #argv = 'project add one'.split()
     main(argv)
 
+    #from traitlets.config import get_config
+
+    #c = get_config()
+    #c.Application.log_level=0
+    #c.Spec.log_level='ERROR'
     #run_cmd(chain_cmds([Main, Project, Project.Add], argv=['project_foo']))
-    #run_cmd(chain_cmds([Main, Project, Project.List], argv=['project_foo']))
