@@ -81,6 +81,7 @@ _default_cfg = textwrap.dedent("""
 
 _opts_to_remove_before_cfg_write = ['default_recipients', 'timestamping_address']
 
+
 def get_home_dir():
     """Get the real path of the home directory"""
     homedir = osp.expanduser('~')
@@ -549,15 +550,10 @@ if __name__ == '__main__':
     #argv = 'project infos --help-all'.split()
     #argv = 'project infos'.split()
     argv = 'project --help-all'.split()
-    #argv = 'project infos --verbose --debug'.split()
+    argv = 'project infos --verbose --debug'.split()
 #     argv = 'project list  --GitSpec.reset_settings=True'.split()
     #argv = '--GitSpec.reset_settings=True'.split()
-    #argv = 'project list'.split()
     #argv = 'project list  --reset-git-settings'.split()
-    #argv = '--debug'.split()
-    #argv = 'project list --help'.split()
-    #argv = 'project list'.split()
-    #argv = 'project'.split()
     #argv = 'project add one'.split()
     main(argv)
 

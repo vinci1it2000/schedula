@@ -512,24 +512,24 @@ class Cmd(Application):
                 'config-files': 'Cmd.config_files',
             }
         if 'cmd_flags' not in kwds:
-                kwds['cmd_flags'] = {
-                    'debug': ({
-                        'Application' : {'log_level' : 0},
-                        'Spec' : {'log_level' : 0},
-                        'Cmd' : {
-                            'raise_config_file_errors': True,
-                            'print_config': True,
-                        },
+            kwds['cmd_flags'] = {
+                'debug': ({
+                    'Application' : {'log_level' : 0},
+                    'Spec' : {'log_level' : 0},
+                    'Cmd' : {
+                        'raise_config_file_errors': True,
+                        'print_config': True,
                     },
-                    "Log more logging, fail on configuration errors, "
-                    "and print configuration on each cmd startup."
-                    ),
-                    'verbose':  ({
-                        'Spec': {'verbose': True},
-                    },
-                    Spec.verbose.help
-                    ),
-        }
+                },
+                "Log more logging, fail on configuration errors, "
+                "and print configuration on each cmd startup."
+                ),
+                'verbose':  ({
+                    'Spec': {'verbose': True},
+                },
+                Spec.verbose.help
+                ),
+            }
 
         super().__init__(**kwds)
 

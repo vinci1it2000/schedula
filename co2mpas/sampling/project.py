@@ -6,7 +6,7 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 #
 """co2dice: prepare/sign/send/receive/validate/archive Type Approval sampling emails of *co2mpas*."""
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict, namedtuple, Sequence, Mapping
 from datetime import datetime
 import io
 import json
@@ -37,6 +37,24 @@ except:
 
 CmdException = trt.TraitError
 ProjectNotFoundException = trt.TraitError
+
+
+from co2mpas.dispatcher import Dispatcher
+class UFD(Dispatcher):
+    def __init__(self, fun_tuples, **kwds):
+        super().__init__(**kwds)
+        self.add_funs(fun_tuples)
+
+    def add_fun(self, fun, inp, out, **kwd):
+        assert isinstance(inp, Sequence), ('inp!', fun, inp, out, kwd)
+        assert isinstance(out, Sequence), ('out!', fun, inp, out, kwd)
+        self.add_function(function=fun, inputs=inp, outputs=out, **kwd)
+
+    def add_funs(self, fun_tuples):
+        for f, inp, out, *kwds in fun_tuples:
+            kwds = kwds and kwds[0] or {}
+            self.add_fun(f, inp, out, **kwds)
+
 
 
 ###################
@@ -228,55 +246,93 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
 #         #return '<branch_ref>: %s' % proj_name # TODO: Impl proj-examine.
         return projname
 
-    def infos(self, project=None, verbose=None, as_text=False):
+    def read_git_settings(self,):
+        settings = []
+        sec = '<not-started>'
+        cname = '<not-started>'
+        try:
+            with self.repo.config_reader() as conf_reader:
+                for sec in conf_reader.sections():
+                    for cname, citem in conf_reader.items(sec):
+                        settings.append('%s.%s = %s' % (sec, cname, citem))
+        except Exception as ext:
+            log.warn('Failed reading git-settings on %s.%s', sec, cname)
+        return settings
+
+    def infos(self, project=None, verbose=None, as_text=False, as_json=False):
         """
         :param project: use current branch if unspecified.
         :retun: text message with infos.
         """
         if verbose is None:
             verbose = self.verbose
-        repo = self.repo
-        infos = OrderedDict()
-        proj = _get_ref(repo.heads, project, repo.active_branch)
-        if not proj:
-            infos['current'] = '<none>'
-        else:
-            cmt = proj.commit
-            tre = cmt.tree
-            cmsg = self._parse_commit_msg(cmt.message)
-            if not cmsg:
-                cproj_infos = OrderedDict([
-                        ('name', proj.name),
-                        ('state', '<invalid>'),
-                        ('msg', cmt.message),
-                ])
-            else:
-                cproj_infos = cmsg._asdict()
-                cproj_infos.update([
-                        ('author', '%s <%s>' % (cmt.author.name, cmt.author.email) ),
-                        ('last_date', str(cmt.authored_datetime)),
-                        ('tree_SHA', tre.hexsha),
-                        ('revisions_count', itz.count(cmt.iter_parents())),
-                        ('files_count', itz.count(tre.list_traverse())),
-            ])
-            infos['current'] = cproj_infos
-        if verbose:
-            git_exec = repo.git.git_exec_name
-            if git_exec == 'git':
-                git_exec = which('git')
 
-            infos['git'] = OrderedDict([
-                    ('repo_path', repo.working_tree_dir),
-                    ('projects_count', itz.count(self._yield_projects()) ),
-                    ('exec_path', repo.git.git_exec_name),
-                    ('exec_version', '.'.join(str(v) for v in repo.git.version_info)),
-            ])
-            with repo.config_reader() as rd:
-                git_conf = rd.read()
-                infos['git']['config'] = git_conf
+        fun_tuples = [
+            (lambda start: self.repo, ['infos'], ['repo']),
+
+            (lambda repo: _get_ref(repo.heads, project, repo.active_branch),
+                    ['repo'], ['ref']),
+
+            (lambda ref: ref.commit, ['ref'], ['cmt']),
+
+            (lambda cmt: cmt.tree, ['cmt'], ['tree']),
+            (lambda cmt: cmt.message, ['cmt'], ['cmsg']),
+            (lambda cmt: '<invalid: %s>' % cmt.message,
+                    ['cmt'], ['cmsg'], {'weight': 10}),
+            (lambda cmt: '%s <%s>' % (cmt.author.name, cmt.author.email),
+                    ['cmt'], ['author']),
+            (lambda cmt: str(cmt.authored_datetime), ['cmt'], ['last_cdate']),
+            (lambda cmt: cmt.hexsha, ['cmt'], ['commit_SHA']),
+            (lambda cmt: itz.count(cmt.iter_parents()),
+                    ['cmt'], ['revs_count']),
+
+            (lambda cmsg: dict(self._parse_commit_msg(cmsg)._asdict()),
+                    ['cmsg'], ['msg']),
+
+            (lambda tree: tree.hexsha, ['tree'], ['tree_SHA']),
+            (lambda tree: itz.count(tree.list_traverse()),
+                    ['tree'], ['files_count']),
+
+            (lambda repo: '.'.join(str(v) for v in repo.git.version_info),
+                    ['repo'], ['exec_version']),
+            (lambda repo: len(repo.heads), ['repo'], ['heads_count']),
+            (lambda repo: itz.count(self._yield_projects()),
+                    ['repo'], ['projects_count']),
+            (lambda repo: len(repo.tags), ['repo'], ['tags_count']),
+
+            (lambda repo: self.read_git_settings(),
+                    ['repo'], ['git_settings']),
+        ]
+
+
+        only_verbose = ['files_count']
+        def with_fallback(f, inp, out, *k):
+            "Duplicates a rule, returning ``'<invalid>'``, or hides it."
+            ## FIXME: How to hide when multiple outputs?
+            if not verbose and out[0] in only_verbose:
+                return ()
+            if k:
+                t1 = (f, inp, out, k[0])
+                k2 = k[0].copy()
+            else:
+                t1 = (f, inp, out)
+                k2 = {}
+            k2['weight'] = 50
+            if isinstance(out, (list, tuple)):
+                invalue = '<invalid>' * len(out)
+            else:
+                invalue = '<invalid>'
+            return (t1, (lambda *a, **k: invalue, inp, out, k2) )
+
+        fault_tolerant_tuples = itz.concat(with_fallback(*f) for f in fun_tuples)
+        infos = UFD(fault_tolerant_tuples).dispatch({'infos': 'run'},)
 
         if as_text:
-            infos = json.dumps(infos, indent=2)
+            import pprint
+            infos = pprint.pprint(infos)
+        elif as_json:
+            infos = json.dumps(infos, indent=2, default=str)
+
         return infos
 
 
@@ -329,11 +385,15 @@ class Project(baseapp.Cmd):
     class Infos(_SubCmd):
         """Print a text message with current-project, status, and repo-config data if --verbose."""
 
+        as_json = trt.Bool(False,
+                help="Whether to return infos as JSON, instead of python-code."
+                ).tag(config=True)
+
         def run(self):
             if len(self.extra_args) != 0:
                 raise CmdException('Cmd %r takes no args, received %r!'
                                    % (self.name, self.extra_args))
-            return self.gitspec.infos(as_text=True)
+            return self.gitspec.infos(as_text=True, as_json=self.as_json)
 
 
     def __init__(self, **kwds):
@@ -346,6 +406,9 @@ class Project(baseapp.Cmd):
                 'reset-git-settings': ({
                         'GitSpec': {'reset_settings': True},
                     }, GitSpec.reset_settings.help),
+                'as-json': ({
+                        'Infos': {'as_json': True},
+                    }, Project.Infos.as_json.help),
             }
 
 
