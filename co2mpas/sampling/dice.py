@@ -743,10 +743,10 @@ class Project(Cmd):
             self.default_subcmd = 'infos'
             self.cmd_flags = {
                 'reset-git-settings': ({
-                        'GitSpec': {'reset_settings': True}
+                        'GitSpec': {'reset_settings': True},
                     }, GitSpec.reset_settings.help),
                 'verbose':  ({
-                        'Infos': {'verbose': True}
+                        'Infos': {'verbose': True},
                     }, Project.Infos.verbose.help),
             }
 
@@ -780,7 +780,7 @@ class Main(Cmd):
                     'Main' : {
                         'print_config': True,
                     }
-                }, "Set log level to logging.DEBUG (more logging) and fail on configuration errors."),
+                }, "Log more logging, fail on configuration errors, and print configuration on startup.")
             }
 
     def start(self):

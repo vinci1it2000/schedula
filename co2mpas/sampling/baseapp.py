@@ -260,6 +260,24 @@ class Cmd(Application):
         with io.open(config_file, mode='wt') as fp:
             fp.write(config_text)
 
+    def print_flag_help(self):
+        """Print the flag part of the help."""
+        if not self.flags:
+            return
+
+        lines = []
+        for m, (cfg, help) in self.flags.items():
+            prefix = '--' if len(m) > 1 else '-'
+            lines.append(prefix+m)
+            lines.append(indent(dedent(help.strip())))
+            cfg_list = ['%s.%s=%s' %(clname, prop, val)
+                        for clname, props_dict
+                        in cfg.items() for prop, val in props_dict.items()]
+            cfg_txt = "Equivalent to: %s" % cfg_list
+            lines.append(indent(dedent(cfg_txt)))
+        # lines.append('')
+        print(os.linesep.join(lines))
+
     def print_subcommands(self):
         """Print the subcommand part of the help."""
         ## Overridden, to print "default" sub-cmd.
