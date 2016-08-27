@@ -36,6 +36,7 @@ from toolz import dicttoolz
 from toolz import itertoolz as itz
 import traitlets as trt
 from traitlets.config import SingletonConfigurable
+from traitlets.config import get_config
 
 import functools as ft
 import pandas as pd
@@ -46,7 +47,7 @@ from co2mpas.__main__ import init_logging
 from co2mpas import __uri__  # @UnusedImport
 from co2mpas._version import (__version__, __updated__, __file_version__,   # @UnusedImport
                               __input_file_version__, __copyright__, __license__)  # @UnusedImport
-from co2mpas.sampling.baseapp import (APPNAME, Cmd, Spec, GenConfig, build_sub_cmds,
+from co2mpas.sampling.baseapp import (APPNAME, Cmd, Spec, build_sub_cmds,
     chain_cmds) # @UnusedImport
 from co2mpas.sampling.baseapp import convpath, default_config_dir,ensure_dir_exists ##TODO: move to pandalone
 
@@ -788,6 +789,44 @@ class Main(Cmd):
             log.info('Running cmd %r with config: \n%s', self.config)
         return super().start()
 
+
+## INFO: Add al conf-classes here
+class GenConfig(Cmd):
+    """
+    Store config defaults into specified path(s), read from :attr:`extra_args` (cmd-arguments);
+    '{confpath}' assumed if nonen specified.
+    If a path resolves to a folder, the filename '{appname}_config.py' is appended.
+
+    Note: It OVERWRITES any pre-existing configuration file(s)!
+    """
+
+
+    ## Class-docstring CANNOT contain string-interpolations!
+    description = trt.Unicode(__doc__.format(confpath=convpath('~/.%s_config.py' % APPNAME),
+                                 appname=APPNAME))
+
+    examples = trt.Unicode("""
+        Generate a config-file at your home folder:
+
+            co2dice gen-config ~/my_conf
+
+        Re-use this custom config-file:
+
+            co2dice --config-files=~/my_conf  ...
+        """)
+
+    def start(self):
+        ## INFO: Add al conf-classes here
+        self.classes = [
+              Project, Project.Infos, Project.Create, Project.Open, Project.List,
+              GenConfig,
+              Spec, GitSpec, Main,
+        ]
+        extra_args = self.extra_args or [None]
+        for fpath in extra_args:
+            self.write_default_config(fpath)
+
+
 def run_cmd(cmd: Cmd, argv: Sequence[Text]=None):
     """
     Executes a (possibly nested) command, and print its (possibly lazy) results to `stdout`.
@@ -833,10 +872,6 @@ def main(argv=None, verbose=None, **app_init_kwds):
         log.error('Launch failed due to: %s', ex, exc_info=1)
         raise ex
 
-## INFO: Add al conf-classes here
-GenConfig.conf_classes.default_value = [Spec, GitSpec, Main,
-                                        Project, Project.Infos, Project.Create, Project.Open, Project.List]
-
 
 if __name__ == '__main__':
     # Invoked from IDEs, so enable debug-logging.
@@ -848,7 +883,7 @@ if __name__ == '__main__':
     argv = '--debug'.split()
     #argv = '--help'.split()
     argv = '--help-all'.split()
-    #argv = 'gen-config'.split()
+    argv = 'gen-config'.split()
     #argv = 'gen-config --help-all'.split()
     #argv = 'gen-config help'.split()
     #argv = '--debug --log-level=0 --Mail.port=6 --Mail.user="ggg" abc def'.split()
@@ -860,7 +895,7 @@ if __name__ == '__main__':
     #argv = 'project infos --help-all'.split()
     #argv = 'project infos'.split()
 #     argv = 'project infos --verbose'.split()
-    argv = 'project infos --verbose --debug'.split()
+    #argv = 'project infos --verbose --debug'.split()
 #     argv = 'project list  --GitSpec.reset_settings=True'.split()
     #argv = '--GitSpec.reset_settings=True'.split()
     #argv = 'project list'.split()

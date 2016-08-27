@@ -141,7 +141,6 @@ class Spec(LoggingConfigurable):
 
     @trt.default('log')
     def _log(self):
-        import logging
         return logging.getLogger(type(self).__name__)
 
     @trt.validate('user_name', 'user_email')
@@ -169,6 +168,7 @@ def build_sub_cmds(*subapp_classes):
 
     return OrderedDict((camel_to_cmd_name(sa.__name__), (sa, app_help(sa)))
                        for sa in subapp_classes)
+
 
 class Cmd(Application):
     """Common machinery for all (sub-)commands. """
@@ -367,7 +367,7 @@ class Cmd(Application):
                     'Cmd' : {
                         'raise_config_file_errors': True,
                     },
-                }, "Set log level to logging.DEBUG (more logging) and fail on configuration errors.")
+                }, "Log more, fail on configuration errors.")
             }
 
         cmd_classes = [type(cmd) for cmd in cmd_chain]
@@ -416,43 +416,13 @@ Cmd.log_datefmt.tag(config=False)
 
 ## So that dynamic-default rules apply.
 #
-Cmd.description.default_value = ''
-Cmd.name.default_value = ''
+Cmd.description.default_value = None
+Cmd.name.default_value = None
 
 ## Expose `raise_config_file_errors` instead of relying only on
 #  :envvar:`TRAITLETS_APPLICATION_RAISE_CONFIG_FILE_ERROR`.
 Application.raise_config_file_errors.tag(config=True)
 Cmd.raise_config_file_errors.help = 'Whether failing to load config files should prevent startup.'
-
-
-class GenConfig(Cmd):
-    """
-    Store config defaults into specified path(s), read from :attr:`extra_args` (cmd-arguments);
-    '{confpath}' assumed if nonen specified.
-    If a path resolves to a folder, the filename '{appname}_config.py' is appended.
-
-    Note: It OVERWRITES any pre-existing configuration file(s)!
-    """
-
-
-    ## Class-docstring CANNOT contain string-interpolations!
-    description = trt.Unicode(__doc__.format(confpath=convpath('~/.%s_config.py' % APPNAME),
-                                 appname=APPNAME))
-
-    examples = trt.Unicode("""
-        Generate a config-file at your home folder:
-
-            co2dice gen-config ~/my_conf
-
-        Re-use this custom config-file:
-
-            co2dice --config-files=~/my_conf  ...
-        """)
-
-    def start(self):
-        extra_args = self.extra_args or [None]
-        for fpath in extra_args:
-            self.parent.write_default_config(fpath)
 
 
 
