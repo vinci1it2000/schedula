@@ -6,24 +6,31 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 #
 """co2dice: prepare/sign/send/receive/validate/archive Type Approval sampling emails of *co2mpas*."""
-from collections import OrderedDict, namedtuple, Sequence, Mapping
+# TODO: to move to pandalone.
+
+from collections import (
+    OrderedDict, namedtuple)  # @UnusedImport
+import copy
 from datetime import datetime
+import inspect
 import io
 import json
 import logging
 import textwrap
-from typing import Sequence, Text  # @UnusedImport
+from typing import (
+    List, Sequence, Iterable, Text, Tuple, Callable)  # @UnusedImport
 
 from boltons.setutils import IndexedSet as iset
 import git  # From: pip install gitpython
-from toolz import itertoolz as itz
+from toolz import itertoolz as itz, dicttoolz as dtz
 from traitlets.config import SingletonConfigurable
 
 from co2mpas import __uri__  # @UnusedImport
 from co2mpas._version import (__version__, __updated__, __file_version__,   # @UnusedImport
                               __input_file_version__, __copyright__, __license__)  # @UnusedImport
+from co2mpas.dispatcher import Dispatcher
 from co2mpas.sampling import dice, baseapp
-from co2mpas.sampling.baseapp import convpath, ensure_dir_exists, which # TODO: to move to pandalone.
+from co2mpas.sampling.baseapp import convpath, ensure_dir_exists, where
 import os.path as osp
 import traitlets as trt
 
@@ -39,23 +46,87 @@ CmdException = trt.TraitError
 ProjectNotFoundException = trt.TraitError
 
 
-from co2mpas.dispatcher import Dispatcher
-import inspect
-class UFD(Dispatcher):
-    def __init__(self, fun_tuples, **kwds):
-        super().__init__(**kwds)
-        self.add_funs(fun_tuples)
 
-    def add_fun(self, fun, out, **kwd):
-        assert isinstance(out, Sequence), ('out!', fun, out, kwd)
-        inp = kwd.pop('inp', list(inspect.signature(fun).parameters.keys()))
-        self.add_function(function=fun, inputs=inp, outputs=out, **kwd)
 
-    def add_funs(self, fun_tuples):
-        for f, out, *kwds in fun_tuples:
-            kwds = kwds and kwds[0] or {}
-            self.add_fun(f, out, **kwds)
+class UFun(object):
+    """
+     A 3-tuple ``(out, fun, **kwds)``, used to prepare a list of calls to :meth:`Dispatcher.add_function()`.
 
+     The workhorse is the :meth:`addme()` which delegates to :meth:`Dispatcher.add_function():
+
+       - ``out``: a scalar string or a string-list that, sent as `output` arg,
+       - ``fun``: a callable, sent as `function` args,
+       - ``kwds``: any keywords of :meth:`Dispatcher.add_function()`.
+       - Specifically for the 'inputs' argument, if present in `kwds`, use them
+         (a scalar-string or string-list type, possibly empty), else inspect function;
+         in any case wrap the result in a tuple (if not already a list-type).
+
+         NOTE: Inspection works only for regular args, no ``*args, **kwds`` supported,
+         and they will fail late, on :meth:`addme()`, if no `input` or `inp` defined.
+
+    Example::
+
+        ufuns = [
+            UFun('res', lambda num: num * 2),
+            UFun('res2', lambda num, num2: num + num2, weight=30),
+            UFun(out=['nargs', 'res22'],
+                 fun=lambda *args: (len(args), args),
+                 inp=('res', 'res1')
+            ),
+        ]
+    """
+    def __init__(self, out, fun, inputs=None, **kwds):
+        self.out = out
+        self.fun = fun
+        if inputs is not None:
+            kwds['inputs'] = inputs
+        self.kwds = kwds
+        assert 'outputs' not in kwds and 'function' not in kwds, self
+
+    def __repr__(self, *args, **kwargs):
+        kwds = dtz.keyfilter(lambda k: k not in ('fun', 'out'), self.kwds)
+        return 'UFun(%r, %r, %s)' % (
+            self.out,
+            self.fun,
+            ', '.join('%s=%s' %(k, v) for k, v in kwds.items()))
+
+    def copy(self):
+        cp = UFun(**vars(self))
+        cp.kwds = dict(self.kwds)
+        return cp
+
+    def inspect_inputs(self):
+        fun_params = inspect.signature(self.fun).parameters
+        assert not any(p.kind for p in fun_params.values()
+                       if p.kind != inspect.Parameter.POSITIONAL_OR_KEYWORD), (
+                           "Found '*args or **kwds on function!", self)
+        return tuple(fun_params.keys())
+
+    def addme(self, dsp):
+        out = self.out
+        if not isinstance(out, (tuple, list)):
+            out = (out, )
+
+        inp = self.kwds.pop('inputs', None)
+        if inp is None:
+            inp = self.inspect_inputs()
+
+        if not isinstance(inp, (tuple, list)):
+            inp = (inp, )
+
+        return dsp.add_function(inputs=inp,
+                                outputs=out,
+                                function=self.fun,
+                                **self.kwds)
+
+    @classmethod
+    def add_ufuns(cls, ufuns: Iterable, dsp: Dispatcher):
+        for uf in ufuns:
+            try:
+                uf.addme(dsp)
+            except Exception as ex:
+                raise ValueError("Failed adding ufun %s due to: %s: %s"
+                                 % (uf, type(ex).__name__, ex)) from ex
 
 
 ###################
@@ -203,9 +274,13 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
         """
         :param projname: some branch ref
         """
+#         self.log.info('Archiving repo into %r...', projname)
+#         with io.open(convpath(projname, 0, 0), 'wb') as fd:
+#             self.repo.archive(fd)
+#         return
         self.log.info('Opening project %r...', projname)
-        if self.exists(projname):
-            raise CmdException('Project %r already exists!' % projname)
+        if not self.exists(projname):
+            raise CmdException('Project %r not found!' % projname)
         self.repo.create_head(projname)
 
     def _yield_projects(self, refs=None):
@@ -247,17 +322,27 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
 #         #return '<branch_ref>: %s' % proj_name # TODO: Impl proj-examine.
         return projname
 
-    def read_git_settings(self,):
+    def read_git_settings(self, prefix: Text='', config_level: Text=None):# -> List(Text):
+        """
+        :param prefix:
+            prefix of all settings.key (better end with a dot).
+        :param config_level:
+            One of: ( system | global | repository )
+            If None, all applicable levels will be merged.
+            See :meth:`git.Repo.config_reader`.
+        :return: a list with ``section.setting = value`` str lines
+        """
         settings = []
         sec = '<not-started>'
         cname = '<not-started>'
         try:
-            with self.repo.config_reader() as conf_reader:
+            with self.repo.config_reader(config_level) as conf_reader:
                 for sec in conf_reader.sections():
                     for cname, citem in conf_reader.items(sec):
-                        settings.append('%s.%s = %s' % (sec, cname, citem))
-        except Exception as ext:
-            log.warn('Failed reading git-settings on %s.%s', sec, cname)
+                        settings.append('%s%s.%s = %s' % (prefix, sec, cname, citem))
+        except Exception as ex:
+            log.warn('Failed reading git-settings on %s.%s due to: %s',
+                     sec, cname, ex, exc_info=1)
         return settings
 
     def infos(self, project=None, verbose=None, as_text=False, as_json=False):
@@ -268,67 +353,65 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
         if verbose is None:
             verbose = self.verbose
 
-        fun_tuples = [
-            (lambda infos: self.repo,           ['repo']),
+        ufuns = {
+            UFun('repo',         lambda infos: self.repo),
+            UFun('git_cmds',     lambda infos: where('git')),
+            UFun('exec_version', lambda repo: '.'.join(str(v) for v in repo.git.version_info)),
+            UFun('heads_count',  lambda repo: len(repo.heads)),
+            UFun('projects_count',  lambda repo: itz.count(self._yield_projects())),
+            UFun('tags_count',   lambda repo: len(repo.tags)),
+            UFun('git_settings', lambda repo: self.read_git_settings(prefix='settings.')),
+            UFun('ref',          lambda repo: _get_ref(repo.heads, project, repo.active_branch)),
+            UFun('dirty',        lambda repo: repo.is_dirty()),
 
-            (lambda repo: _get_ref(repo.heads, project, repo.active_branch),
-                                                ['ref']),
+            UFun('cmt',          lambda ref: ref.commit),
 
-            (lambda ref: ref.commit,            ['cmt']),
+            UFun('tree',         lambda cmt: cmt.tree),
+            UFun('author',       lambda cmt: '%s <%s>' % (cmt.author.name, cmt.author.email)),
+            UFun('last_cdate',   lambda cmt: str(cmt.authored_datetime)),
+            UFun('commit_SHA',   lambda cmt: cmt.hexsha),
+            UFun('revs_count',   lambda cmt: itz.count(cmt.iter_parents())),
+            UFun('cmsg',         lambda cmt: cmt.message),
+            UFun('cmsg',         lambda cmt: '<invalid: %s>' % cmt.message, weight=10),
 
-            (lambda cmt: cmt.tree,              ['tree']),
-            (lambda cmt: cmt.message,           ['cmsg']),
-            (lambda cmt: '<invalid: %s>' % cmt.message,
-                                                ['cmsg'], {'weight': 10}),
-            (lambda cmt: '%s <%s>' % (cmt.author.name, cmt.author.email),
-                                                ['author']),
-            (lambda cmt: str(cmt.authored_datetime),
-                                                ['last_cdate']),
-            (lambda cmt: cmt.hexsha,            ['commit_SHA']),
-            (lambda cmt: itz.count(cmt.iter_parents()),
-                                                ['revs_count']),
+            UFun(CommitMsg._fields, lambda cmsg: list(self._parse_commit_msg(cmsg))),
 
-            #(lambda cmsg: dict(self._parse_commit_msg(cmsg)._asdict()),
-            #                                    ['msg']),
-            (lambda cmsg: list(self._parse_commit_msg(cmsg)),
-                                                CommitMsg._fields),
-
-            (lambda tree: tree.hexsha,          ['tree_SHA']),
-            (lambda tree: itz.count(tree.list_traverse()),
-                                                ['files_count']),
-
-            (lambda repo: '.'.join(str(v) for v in repo.git.version_info),
-                                                ['exec_version']),
-            (lambda repo: len(repo.heads),      ['heads_count']),
-            (lambda repo: itz.count(self._yield_projects()),
-                                                ['projects_count']),
-            (lambda repo: len(repo.tags),       ['tags_count']),
-
-            (lambda repo: self.read_git_settings(), ['git_settings']),
-        ]
+            UFun('tree_SHA',     lambda tree: tree.hexsha),
+            UFun('files_count',  lambda tree: itz.count(tree.list_traverse())),
+        }
 
 
-        only_verbose = ['files_count']
-        def with_fallback(f, out, *k):
-            "Duplicates a rule, returning ``'<invalid>'``, or hides it."
-            ## FIXME: How to hide when multiple outputs?
-            if not verbose and out[0] in only_verbose:
+        to_hide = ['files_count']
+        fallback_value = '<invalid>'
+        def filter_fun(ufun:UFun) -> Tuple:
+            """
+            Duplicate `ufun` as "fallback" one, or hide it.
+
+            :return: either ``(<original-ufun>, <failback-ufun>)``, or ``()`` when hidden
+            """
+            if ufun.out in to_hide:
                 return ()
-            if k:
-                t1 = (f, out, k[0])
-                k2 = k[0].copy()
-            else:
-                t1 = (f, out)
-                k2 = {}
-            k2['weight'] = 50
-            if isinstance(out, (list, tuple)):
-                invalue = '<invalid>' * len(out)
-            else:
-                invalue = '<invalid>'
-            return (t1, (lambda *a, **k: invalue, out, k2) )
 
-        fault_tolerant_tuples = itz.concat(with_fallback(*f) for f in fun_tuples)
-        infos = UFD(fault_tolerant_tuples).dispatch({'infos': 'run'},)
+            fail_ufun = ufun.copy()
+            fail_ufun.kwds['weight'] = 50
+
+            ## Handle functions with multiple outputs.
+            #
+            out = ufun.out
+            if isinstance(out, (list, tuple)) and len(out):
+                fvalue = (fallback_value, ) * len(out)
+            else:
+                fvalue = fallback_value
+
+            fail_ufun.fun = lambda *a, **k: fvalue
+            fail_ufun.kwds['inputs'] = ufun.inspect_inputs() # Pin inputs.
+
+            return (ufun, fail_ufun)
+
+        fault_tolerant_ufuns = itz.concat(filter_fun(uf) for uf in ufuns)
+        d = Dispatcher()
+        UFun.add_ufuns(fault_tolerant_ufuns, d)
+        infos = d.dispatch(inputs={'infos': 'ok'})
 
         if as_text:
             import pprint
