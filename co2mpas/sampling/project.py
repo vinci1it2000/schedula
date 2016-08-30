@@ -462,15 +462,7 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
             if as_json:
                 infos = json.dumps(infos, indent=2, default=str)
             else:
-                indent = 12
-                def format_item(k, v):
-                    nk = len(k)
-                    ntabs = max (1, int(nk / indent) + bool(nk % indent))
-                    key_width = ntabs * indent
-                    item_pattern = '%%-%is = %%s' % key_width
-                    return item_pattern % (k, v)
-                infos = [format_item(*i) for i in infos.items()]
-                infos = '\n'.join(sorted(infos))
+                infos = baseapp.format_kv_items(infos.items())
         return infos
 
 
