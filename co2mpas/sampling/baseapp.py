@@ -495,23 +495,19 @@ class Cmd(Application):
         init_logging(verbose=verbose)
 
     def __init__(self, **kwds):
-        ## Traits defaults are not alwasys applied...
-        #
         cls = type(self)
-        if 'description' not in kwds:
-            kwds['description'] = cls.__doc__
+        dkwds = {
+            ## Traits defaults are not always applied...
+            #
+            'description': cls.__doc__,
+            'name': camel_to_snake_case(cls.__name__),
 
-        if 'name ' not in kwds:
-            kwds['name'] = camel_to_snake_case(cls.__name__)
-
-        ## Set some nice defaults for root-CMDs.
-        #
-        if 'cmd_aliases' not in kwds:
-            kwds['cmd_aliases'] = {
+            ## Set some nice defaults for root-CMDs.
+            #
+            'cmd_aliases': {
                 'config-files': 'Cmd.config_files',
-            }
-        if 'cmd_flags' not in kwds:
-            kwds['cmd_flags'] = {
+            },
+            'cmd_flags': {
                 'debug': ({
                     'Application' : {'log_level' : 0},
                     'Spec' : {'log_level' : 0},
@@ -528,9 +524,10 @@ class Cmd(Application):
                 },
                 Spec.verbose.help
                 ),
-            }
-
-        super().__init__(**kwds)
+            },
+        }
+        dkwds.update(kwds)
+        super().__init__(**dkwds)
 
     def _is_dispatching(self):
         """True if dispatching to another command."""

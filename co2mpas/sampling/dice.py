@@ -438,12 +438,14 @@ class Main(Cmd):
     def __init__(self, **kwds):
         import co2mpas.sampling.project as proj
         with self.hold_trait_notifications():
-            super().__init__(
-                name=__title__,
-                description=__summary__,
-                **kwds)
-            self.default_subcmd = 'project'
-            self.subcommands = build_sub_cmds(proj.Project, GenConfig)
+            dkwds = {
+                'name': __title__,
+                'description': __summary__,
+                'default_subcmd': 'project',
+                'subcommands': build_sub_cmds(proj.Project, GenConfig),
+            }
+            dkwds.update(kwds)
+            super().__init__(**dkwds)
 
 ## INFO: Add al conf-classes here
 class GenConfig(Cmd):

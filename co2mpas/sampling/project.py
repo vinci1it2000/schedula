@@ -107,9 +107,6 @@ class UFun(object):
         out = self.out
         fun = self.fun
 
-        if 'description' not in kwds:
-            kwds['function_id'] = '%s:%s->%s' % (fun.__module__, fun.__name__, out)
-
         if not isinstance(out, (tuple, list)):
             out = (out, )
         else:
@@ -123,6 +120,9 @@ class UFun(object):
             inp = (inp, )
         else:
             pass
+
+        if 'description' not in kwds:
+            kwds['function_id'] = '%s:%s%s --> %s' % (fun.__module__, fun.__name__, inp, out)
 
         return dsp.add_function(inputs=inp,
                                 outputs=out,
@@ -298,7 +298,7 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
             refs = self.repo.heads
         for ref in refs:
             if self.exists(ref):
-                yield self.examine(ref)
+                yield ref
 
     def list(self, *projnames: str):
         """
@@ -339,8 +339,9 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
                             s = s[prefix]
                         s[sec][cname] = citem
         except Exception as ex:
-            log.warn('Failed reading git-settings on %s.%s due to: %s',
+            log.info('Failed reading git-settings on %s.%s due to: %s',
                      sec, cname, ex, exc_info=1)
+            raise
         return settings
 
     @fnt.lru_cache() # x6(!) faster!
@@ -393,12 +394,6 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
             return (ufun, fail_ufun)
 
         dsp = Dispatcher()
-#         for uf in ufuns:
-#             out = uf.out
-#             if not isinstance(out, (tuple, list)):
-#                 out = (out, )
-#             for o in out:
-#                 dsp.add_data(o, wait_inputs=True)
         ufuns = list(itz.concat(filter_fun(uf) for uf in ufuns))
         UFun.add_ufuns(ufuns, dsp)
 
@@ -422,12 +417,13 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
                 'author',
             ],
             1: [
+                'infos',
+                'repo',
                 'cmsg',
                 'msg_fields',
                 'dirty',
                 'commit',
                 'tree',
-                'infos,'
             ],
             2: [
                 'heads_count',
@@ -458,7 +454,6 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
         outs = self._out_fields_by_verbose_level(int(verbose))
         infos = dsp.dispatch(inputs={'infos': 'ok', 'prj': project},
                              outputs=outs)
-
         infos = dict(utils.stack_nested_keys(infos))
         infos = dtz.keymap(lambda k: '.'.join(k), infos)
         infos = dtz.keyfilter(lambda k: any(k.startswith(o) for o in outs), infos)
@@ -467,8 +462,6 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
             if as_json:
                 infos = json.dumps(infos, indent=2, default=str)
             else:
-                #import pprint
-                #infos = pprint.pformat(infos)
                 indent = 12
                 def format_item(k, v):
                     nk = len(k)
@@ -543,18 +536,22 @@ class Project(baseapp.Cmd):
 
     def __init__(self, **kwds):
         with self.hold_trait_notifications():
-            super().__init__(**kwds)
-            self.conf_classes = [GitSpec]
-            self.subcommands = baseapp.build_sub_cmds(Project.Infos, Project.Add, Project.Open, Project.List)
-            self.default_subcmd = 'infos'
-            self.cmd_flags = {
-                'reset-git-settings': ({
-                        'GitSpec': {'reset_settings': True},
-                    }, GitSpec.reset_settings.help),
-                'as-json': ({
-                        'Infos': {'as_json': True},
-                    }, Project.Infos.as_json.help),
+            dkwds = {
+                'conf_classes': [GitSpec],
+                'subcommands': baseapp.build_sub_cmds(Project.Infos, Project.Add, Project.Open, Project.List),
+                'default_subcmd': 'infos',
+                'cmd_flags': {
+                    'reset-git-settings': ({
+                            'GitSpec': {'reset_settings': True},
+                        }, GitSpec.reset_settings.help),
+                    'as-json': ({
+                            'Infos': {'as_json': True},
+                        }, Project.Infos.as_json.help),
+                }
             }
+            dkwds.update(kwds)
+            super().__init__(**dkwds)
+
 
 
 if __name__ == '__main__':
