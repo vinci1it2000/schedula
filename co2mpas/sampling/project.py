@@ -9,8 +9,7 @@
 # TODO: to move to pandalone.
 
 from collections import (
-    OrderedDict, namedtuple)  # @UnusedImport
-import copy
+    defaultdict, OrderedDict, namedtuple)  # @UnusedImport
 from datetime import datetime
 import inspect
 import io
@@ -26,11 +25,12 @@ from toolz import itertoolz as itz, dicttoolz as dtz
 from traitlets.config import SingletonConfigurable
 
 from co2mpas import __uri__  # @UnusedImport
+from co2mpas import utils
 from co2mpas._version import (__version__, __updated__, __file_version__,   # @UnusedImport
                               __input_file_version__, __copyright__, __license__)  # @UnusedImport
-from co2mpas.dispatcher import Dispatcher
 from co2mpas.sampling import dice, baseapp
 from co2mpas.sampling.baseapp import convpath, ensure_dir_exists, where
+import functools as fnt
 import os.path as osp
 import traitlets as trt
 
@@ -103,24 +103,34 @@ class UFun(object):
         return tuple(fun_params.keys())
 
     def addme(self, dsp):
+        kwds = self.kwds
         out = self.out
+        fun = self.fun
+
+        if 'description' not in kwds:
+            kwds['function_id'] = '%s:%s->%s' % (fun.__module__, fun.__name__, out)
+
         if not isinstance(out, (tuple, list)):
             out = (out, )
+        else:
+            pass
 
-        inp = self.kwds.pop('inputs', None)
+        inp = kwds.pop('inputs', None)
         if inp is None:
             inp = self.inspect_inputs()
 
         if not isinstance(inp, (tuple, list)):
             inp = (inp, )
+        else:
+            pass
 
         return dsp.add_function(inputs=inp,
                                 outputs=out,
-                                function=self.fun,
-                                **self.kwds)
+                                function=fun,
+                                **kwds)
 
     @classmethod
-    def add_ufuns(cls, ufuns: Iterable, dsp: Dispatcher):
+    def add_ufuns(cls, ufuns: Iterable, dsp):#: Dispatcher):
         for uf in ufuns:
             try:
                 uf.addme(dsp)
@@ -305,45 +315,136 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
         """
         :param projname: some branch ref
         """
-#         repo = self.repo
-#         proj = self.repo.refs[projname]
-#         if not proj:
-#             raise ProjectNotFoundException('Project %r does not exist!' % projname)
-#         else:
-#             cmt = proj.commit
-#             tre = cmt.tree
-#             cmsg = self._parse_commit_msg(cmt.message)
-#             if not cmsg:
-#                 ('author', '%s <%s>' % (cmt.author.name, cmt.author.email) ),
-#                 ('last_date', str(cmt.authored_datetime)),
-#                 ('tree_SHA', tre.hexsha),
-#                 ('revisions_count', itz.count(cmt.iter_parents())),
-#                 ('files_count', itz.count(tre.list_traverse())),
-#         #return '<branch_ref>: %s' % proj_name # TODO: Impl proj-examine.
         return projname
 
-    def read_git_settings(self, prefix: Text='', config_level: Text=None):# -> List(Text):
+    def read_git_settings(self, prefix: Text=None, config_level: Text=None):# -> List(Text):
         """
         :param prefix:
-            prefix of all settings.key (better end with a dot).
+            prefix of all settings.key (without a dot).
         :param config_level:
             One of: ( system | global | repository )
             If None, all applicable levels will be merged.
             See :meth:`git.Repo.config_reader`.
         :return: a list with ``section.setting = value`` str lines
         """
-        settings = []
+        settings = defaultdict(); settings.default_factory = defaultdict
         sec = '<not-started>'
         cname = '<not-started>'
         try:
             with self.repo.config_reader(config_level) as conf_reader:
                 for sec in conf_reader.sections():
                     for cname, citem in conf_reader.items(sec):
-                        settings.append('%s%s.%s = %s' % (prefix, sec, cname, citem))
+                        s = settings
+                        if prefix:
+                            s = s[prefix]
+                        s[sec][cname] = citem
         except Exception as ex:
             log.warn('Failed reading git-settings on %s.%s due to: %s',
                      sec, cname, ex, exc_info=1)
         return settings
+
+    @fnt.lru_cache() # x6(!) faster!
+    def _infos_dsp(self, fallback_value='<invalid>'):
+        from co2mpas.dispatcher import Dispatcher
+
+        ufuns = [
+            UFun('repo',         lambda infos: self.repo),
+            UFun('git_cmds',     lambda infos: where('git')),
+            UFun('ref',          lambda repo, prj: _get_ref(repo.heads, prj, repo.active_branch)),
+            UFun('exec_version', lambda repo: '.'.join(str(v) for v in repo.git.version_info)),
+            UFun('heads_count',  lambda repo: len(repo.heads)),
+            UFun('projects_count',  lambda repo: itz.count(self._yield_projects())),
+            UFun('tags_count',   lambda repo: len(repo.tags)),
+            UFun('git_settings', lambda repo: self.read_git_settings()),
+            UFun('dirty',        lambda repo: repo.is_dirty()),
+
+            UFun('cmt',          lambda ref: ref.commit),
+
+            UFun('tre',          lambda cmt: cmt.tree),
+            UFun('author',       lambda cmt: '%s <%s>' % (cmt.author.name, cmt.author.email)),
+            UFun('last_cdate',   lambda cmt: str(cmt.authored_datetime)),
+            UFun('commit',       lambda cmt: cmt.hexsha),
+            UFun('revs_count',   lambda cmt: itz.count(cmt.iter_parents())),
+            UFun('cmsg',         lambda cmt: cmt.message),
+            UFun('cmsg',         lambda cmt: '<invalid: %s>' % cmt.message, weight=10),
+
+            UFun('msg_fields',   lambda cmsg: self._parse_commit_msg(cmsg)._asdict()),
+
+            UFun('tree',         lambda tre: tre.hexsha),
+            UFun('files_count',  lambda tre: itz.count(tre.list_traverse())),
+        ]
+        fallback_value = '<invalid>'
+        fallback_fun = lambda *a, **k: fallback_value
+        def filter_fun(ufun:UFun) -> Tuple:
+            """Duplicate `ufun` as "fallback" like a 2-tuple ``(<ufun>, <failback-ufun>)``. """
+            fail_ufun = ufun.copy()
+            fail_ufun.kwds['weight'] = 50
+
+            ## Handle functions with multiple outputs.
+            #
+            out = ufun.out
+            if isinstance(out, (list, tuple)) and len(out):
+                fail_ufun.fun = lambda *a, **k: (fallback_value, ) * len(out)
+            else:
+                fail_ufun.fun = fallback_fun
+
+            fail_ufun.kwds['inputs'] = ufun.inspect_inputs() # Pin inputs, innspect won't work.
+
+            return (ufun, fail_ufun)
+
+        dsp = Dispatcher()
+#         for uf in ufuns:
+#             out = uf.out
+#             if not isinstance(out, (tuple, list)):
+#                 out = (out, )
+#             for o in out:
+#                 dsp.add_data(o, wait_inputs=True)
+        ufuns = list(itz.concat(filter_fun(uf) for uf in ufuns))
+        UFun.add_ufuns(ufuns, dsp)
+
+        return dsp
+
+    @fnt.lru_cache()
+    def _out_fields_by_verbose_level(self, level):
+        """
+        :param level:
+            If ''> max-level'' then max-level assumed, negatives fetch no fields.
+        """
+        verbose_levels = {
+            0:[
+                'ref',
+                'state',
+                'msg_fields.state',
+                'msg_fields.msg',
+                'revs_count',
+                'files_count',
+                'last_cdate',
+                'author',
+            ],
+            1: [
+                'cmsg',
+                'msg_fields',
+                'dirty',
+                'commit',
+                'tree',
+                'infos,'
+            ],
+            2: [
+                'heads_count',
+                'projects_count',
+                'tags_count',
+                'git_cmds',
+                'exec_version',
+                'git_settings',
+            ]
+        }
+        max_level = max(verbose_levels.keys())
+        if level > max_level:
+            level = max_level
+        fields = []
+        for l  in range(level + 1):
+            fields.extend(verbose_levels[l])
+        return fields
 
     def infos(self, project=None, verbose=None, as_text=False, as_json=False):
         """
@@ -353,72 +454,30 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
         if verbose is None:
             verbose = self.verbose
 
-        ufuns = {
-            UFun('repo',         lambda infos: self.repo),
-            UFun('git_cmds',     lambda infos: where('git')),
-            UFun('exec_version', lambda repo: '.'.join(str(v) for v in repo.git.version_info)),
-            UFun('heads_count',  lambda repo: len(repo.heads)),
-            UFun('projects_count',  lambda repo: itz.count(self._yield_projects())),
-            UFun('tags_count',   lambda repo: len(repo.tags)),
-            UFun('git_settings', lambda repo: self.read_git_settings(prefix='settings.')),
-            UFun('ref',          lambda repo: _get_ref(repo.heads, project, repo.active_branch)),
-            UFun('dirty',        lambda repo: repo.is_dirty()),
+        dsp = self._infos_dsp()
+        outs = self._out_fields_by_verbose_level(int(verbose))
+        infos = dsp.dispatch(inputs={'infos': 'ok', 'prj': project},
+                             outputs=outs)
 
-            UFun('cmt',          lambda ref: ref.commit),
-
-            UFun('tree',         lambda cmt: cmt.tree),
-            UFun('author',       lambda cmt: '%s <%s>' % (cmt.author.name, cmt.author.email)),
-            UFun('last_cdate',   lambda cmt: str(cmt.authored_datetime)),
-            UFun('commit_SHA',   lambda cmt: cmt.hexsha),
-            UFun('revs_count',   lambda cmt: itz.count(cmt.iter_parents())),
-            UFun('cmsg',         lambda cmt: cmt.message),
-            UFun('cmsg',         lambda cmt: '<invalid: %s>' % cmt.message, weight=10),
-
-            UFun(CommitMsg._fields, lambda cmsg: list(self._parse_commit_msg(cmsg))),
-
-            UFun('tree_SHA',     lambda tree: tree.hexsha),
-            UFun('files_count',  lambda tree: itz.count(tree.list_traverse())),
-        }
-
-
-        to_hide = ['files_count']
-        fallback_value = '<invalid>'
-        def filter_fun(ufun:UFun) -> Tuple:
-            """
-            Duplicate `ufun` as "fallback" one, or hide it.
-
-            :return: either ``(<original-ufun>, <failback-ufun>)``, or ``()`` when hidden
-            """
-            if ufun.out in to_hide:
-                return ()
-
-            fail_ufun = ufun.copy()
-            fail_ufun.kwds['weight'] = 50
-
-            ## Handle functions with multiple outputs.
-            #
-            out = ufun.out
-            if isinstance(out, (list, tuple)) and len(out):
-                fvalue = (fallback_value, ) * len(out)
-            else:
-                fvalue = fallback_value
-
-            fail_ufun.fun = lambda *a, **k: fvalue
-            fail_ufun.kwds['inputs'] = ufun.inspect_inputs() # Pin inputs.
-
-            return (ufun, fail_ufun)
-
-        fault_tolerant_ufuns = itz.concat(filter_fun(uf) for uf in ufuns)
-        d = Dispatcher()
-        UFun.add_ufuns(fault_tolerant_ufuns, d)
-        infos = d.dispatch(inputs={'infos': 'ok'})
+        infos = dict(utils.stack_nested_keys(infos))
+        infos = dtz.keymap(lambda k: '.'.join(k), infos)
+        infos = dtz.keyfilter(lambda k: any(k.startswith(o) for o in outs), infos)
 
         if as_text:
-            import pprint
-            infos = pprint.pprint(infos)
-        elif as_json:
-            infos = json.dumps(infos, indent=2, default=str)
-
+            if as_json:
+                infos = json.dumps(infos, indent=2, default=str)
+            else:
+                #import pprint
+                #infos = pprint.pformat(infos)
+                indent = 12
+                def format_item(k, v):
+                    nk = len(k)
+                    ntabs = max (1, int(nk / indent) + bool(nk % indent))
+                    key_width = ntabs * indent
+                    item_pattern = '%%-%is = %%s' % key_width
+                    return item_pattern % (k, v)
+                infos = [format_item(*i) for i in infos.items()]
+                infos = '\n'.join(sorted(infos))
         return infos
 
 

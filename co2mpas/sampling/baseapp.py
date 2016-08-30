@@ -110,7 +110,6 @@ def camel_to_cmd_name(s):
     """Turns `'CO2DiceApp' --> 'co2-dice-app'. """
     return camel_to_snake_case(s).replace('_', '-')
 
-
 def py_where(program, path=None):
     ## From: http://stackoverflow.com/a/377028/548792
     winprog_exts = ('.bat', 'com', '.exe')
@@ -559,6 +558,11 @@ class Cmd(Application):
     ).tag(config=True)
 
     def start(self):
+        """Dispatches into sub-cmds (if any), and then delegates to :meth:`run().
+
+        If overriden, better invoke :func:`super()`, but even better
+        to override :meth:``run()`.
+        """
         if self.print_config:
             self.log.info('Running cmd %r with config: \n  %s', self.name, self.config)
 
@@ -572,9 +576,15 @@ class Cmd(Application):
         return self.subapp.start()
 
     def run(self):
-        """Leaf sub-commands must inherit this instead of :meth:`start()` without invoking :func:`super()`."""
-        raise CmdException('Specify one of the sub-commands: %s'
-                           % ', '.join(self.subcommands.keys()))
+        """Leaf sub-commands must inherit this instead of :meth:`start()` without invoking :func:`super()`.
+
+        By default, screams about using sub-cmds, or about doing nothing!
+        """
+        if self.subcommands:
+            raise CmdException('Specify one of the sub-commands: %s'
+                               % ', '.join(self.subcommands.keys()))
+        assert False, "Override run() method in cmd subclasses."
+
 
 
 
