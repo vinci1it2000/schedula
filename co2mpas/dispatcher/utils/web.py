@@ -12,15 +12,17 @@ It provides functions to build a flask app from a dispatcher.
 
 __author__ = 'Vincenzo Arcidiacono'
 
-from co2mpas.dispatcher.utils.gen import caller_name
+from .gen import caller_name
+from .alg import parent_func
+from .dsp import SubDispatch
 from functools import partial
 import logging
 log = logging.getLogger(__name__)
 
-__all__ = ['create_app', 'add_dsp_url_rules']
+__all__ = ['create_flask_app', 'add_dsp_url_rules']
 
 
-def create_app(dsp, import_name=None, **options):
+def create_flask_app(dsp, import_name=None, **options):
     """
     Creates a Flask app from a dispatcher.
 
@@ -69,6 +71,37 @@ def _add_rule(add_rule, *args, **kwargs):
         log.warn(ex)
 
 
+def stack_func_rules(dsp, rule='/', edit_data=False, depth=-1,
+                     sub_dsp_function=False, yield_self=True):
+    if yield_self:
+        yield rule, dsp.dispatch
+    rule += '%s/'
+
+    if edit_data:
+        set_value = dsp.set_default_value
+        for k in dsp.data_nodes.keys():
+            yield rule % k, partial(set_value, k)
+
+    for k, v in dsp.function_nodes.items():
+        if 'function' in v:
+            r, f = rule % k, v['function']
+            yield r, f
+            if depth != 0:
+                f = parent_func(f)
+                if isinstance(f, SubDispatch):
+                    yield from stack_func_rules(
+                        f.dsp, r, edit_data, depth - 1, sub_dsp_function, 0
+                    )
+
+    if depth == 0 or sub_dsp_function:
+        return
+
+    for k, v in dsp.sub_dsp_nodes.items():
+        yield from stack_func_rules(
+            v['function'], rule % k, edit_data, depth - 1, sub_dsp_function, 0
+        )
+
+
 def add_dsp_url_rules(dsp, app, rule, edit_data=False, methods=('POST',),
                       func_handler_maker=_func_handler_maker, **options):
     """
@@ -105,20 +138,5 @@ def add_dsp_url_rules(dsp, app, rule, edit_data=False, methods=('POST',),
 
     options['methods'] = methods
     add_rule = partial(_add_rule, app.add_url_rule)
-    rules, set_value = [rule], dsp.set_default_value
-    add_rule(rule, rule, func_handler_maker(dsp.dispatch), **options)
-    rule += '%s/'
-
-    if edit_data:
-        for k in dsp.data_nodes.keys():
-            r = rule % k
-            add_rule(r, r, func_handler_maker(partial(set_value, k)), **options)
-
-    for k, v in dsp.function_nodes.items():
-        if 'function' in v:
-            r = rule % k
-            add_rule(r, r, func_handler_maker(v['function']), **options)
-
-    for k, v in dsp.sub_dsp_nodes.items():
-        if 'function' in v:
-            add_dsp_url_rules(v['function'], app, rule % k, **options)
+    for r, func in stack_func_rules(dsp, rule, edit_data):
+        add_rule(r, r, func_handler_maker(func), **options)
