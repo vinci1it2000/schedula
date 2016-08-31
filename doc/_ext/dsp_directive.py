@@ -1,7 +1,7 @@
 from sphinx.ext.autodoc import *
 from co2mpas.dispatcher import Dispatcher
 # noinspection PyProtectedMember
-from co2mpas.dispatcher.utils.drw import plot, _func_name
+from co2mpas.dispatcher.utils.drw import _func_name
 from co2mpas.dispatcher.utils.dsp import SubDispatch
 from co2mpas.dispatcher.utils.des import search_node_description, get_summary, \
     parent_func
@@ -105,7 +105,7 @@ def _code(lines, documenter):
 
 
 def _plot(lines, dsp, dot_view_opt):
-    digraph = u'   %s' % plot(dsp, **dot_view_opt).source
+    digraph = u'   %s' % dsp.plot(**dot_view_opt).source
     lines.extend(['.. graphviz::', '', digraph, ''])
 
 
@@ -200,12 +200,10 @@ class DispatcherDocumenter(DataDocumenter):
         'dsp': bool_option,
     })
     default_opt = {
-        'workflow': False,
-        'dot': None,
-        'edge_attr': None,
         'view': False,
         'depth': 0,
-        'function_module': False,
+        'draw_outputs': 1,
+        'function_module': False
     }
     code = None
     is_doctest = False
@@ -238,8 +236,7 @@ class DispatcherDocumenter(DataDocumenter):
         dsp = self.object
         opt = self.options
 
-        dot_view_opt = {}
-        dot_view_opt.update(self.default_opt)
+        dot_view_opt = self.default_opt.copy()
         if opt.opt and opt.opt is not PLOT:
             dot_view_opt.update(opt.opt)
 

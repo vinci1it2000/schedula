@@ -453,7 +453,7 @@ def get_sub_node(dsp, path, node_attr='auto', solution=NONE, _level=0,
 
     :param dsp:
          A dispatcher object or a sub dispatch function.
-    :type dsp: dispatcher.Dispatcher, SubDispatch, SubDispatchFunction
+    :type dsp: dispatcher.Dispatcher | SubDispatch
 
     :param path:
         A sequence of node ids or a single node id. Each id identifies a
@@ -536,7 +536,8 @@ def get_sub_node(dsp, path, node_attr='auto', solution=NONE, _level=0,
         node_id, node = _get_node(dsp.nodes, node_id)  # Get dispatcher node.
         path[_level] = node_id
     except KeyError:
-        if _level == len(path) - 1 and node_attr in ('auto', 'output'):
+        if _level == len(path) - 1 and node_attr in ('auto', 'output') \
+                and solution is not EMPTY:
             try:
                 # Get dispatcher node.
                 node_id, node = _get_node(solution, node_id, False)
@@ -556,8 +557,8 @@ def get_sub_node(dsp, path, node_attr='auto', solution=NONE, _level=0,
                 try:
                     solution = solution.sub_dsp[dsp]
                     solution = solution.workflow.node[node_id]['solution']
-                except KeyError:
-                    pass
+                except (KeyError, AttributeError):
+                    solution = EMPTY
                 dsp = parent_func(node['function'])  # Get parent function.
             else:
                 dsp = node['function']  # Get function or sub-dispatcher node.
@@ -568,16 +569,15 @@ def get_sub_node(dsp, path, node_attr='auto', solution=NONE, _level=0,
                   'dispatcher.' % (path, _level, _dsp_name)
             raise ValueError(msg)
 
-
         # Continue the node search.
         return get_sub_node(dsp, path, node_attr, solution, _level, _dsp_name)
     else:
         data = EMPTY
         # Return the sub node.
-        if node_attr == 'auto':  # Auto.
-            if node['type'] != 'data':  # Return function.
-                node_attr = 'function'
-            elif node_id in solution.sub_dsp.get(dsp, ()): # Return data output.
+        if node_attr == 'auto' and node['type'] != 'data':  # Auto: function.
+            node_attr = 'function'
+        elif node_attr == 'auto' and solution is not EMPTY and \
+                        node_id in solution.sub_dsp.get(dsp, ()): # Auto: data output.
                 data = solution.sub_dsp[dsp][node_id]
         elif node_attr == 'output':
             data = solution.sub_dsp[dsp][node_id]

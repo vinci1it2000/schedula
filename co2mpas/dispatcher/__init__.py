@@ -36,10 +36,11 @@ from .utils.alg import rm_cycles_iter, get_unused_node_id, add_func_edges, \
     _update_remote_links, remove_links, _union_workflow, _convert_bfs
 from .utils.cst import EMPTY, START, NONE, SINK, SELF
 from .utils.des import parent_func
-from .utils.drw import plot
+from .utils.drw import DspPlot
 from .utils.dsp import SubDispatch, bypass, combine_dicts, selector
 from .utils.gen import caller_name
-from .utils.web import create_app
+from .utils.web import create_flask_app
+from .utils.cel import create_celery_app
 
 log = logging.getLogger(__name__)
 
@@ -1370,29 +1371,55 @@ class Dispatcher(object):
 
         return deepcopy(self)  # Return the copy of the Dispatcher.
 
-    def plot(self, workflow=False, edge_data=EMPTY, view=True, depth=-1,
-             function_module=False, node_output=False, filename=None,
-             nested=True, **kw_dot):
+    def plot(self, workflow=False, view=True, nested=True, edge_data=(),
+             node_data=(), node_function=(), draw_outputs=0, node_styles=None,
+             depth=-1, function_module=False, name=None, comment=None,
+             directory=None, filename=None, format='svg', engine=None,
+             encoding=None, graph_attr=None, node_attr=None, edge_attr=None,
+             body=None):
         """
         Plots the Dispatcher with a graph in the DOT language with Graphviz.
 
         :param workflow:
-           If True the latest workflow graph will be plotted, otherwise the
-           dmap.
-        :type workflow: bool | Solution, optional
-
-        :param edge_data:
-            Edge attribute to view. The default is the edge weights.
-        :type edge_data: str, optional
-
-        :param node_output:
-            If True the node outputs are displayed with the workflow.
-        :type node_output: bool, optional
+           If True the latest solution will be plotted, otherwise the dmap.
+        :type workflow: bool, optional
 
         :param view:
             Open the rendered directed graph in the DOT language with the sys
             default opener.
         :type view: bool, optional
+
+        :param nested:
+            If False the sub-dispatcher nodes are plotted on the same graph,
+            otherwise they can be viewed clicking on the node that has an URL
+            link.
+        :type nested: bool, optional
+
+        :param edge_data:
+            Edge attributes to view.
+        :type edge_data: tuple[str], optional
+
+        :param node_data:
+            Data node attributes to view.
+        :type node_data: tuple[str], optional
+
+        :param node_function:
+            Function node attributes to view.
+        :type node_function: tuple[str], optional
+
+        :param draw_outputs:
+            It modifies the defaults data node and edge attributes to view.
+            If `draw_outputs` is:
+                - 1: node attribute 'output' is drawn.
+                - 2: edge attribute 'value' is drawn.
+                - 3: node 'output' and edge 'value' attributes are drawn.
+                - otherwise: node 'output' and edge 'value' attributes are not
+                  drawn.
+        :type draw_outputs: int, optional
+
+        :param node_styles:
+            Default node styles according to graphviz node attributes.
+        :type node_styles: dict[str|Token, dict[str, str]]
 
         :param depth:
             Depth of sub-dispatch plots. If negative all levels are plotted.
@@ -1403,32 +1430,49 @@ class Dispatcher(object):
             otherwise only the function name will be visible.
         :type function_module: bool, optional
 
+        :param name:
+            Graph name used in the source code.
+        :type name: str
+
+        :param comment:
+            Comment added to the first line of the source.
+        :type comment: str
+
+        :param directory:
+            (Sub)directory for source saving and rendering.
+        :type directory: str, optional
+
         :param filename:
-            A file directory (if `nested`) or file name
-            (defaults to name + '.gv') for saving the sources.
+            File name for saving the source.
         :type filename: str, optional
 
-        :param nested:
-            If False the sub-dispatcher nodes are plotted on the same graph,
-            otherwise they can be viewed clicking on the node that has an URL
-            link.
-        :type nested: bool, optional
+        :param format:
+            Rendering output format ('pdf', 'png', ...).
+        :type format: str, optional
 
-        :param kw_dot:
-            Dot arguments:
+        :param engine:
+            Layout command used ('dot', 'neato', ...).
+        :type engine: str, optional
 
-                - name: Graph name used in the source code.
-                - comment: Comment added to the first line of the source.
-                - directory: (Sub)directory for source saving and rendering.
-                - format: Rendering output format ('pdf', 'png', ...).
-                - engine: Layout command used ('dot', 'neato', ...).
-                - encoding: Encoding for saving the source.
-                - graph_attr: Dict of (attribute, value) pairs for the graph.
-                - node_attr: Dict of (attribute, value) pairs set for all nodes.
-                - edge_attr: Dict of (attribute, value) pairs set for all edges.
-                - body: Dict of (attribute, value) pairs to add to the graph
-                  body.
-        :param kw_dot: dict, optional
+        :param encoding:
+            Encoding for saving the source.
+        :type encoding: str, optional
+
+        :param graph_attr:
+            Dict of (attribute, value) pairs for the graph.
+        :type graph_attr: dict, optional
+
+        :param node_attr:
+            Dict of (attribute, value) pairs set for all nodes.
+        :type node_attr: dict, optional
+
+        :param edge_attr:
+            Dict of (attribute, value) pairs set for all edges.
+        :type edge_attr: dict, optional
+
+        :param body:
+            Dict of (attribute, value) pairs to add to the graph body.
+        :type body: dict, optional
 
         :return:
             A directed graph source code in the DOT language.
@@ -1446,18 +1490,20 @@ class Dispatcher(object):
             >>> dsp.add_function('fun', fun, ['a'], ['b', 'c'])
             'fun'
             >>> dsp.plot(view=False, graph_attr={'ratio': '1'})
-            <co2mpas.dispatcher.utils.drw._Digraph object at 0x...>
+            <co2mpas.dispatcher.utils.drw.DspPlot object at 0x...>
         """
 
-        if edge_data is EMPTY:
-            edge_data = self.weight
+        dot = DspPlot(
+            obj=self, workflow=workflow, nested=nested, view=view,
+            edge_data=edge_data, node_data=node_data, draw_outputs=draw_outputs,
+            node_function=node_function, depth=depth, node_styles=node_styles,
+            function_module=function_module, name=name, comment=comment,
+            directory=directory, filename=filename, format=format,
+            engine=engine, encoding=encoding, graph_attr=graph_attr,
+            node_attr=node_attr, edge_attr=edge_attr, body=body
+        )
 
-        if filename is not None:
-            kw_dot['filename'] = filename
-
-        return plot(self, workflow=workflow, edge_data=edge_data, view=view,
-                    depth=depth, function_module=function_module,
-                    node_output=node_output, nested=nested, **kw_dot)
+        return dot
 
     def web(self, import_name=None, **options):
         """
@@ -1476,7 +1522,25 @@ class Dispatcher(object):
         :rtype: flask.Flask
         """
         import_name = import_name or '/'.join((caller_name(), self.name))
-        return create_app(self, import_name=import_name, **options)
+        return create_flask_app(self, import_name=import_name, **options)
+
+    def celery(self, import_name=None, **options):
+        """
+        Creates a dispatcher Celery app.
+
+        :param import_name:
+            The name of the application package.
+        :type import_name: str, optional
+
+        :param options:
+            Flask options.
+        :type options: dict, optional
+
+        :return:
+            Flask app based on the given dispatcher.
+        :rtype: celery.Celery
+        """
+        return create_celery_app(self, **options)
 
     def remove_cycles(self, sources):
         """
@@ -1816,7 +1880,7 @@ class Dispatcher(object):
 
         bfs = None
         if inputs:
-            wait_in = self._get_wait_in(flag=False)  # Set all data nodes no wait inputs.
+            wait_in = self._get_wait_in(flag=False)  # Get all data nodes no wait inputs.
 
             # Evaluate the workflow graph without invoking functions.
             o = self.dispatch(
