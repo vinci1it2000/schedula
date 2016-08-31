@@ -21,7 +21,7 @@ class TPlot(unittest.TestCase):
 
     @ddt.data(*co2plot.get_model_paths())
     def test_plot_all_models(self, model):
-        dot_graphs = co2plot.plot_model_graphs([model],
-                                               view_in_browser=False,
-                                               depth=1)
+        dot_graphs = co2plot.plot_model_graphs(
+            [model], view_in_browser=True, depth=1
+        )
         self.assertGreaterEqual(len(dot_graphs), 1, model)

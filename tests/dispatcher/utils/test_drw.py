@@ -11,9 +11,9 @@ import doctest
 import platform
 from graphviz.dot import Digraph
 from co2mpas.dispatcher import Dispatcher
-from co2mpas.dispatcher.utils.dsp import SubDispatch
+from co2mpas.dispatcher.utils.dsp import SubDispatch, SubDispatchFunction, SubDispatchPipe
 from co2mpas.dispatcher.utils.cst import SINK
-from co2mpas.dispatcher.utils.drw import plot
+from co2mpas.dispatcher.utils.drw import DspPlot
 import tempfile
 import os.path as osp
 
@@ -36,40 +36,55 @@ class TestDispatcherDraw(unittest.TestCase):
         ss_dsp = Dispatcher()
 
         fun = lambda a: (a + 1, 5, a - 1)
+        dom = lambda kw: True
         c = '|!"£$%&/()=?^*+éè[]#¶ù§çò@:;-_.,<>'
-        ss_dsp.add_function(function=fun, inputs=['a'], outputs=['b', SINK, c])
+        ss_dsp.add_function(function=fun, inputs=['a'], outputs=['b', SINK, c],
+                            input_domain=dom)
 
-        sub_dispatch = SubDispatch(ss_dsp, ['a', 'b', c], output_type='list')
+        sdspfunc = SubDispatchFunction(ss_dsp, 'SubDispatchFunction', ['a'],
+                                       ['b', c])
+
+        sdsppipe = SubDispatchPipe(ss_dsp, 'SubDispatchPipe', ['a'], ['b', c])
+
+        sdsp = SubDispatch(ss_dsp, ['b', c], output_type='list')
+
         s_dsp = Dispatcher()
+        s_dsp.add_function(None, sdspfunc, ['a'], ['b', 'c'], weight=2)
+        s_dsp.add_function(None, sdsppipe, ['a'], ['b', 'c'],
+                           out_weight={'c': 5})
+        s_dsp.add_function('SubDispatch', sdsp, ['d'], ['e', 'f'])
 
-        s_dsp.add_function('sub_dispatch', sub_dispatch, ['a'], ['b', 'c', 'd'])
-
-        dispatch = SubDispatch(s_dsp, ['b', 'c', 'd'], output_type='list')
         dsp = Dispatcher()
-        dsp.add_data('input', default_value={'a': {'a': 3, 'funcs': fun}})
+        import numpy as np
+        dsp.add_data('A', default_value=np.zeros(1000))
+        dsp.add_data('D', default_value={'a': 3})
 
-        dsp.add_function('dispatch', dispatch, ['input'], [SINK, 'h', 'i'])
-
-        dsp.dispatch()
+        dsp.add_dispatcher(
+            dsp=s_dsp,
+            inputs={'A': 'a', 'D': 'd'},
+            outputs={'b': 'B', 'c': 'C', 'e': 'E', 'f': 'F'},
+            inp_weight={'A': 3}
+        )
+        self.sol = dsp.dispatch()
         self.dsp = dsp
 
     def test_plot_dsp_dot(self):
-        dsp = self.dsp
+        dsp, sol = self.dsp, self.sol
 
-        d = plot(dsp)
-        self.assertIsInstance(d, Digraph)
+        plt = DspPlot(dsp)
+        self.assertIsInstance(plt, Digraph)
 
-        w = plot(dsp, workflow=True)
-        self.assertIsInstance(w, Digraph)
+        plt = DspPlot(sol)
+        self.assertIsInstance(plt, Digraph)
 
-        l = plot(dsp, depth=1)
-        self.assertIsInstance(l, Digraph)
+        plt = DspPlot(dsp, depth=1)
+        self.assertIsInstance(plt, Digraph)
 
-        f = plot(dsp, function_module=False)
-        self.assertIsInstance(f, Digraph)
+        plt = DspPlot(dsp, draw_outputs=3)
+        self.assertIsInstance(plt, Digraph)
 
-        f = plot(dsp, function_module=True)
-        self.assertIsInstance(f, Digraph)
+        plt = DspPlot(dsp, function_module=True)
+        self.assertIsInstance(plt, Digraph)
 
     def test_long_path(self):
         dsp = self.dsp

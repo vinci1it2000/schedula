@@ -339,6 +339,7 @@ class add_args(object):
     def __init__(self, func, n=1, callback=None):
         try:
             self.__name__ = func.__name__
+            self.__module__ = func.__module__
             self.__doc__ = func.__doc__
             self.__signature__ = _get_signature(func, n)
             self.func = func
@@ -425,7 +426,6 @@ class SubDispatch(object):
         Solution([('a', 3), ('b', 4), ('c', 2)])
 
     """
-
     def __init__(self, dsp, outputs=None, cutoff=None, inputs_dist=None,
                  wildcard=False, no_call=False, shrink=False,
                  rm_unused_nds=False, output_type='all'):
@@ -527,28 +527,55 @@ class SubDispatch(object):
 
         return solution  # Return outputs.
 
-    def plot(self, workflow=False, edge_data=EMPTY, view=True, depth=-1,
-             function_module=False, node_output=False, filename=None,
-             nested=True, **kw_dot):
+    def plot(self, workflow=False, view=True, nested=True, edge_data=(),
+             node_data=(), node_function=(), draw_outputs=0, node_styles=None,
+             depth=-1, function_module=False, name=None, comment=None,
+             directory=None, filename=None, format='svg', engine=None,
+             encoding=None, graph_attr=None, node_attr=None, edge_attr=None,
+             body=None):
         """
         Plots the Dispatcher with a graph in the DOT language with Graphviz.
 
         :param workflow:
-           If True the workflow graph will be plotted, otherwise the dmap.
+           If True the latest solution will be plotted, otherwise the dmap.
         :type workflow: bool, optional
-
-        :param edge_data:
-            Edge attribute to view. The default is the edge weights.
-        :type edge_data: str, optional
-
-        :param node_output:
-            If True the node outputs are displayed with the workflow.
-        :type node_output: bool
 
         :param view:
             Open the rendered directed graph in the DOT language with the sys
             default opener.
         :type view: bool, optional
+
+        :param nested:
+            If False the sub-dispatcher nodes are plotted on the same graph,
+            otherwise they can be viewed clicking on the node that has an URL
+            link.
+        :type nested: bool, optional
+
+        :param edge_data:
+            Edge attributes to view.
+        :type edge_data: tuple[str], optional
+
+        :param node_data:
+            Data node attributes to view.
+        :type node_data: tuple[str], optional
+
+        :param node_function:
+            Function node attributes to view.
+        :type node_function: tuple[str], optional
+
+        :param draw_outputs:
+            It modifies the defaults data node and edge attributes to view.
+            If `draw_outputs` is:
+                - 1: node attribute 'output' is drawn.
+                - 2: edge attribute 'value' is drawn.
+                - 3: node 'output' and edge 'value' attributes are drawn.
+                - otherwise: node 'output' and edge 'value' attributes are not
+                  drawn.
+        :type draw_outputs: int, optional
+
+        :param node_styles:
+            Default node styles according to graphviz node attributes.
+        :type node_styles: dict[str|Token, dict[str, str]]
 
         :param depth:
             Depth of sub-dispatch plots. If negative all levels are plotted.
@@ -559,32 +586,49 @@ class SubDispatch(object):
             otherwise only the function name will be visible.
         :type function_module: bool, optional
 
+        :param name:
+            Graph name used in the source code.
+        :type name: str
+
+        :param comment:
+            Comment added to the first line of the source.
+        :type comment: str
+
+        :param directory:
+            (Sub)directory for source saving and rendering.
+        :type directory: str, optional
+
         :param filename:
-            A file directory (if `nested`) or file name
-            (defaults to name + '.gv') for saving the sources.
+            File name for saving the source.
         :type filename: str, optional
 
-        :param nested:
-            If False the sub-dispatcher nodes are plotted on the same graph,
-            otherwise they can be viewed clicking on the node that has an URL
-            link.
-        :type nested: bool
+        :param format:
+            Rendering output format ('pdf', 'png', ...).
+        :type format: str, optional
 
-        :param kw_dot:
-            Dot arguments:
+        :param engine:
+            Layout command used ('dot', 'neato', ...).
+        :type engine: str, optional
 
-                - name: Graph name used in the source code.
-                - comment: Comment added to the first line of the source.
-                - directory: (Sub)directory for source saving and rendering.
-                - format: Rendering output format ('pdf', 'png', ...).
-                - engine: Layout command used ('dot', 'neato', ...).
-                - encoding: Encoding for saving the source.
-                - graph_attr: Dict of (attribute, value) pairs for the graph.
-                - node_attr: Dict of (attribute, value) pairs set for all nodes.
-                - edge_attr: Dict of (attribute, value) pairs set for all edges.
-                - body: Dict of (attribute, value) pairs to add to the graph
-                  body.
-        :param kw_dot: dict
+        :param encoding:
+            Encoding for saving the source.
+        :type encoding: str, optional
+
+        :param graph_attr:
+            Dict of (attribute, value) pairs for the graph.
+        :type graph_attr: dict, optional
+
+        :param node_attr:
+            Dict of (attribute, value) pairs set for all nodes.
+        :type node_attr: dict, optional
+
+        :param edge_attr:
+            Dict of (attribute, value) pairs set for all edges.
+        :type edge_attr: dict, optional
+
+        :param body:
+            Dict of (attribute, value) pairs to add to the graph body.
+        :type body: dict, optional
 
         :return:
             A directed graph source code in the DOT language.
@@ -595,32 +639,28 @@ class SubDispatch(object):
         .. dispatcher:: dsp
            :opt: graph_attr={'ratio': '1'}
            :code:
-
             >>> from co2mpas.dispatcher import Dispatcher
             >>> dsp = Dispatcher(name='Dispatcher')
             >>> def fun(a):
             ...     return a + 1, a - 1
             >>> dsp.add_function('fun', fun, ['a'], ['b', 'c'])
             'fun'
-            >>> func = SubDispatch(dsp)
-            >>> func.plot(view=False, graph_attr={'ratio': '1'})
-            <co2mpas.dispatcher.utils.drw._Digraph object at 0x...>
+            >>> dsp.plot(view=False, graph_attr={'ratio': '1'})
+            <co2mpas.dispatcher.utils.drw.DspPlot object at 0x...>
         """
 
-        if edge_data is EMPTY:
-            edge_data = self.dsp.weight
+        from .drw import DspPlot
+        dot = DspPlot(
+            obj=self, workflow=workflow, nested=nested, view=view,
+            edge_data=edge_data, node_data=node_data, draw_outputs=draw_outputs,
+            node_function=node_function, depth=depth, node_styles=node_styles,
+            function_module=function_module, name=name, comment=comment,
+            directory=directory, filename=filename, format=format,
+            engine=engine, encoding=encoding, graph_attr=graph_attr,
+            node_attr=node_attr, edge_attr=edge_attr, body=body
+        )
 
-        if filename is not None:
-            kw_dot['filename'] = filename
-
-        from .drw import plot
-
-        if workflow is True:
-            workflow = self.solution
-
-        return plot(self, workflow=workflow, edge_data=edge_data, view=view,
-                    depth=depth, function_module=function_module,
-                    node_output=node_output, nested=nested, **kw_dot)
+        return dot
 
     def copy(self):
         return deepcopy(self)
