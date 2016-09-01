@@ -73,6 +73,33 @@ def _add_rule(add_rule, *args, **kwargs):
 
 def stack_func_rules(dsp, rule='/', edit_data=False, depth=-1,
                      sub_dsp_function=False, yield_self=True):
+    """
+    Stacks function rules.
+
+    :param dsp:
+        A dispatcher that identifies the model adopted.
+    :type dsp: co2mpas.dispatcher.Dispatcher
+
+    :param rule:
+        Parent rule.
+    :type rule: str
+
+    :param edit_data:
+        Add rule to set data node?
+    :type edit_data: bool
+
+    :param depth:
+        Maximum depth of nested rules.
+    :type depth: int
+
+    :param sub_dsp_function:
+        Enable nested rules for sub-dispatcher nodes?
+    :type sub_dsp_function: bool
+
+    :param yield_self:
+        Add `dsp.dispatch` rule?
+    :type yield_self: bool
+    """
     if yield_self:
         yield rule, dsp.dispatch
     rule += '%s/'
