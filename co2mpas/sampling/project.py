@@ -246,6 +246,10 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
                      r"- %C(bold green)(%ar)%C(reset) %C(white)%s%C(reset) %C(dim white)- "
                      r"%an%C(reset)%C(bold yellow)%d%C(reset)' --all")
 
+    def proj_current(self):
+        """Returns the current project."""
+        return _ref2project(self.repo.active_branch)
+
     def _yield_project_refs(self, *projects):
         if projects:
             projects =  [_project2ref_path(p) for p in projects]
@@ -263,7 +267,6 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
         if verbose is None:
             verbose = self.verbose
 
-        self.log.info('Listing %s projects...', projects or 'all')
         res = {}
         for ref in self._yield_project_refs(*projects):
             project = _ref2project(ref)
@@ -549,10 +552,9 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
 #         with io.open(convpath(project, 0, 0), 'wb') as fd:
 #             self.repo.archive(fd)
 #         return
-        self.log.info('Opening project %r...', project)
         if not self.is_project(project, validate=True):
             raise CmdException('Project %r not found!' % project)
-        self.repo.heads(_project2ref_path(project)).checkout()
+        self.repo.heads[_project2ref_name(project)].checkout()
 
 #     def _get_project_ref(self, project: Text or None) -> git.Reference:
 #         """
@@ -572,7 +574,12 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
 ##    Commands   ##
 ###################
 
-class Project(baseapp.Cmd):
+class _PrjCmd(baseapp.Cmd):
+    @property
+    def gitspec(self):
+        return GitSpec.instance(parent=self)
+
+class Project(_PrjCmd):
     """
     Administer the storage repo of TA *projects*.
 
@@ -587,33 +594,38 @@ class Project(baseapp.Cmd):
         """)
 
 
-    class _SubCmd(baseapp.Cmd):
-        @property
-        def gitspec(self):
-            return GitSpec.instance(parent=self)
+    class Current(_PrjCmd):
+        """Prints current project."""
+        def run(self):
+            if len(self.extra_args) != 0:
+                raise CmdException('Cmd %r takes no args, received %r!'
+                                   % (self.name, self.extra_args))
+            return self.gitspec.proj_current()
 
-    class Add(_SubCmd):
+    class Add(_PrjCmd):
         """Add a new project."""
         def run(self):
             if len(self.extra_args) != 1:
-                raise CmdException('Cmd %r takes a SINGLE project-name to add, recieved %r!'
+                raise CmdException('Cmd %r takes a SINGLE project-name to add, received %r!'
                                    % (self.name, self.extra_args))
             return self.gitspec.proj_add(self.extra_args[0])
 
-    class Open(_SubCmd):
+    class Open(_PrjCmd):
         """Make an existing project the *current*.  Returns the *current* if no args specified."""
         def run(self):
+            self.log.info('Opening project %r...', self.extra_args)
             if len(self.extra_args) != 1:
                 raise CmdException("Cmd %r takes a SINGLE project-name to open, received: %r!"
                                    % (self.name, self.extra_args))
             return self.gitspec.proj_open(self.extra_args[0])
 
-    class List(_SubCmd):
+    class List(_PrjCmd):
         """List information about the specified projects (or all if no projects specified)."""
         def run(self):
+            self.log.info('Listing %s projects...', self.extra_args or 'all')
             return self.gitspec.proj_list(*self.extra_args)
 
-    class Infos(_SubCmd):
+    class Infos(_PrjCmd):
         """Print a text message with current-project, status, and repo-config data if --verbose."""
         as_json = trt.Bool(False,
                 help="Whether to return infos as JSON, instead of python-code."
@@ -631,8 +643,8 @@ class Project(baseapp.Cmd):
         with self.hold_trait_notifications():
             dkwds = {
                 'conf_classes': [GitSpec],
-                'subcommands': baseapp.build_sub_cmds(Project.Infos, Project.Add, Project.Open, Project.List),
-                'default_subcmd': 'infos',
+                'subcommands': baseapp.build_sub_cmds(
+                    Project.Current, Project.List, Project.Add, Project.Open, Project.Infos),
                 'cmd_flags': {
                     'reset-git-settings': ({
                             'GitSpec': {'reset_settings': True},
@@ -644,7 +656,6 @@ class Project(baseapp.Cmd):
             }
             dkwds.update(kwds)
             super().__init__(**dkwds)
-
 
 
 if __name__ == '__main__':
