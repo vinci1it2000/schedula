@@ -246,96 +246,6 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
                      r"- %C(bold green)(%ar)%C(reset) %C(white)%s%C(reset) %C(dim white)- "
                      r"%an%C(reset)%C(bold yellow)%d%C(reset)' --all")
 
-    def _make_commit_msg(self, project, state, msg):
-        import json
-        msg = '\n'.join(textwrap.wrap(msg, width=50))
-        return json.dumps(CommitMsg(project, state, msg, PROJECT_VERSION)._asdict())
-
-    def _parse_commit_msg(self, msg, scream=False):
-        """
-        :return: a :class:`CommitMsg` instance, or `None` if cannot parse.
-        """
-        import json
-
-        try:
-            return json.loads(msg,
-                    object_hook=lambda seq: CommitMsg(**seq))
-        except Exception as ex:
-            if scream:
-                raise
-            else:
-                self.log.warn('Found the non-project commit-msg in project-db'
-                       ', due to: %s\n %s', ex, msg, exc_info=1)
-
-    def _commit(self, index, project, state, msg):
-        index.commit(self._make_commit_msg(project, state, msg))
-
-    def is_project(self, project: Text, validate=False):
-        """
-        :param project: some branch ref
-        """
-        repo = self.repo
-        project = _project2ref_name(project)
-        found = project in repo.heads
-        if found and validate:
-            ref = repo.heads[project]
-            found = bool(self._parse_commit_msg(ref.commit.message))
-        return found
-
-    def _make_readme(self, project):
-        return textwrap.dedent("""
-        This is the CO2MPAS-project named %r (see https://co2mpas.io/ for more).
-
-        - created: %s
-        """ %(project, datetime.now()))
-
-    def proj_add(self, project: str):
-        """
-        :param project: some branch ref
-        """
-        self.log.info('Creating project %r...', project)
-        repo = self.repo
-        if self.is_project(project):
-            raise CmdException('Project %r already exists!' % project)
-        if not project or not project.isidentifier():
-            raise CmdException('Invalid name %r for a project!' % project)
-
-        ref_name = _project2ref_name(project)
-        repo.git.checkout(ref_name, orphan=True)
-
-        index = repo.index
-        state_fpath = osp.join(repo.working_tree_dir, 'CO2MPAS')
-        with io.open(state_fpath, 'wt') as fp:
-            fp.write(self._make_readme(project))
-        index.add([state_fpath])
-        self._commit(index, project, 'empty', 'Project created.')
-
-    def proj_open(self, project: Text):
-        """
-        :param project: some branch ref
-        """
-#         self.log.info('Archiving repo into %r...', project)
-#         with io.open(convpath(project, 0, 0), 'wb') as fd:
-#             self.repo.archive(fd)
-#         return
-        self.log.info('Opening project %r...', project)
-        if not self.is_project(project, validate=True):
-            raise CmdException('Project %r not found!' % project)
-        self.repo.heads(_project2ref_path(project)).checkout()
-
-#     def _get_project_ref(self, project: Text or None) -> git.Reference:
-#         """
-#         :return:
-#             The *ref* of the given `project` or active-branch if none given,
-#             if found, or `None` if matching rf not a valid project.
-#         """
-#         if not project:
-#             pass: #TODO:
-#         else:
-#             project = _project2ref_path(project)
-#         return _get_ref(project)
-
-
     def _yield_project_refs(self, *projects):
         if projects:
             projects =  [_project2ref_path(p) for p in projects]
@@ -390,12 +300,6 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
 
         return res
 
-    def examine(self, project: str):
-        """
-        :param project: some branch ref
-        """
-        return project
-
     def read_git_settings(self, prefix: Text=None, config_level: Text=None):# -> List(Text):
         """
         :param prefix:
@@ -422,6 +326,18 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
                      sec, cname, ex, exc_info=1)
             raise
         return settings
+
+    def is_project(self, project: Text, validate=False):
+        """
+        :param project: some branch ref
+        """
+        repo = self.repo
+        project = _project2ref_name(project)
+        found = project in repo.heads
+        if found and validate:
+            ref = repo.heads[project]
+            found = bool(self._parse_commit_msg(ref.commit.message))
+        return found
 
     @fnt.lru_cache() # x6(!) faster!
     def _infos_dsp(self, fallback_value='<invalid>'):
@@ -571,6 +487,84 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
                 infos = baseapp.format_pairs(infos)
 
         return infos
+
+
+    def _make_commit_msg(self, project, state, msg):
+        import json
+        msg = '\n'.join(textwrap.wrap(msg, width=50))
+        return json.dumps(CommitMsg(project, state, msg, PROJECT_VERSION)._asdict())
+
+    def _parse_commit_msg(self, msg, scream=False):
+        """
+        :return: a :class:`CommitMsg` instance, or `None` if cannot parse.
+        """
+        import json
+
+        try:
+            return json.loads(msg,
+                    object_hook=lambda seq: CommitMsg(**seq))
+        except Exception as ex:
+            if scream:
+                raise
+            else:
+                self.log.warn('Found the non-project commit-msg in project-db'
+                       ', due to: %s\n %s', ex, msg, exc_info=1)
+
+    def _commit(self, index, project, state, msg):
+        index.commit(self._make_commit_msg(project, state, msg))
+
+    def _make_readme(self, project):
+        return textwrap.dedent("""
+        This is the CO2MPAS-project named %r (see https://co2mpas.io/ for more).
+
+        - created: %s
+        """ %(project, datetime.now()))
+
+    def proj_add(self, project: str):
+        """
+        :param project: some branch ref
+        """
+        self.log.info('Creating project %r...', project)
+        repo = self.repo
+        if self.is_project(project):
+            raise CmdException('Project %r already exists!' % project)
+        if not project or not project.isidentifier():
+            raise CmdException('Invalid name %r for a project!' % project)
+
+        ref_name = _project2ref_name(project)
+        repo.git.checkout(ref_name, orphan=True)
+
+        index = repo.index
+        state_fpath = osp.join(repo.working_tree_dir, 'CO2MPAS')
+        with io.open(state_fpath, 'wt') as fp:
+            fp.write(self._make_readme(project))
+        index.add([state_fpath])
+        self._commit(index, project, 'empty', 'Project created.')
+
+    def proj_open(self, project: Text):
+        """
+        :param project: some branch ref
+        """
+#         self.log.info('Archiving repo into %r...', project)
+#         with io.open(convpath(project, 0, 0), 'wb') as fd:
+#             self.repo.archive(fd)
+#         return
+        self.log.info('Opening project %r...', project)
+        if not self.is_project(project, validate=True):
+            raise CmdException('Project %r not found!' % project)
+        self.repo.heads(_project2ref_path(project)).checkout()
+
+#     def _get_project_ref(self, project: Text or None) -> git.Reference:
+#         """
+#         :return:
+#             The *ref* of the given `project` or active-branch if none given,
+#             if found, or `None` if matching rf not a valid project.
+#         """
+#         if not project:
+#             pass: #TODO:
+#         else:
+#             project = _project2ref_path(project)
+#         return _get_ref(project)
 
 
 
