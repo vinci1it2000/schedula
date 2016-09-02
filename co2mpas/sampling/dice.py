@@ -502,7 +502,7 @@ def run_cmd(cmd: Cmd, argv: Sequence[Text]=None):
     """
     cmd.initialize(argv)
     res = cmd.start()
-    if res:
+    if res is not None:
         if isinstance(res, types.GeneratorType):
             for i in res:
                 print(i)

@@ -13,13 +13,11 @@ from collections import (
 from datetime import datetime
 import inspect
 import io
-import json
 import logging
 import textwrap
 from typing import (
     List, Sequence, Iterable, Text, Tuple, Callable)  # @UnusedImport
 
-from boltons.setutils import IndexedSet as iset
 import git  # From: pip install gitpython
 from toolz import itertoolz as itz, dicttoolz as dtz
 from traitlets.config import SingletonConfigurable
@@ -145,10 +143,26 @@ class UFun(object):
 
 PROJECT_VERSION = '0.0.1'  ## TODO: Move to `co2mpas/_version.py`.
 PROJECT_STATUSES = '<invalid> empty full signed dice_sent sampled'.split()
-CommitMsg = namedtuple('CommitMsg', 'project state msg format_version')
+CommitMsg = namedtuple('CommitMsg', 'project state msg msg_version')
 
-def _get_ref(refs, ref, default=None):
-    return ref and ref in refs and refs[ref] or default
+_PROJECTS_PREFIX = 'projects/'
+_PROJECTS_FULL_PREFIX = 'refs/heads/' + _PROJECTS_PREFIX
+
+def _is_proj_ref(ref: git.Reference) -> bool:
+    return ref.path.startswith(_PROJECTS_FULL_PREFIX)
+
+def _ref2project(ref: git.Reference) -> Text:
+    return ref.path[len(_PROJECTS_FULL_PREFIX):]
+
+def _project2refpath(project: Text) -> Text:
+    if project.startswith('refs/heads/'):
+        pass
+    elif not project.startswith('projects/'):
+        project = '%s%s' % (_PROJECTS_FULL_PREFIX, project)
+    return project
+
+def _get_ref(refs, refname: Text, default: git.Reference=None) -> git.Reference:
+    return refname and refname in refs and refs[refname] or default
 
 
 class GitSpec(SingletonConfigurable, baseapp.Spec):
@@ -224,14 +238,17 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
                      r"- %C(bold green)(%ar)%C(reset) %C(white)%s%C(reset) %C(dim white)- "
                      r"%an%C(reset)%C(bold yellow)%d%C(reset)' --all")
 
-    def _make_commit_msg(self, projname, state, msg):
+    def _make_commit_msg(self, project, state, msg):
+        import json
         msg = '\n'.join(textwrap.wrap(msg, width=50))
-        return json.dumps(CommitMsg(projname, state, msg, PROJECT_VERSION)._asdict())
+        return json.dumps(CommitMsg(project, state, msg, PROJECT_VERSION)._asdict())
 
     def _parse_commit_msg(self, msg, scream=False):
         """
         :return: a :class:`CommitMsg` instance, or `None` if cannot parse.
         """
+        import json
+
         try:
             return json.loads(msg,
                     object_hook=lambda seq: CommitMsg(**seq))
@@ -242,80 +259,125 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
                 self.log.warn('Found the non-project commit-msg in project-db'
                        ', due to: %s\n %s', ex, msg, exc_info=1)
 
-    def _commit(self, index, projname, state, msg):
-        index.commit(self._make_commit_msg(projname, state, msg))
+    def _commit(self, index, project, state, msg):
+        index.commit(self._make_commit_msg(project, state, msg))
 
-    def exists(self, projname: Text, validate=False):
+    def is_project(self, project: Text, validate=False):
         """
-        :param projname: some branch ref
+        :param project: some branch ref
         """
         repo = self.repo
-        found = projname in repo.refs
-        if validate:
-            proj = repo.refs[projname]
-            found = bool(self._parse_commit_msg(proj.commit.message))
+        project = _project2refpath(project)
+        found = project in repo.heads
+        if found and validate:
+            ref = repo.heads[project]
+            found = bool(self._parse_commit_msg(ref.commit.message))
         return found
 
-    def _make_readme(self, projname):
+    def _make_readme(self, project):
         return textwrap.dedent("""
         This is the CO2MPAS-project named %r (see https://co2mpas.io/ for more).
 
         - created: %s
-        """ %(projname, datetime.now()))
+        """ %(project, datetime.now()))
 
-    def proj_add(self, projname: str):
+    def proj_add(self, project: str):
         """
-        :param projname: some branch ref
+        :param project: some branch ref
         """
-        self.log.info('Creating project %r...', projname)
+        self.log.info('Creating project %r...', project)
         repo = self.repo
-        if self.exists(projname):
-            raise CmdException('Project %r already exists!' % projname)
-        repo.git.checkout(projname, orphan=True)
+        if self.is_project(project):
+            raise CmdException('Project %r already exists!' % project)
+        if not project or not project.isidentifier():
+            raise CmdException('Invalid name %r for a project!' % project)
+
+        repo.git.checkout(_project2refpath(project), orphan=True)
 
         index = repo.index
         state_fpath = osp.join(repo.working_tree_dir, 'CO2MPAS')
         with io.open(state_fpath, 'wt') as fp:
-            fp.write(self._make_readme(projname))
+            fp.write(self._make_readme(project))
         index.add([state_fpath])
-        self._commit(index, projname, 'empty', 'Project created.')
+        self._commit(index, project, 'empty', 'Project created.')
 
-    def proj_open(self, projname: str):
+    def proj_open(self, project: Text):
         """
-        :param projname: some branch ref
+        :param project: some branch ref
         """
-#         self.log.info('Archiving repo into %r...', projname)
-#         with io.open(convpath(projname, 0, 0), 'wb') as fd:
+#         self.log.info('Archiving repo into %r...', project)
+#         with io.open(convpath(project, 0, 0), 'wb') as fd:
 #             self.repo.archive(fd)
 #         return
-        self.log.info('Opening project %r...', projname)
-        if not self.exists(projname):
-            raise CmdException('Project %r not found!' % projname)
-        self.repo.create_head(projname)
+        self.log.info('Opening project %r...', project)
+        if not self.is_project(project, validate=True):
+            raise CmdException('Project %r not found!' % project)
+        self.repo.heads(_project2refpath(project)).checkout()
 
-    def _yield_projects(self, refs=None):
-        if not refs:
-            refs = self.repo.heads
-        for ref in refs:
-            if self.exists(ref):
+#     def _get_project_ref(self, project: Text or None) -> git.Reference:
+#         """
+#         :return:
+#             The *ref* of the given `project` or active-branch if none given,
+#             if found, or `None` if matching rf not a valid project.
+#         """
+#         if not project:
+#             pass: #TODO:
+#         else:
+#             project = _project2refpath(project)
+#         return _get_ref(project)
+
+
+    def _yield_project_refs(self, *projects):
+        if projects:
+            projects =  [_project2refpath(p) for p in projects]
+        for ref in self.repo.heads:
+            if _is_proj_ref(ref) and not projects or ref.path in projects:
                 yield ref
 
-    def list(self, *projnames: str):
+    def proj_list(self, *projects: str, verbose=None):
         """
-        :param projnames: some branch ref, or none for all
-        :retun: yield any match projects, or all if `projnames` were empty.
+        :param projects: some branch ref, or none for all
+        :param verbose: return infos in a table with 3-4 coulmns per each project
+        :retun: yield any match projects, or all if `projects` were empty.
         """
-        self.log.info('Listing %s projects...', projnames or 'all')
-        refs = self.repo.heads
-        if projnames and refs:
-            refs =  iset(projnames) & iset(refs)
-        yield from self._yield_projects(refs)
+        import pandas as pd
+        if verbose is None:
+            verbose = self.verbose
 
-    def examine(self, projname: str):
+        self.log.info('Listing %s projects...', projects or 'all')
+        res = {}
+        for ref in self._yield_project_refs(*projects):
+            project = _ref2project(ref)
+            infos = []
+            if verbose:
+                infos = OrderedDict(self._infos_fields(project,
+                        fields='msg.state revs_count files_count last_cdata author msg.msg'.split(),
+                        with_fallbacks=False))
+            res[project] = infos
+
+        if not res:
+            res = None
+        else:
+            if verbose:
+                res = pd.DataFrame.from_dict(res, orient='index')
+                res.index.name = 'Projects'
+                ren = lambda c: c[len('msg.'):] if c.startswith('msg.') else c
+                res = res.rename_axis(ren, axis='columns')
+                res = res.rename_axis({'revs_count': '#revs', 'files_count': '#files'}, axis='columns')
+            else:
+                ap = self.repo.active_branch
+                ap = ap and ap.path
+                print(ap)
+                res = (('* %s' if _project2refpath(r) == ap else '  %s') % r
+                for r in res)
+
+        return res
+
+    def examine(self, project: str):
         """
-        :param projname: some branch ref
+        :param project: some branch ref
         """
-        return projname
+        return project
 
     def read_git_settings(self, prefix: Text=None, config_level: Text=None):# -> List(Text):
         """
@@ -347,32 +409,46 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
     @fnt.lru_cache() # x6(!) faster!
     def _infos_dsp(self, fallback_value='<invalid>'):
         from co2mpas.dispatcher import Dispatcher
+        import os
 
         ufuns = [
-            UFun('repo',         lambda infos: self.repo),
-            UFun('git_cmds',     lambda infos: where('git')),
-            UFun('ref',          lambda repo, prj: _get_ref(repo.heads, prj, repo.active_branch)),
-            UFun('exec_version', lambda repo: '.'.join(str(v) for v in repo.git.version_info)),
-            UFun('heads_count',  lambda repo: len(repo.heads)),
-            UFun('projects_count',  lambda repo: itz.count(self._yield_projects())),
-            UFun('tags_count',   lambda repo: len(repo.tags)),
-            UFun('git_settings', lambda repo: self.read_git_settings()),
-            UFun('dirty',        lambda repo: repo.is_dirty()),
+            UFun('repo',            lambda _infos: self.repo),
+            UFun('git_cmds',        lambda _infos: where('git')),
+            UFun('dirty',           lambda repo: repo.is_dirty()),
+            UFun('untracked',       lambda repo: repo.untracked_files),
+            UFun('wd_files',        lambda repo: os.listdir(repo.working_dir)),
+            UFun('branch',          lambda repo, _inp_prj:
+                                        _inp_prj and _get_ref(repo.heads, _project2refpath(_inp_prj)) or repo.active_branch),
+            UFun('head',            lambda repo: repo.head),
+            UFun('heads_count',     lambda repo: len(repo.heads)),
+            UFun('projects_count',  lambda repo: itz.count(self._yield_project_refs())),
+            UFun('tags_count',      lambda repo: len(repo.tags)),
+            UFun('git_version',     lambda repo: '.'.join(str(v) for v in repo.git.version_info)),
+            UFun('git_settings',    lambda repo: self.read_git_settings()),
 
-            UFun('cmt',          lambda ref: ref.commit),
+            UFun('head_ref',      lambda head: head.reference),
+            UFun('head_valid',      lambda head: head.is_valid()),
+            UFun('head_detached',   lambda head: head.is_detached),
 
-            UFun('tre',          lambda cmt: cmt.tree),
-            UFun('author',       lambda cmt: '%s <%s>' % (cmt.author.name, cmt.author.email)),
-            UFun('last_cdate',   lambda cmt: str(cmt.authored_datetime)),
-            UFun('commit',       lambda cmt: cmt.hexsha),
-            UFun('revs_count',   lambda cmt: itz.count(cmt.iter_parents())),
-            UFun('cmsg',         lambda cmt: cmt.message),
-            UFun('cmsg',         lambda cmt: '<invalid: %s>' % cmt.message, weight=10),
+            UFun('cmt',             lambda branch: branch.commit),
+            UFun('head',            lambda branch: branch.path),
+            UFun('branch_valid',    lambda branch: branch.is_valid()),
+            UFun('branch_detached', lambda branch: branch.is_detached),
 
-            UFun('msg_fields',   lambda cmsg: self._parse_commit_msg(cmsg)._asdict()),
+            UFun('tre',             lambda cmt: cmt.tree),
+            UFun('author',          lambda cmt: '%s <%s>' % (cmt.author.name, cmt.author.email)),
+            UFun('last_cdate',      lambda cmt: str(cmt.authored_datetime)),
+            UFun('commit',          lambda cmt: cmt.hexsha),
+            UFun('revs_count',      lambda cmt: itz.count(cmt.iter_parents())),
+            UFun('cmsg',            lambda cmt: cmt.message),
+            UFun('cmsg',            lambda cmt: '<invalid: %s>' % cmt.message, weight=10),
 
-            UFun('tree',         lambda tre: tre.hexsha),
-            UFun('files_count',  lambda tre: itz.count(tre.list_traverse())),
+            UFun(['msg.%s' % f for f in CommitMsg._fields],
+                                    lambda cmsg: self._parse_commit_msg(cmsg) or
+                                    ('<invalid>', ) * len(CommitMsg._fields)),
+
+            UFun('tree',            lambda tre: tre.hexsha),
+            UFun('files_count',     lambda tre: itz.count(tre.list_traverse())),
         ]
         fallback_value = '<invalid>'
         fallback_fun = lambda *a, **k: fallback_value
@@ -407,10 +483,9 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
         """
         verbose_levels = {
             0:[
-                'ref',
-                'state',
-                'msg_fields.state',
-                'msg_fields.msg',
+                'msg.project',
+                'msg.state',
+                'msg.msg',
                 'revs_count',
                 'files_count',
                 'last_cdate',
@@ -418,51 +493,66 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
             ],
             1: [
                 'infos',
-                'repo',
                 'cmsg',
-                'msg_fields',
+                'head',
                 'dirty',
                 'commit',
                 'tree',
+                'repo',
             ],
-            2: [
-                'heads_count',
-                'projects_count',
-                'tags_count',
-                'git_cmds',
-                'exec_version',
-                'git_settings',
-            ]
+            2: None,  ## null signifies "all fields".
         }
         max_level = max(verbose_levels.keys())
         if level > max_level:
             level = max_level
         fields = []
         for l  in range(level + 1):
-            fields.extend(verbose_levels[l])
+            fs = verbose_levels[l]
+            if not fs:
+                return None
+            fields.extend(fs)
         return fields
 
-    def infos(self, project=None, verbose=None, as_text=False, as_json=False):
+    def _infos_fields(self, project=None, fields=None, with_fallbacks=False):
+        dsp = self._infos_dsp()
+        inputs = {'_infos': 'ok', '_inp_prj': project}
+        infos = dsp.dispatch(inputs=inputs,
+                             outputs=fields,
+                             shrink=not with_fallbacks)
+        infos = dict(utils.stack_nested_keys(infos))
+        infos = dtz.keymap(lambda k: '.'.join(k), infos)
+        if fields:
+            infos = [(k, v)
+                     for o in fields
+                     for k, v in infos.items()
+                     if k.startswith(o)]
+        else:
+            infos = sorted((k, v) for k, v in infos.items())
+
+        return infos
+
+    def proj_infos(self, project=None, verbose=None, as_text=False, as_json=False):
         """
         :param project: use current branch if unspecified.
         :retun: text message with infos.
         """
+        import json
+
         if verbose is None:
             verbose = self.verbose
+        verbose_level = int(verbose)
 
-        dsp = self._infos_dsp()
-        outs = self._out_fields_by_verbose_level(int(verbose))
-        infos = dsp.dispatch(inputs={'infos': 'ok', 'prj': project},
-                             outputs=outs)
-        infos = dict(utils.stack_nested_keys(infos))
-        infos = dtz.keymap(lambda k: '.'.join(k), infos)
-        infos = dtz.keyfilter(lambda k: any(k.startswith(o) for o in outs), infos)
+        fields = self._out_fields_by_verbose_level(verbose_level)
+        infos = self._infos_fields(project, fields, with_fallbacks=True)
 
         if as_text:
             if as_json:
-                infos = json.dumps(infos, indent=2, default=str)
+                infos = json.dumps(dict(infos), indent=2, default=str)
             else:
-                infos = baseapp.format_kv_items(infos.items())
+                #import pandas as pd
+                #infos = pd.Series(OrderedDict(infos))
+                infos = baseapp.format_pairs(infos)
+
         return infos
 
 
@@ -510,20 +600,20 @@ class Project(baseapp.Cmd):
     class List(_SubCmd):
         """List information about the specified projects (or all if no projects specified)."""
         def run(self):
-            return self.gitspec.list(*self.extra_args)
+            return self.gitspec.proj_list(*self.extra_args)
 
     class Infos(_SubCmd):
         """Print a text message with current-project, status, and repo-config data if --verbose."""
-
         as_json = trt.Bool(False,
                 help="Whether to return infos as JSON, instead of python-code."
                 ).tag(config=True)
 
         def run(self):
-            if len(self.extra_args) != 0:
-                raise CmdException('Cmd %r takes no args, received %r!'
-                                   % (self.name, self.extra_args))
-            return self.gitspec.infos(as_text=True, as_json=self.as_json)
+            if len(self.extra_args) > 1:
+                raise CmdException('Cmd %r takes none or 1 args, received %d: %r!'
+                                   % (self.name, len(self.extra_args), self.extra_args))
+            project = self.extra_args and self.extra_args[0] or None
+            return self.gitspec.proj_infos(project, as_text=True, as_json=self.as_json)
 
 
     def __init__(self, **kwds):

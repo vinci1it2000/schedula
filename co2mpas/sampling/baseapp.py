@@ -111,7 +111,7 @@ def camel_to_cmd_name(s):
     return camel_to_snake_case(s).replace('_', '-')
 
 
-def format_kv_items(items: List[Tuple[Text, Any]], indent=12):
+def format_pairs(items: Sequence[Tuple[Text, Any]], indent=16):
     def format_item(k, v):
         nk = len(k)
         ntabs = max (1, int(nk / indent) + bool(nk % indent))
@@ -120,7 +120,7 @@ def format_kv_items(items: List[Tuple[Text, Any]], indent=12):
         return item_pattern % (k, v)
     dic = [format_item(*i) for i in items]
 
-    return '\n'.join(sorted(dic))
+    return '\n'.join(dic)
 
 
 def py_where(program, path=None):
