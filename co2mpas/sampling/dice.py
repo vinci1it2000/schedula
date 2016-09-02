@@ -506,6 +506,8 @@ def run_cmd(cmd: Cmd, argv: Sequence[Text]=None):
         if isinstance(res, types.GeneratorType):
             for i in res:
                 print(i)
+        elif isinstance(res, (tuple, list)):
+            print(os.linesep.join(res))
         else:
             print(res)
 

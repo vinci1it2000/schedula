@@ -146,7 +146,8 @@ PROJECT_STATUSES = '<invalid> empty full signed dice_sent sampled'.split()
 CommitMsg = namedtuple('CommitMsg', 'project state msg msg_version')
 
 _PROJECTS_PREFIX = 'projects/'
-_PROJECTS_FULL_PREFIX = 'refs/heads/' + _PROJECTS_PREFIX
+_HEADS_PREFIX = 'refs/heads/'
+_PROJECTS_FULL_PREFIX = _HEADS_PREFIX + _PROJECTS_PREFIX
 
 def _is_proj_ref(ref: git.Reference) -> bool:
     return ref.path.startswith(_PROJECTS_FULL_PREFIX)
@@ -154,11 +155,18 @@ def _is_proj_ref(ref: git.Reference) -> bool:
 def _ref2project(ref: git.Reference) -> Text:
     return ref.path[len(_PROJECTS_FULL_PREFIX):]
 
-def _project2refpath(project: Text) -> Text:
-    if project.startswith('refs/heads/'):
+def _project2ref_path(project: Text) -> Text:
+    if project.startswith(_HEADS_PREFIX):
         pass
     elif not project.startswith('projects/'):
         project = '%s%s' % (_PROJECTS_FULL_PREFIX, project)
+    return project
+
+def _project2ref_name(project: Text) -> Text:
+    if project.startswith(_HEADS_PREFIX):
+        project = project[len(_HEADS_PREFIX):]
+    elif not project.startswith('projects/'):
+        project = '%s%s' % (_PROJECTS_PREFIX, project)
     return project
 
 def _get_ref(refs, refname: Text, default: git.Reference=None) -> git.Reference:
@@ -267,7 +275,7 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
         :param project: some branch ref
         """
         repo = self.repo
-        project = _project2refpath(project)
+        project = _project2ref_name(project)
         found = project in repo.heads
         if found and validate:
             ref = repo.heads[project]
@@ -292,7 +300,8 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
         if not project or not project.isidentifier():
             raise CmdException('Invalid name %r for a project!' % project)
 
-        repo.git.checkout(_project2refpath(project), orphan=True)
+        ref_name = _project2ref_name(project)
+        repo.git.checkout(ref_name, orphan=True)
 
         index = repo.index
         state_fpath = osp.join(repo.working_tree_dir, 'CO2MPAS')
@@ -312,7 +321,7 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
         self.log.info('Opening project %r...', project)
         if not self.is_project(project, validate=True):
             raise CmdException('Project %r not found!' % project)
-        self.repo.heads(_project2refpath(project)).checkout()
+        self.repo.heads(_project2ref_path(project)).checkout()
 
 #     def _get_project_ref(self, project: Text or None) -> git.Reference:
 #         """
@@ -323,18 +332,18 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
 #         if not project:
 #             pass: #TODO:
 #         else:
-#             project = _project2refpath(project)
+#             project = _project2ref_path(project)
 #         return _get_ref(project)
 
 
     def _yield_project_refs(self, *projects):
         if projects:
-            projects =  [_project2refpath(p) for p in projects]
+            projects =  [_project2ref_path(p) for p in projects]
         for ref in self.repo.heads:
             if _is_proj_ref(ref) and not projects or ref.path in projects:
                 yield ref
 
-    def proj_list(self, *projects: str, verbose=None):
+    def proj_list(self, *projects: str, verbose=None, as_text=False):
         """
         :param projects: some branch ref, or none for all
         :param verbose: return infos in a table with 3-4 coulmns per each project
@@ -358,18 +367,26 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
         if not res:
             res = None
         else:
+            ap = self.repo.active_branch
+            ap = ap and ap.path
             if verbose:
                 res = pd.DataFrame.from_dict(res, orient='index')
-                res.index.name = 'Projects'
+                res = res.sort_index()
+                res.index = [('* %s' if _project2ref_path(r) == ap else '  %s') % r
+                             for r in res.index]
+                res.reset_index(level=0, inplace=True)
                 ren = lambda c: c[len('msg.'):] if c.startswith('msg.') else c
                 res = res.rename_axis(ren, axis='columns')
-                res = res.rename_axis({'revs_count': '#revs', 'files_count': '#files'}, axis='columns')
+                res = res.rename_axis({
+                    'index': 'project',
+                    'revs_count': '#revs',
+                    'files_count': '#files'
+                }, axis='columns')
+                if as_text:
+                    res = res.to_string(index=False)
             else:
-                ap = self.repo.active_branch
-                ap = ap and ap.path
-                print(ap)
-                res = (('* %s' if _project2refpath(r) == ap else '  %s') % r
-                for r in res)
+                res = [('* %s' if _project2ref_path(r) == ap else '  %s') % r
+                for r in sorted(res)]
 
         return res
 
@@ -418,7 +435,7 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
             UFun('untracked',       lambda repo: repo.untracked_files),
             UFun('wd_files',        lambda repo: os.listdir(repo.working_dir)),
             UFun('branch',          lambda repo, _inp_prj:
-                                        _inp_prj and _get_ref(repo.heads, _project2refpath(_inp_prj)) or repo.active_branch),
+                                        _inp_prj and _get_ref(repo.heads, _project2ref_path(_inp_prj)) or repo.active_branch),
             UFun('head',            lambda repo: repo.head),
             UFun('heads_count',     lambda repo: len(repo.heads)),
             UFun('projects_count',  lambda repo: itz.count(self._yield_project_refs())),

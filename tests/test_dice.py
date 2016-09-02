@@ -19,9 +19,10 @@ import unittest
 
 import gnupg
 import yaml
+from traitlets.config import get_config
 
 from co2mpas.__main__ import init_logging
-from co2mpas.sampling import dice
+from co2mpas.sampling import baseapp, dice, project
 
 
 init_logging(True)
@@ -270,4 +271,3 @@ class TDice(unittest.TestCase):
         key_length=1024
         dice.gpg_gen_interesting_keys(gpg, key_length, name_real, name_email,
                 keyid_n_fingerprint_start_repetitively)
-
