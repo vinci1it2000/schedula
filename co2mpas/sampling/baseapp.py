@@ -343,15 +343,18 @@ class Cmd(Application):
             return
 
         lines = []
-        for m, (cfg, fhelp) in self.flags.items():
+        for flags, (cfg, fhelp) in self.flags.items():
             try:
-                prefix = '--' if len(m) > 1 else '-'
-                lines.append(prefix+m)
+                if not isinstance(flags, tuple):
+                    flags = (flags, )
+                flags = sorted(flags, key=len)
+                m = ', '.join(('--%s' if len(m) > 1 else '-%s') % m for m in flags)
+                lines.append(m)
                 lines.append(indent(dedent(fhelp.strip())))
-                cfg_list = ['%s.%s=%s' %(clname, prop, val)
+                cfg_list = ' '.join('%s.%s=%s' %(clname, prop, val)
                             for clname, props_dict
-                            in cfg.items() for prop, val in props_dict.items()]
-                cfg_txt = "Equivalent to: %s" % cfg_list
+                            in cfg.items() for prop, val in props_dict.items())
+                cfg_txt = "Equivalent to: [%s]" % cfg_list
                 lines.append(indent(dedent(cfg_txt)))
             except Exception as ex:
                 self.log.error('Failed collecting help-message for flag %r, due to: %s',
@@ -430,6 +433,59 @@ class Cmd(Application):
             lines.append("""Note: The asterisk '[*]' marks the "default" sub-command to run when none specified.""")
         lines.append('')
         print(os.linesep.join(lines))
+
+#     def flatten_flags(self):
+#         """flatten flags and aliases, so cl-args override as expected.
+#
+#         This prevents issues such as an alias pointing to InteractiveShell,
+#         but a config file setting the same trait in TerminalInteraciveShell
+#         getting inappropriate priority over the command-line arg.
+#
+#         Only aliases with exactly one descendent in the class list
+#         will be promoted.
+#
+#         """
+#         ## Overridden to support tuples as alias/flag keys.
+#
+#         # build a tree of classes in our list that inherit from a particular
+#         # it will be a dict by parent classname of classes in our list
+#         # that are descendents
+#         mro_tree = defaultdict(list)
+#         for cls in self.classes:
+#             clsname = cls.__name__
+#             for parent in cls.mro()[1:-3]:
+#                 # exclude cls itself and Configurable,HasTraits,object
+#                 mro_tree[parent.__name__].append(clsname)
+#         # flatten aliases, which have the form:
+#         # { 'alias' : 'Class.trait' }
+#         aliases = {}
+#         for alias, cls_trait in iteritems(self.aliases):
+#             cls,trait = cls_trait.split('.',1)
+#             children = mro_tree[cls]
+#             if len(children) == 1:
+#                 # exactly one descendent, promote alias
+#                 cls = children[0]
+#             if not isinstance(aliases, tuple):
+#                 alias = (alias, )
+#             for al in alias:
+#                 aliases[al] = '.'.join([cls,trait])
+#
+#         # flatten flags, which are of the form:
+#         # { 'key' : ({'Cls' : {'trait' : value}}, 'help')}
+#         flags = {}
+#         for key, (flagdict, help) in iteritems(self.flags):
+#             newflag = {}
+#             for cls, subdict in iteritems(flagdict):
+#                 children = mro_tree[cls]
+#                 # exactly one descendent, promote flag section
+#                 if len(children) == 1:
+#                     cls = children[0]
+#                 newflag[cls] = subdict
+#             if not isinstance(key, tuple):
+#                 key = (key, )
+#             for k in key:
+#                 flags[k] = (newflag, help)
+#         return flags, aliases
 
     @catch_config_error
     def initialize_subcommand(self, subc, argv=None):
@@ -521,22 +577,22 @@ class Cmd(Application):
                 'config-files': 'Cmd.config_files',
             },
             'cmd_flags': {
-                'debug': ({
-                    'Application' : {'log_level' : 0},
-                    'Spec' : {'log_level' : 0},
-                    'Cmd' : {
-                        'raise_config_file_errors': True,
-                        'print_config': True,
+                ('D', 'debug'): ({
+                        'Application' : {'log_level' : 0},
+                        'Spec' : {'log_level' : 0},
+                        'Cmd' : {
+                            'raise_config_file_errors': True,
+                            'print_config': True,
+                        },
                     },
-                },
-                "Log more logging, fail on configuration errors, "
-                "and print configuration on each cmd startup."
+                    "Log more logging, fail on configuration errors, "
+                    "and print configuration on each cmd startup."
                 ),
-                'verbose':  ({
-                    'Spec': {'verbose': True},
-                },
-                Spec.verbose.help
-                ),
+                ('v', 'verbose'):  ({
+                        'Spec': {'verbose': True},
+                    },
+                    Spec.verbose.help
+                )
             },
         }
         dkwds.update(kwds)
