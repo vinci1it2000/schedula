@@ -41,8 +41,6 @@ except:
     _mydir = '.'
 
 CmdException = trt.TraitError
-ProjectNotFoundException = trt.TraitError
-
 
 
 class UFun(object):
@@ -590,7 +588,7 @@ class _PrjCmd(baseapp.Cmd):
     def gitspec(self):
         return GitSpec.instance(parent=self)
 
-class Project(_PrjCmd):
+class ProjectCmd(_PrjCmd):
     """
     Commands to administer the storage repo of TA *projects*.
 
@@ -605,7 +603,7 @@ class Project(_PrjCmd):
         """)
 
 
-    class List(_PrjCmd):
+    class ListCmd(_PrjCmd):
         """
         SYNTAX
             co2dice project list [<project-1>] ...
@@ -618,7 +616,7 @@ class Project(_PrjCmd):
             self.log.info('Listing %s projects...', self.extra_args or 'all')
             return self.gitspec.proj_list(*self.extra_args)
 
-    class Current(_PrjCmd):
+    class CurrentCmd(_PrjCmd):
         """Prints the currently open project."""
         def run(self):
             if len(self.extra_args) != 0:
@@ -626,7 +624,7 @@ class Project(_PrjCmd):
                                    % (self.name, self.extra_args))
             return self.gitspec.proj_current()
 
-    class Open(_PrjCmd):
+    class OpenCmd(_PrjCmd):
         """
         SYNTAX
             co2dice project open <project>
@@ -640,7 +638,7 @@ class Project(_PrjCmd):
                                    % (self.name, self.extra_args))
             return self.gitspec.proj_open(self.extra_args[0])
 
-    class Add(_PrjCmd):
+    class AddCmd(_PrjCmd):
         """
         SYNTAX
             co2dice project add <project>
@@ -653,7 +651,7 @@ class Project(_PrjCmd):
                                    % (self.name, self.extra_args))
             return self.gitspec.proj_add(self.extra_args[0])
 
-    class Examine(_PrjCmd):
+    class ExamineCmd(_PrjCmd):
         """
         SYNTAX
             co2dice project examine [<project>]
@@ -673,7 +671,7 @@ class Project(_PrjCmd):
             project = self.extra_args and self.extra_args[0] or None
             return self.gitspec.proj_examine(project, as_text=True, as_json=self.as_json)
 
-    class Backup(_PrjCmd):
+    class BackupCmd(_PrjCmd):
         """
         SYNTAX
             co2dice project backup [<archive-path>]
@@ -705,15 +703,17 @@ class Project(_PrjCmd):
             dkwds = {
                 'conf_classes': [GitSpec],
                 'subcommands': baseapp.build_sub_cmds(
-                    Project.List, Project.Current, Project.Open, Project.Add, Project.Examine, Project.Backup),
-                #'default_subcmd': 'current', ## Doe not help user
+                    ProjectCmd.ListCmd, ProjectCmd.CurrentCmd, ProjectCmd.OpenCmd, ProjectCmd.AddCmd,
+                    ProjectCmd.ExamineCmd, ProjectCmd.BackupCmd
+                ),
+                #'default_subcmd': 'current', ## Does not help the user.
                 'cmd_flags': {
                     'reset-git-settings': ({
                             'GitSpec': {'reset_settings': True},
                         }, GitSpec.reset_settings.help),
                     'as-json': ({
                             'Examine': {'as_json': True},
-                        }, Project.Examine.as_json.help),
+                        }, ProjectCmd.Examine.as_json.help),
                 }
             }
             dkwds.update(kwds)
@@ -733,5 +733,5 @@ if __name__ == '__main__':
     #argv = '--debug'.split()
 
     dice.run_cmd(baseapp.chain_cmds(
-        [dice.Main, Project, Project.List],
+        [dice.Main, ProjectCmd, ProjectCmd.ListCmd],
         config=c))#argv=['project_foo']))

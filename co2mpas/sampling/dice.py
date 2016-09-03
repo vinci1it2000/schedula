@@ -72,7 +72,6 @@ except:
     _mydir = '.'
 
 CmdException = trt.TraitError
-ProjectNotFoundException = trt.TraitError
 
 _default_cfg = textwrap.dedent("""
         ---
@@ -448,7 +447,7 @@ class Main(Cmd):
                 'name': __title__,
                 'description': __summary__,
                 'default_subcmd': 'project',
-                'subcommands': build_sub_cmds(proj.Project, GenConfig),
+                'subcommands': build_sub_cmds(proj.ProjectCmd, GenConfig),
             }
             dkwds.update(kwds)
             super().__init__(**dkwds)
@@ -483,7 +482,7 @@ class GenConfig(Cmd):
     def run(self):
         import co2mpas.sampling.project as proj
         ## INFO: Add al conf-classes here
-        pp = proj.Project
+        pp = proj.ProjectCmd
         self.classes = [
               pp, pp.Infos, pp.Add, pp.Open, pp.List,
               GenConfig,
@@ -575,4 +574,4 @@ if __name__ == '__main__':
     #c = get_config()
     #c.Application.log_level=0
     #c.Spec.log_level='ERROR'
-    #run_cmd(chain_cmds([Main, Project, Project.Add], argv=['project_foo']))
+    #run_cmd(chain_cmds([Main, ProjectCmd, ProjectCmd.Add], argv=['project_foo']))

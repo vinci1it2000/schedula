@@ -265,12 +265,17 @@ def app_help(app_class):
         or (isinstance(app_class.description, str) and app_class.description)
         or app_class.__doc__)
 
+def class2cmd_name(cls):
+    name = cls.__name__
+    if name.lower().endswith('cmd') and len(name) > 3:
+        name = name[:-3]
+    return camel_to_snake_case(name)
+
 def build_sub_cmds(*subapp_classes):
     """Builds an ordered-dictionary of ``cmd-name --> (cmd-class, help-msg)``. """
 
-    return OrderedDict((camel_to_cmd_name(sa.__name__), (sa, app_help(sa)))
+    return OrderedDict((class2cmd_name(sa), (sa, app_help(sa)))
                        for sa in subapp_classes)
-
 
 class Cmd(Application):
     """Common machinery for all (sub-)commands. """
@@ -279,7 +284,11 @@ class Cmd(Application):
 
     @trt.default('name')
     def _name(self):
-        return camel_to_snake_case(type(self).__name__)
+        name = type(self).__name__
+        if name.lower().endswith('cmd') and len(name) > 3:
+            name = name[:-3]
+        camel_to_snake_case(name)
+        return name
 
 
     @trt.default('description')
