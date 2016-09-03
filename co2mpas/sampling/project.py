@@ -172,7 +172,7 @@ def _get_ref(refs, refname: Text, default: git.Reference=None) -> git.Reference:
     return refname and refname in refs and refs[refname] or default
 
 
-class GitSpec(SingletonConfigurable, baseapp.Spec):
+class Project(SingletonConfigurable, baseapp.Spec):
     """A git-based repository storing the TA projects (containing signed-files and sampling-resonses).
 
     Git Command Debugging and Customization:
@@ -586,7 +586,7 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
 class _PrjCmd(baseapp.Cmd):
     @property
     def gitspec(self):
-        return GitSpec.instance(parent=self)
+        return Project.instance(parent=self)
 
 class ProjectCmd(_PrjCmd):
     """
@@ -701,24 +701,23 @@ class ProjectCmd(_PrjCmd):
     def __init__(self, **kwds):
         with self.hold_trait_notifications():
             dkwds = {
-                'conf_classes': [GitSpec],
-                'subcommands': baseapp.build_sub_cmds(
-                    ProjectCmd.ListCmd, ProjectCmd.CurrentCmd, ProjectCmd.OpenCmd, ProjectCmd.AddCmd,
-                    ProjectCmd.ExamineCmd, ProjectCmd.BackupCmd
-                ),
+                'conf_classes': [Project],
+                'subcommands': baseapp.build_sub_cmds(*project_subcmds),
                 #'default_subcmd': 'current', ## Does not help the user.
                 'cmd_flags': {
                     'reset-git-settings': ({
-                            'GitSpec': {'reset_settings': True},
-                        }, GitSpec.reset_settings.help),
+                            'Project': {'reset_settings': True},
+                        }, Project.reset_settings.help),
                     'as-json': ({
-                            'Examine': {'as_json': True},
-                        }, ProjectCmd.Examine.as_json.help),
+                            'ExamineCmd': {'as_json': True},
+                        }, ProjectCmd.ExamineCmd.as_json.help),
                 }
             }
             dkwds.update(kwds)
             super().__init__(**dkwds)
 
+project_subcmds = (ProjectCmd.ListCmd, ProjectCmd.CurrentCmd, ProjectCmd.OpenCmd, ProjectCmd.AddCmd,
+                   ProjectCmd.ExamineCmd, ProjectCmd.BackupCmd)
 
 if __name__ == '__main__':
     from traitlets.config import get_config
@@ -733,5 +732,5 @@ if __name__ == '__main__':
     #argv = '--debug'.split()
 
     dice.run_cmd(baseapp.chain_cmds(
-        [dice.Main, ProjectCmd, ProjectCmd.ListCmd],
+        [dice.MainCmd, ProjectCmd, ProjectCmd.ListCmd],
         config=c))#argv=['project_foo']))

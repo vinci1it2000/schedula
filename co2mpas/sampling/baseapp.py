@@ -10,13 +10,13 @@ An *ipython traitlets* framework for apps with hierarchical chain of commands(cl
 
 To run a base command, use this code::
 
-    app = Main.instance(**app_init_kwds)
+    app = MainCmd.instance(**app_init_kwds)
     app.initialize(argv or None) ## Uses `sys.argv` if `argv` is `None`.
     return app.start()
 
 To run nested commands, use :func:`baseapp.chain_cmds()` like that::
 
-    app = chain_cmds(Main, Project, Project.List)
+    app = chain_cmds(MainCmd, Project, Project.List)
     return app.start()
 
 ## Configuration and Initialization guidelines for *Spec* and *Cmd* classes
@@ -392,8 +392,11 @@ class Cmd(Application):
                 cfg_txt = "Equivalent to: [%s]" % cfg_list
                 lines.append(indent(dedent(cfg_txt)))
             except Exception as ex:
-                self.log.error('Failed collecting help-message for flag %r, due to: %s',
-                               m, ex, exc_info=1)
+                if self.raise_config_file_errors:
+                    raise
+                else:
+                    self.log.error('Failed collecting help-message for flag %r, due to: %s',
+                            m, ex, exc_info=1)
         # lines.append('')
         print(os.linesep.join(lines))
 
@@ -612,7 +615,7 @@ class Cmd(Application):
                 'config-files': 'Cmd.config_files',
             },
             'cmd_flags': {
-                ('D', 'debug'): ({
+                ('d', 'debug'): ({
                         'Application' : {'log_level' : 0},
                         'Spec' : {'log_level' : 0},
                         'Cmd' : {
@@ -677,14 +680,16 @@ class Cmd(Application):
         elif self.default_subcmd:
             self.initialize_subcommand(self.default_subcmd, self.argv)
         else:
-            return self.run()
+            return self.run(*self.extra_args)
 
         return self.subapp.start()
 
-    def run(self):
+    def run(self, *args):
         """Leaf sub-commands must inherit this instead of :meth:`start()` without invoking :func:`super()`.
 
         By default, screams about using sub-cmds, or about doing nothing!
+
+        :param args: Invoked by :meth:`start()` with :attr:`extra_args`.
         """
         if self.subcommands:
             raise CmdException('Specify one of the sub-commands: %s'

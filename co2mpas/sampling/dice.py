@@ -428,7 +428,7 @@ class ImapSpec(MailSpec):
 ###################
 
 
-class Main(Cmd):
+class MainCmd(Cmd):
     """The parent command."""
 
     name        = trt.Unicode(__title__)
@@ -447,13 +447,13 @@ class Main(Cmd):
                 'name': __title__,
                 'description': __summary__,
                 'default_subcmd': 'project',
-                'subcommands': build_sub_cmds(proj.ProjectCmd, GenConfig),
+                'subcommands': build_sub_cmds(proj.ProjectCmd, GenConfigCmd),
             }
             dkwds.update(kwds)
             super().__init__(**dkwds)
 
 ## INFO: Add al conf-classes here
-class GenConfig(Cmd):
+class GenConfigCmd(Cmd):
     """
     SYNTAX
         co2dice gen-config [<config-path-1>] ...
@@ -479,17 +479,17 @@ class GenConfig(Cmd):
             co2dice --config-files=~/my_conf  ...
         """)
 
-    def run(self):
+    def run(self, *args):
         import co2mpas.sampling.project as proj
-        ## INFO: Add al conf-classes here
+        ## INFO: Add all conf-classes here
         pp = proj.ProjectCmd
         self.classes = [
-              pp, pp.Infos, pp.Add, pp.Open, pp.List,
-              GenConfig,
-              baseapp.Spec, proj.GitSpec, Main,
+              pp, pp.CurrentCmd, pp.ListCmd, pp.AddCmd, pp.OpenCmd, pp.ExamineCmd, pp.BackupCmd,
+              GenConfigCmd,
+              baseapp.Spec, proj.Project, MainCmd,
         ]
-        extra_args = self.extra_args or [None]
-        for fpath in extra_args:
+        args = args or [None]
+        for fpath in args:
             self.write_default_config(fpath)
 
 
@@ -524,8 +524,8 @@ def main(argv=None, verbose=None, **app_init_kwds):
         If `None`, use :data:`sys.argv`; use ``[]`` to explicitely use no-args.
     """
     try:
-        ##Main.launch_instance(argv or None, **app_init_kwds) ## NO No, does not return `start()`!
-        app = Main.instance(**app_init_kwds)
+        ##MainCmd.launch_instance(argv or None, **app_init_kwds) ## NO No, does not return `start()`!
+        app = MainCmd.instance(**app_init_kwds)
         run_cmd(app, argv)
     except (CmdException, trt.TraitError) as ex:
         ## Suppress stack-trace for "expected" errors.
@@ -556,15 +556,15 @@ if __name__ == '__main__':
     #argv = 'project --help-all'.split()
     #argv = '--debug'.split()
     #argv = 'project list --help-all'.split()
-#     argv = 'project --GitSpec.reset_settings=True'.split()
+#     argv = 'project --Project.reset_settings=True'.split()
     #argv = 'project --reset-git-settings'.split()
     #argv = 'project infos --help-all'.split()
     #argv = 'project infos'.split()
     argv = 'project --help-all'.split()
     argv = 'project infos --as-json --verbose --debug'.split()
-    argv = 'project infos --GitSpec.verbose=2 --debug'.split()
-#     argv = 'project list  --GitSpec.reset_settings=True'.split()
-    #argv = '--GitSpec.reset_settings=True'.split()
+    argv = 'project infos --Project.verbose=2 --debug'.split()
+#     argv = 'project list  --Project.reset_settings=True'.split()
+    #argv = '--Project.reset_settings=True'.split()
     #argv = 'project list  --reset-git-settings'.split()
     #argv = 'project add one'.split()
     main(argv)
@@ -574,4 +574,4 @@ if __name__ == '__main__':
     #c = get_config()
     #c.Application.log_level=0
     #c.Spec.log_level='ERROR'
-    #run_cmd(chain_cmds([Main, ProjectCmd, ProjectCmd.Add], argv=['project_foo']))
+    #run_cmd(chain_cmds([MainCmd, ProjectCmd, ProjectCmd.Add], argv=['project_foo']))

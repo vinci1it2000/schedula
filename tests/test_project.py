@@ -16,9 +16,10 @@ import ddt
 from traitlets.config import get_config
 
 from co2mpas.__main__ import init_logging
-from co2mpas.sampling import baseapp, project
+from co2mpas.sampling import baseapp, dice, project
 import os.path as osp
 import pandas as pd
+import itertools as itt
 
 
 init_logging(True)
@@ -37,10 +38,33 @@ def chdir(path):
     finally:
         os.chdir(opath)
 
-class _TempRepo(unittest.TestCase):
+@ddt.ddt
+class TApp(unittest.TestCase):
+
+    @ddt.data(*list(itt.product((
+        dice.MainCmd.document_config_options,
+        dice.MainCmd.print_alias_help,
+        dice.MainCmd.print_flag_help,
+        dice.MainCmd.print_options,
+        dice.MainCmd.print_subcommands,
+        dice.MainCmd.print_examples,
+        dice.MainCmd.print_help,
+        ), project.project_subcmds))
+    )
+    def test_app(self, case):
+        meth, cmd_cls = case
+        c = get_config()
+        c.MainCmd.raise_config_file_errors = True
+        cmd = cmd_cls(config=c)
+        meth(cmd)
+
+
+class _TempRepo(object):
     @classmethod
     def setUpClass(cls):
         cls._project_repo = tempfile.TemporaryDirectory()
+        log.debug('Temp-repo: %s', cls._project_repo)
+
     @classmethod
     def tearDownClass(cls):
         cls._project_repo.cleanup()
@@ -48,13 +72,13 @@ class _TempRepo(unittest.TestCase):
     @property
     def _config(self):
         c = get_config()
-        c.GitSpec.repo_path = self._project_repo.name
+        c.Project.repo_path = self._project_repo.name
         c.Spec.verbose = 0
         return c
 
 
 @ddt.ddt
-class TProjectStory(_TempRepo):
+class TProjectStory(_TempRepo, unittest.TestCase):
     ## INFO: Must run a whole, ordering of TCs matter.
 
     def _check_infos_shapes(self, cmd, proj=None):
@@ -75,7 +99,7 @@ class TProjectStory(_TempRepo):
         res = cmd.run()
         self.assertIsNone(res)
 
-        cmd = project.GitSpec(config=self._config)
+        cmd = project.Project(config=self._config)
 
         cmd.verbose = 1
         res = cmd.proj_list()
@@ -91,7 +115,7 @@ class TProjectStory(_TempRepo):
         res = cmd.run()
         self.assertIsNotNone(res)
 
-        cmd = project.GitSpec(config=self._config)
+        cmd = project.Project(config=self._config)
         self._check_infos_shapes(cmd)
 
     def test_1b_empty_cwp(self):
@@ -116,7 +140,7 @@ class TProjectStory(_TempRepo):
         res = cmd.run()
         self.assertEqual(res, ['* foo'])
 
-        cmd = project.GitSpec(config=self._config)
+        cmd = project.Project(config=self._config)
 
         cmd.verbose = 1
         res = cmd.proj_list()
@@ -136,7 +160,7 @@ class TProjectStory(_TempRepo):
         res = cmd.run()
         self.assertRegex(res, 'msg.project += foo')
 
-        cmd = project.GitSpec(config=self._config)
+        cmd = project.Project(config=self._config)
         self._check_infos_shapes(cmd)
 
     def test_3a_add_same_project__fail(self):
@@ -175,7 +199,7 @@ class TProjectStory(_TempRepo):
         res = cmd.run()
         self.assertSequenceEqual(res, ['* bar', '  foo'])
 
-        cmd = project.GitSpec(config=self._config)
+        cmd = project.Project(config=self._config)
 
         cmd.verbose = 1
         res = cmd.proj_list()
@@ -195,7 +219,7 @@ class TProjectStory(_TempRepo):
         res = cmd.run()
         self.assertRegex(res, 'msg.project += bar')
 
-        cmd = project.GitSpec(config=self._config)
+        cmd = project.Project(config=self._config)
         self._check_infos_shapes(cmd)
 
     def test_4d_forced_infos(self):
@@ -204,7 +228,7 @@ class TProjectStory(_TempRepo):
         res = cmd.run()
         self.assertRegex(res, 'msg.project += bar')
 
-        cmd = project.GitSpec(config=self._config)
+        cmd = project.Project(config=self._config)
         self._check_infos_shapes(cmd, 'foo')
 
     def test_5_open_other(self):
@@ -217,7 +241,7 @@ class TProjectStory(_TempRepo):
         res = cmd.run()
         self.assertEqual(res, 'foo')
 
-        cmd = project.GitSpec(config=self._config)
+        cmd = project.Project(config=self._config)
         self._check_infos_shapes(cmd, 'foo')
 
     def test_6_open_non_existing(self):
@@ -227,8 +251,9 @@ class TProjectStory(_TempRepo):
             cmd.run()
 
 
-class TBackupCmd(_TempRepo):
+class TBackupCmd(_TempRepo, unittest.TestCase):
     def test_backup_cwd(self):
+        cmd = project.ProjectCmd.AddCmd(config=self._config)
         cmd = project.ProjectCmd.BackupCmd(config=self._config)
         with tempfile.TemporaryDirectory() as td:
             #cmd.extra_args = []
