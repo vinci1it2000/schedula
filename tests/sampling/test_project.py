@@ -51,7 +51,11 @@ class TApp(unittest.TestCase):
         meth(cmd)
 
 
-class _TempRepo(object):
+
+@ddt.ddt
+class TProjectStory(unittest.TestCase):
+    ## INFO: Must run a whole, ordering of TCs matter.
+
     @classmethod
     def setUpClass(cls):
         cls._project_repo = tempfile.TemporaryDirectory()
@@ -68,11 +72,6 @@ class _TempRepo(object):
         c.Spec.verbose = 0
         return c
 
-
-@ddt.ddt
-class TProjectStory(_TempRepo, unittest.TestCase):
-    ## INFO: Must run a whole, ordering of TCs matter.
-
     def _check_infos_shapes(self, cmd, proj=None):
         res = cmd.proj_examine(project=proj)
         self.assertEqual(len(res), 8, res)
@@ -87,7 +86,6 @@ class TProjectStory(_TempRepo, unittest.TestCase):
 
     def test_1a_empty_list(self):
         cmd = project.ProjectCmd.ListCmd(config=self._config)
-        #cmd.extra_args =
         res = cmd.run()
         self.assertIsNone(res)
 
@@ -103,7 +101,6 @@ class TProjectStory(_TempRepo, unittest.TestCase):
 
     def test_1b_empty_infos(self):
         cmd = project.ProjectCmd.ExamineCmd(config=self._config)
-        #cmd.extra_args =
         res = cmd.run()
         self.assertIsNotNone(res)
 
@@ -117,8 +114,7 @@ class TProjectStory(_TempRepo, unittest.TestCase):
 
     def test_2a_add_project(self):
         cmd = project.ProjectCmd.AddCmd(config=self._config)
-        cmd.extra_args = ['foo']
-        res = cmd.run()
+        res = cmd.run('foo')
         self.assertIsNone(res)
 
         cmd = project.ProjectCmd.CurrentCmd(config=self._config)
@@ -148,7 +144,6 @@ class TProjectStory(_TempRepo, unittest.TestCase):
 
     def test_2c_default_infos(self):
         cmd = project.ProjectCmd.ExamineCmd(config=self._config)
-        #cmd.extra_args =
         res = cmd.run()
         self.assertRegex(res, 'msg.project += foo')
 
@@ -157,9 +152,8 @@ class TProjectStory(_TempRepo, unittest.TestCase):
 
     def test_3a_add_same_project__fail(self):
         cmd = project.ProjectCmd.AddCmd(config=self._config)
-        cmd.extra_args = ['foo']
         with self.assertRaisesRegex(baseapp.CmdException, r"Project 'foo' already exists!"):
-            cmd.run()
+            cmd.run('foo')
 
         cmd = project.ProjectCmd.ListCmd(config=self._config)
         res = list(cmd.run())
@@ -168,9 +162,8 @@ class TProjectStory(_TempRepo, unittest.TestCase):
     @ddt.data('sp ace', '%fg', '1ffg')
     def test_3b_add_bad_project__fail(self, proj):
         cmd = project.ProjectCmd.AddCmd(config=self._config)
-        cmd.extra_args = [proj]
         with self.assertRaisesRegex(baseapp.CmdException, "Invalid name '%s' for a project!" % proj):
-            cmd.run()
+            cmd.run(proj)
 
         cmd = project.ProjectCmd.ListCmd(config=self._config)
         res = list(cmd.run())
@@ -178,8 +171,7 @@ class TProjectStory(_TempRepo, unittest.TestCase):
 
     def test_4a_add_another_project(self):
         cmd = project.ProjectCmd.AddCmd(config=self._config)
-        cmd.extra_args = ['bar']
-        res = cmd.run()
+        res = cmd.run('bar')
         self.assertIsNone(res)
 
         cmd = project.ProjectCmd.CurrentCmd(config=self._config)
@@ -207,7 +199,6 @@ class TProjectStory(_TempRepo, unittest.TestCase):
 
     def test_4c_default_infos(self):
         cmd = project.ProjectCmd.ExamineCmd(config=self._config)
-        #cmd.extra_args =
         res = cmd.run()
         self.assertRegex(res, 'msg.project += bar')
 
@@ -216,8 +207,7 @@ class TProjectStory(_TempRepo, unittest.TestCase):
 
     def test_4d_forced_infos(self):
         cmd = project.ProjectCmd.ExamineCmd(config=self._config)
-        cmd.extra_args = ['foo']
-        res = cmd.run()
+        res = cmd.run('foo')
         self.assertRegex(res, 'msg.project += bar')
 
         cmd = project.Project(config=self._config)
@@ -225,8 +215,7 @@ class TProjectStory(_TempRepo, unittest.TestCase):
 
     def test_5_open_other(self):
         cmd = project.ProjectCmd.OpenCmd(config=self._config)
-        cmd.extra_args = ['foo']
-        res = cmd.run()
+        res = cmd.run('foo')
         self.assertIsNone(res)
 
         cmd = project.ProjectCmd.CurrentCmd(config=self._config)
@@ -238,16 +227,30 @@ class TProjectStory(_TempRepo, unittest.TestCase):
 
     def test_6_open_non_existing(self):
         cmd = project.ProjectCmd.OpenCmd(config=self._config)
-        cmd.extra_args = ['who']
         with self.assertRaisesRegex(baseapp.CmdException, "Project 'who' not found!"):
-            cmd.run()
+            cmd.run('who')
 
 
-class TBackupCmd(_TempRepo, unittest.TestCase):
+class TBackupCmd(unittest.TestCase):
+
+    def setUp(self):
+        self._project_repo = tempfile.TemporaryDirectory()
+        log.debug('Temp-repo: %s', self._project_repo)
+
+    def tearDown(self):
+        self._project_repo.cleanup()
+
+    @property
+    def _config(self):
+        c = get_config()
+        c.Project.repo_path = self._project_repo.name
+        c.Spec.verbose = 0
+        return c
+
     def test_backup_cwd(self):
+        project.ProjectCmd.AddCmd(config=self._config).run('foobar')
         cmd = project.ProjectCmd.BackupCmd(config=self._config)
         with tempfile.TemporaryDirectory() as td:
-            #cmd.extra_args = []
             with chdir(td):
                 res = cmd.run()
                 self.assertIn(td, res)
@@ -255,32 +258,32 @@ class TBackupCmd(_TempRepo, unittest.TestCase):
                 self.assertTrue(osp.isfile(res), (res, os.listdir(osp.split(res)[0])))
 
     def test_backup_fullpath(self):
+        project.ProjectCmd.AddCmd(config=self._config).run('foobar')
         cmd = project.ProjectCmd.BackupCmd(config=self._config)
         with tempfile.TemporaryDirectory() as td:
             fpath = osp.join(td, 'foo')
-            cmd.extra_args = [fpath]
             with chdir(td):
-                res = cmd.run()
+                res = cmd.run(fpath)
                 self.assertIn(td, res)
-                self.assertIn('foo.tar.xz', res)
+                self.assertIn('foo.txz', res)
                 self.assertNotIn('co2mpas', res)
                 self.assertTrue(osp.isfile(res), (res, os.listdir(osp.split(res)[0])))
 
     def test_backup_folder_only(self):
+        project.ProjectCmd.AddCmd(config=self._config).run('foobar')
         cmd = project.ProjectCmd.BackupCmd(config=self._config)
         with tempfile.TemporaryDirectory() as td:
             fpath = td +'\\'
-            cmd.extra_args = [fpath]
             with chdir(td):
-                res = cmd.run()
+                res = cmd.run(fpath)
                 self.assertIn(fpath, res)
                 self.assertIn('co2mpas', res)
                 self.assertTrue(osp.isfile(res), (res, os.listdir(osp.split(res)[0])))
 
     def test_backup_no_dir(self):
+        project.ProjectCmd.AddCmd(config=self._config).run('foobar')
         cmd = project.ProjectCmd.BackupCmd(config=self._config)
         with tempfile.TemporaryDirectory() as td:
-            cmd.extra_args = [osp.join(td, '__BAD_FOLDER', 'foo')]
             with self.assertRaisesRegex(baseapp.CmdException,
                                         r"Folder '.+__BAD_FOLDER' to store archive does not exist!"):
-                cmd.run()
+                cmd.run(osp.join(td, '__BAD_FOLDER', 'foo'))

@@ -13,6 +13,7 @@ from datetime import datetime
 import inspect
 import io
 import logging
+from pandalone import utils as pndlutils
 import textwrap
 from typing import (
     List, Sequence, Iterable, Text, Tuple, Callable)  # @UnusedImport
@@ -20,7 +21,6 @@ from typing import (
 import git  # From: pip install gitpython
 from toolz import itertoolz as itz, dicttoolz as dtz
 from traitlets.config import SingletonConfigurable
-from pandalone import utils as pndlutils
 
 from co2mpas import __uri__  # @UnusedImport
 from co2mpas import utils
@@ -41,7 +41,6 @@ except:
     _mydir = '.'
 
 CmdException = trt.TraitError
-
 
 class UFun(object):
     """
@@ -212,26 +211,32 @@ class Project(SingletonConfigurable, baseapp.Spec):
 
     __repo = None
 
+    def _make_repo(self, repo_path):
+        if not osp.isabs(repo_path):
+            repo_path = osp.join(baseapp.default_config_dir(), repo_path)
+        repo_path = convpath(repo_path)
+        ensure_dir_exists(repo_path)
+        try:
+            self.log.debug('Opening repo %r...', repo_path)
+            self.__repo = git.Repo(repo_path)
+            if self.reset_settings:
+                self.log.info('Resetting to default settings of repo %r...',
+                              self.__repo.git_dir)
+                self._write_repo_configs()
+        except git.InvalidGitRepositoryError as ex:
+            self.log.info("...failed opening repo '%s',\n  initializing a new repo %r instead...",
+                          ex, repo_path)
+            self.__repo = git.Repo.init(repo_path)
+            self._write_repo_configs()
+
+    @trt.observe('repo_path')
+    def _repo_path_changed(self, change):
+        self._make_repo(change['new'])
+
     @property
     def repo(self):
         if not self.__repo:
-            repo_path = self.repo_path
-            if not osp.isabs(repo_path):
-                repo_path = osp.join(baseapp.default_config_dir(), repo_path)
-            repo_path = convpath(repo_path)
-            ensure_dir_exists(repo_path)
-            try:
-                self.log.debug('Opening repo %r...', repo_path)
-                self.__repo = git.Repo(repo_path)
-                if self.reset_settings:
-                    self.log.info('Resetting to default settings of repo %r...',
-                                  self.__repo.git_dir)
-                    self._write_repo_configs()
-            except git.InvalidGitRepositoryError as ex:
-                self.log.info("...failed opening repo '%s', initializing a new repo %r...",
-                              ex, repo_path)
-                self.__repo = git.Repo.init(repo_path)
-                self._write_repo_configs()
+            self._make_repo(self.repo_path)
         return self.__repo
 
     def _write_repo_configs(self):
@@ -517,7 +522,7 @@ class Project(SingletonConfigurable, baseapp.Spec):
 
     def _make_readme(self, project):
         return textwrap.dedent("""
-        This is the CO2MPAS-project named %r (see https://co2mpas.io/ for more).
+        This is the CO2MPAS-project %r (see https://co2mpas.io/ for more).
 
         - created: %s
         """ %(project, datetime.now()))
@@ -564,7 +569,7 @@ class Project(SingletonConfigurable, baseapp.Spec):
 
         now = datetime.now().strftime('%Y%m%d-%H%M%S%Z')
         repo_name = '%s-%s' % (now, repo_name)
-        repo_name = pndlutils.ensure_file_ext(repo_name, '.tar.xz')
+        repo_name = pndlutils.ensure_file_ext(repo_name, '.txz')
         repo_name_no_ext = osp.splitext(repo_name)[0]
         archive_fpath = convpath(osp.join(folder, repo_name))
         basepath, _ = osp.split(archive_fpath)
@@ -573,7 +578,7 @@ class Project(SingletonConfigurable, baseapp.Spec):
         ensure_dir_exists(basepath)
 
         self.log.debug('Archiving repo into %r...', archive_fpath)
-        with tarfile.open(archive_fpath, "w:bz2") as tarfile:
+        with tarfile.open(archive_fpath, "w:xz") as tarfile:
             tarfile.add(self.repo.working_dir, repo_name_no_ext)
 
         return archive_fpath
@@ -586,7 +591,9 @@ class Project(SingletonConfigurable, baseapp.Spec):
 class _PrjCmd(baseapp.Cmd):
     @property
     def gitspec(self):
-        return Project.instance(parent=self)
+        p = Project.instance()
+        p.config = self.config
+        return p
 
 class ProjectCmd(_PrjCmd):
     """
@@ -612,16 +619,16 @@ class ProjectCmd(_PrjCmd):
             Use --verbose to view more infos about the projects, or use the `examine` cmd
             to view even more details for a specific project.
         """
-        def run(self):
-            self.log.info('Listing %s projects...', self.extra_args or 'all')
-            return self.gitspec.proj_list(*self.extra_args)
+        def run(self, *args):
+            self.log.info('Listing %s projects...', args or 'all')
+            return self.gitspec.proj_list(*args)
 
     class CurrentCmd(_PrjCmd):
         """Prints the currently open project."""
-        def run(self):
-            if len(self.extra_args) != 0:
+        def run(self, *args):
+            if len(args) != 0:
                 raise CmdException('Cmd %r takes no args, received %r!'
-                                   % (self.name, self.extra_args))
+                                   % (self.name, args))
             return self.gitspec.proj_current()
 
     class OpenCmd(_PrjCmd):
@@ -631,12 +638,12 @@ class ProjectCmd(_PrjCmd):
         DESCRIPTION
             Make an existing project as *current*.
         """
-        def run(self):
-            self.log.info('Opening project %r...', self.extra_args)
-            if len(self.extra_args) != 1:
+        def run(self, *args):
+            self.log.info('Opening project %r...', args)
+            if len(args) != 1:
                 raise CmdException("Cmd %r takes a SINGLE project-name to open, received: %r!"
-                                   % (self.name, self.extra_args))
-            return self.gitspec.proj_open(self.extra_args[0])
+                                   % (self.name, args))
+            return self.gitspec.proj_open(args[0])
 
     class AddCmd(_PrjCmd):
         """
@@ -645,11 +652,11 @@ class ProjectCmd(_PrjCmd):
         DESCRIPTION
             Create a new project.
         """
-        def run(self):
-            if len(self.extra_args) != 1:
+        def run(self, *args):
+            if len(args) != 1:
                 raise CmdException('Cmd %r takes a SINGLE project-name to add, received %r!'
-                                   % (self.name, self.extra_args))
-            return self.gitspec.proj_add(self.extra_args[0])
+                                   % (self.name, args))
+            return self.gitspec.proj_add(args[0])
 
     class ExamineCmd(_PrjCmd):
         """
@@ -664,11 +671,11 @@ class ProjectCmd(_PrjCmd):
                 help="Whether to return infos as JSON, instead of python-code."
                 ).tag(config=True)
 
-        def run(self):
-            if len(self.extra_args) > 1:
+        def run(self, *args):
+            if len(args) > 1:
                 raise CmdException('Cmd %r takes one optional argument, received %d: %r!'
-                                   % (self.name, len(self.extra_args), self.extra_args))
-            project = self.extra_args and self.extra_args[0] or None
+                                   % (self.name, len(args), args))
+            project = args and args[0] or None
             return self.gitspec.proj_examine(project, as_text=True, as_json=self.as_json)
 
     class BackupCmd(_PrjCmd):
@@ -679,12 +686,12 @@ class ProjectCmd(_PrjCmd):
             Backup projects repository into the archive filepath specified, or current-directory,
             if none specified.
         """
-        def run(self):
-            self.log.info('Archiving repo into %r...', self.extra_args)
-            if len(self.extra_args) > 1:
+        def run(self, *args):
+            self.log.info('Archiving repo into %r...', args)
+            if len(args) > 1:
                 raise CmdException('Cmd %r takes one optional argument, received %d: %r!'
-                                   % (self.name, len(self.extra_args), self.extra_args))
-            archive_fpath = self.extra_args and self.extra_args[0] or None
+                                   % (self.name, len(args), args))
+            archive_fpath = args and args[0] or None
             kwds = {}
             if archive_fpath:
                 base, fname = osp.split(archive_fpath)
