@@ -5,7 +5,13 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 #
-"""co2dice: prepare/sign/send/receive/validate/archive Type Approval sampling emails of *co2mpas*."""
+"""co2dice: prepare/sign/send/receive/validate/archive Type Approval sampling emails of *co2mpas*.
+
+.. TIP::
+  If you bump into blocking errors, please use the `co2dice project backup` command and
+  send the generated archive-file back to "CO2MPAS-Team <co2mpas@jrc.ec.europa.eu>",
+  for examination.
+"""
 
 from collections import defaultdict, MutableMapping, OrderedDict, namedtuple
 from datetime import datetime
@@ -454,9 +460,9 @@ class GenConfig(Cmd):
         co2dice gen-config [<config-path-1>] ...
     DESCRIPTION
         Store config defaults into specified path(s); '{confpath}' assumed if none specified.
-    If a path resolves to a folder, the filename '{appname}_config.py' is appended.
+        If a path resolves to a folder, the filename '{appname}_config.py' is appended.
 
-    Note: It OVERWRITES any pre-existing configuration file(s)!
+        Note: It OVERWRITES any pre-existing configuration file(s)!
     """
 
 

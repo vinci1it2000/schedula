@@ -5,8 +5,7 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 #
-"""co2dice: prepare/sign/send/receive/validate/archive Type Approval sampling emails of *co2mpas*."""
-# TODO: to move to pandalone.
+"""A *project* stores all CO2MPAS files for a single vehicle, and tracks its sampling procedure. """
 
 from collections import (
     defaultdict, OrderedDict, namedtuple)  # @UnusedImport
@@ -46,7 +45,6 @@ ProjectNotFoundException = trt.TraitError
 
 
 
-
 class UFun(object):
     """
      A 3-tuple ``(out, fun, **kwds)``, used to prepare a list of calls to :meth:`Dispatcher.add_function()`.
@@ -74,6 +72,8 @@ class UFun(object):
             ),
         ]
     """
+    ## TODO: Move to dispatcher.
+
     def __init__(self, out, fun, inputs=None, **kwds):
         self.out = out
         self.fun = fun
@@ -553,18 +553,32 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
             raise CmdException('Project %r not found!' % project)
         self.repo.heads[_project2ref_name(project)].checkout()
 
-#     def _get_project_ref(self, project: Text or None) -> git.Reference:
-#         """
-#         :return:
-#             The *ref* of the given `project` or active-branch if none given,
-#             if found, or `None` if matching rf not a valid project.
-#         """
-#         if not project:
-#             pass: #TODO:
-#         else:
-#             project = _project2ref_path(project)
-#         return _get_ref(project)
+    def repo_backup(self, folder: Text='.', repo_name: Text='co2mpas_repo',
+                    force: bool=None) -> Text:
+        """
+        :param folder: The path to the folder to store the repo-archive in.
+        :return: the path of the repo-archive
+        """
+        import tarfile
 
+        if force is None:
+            force = self.force
+
+        now = datetime.now().strftime('%Y%m%d-%H%M%S%Z')
+        repo_name = '%s-%s' % (now, repo_name)
+        repo_name = pndlutils.ensure_file_ext(repo_name, '.tar.xz')
+        repo_name_no_ext = osp.splitext(repo_name)[0]
+        archive_fpath = convpath(osp.join(folder, repo_name))
+        basepath, _ = osp.split(archive_fpath)
+        if not osp.isdir(basepath) and not force:
+            raise FileNotFoundError(basepath)
+        ensure_dir_exists(basepath)
+
+        self.log.debug('Archiving repo into %r...', archive_fpath)
+        with tarfile.open(archive_fpath, "w:bz2") as tarfile:
+            tarfile.add(self.repo.working_dir, repo_name_no_ext)
+
+        return archive_fpath
 
 
 ###################
@@ -659,13 +673,39 @@ class Project(_PrjCmd):
             project = self.extra_args and self.extra_args[0] or None
             return self.gitspec.proj_examine(project, as_text=True, as_json=self.as_json)
 
+    class Backup(_PrjCmd):
+        """
+        SYNTAX
+            co2dice project backup [<archive-path>]
+        DESCRIPTION
+            Backup projects repository into the archive filepath specified, or current-directory,
+            if none specified.
+        """
+        def run(self):
+            self.log.info('Archiving repo into %r...', self.extra_args)
+            if len(self.extra_args) > 1:
+                raise CmdException('Cmd %r takes one optional argument, received %d: %r!'
+                                   % (self.name, len(self.extra_args), self.extra_args))
+            archive_fpath = self.extra_args and self.extra_args[0] or None
+            kwds = {}
+            if archive_fpath:
+                base, fname = osp.split(archive_fpath)
+                if base:
+                    kwds['folder'] = base
+                if fname:
+                    kwds['repo_name'] = fname
+            try:
+                return self.gitspec.repo_backup(**kwds)
+            except FileNotFoundError as ex:
+                raise CmdException("Folder '%s' to store archive does not exist!"
+                                   "\n  Use --force to create it." % ex)
 
     def __init__(self, **kwds):
         with self.hold_trait_notifications():
             dkwds = {
                 'conf_classes': [GitSpec],
                 'subcommands': baseapp.build_sub_cmds(
-                    Project.List, Project.Current, Project.Open, Project.Add, Project.Examine),
+                    Project.List, Project.Current, Project.Open, Project.Add, Project.Examine, Project.Backup),
                 #'default_subcmd': 'current', ## Doe not help user
                 'cmd_flags': {
                     'reset-git-settings': ({
