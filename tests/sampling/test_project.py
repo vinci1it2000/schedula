@@ -7,19 +7,19 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 import logging
-import tempfile
-import unittest
 import os
-import contextlib
+import tempfile
+from tests._tutils import chdir
+import unittest
 
 import ddt
 from traitlets.config import get_config
 
 from co2mpas.__main__ import init_logging
 from co2mpas.sampling import baseapp, dice, project
+import itertools as itt
 import os.path as osp
 import pandas as pd
-import itertools as itt
 
 
 init_logging(True)
@@ -29,14 +29,6 @@ log = logging.getLogger(__name__)
 mydir = osp.dirname(__file__)
 
 
-@contextlib.contextmanager
-def chdir(path):
-    opath = os.getcwd()
-    try:
-        os.chdir(path)
-        yield
-    finally:
-        os.chdir(opath)
 
 @ddt.ddt
 class TApp(unittest.TestCase):
@@ -253,7 +245,6 @@ class TProjectStory(_TempRepo, unittest.TestCase):
 
 class TBackupCmd(_TempRepo, unittest.TestCase):
     def test_backup_cwd(self):
-        cmd = project.ProjectCmd.AddCmd(config=self._config)
         cmd = project.ProjectCmd.BackupCmd(config=self._config)
         with tempfile.TemporaryDirectory() as td:
             #cmd.extra_args = []

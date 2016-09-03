@@ -5,6 +5,7 @@
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+import contextlib
 import os
 import pathlib
 import unittest
@@ -90,4 +91,13 @@ def get_tc_data_fpath(ver_validator, subfolder=None):
         raise AssertionError("Cannot find 'VERSION.txt` in: %s!" % data_folder)
 
     return pathlib.Path(data_folder)
+
+@contextlib.contextmanager
+def chdir(path):
+    opath = os.getcwd()
+    try:
+        os.chdir(path)
+        yield
+    finally:
+        os.chdir(opath)
 
