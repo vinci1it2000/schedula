@@ -18,6 +18,21 @@ To run nested commands, use :func:`baseapp.chain_cmds()` like that::
 
     app = chain_cmds(Main, Project, Project.List)
     return app.start()
+
+## Configuration and Initialization guidelines for *Spec* and *Cmd* classes
+
+0. The configuration of :class:`HasTraits` instance gets stored in its ``config`` attribute.
+1. A :class:`HasTraits` instance receives its configuration from 3 sources, in this order:
+
+  a. code specifying class-attributes or running on constructors;
+  b. configuration files (*json* or ``.py`` files);
+  c. command-line arguments.
+
+2. Constructors must allow for properties to be overwritten on construction; any class-defaults
+   must function as defaults for any constructor ``**kwds``.
+3. Some utility code depends on trait-defaults (i.e. construction of help-messages), so for certain properties
+   (e.g. description), it is preferable to set them as traits-with-defaults on class-attributes.
+
 """
 ## INFO: Modify the following variables on a different application.
 
@@ -182,6 +197,7 @@ def default_config_fpath():
 
 class Spec(LoggingConfigurable):
     """Common properties for all configurables."""
+    ## See module documentation for developer's guidelines.
 
     @trt.default('log')
     def _log(self):
@@ -204,10 +220,19 @@ class Spec(LoggingConfigurable):
     verbose = trt.Union((trt.Integer(), trt.Bool(False)),
             ## INFO: Add verbose flag explanations here.
             help="""
-            Various sub-commands increase their verbosity (not to be confused with --debug):
+            Make various sub-commands increase their verbosity (not to be confused with --debug):
             Can be a boolean or 0, 1(==True), 2, ....
 
-            - project infos: Whether to include also info about the repo-configuration.
+            - project list  : List project with the "long" format.
+            - project infos : Whether to include also info about the repo-configuration (when 2).
+            """).tag(config=True)
+
+    force = trt.Bool(False,
+            ## INFO: Add force flag explanations here.
+            help="""
+            Force various sub-commands perform their duties without complaints.
+
+            - project backup: Whether to overwrite existing archives or to create intermediate folders.
             """).tag(config=True)
 
     user_name = trt.Unicode('<Name Surname>',
@@ -250,6 +275,7 @@ def build_sub_cmds(*subapp_classes):
 class Cmd(Application):
     """Common machinery for all (sub-)commands. """
     ## INFO: Do not use it directly; inherit it.
+    # See module documentation for developer's guidelines.
 
     @trt.default('name')
     def _name(self):
@@ -592,6 +618,11 @@ class Cmd(Application):
                         'Spec': {'verbose': True},
                     },
                     Spec.verbose.help
+                ),
+                ('f', 'force'):  ({
+                        'Spec': {'force': True},
+                    },
+                    Spec.force.help
                 )
             },
         }

@@ -21,6 +21,7 @@ from typing import (
 import git  # From: pip install gitpython
 from toolz import itertoolz as itz, dicttoolz as dtz
 from traitlets.config import SingletonConfigurable
+from pandalone import utils as pndlutils
 
 from co2mpas import __uri__  # @UnusedImport
 from co2mpas import utils
@@ -449,7 +450,7 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
             fields.extend(fs)
         return fields
 
-    def _infos_fields(self, project=None, fields=None, with_fallbacks=False):
+    def _infos_fields(self, project: Text=None, fields=None, with_fallbacks=False) -> List:
         dsp = self._infos_dsp()
         inputs = {'_infos': 'ok', '_inp_prj': project}
         infos = dsp.dispatch(inputs=inputs,
@@ -467,7 +468,7 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
 
         return infos
 
-    def proj_infos(self, project=None, verbose=None, as_text=False, as_json=False):
+    def proj_examine(self, project=None, verbose=None, as_text=False, as_json=False):
         """
         :param project: use current branch if unspecified.
         :retun: text message with infos.
@@ -548,10 +549,6 @@ class GitSpec(SingletonConfigurable, baseapp.Spec):
         """
         :param project: some branch ref
         """
-#         self.log.info('Archiving repo into %r...', project)
-#         with io.open(convpath(project, 0, 0), 'wb') as fd:
-#             self.repo.archive(fd)
-#         return
         if not self.is_project(project, validate=True):
             raise CmdException('Project %r not found!' % project)
         self.repo.heads[_project2ref_name(project)].checkout()
@@ -581,7 +578,7 @@ class _PrjCmd(baseapp.Cmd):
 
 class Project(_PrjCmd):
     """
-    Administer the storage repo of TA *projects*.
+    Commands to administer the storage repo of TA *projects*.
 
     A *project* stores all CO2MPAS files for a single vehicle,
     and tracks its sampling procedure.
@@ -594,24 +591,34 @@ class Project(_PrjCmd):
         """)
 
 
+    class List(_PrjCmd):
+        """
+        SYNTAX
+            co2dice project list [<project-1>] ...
+        DESCRIPTION
+            List specified projects, or all, if none specified.
+            Use --verbose to view more infos about the projects, or use the `examine` cmd
+            to view even more details for a specific project.
+        """
+        def run(self):
+            self.log.info('Listing %s projects...', self.extra_args or 'all')
+            return self.gitspec.proj_list(*self.extra_args)
+
     class Current(_PrjCmd):
-        """Prints current project."""
+        """Prints the currently open project."""
         def run(self):
             if len(self.extra_args) != 0:
                 raise CmdException('Cmd %r takes no args, received %r!'
                                    % (self.name, self.extra_args))
             return self.gitspec.proj_current()
 
-    class Add(_PrjCmd):
-        """Add a new project."""
-        def run(self):
-            if len(self.extra_args) != 1:
-                raise CmdException('Cmd %r takes a SINGLE project-name to add, received %r!'
-                                   % (self.name, self.extra_args))
-            return self.gitspec.proj_add(self.extra_args[0])
-
     class Open(_PrjCmd):
-        """Make an existing project the *current*.  Returns the *current* if no args specified."""
+        """
+        SYNTAX
+            co2dice project open <project>
+        DESCRIPTION
+            Make an existing project as *current*.
+        """
         def run(self):
             self.log.info('Opening project %r...', self.extra_args)
             if len(self.extra_args) != 1:
@@ -619,24 +626,38 @@ class Project(_PrjCmd):
                                    % (self.name, self.extra_args))
             return self.gitspec.proj_open(self.extra_args[0])
 
-    class List(_PrjCmd):
-        """List information about the specified projects (or all if no projects specified)."""
+    class Add(_PrjCmd):
+        """
+        SYNTAX
+            co2dice project add <project>
+        DESCRIPTION
+            Create a new project.
+        """
         def run(self):
-            self.log.info('Listing %s projects...', self.extra_args or 'all')
-            return self.gitspec.proj_list(*self.extra_args)
+            if len(self.extra_args) != 1:
+                raise CmdException('Cmd %r takes a SINGLE project-name to add, received %r!'
+                                   % (self.name, self.extra_args))
+            return self.gitspec.proj_add(self.extra_args[0])
 
-    class Infos(_PrjCmd):
-        """Print a text message with current-project, status, and repo-config data if --verbose."""
+    class Examine(_PrjCmd):
+        """
+        SYNTAX
+            co2dice project examine [<project>]
+        DESCRIPTION
+            Print various information about the specified project, or the current-project,
+            if none specified.
+            Use --verbose to view more infos, including about the repository as a whole.
+        """
         as_json = trt.Bool(False,
                 help="Whether to return infos as JSON, instead of python-code."
                 ).tag(config=True)
 
         def run(self):
             if len(self.extra_args) > 1:
-                raise CmdException('Cmd %r takes none or 1 args, received %d: %r!'
+                raise CmdException('Cmd %r takes one optional argument, received %d: %r!'
                                    % (self.name, len(self.extra_args), self.extra_args))
             project = self.extra_args and self.extra_args[0] or None
-            return self.gitspec.proj_infos(project, as_text=True, as_json=self.as_json)
+            return self.gitspec.proj_examine(project, as_text=True, as_json=self.as_json)
 
 
     def __init__(self, **kwds):
@@ -644,14 +665,15 @@ class Project(_PrjCmd):
             dkwds = {
                 'conf_classes': [GitSpec],
                 'subcommands': baseapp.build_sub_cmds(
-                    Project.Current, Project.List, Project.Add, Project.Open, Project.Infos),
+                    Project.List, Project.Current, Project.Open, Project.Add, Project.Examine),
+                #'default_subcmd': 'current', ## Doe not help user
                 'cmd_flags': {
                     'reset-git-settings': ({
                             'GitSpec': {'reset_settings': True},
                         }, GitSpec.reset_settings.help),
                     'as-json': ({
-                            'Infos': {'as_json': True},
-                        }, Project.Infos.as_json.help),
+                            'Examine': {'as_json': True},
+                        }, Project.Examine.as_json.help),
                 }
             }
             dkwds.update(kwds)

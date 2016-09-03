@@ -450,8 +450,10 @@ class Main(Cmd):
 ## INFO: Add al conf-classes here
 class GenConfig(Cmd):
     """
-    Store config defaults into specified path(s), read from :attr:`extra_args` (cmd-arguments);
-    '{confpath}' assumed if nonen specified.
+    SYNTAX
+        co2dice gen-config [<config-path-1>] ...
+    DESCRIPTION
+        Store config defaults into specified path(s); '{confpath}' assumed if none specified.
     If a path resolves to a folder, the filename '{appname}_config.py' is appended.
 
     Note: It OVERWRITES any pre-existing configuration file(s)!
