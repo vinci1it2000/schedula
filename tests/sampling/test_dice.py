@@ -8,22 +8,22 @@
 
 from getpass import getpass
 import io
-import git
-import ddt
-import tempfile
 import logging
 import os
 import sys
+import tempfile
 from unittest import mock
-import os.path as osp
 import unittest
 
+import ddt
+import git
 import gnupg
-import yaml
 from traitlets.config import get_config
+import yaml
 
 from co2mpas.__main__ import init_logging
 from co2mpas.sampling import baseapp, dice, project
+import os.path as osp
 
 
 init_logging(True)

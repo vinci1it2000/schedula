@@ -441,13 +441,13 @@ class MainCmd(Cmd):
     ).tag(config=True)
 
     def __init__(self, **kwds):
-        import co2mpas.sampling.project as proj
+        from co2mpas.sampling import project, report
         with self.hold_trait_notifications():
             dkwds = {
                 'name': __title__,
                 'description': __summary__,
                 ##'default_subcmd': 'project', ## Confusing for the user.
-                'subcommands': build_sub_cmds(proj.ProjectCmd, GenConfigCmd),
+                'subcommands': build_sub_cmds(project.ProjectCmd, report.ReportCmd, GenConfigCmd),
             }
             dkwds.update(kwds)
             super().__init__(**dkwds)
@@ -480,13 +480,14 @@ class GenConfigCmd(Cmd):
         """)
 
     def run(self, *args):
-        import co2mpas.sampling.project as proj
+        from co2mpas.sampling import project, report
         ## INFO: Add all conf-classes here
-        pp = proj.ProjectCmd
+        pp = project.ProjectCmd
         self.classes = [
               pp, pp.CurrentCmd, pp.ListCmd, pp.AddCmd, pp.OpenCmd, pp.ExamineCmd, pp.BackupCmd,
+              report.ReportCmd,
               GenConfigCmd,
-              baseapp.Spec, proj.ProjectsDB, MainCmd,
+              baseapp.Spec, project.ProjectsDB, report.Report, MainCmd,
         ]
         args = args or [None]
         for fpath in args:
