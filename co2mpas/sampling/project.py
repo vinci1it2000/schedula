@@ -7,12 +7,12 @@
 #
 """A *project* stores all CO2MPAS files for a single vehicle, and tracks its sampling procedure. """
 
-from collections import (
-    defaultdict, OrderedDict, namedtuple)  # @UnusedImport
+from collections import (defaultdict, OrderedDict, namedtuple)  # @UnusedImport
 from datetime import datetime
 import inspect
 import io
 import logging
+import os
 from pandalone import utils as pndlutils
 import textwrap
 from typing import (
@@ -211,7 +211,10 @@ class Project(SingletonConfigurable, baseapp.Spec):
 
     __repo = None
 
-    def _make_repo(self, repo_path):
+    def _setup_repo(self, repo_path):
+        if self.__repo and self.__repo.working_dir == repo_path:
+            self.log.debug('Reusing repo %r...', repo_path)
+            return
         if not osp.isabs(repo_path):
             repo_path = osp.join(baseapp.default_config_dir(), repo_path)
         repo_path = convpath(repo_path)
@@ -231,12 +234,13 @@ class Project(SingletonConfigurable, baseapp.Spec):
 
     @trt.observe('repo_path')
     def _repo_path_changed(self, change):
-        self._make_repo(change['new'])
+        self.log.debug('CHANGE repo %r-->%r...', change['old'], change['new'])
+        self._setup_repo(change['new'])
 
     @property
     def repo(self):
         if not self.__repo:
-            self._make_repo(self.repo_path)
+            self._setup_repo(self.repo_path)
         return self.__repo
 
     def _write_repo_configs(self):
@@ -277,8 +281,7 @@ class Project(SingletonConfigurable, baseapp.Spec):
             infos = []
             if verbose:
                 infos = OrderedDict(self._infos_fields(project,
-                        fields='msg.state revs_count files_count last_cdata author msg.msg'.split(),
-                        with_fallbacks=False))
+                        fields='msg.state revs_count files_count last_cdata author msg.msg'.split()))
             res[project] = infos
 
         if not res:
@@ -292,8 +295,8 @@ class Project(SingletonConfigurable, baseapp.Spec):
                 res.index = [('* %s' if _project2ref_path(r) == ap else '  %s') % r
                              for r in res.index]
                 res.reset_index(level=0, inplace=True)
-                ren = lambda c: c[len('msg.'):] if c.startswith('msg.') else c
-                res = res.rename_axis(ren, axis='columns')
+                renner = lambda c: c[len('msg.'):] if c.startswith('msg.') else c
+                res = res.rename_axis(renner, axis='columns')
                 res = res.rename_axis({
                     'index': 'project',
                     'revs_count': '#revs',
@@ -349,7 +352,6 @@ class Project(SingletonConfigurable, baseapp.Spec):
     @fnt.lru_cache() # x6(!) faster!
     def _infos_dsp(self, fallback_value='<invalid>'):
         from co2mpas.dispatcher import Dispatcher
-        import os
 
         ufuns = [
             UFun('repo',            lambda _infos: self.repo),
@@ -390,29 +392,8 @@ class Project(SingletonConfigurable, baseapp.Spec):
             UFun('tree',            lambda tre: tre.hexsha),
             UFun('files_count',     lambda tre: itz.count(tre.list_traverse())),
         ]
-        fallback_value = '<invalid>'
-        fallback_fun = lambda *a, **k: fallback_value
-        def filter_fun(ufun:UFun) -> Tuple:
-            """Duplicate `ufun` as "fallback" like a 2-tuple ``(<ufun>, <failback-ufun>)``. """
-            fail_ufun = ufun.copy()
-            fail_ufun.kwds['weight'] = 50
-
-            ## Handle functions with multiple outputs.
-            #
-            out = ufun.out
-            if isinstance(out, (list, tuple)) and len(out):
-                fail_ufun.fun = lambda *a, **k: (fallback_value, ) * len(out)
-            else:
-                fail_ufun.fun = fallback_fun
-
-            fail_ufun.kwds['inputs'] = ufun.inspect_inputs() # Pin inputs, innspect won't work.
-
-            return (ufun, fail_ufun)
-
         dsp = Dispatcher()
-        ufuns = list(itz.concat(filter_fun(uf) for uf in ufuns))
         UFun.add_ufuns(ufuns, dsp)
-
         return dsp
 
     @fnt.lru_cache()
@@ -453,21 +434,24 @@ class Project(SingletonConfigurable, baseapp.Spec):
             fields.extend(fs)
         return fields
 
-    def _infos_fields(self, project: Text=None, fields=None, with_fallbacks=False) -> List:
+    def _infos_fields(self, project: Text=None, fields=None, invvalue='<invalid>') -> List:
         dsp = self._infos_dsp()
         inputs = {'_infos': 'ok', '_inp_prj': project}
         infos = dsp.dispatch(inputs=inputs,
                              outputs=fields,
-                             shrink=not with_fallbacks)
+                             shrink=True)
+        fallbacks = {d: '<invalid>' for d in dsp.data_nodes.keys()}
+        fallbacks.update(infos)
+        infos = fallbacks
+
         infos = dict(utils.stack_nested_keys(infos))
         infos = dtz.keymap(lambda k: '.'.join(k), infos)
         if fields:
-            infos = [(k, v)
-                     for o in fields
-                     for k, v in infos.items()
-                     if k.startswith(o)]
+            infos = [(f, infos.get(f, invvalue))
+                     for f in fields]
         else:
-            infos = sorted((k, v) for k, v in infos.items())
+            infos = sorted((f, infos.get(f, invvalue))
+                           for f in dsp.data_nodes.keys())
 
         return infos
 
@@ -483,7 +467,7 @@ class Project(SingletonConfigurable, baseapp.Spec):
         verbose_level = int(verbose)
 
         fields = self._out_fields_by_verbose_level(verbose_level)
-        infos = self._infos_fields(project, fields, with_fallbacks=True)
+        infos = self._infos_fields(project, fields)
 
         if as_text:
             if as_json:

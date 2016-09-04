@@ -69,34 +69,31 @@ class TProjectStory(unittest.TestCase):
     def _config(self):
         c = get_config()
         c.Project.repo_path = self._project_repo.name
-        c.Spec.verbose = 0
+        c.Spec.verbose = c.Project.verbose = 0
         return c
 
-    def _check_infos_shapes(self, cmd, proj=None):
-        res = cmd.proj_examine(project=proj)
-        self.assertEqual(len(res), 8, res)
+    def _check_infos_shapes(self, proj, project=None):
+        res = proj.proj_examine(project=project, verbose=0)
+        self.assertEqual(len(res), 7, res)
 
-        cmd.verbose = 1
-        res = cmd.proj_examine()
-        self.assertEqual(len(res), 18, res)
+        res = proj.proj_examine(project=project, verbose=1)
+        self.assertEqual(len(res), 14, res)
 
-        cmd.verbose = 2
-        res = cmd.proj_examine()
-        self.assertEqual(len(res), 46, res)
+        res = proj.proj_examine(project=project, verbose=2)
+        self.assertEqual(len(res), 32, res)
 
     def test_1a_empty_list(self):
         cmd = project.ProjectCmd.ListCmd(config=self._config)
         res = cmd.run()
         self.assertIsNone(res)
 
-        cmd = project.Project(config=self._config)
+        cmd = project.Project.instance()
+        cmd.config=self._config
 
-        cmd.verbose = 1
-        res = cmd.proj_list()
+        res = cmd.proj_list(verbose=1)
         self.assertIsNone(res)
 
-        cmd.verbose = 2
-        res = cmd.proj_list()
+        res = cmd.proj_list(verbose=2)
         self.assertIsNone(res)
 
     def test_1b_empty_infos(self):
@@ -104,7 +101,8 @@ class TProjectStory(unittest.TestCase):
         res = cmd.run()
         self.assertIsNotNone(res)
 
-        cmd = project.Project(config=self._config)
+        cmd = project.Project.instance()
+        cmd.config=self._config
         self._check_infos_shapes(cmd)
 
     def test_1b_empty_cwp(self):
@@ -124,22 +122,20 @@ class TProjectStory(unittest.TestCase):
 
     def test_2b_list(self):
         cmd = project.ProjectCmd.ListCmd(config=self._config)
-
         res = cmd.run()
         self.assertEqual(res, ['* foo'])
 
-        cmd = project.Project(config=self._config)
+        cmd = project.Project.instance()
+        cmd.config=self._config
 
-        cmd.verbose = 1
-        res = cmd.proj_list()
+        res = cmd.proj_list(verbose=1)
         self.assertIsInstance(res, pd.DataFrame)
-        self.assertEqual(res.shape, (1, 6), res)
+        self.assertEqual(res.shape, (1, 7), res)
         self.assertIn('* foo', str(res))
 
-        cmd.verbose = 2
-        res = cmd.proj_list()
+        res = cmd.proj_list(verbose=2)
         self.assertIsInstance(res, pd.DataFrame)
-        self.assertEqual(res.shape, (1, 6), res)
+        self.assertEqual(res.shape, (1, 7), res)
         self.assertIn('* foo', str(res))
 
     def test_2c_default_infos(self):
@@ -147,7 +143,8 @@ class TProjectStory(unittest.TestCase):
         res = cmd.run()
         self.assertRegex(res, 'msg.project += foo')
 
-        cmd = project.Project(config=self._config)
+        cmd = project.Project.instance()
+        cmd.config=self._config
         self._check_infos_shapes(cmd)
 
     def test_3a_add_same_project__fail(self):
@@ -183,18 +180,17 @@ class TProjectStory(unittest.TestCase):
         res = cmd.run()
         self.assertSequenceEqual(res, ['* bar', '  foo'])
 
-        cmd = project.Project(config=self._config)
+        cmd = project.Project.instance()
+        cmd.config=self._config
 
-        cmd.verbose = 1
-        res = cmd.proj_list()
+        res = cmd.proj_list(verbose=1)
         self.assertIsInstance(res, pd.DataFrame)
-        self.assertEqual(res.shape, (2, 6), res)
+        self.assertEqual(res.shape, (2, 7), res)
         self.assertIn('* bar', str(res))
 
-        cmd.verbose = 2
-        res = cmd.proj_list()
+        res = cmd.proj_list(verbose=2)
         self.assertIsInstance(res, pd.DataFrame)
-        self.assertEqual(res.shape, (2, 6), res)
+        self.assertEqual(res.shape, (2, 7), res)
         self.assertIn('* bar', str(res))
 
     def test_4c_default_infos(self):
@@ -202,7 +198,8 @@ class TProjectStory(unittest.TestCase):
         res = cmd.run()
         self.assertRegex(res, 'msg.project += bar')
 
-        cmd = project.Project(config=self._config)
+        cmd = project.Project.instance()
+        cmd.config=self._config
         self._check_infos_shapes(cmd)
 
     def test_4d_forced_infos(self):
@@ -210,7 +207,8 @@ class TProjectStory(unittest.TestCase):
         res = cmd.run('foo')
         self.assertRegex(res, 'msg.project += bar')
 
-        cmd = project.Project(config=self._config)
+        cmd = project.Project.instance()
+        cmd.config=self._config
         self._check_infos_shapes(cmd, 'foo')
 
     def test_5_open_other(self):
@@ -222,7 +220,8 @@ class TProjectStory(unittest.TestCase):
         res = cmd.run()
         self.assertEqual(res, 'foo')
 
-        cmd = project.Project(config=self._config)
+        cmd = project.Project.instance()
+        cmd.config=self._config
         self._check_infos_shapes(cmd, 'foo')
 
     def test_6_open_non_existing(self):
@@ -244,7 +243,7 @@ class TBackupCmd(unittest.TestCase):
     def _config(self):
         c = get_config()
         c.Project.repo_path = self._project_repo.name
-        c.Spec.verbose = 0
+        c.Spec.verbose = c.Project.verbose = 0
         return c
 
     def test_backup_cwd(self):

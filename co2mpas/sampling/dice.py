@@ -446,7 +446,7 @@ class MainCmd(Cmd):
             dkwds = {
                 'name': __title__,
                 'description': __summary__,
-                'default_subcmd': 'project',
+                ##'default_subcmd': 'project', ## Confusing for the user.
                 'subcommands': build_sub_cmds(proj.ProjectCmd, GenConfigCmd),
             }
             dkwds.update(kwds)
@@ -523,6 +523,7 @@ def main(argv=None, verbose=None, **app_init_kwds):
     :param argv:
         If `None`, use :data:`sys.argv`; use ``[]`` to explicitely use no-args.
     """
+    init_logging(verbose)
     try:
         ##MainCmd.launch_instance(argv or None, **app_init_kwds) ## NO No, does not return `start()`!
         app = MainCmd.instance(**app_init_kwds)
@@ -540,9 +541,6 @@ def main(argv=None, verbose=None, **app_init_kwds):
 
 
 if __name__ == '__main__':
-    # Invoked from IDEs, so enable debug-logging.
-    init_logging(verbose=True)
-
     argv = None
     ## DEBUG AID ARGS, remember to delete them once developed.
     #argv = ''.split()
@@ -567,7 +565,9 @@ if __name__ == '__main__':
     #argv = '--Project.reset_settings=True'.split()
     #argv = 'project list  --reset-git-settings'.split()
     #argv = 'project add one'.split()
-    main(argv)
+
+    # Invoked from IDEs, so enable debug-logging.
+    main(argv, verbose=True)
 
     #from traitlets.config import get_config
 

@@ -217,7 +217,7 @@ class Spec(LoggingConfigurable):
             self.log_level = new
         self.log.setLevel(new)
 
-    verbose = trt.Union((trt.Integer(), trt.Bool(False)),
+    verbose = trt.Union((trt.Integer(0), trt.Bool(False)),
             ## INFO: Add verbose flag explanations here.
             help="""
             Make various sub-commands increase their verbosity (not to be confused with --debug):
@@ -269,7 +269,7 @@ def class2cmd_name(cls):
     name = cls.__name__
     if name.lower().endswith('cmd') and len(name) > 3:
         name = name[:-3]
-    return camel_to_snake_case(name)
+    return camel_to_cmd_name(name)
 
 def build_sub_cmds(*subapp_classes):
     """Builds an ordered-dictionary of ``cmd-name --> (cmd-class, help-msg)``. """
