@@ -486,7 +486,7 @@ class GenConfigCmd(Cmd):
         self.classes = [
               pp, pp.CurrentCmd, pp.ListCmd, pp.AddCmd, pp.OpenCmd, pp.ExamineCmd, pp.BackupCmd,
               GenConfigCmd,
-              baseapp.Spec, proj.Project, MainCmd,
+              baseapp.Spec, proj.ProjectsDB, MainCmd,
         ]
         args = args or [None]
         for fpath in args:

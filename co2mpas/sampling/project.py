@@ -171,7 +171,7 @@ def _get_ref(refs, refname: Text, default: git.Reference=None) -> git.Reference:
     return refname and refname in refs and refs[refname] or default
 
 
-class Project(SingletonConfigurable, baseapp.Spec):
+class ProjectsDB(SingletonConfigurable, baseapp.Spec):
     """A git-based repository storing the TA projects (containing signed-files and sampling-resonses).
 
     Git Command Debugging and Customization:
@@ -581,7 +581,7 @@ class Project(SingletonConfigurable, baseapp.Spec):
 class _PrjCmd(baseapp.Cmd):
     @property
     def gitspec(self):
-        p = Project.instance()
+        p = ProjectsDB.instance()
         p.config = self.config
         return p
 
@@ -698,13 +698,13 @@ class ProjectCmd(_PrjCmd):
     def __init__(self, **kwds):
         with self.hold_trait_notifications():
             dkwds = {
-                'conf_classes': [Project],
+                'conf_classes': [ProjectsDB],
                 'subcommands': baseapp.build_sub_cmds(*project_subcmds),
                 #'default_subcmd': 'current', ## Does not help the user.
                 'cmd_flags': {
                     'reset-git-settings': ({
-                            'Project': {'reset_settings': True},
-                        }, Project.reset_settings.help),
+                            'ProjectsDB': {'reset_settings': True},
+                        }, ProjectsDB.reset_settings.help),
                     'as-json': ({
                             'ExamineCmd': {'as_json': True},
                         }, ProjectCmd.ExamineCmd.as_json.help),

@@ -68,8 +68,8 @@ class TProjectStory(unittest.TestCase):
     @property
     def _config(self):
         c = get_config()
-        c.Project.repo_path = self._project_repo.name
-        c.Spec.verbose = c.Project.verbose = 0
+        c.ProjectsDB.repo_path = self._project_repo.name
+        c.Spec.verbose = c.ProjectsDB.verbose = 0
         return c
 
     def _check_infos_shapes(self, proj, project=None):
@@ -87,7 +87,7 @@ class TProjectStory(unittest.TestCase):
         res = cmd.run()
         self.assertIsNone(res)
 
-        cmd = project.Project.instance()
+        cmd = project.ProjectsDB.instance()
         cmd.config=self._config
 
         res = cmd.proj_list(verbose=1)
@@ -101,7 +101,7 @@ class TProjectStory(unittest.TestCase):
         res = cmd.run()
         self.assertIsNotNone(res)
 
-        cmd = project.Project.instance()
+        cmd = project.ProjectsDB.instance()
         cmd.config=self._config
         self._check_infos_shapes(cmd)
 
@@ -125,7 +125,7 @@ class TProjectStory(unittest.TestCase):
         res = cmd.run()
         self.assertEqual(res, ['* foo'])
 
-        cmd = project.Project.instance()
+        cmd = project.ProjectsDB.instance()
         cmd.config=self._config
 
         res = cmd.proj_list(verbose=1)
@@ -143,7 +143,7 @@ class TProjectStory(unittest.TestCase):
         res = cmd.run()
         self.assertRegex(res, 'msg.project += foo')
 
-        cmd = project.Project.instance()
+        cmd = project.ProjectsDB.instance()
         cmd.config=self._config
         self._check_infos_shapes(cmd)
 
@@ -180,7 +180,7 @@ class TProjectStory(unittest.TestCase):
         res = cmd.run()
         self.assertSequenceEqual(res, ['* bar', '  foo'])
 
-        cmd = project.Project.instance()
+        cmd = project.ProjectsDB.instance()
         cmd.config=self._config
 
         res = cmd.proj_list(verbose=1)
@@ -198,7 +198,7 @@ class TProjectStory(unittest.TestCase):
         res = cmd.run()
         self.assertRegex(res, 'msg.project += bar')
 
-        cmd = project.Project.instance()
+        cmd = project.ProjectsDB.instance()
         cmd.config=self._config
         self._check_infos_shapes(cmd)
 
@@ -207,7 +207,7 @@ class TProjectStory(unittest.TestCase):
         res = cmd.run('foo')
         self.assertRegex(res, 'msg.project += bar')
 
-        cmd = project.Project.instance()
+        cmd = project.ProjectsDB.instance()
         cmd.config=self._config
         self._check_infos_shapes(cmd, 'foo')
 
@@ -220,7 +220,7 @@ class TProjectStory(unittest.TestCase):
         res = cmd.run()
         self.assertEqual(res, 'foo')
 
-        cmd = project.Project.instance()
+        cmd = project.ProjectsDB.instance()
         cmd.config=self._config
         self._check_infos_shapes(cmd, 'foo')
 
@@ -242,8 +242,8 @@ class TBackupCmd(unittest.TestCase):
     @property
     def _config(self):
         c = get_config()
-        c.Project.repo_path = self._project_repo.name
-        c.Spec.verbose = c.Project.verbose = 0
+        c.ProjectsDB.repo_path = self._project_repo.name
+        c.Spec.verbose = c.ProjectsDB.verbose = 0
         return c
 
     def test_backup_cwd(self):
