@@ -33,13 +33,6 @@ import os.path as osp
 import traitlets as trt
 
 
-log = logging.getLogger(__name__)
-
-try:
-    _mydir = osp.dirname(__file__)
-except:
-    _mydir = '.'
-
 CmdException = trt.TraitError
 
 class UFun(object):
@@ -338,7 +331,7 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
                             s = s[prefix]
                         s[sec][cname] = citem
         except Exception as ex:
-            log.info('Failed reading git-settings on %s.%s due to: %s',
+            self.log.info('Failed reading git-settings on %s.%s due to: %s',
                      sec, cname, ex, exc_info=1)
             raise
         return settings
@@ -580,7 +573,7 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
 
 class _PrjCmd(baseapp.Cmd):
     @property
-    def gitspec(self):
+    def projects_db(self):
         p = ProjectsDB.instance()
         p.config = self.config
         return p
@@ -611,7 +604,7 @@ class ProjectCmd(_PrjCmd):
         """
         def run(self, *args):
             self.log.info('Listing %s projects...', args or 'all')
-            return self.gitspec.proj_list(*args)
+            return self.projects_db.proj_list(*args)
 
     class CurrentCmd(_PrjCmd):
         """Prints the currently open project."""
@@ -619,7 +612,7 @@ class ProjectCmd(_PrjCmd):
             if len(args) != 0:
                 raise CmdException('Cmd %r takes no args, received %r!'
                                    % (self.name, args))
-            return self.gitspec.proj_current()
+            return self.projects_db.proj_current()
 
     class OpenCmd(_PrjCmd):
         """
@@ -633,7 +626,7 @@ class ProjectCmd(_PrjCmd):
             if len(args) != 1:
                 raise CmdException("Cmd %r takes a SINGLE project-name to open, received: %r!"
                                    % (self.name, args))
-            return self.gitspec.proj_open(args[0])
+            return self.projects_db.proj_open(args[0])
 
     class AddCmd(_PrjCmd):
         """
@@ -646,7 +639,7 @@ class ProjectCmd(_PrjCmd):
             if len(args) != 1:
                 raise CmdException('Cmd %r takes a SINGLE project-name to add, received %r!'
                                    % (self.name, args))
-            return self.gitspec.proj_add(args[0])
+            return self.projects_db.proj_add(args[0])
 
     class ExamineCmd(_PrjCmd):
         """
@@ -666,7 +659,7 @@ class ProjectCmd(_PrjCmd):
                 raise CmdException('Cmd %r takes one optional argument, received %d: %r!'
                                    % (self.name, len(args), args))
             project = args and args[0] or None
-            return self.gitspec.proj_examine(project, as_text=True, as_json=self.as_json)
+            return self.projects_db.proj_examine(project, as_text=True, as_json=self.as_json)
 
     class BackupCmd(_PrjCmd):
         """
@@ -690,7 +683,7 @@ class ProjectCmd(_PrjCmd):
                 if fname:
                     kwds['repo_name'] = fname
             try:
-                return self.gitspec.repo_backup(**kwds)
+                return self.projects_db.repo_backup(**kwds)
             except FileNotFoundError as ex:
                 raise CmdException("Folder '%s' to store archive does not exist!"
                                    "\n  Use --force to create it." % ex)
