@@ -260,24 +260,23 @@ class TBackupCmd(unittest.TestCase):
         project.ProjectCmd.AddCmd(config=self._config).run('foobar')
         cmd = project.ProjectCmd.BackupCmd(config=self._config)
         with tempfile.TemporaryDirectory() as td:
-            fpath = osp.join(td, 'foo')
-            with chdir(td):
-                res = cmd.run(fpath)
-                self.assertIn(td, res)
-                self.assertIn('foo.txz', res)
-                self.assertNotIn('co2mpas', res)
-                self.assertTrue(osp.isfile(res), (res, os.listdir(osp.split(res)[0])))
+            archive_fpath = osp.join(td, 'foo')
+            res = cmd.run(archive_fpath)
+            self.assertIn(td, res)
+            self.assertIn('foo.txz', res)
+            self.assertNotIn('co2mpas', res)
+            self.assertTrue(osp.isfile(res), (res, os.listdir(osp.split(res)[0])))
 
     def test_backup_folder_only(self):
-        project.ProjectCmd.AddCmd(config=self._config).run('foobar')
+        # Fail conjecutives!!
+        ## !!???! project.ProjectCmd.AddCmd(config=self._config).run('barfoo')
         cmd = project.ProjectCmd.BackupCmd(config=self._config)
         with tempfile.TemporaryDirectory() as td:
-            fpath = td +'\\'
-            with chdir(td):
-                res = cmd.run(fpath)
-                self.assertIn(fpath, res)
-                self.assertIn('co2mpas', res)
-                self.assertTrue(osp.isfile(res), (res, os.listdir(osp.split(res)[0])))
+            archive_fpath = td +'\\'
+            res = cmd.run(archive_fpath)
+            self.assertIn(archive_fpath, res)
+            self.assertIn('co2mpas', res)
+            self.assertTrue(osp.isfile(res), (res, os.listdir(osp.split(res)[0])))
 
     def test_backup_no_dir(self):
         project.ProjectCmd.AddCmd(config=self._config).run('foobar')
