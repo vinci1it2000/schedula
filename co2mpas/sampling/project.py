@@ -212,9 +212,15 @@ class Project(SingletonConfigurable, baseapp.Spec):
     __repo = None
 
     def _setup_repo(self, repo_path):
-        if self.__repo and self.__repo.working_dir == repo_path:
-            self.log.debug('Reusing repo %r...', repo_path)
-            return
+        if self.__repo:
+            if self.__repo.working_dir == repo_path:
+                self.log.debug('Reusing repo %r...', repo_path)
+                return
+            else:
+                ## Clean up old repo,
+                #  or else... https://github.com/gitpython-developers/GitPython/issues/508
+                self.__repo.git.clear_cache()
+
         if not osp.isabs(repo_path):
             repo_path = osp.join(baseapp.default_config_dir(), repo_path)
         repo_path = convpath(repo_path)
