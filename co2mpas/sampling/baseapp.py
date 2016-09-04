@@ -284,10 +284,7 @@ class Cmd(Application):
 
     @trt.default('name')
     def _name(self):
-        name = type(self).__name__
-        if name.lower().endswith('cmd') and len(name) > 3:
-            name = name[:-3]
-        camel_to_snake_case(name)
+        name = class2cmd_name(type(self))
         return name
 
 
