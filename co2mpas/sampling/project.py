@@ -26,13 +26,13 @@ from co2mpas import __uri__  # @UnusedImport
 from co2mpas import utils
 from co2mpas._version import (__version__, __updated__, __file_version__,   # @UnusedImport
                               __input_file_version__, __copyright__, __license__)  # @UnusedImport
-from co2mpas.sampling import dice, baseapp
+from co2mpas.sampling import baseapp, dice, report
 from co2mpas.sampling.baseapp import convpath, ensure_dir_exists, where
 import functools as fnt
 import os.path as osp
 import traitlets as trt
 
-
+InvalidProjectState = baseapp.CmdException
 
 class UFun(object):
     """
@@ -254,6 +254,7 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
 
     def proj_current(self) -> Text or None:
         """Returns the current project, or None if not exists yet."""
+        # XXX: REWORK PROJECT VALIDATION
         project = None
         try:
             head = self.repo.active_branch
@@ -286,8 +287,10 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
             project = _ref2project(ref)
             infos = []
             if verbose:
-                infos = OrderedDict(self._infos_fields(project,
-                        fields='msg.state revs_count files_count last_cdata author msg.msg'.split()))
+                infos = OrderedDict(self._infos_fields(
+                        project=project,
+                        fields='msg.state revs_count files_count last_cdata author msg.msg'.split(),
+                        inv_value='<invalid>'))
             res[project] = infos
 
         if not res:
@@ -347,6 +350,7 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
         """
         :param project: some branch ref
         """
+        # XXX: REWORK PROJECT VALIDATION
         repo = self.repo
         project = _project2ref_name(project)
         found = project in repo.heads
@@ -440,26 +444,31 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
             fields.extend(fs)
         return fields
 
-    def _infos_fields(self, project: Text=None, fields=None, invvalue='<invalid>') -> List:
+    def _infos_fields(self, project: Text=None, fields: Sequence[Text]=None, inv_value=None) -> List:
         dsp = self._infos_dsp()
         inputs = {'_infos': 'ok', '_inp_prj': project}
         infos = dsp.dispatch(inputs=inputs,
                              outputs=fields,
                              shrink=True)
-        fallbacks = {d: '<invalid>' for d in dsp.data_nodes.keys()}
+        fallbacks = {d: inv_value for d in dsp.data_nodes.keys()}
         fallbacks.update(infos)
         infos = fallbacks
 
         infos = dict(utils.stack_nested_keys(infos))
         infos = dtz.keymap(lambda k: '.'.join(k), infos)
         if fields:
-            infos = [(f, infos.get(f, invvalue))
+            infos = [(f, infos.get(f, inv_value))
                      for f in fields]
         else:
-            infos = sorted((f, infos.get(f, invvalue))
+            infos = sorted((f, infos.get(f, inv_value))
                            for f in dsp.data_nodes.keys())
 
         return infos
+
+    def _state(self, project: Text=None) -> Text:
+        # XXX: REWORK PROJECT VALIDATION
+        infos = self._infos_fields(project, fields=('msg.state', ))
+        return dict(infos)['msg.state']
 
     def proj_examine(self, project=None, verbose=None, as_text=False, as_json=False):
         """
@@ -574,6 +583,65 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
         return archive_fpath
 
 
+    def iofiles_list(self) -> dice.IOFiles or None:
+        """Works on current project."""
+        repo = self.repo
+        project = self.proj_current() # XXX: REWORK PROJECT VALIDATION
+        def collect_io_files(io_kind):
+            if io_kind:
+                wd_fpath = osp.join(repo.working_tree_dir, io_kind)
+                fpaths = os.listdir(wd_fpath) if osp.isdir(wd_fpath) else []
+                return [osp.join(wd_fpath, f) for f in fpaths]
+
+        iofpaths = [collect_io_files(io_kind) for io_kind in ('inp', 'out', None)]
+        if any(iofpaths):
+            return dice.IOFiles(*iofpaths)
+
+    def iofiles_import(self, iofiles: dice.IOFiles, force=None):
+        """Works on current project."""
+        import shutil
+
+        def raise_invalid_state(state, project):
+            raise InvalidProjectState(
+                    "Invalid state %r when importing input/output-files in project %r!"
+                    "\n  Must be in one of: empty | stored-out | stored-inp (or `stored` when --force)."
+                    % (state, project))
+
+        if force is None:
+            force = self.force
+
+        repo = self.repo
+        project = self.proj_current() # XXX: REWORK PROJECT VALIDATION
+        state = self._state()
+        if state not in ('empty', 'stored-out', 'stored-inp', 'stored'):
+            raise_invalid_state(state, project)
+
+        valid_io_kinds = []
+        if state in ('empty', 'stored-out'):
+            valid_io_kinds.append('inp')
+        if state in ('empty', 'stored-inp'):
+            valid_io_kinds.append('out')
+
+        index = repo.index
+        nimported = 0
+        for io_kind, fpaths in iofiles._asdict().items():
+            for fpath in fpaths:
+                assert io_kind != 'other', "Other-files: %s" % iofiles.other
+                assert fpath, "Import none as %s file!" % io_kind
+
+                if not force and io_kind not in valid_io_kinds:
+                    raise_invalid_state(state, project)
+                fdir, fname = osp.split(fpath)
+                wd_fpath = osp.join(repo.working_tree_dir, io_kind, fname)
+                ensure_dir_exists(osp.split(wd_fpath)[0])
+                shutil.copy(fpath, wd_fpath)
+                index.add([wd_fpath])
+                nimported += 1
+
+        self._commit(index, project, state, 'Imported %d IO-files.' % nimported)
+
+
+
 ###################
 ##    Commands   ##
 ###################
@@ -584,6 +652,7 @@ class _PrjCmd(baseapp.Cmd):
         p = ProjectsDB.instance()
         p.config = self.config
         return p
+
 
 class ProjectCmd(_PrjCmd):
     """
@@ -613,6 +682,7 @@ class ProjectCmd(_PrjCmd):
             self.log.info('Listing %s projects...', args or 'all')
             return self.projects_db.proj_list(*args)
 
+
     class CurrentCmd(_PrjCmd):
         """Prints the currently open project."""
         def run(self, *args):
@@ -625,6 +695,7 @@ class ProjectCmd(_PrjCmd):
                         "No current-project exists yet!"
                         "\n  Use `co2mpas project add <project-name>` to create one.")
             return project
+
 
     class OpenCmd(_PrjCmd):
         """
@@ -653,6 +724,70 @@ class ProjectCmd(_PrjCmd):
                                    % (self.name, args))
             return self.projects_db.proj_add(args[0])
 
+
+    class AddReportCmd(_PrjCmd):
+        """
+        SYNTAX
+            co2dice project add-report ( inp=<co2mpas-file-1> | out=<co2mpas-file-1> ) ...
+        DESCRIPTION
+            Import the specified input/output co2mpas files into the *current project*.
+
+            The *report parameters* will be time-stamped and disseminated to
+            TA authorities & oversight bodies with an email, to receive back
+            the sampling decision.
+
+            - One file from each kind (inp/out) may be given.
+            - If an input/output is already present in the current project, use --force.
+
+        """
+
+        examples = trt.Unicode("""
+            To import an INPUT co2mpas file, try:
+
+                co2dice project add-report  inp=co2mpas_input.xlsx
+
+            To import both INPUT and OUTPUT files, and overwrite any already imported try:
+
+                co2dice project add-report --force inp=co2mpas_input.xlsx out=co2mpas_results.xlsx
+            """)
+
+        __report = None
+
+        @property
+        def report(self):
+            if not self.__report:
+                self.__report = report.Report(config=self.config)
+            return self.__report
+
+        def run(self, *args):
+            self.log.info('Importing report files %s...', args)
+            if len(args) < 1:
+                raise baseapp.CmdException('Cmd %r takes at least one argument, received %d: %r!'
+                                   % (self.name, len(args), args))
+            rep = self.report
+            iofiles = rep.parse_io_args(*args)
+            if iofiles.other:
+                raise baseapp.CmdException(
+                    "Cmd %r filepaths must either start with 'inp=' or 'out=' prefix!\n%s"
+                                       % (self.name, '\n'.join('  arg[%d]: %s' % i for i in iofiles.other.items())))
+
+            ## Check extraction of report.
+            #
+            fpath = None
+            try:
+                for fpath in iofiles.inp:
+                    rep.extract_input_params(fpath)
+
+                for fpath in iofiles.out:
+                    list(rep.extract_output_tables(fpath))
+            except Exception as ex:
+                msg = "Failed extracting report-parameters from file %r, due to: %s"
+                self.log.debug(msg, fpath, ex, exc_info=1)
+                raise baseapp.CmdException(msg % (fpath, ex))
+
+            return self.projects_db.iofiles_import(iofiles)
+
+
     class ExamineCmd(_PrjCmd):
         """
         SYNTAX
@@ -672,6 +807,7 @@ class ProjectCmd(_PrjCmd):
                                    % (self.name, len(args), args))
             project = args and args[0] or None
             return self.projects_db.proj_examine(project, as_text=True, as_json=self.as_json)
+
 
     class BackupCmd(_PrjCmd):
         """
@@ -699,6 +835,7 @@ class ProjectCmd(_PrjCmd):
             except FileNotFoundError as ex:
                 raise baseapp.CmdException("Folder '%s' to store archive does not exist!"
                                    "\n  Use --force to create it." % ex)
+
 
     def __init__(self, **kwds):
         with self.hold_trait_notifications():

@@ -51,7 +51,7 @@ _inp_fpath = osp.join(mydir, '..', '..', 'co2mpas', 'demos', 'co2mpas_demo-0.xls
 _out_fpath = osp.join(mydir, 'output.xlsx')
 
 
-class TReport(unittest.TestCase):
+class TReportArgs(unittest.TestCase):
 
     def test_extract_input(self):
         c = get_config()
@@ -83,8 +83,9 @@ class TReport(unittest.TestCase):
         self.assertIsInstance(res, types.GeneratorType)
         res = list(res)
         self.assertEqual(len(res), 4)
-        for i in res:
-            self.assertIsInstance(i, (pd.Series, pd.DataFrame))
+        self.assertIsInstance(res[0], pd.Series)
+        for i in res[1:]:
+            self.assertIsInstance(i, pd.DataFrame)
 
     def test_bad_prefix(self):
         c = get_config()
@@ -103,18 +104,20 @@ class TReport(unittest.TestCase):
         arg2 = 'out.BAR'
         with self.assertRaises(baseapp.CmdException) as cm:
             list(cmd.run('inp=A', arg1, 'out=B', arg2))
-        print(cm.exception)
+        #print(cm.exception)
         self.assertIn("arg[2]: %s" % arg1, str(cm.exception))
         self.assertIn("arg[4]: %s" % arg2, str(cm.exception))
 
-    def test_project__with_args(self):
+
+class TReportProject(unittest.TestCase):
+    def test_fails_with_args(self):
         c = get_config()
         c.ReportCmd.raise_config_file_errors = True
         c.ReportCmd.project = True
         with self.assertRaisesRegex(baseapp.CmdException, "--project' takes no arguments, received"):
             list(report.ReportCmd(config=c).run('EXTRA_ARG'))
 
-    def test_project__no_project(self):
+    def test_fails_when_no_project(self):
         c = get_config()
         c.ReportCmd.raise_config_file_errors = True
         c.ReportCmd.project = True
@@ -124,7 +127,7 @@ class TReport(unittest.TestCase):
             with self.assertRaisesRegex(baseapp.CmdException, r"No current-project exists yet!"):
                 list(cmd.run())
 
-    def test_project__empty(self):
+    def test_fails_when_empty(self):
         c = get_config()
         c.ReportCmd.raise_config_file_errors = True
         c.ReportCmd.project = True
@@ -132,6 +135,79 @@ class TReport(unittest.TestCase):
             c.ProjectsDB.repo_path = td
             project.ProjectCmd.AddCmd(config=c).run('proj1')
             cmd = report.ReportCmd(config=c)
-            with self.assertRaisesRegex(baseapp.CmdException, r"No current-project exists yet!"):
+            with self.assertRaisesRegex(baseapp.CmdException, r"Current project 'proj1' contains no input/output files!"):
                 list(cmd.run())
+
+    def test_input_output(self):
+        c = get_config()
+        c.ReportCmd.raise_config_file_errors = True
+        c.ReportCmd.project = True
+        with tempfile.TemporaryDirectory() as td:
+            c.ProjectsDB.repo_path = td
+            project.ProjectCmd.AddCmd(config=c).run('proj1')
+
+            project.ProjectCmd.AddReportCmd(config=c).run('inp=%s' % _inp_fpath)
+            cmd = report.ReportCmd(config=c)
+            res = cmd.run()
+            self.assertIsInstance(res, types.GeneratorType)
+            res = list(res)
+            self.assertEqual(len(res), 1)
+            for i in res:
+                self.assertIsInstance(i, pd.Series)
+
+            project.ProjectCmd.AddReportCmd(config=c).run('out=%s' % _out_fpath)
+            cmd = report.ReportCmd(config=c)
+            res = cmd.run()
+            self.assertIsInstance(res, types.GeneratorType)
+            res = list(res)
+            self.assertEqual(len(res), 4)
+            self.assertIsInstance(res[0], pd.Series)
+            for i in res[1:]:
+                self.assertIsInstance(i, pd.DataFrame)
+
+    def test_output_input(self):
+        c = get_config()
+        c.ReportCmd.raise_config_file_errors = True
+        c.ReportCmd.project = True
+        with tempfile.TemporaryDirectory() as td:
+            c.ProjectsDB.repo_path = td
+            project.ProjectCmd.AddCmd(config=c).run('proj1')
+
+            project.ProjectCmd.AddReportCmd(config=c).run('out=%s' % _out_fpath)
+            cmd = report.ReportCmd(config=c)
+            res = cmd.run()
+            self.assertIsInstance(res, types.GeneratorType)
+            res = list(res)
+            self.assertEqual(len(res), 3)
+            for i in res:
+                self.assertIsInstance(i, pd.DataFrame)
+
+            project.ProjectCmd.AddReportCmd(config=c).run('inp=%s' % _inp_fpath)
+            cmd = report.ReportCmd(config=c)
+            res = cmd.run()
+            self.assertIsInstance(res, types.GeneratorType)
+            res = list(res)
+            self.assertEqual(len(res), 4)
+            self.assertIsInstance(res[0], pd.Series)
+            for i in res[1:]:
+                self.assertIsInstance(i, pd.DataFrame)
+
+    def test_both(self):
+        c = get_config()
+        c.ReportCmd.raise_config_file_errors = True
+        c.ReportCmd.project = True
+        with tempfile.TemporaryDirectory() as td:
+            c.ProjectsDB.repo_path = td
+            project.ProjectCmd.AddCmd(config=c).run('proj1')
+
+            cmd = project.ProjectCmd.AddReportCmd(config=c)
+            cmd.run('out=%s' % _out_fpath, 'inp=%s' % _inp_fpath)
+            cmd = report.ReportCmd(config=c)
+            res = cmd.run()
+            self.assertIsInstance(res, types.GeneratorType)
+            res = list(res)
+            self.assertEqual(len(res), 4)
+            self.assertIsInstance(res[0], pd.Series)
+            for i in res[1:]:
+                self.assertIsInstance(i, pd.DataFrame)
 

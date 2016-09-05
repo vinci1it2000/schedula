@@ -13,7 +13,7 @@ from typing import (
 from co2mpas import __uri__  # @UnusedImport
 from co2mpas._version import (__version__, __updated__, __file_version__,   # @UnusedImport
                               __input_file_version__, __copyright__, __license__)  # @UnusedImport
-from co2mpas.sampling import baseapp, project
+from co2mpas.sampling import baseapp, dice, project
 from co2mpas.sampling.baseapp import convpath
 import pandas as pd
 import re
@@ -27,7 +27,6 @@ import traitlets as trt
 REPORT_VERSION = '0.0.1'  ## TODO: Move to `co2mpas/_version.py`.
 
 _file_arg_regex = re.compile('(inp|out)=(.+)', re.IGNORECASE)
-
 
 class Report(baseapp.Spec):
     """Mines reported-parameters from co2mpas excel-files and serves them as a pandas dataframes."""
@@ -56,14 +55,14 @@ class Report(baseapp.Spec):
     def clear_params(self, fpath):
         self.input_params = self.output_tables = None
 
-    def extract_input_params(self, fpath, skip_collect=False):
+    def extract_input_params(self, fpath):
         from pandalone import xleash
 
         #fpath = convpath(fpath)
         self.input_params = xleash.lasso(self.input_xlref, url_file=fpath)
         return self.input_params
 
-    def extract_output_tables(self, fpath, skip_collect=False):
+    def extract_output_tables(self, fpath):
         from pandalone import xleash
 
         #fpath = convpath(fpath)
@@ -88,7 +87,7 @@ class Report(baseapp.Spec):
         self.output_tables = tables
         return self.output_tables
 
-    def parse_io_args(self, *args: Text) -> Tuple[List, List, Dict[int, Text]]:
+    def parse_io_args(self, *args: Text) -> dice.IOFiles or None:
         """
         Separates args into those starting with 'inp=', 'out=', or none.
 
@@ -98,9 +97,7 @@ class Report(baseapp.Spec):
 
         It will return::
 
-            inp = ['abc']
-            out = ['bar']
-            other = {2: 'out:gg'}
+            IOFiles(inp=['abc'], out=['bar'], other={2: 'out:gg'})
 
         """
         inp, out = [], []
@@ -111,9 +108,10 @@ class Report(baseapp.Spec):
                 other[i] = arg
             else:
                 l = inp if m.group(1).lower() == 'inp' else out
-                l.append(m.group(2))
+                l.append(convpath(m.group(2), 0, 0))
 
-        return inp, out, other
+        if inp or out or other:
+            return dice.IOFiles(inp, out, other)
 
 
 ###################
@@ -183,29 +181,29 @@ class ReportCmd(baseapp.Cmd):
             super().__init__(**dkwds)
 
 
-    def _build_io_files_from_project(self, args):
+    def _build_io_files_from_project(self, args) -> dice.IOFiles:
         pdb = self.projects_db
         project = pdb.proj_current()
         if not project:
             raise baseapp.CmdException(
                     "No current-project exists yet!"
                     "\n  Use `co2mpas project add <project-name>` to create one.")
-        inp, out = pdb.co2mpas_io_files()
-        if not inp and not out:
+        iofiles = pdb.iofiles_list()
+        if not iofiles:
             raise baseapp.CmdException(
                     "Current project %r contains no input/output files!"
                     % pdb.proj_current())
-        other = None
-        return inp, out, other
+        return iofiles
 
 
-    def _build_io_files_from_args(self, args):
-        inp, out, other = self.report.parse_io_args(*args)
-        if other:
+    def _build_io_files_from_args(self, args) -> dice.IOFiles:
+        iofiles = self.report.parse_io_args(*args)
+        if iofiles.other:
             raise baseapp.CmdException(
                     "Cmd %r filepaths must either start with 'inp=' or 'out=' prefix!\n%s"
-                    % (self.name, '\n'.join('  arg[%d]: %s' % i for i in other.items())))
-        return inp, out
+                    % (self.name, '\n'.join('  arg[%d]: %s' % i for i in iofiles.other.items())))
+
+        return iofiles
 
     def run(self, *args):
         nargs = len(args)
@@ -216,21 +214,21 @@ class ReportCmd(baseapp.Cmd):
                     % (self.name, len(args), args))
 
             self.log.info('Extracting report-parameters from current-project...')
-            inp, out = self._build_io_files_from_project(args)
+            iofiles = self._build_io_files_from_project(args)
         else:
             self.log.info('Extracting report-parameters from files %s...', args)
             if nargs < 1:
                 raise baseapp.CmdException(
                     "Cmd %r takes at least one filepath as argument, received %d: %r!"
                     % (self.name, len(args), args))
-            inp, out = self._build_io_files_from_args(args)
+            iofiles = self._build_io_files_from_args(args)
 
         rep = self.report
 
-        for fpath in inp:
+        for fpath in iofiles.inp:
             yield rep.extract_input_params(convpath(fpath))
 
-        for fpath in out:
+        for fpath in iofiles.out:
             yield from rep.extract_output_tables(convpath(fpath))
 
 

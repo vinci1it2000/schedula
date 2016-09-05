@@ -365,6 +365,10 @@ def __GPG__init__(self, my_gpg_key):
     self._cfg = read_config('co2mpas')
 
 
+## Avoid circular deps between report.py <-> project.py,
+#  because it is used in function declarations.
+IOFiles = namedtuple('IOFiles', 'inp out other')
+
 ###################
 ##     Specs     ##
 ###################
