@@ -9,6 +9,7 @@
 import logging
 import types
 import unittest
+import re
 
 import ddt
 from traitlets.config import get_config
@@ -88,9 +89,19 @@ class TReport(unittest.TestCase):
         c = get_config()
         c.ReportCmd.raise_config_file_errors = True
         cmd = report.ReportCmd(config=c)
-        with self.assertRaisesRegexp(baseapp.CmdException, "arg number 1 was"):
-            list(cmd.run('inp%s' % _inp_fpath))
-        with self.assertRaisesRegexp(baseapp.CmdException, "arg number 1 was"):
-            list(cmd.run('out%s' % _out_fpath))
-        with self.assertRaisesRegexp(baseapp.CmdException, "arg number 2 was"):
-            list(cmd.run('inp=%s' % _inp_fpath, 'out:%s' % _out_fpath))
+
+        arg = 'BAD_ARG'
+        with self.assertRaisesRegexp(baseapp.CmdException, re.escape("arg[1]: %s" % arg)):
+            list(cmd.run(arg))
+
+        arg = 'inp:BAD_ARG'
+        with self.assertRaisesRegexp(baseapp.CmdException, re.escape("arg[1]: %s" % arg)):
+            list(cmd.run(arg))
+
+        arg1 = 'inp:FOO'
+        arg2 = 'out.BAR'
+        with self.assertRaises(baseapp.CmdException) as cm:
+            list(cmd.run('inp=A', arg1, 'out=B', arg2))
+        print(cm.exception)
+        self.assertIn("arg[2]: %s" % arg1, str(cm.exception))
+        self.assertIn("arg[4]: %s" % arg2, str(cm.exception))

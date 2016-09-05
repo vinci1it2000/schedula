@@ -9,7 +9,7 @@
 from collections import (defaultdict, OrderedDict, namedtuple, Mapping)  # @UnusedImport
 import textwrap
 from typing import (
-    List, Sequence, Iterable, Text, Tuple, Callable)  # @UnusedImport
+    List, Sequence, Iterable, Text, Tuple, Dict, Callable)  # @UnusedImport
 
 from toolz import itertoolz as itz, dicttoolz as dtz
 
@@ -31,6 +31,9 @@ import traitlets as trt
 ###################
 
 REPORT_VERSION = '0.0.1'  ## TODO: Move to `co2mpas/_version.py`.
+
+_file_arg_regex = re.compile('(inp|out)=(.+)', re.IGNORECASE)
+
 
 class Report(baseapp.Spec):
     """Mines reported-parameters from co2mpas excel-files and serves them as a pandas dataframes."""
@@ -91,12 +94,38 @@ class Report(baseapp.Spec):
         self.output_tables = tables
         return self.output_tables
 
+    def parse_io_args(self, *args: Text) -> Tuple[List, List, Dict[int, Text]]:
+        """
+        Separates args into those starting with 'inp=', 'out=', or none.
+
+        For example, given the 3 args::
+
+            'inp=abc', 'out:gg' 'out=bar'
+
+        It will return::
+
+            inp = ['abc']
+            out = ['bar']
+            other = {2: 'out:gg'}
+
+        """
+        inp, out = [], []
+        other = {}
+        for i, arg in enumerate(args, 1):
+            m = _file_arg_regex.match(arg)
+            if not m:
+                other[i] = arg
+            else:
+                l = inp if m.group(1).lower() == 'inp' else out
+                l.append(m.group(2))
+
+        return inp, out, other
+
+
 ###################
 ##    Commands   ##
 ###################
 
-
-_file_arg_regex = re.compile('(inp|out)=(.+)', re.IGNORECASE)
 
 class ReportCmd(baseapp.Cmd):
     """
@@ -135,21 +164,18 @@ class ReportCmd(baseapp.Cmd):
         if len(args) < 1:
             raise baseapp.CmdException('Cmd %r takes at least one argument, received %d: %r!'
                                % (self.name, len(args), args))
-        inp, out = [], []
-        for i, fpath in enumerate(args, 1):
-            m = _file_arg_regex.match(fpath)
-            if not m:
-                raise baseapp.CmdException("Cmd %r filepaths must either start with 'inp=' or 'out=' prefix"
-                                   ",\n  arg number %d was: %r!"
-                                   % (self.name, i, fpath))
-            l = inp if m.group(1).lower() == 'inp' else out
-            l.append(m.group(2))
+        rep = self.report
+        inp, out, other = rep.parse_io_args(*args)
+        if other:
+            raise baseapp.CmdException(
+                "Cmd %r filepaths must either start with 'inp=' or 'out=' prefix!\n%s"
+                                   % (self.name, '\n'.join('  arg[%d]: %s' % i for i in other.items())))
 
         for fpath in inp:
-            yield self.report.extract_input_params(fpath)
+            yield rep.extract_input_params(fpath)
 
         for fpath in out:
-            yield from self.report.extract_output_tables(fpath)
+            yield from rep.extract_output_tables(fpath)
 
 
 if __name__ == '__main__':
