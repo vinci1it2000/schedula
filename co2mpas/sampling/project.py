@@ -11,7 +11,6 @@ from collections import (defaultdict, OrderedDict, namedtuple)  # @UnusedImport
 from datetime import datetime
 import inspect
 import io
-import logging
 import os
 from pandalone import utils as pndlutils
 import textwrap
@@ -27,7 +26,7 @@ from co2mpas import utils
 from co2mpas._version import (__version__, __updated__, __file_version__,   # @UnusedImport
                               __input_file_version__, __copyright__, __license__)  # @UnusedImport
 from co2mpas.sampling import baseapp, dice, report
-from co2mpas.sampling.baseapp import convpath, ensure_dir_exists, where
+from co2mpas.sampling.baseapp import convpath, ensure_dir_exists, where, first_line
 import functools as fnt
 import os.path as osp
 import traitlets as trt
@@ -414,8 +413,36 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
 
         return infos
 
-    def proj_current(self) -> Text or None:
-        """Returns the current project, or None if not exists yet."""
+    def proj_examine(self, project=None, verbose=None, as_text=False, as_json=False):
+        """
+        Does not validate project, neither fails, just reports situation.
+
+        :param project: use current branch if unspecified.
+        :retun: text message with infos.
+        """
+        import json
+
+        if verbose is None:
+            verbose = self.verbose
+        verbose_level = int(verbose)
+
+        fields = self._out_fields_by_verbose_level(verbose_level)
+        infos = self._infos_fields(project, fields)
+
+        if as_text:
+            if as_json:
+                infos = json.dumps(dict(infos), indent=2, default=str)
+            else:
+                #import pandas as pd
+                #infos = pd.Series(OrderedDict(infos))
+                infos = baseapp.format_pairs(infos)
+
+        return infos
+
+    def proj_current(self):
+        """
+        Returns the current project status, or None if not exists yet.
+        """
         # XXX: REWORK PROJECT VALIDATION
         project = None
         try:
@@ -444,31 +471,6 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
         # XXX: REWORK PROJECT VALIDATION
         infos = self._infos_fields(project, fields=('msg.state', ))
         return dict(infos)['msg.state']
-
-    def proj_examine(self, project=None, verbose=None, as_text=False, as_json=False):
-        """
-        :param project: use current branch if unspecified.
-        :retun: text message with infos.
-        """
-        # XXX: REWORK PROJECT VALIDATION
-        import json
-
-        if verbose is None:
-            verbose = self.verbose
-        verbose_level = int(verbose)
-
-        fields = self._out_fields_by_verbose_level(verbose_level)
-        infos = self._infos_fields(project, fields)
-
-        if as_text:
-            if as_json:
-                infos = json.dumps(dict(infos), indent=2, default=str)
-            else:
-                #import pandas as pd
-                #infos = pd.Series(OrderedDict(infos))
-                infos = baseapp.format_pairs(infos)
-
-        return infos
 
     def _yield_project_refs(self, *projects):
         if projects:
@@ -672,12 +674,13 @@ class ProjectCmd(_PrjCmd):
 
     class ListCmd(_PrjCmd):
         """
+        List specified projects, or all, if none specified.
+
+        - Use --verbose to view more infos about the projects, or use the `examine` cmd
+          to view even more details for a specific project.
+
         SYNTAX
             co2dice project list [<project-1>] ...
-        DESCRIPTION
-            List specified projects, or all, if none specified.
-            Use --verbose to view more infos about the projects, or use the `examine` cmd
-            to view even more details for a specific project.
         """
         def run(self, *args):
             self.log.info('Listing %s projects...', args or 'all')
@@ -700,10 +703,10 @@ class ProjectCmd(_PrjCmd):
 
     class OpenCmd(_PrjCmd):
         """
+        Make an existing project as *current*.
+
         SYNTAX
             co2dice project open <project>
-        DESCRIPTION
-            Make an existing project as *current*.
         """
         def run(self, *args):
             self.log.info('Opening project %r...', args)
@@ -714,10 +717,10 @@ class ProjectCmd(_PrjCmd):
 
     class AddCmd(_PrjCmd):
         """
+        Create a new project.
+
         SYNTAX
             co2dice project add <project>
-        DESCRIPTION
-            Create a new project.
         """
         def run(self, *args):
             if len(args) != 1:
@@ -728,18 +731,17 @@ class ProjectCmd(_PrjCmd):
 
     class AddReportCmd(_PrjCmd):
         """
+        Import the specified input/output co2mpas files into the *current project*.
+
+        The *report parameters* will be time-stamped and disseminated to
+        TA authorities & oversight bodies with an email, to receive back
+        the sampling decision.
+
+        - One file from each kind (inp/out) may be given.
+        - If an input/output is already present in the current project, use --force.
+
         SYNTAX
             co2dice project add-report ( inp=<co2mpas-file-1> | out=<co2mpas-file-1> ) ...
-        DESCRIPTION
-            Import the specified input/output co2mpas files into the *current project*.
-
-            The *report parameters* will be time-stamped and disseminated to
-            TA authorities & oversight bodies with an email, to receive back
-            the sampling decision.
-
-            - One file from each kind (inp/out) may be given.
-            - If an input/output is already present in the current project, use --force.
-
         """
 
         examples = trt.Unicode("""
@@ -791,12 +793,12 @@ class ProjectCmd(_PrjCmd):
 
     class ExamineCmd(_PrjCmd):
         """
+        Print various information about the specified project, or the current-project, if none specified.
+
+        - Use --verbose to view more infos, including about the repository as a whole.
+
         SYNTAX
             co2dice project examine [<project>]
-        DESCRIPTION
-            Print various information about the specified project, or the current-project,
-            if none specified.
-            Use --verbose to view more infos, including about the repository as a whole.
         """
         as_json = trt.Bool(False,
                 help="Whether to return infos as JSON, instead of python-code."
@@ -812,11 +814,10 @@ class ProjectCmd(_PrjCmd):
 
     class BackupCmd(_PrjCmd):
         """
+        Backup projects repository into the archive filepath specified, or current-directory, if none specified.
+
         SYNTAX
             co2dice project backup [<archive-path>]
-        DESCRIPTION
-            Backup projects repository into the archive filepath specified, or current-directory,
-            if none specified.
         """
         def run(self, *args):
             self.log.info('Archiving repo into %r...', args)
@@ -847,10 +848,10 @@ class ProjectCmd(_PrjCmd):
                 'cmd_flags': {
                     'reset-git-settings': ({
                             'ProjectsDB': {'reset_settings': True},
-                        }, ProjectsDB.reset_settings.help),
+                        }, first_line(ProjectsDB.reset_settings.help)),
                     'as-json': ({
                             'ExamineCmd': {'as_json': True},
-                        }, ProjectCmd.ExamineCmd.as_json.help),
+                        }, first_line(ProjectCmd.ExamineCmd.as_json.help)),
                 }
             }
             dkwds.update(kwds)

@@ -116,6 +116,11 @@ def ensure_dir_exists(path, mode=0o755):
     elif not os.path.isdir(path):
         raise IOError("%r exists but is not a directory" % path)
 
+def first_line(doc):
+    for l in doc.split('\n'):
+        if l.strip():
+            return l.strip()
+
 _camel_to_snake_regex = re.compile('(?<=[a-z0-9])([A-Z]+)') #('(?!^)([A-Z]+)')
 def camel_to_snake_case(s):
     """Turns `'CO2DiceApp' --> 'co2_dice_app'. """
@@ -259,11 +264,12 @@ class Spec(LoggingConfigurable):
 ###################
 
 
-def app_help(app_class):
+def app_short_help(app_class):
     desc = app_class.class_traits().get('description')
-    return (isinstance(desc, str) and desc
+    doc = (isinstance(desc, str) and desc
         or (isinstance(app_class.description, str) and app_class.description)
         or app_class.__doc__)
+    return first_line(doc)
 
 def class2cmd_name(cls):
     name = cls.__name__
@@ -274,7 +280,7 @@ def class2cmd_name(cls):
 def build_sub_cmds(*subapp_classes):
     """Builds an ordered-dictionary of ``cmd-name --> (cmd-class, help-msg)``. """
 
-    return OrderedDict((class2cmd_name(sa), (sa, app_help(sa)))
+    return OrderedDict((class2cmd_name(sa), (sa, app_short_help(sa)))
                        for sa in subapp_classes)
 
 class Cmd(Application):
@@ -550,6 +556,16 @@ class Cmd(Application):
     cmd_flags = trt.Dict({},
             help="Any *flags* found in this prop up the cmd-chain are merged into :attr:`flags`. """)
 
+    def my_cmd_chain(self):
+        """Return the chain of cmd-classes ending up yo self or subapp."""
+        cmd_chain = []
+        pcl = self.subapp if self.subapp else self
+        while pcl:
+            cmd_chain.append(pcl)
+            pcl = pcl.parent
+
+        return cmd_chain
+
     @trt.observe('parent', 'conf_classes', 'cmd_aliases', 'cmd_flags', 'subapp', 'subcommands')
     def _inherit_parent_cmd(self, change):
         """ Inherit config-related stuff from up the cmd-chain. """
@@ -557,11 +573,7 @@ class Cmd(Application):
             ## Collect parents, ordered like that:
             #    subapp, self, parent1, ...
             #
-            cmd_chain = []
-            pcl = self.subapp if self.subapp else self
-            while pcl:
-                cmd_chain.append(pcl)
-                pcl = pcl.parent
+            cmd_chain = self.my_cmd_chain()
 
             ## Collect separately and merge  SPECs separately,
             #  to prepend them before SPECs at the end.
@@ -626,12 +638,12 @@ class Cmd(Application):
                 ('v', 'verbose'):  ({
                         'Spec': {'verbose': True},
                     },
-                    Spec.verbose.help
+                    first_line(Spec.verbose.help)
                 ),
                 ('f', 'force'):  ({
                         'Spec': {'force': True},
                     },
-                    Spec.force.help
+                    first_line(Spec.force.help)
                 )
             },
         }
@@ -689,8 +701,10 @@ class Cmd(Application):
         :param args: Invoked by :meth:`start()` with :attr:`extra_args`.
         """
         if self.subcommands:
-            raise CmdException('Specify one of the sub-commands: %s'
-                               % ', '.join(self.subcommands.keys()))
+            cmd_line = ' '.join(cl.name for cl in self.my_cmd_chain())
+            raise CmdException("Specify one of the sub-commands: "
+                               "\n    %s\nor type: \n    %s -h"
+                               % (', '.join(self.subcommands.keys()), cmd_line))
         assert False, "Override run() method in cmd subclasses."
 
 

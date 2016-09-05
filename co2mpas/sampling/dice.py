@@ -374,6 +374,7 @@ IOFiles = namedtuple('IOFiles', 'inp out other')
 ###################
 
 
+
 class GpgSpec(SingletonConfigurable, baseapp.Spec):
     """Provider of GnuPG high-level methods."""
 
@@ -457,13 +458,13 @@ class MainCmd(Cmd):
 ## INFO: Add al conf-classes here
 class GenConfigCmd(Cmd):
     """
+    Store config defaults into specified path(s); '{confpath}' assumed if none specified.
+
+    - If a path resolves to a folder, the filename '{appname}_config.py' is appended.
+    - It OVERWRITES any pre-existing configuration file(s)!
+
     SYNTAX
         co2dice gen-config [<config-path-1>] ...
-    DESCRIPTION
-        Store config defaults into specified path(s); '{confpath}' assumed if none specified.
-        If a path resolves to a folder, the filename '{appname}_config.py' is appended.
-
-        Note: It OVERWRITES any pre-existing configuration file(s)!
     """
 
 

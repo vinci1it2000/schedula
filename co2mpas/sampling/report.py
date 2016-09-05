@@ -14,7 +14,7 @@ from co2mpas import __uri__  # @UnusedImport
 from co2mpas._version import (__version__, __updated__, __file_version__,   # @UnusedImport
                               __input_file_version__, __copyright__, __license__)  # @UnusedImport
 from co2mpas.sampling import baseapp, dice, project
-from co2mpas.sampling.baseapp import convpath
+from co2mpas.sampling.baseapp import convpath, first_line
 import pandas as pd
 import re
 import traitlets as trt
@@ -121,17 +121,17 @@ class Report(baseapp.Spec):
 
 class ReportCmd(baseapp.Cmd):
     """
+    Extract the report parameters from the co2mpas input/output files, or from *current-project*.
+
+    The *report parameters* will be time-stamped and disseminated to
+    TA authorities & oversight bodies with an email, to receive back
+    the sampling decision.
+
+    If multiple files given from a kind (inp/out), later ones overwrite any previous.
+
     SYNTAX
         co2dice report ( inp=<co2mpas-file-1> | out=<co2mpas-file-1> ) ...
         co2dice report --project
-    DESCRIPTION
-        Extract the report parameters from the co2mpas input/output files, or from *current-project*.
-
-        The *report parameters* will be time-stamped and disseminated to
-        TA authorities & oversight bodies with an email, to receive back
-        the sampling decision.
-
-        If multiple files given from a kind (inp/out), later ones overwrite any previous.
     """
 
     examples = trt.Unicode("""
@@ -174,7 +174,7 @@ class ReportCmd(baseapp.Cmd):
                 'cmd_flags': {
                     'project': ({
                             'ReportCmd': {'project': True},
-                        }, ReportCmd.project.help),
+                        }, first_line(ReportCmd.project.help)),
                 }
             }
             dkwds.update(kwds)
