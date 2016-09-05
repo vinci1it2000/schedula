@@ -601,10 +601,10 @@ class Cmd(Application):
     def __init__(self, **kwds):
         cls = type(self)
         dkwds = {
-            ## Traits defaults are not always applied...
+            ## Traits defaults are always applied...??
             #
-            'description': cls.__doc__,
-            'name': camel_to_snake_case(cls.__name__),
+            #'description': cls.__doc__,
+            #'name': class2cmd_name(cls),
 
             ## Set some nice defaults for root-CMDs.
             #
