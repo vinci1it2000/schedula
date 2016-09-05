@@ -7,9 +7,6 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 import logging
-import os
-import tempfile
-from tests._tutils import chdir
 import types
 import unittest
 
@@ -17,8 +14,7 @@ import ddt
 from traitlets.config import get_config
 
 from co2mpas.__main__ import init_logging
-from co2mpas.sampling import baseapp, dice, report
-import itertools as itt
+from co2mpas.sampling import baseapp, report
 import os.path as osp
 import pandas as pd
 
@@ -28,7 +24,6 @@ init_logging(True)
 log = logging.getLogger(__name__)
 
 mydir = osp.dirname(__file__)
-
 
 
 @ddt.ddt
@@ -89,3 +84,13 @@ class TReport(unittest.TestCase):
         for i in res:
             self.assertIsInstance(i, (pd.Series, pd.DataFrame))
 
+    def test_bad_prefix(self):
+        c = get_config()
+        c.ReportCmd.raise_config_file_errors = True
+        cmd = report.ReportCmd(config=c)
+        with self.assertRaisesRegexp(baseapp.CmdException, "arg number 1 was"):
+            list(cmd.run('inp%s' % _inp_fpath))
+        with self.assertRaisesRegexp(baseapp.CmdException, "arg number 1 was"):
+            list(cmd.run('out%s' % _out_fpath))
+        with self.assertRaisesRegexp(baseapp.CmdException, "arg number 2 was"):
+            list(cmd.run('inp=%s' % _inp_fpath, 'out:%s' % _out_fpath))

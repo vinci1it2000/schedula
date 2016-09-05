@@ -135,22 +135,21 @@ class ReportCmd(baseapp.Cmd):
         if len(args) < 1:
             raise baseapp.CmdException('Cmd %r takes at least one argument, received %d: %r!'
                                % (self.name, len(args), args))
-        for fpath in args:
+        inp, out = [], []
+        for i, fpath in enumerate(args, 1):
             m = _file_arg_regex.match(fpath)
             if not m:
-                raise baseapp.CmdException("Cmd %r filepaths must either start with 'inp=' or 'out=' prefix,\n  was just: %r!"
-                                   % (self.name, fpath))
+                raise baseapp.CmdException("Cmd %r filepaths must either start with 'inp=' or 'out=' prefix"
+                                   ",\n  arg number %d was: %r!"
+                                   % (self.name, i, fpath))
+            l = inp if m.group(1).lower() == 'inp' else out
+            l.append(m.group(2))
 
-            meth = (self.report.extract_input_params
-                    if m.group(1).lower() == 'inp' else
-                    self.report.extract_output_tables)
-            fpath = m.group(2)
+        for fpath in inp:
+            yield self.report.extract_input_params(fpath)
 
-            res = meth(fpath)
-            if isinstance(res, list):
-                yield from res
-            else:
-                yield res
+        for fpath in out:
+            yield from self.report.extract_output_tables(fpath)
 
 
 if __name__ == '__main__':
