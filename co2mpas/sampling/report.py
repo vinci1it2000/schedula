@@ -26,8 +26,6 @@ import os.path as osp
 import traitlets as trt
 
 
-CmdException = trt.TraitError
-
 ###################
 ##     Specs     ##
 ###################
@@ -135,12 +133,12 @@ class ReportCmd(baseapp.Cmd):
     def run(self, *args):
         self.log.info('Extracting report-parameters from files %s...', args)
         if len(args) < 1:
-            raise CmdException('Cmd %r takes at least one argument, received %d: %r!'
+            raise baseapp.CmdException('Cmd %r takes at least one argument, received %d: %r!'
                                % (self.name, len(args), args))
         for fpath in args:
             m = _file_arg_regex.match(fpath)
             if not m:
-                raise CmdException("Cmd %r filepaths must either start with 'inp=' or 'out=' prefix,\n  was just: %r!"
+                raise baseapp.CmdException("Cmd %r filepaths must either start with 'inp=' or 'out=' prefix,\n  was just: %r!"
                                    % (self.name, fpath))
 
             meth = (self.report.extract_input_params

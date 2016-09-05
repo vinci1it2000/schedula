@@ -71,8 +71,6 @@ try:
 except:
     _mydir = '.'
 
-CmdException = trt.TraitError
-
 _default_cfg = textwrap.dedent("""
         ---
         dice:
@@ -235,7 +233,7 @@ def _log_into_server(login_cb, login_cmd, prompt):
         except smtplib.SMTPAuthenticationError as ex:
             login_cb.report_failure('%r' % ex)
     else:
-        raise CmdException("User abort logging into %r email-server." % prompt)
+        raise baseapp.CmdException("User abort logging into %r email-server." % prompt)
 
 
 def send_timestamped_email(msg, sender, recipients, host,
@@ -529,7 +527,7 @@ def main(argv=None, verbose=None, **app_init_kwds):
         ##MainCmd.launch_instance(argv or None, **app_init_kwds) ## NO No, does not return `start()`!
         app = MainCmd.instance(**app_init_kwds)
         run_cmd(app, argv)
-    except (CmdException, trt.TraitError) as ex:
+    except (baseapp.CmdException, trt.TraitError) as ex:
         ## Suppress stack-trace for "expected" errors.
         log.debug('App exited due to: %s', ex, exc_info=1)
         exit(ex.args[0])

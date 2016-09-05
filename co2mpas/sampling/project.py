@@ -33,7 +33,6 @@ import os.path as osp
 import traitlets as trt
 
 
-CmdException = trt.TraitError
 
 class UFun(object):
     """
@@ -517,9 +516,9 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
         self.log.info('Creating project %r...', project)
         repo = self.repo
         if self.is_project(project):
-            raise CmdException('Project %r already exists!' % project)
+            raise baseapp.CmdException('Project %r already exists!' % project)
         if not project or not project.isidentifier():
-            raise CmdException('Invalid name %r for a project!' % project)
+            raise baseapp.CmdException('Invalid name %r for a project!' % project)
 
         ref_name = _project2ref_name(project)
         repo.git.checkout(ref_name, orphan=True)
@@ -536,7 +535,7 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
         :param project: some branch ref
         """
         if not self.is_project(project, validate=True):
-            raise CmdException('Project %r not found!' % project)
+            raise baseapp.CmdException('Project %r not found!' % project)
         self.repo.heads[_project2ref_name(project)].checkout()
 
     def repo_backup(self, folder: Text='.', repo_name: Text='co2mpas_repo',
@@ -610,7 +609,7 @@ class ProjectCmd(_PrjCmd):
         """Prints the currently open project."""
         def run(self, *args):
             if len(args) != 0:
-                raise CmdException('Cmd %r takes no args, received %r!'
+                raise baseapp.CmdException('Cmd %r takes no args, received %r!'
                                    % (self.name, args))
             return self.projects_db.proj_current()
 
@@ -624,7 +623,7 @@ class ProjectCmd(_PrjCmd):
         def run(self, *args):
             self.log.info('Opening project %r...', args)
             if len(args) != 1:
-                raise CmdException("Cmd %r takes a SINGLE project-name to open, received: %r!"
+                raise baseapp.CmdException("Cmd %r takes a SINGLE project-name to open, received: %r!"
                                    % (self.name, args))
             return self.projects_db.proj_open(args[0])
 
@@ -637,7 +636,7 @@ class ProjectCmd(_PrjCmd):
         """
         def run(self, *args):
             if len(args) != 1:
-                raise CmdException('Cmd %r takes a SINGLE project-name to add, received %r!'
+                raise baseapp.CmdException('Cmd %r takes a SINGLE project-name to add, received %r!'
                                    % (self.name, args))
             return self.projects_db.proj_add(args[0])
 
@@ -656,7 +655,7 @@ class ProjectCmd(_PrjCmd):
 
         def run(self, *args):
             if len(args) > 1:
-                raise CmdException('Cmd %r takes one optional argument, received %d: %r!'
+                raise baseapp.CmdException('Cmd %r takes one optional argument, received %d: %r!'
                                    % (self.name, len(args), args))
             project = args and args[0] or None
             return self.projects_db.proj_examine(project, as_text=True, as_json=self.as_json)
@@ -672,7 +671,7 @@ class ProjectCmd(_PrjCmd):
         def run(self, *args):
             self.log.info('Archiving repo into %r...', args)
             if len(args) > 1:
-                raise CmdException('Cmd %r takes one optional argument, received %d: %r!'
+                raise baseapp.CmdException('Cmd %r takes one optional argument, received %d: %r!'
                                    % (self.name, len(args), args))
             archive_fpath = args and args[0] or None
             kwds = {}
@@ -685,7 +684,7 @@ class ProjectCmd(_PrjCmd):
             try:
                 return self.projects_db.repo_backup(**kwds)
             except FileNotFoundError as ex:
-                raise CmdException("Folder '%s' to store archive does not exist!"
+                raise baseapp.CmdException("Folder '%s' to store archive does not exist!"
                                    "\n  Use --force to create it." % ex)
 
     def __init__(self, **kwds):
