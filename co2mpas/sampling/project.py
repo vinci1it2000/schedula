@@ -16,7 +16,7 @@ import os
 from pandalone import utils as pndlutils
 import textwrap
 from typing import (
-    List, Sequence, Iterable, Text, Tuple, Callable)  # @UnusedImport
+    Any, List, Sequence, Iterable, Text, Tuple, Callable)  # @UnusedImport
 
 import git  # From: pip install gitpython
 from toolz import itertoolz as itz, dicttoolz as dtz
@@ -163,6 +163,7 @@ def _get_ref(refs, refname: Text, default: git.Reference=None) -> git.Reference:
     return refname and refname in refs and refs[refname] or default
 
 
+
 class ProjectsDB(SingletonConfigurable, baseapp.Spec):
     """A git-based repository storing the TA projects (containing signed-files and sampling-resonses).
 
@@ -252,73 +253,6 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
                      r"- %C(bold green)(%ar)%C(reset) %C(white)%s%C(reset) %C(dim white)- "
                      r"%an%C(reset)%C(bold yellow)%d%C(reset)' --all")
 
-    def proj_current(self) -> Text or None:
-        """Returns the current project, or None if not exists yet."""
-        # XXX: REWORK PROJECT VALIDATION
-        project = None
-        try:
-            head = self.repo.active_branch
-            project = _ref2project(head)
-            self.is_project(project, validate=True)
-        except Exception as ex:
-            self.log.warning("Failure while getting current-project: %s",
-                             ex, exc_info=1)
-        return project
-
-    def _yield_project_refs(self, *projects):
-        if projects:
-            projects =  [_project2ref_path(p) for p in projects]
-        for ref in self.repo.heads:
-            if _is_proj_ref(ref) and not projects or ref.path in projects:
-                yield ref
-
-    def proj_list(self, *projects: str, verbose=None, as_text=False):
-        """
-        :param projects: some branch ref, or none for all
-        :param verbose: return infos in a table with 3-4 coulmns per each project
-        :retun: yield any match projects, or all if `projects` were empty.
-        """
-        import pandas as pd
-        if verbose is None:
-            verbose = self.verbose
-
-        res = {}
-        for ref in self._yield_project_refs(*projects):
-            project = _ref2project(ref)
-            infos = []
-            if verbose:
-                infos = OrderedDict(self._infos_fields(
-                        project=project,
-                        fields='msg.state revs_count files_count last_cdata author msg.msg'.split(),
-                        inv_value='<invalid>'))
-            res[project] = infos
-
-        if not res:
-            res = None
-        else:
-            ap = self.repo.active_branch
-            ap = ap and ap.path
-            if verbose:
-                res = pd.DataFrame.from_dict(res, orient='index')
-                res = res.sort_index()
-                res.index = [('* %s' if _project2ref_path(r) == ap else '  %s') % r
-                             for r in res.index]
-                res.reset_index(level=0, inplace=True)
-                renner = lambda c: c[len('msg.'):] if c.startswith('msg.') else c
-                res = res.rename_axis(renner, axis='columns')
-                res = res.rename_axis({
-                    'index': 'project',
-                    'revs_count': '#revs',
-                    'files_count': '#files'
-                }, axis='columns')
-                if as_text:
-                    res = res.to_string(index=False)
-            else:
-                res = [('* %s' if _project2ref_path(r) == ap else '  %s') % r
-                for r in sorted(res)]
-
-        return res
-
     def read_git_settings(self, prefix: Text=None, config_level: Text=None):# -> List(Text):
         """
         :param prefix:
@@ -346,18 +280,32 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
             raise
         return settings
 
-    def is_project(self, project: Text, validate=False):
+    def repo_backup(self, folder: Text='.', repo_name: Text='co2mpas_repo',
+                    force: bool=None) -> Text:
         """
-        :param project: some branch ref
+        :param folder: The path to the folder to store the repo-archive in.
+        :return: the path of the repo-archive
         """
-        # XXX: REWORK PROJECT VALIDATION
-        repo = self.repo
-        project = _project2ref_name(project)
-        found = project in repo.heads
-        if found and validate:
-            ref = repo.heads[project]
-            found = bool(self._parse_commit_msg(ref.commit.message))
-        return found
+        import tarfile
+
+        if force is None:
+            force = self.force
+
+        now = datetime.now().strftime('%Y%m%d-%H%M%S%Z')
+        repo_name = '%s-%s' % (now, repo_name)
+        repo_name = pndlutils.ensure_file_ext(repo_name, '.txz')
+        repo_name_no_ext = osp.splitext(repo_name)[0]
+        archive_fpath = convpath(osp.join(folder, repo_name))
+        basepath, _ = osp.split(archive_fpath)
+        if not osp.isdir(basepath) and not force:
+            raise FileNotFoundError(basepath)
+        ensure_dir_exists(basepath)
+
+        self.log.debug('Archiving repo into %r...', archive_fpath)
+        with tarfile.open(archive_fpath, "w:xz") as tarfile:
+            tarfile.add(self.repo.working_dir, repo_name_no_ext)
+
+        return archive_fpath
 
     @fnt.lru_cache() # x6(!) faster!
     def _infos_dsp(self, fallback_value='<invalid>'):
@@ -444,7 +392,8 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
             fields.extend(fs)
         return fields
 
-    def _infos_fields(self, project: Text=None, fields: Sequence[Text]=None, inv_value=None) -> List:
+    def _infos_fields(self, project: Text=None, fields: Sequence[Text]=None, inv_value=None) -> List[Tuple[Text, Any]]:
+        """Runs repo examination code returning all requested fields (even failed ones)."""
         dsp = self._infos_dsp()
         inputs = {'_infos': 'ok', '_inp_prj': project}
         infos = dsp.dispatch(inputs=inputs,
@@ -465,6 +414,32 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
 
         return infos
 
+    def proj_current(self) -> Text or None:
+        """Returns the current project, or None if not exists yet."""
+        # XXX: REWORK PROJECT VALIDATION
+        project = None
+        try:
+            head = self.repo.active_branch
+            project = _ref2project(head)
+            self.is_project(project, validate=True)
+        except Exception as ex:
+            self.log.warning("Failure while getting current-project: %s",
+                             ex, exc_info=1)
+        return project
+
+    def is_project(self, project: Text, validate=False):
+        """
+        :param project: some branch ref
+        """
+        # XXX: REWORK PROJECT VALIDATION
+        repo = self.repo
+        project = _project2ref_name(project)
+        found = project in repo.heads
+        if found and validate:
+            ref = repo.heads[project]
+            found = bool(self._parse_commit_msg(ref.commit.message))
+        return found
+
     def _state(self, project: Text=None) -> Text:
         # XXX: REWORK PROJECT VALIDATION
         infos = self._infos_fields(project, fields=('msg.state', ))
@@ -475,6 +450,7 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
         :param project: use current branch if unspecified.
         :retun: text message with infos.
         """
+        # XXX: REWORK PROJECT VALIDATION
         import json
 
         if verbose is None:
@@ -494,6 +470,59 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
 
         return infos
 
+    def _yield_project_refs(self, *projects):
+        if projects:
+            projects =  [_project2ref_path(p) for p in projects]
+        for ref in self.repo.heads:
+            if _is_proj_ref(ref) and not projects or ref.path in projects:
+                yield ref
+
+    def proj_list(self, *projects: str, verbose=None, as_text=False):
+        """
+        :param projects: some branch ref, or none for all
+        :param verbose: return infos in a table with 3-4 coulmns per each project
+        :retun: yield any match projects, or all if `projects` were empty.
+        """
+        import pandas as pd
+        if verbose is None:
+            verbose = self.verbose
+
+        res = {}
+        for ref in self._yield_project_refs(*projects):
+            project = _ref2project(ref)
+            infos = []
+            if verbose:
+                infos = OrderedDict(self._infos_fields(
+                        project=project,
+                        fields='msg.state revs_count files_count last_cdata author msg.msg'.split(),
+                        inv_value='<invalid>'))
+            res[project] = infos
+
+        if not res:
+            res = None
+        else:
+            ap = self.repo.active_branch
+            ap = ap and ap.path
+            if verbose:
+                res = pd.DataFrame.from_dict(res, orient='index')
+                res = res.sort_index()
+                res.index = [('* %s' if _project2ref_path(r) == ap else '  %s') % r
+                             for r in res.index]
+                res.reset_index(level=0, inplace=True)
+                renner = lambda c: c[len('msg.'):] if c.startswith('msg.') else c
+                res = res.rename_axis(renner, axis='columns')
+                res = res.rename_axis({
+                    'index': 'project',
+                    'revs_count': '#revs',
+                    'files_count': '#files'
+                }, axis='columns')
+                if as_text:
+                    res = res.to_string(index=False)
+            else:
+                res = [('* %s' if _project2ref_path(r) == ap else '  %s') % r
+                for r in sorted(res)]
+
+        return res
 
     def _make_commit_msg(self, project, state, msg):
         import json
@@ -554,34 +583,6 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
         if not self.is_project(project, validate=True):
             raise baseapp.CmdException('Project %r not found!' % project)
         self.repo.heads[_project2ref_name(project)].checkout()
-
-    def repo_backup(self, folder: Text='.', repo_name: Text='co2mpas_repo',
-                    force: bool=None) -> Text:
-        """
-        :param folder: The path to the folder to store the repo-archive in.
-        :return: the path of the repo-archive
-        """
-        import tarfile
-
-        if force is None:
-            force = self.force
-
-        now = datetime.now().strftime('%Y%m%d-%H%M%S%Z')
-        repo_name = '%s-%s' % (now, repo_name)
-        repo_name = pndlutils.ensure_file_ext(repo_name, '.txz')
-        repo_name_no_ext = osp.splitext(repo_name)[0]
-        archive_fpath = convpath(osp.join(folder, repo_name))
-        basepath, _ = osp.split(archive_fpath)
-        if not osp.isdir(basepath) and not force:
-            raise FileNotFoundError(basepath)
-        ensure_dir_exists(basepath)
-
-        self.log.debug('Archiving repo into %r...', archive_fpath)
-        with tarfile.open(archive_fpath, "w:xz") as tarfile:
-            tarfile.add(self.repo.working_dir, repo_name_no_ext)
-
-        return archive_fpath
-
 
     def iofiles_list(self) -> dice.IOFiles or None:
         """Works on current project."""
