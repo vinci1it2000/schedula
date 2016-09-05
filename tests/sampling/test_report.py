@@ -7,15 +7,16 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 import logging
+import re
+import tempfile
 import types
 import unittest
-import re
 
 import ddt
 from traitlets.config import get_config
 
 from co2mpas.__main__ import init_logging
-from co2mpas.sampling import baseapp, report
+from co2mpas.sampling import baseapp, report, project
 import os.path as osp
 import pandas as pd
 
@@ -105,3 +106,32 @@ class TReport(unittest.TestCase):
         print(cm.exception)
         self.assertIn("arg[2]: %s" % arg1, str(cm.exception))
         self.assertIn("arg[4]: %s" % arg2, str(cm.exception))
+
+    def test_project__with_args(self):
+        c = get_config()
+        c.ReportCmd.raise_config_file_errors = True
+        c.ReportCmd.project = True
+        with self.assertRaisesRegex(baseapp.CmdException, "--project' takes no arguments, received"):
+            list(report.ReportCmd(config=c).run('EXTRA_ARG'))
+
+    def test_project__no_project(self):
+        c = get_config()
+        c.ReportCmd.raise_config_file_errors = True
+        c.ReportCmd.project = True
+        with tempfile.TemporaryDirectory() as td:
+            c.ProjectsDB.repo_path = td
+            cmd = report.ReportCmd(config=c)
+            with self.assertRaisesRegex(baseapp.CmdException, r"No current-project exists yet!"):
+                list(cmd.run())
+
+    def test_project__empty(self):
+        c = get_config()
+        c.ReportCmd.raise_config_file_errors = True
+        c.ReportCmd.project = True
+        with tempfile.TemporaryDirectory() as td:
+            c.ProjectsDB.repo_path = td
+            project.ProjectCmd.AddCmd(config=c).run('proj1')
+            cmd = report.ReportCmd(config=c)
+            with self.assertRaisesRegex(baseapp.CmdException, r"No current-project exists yet!"):
+                list(cmd.run())
+

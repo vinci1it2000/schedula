@@ -107,8 +107,8 @@ class TProjectStory(unittest.TestCase):
 
     def test_1b_empty_cwp(self):
         cmd = project.ProjectCmd.CurrentCmd(config=self._config)
-        res = cmd.run()
-        self.assertEqual(res, '')
+        with self.assertRaisesRegex(baseapp.CmdException, r"No current-project exists yet!"):
+            cmd.run()
 
     def test_2a_add_project(self):
         cmd = project.ProjectCmd.AddCmd(config=self._config)
@@ -268,8 +268,7 @@ class TBackupCmd(unittest.TestCase):
             self.assertTrue(osp.isfile(res), (res, os.listdir(osp.split(res)[0])))
 
     def test_backup_folder_only(self):
-        # Fail conjecutives!!
-        ## !!???! project.ProjectCmd.AddCmd(config=self._config).run('barfoo')
+        project.ProjectCmd.AddCmd(config=self._config).run('barfoo')
         cmd = project.ProjectCmd.BackupCmd(config=self._config)
         with tempfile.TemporaryDirectory() as td:
             archive_fpath = td +'\\'

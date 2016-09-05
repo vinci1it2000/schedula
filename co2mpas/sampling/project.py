@@ -252,9 +252,17 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
                      r"- %C(bold green)(%ar)%C(reset) %C(white)%s%C(reset) %C(dim white)- "
                      r"%an%C(reset)%C(bold yellow)%d%C(reset)' --all")
 
-    def proj_current(self):
-        """Returns the current project."""
-        return _ref2project(self.repo.active_branch)
+    def proj_current(self) -> Text or None:
+        """Returns the current project, or None if not exists yet."""
+        project = None
+        try:
+            head = self.repo.active_branch
+            project = _ref2project(head)
+            self.is_project(project, validate=True)
+        except Exception as ex:
+            self.log.warning("Failure while getting current-project: %s",
+                             ex, exc_info=1)
+        return project
 
     def _yield_project_refs(self, *projects):
         if projects:
@@ -609,9 +617,14 @@ class ProjectCmd(_PrjCmd):
         """Prints the currently open project."""
         def run(self, *args):
             if len(args) != 0:
-                raise baseapp.CmdException('Cmd %r takes no args, received %r!'
+                raise baseapp.CmdException('Cmd %r takes no arguments, received %r!'
                                    % (self.name, args))
-            return self.projects_db.proj_current()
+            project = self.projects_db.proj_current()
+            if not project:
+                raise baseapp.CmdException(
+                        "No current-project exists yet!"
+                        "\n  Use `co2mpas project add <project-name>` to create one.")
+            return project
 
     class OpenCmd(_PrjCmd):
         """
@@ -623,7 +636,7 @@ class ProjectCmd(_PrjCmd):
         def run(self, *args):
             self.log.info('Opening project %r...', args)
             if len(args) != 1:
-                raise baseapp.CmdException("Cmd %r takes a SINGLE project-name to open, received: %r!"
+                raise baseapp.CmdException("Cmd %r takes a SINGLE project-name as argument, received: %r!"
                                    % (self.name, args))
             return self.projects_db.proj_open(args[0])
 
@@ -636,7 +649,7 @@ class ProjectCmd(_PrjCmd):
         """
         def run(self, *args):
             if len(args) != 1:
-                raise baseapp.CmdException('Cmd %r takes a SINGLE project-name to add, received %r!'
+                raise baseapp.CmdException('Cmd %r takes a SINGLE project-name as argument, received %r!'
                                    % (self.name, args))
             return self.projects_db.proj_add(args[0])
 

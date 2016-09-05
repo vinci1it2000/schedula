@@ -603,8 +603,8 @@ class Cmd(Application):
         dkwds = {
             ## Traits defaults are always applied...??
             #
-            #'description': cls.__doc__,
-            #'name': class2cmd_name(cls),
+            'description': cls.__doc__,
+            'name': class2cmd_name(cls),
 
             ## Set some nice defaults for root-CMDs.
             #

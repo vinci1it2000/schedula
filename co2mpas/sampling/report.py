@@ -7,22 +7,16 @@
 #
 """A *report* contains the co2mpas-run values to time-stamp and disseminate to TA authorities & oversight bodies."""
 from collections import (defaultdict, OrderedDict, namedtuple, Mapping)  # @UnusedImport
-import textwrap
 from typing import (
     List, Sequence, Iterable, Text, Tuple, Dict, Callable)  # @UnusedImport
 
-from toolz import itertoolz as itz, dicttoolz as dtz
-
 from co2mpas import __uri__  # @UnusedImport
-from co2mpas import utils
 from co2mpas._version import (__version__, __updated__, __file_version__,   # @UnusedImport
                               __input_file_version__, __copyright__, __license__)  # @UnusedImport
-from co2mpas.sampling import dice, baseapp
+from co2mpas.sampling import baseapp, project
 from co2mpas.sampling.baseapp import convpath
 import pandas as pd
-import functools as fnt
 import re
-import os.path as osp
 import traitlets as trt
 
 
@@ -131,8 +125,9 @@ class ReportCmd(baseapp.Cmd):
     """
     SYNTAX
         co2dice report ( inp=<co2mpas-file-1> | out=<co2mpas-file-1> ) ...
+        co2dice report --project
     DESCRIPTION
-        Extract the report parameters from the co2mpas input/output files.
+        Extract the report parameters from the co2mpas input/output files, or from *current-project*.
 
         The *report parameters* will be time-stamped and disseminated to
         TA authorities & oversight bodies with an email, to receive back
@@ -142,14 +137,23 @@ class ReportCmd(baseapp.Cmd):
     """
 
     examples = trt.Unicode("""
-        To extract the report-parameters from an input co2mpas file, try:
+        To extract the report-parameters from an INPUT co2mpas file, try:
 
             co2dice report  inp=co2mpas_input.xlsx
 
-        To extract the report from both input and output files, try:
+        To extract the report from both INPUT and OUTPUT files, try:
 
             co2dice report  inp=co2mpas_input.xlsx out=co2mpas_results.xlsx
+
+        To view the report of the *current-project*, try:
+
+            co2dice report  --project
         """)
+
+    project = trt.Bool(False,
+            help="""
+            Whether to extract report from files present already in the *current-project*.
+            """).tag(config=True)
 
     __report = None
 
@@ -159,23 +163,75 @@ class ReportCmd(baseapp.Cmd):
             self.__report = Report(config=self.config)
         return self.__report
 
-    def run(self, *args):
-        self.log.info('Extracting report-parameters from files %s...', args)
-        if len(args) < 1:
-            raise baseapp.CmdException('Cmd %r takes at least one argument, received %d: %r!'
-                               % (self.name, len(args), args))
-        rep = self.report
-        inp, out, other = rep.parse_io_args(*args)
+    @property
+    def projects_db(self):
+        p = project.ProjectsDB.instance()
+        p.config = self.config
+        return p
+
+    def __init__(self, **kwds):
+        with self.hold_trait_notifications():
+            dkwds = {
+                'conf_classes': [Report],
+                'cmd_flags': {
+                    'project': ({
+                            'ReportCmd': {'project': True},
+                        }, ReportCmd.project.help),
+                }
+            }
+            dkwds.update(kwds)
+            super().__init__(**dkwds)
+
+
+    def _build_io_files_from_project(self, args):
+        pdb = self.projects_db
+        project = pdb.proj_current()
+        if not project:
+            raise baseapp.CmdException(
+                    "No current-project exists yet!"
+                    "\n  Use `co2mpas project add <project-name>` to create one.")
+        inp, out = pdb.co2mpas_io_files()
+        if not inp and not out:
+            raise baseapp.CmdException(
+                    "Current project %r contains no input/output files!"
+                    % pdb.proj_current())
+        other = None
+        return inp, out, other
+
+
+    def _build_io_files_from_args(self, args):
+        inp, out, other = self.report.parse_io_args(*args)
         if other:
             raise baseapp.CmdException(
-                "Cmd %r filepaths must either start with 'inp=' or 'out=' prefix!\n%s"
-                                   % (self.name, '\n'.join('  arg[%d]: %s' % i for i in other.items())))
+                    "Cmd %r filepaths must either start with 'inp=' or 'out=' prefix!\n%s"
+                    % (self.name, '\n'.join('  arg[%d]: %s' % i for i in other.items())))
+        return inp, out
+
+    def run(self, *args):
+        nargs = len(args)
+        if self.project:
+            if nargs > 0:
+                raise baseapp.CmdException(
+                    "Cmd '%s --project' takes no arguments, received %d: %r!"
+                    % (self.name, len(args), args))
+
+            self.log.info('Extracting report-parameters from current-project...')
+            inp, out = self._build_io_files_from_project(args)
+        else:
+            self.log.info('Extracting report-parameters from files %s...', args)
+            if nargs < 1:
+                raise baseapp.CmdException(
+                    "Cmd %r takes at least one filepath as argument, received %d: %r!"
+                    % (self.name, len(args), args))
+            inp, out = self._build_io_files_from_args(args)
+
+        rep = self.report
 
         for fpath in inp:
-            yield rep.extract_input_params(fpath)
+            yield rep.extract_input_params(convpath(fpath))
 
         for fpath in out:
-            yield from rep.extract_output_tables(fpath)
+            yield from rep.extract_output_tables(convpath(fpath))
 
 
 if __name__ == '__main__':
