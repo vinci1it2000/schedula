@@ -20,6 +20,7 @@ from typing import (
 import git  # From: pip install gitpython
 from toolz import itertoolz as itz, dicttoolz as dtz
 from traitlets.config import SingletonConfigurable
+import transitions
 
 from co2mpas import __uri__  # @UnusedImport
 from co2mpas import utils
@@ -30,6 +31,7 @@ from co2mpas.sampling.baseapp import convpath, ensure_dir_exists, where, first_l
 import functools as fnt
 import os.path as osp
 import traitlets as trt
+
 
 InvalidProjectState = baseapp.CmdException
 
@@ -161,6 +163,76 @@ def _project2ref_name(project: Text) -> Text:
 def _get_ref(refs, refname: Text, default: git.Reference=None) -> git.Reference:
     return refname and refname in refs and refs[refname] or default
 
+
+
+class Project(transitions.Machine):
+    def __init__(self, **kwds):
+        states = [
+            'UNBORN', 'INVALID', 'empty', 'wltp-out', 'wltp-inp', 'wltp', 'tagged',
+            'mailed', 'dice-yes', 'dice-no', 'sampled_inp', 'sampled_out', 'sampled',
+        ]
+        trans = [
+            ['import_iof',  'empty',        'wltp',         'is_all_files'],
+            ['import_iof',  'empty',        'wltp-inp',     'is_inp_files'],
+            ['import_iof',  'empty',        'wltp-out',     'is_out_files'],
+
+            ['import_iof',  'wltp-inp  wltp-out  wltp tagged'.split(),
+                                            'wltp',           ['is_all_files', 'is_force']],
+
+            ['import_iof',  'wltp-inp',     'wltp-inp',     ['is_inp_files', 'is_force']],
+            ['import_iof',  'wltp-inp',     'wltp',         'is_out_files'],
+
+            ['import_iof',  'wltp-out',     'wltp-out',     ['is_out_files', 'is_force']],
+            ['import_iof',  'wltp-out',     'wltp',         'is_inp_files'],
+
+            ['tag',         'wltp',         'tagged'],
+
+            ['send_email',  'tagged',       'mailed'],
+            ['recv_email',  'mailed',      'dice-yes',     'is_dice_yes'],
+            ['recv_email',  'mailed',      'dice-no', ],
+
+            ['import_iof',  ['dice-yes', 'dice-no'],
+                                            'nedc'],
+            ['import_iof',  'nedc',         'ndec',         'is_force'],
+        ]
+        super().__init__(states=states,
+                         initial='empty',#XXX: states[0],
+                         transitions=trans,
+                         send_event=True,
+                         after_state_change='commit_new_state',
+                         **kwds)
+    def commit_new_state(self, event):
+        state = self.state
+        if state.islower():
+            if state == 'tagged':
+                print("TAG")
+            else:
+                print("COMMIT")
+
+    def is_force(self, event):
+        return event.kwargs.get('force', False)
+
+
+    def is_inp_files(self, event):
+        assert 'iofiles' in event.kwargs, event.kwargs
+        iofiles = event.kwargs['iofiles']
+        return bool(iofiles and iofiles.inp and not iofiles.out)
+
+    def is_out_files(self, event):
+        assert 'iofiles' in event.kwargs, event.kwargs
+        iofiles = event.kwargs['iofiles']
+        return bool(iofiles and iofiles.out and not iofiles.inp)
+
+    def is_all_files(self, event):
+        assert 'iofiles' in event.kwargs, event.kwargs
+        iofiles = event.kwargs['iofiles']
+        return bool(iofiles and iofiles.inp and iofiles.out)
+
+    def is_dice_yes(self, event):
+        assert 'timestamped_email' in event.kwargs, event.kwargs
+        #timestamped_email = event.kwargs['timestamped_email']
+        import random
+        return bool(random.random() > 0.5)
 
 
 class ProjectsDB(SingletonConfigurable, baseapp.Spec):
@@ -607,7 +679,7 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
         def raise_invalid_state(state, project):
             raise InvalidProjectState(
                     "Invalid state %r when importing input/output-files in project %r!"
-                    "\n  Must be in one of: empty | stored-out | stored-inp (or `stored` when --force)."
+                    "\n  Must be in one of: empty | wltp-out | wltp-inp (or `wltp` when --force)."
                     % (state, project))
 
         if force is None:
@@ -616,13 +688,13 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
         repo = self.repo
         project = self.proj_current() # XXX: REWORK PROJECT VALIDATION
         state = self._state()
-        if state not in ('empty', 'stored-out', 'stored-inp', 'stored'):
+        if state not in ('empty', 'wltp-out', 'wltp-inp', 'wltp'):
             raise_invalid_state(state, project)
 
         valid_io_kinds = []
-        if state in ('empty', 'stored-out'):
+        if state in ('empty', 'wltp-out'):
             valid_io_kinds.append('inp')
-        if state in ('empty', 'stored-inp'):
+        if state in ('empty', 'wltp-inp'):
             valid_io_kinds.append('out')
 
         index = repo.index

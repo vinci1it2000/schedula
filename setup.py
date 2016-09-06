@@ -197,6 +197,7 @@ setup(
             'python-gpg>=2.0.8', ## Due to https://github.com/gitpython-developers/GitPython/issues/332
             'gitpython',
             'keyring',
+            'transitions',
         ],
     },
     packages=find_packages(exclude=['tests', 'doc']),
