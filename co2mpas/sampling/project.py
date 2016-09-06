@@ -6,7 +6,6 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 #
 """A *project* stores all CO2MPAS files for a single vehicle, and tracks its sampling procedure. """
-
 from collections import (defaultdict, OrderedDict, namedtuple)  # @UnusedImport
 from datetime import datetime
 import inspect
@@ -15,11 +14,10 @@ import os
 from pandalone import utils as pndlutils
 import textwrap
 from typing import (
-    Any, List, Sequence, Iterable, Text, Tuple, Callable)  # @UnusedImport
+    Any, List, Sequence, Iterable, Optional, Text, Tuple, Callable)  # @UnusedImport
 
 import git  # From: pip install gitpython
 from toolz import itertoolz as itz, dicttoolz as dtz
-from traitlets.config import SingletonConfigurable
 import transitions
 
 from co2mpas import __uri__  # @UnusedImport
@@ -31,6 +29,7 @@ from co2mpas.sampling.baseapp import convpath, ensure_dir_exists, where, first_l
 import functools as fnt
 import os.path as osp
 import traitlets as trt
+import traitlets.config as trtc
 
 
 InvalidProjectState = baseapp.CmdException
@@ -134,31 +133,32 @@ class UFun(object):
 
 PROJECT_VERSION = '0.0.1'  ## TODO: Move to `co2mpas/_version.py`.
 PROJECT_STATUSES = '<invalid> empty full signed dice_sent sampled'.split()
-CommitMsg = namedtuple('CommitMsg', 'project state msg msg_version')
+
+_CommitMsg = namedtuple('_CommitMsg', 'project state msg msg_version')
 
 _PROJECTS_PREFIX = 'projects/'
 _HEADS_PREFIX = 'refs/heads/'
 _PROJECTS_FULL_PREFIX = _HEADS_PREFIX + _PROJECTS_PREFIX
 
-def _is_proj_ref(ref: git.Reference) -> bool:
-    return ref.path.startswith(_PROJECTS_FULL_PREFIX)
+def _is_project_ref(ref: git.Reference) -> bool:
+    return ref.name.startswith(_PROJECTS_PREFIX)
 
-def _ref2project(ref: git.Reference) -> Text:
+def _ref2pname(ref: git.Reference) -> Text:
     return ref.path[len(_PROJECTS_FULL_PREFIX):]
 
-def _project2ref_path(project: Text) -> Text:
-    if project.startswith(_HEADS_PREFIX):
+def _pname2ref_path(pname: Text) -> Text:
+    if pname.startswith(_HEADS_PREFIX):
         pass
-    elif not project.startswith('projects/'):
-        project = '%s%s' % (_PROJECTS_FULL_PREFIX, project)
-    return project
+    elif not pname.startswith('projects/'):
+        pname = '%s%s' % (_PROJECTS_FULL_PREFIX, pname)
+    return pname
 
-def _project2ref_name(project: Text) -> Text:
-    if project.startswith(_HEADS_PREFIX):
-        project = project[len(_HEADS_PREFIX):]
-    elif not project.startswith('projects/'):
-        project = '%s%s' % (_PROJECTS_PREFIX, project)
-    return project
+def _pname2ref_name(pname: Text) -> Text:
+    if pname.startswith(_HEADS_PREFIX):
+        pname = pname[len(_HEADS_PREFIX):]
+    elif not pname.startswith('projects/'):
+        pname = '%s%s' % (_PROJECTS_PREFIX, pname)
+    return pname
 
 def _get_ref(refs, refname: Text, default: git.Reference=None) -> git.Reference:
     return refname and refname in refs and refs[refname] or default
@@ -166,10 +166,11 @@ def _get_ref(refs, refname: Text, default: git.Reference=None) -> git.Reference:
 
 
 class Project(transitions.Machine):
-    def __init__(self, **kwds):
+    def __init__(self, projects_db, **kwds):
+        self.projects_db = projects_db
         states = [
             'UNBORN', 'INVALID', 'empty', 'wltp-out', 'wltp-inp', 'wltp', 'tagged',
-            'mailed', 'dice-yes', 'dice-no', 'sampled_inp', 'sampled_out', 'sampled',
+            'mailed', 'dice-yes', 'dice-no', 'nedc',
         ]
         trans = [
             ['import_iof',  'empty',        'wltp',         'is_all_files'],
@@ -199,9 +200,12 @@ class Project(transitions.Machine):
                          initial='empty',#XXX: states[0],
                          transitions=trans,
                          send_event=True,
-                         after_state_change='commit_new_state',
+                         before_state_change='commit_or_tag',
+                         auto_transitions=False,
+                         name='co2mpas.sampling.Project',
                          **kwds)
-    def commit_new_state(self, event):
+
+    def commit_or_tag(self, event):
         state = self.state
         if state.islower():
             if state == 'tagged':
@@ -235,7 +239,7 @@ class Project(transitions.Machine):
         return bool(random.random() > 0.5)
 
 
-class ProjectsDB(SingletonConfigurable, baseapp.Spec):
+class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
     """A git-based repository storing the TA projects (containing signed-files and sampling-resonses).
 
     Git Command Debugging and Customization:
@@ -389,7 +393,7 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
             UFun('untracked',       lambda repo: repo.untracked_files),
             UFun('wd_files',        lambda repo: os.listdir(repo.working_dir)),
             UFun('branch',          lambda repo, _inp_prj:
-                                        _inp_prj and _get_ref(repo.heads, _project2ref_path(_inp_prj)) or repo.active_branch),
+                                        _inp_prj and _get_ref(repo.heads, _pname2ref_path(_inp_prj)) or repo.active_branch),
             UFun('head',            lambda repo: repo.head),
             UFun('heads_count',     lambda repo: len(repo.heads)),
             UFun('projects_count',  lambda repo: itz.count(self._yield_project_refs())),
@@ -414,9 +418,9 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
             UFun('cmsg',            lambda cmt: cmt.message),
             UFun('cmsg',            lambda cmt: '<invalid: %s>' % cmt.message, weight=10),
 
-            UFun(['msg.%s' % f for f in CommitMsg._fields],
+            UFun(['msg.%s' % f for f in _CommitMsg._fields],
                                     lambda cmsg: self._parse_commit_msg(cmsg) or
-                                    ('<invalid>', ) * len(CommitMsg._fields)),
+                                    ('<invalid>', ) * len(_CommitMsg._fields)),
 
             UFun('tree',            lambda tre: tre.hexsha),
             UFun('files_count',     lambda tre: itz.count(tre.list_traverse())),
@@ -463,10 +467,10 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
             fields.extend(fs)
         return fields
 
-    def _infos_fields(self, project: Text=None, fields: Sequence[Text]=None, inv_value=None) -> List[Tuple[Text, Any]]:
+    def _infos_fields(self, pname: Text=None, fields: Sequence[Text]=None, inv_value=None) -> List[Tuple[Text, Any]]:
         """Runs repo examination code returning all requested fields (even failed ones)."""
         dsp = self._infos_dsp()
-        inputs = {'_infos': 'ok', '_inp_prj': project}
+        inputs = {'_infos': 'ok', '_inp_prj': pname}
         infos = dsp.dispatch(inputs=inputs,
                              outputs=fields,
                              shrink=True)
@@ -485,24 +489,25 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
 
         return infos
 
-    def proj_examine(self, project=None, verbose=None, as_text=False, as_json=False):
+    def proj_examine(self, pname: Text=None, verbose=None, as_text=False, as_json=False):
         """
-        Does not validate project, neither fails, just reports situation.
+        Does not validate project, not fails, just reports situation.
 
-        :param project: use current branch if unspecified.
+        :param pname:
+            Use current branch if unspecified; otherwise, DOES NOT checkout pname.
         :retun: text message with infos.
         """
-        import json
 
         if verbose is None:
             verbose = self.verbose
         verbose_level = int(verbose)
 
         fields = self._out_fields_by_verbose_level(verbose_level)
-        infos = self._infos_fields(project, fields)
+        infos = self._infos_fields(pname, fields)
 
         if as_text:
             if as_json:
+                import json
                 infos = json.dumps(dict(infos), indent=2, default=str)
             else:
                 #import pandas as pd
@@ -516,61 +521,61 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
         Returns the current project status, or None if not exists yet.
         """
         # XXX: REWORK PROJECT VALIDATION
-        project = None
+        pname = None
         try:
             head = self.repo.active_branch
-            project = _ref2project(head)
-            self.is_project(project, validate=True)
+            pname = _ref2pname(head)
+            self.is_project(pname, validate=True)
         except Exception as ex:
             self.log.warning("Failure while getting current-project: %s",
                              ex, exc_info=1)
-        return project
+        return pname
 
-    def is_project(self, project: Text, validate=False):
+    def is_project(self, pname: Text, validate=False):
         """
-        :param project: some branch ref
+        :param pname: some branch ref
         """
         # XXX: REWORK PROJECT VALIDATION
         repo = self.repo
-        project = _project2ref_name(project)
-        found = project in repo.heads
+        pname = _pname2ref_name(pname)
+        found = pname in repo.heads
         if found and validate:
-            ref = repo.heads[project]
+            ref = repo.heads[pname]
             found = bool(self._parse_commit_msg(ref.commit.message))
         return found
 
-    def _state(self, project: Text=None) -> Text:
+    def _state(self, pname: Text=None) -> Text:
         # XXX: REWORK PROJECT VALIDATION
-        infos = self._infos_fields(project, fields=('msg.state', ))
+        infos = self._infos_fields(pname, fields=('msg.state', ))
         return dict(infos)['msg.state']
 
-    def _yield_project_refs(self, *projects):
-        if projects:
-            projects =  [_project2ref_path(p) for p in projects]
+    def _yield_project_refs(self, *pnames: Text):
+        if pnames:
+            pnames =  [_pname2ref_path(p) for p in pnames]
         for ref in self.repo.heads:
-            if _is_proj_ref(ref) and not projects or ref.path in projects:
+            if _is_project_ref(ref) and not pnames or ref.path in pnames:
                 yield ref
 
-    def proj_list(self, *projects: str, verbose=None, as_text=False):
+    def proj_list(self, *pnames: Text, verbose=None, as_text=False):
         """
-        :param projects: some branch ref, or none for all
+        :param pnames: some project name, or none for all
         :param verbose: return infos in a table with 3-4 coulmns per each project
-        :retun: yield any match projects, or all if `projects` were empty.
+        :retun: yield any matched projects, or all if `pnames` were empty.
         """
         import pandas as pd
         if verbose is None:
             verbose = self.verbose
 
         res = {}
-        for ref in self._yield_project_refs(*projects):
-            project = _ref2project(ref)
+        for ref in self._yield_project_refs(*pnames):
+            pname = _ref2pname(ref)
             infos = []
             if verbose:
                 infos = OrderedDict(self._infos_fields(
-                        project=project,
+                        pname=pname,
                         fields='msg.state revs_count files_count last_cdata author msg.msg'.split(),
                         inv_value='<invalid>'))
-            res[project] = infos
+            res[pname] = infos
 
         if not res:
             res = None
@@ -580,7 +585,7 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
             if verbose:
                 res = pd.DataFrame.from_dict(res, orient='index')
                 res = res.sort_index()
-                res.index = [('* %s' if _project2ref_path(r) == ap else '  %s') % r
+                res.index = [('* %s' if _pname2ref_path(r) == ap else '  %s') % r
                              for r in res.index]
                 res.reset_index(level=0, inplace=True)
                 renner = lambda c: c[len('msg.'):] if c.startswith('msg.') else c
@@ -593,25 +598,25 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
                 if as_text:
                     res = res.to_string(index=False)
             else:
-                res = [('* %s' if _project2ref_path(r) == ap else '  %s') % r
+                res = [('* %s' if _pname2ref_path(r) == ap else '  %s') % r
                 for r in sorted(res)]
 
         return res
 
-    def _make_commit_msg(self, project, state, msg):
+    def _make_commit_msg(self, pname: Text, state, msg):
         import json
         msg = '\n'.join(textwrap.wrap(msg, width=50))
-        return json.dumps(CommitMsg(project, state, msg, PROJECT_VERSION)._asdict())
+        return json.dumps(_CommitMsg(pname, state, msg, PROJECT_VERSION)._asdict())
 
     def _parse_commit_msg(self, msg, scream=False):
         """
-        :return: a :class:`CommitMsg` instance, or `None` if cannot parse.
+        :return: a :class:`_CommitMsg` instance, or `None` if cannot parse.
         """
         import json
 
         try:
             return json.loads(msg,
-                    object_hook=lambda seq: CommitMsg(**seq))
+                    object_hook=lambda seq: _CommitMsg(**seq))
         except Exception as ex:
             if scream:
                 raise
@@ -619,44 +624,44 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
                 self.log.warn('Found the non-project commit-msg in project-db'
                        ', due to: %s\n %s', ex, msg, exc_info=1)
 
-    def _commit(self, index, project, state, msg):
-        index.commit(self._make_commit_msg(project, state, msg))
+    def _commit(self, index, pname: Text, state, msg):
+        index.commit(self._make_commit_msg(pname, state, msg))
 
-    def _make_readme(self, project):
+    def _make_readme(self, pname):
         return textwrap.dedent("""
         This is the CO2MPAS-project %r (see https://co2mpas.io/ for more).
 
         - created: %s
-        """ %(project, datetime.now()))
+        """ %(pname, datetime.now()))
 
-    def proj_add(self, project: str):
+    def proj_add(self, pname: Text):
         """
-        :param project: some branch ref
+        :param pname: some branch ref
         """
-        self.log.info('Creating project %r...', project)
+        self.log.info('Creating project %r...', pname)
         repo = self.repo
-        if self.is_project(project):
-            raise baseapp.CmdException('Project %r already exists!' % project)
-        if not project or not project.isidentifier():
-            raise baseapp.CmdException('Invalid name %r for a project!' % project)
+        if self.is_project(pname):
+            raise baseapp.CmdException('Project %r already exists!' % pname)
+        if not pname or not pname.isidentifier():
+            raise baseapp.CmdException('Invalid name %r for a project!' % pname)
 
-        ref_name = _project2ref_name(project)
+        ref_name = _pname2ref_name(pname)
         repo.git.checkout(ref_name, orphan=True)
 
         index = repo.index
         state_fpath = osp.join(repo.working_tree_dir, 'CO2MPAS')
         with io.open(state_fpath, 'wt') as fp:
-            fp.write(self._make_readme(project))
+            fp.write(self._make_readme(pname))
         index.add([state_fpath])
-        self._commit(index, project, 'empty', 'Project created.')
+        self._commit(index, pname, 'empty', 'Project created.')
 
-    def proj_open(self, project: Text):
+    def proj_open(self, pname: Text):
         """
-        :param project: some branch ref
+        :param pname: some branch ref
         """
-        if not self.is_project(project, validate=True):
-            raise baseapp.CmdException('Project %r not found!' % project)
-        self.repo.heads[_project2ref_name(project)].checkout()
+        if not self.is_project(pname, validate=True):
+            raise baseapp.CmdException('Project %r not found!' % pname)
+        self.repo.heads[_pname2ref_name(pname)].checkout()
 
     def iofiles_list(self) -> dice.IOFiles or None:
         """Works on current project."""
@@ -676,20 +681,20 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
         """Works on current project."""
         import shutil
 
-        def raise_invalid_state(state, project):
+        def raise_invalid_state(state, pname):
             raise InvalidProjectState(
                     "Invalid state %r when importing input/output-files in project %r!"
                     "\n  Must be in one of: empty | wltp-out | wltp-inp (or `wltp` when --force)."
-                    % (state, project))
+                    % (state, pname))
 
         if force is None:
             force = self.force
 
         repo = self.repo
-        project = self.proj_current() # XXX: REWORK PROJECT VALIDATION
+        pname = self.proj_current() # XXX: REWORK PROJECT VALIDATION
         state = self._state()
         if state not in ('empty', 'wltp-out', 'wltp-inp', 'wltp'):
-            raise_invalid_state(state, project)
+            raise_invalid_state(state, pname)
 
         valid_io_kinds = []
         if state in ('empty', 'wltp-out'):
@@ -705,7 +710,7 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
                 assert fpath, "Import none as %s file!" % io_kind
 
                 if not force and io_kind not in valid_io_kinds:
-                    raise_invalid_state(state, project)
+                    raise_invalid_state(state, pname)
                 fdir, fname = osp.split(fpath)
                 wd_fpath = osp.join(repo.working_tree_dir, io_kind, fname)
                 ensure_dir_exists(osp.split(wd_fpath)[0])
@@ -713,7 +718,7 @@ class ProjectsDB(SingletonConfigurable, baseapp.Spec):
                 index.add([wd_fpath])
                 nimported += 1
 
-        self._commit(index, project, state, 'Imported %d IO-files.' % nimported)
+        self._commit(index, pname, state, 'Imported %d IO-files.' % nimported)
 
 
 
@@ -765,12 +770,12 @@ class ProjectCmd(_PrjCmd):
             if len(args) != 0:
                 raise baseapp.CmdException('Cmd %r takes no arguments, received %r!'
                                    % (self.name, args))
-            project = self.projects_db.proj_current()
-            if not project:
+            pname = self.projects_db.proj_current()
+            if not pname:
                 raise baseapp.CmdException(
                         "No current-project exists yet!"
                         "\n  Use `co2mpas project add <project-name>` to create one.")
-            return project
+            return pname
 
 
     class OpenCmd(_PrjCmd):
@@ -880,8 +885,8 @@ class ProjectCmd(_PrjCmd):
             if len(args) > 1:
                 raise baseapp.CmdException('Cmd %r takes one optional argument, received %d: %r!'
                                    % (self.name, len(args), args))
-            project = args and args[0] or None
-            return self.projects_db.proj_examine(project, as_text=True, as_json=self.as_json)
+            pname = args and args[0] or None
+            return self.projects_db.proj_examine(pname, as_text=True, as_json=self.as_json)
 
 
     class BackupCmd(_PrjCmd):

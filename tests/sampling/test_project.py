@@ -72,14 +72,14 @@ class TProjectStory(unittest.TestCase):
         c.Spec.verbose = c.ProjectsDB.verbose = 0
         return c
 
-    def _check_infos_shapes(self, proj, project=None):
-        res = proj.proj_examine(project=project, verbose=0)
+    def _check_infos_shapes(self, proj, pname=None):
+        res = proj.proj_examine(pname=pname, verbose=0)
         self.assertEqual(len(res), 7, res)
 
-        res = proj.proj_examine(project=project, verbose=1)
+        res = proj.proj_examine(pname=pname, verbose=1)
         self.assertEqual(len(res), 14, res)
 
-        res = proj.proj_examine(project=project, verbose=2)
+        res = proj.proj_examine(pname=pname, verbose=2)
         self.assertEqual(len(res), 32, res)
 
     def test_1a_empty_list(self):
@@ -157,10 +157,10 @@ class TProjectStory(unittest.TestCase):
         self.assertEqual(res, ['* foo'])
 
     @ddt.data('sp ace', '%fg', '1ffg')
-    def test_3b_add_bad_project__fail(self, proj):
+    def test_3b_add_bad_project__fail(self, pname):
         cmd = project.ProjectCmd.AddCmd(config=self._config)
-        with self.assertRaisesRegex(baseapp.CmdException, "Invalid name '%s' for a project!" % proj):
-            cmd.run(proj)
+        with self.assertRaisesRegex(baseapp.CmdException, "Invalid name '%s' for a project!" % pname):
+            cmd.run(pname)
 
         cmd = project.ProjectCmd.ListCmd(config=self._config)
         res = list(cmd.run())

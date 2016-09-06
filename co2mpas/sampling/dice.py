@@ -5,12 +5,11 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 #
-"""co2dice: prepare/sign/send/receive/validate/archive Type Approval sampling emails of *co2mpas*.
+"""
+co2dice: prepare/sign/send/receive/validate/archive Type Approval sampling emails of *co2mpas*.
 
-.. TIP::
-  If you bump into blocking errors, please use the `co2dice project backup` command and
-  send the generated archive-file back to "CO2MPAS-Team <co2mpas@jrc.ec.europa.eu>",
-  for examination.
+.. Warning::
+    Do not run multiple instances!
 """
 
 from collections import defaultdict, MutableMapping, OrderedDict, namedtuple
@@ -22,7 +21,6 @@ import json
 import logging
 import os
 from pandalone import utils as pndl_utils
-from pandalone.pandata import resolve_path
 import pprint
 import re
 import shutil
@@ -40,8 +38,6 @@ import gnupg
 import keyring
 from toolz import dicttoolz
 from toolz import itertoolz as itz
-from traitlets.config import LoggingConfigurable, SingletonConfigurable
-from traitlets.config import get_config
 
 from co2mpas import __uri__  # @UnusedImport
 from co2mpas.__main__ import init_logging
@@ -55,8 +51,9 @@ from co2mpas.sampling.baseapp import where, which
 import functools as ft
 import itertools as itt
 import os.path as osp
-import pandas as pd
+import pandas as pd  # SLOW!
 import traitlets as trt
+import traitlets.config as trtc
 
 
 # TODO: move to pandalone
@@ -375,7 +372,7 @@ IOFiles = namedtuple('IOFiles', 'inp out other')
 
 
 
-class GpgSpec(SingletonConfigurable, baseapp.Spec):
+class GpgSpec(trtc.SingletonConfigurable, baseapp.Spec):
     """Provider of GnuPG high-level methods."""
 
     exec_path = trt.Unicode(None, allow_none=True,
@@ -435,7 +432,16 @@ class MainCmd(Cmd):
     """The parent command."""
 
     name        = trt.Unicode(__title__)
-    description = trt.Unicode(__summary__)
+    description = trt.Unicode("""
+    co2dice: prepare/sign/send/receive/validate & archive Type Approval sampling emails for *co2mpas*.
+
+    TIP:
+      If you bump into blocking errors, please use the `co2dice project backup` command and
+      send the generated archive-file back to "CO2MPAS-Team <co2mpas@jrc.ec.europa.eu>",
+      for examination.
+    NOTE:
+      Do not run multiple instances!
+    """)
     version     = __version__
     #examples = """TODO: Write cmd-line examples."""
 
@@ -573,9 +579,9 @@ if __name__ == '__main__':
     # Invoked from IDEs, so enable debug-logging.
     main(argv, verbose=True)
 
-    #from traitlets.config import get_config
+    #from traitlets.config import trtc.get_config
 
-    #c = get_config()
+    #c = trtc.get_config()
     #c.Application.log_level=0
     #c.Spec.log_level='ERROR'
     #run_cmd(chain_cmds([MainCmd, ProjectCmd, ProjectCmd.Add], argv=['project_foo']))

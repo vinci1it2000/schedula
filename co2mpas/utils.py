@@ -14,12 +14,12 @@ numerical operations.
 """
 
 
-import networkx.utils as nxutils
 from collections import OrderedDict
 import math
 from statistics import median_high
 import sys
 
+import networkx.utils as nxutils
 import numpy as np
 
 

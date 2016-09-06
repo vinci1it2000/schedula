@@ -6,7 +6,10 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 #
 """A *report* contains the co2mpas-run values to time-stamp and disseminate to TA authorities & oversight bodies."""
-from collections import (defaultdict, OrderedDict, namedtuple, Mapping)  # @UnusedImport
+
+from collections import (
+    defaultdict, OrderedDict, namedtuple, Mapping)  # @UnusedImport
+import re
 from typing import (
     List, Sequence, Iterable, Text, Tuple, Dict, Callable)  # @UnusedImport
 
@@ -16,14 +19,12 @@ from co2mpas._version import (__version__, __updated__, __file_version__,   # @U
 from co2mpas.sampling import baseapp, dice, project
 from co2mpas.sampling.baseapp import convpath, first_line
 import pandas as pd
-import re
 import traitlets as trt
 
 
 ###################
 ##     Specs     ##
 ###################
-
 REPORT_VERSION = '0.0.1'  ## TODO: Move to `co2mpas/_version.py`.
 
 _file_arg_regex = re.compile('(inp|out)=(.+)', re.IGNORECASE)
@@ -183,8 +184,8 @@ class ReportCmd(baseapp.Cmd):
 
     def _build_io_files_from_project(self, args) -> dice.IOFiles:
         pdb = self.projects_db
-        project = pdb.proj_current()
-        if not project:
+        pname = pdb.proj_current()
+        if not pname:
             raise baseapp.CmdException(
                     "No current-project exists yet!"
                     "\n  Use `co2mpas project add <project-name>` to create one.")
@@ -192,7 +193,7 @@ class ReportCmd(baseapp.Cmd):
         if not iofiles:
             raise baseapp.CmdException(
                     "Current project %r contains no input/output files!"
-                    % pdb.proj_current())
+                    % pname)
         return iofiles
 
 

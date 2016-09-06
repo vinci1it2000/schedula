@@ -34,6 +34,7 @@ To run nested commands, use :func:`baseapp.chain_cmds()` like that::
    (e.g. description), it is preferable to set them as traits-with-defaults on class-attributes.
 
 """
+
 ## INFO: Modify the following variables on a different application.
 
 from collections import OrderedDict
@@ -45,16 +46,16 @@ import os
 from pandalone import utils as pndl_utils
 import re
 import subprocess
-from typing import Sequence, Text, Any, Tuple, List
+from typing import Sequence, Text, Any, Tuple, List  # @UnusedImport
 
 from boltons.setutils import IndexedSet as iset
 from ipython_genutils.text import indent, wrap_paragraphs, dedent
 from toolz import dicttoolz as dtz, itertoolz as itz
-from traitlets.config import Application, Configurable, LoggingConfigurable, catch_config_error
 
 from co2mpas.__main__ import init_logging
 import os.path as osp
 import traitlets as trt
+import traitlets.config as trtc
 
 
 APPNAME = 'co2dice'
@@ -200,7 +201,7 @@ def default_config_fpath():
 ##     Specs     ##
 ###################
 
-class Spec(LoggingConfigurable):
+class Spec(trtc.LoggingConfigurable):
     """Common properties for all configurables."""
     ## See module documentation for developer's guidelines.
 
@@ -283,7 +284,7 @@ def build_sub_cmds(*subapp_classes):
     return OrderedDict((class2cmd_name(sa), (sa, app_short_help(sa)))
                        for sa in subapp_classes)
 
-class Cmd(Application):
+class Cmd(trtc.Application):
     """Common machinery for all (sub-)commands. """
     ## INFO: Do not use it directly; inherit it.
     # See module documentation for developer's guidelines.
@@ -444,9 +445,9 @@ class Cmd(Application):
         base_classes = ','.join(p.__name__ for p in cls.__bases__)
         final_help.append(u'%s(%s) options' % (cls.__name__, base_classes))
         final_help.append(len(final_help[0])*u'-')
-        for k, v in sorted(cls.class_traits(config=True).items()):
-            help = cls.class_get_trait_help(v, inst)
-            final_help.append(help)
+        for _, v in sorted(cls.class_traits(config=True).items()):
+            fhelp = cls.class_get_trait_help(v, inst)
+            final_help.append(fhelp)
         return '\n'.join(final_help)
 
     def print_subcommands(self):
@@ -528,7 +529,7 @@ class Cmd(Application):
 #                 flags[k] = (newflag, help)
 #         return flags, aliases
 
-    @catch_config_error
+    @trtc.catch_config_error
     def initialize_subcommand(self, subc, argv=None):
         """Initialize a subcommand named `subc` with `argv`, or `sys.argv` if `None` (default)."""
         ## INFO: Overriden to set parent on subcmds and inherit config,
@@ -544,7 +545,7 @@ class Cmd(Application):
     default_subcmd = trt.Unicode(None, allow_none=True,
             help="The name of the sub-command to use if unspecified.")
 
-    conf_classes = trt.List(trt.Type(Configurable), default_value=[],
+    conf_classes = trt.List(trt.Type(trtc.Configurable), default_value=[],
             help="""
             Any *configurables* found in this prop up the cmd-chain are merged,
             along with any subcommands, into :attr:`classes`.
@@ -655,7 +656,7 @@ class Cmd(Application):
         return bool(self.subapp)
 
 
-    @catch_config_error
+    @trtc.catch_config_error
     def initialize(self, argv=None):
         ## Invoked after __init__() by Cmd.launch_instance() to read configs.
         #  It parses cl-args before file-configs, to detect sub-commands
@@ -722,12 +723,12 @@ Cmd.name.default_value = None
 
 ## Expose `raise_config_file_errors` instead of relying only on
 #  :envvar:`TRAITLETS_APPLICATION_RAISE_CONFIG_FILE_ERROR`.
-Application.raise_config_file_errors.tag(config=True)
+trtc.Application.raise_config_file_errors.tag(config=True)
 Cmd.raise_config_file_errors.help = 'Whether failing to load config files should prevent startup.'
 
 
 
-def chain_cmds(app_classes: Sequence[type(Application)],
+def chain_cmds(app_classes: Sequence[type(trtc.Application)],
                argv: Sequence[Text]=None,
                **root_kwds):
     """
@@ -749,7 +750,7 @@ def chain_cmds(app_classes: Sequence[type(Application)],
     app_classes = list(app_classes)
     root = app = None
     for app_cl in app_classes:
-        if not isinstance(app_cl, type(Application)):
+        if not isinstance(app_cl, type(trtc.Application)):
                     raise ValueError("Expected an Application-class instance, got %r!" % app_cl)
         if not root:
             ## The 1st cmd is always orphan, and gets returned.
