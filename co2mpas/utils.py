@@ -14,18 +14,12 @@ numerical operations.
 """
 
 
-import yaml
-from networkx.utils import open_file
+import networkx.utils as nxutils
 from collections import OrderedDict
 import math
 from statistics import median_high
 import sys
 
-from scipy.interpolate import InterpolatedUnivariateSpline
-from scipy.misc import derivative as scipy_derivative
-from sklearn.metrics import mean_absolute_error
-
-import co2mpas.dispatcher.utils as dsp_utl
 import numpy as np
 
 
@@ -48,13 +42,15 @@ class Constants(dict):
         super(Constants, self).__init__(*args, **kwargs)
         self.__dict__ = self
 
-    @open_file(1, mode='rb')
+    @nxutils.open_file(1, mode='rb')
     def load(self, file, **kw):
+        import yaml
         self.update(yaml.load(file, **kw))
         return self
 
-    @open_file(1, mode='w')
+    @nxutils.open_file(1, mode='w')
     def dump(self, file, default_flow_style=False, **kw):
+        import yaml
         yaml.dump(dict(self), file, default_flow_style=default_flow_style, **kw)
 
 
@@ -214,7 +210,7 @@ def sliding_window(xy, dx_window):
     v = next(it)
     window = []
 
-    for x, y in xy:
+    for x, _ in xy:
         # window limits
         x_dn = x - dx
         x_up = x + dx
@@ -352,6 +348,7 @@ def bin_split(x, bin_std=(0.01, 0.1), n_min=None, bins_min=None):
         Bins and their statistics.
     :rtype: (list, list)
     """
+    import co2mpas.dispatcher.utils as dsp_utl
 
     x = np.asarray(x)
     edges = [x.min(), x.max() + sys.float_info.epsilon * 2]
@@ -445,8 +442,10 @@ def interpolate_cloud(x, y):
 
     :return:
         A function that interpolate a cloud of points.
-    :rtype: scipy.interpolate.InterpolatedUnivariateSpline
+    :rtype: scp_interp.InterpolatedUnivariateSpline
     """
+    import co2mpas.dispatcher.utils as dsp_utl
+    from scipy.interpolate import InterpolatedUnivariateSpline
 
     p = np.asarray(x)
     v = np.asarray(y)
@@ -497,9 +496,9 @@ def clear_fluctuations(times, gears, dt_window):
 
         up, dn = False, False
 
-        x, y = zip(*samples)
+        _, y = zip(*samples)
 
-        for k, d in enumerate(np.diff(y)):
+        for d in np.diff(y):
             if d > 0:
                 up = True
             elif d < 0:
@@ -515,6 +514,7 @@ def clear_fluctuations(times, gears, dt_window):
 
 
 def _err(v, y1, y2, r, l):
+    from sklearn.metrics import mean_absolute_error
     return mean_absolute_error(_ys(y1, v) + _ys(y2, l - v), r)
 
 
@@ -538,6 +538,9 @@ def derivative(x, y, dx=1, order=3, k=1):
     :param k:
     :return:
     """
+    from scipy.misc import derivative as scipy_derivative
+    from scipy.interpolate import InterpolatedUnivariateSpline
+
     func = InterpolatedUnivariateSpline(x, y, k=k)
 
     return scipy_derivative(func, x, dx=dx, order=order)
