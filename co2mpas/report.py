@@ -500,7 +500,12 @@ def get_report_output_data(data):
     :return:
     """
     data = data.copy()
-    report = {'pipe': data['pipe']}
+
+    report = {}
+
+    if 'pipe'in data:
+        report['pipe'] = data['pipe']
+
     target = re_sample_targets(data)
     if target:
         data['target'] = target
