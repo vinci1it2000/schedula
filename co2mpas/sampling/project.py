@@ -6,15 +6,18 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 #
 """A *project* stores all CO2MPAS files for a single vehicle, and tracks its sampling procedure. """
+
 from collections import (defaultdict, OrderedDict, namedtuple)  # @UnusedImport
+import copy
 from datetime import datetime
 import inspect
 import io
+import json
 import os
 from pandalone import utils as pndlutils
 import textwrap
 from typing import (
-    Any, List, Sequence, Iterable, Optional, Text, Tuple, Callable)  # @UnusedImport
+    Any, List, Dict, Sequence, Iterable, Optional, Text, Tuple, Callable)  # @UnusedImport
 
 import git  # From: pip install gitpython
 from toolz import itertoolz as itz, dicttoolz as dtz
@@ -31,8 +34,6 @@ import os.path as osp
 import traitlets as trt
 import traitlets.config as trtc
 
-
-InvalidProjectState = baseapp.CmdException
 
 class UFun(object):
     """
@@ -131,10 +132,14 @@ class UFun(object):
 ##     Specs     ##
 ###################
 
-PROJECT_VERSION = '0.0.1'  ## TODO: Move to `co2mpas/_version.py`.
+PROJECT_VERSION = '0.0.2'  ## TODO: Move to `co2mpas/_version.py`.
+
+def split_version(v):
+    return v.split('.')
+
 PROJECT_STATUSES = '<invalid> empty full signed dice_sent sampled'.split()
 
-_CommitMsg = namedtuple('_CommitMsg', 'project state msg msg_version')
+_CommitMsg = namedtuple('_CommitMsg', 'project state action msg_version')
 
 _PROJECTS_PREFIX = 'projects/'
 _HEADS_PREFIX = 'refs/heads/'
@@ -149,100 +154,272 @@ def _ref2pname(ref: git.Reference) -> Text:
 def _pname2ref_path(pname: Text) -> Text:
     if pname.startswith(_HEADS_PREFIX):
         pass
-    elif not pname.startswith('projects/'):
+    elif not pname.startswith(_PROJECTS_PREFIX):
         pname = '%s%s' % (_PROJECTS_FULL_PREFIX, pname)
     return pname
 
 def _pname2ref_name(pname: Text) -> Text:
     if pname.startswith(_HEADS_PREFIX):
         pname = pname[len(_HEADS_PREFIX):]
-    elif not pname.startswith('projects/'):
+    elif not pname.startswith(_PROJECTS_PREFIX):
         pname = '%s%s' % (_PROJECTS_PREFIX, pname)
     return pname
 
 def _get_ref(refs, refname: Text, default: git.Reference=None) -> git.Reference:
     return refname and refname in refs and refs[refname] or default
 
+_TAGS_PREFIX = 'refs/tags/'
+_DICES_PREFIX = 'dices/'
+
+def _tname2ref_name(tname: Text) -> Text:
+    if tname.startswith(_TAGS_PREFIX):
+        tname = tname[len(_TAGS_PREFIX):]
+    elif not tname.startswith(_DICES_PREFIX):
+        tname = '%s%s' % (_DICES_PREFIX, tname)
+    return tname
 
 
-class Project(transitions.Machine):
-    def __init__(self, projects_db, **kwds):
+@fnt.lru_cache()
+def project_zygote(): #-> Project:
+    """Cached Project FSM, for speeding-up its creation."""
+    return Project('<zygote>', None)
+
+
+transitions.logger.level = 50 ## FSM logs annoyingly high.
+
+class Project(transitions.Machine, baseapp.Spec):
+    """The Finite State Machine for the currently project."""
+
+    @trt.observe('log_level')
+    def set_fsm_loglevel(self, change):
+        transitions.logger.level = change['new']
+
+    def fork(self, pname, projects_db, config):
+        """
+        Optimization, along with :func:`project_zygote`, to speedup FSM creation.
+
+        For example, see ::meth:`ProjectsDB._conceive_project()`.
+        INFO: set here any non-serializable fields for :func:`fnt.lru_cache()` to work.
+        """
+        clone = copy.deepcopy(self)
+        clone.pname = pname
+        clone.id = pname + ": "
+        clone.projects_db = projects_db
+        clone.update_config(self.config)
+
+        return clone
+
+    def __str__(self, *args, **kwargs):
+        return 'Project(%s: %s)' % (self.pname, self.state)
+
+    def _is_force(self, event):
+        return event.kwargs.get('force', self.force)
+
+    def _is_inp_files(self, event):
+        assert 'iofiles' in event.kwargs, ('iofiles', event.kwargs)
+        iofiles = event.kwargs['iofiles']
+        return bool(iofiles and iofiles.inp and not iofiles.out)
+
+    def _is_out_files(self, event):
+        assert 'iofiles' in event.kwargs, ('iofiles', event.kwargs)
+        iofiles = event.kwargs['iofiles']
+        return bool(iofiles and iofiles.out and not iofiles.inp)
+
+    def _is_all_files(self, event):
+        assert 'iofiles' in event.kwargs, ('iofiles', event.kwargs)
+        iofiles = event.kwargs['iofiles']
+        return bool(iofiles and iofiles.inp and iofiles.out)
+
+    def _is_dice_yes(self, event):
+        assert 'timestamped_email' in event.kwargs, ('timestamped_email', event.kwargs)
+        timestamped_email = event.kwargs['timestamped_email']
+        decide_dice(timestamped_email)
+
+    def __init__(self, pname, projects_db, **kwds):
+        """DO NOT INVOKE THIS; create it through :meth:`ProjectsDB._conceive_project()`."""
+        self.pname = pname
         self.projects_db = projects_db
         states = [
-            'UNBORN', 'INVALID', 'empty', 'wltp-out', 'wltp-inp', 'wltp', 'tagged',
-            'mailed', 'dice-yes', 'dice-no', 'nedc',
+            'UNBOUND', 'INVALID', 'empty', 'wltp_out', 'wltp_inp', 'wltp', 'tagged',
+            'mailed', 'dice_yes', 'dice_no', 'nedc',
         ]
         trans = [
-            ['import_iof',  'empty',        'wltp',         'is_all_files'],
-            ['import_iof',  'empty',        'wltp-inp',     'is_inp_files'],
-            ['import_iof',  'empty',        'wltp-out',     'is_out_files'],
+            # Trigger        Source-state   Dest-state      Conditions          Unless  Before
+            ['create',      'UNBOUND',      'empty'],
 
-            ['import_iof',  'wltp-inp  wltp-out  wltp tagged'.split(),
-                                            'wltp',           ['is_all_files', 'is_force']],
+            ['import_iof',  'empty',        'wltp',         '_is_all_files'],
+            ['import_iof',  'empty',        'wltp_inp',     '_is_inp_files'],
+            ['import_iof',  'empty',        'wltp_out',     '_is_out_files'],
 
-            ['import_iof',  'wltp-inp',     'wltp-inp',     ['is_inp_files', 'is_force']],
-            ['import_iof',  'wltp-inp',     'wltp',         'is_out_files'],
+            ['import_iof',  ['wltp_inp',
+                             'wltp_out',
+                             'wltp',
+                             'tagged'],     'wltp',         ['_is_all_files', '_is_force']],
 
-            ['import_iof',  'wltp-out',     'wltp-out',     ['is_out_files', 'is_force']],
-            ['import_iof',  'wltp-out',     'wltp',         'is_inp_files'],
+            ['import_iof',  'wltp_inp',     'wltp_inp',     ['_is_inp_files', '_is_force']],
+            ['import_iof',  'wltp_inp',     'wltp',         '_is_out_files'],
+
+            ['import_iof',  'wltp_out',     'wltp_out',     ['_is_out_files', '_is_force']],
+            ['import_iof',  'wltp_out',     'wltp',         '_is_inp_files'],
 
             ['tag',         'wltp',         'tagged'],
 
             ['send_email',  'tagged',       'mailed'],
-            ['recv_email',  'mailed',      'dice-yes',     'is_dice_yes'],
-            ['recv_email',  'mailed',      'dice-no', ],
+            ['recv_email',  'mailed',       'dice_yes',     '_is_dice_yes'],
+            ['recv_email',  'mailed',       'dice_no'],
 
-            ['import_iof',  ['dice-yes', 'dice-no'],
-                                            'nedc'],
-            ['import_iof',  'nedc',         'ndec',         'is_force'],
+            ['import_iof',  ['dice_yes',
+                             'dice_no'],    'nedc'],
+            ['import_iof',  'nedc',         'ndec',         '_is_force'],
         ]
         super().__init__(states=states,
-                         initial='empty',#XXX: states[0],
+                         initial=states[0],
                          transitions=trans,
                          send_event=True,
-                         before_state_change='commit_or_tag',
+                         after_state_change=self._commit_or_tag,
                          auto_transitions=False,
-                         name='co2mpas.sampling.Project',
+                         name=pname,
                          **kwds)
+        self.on_enter_empty(    self._stage_new_project_content)
+        self.on_enter_tagged(   self._generate_report)
+        self.on_enter_wltp_inp( self._stage_iofiles)
+        self.on_enter_wltp_out( self._stage_iofiles)
+        self.on_enter_wltp(     self._stage_iofiles)
 
-    def commit_or_tag(self, event):
+    def _make_commit_msg(self, action):
+        action = '\n'.join(textwrap.wrap(action, width=50))
+        cmsg = _CommitMsg(self.pname, self.state, action, PROJECT_VERSION)
+        return json.dumps(cmsg._asdict(), indent=2)
+
+    @classmethod
+    def parse_commit_msg(self, cmsg_js, scream=False):
+        """
+        :return: a :class:`_CommitMsg` instance, or fails if cannot parse.
+        """
+        return json.loads(cmsg_js,
+                object_hook=lambda seq: _CommitMsg(**seq))
+
+    def _make_tag_msg(self, report):
+        msg = textwrap.dedent("""
+        Report for CO2MPAS-project: %r
+        ======================================================================
+        %s
+        """) % (self.pname, report)
+        return msg
+
+    def _commit_or_tag(self, event):
+        """Executed on ENTER for all states."""
         state = self.state
         if state.islower():
+            repo = self.projects_db.repo
             if state == 'tagged':
-                print("TAG")
+                self.log.debug('Tagging %s...', event.kwargs)
+                assert 'report' in event.kwargs, ('report', event.kwargs)
+                report = event.kwargs['report']
+                msg = self._make_tag_msg(self.pname, report)
+                tref = _tname2ref_name(self.pname)
+                repo.create_tag(tref, msg=msg) ## TODO: GPG!!
             else:
-                print("COMMIT")
+                self.log.debug('Committing %s...', event.kwargs)
+                assert 'action' in event.kwargs, ('action', event.kwargs)
+                action = event.kwargs['action']
+                index = repo.index
+                cmsg_js = self._make_commit_msg(action)
+                index.commit(cmsg_js)
 
-    def is_force(self, event):
-        return event.kwargs.get('force', False)
+    def _make_readme(self):
+        return textwrap.dedent("""
+        This is the CO2MPAS-project %r (see https://co2mpas.io/ for more).
 
+        - created: %s
+        """ %(self.pname, datetime.now()))
 
-    def is_inp_files(self, event):
-        assert 'iofiles' in event.kwargs, event.kwargs
+    def _stage_new_project_content(self, event):
+        """Create a new project."""
+        repo = self.projects_db.repo
+        index = repo.index
+        state_fpath = osp.join(repo.working_tree_dir, 'CO2MPAS')
+        with io.open(state_fpath, 'wt') as fp:
+            fp.write(self._make_readme())
+        index.add([state_fpath])
+        event.kwargs['action'] = 'Project created.' ## TODO: Improve actions
+
+    def _new_report(self):
+        if not getattr(self, '__report', None):
+            self.__report = report.Report(config=self.config)
+        return self.__report
+
+    def _stage_iofiles(self, event):
+        """Triggered by `import_iof()` on ENTER for all `wltp_XX` states."""
+        import shutil
+
         iofiles = event.kwargs['iofiles']
-        return bool(iofiles and iofiles.inp and not iofiles.out)
+        force = event.kwargs.get('force', self.force)
 
-    def is_out_files(self, event):
-        assert 'iofiles' in event.kwargs, event.kwargs
-        iofiles = event.kwargs['iofiles']
-        return bool(iofiles and iofiles.out and not iofiles.inp)
+        ## Check extraction of report works ok.
+        #
+        try:
+            rep = self._new_report()
+            list(rep.yield_from_iofiles(iofiles))
+        except Exception as ex:
+            msg = ("Failed extracting report from %s, due to: %s"
+                   "  BUT FORCED to import them!")
+            if force:
+                self.log.error(msg, iofiles, ex, exc_info=1)
+            else:
+                raise baseapp.CmdException(msg % (iofiles, ex))
 
-    def is_all_files(self, event):
-        assert 'iofiles' in event.kwargs, event.kwargs
-        iofiles = event.kwargs['iofiles']
-        return bool(iofiles and iofiles.inp and iofiles.out)
+        repo = self.projects_db.repo
+        index = repo.index
+        nimported = 0
+        for io_kind, fpaths in iofiles._asdict().items():
+            for ext_fpath in fpaths:
+                self.log.debug('Importing %s-file: %s', io_kind, ext_fpath)
+                assert io_kind != 'other', "Other-files: %s" % iofiles.other
+                assert ext_fpath, "Import none as %s file!" % io_kind
 
-    def is_dice_yes(self, event):
-        assert 'timestamped_email' in event.kwargs, event.kwargs
-        #timestamped_email = event.kwargs['timestamped_email']
-        import random
-        return bool(random.random() > 0.5)
+                ext_fname = osp.split(ext_fpath)[1]
+                index_fpath = osp.join(repo.working_tree_dir, io_kind, ext_fname)
+                ensure_dir_exists(osp.split(index_fpath)[0])
+                shutil.copy(ext_fpath, index_fpath)
+                index.add([index_fpath])
+                nimported += 1
+
+        event.kwargs['action'] = 'Imported %d IO-files.' % nimported
+
+    def list_iofiles(self) -> dice.IOFiles or None:
+        """Works on current project."""
+        repo = self.projects_db.repo
+        def collect_kind_files(io_kind):
+            if io_kind:
+                wd_fpath = osp.join(repo.working_tree_dir, io_kind)
+                fpaths = os.listdir(wd_fpath) if osp.isdir(wd_fpath) else []
+                return [osp.join(wd_fpath, f) for f in fpaths]
+
+        iofpaths = [collect_kind_files(io_kind) for io_kind in ('inp', 'out', None)]
+        if any(iofpaths):
+            return dice.IOFiles(*iofpaths)
+
+    def _generate_report(self, event):
+        """Triggered by `tag()`."""
+        rep = self._new_report()
+        iofiles = self.list_iofiles()
+
+        ## TODO: Report can be more beautiful...
+        report = '\n\n'.join(list(rep.yield_from_iofiles(iofiles)))
+
+        event.kwargs['report'] = report
+
+
+
 
 
 class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
     """A git-based repository storing the TA projects (containing signed-files and sampling-resonses).
 
-    Git Command Debugging and Customization:
+    It handles checkouts but delegates index modifications to `Project` spec.
+
+    ### Git Command Debugging and Customization:
 
     - :envvar:`GIT_PYTHON_TRACE`: If set to non-0,
       all executed git commands will be shown as they happen
@@ -288,6 +465,8 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
                 ## Clean up old repo,
                 #  or else... https://github.com/gitpython-developers/GitPython/issues/508
                 self.__repo.git.clear_cache()
+                ## Xmm, nai...
+                self._current_project = None
 
         if not osp.isabs(repo_path):
             repo_path = osp.join(baseapp.default_config_dir(), repo_path)
@@ -419,8 +598,7 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
             UFun('cmsg',            lambda cmt: '<invalid: %s>' % cmt.message, weight=10),
 
             UFun(['msg.%s' % f for f in _CommitMsg._fields],
-                                    lambda cmsg: self._parse_commit_msg(cmsg) or
-                                    ('<invalid>', ) * len(_CommitMsg._fields)),
+                                    lambda cmsg: Project.parse_commit_msg(cmsg)),
 
             UFun('tree',            lambda tre: tre.hexsha),
             UFun('files_count',     lambda tre: itz.count(tre.list_traverse())),
@@ -439,7 +617,7 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
             0:[
                 'msg.project',
                 'msg.state',
-                'msg.msg',
+                'msg.action',
                 'revs_count',
                 'files_count',
                 'last_cdate',
@@ -507,7 +685,6 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
 
         if as_text:
             if as_json:
-                import json
                 infos = json.dumps(dict(infos), indent=2, default=str)
             else:
                 #import pandas as pd
@@ -516,38 +693,79 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
 
         return infos
 
-    def proj_current(self):
-        """
-        Returns the current project status, or None if not exists yet.
-        """
-        # XXX: REWORK PROJECT VALIDATION
-        pname = None
-        try:
-            head = self.repo.active_branch
-            pname = _ref2pname(head)
-            self.is_project(pname, validate=True)
-        except Exception as ex:
-            self.log.warning("Failure while getting current-project: %s",
-                             ex, exc_info=1)
-        return pname
+    _current_project = None
 
-    def is_project(self, pname: Text, validate=False):
+    def _conceive_project(self, pname): # -> Project:
+        """Returns an "UNBOUND" :class:`Project`; its state must be triggered immediately."""
+        return project_zygote().fork(pname, self, self.config)
+
+    def current_project(self) -> Project:
+        """
+        Returns the current :class:`Project`, or raises a help-msg if none exists yet.
+
+        The project returned is appropriately configured according to its recorded state.
+        The git-repo is not touched.
+        """
+        if not self._current_project:
+            try:
+                headref = self.repo.active_branch
+                if _is_project_ref(headref):
+                    pname = _ref2pname(headref)
+                    p = self._conceive_project(pname)
+                    cmsg = p.parse_commit_msg(headref.commit.message)
+                    p.set_state(cmsg.state)
+
+                    self._current_project = p
+            except Exception as ex:
+                self.log.warning("Failure while getting current-project: %s",
+                                 ex, exc_info=1)
+
+        if not self._current_project:
+                raise baseapp.CmdException(textwrap.dedent("""
+                        No current-project exists yet!"
+                        Try opening an existing project, with:
+                            co2mpas project open <project-name>
+                        or create a new one, with:
+                            co2mpas project add <project-name>
+                        """))
+
+        return self._current_project
+
+    def proj_add(self, pname: Text) -> Project:
+        """
+        Creates a new project and sets it as the current one.
+
+        :param pname: the project name
+        :return: the current :class:`Project` or fail
+        """
+        self.log.info('Creating project %r...', pname)
+        if not pname or not pname.isidentifier():
+            raise baseapp.CmdException('Invalid name %r for a project!' % pname)
+        prefname = _pname2ref_name(pname)
+        if prefname in self.repo.heads:
+            raise baseapp.CmdException('Project %r already exists!' % pname)
+
+        p = self._conceive_project(pname)
+        self.repo.git.checkout(prefname, orphan=True, force=self.force)
+        ## Trigger ProjectFSM methods that will modify Git-index & commit.
+        p.create()
+        # FIXME: Revert if fail?
+
+        self._current_project = p
+        return p
+
+    def proj_open(self, pname: Text) -> Project:
         """
         :param pname: some branch ref
+        :return: the current :class:`Project`
         """
-        # XXX: REWORK PROJECT VALIDATION
-        repo = self.repo
-        pname = _pname2ref_name(pname)
-        found = pname in repo.heads
-        if found and validate:
-            ref = repo.heads[pname]
-            found = bool(self._parse_commit_msg(ref.commit.message))
-        return found
+        prefname = _pname2ref_name(pname)
+        if prefname not in self.repo.heads:
+            raise baseapp.CmdException('Project %r not found!' % pname)
+        self.repo.heads[_pname2ref_name(pname)].checkout()
 
-    def _state(self, pname: Text=None) -> Text:
-        # XXX: REWORK PROJECT VALIDATION
-        infos = self._infos_fields(pname, fields=('msg.state', ))
-        return dict(infos)['msg.state']
+        self._current_project = None
+        return self.current_project()
 
     def _yield_project_refs(self, *pnames: Text):
         if pnames:
@@ -573,7 +791,7 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
             if verbose:
                 infos = OrderedDict(self._infos_fields(
                         pname=pname,
-                        fields='msg.state revs_count files_count last_cdata author msg.msg'.split(),
+                        fields='msg.state revs_count files_count last_cdata author msg.action'.split(),
                         inv_value='<invalid>'))
             res[pname] = infos
 
@@ -602,123 +820,6 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
                 for r in sorted(res)]
 
         return res
-
-    def _make_commit_msg(self, pname: Text, state, msg):
-        import json
-        msg = '\n'.join(textwrap.wrap(msg, width=50))
-        return json.dumps(_CommitMsg(pname, state, msg, PROJECT_VERSION)._asdict())
-
-    def _parse_commit_msg(self, msg, scream=False):
-        """
-        :return: a :class:`_CommitMsg` instance, or `None` if cannot parse.
-        """
-        import json
-
-        try:
-            return json.loads(msg,
-                    object_hook=lambda seq: _CommitMsg(**seq))
-        except Exception as ex:
-            if scream:
-                raise
-            else:
-                self.log.warn('Found the non-project commit-msg in project-db'
-                       ', due to: %s\n %s', ex, msg, exc_info=1)
-
-    def _commit(self, index, pname: Text, state, msg):
-        index.commit(self._make_commit_msg(pname, state, msg))
-
-    def _make_readme(self, pname):
-        return textwrap.dedent("""
-        This is the CO2MPAS-project %r (see https://co2mpas.io/ for more).
-
-        - created: %s
-        """ %(pname, datetime.now()))
-
-    def proj_add(self, pname: Text):
-        """
-        :param pname: some branch ref
-        """
-        self.log.info('Creating project %r...', pname)
-        repo = self.repo
-        if self.is_project(pname):
-            raise baseapp.CmdException('Project %r already exists!' % pname)
-        if not pname or not pname.isidentifier():
-            raise baseapp.CmdException('Invalid name %r for a project!' % pname)
-
-        ref_name = _pname2ref_name(pname)
-        repo.git.checkout(ref_name, orphan=True)
-
-        index = repo.index
-        state_fpath = osp.join(repo.working_tree_dir, 'CO2MPAS')
-        with io.open(state_fpath, 'wt') as fp:
-            fp.write(self._make_readme(pname))
-        index.add([state_fpath])
-        self._commit(index, pname, 'empty', 'Project created.')
-
-    def proj_open(self, pname: Text):
-        """
-        :param pname: some branch ref
-        """
-        if not self.is_project(pname, validate=True):
-            raise baseapp.CmdException('Project %r not found!' % pname)
-        self.repo.heads[_pname2ref_name(pname)].checkout()
-
-    def iofiles_list(self) -> dice.IOFiles or None:
-        """Works on current project."""
-        repo = self.repo
-        project = self.proj_current() # XXX: REWORK PROJECT VALIDATION
-        def collect_io_files(io_kind):
-            if io_kind:
-                wd_fpath = osp.join(repo.working_tree_dir, io_kind)
-                fpaths = os.listdir(wd_fpath) if osp.isdir(wd_fpath) else []
-                return [osp.join(wd_fpath, f) for f in fpaths]
-
-        iofpaths = [collect_io_files(io_kind) for io_kind in ('inp', 'out', None)]
-        if any(iofpaths):
-            return dice.IOFiles(*iofpaths)
-
-    def iofiles_import(self, iofiles: dice.IOFiles, force=None):
-        """Works on current project."""
-        import shutil
-
-        def raise_invalid_state(state, pname):
-            raise InvalidProjectState(
-                    "Invalid state %r when importing input/output-files in project %r!"
-                    "\n  Must be in one of: empty | wltp-out | wltp-inp (or `wltp` when --force)."
-                    % (state, pname))
-
-        if force is None:
-            force = self.force
-
-        repo = self.repo
-        pname = self.proj_current() # XXX: REWORK PROJECT VALIDATION
-        state = self._state()
-        if state not in ('empty', 'wltp-out', 'wltp-inp', 'wltp'):
-            raise_invalid_state(state, pname)
-
-        valid_io_kinds = []
-        if state in ('empty', 'wltp-out'):
-            valid_io_kinds.append('inp')
-        if state in ('empty', 'wltp-inp'):
-            valid_io_kinds.append('out')
-
-        index = repo.index
-        nimported = 0
-        for io_kind, fpaths in iofiles._asdict().items():
-            for fpath in fpaths:
-                assert io_kind != 'other', "Other-files: %s" % iofiles.other
-                assert fpath, "Import none as %s file!" % io_kind
-
-                if not force and io_kind not in valid_io_kinds:
-                    raise_invalid_state(state, pname)
-                fdir, fname = osp.split(fpath)
-                wd_fpath = osp.join(repo.working_tree_dir, io_kind, fname)
-                ensure_dir_exists(osp.split(wd_fpath)[0])
-                shutil.copy(fpath, wd_fpath)
-                index.add([wd_fpath])
-                nimported += 1
-
-        self._commit(index, pname, state, 'Imported %d IO-files.' % nimported)
 
 
 
@@ -770,12 +871,7 @@ class ProjectCmd(_PrjCmd):
             if len(args) != 0:
                 raise baseapp.CmdException('Cmd %r takes no arguments, received %r!'
                                    % (self.name, args))
-            pname = self.projects_db.proj_current()
-            if not pname:
-                raise baseapp.CmdException(
-                        "No current-project exists yet!"
-                        "\n  Use `co2mpas project add <project-name>` to create one.")
-            return pname
+            return self.projects_db.current_project()
 
 
     class OpenCmd(_PrjCmd):
@@ -833,39 +929,18 @@ class ProjectCmd(_PrjCmd):
 
         __report = None
 
-        @property
-        def report(self):
-            if not self.__report:
-                self.__report = report.Report(config=self.config)
-            return self.__report
-
         def run(self, *args):
             self.log.info('Importing report files %s...', args)
             if len(args) < 1:
                 raise baseapp.CmdException('Cmd %r takes at least one argument, received %d: %r!'
                                    % (self.name, len(args), args))
-            rep = self.report
-            iofiles = rep.parse_io_args(*args)
+            iofiles = report.parse_io_args(*args)
             if iofiles.other:
                 raise baseapp.CmdException(
                     "Cmd %r filepaths must either start with 'inp=' or 'out=' prefix!\n%s"
                                        % (self.name, '\n'.join('  arg[%d]: %s' % i for i in iofiles.other.items())))
 
-            ## Check extraction of report.
-            #
-            fpath = None
-            try:
-                for fpath in iofiles.inp:
-                    rep.extract_input_params(fpath)
-
-                for fpath in iofiles.out:
-                    list(rep.extract_output_tables(fpath))
-            except Exception as ex:
-                msg = "Failed extracting report-parameters from file %r, due to: %s"
-                self.log.debug(msg, fpath, ex, exc_info=1)
-                raise baseapp.CmdException(msg % (fpath, ex))
-
-            return self.projects_db.iofiles_import(iofiles)
+            return self.projects_db.current_project().import_iof(iofiles=iofiles)
 
 
     class ExamineCmd(_PrjCmd):

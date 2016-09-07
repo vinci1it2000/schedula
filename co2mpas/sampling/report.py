@@ -22,6 +22,33 @@ import pandas as pd
 import traitlets as trt
 
 
+def parse_io_args(*args: Text) -> dice.IOFiles or None:
+    """
+    Separates args into those starting with 'inp=', 'out=', or none.
+
+    For example, given the 3 args::
+
+        'inp=abc', 'out:gg' 'out=bar'
+
+    It will return::
+
+        IOFiles(inp=['abc'], out=['bar'], other={2: 'out:gg'})
+
+    """
+    inp, out = [], []
+    other = {}
+    for i, arg in enumerate(args, 1):
+        m = _file_arg_regex.match(arg)
+        if not m:
+            other[i] = arg
+        else:
+            l = inp if m.group(1).lower() == 'inp' else out
+            l.append(convpath(m.group(2), 0, 0))
+
+    if inp or out or other:
+        return dice.IOFiles(inp, out, other)
+
+
 ###################
 ##     Specs     ##
 ###################
@@ -88,31 +115,12 @@ class Report(baseapp.Spec):
         self.output_tables = tables
         return self.output_tables
 
-    def parse_io_args(self, *args: Text) -> dice.IOFiles or None:
-        """
-        Separates args into those starting with 'inp=', 'out=', or none.
+    def yield_from_iofiles(self, iofiles: dice.IOFiles):
+        for fpath in iofiles.inp:
+            yield self.extract_input_params(convpath(fpath))
 
-        For example, given the 3 args::
-
-            'inp=abc', 'out:gg' 'out=bar'
-
-        It will return::
-
-            IOFiles(inp=['abc'], out=['bar'], other={2: 'out:gg'})
-
-        """
-        inp, out = [], []
-        other = {}
-        for i, arg in enumerate(args, 1):
-            m = _file_arg_regex.match(arg)
-            if not m:
-                other[i] = arg
-            else:
-                l = inp if m.group(1).lower() == 'inp' else out
-                l.append(convpath(m.group(2), 0, 0))
-
-        if inp or out or other:
-            return dice.IOFiles(inp, out, other)
+        for fpath in iofiles.out:
+            yield from self.extract_output_tables(convpath(fpath))
 
 
 ###################
@@ -183,22 +191,17 @@ class ReportCmd(baseapp.Cmd):
 
 
     def _build_io_files_from_project(self, args) -> dice.IOFiles:
-        pdb = self.projects_db
-        pname = pdb.proj_current()
-        if not pname:
-            raise baseapp.CmdException(
-                    "No current-project exists yet!"
-                    "\n  Use `co2mpas project add <project-name>` to create one.")
-        iofiles = pdb.iofiles_list()
+        project = self.projects_db.current_project()
+        iofiles = project.list_iofiles()
         if not iofiles:
             raise baseapp.CmdException(
                     "Current project %r contains no input/output files!"
-                    % pname)
+                    % project.pname)
         return iofiles
 
 
     def _build_io_files_from_args(self, args) -> dice.IOFiles:
-        iofiles = self.report.parse_io_args(*args)
+        iofiles = parse_io_args(*args)
         if iofiles.other:
             raise baseapp.CmdException(
                     "Cmd %r filepaths must either start with 'inp=' or 'out=' prefix!\n%s"
@@ -224,13 +227,7 @@ class ReportCmd(baseapp.Cmd):
                     % (self.name, len(args), args))
             iofiles = self._build_io_files_from_args(args)
 
-        rep = self.report
-
-        for fpath in iofiles.inp:
-            yield rep.extract_input_params(convpath(fpath))
-
-        for fpath in iofiles.out:
-            yield from rep.extract_output_tables(convpath(fpath))
+        yield from self.report.yield_from_iofiles(iofiles)
 
 
 if __name__ == '__main__':

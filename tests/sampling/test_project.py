@@ -86,38 +86,47 @@ class TProjectStory(unittest.TestCase):
         cmd = project.ProjectCmd.ListCmd(config=self._config)
         res = cmd.run()
         self.assertIsNone(res)
+        self.assertIsNone(cmd.projects_db._current_project)
 
         cmd = project.ProjectsDB.instance()
         cmd.config=self._config
 
         res = cmd.proj_list(verbose=1)
         self.assertIsNone(res)
+        self.assertIsNone(cmd._current_project)
 
         res = cmd.proj_list(verbose=2)
         self.assertIsNone(res)
+        self.assertIsNone(cmd._current_project)
 
     def test_1b_empty_infos(self):
         cmd = project.ProjectCmd.ExamineCmd(config=self._config)
         res = cmd.run()
         self.assertIsNotNone(res)
+        self.assertIsNone(cmd.projects_db._current_project)
 
         cmd = project.ProjectsDB.instance()
         cmd.config=self._config
         self._check_infos_shapes(cmd)
+        self.assertIsNone(cmd._current_project)
 
-    def test_1b_empty_cwp(self):
+    def test_1c_empty_cwp(self):
         cmd = project.ProjectCmd.CurrentCmd(config=self._config)
         with self.assertRaisesRegex(baseapp.CmdException, r"No current-project exists yet!"):
             cmd.run()
+        self.assertIsNone(cmd.projects_db._current_project)
 
     def test_2a_add_project(self):
         cmd = project.ProjectCmd.AddCmd(config=self._config)
-        res = cmd.run('foo')
-        self.assertIsNone(res)
+        pname = 'foo'
+        res = cmd.run(pname)
+        self.assertIsInstance(res, project.Project)
+        self.assertEqual(res.pname, pname)
+        self.assertEqual(res.state, 'empty')
 
         cmd = project.ProjectCmd.CurrentCmd(config=self._config)
         res = cmd.run()
-        self.assertEqual(res, 'foo')
+        self.assertEqual(str(res), 'Project(foo: empty)')
 
 
     def test_2b_list(self):
@@ -167,13 +176,16 @@ class TProjectStory(unittest.TestCase):
         self.assertEqual(res, ['* foo'])
 
     def test_4a_add_another_project(self):
+        pname = 'bar'
         cmd = project.ProjectCmd.AddCmd(config=self._config)
-        res = cmd.run('bar')
-        self.assertIsNone(res)
+        res = cmd.run(pname)
+        self.assertIsInstance(res, project.Project)
+        self.assertEqual(res.pname, pname)
+        self.assertEqual(res.state, 'empty')
 
         cmd = project.ProjectCmd.CurrentCmd(config=self._config)
         res = cmd.run()
-        self.assertEqual(res, 'bar')
+        self.assertEqual(str(res), 'Project(%s: empty)' % pname)
 
     def test_4b_list_projects(self):
         cmd = project.ProjectCmd.ListCmd(config=self._config)
@@ -212,17 +224,20 @@ class TProjectStory(unittest.TestCase):
         self._check_infos_shapes(cmd, 'foo')
 
     def test_5_open_other(self):
+        pname = 'foo'
         cmd = project.ProjectCmd.OpenCmd(config=self._config)
-        res = cmd.run('foo')
-        self.assertIsNone(res)
+        res = cmd.run(pname)
+        self.assertIsInstance(res, project.Project)
+        self.assertEqual(res.pname, pname)
+        self.assertEqual(res.state, 'empty')
 
         cmd = project.ProjectCmd.CurrentCmd(config=self._config)
         res = cmd.run()
-        self.assertEqual(res, 'foo')
+        self.assertEqual(str(res), 'Project(%s: empty)' % pname)
 
         cmd = project.ProjectsDB.instance()
         cmd.config=self._config
-        self._check_infos_shapes(cmd, 'foo')
+        self._check_infos_shapes(cmd, pname)
 
     def test_6_open_non_existing(self):
         cmd = project.ProjectCmd.OpenCmd(config=self._config)
