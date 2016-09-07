@@ -66,7 +66,10 @@ try:
 except:
     _mydir = '.'
 
-CmdException = trt.TraitError
+
+class CmdException(trt.TraitError):
+    pass
+
 
 ###############################
 ##  TODO: Move to pandalone  ##
@@ -558,7 +561,7 @@ class Cmd(trtc.Application):
             help="Any *flags* found in this prop up the cmd-chain are merged into :attr:`flags`. """)
 
     def my_cmd_chain(self):
-        """Return the chain of cmd-classes ending up yo self or subapp."""
+        """Return the chain of cmd-classes starting from my self or subapp."""
         cmd_chain = []
         pcl = self.subapp if self.subapp else self
         while pcl:
@@ -702,7 +705,8 @@ class Cmd(trtc.Application):
         :param args: Invoked by :meth:`start()` with :attr:`extra_args`.
         """
         if self.subcommands:
-            cmd_line = ' '.join(cl.name for cl in self.my_cmd_chain())
+            cmd_line = ' '.join(cl.name
+                                for cl in reversed(self.my_cmd_chain()))
             raise CmdException("Specify one of the sub-commands: "
                                "\n    %s\nor type: \n    %s -h"
                                % (', '.join(self.subcommands.keys()), cmd_line))
