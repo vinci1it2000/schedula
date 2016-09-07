@@ -15,6 +15,7 @@ co2dice: prepare/sign/send/receive/validate/archive Type Approval sampling email
 from collections import defaultdict, MutableMapping, OrderedDict, namedtuple
 from datetime import datetime
 from email.mime.text import MIMEText
+import enum
 import imaplib
 import io
 import json
@@ -364,7 +365,11 @@ def __GPG__init__(self, my_gpg_key):
 
 ## Avoid circular deps between report.py <-> project.py,
 #  because it is used in function declarations.
-IOFiles = namedtuple('IOFiles', 'inp out other')
+class IOKind(enum.Enum):
+    inp = 0
+    out = 1
+    other = 2
+IOFiles = namedtuple('IOFiles', list(IOKind.__members__.keys()))
 
 ###################
 ##     Specs     ##

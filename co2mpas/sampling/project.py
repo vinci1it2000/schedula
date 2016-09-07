@@ -17,7 +17,7 @@ import os
 from pandalone import utils as pndlutils
 import textwrap
 from typing import (
-    Any, List, Dict, Sequence, Iterable, Optional, Text, Tuple, Callable)  # @UnusedImport
+    Any, Union, List, Dict, Sequence, Iterable, Optional, Text, Tuple, Callable)  # @UnusedImport
 
 import git  # From: pip install gitpython
 from toolz import itertoolz as itz, dicttoolz as dtz
@@ -93,7 +93,7 @@ def project_zygote(): #-> Project:
     return Project('<zygote>', None)
 
 
-transitions.logger.level = 50 ## FSM logs annoyingly high.
+#transitions.logger.level = 50 ## FSM logs annoyingly high.
 
 class Project(transitions.Machine, baseapp.Spec):
     """The Finite State Machine for the currently project."""
@@ -125,23 +125,32 @@ class Project(transitions.Machine, baseapp.Spec):
         return event.kwargs.get('force', self.force)
 
     def _is_inp_files(self, event):
-        assert 'iofiles' in event.kwargs, ('iofiles', event.kwargs)
-        iofiles = event.kwargs['iofiles']
-        return bool(iofiles and iofiles.inp and not iofiles.out)
+        iofiles = event.kwargs.get('iofiles')
+        assert iofiles, ('iofiles', iofiles, event.kwargs)
+        return bool(iofiles and iofiles.inp and
+                    not (iofiles.out or iofiles.other))
 
     def _is_out_files(self, event):
-        assert 'iofiles' in event.kwargs, ('iofiles', event.kwargs)
-        iofiles = event.kwargs['iofiles']
-        return bool(iofiles and iofiles.out and not iofiles.inp)
+        iofiles = event.kwargs.get('iofiles')
+        assert iofiles, ('iofiles', iofiles, event.kwargs)
+        return bool(iofiles and iofiles.out and
+                    not (iofiles.inp or iofiles.other))
 
-    def _is_all_files(self, event):
-        assert 'iofiles' in event.kwargs, ('iofiles', event.kwargs)
-        iofiles = event.kwargs['iofiles']
-        return bool(iofiles and iofiles.inp and iofiles.out)
+    def _is_inp_out_files(self, event):
+        iofiles = event.kwargs.get('iofiles')
+        assert iofiles, ('iofiles', iofiles, event.kwargs)
+        return bool(iofiles and iofiles.inp and iofiles.out
+                    and not iofiles.other)
+
+    def _is_other_files(self, event):
+        iofiles = event.kwargs.get('iofiles')
+        assert iofiles, ('iofiles', iofiles, event.kwargs)
+        return bool(iofiles and iofiles.other
+                    and not (iofiles.inp or iofiles.out))
 
     def _is_dice_yes(self, event):
-        assert 'timestamped_email' in event.kwargs, ('timestamped_email', event.kwargs)
-        timestamped_email = event.kwargs['timestamped_email']
+        timestamped_email = event.kwargs.get('timestamped_email')
+        assert timestamped_email, ('timestamped_email', timestamped_email, event.kwargs)
         decide_dice(timestamped_email)
 
     def __init__(self, pname, projects_db, **kwds):
@@ -156,14 +165,14 @@ class Project(transitions.Machine, baseapp.Spec):
             # Trigger        Source-state   Dest-state      Conditions          Unless  Before
             ['create',      'UNBOUND',      'empty'],
 
-            ['import_iof',  'empty',        'wltp',         '_is_all_files'],
+            ['import_iof',  'empty',        'wltp',         '_is_inp_out_files'],
             ['import_iof',  'empty',        'wltp_inp',     '_is_inp_files'],
             ['import_iof',  'empty',        'wltp_out',     '_is_out_files'],
 
             ['import_iof',  ['wltp_inp',
                              'wltp_out',
                              'wltp',
-                             'tagged'],     'wltp',         ['_is_all_files', '_is_force']],
+                             'tagged'],     'wltp',         ['_is_inp_out_files', '_is_force']],
 
             ['import_iof',  'wltp_inp',     'wltp_inp',     ['_is_inp_files', '_is_force']],
             ['import_iof',  'wltp_inp',     'wltp',         '_is_out_files'],
@@ -178,8 +187,8 @@ class Project(transitions.Machine, baseapp.Spec):
             ['recv_email',  'mailed',       'dice_no'],
 
             ['import_iof',  ['dice_yes',
-                             'dice_no'],    'nedc'],
-            ['import_iof',  'nedc',         'nedc',         '_is_force'],
+                             'dice_no'],    'nedc',          '_is_other_files'],
+            ['import_iof',  'nedc',         'nedc',         ['_is_other_files', '_is_force']],
         ]
         super().__init__(states=states,
                          initial=states[0],
@@ -221,6 +230,7 @@ class Project(transitions.Machine, baseapp.Spec):
         ======================================================================
         %s
         """) % (self.pname, report)
+
         return msg
 
     def _cb_commit_or_tag(self, event):
@@ -298,7 +308,6 @@ class Project(transitions.Machine, baseapp.Spec):
         for io_kind, fpaths in iofiles._asdict().items():
             for ext_fpath in fpaths:
                 self.log.debug('Importing WLTP %s-file: %s', io_kind, ext_fpath)
-                assert io_kind != 'other', "Other-files: %s" % iofiles.other
                 assert ext_fpath, "Import none as %s file!" % io_kind
 
                 ext_fname = osp.split(ext_fpath)[1]
@@ -311,30 +320,42 @@ class Project(transitions.Machine, baseapp.Spec):
         ## Commit/tag callback expects `action` on event.
         event.kwargs['action'] = 'Imported %d IO-files.' % nimported
 
-    def list_iofiles(self) -> dice.IOFiles or None:
+    def list_iofiles(self, *io_kinds: Union[dice.IOKind, Any]) -> dice.IOFiles or None:
         """
+        :param io_kinds:
+            What files to fetch; by default if none specified,
+            fetches all: inp,  out, other
+            Use this to fetch some::
+
+                self.list_io_files(dice.IOKind.inp, dice.IOKind.out)
+
         :return:
             A class:`dice.IOFiles` containing list of working-dir paths
             for any WLTP files, or none if none exists.
         """
+        if not io_kinds:
+            io_kinds = dice.IOKind.__members__  # @UndefinedVariable
+        io_kinds = [k.name if isinstance(k, dice.IOKind) else str(k)
+                    for k in io_kinds]
+
         repo = self.projects_db.repo
         def collect_kind_files(io_kind):
             if io_kind:
                 wd_fpath = osp.join(repo.working_tree_dir, io_kind)
                 fpaths = os.listdir(wd_fpath) if osp.isdir(wd_fpath) else []
-                return [osp.join(wd_fpath, f) for f in fpaths]
+                return [(io_kind, osp.join(wd_fpath, f))
+                        aaAfor f in fpaths]
 
-        iofpaths = [collect_kind_files(io_kind) for io_kind in ('inp', 'out', None)]
+        iofpaths = [collect_kind_files(io_kind) for io_kind in io_kinds]
         if any(iofpaths):
             return dice.IOFiles(*iofpaths)
 
     def _cb_generate_report(self, event):
         """Triggered by `tag()`, builds the report to use as tag-msg."""
         rep = self._new_report_spec()
-        iofiles = self.list_iofiles()
+        iofiles = self.list_iofiles(dice.IOKind.inp, dice.IOKind.out)
 
-        ## TODO: Report can be more beautiful...
-        report = '\n\n'.join(list(rep.yield_from_iofiles(iofiles)))
+        report = list(rep.yield_from_iofiles(iofiles))
 
         ## Commit/tag callback expects `report` on event.
         event.kwargs['report'] = report

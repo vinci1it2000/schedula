@@ -192,7 +192,7 @@ class ReportCmd(baseapp.Cmd):
 
     def _build_io_files_from_project(self, args) -> dice.IOFiles:
         project = self.projects_db.current_project()
-        iofiles = project.list_iofiles()
+        iofiles = project.list_iofiles(dice.IOKind.inp, dice.IOKind.out)
         if not iofiles:
             raise baseapp.CmdException(
                     "Current %s contains no input/output files!"

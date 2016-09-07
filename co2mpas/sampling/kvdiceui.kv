@@ -32,26 +32,49 @@ Root:
                 id: rendered
                 show_errors: True
 
+<FileDialogShortcut>:
+    #font_size: '11sp'
+    #padding: (2, 2)
+    testure_size: self.size
+    #size_hint: (0.2, 0.3)
+    #size: ("1.5pt")
+
 <LoadDialog>:
     BoxLayout:
         pos: root.pos
         size: root.size
-        FolderView:
+        orientation: "vertical"
+        FileDialogBar:
+            orientation: 'lr-tb'
+            #pos_hint: {'y': 0.1}
+            size_hint_x: 0.618 / 4
+            #size_hint_y: None
+            #height: 30
+            file_dialog: root
+            on_shortcut: root.path = args[1]
+            halign: 'left'
+            font_size: '10sp'
+            size_hint: (None, None)
+            height: 30
+            pos_x: 0
+            #width: (2+len(text))
+            text: root.path
+        FileChooserListView:
+            id: filechooser
+            path: root.path
+            size_hint: (1, 0.8)
+            on_path: root.path = self.path
         BoxLayout:
-            orientation: "vertical"
-            FileChooserListView:
-                id: filechooser
+            size_hint_y: None
+            height: 30
+            Button:
+                text: "Cancel"
+                on_release: root.oncancel()
 
-            BoxLayout:
-                size_hint_y: None
-                height: 30
-                Button:
-                    text: "Cancel"
-                    on_release: root.cancel()
-
-                Button:
-                    text: "Load"
-                    on_release: root.load(filechooser.path, filechooser.selection)
+            Button:
+                text: "Load"
+                on_release: root.onok(filechooser.path, filechooser.selection)
+                on_release: root.store_selection()
 
 <SaveDialog>:
     text_input: text_input
@@ -59,8 +82,11 @@ Root:
         size: root.size
         pos: root.pos
         orientation: "vertical"
+        FileDialogBar:
+            file_dialog: root
         FileChooserListView:
             id: filechooser
+            path: root.path
             on_selection: text_input.text = self.selection and self.selection[0] or ''
 
         TextInput:
@@ -74,8 +100,9 @@ Root:
             height: 30
             Button:
                 text: "Cancel"
-                on_release: root.cancel()
+                on_release: root.oncancel()
 
             Button:
                 text: "Save"
-                on_release: root.save(filechooser.path, text_input.text)
+                on_release: root.onok(filechooser.path, text_input.text)
+                on_release: root.store_selection()

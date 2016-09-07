@@ -23,7 +23,6 @@ from PIL import Image, ImageTk
 import pkg_resources as pkg
 
 
-__commit__ = ""
 log = logging.getLogger(__name__)
 
 _bw = 2
@@ -300,14 +299,16 @@ class PythonVar(tk.StringVar):
 
 
 class _MainPanel(tk.Frame):
-
     def __init__(self, parent, *args, **kwargs):
         tk.Frame.__init__(self, parent, *args, **kwargs)
 
         nb = ttk.Notebook(self)
         nb.pack(fill=tk.BOTH, expand=1)
 
-        main = tk.Frame(self, **_raised)
+        slider = tk.PanedWindow(self, orient=tk.HORIZONTAL)
+        slider.pack(fill=tk.BOTH, expand=1)
+
+        main = tk.Frame(slider, **_sunken)
         self.buttons_frame = tk.Frame(main)
         self.buttons_frame.pack(side=tk.RIGHT, fill=tk.Y)
 
@@ -329,6 +330,48 @@ class _MainPanel(tk.Frame):
         nb.add(main, text='main')
         prefs = self._make_prefs(nb)
         nb.add(prefs, text='Preferences')
+
+    PROJECT = "Project"
+    NVEHS = "# of Vechicles"
+    LUPDATED = "Last Updated"
+    USER = "User"
+    DESC = "Description"
+    columns = OrderedDict([
+            (PROJECT,   {'visible': True, 'kw': {'width': 100}}),
+            (NVEHS,     {'visible': True}),
+            (LUPDATED,  {'visible': True}),
+            (USER,      {'visible': True}),
+            (DESC,      {'visible': False}),
+    ])
+
+    def _build_tree(self, root):
+        visible_columns = tuple(k for k, v in self.columns.items() if v['visible'])
+        tree = ttk.Treeview(root, columns=self.columns.keys(), displaycolumns=visible_columns)
+
+        for col, cdata in self.columns.items():
+            kw = cdata.get('kw')
+            if kw:
+                tree.column(col, **kw)
+        for col in visible_columns:
+            tree.heading(col, col)
+
+        tree.insert("", 0, iid='/', text="Model",  open=True)
+
+        tree.bind('<<TreeviewSelect>>', self._do_node_selected)
+        return tree
+        tags = [
+            [_ModelPanel.TAG_ERROR,     dict(foreground="red")],
+            [_ModelPanel.TAG_MISSING,   dict(background="grey")],
+            [_ModelPanel.TAG_REQUIRED,  dict(font="underline")],
+            [_ModelPanel.TAG_VIRTUAL,   dict(
+                foreground="blue", font="italic")],
+            [_ModelPanel.TAG_EXTRA,     dict(font="arial overstrike")],
+        ]
+        for tag, kws in tags:
+            self._log_text.tag_config(tag, **kws)
+        self._log_text.tag_raise(tk.SEL)
+
+        return tree
 
     def _make_prefs(self, nb):
         prefs = tk.Frame(nb, **_raised)

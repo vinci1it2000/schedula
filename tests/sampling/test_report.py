@@ -17,6 +17,7 @@ from traitlets.config import get_config
 
 from co2mpas.__main__ import init_logging
 from co2mpas.sampling import baseapp, report, project
+from tests.sampling import _inp_fpath, _out_fpath
 import os.path as osp
 import pandas as pd
 
@@ -45,10 +46,6 @@ class TApp(unittest.TestCase):
         c.ReportCmd.raise_config_file_errors = True
         cmd = report.ReportCmd(config=c)
         meth(cmd)
-
-
-_inp_fpath = osp.join(mydir, '..', '..', 'co2mpas', 'demos', 'co2mpas_demo-0.xlsx')
-_out_fpath = osp.join(mydir, 'output.xlsx')
 
 
 class TReportArgs(unittest.TestCase):

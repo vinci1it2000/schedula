@@ -17,6 +17,7 @@ from traitlets.config import get_config
 
 from co2mpas.__main__ import init_logging
 from co2mpas.sampling import baseapp, dice, project
+from tests.sampling import _inp_fpath, _out_fpath
 import itertools as itt
 import os.path as osp
 import pandas as pd
@@ -53,7 +54,7 @@ class TApp(unittest.TestCase):
 
 
 @ddt.ddt
-class TProjectStory(unittest.TestCase):
+class TProjectsDBStory(unittest.TestCase):
     ## INFO: Must run a whole, ordering of TCs matter.
 
     @classmethod
@@ -88,16 +89,16 @@ class TProjectStory(unittest.TestCase):
         self.assertIsNone(res)
         self.assertIsNone(cmd.projects_db._current_project)
 
-        cmd = project.ProjectsDB.instance()
-        cmd.config=self._config
+        pdb = project.ProjectsDB.instance()
+        pdb.update_config(self._config)
 
-        res = cmd.proj_list(verbose=1)
+        res = pdb.proj_list(verbose=1)
         self.assertIsNone(res)
-        self.assertIsNone(cmd._current_project)
+        self.assertIsNone(pdb._current_project)
 
-        res = cmd.proj_list(verbose=2)
+        res = pdb.proj_list(verbose=2)
         self.assertIsNone(res)
-        self.assertIsNone(cmd._current_project)
+        self.assertIsNone(pdb._current_project)
 
     def test_1b_empty_infos(self):
         cmd = project.ProjectCmd.ExamineCmd(config=self._config)
@@ -105,10 +106,10 @@ class TProjectStory(unittest.TestCase):
         self.assertIsNotNone(res)
         self.assertIsNone(cmd.projects_db._current_project)
 
-        cmd = project.ProjectsDB.instance()
-        cmd.config=self._config
-        self._check_infos_shapes(cmd)
-        self.assertIsNone(cmd._current_project)
+        pdb = project.ProjectsDB.instance()
+        pdb.update_config(self._config)
+        self._check_infos_shapes(pdb)
+        self.assertIsNone(pdb._current_project)
 
     def test_1c_empty_cwp(self):
         cmd = project.ProjectCmd.CurrentCmd(config=self._config)
@@ -134,15 +135,15 @@ class TProjectStory(unittest.TestCase):
         res = cmd.run()
         self.assertEqual(res, ['* foo'])
 
-        cmd = project.ProjectsDB.instance()
-        cmd.config=self._config
+        pdb = project.ProjectsDB.instance()
+        pdb.update_config(self._config)
 
-        res = cmd.proj_list(verbose=1)
+        res = pdb.proj_list(verbose=1)
         self.assertIsInstance(res, pd.DataFrame)
         self.assertEqual(res.shape, (1, 7), res)
         self.assertIn('* foo', str(res))
 
-        res = cmd.proj_list(verbose=2)
+        res = pdb.proj_list(verbose=2)
         self.assertIsInstance(res, pd.DataFrame)
         self.assertEqual(res.shape, (1, 7), res)
         self.assertIn('* foo', str(res))
@@ -152,9 +153,9 @@ class TProjectStory(unittest.TestCase):
         res = cmd.run()
         self.assertRegex(res, 'msg.project += foo')
 
-        cmd = project.ProjectsDB.instance()
-        cmd.config=self._config
-        self._check_infos_shapes(cmd)
+        pdb = project.ProjectsDB.instance()
+        pdb.update_config(self._config)
+        self._check_infos_shapes(pdb)
 
     def test_3a_add_same_project__fail(self):
         cmd = project.ProjectCmd.AddCmd(config=self._config)
@@ -192,15 +193,15 @@ class TProjectStory(unittest.TestCase):
         res = cmd.run()
         self.assertSequenceEqual(res, ['* bar', '  foo'])
 
-        cmd = project.ProjectsDB.instance()
-        cmd.config=self._config
+        pdb = project.ProjectsDB.instance()
+        pdb.update_config(self._config)
 
-        res = cmd.proj_list(verbose=1)
+        res = pdb.proj_list(verbose=1)
         self.assertIsInstance(res, pd.DataFrame)
         self.assertEqual(res.shape, (2, 7), res)
         self.assertIn('* bar', str(res))
 
-        res = cmd.proj_list(verbose=2)
+        res = pdb.proj_list(verbose=2)
         self.assertIsInstance(res, pd.DataFrame)
         self.assertEqual(res.shape, (2, 7), res)
         self.assertIn('* bar', str(res))
@@ -210,18 +211,18 @@ class TProjectStory(unittest.TestCase):
         res = cmd.run()
         self.assertRegex(res, 'msg.project += bar')
 
-        cmd = project.ProjectsDB.instance()
-        cmd.config=self._config
-        self._check_infos_shapes(cmd)
+        pdb = project.ProjectsDB.instance()
+        pdb.update_config(self._config)
+        self._check_infos_shapes(pdb)
 
     def test_4d_forced_infos(self):
         cmd = project.ProjectCmd.ExamineCmd(config=self._config)
         res = cmd.run('foo')
         self.assertRegex(res, 'msg.project += bar')
 
-        cmd = project.ProjectsDB.instance()
-        cmd.config=self._config
-        self._check_infos_shapes(cmd, 'foo')
+        pdb = project.ProjectsDB.instance()
+        pdb.update_config(self._config)
+        self._check_infos_shapes(pdb, 'foo')
 
     def test_5_open_other(self):
         pname = 'foo'
@@ -235,14 +236,71 @@ class TProjectStory(unittest.TestCase):
         res = cmd.run()
         self.assertEqual(str(res), 'Project(%s: empty)' % pname)
 
-        cmd = project.ProjectsDB.instance()
-        cmd.config=self._config
-        self._check_infos_shapes(cmd, pname)
+        pdb = project.ProjectsDB.instance()
+        pdb.update_config(self._config)
+        self._check_infos_shapes(pdb, pname)
 
     def test_6_open_non_existing(self):
         cmd = project.ProjectCmd.OpenCmd(config=self._config)
         with self.assertRaisesRegex(baseapp.CmdException, "Project 'who' not found!"):
             cmd.run('who')
+
+
+
+@ddt.ddt
+class TProjectStory(unittest.TestCase):
+    ## INFO: Must run a whole, ordering of TCs matter.
+
+    @classmethod
+    def setUpClass(cls):
+        cls._project_repo = tempfile.TemporaryDirectory()
+        log.debug('Temp-repo: %s', cls._project_repo)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._project_repo.cleanup()
+
+    @property
+    def _config(self):
+        c = get_config()
+        c.ProjectsDB.repo_path = self._project_repo.name
+        c.Spec.verbose = c.ProjectsDB.verbose = 0
+        return c
+
+    def _check_infos_shapes(self, proj, pname=None):
+        res = proj.proj_examine(pname=pname, verbose=0)
+        self.assertEqual(len(res), 7, res)
+
+        res = proj.proj_examine(pname=pname, verbose=1)
+        self.assertEqual(len(res), 14, res)
+
+        res = proj.proj_examine(pname=pname, verbose=2)
+        self.assertEqual(len(res), 32, res)
+
+    def test_1_add_project(self):
+        cmd = project.ProjectCmd.AddCmd(config=self._config)
+        pname = 'foo'
+        res = cmd.run(pname)
+        self.assertIsInstance(res, project.Project)
+        self.assertEqual(res.pname, pname)
+        self.assertEqual(res.state, 'empty')
+
+
+    def test_2_import_io(self):
+        cmd = project.ProjectCmd.AddReportCmd(config=self._config)
+        res = cmd.run('inp=%s' % _inp_fpath, 'out=%s' % _out_fpath)
+        self.assertTrue(res)
+
+    def test_3_list_iofiles(self):
+        pdb = project.ProjectsDB.instance()
+        pdb.update_config(self._config)
+
+        p = pdb.current_project()
+        iof = p.list_iofiles(list(dice.IOKind.__members__))  # @UndefinedVariable
+        self.assertIsNone(iof)
+        self.assertEqual(len(iof.inp, 1))
+        self.assertEqual(len(iof.out, 1))
+        self.assertFalse(iof.other)
 
 
 class TBackupCmd(unittest.TestCase):

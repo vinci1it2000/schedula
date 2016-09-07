@@ -540,15 +540,15 @@ class Dispatcher(object):
             if START not in self.nodes:
                 self.add_data(START)
 
-            inputs = [START]  # Update inputs.
+            inputs = [START]  # Update inputs.  [ank:] Really!?!
 
         if outputs is None:  # Set a dummy output.
             if SINK not in self.nodes:
                 self.add_data(SINK)
 
-            outputs = [SINK]  # Update outputs.
+            outputs = [SINK]  # Update outputs. [ank:] How is that!?!
 
-        # Get parent function.
+        # Get parent function. [ank:] Obviously...
         func = parent_func(function)
 
         if self._check_func_parent(func):
@@ -562,7 +562,7 @@ class Dispatcher(object):
                      'function': function,
                      'wait_inputs': True}
 
-        if input_domain:  # Add domain as node attribute.
+        if input_domain:  # Add domain as node attribute. [ank:] So is this what you 're doing here??
             attr_dict['input_domain'] = input_domain
 
         if description is not None:  # Add description as node attribute.
@@ -3105,8 +3105,8 @@ class Dispatcher(object):
         if self.raises:
             raise DispatcherError(self, msg, node_id, ex, *args, **kwargs)
         else:
-            kwargs['exc_info'] = kwargs.get('exc_info', 1)
-            log.error(msg, node_id, ex, *args, **kwargs)
+            log.error(msg, node_id, ex, *args,
+                      exc_info=kwargs.pop('exc_info', 1), **kwargs)
 
     def _update_children_parent(self, parent=None):
         self._parent = parent
