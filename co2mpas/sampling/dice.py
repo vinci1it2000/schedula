@@ -15,7 +15,6 @@ co2dice: prepare/sign/send/receive/validate/archive Type Approval sampling email
 from collections import defaultdict, MutableMapping, OrderedDict, namedtuple
 from datetime import datetime
 from email.mime.text import MIMEText
-import enum
 import imaplib
 import io
 import json
@@ -37,18 +36,16 @@ from boltons.setutils import IndexedSet as iset
 import git  # from *gitpython* distribution
 import gnupg
 import keyring
-from toolz import dicttoolz
-from toolz import itertoolz as itz
+from toolz import dicttoolz as dtz, itertoolz as itz
 
 from co2mpas import __uri__  # @UnusedImport
 from co2mpas.__main__ import init_logging
 from co2mpas._version import (__version__, __updated__, __file_version__,   # @UnusedImport
                               __input_file_version__, __copyright__, __license__)  # @UnusedImport
-from co2mpas.sampling import baseapp
+from co2mpas.sampling import baseapp, CmdException
 from co2mpas.sampling.baseapp import (APPNAME, Cmd, build_sub_cmds,
                                       chain_cmds)  # @UnusedImport
-from co2mpas.sampling.baseapp import convpath, default_config_dir, ensure_dir_exists
-from co2mpas.sampling.baseapp import where, which
+import pandalone.utils as pndlu
 import functools as ft
 import itertools as itt
 import os.path as osp
@@ -128,7 +125,7 @@ def retrieve_secret(master_pswd, key):
 def _describe_gpg(gpg):
     gpg_path = gpg.gpgbinary
     if not osp.isabs(gpg_path):
-        gpg_path = shutil.which(gpg_path)
+        gpg_path = shutil.pndlu.which(gpg_path)
 
     ver = str(gpg.version)
     nprivkeys = len(gpg.list_keys(True))
@@ -139,7 +136,7 @@ def _describe_gpg(gpg):
 def collect_gpgs():
     inc_errors=1
     gpg_kws={}
-    gpg_paths = iset(itt.chain.from_iterable(where(prog) for prog in ('gpg2', 'gpg')))
+    gpg_paths = iset(itt.chain.from_iterable(pndlu.where(prog) for prog in ('gpg2', 'gpg')))
     gnupghome = osp.expanduser('~/.gnupg')
     gpg_avail = []
     for gpg_path in gpg_paths:
@@ -231,7 +228,7 @@ def _log_into_server(login_cb, login_cmd, prompt):
         except smtplib.SMTPAuthenticationError as ex:
             login_cb.report_failure('%r' % ex)
     else:
-        raise baseapp.CmdException("User abort logging into %r email-server." % prompt)
+        raise CmdException("User abort logging into %r email-server." % prompt)
 
 
 def send_timestamped_email(msg, sender, recipients, host,
@@ -356,20 +353,12 @@ class DiceGPG(gnupg.GPG):
 
 def __GPG__init__(self, my_gpg_key):
     gpg_prog = 'gpg2.exe'
-    gpg2_path = which(prog)
+    gpg2_path = pndlu.which(prog)
     self.assertIsNotNone(gpg2_path)
     gpg=gnupg.GPG(r'C:\Program Files (x86)\GNU\GnuPG\gpg2.exe')
     self.my_gpg_key
     self._cfg = read_config('co2mpas')
 
-
-## Avoid circular deps between report.py <-> project.py,
-#  because it is used in function declarations.
-class IOKind(enum.Enum):
-    inp = 0
-    out = 1
-    other = 2
-IOFiles = namedtuple('IOFiles', list(IOKind.__members__.keys()))
 
 ###################
 ##     Specs     ##
@@ -383,7 +372,7 @@ class GpgSpec(trtc.SingletonConfigurable, baseapp.Spec):
     exec_path = trt.Unicode(None, allow_none=True,
             help="""
             The path to GnuPG executable; if None, the first one in PATH variable is used: '{gpgexec}'.
-            """.format(gpgexec=convpath(which('gpg')))).tag(config=True)
+            """.format(gpgexec=pndlu.convpath(pndlu.which('gpg')))).tag(config=True)
 
     home = trt.Unicode(None, allow_none=True,
             help="""
@@ -480,7 +469,7 @@ class GenConfigCmd(Cmd):
 
 
     ## Class-docstring CANNOT contain string-interpolations!
-    description = trt.Unicode(__doc__.format(confpath=convpath('~/.%s_config.py' % APPNAME),
+    description = trt.Unicode(__doc__.format(confpath=pndlu.convpath('~/.%s_config.py' % APPNAME),
                                  appname=APPNAME))
 
     examples = trt.Unicode("""
@@ -543,7 +532,7 @@ def main(argv=None, verbose=None, **app_init_kwds):
         ##MainCmd.launch_instance(argv or None, **app_init_kwds) ## NO No, does not return `start()`!
         app = MainCmd.instance(**app_init_kwds)
         run_cmd(app, argv)
-    except (baseapp.CmdException, trt.TraitError) as ex:
+    except (CmdException, trt.TraitError) as ex:
         ## Suppress stack-trace for "expected" errors.
         log.debug('App exited due to: %s', ex, exc_info=1)
         exit(ex.args[0])

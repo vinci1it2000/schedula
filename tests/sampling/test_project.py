@@ -16,7 +16,7 @@ import ddt
 from traitlets.config import get_config
 
 from co2mpas.__main__ import init_logging
-from co2mpas.sampling import baseapp, dice, project
+from co2mpas.sampling import baseapp, dice, project, PFiles, all_io_kinds
 from tests.sampling import _inp_fpath, _out_fpath
 import itertools as itt
 import os.path as osp
@@ -248,7 +248,7 @@ class TProjectsDBStory(unittest.TestCase):
 
 
 @ddt.ddt
-class TProjectStory(unittest.TestCase):
+class TStraightStory(unittest.TestCase):
     ## INFO: Must run a whole, ordering of TCs matter.
 
     @classmethod
@@ -286,21 +286,78 @@ class TProjectStory(unittest.TestCase):
         self.assertEqual(res.state, 'empty')
 
 
-    def test_2_import_io(self):
+    def test_2a_import_io(self):
+        pdb = project.ProjectsDB.instance()
+        pdb.update_config(self._config)
+        p = pdb.current_project()
+
         cmd = project.ProjectCmd.AddReportCmd(config=self._config)
         res = cmd.run('inp=%s' % _inp_fpath, 'out=%s' % _out_fpath)
         self.assertTrue(res)
 
+        p2 = pdb.current_project()
+        self.assertIs(p, p2)
+
     def test_3_list_iofiles(self):
         pdb = project.ProjectsDB.instance()
         pdb.update_config(self._config)
-
         p = pdb.current_project()
-        iof = p.list_iofiles(list(dice.IOKind.__members__))  # @UndefinedVariable
-        self.assertIsNone(iof)
-        self.assertEqual(len(iof.inp, 1))
-        self.assertEqual(len(iof.out, 1))
+
+        iof = p.list_pfiles()
+        self.assertIsNotNone(iof)
+        self.assertEqual(len(iof.inp), 1)
+        self.assertEqual(len(iof.out), 1)
         self.assertFalse(iof.other)
+
+    def test_4_tag(self):
+        pdb = project.ProjectsDB.instance()
+        pdb.update_config(self._config)
+        p = pdb.current_project()
+
+        res = p.do_tagreport()
+        self.assertTrue(res)
+        self.assertEqual(p.state, 'tagged')
+
+        p2 = pdb.current_project()
+        self.assertIs(p, p2)
+
+    def test_5_send_email(self):
+        pdb = project.ProjectsDB.instance()
+        pdb.update_config(self._config)
+        p = pdb.current_project()
+
+        res = p.do_sendmail()
+        self.assertTrue(res)
+        self.assertEqual(p.state, 'mailed')
+
+        p2 = pdb.current_project()
+        self.assertIs(p, p2)
+
+    def test_6_receive_email(self):
+        pdb = project.ProjectsDB.instance()
+        pdb.update_config(self._config)
+        p = pdb.current_project()
+
+        res = p.do_recvmail(mail='Hi there')
+        self.assertIsInstance(res, bool)
+        self.assertIn(p.state, ('dice_yes', 'dice_no'))
+
+        p2 = pdb.current_project()
+        self.assertIs(p, p2)
+
+    def test_7_add_nedc_files(self):
+        pdb = project.ProjectsDB.instance()
+        pdb.update_config(self._config)
+        p = pdb.current_project()
+
+        #pfiles = PFiles(other=[osp.join(mydir, '%s.py' % __file__)])
+        pfiles = PFiles(other=[__file__])
+        res = p.do_addfiles(pfiles=pfiles)
+        self.assertTrue(res)
+        self.assertEqual(p.state, 'nedc')
+
+        p2 = pdb.current_project()
+        self.assertIs(p, p2)
 
 
 class TBackupCmd(unittest.TestCase):

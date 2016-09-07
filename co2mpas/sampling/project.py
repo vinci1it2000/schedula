@@ -10,11 +10,9 @@
 from collections import (defaultdict, OrderedDict, namedtuple)  # @UnusedImport
 import copy
 from datetime import datetime
-import inspect
 import io
 import json
 import os
-from pandalone import utils as pndlutils
 import textwrap
 from typing import (
     Any, Union, List, Dict, Sequence, Iterable, Optional, Text, Tuple, Callable)  # @UnusedImport
@@ -23,23 +21,22 @@ import git  # From: pip install gitpython
 from toolz import itertoolz as itz, dicttoolz as dtz
 import transitions
 
-from co2mpas import __uri__  # @UnusedImport
-from co2mpas import utils
-from co2mpas._version import (__version__, __updated__, __file_version__,   # @UnusedImport
-                              __input_file_version__, __copyright__, __license__)  # @UnusedImport
-from co2mpas.sampling import baseapp, dice, report
-from co2mpas.sampling.baseapp import convpath, ensure_dir_exists, where, first_line
 import functools as fnt
 import os.path as osp
+import pandalone.utils as pndlu
 import traitlets as trt
 import traitlets.config as trtc
 
+from . import baseapp, dice, report, CmdException, PFiles
+from .. import __uri__  # @UnusedImport
+from .. import utils
+from .._version import (__version__, __updated__, __file_version__,   # @UnusedImport
+                        __input_file_version__, __copyright__, __license__)  # @UnusedImport
 
 
 ###################
 ##     Specs     ##
 ###################
-
 PROJECT_VERSION = '0.0.2'  ## TODO: Move to `co2mpas/_version.py`.
 
 def split_version(v):
@@ -94,13 +91,24 @@ def project_zygote(): #-> Project:
 
 
 #transitions.logger.level = 50 ## FSM logs annoyingly high.
+def _event_data(event, dname, dtype=None):
+    data = event.kwargs.get(dname)
+    assert data, (
+                "Missing event-data(%r) from event: %s"
+                % (dname, vars(event)))
+    if dtype:
+        assert isinstance(data, dtype), (
+                "Expected TYPE of event-data(%r) is %r, but was %r!"
+                "\n  data: %s\n  event: %s"
+                % (dname, dtype, type(data), data, vars(event)))
+    return data
+
 
 class Project(transitions.Machine, baseapp.Spec):
-    """The Finite State Machine for the currently project."""
+    """The Finite State Machine for the currently checked-out project."""
 
-    @trt.observe('log_level')
-    def set_fsm_loglevel(self, change):
-        transitions.logger.level = change['new']
+    error = None
+    """Store any problems when state 'INVALID'. """
 
     def fork(self, pname, projects_db, config):
         """
@@ -119,96 +127,115 @@ class Project(transitions.Machine, baseapp.Spec):
 
     def __str__(self, *args, **kwargs):
         #TODO: Obey verbosity on project-str.
-        return 'Project(%s: %s)' % (self.pname, self.state)
+        if self.error:
+            s = 'Project(%s: %s, error: %s)' % (self.pname, self.state, self.error)
+        else:
+            s = 'Project(%s: %s)' % (self.pname, self.state)
+        return s
 
     def _is_force(self, event):
         return event.kwargs.get('force', self.force)
 
     def _is_inp_files(self, event):
-        iofiles = event.kwargs.get('iofiles')
-        assert iofiles, ('iofiles', iofiles, event.kwargs)
-        return bool(iofiles and iofiles.inp and
-                    not (iofiles.out or iofiles.other))
+        pfiles =_event_data(event, 'pfiles', PFiles)
+        return bool(pfiles and pfiles.inp and
+                    not (pfiles.out or pfiles.other))
 
     def _is_out_files(self, event):
-        iofiles = event.kwargs.get('iofiles')
-        assert iofiles, ('iofiles', iofiles, event.kwargs)
-        return bool(iofiles and iofiles.out and
-                    not (iofiles.inp or iofiles.other))
+        pfiles =_event_data(event, 'pfiles', PFiles)
+        return bool(pfiles and pfiles.out and
+                    not (pfiles.inp or pfiles.other))
 
     def _is_inp_out_files(self, event):
-        iofiles = event.kwargs.get('iofiles')
-        assert iofiles, ('iofiles', iofiles, event.kwargs)
-        return bool(iofiles and iofiles.inp and iofiles.out
-                    and not iofiles.other)
+        pfiles =_event_data(event, 'pfiles', PFiles)
+        return bool(pfiles and pfiles.inp and pfiles.out
+                    and not pfiles.other)
 
     def _is_other_files(self, event):
-        iofiles = event.kwargs.get('iofiles')
-        assert iofiles, ('iofiles', iofiles, event.kwargs)
-        return bool(iofiles and iofiles.other
-                    and not (iofiles.inp or iofiles.out))
-
-    def _is_dice_yes(self, event):
-        timestamped_email = event.kwargs.get('timestamped_email')
-        assert timestamped_email, ('timestamped_email', timestamped_email, event.kwargs)
-        decide_dice(timestamped_email)
+        pfiles =_event_data(event, 'pfiles', PFiles)
+        return bool(pfiles and pfiles.other
+                    and not (pfiles.inp or pfiles.out))
 
     def __init__(self, pname, projects_db, **kwds):
         """DO NOT INVOKE THIS; create it through :meth:`ProjectsDB._conceive_project()`."""
         self.pname = pname
         self.projects_db = projects_db
         states = [
-            'UNBOUND', 'INVALID', 'empty', 'wltp_out', 'wltp_inp', 'wltp', 'tagged',
+            'UNBORN', 'INVALID', 'empty', 'wltp_out', 'wltp_inp', 'wltp_iof', 'tagged',
             'mailed', 'dice_yes', 'dice_no', 'nedc',
         ]
         trans = [
-            # Trigger        Source-state   Dest-state      Conditions          Unless  Before
-            ['create',      'UNBOUND',      'empty'],
+            # Trigger        Source-state   Dest-state      Conditions
+            ['do_invalidate',   '*',        'INVALID', None, None, '_cb_invalidated'],
 
-            ['import_iof',  'empty',        'wltp',         '_is_inp_out_files'],
-            ['import_iof',  'empty',        'wltp_inp',     '_is_inp_files'],
-            ['import_iof',  'empty',        'wltp_out',     '_is_out_files'],
+            ['do_createme', 'UNBORN',       'empty'],
 
-            ['import_iof',  ['wltp_inp',
+            ['do_addfiles', 'empty',        'wltp_iof',     '_is_inp_out_files'],
+            ['do_addfiles', 'empty',        'wltp_inp',     '_is_inp_files'],
+            ['do_addfiles', 'empty',        'wltp_out',     '_is_out_files'],
+
+            ['do_addfiles', ['wltp_inp',
                              'wltp_out',
-                             'wltp',
-                             'tagged'],     'wltp',         ['_is_inp_out_files', '_is_force']],
+                             'wltp_iof',
+                             'tagged'],     'wltp_iof',     ['_is_inp_out_files', '_is_force']],
 
-            ['import_iof',  'wltp_inp',     'wltp_inp',     ['_is_inp_files', '_is_force']],
-            ['import_iof',  'wltp_inp',     'wltp',         '_is_out_files'],
+            ['do_addfiles', 'wltp_inp',     'wltp_inp',     ['_is_inp_files', '_is_force']],
+            ['do_addfiles', 'wltp_inp',     'wltp_iof',     '_is_out_files'],
 
-            ['import_iof',  'wltp_out',     'wltp_out',     ['_is_out_files', '_is_force']],
-            ['import_iof',  'wltp_out',     'wltp',         '_is_inp_files'],
+            ['do_addfiles', 'wltp_out',     'wltp_out',     ['_is_out_files', '_is_force']],
+            ['do_addfiles', 'wltp_out',     'wltp_iof',     '_is_inp_files'],
 
-            ['tag',         'wltp',         'tagged'],
+            ['do_tagreport','wltp_iof',     'tagged'],
 
-            ['send_email',  'tagged',       'mailed'],
-            ['recv_email',  'mailed',       'dice_yes',     '_is_dice_yes'],
-            ['recv_email',  'mailed',       'dice_no'],
+            ['do_sendmail', 'tagged',       'mailed'],
 
-            ['import_iof',  ['dice_yes',
-                             'dice_no'],    'nedc',          '_is_other_files'],
-            ['import_iof',  'nedc',         'nedc',         ['_is_other_files', '_is_force']],
+            ['do_recvmail', 'mailed',       'dice_yes',     '_cond_is_dice_yes'],
+            ['do_recvmail', 'mailed',       'dice_no'],
+
+            ['do_addfiles', ['dice_yes',
+                             'dice_no'],    'nedc',         '_is_other_files'],
+            ['do_addfiles', 'nedc',         'nedc',         ['_is_other_files', '_is_force']],
         ]
         super().__init__(states=states,
                          initial=states[0],
                          transitions=trans,
                          send_event=True,
-                         after_state_change=self._cb_commit_or_tag,
+                         after_state_change='_cb_commit_or_tag',
                          auto_transitions=False,
                          name=pname,
                          **kwds)
-        self.on_enter_empty(    self._cb_stage_new_project_content)
-        self.on_enter_tagged(   self._cb_generate_report)
-        self.on_enter_wltp_inp( self._cb_stage_iofiles)
-        self.on_enter_wltp_out( self._cb_stage_iofiles)
-        self.on_enter_wltp(     self._cb_stage_iofiles)
-        self.on_enter_nedc(     self._cb_stage_iofiles)
+        self.on_enter_empty(    '_cb_stage_new_project_content')
+        self.on_enter_tagged(   '_cb_generate_report')
+        self.on_enter_wltp_inp( '_cb_stage_pfiles')
+        self.on_enter_wltp_out( '_cb_stage_pfiles')
+        self.on_enter_wltp_iof( '_cb_stage_pfiles')
+        self.on_enter_nedc(     '_cb_stage_pfiles')
+        self.on_enter_mailed(   '_cb_send_email')
+
+
+    def attempt_repair(self, force=None):
+        if force is None:
+            force = self.force
+        ## TODO: IMPL REPAIR CUR PROJECT
+        self.log.warning('TODO: IMPL REPAIR CUR PROJECT')
+
+    def _cb_invalidated(self, event):
+        """
+        Triggered by `do_invalidate(error=<ex>)` on BEFORE transition.
+
+        :param error:
+                The invalidation-cause, if any, stored on :attr:`Project.error`
+                as ``(<prev-state>, error)`` for future reference.
+        """
+        self.log.error('Invalidating current %s with event: %s',
+                       self, event.kwargs)
+        self.error = (self.state, event.kwargs.get('error'))
 
     def _make_commit_msg(self, action):
         action = '\n'.join(textwrap.wrap(action, width=50))
         cmsg = _CommitMsg(self.pname, self.state, action, PROJECT_VERSION)
         return json.dumps(cmsg._asdict(), indent=2)
+
 
     @classmethod
     def parse_commit_msg(self, cmsg_js, scream=False):
@@ -218,40 +245,41 @@ class Project(transitions.Machine, baseapp.Spec):
         return json.loads(cmsg_js,
                 object_hook=lambda seq: _CommitMsg(**seq))
 
+
     def _make_tag_msg(self, report):
         """
         :param report: a list of extracted params
         """
-        ## TODO: Report can be more beautiful...
-        report_str = '\n\n'.join(report)
+        ## TODO: Report can be more beautiful...YAML!??
+        report_str = '\n\n'.join(str(r) for r in report)
 
         msg = textwrap.dedent("""
         Report for CO2MPAS-project: %r
         ======================================================================
         %s
-        """) % (self.pname, report)
+        """) % (self.pname, report_str)
 
         return msg
 
+
     def _cb_commit_or_tag(self, event):
-        """Executed on ENTER for all states."""
+        """ Executed on EXIT for all states, and commits/tags into repo. """
         state = self.state
         if state.islower():
             repo = self.projects_db.repo
             if state == 'tagged':
                 self.log.debug('Tagging %s...', event.kwargs)
-                assert 'report' in event.kwargs, ('report', event.kwargs)
-                report = event.kwargs['report']
-                msg = self._make_tag_msg(self.pname, report)
+                report = _event_data(event, 'report')
+                msg = self._make_tag_msg(report)
                 tref = _tname2ref_name(self.pname)
-                repo.create_tag(tref, msg=msg) ## TODO: GPG!!
+                repo.create_tag(tref, message=msg) ## TODO: GPG!!
             else:
                 self.log.debug('Committing %s...', event.kwargs)
-                assert 'action' in event.kwargs, ('action', event.kwargs)
-                action = event.kwargs['action']
+                action = _event_data(event, 'action')
                 index = repo.index
                 cmsg_js = self._make_commit_msg(action)
                 index.commit(cmsg_js)
+
 
     def _make_readme(self):
         return textwrap.dedent("""
@@ -260,8 +288,9 @@ class Project(transitions.Machine, baseapp.Spec):
         - created: %s
         """ %(self.pname, datetime.now()))
 
+
     def _cb_stage_new_project_content(self, event):
-        """Create a new project."""
+        """Triggered by `do_createme()` on ENTER 'empty' state."""
         repo = self.projects_db.repo
         index = repo.index
         state_fpath = osp.join(repo.working_tree_dir, 'CO2MPAS')
@@ -272,93 +301,129 @@ class Project(transitions.Machine, baseapp.Spec):
         ## Commit/tag callback expects `action` on event.
         event.kwargs['action'] = 'Project created.' ## TODO: Improve actions
 
+
     def _new_report_spec(self):
         if not getattr(self, '__report', None):
             self.__report = report.Report(config=self.config)
         return self.__report
 
-    def _cb_stage_iofiles(self, event):
-        """
-        Triggered by `import_iof()` on ENTER for all `wltp_XX` & 'nedc' states.
 
-        :param dice.IOFiles iofiles:
+    def _cb_stage_pfiles(self, event):
+        """
+        Triggered by `do_addfiles(pfiles=<PFiles>)` on ENTER for all `wltp_XX` & 'nedc' states.
+
+        :param PFiles pfiles:
             what to import
         """
         import shutil
 
-        iofiles = event.kwargs['iofiles']
+        self.log.info('Importing files: %s...', event.kwargs)
+        pfiles =_event_data(event, 'pfiles', PFiles)
         force = event.kwargs.get('force', self.force)
 
         ## Check extraction of report works ok.
         #
         try:
             rep = self._new_report_spec()
-            list(rep.yield_from_iofiles(iofiles))
+            list(rep.yield_from_iofiles(pfiles))
         except Exception as ex:
             msg = ("Failed extracting report from %s, due to: %s"
                    "  BUT FORCED to import them!")
             if force:
-                self.log.error(msg, iofiles, ex, exc_info=1)
+                self.log.error(msg, pfiles, ex, exc_info=1)
             else:
-                raise baseapp.CmdException(msg % (iofiles, ex))
+                raise CmdException(msg % (pfiles, ex))
 
         repo = self.projects_db.repo
         index = repo.index
-        nimported = 0
-        for io_kind, fpaths in iofiles._asdict().items():
+        for io_kind, fpaths in pfiles._asdict().items():
             for ext_fpath in fpaths:
-                self.log.debug('Importing WLTP %s-file: %s', io_kind, ext_fpath)
+                self.log.debug('Importing %s-file: %s', io_kind, ext_fpath)
                 assert ext_fpath, "Import none as %s file!" % io_kind
 
                 ext_fname = osp.split(ext_fpath)[1]
                 index_fpath = osp.join(repo.working_tree_dir, io_kind, ext_fname)
-                ensure_dir_exists(osp.split(index_fpath)[0])
+                pndlu.ensure_dir_exists(osp.split(index_fpath)[0])
                 shutil.copy(ext_fpath, index_fpath)
                 index.add([index_fpath])
-                nimported += 1
 
+        files_count = ', '.join('%s: %s' % (k, len(f))
+                                for k, f in pfiles._asdict().items())
         ## Commit/tag callback expects `action` on event.
-        event.kwargs['action'] = 'Imported %d IO-files.' % nimported
+        event.kwargs['action'] = 'Imported (%s) files.' % files_count ## TODO: Improve actions
 
-    def list_iofiles(self, *io_kinds: Union[dice.IOKind, Any]) -> dice.IOFiles or None:
+
+    def list_pfiles(self, *io_kinds, _as_index_paths=False) -> PFiles or None:
         """
+        List project's imported files.
+
         :param io_kinds:
             What files to fetch; by default if none specified,
             fetches all: inp,  out, other
             Use this to fetch some::
 
-                self.list_io_files(dice.IOKind.inp, dice.IOKind.out)
+                self.list_io_files('inp', 'out')
+
+        :param _as_index_paths:
+            When true, filepaths are prefixed with repo's working-dir
+            like ``~/.co2dice/repo/inp/inp1.xlsx``.
 
         :return:
-            A class:`dice.IOFiles` containing list of working-dir paths
+            A class:`PFiles` containing list of working-dir paths
             for any WLTP files, or none if none exists.
         """
-        if not io_kinds:
-            io_kinds = dice.IOKind.__members__  # @UndefinedVariable
-        io_kinds = [k.name if isinstance(k, dice.IOKind) else str(k)
-                    for k in io_kinds]
-
+        io_kinds = PFiles._io_kinds_list(*io_kinds)
         repo = self.projects_db.repo
         def collect_kind_files(io_kind):
-            if io_kind:
-                wd_fpath = osp.join(repo.working_tree_dir, io_kind)
-                fpaths = os.listdir(wd_fpath) if osp.isdir(wd_fpath) else []
-                return [(io_kind, osp.join(wd_fpath, f))
-                        aaAfor f in fpaths]
+            wd_fpath = osp.join(repo.working_tree_dir, io_kind)
+            io_pathlist = os.listdir(wd_fpath) if osp.isdir(wd_fpath) else []
+            if _as_index_paths:
+                io_pathlist = [osp.join(wd_fpath, f) for f in io_pathlist]
+            return io_pathlist
 
-        iofpaths = [collect_kind_files(io_kind) for io_kind in io_kinds]
+        iofpaths = {io_kind: collect_kind_files(io_kind) for io_kind in io_kinds}
         if any(iofpaths):
-            return dice.IOFiles(*iofpaths)
+            return PFiles(**iofpaths)
+
 
     def _cb_generate_report(self, event):
-        """Triggered by `tag()`, builds the report to use as tag-msg."""
-        rep = self._new_report_spec()
-        iofiles = self.list_iofiles(dice.IOKind.inp, dice.IOKind.out)
+        """
+        Triggered by `do_tagreport()` on ENTER of `tagged` state.
 
-        report = list(rep.yield_from_iofiles(iofiles))
+        Uses the :class:`Report` to build the tag-msg.
+        """
+        self.log.info('Generating and taging report: %s...', event.kwargs)
+        rep = self._new_report_spec()
+        pfiles = self.list_pfiles('inp', 'out', _as_index_paths=True)
+
+        report = list(rep.yield_from_iofiles(pfiles))
 
         ## Commit/tag callback expects `report` on event.
         event.kwargs['report'] = report
+
+    def _cb_send_email(self, event):
+        """
+        Triggered by `do_sendmail()` on ENTER of `sendmail` state.
+
+        Parses last tag and uses class:`SMTP` to send its message as email.
+        """
+        self.log.info('TODO: Sending email...')
+        event.kwargs['action'] = 'Email sent.' ## TODO: Improve actions
+
+    def _cond_is_dice_yes(self, event):
+        """
+        Triggered by `do_recvmail(mail=<raw-mail>)` on CONDITION before `dice_yes` state.
+
+        :param mail
+        Parses timestamped-email to decide if next-state is `dice_yes` or `dice_no`.
+        """
+        self.log.info('TODO: Receiving email: %s...', event.kwargs)
+        mail = _event_data(event, 'mail')
+        import random
+        is_dice = random.random() > 0.5
+
+        event.kwargs['action'] = is_dice and 'Run NEDC now!' or 'Spared...'
+
 
 
 
@@ -400,10 +465,14 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
     #     repo_path = proposal['value']
     #     if not osp.isabs(repo_path):
     #         repo_path = osp.join(default_config_dir(), repo_path)
-    #     repo_path = convpath(repo_path)
+    #     repo_path = pndlu.convpath(repo_path)
     # return repo_path
 
     __repo = None
+
+    def __del__(self):
+        if self.__repo:
+            self.__repo.git.clear_cache()
 
     def _setup_repo(self, repo_path):
         if self.__repo:
@@ -419,8 +488,8 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
 
         if not osp.isabs(repo_path):
             repo_path = osp.join(baseapp.default_config_dir(), repo_path)
-        repo_path = convpath(repo_path)
-        ensure_dir_exists(repo_path)
+        repo_path = pndlu.convpath(repo_path)
+        pndlu.ensure_dir_exists(repo_path)
         try:
             self.log.debug('Opening repo %r...', repo_path)
             self.__repo = git.Repo(repo_path)
@@ -496,13 +565,13 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
 
         now = datetime.now().strftime('%Y%m%d-%H%M%S%Z')
         repo_name = '%s-%s' % (now, repo_name)
-        repo_name = pndlutils.ensure_file_ext(repo_name, '.txz')
+        repo_name = pndlu.ensure_file_ext(repo_name, '.txz')
         repo_name_no_ext = osp.splitext(repo_name)[0]
-        archive_fpath = convpath(osp.join(folder, repo_name))
+        archive_fpath = pndlu.convpath(osp.join(folder, repo_name))
         basepath, _ = osp.split(archive_fpath)
         if not osp.isdir(basepath) and not force:
             raise FileNotFoundError(basepath)
-        ensure_dir_exists(basepath)
+        pndlu.ensure_dir_exists(basepath)
 
         self.log.debug('Archiving repo into %r...', archive_fpath)
         with tarfile.open(archive_fpath, "w:xz") as tarfile:
@@ -517,7 +586,7 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
 
         dfuns = [
             DFun('repo',            lambda _infos: self.repo),
-            DFun('git_cmds',        lambda _infos: where('git')),
+            DFun('git_cmds',        lambda _infos: pndlu.where('git')),
             DFun('dirty',           lambda repo: repo.is_dirty()),
             DFun('untracked',       lambda repo: repo.untracked_files),
             DFun('wd_files',        lambda repo: os.listdir(repo.working_dir)),
@@ -617,6 +686,7 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
 
         return infos
 
+
     def proj_examine(self, pname: Text=None, verbose=None, as_text=False, as_json=False):
         """
         Does not validate project, not fails, just reports situation.
@@ -639,15 +709,16 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
             else:
                 #import pandas as pd
                 #infos = pd.Series(OrderedDict(infos))
-                infos = baseapp.format_pairs(infos)
+                infos = pndlu.format_pairs(infos)
 
         return infos
 
-    _current_project = None
 
     def _conceive_project(self, pname): # -> Project:
-        """Returns an "UNBOUND" :class:`Project`; its state must be triggered immediately."""
+        """Returns a "UNBORN" :class:`Project`; its state must be triggered immediately."""
         return project_zygote().fork(pname, self, self.config)
+
+    _current_project = None
 
     def current_project(self) -> Project:
         """
@@ -671,7 +742,7 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
                                  ex, exc_info=1)
 
         if not self._current_project:
-                raise baseapp.CmdException(textwrap.dedent("""
+                raise CmdException(textwrap.dedent("""
                         No current-project exists yet!"
                         Try opening an existing project, with:
                             co2mpas project open <project-name>
@@ -681,37 +752,49 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
 
         return self._current_project
 
+
     def proj_add(self, pname: Text) -> Project:
         """
         Creates a new project and sets it as the current one.
 
-        :param pname: the project name
+        :param pname: the project name (without prefix)
         :return: the current :class:`Project` or fail
         """
         self.log.info('Creating project %r...', pname)
         if not pname or not pname.isidentifier():
-            raise baseapp.CmdException('Invalid name %r for a project!' % pname)
+            raise CmdException('Invalid name %r for a project!' % pname)
+
         prefname = _pname2ref_name(pname)
         if prefname in self.repo.heads:
-            raise baseapp.CmdException('Project %r already exists!' % pname)
+            raise CmdException('Project %r already exists!' % pname)
 
         p = self._conceive_project(pname)
         self.repo.git.checkout(prefname, orphan=True, force=self.force)
-        ## Trigger ProjectFSM methods that will modify Git-index & commit.
-        p.create()
-        # FIXME: Revert if fail?
-
         self._current_project = p
-        return p
+        try:
+            ## Trigger ProjectFSM methods that will modify Git-index & commit.
+            ok = p.do_createme()
+            assert ok, "Refused adding new project %r!" % pname
+
+            return p
+        except Exception as ex:
+            try:
+                p.do_invalidate(error=ex)
+            except Exception as ex2:
+                self.log.warning(
+                    'Hiden error while invalidating %s: %s',
+                    p, type(ex2), ex2, exc_info=1)
+            raise ex
+
 
     def proj_open(self, pname: Text) -> Project:
         """
-        :param pname: some branch ref
+        :param pname: the project name (without prefix)
         :return: the current :class:`Project`
         """
         prefname = _pname2ref_name(pname)
         if prefname not in self.repo.heads:
-            raise baseapp.CmdException('Project %r not found!' % pname)
+            raise CmdException('Project %r not found!' % pname)
         self.repo.heads[_pname2ref_name(pname)].checkout()
 
         self._current_project = None
@@ -819,7 +902,7 @@ class ProjectCmd(_PrjCmd):
         """Prints the currently open project."""
         def run(self, *args):
             if len(args) != 0:
-                raise baseapp.CmdException('Cmd %r takes no arguments, received %r!'
+                raise CmdException('Cmd %r takes no arguments, received %r!'
                                    % (self.name, args))
             return self.projects_db.current_project()
 
@@ -834,7 +917,7 @@ class ProjectCmd(_PrjCmd):
         def run(self, *args):
             self.log.info('Opening project %r...', args)
             if len(args) != 1:
-                raise baseapp.CmdException("Cmd %r takes a SINGLE project-name as argument, received: %r!"
+                raise CmdException("Cmd %r takes a SINGLE project-name as argument, received: %r!"
                                    % (self.name, args))
             return self.projects_db.proj_open(args[0])
 
@@ -847,7 +930,7 @@ class ProjectCmd(_PrjCmd):
         """
         def run(self, *args):
             if len(args) != 1:
-                raise baseapp.CmdException('Cmd %r takes a SINGLE project-name as argument, received %r!'
+                raise CmdException('Cmd %r takes a SINGLE project-name as argument, received %r!'
                                    % (self.name, args))
             return self.projects_db.proj_add(args[0])
 
@@ -882,15 +965,15 @@ class ProjectCmd(_PrjCmd):
         def run(self, *args):
             self.log.info('Importing report files %s...', args)
             if len(args) < 1:
-                raise baseapp.CmdException('Cmd %r takes at least one argument, received %d: %r!'
+                raise CmdException('Cmd %r takes at least one argument, received %d: %r!'
                                    % (self.name, len(args), args))
-            iofiles = report.parse_io_args(*args)
-            if iofiles.other:
-                raise baseapp.CmdException(
+            pfiles = PFiles.parse_io_args(*args)
+            if pfiles.other:
+                raise CmdException(
                     "Cmd %r filepaths must either start with 'inp=' or 'out=' prefix!\n%s"
-                                       % (self.name, '\n'.join('  arg[%d]: %s' % i for i in iofiles.other.items())))
+                                       % (self.name, '\n'.join('  arg[%d]: %s' % i for i in pfiles.other.items())))
 
-            return self.projects_db.current_project().import_iof(iofiles=iofiles)
+            return self.projects_db.current_project().do_addfiles(pfiles=pfiles)
 
 
     class ExamineCmd(_PrjCmd):
@@ -908,7 +991,7 @@ class ProjectCmd(_PrjCmd):
 
         def run(self, *args):
             if len(args) > 1:
-                raise baseapp.CmdException('Cmd %r takes one optional argument, received %d: %r!'
+                raise CmdException('Cmd %r takes one optional argument, received %d: %r!'
                                    % (self.name, len(args), args))
             pname = args and args[0] or None
             return self.projects_db.proj_examine(pname, as_text=True, as_json=self.as_json)
@@ -924,7 +1007,7 @@ class ProjectCmd(_PrjCmd):
         def run(self, *args):
             self.log.info('Archiving repo into %r...', args)
             if len(args) > 1:
-                raise baseapp.CmdException('Cmd %r takes one optional argument, received %d: %r!'
+                raise CmdException('Cmd %r takes one optional argument, received %d: %r!'
                                    % (self.name, len(args), args))
             archive_fpath = args and args[0] or None
             kwds = {}
@@ -950,10 +1033,10 @@ class ProjectCmd(_PrjCmd):
                 'cmd_flags': {
                     'reset-git-settings': ({
                             'ProjectsDB': {'reset_settings': True},
-                        }, first_line(ProjectsDB.reset_settings.help)),
+                        }, pndlu.first_line(ProjectsDB.reset_settings.help)),
                     'as-json': ({
                             'ExamineCmd': {'as_json': True},
-                        }, first_line(ProjectCmd.ExamineCmd.as_json.help)),
+                        }, pndlu.first_line(ProjectCmd.ExamineCmd.as_json.help)),
                 }
             }
             dkwds.update(kwds)

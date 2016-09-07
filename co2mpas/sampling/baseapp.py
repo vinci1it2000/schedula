@@ -1,4 +1,4 @@
-#!/usr/b in/env python
+#!/usr/bin/env python
 #
 # Copyright 2014-2015 European Commission (JRC);
 # Licensed under the EUPL (the 'Licence');
@@ -6,7 +6,7 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 #
 """
-An *ipython traitlets* framework for apps with hierarchical chain of commands(class:`App`) utilizing configurables (class:`Spec`).
+A *traitlets*[#]_ framework for building hierarchical cmd-line tools (class:`Cmd`) delegating to backend classes (class:`Spec`).
 
 To run a base command, use this code::
 
@@ -30,34 +30,33 @@ To run nested commands, use :func:`baseapp.chain_cmds()` like that::
 
 2. Constructors must allow for properties to be overwritten on construction; any class-defaults
    must function as defaults for any constructor ``**kwds``.
+
 3. Some utility code depends on trait-defaults (i.e. construction of help-messages), so for certain properties
    (e.g. description), it is preferable to set them as traits-with-defaults on class-attributes.
 
+.. [#] http://traitlets.readthedocs.io/
 """
-
-## INFO: Modify the following variables on a different application.
-
 from collections import OrderedDict
 import copy
-import errno
 import io
 import logging
 import os
-from pandalone import utils as pndl_utils
-import re
-import subprocess
 from typing import Sequence, Text, Any, Tuple, List  # @UnusedImport
 
 from boltons.setutils import IndexedSet as iset
 from ipython_genutils.text import indent, wrap_paragraphs, dedent
 from toolz import dicttoolz as dtz, itertoolz as itz
 
-from co2mpas.__main__ import init_logging
 import os.path as osp
+import pandalone.utils as pndlu
 import traitlets as trt
 import traitlets.config as trtc
 
+from . import CmdException
+from ..__main__ import init_logging
 
+
+## INFO: Modify the following variables on a different application.
 APPNAME = 'co2dice'
 CONF_VAR_NAME = '%s_CONFIG_FILE' % APPNAME.upper()
 
@@ -67,125 +66,6 @@ except:
     _mydir = '.'
 
 
-class CmdException(trt.TraitError):
-    pass
-
-
-###############################
-##  TODO: Move to pandalone  ##
-
-_is_dir_regex = re.compile(r'[^/\\][/\\]$')
-
-def normpath(path):
-    """Like :func:`osp.normpath()`, but preserving last slash."""
-    p = osp.normpath(path)
-    if _is_dir_regex.search(path) and p[-1] != os.sep:
-        p = p + osp.sep
-    return p
-
-def abspath(path):
-    """Like :func:`osp.abspath()`, but preserving last slash."""
-    p = osp.abspath(path)
-    if _is_dir_regex.search(path) and p[-1] != os.sep:
-        p = p + osp.sep
-    return p
-
-## TODO: Move path-util to pandalone.
-def convpath(fpath, abs_path=True, exp_user=True, exp_vars=True):
-    """Without any flags, just pass through :func:`osp.normpath`. """
-    if exp_user:
-        fpath = osp.expanduser(fpath)
-    if exp_vars:
-        ## Mask UNC '\\server\share$\path` from expansion.
-        fpath = fpath.replace('$\\', '_UNC_PATH_HERE_')
-        fpath = osp.expandvars(fpath)
-        fpath = fpath.replace('_UNC_PATH_HERE_', '$\\')
-    fpath = abspath(fpath) if abs_path else normpath(fpath)
-    return fpath
-
-def ensure_dir_exists(path, mode=0o755):
-    """ensure that a directory exists
-
-    If it doesn't exist, try to create it and protect against a race condition
-    if another process is doing the same.
-
-    The default permissions are 755, which differ from os.makedirs default of 777.
-    """
-    if not os.path.exists(path):
-        try:
-            os.makedirs(path, mode=mode)
-        except OSError as e:
-            if e.errno != errno.EEXIST:
-                raise
-    elif not os.path.isdir(path):
-        raise IOError("%r exists but is not a directory" % path)
-
-def first_line(doc):
-    for l in doc.split('\n'):
-        if l.strip():
-            return l.strip()
-
-_camel_to_snake_regex = re.compile('(?<=[a-z0-9])([A-Z]+)') #('(?!^)([A-Z]+)')
-def camel_to_snake_case(s):
-    """Turns `'CO2DiceApp' --> 'co2_dice_app'. """
-    return _camel_to_snake_regex.sub(r'_\1', s).lower()
-
-def camel_to_cmd_name(s):
-    """Turns `'CO2DiceApp' --> 'co2-dice-app'. """
-    return camel_to_snake_case(s).replace('_', '-')
-
-
-def format_pairs(items: Sequence[Tuple[Text, Any]], indent=16):
-    def format_item(k, v):
-        nk = len(k)
-        ntabs = max (1, int(nk / indent) + bool(nk % indent))
-        key_width = ntabs * indent
-        item_pattern = '%%-%is = %%s' % key_width
-        return item_pattern % (k, v)
-    dic = [format_item(*i) for i in items]
-
-    return '\n'.join(dic)
-
-
-def py_where(program, path=None):
-    ## From: http://stackoverflow.com/a/377028/548792
-    winprog_exts = ('.bat', 'com', '.exe')
-    def is_exec(fpath):
-        return osp.isfile(fpath) and os.access(fpath, os.X_OK) and (
-                os.name != 'nt' or fpath.lower()[-4:] in winprog_exts)
-
-    progs = []
-    if not path:
-        path = os.environ["PATH"]
-    for folder in path.split(osp.sep):
-        folder = folder.strip('"')
-        if folder:
-            exe_path = osp.join(folder, program)
-            for f in [exe_path] + ['%s%s'%(exe_path, e) for e in winprog_exts]:
-                if is_exec(f):
-                    progs.append(f)
-    return progs
-
-
-def where(program):
-    try:
-        res = subprocess.check_output('where "%s"' % program,
-                universal_newlines=True)
-        return res and [s.strip()
-                       for s in res.split('\n') if s.strip()]
-    except subprocess.CalledProcessError:
-        return []
-    except:
-        return py_where(program)
-
-
-def which(program):
-    res = where(program)
-    return res[0] if res else None
-
-
-###############################
-
 
 def default_config_fname():
     """The config-file's basename (no path or extension) to search when not explicitly specified."""
@@ -193,7 +73,7 @@ def default_config_fname():
 
 def default_config_dir():
     """The folder of to user's config-file."""
-    return convpath('~/.%s' % APPNAME)
+    return pndlu.convpath('~/.%s' % APPNAME)
 
 def default_config_fpath():
     """The full path of to user's config-file, without extension."""
@@ -273,13 +153,13 @@ def app_short_help(app_class):
     doc = (isinstance(desc, str) and desc
         or (isinstance(app_class.description, str) and app_class.description)
         or app_class.__doc__)
-    return first_line(doc)
+    return pndlu.first_line(doc)
 
 def class2cmd_name(cls):
     name = cls.__name__
     if name.lower().endswith('cmd') and len(name) > 3:
         name = name[:-3]
-    return camel_to_cmd_name(name)
+    return pndlu.camel_to_cmd_name(name)
 
 def build_sub_cmds(*subapp_classes):
     """Builds an ordered-dictionary of ``cmd-name --> (cmd-class, help-msg)``. """
@@ -324,7 +204,7 @@ class Cmd(trtc.Application):
         config_files = os.environ.get(CONF_VAR_NAME, self.config_files)
         if config_files:
             def _procfpath(p):
-                p = convpath(p)
+                p = pndlu.convpath(p)
                 if osp.isdir(p):
                     p = osp.join(p, default_config_fname())
                 else:
@@ -367,14 +247,14 @@ class Cmd(trtc.Application):
         if not config_file:
             config_file = default_config_fpath()
         else:
-            config_file = convpath(config_file)
+            config_file = pndlu.convpath(config_file)
             if osp.isdir(config_file):
                 config_file = osp.join(config_file, default_config_fname())
-        config_file = pndl_utils.ensure_file_ext(config_file, '.py')
+        config_file = pndlu.ensure_file_ext(config_file, '.py')
 
         op = 'Over-writting' if osp.isfile(config_file) else 'Writting'
         self.log.info('%s config-file %r...', op, config_file)
-        ensure_dir_exists(os.path.dirname(config_file), 0o700)
+        pndlu.ensure_dir_exists(os.path.dirname(config_file), 0o700)
         config_text = self.generate_config_file();
         with io.open(config_file, mode='wt') as fp:
             fp.write(config_text)
@@ -606,12 +486,19 @@ class Cmd(trtc.Application):
         log_level = change['new']
         if isinstance(log_level, str):
             log_level = getattr(logging, log_level)
+
+        import transitions
+
         if log_level <= logging.DEBUG:
             verbose = True
+            transitions.logger.level = logging.DEBUG
         elif log_level == logging.INFO:
             verbose = None
+            ## FSM logs annoyingly high.
+            transitions.logger.level = logging.WARNING
         else:
             verbose = False
+            transitions.logger.level = logging.WARNING
         init_logging(verbose=verbose)
 
     def __init__(self, **kwds):
@@ -642,12 +529,12 @@ class Cmd(trtc.Application):
                 ('v', 'verbose'):  ({
                         'Spec': {'verbose': True},
                     },
-                    first_line(Spec.verbose.help)
+                    pndlu.first_line(Spec.verbose.help)
                 ),
                 ('f', 'force'):  ({
                         'Spec': {'force': True},
                     },
-                    first_line(Spec.force.help)
+                    pndlu.first_line(Spec.force.help)
                 )
             },
         }

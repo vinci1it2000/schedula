@@ -16,7 +16,7 @@ import ddt
 from traitlets.config import get_config
 
 from co2mpas.__main__ import init_logging
-from co2mpas.sampling import baseapp, report, project
+from co2mpas.sampling import CmdException, report, project
 from tests.sampling import _inp_fpath, _out_fpath
 import os.path as osp
 import pandas as pd
@@ -90,16 +90,16 @@ class TReportArgs(unittest.TestCase):
         cmd = report.ReportCmd(config=c)
 
         arg = 'BAD_ARG'
-        with self.assertRaisesRegexp(baseapp.CmdException, re.escape("arg[1]: %s" % arg)):
+        with self.assertRaisesRegexp(CmdException, re.escape("arg[1]: %s" % arg)):
             list(cmd.run(arg))
 
         arg = 'inp:BAD_ARG'
-        with self.assertRaisesRegexp(baseapp.CmdException, re.escape("arg[1]: %s" % arg)):
+        with self.assertRaisesRegexp(CmdException, re.escape("arg[1]: %s" % arg)):
             list(cmd.run(arg))
 
         arg1 = 'inp:FOO'
         arg2 = 'out.BAR'
-        with self.assertRaises(baseapp.CmdException) as cm:
+        with self.assertRaises(CmdException) as cm:
             list(cmd.run('inp=A', arg1, 'out=B', arg2))
         #print(cm.exception)
         self.assertIn("arg[2]: %s" % arg1, str(cm.exception))
@@ -111,7 +111,7 @@ class TReportProject(unittest.TestCase):
         c = get_config()
         c.ReportCmd.raise_config_file_errors = True
         c.ReportCmd.project = True
-        with self.assertRaisesRegex(baseapp.CmdException, "--project' takes no arguments, received"):
+        with self.assertRaisesRegex(CmdException, "--project' takes no arguments, received"):
             list(report.ReportCmd(config=c).run('EXTRA_ARG'))
 
     def test_fails_when_no_project(self):
@@ -121,7 +121,7 @@ class TReportProject(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             c.ProjectsDB.repo_path = td
             cmd = report.ReportCmd(config=c)
-            with self.assertRaisesRegex(baseapp.CmdException, r"No current-project exists yet!"):
+            with self.assertRaisesRegex(CmdException, r"No current-project exists yet!"):
                 list(cmd.run())
 
     def test_fails_when_empty(self):
@@ -132,7 +132,7 @@ class TReportProject(unittest.TestCase):
             c.ProjectsDB.repo_path = td
             project.ProjectCmd.AddCmd(config=c).run('proj1')
             cmd = report.ReportCmd(config=c)
-            with self.assertRaisesRegex(baseapp.CmdException, r"Current project 'proj1' contains no input/output files!"):
+            with self.assertRaisesRegex(CmdException, r"Current project 'proj1' contains no input/output files!"):
                 list(cmd.run())
 
     def test_input_output(self):

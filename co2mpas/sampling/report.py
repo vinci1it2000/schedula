@@ -9,52 +9,23 @@
 
 from collections import (
     defaultdict, OrderedDict, namedtuple, Mapping)  # @UnusedImport
-import re
 from typing import (
     List, Sequence, Iterable, Text, Tuple, Dict, Callable)  # @UnusedImport
 
-from co2mpas import __uri__  # @UnusedImport
-from co2mpas._version import (__version__, __updated__, __file_version__,   # @UnusedImport
-                              __input_file_version__, __copyright__, __license__)  # @UnusedImport
-from co2mpas.sampling import baseapp, dice, project
-from co2mpas.sampling.baseapp import convpath, first_line
 import pandas as pd
 import traitlets as trt
+import pandalone.utils as pndlu
 
-
-def parse_io_args(*args: Text) -> dice.IOFiles or None:
-    """
-    Separates args into those starting with 'inp=', 'out=', or none.
-
-    For example, given the 3 args::
-
-        'inp=abc', 'out:gg' 'out=bar'
-
-    It will return::
-
-        IOFiles(inp=['abc'], out=['bar'], other={2: 'out:gg'})
-
-    """
-    inp, out = [], []
-    other = {}
-    for i, arg in enumerate(args, 1):
-        m = _file_arg_regex.match(arg)
-        if not m:
-            other[i] = arg
-        else:
-            l = inp if m.group(1).lower() == 'inp' else out
-            l.append(convpath(m.group(2), 0, 0))
-
-    if inp or out or other:
-        return dice.IOFiles(inp, out, other)
+from . import baseapp, project, CmdException, PFiles
+from .. import __uri__  # @UnusedImport
+from .._version import (__version__, __updated__, __file_version__,   # @UnusedImport
+                        __input_file_version__, __copyright__, __license__)  # @UnusedImport
 
 
 ###################
 ##     Specs     ##
 ###################
 REPORT_VERSION = '0.0.1'  ## TODO: Move to `co2mpas/_version.py`.
-
-_file_arg_regex = re.compile('(inp|out)=(.+)', re.IGNORECASE)
 
 class Report(baseapp.Spec):
     """Mines reported-parameters from co2mpas excel-files and serves them as a pandas dataframes."""
@@ -86,14 +57,14 @@ class Report(baseapp.Spec):
     def extract_input_params(self, fpath):
         from pandalone import xleash
 
-        #fpath = convpath(fpath)
+        #fpath = pndlu.convpath(fpath)
         self.input_params = xleash.lasso(self.input_xlref, url_file=fpath)
         return self.input_params
 
     def extract_output_tables(self, fpath):
         from pandalone import xleash
 
-        #fpath = convpath(fpath)
+        #fpath = pndlu.convpath(fpath)
         master_xlrefs = xleash.lasso(self.output_master_xlref, url_file=fpath)
         assert isinstance(master_xlrefs, Mapping), (
             "The `output_master_xlref(%s) must resolve to a dictionary, not type(%r): %s"
@@ -115,12 +86,12 @@ class Report(baseapp.Spec):
         self.output_tables = tables
         return self.output_tables
 
-    def yield_from_iofiles(self, iofiles: dice.IOFiles):
+    def yield_from_iofiles(self, iofiles: PFiles):
         for fpath in iofiles.inp:
-            yield self.extract_input_params(convpath(fpath))
+            yield self.extract_input_params(pndlu.convpath(fpath))
 
         for fpath in iofiles.out:
-            yield from self.extract_output_tables(convpath(fpath))
+            yield from self.extract_output_tables(pndlu.convpath(fpath))
 
 
 ###################
@@ -183,51 +154,53 @@ class ReportCmd(baseapp.Cmd):
                 'cmd_flags': {
                     'project': ({
                             'ReportCmd': {'project': True},
-                        }, first_line(ReportCmd.project.help)),
+                        }, pndlu.first_line(ReportCmd.project.help)),
                 }
             }
             dkwds.update(kwds)
             super().__init__(**dkwds)
 
 
-    def _build_io_files_from_project(self, args) -> dice.IOFiles:
+    def _build_io_files_from_project(self, args) -> PFiles:
         project = self.projects_db.current_project()
-        iofiles = project.list_iofiles(dice.IOKind.inp, dice.IOKind.out)
-        if not iofiles:
-            raise baseapp.CmdException(
+        pfiles = project.list_pfiles('inp', 'out', _as_index_paths=True)
+        if not pfiles:
+            raise CmdException(
                     "Current %s contains no input/output files!"
                     % project)
-        return iofiles
+        return pfiles
 
-
-    def _build_io_files_from_args(self, args) -> dice.IOFiles:
-        iofiles = parse_io_args(*args)
-        if iofiles.other:
-            raise baseapp.CmdException(
+    def _build_io_files_from_args(self, args) -> PFiles:
+        """Just to report any stray files>"""
+        pfiles = PFiles.parse_io_args(*args)
+        if pfiles.other:
+            bad_args = ('  arg[%d]: %s' % (1+ args.index(a), a)
+                        for a in pfiles.other)
+            raise CmdException(
                     "Cmd %r filepaths must either start with 'inp=' or 'out=' prefix!\n%s"
-                    % (self.name, '\n'.join('  arg[%d]: %s' % i for i in iofiles.other.items())))
+                    % (self.name, '\n'.join(bad_args)))
 
-        return iofiles
+        return pfiles
 
     def run(self, *args):
         nargs = len(args)
         if self.project:
             if nargs > 0:
-                raise baseapp.CmdException(
+                raise CmdException(
                     "Cmd '%s --project' takes no arguments, received %d: %r!"
                     % (self.name, len(args), args))
 
             self.log.info('Extracting report-parameters from current-project...')
-            iofiles = self._build_io_files_from_project(args)
+            pfiles = self._build_io_files_from_project(args)
         else:
             self.log.info('Extracting report-parameters from files %s...', args)
             if nargs < 1:
-                raise baseapp.CmdException(
+                raise CmdException(
                     "Cmd %r takes at least one filepath as argument, received %d: %r!"
                     % (self.name, len(args), args))
-            iofiles = self._build_io_files_from_args(args)
+            pfiles = self._build_io_files_from_args(args)
 
-        yield from self.report.yield_from_iofiles(iofiles)
+        yield from self.report.yield_from_iofiles(pfiles)
 
 
 if __name__ == '__main__':
