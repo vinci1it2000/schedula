@@ -26,7 +26,7 @@ from itertools import chain
 import html
 import logging
 from .des import parent_func, search_node_description
-from .alg import stlp
+from .alg import stlp, _iter_list_nodes
 
 
 __author__ = 'Vincenzo Arcidiacono'
@@ -90,9 +90,10 @@ class DspPlot(gviz.Digraph):
     }
     __node_data = ('default', 'initial_dist', 'wait_inputs', 'function',
                    'weight', 'remote_links', 'distance', 'output')
-    __node_function = ('input_domain', 'weight', 'inputs', 'outputs',
-                       'distance')
+    __node_function = ('input_domain', 'weight', 'M_inputs', 'M_outputs',
+                       'distance', 'started', 'duration')
     __edge_data = ('inp_id', 'out_id', 'weight', 'value')
+    _pprinter = pprint.PrettyPrinter(compact=True, width=200)
 
     def __init__(self, obj, workflow=False, nested=True, edge_data=(),
                  node_data=(), node_function=(), draw_outputs=0, view=False,
@@ -238,7 +239,6 @@ class DspPlot(gviz.Digraph):
         inputs, outputs = (), ()
         obj = parent_func(obj)
 
-
         if isinstance(obj, Solution):
             dsp, sol = obj.dsp, obj
         elif isinstance(obj, SubDispatchFunction):
@@ -253,16 +253,17 @@ class DspPlot(gviz.Digraph):
         else:
             raise ValueError('Type %s not supported.' % type(obj).__name__)
 
-        self.obj = obj
         self.dsp = dsp
 
         _body = self.__body.copy()
         if workflow:
             _body['label'] = '<%s workflow>'
-            g = sol.workflow
+            self.g = g = sol.workflow
+            self.obj = sol
         else:
             _body['label'] = '<%s>'
-            g = dsp.dmap
+            self.g = g = dsp.dmap
+            self.obj = obj
 
         draw_outputs = int(draw_outputs)
         if draw_outputs == 1:
@@ -289,7 +290,8 @@ class DspPlot(gviz.Digraph):
         else:
             if directory is None:
                 directory = mkdtemp('')
-            filename = _encode_file_name(name)
+
+            filename = _encode_file_name(name[8:] if parent_dot else name)
 
         if osp.splitext(filename)[1] != self._default_extension:
             filename = '%s.%s' % (filename, self._default_extension)
@@ -321,7 +323,7 @@ class DspPlot(gviz.Digraph):
         if outputs and END not in g.node:
             self._set_data_node(END, {})
 
-        for k, v in g.node.items():
+        for k, v in sorted(g.node.items()):
             if k not in dsp.nodes or (k is SINK and nx.is_isolate(g, SINK)):
                 continue
 
@@ -337,7 +339,7 @@ class DspPlot(gviz.Digraph):
             n = (u, END)
             edges[n] = combine_dicts(edges.get(n, {}), {'out_id': i})
 
-        for (u, v), a in edges.items():
+        for (u, v), a in sorted(edges.items()):
             self._set_edge(u, v, a)
 
         if view:
@@ -410,22 +412,23 @@ class DspPlot(gviz.Digraph):
                 rpath = rpath.replace('\\', '/')
                 fpath = osp.join(self.directory, rpath)
 
-            dpath = osp.dirname(fpath)
+            dpath = _UNC + osp.dirname(fpath)
 
             if not osp.isdir(dpath):
                 os.makedirs(dpath)
             elif osp.isfile(fpath):
                 fpath = mktemp(dir=dpath)
 
-            with open(fpath, 'w') as f:
-                if isinstance(out, str):
-                    f.write(out)
-                else:
-                    pprint.pprint(out, stream=f)
-
+            with open(uncpath(fpath), 'w') as f:
+                f.write(self.pprint(out))
             self._saved_outputs[id(out)] = fpath
 
-        return urllib.parse.quote('./%s' % osp.relpath(fpath, self.directory))
+        return urllib.parse.quote(self._relpath(fpath))
+
+    def _relpath(self, fpath):
+        if fpath.startswith(_UNC):
+            fpath = fpath[len(_UNC):]
+        return './%s' % osp.relpath(fpath, self.directory).replace('\\', '/')
 
     def _set_data_node(self, node_id, attr):
 
@@ -452,16 +455,19 @@ class DspPlot(gviz.Digraph):
             rl.append(n)
             attr[n] = self._get_link(k, v, node_id, t)
 
-        try:
-            out = self.obj[node_id]
+        if node_id not in (START, SINK, SELF, END):
             try:
-                attr['output'] = inspect.getsource(out)
-            except:
+                out = self.obj[node_id]
                 attr['output'] = out
+                if inspect.isfunction(out):
+                    try:
+                        attr['output'] = inspect.getsource(out)
+                    except:
+                        pass
 
-            kw['URL'] = self._save_output(attr['output'], kw, node_id)
-        except (TypeError, KeyError):
-            pass
+                kw['URL'] = self._save_output(attr['output'], kw, node_id)
+            except KeyError:
+                pass
 
         try:
             attr['distance'] = self.obj.dist[node_id]
@@ -505,13 +511,12 @@ class DspPlot(gviz.Digraph):
             if isinstance(func, (Dispatcher, SubDispatch)) and self.depth != 0:
                 dot = self.set_sub_dsp(node_id, node_name, attr)
                 if self.nested:
-                    rpath = dot.render(cleanup=True)
-                    rpath = osp.relpath(rpath, self.directory)
+                    rpath = self._relpath(dot.render(cleanup=True))
                     # noinspection PyUnresolvedReferences
-                    kw['URL'] = urllib.parse.quote('./%s' % rpath)
+                    kw['URL'] = urllib.parse.quote(rpath)
                 else:
                     self.subgraph(dot)
-            else:
+            elif inspect.isfunction(func):
                 try:
                     attr['function'] = inspect.getsource(func)
                     kw['URL'] = self._save_output(attr['function'], kw, node_id)
@@ -525,9 +530,17 @@ class DspPlot(gviz.Digraph):
             attr['distance'] = self.obj.dist[node_id]
         except (AttributeError, KeyError):
             pass
+        for k in ('started', 'duration'):
+            try:
+                attr[k] = str(attr[k])
+            except KeyError:
+                pass
 
-        attr['inputs'] = pprint.pformat(attr['inputs'], width=200, compact=True)
-        attr['outputs'] = pprint.pformat(attr['outputs'], width=200, compact=True)
+        attr.update(self._missing_inputs_outputs(node_id, attr))
+
+        attr['inputs'] = self.pprint(attr['inputs'])
+        attr['outputs'] = self.pprint(attr['outputs'])
+
         if 'label' not in kw:
             it = ((k, attr[k]) for k in self.node_function if k in attr)
             kw['label'] = self._html_table(node_name, it)
@@ -608,12 +621,9 @@ class DspPlot(gviz.Digraph):
                 raise ex
 
     @staticmethod
-    def _html_encode(s, **kw):
+    def _html_encode(s, depth=1, **kw):
         if not isinstance(s, str):
-            s = pprint.pformat(s, **kw)
-            if (s.startswith("'") and s.endswith("'")) or \
-                    (s.startswith('"') and s.endswith('"')):
-                s = s[1:-1]
+            s = pprint.pformat(s, depth=depth, **kw)
 
         return html.escape(s).replace('\n', '<BR/>')
 
@@ -634,3 +644,34 @@ class DspPlot(gviz.Digraph):
                 self._html_encode(v, width=20, compact=True))
         label += '</TABLE>>'
         return label
+
+    def _missing_inputs_outputs(self, node_id, attr):
+        pred = self.g.pred[node_id]
+        succ = self.g.succ[node_id]
+        node = self.g.node
+        if attr['type'] == 'dispatcher':
+            inp, out = {}, {}
+            for k, v in attr['inputs'].items():
+                k = tuple(k for k in _iter_list_nodes((k,)) if k not in pred)
+                if k:
+                    inp[k if len(k) != 1 else k[0]] = v
+
+            for k, v in attr['outputs'].items():
+                v = tuple(v for v in _iter_list_nodes((v,)) if v not in node)
+                if v:
+                    out[k] = v if len(v) != 1 else v[0]
+        else:
+            inp = tuple(k for k in attr['inputs'] if k not in pred)
+            out = tuple(k for k in attr['outputs'] if k not in succ)
+        res = {}
+
+        if inp:
+            res['M_inputs'] = self.pprint(inp)
+        if out:
+            res['M_outputs'] = self.pprint(out)
+        return res
+
+    def pprint(self, object):
+        if isinstance(object, str):
+            return object
+        return self._pprinter.pformat(object)
