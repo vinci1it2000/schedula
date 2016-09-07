@@ -27,6 +27,8 @@ from .thermal import *
 from ..defaults import *
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline
+from sklearn.cluster import DBSCAN
+from sklearn.tree import DecisionTreeClassifier
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher import Dispatcher
 import co2mpas.utils as co2_utl
@@ -150,10 +152,29 @@ def identify_on_idle(
     return on_idle
 
 
-def identify_idle_engine_speed_out(
+class IdleDetector(DBSCAN):
+    def __init__(self, eps=0.5, min_samples=5, metric='euclidean',
+                 algorithm='auto', leaf_size=30, p=None, random_state=None):
+        super(IdleDetector, self).__init__(
+            eps=eps, min_samples=min_samples, metric=metric,
+            algorithm=algorithm, leaf_size=leaf_size, p=p,
+            random_state=random_state
+        )
+        self.classifier = DecisionTreeClassifier(random_state=0)
+
+    def fit(self, X, y=None, sample_weight=None):
+        super(IdleDetector, self).fit(X, y=y, sample_weight=sample_weight)
+        inner = self.core_sample_indices_
+        self.classifier.fit(X[inner], self.labels_[inner])
+
+    def predict(self, X):
+        return self.classifier.predict(X)
+
+
+def define_idle_model_detector(
         velocities, engine_speeds_out, stop_velocity, min_engine_on_speed):
     """
-    Identifies engine speed idle and its standard deviation [RPM].
+    Defines idle engine speed model detector.
 
     :param velocities:
         Velocity vector [km/h].
@@ -171,19 +192,73 @@ def identify_idle_engine_speed_out(
         Minimum engine speed to consider the engine to be on [RPM].
     :type min_engine_on_speed: float
 
-    :returns:
-        Idle engine speed and its standard deviation [RPM].
-    :rtype: (float, float)
+    :return:
+        Idle engine speed model detector.
+    :rtype: sklearn.cluster.DBSCAN
     """
 
     b = (velocities < stop_velocity) & (engine_speeds_out > min_engine_on_speed)
 
-    x = engine_speeds_out[b]
+    x = engine_speeds_out[b][:, None]
+    model = IdleDetector(eps=100)
+    model.fit(x)
+    label = -np.ones_like(b, dtype=int)
+    label[b] = model.labels_
+    model.classifier.fit(engine_speeds_out[:, None], label)
 
-    bin_std = dfl.functions.identify_idle_engine_speed_out.LIMITS_BIN_STD
-    idle_speed = co2_utl.bin_split(x, bin_std=bin_std)[1][0]
+    return model
 
-    return idle_speed[-1], idle_speed[1]
+
+def identify_idle_engine_speed_median(idle_model_detector):
+    """
+    Identifies idle engine speed [RPM].
+
+    :param idle_model_detector:
+        Idle engine speed model detector.
+    :type idle_model_detector: sklearn.cluster.DBSCAN
+
+    :return:
+        Idle engine speed [RPM].
+    :rtype: float
+    """
+
+    c = idle_model_detector.components_
+    l = idle_model_detector.labels_[idle_model_detector.core_sample_indices_]
+    cen = np.array([np.mean(c[l == i]) for i in range(l.max() + 1)])
+
+    return np.median(cen[idle_model_detector.labels_])
+
+
+def identify_idle_engine_speed_std(
+        idle_model_detector, engine_speeds_out, idle_engine_speed_median):
+    """
+    Identifies standard deviation of idle engine speed [RPM].
+
+    :param idle_model_detector:
+        Idle engine speed model detector.
+    :type idle_model_detector: sklearn.cluster.MeanShift
+
+    :param engine_speeds_out:
+        Engine speed vector [RPM].
+    :type engine_speeds_out: numpy.array
+
+    :param idle_engine_speed_median:
+        Idle engine speed [RPM].
+    :type idle_engine_speed_median: float
+
+    :return:
+        Standard deviation of idle engine speed [RPM].
+    :rtype: float
+    """
+    b = idle_model_detector.predict([(idle_engine_speed_median,)])
+    b = idle_model_detector.predict(engine_speeds_out[:, None]) == b
+    idle_std = dfl.functions.identify_idle_engine_speed_std.MIN_STD
+    if not b.any():
+        return idle_std
+
+    s = np.sqrt(np.mean((engine_speeds_out[b] - idle_engine_speed_median) ** 2))
+
+    return max(s, idle_std)
 
 
 # not used.
@@ -304,7 +379,7 @@ def calculate_engine_speeds_out_hot(
     :type idle_engine_speed: (float, float)
 
     :return:
-        Engine speed at hot condition [RPM] and if the engine is in idle [-].
+        Engine speed at hot condition [RPM].
     :rtype: numpy.array, float
     """
 
@@ -850,15 +925,30 @@ def engine():
     dsp.add_data(
         data_id='idle_engine_speed_std',
         default_value=dfl.values.idle_engine_speed_std,
+        initial_dist=20,
         description='Standard deviation of idle engine speed [RPM].'
+    )
+
+    dsp.add_function(
+        function=define_idle_model_detector,
+        inputs=['velocities', 'engine_speeds_out', 'stop_velocity',
+                'min_engine_on_speed'],
+        outputs=['idle_model_detector']
     )
 
     # identify idle engine speed
     dsp.add_function(
-        function=identify_idle_engine_speed_out,
-        inputs=['velocities', 'engine_speeds_out', 'stop_velocity',
-                'min_engine_on_speed'],
-        outputs=['idle_engine_speed_median', 'idle_engine_speed_std']
+        function=identify_idle_engine_speed_median,
+        inputs=['idle_model_detector'],
+        outputs=['idle_engine_speed_median']
+    )
+
+    # identify idle engine speed
+    dsp.add_function(
+        function=identify_idle_engine_speed_std,
+        inputs=['idle_model_detector', 'engine_speeds_out',
+                'idle_engine_speed_median'],
+        outputs=['idle_engine_speed_std']
     )
 
     # set idle engine speed tuple

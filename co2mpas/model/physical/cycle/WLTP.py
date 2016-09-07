@@ -419,7 +419,8 @@ def wltp_cycle():
                 'idle_engine_speed', 'engine_max_speed_at_max_power',
                 'engine_max_power', 'base_model'],
         outputs=['gears'],
-        input_domain=lambda *args: args[0] == 'manual'
+        input_domain=lambda *args: args[0] == 'manual',
+        weight=10
     )
 
     return dsp

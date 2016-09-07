@@ -168,9 +168,9 @@ class Values(co2_utl.Constants):
 
 #: Container of internal function parameters.
 class Functions(co2_utl.Constants):
-    class identify_idle_engine_speed_out(co2_utl.Constants):
-        #: Bin standard deviation limits [-].
-        LIMITS_BIN_STD = (0.01, 0.3)
+    class identify_idle_engine_speed_std(co2_utl.Constants):
+        #: Min standard deviation value [RPM].
+        MIN_STD = 100.0
 
     class DefaultStartStopModel(co2_utl.Constants):
         #: Maximum allowed velocity to stop the engine [km/h].
