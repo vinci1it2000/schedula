@@ -179,7 +179,7 @@ class Project(transitions.Machine, baseapp.Spec):
 
             ['import_iof',  ['dice_yes',
                              'dice_no'],    'nedc'],
-            ['import_iof',  'nedc',         'ndec',         '_is_force'],
+            ['import_iof',  'nedc',         'nedc',         '_is_force'],
         ]
         super().__init__(states=states,
                          initial=states[0],
@@ -210,6 +210,12 @@ class Project(transitions.Machine, baseapp.Spec):
                 object_hook=lambda seq: _CommitMsg(**seq))
 
     def _make_tag_msg(self, report):
+        """
+        :param report: a list of extracted params
+        """
+        ## TODO: Report can be more beautiful...
+        report_str = '\n\n'.join(report)
+
         msg = textwrap.dedent("""
         Report for CO2MPAS-project: %r
         ======================================================================
@@ -917,7 +923,7 @@ class ProjectCmd(_PrjCmd):
     def __init__(self, **kwds):
         with self.hold_trait_notifications():
             dkwds = {
-                'conf_classes': [ProjectsDB],
+                'conf_classes': [ProjectsDB, Project],
                 'subcommands': baseapp.build_sub_cmds(*project_subcmds),
                 #'default_subcmd': 'current', ## Does not help the user.
                 'cmd_flags': {
@@ -933,7 +939,7 @@ class ProjectCmd(_PrjCmd):
             super().__init__(**dkwds)
 
 project_subcmds = (ProjectCmd.ListCmd, ProjectCmd.CurrentCmd, ProjectCmd.OpenCmd, ProjectCmd.AddCmd,
-                   ProjectCmd.ExamineCmd, ProjectCmd.BackupCmd)
+                   ProjectCmd.AddReportCmd, ProjectCmd.ExamineCmd, ProjectCmd.BackupCmd)
 
 if __name__ == '__main__':
     from traitlets.config import get_config
