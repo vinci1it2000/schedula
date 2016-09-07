@@ -6,9 +6,8 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
-"""
-It provides tools to find data, function, and sub-dispatcher node description.
-"""
+""" Defines the dispatcher exception. """
+## TODO: Move it to parent package.
 
 __author__ = 'Vincenzo Arcidiacono'
 
