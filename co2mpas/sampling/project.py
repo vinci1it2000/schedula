@@ -118,6 +118,7 @@ class Project(transitions.Machine, baseapp.Spec):
         return clone
 
     def __str__(self, *args, **kwargs):
+        #TODO: Obey verbosity on project-str.
         return 'Project(%s: %s)' % (self.pname, self.state)
 
     def _is_force(self, event):
@@ -184,15 +185,16 @@ class Project(transitions.Machine, baseapp.Spec):
                          initial=states[0],
                          transitions=trans,
                          send_event=True,
-                         after_state_change=self._commit_or_tag,
+                         after_state_change=self._cb_commit_or_tag,
                          auto_transitions=False,
                          name=pname,
                          **kwds)
-        self.on_enter_empty(    self._stage_new_project_content)
-        self.on_enter_tagged(   self._generate_report)
-        self.on_enter_wltp_inp( self._stage_iofiles)
-        self.on_enter_wltp_out( self._stage_iofiles)
-        self.on_enter_wltp(     self._stage_iofiles)
+        self.on_enter_empty(    self._cb_stage_new_project_content)
+        self.on_enter_tagged(   self._cb_generate_report)
+        self.on_enter_wltp_inp( self._cb_stage_iofiles)
+        self.on_enter_wltp_out( self._cb_stage_iofiles)
+        self.on_enter_wltp(     self._cb_stage_iofiles)
+        self.on_enter_nedc(     self._cb_stage_iofiles)
 
     def _make_commit_msg(self, action):
         action = '\n'.join(textwrap.wrap(action, width=50))
@@ -215,7 +217,7 @@ class Project(transitions.Machine, baseapp.Spec):
         """) % (self.pname, report)
         return msg
 
-    def _commit_or_tag(self, event):
+    def _cb_commit_or_tag(self, event):
         """Executed on ENTER for all states."""
         state = self.state
         if state.islower():
@@ -242,7 +244,7 @@ class Project(transitions.Machine, baseapp.Spec):
         - created: %s
         """ %(self.pname, datetime.now()))
 
-    def _stage_new_project_content(self, event):
+    def _cb_stage_new_project_content(self, event):
         """Create a new project."""
         repo = self.projects_db.repo
         index = repo.index
@@ -250,15 +252,22 @@ class Project(transitions.Machine, baseapp.Spec):
         with io.open(state_fpath, 'wt') as fp:
             fp.write(self._make_readme())
         index.add([state_fpath])
+
+        ## Commit/tag callback expects `action` on event.
         event.kwargs['action'] = 'Project created.' ## TODO: Improve actions
 
-    def _new_report(self):
+    def _new_report_spec(self):
         if not getattr(self, '__report', None):
             self.__report = report.Report(config=self.config)
         return self.__report
 
-    def _stage_iofiles(self, event):
-        """Triggered by `import_iof()` on ENTER for all `wltp_XX` states."""
+    def _cb_stage_iofiles(self, event):
+        """
+        Triggered by `import_iof()` on ENTER for all `wltp_XX` & 'nedc' states.
+
+        :param dice.IOFiles iofiles:
+            what to import
+        """
         import shutil
 
         iofiles = event.kwargs['iofiles']
@@ -267,7 +276,7 @@ class Project(transitions.Machine, baseapp.Spec):
         ## Check extraction of report works ok.
         #
         try:
-            rep = self._new_report()
+            rep = self._new_report_spec()
             list(rep.yield_from_iofiles(iofiles))
         except Exception as ex:
             msg = ("Failed extracting report from %s, due to: %s"
@@ -282,7 +291,7 @@ class Project(transitions.Machine, baseapp.Spec):
         nimported = 0
         for io_kind, fpaths in iofiles._asdict().items():
             for ext_fpath in fpaths:
-                self.log.debug('Importing %s-file: %s', io_kind, ext_fpath)
+                self.log.debug('Importing WLTP %s-file: %s', io_kind, ext_fpath)
                 assert io_kind != 'other', "Other-files: %s" % iofiles.other
                 assert ext_fpath, "Import none as %s file!" % io_kind
 
@@ -293,10 +302,15 @@ class Project(transitions.Machine, baseapp.Spec):
                 index.add([index_fpath])
                 nimported += 1
 
+        ## Commit/tag callback expects `action` on event.
         event.kwargs['action'] = 'Imported %d IO-files.' % nimported
 
     def list_iofiles(self) -> dice.IOFiles or None:
-        """Works on current project."""
+        """
+        :return:
+            A class:`dice.IOFiles` containing list of working-dir paths
+            for any WLTP files, or none if none exists.
+        """
         repo = self.projects_db.repo
         def collect_kind_files(io_kind):
             if io_kind:
@@ -308,16 +322,16 @@ class Project(transitions.Machine, baseapp.Spec):
         if any(iofpaths):
             return dice.IOFiles(*iofpaths)
 
-    def _generate_report(self, event):
-        """Triggered by `tag()`."""
-        rep = self._new_report()
+    def _cb_generate_report(self, event):
+        """Triggered by `tag()`, builds the report to use as tag-msg."""
+        rep = self._new_report_spec()
         iofiles = self.list_iofiles()
 
         ## TODO: Report can be more beautiful...
         report = '\n\n'.join(list(rep.yield_from_iofiles(iofiles)))
 
+        ## Commit/tag callback expects `report` on event.
         event.kwargs['report'] = report
-
 
 
 

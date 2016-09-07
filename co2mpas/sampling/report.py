@@ -195,8 +195,8 @@ class ReportCmd(baseapp.Cmd):
         iofiles = project.list_iofiles()
         if not iofiles:
             raise baseapp.CmdException(
-                    "Current project %r contains no input/output files!"
-                    % project.pname)
+                    "Current %s contains no input/output files!"
+                    % project)
         return iofiles
 
 
