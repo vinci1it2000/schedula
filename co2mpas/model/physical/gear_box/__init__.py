@@ -390,6 +390,8 @@ class GearBoxLosses(object):
 
         self.base = base
         self.loop = False
+        from .thermal import thermal
+        self.base_thermal = thermal()
 
     def predict(self, *args, **kwargs):
         return np.array(list(self._yield_losses(*args, **kwargs))).T
@@ -407,9 +409,8 @@ class GearBoxLosses(object):
         if gears is not None:
             inputs['gear'] = gears
 
-        from .thermal import thermal
         func = dsp_utl.SubDispatchPipe(
-            dsp=thermal(),
+            dsp=self.base_thermal,
             function_id='thermal',
             inputs=tuple(self.base) + ('gear_box_temperature',) + tuple(inputs),
             outputs=('gear_box_temperature', 'gear_box_torque_in',
