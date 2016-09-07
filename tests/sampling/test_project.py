@@ -16,7 +16,7 @@ import ddt
 from traitlets.config import get_config
 
 from co2mpas.__main__ import init_logging
-from co2mpas.sampling import baseapp, dice, project, PFiles, all_io_kinds
+from co2mpas.sampling import baseapp, dice, project, PFiles
 from tests.sampling import _inp_fpath, _out_fpath
 import itertools as itt
 import os.path as osp
@@ -258,6 +258,9 @@ class TStraightStory(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        print('AAAAA', id(project.ProjectsDB.instance()))
+        project.ProjectsDB.clear_instance() ## FIXME: Still del tmp-repo denied.
+        print('CCCCC')
         cls._project_repo.cleanup()
 
     @property
@@ -310,6 +313,7 @@ class TStraightStory(unittest.TestCase):
         self.assertFalse(iof.other)
 
     def test_4_tag(self):
+        ## FIXME: Still del tmp-repo denied.
         pdb = project.ProjectsDB.instance()
         pdb.update_config(self._config)
         p = pdb.current_project()
@@ -350,7 +354,6 @@ class TStraightStory(unittest.TestCase):
         pdb.update_config(self._config)
         p = pdb.current_project()
 
-        #pfiles = PFiles(other=[osp.join(mydir, '%s.py' % __file__)])
         pfiles = PFiles(other=[__file__])
         res = p.do_addfiles(pfiles=pfiles)
         self.assertTrue(res)
