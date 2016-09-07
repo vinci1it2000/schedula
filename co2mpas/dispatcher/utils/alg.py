@@ -1000,6 +1000,11 @@ def rm_cycles_iter(graph, nodes_bunch, reached_nodes, edge_to_rm, wait_in):
             rm_cycles_iter(sub_g, data_n, reached_nodes, edge_to_rm, wait_in)
 
 
+class DspPipe(OrderedDict):
+    def __repr__(self):
+        return "<%s instance at %s>" % (self.__class__.__name__, id(self))
+
+
 def get_full_pipe(sol, base=()):
     """
     Returns the full pipe of a dispatch run.
@@ -1015,7 +1020,7 @@ def get_full_pipe(sol, base=()):
     :return:
     """
 
-    pipe = OrderedDict()
+    pipe = DspPipe()
 
     for p in sol._pipe:
         n, s = p[-1]
