@@ -35,7 +35,7 @@ import traitlets as trt
 import traitlets.config as trtc
 
 
-class UFun(object):
+class DFun(object):
     """
      A 3-tuple ``(out, fun, **kwds)``, used to prepare a list of calls to :meth:`Dispatcher.add_function()`.
 
@@ -53,10 +53,10 @@ class UFun(object):
 
     Example::
 
-        ufuns = [
-            UFun('res', lambda num: num * 2),
-            UFun('res2', lambda num, num2: num + num2, weight=30),
-            UFun(out=['nargs', 'res22'],
+        dfuns = [
+            DFun('res', lambda num: num * 2),
+            DFun('res2', lambda num, num2: num + num2, weight=30),
+            DFun(out=['nargs', 'res22'],
                  fun=lambda *args: (len(args), args),
                  inp=('res', 'res1')
             ),
@@ -74,13 +74,13 @@ class UFun(object):
 
     def __repr__(self, *args, **kwargs):
         kwds = dtz.keyfilter(lambda k: k not in ('fun', 'out'), self.kwds)
-        return 'UFun(%r, %r, %s)' % (
+        return 'DFun(%r, %r, %s)' % (
             self.out,
             self.fun,
             ', '.join('%s=%s' %(k, v) for k, v in kwds.items()))
 
     def copy(self):
-        cp = UFun(**vars(self))
+        cp = DFun(**vars(self))
         cp.kwds = dict(self.kwds)
         return cp
 
@@ -119,12 +119,12 @@ class UFun(object):
                                 **kwds)
 
     @classmethod
-    def add_ufuns(cls, ufuns: Iterable, dsp):#: Dispatcher):
-        for uf in ufuns:
+    def add_dfuns(cls, dfuns: Iterable, dsp):#: Dispatcher):
+        for uf in dfuns:
             try:
                 uf.addme(dsp)
             except Exception as ex:
-                raise ValueError("Failed adding ufun %s due to: %s: %s"
+                raise ValueError("Failed adding dfun %s due to: %s: %s"
                                  % (uf, type(ex).__name__, ex)) from ex
 
 
@@ -181,7 +181,7 @@ def _tname2ref_name(tname: Text) -> Text:
 
 @fnt.lru_cache()
 def project_zygote(): #-> Project:
-    """Cached Project FSM, for speeding-up its creation."""
+    """Cached Project FSM, for speeding-up its creation; "fork" it before use. """
     return Project('<zygote>', None)
 
 
@@ -198,7 +198,7 @@ class Project(transitions.Machine, baseapp.Spec):
         """
         Optimization, along with :func:`project_zygote`, to speedup FSM creation.
 
-        For example, see ::meth:`ProjectsDB._conceive_project()`.
+        For an example, see ::meth:`ProjectsDB._conceive_project()`.
         INFO: set here any non-serializable fields for :func:`fnt.lru_cache()` to work.
         """
         clone = copy.deepcopy(self)
@@ -565,46 +565,46 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
     def _infos_dsp(self, fallback_value='<invalid>'):
         from co2mpas.dispatcher import Dispatcher
 
-        ufuns = [
-            UFun('repo',            lambda _infos: self.repo),
-            UFun('git_cmds',        lambda _infos: where('git')),
-            UFun('dirty',           lambda repo: repo.is_dirty()),
-            UFun('untracked',       lambda repo: repo.untracked_files),
-            UFun('wd_files',        lambda repo: os.listdir(repo.working_dir)),
-            UFun('branch',          lambda repo, _inp_prj:
+        dfuns = [
+            DFun('repo',            lambda _infos: self.repo),
+            DFun('git_cmds',        lambda _infos: where('git')),
+            DFun('dirty',           lambda repo: repo.is_dirty()),
+            DFun('untracked',       lambda repo: repo.untracked_files),
+            DFun('wd_files',        lambda repo: os.listdir(repo.working_dir)),
+            DFun('branch',          lambda repo, _inp_prj:
                                         _inp_prj and _get_ref(repo.heads, _pname2ref_path(_inp_prj)) or repo.active_branch),
-            UFun('head',            lambda repo: repo.head),
-            UFun('heads_count',     lambda repo: len(repo.heads)),
-            UFun('projects_count',  lambda repo: itz.count(self._yield_project_refs())),
-            UFun('tags_count',      lambda repo: len(repo.tags)),
-            UFun('git_version',     lambda repo: '.'.join(str(v) for v in repo.git.version_info)),
-            UFun('git_settings',    lambda repo: self.read_git_settings()),
+            DFun('head',            lambda repo: repo.head),
+            DFun('heads_count',     lambda repo: len(repo.heads)),
+            DFun('projects_count',  lambda repo: itz.count(self._yield_project_refs())),
+            DFun('tags_count',      lambda repo: len(repo.tags)),
+            DFun('git_version',     lambda repo: '.'.join(str(v) for v in repo.git.version_info)),
+            DFun('git_settings',    lambda repo: self.read_git_settings()),
 
-            UFun('head_ref',      lambda head: head.reference),
-            UFun('head_valid',      lambda head: head.is_valid()),
-            UFun('head_detached',   lambda head: head.is_detached),
+            DFun('head_ref',      lambda head: head.reference),
+            DFun('head_valid',      lambda head: head.is_valid()),
+            DFun('head_detached',   lambda head: head.is_detached),
 
-            UFun('cmt',             lambda branch: branch.commit),
-            UFun('head',            lambda branch: branch.path),
-            UFun('branch_valid',    lambda branch: branch.is_valid()),
-            UFun('branch_detached', lambda branch: branch.is_detached),
+            DFun('cmt',             lambda branch: branch.commit),
+            DFun('head',            lambda branch: branch.path),
+            DFun('branch_valid',    lambda branch: branch.is_valid()),
+            DFun('branch_detached', lambda branch: branch.is_detached),
 
-            UFun('tre',             lambda cmt: cmt.tree),
-            UFun('author',          lambda cmt: '%s <%s>' % (cmt.author.name, cmt.author.email)),
-            UFun('last_cdate',      lambda cmt: str(cmt.authored_datetime)),
-            UFun('commit',          lambda cmt: cmt.hexsha),
-            UFun('revs_count',      lambda cmt: itz.count(cmt.iter_parents())),
-            UFun('cmsg',            lambda cmt: cmt.message),
-            UFun('cmsg',            lambda cmt: '<invalid: %s>' % cmt.message, weight=10),
+            DFun('tre',             lambda cmt: cmt.tree),
+            DFun('author',          lambda cmt: '%s <%s>' % (cmt.author.name, cmt.author.email)),
+            DFun('last_cdate',      lambda cmt: str(cmt.authored_datetime)),
+            DFun('commit',          lambda cmt: cmt.hexsha),
+            DFun('revs_count',      lambda cmt: itz.count(cmt.iter_parents())),
+            DFun('cmsg',            lambda cmt: cmt.message),
+            DFun('cmsg',            lambda cmt: '<invalid: %s>' % cmt.message, weight=10),
 
-            UFun(['msg.%s' % f for f in _CommitMsg._fields],
+            DFun(['msg.%s' % f for f in _CommitMsg._fields],
                                     lambda cmsg: Project.parse_commit_msg(cmsg)),
 
-            UFun('tree',            lambda tre: tre.hexsha),
-            UFun('files_count',     lambda tre: itz.count(tre.list_traverse())),
+            DFun('tree',            lambda tre: tre.hexsha),
+            DFun('files_count',     lambda tre: itz.count(tre.list_traverse())),
         ]
         dsp = Dispatcher()
-        UFun.add_ufuns(ufuns, dsp)
+        DFun.add_dfuns(dfuns, dsp)
         return dsp
 
     @fnt.lru_cache()
