@@ -471,10 +471,8 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
     __repo = None
 
     def __del__(self):
-        print('BBBBB!', id(self))
         if self.__repo:
-            print('BBBBB2', id(self))
-            self.__repo.git.clear_cache() ## FIXME: Still del tmp-repo denied.
+            self.__repo.git.clear_cache()
 
     def _setup_repo(self, repo_path):
         if self.__repo:

@@ -258,9 +258,7 @@ class TStraightStory(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        print('AAAAA', id(project.ProjectsDB.instance()))
-        project.ProjectsDB.clear_instance() ## FIXME: Still del tmp-repo denied.
-        print('CCCCC')
+        project.ProjectsDB.clear_instance()
         cls._project_repo.cleanup()
 
     @property
@@ -313,7 +311,7 @@ class TStraightStory(unittest.TestCase):
         self.assertFalse(iof.other)
 
     def test_4_tag(self):
-        ## FIXME: Still del tmp-repo denied.
+        ## FIXME: Del tmp-repo denied with old pythingit.
         pdb = project.ProjectsDB.instance()
         pdb.update_config(self._config)
         p = pdb.current_project()
