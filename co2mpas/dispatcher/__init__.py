@@ -1740,7 +1740,7 @@ class Dispatcher(object):
             >>> outputs = dsp.dispatch(outputs=['c'])
             ...
             >>> sorted(outputs.items())
-             [('a', 0), ('b', 5), ('c', 0), ('d', 1)]
+             [('a', 0), ('b', 5), ('c', 0)]
 
         .. dispatcher:: dsp
            :opt: workflow=True, graph_attr={'ratio': '1'}
@@ -1763,12 +1763,15 @@ class Dispatcher(object):
             <...>
         """
 
-        if not no_call and shrink:  # Pre shrink.
-            dsp = self.shrink_dsp(
-                inputs, outputs, cutoff, inputs_dist, wildcard
-            )
-        else:
-            dsp = self
+        dsp = self
+
+        if not no_call:
+            if shrink:  # Pre shrink.
+                dsp = self.shrink_dsp(
+                    inputs, outputs, cutoff, inputs_dist, wildcard
+                )
+            elif outputs:
+                dsp = self.shrink_dsp(outputs=outputs)
 
         # Initialize.
         self.solution = sol = Solution(
@@ -1776,6 +1779,7 @@ class Dispatcher(object):
             rm_unused_nds, _wait_in)
         # dispatch
         sol.run()
+        sol.sub_dsp[self] = sol.sub_dsp.pop(dsp)
 
         # Nodes that are out of the dispatcher nodes.
         out_dsp_nodes = set(sol.inputs).difference(dsp.nodes)
