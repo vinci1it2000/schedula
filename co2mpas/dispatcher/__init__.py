@@ -1764,7 +1764,9 @@ class Dispatcher(object):
         """
 
         if not no_call and shrink:  # Pre shrink.
-            dsp = self.shrink_dsp(inputs, outputs, cutoff)
+            dsp = self.shrink_dsp(
+                inputs, outputs, cutoff, inputs_dist, wildcard
+            )
         else:
             dsp = self
 
