@@ -21,7 +21,10 @@ import co2mpas.dispatcher.utils as dsp_utl
 import co2mpas.utils as co2_utl
 from .validations import hard_validation
 from co2mpas.model.physical.gear_box.at_gear import CMV, MVL, GSPV
-from co2mpas.model.physical.electrics import Alternator_status_model
+from co2mpas.model.physical.clutch_tc.clutch import Clutch
+from co2mpas.model.physical.clutch_tc.torque_converter import TorqueConverter
+from co2mpas.model.physical.engine.start_stop import StartStopModel
+from co2mpas.model.physical.engine.thermal import ThermalModel
 
 log = logging.getLogger(__name__)
 
@@ -30,8 +33,9 @@ def validate_data(data, soft_validation, read_schema=None):
     plan = validate_plan(data.get('plan', pd.DataFrame([])), read_schema)
 
     inputs = validate_inputs(data.get('base', {}), soft_validation, read_schema)
-    inputs = {'.'.join(k): v
-              for k, v in co2_utl.stack_nested_keys(inputs, depth=3)}
+    if inputs is not dsp_utl.NONE:
+        inputs = {'.'.join(k): v
+                  for k, v in co2_utl.stack_nested_keys(inputs, depth=3)}
 
     return inputs, plan
 
@@ -48,7 +52,7 @@ def validate_inputs(data, soft_validation=False, read_schema=None):
                 co2_utl.get_nested_dicts(errors, *k)[c] = SchemaError([], [msg])
 
     if _log_errors_msg(errors):
-        return {}
+        return dsp_utl.NONE
 
     return res
 
@@ -86,7 +90,7 @@ def validate_plan(plan, read_schema=None):
         validated_plan.append((i, inputs))
 
     if _log_errors_msg(errors):
-        return []
+        return dsp_utl.NONE
 
     return validated_plan
 
@@ -118,8 +122,8 @@ def _function(error=None, read=True, **kwargs):
         return f
     if read:
         error = error or 'should be a function!'
-        return Use(_check_function, error=error)
-    return _eval(And(_function(), Use(lambda x: dsp_utl.NONE), error=error))
+        return _eval(Use(_check_function), error=error)
+    return And(_check_function, Use(lambda x: dsp_utl.NONE), error=error)
 
 
 # noinspection PyUnusedLocal
@@ -158,7 +162,9 @@ def _limits(limits=(0, 100), error=None, **kwargs):
 # noinspection PyUnusedLocal
 def _eval(s, error=None, **kwargs):
     error = error or 'cannot be eval!'
-    return Or(And(str, Use(lambda x: eval(x)), s), s, error=error)
+    def _eval(x):
+        return eval(x)
+    return Or(And(str, Use(_eval), s), s, error=error)
 
 
 # noinspection PyUnusedLocal
@@ -325,7 +331,7 @@ def define_data_schema(read=True):
     ordictstrdict = _ordict(format={str: dict}, read=read)
     parameters = _parameters(read=read)
     dictstrfloat = _dict(format={str: Use(float)}, read=read)
-    dictstrtuple = _dict(format={str: tuple}, read=read)
+    dictarray = _dict(format={str: np_array}, read=read)
     tyre_code = _tyre_code(read=read)
     tyre_dimensions = _tyre_dimensions(read=read)
 
@@ -382,7 +388,7 @@ def define_data_schema(read=True):
         'willans_factors': dictstrfloat,
         'phases_willans_factors': _type(
             type=And(Use(tuple), (dictstrfloat,)), read=read),
-        'optimal_efficiency': dictstrtuple,
+        'optimal_efficiency': dictarray,
         'velocity_speed_ratios': index_dict,
         'gear_box_ratios': index_dict,
         'speed_velocity_ratios': index_dict,

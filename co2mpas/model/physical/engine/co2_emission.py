@@ -915,6 +915,25 @@ def calculate_co2_emission(phases_co2_emissions, phases_distances):
     return float(n / d)
 
 
+def _select_initial_friction_params(co2_params_initial_guess):
+    """
+    Selects initial guess of friction params l & l2 for the calculation of
+    the motoring curve.
+
+    :param co2_params_initial_guess:
+        Initial guess of CO2 emission model params.
+    :type co2_params_initial_guess: lmfit.Parameters
+
+    :return:
+        Initial guess of friction params l & l2.
+    :rtype: float, float
+    """
+
+    params = co2_params_initial_guess.valuesdict()
+
+    return dsp_utl.selector(('l', 'l2'), params, output_type='list')
+
+
 def define_initial_co2_emission_model_params_guess(
         params, engine_type, engine_normalization_temperature,
         engine_thermostat_temperature_window, is_cycle_hot=False,
@@ -947,8 +966,8 @@ def define_initial_co2_emission_model_params_guess(
     :type bounds: bool, optional
 
     :return:
-        Initial guess of co2 emission model params.
-    :rtype: lmfit.Parameters
+        Initial guess of co2 emission model params and of friction params.
+    :rtype: lmfit.Parameters, list[float]
     """
 
     bounds = bounds or {}
@@ -990,7 +1009,11 @@ def define_initial_co2_emission_model_params_guess(
         kw['max'] = kw['min'] = None
         p.add(**kw)
 
-    return p
+    friction_params = _select_initial_friction_params(p)
+    if not missing_co2_params(params):
+        p = dsp_utl.NONE
+
+    return p, friction_params
 
 
 def calculate_after_treatment_temperature_threshold(
@@ -1134,6 +1157,8 @@ def calibrate_co2_params(
     if hot.any():
         _set_attr(p, ['t0', 't1'], default=0.0, attr='value')
         p = calibrate(cold_p, p, sub_values=hot)
+    else:
+        success.append((True, copy.deepcopy(p)))
 
     if cold.any():
         _set_attr(p, {'t0': values['t0'], 't1': values['t1']}, attr='value')
@@ -1370,7 +1395,7 @@ def calculate_phases_willans_factors(
         params, engine_fuel_lower_heating_value, engine_stroke, engine_capacity,
         min_engine_on_speed, times, phases_integration_times, engine_speeds_out,
         engine_powers_out, velocities, accelerations, motive_powers,
-        engine_coolant_temperatures, missing_powers):
+        engine_coolant_temperatures, missing_powers, angle_slopes):
     """
     Calculates the Willans factors for each phase.
 
@@ -1432,10 +1457,15 @@ def calculate_phases_willans_factors(
         Missing engine power [kW].
     :type missing_powers: numpy.array
 
+    :param angle_slopes:
+        Angle slope vector [rad].
+    :type angle_slopes: numpy.array
+
     :return:
         Willans factors:
 
         - av_velocities                         [km/h]
+        - av_slope                              [rad]
         - distance                              [km]
         - init_temp                             [°C]
         - av_temp                               [°C]
@@ -1471,7 +1501,8 @@ def calculate_phases_willans_factors(
             engine_capacity, min_engine_on_speed, engine_speeds_out[i:j],
             engine_powers_out[i:j], times[i:j], velocities[i:j],
             accelerations[i:j], motive_powers[i:j],
-            engine_coolant_temperatures[i:j], missing_powers[i:j]
+            engine_coolant_temperatures[i:j], missing_powers[i:j],
+            angle_slopes[i:j]
         ))
 
     return factors
@@ -1481,7 +1512,7 @@ def calculate_willans_factors(
         params, engine_fuel_lower_heating_value, engine_stroke, engine_capacity,
         min_engine_on_speed, engine_speeds_out, engine_powers_out, times,
         velocities, accelerations, motive_powers, engine_coolant_temperatures,
-        missing_powers):
+        missing_powers, angle_slopes):
     """
     Calculates the Willans factors.
 
@@ -1539,10 +1570,15 @@ def calculate_willans_factors(
         Missing engine power [kW].
     :type missing_powers: numpy.array
 
+    :param angle_slopes:
+        Angle slope vector [rad].
+    :type angle_slopes: numpy.array
+
     :return:
         Willans factors:
 
         - av_velocities                         [km/h]
+        - av_slope                              [rad]
         - distance                              [km]
         - init_temp                             [°C]
         - av_temp                               [°C]
@@ -1578,6 +1614,7 @@ def calculate_willans_factors(
 
     f = {
         'av_velocities': av(velocities, weights=w),  # [km/h]
+        'av_slope': av(angle_slopes, weights=w),
         'has_sufficient_power': not missing_powers.any(),
         'max_power_required': max(engine_powers_out + missing_powers)
     }
@@ -1675,12 +1712,10 @@ def calculate_optimal_efficiency(params, mean_piston_speeds):
     :rtype: dict[str | tuple]
     """
 
-    speeds = mean_piston_speeds
-    f = partial(_calculate_optimal_point, params)
+    n_s = np.linspace(mean_piston_speeds.min(), mean_piston_speeds.max(), 10)
+    bmep, eff = _calculate_optimal_point(params, n_s)
 
-    x, y, e = zip(*[f(s) for s in np.linspace(min(speeds), max(speeds), 10)])
-
-    return {'mean_piston_speeds': x, 'engine_bmep': y, 'efficiency': e}
+    return {'mean_piston_speeds': n_s, 'engine_bmep': bmep, 'efficiency': eff}
 
 
 def _calculate_optimal_point(params, n_speed):
@@ -1692,7 +1727,7 @@ def _calculate_optimal_point(params, n_speed):
     y = 2 * C - sabc / (2 * A)
     eff = n / (B - np.sqrt(B2 - sabc - n))
 
-    return n_speed, y, eff
+    return y, eff
 
 
 # noinspection PyUnusedLocal
@@ -1928,8 +1963,7 @@ def co2_emission():
         function=define_initial_co2_emission_model_params_guess,
         inputs=['co2_params', 'engine_type', 'engine_thermostat_temperature',
                 'engine_thermostat_temperature_window', 'is_cycle_hot'],
-        outputs=['co2_params_initial_guess'],
-        input_domain=missing_co2_params
+        outputs=['co2_params_initial_guess', 'initial_friction_params'],
     )
 
     dsp.add_function(
@@ -2107,7 +2141,7 @@ def co2_emission():
                 'engine_capacity', 'min_engine_on_speed', 'engine_speeds_out',
                 'engine_powers_out', 'times', 'velocities', 'accelerations',
                 'motive_powers', 'engine_coolant_temperatures',
-                'missing_powers'],
+                'missing_powers', 'angle_slopes'],
         outputs=['willans_factors'],
         input_domain=lambda *args: args[0]
     )
@@ -2127,7 +2161,7 @@ def co2_emission():
                 'phases_integration_times', 'engine_speeds_out',
                 'engine_powers_out', 'velocities', 'accelerations',
                 'motive_powers', 'engine_coolant_temperatures',
-                'missing_powers'],
+                'missing_powers', 'angle_slopes'],
         outputs=['phases_willans_factors'],
         input_domain=lambda *args: args[0]
     )

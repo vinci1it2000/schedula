@@ -23,7 +23,7 @@
 |co2mpas| is backward-looking longitudinal-dynamics |CO2| and
 fuel-consumption simulator for light-duty M1 & N1 vehicles (cars and vans),
 specially crafted to back-translate consumption figures from WLTP cycles
-into NEDC ones, according to the *EU* legislation.
+into NEDC ones, according to the *EU* legislation (see `History`_ section, below).
 
 It is an open-source project developed with Python-3.4+,
 using Anaconda & WinPython under Windows 7, Anaconda under MacOS, and
@@ -39,6 +39,12 @@ the adaptation of |CO2| certification and monitoring procedures set
 by European regulations. European Commission's *Joint Research Centre (JRC)*
 has been assigned the development of this vehicle simulator to facilitate this
 adaptation.
+
+The European Regulation setting the conditions for using |co2mpas| can be 
+found in `the Comitology Register 
+<http://ec.europa.eu/transparency/regcomitology/index.cfm?do=search.documentdetail&gYsYfQyLRa3DqHm8YKXObaxj0Is1LmebRoBfg8saKszVqHZGdIwy2rS97ztb5t8b>`_
+after its adoption by the *Climate Change Committee* which took place on 
+June 23, 2016.
 
 For recent activity, check the :doc:`changes`.
 
@@ -813,7 +819,7 @@ The output-files produced on each run are the following:
 .. tip::
 
     Additionally, a sample output file is provide here:
-    http://files.co2mpas.io/CO2MPAS-1.3.1/co2mpas-empty_output-2.2.1.xlsx
+    http://files.co2mpas.io/CO2MPAS-1.3.1/co2mpas-annotated_input-2.2.1.xlsx
 
 
 Entering new vehicles

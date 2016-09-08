@@ -178,9 +178,64 @@ def _calibrate_clutch_prediction_model(
     return error_func(model), model
 
 
-# noinspection PyUnusedLocal
-def _no_clutch(X, *args):
-    return np.zeros(X.shape[0])
+class Clutch():
+    def __init__(self):
+        self.predict = self._no_clutch
+
+    def __call__(self, *args, **kwargs):
+        return self.predict(*args, **kwargs)
+
+    def fit(self, clutch_phases, accelerations, clutch_speeds_delta):
+        """
+        Calibrate clutch prediction model.
+
+        :param clutch_phases:
+            When the clutch is active [-].
+        :type clutch_phases: numpy.array
+
+        :param accelerations:
+            Acceleration vector [m/s2].
+        :type accelerations: numpy.array
+
+        :param clutch_speeds_delta:
+            Engine speed delta due to the clutch [RPM].
+        :type clutch_speeds_delta: numpy.array
+
+        :return:
+            Clutch prediction model.
+        :rtype: function
+        """
+
+        delta = clutch_speeds_delta
+        phases, acc = clutch_phases, accelerations
+
+        cal, c = self._calibrate_clutch_prediction_model, dsp_utl.counter()
+        y, X = delta[phases], np.array([acc[phases]]).T
+        error = lambda func: (mean_squared_error(y, func(X)), c())
+
+        models = [cal(acc[b], delta[b], error, self._no_clutch)
+                  for b in [np.zeros_like(acc, dtype=bool), phases]]
+
+        self.predict = min(models)[-1]
+        return self
+
+    @staticmethod
+    def _calibrate_clutch_prediction_model(
+            accelerations, delta_speeds, error_func, default_model):
+        try:
+            X = np.array([accelerations]).T
+            model = RANSACRegressor(
+                base_estimator=LinearRegression(fit_intercept=False),
+                random_state=0
+            ).fit(X, delta_speeds).predict
+        except ValueError:  # Setting MAD as residual_threshold is too low.
+            model = default_model
+
+        return error_func(model), model
+
+    @staticmethod
+    def _no_clutch(X, *args):
+        return np.zeros(X.shape[0])
 
 
 def calibrate_clutch_prediction_model(
@@ -205,17 +260,10 @@ def calibrate_clutch_prediction_model(
     :rtype: function
     """
 
-    delta = clutch_speeds_delta
-    phases, acc = clutch_phases, accelerations
+    model = Clutch()
+    model.fit(clutch_phases, accelerations, clutch_speeds_delta)
 
-    calibrate, counter = _calibrate_clutch_prediction_model, dsp_utl.counter()
-    y, X = delta[phases], np.array([acc[phases]]).T
-    error = lambda func: (mean_squared_error(y, func(X)), counter())
-
-    models = [calibrate(acc[b], delta[b], error, _no_clutch)
-              for b in [np.zeros_like(acc, dtype=bool), phases]]
-
-    return min(models)[-1]
+    return model
 
 
 def predict_clutch_speeds_delta(clutch_model, clutch_phases, accelerations):

@@ -50,7 +50,7 @@ def cycle_times(frequency, time_length):
     :type frequency: float
 
     :param time_length:
-        Maximum time [s].
+        Length of the time vector [-].
     :type time_length: float
 
     :return:
@@ -60,7 +60,26 @@ def cycle_times(frequency, time_length):
 
     dt = 1 / frequency
 
-    return np.arange(0.0, time_length, dtype=float) * dt
+    return np.arange(0.0, time_length,  dtype=float) * dt
+
+
+def calculate_time_length(frequency, max_time):
+    """
+    Returns the length of the time vector [-].
+
+    :param frequency:
+        Time frequency [1/s].
+    :type frequency: float
+
+    :param max_time:
+        Maximum time [s].
+    :type max_time: float
+
+    :return:
+        length of the time vector [-].
+    :rtype: int
+    """
+    return np.floor(max_time * frequency) + 1
 
 
 def cycle():
@@ -99,7 +118,7 @@ def cycle():
         outputs={
             'velocities': 'velocities',
             'gears': 'gears',
-            'time_length': 'time_length',
+            'max_time': 'max_time',
             'initial_temperature': 'initial_temperature'
         },
         input_domain=is_nedc
@@ -139,10 +158,16 @@ def cycle():
         outputs={
             'velocities': 'velocities',
             'gears': 'gears',
-            'time_length': 'time_length',
+            'max_time': 'max_time',
             'initial_temperature': 'initial_temperature'
         },
         input_domain=is_wltp
+    )
+
+    dsp.add_function(
+        function=calculate_time_length,
+        inputs=['time_sample_frequency', 'max_time'],
+        outputs=['time_length']
     )
 
     dsp.add_function(

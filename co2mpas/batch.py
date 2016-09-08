@@ -25,13 +25,13 @@ log = logging.getLogger(__name__)
 files_exclude_regex = re.compile('^\w')
 
 
-def parse_dsp_model(model):
+def parse_dsp_solution(solution):
     """
     Parses the co2mpas model results.
 
-    :param model:
+    :param solution:
         Co2mpas model after dispatching.
-    :type model: co2mpas.dispatcher.Dispatcher
+    :type solution: co2mpas.dispatcher.Solution
 
     :return:
         Mapped outputs.
@@ -39,7 +39,7 @@ def parse_dsp_model(model):
     """
 
     res = {}
-    for k, v in model.data_output.items():
+    for k, v in solution.items():
         co2_utl.get_nested_dicts(res, *k.split('.'), default=co2_utl.ret_v(v))
 
     for k, v in list(co2_utl.stack_nested_keys(res, depth=3)):
@@ -50,7 +50,7 @@ def parse_dsp_model(model):
                 d = co2_utl.get_nested_dicts(res, 'target', 'prediction')
                 d[k] = dsp_utl.combine_dicts(v, d.get(k, {}))
 
-    res['pipe'] = model.pipe
+    res['pipe'] = solution.pipe
 
     return res
 
@@ -92,9 +92,27 @@ class _custom_tqdm(tqdm):
             return bar
 
 
-def _process_folder_files(
-        input_files, output_folder, plot_workflow=False, with_output_file=True,
-        output_template=None, overwrite_cache=False, soft_validation=False):
+def _yield_folder_files_results(
+        start_time, input_files, output_folder, plot_workflow=False,
+        with_output_file=True, output_template=None, overwrite_cache=False,
+        soft_validation=False, model=None):
+    model = model or vehicle_processing_model()
+    timestamp = start_time.strftime('%Y%m%d_%H%M%S')
+    kw = {
+        'output_folder': output_folder,
+        'timestamp': timestamp,
+        'plot_workflow': plot_workflow,
+        'with_output_file': with_output_file,
+        'output_template': output_template,
+        'overwrite_cache': overwrite_cache,
+        'soft_validation': soft_validation
+    }
+
+    for fpath in _custom_tqdm(input_files, bar_format='{l_bar}{bar}{r_bar}'):
+        yield _process_vehicle(model, input_file_name=fpath, **kw)
+
+
+def _process_folder_files(*args, **kwargs):
     """
     Process all xls-files in a folder with CO2MPAS-model.
 
@@ -119,24 +137,10 @@ def _process_folder_files(
     :type output_folder: None,False,str
 
     """
-
-    model = vehicle_processing_model()
+    start_time = datetime.today()
 
     summary = {}
-
-    start_time = datetime.today()
-    timestamp = start_time.strftime('%Y%m%d_%H%M%S')
-    kw = {
-        'output_folder': output_folder,
-        'timestamp': timestamp,
-        'plot_workflow': plot_workflow,
-        'with_output_file': with_output_file,
-        'output_template': output_template,
-        'overwrite_cache': overwrite_cache,
-        'soft_validation': soft_validation
-    }
-    for fpath in _custom_tqdm(input_files, bar_format='{l_bar}{bar}{r_bar}'):
-        res = _process_vehicle(model, input_file_name=fpath, **kw)
+    for res in _yield_folder_files_results(start_time, *args, **kwargs):
         _add2summary(summary, res.get('summary', {}))
 
     return summary, start_time
@@ -317,16 +321,15 @@ def vehicle_processing_model():
 
     from .model import model
     dsp.add_function(
-        function=dsp_utl.add_args(dsp_utl.SubDispatch(model(),
-                                                      output_type='dsp')),
+        function=dsp_utl.add_args(dsp_utl.SubDispatch(model())),
         inputs=['plan', 'validated_data'],
-        outputs=['dsp_model'],
+        outputs=['dsp_solution'],
         input_domain=lambda *args: not args[0]
     )
 
     dsp.add_function(
-        function=parse_dsp_model,
-        inputs=['dsp_model'],
+        function=parse_dsp_solution,
+        inputs=['dsp_solution'],
         outputs=['output_data']
     )
 

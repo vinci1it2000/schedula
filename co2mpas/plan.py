@@ -42,7 +42,7 @@ def build_default_models(model, paths, output_folder, **kw):
     paths = eval(paths or '()')
     for path in file_finder(paths):
         res = get_results(model, path, output_folder, **kw)
-        out = res['dsp_model'].data_output.get('data.prediction.models', {})
+        out = res['dsp_solution'].get('data.prediction.models', {})
         if 'torque_converter_model' in out:
             out['torque_converter_model'] = TorqueConverter()
         dfl.update(out)
@@ -50,13 +50,13 @@ def build_default_models(model, paths, output_folder, **kw):
     return dfl
 
 
-def define_new_inputs(data, base, dsp_model):
+def define_new_inputs(data, base, dsp_solution):
     remove = []
     for k, v in co2_utl.stack_nested_keys(data, depth=2):
         if v is dsp_utl.EMPTY:
             remove.append(k)
 
-    dsp = dsp_model.get_sub_dsp_from_workflow(data, check_inputs=False)
+    dsp = dsp_solution.get_sub_dsp_from_workflow(data, check_inputs=False)
     n = set(base) - set(dsp.data_nodes)
     n.update(data)
 
@@ -93,15 +93,15 @@ def make_simulation_plan(plan, timestamp, output_folder, main_flags):
 
         inputs = dsp_utl.selector(set(base).difference(run_modes), base)
         inputs['vehicle_name'] = name
-        dsp_model = base['dsp_model']
-        outputs = dsp_model.data_output
+        dsp_solution = base['dsp_solution']
+        outputs = dict(dsp_solution)
 
         dfl = build_default_models(model, defaults_fpats, **kw)
         if dfl:
             dfl = {'data.prediction.models': dfl}
             outputs = co2_utl.combine_nested_dicts(dfl, outputs, depth=2)
 
-        inputs['validated_data'] = define_new_inputs(p, outputs, dsp_model)
+        inputs['validated_data'] = define_new_inputs(p, outputs, dsp_solution)
         inputs.update(kw)
         res = _process_vehicle(model, **inputs)
 

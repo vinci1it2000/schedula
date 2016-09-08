@@ -18,6 +18,8 @@ Sub-Modules:
 
     thermal
     at_gear
+    cvt
+    mechanical
 """
 
 
@@ -27,6 +29,7 @@ import co2mpas.dispatcher.utils as dsp_utl
 from ..defaults import dfl
 from functools import partial
 import numpy as np
+from collections import OrderedDict
 
 
 def calculate_gear_shifts(gears):
@@ -369,12 +372,68 @@ def calculate_torques_losses(gear_box_torques_in, gear_box_torques_out):
     return gear_box_torques_in - gear_box_torques_out
 
 
-def calculate_gear_box_efficiencies_torques_temperatures(
-        gear_box_powers_out, gear_box_speeds_in, gear_box_speeds_out,
-        gear_box_torques_out, gear_box_efficiency_parameters_cold_hot,
+class GearBoxLosses(object):
+    def __init__(self, gear_box_efficiency_parameters_cold_hot,
+                 equivalent_gear_box_heat_capacity, thermostat_temperature,
+                 gear_box_temperature_references, gear_box_ratios=None):
+        base = OrderedDict()
+        if gear_box_ratios:
+            base['gear_box_ratios'] = gear_box_ratios
+
+        base['thermostat_temperature'] = thermostat_temperature
+        base['equivalent_gear_box_heat_capacity'] = \
+            equivalent_gear_box_heat_capacity
+        base['gear_box_efficiency_parameters_cold_hot'] = \
+            gear_box_efficiency_parameters_cold_hot
+        base['gear_box_temperature_references'] = \
+            gear_box_temperature_references
+
+        self.base = base
+        self.loop = False
+        from .thermal import thermal
+        self.base_thermal = thermal()
+
+    def predict(self, *args, **kwargs):
+        return np.array(list(self._yield_losses(*args, **kwargs))).T
+
+    def _yield_losses(self, gear_box_powers_out, gear_box_speeds_in,
+                      gear_box_speeds_out, gear_box_torques_out,
+                      initial_gear_box_temperature, gears=None):
+
+        inputs = OrderedDict()
+        inputs['gear_box_power_out'] = gear_box_powers_out
+        inputs['gear_box_speed_out'] = gear_box_speeds_out
+        inputs['gear_box_speed_in'] = gear_box_speeds_in
+        inputs['gear_box_torque_out'] = gear_box_torques_out
+
+        if gears is not None:
+            inputs['gear'] = gears
+
+        func = dsp_utl.SubDispatchPipe(
+            dsp=self.base_thermal,
+            function_id='thermal',
+            inputs=tuple(self.base) + ('gear_box_temperature',) + tuple(inputs),
+            outputs=('gear_box_temperature', 'gear_box_torque_in',
+                     'gear_box_efficiency')
+        )
+        func = partial(func, *tuple(self.base.values()))
+
+        o = [initial_gear_box_temperature]
+        args = np.column_stack(tuple(inputs.values()))
+
+        for index in np.ndindex(args.shape[0]):
+            temp = o[0]
+            while True:
+                o = func(temp, *args[index])
+                yield [temp] + o[1:]
+                if not self.loop:
+                    break
+
+
+def define_gear_box_loss_model(
+        gear_box_efficiency_parameters_cold_hot,
         equivalent_gear_box_heat_capacity, thermostat_temperature,
-        gear_box_temperature_references, initial_gear_box_temperature,
-        gears=None, gear_box_ratios=None):
+        gear_box_temperature_references, gear_box_ratios=None):
     """
     Calculates gear box efficiency [-], torque in [N*m], and temperature [°C].
 
@@ -433,44 +492,88 @@ def calculate_gear_box_efficiencies_torques_temperatures(
        (power mode or from wheels in motoring mode).
     """
 
-    inputs = ['thermostat_temperature', 'equivalent_gear_box_heat_capacity',
-              'gear_box_efficiency_parameters_cold_hot',
-              'gear_box_temperature_references',
-              'gear_box_power_out', 'gear_box_speed_out', 'gear_box_speed_in',
-              'gear_box_torque_out']
+    model = GearBoxLosses(
+        gear_box_efficiency_parameters_cold_hot,
+        equivalent_gear_box_heat_capacity, thermostat_temperature,
+        gear_box_temperature_references, gear_box_ratios=gear_box_ratios
+    )
 
-    outputs = ['gear_box_temperature', 'gear_box_torque_in',
-               'gear_box_efficiency']
+    return model
 
-    base = (thermostat_temperature, equivalent_gear_box_heat_capacity,
-            gear_box_efficiency_parameters_cold_hot,
-            gear_box_temperature_references)
 
-    it = (gear_box_powers_out, gear_box_speeds_out, gear_box_speeds_in,
-          gear_box_torques_out)
+def calculate_gear_box_efficiencies_torques_temperatures(
+        gear_box_loss_model, gear_box_powers_out, gear_box_speeds_in,
+        gear_box_speeds_out, gear_box_torques_out, initial_gear_box_temperature,
+        gears=None):
+    """
+    Calculates gear box efficiency [-], torque in [N*m], and temperature [°C].
 
-    if gear_box_ratios and gears is not None:
-        inputs = ['gear_box_ratios'] + inputs
-        inputs.append('gear')
-        base = (gear_box_ratios, ) + base
-        it = it + (gears, )
+    :param gear_box_loss_model:
+    :type gear_box_loss_model: GearBoxLosses
 
-    inputs.append('gear_box_temperature')
+    :param gear_box_powers_out:
+        Power at wheels vector [kW].
+    :type gear_box_powers_out: numpy.array
 
-    from .thermal import thermal
+    :param gear_box_speeds_in:
+        Engine speed vector [RPM].
+    :type gear_box_speeds_in: numpy.array
 
-    fun = dsp_utl.SubDispatchPipe(thermal(), 'thermal', inputs, outputs)
-    res = []
-    o = [initial_gear_box_temperature]
-    for args in zip(*it):
-        o = fun(*(base + args + (o[0], )))
-        res.append(o)
+    :param gear_box_speeds_out:
+        Wheel speed vector [RPM].
+    :type gear_box_speeds_out: numpy.array
 
-    temp, to_in, eff = zip(*res)
+    :param gear_box_torques_out:
+        Torque gear_box vector [N*m].
+    :type gear_box_torques_out: numpy.array
 
-    temp = (initial_gear_box_temperature, ) + temp[:-1]
+    :param gear_box_efficiency_parameters_cold_hot:
+        Parameters of gear box efficiency model for cold/hot phases:
 
-    return np.array(eff), np.array(to_in), np.array(temp)
+            - 'hot': `gbp00`, `gbp10`, `gbp01`
+            - 'cold': `gbp00`, `gbp10`, `gbp01`
+    :type gear_box_efficiency_parameters_cold_hot: dict
+
+    :param equivalent_gear_box_heat_capacity:
+        Equivalent gear box heat capacity [kg*J/K].
+    :type equivalent_gear_box_heat_capacity: float
+
+    :param thermostat_temperature:
+        Engine thermostat temperature [°C].
+    :type thermostat_temperature: float
+
+    :param gear_box_temperature_references:
+        Reference temperature [°C].
+    :type gear_box_temperature_references: (float, float)
+
+    :param initial_gear_box_temperature:
+        initial_gear_box_temperature [°C].
+    :type initial_gear_box_temperature: float
+
+    :param gears:
+        Gear vector [-].
+    :type gears: numpy.array, optional
+
+    :param gear_box_ratios:
+        Gear box ratios [-].
+    :type gear_box_ratios: dict, optional
+
+    :return:
+        Gear box efficiency [-], torque in [N*m], and temperature [°C] vectors.
+    :rtype: (np.array, np.array, np.array)
+
+    .. note:: Torque entering the gearbox can be from engine side
+       (power mode or from wheels in motoring mode).
+    """
+
+    temp, to_in, eff = gear_box_loss_model.predict(
+        gear_box_powers_out, gear_box_speeds_in, gear_box_speeds_out,
+        gear_box_torques_out, initial_gear_box_temperature, gears=gears
+    )
+
+    return temp, to_in, eff
+
+
 
 
 def calculate_gear_box_powers_in(gear_box_torques_in, gear_box_speeds_in):
@@ -641,32 +744,44 @@ def gear_box():
     )
 
     dsp.add_function(
-        function=calculate_gear_box_efficiencies_torques_temperatures,
-        inputs=['gear_box_powers_out', 'gear_box_speeds_in',
-                'gear_box_speeds_out', 'gear_box_torques',
-                'gear_box_efficiency_parameters_cold_hot',
+        function=define_gear_box_loss_model,
+        inputs=['gear_box_efficiency_parameters_cold_hot',
                 'equivalent_gear_box_heat_capacity',
                 'engine_thermostat_temperature',
-                'gear_box_temperature_references',
-                'initial_gear_box_temperature', 'gears', 'gear_box_ratios'],
-        outputs=['gear_box_efficiencies', 'gear_box_torques_in',
-                 'gear_box_temperatures'],
-        weight=50
+                'gear_box_temperature_references', 'gear_box_ratios'],
+        outputs=['gear_box_loss_model']
+    )
+
+    dsp.add_function(
+        function=define_gear_box_loss_model,
+        inputs=['gear_box_efficiency_parameters_cold_hot',
+                'equivalent_gear_box_heat_capacity',
+                'engine_thermostat_temperature',
+                'gear_box_temperature_references'],
+        outputs=['gear_box_loss_model'],
+        weight=10
     )
 
     dsp.add_function(
         function=calculate_gear_box_efficiencies_torques_temperatures,
-        inputs=['gear_box_powers_out', 'gear_box_speeds_in',
-                'gear_box_speeds_out', 'gear_box_torques',
-                'gear_box_efficiency_parameters_cold_hot',
-                'equivalent_gear_box_heat_capacity',
-                'engine_thermostat_temperature',
-                'gear_box_temperature_references',
-                'initial_gear_box_temperature'],
-        outputs=['gear_box_efficiencies', 'gear_box_torques_in',
-                 'gear_box_temperatures'],
-        weight=100
+        inputs=['gear_box_loss_model', 'gear_box_powers_out',
+                'gear_box_speeds_in', 'gear_box_speeds_out', 'gear_box_torques',
+                'initial_gear_box_temperature', 'gears'],
+        outputs=['gear_box_temperatures', 'gear_box_torques_in',
+                 'gear_box_efficiencies'],
+        weight=40
     )
+
+    dsp.add_function(
+        function=calculate_gear_box_efficiencies_torques_temperatures,
+        inputs=['gear_box_loss_model', 'gear_box_powers_out',
+                'gear_box_speeds_in', 'gear_box_speeds_out', 'gear_box_torques',
+                'initial_gear_box_temperature'],
+        outputs=['gear_box_temperatures', 'gear_box_torques_in',
+                 'gear_box_efficiencies'],
+        weight=90
+    )
+
 
     dsp.add_function(
         function=calculate_gear_box_powers_in,

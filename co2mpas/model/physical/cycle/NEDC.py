@@ -118,6 +118,10 @@ def nedc_velocities(times, gear_box_type):
     _t.extend(np.asarray(t) + _t[-1])
     velocities.extend(v)
 
+    n = int(np.ceil(times[-1] / _t[-1]))
+
+    _t = np.concatenate((_t,) * n)
+    velocities = np.concatenate((velocities,) * n)
     v = np.interp(times, _t, velocities)
 
     return v
@@ -182,22 +186,6 @@ def nedc_gears(times, max_gear, k1=1, k2=2, k5=2):
     return s
 
 
-def nedc_time_length(frequency):
-    """
-    Returns the time vector with constant time step [s].
-
-    :param frequency:
-        Time frequency [1/s].
-    :type frequency: float
-
-    :return:
-        Time vector [s].
-    :rtype: numpy.array
-    """
-
-    return dfl.functions.nedc_time_length.TIME * frequency + 1
-
-
 def _repeat_part_one(times, values):
     t, v = [times[0]], [values[0]]
     times = np.asarray(times[1:])
@@ -232,6 +220,13 @@ def nedc_cycle():
         data_id='initial_temperature',
         default_value=dfl.values.initial_temperature_NEDC,
         description='Initial temperature of the test cell [°C].'
+    )
+
+    dsp.add_data(
+        data_id='max_time',
+        default_value=dfl.values.max_time_NEDC,
+        description='Maximum time [s].',
+        initial_dist=5
     )
 
     dsp.add_data(
@@ -274,13 +269,6 @@ def nedc_cycle():
         function=nedc_velocities,
         inputs=['times', 'gear_box_type'],
         outputs=['velocities']
-    )
-
-    dsp.add_function(
-        function=nedc_time_length,
-        inputs=['time_sample_frequency'],
-        outputs=['time_length'],
-        weight=5
     )
 
     return dsp

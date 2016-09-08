@@ -5,7 +5,6 @@ if not IS_PYPY:
 
     import unittest
     from co2mpas.dispatcher import Dispatcher
-    from co2mpas.dispatcher.utils.drw import plot
     from doc._ext.dsp_directive import DispatcherDirective, PLOT
     from docutils.statemachine import ViewList
 
@@ -160,7 +159,7 @@ if not IS_PYPY:
                 '   ',
                 '   .. graphviz::',
                 '   ',
-                '      %s' % plot(dsp).source,
+                '      %s' % dsp.plot(view=False, depth=0).source,
                 '   ',
                 "   .. csv-table:: **Pippo's data**",
                 '   ',

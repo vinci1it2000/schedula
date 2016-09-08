@@ -11,7 +11,6 @@ It contains functions that model the basic mechanics of the vehicle.
 
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas.dispatcher import Dispatcher
-from math import cos, sin
 from scipy.interpolate import InterpolatedUnivariateSpline as Spline
 from pykalman import KalmanFilter
 from .defaults import dfl
@@ -114,7 +113,27 @@ def calculate_f2(
     return 0.5 * c / 3.6**2
 
 
-def calculate_rolling_resistance(f0, angle_slope):
+def calculate_angle_slopes(times, angle_slope):
+    """
+    Returns the angle slope vector [rad].
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
+
+    :param angle_slope:
+         Angle slope [rad].
+    :type angle_slope: float
+
+    :return:
+        Angle slope vector [rad].
+    :rtype: numpy.array
+    """
+
+    return np.ones_like(times, dtype=float) * angle_slope
+
+
+def calculate_rolling_resistance(f0, angle_slopes):
     """
     Calculates rolling resistance [N].
 
@@ -122,16 +141,16 @@ def calculate_rolling_resistance(f0, angle_slope):
         Rolling resistance force [N] when angle_slope == 0.
     :type f0: float
 
-    :param angle_slope:
-        Angle slope [rad].
-    :type angle_slope: float
+    :param angle_slopes:
+        Angle slope vector [rad].
+    :type angle_slopes: numpy.array
 
     :return:
         Rolling resistance force [N].
-    :rtype: float
+    :rtype: numpy.array
     """
 
-    return f0 * cos(angle_slope)
+    return f0 * np.cos(angle_slopes)
 
 
 def calculate_f0(vehicle_mass, rolling_resistance_coeff):
@@ -174,7 +193,7 @@ def calculate_velocity_resistances(f1, velocities):
     return f1 * velocities
 
 
-def calculate_climbing_force(vehicle_mass, angle_slope):
+def calculate_climbing_force(vehicle_mass, angle_slopes):
     """
     Calculates the vehicle climbing resistance [N].
 
@@ -182,16 +201,16 @@ def calculate_climbing_force(vehicle_mass, angle_slope):
         Vehicle mass [kg].
     :type vehicle_mass: float
 
-    :param angle_slope:
-        Angle slope [rad].
-    :type angle_slope: float
+    :param angle_slopes:
+        Angle slope vector [rad].
+    :type angle_slopes: numpy.array
 
     :return:
         Vehicle climbing resistance [N].
-    :rtype: float
+    :rtype: numpy.array
     """
 
-    return vehicle_mass * 9.81 * sin(angle_slope)
+    return vehicle_mass * 9.81 * np.sin(angle_slopes)
 
 
 def calculate_rotational_inertia_forces(
@@ -268,11 +287,11 @@ def calculate_motive_forces(
 
     :param climbing_force:
         Vehicle climbing resistance [N].
-    :type climbing_force: float
+    :type climbing_force: float | numpy.array
 
     :param rolling_resistance:
         Rolling resistance force [N].
-    :type rolling_resistance: float
+    :type rolling_resistance: float | numpy.array
 
     :param aerodynamic_resistances:
         Aerodynamic resistance vector [N].
@@ -405,8 +424,14 @@ def vehicle():
     )
 
     dsp.add_function(
+        function=calculate_angle_slopes,
+        inputs=['times', 'angle_slope'],
+        outputs=['angle_slopes']
+    )
+
+    dsp.add_function(
         function=calculate_rolling_resistance,
-        inputs=['f0', 'angle_slope'],
+        inputs=['f0', 'angle_slopes'],
         outputs=['rolling_resistance']
     )
 
@@ -418,7 +443,7 @@ def vehicle():
 
     dsp.add_function(
         function=calculate_climbing_force,
-        inputs=['vehicle_mass', 'angle_slope'],
+        inputs=['vehicle_mass', 'angle_slopes'],
         outputs=['climbing_force']
     )
 
