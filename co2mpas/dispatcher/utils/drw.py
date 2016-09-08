@@ -466,7 +466,7 @@ class DspPlot(gviz.Digraph):
                         pass
 
                 kw['URL'] = self._save_output(attr['output'], kw, node_id)
-            except KeyError:
+            except (KeyError, TypeError):
                 pass
 
         try:
