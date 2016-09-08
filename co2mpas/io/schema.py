@@ -33,8 +33,9 @@ def validate_data(data, soft_validation, read_schema=None):
     plan = validate_plan(data.get('plan', pd.DataFrame([])), read_schema)
 
     inputs = validate_inputs(data.get('base', {}), soft_validation, read_schema)
-    inputs = {'.'.join(k): v
-              for k, v in co2_utl.stack_nested_keys(inputs, depth=3)}
+    if inputs is not dsp_utl.NONE:
+        inputs = {'.'.join(k): v
+                  for k, v in co2_utl.stack_nested_keys(inputs, depth=3)}
 
     return inputs, plan
 
@@ -51,7 +52,7 @@ def validate_inputs(data, soft_validation=False, read_schema=None):
                 co2_utl.get_nested_dicts(errors, *k)[c] = SchemaError([], [msg])
 
     if _log_errors_msg(errors):
-        return {}
+        return dsp_utl.NONE
 
     return res
 
@@ -89,7 +90,7 @@ def validate_plan(plan, read_schema=None):
         validated_plan.append((i, inputs))
 
     if _log_errors_msg(errors):
-        return []
+        return dsp_utl.NONE
 
     return validated_plan
 
