@@ -990,7 +990,7 @@ class TestDispatch(unittest.TestCase):
 
         o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2, shrink=True,
                          inputs_dist={'b': 1})
-        n = {'max', 'min'}
+        n = {'max', 'min', 'log(b - a)'}
         r = r - n
         w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
              for k in w.items() if k[0] not in n}
@@ -1019,7 +1019,7 @@ class TestDispatch(unittest.TestCase):
 
         o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2, shrink=True,
                          inputs_dist={'b': 1})
-        n = {'max', 'min'}
+        n = {'max', 'min', 'log(b - a)'}
         r = r - n
         w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
              for k in w.items() if k[0] not in n}
