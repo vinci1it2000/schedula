@@ -613,8 +613,10 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
             DFun('heads_count',     lambda repo: len(repo.heads)),
             DFun('projects_count',  lambda repo: itz.count(self._yield_project_refs())),
             DFun('tags_count',      lambda repo: len(repo.tags)),
-            DFun('git_version',     lambda repo: '.'.join(str(v) for v in repo.git.version_info)),
-            DFun('git_settings',    lambda repo: self.read_git_settings()),
+            DFun('git.settings',    lambda repo: self.read_git_settings()),
+            DFun('_git',    lambda repo: repo.git),
+
+            DFun('git.version',     lambda _git: '.'.join(str(v) for v in _git.version_info)),
 
             DFun('head_ref',      lambda head: head.reference),
             DFun('head_valid',      lambda head: head.is_valid()),
@@ -686,8 +688,7 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
         dsp = self._infos_dsp()
         inputs = {'_infos': 'ok', '_inp_prj': pname}
         infos = dsp.dispatch(inputs=inputs,
-                             outputs=fields,
-                             shrink=True)
+                             outputs=fields)
         fallbacks = {d: inv_value for d in dsp.data_nodes.keys()}
         fallbacks.update(infos)
         infos = fallbacks
