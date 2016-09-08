@@ -4,6 +4,13 @@ CO2MPAS Changes
 .. contents::
 .. _changes:
 
+v1.4.x, file-ver: 2.2.x, Oct 2016: "Rally" release
+====================================================
+
+- Set ``python-3.5` in trove-slassifiers.
+
+
+
 v1.3.1, file-ver: 2.2.1, 18-Jul 2016: "Qube" release
 ====================================================
 

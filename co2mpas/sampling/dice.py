@@ -34,7 +34,7 @@ from typing import Sequence, Text
 
 from boltons.setutils import IndexedSet as iset
 import git  # from *gitpython* distribution
-import gnupg
+import gnupg # from python-gnupg
 import keyring
 from toolz import dicttoolz as dtz, itertoolz as itz
 

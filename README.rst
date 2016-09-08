@@ -123,13 +123,14 @@ A. On *Windows* you may install the latest *all-In-One* archive and
    .. Tip::
       **This is the easiest procedure for all non-technical users.**
 
-B. Manually install everything needed:
-   1. Install (or Upgrade) Python (2 choices under *Windows*), then proceed to
-   2. install the ``co2mpas`` python package:
+A. Manually install everything needed:
 
-     a. Install (or Upgrade) executable.
-     b. (optional) Install documents.
-     c. (optional) Install sources.
+  1. Install (or Upgrade) Python (2 choices under *Windows*), then proceed to
+  2. install the ``co2mpas`` python package:
+
+    a. Install (or Upgrade) executable.
+    b. (optional) Install documents.
+    c. (optional) Install sources.
 
 
 
