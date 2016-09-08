@@ -5,6 +5,7 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 #
+from transitions.core import MachineError
 """A *project* stores all CO2MPAS files for a single vehicle, and tracks its sampling procedure. """
 
 from collections import (defaultdict, OrderedDict, namedtuple)  # @UnusedImport
@@ -84,14 +85,8 @@ def _tname2ref_name(tname: Text) -> Text:
     return tname
 
 
-@fnt.lru_cache()
-def project_zygote(): #-> Project:
-    """Cached Project FSM, for speeding-up its creation; "fork" it before use. """
-    return Project('<zygote>', None)
-
-
 #transitions.logger.level = 50 ## FSM logs annoyingly high.
-def _event_data(event, dname, dtype=None):
+def _evarg(event, dname, dtype=None):
     data = event.kwargs.get(dname)
     assert data, (
                 "Missing event-data(%r) from event: %s"
@@ -107,23 +102,34 @@ def _event_data(event, dname, dtype=None):
 class Project(transitions.Machine, baseapp.Spec):
     """The Finite State Machine for the currently checked-out project."""
 
-    error = None
-    """Store any problems when state 'INVALID'. """
+    @classmethod
+    @fnt.lru_cache()
+    def _project_zygote(cls) -> 'Project':
+        """Cached Project FSM used by :meth:`Project.new_instance()` to speed-up construction."""
+        return cls('<zygote>', None)
 
-    def fork(self, pname, projects_db, config):
+    @classmethod
+    def new_instance(cls, pname, projects_db, config) -> 'Project':
         """
-        Optimization, along with :func:`project_zygote`, to speedup FSM creation.
+        Avoid repeated FSM constructions by forking :meth:`Project._project_zygote()`.
 
-        For an example, see ::meth:`ProjectsDB._conceive_project()`.
+        For an example, see ::meth:`ProjectsDB._conceive_new_project()`.
+
         INFO: set here any non-serializable fields for :func:`fnt.lru_cache()` to work.
         """
-        clone = copy.deepcopy(self)
+        p = Project._project_zygote()
+
+        clone = copy.deepcopy(p)
         clone.pname = pname
         clone.id = pname + ": "
         clone.projects_db = projects_db
-        clone.update_config(self.config)
+        clone.update_config(config)
 
         return clone
+
+
+    error = None
+    """Store any problems when state 'INVALID'. """
 
     def __str__(self, *args, **kwargs):
         #TODO: Obey verbosity on project-str.
@@ -137,27 +143,27 @@ class Project(transitions.Machine, baseapp.Spec):
         return event.kwargs.get('force', self.force)
 
     def _is_inp_files(self, event):
-        pfiles =_event_data(event, 'pfiles', PFiles)
+        pfiles =_evarg(event, 'pfiles', PFiles)
         return bool(pfiles and pfiles.inp and
                     not (pfiles.out or pfiles.other))
 
     def _is_out_files(self, event):
-        pfiles =_event_data(event, 'pfiles', PFiles)
+        pfiles =_evarg(event, 'pfiles', PFiles)
         return bool(pfiles and pfiles.out and
                     not (pfiles.inp or pfiles.other))
 
     def _is_inp_out_files(self, event):
-        pfiles =_event_data(event, 'pfiles', PFiles)
+        pfiles =_evarg(event, 'pfiles', PFiles)
         return bool(pfiles and pfiles.inp and pfiles.out
                     and not pfiles.other)
 
     def _is_other_files(self, event):
-        pfiles =_event_data(event, 'pfiles', PFiles)
+        pfiles =_evarg(event, 'pfiles', PFiles)
         return bool(pfiles and pfiles.other
                     and not (pfiles.inp or pfiles.out))
 
     def __init__(self, pname, projects_db, **kwds):
-        """DO NOT INVOKE THIS; create it through :meth:`ProjectsDB._conceive_project()`."""
+        """DO NOT INVOKE THIS; use performant :meth:`Project.new_instance()` instead."""
         self.pname = pname
         self.projects_db = projects_db
         states = [
@@ -200,6 +206,7 @@ class Project(transitions.Machine, baseapp.Spec):
                          initial=states[0],
                          transitions=trans,
                          send_event=True,
+                         before_state_change='_cb_check_my_index',
                          after_state_change='_cb_commit_or_tag',
                          auto_transitions=False,
                          name=pname,
@@ -221,15 +228,17 @@ class Project(transitions.Machine, baseapp.Spec):
 
     def _cb_invalidated(self, event):
         """
-        Triggered by `do_invalidate(error=<ex>)` on BEFORE transition.
+        Triggered by `do_invalidate(error=<ex>)` on BEFORE transition, and raises the `error`.
 
-        :param error:
-                The invalidation-cause, if any, stored on :attr:`Project.error`
+        :param Exception error:
+                The invalidation exception to be stored on :attr:`Project.error`
                 as ``(<prev-state>, error)`` for future reference.
         """
         self.log.error('Invalidating current %s with event: %s',
                        self, event.kwargs)
-        self.error = (self.state, event.kwargs.get('error'))
+        ex = _evarg(event, 'error')
+        self.error = (self.state, ex)
+        raise ex
 
     def _make_commit_msg(self, action):
         action = '\n'.join(textwrap.wrap(action, width=50))
@@ -262,6 +271,14 @@ class Project(transitions.Machine, baseapp.Spec):
         return msg
 
 
+    def _cb_check_my_index(self, event):
+        """ Executed on ENTER for all states, to compare my `pname` with checked-out ref. """
+        active_branch = self.projects_db.repo.active_branch
+        if self.pname != _ref2pname(active_branch):
+            ex = MachineError("Expected current project to be %r, but was %r!"
+                              % (self.pname, active_branch))
+            self.do_invalidate(error=ex)
+
     def _cb_commit_or_tag(self, event):
         """ Executed on EXIT for all states, and commits/tags into repo. """
         state = self.state
@@ -269,13 +286,13 @@ class Project(transitions.Machine, baseapp.Spec):
             repo = self.projects_db.repo
             if state == 'tagged':
                 self.log.debug('Tagging %s...', event.kwargs)
-                report = _event_data(event, 'report')
+                report = _evarg(event, 'report')
                 msg = self._make_tag_msg(report)
                 tref = _tname2ref_name(self.pname)
                 repo.create_tag(tref, message=msg) ## TODO: GPG!!
             else:
                 self.log.debug('Committing %s...', event.kwargs)
-                action = _event_data(event, 'action')
+                action = _evarg(event, 'action')
                 index = repo.index
                 cmsg_js = self._make_commit_msg(action)
                 index.commit(cmsg_js)
@@ -318,7 +335,7 @@ class Project(transitions.Machine, baseapp.Spec):
         import shutil
 
         self.log.info('Importing files: %s...', event.kwargs)
-        pfiles =_event_data(event, 'pfiles', PFiles)
+        pfiles =_evarg(event, 'pfiles', PFiles)
         force = event.kwargs.get('force', self.force)
 
         ## Check extraction of report works ok.
@@ -418,7 +435,7 @@ class Project(transitions.Machine, baseapp.Spec):
         Parses timestamped-email to decide if next-state is `dice_yes` or `dice_no`.
         """
         self.log.info('TODO: Receiving email: %s...', event.kwargs)
-        mail = _event_data(event, 'mail')
+        mail = _evarg(event, 'mail')
         import random
         is_dice = random.random() > 0.5
 
@@ -714,9 +731,10 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
         return infos
 
 
-    def _conceive_project(self, pname): # -> Project:
+    def _conceive_new_project(self, pname): # -> Project:
         """Returns a "UNBORN" :class:`Project`; its state must be triggered immediately."""
-        return project_zygote().fork(pname, self, self.config)
+        return Project.new_instance(pname, self, self.config)
+
 
     _current_project = None
 
@@ -732,7 +750,7 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
                 headref = self.repo.active_branch
                 if _is_project_ref(headref):
                     pname = _ref2pname(headref)
-                    p = self._conceive_project(pname)
+                    p = self._conceive_new_project(pname)
                     cmsg = p.parse_commit_msg(headref.commit.message)
                     p.set_state(cmsg.state)
 
@@ -768,7 +786,7 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
         if prefname in self.repo.heads:
             raise CmdException('Project %r already exists!' % pname)
 
-        p = self._conceive_project(pname)
+        p = self._conceive_new_project(pname)
         self.repo.git.checkout(prefname, orphan=True, force=self.force)
         self._current_project = p
         try:
@@ -778,13 +796,7 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
 
             return p
         except Exception as ex:
-            try:
-                p.do_invalidate(error=ex)
-            except Exception as ex2:
-                self.log.warning(
-                    'Hiden error while invalidating %s: %s',
-                    p, type(ex2), ex2, exc_info=1)
-            raise ex
+            p.do_invalidate(error=ex)
 
 
     def proj_open(self, pname: Text) -> Project:
