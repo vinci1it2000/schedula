@@ -24,7 +24,6 @@ from functools import partial, reduce
 from inspect import signature, Parameter, _POSITIONAL_OR_KEYWORD
 from itertools import repeat, chain
 
-from .cst import EMPTY
 from .exc import DispatcherError
 from .gen import caller_name, Token
 
