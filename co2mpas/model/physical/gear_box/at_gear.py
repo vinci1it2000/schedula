@@ -9,24 +9,19 @@
 It contains functions to predict the A/T gear shifting.
 """
 
-from collections import OrderedDict
-from copy import deepcopy
-from functools import partial
-from itertools import chain
-from pprint import pformat
-
-from scipy.interpolate import InterpolatedUnivariateSpline as Spline
-from scipy.optimize import fmin
-from sklearn.isotonic import IsotonicRegression
-from sklearn.metrics import mean_absolute_error, accuracy_score
-from sklearn.tree import DecisionTreeClassifier
-
+import collections
+import copy
+import functools
+import itertools
+import pprint
+import scipy.interpolate as sci_itp
+import scipy.optimize as sci_opt
+import sklearn.metrics as sk_met
+import sklearn.tree as sk_tree
 import co2mpas.dispatcher.utils as dsp_utl
-from co2mpas.dispatcher import Dispatcher
-from ..defaults import *
+import co2mpas.dispatcher as dsp
+import co2mpas.model.physical.defaults as defaults
 import co2mpas.utils as co2_utl
-from .mechanical import calculate_gear_box_speeds_in
-from ..wheels import calculate_wheel_power
 import numpy as np
 
 
@@ -93,6 +88,7 @@ def correct_gear_full_load(
     if velocity > max_velocity_full_load_correction:
         return gear
 
+    from ..wheels import calculate_wheel_power
     p_norm = calculate_wheel_power(
         velocity, acceleration, road_loads, vehicle_mass)
     p_norm /= max_engine_power
@@ -156,15 +152,15 @@ def basic_correct_gear(
 
 
 def _upgrade_gsm(gsm, velocity_speed_ratios, cycle_type):
-    gsm = deepcopy(gsm).convert(velocity_speed_ratios)
+    gsm = copy.deepcopy(gsm).convert(velocity_speed_ratios)
     if cycle_type == 'NEDC':
         if isinstance(gsm, MVL):
-            par = dfl.functions.correct_constant_velocity
+            par = defaults.dfl.functions.correct_constant_velocity
             gsm.correct_constant_velocity(
                 up_cns_vel=par.CON_VEL_DN_SHIFT, dn_cns_vel=par.CON_VEL_UP_SHIFT
             )
         elif isinstance(gsm, CMV):
-            par = dfl.functions.correct_constant_velocity
+            par = defaults.dfl.functions.correct_constant_velocity
             gsm.correct_constant_velocity(
                 up_cns_vel=par.CON_VEL_UP_SHIFT, up_window=par.VEL_UP_WINDOW,
                 up_delta=par.DV_UP_SHIFT, dn_cns_vel=par.CON_VEL_DN_SHIFT,
@@ -371,9 +367,10 @@ def correct_gear_v3(velocity_speed_ratios, idle_engine_speed):
     :rtype: function
     """
 
-    correct_gear = partial(basic_correct_gear,
-                           velocity_speed_ratios=velocity_speed_ratios,
-                           idle_engine_speed=idle_engine_speed)
+    correct_gear = functools.partial(
+        basic_correct_gear, velocity_speed_ratios=velocity_speed_ratios,
+        idle_engine_speed=idle_engine_speed
+    )
     return correct_gear
 
 
@@ -425,16 +422,17 @@ def identify_gear_shifting_velocity_limits(gears, velocities, stop_velocity):
             return default
 
     max_gear = max(limits)
-    gsv = OrderedDict()
+    gsv = collections.OrderedDict()
     for k in range(max_gear + 1):
         v0, v1 = limits.get(k, [[], []])
-        gsv[k] = [rjt_out(v0, (-1, (0, 0))), rjt_out(v1, (INF, (0, 0)))]
+        gsv[k] = [rjt_out(v0, (-1, (0, 0))),
+                  rjt_out(v1, (defaults.INF, (0, 0)))]
 
     return correct_gsv(gsv, stop_velocity)
 
 
 def define_gear_filter(
-        change_gear_window_width=dfl.values.change_gear_window_width):
+        change_gear_window_width=defaults.dfl.values.change_gear_window_width):
     """
     Defines a gear filter function.
 
@@ -459,7 +457,7 @@ def define_gear_filter(
     return gear_filter
 
 
-class CMV(OrderedDict):
+class CMV(collections.OrderedDict):
     def __init__(self, *args, velocity_speed_ratios=None):
         super(CMV, self).__init__(*args)
         if args and isinstance(args[0], CMV):
@@ -473,11 +471,12 @@ class CMV(OrderedDict):
     def __repr__(self):
         name, _inf, sinf = self.__class__.__name__, float('inf'), "float('inf')"
         items = [(k, v if v != _inf else sinf)for k, v in self.items()]
-        vsr = pformat(self.velocity_speed_ratios)
+        vsr = pprint.pformat(self.velocity_speed_ratios)
         return '{}({}, velocity_speed_ratios={})'.format(name, items, vsr)
 
     def fit(self, correct_gear, gears, engine_speeds_out, velocities,
             accelerations, velocity_speed_ratios, stop_velocity):
+        from .mechanical import calculate_gear_box_speeds_in
         self.clear()
         self.velocity_speed_ratios = velocity_speed_ratios
         self.update(identify_gear_shifting_velocity_limits(gears, velocities,
@@ -499,14 +498,14 @@ class CMV(OrderedDict):
             g_pre = self.predict(np.array([velocities, accelerations]).T,
                                  correct_gear=correct_gear)
 
-            speed_predicted = calculate_gear_box_speeds_in(
+            speed_pred = calculate_gear_box_speeds_in(
                 g_pre, velocities, velocity_speed_ratios, stop_velocity)
 
-            return mean_absolute_error(engine_speeds_out, speed_predicted)
+            return sk_met.mean_absolute_error(engine_speeds_out, speed_pred)
 
-        x0 = [self[0][1]].__add__(list(chain(*velocity_limits))[:-1])
+        x0 = [self[0][1]].__add__(list(itertools.chain(*velocity_limits))[:-1])
 
-        x = fmin(error_fun, x0, disp=False)
+        x = sci_opt.fmin(error_fun, x0, disp=False)
 
         update_gvs(x)
 
@@ -569,7 +568,7 @@ class CMV(OrderedDict):
         for k, v in self.items():
             kv = {}
             for (s, l), x in zip((('down', '--'), ('up', '-')), v):
-                if x < INF:
+                if x < defaults.INF:
                     kv['label'] = 'Gear %d:%s-shift' % (k, s)
                     kv['linestyle'] = l
                     kv['color'] = plt.plot([x] * 2, [0, 1], **kv)[0]._color
@@ -635,7 +634,7 @@ def _convert_limits(it, X):
     _inf = u[-1]
     x = np.asarray(x)
     l, u = np.asarray(l) / x, np.asarray(u) / x
-
+    Spline = sci_itp.InterpolatedUnivariateSpline
     L = Spline(x, l, k=1)(X) * X
     U = np.append(Spline(x[:-1], u[:-1], k=1)(X[:-1]) * X[:-1], [_inf])
     L[0], U[0] = it[0][1:]
@@ -763,14 +762,14 @@ def calibrate_gear_shifting_decision_tree(gears, *params):
 
     :returns:
         A decision tree classifier to predict gears.
-    :rtype: DecisionTreeClassifier
+    :rtype: sklearn.tree.DecisionTreeClassifier
     """
 
     previous_gear = [gears[0]]
 
     previous_gear.extend(gears[:-1])
 
-    tree = DecisionTreeClassifier(random_state=0)
+    tree = sk_tree.DecisionTreeClassifier(random_state=0)
 
     tree.fit(np.array((previous_gear,) + params).T, gears)
 
@@ -794,7 +793,7 @@ def correct_gsv(gsv, stop_velocity):
     :rtype: dict
     """
 
-    gsv[0] = [0, (stop_velocity, (INF, 0))]
+    gsv[0] = [0, (stop_velocity, (defaults.INF, 0))]
 
     for v0, v1 in dsp_utl.pairwise(gsv.values()):
         up0, down1 = (v0[1][0], v1[0][0])
@@ -811,7 +810,7 @@ def correct_gsv(gsv, stop_velocity):
 
         v0[1] += stop_velocity
 
-    gsv[max(gsv)][1] = INF
+    gsv[max(gsv)][1] = defaults.INF
 
     return gsv
 
@@ -835,8 +834,8 @@ class GSPV(dict):
 
     def __repr__(self):
         s = 'GSPV(cloud={}, velocity_speed_ratios={})'
-        vsr = pformat(self.velocity_speed_ratios)
-        return s.format(pformat(self.cloud), vsr)
+        vsr = pprint.pformat(self.velocity_speed_ratios)
+        return s.format(pprint.pformat(self.cloud), vsr)
 
     def fit(self, gears, velocities, wheel_powers, velocity_speed_ratios,
             stop_velocity):
@@ -860,15 +859,16 @@ class GSPV(dict):
 
         self[0] = [[0.0], [[0.0], [stop_velocity]]]
 
-        self[max(self)][1] = [[0, 1], [INF] * 2]
+        self[max(self)][1] = [[0, 1], [defaults.INF] * 2]
 
-        self.cloud = {k: deepcopy(v) for k, v in self.items()}
+        self.cloud = {k: copy.deepcopy(v) for k, v in self.items()}
 
         self._fit_cloud()
 
         return self
 
     def _fit_cloud(self):
+        Spline = sci_itp.InterpolatedUnivariateSpline
         def line(n, m, i):
             x = np.mean(np.asarray(m[i])) if m[i] else None
             k_p = n - 1
@@ -888,7 +888,7 @@ class GSPV(dict):
                 return np.nan
 
         self.clear()
-        self.update(deepcopy(self.cloud))
+        self.update(copy.deepcopy(self.cloud))
 
         for k, v in sorted(self.items()):
             v[0] = line(k, v, 0)
@@ -901,7 +901,7 @@ class GSPV(dict):
     @property
     def limits(self):
         limits = {}
-        X = [INF, 0]
+        X = [defaults.INF, 0]
         for v in self.cloud.values():
             X[0] = min(min(v[1][0]), X[0])
             X[1] = max(max(v[1][0]), X[1])
@@ -916,12 +916,12 @@ class GSPV(dict):
         for k, v in self.limits.items():
             kv = {}
             for (s, l), (x, y) in zip((('down', '--'), ('up', '-')), v):
-                if x[0] < INF:
+                if x[0] < defaults.INF:
                     kv['label'] = 'Gear %d:%s-shift' % (k, s)
                     kv['linestyle'] = l
                     kv['color'] = plt.plot(x, y, **kv)[0]._color
             cy, cx = self.cloud[k][1]
-            if cx[0] < INF:
+            if cx[0] < defaults.INF:
                 kv.pop('label')
                 kv['linestyle'] = ''
                 kv['marker'] = 'o'
@@ -967,7 +967,7 @@ class GSPV(dict):
 
             vsr, n_vsr = self.velocity_speed_ratios, velocity_speed_ratios
 
-            limits = [INF, 0]
+            limits = [defaults.INF, 0]
 
             for v in self.cloud.values():
                 limits[0] = min(min(v[1][0]), limits[0])
@@ -989,7 +989,7 @@ class GSPV(dict):
                     c[1][1].append(u)
 
             cloud[0] = [[0.0], [[0.0], [self[0][1](0.0)]]]
-            cloud[max(cloud)][1] = [[0, 1], [INF] * 2]
+            cloud[max(cloud)][1] = [[0, 1], [defaults.INF] * 2]
 
             self._fit_cloud()
 
@@ -1037,7 +1037,7 @@ def calibrate_gspv(
 
 
 def _gspv_interpolate_cloud(powers, velocities):
-
+    from sklearn.isotonic import IsotonicRegression
     regressor = IsotonicRegression()
     regressor.fit(powers, velocities)
 
@@ -1046,7 +1046,7 @@ def _gspv_interpolate_cloud(powers, velocities):
     y = regressor.predict(x)
     y = np.append(np.append(y[0], y), [y[-1]])
     x = np.append(np.append([0.0], x), [max_p * 1.1])
-    return Spline(x, y, k=1)
+    return sci_itp.InterpolatedUnivariateSpline(x, y, k=1)
 
 
 def calibrate_gspv_hot_cold(
@@ -1115,7 +1115,7 @@ def prediction_gears_decision_tree(
 
     :param decision_tree:
         A decision tree classifier to predict gears.
-    :type decision_tree: DecisionTreeClassifier
+    :type decision_tree: sklearn.tree.DecisionTreeClassifier
 
     :param times:
         Time vector [s].
@@ -1321,9 +1321,9 @@ def calculate_error_coefficients(
     y = predicted_engine_speeds[b]
 
     res = {
-        'mean_absolute_error': mean_absolute_error(x, y),
+        'mean_absolute_error': sk_met.mean_absolute_error(x, y),
         'correlation_coefficient': np.corrcoef(x, y)[0, 1],
-        'accuracy_score': accuracy_score(identified_gears, gears)
+        'accuracy_score': sk_met.accuracy_score(identified_gears, gears)
     }
 
     return res
@@ -1450,7 +1450,7 @@ def correct_gear_mvl(velocity, acceleration, gear, mvl, *args):
 
 class MVL(CMV):
     def __init__(self, *args,
-                 plateau_acceleration=dfl.values.plateau_acceleration,
+                 plateau_acceleration=defaults.dfl.values.plateau_acceleration,
                  **kwargs):
         super(MVL, self).__init__(*args, **kwargs)
         self.plateau_acceleration = plateau_acceleration
@@ -1464,7 +1464,7 @@ class MVL(CMV):
         for k in range(1, int(max(gears)) + 1):
             l, on, vsr = [], None, velocity_speed_ratios[k]
 
-            for i, b in enumerate(chain(gears == k, [False])):
+            for i, b in enumerate(itertools.chain(gears == k, [False])):
                 if not b and on is not None:
                     v = velocities[on:i]
                     l.append([min(v), max(v)])
@@ -1482,14 +1482,14 @@ class MVL(CMV):
 
         mvl = [[k, tuple(v * velocity_speed_ratios[k])]
                for k, v in reversed(list(enumerate(mvl[1:], 1)))]
-        mvl[0][1] = (mvl[0][1][0], INF)
+        mvl[0][1] = (mvl[0][1][0], defaults.INF)
         mvl.append([0, (0, mvl[-1][1][0])])
 
         for i, v in enumerate(mvl[1:]):
             v[1] = (v[1][0], max(v[1][1], mvl[i][1][0] + stop_velocity))
 
         self.clear()
-        self.update(OrderedDict(mvl))
+        self.update(collections.OrderedDict(mvl))
 
         return self
 
@@ -1514,7 +1514,8 @@ def domain_fuel_saving_at_strategy(fuel_saving_at_strategy, *args):
 
 
 def default_specific_gear_shifting(*args):
-    return dfl.functions.default_specific_gear_shifting.SPECIFIC_GEAR_SHIFTING
+    d = defaults.dfl.functions.default_specific_gear_shifting
+    return d.SPECIFIC_GEAR_SHIFTING
 
 
 def at_domain(method):
@@ -1537,55 +1538,55 @@ def at_gear():
     """
     Defines the A/T gear shifting model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = at_gear()
+        >>> d = at_gear()
 
     :return:
         The A/T gear shifting model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='Automatic gear model',
         description='Defines an omni-comprehensive gear shifting model for '
                     'automatic vehicles.')
 
-    dsp.add_data(
+    d.add_data(
         data_id='fuel_saving_at_strategy',
-        default_value=dfl.values.fuel_saving_at_strategy,
+        default_value=defaults.dfl.values.fuel_saving_at_strategy,
         description='Apply the eco-mode gear shifting?'
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='plateau_acceleration',
-        default_value=dfl.values.plateau_acceleration
+        default_value=defaults.dfl.values.plateau_acceleration
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calibrate_mvl,
         inputs=['gears', 'velocities', 'velocity_speed_ratios',
                 'idle_engine_speed', 'stop_velocity'],
         outputs=['MVL']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='change_gear_window_width',
-        default_value=dfl.values.change_gear_window_width
+        default_value=defaults.dfl.values.change_gear_window_width
     )
 
-    dsp.add_function(
+    d.add_function(
         function=define_gear_filter,
         inputs=['change_gear_window_width'],
         outputs=['gear_filter']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='max_velocity_full_load_correction',
-        default_value=dfl.values.max_velocity_full_load_correction
+        default_value=defaults.dfl.values.max_velocity_full_load_correction
     )
 
-    dsp.add_function(
+    d.add_function(
         function=dsp_utl.add_args(correct_gear_v0),
         inputs=['fuel_saving_at_strategy', 'cycle_type',
                 'velocity_speed_ratios', 'MVL', 'engine_max_power',
@@ -1596,7 +1597,7 @@ def at_gear():
         input_domain=domain_fuel_saving_at_strategy
     )
 
-    dsp.add_function(
+    d.add_function(
         function=dsp_utl.add_args(correct_gear_v1),
         inputs=['fuel_saving_at_strategy', 'cycle_type',
                 'velocity_speed_ratios', 'MVL', 'idle_engine_speed',
@@ -1606,7 +1607,7 @@ def at_gear():
         input_domain=domain_fuel_saving_at_strategy
     )
 
-    dsp.add_function(
+    d.add_function(
         function=correct_gear_v2,
         inputs=['velocity_speed_ratios', 'engine_max_power',
                 'engine_max_speed_at_max_power', 'idle_engine_speed',
@@ -1615,23 +1616,23 @@ def at_gear():
         outputs=['correct_gear'],
         weight=50)
 
-    dsp.add_function(
+    d.add_function(
         function=correct_gear_v3,
         inputs=['velocity_speed_ratios', 'idle_engine_speed'],
         outputs=['correct_gear'],
         weight=100)
 
-    dsp.add_function(
+    d.add_function(
         function=default_specific_gear_shifting,
         outputs=['specific_gear_shifting']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='specific_gear_shifting',
         description='Specific gear shifting model.'
     )
 
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         dsp_id='cmv_model',
         dsp=at_cmv(),
         input_domain=at_domain('CMV'),
@@ -1655,7 +1656,7 @@ def at_gear():
         }
     )
 
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         include_defaults=True,
         dsp_id='cmv_ch_model',
         input_domain=at_domain('CMV_Cold_Hot'),
@@ -1681,13 +1682,13 @@ def at_gear():
         }
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='use_dt_gear_shifting',
-        default_value=dfl.values.use_dt_gear_shifting,
+        default_value=defaults.dfl.values.use_dt_gear_shifting,
         description='If to use decision tree classifiers to predict gears.'
     )
 
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         dsp_id='dt_va_model',
         input_domain=dt_domain('DT_VA'),
         dsp=at_dt_va(),
@@ -1708,7 +1709,7 @@ def at_gear():
         }
     )
 
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         dsp_id='dt_vap_model',
         input_domain=dt_domain('DT_VAP'),
         dsp=at_dt_vap(),
@@ -1730,7 +1731,7 @@ def at_gear():
         }
     )
 
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         dsp_id='dt_vat_model',
         input_domain=lambda *args, **kwargs: False,
         dsp=at_dt_vat(),
@@ -1752,7 +1753,7 @@ def at_gear():
         }
     )
 
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         dsp_id='dt_vatp_model',
         input_domain=lambda *args, **kwargs: False,
         dsp=at_dt_vatp(),
@@ -1775,7 +1776,7 @@ def at_gear():
         }
     )
 
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         dsp_id='gspv_model',
         dsp=at_gspv(),
         input_domain=at_domain('GSPV'),
@@ -1799,7 +1800,7 @@ def at_gear():
         }
     )
 
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         include_defaults=True,
         dsp_id='gspv_ch_model',
         dsp=at_gspv_cold_hot(),
@@ -1825,33 +1826,33 @@ def at_gear():
         }
     )
 
-    return dsp
+    return d
 
 
 def at_cmv():
     """
     Defines the corrected matrix velocity model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = at_cmv()
+        >>> d = at_cmv()
 
     :return:
         The corrected matrix velocity model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='Corrected Matrix Velocity Approach',
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='stop_velocity',
-        default_value=dfl.values.stop_velocity
+        default_value=defaults.dfl.values.stop_velocity
     )
 
     # calibrate corrected matrix velocity
-    dsp.add_function(
+    d.add_function(
         function=calibrate_gear_shifting_cmv,
         inputs=['correct_gear', 'gears', 'engine_speeds_out',
                 'velocities', 'accelerations', 'velocity_speed_ratios',
@@ -1859,45 +1860,45 @@ def at_cmv():
         outputs=['CMV'])
 
     # predict gears with corrected matrix velocity
-    dsp.add_function(
+    d.add_function(
         function=prediction_gears_gsm,
         inputs=['correct_gear', 'gear_filter', 'cycle_type',
                 'velocity_speed_ratios', 'CMV', 'velocities', 'accelerations',
                 'times'],
         outputs=['gears'])
 
-    return dsp
+    return d
 
 
 def at_cmv_cold_hot():
     """
     Defines the corrected matrix velocity with cold/hot model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = at_cmv_cold_hot()
+        >>> d = at_cmv_cold_hot()
 
     :return:
         The corrected matrix velocity with cold/hot model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='Corrected Matrix Velocity Approach with Cold/Hot'
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='time_cold_hot_transition',
-        default_value=dfl.values.time_cold_hot_transition
+        default_value=defaults.dfl.values.time_cold_hot_transition
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='stop_velocity',
-        default_value=dfl.values.stop_velocity
+        default_value=defaults.dfl.values.stop_velocity
     )
 
     # calibrate corrected matrix velocity cold/hot
-    dsp.add_function(
+    d.add_function(
         function=calibrate_gear_shifting_cmv_hot_cold,
         inputs=['correct_gear', 'times', 'gears',
                 'engine_speeds_out', 'velocities', 'accelerations',
@@ -1906,7 +1907,7 @@ def at_cmv_cold_hot():
         outputs=['CMV_Cold_Hot'])
 
     # predict gears with corrected matrix velocity
-    dsp.add_function(
+    d.add_function(
         function=prediction_gears_gsm_hot_cold,
         inputs=['correct_gear', 'gear_filter', 'cycle_type',
                 'velocity_speed_ratios', 'CMV_Cold_Hot',
@@ -1914,133 +1915,133 @@ def at_cmv_cold_hot():
                 'accelerations'],
         outputs=['gears'])
 
-    return dsp
+    return d
 
 
 def at_dt_va():
     """
     Defines the decision tree with velocity & acceleration model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = at_dt_va()
+        >>> d = at_dt_va()
 
     :return:
         The decision tree with velocity & acceleration model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='Decision Tree with Velocity & Acceleration'
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='accelerations',
         description='Acceleration vector [m/s2].'
     )
 
     # calibrate decision tree with velocity & acceleration
-    dsp.add_function(
+    d.add_function(
         function=calibrate_gear_shifting_decision_tree,
         inputs=['gears', 'velocities', 'accelerations'],
         outputs=['DT_VA'])
 
     # predict gears with decision tree with velocity & acceleration
-    dsp.add_function(
+    d.add_function(
         function=prediction_gears_decision_tree,
         inputs=['correct_gear', 'gear_filter', 'DT_VA', 'times', 'velocities',
                 'accelerations'],
         outputs=['gears'])
 
-    return dsp
+    return d
 
 
 def at_dt_vap():
     """
     Defines the decision tree with velocity, acceleration, & power model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = at_dt_vap()
+        >>> d = at_dt_vap()
 
     :return:
         The decision tree with velocity, acceleration, & power model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='Decision Tree with Velocity, Acceleration, & Power'
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='accelerations',
         description='Acceleration vector [m/s2].'
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='motive_powers',
         description='Motive power [kW].'
     )
 
     # calibrate decision tree with velocity, acceleration & wheel power
-    dsp.add_function(
+    d.add_function(
         function=calibrate_gear_shifting_decision_tree,
         inputs=['gears', 'velocities', 'accelerations',
                 'motive_powers'],
         outputs=['DT_VAP'])
 
     # predict gears with decision tree with velocity, acceleration & wheel power
-    dsp.add_function(
+    d.add_function(
         function=prediction_gears_decision_tree,
         inputs=['correct_gear', 'gear_filter', 'DT_VAP', 'times', 'velocities',
                 'accelerations', 'motive_powers'],
         outputs=['gears'])
 
-    return dsp
+    return d
 
 
 def at_dt_vat():
     """
     Defines the decision tree with velocity, acceleration, & temperature model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = at_dt_vat()
+        >>> d = at_dt_vat()
 
     :return:
         The decision tree with velocity, acceleration, & temperature model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='Decision Tree with Velocity, Acceleration & Temperature'
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='accelerations',
         description='Acceleration vector [m/s2].'
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='engine_coolant_temperatures',
         description='Engine coolant temperature vector [°C].'
     )
 
     # calibrate decision tree with velocity, acceleration & temperature
-    dsp.add_function(
+    d.add_function(
         function=calibrate_gear_shifting_decision_tree,
         inputs=['gears', 'velocities', 'accelerations',
                 'engine_coolant_temperatures'],
         outputs=['DT_VAT'])
 
     # predict gears with decision tree with velocity, acceleration & temperature
-    dsp.add_function(
+    d.add_function(
         function=prediction_gears_decision_tree,
         inputs=['correct_gear', 'gear_filter', 'DT_VAT', 'times', 'velocities',
                 'accelerations', 'engine_coolant_temperatures'],
         outputs=['gears'])
 
-    return dsp
+    return d
 
 
 def at_dt_vatp():
@@ -2048,38 +2049,38 @@ def at_dt_vatp():
     Defines the decision tree with velocity, acceleration, temperature & power
     model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = at_dt_vatp()
+        >>> d = at_dt_vatp()
 
     :return:
         The decision tree with velocity, acceleration, temperature & power
         model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='Decision Tree with Velocity, Acceleration, Temperature, & Power'
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='accelerations',
         description='Acceleration vector [m/s2].'
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='engine_coolant_temperatures',
         description='Engine coolant temperature vector [°C].'
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='motive_powers',
         description='Motive power [kW].'
     )
 
     # calibrate decision tree with velocity, acceleration, temperature
     # & wheel power
-    dsp.add_function(
+    d.add_function(
         function=calibrate_gear_shifting_decision_tree,
         inputs=['gears', 'velocities', 'accelerations',
                 'engine_coolant_temperatures', 'motive_powers'],
@@ -2087,85 +2088,85 @@ def at_dt_vatp():
 
     # predict gears with decision tree with velocity, acceleration, temperature
     # & wheel power
-    dsp.add_function(
+    d.add_function(
         function=prediction_gears_decision_tree,
         inputs=['correct_gear', 'gear_filter', 'DT_VATP', 'times', 'velocities',
                 'accelerations', 'engine_coolant_temperatures',
                 'motive_powers'],
         outputs=['gears'])
 
-    return dsp
+    return d
 
 
 def at_gspv():
     """
     Defines the gear shifting power velocity model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = at_gspv()
+        >>> d = at_gspv()
 
     :return:
         The gear shifting power velocity model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='Gear Shifting Power Velocity Approach'
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='stop_velocity',
-        default_value=dfl.values.stop_velocity
+        default_value=defaults.dfl.values.stop_velocity
     )
 
     # calibrate corrected matrix velocity
-    dsp.add_function(
+    d.add_function(
         function=calibrate_gspv,
         inputs=['gears', 'velocities', 'motive_powers',
                 'velocity_speed_ratios', 'stop_velocity'],
         outputs=['GSPV'])
 
     # predict gears with corrected matrix velocity
-    dsp.add_function(
+    d.add_function(
         function=prediction_gears_gsm,
         inputs=['correct_gear', 'gear_filter', 'cycle_type',
                 'velocity_speed_ratios', 'GSPV', 'velocities', 'accelerations',
                 'times', 'motive_powers'],
         outputs=['gears'])
 
-    return dsp
+    return d
 
 
 def at_gspv_cold_hot():
     """
     Defines the gear shifting power velocity with cold/hot model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = at_gspv_cold_hot()
+        >>> d = at_gspv_cold_hot()
 
     :return:
         The gear shifting power velocity with cold/hot model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='Gear Shifting Power Velocity Approach with Cold/Hot'
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='time_cold_hot_transition',
-        default_value=dfl.values.time_cold_hot_transition
+        default_value=defaults.dfl.values.time_cold_hot_transition
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='stop_velocity',
-        default_value=dfl.values.stop_velocity
+        default_value=defaults.dfl.values.stop_velocity
     )
 
     # calibrate corrected matrix velocity
-    dsp.add_function(
+    d.add_function(
         function=calibrate_gspv_hot_cold,
         inputs=['times', 'gears', 'velocities',
                 'motive_powers', 'time_cold_hot_transition',
@@ -2173,7 +2174,7 @@ def at_gspv_cold_hot():
         outputs=['GSPV_Cold_Hot'])
 
     # predict gears with corrected matrix velocity
-    dsp.add_function(
+    d.add_function(
         function=prediction_gears_gsm_hot_cold,
         inputs=['correct_gear', 'gear_filter', 'cycle_type',
                 'velocity_speed_ratios', 'GSPV_Cold_Hot',
@@ -2181,4 +2182,4 @@ def at_gspv_cold_hot():
                 'accelerations', 'motive_powers'],
         outputs=['gears'])
 
-    return dsp
+    return d

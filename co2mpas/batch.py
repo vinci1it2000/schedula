@@ -14,9 +14,9 @@ import os.path as osp
 import re
 import pandas as pd
 from tqdm import tqdm
-from functools import partial
+import functools
 import co2mpas.dispatcher.utils as dsp_utl
-from co2mpas.dispatcher import Dispatcher
+import co2mpas.dispatcher as dsp
 import co2mpas.utils as co2_utl
 
 log = logging.getLogger(__name__)
@@ -249,54 +249,54 @@ def vehicle_processing_model():
     """
     Defines the vehicle-processing model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = vehicle_processing_model()
+        >>> d = vehicle_processing_model()
 
     :return:
         The vehicle-processing model.
     :rtype: Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='CO2MPAS vehicle_processing_model',
         description='Processes a vehicle from the file path to the write of its'
                     ' outputs.'
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='overwrite_cache',
         default_value=False
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='soft_validation',
         default_value=False
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='with_output_file',
         default_value=False
     )
 
-    dsp.add_function(
+    d.add_function(
         function=default_vehicle_name,
         inputs=['input_file_name'],
         outputs=['vehicle_name']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=default_start_time,
         outputs=['start_time']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=default_timestamp,
         inputs=['start_time'],
         outputs=['timestamp']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=dsp_utl.add_args(default_output_file_name),
         inputs=['with_output_file', 'output_folder', 'vehicle_name',
                 'timestamp'],
@@ -306,7 +306,7 @@ def vehicle_processing_model():
 
     from .io import load_inputs, write_outputs
 
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         dsp=load_inputs(),
         inputs={
             'input_file_name': 'input_file_name',
@@ -320,40 +320,40 @@ def vehicle_processing_model():
     )
 
     from .model import model
-    dsp.add_function(
+    d.add_function(
         function=dsp_utl.add_args(dsp_utl.SubDispatch(model())),
         inputs=['plan', 'validated_data'],
         outputs=['dsp_solution'],
         input_domain=lambda *args: not args[0]
     )
 
-    dsp.add_function(
+    d.add_function(
         function=parse_dsp_solution,
         inputs=['dsp_solution'],
         outputs=['output_data']
     )
 
     from .report import report
-    dsp.add_function(
+    d.add_function(
         function=report(),
         inputs=['output_data', 'vehicle_name'],
         outputs=['report', 'summary'],
     )
 
-    dsp.add_function(
+    d.add_function(
         function=dsp_utl.bypass,
         inputs=['output_data'],
         outputs=['report'],
         weight=1
     )
 
-    dsp.add_function(
+    d.add_function(
         function=get_template_file_name,
         inputs=['output_template', 'input_file_name'],
         outputs=['template_file_name']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='output_template',
         default_value='',
         initial_dist=10
@@ -362,13 +362,13 @@ def vehicle_processing_model():
     main_flags = ('template_file_name', 'overwrite_cache', 'soft_validation',
                   'with_output_file', 'plot_workflow')
 
-    dsp.add_function(
-        function=partial(dsp_utl.map_list, main_flags),
+    d.add_function(
+        function=functools.partial(dsp_utl.map_list, main_flags),
         inputs=main_flags,
         outputs=['main_flags']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=write_outputs(),
         inputs=['output_file_name', 'template_file_name', 'report',
                 'start_time', 'main_flags'],
@@ -376,7 +376,7 @@ def vehicle_processing_model():
         input_domain=check_first_arg
     )
 
-    dsp.add_function(
+    d.add_function(
         function_id='has_plan',
         function=check_first_arg,
         inputs=['validated_plan'],
@@ -384,7 +384,7 @@ def vehicle_processing_model():
     )
 
     from .plan import make_simulation_plan
-    dsp.add_function(
+    d.add_function(
         function=dsp_utl.add_args(make_simulation_plan),
         inputs=['plan', 'validated_plan', 'timestamp', 'output_folder',
                 'main_flags'],
@@ -392,4 +392,4 @@ def vehicle_processing_model():
         input_domain=check_first_arg
     )
 
-    return dsp
+    return d

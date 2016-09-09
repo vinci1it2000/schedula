@@ -20,23 +20,21 @@ Modules:
     co2_params
 """
 
-from co2mpas.dispatcher import Dispatcher
-from sklearn.metrics import mean_absolute_error, accuracy_score
+import co2mpas.dispatcher as dsp
+import sklearn.metrics as sk_met
 import co2mpas.dispatcher.utils as dsp_utl
 import logging
-from collections import OrderedDict
-from pprint import pformat
-from ..physical.clutch_tc.clutch import calculate_clutch_phases
-from collections import Iterable
-from functools import partial
-from ..physical.gear_box import at_gear
+import collections
+import pprint
+import functools
 import numpy as np
 import co2mpas.utils as co2_utl
+
 log = logging.getLogger(__name__)
 
 
 def _mean(values, weights=None):
-    if isinstance(weights, Iterable):
+    if isinstance(weights, collections.Iterable):
         values = [v * w for v, w in zip(values, weights) if w]
 
     v = np.asarray(values)
@@ -102,7 +100,7 @@ def _check(best):
 
 def get_best_model(
         rank, models_wo_err=None, selector_id=''):
-    scores = OrderedDict()
+    scores = collections.OrderedDict()
     for m in rank:
         if m[1]:
             scores[m[3]] = {
@@ -131,7 +129,8 @@ def get_best_model(
         msg = '\n  Models %s are selected from %s respect to targets' \
               ' %s.\n  Scores: %s.'
 
-        log.debug(msg, s['models'], m[3], tuple(m[4].keys()), pformat(scores))
+        log.debug(msg, s['models'], m[3], tuple(m[4].keys()),
+                  pprint.pformat(scores))
 
         if not _check(m):
             msg = '\n  %s warning: Models %s failed the calibration.'
@@ -146,12 +145,12 @@ def select_outputs(outputs, targets, results):
 
     results = dsp_utl.selector(outputs, results, allow_miss=True)
     results = dsp_utl.map_dict(dict(zip(outputs, targets)), results)
-
-    return OrderedDict((k, results[k]) for k in targets if k in results)
+    it = ((k, results[k]) for k in targets if k in results)
+    return collections.OrderedDict(it)
 
 
 def make_metrics(metrics, ref, pred, kwargs):
-    metric = OrderedDict()
+    metric = collections.OrderedDict()
 
     for k, p in pred.items():
         if k in ref:
@@ -165,7 +164,7 @@ def make_metrics(metrics, ref, pred, kwargs):
 
 def _check_limit(limit, errors, check=lambda e, l: e <= l):
     if limit:
-        l = OrderedDict()
+        l = collections.OrderedDict()
         for k, e in errors.items():
             if limit[k] is not None:
                 l[k] = check(e, limit[k])
@@ -188,13 +187,13 @@ def check_limits(errors, up_limit=None, dn_limit=None):
 
 
 # noinspection PyUnusedLocal
-def define_sub_model(dsp, inputs, outputs, models, **kwargs):
-    missing = set(outputs).difference(dsp.nodes)
+def define_sub_model(d, inputs, outputs, models, **kwargs):
+    missing = set(outputs).difference(d.nodes)
     if missing:
         outputs = set(outputs).difference(missing)
     if inputs is not None:
         inputs = set(inputs).union(models)
-    return dsp_utl.SubDispatch(dsp.shrink_dsp(inputs, outputs))
+    return dsp_utl.SubDispatch(d.shrink_dsp(inputs, outputs))
 
 
 # noinspection PyUnusedLocal
@@ -205,23 +204,24 @@ def metric_calibration_status(y_true, y_pred):
 def metric_engine_speed_model(
         y_true, y_pred, times, velocities, gear_shifts, on_engine,
         stop_velocity):
+    from ..physical.clutch_tc.clutch import calculate_clutch_phases
     b = calculate_clutch_phases(times, gear_shifts, (-4.0, 4.0))
     b = np.logical_not(b)
     b &= (velocities > stop_velocity) & (times > 100) & on_engine
-    return mean_absolute_error(y_true[b], y_pred[b])
+    return sk_met.mean_absolute_error(y_true[b], y_pred[b])
 
 
 def metric_engine_cold_start_speed_model(
         y_true, y_pred, cold_start_speeds_phases):
     b = cold_start_speeds_phases
     if b.any():
-        return mean_absolute_error(y_true[b], y_pred[b])
+        return sk_met.mean_absolute_error(y_true[b], y_pred[b])
     else:
         return 0
 
 
 def metric_clutch_torque_converter_model(y_true, y_pred, on_engine):
-    return mean_absolute_error(y_true[on_engine], y_pred[on_engine])
+    return sk_met.mean_absolute_error(y_true[on_engine], y_pred[on_engine])
 
 
 def combine_outputs(models):
@@ -252,20 +252,20 @@ def sub_models():
 
     from ..physical.engine.thermal import thermal
     models['engine_coolant_temperature_model'] = {
-        'dsp': thermal(),
+        'd': thermal(),
         'models': ['engine_temperature_regression_model',
                    'max_engine_coolant_temperature'],
         'inputs': ['times', 'accelerations', 'final_drive_powers_in',
                    'engine_speeds_out_hot', 'initial_engine_temperature'],
         'outputs': ['engine_coolant_temperatures'],
         'targets': ['engine_coolant_temperatures'],
-        'metrics': [mean_absolute_error],
+        'metrics': [sk_met.mean_absolute_error],
         'up_limit': [3],
     }
 
     from ..physical.engine.start_stop import start_stop
     models['start_stop_model'] = {
-        'dsp': start_stop(),
+        'd': start_stop(),
         'models': ['start_stop_model', 'use_basic_start_stop'],
         'inputs': ['times', 'velocities', 'accelerations',
                    'engine_coolant_temperatures', 'state_of_charges',
@@ -274,7 +274,7 @@ def sub_models():
                    'min_time_engine_on_after_start', 'has_start_stop'],
         'outputs': ['on_engine', 'engine_starts'],
         'targets': ['on_engine', 'engine_starts'],
-        'metrics': [accuracy_score] * 2,
+        'metrics': [sk_met.accuracy_score] * 2,
         'weights': [-1, -1],
         'dn_limit': [0.7] * 2,
     }
@@ -282,7 +282,7 @@ def sub_models():
     from ..physical import physical
 
     models['engine_speed_model'] = {
-        'dsp': physical(),
+        'd': physical(),
         'select_models': tyre_models_selector,
         'models': ['final_drive_ratio', 'gear_box_ratios',
                    'idle_engine_speed_median', 'idle_engine_speed_std',
@@ -301,9 +301,9 @@ def sub_models():
 
     from ..physical.engine import calculate_engine_speeds_out
     from ..physical.engine.cold_start import cold_start
-    dsp = cold_start()
+    d = cold_start()
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_engine_speeds_out,
         inputs=['on_engine', 'idle_engine_speed', 'engine_speeds_out_hot',
                 'cold_start_speeds_delta'],
@@ -311,7 +311,7 @@ def sub_models():
     )
 
     models['engine_cold_start_speed_model'] = {
-        'dsp': dsp,
+        'd': d,
         'models': ['cold_start_speed_model'],
         'inputs': ['engine_speeds_out_hot', 'engine_coolant_temperatures',
                    'on_engine', 'idle_engine_speed'],
@@ -324,9 +324,9 @@ def sub_models():
 
     from ..physical.clutch_tc import clutch_torque_converter
 
-    dsp = clutch_torque_converter()
+    d = clutch_torque_converter()
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_engine_speeds_out,
         inputs=['on_engine', 'idle_engine_speed', 'engine_speeds_out_hot',
                 'clutch_tc_speeds_delta'],
@@ -334,13 +334,13 @@ def sub_models():
     )
 
     models['clutch_torque_converter_model'] = {
-        'dsp': dsp,
+        'd': d,
         'models': ['clutch_window', 'clutch_model', 'torque_converter_model'],
         'inputs': ['gear_box_speeds_in', 'on_engine', 'idle_engine_speed',
                    'gear_box_type', 'gears', 'accelerations', 'times',
                    'gear_shifts', 'engine_speeds_out_hot', 'velocities',
                    'lock_up_tc_limits'],
-        'define_sub_model': lambda dsp, **kwargs: dsp_utl.SubDispatch(dsp),
+        'define_sub_model': lambda d, **kwargs: dsp_utl.SubDispatch(d),
         'outputs': ['engine_speeds_out'],
         'targets': ['engine_speeds_out'],
         'metrics_inputs': ['on_engine'],
@@ -351,14 +351,14 @@ def sub_models():
     from ..physical.engine.co2_emission import co2_emission
     from .co2_params import co2_params_selector
     models['co2_params'] = {
-        'dsp': co2_emission(),
+        'd': co2_emission(),
         'model_selector': co2_params_selector,
         'models': ['co2_params_calibrated', 'calibration_status',
                    'initial_friction_params'],
         'inputs': ['co2_emissions_model'],
         'outputs': ['co2_emissions', 'calibration_status'],
         'targets': ['identified_co2_emissions', 'calibration_status'],
-        'metrics': [mean_absolute_error, metric_calibration_status],
+        'metrics': [sk_met.mean_absolute_error, metric_calibration_status],
         'up_limit': [0.5, None],
         'weights': [1, None]
     }
@@ -366,7 +366,7 @@ def sub_models():
     from ..physical.electrics import electrics
 
     models['alternator_model'] = {
-        'dsp': electrics(),
+        'd': electrics(),
         'models': ['alternator_status_model', 'alternator_nominal_voltage',
                    'alternator_current_model', 'max_battery_charging_current',
                    'start_demand', 'electric_load', 'alternator_nominal_power',
@@ -379,7 +379,7 @@ def sub_models():
                     'state_of_charges', 'alternator_statuses'],
         'targets': ['alternator_currents', 'battery_currents',
                     'state_of_charges', 'alternator_statuses'],
-        'metrics': [mean_absolute_error] * 3 + [accuracy_score],
+        'metrics': [sk_met.mean_absolute_error] * 3 + [sk_met.accuracy_score],
         'up_limit': [60, 60, None, None],
         'weights': [1, 1, 0, 0]
     }
@@ -397,17 +397,19 @@ def sub_models():
     ]
 
     models['at_model'] = {
-        'dsp': at_gear(),
-        'select_models': partial(at_models_selector, at_gear(), at_pred_inputs),
+        'd': at_gear(),
+        'select_models': functools.partial(
+            at_models_selector, at_gear(), at_pred_inputs
+        ),
         'models': ['MVL', 'CMV', 'CMV_Cold_Hot', 'DT_VA', 'DT_VAT', 'DT_VAP',
                    'DT_VATP', 'GSPV', 'GSPV_Cold_Hot',
                    'specific_gear_shifting', 'change_gear_window_width',
                    'max_velocity_full_load_correction', 'plateau_acceleration'],
         'inputs': at_pred_inputs,
-        'define_sub_model': lambda dsp, **kwargs: dsp_utl.SubDispatch(dsp),
+        'define_sub_model': lambda d, **kwargs: dsp_utl.SubDispatch(d),
         'outputs': ['gears', 'max_gear'],
         'targets': ['gears', 'max_gear'],
-        'metrics': [accuracy_score, None],
+        'metrics': [sk_met.accuracy_score, None],
         'weights': [-1, 0]
     }
 
@@ -421,7 +423,7 @@ def tyre_models_selector(models_ids, data):
     return models
 
 
-def at_models_selector(dsp, at_pred_inputs, models_ids, data):
+def at_models_selector(d, at_pred_inputs, models_ids, data):
     sgs = 'specific_gear_shifting'
     # Namespace shortcuts.
     try:
@@ -431,7 +433,7 @@ def at_models_selector(dsp, at_pred_inputs, models_ids, data):
     except KeyError:
         return {}
 
-    c_dicts, select, _g = dsp_utl.combine_dicts, dsp_utl.selector, dsp.dispatch
+    c_dicts, select, _g = dsp_utl.combine_dicts, dsp_utl.selector, d.dispatch
     t_e = ('mean_absolute_error', 'accuracy_score', 'correlation_coefficient')
 
     # at_models to be assessed.
@@ -444,14 +446,16 @@ def at_models_selector(dsp, at_pred_inputs, models_ids, data):
     # Inputs to predict the gears.
     inputs = select(at_pred_inputs, data, allow_miss=True)
 
+    from ..physical.gear_box.at_gear import calculate_error_coefficients
+    from ..physical.gear_box.mechanical import calculate_gear_box_speeds_in
     def _err(model_id, model):
-        gears = dsp.dispatch(
+        gears = d.dispatch(
                 inputs=c_dicts(inputs, {sgs: model_id, model_id: model}),
                 outputs=['gears']
         )['gears']
 
-        eng = at_gear.calculate_gear_box_speeds_in(gears, vel, vsr, sv)
-        err = at_gear.calculate_error_coefficients(
+        eng = calculate_gear_box_speeds_in(gears, vel, vsr, sv)
+        err = calculate_error_coefficients(
             t_gears, gears, t_eng, eng, vel, sv
         )
         return err
@@ -465,7 +469,7 @@ def at_models_selector(dsp, at_pred_inputs, models_ids, data):
     rank = sorted(((_err(k, m), k, m) for k, m in at_m.items()), key=_sort)
 
     if rank:
-        data['at_scores'] = OrderedDict((k, e) for e, k, m in rank)
+        data['at_scores'] = collections.OrderedDict((k, e) for e, k, m in rank)
         e, k, m = rank[0]
         models[sgs], models[k] = k, m
         log.debug('at_gear_shifting_model: %s with mean_absolute_error %.3f '
@@ -479,9 +483,9 @@ def selector(*data):
     """
     Defines the models' selector model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = selector()
+        >>> d = selector()
 
     :return:
         The models' selector model.
@@ -490,24 +494,24 @@ def selector(*data):
 
     data = data or ('wltp_h', 'wltp_l')
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='Models selector',
         description='Select the calibrated models.',
     )
 
-    dsp.add_function(
-        function=partial(dsp_utl.map_list, data),
+    d.add_function(
+        function=functools.partial(dsp_utl.map_list, data),
         inputs=data,
         outputs=['CO2MPAS_results']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='models',
         function=combine_outputs,
         wait_inputs=True
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='scores',
         function=combine_scores,
         wait_inputs=True
@@ -515,14 +519,14 @@ def selector(*data):
 
     setting = sub_models()
 
-    dsp.add_data(
+    d.add_data(
         data_id='error_settings',
         default_value={}
     )
 
     m = list(setting)
-    dsp.add_function(
-        function=partial(split_error_settings, m),
+    d.add_function(
+        function=functools.partial(split_error_settings, m),
         inputs=['error_settings'],
         outputs=['error_settings/%s' % k for k in m]
     )
@@ -530,7 +534,7 @@ def selector(*data):
     for k, v in setting.items():
         v['dsp'] = v.pop('define_sub_model', define_sub_model)(**v)
         v['metrics'] = dsp_utl.map_list(v['targets'], *v['metrics'])
-        dsp.add_function(
+        d.add_function(
             function=v.pop('model_selector', _selector)(k, data, data, v),
             function_id='%s selector' % k,
             inputs=['CO2MPAS_results', 'error_settings/%s' % k],
@@ -538,7 +542,7 @@ def selector(*data):
         )
 
     func = dsp_utl.SubDispatchFunction(
-        dsp=dsp,
+        dsp=d,
         function_id='models_selector',
         inputs=('error_settings',) + data,
         outputs=['models', 'scores']
@@ -553,7 +557,7 @@ def split_error_settings(models_ids, error_settings):
 
 def _selector(name, data_in, data_out, setting):
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='%s selector' % name,
         description='Select the calibrated %s.' % name,
     )
@@ -566,11 +570,13 @@ def _selector(name, data_in, data_out, setting):
     else:
         _weights = None
 
-    _get_best_model = partial(setting.pop('get_best_model', get_best_model),
-                              models_wo_err=setting.pop('models_wo_err', None),
-                              selector_id=dsp.name)
+    _get_best_model = functools.partial(
+        setting.pop('get_best_model', get_best_model),
+        models_wo_err=setting.pop('models_wo_err', None),
+        selector_id=d.name
+    )
 
-    dsp.add_data(
+    d.add_data(
         data_id='error_settings',
         default_value={}
     )
@@ -580,27 +586,27 @@ def _selector(name, data_in, data_out, setting):
 
         errors.append(e)
 
-        dsp.add_function(
+        d.add_function(
             function=_errors(name, i, data_out, setting),
             inputs=['error_settings', i] + [k for k in data_out if k != i],
             outputs=[e]
         )
 
-    dsp.add_function(
+    d.add_function(
         function_id='sort_models',
-        function=partial(_sort_models, weights=_weights),
+        function=functools.partial(_sort_models, weights=_weights),
         inputs=errors,
         outputs=['rank']
     )
 
-    dsp.add_function(
+    d.add_function(
         function_id='get_best_model',
         function=_get_best_model,
         inputs=['rank'],
         outputs=['model', 'errors']
     )
 
-    return dsp_utl.SubDispatch(dsp, outputs=['model', 'errors'],
+    return dsp_utl.SubDispatch(d, outputs=['model', 'errors'],
                                output_type='list')
 
 
@@ -608,46 +614,48 @@ def _errors(name, data_id, data_out, setting):
 
     name = ''.join(k[0].upper() for k in name.split('_'))
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='%s-%s errors' % (name, data_id),
         description='Calculates the error of calibrated model.',
     )
 
     setting = setting.copy()
 
-    dsp.add_data(
+    d.add_data(
         data_id='models',
         default_value=setting.pop('models', [])
     )
 
-    select_data = partial(dsp_utl.selector, allow_miss=True)
+    select_data = functools.partial(dsp_utl.selector, allow_miss=True)
 
-    dsp.add_function(
+    d.add_function(
         function_id='select_models',
         function=setting.pop('select_models', select_data),
         inputs=['models', data_id],
         outputs=['calibrated_models']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='data_in',
         default_value=data_id
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='error_settings',
         default_value={}
     )
 
     for o in data_out:
 
-        dsp.add_function(
-            function=partial(dsp_utl.map_list, ['calibrated_models', 'data']),
+        d.add_function(
+            function=functools.partial(
+                dsp_utl.map_list, ['calibrated_models', 'data']
+            ),
             inputs=['calibrated_models', o],
             outputs=['input/%s' % o]
         )
 
-        dsp.add_function(
+        d.add_function(
             function=_error(name, data_id, o, setting),
             inputs=['input/%s' % o, 'error_settings'],
             outputs=['error/%s' % o]
@@ -655,8 +663,8 @@ def _errors(name, data_id, data_out, setting):
 
     i = ['error_settings', data_id] + [k for k in data_out if k != data_id]
     func = dsp_utl.SubDispatchFunction(
-        dsp=dsp,
-        function_id=dsp.name,
+        dsp=d,
+        function_id=d.name,
         inputs=i
     )
 
@@ -665,7 +673,7 @@ def _errors(name, data_id, data_out, setting):
 
 def _error(name, data_id, data_out, setting):
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='%s-%s error vs %s' % (name, data_id, data_out),
         description='Calculates the error of calibrated model of a reference.',
     )
@@ -686,70 +694,72 @@ def _error(name, data_id, data_out, setting):
         if v is not None:
             default_settings[k] = dsp_utl.map_list(setting['targets'], *v)
 
-    dsp.add_function(
+    d.add_function(
         function_id='select_inputs',
         function=dsp_utl.map_dict,
         inputs=['inputs_map', 'data'],
         outputs=['inputs<0>']
     )
 
-    dsp.add_function(
+    d.add_function(
         function_id='select_inputs',
-        function=partial(dsp_utl.selector, allow_miss=True),
+        function=functools.partial(dsp_utl.selector, allow_miss=True),
         inputs=['inputs', 'inputs<0>'],
         outputs=['inputs<1>']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=dsp_utl.combine_dicts,
         inputs=['calibrated_models', 'inputs<1>'],
         outputs=['prediction_inputs']
     )
 
-    dsp.add_function(
+    d.add_function(
         function_id='select_targets',
-        function=partial(dsp_utl.selector, allow_miss=True),
+        function=functools.partial(dsp_utl.selector, allow_miss=True),
         inputs=['targets', 'data'],
         outputs=['references']
     )
 
-    dsp.add_function(
-        function=partial(default_settings.pop('dsp', lambda x: x), {}),
+    d.add_function(
+        function=functools.partial(
+            default_settings.pop('dsp', lambda x: x), {}
+        ),
         inputs=['prediction_inputs', 'calibrated_models'],
         outputs=['results']
     )
 
-    dsp.add_function(
+    d.add_function(
         function_id='select_outputs',
         function=select_outputs,
         inputs=['outputs', 'targets', 'results'],
         outputs=['predictions']
     )
 
-    dsp.add_function(
+    d.add_function(
         function_id='select_metrics_inputs',
-        function=partial(dsp_utl.selector, allow_miss=True),
+        function=functools.partial(dsp_utl.selector, allow_miss=True),
         inputs=['metrics_inputs', 'data'],
         outputs=['metrics_args']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=make_metrics,
         inputs=['metrics', 'references', 'predictions', 'metrics_args'],
         outputs=['errors']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=check_limits,
         inputs=['errors', 'up_limit', 'dn_limit'],
         outputs=['status']
     )
 
     for k, v in default_settings.items():
-        dsp.add_data(k, v)
+        d.add_data(k, v)
 
     func = dsp_utl.SubDispatch(
-        dsp=dsp,
+        dsp=d,
         outputs=['errors', 'status'],
         output_type='list'
     )

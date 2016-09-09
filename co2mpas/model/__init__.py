@@ -20,7 +20,7 @@ It contains a comprehensive list of all CO2MPAS software models and sub-models:
 """
 
 import co2mpas.dispatcher.utils as dsp_utl
-from co2mpas.dispatcher import Dispatcher
+import co2mpas.dispatcher as dsp
 
 
 def select_prediction_data(data, new_data=(), theoretical=True):
@@ -112,17 +112,17 @@ def model():
     """
     Defines the CO2MPAS model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = model()
+        >>> d = model()
 
     :return:
         The CO2MPAS model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
     from .physical import physical
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='CO2MPAS model',
         description='Calibrates the models with WLTP data and predicts NEDC '
                     'cycle.'
@@ -132,12 +132,12 @@ def model():
     #                          PRECONDITIONING CYCLE
     ############################################################################
 
-    dsp.add_data(
+    d.add_data(
         data_id='input.precondition.wltp_p',
         description='Dictionary that has all inputs of the calibration cycle.'
     )
 
-    dsp.add_function(
+    d.add_function(
         function_id='calculate_precondition_output',
         function=dsp_utl.SubDispatch(physical()),
         inputs=['input.precondition.wltp_p'],
@@ -150,13 +150,13 @@ def model():
     #                          WLTP - HIGH CYCLE
     ############################################################################
 
-    dsp.add_function(
+    d.add_function(
         function=select_calibration_data,
         inputs=['input.calibration.wltp_h', 'output.precondition.wltp_p'],
         outputs=['data.calibration.wltp_h'],
     )
 
-    dsp.add_function(
+    d.add_function(
         function_id='calibrate_with_wltp_h',
         function=dsp_utl.SubDispatch(physical()),
         inputs=['data.calibration.wltp_h'],
@@ -165,18 +165,18 @@ def model():
                     'predict light-vehicles\' CO2 emissions.'
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='input.prediction.wltp_h',
         default_value={}
     )
 
-    dsp.add_function(
+    d.add_function(
         function=select_prediction_data,
         inputs=['output.calibration.wltp_h', 'input.prediction.wltp_h'],
         outputs=['data.prediction.wltp_h']
     )
 
-    dsp.add_function(
+    d.add_function(
         function_id='predict_wltp_h',
         function=dsp_utl.SubDispatch(physical()),
         inputs=['data.prediction.models', 'data.prediction.wltp_h'],
@@ -188,13 +188,13 @@ def model():
     #                          WLTP - LOW CYCLE
     ############################################################################
 
-    dsp.add_function(
+    d.add_function(
         function=select_calibration_data,
         inputs=['input.calibration.wltp_l', 'output.precondition.wltp_p'],
         outputs=['data.calibration.wltp_l'],
     )
 
-    dsp.add_function(
+    d.add_function(
         function_id='calibrate_with_wltp_l',
         function=dsp_utl.SubDispatch(physical()),
         inputs=['data.calibration.wltp_l'],
@@ -203,18 +203,18 @@ def model():
                     'predict light-vehicles\' CO2 emissions.'
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='input.prediction.wltp_l',
         default_value={}
     )
 
-    dsp.add_function(
+    d.add_function(
         function=select_prediction_data,
         inputs=['output.calibration.wltp_l', 'input.prediction.wltp_l'],
         outputs=['data.prediction.wltp_l']
     )
 
-    dsp.add_function(
+    d.add_function(
         function_id='predict_wltp_l',
         function=dsp_utl.SubDispatch(physical()),
         inputs=['data.prediction.models', 'data.prediction.wltp_l'],
@@ -231,12 +231,12 @@ def model():
 
     selector = selector('wltp_h', 'wltp_l')
 
-    dsp.add_data(
+    d.add_data(
         data_id='config.error_settings',
         default_value={}
     )
 
-    dsp.add_function(
+    d.add_function(
         function_id='extract_calibrated_models',
         function=selector,
         inputs=['config.error_settings', 'output.calibration.wltp_h',
@@ -244,12 +244,12 @@ def model():
         outputs=['data.calibration.models', 'data.calibration.model_scores']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='input.prediction.models',
         default_value={}
     )
 
-    dsp.add_function(
+    d.add_function(
         function=dsp_utl.combine_dicts,
         inputs=['data.calibration.models', 'input.prediction.models'],
         outputs=['data.prediction.models']
@@ -259,7 +259,7 @@ def model():
     #                            NEDC - HIGH CYCLE
     ############################################################################
 
-    dsp.add_function(
+    d.add_function(
         function_id='predict_nedc_h',
         function=dsp_utl.SubDispatch(physical()),
         inputs=['data.prediction.models', 'input.prediction.nedc_h'],
@@ -270,11 +270,11 @@ def model():
     #                            NEDC - LOW CYCLE
     ############################################################################
 
-    dsp.add_function(
+    d.add_function(
         function_id='predict_nedc_l',
         function=dsp_utl.SubDispatch(physical()),
         inputs=['data.prediction.models', 'input.prediction.nedc_l'],
         outputs=['output.prediction.nedc_l'],
     )
 
-    return dsp
+    return d

@@ -8,36 +8,35 @@
 """
 It contains functions to make a simulation plan.
 """
-from tqdm import tqdm
+import tqdm
 import co2mpas.dispatcher.utils as dsp_utl
 import co2mpas.utils as co2_utl
-from .io import check_cache_fpath_exists, get_cache_fpath
-from .io.dill import save_dill, load_from_dill
-from .__main__ import file_finder
-from .batch import _process_vehicle, _add2summary, vehicle_processing_model
-from .model.physical.clutch_tc.torque_converter import TorqueConverter
+import co2mpas.io as co2_io
+import co2mpas.batch as batch
 from cachetools import cached, LRUCache
-from copy import deepcopy
+import copy
 
 
 @cached(LRUCache(maxsize=256))
 def get_results(model, fpath, overwrite_cache=False, **kw):
-    cache_fpath = get_cache_fpath(fpath, ext=('res', 'base', 'dill',))
+    cache_fpath = co2_io.get_cache_fpath(fpath, ext=('res', 'base', 'dill',))
 
-    if check_cache_fpath_exists(overwrite_cache, fpath, cache_fpath):
-        res = load_from_dill(cache_fpath)
+    if co2_io.check_cache_fpath_exists(overwrite_cache, fpath, cache_fpath):
+        res = co2_io.dill.load_from_dill(cache_fpath)
     else:
         kw = {k: v for k, v in kw.items() if k != 'plot_workflow'}
-        res = deepcopy(_process_vehicle(model,
-                                        input_file_name=fpath,
-                                        overwrite_cache=overwrite_cache, **kw))
+        res = copy.deepcopy(batch._process_vehicle(
+            model, input_file_name=fpath, overwrite_cache=overwrite_cache, **kw
+        ))
 
-        save_dill(res, cache_fpath)
+        co2_io.dill.save_dill(res, cache_fpath)
 
     return res
 
 
 def build_default_models(model, paths, output_folder, **kw):
+    from .model.physical.clutch_tc.torque_converter import TorqueConverter
+    from .__main__ import file_finder
     dfl = {}
     paths = eval(paths or '()')
     for path in file_finder(paths):
@@ -70,7 +69,7 @@ def define_new_inputs(data, base, dsp_solution):
 
 
 def make_simulation_plan(plan, timestamp, output_folder, main_flags):
-    model, summary = vehicle_processing_model(), {}
+    model, summary = batch.vehicle_processing_model(), {}
 
     run_modes = tuple(model.get_sub_dsp_from_workflow(
         ('validated_data', 'vehicle_name'), check_inputs=False, graph=model.dmap
@@ -83,11 +82,11 @@ def make_simulation_plan(plan, timestamp, output_folder, main_flags):
     }
 
     kw, bases = dsp_utl.combine_dicts(main_flags, kw), set()
-    for (i, base_fpath, defaults_fpats), p in tqdm(plan, disable=False):
+    for (i, base_fpath, defaults_fpats), p in tqdm.tqdm(plan, disable=False):
         base = get_results(model, base_fpath, **kw)
         name = base['vehicle_name']
         if name not in bases:
-            _add2summary(summary, base.get('summary', {}))
+            batch._add2summary(summary, base.get('summary', {}))
             bases.add(name)
         name = '{}-{}'.format(name, i)
 
@@ -103,13 +102,13 @@ def make_simulation_plan(plan, timestamp, output_folder, main_flags):
 
         inputs['validated_data'] = define_new_inputs(p, outputs, dsp_solution)
         inputs.update(kw)
-        res = _process_vehicle(model, **inputs)
+        res = batch._process_vehicle(model, **inputs)
 
         s = filter_summary(p, res.get('summary', {}))
         base_keys = {
             'vehicle_name': (defaults_fpats, base_fpath, name),
         }
-        _add2summary(summary, s, base_keys)
+        batch._add2summary(summary, s, base_keys)
 
     return summary
 

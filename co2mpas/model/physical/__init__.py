@@ -27,9 +27,9 @@ Modules:
     defaults
 """
 
-from co2mpas.dispatcher import Dispatcher
+import co2mpas.dispatcher as dsp
 import numpy as np
-from functools import partial
+import functools
 
 
 def predict_vehicle_electrics_and_engine_behavior(
@@ -159,8 +159,8 @@ def predict_vehicle_electrics_and_engine_behavior(
 
     # min_soc = electrics_model.alternator_status_model.min
 
-    thermal_model = partial(engine_temperature_regression_model.delta,
-                            max_temp=max_engine_coolant_temperature)
+    thermal_model = functools.partial(engine_temperature_regression_model.delta,
+                                      max_temp=max_engine_coolant_temperature)
 
     for i, (on_eng, dt, p, a, s, fdp, t) in enumerate(zip(gen, *args)):
 
@@ -190,23 +190,23 @@ def physical():
     """
     Defines the CO2MPAS physical model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = physical()
+        >>> d = physical()
 
     :return:
         The CO2MPAS physical model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='CO2MPAS physical model',
         description='Wraps all functions needed to calibrate and predict '
                     'light-vehicles\' CO2 emissions.'
     )
 
     from .cycle import cycle
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         include_defaults=True,
         dsp_id='cycle_model',
         dsp=cycle(),
@@ -251,8 +251,7 @@ def physical():
     )
 
     from .vehicle import vehicle
-
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         include_defaults=True,
         dsp_id='vehicle_model',
         dsp=vehicle(),
@@ -291,8 +290,7 @@ def physical():
     )
 
     from .wheels import wheels
-
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         include_defaults=True,
         dsp_id='wheels_model',
         dsp=wheels(),
@@ -331,8 +329,7 @@ def physical():
     )
 
     from .final_drive import final_drive
-
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         include_defaults=True,
         dsp_id='final_drive_model',
         dsp=final_drive(),
@@ -354,8 +351,7 @@ def physical():
     )
 
     from .gear_box import gear_box
-
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         include_defaults=True,
         dsp_id='gear_box_model',
         dsp=gear_box(),
@@ -446,8 +442,7 @@ def physical():
     )
 
     from .clutch_tc import clutch_torque_converter
-
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         include_defaults=True,
         dsp=clutch_torque_converter(),
         dsp_id='clutch_torque_converter_model',
@@ -484,8 +479,7 @@ def physical():
     )
 
     from .electrics import electrics
-
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         include_defaults=True,
         dsp_id='electric_model',
         dsp=electrics(),
@@ -540,8 +534,7 @@ def physical():
     )
 
     from .engine import engine
-
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         include_defaults=True,
         dsp_id='engine_model',
         dsp=engine(),
@@ -693,7 +686,7 @@ def physical():
         inp_weight={'initial_temperature': 5}
     )
 
-    dsp.add_function(
+    d.add_function(
         function=predict_vehicle_electrics_and_engine_behavior,
         inputs=['electrics_model', 'start_stop_model',
                 'engine_temperature_regression_model',
@@ -710,4 +703,4 @@ def physical():
         weight=10
     )
 
-    return dsp
+    return d

@@ -354,9 +354,9 @@ def bin_split(x, bin_std=(0.01, 0.1), n_min=None, bins_min=None):
     """
 
     x = np.asarray(x)
-    edges = [x.min(), x.max() + sys.float_info.epsilon * 2]
+    edges = [x.min(), x.max() + sys.float_info.epsilon * 2]  # initial edge.
 
-    max_bin_size = edges[1] - edges[0]
+    max_bin_size = edges[1] - edges[0]  #
     min_bin_size = max_bin_size / len(x)
     if n_min is None:
         n_min = math.sqrt(len(x))

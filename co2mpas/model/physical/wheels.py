@@ -9,17 +9,12 @@
 It contains functions that model the basic mechanics of the wheels.
 """
 
-from math import pi
-
+import math
 import numpy as np
-
 import co2mpas.dispatcher.utils as dsp_utl
-from co2mpas.dispatcher import Dispatcher
+import co2mpas.dispatcher as dsp
 import co2mpas.utils as co2_utl
-from .defaults import dfl
-from .gear_box.mechanical import calculate_speed_velocity_ratios, \
-    calculate_velocity_speed_ratios, calculate_gear_box_speeds_in, \
-    identify_gears
+from .gear_box import mechanical as gb_mec
 import regex
 import logging
 import schema
@@ -77,6 +72,7 @@ def calculate_wheel_torques(wheel_powers, wheel_speeds):
     :rtype: numpy.array | float
     """
 
+    pi = math.pi
     if isinstance(wheel_speeds, np.ndarray):
         return np.nan_to_num(wheel_powers / wheel_speeds * (30000.0 / pi))
     return wheel_powers / wheel_speeds * (30000.0 / pi) if wheel_speeds else 0.0
@@ -99,7 +95,7 @@ def calculate_wheel_powers(wheel_torques, wheel_speeds):
     :rtype: numpy.array | float
     """
 
-    return wheel_torques * wheel_speeds * (pi / 30000.0)
+    return wheel_torques * wheel_speeds * (math.pi / 30000.0)
 
 
 def calculate_wheel_speeds(velocities, r_dynamic):
@@ -119,7 +115,7 @@ def calculate_wheel_speeds(velocities, r_dynamic):
     :rtype: numpy.array | float
     """
 
-    return velocities * (30.0 / (3.6 * pi * r_dynamic))
+    return velocities * (30.0 / (3.6 * math.pi * r_dynamic))
 
 
 def identify_r_dynamic_v1(
@@ -157,12 +153,12 @@ def identify_r_dynamic_v1(
     :rtype: float
     """
 
-    svr = calculate_speed_velocity_ratios(
+    svr = gb_mec.calculate_speed_velocity_ratios(
         gear_box_ratios, final_drive_ratio, 1.0)
 
-    vsr = calculate_velocity_speed_ratios(svr)
+    vsr = gb_mec.calculate_velocity_speed_ratios(svr)
 
-    speed_x_r_dyn_ratios = calculate_gear_box_speeds_in(
+    speed_x_r_dyn_ratios = gb_mec.calculate_gear_box_speeds_in(
         gears, velocities, vsr, stop_velocity
     )
 
@@ -229,13 +225,13 @@ def identify_r_dynamic_v2(
     :rtype: float
     """
 
-    svr = calculate_speed_velocity_ratios(
+    svr = gb_mec.calculate_speed_velocity_ratios(
         gear_box_ratios, final_drive_ratio, r_wheels
     )
 
-    gears = identify_gears(
+    gears = gb_mec.identify_gears(
         times, velocities, accelerations, engine_speeds_out,
-        calculate_velocity_speed_ratios(svr), stop_velocity,
+        gb_mec.calculate_velocity_speed_ratios(svr), stop_velocity,
         plateau_acceleration, change_gear_window_width, idle_engine_speed
     )
 
@@ -269,7 +265,9 @@ def identify_r_dynamic(
     :rtype: float
     """
 
-    svr = calculate_speed_velocity_ratios(gear_box_ratios, final_drive_ratio, 1)
+    svr = gb_mec.calculate_speed_velocity_ratios(
+        gear_box_ratios, final_drive_ratio, 1
+    )
 
     r = [svr[k] * vs for k, vs in velocity_speed_ratios.items() if k]
 
@@ -315,7 +313,7 @@ def calculates_brake_powers(
     """
 
     b = wheel_powers <= 0
-    speeds = np.append(np.diff(gear_box_speeds_in), [0])[b] / 30 * pi
+    speeds = np.append(np.diff(gear_box_speeds_in), [0])[b] / 30 * math.pi
     engine_powers_on_brake = engine_moment_inertia / 2000 * speeds**2
 
     engine_powers_on_brake += calculate_wheel_powers(
@@ -553,46 +551,46 @@ def wheels():
     """
     Defines the wheels model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = wheels()
+        >>> d = wheels()
 
     :return:
         The wheels model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='Wheel model',
         description='It models the wheel dynamics.'
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_wheel_torques,
         inputs=['wheel_powers', 'wheel_speeds'],
         outputs=['wheel_torques']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_wheel_powers,
         inputs=['wheel_torques', 'wheel_speeds'],
         outputs=['wheel_powers']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_wheel_speeds,
         inputs=['velocities', 'r_dynamic'],
         outputs=['wheel_speeds']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=identify_r_dynamic,
         inputs=['velocity_speed_ratios', 'gear_box_ratios',
                 'final_drive_ratio'],
         outputs=['r_dynamic']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=identify_r_dynamic_v1,
         inputs=['velocities', 'gears', 'engine_speeds_out', 'gear_box_ratios',
                 'final_drive_ratio', 'stop_velocity'],
@@ -600,65 +598,66 @@ def wheels():
         weight=10
     )
 
-    dsp.add_data(
+    from .defaults import dfl
+    d.add_data(
         data_id='stop_velocity',
         default_value=dfl.values.stop_velocity
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='plateau_acceleration',
         default_value=dfl.values.plateau_acceleration
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='change_gear_window_width',
         default_value=dfl.values.change_gear_window_width
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_tyre_dimensions,
         inputs=['tyre_code'],
         outputs=['tyre_dimensions']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_r_wheels,
         inputs=['tyre_dimensions'],
         outputs=['r_wheels']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=define_tyre_code,
         inputs=['tyre_dimensions'],
         outputs=['tyre_code']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=default_tyre_code,
         inputs=['r_dynamic'],
         outputs=['tyre_code'],
         weight=5
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='tyre_dynamic_rolling_coefficient',
         default_value=dfl.values.tyre_dynamic_rolling_coefficient,
         initial_dist=50
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_r_dynamic,
         inputs=['r_wheels', 'tyre_dynamic_rolling_coefficient'],
         outputs=['r_dynamic']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=identify_tyre_dynamic_rolling_coefficient,
         inputs=['r_wheels', 'r_dynamic'],
         outputs=['tyre_dynamic_rolling_coefficient']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=identify_r_dynamic_v2,
         inputs=['times', 'velocities', 'accelerations', 'r_wheels',
                 'engine_speeds_out', 'gear_box_ratios', 'final_drive_ratio',
@@ -668,10 +667,10 @@ def wheels():
         weight=11
     )
 
-    dsp.add_function(
+    d.add_function(
         function=dsp_utl.bypass,
         inputs=['motive_powers'],
         outputs=['wheel_powers']
     )
 
-    return dsp
+    return d

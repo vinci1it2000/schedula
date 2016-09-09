@@ -22,7 +22,7 @@ Sub-Modules:
 
 """
 
-from co2mpas.dispatcher import Dispatcher
+import co2mpas.dispatcher as dsp
 import co2mpas.dispatcher.utils as dsp_utl
 import numpy as np
 
@@ -86,22 +86,22 @@ def cycle():
     """
     Defines the cycle model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = cycle()
+        >>> d = cycle()
 
     :return:
         The cycle model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='Cycle model',
         description='Returns the theoretical times, velocities, and gears.'
     )
 
     from .NEDC import nedc_cycle
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         include_defaults=True,
         dsp=nedc_cycle(),
         inputs={
@@ -125,7 +125,7 @@ def cycle():
     )
 
     from .WLTP import wltp_cycle
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         include_defaults=True,
         dsp=wltp_cycle(),
         inputs={
@@ -164,29 +164,29 @@ def cycle():
         input_domain=is_wltp
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_time_length,
         inputs=['time_sample_frequency', 'max_time'],
         outputs=['time_length']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=cycle_times,
         inputs=['time_sample_frequency', 'time_length'],
         outputs=['times']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=len,
         inputs=['velocities'],
         outputs=['time_length']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=len,
         inputs=['gears'],
         outputs=['time_length'],
         weight=1
     )
 
-    return dsp
+    return d

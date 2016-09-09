@@ -12,7 +12,7 @@ It contains models to compare/select the calibrated co2_params.
 
 import logging
 import copy
-from functools import partial
+import functools
 import co2mpas.dispatcher.utils as dsp_utl
 log = logging.getLogger(__name__)
 
@@ -64,37 +64,37 @@ def co2_params_selector(
     """
     Defines the co2_params model selector.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = co2_params_selector()
+        >>> d = co2_params_selector()
 
     :return:
         The co2_params model selector.
     :rtype: SubDispatch
     """
     from . import _selector
-    dsp = _selector(name, data_in + ('ALL',), data_out, setting).dsp
-    n = dsp.get_node('sort_models', node_attr=None)[0]
+    d = _selector(name, data_in + ('ALL',), data_out, setting).dsp
+    n = d.get_node('sort_models', node_attr=None)[0]
     errors, sort_models = n['inputs'], n['function']
-    dsp.dmap.remove_node('sort_models')
+    d.dmap.remove_node('sort_models')
 
-    dsp.add_function(
+    d.add_function(
         function=sort_models,
         inputs=errors[:-1],
         outputs=['rank<0>']
     )
 
-    dsp.add_function(
-        function=partial(calibrate_co2_params_all, data_id=data_in),
+    d.add_function(
+        function=functools.partial(calibrate_co2_params_all, data_id=data_in),
         inputs=['rank<0>'] + errors[:-1],
         outputs=['ALL']
     )
 
-    dsp.add_function(
-        function=partial(co2_sort_models, **sort_models.keywords),
+    d.add_function(
+        function=functools.partial(co2_sort_models, **sort_models.keywords),
         inputs=['rank<0>'] + [errors[-1]],
         outputs=['rank']
     )
 
-    return dsp_utl.SubDispatch(dsp, outputs=['model', 'errors'],
+    return dsp_utl.SubDispatch(d, outputs=['model', 'errors'],
                                output_type='list')

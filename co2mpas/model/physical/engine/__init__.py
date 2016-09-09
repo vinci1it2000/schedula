@@ -22,15 +22,14 @@ Sub-Modules:
     start_stop
 """
 
-from math import pi
-from .thermal import *
-from ..defaults import *
+import math
+import co2mpas.model.physical.defaults as defaults
 import numpy as np
-from scipy.interpolate import InterpolatedUnivariateSpline as Spline
+import scipy.interpolate as sci_itp
+import sklearn.tree as sk_tree
 from sklearn.cluster import DBSCAN
-from sklearn.tree import DecisionTreeClassifier
 import co2mpas.dispatcher.utils as dsp_utl
-from co2mpas.dispatcher import Dispatcher
+import co2mpas.dispatcher as dsp
 import co2mpas.utils as co2_utl
 
 
@@ -46,8 +45,9 @@ def get_full_load(ignition_type):
         Vehicle normalized full load curve.
     :rtype: scipy.interpolate.InterpolatedUnivariateSpline
     """
-
-    return Spline(*dfl.functions.get_full_load.FULL_LOAD[ignition_type], ext=3)
+    Spline = sci_itp.InterpolatedUnivariateSpline
+    FULL_LOAD = defaults.dfl.functions.get_full_load.FULL_LOAD
+    return Spline(*FULL_LOAD[ignition_type], ext=3)
 
 
 def calculate_full_load(full_load_speeds, full_load_powers, idle_engine_speed):
@@ -76,7 +76,7 @@ def calculate_full_load(full_load_speeds, full_load_powers, idle_engine_speed):
     pn[1] /= max_power
     idle = idle_engine_speed[0]
     pn[0] = (pn[0] - idle) / (max_speed_at_max_power - idle)
-
+    Spline = sci_itp.InterpolatedUnivariateSpline
     return Spline(*pn, ext=3), max_power, max_speed_at_max_power
 
 
@@ -160,7 +160,7 @@ class IdleDetector(DBSCAN):
             algorithm=algorithm, leaf_size=leaf_size, p=p,
             random_state=random_state
         )
-        self.classifier = DecisionTreeClassifier(random_state=0)
+        self.classifier = sk_tree.DecisionTreeClassifier(random_state=0)
 
     def fit(self, X, y=None, sample_weight=None):
         super(IdleDetector, self).fit(X, y=y, sample_weight=sample_weight)
@@ -252,7 +252,7 @@ def identify_idle_engine_speed_std(
     """
     b = idle_model_detector.predict([(idle_engine_speed_median,)])
     b = idle_model_detector.predict(engine_speeds_out[:, None]) == b
-    idle_std = dfl.functions.identify_idle_engine_speed_std.MIN_STD
+    idle_std = defaults.dfl.functions.identify_idle_engine_speed_std.MIN_STD
     if not b.any():
         return idle_std
 
@@ -328,8 +328,8 @@ def calculate_engine_max_torque(
     :rtype: float
     """
 
-    c = dfl.functions.calculate_engine_max_torque.PARAMS[ignition_type]
-
+    c = defaults.dfl.functions.calculate_engine_max_torque.PARAMS[ignition_type]
+    pi = math.pi
     return engine_max_power / engine_max_speed_at_max_power * 30000.0 / pi * c
 
 
@@ -493,7 +493,7 @@ def calculate_uncorrected_engine_powers_out(
     if alternator_powers_demand is not None:
         p[b] += alternator_powers_demand[b]
 
-    p_inertia = engine_moment_inertia / 2000 * (2 * pi / 60) ** 2
+    p_inertia = engine_moment_inertia / 2000 * (2 * math.pi / 60) ** 2
     p += p_inertia * co2_utl.derivative(times, engine_speeds_out) ** 2
 
     return p
@@ -625,7 +625,7 @@ def calculate_braking_powers(
     :rtype: numpy.array
     """
 
-    bp = engine_torques_in * engine_speeds_out * (pi / 30000.0)
+    bp = engine_torques_in * engine_speeds_out * (math.pi / 30000.0)
 
     # noinspection PyUnresolvedReferences
     bp[bp < friction_powers] = 0
@@ -730,10 +730,9 @@ def calculate_engine_moment_inertia(engine_capacity, ignition_type):
         Engine moment of inertia [kg*m2].
     :rtype: float
     """
+    PARAMS = defaults.dfl.functions.calculate_engine_moment_inertia.PARAMS
 
-    w = dfl.functions.calculate_engine_moment_inertia.PARAMS[ignition_type]
-
-    return (0.05 + 0.1 * engine_capacity / 1000.0) * w
+    return (0.05 + 0.1 * engine_capacity / 1000.0) * PARAMS[ignition_type]
 
 
 def calculate_auxiliaries_torque_losses(times, auxiliaries_torque_loss):
@@ -846,69 +845,68 @@ def engine():
     """
     Defines the engine model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = engine()
+        >>> d = engine()
 
     :return:
         The engine model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='Engine',
         description='Models the vehicle engine.'
     )
 
-    dsp.add_function(
+    d.add_function(
         function=default_ignition_type,
         inputs=['engine_type'],
         outputs=['ignition_type']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=default_ignition_type_v1,
         inputs=['fuel_type'],
         outputs=['ignition_type'],
         weight=1
     )
 
-    dsp.add_function(
+    d.add_function(
         function=get_full_load,
         inputs=['ignition_type'],
         outputs=['full_load_curve'],
         weight=20
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='is_cycle_hot',
-        default_value=dfl.values.is_cycle_hot
+        default_value=defaults.dfl.values.is_cycle_hot
     )
 
     from ..wheels import calculate_wheel_powers, calculate_wheel_torques
-
-    dsp.add_function(
+    d.add_function(
         function_id='calculate_full_load_powers',
         function=calculate_wheel_powers,
         inputs=['full_load_torques', 'full_load_speeds'],
         outputs=['full_load_powers']
     )
 
-    dsp.add_function(
+    d.add_function(
         function_id='calculate_full_load_speeds',
         function=calculate_wheel_torques,
         inputs=['full_load_powers', 'full_load_torques'],
         outputs=['full_load_speeds']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_full_load_speeds_and_powers,
         inputs=['full_load_curve', 'engine_max_power',
                 'engine_max_speed_at_max_power', 'idle_engine_speed'],
         outputs=['full_load_speeds', 'full_load_powers']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_full_load,
         inputs=['full_load_speeds', 'full_load_powers', 'idle_engine_speed'],
         outputs=['full_load_curve', 'engine_max_power',
@@ -916,20 +914,20 @@ def engine():
     )
 
     # Idle engine speed
-    dsp.add_data(
+    d.add_data(
         data_id='idle_engine_speed_median',
         description='Idle engine speed [RPM].'
     )
 
     # default value
-    dsp.add_data(
+    d.add_data(
         data_id='idle_engine_speed_std',
-        default_value=dfl.values.idle_engine_speed_std,
+        default_value=defaults.dfl.values.idle_engine_speed_std,
         initial_dist=20,
         description='Standard deviation of idle engine speed [RPM].'
     )
 
-    dsp.add_function(
+    d.add_function(
         function=define_idle_model_detector,
         inputs=['velocities', 'engine_speeds_out', 'stop_velocity',
                 'min_engine_on_speed'],
@@ -937,14 +935,14 @@ def engine():
     )
 
     # identify idle engine speed
-    dsp.add_function(
+    d.add_function(
         function=identify_idle_engine_speed_median,
         inputs=['idle_model_detector'],
         outputs=['idle_engine_speed_median']
     )
 
     # identify idle engine speed
-    dsp.add_function(
+    d.add_function(
         function=identify_idle_engine_speed_std,
         inputs=['idle_model_detector', 'engine_speeds_out',
                 'idle_engine_speed_median'],
@@ -952,21 +950,21 @@ def engine():
     )
 
     # set idle engine speed tuple
-    dsp.add_function(
+    d.add_function(
         function=dsp_utl.bypass,
         inputs=['idle_engine_speed_median', 'idle_engine_speed_std'],
         outputs=['idle_engine_speed']
     )
 
     # set idle engine speed tuple
-    dsp.add_function(
+    d.add_function(
         function=dsp_utl.bypass,
         inputs=['idle_engine_speed'],
         outputs=['idle_engine_speed_median', 'idle_engine_speed_std']
     )
 
     from .thermal import thermal
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         include_defaults=True,
         dsp=thermal(),
         dsp_id='thermal',
@@ -998,14 +996,14 @@ def engine():
         }
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_engine_max_torque,
         inputs=['engine_max_power', 'engine_max_speed_at_max_power',
                 'ignition_type'],
         outputs=['engine_max_torque']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_engine_max_torque,
         inputs=['engine_max_torque', 'engine_max_speed_at_max_power',
                 'ignition_type'],
@@ -1013,7 +1011,7 @@ def engine():
     )
 
     from .start_stop import start_stop
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         include_defaults=True,
         dsp=start_stop(),
         dsp_id='start_stop',
@@ -1046,26 +1044,26 @@ def engine():
         }
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='plateau_acceleration',
-        default_value=dfl.values.plateau_acceleration
+        default_value=defaults.dfl.values.plateau_acceleration
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_engine_speeds_out_hot,
         inputs=['gear_box_speeds_in', 'on_engine', 'idle_engine_speed'],
         outputs=['engine_speeds_out_hot']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=identify_on_idle,
         inputs=['velocities', 'engine_speeds_out_hot', 'gears', 'stop_velocity',
                 'min_engine_on_speed'],
         outputs=['on_idle']
     )
-    from .cold_start import cold_start
 
-    dsp.add_dispatcher(
+    from .cold_start import cold_start
+    d.add_dispatcher(
         dsp=cold_start(),
         inputs={
             'engine_speeds_out': 'engine_speeds_out',
@@ -1085,14 +1083,14 @@ def engine():
         }
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_engine_speeds_out,
         inputs=['on_engine', 'idle_engine_speed', 'engine_speeds_out_hot',
                 'cold_start_speeds_delta', 'clutch_tc_speeds_delta'],
         outputs=['engine_speeds_out']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_uncorrected_engine_powers_out,
         inputs=['times', 'engine_moment_inertia', 'clutch_tc_powers',
                 'engine_speeds_out', 'on_engine', 'auxiliaries_power_losses',
@@ -1100,21 +1098,21 @@ def engine():
         outputs=['uncorrected_engine_powers_out']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_min_available_engine_powers_out,
         inputs=['engine_stroke', 'engine_capacity', 'initial_friction_params',
                 'engine_speeds_out'],
         outputs=['min_available_engine_powers_out']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_max_available_engine_powers_out,
         inputs=['engine_max_speed_at_max_power', 'idle_engine_speed',
                 'engine_max_power', 'full_load_curve', 'engine_speeds_out'],
         outputs=['max_available_engine_powers_out']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=correct_engine_powers_out,
         inputs=['max_available_engine_powers_out',
                 'min_available_engine_powers_out',
@@ -1122,52 +1120,52 @@ def engine():
         outputs=['engine_powers_out', 'missing_powers', 'brake_powers']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=check_vehicle_has_sufficient_power,
         inputs=['missing_powers'],
         outputs=['has_sufficient_power']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_mean_piston_speeds,
         inputs=['engine_speeds_out', 'engine_stroke'],
         outputs=['mean_piston_speeds']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='engine_is_turbo',
-        default_value=dfl.values.engine_is_turbo
+        default_value=defaults.dfl.values.engine_is_turbo
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_engine_type,
         inputs=['ignition_type', 'engine_is_turbo'],
         outputs=['engine_type']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_engine_moment_inertia,
         inputs=['engine_capacity', 'ignition_type'],
         outputs=['engine_moment_inertia']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='auxiliaries_torque_loss',
-        default_value=dfl.values.auxiliaries_torque_loss
+        default_value=defaults.dfl.values.auxiliaries_torque_loss
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='auxiliaries_power_loss',
-        default_value=dfl.values.auxiliaries_power_loss
+        default_value=defaults.dfl.values.auxiliaries_power_loss
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_auxiliaries_torque_losses,
         inputs=['times', 'auxiliaries_torque_loss'],
         outputs=['auxiliaries_torque_losses']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_auxiliaries_power_losses,
         inputs=['auxiliaries_torque_losses', 'engine_speeds_out', 'on_engine',
                 'auxiliaries_power_loss'],
@@ -1175,8 +1173,7 @@ def engine():
     )
 
     from .co2_emission import co2_emission
-
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         include_defaults=True,
         dsp=co2_emission(),
         dsp_id='CO2_emission_model',
@@ -1256,7 +1253,7 @@ def engine():
                 'engine_fuel_lower_heating_value',
             'initial_friction_params': 'initial_friction_params'
         },
-        inp_weight={'co2_params': EPS}
+        inp_weight={'co2_params': defaults.EPS}
     )
 
-    return dsp
+    return d

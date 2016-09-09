@@ -10,19 +10,17 @@ It contains functions to predict the CO2 emissions.
 """
 
 import copy
-from functools import partial
-from itertools import chain
-
+import functools
+import itertools
 import lmfit
 import numpy as np
-from scipy.integrate import trapz
-from scipy.stats import lognorm, norm
-from sklearn.metrics import mean_absolute_error
-
+import scipy.integrate as sci_itg
+import scipy.stats as sci_sta
+import sklearn.metrics as sk_met
 import co2mpas.dispatcher.utils as dsp_utl
-from co2mpas.dispatcher import Dispatcher
+import co2mpas.dispatcher as dsp
 import co2mpas.utils as co2_utl
-from ..defaults import dfl, EPS
+import co2mpas.model.physical.defaults as defaults
 
 
 def default_fuel_density(fuel_type):
@@ -38,7 +36,7 @@ def default_fuel_density(fuel_type):
     :rtype: float
     """
 
-    return dfl.functions.default_fuel_density.FUEL_DENSITY[fuel_type]
+    return defaults.dfl.functions.default_fuel_density.FUEL_DENSITY[fuel_type]
 
 
 def default_fuel_carbon_content(fuel_type):
@@ -53,8 +51,8 @@ def default_fuel_carbon_content(fuel_type):
         Fuel carbon content [CO2g/g].
     :rtype: float
     """
-
-    return dfl.functions.default_fuel_carbon_content.CARBON_CONTENT[fuel_type]
+    CC = defaults.dfl.functions.default_fuel_carbon_content.CARBON_CONTENT
+    return CC[fuel_type]
 
 
 def default_engine_fuel_lower_heating_value(fuel_type):
@@ -69,8 +67,8 @@ def default_engine_fuel_lower_heating_value(fuel_type):
         Fuel lower heating value [kJ/kg].
     :rtype: float
     """
-
-    return dfl.functions.default_fuel_lower_heating_value.LHV[fuel_type]
+    LHV = defaults.dfl.functions.default_fuel_lower_heating_value.LHV
+    return LHV[fuel_type]
 
 
 def calculate_fuel_carbon_content(fuel_carbon_content_percentage):
@@ -359,13 +357,13 @@ def calculate_co2_emissions(
         b = np.logical_not(b)
         p['t'] = p['t'][b]
 
-    FMEP = partial(_calculate_fuel_mean_effective_pressure, p)
+    FMEP = functools.partial(_calculate_fuel_mean_effective_pressure, p)
     fc[b] = FMEP(n_speeds[b], n_powers[b], n_temp[b])[0]  # FMEP [bar]
 
     fc[b] *= e_speeds[b] * (engine_capacity / (lhv * 1200))  # [g/sec]
     p['t'] = 0
 
-    par = dfl.functions.calculate_co2_emissions
+    par = defaults.dfl.functions.calculate_co2_emissions
     idle_cutoff = idle_engine_speed[0] * par.cutoff_idle_ratio
     ec_p0 = calculate_p0(
         p, engine_capacity, engine_stroke, idle_cutoff, lhv
@@ -448,7 +446,7 @@ def define_co2_emissions_model(
     :rtype: function
     """
 
-    model = partial(
+    model = functools.partial(
         calculate_co2_emissions, engine_speeds_out, engine_powers_out,
         mean_piston_speeds, brake_mean_effective_pressures,
         engine_coolant_temperatures, on_engine, engine_fuel_lower_heating_value,
@@ -472,8 +470,8 @@ def select_phases_integration_times(cycle_type):
         Cycle phases integration times [s].
     :rtype: tuple
     """
-    i_times = dfl.functions.select_phases_integration_times.INTEGRATION_TIMES
-    return tuple(dsp_utl.pairwise(i_times[cycle_type.upper()]))
+    v = defaults.dfl.functions.select_phases_integration_times.INTEGRATION_TIMES
+    return tuple(dsp_utl.pairwise(v[cycle_type.upper()]))
 
 
 def calculate_phases_distances(times, phases_integration_times, velocities):
@@ -536,7 +534,7 @@ def calculate_cumulative_co2(
 
     for p in phases_integration_times:
         i, j = np.searchsorted(times, p)
-        co2.append(trapz(co2_emissions[i:j], times[i:j]))
+        co2.append(sci_itg.trapz(co2_emissions[i:j], times[i:j]))
 
     return np.array(co2) / phases_distances
 
@@ -603,7 +601,7 @@ def calculate_extended_integration_times(
     """
 
     lv, pit = velocities <= stop_velocity, phases_integration_times
-    pit = set(chain(*pit))
+    pit = set(itertools.chain(*pit))
     hv = np.logical_not(lv)
     j, l, phases = np.argmax(hv), len(lv), []
     while j < l:
@@ -678,7 +676,7 @@ def calculate_extended_cumulative_co2_emissions(
     r[np.logical_not(on_engine)] = 0
     _cco2, phases = [], []
     cco2 = phases_co2_emissions * phases_distances
-
+    trapz = sci_itg.trapz
     for cco2, (t0, t1) in zip(cco2, phases_integration_times):
         i, j = np.searchsorted(times, (t0, t1))
         if i == j:
@@ -752,7 +750,7 @@ def identify_co2_emissions(
     """
 
     co2_emissions = co2_emissions_model(params_initial_guess)
-
+    trapz = sci_itg.trapz
     for cco2, p in zip(cumulative_co2_emissions, phases_integration_times):
         i, j = np.searchsorted(times, p)
         co2_emissions[i:j] *= cco2 / trapz(co2_emissions[i:j], times[i:j])
@@ -782,7 +780,7 @@ def define_co2_error_function_on_emissions(co2_emissions_model, co2_emissions):
     def error_func(params, sub_values=None):
         x = co2_emissions if sub_values is None else co2_emissions[sub_values]
         y = co2_emissions_model(params, sub_values=sub_values)
-        return mean_absolute_error(x, y)
+        return sk_met.mean_absolute_error(x, y)
 
     return error_func
 
@@ -841,7 +839,7 @@ def define_co2_error_function_on_phases(
 
         cco2 = calculate_cumulative_co2(
             times, phases_integration_times, co2, phases_distances)
-        return mean_absolute_error(phases_co2_emissions, cco2, w)
+        return sk_met.mean_absolute_error(phases_co2_emissions, cco2, w)
 
     return error_func
 
@@ -971,7 +969,7 @@ def define_initial_co2_emission_model_params_guess(
     """
 
     bounds = bounds or {}
-    par = dfl.functions.define_initial_co2_emission_model_params_guess
+    par = defaults.dfl.functions.define_initial_co2_emission_model_params_guess
     default = copy.deepcopy(par.CO2_PARAMS)[engine_type]
     default['trg'] = {
         'value': engine_normalization_temperature,
@@ -985,6 +983,7 @@ def define_initial_co2_emission_model_params_guess(
         default['t1'].update({'value': 0.0, 'vary': False})
 
     p = lmfit.Parameters()
+    from ..defaults import EPS
 
     for k, kw in sorted(default.items()):
         kw['name'] = k
@@ -1058,7 +1057,8 @@ def define_tau_function(after_treatment_temperature_threshold):
     :rtype: function
     """
     T_mean, T_end = np.array(after_treatment_temperature_threshold) + 273
-    f = lognorm(np.log(T_end / T_mean) / norm.ppf(0.95), 0, T_mean).cdf
+    s = np.log(T_end / T_mean) / sci_sta.norm.ppf(0.95)
+    f = sci_sta.lognorm(s, 0, T_mean).cdf
 
     def tau_function(t0, t1, temp):
         return t0 - (t1 - t0) * f(temp + 273)
@@ -1193,7 +1193,7 @@ def restrict_bounds(co2_params):
     :rtype: dict
     """
     p = copy.deepcopy(co2_params)
-    m = dfl.functions.restrict_bounds.CO2_PARAMS_LIMIT_MULTIPLIERS
+    m = defaults.dfl.functions.restrict_bounds.CO2_PARAMS_LIMIT_MULTIPLIERS
 
     def _limits(k, v):
         try:
@@ -1853,79 +1853,79 @@ def co2_emission():
     """
     Defines the engine CO2 emission sub model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = co2_emission()
+        >>> d = co2_emission()
 
     :return:
         The engine CO2 emission sub model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='Engine CO2 emission sub model',
         description='Calculates temperature, efficiency, '
                     'torque loss of gear box'
     )
-    dsp.add_data(
+    d.add_data(
         data_id='fuel_type'
     )
-    # dsp.add_function(
+    # d.add_function(
     #    function=default_engine_fuel_lower_heating_value,
     #    inputs=['fuel_type'],
     #    outputs=['engine_fuel_lower_heating_value'],
     # )
 
-    # dsp.add_function(
+    # d.add_function(
     #    function=default_fuel_carbon_content,
     #    inputs=['fuel_type'],
     #    outputs=['fuel_carbon_content'],
     #    weight=3
     # )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_fuel_carbon_content_percentage,
         inputs=['fuel_carbon_content'],
         outputs=['fuel_carbon_content_percentage']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_fuel_carbon_content,
         inputs=['fuel_carbon_content_percentage'],
         outputs=['fuel_carbon_content']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_brake_mean_effective_pressures,
         inputs=['engine_speeds_out', 'engine_powers_out', 'engine_capacity',
                 'min_engine_on_speed'],
         outputs=['brake_mean_effective_pressures']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_after_treatment_temperature_threshold,
         inputs=['engine_thermostat_temperature',
                 'initial_engine_temperature'],
         outputs=['after_treatment_temperature_threshold']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=define_tau_function,
         inputs=['after_treatment_temperature_threshold'],
         outputs=['tau_function']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='stop_velocity',
-        default_value=dfl.values.stop_velocity
+        default_value=defaults.dfl.values.stop_velocity
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='min_engine_on_speed',
-        default_value=dfl.values.min_engine_on_speed
+        default_value=defaults.dfl.values.min_engine_on_speed
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_extended_integration_times,
         inputs=['times', 'velocities', 'on_engine', 'phases_integration_times',
                 'engine_coolant_temperatures',
@@ -1933,7 +1933,7 @@ def co2_emission():
         outputs=['extended_integration_times'],
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_extended_cumulative_co2_emissions,
         inputs=['times', 'on_engine', 'extended_integration_times',
                 'co2_normalization_references', 'phases_integration_times',
@@ -1942,7 +1942,7 @@ def co2_emission():
                  'extended_phases_integration_times']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=define_co2_emissions_model,
         inputs=['engine_speeds_out', 'engine_powers_out',
                 'mean_piston_speeds', 'brake_mean_effective_pressures',
@@ -1954,44 +1954,44 @@ def co2_emission():
         outputs=['co2_emissions_model']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='is_cycle_hot',
-        default_value=dfl.values.is_cycle_hot
+        default_value=defaults.dfl.values.is_cycle_hot
     )
 
-    dsp.add_function(
+    d.add_function(
         function=define_initial_co2_emission_model_params_guess,
         inputs=['co2_params', 'engine_type', 'engine_thermostat_temperature',
                 'engine_thermostat_temperature_window', 'is_cycle_hot'],
         outputs=['co2_params_initial_guess', 'initial_friction_params'],
     )
 
-    dsp.add_function(
+    d.add_function(
         function=select_phases_integration_times,
         inputs=['cycle_type'],
         outputs=['phases_integration_times']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_phases_distances,
         inputs=['times', 'phases_integration_times', 'velocities'],
         outputs=['phases_distances']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_phases_distances,
         inputs=['times', 'extended_phases_integration_times', 'velocities'],
         outputs=['extended_phases_distances']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_phases_co2_emissions,
         inputs=['extended_cumulative_co2_emissions',
                 'extended_phases_distances'],
         outputs=['extended_phases_co2_emissions']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=dsp_utl.bypass,
         inputs=['phases_integration_times', 'cumulative_co2_emissions',
                 'phases_distances'],
@@ -2001,13 +2001,13 @@ def co2_emission():
         weight=300
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_cumulative_co2_v1,
         inputs=['phases_co2_emissions', 'phases_distances'],
         outputs=['cumulative_co2_emissions']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=identify_co2_emissions,
         inputs=['co2_emissions_model', 'co2_params_initial_guess', 'times',
                 'extended_phases_integration_times',
@@ -2016,26 +2016,26 @@ def co2_emission():
         weight=5
     )
 
-    dsp.add_function(
+    d.add_function(
         function=dsp_utl.bypass,
         inputs=['co2_emissions'],
         outputs=['identified_co2_emissions']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=define_co2_error_function_on_emissions,
         inputs=['co2_emissions_model', 'identified_co2_emissions'],
         outputs=['co2_error_function_on_emissions']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=define_co2_error_function_on_phases,
         inputs=['co2_emissions_model', 'phases_co2_emissions', 'times',
                 'phases_integration_times', 'phases_distances'],
         outputs=['co2_error_function_on_phases']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calibrate_co2_params,
         inputs=['engine_coolant_temperatures',
                 'co2_error_function_on_emissions',
@@ -2044,25 +2044,25 @@ def co2_emission():
         outputs=['co2_params_calibrated', 'calibration_status']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=define_co2_params_calibrated,
         inputs=['co2_params'],
         outputs=['co2_params_calibrated', 'calibration_status'],
-        input_domain=partial(missing_co2_params, _not=True)
+        input_domain=functools.partial(missing_co2_params, _not=True)
     )
 
-    dsp.add_function(
+    d.add_function(
         function=predict_co2_emissions,
         inputs=['co2_emissions_model', 'co2_params_calibrated'],
         outputs=['co2_emissions']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='co2_params',
-        default_value=dfl.values.co2_params.copy()
+        default_value=defaults.dfl.values.co2_params.copy()
     )
 
-    dsp.add_function(
+    d.add_function(
         function_id='calculate_phases_co2_emissions',
         function=calculate_cumulative_co2,
         inputs=['times', 'phases_integration_times', 'co2_emissions',
@@ -2070,39 +2070,39 @@ def co2_emission():
         outputs=['phases_co2_emissions']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_fuel_consumptions,
         inputs=['co2_emissions', 'fuel_carbon_content'],
         outputs=['fuel_consumptions']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_co2_emission,
         inputs=['phases_co2_emissions', 'phases_distances'],
         outputs=['co2_emission_value']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='co2_emission_low',
         description='CO2 emission on low WLTP phase [CO2g/km].'
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='co2_emission_medium',
         description='CO2 emission on medium WLTP phase [CO2g/km].'
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='co2_emission_high',
         description='CO2 emission on high WLTP phase [CO2g/km].'
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='co2_emission_extra_high',
         description='CO2 emission on extra high WLTP phase [CO2g/km].'
     )
 
-    dsp.add_function(
+    d.add_function(
         function_id='merge_wltp_phases_co2_emission',
         function=dsp_utl.bypass,
         inputs=['co2_emission_low', 'co2_emission_medium', 'co2_emission_high',
@@ -2110,31 +2110,31 @@ def co2_emission():
         outputs=['phases_co2_emissions']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='co2_emission_UDC',
         description='CO2 emission on UDC NEDC phase [CO2g/km].'
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='co2_emission_EUDC',
         description='CO2 emission on EUDC NEDC phase [CO2g/km].'
     )
 
-    dsp.add_function(
+    d.add_function(
         function_id='merge_nedc_phases_co2_emission',
         function=dsp_utl.bypass,
         inputs=['co2_emission_UDC', 'co2_emission_EUDC'],
         outputs=['phases_co2_emissions']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='enable_willans',
-        default_value=dfl.values.enable_willans,
+        default_value=defaults.dfl.values.enable_willans,
         description='Enable the calculation of Willans coefficients for '
                     'the cycle?'
     )
 
-    dsp.add_function(
+    d.add_function(
         function=dsp_utl.add_args(calculate_willans_factors),
         inputs=['enable_willans', 'co2_params_calibrated',
                 'engine_fuel_lower_heating_value', 'engine_stroke',
@@ -2146,14 +2146,14 @@ def co2_emission():
         input_domain=lambda *args: args[0]
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='enable_phases_willans',
-        default_value=dfl.values.enable_phases_willans,
+        default_value=defaults.dfl.values.enable_phases_willans,
         description='Enable the calculation of Willans coefficients for '
                     'all phases?'
     )
 
-    dsp.add_function(
+    d.add_function(
         function=dsp_utl.add_args(calculate_phases_willans_factors),
         inputs=['enable_phases_willans', 'co2_params_calibrated',
                 'engine_fuel_lower_heating_value', 'engine_stroke',
@@ -2166,23 +2166,23 @@ def co2_emission():
         input_domain=lambda *args: args[0]
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_optimal_efficiency,
         inputs=['co2_params_calibrated', 'mean_piston_speeds'],
         outputs=['optimal_efficiency']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calibrate_co2_params_v1,
         inputs=['co2_emissions_model', 'fuel_consumptions',
                 'fuel_carbon_content', 'co2_params_initial_guess'],
         outputs=['co2_params_calibrated', 'calibration_status']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_phases_fuel_consumptions,
         inputs=['phases_co2_emissions', 'fuel_carbon_content', 'fuel_density'],
         outputs=['phases_fuel_consumptions']
     )
 
-    return dsp
+    return d

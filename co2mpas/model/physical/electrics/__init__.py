@@ -19,19 +19,17 @@ Sub-Modules:
     electrics_prediction
 """
 
-from functools import partial
-from itertools import chain
-from math import pi
-
+import functools
+import itertools
+import math
 import numpy as np
-from scipy.stats import linregress
-from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.tree import DecisionTreeClassifier
-from co2mpas.dispatcher import Dispatcher
+import scipy.stats as sci_stat
+import sklearn.pipeline as sk_pip
+import sklearn.ensemble as sk_ens
+import sklearn.tree as sk_tree
+import co2mpas.dispatcher as dsp
 import co2mpas.utils as co2_utl
-from ..defaults import dfl, EPS
-from sklearn.pipeline import Pipeline
-from ..engine.thermal import _SelectFromModel
+
 
 
 def calculate_engine_start_demand(
@@ -61,7 +59,7 @@ def calculate_engine_start_demand(
     :rtype: float
     """
 
-    idle = idle_engine_speed[0] / 30.0 * pi
+    idle = idle_engine_speed[0] / 30.0 * math.pi
     dt = delta_time_engine_starter  # Assumed time for engine turn on [s].
 
     return engine_moment_inertia / alternator_efficiency * idle ** 2 / 2000 * dt
@@ -244,12 +242,12 @@ def identify_alternator_initialization_time(
 
         j = min(i, int(n / 2))
         opt['n_estimators'] = int(min(100, 0.25 * (n - j))) or 1
-        model = GradientBoostingRegressor(**opt)
+        model = sk_ens.GradientBoostingRegressor(**opt)
         model.fit(spl[j:][:, :-1], spl[j:][:, -1])
         err = np.abs(spl[:, -1] - model.predict(spl[:, :-1]))
         sets = np.array(co2_utl.get_inliers(err)[0], dtype=int)[:i]
         if sum(sets) / i < 0.5 or i > j:
-            reg = DecisionTreeClassifier(max_depth=1, random_state=0)
+            reg = sk_tree.DecisionTreeClassifier(max_depth=1, random_state=0)
             reg.fit(np.array((times[1:i + 1],)).T, sets)
             l, r = reg.tree_.children_left[0], reg.tree_.children_right[0]
             l, r = np.argmax(reg.tree_.value[l]), np.argmax(reg.tree_.value[r])
@@ -387,7 +385,7 @@ def identify_alternator_charging_currents(
 
     def get_range(x):
         on = None
-        for i, b in enumerate(chain(x, [False])):
+        for i, b in enumerate(itertools.chain(x, [False])):
             if not b and not on is None:
                 yield on, i
                 on = None
@@ -436,7 +434,7 @@ class AlternatorCurrentModel(object):
         self.mask = None
         self.init_model = default_model
         self.init_mask = None
-        self.base_model = GradientBoostingRegressor
+        self.base_model = sk_ens.GradientBoostingRegressor
 
     def predict(self, X, init_time=0.0):
         X = np.asarray(X)
@@ -478,8 +476,9 @@ class AlternatorCurrentModel(object):
             'loss': 'huber',
             'alpha': 0.99
         }
+        from ..engine.thermal import _SelectFromModel
         model = self.base_model(**opt)
-        model = Pipeline([
+        model = sk_pip.Pipeline([
             ('feature_selection', _SelectFromModel(model, '0.8*median',
                                                    in_mask=in_mask,
                                                    out_mask=out_mask)),
@@ -696,12 +695,14 @@ def identify_alternator_current_threshold(
         b &= alternator_currents < 0
 
     if b.any():
-        return min(0.0, max(co2_utl.reject_outliers(alternator_currents[b])[0], l))
+        v = min(0.0, max(co2_utl.reject_outliers(alternator_currents[b])[0], l))
+        return v
     return 0.0
 
 
 def _starts_windows(times, engine_starts, dt):
     ts = times[engine_starts]
+    from ..defaults import EPS
     return np.searchsorted(times, np.column_stack((ts - dt, ts + dt + EPS)))
 
 
@@ -758,7 +759,7 @@ class Alternator_status_model(object):
     def _fit_bers(self, alternator_statuses, gear_box_powers_in):
         b = alternator_statuses == 2
         if b.any():
-            bers = DecisionTreeClassifier(random_state=0, max_depth=2)
+            bers = sk_tree.DecisionTreeClassifier(random_state=0, max_depth=2)
             c = (alternator_statuses != 1)
             # noinspection PyUnresolvedReferences
             bers.fit(np.array([gear_box_powers_in[c]]).T, b[c])
@@ -770,7 +771,7 @@ class Alternator_status_model(object):
     def _fit_charge(self, alternator_statuses, state_of_charges):
         b = alternator_statuses[1:] == 1
         if b.any():
-            charge = DecisionTreeClassifier(random_state=0, max_depth=3)
+            charge = sk_tree.DecisionTreeClassifier(random_state=0, max_depth=3)
             X = np.array([alternator_statuses[:-1], state_of_charges[1:]]).T
             charge.fit(X, b)
             self.charge = charge.predict
@@ -787,7 +788,7 @@ class Alternator_status_model(object):
         self.min = _max = 0.0
         for i, j in mask[:-1]:
             soc = state_of_charges[i:j]
-            if linregress(times[i:j], soc)[0] >= 0:
+            if sci_stat.linregress(times[i:j], soc)[0] >= 0:
                 if i > 0:
                     self.min = _min = min(_min, soc.min())
                 if j < n:
@@ -917,11 +918,12 @@ class ElectricModel(object):
         self.electric_load = electric_load
         self.has_energy_recuperation = has_energy_recuperation
         self.alternator_initialization_time = alternator_initialization_time
+
         from .electrics_prediction import _predict_electrics
-        self.predict = partial(
+        self.predict = functools.partial(
             _predict_electrics, battery_capacity,
-            partial(alternator_status_model, has_energy_recuperation,
-                    alternator_initialization_time),
+            functools.partial(alternator_status_model, has_energy_recuperation,
+                              alternator_initialization_time),
             max_alternator_current, alternator_current_model,
             max_battery_charging_current, alternator_nominal_voltage,
             start_demand, electric_load)
@@ -1059,31 +1061,32 @@ def electrics():
     """
     Defines the electrics model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = electrics()
+        >>> d = electrics()
 
     :return:
         The electrics model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='Electrics',
         description='Models the vehicle electrics.'
     )
 
-    dsp.add_data(
+    from ..defaults import dfl
+    d.add_data(
         data_id='alternator_efficiency',
         default_value=dfl.values.alternator_efficiency
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='delta_time_engine_starter',
         default_value=dfl.values.delta_time_engine_starter
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_engine_start_demand,
         inputs=['engine_moment_inertia', 'idle_engine_speed',
                 'alternator_efficiency', 'delta_time_engine_starter'],
@@ -1091,7 +1094,7 @@ def electrics():
         weight=100
     )
 
-    dsp.add_function(
+    d.add_function(
         function=identify_electric_loads,
         inputs=['alternator_nominal_voltage', 'battery_currents',
                 'alternator_currents', 'gear_box_powers_in', 'times',
@@ -1099,12 +1102,12 @@ def electrics():
         outputs=['electric_load', 'start_demand']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='initial_state_of_charge',
         default_value=dfl.values.initial_state_of_charge
     )
 
-    dsp.add_function(
+    d.add_function(
         function=identify_charging_statuses,
         inputs=['times', 'alternator_currents', 'gear_box_powers_in',
                 'on_engine', 'alternator_current_threshold', 'starts_windows',
@@ -1112,7 +1115,7 @@ def electrics():
         outputs=['alternator_statuses']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=identify_charging_statuses_and_alternator_initialization_time,
         inputs=['times', 'alternator_currents', 'gear_box_powers_in',
                 'on_engine', 'alternator_current_threshold', 'starts_windows',
@@ -1121,7 +1124,7 @@ def electrics():
         weight=1
     )
 
-    dsp.add_function(
+    d.add_function(
         function=identify_alternator_initialization_time,
         inputs=['alternator_currents', 'gear_box_powers_in', 'on_engine',
                 'accelerations', 'state_of_charges', 'alternator_statuses',
@@ -1129,36 +1132,36 @@ def electrics():
         outputs=['alternator_initialization_time']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_state_of_charges,
         inputs=['battery_capacity', 'times', 'initial_state_of_charge',
                 'battery_currents', 'max_battery_charging_current'],
         outputs=['state_of_charges']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='stop_velocity',
         default_value=dfl.values.stop_velocity
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='alternator_off_threshold',
         default_value=dfl.values.alternator_off_threshold
     )
 
-    dsp.add_function(
+    d.add_function(
         function=identify_alternator_current_threshold,
         inputs=['alternator_currents', 'velocities', 'on_engine',
                 'stop_velocity', 'alternator_off_threshold'],
         outputs=['alternator_current_threshold']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='alternator_start_window_width',
         default_value=dfl.values.alternator_start_window_width
     )
 
-    dsp.add_function(
+    d.add_function(
         function=identify_alternator_starts_windows,
         inputs=['times', 'engine_starts', 'alternator_currents',
                 'alternator_start_window_width',
@@ -1166,25 +1169,25 @@ def electrics():
         outputs=['starts_windows']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_alternator_powers_demand,
         inputs=['alternator_nominal_voltage', 'alternator_currents',
                 'alternator_efficiency'],
         outputs=['alternator_powers_demand']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=define_alternator_status_model,
         inputs=['state_of_charge_balance', 'state_of_charge_balance_window'],
         outputs=['alternator_status_model']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='has_energy_recuperation',
         default_value=dfl.values.has_energy_recuperation
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calibrate_alternator_status_model,
         inputs=['times', 'alternator_statuses', 'state_of_charges',
                 'gear_box_powers_in'],
@@ -1192,19 +1195,19 @@ def electrics():
         weight=10
     )
 
-    dsp.add_function(
+    d.add_function(
         function=identify_max_battery_charging_current,
         inputs=['battery_currents'],
         outputs=['max_battery_charging_current']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=define_alternator_current_model,
         inputs=['alternator_charging_currents'],
         outputs=['alternator_current_model']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calibrate_alternator_current_model,
         inputs=['alternator_currents', 'on_engine', 'times', 'state_of_charges',
                 'alternator_statuses', 'gear_box_powers_in', 'accelerations',
@@ -1212,7 +1215,7 @@ def electrics():
         outputs=['alternator_current_model']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=define_electrics_model,
         inputs=['battery_capacity', 'alternator_status_model',
                 'max_alternator_current', 'alternator_current_model',
@@ -1222,7 +1225,7 @@ def electrics():
         outputs=['electrics_model']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=predict_vehicle_electrics,
         inputs=['electrics_model', 'initial_state_of_charge',
                 'times', 'gear_box_powers_in', 'on_engine', 'engine_starts',
@@ -1231,18 +1234,18 @@ def electrics():
                  'state_of_charges', 'alternator_statuses']
     )
 
-    dsp.add_function(
+    d.add_function(
         function_id='identify_alternator_nominal_power',
         function=lambda x: max(x),
         inputs=['alternator_powers_demand'],
         outputs=['alternator_nominal_power']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_max_alternator_current,
         inputs=['alternator_nominal_voltage', 'alternator_nominal_power',
                 'alternator_efficiency'],
         outputs=['max_alternator_current']
     )
 
-    return dsp
+    return d

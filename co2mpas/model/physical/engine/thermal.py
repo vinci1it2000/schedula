@@ -10,12 +10,12 @@ It contains functions that model the engine coolant temperature.
 """
 
 import numpy as np
-from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.pipeline import Pipeline
-from sklearn.linear_model import RANSACRegressor
+import sklearn.pipeline as sk_pip
+import sklearn.linear_model as sk_lim
+import sklearn.feature_selection as sk_fsel
+import sklearn.ensemble as sk_ens
 import co2mpas.utils as co2_utl
-from sklearn.feature_selection import SelectFromModel
-from co2mpas.dispatcher import Dispatcher
+import co2mpas.dispatcher as dsp
 
 
 def calculate_engine_temperature_derivatives(
@@ -69,7 +69,7 @@ def _filter_samples(spl, on_engine, thermostat):
     return spl[b]
 
 
-class _SelectFromModel(SelectFromModel):
+class _SelectFromModel(sk_fsel.SelectFromModel):
     def __init__(self, *args, in_mask=(), out_mask=(), **kwargs):
         super(_SelectFromModel, self).__init__(*args, **kwargs)
         self._in_mask = in_mask
@@ -88,7 +88,9 @@ class _SelectFromModel(SelectFromModel):
                 raise ValueError(
                     'Either fit the model before transform or set "prefit=True"'
                     ' while passing the fitted estimator to the constructor.')
-            sfm = SelectFromModel(estimator.estimator_, self.threshold, True)
+            sfm = sk_fsel.SelectFromModel(
+                estimator.estimator_, self.threshold, True
+            )
             mask = sfm._get_support_mask()
 
         for i in self._out_mask:
@@ -114,7 +116,7 @@ class ThermalModel(object):
         self.mask = None
         self.cold = default_model
         self.mask_cold = None
-        self.base_model = GradientBoostingRegressor
+        self.base_model = sk_ens.GradientBoostingRegressor
         self.thermostat = thermostat
         self.min_temp = -float('inf')
 
@@ -159,14 +161,14 @@ class ThermalModel(object):
             'loss': 'huber',
             'alpha': 0.99
         }
-        model = RANSACRegressor(
+        model = sk_lim.RANSACRegressor(
             base_estimator=self.base_model(**opt),
             random_state=0,
             min_samples=0.85,
             max_trials=10
         )
 
-        model = Pipeline([
+        model = sk_pip.Pipeline([
             ('feature_selection', _SelectFromModel(model, '0.8*median',
                                                    in_mask=(0, 2))),
             ('classification', model)
@@ -191,7 +193,7 @@ class ThermalModel(object):
             'alpha': 0.99
         }
         model = self.base_model(**opt)
-        model = Pipeline([
+        model = sk_pip.Pipeline([
             ('feature_selection', _SelectFromModel(model, '0.8*median',
                                                    in_mask=(1,))),
             ('classification', model)
@@ -207,7 +209,7 @@ class ThermalModel(object):
         t_max, t_min = spl[:, -1].max(), spl[:, -1].min()
         spl = spl[(t_max - (t_max - t_min) / 3) <= spl[:, -1]]
 
-        model = GradientBoostingRegressor(random_state=0)
+        model = sk_ens.GradientBoostingRegressor(random_state=0)
         model.fit(spl[:, :-1], spl[:, -1])
         ratio = np.arange(1, 1.5, 0.1) * idle_engine_speed[0]
         spl = np.zeros((len(ratio), 4))
@@ -398,33 +400,33 @@ def thermal():
     """
     Defines the engine thermal model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = thermal()
+        >>> d = thermal()
 
     :return:
         The engine thermal model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='thermal',
         description='Models the engine thermal behaviour.'
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_engine_temperature_derivatives,
         inputs=['times', 'engine_coolant_temperatures'],
         outputs=['engine_temperature_derivatives']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=identify_max_engine_coolant_temperature,
         inputs=['engine_coolant_temperatures'],
         outputs=['max_engine_coolant_temperature']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calibrate_engine_temperature_regression_model,
         inputs=['idle_engine_speed', 'on_engine',
                 'engine_temperature_derivatives', 'engine_coolant_temperatures',
@@ -433,7 +435,7 @@ def thermal():
         outputs=['engine_temperature_regression_model']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=predict_engine_coolant_temperatures,
         inputs=['engine_temperature_regression_model', 'times',
                 'final_drive_powers_in', 'engine_speeds_out_hot',
@@ -442,22 +444,22 @@ def thermal():
         outputs=['engine_coolant_temperatures']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=identify_engine_thermostat_temperature,
         inputs=['engine_temperature_regression_model'],
         outputs=['engine_thermostat_temperature']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=identify_engine_thermostat_temperature_window,
         inputs=['engine_thermostat_temperature', 'engine_coolant_temperatures'],
         outputs=['engine_thermostat_temperature_window']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=identify_initial_engine_temperature,
         inputs=['engine_coolant_temperatures'],
         outputs=['initial_engine_temperature']
     )
 
-    return dsp
+    return d

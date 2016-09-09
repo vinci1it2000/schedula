@@ -10,10 +10,9 @@
 It provides constants for the NEDC cycle.
 """
 
-from scipy.interpolate import interp1d
+import scipy.interpolate as sci_itp
 import co2mpas.dispatcher.utils as dsp_utl
-from co2mpas.dispatcher import Dispatcher
-from ..defaults import dfl
+import co2mpas.dispatcher as dsp
 import numpy as np
 
 
@@ -179,7 +178,9 @@ def nedc_gears(times, max_gear, k1=1, k2=2, k5=2):
     _t.extend(np.asarray(t) + _t[-1])
     shifting.extend(s)
 
-    s = interp1d(_t, shifting, kind='nearest', assume_sorted=True)(times)
+    s = sci_itp.interp1d(
+        _t, shifting, kind='nearest', assume_sorted=True
+    )(times)
 
     s[s > max_gear] = max_gear
 
@@ -201,63 +202,64 @@ def nedc_cycle():
     """
     Defines the wltp cycle model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = nedc_cycle()
+        >>> d = nedc_cycle()
 
     :return:
         The wltp cycle model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='NEDC cycle model',
         description='Returns the theoretical times, velocities, and gears of '
                     'NEDC.'
     )
 
-    dsp.add_data(
+    from ..defaults import dfl
+    d.add_data(
         data_id='initial_temperature',
         default_value=dfl.values.initial_temperature_NEDC,
         description='Initial temperature of the test cell [°C].'
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='max_time',
         default_value=dfl.values.max_time_NEDC,
         description='Maximum time [s].',
         initial_dist=5
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='k1',
         default_value=dfl.values.k1
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='k2',
         default_value=dfl.values.k2
     )
 
-    dsp.add_function(
+    d.add_function(
         function_id='set_max_gear_as_default_k5',
         function=dsp_utl.bypass,
         inputs=['max_gear'],
         outputs=['k5']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='k5',
         default_value=dfl.values.k5,
         initial_dist=10
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='time_sample_frequency',
         default_value=dfl.values.time_sample_frequency
     )
 
-    dsp.add_function(
+    d.add_function(
         function_id='nedc_gears',
         function=dsp_utl.add_args(nedc_gears),
         inputs=['gear_box_type', 'times', 'max_gear', 'k1', 'k2', 'k5'],
@@ -265,10 +267,10 @@ def nedc_cycle():
         input_domain=lambda *args: args[0] == 'manual'
     )
 
-    dsp.add_function(
+    d.add_function(
         function=nedc_velocities,
         inputs=['times', 'gear_box_type'],
         outputs=['velocities']
     )
 
-    return dsp
+    return d

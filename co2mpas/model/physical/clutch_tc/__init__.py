@@ -22,8 +22,8 @@ Sub-Modules:
 """
 
 import co2mpas.dispatcher.utils as dsp_utl
-from co2mpas.dispatcher import Dispatcher
-from scipy.interpolate import InterpolatedUnivariateSpline
+import co2mpas.dispatcher as dsp
+import scipy.interpolate as sci_itp
 import numpy as np
 
 
@@ -55,7 +55,7 @@ def define_k_factor_curve(stand_still_torque_ratio=1.0, lockup_speed_ratio=0.0):
     x = [0, lockup_speed_ratio, 1]
     y = [stand_still_torque_ratio, 1, 1]
 
-    return InterpolatedUnivariateSpline(x, y, k=1)
+    return sci_itp.InterpolatedUnivariateSpline(x, y, k=1)
 
 
 def calculate_clutch_tc_powers(
@@ -111,21 +111,21 @@ def clutch_torque_converter():
     """
     Defines the clutch and torque-converter model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = clutch_torque_converter()
+        >>> d = clutch_torque_converter()
 
     :return:
         The clutch and torque-converter model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='Clutch and torque-converter',
         description='Models the clutch and torque-converter.'
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_clutch_tc_powers,
         inputs=['clutch_tc_speeds_delta', 'k_factor_curve',
                 'gear_box_speeds_in', 'gear_box_powers_in',
@@ -141,7 +141,7 @@ def clutch_torque_converter():
                 return v == 'manual'
         return False
 
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         include_defaults=True,
         input_domain=clutch_domain,
         dsp=clutch(),
@@ -177,7 +177,7 @@ def clutch_torque_converter():
                 return v in ('cvt', 'automatic')
         return False
 
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         include_defaults=True,
         input_domain=torque_converter_domain,
         dsp=torque_converter(),
@@ -206,4 +206,4 @@ def clutch_torque_converter():
         }
     )
 
-    return dsp
+    return d
