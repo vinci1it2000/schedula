@@ -11,8 +11,8 @@ It provides constants for the WLTP cycle.
 """
 
 
-from wltp.experiment import *
-from wltp.model import _get_model_base
+import wltp.experiment as wltp_exp
+import wltp.model as wltp_mdl
 from co2mpas.dispatcher import Dispatcher
 import co2mpas.dispatcher.utils as dsp_utl
 import logging
@@ -107,7 +107,7 @@ def calculate_wltp_class(
 
     ratio = 1000.0 * engine_max_power / unladen_mass
 
-    return decideClass(wltc_data, ratio, max_velocity)
+    return wltp_exp.decideClass(wltc_data, ratio, max_velocity)
 
 
 def get_class_velocities(class_data, times):
@@ -173,7 +173,7 @@ def calculate_downscale_factor(
     p_max_values[0] = np.searchsorted(times, p_max_values[0])
     downsc_coeffs = dsc_data['factor_coeffs']
     dsc_v_split = dsc_data.get('v_max_split', None)
-    downscale_factor = calcDownscaleFactor(
+    downscale_factor = wltp_exp.calcDownscaleFactor(
         class_powers, p_max_values, downsc_coeffs, dsc_v_split,
         engine_max_power, max_velocity, downscale_factor_threshold
     )
@@ -223,7 +223,9 @@ def wltp_velocities(
 
     if downscale_factor > 0:
         downscale_phases = np.searchsorted(times, downscale_phases)
-        v = downscaleCycle(class_velocities, downscale_factor, downscale_phases)
+        v = wltp_exp.downscaleCycle(
+            class_velocities, downscale_factor, downscale_phases
+        )
     else:
         v = class_velocities
     return v
@@ -287,8 +289,15 @@ def wltp_gears(
     n_norm = np.arange(0.0, 1.21, 0.01)
     load_curve = {'n_norm': n_norm, 'p_norm': full_load_curve(n_norm)}
 
-    res = run_cycle(
-        velocities, accelerations, motive_powers, svr, idle_engine_speed[0],
+    b = velocities < 0
+    if b.any():
+        vel = velocities.copy()
+        vel[b] = 0
+    else:
+        vel = velocities
+
+    res = wltp_exp.run_cycle(
+        vel, accelerations, motive_powers, svr, idle_engine_speed[0],
         n_min_drive, engine_max_speed_at_max_power, engine_max_power,
         load_curve, wltp_base_model)
 
@@ -300,7 +309,7 @@ def wltp_gears(
 
     # Apply Driveability-rules.
     # noinspection PyUnresolvedReferences
-    applyDriveabilityRules(velocities, accelerations, gears, res[1], res[-1])
+    applyDriveabilityRules(vel, accelerations, gears, res[1], res[-1])
 
     gears[gears < 0] = 0
 
@@ -308,6 +317,18 @@ def wltp_gears(
 
 
 def get_dfl(wltp_base_model):
+    """
+    Gets default values from wltp base model.
+
+    :param wltp_base_model:
+        WLTP base model params.
+    :type wltp_base_model: dict
+
+    :return:
+        Default values from wltp base model.
+    :rtype: list
+    """
+
     params = wltp_base_model['params']
     keys = 'driver_mass', 'resistance_coeffs_regression_curves', 'wltc_data'
     return dsp_utl.selector(keys, params, output_type='list')
@@ -335,7 +356,7 @@ def get_class_data(wltc_data, wltp_class):
 
 def define_wltp_base_model(base_model):
 
-    return dsp_utl.combine_dicts(_get_model_base(), base_model)
+    return dsp_utl.combine_dicts(wltp_mdl._get_model_base(), base_model)
 
 
 def wltp_cycle():
@@ -458,7 +479,7 @@ def calculate_wltp_velocities():
     )
 
     dsp.add_function(
-        function=calc_default_resistance_coeffs,
+        function=wltp_exp.calc_default_resistance_coeffs,
         inputs=['vehicle_mass', 'resistance_coeffs_regression_curves'],
         outputs=['road_loads'],
         weight=15
