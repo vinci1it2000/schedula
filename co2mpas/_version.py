@@ -9,7 +9,7 @@
 
 
 #: Authoritative project's PEP 440 version.
-__version__ = version = "1.3.1"  # Also update README.rst, doc/allinone.rst, CHANGES.rst,
+__version__ = version = "1.4.0"  # Also update README.rst, doc/allinone.rst, CHANGES.rst,
 
 #: Input/Output file's version.
 __file_version__ = "2.2.1"
@@ -19,4 +19,4 @@ __input_file_version__ = "2"
 
 # Please UPDATE TIMESTAMP WHEN BUMPING VERSIONS AND BEFORE RELEASE.
 #: Release date.
-__updated__ = "2016-07-18 20:37:01"
+__updated__ = "2016-09-13 15:06:00"
