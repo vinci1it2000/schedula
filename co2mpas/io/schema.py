@@ -237,6 +237,19 @@ def _np_array(dtype=None, error=None, read=True, **kwargs):
         return And(_np_array(dtype=dtype), Use(lambda x: x.tolist()),
                    error=error)
 
+# noinspection PyUnusedLocal
+def _np_array_positive(dtype=None, error=None, read=True, **kwargs):
+    dtype = dtype or float
+    error = error or 'cannot be parsed because it should be an ' \
+                     'np.array dtype={} and positive!'.format(dtype)
+    if read:
+        c = And(Use(lambda x: np.asarray(x, dtype=dtype)),
+                lambda x: (x >= 0).all())
+        return Or(And(str, _eval(c)), c, And(_type(), c), Empty(),
+                  error=error)
+    else:
+        return And(_np_array_positive(dtype=dtype), Use(lambda x: x.tolist()),
+                   error=error)
 
 # noinspection PyUnusedLocal
 def _cmv(error=None, **kwargs):
@@ -317,6 +330,7 @@ def define_data_schema(read=True):
     limits = _limits(read=read)
     index_dict = _index_dict(read=read)
     np_array = _np_array(read=read)
+    np_array_pos = _np_array_positive(read=read)
     np_array_bool = _np_array(dtype=bool, read=read)
     np_array_int = _np_array(dtype=int, read=read)
     _bool = _type(type=bool, read=read)
@@ -526,8 +540,8 @@ def define_data_schema(read=True):
         'on_idle': np_array_bool,
         'state_of_charges': np_array,
         'times': np_array,
-        'velocities': np_array,
-        _compare_str('obd_velocities'): np_array,
+        'velocities': np_array_pos,
+        _compare_str('obd_velocities'): np_array_pos,
         'wheel_powers': np_array,
         'wheel_speeds': np_array,
         'wheel_torques': np_array,
