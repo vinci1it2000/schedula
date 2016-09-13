@@ -286,8 +286,10 @@ def _parse_name(name, _standard_names=None):
 def _parameters2df(data, data_descriptions, write_schema):
     df = []
     validate = write_schema.validate
-    gen = ((_param_parts(k), k, v) for k, v in data.items())
-    for s, k, v in _yield_sorted_params(gen):
+    gen = [(_param_parts(k), k, v) for k, v in data.items()]
+    score_map = _update_score_map(gen)
+
+    for s, k, v in _yield_sorted_params(gen, score_map=score_map):
         try:
             param_id, v = next(iter(validate({s['param']: v}).items()))
             if v is not dsp_utl.NONE:
@@ -421,11 +423,16 @@ def _yield_sorted_params(
     score_map = score_map or _param_orders()
     return sorted(gen, key=lambda x: _param_scores(x[0], score_map, keys))
 
+def _update_score_map(gen):
+    m = _param_orders().copy()
+    m['param'] = {j[0]['param']: str(i).zfill(3) for i, j in enumerate(gen)}
+    return m
 
 def _time_series2df(data, data_descriptions):
     df = collections.OrderedDict()
-    gen = ((_param_parts(k), k, v) for k, v in data.items())
-    for s, k, v in _yield_sorted_params(gen):
+    gen = [(_param_parts(k), k, v) for k, v in data.items()]
+    score_map = _update_score_map(gen)
+    for s, k, v in _yield_sorted_params(gen, score_map=score_map):
         df[(_parse_name(s['param'], data_descriptions), k)] = v
     return pd.DataFrame(df)
 

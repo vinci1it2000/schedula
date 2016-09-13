@@ -12,6 +12,7 @@ It contains reporting functions for output results.
 import co2mpas.dispatcher as dsp
 import copy
 import collections
+import functools
 import numpy as np
 import sklearn.metrics as sk_met
 import co2mpas.dispatcher.utils as dsp_utl
@@ -288,7 +289,8 @@ def _add_special_data2report(data, report, to_keys, *from_keys):
             co2_utl.are_in_nested_dicts(data, *from_keys):
         v = co2_utl.get_nested_dicts(data, *from_keys)
         n = to_keys + ('{}.{}'.format(from_keys[0], from_keys[-1]),)
-        co2_utl.get_nested_dicts(report, *n, default=co2_utl.ret_v(v))
+        co2_utl.get_nested_dicts(report, *n[:-1],
+                                 default=collections.OrderedDict)[n[-1]] = v
         return True, v
     return False, None
 
@@ -303,11 +305,15 @@ def _split_by_data_format(data):
     except ValueError:
         s = None
 
+    get_d = functools.partial(
+        co2_utl.get_nested_dicts, d, default=collections.OrderedDict
+    )
+
     for k, v in data.items():
         if isinstance(v, np.ndarray) and s == v.size:  # series
-            co2_utl.get_nested_dicts(d, 'ts')[k] = v
+            get_d('ts')[k] = v
         else:  # params
-            co2_utl.get_nested_dicts(d, 'pa')[k] = v
+            get_d('pa')[k] = v
 
     return d
 
@@ -336,12 +342,14 @@ def re_sample_targets(data):
 
 def format_report_output(data):
     res = {}
+    func = functools.partial(co2_utl.get_nested_dicts,
+                             default=collections.OrderedDict)
     for k, v in co2_utl.stack_nested_keys(data.get('output', {}), depth=3):
         _add_special_data2report(data, res, k[:-1], 'target', *k)
 
         s, iv = _add_special_data2report(data, res, k[:-1], 'input', *k)
         if not s or (s and not _is_equal(iv, v)):
-            co2_utl.get_nested_dicts(res, *k, default=co2_utl.ret_v(v))
+            func(res, *k[:-1])[k[-1]] = v
 
     output = {}
     for k, v in co2_utl.stack_nested_keys(res, depth=2):
