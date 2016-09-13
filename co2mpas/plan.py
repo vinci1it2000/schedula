@@ -56,7 +56,8 @@ def define_new_inputs(data, base, dsp_solution):
             remove.append(k)
 
     dsp = dsp_solution.get_sub_dsp_from_workflow(data, check_inputs=False)
-    n = set(base) - set(dsp.data_nodes)
+    out_id = set(dsp.data_nodes)
+    n = set(base) - out_id
     n.update(data)
 
     inp = dsp_utl.selector(n, base, allow_miss=True)
@@ -65,7 +66,7 @@ def define_new_inputs(data, base, dsp_solution):
     for n, k in remove:
         co2_utl.get_nested_dicts(d, n).pop(k)
 
-    return d
+    return d, out_id
 
 
 def make_simulation_plan(plan, timestamp, output_folder, main_flags):
@@ -92,19 +93,19 @@ def make_simulation_plan(plan, timestamp, output_folder, main_flags):
 
         inputs = dsp_utl.selector(set(base).difference(run_modes), base)
         inputs['vehicle_name'] = name
-        dsp_solution = base['dsp_solution']
-        outputs = dict(dsp_solution)
+        dsp_sol = base['dsp_solution']
+        outputs = dict(dsp_sol)
 
         dfl = build_default_models(model, defaults_fpats, **kw)
         if dfl:
             dfl = {'data.prediction.models': dfl}
             outputs = co2_utl.combine_nested_dicts(dfl, outputs, depth=2)
 
-        inputs['validated_data'] = define_new_inputs(p, outputs, dsp_solution)
+        inputs['validated_data'], o = define_new_inputs(p, outputs, dsp_sol)
         inputs.update(kw)
         res = batch._process_vehicle(model, **inputs)
 
-        s = filter_summary(p, res.get('summary', {}))
+        s = filter_summary(p, o, res.get('summary', {}))
         base_keys = {
             'vehicle_name': (defaults_fpats, base_fpath, name),
         }
@@ -138,11 +139,11 @@ def _add_delta2filtered_summary(changes, summary, base=None):
     return base
 
 
-def filter_summary(changes, summary):
-    l, variations = [], {}
+def filter_summary(changes, new_outputs, summary):
+    l, variations = {tuple(k.split('.')[:0:-1]) for k in new_outputs}, {}
     for k, v in changes.items():
         k = tuple(k.split('.')[::-1])
-        l.append(k[:-1])
+        l.add(k[:-1])
         k = k[:-1] + ('plan.%s' % k[-1],)
         co2_utl.get_nested_dicts(variations, *k).update(v)
 

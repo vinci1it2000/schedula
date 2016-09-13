@@ -140,7 +140,7 @@ def _finalize_plan(res, plans, file_path):
                 else:
                     p[n] = v
 
-    plan = pd.concat(plans, axis=1, copy=False, verify_integrity=True)
+    plan = pd.concat(plans, copy=False, verify_integrity=True)
     func = partial(osp.join, osp.dirname(file_path))
     if 'base' not in plan:
         plan['base'] = file_path
