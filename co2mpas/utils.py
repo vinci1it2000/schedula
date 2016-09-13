@@ -25,6 +25,7 @@ import scipy.misc as sci_misc
 import sklearn.metrics as sk_met
 import co2mpas.dispatcher.utils as dsp_utl
 import numpy as np
+from sklearn.linear_model import RANSACRegressor
 
 
 try:
@@ -540,3 +541,18 @@ def derivative(x, y, dx=1, order=3, k=1):
     func = sci_itp.InterpolatedUnivariateSpline(x, y, k=k)
 
     return sci_misc.derivative(func, x, dx=dx, order=order)
+
+
+class SafeRANSACRegressor(RANSACRegressor):
+    def fit(self, X, y):
+        try:
+            return super(SafeRANSACRegressor, self).fit(X, y)
+        except ValueError as ex:
+            if self.residual_threshold is None:
+                rt = np.median(np.abs(y - np.median(y)))
+                self.residual_threshold = rt + np.finfo(np.float32).eps * 10
+                res = super(SafeRANSACRegressor, self).fit(X, y)
+                self.residual_threshold = None
+                return res
+            else:
+                raise ex

@@ -11,6 +11,7 @@ It contains functions that model the basic mechanics of the clutch.
 
 import scipy.optimize as sci_opt
 import sklearn.linear_model as sk_lim
+import co2mpas.utils as co2_utl
 import sklearn.metrics as sk_met
 import functools
 import co2mpas.dispatcher.utils as dsp_utl
@@ -137,7 +138,7 @@ def identify_clutch_window(
     :rtype: tuple
     """
 
-    model = sk_lim.RANSACRegressor(
+    model = co2_utl.SafeRANSACRegressor(
         base_estimator=sk_lim.LinearRegression(fit_intercept=False),
         random_state=0
     )
@@ -160,19 +161,6 @@ def identify_clutch_window(
     dt = max_clutch_window_width / 2
     Ns = int(dt / max(times[1] - times[0], 0.5)) + 1
     return tuple(sci_opt.brute(error, ((0, -dt), (0, dt)), Ns=Ns, finish=None))
-
-
-def _calibrate_clutch_prediction_model(
-        accelerations, delta_speeds, error_func, default_model):
-    try:
-        model = sk_lim.RANSACRegressor(
-            base_estimator=sk_lim.LinearRegression(fit_intercept=False),
-            random_state=0
-        ).fit(accelerations[:, None], delta_speeds).predict
-    except ValueError:  # Setting MAD as residual_threshold is too low.
-        model = default_model
-
-    return error_func(model), model
 
 
 class Clutch():
@@ -219,15 +207,20 @@ class Clutch():
     @staticmethod
     def _calibrate_clutch_prediction_model(
             accelerations, delta_speeds, error_func, default_model):
-        try:
-            model = sk_lim.RANSACRegressor(
-                base_estimator=sk_lim.LinearRegression(fit_intercept=False),
-                random_state=0
-            ).fit(accelerations[:, None], delta_speeds).predict
-        except ValueError:  # Setting MAD as residual_threshold is too low.
-            model = default_model
+        if delta_speeds.any():
+            base_estimator = sk_lim.LinearRegression(fit_intercept=False)
+            try:
+                model = co2_utl.SafeRANSACRegressor(
+                    base_estimator=base_estimator,
+                    random_state=0
+                ).fit(accelerations[:, None], delta_speeds)
+            except ValueError:  # Setting MAD as residual_threshold is too low.
+                model = base_estimator.fit(accelerations[:, None], delta_speeds)
+            predict = model.predict
+        else:
+            predict = default_model
 
-        return error_func(model), model
+        return error_func(predict), predict
 
     @staticmethod
     def _no_clutch(X, *args):
