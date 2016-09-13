@@ -20,7 +20,7 @@ from .des import parent_func, search_node_description
 from networkx import is_isolate, DiGraph
 from collections import OrderedDict
 
-__all__ = []
+__all__ = ['stlp']
 
 
 # modified from NetworkX library

@@ -29,22 +29,17 @@ import logging
 import pathlib
 import regex
 import pandas as pd
-from pip.operations.freeze import freeze
-from .schema import define_data_schema
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas._version import version, __input_file_version__
-from .dill import *
 import co2mpas.utils as co2_utl
-from co2mpas.dispatcher import Dispatcher
-from .excel import write_to_excel, parse_excel_file, _sheet_name, \
-    _re_params_name
-from .schema import validate_data, validate_plan
-from functools import partial
-from itertools import product, zip_longest
-from pandalone.xleash import lasso
-from pandalone.xleash._parse import parse_xlref
-from collections import OrderedDict
-from cachetools import cached
+import co2mpas.dispatcher as dsp
+from . import schema, excel, dill
+import functools
+import itertools
+import pandalone.xleash as xleash
+import pandalone.xleash._parse as pnd_par
+import collections
+import cachetools
 log = logging.getLogger(__name__)
 
 
@@ -98,7 +93,7 @@ def _make_summarydf(
     df = _dd2df(nested_dict, index=index, depth=depth)
     p = _param_orders()
     p = dsp_utl.selector(parts + ('param',), p, output_type='list')
-    gen = partial(zip_longest, p[:-1], fillvalue=p[-1])
+    gen = functools.partial(itertools.zip_longest, p[:-1], fillvalue=p[-1])
     c = sorted(df.columns, key=lambda x: [_match_part(m, v) for m, v in gen(x)])
     df = df.reindex_axis(c, axis=1, copy=False)
     if add_units:
@@ -122,7 +117,8 @@ def _summary2df(data):
 
     if 'results' in summary:
         r = {}
-        fun = partial(dsp_utl.map_list, [{}, 'cycle', 'stage', 'usage'])
+        fun = functools.partial(dsp_utl.map_list,
+                                [{}, 'cycle', 'stage', 'usage'])
         for n, m in summary['results'].items():
             gen = ((fun(v, *k),)
                    for k, v in co2_utl.stack_nested_keys(m, depth=3))
@@ -198,6 +194,7 @@ def _co2mpas_info2df(start_time, main_flags=None):
 
 
 def _freeze2df():
+    from pip.operations.freeze import freeze
     d = dict(v.split('==') for v in freeze() if '==' in v)
     d['version'] = 'version'
     df = pd.DataFrame([d])
@@ -234,7 +231,7 @@ def _cycle2df(data, data_descriptions, write_schema):
     res = {}
     out = data.get('output', {})
     for k, v in co2_utl.stack_nested_keys(out, key=('output',), depth=3):
-        n, k = _sheet_name(k), k[-1]
+        n, k = excel._sheet_name(k), k[-1]
         if 'ts' == k:
             df = _time_series2df(v, data_descriptions)
         elif 'pa' == k:
@@ -310,11 +307,11 @@ def _parameters2df(data, data_descriptions, write_schema):
         return None
 
 
-@cached({})
+@cachetools.cached({})
 def _param_orders():
     x = ('co2_emission', 'fuel_consumption')
     y = ('low', 'medium', 'high', 'extra_high', 'UDC', 'EUDC', 'value')
-    param = tuple(map('_'.join, product(x, y))) + ('status',)
+    param = tuple(map('_'.join, itertools.product(x, y))) + ('status',)
 
     param += (
         'av_velocities', 'distance', 'init_temp', 'av_temp', 'end_temp',
@@ -343,7 +340,7 @@ def _param_orders():
     return _map
 
 
-@cached({})
+@cachetools.cached({})
 def _param_units():
     units = ((k, _re_units.search(v)) for k, v in get_doc_description().items())
     units = {k: v.group() for k, v in units if v}
@@ -414,7 +411,7 @@ def _param_scores(
 
 
 def _param_parts(param_id):
-    match = _re_params_name.match(param_id).groupdict().items()
+    match = excel._re_params_name.match(param_id).groupdict().items()
     return {i: regex.sub("[\W]", "_", (j or '').lower()) for i, j in match}
 
 
@@ -426,7 +423,7 @@ def _yield_sorted_params(
 
 
 def _time_series2df(data, data_descriptions):
-    df = OrderedDict()
+    df = collections.OrderedDict()
     gen = ((_param_parts(k), k, v) for k, v in data.items())
     for s, k, v in _yield_sorted_params(gen):
         df[(_parse_name(s['param'], data_descriptions), k)] = v
@@ -478,18 +475,18 @@ def check_data_version(data):
 _re_units = regex.compile('(\[.*\])')
 
 
-@cached({})
+@cachetools.cached({})
 def get_doc_description():
     from ..model.physical import physical
     from co2mpas.dispatcher.utils import search_node_description
 
     doc_descriptions = {}
 
-    dsp = physical()
-    for k, v in dsp.data_nodes.items():
+    d = physical()
+    for k, v in d.data_nodes.items():
         if k in doc_descriptions or v['type'] != 'data':
             continue
-        des = search_node_description(k, v, dsp)[0]
+        des = search_node_description(k, v, d)[0]
         if not des or len(des.split(' ')) > 4:
 
             unit = _re_units.search(des)
@@ -534,11 +531,11 @@ def get_types():
 
     node_types = {}
 
-    dsp = physical()
-    for k, v in dsp.data_nodes.items():
+    d = physical()
+    for k, v in d.data_nodes.items():
         if k in node_types or v['type'] != 'data':
             continue
-        des = search_node_description(k, v, dsp, 'value_type')[0]
+        des = search_node_description(k, v, d, 'value_type')[0]
 
         node_types[k] = des.replace(' ', '').split(',')
     return node_types
@@ -546,7 +543,7 @@ def get_types():
 
 def check_xlasso(input_file_name):
     try:
-        parse_xlref(input_file_name)
+        pnd_par.parse_xlref(input_file_name)
         return True
     except SyntaxError:
         return False
@@ -556,117 +553,120 @@ def load_inputs():
     """
     Defines a module to load the input file of the CO2MPAS model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = load_inputs()
+        >>> d = load_inputs()
 
     :return:
         The load input module.
     :rtype: SubDispatchFunction
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='load_inputs',
         description='Loads from files the inputs for the CO2MPAS model.'
     )
 
-    dsp.add_function(
+    d.add_function(
         function=get_cache_fpath,
         inputs=['input_file_name'],
         outputs=['cache_file_name']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='overwrite_cache',
         default_value=False,
     )
 
-    dsp.add_function(
+    d.add_function(
         function_id='load_data_from_cache',
-        function=dsp_utl.add_args(load_from_dill, n=2),
+        function=dsp_utl.add_args(dill.load_from_dill, n=2),
         inputs=['overwrite_cache', 'input_file_name', 'cache_file_name'],
         outputs=['data'],
         input_domain=check_cache_fpath_exists
     )
 
-    dsp.add_function(
-        function=parse_excel_file,
+    d.add_function(
+        function=excel.parse_excel_file,
         inputs=['input_file_name'],
         outputs=['data'],
-        input_domain=partial(check_file_format, extensions=('.xlsx', '.xls')),
+        input_domain=functools.partial(check_file_format,
+                                       extensions=('.xlsx', '.xls')),
         weight=5
     )
 
-    dsp.add_function(
-        function=load_from_dill,
+    d.add_function(
+        function=dill.load_from_dill,
         inputs=['input_file_name'],
         outputs=['data'],
-        input_domain=partial(check_file_format, extensions=('.dill',)),
+        input_domain=functools.partial(check_file_format,
+                                       extensions=('.dill',)),
         weight=5
     )
 
-    dsp.add_function(
+    d.add_function(
         function_id='load_from_xlasso',
-        function=lasso,
+        function=xleash.lasso,
         inputs=['input_file_name'],
         outputs=['data'],
         input_domain=check_xlasso,
         weight=5
     )
 
-    dsp.add_function(
+    d.add_function(
         function_id='cache_parsed_data',
-        function=save_dill,
+        function=dill.save_dill,
         inputs=['data', 'cache_file_name']
     )
 
-    dsp.add_function(
-        function=partial(validate_data, read_schema=define_data_schema()),
+    d.add_function(
+        function=functools.partial(schema.validate_data,
+                                   read_schema=schema.define_data_schema()),
         inputs=['data', 'soft_validation'],
         outputs=['validated_data', 'validated_plan'],
         weight=1
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='validated_data',
         function=check_data_version
     )
 
-    return dsp
+    return d
 
 
 def write_outputs():
     """
     Defines a module to write on files the outputs of the CO2MPAS model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = write_outputs()
+        >>> d = write_outputs()
 
     :return:
         The write outputs module.
     :rtype: SubDispatchFunction
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='write_outputs',
         description='Writes on files the outputs of the CO2MPAS model.'
     )
 
-    dsp.add_function(
-        function=partial(convert2df,
+    d.add_function(
+        function=functools.partial(convert2df,
                          data_descriptions=get_doc_description(),
-                         write_schema=define_data_schema(read=False)),
+                         write_schema=schema.define_data_schema(read=False)),
         inputs=['output_data', 'start_time', 'main_flags'],
         outputs=['dfs']
     )
 
-    dsp.add_function(
-        function=write_to_excel,
+    d.add_function(
+        function=excel.write_to_excel,
         inputs=['dfs', 'output_file_name', 'template_file_name']
     )
 
     inp = ['output_file_name', 'template_file_name', 'output_data',
            'start_time', 'main_flags']
 
-    return dsp_utl.SubDispatchFunction(dsp, dsp.name, inp)
+    return dsp_utl.SubDispatchFunction(d, d.name, inp)

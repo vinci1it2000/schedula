@@ -13,11 +13,11 @@ import co2mpas.dispatcher.utils as dsp_utl
 import co2mpas.utils as co2_utl
 import co2mpas.io as co2_io
 import co2mpas.batch as batch
-from cachetools import cached, LRUCache
+import cachetools
 import copy
 
 
-@cached(LRUCache(maxsize=256))
+@cachetools.cached(cachetools.LRUCache(maxsize=256))
 def get_results(model, fpath, overwrite_cache=False, **kw):
     cache_fpath = co2_io.get_cache_fpath(fpath, ext=('res', 'base', 'dill',))
 

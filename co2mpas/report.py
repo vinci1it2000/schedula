@@ -9,14 +9,14 @@
 It contains reporting functions for output results.
 """
 
-from co2mpas.dispatcher import Dispatcher
-from copy import deepcopy
-from collections import OrderedDict
+import co2mpas.dispatcher as dsp
+import copy
+import collections
 import numpy as np
-from sklearn.metrics import mean_absolute_error, accuracy_score
+import sklearn.metrics as sk_met
 import co2mpas.dispatcher.utils as dsp_utl
 import co2mpas.utils as co2_utl
-from .io.excel import _re_params_name, _sheet_name
+import co2mpas.io.excel as co2_exl
 
 
 def _compare(t, o, metrics):
@@ -62,9 +62,9 @@ def compare_outputs_vs_targets(data):
 
     res = {}
     metrics = {
-        'mean_absolute_error': mean_absolute_error,
+        'mean_absolute_error': sk_met.mean_absolute_error,
         'correlation_coefficient': _correlation_coefficient,
-        'accuracy_score': accuracy_score,
+        'accuracy_score': sk_met.accuracy_score,
     }
 
     for k, t in co2_utl.stack_nested_keys(data.get('target', {}), depth=3):
@@ -80,7 +80,7 @@ def compare_outputs_vs_targets(data):
 
 
 def _map_cycle_report_graphs():
-    _map = OrderedDict()
+    _map = collections.OrderedDict()
 
     _map['fuel_consumptions'] = {
         'label': 'fuel consumption',
@@ -181,9 +181,9 @@ def get_chart_reference(report):
     it = co2_utl.stack_nested_keys(out, key=('output',), depth=3)
     for k, v in sorted(it):
         if k[-1] == 'ts' and 'times' in v:
-            label = '{}/%s'.format(_sheet_name(k))
+            label = '{}/%s'.format(co2_exl._sheet_name(k))
             for i, j in sorted(v.items()):
-                param_id = _re_params_name.match(i)['param']
+                param_id = co2_exl._re_params_name.match(i)['param']
                 m = _map.get(param_id, None)
                 if m:
                     d = {
@@ -204,7 +204,7 @@ def get_chart_reference(report):
 
 def _param_names_values(data):
     for k, v in data.items():
-        m = _re_params_name.match(k)
+        m = co2_exl._re_params_name.match(k)
         yield m['usage'] or 'output', m['param'], v
 
 
@@ -370,7 +370,7 @@ def _format_scores(scores):
 def _format_selections(selections):
     res = {}
     for model_id, d in selections.items():
-        d = deepcopy(d)
+        d = copy.deepcopy(d)
         best = d.pop('best')
         for k, v in d.items():
             v.update(best)
@@ -545,9 +545,9 @@ def report():
     Defines and returns a function that produces a vehicle report from CO2MPAS
     outputs.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = report()
+        >>> d = report()
 
     :return:
         The reporting model.
@@ -555,18 +555,18 @@ def report():
     """
 
     # Initialize a dispatcher.
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='make_report',
         description='Produces a vehicle report from CO2MPAS outputs.'
     )
 
-    dsp.add_function(
+    d.add_function(
         function=get_report_output_data,
         inputs=['output_data'],
         outputs=['report']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=extract_summary,
         inputs=['report', 'vehicle_name'],
         outputs=['summary']
@@ -574,4 +574,4 @@ def report():
 
     inputs = ['output_data', 'vehicle_name']
     outputs = ['report', 'summary']
-    return dsp_utl.SubDispatchFunction(dsp, dsp.name, inputs, outputs)
+    return dsp_utl.SubDispatchFunction(d, d.name, inputs, outputs)

@@ -107,16 +107,15 @@ EXAMPLES::
 from co2mpas import (__version__ as proj_ver, __file__ as proj_file,
                      __updated__ as proj_date)
 from co2mpas import autocompletion
-from collections import OrderedDict
+import collections
 import glob
 import io
 import logging
-from os import path as osp
+import os.path as osp
 import os
 import re
 import shutil
 import sys
-
 import docopt
 import yaml
 
@@ -155,7 +154,7 @@ def init_logging(verbose, frmt=None, logconf_file=None):
 def build_version_string(verbose):
     v = '%s-%s' % (proj_name, proj_ver)
     if verbose:
-        v_infos = OrderedDict([
+        v_infos = collections.OrderedDict([
             ('co2mpas_version', proj_ver),
             ('co2mpas_rel_date', proj_date),
             ('co2mpas_path', osp.dirname(proj_file)),

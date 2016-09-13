@@ -14,12 +14,12 @@ import logging
 log = logging.getLogger(__name__)
 
 import dill
-from networkx.utils.decorators import open_file
+import networkx.utils as nx_utl
 
 __all__ = ['load_from_dill', 'save_dill']
 
 
-@open_file(0, mode='rb')
+@nx_utl.decorators.open_file(0, mode='rb')
 def load_from_dill(fpath):
     """
     Load inputs from .dill file.
@@ -37,7 +37,7 @@ def load_from_dill(fpath):
 
 
 # noinspection PyUnusedLocal
-@open_file(1, mode='wb')
+@nx_utl.decorators.open_file(1, mode='wb')
 def save_dill(data, fpath, *args, **kwargs):
     log.debug('Writing dill-file: %s', fpath)
     dill.dump(data, fpath)

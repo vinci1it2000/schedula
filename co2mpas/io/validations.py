@@ -11,10 +11,9 @@ It provides the CO2MPAS validation formulas.
 """
 
 import numpy as np
-
 import co2mpas.dispatcher.utils as dsp_utl
 import co2mpas.utils as co2_utl
-from .constants import con_vals
+from . import constants
 
 
 def hard_validation(data):
@@ -61,7 +60,7 @@ def check_sign_currents(battery_currents, alternator_currents):
     b_c, a_c = battery_currents, alternator_currents
 
     a = co2_utl.reject_outliers(a_c, med=np.mean)[0]
-    a = a <= con_vals.MAX_VALIDATE_POS_CURR
+    a = a <= constants.con_vals.MAX_VALIDATE_POS_CURR
     c = np.cov(a_c, b_c)[0][1]
 
     if c < 0:
@@ -102,7 +101,7 @@ def check_initial_temperature(
         True if data pass the checks.
     :rtype: bool
     """
-
+    con_vals = constants.con_vals
     idle = idle_engine_speed_median - con_vals.DELTA_RPM2VALIDATE_TEMP
     b = engine_speeds_out > idle
     i = co2_utl.argmax(b) + 1

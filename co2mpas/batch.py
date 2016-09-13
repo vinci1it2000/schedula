@@ -8,7 +8,7 @@
 It contains functions to process vehicle files.
 """
 
-from datetime import datetime
+import datetime
 import logging
 import os.path as osp
 import re
@@ -78,7 +78,7 @@ def process_folder_files(input_files, output_folder, **kwds):
 
     _save_summary(summary_xl_file, start_time, summary)
 
-    time_elapsed = (datetime.today() - start_time).total_seconds()
+    time_elapsed = (datetime.datetime.today() - start_time).total_seconds()
     log.info('Done! [%s sec]', time_elapsed)
 
 
@@ -137,7 +137,7 @@ def _process_folder_files(*args, **kwargs):
     :type output_folder: None,False,str
 
     """
-    start_time = datetime.today()
+    start_time = datetime.datetime.today()
 
     summary = {}
     for res in _yield_folder_files_results(start_time, *args, **kwargs):
@@ -177,7 +177,7 @@ def plot_model_workflow(
 
 
 def default_start_time():
-    return datetime.today()
+    return datetime.datetime.today()
 
 
 def default_timestamp(start_time):

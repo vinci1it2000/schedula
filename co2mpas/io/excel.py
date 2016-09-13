@@ -11,23 +11,22 @@ It contains functions to read/write inputs/outputs from/on excel.
 
 
 import logging
-from math import isnan
+import math
 import pandas as pd
-from collections import Iterable
-from pandalone.xleash import lasso
-from pandalone.xleash.io._xlrd import _open_sheet_by_name_or_index
+import collections
+import pandalone.xleash as xleash
+import pandalone.xleash.io._xlrd as pnd_xlrd
 import shutil
 import openpyxl
-from xlsxwriter.utility import xl_range_abs, xl_rowcol_to_cell_fast
+import xlsxwriter.utility as xl_utl
 import co2mpas.utils as co2_utl
-from inspect import getfullargspec
-from itertools import chain
+import inspect
+import itertools
 import regex
 import co2mpas.dispatcher.utils as dsp_utl
-from co2mpas.dispatcher.utils.alg import stlp
 import json
 import os.path as osp
-from functools import partial
+import functools
 
 
 log = logging.getLogger(__name__)
@@ -109,7 +108,7 @@ def parse_excel_file(
 
         match = dsp_utl.combine_dicts(defaults, match)
 
-        sheet = _open_sheet_by_name_or_index(book, 'book', sheet_name)
+        sheet = pnd_xlrd._open_sheet_by_name_or_index(book, 'book', sheet_name)
         if match['scope'] == 'base':
             _parse_base_data(res, match, sheet, sheet_name, re_params_name)
         elif match['scope'] == 'plan':
@@ -141,7 +140,7 @@ def _finalize_plan(res, plans, file_path):
                     p[n] = v
 
     plan = pd.concat(plans, copy=False, verify_integrity=True)
-    func = partial(osp.join, osp.dirname(file_path))
+    func = functools.partial(osp.join, osp.dirname(file_path))
     if 'base' not in plan:
         plan['base'] = file_path
     else:
@@ -179,12 +178,12 @@ def _parse_base_data(
 
     if match['type'] == 'pa':
         xl_ref = '#%s!B2:C_:["pipe", ["dict", "recurse"]]' % sheet_name
-        data = lasso(xl_ref, sheet=sheet)
+        data = xleash.lasso(xl_ref, sheet=sheet)
     else:
         # noinspection PyBroadException
         try:
             xl_ref = '#%s!A2(R):.3:RD:["df", {"header": 0}]' % sheet_name
-            data = lasso(xl_ref, sheet=sheet)
+            data = xleash.lasso(xl_ref, sheet=sheet)
         except:
             return {}
         data.dropna(how='all', inplace=True)
@@ -222,7 +221,7 @@ def _parse_plan_data(
         plans, match, sheet, sheet_name, re_params_name=_re_params_name):
     # noinspection PyBroadException
     xl_ref = '#%s!A1(R):._:R:"recurse"'
-    data = lasso(xl_ref % sheet_name, sheet=sheet)
+    data = xleash.lasso(xl_ref % sheet_name, sheet=sheet)
     try:
         data = pd.DataFrame(data[1:], columns=data[0])
     except IndexError:
@@ -245,7 +244,7 @@ def _parse_plan_data(
 
 
 def _isempty(val):
-    return isinstance(val, float) and isnan(val) or _check_none(val)
+    return isinstance(val, float) and math.isnan(val) or _check_none(val)
 
 
 def parse_values(data, default=None, re_params_name=_re_params_name):
@@ -285,7 +284,7 @@ def parse_values(data, default=None, re_params_name=_re_params_name):
         elif match['cycle'] == 'all':
             match['cycle'] = ('nedc_h', 'nedc_l', 'wltp_p', 'wltp_h', 'wltp_l')
 
-        for c in stlp(match['cycle']):
+        for c in dsp_utl.stlp(match['cycle']):
             c = c.replace('-', '_')
             if c == 'wltp_p':
                 stage = 'precondition'
@@ -299,7 +298,8 @@ def parse_values(data, default=None, re_params_name=_re_params_name):
 def _check_none(v):
     if v is None:
         return True
-    elif isinstance(v, Iterable) and not isinstance(v, str) and len(v) <= 1:
+    elif isinstance(v, collections.Iterable) and not isinstance(v, str) \
+            and len(v) <= 1:
         return _check_none(next(iter(v))) if len(v) == 1 else True
     return False
 
@@ -382,7 +382,7 @@ def _sort_sheets(x):
 
 
 def _get_defaults(func):
-    a = getfullargspec(func)
+    a = inspect.getfullargspec(func)
     defaults = {}
     if a.defaults:
         defaults.update(zip(a.args[::-1], a.defaults[::-1]))
@@ -452,8 +452,8 @@ def _add_named_ranges(df, writer, shname, startrow, startcol, named_ranges, k0):
     if 'rows' in named_ranges:
         it += (_ranges_by_row(df, startrow, startcol),)
 
-    for k, range_ref in chain(*it):
-        if not isinstance(k, Iterable):
+    for k, range_ref in itertools.chain(*it):
+        if not isinstance(k, collections.Iterable):
             k = (str(k),)
         elif isinstance(k, str):
             k = (k,)
@@ -494,19 +494,19 @@ def _get_corner(df, startcol=0, startrow=0, index=False, header=True, **kw):
         i = _index_levels(df.index)
         ref['index_col'] = list(range(i))
         startcol += i
-    landing = xl_rowcol_to_cell_fast(startrow, startcol)
+    landing = xl_utl.xl_rowcol_to_cell_fast(startrow, startcol)
     ref = '{}(L):..(DR):LURD:["df", {}]'.format(landing, json.dumps(ref))
     return startrow, startcol, ref
 
 
 def _ranges_by_col(df, startrow, startcol):
     for col, (k, v) in enumerate(df.items(), start=startcol):
-        yield k, xl_range_abs(startrow, col, startrow + len(v) - 1, col)
+        yield k, xl_utl.xl_range_abs(startrow, col, startrow + len(v) - 1, col)
 
 
 def _ranges_by_row(df, startrow, startcol):
     for row, (k, v) in enumerate(df.iterrows(), start=startrow):
-        yield k, xl_range_abs(row, startcol, row, startcol + len(v) - 1)
+        yield k, xl_utl.xl_range_abs(row, startcol, row, startcol + len(v) - 1)
 
 
 def _chart2excel(writer, shname, charts):

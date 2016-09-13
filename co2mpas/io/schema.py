@@ -16,10 +16,10 @@ import pandas as pd
 from lmfit import Parameters, Parameter
 from schema import Schema, Use, And, Or, Optional, SchemaError
 from sklearn.tree import DecisionTreeClassifier
-from pprint import pformat
+import pprint
 import co2mpas.dispatcher.utils as dsp_utl
 import co2mpas.utils as co2_utl
-from .validations import hard_validation
+from . import validations
 from co2mpas.model.physical.gear_box.at_gear import CMV, MVL, GSPV
 from co2mpas.model.physical.clutch_tc.clutch import Clutch
 from co2mpas.model.physical.clutch_tc.torque_converter import TorqueConverter
@@ -48,7 +48,7 @@ def validate_inputs(data, soft_validation=False, read_schema=None):
 
     if not soft_validation:
         for k, v in co2_utl.stack_nested_keys(res, depth=3):
-            for c, msg in hard_validation(v):
+            for c, msg in validations.hard_validation(v):
                 co2_utl.get_nested_dicts(errors, *k)[c] = SchemaError([], [msg])
 
     if _log_errors_msg(errors):
@@ -175,7 +175,7 @@ def _dict(format=None, error=None, read=True, **kwargs):
     if read:
         return _eval(Or(Empty(), And(c, Or(Empty(), format))), error=error)
     else:
-        return And(_dict(format=format, error=error), Use(pformat))
+        return And(_dict(format=format, error=error), Use(pprint.pformat))
 
 
 # noinspection PyUnusedLocal
@@ -187,7 +187,7 @@ def _ordict(format=None, error=None, read=True, **kwargs):
     if read:
         return _eval(Or(Empty(), And(c, Or(Empty(), format))), error=error)
     else:
-        return And(_dict(format=format, error=error), Use(pformat))
+        return And(_dict(format=format, error=error), Use(pprint.pformat))
 
 
 def _check_length(length):

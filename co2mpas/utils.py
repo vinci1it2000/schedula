@@ -15,16 +15,14 @@ numerical operations.
 
 
 import yaml
-from networkx.utils import open_file
-from collections import OrderedDict
+import networkx as nx
+import collections
 import math
-from statistics import median_high
+import statistics
 import sys
-
-from scipy.interpolate import InterpolatedUnivariateSpline
-from scipy.misc import derivative as scipy_derivative
-from sklearn.metrics import mean_absolute_error
-
+import scipy.interpolate as sci_itp
+import scipy.misc as sci_misc
+import sklearn.metrics as sk_met
 import co2mpas.dispatcher.utils as dsp_utl
 import numpy as np
 
@@ -48,12 +46,12 @@ class Constants(dict):
         super(Constants, self).__init__(*args, **kwargs)
         self.__dict__ = self
 
-    @open_file(1, mode='rb')
+    @nx.utils.open_file(1, mode='rb')
     def load(self, file, **kw):
         self.update(yaml.load(file, **kw))
         return self
 
-    @open_file(1, mode='w')
+    @nx.utils.open_file(1, mode='w')
     def dump(self, file, default_flow_style=False, **kw):
         yaml.dump(dict(self), file, default_flow_style=default_flow_style, **kw)
 
@@ -233,7 +231,7 @@ def sliding_window(xy, dx_window):
         yield window
 
 
-def median_filter(x, y, dx_window, filter=median_high):
+def median_filter(x, y, dx_window, filter=statistics.median_high):
     """
     Calculates the moving median-high of y values over a constant dx.
 
@@ -403,7 +401,8 @@ def bin_split(x, bin_std=(0.01, 0.1), n_min=None, bins_min=None):
     bin_stats = sorted(bin_stats)
 
     def _bin_merge(x, edges, bin_stats):
-        bins = OrderedDict(enumerate(zip(dsp_utl.pairwise(edges), bin_stats)))
+        bins = collections.OrderedDict(enumerate(zip(dsp_utl.pairwise(edges),
+                                                     bin_stats)))
         new_edges = [edges[0]]
         new_bin_stats = []
 
@@ -467,7 +466,7 @@ def interpolate_cloud(x, y):
     else:
         x, y = ([0, 1], [np.mean(y)] * 2)
 
-    return InterpolatedUnivariateSpline(x, y, k=1)
+    return sci_itp.InterpolatedUnivariateSpline(x, y, k=1)
 
 
 def clear_fluctuations(times, gears, dt_window):
@@ -506,7 +505,7 @@ def clear_fluctuations(times, gears, dt_window):
                 dn = True
 
             if up and dn:
-                m = median_high(y)
+                m = statistics.median_high(y)
                 for v in samples:
                     v[1] = m
                 break
@@ -515,7 +514,7 @@ def clear_fluctuations(times, gears, dt_window):
 
 
 def _err(v, y1, y2, r, l):
-    return mean_absolute_error(_ys(y1, v) + _ys(y2, l - v), r)
+    return sk_met.mean_absolute_error(_ys(y1, v) + _ys(y2, l - v), r)
 
 
 def _ys(y, n):
@@ -538,6 +537,6 @@ def derivative(x, y, dx=1, order=3, k=1):
     :param k:
     :return:
     """
-    func = InterpolatedUnivariateSpline(x, y, k=k)
+    func = sci_itp.InterpolatedUnivariateSpline(x, y, k=k)
 
-    return scipy_derivative(func, x, dx=dx, order=order)
+    return sci_misc.derivative(func, x, dx=dx, order=order)
