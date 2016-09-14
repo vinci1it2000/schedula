@@ -841,6 +841,21 @@ def default_ignition_type(engine_type):
     return 'positive'
 
 
+def identify_engine_max_speed(full_load_speeds):
+    """
+    Identifies the maximum allowed engine speed.
+
+    :param full_load_speeds:
+        T1 map speed vector [RPM].
+    :type full_load_speeds: numpy.array
+
+    :return:
+        Maximum allowed engine speed.
+    :rtype: float
+    """
+    return np.max(full_load_speeds)
+
+
 def engine():
     """
     Defines the engine model.
@@ -911,6 +926,12 @@ def engine():
         inputs=['full_load_speeds', 'full_load_powers', 'idle_engine_speed'],
         outputs=['full_load_curve', 'engine_max_power',
                  'engine_max_speed_at_max_power']
+    )
+
+    d.add_function(
+        function=identify_engine_max_speed,
+        inputs=['full_load_speeds'],
+        outputs=['engine_max_speed']
     )
 
     # Idle engine speed

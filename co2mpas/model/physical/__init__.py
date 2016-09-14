@@ -614,7 +614,8 @@ def physical():
             'use_basic_start_stop': 'use_basic_start_stop',
             'has_start_stop': 'has_start_stop',
             'max_engine_coolant_temperature': 'max_engine_coolant_temperature',
-            'angle_slopes': 'angle_slopes'
+            'angle_slopes': 'angle_slopes',
+            'engine_max_speed': 'engine_max_speed'
         },
         outputs={
             'ignition_type': 'ignition_type',
@@ -681,7 +682,8 @@ def physical():
                 'engine_fuel_lower_heating_value',
             'cold_start_speeds_phases': 'cold_start_speeds_phases',
             'full_load_speeds': 'full_load_speeds',
-            'full_load_powers': 'full_load_powers'
+            'full_load_powers': 'full_load_powers',
+            'engine_max_speed': 'engine_max_speed'
         },
         inp_weight={'initial_temperature': 5}
     )
