@@ -40,14 +40,14 @@ def parse_dsp_solution(solution):
 
     res = {}
     for k, v in solution.items():
-        co2_utl.get_nested_dicts(res, *k.split('.'), default=co2_utl.ret_v(v))
+        dsp_utl.get_nested_dicts(res, *k.split('.'), default=co2_utl.ret_v(v))
 
-    for k, v in list(co2_utl.stack_nested_keys(res, depth=3)):
+    for k, v in list(dsp_utl.stack_nested_keys(res, depth=3)):
         n, k = k[:-1], k[-1]
         if n == ('output', 'calibration') and k in ('wltp_l', 'wltp_h'):
             v = dsp_utl.selector(('co2_emission_value',), v, allow_miss=True)
             if v:
-                d = co2_utl.get_nested_dicts(res, 'target', 'prediction')
+                d = dsp_utl.get_nested_dicts(res, 'target', 'prediction')
                 d[k] = dsp_utl.combine_dicts(v, d.get(k, {}))
 
     res['pipe'] = solution.pipe
@@ -197,8 +197,8 @@ def default_output_file_name(output_folder, fname, timestamp):
 
 def _add2summary(total_summary, summary, base_keys=None):
     base_keys = base_keys or {}
-    for k, v in co2_utl.stack_nested_keys(summary, depth=3):
-        d = co2_utl.get_nested_dicts(total_summary, *k, default=list)
+    for k, v in dsp_utl.stack_nested_keys(summary, depth=3):
+        d = dsp_utl.get_nested_dicts(total_summary, *k, default=list)
         if isinstance(v, list):
             for j in v:
                 d.append(dsp_utl.combine_dicts(j, base_keys))

@@ -19,7 +19,6 @@ import pandalone.xleash.io._xlrd as pnd_xlrd
 import shutil
 import openpyxl
 import xlsxwriter.utility as xl_utl
-import co2mpas.utils as co2_utl
 import inspect
 import itertools
 import regex
@@ -114,7 +113,7 @@ def parse_excel_file(
         elif match['scope'] == 'plan':
             _parse_plan_data(plans, match, sheet, sheet_name, re_params_name)
 
-    for k, v in co2_utl.stack_nested_keys(res.get('base', {}), depth=3):
+    for k, v in dsp_utl.stack_nested_keys(res.get('base', {}), depth=3):
         if k[0] != 'target':
             v['cycle_type'] = v.get('cycle_type', k[-1].split('_')[0]).upper()
             v['cycle_name'] = v.get('cycle_name', k[-1]).upper()
@@ -129,7 +128,7 @@ def _finalize_plan(res, plans, file_path):
     if not plans:
         return pd.DataFrame()
 
-    for k, v in co2_utl.stack_nested_keys(res.get('plan', {}), depth=4):
+    for k, v in dsp_utl.stack_nested_keys(res.get('plan', {}), depth=4):
         n = '.'.join(k)
         m = '.'.join(k[:-1])
         for p in plans:
@@ -197,24 +196,24 @@ def _parse_base_data(
             raise ValueError(msg.format(drop, sheet_name))
 
     for k, v in parse_values(data, match, re_params_name):
-        co2_utl.get_nested_dicts(r, *k[:-1])[k[-1]] = v
+        dsp_utl.get_nested_dicts(r, *k[:-1])[k[-1]] = v
 
     n = (match['scope'], 'target')
-    if match['type'] == 'ts' and co2_utl.are_in_nested_dicts(r, *n):
-        t = co2_utl.get_nested_dicts(r, *n)
-        for k, v in co2_utl.stack_nested_keys(t, key=n, depth=2):
+    if match['type'] == 'ts' and dsp_utl.are_in_nested_dicts(r, *n):
+        t = dsp_utl.get_nested_dicts(r, *n)
+        for k, v in dsp_utl.stack_nested_keys(t, key=n, depth=2):
             if 'times' not in v:
                 n = list(k + ('times',))
                 n[1] = match['usage']
-                if co2_utl.are_in_nested_dicts(r, *n):
-                    v['times'] = co2_utl.get_nested_dicts(r, *n)
+                if dsp_utl.are_in_nested_dicts(r, *n):
+                    v['times'] = dsp_utl.get_nested_dicts(r, *n)
                 else:
-                    for i, j in co2_utl.stack_nested_keys(r, depth=4):
+                    for i, j in dsp_utl.stack_nested_keys(r, depth=4):
                         if 'times' in j:
                             v['times'] = j['times']
                             break
 
-    co2_utl.combine_nested_dicts(r, depth=5, base=res)
+    dsp_utl.combine_nested_dicts(r, depth=5, base=res)
 
 
 def _parse_plan_data(

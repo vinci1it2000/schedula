@@ -233,16 +233,16 @@ def combine_scores(scores):
     if not scores:
         return {}
     s = {}
-    for (k, c), v in co2_utl.stack_nested_keys(scores, depth=2):
+    for (k, c), v in dsp_utl.stack_nested_keys(scores, depth=2):
         r = {'models': v['models']} if 'models' in v else {}
         r.update(v.get('score', {}))
-        co2_utl.get_nested_dicts(s, k, c, default=co2_utl.ret_v(r))
+        dsp_utl.get_nested_dicts(s, k, c, default=co2_utl.ret_v(r))
 
-        if not co2_utl.are_in_nested_dicts(s, k, 'best'):
+        if not dsp_utl.are_in_nested_dicts(s, k, 'best'):
             keys = {'models': 'selected_models', 'success': 'status'}
             best = dsp_utl.map_dict(keys, dsp_utl.selector(keys, r))
             best['from'] = c
-            co2_utl.get_nested_dicts(s, k, 'best', default=co2_utl.ret_v(best))
+            dsp_utl.get_nested_dicts(s, k, 'best', default=co2_utl.ret_v(best))
 
     return {'selections': s, 'scores': scores}
 

@@ -51,7 +51,7 @@ def build_default_models(model, paths, output_folder, **kw):
 
 def define_new_inputs(data, base, dsp_solution):
     remove = []
-    for k, v in co2_utl.stack_nested_keys(data, depth=2):
+    for k, v in dsp_utl.stack_nested_keys(data, depth=2):
         if v is dsp_utl.EMPTY:
             remove.append(k)
 
@@ -61,10 +61,10 @@ def define_new_inputs(data, base, dsp_solution):
     n.update(data)
 
     inp = dsp_utl.selector(n, base, allow_miss=True)
-    d = co2_utl.combine_nested_dicts(inp, data, depth=2)
+    d = dsp_utl.combine_nested_dicts(inp, data, depth=2)
 
     for n, k in remove:
-        co2_utl.get_nested_dicts(d, n).pop(k)
+        dsp_utl.get_nested_dicts(d, n).pop(k)
 
     return d, out_id
 
@@ -99,7 +99,7 @@ def make_simulation_plan(plan, timestamp, output_folder, main_flags):
         dfl = build_default_models(model, defaults_fpats, **kw)
         if dfl:
             dfl = {'data.prediction.models': dfl}
-            outputs = co2_utl.combine_nested_dicts(dfl, outputs, depth=2)
+            outputs = dsp_utl.combine_nested_dicts(dfl, outputs, depth=2)
 
         inputs['validated_data'], o = define_new_inputs(p, outputs, dsp_sol)
         inputs.update(kw)
@@ -121,10 +121,10 @@ def _add_delta2filtered_summary(changes, summary, base=None):
     base = {} if base is None else base
 
     def check(cycle):
-        return co2_utl.are_in_nested_dicts(changes, cycle, *ref)
+        return dsp_utl.are_in_nested_dicts(changes, cycle, *ref)
 
     for c in cycles:
-        if not co2_utl.are_in_nested_dicts(summary, 'delta', c):
+        if not dsp_utl.are_in_nested_dicts(summary, 'delta', c):
             continue
         sub_cycles = cycles - {c}
         if check(c) or all(check(k) for k in sub_cycles):
@@ -133,9 +133,9 @@ def _add_delta2filtered_summary(changes, summary, base=None):
             gen = (k for k in sub_cycles if check(k))
         for k in gen:
             n = 'delta', c, k, value
-            if co2_utl.are_in_nested_dicts(summary, *n):
-                v = co2_utl.get_nested_dicts(summary, *n)
-                co2_utl.get_nested_dicts(base, *n, default=co2_utl.ret_v(v))
+            if dsp_utl.are_in_nested_dicts(summary, *n):
+                v = dsp_utl.get_nested_dicts(summary, *n)
+                dsp_utl.get_nested_dicts(base, *n, default=co2_utl.ret_v(v))
     return base
 
 
@@ -145,10 +145,10 @@ def filter_summary(changes, new_outputs, summary):
         k = tuple(k.split('.')[::-1])
         l.add(k[:-1])
         k = k[:-1] + ('plan.%s' % k[-1],)
-        co2_utl.get_nested_dicts(variations, *k).update(v)
+        dsp_utl.get_nested_dicts(variations, *k).update(v)
 
-    for k, v in co2_utl.stack_nested_keys(summary, depth=3):
+    for k, v in dsp_utl.stack_nested_keys(summary, depth=3):
         if k[:-1] in l:
-            co2_utl.get_nested_dicts(variations, *k, default=co2_utl.ret_v(v))
+            dsp_utl.get_nested_dicts(variations, *k, default=co2_utl.ret_v(v))
     _add_delta2filtered_summary(variations, summary, base=variations)
     return variations

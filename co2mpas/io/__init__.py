@@ -121,9 +121,9 @@ def _summary2df(data):
                                 [{}, 'cycle', 'stage', 'usage'])
         for n, m in summary['results'].items():
             gen = ((fun(v, *k),)
-                   for k, v in co2_utl.stack_nested_keys(m, depth=3))
+                   for k, v in dsp_utl.stack_nested_keys(m, depth=3))
             v = [v[0] for v in _yield_sorted_params(gen)]
-            co2_utl.get_nested_dicts(r, n, default=co2_utl.ret_v(v))
+            dsp_utl.get_nested_dicts(r, n, default=co2_utl.ret_v(v))
 
         df = _make_summarydf(r, index=['cycle', 'stage', 'usage'], depth=1)
         c = list(map(_rm_sub_parts, df.columns))
@@ -150,12 +150,12 @@ def _summary2df(data):
 
 def _comparison2df(comparison):
     res = {}
-    it = co2_utl.stack_nested_keys(comparison, depth=3)
+    it = dsp_utl.stack_nested_keys(comparison, depth=3)
     keys = ['usage', 'cycle', 'param']
     gen = [(dsp_utl.map_list(keys, *k), k, v) for k, v in it]
 
     for s, k, v in _yield_sorted_params(gen, keys=keys):
-        l = co2_utl.get_nested_dicts(res, *k[:-1], default=list)
+        l = dsp_utl.get_nested_dicts(res, *k[:-1], default=list)
         l.append(dsp_utl.combine_dicts({'param_id': k[-1]}, v))
 
     if res:
@@ -230,7 +230,7 @@ def _pipe2list(pipe, i=0, source=()):
 def _cycle2df(data, data_descriptions, write_schema):
     res = {}
     out = data.get('output', {})
-    for k, v in co2_utl.stack_nested_keys(out, key=('output',), depth=3):
+    for k, v in dsp_utl.stack_nested_keys(out, key=('output',), depth=3):
         n, k = excel._sheet_name(k), k[-1]
         if 'ts' == k:
             df = _time_series2df(v, data_descriptions)
@@ -246,10 +246,10 @@ def _cycle2df(data, data_descriptions, write_schema):
 
 def _scores2df(data):
     n = ('data', 'calibration', 'model_scores')
-    if not co2_utl.are_in_nested_dicts(data, *n):
+    if not dsp_utl.are_in_nested_dicts(data, *n):
         return {}
 
-    scores = co2_utl.get_nested_dicts(data, *n)
+    scores = dsp_utl.get_nested_dicts(data, *n)
 
     idx = ['model_id', 'from', 'status', 'selected_models']
     df = _dd2df(scores['selections'], idx, depth=1)
@@ -444,7 +444,7 @@ def _dd2df(dd, index=None, depth=0):
     :rtype: pandas.DataFrame
     """
     frames = []
-    for k, v in co2_utl.stack_nested_keys(dd, depth=depth):
+    for k, v in dsp_utl.stack_nested_keys(dd, depth=depth):
         df = pd.DataFrame(v)
         df.drop_duplicates(subset=index, inplace=True)
         if index is not None:
