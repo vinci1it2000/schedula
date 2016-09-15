@@ -30,3 +30,4 @@ boltons
 pykalman
 wltp
 cachetools
+yaml
