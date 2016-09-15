@@ -19,7 +19,7 @@ import logging
 from .dsp import SubDispatch, SubDispatchFunction, add_args, bypass, \
     replicate_value
 from functools import partial
-from sphinx.ext.autodoc import getargspec
+
 
 log = logging.getLogger(__name__)
 
@@ -128,7 +128,7 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function',
 
             doc = fun.__doc__
             if not d and doc:
-
+                from sphinx.ext.autodoc import getargspec
                 attr_name = getargspec(fun)
                 try:
                     attr_name = attr_name[0][n_ix] if where_succ else None
