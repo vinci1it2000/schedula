@@ -89,9 +89,9 @@ class DspPlot(gviz.Digraph):
         }
     }
     __node_data = ('default', 'initial_dist', 'wait_inputs', 'function',
-                   'weight', 'remote_links', 'distance', 'output')
+                   'weight', 'remote_links', 'distance', 'output', 'error')
     __node_function = ('input_domain', 'weight', 'M_inputs', 'M_outputs',
-                       'distance', 'started', 'duration')
+                       'distance', 'started', 'duration', 'error')
     __edge_data = ('inp_id', 'out_id', 'weight', 'value')
     _pprinter = pprint.PrettyPrinter(compact=True, width=200)
 
@@ -379,6 +379,11 @@ class DspPlot(gviz.Digraph):
 
     def _set_node(self, node_id, a):
         attr = combine_dicts(self.dsp.nodes.get(node_id, {}), a)
+        try:
+            attr['error'] = self.obj._errors[node_id]
+        except (AttributeError, KeyError):
+            pass
+
         node_type = attr['type'] if attr else 'data'
         if node_type in ('data', 'start'):
             ret = self._set_data_node(node_id, attr)
