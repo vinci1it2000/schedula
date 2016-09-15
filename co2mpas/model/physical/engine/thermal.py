@@ -11,7 +11,6 @@ It contains functions that model the engine coolant temperature.
 
 import numpy as np
 import sklearn.pipeline as sk_pip
-import sklearn.linear_model as sk_lim
 import sklearn.feature_selection as sk_fsel
 import sklearn.ensemble as sk_ens
 import co2mpas.utils as co2_utl
