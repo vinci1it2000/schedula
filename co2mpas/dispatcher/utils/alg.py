@@ -473,6 +473,10 @@ def get_sub_node(dsp, path, node_attr='auto', solution=NONE, _level=0,
           - for function and sub-dispatcher nodes: the 'function' attribute.
     :type node_attr: str | None
 
+    :param solution:
+        Parent Solution.
+    :type solution: dispatcher.utils.Solution
+
     :param _level:
         Path level.
     :type _level: int
@@ -1009,15 +1013,17 @@ def get_full_pipe(sol, base=()):
     """
     Returns the full pipe of a dispatch run.
 
-    :param dsp:
-         A dispatcher object.
-    :type dsp: dispatcher.Dispatcher
+    :param sol:
+         A Solution object.
+    :type sol: dispatcher.utils.Solution
 
     :param base:
-
+        Base node id.
     :type base: tuple[str]
 
     :return:
+        Full pipe of a dispatch run.
+    :rtype: DspPipe
     """
 
     pipe = DspPipe()
