@@ -14,7 +14,7 @@ import graphviz as gviz
 import os
 import os.path as osp
 import string
-import urllib
+import urllib.parse as urlparse
 import pprint
 import inspect
 import platform
@@ -426,7 +426,7 @@ class DspPlot(gviz.Digraph):
         return True
 
     def _get_style(self, node_id, dfl_styles, log='info'):
-        node_styles = self.node_styles.get(log, 'info')
+        node_styles = self.node_styles.get(log, self.node_styles['info'])
 
         if node_id in node_styles:
             return node_styles[node_id].copy()
@@ -442,7 +442,7 @@ class DspPlot(gviz.Digraph):
             fpath = self._saved_outputs[id(out)]
         except KeyError:
             if 'URL' in kw:
-                fpath = urllib.parse.unquote(kw['URL'])
+                fpath = urlparse.unquote(kw['URL'])
 
             else:
                 rpath = '%s.%s' % (_encode_file_name(node_id), ext)
@@ -462,7 +462,7 @@ class DspPlot(gviz.Digraph):
                 f.write(self.pprint(out))
             self._saved_outputs[id(out)] = fpath
 
-        return urllib.parse.quote(self._relpath(fpath))
+        return urlparse.quote(self._relpath(fpath))
 
     def _relpath(self, fpath):
         if fpath.startswith(_UNC):
@@ -477,8 +477,12 @@ class DspPlot(gviz.Digraph):
             tooltip = tooltip or node_id
         except KeyError:
             tooltip = node_id
+        if 'error' in attr:
+            nstyle = 'error'
+        else:
+            nstyle = 'info'
 
-        kw = self._get_style(node_id, ('data',))
+        kw = self._get_style(node_id, ('data',), log=nstyle)
         attr = attr.copy()
         if not attr.get('wait_inputs', True):
             attr.pop('wait_inputs')
@@ -499,6 +503,7 @@ class DspPlot(gviz.Digraph):
                 out = self.obj[node_id]
                 attr['output'] = out
                 if inspect.isfunction(out):
+                    # noinspection PyBroadException
                     try:
                         attr['output'] = inspect.getsource(out)
                     except:
@@ -540,7 +545,13 @@ class DspPlot(gviz.Digraph):
         attr = attr.copy()
         missing_io = self._missing_inputs_outputs(node_id, attr)
         attr.update(missing_io)
-        warning = bool(missing_io)
+        if 'error' in attr:
+            nstyle = 'error'
+        elif missing_io:
+            nstyle = 'warning'
+        else:
+            nstyle = 'info'
+
         try:
             attr['input_domain'] = parent_func(attr['input_domain']).__name__
         except (KeyError, AttributeError, TypeError):
@@ -548,17 +559,18 @@ class DspPlot(gviz.Digraph):
         try:
             func = parent_func(attr['function'])
             dfl_styles = (type(func).__name__.lower(), 'function')
-            kw = self._get_style(node_id, dfl_styles, log='warning')
+            kw = self._get_style(node_id, dfl_styles, log=nstyle)
             from .. import Dispatcher
             if isinstance(func, (Dispatcher, SubDispatch)) and self.depth != 0:
                 dot = self.set_sub_dsp(node_id, node_name, attr)
                 if self.nested:
                     rpath = self._relpath(dot.render(cleanup=True))
                     # noinspection PyUnresolvedReferences
-                    kw['URL'] = urllib.parse.quote(rpath)
+                    kw['URL'] = urlparse.quote(rpath)
                 else:
                     self.subgraph(dot)
             elif inspect.isfunction(func):
+                # noinspection PyBroadException
                 try:
                     attr['function'] = inspect.getsource(func)
                     kw['URL'] = self._save_output(attr['function'], kw, node_id)
@@ -566,7 +578,7 @@ class DspPlot(gviz.Digraph):
                     pass
 
         except (KeyError, TypeError):
-            kw = self._get_style(node_id, ('function',))
+            kw = self._get_style(node_id, ('function',), log=nstyle)
 
         try:
             attr['distance'] = self.obj.dist[node_id]
