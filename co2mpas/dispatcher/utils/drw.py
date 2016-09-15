@@ -18,10 +18,12 @@ import urllib
 import pprint
 import inspect
 import platform
+import copy
 from tempfile import mkdtemp, mktemp
 import networkx as nx
 from .cst import START, SINK, END, EMPTY, SELF, NONE
-from .dsp import SubDispatch, SubDispatchFunction, combine_dicts, map_dict
+from .dsp import SubDispatch, SubDispatchFunction, combine_dicts, map_dict, \
+    combine_nested_dicts
 from itertools import chain
 import html
 import logging
@@ -62,32 +64,63 @@ def _func_name(name, function_module=True):
     return name if function_module else name.split(':')[-1]
 
 
+def _upt_styles(styles, base=None):
+    d, base = {}, copy.deepcopy(base or {})
+    res = {}
+    for i in ('info', 'warning', 'error'):
+        combine_nested_dicts(base.get(i, {}), styles.get(i, {}), base=d)
+        res[i] = copy.deepcopy(d)
+    return res
+
+
 class DspPlot(gviz.Digraph):
     __node_attr = {'style': 'filled'}
     __graph_attr = {}
     __edge_attr = {}
     __body = {'splines': 'ortho', 'style': 'filled'}
-    __node_styles = {
-        START: {'shape': 'egg', 'fillcolor': 'red', 'label': 'start'},
-        SELF: {'shape': 'egg', 'fillcolor': 'gold', 'label': 'self'},
-        END: {'shape': 'egg', 'fillcolor': 'blue', 'label': 'end'},
-        EMPTY: {'shape': 'egg', 'fillcolor': 'gray', 'label': 'empty'},
-        SINK: {'shape': 'egg', 'fillcolor': 'black', 'fontcolor': 'white',
-               'label': 'sink'},
-        NONE: {
-            'data': {'shape': 'box', 'style':'rounded,filled',
-                     'fillcolor': 'cyan'},
-            'function': {'shape': 'box', 'fillcolor': 'springgreen'},
-            'subdispatch': {'shape': 'note', 'style':'filled',
-                            'fillcolor': 'palegreen'},
-            'subdispatchfunction': {'shape': 'note', 'style':'filled',
-                                    'fillcolor': 'lime'},
-            'subdispatchpipe': {'shape': 'note', 'style':'filled',
-                                'fillcolor': 'greenyellow'},
-            'dispatcher': {'shape': 'note', 'style':'filled',
-                           'fillcolor': 'darkorange'}
+    __node_styles = _upt_styles({
+        'info': {
+            START: {'shape': 'egg', 'fillcolor': 'red', 'label': 'start'},
+            SELF: {'shape': 'egg', 'fillcolor': 'gold', 'label': 'self'},
+            END: {'shape': 'egg', 'fillcolor': 'blue', 'label': 'end'},
+            EMPTY: {'shape': 'egg', 'fillcolor': 'gray', 'label': 'empty'},
+            SINK: {'shape': 'egg', 'fillcolor': 'black', 'fontcolor': 'white',
+                   'label': 'sink'},
+            NONE: {
+                'data': {'shape': 'box', 'style':'rounded,filled',
+                         'fillcolor': 'cyan'},
+                'function': {'shape': 'box', 'fillcolor': 'springgreen'},
+                'subdispatch': {'shape': 'note', 'style':'filled',
+                                'fillcolor': 'yellow'},
+                'subdispatchfunction': {'shape': 'note', 'style':'filled',
+                                        'fillcolor': 'yellowgreen'},
+                'subdispatchpipe': {'shape': 'note', 'style':'filled',
+                                    'fillcolor': 'greenyellow'},
+                'dispatcher': {'shape': 'note', 'style':'filled',
+                               'fillcolor': 'springgreen'}
+            }
+        },
+        'warning': {
+            NONE: {
+                'data': {'fillcolor': 'orange'},
+                'function': {'fillcolor': 'orange'},
+                'subdispatch': {'fillcolor': 'orange'},
+                'subdispatchfunction': {'fillcolor': 'orange'},
+                'subdispatchpipe': {'fillcolor': 'orange'},
+                'dispatcher': {'fillcolor': 'orange'}
+            }
+        },
+        'error': {
+            NONE: {
+                'data': {'fillcolor': 'red'},
+                'function': {'fillcolor': 'red'},
+                'subdispatch': {'fillcolor': 'red'},
+                'subdispatchfunction': {'fillcolor': 'red'},
+                'subdispatchpipe': {'fillcolor': 'red'},
+                'dispatcher': {'fillcolor': 'red'}
+            }
         }
-    }
+    })
     __node_data = ('default', 'initial_dist', 'wait_inputs', 'function',
                    'weight', 'remote_links', 'distance', 'output', 'error')
     __node_function = ('input_domain', 'weight', 'M_inputs', 'M_outputs',
@@ -228,8 +261,7 @@ class DspPlot(gviz.Digraph):
         self._edge_attr = edge_attr
         self._body = body
 
-        self.node_styles = self.__node_styles.copy()
-        self.node_styles.update(node_styles or {})
+        self.node_styles = _upt_styles(node_styles or {}, self.__node_styles)
         self.depth = depth
         self.draw_outputs = draw_outputs
         self.function_module = function_module
@@ -393,13 +425,15 @@ class DspPlot(gviz.Digraph):
             raise ValueError('Setting node:%s' % node_id)
         return True
 
-    def _get_style(self, node_id, dfl_styles):
-        if node_id in self.node_styles:
-            return self.node_styles[node_id].copy()
+    def _get_style(self, node_id, dfl_styles, log='info'):
+        node_styles = self.node_styles.get(log, 'info')
+
+        if node_id in node_styles:
+            return node_styles[node_id].copy()
         else:
             for style in dfl_styles:
                 try:
-                    return self.node_styles[NONE][style].copy()
+                    return node_styles[NONE][style].copy()
                 except KeyError:
                     pass
 
@@ -504,6 +538,9 @@ class DspPlot(gviz.Digraph):
         tooltip = search_node_description(node_id, attr, self.dsp)[0] or node_name
 
         attr = attr.copy()
+        missing_io = self._missing_inputs_outputs(node_id, attr)
+        attr.update(missing_io)
+        warning = bool(missing_io)
         try:
             attr['input_domain'] = parent_func(attr['input_domain']).__name__
         except (KeyError, AttributeError, TypeError):
@@ -511,7 +548,7 @@ class DspPlot(gviz.Digraph):
         try:
             func = parent_func(attr['function'])
             dfl_styles = (type(func).__name__.lower(), 'function')
-            kw = self._get_style(node_id, dfl_styles)
+            kw = self._get_style(node_id, dfl_styles, log='warning')
             from .. import Dispatcher
             if isinstance(func, (Dispatcher, SubDispatch)) and self.depth != 0:
                 dot = self.set_sub_dsp(node_id, node_name, attr)
@@ -540,8 +577,6 @@ class DspPlot(gviz.Digraph):
                 attr[k] = str(attr[k])
             except KeyError:
                 pass
-
-        attr.update(self._missing_inputs_outputs(node_id, attr))
 
         attr['inputs'] = self.pprint(attr['inputs'])
         attr['outputs'] = self.pprint(attr['outputs'])
