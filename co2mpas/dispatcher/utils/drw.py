@@ -121,14 +121,14 @@ class DspPlot(gviz.Digraph):
         }
     })
     __node_data = ('default', 'initial_dist', 'wait_inputs', 'function',
-                   'weight', 'remote_links', 'distance', 'output', 'error')
+                   'weight', 'remote_links', 'distance', 'error')
     __node_function = ('input_domain', 'weight', 'M_inputs', 'M_outputs',
                        'distance', 'started', 'duration', 'error')
     __edge_data = ('inp_id', 'out_id', 'weight', 'value')
     _pprinter = pprint.PrettyPrinter(compact=True, width=200)
 
     def __init__(self, obj, workflow=False, nested=True, edge_data=(),
-                 node_data=(), node_function=(), draw_outputs=0, view=False,
+                 node_data=(), node_function=(), draw_outputs=3, view=False,
                  node_styles=None, depth=-1, function_module=False, name=None,
                  comment=None, directory=None, filename=None, format='svg',
                  engine=None, encoding=None, graph_attr=None, node_attr=None,
@@ -700,18 +700,19 @@ class DspPlot(gviz.Digraph):
     def _missing_inputs_outputs(self, node_id, attr):
         pred = self.g.pred[node_id]
         succ = self.g.succ[node_id]
-        node = self.g.node
+
         if attr['type'] == 'dispatcher':
             inp, out = {}, {}
-            for k, v in attr['inputs'].items():
-                k = tuple(k for k in _iter_list_nodes((k,)) if k not in pred)
-                if k:
-                    inp[k if len(k) != 1 else k[0]] = v
+            # node = self.g.node
+            # for k, v in attr['inputs'].items():
+            #    k = tuple(k for k in _iter_list_nodes((k,)) if k not in pred)
+            #    if k:
+            #        inp[k if len(k) != 1 else k[0]] = v
 
-            for k, v in attr['outputs'].items():
-                v = tuple(v for v in _iter_list_nodes((v,)) if v not in node)
-                if v:
-                    out[k] = v if len(v) != 1 else v[0]
+            #for k, v in attr['outputs'].items():
+            #    v = tuple(v for v in _iter_list_nodes((v,)) if v not in node)
+            #    if v:
+            #        out[k] = v if len(v) != 1 else v[0]
         else:
             inp = tuple(k for k in attr['inputs'] if k not in pred)
             out = tuple(k for k in attr['outputs'] if k not in succ)

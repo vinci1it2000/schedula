@@ -624,7 +624,7 @@ you have installed |co2mpas| (see :ref:`install` above) and type::
       co2mpas batch       [-v | --logconf=<conf-file>] [--gui] [-f]
                           [--overwrite-cache] [--out-template=<xlsx-file>]
                           [--plot-workflow] [-O=<output-folder>]
-                          [--only-summary] [--soft-validation]
+                          [--only-summary] [--engineering-mode]
                           [<input-path>]...
       co2mpas demo        [-v | --logconf=<conf-file>] [--gui] [-f]
                           [<output-folder>]
@@ -652,7 +652,7 @@ you have installed |co2mpas| (see :ref:`install` above) and type::
                                   and Options. [default: False].
       --only-summary              Do not save vehicle outputs, just the summary.
       --overwrite-cache           Overwrite the cached file.
-      --soft-validation           Validate only partially input-data (no schema).
+      --engineering-mode          Validate only partially input-data (no schema).
       --out-template=<xlsx-file>  Clone the given excel-file and appends results into it.
                                   By default, results are appended into an empty excel-file.
                                   Use `--out-template=-` to use input-file as template.

@@ -702,7 +702,7 @@ class SubDispatch(object):
         return solution  # Return outputs.
 
     def plot(self, workflow=False, view=True, nested=True, edge_data=(),
-             node_data=(), node_function=(), draw_outputs=0, node_styles=None,
+             node_data=(), node_function=(), draw_outputs=3, node_styles=None,
              depth=-1, function_module=False, name=None, comment=None,
              directory=None, filename=None, format='svg', engine=None,
              encoding=None, graph_attr=None, node_attr=None, edge_attr=None,
