@@ -27,9 +27,6 @@ __author__ = 'Vincenzo Arcidiacono'
 import logging
 from collections import deque
 from copy import copy, deepcopy
-
-from networkx import DiGraph, isolates
-
 from .utils.sol import Solution
 from .utils.alg import rm_cycles_iter, get_unused_node_id, add_func_edges, \
     get_sub_node, _children, stlp, _update_io_attr_sub_dsp,\
@@ -168,7 +165,7 @@ class Dispatcher(object):
 
         :param dmap:
             A directed graph that stores data & functions parameters.
-        :type dmap: DiGraph, optional
+        :type dmap: networkx.DiGraph, optional
 
         :param name:
             The dispatcher's name.
@@ -188,7 +185,7 @@ class Dispatcher(object):
             The dispatcher's description.
         :type description: str, optional
         """
-
+        from networkx import DiGraph
         #: The directed graph that stores data & functions parameters.
         self.dmap = dmap if dmap else DiGraph()
 
@@ -1002,6 +999,7 @@ class Dispatcher(object):
             if not dmap_out_degree(u):  # No outputs.
                 dmap_rm_node(u)  # Remove function node.
 
+        from networkx import isolates
         # Remove isolate nodes from sub-graph.
         sub_dsp.dmap.remove_nodes_from(isolates(sub_dsp.dmap))
 
@@ -1026,7 +1024,7 @@ class Dispatcher(object):
 
         :param graph:
             A directed graph where evaluate the breadth-first-search.
-        :type graph: DiGraph, optional
+        :type graph: networkx.DiGraph, optional
 
         :param reverse:
             If True the workflow graph is assumed as reversed.
@@ -1946,7 +1944,7 @@ class Dispatcher(object):
         :param bfs_graphs:
             A dictionary with directed graphs where evaluate the
             breadth-first-search.
-        :type bfs_graphs: dict[str | Token, DiGraph | dict], optional
+        :type bfs_graphs: dict[str | Token, networkx.DiGraph | dict], optional
 
         :return:
             A sub-dispatcher

@@ -15,7 +15,6 @@ import logging
 from heapq import heappush, heappop
 from collections import OrderedDict
 from copy import _reconstruct
-from networkx import DiGraph
 from datetime import datetime
 from .alg import add_edge_fun, remove_edge_fun, stlp, get_full_pipe,\
      _sort_sk_wait_in, get_sub_node
@@ -140,6 +139,7 @@ class Solution(OrderedDict):
 
     def _clean_set(self):
         self.clear()
+        from networkx import DiGraph
         self.workflow = DiGraph()
         self._visited = set()
         self._wf_pred = self.workflow.pred

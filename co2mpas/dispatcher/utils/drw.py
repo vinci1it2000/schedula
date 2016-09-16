@@ -20,7 +20,6 @@ import inspect
 import platform
 import copy
 from tempfile import mkdtemp, mktemp
-import networkx as nx
 from .cst import START, SINK, END, EMPTY, SELF, NONE
 from .dsp import SubDispatch, SubDispatchFunction, combine_dicts, map_dict, \
     combine_nested_dicts
@@ -253,6 +252,7 @@ class DspPlot(gviz.Digraph):
 
         from .sol import Solution
         from .. import Dispatcher
+        from networkx import is_isolate
         self._edge_data = edge_data
         self._node_data = node_data
         self._node_function = node_function
@@ -356,7 +356,7 @@ class DspPlot(gviz.Digraph):
             self._set_data_node(END, {})
 
         for k, v in sorted(g.node.items()):
-            if k not in dsp.nodes or (k is SINK and nx.is_isolate(g, SINK)):
+            if k not in dsp.nodes or (k is SINK and is_isolate(g, SINK)):
                 continue
 
             self._set_node(k, v)

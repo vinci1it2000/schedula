@@ -17,7 +17,6 @@ from .gen import pairwise, counter
 from .cst import EMPTY, NONE
 from .dsp import SubDispatch, bypass, selector, map_dict
 from .des import parent_func, search_node_description
-from networkx import is_isolate, DiGraph
 from collections import OrderedDict
 
 __all__ = ['stlp']
@@ -67,7 +66,7 @@ def remove_edge_fun(graph):
 
     # Namespace shortcut for speed.
     rm_edge, rm_node = graph.remove_edge, graph.remove_node
-
+    from networkx import is_isolate
     def remove_edge(u, v):
         rm_edge(u, v)  # Remove the edge.
         if is_isolate(graph, v):  # Check if v is isolate.
@@ -1106,6 +1105,7 @@ def _union_workflow(sol, node_id=None, bfs=None):
 
 
 def _convert_bfs(bfs):
+    from networkx import DiGraph
     g = DiGraph()
     g.add_edges_from(bfs[NONE])
     bfs[NONE] = g
