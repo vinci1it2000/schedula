@@ -101,7 +101,8 @@ def load_dispatcher(path):
         File names ending in .gz or .bz2 will be uncompressed.
     :type path: str, file
 
-    :return: dispatcher map that identifies the model adopted.
+    :return:
+        A dispatcher that identifies the model adopted.
     :rtype: co2mpas.dispatcher.Dispatcher
 
     .. testsetup::
