@@ -134,7 +134,8 @@ def model():
 
     d.add_data(
         data_id='input.precondition.wltp_p',
-        description='Dictionary that has all inputs of the calibration cycle.'
+        description='Dictionary that has all inputs of the calibration cycle.',
+        default_value={}
     )
 
     d.add_function(
@@ -149,6 +150,11 @@ def model():
     ############################################################################
     #                          WLTP - HIGH CYCLE
     ############################################################################
+
+    d.add_data(
+        data_id='input.calibration.wltp_h',
+        default_value={}
+    )
 
     d.add_function(
         function=select_calibration_data,
@@ -187,6 +193,11 @@ def model():
     ############################################################################
     #                          WLTP - LOW CYCLE
     ############################################################################
+
+    d.add_data(
+        data_id='input.calibration.wltp_l',
+        default_value={}
+    )
 
     d.add_function(
         function=select_calibration_data,

@@ -19,7 +19,7 @@ USAGE:
   co2mpas batch       [-v | --logconf=<conf-file>] [--gui] [-f]
                       [--overwrite-cache] [--out-template=<xlsx-file>]
                       [--plot-workflow] [-O=<output-folder>]
-                      [--only-summary] [--soft-validation]
+                      [--only-summary] [--engineering-mode=<n>]
                       [<input-path>]...
   co2mpas demo        [-v | --logconf=<conf-file>] [--gui] [-f]
                       [<output-folder>]
@@ -47,7 +47,7 @@ OPTIONS:
                               and Options. [default: False].
   --only-summary              Do not save vehicle outputs, just the summary.
   --overwrite-cache           Overwrite the cached file.
-  --soft-validation           Validate only partially input-data (no schema).
+  --engineering-mode=<n>      Validate only partially input-data (no schema).
   --out-template=<xlsx-file>  Clone the given excel-file and appends results into it.
                               By default, results are appended into an empty excel-file.
                               Use `--out-template=-` to use input-file as template.
@@ -342,7 +342,7 @@ def _prompt_options(opts):
     import easygui as eu
     fields = {
         'overwrite-cache': 'y/[n]',
-        'soft-validation': 'y/[n]',
+        'engineering-mode': '1/2/[0]',
         'plot-workflow': 'y/[n]',
         'only-summary': 'y/[n]',
         'out-template': 'y/[n]/<xlsx-file>',
@@ -437,7 +437,7 @@ def _run_batch(opts):
                          plot_workflow=opts['--plot-workflow'],
                          output_template=opts['--out-template'],
                          overwrite_cache=opts['--overwrite-cache'],
-                         soft_validation=opts['--soft-validation'])
+                         engineering_mode=int(opts['--engineering-mode']))
 
 
 def _main(*args):

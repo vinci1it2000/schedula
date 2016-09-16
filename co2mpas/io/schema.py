@@ -19,6 +19,7 @@ from sklearn.tree import DecisionTreeClassifier
 import pprint
 import co2mpas.dispatcher.utils as dsp_utl
 from . import validations
+import cachetools
 from co2mpas.model.physical.gear_box.at_gear import CMV, MVL, GSPV
 from co2mpas.model.physical.clutch_tc.clutch import Clutch
 from co2mpas.model.physical.clutch_tc.torque_converter import TorqueConverter
@@ -28,10 +29,9 @@ from co2mpas.model.physical.engine.thermal import ThermalModel
 log = logging.getLogger(__name__)
 
 
-def validate_data(data, soft_validation, read_schema=None):
-    plan = validate_plan(data.get('plan', pd.DataFrame([])), read_schema)
-
-    inputs = validate_inputs(data.get('base', {}), soft_validation, read_schema)
+def validate_data(data, engineering_mode):
+    plan = validate_plan(data.get('plan', pd.DataFrame([])), engineering_mode)
+    inputs = validate_inputs(data.get('base', {}), engineering_mode)
     if inputs is not dsp_utl.NONE:
         inputs = {'.'.join(k): v
                   for k, v in dsp_utl.stack_nested_keys(inputs, depth=3)}
@@ -39,21 +39,63 @@ def validate_data(data, soft_validation, read_schema=None):
     return inputs, plan
 
 
-def validate_inputs(data, soft_validation=False, read_schema=None):
-    res, errors, validate = {}, {}, read_schema.validate
-    for k, v in sorted(dsp_utl.stack_nested_keys(data, depth=4)):
-        d = dsp_utl.get_nested_dicts(res, *k[:-1])
-        _add_validated_input(d, validate, k, v, errors)
+def _eng_mode_parser(engineering_mode, inputs, errors):
 
-    if not soft_validation:
-        for k, v in dsp_utl.stack_nested_keys(res, depth=3):
+    if engineering_mode <= validations.DECLARATION:
+        diff = set()
+        inputs = validations.select_declaration_data(inputs, diff)
+        errors = validations.select_declaration_data(errors)
+        if diff:
+            diff = ['.'.join(k) for k in sorted(diff)]
+            log.info('Since CO2MPAS is launched in declaration mode the '
+                     'following data are not used:\n %s\n'
+                     'If you want to include these data add to the cmd '
+                     '--engineering-mode=1 or --engineering-mode=2',
+                     ',\n'.join(diff))
+
+    if engineering_mode < validations.SOFT:
+        for k, v in dsp_utl.stack_nested_keys(inputs, depth=3):
             for c, msg in validations.hard_validation(v):
                 dsp_utl.get_nested_dicts(errors, *k)[c] = SchemaError([], [msg])
+
+    return inputs, errors
+
+
+def validate_plan(plan, engineering_mode):
+    read_schema = define_data_schema(read=True)
+    validated_plan, errors, validate = [], {}, read_schema.validate
+    for i, data in plan.iterrows():
+        inputs = {}
+        data.dropna(how='all', inplace=True)
+        plan_id = 'plan id:{}'.format(i[0])
+        for k, v in data.items():
+            k = (plan_id,) + tuple(k.split('.'))
+            d = dsp_utl.get_nested_dicts(inputs, '.'.join(k[1:-1]))
+            _add_validated_input(d, validate, k, v, errors)
+
+            inputs, errors = _eng_mode_parser(engineering_mode, inputs, errors)
+
+        validated_plan.append((i, inputs))
 
     if _log_errors_msg(errors):
         return dsp_utl.NONE
 
-    return res
+    return validated_plan
+
+
+def validate_inputs(data, engineering_mode):
+    read_schema = define_data_schema(read=True)
+    inputs, errors, validate = {}, {}, read_schema.validate
+    for k, v in sorted(dsp_utl.stack_nested_keys(data, depth=4)):
+        d = dsp_utl.get_nested_dicts(inputs, *k[:-1])
+        _add_validated_input(d, validate, k, v, errors)
+
+    inputs, errors = _eng_mode_parser(engineering_mode, inputs, errors)
+
+    if _log_errors_msg(errors):
+        return dsp_utl.NONE
+
+    return inputs
 
 
 def _add_validated_input(data, validate, keys, value, errors):
@@ -73,25 +115,6 @@ def _log_errors_msg(errors):
         log.error('\n  '.join(msg))
         return True
     return False
-
-
-def validate_plan(plan, read_schema=None):
-    validated_plan, errors, validate = [], {}, read_schema.validate
-    for i, data in plan.iterrows():
-        inputs = {}
-        data.dropna(how='all', inplace=True)
-        plan_id = 'plan id:{}'.format(i[0])
-        for k, v in data.items():
-            k = (plan_id,) + tuple(k.split('.'))
-            d = dsp_utl.get_nested_dicts(inputs, '.'.join(k[1:-1]))
-            _add_validated_input(d, validate, k, v, errors)
-
-        validated_plan.append((i, inputs))
-
-    if _log_errors_msg(errors):
-        return dsp_utl.NONE
-
-    return validated_plan
 
 
 class Empty(object):
@@ -319,6 +342,7 @@ def _tyre_dimensions(error=None, **kwargs):
     return And(_dict(format=dict), Use(_format_tyre_dimensions), error=error)
 
 
+@cachetools.cached({})
 def define_data_schema(read=True):
     cmv = _cmv(read=read)
     dtc = _dtc(read=read)

@@ -72,11 +72,11 @@ def check_file_format(fpath, *args, extensions=('.xlsx',)):
     return fpath.lower().endswith(extensions)
 
 
-def convert2df(report, start_time, main_flags, data_descriptions, write_schema):
+def convert2df(report, start_time, main_flags, data_descriptions):
 
     res = {'graphs.%s' % k: v for k, v in report.get('graphs', {}).items()}
 
-    res.update(_cycle2df(report, data_descriptions, write_schema))
+    res.update(_cycle2df(report, data_descriptions))
 
     res.update(_scores2df(report))
 
@@ -227,9 +227,10 @@ def _pipe2list(pipe, i=0, source=()):
     return res, max_l
 
 
-def _cycle2df(data, data_descriptions, write_schema):
+def _cycle2df(data, data_descriptions):
     res = {}
     out = data.get('output', {})
+    write_schema = schema.define_data_schema(read=False)
     for k, v in dsp_utl.stack_nested_keys(out, key=('output',), depth=3):
         n, k = excel._sheet_name(k), k[-1]
         if 'ts' == k:
@@ -627,9 +628,8 @@ def load_inputs():
     )
 
     d.add_function(
-        function=functools.partial(schema.validate_data,
-                                   read_schema=schema.define_data_schema()),
-        inputs=['data', 'soft_validation'],
+        function=schema.validate_data,
+        inputs=['data', 'engineering_mode'],
         outputs=['validated_data', 'validated_plan'],
         weight=1
     )
@@ -662,8 +662,7 @@ def write_outputs():
 
     d.add_function(
         function=functools.partial(convert2df,
-                         data_descriptions=get_doc_description(),
-                         write_schema=schema.define_data_schema(read=False)),
+                                   data_descriptions=get_doc_description()),
         inputs=['output_data', 'start_time', 'main_flags'],
         outputs=['dfs']
     )

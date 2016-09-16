@@ -15,6 +15,24 @@ import co2mpas.dispatcher.utils as dsp_utl
 import co2mpas.utils as co2_utl
 from . import constants
 
+DECLARATION = 0
+HARD = 1
+SOFT = 2
+
+
+def select_declaration_data(data, diff=None):
+    res = {}
+    for k, v in dsp_utl.stack_nested_keys(constants.con_vals.DECLARATION_DATA):
+        if v and dsp_utl.are_in_nested_dicts(data, *k):
+            v = dsp_utl.get_nested_dicts(data, *k)
+            dsp_utl.get_nested_dicts(res, *k, default=co2_utl.ret_v(v))
+
+    if diff is not None:
+        diff.clear()
+        diff.update(v[0] for v in dsp_utl.stack_nested_keys(data, depth=4))
+        diff.difference_update(v[0] for v in dsp_utl.stack_nested_keys(res, depth=4))
+    return res
+
 
 def hard_validation(data):
     c = ('battery_currents', 'alternator_currents')
