@@ -518,6 +518,7 @@ def physical():
             'alternator_initialization_time': 'alternator_initialization_time'
         },
         outputs={
+            'initial_state_of_charge': 'initial_state_of_charge',
             'alternator_current_model': 'alternator_current_model',
             'alternator_nominal_power': 'alternator_nominal_power',
             'alternator_currents': 'alternator_currents',
