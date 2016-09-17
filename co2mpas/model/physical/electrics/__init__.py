@@ -1057,6 +1057,28 @@ def predict_vehicle_electrics(
     return np.array(alt_c), np.array(bat_c), np.array(soc), np.array(alt_stat)
 
 
+def default_initial_state_of_charge(cycle_type):
+    """
+    Return the default initial state of charge of the battery [%].
+
+    :param cycle_type:
+        Cycle type (WLTP or NEDC).
+    :type cycle_type: str
+
+    :return:
+        Initial state of charge of the battery [%].
+
+        .. note::
+
+            `initial_state_of_charge` = 99 is equivalent to 99%.
+    :rtype: float
+    """
+
+    from ..defaults import dfl
+    isoc = dfl.functions.default_initial_state_of_charge.initial_state_of_charge
+    return isoc[cycle_type]
+
+
 def electrics():
     """
     Defines the electrics model.
@@ -1102,9 +1124,10 @@ def electrics():
         outputs=['electric_load', 'start_demand']
     )
 
-    d.add_data(
-        data_id='initial_state_of_charge',
-        default_value=dfl.values.initial_state_of_charge
+    d.add_function(
+        function=default_initial_state_of_charge,
+        inputs=['cycle_type'],
+        outputs=['initial_state_of_charge']
     )
 
     d.add_function(

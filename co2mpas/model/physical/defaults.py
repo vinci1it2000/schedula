@@ -120,9 +120,6 @@ class Values(co2_utl.Constants):
     #: Time elapsed to turn on the engine with electric starter [s].
     delta_time_engine_starter = 1.0
 
-    #: Initial state of charge of the battery [%].
-    initial_state_of_charge = 99.0
-
     #: If to use decision tree classifiers to predict gears.
     use_dt_gear_shifting = False
 
@@ -360,6 +357,13 @@ class Functions(co2_utl.Constants):
     class calculate_co2_emissions(co2_utl.Constants):
         # idle ratio to define the fuel cutoff [-].
         cutoff_idle_ratio = 1.1
+
+    class default_initial_state_of_charge(co2_utl.Constants):
+        # default initial state of charge of the battery [%].
+        initial_state_of_charge = {
+            'WLTP': 90,
+            'NEDC': 99
+        }
 
     # TODO: add default fuel densities.
     class default_fuel_density(co2_utl.Constants):

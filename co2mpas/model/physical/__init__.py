@@ -484,6 +484,7 @@ def physical():
         dsp_id='electric_model',
         dsp=electrics(),
         inputs={
+            'cycle_type': 'cycle_type',
             'delta_time_engine_starter': 'delta_time_engine_starter',
             'alternator_charging_currents': 'alternator_charging_currents',
             'alternator_current_model': 'alternator_current_model',
