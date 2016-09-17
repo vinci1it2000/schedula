@@ -166,9 +166,9 @@ def _check_positive(x):
 
 
 # noinspection PyUnusedLocal
-def _positive(type=float, error=None, **kwargs):
+def _positive(type=float, error=None, check=_check_positive,**kwargs):
     error = error or 'should be as {} and positive!'.format(type)
-    return And(Use(type), _check_positive, error=error)
+    return And(Use(type), check, error=error)
 
 
 # noinspection PyUnusedLocal
@@ -349,6 +349,10 @@ def define_data_schema(read=True):
     gspv = _gspv(read=read)
     string = _string(read=read)
     positive = _positive(read=read)
+    greater_than_zero = _positive(
+        read=read, error='should be as <float> and greater than zero!',
+        check=lambda x: x > 0
+    )
     positive_int = _positive(type=int, read=read)
     limits = _limits(read=read)
     index_dict = _index_dict(read=read)
@@ -402,7 +406,7 @@ def define_data_schema(read=True):
         'engine_max_speed': positive,
         'engine_max_torque': positive,
         'idle_engine_speed_median': positive,
-        'engine_idle_fuel_consumption': positive,
+        'engine_idle_fuel_consumption': greater_than_zero,
         'final_drive_ratio': positive,
         'r_dynamic': positive,
         'wltp_class': _select(types=('class1', 'class2', 'class3a', 'class3b'),
