@@ -704,7 +704,7 @@ class Dispatcher(object):
                 else:
                     if v[0] in dsp_dfl:
                         self.set_default_value(k, **dsp_dfl.pop(v[0]))
-                    remove.update(v[1:])
+                        remove.update(v[1:])
 
             # Remove default values.
             for k in remove:
