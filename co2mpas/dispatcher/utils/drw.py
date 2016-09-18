@@ -27,7 +27,7 @@ from itertools import chain
 import html
 import logging
 from .des import parent_func, search_node_description
-from .alg import stlp, _iter_list_nodes
+from .alg import stlp
 
 
 __author__ = 'Vincenzo Arcidiacono'
