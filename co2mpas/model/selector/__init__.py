@@ -354,7 +354,7 @@ def sub_models():
         'd': co2_emission(),
         'model_selector': co2_params_selector,
         'models': ['co2_params_calibrated', 'calibration_status',
-                   'initial_friction_params'],
+                   'initial_friction_params', 'engine_idle_fuel_consumption'],
         'inputs': ['co2_emissions_model'],
         'outputs': ['co2_emissions', 'calibration_status'],
         'targets': ['identified_co2_emissions', 'calibration_status'],

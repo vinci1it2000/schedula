@@ -169,6 +169,61 @@ def calculate_brake_mean_effective_pressures(
     return np.nan_to_num(p)
 
 
+class IdleFuelConsumptionModel(object):
+    def __init__(self, fc=None):
+        self.fc = fc
+
+    def fit(self, idle_engine_speed, engine_capacity, engine_stroke, lhv):
+        idle = idle_engine_speed[0]
+        from . import calculate_mean_piston_speeds
+        self.n_s = calculate_mean_piston_speeds(idle, engine_stroke)
+        self.c = idle * (engine_capacity / (lhv * 1200))
+        return self
+
+    def consumption(self, params=None):
+        if self.fc is not None:
+            return self.fc
+
+        if isinstance(params, lmfit.Parameters):
+            params = params.valuesdict()
+
+        FMEP = _calculate_fuel_mean_effective_pressure
+        return FMEP(params, self.n_s, 0, 1)[0] * self.c  # [g/sec]
+
+
+def define_idle_fuel_consumption_model(
+        idle_engine_speed, engine_capacity, engine_stroke,
+        engine_fuel_lower_heating_value, idle_fuel_consumption=None):
+
+    model = IdleFuelConsumptionModel(idle_fuel_consumption).fit(
+        idle_engine_speed, engine_capacity, engine_stroke,
+        engine_fuel_lower_heating_value
+    )
+
+    return model
+
+
+def calculate_engine_idle_fuel_consumption(
+        idle_fuel_consumption_model, params=None):
+    """
+    Calculates fuel consumption at hot idle engine speed [g/s].
+
+    :param engine_idle_fuel_consumption:
+        Fuel consumption at hot idle engine speed [g/s].
+    :type engine_idle_fuel_consumption: float, optional
+
+    :param params:
+        CO2 emission model parameters (a2, b2, a, b, c, l, l2, t, trg).
+
+        The missing parameters are set equal to zero.
+    :type params: dict
+
+    :return:
+    """
+
+    return idle_fuel_consumption_model.consumption(params)
+
+
 # noinspection PyUnusedLocal
 def _calculate_fuel_ABC(n_speeds, n_powers, n_temperatures,
                         a2=0, b2=0, a=0, b=0, c=0, t=0, l=0, l2=0, **kw):
@@ -251,7 +306,7 @@ def calculate_co2_emissions(
         engine_speeds_out, engine_powers_out, mean_piston_speeds,
         brake_mean_effective_pressures, engine_coolant_temperatures, on_engine,
         engine_fuel_lower_heating_value, idle_engine_speed, engine_stroke,
-        engine_capacity, engine_idle_fuel_consumption, fuel_carbon_content,
+        engine_capacity, idle_fuel_consumption_model, fuel_carbon_content,
         min_engine_on_speed, tau_function, params, sub_values=None):
     """
     Calculates CO2 emissions [CO2g/s].
@@ -296,9 +351,9 @@ def calculate_co2_emissions(
         Engine capacity [cm3].
     :type engine_capacity: float
 
-    :param engine_idle_fuel_consumption:
-        Fuel consumption at hot idle engine speed [g/s].
-    :type engine_idle_fuel_consumption: float
+    :param idle_fuel_consumption_model:
+        Model of fuel consumption at hot idle engine speed.
+    :type idle_fuel_consumption_model: IdleFuelConsumptionModel
 
     :param fuel_carbon_content:
         Fuel carbon content [CO2g/g].
@@ -342,24 +397,25 @@ def calculate_co2_emissions(
 
     fc = np.zeros_like(e_powers)
 
+    idle_fc = idle_fuel_consumption_model.consumption(p)
+
     # Idle fc correction for temperature
     b = (e_speeds < idle_engine_speed[0] + min_engine_on_speed)
 
     if p['t0'] == 0 and p['t1'] == 0:
         n_temp = np.ones_like(e_powers)
-        fc[b] = engine_idle_fuel_consumption
+        fc[b] = idle_fc
         b = np.logical_not(b)
     else:
         p['t'] = tau_function(p['t0'], p['t1'], e_temp)
         func = calculate_normalized_engine_coolant_temperatures
         n_temp = func(e_temp, p['trg'])
-        fc[b] = engine_idle_fuel_consumption * np.power(n_temp[b], -p['t'][b])
+        fc[b] = idle_fc * np.power(n_temp[b], -p['t'][b])
         b = np.logical_not(b)
         p['t'] = p['t'][b]
 
     FMEP = functools.partial(_calculate_fuel_mean_effective_pressure, p)
     fc[b] = FMEP(n_speeds[b], n_powers[b], n_temp[b])[0]  # FMEP [bar]
-
     fc[b] *= e_speeds[b] * (engine_capacity / (lhv * 1200))  # [g/sec]
     p['t'] = 0
 
@@ -380,7 +436,7 @@ def define_co2_emissions_model(
         engine_speeds_out, engine_powers_out, mean_piston_speeds,
         brake_mean_effective_pressures, engine_coolant_temperatures, on_engine,
         engine_fuel_lower_heating_value, idle_engine_speed, engine_stroke,
-        engine_capacity, engine_idle_fuel_consumption, fuel_carbon_content,
+        engine_capacity, idle_fuel_consumption_model, fuel_carbon_content,
         min_engine_on_speed, tau_function):
     """
     Returns CO2 emissions model (see :func:`calculate_co2_emissions`).
@@ -425,10 +481,6 @@ def define_co2_emissions_model(
         Engine capacity [cm3].
     :type engine_capacity: float
 
-    :param engine_idle_fuel_consumption:
-        Fuel consumption at hot idle engine speed [g/s].
-    :type engine_idle_fuel_consumption: float
-
     :param fuel_carbon_content:
         Fuel carbon content [CO2g/g].
     :type fuel_carbon_content: float
@@ -451,7 +503,7 @@ def define_co2_emissions_model(
         mean_piston_speeds, brake_mean_effective_pressures,
         engine_coolant_temperatures, on_engine, engine_fuel_lower_heating_value,
         idle_engine_speed, engine_stroke, engine_capacity,
-        engine_idle_fuel_consumption, fuel_carbon_content, min_engine_on_speed,
+        idle_fuel_consumption_model, fuel_carbon_content, min_engine_on_speed,
         tau_function
     )
 
@@ -1942,6 +1994,27 @@ def co2_emission():
                  'extended_phases_integration_times']
     )
 
+    d.add_data(
+        data_id='idle_fuel_consumption_initial_guess',
+        default_value=None,
+        description='Initial guess of fuel consumption '
+                    'at hot idle engine speed [g/s].'
+    )
+
+    d.add_function(
+        function=define_idle_fuel_consumption_model,
+        inputs=['idle_engine_speed', 'engine_capacity', 'engine_stroke',
+                'engine_fuel_lower_heating_value',
+                'idle_fuel_consumption_initial_guess'],
+        outputs=['idle_fuel_consumption_model']
+    )
+
+    d.add_function(
+        function=calculate_engine_idle_fuel_consumption,
+        inputs=['idle_fuel_consumption_model', 'co2_params_calibrated'],
+        outputs=['engine_idle_fuel_consumption']
+    )
+
     d.add_function(
         function=define_co2_emissions_model,
         inputs=['engine_speeds_out', 'engine_powers_out',
@@ -1949,7 +2022,7 @@ def co2_emission():
                 'engine_coolant_temperatures', 'on_engine',
                 'engine_fuel_lower_heating_value', 'idle_engine_speed',
                 'engine_stroke', 'engine_capacity',
-                'engine_idle_fuel_consumption', 'fuel_carbon_content',
+                'idle_fuel_consumption_model', 'fuel_carbon_content',
                 'min_engine_on_speed', 'tau_function'],
         outputs=['co2_emissions_model']
     )

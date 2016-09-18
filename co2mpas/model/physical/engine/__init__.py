@@ -1212,7 +1212,9 @@ def engine():
             'engine_capacity': 'engine_capacity',
             'engine_fuel_lower_heating_value':
                 'engine_fuel_lower_heating_value',
-            'engine_idle_fuel_consumption': 'engine_idle_fuel_consumption',
+            'engine_idle_fuel_consumption': (
+                'engine_idle_fuel_consumption',
+                'idle_fuel_consumption_initial_guess'),
             'engine_powers_out': 'engine_powers_out',
             'engine_speeds_out': 'engine_speeds_out',
             'engine_stroke': 'engine_stroke',
@@ -1272,7 +1274,8 @@ def engine():
             'fuel_carbon_content': 'fuel_carbon_content',
             'engine_fuel_lower_heating_value':
                 'engine_fuel_lower_heating_value',
-            'initial_friction_params': 'initial_friction_params'
+            'initial_friction_params': 'initial_friction_params',
+            'engine_idle_fuel_consumption': 'engine_idle_fuel_consumption'
         },
         inp_weight={'co2_params': defaults.EPS}
     )

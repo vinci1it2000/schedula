@@ -685,7 +685,8 @@ def physical():
             'cold_start_speeds_phases': 'cold_start_speeds_phases',
             'full_load_speeds': 'full_load_speeds',
             'full_load_powers': 'full_load_powers',
-            'engine_max_speed': 'engine_max_speed'
+            'engine_max_speed': 'engine_max_speed',
+            'engine_idle_fuel_consumption': 'engine_idle_fuel_consumption'
         },
         inp_weight={'initial_temperature': 5}
     )
