@@ -159,8 +159,13 @@ def _finalize_plan(res, plans, file_path):
                 return x
         plan['defaults'] = plan['defaults'].apply(_func)
 
+    if 'run_base' not in plan:
+        plan['run_base'] = True
+    else:
+        plan['run_base'].fillna(True)
+
     plan['id'] = plan.index
-    plan.set_index(['id', 'base', 'defaults'], inplace=True)
+    plan.set_index(['id', 'base', 'defaults', 'run_base'], inplace=True)
 
     return plan
 
@@ -239,7 +244,7 @@ def _parse_plan_data(
     defaults = {'usage': 'input', 'stage': 'calibration'}
     match = dsp_utl.combine_dicts(defaults, match)
     for k, v in parse_values(data, match, re_params_name):
-        k = k[-1] if k[-1] in ('base', 'defaults') else '.'.join(k[1:])
+        k = k[-1] if k[-1] in ('base', 'defaults', 'run_base') else '.'.join(k[1:])
         plan[k] = v
 
     plans.append(plan)

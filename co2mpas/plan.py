@@ -14,33 +14,52 @@ import co2mpas.utils as co2_utl
 import co2mpas.io as co2_io
 import co2mpas.batch as batch
 import cachetools
-import copy
+import logging
+
+log = logging.getLogger(__name__)
 
 
 @cachetools.cached(cachetools.LRUCache(maxsize=256))
-def get_results(model, fpath, overwrite_cache=False, **kw):
-    cache_fpath = co2_io.get_cache_fpath(fpath, ext=('res', 'base', 'dill',))
-
+def get_results(model, fpath, overwrite_cache=False, run=True, **kw):
+    ext = ('res', 'base', 'run' if run else 'inp', 'dill')
+    cache_fpath = co2_io.get_cache_fpath(fpath, ext=ext)
     if co2_io.check_cache_fpath_exists(overwrite_cache, fpath, cache_fpath):
         res = co2_io.dill.load_from_dill(cache_fpath)
-    else:
+    elif run:
         kw = {k: v for k, v in kw.items() if k != 'plot_workflow'}
-        res = copy.deepcopy(batch._process_vehicle(
+        res = batch._process_vehicle(
             model, input_file_name=fpath, overwrite_cache=overwrite_cache, **kw
-        ))
+        )
 
         co2_io.dill.save_dill(res, cache_fpath)
+    else:
+
+        res = model.dispatch(
+            inputs=dsp_utl.combine_dicts(
+                dict(input_file_name=fpath, overwrite_cache=overwrite_cache), kw
+            ),
+            outputs=['validated_data', 'vehicle_name']
+        )
+        if 'validated_data' in res:
+            d = dsp_utl.parent_func(model.get_node('CO2MPAS model')[0]).dsp
+            res['dsp_solution'] = d.dispatch(inputs=res['validated_data'],
+                                             cutoff=0)
+            co2_io.dill.save_dill(res, cache_fpath)
 
     return res
 
 
-def build_default_models(model, paths, output_folder, **kw):
+def build_default_models(model, paths, variation_id, output_folder, **kw):
     from .model.physical.clutch_tc.torque_converter import TorqueConverter
     from .__main__ import file_finder
     dfl = {}
     paths = eval(paths or '()')
     for path in file_finder(paths):
         res = get_results(model, path, output_folder, **kw)
+        if 'dsp_solution' not in res:
+            log.warn('Default model "%s" of variation "%s" cannot be parsed!',
+                     path, variation_id)
+            continue
         out = res['dsp_solution'].get('data.prediction.models', {})
         if 'torque_converter_model' in out:
             out['torque_converter_model'] = TorqueConverter()
@@ -83,8 +102,14 @@ def make_simulation_plan(plan, timestamp, output_folder, main_flags):
     }
 
     kw, bases = dsp_utl.combine_dicts(main_flags, kw), set()
-    for (i, base_fpath, defaults_fpats), p in tqdm.tqdm(plan, disable=False):
-        base = get_results(model, base_fpath, **kw)
+    for (i, base_fpath, defaults_fpats, run_base), p in tqdm.tqdm(plan, disable=False):
+        base = get_results(model, base_fpath, run=run_base, **kw)
+
+        if any(k not in base for k in ('vehicle_name', 'dsp_solution')):
+            log.warn('Base model "%s" of variation "%s" cannot be parsed!',
+                     base_fpath, i)
+            continue
+
         name = base['vehicle_name']
         if name not in bases:
             batch._add2summary(summary, base.get('summary', {}))
@@ -96,7 +121,7 @@ def make_simulation_plan(plan, timestamp, output_folder, main_flags):
         dsp_sol = base['dsp_solution']
         outputs = dict(dsp_sol)
 
-        dfl = build_default_models(model, defaults_fpats, **kw)
+        dfl = build_default_models(model, defaults_fpats, i, **kw)
         if dfl:
             dfl = {'data.prediction.models': dfl}
             outputs = dsp_utl.combine_nested_dicts(dfl, outputs, depth=2)
