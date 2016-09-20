@@ -516,7 +516,7 @@ def default_tyre_code(r_dynamic):
 
     def _key_func(c):
         r = calculate_r_wheels(calculate_tyre_dimensions(c))
-        return (r - r_dynamic) ** 2
+        return r <= r_dynamic, (r - r_dynamic) ** 2
 
     return min(pop, key=_key_func)
 
