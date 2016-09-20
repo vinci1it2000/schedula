@@ -98,9 +98,19 @@ def _check(best):
         return True
 
 
+def _sort_rank_for_selecting_best(rank, select=(), **kwargs):
+    select = tuple(k.lower().replace('-', '_') for k in dsp_utl.stlp(select))
+    mw = len(select) + 1
+    w = {k: v for v, k in enumerate(select)}
+    rank = sorted(((w.get(m[3], mw), i), m) for i, m in enumerate(rank))
+    return [v[-1] for v in rank]
+
+
 def get_best_model(
-        rank, models_wo_err=None, selector_id=''):
+        rank, settings=None, models_wo_err=None, selector_id=''):
+    settings = settings or {}
     scores = collections.OrderedDict()
+    rank = _sort_rank_for_selecting_best(rank, **settings)
     for m in rank:
         if m[1]:
             scores[m[3]] = {
@@ -114,7 +124,13 @@ def get_best_model(
     if not rank:
         m = {}
     else:
-        m = rank[0]
+        for k in dsp_utl.stlp(settings.get('select', ())):
+            gen = (m for m in rank if m[3] == k.lower().replace('-', '_'))
+            m = next(gen, dsp_utl.NONE)
+            if m is not dsp_utl.NONE:
+                break
+        else:
+            m = rank[0]
         s = scores[m[3]]
         models_wo_err = models_wo_err or []
 
@@ -520,15 +536,40 @@ def selector(*data):
     setting = sub_models()
 
     d.add_data(
-        data_id='error_settings',
-        default_value={}
+        data_id='selector_settings',
+        default_value={
+    'alternator_model': {
+        'error_settings': {
+            'up_limit': {
+                'state_of_charges': None,
+                'alternator_currents': 50,
+                'alternator_statuses': None,
+                'battery_currents': 50
+            }
+        },
+        'best_model_settings': {
+            'select': ('WLTP-H', 'WLTP-L', 'ALL')
+        }
+    },
+    'engine_cold_start_speed_model': {
+        'error_settings': {
+            'up_limit': {
+                'engine_speeds_out': 100
+            }
+        },
+        'best_model_settings': {
+            'select': ('WLTP-L', 'WLTP-H', 'ALL')
+        }
+
+    }
+}
     )
 
     m = list(setting)
     d.add_function(
-        function=functools.partial(split_error_settings, m),
-        inputs=['error_settings'],
-        outputs=['error_settings/%s' % k for k in m]
+        function=functools.partial(split_selector_settings, m),
+        inputs=['selector_settings'],
+        outputs=['selector_settings/%s' % k for k in m]
     )
 
     for k, v in setting.items():
@@ -537,22 +578,26 @@ def selector(*data):
         d.add_function(
             function=v.pop('model_selector', _selector)(k, data, data, v),
             function_id='%s selector' % k,
-            inputs=['CO2MPAS_results', 'error_settings/%s' % k],
+            inputs=['CO2MPAS_results', 'selector_settings/%s' % k],
             outputs=['models', 'scores']
         )
 
     func = dsp_utl.SubDispatchFunction(
         dsp=d,
         function_id='models_selector',
-        inputs=('error_settings',) + data,
+        inputs=('selector_settings',) + data,
         outputs=['models', 'scores']
     )
 
     return func
 
 
-def split_error_settings(models_ids, error_settings):
-    return list(error_settings.get(k, {}) for k in models_ids)
+def split_selector_settings(models_ids, selector_settings):
+    return list(selector_settings.get(k, {}) for k in models_ids)
+
+
+def define_selector_settings(selector_settings, node_ids=()):
+    return tuple(selector_settings.get(k, {}) for k in node_ids)
 
 
 def _selector(name, data_in, data_out, setting):
@@ -577,8 +622,41 @@ def _selector(name, data_in, data_out, setting):
     )
 
     d.add_data(
-        data_id='error_settings',
-        default_value={}
+        data_id='selector_settings',
+        default_value={
+    'alternator_model': {
+        'error_settings': {
+            'up_limit': {
+                'state_of_charges': None,
+                'alternator_currents': 50,
+                'alternator_statuses': None,
+                'battery_currents': 50
+            }
+        },
+        'best_model_settings': {
+            'select': ('WLTP-H', 'WLTP-L', 'ALL')
+        }
+    },
+    'engine_cold_start_speed_model': {
+        'error_settings': {
+            'up_limit': {
+                'engine_speeds_out': 100
+            }
+        },
+        'best_model_settings': {
+            'select': ('WLTP-L', 'WLTP-H', 'ALL')
+        }
+
+    }
+}
+    )
+
+    node_ids= ['error_settings', 'best_model_settings']
+
+    d.add_function(
+        function=functools.partial(define_selector_settings, node_ids=node_ids),
+        inputs=['selector_settings'],
+        outputs=node_ids
     )
 
     for i in data_in:
@@ -602,7 +680,7 @@ def _selector(name, data_in, data_out, setting):
     d.add_function(
         function_id='get_best_model',
         function=_get_best_model,
-        inputs=['rank'],
+        inputs=['rank', 'best_model_settings'],
         outputs=['model', 'errors']
     )
 

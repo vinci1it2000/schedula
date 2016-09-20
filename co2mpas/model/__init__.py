@@ -240,17 +240,17 @@ def model():
 
     from .selector import selector
 
-    selector = selector('wltp_h', 'wltp_l')
+    sel = selector('wltp_h', 'wltp_l')
 
     d.add_data(
-        data_id='config.error_settings',
+        data_id='config.selector.all',
         default_value={}
     )
 
     d.add_function(
         function_id='extract_calibrated_models',
-        function=selector,
-        inputs=['config.error_settings', 'output.calibration.wltp_h',
+        function=sel,
+        inputs=['config.selector.all', 'output.calibration.wltp_h',
                 'output.calibration.wltp_l'],
         outputs=['data.calibration.models', 'data.calibration.model_scores']
     )

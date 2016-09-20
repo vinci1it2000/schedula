@@ -33,23 +33,23 @@ log = logging.getLogger(__name__)
 _re_params_name = regex.compile(
     r"""
         ^(?P<param>((plan|base)|
-                    (target|input|output|data)|
-                    ((precondition|calibration|prediction)s?)|
+                    (target|input|output|data|config)|
+                    ((precondition|calibration|prediction|selector)s?)|
                     (WLTP([-_]{1}[HLP]{1})?|
                      NEDC([-_]{1}[HL]{1})?|
                      ALL)(recon)?))$
         |
         ^((?P<scope>(plan|base))[. ]{1})?
-        ((?P<usage>(target|input|output|data))s?[. ]{1})?
-        ((?P<stage>(precondition|calibration|prediction))s?[. ]{1})?
+        ((?P<usage>(target|input|output|data|config))s?[. ]{1})?
+        ((?P<stage>(precondition|calibration|prediction|selector))s?[. ]{1})?
         ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|
                    NEDC([-_]{1}[HL]{1})?|
                    ALL)(recon)?[. ]{1})?
         (?P<param>[^\s]*)$
         |
         ^((?P<scope>(plan|base))[. ]{1})?
-        ((?P<usage>(target|input|output|data))s?[. ]{1})?
-        ((?P<stage>(precondition|calibration|prediction))s?[. ]{1})?
+        ((?P<usage>(target|input|output|data|config))s?[. ]{1})?
+        ((?P<stage>(precondition|calibration|prediction|selector))s?[. ]{1})?
         ((?P<param>[^\s.]*))?
         ([. ]{1}(?P<cycle>WLTP([-_]{1}[HLP]{1})?|
                           NEDC([-_]{1}[HL]{1})?|
@@ -60,8 +60,8 @@ _re_params_name = regex.compile(
 _re_input_sheet_name = regex.compile(
     r"""
         ^((?P<scope>(plan|base))[. ]?)?
-        ((?P<usage>(target|input|output|data))s?[. ]?)?
-        ((?P<stage>(precondition|calibration|prediction))s?[. ]?)?
+        ((?P<usage>(target|input|output|data|config))s?[. ]?)?
+        ((?P<stage>(precondition|calibration|prediction|selector))s?[. ]?)?
         ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|
                    NEDC([-_]{1}[HL]{1})?|
                    ALL)(recon)?[. ]?)?
@@ -171,7 +171,10 @@ def _parse_base_data(
     defaults = {'usage': 'input', 'stage': 'calibration'}
 
     if 'type' not in match:
-        match['type'] = 'pa' if 'cycle' not in match else 'ts'
+        if 'cycle' not in match or match.get('usage', None) == 'config':
+            match['type'] = 'pa'
+        else:
+            match['type'] = 'ts'
 
     match = dsp_utl.combine_dicts(defaults, match)
 
@@ -246,18 +249,27 @@ def _isempty(val):
     return isinstance(val, float) and math.isnan(val) or _check_none(val)
 
 
+def _update_cycle(match):
+    if 'cycle' not in match or match['cycle'] == 'all':
+        if match.get('usage', None) == 'config':
+            match['cycle'] = 'all'
+        else:
+            match['cycle'] = ('nedc_h', 'nedc_l', 'wltp_p', 'wltp_h', 'wltp_l')
+    elif match['cycle'] == 'wltp':
+        match['cycle'] = ('wltp_h', 'wltp_l')
+    elif match['cycle'] == 'nedc':
+        match['cycle'] = ('nedc_h', 'nedc_l')
+    elif isinstance(match['cycle'], str):
+        match['cycle'] = match['cycle'].replace('-', '_')
+    return match
+
+
 def parse_values(data, default=None, re_params_name=_re_params_name):
     default = default or {'scope': 'base'}
     if 'usage' not in default:
         default['usage'] = 'input'
-    if 'cycle' not in default or default['cycle'] == 'all':
-        default['cycle'] = ('nedc_h', 'nedc_l', 'wltp_p', 'wltp_h', 'wltp_l')
-    elif default['cycle'] == 'wltp':
-        default['cycle'] = ('wltp_h', 'wltp_l')
-    elif default['cycle'] == 'nedc':
-        default['cycle'] = ('nedc_h', 'nedc_l')
-    else:
-        default['cycle'] = default['cycle'].replace('-', '_')
+
+    _update_cycle(default)
 
     for k, v in data.items():
         match = re_params_name.match(k) if k is not None else None
@@ -276,12 +288,7 @@ def parse_values(data, default=None, re_params_name=_re_params_name):
 
         i = match['param']
 
-        if match['cycle'] == 'wltp':
-            match['cycle'] = ('wltp_h', 'wltp_l')
-        elif match['cycle'] == 'nedc':
-            match['cycle'] = ('nedc_h', 'nedc_l')
-        elif match['cycle'] == 'all':
-            match['cycle'] = ('nedc_h', 'nedc_l', 'wltp_p', 'wltp_h', 'wltp_l')
+        _update_cycle(match)
 
         for c in dsp_utl.stlp(match['cycle']):
             c = c.replace('-', '_')
