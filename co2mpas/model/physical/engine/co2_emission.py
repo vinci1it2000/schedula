@@ -1223,7 +1223,7 @@ def calibrate_co2_params(
 
     p = restrict_bounds(p)
 
-    p, s = calibrate_model_params(co2_error_function_on_phases, p)
+    p, s = calibrate_model_params(co2_error_function_on_emissions, p)
     success.append((s, copy.deepcopy(p)))
     _set_attr(p, vary)
 
