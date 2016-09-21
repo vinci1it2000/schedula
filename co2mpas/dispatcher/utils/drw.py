@@ -121,14 +121,14 @@ class DspPlot(gviz.Digraph):
         }
     })
     __node_data = ('default', 'initial_dist', 'wait_inputs', 'function',
-                   'weight', 'remote_links', 'distance', 'error')
+                   'weight', 'remote_links', 'distance', 'error', 'output')
     __node_function = ('input_domain', 'weight', 'M_inputs', 'M_outputs',
                        'distance', 'started', 'duration', 'error')
     __edge_data = ('inp_id', 'out_id', 'weight', 'value')
     _pprinter = pprint.PrettyPrinter(compact=True, width=200)
 
     def __init__(self, obj, workflow=False, nested=True, edge_data=(),
-                 node_data=(), node_function=(), draw_outputs=3, view=False,
+                 node_data=(), node_function=(), draw_outputs=0, view=False,
                  node_styles=None, depth=-1, function_module=False, name=None,
                  comment=None, directory=None, filename=None, format='svg',
                  engine=None, encoding=None, graph_attr=None, node_attr=None,
@@ -299,13 +299,13 @@ class DspPlot(gviz.Digraph):
 
         draw_outputs = int(draw_outputs)
         if draw_outputs == 1:
-            i, j = -1, 0
+            i, j = -2, -1
         elif draw_outputs == 2:
-            i, j = 0, -1
+            i, j = -1, -2
         elif draw_outputs == 3:
-            i = j = 0
-        else:
             i = j = -1
+        else:
+            i = j = -2
 
         self.node_data = node_data or self.__node_data[:j]
         self.node_function = node_function or self.__node_function

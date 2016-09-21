@@ -1148,7 +1148,7 @@ class Solution(OrderedDict):
         return get_sub_node(self.dsp, node_ids, node_attr, self)
 
     def plot(self, workflow=True, view=True, nested=True, edge_data=(),
-             node_data=(), node_function=(), draw_outputs=3, node_styles=None,
+             node_data=(), node_function=(), draw_outputs=0, node_styles=None,
              depth=-1, function_module=False, name=None, comment=None,
              directory=None, filename=None, format='svg', engine=None,
              encoding=None, graph_attr=None, node_attr=None, edge_attr=None,
