@@ -95,7 +95,7 @@ class _custom_tqdm(tqdm):
 def _yield_folder_files_results(
         start_time, input_files, output_folder, plot_workflow=False,
         with_output_file=True, output_template=None, overwrite_cache=False,
-        engineering_mode=0, model=None):
+        engineering_mode=0, model=None, variation=None):
     model = model or vehicle_processing_model()
     timestamp = start_time.strftime('%Y%m%d_%H%M%S')
     kw = {
@@ -105,7 +105,8 @@ def _yield_folder_files_results(
         'with_output_file': with_output_file,
         'output_template': output_template,
         'overwrite_cache': overwrite_cache,
-        'engineering_mode': engineering_mode
+        'engineering_mode': engineering_mode,
+        'variation': variation or {}
     }
 
     for fpath in _custom_tqdm(input_files, bar_format='{l_bar}{bar}{r_bar}'):
@@ -307,8 +308,10 @@ def vehicle_processing_model():
     from .io import load_inputs, write_outputs
 
     d.add_dispatcher(
+        include_defaults=True,
         dsp=load_inputs(),
         inputs={
+            'variation': 'variation',
             'input_file_name': 'input_file_name',
             'overwrite_cache': 'overwrite_cache',
             'engineering_mode': 'engineering_mode'
@@ -360,7 +363,7 @@ def vehicle_processing_model():
     )
 
     main_flags = ('template_file_name', 'overwrite_cache', 'engineering_mode',
-                  'with_output_file', 'plot_workflow')
+                  'with_output_file', 'plot_workflow', 'variation')
 
     d.add_function(
         function=functools.partial(dsp_utl.map_list, main_flags),

@@ -557,6 +557,40 @@ def check_xlasso(input_file_name):
         return False
 
 
+def merge_variation(variation, data, file_path):
+    has_plan = not 'plan' in data or data['plan'].empty
+    match = {
+        'scope': 'plan' if has_plan else 'base',
+        'usage': 'input',
+        'stage': 'calibration'
+    }
+    r = {}
+    sheets_factory = xleash.SheetsFactory()
+    for k, v in excel.parse_values(variation, match, excel._re_params_name):
+        if isinstance(v, str) and check_xlasso(v):
+            v = xleash.lasso(v, sheets_factory, url_file=file_path)
+        dsp_utl.get_nested_dicts(r, *k[:-1])[k[-1]] = v
+
+    if 'plan' in r:
+        if has_plan:
+            plan = data['plan'].copy()
+            for k, v in dsp_utl.stack_nested_keys(r['plan'], ('plan',), 4):
+                plan['.'.join(k)] = v
+        else:
+            gen = dsp_utl.stack_nested_keys(r['plan'], ('plan',), 4)
+            plan = pd.DataFrame([{'.'.join(k): v for k, v in gen}])
+            excel._add_index_plan(plan, file_path)
+
+        r['plan'] = plan
+
+    if 'base' in r:
+        r['base'] = dsp_utl.combine_nested_dicts(
+            data.get('base', {}), r['base'], depth=4
+        )
+
+    return dsp_utl.combine_dicts(data, r)
+
+
 def load_inputs():
     """
     Defines a module to load the input file of the CO2MPAS model.
@@ -627,9 +661,20 @@ def load_inputs():
         inputs=['data', 'cache_file_name']
     )
 
+    d.add_data(
+        data_id='variation',
+        default_value={}
+    )
+
+    d.add_function(
+        function=merge_variation,
+        inputs=['variation', 'data', 'input_file_name'],
+        outputs=['varied_data']
+    )
+
     d.add_function(
         function=schema.validate_data,
-        inputs=['data', 'engineering_mode'],
+        inputs=['varied_data', 'engineering_mode'],
         outputs=['validated_data', 'validated_plan'],
         weight=1
     )

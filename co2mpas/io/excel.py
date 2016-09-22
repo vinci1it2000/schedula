@@ -123,7 +123,39 @@ def parse_excel_file(
     return res
 
 
-# noinspection PyUnresolvedReferences
+def _add_index_plan(plan, file_path):
+    func = functools.partial(osp.join, osp.dirname(file_path))
+    if 'base' not in plan:
+        plan['base'] = file_path
+    else:
+        plan['base'].fillna(file_path)
+        plan['base'] = plan['base'].apply(lambda x: x or file_path).apply(func)
+
+    plan['base'] = plan['base'].apply(osp.normpath)
+
+    if 'defaults' not in plan:
+        plan['defaults'] = ''
+    else:
+        plan['defaults'].fillna('')
+
+        def _func(x):
+            if x:
+                return str(tuple(osp.normpath(func(v)) for v in tuple(eval(x))))
+            else:
+                return x
+
+        plan['defaults'] = plan['defaults'].apply(_func)
+
+    if 'run_base' not in plan:
+        plan['run_base'] = True
+    else:
+        plan['run_base'].fillna(True)
+
+    plan['id'] = plan.index
+    plan.set_index(['id', 'base', 'defaults', 'run_base'], inplace=True)
+    return plan
+
+
 def _finalize_plan(res, plans, file_path):
     if not plans:
         return pd.DataFrame()
@@ -139,35 +171,8 @@ def _finalize_plan(res, plans, file_path):
                     p[n] = v
 
     plan = pd.concat(plans, copy=False, verify_integrity=True)
-    func = functools.partial(osp.join, osp.dirname(file_path))
-    if 'base' not in plan:
-        plan['base'] = file_path
-    else:
-        plan['base'].fillna(file_path)
-        plan['base'] = plan['base'].apply(lambda x: x or file_path).apply(func)
-
-    plan['base'] = plan['base'].apply(osp.normpath)
-
-    if 'defaults' not in plan:
-        plan['defaults'] = ''
-    else:
-        plan['defaults'].fillna('')
-        def _func(x):
-            if x:
-                return str(tuple(osp.normpath(func(v)) for v in tuple(eval(x))))
-            else:
-                return x
-        plan['defaults'] = plan['defaults'].apply(_func)
-
-    if 'run_base' not in plan:
-        plan['run_base'] = True
-    else:
-        plan['run_base'].fillna(True)
-
-    plan['id'] = plan.index
-    plan.set_index(['id', 'base', 'defaults', 'run_base'], inplace=True)
-
-    return plan
+    # noinspection PyTypeChecker
+    return _add_index_plan(plan, file_path)
 
 
 def _parse_base_data(

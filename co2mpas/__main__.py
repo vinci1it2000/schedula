@@ -20,6 +20,7 @@ USAGE:
                       [--overwrite-cache] [--out-template=<xlsx-file>]
                       [--plot-workflow] [-O=<output-folder>]
                       [--only-summary] [--engineering-mode=<n>]
+                      [-D=<key=value>]...
                       [<input-path>]...
   co2mpas demo        [-v | --logconf=<conf-file>] [--gui] [-f]
                       [<output-folder>]
@@ -48,6 +49,7 @@ OPTIONS:
   --only-summary              Do not save vehicle outputs, just the summary.
   --overwrite-cache           Overwrite the cached file.
   --engineering-mode=<n>      Validate only partially input-data (no schema).
+  --variation, -D=<key=value> Validate only partially input-data (no schema).
   --out-template=<xlsx-file>  Clone the given excel-file and appends results into it.
                               By default, results are appended into an empty excel-file.
                               Use `--out-template=-` to use input-file as template.
@@ -402,6 +404,22 @@ def file_finder(xlsx_fpaths, file_ext='*.xlsx'):
     return [f for f in sorted(files) if _input_file_regex.match(osp.basename(f))]
 
 
+_re_variation = re.compile(r"^\s*('.+'|[^:']*\b)\s*:\s*([^:']*\b|'.*')\s*$")
+
+
+def parse_variation(variation):
+    res = {}
+    for v in variation:
+        try:
+            k, v = _re_variation.match(v).groups()
+            if k in res:
+                raise CmdException('Duplicated --variation key %s!' % k)
+            res[k] = v
+        except AttributeError:
+            raise CmdException('Wrong --variation format %s! ' % v)
+    return res
+
+
 def _run_batch(opts):
     input_paths = opts['<input-path>']
     output_folder = opts['-O']
@@ -437,7 +455,8 @@ def _run_batch(opts):
                          plot_workflow=opts['--plot-workflow'],
                          output_template=opts['--out-template'],
                          overwrite_cache=opts['--overwrite-cache'],
-                         engineering_mode=int(opts['--engineering-mode']))
+                         engineering_mode=int(opts['--engineering-mode']),
+                         variation=parse_variation(opts['--variation']))
 
 
 def _main(*args):
