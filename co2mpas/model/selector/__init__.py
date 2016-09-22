@@ -151,7 +151,7 @@ def get_best_model(
         if not _check(m):
             msg = '\n  %s warning: Models %s failed the calibration.'
             selector_name = selector_id.replace('_', ' ').capitalize()
-            log.warn(msg, selector_name, str(set(s['models'])))
+            log.info(msg, selector_name, str(set(s['models'])))
         m = m[-1]
 
     return m, scores
