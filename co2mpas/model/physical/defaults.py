@@ -160,7 +160,7 @@ class Values(co2_utl.Constants):
     lock_up_tc_limits = (48.0, 0.3)
 
     #: Empirical value in case of CVT [-].
-    tyre_dynamic_rolling_coefficient = 0.975
+    tyre_dynamic_rolling_coefficient = 3.05 / 3.14
 
 
 #: Container of internal function parameters.
