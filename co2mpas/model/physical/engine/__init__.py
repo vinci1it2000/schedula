@@ -26,7 +26,7 @@ import math
 import co2mpas.model.physical.defaults as defaults
 import numpy as np
 import scipy.interpolate as sci_itp
-import sklearn.tree as sk_tree
+import sklearn.metrics as sk_met
 from sklearn.cluster import DBSCAN
 import co2mpas.dispatcher.utils as dsp_utl
 import co2mpas.dispatcher as dsp
@@ -160,15 +160,23 @@ class IdleDetector(DBSCAN):
             algorithm=algorithm, leaf_size=leaf_size, p=p,
             random_state=random_state
         )
-        self.classifier = sk_tree.DecisionTreeClassifier(random_state=0)
+        self.cluster_centers_ = None
 
     def fit(self, X, y=None, sample_weight=None):
         super(IdleDetector, self).fit(X, y=y, sample_weight=sample_weight)
-        inner = self.core_sample_indices_
-        self.classifier.fit(X[inner], self.labels_[inner])
 
-    def predict(self, X):
-        return self.classifier.predict(X)
+        c, l = self.components_, self.labels_[self.core_sample_indices_]
+        self.cluster_centers_ = np.array(
+            [np.mean(c[l == i]) for i in range(l.max() + 1)]
+        )
+        self.min, self.max = c.min(), c.max()
+        return self
+
+    def predict(self, X, set_outliers=True):
+        y = sk_met.pairwise_distances_argmin(X, self.cluster_centers_[:, None])
+        if set_outliers:
+            y[((X > self.max) | (X < self.min))[:, 0]] = -1
+        return y
 
 
 def define_idle_model_detector(
@@ -200,11 +208,9 @@ def define_idle_model_detector(
     b = (velocities < stop_velocity) & (engine_speeds_out > min_engine_on_speed)
 
     x = engine_speeds_out[b][:, None]
-    model = IdleDetector(eps=100)
+    eps = defaults.dfl.functions.define_idle_model_detector.EPS
+    model = IdleDetector(eps=eps)
     model.fit(x)
-    label = -np.ones_like(b, dtype=int)
-    label[b] = model.labels_
-    model.classifier.fit(engine_speeds_out[:, None], label)
 
     return model
 
@@ -215,28 +221,25 @@ def identify_idle_engine_speed_median(idle_model_detector):
 
     :param idle_model_detector:
         Idle engine speed model detector.
-    :type idle_model_detector: sklearn.cluster.DBSCAN
+    :type idle_model_detector: IdleDetector
 
     :return:
         Idle engine speed [RPM].
     :rtype: float
     """
-
-    c = idle_model_detector.components_
-    l = idle_model_detector.labels_[idle_model_detector.core_sample_indices_]
-    cen = np.array([np.mean(c[l == i]) for i in range(l.max() + 1)])
-
-    return np.median(cen[idle_model_detector.labels_])
+    imd = idle_model_detector
+    return np.median(imd.cluster_centers_[imd.labels_])
 
 
 def identify_idle_engine_speed_std(
-        idle_model_detector, engine_speeds_out, idle_engine_speed_median):
+        idle_model_detector, engine_speeds_out, idle_engine_speed_median,
+        min_engine_on_speed):
     """
     Identifies standard deviation of idle engine speed [RPM].
 
     :param idle_model_detector:
         Idle engine speed model detector.
-    :type idle_model_detector: sklearn.cluster.MeanShift
+    :type idle_model_detector: IdleDetector
 
     :param engine_speeds_out:
         Engine speed vector [RPM].
@@ -246,19 +249,26 @@ def identify_idle_engine_speed_std(
         Idle engine speed [RPM].
     :type idle_engine_speed_median: float
 
+    :param min_engine_on_speed:
+        Minimum engine speed to consider the engine to be on [RPM].
+    :type min_engine_on_speed: float
+
     :return:
         Standard deviation of idle engine speed [RPM].
     :rtype: float
     """
-    b = idle_model_detector.predict([(idle_engine_speed_median,)])
+    b = idle_model_detector.predict([(idle_engine_speed_median,)],
+                                    set_outliers=False)
     b = idle_model_detector.predict(engine_speeds_out[:, None]) == b
+    b &= (engine_speeds_out > min_engine_on_speed)
     idle_std = defaults.dfl.functions.identify_idle_engine_speed_std.MIN_STD
     if not b.any():
         return idle_std
 
     s = np.sqrt(np.mean((engine_speeds_out[b] - idle_engine_speed_median) ** 2))
 
-    return max(s, idle_std)
+    p = defaults.dfl.functions.identify_idle_engine_speed_std.MAX_STD_PERC
+    return min(max(s, idle_std), idle_engine_speed_median * p)
 
 
 # not used.
@@ -966,7 +976,7 @@ def engine():
     d.add_function(
         function=identify_idle_engine_speed_std,
         inputs=['idle_model_detector', 'engine_speeds_out',
-                'idle_engine_speed_median'],
+                'idle_engine_speed_median', 'min_engine_on_speed'],
         outputs=['idle_engine_speed_std']
     )
 

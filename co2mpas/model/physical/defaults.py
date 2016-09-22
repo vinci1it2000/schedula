@@ -165,9 +165,16 @@ class Values(co2_utl.Constants):
 
 #: Container of internal function parameters.
 class Functions(co2_utl.Constants):
+    class define_idle_model_detector(co2_utl.Constants):
+        #: eps parameter of DBSCAN [RPM].
+        EPS = 100.0
+
     class identify_idle_engine_speed_std(co2_utl.Constants):
         #: Min standard deviation value [RPM].
         MIN_STD = 100.0
+
+        #: Max standard deviation percentage of median value [-].
+        MAX_STD_PERC = 0.3
 
     class DefaultStartStopModel(co2_utl.Constants):
         #: Maximum allowed velocity to stop the engine [km/h].
