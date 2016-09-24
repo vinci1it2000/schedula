@@ -261,6 +261,7 @@ class Cmd(trtc.Application):
 
     def print_flag_help(self):
         """Print the flag part of the help."""
+        ## Overridden, to support flag short/long tuples.
         if not self.flags:
             return
 
@@ -292,6 +293,7 @@ class Cmd(trtc.Application):
 
         If classes=False (the default), only flags and aliases are printed.
         """
+        ## Overridden, to print relevant cong-classes.
         ## TODO: Remove if https://github.com/ipython/traitlets/issues/296
         self.print_description()
         self.print_subcommands()
@@ -323,6 +325,7 @@ class Cmd(trtc.Application):
         If `inst` is given, it's current trait values will be used in place of
         class defaults.
         """
+        ## Overridden, to print base-classes.
         assert inst is None or isinstance(inst, cls)
         final_help = []
         base_classes = ','.join(p.__name__ for p in cls.__bases__)
