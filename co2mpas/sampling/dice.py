@@ -13,27 +13,20 @@ co2dice: prepare/sign/send/receive/validate/archive Type Approval sampling email
 """
 
 from collections import defaultdict, MutableMapping, OrderedDict, namedtuple
-from datetime import datetime
 from email.mime.text import MIMEText
 import imaplib
 import io
-import json
 import logging
 import os
-from pandalone import utils as pndl_utils
-import pprint
 import re
 import shutil
 import smtplib
-import subprocess
-import sys
 import tempfile
 import textwrap
 import types
 from typing import Sequence, Text
 
 from boltons.setutils import IndexedSet as iset
-import git  # from *gitpython* distribution
 import gnupg # from python-gnupg
 import keyring
 from toolz import dicttoolz as dtz, itertoolz as itz
@@ -46,7 +39,7 @@ from co2mpas.sampling import baseapp, CmdException
 from co2mpas.sampling.baseapp import (APPNAME, Cmd, build_sub_cmds,
                                       chain_cmds)  # @UnusedImport
 import pandalone.utils as pndlu
-import functools as ft
+import functools as fnt
 import itertools as itt
 import os.path as osp
 import pandas as pd  # SLOW!
