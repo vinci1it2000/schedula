@@ -17,9 +17,7 @@ Use the `batch` sub-command to simulate a vehicle contained in an excel-file.
 
 USAGE:
   co2mpas batch       [-v | --logconf=<conf-file>] [--gui] [-f]
-                      [--overwrite-cache] [--out-template=<xlsx-file>]
-                      [--plot-workflow] [-O=<output-folder>]
-                      [--only-summary] [--engineering-mode=<n>]
+                      [--overwrite-cache] [-O=<output-folder>]
                       [-D=<key=value>]...
                       [<input-path>]...
   co2mpas demo        [-v | --logconf=<conf-file>] [--gui] [-f]
@@ -404,7 +402,7 @@ def file_finder(xlsx_fpaths, file_ext='*.xlsx'):
     return [f for f in sorted(files) if _input_file_regex.match(osp.basename(f))]
 
 
-_re_variation = re.compile(r"^\s*('.+'|[^:']*\b)\s*:\s*([^:']*\b|'.*')\s*$")
+_re_variation = re.compile(r"^\s*('.+'|[^:=']*\b)\s*[:=]\s*([^:=']*\b|'.*')\s*$")
 
 
 def parse_variation(variation):
@@ -451,11 +449,6 @@ def _run_batch(opts):
 
     from co2mpas.batch import process_folder_files
     process_folder_files(input_paths, output_folder,
-                         with_output_file=not opts['--only-summary'],
-                         plot_workflow=opts['--plot-workflow'],
-                         output_template=opts['--out-template'],
-                         overwrite_cache=opts['--overwrite-cache'],
-                         engineering_mode=int(opts['--engineering-mode']),
                          variation=parse_variation(opts['--variation']))
 
 
