@@ -663,7 +663,7 @@ class SubDispatch(object):
         self.name = self.__name__ = dsp.name
         self.__doc__ = dsp.__doc__
         from .sol import Solution
-        self.solution = Solution()
+        self.solution = Solution(dsp)
 
     def __call__(self, *input_dicts, copy_input_dicts=False, _sol_output=None):
 
