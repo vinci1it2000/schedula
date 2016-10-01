@@ -51,28 +51,6 @@ def check_data_version(data):
         log.error(msg, __input_file_version__)
 
 
-def check_data_version(data):
-    from co2mpas._version import __input_file_version__
-    data = list(data.values())[0]
-    for k, v in data.items():
-        if not k.startswith('input.'):
-            continue
-        if 'VERSION' in v:
-            v, rv = v['VERSION'], tuple(__input_file_version__.split('.'))
-
-            if tuple(v.split('.')) >= rv:
-                break
-
-            msg = "\n  Input file version %s. Please update your input " \
-                  "file with a version >= %s."
-            log.warning(msg, v, __input_file_version__)
-            break
-    else:
-        msg = "\n  Input file version not found. Please update your input " \
-              "file with a version >= %s."
-        log.error(msg, __input_file_version__)
-
-
 def _eng_mode_parser(engineering_mode, inputs, errors):
 
     if int(engineering_mode) <= validations.DECLARATION:
@@ -553,6 +531,7 @@ def define_data_schema(read=True):
         'gear_box_efficiency_parameters_cold_hot': dictstrdict,
         'model_scores': dictstrdict,
         'scores': dictstrdict,
+        'selections': dictstrdict,
         'at_scores': ordictstrdict,
 
         'fuel_density': positive,
