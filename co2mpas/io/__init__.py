@@ -72,11 +72,11 @@ def check_file_format(fpath, *args, extensions=('.xlsx',)):
     return fpath.lower().endswith(extensions)
 
 
-def convert2df(report, start_time, main_flags, data_descriptions):
+def convert2df(report, start_time, main_flags):
 
     res = {'graphs.%s' % k: v for k, v in report.get('graphs', {}).items()}
 
-    res.update(_cycle2df(report, data_descriptions))
+    res.update(_cycle2df(report))
 
     res.update(_scores2df(report))
 
@@ -227,10 +227,11 @@ def _pipe2list(pipe, i=0, source=()):
     return res, max_l
 
 
-def _cycle2df(data, data_descriptions):
+def _cycle2df(data):
     res = {}
     out = data.get('output', {})
     write_schema = schema.define_data_schema(read=False)
+    data_descriptions = get_doc_description()
     for k, v in dsp_utl.stack_nested_keys(out, key=('output',), depth=3):
         n, k = excel._sheet_name(k), k[-1]
         if 'ts' == k:
@@ -424,10 +425,12 @@ def _yield_sorted_params(
     score_map = score_map or _param_orders()
     return sorted(gen, key=lambda x: _param_scores(x[0], score_map, keys))
 
+
 def _update_score_map(gen):
     m = _param_orders().copy()
     m['param'] = {j[0]['param']: str(i).zfill(3) for i, j in enumerate(gen)}
     return m
+
 
 def _time_series2df(data, data_descriptions):
     df = collections.OrderedDict()
@@ -706,8 +709,7 @@ def write_outputs():
     )
 
     d.add_function(
-        function=functools.partial(convert2df,
-                                   data_descriptions=get_doc_description()),
+        function=convert2df,
         inputs=['output_data', 'start_time', 'main_flags'],
         outputs=['dfs']
     )
