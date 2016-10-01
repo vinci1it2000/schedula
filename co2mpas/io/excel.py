@@ -30,48 +30,226 @@ import functools
 
 log = logging.getLogger(__name__)
 
+
+_base_params = r"""
+    ^((?P<scope>base)[. ]{1})?
+    ((?P<usage>(target|input|output|data|config))s?[. ]{1})?
+    ((?P<stage>(precondition|calibration|prediction|selector))s?[. ]{1})?
+    ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|
+               NEDC([-_]{1}[HL]{1})?|
+               ALL)(recon)?[. ]{1})?
+    (?P<param>[^\s.]*)$
+    |
+    ^((?P<scope>base)[. ]{1})?
+    ((?P<usage>(target|input|output|data|config))s?[. ]{1})?
+    ((?P<stage>(precondition|calibration|prediction|selector))s?[. ]{1})?
+    ((?P<param>[^\s.]*))?
+    ([. ]{1}(?P<cycle>WLTP([-_]{1}[HLP]{1})?|
+                      NEDC([-_]{1}[HL]{1})?|
+                      ALL)(recon)?)?$
+"""
+
+_flag_params = r"""^(?P<scope>flag)[. ]{1}(?P<flag>[^\s.]*)$"""
+
+
+_plan_params = r"""
+    ^(?P<scope>plan)[. ]{1}(
+     (?P<index>(id|base|run_base))$
+     |
+""" + _flag_params.replace('<scope>', '<v_scope>').replace('^(', '(') + r"""
+     |
+""" + _base_params.replace('<scope>', '<v_scope>').replace('^(', '(') + r"""
+     )
+"""
+
+
 _re_params_name = regex.compile(
     r"""
-        ^(?P<param>((plan|base)|
+        ^(?P<param>((plan|base|flag)|
                     (target|input|output|data|config)|
                     ((precondition|calibration|prediction|selector)s?)|
                     (WLTP([-_]{1}[HLP]{1})?|
                      NEDC([-_]{1}[HL]{1})?|
                      ALL)(recon)?))$
         |
-        ^((?P<scope>(plan|base))[. ]{1})?
-        ((?P<usage>(target|input|output|data|config))s?[. ]{1})?
-        ((?P<stage>(precondition|calibration|prediction|selector))s?[. ]{1})?
-        ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|
-                   NEDC([-_]{1}[HL]{1})?|
-                   ALL)(recon)?[. ]{1})?
-        (?P<param>[^\s]*)$
+    """ + _flag_params + r"""
         |
-        ^((?P<scope>(plan|base))[. ]{1})?
-        ((?P<usage>(target|input|output|data|config))s?[. ]{1})?
-        ((?P<stage>(precondition|calibration|prediction|selector))s?[. ]{1})?
-        ((?P<param>[^\s.]*))?
-        ([. ]{1}(?P<cycle>WLTP([-_]{1}[HLP]{1})?|
-                          NEDC([-_]{1}[HL]{1})?|
-                          ALL)(recon)?)?$
-    """, regex.IGNORECASE | regex.X | regex.DOTALL)
+    """ + _plan_params + r"""
+        |
+    """ + _base_params, regex.IGNORECASE | regex.X | regex.DOTALL)
 
+_base_sheet = r"""
+    ^((?P<scope>base)[. ]?)?
+    ((?P<usage>(target|input|output|data|config))s?[. ]?)?
+    ((?P<stage>(precondition|calibration|prediction|selector))s?[. ]?)?
+    ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|
+               NEDC([-_]{1}[HL]{1})?|
+               ALL)(recon)?[. ]?)?
+    (?P<type>(pa|ts|pl))?$
+"""
+
+_flag_sheet = r"""^(?P<scope>flag)([. ]{1}(?P<type>(pa|ts|pl)))?$"""
+
+_plan_sheet = r"""
+    ^(?P<scope>plan)([. ]{1}(
+""" + _flag_sheet.replace('<scope>', '<v_scope>').replace('^(', '(') + r"""
+     |
+""" + _base_sheet.replace('<scope>', '<v_scope>').replace('^(', '(') + r"""
+     ))?$
+"""
 
 _re_input_sheet_name = regex.compile(
-    r"""
-        ^((?P<scope>(plan|base))[. ]?)?
-        ((?P<usage>(target|input|output|data|config))s?[. ]?)?
-        ((?P<stage>(precondition|calibration|prediction|selector))s?[. ]?)?
-        ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|
-                   NEDC([-_]{1}[HL]{1})?|
-                   ALL)(recon)?[. ]?)?
-        ((?P<type>(pa|ts|pl)))?$$
-    """, regex.IGNORECASE | regex.X | regex.DOTALL)
+    r'|'.join((_flag_sheet, _plan_sheet, _base_sheet)),
+    regex.IGNORECASE | regex.X | regex.DOTALL
+)
 
 
-def parse_excel_file(
-        file_path, re_sheet_name=_re_input_sheet_name,
-        re_params_name=_re_params_name):
+_xl_ref = {
+    'pa': '#%s!B2:C_:["pipe", ["dict", "recurse"]]',
+    'ts': '#%s!A2(R):.3:RD:["df", {"header": 0}]',
+    'pl': '#%s!A1(R):._:R:"recurse"'
+}
+
+
+def _get_sheet_type(
+        type=None, usage=None, cycle=None, scope='base', **kw):
+    if type:
+        pass
+    elif scope == 'plan':
+        type = 'pl'
+    elif scope == 'flag' or not cycle or usage == 'config':
+        type = 'pa'
+    else:
+        type = 'ts'
+    return type
+
+
+def _parse_sheet(match, sheet, sheet_name, res=None):
+
+    if res is None:
+        res = {}
+
+    sh_type = _get_sheet_type(**match)
+
+    # noinspection PyBroadException
+    try:
+        data = xleash.lasso(_xl_ref[sh_type] % sheet_name, sheet=sheet)
+    except:
+        return res
+
+    if sh_type == 'pl':
+        try:
+            data = pd.DataFrame(data[1:], columns=data[0])
+        except IndexError:
+            return None
+        if 'id' not in data:
+            data['id'] = data.index + 1
+
+        data.set_index(['id'], inplace=True)
+        data.dropna(how='all', inplace=True)
+        data.dropna(axis=1, how='all', inplace=True)
+    elif sh_type == 'ts':
+        data.dropna(how='all', inplace=True)
+        data.dropna(axis=1, how='all', inplace=True)
+        mask = data.count(0) == len(data._get_axis(0))
+        # noinspection PyUnresolvedReferences
+        drop = [k for k, v in mask.items() if not v]
+        if drop:
+            msg = 'Columns {} in {} sheet contains nan.\n ' \
+                  'Please correct the inputs!'
+            raise ValueError(msg.format(drop, sheet_name))
+
+    for k, v in _parse_values(data, match):
+        dsp_utl.get_nested_dicts(res, *k[:-1])[k[-1]] = v
+    return res
+
+
+def _get_cycle(cycle=None, usage=None, **kw):
+    if cycle is None or cycle == 'all':
+        if usage == 'config':
+            cycle = 'all'
+        else:
+            cycle = ('nedc_h', 'nedc_l', 'wltp_p', 'wltp_h', 'wltp_l')
+    elif cycle == 'wltp':
+        cycle = ('wltp_h', 'wltp_l')
+    elif cycle == 'nedc':
+        cycle = ('nedc_h', 'nedc_l')
+    elif isinstance(cycle, str):
+        cycle = cycle.replace('-', '_')
+
+    return cycle
+
+
+def _get_default_stage(stage=None, cycle=None, usage=None, **kw):
+    if stage is None:
+        if cycle == 'wltp_p':
+            stage = 'precondition'
+        elif 'nedc' in cycle or usage == 'target':
+            stage = 'prediction'
+        else:
+            stage = 'calibration'
+
+    return stage.replace(' ', '')
+
+
+def _parse_key(scope='base', usage='input', **match):
+    if scope == 'flag':
+        yield scope, match['flag']
+    elif scope == 'plan':
+        if len(match) == 1 and 'param' in match:
+            m = _re_params_name.match('.'.join((scope, match['param'])))
+            if m:
+                m = {i: j for i, j in m.groupdict().items() if j}
+                if 'index' in m:
+                    match = m
+
+        if 'index' in match:
+            yield scope, match['index']
+        else:
+            for k in _parse_key(match.get('v_scope', 'base'), usage, **match):
+                yield scope, '.'.join(k)
+    elif scope == 'base':
+        i = match['param']
+        m = match.copy()
+        for c in dsp_utl.stlp(_get_cycle(usage=usage, **match)):
+            m['cycle'] = c
+            stage = _get_default_stage(usage=usage, **m)
+            yield scope, usage, stage, c, i
+
+
+def _parse_values(data, default=None):
+    default = default or {}
+    for k, v in data.items():
+        match = _re_params_name.match(k) if k is not None else None
+        if not match or _isempty(v):
+            continue
+        match = {i: j.lower() for i, j in match.groupdict().items() if j}
+
+        for k in _parse_key(**dsp_utl.combine_dicts(default, match)):
+            yield k, v
+
+
+def _add_times_base(data, scope='base', usage='input', **match):
+    if scope != 'base':
+        return
+    sh_type = _get_sheet_type(scope=scope, usage=usage, **match)
+    n = (scope, 'target')
+    if sh_type == 'ts' and dsp_utl.are_in_nested_dicts(data, *n):
+        t = dsp_utl.get_nested_dicts(data, *n)
+        for k, v in dsp_utl.stack_nested_keys(t, key=n, depth=2):
+            if 'times' not in v:
+                n = list(k + ('times',))
+                n[1] = usage
+                if dsp_utl.are_in_nested_dicts(data, *n):
+                    v['times'] = dsp_utl.get_nested_dicts(data, *n)
+                else:
+                    for i, j in dsp_utl.stack_nested_keys(data, depth=4):
+                        if 'times' in j:
+                            v['times'] = j['times']
+                            break
+
+
+def parse_excel_file(file_path):
     """
     Reads cycle's data and simulation plans.
 
@@ -92,26 +270,34 @@ def parse_excel_file(
     :rtype: dict, pandas.DataFrame
     """
 
-    excel_file = pd.ExcelFile(file_path)
-    res, plans = {}, []
+    try:
+        excel_file = pd.ExcelFile(file_path)
+    except FileNotFoundError:
+        log.error("No such file or directory: '%s'", file_path)
+        return dsp_utl.NONE
 
-    defaults = {'scope': 'base'}
+    res, plans = {}, []
 
     book = excel_file.book
 
     for sheet_name in excel_file.sheet_names:
-        match = re_sheet_name.match(sheet_name)
+        match = _re_input_sheet_name.match(sheet_name)
         if not match:
             continue
         match = {k: v.lower() for k, v in match.groupdict().items() if v}
 
-        match = dsp_utl.combine_dicts(defaults, match)
-
         sheet = pnd_xlrd._open_sheet_by_name_or_index(book, 'book', sheet_name)
-        if match['scope'] == 'base':
-            _parse_base_data(res, match, sheet, sheet_name, re_params_name)
-        elif match['scope'] == 'plan':
-            _parse_plan_data(plans, match, sheet, sheet_name, re_params_name)
+        is_plan = match.get('scope', None) == 'plan'
+        if is_plan:
+            r = {'plan': pd.DataFrame()}
+        else:
+            r = {}
+        r = _parse_sheet(match, sheet, sheet_name, res=r)
+        if is_plan:
+            plans.append(r['plan'])
+        else:
+            _add_times_base(r, **match)
+            dsp_utl.combine_nested_dicts(r, depth=5, base=res)
 
     for k, v in dsp_utl.stack_nested_keys(res.get('base', {}), depth=3):
         if k[0] != 'target':
@@ -133,32 +319,20 @@ def _add_index_plan(plan, file_path):
 
     plan['base'] = plan['base'].apply(osp.normpath)
 
-    if 'defaults' not in plan:
-        plan['defaults'] = ''
-    else:
-        plan['defaults'].fillna('')
-
-        def _func(x):
-            if x:
-                return str(tuple(osp.normpath(func(v)) for v in tuple(eval(x))))
-            else:
-                return x
-
-        plan['defaults'] = plan['defaults'].apply(_func)
-
     if 'run_base' not in plan:
         plan['run_base'] = True
     else:
         plan['run_base'].fillna(True)
 
     plan['id'] = plan.index
-    plan.set_index(['id', 'base', 'defaults', 'run_base'], inplace=True)
+    plan.set_index(['id', 'base', 'run_base'], inplace=True)
     return plan
 
 
 def _finalize_plan(res, plans, file_path):
+
     if not plans:
-        return pd.DataFrame()
+        plans = (pd.DataFrame(),)
 
     for k, v in dsp_utl.stack_nested_keys(res.get('plan', {}), depth=4):
         n = '.'.join(k)
@@ -175,140 +349,8 @@ def _finalize_plan(res, plans, file_path):
     return _add_index_plan(plan, file_path)
 
 
-def _parse_base_data(
-        res, match, sheet, sheet_name, re_params_name=_re_params_name):
-    r = {}
-    defaults = {'usage': 'input', 'stage': 'calibration'}
-
-    if 'type' not in match:
-        if 'cycle' not in match or match.get('usage', None) == 'config':
-            match['type'] = 'pa'
-        else:
-            match['type'] = 'ts'
-
-    match = dsp_utl.combine_dicts(defaults, match)
-
-    if match['type'] == 'pa':
-        xl_ref = '#%s!B2:C_:["pipe", ["dict", "recurse"]]' % sheet_name
-        data = xleash.lasso(xl_ref, sheet=sheet)
-    else:
-        # noinspection PyBroadException
-        try:
-            xl_ref = '#%s!A2(R):.3:RD:["df", {"header": 0}]' % sheet_name
-            data = xleash.lasso(xl_ref, sheet=sheet)
-        except:
-            return {}
-        data.dropna(how='all', inplace=True)
-        data.dropna(axis=1, how='all', inplace=True)
-        mask = data.count(0) == len(data._get_axis(0))
-        # noinspection PyUnresolvedReferences
-        drop = [k for k, v in mask.items() if not v]
-        if drop:
-            msg = 'Columns {} in {} sheet contains nan.\n ' \
-                  'Please correct the inputs!'
-            raise ValueError(msg.format(drop, sheet_name))
-
-    for k, v in parse_values(data, match, re_params_name):
-        dsp_utl.get_nested_dicts(r, *k[:-1])[k[-1]] = v
-
-    n = (match['scope'], 'target')
-    if match['type'] == 'ts' and dsp_utl.are_in_nested_dicts(r, *n):
-        t = dsp_utl.get_nested_dicts(r, *n)
-        for k, v in dsp_utl.stack_nested_keys(t, key=n, depth=2):
-            if 'times' not in v:
-                n = list(k + ('times',))
-                n[1] = match['usage']
-                if dsp_utl.are_in_nested_dicts(r, *n):
-                    v['times'] = dsp_utl.get_nested_dicts(r, *n)
-                else:
-                    for i, j in dsp_utl.stack_nested_keys(r, depth=4):
-                        if 'times' in j:
-                            v['times'] = j['times']
-                            break
-
-    dsp_utl.combine_nested_dicts(r, depth=5, base=res)
-
-
-def _parse_plan_data(
-        plans, match, sheet, sheet_name, re_params_name=_re_params_name):
-    # noinspection PyBroadException
-    xl_ref = '#%s!A1(R):._:R:"recurse"'
-    data = xleash.lasso(xl_ref % sheet_name, sheet=sheet)
-    try:
-        data = pd.DataFrame(data[1:], columns=data[0])
-    except IndexError:
-        return None
-    if 'id' not in data:
-        data['id'] = data.index + 1
-
-    data.set_index(['id'], inplace=True)
-    data.dropna(how='all', inplace=True)
-    data.dropna(axis=1, how='all', inplace=True)
-
-    plan = pd.DataFrame()
-    defaults = {'usage': 'input', 'stage': 'calibration'}
-    match = dsp_utl.combine_dicts(defaults, match)
-    for k, v in parse_values(data, match, re_params_name):
-        k = k[-1] if k[-1] in ('base', 'defaults', 'run_base') else '.'.join(k[1:])
-        plan[k] = v
-
-    plans.append(plan)
-
-
 def _isempty(val):
     return isinstance(val, float) and math.isnan(val) or _check_none(val)
-
-
-def _update_cycle(match):
-    if 'cycle' not in match or match['cycle'] == 'all':
-        if match.get('usage', None) == 'config':
-            match['cycle'] = 'all'
-        else:
-            match['cycle'] = ('nedc_h', 'nedc_l', 'wltp_p', 'wltp_h', 'wltp_l')
-    elif match['cycle'] == 'wltp':
-        match['cycle'] = ('wltp_h', 'wltp_l')
-    elif match['cycle'] == 'nedc':
-        match['cycle'] = ('nedc_h', 'nedc_l')
-    elif isinstance(match['cycle'], str):
-        match['cycle'] = match['cycle'].replace('-', '_')
-    return match
-
-
-def parse_values(data, default=None, re_params_name=_re_params_name):
-    default = default or {'scope': 'base'}
-    if 'usage' not in default:
-        default['usage'] = 'input'
-
-    _update_cycle(default)
-
-    for k, v in data.items():
-        match = re_params_name.match(k) if k is not None else None
-        if not match or _isempty(v):
-            continue
-        match = {i: j.lower() for i, j in match.groupdict().items() if j}
-
-        if 'stage' not in match and match.get('usage', None) == 'target':
-            match['stage'] = 'prediction'
-
-        match = dsp_utl.combine_dicts(default, match)
-        match['stage'] = match['stage'].replace(' ', '')
-
-        if match['stage'] == 'input':
-            match['stage'] = 'calibration'
-
-        i = match['param']
-
-        _update_cycle(match)
-
-        for c in dsp_utl.stlp(match['cycle']):
-            c = c.replace('-', '_')
-            if c == 'wltp_p':
-                stage = 'precondition'
-            elif 'nedc' in c:
-                stage = 'prediction'
-            else:
-                stage = match['stage']
-            yield (match['scope'], match['usage'], stage, c, i), v
 
 
 def _check_none(v):
