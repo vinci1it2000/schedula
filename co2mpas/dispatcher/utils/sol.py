@@ -18,7 +18,7 @@ from copy import _reconstruct
 from datetime import datetime
 from .alg import add_edge_fun, remove_edge_fun, stlp, get_full_pipe,\
      _sort_sk_wait_in, get_sub_node
-from .cst import START, NONE
+from .cst import START, NONE, PLOT
 from .dsp import SubDispatch
 from .des import parent_func
 from .exc import DispatcherError
@@ -480,6 +480,9 @@ class Solution(OrderedDict):
         est, wait_in = self._get_node_estimations(node_attr, node_id)
 
         if not no_call:
+            if node_id is PLOT:
+                est = est.copy()
+                est[PLOT] = {'value': {'obj': self}}
             # Final estimation of the node and node status.
             if not wait_in:
 
@@ -519,6 +522,9 @@ class Solution(OrderedDict):
                 self._warning(msg, node_id, ex)
                 return False
 
+            if value is not NONE:  # Set data output.
+                self[node_id] = value
+
             if 'callback' in node_attr:  # Invoke callback func of data node.
                 try:
                     # noinspection PyCallingNonCallable
@@ -526,9 +532,6 @@ class Solution(OrderedDict):
                 except Exception as ex:
                     msg = "Failed CALLBACKING '%s' due to:\n  %s"
                     self._warning(msg, node_id, ex)
-
-            if value is not NONE:  # Set data output.
-                self[node_id] = value
 
             value = {'value': value}  # Output value.
         else:

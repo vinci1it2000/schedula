@@ -31,9 +31,9 @@ from .utils.sol import Solution
 from .utils.alg import rm_cycles_iter, get_unused_node_id, add_func_edges, \
     get_sub_node, _children, stlp, _update_io_attr_sub_dsp,\
     _update_remote_links, remove_links, _union_workflow, _convert_bfs
-from .utils.cst import EMPTY, START, NONE, SINK, SELF
+from .utils.cst import EMPTY, START, NONE, SINK, SELF, PLOT
 from .utils.des import parent_func
-from .utils.drw import DspPlot
+from .utils.drw import DspPlot, autoplot_callback, autoplot_function
 from .utils.dsp import SubDispatch, bypass, combine_dicts, selector
 from .utils.gen import caller_name
 from .utils.web import create_flask_app
@@ -340,6 +340,9 @@ class Dispatcher(object):
             wait_inputs, function, description = True, bypass, SINK.__doc__
         elif data_id is SELF:
             default_value, description = self, SELF.__doc__
+        elif data_id is PLOT:
+            callback, description = callback or autoplot_callback, PLOT.__doc__
+            function = function or autoplot_function
 
         # Base data node attributes.
         attr_dict = {'type': 'data', 'wait_inputs': wait_inputs}

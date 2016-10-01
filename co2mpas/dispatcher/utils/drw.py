@@ -20,10 +20,11 @@ import inspect
 import platform
 import copy
 from tempfile import mkdtemp, mktemp
-from .cst import START, SINK, END, EMPTY, SELF, NONE
+from .cst import START, SINK, END, EMPTY, SELF, NONE, PLOT
 from .dsp import SubDispatch, SubDispatchFunction, combine_dicts, map_dict, \
-    combine_nested_dicts
+    combine_nested_dicts, selector
 from itertools import chain
+from functools import partial
 import html
 import logging
 from .des import parent_func, search_node_description
@@ -72,6 +73,16 @@ def _upt_styles(styles, base=None):
     return res
 
 
+def autoplot_function(kwargs):
+    keys = sorted(kwargs, key=lambda x: (x is not PLOT, x))
+    kw = combine_dicts(*selector(keys, kwargs, output_type='list'))
+    return partial(kw.pop('obj').plot, **kw)
+
+
+def autoplot_callback(value):
+    value()
+
+
 class DspPlot(gviz.Digraph):
     __node_attr = {'style': 'filled'}
     __graph_attr = {}
@@ -81,6 +92,7 @@ class DspPlot(gviz.Digraph):
         'info': {
             START: {'shape': 'egg', 'fillcolor': 'red', 'label': 'start'},
             SELF: {'shape': 'egg', 'fillcolor': 'gold', 'label': 'self'},
+            PLOT: {'shape': 'egg', 'fillcolor': 'gold', 'label': 'plot'},
             END: {'shape': 'egg', 'fillcolor': 'blue', 'label': 'end'},
             EMPTY: {'shape': 'egg', 'fillcolor': 'gray', 'label': 'empty'},
             SINK: {'shape': 'egg', 'fillcolor': 'black', 'fontcolor': 'white',
@@ -452,13 +464,13 @@ class DspPlot(gviz.Digraph):
                 fpath = osp.join(self.directory, rpath)
 
             dpath = _UNC + osp.dirname(fpath)
-
+            fpath = uncpath(fpath)
             if not osp.isdir(dpath):
                 os.makedirs(dpath)
             elif osp.isfile(fpath):
                 fpath = mktemp(dir=dpath)
 
-            with open(uncpath(fpath), 'w') as f:
+            with open(fpath, 'w') as f:
                 f.write(self.pprint(out))
             self._saved_outputs[id(out)] = fpath
 
