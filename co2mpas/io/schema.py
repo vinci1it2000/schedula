@@ -29,15 +29,26 @@ from co2mpas.model.physical.engine.thermal import ThermalModel
 
 log = logging.getLogger(__name__)
 
+def check_data_version(data):
+    from co2mpas._version import __input_file_version__
+    data = list(data.values())[0]
+    for k, v in data.items():
+        if not k.startswith('input.'):
+            continue
+        if 'VERSION' in v:
+            v, rv = v['VERSION'], tuple(__input_file_version__.split('.'))
 
-def validate_data(data, engineering_mode):
-    plan = validate_plan(data.get('plan', pd.DataFrame([])), engineering_mode)
-    inputs = validate_inputs(data.get('base', {}), engineering_mode)
-    if inputs is not dsp_utl.NONE:
-        inputs = {'.'.join(k): v
-                  for k, v in dsp_utl.stack_nested_keys(inputs, depth=3)}
+            if tuple(v.split('.')) >= rv:
+                break
 
-    return inputs, plan
+            msg = "\n  Input file version %s. Please update your input " \
+                  "file with a version >= %s."
+            log.warning(msg, v, __input_file_version__)
+            break
+    else:
+        msg = "\n  Input file version not found. Please update your input " \
+              "file with a version >= %s."
+        log.error(msg, __input_file_version__)
 
 
 def check_data_version(data):
@@ -64,7 +75,7 @@ def check_data_version(data):
 
 def _eng_mode_parser(engineering_mode, inputs, errors):
 
-    if engineering_mode <= validations.DECLARATION:
+    if int(engineering_mode) <= validations.DECLARATION:
         diff = set()
         inputs = validations.select_declaration_data(inputs, diff)
         errors = validations.select_declaration_data(errors)
@@ -76,7 +87,7 @@ def _eng_mode_parser(engineering_mode, inputs, errors):
                      '--engineering-mode=1 or --engineering-mode=2',
                      ',\n'.join(diff))
 
-    if engineering_mode < validations.SOFT:
+    if int(engineering_mode) < validations.SOFT:
         for k, v in dsp_utl.stack_nested_keys(inputs, depth=3):
             for c, msg in validations.hard_validation(v):
                 dsp_utl.get_nested_dicts(errors, *k)[c] = SchemaError([], [msg])
@@ -88,15 +99,18 @@ def validate_plan(plan, engineering_mode):
     read_schema = define_data_schema(read=True)
     validated_plan, errors, validate = [], {}, read_schema.validate
     for i, data in plan.iterrows():
-        inputs = {}
+        inputs, inp = {}, {}
         data.dropna(how='all', inplace=True)
         plan_id = 'plan id:{}'.format(i[0])
-        for k, v in data.items():
-            k = (plan_id,) + tuple(k.split('.'))
-            d = dsp_utl.get_nested_dicts(inputs, '.'.join(k[1:-1]))
-            _add_validated_input(d, validate, k, v, errors)
+        for k, v in excel._parse_values(data):
+            if k[0] == 'base':
+                d = dsp_utl.get_nested_dicts(inp, *k[1:-1])
+                v = _add_validated_input(d, validate, (plan_id,) + k, v, errors)
 
-            inputs, errors = _eng_mode_parser(engineering_mode, inputs, errors)
+            if v is not dsp_utl.NONE:
+                inputs[k] = v
+
+        errors = _eng_mode_parser(engineering_mode, inp, errors)[1]
 
         validated_plan.append((i, inputs))
 
@@ -106,7 +120,7 @@ def validate_plan(plan, engineering_mode):
     return validated_plan
 
 
-def validate_inputs(data, engineering_mode):
+def validate_base(data, engineering_mode):
     read_schema = define_data_schema(read=True)
     inputs, errors, validate = {}, {}, read_schema.validate
     for k, v in sorted(dsp_utl.stack_nested_keys(data, depth=4)):
@@ -118,7 +132,7 @@ def validate_inputs(data, engineering_mode):
     if _log_errors_msg(errors):
         return dsp_utl.NONE
 
-    return inputs
+    return {'.'.join(k): v for k, v in dsp_utl.stack_nested_keys(inputs, depth=3)}
 
 
 def _add_validated_input(data, validate, keys, value, errors):
@@ -126,8 +140,10 @@ def _add_validated_input(data, validate, keys, value, errors):
         k, v = next(iter(validate({keys[-1]: value}).items()))
         if v is not dsp_utl.NONE:
             data[k] = v
+            return v
     except SchemaError as ex:
         dsp_utl.get_nested_dicts(errors, *keys[:-1])[keys[-1]] = ex
+    return dsp_utl.NONE
 
 
 def _log_errors_msg(errors):
