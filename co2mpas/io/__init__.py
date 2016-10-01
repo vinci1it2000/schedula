@@ -30,7 +30,7 @@ import pathlib
 import regex
 import pandas as pd
 import co2mpas.dispatcher.utils as dsp_utl
-from co2mpas._version import version, __input_file_version__
+from co2mpas._version import version
 import co2mpas.utils as co2_utl
 import co2mpas.dispatcher as dsp
 from . import schema, excel, dill
@@ -458,29 +458,6 @@ def _dd2df(dd, index=None, depth=0):
         frames.append(df)
 
     return pd.concat(frames, copy=False, axis=1, verify_integrity=True)
-
-
-def check_data_version(data):
-    data = list(data.values())[0]
-    for k, v in data.items():
-        if not k.startswith('input.'):
-            continue
-        if 'VERSION' in v:
-            v, rv = v['VERSION'], tuple(__input_file_version__.split('.'))
-
-            if tuple(v.split('.')) >= rv:
-                break
-
-            msg = "\n  Input file version %s. Please update your input " \
-                  "file with a version >= %s."
-            log.warning(msg, v, __input_file_version__)
-            break
-    else:
-        msg = "\n  Input file version not found. Please update your input " \
-              "file with a version >= %s."
-        log.error(msg, __input_file_version__)
-
-    return data
 
 
 _re_units = regex.compile('(\[.*\])')

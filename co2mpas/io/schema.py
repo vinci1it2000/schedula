@@ -19,6 +19,7 @@ from sklearn.tree import DecisionTreeClassifier
 import pprint
 import co2mpas.dispatcher.utils as dsp_utl
 from . import validations
+from . import excel
 import cachetools
 from co2mpas.model.physical.gear_box.at_gear import CMV, MVL, GSPV
 from co2mpas.model.physical.clutch_tc.clutch import Clutch
@@ -37,6 +38,28 @@ def validate_data(data, engineering_mode):
                   for k, v in dsp_utl.stack_nested_keys(inputs, depth=3)}
 
     return inputs, plan
+
+
+def check_data_version(data):
+    from co2mpas._version import __input_file_version__
+    data = list(data.values())[0]
+    for k, v in data.items():
+        if not k.startswith('input.'):
+            continue
+        if 'VERSION' in v:
+            v, rv = v['VERSION'], tuple(__input_file_version__.split('.'))
+
+            if tuple(v.split('.')) >= rv:
+                break
+
+            msg = "\n  Input file version %s. Please update your input " \
+                  "file with a version >= %s."
+            log.warning(msg, v, __input_file_version__)
+            break
+    else:
+        msg = "\n  Input file version not found. Please update your input " \
+              "file with a version >= %s."
+        log.error(msg, __input_file_version__)
 
 
 def _eng_mode_parser(engineering_mode, inputs, errors):
