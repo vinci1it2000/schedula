@@ -124,37 +124,68 @@ def get_best_model(
     if not rank:
         m = {}
     else:
-        for k in dsp_utl.stlp(settings.get('select', ())):
-            gen = (m for m in rank if m[3] == k.lower().replace('-', '_'))
-            m = next(gen, dsp_utl.NONE)
-            if m is not dsp_utl.NONE:
-                break
-        else:
-            m = rank[0]
-        s = scores[m[3]]
-        models_wo_err = models_wo_err or []
-
-        if 'score' not in s and not set(s['models']).issubset(models_wo_err):
-            msg = '\n  Selection error (%s):\n'\
-                  '  Models %s need a score. \n' \
-                  '  Please report this bug to CO2MPAS team, \n' \
-                  '  providing the data to replicate it.'
-            m = set(s['models']).difference(models_wo_err)
-            raise ValueError(msg % (selector_id[:-9], str(m)))
-
-        msg = '\n  Models %s are selected from %s respect to targets' \
-              ' %s.\n  Scores: %s.'
-
-        log.debug(msg, s['models'], m[3], tuple(m[4].keys()),
-                  pprint.pformat(scores))
-
-        if not _check(m):
-            msg = '\n  %s warning: Models %s failed the calibration.'
-            selector_name = selector_id.replace('_', ' ').capitalize()
-            log.info(msg, selector_name, str(set(s['models'])))
-        m = m[-1]
+        m = _select_models(rank, scores, models_wo_err, selector_id, **settings)
 
     return m, scores
+
+
+def _select_models(rank, scores, models_wo_err, selector_id, select=None, **kw):
+    select = select or {}
+    indices = {0: [dsp_utl.NONE]}
+    func = functools.partial(dsp_utl.get_nested_dicts, indices, default=list)
+    for k, v in select.items():
+        func(_select_index(rank, v)).append(k)
+
+    models = {}
+    func = functools.partial(_check_model, rank, scores, models_wo_err,
+                             selector_id)
+
+    log.debug('Scores: %s.', pprint.pformat(scores))
+    for i, v in indices.items():
+        models.update(dict.fromkeys(v, func(i, v)))
+
+    return models
+
+
+def _select_index(rank, select=()):
+    select = dsp_utl.stlp(select)
+    for k in select:
+        cycle = k.lower().replace('-', '_')
+        gen = (i for i, m in enumerate(rank) if m[3] == cycle)
+        i = next(gen, dsp_utl.NONE)
+        if i is not dsp_utl.NONE:
+            break
+    else:
+        i = -1 if select and select[-1] is None else 0
+
+    return i
+
+
+def _check_model(rank, scores, models_wo_err, selector_id, index, cycles):
+    if index < 0:
+        return None, False, {}
+    m = rank[index]
+    s = scores[m[3]]
+    models_wo_err = models_wo_err or []
+
+    if 'score' not in s and not set(s['models']).issubset(models_wo_err):
+        msg = '\n  Selection error (%s):\n' \
+              '  Models %s need a score. \n' \
+              '  Please report this bug to CO2MPAS team, \n' \
+              '  providing the data to replicate it.'
+        m = set(s['models']).difference(models_wo_err)
+        raise ValueError(msg % (selector_id[:-9], str(m)))
+
+    msg = '\n  Models %s to predict %s are selected ' \
+          'from %s respect to targets %s.\n'
+
+    log.debug(msg, s['models'], cycles, m[3], tuple(m[4].keys()))
+    s = _check(m)
+    if not s:
+        msg = '\n  %s warning: Models %s to predict %s failed the calibration.'
+        selector_name = selector_id.replace('_', ' ').capitalize()
+        log.info(msg, selector_name, str(set(s['models'])), cycles)
+    return m[3], s, m[-1]
 
 
 def select_outputs(outputs, targets, results):
@@ -240,27 +271,8 @@ def metric_clutch_torque_converter_model(y_true, y_pred, on_engine):
     return sk_met.mean_absolute_error(y_true[on_engine], y_pred[on_engine])
 
 
-def combine_outputs(models):
-    return dsp_utl.combine_dicts(*models.values())
-
-
-def combine_scores(scores):
-    scores = {k[:-9]: v for k, v in scores.items() if v}
-    if not scores:
-        return {}
-    s = {}
-    for (k, c), v in dsp_utl.stack_nested_keys(scores, depth=2):
-        r = {'models': v['models']} if 'models' in v else {}
-        r.update(v.get('score', {}))
-        dsp_utl.get_nested_dicts(s, k, c, default=co2_utl.ret_v(r))
-
-        if not dsp_utl.are_in_nested_dicts(s, k, 'best'):
-            keys = {'models': 'selected_models', 'success': 'status'}
-            best = dsp_utl.map_dict(keys, dsp_utl.selector(keys, r))
-            best['from'] = c
-            dsp_utl.get_nested_dicts(s, k, 'best', default=co2_utl.ret_v(best))
-
-    return {'selections': s, 'scores': scores}
+def combine_outputs(outputs):
+    return {k[:-9]: v for k, v in outputs.items() if v}
 
 
 def sub_models():
@@ -495,7 +507,49 @@ def at_models_selector(d, at_pred_inputs, models_ids, data):
     return models
 
 
-def selector(*data):
+def split_prediction_models(
+        scores, calibrated_models, input_models, cycle_ids=()):
+    sbm, model_sel, par = {}, {}, {}
+    for (k, c), v in dsp_utl.stack_nested_keys(scores, depth=2):
+        r = dsp_utl.selector(['models'], v, allow_miss=True)
+
+        for m in r.get('models', ()):
+            dsp_utl.get_nested_dicts(par, m, 'calibration')[c] = c
+
+        r.update(v.get('score', {}))
+        dsp_utl.get_nested_dicts(sbm, k, c, default=co2_utl.ret_v(r))
+        r = dsp_utl.selector(['success'], r, allow_miss=True)
+        r = dsp_utl.map_dict({'success': 'status'}, r, {'from': c})
+        dsp_utl.get_nested_dicts(model_sel, k, 'calibration') [c] = r
+
+    p = {i: dict.fromkeys(input_models, 'input') for i in cycle_ids}
+
+    models = {i: input_models.copy() for i in cycle_ids}
+
+    for k, n in sorted(calibrated_models.items()):
+        d = n.get(dsp_utl.NONE, (None, True, {}))
+
+        for i in cycle_ids:
+            c, s, m = n.get(i, d)
+            if m:
+                s = {'from': c, 'status': s}
+                dsp_utl.get_nested_dicts(model_sel, k, 'prediction')[i] = s
+                models[i].update(m)
+                p[i].update(dict.fromkeys(m, c))
+
+    for k, v in dsp_utl.stack_nested_keys(p, ('prediction',), depth=2):
+        dsp_utl.get_nested_dicts(par, k[-1], *k[:-1], default=co2_utl.ret_v(v))
+
+    s = {
+        'param_selections': par,
+        'model_selections': model_sel,
+        'score_by_model': sbm,
+        'scores': scores
+    }
+    return (s,) + tuple(models.get(k, {}) for k in cycle_ids)
+
+
+def selector(*data, pred_cyl_ids=('nedc_h', 'nedc_l', 'wltp_h', 'wltp_l')):
     """
     Defines the models' selector model.
 
@@ -529,7 +583,7 @@ def selector(*data):
 
     d.add_data(
         data_id='scores',
-        function=combine_scores,
+        function=combine_outputs,
         wait_inputs=True
     )
 
@@ -537,32 +591,7 @@ def selector(*data):
 
     d.add_data(
         data_id='selector_settings',
-        default_value={
-    'alternator_model': {
-        'error_settings': {
-            'up_limit': {
-                'state_of_charges': None,
-                'alternator_currents': 50,
-                'alternator_statuses': None,
-                'battery_currents': 50
-            }
-        },
-        'best_model_settings': {
-            'select': ('WLTP-H', 'WLTP-L', 'ALL')
-        }
-    },
-    'engine_cold_start_speed_model': {
-        'error_settings': {
-            'up_limit': {
-                'engine_speeds_out': 100
-            }
-        },
-        'best_model_settings': {
-            'select': ('WLTP-L', 'WLTP-H', 'ALL')
-        }
-
-    }
-}
+        default_value={}
     )
 
     m = list(setting)
@@ -582,18 +611,27 @@ def selector(*data):
             outputs=['models', 'scores']
         )
 
+    pred_mdl_ids = ['models_%s' % k for k in pred_cyl_ids]
+    d.add_function(
+        function=functools.partial(split_prediction_models,
+                                   cycle_ids=pred_cyl_ids),
+        inputs=['scores', 'models', 'default_models'],
+        outputs=['selections'] + pred_mdl_ids
+    )
+
     func = dsp_utl.SubDispatchFunction(
         dsp=d,
         function_id='models_selector',
-        inputs=('selector_settings',) + data,
-        outputs=['models', 'scores']
+        inputs=('selector_settings', 'default_models') + data,
+        outputs=['selections'] + pred_mdl_ids
     )
 
     return func
 
 
 def split_selector_settings(models_ids, selector_settings):
-    return list(selector_settings.get(k, {}) for k in models_ids)
+    config = selector_settings.get('config', {})
+    return tuple(config.get(k, {}) for k in models_ids)
 
 
 def define_selector_settings(selector_settings, node_ids=()):
@@ -623,33 +661,7 @@ def _selector(name, data_in, data_out, setting):
 
     d.add_data(
         data_id='selector_settings',
-        default_value={
-    'alternator_model': {
-        'error_settings': {
-            'up_limit': {
-                'state_of_charges': None,
-                'alternator_currents': 50,
-                'alternator_statuses': None,
-                'battery_currents': 50
-            }
-        },
-        'best_model_settings': {
-            'select': ('WLTP-H', 'WLTP-L', 'ALL')
-        }
-    },
-    'engine_cold_start_speed_model': {
-        'error_settings': {
-            'up_limit': {
-                'engine_speeds_out': 100
-            }
-        },
-        'best_model_settings': {
-            'select': ('WLTP-L', 'WLTP-H', 'ALL')
-        }
-
-    }
-}
-    )
+        default_value={})
 
     node_ids= ['error_settings', 'best_model_settings']
 

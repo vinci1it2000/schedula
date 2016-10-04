@@ -185,7 +185,7 @@ def model():
     d.add_function(
         function_id='predict_wltp_h',
         function=dsp_utl.SubDispatch(physical()),
-        inputs=['data.prediction.models', 'data.prediction.wltp_h'],
+        inputs=['data.prediction.models_wltp_h', 'data.prediction.wltp_h'],
         outputs=['output.prediction.wltp_h'],
         description='Wraps all functions needed to predict CO2 emissions.'
     )
@@ -228,7 +228,7 @@ def model():
     d.add_function(
         function_id='predict_wltp_l',
         function=dsp_utl.SubDispatch(physical()),
-        inputs=['data.prediction.models', 'data.prediction.wltp_l'],
+        inputs=['data.prediction.models_wltp_l', 'data.prediction.wltp_l'],
         outputs=['output.prediction.wltp_l'],
         description='Wraps all functions needed to predict CO2 emissions.'
 
@@ -240,19 +240,12 @@ def model():
 
     from .selector import selector
 
-    sel = selector('wltp_h', 'wltp_l')
+    pred_cyl_ids = ('nedc_h', 'nedc_l', 'wltp_h', 'wltp_l')
+    sel = selector('wltp_h', 'wltp_l', pred_cyl_ids=pred_cyl_ids)
 
     d.add_data(
         data_id='config.selector.all',
         default_value={}
-    )
-
-    d.add_function(
-        function_id='extract_calibrated_models',
-        function=sel,
-        inputs=['config.selector.all', 'output.calibration.wltp_h',
-                'output.calibration.wltp_l'],
-        outputs=['data.calibration.models', 'data.calibration.model_scores']
     )
 
     d.add_data(
@@ -261,9 +254,13 @@ def model():
     )
 
     d.add_function(
-        function=dsp_utl.combine_dicts,
-        inputs=['data.calibration.models', 'input.prediction.models'],
-        outputs=['data.prediction.models']
+        function_id='extract_calibrated_models',
+        function=sel,
+        inputs=['config.selector.all', 'input.prediction.models',
+                'output.calibration.wltp_h',
+                'output.calibration.wltp_l'],
+        outputs=['data.calibration.model_scores'] +
+                ['data.prediction.models_%s' % k for k in pred_cyl_ids]
     )
 
     ############################################################################
@@ -273,7 +270,7 @@ def model():
     d.add_function(
         function_id='predict_nedc_h',
         function=dsp_utl.SubDispatch(physical()),
-        inputs=['data.prediction.models', 'input.prediction.nedc_h'],
+        inputs=['data.prediction.models_nedc_h', 'input.prediction.nedc_h'],
         outputs=['output.prediction.nedc_h'],
     )
 
@@ -284,7 +281,7 @@ def model():
     d.add_function(
         function_id='predict_nedc_l',
         function=dsp_utl.SubDispatch(physical()),
-        inputs=['data.prediction.models', 'input.prediction.nedc_l'],
+        inputs=['data.prediction.models_nedc_l', 'input.prediction.nedc_l'],
         outputs=['output.prediction.nedc_l'],
     )
 
