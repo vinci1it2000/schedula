@@ -38,9 +38,10 @@ class Solution(OrderedDict):
     def __init__(self, dsp=None, inputs=None, outputs=None, wildcard=False,
                  cutoff=None, inputs_dist=None, no_call=False,
                  rm_unused_nds=False, wait_in=None, no_domain=False,
-                 _empty=False):
+                 _empty=False, index=(-1,)):
 
         super(Solution, self).__init__()
+        self.index = index
         self.rm_unused_nds = rm_unused_nds
         self.no_call = no_call
         self.no_domain = no_domain
@@ -237,7 +238,7 @@ class Solution(OrderedDict):
         sol = Solution(
             self.dsp, self.inputs, self.outputs, False, self.cutoff,
             self.inputs_dist, self.no_call, self.rm_unused_nds, self._wait_in,
-            self.no_domain, True
+            self.no_domain, True, self.index
         )
         sol._clean_set()
         it = ['_wildcards', 'inputs', 'inputs_dist']
@@ -715,6 +716,8 @@ class Solution(OrderedDict):
 
         wait_in = nodes[data_id]['wait_inputs']  # Store wait inputs flag.
 
+        index = nodes[data_id]['index']  # Store node index.
+
         wf_add_edge(START, data_id, **value)  # Add edge.
 
         if data_id in self._wildcards:  # Check if the data node has wildcard.
@@ -726,8 +729,10 @@ class Solution(OrderedDict):
             for w, edge_data in self.dmap[data_id].items():  # See func node.
                 wf_add_edge(data_id, w, **value)  # Set workflow.
 
+                node = nodes[w] # Node attributes.
+
                 # Evaluate distance.
-                vw_dist = initial_dist + edge_weight(edge_data, nodes[w])
+                vw_dist = initial_dist + edge_weight(edge_data, node)
 
                 update_view(w, vw_dist)  # Update view distance.
 
@@ -735,14 +740,16 @@ class Solution(OrderedDict):
                 if check_cutoff(vw_dist):
                     wf_remove_edge(data_id, w)  # Remove workflow edge.
                     continue  # Pass the node.
-                elif nodes[w]['type'] == 'dispatcher':
+                elif node['type'] == 'dispatcher':
                     dsp_in(data_id, w, fringe, check_cutoff, no_call, vw_dist)
                 elif check_wait_in(True, w):
                     continue  # Pass the node.
 
                 seen[w] = vw_dist  # Update distance.
 
-                heappush(fringe, (vw_dist, True, (w, self)))  # Add to heapq.
+                vd = (True, w, self.index + node['index']) # Virtual distance.
+
+                heappush(fringe, (vw_dist, vd, (w, self)))  # Add to heapq.
 
             return True
 
@@ -753,8 +760,10 @@ class Solution(OrderedDict):
         elif not check_wait_in(wait_in, data_id):  # Check inputs.
             seen[data_id] = initial_dist  # Update distance.
 
+            vd = (wait_in, data_id, self.index + index)  # Virtual distance.
+
             # Add node to heapq.
-            heappush(fringe, (initial_dist, wait_in, (data_id, self)))
+            heappush(fringe, (initial_dist, vd, (data_id, self)))
 
             return True
         return False
@@ -863,7 +872,7 @@ class Solution(OrderedDict):
         """
 
         # Namespace shortcuts.
-        seen, dists = self.seen, self.dist,
+        seen, dists = self.seen, self.dist
 
         wait_in = self.nodes[node_id]['wait_inputs']  # Wait inputs flag.
 
@@ -880,8 +889,13 @@ class Solution(OrderedDict):
         elif node_id not in seen or dist < seen[node_id]:  # Check min dist.
             seen[node_id] = dist  # Update dist.
 
+            index = self.nodes[node_id]['index']  # Node index.
+
+            # Virtual distance.
+            vd = (w_wait_in + int(wait_in), node_id, self.index + index)
+
             # Add to heapq.
-            heappush(fringe, (dist, w_wait_in + int(wait_in), (node_id, self)))
+            heappush(fringe, (dist, vd, (node_id, self)))
 
             return True  # The node is visible.
         return False  # The node is not visible.
@@ -909,7 +923,7 @@ class Solution(OrderedDict):
 
             wf_remove_node(n)  # Remove unused node.
 
-    def _init_sub_dsp(self, dsp, fringe, outputs, no_call, initial_dist):
+    def _init_sub_dsp(self, dsp, fringe, outputs, no_call, initial_dist, index):
         """
         Initialize the dispatcher as sub-dispatcher and update the fringe.
 
@@ -928,12 +942,13 @@ class Solution(OrderedDict):
 
         # Initialize as sub-dispatcher.
         sol = Solution(dsp, {}, outputs, False, None, None, no_call, False,
-                       wait_in=self._wait_in.get(dsp, None))
+                       wait_in=self._wait_in.get(dsp, None),
+                       index=self.index + index)
 
         sol.sub_dsp = self.sub_dsp
 
         for f in sol.fringe:  # Update the fringe.
-            heappush(fringe, (initial_dist + f[0], 2, f[-1]))
+            heappush(fringe, (initial_dist + f[0], (2,) + f[1][1:], f[-1]))
 
         return sol
 
@@ -1041,7 +1056,8 @@ class Solution(OrderedDict):
 
             # Initialize the sub-dispatcher.
             sub_dsp[dsp] = sol = self._init_sub_dsp(
-                dsp, fringe, node['outputs'], no_call, initial_dist
+                dsp, fringe, node['outputs'], no_call, initial_dist,
+                node['index']
             )
             self.workflow.add_node(dsp_id, solution=sol)
 
