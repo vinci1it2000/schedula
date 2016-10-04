@@ -132,8 +132,7 @@ def _summary2df(data):
         res.append(df)
 
     if 'selection' in summary:
-        df = pd.DataFrame(summary['selection'])
-        df.set_index(['model_id'], inplace=True)
+        df = _dd2df(summary['selection'], ['model_id'], depth=2)
         setattr(df, 'name', 'selection')
         res.append(df)
 
@@ -253,15 +252,17 @@ def _scores2df(data):
 
     scores = dsp_utl.get_nested_dicts(data, *n)
 
-    idx = ['model_id', 'from', 'status', 'selected_models']
-    df = _dd2df(scores['selections'], idx, depth=1)
-    setattr(df, 'name', 'selections')
+    it = (('model_selections', ['model_id'], 2),
+          ('score_by_model', ['model_id'], 1),
+          ('scores', ['model_id', 'param_id'], 2),
+          ('param_selections', ['param_id'], 2))
+    dfs = []
+    for k, idx, depth in it:
+        df = _dd2df(scores[k], idx, depth=depth)
+        setattr(df, 'name', k)
+        dfs.append(df)
 
-    idx = ['model_id', 'param_id']
-    edf = _dd2df(scores['scores'], idx, depth=2)
-    setattr(edf, 'name', 'scores')
-
-    return {'.'.join(n): (df, edf)}
+    return {'.'.join(n): dfs}
 
 
 def _parse_name(name, _standard_names=None):

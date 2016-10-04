@@ -250,23 +250,20 @@ def _extract_summary_from_summary(report, extracted):
 
 
 def _extract_summary_from_model_scores(report, extracted):
-    n = ('data', 'calibration', 'model_scores', 'selections')
-    if dsp_utl.are_in_nested_dicts(report, *n):
-        sel = dsp_utl.get_nested_dicts(report, *n)
-        n, status = ('calibration', 'output'), {}
+    n = ('data', 'calibration', 'model_scores', 'model_selections')
+    if not dsp_utl.are_in_nested_dicts(report, *n):
+        return False
 
-        for k, v in sel.items():
-            gen = ((d['model_id'], d['success']) for d in v if 'success' in d)
+    sel = dsp_utl.get_nested_dicts(report, *n)
+    for k, v in dsp_utl.stack_nested_keys(extracted, depth=3):
+        n = k[1::-1]
+        if k[-1] == 'output' and dsp_utl.are_in_nested_dicts(sel, *n):
+            gen = dsp_utl.get_nested_dicts(sel, *n)
+            gen = ((d['model_id'], d['status']) for d in gen if 'status' in d)
             o = _format_dict(gen, 'status %s')
-            dsp_utl.get_nested_dicts(extracted, k, *n).update(o)
+            v.update(o)
 
-            gen = ((d['model_id'], d['status']) for d in v)
-            status.update(_format_dict(gen, 'status %s'))
-
-        n = ('prediction', 'output')
-        for k in extracted:
-            if dsp_utl.are_in_nested_dicts(extracted, k, n[0]):
-                dsp_utl.get_nested_dicts(extracted, k, *n).update(status)
+    return True
 
 
 def extract_summary(report, vehicle_name):
@@ -375,15 +372,12 @@ def _format_scores(scores):
     return sco
 
 
-def _format_selections(selections):
+def _format_selection(score_by_model, depth=-1, index='model_id'):
     res = {}
-    for model_id, d in selections.items():
-        d = copy.deepcopy(d)
-        best = d.pop('best')
-        for k, v in d.items():
-            v.update(best)
-            v['model_id'] = model_id
-            dsp_utl.get_nested_dicts(res, k, default=list).append(v)
+    for k, v in dsp_utl.stack_nested_keys(score_by_model, depth=depth):
+        v = v.copy()
+        v[index] = k[0]
+        dsp_utl.get_nested_dicts(res, *k[1:], default=list).append(v)
     return res
 
 
@@ -391,15 +385,25 @@ def format_report_scores(data):
     res = {}
     scores = 'data', 'calibration', 'model_scores'
     if dsp_utl.are_in_nested_dicts(data, *scores):
-        n = scores + ('selections',)
-        selections = _format_selections(dsp_utl.get_nested_dicts(data, *n))
-        if selections:
-            dsp_utl.get_nested_dicts(res, *n, default=co2_utl.ret_v(selections))
+        n = scores + ('param_selections',)
+        v = _format_selection(dsp_utl.get_nested_dicts(data, *n), 2, 'param_id')
+        if v:
+            dsp_utl.get_nested_dicts(res, *n, default=co2_utl.ret_v(v))
+
+        n = scores + ('model_selections',)
+        v = _format_selection(dsp_utl.get_nested_dicts(data, *n), 3)
+        if v:
+            dsp_utl.get_nested_dicts(res, *n, default=co2_utl.ret_v(v))
+
+        n = scores + ('score_by_model',)
+        v = _format_selection(dsp_utl.get_nested_dicts(data, *n), 2)
+        if v:
+            dsp_utl.get_nested_dicts(res, *n, default=co2_utl.ret_v(v))
 
         n = scores + ('scores',)
-        scores = _format_scores(dsp_utl.get_nested_dicts(data, *n))
-        if scores:
-            dsp_utl.get_nested_dicts(res, *n, default=co2_utl.ret_v(scores))
+        v = _format_scores(dsp_utl.get_nested_dicts(data, *n))
+        if v:
+            dsp_utl.get_nested_dicts(res, *n, default=co2_utl.ret_v(v))
 
     return res
 
@@ -423,14 +427,10 @@ def calculate_delta(data):
 
 
 def get_selection(data):
-    res = []
-    n = ('data', 'calibration', 'model_scores', 'selections')
+    n = ('data', 'calibration', 'model_scores', 'model_selections')
     if dsp_utl.are_in_nested_dicts(data, *n):
-        for k, v in sorted(dsp_utl.get_nested_dicts(data, *n).items()):
-            d = dsp_utl.selector(('from', 'status'), v['best'])
-            d['model_id'] = k
-            res.append(d)
-    return res
+        return _format_selection(dsp_utl.get_nested_dicts(data, *n), 3)
+    return {}
 
 
 def get_phases_values(data, what='co2_emission', base=None):

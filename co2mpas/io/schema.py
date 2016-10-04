@@ -12,7 +12,6 @@ It provides CO2MPAS schema parse/validator.
 import logging
 from collections import Iterable, OrderedDict
 import numpy as np
-import pandas as pd
 from lmfit import Parameters, Parameter
 from schema import Schema, Use, And, Or, Optional, SchemaError
 from sklearn.tree import DecisionTreeClassifier
@@ -64,6 +63,9 @@ def _eng_mode_parser(engineering_mode, inputs, errors):
                      'If you want to include these data add to the cmd '
                      '--engineering-mode=1 or --engineering-mode=2',
                      ',\n'.join(diff))
+
+    if int(engineering_mode) < validations.SELECTOR:
+        inputs = validations.overwrite_declaration_config_data(inputs)
 
     if int(engineering_mode) < validations.SOFT:
         for k, v in dsp_utl.stack_nested_keys(inputs, depth=3):
@@ -529,9 +531,11 @@ def define_data_schema(read=True):
         'full_load_curve': function,
         'gear_box_efficiency_constants': dictstrdict,
         'gear_box_efficiency_parameters_cold_hot': dictstrdict,
-        'model_scores': dictstrdict,
+        'config': dictstrdict,
         'scores': dictstrdict,
-        'selections': dictstrdict,
+        'param_selections': dictstrdict,
+        'model_selections': dictstrdict,
+        'score_by_model': dictstrdict,
         'at_scores': ordictstrdict,
 
         'fuel_density': positive,
