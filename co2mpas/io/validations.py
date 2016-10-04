@@ -11,6 +11,7 @@ It provides the CO2MPAS validation formulas.
 """
 
 import numpy as np
+import copy
 import co2mpas.dispatcher.utils as dsp_utl
 import co2mpas.utils as co2_utl
 from . import constants
@@ -18,6 +19,7 @@ from . import constants
 DECLARATION = 0
 HARD = 1
 SOFT = 2
+SELECTOR = 3
 
 
 def select_declaration_data(data, diff=None):
@@ -31,6 +33,21 @@ def select_declaration_data(data, diff=None):
         diff.clear()
         diff.update(v[0] for v in dsp_utl.stack_nested_keys(data, depth=4))
         diff.difference_update(v[0] for v in dsp_utl.stack_nested_keys(res, depth=4))
+    return res
+
+
+def overwrite_declaration_config_data(data):
+    config = constants.con_vals.DECLARATION_SELECTOR_CONFIG
+    res = dsp_utl.combine_nested_dicts(data, depth=3)
+    key = ('config', 'selector', 'all')
+
+    d = copy.deepcopy(dsp_utl.get_nested_dicts(res, *key))
+
+    for k, v in dsp_utl.stack_nested_keys(config):
+        dsp_utl.get_nested_dicts(d, *k, default=co2_utl.ret_v(v))
+
+    dsp_utl.get_nested_dicts(res, *key[:-1])[key[-1]] = d
+
     return res
 
 

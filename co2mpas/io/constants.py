@@ -121,6 +121,22 @@ prediction = {
     'cycle_type': True
 }
 
+models_id = (
+        'engine_coolant_temperature_model', 'start_stop_model', 'co2_params',
+        'engine_speed_model', 'engine_cold_start_speed_model', 'at_model',
+        'clutch_torque_converter_model', 'alternator_model'
+    )
+
+value = {
+    'best_model_settings': {
+        'select': {
+            'wltp_h': ('wltp_h', None),
+            'nedc_h': ('wltp_h', None),
+            'wltp_l': ('wltp_l', None),
+            'nedc_l': ('wltp_l', None)
+        }
+    }
+}
 
 class Constants(utl.Constants):
     #: Maximum allowed dT for the initial temperature check [°C].
@@ -153,5 +169,9 @@ class Constants(utl.Constants):
             }
         }
     }
+
+    #: Data to be parsed from the input when declaration mode is enabled.
+    DECLARATION_SELECTOR_CONFIG = {'config': dict.fromkeys(models_id, value)}
+
 
 con_vals = Constants()
