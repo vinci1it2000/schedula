@@ -188,6 +188,11 @@ class Solution(OrderedDict):
         dsp_closed_add = dsp_closed.add
         fringe, check_cutoff = self.fringe, self.check_cutoff
 
+        def _dsp_closed_add(dsp):
+            dsp_closed_add(dsp)
+            for v in dsp.sub_dsp_nodes.values():
+                _dsp_closed_add(v['function'])
+
         while fringe:
             # Visit the closest available node.
             n = (d, _, (v, sol)) = heappop(fringe)
@@ -205,7 +210,7 @@ class Solution(OrderedDict):
                 if self is sol:
                     break  # Reach all targets.
                 else:
-                    dsp_closed_add(sol.dsp)  # Terminated sub-dispatcher.
+                    _dsp_closed_add(sol.dsp)  # Terminated sub-dispatcher.
 
             # See remote link node.
             sol._see_remote_link_node(v, fringe, d, check_dsp)
