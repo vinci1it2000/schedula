@@ -35,7 +35,7 @@ from .utils.cst import EMPTY, START, NONE, SINK, SELF, PLOT
 from .utils.des import parent_func
 from .utils.drw import DspPlot, autoplot_callback, autoplot_function
 from .utils.dsp import SubDispatch, bypass, combine_dicts, selector
-from .utils.gen import caller_name
+from .utils.gen import caller_name, counter
 from .utils.web import create_flask_app
 from .utils.cel import create_celery_app
 
@@ -216,6 +216,8 @@ class Dispatcher(object):
         #: Last dispatch solution.
         self.solution = Solution(self)
 
+        self.counter = counter()
+
     def add_data(self, data_id=None, default_value=EMPTY, initial_dist=0.0,
                  wait_inputs=False, wildcard=None, function=None, callback=None,
                  remote_links=None, description=None, filters=None, **kwargs):
@@ -345,7 +347,11 @@ class Dispatcher(object):
             function = function or autoplot_function
 
         # Base data node attributes.
-        attr_dict = {'type': 'data', 'wait_inputs': wait_inputs}
+        attr_dict = {
+            'type': 'data',
+            'wait_inputs': wait_inputs,
+            'index': (self.counter(),)
+        }
 
         if function is not None:  # Add function as node attribute.
             attr_dict['function'] = function
@@ -506,11 +512,14 @@ class Dispatcher(object):
             func = parent_func(function)
 
         # Base function node attributes.
-        attr_dict = {'type': 'function',
-                     'inputs': inputs,
-                     'outputs': outputs,
-                     'function': function,
-                     'wait_inputs': True}
+        attr_dict = {
+            'type': 'function',
+            'inputs': inputs,
+            'outputs': outputs,
+            'function': function,
+            'wait_inputs': True,
+            'index': (self.counter(),)
+        }
 
         if input_domain:  # Add domain as node attribute.
             attr_dict['input_domain'] = input_domain
@@ -675,9 +684,12 @@ class Dispatcher(object):
 
         # Return dispatcher node id.
         dsp_id = self.add_function(
-                dsp_id, dsp, inputs, parents, input_domain, weight,
-                _weight_from, type='dispatcher', description=description,
-                wait_inputs=False, **kwargs)
+            dsp_id, dsp, sorted(inputs), sorted(parents), input_domain, weight,
+            _weight_from, type='dispatcher', description=description,
+            wait_inputs=False, **kwargs)
+
+        # Set proper inputs.
+        self.nodes[dsp_id]['inputs'] = inputs
 
         # Set proper outputs.
         self.nodes[dsp_id]['outputs'] = outputs
