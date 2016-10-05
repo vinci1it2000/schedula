@@ -410,7 +410,7 @@ def stack_nested_keys(nested_dict, key=(), depth=-1):
         yield key, nested_dict
 
 
-def get_nested_dicts(nested_dict, *keys, default=None):
+def get_nested_dicts(nested_dict, *keys, default=None, init_nesting=dict):
     """
     Get/Initialize the value of nested-dictionaries.
 
@@ -426,14 +426,18 @@ def get_nested_dicts(nested_dict, *keys, default=None):
         Function used to initialize a new value.
     :type default: function, optional
 
+    :param init_nesting:
+        Function used to initialize a new intermediate nesting dict.
+    :type init_nesting: function, optional
+
     :return:
         Value of nested-dictionary.
     :rtype: generator
     """
 
     if keys:
-        default = default or dict
-        d = default() if len(keys) == 1 else {}
+        default = default or init_nesting
+        d = default() if len(keys) == 1 else init_nesting()
         nd = nested_dict[keys[0]] = nested_dict.get(keys[0], d)
         return get_nested_dicts(nd, *keys[1:], default=default)
     return nested_dict
@@ -976,7 +980,6 @@ class SubDispatchFunction(SubDispatch):
             dsp, dict.fromkeys(inputs, None), outputs, wildcard, None,
             inputs_dist, no_call, False
         )
-
 
         # Initialize as sub dispatch.
         super(SubDispatchFunction, self).__init__(
