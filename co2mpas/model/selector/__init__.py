@@ -182,12 +182,12 @@ def _check_model(rank, scores, models_wo_err, selector_id, index, cycles):
           'from %s respect to targets %s.\n'
 
     log.debug(msg, s['models'], cycles, m[3], tuple(m[4].keys()))
-    s = _check(m)
-    if not s:
+    c = _check(m)
+    if not c:
         msg = '\n  %s warning: Models %s to predict %s failed the calibration.'
         selector_name = selector_id.replace('_', ' ').capitalize()
         log.info(msg, selector_name, str(set(s['models'])), cycles)
-    return m[3], s, m[-1]
+    return m[3], c, m[-1]
 
 
 def select_outputs(outputs, targets, results):
