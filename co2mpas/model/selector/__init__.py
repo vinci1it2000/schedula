@@ -148,15 +148,17 @@ def _select_models(rank, scores, models_wo_err, selector_id, select=None, **kw):
 
 
 def _select_index(rank, select=()):
-    select = dsp_utl.stlp(select)
-    for k in select:
+    for k in dsp_utl.stlp(select):
+        if k is None:
+            i = -1
+            break
         cycle = k.lower().replace('-', '_')
         gen = (i for i, m in enumerate(rank) if m[3] == cycle)
         i = next(gen, dsp_utl.NONE)
         if i is not dsp_utl.NONE:
             break
     else:
-        i = -1 if select and select[-1] is None else 0
+        i = 0
 
     return i
 
