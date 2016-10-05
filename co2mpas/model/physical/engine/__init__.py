@@ -866,6 +866,20 @@ def identify_engine_max_speed(full_load_speeds):
     return np.max(full_load_speeds)
 
 
+def define_full_bmep_curve(
+        full_load_speeds, full_load_powers, min_engine_on_speed,
+        engine_capacity, engine_stroke):
+
+    from .co2_emission import calculate_brake_mean_effective_pressures
+    p = calculate_brake_mean_effective_pressures(
+        full_load_speeds, full_load_powers, engine_capacity,
+        min_engine_on_speed)
+
+    s = calculate_mean_piston_speeds(full_load_speeds, engine_stroke)
+    Spline = sci_itp.InterpolatedUnivariateSpline
+    return Spline(s, p, ext=3)
+
+
 def engine():
     """
     Defines the engine model.
@@ -895,6 +909,13 @@ def engine():
         inputs=['fuel_type'],
         outputs=['ignition_type'],
         weight=1
+    )
+
+    d.add_function(
+        function=define_full_bmep_curve,
+        inputs=['full_load_speeds', 'full_load_powers', 'min_engine_on_speed',
+                'engine_capacity', 'engine_stroke'],
+        outputs=['full_bmep_curve']
     )
 
     d.add_function(
@@ -1209,6 +1230,7 @@ def engine():
         dsp=co2_emission(),
         dsp_id='CO2_emission_model',
         inputs={
+            'full_bmep_curve': 'full_bmep_curve',
             'co2_emission_low': 'co2_emission_low',
             'co2_emission_medium': 'co2_emission_medium',
             'co2_emission_high': 'co2_emission_high',
@@ -1285,7 +1307,8 @@ def engine():
             'engine_fuel_lower_heating_value':
                 'engine_fuel_lower_heating_value',
             'initial_friction_params': 'initial_friction_params',
-            'engine_idle_fuel_consumption': 'engine_idle_fuel_consumption'
+            'engine_idle_fuel_consumption': 'engine_idle_fuel_consumption',
+            'active_cylinder_ratios': 'active_cylinder_ratios'
         },
         inp_weight={'co2_params': defaults.EPS}
     )
