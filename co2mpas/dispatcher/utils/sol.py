@@ -174,6 +174,8 @@ class Solution(OrderedDict):
         for d, k in sorted(it):
             add_value(k, input_value(k), d)
 
+        self._add_out_dsp_inputs()
+
     def run(self):
         # Initialized and terminated dispatcher sets.
         dsp_closed, dsp_init = set(), {self.dsp}
@@ -252,6 +254,16 @@ class Solution(OrderedDict):
         y = _reconstruct(self, rv, 1, memo)
         y._update_methods()
         return y
+
+    def _add_out_dsp_inputs(self):
+        # Nodes that are out of the dispatcher nodes.
+        o = sorted(set(self.inputs).difference(self.nodes))
+
+        # Add nodes that are out of the dispatcher nodes.
+        if self.no_call:
+            self.update(OrderedDict.fromkeys(o, None))
+        else:
+            self.update(OrderedDict((k, self.inputs[k]) for k in o))
 
     def _check_targets(self):
         """

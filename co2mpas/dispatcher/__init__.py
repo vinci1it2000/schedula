@@ -1794,15 +1794,6 @@ class Dispatcher(object):
         sol.run()
         sol.sub_dsp[self] = sol.sub_dsp.pop(dsp)
 
-        # Nodes that are out of the dispatcher nodes.
-        out_dsp_nodes = set(sol.inputs).difference(dsp.nodes)
-
-        if out_dsp_nodes:  # Add nodes that are out of the dispatcher nodes.
-            if no_call:
-                sol.update({k: None for k in out_dsp_nodes})
-            else:
-                sol.update({k: inputs[k] for k in out_dsp_nodes})
-
         if select_output_kw:
             return selector(dictionary=sol, **select_output_kw)
 
