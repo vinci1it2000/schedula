@@ -22,6 +22,9 @@ INF = 10000.0
 
 #: Container of node default values.
 class Values(co2_utl.Constants):
+    #: Possible percentages of active cylinders [-].
+    active_cylinder_ratios = (1.0,)
+
     #: NEDC cycle time [s].
     max_time_NEDC = 1180.0
 
@@ -36,6 +39,9 @@ class Values(co2_utl.Constants):
 
     #: Does the vehicle have start/stop system?
     has_start_stop = True
+
+    #: Does the engine have cylinder deactivation technology?
+    engine_has_cylinder_deactivation = False
 
     #: Minimum vehicle engine speed [RPM].
     min_engine_on_speed = 10.0

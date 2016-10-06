@@ -182,15 +182,15 @@ class IdleFuelConsumptionModel(object):
         self.fmep_model = fmep_model
         return self
 
-    def consumption(self, params=None, n_temp=1):
+    def consumption(self, params=None, ac_phases=None):
         if self.fc is not None:
             return self.fc, 1
 
         if isinstance(params, lmfit.Parameters):
             params = params.valuesdict()
-        fc, _, cdr = self.fmep_model(params, self.n_s, 0, n_temp)
+        fc, _, ac = self.fmep_model(params, self.n_s, 0, ac_phases=ac_phases)
         fc *= self.c  # [g/sec]
-        return fc, cdr
+        return fc, ac
 
 
 def define_idle_fuel_consumption_model(
@@ -222,60 +222,91 @@ def calculate_engine_idle_fuel_consumption(
     :type params: dict
 
     :return:
+        Fuel consumption at hot idle engine speed [g/s].
+    :rtype: float
     """
 
     return idle_fuel_consumption_model.consumption(params)[0]
 
 
 class FMEP(object):
-    def __init__(self, full_bmep_curve, cylinder_deactivation_ratios=()):
-        self.cdr = set(cylinder_deactivation_ratios)
+    def __init__(self, full_bmep_curve, active_cylinder_ratios=(1.0,),
+                 has_cylinder_deactivation=False):
+        self.acr = set(active_cylinder_ratios)
         self.fbc = full_bmep_curve
+        self.has_cylinder_deactivation = has_cylinder_deactivation
 
-    def __call__(self, params, n_speeds, n_powers, n_temperatures):
-        A, B, C = _calculate_fuel_ABC(
+    def __call__(self, params, n_speeds, n_powers, n_temperatures,
+                 ac_phases=None):
+        A, B, C = _fuel_ABC(
             n_speeds, n_powers, n_temperatures, **params
         )
 
-        fmep, v = _calculate_fc(A, B, C)
-        cdr = np.ones_like(n_powers)
+        if 'acr' not in params:
 
-        if self.cdr:
-            b = n_temperatures == 1
-            c_ratio = n_powers / (self.fbc(n_speeds) * 0.9)
-            C += n_powers
-            for c in self.cdr:
-                n = b & (c_ratio <= c)
-                try:
-                    _A, _B, _C = c * A[n], c * B[n], C[n] - n_powers[n] / c
-                    r = _calculate_fc(_A, _B, _C)
-                    i = n[n] = fmep[n] > r[0]
-                    fmep[n], v[n], cdr[n] = r[0][i], r[1][i], c
-                except TypeError:
-                    if n:
-                        _A, _B, _C = c * A, c * B, C - n_powers / c
-                        r = _calculate_fc(_A, _B, _C)
-                        if fmep > r[0]:
-                            fmep, v, cdr = r[0][i], r[1][i], c
+            a = max(self.acr)
+            acr = self.acr - {a}
+            if a != 1:
+                C += n_powers
+                fmep, v = _calculate_fc(a * a * A, a * B, C - n_powers / a)
+            else:
+                fmep, v = _calculate_fc(A, B, C)
+                C += n_powers
 
-        return fmep, v, cdr
+            if not (self.has_cylinder_deactivation and acr):
+                ac = np.ones_like(fmep) * a
+            else:
+                def g(x, b):
+                    try:
+                        return x[b]
+                    except (TypeError, IndexError):
+                        return x
+
+                b = n_temperatures == 1
+                if ac_phases is not None:
+                    b &= np.array(ac_phases, dtype=bool)
+                    fmep *= np.ones_like(ac_phases, dtype=float)
+
+                ac = np.ones_like(fmep)
+                c_ratio = n_powers / (self.fbc(n_speeds) * 0.9)
+
+                v *= np.ones_like(fmep)
+                for a in acr:
+                    n = b & (c_ratio <= a)
+                    ABC = a * a * g(A, n), a * g(B, n), g(C, n) - g(n_powers, n) / a
+                    r = _calculate_fc(*ABC)
+                    try:
+                        i = n[n] = fmep[n] > r[0]
+                        fmep[n], v[n], ac[n] = g(r[0], i), g(r[1], i), a
+                    except TypeError:
+                        if n and fmep > r[0]:
+                            (fmep, v), ac = r, a
+
+        else:
+            fmep, v = _calculate_fc(A, B, C)
+            ac = np.ones_like(fmep) * params.get('acr', 1)
+
+        return fmep, v, ac
 
 
-def define_fmep_model(full_bmep_curve, cylinder_deactivation_ratios):
+def define_fmep_model(
+        full_bmep_curve, active_cylinder_ratios, has_cylinder_deactivation):
 
-    model = FMEP(full_bmep_curve, cylinder_deactivation_ratios)
+    model = FMEP(full_bmep_curve, active_cylinder_ratios,
+                 has_cylinder_deactivation)
 
     return model
 
 
 # noinspection PyUnusedLocal
-def _calculate_fuel_ABC(
+def _fuel_ABC(
         n_speeds, n_powers, n_temperatures,
-        a2=0, b2=0, a=0, b=0, c=0, t=0, l=0, l2=0, cdr=1, **kw):
-    A = cdr * a2 + (cdr * b2) * n_speeds
-    B = cdr * a + (cdr * b + (cdr * c) * n_speeds) * n_speeds
+        a2=0, b2=0, a=0, b=0, c=0, t=0, l=0, l2=0, acr=1, **kw):
+    acr2 = acr ** 2
+    A = acr2 * a2 + (acr2 * b2) * n_speeds
+    B = acr * a + (acr * b + (acr * c) * n_speeds) * n_speeds
     C = np.power(n_temperatures, -t) * (l + l2 * n_speeds ** 2)
-    C -= n_powers / cdr
+    C -= n_powers / acr
 
     return A, B, C
 
@@ -297,7 +328,7 @@ def _calculate_fc(A, B, C):
 
 def calculate_p0(
         params, engine_capacity, engine_stroke, idle_engine_speed_median,
-        engine_fuel_lower_heating_value, fmep_model):
+        engine_fuel_lower_heating_value, fmep_model, ac_phases=None):
     """
     Calculates the engine power threshold limit [kW].
 
@@ -332,11 +363,11 @@ def calculate_p0(
 
     lhv = engine_fuel_lower_heating_value
 
-    eng_wfb_idle, eng_wfa_idle = fmep_model(params, engine_cm_idle, 0, 1)[:2]
-    eng_wfa_idle = (3600000.0 / lhv) / eng_wfa_idle
-    eng_wfb_idle *= (3.0 * engine_capacity / lhv * idle_engine_speed_median)
+    wfb_idle, wfa_idle = fmep_model(params, engine_cm_idle, 0, 1, ac_phases)[:2]
+    wfa_idle = (3600000.0 / lhv) / wfa_idle
+    wfb_idle *= (3.0 * engine_capacity / lhv * idle_engine_speed_median)
 
-    return -eng_wfb_idle / eng_wfa_idle
+    return -wfb_idle / wfa_idle
 
 
 def calculate_co2_emissions(
@@ -432,41 +463,41 @@ def calculate_co2_emissions(
     e_powers = engine_powers_out[sub_values]
     e_temp = engine_coolant_temperatures[sub_values]
 
-    fc, cdr  = np.zeros_like(e_powers), np.ones_like(e_powers)
+    fc, ac  = np.zeros_like(e_powers), np.ones_like(e_powers)
 
     # Idle fc correction for temperature
     b = (e_speeds < idle_engine_speed[0] + min_engine_on_speed)
 
     if p['t0'] == 0 and p['t1'] == 0:
-        n_temp = np.ones_like(e_powers)
-        fc[b], cdr[b] = idle_fuel_consumption_model.consumption(p)
+        ac_phases = n_temp = np.ones_like(e_powers)
+        fc[b], ac[b] = idle_fuel_consumption_model.consumption(p)
         b = np.logical_not(b)
     else:
         p['t'] = tau_function(p['t0'], p['t1'], e_temp)
         func = calculate_normalized_engine_coolant_temperatures
         n_temp = func(e_temp, p['trg'])
-        idle_fc, cdr[b] = idle_fuel_consumption_model.consumption(
-            p, n_temp=n_temp
-        )
+        ac_phases = n_temp == 1
+        idle_fc, ac[b] = idle_fuel_consumption_model.consumption(p, ac_phases)
         fc[b] = idle_fc * np.power(n_temp[b], -p['t'][b])
         b = np.logical_not(b)
         p['t'] = p['t'][b]
 
-    fc[b], _, cdr[b] = fmep_model(p, n_speeds[b], n_powers[b], n_temp[b])
+    fc[b], _, ac[b] = fmep_model(p, n_speeds[b], n_powers[b], n_temp[b])
     fc[b] *= e_speeds[b] * (engine_capacity / (lhv * 1200))  # [g/sec]
     p['t'] = 0
 
     par = defaults.dfl.functions.calculate_co2_emissions
     idle_cutoff = idle_engine_speed[0] * par.cutoff_idle_ratio
     ec_p0 = calculate_p0(
-        p, engine_capacity, engine_stroke, idle_cutoff, lhv, fmep_model
+        p, engine_capacity, engine_stroke, idle_cutoff, lhv, fmep_model,
+        ac_phases
     )
     b = (e_powers <= ec_p0) & (e_speeds > idle_cutoff)
     fc[b | (e_speeds < min_engine_on_speed) | (fc < 0)] = 0
 
     co2 = fc * fuel_carbon_content
 
-    return np.nan_to_num(co2), cdr
+    return np.nan_to_num(co2), ac
 
 
 def define_co2_emissions_model(
@@ -1724,14 +1755,14 @@ def calculate_willans_factors(
         )
         n_s = calculate_mean_piston_speeds(av_s, engine_stroke)
 
-        f_mep, wfa = fmep_model(p, n_s, n_p, 1)[:2]
+        f_mep, wfa = fmep_model(p, n_s, n_p, 1, 0)[:2]
 
         c = engine_capacity / engine_fuel_lower_heating_value * av_s
         fc = f_mep * c / 1200.0
         ieff = av_p / (fc * engine_fuel_lower_heating_value) * 1000.0
 
         willans_a = 3600000.0 / engine_fuel_lower_heating_value / wfa
-        willans_b = fmep_model(p, n_s, 0, 1)[0] * c * 3.0
+        willans_b = fmep_model(p, n_s, 0, 1, 0)[0] * c * 3.0
 
         sfc = willans_a + willans_b / av_p
 
@@ -1808,7 +1839,7 @@ def calculate_optimal_efficiency(params, mean_piston_speeds):
 
 
 def _calculate_optimal_point(params, n_speed):
-    A, B, C = _calculate_fuel_ABC(n_speed, 0, 1, **params)
+    A, B, C = _fuel_ABC(n_speed, 0, 1, **params)
     ac4, B2 = 4 * A * C, B ** 2
     sabc = np.sqrt(ac4 * B2)
     n = sabc - ac4
@@ -1953,18 +1984,23 @@ def co2_emission():
 
     d = dsp.Dispatcher(
         name='Engine CO2 emission sub model',
-        description='Calculates temperature, efficiency, '
-                    'torque loss of gear box'
+        description='Calculates CO2 emission.'
     )
 
     d.add_data(
-        data_id='cylinder_deactivation_ratios',
-        default_value=(0.5, 0.6, 0.7, 0.8, 0.9)
+        data_id='active_cylinder_ratios',
+        default_value=defaults.dfl.values.active_cylinder_ratios
+    )
+
+    d.add_data(
+        data_id='engine_has_cylinder_deactivation',
+        default_value=defaults.dfl.values.engine_has_cylinder_deactivation
     )
 
     d.add_function(
         function=define_fmep_model,
-        inputs=['full_bmep_curve', 'cylinder_deactivation_ratios'],
+        inputs=['full_bmep_curve', 'active_cylinder_ratios',
+                'engine_has_cylinder_deactivation'],
         outputs=['fmep_model']
     )
 
@@ -2176,7 +2212,7 @@ def co2_emission():
     d.add_function(
         function=predict_co2_emissions,
         inputs=['co2_emissions_model', 'co2_params_calibrated'],
-        outputs=['co2_emissions', 'active_cylinder_ratios']
+        outputs=['co2_emissions', 'active_cylinders']
     )
 
     d.add_data(

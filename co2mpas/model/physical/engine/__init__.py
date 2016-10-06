@@ -1230,6 +1230,9 @@ def engine():
         dsp=co2_emission(),
         dsp_id='CO2_emission_model',
         inputs={
+            'engine_has_cylinder_deactivation':
+                'engine_has_cylinder_deactivation',
+            'active_cylinder_ratios': 'active_cylinder_ratios',
             'full_bmep_curve': 'full_bmep_curve',
             'co2_emission_low': 'co2_emission_low',
             'co2_emission_medium': 'co2_emission_medium',
@@ -1308,7 +1311,7 @@ def engine():
                 'engine_fuel_lower_heating_value',
             'initial_friction_params': 'initial_friction_params',
             'engine_idle_fuel_consumption': 'engine_idle_fuel_consumption',
-            'active_cylinder_ratios': 'active_cylinder_ratios'
+            'active_cylinders': 'active_cylinders'
         },
         inp_weight={'co2_params': defaults.EPS}
     )

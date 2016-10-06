@@ -529,6 +529,7 @@ def define_data_schema(read=True):
         'electrics_model': function,
         'engine_type': string,
         'full_load_curve': function,
+        'fmep_model': function,
         'gear_box_efficiency_constants': dictstrdict,
         'gear_box_efficiency_parameters_cold_hot': dictstrdict,
         'config': dictstrdict,
@@ -555,6 +556,7 @@ def define_data_schema(read=True):
         'phases_integration_times':
             _type(type=And(Use(tuple), (And(Use(tuple), (_type(float),)),)),
                   read=read),
+        'active_cylinder_ratios': tuplefloat,
         'extended_phases_co2_emissions': tuplefloat,
         'extended_phases_integration_times':
             _type(type=And(Use(tuple), (And(Use(tuple), (_type(float),)),)),
@@ -564,6 +566,7 @@ def define_data_schema(read=True):
 
         'accelerations': np_array,
         'alternator_currents': np_array,
+        'active_cylinders': np_array,
         'alternator_powers_demand': np_array,
         'alternator_statuses': np_array_int,
         'auxiliaries_power_losses': np_array,
