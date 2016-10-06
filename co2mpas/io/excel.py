@@ -344,7 +344,7 @@ def _finalize_plan(res, plans, file_path):
                 else:
                     p[n] = v
 
-    plan = pd.concat(plans, copy=False, verify_integrity=True)
+    plan = pd.concat(plans, axis=1, copy=False, verify_integrity=True)
     # noinspection PyTypeChecker
     return _add_index_plan(plan, file_path)
 
