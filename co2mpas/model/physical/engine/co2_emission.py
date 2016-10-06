@@ -248,7 +248,7 @@ class FMEP(object):
             acr = self.acr - {a}
             if a != 1:
                 C += n_powers
-                fmep, v = _calculate_fc(a * a * A, a * B, C - n_powers / a)
+                fmep, v = _calculate_fc(a * a * A, a * B, a * C - n_powers / a)
             else:
                 fmep, v = _calculate_fc(A, B, C)
                 C += n_powers
@@ -273,7 +273,7 @@ class FMEP(object):
                 v *= np.ones_like(fmep)
                 for a in acr:
                     n = b & (c_ratio <= a)
-                    ABC = a * a * g(A, n), a * g(B, n), g(C, n) - g(n_powers, n) / a
+                    ABC = a * a * g(A, n), a * g(B, n), a * g(C, n) - g(n_powers, n) / a
                     r = _calculate_fc(*ABC)
                     try:
                         i = n[n] = fmep[n] > r[0]
@@ -305,7 +305,7 @@ def _fuel_ABC(
     acr2 = acr ** 2
     A = acr2 * a2 + (acr2 * b2) * n_speeds
     B = acr * a + (acr * b + (acr * c) * n_speeds) * n_speeds
-    C = np.power(n_temperatures, -t) * (l + l2 * n_speeds ** 2)
+    C = np.power(n_temperatures, -t) * (acr * l + acr * l2 * n_speeds ** 2)
     C -= n_powers / acr
 
     return A, B, C
