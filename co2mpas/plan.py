@@ -21,8 +21,8 @@ log = logging.getLogger(__name__)
 
 
 @cachetools.cached(cachetools.LRUCache(maxsize=256))
-def get_results(model, overwrite_cache, fpath, run=True, json_var='{}',
-                output_folder=None):
+def get_results(model, overwrite_cache, fpath, timestamp, run=True,
+                json_var='{}', output_folder=None):
 
     if run:
         ext = ('base', '_v%sv_' % dsp_utl.drw._encode_file_name(json_var))
@@ -35,6 +35,8 @@ def get_results(model, overwrite_cache, fpath, run=True, json_var='{}',
 
     variation['flag.run_base'] = run
     variation['flag.run_plan'] = False
+    variation['flag.timestamp'] = timestamp
+
     r = model.dispatch(
         inputs={
             'input_file_name': fpath,
@@ -107,7 +109,8 @@ def make_simulation_plan(plan, timestamp, variation, flag, model=None):
     kw, bases = dsp_utl.combine_dicts(flag, {'run_base': True}), set()
     for (i, base_fpath, run), p in tqdm.tqdm(plan, disable=False):
         try:
-            base = get_results(model, o_cache, base_fpath, run, var, o_folder)
+            base = get_results(model, o_cache, base_fpath, timestamp, run, var,
+                               o_folder)
         except KeyError:
             log.warn('Base model "%s" of variation "%s" cannot be parsed!',
                      base_fpath, i)
