@@ -84,7 +84,7 @@ def define_new_inputs(data, base):
     if 'dsp_solution' in _get_inputs(base, new_flag)[0]:
         sol = base['dsp_solution']
         n, out_id = _get_inputs(sol, new_data)
-        for k in n:
+        for k in n.intersection(sol):
             dsp_utl.get_nested_dicts(new_base, 'base', *k.split('.'),
                                      default=co2_utl.ret_v(sol[k]))
     else:
