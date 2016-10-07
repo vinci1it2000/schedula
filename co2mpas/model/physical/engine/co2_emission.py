@@ -248,7 +248,7 @@ class FMEP(object):
             acr = self.acr - {a}
             if a != 1:
                 C += n_powers
-                fmep, v = _calculate_fc(a * a * A, a * B, a * C - n_powers / a)
+                fmep, v = _calculate_fc(A / (a * a), B / a, C - n_powers / a)
             else:
                 fmep, v = _calculate_fc(A, B, C)
                 C += n_powers
@@ -262,19 +262,18 @@ class FMEP(object):
                     except (TypeError, IndexError):
                         return x
 
-                b = n_temperatures == 1
+                b = (n_temperatures == 1) & (n_powers > 0)
                 if ac_phases is not None:
                     b &= np.array(ac_phases, dtype=bool)
                     fmep *= np.ones_like(ac_phases, dtype=float)
 
                 ac = np.ones_like(fmep)
-                c_ratio = n_powers / (self.fbc(n_speeds) * 0.9)
-
+                ac_ratio = n_powers / (self.fbc(n_speeds) * 0.9)
                 v *= np.ones_like(fmep)
                 for a in acr:
-                    n = b & (c_ratio <= a)
-                    ABC = a * a * g(A, n), a * g(B, n), a * g(C, n) - g(n_powers, n) / a
-                    r = _calculate_fc(*ABC)
+                    n = b & (ac_ratio < a)
+                    BC = g(B, n) / a, g(C, n) - g(n_powers, n) / a
+                    r = _calculate_fc(g(A, n) / (a * a), *BC)
                     try:
                         i = n[n] = fmep[n] > r[0]
                         fmep[n], v[n], ac[n] = g(r[0], i), g(r[1], i), a
@@ -302,10 +301,11 @@ def define_fmep_model(
 def _fuel_ABC(
         n_speeds, n_powers, n_temperatures,
         a2=0, b2=0, a=0, b=0, c=0, t=0, l=0, l2=0, acr=1, **kw):
-    acr2 = acr ** 2
-    A = acr2 * a2 + (acr2 * b2) * n_speeds
-    B = acr * a + (acr * b + (acr * c) * n_speeds) * n_speeds
-    C = np.power(n_temperatures, -t) * (acr * l + acr * l2 * n_speeds ** 2)
+
+    acr2 = (acr ** 2)
+    A = a2 / acr2 + (b2 / acr2) * n_speeds
+    B = a / acr + (b / acr + (c / acr) * n_speeds) * n_speeds
+    C = np.power(n_temperatures, -t) * (l + l2 * n_speeds ** 2)
     C -= n_powers / acr
 
     return A, B, C
