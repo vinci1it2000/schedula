@@ -171,6 +171,17 @@ class Values(co2_utl.Constants):
 
 #: Container of internal function parameters.
 class Functions(co2_utl.Constants):
+    class calculate_max_mean_piston_speeds_cylinder_deactivation(
+        co2_utl.Constants):
+        #: Percentage of max mean piston speeds used as limit in cylinder
+        #: deactivation strategy [-].
+        percentage = 0.6
+
+    class define_fmep_model(co2_utl.Constants):
+        #: Percentage of max full bmep curve used as limit in cylinder
+        #: deactivation strategy [-].
+        full_bmep_curve_percentage = 0.45
+
     class define_idle_model_detector(co2_utl.Constants):
         #: eps parameter of DBSCAN [RPM].
         EPS = 100.0

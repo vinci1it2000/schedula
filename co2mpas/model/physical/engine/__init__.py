@@ -880,6 +880,13 @@ def define_full_bmep_curve(
     return Spline(s, p, ext=3)
 
 
+def calculate_max_mean_piston_speeds_cylinder_deactivation(
+        engine_max_speed, engine_stroke):
+    p = defaults.dfl.functions
+    p = p.calculate_max_mean_piston_speeds_cylinder_deactivation.percentage
+    return calculate_mean_piston_speeds(engine_max_speed * p, engine_stroke)
+
+
 def engine():
     """
     Defines the engine model.
@@ -916,6 +923,12 @@ def engine():
         inputs=['full_load_speeds', 'full_load_powers', 'min_engine_on_speed',
                 'engine_capacity', 'engine_stroke'],
         outputs=['full_bmep_curve']
+    )
+
+    d.add_function(
+        function=calculate_max_mean_piston_speeds_cylinder_deactivation,
+        inputs=['engine_max_speed', 'engine_stroke'],
+        outputs=['max_mean_piston_speeds_cylinder_deactivation']
     )
 
     d.add_function(
@@ -1281,7 +1294,9 @@ def engine():
             'stop_velocity': 'stop_velocity',
             'min_engine_on_speed': 'min_engine_on_speed',
             'fuel_density': 'fuel_density',
-            'angle_slopes': 'angle_slopes'
+            'angle_slopes': 'angle_slopes',
+            'max_mean_piston_speeds_cylinder_deactivation':
+                'max_mean_piston_speeds_cylinder_deactivation'
         },
         outputs={
             'co2_emissions_model': 'co2_emissions_model',

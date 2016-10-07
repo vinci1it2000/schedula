@@ -231,10 +231,13 @@ def calculate_engine_idle_fuel_consumption(
 
 class FMEP(object):
     def __init__(self, full_bmep_curve, active_cylinder_ratios=(1.0,),
-                 has_cylinder_deactivation=False):
+                 has_cylinder_deactivation=False,
+                 full_bmep_curve_percentage=0.5, max_mean_piston_speeds=12):
         self.acr = set(active_cylinder_ratios)
         self.fbc = full_bmep_curve
-        self.has_cylinder_deactivation = has_cylinder_deactivation
+        self.has_cylinder_deactivation = has_cylinder_deactivation,
+        self.fbc_percentage = full_bmep_curve_percentage
+        self.max_mean_piston_speeds = max_mean_piston_speeds
 
     def __call__(self, params, n_speeds, n_powers, n_temperatures,
                  ac_phases=None):
@@ -263,12 +266,13 @@ class FMEP(object):
                         return x
 
                 b = (n_temperatures == 1) & (n_powers > 0)
+                b &= (n_speeds < self.max_mean_piston_speeds)
                 if ac_phases is not None:
                     b &= np.array(ac_phases, dtype=bool)
                     fmep *= np.ones_like(ac_phases, dtype=float)
 
                 ac = np.ones_like(fmep)
-                ac_ratio = n_powers / (self.fbc(n_speeds) * 0.9)
+                ac_ratio = n_powers / (self.fbc(n_speeds) * self.fbc_percentage)
                 v *= np.ones_like(fmep)
                 for a in acr:
                     n = b & (ac_ratio < a)
@@ -289,10 +293,15 @@ class FMEP(object):
 
 
 def define_fmep_model(
-        full_bmep_curve, active_cylinder_ratios, has_cylinder_deactivation):
+        full_bmep_curve, active_cylinder_ratios, has_cylinder_deactivation,
+        max_mean_piston_speeds_cylinder_deactivation):
 
-    model = FMEP(full_bmep_curve, active_cylinder_ratios,
-                 has_cylinder_deactivation)
+    fbcp = defaults.dfl.functions.define_fmep_model.full_bmep_curve_percentage
+    model = FMEP(
+        full_bmep_curve, active_cylinder_ratios, has_cylinder_deactivation,
+        full_bmep_curve_percentage=fbcp,
+        max_mean_piston_speeds=max_mean_piston_speeds_cylinder_deactivation
+    )
 
     return model
 
@@ -2000,7 +2009,8 @@ def co2_emission():
     d.add_function(
         function=define_fmep_model,
         inputs=['full_bmep_curve', 'active_cylinder_ratios',
-                'engine_has_cylinder_deactivation'],
+                'engine_has_cylinder_deactivation',
+                'max_mean_piston_speeds_cylinder_deactivation'],
         outputs=['fmep_model']
     )
 
