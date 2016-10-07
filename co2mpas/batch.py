@@ -12,6 +12,7 @@ import datetime
 import logging
 import os.path as osp
 import re
+import functools
 import pandas as pd
 from tqdm import tqdm
 import pandalone.xleash as xleash
@@ -205,13 +206,19 @@ def _get_contain(d, *keys, default=None):
 def _save_summary(fpath, start_time, summary):
     if summary:
         from co2mpas.io.excel import _df2excel
-        from co2mpas.io import _make_summarydf, _co2mpas_info2df
-        summary = _make_summarydf(summary, index='vehicle_name', depth=3,
-                                  parts=('cycle', 'stage', 'usage'))
+        from co2mpas.io import _dd2df, _sort_key, _co2mpas_info2df, _add_units
+
+        p_keys = ('cycle', 'stage', 'usage')
+
+        df = _dd2df(
+            summary, index=['vehicle_name'], depth=3,
+            col_key=functools.partial(_sort_key, p_keys=p_keys)
+        )
+        df.columns = pd.MultiIndex.from_tuples(_add_units(df.columns))
 
         writer = pd.ExcelWriter(fpath, engine='xlsxwriter')
 
-        _df2excel(writer, 'summary', summary)
+        _df2excel(writer, 'summary', df)
 
         _df2excel(writer, 'proc_info', _co2mpas_info2df(start_time))
 

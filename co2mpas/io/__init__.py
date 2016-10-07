@@ -87,78 +87,54 @@ def convert2df(report, start_time, main_flags):
     return res
 
 
-def _make_summarydf(
-        nested_dict, index=None, depth=0, add_units=True,
-        parts=()):
-    df = _dd2df(nested_dict, index=index, depth=depth)
-    p = _param_orders()
-    p = dsp_utl.selector(parts + ('param',), p, output_type='list')
-    gen = functools.partial(itertools.zip_longest, p[:-1], fillvalue=p[-1])
-    c = sorted(df.columns, key=lambda x: [_match_part(m, v) for m, v in gen(x)])
-    df = df.reindex_axis(c, axis=1, copy=False)
-    if add_units:
-        c = _add_units(c)
-    df.columns = pd.MultiIndex.from_tuples(c)
-    return df
-
-
-def _rm_sub_parts(parts):
-    try:
-        p = parts[0]
-    except IndexError:
-        return ()
-    r = '%s_' % p
-    return (p,) + _rm_sub_parts(tuple(v.replace(r, '') for v in parts[1:]))
-
-
 def _summary2df(data):
     res = []
     summary = data.get('summary', {})
 
     if 'results' in summary:
         r = {}
-        fun = functools.partial(dsp_utl.map_list,
-                                [{}, 'cycle', 'stage', 'usage'])
-        for n, m in summary['results'].items():
-            gen = ((fun(v, *k),)
-                   for k, v in dsp_utl.stack_nested_keys(m, depth=3))
-            v = [v[0] for v in _yield_sorted_params(gen)]
-            dsp_utl.get_nested_dicts(r, n, default=co2_utl.ret_v(v))
+        cols = ['cycle', 'stage', 'usage']
 
-        df = _make_summarydf(r, index=['cycle', 'stage', 'usage'], depth=1)
-        c = list(map(_rm_sub_parts, df.columns))
-        df.columns = pd.MultiIndex.from_tuples(c)
-        setattr(df, 'name', 'results')
-        res.append(df)
+        for k, v in dsp_utl.stack_nested_keys(summary['results'], depth=4):
+            l = dsp_utl.get_nested_dicts(r, k[0], default=list)
+            l.append(dsp_utl.combine_dicts(dsp_utl.map_list(cols, *k[1:]), v))
+
+        if r:
+            df = _dd2df(
+                r, index=cols, depth=2,
+                col_key=functools.partial(_sort_key, p_keys=('param',) * 2),
+                row_key=functools.partial(_sort_key, p_keys=cols)
+            )
+            df.columns = pd.MultiIndex.from_tuples(_add_units(df.columns))
+            setattr(df, 'name', 'results')
+            res.append(df)
 
     if 'selection' in summary:
-        df = _dd2df(summary['selection'], ['model_id'], depth=2)
+        df = _dd2df(
+            summary['selection'], ['model_id'], depth=2,
+            col_key=functools.partial(_sort_key, p_keys=('stage', 'cycle')),
+            row_key=functools.partial(_sort_key, p_keys=())
+        )
         setattr(df, 'name', 'selection')
         res.append(df)
 
     if 'comparison' in summary:
-        df = _comparison2df(summary['comparison'])
-        if df is not None:
+        r = {}
+        for k, v in dsp_utl.stack_nested_keys(summary['comparison'], depth=3):
+            v = dsp_utl.combine_dicts(v, base={'param_id': k[-1]})
+            dsp_utl.get_nested_dicts(r, *k[:-1], default=list).append(v)
+        if r:
+            df = _dd2df(
+                r, ['param_id'], depth=2,
+                col_key=functools.partial(_sort_key, p_keys=('stage', 'cycle')),
+                row_key=functools.partial(_sort_key, p_keys=())
+            )
             setattr(df, 'name', 'comparison')
             res.append(df)
 
     if res:
         return {'summary': res}
     return {}
-
-
-def _comparison2df(comparison):
-    res = {}
-    it = dsp_utl.stack_nested_keys(comparison, depth=3)
-    keys = ['usage', 'cycle', 'param']
-    gen = [(dsp_utl.map_list(keys, *k), k, v) for k, v in it]
-
-    for s, k, v in _yield_sorted_params(gen, keys=keys):
-        l = dsp_utl.get_nested_dicts(res, *k[:-1], default=list)
-        l.append(dsp_utl.combine_dicts({'param_id': k[-1]}, v))
-
-    if res:
-        return _dd2df(res, 'param_id', depth=2)
 
 
 def _proc_info2df(data, start_time, main_flags):
@@ -252,13 +228,17 @@ def _scores2df(data):
 
     scores = dsp_utl.get_nested_dicts(data, *n)
 
-    it = (('model_selections', ['model_id'], 2),
-          ('score_by_model', ['model_id'], 1),
-          ('scores', ['model_id', 'param_id'], 2),
-          ('param_selections', ['param_id'], 2))
+    it = (('model_selections', ['model_id'], 2, ('stage', 'cycle'), ()),
+          ('score_by_model', ['model_id'], 1, ('cycle',), ()),
+          ('scores', ['model_id', 'param_id'], 2, ('cycle', 'cycle'), ()),
+          ('param_selections', ['param_id'], 2, ('stage', 'cycle'), ()))
     dfs = []
-    for k, idx, depth in it:
-        df = _dd2df(scores[k], idx, depth=depth)
+    for k, idx, depth, col_keys, row_keys in it:
+        df = _dd2df(
+            scores[k], idx, depth=depth,
+            col_key=functools.partial(_sort_key, p_keys=col_keys),
+            row_key=functools.partial(_sort_key, p_keys=row_keys)
+        )
         setattr(df, 'name', k)
         dfs.append(df)
 
@@ -289,12 +269,10 @@ def _parse_name(name, _standard_names=None):
 def _parameters2df(data, data_descriptions, write_schema):
     df = []
     validate = write_schema.validate
-    gen = [(_param_parts(k), k, v) for k, v in data.items()]
-    score_map = _update_score_map(gen)
-
-    for s, k, v in _yield_sorted_params(gen, score_map=score_map):
+    for k, v in data.items():
         try:
-            param_id, v = next(iter(validate({s['param']: v}).items()))
+            v = iter(validate({_param_parts(k)['param']: v}).items())
+            param_id, v = next(v)
             if v is not dsp_utl.NONE:
                 df.append({
                     'Parameter': _parse_name(param_id, data_descriptions),
@@ -327,13 +305,13 @@ def _param_orders():
         'engine_bmep_pos_pow', 'mean_piston_speed_pos_pow', 'fuel_mep_pos_pow',
         'fuel_consumption_pos_pow', 'willans_a', 'willans_b',
         'specific_fuel_consumption', 'indicated_efficiency',
-        'willans_efficiency'
+        'willans_efficiency', 'times'
     )
 
     _map = {
-        'scope': ('plan', 'base'),
-        'usage': ('target', 'input', 'output', 'data'),
-        'stage': ('precondition', 'calibration', 'prediction'),
+        'scope': ('plan', 'flag', 'base'),
+        'usage': ('target', 'output', 'input', 'data', 'config'),
+        'stage': ('precondition', 'prediction', 'calibration', 'selector'),
         'cycle': ('delta', 'all', 'nedc_h', 'nedc_l', 'wltp_h', 'wltp_l',
                   'wltp_p'),
         'type': ('pa', 'ts', 'pl'),
@@ -344,6 +322,30 @@ def _param_orders():
 
     return _map
 
+
+@cachetools.cached({})
+def _summary_map():
+    _map = {
+        'co2_params a': 'a',
+        'co2_params a2': 'a2',
+        'co2_params b': 'b',
+        'co2_params b2': 'b2',
+        'co2_params c': 'c',
+        'co2_params l': 'l',
+        'co2_params l2': 'l2',
+        'co2_params t0': 't0',
+        'co2_params t1': 't1',
+        'co2_params trg': 'trg',
+        'co2_emission_low': 'low',
+        'co2_emission_medium': 'medium',
+        'co2_emission_high': 'high',
+        'co2_emission_extra_high': 'extra_high',
+        'co2_emission_UDC': 'UDC',
+        'co2_emission_EUDC': 'EUDC',
+        'co2_emission_value': 'value',
+        'vehicle_mass': 'mass',
+    }
+    return _map
 
 @cachetools.cached({})
 def _param_units():
@@ -395,24 +397,24 @@ def _match_part(map, *parts, default=None):
     except KeyError:
         for k, v in sorted(map.items(), key=lambda x: x[1]):
             if k in part:
-                return v, part
+                return v, 0, part
         part = part if default is None else default
         if len(parts) <= 1:
-            return part,
+            return max(map.values()) if map else None, 1, part
         return _match_part(map, *parts[:-1], default=part)
 
 
-def _add_units(gen, map=None, default=' '):
-    map = map if map is not None else _param_units()
-    return [v + (_match_part(map, *v, default=default)[0],) for v in gen]
+def _add_units(gen, default=' '):
+    p_map, units = _summary_map().get, _param_units().get
+    return [k[:-1] + (p_map(k, k), units(k, ' ')) for k in gen]
 
 
-def _param_scores(
+def _sort_key(
         parts, score_map=None,
-        keys=('scope', 'param', 'cycle', 'usage', 'stage', 'type')):
+        p_keys=('scope', 'param', 'cycle', 'usage', 'stage', 'type')):
     score_map = score_map or _param_orders()
-    return tuple(_match_part(score_map[k], parts[k]) if k in parts else ''
-                 for k in keys)
+    it = itertools.zip_longest(parts, p_keys, fillvalue=None)
+    return tuple(_match_part(score_map.get(k, {}), p) for p, k in it)
 
 
 def _param_parts(param_id):
@@ -420,29 +422,15 @@ def _param_parts(param_id):
     return {i: regex.sub("[\W]", "_", (j or '').lower()) for i, j in match}
 
 
-def _yield_sorted_params(
-        gen, score_map=None,
-        keys=('scope', 'param', 'cycle', 'usage', 'stage', 'type')):
-    score_map = score_map or _param_orders()
-    return sorted(gen, key=lambda x: _param_scores(x[0], score_map, keys))
-
-
-def _update_score_map(gen):
-    m = _param_orders().copy()
-    m['param'] = {j[0]['param']: str(i).zfill(3) for i, j in enumerate(gen)}
-    return m
-
 
 def _time_series2df(data, data_descriptions):
     df = collections.OrderedDict()
-    gen = [(_param_parts(k), k, v) for k, v in data.items()]
-    score_map = _update_score_map(gen)
-    for s, k, v in _yield_sorted_params(gen, score_map=score_map):
-        df[(_parse_name(s['param'], data_descriptions), k)] = v
+    for k, v in data.items():
+        df[(_parse_name(_param_parts(k)['param'], data_descriptions), k)] = v
     return pd.DataFrame(df)
 
 
-def _dd2df(dd, index=None, depth=0):
+def _dd2df(dd, index=None, depth=0, col_key=None, row_key=None):
     """
 
     :return:
@@ -458,7 +446,21 @@ def _dd2df(dd, index=None, depth=0):
         df.columns = pd.MultiIndex.from_tuples([k + (i,) for i in df.columns])
         frames.append(df)
 
-    return pd.concat(frames, copy=False, axis=1, verify_integrity=True)
+    df = pd.concat(frames, copy=False, axis=1, verify_integrity=True)
+
+    if col_key is not None:
+        ax = pd.MultiIndex.from_tuples(sorted(df.columns, key=col_key))
+        df = df.reindex_axis(ax, axis='columns', copy=False)
+
+    if row_key is not None:
+        ax = sorted(df.index, key=row_key)
+        if isinstance(df.index, pd.MultiIndex):
+            ax = pd.MultiIndex.from_tuples(ax)
+        df = df.reindex_axis(ax, axis='index', copy=False)
+        if index is not None:
+            df.index.set_names(index, inplace=True)
+
+    return df
 
 
 _re_units = regex.compile('(\[.*\])')
@@ -483,51 +485,10 @@ def get_doc_description():
                 unit = ' %s' % unit.group()
             else:
                 unit = ''
-            doc_descriptions[k] = '%s%s.' % (parse_name(k), unit)
+            doc_descriptions[k] = '%s%s.' % (_parse_name(k), unit)
         else:
             doc_descriptions[k] = des
     return doc_descriptions
-
-
-def parse_name(name, standard_names=None):
-    """
-    Parses a column/row name.
-
-    :param name:
-        Name to be parsed.
-    :type name: str
-
-    :param standard_names:
-        Standard names to use instead parsing.
-    :type standard_names: dict[str, str], optional
-
-    :return:
-        The parsed name.
-    :rtype: str
-    """
-
-    if standard_names and name in standard_names:
-        return standard_names[name]
-
-    name = name.replace('_', ' ')
-
-    return name.capitalize()
-
-
-def get_types():
-    from ..model.physical import physical
-    from co2mpas.dispatcher.utils import search_node_description
-
-    node_types = {}
-
-    d = physical()
-    for k, v in d.data_nodes.items():
-        if k in node_types or v['type'] != 'data':
-            continue
-        des = search_node_description(k, v, d, 'value_type')[0]
-
-        node_types[k] = des.replace(' ', '').split(',')
-    return node_types
 
 
 def check_xlasso(input_file_name):
