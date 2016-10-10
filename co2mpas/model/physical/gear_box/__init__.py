@@ -48,20 +48,20 @@ def calculate_gear_shifts(gears):
     return np.append([False], np.diff(gears) != 0)
 
 
-def get_gear_box_efficiency_constants(gear_box_type):
+def get_gear_box_efficiency_constants(has_torque_converter):
     """
     Returns vehicle gear box efficiency constants (gbp00, gbp10, and gbp01).
 
-    :param gear_box_type:
+    :param has_torque_converter:
         Gear box type (manual or automatic or cvt).
-    :type gear_box_type: str
+    :type has_torque_converter: bool
 
     :return:
         Vehicle gear box efficiency constants (gbp00, gbp10, and gbp01).
     :rtype: dict
     """
     PARAMS = defaults.dfl.functions.get_gear_box_efficiency_constants.PARAMS
-    return PARAMS[gear_box_type]
+    return PARAMS[has_torque_converter]
 
 
 def _linear(x, m, q):
@@ -590,24 +590,15 @@ def calculate_equivalent_gear_box_heat_capacity(
 
 
 def is_automatic(kwargs):
-    for k, v in kwargs.items():
-        if ':gear_box_type' in k or 'gear_box_type' == k:
-            return v == 'automatic'
-    return False
+    return kwargs['gear_box_type'] == 'automatic'
 
 
 def is_cvt(kwargs):
-    for k, v in kwargs.items():
-        if ':gear_box_type' in k or 'gear_box_type' == k:
-            return v == 'cvt'
-    return False
+    return kwargs['gear_box_type'] == 'cvt'
 
 
 def not_cvt(kwargs):
-    for k, v in kwargs.items():
-        if ':gear_box_type' in k or 'gear_box_type' == k:
-            return v != 'cvt'
-    return False
+    return kwargs['gear_box_type'] != 'cvt'
 
 
 def gear_box():
@@ -636,7 +627,7 @@ def gear_box():
 
     d.add_function(
         function=get_gear_box_efficiency_constants,
-        inputs=['gear_box_type'],
+        inputs=['has_torque_converter'],
         outputs=['gear_box_efficiency_constants'],
     )
 

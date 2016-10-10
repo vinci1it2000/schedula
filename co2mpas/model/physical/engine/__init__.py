@@ -1255,7 +1255,6 @@ def engine():
             'co2_emission_EUDC': 'co2_emission_EUDC',
             'co2_params': 'co2_params',
             'co2_params_calibrated': ('co2_params_calibrated', 'co2_params'),
-            'cycle_type': 'cycle_type',
             'is_cycle_hot': 'is_cycle_hot',
             'engine_capacity': 'engine_capacity',
             'engine_fuel_lower_heating_value':

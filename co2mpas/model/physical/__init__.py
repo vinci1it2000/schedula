@@ -410,7 +410,8 @@ def physical():
             'change_gear_window_width': 'change_gear_window_width',
             'min_engine_on_speed': 'min_engine_on_speed',
             'max_velocity_full_load_correction':
-                'max_velocity_full_load_correction'
+                'max_velocity_full_load_correction',
+            'has_torque_converter': 'has_torque_converter'
         },
         outputs={
             'CVT': 'CVT',
@@ -468,6 +469,7 @@ def physical():
             'lock_up_tc_limits': 'lock_up_tc_limits',
             'calibration_tc_speed_threshold': 'calibration_tc_speed_threshold',
             'stop_velocity': 'stop_velocity',
+            'has_torque_converter': 'has_torque_converter'
         },
         outputs={
             'clutch_tc_speeds_delta': 'clutch_tc_speeds_delta',
@@ -476,7 +478,8 @@ def physical():
             'torque_converter_model': 'torque_converter_model',
             'stand_still_torque_ratio': 'stand_still_torque_ratio',
             'lockup_speed_ratio': 'lockup_speed_ratio',
-            'clutch_tc_powers': 'clutch_tc_powers'
+            'clutch_tc_powers': 'clutch_tc_powers',
+            'has_torque_converter': 'has_torque_converter'
         }
     )
 
@@ -579,7 +582,6 @@ def physical():
             'co2_emission_extra_high': 'co2_emission_extra_high',
             'co2_params': 'co2_params',
             'co2_params_calibrated': 'co2_params_calibrated',
-            'cycle_type': 'cycle_type',
             'engine_fuel_lower_heating_value':
                 'engine_fuel_lower_heating_value',
             'engine_idle_fuel_consumption': 'engine_idle_fuel_consumption',

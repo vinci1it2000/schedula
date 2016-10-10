@@ -107,6 +107,30 @@ def calculate_clutch_tc_powers(
     return powers
 
 
+def default_has_torque_converter(gear_box_type):
+    """
+    Returns the default has torque converter value [-].
+
+    :param gear_box_type:
+        Gear box type (manual or automatic or cvt).
+    :type gear_box_type: str
+
+    :return:
+        Does the vehicle use torque converter? [-]
+    :rtype: bool
+    """
+
+    return gear_box_type == 'automatic'
+
+
+def clutch_domain(kwargs):
+    return not kwargs['has_torque_converter']
+
+
+def torque_converter_domain(kwargs):
+    return kwargs['has_torque_converter']
+
+
 def clutch_torque_converter():
     """
     Defines the clutch and torque-converter model.
@@ -126,6 +150,12 @@ def clutch_torque_converter():
     )
 
     d.add_function(
+        function=default_has_torque_converter,
+        inputs=['gear_box_type'],
+        outputs=['has_torque_converter']
+    )
+
+    d.add_function(
         function=calculate_clutch_tc_powers,
         inputs=['clutch_tc_speeds_delta', 'k_factor_curve',
                 'gear_box_speeds_in', 'gear_box_powers_in',
@@ -135,12 +165,6 @@ def clutch_torque_converter():
 
     from .clutch import clutch
 
-    def clutch_domain(kwargs):
-        for k, v in kwargs.items():
-            if ':gear_box_type' in k or 'gear_box_type' == k:
-                return v == 'manual'
-        return False
-
     d.add_dispatcher(
         include_defaults=True,
         input_domain=clutch_domain,
@@ -149,7 +173,7 @@ def clutch_torque_converter():
         inputs={
             'times': 'times',
             'accelerations': 'accelerations',
-            'gear_box_type': dsp_utl.SINK,
+            'has_torque_converter': dsp_utl.SINK,
             'clutch_model': 'clutch_model',
             'clutch_window': 'clutch_window',
             'clutch_tc_speeds_delta': 'clutch_speeds_delta',
@@ -171,12 +195,6 @@ def clutch_torque_converter():
 
     from .torque_converter import torque_converter
 
-    def torque_converter_domain(kwargs):
-        for k, v in kwargs.items():
-            if ':gear_box_type' in k or 'gear_box_type' == k:
-                return v in ('cvt', 'automatic')
-        return False
-
     d.add_dispatcher(
         include_defaults=True,
         input_domain=torque_converter_domain,
@@ -188,7 +206,7 @@ def clutch_torque_converter():
             'stop_velocity': 'stop_velocity',
             'velocities': 'velocities',
             'accelerations': 'accelerations',
-            'gear_box_type': dsp_utl.SINK,
+            'has_torque_converter': dsp_utl.SINK,
             'gears': 'gears',
             'clutch_tc_speeds_delta': 'torque_converter_speeds_delta',
             'engine_speeds_out_hot': ('gear_box_speeds_in',
