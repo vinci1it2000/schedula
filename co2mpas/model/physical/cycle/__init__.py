@@ -82,6 +82,24 @@ def calculate_time_length(frequency, max_time):
     return np.floor(max_time * frequency) + 1
 
 
+def select_phases_integration_times(cycle_type):
+    """
+    Selects the cycle phases integration times [s].
+
+    :param cycle_type:
+        Cycle type (WLTP or NEDC).
+    :type cycle_type: str
+
+    :return:
+        Cycle phases integration times [s].
+    :rtype: tuple
+    """
+
+    from ..defaults import dfl
+    v = dfl.functions.select_phases_integration_times.INTEGRATION_TIMES
+    return tuple(dsp_utl.pairwise(v[cycle_type.upper()]))
+
+
 def cycle():
     """
     Defines the cycle model.
@@ -187,6 +205,12 @@ def cycle():
         inputs=['gears'],
         outputs=['time_length'],
         weight=1
+    )
+
+    d.add_function(
+        function=select_phases_integration_times,
+        inputs=['cycle_type'],
+        outputs=['phases_integration_times']
     )
 
     return d

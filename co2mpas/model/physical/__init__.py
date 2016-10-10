@@ -246,7 +246,8 @@ def physical():
             'times': 'times',
             'velocities': 'velocities',
             'gears': 'gears',
-            'initial_temperature': 'initial_temperature'
+            'initial_temperature': 'initial_temperature',
+            'phases_integration_times': 'phases_integration_times',
         }
     )
 

@@ -587,22 +587,6 @@ def define_co2_emissions_model(
     return model
 
 
-def select_phases_integration_times(cycle_type):
-    """
-    Selects the cycle phases integration times [s].
-
-    :param cycle_type:
-        Cycle type (WLTP or NEDC).
-    :type cycle_type: str
-
-    :return:
-        Cycle phases integration times [s].
-    :rtype: tuple
-    """
-    v = defaults.dfl.functions.select_phases_integration_times.INTEGRATION_TIMES
-    return tuple(dsp_utl.pairwise(v[cycle_type.upper()]))
-
-
 def calculate_phases_distances(times, phases_integration_times, velocities):
     """
     Calculates cycle phases distances [km].
@@ -2132,12 +2116,6 @@ def co2_emission():
         inputs=['co2_params', 'engine_type', 'engine_thermostat_temperature',
                 'engine_thermostat_temperature_window', 'is_cycle_hot'],
         outputs=['co2_params_initial_guess', 'initial_friction_params'],
-    )
-
-    d.add_function(
-        function=select_phases_integration_times,
-        inputs=['cycle_type'],
-        outputs=['phases_integration_times']
     )
 
     d.add_function(
