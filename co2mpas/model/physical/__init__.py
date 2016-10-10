@@ -241,6 +241,7 @@ def physical():
             'max_speed_velocity_ratio': 'max_speed_velocity_ratio',
             'gears': 'gears',
             'max_time': 'max_time',
+            'bag_phases': 'bag_phases'
         },
         outputs={
             'times': 'times',

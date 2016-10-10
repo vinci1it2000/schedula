@@ -63,6 +63,7 @@ calibration = {
     'times': True,
     'velocities': True,
     'gears': True,
+    'bag_phases': True,
     'OBD_velocities': True,
     'engine_speeds_out': True,
     'engine_coolant_temperatures': True,
@@ -119,6 +120,7 @@ prediction = {
     'times': True,
     'velocities': True,
     'gears': True,
+    'bag_phases': True,
     'cycle_name': True,
     'cycle_type': True
 }

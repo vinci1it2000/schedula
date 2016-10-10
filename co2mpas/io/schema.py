@@ -366,6 +366,16 @@ def _tyre_dimensions(error=None, **kwargs):
     return And(_dict(format=dict), Use(_format_tyre_dimensions), error=error)
 
 
+def _bag_phases(error=None, read=True, **kwargs):
+    from ..model.physical.cycle import _extract_indices
+
+    def check(x):
+        it = dsp_utl.pairwise(_extract_indices(x))
+        return all(i[-1] <= j[0] for i, j in it)
+    er = 'Phases must be separated!'
+    return And(_np_array(read=read), Schema(check, error=er), error=error)
+
+
 @cachetools.cached({})
 def define_data_schema(read=True):
     cmv = _cmv(read=read)
@@ -553,6 +563,7 @@ def define_data_schema(read=True):
         'gear_box_temperature_references': tuplefloat2,
         'torque_converter_model': function,
         'phases_co2_emissions': tuplefloat,
+        'bag_phases': _bag_phases(read=read),
         'phases_integration_times':
             _type(type=And(Use(tuple), (And(Use(tuple), (_type(float),)),)),
                   read=read),

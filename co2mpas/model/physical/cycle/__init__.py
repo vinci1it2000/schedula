@@ -100,6 +100,34 @@ def select_phases_integration_times(cycle_type):
     return tuple(dsp_utl.pairwise(v[cycle_type.upper()]))
 
 
+def _extract_indices(bag_phases):
+    pit, bag_phases = [], np.asarray(bag_phases)
+    for bf in np.unique(bag_phases):
+        i = np.where(bf == bag_phases)
+        pit.append((i.min(), i.max() + 1))
+    return sorted(pit)
+
+
+def extract_phases_integration_times(times, bag_phases):
+    """
+    Extracts the cycle phases integration times [s] from bag phases vector.
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
+
+    :param bag_phases:
+        Bag phases [-].
+    :type bag_phases: numpy.array
+
+    :return:
+        Cycle phases integration times [s].
+    :rtype: tuple
+    """
+
+    return tuple((times[i], times[j]) for i, j in _extract_indices(bag_phases))
+
+
 def cycle():
     """
     Defines the cycle model.
@@ -208,9 +236,16 @@ def cycle():
     )
 
     d.add_function(
+        function=extract_phases_integration_times,
+        inputs=['times', 'bag_phases'],
+        outputs=['phases_integration_times']
+    )
+
+    d.add_function(
         function=select_phases_integration_times,
         inputs=['cycle_type'],
-        outputs=['phases_integration_times']
+        outputs=['phases_integration_times'],
+        weight=10
     )
 
     return d
