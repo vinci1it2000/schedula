@@ -55,7 +55,7 @@ def select_prediction_data(data, new_data=(), theoretical=True):
         'engine_idle_fuel_consumption', 'engine_type', 'engine_is_turbo',
         'engine_fuel_lower_heating_value', 'has_start_stop',
         'has_energy_recuperation', 'fuel_carbon_content_percentage',
-        'initial_state_of_charge', 'f0', 'f1', 'f2',
+        'f0', 'f1', 'f2',
         'vehicle_mass', 'full_load_speeds', 'plateau_acceleration',
         'full_load_powers', 'fuel_saving_at_strategy',
         'stand_still_torque_ratio', 'lockup_speed_ratio',
