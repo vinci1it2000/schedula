@@ -1295,7 +1295,9 @@ def engine():
             'fuel_density': 'fuel_density',
             'angle_slopes': 'angle_slopes',
             'max_mean_piston_speeds_cylinder_deactivation':
-                'max_mean_piston_speeds_cylinder_deactivation'
+                'max_mean_piston_speeds_cylinder_deactivation',
+            'engine_has_variable_valve_actuation':
+                'engine_has_variable_valve_actuation'
         },
         outputs={
             'co2_emissions_model': 'co2_emissions_model',
@@ -1325,7 +1327,8 @@ def engine():
                 'engine_fuel_lower_heating_value',
             'initial_friction_params': 'initial_friction_params',
             'engine_idle_fuel_consumption': 'engine_idle_fuel_consumption',
-            'active_cylinders': 'active_cylinders'
+            'active_cylinders': 'active_cylinders',
+            'active_variable_valves': 'active_variable_valves'
         },
         inp_weight={'co2_params': defaults.EPS}
     )

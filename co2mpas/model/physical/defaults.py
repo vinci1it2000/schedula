@@ -25,6 +25,9 @@ class Values(co2_utl.Constants):
     #: Possible percentages of active cylinders [-].
     active_cylinder_ratios = (1.0,)
 
+    # Does the engine feature variable valve actuation? [-].
+    engine_has_variable_valve_actuation = False
+
     #: NEDC cycle time [s].
     max_time_NEDC = 1180.0
 

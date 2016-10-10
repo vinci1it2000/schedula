@@ -21,6 +21,7 @@ import co2mpas.dispatcher.utils as dsp_utl
 import co2mpas.dispatcher as dsp
 import co2mpas.utils as co2_utl
 import co2mpas.model.physical.defaults as defaults
+import pandas as pd
 
 
 def default_fuel_density(fuel_type):
@@ -232,75 +233,89 @@ def calculate_engine_idle_fuel_consumption(
 class FMEP(object):
     def __init__(self, full_bmep_curve, active_cylinder_ratios=(1.0,),
                  has_cylinder_deactivation=False,
-                 full_bmep_curve_percentage=0.5, max_mean_piston_speeds=12):
-        self.acr = set(active_cylinder_ratios)
+                 full_bmep_curve_percentage=0.5, max_mean_piston_speeds=12,
+                 has_variable_valve_actuation=False):
+        self.base_acr = max(active_cylinder_ratios)
+        self.active_cylinder_ratios = set(active_cylinder_ratios) - {self.base_acr}
         self.fbc = full_bmep_curve
-        self.has_cylinder_deactivation = has_cylinder_deactivation,
+        self.has_cylinder_deactivation = has_cylinder_deactivation
+        self.has_variable_valve_actuation = has_variable_valve_actuation
         self.fbc_percentage = full_bmep_curve_percentage
         self.max_mean_piston_speeds = max_mean_piston_speeds
+        self.sol = None
+        self.param_ids = None
 
-    def __call__(self, params, n_speeds, n_powers, n_temperatures,
-                 ac_phases=None):
-        A, B, C = _fuel_ABC(
-            n_speeds, n_powers, n_temperatures, **params
-        )
-
-        if 'acr' not in params:
-
-            a = max(self.acr)
-            acr = self.acr - {a}
-            if a != 1:
-                C += n_powers
-                fmep, v = _calculate_fc(A / (a * a), B / a, C - n_powers / a)
-            else:
-                fmep, v = _calculate_fc(A, B, C)
-                C += n_powers
-
-            if not (self.has_cylinder_deactivation and acr):
-                ac = np.ones_like(fmep) * a
-            else:
-                def g(x, b):
-                    try:
-                        return x[b]
-                    except (TypeError, IndexError):
-                        return x
-
-                b = (n_temperatures == 1) & (n_powers > 0)
-                b &= (n_speeds < self.max_mean_piston_speeds)
-                if ac_phases is not None:
-                    b &= np.array(ac_phases, dtype=bool)
-                    fmep *= np.ones_like(ac_phases, dtype=float)
-
-                ac = np.ones_like(fmep)
-                ac_ratio = n_powers / (self.fbc(n_speeds) * self.fbc_percentage)
-                v *= np.ones_like(fmep)
-                for a in acr:
-                    n = b & (ac_ratio < a)
-                    BC = g(B, n) / a, g(C, n) - g(n_powers, n) / a
-                    r = _calculate_fc(g(A, n) / (a * a), *BC)
-                    try:
-                        i = n[n] = fmep[n] > r[0]
-                        fmep[n], v[n], ac[n] = g(r[0], i), g(r[1], i), a
-                    except TypeError:
-                        if n and fmep > r[0]:
-                            (fmep, v), ac = r, a
-
-        else:
+    def calculate_base(self, params, n_speeds, n_powers, n_temp, **kw):
+        if 'acr' in params:
+            A, B, C = _fuel_ABC(n_speeds, n_powers, n_temp, **params)
             fmep, v = _calculate_fc(A, B, C)
-            ac = np.ones_like(fmep) * params.get('acr', 1)
+            return pd.DataFrame(dsp_utl.combine_dicts({
+                'fmep': fmep, 'v': v, 'n_speeds': n_speeds,
+                'n_powers': n_powers, 'n_temp': n_temp, 'vva': 0
+            }, kw, params), copy=False)
+        else:
+            p = dsp_utl.combine_dicts(params, {'acr': self.base_acr})
+            return self.calculate_base(p, n_speeds, n_powers, n_temp, **kw)
 
-        return fmep, v, ac
+    def optimize_fmep(self, b=None, **p):
+        if b is not None:
+            i = self.sol.index[b]
+            d = self.sol[b]
+        else:
+            i = self.sol.index
+            d = self.sol
+
+        spt = d['n_speeds'], d['n_powers'], d['n_temp']
+        params = dsp_utl.combine_dicts(d[self.param_ids], p)
+        fmep, v = _calculate_fc(*_fuel_ABC(*spt, **params))
+        s = pd.DataFrame(dsp_utl.combine_dicts({'fmep': fmep, 'v': v}, p))
+        b = s['fmep'] < d['fmep']
+        c = ['fmep', 'v'] + list(p)
+        self.sol.ix[i[b], c] = s.ix[b, c].values
+
+    def vva(self, i=True, **params):
+        if self.has_variable_valve_actuation and 'vva' not in self.param_ids:
+            self.optimize_fmep(i & (self.sol['n_powers'] >= 0), vva=1, **params)
+
+    def acr(self, i=True, **params):
+        if self.has_cylinder_deactivation and self.active_cylinder_ratios and \
+                        'acr' not in self.param_ids:
+            d = self.sol
+            b = i & d['ac_phases'] & (d['n_temp'] == 1) & (d['n_powers'] > 0)
+            b &= (d['n_speeds'] < self.max_mean_piston_speeds)
+            ac = d['n_powers'] / (self.fbc(d['n_speeds']) * self.fbc_percentage)
+            p = {} if 'vva' in self.param_ids else {'vva': 0}
+            p = dsp_utl.combine_dicts(params, p)
+            for acr in self.active_cylinder_ratios:
+                n = b & (ac < acr)
+                self.optimize_fmep(n, acr=acr, **p)
+                self.vva(n, acr=acr)
+
+    def __call__(self, params, n_speeds, n_powers, n_temp, ac_phases=True):
+        self.param_ids = list(params.keys())
+
+        self.sol = self.calculate_base(params, n_speeds, n_powers, n_temp,
+                                       ac_phases=ac_phases)
+        self.vva()
+
+        self.acr()
+
+        s = self.sol
+
+        return s['fmep'].values, s['v'].values, s['acr'].values, s['vva'].values
 
 
 def define_fmep_model(
         full_bmep_curve, active_cylinder_ratios, has_cylinder_deactivation,
-        max_mean_piston_speeds_cylinder_deactivation):
+        max_mean_piston_speeds_cylinder_deactivation,
+        has_variable_valve_actuation):
 
     fbcp = defaults.dfl.functions.define_fmep_model.full_bmep_curve_percentage
     model = FMEP(
         full_bmep_curve, active_cylinder_ratios, has_cylinder_deactivation,
         full_bmep_curve_percentage=fbcp,
-        max_mean_piston_speeds=max_mean_piston_speeds_cylinder_deactivation
+        max_mean_piston_speeds=max_mean_piston_speeds_cylinder_deactivation,
+        has_variable_valve_actuation=has_variable_valve_actuation
     )
 
     return model
@@ -309,11 +324,12 @@ def define_fmep_model(
 # noinspection PyUnusedLocal
 def _fuel_ABC(
         n_speeds, n_powers, n_temperatures,
-        a2=0, b2=0, a=0, b=0, c=0, t=0, l=0, l2=0, acr=1, **kw):
+        a2=0, b2=0, a=0, b=0, c=0, t=0, l=0, l2=0, acr=1, vva=0, **kw):
 
     acr2 = (acr ** 2)
     A = a2 / acr2 + (b2 / acr2) * n_speeds
-    B = a / acr + (b / acr + (c / acr) * n_speeds) * n_speeds
+    a, l = (1 - 0.02 * vva) / acr * a, (1 - 0.08 * vva) * l
+    B = a + (b / acr + (c / acr) * n_speeds) * n_speeds
     C = np.power(n_temperatures, -t) * (l + l2 * n_speeds ** 2)
     C -= n_powers / acr
 
@@ -491,7 +507,7 @@ def calculate_co2_emissions(
         b = np.logical_not(b)
         p['t'] = p['t'][b]
 
-    fc[b], _, ac[b] = fmep_model(p, n_speeds[b], n_powers[b], n_temp[b])
+    fc[b], _, ac[b], _ = fmep_model(p, n_speeds[b], n_powers[b], n_temp[b])
     fc[b] *= e_speeds[b] * (engine_capacity / (lhv * 1200))  # [g/sec]
     p['t'] = 0
 
@@ -1990,11 +2006,17 @@ def co2_emission():
         default_value=defaults.dfl.values.engine_has_cylinder_deactivation
     )
 
+    d.add_data(
+        data_id='engine_has_variable_valve_actuation',
+        default_value=defaults.dfl.values.engine_has_variable_valve_actuation
+    )
+
     d.add_function(
         function=define_fmep_model,
         inputs=['full_bmep_curve', 'active_cylinder_ratios',
                 'engine_has_cylinder_deactivation',
-                'max_mean_piston_speeds_cylinder_deactivation'],
+                'max_mean_piston_speeds_cylinder_deactivation',
+                'engine_has_variable_valve_actuation'],
         outputs=['fmep_model']
     )
 
@@ -2200,7 +2222,7 @@ def co2_emission():
     d.add_function(
         function=predict_co2_emissions,
         inputs=['co2_emissions_model', 'co2_params_calibrated'],
-        outputs=['co2_emissions', 'active_cylinders']
+        outputs=['co2_emissions', 'active_cylinders', 'active_variable_valves']
     )
 
     d.add_data(

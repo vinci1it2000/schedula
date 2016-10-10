@@ -625,6 +625,8 @@ def physical():
             'active_cylinder_ratios': 'active_cylinder_ratios',
             'engine_has_cylinder_deactivation':
                 'engine_has_cylinder_deactivation',
+            'engine_has_variable_valve_actuation':
+                'engine_has_variable_valve_actuation'
         },
         outputs={
             'ignition_type': 'ignition_type',
@@ -694,7 +696,8 @@ def physical():
             'full_load_powers': 'full_load_powers',
             'engine_max_speed': 'engine_max_speed',
             'engine_idle_fuel_consumption': 'engine_idle_fuel_consumption',
-            'active_cylinders': 'active_cylinders'
+            'active_cylinders': 'active_cylinders',
+            'active_variable_valves': 'active_variable_valves'
         },
         inp_weight={'initial_temperature': 5}
     )
