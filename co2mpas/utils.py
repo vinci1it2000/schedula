@@ -19,6 +19,7 @@ import networkx as nx
 import collections
 import math
 import statistics
+import inspect
 import sys
 import scipy.interpolate as sci_itp
 import scipy.misc as sci_misc
@@ -43,18 +44,51 @@ __all__ = [
 
 
 class Constants(dict):
-    def __init__(self, *args, **kwargs):
-        super(Constants, self).__init__(*args, **kwargs)
-        self.__dict__ = self
-
     @nx.utils.open_file(1, mode='rb')
     def load(self, file, **kw):
-        self.update(yaml.load(file, **kw))
+        self.from_dict(yaml.load(file, **kw))
         return self
 
     @nx.utils.open_file(1, mode='w')
     def dump(self, file, default_flow_style=False, **kw):
-        yaml.dump(dict(self), file, default_flow_style=default_flow_style, **kw)
+        d = self.to_dict()
+        yaml.dump(d, file, default_flow_style=default_flow_style, **kw)
+
+    def from_dict(self, d):
+        for k, v in sorted(d.items()):
+            if isinstance(v, Constants):
+                o = getattr(self, k, Constants())
+                if isinstance(o, Constants):
+                    v = o.from_dict(v)
+                elif issubclass(o, Constants):
+                    v = o().from_dict(v)
+                if not v:
+                    continue
+            elif hasattr(self, k) and getattr(self, k) == v:
+                continue
+            setattr(self, k, v)
+            self[k] = v
+
+        return self
+
+    def to_dict(self, base=None):
+        pr = {} if base is None else base
+        s = (set(dir(self)) - set(dir(Constants)))
+        for n in s.union(self.__class__.__dict__.keys()):
+            if n.startswith('__'):
+                continue
+            v = getattr(self, n)
+            if inspect.ismethod(v) or inspect.isbuiltin(v):
+                continue
+            try:
+                if isinstance(v, Constants):
+                    v = v.to_dict(base=Constants())
+                elif issubclass(v, Constants):
+                    v = v.to_dict(v, base=Constants())
+            except TypeError:
+                pass
+            pr[n] = v
+        return pr
 
 
 def argmax(values, **kws):
