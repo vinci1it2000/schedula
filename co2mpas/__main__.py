@@ -18,6 +18,7 @@ Use the `batch` sub-command to simulate a vehicle contained in an excel-file.
 USAGE:
   co2mpas batch       [-v | --logconf=<conf-file>] [--gui] [-f]
                       [--overwrite-cache] [-O=<output-folder>]
+                      [--modelconf=<yaml-file>]
                       [-D=<key=value>]...
                       [<input-path>]...
   co2mpas demo        [-v | --logconf=<conf-file>] [--gui] [-f]
@@ -44,17 +45,20 @@ OPTIONS:
   <excel-file-path>           Output file.
   --gui                       Launches GUI dialog-boxes to choose Input, Output
                               and Options. [default: False].
-  --only-summary              Do not save vehicle outputs, just the summary.
+  --modelconf=<yaml-file>     Path to a model-configuration file, according to YAML:
+                                https://docs.python.org/3.5/library/logging.config.html#logging-config-dictschema
   --overwrite-cache           Overwrite the cached file.
-  --engineering-mode=<n>      Validate only partially input-data (no schema).
+  --only-summary              Do not save vehicle outputs, just the summary.
   --variation, -D=<key=value> Validate only partially input-data (no schema).
+  -l, --list                  List available models.
+  --graph-depth=<levels>      An integer to Limit the levels of sub-models plotted.
+  -f, --force                 Overwrite output/template/demo excel-file(s).
+
+  --engineering-mode=<n>      Validate only partially input-data (no schema).
   --out-template=<xlsx-file>  Clone the given excel-file and appends results into it.
                               By default, results are appended into an empty excel-file.
                               Use `--out-template=-` to use input-file as template.
   --plot-workflow             Open workflow-plot in browser, after run finished.
-  -l, --list                  List available models.
-  --graph-depth=<levels>      An integer to Limit the levels of sub-models plotted.
-  -f, --force                 Overwrite output/template/demo excel-file(s).
 
 Miscellaneous:
   -h, --help                  Show this help message and exit.
@@ -446,6 +450,15 @@ def _run_batch(opts):
         else:
             raise CmdException("Specify a folder for "
                                "the '-O %s' option!" % output_folder)
+
+    modelconf = opts['--modelconf']
+    if modelconf:
+        from co2mpas.conf import defaults
+        try:
+            defaults.load(modelconf)
+        except FileNotFoundError:
+            msg = "--modelconf: No such file or directory: %s."
+            raise CmdException(msg % modelconf)
 
     from co2mpas.batch import process_folder_files
     process_folder_files(input_paths, output_folder,
