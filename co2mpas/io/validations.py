@@ -19,7 +19,6 @@ from . import constants
 DECLARATION = 0
 HARD = 1
 SOFT = 2
-SELECTOR = 3
 
 
 def select_declaration_data(data, diff=None):

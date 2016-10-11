@@ -50,7 +50,7 @@ def check_data_version(data):
         log.error(msg, __input_file_version__)
 
 
-def _eng_mode_parser(engineering_mode, inputs, errors):
+def _eng_mode_parser(engineering_mode, use_selector, inputs, errors):
 
     if int(engineering_mode) <= validations.DECLARATION:
         diff = set()
@@ -64,7 +64,7 @@ def _eng_mode_parser(engineering_mode, inputs, errors):
                      '--engineering-mode=1 or --engineering-mode=2',
                      ',\n'.join(diff))
 
-    if int(engineering_mode) < validations.SELECTOR:
+    if not use_selector:
         inputs = validations.overwrite_declaration_config_data(inputs)
 
     if int(engineering_mode) < validations.SOFT:
@@ -75,7 +75,7 @@ def _eng_mode_parser(engineering_mode, inputs, errors):
     return inputs, errors
 
 
-def validate_plan(plan, engineering_mode):
+def validate_plan(plan, engineering_mode, use_selector):
     read_schema = define_data_schema(read=True)
     validated_plan, errors, validate = [], {}, read_schema.validate
     for i, data in plan.iterrows():
@@ -90,7 +90,8 @@ def validate_plan(plan, engineering_mode):
             if v is not dsp_utl.NONE:
                 inputs[k] = v
 
-        errors = _eng_mode_parser(engineering_mode, inp, errors)[1]
+        errors = _eng_mode_parser(engineering_mode, use_selector, inp,
+                                  errors)[1]
 
         validated_plan.append((i, inputs))
 
@@ -100,14 +101,15 @@ def validate_plan(plan, engineering_mode):
     return validated_plan
 
 
-def validate_base(data, engineering_mode):
+def validate_base(data, engineering_mode, use_selector):
     read_schema = define_data_schema(read=True)
     inputs, errors, validate = {}, {}, read_schema.validate
     for k, v in sorted(dsp_utl.stack_nested_keys(data, depth=4)):
         d = dsp_utl.get_nested_dicts(inputs, *k[:-1])
         _add_validated_input(d, validate, k, v, errors)
 
-    inputs, errors = _eng_mode_parser(engineering_mode, inputs, errors)
+    inputs, errors = _eng_mode_parser(engineering_mode, use_selector, inputs,
+                                      errors)
 
     if _log_errors_msg(errors):
         return dsp_utl.NONE

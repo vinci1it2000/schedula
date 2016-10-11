@@ -407,10 +407,15 @@ def run_base():
         default_value='.'
     )
 
+    d.add_data(
+        data_id='use_selector',
+        default_value=False
+    )
+
     from .io.schema import validate_base
     d.add_function(
         function=dsp_utl.add_args(validate_base),
-        inputs=['run_base', 'data', 'engineering_mode'],
+        inputs=['run_base', 'data', 'engineering_mode', 'use_selector'],
         outputs=['validated_base'],
         input_domain=check_first_arg,
         weight=10
@@ -520,11 +525,16 @@ def run_plan():
         default_value=0
     )
 
+    d.add_data(
+        data_id='use_selector',
+        default_value=False
+    )
+
     from .io.schema import validate_plan
 
     d.add_function(
         function=dsp_utl.add_args(validate_plan),
-        inputs=['run_plan', 'data', 'engineering_mode'],
+        inputs=['run_plan', 'data', 'engineering_mode', 'use_selector'],
         outputs=['validated_plan'],
         input_domain=check_first_arg
     )
