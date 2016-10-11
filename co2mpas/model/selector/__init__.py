@@ -369,7 +369,7 @@ def sub_models():
         'inputs': ['gear_box_speeds_in', 'on_engine', 'idle_engine_speed',
                    'gear_box_type', 'gears', 'accelerations', 'times',
                    'gear_shifts', 'engine_speeds_out_hot', 'velocities',
-                   'lock_up_tc_limits'],
+                   'lock_up_tc_limits', 'has_torque_converter'],
         'define_sub_model': lambda d, **kwargs: dsp_utl.SubDispatch(d),
         'outputs': ['engine_speeds_out'],
         'targets': ['engine_speeds_out'],
