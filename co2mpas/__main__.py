@@ -28,6 +28,7 @@ USAGE:
   co2mpas ipynb       [-v | --logconf=<conf-file>] [--gui] [-f]
                       [<output-folder>]
   co2mpas modelgraph  [-v | --logconf=<conf-file>] [-O=<output-folder>]
+                      [--modelconf=<yaml-file>]
                       (--list | [--graph-depth=<levels>] [<models> ...])
   co2mpas             [--verbose | -v]  (--version | -V)
   co2mpas             --help
@@ -182,6 +183,7 @@ def print_autocompletions():
 
 def _cmd_modelgraph(opts):
     import co2mpas.plot as co2plot
+    _init_defaults(opts['--modelconf'])
     if opts['--list']:
         print('\n'.join(co2plot.get_model_paths()))
     else:
@@ -422,6 +424,16 @@ def parse_variation(variation):
     return res
 
 
+def _init_defaults(modelconf):
+    if modelconf:
+        from co2mpas.conf import defaults
+        try:
+            defaults.load(modelconf)
+        except FileNotFoundError:
+            msg = "--modelconf: No such file or directory: %s."
+            raise CmdException(msg % modelconf)
+
+
 def _run_batch(opts):
     input_paths = opts['<input-path>']
     output_folder = opts['-O']
@@ -451,14 +463,7 @@ def _run_batch(opts):
             raise CmdException("Specify a folder for "
                                "the '-O %s' option!" % output_folder)
 
-    modelconf = opts['--modelconf']
-    if modelconf:
-        from co2mpas.conf import defaults
-        try:
-            defaults.load(modelconf)
-        except FileNotFoundError:
-            msg = "--modelconf: No such file or directory: %s."
-            raise CmdException(msg % modelconf)
+    _init_defaults(opts['--modelconf'])
 
     from co2mpas.batch import process_folder_files
     process_folder_files(input_paths, output_folder,
