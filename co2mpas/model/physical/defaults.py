@@ -13,12 +13,6 @@ It provides constants for the CO2MPAS formulas.
 import numpy as np
 import co2mpas.utils as co2_utl
 
-#: Machine error.
-EPS = np.finfo(np.float32).eps
-
-#: Infinite value.
-INF = 10000.0
-
 
 #: Container of node default values.
 class Values(co2_utl.Constants):
@@ -35,10 +29,10 @@ class Values(co2_utl.Constants):
     max_time_WLTP = 1800.0
 
     #: Maximum velocity to consider the vehicle stopped [km/h].
-    stop_velocity = 1.0 + EPS
+    stop_velocity = 1.0 + np.finfo(np.float32).eps
 
     #: Maximum acceleration to be at constant velocity [m/s2].
-    plateau_acceleration = 0.1 + EPS
+    plateau_acceleration = 0.1 + np.finfo(np.float32).eps
 
     #: Does the vehicle have start/stop system?
     has_start_stop = True
@@ -449,5 +443,10 @@ class Defaults(co2_utl.Constants):
     values = Values()
     functions = Functions()
 
+    #: Machine error.
+    EPS = np.finfo(np.float32).eps
+
+    #: Infinite value.
+    INF = 10000.0
 
 dfl = Defaults()

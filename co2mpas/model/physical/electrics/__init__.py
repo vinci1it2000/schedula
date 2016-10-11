@@ -702,8 +702,8 @@ def identify_alternator_current_threshold(
 
 def _starts_windows(times, engine_starts, dt):
     ts = times[engine_starts]
-    from ..defaults import EPS
-    return np.searchsorted(times, np.column_stack((ts - dt, ts + dt + EPS)))
+    from ..defaults import dfl
+    return np.searchsorted(times, np.column_stack((ts - dt, ts + dt + dfl.EPS)))
 
 
 def identify_alternator_starts_windows(

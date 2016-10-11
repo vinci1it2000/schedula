@@ -426,7 +426,7 @@ def identify_gear_shifting_velocity_limits(gears, velocities, stop_velocity):
     for k in range(max_gear + 1):
         v0, v1 = limits.get(k, [[], []])
         gsv[k] = [rjt_out(v0, (-1, (0, 0))),
-                  rjt_out(v1, (defaults.INF, (0, 0)))]
+                  rjt_out(v1, (defaults.dfl.INF, (0, 0)))]
 
     return correct_gsv(gsv, stop_velocity)
 
@@ -568,7 +568,7 @@ class CMV(collections.OrderedDict):
         for k, v in self.items():
             kv = {}
             for (s, l), x in zip((('down', '--'), ('up', '-')), v):
-                if x < defaults.INF:
+                if x < defaults.dfl.INF:
                     kv['label'] = 'Gear %d:%s-shift' % (k, s)
                     kv['linestyle'] = l
                     kv['color'] = plt.plot([x] * 2, [0, 1], **kv)[0]._color
@@ -793,7 +793,7 @@ def correct_gsv(gsv, stop_velocity):
     :rtype: dict
     """
 
-    gsv[0] = [0, (stop_velocity, (defaults.INF, 0))]
+    gsv[0] = [0, (stop_velocity, (defaults.dfl.INF, 0))]
 
     for v0, v1 in dsp_utl.pairwise(gsv.values()):
         up0, down1 = (v0[1][0], v1[0][0])
@@ -810,7 +810,7 @@ def correct_gsv(gsv, stop_velocity):
 
         v0[1] += stop_velocity
 
-    gsv[max(gsv)][1] = defaults.INF
+    gsv[max(gsv)][1] = defaults.dfl.INF
 
     return gsv
 
@@ -859,7 +859,7 @@ class GSPV(dict):
 
         self[0] = [[0.0], [[0.0], [stop_velocity]]]
 
-        self[max(self)][1] = [[0, 1], [defaults.INF] * 2]
+        self[max(self)][1] = [[0, 1], [defaults.dfl.INF] * 2]
 
         self.cloud = {k: copy.deepcopy(v) for k, v in self.items()}
 
@@ -901,7 +901,7 @@ class GSPV(dict):
     @property
     def limits(self):
         limits = {}
-        X = [defaults.INF, 0]
+        X = [defaults.dfl.INF, 0]
         for v in self.cloud.values():
             X[0] = min(min(v[1][0]), X[0])
             X[1] = max(max(v[1][0]), X[1])
@@ -916,12 +916,12 @@ class GSPV(dict):
         for k, v in self.limits.items():
             kv = {}
             for (s, l), (x, y) in zip((('down', '--'), ('up', '-')), v):
-                if x[0] < defaults.INF:
+                if x[0] < defaults.dfl.INF:
                     kv['label'] = 'Gear %d:%s-shift' % (k, s)
                     kv['linestyle'] = l
                     kv['color'] = plt.plot(x, y, **kv)[0]._color
             cy, cx = self.cloud[k][1]
-            if cx[0] < defaults.INF:
+            if cx[0] < defaults.dfl.INF:
                 kv.pop('label')
                 kv['linestyle'] = ''
                 kv['marker'] = 'o'
@@ -967,7 +967,7 @@ class GSPV(dict):
 
             vsr, n_vsr = self.velocity_speed_ratios, velocity_speed_ratios
 
-            limits = [defaults.INF, 0]
+            limits = [defaults.dfl.INF, 0]
 
             for v in self.cloud.values():
                 limits[0] = min(min(v[1][0]), limits[0])
@@ -989,7 +989,7 @@ class GSPV(dict):
                     c[1][1].append(u)
 
             cloud[0] = [[0.0], [[0.0], [self[0][1](0.0)]]]
-            cloud[max(cloud)][1] = [[0, 1], [defaults.INF] * 2]
+            cloud[max(cloud)][1] = [[0, 1], [defaults.dfl.INF] * 2]
 
             self._fit_cloud()
 
@@ -1482,7 +1482,7 @@ class MVL(CMV):
 
         mvl = [[k, tuple(v * velocity_speed_ratios[k])]
                for k, v in reversed(list(enumerate(mvl[1:], 1)))]
-        mvl[0][1] = (mvl[0][1][0], defaults.INF)
+        mvl[0][1] = (mvl[0][1][0], defaults.dfl.INF)
         mvl.append([0, (0, mvl[-1][1][0])])
 
         for i, v in enumerate(mvl[1:]):

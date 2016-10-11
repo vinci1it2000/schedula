@@ -1330,7 +1330,7 @@ def engine():
             'active_cylinders': 'active_cylinders',
             'active_variable_valves': 'active_variable_valves'
         },
-        inp_weight={'co2_params': defaults.EPS}
+        inp_weight={'co2_params': defaults.dfl.EPS}
     )
 
     return d

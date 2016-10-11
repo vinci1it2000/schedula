@@ -221,9 +221,9 @@ def calculate_gear_box_speeds_from_engine_speeds(
     :rtype: (np.array, float)
     """
 
-    bins = [-defaults.INF, 0]
+    bins = [-defaults.dfl.INF, 0]
     bins.extend([v for k, v in sorted(velocity_speed_ratios.items()) if k != 0])
-    bins.append(defaults.INF)
+    bins.append(defaults.dfl.INF)
     bins = bins[:-1] + np.diff(bins) / 2
     bins[0] = 0
 
@@ -394,7 +394,7 @@ def identify_speed_velocity_ratios(
     svr = {k: co2_utl.reject_outliers(ratios[gears == k])[0]
            for k in range(1, int(max(gears)) + 1)
            if k in gears}
-    svr[0] = defaults.INF
+    svr[0] = defaults.dfl.INF
 
     return svr
 
@@ -454,7 +454,7 @@ def calculate_speed_velocity_ratios(
 
     svr = {k: c * v for k, v in gear_box_ratios.items()}
 
-    svr[0] = defaults.INF
+    svr[0] = defaults.dfl.INF
 
     return svr
 
@@ -477,8 +477,8 @@ def calculate_velocity_speed_ratios(speed_velocity_ratios):
 
     def inverse(v):
         if v <= 0:
-            return defaults.INF
-        elif v >= defaults.INF:
+            return defaults.dfl.INF
+        elif v >= defaults.dfl.INF:
             return 0.0
         else:
             return 1 / v

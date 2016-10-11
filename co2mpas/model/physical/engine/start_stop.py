@@ -48,7 +48,7 @@ def identify_on_engine(
     on_engine = engine_speeds_out > idle_engine_speed[0] - idle_engine_speed[1]
     mask = np.where(identify_engine_starts(on_engine))[0] + 1
     ts = np.asarray(times[mask], dtype=float)
-    ts += min_time_engine_on_after_start + defaults.EPS
+    ts += min_time_engine_on_after_start + defaults.dfl.EPS
     for i, j in zip(mask, np.searchsorted(times, ts)):
         on_engine[i:j] = True
 

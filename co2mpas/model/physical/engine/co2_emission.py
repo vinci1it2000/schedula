@@ -1112,8 +1112,8 @@ def define_initial_co2_emission_model_params_guess(
         default['t1'].update({'value': 0.0, 'vary': False})
 
     p = lmfit.Parameters()
-    from ..defaults import EPS
-
+    from ..defaults import dfl
+    EPS = dfl.EPS
     for k, kw in sorted(default.items()):
         kw['name'] = k
         kw['value'] = params.get(k, kw['value'])
