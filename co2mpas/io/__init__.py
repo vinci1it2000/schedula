@@ -404,9 +404,25 @@ def _match_part(map, *parts, default=None):
         return _match_part(map, *parts[:-1], default=part)
 
 
+def _search_unit(units, default, *keys):
+    try:
+        return units[keys[-1]]
+    except KeyError:
+        try:
+            return _search_unit(units, dsp_utl.EMPTY, *keys[:-1])
+        except IndexError:
+            if default is dsp_utl.EMPTY:
+                raise IndexError
+            for i, u in units.items():
+                if any(i in k for k in keys):
+                    return u
+            return default
+
+
 def _add_units(gen, default=' '):
-    p_map, units = _summary_map().get, _param_units().get
-    return [k[:-1] + (p_map(k, k), units(k, ' ')) for k in gen]
+    p_map = _summary_map().get
+    units = functools.partial(_search_unit, _param_units(), default)
+    return [k[:-1] + (p_map(k[-1], k[-1]), units(*k)) for k in gen]
 
 
 def _sort_key(
