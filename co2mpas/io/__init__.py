@@ -93,17 +93,17 @@ def _summary2df(data):
 
     if 'results' in summary:
         r = {}
-        cols = ['cycle', 'stage', 'usage']
+        index = ['cycle', 'stage', 'usage']
 
         for k, v in dsp_utl.stack_nested_keys(summary['results'], depth=4):
             l = dsp_utl.get_nested_dicts(r, k[0], default=list)
-            l.append(dsp_utl.combine_dicts(dsp_utl.map_list(cols, *k[1:]), v))
+            l.append(dsp_utl.combine_dicts(dsp_utl.map_list(index, *k[1:]), v))
 
         if r:
             df = _dd2df(
-                r, index=cols, depth=2,
+                r, index=index, depth=2,
                 col_key=functools.partial(_sort_key, p_keys=('param',) * 2),
-                row_key=functools.partial(_sort_key, p_keys=cols)
+                row_key=functools.partial(_sort_key, p_keys=index)
             )
             df.columns = pd.MultiIndex.from_tuples(_add_units(df.columns))
             setattr(df, 'name', 'results')

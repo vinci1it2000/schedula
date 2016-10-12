@@ -553,7 +553,8 @@ def _get_corner(df, startcol=0, startrow=0, index=False, header=True, **kw):
         ref['index_col'] = list(range(i))
         startcol += i
     landing = xl_utl.xl_rowcol_to_cell_fast(startrow, startcol)
-    ref = '{}(L):..(DR):LURD:["df", {}]'.format(landing, json.dumps(ref))
+    ref = json.dumps(ref, sort_keys=True)
+    ref = '{}(L):..(DR):LURD:["df", {}]'.format(landing, ref)
     return startrow, startcol, ref
 
 
