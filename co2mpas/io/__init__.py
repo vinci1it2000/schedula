@@ -473,8 +473,9 @@ def _dd2df(dd, index=None, depth=0, col_key=None, row_key=None):
         if isinstance(df.index, pd.MultiIndex):
             ax = pd.MultiIndex.from_tuples(ax)
         df = df.reindex_axis(ax, axis='index', copy=False)
-        if index is not None:
-            df.index.set_names(index, inplace=True)
+
+    if index is not None:
+        df.index.set_names(index, inplace=True)
 
     return df
 

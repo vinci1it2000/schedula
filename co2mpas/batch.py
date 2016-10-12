@@ -208,7 +208,7 @@ def _save_summary(fpath, start_time, summary):
         from co2mpas.io.excel import _df2excel
         from co2mpas.io import _dd2df, _sort_key, _co2mpas_info2df, _add_units
 
-        p_keys = ('cycle', 'stage', 'usage')
+        p_keys = ('cycle', 'stage', 'usage', 'param')
 
         df = _dd2df(
             summary, index=['vehicle_name'], depth=3,
