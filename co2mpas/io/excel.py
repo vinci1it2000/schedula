@@ -486,6 +486,14 @@ def _df2excel(writer, shname, df, k0=0, named_ranges=('columns', 'rows'), **kw):
         return (startrow, startcol), ref
 
 
+def _convert_index(k):
+    if not isinstance(k, collections.Iterable):
+        k = (str(k),)
+    elif isinstance(k, str):
+        k = (k,)
+    return k
+
+
 def _add_named_ranges(df, writer, shname, startrow, startcol, named_ranges, k0):
     # noinspection PyBroadException
     try:
@@ -507,17 +515,15 @@ def _add_named_ranges(df, writer, shname, startrow, startcol, named_ranges, k0):
 
     it = ()
 
-    if 'columns' in named_ranges:
+    if 'rows' in named_ranges and 'columns' in named_ranges:
+        it += (_ranges_by_col_row(df, startrow, startcol),)
+    elif 'columns' in named_ranges:
         it += (_ranges_by_col(df, startrow, startcol),)
-
-    if 'rows' in named_ranges:
+    elif 'rows' in named_ranges:
         it += (_ranges_by_row(df, startrow, startcol),)
 
     for k, range_ref in itertools.chain(*it):
-        if not isinstance(k, collections.Iterable):
-            k = (str(k),)
-        elif isinstance(k, str):
-            k = (k,)
+        k = _convert_index(k)
         if k:
             try:
                 k = tag + k[k0:]
@@ -569,6 +575,13 @@ def _ranges_by_col(df, startrow, startcol):
 def _ranges_by_row(df, startrow, startcol):
     for row, (k, v) in enumerate(df.iterrows(), start=startrow):
         yield k, xl_utl.xl_range_abs(row, startcol, row, startcol + len(v) - 1)
+
+
+def _ranges_by_col_row(df, startrow, startcol):
+    for row, i in enumerate(df.index, start=startrow):
+        i = _convert_index(i)
+        for col, c in enumerate(df.columns, start=startcol):
+            yield i + _convert_index(c), xl_utl.xl_range_abs(row, col, row, col)
 
 
 def _chart2excel(writer, shname, charts):
