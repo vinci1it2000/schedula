@@ -296,7 +296,7 @@ def _parameters2df(data, data_descriptions, write_schema):
 def _param_orders():
     x = ('declared_co2_emission', 'co2_emission', 'fuel_consumption')
     y = ('low', 'medium', 'high', 'extra_high', 'UDC', 'EUDC', 'value')
-    param = tuple(map('_'.join, itertools.product(x, y))) + ('status',)
+    param = x + tuple(map('_'.join, itertools.product(x, y))) + ('status',)
 
     param += (
         'av_velocities', 'distance', 'init_temp', 'av_temp', 'end_temp',
