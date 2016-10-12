@@ -1978,6 +1978,43 @@ def calculate_phases_fuel_consumptions(
     return tuple(np.asarray(phases_co2_emissions) * c)
 
 
+def default_ki_factor(has_periodically_regenerating_systems):
+    """
+    Returns the default ki factor [-].
+
+    :param has_periodically_regenerating_systems:
+        Does the vehicle has periodically regenerating systems? [-].
+    :type has_periodically_regenerating_systems: bool
+
+    :return:
+        Correction for vehicles with periodically regenerating systems [-].
+    :rtype: float
+    """
+
+    par = defaults.dfl.functions.default_ki_factor.ki_factor
+    return par.get(has_periodically_regenerating_systems, 1.0)
+
+
+def calculate_declared_co2_emission(co2_emission_value, ki_factor):
+    """
+    Calculates the declared CO2 emission of the cycle [CO2g/km].
+
+    :param co2_emission_value:
+        CO2 emission value of the cycle [CO2g/km].
+    :type co2_emission_value: float
+
+    :param ki_factor:
+        Correction for vehicles with periodically regenerating systems [-].
+    :type ki_factor: float
+
+    :return:
+        Declared CO2 emission value of the cycle [CO2g/km].
+    :rtype: float
+    """
+
+    return co2_emission_value * ki_factor
+
+
 def co2_emission():
     """
     Defines the engine CO2 emission sub model.
@@ -2248,6 +2285,23 @@ def co2_emission():
         function=calculate_co2_emission,
         inputs=['phases_co2_emissions', 'phases_distances'],
         outputs=['co2_emission_value']
+    )
+
+    d.add_data(
+        data_id='has_periodically_regenerating_systems',
+        default_value=defaults.dfl.values.has_periodically_regenerating_systems
+    )
+
+    d.add_function(
+        function=default_ki_factor,
+        inputs=['has_periodically_regenerating_systems'],
+        outputs=['ki_factor']
+    )
+
+    d.add_function(
+        function=calculate_declared_co2_emission,
+        inputs=['co2_emission_value', 'ki_factor'],
+        outputs=['declared_co2_emission_value']
     )
 
     d.add_data(

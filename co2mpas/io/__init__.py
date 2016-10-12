@@ -292,7 +292,7 @@ def _parameters2df(data, data_descriptions, write_schema):
 
 @cachetools.cached({})
 def _param_orders():
-    x = ('co2_emission', 'fuel_consumption')
+    x = ('declared_co2_emission', 'co2_emission', 'fuel_consumption')
     y = ('low', 'medium', 'high', 'extra_high', 'UDC', 'EUDC', 'value')
     param = tuple(map('_'.join, itertools.product(x, y))) + ('status',)
 
@@ -343,6 +343,7 @@ def _summary_map():
         'co2_emission_UDC': 'UDC',
         'co2_emission_EUDC': 'EUDC',
         'co2_emission_value': 'value',
+        'declared_co2_emission_value': 'declared_value',
         'vehicle_mass': 'mass',
     }
     return _map

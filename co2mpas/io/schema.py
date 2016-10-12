@@ -420,6 +420,10 @@ def define_data_schema(read=True):
         read=read, error='should be as <float> and greater than zero!',
         check=lambda x: x > 0
     )
+    greater_than_one = _positive(
+        read=read, error='should be as <float> and greater than one!',
+        check=lambda x: x >= 1
+    )
     positive_int = _positive(type=int, read=read)
     limits = _limits(read=read)
     index_dict = _index_dict(read=read)
@@ -463,6 +467,7 @@ def define_data_schema(read=True):
 
         _compare_str('VERSION'): string,
         'lock_up_tc_limits': tuplefloat2,
+        'ki_factor': greater_than_one,
         'tyre_dimensions': tyre_dimensions,
         'tyre_code': tyre_code,
         'wltp_base_model': _dict(format=dict, read=read),
@@ -522,6 +527,7 @@ def define_data_schema(read=True):
         _compare_str('co2_emission_UDC'): positive,
         _compare_str('co2_emission_EUDC'): positive,
         'co2_emission_value': positive,
+        'declared_co2_emission_value': positive,
         'n_dyno_axes': positive_int,
         'n_wheel_drive': positive_int,
 
@@ -530,6 +536,7 @@ def define_data_schema(read=True):
         'has_energy_recuperation': _bool,
         'use_basic_start_stop': _bool,
         'is_hybrid': _bool,
+        'has_periodically_regenerating_systems': _bool,
         'engine_has_variable_valve_actuation': _bool,
         'has_thermal_management': _bool,
         'engine_has_direct_injection': _bool,

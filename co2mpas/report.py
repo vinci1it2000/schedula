@@ -48,6 +48,10 @@ def _correlation_coefficient(t, o):
     return np.corrcoef(t, o)[0, 1] if t.size > 1 else np.nan
 
 
+def _prediction_target_ratio(t, o):
+    return np.mean(o / t)
+
+
 def compare_outputs_vs_targets(data):
     """
     Compares model outputs vs targets.
@@ -66,6 +70,7 @@ def compare_outputs_vs_targets(data):
         'mean_absolute_error': sk_met.mean_absolute_error,
         'correlation_coefficient': _correlation_coefficient,
         'accuracy_score': sk_met.accuracy_score,
+        'prediction_target_ratio': _prediction_target_ratio
     }
 
     for k, t in dsp_utl.stack_nested_keys(data.get('target', {}), depth=3):
@@ -239,7 +244,8 @@ def _extract_summary_from_summary(report, extracted):
     n = ('summary', 'results')
     if dsp_utl.are_in_nested_dicts(report, *n):
         for j, w in dsp_utl.get_nested_dicts(report, *n).items():
-            if j in ('co2_emission', 'fuel_consumption'):
+            if j in ('declared_co2_emission', 'co2_emission',
+                     'fuel_consumption'):
                 for k, v in dsp_utl.stack_nested_keys(w, depth=3):
                     if v:
                         dsp_utl.get_nested_dicts(extracted, *k).update(v)
@@ -470,7 +476,7 @@ def get_values(data, keys, tag=(), update=lambda k, v: v, base=None):
 
 def get_summary_results(data):
     res = {}
-    for k in ('co2_emission', 'fuel_consumption'):
+    for k in ('declared_co2_emission','co2_emission', 'fuel_consumption'):
         get_phases_values(data, what=k, base=res)
     keys = ('f0', 'f1', 'f2', 'vehicle_mass', 'gear_box_type', 'has_start_stop',
             'r_dynamic')

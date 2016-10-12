@@ -16,6 +16,9 @@ import co2mpas.utils as co2_utl
 
 #: Container of node default values.
 class Values(co2_utl.Constants):
+    #: Does the vehicle has periodically regenerating systems? [-].
+    has_periodically_regenerating_systems = False
+
     #: Possible percentages of active cylinders [-].
     active_cylinder_ratios = (1.0,)
 
@@ -168,6 +171,10 @@ class Values(co2_utl.Constants):
 
 #: Container of internal function parameters.
 class Functions(co2_utl.Constants):
+    class default_ki_factor(co2_utl.Constants):
+        #: Correction for vehicles with periodically regenerating systems [-].
+        ki_factor = {True: 1.05, False: 1.0}
+
     class calculate_max_mean_piston_speeds_cylinder_deactivation(
         co2_utl.Constants):
         #: Percentage of max mean piston speeds used as limit in cylinder

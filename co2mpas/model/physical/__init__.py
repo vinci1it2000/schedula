@@ -627,7 +627,10 @@ def physical():
             'engine_has_cylinder_deactivation':
                 'engine_has_cylinder_deactivation',
             'engine_has_variable_valve_actuation':
-                'engine_has_variable_valve_actuation'
+                'engine_has_variable_valve_actuation',
+            'has_periodically_regenerating_systems':
+                'has_periodically_regenerating_systems',
+            'ki_factor': 'ki_factor',
         },
         outputs={
             'engine_mass': 'engine_mass',
@@ -700,7 +703,9 @@ def physical():
             'engine_max_speed': 'engine_max_speed',
             'engine_idle_fuel_consumption': 'engine_idle_fuel_consumption',
             'active_cylinders': 'active_cylinders',
-            'active_variable_valves': 'active_variable_valves'
+            'active_variable_valves': 'active_variable_valves',
+            'ki_factor': 'ki_factor',
+            'declared_co2_emission_value': 'declared_co2_emission_value',
         },
         inp_weight={'initial_temperature': 5}
     )
