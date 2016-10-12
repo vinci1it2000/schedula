@@ -71,7 +71,8 @@ calibration = {
     'alternator_currents': True,
     'battery_currents': True,
     'cycle_name': True,
-    'cycle_type': True
+    'cycle_type': True,
+    'initial_state_of_charge': True
 }
 
 prediction = {
