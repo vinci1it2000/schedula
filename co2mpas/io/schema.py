@@ -28,6 +28,7 @@ from co2mpas.model.physical.engine.thermal import ThermalModel
 
 log = logging.getLogger(__name__)
 
+
 def check_data_version(data):
     from co2mpas._version import __input_file_version__
     data = list(data.values())[0]
@@ -50,24 +51,48 @@ def check_data_version(data):
         log.error(msg, __input_file_version__)
 
 
-def _eng_mode_parser(engineering_mode, use_selector, inputs, errors):
+def _ta_mode(data):
+    base, errors = _validate_base_with_schema(data.get('base', {}))
 
+    if _log_errors_msg(errors):
+        return False
+
+    data['base'], _, diff = _extract_declaration_data(base, {})
+
+    for k in ('plan', 'flag'):
+        diff.update((k,) + tuple(j.split('.')) for j in data.pop(k, {}))
+
+    if diff:
+        diff = ['.'.join(k) for k in sorted(diff)]
+        log.info('Since CO2MPAS is launched in declaration mode the '
+                 'following data cannot be used:\n %s\n'
+                 'If you want to include these data use the cmd batch.',
+                 ',\n'.join(diff))
+    return True
+
+
+def _extract_declaration_data(inputs, errors):
+    diff = set()
+    inputs = validations.select_declaration_data(inputs, diff)
+    errors = validations.select_declaration_data(errors)
+    return inputs, errors, diff
+
+
+def _eng_mode_parser(engineering_mode, use_selector, inputs, errors):
     if int(engineering_mode) <= validations.DECLARATION:
-        diff = set()
-        inputs = validations.select_declaration_data(inputs, diff)
-        errors = validations.select_declaration_data(errors)
+        inputs, errors, diff = _extract_declaration_data(inputs, errors)
         if diff:
             diff = ['.'.join(k) for k in sorted(diff)]
             log.info('Since CO2MPAS is launched in declaration mode the '
                      'following data are not used:\n %s\n'
                      'If you want to include these data add to the cmd '
-                     '--engineering-mode=1 or --engineering-mode=2',
+                     '-D engineering_mode=1 or -D engineering_mode=2',
                      ',\n'.join(diff))
 
     if not use_selector:
         inputs = validations.overwrite_declaration_config_data(inputs)
 
-    if int(engineering_mode) < validations.SOFT:
+    if int(engineering_mode) <= validations.HARD:
         for k, v in dsp_utl.stack_nested_keys(inputs, depth=3):
             for c, msg in validations.hard_validation(v):
                 dsp_utl.get_nested_dicts(errors, *k)[c] = SchemaError([], [msg])
@@ -101,12 +126,18 @@ def validate_plan(plan, engineering_mode, use_selector):
     return validated_plan
 
 
-def validate_base(data, engineering_mode, use_selector):
+def _validate_base_with_schema(data):
     read_schema = define_data_schema(read=True)
     inputs, errors, validate = {}, {}, read_schema.validate
     for k, v in sorted(dsp_utl.stack_nested_keys(data, depth=4)):
         d = dsp_utl.get_nested_dicts(inputs, *k[:-1])
         _add_validated_input(d, validate, k, v, errors)
+
+    return inputs, errors
+
+
+def validate_base(data, engineering_mode, use_selector):
+    inputs, errors = _validate_base_with_schema(data)
 
     inputs, errors = _eng_mode_parser(engineering_mode, use_selector, inputs,
                                       errors)

@@ -17,6 +17,7 @@ import pandas as pd
 from tqdm import tqdm
 import pandalone.xleash as xleash
 import co2mpas.io.excel as excel
+import co2mpas.io.schema as schema
 import co2mpas.dispatcher.utils as dsp_utl
 import co2mpas.dispatcher as dsp
 import co2mpas.utils as co2_utl
@@ -237,7 +238,7 @@ def check_first_arg(first, *args):
 
 
 def prepare_data(raw_data, variation, input_file_name, overwrite_cache,
-                 output_folder, timestamp):
+                 output_folder, timestamp, type_approval_mode):
     has_plan = 'plan' in raw_data and (not raw_data['plan'].empty)
     match = {
         'scope': 'plan' if has_plan else 'base',
@@ -253,10 +254,10 @@ def prepare_data(raw_data, variation, input_file_name, overwrite_cache,
     if 'plan' in r:
         if has_plan:
             plan = raw_data['plan'].copy()
-            for k, v in dsp_utl.stack_nested_keys(r['plan'], ('plan',), 4):
+            for k, v in dsp_utl.stack_nested_keys(r['plan'], 4):
                 plan['.'.join(k)] = v
         else:
-            gen = dsp_utl.stack_nested_keys(r['plan'], ('plan',), 4)
+            gen = dsp_utl.stack_nested_keys(r['plan'], 4)
             plan = pd.DataFrame([{'.'.join(k): v for k, v in gen}])
             excel._add_index_plan(plan, input_file_name)
 
@@ -273,16 +274,24 @@ def prepare_data(raw_data, variation, input_file_name, overwrite_cache,
             raw_data.get('flag', {}), r['flag'], depth=1
         )
 
-    if not dsp_utl.are_in_nested_dicts(r, 'flag', 'run_base'):
-        dsp_utl.get_nested_dicts(r, 'flag')['run_base'] = not has_plan
-
-    if not dsp_utl.are_in_nested_dicts(r, 'flag', 'run_plan'):
-        dsp_utl.get_nested_dicts(r, 'flag')['run_plan'] = has_plan
-
     data = dsp_utl.combine_dicts(raw_data, r)
-    flag = data.get('flag', {})
+
+    if type_approval_mode:
+        variation, has_plan = {}, False
+        if not schema._ta_mode(data):
+            return {}, pd.DataFrame([])
+
+    flag = data.get('flag', {}).copy()
+
+    if not 'run_base' in flag:
+        flag['run_base'] = not has_plan
+
+    if not 'run_plan' in flag:
+        flag['run_plan'] = has_plan
+
     flag['output_folder'] = output_folder
     flag['overwrite_cache'] = overwrite_cache
+
     if timestamp is not None:
         flag['timestamp'] = timestamp
 
@@ -293,7 +302,9 @@ def prepare_data(raw_data, variation, input_file_name, overwrite_cache,
     }
     res = dsp_utl.combine_dicts(flag, res)
     base = dsp_utl.combine_dicts(res, {'data': data.get('base', {})})
-    plan = dsp_utl.combine_dicts(res, {'data': data.get('plan', pd.DataFrame([]))})
+    plan = dsp_utl.combine_dicts(res, {'data': data.get('plan',
+                                                        pd.DataFrame([]))})
+
     return base, plan
 
 
@@ -354,10 +365,16 @@ def vehicle_processing_model():
         default_value=None
     )
 
+    d.add_data(
+        data_id='type_approval_mode',
+        default_value=False
+    )
+
     d.add_function(
         function=prepare_data,
         inputs= ['raw_data', 'variation', 'input_file_name',
-                 'overwrite_cache', 'output_folder', 'timestamp'],
+                 'overwrite_cache', 'output_folder', 'timestamp',
+                 'type_approval_mode'],
         outputs=['base_data', 'plan_data']
     )
 
@@ -412,9 +429,8 @@ def run_base():
         default_value=False
     )
 
-    from .io.schema import validate_base
     d.add_function(
-        function=dsp_utl.add_args(validate_base),
+        function=dsp_utl.add_args(schema.validate_base),
         inputs=['run_base', 'data', 'engineering_mode', 'use_selector'],
         outputs=['validated_base'],
         input_domain=check_first_arg,
@@ -530,10 +546,8 @@ def run_plan():
         default_value=False
     )
 
-    from .io.schema import validate_plan
-
     d.add_function(
-        function=dsp_utl.add_args(validate_plan),
+        function=dsp_utl.add_args(schema.validate_plan),
         inputs=['run_plan', 'data', 'engineering_mode', 'use_selector'],
         outputs=['validated_plan'],
         input_domain=check_first_arg

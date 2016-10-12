@@ -125,7 +125,7 @@ def make_simulation_plan(plan, timestamp, variation, flag, model=None):
 
         new_base, o = define_new_inputs(p, base)
         inputs = batch.prepare_data(new_base, {}, base_fpath, o_cache, o_folder,
-                                    timestamp)[0]
+                                    timestamp, False)[0]
         inputs.update(dsp_utl.selector(set(base).difference(run_modes), base))
         inputs['vehicle_name'] = name
         inputs.update(kw)

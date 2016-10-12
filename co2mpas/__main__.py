@@ -16,11 +16,11 @@ Use the `batch` sub-command to simulate a vehicle contained in an excel-file.
 
 
 USAGE:
+  co2mpas ta          [--gui] [-f] [-O=<output-folder>] [<input-path>]...
   co2mpas batch       [-v | --logconf=<conf-file>] [--gui] [-f]
                       [--overwrite-cache] [-O=<output-folder>]
                       [--modelconf=<yaml-file>]
-                      [-D=<key=value>]...
-                      [<input-path>]...
+                      [-D=<key=value>]... [<input-path>]...
   co2mpas demo        [-v | --logconf=<conf-file>] [--gui] [-f]
                       [<output-folder>]
   co2mpas template    [-v | --logconf=<conf-file>] [--gui] [-f]
@@ -434,7 +434,7 @@ def _init_defaults(modelconf):
             raise CmdException(msg % modelconf)
 
 
-def _run_batch(opts):
+def _run_batch(opts, **kwargs):
     input_paths = opts['<input-path>']
     output_folder = opts['-O']
     if opts['--gui']:
@@ -467,7 +467,8 @@ def _run_batch(opts):
 
     from co2mpas.batch import process_folder_files
     process_folder_files(input_paths, output_folder,
-                         variation=parse_variation(opts['--variation']))
+                         variation=parse_variation(opts['--variation']),
+                         overwrite_cache=opts['--overwrite-cache'], **kwargs)
 
 
 def _main(*args):
@@ -493,6 +494,8 @@ def _main(*args):
             _cmd_ipynb(opts)
         elif opts['modelgraph']:
             _cmd_modelgraph(opts)
+        elif opts['ta']:
+            _run_batch(opts, type_approval_mode=True)
         else:
             _run_batch(opts)
 
