@@ -169,7 +169,10 @@ def _get_cycle(cycle=None, usage=None, **kw):
         if usage == 'config':
             cycle = 'all'
         else:
-            cycle = ('nedc_h', 'nedc_l', 'wltp_p', 'wltp_h', 'wltp_l')
+            cycle = ('nedc_h', 'nedc_l', 'wltp_h', 'wltp_l')
+            if cycle == 'all':
+                cycle += 'wltp_p',
+
     elif cycle == 'wltp':
         cycle = ('wltp_h', 'wltp_l')
     elif cycle == 'nedc':

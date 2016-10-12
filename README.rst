@@ -1299,11 +1299,11 @@ Description of the name-parts
    - ``wltp-l``: data related to the *WLTP Low* cycle.
    - ``wltp-precon``: data related to the preconditioning *WLTP* cycle.
    - ``wltp-p``: is a shortcut of ``wltp-precon``.
-   - ``nedc``: is a shortcut to set values for both ``nedc-h`` and ``nedc-l``
-     cycles.
-   - ``wltp``: is a shortcut to set values for both ``wltp-h`` and ``wltp-l``
-     cycles.
-   - ``all`` [default]: is a shortcut to set values for ``nedc``, ``wltp``,
+   - ``nedc`` [default]: is a shortcut to set values for both ``nedc-h`` and
+     ``nedc-l`` cycles.
+   - ``wltp`` [default]: is a shortcut to set values for both ``wltp-h`` and
+     ``wltp-l`` cycles.
+   - ``all``: is a shortcut to set values for ``nedc``, ``wltp``,
      and ``wltp-p`` cycles.
 
 5. **param:** any data node name (e.g. ``vehicle_mass``) used in the physical
