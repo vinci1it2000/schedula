@@ -84,6 +84,8 @@ def convert2df(report, start_time, main_flags):
 
     res.update(_proc_info2df(report, start_time, main_flags))
 
+    res['summary'] = [res['proc_info'][0]] + res.get('summary', [])
+
     return res
 
 
