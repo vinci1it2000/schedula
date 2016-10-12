@@ -50,7 +50,7 @@ class Solution(OrderedDict):
         self.outputs = set(outputs or ())
         from .. import Dispatcher
 
-        self._set_dsp_features(dsp or Dispatcher())
+        self._set_dsp_features(dsp or Dispatcher(caller=__name__))
         if not _empty:
             self._set_inputs(inputs, inputs_dist)
 

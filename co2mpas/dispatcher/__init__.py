@@ -159,7 +159,7 @@ class Dispatcher(object):
         return isinstance(other, Dispatcher) and id(other) < id(self)
 
     def __init__(self, dmap=None, name='', default_values=None, raises=False,
-                 description=''):
+                 description='', caller=None):
         """
         Initializes the dispatcher.
 
@@ -208,7 +208,7 @@ class Dispatcher(object):
         #: If True the dispatcher interrupt the dispatch when an error occur.
         self.raises = raises
 
-        self.__module__ = caller_name()  # Set as who calls my caller.
+        self.__module__ = caller or caller_name()  # Set as who calls my caller.
 
         #: Parent dispatcher.
         self._parent = None
