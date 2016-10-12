@@ -552,41 +552,29 @@ def calculate_gear_box_powers_in(gear_box_torques_in, gear_box_speeds_in):
     return calculate_wheel_powers(gear_box_torques_in, gear_box_speeds_in)
 
 
-def calculate_equivalent_gear_box_heat_capacity(
-        ignition_type, engine_max_power):
+def calculate_equivalent_gear_box_heat_capacity(engine_mass):
     """
     Calculates the equivalent gear box heat capacity [kg*J/K].
 
-    :param ignition_type:
-        Engine ignition type (positive or compression).
-    :type ignition_type: str
-
-    :param engine_max_power:
-        Engine nominal power [kW].
-    :type engine_max_power: float
+    :param engine_mass:
+        Engine mass [kg].
+    :type engine_mass: str
 
     :return:
        Equivalent gear box heat capacity [kg*J/K].
     :rtype: float
     """
 
+    par = defaults.dfl.functions.calculate_engine_heat_capacity.PARAMS
+
+    heated_eng_mass = engine_mass * sum(par['heated_mass_percentage'].values())
+
     par = defaults.dfl.functions.calculate_equivalent_gear_box_heat_capacity
     par = par.PARAMS
-    _mass_coeff = par['mass_coeff']
-    # Engine mass empirical formula based on web data found for engines weighted
-    # according DIN 70020-GZ
-    # kg
-    eng_mass = (0.4208 * engine_max_power + 60.0) * _mass_coeff[ignition_type]
 
-    _mass_percentage = par['mass_percentage']
+    heated_gear_box_mass = heated_eng_mass * par['gear_box_mass_engine_ratio']
 
-    _heat_capacity = par['heat_capacity']  # Cp in J/K
-
-    weighted_eng_mass = sum(v * eng_mass for v in _mass_percentage.values())
-
-    gear_box_mass = weighted_eng_mass * 0.15
-
-    return _heat_capacity['oil'] * gear_box_mass
+    return par['heat_capacity']['oil'] * heated_gear_box_mass
 
 
 def is_automatic(kwargs):
@@ -737,7 +725,7 @@ def gear_box():
 
     d.add_function(
         function=calculate_equivalent_gear_box_heat_capacity,
-        inputs=['ignition_type', 'engine_max_power'],
+        inputs=['engine_mass'],
         outputs=['equivalent_gear_box_heat_capacity']
     )
 

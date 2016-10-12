@@ -358,6 +358,7 @@ def physical():
         dsp_id='gear_box_model',
         dsp=gear_box(),
         inputs={
+            'engine_mass': 'engine_mass',
             'on_engine': 'on_engine',
             'CVT': 'CVT',
             'fuel_saving_at_strategy': 'fuel_saving_at_strategy',
@@ -373,7 +374,6 @@ def physical():
             'cycle_type': 'cycle_type',
             'use_dt_gear_shifting': 'use_dt_gear_shifting',
             'specific_gear_shifting': 'specific_gear_shifting',
-            'ignition_type': 'ignition_type',
             'full_load_curve': 'full_load_curve',
             'engine_max_power': 'engine_max_power',
             'engine_max_speed_at_max_power': 'engine_max_speed_at_max_power',
@@ -546,6 +546,7 @@ def physical():
         dsp_id='engine_model',
         dsp=engine(),
         inputs={
+            'engine_mass': 'engine_mass',
             'is_hybrid': 'is_hybrid',
             'state_of_charges': 'state_of_charges',
             'auxiliaries_torque_loss': 'auxiliaries_torque_loss',
@@ -629,6 +630,8 @@ def physical():
                 'engine_has_variable_valve_actuation'
         },
         outputs={
+            'engine_mass': 'engine_mass',
+            'engine_heat_capacity': 'engine_heat_capacity',
             'ignition_type': 'ignition_type',
             'has_sufficient_power': 'has_sufficient_power',
             'idle_engine_speed_median': 'idle_engine_speed_median',

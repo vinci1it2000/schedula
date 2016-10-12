@@ -33,6 +33,51 @@ import co2mpas.dispatcher as dsp
 import co2mpas.utils as co2_utl
 
 
+def calculate_engine_mass(ignition_type, engine_max_power):
+    """
+    Calculates the engine mass [kg].
+
+    :param ignition_type:
+        Engine ignition type (positive or compression).
+    :type ignition_type: str
+
+    :param engine_max_power:
+        Engine nominal power [kW].
+    :type engine_max_power: float
+
+    :return:
+       Engine mass [kg].
+    :rtype: float
+    """
+
+    par = defaults.dfl.functions.calculate_engine_mass.PARAMS
+    _mass_coeff = par['mass_coeff']
+    m, q = par['mass_reg_coeff']
+    # Engine mass empirical formula based on web data found for engines weighted
+    # according DIN 70020-GZ
+    # kg
+    return (m * engine_max_power + q) * _mass_coeff[ignition_type]
+
+
+def calculate_engine_heat_capacity(engine_mass):
+    """
+    Calculates the engine heat capacity [kg*J/K].
+
+    :param engine_mass:
+        Engine mass [kg].
+    :type engine_mass: float
+
+    :return:
+       Engine heat capacity [kg*J/K].
+    :rtype: float
+    """
+
+    par = defaults.dfl.functions.calculate_engine_heat_capacity.PARAMS
+    mp, hc = par['heated_mass_percentage'], par['heat_capacity']
+
+    return engine_mass * np.sum(hc[k] * v for k, v in mp.items())
+
+
 def get_full_load(ignition_type):
     """
     Returns vehicle full load curve.
@@ -903,6 +948,18 @@ def engine():
     d = dsp.Dispatcher(
         name='Engine',
         description='Models the vehicle engine.'
+    )
+
+    d.add_function(
+        function=calculate_engine_mass,
+        inputs=['ignition_type', 'engine_max_power'],
+        outputs=['engine_mass']
+    )
+
+    d.add_function(
+        function=calculate_engine_heat_capacity,
+        inputs=['engine_mass'],
+        outputs=['engine_heat_capacity']
     )
 
     d.add_function(

@@ -313,29 +313,47 @@ class Functions(co2_utl.Constants):
             }
         }
 
-    class calculate_equivalent_gear_box_heat_capacity(co2_utl.Constants):
+    class calculate_engine_mass(co2_utl.Constants):
         #: Equivalent gear box heat capacity parameters.
         PARAMS = {
             'mass_coeff': {
                 'compression': 1.1,
                 'positive': 1.0
             },
-            'mass_percentage': {
-                'coolant': 0.04,  # coolant: 50%/50% (0.85*4.186)
-                'oil': 0.055,
+            'mass_reg_coeff': (0.4208, 60)
+        }
+
+    class calculate_engine_heat_capacity(co2_utl.Constants):
+        #: Equivalent gear box heat capacity parameters.
+        PARAMS = {
+            'heated_mass_percentage': {
+                'coolant': 0.04,    # coolant: 50%/50% (0.85*4.186)
+                'oil': 0.055,       # oil: lubricant
                 'crankcase': 0.18,  # crankcase: cast iron
-                'cyl_head': 0.09,  # cyl_head: aluminium
-                'pistons': 0.025,  # crankshaft: steel
-                'crankshaft': 0.08  # pistons: aluminium
+                'cyl_head': 0.09,   # cyl_head: aluminium
+                'pistons': 0.025,   # pistons: aluminium
+                'crankshaft': 0.08, # crankshaft: steel
+                'body': 0.1         # body: cast iron
             },
-            # Cp in J/K
+            # Cp in (J/kgK)
             'heat_capacity': {
                 'coolant': 0.85 * 4186.0,
                 'oil': 2090.0,
-                'crankcase': 526.0,
-                'cyl_head': 940.0,
-                'pistons': 940.0,
-                'crankshaft': 526.0
+                'crankcase': 460.0,
+                'cyl_head': 910.0,
+                'pistons': 910.0,
+                'crankshaft': 490.0,
+                'body': 460.0
+            }
+        }
+
+    class calculate_equivalent_gear_box_heat_capacity(co2_utl.Constants):
+        #: Equivalent gear box heat capacity parameters.
+        PARAMS = {
+            'gear_box_mass_engine_ratio': 0.15,
+            # Cp in (J/kgK)
+            'heat_capacity': {
+                'oil': 2090.0,
             }
         }
 
