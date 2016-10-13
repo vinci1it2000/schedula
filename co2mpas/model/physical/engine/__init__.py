@@ -199,11 +199,10 @@ def identify_on_idle(
 
 class IdleDetector(DBSCAN):
     def __init__(self, eps=0.5, min_samples=5, metric='euclidean',
-                 algorithm='auto', leaf_size=30, p=None, random_state=None):
+                 algorithm='auto', leaf_size=30, p=None):
         super(IdleDetector, self).__init__(
             eps=eps, min_samples=min_samples, metric=metric,
-            algorithm=algorithm, leaf_size=leaf_size, p=p,
-            random_state=random_state
+            algorithm=algorithm, leaf_size=leaf_size, p=p
         )
         self.cluster_centers_ = None
 
