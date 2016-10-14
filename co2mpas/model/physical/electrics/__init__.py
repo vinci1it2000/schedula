@@ -31,7 +31,6 @@ import co2mpas.dispatcher as dsp
 import co2mpas.utils as co2_utl
 
 
-
 def calculate_engine_start_demand(
         engine_moment_inertia, idle_engine_speed, alternator_efficiency,
         delta_time_engine_starter):
@@ -144,7 +143,7 @@ def identify_charging_statuses(
 
     def _rollback(i):
         i -= 1
-        while i > 0 and status[i] == 0:
+        while i > 0 and off[i]:
             i -= 1
         while i > 0 and status[i] == 2:
             i -= 1
@@ -226,8 +225,9 @@ def identify_alternator_initialization_time(
         Alternator initialization time delta [s].
     :rtype: float
     """
-
-    if alternator_statuses[0] == 1:
+    alts, gb_p = alternator_statuses, gear_box_powers_in
+    i = co2_utl.argmax(alts != 0)
+    if alts[0] == 1 or (i and ((alts[:i] == 0) & (gb_p[:i] == 0)).all()):
         s = alternator_currents < alternator_current_threshold
         n, i = len(on_engine), co2_utl.argmax((s[:-1] != s[1:]) & s[:-1])
         i = min(n - 1, i)
@@ -236,8 +236,7 @@ def identify_alternator_initialization_time(
         }
 
         spl = _build_samples(
-            alternator_currents, state_of_charges, alternator_statuses,
-            gear_box_powers_in, accelerations
+            alternator_currents, state_of_charges, alts, gb_p, accelerations
         )
 
         j = min(i, int(n / 2))
@@ -248,7 +247,7 @@ def identify_alternator_initialization_time(
         sets = np.array(co2_utl.get_inliers(err)[0], dtype=int)[:i]
         if sum(sets) / i < 0.5 or i > j:
             reg = sk_tree.DecisionTreeClassifier(max_depth=1, random_state=0)
-            reg.fit(np.array((times[1:i + 1],)).T, sets)
+            reg.fit(times[1:i + 1][:, None], sets)
             l, r = reg.tree_.children_left[0], reg.tree_.children_right[0]
             l, r = np.argmax(reg.tree_.value[l]), np.argmax(reg.tree_.value[r])
             if l == 0 and r == 1:
@@ -256,8 +255,8 @@ def identify_alternator_initialization_time(
             elif r == 0 and not i > j:
                 return times[i] - times[0]
 
-    elif alternator_statuses[0] == 3:
-        i = co2_utl.argmax(alternator_statuses != 3)
+    elif alts[0] == 3:
+        i = co2_utl.argmax(alts != 3)
         return times[i] - times[0]
     return 0.0
 
@@ -460,7 +459,7 @@ class AlternatorCurrentModel(object):
         self.mask +=1
 
         if b[:i].any():
-            init_spl = (np.array([times[1:i+1] - times[0]]).T, spl[:i])
+            init_spl = (times[1:i+1] - times[0])[:, None], spl[:i]
             init_spl = np.concatenate(init_spl, axis=1)[b[:i]]
             self.init_model, self.init_mask = self._fit_model(init_spl, (0,), (2,))
         else:
@@ -762,7 +761,7 @@ class Alternator_status_model(object):
             bers = sk_tree.DecisionTreeClassifier(random_state=0, max_depth=2)
             c = (alternator_statuses != 1)
             # noinspection PyUnresolvedReferences
-            bers.fit(np.array([gear_box_powers_in[c]]).T, b[c])
+            bers.fit(gear_box_powers_in[c][:, None], b[c])
 
             self.bers = bers.predict  # shortcut name
         else:
