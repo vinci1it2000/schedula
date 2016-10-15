@@ -131,46 +131,20 @@ def identify_charging_statuses(
     :rtype: numpy.array
     """
 
-    gb_p = gear_box_powers_in
+    b = (alternator_currents < alternator_current_threshold) & on_engine
 
-    status = np.zeros_like(alternator_currents, dtype=int)
-    status[(alternator_currents < alternator_current_threshold) & on_engine] = 2
+    status = b.astype(int, copy=True)
+    status[b & (gear_box_powers_in < 0)] = 2
+
+    s = np.zeros(len(on_engine) + 2, dtype=bool)
+    s[1:-1] = status != 1
+    mask = np.column_stack((s[1:], s[:-1])) & (s[:-1] != s[1:])[:, None]
+    mask = np.where(mask)[0].reshape((-1, 2))
     off = ~on_engine | starts_windows
 
-    b1 = -1
-
-    n = len(on_engine) - 1
-
-    def _rollback(i):
-        i -= 1
-        while i > 0 and off[i]:
-            i -= 1
-        while i > 0 and status[i] == 2:
-            i -= 1
-        return i
-
-    for b0, (s, p) in enumerate(zip(status, gb_p)):
-        if s == 2 and p >= 0 and b0 >= b1:
-            b1 = b0
-
-            while b1 < n and (status[b1] or off[b1]):
-                b1 += 1
-
-            if b1 != n:
-                while b1 > b0 and gb_p[b1] <= 0 and not off[b1]:
-                    b1 -= 1
-
-            if b1 > b0:
-                while b0 > 1 and status[b0 - 1] == 2:
-                    b0 -= 1
-                i = _rollback(b0)
-                if i == 0 or status[i] == 1:
-                    b0 = i
-                status[b0:b1 + 1] = 1
-
-    i = _rollback(n + 1)
-    if status[i] == 1:
-        status[i:n] = 1
+    for i, j in mask:
+        if (status[i:j] == 2 | off[i:j]).all():
+            status[i:j] = 1
 
     _set_alt_init_status(times, alternator_initialization_time, status)
 
