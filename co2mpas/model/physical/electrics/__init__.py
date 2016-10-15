@@ -759,9 +759,15 @@ class Alternator_status_model(object):
         mask = np.where(mask)[0].reshape((-1, 2))
         self.max = _min = 100.0
         self.min = _max = 0.0
-        for i, j in mask[:-1]:
-            soc = state_of_charges[i:j]
-            if sci_stat.linregress(times[i:j], soc)[0] >= 0:
+
+        it = []
+        for i, j in mask:
+            if j - i > 1:
+                soc = state_of_charges[i:j]
+                it.append((sci_stat.linregress(times[i:j], soc)[0], soc, (i, j)))
+
+        for m, soc, (i, j) in it:
+            if m >= 0:
                 if i > 0:
                     self.min = _min = min(_min, soc.min())
                 if j < n:
