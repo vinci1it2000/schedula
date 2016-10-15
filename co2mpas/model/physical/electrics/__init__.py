@@ -760,18 +760,28 @@ class Alternator_status_model(object):
         self.max = _min = 100.0
         self.min = _max = 0.0
 
-        it = []
+        balance = ()
         for i, j in mask:
-            if j - i > 1:
-                soc = state_of_charges[i:j]
-                it.append((sci_stat.linregress(times[i:j], soc)[0], soc, (i, j)))
-
-        for m, soc, (i, j) in it:
+            if j - i <= 1:
+                continue
+            t, soc = times[i:j], state_of_charges[i:j]
+            m, q = sci_stat.linregress(t, soc)[:2]
             if m >= 0:
                 if i > 0:
                     self.min = _min = min(_min, soc.min())
                 if j < n:
                     self.max = _max = max(_max, soc.max())
+
+            if abs(m) < 0.001:
+                q += m * t[0 if m >= 0 else -1]
+                if balance:
+                    balance = min(balance[0], q), max(soc.max(), balance[1])
+                else:
+                    balance = q, soc.max()
+
+        if balance:
+            self.min = max(self.min, balance[0])
+            self.max = min(self.max, balance[1])
 
     # noinspection PyUnresolvedReferences
     def fit(self, times, alternator_statuses, state_of_charges,
