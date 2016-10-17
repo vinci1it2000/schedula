@@ -12,6 +12,7 @@ It contains reporting functions for output results.
 import co2mpas.dispatcher as dsp
 import collections
 import functools
+import cachetools
 import numpy as np
 import sklearn.metrics as sk_met
 import co2mpas.dispatcher.utils as dsp_utl
@@ -51,6 +52,17 @@ def _prediction_target_ratio(t, o):
     return np.mean(o / t)
 
 
+@cachetools.cached({})
+def _get_metrics():
+    metrics = {
+        'mean_absolute_error': sk_met.mean_absolute_error,
+        'correlation_coefficient': _correlation_coefficient,
+        'accuracy_score': sk_met.accuracy_score,
+        'prediction_target_ratio': _prediction_target_ratio
+    }
+    return metrics
+
+
 def compare_outputs_vs_targets(data):
     """
     Compares model outputs vs targets.
@@ -65,12 +77,7 @@ def compare_outputs_vs_targets(data):
     """
 
     res = {}
-    metrics = {
-        'mean_absolute_error': sk_met.mean_absolute_error,
-        'correlation_coefficient': _correlation_coefficient,
-        'accuracy_score': sk_met.accuracy_score,
-        'prediction_target_ratio': _prediction_target_ratio
-    }
+    metrics = _get_metrics()
 
     for k, t in dsp_utl.stack_nested_keys(data.get('target', {}), depth=3):
         if not dsp_utl.are_in_nested_dicts(data, 'output', *k):
