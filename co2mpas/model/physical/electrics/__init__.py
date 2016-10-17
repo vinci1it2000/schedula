@@ -280,15 +280,24 @@ def identify_electric_loads(
     :rtype: ((float, float), float)
     """
 
+    rjo = co2_utl.reject_outliers
     b_c, a_c = battery_currents, alternator_currents
-    c = alternator_nominal_voltage / 1000.0
+    c, b = alternator_nominal_voltage / 1000.0, gear_box_powers_in >= 0
 
-    b = gear_box_powers_in >= 0
-    bL = b & np.logical_not(on_engine) & (b_c < 0)
     bH = b & on_engine
+    bH = b_c[bH] + a_c[bH]
+    on = off = min(0.0, c * rjo(bH, med=np.mean)[0])
 
-    off = min(0.0, c * co2_utl.reject_outliers(b_c[bL], med=np.mean)[0])
-    on = min(off, c * co2_utl.reject_outliers(b_c[bH] + a_c[bH], med=np.mean)[0])
+    bL = b & ~on_engine & (b_c < 0)
+    if bL.any():
+        bL = b_c[bL]
+        off = min(0.0, c * rjo(bL, med=np.mean)[0])
+        if on > off:
+            curr = np.append(bL, bH)
+            if np.mean(np.abs(curr - on / c)) > np.mean(np.abs(curr - off / c)):
+                on = off
+            else:
+                off = on
 
     loads = [off, on]
     start_demand = []
@@ -305,7 +314,7 @@ def identify_electric_loads(
             if p < l:
                 start_demand.append(p - l)
 
-    start_demand = -co2_utl.reject_outliers(start_demand)[0] if start_demand else 0.0
+    start_demand = -rjo(start_demand)[0] if start_demand else 0.0
 
     return (off, on), start_demand
 
