@@ -169,7 +169,7 @@ setup(
         'scikit-learn',
         'numpy',
         'scipy',
-        'lmfit>=0.9.2',
+        'lmfit==0.9.2',
         'matplotlib',
         'networkx',
         'dill',
@@ -181,7 +181,7 @@ setup(
         'mpld3',
         'pandalone>=0.1.11', ## For datasync pascha-fixes.
         'regex',
-        'schema',
+        'schema==0.4.0',
         'tqdm',
         'pyyaml',
         'cycler',

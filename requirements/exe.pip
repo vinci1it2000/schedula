@@ -20,8 +20,8 @@ easygui
 pandalone>=0.1.11
 xlsxwriter
 regex
-schema
-lmfit>=0.9.2
+schema==0.4.0
+lmfit==0.9.2
 tqdm
 pip
 pyyaml
@@ -30,4 +30,3 @@ boltons
 pykalman
 wltp
 cachetools
-yaml
