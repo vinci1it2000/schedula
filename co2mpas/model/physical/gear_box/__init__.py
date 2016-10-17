@@ -529,8 +529,6 @@ def calculate_gear_box_efficiencies_torques_temperatures(
     return temp, to_in, eff
 
 
-
-
 def calculate_gear_box_powers_in(gear_box_torques_in, gear_box_speeds_in):
     """
     Calculates gear box power [kW].

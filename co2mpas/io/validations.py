@@ -31,7 +31,8 @@ def select_declaration_data(data, diff=None):
     if diff is not None:
         diff.clear()
         diff.update(v[0] for v in dsp_utl.stack_nested_keys(data, depth=4))
-        diff.difference_update(v[0] for v in dsp_utl.stack_nested_keys(res, depth=4))
+        it = (v[0] for v in dsp_utl.stack_nested_keys(res, depth=4))
+        diff.difference_update(it)
     return res
 
 

@@ -10,7 +10,6 @@ It contains reporting functions for output results.
 """
 
 import co2mpas.dispatcher as dsp
-import copy
 import collections
 import functools
 import numpy as np
@@ -476,7 +475,7 @@ def get_values(data, keys, tag=(), update=lambda k, v: v, base=None):
 
 def get_summary_results(data):
     res = {}
-    for k in ('declared_co2_emission','co2_emission', 'fuel_consumption'):
+    for k in ('declared_co2_emission', 'co2_emission', 'fuel_consumption'):
         get_phases_values(data, what=k, base=res)
     keys = ('f0', 'f1', 'f2', 'vehicle_mass', 'gear_box_type', 'has_start_stop',
             'r_dynamic')

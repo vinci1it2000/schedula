@@ -97,11 +97,11 @@ def correct_gear_full_load(
 
     vsr = velocity_speed_ratios
 
-    def flc(g):
+    def _flc(g):
         x = (velocity / vsr[g] - idle_engine_speed[0]) / r
         return full_load_curve(x)
 
-    while gear > min_gear and (gear not in vsr or p_norm > flc(gear)):
+    while gear > min_gear and (gear not in vsr or p_norm > _flc(gear)):
         # to consider adding the reverse function in the future because the
         # n+200 rule should be applied at the engine not the GB
         # (rpm < idle_speed + 200 and 0 <= a < 0.1) or
@@ -233,6 +233,24 @@ def correct_gear_v0(
     mvl.plateau_acceleration = plateau_acceleration
 
     def correct_gear(velocity, acceleration, gear):
+        """
+        Correct the gear according to velocity and acceleration.
+
+        :param velocity:
+            Vehicle velocity [km/h].
+        :type velocity: float
+
+        :param acceleration:
+            Vehicle acceleration [m/s2].
+        :type acceleration: float
+
+        :param gear:
+            Predicted vehicle gear [-].
+        :type gear: int
+
+        :return:
+            Corrected vehicle gear [-].
+        """
         g = correct_gear_mvl(
             velocity, acceleration, gear, mvl)
 
@@ -283,6 +301,24 @@ def correct_gear_v1(
     mvl.plateau_acceleration = plateau_acceleration
 
     def correct_gear(velocity, acceleration, gear):
+        """
+        Correct the gear according to velocity and acceleration.
+
+        :param velocity:
+            Vehicle velocity [km/h].
+        :type velocity: float
+
+        :param acceleration:
+            Vehicle acceleration [m/s2].
+        :type acceleration: float
+
+        :param gear:
+            Predicted vehicle gear [-].
+        :type gear: int
+
+        :return:
+            Corrected vehicle gear [-].
+        """
         g = correct_gear_mvl(velocity, acceleration, gear, mvl)
         return basic_correct_gear(
             velocity, acceleration, g, velocity_speed_ratios, idle_engine_speed)
@@ -338,6 +374,24 @@ def correct_gear_v2(
     min_gear = min(velocity_speed_ratios)
 
     def correct_gear(velocity, acceleration, gear):
+        """
+        Correct the gear according to velocity and acceleration.
+
+        :param velocity:
+            Vehicle velocity [km/h].
+        :type velocity: float
+
+        :param acceleration:
+            Vehicle acceleration [m/s2].
+        :type acceleration: float
+
+        :param gear:
+            Predicted vehicle gear [-].
+        :type gear: int
+
+        :return:
+            Corrected vehicle gear [-].
+        """
         g = correct_gear_full_load(
             velocity, acceleration, gear, velocity_speed_ratios,
             engine_max_power, engine_max_speed_at_max_power, idle_engine_speed,
@@ -402,7 +456,7 @@ def identify_gear_shifting_velocity_limits(gears, velocities, stop_velocity):
             limits[g0] = limits.get(g0, [[], []])
             limits[g0][g0 < g1].append(v)
 
-    def rjt_out(x, default):
+    def _rjt_out(x, default):
         if x:
             x = np.asarray(x)
 
@@ -425,8 +479,8 @@ def identify_gear_shifting_velocity_limits(gears, velocities, stop_velocity):
     gsv = collections.OrderedDict()
     for k in range(max_gear + 1):
         v0, v1 = limits.get(k, [[], []])
-        gsv[k] = [rjt_out(v0, (-1, (0, 0))),
-                  rjt_out(v1, (defaults.dfl.INF, (0, 0)))]
+        gsv[k] = [_rjt_out(v0, (-1, (0, 0))),
+                  _rjt_out(v1, (defaults.dfl.INF, (0, 0)))]
 
     return correct_gsv(gsv, stop_velocity)
 
@@ -446,6 +500,22 @@ def define_gear_filter(
     """
 
     def gear_filter(times, gears):
+        """
+        Filter the gears to remove oscillations.
+
+        :param times:
+            Time vector [s].
+        :type times: numpy.array
+
+        :param gears:
+            Gear vector [-].
+        :type gears: numpy.array
+
+        :return:
+            Filtered gears [-].
+        :rtype: numpy.array
+        """
+
         gears = co2_utl.median_filter(times, gears, change_gear_window_width)
 
         gears = co2_utl.clear_fluctuations(
@@ -486,14 +556,14 @@ class CMV(collections.OrderedDict):
 
         _inf = float('inf')
 
-        def update_gvs(vel_limits):
+        def _update_gvs(vel_limits):
             self[0] = (0, vel_limits[0])
 
             limits = np.append(vel_limits[1:], (_inf,))
             self.update(dict(zip(gear_id, co2_utl.grouper(limits, 2))))
 
-        def error_fun(vel_limits):
-            update_gvs(vel_limits)
+        def _error_fun(vel_limits):
+            _update_gvs(vel_limits)
 
             g_pre = self.predict(np.array([velocities, accelerations]).T,
                                  correct_gear=correct_gear)
@@ -505,9 +575,9 @@ class CMV(collections.OrderedDict):
 
         x0 = [self[0][1]].__add__(list(itertools.chain(*velocity_limits))[:-1])
 
-        x = sci_opt.fmin(error_fun, x0, disp=False)
+        x = sci_opt.fmin(_error_fun, x0, disp=False)
 
-        update_gvs(x)
+        _update_gvs(x)
 
         return self
 
@@ -548,18 +618,18 @@ class CMV(collections.OrderedDict):
         :rtype: dict
         """
 
-        def set_velocity(velocity, const_steps, window, delta):
+        def _set_velocity(velocity, const_steps, window, delta):
             for v in const_steps:
                 if v < velocity < v + window:
                     return v + delta
             return velocity
 
-        def fun(v):
-            limits = (set_velocity(v[0], dn_cns_vel, dn_window, dn_delta),
-                      set_velocity(v[1], up_cns_vel, up_window, up_delta))
+        def _fun(v):
+            limits = (_set_velocity(v[0], dn_cns_vel, dn_window, dn_delta),
+                      _set_velocity(v[1], up_cns_vel, up_window, up_delta))
             return limits
 
-        self.update((k, fun(v)) for k, v in self.items())
+        self.update((k, _fun(v)) for k, v in self.items())
 
         return self
 
@@ -869,7 +939,8 @@ class GSPV(dict):
 
     def _fit_cloud(self):
         Spline = sci_itp.InterpolatedUnivariateSpline
-        def line(n, m, i):
+
+        def _line(n, m, i):
             x = np.mean(np.asarray(m[i])) if m[i] else None
             k_p = n - 1
             while k_p > 0 and k_p not in self:
@@ -880,7 +951,7 @@ class GSPV(dict):
                 x = x_up
             return Spline([0, 1], [x] * 2, k=1)
 
-        def mean(x):
+        def _mean(x):
             if x:
                 x = np.asarray(x)
                 return np.mean(x)
@@ -891,12 +962,12 @@ class GSPV(dict):
         self.update(copy.deepcopy(self.cloud))
 
         for k, v in sorted(self.items()):
-            v[0] = line(k, v, 0)
+            v[0] = _line(k, v, 0)
 
             if len(v[1][0]) > 2:
                 v[1] = _gspv_interpolate_cloud(*v[1])
             else:
-                v[1] = Spline([0, 1], [mean(v[1][1])] * 2, k=1)
+                v[1] = Spline([0, 1], [_mean(v[1][1])] * 2, k=1)
 
     @property
     def limits(self):
@@ -1513,7 +1584,15 @@ def domain_fuel_saving_at_strategy(fuel_saving_at_strategy, *args):
     return fuel_saving_at_strategy
 
 
-def default_specific_gear_shifting(*args):
+def default_specific_gear_shifting():
+    """
+    Returns the default value of specific gear shifting [-].
+
+    :return:
+        Specific gear shifting model.
+    :rtype: str
+    """
+
     d = defaults.dfl.functions.default_specific_gear_shifting
     return d.SPECIFIC_GEAR_SHIFTING
 

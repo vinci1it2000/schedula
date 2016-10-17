@@ -263,9 +263,11 @@ def selector(keys, dictionary, copy=False, output_type='dict',
     """
 
     if not allow_miss:
-        check = lambda key: True
+        def check(key):
+            return True
     else:
-        check = lambda key: key in dictionary
+        def check(key):
+            return key in dictionary
 
     if output_type == 'list':  # Select as list.
         res = [dictionary[k] for k in keys if check(k)]
@@ -1015,7 +1017,8 @@ class SubDispatchFunction(SubDispatch):
         input_values = combine_dicts(sol.inputs, inputs, kwargs)
 
         # Define the function to populate the workflow.
-        i_val = lambda k: {'value': input_values[k]}
+        def i_val(k):
+            return {'value': input_values[k]}
 
         # Initialize.
         sol._init_workflow(input_values, i_val, self.inputs_dist, False)

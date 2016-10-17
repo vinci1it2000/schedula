@@ -137,15 +137,14 @@ def _validate_base_with_schema(data):
 
 
 def validate_base(data, engineering_mode, use_selector):
-    inputs, errors = _validate_base_with_schema(data)
+    i, e = _validate_base_with_schema(data)
 
-    inputs, errors = _eng_mode_parser(engineering_mode, use_selector, inputs,
-                                      errors)
+    i, e = _eng_mode_parser(engineering_mode, use_selector, i, e)
 
-    if _log_errors_msg(errors):
+    if _log_errors_msg(e):
         return dsp_utl.NONE
 
-    return {'.'.join(k): v for k, v in dsp_utl.stack_nested_keys(inputs, depth=3)}
+    return {'.'.join(k): v for k, v in dsp_utl.stack_nested_keys(i, depth=3)}
 
 
 def _add_validated_input(data, validate, keys, value, errors):
@@ -218,7 +217,7 @@ def _check_positive(x):
 
 
 # noinspection PyUnusedLocal
-def _positive(type=float, error=None, check=_check_positive,**kwargs):
+def _positive(type=float, error=None, check=_check_positive, **kwargs):
     error = error or 'should be as {} and positive!'.format(type)
     return And(Use(type), check, error=error)
 
@@ -236,6 +235,7 @@ def _limits(limits=(0, 100), error=None, **kwargs):
 # noinspection PyUnusedLocal
 def _eval(s, error=None, **kwargs):
     error = error or 'cannot be eval!'
+
     def _eval(x):
         return eval(x)
     return Or(And(str, Use(_eval), s), s, error=error)
@@ -313,6 +313,13 @@ def _np_array(dtype=None, error=None, read=True, **kwargs):
 
 
 def _check_np_array_positive(x):
+    """
+
+    :param x:
+        Array.
+    :type x: numpy.array
+    :return:
+    """
     return (x >= 0).all()
 
 
@@ -329,6 +336,7 @@ def _np_array_positive(dtype=None, error=None, read=True,
     else:
         return And(_np_array_positive(dtype=dtype), Use(lambda x: x.tolist()),
                    error=error)
+
 
 # noinspection PyUnusedLocal
 def _cmv(error=None, **kwargs):
@@ -429,7 +437,7 @@ def define_data_schema(read=True):
     index_dict = _index_dict(read=read)
     np_array = _np_array(read=read)
     np_array_greater_than_minus_one = _np_array_positive(
-        read=read, error='cannot be parsed because it should be an ' \
+        read=read, error='cannot be parsed because it should be an '
                          'np.array dtype=<float> and all values >= -1!',
         check=lambda x: (x >= -1).all()
     )

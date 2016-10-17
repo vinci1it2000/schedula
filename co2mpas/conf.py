@@ -14,6 +14,7 @@ import co2mpas.utils as co2_utl
 from .model.physical.defaults import dfl
 from .io.constants import con_vals
 
+
 class Defaults(co2_utl.Constants):
 
     model_physical_dfl = dfl

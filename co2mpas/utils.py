@@ -464,14 +464,14 @@ def derivative(x, y, dx=1, order=3, k=1):
 
 
 class SafeRANSACRegressor(RANSACRegressor):
-    def fit(self, X, y):
+    def fit(self, X, y, **kwargs):
         try:
-            return super(SafeRANSACRegressor, self).fit(X, y)
+            return super(SafeRANSACRegressor, self).fit(X, y, **kwargs)
         except ValueError as ex:
             if self.residual_threshold is None:
                 rt = np.median(np.abs(y - np.median(y)))
                 self.residual_threshold = rt + np.finfo(np.float32).eps * 10
-                res = super(SafeRANSACRegressor, self).fit(X, y)
+                res = super(SafeRANSACRegressor, self).fit(X, y, **kwargs)
                 self.residual_threshold = None
                 return res
             else:

@@ -205,6 +205,7 @@ class IdleDetector(DBSCAN):
             algorithm=algorithm, leaf_size=leaf_size, p=p
         )
         self.cluster_centers_ = None
+        self.min, self.max = None, None
 
     def fit(self, X, y=None, sample_weight=None):
         super(IdleDetector, self).fit(X, y=y, sample_weight=sample_weight)
@@ -913,6 +914,33 @@ def identify_engine_max_speed(full_load_speeds):
 def define_full_bmep_curve(
         full_load_speeds, full_load_powers, min_engine_on_speed,
         engine_capacity, engine_stroke):
+    """
+    Defines the vehicle full bmep curve.
+
+    :param full_load_speeds:
+        T1 map speed vector [RPM].
+    :type full_load_speeds: numpy.array
+
+    :param full_load_powers:
+        T1 map power vector [kW].
+    :type full_load_powers: numpy.array
+
+    :param min_engine_on_speed:
+        Minimum engine speed to consider the engine to be on [RPM].
+    :type min_engine_on_speed: float
+
+    :param engine_capacity:
+        Engine capacity [cm3].
+    :type engine_capacity: float
+
+    :param engine_stroke:
+        Engine stroke [mm].
+    :type engine_stroke: float
+
+    :return:
+        Vehicle full bmep curve.
+    :rtype: scipy.interpolate.InterpolatedUnivariateSpline
+    """
 
     from .co2_emission import calculate_brake_mean_effective_pressures
     p = calculate_brake_mean_effective_pressures(
@@ -926,6 +954,22 @@ def define_full_bmep_curve(
 
 def calculate_max_mean_piston_speeds_cylinder_deactivation(
         engine_max_speed, engine_stroke):
+    """
+    Calculates the maximum mean piston speed for cylinder deactivation strategy.
+
+    :param engine_max_speed:
+        Maximum engine speed [RPM].
+    :rtype engine_max_speed: float
+
+    :param engine_stroke:
+        Engine stroke [mm].
+    :type engine_stroke: float
+
+    :return:
+        Maximum mean piston speed for cylinder deactivation strategy [m/sec].
+    :rtype: float
+    """
+
     p = defaults.dfl.functions
     p = p.calculate_max_mean_piston_speeds_cylinder_deactivation.percentage
     return calculate_mean_piston_speeds(engine_max_speed * p, engine_stroke)

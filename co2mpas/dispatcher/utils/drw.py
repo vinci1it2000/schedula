@@ -98,16 +98,16 @@ class DspPlot(gviz.Digraph):
             SINK: {'shape': 'egg', 'fillcolor': 'black', 'fontcolor': 'white',
                    'label': 'sink'},
             NONE: {
-                'data': {'shape': 'box', 'style':'rounded,filled',
+                'data': {'shape': 'box', 'style': 'rounded,filled',
                          'fillcolor': 'cyan'},
                 'function': {'shape': 'box', 'fillcolor': 'springgreen'},
-                'subdispatch': {'shape': 'note', 'style':'filled',
+                'subdispatch': {'shape': 'note', 'style': 'filled',
                                 'fillcolor': 'yellow'},
-                'subdispatchfunction': {'shape': 'note', 'style':'filled',
+                'subdispatchfunction': {'shape': 'note', 'style': 'filled',
                                         'fillcolor': 'yellowgreen'},
-                'subdispatchpipe': {'shape': 'note', 'style':'filled',
+                'subdispatchpipe': {'shape': 'note', 'style': 'filled',
                                     'fillcolor': 'greenyellow'},
-                'dispatcher': {'shape': 'note', 'style':'filled',
+                'dispatcher': {'shape': 'note', 'style': 'filled',
                                'fillcolor': 'springgreen'}
             }
         },
@@ -356,7 +356,8 @@ class DspPlot(gviz.Digraph):
             body=['%s = %s' % (k, v) for k, v in body.items()]
         )
 
-        self.id_map = self.get_id_map(parent_dot, chain(g.node, inputs, outputs))
+        self.id_map = self.get_id_map(parent_dot,
+                                      chain(g.node, inputs, outputs))
 
         if not g.node or not (g.edge or inputs or outputs):
             self._set_data_node(EMPTY, {})
@@ -552,7 +553,8 @@ class DspPlot(gviz.Digraph):
     def _set_function_node(self, node_id, attr):
         dot_id = self.id_map[node_id]
         node_name = self._function_name(node_id)
-        tooltip = search_node_description(node_id, attr, self.dsp)[0] or node_name
+        tooltip = search_node_description(node_id, attr,
+                                          self.dsp)[0] or node_name
 
         attr = attr.copy()
         missing_io = self._missing_inputs_outputs(node_id, attr)
@@ -699,13 +701,16 @@ class DspPlot(gviz.Digraph):
             name = self._html_encode(name, width=40, compact=True)
             label += '<TR><TD COLSPAN="2" BORDER="0">{}</TD></TR>'.format(name)
 
+        tr = '<TR>' \
+             '<TD BORDER="1" ALIGN="RIGHT">{}=</TD>' \
+             '<TD BORDER="1" ALIGN="LEFT">{}</TD>' \
+             '</TR>'
+
         for k, v in kv:
-            label += '<TR>' \
-                     '<TD BORDER="1" ALIGN="RIGHT">{}=</TD>' \
-                     '<TD BORDER="1" ALIGN="LEFT">{}</TD>' \
-                     '</TR>'.format(
+            label += tr.format(
                 self._html_encode(k, width=20, compact=True),
-                self._html_encode(v, width=20, compact=True))
+                self._html_encode(v, width=20, compact=True)
+            )
         label += '</TABLE>>'
         return label
 
@@ -721,7 +726,7 @@ class DspPlot(gviz.Digraph):
             #    if k:
             #        inp[k if len(k) != 1 else k[0]] = v
 
-            #for k, v in attr['outputs'].items():
+            # for k, v in attr['outputs'].items():
             #    v = tuple(v for v in _iter_list_nodes((v,)) if v not in node)
             #    if v:
             #        out[k] = v if len(v) != 1 else v[0]

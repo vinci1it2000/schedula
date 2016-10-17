@@ -242,28 +242,27 @@ def _predict_electrics(
         gear_box_power_in, acceleration, time, on_engine, engine_start,
         prev_alternator_status, prev_battery_current, battery_state_of_charge):
 
-    alternator_status = predict_alternator_status(
+    alt_status = predict_alternator_status(
         alternator_status_model, time, prev_alternator_status,
         battery_state_of_charge, gear_box_power_in)
 
     engine_start_current = calculate_engine_start_current(
         engine_start, start_demand, alternator_nominal_voltage, delta_time)
 
-    alternator_current = calculate_alternator_current(
-        alternator_status, on_engine, gear_box_power_in, max_alternator_current,
+    alt_current = calculate_alternator_current(
+        alt_status, on_engine, gear_box_power_in, max_alternator_current,
         alternator_current_model, engine_start_current,
         battery_state_of_charge, acceleration, time)
 
     battery_current = calculate_battery_current(
-        electric_load, alternator_current, alternator_nominal_voltage,
+        electric_load, alt_current, alternator_nominal_voltage,
         on_engine, max_battery_charging_current)
 
     battery_state_of_charge = calculate_battery_state_of_charge(
         battery_state_of_charge, battery_capacity,
         delta_time, battery_current, prev_battery_current)
 
-    return alternator_current, alternator_status, battery_current, \
-           battery_state_of_charge
+    return alt_current, alt_status, battery_current, battery_state_of_charge
 
 
 def electrics_prediction():

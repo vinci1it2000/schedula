@@ -228,8 +228,8 @@ def _parse_values(data, default=None):
             continue
         match = {i: j.lower() for i, j in match.groupdict().items() if j}
 
-        for k in _parse_key(**dsp_utl.combine_dicts(default, match)):
-            yield k, v
+        for key in _parse_key(**dsp_utl.combine_dicts(default, match)):
+            yield key, v
 
 
 def _add_times_base(data, scope='base', usage='input', **match):
@@ -259,14 +259,6 @@ def parse_excel_file(file_path):
     :param file_path:
         Excel file path.
     :type file_path: str
-
-    :param re_sheet_name:
-        Regular expression to parse sheet names.
-    :type re_sheet_name: regex.Regex
-
-    :param re_params_name:
-        Regular expression to parse param names.
-    :type re_params_name: regex.Regex
 
     :return:
         A pandas DataFrame with cycle's time series.

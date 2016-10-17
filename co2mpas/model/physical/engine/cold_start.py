@@ -76,6 +76,7 @@ def _correct_ds_css(min_t, ds=0, m=np.inf, temp_limit=30):
 
 def _calibrate_css_model(target, *args, x0=None, ind=0):
     mean_abs_error = sk_met.mean_absolute_error
+
     def _err(x):
         return mean_abs_error(target, _css_model(*args, **x.valuesdict()))
 

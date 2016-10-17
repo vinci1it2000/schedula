@@ -17,7 +17,8 @@ from dill import dump, load
 try:
     from win32api import GetShortPathName
 except ImportError:
-    GetShortPathName = lambda x: x
+    def GetShortPathName(x):
+        return x
 
 __all__ = ['save_dispatcher', 'load_dispatcher', 'save_default_values',
            'load_default_values', 'save_map', 'load_map', 'open_file']

@@ -79,6 +79,52 @@ def identify_charging_statuses_and_alternator_initialization_time(
         times, alternator_currents, gear_box_powers_in, on_engine,
         alternator_current_threshold, starts_windows, state_of_charges,
         accelerations):
+    """
+    Identifies when the alternator statuses [-] and alternator initialization
+    time delta [s].
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
+
+    :param alternator_currents:
+        Alternator current vector [A].
+    :type alternator_currents: numpy.array
+
+    :param gear_box_powers_in:
+        Gear box power vector [kW].
+    :type gear_box_powers_in: numpy.array
+
+    :param on_engine:
+        If the engine is on [-].
+    :type on_engine: numpy.array
+
+    :param alternator_current_threshold:
+        Alternator current threshold [A].
+    :type alternator_current_threshold: float
+
+    :param starts_windows:
+        Alternator starts windows [-].
+    :type starts_windows: numpy.array
+
+    :param state_of_charges:
+        State of charge of the battery [%].
+
+        .. note::
+
+            `state_of_charges` = 99 is equivalent to 99%.
+    :type state_of_charges: numpy.array
+
+    :param accelerations:
+        Acceleration [m/s2].
+    :type accelerations: numpy.array
+
+    :return:
+        The alternator status (0: off, 1: on, due to state of charge, 2: on due
+        to BERS, 3: on and initialize battery) [-] and alternator initialization
+        time delta [s].
+    :rtype: numpy.array, float
+    """
     statuses = identify_charging_statuses(
         times, alternator_currents, gear_box_powers_in, on_engine,
         alternator_current_threshold, starts_windows, 0)
@@ -95,7 +141,8 @@ def identify_charging_statuses(
         alternator_current_threshold, starts_windows,
         alternator_initialization_time):
     """
-    Identifies when the alternator is on due to 1:state of charge or 2:BERS [-].
+    Identifies when the alternator is on due to 1:state of charge or 2:BERS or
+    3: initialization [-].
 
     :param times:
         Time vector [s].
@@ -127,7 +174,7 @@ def identify_charging_statuses(
 
     :return:
         The alternator status (0: off, 1: on, due to state of charge, 2: on due
-        to BERS) [-].
+        to BERS, 3: on and initialize battery) [-].
     :rtype: numpy.array
     """
 
@@ -143,6 +190,7 @@ def identify_charging_statuses(
     off = ~on_engine | starts_windows
 
     for i, j in mask:
+        # noinspection PyUnresolvedReferences
         if (status[i:j] == 2 | off[i:j]).all():
             status[i:j] = 1
 
@@ -184,7 +232,7 @@ def identify_alternator_initialization_time(
 
     :param alternator_statuses:
         The alternator status (0: off, 1: on, due to state of charge, 2: on due
-        to BERS) [-].
+        to BERS, 3: on and initialize battery) [-].
     :type alternator_statuses: numpy.array
 
     :param times:
@@ -368,7 +416,7 @@ def identify_alternator_charging_currents(
     def get_range(x):
         on = None
         for i, b in enumerate(itertools.chain(x, [False])):
-            if not b and not on is None:
+            if not b and on is not None:
                 yield on, i
                 on = None
 
@@ -438,13 +486,15 @@ class AlternatorCurrentModel(object):
         elif b[:i].any():
             self.model, self.mask = self._fit_model(spl[b])
         else:
-            self.model, self.mask = lambda *args, **kwargs: [0.0], np.array((0,))
-        self.mask +=1
+            self.model = lambda *args, **kwargs: [0.0]
+            self.mask = np.array((0,))
+        self.mask += 1
 
         if b[:i].any():
             init_spl = (times[1:i+1] - times[0])[:, None], spl[:i]
             init_spl = np.concatenate(init_spl, axis=1)[b[:i]]
-            self.init_model, self.init_mask = self._fit_model(init_spl, (0,), (2,))
+            a = self._fit_model(init_spl, (0,), (2,))
+            self.init_model, self.init_mask = a
         else:
             self.init_model, self.init_mask = self.model, self.mask
 
@@ -506,7 +556,7 @@ def calibrate_alternator_current_model(
 
     :param alternator_statuses:
         The alternator status (0: off, 1: on, due to state of charge, 2: on due
-        to BERS) [-].
+        to BERS, 3: on and initialize battery) [-].
     :type alternator_statuses: numpy.array
 
     :param gear_box_powers_in:
@@ -834,7 +884,7 @@ def calibrate_alternator_status_model(
 
     :param alternator_statuses:
         The alternator status (0: off, 1: on, due to state of charge, 2: on due
-        to BERS) [-].
+        to BERS, 3: on and initialize battery) [-].
     :type alternator_statuses: numpy.array
 
     :param state_of_charges:

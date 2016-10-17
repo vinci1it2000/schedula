@@ -173,6 +173,9 @@ def calculate_brake_mean_effective_pressures(
 class IdleFuelConsumptionModel(object):
     def __init__(self, fc=None):
         self.fc = fc
+        self.n_s = None
+        self.c = None
+        self.fmep_model = None
 
     def fit(self, idle_engine_speed, engine_capacity, engine_stroke, lhv,
             fmep_model):
@@ -198,6 +201,37 @@ def define_idle_fuel_consumption_model(
         idle_engine_speed, engine_capacity, engine_stroke,
         engine_fuel_lower_heating_value, fmep_model,
         idle_fuel_consumption=None):
+    """
+    Defines the idle fuel consumption model.
+
+    :param idle_engine_speed:
+        Engine speed idle median and std [RPM].
+    :type idle_engine_speed: (float, float)
+
+    :param engine_capacity:
+        Engine capacity [cm3].
+    :type engine_capacity: float
+
+    :param engine_stroke:
+        Engine stroke [mm].
+    :type engine_stroke: float
+
+    :param engine_fuel_lower_heating_value:
+        Fuel lower heating value [kJ/kg].
+    :type engine_fuel_lower_heating_value: float
+
+    :param fmep_model:
+        Engine FMEP model.
+    :type fmep_model: FMEP
+
+    :param idle_fuel_consumption:
+        Fuel consumption at hot idle engine speed [g/s].
+    :type idle_fuel_consumption: float, optional
+
+    :return:
+        Idle fuel consumption model.
+    :rtype: IdleFuelConsumptionModel
+    """
 
     model = IdleFuelConsumptionModel(idle_fuel_consumption).fit(
         idle_engine_speed, engine_capacity, engine_stroke,
@@ -212,9 +246,9 @@ def calculate_engine_idle_fuel_consumption(
     """
     Calculates fuel consumption at hot idle engine speed [g/s].
 
-    :param engine_idle_fuel_consumption:
-        Fuel consumption at hot idle engine speed [g/s].
-    :type engine_idle_fuel_consumption: float, optional
+    :param idle_fuel_consumption_model:
+        Idle fuel consumption model.
+    :type idle_fuel_consumption_model: IdleFuelConsumptionModel
 
     :param params:
         CO2 emission model parameters (a2, b2, a, b, c, l, l2, t, trg).
@@ -233,10 +267,11 @@ def calculate_engine_idle_fuel_consumption(
 class FMEP(object):
     def __init__(self, full_bmep_curve, active_cylinder_ratios=(1.0,),
                  has_cylinder_deactivation=False,
-                 full_bmep_curve_percentage=0.5, max_mean_piston_speeds=12,
+                 full_bmep_curve_percentage=0.5, max_mean_piston_speeds=12.0,
                  has_variable_valve_actuation=False):
         self.base_acr = max(active_cylinder_ratios)
-        self.active_cylinder_ratios = set(active_cylinder_ratios) - {self.base_acr}
+        self.active_cylinder_ratios = set(active_cylinder_ratios)
+        self.active_cylinder_ratios -= {self.base_acr}
         self.fbc = full_bmep_curve
         self.has_cylinder_deactivation = has_cylinder_deactivation
         self.has_variable_valve_actuation = has_variable_valve_actuation
@@ -309,6 +344,33 @@ def define_fmep_model(
         full_bmep_curve, active_cylinder_ratios, has_cylinder_deactivation,
         max_mean_piston_speeds_cylinder_deactivation,
         has_variable_valve_actuation):
+    """
+    Defines the vehicle FMEP model.
+
+    :param full_bmep_curve:
+        Vehicle full bmep curve.
+    :type full_bmep_curve: scipy.interpolate.InterpolatedUnivariateSpline
+
+    :param active_cylinder_ratios:
+        Possible active cylinder ratios [-].
+    :type active_cylinder_ratios: tuple[float]
+
+    :param has_cylinder_deactivation:
+        Does the engine have cylinder deactivation technology?
+    :type has_cylinder_deactivation: bool
+
+    :param max_mean_piston_speeds_cylinder_deactivation:
+        Maximum mean piston speed for cylinder deactivation strategy [m/sec].
+    :type max_mean_piston_speeds_cylinder_deactivation: float
+
+    :param has_variable_valve_actuation:
+        Does the engine feature variable valve actuation? [-].
+    :type has_variable_valve_actuation: bool
+
+    :return:
+        Vehicle FMEP model.
+    :rtype: FMEP
+    """
 
     fbcp = defaults.dfl.functions.define_fmep_model.full_bmep_curve_percentage
     model = FMEP(
@@ -378,6 +440,10 @@ def calculate_p0(
     :param engine_fuel_lower_heating_value:
         Fuel lower heating value [kJ/kg].
     :type engine_fuel_lower_heating_value: float
+
+    :param fmep_model:
+        Engine FMEP model.
+    :type fmep_model: FMEP
 
     :return:
         Engine power threshold limit [kW].
@@ -460,6 +526,10 @@ def calculate_co2_emissions(
         Tau-function of the extended Willans curve.
     :type tau_function: function
 
+    :param fmep_model:
+        Engine FMEP model.
+    :type fmep_model: FMEP
+
     :param params:
         CO2 emission model parameters (a2, b2, a, b, c, l, l2, t, trg).
 
@@ -488,7 +558,7 @@ def calculate_co2_emissions(
     e_powers = engine_powers_out[sub_values]
     e_temp = engine_coolant_temperatures[sub_values]
 
-    fc, ac  = np.zeros_like(e_powers), np.ones_like(e_powers)
+    fc, ac = np.zeros_like(e_powers), np.ones_like(e_powers)
 
     # Idle fc correction for temperature
     b = (e_speeds < idle_engine_speed[0] + min_engine_on_speed)
@@ -574,6 +644,10 @@ def define_co2_emissions_model(
         Engine capacity [cm3].
     :type engine_capacity: float
 
+    :param idle_fuel_consumption_model:
+        Idle fuel consumption model.
+    :type idle_fuel_consumption_model: IdleFuelConsumptionModel
+
     :param fuel_carbon_content:
         Fuel carbon content [CO2g/g].
     :type fuel_carbon_content: float
@@ -585,6 +659,10 @@ def define_co2_emissions_model(
     :param tau_function:
         Tau-function of the extended Willans curve.
     :type tau_function: function
+
+    :param fmep_model:
+        Engine FMEP model.
+    :type fmep_model: FMEP
 
     :return:
         CO2 emissions model (co2_emissions = models(params)).
@@ -1551,6 +1629,10 @@ def calculate_phases_willans_factors(
         Minimum engine speed to consider the engine to be on [RPM].
     :type min_engine_on_speed: float
 
+    :param fmep_model:
+        Engine FMEP model.
+    :type fmep_model: FMEP
+
     :param times:
         Time vector [s].
     :type times: numpy.array
@@ -1667,6 +1749,10 @@ def calculate_willans_factors(
     :param min_engine_on_speed:
         Minimum engine speed to consider the engine to be on [RPM].
     :type min_engine_on_speed: float
+
+    :param fmep_model:
+        Engine FMEP model.
+    :type fmep_model: FMEP
 
     :param engine_speeds_out:
         Engine speed vector [RPM].

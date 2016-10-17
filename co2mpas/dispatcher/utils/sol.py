@@ -68,6 +68,7 @@ class Solution(OrderedDict):
                 return {}
         else:
             inputs = self.inputs
+
             def input_value(k):
                 return {'value': inputs[k]}
         return input_value
@@ -149,6 +150,7 @@ class Solution(OrderedDict):
         self.fringe = []  # Use heapq with (distance, wait, label).
         self.dist, self.seen, self._meet = {START: -1}, {START: -1}, {START: -1}
         self._update_methods()
+        self._pipe = []
 
     def _init_workflow(self, inputs=None, input_value=None, inputs_dist=None,
                        initial_dist=0.0, clean=True):
@@ -165,7 +167,7 @@ class Solution(OrderedDict):
         # Add the starting node to the workflow graph.
         self.workflow.add_node(START, type='start')
 
-        inputs_dist = inputs_dist or self.inputs_dist or {}  # Update input dist.
+        inputs_dist = inputs_dist or self.inputs_dist or {}  # Update inp dist.
         inputs = inputs or self.inputs
         input_value = input_value or self._input_value()
 
@@ -218,7 +220,7 @@ class Solution(OrderedDict):
             # See remote link node.
             sol._see_remote_link_node(v, fringe, d, check_dsp)
 
-        if self.rm_unused_nds:  # Remove unused function and sub-dispatcher nodes.
+        if self.rm_unused_nds:  # Remove unused func and sub-dsp nodes.
             self._remove_unused_nodes()
 
         return self  # Data outputs.
@@ -580,7 +582,7 @@ class Solution(OrderedDict):
                         if no_visited_in_sub_dsp(u)]
 
             # Check if it has functions as outputs and wildcard condition.
-            if (succ_fun and succ_fun[0] not in self._visited):
+            if succ_fun and succ_fun[0] not in self._visited:
                 # namespace shortcuts for speed.
                 wf_add_edge = self._wf_add_edge
 
@@ -741,7 +743,7 @@ class Solution(OrderedDict):
             for w, edge_data in self.dmap[data_id].items():  # See func node.
                 wf_add_edge(data_id, w, **value)  # Set workflow.
 
-                node = nodes[w] # Node attributes.
+                node = nodes[w]  # Node attributes.
 
                 # Evaluate distance.
                 vw_dist = initial_dist + edge_weight(edge_data, node)
@@ -759,7 +761,7 @@ class Solution(OrderedDict):
 
                 seen[w] = vw_dist  # Update distance.
 
-                vd = (True, w, self.index + node['index']) # Virtual distance.
+                vd = (True, w, self.index + node['index'])  # Virtual distance.
 
                 heappush(fringe, (vw_dist, vd, (w, self)))  # Add to heapq.
 

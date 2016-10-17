@@ -148,7 +148,7 @@ def identify_clutch_window(
     delta = engine_speeds_out - engine_speeds_out_hot - cold_start_speeds_delta
     threshold = np.std(delta) * 2
 
-    def error(v):
+    def _error(v):
         clutch_phases = phs(v) & ((-threshold > delta) | (delta > threshold))
         y = delta[clutch_phases]
         # noinspection PyBroadException
@@ -160,10 +160,10 @@ def identify_clutch_window(
 
     dt = max_clutch_window_width / 2
     Ns = int(dt / max(times[1] - times[0], 0.5)) + 1
-    return tuple(sci_opt.brute(error, ((0, -dt), (0, dt)), Ns=Ns, finish=None))
+    return tuple(sci_opt.brute(_error, ((0, -dt), (0, dt)), Ns=Ns, finish=None))
 
 
-class Clutch():
+class Clutch(object):
     def __init__(self):
         self.predict = self._no_clutch
 
@@ -196,7 +196,9 @@ class Clutch():
 
         cal, c = self._calibrate_clutch_prediction_model, dsp_utl.counter()
         y, X = delta[phases], np.array([acc[phases]]).T
-        error = lambda func: (sk_met.mean_squared_error(y, func(X)), c())
+
+        def error(func):
+            return sk_met.mean_squared_error(y, func(X)), c()
 
         models = [cal(acc[b], delta[b], error, self._no_clutch)
                   for b in [np.zeros_like(acc, dtype=bool), phases]]

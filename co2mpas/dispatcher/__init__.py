@@ -22,8 +22,6 @@ Modules:
     utils
 """
 
-__author__ = 'Vincenzo Arcidiacono'
-
 import logging
 from collections import deque
 from copy import copy, deepcopy
@@ -42,6 +40,7 @@ from .utils.cel import create_celery_app
 log = logging.getLogger(__name__)
 
 __all__ = ['Dispatcher']
+__author__ = 'Vincenzo Arcidiacono'
 
 
 class Dispatcher(object):
@@ -1701,6 +1700,14 @@ class Dispatcher(object):
             workflow.
         :type rm_unused_nds: bool, optional
 
+        :param select_output_kw:
+            Kwargs of selector function to select specific outputs.
+        :type select_output_kw: dict, optional
+
+        :param _wait_in:
+            Override wait inputs.
+        :type _wait_in: dict, optional
+
         :return:
             Dictionary of estimated data node outputs.
         :rtype: Result[str, T]
@@ -1890,7 +1897,8 @@ class Dispatcher(object):
 
         bfs = None
         if inputs:
-            wait_in = self._get_wait_in(flag=False)  # Get all data nodes no wait inputs.
+            # Get all data nodes no wait inputs.
+            wait_in = self._get_wait_in(flag=False)
 
             # Evaluate the workflow graph without invoking functions.
             o = self.dispatch(
@@ -2036,7 +2044,7 @@ class Dispatcher(object):
 
         wait_in = {}
 
-        if flag is None: # No set.
+        if flag is None:  # No set.
             for a in self.sub_dsp_nodes.values():
                 if 'function' in a:
                     a['function']._get_wait_in(flag=flag)

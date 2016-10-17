@@ -22,7 +22,7 @@ class Values(co2_utl.Constants):
     #: Possible percentages of active cylinders [-].
     active_cylinder_ratios = (1.0,)
 
-    # Does the engine feature variable valve actuation? [-].
+    #: Does the engine feature variable valve actuation? [-].
     engine_has_variable_valve_actuation = False
 
     #: NEDC cycle time [s].
@@ -175,8 +175,7 @@ class Functions(co2_utl.Constants):
         #: Correction for vehicles with periodically regenerating systems [-].
         ki_factor = {True: 1.05, False: 1.0}
 
-    class calculate_max_mean_piston_speeds_cylinder_deactivation(
-        co2_utl.Constants):
+    class calculate_max_mean_piston_speeds_cylinder_deactivation(co2_utl.Constants):
         #: Percentage of max mean piston speeds used as limit in cylinder
         #: deactivation strategy [-].
         percentage = 0.6
@@ -334,13 +333,13 @@ class Functions(co2_utl.Constants):
         #: Equivalent gear box heat capacity parameters.
         PARAMS = {
             'heated_mass_percentage': {
-                'coolant': 0.04,    # coolant: 50%/50% (0.85*4.186)
-                'oil': 0.055,       # oil: lubricant
-                'crankcase': 0.18,  # crankcase: cast iron
-                'cyl_head': 0.09,   # cyl_head: aluminium
-                'pistons': 0.025,   # pistons: aluminium
-                'crankshaft': 0.08, # crankshaft: steel
-                'body': 0.1         # body: cast iron
+                'coolant': 0.04,     # coolant: 50%/50% (0.85*4.186)
+                'oil': 0.055,        # oil: lubricant
+                'crankcase': 0.18,   # crankcase: cast iron
+                'cyl_head': 0.09,    # cyl_head: aluminium
+                'pistons': 0.025,    # pistons: aluminium
+                'crankshaft': 0.08,  # crankshaft: steel
+                'body': 0.1          # body: cast iron
             },
             # Cp in (J/kgK)
             'heat_capacity': {

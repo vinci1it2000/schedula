@@ -80,7 +80,9 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function',
                         what='description'):
     nodes = dsp.nodes
     des, link = ('', '')
-    check = lambda *args: True
+
+    def check(*args):
+        return True
 
     if where_succ:
         neighbors = dsp.dmap.succ

@@ -147,6 +147,7 @@ value = {
     }
 }
 
+
 class Constants(utl.Constants):
     #: Maximum allowed dT for the initial temperature check [°C].
     MAX_VALIDATE_DTEMP = 2

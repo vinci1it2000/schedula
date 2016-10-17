@@ -477,6 +477,7 @@ def at_models_selector(d, at_pred_inputs, models_ids, data):
 
     from ..physical.gear_box.at_gear import calculate_error_coefficients
     from ..physical.gear_box.mechanical import calculate_gear_box_speeds_in
+
     def _err(model_id, model):
         gears = d.dispatch(
                 inputs=c_dicts(inputs, {sgs: model_id, model_id: model}),
@@ -521,7 +522,7 @@ def split_prediction_models(
         dsp_utl.get_nested_dicts(sbm, k, c, default=co2_utl.ret_v(r))
         r = dsp_utl.selector(['success'], r, allow_miss=True)
         r = dsp_utl.map_dict({'success': 'status'}, r, {'from': c})
-        dsp_utl.get_nested_dicts(model_sel, k, 'calibration') [c] = r
+        dsp_utl.get_nested_dicts(model_sel, k, 'calibration')[c] = r
 
     p = {i: dict.fromkeys(input_models, 'input') for i in cycle_ids}
 
@@ -664,7 +665,7 @@ def _selector(name, data_in, data_out, setting):
         data_id='selector_settings',
         default_value={})
 
-    node_ids= ['error_settings', 'best_model_settings']
+    node_ids = ['error_settings', 'best_model_settings']
 
     d.add_function(
         function=functools.partial(define_selector_settings, node_ids=node_ids),

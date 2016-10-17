@@ -31,7 +31,6 @@ import regex
 import pandas as pd
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas._version import version
-import co2mpas.utils as co2_utl
 import co2mpas.dispatcher as dsp
 from . import schema, excel, dill
 import functools
@@ -60,7 +59,8 @@ def check_cache_fpath_exists(overwrite_cache, fpath, cache_fpath):
         return False
     cache_fpath = pathlib.Path(cache_fpath)
     if cache_fpath.exists():
-        inp_stats = pathlib.Path(fpath).stat()  # Will scream if INPUT does not exist.
+        # Will scream if INPUT does not exist.
+        inp_stats = pathlib.Path(fpath).stat()
         cache_stats = cache_fpath.stat()
         if inp_stats.st_mtime <= cache_stats.st_mtime:
             return True
@@ -183,6 +183,7 @@ def _freeze2df():
 
 def _pipe2list(pipe, i=0, source=()):
     res = []
+
     def f(x):
         return (x,) if isinstance(x, str) else x
     max_l = i
@@ -350,6 +351,7 @@ def _summary_map():
     }
     return _map
 
+
 @cachetools.cached({})
 def _param_units():
     units = ((k, _re_units.search(v)) for k, v in get_doc_description().items())
@@ -441,7 +443,6 @@ def _param_parts(param_id):
     return {i: regex.sub("[\W]", "_", (j or '').lower()) for i, j in match}
 
 
-
 def _time_series2df(data, data_descriptions):
     df = collections.OrderedDict()
     for k, v in data.items():
@@ -469,6 +470,7 @@ def _dd2df(dd, index=None, depth=0, col_key=None, row_key=None):
 
     if col_key is not None:
         ax = pd.MultiIndex.from_tuples(sorted(df.columns, key=col_key))
+        # noinspection PyUnresolvedReferences
         df = df.reindex_axis(ax, axis='columns', copy=False)
 
     if row_key is not None:

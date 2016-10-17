@@ -67,6 +67,7 @@ def remove_edge_fun(graph):
     # Namespace shortcut for speed.
     rm_edge, rm_node = graph.remove_edge, graph.remove_node
     from networkx import is_isolate
+
     def remove_edge(u, v):
         rm_edge(u, v)  # Remove the edge.
         if is_isolate(graph, v):  # Check if v is isolate.
@@ -191,7 +192,8 @@ def _add_edge_dmap_fun(graph, edges_weights=None):
             else:
                 add(i, o)  # Normal edge.
     else:
-        add_edge = lambda i, o, w: add(i, o)  # Normal edge.
+        def add_edge(i, o, w):
+            add(i, o)  # Normal edge.
 
     return add_edge  # Returns the function.
 
@@ -203,7 +205,7 @@ def remove_remote_link(dsp, nodes_bunch, type=('child', 'parent')):
         links = []
         # Define new remote links.
         for (n, d), t in node.pop('remote_links', []):
-            if not t in type:
+            if t not in type:
                 links.append([[n, d], t])
         if links:
             node['remote_links'] = links
@@ -579,8 +581,7 @@ def get_sub_node(dsp, path, node_attr='auto', solution=NONE, _level=0,
         # Return the sub node.
         if node_attr == 'auto' and node['type'] != 'data':  # Auto: function.
             node_attr = 'function'
-        elif node_attr == 'auto' and solution is not EMPTY and \
-                        node_id in solution.sub_dsp.get(dsp, ()): # Auto: data output.
+        elif node_attr == 'auto' and solution is not EMPTY and node_id in solution.sub_dsp.get(dsp, ()):  # Auto: data output.
                 data = solution.sub_dsp[dsp][node_id]
         elif node_attr == 'output':
             data = solution.sub_dsp[dsp][node_id]
@@ -776,7 +777,8 @@ def _check_targets_fun(targets):
                 return True
             return False
     else:
-        check_targets = lambda n: False
+        def check_targets(n):
+            return False
 
     return check_targets
 
@@ -820,7 +822,8 @@ def _edge_weight_fun(weight):
         def edge_weight(edge, node_out):
             return edge.get('weight', 1) + node_out.get('weight', 0)
     else:
-        edge_weight = lambda *args: 1
+        def edge_weight(edge, node_out):
+            return 1
 
     return edge_weight
 

@@ -149,7 +149,25 @@ def _process_folder_files(*args, **kwargs):
 
 # noinspection PyUnusedLocal
 def plot_model_workflow(output_file_name=None, vehicle_name='', **kw):
+    """
+    Defines the kwargs to plot the dsp workflow.
 
+    :param output_file_name:
+        File name where to plot the workflow.
+    :type output_file_name: str
+
+    :param vehicle_name:
+        Vehicle name.
+    :type vehicle_name: str
+
+    :param kw:
+        Additional kwargs.
+    :type kw: dict
+
+    :return:
+        Kwargs to plot the dsp workflow.
+    :rtype: dict
+    """
     try:
         ofname = None
         if output_file_name:
@@ -162,20 +180,68 @@ def plot_model_workflow(output_file_name=None, vehicle_name='', **kw):
 
 
 def default_start_time():
+    """
+    Returns the default run start time.
+
+    :return:
+        Run start time.
+    :rtype: datetime.datetime
+    """
     return datetime.datetime.today()
 
 
 def default_timestamp(start_time):
+    """
+    Returns the default timestamp.
+
+    :param start_time:
+        Run start time.
+    :type start_time: datetime.datetime
+
+    :return:
+        Run timestamp.
+    :rtype: str
+    """
     return start_time.strftime('%Y%m%d_%H%M%S')
 
 
 def default_vehicle_name(fpath):
+    """
+    Returns the vehicle name.
+
+    :param fpath:
+        File path.
+    :type fpath: str
+
+    :return:
+        Vehicle name.
+    :rtype: str
+    """
     return osp.splitext(osp.basename(fpath))[0]
 
 
 def default_output_file_name(output_folder, fname, timestamp):
-    ofname = '%s-%s' % (timestamp, fname)
-    ofname = osp.join(output_folder, ofname)
+    """
+    Returns the output file name.
+
+    :param output_folder:
+        Output folder.
+    :type output_folder: str
+
+    :param fname:
+        File name.
+    :type fname: str
+
+    :param timestamp:
+        Run timestamp.
+    :type timestamp: str
+
+    :return:
+        Output file name.
+    :rtype: str
+
+    """
+    ofname = osp.join(output_folder, '%s-%s' % (timestamp, fname))
 
     return '%s.xlsx' % ofname
 
@@ -228,6 +294,21 @@ def _save_summary(fpath, start_time, summary):
 
 
 def get_template_file_name(template_output, input_file_name):
+    """
+    Returns the template file name.
+
+    :param template_output:
+        Template output.
+    :type template_output: str
+
+    :param input_file_name:
+        Input file name.
+    :type input_file_name: str
+
+    :return:
+        Template file name.
+    :rtype: str
+    """
     if template_output == '-':
         return input_file_name
     return template_output
@@ -239,6 +320,41 @@ def check_first_arg(first, *args):
 
 def prepare_data(raw_data, variation, input_file_name, overwrite_cache,
                  output_folder, timestamp, type_approval_mode):
+    """
+    Prepare the data to be processed.
+
+    :param raw_data:
+        Raw data from the input file.
+    :type raw_data: dict
+
+    :param variation:
+        Variations to be applied.
+    :type variation: dict
+
+    :param input_file_name:
+        Input file name.
+    :type input_file_name: str
+
+    :param overwrite_cache:
+        Overwrite saved cache?
+    :type overwrite_cache: bool
+
+    :param output_folder:
+        Output folder.
+    :type output_folder: str
+
+    :param timestamp:
+        Run timestamp.
+    :type timestamp: str
+
+    :param type_approval_mode:
+        Is launched for TA?
+    :type type_approval_mode: bool
+
+    :return:
+        Prepared data.
+    :rtype: dict
+    """
     has_plan = 'plan' in raw_data and (not raw_data['plan'].empty)
     match = {
         'scope': 'plan' if has_plan else 'base',
@@ -283,10 +399,10 @@ def prepare_data(raw_data, variation, input_file_name, overwrite_cache,
 
     flag = data.get('flag', {}).copy()
 
-    if not 'run_base' in flag:
+    if 'run_base' not in flag:
         flag['run_base'] = not has_plan
 
-    if not 'run_plan' in flag:
+    if 'run_plan' not in flag:
         flag['run_plan'] = has_plan
 
     flag['output_folder'] = output_folder
@@ -372,9 +488,8 @@ def vehicle_processing_model():
 
     d.add_function(
         function=prepare_data,
-        inputs= ['raw_data', 'variation', 'input_file_name',
-                 'overwrite_cache', 'output_folder', 'timestamp',
-                 'type_approval_mode'],
+        inputs=['raw_data', 'variation', 'input_file_name', 'overwrite_cache',
+                'output_folder', 'timestamp', 'type_approval_mode'],
         outputs=['base_data', 'plan_data']
     )
 
