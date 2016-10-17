@@ -442,7 +442,7 @@ def calculate_engine_speeds_out_hot(
     else:
         s = gear_box_speeds_in.copy()
 
-        s[np.logical_not(on_engine)] = 0
+        s[~on_engine] = 0
         s[on_engine & (s < idle_engine_speed[0])] = idle_engine_speed[0]
 
     return s

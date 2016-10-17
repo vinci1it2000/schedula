@@ -261,7 +261,7 @@ def _gear_box_torques_in(
     y[b] = (par['gbp01'] * tgb[b] - par['gbp10'] * ws[b] - par['gbp00']) * ws[b]
     y[b] /= es[b]
 
-    b = (np.logical_not(b)) & (es > min_engine_on_speed)
+    b = ~b & (es > min_engine_on_speed)
     b &= (ws > min_engine_on_speed)
 
     y[b] = (tgb[b] - par['gbp10'] * es[b] - par['gbp00']) / par['gbp01']

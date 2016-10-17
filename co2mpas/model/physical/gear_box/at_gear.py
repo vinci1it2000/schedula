@@ -743,7 +743,7 @@ def calibrate_gear_shifting_cmv_hot_cold(
         cmv[i] = calibrate_gear_shifting_cmv(
             correct_gear, gears[b], engine_speeds[b], velocities[b],
             accelerations[b], velocity_speed_ratios, stop_velocity)
-        b = np.logical_not(b)
+        b = ~b
 
     return cmv
 
@@ -1095,7 +1095,7 @@ def calibrate_gspv_hot_cold(
     for i in ['cold', 'hot']:
         gspv[i] = calibrate_gspv(gears[b], velocities[b], wheel_powers[b],
                                  velocity_speed_ratios, stop_velocity)
-        b = np.logical_not(b)
+        b = ~b
 
     return gspv
 
@@ -1275,7 +1275,7 @@ def prediction_gears_gsm_hot_cold(
             args.append(wheel_powers[b])
 
         gears = np.append(gears, prediction_gears_gsm(*args))
-        b = np.logical_not(b)
+        b = ~b
 
     return np.asarray(gears, dtype=int)
 

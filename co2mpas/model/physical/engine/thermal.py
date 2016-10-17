@@ -61,8 +61,7 @@ def _build_samples(temperature_derivatives, engine_coolant_temperatures, *args):
 
 
 def _filter_samples(spl, on_engine, thermostat):
-    b = (np.abs(spl[:, -1]) <= 0.001) & on_engine[1:]
-    b = np.logical_not(b)
+    b = ~((np.abs(spl[:, -1]) <= 0.001) & on_engine[1:])
     b[:co2_utl.argmax(on_engine)] = False
     b[co2_utl.argmax(thermostat < spl[:, 0]):] = True
     return spl[b]

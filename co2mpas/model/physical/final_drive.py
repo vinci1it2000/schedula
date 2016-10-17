@@ -167,7 +167,7 @@ def calculate_final_drive_efficiencies(
 
     eff = np.ones_like(t_out, dtype=float)
 
-    b = np.logical_not((t_out == 0) & (t_in == 0))
+    b = ~((t_out == 0) & (t_in == 0))
     eff[b] = t_out[b] / (final_drive_ratio * t_in[b])
 
     return np.nan_to_num(eff)

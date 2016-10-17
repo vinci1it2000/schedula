@@ -341,12 +341,12 @@ def _calculate_fc(A, B, C):
     if b.all():
         v = np.sqrt(np.abs(B ** 2 - 4.0 * A * C))
         return (-B + v) / (2 * A), v
-    elif np.logical_not(b).all():
+    elif ~b.all():
         return -C / B, B
     else:
         fc, v = np.zeros_like(C), np.zeros_like(C)
         fc[b], v[b] = _calculate_fc(A[b], B[b], C[b])
-        b = np.logical_not(b)
+        b = ~b
         fc[b], v[b] = _calculate_fc(A[b], B[b], C[b])
         return fc, v
 
@@ -496,7 +496,7 @@ def calculate_co2_emissions(
     if p['t0'] == 0 and p['t1'] == 0:
         ac_phases = n_temp = np.ones_like(e_powers)
         fc[b], ac[b] = idle_fuel_consumption_model.consumption(p)
-        b = np.logical_not(b)
+        b = ~b
     else:
         p['t'] = tau_function(p['t0'], p['t1'], e_temp)
         func = calculate_normalized_engine_coolant_temperatures
@@ -504,7 +504,7 @@ def calculate_co2_emissions(
         ac_phases = n_temp == 1
         idle_fc, ac[b] = idle_fuel_consumption_model.consumption(p, ac_phases)
         fc[b] = idle_fc * np.power(n_temp[b], -p['t'][b])
-        b = np.logical_not(b)
+        b = ~b
         p['t'] = p['t'][b]
 
     fc[b], _, ac[b], _ = fmep_model(p, n_speeds[b], n_powers[b], n_temp[b])
@@ -731,7 +731,7 @@ def calculate_extended_integration_times(
 
     lv, pit = velocities <= stop_velocity, phases_integration_times
     pit = set(itertools.chain(*pit))
-    hv = np.logical_not(lv)
+    hv = ~lv
     j, l, phases = np.argmax(hv), len(lv), []
     while j < l:
         i = np.argmax(lv[j:]) + j
@@ -744,7 +744,7 @@ def calculate_extended_integration_times(
         if t1 - t0 < 20 or any(t0 <= x <= t1 for x in pit):
             continue
 
-        b = np.logical_not(on_engine[i:j])
+        b = ~on_engine[i:j]
         if b.any() and not b.all():
             t = np.median(times[i:j][b])
         else:
@@ -802,7 +802,7 @@ def calculate_extended_cumulative_co2_emissions(
     """
 
     r = co2_normalization_references.copy()
-    r[np.logical_not(on_engine)] = 0
+    r[~on_engine] = 0
     _cco2, phases = [], []
     cco2 = phases_co2_emissions * phases_distances
     trapz = sci_itg.trapz
@@ -1271,7 +1271,7 @@ def calibrate_co2_params(
     if not is_cycle_hot:
         i = co2_utl.argmax(engine_coolant_temperatures >= p['trg'].value)
         cold[:i] = True
-    hot = np.logical_not(cold)
+    hot = ~cold
 
     success = [(True, copy.deepcopy(p))]
 

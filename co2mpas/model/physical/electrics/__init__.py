@@ -424,7 +424,7 @@ class AlternatorCurrentModel(object):
         b = times < (times[0] + init_time)
         curr = np.zeros_like(times, dtype=float)
         curr[b] = self.init_model(X[b][:, self.init_mask])
-        b = np.logical_not(b)
+        b = ~b
         curr[b] = self.model(X[b][:, self.model])
         return curr
 
@@ -671,7 +671,7 @@ def identify_alternator_current_threshold(
     :rtype: float
     """
 
-    b, l = np.logical_not(on_engine), -float('inf')
+    b, l = ~on_engine, -float('inf')
     if not b.any():
         b, l = velocities < stop_velocity, alternator_off_threshold
         b &= alternator_currents < 0

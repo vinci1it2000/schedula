@@ -64,7 +64,7 @@ class TorqueConverter(object):
         )
 
         b = np.isclose(accelerations, (0,)) & (velocities < stop_velocity)
-        b = np.logical_not(b & (abs(y) > calibration_tc_speed_threshold))
+        b = ~(b & (abs(y) > calibration_tc_speed_threshold))
 
         regressor.fit(X[b, :], y[b])
         self.regressor = regressor

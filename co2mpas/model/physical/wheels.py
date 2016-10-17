@@ -163,7 +163,7 @@ def identify_r_dynamic_v1(
     )
 
     r_dynamic = speed_x_r_dyn_ratios / engine_speeds_out
-    r_dynamic = r_dynamic[np.logical_not(np.isnan(r_dynamic))]
+    r_dynamic = r_dynamic[~np.isnan(r_dynamic)]
     r_dynamic = co2_utl.reject_outliers(r_dynamic)[0]
 
     return r_dynamic

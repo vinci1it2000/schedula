@@ -254,8 +254,7 @@ def metric_engine_speed_model(
         y_true, y_pred, times, velocities, gear_shifts, on_engine,
         stop_velocity):
     from ..physical.clutch_tc.clutch import calculate_clutch_phases
-    b = calculate_clutch_phases(times, gear_shifts, (-4.0, 4.0))
-    b = np.logical_not(b)
+    b = ~calculate_clutch_phases(times, gear_shifts, (-4.0, 4.0))
     b &= (velocities > stop_velocity) & (times > 100) & on_engine
     return sk_met.mean_absolute_error(y_true[b], y_pred[b])
 
