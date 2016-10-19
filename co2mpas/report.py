@@ -378,7 +378,7 @@ def _format_scores(scores):
                 i = (model_id, i[-1], k[1],) + i[:-1] + extra_field
                 dsp_utl.get_nested_dicts(res, *i, default=co2_utl.ret_v(v))
     sco = {}
-    for k, v in dsp_utl.stack_nested_keys(res, depth=4):
+    for k, v in sorted(dsp_utl.stack_nested_keys(res, depth=4)):
         v.update(dsp_utl.map_list(['model_id', 'param_id'], *k[:2]))
         dsp_utl.get_nested_dicts(sco, *k[2:], default=list).append(v)
     return sco
@@ -386,7 +386,7 @@ def _format_scores(scores):
 
 def _format_selection(score_by_model, depth=-1, index='model_id'):
     res = {}
-    for k, v in dsp_utl.stack_nested_keys(score_by_model, depth=depth):
+    for k, v in sorted(dsp_utl.stack_nested_keys(score_by_model, depth=depth)):
         v = v.copy()
         v[index] = k[0]
         dsp_utl.get_nested_dicts(res, *k[1:], default=list).append(v)

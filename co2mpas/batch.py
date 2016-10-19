@@ -472,6 +472,11 @@ def vehicle_processing_model():
     )
 
     d.add_data(
+        data_id='overwrite_cache',
+        default_value=False
+    )
+
+    d.add_data(
         data_id='output_folder',
         default_value='.'
     )
@@ -606,9 +611,11 @@ def run_base():
         outputs=['template_file_name']
     )
 
+
     d.add_data(
         data_id='output_template',
-        default_value=osp.abspath('./co2mpas_output_template.xlsx'),
+        default_value=osp.join(osp.dirname(osp.abspath(__file__)),
+                               'co2mpas_output_template.xlsx'),
         initial_dist=10
     )
 
