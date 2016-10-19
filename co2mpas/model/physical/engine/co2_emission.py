@@ -461,6 +461,12 @@ def calculate_p0(
     return -wfb_idle / wfa_idle
 
 
+def _get_sub_values(*args, sub_values=None):
+    if sub_values is not None:
+        return tuple(a[sub_values] for a in args)
+    return args
+
+
 def calculate_co2_emissions(
         engine_speeds_out, engine_powers_out, mean_piston_speeds,
         brake_mean_effective_pressures, engine_coolant_temperatures, on_engine,
@@ -547,52 +553,57 @@ def calculate_co2_emissions(
 
     p = params.valuesdict()
 
-    if sub_values is None:
-        sub_values = np.ones_like(mean_piston_speeds, dtype=bool)
-
     # namespace shortcuts
-    n_speeds = mean_piston_speeds[sub_values]
-    n_powers = brake_mean_effective_pressures[sub_values]
+    n_speeds, n_powers, e_speeds, e_powers, e_temp = _get_sub_values(
+        mean_piston_speeds, brake_mean_effective_pressures, engine_speeds_out,
+        engine_powers_out, engine_coolant_temperatures, sub_values=sub_values
+    )
     lhv = engine_fuel_lower_heating_value
-    e_speeds = engine_speeds_out[sub_values]
-    e_powers = engine_powers_out[sub_values]
-    e_temp = engine_coolant_temperatures[sub_values]
 
-    fc, ac = np.zeros_like(e_powers), np.ones_like(e_powers)
+    fc, ac = np.zeros_like(e_powers), np.zeros_like(e_powers)
+    vva = np.zeros_like(e_powers)
 
     # Idle fc correction for temperature
-    b = (e_speeds < idle_engine_speed[0] + min_engine_on_speed)
-
+    n = (e_speeds < idle_engine_speed[0] + min_engine_on_speed)
+    _b = (e_speeds >= min_engine_on_speed)
     if p['t0'] == 0 and p['t1'] == 0:
         ac_phases = n_temp = np.ones_like(e_powers)
+        par = defaults.dfl.functions.calculate_co2_emissions
+        idle_cutoff = idle_engine_speed[0] * par.cutoff_idle_ratio
+        ec_p0 = calculate_p0(
+            p, engine_capacity, engine_stroke, idle_cutoff, lhv, fmep_model,
+            ac_phases
+        )
+        _b &= ~((e_powers <= ec_p0) & (e_speeds > idle_cutoff))
+        b = n & _b
         fc[b], ac[b] = idle_fuel_consumption_model.consumption(p)
-        b = ~b
+        b = ~n & _b
     else:
         p['t'] = tau_function(p['t0'], p['t1'], e_temp)
         func = calculate_normalized_engine_coolant_temperatures
         n_temp = func(e_temp, p['trg'])
         ac_phases = n_temp == 1
+        par = defaults.dfl.functions.calculate_co2_emissions
+        idle_cutoff = idle_engine_speed[0] * par.cutoff_idle_ratio
+        ec_p0 = calculate_p0(
+            p, engine_capacity, engine_stroke, idle_cutoff, lhv, fmep_model,
+            ac_phases
+        )
+        _b &= ~((e_powers <= ec_p0) & (e_speeds > idle_cutoff))
+        b = n & _b
         idle_fc, ac[b] = idle_fuel_consumption_model.consumption(p, ac_phases)
         fc[b] = idle_fc * np.power(n_temp[b], -p['t'][b])
-        b = ~b
+        b = ~n & _b
         p['t'] = p['t'][b]
 
-    fc[b], _, ac[b], _ = fmep_model(p, n_speeds[b], n_powers[b], n_temp[b])
+    fc[b], _, ac[b], vva[b] = fmep_model(p, n_speeds[b], n_powers[b], n_temp[b])
     fc[b] *= e_speeds[b] * (engine_capacity / (lhv * 1200))  # [g/sec]
-    p['t'] = 0
 
-    par = defaults.dfl.functions.calculate_co2_emissions
-    idle_cutoff = idle_engine_speed[0] * par.cutoff_idle_ratio
-    ec_p0 = calculate_p0(
-        p, engine_capacity, engine_stroke, idle_cutoff, lhv, fmep_model,
-        ac_phases
-    )
-    b = (e_powers <= ec_p0) & (e_speeds > idle_cutoff)
-    fc[b | (e_speeds < min_engine_on_speed) | (fc < 0)] = 0
+    fc[fc < 0] = 0
 
     co2 = fc * fuel_carbon_content
 
-    return np.nan_to_num(co2), ac
+    return np.nan_to_num(co2), ac, vva
 
 
 def define_co2_emissions_model(
@@ -987,7 +998,7 @@ def define_co2_error_function_on_emissions(co2_emissions_model, co2_emissions):
     def error_func(params, sub_values=None):
         x = co2_emissions if sub_values is None else co2_emissions[sub_values]
         y = co2_emissions_model(params, sub_values=sub_values)[0]
-        return sk_met.mean_absolute_error(x, y)
+        return np.mean(np.abs(x - y))
 
     return error_func
 
