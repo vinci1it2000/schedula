@@ -49,17 +49,25 @@ OPTIONS:
   --modelconf=<yaml-file>     Path to a model-configuration file, according to YAML:
                                 https://docs.python.org/3.5/library/logging.config.html#logging-config-dictschema
   --overwrite-cache           Overwrite the cached file.
-  --only-summary              Do not save vehicle outputs, just the summary.
   --variation, -D=<key=value> Validate only partially input-data (no schema).
   -l, --list                  List available models.
   --graph-depth=<levels>      An integer to Limit the levels of sub-models plotted.
   -f, --force                 Overwrite output/template/demo excel-file(s).
 
-  --engineering-mode=<n>      Validate only partially input-data (no schema).
-  --out-template=<xlsx-file>  Clone the given excel-file and appends results into it.
-                              By default, results are appended into an empty excel-file.
-                              Use `--out-template=-` to use input-file as template.
-  --plot-workflow             Open workflow-plot in browser, after run finished.
+
+Model flags (-D flag.xxx, example -D flag.engineering_mode=2):
+ engineering_mode=<int>      0: Full validation + selection of declaration data,
+                             1: Full validation,
+                             2: Soft validation (just schema).
+ run_base=<bool>             Enable/disable the `run_base` model.
+ run_plan=<bool>             Enable/disable the `run_plan` model.
+ use_selector=<bool>         Enable/disable the selection of the best model.
+ only_summary=<bool>         Do not save vehicle outputs, just the summary.
+ plot_workflow=<bool>        Open workflow-plot in browser, after run finished.
+ output_template=<xlsx-file> Clone the given excel-file and appends results into
+                             it. By default, results are appended into an empty
+                             excel-file. Use `output_template=-` to use
+                             input-file as template.
 
 Miscellaneous:
   -h, --help                  Show this help message and exit.
@@ -73,8 +81,15 @@ Miscellaneous:
 
 
 SUB-COMMANDS:
-    batch           Simulate vehicle for all <input-path> excel-files & folder.
-                    If no <input-path> given, reads all excel-files from current-dir.
+    ta              Simulate vehicle in declaration mode for all <input-path>
+                    excel-files & folder. If no <input-path> given, reads all
+                    excel-files from current-dir. It reads just the declaration
+                    inputs.
+                    Read this for explanations of the param names:
+                      http://co2mpas.io/explanation.html#excel-input-data-naming-conventions
+    batch           Simulate vehicle in engineering mode for all <input-path>
+                    excel-files & folder. If no <input-path> given, reads all
+                    excel-files from current-dir. It reads all inputs.
                     Read this for explanations of the param names:
                       http://co2mpas.io/explanation.html#excel-input-data-naming-conventions
     demo            Generate demo input-files for the `batch` cmd inside <output-folder>.
@@ -348,11 +363,7 @@ def _prompt_options(opts):
     import easygui as eu
     fields = {
         'overwrite-cache': 'y/[n]',
-        'engineering-mode': '1/2/[0]',
-        'plot-workflow': 'y/[n]',
-        'only-summary': 'y/[n]',
-        'out-template': 'y/[n]/<xlsx-file>',
-        'force': 'y/[n]'
+        'force': 'y/[n]',
     }
 
     fields, choices = zip(*((k, v) for k, v in fields.items() if not opts['--%s' % k]))

@@ -621,11 +621,11 @@ you have installed |co2mpas| (see :ref:`install` above) and type::
 
 
     USAGE:
+      co2mpas ta          [--gui] [-f] [-O=<output-folder>] [<input-path>]...
       co2mpas batch       [-v | --logconf=<conf-file>] [--gui] [-f]
-                          [--overwrite-cache] [--out-template=<xlsx-file>]
-                          [--plot-workflow] [-O=<output-folder>]
-                          [--only-summary] [--engineering-mode]
-                          [<input-path>]...
+                          [--overwrite-cache] [-O=<output-folder>]
+                          [--modelconf=<yaml-file>]
+                          [-D=<key=value>]... [<input-path>]...
       co2mpas demo        [-v | --logconf=<conf-file>] [--gui] [-f]
                           [<output-folder>]
       co2mpas template    [-v | --logconf=<conf-file>] [--gui] [-f]
@@ -633,6 +633,7 @@ you have installed |co2mpas| (see :ref:`install` above) and type::
       co2mpas ipynb       [-v | --logconf=<conf-file>] [--gui] [-f]
                           [<output-folder>]
       co2mpas modelgraph  [-v | --logconf=<conf-file>] [-O=<output-folder>]
+                          [--modelconf=<yaml-file>]
                           (--list | [--graph-depth=<levels>] [<models> ...])
       co2mpas             [--verbose | -v]  (--version | -V)
       co2mpas             --help
@@ -650,16 +651,28 @@ you have installed |co2mpas| (see :ref:`install` above) and type::
       <excel-file-path>           Output file.
       --gui                       Launches GUI dialog-boxes to choose Input, Output
                                   and Options. [default: False].
-      --only-summary              Do not save vehicle outputs, just the summary.
+      --modelconf=<yaml-file>     Path to a model-configuration file, according to YAML:
+                                    https://docs.python.org/3.5/library/logging.config.html#logging-config-dictschema
       --overwrite-cache           Overwrite the cached file.
-      --engineering-mode          Validate only partially input-data (no schema).
-      --out-template=<xlsx-file>  Clone the given excel-file and appends results into it.
-                                  By default, results are appended into an empty excel-file.
-                                  Use `--out-template=-` to use input-file as template.
-      --plot-workflow             Open workflow-plot in browser, after run finished.
+      --variation, -D=<key=value> Validate only partially input-data (no schema).
       -l, --list                  List available models.
       --graph-depth=<levels>      An integer to Limit the levels of sub-models plotted.
       -f, --force                 Overwrite output/template/demo excel-file(s).
+
+
+    Model flags (-D flag.xxx, example -D flag.engineering_mode=2):
+     engineering_mode=<int>      0: Full validation + selection of declaration data,
+                                 1: Full validation,
+                                 2: Soft validation (just schema).
+     run_base=<bool>             Enable/disable the `run_base` model.
+     run_plan=<bool>             Enable/disable the `run_plan` model.
+     use_selector=<bool>         Enable/disable the selection of the best model.
+     only_summary=<bool>         Do not save vehicle outputs, just the summary.
+     plot_workflow=<bool>        Open workflow-plot in browser, after run finished.
+     output_template=<xlsx-file> Clone the given excel-file and appends results into
+                                 it. By default, results are appended into an empty
+                                 excel-file. Use `output_template=-` to use
+                                 input-file as template.
 
     Miscellaneous:
       -h, --help                  Show this help message and exit.
@@ -673,8 +686,15 @@ you have installed |co2mpas| (see :ref:`install` above) and type::
 
 
     SUB-COMMANDS:
-        batch           Simulate vehicle for all <input-path> excel-files & folder.
-                        If no <input-path> given, reads all excel-files from current-dir.
+        ta              Simulate vehicle in declaration mode for all <input-path>
+                        excel-files & folder. If no <input-path> given, reads all
+                        excel-files from current-dir. It reads just the declaration
+                        inputs.
+                        Read this for explanations of the param names:
+                          http://co2mpas.io/explanation.html#excel-input-data-naming-conventions
+        batch           Simulate vehicle in engineering mode for all <input-path>
+                        excel-files & folder. If no <input-path> given, reads all
+                        excel-files from current-dir. It reads all inputs.
                         Read this for explanations of the param names:
                           http://co2mpas.io/explanation.html#excel-input-data-naming-conventions
         demo            Generate demo input-files for the `batch` cmd inside <output-folder>.
@@ -706,7 +726,6 @@ you have installed |co2mpas| (see :ref:`install` above) and type::
 
         # View full version specs:
         co2mpas -vV
-
 
 The default sub-command (``batch``) accepts either a single **input-excel-file**
 or a folder with multiple input-files for each vehicle, and generates a
@@ -908,7 +927,8 @@ Using custom output xl-files as templates
 -----------------------------------------
 You may have defined customized xl-files for summarizing time-series and
 scalar parameters.  To have |co2mpas| fill those "output-template" files with
-its results, execute it with the ``--out-template`` option.
+its results, execute it with the ``-D flag.output_template=file/path.xlsx``
+option.
 
 
 To create/modify one output-template yourself, do the following:
@@ -926,7 +946,8 @@ To create/modify one output-template yourself, do the following:
 
 3. (Optional) Delete the old sheets and save your file.
 
-4. Use that file together with the ``--out-template`` argument.
+4. Use that file together with the ``-D flag.output_template=file/path.xlsx``
+  argument.
 
 
 Launch |co2mpas| from Jupyter(aka IPython)
