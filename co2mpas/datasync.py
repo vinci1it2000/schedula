@@ -64,7 +64,8 @@ Options:
                          e.g. df.interpolate(--interp=polynomial4).
                          'krogh', 'piecewise_polynomial', 'pchip' and 'akima'
                          are all wrappers around the scipy interpolation methods
-                         of similar names. 'integral'
+                         of similar names.
+                         'integral' is respect the signal integral.
   -l, --interp-methods   List of all interpolation methods that can be used in
                          the resampling.
   --cycle <cycle>        If set (e.g., --cycle=nedc.manual), the <ref-table> is
@@ -95,19 +96,20 @@ Examples::
 
     ## Read the full contents from all `wbook.xlsx` sheets as tables and
     ## sync their columns using the table from the 1st sheet as reference:
-    datasync times  velocities  folder/Book.xlsx
+    datasync times velocities folder/Book.xlsx
 
     ## Sync `Sheet1` using `Sheet3` as reference:
-    datasync times  velocities  wbook.xlsx#Sheet3!  Sheet1!
+    datasync times velocities wbook.xlsx#Sheet3!  Sheet1!
 
-    ## The same as above- NOTE that sheet-indices are zero based!
-    datasync times  velocities  wbook.xlsx#2!  0
+    ## The same as above but with integers used to index excel-sheets.
+    ## NOTE that sheet-indices are zero based!
+    datasync times velocities wbook.xlsx#2! 0
 
     ## Complex Xlr-ref example:
     ## Read the table in sheet2 of wbook-2 starting at D5 cell
     ## or more Down 'n Right if that was empty, till Down n Right,
     ## and sync this based on 1st sheet of wbook-1:
-    datasync times  velocities wbook-1.xlsx  wbook-2.xlsx#0!D5(DR):..(DR)
+    datasync times velocities wbook-1.xlsx  wbook-2.xlsx#0!D5(DR):..(DR)
 
     ## Typical usage for CO2MPAS velocity time-series from Dyno and OBD
     ## (the ref sheet contains the theoretical velocity profile):
