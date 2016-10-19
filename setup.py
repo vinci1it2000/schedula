@@ -197,6 +197,7 @@ setup(
             'ipynbs/*.ipynb',
             'co2mpas_template.xlsx',
             'datasync_template.xlsx',
+            'co2mpas_output_template.xlsx',
     ]},
     include_package_data=True,
     zip_safe=True,
