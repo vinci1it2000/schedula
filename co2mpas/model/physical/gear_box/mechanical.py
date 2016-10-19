@@ -276,15 +276,16 @@ def calculate_gear_box_speeds_in(
     :rtype: numpy.array
     """
 
-    vsr = {0: 0.0}
-    vsr.update(velocity_speed_ratios)
+    speeds = np.array(velocities, dtype=float, copy=True)
+    n = velocities >= stop_velocity
+    b = ~n
+    for k, r in velocity_speed_ratios.items():
+        if r:
+            speeds[n & (gears == k)] /= r
+        else:
+            b |= gears == k
 
-    vsr = np.vectorize(vsr.get)(gears)
-
-    speeds = velocities / vsr
-
-    speeds[(velocities < stop_velocity) | (vsr == 0.0)] = 0.0
-
+    speeds[b] = 0.0
     return speeds
 
 

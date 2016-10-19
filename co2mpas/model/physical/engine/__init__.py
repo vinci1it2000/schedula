@@ -31,6 +31,7 @@ from sklearn.cluster import DBSCAN
 import co2mpas.dispatcher.utils as dsp_utl
 import co2mpas.dispatcher as dsp
 import co2mpas.utils as co2_utl
+import functools
 
 
 def calculate_engine_mass(ignition_type, engine_max_power):
@@ -90,9 +91,12 @@ def get_full_load(ignition_type):
         Vehicle normalized full load curve.
     :rtype: scipy.interpolate.InterpolatedUnivariateSpline
     """
-    Spline = sci_itp.InterpolatedUnivariateSpline
-    FULL_LOAD = defaults.dfl.functions.get_full_load.FULL_LOAD
-    return Spline(*FULL_LOAD[ignition_type], ext=3)
+
+    xp, fp = defaults.dfl.functions.get_full_load.FULL_LOAD[ignition_type]
+    func = functools.partial(
+        np.interp, xp=xp, fp=fp, left=fp[0], right=fp[-1]
+    )
+    return func
 
 
 def calculate_full_load(full_load_speeds, full_load_powers, idle_engine_speed):
@@ -121,8 +125,12 @@ def calculate_full_load(full_load_speeds, full_load_powers, idle_engine_speed):
     pn[1] /= max_power
     idle = idle_engine_speed[0]
     pn[0] = (pn[0] - idle) / (max_speed_at_max_power - idle)
-    Spline = sci_itp.InterpolatedUnivariateSpline
-    return Spline(*pn, ext=3), max_power, max_speed_at_max_power
+
+    xp, fp = pn
+    func = functools.partial(
+        np.interp, xp=xp, fp=fp, left=fp[0], right=fp[-1]
+    )
+    return func, max_power, max_speed_at_max_power
 
 
 def calculate_full_load_speeds_and_powers(
@@ -948,8 +956,10 @@ def define_full_bmep_curve(
         min_engine_on_speed)
 
     s = calculate_mean_piston_speeds(full_load_speeds, engine_stroke)
-    Spline = sci_itp.InterpolatedUnivariateSpline
-    return Spline(s, p, ext=3)
+    func = functools.partial(
+        np.interp, xp=s, fp=p, left=p[0], right=p[-1]
+    )
+    return func
 
 
 def calculate_max_mean_piston_speeds_cylinder_deactivation(

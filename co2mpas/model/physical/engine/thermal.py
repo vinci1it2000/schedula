@@ -15,6 +15,7 @@ import sklearn.feature_selection as sk_fsel
 import sklearn.ensemble as sk_ens
 import co2mpas.utils as co2_utl
 import co2mpas.dispatcher as dsp
+import itertools
 
 
 def calculate_engine_temperature_derivatives(
@@ -55,9 +56,12 @@ def identify_max_engine_coolant_temperature(engine_coolant_temperatures):
 
 
 def _build_samples(temperature_derivatives, engine_coolant_temperatures, *args):
-    arr = (np.array([engine_coolant_temperatures[:-1]]).T, np.array(args).T[1:],
-           np.array([temperature_derivatives[1:]]).T)
-    return np.concatenate(arr, axis=1)
+    col = itertools.chain(
+        (engine_coolant_temperatures[:-1],),
+        (a[1:] for a in args),
+        (temperature_derivatives[1:],)
+    )
+    return np.column_stack(col)
 
 
 def _filter_samples(spl, on_engine, thermostat):

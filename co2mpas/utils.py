@@ -177,7 +177,7 @@ def median_filter(x, y, dx_window, filter=statistics.median_high):
     :rtype: numpy.array
     """
 
-    xy = [v for v in zip(x, y)]
+    xy = list(zip(x, y))
     Y = []
     add = Y.append
     for v in sliding_window(xy, dx_window):

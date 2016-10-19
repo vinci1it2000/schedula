@@ -25,130 +25,144 @@ import co2mpas.utils as co2_utl
 import numpy as np
 
 
-def correct_gear_full_load(
-        velocity, acceleration, gear, velocity_speed_ratios, max_engine_power,
-        max_engine_speed_at_max_power, idle_engine_speed, full_load_curve,
-        road_loads, vehicle_mass, min_gear, max_velocity_full_load_correction):
-    """
-    Corrects the gear predicted according to full load curve.
+class CorrectGear(object):
+    def __init__(self, velocity_speed_ratios=None, idle_engine_speed=None):
+        velocity_speed_ratios = velocity_speed_ratios or {}
+        self.gears = sorted(k for k in velocity_speed_ratios if k > 0)
+        self.vsr = velocity_speed_ratios
+        self.min_gear = self.gears[0]
+        self.idle_engine_speed=idle_engine_speed
+        self.pipe = []
 
-    :param velocity:
-        Vehicle velocity [km/h].
-    :type velocity: float
+    def fit_basic_correct_gear(self):
+        idle = self.idle_engine_speed[0]
+        self.idle_vel = [(k, self.vsr[k] * idle) for k in self.gears]
+        self.pipe.append(self.basic_correct_gear)
 
-    :param acceleration:
-        Vehicle acceleration [m/s2].
-    :type acceleration: float
+    def basic_correct_gear(self, velocity, acceleration, gear):
+        """
+        Corrects the gear predicted according to basic drive-ability rules.
 
-    :param gear:
-        Predicted vehicle gear [-].
-    :type gear: int
+        :param velocity:
+            Vehicle velocity [km/h].
+        :type velocity: float
 
-    :param velocity_speed_ratios:
-        Constant velocity speed ratios of the gear box [km/(h*RPM)].
-    :type velocity_speed_ratios: dict
+        :param acceleration:
+            Vehicle acceleration [m/s2].
+        :type acceleration: float
 
-    :param max_engine_power:
-        Maximum power [kW].
-    :type max_engine_power: float
+        :param gear:
+            Predicted vehicle gear [-].
+        :type gear: int
 
-    :param max_engine_speed_at_max_power:
-        Rated engine speed [RPM].
-    :type max_engine_speed_at_max_power: float
-
-    :param idle_engine_speed:
-        Engine speed idle median and std [RPM].
-    :type idle_engine_speed: (float, float)
-
-    :param full_load_curve:
-        Vehicle full load curve.
-    :type full_load_curve: scipy.interpolate.InterpolatedUnivariateSpline
-
-    :param road_loads:
-        Cycle road loads [N, N/(km/h), N/(km/h)^2].
-    :type road_loads: list, tuple
-
-    :param vehicle_mass:
-        Vehicle mass [kg].
-    :type vehicle_mass: float
-
-    :param min_gear:
-        Minimum gear [-].
-    :type min_gear: int
-
-    :param max_velocity_full_load_correction:
-        Maximum velocity to apply the correction due to the full load curve.
-    :type max_velocity_full_load_correction: float
-
-    :return:
-        A gear corrected according to full load curve.
-    :rtype: int
-    """
-
-    if velocity > max_velocity_full_load_correction:
+        :return:
+            A gear corrected according to basic drive-ability rules.
+        :rtype: int
+        """
+        if gear == 0 and acceleration > 0:
+            gear = self.min_gear
+        elif gear > 1:
+            for g, v in self.idle_vel[self.gears.index(gear):0:-1]:
+                if velocity >= v:
+                    return g
+            return self.min_gear
         return gear
 
-    from ..wheels import calculate_wheel_power
-    p_norm = calculate_wheel_power(
-        velocity, acceleration, road_loads, vehicle_mass)
-    p_norm /= max_engine_power
+    def fit_correct_gear_mvl(self, mvl):
+        self.mvl = mvl
+        self.pipe.append(self.correct_gear_mvl)
 
-    r = max_engine_speed_at_max_power - idle_engine_speed[0]
+    def correct_gear_mvl(self, velocity, acceleration, gear):
+        return self.mvl.predict(velocity, acceleration, gear)
 
-    vsr = velocity_speed_ratios
+    def fit_correct_gear_full_load(
+            self, max_engine_power, max_engine_speed_at_max_power,
+            full_load_curve, road_loads, vehicle_mass,
+            max_velocity_full_load_correction):
+        """
+        Fit the parameters to corrects the gear according to full load curve.
 
-    def _flc(g):
-        x = (velocity / vsr[g] - idle_engine_speed[0]) / r
-        return full_load_curve(x)
+        :param max_engine_power:
+            Maximum power [kW].
+        :type max_engine_power: float
 
-    while gear > min_gear and (gear not in vsr or p_norm > _flc(gear)):
-        # to consider adding the reverse function in the future because the
-        # n+200 rule should be applied at the engine not the GB
-        # (rpm < idle_speed + 200 and 0 <= a < 0.1) or
-        gear -= 1
+        :param max_engine_speed_at_max_power:
+            Rated engine speed [RPM].
+        :type max_engine_speed_at_max_power: float
 
-    return gear
+        :param full_load_curve:
+            Vehicle full load curve.
+        :type full_load_curve: scipy.interpolate.InterpolatedUnivariateSpline
 
+        :param road_loads:
+            Cycle road loads [N, N/(km/h), N/(km/h)^2].
+        :type road_loads: list, tuple
 
-# noinspection PyUnusedLocal
-def basic_correct_gear(
-        velocity, acceleration, gear, velocity_speed_ratios, idle_engine_speed,
-        *args):
-    """
-    Corrects the gear predicted according to basic drive-ability rules.
+        :param vehicle_mass:
+            Vehicle mass [kg].
+        :type vehicle_mass: float
 
-    :param velocity:
-        Vehicle velocity [km/h].
-    :type velocity: float
+        :param max_velocity_full_load_correction:
+            Maximum velocity to apply the correction due to the full load curve.
+        :type max_velocity_full_load_correction: float
+        """
 
-    :param acceleration:
-        Vehicle acceleration [m/s2].
-    :type acceleration: float
+        self.max_velocity_full_load_corr = max_velocity_full_load_correction
 
-    :param gear:
-        Predicted vehicle gear [-].
-    :type gear: int
+        from ..wheels import calculate_wheel_power
 
-    :param velocity_speed_ratios:
-        Constant velocity speed ratios of the gear box [km/(h*RPM)].
-    :type velocity_speed_ratios: dict
+        self.p_norm = functools.partial(
+            calculate_wheel_power,
+            road_loads=np.array(road_loads) / max_engine_power,
+            vehicle_mass=vehicle_mass / max_engine_power
+        )
+        idle = self.idle_engine_speed[0]
+        r = max_engine_speed_at_max_power - idle
+        vsr = self.vsr
 
-    :param idle_engine_speed:
-        Engine speed idle median and std [RPM].
-    :type idle_engine_speed: (float, float)
+        def _flc(velocity, gear):
+            return full_load_curve((velocity / vsr[gear] - idle) / r)
 
-    :return:
-        A gear corrected according to basic drive-ability rules.
-    :rtype: int
-    """
+        self.flc = _flc
+        self.pipe.append(self.correct_gear_full_load)
 
-    if gear == 0 and acceleration > 0:
-        gear = min(k for k in velocity_speed_ratios if k > 0)
-    elif gear > 1:
-        vsr, idle = velocity_speed_ratios, idle_engine_speed[0]
-        while gear > 1 and (gear not in vsr or velocity / vsr[gear] < idle):
-            gear -= 1
-    return gear
+    def correct_gear_full_load(self, velocity, acceleration, gear):
+        """
+        Corrects the gear predicted according to full load curve.
+
+        :param velocity:
+            Vehicle velocity [km/h].
+        :type velocity: float
+
+        :param acceleration:
+            Vehicle acceleration [m/s2].
+        :type acceleration: float
+
+        :param gear:
+            Predicted vehicle gear [-].
+        :type gear: int
+
+        :return:
+            A gear corrected according to full load curve.
+        :rtype: int
+        """
+
+        if velocity > self.max_velocity_full_load_corr or gear == 0:
+            return gear
+
+        p_norm = self.p_norm(velocity, acceleration)
+        for g in self.gears[self.gears.index(gear):0:-1]:
+            if p_norm <= self.flc(velocity, g):
+                # to consider adding the reverse function in the future because
+                # the n+200 rule should be applied at the engine not the GB
+                # (rpm < idle_speed + 200 and 0 <= a < 0.1) or
+                return g
+        return self.min_gear
+
+    def __call__(self, velocity, acceleration, gear):
+        for f in self.pipe:
+            gear = f(velocity, acceleration, gear)
+        return gear
 
 
 def _upgrade_gsm(gsm, velocity_speed_ratios, cycle_type):
@@ -227,40 +241,16 @@ def correct_gear_v0(
     :rtype: function
     """
 
-    max_gear, min_gear = max(velocity_speed_ratios), min(velocity_speed_ratios)
-
     mvl = _upgrade_gsm(mvl, velocity_speed_ratios, cycle_type)
     mvl.plateau_acceleration = plateau_acceleration
 
-    def correct_gear(velocity, acceleration, gear):
-        """
-        Correct the gear according to velocity and acceleration.
-
-        :param velocity:
-            Vehicle velocity [km/h].
-        :type velocity: float
-
-        :param acceleration:
-            Vehicle acceleration [m/s2].
-        :type acceleration: float
-
-        :param gear:
-            Predicted vehicle gear [-].
-        :type gear: int
-
-        :return:
-            Corrected vehicle gear [-].
-        """
-        g = correct_gear_mvl(
-            velocity, acceleration, gear, mvl)
-
-        g = correct_gear_full_load(
-            velocity, acceleration, g, velocity_speed_ratios, engine_max_power,
-            engine_max_speed_at_max_power, idle_engine_speed, full_load_curve,
-            road_loads, vehicle_mass, min_gear,
-            max_velocity_full_load_correction)
-        return basic_correct_gear(
-            velocity, acceleration, g, velocity_speed_ratios, idle_engine_speed)
+    correct_gear = CorrectGear(velocity_speed_ratios, idle_engine_speed)
+    correct_gear.fit_correct_gear_mvl(mvl)
+    correct_gear.fit_correct_gear_full_load(
+        engine_max_power, engine_max_speed_at_max_power, full_load_curve,
+        road_loads, vehicle_mass, max_velocity_full_load_correction
+    )
+    correct_gear.fit_basic_correct_gear()
 
     return correct_gear
 
@@ -300,28 +290,9 @@ def correct_gear_v1(
     mvl = _upgrade_gsm(mvl, velocity_speed_ratios, cycle_type)
     mvl.plateau_acceleration = plateau_acceleration
 
-    def correct_gear(velocity, acceleration, gear):
-        """
-        Correct the gear according to velocity and acceleration.
-
-        :param velocity:
-            Vehicle velocity [km/h].
-        :type velocity: float
-
-        :param acceleration:
-            Vehicle acceleration [m/s2].
-        :type acceleration: float
-
-        :param gear:
-            Predicted vehicle gear [-].
-        :type gear: int
-
-        :return:
-            Corrected vehicle gear [-].
-        """
-        g = correct_gear_mvl(velocity, acceleration, gear, mvl)
-        return basic_correct_gear(
-            velocity, acceleration, g, velocity_speed_ratios, idle_engine_speed)
+    correct_gear = CorrectGear(velocity_speed_ratios, idle_engine_speed)
+    correct_gear.fit_correct_gear_mvl(mvl)
+    correct_gear.fit_basic_correct_gear()
 
     return correct_gear
 
@@ -371,35 +342,12 @@ def correct_gear_v2(
     :rtype: function
     """
 
-    min_gear = min(velocity_speed_ratios)
-
-    def correct_gear(velocity, acceleration, gear):
-        """
-        Correct the gear according to velocity and acceleration.
-
-        :param velocity:
-            Vehicle velocity [km/h].
-        :type velocity: float
-
-        :param acceleration:
-            Vehicle acceleration [m/s2].
-        :type acceleration: float
-
-        :param gear:
-            Predicted vehicle gear [-].
-        :type gear: int
-
-        :return:
-            Corrected vehicle gear [-].
-        """
-        g = correct_gear_full_load(
-            velocity, acceleration, gear, velocity_speed_ratios,
-            engine_max_power, engine_max_speed_at_max_power, idle_engine_speed,
-            full_load_curve, road_loads, vehicle_mass, min_gear,
-            max_velocity_full_load_correction)
-
-        return basic_correct_gear(
-            velocity, acceleration, g, velocity_speed_ratios, idle_engine_speed)
+    correct_gear = CorrectGear(velocity_speed_ratios, idle_engine_speed)
+    correct_gear.fit_correct_gear_full_load(
+        engine_max_power, engine_max_speed_at_max_power, full_load_curve,
+        road_loads, vehicle_mass, max_velocity_full_load_correction
+    )
+    correct_gear.fit_basic_correct_gear()
 
     return correct_gear
 
@@ -421,10 +369,8 @@ def correct_gear_v3(velocity_speed_ratios, idle_engine_speed):
     :rtype: function
     """
 
-    correct_gear = functools.partial(
-        basic_correct_gear, velocity_speed_ratios=velocity_speed_ratios,
-        idle_engine_speed=idle_engine_speed
-    )
+    correct_gear = CorrectGear(velocity_speed_ratios, idle_engine_speed)
+    correct_gear.fit_basic_correct_gear()
     return correct_gear
 
 
@@ -562,16 +508,17 @@ class CMV(collections.OrderedDict):
             limits = np.append(vel_limits[1:], (_inf,))
             self.update(dict(zip(gear_id, co2_utl.grouper(limits, 2))))
 
+        X = np.column_stack((velocities, accelerations))
+
         def _error_fun(vel_limits):
             _update_gvs(vel_limits)
 
-            g_pre = self.predict(np.array([velocities, accelerations]).T,
-                                 correct_gear=correct_gear)
+            g_pre = self.predict(X, correct_gear=correct_gear)
 
             speed_pred = calculate_gear_box_speeds_in(
                 g_pre, velocities, velocity_speed_ratios, stop_velocity)
 
-            return sk_met.mean_absolute_error(engine_speeds_out, speed_pred)
+            return np.mean(np.abs(speed_pred - engine_speeds_out))
 
         x0 = [self[0][1]].__add__(list(itertools.chain(*velocity_limits))[:-1])
 
@@ -645,25 +592,22 @@ class CMV(collections.OrderedDict):
         plt.legend(loc='best')
         plt.xlabel('Velocity [km/h]')
 
-    def predict(self, X, correct_gear=lambda v, a, g: g, previous_gear=None,
-                times=None, gear_filter=define_gear_filter()):
+    def _prediction_matrix(self, X):
+        keys = sorted(self.keys())
+        pg, r, c = {}, X.shape[0], len(keys) - 1
+        for i, g in enumerate(keys):
+            down, up = self[g]
+            pg[g] = p = np.tile(g, r)
+            p[X[:, 0] < down] = keys[max(0, i - 1)]
+            p[X[:, 0] >= up] = keys[min(i + 1, c)]
+        return X, pg
 
+    def _predict(self, X, correct_gear, previous_gear):
         gear = previous_gear or min(self)
-
-        min_gear, max_gear = min(self), max(self)
-
-        gears = np.zeros(shape=len(X))
-
+        X, pg = self._prediction_matrix(X)
+        gears = np.zeros(X.shape[0])
         for i, (velocity, acceleration) in enumerate(X):
-            down, up = self[gear]
-
-            if not down <= velocity < up:
-                add = 1 if velocity >= up else -1
-                while min_gear <= gear <= max_gear:
-                    gear += add
-                    if gear in self:
-                        break
-                gear = max(min_gear, min(max_gear, gear))
+            gear = pg[gear][i]
 
             g = correct_gear(velocity, acceleration, gear)
 
@@ -671,6 +615,12 @@ class CMV(collections.OrderedDict):
                 gear = g
 
             gears[i] = gear
+        return gears
+
+    def predict(self, X, correct_gear=lambda v, a, g: g, previous_gear=None,
+                times=None, gear_filter=define_gear_filter()):
+
+        gears = self._predict(X, correct_gear, previous_gear)
 
         if times is not None:
             gears = gear_filter(times, gears)
@@ -841,7 +791,7 @@ def calibrate_gear_shifting_decision_tree(gears, *params):
 
     tree = sk_tree.DecisionTreeClassifier(random_state=0)
 
-    tree.fit(np.array((previous_gear,) + params).T, gears)
+    tree.fit(np.column_stack((previous_gear,) + params), gears)
 
     return tree
 
@@ -885,7 +835,7 @@ def correct_gsv(gsv, stop_velocity):
     return gsv
 
 
-class GSPV(dict):
+class GSPV(CMV):
     def __init__(self, *args, cloud=None, velocity_speed_ratios=None):
         super(GSPV, self).__init__(*args)
         if args and isinstance(args[0], GSPV):
@@ -1001,37 +951,15 @@ class GSPV(dict):
         plt.xlabel('Velocity [km/h]')
         plt.ylabel('Power [kW]')
 
-    def predict(self, X, correct_gear=lambda v, a, g: g, previous_gear=None,
-                times=None, gear_filter=define_gear_filter()):
-
-        gear = previous_gear or min(self)
-
-        min_gear, max_gear = min(self), max(self)
-
-        gears = np.zeros(shape=len(X))
-
-        for i, (velocity, acceleration, wheel_power) in enumerate(X):
-            down, up = [func(wheel_power) for func in self[gear]]
-
-            if not down <= velocity < up:
-                add = 1 if velocity >= up else -1
-                while min_gear <= gear <= max_gear:
-                    gear += add
-                    if gear in self:
-                        break
-                gear = max(min_gear, min(max_gear, gear))
-
-            g = correct_gear(velocity, acceleration, gear)
-
-            if g in self:
-                gear = g
-
-            gears[i] = gear
-
-        if times is not None:
-            gears = gear_filter(times, gears)
-
-        return gears
+    def _prediction_matrix(self, X):
+        keys = sorted(self.keys())
+        pg, r, c = {}, X.shape[0], len(keys) - 1
+        for i, g in enumerate(keys):
+            down, up = [func(X[:, 2]) for func in self[g]]
+            pg[g] = p = np.tile(g, r)
+            p[X[:, 0] < down] = keys[max(0, i - 1)]
+            p[X[:, 0] >= up] = keys[min(i + 1, c)]
+        return X[:, 0:2], pg
 
     def convert(self, velocity_speed_ratios):
         if velocity_speed_ratios != self.velocity_speed_ratios:
@@ -1275,8 +1203,8 @@ def prediction_gears_gsm(
 
     gsm = _upgrade_gsm(gsm, velocity_speed_ratios, cycle_type)
 
-    gears = gsm.predict(np.array(X).T, correct_gear=correct_gear, times=times,
-                        gear_filter=gear_filter)
+    gears = gsm.predict(np.column_stack(X), correct_gear=correct_gear,
+                        times=times, gear_filter=gear_filter)
     return np.asarray(gears, dtype=int)
 
 
@@ -1489,36 +1417,6 @@ def correct_gear_mvl_v1(
     return gear
 
 
-# noinspection PyUnusedLocal
-def correct_gear_mvl(velocity, acceleration, gear, mvl, *args):
-    """
-    Corrects the gear predicted according to upper and lower bound velocity
-    limits.
-
-    :param velocity:
-        Vehicle velocity [km/h].
-    :type velocity: float
-
-    :param acceleration:
-        Vehicle acceleration [m/s2].
-    :type acceleration: float
-
-    :param gear:
-        Predicted vehicle gear [-].
-    :type gear: int
-
-    :param mvl:
-        Matrix velocity limits (upper and lower bound) [km/h].
-    :type mvl: MVL
-
-    :return:
-        A gear corrected according to upper bound engine speed [-].
-    :rtype: int
-    """
-
-    return mvl.predict(velocity, acceleration, gear)
-
-
 class MVL(CMV):
     def __init__(self, *args,
                  plateau_acceleration=defaults.dfl.values.plateau_acceleration,
@@ -1566,10 +1464,12 @@ class MVL(CMV):
 
     # noinspection PyMethodOverriding
     def predict(self, velocity, acceleration, gear):
-
         if abs(acceleration) < self.plateau_acceleration:
-            g = next((k for k, v in self.items() if velocity > v[0]), gear)
-            gear = gear if g < gear else g
+            for k, v in self.items():
+                if k <= gear:
+                    break
+                elif velocity > v[0]:
+                    return k
 
         if gear:
             while velocity > self[gear][1]:

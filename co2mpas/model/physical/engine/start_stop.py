@@ -158,7 +158,7 @@ class StartStopModel(object):
         if on_engine.all():
             self.base = self.model = DefaultStartStopModel()
         else:
-            X = np.array((velocities, accelerations) + args).T
+            X = np.column_stack((velocities, accelerations) + args)
             model = sk_tree.DecisionTreeClassifier(random_state=0, max_depth=4)
             self.model = sk_pip.Pipeline([
                 ('feature_selection',
