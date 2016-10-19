@@ -311,13 +311,13 @@ class DspPlot(gviz.Digraph):
 
         draw_outputs = int(draw_outputs)
         if draw_outputs == 1:
-            i, j = -2, -1
+            i, j = -1, None
         elif draw_outputs == 2:
-            i, j = -1, -2
+            i, j = None, -1
         elif draw_outputs == 3:
-            i = j = -1
+            i = j = None
         else:
-            i = j = -2
+            i = j = -1
 
         self.node_data = node_data or self.__node_data[:j]
         self.node_function = node_function or self.__node_function
