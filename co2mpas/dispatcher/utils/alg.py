@@ -583,7 +583,9 @@ def get_sub_node(dsp, path, node_attr='auto', solution=NONE, _level=0,
             node_attr = 'function'
         elif node_attr == 'auto' and solution is not EMPTY and node_id in solution.sub_dsp.get(dsp, ()):  # Auto: data output.
                 data = solution.sub_dsp[dsp][node_id]
-        elif node_attr == 'output':
+        elif node_attr == 'output' and node['type'] != 'data':
+            data = solution.workflow.node[node_id]['solution']
+        elif node_attr == 'output' and node['type'] == 'data':
             data = solution.sub_dsp[dsp][node_id]
         elif node_attr == 'description':  # Search and return node description.
             data = search_node_description(node_id, node, dsp)
