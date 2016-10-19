@@ -173,6 +173,7 @@ def _co2mpas_info2df(start_time, main_flags=None):
 def _freeze2df():
     from pip.operations.freeze import freeze
     d = dict(v.split('==') for v in freeze() if '==' in v)
+    d = {k: (v,) for k, v in d.items()}
     d['version'] = 'version'
     df = pd.DataFrame([d])
     df.set_index(['version'], inplace=True)
