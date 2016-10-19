@@ -608,7 +608,7 @@ def run_base():
 
     d.add_data(
         data_id='output_template',
-        default_value='',
+        default_value=osp.abspath('./co2mpas_output_template.xlsx'),
         initial_dist=10
     )
 
@@ -634,21 +634,20 @@ def run_base():
 
 def run_plan():
     """
-    Defines the vehicle-processing model.
+    Defines the plan model.
 
     .. dispatcher:: d
 
         >>> d = run_plan()
 
     :return:
-        The vehicle-processing model.
+        The plan model.
     :rtype: Dispatcher
     """
 
     d = dsp.Dispatcher(
         name='run_plan',
-        description='Processes a vehicle from the file path to the write of its'
-                    ' outputs.'
+        description='Processes a vehicle plan.'
     )
 
     d.add_data(
