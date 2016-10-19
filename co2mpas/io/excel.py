@@ -379,25 +379,35 @@ def write_to_excel(data, output_file_name, template_file_name):
     if template_file_name:
         log.debug('Writing into xl-file(%s) based on template(%s)...',
                   output_file_name, template_file_name)
-        shutil.copy(template_file_name, output_file_name)
-
         writer = clone_excel(template_file_name, output_file_name)
     else:
         log.debug('Writing into xl-file(%s)...', output_file_name)
         writer = pd.ExcelWriter(output_file_name, engine='xlsxwriter')
     xlref = []
+    charts = []
     for k, v in sorted(data.items(), key=_sort_sheets):
         if not k.startswith('graphs.'):
+            down = True
             if k.endswith('pa'):
                 kw = {'named_ranges': ('rows',), 'index': True, 'k0': 1}
             elif k.endswith('ts'):
                 kw = {'named_ranges': ('columns',), 'index': False, 'k0': 1}
+            elif k.endswith('proc_info'):
+                down = False
+                kw = {'named_ranges': ()}
             else:
                 kw = {}
-            down = not k.endswith('proc_info')
+
             xlref.extend(_write_sheets(writer, k, v, down=down, **kw))
         else:
-            _chart2excel(writer, k, v)
+            try:
+                sheet = writer.book.add_worksheet(k)
+            except AttributeError:
+                sheet = writer.book.create_sheet(title=k)
+            charts.append((sheet, v))
+
+    for sheet, v in charts:
+        _chart2excel(writer, sheet, v)
 
     if xlref:
         xlref = sorted(dsp_utl.combine_dicts(*[x[1] for x in xlref]).items())
@@ -487,19 +497,19 @@ def _convert_index(k):
 
 
 def _add_named_ranges(df, writer, shname, startrow, startcol, named_ranges, k0):
+    ref = '!'.join([shname, '%s'])
     # noinspection PyBroadException
     try:
         define_name = writer.book.define_name
-        ref = '!'.join([shname, '%s'])
 
-        def create_named_range(ref_n, ref_r):
+        def _create_named_range(ref_n, ref_r):
             define_name(ref % ref_n, ref % ref_r)
     except:  # Use other pkg.
         define_name = writer.book.create_named_range
-        sheet = writer.sheets[shname]
+        scope = writer.book.get_index(writer.sheets[shname])
 
-        def create_named_range(ref_n, ref_r):
-            define_name(ref_n, sheet, ref_r, scope=sheet)
+        def _create_named_range(ref_n, ref_r):
+            define_name(ref_n, value=ref % ref_r, scope=scope)
 
     tag = ()
     if hasattr(df, 'name'):
@@ -519,7 +529,7 @@ def _add_named_ranges(df, writer, shname, startrow, startcol, named_ranges, k0):
         if k:
             try:
                 k = tag + k[k0:]
-                create_named_range(_ref_name(*k), range_ref)
+                _create_named_range(_ref_name(*k), range_ref)
             except TypeError:
                 pass
 
@@ -576,27 +586,67 @@ def _ranges_by_col_row(df, startrow, startcol):
             yield i + _convert_index(c), xl_utl.xl_range_abs(row, col, row, col)
 
 
-def _chart2excel(writer, shname, charts):
-    sheet = writer.book.add_worksheet(shname)
-    add_chart = writer.book.add_chart
-    m, h, w = 3, 300, 500
+def _chart2excel(writer, sheet, charts):
+    try:
+        add_chart = writer.book.add_chart
+        m, h, w = 3, 300, 512
 
-    for i, (k, v) in enumerate(sorted(charts.items())):
-        chart = add_chart({'type': 'scatter', 'subtype': 'straight'})
-        for s in v['series']:
-            chart.add_series({
-                'name': s['label'],
-                'categories': _data_ref(s['x']),
-                'values': _data_ref(s['y']),
-            })
-        chart.set_size({'width': w, 'height': h})
+        for i, (k, v) in enumerate(sorted(charts.items())):
+            chart = add_chart({'type': 'scatter', 'subtype': 'straight'})
+            for s in v['series']:
+                chart.add_series({
+                    'name': s['label'],
+                    'categories': _data_ref(s['x']),
+                    'values': _data_ref(s['y']),
+                })
+            chart.set_size({'width': w, 'height': h})
 
-        for s, o in v['set'].items():
-            eval('chart.set_%s(o)' % s)
+            for s, o in v['set'].items():
+                eval('chart.set_%s(o)' % s)
 
-        n = int(i / m)
-        j = i - n * m
-        sheet.insert_chart('A1', chart, {'x_offset': w * n, 'y_offset': h * j})
+            n = int(i / m)
+            j = i - n * m
+            sheet.insert_chart('A1', chart, {'x_offset': w * n, 'y_offset': h * j})
+    except AttributeError:
+        from openpyxl.chart import ScatterChart, Series
+        from xlrd import colname as xl_colname
+
+        sn = writer.book.get_sheet_names()
+        named_ranges = {'%s!%s' % (sn[d.localSheetId], d.name): d.value
+                        for d in writer.book.defined_names.definedName}
+        m, h, w = 3, 7.94, 13.55
+
+        for i, (k, v) in enumerate(sorted(charts.items())):
+            chart = ScatterChart()
+            chart.height = h
+            chart.width = w
+            _map = {
+                ('title', 'name'): ('title',),
+                ('y_axis', 'name'): ('y_axis', 'title'),
+                ('x_axis', 'name'): ('x_axis', 'title'),
+            }
+            _filter = {
+                ('legend', 'position'): lambda x: x[0],
+            }
+            it = {s: _filter[s](o) if s in _filter else o
+                  for s, o in dsp_utl.stack_nested_keys(v['set'])}
+
+            for s, o in dsp_utl.map_dict(_map, it).items():
+                c = chart
+                for j in s[:-1]:
+                    c = getattr(c, j)
+                setattr(c, s[-1], o)
+
+            for s in v['series']:
+                xvalues = named_ranges[_data_ref(s['x'])]
+                values = named_ranges[_data_ref(s['y'])]
+                series = Series(values, xvalues, title=s['label'])
+                chart.series.append(series)
+
+            n = int(i / m)
+            j = i - n * m
+
+            sheet.add_chart(chart, '%s%d' %(xl_colname(8 * n), 1 + 15 * j))
 
 
 def _data_ref(ref):
