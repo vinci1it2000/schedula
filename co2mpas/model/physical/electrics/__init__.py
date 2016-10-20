@@ -807,7 +807,7 @@ class Alternator_status_model(object):
             charge.fit(X, b)
             self.charge = charge.predict
         else:
-            self.charge = lambda *args: (False,)
+            self.charge = lambda X: np.zeros(len(X), dtype=bool)
 
     def _fit_boundaries(self, alternator_statuses, state_of_charges, times):
         n = len(alternator_statuses)
@@ -815,9 +815,9 @@ class Alternator_status_model(object):
         s[1:-1] = alternator_statuses == 1
         mask = np.column_stack((s[1:], s[:-1])) & (s[:-1] != s[1:])[:, None]
         mask = np.where(mask)[0].reshape((-1, 2))
-        self.max = _min = 100.0
-        self.min = _max = 0.0
-
+        self.max = 100.0
+        self.min = 0.0
+        _max, _min = [], []
         balance = ()
         for i, j in mask:
             if j - i <= 1:
@@ -826,20 +826,26 @@ class Alternator_status_model(object):
             m, q = sci_stat.linregress(t, soc)[:2]
             if m >= 0:
                 if i > 0:
-                    self.min = _min = min(_min, soc.min())
+                    _min.append(soc.min())
                 if j < n:
-                    self.max = _max = max(_max, soc.max())
+                    _max.append(soc.max())
 
             if abs(m) < 0.001:
-                q += m * t[0 if m >= 0 else -1]
+                b = sorted((m * t[0] + q, m * t[-1] + q))
                 if balance:
-                    balance = min(balance[0], q), max(soc.max(), balance[1])
+                    balance = min(balance[0], b[0]), max(balance[1], b[1])
                 else:
-                    balance = q, soc.max()
+                    balance = b
+        if _min:
+            self.min = _min = min(_min)
+
+        _max = [m for m in _max if m >= _min]
+        if _max:
+            self.max = max(_max)
 
         if balance:
             self.min = max(self.min, balance[0])
-            self.max = min(self.max, balance[1])
+            self.max = max(self.max, balance[1])
 
     # noinspection PyUnresolvedReferences
     def fit(self, times, alternator_statuses, state_of_charges,
@@ -947,6 +953,31 @@ def define_alternator_status_model(
     )
 
     return model
+
+
+def identify_state_of_charge_balance_and_window(alternator_status_model):
+    """
+    Identifies the battery state of charge balance and its window [%].
+
+    :param alternator_status_model:
+        A function that predicts the alternator status.
+    :type alternator_status_model: Alternator_status_model
+
+    :return:
+        Battery state of charge balance and its window [%].
+    :rtype: float, float
+    """
+
+    model = alternator_status_model
+    min_soc, max_soc = model.min, model.max
+    X = np.column_stack((np.ones(100), np.linspace(min_soc, max_soc, 100)))
+    s = np.where(model.charge(X))[0]
+    if s.shape[0]:
+        min_soc, max_soc = max(min_soc, X[s[0], 1]), min(max_soc, X[s[-1], 1])
+
+    state_of_charge_balance_window = max_soc - min_soc
+    state_of_charge_balance = min_soc + state_of_charge_balance_window / 2
+    return state_of_charge_balance, state_of_charge_balance_window
 
 
 class ElectricModel(object):
@@ -1250,6 +1281,12 @@ def electrics():
         function=define_alternator_status_model,
         inputs=['state_of_charge_balance', 'state_of_charge_balance_window'],
         outputs=['alternator_status_model']
+    )
+
+    d.add_function(
+        function=identify_state_of_charge_balance_and_window,
+        inputs=['alternator_status_model'],
+        outputs=['state_of_charge_balance', 'state_of_charge_balance_window']
     )
 
     d.add_data(

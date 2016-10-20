@@ -537,7 +537,9 @@ def physical():
             'state_of_charges': 'state_of_charges',
             'start_demand': 'start_demand',
             'electrics_model': 'electrics_model',
-            'alternator_initialization_time': 'alternator_initialization_time'
+            'alternator_initialization_time': 'alternator_initialization_time',
+            'state_of_charge_balance': 'state_of_charge_balance',
+            'state_of_charge_balance_window': 'state_of_charge_balance_window'
         }
     )
 
