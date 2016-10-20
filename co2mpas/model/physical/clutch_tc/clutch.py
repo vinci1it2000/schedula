@@ -190,20 +190,24 @@ class Clutch(object):
             Clutch prediction model.
         :rtype: function
         """
+        if not clutch_phases.any():
+            self.predict = self._no_clutch
+        else:
+            delta = clutch_speeds_delta
+            phases, acc = clutch_phases, accelerations
 
-        delta = clutch_speeds_delta
-        phases, acc = clutch_phases, accelerations
+            cal, c = self._calibrate_clutch_prediction_model, dsp_utl.counter()
+            y, X = delta[phases], np.array([acc[phases]]).T
 
-        cal, c = self._calibrate_clutch_prediction_model, dsp_utl.counter()
-        y, X = delta[phases], np.array([acc[phases]]).T
+            def error(func):
+                return np.mean(np.abs(y - func(X))), c()
 
-        def error(func):
-            return sk_met.mean_squared_error(y, func(X)), c()
+            models = [
+                (error(self._no_clutch), self._no_clutch),
+                cal(acc[phases], delta[phases], error, self._no_clutch),
+            ]
 
-        models = [cal(acc[b], delta[b], error, self._no_clutch)
-                  for b in [np.zeros_like(acc, dtype=bool), phases]]
-
-        self.predict = min(models)[-1]
+            self.predict = min(models)[-1]
         return self
 
     @staticmethod
