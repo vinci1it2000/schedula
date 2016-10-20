@@ -515,7 +515,7 @@ def calculate_gear_box_efficiencies_torques_temperatures(
 
     :return:
         Gear box efficiency [-], torque in [N*m], and temperature [°C] vectors.
-    :rtype: (np.array, np.array, np.array)
+    :rtype: (numpy.array, numpy.array, numpy.array)
 
     .. note:: Torque entering the gearbox can be from engine side
        (power mode or from wheels in motoring mode).

@@ -52,7 +52,9 @@ class TorqueConverter(object):
             stop_velocity, torque_converter_speeds_delta, accelerations,
             velocities, gear_box_speeds_in, gears):
 
-        X = np.array((accelerations, velocities, gear_box_speeds_in, gears)).T
+        X = np.column_stack(
+            (accelerations, velocities, gear_box_speeds_in, gears)
+        )
         y = torque_converter_speeds_delta
 
         regressor = sk_ens.GradientBoostingRegressor(
@@ -74,7 +76,9 @@ class TorqueConverter(object):
             self.no_torque_converter
         ]
 
-        X = np.array([accelerations, velocities, gear_box_speeds_in, gears]).T
+        X = np.column_stack(
+            (accelerations, velocities, gear_box_speeds_in, gears)
+        )
         y = torque_converter_speeds_delta
 
         models = enumerate(models)
@@ -188,9 +192,11 @@ def predict_torque_converter_speeds_delta(
     :rtype: numpy.array
     """
 
-    x = np.array([accelerations, velocities, gear_box_speeds_in, gears]).T
+    X = np.column_stack(
+        (accelerations, velocities, gear_box_speeds_in, gears)
+    )
 
-    return torque_converter_model(lock_up_tc_limits, x)
+    return torque_converter_model(lock_up_tc_limits, X)
 
 
 def default_tc_k_factor_curve():

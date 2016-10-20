@@ -134,7 +134,7 @@ def predict_vehicle_electrics_and_engine_behavior(
         if the engine is on and when the engine starts, the engine speed at hot
         condition, and the engine coolant temperature.
         [A, A, %, -, -, -, RPM, °C].
-    :rtype: tuple[np.array]
+    :rtype: tuple[numpy.array]
     """
 
     from .engine import calculate_engine_speeds_out_hot

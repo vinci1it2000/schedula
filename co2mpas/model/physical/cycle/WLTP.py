@@ -130,7 +130,7 @@ def get_class_velocities(class_data, times):
 
     vel = np.asarray(class_data['cycle'], dtype=float)
     n = int(np.ceil(times[-1] / len(vel)))
-    vel = np.concatenate((vel,) * n)
+    vel = np.tile(vel, (n,))
     return np.interp(times, np.arange(len(vel)), vel)
 
 

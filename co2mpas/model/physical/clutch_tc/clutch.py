@@ -156,7 +156,7 @@ def identify_clutch_window(
         y = delta[clutch_phases]
         # noinspection PyBroadException
         try:
-            X = np.array([accelerations[clutch_phases]]).T
+            X = accelerations[clutch_phases, None]
             return -model.fit(X, y).score(X, y)
         except:
             return np.inf
@@ -200,7 +200,7 @@ class Clutch(object):
             phases, acc = clutch_phases, accelerations
 
             cal, c = self._calibrate_clutch_prediction_model, dsp_utl.counter()
-            y, X = delta[phases], np.array([acc[phases]]).T
+            y, X = delta[phases], acc[phases, None]
 
             def error(func):
                 return np.mean(np.abs(y - func(X))), c()
@@ -286,8 +286,7 @@ def predict_clutch_speeds_delta(clutch_model, clutch_phases, accelerations):
     """
 
     delta = np.zeros_like(accelerations, dtype=float)
-    X = np.array([accelerations[clutch_phases]]).T
-    delta[clutch_phases] = clutch_model(X)
+    delta[clutch_phases] = clutch_model(accelerations[clutch_phases, None])
 
     return delta
 

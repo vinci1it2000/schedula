@@ -119,9 +119,7 @@ def nedc_velocities(times, gear_box_type):
 
     n = int(np.ceil(times[-1] / _t[-1]))
 
-    _t = np.concatenate((_t,) * n)
-    velocities = np.concatenate((velocities,) * n)
-    v = np.interp(times, _t, velocities)
+    v = np.interp(times, np.tile(_t, (n,)), np.tile(velocities, (n,)))
 
     return v
 

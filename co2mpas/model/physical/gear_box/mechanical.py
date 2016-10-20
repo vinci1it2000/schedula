@@ -218,7 +218,7 @@ def calculate_gear_box_speeds_from_engine_speeds(
     :return:
         - Gear box speed vector [RPM].
         - time shift of engine speeds [s].
-    :rtype: (np.array, float)
+    :rtype: (numpy.array, float)
     """
 
     bins = [-defaults.dfl.INF, 0]

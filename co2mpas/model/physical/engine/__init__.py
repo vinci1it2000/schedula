@@ -260,7 +260,7 @@ def define_idle_model_detector(
 
     b = (velocities < stop_velocity) & (engine_speeds_out > min_engine_on_speed)
 
-    x = engine_speeds_out[b][:, None]
+    x = engine_speeds_out[b, None]
     eps = defaults.dfl.functions.define_idle_model_detector.EPS
     model = IdleDetector(eps=eps)
     model.fit(x)
