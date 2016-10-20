@@ -13,7 +13,7 @@ import logging
 import sys
 import os.path as osp
 import matplotlib.pyplot as plt
-from co2mpas.dispatcher.utils.alg import stlp
+import co2mpas.dispatcher.utils as dsp_utl
 
 log = logging.getLogger(__name__)
 
@@ -187,7 +187,7 @@ def plot_time_series(
     :type y_label: dict
     """
 
-    x_id = stlp(x_id)
+    x_id = dsp_utl.stlp(x_id)
     x, x_id = dsp.get_node(*x_id)
     if x_label is None:
         x_label = dsp.get_node(*x_id, node_attr='description')[0][0]
@@ -203,7 +203,7 @@ def plot_time_series(
             data = {'id': data, 'x': x}
 
         if 'id' in data:
-            y_id = stlp(data.pop('id'))
+            y_id = dsp_utl.stlp(data.pop('id'))
 
             des = y_label is None or 'label' not in data
             if des or 'y' not in data:

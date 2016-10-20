@@ -9,18 +9,17 @@
 It contains functions that model the basic mechanics of the gear box.
 """
 
-from functools import partial
-from math import pi
-from scipy.interpolate import InterpolatedUnivariateSpline
-from scipy.optimize import brute
-from scipy.stats import binned_statistic
-from sklearn.metrics import mean_absolute_error
-from co2mpas.dispatcher import Dispatcher
-from . import calculate_gear_shifts
-from ..defaults import *
+import functools
+import math
+import scipy.interpolate as sci_itp
+import scipy.optimize as sci_opt
+import scipy.stats as sci_sta
+import sklearn.cluster as sk_clu
+import sklearn.metrics as sk_met
+import co2mpas.dispatcher as dsp
 import co2mpas.utils as co2_utl
 import numpy as np
-from sklearn.cluster import MeanShift, estimate_bandwidth
+import co2mpas.model.physical.defaults as defaults
 
 
 def _identify_gear(idle, vsr, stop_vel, plateau_acc, ratio, vel, acc):
@@ -131,8 +130,8 @@ def identify_gears(
 
     ratios[engine_speeds_out < idle_speed[0]] = 0
 
-    id_gear = partial(_identify_gear, idle_speed, vsr, stop_velocity,
-                      plateau_acceleration)
+    id_gear = functools.partial(_identify_gear, idle_speed, vsr, stop_velocity,
+                                plateau_acceleration)
 
     gear = list(map(id_gear, *(ratios, velocities, accelerations)))
 
@@ -147,13 +146,14 @@ def identify_gears(
 
 def _correct_gear_shifts(
         times, ratios, gears, velocity_speed_ratios, shift_window=4.0):
+    from . import calculate_gear_shifts
     shifts = calculate_gear_shifts(gears)
     vsr = np.vectorize(lambda v: velocity_speed_ratios.get(v, 0))
     s = len(gears)
 
     def err(v, r):
         v = int(v)
-        return mean_absolute_error(ratios[slice(v - 1, v + 1, 1)], r)
+        return sk_met.mean_absolute_error(ratios[slice(v - 1, v + 1, 1)], r)
 
     k = 0
     new_gears = np.zeros_like(gears)
@@ -164,7 +164,8 @@ def _correct_gear_shifts(
             t = times[i]
             n = max(i - sum(((t - dt) <= times) & (times <= t)), k)
             m = min(i + sum((t <= times) & (times <= (t + dt))), s)
-            j = int(brute(err, (slice(n, m, 1),), args=(vsr(g),), finish=None))
+            j = int(sci_opt.brute(err, (slice(n, m, 1),), args=(vsr(g),),
+                                  finish=None))
         else:
             j = int(i)
 
@@ -179,7 +180,7 @@ def _correct_gear_shifts(
 
 
 def _speed_shift(times, speeds):
-    speeds = InterpolatedUnivariateSpline(times, speeds, k=1)
+    speeds = sci_itp.InterpolatedUnivariateSpline(times, speeds, k=1)
 
     def shift(dt):
         return speeds(times + dt)
@@ -217,12 +218,12 @@ def calculate_gear_box_speeds_from_engine_speeds(
     :return:
         - Gear box speed vector [RPM].
         - time shift of engine speeds [s].
-    :rtype: (np.array, float)
+    :rtype: (numpy.array, float)
     """
 
-    bins = [-INF, 0]
+    bins = [-defaults.dfl.INF, 0]
     bins.extend([v for k, v in sorted(velocity_speed_ratios.items()) if k != 0])
-    bins.append(INF)
+    bins.append(defaults.dfl.INF)
     bins = bins[:-1] + np.diff(bins) / 2
     bins[0] = 0
 
@@ -235,12 +236,13 @@ def calculate_gear_box_speeds_from_engine_speeds(
         b = s > 0
         ratio = velocities[b] / s[b]
 
-        std = binned_statistic(ratio, ratio, np.std, bins)[0]
-        w = binned_statistic(ratio, ratio, 'count', bins)[0]
+        std = sci_sta.binned_statistic(ratio, ratio, np.std, bins)[0]
+        w = sci_sta.binned_statistic(ratio, ratio, 'count', bins)[0]
 
         return sum(std * w)
+
     dt = shift_window / 2
-    shift = brute(error_fun, ranges=(slice(-dt, dt, 0.1),))
+    shift = sci_opt.brute(error_fun, ranges=(slice(-dt, dt, 0.1),))
 
     gear_box_speeds = speeds(*shift)
     gear_box_speeds[gear_box_speeds < 0] = 0
@@ -274,15 +276,16 @@ def calculate_gear_box_speeds_in(
     :rtype: numpy.array
     """
 
-    vsr = {0: 0.0}
-    vsr.update(velocity_speed_ratios)
+    speeds = np.array(velocities, dtype=float, copy=True)
+    n = velocities >= stop_velocity
+    b = ~n
+    for k, r in velocity_speed_ratios.items():
+        if r:
+            speeds[n & (gears == k)] /= r
+        else:
+            b |= gears == k
 
-    vsr = np.vectorize(vsr.get)(gears)
-
-    speeds = velocities / vsr
-
-    speeds[(velocities < stop_velocity) | (vsr == 0.0)] = 0.0
-
+    speeds[b] = 0.0
     return speeds
 
 
@@ -348,8 +351,8 @@ def identify_velocity_speed_ratios(
     b = (gear_box_speeds_in > idle_speed) & (velocities > stop_velocity)
     x = (velocities[b] / gear_box_speeds_in[b])[:, None]
 
-    bandwidth = estimate_bandwidth(x, quantile=0.2)
-    ms = MeanShift(bandwidth=bandwidth, bin_seeding=True)
+    bandwidth = sk_clu.estimate_bandwidth(x, quantile=0.2)
+    ms = sk_clu.MeanShift(bandwidth=bandwidth, bin_seeding=True)
     ms.fit(x)
 
     vsr = {k + 1: v for k, v in enumerate(sorted(ms.cluster_centers_[:, 0]))}
@@ -392,7 +395,7 @@ def identify_speed_velocity_ratios(
     svr = {k: co2_utl.reject_outliers(ratios[gears == k])[0]
            for k in range(1, int(max(gears)) + 1)
            if k in gears}
-    svr[0] = INF
+    svr[0] = defaults.dfl.INF
 
     return svr
 
@@ -419,7 +422,7 @@ def calculate_gear_box_ratios(
     :rtype: dict
     """
 
-    c = final_drive_ratio * 30 / (3.6 * pi * r_dynamic)
+    c = final_drive_ratio * 30 / (3.6 * math.pi * r_dynamic)
 
     svr = calculate_velocity_speed_ratios(velocity_speed_ratios)
 
@@ -448,11 +451,11 @@ def calculate_speed_velocity_ratios(
     :rtype: dict
     """
 
-    c = final_drive_ratio * 30 / (3.6 * pi * r_dynamic)
+    c = final_drive_ratio * 30 / (3.6 * math.pi * r_dynamic)
 
     svr = {k: c * v for k, v in gear_box_ratios.items()}
 
-    svr[0] = INF
+    svr[0] = defaults.dfl.INF
 
     return svr
 
@@ -475,8 +478,8 @@ def calculate_velocity_speed_ratios(speed_velocity_ratios):
 
     def inverse(v):
         if v <= 0:
-            return INF
-        elif v >= INF:
+            return defaults.dfl.INF
+        elif v >= defaults.dfl.INF:
             return 0.0
         else:
             return 1 / v
@@ -504,36 +507,36 @@ def mechanical():
     """
     Defines the mechanical gear box model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = mechanical()
+        >>> d = mechanical()
 
     :return:
-        The gear box model.
-    :rtype: Dispatcher
+        The gear box mechanical model.
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='mechanical model',
-        description='Models the gear box.'
+        description='Models the gear box mechanical.'
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='stop_velocity',
-        default_value=dfl.values.stop_velocity
+        default_value=defaults.dfl.values.stop_velocity
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='plateau_acceleration',
-        default_value=dfl.values.plateau_acceleration
+        default_value=defaults.dfl.values.plateau_acceleration
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='change_gear_window_width',
-        default_value=dfl.values.change_gear_window_width
+        default_value=defaults.dfl.values.change_gear_window_width
     )
 
-    dsp.add_function(
+    d.add_function(
         function=identify_gears,
         inputs=['times', 'velocities', 'accelerations', 'engine_speeds_out',
                 'velocity_speed_ratios', 'stop_velocity',
@@ -542,7 +545,7 @@ def mechanical():
         outputs=['gears']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_gear_box_speeds_in,
         inputs=['gears', 'velocities', 'velocity_speed_ratios',
                 'stop_velocity'],
@@ -550,39 +553,39 @@ def mechanical():
         weight=25
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_gear_box_speeds_in_v1,
         inputs=['gears', 'gear_box_speeds_out', 'gear_box_ratios'],
         outputs=['gear_box_speeds_in']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_speed_velocity_ratios,
         inputs=['gear_box_ratios', 'final_drive_ratio', 'r_dynamic'],
         outputs=['speed_velocity_ratios']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=identify_speed_velocity_ratios,
         inputs=['gears', 'velocities', 'gear_box_speeds_in', 'stop_velocity'],
         outputs=['speed_velocity_ratios'],
         weight=5
     )
 
-    dsp.add_function(
+    d.add_function(
         function=identify_speed_velocity_ratios,
         inputs=['gears', 'velocities', 'engine_speeds_out', 'stop_velocity'],
         outputs=['speed_velocity_ratios'],
         weight=10
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_velocity_speed_ratios,
         inputs=['speed_velocity_ratios'],
         outputs=['velocity_speed_ratios']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=identify_velocity_speed_ratios,
         inputs=['engine_speeds_out', 'velocities', 'idle_engine_speed',
                 'stop_velocity'],
@@ -590,16 +593,16 @@ def mechanical():
         weight=50
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_gear_box_ratios,
         inputs=['velocity_speed_ratios', 'final_drive_ratio', 'r_dynamic'],
         outputs=['gear_box_ratios']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=identify_max_gear,
         inputs=['speed_velocity_ratios'],
         outputs=['max_gear']
     )
 
-    return dsp
+    return d

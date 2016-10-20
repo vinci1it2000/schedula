@@ -16,11 +16,11 @@ Use the `batch` sub-command to simulate a vehicle contained in an excel-file.
 
 
 USAGE:
+  co2mpas ta          [--gui] [-f] [-O=<output-folder>] [<input-path>]...
   co2mpas batch       [-v | --logconf=<conf-file>] [--gui] [-f]
-                      [--overwrite-cache] [--out-template=<xlsx-file>]
-                      [--plot-workflow] [-O=<output-folder>]
-                      [--only-summary] [--soft-validation]
-                      [<input-path>]...
+                      [--overwrite-cache] [-O=<output-folder>]
+                      [--modelconf=<yaml-file>]
+                      [-D=<key=value>]... [<input-path>]...
   co2mpas demo        [-v | --logconf=<conf-file>] [--gui] [-f]
                       [<output-folder>]
   co2mpas template    [-v | --logconf=<conf-file>] [--gui] [-f]
@@ -28,6 +28,7 @@ USAGE:
   co2mpas ipynb       [-v | --logconf=<conf-file>] [--gui] [-f]
                       [<output-folder>]
   co2mpas modelgraph  [-v | --logconf=<conf-file>] [-O=<output-folder>]
+                      [--modelconf=<yaml-file>]
                       (--list | [--graph-depth=<levels>] [<models> ...])
   co2mpas             [--verbose | -v]  (--version | -V)
   co2mpas             --help
@@ -45,16 +46,28 @@ OPTIONS:
   <excel-file-path>           Output file.
   --gui                       Launches GUI dialog-boxes to choose Input, Output
                               and Options. [default: False].
-  --only-summary              Do not save vehicle outputs, just the summary.
+  --modelconf=<yaml-file>     Path to a model-configuration file, according to YAML:
+                                https://docs.python.org/3.5/library/logging.config.html#logging-config-dictschema
   --overwrite-cache           Overwrite the cached file.
-  --soft-validation           Validate only partially input-data (no schema).
-  --out-template=<xlsx-file>  Clone the given excel-file and appends results into it.
-                              By default, results are appended into an empty excel-file.
-                              Use `--out-template=-` to use input-file as template.
-  --plot-workflow             Open workflow-plot in browser, after run finished.
+  --variation, -D=<key=value> Validate only partially input-data (no schema).
   -l, --list                  List available models.
   --graph-depth=<levels>      An integer to Limit the levels of sub-models plotted.
   -f, --force                 Overwrite output/template/demo excel-file(s).
+
+
+Model flags (-D flag.xxx, example -D flag.engineering_mode=2):
+ engineering_mode=<int>      0: Full validation + selection of declaration data,
+                             1: Full validation,
+                             2: Soft validation (just schema).
+ run_base=<bool>             Enable/disable the `run_base` model.
+ run_plan=<bool>             Enable/disable the `run_plan` model.
+ use_selector=<bool>         Enable/disable the selection of the best model.
+ only_summary=<bool>         Do not save vehicle outputs, just the summary.
+ plot_workflow=<bool>        Open workflow-plot in browser, after run finished.
+ output_template=<xlsx-file> Clone the given excel-file and appends results into
+                             it. By default, results are appended into an empty
+                             excel-file. Use `output_template=-` to use
+                             input-file as template.
 
 Miscellaneous:
   -h, --help                  Show this help message and exit.
@@ -68,8 +81,15 @@ Miscellaneous:
 
 
 SUB-COMMANDS:
-    batch           Simulate vehicle for all <input-path> excel-files & folder.
-                    If no <input-path> given, reads all excel-files from current-dir.
+    ta              Simulate vehicle in declaration mode for all <input-path>
+                    excel-files & folder. If no <input-path> given, reads all
+                    excel-files from current-dir. It reads just the declaration
+                    inputs.
+                    Read this for explanations of the param names:
+                      http://co2mpas.io/explanation.html#excel-input-data-naming-conventions
+    batch           Simulate vehicle in engineering mode for all <input-path>
+                    excel-files & folder. If no <input-path> given, reads all
+                    excel-files from current-dir. It reads all inputs.
                     Read this for explanations of the param names:
                       http://co2mpas.io/explanation.html#excel-input-data-naming-conventions
     demo            Generate demo input-files for the `batch` cmd inside <output-folder>.
@@ -107,15 +127,15 @@ EXAMPLES::
 from co2mpas import (__version__ as proj_ver, __file__ as proj_file,
                      __updated__ as proj_date)
 from collections import OrderedDict
+import collections
 import glob
 import io
 import logging
-from os import path as osp
+import os.path as osp
 import os
 import re
 import shutil
 import sys
-
 import docopt
 import yaml
 
@@ -154,7 +174,7 @@ def init_logging(verbose, frmt=None, logconf_file=None):
 def build_version_string(verbose):
     v = '%s-%s' % (proj_name, proj_ver)
     if verbose:
-        v_infos = OrderedDict([
+        v_infos = collections.OrderedDict([
             ('co2mpas_version', proj_ver),
             ('co2mpas_rel_date', proj_date),
             ('co2mpas_path', osp.dirname(proj_file)),
@@ -179,6 +199,7 @@ def print_autocompletions():
 
 def _cmd_modelgraph(opts):
     import co2mpas.plot as co2plot
+    _init_defaults(opts['--modelconf'])
     if opts['--list']:
         print('\n'.join(co2plot.get_model_paths()))
     else:
@@ -225,7 +246,7 @@ def _cmd_demo(opts):
     is_gui = opts['--gui']
     if is_gui and not dst_folder:
         import easygui as eu
-        msg=("Select folder to store INPUT-DEMO files:"
+        msg = ("Select folder to store INPUT-DEMO files:"
                 "\n(existing ones will be overwritten)")
         dst_folder = eu.diropenbox(msg=msg,
                                    title='%s-v%s' % (proj_name, proj_ver),
@@ -250,7 +271,7 @@ def _cmd_ipynb(opts):
     is_gui = opts['--gui']
     if is_gui and not dst_folder:
         import easygui as eu
-        msg=("Select folder to store IPYTHON NOTEBOOKS:"
+        msg = ("Select folder to store IPYTHON NOTEBOOKS:"
                 "\n(existing ones will be overwritten)")
         dst_folder = eu.diropenbox(msg=msg,
                                    title='%s-v%s' % (proj_name, proj_ver),
@@ -320,7 +341,7 @@ def _get_internal_file_streams(internal_folder, incl_regex=None):
                                              internal_folder)
     if incl_regex:
         incl_regex = re.compile(incl_regex)
-    return {f: pkg_resources.resource_stream(  # @UndefinedVariable
+    return {f: pkg_resources.resource_stream(# @UndefinedVariable
             __name__,
             osp.join(internal_folder, f))
             for f in samples
@@ -343,11 +364,7 @@ def _prompt_options(opts):
     import easygui as eu
     fields = {
         'overwrite-cache': 'y/[n]',
-        'soft-validation': 'y/[n]',
-        'plot-workflow': 'y/[n]',
-        'only-summary': 'y/[n]',
-        'out-template': 'y/[n]/<xlsx-file>',
-        'force': 'y/[n]'
+        'force': 'y/[n]',
     }
 
     fields, choices = zip(*((k, v) for k, v in fields.items() if not opts['--%s' % k]))
@@ -371,7 +388,7 @@ def _prompt_options(opts):
                     elif vl == 'n':
                         opts[o] = False
                     elif not vl.endswith('.xlsx'):
-                        eu.msgbox('The file %r has not .xlsx extension!'% v)
+                        eu.msgbox('The file %r has not .xlsx extension!' % v)
                         break
                     elif not osp.isfile(v):
                         eu.msgbox('The xl-file %r does not exist!' % v)
@@ -403,7 +420,33 @@ def file_finder(xlsx_fpaths, file_ext='*.xlsx'):
     return [f for f in sorted(files) if _input_file_regex.match(osp.basename(f))]
 
 
-def _run_batch(opts):
+_re_variation = re.compile(r"^\s*('.+'|[^:=']*\b)\s*[:=]\s*([^:=']*\b|'.*')\s*$")
+
+
+def parse_variation(variation):
+    res = {}
+    for v in variation:
+        try:
+            k, v = _re_variation.match(v).groups()
+            if k in res:
+                raise CmdException('Duplicated --variation key %s!' % k)
+            res[k] = v
+        except AttributeError:
+            raise CmdException('Wrong --variation format %s! ' % v)
+    return res
+
+
+def _init_defaults(modelconf):
+    if modelconf:
+        from co2mpas.conf import defaults
+        try:
+            defaults.load(modelconf)
+        except FileNotFoundError:
+            msg = "--modelconf: No such file or directory: %s."
+            raise CmdException(msg % modelconf)
+
+
+def _run_batch(opts, **kwargs):
     input_paths = opts['<input-path>']
     output_folder = opts['-O']
     if opts['--gui']:
@@ -432,13 +475,12 @@ def _run_batch(opts):
             raise CmdException("Specify a folder for "
                                "the '-O %s' option!" % output_folder)
 
+    _init_defaults(opts['--modelconf'])
+
     from co2mpas.batch import process_folder_files
     process_folder_files(input_paths, output_folder,
-                         with_output_file=not opts['--only-summary'],
-                         plot_workflow=opts['--plot-workflow'],
-                         output_template=opts['--out-template'],
-                         overwrite_cache=opts['--overwrite-cache'],
-                         soft_validation=opts['--soft-validation'])
+                         variation=parse_variation(opts['--variation']),
+                         overwrite_cache=opts['--overwrite-cache'], **kwargs)
 
 
 def _main(*args):
@@ -464,6 +506,8 @@ def _main(*args):
             _cmd_ipynb(opts)
         elif opts['modelgraph']:
             _cmd_modelgraph(opts)
+        elif opts['ta']:
+            _run_batch(opts, type_approval_mode=True)
         else:
             _run_batch(opts)
 

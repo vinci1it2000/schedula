@@ -14,7 +14,7 @@ __author__ = 'Vincenzo Arcidiacono'
 
 from .gen import Token
 
-__all__ = ['EMPTY', 'START', 'NONE', 'SINK', 'SELF']
+__all__ = ['EMPTY', 'START', 'NONE', 'SINK', 'SELF', 'END', 'PLOT']
 
 #: It is used set and unset empty values.
 #:
@@ -45,5 +45,12 @@ SINK.__doc__ = 'Sink node of the dispatcher that collects all unused outputs.'
 #: .. seealso:: :func:`~dispatcher.utils.dsp.SubDispatchFunction`
 END = Token('end')
 
-#: Self node of the dispatcher is a node that contains the dispatcher.
+#: Self node of the dispatcher, it is a node that contains the dispatcher.
 SELF = Token('self')
+
+#: Plot node, it is a node that plot the dispatcher solution.
+#: .. note:: you can pass the `kwargs` of :class:`~dispatcher.utils.drw.DspPlot`
+#: .. seealso:: :func:`~dispatcher.Dispatcher.add_data`,
+#:    :func:`~dispatcher.Dispatcher.add_function`,
+#:    :func:`~dispatcher.Dispatcher.add_dispatcher`
+PLOT = Token('plot')

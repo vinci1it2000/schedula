@@ -9,13 +9,13 @@
 It contains functions that model the engine start stop strategy.
 """
 
-from sklearn.pipeline import Pipeline
-from sklearn.feature_selection import SelectFromModel
-from sklearn.preprocessing import FunctionTransformer
-from sklearn.tree import DecisionTreeClassifier
+import sklearn.tree as sk_tree
+import sklearn.pipeline as sk_pip
+import sklearn.preprocessing as sk_prep
+import sklearn.feature_selection as sk_fsel
 import numpy as np
-from co2mpas.model.physical.defaults import dfl, EPS
-from co2mpas.dispatcher import Dispatcher
+import co2mpas.model.physical.defaults as defaults
+import co2mpas.dispatcher as dsp
 
 
 def identify_on_engine(
@@ -48,7 +48,7 @@ def identify_on_engine(
     on_engine = engine_speeds_out > idle_engine_speed[0] - idle_engine_speed[1]
     mask = np.where(identify_engine_starts(on_engine))[0] + 1
     ts = np.asarray(times[mask], dtype=float)
-    ts += min_time_engine_on_after_start + EPS
+    ts += min_time_engine_on_after_start + defaults.dfl.EPS
     for i, j in zip(mask, np.searchsorted(times, ts)):
         on_engine[i:j] = True
 
@@ -142,8 +142,8 @@ class DefaultStartStopModel(object):
     @staticmethod
     def predict(X):
         X = np.asarray(X)
-        VEL = dfl.functions.DefaultStartStopModel.stop_velocity
-        ACC = dfl.functions.DefaultStartStopModel.plateau_acceleration
+        VEL = defaults.dfl.functions.DefaultStartStopModel.stop_velocity
+        ACC = defaults.dfl.functions.DefaultStartStopModel.plateau_acceleration
         return (X[:, 0] > VEL) | (X[:, 1] > ACC)
 
 
@@ -158,16 +158,18 @@ class StartStopModel(object):
         if on_engine.all():
             self.base = self.model = DefaultStartStopModel()
         else:
-            X = np.array((velocities, accelerations) + args).T
-            model = DecisionTreeClassifier(random_state=0, max_depth=4)
-            self.model = Pipeline([
-                ('feature_selection', SelectFromModel(model)),
+            X = np.column_stack((velocities, accelerations) + args)
+            model = sk_tree.DecisionTreeClassifier(random_state=0, max_depth=4)
+            self.model = sk_pip.Pipeline([
+                ('feature_selection',
+                 sk_fsel.SelectFromModel(model)),
                 ('classification', model)
             ])
             self.model.fit(X, on_engine)
-            model = DecisionTreeClassifier(random_state=0, max_depth=3)
-            self.base = Pipeline([
-                ('feature_selection', FunctionTransformer(lambda X: X[:, :2])),
+            model = sk_tree.DecisionTreeClassifier(random_state=0, max_depth=3)
+            self.base = sk_pip.Pipeline([
+                ('feature_selection',
+                 sk_prep.FunctionTransformer(lambda X: X[:, :2])),
                 ('classification', model)
             ])
             self.base.fit(X, on_engine)
@@ -364,73 +366,73 @@ def start_stop():
     """
     Defines the engine start/stop model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = start_stop()
+        >>> d = start_stop()
 
     :return:
         The engine start/stop model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='start_stop',
         description='Models the engine start/stop strategy.'
     )
 
-    dsp.add_function(
+    d.add_function(
         function=identify_on_engine,
         inputs=['times', 'engine_speeds_out', 'idle_engine_speed',
                 'min_time_engine_on_after_start'],
         outputs=['on_engine']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=identify_engine_starts,
         inputs=['on_engine'],
         outputs=['engine_starts']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='start_stop_activation_time',
-        default_value=dfl.values.start_stop_activation_time
+        default_value=defaults.dfl.values.start_stop_activation_time
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calibrate_start_stop_model,
         inputs=['on_engine', 'velocities', 'accelerations',
                 'engine_coolant_temperatures', 'state_of_charges'],
         outputs=['start_stop_model']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=default_correct_start_stop_with_gears,
         inputs=['gear_box_type'],
         outputs=['correct_start_stop_with_gears']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='min_time_engine_on_after_start',
-        default_value=dfl.values.min_time_engine_on_after_start
+        default_value=defaults.dfl.values.min_time_engine_on_after_start
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='has_start_stop',
-        default_value=dfl.values.has_start_stop
+        default_value=defaults.dfl.values.has_start_stop
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='is_hybrid',
-        default_value=dfl.values.is_hybrid
+        default_value=defaults.dfl.values.is_hybrid
     )
 
-    dsp.add_function(
+    d.add_function(
         function=default_use_basic_start_stop_model,
         inputs=['is_hybrid'],
         outputs=['use_basic_start_stop']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=predict_engine_start_stop,
         inputs=['start_stop_model', 'times', 'velocities', 'accelerations',
                 'engine_coolant_temperatures', 'state_of_charges',
@@ -440,4 +442,4 @@ def start_stop():
         outputs=['on_engine', 'engine_starts']
     )
 
-    return dsp
+    return d

@@ -11,15 +11,16 @@ It provides constants for the WLTP cycle.
 """
 
 
-from wltp.experiment import *
-from wltp.model import _get_model_base
-from co2mpas.dispatcher import Dispatcher
+import wltp.experiment as wltp_exp
+import wltp.model as wltp_mdl
+import co2mpas.dispatcher as dsp
 import co2mpas.dispatcher.utils as dsp_utl
 import logging
-from ..defaults import dfl
-from copy import deepcopy
+import copy
 import numpy as np
 logging.getLogger('wltp.experiment').setLevel(logging.WARNING)
+
+log = logging.getLogger(__name__)
 
 
 def calculate_unladen_mass(vehicle_mass, driver_mass):
@@ -107,7 +108,7 @@ def calculate_wltp_class(
 
     ratio = 1000.0 * engine_max_power / unladen_mass
 
-    return decideClass(wltc_data, ratio, max_velocity)
+    return wltp_exp.decideClass(wltc_data, ratio, max_velocity)
 
 
 def get_class_velocities(class_data, times):
@@ -129,7 +130,7 @@ def get_class_velocities(class_data, times):
 
     vel = np.asarray(class_data['cycle'], dtype=float)
     n = int(np.ceil(times[-1] / len(vel)))
-    vel = np.concatenate((vel,) * n)
+    vel = np.tile(vel, (n,))
     return np.interp(times, np.arange(len(vel)), vel)
 
 
@@ -173,7 +174,7 @@ def calculate_downscale_factor(
     p_max_values[0] = np.searchsorted(times, p_max_values[0])
     downsc_coeffs = dsc_data['factor_coeffs']
     dsc_v_split = dsc_data.get('v_max_split', None)
-    downscale_factor = calcDownscaleFactor(
+    downscale_factor = wltp_exp.calcDownscaleFactor(
         class_powers, p_max_values, downsc_coeffs, dsc_v_split,
         engine_max_power, max_velocity, downscale_factor_threshold
     )
@@ -223,7 +224,9 @@ def wltp_velocities(
 
     if downscale_factor > 0:
         downscale_phases = np.searchsorted(times, downscale_phases)
-        v = downscaleCycle(class_velocities, downscale_factor, downscale_phases)
+        v = wltp_exp.downscaleCycle(
+            class_velocities, downscale_factor, downscale_phases
+        )
     else:
         v = class_velocities
     return v
@@ -287,8 +290,15 @@ def wltp_gears(
     n_norm = np.arange(0.0, 1.21, 0.01)
     load_curve = {'n_norm': n_norm, 'p_norm': full_load_curve(n_norm)}
 
-    res = run_cycle(
-        velocities, accelerations, motive_powers, svr, idle_engine_speed[0],
+    b = velocities < 0
+    if b.any():
+        vel = velocities.copy()
+        vel[b] = 0
+    else:
+        vel = velocities
+
+    res = wltp_exp.run_cycle(
+        vel, accelerations, motive_powers, svr, idle_engine_speed[0],
         n_min_drive, engine_max_speed_at_max_power, engine_max_power,
         load_curve, wltp_base_model)
 
@@ -300,14 +310,31 @@ def wltp_gears(
 
     # Apply Driveability-rules.
     # noinspection PyUnresolvedReferences
-    applyDriveabilityRules(velocities, accelerations, gears, res[1], res[-1])
+    wltp_exp.applyDriveabilityRules(vel, accelerations, gears, res[1], res[-1])
 
     gears[gears < 0] = 0
-
+    log.warn('The WLTP gear-shift profile generation is for engineering '
+             'purposes and the results are by no means valid according to the '
+             'legislation.\nActually they are calculated based on a pre '
+             'phase-1a version of the GTR spec.\n '
+             'Please provide the gear-shifting profile '
+             'within `prediction.WLTP` sheet.')
     return gears
 
 
 def get_dfl(wltp_base_model):
+    """
+    Gets default values from wltp base model.
+
+    :param wltp_base_model:
+        WLTP base model params.
+    :type wltp_base_model: dict
+
+    :return:
+        Default values from wltp base model.
+    :rtype: list
+    """
+
     params = wltp_base_model['params']
     keys = 'driver_mass', 'resistance_coeffs_regression_curves', 'wltc_data'
     return dsp_utl.selector(keys, params, output_type='list')
@@ -335,58 +362,59 @@ def get_class_data(wltc_data, wltp_class):
 
 def define_wltp_base_model(base_model):
 
-    return dsp_utl.combine_dicts(_get_model_base(), base_model)
+    return dsp_utl.combine_dicts(wltp_mdl._get_model_base(), base_model)
 
 
 def wltp_cycle():
     """
     Defines the wltp cycle model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = wltp_cycle()
+        >>> d = wltp_cycle()
 
     :return:
         The wltp cycle model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='WLTP cycle model',
         description='Returns the theoretical times, velocities, and gears of '
                     'WLTP.'
     )
 
-    dsp.add_data(
+    from ..defaults import dfl
+    d.add_data(
         data_id='initial_temperature',
         default_value=dfl.values.initial_temperature_WLTP,
         description='Initial temperature of the test cell [°C].'
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='max_time',
         default_value=dfl.values.max_time_WLTP,
         description='Maximum time [s].',
         initial_dist=5
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='wltp_base_model',
-        default_value=deepcopy(dfl.values.wltp_base_model)
+        default_value=copy.deepcopy(dfl.values.wltp_base_model)
     )
 
-    dsp.add_function(
+    d.add_function(
         function=define_wltp_base_model,
         inputs=['wltp_base_model'],
         outputs=['base_model']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='time_sample_frequency',
         default_value=dfl.values.time_sample_frequency
     )
 
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         dsp=calculate_wltp_velocities(),
         inputs={
             'times': 'times',
@@ -412,7 +440,7 @@ def wltp_cycle():
         }
     )
 
-    dsp.add_function(
+    d.add_function(
         function=dsp_utl.add_args(wltp_gears),
         inputs=['gear_box_type', 'full_load_curve', 'velocities',
                 'accelerations', 'motive_powers', 'speed_velocity_ratios',
@@ -423,73 +451,73 @@ def wltp_cycle():
         weight=10
     )
 
-    return dsp
+    return d
 
 
 def calculate_wltp_velocities():
     """
     Defines the wltp cycle model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = calculate_wltp_velocities()
+        >>> d = calculate_wltp_velocities()
 
     :return:
         The wltp cycle model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='WLTP velocities model',
         description='Returns the theoretical velocities of WLTP.'
     )
 
-    dsp.add_function(
+    d.add_function(
         function=get_dfl,
         inputs=['base_model'],
         outputs=['driver_mass', 'resistance_coeffs_regression_curves',
                  'wltc_data']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_unladen_mass,
         inputs=['vehicle_mass', 'driver_mass'],
         outputs=['unladen_mass']
     )
 
-    dsp.add_function(
-        function=calc_default_resistance_coeffs,
+    d.add_function(
+        function=wltp_exp.calc_default_resistance_coeffs,
         inputs=['vehicle_mass', 'resistance_coeffs_regression_curves'],
         outputs=['road_loads'],
         weight=15
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_max_speed_velocity_ratio,
         inputs=['speed_velocity_ratios'],
         outputs=['max_speed_velocity_ratio']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_max_velocity,
         inputs=['engine_max_speed_at_max_power', 'max_speed_velocity_ratio'],
         outputs=['max_velocity']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_wltp_class,
         inputs=['wltc_data', 'engine_max_power', 'unladen_mass',
                 'max_velocity'],
         outputs=['wltp_class']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=get_class_data,
         inputs=['wltc_data', 'wltp_class'],
         outputs=['class_data']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=get_class_velocities,
         inputs=['class_data', 'times'],
         outputs=['class_velocities'],
@@ -505,36 +533,36 @@ def calculate_wltp_velocities():
         outputs=['motive_powers']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=func,
         inputs=['vehicle_mass', 'class_velocities', 'climbing_force',
                 'road_loads', 'inertial_factor', 'times'],
         outputs=['class_powers']
     )
-
-    dsp.add_data(
+    from ..defaults import dfl
+    d.add_data(
         data_id='downscale_factor_threshold',
         default_value=dfl.values.downscale_factor_threshold
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_downscale_factor,
         inputs=['class_data', 'downscale_factor_threshold', 'max_velocity',
                 'engine_max_power', 'class_powers', 'times'],
         outputs=['downscale_factor']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=get_downscale_phases,
         inputs=['class_data'],
         outputs=['downscale_phases']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=wltp_velocities,
         inputs=['downscale_factor', 'class_velocities', 'downscale_phases',
                 'times'],
         outputs=['velocities']
     )
 
-    return dsp
+    return d

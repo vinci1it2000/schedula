@@ -64,7 +64,8 @@ Options:
                          e.g. df.interpolate(--interp=polynomial4).
                          'krogh', 'piecewise_polynomial', 'pchip' and 'akima'
                          are all wrappers around the scipy interpolation methods
-                         of similar names. 'integral'
+                         of similar names.
+                         'integral' is respect the signal integral.
   -l, --interp-methods   List of all interpolation methods that can be used in
                          the resampling.
   --cycle <cycle>        If set (e.g., --cycle=nedc.manual), the <ref-table> is
@@ -95,19 +96,20 @@ Examples::
 
     ## Read the full contents from all `wbook.xlsx` sheets as tables and
     ## sync their columns using the table from the 1st sheet as reference:
-    datasync times  velocities  folder/Book.xlsx
+    datasync times velocities folder/Book.xlsx
 
     ## Sync `Sheet1` using `Sheet3` as reference:
-    datasync times  velocities  wbook.xlsx#Sheet3!  Sheet1!
+    datasync times velocities wbook.xlsx#Sheet3!  Sheet1!
 
-    ## The same as above- NOTE that sheet-indices are zero based!
-    datasync times  velocities  wbook.xlsx#2!  0
+    ## The same as above but with integers used to index excel-sheets.
+    ## NOTE that sheet-indices are zero based!
+    datasync times velocities wbook.xlsx#2! 0
 
     ## Complex Xlr-ref example:
     ## Read the table in sheet2 of wbook-2 starting at D5 cell
     ## or more Down 'n Right if that was empty, till Down n Right,
     ## and sync this based on 1st sheet of wbook-1:
-    datasync times  velocities wbook-1.xlsx  wbook-2.xlsx#0!D5(DR):..(DR)
+    datasync times velocities wbook-1.xlsx  wbook-2.xlsx#0!D5(DR):..(DR)
 
     ## Typical usage for CO2MPAS velocity time-series from Dyno and OBD
     ## (the ref sheet contains the theoretical velocity profile):
@@ -122,20 +124,20 @@ import sys
 import regex
 from boltons.setutils import IndexedSet
 import docopt
-from numpy.fft import fft, ifft, fftshift
+import numpy.fft as fft
 from pandalone import xleash
-from scipy.integrate import cumtrapz
-import scipy.interpolate as sci
+import scipy.integrate as sci_itg
+import scipy.interpolate as sci_itp
 import functools as fnt
 import numpy as np
 import os.path as osp
 import pandas as pd
 from co2mpas import __version__ as proj_ver
 from co2mpas.__main__ import CmdException, init_logging, build_version_string
-from co2mpas.model.physical.cycle import cycle
-from openpyxl import load_workbook
+import openpyxl
 import shutil
 import co2mpas.dispatcher.utils as dsp_utl
+
 proj_name = 'datasync'
 
 log = logging.getLogger(__name__)
@@ -145,10 +147,10 @@ synced_file_frmt = '%s.sync%s'
 
 
 def cross_correlation_using_fft(x, y):
-    f1 = fft(x)
-    f2 = fft(np.flipud(y))
-    cc = np.real(ifft(f1 * f2))
-    return fftshift(cc)
+    f1 = fft.fft(x)
+    f2 = fft.fft(np.flipud(y))
+    cc = np.real(fft.ifft(f1 * f2))
+    return fft.fftshift(cc)
 
 
 # shift &lt; 0 means that y starts 'shift' time steps before x
@@ -178,14 +180,14 @@ def _interpolation_methods():
     methods = ('linear', 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
                'spline', 'polynomial', 'barycentric')
     kw = dict(fill_value=0, copy=False, bounds_error=False)
-    methods = {k: fnt.partial(_interp_wrapper, sci.interp1d, kind=k, **kw)
+    methods = {k: fnt.partial(_interp_wrapper, sci_itp.interp1d, kind=k, **kw)
                for k in methods}
 
-    methods['krogh'] = fnt.partial(_interp_wrapper, sci.KroghInterpolator)
-    fr_dev = fnt.partial(_interp_wrapper, sci.BPoly.from_derivatives)
+    methods['krogh'] = fnt.partial(_interp_wrapper, sci_itp.KroghInterpolator)
+    fr_dev = fnt.partial(_interp_wrapper, sci_itp.BPoly.from_derivatives)
     methods['piecewise_polynomial'] = methods['from_derivatives'] = fr_dev
-    methods['pchip'] = fnt.partial(_interp_wrapper, sci.PchipInterpolator)
-    methods['akima'] = fnt.partial(_interp_wrapper, sci.Akima1DInterpolator)
+    methods['pchip'] = fnt.partial(_interp_wrapper, sci_itp.PchipInterpolator)
+    methods['akima'] = fnt.partial(_interp_wrapper, sci_itp.Akima1DInterpolator)
     methods['integral'] = integral_interpolation
     return methods
 
@@ -256,7 +258,7 @@ def _yield_synched_tables(ref, *data, x_label='times', y_label='velocities',
 def _cum_integral(x, xp, fp):
     X = np.unique(np.concatenate((x, xp)))
     Y = np.interp(X, xp, fp, left=0.0, right=0.0)
-    return cumtrapz(Y, X, initial=0)[np.searchsorted(X, x)]
+    return sci_itg.cumtrapz(Y, X, initial=0)[np.searchsorted(X, x)]
 
 
 def integral_interpolation(x, xp, fp):
@@ -265,19 +267,19 @@ def integral_interpolation(x, xp, fp):
 
     :param x:
         The x-coordinates of the re-sampled values.
-    :type x: np.array
+    :type x: numpy.array
 
     :param xp:
         The x-coordinates of the data points.
-    :type xp: np.array
+    :type xp: numpy.array
 
     :param fp:
         The y-coordinates of the data points, same length as xp.
-    :type fp: np.array
+    :type fp: numpy.array
 
     :return:
         Re-sampled y-values.
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     x, fp = np.asarray(x, dtype=float), np.asarray(fp, dtype=float)
@@ -557,7 +559,7 @@ def _get_theoretical(profile):
     profile['cycle_type'] = profile['cycle_type'].upper()
     profile['wltp_class'] = profile['wltp_class'].lower()
     profile['gear_box_type'] = profile['gear_box_type'].lower()
-
+    from co2mpas.model.physical.cycle import cycle
     res = cycle().dispatch(inputs=profile, outputs=['times', 'velocities'])
     data = dsp_utl.selector(['times', 'velocities'], res, output_type='list')
     return pd.DataFrame(data).T
@@ -585,7 +587,7 @@ def _cmd_template(opts):
         df = _get_theoretical(profile.groupdict())
 
         def overwrite_ref(fpath):
-            book = load_workbook(fpath)
+            book = openpyxl.load_workbook(fpath)
             writer = pd.ExcelWriter(fpath, engine='openpyxl')
             writer.book = book
             writer.sheets = dict((ws.title, ws) for ws in book.worksheets)

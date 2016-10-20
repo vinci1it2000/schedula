@@ -166,7 +166,8 @@ class TestDispatcherGetSubNode(unittest.TestCase):
         self.assertEqual(p, path)
 
         o, p = get_sub_node(dsp, path, node_attr='')
-        self.assertEqual(o, {'wait_inputs': False, 'type': 'data'})
+        self.assertEqual(o, {'index': (4,), 'wait_inputs': False,
+                             'type': 'data'})
         self.assertEqual(p, path)
 
         path = ('dispatch', 'sub_dispatch')
@@ -194,7 +195,8 @@ class TestDispatcherGetSubNode(unittest.TestCase):
 
         o, p = get_sub_node(dsp, path)
         del o['description'], o['function']
-        self.assertEqual(o, {'type': 'data', 'wait_inputs': True})
+        self.assertEqual(o, {'index': (4,), 'type': 'data',
+                             'wait_inputs': True})
         self.assertEqual(p, path)
 
         path = ('dispatch', 'sub_dispatch', 'b')
@@ -203,7 +205,8 @@ class TestDispatcherGetSubNode(unittest.TestCase):
         self.assertEqual(p, path)
 
         o, p = get_sub_node(dsp, path, node_attr=None)
-        self.assertEqual(o, {'wait_inputs': False, 'type': 'data'})
+        self.assertEqual(o, {'index': (3,), 'wait_inputs': False,
+                             'type': 'data'})
         self.assertEqual(p, path)
 
         path = ('f',)

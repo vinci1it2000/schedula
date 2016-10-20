@@ -10,10 +10,9 @@ It contains functions that model the basic mechanics of the vehicle.
 """
 
 import co2mpas.dispatcher.utils as dsp_utl
-from co2mpas.dispatcher import Dispatcher
-from scipy.interpolate import InterpolatedUnivariateSpline as Spline
-from pykalman import KalmanFilter
-from .defaults import dfl
+import co2mpas.dispatcher as dsp
+import scipy.interpolate as sci_itp
+import pykalman
 import numpy as np
 
 
@@ -38,7 +37,7 @@ def calculate_velocities(times, obd_velocities):
     t = np.arange(times[0], times[-1] + dt, dt)
     v = np.interp(t, times, obd_velocities)
 
-    return np.interp(times, t, KalmanFilter().em(v).smooth(v)[0].T[0])
+    return np.interp(times, t, pykalman.KalmanFilter().em(v).smooth(v)[0].T[0])
 
 
 def calculate_accelerations(times, velocities):
@@ -58,6 +57,7 @@ def calculate_accelerations(times, velocities):
     :rtype: numpy.array
     """
 
+    Spline = sci_itp.InterpolatedUnivariateSpline
     acc = Spline(times, velocities / 3.6).derivative()(times)
     b = (velocities[:-1] == 0) & (velocities[1:] == velocities[:-1])
     acc[:-1][b] = 0
@@ -250,6 +250,7 @@ def select_default_n_dyno_axes(cycle_type):
         Number of dyno axes [-].
     :rtype: int
     """
+    from .defaults import dfl
     par = dfl.functions.select_default_n_dyno_axes
     return par.DYNO_AXES.get(cycle_type.upper(), 2)
 
@@ -367,105 +368,105 @@ def vehicle():
     """
     Defines the vehicle model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = vehicle()
+        >>> d = vehicle()
 
     :return:
         The vehicle model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='Vehicle free body diagram',
         description='Calculates forces and power acting on the vehicle.'
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_velocities,
         inputs=['times', 'obd_velocities'],
         outputs=['velocities']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_accelerations,
         inputs=['times', 'velocities'],
         outputs=['accelerations']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_aerodynamic_resistances,
         inputs=['f2', 'velocities'],
         outputs=['aerodynamic_resistances']
     )
-
-    dsp.add_data(
+    from .defaults import dfl
+    d.add_data(
         data_id='air_density',
         default_value=dfl.values.air_density,
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_f2,
         inputs=['air_density', 'aerodynamic_drag_coefficient', 'frontal_area'],
         outputs=['f2'],
         weight=5
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_f0,
         inputs=['vehicle_mass', 'rolling_resistance_coeff'],
         outputs=['f0'],
         weight=5
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='angle_slope',
         default_value=dfl.values.angle_slope,
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_angle_slopes,
         inputs=['times', 'angle_slope'],
         outputs=['angle_slopes']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_rolling_resistance,
         inputs=['f0', 'angle_slopes'],
         outputs=['rolling_resistance']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_velocity_resistances,
         inputs=['f1', 'velocities'],
         outputs=['velocity_resistances']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_climbing_force,
         inputs=['vehicle_mass', 'angle_slopes'],
         outputs=['climbing_force']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=select_default_n_dyno_axes,
         inputs=['cycle_type'],
         outputs=['n_dyno_axes']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=select_inertial_factor,
         inputs=['n_dyno_axes'],
         outputs=['inertial_factor']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_rotational_inertia_forces,
         inputs=['vehicle_mass', 'inertial_factor', 'accelerations'],
         outputs=['rotational_inertia_forces']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_motive_forces,
         inputs=['vehicle_mass', 'accelerations', 'climbing_force',
                 'aerodynamic_resistances', 'rolling_resistance',
@@ -473,40 +474,40 @@ def vehicle():
         outputs=['motive_forces']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_motive_powers,
         inputs=['motive_forces', 'velocities'],
         outputs=['motive_powers']
     )
 
-    dsp.add_function(
+    d.add_function(
         function_id='grouping',
         function=dsp_utl.bypass,
         inputs=['f0', 'f1', 'f2'],
         outputs=['road_loads']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='road_loads',
         description='Cycle road loads [N, N/(km/h), N/(km/h)^2].'
     )
 
-    dsp.add_function(
+    d.add_function(
         function_id='splitting',
         function=dsp_utl.bypass,
         inputs=['road_loads'],
         outputs=['f0', 'f1', 'f2']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='correct_f0',
         default_value=dfl.values.correct_f0
     )
 
-    dsp.add_function(
+    d.add_function(
         function=apply_f0_correction,
         inputs=['f0_uncorrected', 'correct_f0'],
         outputs=['f0']
     )
 
-    return dsp
+    return d

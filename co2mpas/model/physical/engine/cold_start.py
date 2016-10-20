@@ -9,15 +9,14 @@
 It contains functions that model the engine cold start.
 """
 
-from functools import partial
-from sklearn.metrics import mean_absolute_error
-from sklearn.tree import DecisionTreeRegressor
+import functools
+import sklearn.metrics as sk_met
+import sklearn.tree as sk_tree
 import co2mpas.utils as co2_utl
 import numpy as np
 import co2mpas.dispatcher.utils as dsp_utl
-from co2mpas.dispatcher import Dispatcher
+import co2mpas.dispatcher as dsp
 import lmfit
-from .co2_emission import calibrate_model_params
 
 
 def identify_cold_start_speeds_phases(
@@ -76,19 +75,21 @@ def _correct_ds_css(min_t, ds=0, m=np.inf, temp_limit=30):
 
 
 def _calibrate_css_model(target, *args, x0=None, ind=0):
+    mean_abs_error = sk_met.mean_absolute_error
 
     def _err(x):
-        return mean_absolute_error(target, _css_model(*args, **x.valuesdict()))
+        return mean_abs_error(target, _css_model(*args, **x.valuesdict()))
 
+    from .co2_emission import calibrate_model_params
     p = calibrate_model_params(_err, x0)[0]
 
     p['ds'].set(value=_correct_ds_css(p['temp_limit'].min, **p.valuesdict()))
 
-    return round(_err(p)), ind, partial(_css_model, **p.valuesdict())
+    return round(_err(p)), ind, functools.partial(_css_model, **p.valuesdict())
 
 
 def _identify_temp_limit(delta, temp):
-    reg = DecisionTreeRegressor(random_state=0, max_leaf_nodes=10)
+    reg = sk_tree.DecisionTreeRegressor(random_state=0, max_leaf_nodes=10)
     reg.fit(temp[:, None], delta)
     t = np.unique(temp)
     i = np.searchsorted(t, np.unique(reg.tree_.threshold))
@@ -100,7 +101,9 @@ def _identify_temp_limit(delta, temp):
 
 
 def _calibrate_models(delta, temp, speeds_hot, on_eng, idle, phases):
-    func = partial(_calibrate_css_model, delta, idle, on_eng, temp, speeds_hot)
+    func = functools.partial(
+        _calibrate_css_model, delta, idle, on_eng, temp, speeds_hot
+    )
 
     ind = dsp_utl.counter()
     best = (np.inf, _css_model)
@@ -211,35 +214,35 @@ def cold_start():
     """
     Defines the engine cold start model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = cold_start()
+        >>> d = cold_start()
 
     :return:
         The engine start/stop model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='cold_start',
         description='Models the engine cold start strategy.'
     )
 
-    dsp.add_function(
+    d.add_function(
         function=identify_cold_start_speeds_phases,
         inputs=['engine_coolant_temperatures', 'engine_thermostat_temperature',
                 'on_idle'],
         outputs=['cold_start_speeds_phases']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=identify_cold_start_speeds_delta,
         inputs=['cold_start_speeds_phases', 'engine_speeds_out',
                 'engine_speeds_out_hot'],
         outputs=['cold_start_speeds_delta']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calibrate_cold_start_speed_model,
         inputs=['cold_start_speeds_phases', 'cold_start_speeds_delta',
                 'idle_engine_speed', 'on_engine', 'engine_coolant_temperatures',
@@ -247,7 +250,7 @@ def cold_start():
         outputs=['cold_start_speed_model']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_cold_start_speeds_delta,
         inputs=['cold_start_speed_model', 'on_engine',
                 'engine_coolant_temperatures', 'engine_speeds_out_hot',
@@ -255,4 +258,4 @@ def cold_start():
         outputs=['cold_start_speeds_delta']
     )
 
-    return dsp
+    return d

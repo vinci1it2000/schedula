@@ -30,7 +30,7 @@ import traitlets.config as trtc
 
 from . import baseapp, dice, report, CmdException, PFiles
 from .. import __uri__  # @UnusedImport
-from .. import utils
+from co2mpas.dispatcher import utils
 from .._version import (__version__, __updated__, __file_version__,   # @UnusedImport
                         __input_file_version__, __copyright__, __license__)  # @UnusedImport
 
@@ -143,22 +143,22 @@ class Project(transitions.Machine, baseapp.Spec):
         return event.kwargs.get('force', self.force)
 
     def _is_inp_files(self, event):
-        pfiles =_evarg(event, 'pfiles', PFiles)
+        pfiles = _evarg(event, 'pfiles', PFiles)
         return bool(pfiles and pfiles.inp and
                     not (pfiles.out or pfiles.other))
 
     def _is_out_files(self, event):
-        pfiles =_evarg(event, 'pfiles', PFiles)
+        pfiles = _evarg(event, 'pfiles', PFiles)
         return bool(pfiles and pfiles.out and
                     not (pfiles.inp or pfiles.other))
 
     def _is_inp_out_files(self, event):
-        pfiles =_evarg(event, 'pfiles', PFiles)
+        pfiles = _evarg(event, 'pfiles', PFiles)
         return bool(pfiles and pfiles.inp and pfiles.out
                     and not pfiles.other)
 
     def _is_other_files(self, event):
-        pfiles =_evarg(event, 'pfiles', PFiles)
+        pfiles = _evarg(event, 'pfiles', PFiles)
         return bool(pfiles and pfiles.other
                     and not (pfiles.inp or pfiles.out))
 
@@ -172,35 +172,35 @@ class Project(transitions.Machine, baseapp.Spec):
         ]
         trans = [
             # Trigger        Source-state   Dest-state      Conditions
-            ['do_invalidate',   '*',        'INVALID', None, None, '_cb_invalidated'],
+            ['do_invalidate', '*', 'INVALID', None, None, '_cb_invalidated'],
 
-            ['do_createme', 'UNBORN',       'empty'],
+            ['do_createme', 'UNBORN', 'empty'],
 
-            ['do_addfiles', 'empty',        'wltp_iof',     '_is_inp_out_files'],
-            ['do_addfiles', 'empty',        'wltp_inp',     '_is_inp_files'],
-            ['do_addfiles', 'empty',        'wltp_out',     '_is_out_files'],
+            ['do_addfiles', 'empty', 'wltp_iof', '_is_inp_out_files'],
+            ['do_addfiles', 'empty', 'wltp_inp', '_is_inp_files'],
+            ['do_addfiles', 'empty', 'wltp_out', '_is_out_files'],
 
             ['do_addfiles', ['wltp_inp',
                              'wltp_out',
                              'wltp_iof',
-                             'tagged'],     'wltp_iof',     ['_is_inp_out_files', '_is_force']],
+                             'tagged'], 'wltp_iof', ['_is_inp_out_files', '_is_force']],
 
-            ['do_addfiles', 'wltp_inp',     'wltp_inp',     ['_is_inp_files', '_is_force']],
-            ['do_addfiles', 'wltp_inp',     'wltp_iof',     '_is_out_files'],
+            ['do_addfiles', 'wltp_inp', 'wltp_inp', ['_is_inp_files', '_is_force']],
+            ['do_addfiles', 'wltp_inp', 'wltp_iof', '_is_out_files'],
 
-            ['do_addfiles', 'wltp_out',     'wltp_out',     ['_is_out_files', '_is_force']],
-            ['do_addfiles', 'wltp_out',     'wltp_iof',     '_is_inp_files'],
+            ['do_addfiles', 'wltp_out', 'wltp_out', ['_is_out_files', '_is_force']],
+            ['do_addfiles', 'wltp_out', 'wltp_iof', '_is_inp_files'],
 
-            ['do_tagreport','wltp_iof',     'tagged'],
+            ['do_tagreport', 'wltp_iof', 'tagged'],
 
-            ['do_sendmail', 'tagged',       'mailed'],
+            ['do_sendmail', 'tagged', 'mailed'],
 
-            ['do_recvmail', 'mailed',       'dice_yes',     '_cond_is_dice_yes'],
-            ['do_recvmail', 'mailed',       'dice_no'],
+            ['do_recvmail', 'mailed', 'dice_yes', '_cond_is_dice_yes'],
+            ['do_recvmail', 'mailed', 'dice_no'],
 
             ['do_addfiles', ['dice_yes',
-                             'dice_no'],    'nedc',         '_is_other_files'],
-            ['do_addfiles', 'nedc',         'nedc',         ['_is_other_files', '_is_force']],
+                             'dice_no'], 'nedc', '_is_other_files'],
+            ['do_addfiles', 'nedc', 'nedc', ['_is_other_files', '_is_force']],
         ]
         super().__init__(states=states,
                          initial=states[0],
@@ -211,13 +211,13 @@ class Project(transitions.Machine, baseapp.Spec):
                          auto_transitions=False,
                          name=pname,
                          **kwds)
-        self.on_enter_empty(    '_cb_stage_new_project_content')
-        self.on_enter_tagged(   '_cb_generate_report')
-        self.on_enter_wltp_inp( '_cb_stage_pfiles')
-        self.on_enter_wltp_out( '_cb_stage_pfiles')
-        self.on_enter_wltp_iof( '_cb_stage_pfiles')
-        self.on_enter_nedc(     '_cb_stage_pfiles')
-        self.on_enter_mailed(   '_cb_send_email')
+        self.on_enter_empty('_cb_stage_new_project_content')
+        self.on_enter_tagged('_cb_generate_report')
+        self.on_enter_wltp_inp('_cb_stage_pfiles')
+        self.on_enter_wltp_out('_cb_stage_pfiles')
+        self.on_enter_wltp_iof('_cb_stage_pfiles')
+        self.on_enter_nedc('_cb_stage_pfiles')
+        self.on_enter_mailed('_cb_send_email')
 
 
     def attempt_repair(self, force=None):
@@ -303,7 +303,7 @@ class Project(transitions.Machine, baseapp.Spec):
         This is the CO2MPAS-project %r (see https://co2mpas.io/ for more).
 
         - created: %s
-        """ %(self.pname, datetime.now()))
+        """ % (self.pname, datetime.now()))
 
 
     def _cb_stage_new_project_content(self, event):
@@ -335,7 +335,7 @@ class Project(transitions.Machine, baseapp.Spec):
         import shutil
 
         self.log.info('Importing files: %s...', event.kwargs)
-        pfiles =_evarg(event, 'pfiles', PFiles)
+        pfiles = _evarg(event, 'pfiles', PFiles)
         force = event.kwargs.get('force', self.force)
 
         ## Check extraction of report works ok.
@@ -602,44 +602,44 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
         from co2mpas.dispatcher.utils.dsp import DFun
 
         dfuns = [
-            DFun('repo',            lambda _infos: self.repo),
-            DFun('git_cmds',        lambda _infos: pndlu.where('git')),
-            DFun('dirty',           lambda repo: repo.is_dirty()),
-            DFun('untracked',       lambda repo: repo.untracked_files),
-            DFun('wd_files',        lambda repo: os.listdir(repo.working_dir)),
-            DFun('branch',          lambda repo, _inp_prj:
+            DFun('repo', lambda _infos: self.repo),
+            DFun('git_cmds', lambda _infos: pndlu.where('git')),
+            DFun('dirty', lambda repo: repo.is_dirty()),
+            DFun('untracked', lambda repo: repo.untracked_files),
+            DFun('wd_files', lambda repo: os.listdir(repo.working_dir)),
+            DFun('branch', lambda repo, _inp_prj:
                                         _inp_prj and _get_ref(repo.heads, _pname2ref_path(_inp_prj)) or repo.active_branch),
-            DFun('head',            lambda repo: repo.head),
-            DFun('heads_count',     lambda repo: len(repo.heads)),
-            DFun('projects_count',  lambda repo: itz.count(self._yield_project_refs())),
-            DFun('tags_count',      lambda repo: len(repo.tags)),
-            DFun('git.settings',    lambda repo: self.read_git_settings()),
-            DFun('_git',    lambda repo: repo.git),
+            DFun('head', lambda repo: repo.head),
+            DFun('heads_count', lambda repo: len(repo.heads)),
+            DFun('projects_count', lambda repo: itz.count(self._yield_project_refs())),
+            DFun('tags_count', lambda repo: len(repo.tags)),
+            DFun('git.settings', lambda repo: self.read_git_settings()),
+            DFun('_git', lambda repo: repo.git),
 
-            DFun('git.version',     lambda _git: '.'.join(str(v) for v in _git.version_info)),
+            DFun('git.version', lambda _git: '.'.join(str(v) for v in _git.version_info)),
 
-            DFun('head_ref',      lambda head: head.reference),
-            DFun('head_valid',      lambda head: head.is_valid()),
-            DFun('head_detached',   lambda head: head.is_detached),
+            DFun('head_ref', lambda head: head.reference),
+            DFun('head_valid', lambda head: head.is_valid()),
+            DFun('head_detached', lambda head: head.is_detached),
 
-            DFun('cmt',             lambda branch: branch.commit),
-            DFun('head',            lambda branch: branch.path),
-            DFun('branch_valid',    lambda branch: branch.is_valid()),
+            DFun('cmt', lambda branch: branch.commit),
+            DFun('head', lambda branch: branch.path),
+            DFun('branch_valid', lambda branch: branch.is_valid()),
             DFun('branch_detached', lambda branch: branch.is_detached),
 
-            DFun('tre',             lambda cmt: cmt.tree),
-            DFun('author',          lambda cmt: '%s <%s>' % (cmt.author.name, cmt.author.email)),
-            DFun('last_cdate',      lambda cmt: str(cmt.authored_datetime)),
-            DFun('commit',          lambda cmt: cmt.hexsha),
-            DFun('revs_count',      lambda cmt: itz.count(cmt.iter_parents())),
-            DFun('cmsg',            lambda cmt: cmt.message),
-            DFun('cmsg',            lambda cmt: '<invalid: %s>' % cmt.message, weight=10),
+            DFun('tre', lambda cmt: cmt.tree),
+            DFun('author', lambda cmt: '%s <%s>' % (cmt.author.name, cmt.author.email)),
+            DFun('last_cdate', lambda cmt: str(cmt.authored_datetime)),
+            DFun('commit', lambda cmt: cmt.hexsha),
+            DFun('revs_count', lambda cmt: itz.count(cmt.iter_parents())),
+            DFun('cmsg', lambda cmt: cmt.message),
+            DFun('cmsg', lambda cmt: '<invalid: %s>' % cmt.message, weight=10),
 
             DFun(['msg.%s' % f for f in _CommitMsg._fields],
                                     lambda cmsg: Project.parse_commit_msg(cmsg)),
 
-            DFun('tree',            lambda tre: tre.hexsha),
-            DFun('files_count',     lambda tre: itz.count(tre.list_traverse())),
+            DFun('tree', lambda tre: tre.hexsha),
+            DFun('files_count', lambda tre: itz.count(tre.list_traverse())),
         ]
         dsp = Dispatcher()
         DFun.add_dfuns(dfuns, dsp)
@@ -815,7 +815,7 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
 
     def _yield_project_refs(self, *pnames: Text):
         if pnames:
-            pnames =  [_pname2ref_path(p) for p in pnames]
+            pnames = [_pname2ref_path(p) for p in pnames]
         for ref in self.repo.heads:
             if _is_project_ref(ref) and not pnames or ref.path in pnames:
                 yield ref
@@ -1062,7 +1062,7 @@ if __name__ == '__main__':
     from traitlets.config import get_config
     # Invoked from IDEs, so enable debug-logging.
     c = get_config()
-    c.Application.log_level=0
+    c.Application.log_level = 0
     #c.Spec.log_level='ERROR'
 
     argv = None

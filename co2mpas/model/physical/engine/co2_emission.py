@@ -10,19 +10,18 @@ It contains functions to predict the CO2 emissions.
 """
 
 import copy
-from functools import partial
-from itertools import chain
-
+import functools
+import itertools
 import lmfit
 import numpy as np
-from scipy.integrate import trapz
-from scipy.stats import lognorm, norm
-from sklearn.metrics import mean_absolute_error
-
+import scipy.integrate as sci_itg
+import scipy.stats as sci_sta
+import sklearn.metrics as sk_met
 import co2mpas.dispatcher.utils as dsp_utl
-from co2mpas.dispatcher import Dispatcher
+import co2mpas.dispatcher as dsp
 import co2mpas.utils as co2_utl
-from ..defaults import dfl, EPS
+import co2mpas.model.physical.defaults as defaults
+import pandas as pd
 
 
 def default_fuel_density(fuel_type):
@@ -38,7 +37,7 @@ def default_fuel_density(fuel_type):
     :rtype: float
     """
 
-    return dfl.functions.default_fuel_density.FUEL_DENSITY[fuel_type]
+    return defaults.dfl.functions.default_fuel_density.FUEL_DENSITY[fuel_type]
 
 
 def default_fuel_carbon_content(fuel_type):
@@ -53,8 +52,8 @@ def default_fuel_carbon_content(fuel_type):
         Fuel carbon content [CO2g/g].
     :rtype: float
     """
-
-    return dfl.functions.default_fuel_carbon_content.CARBON_CONTENT[fuel_type]
+    CC = defaults.dfl.functions.default_fuel_carbon_content.CARBON_CONTENT
+    return CC[fuel_type]
 
 
 def default_engine_fuel_lower_heating_value(fuel_type):
@@ -69,8 +68,8 @@ def default_engine_fuel_lower_heating_value(fuel_type):
         Fuel lower heating value [kJ/kg].
     :rtype: float
     """
-
-    return dfl.functions.default_fuel_lower_heating_value.LHV[fuel_type]
+    LHV = defaults.dfl.functions.default_fuel_lower_heating_value.LHV
+    return LHV[fuel_type]
 
 
 def calculate_fuel_carbon_content(fuel_carbon_content_percentage):
@@ -171,22 +170,232 @@ def calculate_brake_mean_effective_pressures(
     return np.nan_to_num(p)
 
 
+class IdleFuelConsumptionModel(object):
+    def __init__(self, fc=None):
+        self.fc = fc
+        self.n_s = None
+        self.c = None
+        self.fmep_model = None
+
+    def fit(self, idle_engine_speed, engine_capacity, engine_stroke, lhv,
+            fmep_model):
+        idle = idle_engine_speed[0]
+        from . import calculate_mean_piston_speeds
+        self.n_s = calculate_mean_piston_speeds(idle, engine_stroke)
+        self.c = idle * (engine_capacity / (lhv * 1200))
+        self.fmep_model = fmep_model
+        return self
+
+    def consumption(self, params=None, ac_phases=None):
+        if self.fc is not None:
+            return self.fc, 1
+
+        if isinstance(params, lmfit.Parameters):
+            params = params.valuesdict()
+        fc, _, ac = self.fmep_model(params, self.n_s, 0, ac_phases=ac_phases)
+        fc *= self.c  # [g/sec]
+        return fc, ac
+
+
+def define_idle_fuel_consumption_model(
+        idle_engine_speed, engine_capacity, engine_stroke,
+        engine_fuel_lower_heating_value, fmep_model,
+        idle_fuel_consumption=None):
+    """
+    Defines the idle fuel consumption model.
+
+    :param idle_engine_speed:
+        Engine speed idle median and std [RPM].
+    :type idle_engine_speed: (float, float)
+
+    :param engine_capacity:
+        Engine capacity [cm3].
+    :type engine_capacity: float
+
+    :param engine_stroke:
+        Engine stroke [mm].
+    :type engine_stroke: float
+
+    :param engine_fuel_lower_heating_value:
+        Fuel lower heating value [kJ/kg].
+    :type engine_fuel_lower_heating_value: float
+
+    :param fmep_model:
+        Engine FMEP model.
+    :type fmep_model: FMEP
+
+    :param idle_fuel_consumption:
+        Fuel consumption at hot idle engine speed [g/s].
+    :type idle_fuel_consumption: float, optional
+
+    :return:
+        Idle fuel consumption model.
+    :rtype: IdleFuelConsumptionModel
+    """
+
+    model = IdleFuelConsumptionModel(idle_fuel_consumption).fit(
+        idle_engine_speed, engine_capacity, engine_stroke,
+        engine_fuel_lower_heating_value, fmep_model
+    )
+
+    return model
+
+
+def calculate_engine_idle_fuel_consumption(
+        idle_fuel_consumption_model, params=None):
+    """
+    Calculates fuel consumption at hot idle engine speed [g/s].
+
+    :param idle_fuel_consumption_model:
+        Idle fuel consumption model.
+    :type idle_fuel_consumption_model: IdleFuelConsumptionModel
+
+    :param params:
+        CO2 emission model parameters (a2, b2, a, b, c, l, l2, t, trg).
+
+        The missing parameters are set equal to zero.
+    :type params: dict
+
+    :return:
+        Fuel consumption at hot idle engine speed [g/s].
+    :rtype: float
+    """
+
+    return idle_fuel_consumption_model.consumption(params)[0]
+
+
+class FMEP(object):
+    def __init__(self, full_bmep_curve, active_cylinder_ratios=(1.0,),
+                 has_cylinder_deactivation=False,
+                 full_bmep_curve_percentage=0.5, max_mean_piston_speeds=12.0,
+                 has_variable_valve_actuation=False):
+        self.base_acr = max(active_cylinder_ratios)
+        self.active_cylinder_ratios = set(active_cylinder_ratios)
+        self.active_cylinder_ratios -= {self.base_acr}
+        self.fbc = full_bmep_curve
+        self.has_cylinder_deactivation = has_cylinder_deactivation
+        self.has_variable_valve_actuation = has_variable_valve_actuation
+        self.fbc_percentage = full_bmep_curve_percentage
+        self.max_mean_piston_speeds = max_mean_piston_speeds
+        self.sol = None
+        self.param_ids = None
+
+    def calculate_base(self, params, n_speeds, n_powers, n_temp, **kw):
+        if 'acr' in params:
+            A, B, C = _fuel_ABC(n_speeds, n_powers, n_temp, **params)
+            fmep, v = _calculate_fc(A, B, C)
+            return pd.DataFrame(dsp_utl.combine_dicts({
+                'fmep': fmep, 'v': v, 'n_speeds': n_speeds,
+                'n_powers': n_powers, 'n_temp': n_temp, 'vva': 0
+            }, kw, params), copy=False)
+        else:
+            p = dsp_utl.combine_dicts(params, {'acr': self.base_acr})
+            return self.calculate_base(p, n_speeds, n_powers, n_temp, **kw)
+
+    def optimize_fmep(self, b=None, **p):
+        if b is not None:
+            i = self.sol.index[b]
+            d = self.sol[b]
+        else:
+            i = self.sol.index
+            d = self.sol
+
+        spt = d['n_speeds'], d['n_powers'], d['n_temp']
+        params = dsp_utl.combine_dicts(d[self.param_ids], p)
+        fmep, v = _calculate_fc(*_fuel_ABC(*spt, **params))
+        s = pd.DataFrame(dsp_utl.combine_dicts({'fmep': fmep, 'v': v}, p))
+        b = s['fmep'] < d['fmep']
+        c = ['fmep', 'v'] + list(p)
+        self.sol.ix[i[b], c] = s.ix[b, c].values
+
+    def vva(self, i=True, **params):
+        if self.has_variable_valve_actuation and 'vva' not in self.param_ids:
+            self.optimize_fmep(i & (self.sol['n_powers'] >= 0), vva=1, **params)
+
+    def acr(self, i=True, **params):
+        if self.has_cylinder_deactivation and self.active_cylinder_ratios and \
+                        'acr' not in self.param_ids:
+            d = self.sol
+            b = i & d['ac_phases'] & (d['n_temp'] == 1) & (d['n_powers'] > 0)
+            b &= (d['n_speeds'] < self.max_mean_piston_speeds)
+            ac = d['n_powers'] / (self.fbc(d['n_speeds']) * self.fbc_percentage)
+            p = {} if 'vva' in self.param_ids else {'vva': 0}
+            p = dsp_utl.combine_dicts(params, p)
+            for acr in self.active_cylinder_ratios:
+                n = b & (ac < acr)
+                self.optimize_fmep(n, acr=acr, **p)
+                self.vva(n, acr=acr)
+
+    def __call__(self, params, n_speeds, n_powers, n_temp, ac_phases=True):
+        self.param_ids = list(params.keys())
+
+        self.sol = self.calculate_base(params, n_speeds, n_powers, n_temp,
+                                       ac_phases=ac_phases)
+        self.vva()
+
+        self.acr()
+
+        s = self.sol
+
+        return s['fmep'].values, s['v'].values, s['acr'].values, s['vva'].values
+
+
+def define_fmep_model(
+        full_bmep_curve, active_cylinder_ratios, has_cylinder_deactivation,
+        max_mean_piston_speeds_cylinder_deactivation,
+        has_variable_valve_actuation):
+    """
+    Defines the vehicle FMEP model.
+
+    :param full_bmep_curve:
+        Vehicle full bmep curve.
+    :type full_bmep_curve: scipy.interpolate.InterpolatedUnivariateSpline
+
+    :param active_cylinder_ratios:
+        Possible active cylinder ratios [-].
+    :type active_cylinder_ratios: tuple[float]
+
+    :param has_cylinder_deactivation:
+        Does the engine have cylinder deactivation technology?
+    :type has_cylinder_deactivation: bool
+
+    :param max_mean_piston_speeds_cylinder_deactivation:
+        Maximum mean piston speed for cylinder deactivation strategy [m/sec].
+    :type max_mean_piston_speeds_cylinder_deactivation: float
+
+    :param has_variable_valve_actuation:
+        Does the engine feature variable valve actuation? [-].
+    :type has_variable_valve_actuation: bool
+
+    :return:
+        Vehicle FMEP model.
+    :rtype: FMEP
+    """
+
+    fbcp = defaults.dfl.functions.define_fmep_model.full_bmep_curve_percentage
+    model = FMEP(
+        full_bmep_curve, active_cylinder_ratios, has_cylinder_deactivation,
+        full_bmep_curve_percentage=fbcp,
+        max_mean_piston_speeds=max_mean_piston_speeds_cylinder_deactivation,
+        has_variable_valve_actuation=has_variable_valve_actuation
+    )
+
+    return model
+
+
 # noinspection PyUnusedLocal
-def _calculate_fuel_ABC(n_speeds, n_powers, n_temperatures,
-                        a2=0, b2=0, a=0, b=0, c=0, t=0, l=0, l2=0, **kw):
-    A = a2 + b2 * n_speeds
-    B = a + (b + c * n_speeds) * n_speeds
+def _fuel_ABC(
+        n_speeds, n_powers, n_temperatures,
+        a2=0, b2=0, a=0, b=0, c=0, t=0, l=0, l2=0, acr=1, vva=0, **kw):
+
+    acr2 = (acr ** 2)
+    A = a2 / acr2 + (b2 / acr2) * n_speeds
+    a, l = (1 - 0.02 * vva) / acr * a, (1 - 0.08 * vva) * l
+    B = a + (b / acr + (c / acr) * n_speeds) * n_speeds
     C = np.power(n_temperatures, -t) * (l + l2 * n_speeds ** 2)
-    C -= n_powers
+    C -= n_powers / acr
 
     return A, B, C
-
-
-def _calculate_fuel_mean_effective_pressure(
-        params, n_speeds, n_powers, n_temperatures):
-    A, B, C = _calculate_fuel_ABC(n_speeds, n_powers, n_temperatures, **params)
-
-    return _calculate_fc(A, B, C)
 
 
 def _calculate_fc(A, B, C):
@@ -194,19 +403,19 @@ def _calculate_fc(A, B, C):
     if b.all():
         v = np.sqrt(np.abs(B ** 2 - 4.0 * A * C))
         return (-B + v) / (2 * A), v
-    elif np.logical_not(b).all():
+    elif ~b.all():
         return -C / B, B
     else:
         fc, v = np.zeros_like(C), np.zeros_like(C)
         fc[b], v[b] = _calculate_fc(A[b], B[b], C[b])
-        b = np.logical_not(b)
+        b = ~b
         fc[b], v[b] = _calculate_fc(A[b], B[b], C[b])
         return fc, v
 
 
 def calculate_p0(
         params, engine_capacity, engine_stroke, idle_engine_speed_median,
-        engine_fuel_lower_heating_value):
+        engine_fuel_lower_heating_value, fmep_model, ac_phases=None):
     """
     Calculates the engine power threshold limit [kW].
 
@@ -232,6 +441,10 @@ def calculate_p0(
         Fuel lower heating value [kJ/kg].
     :type engine_fuel_lower_heating_value: float
 
+    :param fmep_model:
+        Engine FMEP model.
+    :type fmep_model: FMEP
+
     :return:
         Engine power threshold limit [kW].
     :rtype: float
@@ -240,21 +453,26 @@ def calculate_p0(
     engine_cm_idle = idle_engine_speed_median * engine_stroke / 30000.0
 
     lhv = engine_fuel_lower_heating_value
-    FMEP = _calculate_fuel_mean_effective_pressure
 
-    engine_wfb_idle, engine_wfa_idle = FMEP(params, engine_cm_idle, 0, 1)
-    engine_wfa_idle = (3600000.0 / lhv) / engine_wfa_idle
-    engine_wfb_idle *= (3.0 * engine_capacity / lhv * idle_engine_speed_median)
+    wfb_idle, wfa_idle = fmep_model(params, engine_cm_idle, 0, 1, ac_phases)[:2]
+    wfa_idle = (3600000.0 / lhv) / wfa_idle
+    wfb_idle *= (3.0 * engine_capacity / lhv * idle_engine_speed_median)
 
-    return -engine_wfb_idle / engine_wfa_idle
+    return -wfb_idle / wfa_idle
+
+
+def _get_sub_values(*args, sub_values=None):
+    if sub_values is not None:
+        return tuple(a[sub_values] for a in args)
+    return args
 
 
 def calculate_co2_emissions(
         engine_speeds_out, engine_powers_out, mean_piston_speeds,
         brake_mean_effective_pressures, engine_coolant_temperatures, on_engine,
         engine_fuel_lower_heating_value, idle_engine_speed, engine_stroke,
-        engine_capacity, engine_idle_fuel_consumption, fuel_carbon_content,
-        min_engine_on_speed, tau_function, params, sub_values=None):
+        engine_capacity, idle_fuel_consumption_model, fuel_carbon_content,
+        min_engine_on_speed, tau_function, fmep_model, params, sub_values=None):
     """
     Calculates CO2 emissions [CO2g/s].
 
@@ -298,9 +516,9 @@ def calculate_co2_emissions(
         Engine capacity [cm3].
     :type engine_capacity: float
 
-    :param engine_idle_fuel_consumption:
-        Fuel consumption at hot idle engine speed [g/s].
-    :type engine_idle_fuel_consumption: float
+    :param idle_fuel_consumption_model:
+        Model of fuel consumption at hot idle engine speed.
+    :type idle_fuel_consumption_model: IdleFuelConsumptionModel
 
     :param fuel_carbon_content:
         Fuel carbon content [CO2g/g].
@@ -313,6 +531,10 @@ def calculate_co2_emissions(
     :param tau_function:
         Tau-function of the extended Willans curve.
     :type tau_function: function
+
+    :param fmep_model:
+        Engine FMEP model.
+    :type fmep_model: FMEP
 
     :param params:
         CO2 emission model parameters (a2, b2, a, b, c, l, l2, t, trg).
@@ -331,59 +553,65 @@ def calculate_co2_emissions(
 
     p = params.valuesdict()
 
-    if sub_values is None:
-        sub_values = np.ones_like(mean_piston_speeds, dtype=bool)
-
     # namespace shortcuts
-    n_speeds = mean_piston_speeds[sub_values]
-    n_powers = brake_mean_effective_pressures[sub_values]
+    n_speeds, n_powers, e_speeds, e_powers, e_temp = _get_sub_values(
+        mean_piston_speeds, brake_mean_effective_pressures, engine_speeds_out,
+        engine_powers_out, engine_coolant_temperatures, sub_values=sub_values
+    )
     lhv = engine_fuel_lower_heating_value
-    e_speeds = engine_speeds_out[sub_values]
-    e_powers = engine_powers_out[sub_values]
-    e_temp = engine_coolant_temperatures[sub_values]
 
-    fc = np.zeros_like(e_powers)
+    fc, ac = np.zeros_like(e_powers), np.zeros_like(e_powers)
+    vva = np.zeros_like(e_powers)
 
     # Idle fc correction for temperature
-    b = (e_speeds < idle_engine_speed[0] + min_engine_on_speed)
-
+    n = (e_speeds < idle_engine_speed[0] + min_engine_on_speed)
+    _b = (e_speeds >= min_engine_on_speed)
     if p['t0'] == 0 and p['t1'] == 0:
-        n_temp = np.ones_like(e_powers)
-        fc[b] = engine_idle_fuel_consumption
-        b = np.logical_not(b)
+        ac_phases = n_temp = np.ones_like(e_powers)
+        par = defaults.dfl.functions.calculate_co2_emissions
+        idle_cutoff = idle_engine_speed[0] * par.cutoff_idle_ratio
+        ec_p0 = calculate_p0(
+            p, engine_capacity, engine_stroke, idle_cutoff, lhv, fmep_model,
+            ac_phases
+        )
+        _b &= ~((e_powers <= ec_p0) & (e_speeds > idle_cutoff))
+        b = n & _b
+        fc[b], ac[b] = idle_fuel_consumption_model.consumption(p)
+        b = ~n & _b
     else:
         p['t'] = tau_function(p['t0'], p['t1'], e_temp)
         func = calculate_normalized_engine_coolant_temperatures
         n_temp = func(e_temp, p['trg'])
-        fc[b] = engine_idle_fuel_consumption * np.power(n_temp[b], -p['t'][b])
-        b = np.logical_not(b)
+        ac_phases = n_temp == 1
+        par = defaults.dfl.functions.calculate_co2_emissions
+        idle_cutoff = idle_engine_speed[0] * par.cutoff_idle_ratio
+        ec_p0 = calculate_p0(
+            p, engine_capacity, engine_stroke, idle_cutoff, lhv, fmep_model,
+            ac_phases
+        )
+        _b &= ~((e_powers <= ec_p0) & (e_speeds > idle_cutoff))
+        b = n & _b
+        idle_fc, ac[b] = idle_fuel_consumption_model.consumption(p, ac_phases)
+        fc[b] = idle_fc * np.power(n_temp[b], -p['t'][b])
+        b = ~n & _b
         p['t'] = p['t'][b]
 
-    FMEP = partial(_calculate_fuel_mean_effective_pressure, p)
-    fc[b] = FMEP(n_speeds[b], n_powers[b], n_temp[b])[0]  # FMEP [bar]
-
+    fc[b], _, ac[b], vva[b] = fmep_model(p, n_speeds[b], n_powers[b], n_temp[b])
     fc[b] *= e_speeds[b] * (engine_capacity / (lhv * 1200))  # [g/sec]
-    p['t'] = 0
 
-    par = dfl.functions.calculate_co2_emissions
-    idle_cutoff = idle_engine_speed[0] * par.cutoff_idle_ratio
-    ec_p0 = calculate_p0(
-        p, engine_capacity, engine_stroke, idle_cutoff, lhv
-    )
-    b = (e_powers <= ec_p0) & (e_speeds > idle_cutoff)
-    fc[b | (e_speeds < min_engine_on_speed) | (fc < 0)] = 0
+    fc[fc < 0] = 0
 
     co2 = fc * fuel_carbon_content
 
-    return np.nan_to_num(co2)
+    return np.nan_to_num(co2), ac, vva
 
 
 def define_co2_emissions_model(
         engine_speeds_out, engine_powers_out, mean_piston_speeds,
         brake_mean_effective_pressures, engine_coolant_temperatures, on_engine,
         engine_fuel_lower_heating_value, idle_engine_speed, engine_stroke,
-        engine_capacity, engine_idle_fuel_consumption, fuel_carbon_content,
-        min_engine_on_speed, tau_function):
+        engine_capacity, idle_fuel_consumption_model, fuel_carbon_content,
+        min_engine_on_speed, tau_function, fmep_model):
     """
     Returns CO2 emissions model (see :func:`calculate_co2_emissions`).
 
@@ -427,9 +655,9 @@ def define_co2_emissions_model(
         Engine capacity [cm3].
     :type engine_capacity: float
 
-    :param engine_idle_fuel_consumption:
-        Fuel consumption at hot idle engine speed [g/s].
-    :type engine_idle_fuel_consumption: float
+    :param idle_fuel_consumption_model:
+        Idle fuel consumption model.
+    :type idle_fuel_consumption_model: IdleFuelConsumptionModel
 
     :param fuel_carbon_content:
         Fuel carbon content [CO2g/g].
@@ -443,37 +671,25 @@ def define_co2_emissions_model(
         Tau-function of the extended Willans curve.
     :type tau_function: function
 
+    :param fmep_model:
+        Engine FMEP model.
+    :type fmep_model: FMEP
+
     :return:
         CO2 emissions model (co2_emissions = models(params)).
     :rtype: function
     """
 
-    model = partial(
+    model = functools.partial(
         calculate_co2_emissions, engine_speeds_out, engine_powers_out,
         mean_piston_speeds, brake_mean_effective_pressures,
         engine_coolant_temperatures, on_engine, engine_fuel_lower_heating_value,
         idle_engine_speed, engine_stroke, engine_capacity,
-        engine_idle_fuel_consumption, fuel_carbon_content, min_engine_on_speed,
-        tau_function
+        idle_fuel_consumption_model, fuel_carbon_content, min_engine_on_speed,
+        tau_function, fmep_model
     )
 
     return model
-
-
-def select_phases_integration_times(cycle_type):
-    """
-    Selects the cycle phases integration times [s].
-
-    :param cycle_type:
-        Cycle type (WLTP or NEDC).
-    :type cycle_type: str
-
-    :return:
-        Cycle phases integration times [s].
-    :rtype: tuple
-    """
-    i_times = dfl.functions.select_phases_integration_times.INTEGRATION_TIMES
-    return tuple(dsp_utl.pairwise(i_times[cycle_type.upper()]))
 
 
 def calculate_phases_distances(times, phases_integration_times, velocities):
@@ -536,7 +752,7 @@ def calculate_cumulative_co2(
 
     for p in phases_integration_times:
         i, j = np.searchsorted(times, p)
-        co2.append(trapz(co2_emissions[i:j], times[i:j]))
+        co2.append(sci_itg.trapz(co2_emissions[i:j], times[i:j]))
 
     return np.array(co2) / phases_distances
 
@@ -603,8 +819,8 @@ def calculate_extended_integration_times(
     """
 
     lv, pit = velocities <= stop_velocity, phases_integration_times
-    pit = set(chain(*pit))
-    hv = np.logical_not(lv)
+    pit = set(itertools.chain(*pit))
+    hv = ~lv
     j, l, phases = np.argmax(hv), len(lv), []
     while j < l:
         i = np.argmax(lv[j:]) + j
@@ -617,7 +833,7 @@ def calculate_extended_integration_times(
         if t1 - t0 < 20 or any(t0 <= x <= t1 for x in pit):
             continue
 
-        b = np.logical_not(on_engine[i:j])
+        b = ~on_engine[i:j]
         if b.any() and not b.all():
             t = np.median(times[i:j][b])
         else:
@@ -675,10 +891,10 @@ def calculate_extended_cumulative_co2_emissions(
     """
 
     r = co2_normalization_references.copy()
-    r[np.logical_not(on_engine)] = 0
+    r[~on_engine] = 0
     _cco2, phases = [], []
     cco2 = phases_co2_emissions * phases_distances
-
+    trapz = sci_itg.trapz
     for cco2, (t0, t1) in zip(cco2, phases_integration_times):
         i, j = np.searchsorted(times, (t0, t1))
         if i == j:
@@ -751,8 +967,8 @@ def identify_co2_emissions(
     :rtype: numpy.array
     """
 
-    co2_emissions = co2_emissions_model(params_initial_guess)
-
+    co2_emissions = co2_emissions_model(params_initial_guess)[0]
+    trapz = sci_itg.trapz
     for cco2, p in zip(cumulative_co2_emissions, phases_integration_times):
         i, j = np.searchsorted(times, p)
         co2_emissions[i:j] *= cco2 / trapz(co2_emissions[i:j], times[i:j])
@@ -781,8 +997,8 @@ def define_co2_error_function_on_emissions(co2_emissions_model, co2_emissions):
 
     def error_func(params, sub_values=None):
         x = co2_emissions if sub_values is None else co2_emissions[sub_values]
-        y = co2_emissions_model(params, sub_values=sub_values)
-        return mean_absolute_error(x, y)
+        y = co2_emissions_model(params, sub_values=sub_values)[0]
+        return np.mean(np.abs(x - y))
 
     return error_func
 
@@ -834,14 +1050,14 @@ def define_co2_error_function_on_phases(
                 else:
                     w.append(0)
 
-            co2[b] = co2_emissions_model(params, sub_values=b)
+            co2[b] = co2_emissions_model(params, sub_values=b)[0]
         else:
-            co2 = co2_emissions_model(params)
+            co2 = co2_emissions_model(params)[0]
             w = None  # cumulative_co2_emissions
 
         cco2 = calculate_cumulative_co2(
             times, phases_integration_times, co2, phases_distances)
-        return mean_absolute_error(phases_co2_emissions, cco2, w)
+        return sk_met.mean_absolute_error(phases_co2_emissions, cco2, w)
 
     return error_func
 
@@ -971,7 +1187,7 @@ def define_initial_co2_emission_model_params_guess(
     """
 
     bounds = bounds or {}
-    par = dfl.functions.define_initial_co2_emission_model_params_guess
+    par = defaults.dfl.functions.define_initial_co2_emission_model_params_guess
     default = copy.deepcopy(par.CO2_PARAMS)[engine_type]
     default['trg'] = {
         'value': engine_normalization_temperature,
@@ -985,7 +1201,8 @@ def define_initial_co2_emission_model_params_guess(
         default['t1'].update({'value': 0.0, 'vary': False})
 
     p = lmfit.Parameters()
-
+    from ..defaults import dfl
+    EPS = dfl.EPS
     for k, kw in sorted(default.items()):
         kw['name'] = k
         kw['value'] = params.get(k, kw['value'])
@@ -1058,7 +1275,8 @@ def define_tau_function(after_treatment_temperature_threshold):
     :rtype: function
     """
     T_mean, T_end = np.array(after_treatment_temperature_threshold) + 273
-    f = lognorm(np.log(T_end / T_mean) / norm.ppf(0.95), 0, T_mean).cdf
+    s = np.log(T_end / T_mean) / sci_sta.norm.ppf(0.95)
+    f = sci_sta.lognorm(s, 0, T_mean).cdf
 
     def tau_function(t0, t1, temp):
         return t0 - (t1 - t0) * f(temp + 273)
@@ -1142,7 +1360,7 @@ def calibrate_co2_params(
     if not is_cycle_hot:
         i = co2_utl.argmax(engine_coolant_temperatures >= p['trg'].value)
         cold[:i] = True
-    hot = np.logical_not(cold)
+    hot = ~cold
 
     success = [(True, copy.deepcopy(p))]
 
@@ -1171,7 +1389,7 @@ def calibrate_co2_params(
 
     p = restrict_bounds(p)
 
-    p, s = calibrate_model_params(co2_error_function_on_phases, p)
+    p, s = calibrate_model_params(co2_error_function_on_emissions, p)
     success.append((s, copy.deepcopy(p)))
     _set_attr(p, vary)
 
@@ -1193,7 +1411,7 @@ def restrict_bounds(co2_params):
     :rtype: dict
     """
     p = copy.deepcopy(co2_params)
-    m = dfl.functions.restrict_bounds.CO2_PARAMS_LIMIT_MULTIPLIERS
+    m = defaults.dfl.functions.restrict_bounds.CO2_PARAMS_LIMIT_MULTIPLIERS
 
     def _limits(k, v):
         try:
@@ -1393,9 +1611,10 @@ class _Minimizer(lmfit.Minimizer):
 
 def calculate_phases_willans_factors(
         params, engine_fuel_lower_heating_value, engine_stroke, engine_capacity,
-        min_engine_on_speed, times, phases_integration_times, engine_speeds_out,
-        engine_powers_out, velocities, accelerations, motive_powers,
-        engine_coolant_temperatures, missing_powers, angle_slopes):
+        min_engine_on_speed, fmep_model, times, phases_integration_times,
+        engine_speeds_out, engine_powers_out, velocities, accelerations,
+        motive_powers, engine_coolant_temperatures, missing_powers,
+        angle_slopes):
     """
     Calculates the Willans factors for each phase.
 
@@ -1420,6 +1639,10 @@ def calculate_phases_willans_factors(
     :param min_engine_on_speed:
         Minimum engine speed to consider the engine to be on [RPM].
     :type min_engine_on_speed: float
+
+    :param fmep_model:
+        Engine FMEP model.
+    :type fmep_model: FMEP
 
     :param times:
         Time vector [s].
@@ -1498,9 +1721,9 @@ def calculate_phases_willans_factors(
 
         factors.append(calculate_willans_factors(
             params, engine_fuel_lower_heating_value, engine_stroke,
-            engine_capacity, min_engine_on_speed, engine_speeds_out[i:j],
-            engine_powers_out[i:j], times[i:j], velocities[i:j],
-            accelerations[i:j], motive_powers[i:j],
+            engine_capacity, min_engine_on_speed, fmep_model,
+            engine_speeds_out[i:j], engine_powers_out[i:j], times[i:j],
+            velocities[i:j], accelerations[i:j], motive_powers[i:j],
             engine_coolant_temperatures[i:j], missing_powers[i:j],
             angle_slopes[i:j]
         ))
@@ -1510,9 +1733,9 @@ def calculate_phases_willans_factors(
 
 def calculate_willans_factors(
         params, engine_fuel_lower_heating_value, engine_stroke, engine_capacity,
-        min_engine_on_speed, engine_speeds_out, engine_powers_out, times,
-        velocities, accelerations, motive_powers, engine_coolant_temperatures,
-        missing_powers, angle_slopes):
+        min_engine_on_speed, fmep_model, engine_speeds_out, engine_powers_out,
+        times, velocities, accelerations, motive_powers,
+        engine_coolant_temperatures, missing_powers, angle_slopes):
     """
     Calculates the Willans factors.
 
@@ -1537,6 +1760,10 @@ def calculate_willans_factors(
     :param min_engine_on_speed:
         Minimum engine speed to consider the engine to be on [RPM].
     :type min_engine_on_speed: float
+
+    :param fmep_model:
+        Engine FMEP model.
+    :type fmep_model: FMEP
 
     :param engine_speeds_out:
         Engine speed vector [RPM].
@@ -1634,15 +1861,14 @@ def calculate_willans_factors(
         )
         n_s = calculate_mean_piston_speeds(av_s, engine_stroke)
 
-        FMEP = _calculate_fuel_mean_effective_pressure
-        f_mep, wfa = FMEP(p, n_s, n_p, 1)
+        f_mep, wfa = fmep_model(p, n_s, n_p, 1, 0)[:2]
 
         c = engine_capacity / engine_fuel_lower_heating_value * av_s
         fc = f_mep * c / 1200.0
         ieff = av_p / (fc * engine_fuel_lower_heating_value) * 1000.0
 
         willans_a = 3600000.0 / engine_fuel_lower_heating_value / wfa
-        willans_b = FMEP(p, n_s, 0, 1)[0] * c * 3.0
+        willans_b = fmep_model(p, n_s, 0, 1, 0)[0] * c * 3.0
 
         sfc = willans_a + willans_b / av_p
 
@@ -1719,7 +1945,7 @@ def calculate_optimal_efficiency(params, mean_piston_speeds):
 
 
 def _calculate_optimal_point(params, n_speed):
-    A, B, C = _calculate_fuel_ABC(n_speed, 0, 1, **params)
+    A, B, C = _fuel_ABC(n_speed, 0, 1, **params)
     ac4, B2 = 4 * A * C, B ** 2
     sabc = np.sqrt(ac4 * B2)
     n = sabc - ac4
@@ -1849,83 +2075,144 @@ def calculate_phases_fuel_consumptions(
     return tuple(np.asarray(phases_co2_emissions) * c)
 
 
+def default_ki_factor(has_periodically_regenerating_systems):
+    """
+    Returns the default ki factor [-].
+
+    :param has_periodically_regenerating_systems:
+        Does the vehicle has periodically regenerating systems? [-].
+    :type has_periodically_regenerating_systems: bool
+
+    :return:
+        Correction for vehicles with periodically regenerating systems [-].
+    :rtype: float
+    """
+
+    par = defaults.dfl.functions.default_ki_factor.ki_factor
+    return par.get(has_periodically_regenerating_systems, 1.0)
+
+
+def calculate_declared_co2_emission(co2_emission_value, ki_factor):
+    """
+    Calculates the declared CO2 emission of the cycle [CO2g/km].
+
+    :param co2_emission_value:
+        CO2 emission value of the cycle [CO2g/km].
+    :type co2_emission_value: float
+
+    :param ki_factor:
+        Correction for vehicles with periodically regenerating systems [-].
+    :type ki_factor: float
+
+    :return:
+        Declared CO2 emission value of the cycle [CO2g/km].
+    :rtype: float
+    """
+
+    return co2_emission_value * ki_factor
+
+
 def co2_emission():
     """
     Defines the engine CO2 emission sub model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = co2_emission()
+        >>> d = co2_emission()
 
     :return:
         The engine CO2 emission sub model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='Engine CO2 emission sub model',
-        description='Calculates temperature, efficiency, '
-                    'torque loss of gear box'
+        description='Calculates CO2 emission.'
     )
-    dsp.add_data(
+
+    d.add_data(
+        data_id='active_cylinder_ratios',
+        default_value=defaults.dfl.values.active_cylinder_ratios
+    )
+
+    d.add_data(
+        data_id='engine_has_cylinder_deactivation',
+        default_value=defaults.dfl.values.engine_has_cylinder_deactivation
+    )
+
+    d.add_data(
+        data_id='engine_has_variable_valve_actuation',
+        default_value=defaults.dfl.values.engine_has_variable_valve_actuation
+    )
+
+    d.add_function(
+        function=define_fmep_model,
+        inputs=['full_bmep_curve', 'active_cylinder_ratios',
+                'engine_has_cylinder_deactivation',
+                'max_mean_piston_speeds_cylinder_deactivation',
+                'engine_has_variable_valve_actuation'],
+        outputs=['fmep_model']
+    )
+
+    d.add_data(
         data_id='fuel_type'
     )
-    # dsp.add_function(
+    # d.add_function(
     #    function=default_engine_fuel_lower_heating_value,
     #    inputs=['fuel_type'],
     #    outputs=['engine_fuel_lower_heating_value'],
     # )
 
-    # dsp.add_function(
+    # d.add_function(
     #    function=default_fuel_carbon_content,
     #    inputs=['fuel_type'],
     #    outputs=['fuel_carbon_content'],
     #    weight=3
     # )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_fuel_carbon_content_percentage,
         inputs=['fuel_carbon_content'],
         outputs=['fuel_carbon_content_percentage']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_fuel_carbon_content,
         inputs=['fuel_carbon_content_percentage'],
         outputs=['fuel_carbon_content']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_brake_mean_effective_pressures,
         inputs=['engine_speeds_out', 'engine_powers_out', 'engine_capacity',
                 'min_engine_on_speed'],
         outputs=['brake_mean_effective_pressures']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_after_treatment_temperature_threshold,
         inputs=['engine_thermostat_temperature',
                 'initial_engine_temperature'],
         outputs=['after_treatment_temperature_threshold']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=define_tau_function,
         inputs=['after_treatment_temperature_threshold'],
         outputs=['tau_function']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='stop_velocity',
-        default_value=dfl.values.stop_velocity
+        default_value=defaults.dfl.values.stop_velocity
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='min_engine_on_speed',
-        default_value=dfl.values.min_engine_on_speed
+        default_value=defaults.dfl.values.min_engine_on_speed
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_extended_integration_times,
         inputs=['times', 'velocities', 'on_engine', 'phases_integration_times',
                 'engine_coolant_temperatures',
@@ -1933,7 +2220,7 @@ def co2_emission():
         outputs=['extended_integration_times'],
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_extended_cumulative_co2_emissions,
         inputs=['times', 'on_engine', 'extended_integration_times',
                 'co2_normalization_references', 'phases_integration_times',
@@ -1942,56 +2229,71 @@ def co2_emission():
                  'extended_phases_integration_times']
     )
 
-    dsp.add_function(
+    d.add_data(
+        data_id='idle_fuel_consumption_initial_guess',
+        default_value=None,
+        description='Initial guess of fuel consumption '
+                    'at hot idle engine speed [g/s].'
+    )
+
+    d.add_function(
+        function=define_idle_fuel_consumption_model,
+        inputs=['idle_engine_speed', 'engine_capacity', 'engine_stroke',
+                'engine_fuel_lower_heating_value', 'fmep_model',
+                'idle_fuel_consumption_initial_guess'],
+        outputs=['idle_fuel_consumption_model']
+    )
+
+    d.add_function(
+        function=calculate_engine_idle_fuel_consumption,
+        inputs=['idle_fuel_consumption_model', 'co2_params_calibrated'],
+        outputs=['engine_idle_fuel_consumption']
+    )
+
+    d.add_function(
         function=define_co2_emissions_model,
         inputs=['engine_speeds_out', 'engine_powers_out',
                 'mean_piston_speeds', 'brake_mean_effective_pressures',
                 'engine_coolant_temperatures', 'on_engine',
                 'engine_fuel_lower_heating_value', 'idle_engine_speed',
                 'engine_stroke', 'engine_capacity',
-                'engine_idle_fuel_consumption', 'fuel_carbon_content',
-                'min_engine_on_speed', 'tau_function'],
+                'idle_fuel_consumption_model', 'fuel_carbon_content',
+                'min_engine_on_speed', 'tau_function', 'fmep_model'],
         outputs=['co2_emissions_model']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='is_cycle_hot',
-        default_value=dfl.values.is_cycle_hot
+        default_value=defaults.dfl.values.is_cycle_hot
     )
 
-    dsp.add_function(
+    d.add_function(
         function=define_initial_co2_emission_model_params_guess,
         inputs=['co2_params', 'engine_type', 'engine_thermostat_temperature',
                 'engine_thermostat_temperature_window', 'is_cycle_hot'],
         outputs=['co2_params_initial_guess', 'initial_friction_params'],
     )
 
-    dsp.add_function(
-        function=select_phases_integration_times,
-        inputs=['cycle_type'],
-        outputs=['phases_integration_times']
-    )
-
-    dsp.add_function(
+    d.add_function(
         function=calculate_phases_distances,
         inputs=['times', 'phases_integration_times', 'velocities'],
         outputs=['phases_distances']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_phases_distances,
         inputs=['times', 'extended_phases_integration_times', 'velocities'],
         outputs=['extended_phases_distances']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_phases_co2_emissions,
         inputs=['extended_cumulative_co2_emissions',
                 'extended_phases_distances'],
         outputs=['extended_phases_co2_emissions']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=dsp_utl.bypass,
         inputs=['phases_integration_times', 'cumulative_co2_emissions',
                 'phases_distances'],
@@ -2001,13 +2303,13 @@ def co2_emission():
         weight=300
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_cumulative_co2_v1,
         inputs=['phases_co2_emissions', 'phases_distances'],
         outputs=['cumulative_co2_emissions']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=identify_co2_emissions,
         inputs=['co2_emissions_model', 'co2_params_initial_guess', 'times',
                 'extended_phases_integration_times',
@@ -2016,26 +2318,26 @@ def co2_emission():
         weight=5
     )
 
-    dsp.add_function(
+    d.add_function(
         function=dsp_utl.bypass,
         inputs=['co2_emissions'],
         outputs=['identified_co2_emissions']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=define_co2_error_function_on_emissions,
         inputs=['co2_emissions_model', 'identified_co2_emissions'],
         outputs=['co2_error_function_on_emissions']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=define_co2_error_function_on_phases,
         inputs=['co2_emissions_model', 'phases_co2_emissions', 'times',
                 'phases_integration_times', 'phases_distances'],
         outputs=['co2_error_function_on_phases']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calibrate_co2_params,
         inputs=['engine_coolant_temperatures',
                 'co2_error_function_on_emissions',
@@ -2044,25 +2346,25 @@ def co2_emission():
         outputs=['co2_params_calibrated', 'calibration_status']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=define_co2_params_calibrated,
         inputs=['co2_params'],
         outputs=['co2_params_calibrated', 'calibration_status'],
-        input_domain=partial(missing_co2_params, _not=True)
+        input_domain=functools.partial(missing_co2_params, _not=True)
     )
 
-    dsp.add_function(
+    d.add_function(
         function=predict_co2_emissions,
         inputs=['co2_emissions_model', 'co2_params_calibrated'],
-        outputs=['co2_emissions']
+        outputs=['co2_emissions', 'active_cylinders', 'active_variable_valves']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='co2_params',
-        default_value=dfl.values.co2_params.copy()
+        default_value=defaults.dfl.values.co2_params.copy()
     )
 
-    dsp.add_function(
+    d.add_function(
         function_id='calculate_phases_co2_emissions',
         function=calculate_cumulative_co2,
         inputs=['times', 'phases_integration_times', 'co2_emissions',
@@ -2070,39 +2372,56 @@ def co2_emission():
         outputs=['phases_co2_emissions']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_fuel_consumptions,
         inputs=['co2_emissions', 'fuel_carbon_content'],
         outputs=['fuel_consumptions']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_co2_emission,
         inputs=['phases_co2_emissions', 'phases_distances'],
         outputs=['co2_emission_value']
     )
 
-    dsp.add_data(
+    d.add_data(
+        data_id='has_periodically_regenerating_systems',
+        default_value=defaults.dfl.values.has_periodically_regenerating_systems
+    )
+
+    d.add_function(
+        function=default_ki_factor,
+        inputs=['has_periodically_regenerating_systems'],
+        outputs=['ki_factor']
+    )
+
+    d.add_function(
+        function=calculate_declared_co2_emission,
+        inputs=['co2_emission_value', 'ki_factor'],
+        outputs=['declared_co2_emission_value']
+    )
+
+    d.add_data(
         data_id='co2_emission_low',
         description='CO2 emission on low WLTP phase [CO2g/km].'
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='co2_emission_medium',
         description='CO2 emission on medium WLTP phase [CO2g/km].'
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='co2_emission_high',
         description='CO2 emission on high WLTP phase [CO2g/km].'
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='co2_emission_extra_high',
         description='CO2 emission on extra high WLTP phase [CO2g/km].'
     )
 
-    dsp.add_function(
+    d.add_function(
         function_id='merge_wltp_phases_co2_emission',
         function=dsp_utl.bypass,
         inputs=['co2_emission_low', 'co2_emission_medium', 'co2_emission_high',
@@ -2110,54 +2429,54 @@ def co2_emission():
         outputs=['phases_co2_emissions']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='co2_emission_UDC',
         description='CO2 emission on UDC NEDC phase [CO2g/km].'
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='co2_emission_EUDC',
         description='CO2 emission on EUDC NEDC phase [CO2g/km].'
     )
 
-    dsp.add_function(
+    d.add_function(
         function_id='merge_nedc_phases_co2_emission',
         function=dsp_utl.bypass,
         inputs=['co2_emission_UDC', 'co2_emission_EUDC'],
         outputs=['phases_co2_emissions']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='enable_willans',
-        default_value=dfl.values.enable_willans,
+        default_value=defaults.dfl.values.enable_willans,
         description='Enable the calculation of Willans coefficients for '
                     'the cycle?'
     )
 
-    dsp.add_function(
+    d.add_function(
         function=dsp_utl.add_args(calculate_willans_factors),
         inputs=['enable_willans', 'co2_params_calibrated',
                 'engine_fuel_lower_heating_value', 'engine_stroke',
-                'engine_capacity', 'min_engine_on_speed', 'engine_speeds_out',
-                'engine_powers_out', 'times', 'velocities', 'accelerations',
-                'motive_powers', 'engine_coolant_temperatures',
+                'engine_capacity', 'min_engine_on_speed', 'fmep_model',
+                'engine_speeds_out', 'engine_powers_out', 'times', 'velocities',
+                'accelerations', 'motive_powers', 'engine_coolant_temperatures',
                 'missing_powers', 'angle_slopes'],
         outputs=['willans_factors'],
         input_domain=lambda *args: args[0]
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='enable_phases_willans',
-        default_value=dfl.values.enable_phases_willans,
+        default_value=defaults.dfl.values.enable_phases_willans,
         description='Enable the calculation of Willans coefficients for '
                     'all phases?'
     )
 
-    dsp.add_function(
+    d.add_function(
         function=dsp_utl.add_args(calculate_phases_willans_factors),
         inputs=['enable_phases_willans', 'co2_params_calibrated',
                 'engine_fuel_lower_heating_value', 'engine_stroke',
-                'engine_capacity', 'min_engine_on_speed', 'times',
+                'engine_capacity', 'min_engine_on_speed', 'fmep_model', 'times',
                 'phases_integration_times', 'engine_speeds_out',
                 'engine_powers_out', 'velocities', 'accelerations',
                 'motive_powers', 'engine_coolant_temperatures',
@@ -2166,23 +2485,23 @@ def co2_emission():
         input_domain=lambda *args: args[0]
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_optimal_efficiency,
         inputs=['co2_params_calibrated', 'mean_piston_speeds'],
         outputs=['optimal_efficiency']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calibrate_co2_params_v1,
         inputs=['co2_emissions_model', 'fuel_consumptions',
                 'fuel_carbon_content', 'co2_params_initial_guess'],
         outputs=['co2_params_calibrated', 'calibration_status']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_phases_fuel_consumptions,
         inputs=['phases_co2_emissions', 'fuel_carbon_content', 'fuel_density'],
         outputs=['phases_fuel_consumptions']
     )
 
-    return dsp
+    return d

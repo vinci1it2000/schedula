@@ -96,7 +96,8 @@ class TestCreateDispatcher(unittest.TestCase):
 
         self.assertEqual(dsp.add_data(default_value='v'), 'unknown<0>')
         self.assertEqual(dsp.dmap.node['unknown<0>'], {'wait_inputs': False,
-                                                       'type': 'data'})
+                                                       'type': 'data',
+                                                       'index': (3,)})
         r = {'initial_dist': 0.0, 'value': 'v'}
         self.assertEqual(dsp.default_values['unknown<0>'], r)
 
@@ -105,7 +106,8 @@ class TestCreateDispatcher(unittest.TestCase):
 
         dsp.add_data(data_id='a', wait_inputs=False, function=lambda: None,
                      callback=lambda: None, wildcard=True)
-        res = ['callback', 'function', 'wildcard', 'wait_inputs', 'type']
+        res = ['callback', 'function', 'wildcard', 'wait_inputs', 'type',
+               'index']
         self.assertEqual(set(dsp.dmap.node['a'].keys()), set(res))
 
         dsp.add_function(function_id='fun', inputs=['a'])
@@ -145,24 +147,27 @@ class TestCreateDispatcher(unittest.TestCase):
 
         self.assertEqual(fun_id, 'funny_id')
         res = {
-            'a': {'wait_inputs': False, 'type': 'data'},
-            'b': {'wait_inputs': False, 'type': 'data'},
-            'c': {'wait_inputs': False, 'type': 'data'},
-            'd': {'wait_inputs': False, 'type': 'data'},
-            'e': {'wait_inputs': False, 'type': 'data'},
+            'a': {'index': (1,), 'wait_inputs': False, 'type': 'data'},
+            'b': {'index': (2,), 'wait_inputs': False, 'type': 'data'},
+            'c': {'index': (3,), 'wait_inputs': False, 'type': 'data'},
+            'd': {'index': (4,), 'wait_inputs': False, 'type': 'data'},
+            'e': {'index': (7,), 'wait_inputs': False, 'type': 'data'},
             '%s:my_function' % __name__: {
+                'index': (0,),
                 'type': 'function',
                 'inputs': ['a', 'b'],
                 'function': my_function,
                 'outputs': ['c', 'd'],
                 'wait_inputs': True},
             '%s:my_function<0>' % __name__: {
+                'index': (5,),
                 'type': 'function',
                 'inputs': ['a', 'b'],
                 'function': partial_fun,
                 'outputs': ['c', 'd'],
                 'wait_inputs': True},
             'funny_id': {
+                'index': (6,),
                 'type': 'function',
                 'inputs': ['a', 'b'],
                 'function': my_log,
@@ -180,6 +185,7 @@ class TestCreateDispatcher(unittest.TestCase):
         fun_id = dsp.add_function(function_id='funny_id', inputs=['a'])
         self.assertEqual(fun_id, 'funny_id<0>')
         res = {
+            'index': (9,),
             'type': 'function',
             'inputs': ['a'],
             'function': None,
@@ -207,6 +213,7 @@ class TestCreateDispatcher(unittest.TestCase):
         self.assertEqual(dsp_id, sub_dsp.__module__ + ':sub_dispatcher')
         dsp.nodes[dsp_id].pop('function')
         res = {
+            'index': (4,),
             'type': 'dispatcher',
             'inputs': {'d': 'a', 'e': 'b'},
             'outputs': {'e': 'e', 'c': 'd'},
@@ -275,23 +282,30 @@ class TestCreateDispatcher(unittest.TestCase):
         dsp.add_from_lists(data_list, fun_list, dsp_list)
 
         res = {
-            'a': {'wait_inputs': False, 'callback': callback, 'type': 'data'},
-            'b': {'wait_inputs': False, 'type': 'data'},
-            'A': {'wait_inputs': False, 'type': 'data'},
-            'B': {'wait_inputs': False, 'type': 'data'},
-            'C': {'wait_inputs': False, 'type': 'data'},
-            'c': {'wait_inputs': True, 'function': fun, 'type': 'data',
-                  'wildcard': True},
-            '%s:fun1' % __name__: {'inputs': ['a', 'b'],
-                                'wait_inputs': True,
-                                'function': fun1,
-                                'type': 'function',
-                                'outputs': ['c']},
-            'sub-dsp': {'function': dsp.nodes['sub-dsp']['function'],
-                        'outputs': {'c': 'C'},
-                        'inputs': {'A': 'a', 'B': 'b'},
-                        'type': 'dispatcher',
-                        'wait_inputs': False},
+            'a': {'index': (0,), 'wait_inputs': False, 'callback': callback,
+                  'type': 'data'},
+            'b': {'index': (1,), 'wait_inputs': False, 'type': 'data'},
+            'A': {'index': (5,), 'wait_inputs': False, 'type': 'data'},
+            'B': {'index': (6,), 'wait_inputs': False, 'type': 'data'},
+            'C': {'index': (7,), 'wait_inputs': False, 'type': 'data'},
+            'c': {'index': (2,), 'wait_inputs': True, 'function': fun,
+                  'type': 'data', 'wildcard': True},
+            '%s:fun1' % __name__: {
+                'index': (3,),
+                'inputs': ['a', 'b'],
+                'wait_inputs': True,
+                'function': fun1,
+                'type': 'function',
+                'outputs': ['c']
+            },
+            'sub-dsp': {
+                'index': (4,),
+                'function': dsp.nodes['sub-dsp']['function'],
+                'outputs': {'c': 'C'},
+                'inputs': {'A': 'a', 'B': 'b'},
+                'type': 'dispatcher',
+                'wait_inputs': False
+            },
         }
 
         self.assertEqual(dsp.dmap.node, res)
@@ -347,14 +361,17 @@ class TestSubDMap(unittest.TestCase):
         dsp = self.dsp
         sub_dmap = dsp.get_sub_dsp(['a', 'b', 'c', 'max', 'max<0>'])
         res = {
-            'a': {'type': 'data', 'wait_inputs': False},
-            'b': {'type': 'data', 'wait_inputs': True},
-            'c': {'type': 'data', 'wait_inputs': False},
-            'max': {'function': None,
-                    'inputs': ['a', 'b'],
-                    'outputs': ['c'],
-                    'type': 'function',
-                    'wait_inputs': True}
+            'a': {'index': (2,), 'type': 'data', 'wait_inputs': False},
+            'b': {'index': (0,), 'type': 'data', 'wait_inputs': True},
+            'c': {'index': (3,), 'type': 'data', 'wait_inputs': False},
+            'max': {
+                'index': (1,),
+                'function': None,
+                'inputs': ['a', 'b'],
+                'outputs': ['c'],
+                'type': 'function',
+                'wait_inputs': True
+            }
         }
         dfl = {'value': 3, 'initial_dist': 0.0}
         self.assertEqual(sub_dmap.dmap.node, res)
@@ -364,17 +381,7 @@ class TestSubDMap(unittest.TestCase):
         self.assertEqual(sub_dmap.dmap.node, {})
 
         sub_dmap = dsp.get_sub_dsp(['a', 'b', 'c', 'max', 'e'])
-        res = {
-            'a': {'type': 'data', 'wait_inputs': False},
-            'b': {'type': 'data', 'wait_inputs': True},
-            'c': {'type': 'data', 'wait_inputs': False},
-            'max': {'function': None,
-                    'inputs': ['a', 'b'],
-                    'outputs': ['c'],
-                    'type': 'function',
-                    'wait_inputs': True}
-        }
-        dfl = {'value': 3, 'initial_dist': 0.0}
+
         self.assertEqual(sub_dmap.dmap.node, res)
         self.assertEqual(sub_dmap.default_values['b'], dfl)
 
@@ -387,24 +394,26 @@ class TestSubDMap(unittest.TestCase):
 
         sub_dmap = sol.get_sub_dsp_from_workflow(['a', 'b'])
         res = {
-            'd': {'type': 'data', 'wait_inputs': False},
-            'c': {'type': 'data', 'wait_inputs': False},
+            'd': {'index': (5,), 'type': 'data', 'wait_inputs': False},
+            'c': {'index': (3,), 'type': 'data', 'wait_inputs': False},
             'min': {
+                'index': (4,),
                 'type': 'function',
                 'wait_inputs': True,
                 'inputs': ['a', 'c'],
                 'function': None,
                 'outputs': ['d']
             },
-            'a': {'type': 'data', 'wait_inputs': False},
+            'a': {'index': (2,), 'type': 'data', 'wait_inputs': False},
             'max': {
+                'index': (1,),
                 'type': 'function',
                 'wait_inputs': True,
                 'inputs': ['a', 'b'],
                 'function': None,
                 'outputs': ['c']
             },
-            'b': {'type': 'data', 'wait_inputs': True}
+            'b': {'index': (0,), 'type': 'data', 'wait_inputs': True}
         }
         self.assertEqual(sub_dmap.dmap.node, res)
 

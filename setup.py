@@ -47,10 +47,10 @@ def yield_rst_only_markup(lines):
     substs = [
         # Selected Sphinx-only Roles.
         #
-        (r':abbr:`([^`]+)`',        r'\1'),
-        (r':ref:`([^`]+)`',         r'ref: *\1*'),
-        (r':term:`([^`]+)`',        r'**\1**'),
-        (r':dfn:`([^`]+)`',         r'**\1**'),
+        (r':abbr:`([^`]+)`', r'\1'),
+        (r':ref:`([^`]+)`', r'ref: *\1*'),
+        (r':term:`([^`]+)`', r'**\1**'),
+        (r':dfn:`([^`]+)`', r'**\1**'),
         (r':(samp|guilabel|menuselection|doc|file):`([^`]+)`',
                                     r'``\2``'),
 
@@ -74,18 +74,18 @@ def yield_rst_only_markup(lines):
 
         # Sphinx-only Directives.
         #
-        (r'\.\. doctest',           r'code-block'),
-        (r'\.\. plot::',            r'.. '),
-        (r'\.\. seealso',           r'info'),
-        (r'\.\. glossary',          r'rubric'),
-        (r'\.\. figure::',          r'.. '),
-        (r'\.\. image::',           r'.. '),
+        (r'\.\. doctest', r'code-block'),
+        (r'\.\. plot::', r'.. '),
+        (r'\.\. seealso', r'info'),
+        (r'\.\. glossary', r'rubric'),
+        (r'\.\. figure::', r'.. '),
+        (r'\.\. image::', r'.. '),
 
 
         # Other
         #
-        (r'\|version\|',              r'x.x.x'),
-        (r'\.\. include:: AUTHORS',   r'see: AUTHORS'),
+        (r'\|version\|', r'x.x.x'),
+        (r'\.\. include:: AUTHORS', r'see: AUTHORS'),
     ]
 
     regex_subs = [(re.compile(regex, re.IGNORECASE), sub)
@@ -168,7 +168,7 @@ setup(
         'scikit-learn',
         'numpy',
         'scipy',
-        'lmfit>=0.9.2',
+        'lmfit==0.9.2',
         'matplotlib',
         'networkx',
         'dill',
@@ -180,7 +180,7 @@ setup(
         'mpld3',
         'pandalone>=0.1.11', ## For datasync pascha-fixes.
         'regex',
-        'schema',
+        'schema==0.4.0',
         'tqdm',
         'pyyaml',
         'cycler',
@@ -205,6 +205,7 @@ setup(
         'ipynbs/*.ipynb',
         'co2mpas_template.xlsx',
         'datasync_template.xlsx',
+        'co2mpas_output_template.xlsx',
     ]},
     include_package_data=True,
     zip_safe=True,

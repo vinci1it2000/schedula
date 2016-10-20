@@ -39,7 +39,12 @@ class TestDispatcherDraw(unittest.TestCase):
         dom = lambda kw: True
         c = '|!"£$%&/()=?^*+éè[]#¶ù§çò@:;-_.,<>'
         ss_dsp.add_function(function=fun, inputs=['a'], outputs=['b', SINK, c],
-                            input_domain=dom)
+                            input_domain=dom, weight=1)
+
+        def raise_fun(a):
+            raise ValueError('Error')
+
+        ss_dsp.add_function(function=raise_fun, inputs=['a'], outputs=['b'])
 
         sdspfunc = SubDispatchFunction(ss_dsp, 'SubDispatchFunction', ['a'],
                                        ['b', c])
@@ -75,6 +80,9 @@ class TestDispatcherDraw(unittest.TestCase):
         self.assertIsInstance(plt, Digraph)
 
         plt = DspPlot(sol)
+        self.assertIsInstance(plt, Digraph)
+
+        plt = DspPlot(sol, workflow=True)
         self.assertIsInstance(plt, Digraph)
 
         plt = DspPlot(dsp, depth=1)

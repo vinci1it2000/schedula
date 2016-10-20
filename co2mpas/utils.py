@@ -14,13 +14,19 @@ numerical operations.
 """
 
 
-from collections import OrderedDict
+import yaml
+import networkx as nx
+import collections
 import math
-from statistics import median_high
+import statistics
+import inspect
 import sys
-
-import networkx.utils as nxutils
+import scipy.interpolate as sci_itp
+import scipy.misc as sci_misc
+import sklearn.metrics as sk_met
+import co2mpas.dispatcher.utils as dsp_utl
 import numpy as np
+from sklearn.linear_model import RANSACRegressor
 
 
 try:
@@ -38,134 +44,51 @@ __all__ = [
 
 
 class Constants(dict):
-    def __init__(self, *args, **kwargs):
-        super(Constants, self).__init__(*args, **kwargs)
-        self.__dict__ = self
-
-    @nxutils.open_file(1, mode='rb')
+    @nx.utils.open_file(1, mode='rb')
     def load(self, file, **kw):
-        import yaml
-        self.update(yaml.load(file, **kw))
+        self.from_dict(yaml.load(file, **kw))
         return self
 
-    @nxutils.open_file(1, mode='w')
+    @nx.utils.open_file(1, mode='w')
     def dump(self, file, default_flow_style=False, **kw):
-        import yaml
-        yaml.dump(dict(self), file, default_flow_style=default_flow_style, **kw)
+        d = self.to_dict()
+        yaml.dump(d, file, default_flow_style=default_flow_style, **kw)
 
+    def from_dict(self, d):
+        for k, v in sorted(d.items()):
+            if isinstance(v, Constants):
+                o = getattr(self, k, Constants())
+                if isinstance(o, Constants):
+                    v = o.from_dict(v)
+                elif issubclass(o, Constants):
+                    v = o().from_dict(v)
+                if not v:
+                    continue
+            elif hasattr(self, k) and getattr(self, k) == v:
+                continue
+            setattr(self, k, v)
+            self[k] = v
 
-def stack_nested_keys(nested_dict, key=(), depth=-1):
-    """
-    Stacks the keys of nested-dictionaries into tuples and yields a list of
-    k-v pairs.
+        return self
 
-    :param nested_dict:
-        Nested dictionary.
-    :type nested_dict: dict
-
-    :param key:
-        Initial keys.
-    :type key: tuple, optional
-
-    :param depth:
-        Maximum keys depth.
-    :type depth: int, optional
-
-    :return:
-        List of k-v pairs.
-    :rtype: generator
-    """
-
-    if depth != 0 and hasattr(nested_dict, 'items'):
-        for k, v in nested_dict.items():
-            yield from stack_nested_keys(v, key=key + (k,), depth=depth - 1)
-    else:
-        yield key, nested_dict
-
-
-def get_nested_dicts(nested_dict, *keys, default=None):
-    """
-    Get/Initialize the value of nested-dictionaries.
-
-    :param nested_dict:
-        Nested dictionary.
-    :type nested_dict: dict
-
-    :param keys:
-        Nested keys.
-    :type keys: tuple
-
-    :param default:
-        Function used to initialize a new value.
-    :type default: function, optional
-
-    :return:
-        Value of nested-dictionary.
-    :rtype: generator
-    """
-
-    if keys:
-        default = default or dict
-        d = default() if len(keys) == 1 else {}
-        nd = nested_dict[keys[0]] = nested_dict.get(keys[0], d)
-        return get_nested_dicts(nd, *keys[1:], default=default)
-    return nested_dict
-
-
-def are_in_nested_dicts(nested_dict, *keys):
-    """
-    Nested keys are inside of nested-dictionaries.
-
-    :param nested_dict:
-        Nested dictionary.
-    :type nested_dict: dict
-
-    :param keys:
-        Nested keys.
-    :type keys: tuple
-
-    :return:
-        True if nested keys are inside of nested-dictionaries, otherwise False.
-    :rtype: bool
-    """
-
-    if keys:
-        try:
-            return are_in_nested_dicts(nested_dict[keys[0]], *keys[1:])
-        except KeyError:
-            return False
-    return True
-
-
-def combine_nested_dicts(*nested_dicts, depth=-1, base=None):
-    """
-    Merge nested-dictionaries.
-
-    :param nested_dicts:
-        Nested dictionaries.
-    :type nested_dicts: tuple[dict]
-
-    :param depth:
-        Maximum keys depth.
-    :type depth: int, optional
-
-    :param base:
-        Base dict where combine multiple dicts in one.
-    :type base: dict, optional
-
-    :return:
-        Combined nested-dictionary.
-    :rtype: dict
-    """
-
-    if base is None:
-        base = {}
-
-    for nested_dict in nested_dicts:
-        for k, v in stack_nested_keys(nested_dict, depth=depth):
-            get_nested_dicts(base, *k[:-1])[k[-1]] = v
-
-    return base
+    def to_dict(self, base=None):
+        pr = {} if base is None else base
+        s = (set(dir(self)) - set(dir(Constants)))
+        for n in s.union(self.__class__.__dict__.keys()):
+            if n.startswith('__'):
+                continue
+            v = getattr(self, n)
+            if inspect.ismethod(v) or inspect.isbuiltin(v):
+                continue
+            try:
+                if isinstance(v, Constants):
+                    v = v.to_dict(base=Constants())
+                elif issubclass(v, Constants):
+                    v = v.to_dict(v, base=Constants())
+            except TypeError:
+                pass
+            pr[n] = v
+        return pr
 
 
 def argmax(values, **kws):
@@ -210,7 +133,7 @@ def sliding_window(xy, dx_window):
     v = next(it)
     window = []
 
-    for x, _ in xy:
+    for x, y in xy:
         # window limits
         x_dn = x - dx
         x_up = x + dx
@@ -229,7 +152,7 @@ def sliding_window(xy, dx_window):
         yield window
 
 
-def median_filter(x, y, dx_window, filter=median_high):
+def median_filter(x, y, dx_window, filter=statistics.median_high):
     """
     Calculates the moving median-high of y values over a constant dx.
 
@@ -254,7 +177,7 @@ def median_filter(x, y, dx_window, filter=median_high):
     :rtype: numpy.array
     """
 
-    xy = [v for v in zip(x, y)]
+    xy = list(zip(x, y))
     Y = []
     add = Y.append
     for v in sliding_window(xy, dx_window):
@@ -348,12 +271,11 @@ def bin_split(x, bin_std=(0.01, 0.1), n_min=None, bins_min=None):
         Bins and their statistics.
     :rtype: (list, list)
     """
-    import co2mpas.dispatcher.utils as dsp_utl
 
     x = np.asarray(x)
-    edges = [x.min(), x.max() + sys.float_info.epsilon * 2]
+    edges = [x.min(), x.max() + sys.float_info.epsilon * 2]  # initial edge.
 
-    max_bin_size = edges[1] - edges[0]
+    max_bin_size = edges[1] - edges[0]  #
     min_bin_size = max_bin_size / len(x)
     if n_min is None:
         n_min = math.sqrt(len(x))
@@ -400,7 +322,8 @@ def bin_split(x, bin_std=(0.01, 0.1), n_min=None, bins_min=None):
     bin_stats = sorted(bin_stats)
 
     def _bin_merge(x, edges, bin_stats):
-        bins = OrderedDict(enumerate(zip(dsp_utl.pairwise(edges), bin_stats)))
+        bins = collections.OrderedDict(enumerate(zip(dsp_utl.pairwise(edges),
+                                                     bin_stats)))
         new_edges = [edges[0]]
         new_bin_stats = []
 
@@ -442,10 +365,8 @@ def interpolate_cloud(x, y):
 
     :return:
         A function that interpolate a cloud of points.
-    :rtype: scp_interp.InterpolatedUnivariateSpline
+    :rtype: scipy.interpolate.InterpolatedUnivariateSpline
     """
-    import co2mpas.dispatcher.utils as dsp_utl
-    from scipy.interpolate import InterpolatedUnivariateSpline
 
     p = np.asarray(x)
     v = np.asarray(y)
@@ -466,7 +387,7 @@ def interpolate_cloud(x, y):
     else:
         x, y = ([0, 1], [np.mean(y)] * 2)
 
-    return InterpolatedUnivariateSpline(x, y, k=1)
+    return sci_itp.InterpolatedUnivariateSpline(x, y, k=1)
 
 
 def clear_fluctuations(times, gears, dt_window):
@@ -496,16 +417,16 @@ def clear_fluctuations(times, gears, dt_window):
 
         up, dn = False, False
 
-        _, y = zip(*samples)
+        x, y = zip(*samples)
 
-        for d in np.diff(y):
+        for k, d in enumerate(np.diff(y)):
             if d > 0:
                 up = True
             elif d < 0:
                 dn = True
 
             if up and dn:
-                m = median_high(y)
+                m = statistics.median_high(y)
                 for v in samples:
                     v[1] = m
                 break
@@ -514,8 +435,7 @@ def clear_fluctuations(times, gears, dt_window):
 
 
 def _err(v, y1, y2, r, l):
-    from sklearn.metrics import mean_absolute_error
-    return mean_absolute_error(_ys(y1, v) + _ys(y2, l - v), r)
+    return sk_met.mean_absolute_error(_ys(y1, v) + _ys(y2, l - v), r)
 
 
 def _ys(y, n):
@@ -538,9 +458,21 @@ def derivative(x, y, dx=1, order=3, k=1):
     :param k:
     :return:
     """
-    from scipy.misc import derivative as scipy_derivative
-    from scipy.interpolate import InterpolatedUnivariateSpline
+    func = sci_itp.InterpolatedUnivariateSpline(x, y, k=k)
 
-    func = InterpolatedUnivariateSpline(x, y, k=k)
+    return sci_misc.derivative(func, x, dx=dx, order=order)
 
-    return scipy_derivative(func, x, dx=dx, order=order)
+
+class SafeRANSACRegressor(RANSACRegressor):
+    def fit(self, X, y, **kwargs):
+        try:
+            return super(SafeRANSACRegressor, self).fit(X, y, **kwargs)
+        except ValueError as ex:
+            if self.residual_threshold is None:
+                rt = np.median(np.abs(y - np.median(y)))
+                self.residual_threshold = rt + np.finfo(np.float32).eps * 10
+                res = super(SafeRANSACRegressor, self).fit(X, y, **kwargs)
+                self.residual_threshold = None
+                return res
+            else:
+                raise ex

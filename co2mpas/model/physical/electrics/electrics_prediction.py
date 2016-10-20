@@ -9,7 +9,7 @@
 It contains functions to predict the electrics of the vehicle.
 """
 
-from co2mpas.dispatcher import Dispatcher
+import co2mpas.dispatcher as dsp
 import co2mpas.dispatcher.utils as dsp_utl
 
 
@@ -242,49 +242,48 @@ def _predict_electrics(
         gear_box_power_in, acceleration, time, on_engine, engine_start,
         prev_alternator_status, prev_battery_current, battery_state_of_charge):
 
-    alternator_status = predict_alternator_status(
+    alt_status = predict_alternator_status(
         alternator_status_model, time, prev_alternator_status,
         battery_state_of_charge, gear_box_power_in)
 
     engine_start_current = calculate_engine_start_current(
         engine_start, start_demand, alternator_nominal_voltage, delta_time)
 
-    alternator_current = calculate_alternator_current(
-        alternator_status, on_engine, gear_box_power_in, max_alternator_current,
+    alt_current = calculate_alternator_current(
+        alt_status, on_engine, gear_box_power_in, max_alternator_current,
         alternator_current_model, engine_start_current,
         battery_state_of_charge, acceleration, time)
 
     battery_current = calculate_battery_current(
-        electric_load, alternator_current, alternator_nominal_voltage,
+        electric_load, alt_current, alternator_nominal_voltage,
         on_engine, max_battery_charging_current)
 
     battery_state_of_charge = calculate_battery_state_of_charge(
         battery_state_of_charge, battery_capacity,
         delta_time, battery_current, prev_battery_current)
 
-    return alternator_current, alternator_status, battery_current, \
-           battery_state_of_charge
+    return alt_current, alt_status, battery_current, battery_state_of_charge
 
 
 def electrics_prediction():
     """
     Defines the electric sub model to predict the alternator loads.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = electrics_prediction()
+        >>> d = electrics_prediction()
 
     :return:
         The electric sub model.
     :rtype: SubDispatchPipe
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='Electric sub model',
         description='Electric sub model to predict the alternator loads'
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_battery_current,
         inputs=['electric_load', 'alternator_current',
                 'alternator_nominal_voltage', 'on_engine',
@@ -292,7 +291,7 @@ def electrics_prediction():
         outputs=['battery_current']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_alternator_current,
         inputs=['alternator_status', 'on_engine', 'gear_box_power_in',
                 'max_alternator_current', 'alternator_current_model',
@@ -300,21 +299,21 @@ def electrics_prediction():
         outputs=['alternator_current']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_battery_state_of_charge,
         inputs=['battery_state_of_charge', 'battery_capacity', 'delta_time',
                 'battery_current', 'prev_battery_current'],
         outputs=['battery_state_of_charge']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=predict_alternator_status,
         inputs=['alternator_status_model', 'prev_alternator_status',
                 'battery_state_of_charge', 'gear_box_power_in'],
         outputs=['alternator_status']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_engine_start_current,
         inputs=['engine_start', 'start_demand', 'alternator_nominal_voltage',
                 'delta_time'],
@@ -322,7 +321,7 @@ def electrics_prediction():
     )
 
     func = dsp_utl.SubDispatchPipe(
-        dsp=dsp,
+        dsp=d,
         function_id='electric_sub_model',
         inputs=['battery_capacity', 'alternator_status_model',
                 'max_alternator_current', 'alternator_current_model',

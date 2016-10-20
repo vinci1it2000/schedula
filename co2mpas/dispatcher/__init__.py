@@ -22,29 +22,25 @@ Modules:
     utils
 """
 
-__author__ = 'Vincenzo Arcidiacono'
-
 import logging
 from collections import deque
 from copy import copy, deepcopy
-
-from networkx import DiGraph, isolates
-
 from .utils.sol import Solution
 from .utils.alg import rm_cycles_iter, get_unused_node_id, add_func_edges, \
     get_sub_node, _children, stlp, _update_io_attr_sub_dsp,\
     _update_remote_links, remove_links, _union_workflow, _convert_bfs
-from .utils.cst import EMPTY, START, NONE, SINK, SELF
+from .utils.cst import EMPTY, START, NONE, SINK, SELF, PLOT
 from .utils.des import parent_func
-from .utils.drw import DspPlot
+from .utils.drw import DspPlot, autoplot_callback, autoplot_function
 from .utils.dsp import SubDispatch, bypass, combine_dicts, selector
-from .utils.gen import caller_name
+from .utils.gen import caller_name, counter
 from .utils.web import create_flask_app
 from .utils.cel import create_celery_app
 
 log = logging.getLogger(__name__)
 
 __all__ = ['Dispatcher']
+__author__ = 'Vincenzo Arcidiacono'
 
 
 class Dispatcher(object):
@@ -162,13 +158,13 @@ class Dispatcher(object):
         return isinstance(other, Dispatcher) and id(other) < id(self)
 
     def __init__(self, dmap=None, name='', default_values=None, raises=False,
-                 description=''):
+                 description='', caller=None):
         """
         Initializes the dispatcher.
 
         :param dmap:
             A directed graph that stores data & functions parameters.
-        :type dmap: DiGraph, optional
+        :type dmap: networkx.DiGraph, optional
 
         :param name:
             The dispatcher's name.
@@ -188,7 +184,7 @@ class Dispatcher(object):
             The dispatcher's description.
         :type description: str, optional
         """
-
+        from networkx import DiGraph
         #: The directed graph that stores data & functions parameters.
         self.dmap = dmap if dmap else DiGraph()
 
@@ -211,13 +207,15 @@ class Dispatcher(object):
         #: If True the dispatcher interrupt the dispatch when an error occur.
         self.raises = raises
 
-        self.__module__ = caller_name()  # Set as who calls my caller.
+        self.__module__ = caller or caller_name()  # Set as who calls my caller.
 
         #: Parent dispatcher.
         self._parent = None
 
         #: Last dispatch solution.
         self.solution = Solution(self)
+
+        self.counter = counter()
 
     def add_data(self, data_id=None, default_value=EMPTY, initial_dist=0.0,
                  wait_inputs=False, wildcard=None, function=None, callback=None,
@@ -343,9 +341,16 @@ class Dispatcher(object):
             wait_inputs, function, description = True, bypass, SINK.__doc__
         elif data_id is SELF:
             default_value, description = self, SELF.__doc__
+        elif data_id is PLOT:
+            callback, description = callback or autoplot_callback, PLOT.__doc__
+            function = function or autoplot_function
 
         # Base data node attributes.
-        attr_dict = {'type': 'data', 'wait_inputs': wait_inputs}
+        attr_dict = {
+            'type': 'data',
+            'wait_inputs': wait_inputs,
+            'index': (self.counter(),)
+        }
 
         if function is not None:  # Add function as node attribute.
             attr_dict['function'] = function
@@ -506,11 +511,14 @@ class Dispatcher(object):
             func = parent_func(function)
 
         # Base function node attributes.
-        attr_dict = {'type': 'function',
-                     'inputs': inputs,
-                     'outputs': outputs,
-                     'function': function,
-                     'wait_inputs': True}
+        attr_dict = {
+            'type': 'function',
+            'inputs': inputs,
+            'outputs': outputs,
+            'function': function,
+            'wait_inputs': True,
+            'index': (self.counter(),)
+        }
 
         if input_domain:  # Add domain as node attribute. [ank:] So is this what you 're doing here??
             attr_dict['input_domain'] = input_domain
@@ -675,9 +683,12 @@ class Dispatcher(object):
 
         # Return dispatcher node id.
         dsp_id = self.add_function(
-                dsp_id, dsp, inputs, parents, input_domain, weight,
-                _weight_from, type='dispatcher', description=description,
-                wait_inputs=False, **kwargs)
+            dsp_id, dsp, sorted(inputs), sorted(parents), input_domain, weight,
+            _weight_from, type='dispatcher', description=description,
+            wait_inputs=False, **kwargs)
+
+        # Set proper inputs.
+        self.nodes[dsp_id]['inputs'] = inputs
 
         # Set proper outputs.
         self.nodes[dsp_id]['outputs'] = outputs
@@ -707,7 +718,7 @@ class Dispatcher(object):
                 else:
                     if v[0] in dsp_dfl:
                         self.set_default_value(k, **dsp_dfl.pop(v[0]))
-                    remove.update(v[1:])
+                        remove.update(v[1:])
 
             # Remove default values.
             for k in remove:
@@ -1002,6 +1013,7 @@ class Dispatcher(object):
             if not dmap_out_degree(u):  # No outputs.
                 dmap_rm_node(u)  # Remove function node.
 
+        from networkx import isolates
         # Remove isolate nodes from sub-graph.
         sub_dsp.dmap.remove_nodes_from(isolates(sub_dsp.dmap))
 
@@ -1026,7 +1038,7 @@ class Dispatcher(object):
 
         :param graph:
             A directed graph where evaluate the breadth-first-search.
-        :type graph: DiGraph, optional
+        :type graph: networkx.DiGraph, optional
 
         :param reverse:
             If True the workflow graph is assumed as reversed.
@@ -1688,6 +1700,14 @@ class Dispatcher(object):
             workflow.
         :type rm_unused_nds: bool, optional
 
+        :param select_output_kw:
+            Kwargs of selector function to select specific outputs.
+        :type select_output_kw: dict, optional
+
+        :param _wait_in:
+            Override wait inputs.
+        :type _wait_in: dict, optional
+
         :return:
             Dictionary of estimated data node outputs.
         :rtype: Result[str, T]
@@ -1780,15 +1800,6 @@ class Dispatcher(object):
         # dispatch
         sol.run()
         sol.sub_dsp[self] = sol.sub_dsp.pop(dsp)
-
-        # Nodes that are out of the dispatcher nodes.
-        out_dsp_nodes = set(sol.inputs).difference(dsp.nodes)
-
-        if out_dsp_nodes:  # Add nodes that are out of the dispatcher nodes.
-            if no_call:
-                sol.update({k: None for k in out_dsp_nodes})
-            else:
-                sol.update({k: inputs[k] for k in out_dsp_nodes})
 
         if select_output_kw:
             return selector(dictionary=sol, **select_output_kw)
@@ -1886,7 +1897,8 @@ class Dispatcher(object):
 
         bfs = None
         if inputs:
-            wait_in = self._get_wait_in(flag=False)  # Get all data nodes no wait inputs.
+            # Get all data nodes no wait inputs.
+            wait_in = self._get_wait_in(flag=False)
 
             # Evaluate the workflow graph without invoking functions.
             o = self.dispatch(
@@ -1946,7 +1958,7 @@ class Dispatcher(object):
         :param bfs_graphs:
             A dictionary with directed graphs where evaluate the
             breadth-first-search.
-        :type bfs_graphs: dict[str | Token, DiGraph | dict], optional
+        :type bfs_graphs: dict[str | Token, networkx.DiGraph | dict], optional
 
         :return:
             A sub-dispatcher
@@ -2032,7 +2044,7 @@ class Dispatcher(object):
 
         wait_in = {}
 
-        if flag is None: # No set.
+        if flag is None:  # No set.
             for a in self.sub_dsp_nodes.values():
                 if 'function' in a:
                     a['function']._get_wait_in(flag=flag)

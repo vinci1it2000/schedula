@@ -22,23 +22,17 @@ Sub-Modules:
 
 """
 
-from co2mpas.dispatcher import Dispatcher
+import co2mpas.dispatcher as dsp
 import co2mpas.dispatcher.utils as dsp_utl
 import numpy as np
 
 
 def is_nedc(kwargs):
-    for k, v in kwargs.items():
-        if ':cycle_type' in k or 'cycle_type' == k:
-            return v == 'NEDC'
-    return False
+    return kwargs['cycle_type'] == 'NEDC'
 
 
 def is_wltp(kwargs):
-    for k, v in kwargs.items():
-        if ':cycle_type' in k or 'cycle_type' == k:
-            return v == 'WLTP'
-    return False
+    return kwargs['cycle_type'] == 'WLTP'
 
 
 def cycle_times(frequency, time_length):
@@ -82,26 +76,72 @@ def calculate_time_length(frequency, max_time):
     return np.floor(max_time * frequency) + 1
 
 
+def select_phases_integration_times(cycle_type):
+    """
+    Selects the cycle phases integration times [s].
+
+    :param cycle_type:
+        Cycle type (WLTP or NEDC).
+    :type cycle_type: str
+
+    :return:
+        Cycle phases integration times [s].
+    :rtype: tuple
+    """
+
+    from ..defaults import dfl
+    v = dfl.functions.select_phases_integration_times.INTEGRATION_TIMES
+    return tuple(dsp_utl.pairwise(v[cycle_type.upper()]))
+
+
+def _extract_indices(bag_phases):
+    pit, bag_phases = [], np.asarray(bag_phases)
+    for bf in np.unique(bag_phases):
+        i = np.where(bf == bag_phases)
+        pit.append((i.min(), i.max() + 1))
+    return sorted(pit)
+
+
+def extract_phases_integration_times(times, bag_phases):
+    """
+    Extracts the cycle phases integration times [s] from bag phases vector.
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
+
+    :param bag_phases:
+        Bag phases [-].
+    :type bag_phases: numpy.array
+
+    :return:
+        Cycle phases integration times [s].
+    :rtype: tuple
+    """
+
+    return tuple((times[i], times[j]) for i, j in _extract_indices(bag_phases))
+
+
 def cycle():
     """
     Defines the cycle model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = cycle()
+        >>> d = cycle()
 
     :return:
         The cycle model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='Cycle model',
         description='Returns the theoretical times, velocities, and gears.'
     )
 
     from .NEDC import nedc_cycle
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         include_defaults=True,
         dsp=nedc_cycle(),
         inputs={
@@ -125,7 +165,7 @@ def cycle():
     )
 
     from .WLTP import wltp_cycle
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         include_defaults=True,
         dsp=wltp_cycle(),
         inputs={
@@ -164,29 +204,42 @@ def cycle():
         input_domain=is_wltp
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_time_length,
         inputs=['time_sample_frequency', 'max_time'],
         outputs=['time_length']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=cycle_times,
         inputs=['time_sample_frequency', 'time_length'],
         outputs=['times']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=len,
         inputs=['velocities'],
         outputs=['time_length']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=len,
         inputs=['gears'],
         outputs=['time_length'],
         weight=1
     )
 
-    return dsp
+    d.add_function(
+        function=extract_phases_integration_times,
+        inputs=['times', 'bag_phases'],
+        outputs=['phases_integration_times']
+    )
+
+    d.add_function(
+        function=select_phases_integration_times,
+        inputs=['cycle_type'],
+        outputs=['phases_integration_times'],
+        weight=10
+    )
+
+    return d

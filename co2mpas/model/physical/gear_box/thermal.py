@@ -10,9 +10,8 @@ It contains functions to calculate torque losses and the gear box temperature.
 """
 
 import co2mpas.dispatcher.utils as dsp_utl
-from co2mpas.dispatcher import Dispatcher
-from math import pi
-from ..defaults import dfl
+import co2mpas.dispatcher as dsp
+import math
 
 
 def evaluate_gear_box_torque_in(
@@ -169,7 +168,7 @@ def calculate_gear_box_efficiency(
         eff = 1
     else:
         s_in = gear_box_speed_in
-        eff = s_in * gear_box_torque_in / gear_box_power_out * (pi / 30000)
+        eff = s_in * gear_box_torque_in / gear_box_power_out * (math.pi / 30000)
         eff = 1 / eff if gear_box_power_out > 0 else eff
 
     return max(0, min(1, eff))
@@ -235,27 +234,28 @@ def thermal():
     """
     Defines the gear box thermal sub model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = thermal()
+        >>> d = thermal()
 
     :return:
         The gear box thermal sub model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='Gear box thermal sub model',
         description='Calculates temperature, efficiency, '
                     'torque loss of gear box'
     )
 
-    dsp.add_data(
+    from ..defaults import dfl
+    d.add_data(
         data_id='gear_box_temperature_references',
         default_value=dfl.values.gear_box_temperature_references
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_gear_box_torque_in,
         inputs=['gear_box_torque_out', 'gear_box_speed_in',
                 'gear_box_speed_out', 'gear_box_temperature',
@@ -264,38 +264,38 @@ def thermal():
         outputs=['gear_box_torque_in<0>']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=correct_gear_box_torque_in,
         inputs=['gear_box_torque_out', 'gear_box_torque_in<0>', 'gear',
                 'gear_box_ratios'],
         outputs=['gear_box_torque_in']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=dsp_utl.bypass,
         inputs=['gear_box_torque_in<0>'],
         outputs=['gear_box_torque_in'],
         weight=100,
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_gear_box_efficiency,
         inputs=['gear_box_power_out', 'gear_box_speed_in',
                 'gear_box_torque_out', 'gear_box_torque_in'],
         outputs=['gear_box_efficiency'],
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_gear_box_heat,
         inputs=['gear_box_efficiency', 'gear_box_power_out'],
         outputs=['gear_box_heat']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_gear_box_temperature,
         inputs=['gear_box_heat', 'gear_box_temperature',
                 'equivalent_gear_box_heat_capacity', 'thermostat_temperature'],
         outputs=['gear_box_temperature']
     )
 
-    return dsp
+    return d

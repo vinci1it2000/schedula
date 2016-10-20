@@ -12,14 +12,14 @@ It provides CO2MPAS schema parse/validator.
 import logging
 from collections import Iterable, OrderedDict
 import numpy as np
-import pandas as pd
 from lmfit import Parameters, Parameter
 from schema import Schema, Use, And, Or, Optional, SchemaError
 from sklearn.tree import DecisionTreeClassifier
-from pprint import pformat
+import pprint
 import co2mpas.dispatcher.utils as dsp_utl
-import co2mpas.utils as co2_utl
-from .validations import hard_validation
+from . import validations
+from . import excel
+import cachetools
 from co2mpas.model.physical.gear_box.at_gear import CMV, MVL, GSPV
 from co2mpas.model.physical.clutch_tc.clutch import Clutch
 from co2mpas.model.physical.clutch_tc.torque_converter import TorqueConverter
@@ -29,63 +29,94 @@ from co2mpas.model.physical.engine.thermal import ThermalModel
 log = logging.getLogger(__name__)
 
 
-def validate_data(data, soft_validation, read_schema=None):
-    plan = validate_plan(data.get('plan', pd.DataFrame([])), read_schema)
+def check_data_version(data):
+    from co2mpas._version import __input_file_version__
+    data = list(data.values())[0]
+    for k, v in data.items():
+        if not k.startswith('input.'):
+            continue
+        if 'VERSION' in v:
+            v, rv = v['VERSION'], tuple(__input_file_version__.split('.'))
 
-    inputs = validate_inputs(data.get('base', {}), soft_validation, read_schema)
-    if inputs is not dsp_utl.NONE:
-        inputs = {'.'.join(k): v
-                  for k, v in co2_utl.stack_nested_keys(inputs, depth=3)}
+            if tuple(v.split('.')) >= rv:
+                break
 
-    return inputs, plan
+            msg = "\n  Input file version %s. Please update your input " \
+                  "file with a version >= %s."
+            log.warning(msg, v, __input_file_version__)
+            break
+    else:
+        msg = "\n  Input file version not found. Please update your input " \
+              "file with a version >= %s."
+        log.error(msg, __input_file_version__)
 
 
-def validate_inputs(data, soft_validation=False, read_schema=None):
-    res, errors, validate = {}, {}, read_schema.validate
-    for k, v in sorted(co2_utl.stack_nested_keys(data, depth=4)):
-        d = co2_utl.get_nested_dicts(res, *k[:-1])
-        _add_validated_input(d, validate, k, v, errors)
-
-    if not soft_validation:
-        for k, v in co2_utl.stack_nested_keys(res, depth=3):
-            for c, msg in hard_validation(v):
-                co2_utl.get_nested_dicts(errors, *k)[c] = SchemaError([], [msg])
+def _ta_mode(data):
+    base, errors = _validate_base_with_schema(data.get('base', {}))
 
     if _log_errors_msg(errors):
-        return dsp_utl.NONE
+        return False
 
-    return res
+    data['base'], _, diff = _extract_declaration_data(base, {})
 
+    for k in ('plan', 'flag'):
+        diff.update((k,) + tuple(j.split('.')) for j in data.pop(k, {}))
 
-def _add_validated_input(data, validate, keys, value, errors):
-    try:
-        k, v = next(iter(validate({keys[-1]: value}).items()))
-        if v is not dsp_utl.NONE:
-            data[k] = v
-    except SchemaError as ex:
-        co2_utl.get_nested_dicts(errors, *keys[:-1])[keys[-1]] = ex
-
-
-def _log_errors_msg(errors):
-    if errors:
-        msg = ['\nInput cannot be parsed, due to:']
-        for k, v in co2_utl.stack_nested_keys(errors, depth=4):
-            msg.append('{} in {}: {}'.format(k[-1], '/'.join(k[:-1]), v))
-        log.error('\n  '.join(msg))
-        return True
-    return False
+    if diff:
+        diff = ['.'.join(k) for k in sorted(diff)]
+        log.info('Since CO2MPAS is launched in declaration mode the '
+                 'following data cannot be used:\n %s\n'
+                 'If you want to include these data use the cmd batch.',
+                 ',\n'.join(diff))
+    return True
 
 
-def validate_plan(plan, read_schema=None):
+def _extract_declaration_data(inputs, errors):
+    diff = set()
+    inputs = validations.select_declaration_data(inputs, diff)
+    errors = validations.select_declaration_data(errors)
+    return inputs, errors, diff
+
+
+def _eng_mode_parser(engineering_mode, use_selector, inputs, errors):
+    if int(engineering_mode) <= validations.DECLARATION:
+        inputs, errors, diff = _extract_declaration_data(inputs, errors)
+        if diff:
+            diff = ['.'.join(k) for k in sorted(diff)]
+            log.info('Since CO2MPAS is launched in declaration mode the '
+                     'following data are not used:\n %s\n'
+                     'If you want to include these data add to the batch cmd '
+                     '-D engineering_mode=1 or -D engineering_mode=2',
+                     ',\n'.join(diff))
+
+    if not use_selector:
+        inputs = validations.overwrite_declaration_config_data(inputs)
+
+    if int(engineering_mode) <= validations.HARD:
+        for k, v in dsp_utl.stack_nested_keys(inputs, depth=3):
+            for c, msg in validations.hard_validation(v):
+                dsp_utl.get_nested_dicts(errors, *k)[c] = SchemaError([], [msg])
+
+    return inputs, errors
+
+
+def validate_plan(plan, engineering_mode, use_selector):
+    read_schema = define_data_schema(read=True)
     validated_plan, errors, validate = [], {}, read_schema.validate
     for i, data in plan.iterrows():
-        inputs = {}
+        inputs, inp = {}, {}
         data.dropna(how='all', inplace=True)
         plan_id = 'plan id:{}'.format(i[0])
-        for k, v in data.items():
-            k = (plan_id,) + tuple(k.split('.'))
-            d = co2_utl.get_nested_dicts(inputs, '.'.join(k[1:-1]))
-            _add_validated_input(d, validate, k, v, errors)
+        for k, v in excel._parse_values(data):
+            if k[0] == 'base':
+                d = dsp_utl.get_nested_dicts(inp, *k[1:-1])
+                v = _add_validated_input(d, validate, (plan_id,) + k, v, errors)
+
+            if v is not dsp_utl.NONE:
+                inputs[k] = v
+
+        errors = _eng_mode_parser(engineering_mode, use_selector, inp,
+                                  errors)[1]
 
         validated_plan.append((i, inputs))
 
@@ -93,6 +124,48 @@ def validate_plan(plan, read_schema=None):
         return dsp_utl.NONE
 
     return validated_plan
+
+
+def _validate_base_with_schema(data):
+    read_schema = define_data_schema(read=True)
+    inputs, errors, validate = {}, {}, read_schema.validate
+    for k, v in sorted(dsp_utl.stack_nested_keys(data, depth=4)):
+        d = dsp_utl.get_nested_dicts(inputs, *k[:-1])
+        _add_validated_input(d, validate, k, v, errors)
+
+    return inputs, errors
+
+
+def validate_base(data, engineering_mode, use_selector):
+    i, e = _validate_base_with_schema(data)
+
+    i, e = _eng_mode_parser(engineering_mode, use_selector, i, e)
+
+    if _log_errors_msg(e):
+        return dsp_utl.NONE
+
+    return {'.'.join(k): v for k, v in dsp_utl.stack_nested_keys(i, depth=3)}
+
+
+def _add_validated_input(data, validate, keys, value, errors):
+    try:
+        k, v = next(iter(validate({keys[-1]: value}).items()))
+        if v is not dsp_utl.NONE:
+            data[k] = v
+            return v
+    except SchemaError as ex:
+        dsp_utl.get_nested_dicts(errors, *keys[:-1])[keys[-1]] = ex
+    return dsp_utl.NONE
+
+
+def _log_errors_msg(errors):
+    if errors:
+        msg = ['\nInput cannot be parsed, due to:']
+        for k, v in dsp_utl.stack_nested_keys(errors, depth=4):
+            msg.append('{} in {}: {}'.format(k[-1], '/'.join(k[:-1]), v))
+        log.error('\n  '.join(msg))
+        return True
+    return False
 
 
 class Empty(object):
@@ -144,9 +217,9 @@ def _check_positive(x):
 
 
 # noinspection PyUnusedLocal
-def _positive(type=float, error=None, **kwargs):
+def _positive(type=float, error=None, check=_check_positive, **kwargs):
     error = error or 'should be as {} and positive!'.format(type)
-    return And(Use(type), _check_positive, error=error)
+    return And(Use(type), check, error=error)
 
 
 # noinspection PyUnusedLocal
@@ -162,6 +235,7 @@ def _limits(limits=(0, 100), error=None, **kwargs):
 # noinspection PyUnusedLocal
 def _eval(s, error=None, **kwargs):
     error = error or 'cannot be eval!'
+
     def _eval(x):
         return eval(x)
     return Or(And(str, Use(_eval), s), s, error=error)
@@ -175,7 +249,7 @@ def _dict(format=None, error=None, read=True, **kwargs):
     if read:
         return _eval(Or(Empty(), And(c, Or(Empty(), format))), error=error)
     else:
-        return And(_dict(format=format, error=error), Use(pformat))
+        return And(_dict(format=format, error=error), Use(pprint.pformat))
 
 
 # noinspection PyUnusedLocal
@@ -187,7 +261,7 @@ def _ordict(format=None, error=None, read=True, **kwargs):
     if read:
         return _eval(Or(Empty(), And(c, Or(Empty(), format))), error=error)
     else:
-        return And(_dict(format=format, error=error), Use(pformat))
+        return And(_dict(format=format, error=error), Use(pprint.pformat))
 
 
 def _check_length(length):
@@ -235,6 +309,32 @@ def _np_array(dtype=None, error=None, read=True, **kwargs):
         return Or(And(str, _eval(c)), c, And(_type(), c), Empty(), error=error)
     else:
         return And(_np_array(dtype=dtype), Use(lambda x: x.tolist()),
+                   error=error)
+
+
+def _check_np_array_positive(x):
+    """
+
+    :param x:
+        Array.
+    :type x: numpy.array
+    :return:
+    """
+    return (x >= 0).all()
+
+
+# noinspection PyUnusedLocal
+def _np_array_positive(dtype=None, error=None, read=True,
+                       check=_check_np_array_positive, **kwargs):
+    dtype = dtype or float
+    error = error or 'cannot be parsed because it should be an ' \
+                     'np.array dtype={} and positive!'.format(dtype)
+    if read:
+        c = And(Use(lambda x: np.asarray(x, dtype=dtype)), check)
+        return Or(And(str, _eval(c)), c, And(_type(), c), Empty(),
+                  error=error)
+    else:
+        return And(_np_array_positive(dtype=dtype), Use(lambda x: x.tolist()),
                    error=error)
 
 
@@ -307,16 +407,40 @@ def _tyre_dimensions(error=None, **kwargs):
     return And(_dict(format=dict), Use(_format_tyre_dimensions), error=error)
 
 
+def _bag_phases(error=None, read=True, **kwargs):
+    from ..model.physical.cycle import _extract_indices
+
+    def check(x):
+        it = dsp_utl.pairwise(_extract_indices(x))
+        return all(i[-1] <= j[0] for i, j in it)
+    er = 'Phases must be separated!'
+    return And(_np_array(read=read), Schema(check, error=er), error=error)
+
+
+@cachetools.cached({})
 def define_data_schema(read=True):
     cmv = _cmv(read=read)
     dtc = _dtc(read=read)
     gspv = _gspv(read=read)
     string = _string(read=read)
     positive = _positive(read=read)
+    greater_than_zero = _positive(
+        read=read, error='should be as <float> and greater than zero!',
+        check=lambda x: x > 0
+    )
+    greater_than_one = _positive(
+        read=read, error='should be as <float> and greater than one!',
+        check=lambda x: x >= 1
+    )
     positive_int = _positive(type=int, read=read)
     limits = _limits(read=read)
     index_dict = _index_dict(read=read)
     np_array = _np_array(read=read)
+    np_array_greater_than_minus_one = _np_array_positive(
+        read=read, error='cannot be parsed because it should be an '
+                         'np.array dtype=<float> and all values >= -1!',
+        check=lambda x: (x >= -1).all()
+    )
     np_array_bool = _np_array(dtype=bool, read=read)
     np_array_int = _np_array(dtype=int, read=read)
     _bool = _type(type=bool, read=read)
@@ -351,6 +475,7 @@ def define_data_schema(read=True):
 
         _compare_str('VERSION'): string,
         'lock_up_tc_limits': tuplefloat2,
+        'ki_factor': greater_than_one,
         'tyre_dimensions': tyre_dimensions,
         'tyre_code': tyre_code,
         'wltp_base_model': _dict(format=dict, read=read),
@@ -365,7 +490,7 @@ def define_data_schema(read=True):
         'engine_max_speed': positive,
         'engine_max_torque': positive,
         'idle_engine_speed_median': positive,
-        'engine_idle_fuel_consumption': positive,
+        'engine_idle_fuel_consumption': greater_than_zero,
         'final_drive_ratio': positive,
         'r_dynamic': positive,
         'wltp_class': _select(types=('class1', 'class2', 'class3a', 'class3b'),
@@ -410,6 +535,7 @@ def define_data_schema(read=True):
         _compare_str('co2_emission_UDC'): positive,
         _compare_str('co2_emission_EUDC'): positive,
         'co2_emission_value': positive,
+        'declared_co2_emission_value': positive,
         'n_dyno_axes': positive_int,
         'n_wheel_drive': positive_int,
 
@@ -418,6 +544,7 @@ def define_data_schema(read=True):
         'has_energy_recuperation': _bool,
         'use_basic_start_stop': _bool,
         'is_hybrid': _bool,
+        'has_periodically_regenerating_systems': _bool,
         'engine_has_variable_valve_actuation': _bool,
         'has_thermal_management': _bool,
         'engine_has_direct_injection': _bool,
@@ -460,10 +587,14 @@ def define_data_schema(read=True):
         'electrics_model': function,
         'engine_type': string,
         'full_load_curve': function,
+        'fmep_model': function,
         'gear_box_efficiency_constants': dictstrdict,
         'gear_box_efficiency_parameters_cold_hot': dictstrdict,
-        'model_scores': dictstrdict,
+        'config': dictstrdict,
         'scores': dictstrdict,
+        'param_selections': dictstrdict,
+        'model_selections': dictstrdict,
+        'score_by_model': dictstrdict,
         'at_scores': ordictstrdict,
 
         'fuel_density': positive,
@@ -480,9 +611,11 @@ def define_data_schema(read=True):
         'gear_box_temperature_references': tuplefloat2,
         'torque_converter_model': function,
         'phases_co2_emissions': tuplefloat,
+        'bag_phases': _bag_phases(read=read),
         'phases_integration_times':
             _type(type=And(Use(tuple), (And(Use(tuple), (_type(float),)),)),
                   read=read),
+        'active_cylinder_ratios': tuplefloat,
         'extended_phases_co2_emissions': tuplefloat,
         'extended_phases_integration_times':
             _type(type=And(Use(tuple), (And(Use(tuple), (_type(float),)),)),
@@ -492,6 +625,7 @@ def define_data_schema(read=True):
 
         'accelerations': np_array,
         'alternator_currents': np_array,
+        'active_cylinders': np_array,
         'alternator_powers_demand': np_array,
         'alternator_statuses': np_array_int,
         'auxiliaries_power_losses': np_array,
@@ -526,8 +660,8 @@ def define_data_schema(read=True):
         'on_idle': np_array_bool,
         'state_of_charges': np_array,
         'times': np_array,
-        'velocities': np_array,
-        _compare_str('obd_velocities'): np_array,
+        'velocities': np_array_greater_than_minus_one,
+        _compare_str('obd_velocities'): np_array_greater_than_minus_one,
         'wheel_powers': np_array,
         'wheel_speeds': np_array,
         'wheel_torques': np_array,

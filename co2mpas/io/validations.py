@@ -11,10 +11,44 @@ It provides the CO2MPAS validation formulas.
 """
 
 import numpy as np
-
+import copy
 import co2mpas.dispatcher.utils as dsp_utl
 import co2mpas.utils as co2_utl
-from .constants import con_vals
+from . import constants
+
+DECLARATION = 0
+HARD = 1
+SOFT = 2
+
+
+def select_declaration_data(data, diff=None):
+    res = {}
+    for k, v in dsp_utl.stack_nested_keys(constants.con_vals.DECLARATION_DATA):
+        if v and dsp_utl.are_in_nested_dicts(data, *k):
+            v = dsp_utl.get_nested_dicts(data, *k)
+            dsp_utl.get_nested_dicts(res, *k, default=co2_utl.ret_v(v))
+
+    if diff is not None:
+        diff.clear()
+        diff.update(v[0] for v in dsp_utl.stack_nested_keys(data, depth=4))
+        it = (v[0] for v in dsp_utl.stack_nested_keys(res, depth=4))
+        diff.difference_update(it)
+    return res
+
+
+def overwrite_declaration_config_data(data):
+    config = constants.con_vals.DECLARATION_SELECTOR_CONFIG
+    res = dsp_utl.combine_nested_dicts(data, depth=3)
+    key = ('config', 'selector', 'all')
+
+    d = copy.deepcopy(dsp_utl.get_nested_dicts(res, *key))
+
+    for k, v in dsp_utl.stack_nested_keys(config):
+        dsp_utl.get_nested_dicts(d, *k, default=co2_utl.ret_v(v))
+
+    dsp_utl.get_nested_dicts(res, *key[:-1])[key[-1]] = d
+
+    return res
 
 
 def hard_validation(data):
@@ -61,7 +95,7 @@ def check_sign_currents(battery_currents, alternator_currents):
     b_c, a_c = battery_currents, alternator_currents
 
     a = co2_utl.reject_outliers(a_c, med=np.mean)[0]
-    a = a <= con_vals.MAX_VALIDATE_POS_CURR
+    a = a <= constants.con_vals.MAX_VALIDATE_POS_CURR
     c = np.cov(a_c, b_c)[0][1]
 
     if c < 0:
@@ -102,7 +136,7 @@ def check_initial_temperature(
         True if data pass the checks.
     :rtype: bool
     """
-
+    con_vals = constants.con_vals
     idle = idle_engine_speed_median - con_vals.DELTA_RPM2VALIDATE_TEMP
     b = engine_speeds_out > idle
     i = co2_utl.argmax(b) + 1

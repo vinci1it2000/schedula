@@ -13,15 +13,18 @@ It provides constants for the CO2MPAS formulas.
 import numpy as np
 import co2mpas.utils as co2_utl
 
-#: Machine error.
-EPS = np.finfo(np.float32).eps
-
-#: Infinite value.
-INF = 10000.0
-
 
 #: Container of node default values.
 class Values(co2_utl.Constants):
+    #: Does the vehicle has periodically regenerating systems? [-].
+    has_periodically_regenerating_systems = False
+
+    #: Possible percentages of active cylinders [-].
+    active_cylinder_ratios = (1.0,)
+
+    #: Does the engine feature variable valve actuation? [-].
+    engine_has_variable_valve_actuation = False
+
     #: NEDC cycle time [s].
     max_time_NEDC = 1180.0
 
@@ -29,13 +32,16 @@ class Values(co2_utl.Constants):
     max_time_WLTP = 1800.0
 
     #: Maximum velocity to consider the vehicle stopped [km/h].
-    stop_velocity = 1.0 + EPS
+    stop_velocity = 1.0 + np.finfo(np.float32).eps
 
     #: Maximum acceleration to be at constant velocity [m/s2].
-    plateau_acceleration = 0.1 + EPS
+    plateau_acceleration = 0.1 + np.finfo(np.float32).eps
 
     #: Does the vehicle have start/stop system?
     has_start_stop = True
+
+    #: Does the engine have cylinder deactivation technology?
+    engine_has_cylinder_deactivation = False
 
     #: Minimum vehicle engine speed [RPM].
     min_engine_on_speed = 10.0
@@ -120,9 +126,6 @@ class Values(co2_utl.Constants):
     #: Time elapsed to turn on the engine with electric starter [s].
     delta_time_engine_starter = 1.0
 
-    #: Initial state of charge of the battery [%].
-    initial_state_of_charge = 99.0
-
     #: If to use decision tree classifiers to predict gears.
     use_dt_gear_shifting = False
 
@@ -163,14 +166,35 @@ class Values(co2_utl.Constants):
     lock_up_tc_limits = (48.0, 0.3)
 
     #: Empirical value in case of CVT [-].
-    tyre_dynamic_rolling_coefficient = 0.975
+    tyre_dynamic_rolling_coefficient = 3.05 / 3.14
 
 
 #: Container of internal function parameters.
 class Functions(co2_utl.Constants):
+    class default_ki_factor(co2_utl.Constants):
+        #: Correction for vehicles with periodically regenerating systems [-].
+        ki_factor = {True: 1.05, False: 1.0}
+
+    class calculate_max_mean_piston_speeds_cylinder_deactivation(co2_utl.Constants):
+        #: Percentage of max mean piston speeds used as limit in cylinder
+        #: deactivation strategy [-].
+        percentage = 0.6
+
+    class define_fmep_model(co2_utl.Constants):
+        #: Percentage of max full bmep curve used as limit in cylinder
+        #: deactivation strategy [-].
+        full_bmep_curve_percentage = 0.45
+
+    class define_idle_model_detector(co2_utl.Constants):
+        #: eps parameter of DBSCAN [RPM].
+        EPS = 100.0
+
     class identify_idle_engine_speed_std(co2_utl.Constants):
         #: Min standard deviation value [RPM].
         MIN_STD = 100.0
+
+        #: Max standard deviation percentage of median value [-].
+        MAX_STD_PERC = 0.3
 
     class DefaultStartStopModel(co2_utl.Constants):
         #: Maximum allowed velocity to stop the engine [km/h].
@@ -283,46 +307,59 @@ class Functions(co2_utl.Constants):
     class get_gear_box_efficiency_constants(co2_utl.Constants):
         #: Vehicle gear box efficiency constants (gbp00, gbp10, and gbp01).
         PARAMS = {
-            'automatic': {
-                'gbp00': {'m': -0.0054, 'q': {'hot': -1.9682, 'cold': -3.9682}},
-                'gbp10': {'q': {'hot': -0.0012, 'cold': -0.0016}},
+            True: {
+                'gbp00': {'m': -0.0054, 'q': {'hot': -1.9682, 'cold': -2.9682}},
+                'gbp10': {'q': {'hot': -0.0012, 'cold': -0.0008}},
                 'gbp01': {'q': {'hot': 0.965, 'cold': 0.965}},
             },
-            'manual': {
+            False: {
                 'gbp00': {'m': -0.0034, 'q': {'hot': -0.3119, 'cold': -0.7119}},
                 'gbp10': {'q': {'hot': -0.00018, 'cold': 0}},
                 'gbp01': {'q': {'hot': 0.97, 'cold': 0.97}},
-            },
-            'cvt': {
-                'gbp00': {'m': -0.0054, 'q': {'hot': -1.9682, 'cold': -3.9682}},
-                'gbp10': {'q': {'hot': -0.0012, 'cold': -0.0016}},
-                'gbp01': {'q': {'hot': 0.965, 'cold': 0.965}},
             }
         }
 
-    class calculate_equivalent_gear_box_heat_capacity(co2_utl.Constants):
+    class calculate_engine_mass(co2_utl.Constants):
         #: Equivalent gear box heat capacity parameters.
         PARAMS = {
             'mass_coeff': {
                 'compression': 1.1,
                 'positive': 1.0
             },
-            'mass_percentage': {
-                'coolant': 0.04,  # coolant: 50%/50% (0.85*4.186)
-                'oil': 0.055,
-                'crankcase': 0.18,  # crankcase: cast iron
-                'cyl_head': 0.09,  # cyl_head: aluminium
-                'pistons': 0.025,  # crankshaft: steel
-                'crankshaft': 0.08  # pistons: aluminium
+            'mass_reg_coeff': (0.4208, 60)
+        }
+
+    class calculate_engine_heat_capacity(co2_utl.Constants):
+        #: Equivalent gear box heat capacity parameters.
+        PARAMS = {
+            'heated_mass_percentage': {
+                'coolant': 0.04,     # coolant: 50%/50% (0.85*4.186)
+                'oil': 0.055,        # oil: lubricant
+                'crankcase': 0.18,   # crankcase: cast iron
+                'cyl_head': 0.09,    # cyl_head: aluminium
+                'pistons': 0.025,    # pistons: aluminium
+                'crankshaft': 0.08,  # crankshaft: steel
+                'body': 0.1          # body: cast iron
             },
-            # Cp in J/K
+            # Cp in (J/kgK)
             'heat_capacity': {
                 'coolant': 0.85 * 4186.0,
                 'oil': 2090.0,
-                'crankcase': 526.0,
-                'cyl_head': 940.0,
-                'pistons': 940.0,
-                'crankshaft': 526.0
+                'crankcase': 460.0,
+                'cyl_head': 910.0,
+                'pistons': 910.0,
+                'crankshaft': 490.0,
+                'body': 460.0
+            }
+        }
+
+    class calculate_equivalent_gear_box_heat_capacity(co2_utl.Constants):
+        #: Equivalent gear box heat capacity parameters.
+        PARAMS = {
+            'gear_box_mass_engine_ratio': 0.15,
+            # Cp in (J/kgK)
+            'heat_capacity': {
+                'oil': 2090.0,
             }
         }
 
@@ -360,6 +397,13 @@ class Functions(co2_utl.Constants):
     class calculate_co2_emissions(co2_utl.Constants):
         # idle ratio to define the fuel cutoff [-].
         cutoff_idle_ratio = 1.1
+
+    class default_initial_state_of_charge(co2_utl.Constants):
+        # default initial state of charge of the battery [%].
+        initial_state_of_charge = {
+            'WLTP': 90,
+            'NEDC': 99
+        }
 
     # TODO: add default fuel densities.
     class default_fuel_density(co2_utl.Constants):
@@ -423,5 +467,10 @@ class Defaults(co2_utl.Constants):
     values = Values()
     functions = Functions()
 
+    #: Machine error.
+    EPS = np.finfo(np.float32).eps
+
+    #: Infinite value.
+    INF = 10000.0
 
 dfl = Defaults()

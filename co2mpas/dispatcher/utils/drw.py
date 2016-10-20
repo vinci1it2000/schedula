@@ -14,19 +14,21 @@ import graphviz as gviz
 import os
 import os.path as osp
 import string
-import urllib
+import urllib.parse as urlparse
 import pprint
 import inspect
 import platform
+import copy
 from tempfile import mkdtemp, mktemp
-import networkx as nx
-from .cst import START, SINK, END, EMPTY, SELF, NONE
-from .dsp import SubDispatch, SubDispatchFunction, combine_dicts, map_dict
+from .cst import START, SINK, END, EMPTY, SELF, NONE, PLOT
+from .dsp import SubDispatch, SubDispatchFunction, combine_dicts, map_dict, \
+    combine_nested_dicts, selector
 from itertools import chain
+from functools import partial
 import html
 import logging
 from .des import parent_func, search_node_description
-from .alg import stlp, _iter_list_nodes
+from .alg import stlp
 
 
 __author__ = 'Vincenzo Arcidiacono'
@@ -62,36 +64,78 @@ def _func_name(name, function_module=True):
     return name if function_module else name.split(':')[-1]
 
 
+def _upt_styles(styles, base=None):
+    d, base = {}, copy.deepcopy(base or {})
+    res = {}
+    for i in ('info', 'warning', 'error'):
+        combine_nested_dicts(base.get(i, {}), styles.get(i, {}), base=d)
+        res[i] = copy.deepcopy(d)
+    return res
+
+
+def autoplot_function(kwargs):
+    keys = sorted(kwargs, key=lambda x: (x is not PLOT, x))
+    kw = combine_dicts(*selector(keys, kwargs, output_type='list'))
+    return partial(kw.pop('obj').plot, **kw)
+
+
+def autoplot_callback(value):
+    value()
+
+
 class DspPlot(gviz.Digraph):
     __node_attr = {'style': 'filled'}
     __graph_attr = {}
     __edge_attr = {}
     __body = {'splines': 'ortho', 'style': 'filled'}
-    __node_styles = {
-        START: {'shape': 'egg', 'fillcolor': 'red', 'label': 'start'},
-        SELF: {'shape': 'egg', 'fillcolor': 'gold', 'label': 'self'},
-        END: {'shape': 'egg', 'fillcolor': 'blue', 'label': 'end'},
-        EMPTY: {'shape': 'egg', 'fillcolor': 'gray', 'label': 'empty'},
-        SINK: {'shape': 'egg', 'fillcolor': 'black', 'fontcolor': 'white',
-               'label': 'sink'},
-        NONE: {
-            'data': {'shape': 'box', 'style':'rounded,filled',
-                     'fillcolor': 'cyan'},
-            'function': {'shape': 'box', 'fillcolor': 'springgreen'},
-            'subdispatch': {'shape': 'note', 'style':'filled',
-                            'fillcolor': 'palegreen'},
-            'subdispatchfunction': {'shape': 'note', 'style':'filled',
-                                    'fillcolor': 'lime'},
-            'subdispatchpipe': {'shape': 'note', 'style':'filled',
-                                'fillcolor': 'greenyellow'},
-            'dispatcher': {'shape': 'note', 'style':'filled',
-                           'fillcolor': 'darkorange'}
+    __node_styles = _upt_styles({
+        'info': {
+            START: {'shape': 'egg', 'fillcolor': 'red', 'label': 'start'},
+            SELF: {'shape': 'egg', 'fillcolor': 'gold', 'label': 'self'},
+            PLOT: {'shape': 'egg', 'fillcolor': 'gold', 'label': 'plot'},
+            END: {'shape': 'egg', 'fillcolor': 'blue', 'label': 'end'},
+            EMPTY: {'shape': 'egg', 'fillcolor': 'gray', 'label': 'empty'},
+            SINK: {'shape': 'egg', 'fillcolor': 'black', 'fontcolor': 'white',
+                   'label': 'sink'},
+            NONE: {
+                'data': {'shape': 'box', 'style': 'rounded,filled',
+                         'fillcolor': 'cyan'},
+                'function': {'shape': 'box', 'fillcolor': 'springgreen'},
+                'subdispatch': {'shape': 'note', 'style': 'filled',
+                                'fillcolor': 'yellow'},
+                'subdispatchfunction': {'shape': 'note', 'style': 'filled',
+                                        'fillcolor': 'yellowgreen'},
+                'subdispatchpipe': {'shape': 'note', 'style': 'filled',
+                                    'fillcolor': 'greenyellow'},
+                'dispatcher': {'shape': 'note', 'style': 'filled',
+                               'fillcolor': 'springgreen'}
+            }
+        },
+        'warning': {
+            NONE: {
+                'data': {'fillcolor': 'orange'},
+                'function': {'fillcolor': 'orange'},
+                'subdispatch': {'fillcolor': 'orange'},
+                'subdispatchfunction': {'fillcolor': 'orange'},
+                'subdispatchpipe': {'fillcolor': 'orange'},
+                'dispatcher': {'fillcolor': 'orange'}
+            }
+        },
+        'error': {
+            NONE: {
+                'data': {'fillcolor': 'red'},
+                'function': {'fillcolor': 'red'},
+                'subdispatch': {'fillcolor': 'red'},
+                'subdispatchfunction': {'fillcolor': 'red'},
+                'subdispatchpipe': {'fillcolor': 'red'},
+                'dispatcher': {'fillcolor': 'red'}
+            }
         }
-    }
+    })
     __node_data = ('default', 'initial_dist', 'wait_inputs', 'function',
-                   'weight', 'remote_links', 'distance', 'output')
+                   'weight', 'remote_links', 'distance', 'error', 'output')
     __node_function = ('input_domain', 'weight', 'M_inputs', 'M_outputs',
-                       'distance', 'started', 'duration')
+                       'distance', 'started', 'duration', 'error')
     __edge_data = ('inp_id', 'out_id', 'weight', 'value')
     _pprinter = pprint.PrettyPrinter(compact=True, width=200)
 
@@ -220,6 +264,7 @@ class DspPlot(gviz.Digraph):
 
         from .sol import Solution
         from .. import Dispatcher
+        from networkx import is_isolate
         self._edge_data = edge_data
         self._node_data = node_data
         self._node_function = node_function
@@ -228,8 +273,7 @@ class DspPlot(gviz.Digraph):
         self._edge_attr = edge_attr
         self._body = body
 
-        self.node_styles = self.__node_styles.copy()
-        self.node_styles.update(node_styles or {})
+        self.node_styles = _upt_styles(node_styles or {}, self.__node_styles)
         self.depth = depth
         self.draw_outputs = draw_outputs
         self.function_module = function_module
@@ -267,11 +311,11 @@ class DspPlot(gviz.Digraph):
 
         draw_outputs = int(draw_outputs)
         if draw_outputs == 1:
-            i, j = -1, 0
+            i, j = -1, None
         elif draw_outputs == 2:
-            i, j = 0, -1
+            i, j = None, -1
         elif draw_outputs == 3:
-            i = j = 0
+            i = j = None
         else:
             i = j = -1
 
@@ -312,7 +356,8 @@ class DspPlot(gviz.Digraph):
             body=['%s = %s' % (k, v) for k, v in body.items()]
         )
 
-        self.id_map = self.get_id_map(parent_dot, chain(g.node, inputs, outputs))
+        self.id_map = self.get_id_map(parent_dot,
+                                      chain(g.node, inputs, outputs))
 
         if not g.node or not (g.edge or inputs or outputs):
             self._set_data_node(EMPTY, {})
@@ -324,7 +369,7 @@ class DspPlot(gviz.Digraph):
             self._set_data_node(END, {})
 
         for k, v in sorted(g.node.items()):
-            if k not in dsp.nodes or (k is SINK and nx.is_isolate(g, SINK)):
+            if k not in dsp.nodes or (k is SINK and is_isolate(g, SINK)):
                 continue
 
             self._set_node(k, v)
@@ -379,6 +424,11 @@ class DspPlot(gviz.Digraph):
 
     def _set_node(self, node_id, a):
         attr = combine_dicts(self.dsp.nodes.get(node_id, {}), a)
+        try:
+            attr['error'] = self.obj._errors[node_id]
+        except (AttributeError, KeyError):
+            pass
+
         node_type = attr['type'] if attr else 'data'
         if node_type in ('data', 'start'):
             ret = self._set_data_node(node_id, attr)
@@ -388,13 +438,15 @@ class DspPlot(gviz.Digraph):
             raise ValueError('Setting node:%s' % node_id)
         return True
 
-    def _get_style(self, node_id, dfl_styles):
-        if node_id in self.node_styles:
-            return self.node_styles[node_id].copy()
+    def _get_style(self, node_id, dfl_styles, log='info'):
+        node_styles = self.node_styles.get(log, self.node_styles['info'])
+
+        if node_id in node_styles:
+            return node_styles[node_id].copy()
         else:
             for style in dfl_styles:
                 try:
-                    return self.node_styles[NONE][style].copy()
+                    return node_styles[NONE][style].copy()
                 except KeyError:
                     pass
 
@@ -403,7 +455,7 @@ class DspPlot(gviz.Digraph):
             fpath = self._saved_outputs[id(out)]
         except KeyError:
             if 'URL' in kw:
-                fpath = urllib.parse.unquote(kw['URL'])
+                fpath = urlparse.unquote(kw['URL'])
 
             else:
                 rpath = '%s.%s' % (_encode_file_name(node_id), ext)
@@ -413,17 +465,17 @@ class DspPlot(gviz.Digraph):
                 fpath = osp.join(self.directory, rpath)
 
             dpath = _UNC + osp.dirname(fpath)
-
+            fpath = uncpath(fpath)
             if not osp.isdir(dpath):
                 os.makedirs(dpath)
             elif osp.isfile(fpath):
                 fpath = mktemp(dir=dpath)
 
-            with open(uncpath(fpath), 'w') as f:
+            with open(fpath, 'w') as f:
                 f.write(self.pprint(out))
             self._saved_outputs[id(out)] = fpath
 
-        return urllib.parse.quote(self._relpath(fpath))
+        return urlparse.quote(self._relpath(fpath))
 
     def _relpath(self, fpath):
         if fpath.startswith(_UNC):
@@ -438,8 +490,12 @@ class DspPlot(gviz.Digraph):
             tooltip = tooltip or node_id
         except KeyError:
             tooltip = node_id
+        if 'error' in attr:
+            nstyle = 'error'
+        else:
+            nstyle = 'info'
 
-        kw = self._get_style(node_id, ('data',))
+        kw = self._get_style(node_id, ('data',), log=nstyle)
         attr = attr.copy()
         if not attr.get('wait_inputs', True):
             attr.pop('wait_inputs')
@@ -460,6 +516,7 @@ class DspPlot(gviz.Digraph):
                 out = self.obj[node_id]
                 attr['output'] = out
                 if inspect.isfunction(out):
+                    # noinspection PyBroadException
                     try:
                         attr['output'] = inspect.getsource(out)
                     except:
@@ -496,9 +553,19 @@ class DspPlot(gviz.Digraph):
     def _set_function_node(self, node_id, attr):
         dot_id = self.id_map[node_id]
         node_name = self._function_name(node_id)
-        tooltip = search_node_description(node_id, attr, self.dsp)[0] or node_name
+        tooltip = search_node_description(node_id, attr,
+                                          self.dsp)[0] or node_name
 
         attr = attr.copy()
+        missing_io = self._missing_inputs_outputs(node_id, attr)
+        attr.update(missing_io)
+        if 'error' in attr:
+            nstyle = 'error'
+        elif missing_io:
+            nstyle = 'warning'
+        else:
+            nstyle = 'info'
+
         try:
             attr['input_domain'] = parent_func(attr['input_domain']).__name__
         except (KeyError, AttributeError, TypeError):
@@ -506,17 +573,18 @@ class DspPlot(gviz.Digraph):
         try:
             func = parent_func(attr['function'])
             dfl_styles = (type(func).__name__.lower(), 'function')
-            kw = self._get_style(node_id, dfl_styles)
+            kw = self._get_style(node_id, dfl_styles, log=nstyle)
             from .. import Dispatcher
             if isinstance(func, (Dispatcher, SubDispatch)) and self.depth != 0:
                 dot = self.set_sub_dsp(node_id, node_name, attr)
                 if self.nested:
                     rpath = self._relpath(dot.render(cleanup=True))
                     # noinspection PyUnresolvedReferences
-                    kw['URL'] = urllib.parse.quote(rpath)
+                    kw['URL'] = urlparse.quote(rpath)
                 else:
                     self.subgraph(dot)
             elif inspect.isfunction(func):
+                # noinspection PyBroadException
                 try:
                     attr['function'] = inspect.getsource(func)
                     kw['URL'] = self._save_output(attr['function'], kw, node_id)
@@ -524,7 +592,7 @@ class DspPlot(gviz.Digraph):
                     pass
 
         except (KeyError, TypeError):
-            kw = self._get_style(node_id, ('function',))
+            kw = self._get_style(node_id, ('function',), log=nstyle)
 
         try:
             attr['distance'] = self.obj.dist[node_id]
@@ -535,8 +603,6 @@ class DspPlot(gviz.Digraph):
                 attr[k] = str(attr[k])
             except KeyError:
                 pass
-
-        attr.update(self._missing_inputs_outputs(node_id, attr))
 
         attr['inputs'] = self.pprint(attr['inputs'])
         attr['outputs'] = self.pprint(attr['outputs'])
@@ -635,31 +701,35 @@ class DspPlot(gviz.Digraph):
             name = self._html_encode(name, width=40, compact=True)
             label += '<TR><TD COLSPAN="2" BORDER="0">{}</TD></TR>'.format(name)
 
+        tr = '<TR>' \
+             '<TD BORDER="1" ALIGN="RIGHT">{}=</TD>' \
+             '<TD BORDER="1" ALIGN="LEFT">{}</TD>' \
+             '</TR>'
+
         for k, v in kv:
-            label += '<TR>' \
-                     '<TD BORDER="1" ALIGN="RIGHT">{}=</TD>' \
-                     '<TD BORDER="1" ALIGN="LEFT">{}</TD>' \
-                     '</TR>'.format(
+            label += tr.format(
                 self._html_encode(k, width=20, compact=True),
-                self._html_encode(v, width=20, compact=True))
+                self._html_encode(v, width=20, compact=True)
+            )
         label += '</TABLE>>'
         return label
 
     def _missing_inputs_outputs(self, node_id, attr):
         pred = self.g.pred[node_id]
         succ = self.g.succ[node_id]
-        node = self.g.node
+
         if attr['type'] == 'dispatcher':
             inp, out = {}, {}
-            for k, v in attr['inputs'].items():
-                k = tuple(k for k in _iter_list_nodes((k,)) if k not in pred)
-                if k:
-                    inp[k if len(k) != 1 else k[0]] = v
+            # node = self.g.node
+            # for k, v in attr['inputs'].items():
+            #    k = tuple(k for k in _iter_list_nodes((k,)) if k not in pred)
+            #    if k:
+            #        inp[k if len(k) != 1 else k[0]] = v
 
-            for k, v in attr['outputs'].items():
-                v = tuple(v for v in _iter_list_nodes((v,)) if v not in node)
-                if v:
-                    out[k] = v if len(v) != 1 else v[0]
+            # for k, v in attr['outputs'].items():
+            #    v = tuple(v for v in _iter_list_nodes((v,)) if v not in node)
+            #    if v:
+            #        out[k] = v if len(v) != 1 else v[0]
         else:
             inp = tuple(k for k in attr['inputs'] if k not in pred)
             out = tuple(k for k in attr['outputs'] if k not in succ)

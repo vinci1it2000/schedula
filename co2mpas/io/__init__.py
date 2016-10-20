@@ -29,22 +29,16 @@ import logging
 import pathlib
 import regex
 import pandas as pd
-from pip.operations.freeze import freeze
-from .schema import define_data_schema
 import co2mpas.dispatcher.utils as dsp_utl
-from co2mpas._version import version, __input_file_version__
-from .dill import *
-import co2mpas.utils as co2_utl
-from co2mpas.dispatcher import Dispatcher
-from .excel import write_to_excel, parse_excel_file, _sheet_name, \
-    _re_params_name
-from .schema import validate_data, validate_plan
-from functools import partial
-from itertools import product, zip_longest
-from pandalone.xleash import lasso
-from pandalone.xleash._parse import parse_xlref
-from collections import OrderedDict
-from cachetools import cached
+from co2mpas._version import version
+import co2mpas.dispatcher as dsp
+from . import schema, excel, dill
+import functools
+import itertools
+import pandalone.xleash as xleash
+import pandalone.xleash._parse as pnd_par
+import collections
+import cachetools
 log = logging.getLogger(__name__)
 
 
@@ -65,7 +59,8 @@ def check_cache_fpath_exists(overwrite_cache, fpath, cache_fpath):
         return False
     cache_fpath = pathlib.Path(cache_fpath)
     if cache_fpath.exists():
-        inp_stats = pathlib.Path(fpath).stat()  # Will scream if INPUT does not exist.
+        # Will scream if INPUT does not exist.
+        inp_stats = pathlib.Path(fpath).stat()
         cache_stats = cache_fpath.stat()
         if inp_stats.st_mtime <= cache_stats.st_mtime:
             return True
@@ -77,11 +72,11 @@ def check_file_format(fpath, *args, extensions=('.xlsx',)):
     return fpath.lower().endswith(extensions)
 
 
-def convert2df(report, start_time, main_flags, data_descriptions, write_schema):
+def convert2df(report, start_time, main_flags):
 
     res = {'graphs.%s' % k: v for k, v in report.get('graphs', {}).items()}
 
-    res.update(_cycle2df(report, data_descriptions, write_schema))
+    res.update(_cycle2df(report))
 
     res.update(_scores2df(report))
 
@@ -89,31 +84,9 @@ def convert2df(report, start_time, main_flags, data_descriptions, write_schema):
 
     res.update(_proc_info2df(report, start_time, main_flags))
 
+    res['summary'] = [res['proc_info'][0]] + res.get('summary', [])
+
     return res
-
-
-def _make_summarydf(
-        nested_dict, index=None, depth=0, add_units=True,
-        parts=()):
-    df = _dd2df(nested_dict, index=index, depth=depth)
-    p = _param_orders()
-    p = dsp_utl.selector(parts + ('param',), p, output_type='list')
-    gen = partial(zip_longest, p[:-1], fillvalue=p[-1])
-    c = sorted(df.columns, key=lambda x: [_match_part(m, v) for m, v in gen(x)])
-    df = df.reindex_axis(c, axis=1, copy=False)
-    if add_units:
-        c = _add_units(c)
-    df.columns = pd.MultiIndex.from_tuples(c)
-    return df
-
-
-def _rm_sub_parts(parts):
-    try:
-        p = parts[0]
-    except IndexError:
-        return ()
-    r = '%s_' % p
-    return (p,) + _rm_sub_parts(tuple(v.replace(r, '') for v in parts[1:]))
 
 
 def _summary2df(data):
@@ -122,48 +95,48 @@ def _summary2df(data):
 
     if 'results' in summary:
         r = {}
-        fun = partial(dsp_utl.map_list, [{}, 'cycle', 'stage', 'usage'])
-        for n, m in summary['results'].items():
-            gen = ((fun(v, *k),)
-                   for k, v in co2_utl.stack_nested_keys(m, depth=3))
-            v = [v[0] for v in _yield_sorted_params(gen)]
-            co2_utl.get_nested_dicts(r, n, default=co2_utl.ret_v(v))
+        index = ['cycle', 'stage', 'usage']
 
-        df = _make_summarydf(r, index=['cycle', 'stage', 'usage'], depth=1)
-        c = list(map(_rm_sub_parts, df.columns))
-        df.columns = pd.MultiIndex.from_tuples(c)
-        setattr(df, 'name', 'results')
-        res.append(df)
+        for k, v in dsp_utl.stack_nested_keys(summary['results'], depth=4):
+            l = dsp_utl.get_nested_dicts(r, k[0], default=list)
+            l.append(dsp_utl.combine_dicts(dsp_utl.map_list(index, *k[1:]), v))
+
+        if r:
+            df = _dd2df(
+                r, index=index, depth=2,
+                col_key=functools.partial(_sort_key, p_keys=('param',) * 2),
+                row_key=functools.partial(_sort_key, p_keys=index)
+            )
+            df.columns = pd.MultiIndex.from_tuples(_add_units(df.columns))
+            setattr(df, 'name', 'results')
+            res.append(df)
 
     if 'selection' in summary:
-        df = pd.DataFrame(summary['selection'])
-        df.set_index(['model_id'], inplace=True)
+        df = _dd2df(
+            summary['selection'], ['model_id'], depth=2,
+            col_key=functools.partial(_sort_key, p_keys=('stage', 'cycle')),
+            row_key=functools.partial(_sort_key, p_keys=())
+        )
         setattr(df, 'name', 'selection')
         res.append(df)
 
     if 'comparison' in summary:
-        df = _comparison2df(summary['comparison'])
-        if df is not None:
+        r = {}
+        for k, v in dsp_utl.stack_nested_keys(summary['comparison'], depth=3):
+            v = dsp_utl.combine_dicts(v, base={'param_id': k[-1]})
+            dsp_utl.get_nested_dicts(r, *k[:-1], default=list).append(v)
+        if r:
+            df = _dd2df(
+                r, ['param_id'], depth=2,
+                col_key=functools.partial(_sort_key, p_keys=('stage', 'cycle')),
+                row_key=functools.partial(_sort_key, p_keys=())
+            )
             setattr(df, 'name', 'comparison')
             res.append(df)
 
     if res:
         return {'summary': res}
     return {}
-
-
-def _comparison2df(comparison):
-    res = {}
-    it = co2_utl.stack_nested_keys(comparison, depth=3)
-    keys = ['usage', 'cycle', 'param']
-    gen = [(dsp_utl.map_list(keys, *k), k, v) for k, v in it]
-
-    for s, k, v in _yield_sorted_params(gen, keys=keys):
-        l = co2_utl.get_nested_dicts(res, *k[:-1], default=list)
-        l.append(dsp_utl.combine_dicts({'param_id': k[-1]}, v))
-
-    if res:
-        return _dd2df(res, 'param_id', depth=2)
 
 
 def _proc_info2df(data, start_time, main_flags):
@@ -198,7 +171,9 @@ def _co2mpas_info2df(start_time, main_flags=None):
 
 
 def _freeze2df():
+    from pip.operations.freeze import freeze
     d = dict(v.split('==') for v in freeze() if '==' in v)
+    d = {k: (v,) for k, v in d.items()}
     d['version'] = 'version'
     df = pd.DataFrame([d])
     df.set_index(['version'], inplace=True)
@@ -209,6 +184,7 @@ def _freeze2df():
 
 def _pipe2list(pipe, i=0, source=()):
     res = []
+
     def f(x):
         return (x,) if isinstance(x, str) else x
     max_l = i
@@ -230,11 +206,13 @@ def _pipe2list(pipe, i=0, source=()):
     return res, max_l
 
 
-def _cycle2df(data, data_descriptions, write_schema):
+def _cycle2df(data):
     res = {}
     out = data.get('output', {})
-    for k, v in co2_utl.stack_nested_keys(out, key=('output',), depth=3):
-        n, k = _sheet_name(k), k[-1]
+    write_schema = schema.define_data_schema(read=False)
+    data_descriptions = get_doc_description()
+    for k, v in dsp_utl.stack_nested_keys(out, key=('output',), depth=3):
+        n, k = excel._sheet_name(k), k[-1]
         if 'ts' == k:
             df = _time_series2df(v, data_descriptions)
         elif 'pa' == k:
@@ -249,20 +227,26 @@ def _cycle2df(data, data_descriptions, write_schema):
 
 def _scores2df(data):
     n = ('data', 'calibration', 'model_scores')
-    if not co2_utl.are_in_nested_dicts(data, *n):
+    if not dsp_utl.are_in_nested_dicts(data, *n):
         return {}
 
-    scores = co2_utl.get_nested_dicts(data, *n)
+    scores = dsp_utl.get_nested_dicts(data, *n)
 
-    idx = ['model_id', 'from', 'status', 'selected_models']
-    df = _dd2df(scores['selections'], idx, depth=1)
-    setattr(df, 'name', 'selections')
+    it = (('model_selections', ['model_id'], 2, ('stage', 'cycle'), ()),
+          ('score_by_model', ['model_id'], 1, ('cycle',), ()),
+          ('scores', ['model_id', 'param_id'], 2, ('cycle', 'cycle'), ()),
+          ('param_selections', ['param_id'], 2, ('stage', 'cycle'), ()))
+    dfs = []
+    for k, idx, depth, col_keys, row_keys in it:
+        df = _dd2df(
+            scores[k], idx, depth=depth,
+            col_key=functools.partial(_sort_key, p_keys=col_keys),
+            row_key=functools.partial(_sort_key, p_keys=row_keys)
+        )
+        setattr(df, 'name', k)
+        dfs.append(df)
 
-    idx = ['model_id', 'param_id']
-    edf = _dd2df(scores['scores'], idx, depth=2)
-    setattr(edf, 'name', 'scores')
-
-    return {'.'.join(n): (df, edf)}
+    return {'.'.join(n): dfs}
 
 
 def _parse_name(name, _standard_names=None):
@@ -289,10 +273,10 @@ def _parse_name(name, _standard_names=None):
 def _parameters2df(data, data_descriptions, write_schema):
     df = []
     validate = write_schema.validate
-    gen = ((_param_parts(k), k, v) for k, v in data.items())
-    for s, k, v in _yield_sorted_params(gen):
+    for k, v in data.items():
         try:
-            param_id, v = next(iter(validate({s['param']: v}).items()))
+            v = iter(validate({_param_parts(k)['param']: v}).items())
+            param_id, v = next(v)
             if v is not dsp_utl.NONE:
                 df.append({
                     'Parameter': _parse_name(param_id, data_descriptions),
@@ -310,11 +294,11 @@ def _parameters2df(data, data_descriptions, write_schema):
         return None
 
 
-@cached({})
+@cachetools.cached({})
 def _param_orders():
-    x = ('co2_emission', 'fuel_consumption')
+    x = ('declared_co2_emission', 'co2_emission', 'fuel_consumption')
     y = ('low', 'medium', 'high', 'extra_high', 'UDC', 'EUDC', 'value')
-    param = tuple(map('_'.join, product(x, y))) + ('status',)
+    param = x + tuple(map('_'.join, itertools.product(x, y))) + ('status',)
 
     param += (
         'av_velocities', 'distance', 'init_temp', 'av_temp', 'end_temp',
@@ -325,13 +309,13 @@ def _param_orders():
         'engine_bmep_pos_pow', 'mean_piston_speed_pos_pow', 'fuel_mep_pos_pow',
         'fuel_consumption_pos_pow', 'willans_a', 'willans_b',
         'specific_fuel_consumption', 'indicated_efficiency',
-        'willans_efficiency'
+        'willans_efficiency', 'times'
     )
 
     _map = {
-        'scope': ('plan', 'base'),
-        'usage': ('target', 'input', 'output', 'data'),
-        'stage': ('precondition', 'calibration', 'prediction'),
+        'scope': ('plan', 'flag', 'base'),
+        'usage': ('target', 'output', 'input', 'data', 'config'),
+        'stage': ('precondition', 'prediction', 'calibration', 'selector'),
         'cycle': ('delta', 'all', 'nedc_h', 'nedc_l', 'wltp_h', 'wltp_l',
                   'wltp_p'),
         'type': ('pa', 'ts', 'pl'),
@@ -343,7 +327,33 @@ def _param_orders():
     return _map
 
 
-@cached({})
+@cachetools.cached({})
+def _summary_map():
+    _map = {
+        'co2_params a': 'a',
+        'co2_params a2': 'a2',
+        'co2_params b': 'b',
+        'co2_params b2': 'b2',
+        'co2_params c': 'c',
+        'co2_params l': 'l',
+        'co2_params l2': 'l2',
+        'co2_params t0': 't0',
+        'co2_params t1': 't1',
+        'co2_params trg': 'trg',
+        'co2_emission_low': 'low',
+        'co2_emission_medium': 'medium',
+        'co2_emission_high': 'high',
+        'co2_emission_extra_high': 'extra_high',
+        'co2_emission_UDC': 'UDC',
+        'co2_emission_EUDC': 'EUDC',
+        'co2_emission_value': 'value',
+        'declared_co2_emission_value': 'declared_value',
+        'vehicle_mass': 'mass',
+    }
+    return _map
+
+
+@cachetools.cached({})
 def _param_units():
     units = ((k, _re_units.search(v)) for k, v in get_doc_description().items())
     units = {k: v.group() for k, v in units if v}
@@ -393,54 +403,62 @@ def _match_part(map, *parts, default=None):
     except KeyError:
         for k, v in sorted(map.items(), key=lambda x: x[1]):
             if k in part:
-                return v, part
+                return v, 0, part
         part = part if default is None else default
         if len(parts) <= 1:
-            return part,
+            return max(map.values()) if map else None, 1, part
         return _match_part(map, *parts[:-1], default=part)
 
 
-def _add_units(gen, map=None, default=' '):
-    map = map if map is not None else _param_units()
-    return [v + (_match_part(map, *v, default=default)[0],) for v in gen]
+def _search_unit(units, default, *keys):
+    try:
+        return units[keys[-1]]
+    except KeyError:
+        try:
+            return _search_unit(units, dsp_utl.EMPTY, *keys[:-1])
+        except IndexError:
+            if default is dsp_utl.EMPTY:
+                raise IndexError
+            for i, u in units.items():
+                if any(i in k for k in keys):
+                    return u
+            return default
 
 
-def _param_scores(
+def _add_units(gen, default=' '):
+    p_map = _summary_map().get
+    units = functools.partial(_search_unit, _param_units(), default)
+    return [k[:-1] + (p_map(k[-1], k[-1]), units(*k)) for k in gen]
+
+
+def _sort_key(
         parts, score_map=None,
-        keys=('scope', 'param', 'cycle', 'usage', 'stage', 'type')):
+        p_keys=('scope', 'param', 'cycle', 'usage', 'stage', 'type')):
     score_map = score_map or _param_orders()
-    return tuple(_match_part(score_map[k], parts[k]) if k in parts else ''
-                 for k in keys)
+    it = itertools.zip_longest(parts, p_keys, fillvalue=None)
+    return tuple(_match_part(score_map.get(k, {}), p) for p, k in it)
 
 
 def _param_parts(param_id):
-    match = _re_params_name.match(param_id).groupdict().items()
+    match = excel._re_params_name.match(param_id).groupdict().items()
     return {i: regex.sub("[\W]", "_", (j or '').lower()) for i, j in match}
 
 
-def _yield_sorted_params(
-        gen, score_map=None,
-        keys=('scope', 'param', 'cycle', 'usage', 'stage', 'type')):
-    score_map = score_map or _param_orders()
-    return sorted(gen, key=lambda x: _param_scores(x[0], score_map, keys))
-
-
 def _time_series2df(data, data_descriptions):
-    df = OrderedDict()
-    gen = ((_param_parts(k), k, v) for k, v in data.items())
-    for s, k, v in _yield_sorted_params(gen):
-        df[(_parse_name(s['param'], data_descriptions), k)] = v
+    df = collections.OrderedDict()
+    for k, v in data.items():
+        df[(_parse_name(_param_parts(k)['param'], data_descriptions), k)] = v
     return pd.DataFrame(df)
 
 
-def _dd2df(dd, index=None, depth=0):
+def _dd2df(dd, index=None, depth=0, col_key=None, row_key=None):
     """
 
     :return:
     :rtype: pandas.DataFrame
     """
     frames = []
-    for k, v in co2_utl.stack_nested_keys(dd, depth=depth):
+    for k, v in dsp_utl.stack_nested_keys(dd, depth=depth):
         df = pd.DataFrame(v)
         df.drop_duplicates(subset=index, inplace=True)
         if index is not None:
@@ -449,47 +467,40 @@ def _dd2df(dd, index=None, depth=0):
         df.columns = pd.MultiIndex.from_tuples([k + (i,) for i in df.columns])
         frames.append(df)
 
-    return pd.concat(frames, copy=False, axis=1, verify_integrity=True)
+    df = pd.concat(frames, copy=False, axis=1, verify_integrity=True)
 
+    if col_key is not None:
+        ax = pd.MultiIndex.from_tuples(sorted(df.columns, key=col_key))
+        # noinspection PyUnresolvedReferences
+        df = df.reindex_axis(ax, axis='columns', copy=False)
 
-def check_data_version(data):
-    data = list(data.values())[0]
-    for k, v in data.items():
-        if not k.startswith('input.'):
-            continue
-        if 'VERSION' in v:
-            v, rv = v['VERSION'], tuple(__input_file_version__.split('.'))
+    if row_key is not None:
+        ax = sorted(df.index, key=row_key)
+        if isinstance(df.index, pd.MultiIndex):
+            ax = pd.MultiIndex.from_tuples(ax)
+        df = df.reindex_axis(ax, axis='index', copy=False)
 
-            if tuple(v.split('.')) >= rv:
-                break
+    if index is not None:
+        df.index.set_names(index, inplace=True)
 
-            msg = "\n  Input file version %s. Please update your input " \
-                  "file with a version >= %s."
-            log.warning(msg, v, __input_file_version__)
-            break
-    else:
-        msg = "\n  Input file version not found. Please update your input " \
-              "file with a version >= %s."
-        log.error(msg, __input_file_version__)
-
-    return data
+    return df
 
 
 _re_units = regex.compile('(\[.*\])')
 
 
-@cached({})
+@cachetools.cached({})
 def get_doc_description():
     from ..model.physical import physical
     from co2mpas.dispatcher.utils import search_node_description
 
     doc_descriptions = {}
 
-    dsp = physical()
-    for k, v in dsp.data_nodes.items():
+    d = physical()
+    for k, v in d.data_nodes.items():
         if k in doc_descriptions or v['type'] != 'data':
             continue
-        des = search_node_description(k, v, dsp)[0]
+        des = search_node_description(k, v, d)[0]
         if not des or len(des.split(' ')) > 4:
 
             unit = _re_units.search(des)
@@ -497,56 +508,15 @@ def get_doc_description():
                 unit = ' %s' % unit.group()
             else:
                 unit = ''
-            doc_descriptions[k] = '%s%s.' % (parse_name(k), unit)
+            doc_descriptions[k] = '%s%s.' % (_parse_name(k), unit)
         else:
             doc_descriptions[k] = des
     return doc_descriptions
 
 
-def parse_name(name, standard_names=None):
-    """
-    Parses a column/row name.
-
-    :param name:
-        Name to be parsed.
-    :type name: str
-
-    :param standard_names:
-        Standard names to use instead parsing.
-    :type standard_names: dict[str, str], optional
-
-    :return:
-        The parsed name.
-    :rtype: str
-    """
-
-    if standard_names and name in standard_names:
-        return standard_names[name]
-
-    name = name.replace('_', ' ')
-
-    return name.capitalize()
-
-
-def get_types():
-    from ..model.physical import physical
-    from co2mpas.dispatcher.utils import search_node_description
-
-    node_types = {}
-
-    dsp = physical()
-    for k, v in dsp.data_nodes.items():
-        if k in node_types or v['type'] != 'data':
-            continue
-        des = search_node_description(k, v, dsp, 'value_type')[0]
-
-        node_types[k] = des.replace(' ', '').split(',')
-    return node_types
-
-
 def check_xlasso(input_file_name):
     try:
-        parse_xlref(input_file_name)
+        pnd_par.parse_xlref(input_file_name)
         return True
     except SyntaxError:
         return False
@@ -556,117 +526,105 @@ def load_inputs():
     """
     Defines a module to load the input file of the CO2MPAS model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = load_inputs()
+        >>> d = load_inputs()
 
     :return:
         The load input module.
     :rtype: SubDispatchFunction
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='load_inputs',
         description='Loads from files the inputs for the CO2MPAS model.'
     )
 
-    dsp.add_function(
+    d.add_function(
         function=get_cache_fpath,
         inputs=['input_file_name'],
         outputs=['cache_file_name']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='overwrite_cache',
-        default_value=False,
+        default_value=False
     )
 
-    dsp.add_function(
+    d.add_function(
         function_id='load_data_from_cache',
-        function=dsp_utl.add_args(load_from_dill, n=2),
+        function=dsp_utl.add_args(dill.load_from_dill, n=2),
         inputs=['overwrite_cache', 'input_file_name', 'cache_file_name'],
-        outputs=['data'],
+        outputs=['raw_data'],
         input_domain=check_cache_fpath_exists
     )
 
-    dsp.add_function(
-        function=parse_excel_file,
+    d.add_function(
+        function=excel.parse_excel_file,
         inputs=['input_file_name'],
-        outputs=['data'],
-        input_domain=partial(check_file_format, extensions=('.xlsx', '.xls')),
+        outputs=['raw_data'],
+        input_domain=functools.partial(check_file_format,
+                                       extensions=('.xlsx', '.xls')),
         weight=5
     )
 
-    dsp.add_function(
-        function=load_from_dill,
+    d.add_function(
+        function=dill.load_from_dill,
         inputs=['input_file_name'],
-        outputs=['data'],
-        input_domain=partial(check_file_format, extensions=('.dill',)),
+        outputs=['raw_data'],
+        input_domain=functools.partial(check_file_format,
+                                       extensions=('.dill',)),
         weight=5
     )
 
-    dsp.add_function(
+    d.add_function(
         function_id='load_from_xlasso',
-        function=lasso,
+        function=xleash.lasso,
         inputs=['input_file_name'],
-        outputs=['data'],
+        outputs=['raw_data'],
         input_domain=check_xlasso,
         weight=5
     )
 
-    dsp.add_function(
+    d.add_function(
         function_id='cache_parsed_data',
-        function=save_dill,
-        inputs=['data', 'cache_file_name']
+        function=dill.save_dill,
+        inputs=['raw_data', 'cache_file_name']
     )
 
-    dsp.add_function(
-        function=partial(validate_data, read_schema=define_data_schema()),
-        inputs=['data', 'soft_validation'],
-        outputs=['validated_data', 'validated_plan'],
-        weight=1
-    )
-
-    dsp.add_data(
-        data_id='validated_data',
-        function=check_data_version
-    )
-
-    return dsp
+    return d
 
 
 def write_outputs():
     """
     Defines a module to write on files the outputs of the CO2MPAS model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = write_outputs()
+        >>> d = write_outputs()
 
     :return:
         The write outputs module.
     :rtype: SubDispatchFunction
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='write_outputs',
         description='Writes on files the outputs of the CO2MPAS model.'
     )
 
-    dsp.add_function(
-        function=partial(convert2df,
-                         data_descriptions=get_doc_description(),
-                         write_schema=define_data_schema(read=False)),
+    d.add_function(
+        function=convert2df,
         inputs=['output_data', 'start_time', 'main_flags'],
         outputs=['dfs']
     )
 
-    dsp.add_function(
-        function=write_to_excel,
+    d.add_function(
+        function=excel.write_to_excel,
         inputs=['dfs', 'output_file_name', 'template_file_name']
     )
 
     inp = ['output_file_name', 'template_file_name', 'output_data',
            'start_time', 'main_flags']
 
-    return dsp_utl.SubDispatchFunction(dsp, dsp.name, inp)
+    return dsp_utl.SubDispatchFunction(d, d.name, inp)

@@ -13,9 +13,10 @@ It provides tools to create models with the :func:`~dispatcher.Dispatcher`.
 __author__ = 'Vincenzo Arcidiacono'
 
 __all__ = ['combine_dicts', 'bypass', 'summation', 'map_dict', 'map_list',
-           'selector', 'replicate_value', 'add_args',
-           'SubDispatch', 'ReplicateFunction', 'SubDispatchFunction',
-           'SubDispatchPipe']
+           'selector', 'replicate_value', 'add_args', 'parse_args',
+           'stack_nested_keys', 'get_nested_dicts', 'are_in_nested_dicts',
+           'combine_nested_dicts', 'SubDispatch', 'ReplicateFunction',
+           'SubDispatchFunction', 'SubDispatchPipe']
 
 import types
 from collections import OrderedDict
@@ -24,7 +25,6 @@ from functools import partial, reduce
 from inspect import signature, Parameter, _POSITIONAL_OR_KEYWORD
 from itertools import repeat, chain
 
-from .cst import EMPTY
 from .exc import DispatcherError
 from .gen import caller_name, Token
 
@@ -263,9 +263,11 @@ def selector(keys, dictionary, copy=False, output_type='dict',
     """
 
     if not allow_miss:
-        check = lambda key: True
+        def check(key):
+            return True
     else:
-        check = lambda key: key in dictionary
+        def check(key):
+            return key in dictionary
 
     if output_type == 'list':  # Select as list.
         res = [dictionary[k] for k in keys if check(k)]
@@ -381,6 +383,184 @@ def _get_signature(func, n=1):
     return sig
 
 
+def stack_nested_keys(nested_dict, key=(), depth=-1):
+    """
+    Stacks the keys of nested-dictionaries into tuples and yields a list of
+    k-v pairs.
+
+    :param nested_dict:
+        Nested dictionary.
+    :type nested_dict: dict
+
+    :param key:
+        Initial keys.
+    :type key: tuple, optional
+
+    :param depth:
+        Maximum keys depth.
+    :type depth: int, optional
+
+    :return:
+        List of k-v pairs.
+    :rtype: generator
+    """
+
+    if depth != 0 and hasattr(nested_dict, 'items'):
+        for k, v in nested_dict.items():
+            yield from stack_nested_keys(v, key=key + (k,), depth=depth - 1)
+    else:
+        yield key, nested_dict
+
+
+def get_nested_dicts(nested_dict, *keys, default=None, init_nesting=dict):
+    """
+    Get/Initialize the value of nested-dictionaries.
+
+    :param nested_dict:
+        Nested dictionary.
+    :type nested_dict: dict
+
+    :param keys:
+        Nested keys.
+    :type keys: tuple
+
+    :param default:
+        Function used to initialize a new value.
+    :type default: function, optional
+
+    :param init_nesting:
+        Function used to initialize a new intermediate nesting dict.
+    :type init_nesting: function, optional
+
+    :return:
+        Value of nested-dictionary.
+    :rtype: generator
+    """
+
+    if keys:
+        default = default or init_nesting
+        d = default() if len(keys) == 1 else init_nesting()
+        nd = nested_dict[keys[0]] = nested_dict.get(keys[0], d)
+        return get_nested_dicts(nd, *keys[1:], default=default)
+    return nested_dict
+
+
+def are_in_nested_dicts(nested_dict, *keys):
+    """
+    Nested keys are inside of nested-dictionaries.
+
+    :param nested_dict:
+        Nested dictionary.
+    :type nested_dict: dict
+
+    :param keys:
+        Nested keys.
+    :type keys: tuple
+
+    :return:
+        True if nested keys are inside of nested-dictionaries, otherwise False.
+    :rtype: bool
+    """
+
+    if keys:
+        try:
+            return are_in_nested_dicts(nested_dict[keys[0]], *keys[1:])
+        except KeyError:
+            return False
+    return True
+
+
+def combine_nested_dicts(*nested_dicts, depth=-1, base=None):
+    """
+    Merge nested-dictionaries.
+
+    :param nested_dicts:
+        Nested dictionaries.
+    :type nested_dicts: tuple[dict]
+
+    :param depth:
+        Maximum keys depth.
+    :type depth: int, optional
+
+    :param base:
+        Base dict where combine multiple dicts in one.
+    :type base: dict, optional
+
+    :return:
+        Combined nested-dictionary.
+    :rtype: dict
+    """
+
+    if base is None:
+        base = {}
+
+    for nested_dict in nested_dicts:
+        for k, v in stack_nested_keys(nested_dict, depth=depth):
+            get_nested_dicts(base, *k[:-1])[k[-1]] = v
+
+    return base
+
+
+class parse_args(add_args):
+    """
+    Parse an argument as magic args.
+
+    :param func:
+        Function to wrap.
+    :type func: function
+
+    :param magic_arg:
+        Index of the magic args.
+    :type magic_arg: int
+
+    :return:
+        Wrapped function.
+    :rtype: function
+
+    Example::
+
+        >>> def original_func(a, *b):
+        ...     '''Doc'''
+        ...     return (a,) + b
+        >>> func = parse_args(original_func, magic_arg=0)
+        >>> func.__name__, func.__doc__
+        ('original_func', 'Doc')
+        >>> func((1, 2, 3), 4)
+        (4, 1, 2, 3)
+    """
+
+    # noinspection PyMissingConstructor
+    def __init__(self, func, magic_arg=1):
+        try:
+            self.__name__ = func.__name__
+            self.__module__ = func.__module__
+            self.__doc__ = func.__doc__
+            self.__signature__ = _get_signature(func, 0)
+            self.func = func
+            self.magic_arg = magic_arg
+
+        except AttributeError:
+            from .des import parent_func
+            parse_args.__init__(self, parent_func(func), magic_arg=magic_arg)
+            self.func = func
+
+    def __call__(self, *args, **kwargs):
+        n = self.magic_arg
+        a = args[:n] + args[n + 1:]
+        try:
+            a += tuple(args[n])
+        except TypeError:
+            a += (args[n],)
+        return self.func(*a, **kwargs)
+
+    def __deepcopy__(self, memo):
+        cls = parse_args(
+            func=deepcopy(self.func, memo),
+            magic_arg=self.magic_arg,
+        )
+        return cls
+
+
 class SubDispatch(object):
     """
     It dispatches a given :func:`~dispatcher.Dispatcher` like a function.
@@ -489,7 +669,7 @@ class SubDispatch(object):
         self.name = self.__name__ = dsp.name
         self.__doc__ = dsp.__doc__
         from .sol import Solution
-        self.solution = Solution()
+        self.solution = Solution(dsp)
 
     def __call__(self, *input_dicts, copy_input_dicts=False, _sol_output=None):
 
@@ -803,7 +983,6 @@ class SubDispatchFunction(SubDispatch):
             inputs_dist, no_call, False
         )
 
-
         # Initialize as sub dispatch.
         super(SubDispatchFunction, self).__init__(
             dsp, outputs, cutoff, sol.inputs_dist, wildcard, no_call,
@@ -838,7 +1017,8 @@ class SubDispatchFunction(SubDispatch):
         input_values = combine_dicts(sol.inputs, inputs, kwargs)
 
         # Define the function to populate the workflow.
-        i_val = lambda k: {'value': input_values[k]}
+        def i_val(k):
+            return {'value': input_values[k]}
 
         # Initialize.
         sol._init_workflow(input_values, i_val, self.inputs_dist, False)

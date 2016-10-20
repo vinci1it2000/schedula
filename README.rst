@@ -6,8 +6,8 @@
 |co2mpas|: Vehicle simulator predicting NEDC |CO2| emissions from WLTP
 ######################################################################
 
-:Release:       1.3.1
-:Date:          2016-08-20 19:30:26
+:Release:       1.4.0
+:Date:          2016-09-13 15:06:00
 :Home:          http://co2mpas.io/
 :Releases:      http://files.co2mpas.io/
 :Sources:       https://github.com/JRCSTU/co2mpas

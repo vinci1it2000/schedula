@@ -11,182 +11,144 @@ It contains functions to read/write inputs/outputs from/on excel.
 
 
 import logging
-from math import isnan
+import math
 import pandas as pd
-from collections import Iterable
-from pandalone.xleash import lasso
-from pandalone.xleash.io._xlrd import _open_sheet_by_name_or_index
+import collections
+import pandalone.xleash as xleash
+import pandalone.xleash.io._xlrd as pnd_xlrd
 import shutil
 import openpyxl
-from xlsxwriter.utility import xl_range_abs, xl_rowcol_to_cell_fast
-import co2mpas.utils as co2_utl
-from inspect import getfullargspec
-from itertools import chain
+import xlsxwriter.utility as xl_utl
+import inspect
+import itertools
 import regex
 import co2mpas.dispatcher.utils as dsp_utl
-from co2mpas.dispatcher.utils.alg import stlp
 import json
 import os.path as osp
-from functools import partial
+import functools
 
 
 log = logging.getLogger(__name__)
 
+
+_base_params = r"""
+    ^((?P<scope>base)[. ]{1})?
+    ((?P<usage>(target|input|output|data|config))s?[. ]{1})?
+    ((?P<stage>(precondition|calibration|prediction|selector))s?[. ]{1})?
+    ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|
+               NEDC([-_]{1}[HL]{1})?|
+               ALL)(recon)?[. ]{1})?
+    (?P<param>[^\s.]*)$
+    |
+    ^((?P<scope>base)[. ]{1})?
+    ((?P<usage>(target|input|output|data|config))s?[. ]{1})?
+    ((?P<stage>(precondition|calibration|prediction|selector))s?[. ]{1})?
+    ((?P<param>[^\s.]*))?
+    ([. ]{1}(?P<cycle>WLTP([-_]{1}[HLP]{1})?|
+                      NEDC([-_]{1}[HL]{1})?|
+                      ALL)(recon)?)?$
+"""
+
+_flag_params = r"""^(?P<scope>flag)[. ]{1}(?P<flag>[^\s.]*)$"""
+
+
+_plan_params = r"""
+    ^(?P<scope>plan)[. ]{1}(
+     (?P<index>(id|base|run_base))$
+     |
+""" + _flag_params.replace('<scope>', '<v_scope>').replace('^(', '(') + r"""
+     |
+""" + _base_params.replace('<scope>', '<v_scope>').replace('^(', '(') + r"""
+     )
+"""
+
+
 _re_params_name = regex.compile(
     r"""
-        ^(?P<param>((plan|base)|
-                    (target|input|output|data)|
-                    ((precondition|calibration|prediction)s?)|
+        ^(?P<param>((plan|base|flag)|
+                    (target|input|output|data|config)|
+                    ((precondition|calibration|prediction|selector)s?)|
                     (WLTP([-_]{1}[HLP]{1})?|
                      NEDC([-_]{1}[HL]{1})?|
                      ALL)(recon)?))$
         |
-        ^((?P<scope>(plan|base))[. ]{1})?
-        ((?P<usage>(target|input|output|data))s?[. ]{1})?
-        ((?P<stage>(precondition|calibration|prediction))s?[. ]{1})?
-        ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|
-                   NEDC([-_]{1}[HL]{1})?|
-                   ALL)(recon)?[. ]{1})?
-        (?P<param>[^\s]*)$
+    """ + _flag_params + r"""
         |
-        ^((?P<scope>(plan|base))[. ]{1})?
-        ((?P<usage>(target|input|output|data))s?[. ]{1})?
-        ((?P<stage>(precondition|calibration|prediction))s?[. ]{1})?
-        ((?P<param>[^\s.]*))?
-        ([. ]{1}(?P<cycle>WLTP([-_]{1}[HLP]{1})?|
-                          NEDC([-_]{1}[HL]{1})?|
-                          ALL)(recon)?)?$
-    """, regex.IGNORECASE | regex.X | regex.DOTALL)
+    """ + _plan_params + r"""
+        |
+    """ + _base_params, regex.IGNORECASE | regex.X | regex.DOTALL)
 
+_base_sheet = r"""
+    ^((?P<scope>base)[. ]?)?
+    ((?P<usage>(target|input|output|data|config))s?[. ]?)?
+    ((?P<stage>(precondition|calibration|prediction|selector))s?[. ]?)?
+    ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|
+               NEDC([-_]{1}[HL]{1})?|
+               ALL)(recon)?[. ]?)?
+    (?P<type>(pa|ts|pl))?$
+"""
+
+_flag_sheet = r"""^(?P<scope>flag)([. ]{1}(?P<type>(pa|ts|pl)))?$"""
+
+_plan_sheet = r"""
+    ^(?P<scope>plan)([. ]{1}(
+""" + _flag_sheet.replace('<scope>', '<v_scope>').replace('^(', '(') + r"""
+     |
+""" + _base_sheet.replace('<scope>', '<v_scope>').replace('^(', '(') + r"""
+     ))?$
+"""
 
 _re_input_sheet_name = regex.compile(
-    r"""
-        ^((?P<scope>(plan|base))[. ]?)?
-        ((?P<usage>(target|input|output|data))s?[. ]?)?
-        ((?P<stage>(precondition|calibration|prediction))s?[. ]?)?
-        ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|
-                   NEDC([-_]{1}[HL]{1})?|
-                   ALL)(recon)?[. ]?)?
-        ((?P<type>(pa|ts|pl)))?$$
-    """, regex.IGNORECASE | regex.X | regex.DOTALL)
+    r'|'.join((_flag_sheet, _plan_sheet, _base_sheet)),
+    regex.IGNORECASE | regex.X | regex.DOTALL
+)
 
 
-def parse_excel_file(
-        file_path, re_sheet_name=_re_input_sheet_name,
-        re_params_name=_re_params_name):
-    """
-    Reads cycle's data and simulation plans.
-
-    :param file_path:
-        Excel file path.
-    :type file_path: str
-
-    :param re_sheet_name:
-        Regular expression to parse sheet names.
-    :type re_sheet_name: regex.Regex
-
-    :param re_params_name:
-        Regular expression to parse param names.
-    :type re_params_name: regex.Regex
-
-    :return:
-        A pandas DataFrame with cycle's time series.
-    :rtype: dict, pandas.DataFrame
-    """
-
-    excel_file = pd.ExcelFile(file_path)
-    res, plans = {}, []
-
-    defaults = {'scope': 'base'}
-
-    book = excel_file.book
-
-    for sheet_name in excel_file.sheet_names:
-        match = re_sheet_name.match(sheet_name)
-        if not match:
-            continue
-        match = {k: v.lower() for k, v in match.groupdict().items() if v}
-
-        match = dsp_utl.combine_dicts(defaults, match)
-
-        sheet = _open_sheet_by_name_or_index(book, 'book', sheet_name)
-        if match['scope'] == 'base':
-            _parse_base_data(res, match, sheet, sheet_name, re_params_name)
-        elif match['scope'] == 'plan':
-            _parse_plan_data(plans, match, sheet, sheet_name, re_params_name)
-
-    for k, v in co2_utl.stack_nested_keys(res.get('base', {}), depth=3):
-        if k[0] != 'target':
-            v['cycle_type'] = v.get('cycle_type', k[-1].split('_')[0]).upper()
-            v['cycle_name'] = v.get('cycle_name', k[-1]).upper()
-
-    res['plan'] = _finalize_plan(res, plans, file_path)
-
-    return res
+_xl_ref = {
+    'pa': '#%s!B2:C_:["pipe", ["dict", "recurse"]]',
+    'ts': '#%s!A2(R):.3:RD:["df", {"header": 0}]',
+    'pl': '#%s!A1(R):._:R:"recurse"'
+}
 
 
-# noinspection PyUnresolvedReferences
-def _finalize_plan(res, plans, file_path):
-    if not plans:
-        return pd.DataFrame()
-
-    for k, v in co2_utl.stack_nested_keys(res.get('plan', {}), depth=4):
-        n = '.'.join(k)
-        m = '.'.join(k[:-1])
-        for p in plans:
-            if any(c.startswith(m) for c in p.columns):
-                if n in p:
-                    p[n].fillna(value=v, inplace=True)
-                else:
-                    p[n] = v
-
-    plan = pd.concat(plans, axis=1, copy=False, verify_integrity=True)
-    func = partial(osp.join, osp.dirname(file_path))
-    if 'base' not in plan:
-        plan['base'] = file_path
+def _get_sheet_type(
+        type=None, usage=None, cycle=None, scope='base', **kw):
+    if type:
+        pass
+    elif scope == 'plan':
+        type = 'pl'
+    elif scope == 'flag' or not cycle or usage == 'config':
+        type = 'pa'
     else:
-        plan['base'].fillna(file_path)
-        plan['base'] = plan['base'].apply(lambda x: x or file_path).apply(func)
-
-    plan['base'] = plan['base'].apply(osp.normpath)
-
-    if 'defaults' not in plan:
-        plan['defaults'] = ''
-    else:
-        plan['defaults'].fillna('')
-        def _func(x):
-            if x:
-                return str(tuple(osp.normpath(func(v)) for v in tuple(eval(x))))
-            else:
-                return x
-        plan['defaults'] = plan['defaults'].apply(_func)
-
-    plan['id'] = plan.index
-    plan.set_index(['id', 'base', 'defaults'], inplace=True)
-
-    return plan
+        type = 'ts'
+    return type
 
 
-def _parse_base_data(
-        res, match, sheet, sheet_name, re_params_name=_re_params_name):
-    r = {}
-    defaults = {'usage': 'input', 'stage': 'calibration'}
+def _parse_sheet(match, sheet, sheet_name, res=None):
 
-    if 'type' not in match:
-        match['type'] = 'pa' if 'cycle' not in match else 'ts'
+    if res is None:
+        res = {}
 
-    match = dsp_utl.combine_dicts(defaults, match)
+    sh_type = _get_sheet_type(**match)
 
-    if match['type'] == 'pa':
-        xl_ref = '#%s!B2:C_:["pipe", ["dict", "recurse"]]' % sheet_name
-        data = lasso(xl_ref, sheet=sheet)
-    else:
-        # noinspection PyBroadException
+    # noinspection PyBroadException
+    try:
+        data = xleash.lasso(_xl_ref[sh_type] % sheet_name, sheet=sheet)
+    except:
+        return res
+
+    if sh_type == 'pl':
         try:
-            xl_ref = '#%s!A2(R):.3:RD:["df", {"header": 0}]' % sheet_name
-            data = lasso(xl_ref, sheet=sheet)
-        except:
-            return {}
+            data = pd.DataFrame(data[1:], columns=data[0])
+        except IndexError:
+            return None
+        if 'id' not in data:
+            data['id'] = data.index + 1
+
+        data.set_index(['id'], inplace=True)
+        data.dropna(how='all', inplace=True)
+        data.dropna(axis=1, how='all', inplace=True)
+    elif sh_type == 'ts':
         data.dropna(how='all', inplace=True)
         data.dropna(axis=1, how='all', inplace=True)
         mask = data.count(0) == len(data._get_axis(0))
@@ -197,109 +159,200 @@ def _parse_base_data(
                   'Please correct the inputs!'
             raise ValueError(msg.format(drop, sheet_name))
 
-    for k, v in parse_values(data, match, re_params_name):
-        co2_utl.get_nested_dicts(r, *k[:-1])[k[-1]] = v
-
-    n = (match['scope'], 'target')
-    if match['type'] == 'ts' and co2_utl.are_in_nested_dicts(r, *n):
-        t = co2_utl.get_nested_dicts(r, *n)
-        for k, v in co2_utl.stack_nested_keys(t, key=n, depth=2):
-            if 'times' not in v:
-                n = list(k + ('times',))
-                n[1] = match['usage']
-                if co2_utl.are_in_nested_dicts(r, *n):
-                    v['times'] = co2_utl.get_nested_dicts(r, *n)
-                else:
-                    for i, j in co2_utl.stack_nested_keys(r, depth=4):
-                        if 'times' in j:
-                            v['times'] = j['times']
-                            break
-
-    co2_utl.combine_nested_dicts(r, depth=5, base=res)
+    for k, v in _parse_values(data, match):
+        dsp_utl.get_nested_dicts(res, *k[:-1])[k[-1]] = v
+    return res
 
 
-def _parse_plan_data(
-        plans, match, sheet, sheet_name, re_params_name=_re_params_name):
-    # noinspection PyBroadException
-    xl_ref = '#%s!A1(R):._:R:"recurse"'
-    data = lasso(xl_ref % sheet_name, sheet=sheet)
-    try:
-        data = pd.DataFrame(data[1:], columns=data[0])
-    except IndexError:
-        return None
-    if 'id' not in data:
-        data['id'] = data.index + 1
+def _get_cycle(cycle=None, usage=None, **kw):
+    if cycle is None or cycle == 'all':
+        if usage == 'config':
+            cycle = 'all'
+        else:
+            cycle = ('nedc_h', 'nedc_l', 'wltp_h', 'wltp_l')
+            if cycle == 'all':
+                cycle += 'wltp_p',
 
-    data.set_index(['id'], inplace=True)
-    data.dropna(how='all', inplace=True)
-    data.dropna(axis=1, how='all', inplace=True)
+    elif cycle == 'wltp':
+        cycle = ('wltp_h', 'wltp_l')
+    elif cycle == 'nedc':
+        cycle = ('nedc_h', 'nedc_l')
+    elif isinstance(cycle, str):
+        cycle = cycle.replace('-', '_')
 
-    plan = pd.DataFrame()
-    defaults = {'usage': 'input', 'stage': 'calibration'}
-    match = dsp_utl.combine_dicts(defaults, match)
-    for k, v in parse_values(data, match, re_params_name):
-        k = k[-1] if k[-1] in ('base', 'defaults') else '.'.join(k[1:])
-        plan[k] = v
-
-    plans.append(plan)
+    return cycle
 
 
-def _isempty(val):
-    return isinstance(val, float) and isnan(val) or _check_none(val)
+def _get_default_stage(stage=None, cycle=None, usage=None, **kw):
+    if stage is None:
+        if cycle == 'wltp_p':
+            stage = 'precondition'
+        elif 'nedc' in cycle or usage == 'target':
+            stage = 'prediction'
+        else:
+            stage = 'calibration'
+
+    return stage.replace(' ', '')
 
 
-def parse_values(data, default=None, re_params_name=_re_params_name):
-    default = default or {'scope': 'base'}
-    if 'usage' not in default:
-        default['usage'] = 'input'
-    if 'cycle' not in default or default['cycle'] == 'all':
-        default['cycle'] = ('nedc_h', 'nedc_l', 'wltp_p', 'wltp_h', 'wltp_l')
-    elif default['cycle'] == 'wltp':
-        default['cycle'] = ('wltp_h', 'wltp_l')
-    elif default['cycle'] == 'nedc':
-        default['cycle'] = ('nedc_h', 'nedc_l')
-    else:
-        default['cycle'] = default['cycle'].replace('-', '_')
+def _parse_key(scope='base', usage='input', **match):
+    if scope == 'flag':
+        yield scope, match['flag']
+    elif scope == 'plan':
+        if len(match) == 1 and 'param' in match:
+            m = _re_params_name.match('.'.join((scope, match['param'])))
+            if m:
+                m = {i: j for i, j in m.groupdict().items() if j}
+                if 'index' in m:
+                    match = m
 
+        if 'index' in match:
+            yield scope, match['index']
+        else:
+            for k in _parse_key(match.get('v_scope', 'base'), usage, **match):
+                yield scope, '.'.join(k)
+    elif scope == 'base':
+        i = match['param']
+        m = match.copy()
+        for c in dsp_utl.stlp(_get_cycle(usage=usage, **match)):
+            m['cycle'] = c
+            stage = _get_default_stage(usage=usage, **m)
+            yield scope, usage, stage, c, i
+
+
+def _parse_values(data, default=None):
+    default = default or {}
     for k, v in data.items():
-        match = re_params_name.match(k) if k is not None else None
+        match = _re_params_name.match(k) if k is not None else None
         if not match or _isempty(v):
             continue
         match = {i: j.lower() for i, j in match.groupdict().items() if j}
 
-        if 'stage' not in match and match.get('usage', None) == 'target':
-            match['stage'] = 'prediction'
+        for key in _parse_key(**dsp_utl.combine_dicts(default, match)):
+            yield key, v
 
-        match = dsp_utl.combine_dicts(default, match)
-        match['stage'] = match['stage'].replace(' ', '')
 
-        if match['stage'] == 'input':
-            match['stage'] = 'calibration'
+def _add_times_base(data, scope='base', usage='input', **match):
+    if scope != 'base':
+        return
+    sh_type = _get_sheet_type(scope=scope, usage=usage, **match)
+    n = (scope, 'target')
+    if sh_type == 'ts' and dsp_utl.are_in_nested_dicts(data, *n):
+        t = dsp_utl.get_nested_dicts(data, *n)
+        for k, v in dsp_utl.stack_nested_keys(t, key=n, depth=2):
+            if 'times' not in v:
+                n = list(k + ('times',))
+                n[1] = usage
+                if dsp_utl.are_in_nested_dicts(data, *n):
+                    v['times'] = dsp_utl.get_nested_dicts(data, *n)
+                else:
+                    for i, j in dsp_utl.stack_nested_keys(data, depth=4):
+                        if 'times' in j:
+                            v['times'] = j['times']
+                            break
 
-        i = match['param']
 
-        if match['cycle'] == 'wltp':
-            match['cycle'] = ('wltp_h', 'wltp_l')
-        elif match['cycle'] == 'nedc':
-            match['cycle'] = ('nedc_h', 'nedc_l')
-        elif match['cycle'] == 'all':
-            match['cycle'] = ('nedc_h', 'nedc_l', 'wltp_p', 'wltp_h', 'wltp_l')
+def parse_excel_file(file_path):
+    """
+    Reads cycle's data and simulation plans.
 
-        for c in stlp(match['cycle']):
-            c = c.replace('-', '_')
-            if c == 'wltp_p':
-                stage = 'precondition'
-            elif 'nedc' in c:
-                stage = 'prediction'
-            else:
-                stage = match['stage']
-            yield (match['scope'], match['usage'], stage, c, i), v
+    :param file_path:
+        Excel file path.
+    :type file_path: str
+
+    :return:
+        A pandas DataFrame with cycle's time series.
+    :rtype: dict, pandas.DataFrame
+    """
+
+    try:
+        excel_file = pd.ExcelFile(file_path)
+    except FileNotFoundError:
+        log.error("No such file or directory: '%s'", file_path)
+        return dsp_utl.NONE
+
+    res, plans = {}, []
+
+    book = excel_file.book
+
+    for sheet_name in excel_file.sheet_names:
+        match = _re_input_sheet_name.match(sheet_name)
+        if not match:
+            continue
+        match = {k: v.lower() for k, v in match.groupdict().items() if v}
+
+        sheet = pnd_xlrd._open_sheet_by_name_or_index(book, 'book', sheet_name)
+        is_plan = match.get('scope', None) == 'plan'
+        if is_plan:
+            r = {'plan': pd.DataFrame()}
+        else:
+            r = {}
+        r = _parse_sheet(match, sheet, sheet_name, res=r)
+        if is_plan:
+            plans.append(r['plan'])
+        else:
+            _add_times_base(r, **match)
+            dsp_utl.combine_nested_dicts(r, depth=5, base=res)
+
+    for k, v in dsp_utl.stack_nested_keys(res.get('base', {}), depth=3):
+        if k[0] != 'target':
+            v['cycle_type'] = v.get('cycle_type', k[-1].split('_')[0]).upper()
+            v['cycle_name'] = v.get('cycle_name', k[-1]).upper()
+
+    res['plan'] = _finalize_plan(res, plans, file_path)
+
+    return res
+
+
+def _add_index_plan(plan, file_path):
+    func = functools.partial(osp.join, osp.dirname(file_path))
+    if 'base' not in plan:
+        plan['base'] = file_path
+    else:
+        plan['base'].fillna(file_path)
+        plan['base'] = plan['base'].apply(lambda x: x or file_path).apply(func)
+
+    plan['base'] = plan['base'].apply(osp.normpath)
+
+    if 'run_base' not in plan:
+        plan['run_base'] = True
+    else:
+        plan['run_base'].fillna(True)
+
+    plan['id'] = plan.index
+    plan.set_index(['id', 'base', 'run_base'], inplace=True)
+    return plan
+
+
+def _finalize_plan(res, plans, file_path):
+
+    if not plans:
+        plans = (pd.DataFrame(),)
+
+    for k, v in dsp_utl.stack_nested_keys(res.get('plan', {}), depth=4):
+        n = '.'.join(k)
+        m = '.'.join(k[:-1])
+        for p in plans:
+            if any(c.startswith(m) for c in p.columns):
+                if n in p:
+                    p[n].fillna(value=v, inplace=True)
+                else:
+                    p[n] = v
+
+    plan = pd.concat(plans, axis=1, copy=False, verify_integrity=True)
+    # noinspection PyTypeChecker
+    return _add_index_plan(plan, file_path)
+
+
+def _isempty(val):
+    return isinstance(val, float) and math.isnan(val) or _check_none(val)
 
 
 def _check_none(v):
     if v is None:
         return True
-    elif isinstance(v, Iterable) and not isinstance(v, str) and len(v) <= 1:
+    elif isinstance(v, collections.Iterable) and not isinstance(v, str) \
+            and len(v) <= 1:
         return _check_none(next(iter(v))) if len(v) == 1 else True
     return False
 
@@ -326,25 +379,35 @@ def write_to_excel(data, output_file_name, template_file_name):
     if template_file_name:
         log.debug('Writing into xl-file(%s) based on template(%s)...',
                   output_file_name, template_file_name)
-        shutil.copy(template_file_name, output_file_name)
-
         writer = clone_excel(template_file_name, output_file_name)
     else:
         log.debug('Writing into xl-file(%s)...', output_file_name)
         writer = pd.ExcelWriter(output_file_name, engine='xlsxwriter')
     xlref = []
+    charts = []
     for k, v in sorted(data.items(), key=_sort_sheets):
         if not k.startswith('graphs.'):
+            down = True
             if k.endswith('pa'):
                 kw = {'named_ranges': ('rows',), 'index': True, 'k0': 1}
             elif k.endswith('ts'):
                 kw = {'named_ranges': ('columns',), 'index': False, 'k0': 1}
+            elif k.endswith('proc_info'):
+                down = False
+                kw = {'named_ranges': ()}
             else:
                 kw = {}
-            down = not k.endswith('proc_info')
+
             xlref.extend(_write_sheets(writer, k, v, down=down, **kw))
         else:
-            _chart2excel(writer, k, v)
+            try:
+                sheet = writer.book.add_worksheet(k)
+            except AttributeError:
+                sheet = writer.book.create_sheet(title=k)
+            charts.append((sheet, v))
+
+    for sheet, v in charts:
+        _chart2excel(writer, sheet, v)
 
     if xlref:
         xlref = sorted(dsp_utl.combine_dicts(*[x[1] for x in xlref]).items())
@@ -382,7 +445,7 @@ def _sort_sheets(x):
 
 
 def _get_defaults(func):
-    a = getfullargspec(func)
+    a = inspect.getfullargspec(func)
     defaults = {}
     if a.defaults:
         defaults.update(zip(a.args[::-1], a.defaults[::-1]))
@@ -425,20 +488,28 @@ def _df2excel(writer, shname, df, k0=0, named_ranges=('columns', 'rows'), **kw):
         return (startrow, startcol), ref
 
 
+def _convert_index(k):
+    if not isinstance(k, collections.Iterable):
+        k = (str(k),)
+    elif isinstance(k, str):
+        k = (k,)
+    return k
+
+
 def _add_named_ranges(df, writer, shname, startrow, startcol, named_ranges, k0):
+    ref = '!'.join([shname, '%s'])
     # noinspection PyBroadException
     try:
         define_name = writer.book.define_name
-        ref = '!'.join([shname, '%s'])
 
-        def create_named_range(ref_n, ref_r):
+        def _create_named_range(ref_n, ref_r):
             define_name(ref % ref_n, ref % ref_r)
     except:  # Use other pkg.
         define_name = writer.book.create_named_range
-        sheet = writer.sheets[shname]
+        scope = writer.book.get_index(writer.sheets[shname])
 
-        def create_named_range(ref_n, ref_r):
-            define_name(ref_n, sheet, ref_r, scope=sheet)
+        def _create_named_range(ref_n, ref_r):
+            define_name(ref_n, value=ref % ref_r, scope=scope)
 
     tag = ()
     if hasattr(df, 'name'):
@@ -446,21 +517,19 @@ def _add_named_ranges(df, writer, shname, startrow, startcol, named_ranges, k0):
 
     it = ()
 
-    if 'columns' in named_ranges:
+    if 'rows' in named_ranges and 'columns' in named_ranges:
+        it += (_ranges_by_col_row(df, startrow, startcol),)
+    elif 'columns' in named_ranges:
         it += (_ranges_by_col(df, startrow, startcol),)
-
-    if 'rows' in named_ranges:
+    elif 'rows' in named_ranges:
         it += (_ranges_by_row(df, startrow, startcol),)
 
-    for k, range_ref in chain(*it):
-        if not isinstance(k, Iterable):
-            k = (str(k),)
-        elif isinstance(k, str):
-            k = (k,)
+    for k, range_ref in itertools.chain(*it):
+        k = _convert_index(k)
         if k:
             try:
                 k = tag + k[k0:]
-                create_named_range(_ref_name(*k), range_ref)
+                _create_named_range(_ref_name(*k), range_ref)
             except TypeError:
                 pass
 
@@ -494,42 +563,90 @@ def _get_corner(df, startcol=0, startrow=0, index=False, header=True, **kw):
         i = _index_levels(df.index)
         ref['index_col'] = list(range(i))
         startcol += i
-    landing = xl_rowcol_to_cell_fast(startrow, startcol)
-    ref = '{}(L):..(DR):LURD:["df", {}]'.format(landing, json.dumps(ref))
+    landing = xl_utl.xl_rowcol_to_cell_fast(startrow, startcol)
+    ref = json.dumps(ref, sort_keys=True)
+    ref = '{}(L):..(DR):LURD:["df", {}]'.format(landing, ref)
     return startrow, startcol, ref
 
 
 def _ranges_by_col(df, startrow, startcol):
     for col, (k, v) in enumerate(df.items(), start=startcol):
-        yield k, xl_range_abs(startrow, col, startrow + len(v) - 1, col)
+        yield k, xl_utl.xl_range_abs(startrow, col, startrow + len(v) - 1, col)
 
 
 def _ranges_by_row(df, startrow, startcol):
     for row, (k, v) in enumerate(df.iterrows(), start=startrow):
-        yield k, xl_range_abs(row, startcol, row, startcol + len(v) - 1)
+        yield k, xl_utl.xl_range_abs(row, startcol, row, startcol + len(v) - 1)
 
 
-def _chart2excel(writer, shname, charts):
-    sheet = writer.book.add_worksheet(shname)
-    add_chart = writer.book.add_chart
-    m, h, w = 3, 300, 500
+def _ranges_by_col_row(df, startrow, startcol):
+    for row, i in enumerate(df.index, start=startrow):
+        i = _convert_index(i)
+        for col, c in enumerate(df.columns, start=startcol):
+            yield i + _convert_index(c), xl_utl.xl_range_abs(row, col, row, col)
 
-    for i, (k, v) in enumerate(sorted(charts.items())):
-        chart = add_chart({'type': 'scatter', 'subtype': 'straight'})
-        for s in v['series']:
-            chart.add_series({
-                'name': s['label'],
-                'categories': _data_ref(s['x']),
-                'values': _data_ref(s['y']),
-            })
-        chart.set_size({'width': w, 'height': h})
 
-        for s, o in v['set'].items():
-            eval('chart.set_%s(o)' % s)
+def _chart2excel(writer, sheet, charts):
+    try:
+        add_chart = writer.book.add_chart
+        m, h, w = 3, 300, 512
 
-        n = int(i / m)
-        j = i - n * m
-        sheet.insert_chart('A1', chart, {'x_offset': w * n, 'y_offset': h * j})
+        for i, (k, v) in enumerate(sorted(charts.items())):
+            chart = add_chart({'type': 'scatter', 'subtype': 'straight'})
+            for s in v['series']:
+                chart.add_series({
+                    'name': s['label'],
+                    'categories': _data_ref(s['x']),
+                    'values': _data_ref(s['y']),
+                })
+            chart.set_size({'width': w, 'height': h})
+
+            for s, o in v['set'].items():
+                eval('chart.set_%s(o)' % s)
+
+            n = int(i / m)
+            j = i - n * m
+            sheet.insert_chart('A1', chart, {'x_offset': w * n, 'y_offset': h * j})
+    except AttributeError:
+        from openpyxl.chart import ScatterChart, Series
+        from xlrd import colname as xl_colname
+
+        sn = writer.book.get_sheet_names()
+        named_ranges = {'%s!%s' % (sn[d.localSheetId], d.name): d.value
+                        for d in writer.book.defined_names.definedName}
+        m, h, w = 3, 7.94, 13.55
+
+        for i, (k, v) in enumerate(sorted(charts.items())):
+            chart = ScatterChart()
+            chart.height = h
+            chart.width = w
+            _map = {
+                ('title', 'name'): ('title',),
+                ('y_axis', 'name'): ('y_axis', 'title'),
+                ('x_axis', 'name'): ('x_axis', 'title'),
+            }
+            _filter = {
+                ('legend', 'position'): lambda x: x[0],
+            }
+            it = {s: _filter[s](o) if s in _filter else o
+                  for s, o in dsp_utl.stack_nested_keys(v['set'])}
+
+            for s, o in dsp_utl.map_dict(_map, it).items():
+                c = chart
+                for j in s[:-1]:
+                    c = getattr(c, j)
+                setattr(c, s[-1], o)
+
+            for s in v['series']:
+                xvalues = named_ranges[_data_ref(s['x'])]
+                values = named_ranges[_data_ref(s['y'])]
+                series = Series(values, xvalues, title=s['label'])
+                chart.series.append(series)
+
+            n = int(i / m)
+            j = i - n * m
+
+            sheet.add_chart(chart, '%s%d' %(xl_colname(8 * n), 1 + 15 * j))
 
 
 def _data_ref(ref):

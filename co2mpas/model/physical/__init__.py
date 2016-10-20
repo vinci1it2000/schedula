@@ -27,9 +27,10 @@ Modules:
     defaults
 """
 
-from co2mpas.dispatcher import Dispatcher
+import co2mpas.dispatcher as dsp
 import numpy as np
-from functools import partial
+import functools
+np.seterr(divide='ignore', invalid='ignore')
 
 
 def predict_vehicle_electrics_and_engine_behavior(
@@ -133,7 +134,7 @@ def predict_vehicle_electrics_and_engine_behavior(
         if the engine is on and when the engine starts, the engine speed at hot
         condition, and the engine coolant temperature.
         [A, A, %, -, -, -, RPM, °C].
-    :rtype: tuple[np.array]
+    :rtype: tuple[numpy.array]
     """
 
     from .engine import calculate_engine_speeds_out_hot
@@ -159,8 +160,8 @@ def predict_vehicle_electrics_and_engine_behavior(
 
     # min_soc = electrics_model.alternator_status_model.min
 
-    thermal_model = partial(engine_temperature_regression_model.delta,
-                            max_temp=max_engine_coolant_temperature)
+    thermal_model = functools.partial(engine_temperature_regression_model.delta,
+                                      max_temp=max_engine_coolant_temperature)
 
     for i, (on_eng, dt, p, a, s, fdp, t) in enumerate(zip(gen, *args)):
 
@@ -190,23 +191,23 @@ def physical():
     """
     Defines the CO2MPAS physical model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = physical()
+        >>> d = physical()
 
     :return:
         The CO2MPAS physical model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='CO2MPAS physical model',
         description='Wraps all functions needed to calibrate and predict '
                     'light-vehicles\' CO2 emissions.'
     )
 
     from .cycle import cycle
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         include_defaults=True,
         dsp_id='cycle_model',
         dsp=cycle(),
@@ -241,18 +242,19 @@ def physical():
             'max_speed_velocity_ratio': 'max_speed_velocity_ratio',
             'gears': 'gears',
             'max_time': 'max_time',
+            'bag_phases': 'bag_phases'
         },
         outputs={
             'times': 'times',
             'velocities': 'velocities',
             'gears': 'gears',
-            'initial_temperature': 'initial_temperature'
+            'initial_temperature': 'initial_temperature',
+            'phases_integration_times': 'phases_integration_times',
         }
     )
 
     from .vehicle import vehicle
-
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         include_defaults=True,
         dsp_id='vehicle_model',
         dsp=vehicle(),
@@ -291,8 +293,7 @@ def physical():
     )
 
     from .wheels import wheels
-
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         include_defaults=True,
         dsp_id='wheels_model',
         dsp=wheels(),
@@ -331,8 +332,7 @@ def physical():
     )
 
     from .final_drive import final_drive
-
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         include_defaults=True,
         dsp_id='final_drive_model',
         dsp=final_drive(),
@@ -354,12 +354,12 @@ def physical():
     )
 
     from .gear_box import gear_box
-
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         include_defaults=True,
         dsp_id='gear_box_model',
         dsp=gear_box(),
         inputs={
+            'engine_mass': 'engine_mass',
             'on_engine': 'on_engine',
             'CVT': 'CVT',
             'fuel_saving_at_strategy': 'fuel_saving_at_strategy',
@@ -375,7 +375,6 @@ def physical():
             'cycle_type': 'cycle_type',
             'use_dt_gear_shifting': 'use_dt_gear_shifting',
             'specific_gear_shifting': 'specific_gear_shifting',
-            'ignition_type': 'ignition_type',
             'full_load_curve': 'full_load_curve',
             'engine_max_power': 'engine_max_power',
             'engine_max_speed_at_max_power': 'engine_max_speed_at_max_power',
@@ -412,7 +411,8 @@ def physical():
             'change_gear_window_width': 'change_gear_window_width',
             'min_engine_on_speed': 'min_engine_on_speed',
             'max_velocity_full_load_correction':
-                'max_velocity_full_load_correction'
+                'max_velocity_full_load_correction',
+            'has_torque_converter': 'has_torque_converter'
         },
         outputs={
             'CVT': 'CVT',
@@ -446,8 +446,7 @@ def physical():
     )
 
     from .clutch_tc import clutch_torque_converter
-
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         include_defaults=True,
         dsp=clutch_torque_converter(),
         dsp_id='clutch_torque_converter_model',
@@ -471,6 +470,7 @@ def physical():
             'lock_up_tc_limits': 'lock_up_tc_limits',
             'calibration_tc_speed_threshold': 'calibration_tc_speed_threshold',
             'stop_velocity': 'stop_velocity',
+            'has_torque_converter': 'has_torque_converter'
         },
         outputs={
             'clutch_tc_speeds_delta': 'clutch_tc_speeds_delta',
@@ -479,17 +479,18 @@ def physical():
             'torque_converter_model': 'torque_converter_model',
             'stand_still_torque_ratio': 'stand_still_torque_ratio',
             'lockup_speed_ratio': 'lockup_speed_ratio',
-            'clutch_tc_powers': 'clutch_tc_powers'
+            'clutch_tc_powers': 'clutch_tc_powers',
+            'has_torque_converter': 'has_torque_converter'
         }
     )
 
     from .electrics import electrics
-
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         include_defaults=True,
         dsp_id='electric_model',
         dsp=electrics(),
         inputs={
+            'cycle_type': 'cycle_type',
             'delta_time_engine_starter': 'delta_time_engine_starter',
             'alternator_charging_currents': 'alternator_charging_currents',
             'alternator_current_model': 'alternator_current_model',
@@ -523,6 +524,7 @@ def physical():
             'alternator_initialization_time': 'alternator_initialization_time'
         },
         outputs={
+            'initial_state_of_charge': 'initial_state_of_charge',
             'alternator_current_model': 'alternator_current_model',
             'alternator_nominal_power': 'alternator_nominal_power',
             'alternator_currents': 'alternator_currents',
@@ -540,12 +542,12 @@ def physical():
     )
 
     from .engine import engine
-
-    dsp.add_dispatcher(
+    d.add_dispatcher(
         include_defaults=True,
         dsp_id='engine_model',
         dsp=engine(),
         inputs={
+            'engine_mass': 'engine_mass',
             'is_hybrid': 'is_hybrid',
             'state_of_charges': 'state_of_charges',
             'auxiliaries_torque_loss': 'auxiliaries_torque_loss',
@@ -582,7 +584,6 @@ def physical():
             'co2_emission_extra_high': 'co2_emission_extra_high',
             'co2_params': 'co2_params',
             'co2_params_calibrated': 'co2_params_calibrated',
-            'cycle_type': 'cycle_type',
             'engine_fuel_lower_heating_value':
                 'engine_fuel_lower_heating_value',
             'engine_idle_fuel_consumption': 'engine_idle_fuel_consumption',
@@ -621,9 +622,20 @@ def physical():
             'use_basic_start_stop': 'use_basic_start_stop',
             'has_start_stop': 'has_start_stop',
             'max_engine_coolant_temperature': 'max_engine_coolant_temperature',
-            'angle_slopes': 'angle_slopes'
+            'angle_slopes': 'angle_slopes',
+            'engine_max_speed': 'engine_max_speed',
+            'active_cylinder_ratios': 'active_cylinder_ratios',
+            'engine_has_cylinder_deactivation':
+                'engine_has_cylinder_deactivation',
+            'engine_has_variable_valve_actuation':
+                'engine_has_variable_valve_actuation',
+            'has_periodically_regenerating_systems':
+                'has_periodically_regenerating_systems',
+            'ki_factor': 'ki_factor',
         },
         outputs={
+            'engine_mass': 'engine_mass',
+            'engine_heat_capacity': 'engine_heat_capacity',
             'ignition_type': 'ignition_type',
             'has_sufficient_power': 'has_sufficient_power',
             'idle_engine_speed_median': 'idle_engine_speed_median',
@@ -688,12 +700,18 @@ def physical():
                 'engine_fuel_lower_heating_value',
             'cold_start_speeds_phases': 'cold_start_speeds_phases',
             'full_load_speeds': 'full_load_speeds',
-            'full_load_powers': 'full_load_powers'
+            'full_load_powers': 'full_load_powers',
+            'engine_max_speed': 'engine_max_speed',
+            'engine_idle_fuel_consumption': 'engine_idle_fuel_consumption',
+            'active_cylinders': 'active_cylinders',
+            'active_variable_valves': 'active_variable_valves',
+            'ki_factor': 'ki_factor',
+            'declared_co2_emission_value': 'declared_co2_emission_value',
         },
         inp_weight={'initial_temperature': 5}
     )
 
-    dsp.add_function(
+    d.add_function(
         function=predict_vehicle_electrics_and_engine_behavior,
         inputs=['electrics_model', 'start_stop_model',
                 'engine_temperature_regression_model',
@@ -710,4 +728,4 @@ def physical():
         weight=10
     )
 
-    return dsp
+    return d

@@ -9,14 +9,13 @@
 It contains functions that model the basic mechanics of the clutch.
 """
 
-from scipy.optimize import brute
-from sklearn.metrics import mean_squared_error
-from sklearn.linear_model import RANSACRegressor, LinearRegression
-from functools import partial
-from ..defaults import dfl
+import scipy.optimize as sci_opt
+import sklearn.linear_model as sk_lim
+import co2mpas.utils as co2_utl
+import sklearn.metrics as sk_met
+import functools
 import co2mpas.dispatcher.utils as dsp_utl
-from co2mpas.dispatcher import Dispatcher
-from . import define_k_factor_curve
+import co2mpas.dispatcher as dsp
 import numpy as np
 
 
@@ -139,46 +138,35 @@ def identify_clutch_window(
     :rtype: tuple
     """
 
-    model = RANSACRegressor(
-        base_estimator=LinearRegression(fit_intercept=False),
+    if not gear_shifts.any():
+        return 0.0, 0.0
+
+    model = co2_utl.SafeRANSACRegressor(
+        base_estimator=sk_lim.LinearRegression(fit_intercept=False),
         random_state=0
     )
 
-    phs = partial(calculate_clutch_phases, times, gear_shifts)
+    phs = functools.partial(calculate_clutch_phases, times, gear_shifts)
 
     delta = engine_speeds_out - engine_speeds_out_hot - cold_start_speeds_delta
     threshold = np.std(delta) * 2
 
-    def error(v):
+    def _error(v):
         clutch_phases = phs(v) & ((-threshold > delta) | (delta > threshold))
         y = delta[clutch_phases]
         # noinspection PyBroadException
         try:
-            X = np.array([accelerations[clutch_phases]]).T
+            X = accelerations[clutch_phases, None]
             return -model.fit(X, y).score(X, y)
         except:
             return np.inf
 
     dt = max_clutch_window_width / 2
     Ns = int(dt / max(times[1] - times[0], 0.5)) + 1
-    return tuple(brute(error, ((0, -dt), (0, dt)), Ns=Ns, finish=None))
+    return tuple(sci_opt.brute(_error, ((0, -dt), (0, dt)), Ns=Ns, finish=None))
 
 
-def _calibrate_clutch_prediction_model(
-        accelerations, delta_speeds, error_func, default_model):
-    try:
-        X = np.array([accelerations]).T
-        model = RANSACRegressor(
-            base_estimator=LinearRegression(fit_intercept=False),
-            random_state=0
-        ).fit(X, delta_speeds).predict
-    except ValueError:  # Setting MAD as residual_threshold is too low.
-        model = default_model
-
-    return error_func(model), model
-
-
-class Clutch():
+class Clutch(object):
     def __init__(self):
         self.predict = self._no_clutch
 
@@ -205,33 +193,43 @@ class Clutch():
             Clutch prediction model.
         :rtype: function
         """
+        if not clutch_phases.any():
+            self.predict = self._no_clutch
+        else:
+            delta = clutch_speeds_delta
+            phases, acc = clutch_phases, accelerations
 
-        delta = clutch_speeds_delta
-        phases, acc = clutch_phases, accelerations
+            cal, c = self._calibrate_clutch_prediction_model, dsp_utl.counter()
+            y, X = delta[phases], acc[phases, None]
 
-        cal, c = self._calibrate_clutch_prediction_model, dsp_utl.counter()
-        y, X = delta[phases], np.array([acc[phases]]).T
-        error = lambda func: (mean_squared_error(y, func(X)), c())
+            def error(func):
+                return np.mean(np.abs(y - func(X))), c()
 
-        models = [cal(acc[b], delta[b], error, self._no_clutch)
-                  for b in [np.zeros_like(acc, dtype=bool), phases]]
+            models = [
+                (error(self._no_clutch), self._no_clutch),
+                cal(acc[phases], delta[phases], error, self._no_clutch),
+            ]
 
-        self.predict = min(models)[-1]
+            self.predict = min(models)[-1]
         return self
 
     @staticmethod
     def _calibrate_clutch_prediction_model(
             accelerations, delta_speeds, error_func, default_model):
-        try:
-            X = np.array([accelerations]).T
-            model = RANSACRegressor(
-                base_estimator=LinearRegression(fit_intercept=False),
-                random_state=0
-            ).fit(X, delta_speeds).predict
-        except ValueError:  # Setting MAD as residual_threshold is too low.
-            model = default_model
+        if delta_speeds.any():
+            base_estimator = sk_lim.LinearRegression(fit_intercept=False)
+            try:
+                model = co2_utl.SafeRANSACRegressor(
+                    base_estimator=base_estimator,
+                    random_state=0
+                ).fit(accelerations[:, None], delta_speeds)
+            except ValueError:  # Setting MAD as residual_threshold is too low.
+                model = base_estimator.fit(accelerations[:, None], delta_speeds)
+            predict = model.predict
+        else:
+            predict = default_model
 
-        return error_func(model), model
+        return error_func(predict), predict
 
     @staticmethod
     def _no_clutch(X, *args):
@@ -288,8 +286,7 @@ def predict_clutch_speeds_delta(clutch_model, clutch_phases, accelerations):
     """
 
     delta = np.zeros_like(accelerations, dtype=float)
-    X = np.array([accelerations[clutch_phases]]).T
-    delta[clutch_phases] = clutch_model(X)
+    delta[clutch_phases] = clutch_model(accelerations[clutch_phases, None])
 
     return delta
 
@@ -302,9 +299,11 @@ def default_clutch_k_factor_curve():
         k factor curve.
     :rtype: function
     """
+    from ..defaults import dfl
     par = dfl.functions.default_clutch_k_factor_curve
     a = par.STAND_STILL_TORQUE_RATIO, par.LOCKUP_SPEED_RATIO
 
+    from . import define_k_factor_curve
     return define_k_factor_curve(*a)
 
 
@@ -312,38 +311,39 @@ def clutch():
     """
     Defines the clutch model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = clutch()
+        >>> d = clutch()
 
     :return:
         The clutch model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='Clutch',
         description='Models the clutch.'
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_clutch_phases,
         inputs=['times', 'gear_shifts', 'clutch_window'],
         outputs=['clutch_phases']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_clutch_speed_threshold,
         inputs=['clutch_speeds_delta'],
         outputs=['clutch_speed_threshold']
     )
 
-    dsp.add_data(
+    from ..defaults import dfl
+    d.add_data(
         data_id='max_clutch_window_width',
         default_value=dfl.values.max_clutch_window_width
     )
 
-    dsp.add_function(
+    d.add_function(
         function=identify_clutch_window,
         inputs=['times', 'accelerations', 'gear_shifts', 'engine_speeds_out',
                 'engine_speeds_out_hot', 'cold_start_speeds_delta',
@@ -351,35 +351,36 @@ def clutch():
         outputs=['clutch_window']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=identify_clutch_speeds_delta,
         inputs=['clutch_phases', 'engine_speeds_out', 'engine_speeds_out_hot',
                 'cold_start_speeds_delta'],
         outputs=['clutch_speeds_delta']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calibrate_clutch_prediction_model,
         inputs=['clutch_phases', 'accelerations', 'clutch_speeds_delta'],
         outputs=['clutch_model']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=predict_clutch_speeds_delta,
         inputs=['clutch_model', 'clutch_phases', 'accelerations'],
         outputs=['clutch_speeds_delta']
     )
 
-    dsp.add_function(
+    from . import define_k_factor_curve
+    d.add_function(
         function=define_k_factor_curve,
         inputs=['stand_still_torque_ratio', 'lockup_speed_ratio'],
         outputs=['k_factor_curve']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=default_clutch_k_factor_curve,
         outputs=['k_factor_curve'],
         weight=2
     )
 
-    return dsp
+    return d

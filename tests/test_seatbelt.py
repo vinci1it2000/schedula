@@ -122,14 +122,13 @@ class SeatBelt(unittest.TestCase):
             log.info('Processing: %s', fname)
 
             inputs = {
-                'vehicle_name': fname,
                 'input_file_name': fpath,
-                'prediction_wltp': True,
+                'variation': {'flag.only_summary': True}
             }
-            r = model.dispatch(inputs=inputs, outputs=['report', 'summary'])
-            r = dsp_utl.selector(['report', 'summary'], r)
+            r = model.dispatch(inputs=inputs)
+            r = dsp_utl.selector(['report', 'summary'], r['solution'])
             r.get('report', {}).pop('pipe', None)
-            results.append(sorted(co2_utl.stack_nested_keys(r)))
+            results.append(sorted(dsp_utl.stack_nested_keys(r)))
 
         if not OVERWRITE_SEATBELT and osp.isfile(res_file):
             log.info('Comparing...')

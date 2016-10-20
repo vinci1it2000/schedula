@@ -9,11 +9,9 @@
 It contains functions that model the basic mechanics of the torque converter.
 """
 
-from sklearn.metrics import mean_absolute_error
-from sklearn.ensemble import GradientBoostingRegressor
-from . import define_k_factor_curve
-from ..defaults import dfl
-from co2mpas.dispatcher import Dispatcher
+import sklearn.metrics as sk_met
+import sklearn.ensemble as sk_ens
+import co2mpas.dispatcher as dsp
 import numpy as np
 
 
@@ -54,10 +52,12 @@ class TorqueConverter(object):
             stop_velocity, torque_converter_speeds_delta, accelerations,
             velocities, gear_box_speeds_in, gears):
 
-        X = np.array((accelerations, velocities, gear_box_speeds_in, gears)).T
+        X = np.column_stack(
+            (accelerations, velocities, gear_box_speeds_in, gears)
+        )
         y = torque_converter_speeds_delta
 
-        regressor = GradientBoostingRegressor(
+        regressor = sk_ens.GradientBoostingRegressor(
             random_state=0,
             max_depth=2,
             n_estimators=int(min(300, 0.25 * (len(y) - 1))),
@@ -66,7 +66,7 @@ class TorqueConverter(object):
         )
 
         b = np.isclose(accelerations, (0,)) & (velocities < stop_velocity)
-        b = np.logical_not(b & (abs(y) > calibration_tc_speed_threshold))
+        b = ~(b & (abs(y) > calibration_tc_speed_threshold))
 
         regressor.fit(X[b, :], y[b])
         self.regressor = regressor
@@ -76,12 +76,15 @@ class TorqueConverter(object):
             self.no_torque_converter
         ]
 
-        X = np.array([accelerations, velocities, gear_box_speeds_in, gears]).T
+        X = np.column_stack(
+            (accelerations, velocities, gear_box_speeds_in, gears)
+        )
         y = torque_converter_speeds_delta
 
         models = enumerate(models)
         a = lock_up_tc_limits, X
-        m = min([(mean_absolute_error(y, m(*a)), i, m) for i, m in models])[-1]
+        error = sk_met.mean_absolute_error
+        m = min([(error(y, m(*a)), i, m) for i, m in models])[-1]
 
         self.predict = m
 
@@ -189,9 +192,11 @@ def predict_torque_converter_speeds_delta(
     :rtype: numpy.array
     """
 
-    x = np.array([accelerations, velocities, gear_box_speeds_in, gears]).T
+    X = np.column_stack(
+        (accelerations, velocities, gear_box_speeds_in, gears)
+    )
 
-    return torque_converter_model(lock_up_tc_limits, x)
+    return torque_converter_model(lock_up_tc_limits, X)
 
 
 def default_tc_k_factor_curve():
@@ -202,9 +207,11 @@ def default_tc_k_factor_curve():
         k factor curve.
     :rtype: function
     """
+    from ..defaults import dfl
     par = dfl.functions.default_tc_k_factor_curve
     a = par.STAND_STILL_TORQUE_RATIO, par.LOCKUP_SPEED_RATIO
 
+    from . import define_k_factor_curve
     return define_k_factor_curve(*a)
 
 
@@ -212,43 +219,44 @@ def torque_converter():
     """
     Defines the torque converter model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = torque_converter()
+        >>> d = torque_converter()
 
     :return:
         The torque converter model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='Torque_converter',
         description='Models the torque converter.'
     )
 
-    dsp.add_data(
+    from ..defaults import dfl
+    d.add_data(
         data_id='calibration_tc_speed_threshold',
         default_value=dfl.values.calibration_tc_speed_threshold
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='stop_velocity',
         default_value=dfl.values.stop_velocity
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='lock_up_tc_limits',
         default_value=dfl.values.lock_up_tc_limits
     )
 
-    dsp.add_function(
+    d.add_function(
         function=identify_torque_converter_speeds_delta,
         inputs=['engine_speeds_out', 'engine_speeds_out_hot',
                 'cold_start_speeds_delta'],
         outputs=['torque_converter_speeds_delta']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calibrate_torque_converter_model,
         inputs=['lock_up_tc_limits', 'calibration_tc_speed_threshold',
                 'stop_velocity', 'torque_converter_speeds_delta',
@@ -256,23 +264,24 @@ def torque_converter():
         outputs=['torque_converter_model']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=predict_torque_converter_speeds_delta,
         inputs=['lock_up_tc_limits', 'torque_converter_model', 'accelerations',
                 'velocities', 'gear_box_speeds_in', 'gears'],
         outputs=['torque_converter_speeds_delta']
     )
 
-    dsp.add_function(
+    from . import define_k_factor_curve
+    d.add_function(
         function=define_k_factor_curve,
         inputs=['stand_still_torque_ratio', 'lockup_speed_ratio'],
         outputs=['k_factor_curve']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=default_tc_k_factor_curve,
         outputs=['k_factor_curve'],
         weight=2
     )
 
-    return dsp
+    return d

@@ -8,108 +8,134 @@
 """
 It contains functions to make a simulation plan.
 """
-from tqdm import tqdm
+import tqdm
 import co2mpas.dispatcher.utils as dsp_utl
 import co2mpas.utils as co2_utl
-from .io import check_cache_fpath_exists, get_cache_fpath
-from .io.dill import save_dill, load_from_dill
-from .__main__ import file_finder
-from .batch import _process_vehicle, _add2summary, vehicle_processing_model
-from .model.physical.clutch_tc.torque_converter import TorqueConverter
-from cachetools import cached, LRUCache
-from copy import deepcopy
+import co2mpas.io as co2_io
+import co2mpas.batch as batch
+import cachetools
+import logging
+import json
+
+log = logging.getLogger(__name__)
 
 
-@cached(LRUCache(maxsize=256))
-def get_results(model, fpath, overwrite_cache=False, **kw):
-    cache_fpath = get_cache_fpath(fpath, ext=('res', 'base', 'dill',))
+@cachetools.cached(cachetools.LRUCache(maxsize=256))
+def get_results(model, overwrite_cache, fpath, timestamp, run=True,
+                json_var='{}', output_folder=None):
 
-    if check_cache_fpath_exists(overwrite_cache, fpath, cache_fpath):
-        res = load_from_dill(cache_fpath)
+    if run:
+        ext = ('base', '_v%sv_' % dsp_utl.drw._encode_file_name(json_var))
+        cache_fpath = co2_io.get_cache_fpath(fpath, ext=ext + ('dill',))
+        if co2_io.check_cache_fpath_exists(overwrite_cache, fpath, cache_fpath):
+            return co2_io.dill.load_from_dill(cache_fpath)
+        variation = json.loads(json_var)
     else:
-        kw = {k: v for k, v in kw.items() if k != 'plot_workflow'}
-        res = deepcopy(_process_vehicle(model,
-                                        input_file_name=fpath,
-                                        overwrite_cache=overwrite_cache, **kw))
+        variation, cache_fpath = {'flag.plot_workflow': False}, None
 
-        save_dill(res, cache_fpath)
+    variation['flag.run_base'] = run
+    variation['flag.run_plan'] = False
+    variation['flag.timestamp'] = timestamp
 
-    return res
+    r = model.dispatch(
+        inputs={
+            'input_file_name': fpath,
+            'overwrite_cache': overwrite_cache,
+            'variation': variation,
+            'output_folder': output_folder,
+        },
+        select_output_kw={'keys': ('solution',), 'output_type': 'values'}
+    )
+
+    if cache_fpath:
+        co2_io.dill.save_dill(r, cache_fpath)
+
+    return r
 
 
-def build_default_models(model, paths, output_folder, **kw):
-    dfl = {}
-    paths = eval(paths or '()')
-    for path in file_finder(paths):
-        res = get_results(model, path, output_folder, **kw)
-        out = res['dsp_solution'].get('data.prediction.models', {})
-        if 'torque_converter_model' in out:
-            out['torque_converter_model'] = TorqueConverter()
-        dfl.update(out)
-
-    return dfl
+def _get_inputs(d, inputs):
+    sd = d.get_sub_dsp_from_workflow(inputs, check_inputs=False)
+    out_id = set(sd.data_nodes)
+    n = set(d) - out_id
+    n.update(inputs)
+    return n, out_id
 
 
-def define_new_inputs(data, base, dsp_solution):
-    remove = []
-    for k, v in co2_utl.stack_nested_keys(data, depth=2):
+def define_new_inputs(data, base):
+    remove, new_base, new_flag, new_data = [], {}, set(), set()
+
+    for k, v in dsp_utl.stack_nested_keys(base.get('data', {}), ('base',), 4):
+        dsp_utl.get_nested_dicts(new_base, *k, default=co2_utl.ret_v(v))
+
+    for k, v in dsp_utl.stack_nested_keys(base.get('flag', {}), ('flag',), 1):
+        dsp_utl.get_nested_dicts(new_base, *k, default=co2_utl.ret_v(v))
+
+    for k, v in data.items():
         if v is dsp_utl.EMPTY:
             remove.append(k)
 
-    dsp = dsp_solution.get_sub_dsp_from_workflow(data, check_inputs=False)
-    n = set(base) - set(dsp.data_nodes)
-    n.update(data)
+        dsp_utl.get_nested_dicts(new_base, *k[:-1])[k[-1]] = v
 
-    inp = dsp_utl.selector(n, base, allow_miss=True)
-    d = co2_utl.combine_nested_dicts(inp, data, depth=2)
+        if k[0] == 'base':
+            new_data.add('.'.join(k[1:4]))
+        elif k[0] == 'flag':
+            new_flag.add(k[1:2])
+
+    if 'dsp_solution' in _get_inputs(base, new_flag)[0]:
+        sol = base['dsp_solution']
+        n, out_id = _get_inputs(sol, new_data)
+        for k in n.intersection(sol):
+            dsp_utl.get_nested_dicts(new_base, 'base', *k.split('.'),
+                                     default=co2_utl.ret_v(sol[k]))
+    else:
+        d = base.get_node('CO2MPAS model', node_attr='function')[0].dsp
+        out_id = set(d.data_nodes)
 
     for n, k in remove:
-        co2_utl.get_nested_dicts(d, n).pop(k)
+        dsp_utl.get_nested_dicts(new_base, n).pop(k)
 
-    return d
+    return new_base, out_id
 
 
-def make_simulation_plan(plan, timestamp, output_folder, main_flags):
-    model, summary = vehicle_processing_model(), {}
-
-    run_modes = tuple(model.get_sub_dsp_from_workflow(
-        ('validated_data', 'vehicle_name'), check_inputs=False, graph=model.dmap
+def make_simulation_plan(plan, timestamp, variation, flag, model=None):
+    model, summary = model or batch.vehicle_processing_model(), {}
+    run_base = model.get_node('run_base')[0].dsp
+    run_modes = tuple(run_base.get_sub_dsp_from_workflow(
+        ('data', 'vehicle_name'), check_inputs=False, graph=run_base.dmap
     ).data_nodes) + ('start_time', 'vehicle_name')
 
-    kw = {
-        'output_folder': output_folder,
-        'plan': False,
-        'timestamp': timestamp,
-    }
+    var = json.dumps(variation, sort_keys=True)
+    o_cache, o_folder = flag['overwrite_cache'], flag['output_folder']
+    kw, bases = dsp_utl.combine_dicts(flag, {'run_base': True}), set()
+    for (i, base_fpath, run), p in tqdm.tqdm(plan, disable=False):
+        try:
+            base = get_results(model, o_cache, base_fpath, timestamp, run, var,
+                               o_folder)
+        except KeyError:
+            log.warn('Base model "%s" of variation "%s" cannot be parsed!',
+                     base_fpath, i)
+            continue
 
-    kw, bases = dsp_utl.combine_dicts(main_flags, kw), set()
-    for (i, base_fpath, defaults_fpats), p in tqdm(plan, disable=False):
-        base = get_results(model, base_fpath, **kw)
         name = base['vehicle_name']
-        if name not in bases:
-            _add2summary(summary, base.get('summary', {}))
+        if 'summary' in base and name not in bases:
+            batch._add2summary(summary, base['summary'])
             bases.add(name)
+
         name = '{}-{}'.format(name, i)
 
-        inputs = dsp_utl.selector(set(base).difference(run_modes), base)
+        new_base, o = define_new_inputs(p, base)
+        inputs = batch.prepare_data(new_base, {}, base_fpath, o_cache, o_folder,
+                                    timestamp, False)[0]
+        inputs.update(dsp_utl.selector(set(base).difference(run_modes), base))
         inputs['vehicle_name'] = name
-        dsp_solution = base['dsp_solution']
-        outputs = dict(dsp_solution)
-
-        dfl = build_default_models(model, defaults_fpats, **kw)
-        if dfl:
-            dfl = {'data.prediction.models': dfl}
-            outputs = co2_utl.combine_nested_dicts(dfl, outputs, depth=2)
-
-        inputs['validated_data'] = define_new_inputs(p, outputs, dsp_solution)
         inputs.update(kw)
-        res = _process_vehicle(model, **inputs)
+        res = run_base.dispatch(inputs)
 
-        s = filter_summary(p, res.get('summary', {}))
+        s = filter_summary(p, o, res.get('summary', {}))
         base_keys = {
-            'vehicle_name': (defaults_fpats, base_fpath, name),
+            'vehicle_name': (base_fpath, name, run),
         }
-        _add2summary(summary, s, base_keys)
+        batch._add2summary(summary, s, base_keys)
 
     return summary
 
@@ -121,10 +147,10 @@ def _add_delta2filtered_summary(changes, summary, base=None):
     base = {} if base is None else base
 
     def check(cycle):
-        return co2_utl.are_in_nested_dicts(changes, cycle, *ref)
+        return dsp_utl.are_in_nested_dicts(changes, cycle, *ref)
 
     for c in cycles:
-        if not co2_utl.are_in_nested_dicts(summary, 'delta', c):
+        if not dsp_utl.are_in_nested_dicts(summary, 'delta', c):
             continue
         sub_cycles = cycles - {c}
         if check(c) or all(check(k) for k in sub_cycles):
@@ -133,22 +159,22 @@ def _add_delta2filtered_summary(changes, summary, base=None):
             gen = (k for k in sub_cycles if check(k))
         for k in gen:
             n = 'delta', c, k, value
-            if co2_utl.are_in_nested_dicts(summary, *n):
-                v = co2_utl.get_nested_dicts(summary, *n)
-                co2_utl.get_nested_dicts(base, *n, default=co2_utl.ret_v(v))
+            if dsp_utl.are_in_nested_dicts(summary, *n):
+                v = dsp_utl.get_nested_dicts(summary, *n)
+                dsp_utl.get_nested_dicts(base, *n, default=co2_utl.ret_v(v))
     return base
 
 
-def filter_summary(changes, summary):
-    l, variations = [], {}
+def filter_summary(changes, new_outputs, summary):
+    l, variations = {tuple(k.split('.')[:0:-1]) for k in new_outputs}, {}
     for k, v in changes.items():
-        k = tuple(k.split('.')[::-1])
-        l.append(k[:-1])
-        k = k[:-1] + ('plan.%s' % k[-1],)
-        co2_utl.get_nested_dicts(variations, *k).update(v)
+        n = k[-2:1:-1]
+        l.add(n)
+        k = n + ('plan.%s' % '.'.join(i for i in k[:-1] if k not in n), k[-1])
+        dsp_utl.get_nested_dicts(variations, *k, default=co2_utl.ret_v(v))
 
-    for k, v in co2_utl.stack_nested_keys(summary, depth=3):
+    for k, v in dsp_utl.stack_nested_keys(summary, depth=3):
         if k[:-1] in l:
-            co2_utl.get_nested_dicts(variations, *k, default=co2_utl.ret_v(v))
+            dsp_utl.get_nested_dicts(variations, *k, default=co2_utl.ret_v(v))
     _add_delta2filtered_summary(variations, summary, base=variations)
     return variations

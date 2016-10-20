@@ -17,10 +17,9 @@ from .gen import pairwise, counter
 from .cst import EMPTY, NONE
 from .dsp import SubDispatch, bypass, selector, map_dict
 from .des import parent_func, search_node_description
-from networkx import is_isolate, DiGraph
 from collections import OrderedDict
 
-__all__ = []
+__all__ = ['stlp']
 
 
 # modified from NetworkX library
@@ -67,6 +66,7 @@ def remove_edge_fun(graph):
 
     # Namespace shortcut for speed.
     rm_edge, rm_node = graph.remove_edge, graph.remove_node
+    from networkx import is_isolate
 
     def remove_edge(u, v):
         rm_edge(u, v)  # Remove the edge.
@@ -192,7 +192,8 @@ def _add_edge_dmap_fun(graph, edges_weights=None):
             else:
                 add(i, o)  # Normal edge.
     else:
-        add_edge = lambda i, o, w: add(i, o)  # Normal edge.
+        def add_edge(i, o, w):
+            add(i, o)  # Normal edge.
 
     return add_edge  # Returns the function.
 
@@ -204,7 +205,7 @@ def remove_remote_link(dsp, nodes_bunch, type=('child', 'parent')):
         links = []
         # Define new remote links.
         for (n, d), t in node.pop('remote_links', []):
-            if not t in type:
+            if t not in type:
                 links.append([[n, d], t])
         if links:
             node['remote_links'] = links
@@ -473,6 +474,10 @@ def get_sub_node(dsp, path, node_attr='auto', solution=NONE, _level=0,
           - for function and sub-dispatcher nodes: the 'function' attribute.
     :type node_attr: str | None
 
+    :param solution:
+        Parent Solution.
+    :type solution: dispatcher.utils.Solution
+
     :param _level:
         Path level.
     :type _level: int
@@ -576,10 +581,11 @@ def get_sub_node(dsp, path, node_attr='auto', solution=NONE, _level=0,
         # Return the sub node.
         if node_attr == 'auto' and node['type'] != 'data':  # Auto: function.
             node_attr = 'function'
-        elif node_attr == 'auto' and solution is not EMPTY and \
-                        node_id in solution.sub_dsp.get(dsp, ()): # Auto: data output.
+        elif node_attr == 'auto' and solution is not EMPTY and node_id in solution.sub_dsp.get(dsp, ()):  # Auto: data output.
                 data = solution.sub_dsp[dsp][node_id]
-        elif node_attr == 'output':
+        elif node_attr == 'output' and node['type'] != 'data':
+            data = solution.workflow.node[node_id]['solution']
+        elif node_attr == 'output' and node['type'] == 'data':
             data = solution.sub_dsp[dsp][node_id]
         elif node_attr == 'description':  # Search and return node description.
             data = search_node_description(node_id, node, dsp)
@@ -773,7 +779,8 @@ def _check_targets_fun(targets):
                 return True
             return False
     else:
-        check_targets = lambda n: False
+        def check_targets(n):
+            return False
 
     return check_targets
 
@@ -817,7 +824,8 @@ def _edge_weight_fun(weight):
         def edge_weight(edge, node_out):
             return edge.get('weight', 1) + node_out.get('weight', 0)
     else:
-        edge_weight = lambda *args: 1
+        def edge_weight(edge, node_out):
+            return 1
 
     return edge_weight
 
@@ -1009,15 +1017,17 @@ def get_full_pipe(sol, base=()):
     """
     Returns the full pipe of a dispatch run.
 
-    :param dsp:
-         A dispatcher object.
-    :type dsp: dispatcher.Dispatcher
+    :param sol:
+         A Solution object.
+    :type sol: dispatcher.utils.Solution
 
     :param base:
-
+        Base node id.
     :type base: tuple[str]
 
     :return:
+        Full pipe of a dispatch run.
+    :rtype: DspPipe
     """
 
     pipe = DspPipe()
@@ -1100,6 +1110,7 @@ def _union_workflow(sol, node_id=None, bfs=None):
 
 
 def _convert_bfs(bfs):
+    from networkx import DiGraph
     g = DiGraph()
     g.add_edges_from(bfs[NONE])
     bfs[NONE] = g

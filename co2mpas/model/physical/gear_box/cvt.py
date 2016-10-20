@@ -10,9 +10,8 @@ It contains functions that model the basic mechanics of a CVT.
 """
 
 
-from co2mpas.dispatcher import Dispatcher
-from sklearn.ensemble import GradientBoostingRegressor
-from ..defaults import dfl
+import co2mpas.dispatcher as dsp
+import sklearn.ensemble as sk_ens
 import numpy as np
 
 
@@ -47,10 +46,10 @@ def calibrate_cvt(
     :rtype: function
     """
     b = on_engine
-    X = np.array((velocities, accelerations, gear_box_powers_out)).T[b]
+    X = np.column_stack((velocities, accelerations, gear_box_powers_out))[b]
     y = engine_speeds_out[b]
 
-    regressor = GradientBoostingRegressor(
+    regressor = sk_ens.GradientBoostingRegressor(
         random_state=0,
         max_depth=3,
         n_estimators=int(min(300, 0.25 * (len(y) - 1))),
@@ -91,7 +90,7 @@ def predict_gear_box_speeds_in__gears_and_max_gear(
     :rtype: numpy.array, numpy.array, int
     """
 
-    X = np.array((velocities, accelerations, gear_box_powers_out)).T
+    X = np.column_stack((velocities, accelerations, gear_box_powers_out))
 
     return cvt(X), np.ones_like(gear_box_powers_out, dtype=int), 1
 
@@ -131,28 +130,28 @@ def cvt_model():
     """
     Defines the gear box model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = cvt_model()
+        >>> d = cvt_model()
 
     :return:
         The gear box model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='CVT model',
         description='Models the gear box.'
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calibrate_cvt,
         inputs=['on_engine', 'engine_speeds_out', 'velocities', 'accelerations',
                 'gear_box_powers_out'],
         outputs=['CVT']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=predict_gear_box_speeds_in__gears_and_max_gear,
         inputs=['CVT', 'velocities', 'accelerations',
                 'gear_box_powers_out'],
@@ -160,16 +159,17 @@ def cvt_model():
         out_weight={'gear_box_speeds_in': 10}
     )
 
-    dsp.add_data(
+    from ..defaults import dfl
+    d.add_data(
         data_id='stop_velocity',
         default_value=dfl.values.stop_velocity
     )
 
-    dsp.add_function(
+    d.add_function(
         function=identify_max_speed_velocity_ratio,
         inputs=['velocities', 'engine_speeds_out', 'idle_engine_speed',
                 'stop_velocity'],
         outputs=['max_speed_velocity_ratio']
     )
 
-    return dsp
+    return d

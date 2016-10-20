@@ -11,17 +11,46 @@ It provides functions to read and save a dispatcher from/to files.
 """
 
 __author__ = 'Vincenzo Arcidiacono'
-
-from networkx.utils import open_file
+from decorator import decorator
 from dill import dump, load
 
 try:
     from win32api import GetShortPathName
 except ImportError:
-    GetShortPathName = lambda x: x
+    def GetShortPathName(x):
+        return x
 
 __all__ = ['save_dispatcher', 'load_dispatcher', 'save_default_values',
-           'load_default_values', 'save_map', 'load_map']
+           'load_default_values', 'save_map', 'load_map', 'open_file']
+
+
+def open_file(path_arg, mode='r'):
+    """
+    Decorator to ensure clean opening and closing of files.
+
+    .. note:: This is cloned from netwokx to avoid the import of the library at
+       import time.
+
+    :param path_arg:
+        Location of the path argument in args.  Even if the argument is a
+        named positional argument (with a default value), you must specify its
+        index as a positional argument.
+    :type path_arg: int
+
+    :param mode:
+        String for opening mode.
+    :type mode: str
+
+    :return:
+        Function which cleanly executes the io.
+    :rtype: function
+    """
+    @decorator
+    def _open_file(func, *args, **kwargs):
+        from networkx.utils import open_file as nx_open_file
+        return nx_open_file(path_arg, mode=mode)(func)(*args, **kwargs)
+
+    return _open_file
 
 
 @open_file(1, mode='wb')
@@ -73,7 +102,8 @@ def load_dispatcher(path):
         File names ending in .gz or .bz2 will be uncompressed.
     :type path: str, file
 
-    :return: dispatcher map that identifies the model adopted.
+    :return:
+        A dispatcher that identifies the model adopted.
     :rtype: co2mpas.dispatcher.Dispatcher
 
     .. testsetup::
@@ -242,3 +272,4 @@ def load_map(dsp, path):
     """
 
     dsp.__init__(dmap=load(path), default_values=dsp.default_values)
+

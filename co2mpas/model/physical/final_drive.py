@@ -10,9 +10,8 @@ It contains functions that model the basic mechanics of the final drive.
 """
 
 import co2mpas.dispatcher.utils as dsp_utl
-from co2mpas.dispatcher import Dispatcher
+import co2mpas.dispatcher as dsp
 import logging
-from .defaults import dfl
 import numpy as np
 log = logging.getLogger(__name__)
 
@@ -168,7 +167,7 @@ def calculate_final_drive_efficiencies(
 
     eff = np.ones_like(t_out, dtype=float)
 
-    b = np.logical_not((t_out == 0) & (t_in == 0))
+    b = ~((t_out == 0) & (t_in == 0))
     eff[b] = t_out[b] / (final_drive_ratio * t_in[b])
 
     return np.nan_to_num(eff)
@@ -199,48 +198,49 @@ def final_drive():
     """
     Defines the final drive model.
 
-    .. dispatcher:: dsp
+    .. dispatcher:: d
 
-        >>> dsp = final_drive()
+        >>> d = final_drive()
 
     :return:
         The final drive model.
-    :rtype: Dispatcher
+    :rtype: co2mpas.dispatcher.Dispatcher
     """
 
-    dsp = Dispatcher(
+    d = dsp.Dispatcher(
         name='Final drive',
         description='Models the final drive.'
     )
 
-    dsp.add_data(
+    from .defaults import dfl
+    d.add_data(
         data_id='final_drive_ratio',
         default_value=dfl.values.final_drive_ratio
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_final_drive_speeds_in,
         inputs=['final_drive_speeds_out', 'final_drive_ratio'],
         outputs=['final_drive_speeds_in']
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='final_drive_efficiency',
         default_value=dfl.values.final_drive_efficiency
     )
 
-    dsp.add_data(
+    d.add_data(
         data_id='n_wheel_drive',
         default_value=dfl.values.n_wheel_drive
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_final_drive_torque_losses,
         inputs=['final_drive_torques_out', 'final_drive_torque_loss'],
         outputs=['final_drive_torque_losses']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=dsp_utl.add_args(calculate_final_drive_torque_losses_v1),
         inputs=['n_dyno_axes', 'n_wheel_drive', 'final_drive_torques_out',
                 'final_drive_ratio', 'final_drive_efficiency'],
@@ -249,24 +249,24 @@ def final_drive():
         input_domain=domain_final_drive_torque_losses_v1
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_final_drive_torques_in,
         inputs=['final_drive_torques_out', 'final_drive_ratio',
                 'final_drive_torque_losses'],
         outputs=['final_drive_torques_in']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_final_drive_efficiencies,
         inputs=['final_drive_torques_out', 'final_drive_ratio',
                 'final_drive_torques_in'],
         outputs=['final_drive_efficiencies']
     )
 
-    dsp.add_function(
+    d.add_function(
         function=calculate_final_drive_powers_in,
         inputs=['final_drive_powers_out', 'final_drive_efficiencies'],
         outputs=['final_drive_powers_in']
     )
 
-    return dsp
+    return d
