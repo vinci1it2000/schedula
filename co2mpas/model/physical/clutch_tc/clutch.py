@@ -138,6 +138,9 @@ def identify_clutch_window(
     :rtype: tuple
     """
 
+    if not gear_shifts.any():
+        return 0.0, 0.0
+
     model = co2_utl.SafeRANSACRegressor(
         base_estimator=sk_lim.LinearRegression(fit_intercept=False),
         random_state=0
