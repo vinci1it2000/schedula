@@ -778,7 +778,7 @@ def calibrate_gear_shifting_decision_tree(gears, *params):
 
     :param params:
         Time series vectors.
-    :type params: (np.array, ...)
+    :type params: (numpy.array, ...)
 
     :returns:
         A decision tree classifier to predict gears.

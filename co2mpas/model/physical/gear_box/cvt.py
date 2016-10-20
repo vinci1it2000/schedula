@@ -46,7 +46,7 @@ def calibrate_cvt(
     :rtype: function
     """
     b = on_engine
-    X = np.array((velocities, accelerations, gear_box_powers_out)).T[b]
+    X = np.column_stack((velocities, accelerations, gear_box_powers_out))[b]
     y = engine_speeds_out[b]
 
     regressor = sk_ens.GradientBoostingRegressor(

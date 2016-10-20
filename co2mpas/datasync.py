@@ -267,19 +267,19 @@ def integral_interpolation(x, xp, fp):
 
     :param x:
         The x-coordinates of the re-sampled values.
-    :type x: np.array
+    :type x: numpy.array
 
     :param xp:
         The x-coordinates of the data points.
-    :type xp: np.array
+    :type xp: numpy.array
 
     :param fp:
         The y-coordinates of the data points, same length as xp.
-    :type fp: np.array
+    :type fp: numpy.array
 
     :return:
         Re-sampled y-values.
-    :rtype: np.array
+    :rtype: numpy.array
     """
 
     x, fp = np.asarray(x, dtype=float), np.asarray(fp, dtype=float)

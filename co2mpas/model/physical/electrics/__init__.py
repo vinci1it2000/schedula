@@ -64,11 +64,6 @@ def calculate_engine_start_demand(
     return engine_moment_inertia / alternator_efficiency * idle ** 2 / 2000 * dt
 
 
-def _build_samples(curr, soc, *args):
-    arr = (np.array([soc[:-1]]).T, np.array(args).T[1:], np.array([curr[1:]]).T)
-    return np.concatenate(arr, axis=1)
-
-
 def _set_alt_init_status(times, initialization_time, statuses):
     if initialization_time > 0:
         statuses[:co2_utl.argmax(times > (times[0] + initialization_time))] = 3
@@ -257,6 +252,7 @@ def identify_alternator_initialization_time(
             'random_state': 0, 'max_depth': 2, 'loss': 'huber', 'alpha': 0.99
         }
 
+        from ..engine.thermal import _build_samples
         spl = _build_samples(
             alternator_currents, state_of_charges, alts, gb_p, accelerations
         )
@@ -269,7 +265,7 @@ def identify_alternator_initialization_time(
         sets = np.array(co2_utl.get_inliers(err)[0], dtype=int)[:i]
         if sum(sets) / i < 0.5 or i > j:
             reg = sk_tree.DecisionTreeClassifier(max_depth=1, random_state=0)
-            reg.fit(times[1:i + 1][:, None], sets)
+            reg.fit(times[1:i + 1, None], sets)
             l, r = reg.tree_.children_left[0], reg.tree_.children_right[0]
             l, r = np.argmax(reg.tree_.value[l]), np.argmax(reg.tree_.value[r])
             if l == 0 and r == 1:
@@ -480,6 +476,7 @@ class AlternatorCurrentModel(object):
             init_time=0.0):
         b = (statuses[1:] > 0) & on_engine[1:]
         i = co2_utl.argmax(times > times[0] + init_time)
+        from ..engine.thermal import _build_samples
         spl = _build_samples(currents, soc, statuses, *args)
         if b[i:].any():
             self.model, self.mask = self._fit_model(spl[i:][b[i:]])
@@ -794,7 +791,7 @@ class Alternator_status_model(object):
             bers = sk_tree.DecisionTreeClassifier(random_state=0, max_depth=2)
             c = (alternator_statuses != 1)
             # noinspection PyUnresolvedReferences
-            bers.fit(gear_box_powers_in[c][:, None], b[c])
+            bers.fit(gear_box_powers_in[c, None], b[c])
 
             self.bers = bers.predict  # shortcut name
         else:
@@ -804,7 +801,9 @@ class Alternator_status_model(object):
         b = alternator_statuses[1:] == 1
         if b.any():
             charge = sk_tree.DecisionTreeClassifier(random_state=0, max_depth=3)
-            X = np.array([alternator_statuses[:-1], state_of_charges[1:]]).T
+            X = np.column_stack(
+                (alternator_statuses[:-1], state_of_charges[1:])
+            )
             charge.fit(X, b)
             self.charge = charge.predict
         else:
@@ -1089,7 +1088,7 @@ def predict_vehicle_electrics(
     :return:
         Alternator and battery currents, state of charge, and alternator status
         [A, A, %, -].
-    :rtype: (np.array, np.array, np.array, np.array)
+    :rtype: (numpy.array, numpy.array, numpy.array, numpy.array)
     """
 
     delta_times = np.append([0], np.diff(times))
