@@ -412,6 +412,8 @@ def prepare_data(raw_data, variation, input_file_name, overwrite_cache,
     if timestamp is not None:
         flag['timestamp'] = timestamp
 
+    schema.check_data_version(flag)
+
     res = {
         'flag': flag,
         'variation': variation,

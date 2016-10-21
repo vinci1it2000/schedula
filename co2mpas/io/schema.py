@@ -29,26 +29,21 @@ from co2mpas.model.physical.engine.thermal import ThermalModel
 log = logging.getLogger(__name__)
 
 
-def check_data_version(data):
+def check_data_version(flag):
     from co2mpas._version import __input_file_version__
-    data = list(data.values())[0]
-    for k, v in data.items():
-        if not k.startswith('input.'):
-            continue
-        if 'VERSION' in v:
-            v, rv = v['VERSION'], tuple(__input_file_version__.split('.'))
-
-            if tuple(v.split('.')) >= rv:
-                break
-
+    try:
+        ver = flag['input_version']
+        if tuple(ver.split('.')) >= tuple(__input_file_version__.split('.')):
+            return True
+        else:
             msg = "\n  Input file version %s. Please update your input " \
-                  "file with a version >= %s."
-            log.warning(msg, v, __input_file_version__)
-            break
-    else:
+                      "file with a version >= %s."
+            log.warning(msg, ver, __input_file_version__)
+    except KeyError:
         msg = "\n  Input file version not found. Please update your input " \
               "file with a version >= %s."
         log.error(msg, __input_file_version__)
+    return False
 
 
 def _ta_mode(data):
@@ -473,7 +468,6 @@ def define_data_schema(read=True):
                                              read=read),
         _compare_str('MVL'): _mvl(read=read),
 
-        _compare_str('VERSION'): string,
         'lock_up_tc_limits': tuplefloat2,
         'ki_factor': greater_than_one,
         'tyre_dimensions': tyre_dimensions,
