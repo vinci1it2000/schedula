@@ -153,13 +153,16 @@ def identify_clutch_window(
 
     def _error(v):
         clutch_phases = phs(v) & ((-threshold > delta) | (delta > threshold))
-        y = delta[clutch_phases]
-        # noinspection PyBroadException
-        try:
-            X = accelerations[clutch_phases, None]
-            return -model.fit(X, y).score(X, y)
-        except:
-            return np.inf
+        if clutch_phases.any():
+
+            y = delta[clutch_phases]
+            # noinspection PyBroadException
+            try:
+                X = accelerations[clutch_phases, None]
+                return -model.fit(X, y).score(X, y)
+            except:
+                pass
+        return np.inf
 
     dt = max_clutch_window_width / 2
     Ns = int(dt / max(times[1] - times[0], 0.5)) + 1
