@@ -308,14 +308,16 @@ class Functions(co2_utl.Constants):
         #: Vehicle gear box efficiency constants (gbp00, gbp10, and gbp01).
         PARAMS = {
             True: {
-                'gbp00': {'m': -0.0054, 'q': {'hot': -1.9682, 'cold': -2.9682}},
-                'gbp10': {'q': {'hot': -0.0012, 'cold': -0.0008}},
-                'gbp01': {'q': {'hot': 0.965, 'cold': 0.965}},
+                'gbp00': {'m': -0.0034, 'q': {'hot': -0.3, 'cold': -0.7}},
+                'gbp10': {'m': -0.0034 / 2000, 'q': {'hot': -0.3 / 2000,
+                                                     'cold': -1 / 2000}},
+                'gbp01': {'q': {'hot': 0.965, 'cold': 0.955}},
             },
             False: {
-                'gbp00': {'m': -0.0034, 'q': {'hot': -0.3119, 'cold': -0.7119}},
-                'gbp10': {'q': {'hot': -0.00018, 'cold': 0}},
-                'gbp01': {'q': {'hot': 0.97, 'cold': 0.97}},
+                'gbp00': {'m': -0.0034, 'q': {'hot': -0.3, 'cold': -0.7}},
+                'gbp10': {'m': -0.0034 / 2000, 'q': {'hot': -0.1 / 2000,
+                                                     'cold': -0.25 / 2000}},
+                'gbp01': {'q': {'hot': 0.975, 'cold': 0.965}},
             }
         }
 
