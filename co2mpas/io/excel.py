@@ -213,11 +213,15 @@ def _parse_key(scope='base', usage='input', **match):
                 yield scope, '.'.join(k)
     elif scope == 'base':
         i = match['param']
-        m = match.copy()
-        for c in dsp_utl.stlp(_get_cycle(usage=usage, **match)):
-            m['cycle'] = c
-            stage = _get_default_stage(usage=usage, **m)
-            yield scope, usage, stage, c, i
+
+        if i.lower() == 'version':
+            yield 'flag', 'input_version'
+        else:
+            m = match.copy()
+            for c in dsp_utl.stlp(_get_cycle(usage=usage, **match)):
+                m['cycle'] = c
+                stage = _get_default_stage(usage=usage, **m)
+                yield scope, usage, stage, c, i
 
 
 def _parse_values(data, default=None):
