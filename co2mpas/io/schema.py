@@ -75,21 +75,22 @@ def _extract_declaration_data(inputs, errors):
     return inputs, errors, diff
 
 
-def _eng_mode_parser(engineering_mode, use_selector, inputs, errors):
-    if int(engineering_mode) <= validations.DECLARATION:
+def _eng_mode_parser(
+        engineering_mode, soft_validation, use_selector, inputs, errors):
+    if not engineering_mode:
         inputs, errors, diff = _extract_declaration_data(inputs, errors)
         if diff:
             diff = ['.'.join(k) for k in sorted(diff)]
             log.info('Since CO2MPAS is launched in declaration mode the '
                      'following data are not used:\n %s\n'
                      'If you want to include these data add to the batch cmd '
-                     '-D engineering_mode=1 or -D engineering_mode=2',
+                     '-D engineering_mode=True',
                      ',\n'.join(diff))
 
     if not use_selector:
         inputs = validations.overwrite_declaration_config_data(inputs)
 
-    if int(engineering_mode) <= validations.HARD:
+    if not soft_validation:
         for k, v in dsp_utl.stack_nested_keys(inputs, depth=3):
             for c, msg in validations.hard_validation(v):
                 dsp_utl.get_nested_dicts(errors, *k)[c] = SchemaError([], [msg])
@@ -97,7 +98,7 @@ def _eng_mode_parser(engineering_mode, use_selector, inputs, errors):
     return inputs, errors
 
 
-def validate_plan(plan, engineering_mode, use_selector):
+def validate_plan(plan, engineering_mode, soft_validation, use_selector):
     read_schema = define_data_schema(read=True)
     flag_read_schema = define_flags_schema(read=True)
     validated_plan, errors, v_data = [], {}, read_schema.validate
@@ -116,8 +117,9 @@ def validate_plan(plan, engineering_mode, use_selector):
             if v is not dsp_utl.NONE:
                 inputs[k] = v
 
-        errors = _eng_mode_parser(engineering_mode, use_selector, inp,
-                                  errors)[1]
+        errors = _eng_mode_parser(
+            engineering_mode, soft_validation, use_selector, inp, errors
+        )[1]
 
         validated_plan.append((i, inputs))
 
@@ -137,10 +139,12 @@ def _validate_base_with_schema(data):
     return inputs, errors
 
 
-def validate_base(data, engineering_mode, use_selector):
+def validate_base(data, engineering_mode, soft_validation, use_selector):
     i, e = _validate_base_with_schema(data)
 
-    i, e = _eng_mode_parser(engineering_mode, use_selector, i, e)
+    i, e = _eng_mode_parser(
+        engineering_mode, soft_validation, use_selector, i, e
+    )
 
     if _log_errors_msg(e):
         return dsp_utl.NONE

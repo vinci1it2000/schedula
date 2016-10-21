@@ -55,10 +55,9 @@ OPTIONS:
   -f, --force                 Overwrite output/template/demo excel-file(s).
 
 
-Model flags (-D flag.xxx, example -D flag.engineering_mode=2):
- engineering_mode=<int>      0: Full validation + selection of declaration data,
-                             1: Full validation,
-                             2: Soft validation (just schema).
+Model flags (-D flag.xxx, example -D flag.engineering_mode=True):
+ engineering_mode=<bool>     Use all data and not only the declaration data.
+ soft_validation=<bool>      Soft validation (just schema).
  run_base=<bool>             Enable/disable the `run_base` model.
  run_plan=<bool>             Enable/disable the `run_plan` model.
  use_selector=<bool>         Enable/disable the selection of the best model.
@@ -432,6 +431,7 @@ def parse_variation(variation):
             res[k] = v
         except AttributeError:
             raise CmdException('Wrong --variation format %s! ' % v)
+
     return res
 
 

@@ -544,7 +544,7 @@ def run_base():
 
     d.add_data(
         data_id='engineering_mode',
-        default_value=0
+        default_value=False
     )
 
     d.add_data(
@@ -557,9 +557,15 @@ def run_base():
         default_value=False
     )
 
+    d.add_data(
+        data_id='soft_validation',
+        default_value=False
+    )
+
     d.add_function(
         function=dsp_utl.add_args(schema.validate_base),
-        inputs=['run_base', 'data', 'engineering_mode', 'use_selector'],
+        inputs=['run_base', 'data', 'engineering_mode', 'soft_validation',
+                'use_selector'],
         outputs=['validated_base'],
         input_domain=check_first_arg,
         weight=10
@@ -667,7 +673,7 @@ def run_plan():
 
     d.add_data(
         data_id='engineering_mode',
-        default_value=0
+        default_value=False
     )
 
     d.add_data(
@@ -675,9 +681,15 @@ def run_plan():
         default_value=False
     )
 
+    d.add_data(
+        data_id='soft_validation',
+        default_value=False
+    )
+
     d.add_function(
         function=dsp_utl.add_args(schema.validate_plan),
-        inputs=['run_plan', 'data', 'engineering_mode', 'use_selector'],
+        inputs=['run_plan', 'data', 'engineering_mode', 'soft_validation',
+                'use_selector'],
         outputs=['validated_plan'],
         input_domain=check_first_arg
     )
