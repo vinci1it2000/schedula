@@ -406,6 +406,7 @@ def prepare_data(raw_data, variation, input_file_name, overwrite_cache,
     if 'run_plan' not in flag:
         flag['run_plan'] = has_plan
 
+    flag['type_approval_mode'] = type_approval_mode
     flag['output_folder'] = output_folder
     flag['overwrite_cache'] = overwrite_cache
 
