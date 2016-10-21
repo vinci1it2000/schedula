@@ -57,14 +57,17 @@ def _ta_mode(data):
     data['base'], _, diff = _extract_declaration_data(base, {})
 
     for k in ('plan', 'flag'):
-        diff.update((k,) + tuple(j.split('.')) for j in data.pop(k, {}))
+        diff.update((k,) + tuple(j.split('.')) for j in data.get(k, {}))
+
+    diff -= {('flag', 'input_version'), ('flag', 'ta_certificate_number')}
 
     if diff:
         diff = ['.'.join(k) for k in sorted(diff)]
-        log.info('Since CO2MPAS is launched in declaration mode the '
+        log.info('Since CO2MPAS is launched in type approval mode the '
                  'following data cannot be used:\n %s\n'
                  'If you want to include these data use the cmd batch.',
                  ',\n'.join(diff))
+        return False
     return True
 
 
