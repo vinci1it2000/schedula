@@ -432,7 +432,10 @@ def _bag_phases(error=None, read=True, **kwargs):
         it = dsp_utl.pairwise(_extract_indices(x))
         return all(i[-1] <= j[0] for i, j in it)
     er = 'Phases must be separated!'
-    return And(_np_array(read=read), Schema(check, error=er), error=error)
+    if read:
+        return And(_np_array(read=read), Schema(check, error=er), error=error)
+    else:
+        return And(_bag_phases(error, True), _np_array(read=False), error=error)
 
 
 def _file(error=None, **kwargs):
