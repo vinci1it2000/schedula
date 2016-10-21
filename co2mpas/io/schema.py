@@ -12,6 +12,8 @@ It provides CO2MPAS schema parse/validator.
 import logging
 from collections import Iterable, OrderedDict
 import numpy as np
+import datetime
+import os.path as osp
 from lmfit import Parameters, Parameter
 from schema import Schema, Use, And, Or, Optional, SchemaError
 from sklearn.tree import DecisionTreeClassifier
@@ -97,7 +99,9 @@ def _eng_mode_parser(engineering_mode, use_selector, inputs, errors):
 
 def validate_plan(plan, engineering_mode, use_selector):
     read_schema = define_data_schema(read=True)
-    validated_plan, errors, validate = [], {}, read_schema.validate
+    flag_read_schema = define_flags_schema(read=True)
+    validated_plan, errors, v_data = [], {}, read_schema.validate
+    v_flag = flag_read_schema.validate
     for i, data in plan.iterrows():
         inputs, inp = {}, {}
         data.dropna(how='all', inplace=True)
@@ -105,7 +109,9 @@ def validate_plan(plan, engineering_mode, use_selector):
         for k, v in excel._parse_values(data):
             if k[0] == 'base':
                 d = dsp_utl.get_nested_dicts(inp, *k[1:-1])
-                v = _add_validated_input(d, validate, (plan_id,) + k, v, errors)
+                v = _add_validated_input(d, v_data, (plan_id,) + k, v, errors)
+            elif k[0] == 'flag':
+                v = _add_validated_input({}, v_flag, (plan_id,) + k, v, errors)
 
             if v is not dsp_utl.NONE:
                 inputs[k] = v
@@ -140,6 +146,16 @@ def validate_base(data, engineering_mode, use_selector):
         return dsp_utl.NONE
 
     return {'.'.join(k): v for k, v in dsp_utl.stack_nested_keys(i, depth=3)}
+
+
+def validate_flags(flags):
+    read_schema = define_flags_schema(read=True)
+    inputs, errors, validate = {}, {}, read_schema.validate
+    for k, v in sorted(flags.items()):
+        _add_validated_input(inputs, validate, ('flag', k), v, errors)
+    if _log_errors_msg(errors):
+        return dsp_utl.NONE
+    return inputs
 
 
 def _add_validated_input(data, validate, keys, value, errors):
@@ -412,6 +428,16 @@ def _bag_phases(error=None, read=True, **kwargs):
     return And(_np_array(read=read), Schema(check, error=er), error=error)
 
 
+def _file(error=None, **kwargs):
+    er = 'Must be a file!'
+    return And(_string(), Schema(osp.isfile, error=er), error=error)
+
+
+def _dir(error=None, **kwargs):
+    er = 'Must be a directory!'
+    return And(_string(), Schema(osp.isdir, error=er), error=error)
+
+
 @cachetools.cached({})
 def define_data_schema(read=True):
     cmv = _cmv(read=read)
@@ -672,3 +698,47 @@ def define_data_schema(read=True):
         schema = {k: And(v, Or(f, Use(str))) for k, v in schema.items()}
 
     return Schema(schema)
+
+
+@cachetools.cached({})
+def define_flags_schema(read=True):
+    string = _string(read=read)
+    isfile = _file(read=read)
+    isdir = _dir(read=read)
+    _bool = _type(type=bool, read=read)
+    _datetime = _type(type=datetime.datetime, read=read)
+
+    schema = {
+        _compare_str('input_version'): string,
+        _compare_str('ta_certificate_number'): string,
+
+        _compare_str('soft_validation'): _bool,
+        _compare_str('use_selector'): _bool,
+        _compare_str('engineering_mode'): _bool,
+        _compare_str('run_plan'): _bool,
+        _compare_str('run_base'): _bool,
+        _compare_str('only_summary'): _bool,
+        _compare_str('plot_workflow'): _bool,
+        _compare_str('overwrite_cache'): _bool,
+        _compare_str('type_approval_mode'): _bool,
+
+        _compare_str('vehicle_name'): string,
+
+        _compare_str('output_template'): isfile,
+        _compare_str('output_file_name'): string,
+        _compare_str('output_folder'): isdir,
+
+        _compare_str('start_time'): _datetime,
+        _compare_str('timestamp'): string,
+    }
+
+    schema = {Optional(k): Or(Empty(), v) for k, v in schema.items()}
+
+    if not read:
+
+        def f(x):
+            return x is dsp_utl.NONE
+
+        schema = {k: And(v, Or(f, Use(str))) for k, v in schema.items()}
+
+    return Schema(schema, error='Flag not defined!')

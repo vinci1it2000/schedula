@@ -412,6 +412,11 @@ def prepare_data(raw_data, variation, input_file_name, overwrite_cache,
     if timestamp is not None:
         flag['timestamp'] = timestamp
 
+    flag = schema.validate_flags(flag)
+
+    if flag is dsp_utl.NONE:
+        return {}, pd.DataFrame([])
+
     schema.check_data_version(flag)
 
     res = {

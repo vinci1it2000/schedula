@@ -162,6 +162,7 @@ def _co2mpas_info2df(start_time, main_flags=None):
     ]
 
     if main_flags:
+        main_flags = schema.define_flags_schema(read=False).validate(main_flags)
         info.extend(sorted(main_flags.items()))
 
     df = pd.DataFrame(info, columns=['Parameter', 'Value'])
