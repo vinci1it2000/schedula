@@ -97,13 +97,14 @@ class _custom_tqdm(tqdm):
 
 def _yield_folder_files_results(
         start_time, input_files, output_folder, overwrite_cache=False,
-        model=None, variation=None):
+        model=None, variation=None, type_approval_mode=False):
     model = model or vehicle_processing_model()
     kw = {
         'output_folder': output_folder,
         'overwrite_cache': overwrite_cache,
         'timestamp': start_time.strftime('%Y%m%d_%H%M%S'),
-        'variation': variation or {}
+        'variation': variation or {},
+        'type_approval_mode': type_approval_mode
     }
 
     _process_vehicle = dsp_utl.SubDispatch(model)
