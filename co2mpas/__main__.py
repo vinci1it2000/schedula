@@ -476,10 +476,14 @@ def _run_batch(opts, **kwargs):
 
     _init_defaults(opts['--modelconf'])
 
+    kw = {
+        'variation': parse_variation(opts['--variation']),
+        'overwrite_cache': opts['--overwrite-cache'],
+    }
+    kw.update(kwargs)
+
     from co2mpas.batch import process_folder_files
-    process_folder_files(input_paths, output_folder,
-                         variation=parse_variation(opts['--variation']),
-                         overwrite_cache=opts['--overwrite-cache'], **kwargs)
+    process_folder_files(input_paths, output_folder, **kw)
 
 
 def _main(*args):
@@ -506,7 +510,7 @@ def _main(*args):
         elif opts['modelgraph']:
             _cmd_modelgraph(opts)
         elif opts['ta']:
-            _run_batch(opts, type_approval_mode=True)
+            _run_batch(opts, type_approval_mode=True, overwrite_cache=True)
         else:
             _run_batch(opts)
 
