@@ -608,15 +608,14 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
             DFun('untracked', lambda repo: repo.untracked_files),
             DFun('wd_files', lambda repo: os.listdir(repo.working_dir)),
             DFun('branch', lambda repo, _inp_prj:
-                                        _inp_prj and _get_ref(repo.heads, _pname2ref_path(_inp_prj)) or repo.active_branch),
+                 _inp_prj and _get_ref(repo.heads, _pname2ref_path(_inp_prj)) or repo.active_branch),
             DFun('head', lambda repo: repo.head),
             DFun('heads_count', lambda repo: len(repo.heads)),
             DFun('projects_count', lambda repo: itz.count(self._yield_project_refs())),
             DFun('tags_count', lambda repo: len(repo.tags)),
             DFun('git.settings', lambda repo: self.read_git_settings()),
-            DFun('_git', lambda repo: repo.git),
 
-            DFun('git.version', lambda _git: '.'.join(str(v) for v in _git.version_info)),
+            DFun('git.version', lambda repo: '.'.join(str(v) for v in repo.git.version_info)),
 
             DFun('head_ref', lambda head: head.reference),
             DFun('head_valid', lambda head: head.is_valid()),
