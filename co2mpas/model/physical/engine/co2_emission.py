@@ -284,10 +284,14 @@ class FMEP(object):
         if 'acr' in params:
             A, B, C = _fuel_ABC(n_speeds, n_powers, n_temp, **params)
             fmep, v = _calculate_fc(A, B, C)
-            return pd.DataFrame(dsp_utl.combine_dicts({
+            data = dsp_utl.combine_dicts({
                 'fmep': fmep, 'v': v, 'n_speeds': n_speeds,
                 'n_powers': n_powers, 'n_temp': n_temp, 'vva': 0
-            }, kw, params), copy=False)
+            }, kw, params)
+            try:
+                return pd.DataFrame(data, copy=False)
+            except ValueError:
+                return pd.DataFrame([data], copy=False)
         else:
             p = dsp_utl.combine_dicts(params, {'acr': self.base_acr})
             return self.calculate_base(p, n_speeds, n_powers, n_temp, **kw)
