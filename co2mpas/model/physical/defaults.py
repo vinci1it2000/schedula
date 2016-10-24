@@ -355,8 +355,7 @@ class Functions(co2_utl.Constants):
                 'pistons': 910.0,
                 'crankshaft': 490.0,
                 'body': 460.0
-            },
-            'thermal_management_factor': 0.5
+            }
         }
 
     class calculate_equivalent_gear_box_heat_capacity(co2_utl.Constants):
@@ -366,7 +365,8 @@ class Functions(co2_utl.Constants):
             # Cp in (J/kgK)
             'heat_capacity': {
                 'oil': 2090.0,
-            }
+            },
+            'thermal_management_factor': 0.5
         }
 
     class get_full_load(co2_utl.Constants):
