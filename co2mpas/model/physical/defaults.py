@@ -16,6 +16,9 @@ import co2mpas.utils as co2_utl
 
 #: Container of node default values.
 class Values(co2_utl.Constants):
+    #: Does the gear box have some additional technology to heat up faster?
+    has_gear_box_thermal_management = False
+
     #: Does the vehicle has periodically regenerating systems? [-].
     has_periodically_regenerating_systems = False
 
@@ -352,7 +355,8 @@ class Functions(co2_utl.Constants):
                 'pistons': 910.0,
                 'crankshaft': 490.0,
                 'body': 460.0
-            }
+            },
+            'thermal_management_factor': 0.5
         }
 
     class calculate_equivalent_gear_box_heat_capacity(co2_utl.Constants):

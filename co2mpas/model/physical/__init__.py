@@ -359,6 +359,8 @@ def physical():
         dsp_id='gear_box_model',
         dsp=gear_box(),
         inputs={
+            'has_gear_box_thermal_management':
+                'has_gear_box_thermal_management',
             'engine_mass': 'engine_mass',
             'on_engine': 'on_engine',
             'CVT': 'CVT',
