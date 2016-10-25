@@ -64,7 +64,7 @@ def select_prediction_data(data, new_data=(), theoretical=True):
         'min_engine_on_speed', 'max_velocity_full_load_correction',
         'is_hybrid', 'tyre_code', 'engine_has_cylinder_deactivation',
         'active_cylinder_ratios', 'engine_has_variable_valve_actuation',
-        'has_torque_converter'
+        'has_torque_converter', 'has_gear_box_thermal_management'
     ]
 
     if not theoretical:
