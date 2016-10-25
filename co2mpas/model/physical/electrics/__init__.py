@@ -814,14 +814,9 @@ class Alternator_status_model(object):
 
     def _fit_boundaries(self, alternator_statuses, state_of_charges, times):
         n = len(alternator_statuses)
-        s = np.zeros(n + 2, dtype=bool)
-        s[1:-1] = alternator_statuses == 1
-        mask = np.column_stack((s[1:], s[:-1])) & (s[:-1] != s[1:])[:, None]
-        mask = np.where(mask)[0].reshape((-1, 2))
-        self.max = 100.0
-        self.min = 0.0
-        _max, _min = [], []
-        balance = ()
+        mask = _mask_boolean_phases(alternator_statuses == 1)
+        self.max, self.min = 100.0, 0.0
+        _max, _min, balance = [], [], ()
         for i, j in mask:
             if j - i <= 1:
                 continue
@@ -848,7 +843,6 @@ class Alternator_status_model(object):
 
         if balance:
             self.min = max(self.min, balance[0])
-            self.max = max(self.max, balance[1])
 
     # noinspection PyUnresolvedReferences
     def fit(self, times, alternator_statuses, state_of_charges,
