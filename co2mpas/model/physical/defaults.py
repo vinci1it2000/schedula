@@ -177,6 +177,11 @@ class Values(co2_utl.Constants):
 
 #: Container of internal function parameters.
 class Functions(co2_utl.Constants):
+    class Alternator_status_model(co2_utl.Constants):
+        #: Minimum delta time to consider valid a charging state to fit charges
+        #: boundaries [s].
+        min_delta_time_boundaries = 5
+
     class default_ki_factor(co2_utl.Constants):
         #: Correction for vehicles with periodically regenerating systems [-].
         ki_factor = {True: 1.05, False: 1.0}

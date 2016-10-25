@@ -829,10 +829,13 @@ class Alternator_status_model(object):
         mask = _mask_boolean_phases(alternator_statuses == 1)
         self.max, self.min = 100.0, 0.0
         _max, _min, balance = [], [], ()
+        from ..defaults import dfl
+        min_dt = dfl.functions.Alternator_status_model.min_delta_time_boundaries
         for i, j in mask:
-            if j - i <= 1:
+            t,  = times[i:j],
+            if t[-1] - t[0] <= min_dt:
                 continue
-            t, soc = times[i:j], state_of_charges[i:j]
+            soc = state_of_charges[i:j]
             m, q = sci_stat.linregress(t, soc)[:2]
             if m >= 0:
                 if i > 0:
