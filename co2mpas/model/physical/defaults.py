@@ -182,6 +182,9 @@ class Functions(co2_utl.Constants):
         #: boundaries [s].
         min_delta_time_boundaries = 5
 
+        #: Minimum acceptance percentile to fit the bers threshold [%].
+        min_percentile_bers = 90
+
     class default_ki_factor(co2_utl.Constants):
         #: Correction for vehicles with periodically regenerating systems [-].
         ki_factor = {True: 1.05, False: 1.0}

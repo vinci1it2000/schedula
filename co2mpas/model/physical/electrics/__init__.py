@@ -802,15 +802,27 @@ class Alternator_status_model(object):
 
     def _fit_bers(self, alternator_statuses, gear_box_powers_in):
         b = alternator_statuses == 2
+        threshold = 0.0
         if b.any():
-            bers = sk_tree.DecisionTreeClassifier(random_state=0, max_depth=2)
-            c = (alternator_statuses != 1)
+            from ..defaults import dfl
+            q = dfl.functions.Alternator_status_model.min_percentile_bers
+            m = sk_tree.DecisionTreeClassifier(random_state=0, max_depth=2)
+            c = alternator_statuses != 1
             # noinspection PyUnresolvedReferences
-            bers.fit(gear_box_powers_in[c, None], b[c])
+            m.fit(gear_box_powers_in[c, None], b[c])
 
-            self.bers = bers.predict  # shortcut name
-        else:
-            self.bers = lambda x: np.asarray(x) < 0
+            X = gear_box_powers_in[b, None]
+            if (np.sum(m.predict(X)) / X.shape[0] * 100) >= q:
+                self.bers = m.predict  # shortcut name
+                return self.bers
+
+            if not b.all():
+                gb_p_s = gear_box_powers_in[_mask_boolean_phases(b)[:, 0]]
+
+                threshold = min(threshold, np.percentile(gb_p_s, q))
+
+        self.bers = lambda x: np.asarray(x) < threshold
+        return self.bers
 
     def _fit_charge(self, alternator_statuses, state_of_charges):
         b = alternator_statuses[1:] == 1
