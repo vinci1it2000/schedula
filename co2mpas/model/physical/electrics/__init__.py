@@ -131,6 +131,13 @@ def identify_charging_statuses_and_alternator_initialization_time(
     return statuses, alternator_initialization_time
 
 
+def _mask_boolean_phases(b):
+    s = np.zeros(len(b) + 2, dtype=bool)
+    s[1:-1] = b
+    mask = np.column_stack((s[1:], s[:-1])) & (s[:-1] != s[1:])[:, None]
+    return np.where(mask)[0].reshape((-1, 2))
+
+
 def identify_charging_statuses(
         times, alternator_currents, gear_box_powers_in, on_engine,
         alternator_current_threshold, starts_windows,
@@ -178,15 +185,11 @@ def identify_charging_statuses(
     status = b.astype(int, copy=True)
     status[b & (gear_box_powers_in < 0)] = 2
 
-    s = np.zeros(len(on_engine) + 2, dtype=bool)
-    s[1:-1] = status != 1
-    mask = np.column_stack((s[1:], s[:-1])) & (s[:-1] != s[1:])[:, None]
-    mask = np.where(mask)[0].reshape((-1, 2))
     off = ~on_engine | starts_windows
-
+    mask = _mask_boolean_phases(status != 1)
     for i, j in mask:
         # noinspection PyUnresolvedReferences
-        if (status[i:j] == 2 | off[i:j]).all():
+        if ((status[i:j] == 2) | off[i:j]).all():
             status[i:j] = 1
 
     _set_alt_init_status(times, alternator_initialization_time, status)
