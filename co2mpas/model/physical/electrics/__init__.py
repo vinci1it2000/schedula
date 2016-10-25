@@ -840,21 +840,12 @@ class Alternator_status_model(object):
                 if j < n:
                     _max.append(soc.max())
 
-            if abs(m) < 0.001:
-                b = sorted((m * t[0] + q, m * t[-1] + q))
-                if balance:
-                    balance = min(balance[0], b[0]), max(balance[1], b[1])
-                else:
-                    balance = b
         if _min:
-            self.min = _min = min(_min)
+            self.min = _min = max(self.min, min(100.0, min(_min)))
 
         _max = [m for m in _max if m >= _min]
         if _max:
-            self.max = max(_max)
-
-        if balance:
-            self.min = max(self.min, balance[0])
+            self.max = min(100.0, max(_max))
 
     # noinspection PyUnresolvedReferences
     def fit(self, times, alternator_statuses, state_of_charges,
