@@ -27,6 +27,7 @@ import scipy.stats as sci_stat
 import sklearn.pipeline as sk_pip
 import sklearn.ensemble as sk_ens
 import sklearn.tree as sk_tree
+import sklearn.cluster as sk_clu
 import co2mpas.dispatcher as dsp
 import co2mpas.utils as co2_utl
 
@@ -721,14 +722,25 @@ def identify_alternator_current_threshold(
     :rtype: float
     """
 
-    b, l = ~on_engine, -float('inf')
-    if not b.any():
-        b, l = velocities < stop_velocity, alternator_off_threshold
-        b &= alternator_currents < 0
+    sample_weight = np.ones_like(alternator_currents, dtype=float)
+    sample_weight[alternator_currents >= alternator_off_threshold] = 2.0
+    sample_weight[velocities < stop_velocity] = 3.0
+    sample_weight[~on_engine] = 4.0
 
-    if b.any():
-        v = min(0.0, max(co2_utl.reject_outliers(alternator_currents[b])[0], l))
-        return v
+    model = sk_clu.DBSCAN(eps=-alternator_off_threshold)
+    model.fit(alternator_currents[:, None], sample_weight=sample_weight)
+    c, l = model.components_, model.labels_[model.core_sample_indices_]
+    sample_weight = sample_weight[model.core_sample_indices_]
+    threshold, w = [], []
+    for i in range(l.max() + 1):
+        b = l == i
+        x = c[b].min()
+        if x > alternator_off_threshold:
+            threshold.append(x)
+            w.append(np.sum(sample_weight[b]))
+
+    if threshold:
+        return min(0.0, np.average(threshold, weights=w))
     return 0.0
 
 
