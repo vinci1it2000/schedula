@@ -16,6 +16,9 @@ import co2mpas.utils as co2_utl
 
 #: Container of node default values.
 class Values(co2_utl.Constants):
+    #: Does the engine have lean burn technology?
+    has_lean_burn = False
+
     #: Does the gear box have some additional technology to heat up faster?
     has_gear_box_thermal_management = False
 
@@ -183,10 +186,18 @@ class Functions(co2_utl.Constants):
         #: deactivation strategy [-].
         percentage = 0.6
 
+    class calculate_max_mean_piston_speeds_lean_burn(co2_utl.Constants):
+        #: Percentage of max mean piston speeds used as limit in lean burn
+        #: strategy [-].
+        percentage = 0.6
+
     class define_fmep_model(co2_utl.Constants):
         #: Percentage of max full bmep curve used as limit in cylinder
         #: deactivation strategy [-].
-        full_bmep_curve_percentage = 0.45
+        acr_full_bmep_curve_percentage = 0.45
+        #: Percentage of max full bmep curve used as limit in lean burn
+        #: strategy [-].
+        lb_full_bmep_curve_percentage = 0.4
 
     class define_idle_model_detector(co2_utl.Constants):
         #: eps parameter of DBSCAN [RPM].

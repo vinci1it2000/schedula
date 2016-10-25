@@ -282,7 +282,7 @@ class FMEP(object):
                  acr_full_bmep_curve_percentage=0.5,
                  acr_max_mean_piston_speeds=12.0,
                  has_variable_valve_actuation=False,
-                 has_lean_burn_technology=False,
+                 has_lean_burn=False,
                  lb_max_mean_piston_speeds=12.0,
                  lb_full_bmep_curve_percentage=0.4):
         if active_cylinder_ratios:
@@ -299,7 +299,7 @@ class FMEP(object):
 
         self.has_variable_valve_actuation = has_variable_valve_actuation
 
-        self.has_lean_burn_technology = has_lean_burn_technology
+        self.has_lean_burn = has_lean_burn
         self.lb_max_mean_piston_speeds = float(lb_max_mean_piston_speeds)
         self.lb_fbc_percentage = lb_full_bmep_curve_percentage
         self.lb_n_temp_min = 0.5
@@ -313,7 +313,7 @@ class FMEP(object):
 
     def lb(self, params, n_speeds, n_powers, n_temp, a=None):
         a = a or {}
-        if self.has_lean_burn_technology and 'lb' not in params:
+        if self.has_lean_burn and 'lb' not in params:
             b = n_temp >= self.lb_n_temp_min
             b &= n_speeds < self.lb_max_mean_piston_speeds
             b &= n_powers <= (self.fbc(n_speeds) * self.lb_fbc_percentage)
@@ -396,7 +396,8 @@ class FMEP(object):
 def define_fmep_model(
         full_bmep_curve, active_cylinder_ratios, has_cylinder_deactivation,
         max_mean_piston_speeds_cylinder_deactivation,
-        has_variable_valve_actuation):
+        has_variable_valve_actuation, has_lean_burn,
+        max_mean_piston_speeds_lean_burn):
     """
     Defines the vehicle FMEP model.
 
@@ -420,17 +421,29 @@ def define_fmep_model(
         Does the engine feature variable valve actuation? [-].
     :type has_variable_valve_actuation: bool
 
+    :param has_lean_burn:
+        Does the engine have lean burn technology?
+    :type has_lean_burn: bool
+
+    :param max_mean_piston_speeds_lean_burn:
+        Maximum mean piston speed for lean burn strategy [m/sec].
+    :type max_mean_piston_speeds_lean_burn: float
+
     :return:
         Vehicle FMEP model.
     :rtype: FMEP
     """
-
-    fbcp = defaults.dfl.functions.define_fmep_model.full_bmep_curve_percentage
+    dfl = defaults.dfl.functions.define_fmep_model
+    acr_fbcp = dfl.acr_full_bmep_curve_percentage
+    lb_fbcp = dfl.lb_full_bmep_curve_percentage
     model = FMEP(
         full_bmep_curve, active_cylinder_ratios, has_cylinder_deactivation,
-        acr_full_bmep_curve_percentage=fbcp,
+        acr_full_bmep_curve_percentage=acr_fbcp,
         acr_max_mean_piston_speeds=max_mean_piston_speeds_cylinder_deactivation,
-        has_variable_valve_actuation=has_variable_valve_actuation
+        has_variable_valve_actuation=has_variable_valve_actuation,
+        has_lean_burn=has_lean_burn,
+        lb_max_mean_piston_speeds=max_mean_piston_speeds_lean_burn,
+        lb_full_bmep_curve_percentage=lb_fbcp
     )
 
     return model
@@ -2226,12 +2239,18 @@ def co2_emission():
         default_value=defaults.dfl.values.engine_has_variable_valve_actuation
     )
 
+    d.add_data(
+        data_id='has_lean_burn',
+        default_value=defaults.dfl.values.has_lean_burn
+    )
+
     d.add_function(
         function=define_fmep_model,
         inputs=['full_bmep_curve', 'active_cylinder_ratios',
                 'engine_has_cylinder_deactivation',
                 'max_mean_piston_speeds_cylinder_deactivation',
-                'engine_has_variable_valve_actuation'],
+                'engine_has_variable_valve_actuation',
+                'has_lean_burn', 'max_mean_piston_speeds_lean_burn'],
         outputs=['fmep_model']
     )
 
@@ -2437,7 +2456,8 @@ def co2_emission():
     d.add_function(
         function=predict_co2_emissions,
         inputs=['co2_emissions_model', 'co2_params_calibrated'],
-        outputs=['co2_emissions', 'active_cylinders', 'active_variable_valves']
+        outputs=['co2_emissions', 'active_cylinders', 'active_variable_valves',
+                 'active_lean_burns']
     )
 
     d.add_data(

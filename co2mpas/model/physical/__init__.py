@@ -551,6 +551,7 @@ def physical():
         dsp_id='engine_model',
         dsp=engine(),
         inputs={
+            'has_lean_burn': 'has_lean_burn',
             'engine_mass': 'engine_mass',
             'is_hybrid': 'is_hybrid',
             'state_of_charges': 'state_of_charges',
@@ -709,6 +710,7 @@ def physical():
             'engine_idle_fuel_consumption': 'engine_idle_fuel_consumption',
             'active_cylinders': 'active_cylinders',
             'active_variable_valves': 'active_variable_valves',
+            'active_lean_burns': 'active_lean_burns',
             'ki_factor': 'ki_factor',
             'declared_co2_emission_value': 'declared_co2_emission_value',
         },
