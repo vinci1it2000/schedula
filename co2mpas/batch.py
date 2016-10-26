@@ -441,6 +441,13 @@ def check_run_plan(data):
     return data.get('run_plan', False)
 
 
+def _get_co2mpas_output_template_fpath():
+    import pkg_resources
+
+    fname = 'co2mpas_output_template.xlsx'
+    return pkg_resources.resource_filename(__name__, fname)
+
+
 def vehicle_processing_model():
     """
     Defines the vehicle-processing model.
@@ -626,11 +633,9 @@ def run_base():
         outputs=['template_file_name']
     )
 
-
     d.add_data(
         data_id='output_template',
-        default_value=osp.join(osp.dirname(osp.abspath(__file__)),
-                               'co2mpas_output_template.xlsx'),
+        default_value=_get_co2mpas_output_template_fpath(),
         initial_dist=10
     )
 
