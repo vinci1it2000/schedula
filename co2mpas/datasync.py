@@ -14,7 +14,7 @@ Usage:
                     [-O <output>] <x-label> <y-label> <ref-table>
                     [<sync-table> ...]
   datasync          [--verbose | -v]  (--version | -V)
-  datasync          [--interp-methods | -l]
+  datasync          (--interp-methods | -l)
   datasync          --help
   datasync template [-f] [--cycle <cycle>] [<excel-file-path> ...]
 
