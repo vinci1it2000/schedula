@@ -114,7 +114,7 @@ Examples::
     ## Typical usage for CO2MPAS velocity time-series from Dyno and OBD
     ## (the ref sheet contains the theoretical velocity profile):
     datasync template --cycle wltp.class3b template.xlsx
-    datasync -O ./output times velocities template.xlsx#ref dyno obd
+    datasync -O ./output times velocities template.xlsx#ref! dyno obd
 """
 
 from collections import OrderedDict, Counter
