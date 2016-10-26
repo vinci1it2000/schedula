@@ -109,8 +109,8 @@ EXAMPLES::
     # Launch GUI dialog-boxes on the sample-vehicles just created:
     co2mpas  batch  --gui  input
 
-    # or specify them with output-charts and workflow plots:
-    co2mpas  batch  input  -O output  --plot-workflow
+    # or specify them with workflow plot:
+    co2mpas  batch  input  -O output  -D plot_workflow=True
 
     # Create an empty vehicle-file inside `input` folder:
     co2mpas  template  input/vehicle_1.xlsx
