@@ -190,6 +190,7 @@ setup(
         'pykalman',
         'wltp',
         'cachetools',
+        'openpyxl>=2.4.0'
     ],
     packages=find_packages(exclude=['tests', 'doc']),
     package_data={'co2mpas': [
