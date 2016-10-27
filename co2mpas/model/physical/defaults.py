@@ -380,7 +380,7 @@ class Functions(co2_utl.Constants):
     class calculate_equivalent_gear_box_heat_capacity(co2_utl.Constants):
         #: Equivalent gear box heat capacity parameters.
         PARAMS = {
-            'gear_box_mass_engine_ratio': 0.15,
+            'gear_box_mass_engine_ratio': 0.25,
             # Cp in (J/kgK)
             'heat_capacity': {
                 'oil': 2090.0,
