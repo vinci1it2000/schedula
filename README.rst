@@ -6,8 +6,8 @@
 |co2mpas|: Vehicle simulator predicting NEDC |CO2| emissions from WLTP
 ######################################################################
 
-:Release:       1.4.0
-:Date:          2016-09-13 15:06:00
+:Release:       1.4.1.dev2
+:Date:          2016-10-21 17:10:00
 :Home:          http://co2mpas.io/
 :Releases:      http://files.co2mpas.io/
 :Sources:       https://github.com/JRCSTU/co2mpas
@@ -40,10 +40,10 @@ by European regulations. European Commission's *Joint Research Centre (JRC)*
 has been assigned the development of this vehicle simulator to facilitate this
 adaptation.
 
-The European Regulation setting the conditions for using |co2mpas| can be 
-found in `the Comitology Register 
+The European Regulation setting the conditions for using |co2mpas| can be
+found in `the Comitology Register
 <http://ec.europa.eu/transparency/regcomitology/index.cfm?do=search.documentdetail&gYsYfQyLRa3DqHm8YKXObaxj0Is1LmebRoBfg8saKszVqHZGdIwy2rS97ztb5t8b>`_
-after its adoption by the *Climate Change Committee* which took place on 
+after its adoption by the *Climate Change Committee* which took place on
 June 23, 2016.
 
 For recent activity, check the :doc:`changes`.
@@ -131,12 +131,12 @@ A. On *Windows* you may install the latest *all-In-One* archive and
 
 A. Manually install everything needed:
 
-  1. Install (or Upgrade) Python (2 choices under *Windows*), then proceed to
-  2. install the ``co2mpas`` python package:
+   1. Install (or Upgrade) Python (2 choices under *Windows*), then proceed to
+   2. install the ``co2mpas`` python package:
 
-    a. Install (or Upgrade) executable.
-    b. (optional) Install documents.
-    c. (optional) Install sources.
+      a. Install (or Upgrade) executable.
+      b. (optional) Install documents.
+      c. (optional) Install sources.
 
 
 
@@ -297,7 +297,7 @@ Install ``co2mpas`` package
         Downloading http://pypi.co2mpas.io/packages/co2mpas-...
         ...
         Installing collected packages: co2mpas
-        Successfully installed co2mpas-1.3.1
+        Successfully installed co2mpas-1.4.1.dev2
 
    .. Warning::
         **Installation failures:**
@@ -318,12 +318,12 @@ Install ``co2mpas`` package
    .. code-block:: console
 
        > co2mpas -vV
-       co2mpas_version: 1.3.1
-       co2mpas_rel_date: 2016-08-20 19:30:26
-       co2mpas_path: d:\co2mpas_ALLINONE-64bit-v1.3.1\Apps\WinPython\python-3.4.3\lib\site-packages\co2mpas
-       python_path: D:\co2mpas_ALLINONE-64bit-v1.3.1\WinPython\python-3.4.3
+       co2mpas_version: 1.4.1.dev2
+       co2mpas_rel_date: 2016-10-21 17:10:00
+       co2mpas_path: d:\co2mpas_ALLINONE-64bit-v1.4.1.dev2\Apps\WinPython\python-3.4.3\lib\site-packages\co2mpas
+       python_path: D:\co2mpas_ALLINONE-64bit-v1.4.1.dev2\WinPython\python-3.4.3
        python_version: 3.4.3 (v3.4.3:9b73f1c3e601, Feb 24 2015, 22:44:40) [MSC v.1600 XXX]
-       PATH: D:\co2mpas_ALLINONE-64bit-v1.3.1\WinPython...
+       PATH: D:\co2mpas_ALLINONE-64bit-v1.4.1.dev2\WinPython...
 
 
    .. Note::
@@ -427,7 +427,7 @@ require the use of ``pip`` command from a *console* to install:
   1. With with a "regular" browser and when connected to the Internet,
      pre-download locally all files present in the ``packages`` folder
      located in the desired |co2mpas| version in the *|co2mpas| site*
-     (e.g. http://files.co2mpas.io/CO2MPAS-1.3.1/packages/).
+     (e.g. http://files.co2mpas.io/CO2MPAS-1.4.1.dev2/packages/).
 
   2. Install *co2mpas*, referencing the above folder.
      Assuming that you downloaded the packages in the folder ``path/to/co2mpas_packages``,
@@ -622,11 +622,11 @@ you have installed |co2mpas| (see :ref:`install` above) and type::
 
 
     USAGE:
+      co2mpas ta          [--gui] [-f] [-O=<output-folder>] [<input-path>]...
       co2mpas batch       [-v | --logconf=<conf-file>] [--gui] [-f]
-                          [--overwrite-cache] [--out-template=<xlsx-file>]
-                          [--plot-workflow] [-O=<output-folder>]
-                          [--only-summary] [--soft-validation]
-                          [<input-path>]...
+                          [--overwrite-cache] [-O=<output-folder>]
+                          [--modelconf=<yaml-file>]
+                          [-D=<key=value>]... [<input-path>]...
       co2mpas demo        [-v | --logconf=<conf-file>] [--gui] [-f]
                           [<output-folder>]
       co2mpas template    [-v | --logconf=<conf-file>] [--gui] [-f]
@@ -634,6 +634,7 @@ you have installed |co2mpas| (see :ref:`install` above) and type::
       co2mpas ipynb       [-v | --logconf=<conf-file>] [--gui] [-f]
                           [<output-folder>]
       co2mpas modelgraph  [-v | --logconf=<conf-file>] [-O=<output-folder>]
+                          [--modelconf=<yaml-file>]
                           (--list | [--graph-depth=<levels>] [<models> ...])
       co2mpas             [--verbose | -v]  (--version | -V)
       co2mpas             --help
@@ -651,16 +652,28 @@ you have installed |co2mpas| (see :ref:`install` above) and type::
       <excel-file-path>           Output file.
       --gui                       Launches GUI dialog-boxes to choose Input, Output
                                   and Options. [default: False].
-      --only-summary              Do not save vehicle outputs, just the summary.
+      --modelconf=<yaml-file>     Path to a model-configuration file, according to YAML:
+                                    https://docs.python.org/3.5/library/logging.config.html#logging-config-dictschema
       --overwrite-cache           Overwrite the cached file.
-      --soft-validation           Validate only partially input-data (no schema).
-      --out-template=<xlsx-file>  Clone the given excel-file and appends results into it.
-                                  By default, results are appended into an empty excel-file.
-                                  Use `--out-template=-` to use input-file as template.
-      --plot-workflow             Open workflow-plot in browser, after run finished.
+      --variation, -D=<key=value> Validate only partially input-data (no schema).
       -l, --list                  List available models.
       --graph-depth=<levels>      An integer to Limit the levels of sub-models plotted.
       -f, --force                 Overwrite output/template/demo excel-file(s).
+
+
+    Model flags (-D flag.xxx, example -D flag.engineering_mode=2):
+     engineering_mode=<int>      0: Full validation + selection of declaration data,
+                                 1: Full validation,
+                                 2: Soft validation (just schema).
+     run_base=<bool>             Enable/disable the `run_base` model.
+     run_plan=<bool>             Enable/disable the `run_plan` model.
+     use_selector=<bool>         Enable/disable the selection of the best model.
+     only_summary=<bool>         Do not save vehicle outputs, just the summary.
+     plot_workflow=<bool>        Open workflow-plot in browser, after run finished.
+     output_template=<xlsx-file> Clone the given excel-file and appends results into
+                                 it. By default, results are appended into an empty
+                                 excel-file. Use `output_template=-` to use
+                                 input-file as template.
 
     Miscellaneous:
       -h, --help                  Show this help message and exit.
@@ -674,8 +687,15 @@ you have installed |co2mpas| (see :ref:`install` above) and type::
 
 
     SUB-COMMANDS:
-        batch           Simulate vehicle for all <input-path> excel-files & folder.
-                        If no <input-path> given, reads all excel-files from current-dir.
+        ta              Simulate vehicle in declaration mode for all <input-path>
+                        excel-files & folder. If no <input-path> given, reads all
+                        excel-files from current-dir. It reads just the declaration
+                        inputs.
+                        Read this for explanations of the param names:
+                          http://co2mpas.io/explanation.html#excel-input-data-naming-conventions
+        batch           Simulate vehicle in engineering mode for all <input-path>
+                        excel-files & folder. If no <input-path> given, reads all
+                        excel-files from current-dir. It reads all inputs.
                         Read this for explanations of the param names:
                           http://co2mpas.io/explanation.html#excel-input-data-naming-conventions
         demo            Generate demo input-files for the `batch` cmd inside <output-folder>.
@@ -720,21 +740,21 @@ Demo files
 The simulator contains input-files for demo-vehicles that are a nice
 starting point to try out:
 
-======= == ========== ========== === ==== ========== ========== ======== ====
-id      AT cal WLTP-H cal WLTP-L S/S BERS trg NEDC-H trg NEDC-L pre WLTP plan
-======= == ========== ========== === ==== ========== ========== ======== ====
+======= == ========== ========== === ==== ========== ========== ====
+id      AT cal WLTP-H cal WLTP-L S/S BERS trg NEDC-H trg NEDC-L plan
+======= == ========== ========== === ==== ========== ========== ====
    0           X          X                  X
    1           X          X      X    X      X
    2    X      X          X                             X
-   3           X          X      X           X                    X
+   3           X          X      X           X
    4    X                 X           X                 X
    5           X          X           X      X
-   6    X      X          X      X           X                    X
+   6    X      X          X      X           X
    7    X      X                 X    X      X
    8           X          X                  X          X
    9    X      X          X      X    X      X
-simplan          X          X                  X                           X
-======= == ========== ========== === ==== ========== ========== ======== ====
+simplan        X          X                  X                   X
+======= == ========== ========== === ==== ========== ========== ====
 
 To run them, do the following:
 
@@ -764,7 +784,6 @@ To run them, do the following:
         $ co2mpas demo input
         INFO:co2mpas.__main__:Creating INPUT-DEMO file 't\co2mpas_demo-0.xlsx'...
         INFO:co2mpas.__main__:Creating INPUT-DEMO file 't\co2mpas_demo-1.xlsx'...
-        INFO:co2mpas.__main__:Creating INPUT-DEMO file 't\co2mpas_demo-10.xlsx'...
         INFO:co2mpas.__main__:Creating INPUT-DEMO file 't\co2mpas_demo-2.xlsx'...
         INFO:co2mpas.__main__:Creating INPUT-DEMO file 't\co2mpas_demo-3.xlsx'...
         INFO:co2mpas.__main__:Creating INPUT-DEMO file 't\co2mpas_demo-4.xlsx'...
@@ -773,6 +792,7 @@ To run them, do the following:
         INFO:co2mpas.__main__:Creating INPUT-DEMO file 't\co2mpas_demo-7.xlsx'...
         INFO:co2mpas.__main__:Creating INPUT-DEMO file 't\co2mpas_demo-8.xlsx'...
         INFO:co2mpas.__main__:Creating INPUT-DEMO file 't\co2mpas_demo-9.xlsx'...
+        INFO:co2mpas.__main__:Creating INPUT-DEMO file 't\co2mpas_simplan.xlsx'...
         INFO:co2mpas.__main__:You may run DEMOS with:
             co2mpas batch input
 
@@ -816,10 +836,6 @@ The output-files produced on each run are the following:
   Major |CO2| emissions values, optimized |CO2| parameters values and
   success/fail flags of |co2mpas| submodels for all vehicles in the batch-run.
 
-.. tip::
-
-    Additionally, a sample output file is provide here:
-    http://files.co2mpas.io/CO2MPAS-1.3.1/co2mpas-annotated_input-2.2.1.xlsx
 
 
 Entering new vehicles
@@ -861,11 +877,6 @@ excel-file:
    <https://pandalone.readthedocs.org/en/latest/reference.html#module-pandalone.xleash>`_.
 
    .. tip::
-       You may also read the `"annotated" input excel-file
-       <http://files.co2mpas.io/CO2MPAS-1.3.1/co2mpas-annotated_input-2.2.xls>`_
-       to get an understanding of each scalar paramet and series required,
-       but **DO NOT USE THIS "fatty" xl-file (~10Mb) when running the model.**
-
        For an explanation of the naming of the fields, read below the
        :ref:`excel-model` section
 
@@ -906,22 +917,21 @@ variations are provided in additional sheets which names starting with
 the ``plan.`` prefix.
 These sheets must contain a table where each row is a single simulation,
 while the columns names are the parameters that the user want to vary.
-The columns of these tables must contain the following special names:
+The columns of these tables can contain the following special names:
 
 - **id**: Identifies the variation id.
 - **base**: this is a file path of a CO2MPAS excel input, this model will be
   used as new base vehicle.
-- **defaults**: this is a a list of file paths. The calibrated models of these
-  files are used as default models of the **base** model. This behavior is
-  needed to simulate, for example, a manual car (**base**) as A/T, because
-  the A/T strategy and the torque converter are not in the **base** model.
+- **run_base**: this is a boolean. If true the base model results are computed
+  and stored, otherwise the data are just loaded.
 
 
 Using custom output xl-files as templates
 -----------------------------------------
 You may have defined customized xl-files for summarizing time-series and
 scalar parameters.  To have |co2mpas| fill those "output-template" files with
-its results, execute it with the ``--out-template`` option.
+its results, execute it with the ``-D flag.output_template=file/path.xlsx``
+option.
 
 
 To create/modify one output-template yourself, do the following:
@@ -932,14 +942,15 @@ To create/modify one output-template yourself, do the following:
    `named-ranges <https://www.google.it/search?q=excel+named-ranges>`_.
 
    .. Warning::
-   		Do not use simple/absolute excel references (e.g. "=B2").
-   		Use excel functions (indirect, lookup, offset, etc.) and array-functions
-   		together with string references to the named ranges
-   		(e.g. "=indirect("nedc_predictions_time_series!_fuel_consumptions")").
+      Do not use simple/absolute excel references (e.g. "=B2").
+      Use excel functions (indirect, lookup, offset, etc.) and array-functions
+      together with string references to the named ranges
+      (e.g. "=indirect("output.prediction.nedc_h.pa!_co2_emission_value")").
 
 3. (Optional) Delete the old sheets and save your file.
 
-4. Use that file together with the ``--out-template`` argument.
+4. Use that file together with the ``-D flag.output_template=file/path.xlsx``
+  argument.
 
 
 Launch |co2mpas| from Jupyter(aka IPython)
@@ -1076,7 +1087,8 @@ by typing ``datasync --help`` in the command line
                              e.g. df.interpolate(--interp=polynomial4).
                              'krogh', 'piecewise_polynomial', 'pchip' and 'akima'
                              are all wrappers around the scipy interpolation methods
-                             of similar names. 'integral'
+                             of similar names.
+                             'integral' is respect the signal integral.
       -l, --interp-methods   List of all interpolation methods that can be used in
                              the resampling.
       --cycle <cycle>        If set (e.g., --cycle=nedc.manual), the <ref-table> is
@@ -1112,15 +1124,15 @@ Examples
 - Read the full contents from all `wbook.xlsx` sheets as tables and
   sync their columns using the table from the 1st sheet as reference::
 
-    datasync times  velocity  folder/Book.xlsx
+    datasync times velocity folder/Book.xlsx
 
 - Sync `Sheet1` using `Sheet3` as reference::
 
-    datasync times  velocity  wbook.xlsx#Sheet3!  Sheet1!
+    datasync times velocity wbook.xlsx#Sheet3!  Sheet1!
 
-- The same as above but with integeres used to index excel-sheets::
+- The same as above but with integers used to index excel-sheets::
 
-    datasync times  velocity  wbook.xlsx#2!  0
+    datasync times velocity wbook.xlsx#2!  0
 
   .. Note:: Sheet-indices are zero based!
 
@@ -1273,6 +1285,8 @@ Description of the name-parts
    - ``base`` [default]: values provided by the user as input to |co2mpas|.
    - ``plan``: values selected (see previous section) to calibrate the models
      and to predict the |CO2| emission.
+   - ``flag``: values provided by the user as input to ``run_base`` and
+     ``run_plan`` models.
 
 2. **usage:**
 
@@ -1283,6 +1297,7 @@ Description of the name-parts
    - ``target``: reference-values (**NOT USED IN CALIBRATION OR PREDICTION**) to
      be compared with the |co2mpas| results. This comparison is performed in the
      *report* sub-model by ``compare_outputs_vs_targets()`` function.
+   - ``config``: values provided by the user that modify the ``model_selector``.
 
 3. **stage:**
 
@@ -1291,6 +1306,7 @@ Description of the name-parts
    - ``calibration`` [default]: data related to the calibration stage.
    - ``prediction`` [imposed when: ``nedc`` is specified as **cycle**]:
      data related to the prediction stage.
+   - ``selector``: data related to the model selection stage.
 
 4. **cycle:**
 
@@ -1300,11 +1316,11 @@ Description of the name-parts
    - ``wltp-l``: data related to the *WLTP Low* cycle.
    - ``wltp-precon``: data related to the preconditioning *WLTP* cycle.
    - ``wltp-p``: is a shortcut of ``wltp-precon``.
-   - ``nedc``: is a shortcut to set values for both ``nedc-h`` and ``nedc-l``
-     cycles.
-   - ``wltp``: is a shortcut to set values for both ``wltp-h`` and ``wltp-l``
-     cycles.
-   - ``all`` [default]: is a shortcut to set values for ``nedc``, ``wltp``,
+   - ``nedc`` [default]: is a shortcut to set values for both ``nedc-h`` and
+     ``nedc-l`` cycles.
+   - ``wltp`` [default]: is a shortcut to set values for both ``wltp-h`` and
+     ``wltp-l`` cycles.
+   - ``all``: is a shortcut to set values for ``nedc``, ``wltp``,
      and ``wltp-p`` cycles.
 
 5. **param:** any data node name (e.g. ``vehicle_mass``) used in the physical
@@ -1363,9 +1379,16 @@ are provided.
 
 Model selection
 ---------------
-To select which is the best calibration (from *WLTP_H* or *WLTP_L* or *ALL*)
-to be used in the prediction phase, the results of each stage are compared
-against the provided input data (used in the calibration).
+For the type approval mode the selection is fixed. The criteria is to select the
+models calibrated from *WLTP_H* to predict *WLTP_H* and *NEDC_H*; and
+from *WLTP_L* to predict *WLTP_L* and *NEDC_L*.
+
+While for the engineering mode the automatic selection can be enabled adding
+`-D flag.use_selector=True` to the batch command.
+Then to select which is the best calibration
+(from *WLTP_H* or *WLTP_L* or *ALL*) to be used in the prediction phase, the
+results of each stage are compared against the provided input data (used in the
+calibration).
 The calibrated models are THEN used to recalculate (predict) the inputs of the
 *WLTP_H* and *WLTP_L* cycles. A **score** (weighted average of all computed
 metrics) is attributed to each calibration of each model as a result of this

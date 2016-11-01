@@ -189,10 +189,10 @@ setup(
         'pykalman',
         'wltp',
         'cachetools',
+        'openpyxl>=2.4.0'
     ],
     extras_require={
         'dice': [
-            'PyYAML',
             'python-gpg>=2.0.8', ## Due to https://github.com/gitpython-developers/GitPython/issues/332
             'gitpython',
             'keyring',

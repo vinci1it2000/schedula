@@ -16,6 +16,12 @@ import co2mpas.utils as co2_utl
 
 #: Container of node default values.
 class Values(co2_utl.Constants):
+    #: Does the engine have lean burn technology?
+    has_lean_burn = False
+
+    #: Does the gear box have some additional technology to heat up faster?
+    has_gear_box_thermal_management = False
+
     #: Does the vehicle has periodically regenerating systems? [-].
     has_periodically_regenerating_systems = False
 
@@ -171,6 +177,14 @@ class Values(co2_utl.Constants):
 
 #: Container of internal function parameters.
 class Functions(co2_utl.Constants):
+    class Alternator_status_model(co2_utl.Constants):
+        #: Minimum delta time to consider valid a charging state to fit charges
+        #: boundaries [s].
+        min_delta_time_boundaries = 5
+
+        #: Minimum acceptance percentile to fit the bers threshold [%].
+        min_percentile_bers = 90
+
     class default_ki_factor(co2_utl.Constants):
         #: Correction for vehicles with periodically regenerating systems [-].
         ki_factor = {True: 1.05, False: 1.0}
@@ -180,10 +194,18 @@ class Functions(co2_utl.Constants):
         #: deactivation strategy [-].
         percentage = 0.6
 
+    class calculate_max_mean_piston_speeds_lean_burn(co2_utl.Constants):
+        #: Percentage of max mean piston speeds used as limit in lean burn
+        #: strategy [-].
+        percentage = 0.6
+
     class define_fmep_model(co2_utl.Constants):
         #: Percentage of max full bmep curve used as limit in cylinder
         #: deactivation strategy [-].
-        full_bmep_curve_percentage = 0.45
+        acr_full_bmep_curve_percentage = 0.45
+        #: Percentage of max full bmep curve used as limit in lean burn
+        #: strategy [-].
+        lb_full_bmep_curve_percentage = 0.4
 
     class define_idle_model_detector(co2_utl.Constants):
         #: eps parameter of DBSCAN [RPM].
@@ -308,14 +330,16 @@ class Functions(co2_utl.Constants):
         #: Vehicle gear box efficiency constants (gbp00, gbp10, and gbp01).
         PARAMS = {
             True: {
-                'gbp00': {'m': -0.0054, 'q': {'hot': -1.9682, 'cold': -2.9682}},
-                'gbp10': {'q': {'hot': -0.0012, 'cold': -0.0008}},
-                'gbp01': {'q': {'hot': 0.965, 'cold': 0.965}},
+                'gbp00': {'m': -0.0034, 'q': {'hot': -0.3, 'cold': -0.7}},
+                'gbp10': {'m': -0.0034 / 2000, 'q': {'hot': -0.3 / 2000,
+                                                     'cold': -1 / 2000}},
+                'gbp01': {'q': {'hot': 0.965, 'cold': 0.955}},
             },
             False: {
-                'gbp00': {'m': -0.0034, 'q': {'hot': -0.3119, 'cold': -0.7119}},
-                'gbp10': {'q': {'hot': -0.00018, 'cold': 0}},
-                'gbp01': {'q': {'hot': 0.97, 'cold': 0.97}},
+                'gbp00': {'m': -0.0034, 'q': {'hot': -0.3, 'cold': -0.7}},
+                'gbp10': {'m': -0.0034 / 2000, 'q': {'hot': -0.1 / 2000,
+                                                     'cold': -0.25 / 2000}},
+                'gbp01': {'q': {'hot': 0.975, 'cold': 0.965}},
             }
         }
 
@@ -356,11 +380,12 @@ class Functions(co2_utl.Constants):
     class calculate_equivalent_gear_box_heat_capacity(co2_utl.Constants):
         #: Equivalent gear box heat capacity parameters.
         PARAMS = {
-            'gear_box_mass_engine_ratio': 0.15,
+            'gear_box_mass_engine_ratio': 0.25,
             # Cp in (J/kgK)
             'heat_capacity': {
                 'oil': 2090.0,
-            }
+            },
+            'thermal_management_factor': 0.5
         }
 
     class get_full_load(co2_utl.Constants):

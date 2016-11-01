@@ -162,6 +162,7 @@ def _co2mpas_info2df(start_time, main_flags=None):
     ]
 
     if main_flags:
+        main_flags = schema.define_flags_schema(read=False).validate(main_flags)
         info.extend(sorted(main_flags.items()))
 
     df = pd.DataFrame(info, columns=['Parameter', 'Value'])
@@ -189,12 +190,19 @@ def _pipe2list(pipe, i=0, source=()):
         return (x,) if isinstance(x, str) else x
     max_l = i
     idx = {'nodes L%d' % i: str(v) for i, v in enumerate(source)}
+    node_id = 'nodes L%d' % i
     for k, v in pipe.items():
         k = f(k)
-        d = {'nodes L%d' % i: str(k)}
+        d = {node_id: str(k)}
 
         if 'error' in v:
             d['error'] = v['error']
+
+        j, s = v['task'][2]
+        n = s.workflow.node.get(j, {})
+        if 'duration' in n:
+            d['duration'] = n['duration']
+
         d.update(idx)
         res.append(d)
 

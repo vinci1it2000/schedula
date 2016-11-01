@@ -359,6 +359,8 @@ def physical():
         dsp_id='gear_box_model',
         dsp=gear_box(),
         inputs={
+            'has_gear_box_thermal_management':
+                'has_gear_box_thermal_management',
             'engine_mass': 'engine_mass',
             'on_engine': 'on_engine',
             'CVT': 'CVT',
@@ -537,7 +539,9 @@ def physical():
             'state_of_charges': 'state_of_charges',
             'start_demand': 'start_demand',
             'electrics_model': 'electrics_model',
-            'alternator_initialization_time': 'alternator_initialization_time'
+            'alternator_initialization_time': 'alternator_initialization_time',
+            'state_of_charge_balance': 'state_of_charge_balance',
+            'state_of_charge_balance_window': 'state_of_charge_balance_window'
         }
     )
 
@@ -547,6 +551,7 @@ def physical():
         dsp_id='engine_model',
         dsp=engine(),
         inputs={
+            'has_lean_burn': 'has_lean_burn',
             'engine_mass': 'engine_mass',
             'is_hybrid': 'is_hybrid',
             'state_of_charges': 'state_of_charges',
@@ -705,6 +710,7 @@ def physical():
             'engine_idle_fuel_consumption': 'engine_idle_fuel_consumption',
             'active_cylinders': 'active_cylinders',
             'active_variable_valves': 'active_variable_valves',
+            'active_lean_burns': 'active_lean_burns',
             'ki_factor': 'ki_factor',
             'declared_co2_emission_value': 'declared_co2_emission_value',
         },

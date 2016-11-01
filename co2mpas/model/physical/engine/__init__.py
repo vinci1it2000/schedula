@@ -260,7 +260,7 @@ def define_idle_model_detector(
 
     b = (velocities < stop_velocity) & (engine_speeds_out > min_engine_on_speed)
 
-    x = engine_speeds_out[b][:, None]
+    x = engine_speeds_out[b, None]
     eps = defaults.dfl.functions.define_idle_model_detector.EPS
     model = IdleDetector(eps=eps)
     model.fit(x)
@@ -985,6 +985,29 @@ def calculate_max_mean_piston_speeds_cylinder_deactivation(
     return calculate_mean_piston_speeds(engine_max_speed * p, engine_stroke)
 
 
+def calculate_max_mean_piston_speeds_lean_burn(
+        engine_max_speed, engine_stroke):
+    """
+    Calculates the maximum mean piston speed for lean burn strategy.
+
+    :param engine_max_speed:
+        Maximum engine speed [RPM].
+    :rtype engine_max_speed: float
+
+    :param engine_stroke:
+        Engine stroke [mm].
+    :type engine_stroke: float
+
+    :return:
+        Maximum mean piston speed for lean burn strategy [m/sec].
+    :rtype: float
+    """
+
+    p = defaults.dfl.functions
+    p = p.calculate_max_mean_piston_speeds_lean_burn.percentage
+    return calculate_mean_piston_speeds(engine_max_speed * p, engine_stroke)
+
+
 def engine():
     """
     Defines the engine model.
@@ -1039,6 +1062,12 @@ def engine():
         function=calculate_max_mean_piston_speeds_cylinder_deactivation,
         inputs=['engine_max_speed', 'engine_stroke'],
         outputs=['max_mean_piston_speeds_cylinder_deactivation']
+    )
+
+    d.add_function(
+        function=calculate_max_mean_piston_speeds_lean_burn,
+        inputs=['engine_max_speed', 'engine_stroke'],
+        outputs=['max_mean_piston_speeds_lean_burn']
     )
 
     d.add_function(
@@ -1353,6 +1382,9 @@ def engine():
         dsp=co2_emission(),
         dsp_id='CO2_emission_model',
         inputs={
+            'has_lean_burn': 'has_lean_burn',
+            'max_mean_piston_speeds_lean_burn':
+                'max_mean_piston_speeds_lean_burn',
             'engine_has_cylinder_deactivation':
                 'engine_has_cylinder_deactivation',
             'active_cylinder_ratios': 'active_cylinder_ratios',
@@ -1442,6 +1474,7 @@ def engine():
             'engine_idle_fuel_consumption': 'engine_idle_fuel_consumption',
             'active_cylinders': 'active_cylinders',
             'active_variable_valves': 'active_variable_valves',
+            'active_lean_burns': 'active_lean_burns',
             'ki_factor': 'ki_factor',
             'declared_co2_emission_value': 'declared_co2_emission_value',
         },

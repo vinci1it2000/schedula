@@ -27,6 +27,7 @@ import scipy.stats as sci_stat
 import sklearn.pipeline as sk_pip
 import sklearn.ensemble as sk_ens
 import sklearn.tree as sk_tree
+import sklearn.cluster as sk_clu
 import co2mpas.dispatcher as dsp
 import co2mpas.utils as co2_utl
 
@@ -131,6 +132,13 @@ def identify_charging_statuses_and_alternator_initialization_time(
     return statuses, alternator_initialization_time
 
 
+def _mask_boolean_phases(b):
+    s = np.zeros(len(b) + 2, dtype=bool)
+    s[1:-1] = b
+    mask = np.column_stack((s[1:], s[:-1])) & (s[:-1] != s[1:])[:, None]
+    return np.where(mask)[0].reshape((-1, 2))
+
+
 def identify_charging_statuses(
         times, alternator_currents, gear_box_powers_in, on_engine,
         alternator_current_threshold, starts_windows,
@@ -178,15 +186,11 @@ def identify_charging_statuses(
     status = b.astype(int, copy=True)
     status[b & (gear_box_powers_in < 0)] = 2
 
-    s = np.zeros(len(on_engine) + 2, dtype=bool)
-    s[1:-1] = status != 1
-    mask = np.column_stack((s[1:], s[:-1])) & (s[:-1] != s[1:])[:, None]
-    mask = np.where(mask)[0].reshape((-1, 2))
     off = ~on_engine | starts_windows
-
+    mask = _mask_boolean_phases(status != 1)
     for i, j in mask:
         # noinspection PyUnresolvedReferences
-        if (status[i:j] == 2 | off[i:j]).all():
+        if ((status[i:j] == 2) | off[i:j]).all():
             status[i:j] = 1
 
     _set_alt_init_status(times, alternator_initialization_time, status)
@@ -718,14 +722,25 @@ def identify_alternator_current_threshold(
     :rtype: float
     """
 
-    b, l = ~on_engine, -float('inf')
-    if not b.any():
-        b, l = velocities < stop_velocity, alternator_off_threshold
-        b &= alternator_currents < 0
+    sample_weight = np.ones_like(alternator_currents, dtype=float)
+    sample_weight[alternator_currents >= alternator_off_threshold] = 2.0
+    sample_weight[velocities < stop_velocity] = 3.0
+    sample_weight[~on_engine] = 4.0
 
-    if b.any():
-        v = min(0.0, max(co2_utl.reject_outliers(alternator_currents[b])[0], l))
-        return v
+    model = sk_clu.DBSCAN(eps=-alternator_off_threshold)
+    model.fit(alternator_currents[:, None], sample_weight=sample_weight)
+    c, l = model.components_, model.labels_[model.core_sample_indices_]
+    sample_weight = sample_weight[model.core_sample_indices_]
+    threshold, w = [], []
+    for i in range(l.max() + 1):
+        b = l == i
+        x = c[b].min()
+        if x > alternator_off_threshold:
+            threshold.append(x)
+            w.append(np.sum(sample_weight[b]))
+
+    if threshold:
+        return min(0.0, np.average(threshold, weights=w))
     return 0.0
 
 
@@ -787,15 +802,27 @@ class Alternator_status_model(object):
 
     def _fit_bers(self, alternator_statuses, gear_box_powers_in):
         b = alternator_statuses == 2
+        threshold = 0.0
         if b.any():
-            bers = sk_tree.DecisionTreeClassifier(random_state=0, max_depth=2)
-            c = (alternator_statuses != 1)
+            from ..defaults import dfl
+            q = dfl.functions.Alternator_status_model.min_percentile_bers
+            m = sk_tree.DecisionTreeClassifier(random_state=0, max_depth=2)
+            c = alternator_statuses != 1
             # noinspection PyUnresolvedReferences
-            bers.fit(gear_box_powers_in[c, None], b[c])
+            m.fit(gear_box_powers_in[c, None], b[c])
 
-            self.bers = bers.predict  # shortcut name
-        else:
-            self.bers = lambda x: np.asarray(x) < 0
+            X = gear_box_powers_in[b, None]
+            if (np.sum(m.predict(X)) / X.shape[0] * 100) >= q:
+                self.bers = m.predict  # shortcut name
+                return self.bers
+
+            if not b.all():
+                gb_p_s = gear_box_powers_in[_mask_boolean_phases(b)[:, 0]]
+
+                threshold = min(threshold, np.percentile(gb_p_s, q))
+
+        self.bers = lambda x: np.asarray(x) < threshold
+        return self.bers
 
     def _fit_charge(self, alternator_statuses, state_of_charges):
         b = alternator_statuses[1:] == 1
@@ -807,39 +834,33 @@ class Alternator_status_model(object):
             charge.fit(X, b)
             self.charge = charge.predict
         else:
-            self.charge = lambda *args: (False,)
+            self.charge = lambda X: np.zeros(len(X), dtype=bool)
 
     def _fit_boundaries(self, alternator_statuses, state_of_charges, times):
         n = len(alternator_statuses)
-        s = np.zeros(n + 2, dtype=bool)
-        s[1:-1] = alternator_statuses == 1
-        mask = np.column_stack((s[1:], s[:-1])) & (s[:-1] != s[1:])[:, None]
-        mask = np.where(mask)[0].reshape((-1, 2))
-        self.max = _min = 100.0
-        self.min = _max = 0.0
-
-        balance = ()
+        mask = _mask_boolean_phases(alternator_statuses == 1)
+        self.max, self.min = 100.0, 0.0
+        _max, _min, balance = [], [], ()
+        from ..defaults import dfl
+        min_dt = dfl.functions.Alternator_status_model.min_delta_time_boundaries
         for i, j in mask:
-            if j - i <= 1:
+            t,  = times[i:j],
+            if t[-1] - t[0] <= min_dt:
                 continue
-            t, soc = times[i:j], state_of_charges[i:j]
+            soc = state_of_charges[i:j]
             m, q = sci_stat.linregress(t, soc)[:2]
             if m >= 0:
                 if i > 0:
-                    self.min = _min = min(_min, soc.min())
+                    _min.append(soc.min())
                 if j < n:
-                    self.max = _max = max(_max, soc.max())
+                    _max.append(soc.max())
 
-            if abs(m) < 0.001:
-                q += m * t[0 if m >= 0 else -1]
-                if balance:
-                    balance = min(balance[0], q), max(soc.max(), balance[1])
-                else:
-                    balance = q, soc.max()
+        if _min:
+            self.min = _min = max(self.min, min(100.0, min(_min)))
 
-        if balance:
-            self.min = max(self.min, balance[0])
-            self.max = min(self.max, balance[1])
+        _max = [m for m in _max if m >= _min]
+        if _max:
+            self.max = min(100.0, max(_max))
 
     # noinspection PyUnresolvedReferences
     def fit(self, times, alternator_statuses, state_of_charges,
@@ -947,6 +968,31 @@ def define_alternator_status_model(
     )
 
     return model
+
+
+def identify_state_of_charge_balance_and_window(alternator_status_model):
+    """
+    Identifies the battery state of charge balance and its window [%].
+
+    :param alternator_status_model:
+        A function that predicts the alternator status.
+    :type alternator_status_model: Alternator_status_model
+
+    :return:
+        Battery state of charge balance and its window [%].
+    :rtype: float, float
+    """
+
+    model = alternator_status_model
+    min_soc, max_soc = model.min, model.max
+    X = np.column_stack((np.ones(100), np.linspace(min_soc, max_soc, 100)))
+    s = np.where(model.charge(X))[0]
+    if s.shape[0]:
+        min_soc, max_soc = max(min_soc, X[s[0], 1]), min(max_soc, X[s[-1], 1])
+
+    state_of_charge_balance_window = max_soc - min_soc
+    state_of_charge_balance = min_soc + state_of_charge_balance_window / 2
+    return state_of_charge_balance, state_of_charge_balance_window
 
 
 class ElectricModel(object):
@@ -1250,6 +1296,12 @@ def electrics():
         function=define_alternator_status_model,
         inputs=['state_of_charge_balance', 'state_of_charge_balance_window'],
         outputs=['alternator_status_model']
+    )
+
+    d.add_function(
+        function=identify_state_of_charge_balance_and_window,
+        inputs=['alternator_status_model'],
+        outputs=['state_of_charge_balance', 'state_of_charge_balance_window']
     )
 
     d.add_data(

@@ -495,15 +495,15 @@ class Dispatcher(object):
             if START not in self.nodes:
                 self.add_data(START)
 
-            inputs = [START]  # Update inputs.  [ank:] Really!?!
+            inputs = [START]  # Update inputs.
 
         if outputs is None:  # Set a dummy output.
             if SINK not in self.nodes:
                 self.add_data(SINK)
 
-            outputs = [SINK]  # Update outputs. [ank:] How is that!?!
+            outputs = [SINK]  # Update outputs.
 
-        # Get parent function. [ank:] Obviously...
+        # Get parent function.
         func = parent_func(function)
 
         if self._check_func_parent(func):
@@ -520,7 +520,7 @@ class Dispatcher(object):
             'index': (self.counter(),)
         }
 
-        if input_domain:  # Add domain as node attribute. [ank:] So is this what you 're doing here??
+        if input_domain:  # Add domain as node attribute.
             attr_dict['input_domain'] = input_domain
 
         if description is not None:  # Add description as node attribute.

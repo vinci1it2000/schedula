@@ -12,6 +12,8 @@ It provides CO2MPAS schema parse/validator.
 import logging
 from collections import Iterable, OrderedDict
 import numpy as np
+import datetime
+import os.path as osp
 from lmfit import Parameters, Parameter
 from schema import Schema, Use, And, Or, Optional, SchemaError
 from sklearn.tree import DecisionTreeClassifier
@@ -29,26 +31,21 @@ from co2mpas.model.physical.engine.thermal import ThermalModel
 log = logging.getLogger(__name__)
 
 
-def check_data_version(data):
+def check_data_version(flag):
     from co2mpas._version import __input_file_version__
-    data = list(data.values())[0]
-    for k, v in data.items():
-        if not k.startswith('input.'):
-            continue
-        if 'VERSION' in v:
-            v, rv = v['VERSION'], tuple(__input_file_version__.split('.'))
-
-            if tuple(v.split('.')) >= rv:
-                break
-
+    try:
+        ver = flag['input_version']
+        if tuple(ver.split('.')) >= tuple(__input_file_version__.split('.')):
+            return True
+        else:
             msg = "\n  Input file version %s. Please update your input " \
-                  "file with a version >= %s."
-            log.warning(msg, v, __input_file_version__)
-            break
-    else:
+                      "file with a version >= %s."
+            log.warning(msg, ver, __input_file_version__)
+    except KeyError:
         msg = "\n  Input file version not found. Please update your input " \
               "file with a version >= %s."
         log.error(msg, __input_file_version__)
+    return False
 
 
 def _ta_mode(data):
@@ -60,14 +57,17 @@ def _ta_mode(data):
     data['base'], _, diff = _extract_declaration_data(base, {})
 
     for k in ('plan', 'flag'):
-        diff.update((k,) + tuple(j.split('.')) for j in data.pop(k, {}))
+        diff.update((k,) + tuple(j.split('.')) for j in data.get(k, {}))
+
+    diff -= {('flag', 'input_version'), ('flag', 'ta_certificate_number')}
 
     if diff:
         diff = ['.'.join(k) for k in sorted(diff)]
-        log.info('Since CO2MPAS is launched in declaration mode the '
+        log.info('Since CO2MPAS is launched in type approval mode the '
                  'following data cannot be used:\n %s\n'
                  'If you want to include these data use the cmd batch.',
                  ',\n'.join(diff))
+        return False
     return True
 
 
@@ -78,21 +78,22 @@ def _extract_declaration_data(inputs, errors):
     return inputs, errors, diff
 
 
-def _eng_mode_parser(engineering_mode, use_selector, inputs, errors):
-    if int(engineering_mode) <= validations.DECLARATION:
+def _eng_mode_parser(
+        engineering_mode, soft_validation, use_selector, inputs, errors):
+    if not engineering_mode:
         inputs, errors, diff = _extract_declaration_data(inputs, errors)
         if diff:
             diff = ['.'.join(k) for k in sorted(diff)]
             log.info('Since CO2MPAS is launched in declaration mode the '
                      'following data are not used:\n %s\n'
                      'If you want to include these data add to the batch cmd '
-                     '-D engineering_mode=1 or -D engineering_mode=2',
+                     '-D engineering_mode=True',
                      ',\n'.join(diff))
 
     if not use_selector:
         inputs = validations.overwrite_declaration_config_data(inputs)
 
-    if int(engineering_mode) <= validations.HARD:
+    if not soft_validation:
         for k, v in dsp_utl.stack_nested_keys(inputs, depth=3):
             for c, msg in validations.hard_validation(v):
                 dsp_utl.get_nested_dicts(errors, *k)[c] = SchemaError([], [msg])
@@ -100,9 +101,11 @@ def _eng_mode_parser(engineering_mode, use_selector, inputs, errors):
     return inputs, errors
 
 
-def validate_plan(plan, engineering_mode, use_selector):
+def validate_plan(plan, engineering_mode, soft_validation, use_selector):
     read_schema = define_data_schema(read=True)
-    validated_plan, errors, validate = [], {}, read_schema.validate
+    flag_read_schema = define_flags_schema(read=True)
+    validated_plan, errors, v_data = [], {}, read_schema.validate
+    v_flag = flag_read_schema.validate
     for i, data in plan.iterrows():
         inputs, inp = {}, {}
         data.dropna(how='all', inplace=True)
@@ -110,13 +113,16 @@ def validate_plan(plan, engineering_mode, use_selector):
         for k, v in excel._parse_values(data):
             if k[0] == 'base':
                 d = dsp_utl.get_nested_dicts(inp, *k[1:-1])
-                v = _add_validated_input(d, validate, (plan_id,) + k, v, errors)
+                v = _add_validated_input(d, v_data, (plan_id,) + k, v, errors)
+            elif k[0] == 'flag':
+                v = _add_validated_input({}, v_flag, (plan_id,) + k, v, errors)
 
             if v is not dsp_utl.NONE:
                 inputs[k] = v
 
-        errors = _eng_mode_parser(engineering_mode, use_selector, inp,
-                                  errors)[1]
+        errors = _eng_mode_parser(
+            engineering_mode, soft_validation, use_selector, inp, errors
+        )[1]
 
         validated_plan.append((i, inputs))
 
@@ -136,15 +142,27 @@ def _validate_base_with_schema(data):
     return inputs, errors
 
 
-def validate_base(data, engineering_mode, use_selector):
+def validate_base(data, engineering_mode, soft_validation, use_selector):
     i, e = _validate_base_with_schema(data)
 
-    i, e = _eng_mode_parser(engineering_mode, use_selector, i, e)
+    i, e = _eng_mode_parser(
+        engineering_mode, soft_validation, use_selector, i, e
+    )
 
     if _log_errors_msg(e):
         return dsp_utl.NONE
 
     return {'.'.join(k): v for k, v in dsp_utl.stack_nested_keys(i, depth=3)}
+
+
+def validate_flags(flags):
+    read_schema = define_flags_schema(read=True)
+    inputs, errors, validate = {}, {}, read_schema.validate
+    for k, v in sorted(flags.items()):
+        _add_validated_input(inputs, validate, ('flag', k), v, errors)
+    if _log_errors_msg(errors):
+        return dsp_utl.NONE
+    return inputs
 
 
 def _add_validated_input(data, validate, keys, value, errors):
@@ -414,7 +432,20 @@ def _bag_phases(error=None, read=True, **kwargs):
         it = dsp_utl.pairwise(_extract_indices(x))
         return all(i[-1] <= j[0] for i, j in it)
     er = 'Phases must be separated!'
-    return And(_np_array(read=read), Schema(check, error=er), error=error)
+    if read:
+        return And(_np_array(read=read), Schema(check, error=er), error=error)
+    else:
+        return And(_bag_phases(error, True), _np_array(read=False), error=error)
+
+
+def _file(error=None, **kwargs):
+    er = 'Must be a file!'
+    return And(_string(), Schema(osp.isfile, error=er), error=error)
+
+
+def _dir(error=None, **kwargs):
+    er = 'Must be a directory!'
+    return And(_string(), Schema(osp.isdir, error=er), error=error)
 
 
 @cachetools.cached({})
@@ -473,7 +504,6 @@ def define_data_schema(read=True):
                                              read=read),
         _compare_str('MVL'): _mvl(read=read),
 
-        _compare_str('VERSION'): string,
         'lock_up_tc_limits': tuplefloat2,
         'ki_factor': greater_than_one,
         'tyre_dimensions': tyre_dimensions,
@@ -541,6 +571,7 @@ def define_data_schema(read=True):
 
         'engine_is_turbo': _bool,
         'has_start_stop': _bool,
+        'has_gear_box_thermal_management': _bool,
         'has_energy_recuperation': _bool,
         'use_basic_start_stop': _bool,
         'is_hybrid': _bool,
@@ -678,3 +709,47 @@ def define_data_schema(read=True):
         schema = {k: And(v, Or(f, Use(str))) for k, v in schema.items()}
 
     return Schema(schema)
+
+
+@cachetools.cached({})
+def define_flags_schema(read=True):
+    string = _string(read=read)
+    isfile = _file(read=read)
+    isdir = _dir(read=read)
+    _bool = _type(type=bool, read=read)
+    _datetime = _type(type=datetime.datetime, read=read)
+
+    schema = {
+        _compare_str('input_version'): string,
+        _compare_str('ta_certificate_number'): string,
+
+        _compare_str('soft_validation'): _bool,
+        _compare_str('use_selector'): _bool,
+        _compare_str('engineering_mode'): _bool,
+        _compare_str('run_plan'): _bool,
+        _compare_str('run_base'): _bool,
+        _compare_str('only_summary'): _bool,
+        _compare_str('plot_workflow'): _bool,
+        _compare_str('overwrite_cache'): _bool,
+        _compare_str('type_approval_mode'): _bool,
+
+        _compare_str('vehicle_name'): string,
+
+        _compare_str('output_template'): isfile,
+        _compare_str('output_file_name'): string,
+        _compare_str('output_folder'): isdir,
+
+        _compare_str('start_time'): _datetime,
+        _compare_str('timestamp'): string,
+    }
+
+    schema = {Optional(k): Or(Empty(), v) for k, v in schema.items()}
+
+    if not read:
+
+        def f(x):
+            return x is dsp_utl.NONE
+
+        schema = {k: And(v, Or(f, Use(str))) for k, v in schema.items()}
+
+    return Schema(schema, error='Flag not defined!')

@@ -550,13 +550,18 @@ def calculate_gear_box_powers_in(gear_box_torques_in, gear_box_speeds_in):
     return calculate_wheel_powers(gear_box_torques_in, gear_box_speeds_in)
 
 
-def calculate_equivalent_gear_box_heat_capacity(engine_mass):
+def calculate_equivalent_gear_box_heat_capacity(
+        engine_mass, has_gear_box_thermal_management):
     """
     Calculates the equivalent gear box heat capacity [kg*J/K].
 
     :param engine_mass:
         Engine mass [kg].
     :type engine_mass: str
+
+    :param has_gear_box_thermal_management:
+        Does the gear box have some additional technology to heat up faster?
+    :type has_gear_box_thermal_management: bool
 
     :return:
        Equivalent gear box heat capacity [kg*J/K].
@@ -571,6 +576,9 @@ def calculate_equivalent_gear_box_heat_capacity(engine_mass):
     par = par.PARAMS
 
     heated_gear_box_mass = heated_eng_mass * par['gear_box_mass_engine_ratio']
+
+    if has_gear_box_thermal_management:
+        heated_gear_box_mass *= par['thermal_management_factor']
 
     return par['heat_capacity']['oil'] * heated_gear_box_mass
 
@@ -721,9 +729,14 @@ def gear_box():
         outputs=['gear_box_powers_in']
     )
 
+    d.add_data(
+        data_id='has_gear_box_thermal_management',
+        default_value=defaults.dfl.values.has_gear_box_thermal_management
+    )
+
     d.add_function(
         function=calculate_equivalent_gear_box_heat_capacity,
-        inputs=['engine_mass'],
+        inputs=['engine_mass', 'has_gear_box_thermal_management'],
         outputs=['equivalent_gear_box_heat_capacity']
     )
 

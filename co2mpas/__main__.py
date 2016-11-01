@@ -55,10 +55,9 @@ OPTIONS:
   -f, --force                 Overwrite output/template/demo excel-file(s).
 
 
-Model flags (-D flag.xxx, example -D flag.engineering_mode=2):
- engineering_mode=<int>      0: Full validation + selection of declaration data,
-                             1: Full validation,
-                             2: Soft validation (just schema).
+Model flags (-D flag.xxx, example -D flag.engineering_mode=True):
+ engineering_mode=<bool>     Use all data and not only the declaration data.
+ soft_validation=<bool>      Soft validation (just schema).
  run_base=<bool>             Enable/disable the `run_base` model.
  run_plan=<bool>             Enable/disable the `run_plan` model.
  use_selector=<bool>         Enable/disable the selection of the best model.
@@ -110,8 +109,8 @@ EXAMPLES::
     # Launch GUI dialog-boxes on the sample-vehicles just created:
     co2mpas  batch  --gui  input
 
-    # or specify them with output-charts and workflow plots:
-    co2mpas  batch  input  -O output  --plot-workflow
+    # or specify them with workflow plot:
+    co2mpas  batch  input  -O output  -D plot_workflow=True
 
     # Create an empty vehicle-file inside `input` folder:
     co2mpas  template  input/vehicle_1.xlsx
@@ -126,7 +125,6 @@ EXAMPLES::
 
 from co2mpas import (__version__ as proj_ver, __file__ as proj_file,
                      __updated__ as proj_date)
-from collections import OrderedDict
 import collections
 import glob
 import io
@@ -433,6 +431,7 @@ def parse_variation(variation):
             res[k] = v
         except AttributeError:
             raise CmdException('Wrong --variation format %s! ' % v)
+
     return res
 
 
@@ -477,10 +476,14 @@ def _run_batch(opts, **kwargs):
 
     _init_defaults(opts['--modelconf'])
 
+    kw = {
+        'variation': parse_variation(opts['--variation']),
+        'overwrite_cache': opts['--overwrite-cache'],
+    }
+    kw.update(kwargs)
+
     from co2mpas.batch import process_folder_files
-    process_folder_files(input_paths, output_folder,
-                         variation=parse_variation(opts['--variation']),
-                         overwrite_cache=opts['--overwrite-cache'], **kwargs)
+    process_folder_files(input_paths, output_folder, **kw)
 
 
 def _main(*args):
@@ -507,7 +510,7 @@ def _main(*args):
         elif opts['modelgraph']:
             _cmd_modelgraph(opts)
         elif opts['ta']:
-            _run_batch(opts, type_approval_mode=True)
+            _run_batch(opts, type_approval_mode=True, overwrite_cache=True)
         else:
             _run_batch(opts)
 

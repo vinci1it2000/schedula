@@ -173,7 +173,7 @@ def _upgrade_gsm(gsm, velocity_speed_ratios, cycle_type):
             gsm.correct_constant_velocity(
                 up_cns_vel=par.CON_VEL_DN_SHIFT, dn_cns_vel=par.CON_VEL_UP_SHIFT
             )
-        elif isinstance(gsm, CMV):
+        elif isinstance(gsm, CMV) and not isinstance(gsm, GSPV):
             par = defaults.dfl.functions.correct_constant_velocity
             gsm.correct_constant_velocity(
                 up_cns_vel=par.CON_VEL_UP_SHIFT, up_window=par.VEL_UP_WINDOW,

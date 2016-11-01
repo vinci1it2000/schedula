@@ -97,13 +97,14 @@ class _custom_tqdm(tqdm):
 
 def _yield_folder_files_results(
         start_time, input_files, output_folder, overwrite_cache=False,
-        model=None, variation=None):
+        model=None, variation=None, type_approval_mode=False):
     model = model or vehicle_processing_model()
     kw = {
         'output_folder': output_folder,
         'overwrite_cache': overwrite_cache,
         'timestamp': start_time.strftime('%Y%m%d_%H%M%S'),
-        'variation': variation or {}
+        'variation': variation or {},
+        'type_approval_mode': type_approval_mode
     }
 
     _process_vehicle = dsp_utl.SubDispatch(model)
@@ -405,11 +406,19 @@ def prepare_data(raw_data, variation, input_file_name, overwrite_cache,
     if 'run_plan' not in flag:
         flag['run_plan'] = has_plan
 
+    flag['type_approval_mode'] = type_approval_mode
     flag['output_folder'] = output_folder
     flag['overwrite_cache'] = overwrite_cache
 
     if timestamp is not None:
         flag['timestamp'] = timestamp
+
+    flag = schema.validate_flags(flag)
+
+    if flag is dsp_utl.NONE:
+        return {}, pd.DataFrame([])
+
+    schema.check_data_version(flag)
 
     res = {
         'flag': flag,
@@ -430,6 +439,13 @@ def check_run_base(data):
 
 def check_run_plan(data):
     return data.get('run_plan', False)
+
+
+def _get_co2mpas_output_template_fpath():
+    import pkg_resources
+
+    fname = 'co2mpas_output_template.xlsx'
+    return pkg_resources.resource_filename(__name__, fname)
 
 
 def vehicle_processing_model():
@@ -536,7 +552,7 @@ def run_base():
 
     d.add_data(
         data_id='engineering_mode',
-        default_value=0
+        default_value=False
     )
 
     d.add_data(
@@ -549,9 +565,15 @@ def run_base():
         default_value=False
     )
 
+    d.add_data(
+        data_id='soft_validation',
+        default_value=False
+    )
+
     d.add_function(
         function=dsp_utl.add_args(schema.validate_base),
-        inputs=['run_base', 'data', 'engineering_mode', 'use_selector'],
+        inputs=['run_base', 'data', 'engineering_mode', 'soft_validation',
+                'use_selector'],
         outputs=['validated_base'],
         input_domain=check_first_arg,
         weight=10
@@ -611,11 +633,9 @@ def run_base():
         outputs=['template_file_name']
     )
 
-
     d.add_data(
         data_id='output_template',
-        default_value=osp.join(osp.dirname(osp.abspath(__file__)),
-                               'co2mpas_output_template.xlsx'),
+        default_value=_get_co2mpas_output_template_fpath(),
         initial_dist=10
     )
 
@@ -659,7 +679,7 @@ def run_plan():
 
     d.add_data(
         data_id='engineering_mode',
-        default_value=0
+        default_value=False
     )
 
     d.add_data(
@@ -667,9 +687,15 @@ def run_plan():
         default_value=False
     )
 
+    d.add_data(
+        data_id='soft_validation',
+        default_value=False
+    )
+
     d.add_function(
         function=dsp_utl.add_args(schema.validate_plan),
-        inputs=['run_plan', 'data', 'engineering_mode', 'use_selector'],
+        inputs=['run_plan', 'data', 'engineering_mode', 'soft_validation',
+                'use_selector'],
         outputs=['validated_plan'],
         input_domain=check_first_arg
     )

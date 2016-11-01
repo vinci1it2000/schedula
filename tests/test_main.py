@@ -92,9 +92,9 @@ class Main(unittest.TestCase):
     def test_run_demos(self):
         with tempfile.TemporaryDirectory() as inp, \
                 tempfile.TemporaryDirectory() as out:
-            cmd = "demo -D flag.engineering_mode=2 %s" % inp
+            cmd = "demo %s" % inp
             cmain._main(*cmd.split())
-            cmd = "batch -v -O %s %s" % (out, inp)
+            cmd = "batch -v -D flag.engineering_mode=2 -O %s %s" % (out, inp)
             cmain._main(*cmd.split())
 
 

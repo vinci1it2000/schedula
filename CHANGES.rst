@@ -4,11 +4,173 @@ CO2MPAS Changes
 .. contents::
 .. _changes:
 
-v1.4.x, file-ver: 2.2.x, Oct 2016: "Rally" release
-====================================================
 
-- Set ``python-3.5` in trove-slassifiers.
+v1.4.1, file-ver: 2.2.5, 20-October 2016: "Rally" release
+=========================================================
 
+This release contains both key model and software changes; additional
+capabilities have been added for the user, namely:
+
+- the type approval command and declaration mode;
+- predict in a single run both *High/Low NEDC* cycles from *WLTP* ones;
+- the new template file contains the minimum inputs that the user have to
+  provide to run the "declaration mode";
+- the new output template file;
+
+while several model changes improved the handling of real-measurement
+data-series.
+
+The study of this release's results are contained in these 3 reports:
+`manual <http://jrcstu.github.io/co2mpas/v1.4.x/validation_manual_cases.html>`_,
+`automatic <http://jrcstu.github.io/co2mpas/v1.4.x/validation_automatic_cases.html>`_,
+and `real <http://jrcstu.github.io/co2mpas/v1.4.x/validation_real_cases.html>`_
+cars, respectively.
+
+
+Model-changes
+-------------
+- :gh:`250`, :gh:`251`, :gh:`276`:
+  Implementation of declaration and engineering modes.
+  Add option `-D, --variation` to vary the data model from the cmd.
+  Bypass model-selector. Implement of model-selector preferences to select
+  arbitrary calibration models for each predictions.
+  Remove unneeded flags: [--out-template=<xlsx-file>], [--plot-workflow],
+  [--only-summary].[--engineering-mode=<n>]
+- :gh:`276` (:git:`ec937d0`, :git:`ad5bc81`, :git:`2472894`): First implementation of declaration mode `--soft-validation` -->
+  `--engineering-mode`. Add special plan id `run_base`. If it is false the base model is just parsed but not evaluated.
+- :gh:`251` (:git:`f5a75b2`, :git:`c52886f`): Use a separate flag to enable
+  the selector: ``use_selector`` configuration in case of declaration mode.
+- :gh:`276`: Implement the new ta cmd.
+- :git:`228`:
+  Add conf file where there are all co2mpas constant parameters.
+  Add overwrite constants from cmd.
+  Add overwrite constants to modelgraph cmd.
+
+
+Wheels model
+~~~~~~~~~~~~
+- :gh:`272` (:git:`b52bb51`, :git:`8b9ee77`): Select the tyre code with the
+  minimum difference but with `r_wheels > r_dynamic`. Update the default
+  `tyre_dynamic_rolling_coefficient`  from 0.975 to 3.05 / 3.14.
+
+
+Electrics model
+~~~~~~~~~~~~~~~
+- :gh:`259`, :gh:`268` (:git:`7855e1f`, :git:`0d647ad`, :git:`9ab380b`):
+  Add ``initial_state_of_charge`` in the input file of physical model and remove
+  the preconditioning sheet. Use the ``initial_state_of_charge`` just to
+  calibrate the model on WLTP and not to predict. The prediction is done
+  selecting ``initial_state_of_charge`` according to cycle_type:
+  + WLTP: 90,
+  + NEDC: 99.
+
+- :gh:`281`: Various improvements on the electric model:
+  + Identification of charging statuses. This correct the model calibration.
+  + Correct min and max charging SOC when a plateau (balance point) is fount.
+  + Correct `electric_loads` when \|off load\| > \|on load\|, choosing that with
+    the minimum mean absolute error.
+
+
+Vehicle model
+~~~~~~~~~~~~~
+- :git:`b6318e2`, :git:`c218b53`, :git:`991df88`:
+  Add new data node ``angle_slopes``. This allows a prediction with variable
+  slope, while before was constant value for all the simulation. The average
+  slope (``av_slope``) is calculated per each phase and it is added to the
+  output.
+- :gh:`255`: Force velocities to be >=-1 km.
+
+
+Engine model
+~~~~~~~~~~~~
+- :gh:`210` (:git:`5438d49`,:git:`7630832`): Improve identification of
+  ``idle_engine_speed_median`` and ``identify_idle_engine_speed_std``, using the
+  `DBSCAN` algorithm. Correct the identification of ``idle_engine_speed_std``
+  and set maximum limit (`0.3 * idle_engine_speed_median`).
+- :gh:`265` (:git:`8da5eb4`): Add `identify_engine_max_speed` function to get
+  the maximum engine speed from the T1 map speed vector.
+- :gh:`202` (:git:`5792ae7`): Add a function to calculate hot idling fuel
+  consumption based on co2mpas solution.
+- :gh:`283` (:git:`70bd182`): Calculation of engine mass with respect to
+  `ignition_type` and `engine_max_power`.
+
+
+Gearbox model
+~~~~~~~~~~~~~
+- :gh:`255` (:git:`32e6923`): Add warning log when gear-shift profile is
+  generated from WLTP pkg.
+- :gh:`288` (:git:`11f5ad5`): Link the `gear_box_efficiency_constants` to the
+  parameter `has_torque_converter`.
+
+
+CO2 model
+~~~~~~~~~
+- :git:`370ca2c`: Fix of a minor bug on the calibration status when cycle is
+  purely cold.
+- :gh:`205`, :gh:`207`: Calibrate `co2_params` using co2 emission identified in
+  the third step.
+- :gh:`285`: Implement the cylinder deactivation strategy.
+- :gh:`287`: Implement the variable valve activation strategy.
+- :gh:`259` (:git:`119fa28`): Implement ki factor correction for vehicle with
+  periodically regenerating systems. Now the model predict the declared CO2
+  value.
+- :gh:`271` (:git:`0972723`): Add a check for idle fuel consumption different
+  than 0 in the input.
+
+
+Cycle model
+~~~~~~~~~~~
+- :git:`444087b`: Add new data node ``max_time``. This allows to replicate the
+  theoretical velocity profile when `max_time > theoretical time`.
+- :git:`279` (:git:`8880d9d`,:git:`93b78db`): Add input vector variable
+  `bag_phases` to extract the integration times for bags phases. Move
+  `select_phases_integration_times` from `co2_emissions` to `cycle`.
+
+
+Clutch model
+~~~~~~~~~~~~
+- :gh:`256` (:git:`0e9bc3e`): FIX waring `No inliers found` by `ransac.py`,
+  implementing SafeRANSACRegressor.
+- :gh:`288`,`251` (:git:`93c4212`): Use `has_torque_converter` to set the torque
+  converter.
+
+IO
+~~
+- :gh:`259` (:git:`beecf14`): Update the new input template 2.2.5.
+- :gh:`278`: Implement a default output template file.
+- :gh:`249` (:git:`12384c9`): Sort outputs according to workflow distance.
+- :gh:`254` (:git:`08eac81`): FIX check for input file version.
+- :gh:`251` (:git:`893f8aa`, :git:`f5a75b2`, :git:`c52886f`): Update outputs
+  with new model-selector. Add default selector. Use a separate flag to enable
+  the selector: ``use_selector`` configuration in case of declaration mode.
+- :gh:`278` (:git:`0da7c72`, :git:`35134f1`): Add info table into summary sheet.
+  Add named reference for each value inside a table.
+
+
+Naming conventions
+~~~~~~~~~~~~~~~~~~
+- :gh:`b8ce65f`: : If cycle is not given the defaults are `nedc-h`, `nedc-l`,
+  `wltp-h` and `wltp-l`.
+
+Chore(build, site, etc)
+~~~~~~~~~~~~~~~~~~~~~~~
+- Set ``python-3.5`` only in trove-classifier.
+
+Known limitations
+-----------------
+
+1. **Model sensitivity**: The sensitivity of CO2MPAS to moderately differing input
+   time-series has been tested and found within expected ranges when
+   *a single measured WLTP cycle is given as input* on each run - if both
+   WLTP H & L cycles are given, even small changes in those paired time-series
+   may force the `model-selector <http://co2mpas.io/explanation.html#model-selection>`
+   to choose different combinations of calibrated model, thus arriving in
+   significantly different fuel-consumption figures between the runs.
+2. **Theoretical WLTP**: The theoretical WLTP cycles produced MUST NOT
+   be used for declaration - the profiles, both for Velocities and GearShifts
+   are not up-to-date with the GTR.
+   Specifically, these profiles are generated by the `python WLTP project
+   <wltp.io>`_ which it still produces *GTR phase-1a* profiles.
 
 
 v1.3.1, file-ver: 2.2.1, 18-Jul 2016: "Qube" release
@@ -216,9 +378,6 @@ Known limitations
    are not up-to-date with the GTR.
    Specifically, these profiles are generated by the `python WLTP project
    <wltp.io>`_ which it still produces *GTR phase-1a* profiles.
-
-
-
 
 
 v1.2.5, file-ver: 2.2, 25-May 2016: "Panino/Sandwich" release ("PS")
