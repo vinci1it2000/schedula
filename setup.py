@@ -182,13 +182,13 @@ setup(
         'regex',
         'schema==0.4.0',
         'tqdm',
-        'pyyaml>=3.12',
+        'PyYAML>=3.12',
         'cycler',
         'pip',
         'boltons',
         'pykalman',
         'wltp',
-        'cachetools',
+        'cachetools',  # TODO: remove
         'openpyxl>=2.4.0'
     ],
     extras_require={
