@@ -48,8 +48,9 @@ OPTIONS:
                               and Options. [default: False].
   --modelconf=<yaml-file>     Path to a model-configuration file, according to YAML:
                                 https://docs.python.org/3.5/library/logging.config.html#logging-config-dictschema
-  --overwrite-cache           Overwrite the cached file.
-  --variation, -D=<key=value> Validate only partially input-data (no schema).
+  --overwrite-cache           Overwrite the cached input file.
+  --variation, -D=<key=value> Input variations (e.g., -D fuel_type=diesel,
+                              -D prediction.nedc_h.vehicle_mass=1000).
   -l, --list                  List available models.
   --graph-depth=<levels>      An integer to Limit the levels of sub-models plotted.
   -f, --force                 Overwrite output/template/demo excel-file(s).
@@ -80,15 +81,19 @@ Miscellaneous:
 
 
 SUB-COMMANDS:
-    ta              Simulate vehicle in declaration mode for all <input-path>
+    ta              Simulate vehicle in type approval mode for all <input-path>
                     excel-files & folder. If no <input-path> given, reads all
                     excel-files from current-dir. It reads just the declaration
-                    inputs.
+                    inputs, if it finds some extra input will raise a warning
+                    and will not produce any result.
                     Read this for explanations of the param names:
                       http://co2mpas.io/explanation.html#excel-input-data-naming-conventions
-    batch           Simulate vehicle in engineering mode for all <input-path>
+    batch           Simulate vehicle in scientific mode for all <input-path>
                     excel-files & folder. If no <input-path> given, reads all
-                    excel-files from current-dir. It reads all inputs.
+                    excel-files from current-dir. By default reads just the
+                    declaration inputs and skip the extra inputs. Thus, it will
+                    produce always a result. To read all inputs the flag
+                    `engineering_mode` have to be set to True.
                     Read this for explanations of the param names:
                       http://co2mpas.io/explanation.html#excel-input-data-naming-conventions
     demo            Generate demo input-files for the `batch` cmd inside <output-folder>.
