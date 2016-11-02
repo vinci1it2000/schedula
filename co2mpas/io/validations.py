@@ -52,6 +52,19 @@ def overwrite_declaration_config_data(data):
 
 
 def hard_validation(data):
+    checks = (
+        _check_sign_currents,
+        _check_initial_temperature,
+        _check_acr,
+        _check_ki_factor
+    )
+    for check in checks:
+        c = check(data)
+        if c:
+            yield c
+
+
+def _check_sign_currents(data):
     c = ('battery_currents', 'alternator_currents')
     try:
         a = dsp_utl.selector(c, data, output_type='list')
@@ -59,10 +72,12 @@ def hard_validation(data):
         if not all(s):
             s = ' and '.join([k for k, v in zip(c, s) if not v])
             msg = "Probably '{}' have the wrong sign!".format(s)
-            yield c, msg
+            return c, msg
     except KeyError:  # `c` is not in `data`.
         pass
 
+
+def _check_initial_temperature(data):
     t = ('initial_temperature', 'engine_coolant_temperatures',
          'engine_speeds_out', 'idle_engine_speed_median')
     try:
@@ -70,10 +85,9 @@ def hard_validation(data):
         if not check_initial_temperature(*a):
             msg = "Initial engine temperature outside permissible limits " \
                   "according to GTR!"
-            yield t, msg
+            return t, msg
     except KeyError:  # `t` is not in `data`.
         pass
-
 
 def check_sign_currents(battery_currents, alternator_currents):
     """
@@ -143,3 +157,26 @@ def check_initial_temperature(
     t = np.mean(engine_coolant_temperatures[:i])
     dT = abs(initial_temperature - t)
     return dT <= con_vals.MAX_VALIDATE_DTEMP and t <= con_vals.MAX_INITIAL_TEMP
+
+
+def _check_ki_factor(data):
+    s = 'has_periodically_regenerating_systems', 'ki_factor'
+    if data.get(s[1], 1) > 1 and not data.get(s[0], False):
+        msg = "Please since `ki_factor` is > 1 set " \
+              "`has_periodically_regenerating_systems = True` or set " \
+              "`ki_factor = 1`!"
+        return s, msg
+
+
+def _check_acr(data):
+    s = ('active_cylinder_ratios', 'engine_has_cylinder_deactivation')
+    acr, has_acr = data.get(s[0], (1,)), data.get(s[1], False)
+    if has_acr and len(acr) <= 1:
+        msg = "Please since `engine_has_cylinder_deactivation` is True set " \
+              "at least two `active_cylinder_ratios` or set False!"
+        return s, msg
+    elif not has_acr and len(acr) > 1:
+        msg = "Please since there are %d `active_cylinder_ratios` set " \
+              "`engine_has_cylinder_deactivation = True` " \
+              "or remove the extra ratios!"
+        return s, msg
