@@ -450,9 +450,9 @@ class DspPlot(gviz.Digraph):
                 except KeyError:
                     pass
 
-    def _save_output(self, out, kw, node_id, ext='txt'):
+    def _save_output(self, id, out, kw, node_id, ext='txt'):
         try:
-            fpath = self._saved_outputs[id(out)]
+            fpath = self._saved_outputs[id]
         except KeyError:
             if 'URL' in kw:
                 fpath = urlparse.unquote(kw['URL'])
@@ -473,7 +473,7 @@ class DspPlot(gviz.Digraph):
 
             with open(fpath, 'w') as f:
                 f.write(self.pprint(out))
-            self._saved_outputs[id(out)] = fpath
+            self._saved_outputs[id] = fpath
 
         return urlparse.quote(self._relpath(fpath))
 
@@ -513,16 +513,16 @@ class DspPlot(gviz.Digraph):
 
         if node_id not in (START, SINK, SELF, END):
             try:
-                out = self.obj[node_id]
-                attr['output'] = out
+                attr['output'] = out = self.obj[node_id]
+                obj_id = id(out)
                 if inspect.isfunction(out):
                     # noinspection PyBroadException
                     try:
-                        attr['output'] = inspect.getsource(out)
+                        attr['output'] = out = inspect.getsource(out)
                     except:
                         pass
 
-                kw['URL'] = self._save_output(attr['output'], kw, node_id)
+                kw['URL'] = self._save_output(obj_id, out, kw, node_id)
             except (KeyError, TypeError):
                 pass
 
@@ -572,6 +572,7 @@ class DspPlot(gviz.Digraph):
             pass
         try:
             func = parent_func(attr['function'])
+            obj_id = id(func)
             dfl_styles = (type(func).__name__.lower(), 'function')
             kw = self._get_style(node_id, dfl_styles, log=nstyle)
             from .. import Dispatcher
@@ -586,8 +587,8 @@ class DspPlot(gviz.Digraph):
             elif inspect.isfunction(func):
                 # noinspection PyBroadException
                 try:
-                    attr['function'] = inspect.getsource(func)
-                    kw['URL'] = self._save_output(attr['function'], kw, node_id)
+                    out = attr['function'] = inspect.getsource(func)
+                    kw['URL'] = self._save_output(obj_id, out, kw, node_id)
                 except:
                     pass
 
