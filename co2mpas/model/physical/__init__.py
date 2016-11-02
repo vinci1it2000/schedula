@@ -637,6 +637,7 @@ def physical():
             'has_periodically_regenerating_systems':
                 'has_periodically_regenerating_systems',
             'ki_factor': 'ki_factor',
+            'has_exhausted_gas_recirculation': 'has_exhausted_gas_recirculation'
         },
         outputs={
             'engine_mass': 'engine_mass',
@@ -713,6 +714,9 @@ def physical():
             'active_lean_burns': 'active_lean_burns',
             'ki_factor': 'ki_factor',
             'declared_co2_emission_value': 'declared_co2_emission_value',
+            'active_exhausted_gas_recirculations':
+                'active_exhausted_gas_recirculations',
+            'has_exhausted_gas_recirculation': 'has_exhausted_gas_recirculation'
         },
         inp_weight={'initial_temperature': 5}
     )

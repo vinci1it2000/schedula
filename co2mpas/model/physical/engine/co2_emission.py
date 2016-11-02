@@ -194,19 +194,23 @@ class IdleFuelConsumptionModel(object):
             ac = params.get('acr', self.fmep_model.base_acr)
             avv = params.get('avv', 0)
             lb = params.get('lb', 0)
+            egr = params.get('egr', 0)
             fc = self.fc
         else:
-            fc, _, ac, avv, lb = self.fmep_model(params, self.n_s, 0)
+            fc, _, ac, avv, lb, egr = self.fmep_model(params, self.n_s, 0)
 
             if not (ac_phases is None or ac_phases.all()):
                 p = params.copy()
                 p['acr'] = self.fmep_model.base_acr
-                _fc, _, _ac = self.fmep_model(p, self.n_s, 0)
+                _fc, _, _ac, _avv, _lb, _egr  = self.fmep_model(p, self.n_s, 0)
                 fc = np.where(ac_phases, fc, _fc)
                 ac = np.where(ac_phases, ac, _ac)
+                avv = np.where(ac_phases, avv, _avv)
+                lb = np.where(ac_phases, lb, _lb)
+                egr = np.where(ac_phases, egr, _egr)
 
             fc *= self.c  # [g/sec]
-        return fc, ac, avv, lb
+        return fc, ac, avv, lb, egr
 
 
 def define_idle_fuel_consumption_model(
@@ -284,7 +288,12 @@ class FMEP(object):
                  has_variable_valve_actuation=False,
                  has_lean_burn=False,
                  lb_max_mean_piston_speeds=12.0,
-                 lb_full_bmep_curve_percentage=0.4):
+                 lb_full_bmep_curve_percentage=0.4,
+                 has_exhausted_gas_recirculation=False,
+                 egr_max_mean_piston_speeds=12.0,
+                 egr_full_bmep_curve_percentage=0.7,
+                 engine_type=None):
+
         if active_cylinder_ratios:
             self.base_acr = max(active_cylinder_ratios)
         else:
@@ -304,6 +313,10 @@ class FMEP(object):
         self.lb_fbc_percentage = lb_full_bmep_curve_percentage
         self.lb_n_temp_min = 0.5
 
+        self.has_exhausted_gas_recirculation = has_exhausted_gas_recirculation
+        self.egr_max_mean_piston_speeds = float(egr_max_mean_piston_speeds)
+        self.egr_fbc_percentage = egr_full_bmep_curve_percentage
+        self.engine_type = engine_type
 
     def vva(self, params, n_powers, a=None):
         a = a or {}
@@ -318,6 +331,16 @@ class FMEP(object):
             b &= n_speeds < self.lb_max_mean_piston_speeds
             b &= n_powers <= (self.fbc(n_speeds) * self.lb_fbc_percentage)
             a['lb'] = ((0, True), (1, b))
+        return a
+
+    def egr(self, params, n_speeds, n_powers, a=None):
+        a = a or {}
+        if self.has_exhausted_gas_recirculation and 'egr' not in params:
+            b = n_speeds < self.egr_max_mean_piston_speeds
+            b &= n_powers <= (self.fbc(n_speeds) * self.egr_fbc_percentage)
+            egr = 1 if 'compression' != self.engine_type else 2
+            a['lb'] = ((0, True), (egr, b))
+
         return a
 
     def acr(self, params, n_speeds, n_powers, n_temp, a=None):
@@ -336,6 +359,7 @@ class FMEP(object):
         a = self.acr(params, n_speeds, n_powers, n_temp)
         a = self.lb(params, n_speeds, n_powers, n_temp, a=a)
         a = self.vva(params, n_powers, a=a)
+        a = self.egr(params, n_speeds, n_powers, a=a)
 
         keys, c = zip(*sorted(a.items()))
         p = params.copy()
@@ -390,20 +414,28 @@ class FMEP(object):
         acr = s.get('acr', params.get('acr', self.base_acr))
         vva = s.get('vva', params.get('vva', 0))
         lb = s.get('lb', params.get('lb', 0))
-        return s['fmep'], s['v'], acr, vva, lb
+        ecr = s.get('ecr', params.get('ecr', 0))
+        return s['fmep'], s['v'], acr, vva, lb, ecr
 
 
 def define_fmep_model(
-        full_bmep_curve, active_cylinder_ratios, has_cylinder_deactivation,
-        max_mean_piston_speeds_cylinder_deactivation,
-        has_variable_valve_actuation, has_lean_burn,
-        max_mean_piston_speeds_lean_burn):
+    full_bmep_curve, engine_max_speed, engine_stroke, active_cylinder_ratios,
+    has_cylinder_deactivation, has_variable_valve_actuation, has_lean_burn,
+    has_exhausted_gas_recirculation, engine_type):
     """
     Defines the vehicle FMEP model.
 
     :param full_bmep_curve:
         Vehicle full bmep curve.
     :type full_bmep_curve: scipy.interpolate.InterpolatedUnivariateSpline
+
+    :param engine_max_speed:
+        Maximum allowed engine speed [RPM].
+    :type engine_max_speed: float
+
+    :param engine_stroke:
+        Engine stroke [mm].
+    :type engine_stroke: float
 
     :param active_cylinder_ratios:
         Possible active cylinder ratios [-].
@@ -413,10 +445,6 @@ def define_fmep_model(
         Does the engine have cylinder deactivation technology?
     :type has_cylinder_deactivation: bool
 
-    :param max_mean_piston_speeds_cylinder_deactivation:
-        Maximum mean piston speed for cylinder deactivation strategy [m/sec].
-    :type max_mean_piston_speeds_cylinder_deactivation: float
-
     :param has_variable_valve_actuation:
         Does the engine feature variable valve actuation? [-].
     :type has_variable_valve_actuation: bool
@@ -425,25 +453,46 @@ def define_fmep_model(
         Does the engine have lean burn technology?
     :type has_lean_burn: bool
 
-    :param max_mean_piston_speeds_lean_burn:
-        Maximum mean piston speed for lean burn strategy [m/sec].
-    :type max_mean_piston_speeds_lean_burn: float
+    :param has_exhausted_gas_recirculation:
+        Does the engine have exhaust gas recirculation technology?
+    :type has_exhausted_gas_recirculation: bool
+
+    :param engine_type:
+        Engine type (positive turbo, positive natural aspiration, compression).
+    :type engine_type: str
 
     :return:
         Vehicle FMEP model.
     :rtype: FMEP
     """
+
     dfl = defaults.dfl.functions.define_fmep_model
     acr_fbcp = dfl.acr_full_bmep_curve_percentage
     lb_fbcp = dfl.lb_full_bmep_curve_percentage
+    egr_fbcp = dfl.egr_full_bmep_curve_percentage
+
+    acr_mps = dfl.acr_max_mean_piston_speeds_percentage * engine_max_speed
+    lb_mps = dfl.lb_max_mean_piston_speeds_percentage * engine_max_speed
+    egr_mps = dfl.egr_max_mean_piston_speeds_percentage * engine_max_speed
+
+
+    from . import calculate_mean_piston_speeds
+    bmep = calculate_mean_piston_speeds
+
     model = FMEP(
-        full_bmep_curve, active_cylinder_ratios, has_cylinder_deactivation,
+        full_bmep_curve,
+        active_cylinder_ratios=active_cylinder_ratios,
+        has_cylinder_deactivation=has_cylinder_deactivation,
         acr_full_bmep_curve_percentage=acr_fbcp,
-        acr_max_mean_piston_speeds=max_mean_piston_speeds_cylinder_deactivation,
+        acr_max_mean_piston_speeds=bmep(acr_mps, engine_stroke),
         has_variable_valve_actuation=has_variable_valve_actuation,
         has_lean_burn=has_lean_burn,
-        lb_max_mean_piston_speeds=max_mean_piston_speeds_lean_burn,
-        lb_full_bmep_curve_percentage=lb_fbcp
+        lb_max_mean_piston_speeds=bmep(lb_mps, engine_stroke),
+        lb_full_bmep_curve_percentage=lb_fbcp,
+        has_exhausted_gas_recirculation=has_exhausted_gas_recirculation,
+        egr_max_mean_piston_speeds=bmep(egr_mps, engine_stroke),
+        egr_full_bmep_curve_percentage=egr_fbcp,
+        engine_type=engine_type
     )
 
     return model
@@ -452,7 +501,8 @@ def define_fmep_model(
 # noinspection PyUnusedLocal
 def _fuel_ABC(
         n_speeds, n_powers, n_temperatures,
-        a2=0, b2=0, a=0, b=0, c=0, t=0, l=0, l2=0, acr=1, vva=0, lb=0, **kw):
+        a2=0, b2=0, a=0, b=0, c=0, t=0, l=0, l2=0, acr=1, vva=0, lb=0, ecr=0,
+        **kw):
 
     acr2 = (acr ** 2)
 
@@ -466,6 +516,17 @@ def _fuel_ABC(
         c = 0.76 * c
         a2 = 1.25 * a2
         l2 = 2.85 * l2
+
+    if ecr:
+        b = 1.1 * b
+        a2 = 1.1 * a2
+
+        if ecr == 1:
+            a = 1.02 * a
+            c = 1.5 * c
+        else:
+            a = 1.015 * a
+            c = 1.4 * c
 
     A = a2 / acr2 + (b2 / acr2) * n_speeds
     B = a / acr + (b / acr + (c / acr) * n_speeds) * n_speeds
@@ -649,9 +710,10 @@ def calculate_co2_emissions(
         engine_powers_out, engine_coolant_temperatures, sub_values=sub_values
     )
     lhv = engine_fuel_lower_heating_value
-
+    idle_fc_model = idle_fuel_consumption_model.consumption
     fc, ac = np.zeros_like(e_powers), np.zeros_like(e_powers)
     vva, lb = np.zeros_like(e_powers), np.zeros_like(e_powers)
+    egr = np.zeros_like(e_powers)
 
     # Idle fc correction for temperature
     n = (e_speeds < idle_engine_speed[0] + min_engine_on_speed)
@@ -665,7 +727,7 @@ def calculate_co2_emissions(
         )
         _b &= ~((e_powers <= ec_p0) & (e_speeds > idle_cutoff))
         b = n & _b
-        fc[b], ac[b], vva[b], lb[b] = idle_fuel_consumption_model.consumption(p)
+        fc[b], ac[b], vva[b], lb[b], egr[b] = idle_fc_model(p)
         b = ~n & _b
     else:
         p['t'] = tau_function(p['t0'], p['t1'], e_temp)
@@ -680,24 +742,23 @@ def calculate_co2_emissions(
         )
         _b &= ~((e_powers <= ec_p0) & (e_speeds > idle_cutoff))
         b = n & _b
-        idle_fc, ac[b], vva[b], lb[b] = idle_fuel_consumption_model.consumption(
-            p, ac_phases
-        )
+        idle_fc, ac[b], vva[b], lb[b], egr[b] = idle_fc_model(p, ac_phases)
         fc[b] = idle_fc * np.power(n_temp[b], -p['t'][b])
         b = ~n & _b
         p['t'] = p['t'][b]
         n_temp = n_temp[b]
 
-    fc[b], _, ac[b], vva[b], lb[b] = fmep_model(
+    fc[b], _, ac[b], vva[b], lb[b], egr[b] = fmep_model(
         p, n_speeds[b], n_powers[b], n_temp
     )
+
     fc[b] *= e_speeds[b] * (engine_capacity / (lhv * 1200))  # [g/sec]
 
     fc[fc < 0] = 0
 
     co2 = fc * fuel_carbon_content
 
-    return np.nan_to_num(co2), ac, vva, lb
+    return np.nan_to_num(co2), ac, vva, lb, egr
 
 
 def define_co2_emissions_model(
@@ -2206,6 +2267,22 @@ def calculate_declared_co2_emission(co2_emission_value, ki_factor):
     return co2_emission_value * ki_factor
 
 
+def default_engine_has_exhausted_gas_recirculation(fuel_type):
+    """
+    Returns the default engine has exhaust gas recirculation value [-].
+
+    :param fuel_type:
+        Fuel type (diesel, gasoline, LPG, NG, ethanol, biodiesel).
+    :type fuel_type: str
+
+    :return:
+        Does the engine have exhaust gas recirculation technology?
+    :rtype: bool
+    """
+
+    return fuel_type in ('diesel', 'biodiesel')
+
+
 def co2_emission():
     """
     Defines the engine CO2 emission sub model.
@@ -2245,18 +2322,20 @@ def co2_emission():
     )
 
     d.add_function(
+        function=default_engine_has_exhausted_gas_recirculation,
+        inputs=['fuel_type'],
+        outputs=['has_exhausted_gas_recirculation']
+    )
+
+    d.add_function(
         function=define_fmep_model,
-        inputs=['full_bmep_curve', 'active_cylinder_ratios',
-                'engine_has_cylinder_deactivation',
-                'max_mean_piston_speeds_cylinder_deactivation',
-                'engine_has_variable_valve_actuation',
-                'has_lean_burn', 'max_mean_piston_speeds_lean_burn'],
+        inputs=['full_bmep_curve', 'engine_max_speed', 'engine_stroke',
+                'active_cylinder_ratios', 'engine_has_cylinder_deactivation',
+                'engine_has_variable_valve_actuation', 'has_lean_burn',
+                'has_exhausted_gas_recirculation', 'engine_type'],
         outputs=['fmep_model']
     )
 
-    d.add_data(
-        data_id='fuel_type'
-    )
     # d.add_function(
     #    function=default_engine_fuel_lower_heating_value,
     #    inputs=['fuel_type'],
@@ -2457,7 +2536,7 @@ def co2_emission():
         function=predict_co2_emissions,
         inputs=['co2_emissions_model', 'co2_params_calibrated'],
         outputs=['co2_emissions', 'active_cylinders', 'active_variable_valves',
-                 'active_lean_burns']
+                 'active_lean_burns', 'active_exhausted_gas_recirculations']
     )
 
     d.add_data(

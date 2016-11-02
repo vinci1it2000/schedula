@@ -189,23 +189,30 @@ class Functions(co2_utl.Constants):
         #: Correction for vehicles with periodically regenerating systems [-].
         ki_factor = {True: 1.05, False: 1.0}
 
-    class calculate_max_mean_piston_speeds_cylinder_deactivation(co2_utl.Constants):
-        #: Percentage of max mean piston speeds used as limit in cylinder
-        #: deactivation strategy [-].
-        percentage = 0.6
-
-    class calculate_max_mean_piston_speeds_lean_burn(co2_utl.Constants):
-        #: Percentage of max mean piston speeds used as limit in lean burn
-        #: strategy [-].
-        percentage = 0.6
-
     class define_fmep_model(co2_utl.Constants):
         #: Percentage of max full bmep curve used as limit in cylinder
         #: deactivation strategy [-].
         acr_full_bmep_curve_percentage = 0.45
+
+        #: Percentage of max mean piston speeds used as limit in cylinder
+        #: deactivation strategy [-].
+        acr_max_mean_piston_speeds_percentage = 0.6
+
         #: Percentage of max full bmep curve used as limit in lean burn
         #: strategy [-].
         lb_full_bmep_curve_percentage = 0.4
+
+        #: Percentage of max mean piston speeds used as limit in lean burn
+        #: strategy [-].
+        lb_max_mean_piston_speeds_percentage = 0.6
+
+        #: Percentage of max full bmep curve used as limit in exhausted gas
+        #: recirculation strategy [-].
+        egr_full_bmep_curve_percentage = 0.7
+
+        #: Percentage of max mean piston speeds used as limit in exhausted gas
+        #: recirculation strategy [-].
+        egr_max_mean_piston_speeds_percentage = 0.7
 
     class define_idle_model_detector(co2_utl.Constants):
         #: eps parameter of DBSCAN [RPM].

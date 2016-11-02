@@ -906,14 +906,14 @@ def default_ignition_type(engine_type):
 
 def identify_engine_max_speed(full_load_speeds):
     """
-    Identifies the maximum allowed engine speed.
+    Identifies the maximum allowed engine speed [RPM].
 
     :param full_load_speeds:
         T1 map speed vector [RPM].
     :type full_load_speeds: numpy.array
 
     :return:
-        Maximum allowed engine speed.
+        Maximum allowed engine speed [RPM].
     :rtype: float
     """
     return np.max(full_load_speeds)
@@ -960,52 +960,6 @@ def define_full_bmep_curve(
         np.interp, xp=s, fp=p, left=p[0], right=p[-1]
     )
     return func
-
-
-def calculate_max_mean_piston_speeds_cylinder_deactivation(
-        engine_max_speed, engine_stroke):
-    """
-    Calculates the maximum mean piston speed for cylinder deactivation strategy.
-
-    :param engine_max_speed:
-        Maximum engine speed [RPM].
-    :rtype engine_max_speed: float
-
-    :param engine_stroke:
-        Engine stroke [mm].
-    :type engine_stroke: float
-
-    :return:
-        Maximum mean piston speed for cylinder deactivation strategy [m/sec].
-    :rtype: float
-    """
-
-    p = defaults.dfl.functions
-    p = p.calculate_max_mean_piston_speeds_cylinder_deactivation.percentage
-    return calculate_mean_piston_speeds(engine_max_speed * p, engine_stroke)
-
-
-def calculate_max_mean_piston_speeds_lean_burn(
-        engine_max_speed, engine_stroke):
-    """
-    Calculates the maximum mean piston speed for lean burn strategy.
-
-    :param engine_max_speed:
-        Maximum engine speed [RPM].
-    :rtype engine_max_speed: float
-
-    :param engine_stroke:
-        Engine stroke [mm].
-    :type engine_stroke: float
-
-    :return:
-        Maximum mean piston speed for lean burn strategy [m/sec].
-    :rtype: float
-    """
-
-    p = defaults.dfl.functions
-    p = p.calculate_max_mean_piston_speeds_lean_burn.percentage
-    return calculate_mean_piston_speeds(engine_max_speed * p, engine_stroke)
 
 
 def engine():
@@ -1056,18 +1010,6 @@ def engine():
         inputs=['full_load_speeds', 'full_load_powers', 'min_engine_on_speed',
                 'engine_capacity', 'engine_stroke'],
         outputs=['full_bmep_curve']
-    )
-
-    d.add_function(
-        function=calculate_max_mean_piston_speeds_cylinder_deactivation,
-        inputs=['engine_max_speed', 'engine_stroke'],
-        outputs=['max_mean_piston_speeds_cylinder_deactivation']
-    )
-
-    d.add_function(
-        function=calculate_max_mean_piston_speeds_lean_burn,
-        inputs=['engine_max_speed', 'engine_stroke'],
-        outputs=['max_mean_piston_speeds_lean_burn']
     )
 
     d.add_function(
@@ -1383,8 +1325,6 @@ def engine():
         dsp_id='CO2_emission_model',
         inputs={
             'has_lean_burn': 'has_lean_burn',
-            'max_mean_piston_speeds_lean_burn':
-                'max_mean_piston_speeds_lean_burn',
             'engine_has_cylinder_deactivation':
                 'engine_has_cylinder_deactivation',
             'active_cylinder_ratios': 'active_cylinder_ratios',
@@ -1436,13 +1376,13 @@ def engine():
             'min_engine_on_speed': 'min_engine_on_speed',
             'fuel_density': 'fuel_density',
             'angle_slopes': 'angle_slopes',
-            'max_mean_piston_speeds_cylinder_deactivation':
-                'max_mean_piston_speeds_cylinder_deactivation',
             'engine_has_variable_valve_actuation':
                 'engine_has_variable_valve_actuation',
             'has_periodically_regenerating_systems':
                 'has_periodically_regenerating_systems',
-            'ki_factor': 'ki_factor'
+            'ki_factor': 'ki_factor',
+            'engine_max_speed': 'engine_max_speed',
+            'has_exhausted_gas_recirculation': 'has_exhausted_gas_recirculation'
         },
         outputs={
             'co2_emissions_model': 'co2_emissions_model',
@@ -1477,6 +1417,9 @@ def engine():
             'active_lean_burns': 'active_lean_burns',
             'ki_factor': 'ki_factor',
             'declared_co2_emission_value': 'declared_co2_emission_value',
+            'active_exhausted_gas_recirculations':
+                'active_exhausted_gas_recirculations',
+            'has_exhausted_gas_recirculation': 'has_exhausted_gas_recirculation'
         },
         inp_weight={'co2_params': defaults.dfl.EPS}
     )
