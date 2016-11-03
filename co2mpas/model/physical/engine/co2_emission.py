@@ -197,12 +197,12 @@ class IdleFuelConsumptionModel(object):
             egr = params.get('egr', 0)
             fc = self.fc
         else:
-            fc, _, ac, avv, lb, egr = self.fmep_model(params, self.n_s, 0)
+            fc, _, ac, avv, lb, egr = self.fmep_model(params, self.n_s, 0, 1)
 
-            if not (ac_phases is None or ac_phases.all()):
+            if not (ac_phases is None or ac_phases.all() or 'acr' in params):
                 p = params.copy()
                 p['acr'] = self.fmep_model.base_acr
-                _fc, _, _ac, _avv, _lb, _egr  = self.fmep_model(p, self.n_s, 0)
+                _fc, _, _ac, _avv, _lb, _egr = self.fmep_model(p, self.n_s, 0, 1)
                 fc = np.where(ac_phases, fc, _fc)
                 ac = np.where(ac_phases, ac, _ac)
                 avv = np.where(ac_phases, avv, _avv)
@@ -742,7 +742,7 @@ def calculate_co2_emissions(
         )
         _b &= ~((e_powers <= ec_p0) & (e_speeds > idle_cutoff))
         b = n & _b
-        idle_fc, ac[b], vva[b], lb[b], egr[b] = idle_fc_model(p, ac_phases)
+        idle_fc, ac[b], vva[b], lb[b], egr[b] = idle_fc_model(p, ac_phases[b])
         fc[b] = idle_fc * np.power(n_temp[b], -p['t'][b])
         b = ~n & _b
         p['t'] = p['t'][b]
