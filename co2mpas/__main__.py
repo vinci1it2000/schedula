@@ -30,6 +30,7 @@ USAGE:
   co2mpas modelgraph  [-v | --logconf=<conf-file>] [-O=<output-folder>]
                       [--modelconf=<yaml-file>]
                       (--list | [--graph-depth=<levels>] [<models> ...])
+  co2mpas modelconfig [-f] [-O=<output-folder>]
   co2mpas             [--verbose | -v]  (--version | -V)
   co2mpas             --help
 
@@ -101,6 +102,7 @@ SUB-COMMANDS:
     ipynb           Generate IPython notebooks inside <output-folder>; view them with cmd:
                       jupyter --notebook-dir=<output-folder>
     modelgraph      List or plot available models. If no model(s) specified, all assumed.
+    modelconfig     Save a copy of all model defaults in yaml format.
 
 
 EXAMPLES::
@@ -163,7 +165,8 @@ def init_logging(verbose, frmt=None, logconf_file=None):
             logging.config.fileConfig(logconf_file)
     else:
         if verbose is False:
-            level = logging.WARNING
+            #level = logging.WARNING
+            level = logging.INFO
         elif verbose:
             level = logging.DEBUG
         else:  # Verbose: None
@@ -491,6 +494,26 @@ def _run_batch(opts, **kwargs):
     process_folder_files(input_paths, output_folder, **kw)
 
 
+def _cmd_modelconfig(opts):
+    output_folder = opts['-O']
+    if not osp.isdir(output_folder):
+        if opts['--force']:
+            from graphviz.tools import mkdirs
+            if not ''.endswith('/'):
+                output_folder = '%s/' % output_folder
+            mkdirs(output_folder)
+        else:
+            raise CmdException("Specify a folder for "
+                               "the '-O %s' option!" % output_folder)
+    from co2mpas.conf import defaults
+
+    import datetime
+    fname = datetime.datetime.now().strftime('%Y%m%d_%H%M%S-conf.yaml')
+    fname = osp.join(output_folder, fname)
+    defaults.dump(fname)
+    log.info('Default model config written into yaml-file(%s)...', fname)
+
+
 def _main(*args):
     """Does not ``sys.exit()`` like :func:`main()` but throws any exception."""
 
@@ -514,6 +537,8 @@ def _main(*args):
             _cmd_ipynb(opts)
         elif opts['modelgraph']:
             _cmd_modelgraph(opts)
+        elif opts['modelconfig']:
+            _cmd_modelconfig(opts)
         elif opts['ta']:
             _run_batch(opts, type_approval_mode=True, overwrite_cache=True)
         else:
