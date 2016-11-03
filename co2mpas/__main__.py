@@ -17,21 +17,22 @@ Use the `batch` sub-command to simulate a vehicle contained in an excel-file.
 
 USAGE:
   co2mpas ta          [--gui] [-f] [-O=<output-folder>] [<input-path>]...
-  co2mpas batch       [-v | --logconf=<conf-file>] [--gui] [-f]
+  co2mpas batch       [-v | -q | --logconf=<conf-file>] [--gui] [-f]
                       [--overwrite-cache] [-O=<output-folder>]
                       [--modelconf=<yaml-file>]
                       [-D=<key=value>]... [<input-path>]...
-  co2mpas demo        [-v | --logconf=<conf-file>] [--gui] [-f]
+  co2mpas demo        [-v | -q | --logconf=<conf-file>] [--gui] [-f]
                       [<output-folder>]
-  co2mpas template    [-v | --logconf=<conf-file>] [--gui] [-f]
+  co2mpas template    [-v | -q | --logconf=<conf-file>] [--gui] [-f]
                       [<excel-file-path> ...]
-  co2mpas ipynb       [-v | --logconf=<conf-file>] [--gui] [-f]
+  co2mpas ipynb       [-v | -q | --logconf=<conf-file>] [--gui] [-f]
                       [<output-folder>]
-  co2mpas modelgraph  [-v | --logconf=<conf-file>] [-O=<output-folder>]
+  co2mpas modelgraph  [-v | -q | --logconf=<conf-file>] [-O=<output-folder>]
                       [--modelconf=<yaml-file>]
                       (--list | [--graph-depth=<levels>] [<models> ...])
-  co2mpas modelconfig [-f] [-O=<output-folder>]
-  co2mpas             [--verbose | -v]  (--version | -V)
+  co2mpas modelconfig [-v | -q | --logconf=<conf-file>] [-f]
+                      [-O=<output-folder>]
+  co2mpas             [-v | -q | --logconf=<conf-file>] (--version | -V)
   co2mpas             --help
 
 Syntax tip:
@@ -75,6 +76,7 @@ Miscellaneous:
   -V, --version               Print version of the program, with --verbose
                               list release-date and installation details.
   -v, --verbose               Print more verbosely messages - overridden by --logconf.
+  -q, --quite                 Print less verbosely messages (warnings) - overridden by --logconf.
   --logconf=<conf-file>       Path to a logging-configuration file, according to:
                                 https://docs.python.org/3/library/logging.config.html#configuration-file-format
                               If the file-extension is '.yaml' or '.yml', it reads a dict-schema from YAML:
@@ -155,7 +157,7 @@ log = logging.getLogger(__name__)
 logging.getLogger('pandalone.xleash.io').setLevel(logging.WARNING)
 
 
-def init_logging(verbose, frmt=None, logconf_file=None):
+def init_logging(verbose, quite, frmt=None, logconf_file=None):
     if logconf_file:
         if osp.splitext(logconf_file)[1] in '.yaml' or '.yml':
             with io.open(logconf_file) as fd:
@@ -164,11 +166,10 @@ def init_logging(verbose, frmt=None, logconf_file=None):
         else:
             logging.config.fileConfig(logconf_file)
     else:
-        if verbose is False:
-            #level = logging.WARNING
-            level = logging.INFO
-        elif verbose:
+        if verbose:
             level = logging.DEBUG
+        elif quite:
+            level = logging.WARNING
         else:  # Verbose: None
             level = logging.INFO
         if not frmt:
@@ -519,8 +520,8 @@ def _main(*args):
 
     opts = docopt.docopt(__doc__, argv=args or sys.argv[1:])
 
-    verbose = opts.get('--verbose', None)
-    init_logging(verbose, logconf_file=opts.get('--logconf'))
+    verbose = opts['--verbose']
+    init_logging(verbose, opts['--quite'], logconf_file=opts.get('--logconf'))
     if opts['--version']:
         v = build_version_string(verbose)
         # noinspection PyBroadException
