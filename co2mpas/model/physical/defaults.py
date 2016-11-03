@@ -177,6 +177,14 @@ class Values(co2_utl.Constants):
 
 #: Container of internal function parameters.
 class Functions(co2_utl.Constants):
+    class calibrate_co2_params(co2_utl.Constants):
+        #: Enable third step in the co2_params calibration? [-]
+        enable_third_step = False
+
+    class identify_co2_emissions(co2_utl.Constants):
+        #: Number of perturbations to identify the co2_emissions [-].
+        n_perturbations = 2
+
     class Alternator_status_model(co2_utl.Constants):
         #: Minimum delta time to consider valid a charging state to fit charges
         #: boundaries [s].

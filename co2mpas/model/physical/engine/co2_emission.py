@@ -1091,9 +1091,22 @@ def calculate_phases_co2_emissions(cumulative_co2_emissions, phases_distances):
     return cumulative_co2_emissions / phases_distances
 
 
+def _rescale_co2_emissions(
+        co2_emissions_model, times, phases_integration_times,
+        cumulative_co2_emissions, params_initial_guess):
+    co2_emissions = co2_emissions_model(params_initial_guess)[0]
+    trapz = sci_itg.trapz
+    for cco2, p in zip(cumulative_co2_emissions, phases_integration_times):
+        i, j = np.searchsorted(times, p)
+        co2_emissions[i:j] *= cco2 / trapz(co2_emissions[i:j], times[i:j])
+    return co2_emissions
+
+
 def identify_co2_emissions(
         co2_emissions_model, params_initial_guess, times,
-        phases_integration_times, cumulative_co2_emissions):
+        phases_integration_times, cumulative_co2_emissions,
+        co2_error_function_on_phases, engine_coolant_temperatures,
+        is_cycle_hot):
     """
     Identifies instantaneous CO2 emission vector [CO2g/s].
 
@@ -1122,13 +1135,23 @@ def identify_co2_emissions(
     :rtype: numpy.array
     """
 
-    co2_emissions = co2_emissions_model(params_initial_guess)[0]
-    trapz = sci_itg.trapz
-    for cco2, p in zip(cumulative_co2_emissions, phases_integration_times):
-        i, j = np.searchsorted(times, p)
-        co2_emissions[i:j] *= cco2 / trapz(co2_emissions[i:j], times[i:j])
+    p = params_initial_guess
+    rescale = functools.partial(
+        _rescale_co2_emissions, co2_emissions_model, times,
+        phases_integration_times, cumulative_co2_emissions
+    )
+    calibrate = functools.partial(
+        calibrate_co2_params, is_cycle_hot, engine_coolant_temperatures,
+        co2_error_function_on_phases
+    )
+    error_function = define_co2_error_function_on_emissions
+    co2 = rescale(p)
+    n = defaults.dfl.functions.identify_co2_emissions.n_perturbations
+    for i in range(n):
+        p = calibrate(error_function(co2_emissions_model, co2), p)[0]
+        co2 = rescale(p)
 
-    return co2_emissions
+    return co2
 
 
 def define_co2_error_function_on_emissions(co2_emissions_model, co2_emissions):
@@ -1473,8 +1496,8 @@ def _set_attr(params, data, default=False, attr='vary'):
 
 
 def calibrate_co2_params(
-        engine_coolant_temperatures, co2_error_function_on_emissions,
-        co2_error_function_on_phases, co2_params_initial_guess, is_cycle_hot):
+        is_cycle_hot, engine_coolant_temperatures, co2_error_function_on_phases,
+        co2_error_function_on_emissions, co2_params_initial_guess):
     """
     Calibrates the CO2 emission model parameters (a2, b2, a, b, c, l, l2, t, trg
     ).
@@ -1542,9 +1565,12 @@ def calibrate_co2_params(
         _set_attr(p, ['t0', 't1'], default=0.0, attr='value')
         _set_attr(p, cold_p, default=False)
 
-    p = restrict_bounds(p)
+    if defaults.dfl.functions.calibrate_co2_params.enable_third_step:
+        p = restrict_bounds(p)
+        p, s = calibrate_model_params(co2_error_function_on_emissions, p)
+    else:
+        s = True
 
-    p, s = calibrate_model_params(co2_error_function_on_emissions, p)
     success.append((s, copy.deepcopy(p)))
     _set_attr(p, vary)
 
@@ -2492,7 +2518,9 @@ def co2_emission():
         function=identify_co2_emissions,
         inputs=['co2_emissions_model', 'co2_params_initial_guess', 'times',
                 'extended_phases_integration_times',
-                'extended_cumulative_co2_emissions'],
+                'extended_cumulative_co2_emissions',
+                'co2_error_function_on_phases', 'engine_coolant_temperatures',
+                'is_cycle_hot'],
         outputs=['identified_co2_emissions'],
         weight=5
     )
@@ -2518,10 +2546,10 @@ def co2_emission():
 
     d.add_function(
         function=calibrate_co2_params,
-        inputs=['engine_coolant_temperatures',
+        inputs=['is_cycle_hot', 'engine_coolant_temperatures',
+                'co2_error_function_on_phases',
                 'co2_error_function_on_emissions',
-                'co2_error_function_on_phases', 'co2_params_initial_guess',
-                'is_cycle_hot'],
+                'co2_params_initial_guess'],
         outputs=['co2_params_calibrated', 'calibration_status']
     )
 
