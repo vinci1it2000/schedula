@@ -163,7 +163,7 @@ class ThermalModel(object):
             'loss': 'huber',
             'alpha': 0.99
         }
-        model = co2_utl.SafeRANSACRegressor(
+        model = co2_utl._SafeRANSACRegressor(
             base_estimator=self.base_model(**opt),
             random_state=0,
             min_samples=0.85,

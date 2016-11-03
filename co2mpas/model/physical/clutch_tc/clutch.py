@@ -12,7 +12,6 @@ It contains functions that model the basic mechanics of the clutch.
 import scipy.optimize as sci_opt
 import sklearn.linear_model as sk_lim
 import co2mpas.utils as co2_utl
-import sklearn.metrics as sk_met
 import functools
 import co2mpas.dispatcher.utils as dsp_utl
 import co2mpas.dispatcher as dsp
@@ -141,7 +140,7 @@ def identify_clutch_window(
     if not gear_shifts.any():
         return 0.0, 0.0
 
-    model = co2_utl.SafeRANSACRegressor(
+    model = co2_utl._SafeRANSACRegressor(
         base_estimator=sk_lim.LinearRegression(fit_intercept=False),
         random_state=0
     )
@@ -169,7 +168,7 @@ def identify_clutch_window(
     return tuple(sci_opt.brute(_error, ((0, -dt), (0, dt)), Ns=Ns, finish=None))
 
 
-class Clutch(object):
+class ClutchModel(object):
     def __init__(self):
         self.predict = self._no_clutch
 
@@ -222,7 +221,7 @@ class Clutch(object):
         if delta_speeds.any():
             base_estimator = sk_lim.LinearRegression(fit_intercept=False)
             try:
-                model = co2_utl.SafeRANSACRegressor(
+                model = co2_utl._SafeRANSACRegressor(
                     base_estimator=base_estimator,
                     random_state=0
                 ).fit(accelerations[:, None], delta_speeds)
@@ -258,10 +257,10 @@ def calibrate_clutch_prediction_model(
 
     :return:
         Clutch prediction model.
-    :rtype: function
+    :rtype: ClutchModel
     """
 
-    model = Clutch()
+    model = ClutchModel()
     model.fit(clutch_phases, accelerations, clutch_speeds_delta)
 
     return model

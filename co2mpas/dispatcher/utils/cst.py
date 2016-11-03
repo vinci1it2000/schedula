@@ -51,6 +51,6 @@ SELF = Token('self')
 #: Plot node, it is a node that plot the dispatcher solution.
 #: .. note:: you can pass the `kwargs` of :class:`~dispatcher.utils.drw.DspPlot`
 #: .. seealso:: :func:`~dispatcher.Dispatcher.add_data`,
-#:    :func:`~dispatcher.Dispatcher.add_function`,
-#:    :func:`~dispatcher.Dispatcher.add_dispatcher`
+#: :func:`~dispatcher.Dispatcher.add_function`,
+#: :func:`~dispatcher.Dispatcher.add_dispatcher`
 PLOT = Token('plot')

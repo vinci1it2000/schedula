@@ -746,6 +746,7 @@ class SubDispatch(object):
         :param draw_outputs:
             It modifies the defaults data node and edge attributes to view.
             If `draw_outputs` is:
+
                 - 1: node attribute 'output' is drawn.
                 - 2: edge attribute 'value' is drawn.
                 - 3: node 'output' and edge 'value' attributes are drawn.
@@ -816,16 +817,20 @@ class SubDispatch(object):
 
         Example:
 
-        .. dispatcher:: dsp
-           :opt: graph_attr={'ratio': '1'}
+        .. dispatcher:: sub_dsp
+           :opt: graph_attr={'ratio': '1'}, depth=1
            :code:
+
             >>> from co2mpas.dispatcher import Dispatcher
-            >>> dsp = Dispatcher(name='Dispatcher')
+            >>> dsp = Dispatcher()
+            ...
             >>> def fun(a):
             ...     return a + 1, a - 1
+            ...
             >>> dsp.add_function('fun', fun, ['a'], ['b', 'c'])
             'fun'
-            >>> dsp.plot(view=False, graph_attr={'ratio': '1'})
+            >>> sub_dsp = SubDispatch(dsp, ['a', 'b', 'c'], output_type='dict')
+            >>> sub_dsp.plot(view=False, graph_attr={'ratio': '1'})
             <co2mpas.dispatcher.utils.drw.DspPlot object at 0x...>
         """
 
@@ -1178,7 +1183,7 @@ class DFun(object):
     """
      A 3-tuple ``(out, fun, **kwds)``, used to prepare a list of calls to :meth:`Dispatcher.add_function()`.
 
-     The workhorse is the :meth:`addme()` which delegates to :meth:`Dispatcher.add_function():
+     The workhorse is the :meth:`addme()` which delegates to :meth:`Dispatcher.add_function()`:
 
        - ``out``: a scalar string or a string-list that, sent as `output` arg,
        - ``fun``: a callable, sent as `function` args,

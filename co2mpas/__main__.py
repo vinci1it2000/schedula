@@ -49,8 +49,8 @@ OPTIONS:
   --modelconf=<yaml-file>     Path to a model-configuration file, according to YAML:
                                 https://docs.python.org/3.5/library/logging.config.html#logging-config-dictschema
   --overwrite-cache           Overwrite the cached input file.
-  --variation, -D=<key=value> Input variations (e.g., -D fuel_type=diesel,
-                              -D prediction.nedc_h.vehicle_mass=1000).
+  --variation, -D=<key=value> Input variations (e.g., `-D fuel_type=diesel`,
+                              `-D prediction.nedc_h.vehicle_mass=1000`).
   -l, --list                  List available models.
   --graph-depth=<levels>      An integer to Limit the levels of sub-models plotted.
   -f, --force                 Overwrite output/template/demo excel-file(s).

@@ -23,7 +23,7 @@ from . import validations
 from . import excel
 import cachetools
 from co2mpas.model.physical.gear_box.at_gear import CMV, MVL, GSPV
-from co2mpas.model.physical.clutch_tc.clutch import Clutch
+from co2mpas.model.physical.clutch_tc.clutch import ClutchModel
 from co2mpas.model.physical.clutch_tc.torque_converter import TorqueConverter
 from co2mpas.model.physical.engine.start_stop import StartStopModel
 from co2mpas.model.physical.engine.thermal import ThermalModel

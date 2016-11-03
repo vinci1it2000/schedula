@@ -1224,6 +1224,7 @@ class Solution(OrderedDict):
         :param draw_outputs:
             It modifies the defaults data node and edge attributes to view.
             If `draw_outputs` is:
+
                 - 1: node attribute 'output' is drawn.
                 - 2: edge attribute 'value' is drawn.
                 - 3: node 'output' and edge 'value' attributes are drawn.

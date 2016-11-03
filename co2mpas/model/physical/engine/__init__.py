@@ -205,10 +205,10 @@ def identify_on_idle(
     return on_idle
 
 
-class IdleDetector(DBSCAN):
+class _IdleDetector(DBSCAN):
     def __init__(self, eps=0.5, min_samples=5, metric='euclidean',
                  algorithm='auto', leaf_size=30, p=None):
-        super(IdleDetector, self).__init__(
+        super(_IdleDetector, self).__init__(
             eps=eps, min_samples=min_samples, metric=metric,
             algorithm=algorithm, leaf_size=leaf_size, p=p
         )
@@ -216,7 +216,7 @@ class IdleDetector(DBSCAN):
         self.min, self.max = None, None
 
     def fit(self, X, y=None, sample_weight=None):
-        super(IdleDetector, self).fit(X, y=y, sample_weight=sample_weight)
+        super(_IdleDetector, self).fit(X, y=y, sample_weight=sample_weight)
 
         c, l = self.components_, self.labels_[self.core_sample_indices_]
         self.cluster_centers_ = np.array(
@@ -262,7 +262,7 @@ def define_idle_model_detector(
 
     x = engine_speeds_out[b, None]
     eps = defaults.dfl.functions.define_idle_model_detector.EPS
-    model = IdleDetector(eps=eps)
+    model = _IdleDetector(eps=eps)
     model.fit(x)
 
     return model
@@ -274,7 +274,7 @@ def identify_idle_engine_speed_median(idle_model_detector):
 
     :param idle_model_detector:
         Idle engine speed model detector.
-    :type idle_model_detector: IdleDetector
+    :type idle_model_detector: _IdleDetector
 
     :return:
         Idle engine speed [RPM].
@@ -292,7 +292,7 @@ def identify_idle_engine_speed_std(
 
     :param idle_model_detector:
         Idle engine speed model detector.
-    :type idle_model_detector: IdleDetector
+    :type idle_model_detector: _IdleDetector
 
     :param engine_speeds_out:
         Engine speed vector [RPM].
