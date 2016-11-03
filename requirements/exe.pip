@@ -17,7 +17,7 @@ graphviz
 docopt
 six
 easygui
-pandalone>=0.1.11
+pandalone>=0.2.0
 xlsxwriter
 regex
 schema==0.4.0

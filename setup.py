@@ -178,7 +178,7 @@ setup(
         'six',
         'easygui!=0.98',
         'mpld3',
-        'pandalone>=0.1.11', ## For datasync pascha-fixes.
+        'pandalone>=0.2.0', ## For datasync pascha-fixes and openpyxl version.
         'regex',
         'schema==0.4.0',
         'tqdm',
