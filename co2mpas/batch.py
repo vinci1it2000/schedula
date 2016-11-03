@@ -286,7 +286,7 @@ def _save_summary(fpath, start_time, summary):
 
         writer = pd.ExcelWriter(fpath, engine='xlsxwriter')
 
-        _df2excel(writer, 'summary', df)
+        _df2excel(writer, 'summary', df, named_ranges=())
 
         _df2excel(writer, 'proc_info', _co2mpas_info2df(start_time))
 
