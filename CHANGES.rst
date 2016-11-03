@@ -65,6 +65,7 @@ Electrics model
   + NEDC: 99.
 
 - :gh:`281`: Various improvements on the electric model:
+
   + Identification of charging statuses. This correct the model calibration.
   + Correct min and max charging SOC when a plateau (balance point) is fount.
   + Correct `electric_loads` when \|off load\| > \|on load\|, choosing that with
@@ -218,6 +219,7 @@ Thermal model
   identification. This is needed to fix some instabilities of the model, when
   the data provided has not a conventional behaviour. The changes applied to the
   model are the followings:
+
   1. Filter outliers in thermal model calibration.
   2. Select major features thermal model calibration.
   3. Use ``final_drive_powers_in`` as input of the thermal model instead the
@@ -356,10 +358,10 @@ Output
 
 ALLINONE
 --------
-- Upgraded WinPython from ``3.4.4.1`` -->``3.5.2``
+- Upgraded WinPython from ``3.4.1`` --> ``3.5.2``.
 - Include VS-redistributable & GPG4Win installable archives.
 - Add *node.js* and have *npm* & *bower* installed, so that
-  the *declarativewidgets* extension for *jupyter notebook * works ok.
+  the *declarativewidgets* extension for *jupyter notebook* works ok.
   (not used yet by any of the ipython files in co2mpas).
 
 

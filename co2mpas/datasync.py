@@ -13,6 +13,7 @@ Usage:
                     [--interp <method>] [--no-clone] [--prefix-cols]
                     [-O <output>] <x-label> <y-label> <ref-table>
                     [<sync-table> ...]
+
   datasync          [--verbose | -v]  (--version | -V)
   datasync          (--interp-methods | -l)
   datasync          --help
@@ -39,7 +40,9 @@ Options:
                          If hash(`#`) symbol missing, assumed as sheet-name.
                          If none given, all non-empty sheets of <ref-table> are
                          synced against the 1st one.
-  -O <output>            Output folder or file path to write the results:
+  -O=<output>            Output folder or file path to write the results
+                         [default: .]:
+
                          - Non-existent path: taken as the new file-path; fails
                            if intermediate folders do not exist, unless --force.
                          - Existent file: file-path to overwrite if --force,
@@ -47,7 +50,7 @@ Options:
                          - Existent folder: writes a new file
                            `<ref-file>.sync<.ext>` in that folder; --force
                            required if that file exists.
-                         [default: .].
+
   -f, --force            Overwrite excel-file(s) and create any missing
                          intermediate folders.
   --prefix-cols          Prefix all synced column names with their source
@@ -55,7 +58,7 @@ Options:
                          prefixed.
   --no-clone             Do not clone excel-sheets contained in <ref-table>
                          workbook into output.
-  --interp <method>      Interpolation method used in the resampling
+  --interp=<method>      Interpolation method used in the resampling
                          [default: linear]: 'linear', 'nearest', 'zero',
                          'slinear', 'quadratic', 'cubic', 'barycentric',
                          'polynomial', 'spline' is passed to
@@ -68,11 +71,12 @@ Options:
                          'integral' is respect the signal integral.
   -l, --interp-methods   List of all interpolation methods that can be used in
                          the resampling.
-  --cycle <cycle>        If set (e.g., --cycle=nedc.manual), the <ref-table> is
+  --cycle=<cycle>        If set (e.g., --cycle=nedc.manual), the <ref-table> is
                          populated with the theoretical velocity profile.
                          Options: 'nedc.manual', 'nedc.automatic',
                          'wltp.class1', 'wltp.class2', 'wltp.class3a', and
                          'wltp.class3b'.
+
   <excel-file-path>      Output file.
 
 Miscellaneous:
@@ -485,23 +489,24 @@ def do_datasync(x_label, y_label, ref_xlref, *sync_xlrefs,
     :param str ref_xlref:
             The `xl-ref` capturing a table from a workbook-sheet to use as *reference*.
             The table must contain `x_label`, `y_label` column labels.
-    :param sync_xlrefs:
+    :param [str] sync_xlrefs:
             A list of `xl-ref` capturing tables from workbook-sheets,
             to be *synced* in relation to *reference*.
             All tables must contain `x_label`, `y_label` column labels.
             Each xlref may omit file or sheet-name parts; in that case,
             those from the previous xlref(s) are reused.
-    :type ref_xlref: [str]
     :param bool prefix_cols:
             Prefix all synced column names with their source sheet-names.
             If not true, only clashing column-names are prefixed.
     :param str out_path:
             Output folder or file path to write synchronized results:
+
             - Non-existent path: taken as the new file-path; fails
               if intermediate folders do not exist, unless --force.
             - Existent file: fails, unless --force.
             - Existent folder: writes a new file `<ref-file>.sync<.ext>`
               in that folder; --force required if that file exists.
+
             If not true, use folder of the <ref-table>.
     :param bool force:
             When true, overwrites excel-file(s) and/or create missing folders.
