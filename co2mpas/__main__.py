@@ -51,7 +51,7 @@ OPTIONS:
   --modelconf=<yaml-file>     Path to a model-configuration file, according to YAML:
                                 https://docs.python.org/3.5/library/logging.config.html#logging-config-dictschema
   --overwrite-cache           Overwrite the cached input file.
-  --variation, -D=<key=value> Input variations (e.g., `-D fuel_type=diesel`,
+  --override, -D=<key=value>  Input data overrides (e.g., `-D fuel_type=diesel`,
                               `-D prediction.nedc_h.vehicle_mass=1000`).
   -l, --list                  List available models.
   --graph-depth=<levels>      An integer to Limit the levels of sub-models plotted.
@@ -427,19 +427,19 @@ def file_finder(xlsx_fpaths, file_ext='*.xlsx'):
     return [f for f in sorted(files) if _input_file_regex.match(osp.basename(f))]
 
 
-_re_variation = re.compile(r"^\s*('.+'|[^:=']*\b)\s*[:=]\s*([^:=']*\b|'.*')\s*$")
+_re_override = re.compile(r"^\s*('.+'|[^:=']*\b)\s*[:=]\s*([^:=']*\b|'.*')\s*$")
 
 
-def parse_variation(variation):
+def parse_overrides(override):
     res = {}
-    for v in variation:
+    for v in override:
         try:
-            k, v = _re_variation.match(v).groups()
+            k, v = _re_override.match(v).groups()
             if k in res:
-                raise CmdException('Duplicated --variation key %s!' % k)
+                raise CmdException('Duplicated --override key %s!' % k)
             res[k] = v
         except AttributeError:
-            raise CmdException('Wrong --variation format %s! ' % v)
+            raise CmdException('Wrong --override format %s! ' % v)
 
     return res
 
@@ -486,7 +486,7 @@ def _run_batch(opts, **kwargs):
     _init_defaults(opts['--modelconf'])
 
     kw = {
-        'variation': parse_variation(opts['--variation']),
+        'variation': parse_overrides(opts['--override']),
         'overwrite_cache': opts['--overwrite-cache'],
     }
     kw.update(kwargs)

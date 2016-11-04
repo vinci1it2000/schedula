@@ -655,7 +655,7 @@ you have installed |co2mpas| (see :ref:`install` above) and type::
       --modelconf=<yaml-file>     Path to a model-configuration file, according to YAML:
                                     https://docs.python.org/3.5/library/logging.config.html#logging-config-dictschema
       --overwrite-cache           Overwrite the cached file.
-      --variation, -D=<key=value> Validate only partially input-data (no schema).
+      --override, -D=<key=value> Validate only partially input-data (no schema).
       -l, --list                  List available models.
       --graph-depth=<levels>      An integer to Limit the levels of sub-models plotted.
       -f, --force                 Overwrite output/template/demo excel-file(s).

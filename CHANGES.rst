@@ -31,7 +31,7 @@ Model-changes
 -------------
 - :gh:`250`, :gh:`251`, :gh:`276`:
   Implementation of declaration and engineering modes.
-  Add option `-D, --variation` to vary the data model from the cmd.
+  Add option `-D, --override` to vary the data model from the cmd.
   Bypass model-selector. Implement of model-selector preferences to select
   arbitrary calibration models for each predictions.
   Remove unneeded flags: [--out-template=<xlsx-file>], [--plot-workflow],
