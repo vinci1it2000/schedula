@@ -30,8 +30,8 @@ USAGE:
   co2mpas modelgraph  [-v | -q | --logconf=<conf-file>] [-O=<output-folder>]
                       [--modelconf=<yaml-file>]
                       (--list | [--graph-depth=<levels>] [<models> ...])
-  co2mpas modelconfig [-v | -q | --logconf=<conf-file>] [-f]
-                      [-O=<output-folder>]
+  co2mpas modelconf   [-v | -q | --logconf=<conf-file>] [-f]
+                      [--modelconf=<yaml-file>] [-O=<output-folder>]
   co2mpas             [-v | -q | --logconf=<conf-file>] (--version | -V)
   co2mpas             --help
 
@@ -104,7 +104,7 @@ SUB-COMMANDS:
     ipynb           Generate IPython notebooks inside <output-folder>; view them with cmd:
                       jupyter --notebook-dir=<output-folder>
     modelgraph      List or plot available models. If no model(s) specified, all assumed.
-    modelconfig     Save a copy of all model defaults in yaml format.
+    modelconf       Save a copy of all model defaults in yaml format.
 
 
 EXAMPLES::
@@ -445,14 +445,14 @@ def parse_variation(variation):
 
 
 def _init_defaults(modelconf):
+    from co2mpas.conf import defaults
     if modelconf:
-        from co2mpas.conf import defaults
         try:
             defaults.load(modelconf)
         except FileNotFoundError:
             msg = "--modelconf: No such file or directory: %s."
             raise CmdException(msg % modelconf)
-
+    return defaults
 
 def _run_batch(opts, **kwargs):
     input_paths = opts['<input-path>']
@@ -495,7 +495,7 @@ def _run_batch(opts, **kwargs):
     process_folder_files(input_paths, output_folder, **kw)
 
 
-def _cmd_modelconfig(opts):
+def _cmd_modelconf(opts):
     output_folder = opts['-O']
     if not osp.isdir(output_folder):
         if opts['--force']:
@@ -506,11 +506,10 @@ def _cmd_modelconfig(opts):
         else:
             raise CmdException("Specify a folder for "
                                "the '-O %s' option!" % output_folder)
-    from co2mpas.conf import defaults
-
     import datetime
     fname = datetime.datetime.now().strftime('%Y%m%d_%H%M%S-conf.yaml')
     fname = osp.join(output_folder, fname)
+    defaults = _init_defaults(opts['--modelconf'])
     defaults.dump(fname)
     log.info('Default model config written into yaml-file(%s)...', fname)
 
@@ -538,8 +537,8 @@ def _main(*args):
             _cmd_ipynb(opts)
         elif opts['modelgraph']:
             _cmd_modelgraph(opts)
-        elif opts['modelconfig']:
-            _cmd_modelconfig(opts)
+        elif opts['modelconf']:
+            _cmd_modelconf(opts)
         elif opts['ta']:
             _run_batch(opts, type_approval_mode=True, overwrite_cache=True)
         else:

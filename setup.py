@@ -182,7 +182,7 @@ setup(
         'regex',
         'schema==0.4.0',
         'tqdm',
-        'pyyaml',
+        'pyyaml>=3.12',
         'cycler',
         'pip',
         'boltons',
