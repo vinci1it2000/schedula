@@ -46,6 +46,30 @@ except AttributeError:
                   if isinstance(k, int)}
 
 
+def labelize_str(s):
+    if not s.endswith(':'):
+        s += ':'
+    return s.title()
+
+
+def tree_apply_columns(tree, columns):
+    tree['columns'] = tuple(c for c, _ in columns if not c.startswith('#'))
+    for c, col_kwds in columns:
+
+        h_col_kwds = dtz.keyfilter((lambda k: k in set('text image anchor command'.split())), col_kwds)
+        text = h_col_kwds.pop('text', c.title())
+        tree.heading(c, text=text, **h_col_kwds)
+
+        c_col_kwds = dtz.keyfilter((lambda k: k in set('anchor minwidth stretch width'.split())), col_kwds)
+        tree.column(c, **c_col_kwds)
+
+
+def get_file_infos(fpath):
+    s = os.stat(fpath)
+    mtime = datetime.datetime.fromtimestamp(s.st_mtime)  # @UndefinedVariable
+    return (s.st_size, mtime.isoformat())
+
+
 class LogPanel(tk.LabelFrame):
 
     """
@@ -178,6 +202,7 @@ class LogPanel(tk.LabelFrame):
         #
         def change_threshold():
             self.log_threshold = self.threshold_var.get()
+
         threshold_menu = tk.Menu(target, tearoff=0)
         for lno, lname in levels_map:
             threshold_menu.add_radiobutton(
@@ -298,24 +323,6 @@ class LogPanel(tk.LabelFrame):
                   traceback.format_exc())
 
 
-def tree_apply_columns(tree, columns):
-    tree['columns'] = tuple(c for c, _ in columns if not c.startswith('#'))
-    for c, col_kwds in columns:
-
-        col_kwds = dtz.keyfilter((lambda k: k in set('text image anchor command'.split())), col_kwds)
-        text = col_kwds.pop('text', c.title())
-        tree.heading(c, text=text, **col_kwds)
-
-        col_kwds = dtz.keyfilter((lambda k: k in set('anchor minwidth stretch width'.split())), col_kwds)
-        tree.column(c, **col_kwds)
-
-
-def get_file_infos(fpath):
-    s = os.stat(fpath)
-    mtime = datetime.datetime.fromtimestamp(s.st_mtime)  # @UndefinedVariable
-    return (s.st_size, mtime.isoformat())
-
-
 class _MainPanel(tk.Frame):
     def __init__(self, parent, *args, **kwargs):
         tk.Frame.__init__(self, parent, *args, **kwargs)
@@ -323,44 +330,64 @@ class _MainPanel(tk.Frame):
         slider = tk.PanedWindow(self, orient=tk.HORIZONTAL)
         slider.pack(fill=tk.BOTH, expand=1, padx=4, pady=4)
 
-        nb = ttk.Notebook(slider)
-        nb.pack(fill=tk.BOTH, expand=1)
-
-        main = tk.Frame(nb, **_sunken)
+        main = tk.Frame(slider, **_sunken)
+        main.pack(fill=tk.BOTH, expand=1)
 
         files_frame = self._make_files_frame(main)
-        files_frame.grid(column=0, row=0, sticky=(tk.N, tk.W, tk.E, tk.S))
+        files_frame.pack(fill=tk.BOTH, expand=1)
 
         buttons_frame = self._make_buttons_frame(main)
-        buttons_frame.grid(column=0, row=1, sticky=(tk.E, tk.S))
+        buttons_frame.pack(fill=tk.BOTH)
 
         main.rowconfigure(0, weight=1)
-
-        nb.add(main, text='main')
-        #prefs = self._make_prefs(nb)
-        #nb.add(prefs, text='Preferences')
 
     def _make_files_frame(self, parent):
         frame = tk.Frame(parent)
 
-        tk.Label(frame, text='Inputs:').grid(column=0, row=0, sticky=(tk.W, tk.S))
+        kwds = dict(padx=_pad, pady=2 * _pad)
+        
+        (inp_label, tree, add_files_btn, add_folder_btn) = self._make_inputs_tree(frame)
+        inp_label.grid(column=0, row=0, sticky=(tk.W, tk.S))
+        tree.grid(column=0, row=1, rowspan=2, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
+        add_files_btn.grid(column=1, row=1, sticky=(tk.N, tk.E, tk.S), **kwds)
+        add_folder_btn.grid(column=1, row=2, sticky=(tk.N, tk.E, tk.S), **kwds)
+        self.inputs_tree = tree
 
-        self.inputs_tree = tree = ttk.Treeview(frame)
-        tree.grid(column=0, row=1, rowspan=2, sticky=(tk.N, tk.W, tk.E, tk.S))
+        (out_label, out_entry, out_btn, out_var) = self._make_output_folder(frame)
+        out_label.grid(column=0, row=4, sticky=(tk.N, tk.W, tk.S))
+        out_entry.grid(column=0, row=5, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
+        out_btn.grid(column=1, row=5, sticky=(tk.N, tk.E, tk.S), **kwds)
+        self.out_folder_var = out_var
+
+        (tmpl_label, tmpl_entry, tmpl_btn, tmpl_var) = self._make_template_file(frame)
+        tmpl_label.grid(column=0, row=8, sticky=(tk.N, tk.W, tk.S))
+        tmpl_entry.grid(column=0, row=9, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
+        tmpl_btn.grid(column=1, row=9, sticky=(tk.N, tk.E, tk.S), **kwds)
+        self.tmpl_folder_var = tmpl_var
+
+        frame.rowconfigure(1, weight=1)
+        frame.rowconfigure(2, weight=1)
+        frame.columnconfigure(0, weight=1)
+
+        return frame
+
+    def _make_inputs_tree(self, frame):
+        inp_label = tk.Label(frame, text='Inputs:')
+        tree = ttk.Treeview(frame)
         columns = (
             ('#0', {
                 'text': 'Filename',
                 'anchor': tk.W,
                 'stretch': True,
-                'minwidth': 120,
-                'width': 420}),
-            ('type', {'anchor': tk.W, 'width': 32}),
-            ('size', {'anchor': tk.E, 'width': 32}),
-            ('modified', {'anchor': tk.W, 'width': 44}),
+                'minwidth': 96,
+                'width': 244}),
+            ('type', {'anchor': tk.W, 'width': 38, 'stretch': False}),
+            ('size', {'anchor': tk.E, 'width': 56, 'stretch': False}),
+            ('modified', {'anchor': tk.W, 'width': 144, 'stretch': False}),
         )
         tree_apply_columns(tree, columns)
 
-        def add_input_files():
+        def ask_input_files():
             files = tix.filedialog.askopenfilenames(
                 title='Select CO2MPAS Input file(s)',
                 initialdir=os.getcwd(),
@@ -375,22 +402,19 @@ class _MainPanel(tk.Frame):
                 except Exception as ex:
                     log.warning("Cannot add file %r due to: %s", fpath, ex)
 
-        def add_input_folder():
+        def ask_input_folder():
             folder = tix.filedialog.askdirectory(
                 title='Select CO2MPAS Input folder',
                 initialdir=os.getcwd())
             try:
                 finfos = get_file_infos(folder)
-                if finfos:
-                    tree.insert('', 'end', folder, text='%s%s' % (folder, osp.sep),
-                                values=('FOLDER', *finfos))
+                tree.insert('', 'end', folder, text='%s%s' % (folder, osp.sep),
+                            values=('FOLDER', *finfos))
             except Exception as ex:
                 log.warning("Cannot add folder %r due to: %s", folder, ex)
 
-        btn = ttk.Button(frame, text="Add File(s)...", command=add_input_files)
-        btn.grid(column=1, row=1, sticky=(tk.N, tk.E, tk.S))
-        btn = ttk.Button(frame, text="Add Folder...", command=add_input_folder)
-        btn.grid(column=1, row=2, sticky=(tk.N, tk.E, tk.S))
+        files_btn = ttk.Button(frame, text="Add File(s)...", command=ask_input_files)
+        folder_btn = ttk.Button(frame, text="Add Folder...", command=ask_input_folder)
 
         def del_input_file(ev):
             if ev.keysym == 'Delete':
@@ -399,59 +423,74 @@ class _MainPanel(tk.Frame):
 
         tree.bind("<Key>", del_input_file)
 
-        tk.Label(frame, text='Output Folder:').grid(column=0, row=4, sticky=(tk.W, tk.S))
+        return (inp_label, tree, files_btn, folder_btn)
 
-        self.output_folder = StringVar()
-        output_entry = ttk.Entry(frame, textvariable=self.output_folder)
-        output_entry.grid(column=0, row=5, sticky=(tk.N, tk.W, tk.E, tk.S))
+    def _make_output_folder(self, frame):
+        title = 'Output Folder'
+        label = tk.Label(frame, text=labelize_str(title))
 
-        def set_output_folder():
-            folder = tix.filedialog.askdirectory(title="Select CO2MPAS output folder")
-            self.output_folder.set(folder)
+        var = StringVar()
+        entry = ttk.Entry(frame, textvariable=var)
 
-        btn = ttk.Button(frame, text="...", command=set_output_folder)
-        btn.grid(column=1, row=5, sticky=(tk.N, tk.E, tk.S))
+        def ask_output_folder():
+            folder = tix.filedialog.askdirectory(title="Select %s" % title)
+            if folder:
+                var.set(folder)
 
-        frame.rowconfigure(1, weight=1)
-        frame.rowconfigure(2, weight=1)
-        frame.columnconfigure(0, weight=1)
+        btn = ttk.Button(frame, text="...", command=ask_output_folder)
 
-        return frame
+        return label, entry, btn, var
+
+    def _make_template_file(self, frame):
+        title = 'Output Template file'
+        label = tk.Label(frame, text=labelize_str(title))
+
+        var = StringVar()
+        entry = ttk.Entry(frame, textvariable=var)
+
+        def ask_template_file():
+            file = tix.filedialog.askopenfilenames(
+                title='Select %s' % title,
+                initialdir=os.getcwd(),
+                filetypes=(('Excel files', '.xlsx .xlsm'),
+                           ('All files', '*'),
+                           ))
+            if file:
+                var.set(file)
+
+        btn = ttk.Button(frame, text="...", command=ask_template_file)
+
+        return label, entry, btn, var
 
     def _make_buttons_frame(self, parent):
         frame = tk.Frame(parent)
-        btn = tk.Button(frame, text="Store...",
-                              command=lambda: log.warning('Not Implemented!'),
-                              padx=_pad, pady=_pad)
-        btn.grid(column=0, row=1, sticky=(tk.N, tk.S))
 
-        btn = tk.Checkbutton(frame, text="Flag1", fg="red",
-                              command=self._do_reset,
-                              padx=_pad, pady=_pad)
-        btn.grid(column=0, row=1, sticky=(tk.N, tk.S))
+        def make_flag(name):
+            var = tk.BooleanVar()
+            btn = tk.Checkbutton(frame, text=labelize_str(name.replace('_', ' ')), 
+                                 variable=var,
+                                 padx=_pad, pady=4 * _pad)
+            btn.pack(side=tk.LEFT, ipadx=4 * _pad)
+            
+            return name, var
+
+        flags = (
+            'engineering_mode',
+            'run_plan',
+            'soft_validation',
+            'only_summary',
+            'plot_workflow',
+        )
+        self.flag_vars = [make_flag(f) for f in flags]
+        
+        print(self.flag_vars)
 
         btn = tk.Button(frame, text="Run", fg="green",
-                            command=self._do_run,
-                            padx=_pad, pady=_pad)
-        btn.grid(column=2, row=1, sticky=(tk.N, tk.S))
+                        command=self._do_run,
+                        padx=_pad, pady=_pad)
+        btn.pack(side=tk.RIGHT, ipadx=4 * _pad, ipady=4 * _pad)
 
         return frame
-
-    def _make_prefs(self, parent):
-        prefs = tk.Frame(parent, **_raised)
-        lb = tk.Listbox(prefs, font=("Consolas", 8,))
-
-        lb.pack(side=tk.LEFT, fill=tk.X, expand=1)
-
-        return prefs
-
-    def _do_reset(self):
-        logging.error(
-            'dfdsfdsfs ds asdfaswe qw fasd sdfasdfa fweef fasd fasdf weq fwef  ytukio;lsdra b , io pu7 t54qw asd fjmh gvsad v b \nthw erf ')
-        print("Reset!")
-
-    def _do_validate(self, event):
-        print("Validate!")
 
     def _do_run(self):
         logging.info('dfdsfdsfs\n634\ntyutty')
@@ -469,19 +508,24 @@ class TkUI(object):
 
         Layout::
 
-            ############################################################
-            #.-------------(model_paned)------------------------------.#
-            #: _________________  : _________(edit_frame)____________ :#
-            #:| *---model       |:| [node_title]    _(action_frame)_ |:#
-            #:| | +--tree       |:| [node_value]   |   [run_btn]    ||:#
-            #:|   +--from       |:|     ...        |   [rest_btn]   ||:#
-            #:|     +--schema <slider>             |________________||:#
-            #:|_________________|:|__________________________________|:#
-            #'--------------------------------------------------------'#
-            # __________________(log_frame)___________________________ #
-            #|                                                        |#
-            #|________________________________________________________|#
-            ############################################################
+            #####################################################
+            #: _________(inputs)_____________                  :#
+            #:|                              |                 :#
+            #:|                              | [  Add files  ] :#
+            #:|                              |                 :#
+            #:|                              | [  Add folder ] :#
+            #:|______________________________|                 :#
+            #: ______________________________                  :#
+            #:|______________________________| [ Set Out Dir ] :#
+            #: ______________________________                  :#
+            #:|______________________________| [Set Template]  :#
+            #:                                                 :#
+            #:[flag-1] [flag-2]...                       [Run] :#
+            #'-------------------------------------------------:#
+            # __________________(log_frame)____________________ #
+            #|                                                 |#
+            #|_________________________________________________|#
+            #####################################################
         """
         if not root:
             root = tk.Tk()
