@@ -15,10 +15,7 @@ import copy
 import co2mpas.dispatcher.utils as dsp_utl
 import co2mpas.utils as co2_utl
 from . import constants
-
-DECLARATION = 0
-HARD = 1
-SOFT = 2
+import functools
 
 
 def select_declaration_data(data, diff=None):
@@ -58,7 +55,8 @@ def hard_validation(data, usage, stage, cycle, *args):
             _check_initial_temperature,
             _check_acr,
             _check_ki_factor,
-            _check_nedc_gears_mt
+            _check_prediction_gears_not_mt,
+            _check_lean_burn_tech
         )
         for check in checks:
             c = check(data, usage, stage, cycle, *args)
@@ -164,7 +162,10 @@ def check_initial_temperature(
 
 def _check_ki_factor(data, *args):
     s = 'has_periodically_regenerating_systems', 'ki_factor'
-    if data.get(s[1], 1) > 1 and not data.get(s[0], False):
+
+    from ..model.physical.defaults import dfl
+    has_prs = data.get(s[0], dfl.values.has_periodically_regenerating_systems)
+    if data.get(s[1], 1) > 1 and not has_prs:
         msg = "Please since `ki_factor` is > 1 set " \
               "`has_periodically_regenerating_systems = True` or set " \
               "`ki_factor = 1`!"
@@ -173,7 +174,11 @@ def _check_ki_factor(data, *args):
 
 def _check_acr(data, *args):
     s = ('active_cylinder_ratios', 'engine_has_cylinder_deactivation')
-    acr, has_acr = data.get(s[0], (1,)), data.get(s[1], False)
+    acr  = data.get(s[0], (1,))
+
+    from ..model.physical.defaults import dfl
+    has_acr = data.get(s[1], dfl.values.engine_has_cylinder_deactivation)
+
     if has_acr and len(acr) <= 1:
         msg = "Please since `engine_has_cylinder_deactivation` is True set " \
               "at least two `active_cylinder_ratios` or set False!"
@@ -185,9 +190,28 @@ def _check_acr(data, *args):
         return s, msg
 
 
-def _check_nedc_gears_mt(data, usage, stage, cycle):
-    gear_box_type = data.get('gear_box_type', 'manual')
-    if stage == 'prediction' and 'gears' in data and gear_box_type != 'manual':
-        msg = "`gears` cannot be provided when `gear_box_type` is %s." \
+def _check_prediction_gears_not_mt(data, usage, stage, cycle, *args):
+    s = ('gear_box_type', 'gears')
+    gear_box_type = data.get(s[0], 'manual')
+    if stage == 'prediction' and s[1] in data and gear_box_type != 'manual':
+        msg = "`gears` cannot be provided when `gear_box_type` is '%s'." \
               " Hence, remove the `gears` or set `gear_box_type` to manual!"
-        return ('gears',), msg % gear_box_type
+        return s, msg % gear_box_type
+
+
+@functools.lru_cache(None)
+def _get_engine_model(outputs):
+    from ..model.physical.engine import engine
+    return engine().shrink_dsp(outputs=outputs)
+
+
+def _check_lean_burn_tech(data, usage, stage, cycle, *args):
+    s = ('has_lean_burn', 'ignition_type')
+    it = _get_engine_model(s[1:]).dispatch(data, outputs=s[1:]).get(s[1], None)
+    from ..model.physical.defaults import dfl
+    has_lb = data.get(s[0], dfl.values.has_lean_burn)
+    if has_lb and it not in ('positive', None):
+        msg = "`has_lean_burn` cannot be enable with `ignition_type = '%s'`." \
+              "Hence, set `has_lean_burn = False` or " \
+              "set `ignition_type = 'positive'`!" % it
+        return s, msg
