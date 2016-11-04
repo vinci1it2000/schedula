@@ -9,12 +9,12 @@ r"""
 Shift and resample excel-tables; see http://co2mpas.io/usage.html#Synchronizing-time-series.
 
 Usage:
-  datasync          [(-v | --verbose) | --logconf <conf-file>] [--force | -f]
+  datasync          [-v | -q | --logconf=<conf-file>] [--force | -f]
                     [--interp <method>] [--no-clone] [--prefix-cols]
                     [-O <output>] <x-label> <y-label> <ref-table>
                     [<sync-table> ...]
 
-  datasync          [--verbose | -v]  (--version | -V)
+  datasync          [-v | -q | --logconf=<conf-file>] (--version | -V)
   datasync          (--interp-methods | -l)
   datasync          --help
   datasync template [-f] [--cycle <cycle>] [<excel-file-path> ...]
@@ -84,6 +84,7 @@ Miscellaneous:
   -V, --version          Print version of the program, with --verbose
                          list release-date and installation details.
   -v, --verbose          Print more verbosely messages - overridden by --logconf.
+  -q, --quite            Print less verbosely messages (warnings) - overridden by --logconf.
   --logconf=<conf-file>  Path to a logging-configuration file, according to:
                          See https://docs.python.org/3/library/logging.config.html#configuration-file-format
                          Uses reads a dict-schema if file ends with '.yaml' or '.yml'.
@@ -627,8 +628,8 @@ def main(*args):
 
     opts = docopt.docopt(__doc__, argv=args or sys.argv[1:])
 
-    verbose = opts.get('--verbose', False)
-    init_logging(verbose, logconf_file=opts.get('--logconf'))
+    verbose = opts['--verbose']
+    init_logging(verbose, opts['--quite'], logconf_file=opts.get('--logconf'))
     if opts['--version']:
         v = build_version_string(verbose)
         # noinspection PyBroadException
