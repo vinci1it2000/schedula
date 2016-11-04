@@ -7,7 +7,10 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 from collections import Counter, OrderedDict
 import io
+import os.path as osp
+from toolz import dicttoolz as dtz
 import logging
+import functools as fnt
 import pprint
 import sys
 from textwrap import dedent
@@ -21,6 +24,8 @@ from co2mpas.__main__ import init_logging
 from co2mpas.sampling import dice
 import pkg_resources as pkg
 import tkinter as tk
+import os
+import datetime
 
 
 log = logging.getLogger(__name__)
@@ -293,13 +298,22 @@ class LogPanel(tk.LabelFrame):
                   traceback.format_exc())
 
 
-class PythonVar(tk.StringVar):
+def tree_apply_columns(tree, columns):
+    tree['columns'] = tuple(c for c, _ in columns if not c.startswith('#'))
+    for c, col_kwds in columns:
 
-    """Value holder for python-code variables."""
+        col_kwds = dtz.keyfilter((lambda k: k in set('text image anchor command'.split())), col_kwds)
+        text = col_kwds.pop('text', c.title())
+        tree.heading(c, text=text, **col_kwds)
 
-    def get(self):
-        code = tk.StringVar.get(self)
-        return eval(code)
+        col_kwds = dtz.keyfilter((lambda k: k in set('anchor minwidth stretch width'.split())), col_kwds)
+        tree.column(c, **col_kwds)
+
+
+def get_file_infos(fpath):
+    s = os.stat(fpath)
+    mtime = datetime.datetime.fromtimestamp(s.st_mtime)  # @UndefinedVariable
+    return (s.st_size, mtime.isoformat())
 
 
 class _MainPanel(tk.Frame):
@@ -307,36 +321,124 @@ class _MainPanel(tk.Frame):
         tk.Frame.__init__(self, parent, *args, **kwargs)
 
         slider = tk.PanedWindow(self, orient=tk.HORIZONTAL)
-        slider.pack(fill=tk.BOTH, expand=1)
+        slider.pack(fill=tk.BOTH, expand=1, padx=4, pady=4)
 
         nb = ttk.Notebook(slider)
         nb.pack(fill=tk.BOTH, expand=1)
 
         main = tk.Frame(nb, **_sunken)
-        self.buttons_frame = tk.Frame(main)
-        self.buttons_frame.pack(side=tk.RIGHT, fill=tk.Y)
 
-        self.store_btn = tk.Button(self.buttons_frame, text="Store...",
-                                   command=lambda: log.warning('Not Implemented!'),
-                                   padx=_pad, pady=_pad)
-        self.store_btn.pack(side=tk.BOTTOM, fill=tk.X)
- 
-        self.reset_btn = tk.Button(self.buttons_frame, text="Reset", fg="red",
-                                   command=self._do_reset,
-                                   padx=_pad, pady=_pad)
-        self.reset_btn.pack(side=tk.BOTTOM, fill=tk.X)
- 
-        self.run_btn = tk.Button(self.buttons_frame, text="Run", fg="green",
-                                 command=self._do_run,
-                                 padx=_pad, pady=_pad)
-        self.run_btn.pack(side=tk.BOTTOM, fill=tk.X)
+        files_frame = self._make_files_frame(main)
+        files_frame.grid(column=0, row=0, sticky=(tk.N, tk.W, tk.E, tk.S))
+
+        buttons_frame = self._make_buttons_frame(main)
+        buttons_frame.grid(column=0, row=1, sticky=(tk.E, tk.S))
+
+        main.rowconfigure(0, weight=1)
 
         nb.add(main, text='main')
         #prefs = self._make_prefs(nb)
         #nb.add(prefs, text='Preferences')
 
-    def _make_prefs(self, nb):
-        prefs = tk.Frame(nb, **_raised)
+    def _make_files_frame(self, parent):
+        frame = tk.Frame(parent)
+
+        tk.Label(frame, text='Inputs:').grid(column=0, row=0, sticky=(tk.W, tk.S))
+
+        self.inputs_tree = tree = ttk.Treeview(frame)
+        tree.grid(column=0, row=1, rowspan=2, sticky=(tk.N, tk.W, tk.E, tk.S))
+        columns = (
+            ('#0', {
+                'text': 'Filename',
+                'anchor': tk.W,
+                'stretch': True,
+                'minwidth': 120,
+                'width': 420}),
+            ('type', {'anchor': tk.W, 'width': 32}),
+            ('size', {'anchor': tk.E, 'width': 32}),
+            ('modified', {'anchor': tk.W, 'width': 44}),
+        )
+        tree_apply_columns(tree, columns)
+
+        def add_input_files():
+            files = tix.filedialog.askopenfilenames(
+                title='Select CO2MPAS Input file(s)',
+                initialdir=os.getcwd(),
+                multiple=True,
+                filetypes=(('Excel files', '.xlsx .xlsm'),
+                           ('All files', '*'),
+                           ))
+            for fpath in files:
+                try:
+                    finfos = get_file_infos(fpath)
+                    tree.insert('', 'end', fpath, text=fpath, values=('FILE', *finfos))
+                except Exception as ex:
+                    log.warning("Cannot add file %r due to: %s", fpath, ex)
+
+        def add_input_folder():
+            folder = tix.filedialog.askdirectory(
+                title='Select CO2MPAS Input folder',
+                initialdir=os.getcwd())
+            try:
+                finfos = get_file_infos(folder)
+                if finfos:
+                    tree.insert('', 'end', folder, text='%s%s' % (folder, osp.sep),
+                                values=('FOLDER', *finfos))
+            except Exception as ex:
+                log.warning("Cannot add folder %r due to: %s", folder, ex)
+
+        btn = ttk.Button(frame, text="Add File(s)...", command=add_input_files)
+        btn.grid(column=1, row=1, sticky=(tk.N, tk.E, tk.S))
+        btn = ttk.Button(frame, text="Add Folder...", command=add_input_folder)
+        btn.grid(column=1, row=2, sticky=(tk.N, tk.E, tk.S))
+
+        def del_input_file(ev):
+            if ev.keysym == 'Delete':
+                for item_id in tree.selection():
+                    tree.delete(item_id)
+
+        tree.bind("<Key>", del_input_file)
+
+        tk.Label(frame, text='Output Folder:').grid(column=0, row=4, sticky=(tk.W, tk.S))
+
+        self.output_folder = StringVar()
+        output_entry = ttk.Entry(frame, textvariable=self.output_folder)
+        output_entry.grid(column=0, row=5, sticky=(tk.N, tk.W, tk.E, tk.S))
+
+        def set_output_folder():
+            folder = tix.filedialog.askdirectory(title="Select CO2MPAS output folder")
+            self.output_folder.set(folder)
+
+        btn = ttk.Button(frame, text="...", command=set_output_folder)
+        btn.grid(column=1, row=5, sticky=(tk.N, tk.E, tk.S))
+
+        frame.rowconfigure(1, weight=1)
+        frame.rowconfigure(2, weight=1)
+        frame.columnconfigure(0, weight=1)
+
+        return frame
+
+    def _make_buttons_frame(self, parent):
+        frame = tk.Frame(parent)
+        btn = tk.Button(frame, text="Store...",
+                              command=lambda: log.warning('Not Implemented!'),
+                              padx=_pad, pady=_pad)
+        btn.grid(column=0, row=1, sticky=(tk.N, tk.S))
+
+        btn = tk.Checkbutton(frame, text="Flag1", fg="red",
+                              command=self._do_reset,
+                              padx=_pad, pady=_pad)
+        btn.grid(column=0, row=1, sticky=(tk.N, tk.S))
+
+        btn = tk.Button(frame, text="Run", fg="green",
+                            command=self._do_run,
+                            padx=_pad, pady=_pad)
+        btn.grid(column=2, row=1, sticky=(tk.N, tk.S))
+
+        return frame
+
+    def _make_prefs(self, parent):
+        prefs = tk.Frame(parent, **_raised)
         lb = tk.Listbox(prefs, font=("Consolas", 8,))
 
         lb.pack(side=tk.LEFT, fill=tk.X, expand=1)
