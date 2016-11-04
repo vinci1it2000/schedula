@@ -5,13 +5,39 @@
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
-from collections import Counter, OrderedDict
+"""
+The launching GUI formCO2MPAS.
+
+Layout::
+
+    #####################################################
+    #: _________(inputs)_____________                  :#
+    #:|                              |                 :#
+    #:|                              | [  Add files  ] :#
+    #:|                              |                 :#
+    #:|                              | [  Add folder ] :#
+    #:|______________________________|                 :#
+    #: ______________________________                  :#
+    #:|______________________________| [ Set Out Dir ] :#
+    #: ______________________________                  :#
+    #:|______________________________| [Set Template]  :#
+    #:                                                 :#
+    #:[flag-1] [flag-2] [flag-3] [flag-4]              :#
+    #:_________________(extra flags)___________  [Run] :#
+    #:|________________________________________|       :#
+    #'-------------------------------------------------:#
+    # __________________(log_frame)____________________ #
+    #|                                                 |#
+    #|_________________________________________________|#
+    #####################################################
+
+"""
+from collections import Counter
 import io
 import os.path as osp
 from toolz import dicttoolz as dtz
 import logging
 import functools as fnt
-import pprint
 import sys
 from textwrap import dedent
 from tkinter import StringVar, ttk, filedialog, tix
@@ -20,8 +46,7 @@ import traceback
 from PIL import Image, ImageTk
 
 from co2mpas import (__version__, __updated__, __copyright__, __license__)
-from co2mpas.__main__ import init_logging
-from co2mpas.sampling import dice
+from co2mpas.__main__ import init_logging, _main
 import pkg_resources as pkg
 import tkinter as tk
 import os
@@ -112,7 +137,7 @@ class LogPanel(tk.LabelFrame):
                                              font="Courier 8",
                                              **_sunken
                                              )
-        _log_text.grid(row=0, column=0, sticky=tk.N + tk.S + tk.E + tk.W)
+        _log_text.grid(row=0, column=0, sticky=(tk.N, tk.S, tk.E, tk.W))
 
         # Setup scrollbars.
         #
@@ -272,7 +297,6 @@ class LogPanel(tk.LabelFrame):
         self._update_title()
 
     def save_log(self):
-        import datetime
         now = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
         fname = 'co2dice-%s.log' % now
         fname = filedialog.SaveAs(
@@ -334,10 +358,10 @@ class _MainPanel(tk.Frame):
         main.pack(fill=tk.BOTH, expand=1)
 
         files_frame = self._make_files_frame(main)
-        files_frame.pack(fill=tk.BOTH, expand=1)
+        files_frame.pack(fill=tk.X, expand=1)
 
         buttons_frame = self._make_buttons_frame(main)
-        buttons_frame.pack(fill=tk.BOTH)
+        buttons_frame.pack(fill=tk.X, expand=1)
 
         main.rowconfigure(0, weight=1)
 
@@ -380,10 +404,10 @@ class _MainPanel(tk.Frame):
                 'anchor': tk.W,
                 'stretch': True,
                 'minwidth': 96,
-                'width': 244}),
+                'width': 264}),
             ('type', {'anchor': tk.W, 'width': 38, 'stretch': False}),
             ('size', {'anchor': tk.E, 'width': 56, 'stretch': False}),
-            ('modified', {'anchor': tk.W, 'width': 144, 'stretch': False}),
+            ('modified', {'anchor': tk.W, 'width': 164, 'stretch': False}),
         )
         tree_apply_columns(tree, columns)
 
@@ -464,10 +488,12 @@ class _MainPanel(tk.Frame):
 
     def _make_buttons_frame(self, parent):
         frame = tk.Frame(parent)
+        flags_frame = tk.Frame(frame)
+        flags_frame.grid(column=0, row=0, columnspan=2, sticky=(tk.N, tk.W, tk.E, tk.S))
 
         def make_flag(name):
             var = tk.BooleanVar()
-            btn = tk.Checkbutton(frame, text=labelize_str(name.replace('_', ' ')), 
+            btn = tk.Checkbutton(flags_frame, text=labelize_str(name.replace('_', ' ')),
                                  variable=var,
                                  padx=_pad, pady=4 * _pad)
             btn.pack(side=tk.LEFT, ipadx=4 * _pad)
@@ -483,20 +509,55 @@ class _MainPanel(tk.Frame):
         )
         self.flag_vars = [make_flag(f) for f in flags]
         
-        print(self.flag_vars)
+        label = tk.Label(frame, text=labelize_str("Extra Options and Flags"))
+        label.grid(column=0, row=2, sticky=(tk.W, tk.S))
+        self.extra_opts_var = StringVar()
+        entry = ttk.Entry(frame, textvariable=self.extra_opts_var)
+        entry.grid(column=0, row=3, columnspan=2, sticky=(tk.N, tk.W, tk.E, tk.S), ipady=4 * _pad)
 
-        btn = tk.Button(frame, text="Run", fg="green",
-                        command=self._do_run,
+        btn = tk.Button(frame, text="Run Normal",
+                        command=fnt.partial(self._do_run, is_ta=False),
                         padx=_pad, pady=_pad)
-        btn.pack(side=tk.RIGHT, ipadx=4 * _pad, ipady=4 * _pad)
+        btn.grid(column=0, row=4, sticky=(tk.N, tk.W, tk.E, tk.S), ipadx=4 * _pad, ipady=4 * _pad)
 
+        btn = tk.Button(frame, text="Run TA", fg="blue",
+                        command=fnt.partial(self._do_run, is_ta=True),
+                        padx=_pad, pady=_pad)
+        btn.grid(column=1, row=4, sticky=(tk.N, tk.W, tk.E, tk.S), ipadx=4 * _pad, ipady=4 * _pad)
+
+        frame.columnconfigure(0, weight=2)
+        frame.columnconfigure(1, weight=1)
         return frame
 
-    def _do_run(self):
-        logging.info('dfdsfdsfs\n634\ntyutty')
-        logging.debug('dfdsfdsfs')
+    def _do_run(self, is_ta):
+        cmd_args = ['ta' if is_ta else 'batch']
+        
+        out_folder = self.out_folder_var.get()
+        if out_folder:
+            cmd_args += ['-O', out_folder]
+            
+        tmpl_folder = self.tmpl_folder_var.get()
+        if tmpl_folder:
+            cmd_args += ['-D', 'flag.output_template', tmpl_folder]
+            
+        for name, flg in self.flag_vars:
+            flg = flg.get()
+            if flg is not None:
+                cmd_args += ['-D', 'flag.%s=%s' % (name, str(flg).lower())]
 
-
+        inputs = self.inputs_tree.get_children()
+        if not inputs:
+            cwd = os.getcwd()
+            log.warning("No inputs specified; assuming current directory: %s", cwd)
+            cmd_args += cwd
+        else:
+            cmd_args += inputs
+            
+        logging.info('Launching CO2MPAS command:\n  %s', cmd_args)
+        
+        _main(*cmd_args)
+        
+         
 class TkUI(object):
 
     """
@@ -504,29 +565,6 @@ class TkUI(object):
     """
 
     def __init__(self, root=None):
-        """
-
-        Layout::
-
-            #####################################################
-            #: _________(inputs)_____________                  :#
-            #:|                              |                 :#
-            #:|                              | [  Add files  ] :#
-            #:|                              |                 :#
-            #:|                              | [  Add folder ] :#
-            #:|______________________________|                 :#
-            #: ______________________________                  :#
-            #:|______________________________| [ Set Out Dir ] :#
-            #: ______________________________                  :#
-            #:|______________________________| [Set Template]  :#
-            #:                                                 :#
-            #:[flag-1] [flag-2]...                       [Run] :#
-            #'-------------------------------------------------:#
-            # __________________(log_frame)____________________ #
-            #|                                                 |#
-            #|_________________________________________________|#
-            #####################################################
-        """
         if not root:
             root = tk.Tk()
         self.root = root
@@ -550,6 +588,9 @@ class TkUI(object):
 
         self.log_panel = LogPanel(master)
         master.add(self.log_panel, height=240)
+        
+        s = ttk.Sizegrip(root)
+        s.pack(side=tk.RIGHT)
 
     def _do_about(self):
         top = tk.Toplevel(self.master)
