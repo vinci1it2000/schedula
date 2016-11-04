@@ -51,20 +51,22 @@ def overwrite_declaration_config_data(data):
     return res
 
 
-def hard_validation(data):
-    checks = (
-        _check_sign_currents,
-        _check_initial_temperature,
-        _check_acr,
-        _check_ki_factor
-    )
-    for check in checks:
-        c = check(data)
-        if c:
-            yield c
+def hard_validation(data, usage, stage, cycle, *args):
+    if usage in ('input', 'target'):
+        checks = (
+            _check_sign_currents,
+            _check_initial_temperature,
+            _check_acr,
+            _check_ki_factor,
+            _check_nedc_gears_mt
+        )
+        for check in checks:
+            c = check(data, usage, stage, cycle, *args)
+            if c:
+                yield c
 
 
-def _check_sign_currents(data):
+def _check_sign_currents(data, *args):
     c = ('battery_currents', 'alternator_currents')
     try:
         a = dsp_utl.selector(c, data, output_type='list')
@@ -77,7 +79,7 @@ def _check_sign_currents(data):
         pass
 
 
-def _check_initial_temperature(data):
+def _check_initial_temperature(data, *args):
     t = ('initial_temperature', 'engine_coolant_temperatures',
          'engine_speeds_out', 'idle_engine_speed_median')
     try:
@@ -88,6 +90,7 @@ def _check_initial_temperature(data):
             return t, msg
     except KeyError:  # `t` is not in `data`.
         pass
+
 
 def check_sign_currents(battery_currents, alternator_currents):
     """
@@ -159,7 +162,7 @@ def check_initial_temperature(
     return dT <= con_vals.MAX_VALIDATE_DTEMP and t <= con_vals.MAX_INITIAL_TEMP
 
 
-def _check_ki_factor(data):
+def _check_ki_factor(data, *args):
     s = 'has_periodically_regenerating_systems', 'ki_factor'
     if data.get(s[1], 1) > 1 and not data.get(s[0], False):
         msg = "Please since `ki_factor` is > 1 set " \
@@ -168,7 +171,7 @@ def _check_ki_factor(data):
         return s, msg
 
 
-def _check_acr(data):
+def _check_acr(data, *args):
     s = ('active_cylinder_ratios', 'engine_has_cylinder_deactivation')
     acr, has_acr = data.get(s[0], (1,)), data.get(s[1], False)
     if has_acr and len(acr) <= 1:
@@ -180,3 +183,11 @@ def _check_acr(data):
               "`engine_has_cylinder_deactivation = True` " \
               "or remove the extra ratios!"
         return s, msg
+
+
+def _check_nedc_gears_mt(data, usage, stage, cycle):
+    gear_box_type = data.get('gear_box_type', 'manual')
+    if stage == 'prediction' and 'gears' in data and gear_box_type != 'manual':
+        msg = "`gears` cannot be provided when `gear_box_type` is %s." \
+              " Hence, remove the `gears` or set `gear_box_type` to manual!"
+        return ('gears',), msg % gear_box_type

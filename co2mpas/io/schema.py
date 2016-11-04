@@ -95,7 +95,7 @@ def _eng_mode_parser(
 
     if not soft_validation:
         for k, v in dsp_utl.stack_nested_keys(inputs, depth=3):
-            for c, msg in validations.hard_validation(v):
+            for c, msg in validations.hard_validation(v, *k):
                 dsp_utl.get_nested_dicts(errors, *k)[c] = SchemaError([], [msg])
 
     return inputs, errors
