@@ -157,7 +157,7 @@ log = logging.getLogger(__name__)
 logging.getLogger('pandalone.xleash.io').setLevel(logging.WARNING)
 
 
-def init_logging(verbose, quite, frmt=None, logconf_file=None):
+def init_logging(verbose, quite=False, frmt=None, logconf_file=None):
     if logconf_file:
         if osp.splitext(logconf_file)[1] in '.yaml' or '.yml':
             with io.open(logconf_file) as fd:

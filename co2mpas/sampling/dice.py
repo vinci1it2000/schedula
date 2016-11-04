@@ -33,7 +33,7 @@ from toolz import dicttoolz as dtz, itertoolz as itz
 
 from co2mpas import __uri__  # @UnusedImport
 from co2mpas.__main__ import init_logging
-from co2mpas._version import (__version__, __updated__, __file_version__,   # @UnusedImport
+from co2mpas import (__version__, __updated__, __file_version__,   # @UnusedImport
                               __input_file_version__, __copyright__, __license__)  # @UnusedImport
 from co2mpas.sampling import baseapp, CmdException
 from co2mpas.sampling.baseapp import (APPNAME, Cmd, build_sub_cmds,

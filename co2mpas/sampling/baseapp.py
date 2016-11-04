@@ -93,7 +93,7 @@ class Spec(trtc.LoggingConfigurable):
         return logging.getLogger(type(self).__name__)
 
     # The log level for the application
-    log_level = trt.Enum((0,10,20,30,40,50,'DEBUG','INFO','WARN','ERROR','CRITICAL'),
+    log_level = trt.Enum((0, 10, 20, 30, 40, 50, 'DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL'),
                     default_value=logging.WARN,
                     help="Set the log level by value or name.").tag(config=True)
 
@@ -266,7 +266,7 @@ class Cmd(trtc.Application):
             return
 
         lines = ["Subcommands"]
-        lines.append('-'*len(lines[0]))
+        lines.append('-' * len(lines[0]))
         lines.append('')
         for p in wrap_paragraphs(self.subcommand_description.format(
                     app=self.name)):
@@ -523,6 +523,6 @@ def chain_cmds(app_classes: Sequence[type(trtc.Application)],
             app.subapp = app = app_cl(parent=app)
         app.initialize(argv or [])
 
-    app_classes[0]._instance=app
+    app_classes[0]._instance = app
     return root
 
