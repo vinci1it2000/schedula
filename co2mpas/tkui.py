@@ -528,7 +528,7 @@ class _MainPanel(tk.Frame):
     def _make_buttons_frame(self, parent):
         frame = tk.Frame(parent)
         flags_frame = tk.Frame(frame)
-        flags_frame.grid(column=0, row=0, columnspan=2, sticky=(tk.N, tk.W, tk.E, tk.S))
+        flags_frame.grid(column=0, row=0, columnspan=3, sticky=(tk.N, tk.W, tk.E, tk.S))
 
         def make_flag(name):
             var = tk.BooleanVar()
@@ -549,26 +549,32 @@ class _MainPanel(tk.Frame):
         self.flag_vars = [make_flag(f) for f in flags]
         
         label = tk.Label(frame, text=labelize_str("Extra Options and Flags"))
-        label.grid(column=0, row=2, sticky=(tk.W, tk.S))
+        label.grid(column=0, row=2, columnspan=3, sticky=(tk.W, tk.S))
         self.extra_opts_var = StringVar()
         entry = ttk.Entry(frame, textvariable=self.extra_opts_var)
-        entry.grid(column=0, row=3, columnspan=2, sticky=(tk.N, tk.W, tk.E, tk.S), ipady=4 * _pad)
+        entry.grid(column=0, row=3, columnspan=3, sticky=(tk.N, tk.W, tk.E, tk.S), ipady=4 * _pad)
+
+        btn = tk.Button(frame, text="Help", fg="green",
+                        command=fnt.partial(log.info, '%s', main_help_doc),
+                        padx=_pad, pady=_pad)
+        btn.grid(column=0, row=4, sticky=(tk.N, tk.W, tk.E, tk.S), ipadx=4 * _pad, ipady=4 * _pad)
 
         btn = tk.Button(frame, text="Run Normal",
                         command=fnt.partial(self._do_run, is_ta=False),
                         padx=_pad, pady=_pad)
-        btn.grid(column=0, row=4, sticky=(tk.N, tk.W, tk.E, tk.S), ipadx=4 * _pad, ipady=4 * _pad)
+        btn.grid(column=1, row=4, sticky=(tk.N, tk.W, tk.E, tk.S), ipadx=4 * _pad, ipady=4 * _pad)
 
         btn = tk.Button(frame, text="Run TA", fg="blue",
                         command=fnt.partial(self._do_run, is_ta=True),
                         padx=_pad, pady=_pad)
-        btn.grid(column=1, row=4, sticky=(tk.N, tk.W, tk.E, tk.S), ipadx=4 * _pad, ipady=4 * _pad)
+        btn.grid(column=2, row=4, sticky=(tk.N, tk.W, tk.E, tk.S), ipadx=4 * _pad, ipady=4 * _pad)
 
-        frame.columnconfigure(0, weight=2)
-        frame.columnconfigure(1, weight=1)
+        frame.columnconfigure(0, weight=1)
+        frame.columnconfigure(1, weight=2)
+        frame.columnconfigure(2, weight=1)
         return frame
 
-    def _do_run(self, is_ta):
+    def prepare_args_from_gui(self, is_ta):
         cmd_args = ['ta' if is_ta else 'batch']
         
         cmd_args += self.extra_opts_var.get().split()
