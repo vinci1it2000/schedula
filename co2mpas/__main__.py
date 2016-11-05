@@ -153,7 +153,7 @@ class CmdException(Exception):
 
 proj_name = 'co2mpas'
 
-log = logging.getLogger(__name__)
+log = logging.getLogger('co2mpas_main')
 logging.getLogger('pandalone.xleash.io').setLevel(logging.WARNING)
 
 

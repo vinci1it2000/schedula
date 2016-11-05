@@ -56,7 +56,7 @@ import pkg_resources as pkg
 import tkinter as tk
 
 
-log = logging.getLogger(__name__)
+log = logging.getLogger('tkui')
 
 _bw = 2
 _pad = 2
