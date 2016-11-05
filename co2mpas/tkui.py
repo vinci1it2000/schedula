@@ -33,25 +33,26 @@ Layout::
 
 """
 from collections import Counter
+import datetime
 import io
-import os.path as osp
-from toolz import dicttoolz as dtz
 import logging
 import webbrowser
-import functools as fnt
+import os
 import sys
 from textwrap import dedent
+from threading import Thread
 from tkinter import StringVar, ttk, filedialog, tix
 import traceback
 
 from PIL import Image, ImageTk
+from toolz import dicttoolz as dtz
 
-from co2mpas import (__version__, __updated__, __copyright__, __license__)
-from co2mpas.__main__ import init_logging, _main
+from co2mpas import (__version__, __updated__, __copyright__, __license__, __uri__)
+from co2mpas.__main__ import init_logging, _main, __doc__ as main_help_doc
+import functools as fnt
+import os.path as osp
 import pkg_resources as pkg
 import tkinter as tk
-import os
-import datetime
 
 
 log = logging.getLogger(__name__)
@@ -600,9 +601,14 @@ class _MainPanel(tk.Frame):
         else:
             cmd_args += inputs
             
-        logging.info('Launching CO2MPAS command:\n  %s', cmd_args)
+        return cmd_args
+    
+    def _do_run(self, is_ta):
+        cmd_args = self.prepare_args_from_gui(is_ta)
         
-        _main(*cmd_args)
+        logging.info('Launching CO2MPAS command:\n  %s', cmd_args)
+        t = Thread(target=_main, args=cmd_args, daemon=True)
+        t.start()
         
          
 class TkUI(object):
