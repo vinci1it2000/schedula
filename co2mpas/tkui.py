@@ -5,30 +5,49 @@
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+
+## TODO: 5-Nov-2016
+#  - Fix co2mpas's main() init-sequence with new GUI instead of *easyguis*.
+#  - Do not add false-flags.
+#  - Fix ending fir-deparator in tree.
+#  - Start Progrbar earlier.
+#  - Have Progr-Updater print filename
+#  - Make labels as hyperlinks
+#  - Add folder/files icons in buttons.
+#  - Add folder/files icons in tree.
+#  - Initial dir from textfields.
+#  - Use input-file as template.
+#  - Double-click open files.
+#  - Disable stop-button.
+#  - Icons moved to `./icons` folder from:
+#    - http://www.iconsdb.com/red-icons/red-play-icons.html
+#    - https://material.io/icons/#
 """
 The launching GUI formCO2MPAS.
 
 Layout::
 
     #####################################################
-    #: _________(inputs)_____________                  :#
-    #:|                              |                 :#
-    #:|                              | [  Add files  ] :#
-    #:|                              |                 :#
-    #:|                              | [  Add folder ] :#
-    #:|______________________________|                 :#
-    #: ______________________________                  :#
-    #:|______________________________| [ Set Out Dir ] :#
-    #: ______________________________                  :#
-    #:|______________________________| [Set Template]  :#
-    #:                                                 :#
-    #:[flag-1] [flag-2] [flag-3] [flag-4]              :#
-    #:_________________(extra flags)___________  [Run] :#
-    #:|________________________________________|       :#
-    #'-------------------------------------------------:#
-    # __________________(log_frame)____________________ #
-    #|                                                 |#
-    #|_________________________________________________|#
+    #:  ______________________________                  :#
+    #: |                              |                 :#
+    #: |                              | [  Add files  ] :#
+    #: |                              |                 :#
+    #: |                              | [  Add folder ] :#
+    #: |___________(inputs)___________|                 :#
+    #:  ______________________________                  :#
+    #: |_________(Output dir)_________| [ Set Out Dir ] :#
+    #:  ______________________________                  :#
+    #: |________(Template file________| [Set Template ] :#
+    #:                                                  :#
+    #: [flag-1] [flag-2] [flag-3] [flag-4]              :#
+    #:  ______________________________________________  :#
+    #: |_________________(extra flags)________________| :#
+    #: [ Help ]     [ Run-1 ]  ...             [ Run-2] :#
+    #+--------------------------------------------------+#
+    #:  ______________________________________________  :#
+    #: |                                              | :#
+    #: |                                              | :#
+    #: |________________(log_frame)___________________| :#
     #####################################################
 
 """
@@ -101,8 +120,8 @@ def get_file_infos(fpath):
 
 def python_job(function, cmd_args, name, stdout=None, stderr=None, on_finish=None):
     """
-    Redirects stdout/stderr to logging, and notifies when finished. 
-    
+    Redirects stdout/stderr to logging, and notifies when finished.
+
     Suitable to be run within a thread.
     """
     with stds_redirected(stdout, stderr) as (stdout, stderr):
@@ -119,7 +138,7 @@ def python_job(function, cmd_args, name, stdout=None, stderr=None, on_finish=Non
         stdout = stdout.getvalue()
         if stdout:
             log.info("%s stdout: %s", name, stdout)
-            
+
         stderr = stderr.getvalue()
         if stderr:
             log.error("s stderr: %s", name, stderr)
@@ -160,7 +179,7 @@ class HyperlinkManager:
             if tag[:6] == "hyper-":
                 self.links[tag]()
                 return
-            
+
 
 class LogPanel(tk.LabelFrame):
 
@@ -419,7 +438,7 @@ class _MainPanel(tk.Frame):
         tk.Frame.__init__(self, parent, *args, **kwargs)
 
         self.stop_job = False  # semaphore for the red button.
-        
+
         slider = tk.PanedWindow(self, orient=tk.HORIZONTAL)
         slider.pack(fill=tk.BOTH, expand=1, padx=4, pady=4)
 
@@ -441,7 +460,7 @@ class _MainPanel(tk.Frame):
         frame = tk.Frame(parent)
 
         kwds = dict(padx=_pad, pady=2 * _pad)
-        
+
         (inp_label, tree, add_files_btn, add_folder_btn) = self._build_inputs_tree(frame)
         inp_label.grid(column=0, row=0, sticky=(tk.W, tk.S))
         tree.grid(column=0, row=1, rowspan=2, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
@@ -570,7 +589,7 @@ class _MainPanel(tk.Frame):
                                  variable=var,
                                  padx=_pad, pady=4 * _pad)
             btn.pack(side=tk.LEFT, ipadx=4 * _pad)
-            
+
             return name, var
 
         flags = (
@@ -581,16 +600,16 @@ class _MainPanel(tk.Frame):
             'plot_workflow',
         )
         self.flag_vars = [make_flag(f) for f in flags]
-        
+
         label = tk.Label(frame, text=labelize_str("Extra Options and Flags"))
         label.pack()
-        
+
         self.extra_opts_var = StringVar()
         entry = ttk.Entry(frame, textvariable=self.extra_opts_var)
         entry.pack(fill=tk.X, expand=1)
 
         return frame
-    
+
     def _make_buttons_frame(self, parent):
         frame = tk.Frame(parent)
         run_btns = []
@@ -599,7 +618,7 @@ class _MainPanel(tk.Frame):
                         padx=_pad, pady=_pad)
         btn.grid(column=0, row=4, sticky=(tk.N, tk.W, tk.E, tk.S), ipadx=4 * _pad, ipady=4 * _pad)
         run_btns.append(btn)
-        
+
         btn = tk.Button(frame, text="Run",
                         command=fnt.partial(self._do_run, is_ta=False),
                         padx=_pad, pady=_pad)
@@ -611,18 +630,18 @@ class _MainPanel(tk.Frame):
                         padx=_pad, pady=_pad)
         btn.grid(column=2, row=4, sticky=(tk.N, tk.W, tk.E, tk.S), ipadx=4 * _pad, ipady=4 * _pad)
         run_btns.append(btn)
-        
+
         self.run_btns = run_btns
-        
+
         with pkg.resource_stream('co2mpas', 'x_button.png') as fd:  # @UndefinedVariable
             img = Image.open(fd)
             photo = ImageTk.PhotoImage(img)
-        btn = tk.Button(frame, image=photo, 
+        btn = tk.Button(frame, image=photo,
                         command=lambda: setattr(self, 'stop_job', True),
                         padx=_pad, pady=_pad)
         btn.image = photo  # Avoid GC.
         btn.grid(column=3, row=4, sticky=(tk.N, tk.W, tk.E, tk.S), ipadx=4 * _pad, ipady=4 * _pad)
-        
+
         self.prgrs_var = tk.IntVar()
         self.prgrs_bar = ttk.Progressbar(frame, orient=tk.HORIZONTAL,
                                          mode='determinate', variable=self.prgrs_var)
@@ -637,17 +656,17 @@ class _MainPanel(tk.Frame):
 
     def reconstruct_cmd_args_from_gui(self, is_ta):
         cmd_args = ['ta' if is_ta else 'batch']
-        
+
         cmd_args += self.extra_opts_var.get().strip().split()
 
         out_folder = self.out_folder_var.get()
         if out_folder:
             cmd_args += ['-O', out_folder]
-            
+
         tmpl_folder = self.tmpl_folder_var.get()
         if tmpl_folder:
             cmd_args += ['-D', 'flag.output_template', tmpl_folder]
-            
+
         for name, flg in self.flag_vars:
             flg = flg.get()
             if flg is not None:
@@ -660,22 +679,22 @@ class _MainPanel(tk.Frame):
             cmd_args.append(cwd)
         else:
             cmd_args += inputs
-            
+
         return cmd_args
-    
+
     def _do_run(self, is_ta):
         func_name = "CO2MPAS"
         self.stop_job = False
-        
+
         cmd_args = self.reconstruct_cmd_args_from_gui(is_ta)
         log.info('Launching %s command:\n  %s', func_name, cmd_args)
-            
+
         maingui = self
-                
+
         class ProgressUpdater:
             """
             A *tqdm* replacement that cooperates with :func:`python_job` to pump stdout/stderr when iterated.
-            
+
             :ivar i:
                 Enumarates progress calls.
             :ivar out_i:
@@ -690,25 +709,25 @@ class _MainPanel(tk.Frame):
 
             def __iter__(self):
                 return self
-            
+
             def __next__(self):
                 step = maingui.prgrs_var.get()
                 maingui.prgrs_var.set(step + 2)  # +1 immediately below, +1 at the end
                 self.pump_streams()
                 self.i += 1
-                 
+
                 if maingui.stop_job:
                     log.warn("Canceled %s command: %s", func_name, cmd_args)
                     raise StopIteration()
 
                 return next(self.it)
-        
+
             def pump_streams(self):
                 new_out = self.stdout.getvalue()[self.out_i:]
                 if new_out:
                     self.out_i += len(new_out)
                     log.info("%s stdout(%i): %s", func_name, self.i, new_out)
-                    
+
                 new_err = self.stderr.getvalue()[self.err_i:]
                 if new_err:
                     self.err_i += len(new_err)
@@ -718,7 +737,7 @@ class _MainPanel(tk.Frame):
                 maingui.prgrs_bar['maximum'] = 1 + len(iterable)
                 maingui.prgrs_var.set(1)
                 self.it = iter(iterable)
-            
+
                 return self
 
             def on_finish(self, out, err):
@@ -726,12 +745,12 @@ class _MainPanel(tk.Frame):
                 for btn in maingui.run_btns:
                     btn['state'] = tk.NORMAL
                 maingui.prgrs_var.set(0)
-        
+
         ## Monkeypatch *tqdm* on co2mpas-batcher.
         #
         updater = ProgressUpdater()
         co2mpas_batch._custom_tqdm = updater.tqdm_replacement
-        
+
         t = Thread(target=python_job,
                    args=(co2mpas_main, cmd_args, func_name,
                          updater.stdout, updater.stderr,
@@ -745,8 +764,8 @@ class _MainPanel(tk.Frame):
         for btn in self.run_btns:
             btn['state'] = tk.DISABLED
         t.start()
-        
-         
+
+
 class TkUI(object):
 
     """
@@ -776,13 +795,13 @@ class TkUI(object):
 
         self.log_panel = LogPanel(master)
         master.add(self.log_panel, height=240)
-        
+
         s = ttk.Sizegrip(root)
         s.pack(side=tk.RIGHT)
-        
+
     def open_url(self, url):
         webbrowser.open_new(url)
-        
+
     def _do_about(self):
         top = tk.Toplevel(self.master)
         top.title("About %s" % app_name)
