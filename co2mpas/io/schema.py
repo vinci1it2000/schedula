@@ -21,7 +21,7 @@ import pprint
 import co2mpas.dispatcher.utils as dsp_utl
 from . import validations
 from . import excel
-import cachetools
+import functools
 from co2mpas.model.physical.gear_box.at_gear import CMV, MVL, GSPV
 from co2mpas.model.physical.clutch_tc.clutch import ClutchModel
 from co2mpas.model.physical.clutch_tc.torque_converter import TorqueConverter
@@ -448,7 +448,7 @@ def _dir(error=None, **kwargs):
     return And(_string(), Schema(osp.isdir, error=er), error=error)
 
 
-@cachetools.cached({})
+@functools.lru_cache(None)
 def define_data_schema(read=True):
     cmv = _cmv(read=read)
     dtc = _dtc(read=read)
@@ -711,7 +711,7 @@ def define_data_schema(read=True):
     return Schema(schema)
 
 
-@cachetools.cached({})
+@functools.lru_cache(None)
 def define_flags_schema(read=True):
     string = _string(read=read)
     isfile = _file(read=read)

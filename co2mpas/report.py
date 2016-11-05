@@ -12,7 +12,6 @@ It contains reporting functions for output results.
 import co2mpas.dispatcher as dsp
 import collections
 import functools
-import cachetools
 import numpy as np
 import sklearn.metrics as sk_met
 import co2mpas.dispatcher.utils as dsp_utl
@@ -52,7 +51,7 @@ def _prediction_target_ratio(t, o):
     return np.mean(o / t)
 
 
-@cachetools.cached({})
+@functools.lru_cache(None)
 def _get_metrics():
     metrics = {
         'mean_absolute_error': sk_met.mean_absolute_error,

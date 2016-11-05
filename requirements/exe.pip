@@ -29,5 +29,4 @@ cycler
 boltons
 pykalman
 wltp
-cachetools
 openpyxl>=2.4.0

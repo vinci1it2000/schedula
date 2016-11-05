@@ -188,7 +188,6 @@ setup(
         'boltons',
         'pykalman',
         'wltp',
-        'cachetools',  # TODO: remove
         'openpyxl>=2.4.0'
     ],
     extras_require={

@@ -38,7 +38,6 @@ import itertools
 import pandalone.xleash as xleash
 import pandalone.xleash._parse as pnd_par
 import collections
-import cachetools
 log = logging.getLogger(__name__)
 
 
@@ -302,7 +301,7 @@ def _parameters2df(data, data_descriptions, write_schema):
         return None
 
 
-@cachetools.cached({})
+@functools.lru_cache(None)
 def _param_orders():
     x = ('declared_co2_emission', 'co2_emission', 'fuel_consumption')
     y = ('low', 'medium', 'high', 'extra_high', 'UDC', 'EUDC', 'value')
@@ -335,7 +334,7 @@ def _param_orders():
     return _map
 
 
-@cachetools.cached({})
+@functools.lru_cache(None)
 def _summary_map():
     _map = {
         'co2_params a': 'a',
@@ -361,7 +360,7 @@ def _summary_map():
     return _map
 
 
-@cachetools.cached({})
+@functools.lru_cache(None)
 def _param_units():
     units = ((k, _re_units.search(v)) for k, v in get_doc_description().items())
     units = {k: v.group() for k, v in units if v}
@@ -497,7 +496,7 @@ def _dd2df(dd, index=None, depth=0, col_key=None, row_key=None):
 _re_units = regex.compile('(\[.*\])')
 
 
-@cachetools.cached({})
+@functools.lru_cache(None)
 def get_doc_description():
     from ..model.physical import physical
     from co2mpas.dispatcher.utils import search_node_description

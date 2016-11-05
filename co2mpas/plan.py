@@ -13,14 +13,14 @@ import co2mpas.dispatcher.utils as dsp_utl
 import co2mpas.utils as co2_utl
 import co2mpas.io as co2_io
 import co2mpas.batch as batch
-import cachetools
+import functools
 import logging
 import json
 
 log = logging.getLogger(__name__)
 
 
-@cachetools.cached(cachetools.LRUCache(maxsize=256))
+@functools.lru_cache(256)
 def get_results(model, overwrite_cache, fpath, timestamp, run=True,
                 json_var='{}', output_folder=None):
 
