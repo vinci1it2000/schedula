@@ -571,6 +571,8 @@ class _MainPanel(tk.Frame):
     def _do_run(self, is_ta):
         cmd_args = ['ta' if is_ta else 'batch']
         
+        cmd_args += self.extra_opts_var.get().split()
+
         out_folder = self.out_folder_var.get()
         if out_folder:
             cmd_args += ['-O', out_folder]
