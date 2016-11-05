@@ -106,7 +106,9 @@ def function_launcher(name, function, cmd_args):
             function(*cmd_args)
         except SystemExit:
             pass
-        
+        except Exception as ex:
+            log.error("%s failed due to: %s", name, ex, exc_info=1)
+            
     stdout = stdout.getvalue()
     if stdout:
         log.info("%s STDOUT: %s", name, stdout)
