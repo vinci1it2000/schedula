@@ -494,18 +494,19 @@ class _MainPanel(tk.Frame):
                     finfos = get_file_infos(fpath)
                     tree.insert('', 'end', fpath, text=fpath, values=('FILE', *finfos))
                 except Exception as ex:
-                    log.warning("Cannot add file %r due to: %s", fpath, ex)
+                    log.warning("Cannot add input file %r due to: %s", fpath, ex)
 
         def ask_input_folder():
             folder = tix.filedialog.askdirectory(
                 title='Select CO2MPAS Input folder',
                 initialdir=os.getcwd())
-            try:
-                finfos = get_file_infos(folder)
-                tree.insert('', 'end', folder, text='%s%s' % (folder, osp.sep),
-                            values=('FOLDER', *finfos))
-            except Exception as ex:
-                log.warning("Cannot add folder %r due to: %s", folder, ex)
+            if folder:
+                try:
+                    finfos = get_file_infos(folder)
+                    tree.insert('', 'end', folder, text='%s%s' % (folder, osp.sep),
+                                values=('FOLDER', *finfos))
+                except Exception as ex:
+                    log.warning("Cannot add input folder %r due to: %s", folder, ex)
 
         files_btn = ttk.Button(parent, text="Add File(s)...", command=ask_input_files)
         folder_btn = ttk.Button(parent, text="Add Folder...", command=ask_input_folder)
