@@ -597,7 +597,7 @@ class _MainPanel(tk.Frame):
         if not inputs:
             cwd = os.getcwd()
             log.warning("No inputs specified; assuming current directory: %s", cwd)
-            cmd_args += cwd
+            cmd_args.append(cwd)
         else:
             cmd_args += inputs
             
