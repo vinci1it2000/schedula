@@ -9,15 +9,14 @@ r"""
 Shift and resample excel-tables; see http://co2mpas.io/usage.html#Synchronizing-time-series.
 
 Usage:
+  datasync template [-f] [--cycle <cycle>] <excel-file-path>...
   datasync          [-v | -q | --logconf=<conf-file>] [--force | -f]
                     [--interp <method>] [--no-clone] [--prefix-cols]
                     [-O <output>] <x-label> <y-label> <ref-table>
                     [<sync-table> ...]
-
   datasync          [-v | -q | --logconf=<conf-file>] (--version | -V)
   datasync          (--interp-methods | -l)
   datasync          --help
-  datasync template [-f] [--cycle <cycle>] [<excel-file-path> ...]
 
 Options:
   <x-label>              Column-name of the common x-axis (e.g. 'times') to be
