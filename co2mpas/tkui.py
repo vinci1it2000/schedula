@@ -37,6 +37,7 @@ import io
 import os.path as osp
 from toolz import dicttoolz as dtz
 import logging
+import webbrowser
 import functools as fnt
 import sys
 from textwrap import dedent
@@ -94,6 +95,44 @@ def get_file_infos(fpath):
     mtime = datetime.datetime.fromtimestamp(s.st_mtime)  # @UndefinedVariable
     return (s.st_size, mtime.isoformat())
 
+
+
+class HyperlinkManager:
+    ## From http://effbot.org/zone/tkinter-text-hyperlink.htm
+    def __init__(self, text):
+
+        self.text = text
+
+        self.text.tag_config("hyper", foreground="blue", underline=1)
+
+        self.text.tag_bind("hyper", "<Enter>", self._enter)
+        self.text.tag_bind("hyper", "<Leave>", self._leave)
+        self.text.tag_bind("hyper", "<Button-1>", self._click)
+
+        self.reset()
+
+    def reset(self):
+        self.links = {}
+
+    def add(self, action):
+        # add an action to the manager.  returns tags to use in
+        # associated text widget
+        tag = "hyper-%d" % len(self.links)
+        self.links[tag] = action
+        return "hyper", tag
+
+    def _enter(self, event):
+        self.text.config(cursor="hand2")
+
+    def _leave(self, event):
+        self.text.config(cursor="")
+
+    def _click(self, event):
+        for tag in self.text.tag_names(tk.CURRENT):
+            if tag[:6] == "hyper-":
+                self.links[tag]()
+                return
+            
 
 class LogPanel(tk.LabelFrame):
 
@@ -563,7 +602,6 @@ class TkUI(object):
     """
     CO2MPAS UI for predicting NEDC CO2 emissions from WLTP for type-approval purposes.
     """
-
     def __init__(self, root=None):
         if not root:
             root = tk.Tk()
@@ -591,7 +629,10 @@ class TkUI(object):
         
         s = ttk.Sizegrip(root)
         s.pack(side=tk.RIGHT)
-
+        
+    def open_url(self, url):
+        webbrowser.open_new(url)
+        
     def _do_about(self):
         top = tk.Toplevel(self.master)
         top.title("About %s" % app_name)
@@ -610,6 +651,7 @@ class TkUI(object):
 
         msg = tk.Text(top, wrap=tk.NONE)
         msg.pack(fill=tk.BOTH, expand=1)
+        linkman = HyperlinkManager(msg)
 
         msg.insert(tk.INSERT, txt1)
         with pkg.resource_stream('co2mpas', 'CO2MPAS_logo.png') as fd:  # @UndefinedVariable
@@ -617,6 +659,8 @@ class TkUI(object):
             msg.photo = ImageTk.PhotoImage(img)  # Avoid GC.
             msg.image_create(tk.INSERT, image=msg.photo)
         msg.insert(tk.INSERT, txt2)
+        msg.insert(tk.INSERT, 'Home: %s' % __uri__,
+                   linkman.add(fnt.partial(self.open_url, __uri__)))
 
         msg.configure(state=tk.DISABLED, bg='LightBlue')
 
