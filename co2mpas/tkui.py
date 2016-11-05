@@ -418,6 +418,8 @@ class _MainPanel(tk.Frame):
     def __init__(self, parent, *args, **kwargs):
         tk.Frame.__init__(self, parent, *args, **kwargs)
 
+        self.stop_job = False  # semaphore for the red button.
+        
         slider = tk.PanedWindow(self, orient=tk.HORIZONTAL)
         slider.pack(fill=tk.BOTH, expand=1, padx=4, pady=4)
 
@@ -612,10 +614,19 @@ class _MainPanel(tk.Frame):
         
         self.run_btns = run_btns
         
+        with pkg.resource_stream('co2mpas', 'x_button.png') as fd:  # @UndefinedVariable
+            img = Image.open(fd)
+            photo = ImageTk.PhotoImage(img)
+        btn = tk.Button(frame, image=photo, 
+                        command=lambda: setattr(self, 'stop_job', True),
+                        padx=_pad, pady=_pad)
+        btn.image = photo  # Avoid GC.
+        btn.grid(column=3, row=4, sticky=(tk.N, tk.W, tk.E, tk.S), ipadx=4 * _pad, ipady=4 * _pad)
+        
         self.prgrs_var = tk.IntVar()
         self.prgrs_bar = ttk.Progressbar(frame, orient=tk.HORIZONTAL,
                                          mode='determinate', variable=self.prgrs_var)
-        self.prgrs_bar.grid(column=0, row=6, columnspan=3, sticky=(tk.N, tk.W, tk.E, tk.S),
+        self.prgrs_bar.grid(column=0, row=6, columnspan=4, sticky=(tk.N, tk.W, tk.E, tk.S),
                             ipadx=4 * _pad, ipady=4 * _pad)
 
         frame.columnconfigure(0, weight=1)
@@ -654,7 +665,8 @@ class _MainPanel(tk.Frame):
     
     def _do_run(self, is_ta):
         func_name = "CO2MPAS"
-
+        self.stop_job = False
+        
         cmd_args = self.reconstruct_cmd_args_from_gui(is_ta)
         log.info('Launching %s command:\n  %s', func_name, cmd_args)
             
@@ -681,10 +693,14 @@ class _MainPanel(tk.Frame):
             
             def __next__(self):
                 step = maingui.prgrs_var.get()
-                maingui.prgrs_var.set(step + 1)
+                maingui.prgrs_var.set(step + 2)  # +1 immediately below, +1 at the end
                 self.pump_streams()
                 self.i += 1
                  
+                if maingui.stop_job:
+                    log.warn("Canceled %s command: %s", func_name, cmd_args)
+                    raise StopIteration()
+
                 return next(self.it)
         
             def pump_streams(self):
@@ -706,7 +722,7 @@ class _MainPanel(tk.Frame):
                 return self
 
             def on_finish(self, out, err):
-                log.info('Finished running %s command:\n  %s', func_name, cmd_args)
+                log.info('Finished %s command:\n  %s', func_name, cmd_args)
                 for btn in maingui.run_btns:
                     btn['state'] = tk.NORMAL
                 maingui.prgrs_var.set(0)
