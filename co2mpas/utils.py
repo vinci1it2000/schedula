@@ -466,9 +466,9 @@ def derivative(x, y, dx=1, order=3, k=1):
 
 
 @contextmanager
-def stds_redirected():
-    captured_out = io.StringIO()
-    captured_err = io.StringIO()
+def stds_redirected(stdout=None, stderr=None):
+    captured_out = io.StringIO() if stdout is None else stdout
+    captured_err = io.StringIO() if stderr is None else stderr
     orig_out, sys.stdout = sys.stdout, captured_out
     orig_err, sys.stderr = sys.stderr, captured_err
 

@@ -50,6 +50,7 @@ from toolz import dicttoolz as dtz
 from co2mpas import (__version__, __updated__, __copyright__, __license__, __uri__)
 from co2mpas.__main__ import init_logging, _main as co2mpas_main, __doc__ as main_help_doc
 from co2mpas.utils import stds_redirected
+import co2mpas.batch as co2mpas_batch
 import functools as fnt
 import os.path as osp
 import pkg_resources as pkg
@@ -98,25 +99,31 @@ def get_file_infos(fpath):
     return (s.st_size, mtime.isoformat())
 
 
-def function_launcher(name, function, cmd_args):
-    """Redirects stdout/stderr to logging. """
-    log.info('Launching %s command:\n  %s', cmd_args, name)
-    with stds_redirected() as (stdout, stderr):
+def python_job(function, cmd_args, name, stdout=None, stderr=None, on_finish=None):
+    """
+    Redirects stdout/stderr to logging, and notifies when finished. 
+    
+    Suitable to be run within a thread.
+    """
+    with stds_redirected(stdout, stderr) as (stdout, stderr):
         try:
             function(*cmd_args)
         except SystemExit:
             pass
         except Exception as ex:
             log.error("%s failed due to: %s", name, ex, exc_info=1)
+
+    if on_finish:
+        on_finish(stdout, stderr)
+    else:
+        stdout = stdout.getvalue()
+        if stdout:
+            log.info("%s stdout: %s", name, stdout)
             
-    stdout = stdout.getvalue()
-    if stdout:
-        log.info("%s STDOUT: %s", name, stdout)
-        
-    stderr = stderr.getvalue()
-    if stderr:
-        log.error("s STDERR: %s", name, stderr)
-                
+        stderr = stderr.getvalue()
+        if stderr:
+            log.error("s stderr: %s", name, stderr)
+
 
 class HyperlinkManager:
     ## From http://effbot.org/zone/tkinter-text-hyperlink.htm
@@ -583,27 +590,40 @@ class _MainPanel(tk.Frame):
     
     def _make_buttons_frame(self, parent):
         frame = tk.Frame(parent)
+        run_btns = []
         btn = tk.Button(frame, text="Help", fg="green",
                         command=fnt.partial(log.info, '%s', main_help_doc),
                         padx=_pad, pady=_pad)
         btn.grid(column=0, row=4, sticky=(tk.N, tk.W, tk.E, tk.S), ipadx=4 * _pad, ipady=4 * _pad)
-
-        btn = tk.Button(frame, text="Run Normal",
+        run_btns.append(btn)
+        
+        btn = tk.Button(frame, text="Run",
                         command=fnt.partial(self._do_run, is_ta=False),
                         padx=_pad, pady=_pad)
         btn.grid(column=1, row=4, sticky=(tk.N, tk.W, tk.E, tk.S), ipadx=4 * _pad, ipady=4 * _pad)
+        run_btns.append(btn)
 
         btn = tk.Button(frame, text="Run TA", fg="blue",
                         command=fnt.partial(self._do_run, is_ta=True),
                         padx=_pad, pady=_pad)
         btn.grid(column=2, row=4, sticky=(tk.N, tk.W, tk.E, tk.S), ipadx=4 * _pad, ipady=4 * _pad)
+        run_btns.append(btn)
+        
+        self.run_btns = run_btns
+        
+        self.prgrs_var = tk.IntVar()
+        self.prgrs_bar = ttk.Progressbar(frame, orient=tk.HORIZONTAL,
+                                         mode='determinate', variable=self.prgrs_var)
+        self.prgrs_bar.grid(column=0, row=6, columnspan=3, sticky=(tk.N, tk.W, tk.E, tk.S),
+                            ipadx=4 * _pad, ipady=4 * _pad)
 
         frame.columnconfigure(0, weight=1)
         frame.columnconfigure(1, weight=2)
         frame.columnconfigure(2, weight=1)
+
         return frame
 
-    def reconstruct_args_from_gui(self, is_ta):
+    def reconstruct_cmd_args_from_gui(self, is_ta):
         cmd_args = ['ta' if is_ta else 'batch']
         
         cmd_args += self.extra_opts_var.get().strip().split()
@@ -632,10 +652,81 @@ class _MainPanel(tk.Frame):
         return cmd_args
     
     def _do_run(self, is_ta):
-        cmd_args = self.reconstruct_args_from_gui(is_ta)
+        func_name = "CO2MPAS"
+
+        cmd_args = self.reconstruct_cmd_args_from_gui(is_ta)
+        log.info('Launching %s command:\n  %s', func_name, cmd_args)
+            
+        maingui = self
+                
+        class ProgressUpdater:
+            """
+            A *tqdm* replacement that cooperates with :func:`python_job` to pump stdout/stderr when iterated.
+            
+            :ivar i:
+                Enumarates progress calls.
+            :ivar out_i:
+                Tracks till where we have read and logged from the stdout StringIO stream.
+            :ivar err_i:
+                Tracks till where we have read and logged from the stderr StringIO stream.
+            """
+            def __init__(self):
+                self.stdout = io.StringIO()
+                self.stderr = io.StringIO()
+                self.i = self.out_i = self.err_i = 0
+
+            def __iter__(self):
+                return self
+            
+            def __next__(self):
+                step = maingui.prgrs_var.get()
+                maingui.prgrs_var.set(step + 1)
+                self.pump_streams()
+                self.i += 1
+                 
+                return next(self.it)
         
-        t = Thread(target=function_launcher, args=("CO2MPAS", co2mpas_main, cmd_args), daemon=True)
+            def pump_streams(self):
+                new_out = self.stdout.getvalue()[self.out_i:]
+                if new_out:
+                    self.out_i += len(new_out)
+                    log.info("%s stdout(%i): %s", func_name, self.i, new_out)
+                    
+                new_err = self.stderr.getvalue()[self.err_i:]
+                if new_err:
+                    self.err_i += len(new_err)
+                    log.info("%s stderr(%i): %s", func_name, self.i, new_err)
+
+            def tqdm_replacement(self, iterable, *args, **kwds):
+                maingui.prgrs_bar['maximum'] = 1 + len(iterable)
+                maingui.prgrs_var.set(1)
+                self.it = iter(iterable)
+            
+                return self
+
+            def on_finish(self, out, err):
+                log.info('Finished running %s command:\n  %s', func_name, cmd_args)
+                for btn in maingui.run_btns:
+                    btn['state'] = tk.NORMAL
+                maingui.prgrs_var.set(0)
+        
+        ## Monkeypatch *tqdm* on co2mpas-batcher.
+        #
+        updater = ProgressUpdater()
+        co2mpas_batch._custom_tqdm = updater.tqdm_replacement
+        
+        t = Thread(target=python_job,
+                   args=(co2mpas_main, cmd_args, func_name,
+                         updater.stdout, updater.stderr,
+                         updater.on_finish),
+                   daemon=True)
         assert t.daemon
+
+        ## Keep buttons enabled as long as possible,
+        #  in case of errors above, the UI to remain responsive.
+        #
+        for btn in self.run_btns:
+            btn['state'] = tk.DISABLED
         t.start()
         
          
