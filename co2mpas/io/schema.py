@@ -261,7 +261,7 @@ def _eval(s, error=None, **kwargs):
 
 # noinspection PyUnusedLocal
 def _dict(format=None, error=None, read=True, **kwargs):
-    format = format or {int: float}
+    format = And(dict, format or {int: float})
     error = error or 'should be a dict with this format {}!'.format(format)
     c = Use(lambda x: {k: v for k, v in dict(x).items() if v is not None})
     if read:
@@ -315,7 +315,7 @@ def _index_dict(error=None, **kwargs):
     def f(x):
         return {k: v for k, v in enumerate(x, start=1)}
 
-    return Or(c, And(_dict(), c), And(_type(), Use(f), c), error=error)
+    return Or(c, _dict(c), And(_type(), Use(f), And(dict, c)), error=error)
 
 
 # noinspection PyUnusedLocal
