@@ -168,7 +168,7 @@ setup(
         'scikit-learn',
         'numpy',
         'scipy',
-        'lmfit==0.9.2',
+        'lmfit',
         'matplotlib',
         'networkx',
         'dill',

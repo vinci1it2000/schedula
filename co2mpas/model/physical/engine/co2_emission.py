@@ -1489,8 +1489,13 @@ def _set_attr(params, data, default=False, attr='vary'):
     if not isinstance(data, dict):
         data = dict.fromkeys(data, default)
 
+    d = {'min', 'max', 'value', 'vary', 'expr'} - {attr}
+
     for k, v in data.items():
-        params[k].set(**{attr: v})
+        p = params[k]
+        s = {i: getattr(p, i) for i in d}
+        s[attr] = v
+        p.set(**s)
 
     return params
 
@@ -1610,7 +1615,8 @@ def restrict_bounds(co2_params):
     return p
 
 
-def calibrate_model_params(error_function, params, *args, **kws):
+def calibrate_model_params(
+        error_function, params, *args, method='nelder', **kws):
     """
     Calibrates the model params minimising the error_function.
 
@@ -1661,7 +1667,7 @@ def calibrate_model_params(error_function, params, *args, **kws):
     # slsqp is unstable (4 runs, 4 vehicles) [average time 18s/4 vehicles].
     # differential_evolution is unstable (1 runs, 4 vehicles)
     # [average time 270s/4 vehicles].
-    res = _minimize(error_func, params, args=args, kws=kws, method='nelder')
+    res = _minimize(error_func, params, args=args, kws=kws, method=method)
 
     # noinspection PyUnresolvedReferences
     return (res.params if res.success else min_e_and_p[1]), res.success
@@ -1720,9 +1726,6 @@ class _Minimizer(lmfit.Minimizer):
             Whether the fit was successful.
 
         """
-        from lmfit.minimizer import HAS_SCALAR_MIN
-        if not HAS_SCALAR_MIN:
-            raise NotImplementedError
 
         result = self.prepare_fit(params=params)
         vars = result.init_vals
