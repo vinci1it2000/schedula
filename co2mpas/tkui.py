@@ -417,11 +417,14 @@ class _MainPanel(tk.Frame):
         main = tk.Frame(slider, **_sunken)
         main.pack(fill=tk.BOTH, expand=1)
 
-        files_frame = self._make_files_frame(main)
-        files_frame.pack(fill=tk.X, expand=1)
+        frame = self._make_files_frame(main)
+        frame.pack(fill=tk.X, expand=1)
 
-        buttons_frame = self._make_buttons_frame(main)
-        buttons_frame.pack(fill=tk.X, expand=1)
+        frame = self._make_flags_frame(main)
+        frame.pack(fill=tk.X, expand=1)
+
+        frame = self._make_buttons_frame(main)
+        frame.pack(fill=tk.X, expand=1)
 
         main.rowconfigure(0, weight=1)
 
@@ -430,20 +433,20 @@ class _MainPanel(tk.Frame):
 
         kwds = dict(padx=_pad, pady=2 * _pad)
         
-        (inp_label, tree, add_files_btn, add_folder_btn) = self._make_inputs_tree(frame)
+        (inp_label, tree, add_files_btn, add_folder_btn) = self._build_inputs_tree(frame)
         inp_label.grid(column=0, row=0, sticky=(tk.W, tk.S))
         tree.grid(column=0, row=1, rowspan=2, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
         add_files_btn.grid(column=1, row=1, sticky=(tk.N, tk.E, tk.S), **kwds)
         add_folder_btn.grid(column=1, row=2, sticky=(tk.N, tk.E, tk.S), **kwds)
         self.inputs_tree = tree
 
-        (out_label, out_entry, out_btn, out_var) = self._make_output_folder(frame)
+        (out_label, out_entry, out_btn, out_var) = self._build_output_folder(frame)
         out_label.grid(column=0, row=4, sticky=(tk.N, tk.W, tk.S))
         out_entry.grid(column=0, row=5, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
         out_btn.grid(column=1, row=5, sticky=(tk.N, tk.E, tk.S), **kwds)
         self.out_folder_var = out_var
 
-        (tmpl_label, tmpl_entry, tmpl_btn, tmpl_var) = self._make_template_file(frame)
+        (tmpl_label, tmpl_entry, tmpl_btn, tmpl_var) = self._build_template_file(frame)
         tmpl_label.grid(column=0, row=8, sticky=(tk.N, tk.W, tk.S))
         tmpl_entry.grid(column=0, row=9, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
         tmpl_btn.grid(column=1, row=9, sticky=(tk.N, tk.E, tk.S), **kwds)
@@ -455,9 +458,9 @@ class _MainPanel(tk.Frame):
 
         return frame
 
-    def _make_inputs_tree(self, frame):
-        inp_label = tk.Label(frame, text='Inputs:')
-        tree = ttk.Treeview(frame)
+    def _build_inputs_tree(self, parent):
+        inp_label = tk.Label(parent, text='Inputs:')
+        tree = ttk.Treeview(parent)
         columns = (
             ('#0', {
                 'text': 'Filename',
@@ -465,8 +468,8 @@ class _MainPanel(tk.Frame):
                 'stretch': True,
                 'minwidth': 96,
                 'width': 264}),
-            ('type', {'anchor': tk.W, 'width': 38, 'stretch': False}),
-            ('size', {'anchor': tk.E, 'width': 56, 'stretch': False}),
+            ('type', {'anchor': tk.W, 'width': 56, 'stretch': False}),
+            ('size', {'anchor': tk.E, 'width': 64, 'stretch': False}),
             ('modified', {'anchor': tk.W, 'width': 164, 'stretch': False}),
         )
         tree_apply_columns(tree, columns)
@@ -497,8 +500,8 @@ class _MainPanel(tk.Frame):
             except Exception as ex:
                 log.warning("Cannot add folder %r due to: %s", folder, ex)
 
-        files_btn = ttk.Button(frame, text="Add File(s)...", command=ask_input_files)
-        folder_btn = ttk.Button(frame, text="Add Folder...", command=ask_input_folder)
+        files_btn = ttk.Button(parent, text="Add File(s)...", command=ask_input_files)
+        folder_btn = ttk.Button(parent, text="Add Folder...", command=ask_input_folder)
 
         def del_input_file(ev):
             if ev.keysym == 'Delete':
@@ -509,7 +512,7 @@ class _MainPanel(tk.Frame):
 
         return (inp_label, tree, files_btn, folder_btn)
 
-    def _make_output_folder(self, frame):
+    def _build_output_folder(self, frame):
         title = 'Output Folder'
         label = tk.Label(frame, text=labelize_str(title))
 
@@ -525,12 +528,12 @@ class _MainPanel(tk.Frame):
 
         return label, entry, btn, var
 
-    def _make_template_file(self, frame):
+    def _build_template_file(self, parent):
         title = 'Output Template file'
-        label = tk.Label(frame, text=labelize_str(title))
+        label = tk.Label(parent, text=labelize_str(title))
 
         var = StringVar()
-        entry = ttk.Entry(frame, textvariable=var)
+        entry = ttk.Entry(parent, textvariable=var)
 
         def ask_template_file():
             file = tix.filedialog.askopenfilenames(
@@ -542,14 +545,14 @@ class _MainPanel(tk.Frame):
             if file:
                 var.set(file)
 
-        btn = ttk.Button(frame, text="...", command=ask_template_file)
+        btn = ttk.Button(parent, text="...", command=ask_template_file)
 
         return label, entry, btn, var
 
-    def _make_buttons_frame(self, parent):
+    def _make_flags_frame(self, parent):
         frame = tk.Frame(parent)
         flags_frame = tk.Frame(frame)
-        flags_frame.grid(column=0, row=0, columnspan=3, sticky=(tk.N, tk.W, tk.E, tk.S))
+        flags_frame.pack(fill=tk.X, expand=1)
 
         def make_flag(name):
             var = tk.BooleanVar()
@@ -570,11 +573,16 @@ class _MainPanel(tk.Frame):
         self.flag_vars = [make_flag(f) for f in flags]
         
         label = tk.Label(frame, text=labelize_str("Extra Options and Flags"))
-        label.grid(column=0, row=2, columnspan=3, sticky=(tk.W, tk.S))
+        label.pack()
+        
         self.extra_opts_var = StringVar()
         entry = ttk.Entry(frame, textvariable=self.extra_opts_var)
-        entry.grid(column=0, row=3, columnspan=3, sticky=(tk.N, tk.W, tk.E, tk.S), ipady=4 * _pad)
+        entry.pack(fill=tk.X, expand=1)
 
+        return frame
+    
+    def _make_buttons_frame(self, parent):
+        frame = tk.Frame(parent)
         btn = tk.Button(frame, text="Help", fg="green",
                         command=fnt.partial(log.info, '%s', main_help_doc),
                         padx=_pad, pady=_pad)
@@ -595,7 +603,7 @@ class _MainPanel(tk.Frame):
         frame.columnconfigure(2, weight=1)
         return frame
 
-    def prepare_args_from_gui(self, is_ta):
+    def reconstruct_args_from_gui(self, is_ta):
         cmd_args = ['ta' if is_ta else 'batch']
         
         cmd_args += self.extra_opts_var.get().strip().split()
@@ -624,9 +632,10 @@ class _MainPanel(tk.Frame):
         return cmd_args
     
     def _do_run(self, is_ta):
-        cmd_args = self.prepare_args_from_gui(is_ta)
+        cmd_args = self.reconstruct_args_from_gui(is_ta)
         
         t = Thread(target=function_launcher, args=("CO2MPAS", co2mpas_main, cmd_args), daemon=True)
+        assert t.daemon
         t.start()
         
          
