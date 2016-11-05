@@ -70,7 +70,6 @@ from co2mpas.__main__ import init_logging, _main as co2mpas_main, __doc__ as mai
 from co2mpas.utils import stds_redirected
 import co2mpas.batch as co2mpas_batch
 import functools as fnt
-import os.path as osp
 import pkg_resources as pkg
 import tkinter as tk
 
@@ -564,7 +563,7 @@ class _MainPanel(tk.Frame):
         entry = ttk.Entry(parent, textvariable=var)
 
         def ask_template_file():
-            file = tix.filedialog.askopenfilenames(
+            file = tix.filedialog.askopenfilename(
                 title='Select %s' % title,
                 initialdir=os.getcwd(),
                 filetypes=(('Excel files', '.xlsx .xlsm'),
@@ -664,7 +663,7 @@ class _MainPanel(tk.Frame):
 
         tmpl_folder = self.tmpl_folder_var.get()
         if tmpl_folder:
-            cmd_args += ['-D', 'flag.output_template', tmpl_folder]
+            cmd_args += ['-D', 'flag.output_template=%s' % tmpl_folder]
 
         for name, flg in self.flag_vars:
             flg = flg.get()
