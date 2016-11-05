@@ -9,7 +9,6 @@
 ## TODO: 5-Nov-2016
 #  - Fix co2mpas's main() init-sequence with new GUI instead of *easyguis*.
 #  - Do not add false-flags.
-#  - Fix ending fir-deparator in tree.
 #  - Start Progrbar earlier.
 #  - Have Progr-Updater print filename
 #  - Make labels as hyperlinks
@@ -524,7 +523,7 @@ class _MainPanel(tk.Frame):
             if folder:
                 try:
                     finfos = get_file_infos(folder)
-                    tree.insert('', 'end', folder, text='%s%s' % (folder, osp.sep),
+                    tree.insert('', 'end', folder, text=folder + '/',
                                 values=('FOLDER', *finfos))
                 except Exception as ex:
                     log.warning("Cannot add input folder %r due to: %s", folder, ex)
@@ -551,7 +550,7 @@ class _MainPanel(tk.Frame):
         def ask_output_folder():
             folder = tix.filedialog.askdirectory(title="Select %s" % title)
             if folder:
-                var.set(folder)
+                var.set(folder +'/')
 
         btn = ttk.Button(frame, text="...", command=ask_output_folder)
 
