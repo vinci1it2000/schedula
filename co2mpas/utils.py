@@ -5,6 +5,8 @@
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+from contextlib import contextmanager
+import io
 
 """
 It contains classes and functions of general utility.
@@ -463,6 +465,18 @@ def derivative(x, y, dx=1, order=3, k=1):
     return sci_misc.derivative(func, x, dx=dx, order=order)
 
 
+@contextmanager
+def stds_redirected():
+    captured_out = io.StringIO()
+    captured_err = io.StringIO()
+    orig_out, sys.stdout = sys.stdout, captured_out
+    orig_err, sys.stderr = sys.stderr, captured_err
+
+    yield captured_out, captured_err
+
+    sys.stdout, sys.stderr = orig_out, orig_err
+    
+    
 class _SafeRANSACRegressor(RANSACRegressor):
     def fit(self, X, y, **kwargs):
         try:

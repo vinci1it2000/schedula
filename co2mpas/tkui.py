@@ -36,19 +36,20 @@ from collections import Counter
 import datetime
 import io
 import logging
-import webbrowser
 import os
 import sys
 from textwrap import dedent
 from threading import Thread
 from tkinter import StringVar, ttk, filedialog, tix
 import traceback
+import webbrowser
 
 from PIL import Image, ImageTk
 from toolz import dicttoolz as dtz
 
 from co2mpas import (__version__, __updated__, __copyright__, __license__, __uri__)
-from co2mpas.__main__ import init_logging, _main, __doc__ as main_help_doc
+from co2mpas.__main__ import init_logging, _main as co2mpas_main, __doc__ as main_help_doc
+from co2mpas.utils import stds_redirected
 import functools as fnt
 import os.path as osp
 import pkg_resources as pkg
@@ -97,6 +98,23 @@ def get_file_infos(fpath):
     return (s.st_size, mtime.isoformat())
 
 
+def function_launcher(name, function, cmd_args):
+    """Redirects stdout/stderr to logging. """
+    log.info('Launching %s command:\n  %s', cmd_args, name)
+    with stds_redirected() as (stdout, stderr):
+        try:
+            function(*cmd_args)
+        except SystemExit:
+            pass
+        
+    stdout = stdout.getvalue()
+    if stdout:
+        log.info("%s STDOUT: %s", name, stdout)
+        
+    stderr = stderr.getvalue()
+    if stderr:
+        log.error("s STDERR: %s", name, stderr)
+                
 
 class HyperlinkManager:
     ## From http://effbot.org/zone/tkinter-text-hyperlink.htm
@@ -578,7 +596,7 @@ class _MainPanel(tk.Frame):
     def prepare_args_from_gui(self, is_ta):
         cmd_args = ['ta' if is_ta else 'batch']
         
-        cmd_args += self.extra_opts_var.get().split()
+        cmd_args += self.extra_opts_var.get().strip().split()
 
         out_folder = self.out_folder_var.get()
         if out_folder:
@@ -606,8 +624,7 @@ class _MainPanel(tk.Frame):
     def _do_run(self, is_ta):
         cmd_args = self.prepare_args_from_gui(is_ta)
         
-        logging.info('Launching CO2MPAS command:\n  %s', cmd_args)
-        t = Thread(target=_main, args=cmd_args, daemon=True)
+        t = Thread(target=function_launcher, args=("CO2MPAS", co2mpas_main, cmd_args), daemon=True)
         t.start()
         
          
