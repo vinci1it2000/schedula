@@ -9,7 +9,6 @@
 ## TODO: 5-Nov-2016
 #  - Fix co2mpas's main() init-sequence with new GUI instead of *easyguis*.
 #  - Make labels as hyperlinks or use ballons.
-#  - Add folder/files icons in buttons.
 #  - Add folder/files icons in tree.
 #  - Initial dir from textfields.
 #  - Use input-file as template.
@@ -143,6 +142,16 @@ def run_python_job(function, cmd_args, job_name, stdout=None, stderr=None, on_fi
         stderr = stderr.getvalue()
         if stderr:
             log.error("s stderr: %s", job_name, stderr)
+
+
+def add_icon(btn, icon):
+        with pkg.resource_stream('co2mpas', icon) as fd:  # @UndefinedVariable
+            img = Image.open(fd)
+            photo = ImageTk.PhotoImage(img)
+        btn['image'] = photo,
+        btn.image = photo  # Avoid GC.
+        if btn['text']:
+            btn['compound'] = tk.TOP
 
 
 class HyperlinkManager:
@@ -523,20 +532,20 @@ class _MainPanel(tk.Frame):
         (inp_label, tree, add_files_btn, add_folder_btn) = self._build_inputs_tree(frame)
         inp_label.grid(column=0, row=0, sticky=(tk.W, tk.S))
         tree.grid(column=0, row=1, rowspan=2, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
-        add_files_btn.grid(column=1, row=1, sticky=(tk.N, tk.E, tk.S), **kwds)
-        add_folder_btn.grid(column=1, row=2, sticky=(tk.N, tk.E, tk.S), **kwds)
+        add_files_btn.grid(column=1, row=1, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
+        add_folder_btn.grid(column=1, row=2, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
         self.inputs_tree = tree
 
         (out_label, out_entry, out_btn, out_var) = self._build_output_folder(frame)
-        out_label.grid(column=0, row=4, sticky=(tk.N, tk.W, tk.S))
+        out_label.grid(column=0, row=4, sticky=(tk.N, tk.W, tk.E, tk.S))
         out_entry.grid(column=0, row=5, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
-        out_btn.grid(column=1, row=5, sticky=(tk.N, tk.E, tk.S), **kwds)
+        out_btn.grid(column=1, row=5, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
         self.out_folder_var = out_var
 
         (tmpl_label, tmpl_entry, tmpl_btn, tmpl_var) = self._build_template_file(frame)
-        tmpl_label.grid(column=0, row=8, sticky=(tk.N, tk.W, tk.S))
+        tmpl_label.grid(column=0, row=8, sticky=(tk.N, tk.W, tk.E, tk.S))
         tmpl_entry.grid(column=0, row=9, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
-        tmpl_btn.grid(column=1, row=9, sticky=(tk.N, tk.E, tk.S), **kwds)
+        tmpl_btn.grid(column=1, row=9, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
         self.tmpl_folder_var = tmpl_var
 
         frame.rowconfigure(1, weight=1)
@@ -575,6 +584,8 @@ class _MainPanel(tk.Frame):
                     tree.insert('', 'end', fpath, text=fpath, values=('FILE', *finfos))
                 except Exception as ex:
                     log.warning("Cannot add input file %r due to: %s", fpath, ex)
+        files_btn = btn = ttk.Button(parent, text="Add File(s)...", command=ask_input_files)
+        add_icon(btn, 'icons/add_file-olive-48.png')
 
         def ask_input_folder():
             folder = tk.filedialog.askdirectory(
@@ -587,9 +598,8 @@ class _MainPanel(tk.Frame):
                                 values=('FOLDER', *finfos))
                 except Exception as ex:
                     log.warning("Cannot add input folder %r due to: %s", folder, ex)
-
-        files_btn = ttk.Button(parent, text="Add File(s)...", command=ask_input_files)
-        folder_btn = ttk.Button(parent, text="Add Folder...", command=ask_input_folder)
+        folder_btn = btn = ttk.Button(parent, text="Add Folder...", command=ask_input_folder)
+        add_icon(btn, 'icons/add_folder-olive-48.png')
 
         def del_input_file(ev):
             if ev.keysym == 'Delete':
@@ -612,7 +622,8 @@ class _MainPanel(tk.Frame):
             if folder:
                 var.set(folder +'/')
 
-        btn = ttk.Button(frame, text="...", command=ask_output_folder)
+        btn = ttk.Button(frame, command=ask_output_folder)
+        add_icon(btn, 'icons/add_folder-olive-32.png')
 
         return label, entry, btn, var
 
@@ -633,7 +644,8 @@ class _MainPanel(tk.Frame):
             if file:
                 var.set(file)
 
-        btn = ttk.Button(parent, text="...", command=ask_template_file)
+        btn = ttk.Button(parent, command=ask_template_file)
+        add_icon(btn, 'icons/add_file-olive-32.png')
 
         return label, entry, btn, var
 
@@ -681,25 +693,22 @@ class _MainPanel(tk.Frame):
         btn = tk.Button(frame, text="Run",
                         command=fnt.partial(self._do_run_job, is_ta=False),
                         padx=_pad, pady=_pad)
+        add_icon(btn, 'icons/play-olive-48.png')
         btn.grid(column=1, row=4, sticky=(tk.N, tk.W, tk.E, tk.S), ipadx=4 * _pad, ipady=4 * _pad)
         run_btns.append(btn)
 
         self._run_ta_btn = btn = tk.Button(frame,
-                                           text="Run TA", fg="blue",
+                                           text="Run TA", fg="orange",
                                            command=fnt.partial(self._do_run_job, is_ta=True),
                                            padx=_pad, pady=_pad)
+        add_icon(btn, 'icons/play_doc-orange-48.png ')
         btn.grid(column=2, row=4, sticky=(tk.N, tk.W, tk.E, tk.S), ipadx=4 * _pad, ipady=4 * _pad)
         run_btns.append(btn)
 
         self._run_btns = run_btns
 
-        with pkg.resource_stream('co2mpas', 'x_button.png') as fd:  # @UndefinedVariable
-            img = Image.open(fd)
-            photo = ImageTk.PhotoImage(img)
-        self._stop_job_btn = btn = tk.Button(frame,
-                                             image=photo,
-                                             padx=_pad, pady=_pad)
-        btn.image = photo  # Avoid GC.
+        self._stop_job_btn = btn = tk.Button(frame, text="Stop", padx=_pad, pady=_pad)
+        add_icon(btn, 'icons/stop-red-48.png')
         btn.grid(column=3, row=4, sticky=(tk.N, tk.W, tk.E, tk.S), ipadx=4 * _pad, ipady=4 * _pad)
 
         def stop_job_clicked():
