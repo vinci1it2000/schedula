@@ -7,11 +7,9 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 ## TODO: 5-Nov-2016
+#  - Make 3-state flags - TA cmd fails with `false`!
 #  - Fix co2mpas's main() init-sequence with new GUI instead of *easyguis*.
-#  - Do not add false-flags.
-#  - Start Progrbar earlier.
-#  - Have Progr-Updater print filename
-#  - Make labels as hyperlinks
+#  - Make labels as hyperlinks or use ballons.
 #  - Add folder/files icons in buttons.
 #  - Add folder/files icons in tree.
 #  - Initial dir from textfields.
@@ -493,7 +491,7 @@ class _MainPanel(tk.Frame):
                 'anchor': tk.W,
                 'stretch': True,
                 'minwidth': 96,
-                'width': 264}),
+                'width': 362}),
             ('type', {'anchor': tk.W, 'width': 56, 'stretch': False}),
             ('size', {'anchor': tk.E, 'width': 64, 'stretch': False}),
             ('modified', {'anchor': tk.W, 'width': 164, 'stretch': False}),
@@ -645,12 +643,23 @@ class _MainPanel(tk.Frame):
                                          mode='determinate', variable=self.prgrs_var)
         self.prgrs_bar.grid(column=0, row=6, columnspan=4, sticky=(tk.N, tk.W, tk.E, tk.S),
                             ipadx=4 * _pad, ipady=4 * _pad)
+        self.status_label = tk.Label(self.prgrs_bar, fg='blue')
 
         frame.columnconfigure(0, weight=1)
         frame.columnconfigure(1, weight=2)
         frame.columnconfigure(2, weight=1)
 
         return frame
+
+    def set_status(self, msg):
+        """Overlays a message on the progressbar."""
+        status_label = self.status_label
+        if msg:
+            status_label['text'] = msg
+            self.status_label.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+        else:
+            status_label.place_forget()
+            status_label['text'] = ''
 
     def reconstruct_cmd_args_from_gui(self, is_ta):
         cmd_args = ['ta' if is_ta else 'batch']
@@ -681,11 +690,15 @@ class _MainPanel(tk.Frame):
         return cmd_args
 
     def _do_run(self, is_ta):
-        func_name = "CO2MPAS"
+        func_name = "CO2MPAS" if is_ta else "CO2MPAS-TA"
         self.stop_job = False
 
         cmd_args = self.reconstruct_cmd_args_from_gui(is_ta)
         log.info('Launching %s command:\n  %s', func_name, cmd_args)
+
+        self.prgrs_bar['maximum'] = len(self.inputs_tree.get_children())
+        self.prgrs_var.set(1)
+        self.set_status('Launched %s command...' % func_name)
 
         maingui = self
 
@@ -703,38 +716,42 @@ class _MainPanel(tk.Frame):
             def __init__(self):
                 self.stdout = io.StringIO()
                 self.stderr = io.StringIO()
-                self.i = self.out_i = self.err_i = 0
+                self.out_i = self.err_i = 0
 
             def __iter__(self):
                 return self
 
             def __next__(self):
                 step = maingui.prgrs_var.get()
-                maingui.prgrs_var.set(step + 2)  # +1 immediately below, +1 at the end
+                maingui.prgrs_var.set(step + 1)
                 self.pump_streams()
-                self.i += 1
 
                 if maingui.stop_job:
                     log.warn("Canceled %s command: %s", func_name, cmd_args)
                     raise StopIteration()
 
-                return next(self.it)
+                item = next(self.it)
+                maingui.set_status('%s %i of %i: %r...' % (func_name, step, self.len, item))
+
+                return item
 
             def pump_streams(self):
+                i = maingui.prgrs_var.get()
                 new_out = self.stdout.getvalue()[self.out_i:]
                 if new_out:
                     self.out_i += len(new_out)
-                    log.info("%s stdout(%i): %s", func_name, self.i, new_out)
+                    log.info("%s stdout(%i): %s", func_name, i, new_out)
 
                 new_err = self.stderr.getvalue()[self.err_i:]
                 if new_err:
                     self.err_i += len(new_err)
-                    log.info("%s stderr(%i): %s", func_name, self.i, new_err)
+                    log.info("%s stderr(%i): %s", func_name, i, new_err)
 
             def tqdm_replacement(self, iterable, *args, **kwds):
-                maingui.prgrs_bar['maximum'] = 1 + len(iterable)
-                maingui.prgrs_var.set(1)
+                #maingui.prgrs_var.set(1)  Already set to 1.
                 self.it = iter(iterable)
+                self.len = len(iterable)
+                maingui.prgrs_bar['maximum'] = 2 + self.len  # +1 on start, +1 final step.
 
                 return self
 
@@ -743,6 +760,7 @@ class _MainPanel(tk.Frame):
                 for btn in maingui.run_btns:
                     btn['state'] = tk.NORMAL
                 maingui.prgrs_var.set(0)
+                maingui.set_status('')
 
         ## Monkeypatch *tqdm* on co2mpas-batcher.
         #
