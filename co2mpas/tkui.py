@@ -709,9 +709,10 @@ class _MainPanel(tk.Frame):
     def _make_buttons_frame(self, parent):
         frame = tk.Frame(parent)
         run_btns = []
-        btn = tk.Button(frame, text="Help", fg="green",
+        btn = tk.Button(frame, text="Help",
                         command=fnt.partial(log.info, '%s', main_help_doc),
                         padx=_pad, pady=_pad)
+        add_icon(btn, 'icons/help-olive-32.png ')
         btn.grid(column=0, row=4, sticky=(tk.N, tk.W, tk.E, tk.S))
         run_btns.append(btn)
 
