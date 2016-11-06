@@ -427,19 +427,20 @@ def file_finder(xlsx_fpaths, file_ext='*.xlsx'):
     return [f for f in sorted(files) if _input_file_regex.match(osp.basename(f))]
 
 
-_re_override = re.compile(r"^\s*('.+'|[^:=']*\b)\s*[:=]\s*([^:=']*\b|'.*')\s*$")
+_re_override = re.compile(r"^\s*([^=]+)\s*[:=]\s*(.*?)\s*$")
 
 
 def parse_overrides(override):
     res = {}
-    for v in override:
-        try:
-            k, v = _re_override.match(v).groups()
-            if k in res:
-                raise CmdException('Duplicated --override key %s!' % k)
-            res[k] = v
-        except AttributeError:
-            raise CmdException('Wrong --override format %s! ' % v)
+    for ov in override:
+        m = _re_override.match(ov)
+        if not m:
+            raise CmdException('Wrong --override format %r! ' % ov)
+
+        k, v = m.groups()
+        if k in res:
+            raise CmdException('Duplicated --override key %r!' % k)
+        res[k] = v
 
     return res
 
