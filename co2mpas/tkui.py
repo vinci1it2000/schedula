@@ -50,6 +50,7 @@ Layout::
     #####################################################
 
 """
+import re
 from collections import Counter, OrderedDict
 import datetime
 import io
@@ -145,14 +146,19 @@ def run_python_job(function, cmd_args, job_name, stdout=None, stderr=None, on_fi
             log.error("s stderr: %s", job_name, stderr)
 
 
-def add_icon(btn, icon):
-        with pkg.resource_stream('co2mpas', icon) as fd:  # @UndefinedVariable
-            img = Image.open(fd)
-            photo = ImageTk.PhotoImage(img)
-        btn['image'] = photo,
-        btn.image = photo  # Avoid GC.
-        if btn['text']:
-            btn['compound'] = tk.TOP
+def read_image(fpath):
+    with pkg.resource_stream('co2mpas', fpath) as fd:  # @UndefinedVariable
+        img = Image.open(fd)
+        photo = ImageTk.PhotoImage(img)
+    return photo
+
+
+def add_icon(btn, icon_path):
+    image = read_image(icon_path)
+    btn['image'] = image
+    btn.image = image  # Avoid GC.
+    if btn['text']:
+        btn['compound'] = tk.TOP
 
 
 class HyperlinkManager:
@@ -572,6 +578,9 @@ class _MainPanel(tk.Frame):
             ('modified', {'anchor': tk.W, 'width': 164, 'stretch': False}),
         )
         tree_apply_columns(tree, columns)
+        tree.excel_icon = read_image('icons/excel-olive-16.png')
+        tree.file_icon = read_image('icons/file-olive-16.png')
+        tree.folder_icon = read_image('icons/folder-olive-16.png')
 
         def ask_input_files():
             files = tk.filedialog.askopenfilenames(
@@ -583,8 +592,10 @@ class _MainPanel(tk.Frame):
                            ))
             for fpath in files:
                 try:
+                    icon = tree.excel_icon if re.search(r'\.xl\w\w$', fpath) else tree.file_icon
                     finfos = get_file_infos(fpath)
-                    tree.insert('', 'end', fpath, text=fpath, values=('FILE', *finfos))
+                    tree.insert('', 'end', fpath, text=fpath,
+                                values=('FILE', *finfos), image=icon)
                 except Exception as ex:
                     log.warning("Cannot add input file %r due to: %s", fpath, ex)
         files_btn = btn = ttk.Button(parent, text="Add File(s)...", command=ask_input_files)
@@ -598,7 +609,7 @@ class _MainPanel(tk.Frame):
                 try:
                     finfos = get_file_infos(folder)
                     tree.insert('', 'end', folder, text=folder + '/',
-                                values=('FOLDER', *finfos))
+                                values=('FOLDER', *finfos), image=tree.folder_icon)
                 except Exception as ex:
                     log.warning("Cannot add input folder %r due to: %s", folder, ex)
         folder_btn = btn = ttk.Button(parent, text="Add Folder...", command=ask_input_folder)
