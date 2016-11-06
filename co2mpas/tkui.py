@@ -19,6 +19,7 @@
 #
 # Help (apart from PY-site):
 #  - http://effbot.org/tkinterbook/tkinter-index.htm
+#  - http://www.tkdocs.com/
 #  - http://infohost.nmt.edu/tcc/help/pubs/tkinter/web/index.html
 """
 The launching GUI formCO2MPAS.
@@ -529,11 +530,12 @@ class _MainPanel(tk.Frame):
 
         kwds = dict(padx=_pad, pady=2 * _pad)
 
-        (inp_label, tree, add_files_btn, add_folder_btn) = self._build_inputs_tree(frame)
+        (inp_label, tree, add_files_btn, add_folder_btn, del_btn) = self._build_inputs_tree(frame)
         inp_label.grid(column=0, row=0, sticky=(tk.W, tk.S))
-        tree.grid(column=0, row=1, rowspan=2, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
+        tree.grid(column=0, row=1, rowspan=3, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
         add_files_btn.grid(column=1, row=1, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
         add_folder_btn.grid(column=1, row=2, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
+        del_btn.grid(column=1, row=3, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
         self.inputs_tree = tree
 
         (out_label, out_entry, out_btn, out_var) = self._build_output_folder(frame)
@@ -548,8 +550,9 @@ class _MainPanel(tk.Frame):
         tmpl_btn.grid(column=1, row=9, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
         self.tmpl_folder_var = tmpl_var
 
-        frame.rowconfigure(1, weight=1)
-        frame.rowconfigure(2, weight=1)
+        frame.rowconfigure(1, weight=3)
+        frame.rowconfigure(2, weight=3)
+        frame.rowconfigure(3, weight=1)
         frame.columnconfigure(0, weight=1)
 
         return frame
@@ -601,14 +604,25 @@ class _MainPanel(tk.Frame):
         folder_btn = btn = ttk.Button(parent, text="Add Folder...", command=ask_input_folder)
         add_icon(btn, 'icons/add_folder-olive-48.png')
 
-        def del_input_file(ev):
-            if ev.keysym == 'Delete':
+        del_btn = btn = ttk.Button(parent, state=tk.DISABLED)
+        add_icon(btn, 'icons/x_circle-olive-32.png')
+
+        ## Tree events:
+        ##s
+        def del_input_file(ev=None):
+            if not ev or ev.keysym == 'Delete':
                 for item_id in tree.selection():
                     tree.delete(item_id)
+                #del_btn['state'] = tk.DISABLED  # tk-BUG: Selection-vent is not fired.
+
+        def tree_selection_changed(ev):
+            del_btn['state'] = tk.NORMAL if tree.selection() else tk.DISABLED
 
         tree.bind("<Key>", del_input_file)
+        del_btn['command'] = del_input_file
+        tree.bind('<<TreeviewSelect>>', tree_selection_changed)
 
-        return (inp_label, tree, files_btn, folder_btn)
+        return (inp_label, tree, files_btn, folder_btn, del_btn)
 
     def _build_output_folder(self, frame):
         title = 'Output Folder'
