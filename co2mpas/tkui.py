@@ -50,12 +50,12 @@ Layout::
     #####################################################
 
 """
-import re
 from collections import Counter, OrderedDict
 import datetime
 import io
 import logging
 import os
+import re
 import sys
 from textwrap import dedent
 from threading import Thread
@@ -68,8 +68,8 @@ from toolz import dicttoolz as dtz
 
 from co2mpas import (__version__, __updated__, __copyright__, __license__, __uri__)
 from co2mpas.__main__ import init_logging, _main as co2mpas_main, __doc__ as main_help_doc
-from co2mpas.utils import stds_redirected
 import co2mpas.batch as co2mpas_batch
+from co2mpas.utils import stds_redirected
 import functools as fnt
 import pkg_resources as pkg
 import tkinter as tk
@@ -545,13 +545,13 @@ class _MainPanel(tk.Frame):
         self.inputs_tree = tree
 
         (out_label, out_entry, out_btn, out_var) = self._build_output_folder(frame)
-        out_label.grid(column=0, row=4, sticky=(tk.N, tk.W, tk.E, tk.S))
+        out_label.grid(column=0, row=4, sticky=(tk.W, tk.S))
         out_entry.grid(column=0, row=5, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
         out_btn.grid(column=1, row=5, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
         self.out_folder_var = out_var
 
         (tmpl_label, tmpl_entry, tmpl_btn, tmpl_var) = self._build_template_file(frame)
-        tmpl_label.grid(column=0, row=8, sticky=(tk.N, tk.W, tk.E, tk.S))
+        tmpl_label.grid(column=0, row=8, sticky=(tk.W, tk.S))
         tmpl_entry.grid(column=0, row=9, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
         tmpl_btn.grid(column=1, row=9, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
         self.tmpl_folder_var = tmpl_var
@@ -698,7 +698,7 @@ class _MainPanel(tk.Frame):
         self.flag_vars = [make_flag(f) for f in flags]
 
         label = tk.Label(frame, text=labelize_str("Extra Options and Flags"))
-        label.pack()
+        label.pack(anchor=tk.W)
 
         self.extra_opts_var = StringVar()
         entry = ttk.Entry(frame, textvariable=self.extra_opts_var)
@@ -948,20 +948,20 @@ class TkUI(object):
         log.info(txt)
         print(txt)
 
-        msg = tk.Text(top, wrap=tk.NONE)
+        msg = tk.Text(top, wrap=tk.WORD)
         msg.pack(fill=tk.BOTH, expand=1)
         linkman = HyperlinkManager(msg)
 
         msg.insert(tk.INSERT, txt1)
-        with pkg.resource_stream('co2mpas', 'CO2MPAS_logo.png') as fd:  # @UndefinedVariable
-            img = Image.open(fd)
-            msg.photo = ImageTk.PhotoImage(img)  # Avoid GC.
-            msg.image_create(tk.INSERT, image=msg.photo)
+
+        msg.photo = read_image('icons/CO2MPAS_logo.png')  # Avoid GC.
+        msg.image_create(tk.INSERT, image=msg.photo)
         msg.insert(tk.INSERT, txt2)
-        msg.insert(tk.INSERT, 'Home: %s' % __uri__,
+        msg.insert(tk.INSERT, 'Home: ')
+        msg.insert(tk.INSERT, __uri__,
                    linkman.add(fnt.partial(self.open_url, __uri__)))
 
-        msg.configure(state=tk.DISABLED, bg='LightBlue')
+        msg.configure(state=tk.DISABLED, bg='SystemButtonFace')
 
     def mainloop(self):
         try:
