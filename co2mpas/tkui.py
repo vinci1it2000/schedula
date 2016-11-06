@@ -7,7 +7,6 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 ## TODO: 5-Nov-2016
-#  - Make 3-state flags - TA cmd fails with `false`!
 #  - Fix co2mpas's main() init-sequence with new GUI instead of *easyguis*.
 #  - Make labels as hyperlinks or use ballons.
 #  - Add folder/files icons in buttons.
@@ -52,7 +51,7 @@ Layout::
     #####################################################
 
 """
-from collections import Counter
+from collections import Counter, OrderedDict
 import datetime
 import io
 import logging
@@ -179,6 +178,55 @@ class HyperlinkManager:
             if tag[:6] == "hyper-":
                 self.links[tag]()
                 return
+
+
+class FlagButton(tk.Button):
+    """A button switching states when clicked; 3-state by default: ``'', 'true', 'false'``.
+
+    :ivar flag_states:
+        An ordered-dict ``{state --> config-opts-dict}`` with the supported states.
+    :ivar state_var:
+        A :class:`t.Variable` holding the flag's 3-state.
+        Also provided on constructor as ``'variable'`` kwd.
+    :ivar flag:
+        The flag-name, extracted from the ``'text'`` option on construction; you may
+        modify it attr later.
+
+    """
+
+    flag_states = OrderedDict([
+        ('', {'background': 'SystemButtonFace'}),
+        ('true', {'background': 'green'}),
+        ('false', {'background': 'red'}),
+    ])
+
+    def __init__(self, *args, state_opts=None, variable=None, **kwds):
+        kwds['command'] = self.next_state  # Override any user-cmd.
+        super().__init__(*args, **kwds)
+        self.state_var = variable or tk.Variable()
+        self.flag = kwds.get('text', '')
+
+        ## Begin from 1st flag-state.
+        #
+        self._state_ix = len(self.flag_states) - 1
+        self.next_state()
+
+    @property
+    def flag_state(self):
+        return self.state_var.get()
+
+    def _format_text(self, flag_state):
+        """Override to modify the button text's among states."""
+        return '%s: %s' % (self.flag, flag_state)
+
+    def next_state(self):
+        self._state_ix = (self._state_ix + 1) % len(self.flag_states)
+        state = list(self.flag_states)[self._state_ix]
+        state_opts = self.flag_states[state]
+
+        self.state_var.set(state)
+        self['text'] = self._format_text(state)
+        self.configure(**state_opts)
 
 
 class LogPanel(tk.LabelFrame):
@@ -583,14 +631,13 @@ class _MainPanel(tk.Frame):
         flags_frame = tk.Frame(frame)
         flags_frame.pack(fill=tk.X, expand=1)
 
-        def make_flag(name):
-            var = tk.BooleanVar()
-            btn = tk.Checkbutton(flags_frame, text=labelize_str(name.replace('_', ' ')),
-                                 variable=var,
-                                 padx=_pad, pady=4 * _pad)
+        def make_flag(flag):
+            flag_name = flag.replace('_', ' ').title()
+            btn = FlagButton(flags_frame, text=flag_name,
+                             padx=_pad, pady=4 * _pad)
             btn.pack(side=tk.LEFT, ipadx=4 * _pad)
 
-            return name, var
+            return flag, btn.state_var
 
         flags = (
             'engineering_mode',
@@ -678,10 +725,10 @@ class _MainPanel(tk.Frame):
         if tmpl_folder:
             cmd_args += ['-D', 'flag.output_template=%s' % tmpl_folder]
 
-        for name, flg in self.flag_vars:
-            flg = flg.get()
-            if flg is not None:
-                cmd_args += ['-D', 'flag.%s=%s' % (name, str(flg).lower())]
+        for flag, flag_var in self.flag_vars:
+            flag_value = flag_var.get()
+            if flag_value:
+                cmd_args += ['-D', 'flag.%s=%s' % (flag, flag_value)]
 
         inputs = self.inputs_tree.get_children()
         if not inputs:
