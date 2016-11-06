@@ -145,6 +145,7 @@ import shutil
 import sys
 import docopt
 import yaml
+import warnings
 
 
 class CmdException(Exception):
@@ -155,7 +156,13 @@ proj_name = 'co2mpas'
 
 log = logging.getLogger('co2mpas_main')
 logging.getLogger('pandalone.xleash.io').setLevel(logging.WARNING)
+warnings.filterwarnings(
+    action="ignore", module="scipy", message="^internal gelsd"
+)
 
+warnings.filterwarnings(
+    action="ignore", module="openpyxl", message="^Unknown extension"
+)
 
 def init_logging(verbose, quite=False, frmt=None, logconf_file=None):
     if logconf_file:
