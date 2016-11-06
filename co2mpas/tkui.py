@@ -37,6 +37,7 @@ Layout::
 ## TODO: 5-Nov-2016
 #  - Fix co2mpas's main() init-sequence with new GUI instead of *easyguis*.
 #  - Make labels as hyperlinks or use ballons.
+#  - Cannot enable DEBUG log level.
 #
 ## Help (apart from PY-site):
 #  - http://effbot.org/tkinterbook/tkinter-index.htm
@@ -55,9 +56,9 @@ import os
 from pandalone import utils as putils
 import re
 import sys
-from textwrap import dedent
+from textwrap import dedent, indent
 from threading import Thread
-from tkinter import StringVar, ttk, filedialog, tix
+from tkinter import StringVar, ttk, filedialog
 import traceback
 import webbrowser
 
@@ -135,7 +136,7 @@ def run_python_job(function, cmd_args, job_name, stdout=None, stderr=None, on_fi
         except SystemExit as ex:
             log.error("Job %s exited due to: %r", job_name, ex)
         except Exception as ex:
-            log.error("%s failed due to: %s", job_name, ex, exc_info=1)
+            log.error("Job %s failed due to: %s", job_name, ex, exc_info=1)
 
     if on_finish:
         try:
@@ -145,11 +146,11 @@ def run_python_job(function, cmd_args, job_name, stdout=None, stderr=None, on_fi
     else:
         stdout = stdout.getvalue()
         if stdout:
-            log.info("%s stdout: %s", job_name, stdout)
+            log.info("Job %s stdout: %s", job_name, stdout)
 
         stderr = stderr.getvalue()
         if stderr:
-            log.error("s stderr: %s", job_name, stderr)
+            log.error("Job %s stderr: %s", job_name, stderr)
 
 
 def read_image(fpath):
@@ -598,7 +599,7 @@ class _MainPanel(tk.Frame):
         tree.folder_icon = read_image('icons/folder-olive-16.png')
 
         def ask_input_files():
-            files = tk.filedialog.askopenfilenames(
+            files = filedialog.askopenfilenames(
                 title='Select CO2MPAS Input file(s)',
                 multiple=True,
                 filetypes=(('Excel files', '.xlsx .xlsm'),
@@ -616,7 +617,7 @@ class _MainPanel(tk.Frame):
         add_icon(btn, 'icons/add_file-olive-48.png')
 
         def ask_input_folder():
-            folder = tk.filedialog.askdirectory(
+            folder = filedialog.askdirectory(
                 title='Select CO2MPAS Input folder')
             if folder:
                 try:
@@ -662,7 +663,7 @@ class _MainPanel(tk.Frame):
 
         def ask_output_folder():
             initialdir = find_longest_valid_dir(var.get().strip())
-            folder = tk.filedialog.askdirectory(title="Select %s" % title, initialdir=initialdir)
+            folder = filedialog.askdirectory(title="Select %s" % title, initialdir=initialdir)
             if folder:
                 var.set(folder + '/')
 
@@ -682,7 +683,7 @@ class _MainPanel(tk.Frame):
 
         def ask_template_file():
             initialdir = find_longest_valid_dir(var.get().strip())
-            file = tk.filedialog.askopenfilename(
+            file = filedialog.askopenfilename(
                 title='Select %s' % title,
                 initialdir=initialdir,
                 filetypes=(('Excel files', '.xlsx .xlsm'),
@@ -837,7 +838,7 @@ class _MainPanel(tk.Frame):
         self._stop_job = False
 
         cmd_args = self.reconstruct_cmd_args_from_gui(is_ta)
-        log.info('Launching %s command:\n  %s', job_name, cmd_args)
+        log.info('Launching %s job:\n  %s', job_name, cmd_args)
 
         maingui = self
 
@@ -866,11 +867,11 @@ class _MainPanel(tk.Frame):
                 self.pump_streams()
 
                 if maingui._stop_job:
-                    log.warn("Canceled %s command: %s", job_name, cmd_args)
+                    log.warn("Canceled %s job: %s", job_name, cmd_args)
                     raise StopIteration()
 
                 item = next(self.it)
-                maingui.mediate_panel('%s %i of %i: %r...' % (job_name, step, self.len, item))
+                maingui.mediate_panel('Job %s %i of %i: %r...' % (job_name, step, self.len, item))
 
                 return item
 
@@ -879,12 +880,12 @@ class _MainPanel(tk.Frame):
                 new_out = self.stdout.getvalue()[self.out_i:]
                 if new_out:
                     self.out_i += len(new_out)
-                    log.info("%s stdout(%i): %s", job_name, i, new_out)
+                    log.info("Job %s stdout(%i): %s", job_name, i, new_out)
 
                 new_err = self.stderr.getvalue()[self.err_i:]
                 if new_err:
                     self.err_i += len(new_err)
-                    log.info("%s stderr(%i): %s", job_name, i, new_err)
+                    log.info("Job %s stderr(%i): %s", job_name, i, new_err)
 
             def tqdm_replacement(self, iterable, *args, **kwds):
                 #maingui.prgrs_var.set(1)  Already set to 1.
@@ -923,7 +924,7 @@ class _MainPanel(tk.Frame):
 
         self.prgrs_bar['maximum'] = len(self.inputs_tree.get_children())
         self.prgrs_var.set(1)
-        self.mediate_panel('Launched %s command...' % job_name)
+        self.mediate_panel('Launched %s job...' % job_name)
 
 
 class TkUI(object):
