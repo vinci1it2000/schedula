@@ -132,8 +132,8 @@ def run_python_job(function, cmd_args, job_name, stdout=None, stderr=None, on_fi
     with stds_redirected(stdout, stderr) as (stdout, stderr):
         try:
             function(*cmd_args)
-        except SystemExit:
-            pass
+        except SystemExit as ex:
+            log.error("Job %s exited due to: %r", job_name, ex)
         except Exception as ex:
             log.error("%s failed due to: %s", job_name, ex, exc_info=1)
 
@@ -896,9 +896,16 @@ class _MainPanel(tk.Frame):
 
             def on_finish(self, out, err):
                 maingui._job_thread = None
-                log.info('Finished %s command:\n  %s', job_name, cmd_args)
                 maingui.prgrs_var.set(0)
                 maingui.mediate_panel()
+
+                new_out = self.stdout.getvalue()[self.out_i:]
+                new_err = self.stderr.getvalue()[self.err_i:]
+                if new_out:
+                    new_out = '\n  stdout: %s' % indent(new_out, '    ')
+                if new_err:
+                    new_err = '\n  stderr: %s' % indent(new_err, '    ')
+                log.info('Finished %s job: %s%s%s', job_name, cmd_args, new_out, new_err)
 
         ## Monkeypatch *tqdm* on co2mpas-batcher.
         #
