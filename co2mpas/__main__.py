@@ -434,7 +434,7 @@ def file_finder(xlsx_fpaths, file_ext='*.xlsx'):
     return [f for f in sorted(files) if _input_file_regex.match(osp.basename(f))]
 
 
-_re_override = re.compile(r"^\s*([^=]+)\s*[:=]\s*(.*?)\s*$")
+_re_override = re.compile(r"^\s*([^=]+)\s*=\s*(.*?)\s*$")
 
 
 def parse_overrides(override):
