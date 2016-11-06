@@ -14,7 +14,6 @@
 #  - Initial dir from textfields.
 #  - Use input-file as template.
 #  - Double-click open files.
-#  - Disable stop-button.
 #  - Icons moved to `./icons` folder from:
 #    - http://www.iconsdb.com/red-icons/red-play-icons.html
 #    - https://material.io/icons/#
@@ -117,7 +116,7 @@ def get_file_infos(fpath):
     return (s.st_size, mtime.isoformat())
 
 
-def python_job(function, cmd_args, name, stdout=None, stderr=None, on_finish=None):
+def run_python_job(function, cmd_args, job_name, stdout=None, stderr=None, on_finish=None):
     """
     Redirects stdout/stderr to logging, and notifies when finished.
 
@@ -129,18 +128,21 @@ def python_job(function, cmd_args, name, stdout=None, stderr=None, on_finish=Non
         except SystemExit:
             pass
         except Exception as ex:
-            log.error("%s failed due to: %s", name, ex, exc_info=1)
+            log.error("%s failed due to: %s", job_name, ex, exc_info=1)
 
     if on_finish:
-        on_finish(stdout, stderr)
+        try:
+            on_finish(stdout, stderr)
+        except Exception as ex:
+            log.error("While ending job: %s", ex, exc_info=1)
     else:
         stdout = stdout.getvalue()
         if stdout:
-            log.info("%s stdout: %s", name, stdout)
+            log.info("%s stdout: %s", job_name, stdout)
 
         stderr = stderr.getvalue()
         if stderr:
-            log.error("s stderr: %s", name, stderr)
+            log.error("s stderr: %s", job_name, stderr)
 
 
 class HyperlinkManager:
@@ -200,9 +202,15 @@ class FlagButton(tk.Button):
         ('false', {'background': 'red'}),
     ])
 
-    def __init__(self, *args, state_opts=None, variable=None, **kwds):
-        kwds['command'] = self.next_state  # Override any user-cmd.
+    def __init__(self, *args, state_opts=None, variable=None, command=None, **kwds):
+        def clicked():
+            self.next_state()
+            if self._orig_command:
+                self._orig_command()
+
+        kwds['command'] = clicked
         super().__init__(*args, **kwds)
+        self._orig_command = command
         self.state_var = variable or tk.Variable()
         self.flag = kwds.get('text', '')
 
@@ -485,7 +493,8 @@ class _MainPanel(tk.Frame):
     def __init__(self, parent, *args, **kwargs):
         tk.Frame.__init__(self, parent, *args, **kwargs)
 
-        self.stop_job = False  # semaphore for the red button.
+        self._stop_job = False  # semaphore for the red button.
+        self._job_thread = None
 
         slider = tk.PanedWindow(self, orient=tk.HORIZONTAL)
         slider.pack(fill=tk.BOTH, expand=1, padx=4, pady=4)
@@ -503,6 +512,8 @@ class _MainPanel(tk.Frame):
         frame.pack(fill=tk.X, expand=1)
 
         main.rowconfigure(0, weight=1)
+
+        self.mediate_panel()
 
     def _make_files_frame(self, parent):
         frame = tk.Frame(parent)
@@ -634,6 +645,7 @@ class _MainPanel(tk.Frame):
         def make_flag(flag):
             flag_name = flag.replace('_', ' ').title()
             btn = FlagButton(flags_frame, text=flag_name,
+                             command=self.mediate_panel,
                              padx=_pad, pady=4 * _pad)
             btn.pack(side=tk.LEFT, ipadx=4 * _pad)
 
@@ -667,27 +679,33 @@ class _MainPanel(tk.Frame):
         run_btns.append(btn)
 
         btn = tk.Button(frame, text="Run",
-                        command=fnt.partial(self._do_run, is_ta=False),
+                        command=fnt.partial(self._do_run_job, is_ta=False),
                         padx=_pad, pady=_pad)
         btn.grid(column=1, row=4, sticky=(tk.N, tk.W, tk.E, tk.S), ipadx=4 * _pad, ipady=4 * _pad)
         run_btns.append(btn)
 
-        btn = tk.Button(frame, text="Run TA", fg="blue",
-                        command=fnt.partial(self._do_run, is_ta=True),
-                        padx=_pad, pady=_pad)
+        self._run_ta_btn = btn = tk.Button(frame,
+                                           text="Run TA", fg="blue",
+                                           command=fnt.partial(self._do_run_job, is_ta=True),
+                                           padx=_pad, pady=_pad)
         btn.grid(column=2, row=4, sticky=(tk.N, tk.W, tk.E, tk.S), ipadx=4 * _pad, ipady=4 * _pad)
         run_btns.append(btn)
 
-        self.run_btns = run_btns
+        self._run_btns = run_btns
 
         with pkg.resource_stream('co2mpas', 'x_button.png') as fd:  # @UndefinedVariable
             img = Image.open(fd)
             photo = ImageTk.PhotoImage(img)
-        btn = tk.Button(frame, image=photo,
-                        command=lambda: setattr(self, 'stop_job', True),
-                        padx=_pad, pady=_pad)
+        self._stop_job_btn = btn = tk.Button(frame,
+                                             image=photo,
+                                             padx=_pad, pady=_pad)
         btn.image = photo  # Avoid GC.
         btn.grid(column=3, row=4, sticky=(tk.N, tk.W, tk.E, tk.S), ipadx=4 * _pad, ipady=4 * _pad)
+
+        def stop_job_clicked():
+            self._stop_job = True
+            btn['relief'] = 'sunken'
+        btn['command'] = stop_job_clicked
 
         self.prgrs_var = tk.IntVar()
         self.prgrs_bar = ttk.Progressbar(frame, orient=tk.HORIZONTAL,
@@ -702,7 +720,22 @@ class _MainPanel(tk.Frame):
 
         return frame
 
-    def set_status(self, msg):
+    def mediate_panel(self, msg=None):
+        """Handler of states for all panel's widgets."""
+        any_flags = any(var.get() for _, var in self.flag_vars)
+        job_alive = bool(self._job_thread)
+
+        self._stop_job_btn['state'] = tk.NORMAL if job_alive else tk.DISABLED
+        if not job_alive:
+            self._stop_job_btn['relief'] = 'raised'
+
+        for btn in self._run_btns:
+            btn['state'] = tk.NORMAL if not job_alive else tk.DISABLED
+        self._run_ta_btn['state'] = tk.NORMAL if not job_alive and not any_flags else tk.DISABLED
+
+        self._set_status(msg)
+
+    def _set_status(self, msg):
         """Overlays a message on the progressbar."""
         status_label = self.status_label
         if msg:
@@ -740,22 +773,19 @@ class _MainPanel(tk.Frame):
 
         return cmd_args
 
-    def _do_run(self, is_ta):
-        func_name = "CO2MPAS-TA" if is_ta else "CO2MPAS"
-        self.stop_job = False
+    def _do_run_job(self, is_ta):
+        job_name = "CO2MPAS-TA" if is_ta else "CO2MPAS"
+        assert self._job_thread is None, self._job_thread
+        self._stop_job = False
 
         cmd_args = self.reconstruct_cmd_args_from_gui(is_ta)
-        log.info('Launching %s command:\n  %s', func_name, cmd_args)
-
-        self.prgrs_bar['maximum'] = len(self.inputs_tree.get_children())
-        self.prgrs_var.set(1)
-        self.set_status('Launched %s command...' % func_name)
+        log.info('Launching %s command:\n  %s', job_name, cmd_args)
 
         maingui = self
 
         class ProgressUpdater:
             """
-            A *tqdm* replacement that cooperates with :func:`python_job` to pump stdout/stderr when iterated.
+            A *tqdm* replacement that cooperates with :func:`run_python_job` to pump stdout/stderr when iterated.
 
             :ivar i:
                 Enumarates progress calls.
@@ -777,12 +807,12 @@ class _MainPanel(tk.Frame):
                 maingui.prgrs_var.set(step + 1)
                 self.pump_streams()
 
-                if maingui.stop_job:
-                    log.warn("Canceled %s command: %s", func_name, cmd_args)
+                if maingui._stop_job:
+                    log.warn("Canceled %s command: %s", job_name, cmd_args)
                     raise StopIteration()
 
                 item = next(self.it)
-                maingui.set_status('%s %i of %i: %r...' % (func_name, step, self.len, item))
+                maingui.mediate_panel('%s %i of %i: %r...' % (job_name, step, self.len, item))
 
                 return item
 
@@ -791,12 +821,12 @@ class _MainPanel(tk.Frame):
                 new_out = self.stdout.getvalue()[self.out_i:]
                 if new_out:
                     self.out_i += len(new_out)
-                    log.info("%s stdout(%i): %s", func_name, i, new_out)
+                    log.info("%s stdout(%i): %s", job_name, i, new_out)
 
                 new_err = self.stderr.getvalue()[self.err_i:]
                 if new_err:
                     self.err_i += len(new_err)
-                    log.info("%s stderr(%i): %s", func_name, i, new_err)
+                    log.info("%s stderr(%i): %s", job_name, i, new_err)
 
             def tqdm_replacement(self, iterable, *args, **kwds):
                 #maingui.prgrs_var.set(1)  Already set to 1.
@@ -807,29 +837,28 @@ class _MainPanel(tk.Frame):
                 return self
 
             def on_finish(self, out, err):
-                log.info('Finished %s command:\n  %s', func_name, cmd_args)
-                for btn in maingui.run_btns:
-                    btn['state'] = tk.NORMAL
+                maingui._job_thread = None
+                log.info('Finished %s command:\n  %s', job_name, cmd_args)
                 maingui.prgrs_var.set(0)
-                maingui.set_status('')
+                maingui.mediate_panel()
 
         ## Monkeypatch *tqdm* on co2mpas-batcher.
         #
         updater = ProgressUpdater()
         co2mpas_batch._custom_tqdm = updater.tqdm_replacement
 
-        t = Thread(target=python_job,
-                   args=(co2mpas_main, cmd_args, func_name,
-                         updater.stdout, updater.stderr,
-                         updater.on_finish),
-                   daemon=False)
-
-        ## Keep buttons enabled as long as possible,
-        #  in case of errors above, the UI to remain responsive.
-        #
-        for btn in self.run_btns:
-            btn['state'] = tk.DISABLED
+        self._job_thread = t = Thread(
+            target=run_python_job,
+            args=(co2mpas_main, cmd_args, job_name,
+                  updater.stdout, updater.stderr,
+                  updater.on_finish),
+            daemon=False,  # To ensure co2mpas do not corrupt output-files.
+        )
         t.start()
+
+        self.prgrs_bar['maximum'] = len(self.inputs_tree.get_children())
+        self.prgrs_var.set(1)
+        self.mediate_panel('Launched %s command...' % job_name)
 
 
 class TkUI(object):
