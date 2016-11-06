@@ -37,7 +37,6 @@ Layout::
 ## TODO: 5-Nov-2016
 #  - Fix co2mpas's main() init-sequence with new GUI instead of *easyguis*.
 #  - Make labels as hyperlinks or use ballons.
-#  - Initial dir from textfields.
 #
 ## Help (apart from PY-site):
 #  - http://effbot.org/tkinterbook/tkinter-index.htm
@@ -70,6 +69,7 @@ from co2mpas.__main__ import init_logging, _main as co2mpas_main, __doc__ as mai
 import co2mpas.batch as co2mpas_batch
 from co2mpas.utils import stds_redirected
 import functools as fnt
+import os.path as osp
 import pkg_resources as pkg
 import tkinter as tk
 
@@ -105,6 +105,16 @@ def open_file_with_os(fpath):
             putils.open_file_with_os(fpath.strip())
         except Exception as ex:
             log.error("Failed opening %r due to: %s", fpath, ex)
+
+
+def find_longest_valid_dir(path, default=None):
+    while path and not osp.isdir(path):
+        path = osp.dirname(path)
+
+    if not path:
+        path = default
+
+    return path
 
 
 def get_file_infos(fpath):
@@ -590,7 +600,6 @@ class _MainPanel(tk.Frame):
         def ask_input_files():
             files = tk.filedialog.askopenfilenames(
                 title='Select CO2MPAS Input file(s)',
-                initialdir=os.getcwd(),
                 multiple=True,
                 filetypes=(('Excel files', '.xlsx .xlsm'),
                            ('All files', '*'),
@@ -608,8 +617,7 @@ class _MainPanel(tk.Frame):
 
         def ask_input_folder():
             folder = tk.filedialog.askdirectory(
-                title='Select CO2MPAS Input folder',
-                initialdir=os.getcwd())
+                title='Select CO2MPAS Input folder')
             if folder:
                 try:
                     finfos = get_file_infos(folder)
@@ -653,7 +661,8 @@ class _MainPanel(tk.Frame):
         entry = ttk.Entry(frame, textvariable=var)
 
         def ask_output_folder():
-            folder = tk.filedialog.askdirectory(title="Select %s" % title)
+            initialdir = find_longest_valid_dir(var.get().strip())
+            folder = tk.filedialog.askdirectory(title="Select %s" % title, initialdir=initialdir)
             if folder:
                 var.set(folder + '/')
 
@@ -672,9 +681,10 @@ class _MainPanel(tk.Frame):
         entry = ttk.Entry(parent, textvariable=var)
 
         def ask_template_file():
+            initialdir = find_longest_valid_dir(var.get().strip())
             file = tk.filedialog.askopenfilename(
                 title='Select %s' % title,
-                initialdir=os.getcwd(),
+                initialdir=initialdir,
                 filetypes=(('Excel files', '.xlsx .xlsm'),
                            ('All files', '*'),
                            ))
