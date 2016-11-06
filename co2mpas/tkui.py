@@ -712,29 +712,29 @@ class _MainPanel(tk.Frame):
         btn = tk.Button(frame, text="Help", fg="green",
                         command=fnt.partial(log.info, '%s', main_help_doc),
                         padx=_pad, pady=_pad)
-        btn.grid(column=0, row=4, sticky=(tk.N, tk.W, tk.E, tk.S), ipadx=4 * _pad, ipady=4 * _pad)
+        btn.grid(column=0, row=4, sticky=(tk.N, tk.W, tk.E, tk.S))
         run_btns.append(btn)
 
         btn = tk.Button(frame, text="Run",
                         command=fnt.partial(self._do_run_job, is_ta=False),
                         padx=_pad, pady=_pad)
-        add_icon(btn, 'icons/play-olive-48.png')
-        btn.grid(column=1, row=4, sticky=(tk.N, tk.W, tk.E, tk.S), ipadx=4 * _pad, ipady=4 * _pad)
+        add_icon(btn, 'icons/play-olive-32.png')
+        btn.grid(column=1, row=4, sticky=(tk.N, tk.W, tk.E, tk.S))
         run_btns.append(btn)
 
         self._run_ta_btn = btn = tk.Button(frame,
                                            text="Run TA", fg="orange",
                                            command=fnt.partial(self._do_run_job, is_ta=True),
                                            padx=_pad, pady=_pad)
-        add_icon(btn, 'icons/play_doc-orange-48.png ')
-        btn.grid(column=2, row=4, sticky=(tk.N, tk.W, tk.E, tk.S), ipadx=4 * _pad, ipady=4 * _pad)
+        add_icon(btn, 'icons/play_doc-orange-32.png ')
+        btn.grid(column=2, row=4, sticky=(tk.N, tk.W, tk.E, tk.S))
         run_btns.append(btn)
 
         self._run_btns = run_btns
 
         self._stop_job_btn = btn = tk.Button(frame, text="Stop", padx=_pad, pady=_pad)
-        add_icon(btn, 'icons/stop-red-48.png')
-        btn.grid(column=3, row=4, sticky=(tk.N, tk.W, tk.E, tk.S), ipadx=4 * _pad, ipady=4 * _pad)
+        add_icon(btn, 'icons/hand-red-32.png')
+        btn.grid(column=3, row=4, sticky=(tk.N, tk.W, tk.E, tk.S))
 
         def stop_job_clicked():
             self._stop_job = True
