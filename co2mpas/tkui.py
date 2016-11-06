@@ -694,7 +694,7 @@ class _MainPanel(tk.Frame):
         return cmd_args
 
     def _do_run(self, is_ta):
-        func_name = "CO2MPAS" if is_ta else "CO2MPAS-TA"
+        func_name = "CO2MPAS-TA" if is_ta else "CO2MPAS"
         self.stop_job = False
 
         cmd_args = self.reconstruct_cmd_args_from_gui(is_ta)
@@ -775,8 +775,7 @@ class _MainPanel(tk.Frame):
                    args=(co2mpas_main, cmd_args, func_name,
                          updater.stdout, updater.stderr,
                          updater.on_finish),
-                   daemon=True)
-        assert t.daemon
+                   daemon=False)
 
         ## Keep buttons enabled as long as possible,
         #  in case of errors above, the UI to remain responsive.
