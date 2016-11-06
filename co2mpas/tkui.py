@@ -19,6 +19,10 @@
 #  - Icons moved to `./icons` folder from:
 #    - http://www.iconsdb.com/red-icons/red-play-icons.html
 #    - https://material.io/icons/#
+#
+# Help (apart from PY-site):
+#  - http://effbot.org/tkinterbook/tkinter-index.htm
+#  - http://infohost.nmt.edu/tcc/help/pubs/tkinter/web/index.html
 """
 The launching GUI formCO2MPAS.
 
@@ -487,7 +491,7 @@ class _MainPanel(tk.Frame):
         tree = ttk.Treeview(parent)
         columns = (
             ('#0', {
-                'text': 'Filename',
+                'text': 'Filepath',
                 'anchor': tk.W,
                 'stretch': True,
                 'minwidth': 96,
@@ -499,7 +503,7 @@ class _MainPanel(tk.Frame):
         tree_apply_columns(tree, columns)
 
         def ask_input_files():
-            files = tix.filedialog.askopenfilenames(
+            files = tk.filedialog.askopenfilenames(
                 title='Select CO2MPAS Input file(s)',
                 initialdir=os.getcwd(),
                 multiple=True,
@@ -514,7 +518,7 @@ class _MainPanel(tk.Frame):
                     log.warning("Cannot add input file %r due to: %s", fpath, ex)
 
         def ask_input_folder():
-            folder = tix.filedialog.askdirectory(
+            folder = tk.filedialog.askdirectory(
                 title='Select CO2MPAS Input folder',
                 initialdir=os.getcwd())
             if folder:
@@ -545,7 +549,7 @@ class _MainPanel(tk.Frame):
         entry = ttk.Entry(frame, textvariable=var)
 
         def ask_output_folder():
-            folder = tix.filedialog.askdirectory(title="Select %s" % title)
+            folder = tk.filedialog.askdirectory(title="Select %s" % title)
             if folder:
                 var.set(folder +'/')
 
@@ -561,7 +565,7 @@ class _MainPanel(tk.Frame):
         entry = ttk.Entry(parent, textvariable=var)
 
         def ask_template_file():
-            file = tix.filedialog.askopenfilename(
+            file = tk.filedialog.askopenfilename(
                 title='Select %s' % title,
                 initialdir=os.getcwd(),
                 filetypes=(('Excel files', '.xlsx .xlsm'),
