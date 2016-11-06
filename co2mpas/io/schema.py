@@ -21,7 +21,7 @@ import pprint
 import co2mpas.dispatcher.utils as dsp_utl
 from . import validations
 from . import excel
-import cachetools
+import functools
 from co2mpas.model.physical.gear_box.at_gear import CMV, MVL, GSPV
 from co2mpas.model.physical.clutch_tc.clutch import ClutchModel
 from co2mpas.model.physical.clutch_tc.torque_converter import TorqueConverter
@@ -261,7 +261,7 @@ def _eval(s, error=None, **kwargs):
 
 # noinspection PyUnusedLocal
 def _dict(format=None, error=None, read=True, **kwargs):
-    format = format or {int: float}
+    format = And(dict, format or {int: float})
     error = error or 'should be a dict with this format {}!'.format(format)
     c = Use(lambda x: {k: v for k, v in dict(x).items() if v is not None})
     if read:
@@ -315,7 +315,7 @@ def _index_dict(error=None, **kwargs):
     def f(x):
         return {k: v for k, v in enumerate(x, start=1)}
 
-    return Or(c, And(_dict(), c), And(_type(), Use(f), c), error=error)
+    return Or(c, _dict(c), And(_type(), Use(f), And(dict, c)), error=error)
 
 
 # noinspection PyUnusedLocal
@@ -448,7 +448,7 @@ def _dir(error=None, **kwargs):
     return And(_string(), Schema(osp.isdir, error=er), error=error)
 
 
-@cachetools.cached({})
+@functools.lru_cache(None)
 def define_data_schema(read=True):
     cmv = _cmv(read=read)
     dtc = _dtc(read=read)
@@ -711,7 +711,7 @@ def define_data_schema(read=True):
     return Schema(schema)
 
 
-@cachetools.cached({})
+@functools.lru_cache(None)
 def define_flags_schema(read=True):
     string = _string(read=read)
     isfile = _file(read=read)

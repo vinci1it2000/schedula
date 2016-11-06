@@ -168,7 +168,7 @@ setup(
         'scikit-learn',
         'numpy',
         'scipy',
-        'lmfit==0.9.2',
+        'lmfit',
         'matplotlib',
         'networkx',
         'dill',
@@ -180,7 +180,7 @@ setup(
         'mpld3',
         'pandalone>=0.2.0', ## For datasync pascha-fixes and openpyxl version.
         'regex',
-        'schema==0.4.0',
+        'schema',
         'tqdm',
         'PyYAML>=3.12',
         'cycler',
@@ -188,7 +188,6 @@ setup(
         'boltons',
         'pykalman',
         'wltp',
-        'cachetools',  # TODO: remove
         'openpyxl>=2.4.0'
     ],
     extras_require={

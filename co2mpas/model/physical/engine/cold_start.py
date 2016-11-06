@@ -80,10 +80,10 @@ def _calibrate_css_model(target, *args, x0=None, ind=0):
     def _err(x):
         return mean_abs_error(target, _css_model(*args, **x.valuesdict()))
 
-    from .co2_emission import calibrate_model_params
+    from .co2_emission import calibrate_model_params, _set_attr
     p = calibrate_model_params(_err, x0)[0]
-
-    p['ds'].set(value=_correct_ds_css(p['temp_limit'].min, **p.valuesdict()))
+    d = {'ds': _correct_ds_css(p['temp_limit'].min, **p.valuesdict())}
+    _set_attr(p, d, attr='value')
 
     return round(_err(p)), ind, functools.partial(_css_model, **p.valuesdict())
 
@@ -118,11 +118,12 @@ def _calibrate_models(delta, temp, speeds_hot, on_eng, idle, phases):
 
     p.add('ds', 0, min=0)
     p.add('m', 0, min=0)
+    from .co2_emission import _set_attr
     for t in _identify_temp_limit(delta, temp):
-        p['temp_limit'].set(value=t)
+        _set_attr(p, {'temp_limit': t}, attr='value')
         ds_max = ds[temp <= t].max()
         if ds_max > 0:
-            p['ds'].set(max=ds_max)
+            _set_attr(p, {'ds': ds_max}, attr='max')
             best = min(func(x0=p, ind=ind()), best)
 
     return best[-1]
