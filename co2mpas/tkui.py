@@ -294,7 +294,7 @@ class LogPanel(tk.LabelFrame):
             raise RuntimeError("I said instantiate me only ONCE!!!")
         LogPanel.inited = True
 
-        tk.LabelFrame.__init__(self, master=master, cnf=cnf, **kw)
+        super().__init__(master=master, cnf=cnf, **kw)
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
@@ -520,10 +520,7 @@ class _MainPanel(tk.Frame):
         self._stop_job = False  # semaphore for the red button.
         self._job_thread = None
 
-        slider = tk.PanedWindow(self, orient=tk.HORIZONTAL)
-        slider.pack(fill=tk.BOTH, expand=1, padx=4, pady=4)
-
-        main = tk.Frame(slider, **_sunken)
+        main = tk.Frame(self, **_sunken)
         main.pack(fill=tk.BOTH, expand=1)
 
         frame = self._make_files_frame(main)
@@ -658,7 +655,7 @@ class _MainPanel(tk.Frame):
         def ask_output_folder():
             folder = tk.filedialog.askdirectory(title="Select %s" % title)
             if folder:
-                var.set(folder +'/')
+                var.set(folder + '/')
 
         btn = ttk.Button(frame, command=ask_output_folder)
         add_icon(btn, 'icons/add_folder-olive-32.png')
@@ -718,7 +715,7 @@ class _MainPanel(tk.Frame):
 
         self.extra_opts_var = StringVar()
         entry = ttk.Entry(frame, textvariable=self.extra_opts_var)
-        entry.pack(fill=tk.X, expand=1)
+        entry.pack(fill=tk.X, expand=1, ipady=2 * _pad)
 
         return frame
 
@@ -930,17 +927,14 @@ class TkUI(object):
         menubar.add_command(label="About %r" % app_name, command=self._do_about,)
         root['menu'] = menubar
 
-        self.master = master = tk.PanedWindow(root, orient=tk.VERTICAL)
+        self.master = master = tk.PanedWindow(root, orient=tk.VERTICAL, handlepad=16)
         self.master.pack(fill=tk.BOTH, expand=1)
 
-        experiment_frame = tk.Frame()
-        master.add(experiment_frame)
-
-        self.model_panel = _MainPanel(experiment_frame)
-        self.model_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
+        self.model_panel = _MainPanel(self.master)
+        master.add(self.model_panel, minsize=560)
 
         self.log_panel = LogPanel(master)
-        master.add(self.log_panel, height=240)
+        master.add(self.log_panel, minsize=60)
 
         s = ttk.Sizegrip(root)
         s.pack(side=tk.RIGHT)
