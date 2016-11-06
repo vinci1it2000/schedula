@@ -5,22 +5,6 @@
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
-
-## TODO: 5-Nov-2016
-#  - Fix co2mpas's main() init-sequence with new GUI instead of *easyguis*.
-#  - Make labels as hyperlinks or use ballons.
-#  - Add folder/files icons in tree.
-#  - Initial dir from textfields.
-#  - Use input-file as template.
-#  - Double-click open files.
-#  - Icons moved to `./icons` folder from:
-#    - http://www.iconsdb.com/red-icons/red-play-icons.html
-#    - https://material.io/icons/#
-#
-# Help (apart from PY-site):
-#  - http://effbot.org/tkinterbook/tkinter-index.htm
-#  - http://www.tkdocs.com/
-#  - http://infohost.nmt.edu/tcc/help/pubs/tkinter/web/index.html
 """
 The launching GUI formCO2MPAS.
 
@@ -50,11 +34,26 @@ Layout::
     #####################################################
 
 """
+## TODO: 5-Nov-2016
+#  - Fix co2mpas's main() init-sequence with new GUI instead of *easyguis*.
+#  - Make labels as hyperlinks or use ballons.
+#  - Initial dir from textfields.
+#
+## Help (apart from PY-site):
+#  - http://effbot.org/tkinterbook/tkinter-index.htm
+#  - http://www.tkdocs.com/
+#  - http://infohost.nmt.edu/tcc/help/pubs/tkinter/web/index.html
+
+## Icons from:
+#    - http://www.iconsdb.com/red-icons/red-play-icons.html
+#    - https://material.io/icons/#
+
 from collections import Counter, OrderedDict
 import datetime
 import io
 import logging
 import os
+from pandalone import utils as putils
 import re
 import sys
 from textwrap import dedent
@@ -99,16 +98,13 @@ def labelize_str(s):
     return s.title()
 
 
-def tree_apply_columns(tree, columns):
-    tree['columns'] = tuple(c for c, _ in columns if not c.startswith('#'))
-    for c, col_kwds in columns:
-
-        h_col_kwds = dtz.keyfilter((lambda k: k in set('text image anchor command'.split())), col_kwds)
-        text = h_col_kwds.pop('text', c.title())
-        tree.heading(c, text=text, **h_col_kwds)
-
-        c_col_kwds = dtz.keyfilter((lambda k: k in set('anchor minwidth stretch width'.split())), col_kwds)
-        tree.column(c, **c_col_kwds)
+def open_file_with_os(fpath):
+    if fpath.strip():
+        log.info("Opening file %r...", fpath)
+        try:
+            putils.open_file_with_os(fpath.strip())
+        except Exception as ex:
+            log.error("Failed opening %r due to: %s", fpath, ex)
 
 
 def get_file_infos(fpath):
@@ -159,6 +155,18 @@ def add_icon(btn, icon_path):
     btn.image = image  # Avoid GC.
     if btn['text']:
         btn['compound'] = tk.TOP
+
+
+def tree_apply_columns(tree, columns):
+    tree['columns'] = tuple(c for c, _ in columns if not c.startswith('#'))
+    for c, col_kwds in columns:
+
+        h_col_kwds = dtz.keyfilter((lambda k: k in set('text image anchor command'.split())), col_kwds)
+        text = h_col_kwds.pop('text', c.title())
+        tree.heading(c, text=text, **h_col_kwds)
+
+        c_col_kwds = dtz.keyfilter((lambda k: k in set('anchor minwidth stretch width'.split())), col_kwds)
+        tree.column(c, **c_col_kwds)
 
 
 class HyperlinkManager:
@@ -408,19 +416,19 @@ class LogPanel(tk.LabelFrame):
 
         # Popup menu
         #
-        self.log_popup = tk.Menu(target, tearoff=0)
-        self.log_popup.add_cascade(label="Log threshold", menu=threshold_menu)
-        self.log_popup.add_cascade(label="Filter levels", menu=filters_menu)
-        self.log_popup.add_checkbutton(
+        popup = tk.Menu(target, tearoff=0)
+        popup.add_cascade(label="Log threshold", menu=threshold_menu)
+        popup.add_cascade(label="Filter levels", menu=filters_menu)
+        popup.add_checkbutton(
             label="Wrap lines", command=self.toggle_text_wrapped)
-        self.log_popup.add_separator()
-        self.log_popup.add_command(label="Save as...", command=self.save_log)
-        self.log_popup.add_separator()
-        self.log_popup.add_command(label="Clear logs", command=self.clear_log)
+        popup.add_separator()
+        popup.add_command(label="Save as...", command=self.save_log)
+        popup.add_separator()
+        popup.add_command(label="Clear logs", command=self.clear_log)
 
-        def popup(event):
-            self.log_popup.post(event.x_root, event.y_root)
-        target.bind("<Button-3>", popup)
+        def do_popup(event):
+            popup.post(event.x_root, event.y_root)
+        target.bind("<Button-3>", do_popup)
 
     def _apply_filters(self):
         for level_var in self._filter_vars:
@@ -629,9 +637,14 @@ class _MainPanel(tk.Frame):
         def tree_selection_changed(ev):
             del_btn['state'] = tk.NORMAL if tree.selection() else tk.DISABLED
 
+        def on_double_click(ev):
+            item = tree.identify('item', ev.x, ev.y)
+            open_file_with_os(item)
+
         tree.bind("<Key>", del_input_file)
         del_btn['command'] = del_input_file
         tree.bind('<<TreeviewSelect>>', tree_selection_changed)
+        tree.bind("<Double-1>", on_double_click)
 
         return (inp_label, tree, files_btn, folder_btn, del_btn)
 
@@ -649,6 +662,8 @@ class _MainPanel(tk.Frame):
 
         btn = ttk.Button(frame, command=ask_output_folder)
         add_icon(btn, 'icons/add_folder-olive-32.png')
+
+        entry.bind("<Double-1>", lambda ev: open_file_with_os(var.get()))
 
         return label, entry, btn, var
 
@@ -671,6 +686,7 @@ class _MainPanel(tk.Frame):
 
         btn = ttk.Button(parent, command=ask_template_file)
         add_icon(btn, 'icons/add_file-olive-32.png')
+        entry.bind("<Double-1>", lambda ev: open_file_with_os(var.get()))
 
         return label, entry, btn, var
 
