@@ -489,6 +489,7 @@ def _run_batch(opts, **kwargs):
     kw = {
         'variation': parse_overrides(opts['--override']),
         'overwrite_cache': opts['--overwrite-cache'],
+        'modelconf': opts['--modelconf']
     }
     kw.update(kwargs)
 

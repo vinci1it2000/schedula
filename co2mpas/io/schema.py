@@ -722,6 +722,7 @@ def define_flags_schema(read=True):
     schema = {
         _compare_str('input_version'): string,
         _compare_str('ta_certificate_number'): string,
+        _compare_str('modelconf'): isfile,
 
         _compare_str('soft_validation'): _bool,
         _compare_str('use_selector'): _bool,

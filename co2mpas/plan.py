@@ -22,7 +22,7 @@ log = logging.getLogger(__name__)
 
 @functools.lru_cache(256)
 def get_results(model, overwrite_cache, fpath, timestamp, run=True,
-                json_var='{}', output_folder=None):
+                json_var='{}', output_folder=None, modelconf=None):
 
     if run:
         ext = ('base', '_v%sv_' % dsp_utl.drw._encode_file_name(json_var))
@@ -43,6 +43,7 @@ def get_results(model, overwrite_cache, fpath, timestamp, run=True,
             'overwrite_cache': overwrite_cache,
             'variation': variation,
             'output_folder': output_folder,
+            'modelconf': modelconf
         },
         select_output_kw={'keys': ('solution',), 'output_type': 'values'}
     )
@@ -106,11 +107,12 @@ def make_simulation_plan(plan, timestamp, variation, flag, model=None):
 
     var = json.dumps(variation, sort_keys=True)
     o_cache, o_folder = flag['overwrite_cache'], flag['output_folder']
+    modelconf = flag['modelconf']
     kw, bases = dsp_utl.combine_dicts(flag, {'run_base': True}), set()
     for (i, base_fpath, run), p in tqdm.tqdm(plan, disable=False):
         try:
             base = get_results(model, o_cache, base_fpath, timestamp, run, var,
-                               o_folder)
+                               o_folder, modelconf)
         except KeyError:
             log.warn('Base model "%s" of variation "%s" cannot be parsed!',
                      base_fpath, i)
@@ -125,7 +127,7 @@ def make_simulation_plan(plan, timestamp, variation, flag, model=None):
 
         new_base, o = define_new_inputs(p, base)
         inputs = batch.prepare_data(new_base, {}, base_fpath, o_cache, o_folder,
-                                    timestamp, False)[0]
+                                    timestamp, False, modelconf)[0]
         inputs.update(dsp_utl.selector(set(base).difference(run_modes), base))
         inputs['vehicle_name'] = name
         inputs.update(kw)
