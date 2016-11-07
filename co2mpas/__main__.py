@@ -60,7 +60,6 @@ Model flags (-D flag.xxx, example -D flag.engineering_mode=True):
  engineering_mode=<bool>     Use all data and not only the declaration data.
  soft_validation=<bool>      Soft validation (just schema).
  run_base=<bool>             Enable/disable the `run_base` model.
- run_plan=<bool>             Enable/disable the `run_plan` model.
  use_selector=<bool>         Enable/disable the selection of the best model.
  only_summary=<bool>         Do not save vehicle outputs, just the summary.
  plot_workflow=<bool>        Open workflow-plot in browser, after run finished.
@@ -110,22 +109,30 @@ EXAMPLES::
 
     # Don't enter lines starting with `#`.
 
-    # Create work folders and then fill `input` with sample-vehicles:
-    md input output
-    co2mpas  demo  input
-
-    # or specify them with workflow plot:
-    co2mpas  batch  input  -O output  -D plot_workflow=True
+    # View full version specs:
+    co2mpas -vV
 
     # Create an empty vehicle-file inside `input` folder:
     co2mpas  template  input/vehicle_1.xlsx
 
+    # Create work folders and then fill `input` with sample-vehicles:
+    md input output
+    co2mpas  demo  input
+
     # View a specific submodel on your browser:
     co2mpas  modelgraph  co2mpas.model.physical.wheels.wheels
 
-    # View full version specs:
-    co2mpas -vV
+    # Run co2mpas with batch cmd plotting the workflow:
+    co2mpas  batch  input  -O output  -D flag.plot_workflow=True
 
+    # Run co2mpas with ta cmd:
+    co2mpas  batch  input/co2mpas_demo-0.xlsx  -O output
+
+    # or launch the co2mpas GUI:
+    co2mpas  gui
+
+    # View all model defaults in yaml format:
+    co2maps modelconf -O output
 """
 
 from co2mpas import (__version__ as proj_ver, __file__ as proj_file,
