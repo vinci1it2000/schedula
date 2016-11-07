@@ -6,6 +6,7 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
+import logging
 import unittest
 
 import ddt
@@ -13,7 +14,8 @@ import ddt
 from co2mpas import plot as co2plot
 from co2mpas.__main__ import init_logging
 
-init_logging(True)
+
+init_logging(level=logging.DEBUG)
 
 
 @ddt.ddt

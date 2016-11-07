@@ -19,7 +19,8 @@ import os.path as osp
 import pandas as pd
 from pandalone import xleash
 
-cmain.init_logging(False)
+cmain.init_logging(level=logging.WARNING)
+
 log = logging.getLogger(__name__)
 
 mydir = osp.dirname(__file__)

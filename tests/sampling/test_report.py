@@ -22,7 +22,7 @@ import os.path as osp
 import pandas as pd
 
 
-init_logging(True)
+init_logging(level=logging.DEBUG)
 
 log = logging.getLogger(__name__)
 

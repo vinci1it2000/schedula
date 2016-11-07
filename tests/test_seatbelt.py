@@ -43,7 +43,7 @@ EPS = 2 * sys.float_info.epsilon
 # NOTE: Do not commit it as none-zer0
 DATA_DIFF_RATIO = 0 # 2 * EPS
 
-init_logging(False)
+init_logging(level=logging.WARNING)
 #logging.getLogger('pandalone.xleash').setLevel(logging.INFO)
 log = logging.getLogger(__name__)
 

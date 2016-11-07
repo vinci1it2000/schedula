@@ -164,7 +164,8 @@ warnings.filterwarnings(
     action="ignore", module="openpyxl", message="^Unknown extension"
 )
 
-def init_logging(verbose, quite=False, frmt=None, logconf_file=None):
+
+def init_logging(level=None, frmt=None, logconf_file=None):
     if logconf_file:
         if osp.splitext(logconf_file)[1] in '.yaml' or '.yml':
             with io.open(logconf_file) as fd:
@@ -173,11 +174,7 @@ def init_logging(verbose, quite=False, frmt=None, logconf_file=None):
         else:
             logging.config.fileConfig(logconf_file)
     else:
-        if verbose:
-            level = logging.DEBUG
-        elif quite:
-            level = logging.WARNING
-        else:  # Verbose: None
+        if level is None:
             level = logging.INFO
         if not frmt:
             frmt = "%(asctime)-15s:%(levelname)5.5s:%(name)s:%(message)s"
@@ -529,7 +526,15 @@ def _main(*args):
     opts = docopt.docopt(__doc__, argv=args or sys.argv[1:])
 
     verbose = opts['--verbose']
-    init_logging(verbose, opts['--quite'], logconf_file=opts.get('--logconf'))
+    quiet = opts['--quite']
+    assert not (verbose and quiet), "Specify one of `verbose` and `quiet` as true!"
+    level = None  # Let `init_logging()` decide.
+    if verbose:
+        level = logging.DEBUG
+    if quiet:
+        level = logging.WARNING
+    init_logging(level=level, logconf_file=opts.get('--logconf'))
+    
     if opts['--version']:
         v = build_version_string(verbose)
         # noinspection PyBroadException

@@ -1045,7 +1045,7 @@ class TkUI(object):
 
 
 def main():
-    init_logging(verbose=None)
+    init_logging(level=None)
     app = TkUI()
     app.mainloop()
 

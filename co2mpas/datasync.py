@@ -656,7 +656,14 @@ def main(*args):
     opts = docopt.docopt(__doc__, argv=args or sys.argv[1:])
 
     verbose = opts['--verbose']
-    init_logging(verbose, opts['--quite'], logconf_file=opts.get('--logconf'))
+    quiet = opts['--quite']
+    level = None  # Let `init_logging()` decide.
+    if verbose:
+        level = logging.DEBUG
+    if quiet:
+        level = logging.WARNING
+    init_logging(level=level, logconf_file=opts.get('--logconf'))
+    
     if opts['--version']:
         v = build_version_string(verbose)
         # noinspection PyBroadException

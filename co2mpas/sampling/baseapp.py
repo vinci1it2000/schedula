@@ -360,19 +360,7 @@ class Cmd(trtc.Application):
         if isinstance(log_level, str):
             log_level = getattr(logging, log_level)
 
-        import transitions
-
-        if log_level <= logging.DEBUG:
-            verbose = True
-            transitions.logger.level = logging.DEBUG
-        elif log_level == logging.INFO:
-            verbose = None
-            ## FSM logs annoyingly high.
-            transitions.logger.level = logging.WARNING
-        else:
-            verbose = False
-            transitions.logger.level = logging.WARNING
-        init_logging(verbose=verbose)
+        init_logging(level=log_level)
 
     def __init__(self, **kwds):
         cls = type(self)

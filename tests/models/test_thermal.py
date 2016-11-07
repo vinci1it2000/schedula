@@ -5,6 +5,7 @@ Run TC with env-var CO2MPAS_DATA_FOLDER pointing your `co2pas-data.git` project.
 # from co2mpas.__main__ import init_logging
 # import tempfile
 # import unittest
+# import logging
 #
 # import functools as ft
 #
@@ -14,7 +15,7 @@ Run TC with env-var CO2MPAS_DATA_FOLDER pointing your `co2pas-data.git` project.
 # DATA_VERSION = '1'
 # DATA_SUBFOLDER = 'thermal'
 #
-# init_logging(False)
+# init_logging(level=logging.WARNING)
 # #logging.getLogger('pandalone.xleash').setLevel(logging.INFO)
 #
 # class TThermal(unittest.TestCase):

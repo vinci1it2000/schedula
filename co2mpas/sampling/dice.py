@@ -515,12 +515,12 @@ def run_cmd(cmd: Cmd, argv: Sequence[Text]=None):
         else:
             print(res)
 
-def main(argv=None, verbose=None, **app_init_kwds):
+def main(argv=None, log_level=None, **app_init_kwds):
     """
     :param argv:
         If `None`, use :data:`sys.argv`; use ``[]`` to explicitely use no-args.
     """
-    init_logging(verbose)
+    init_logging(level=log_level)
     try:
         ##MainCmd.launch_instance(argv or None, **app_init_kwds) ## NO No, does not return `start()`!
         app = MainCmd.instance(**app_init_kwds)
@@ -564,7 +564,7 @@ if __name__ == '__main__':
     #argv = 'project add one'.split()
 
     # Invoked from IDEs, so enable debug-logging.
-    main(argv, verbose=True)
+    main(argv, log_level=logging.DEBUG)
 
     #from traitlets.config import trtc.get_config
 

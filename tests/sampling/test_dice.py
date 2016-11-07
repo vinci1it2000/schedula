@@ -26,7 +26,7 @@ from co2mpas.sampling import baseapp, dice, project
 import os.path as osp
 
 
-init_logging(True)
+init_logging(level=logging.DEBUG)
 
 log = logging.getLogger(__name__)
 
