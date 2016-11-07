@@ -145,6 +145,7 @@ import shutil
 import sys
 import docopt
 import yaml
+import warnings
 
 
 class CmdException(Exception):
@@ -155,7 +156,13 @@ proj_name = 'co2mpas'
 
 log = logging.getLogger('co2mpas_main')
 logging.getLogger('pandalone.xleash.io').setLevel(logging.WARNING)
+warnings.filterwarnings(
+    action="ignore", module="scipy", message="^internal gelsd"
+)
 
+warnings.filterwarnings(
+    action="ignore", module="openpyxl", message="^Unknown extension"
+)
 
 def init_logging(verbose, quite=False, frmt=None, logconf_file=None):
     if logconf_file:
@@ -427,19 +434,19 @@ def file_finder(xlsx_fpaths, file_ext='*.xlsx'):
     return [f for f in sorted(files) if _input_file_regex.match(osp.basename(f))]
 
 
-_re_override = re.compile(r"^\s*([^=]+)\s*[:=]\s*(.*?)\s*$")
+_re_override = re.compile(r"^\s*([^=]+)\s*=\s*(.*?)\s*$")
 
 
-def parse_overrides(override):
+def parse_overrides(override, option_name='--override'):
     res = {}
     for ov in override:
         m = _re_override.match(ov)
         if not m:
-            raise CmdException('Wrong --override format %r! ' % ov)
+            raise CmdException('Wrong %s format %r! ' % (option_name, ov))
 
         k, v = m.groups()
         if k in res:
-            raise CmdException('Duplicated --override key %r!' % k)
+            raise CmdException('Duplicated %s key %r!' % (option_name, k))
         res[k] = v
 
     return res
@@ -489,6 +496,7 @@ def _run_batch(opts, **kwargs):
     kw = {
         'variation': parse_overrides(opts['--override']),
         'overwrite_cache': opts['--overwrite-cache'],
+        'modelconf': opts['--modelconf']
     }
     kw.update(kwargs)
 

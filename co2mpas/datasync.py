@@ -13,7 +13,7 @@ Usage:
   datasync          [-v | -q | --logconf=<conf-file>] [--force | -f]
                     [--interp <method>] [--no-clone] [--prefix-cols]
                     [-O <output>] <x-label> <y-label> <ref-table>
-                    [<sync-table> ...]
+                    [<sync-table> ...] [-i=<label=interp> ...]
   datasync          [-v | -q | --logconf=<conf-file>] (--version | -V)
   datasync          (--interp-methods | -l)
   datasync          --help
@@ -57,8 +57,8 @@ Options:
                          prefixed.
   --no-clone             Do not clone excel-sheets contained in <ref-table>
                          workbook into output.
-  --interp=<method>      Interpolation method used in the resampling
-                         [default: linear]: 'linear', 'nearest', 'zero',
+  --interp=<method>      Interpolation method used in the resampling for all
+                         signals [default: linear]: 'linear', 'nearest', 'zero',
                          'slinear', 'quadratic', 'cubic', 'barycentric',
                          'polynomial', 'spline' is passed to
                          scipy.interpolate.interp1d. Both 'polynomial' and
@@ -68,6 +68,9 @@ Options:
                          are all wrappers around the scipy interpolation methods
                          of similar names.
                          'integral' is respect the signal integral.
+  -i=<label=interp>      Interpolation method used in the resampling for a
+                         signal with a specific label
+                         (e.g., `-i alternator_currents=integral`).
   -l, --interp-methods   List of all interpolation methods that can be used in
                          the resampling.
   --cycle=<cycle>        If set (e.g., --cycle=nedc.manual), the <ref-table> is
@@ -118,13 +121,14 @@ Examples::
     ## Typical usage for CO2MPAS velocity time-series from Dyno and OBD
     ## (the ref sheet contains the theoretical velocity profile):
     datasync template --cycle wltp.class3b template.xlsx
-    datasync -O ./output times velocities template.xlsx#ref! dyno obd
+    datasync -O ./output times velocities template.xlsx#ref! dyno obd -i alternator_currents=integral -i battery_currents=integral
 """
 
 from collections import OrderedDict, Counter
 import logging
 import os
 import sys
+import functools
 import regex
 from boltons.setutils import IndexedSet
 import docopt
@@ -137,10 +141,13 @@ import numpy as np
 import os.path as osp
 import pandas as pd
 from co2mpas import __version__ as proj_ver
-from co2mpas.__main__ import CmdException, init_logging, build_version_string
+from co2mpas.__main__ import CmdException, init_logging, build_version_string, \
+    parse_overrides
 import openpyxl
 import shutil
 import co2mpas.dispatcher.utils as dsp_utl
+import collections
+
 
 proj_name = 'datasync'
 
@@ -180,6 +187,7 @@ _re_interpolation_method = regex.compile(
     """, regex.IGNORECASE | regex.X | regex.DOTALL)
 
 
+@functools.lru_cache(None)
 def _interpolation_methods():
     methods = ('linear', 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
                'spline', 'polynomial', 'barycentric')
@@ -196,8 +204,27 @@ def _interpolation_methods():
     return methods
 
 
+@functools.lru_cache(256)
+def _get_interp_method(interpolation_method):
+    methods = _interpolation_methods()
+    try:
+        kw = _re_interpolation_method.match(interpolation_method)
+        if kw:
+            kw = {k: v for k, v in kw.groupdict().items() if v is not None}
+            if 'order' in kw:
+                kw['order'] = int(kw['order'])
+            return fnt.partial(methods[kw.pop('kind').lower()], **kw)
+        else:
+            raise KeyError
+    except KeyError:
+        raise ValueError('%s is not implemented as re-sampling method!\n'
+                         'Please choose one of: \n '
+                         '%s', interpolation_method, ', '.join(sorted(methods)))
+
+
 def _yield_synched_tables(ref, *data, x_label='times', y_label='velocities',
-                          interpolation_method='linear'):
+                          interpolation_method='linear',
+                          interpolation_methods=None):
     """
     Yields the data re-sampled and synchronized respect to x axes (`x_id`) and
     the reference signal `y_id`.
@@ -217,21 +244,17 @@ def _yield_synched_tables(ref, *data, x_label='times', y_label='velocities',
         (e.g. dicts or DataFrames).
     :rtype: generator
     """
+    linear = _get_interp_method('linear')
 
-    methods = _interpolation_methods()
-    try:
-        kw = _re_interpolation_method.match(interpolation_method)
-        if kw:
-            kw = {k: v for k, v in kw.groupdict().items() if v is not None}
-            if 'order' in kw:
-                kw['order'] = int(kw['order'])
-            re_sampling = fnt.partial(methods[kw.pop('kind').lower()], **kw)
-        else:
-            raise KeyError
-    except KeyError:
-        raise ValueError('%s is not implemented as re-sampling method!\n'
-                         'Please choose one of: \n '
-                         '%s', interpolation_method, ', '.join(sorted(methods)))
+    re_sampling = collections.defaultdict(
+        lambda: _get_interp_method(interpolation_method)
+    )
+
+    if interpolation_methods:
+        re_sampling.update(
+            {k: _get_interp_method(v) for k, v in interpolation_methods.items()}
+        )
+
 
     dx = float(np.median(np.diff(ref[x_label])) / 10)
     m, M = min(ref[x_label]), max(ref[x_label])
@@ -240,16 +263,16 @@ def _yield_synched_tables(ref, *data, x_label='times', y_label='velocities',
         m, M = min(min(d[x_label]), m), max(max(d[x_label]), M)
 
     X = np.arange(m, M + dx, dx)
-    Y = methods['linear'](X, ref[x_label], ref[y_label])
+    Y = linear(X, ref[x_label], ref[y_label])
 
     x = ref[x_label]
 
     yield 0, ref
     for d in data:
-        y = methods['linear'](X, d[x_label], d[y_label])
+        y = linear(X, d[x_label], d[y_label])
         shift = compute_shift(Y, y) * dx
 
-        s = OrderedDict([(k, fnt.partial(re_sampling, xp=d[x_label], fp=v))
+        s = OrderedDict([(k, fnt.partial(re_sampling[k], xp=d[x_label], fp=v))
                          for k, v in d.items() if k != x_label])
 
         x_shift = x + shift
@@ -303,9 +326,11 @@ def integral_interpolation(x, xp, fp):
 
 
 def synchronize(headers, tables, x_label, y_label, prefix_cols,
-                interpolation_method='linear'):
-    res = list(_yield_synched_tables(*tables, x_label=x_label, y_label=y_label,
-                                     interpolation_method=interpolation_method))
+                interpolation_method='linear', interpolation_methods=None):
+    res = _yield_synched_tables(*tables, x_label=x_label, y_label=y_label,
+                                interpolation_method=interpolation_method,
+                                interpolation_methods=interpolation_methods)
+    res =list(res)
 
     if prefix_cols:
         ix = set()
@@ -479,7 +504,7 @@ def _ensure_out_file(out_path, inp_path, force, out_frmt):
 def do_datasync(x_label, y_label, ref_xlref, *sync_xlrefs,
                 out_path=None, prefix_cols=False, force=False,
                 sheets_factory=None, no_clone=False,
-                interpolation_method='linear'):
+                interpolation_method='linear', interpolation_methods=None):
     """
 
     :param str x_label:
@@ -517,11 +542,14 @@ def do_datasync(x_label, y_label, ref_xlref, *sync_xlrefs,
             cache of workbook-sheets
     :param str interpolation_method:
             Interpolation method.
+    :param dict interpolation_methods:
+            Interpolation methods specified for specific signals.
     """
     tables = Tables((x_label, y_label), sheets_factory)
     tables.collect_tables(ref_xlref, *sync_xlrefs)
     df = synchronize(tables.headers, tables.tables, x_label, y_label,
-                     prefix_cols, interpolation_method=interpolation_method)
+                     prefix_cols, interpolation_method=interpolation_method,
+                     interpolation_methods=interpolation_methods)
 
     if no_clone:
         writer_fact = pd.ExcelWriter
@@ -657,6 +685,7 @@ def main(*args):
                 force=opts['--force'],
                 no_clone=opts['--no-clone'],
                 interpolation_method=opts['--interp'],
+                interpolation_methods=parse_overrides(opts['-i'], option_name='-i'),
         )
 
 

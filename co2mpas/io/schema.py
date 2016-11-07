@@ -311,11 +311,11 @@ def _type(type=None, error=None, length=None, **kwargs):
 def _index_dict(error=None, **kwargs):
     error = error or 'cannot be parsed as {}!'.format({int: float})
     c = {int: Use(float)}
-
+    s = And(dict, c)
     def f(x):
         return {k: v for k, v in enumerate(x, start=1)}
 
-    return Or(c, _dict(c), And(_type(), Use(f), And(dict, c)), error=error)
+    return Or(s, And(_dict(), c), And(_type(), Use(f), c), error=error)
 
 
 # noinspection PyUnusedLocal
@@ -722,6 +722,7 @@ def define_flags_schema(read=True):
     schema = {
         _compare_str('input_version'): string,
         _compare_str('ta_certificate_number'): string,
+        _compare_str('modelconf'): isfile,
 
         _compare_str('soft_validation'): _bool,
         _compare_str('use_selector'): _bool,

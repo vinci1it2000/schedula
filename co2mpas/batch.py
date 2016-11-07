@@ -97,11 +97,12 @@ class _custom_tqdm(tqdm):
 
 def _yield_folder_files_results(
         start_time, input_files, output_folder, overwrite_cache=False,
-        model=None, variation=None, type_approval_mode=False):
+        model=None, variation=None, type_approval_mode=False, modelconf=None):
     model = model or vehicle_processing_model()
     kw = {
         'output_folder': output_folder,
         'overwrite_cache': overwrite_cache,
+        'modelconf': modelconf,
         'timestamp': start_time.strftime('%Y%m%d_%H%M%S'),
         'variation': variation or {},
         'type_approval_mode': type_approval_mode
@@ -320,7 +321,7 @@ def check_first_arg(first, *args):
 
 
 def prepare_data(raw_data, variation, input_file_name, overwrite_cache,
-                 output_folder, timestamp, type_approval_mode):
+                 output_folder, timestamp, type_approval_mode, modelconf):
     """
     Prepare the data to be processed.
 
@@ -409,6 +410,8 @@ def prepare_data(raw_data, variation, input_file_name, overwrite_cache,
     flag['type_approval_mode'] = type_approval_mode
     flag['output_folder'] = output_folder
     flag['overwrite_cache'] = overwrite_cache
+    if modelconf:
+        flag['modelconf'] = modelconf
 
     if timestamp is not None:
         flag['timestamp'] = timestamp
@@ -507,10 +510,16 @@ def vehicle_processing_model():
         default_value=False
     )
 
+    d.add_data(
+        data_id='modelconf',
+        default_value=None
+    )
+
     d.add_function(
         function=prepare_data,
         inputs=['raw_data', 'variation', 'input_file_name', 'overwrite_cache',
-                'output_folder', 'timestamp', 'type_approval_mode'],
+                'output_folder', 'timestamp', 'type_approval_mode',
+                'modelconf'],
         outputs=['base_data', 'plan_data']
     )
 
