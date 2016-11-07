@@ -437,16 +437,16 @@ def file_finder(xlsx_fpaths, file_ext='*.xlsx'):
 _re_override = re.compile(r"^\s*([^=]+)\s*=\s*(.*?)\s*$")
 
 
-def parse_overrides(override):
+def parse_overrides(override, option_name='--override'):
     res = {}
     for ov in override:
         m = _re_override.match(ov)
         if not m:
-            raise CmdException('Wrong --override format %r! ' % ov)
+            raise CmdException('Wrong %s format %r! ' % (option_name, ov))
 
         k, v = m.groups()
         if k in res:
-            raise CmdException('Duplicated --override key %r!' % k)
+            raise CmdException('Duplicated %s key %r!' % (option_name, k))
         res[k] = v
 
     return res
