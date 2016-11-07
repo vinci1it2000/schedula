@@ -16,7 +16,7 @@ Use the `batch` sub-command to simulate a vehicle contained in an excel-file.
 
 
 USAGE:
-  co2mpas gui
+  co2mpas gui         [-v | -q | --logconf=<conf-file>]
   co2mpas ta          [-f] [-O=<output-folder>] [<input-path>]...
   co2mpas batch       [-v | -q | --logconf=<conf-file>] [-f]
                       [--overwrite-cache] [-O=<output-folder>]
@@ -386,6 +386,7 @@ def _run_batch(opts, **kwargs):
     if not input_paths:
         raise CmdException("No <input-path> found! \n"
                 "\n  Try: co2mpas batch <fpath-1>..."
+                "\n  or : co2mpas gui"
                 "\n  or : co2mpas --help")
 
     if not osp.isdir(output_folder):
@@ -431,10 +432,18 @@ def _cmd_modelconf(opts):
 
 
 def _cmd_gui(opts):
-    init_logging(verbose=None)
-    from co2mpas.tkui import TkUI
-    app = TkUI()
-    app.mainloop()
+    verbose = opts['--verbose']
+    quiet = opts['--quite']
+    assert not (verbose and quiet), "Specify one of `verbose` and `quiet` as true!"
+    level = None  # Let `init_logging()` decide.
+    if verbose:
+        level = logging.DEBUG
+    if quiet:
+        level = logging.WARNING
+    init_logging(level=level, logconf_file=opts.get('--logconf'))
+    
+    from co2mpas import tkui
+    tkui.main()
 
 
 def _main(*args):
