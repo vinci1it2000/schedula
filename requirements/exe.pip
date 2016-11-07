@@ -16,7 +16,6 @@ dill
 graphviz
 docopt
 six
-easygui
 pandalone>=0.2.0
 xlsxwriter
 regex

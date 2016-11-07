@@ -1140,13 +1140,15 @@ def identify_co2_emissions(
         _rescale_co2_emissions, co2_emissions_model, times,
         phases_integration_times, cumulative_co2_emissions
     )
+    dfl = defaults.dfl.functions.identify_co2_emissions
     calibrate = functools.partial(
         calibrate_co2_params, is_cycle_hot, engine_coolant_temperatures,
-        co2_error_function_on_phases
+        co2_error_function_on_phases, _3rd_step=dfl.enable_third_step,
+        _3rd_emissions=dfl.third_step_against_emissions
     )
     error_function = define_co2_error_function_on_emissions
     co2 = rescale(p)
-    n = defaults.dfl.functions.identify_co2_emissions.n_perturbations
+    n = dfl.n_perturbations
     for i in range(n):
         p = calibrate(error_function(co2_emissions_model, co2), p)[0]
         co2 = rescale(p)
@@ -1501,8 +1503,10 @@ def _set_attr(params, data, default=False, attr='vary'):
 
 
 def calibrate_co2_params(
-        is_cycle_hot, engine_coolant_temperatures, co2_error_function_on_phases,
-        co2_error_function_on_emissions, co2_params_initial_guess):
+    is_cycle_hot, engine_coolant_temperatures, co2_error_function_on_phases,
+    co2_error_function_on_emissions, co2_params_initial_guess,
+    _3rd_step=defaults.dfl.functions.calibrate_co2_params.enable_third_step,
+    _3rd_emissions=defaults.dfl.functions.calibrate_co2_params.third_step_against_emissions):
     """
     Calibrates the CO2 emission model parameters (a2, b2, a, b, c, l, l2, t, trg
     ).
@@ -1570,9 +1574,15 @@ def calibrate_co2_params(
         _set_attr(p, ['t0', 't1'], default=0.0, attr='value')
         _set_attr(p, cold_p, default=False)
 
-    if defaults.dfl.functions.calibrate_co2_params.enable_third_step:
+    if _3rd_step:
         p = restrict_bounds(p)
-        p, s = calibrate_model_params(co2_error_function_on_emissions, p)
+
+        if _3rd_emissions:
+            err = co2_error_function_on_emissions
+        else:
+            err = co2_error_function_on_phases
+        p, s = calibrate_model_params(err, p)
+
     else:
         s = True
 
