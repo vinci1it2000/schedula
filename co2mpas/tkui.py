@@ -58,7 +58,7 @@ import re
 import sys
 from textwrap import dedent, indent
 from threading import Thread
-from tkinter import StringVar, ttk, filedialog
+from tkinter import StringVar, ttk, filedialog, font as tkfont
 import traceback
 import webbrowser
 
@@ -80,9 +80,6 @@ log = logging.getLogger('tkui')
 _bw = 2
 _pad = 2
 _sunken = dict(relief=tk.SUNKEN, padx=_pad, pady=_pad, borderwidth=_bw)
-_raised = dict(relief=tk.RAISED, padx=_pad, pady=_pad, borderwidth=_bw)
-_ridge = dict(relief=tk.RIDGE, padx=_pad, pady=_pad, borderwidth=_bw)
-_courier_font = "courier 8"
 app_name = 'co2mpas'
 
 try:
@@ -91,6 +88,22 @@ except AttributeError:
     _levelsMap = {k: v for k, v
                   in logging._levelNames.items()  # @UndefinedVariable PY2-only
                   if isinstance(k, int)}
+
+
+def set_ttk_styles():
+    style = ttk.Style()
+    style.configure('None.TButton', background='SystemButtonFace')
+    style.configure('True.TButton', foreground='green')
+    style.configure('False.TButton', foreground='red')
+    style.configure('Sunk.TFrame', relief=tk.SUNKEN, padding=_pad)
+    style.configure('Sunken.TLabelFrame', relief=tk.SUNKEN, padding=_pad)
+    style.configure('TA.TButton', foreground='orange')
+    style.configure('Prog.TLabel', foreground='blue')
+
+
+def bang(cond):
+    """ Returns a "!" if cond is true - used for ttk-states."""
+    return cond and '!' or ''
 
 
 def labelize_str(s):
@@ -217,62 +230,69 @@ class HyperlinkManager:
                 return
 
 
-class FlagButton(tk.Button):
-    """A button switching states when clicked; 3-state by default: ``'', 'true', 'false'``.
+class LinkLabel(ttk.Label):
+    def __init__(self, *args, url=None, **kwds):
+        super().__init__(*args, style='Link.TLabel', **kwds)
+        self.url = url
 
-    :ivar flag_states:
-        An ordered-dict ``{state --> config-opts-dict}`` with the supported states.
-    :ivar state_var:
-        A :class:`t.Variable` holding the flag's 3-state.
+
+class FlagButton(ttk.Button):
+    """A button switching flag-states when clicked; 3-state by default: ``'', 'true', 'false'``.
+
+    :ivar flag_styles:
+        An ordered-dict ``{state --> ttk-style}``.
+    :ivar flag_var:
+        A :class:`t.Variable` holding the flag, which is a key in the `flag_syles`.
         Also provided on constructor as ``'variable'`` kwd.
-    :ivar flag:
+    :ivar flag_name:
         The flag-name, extracted from the ``'text'`` option on construction; you may
         modify it attr later.
 
     """
 
-    flag_states = OrderedDict([
-        ('', {'background': 'SystemButtonFace'}),
-        ('true', {'background': 'green'}),
-        ('false', {'background': 'red'}),
+    flag_styles = OrderedDict([
+        ('', 'None.TButton'),
+        ('true', 'True.TButton'),
+        ('false', 'False.TButton'),
     ])
 
-    def __init__(self, *args, state_opts=None, variable=None, command=None, **kwds):
+    def __init__(self, *args, variable=None, command=None, **kwds):
         def clicked():
-            self.next_state()
+            self.next_flag()
             if self._orig_command:
                 self._orig_command()
 
         kwds['command'] = clicked
         super().__init__(*args, **kwds)
         self._orig_command = command
-        self.state_var = variable or tk.Variable()
-        self.flag = kwds.get('text', '')
+        self.flag_var = variable or tk.Variable()
+        self.flag_name = kwds.get('text', '')
 
-        ## Begin from 1st flag-state.
+        ## Begin from 1st flag.
         #
-        self._state_ix = len(self.flag_states) - 1
-        self.next_state()
+        self._flag_ix = len(self.flag_styles) - 1
+        self.next_flag()
 
     @property
-    def flag_state(self):
-        return self.state_var.get()
+    def flag(self):
+        return self.flag_var.get()
 
-    def _format_text(self, flag_state):
-        """Override to modify the button text's among states."""
-        return '%s: %s' % (self.flag, flag_state)
+    def _format_text(self, flag):
+        """Override to modify the button text's among flags."""
+        #return '%s: %s' % (self.flag_name, flag)
+        return self.flag_name
 
-    def next_state(self):
-        self._state_ix = (self._state_ix + 1) % len(self.flag_states)
-        state = list(self.flag_states)[self._state_ix]
-        state_opts = self.flag_states[state]
+    def next_flag(self):
+        self._flag_ix = (self._flag_ix + 1) % len(self.flag_styles)
+        flag = list(self.flag_styles)[self._flag_ix]
+        flag_style = self.flag_styles[flag]
 
-        self.state_var.set(state)
-        self['text'] = self._format_text(state)
-        self.configure(**state_opts)
+        self.flag_var.set(flag)
+        self.configure(text=self._format_text(flag), style=flag_style)
+        self.state((bang(not flag) + 'pressed', ))
 
 
-class LogPanel(tk.LabelFrame):
+class LogPanel(ttk.LabelFrame):
 
     """
     Instantiate only once(!), or logging and Tk's ex-handling will get borged.
@@ -291,7 +311,8 @@ class LogPanel(tk.LabelFrame):
 
     initted = False
 
-    def __init__(self, master=None, cnf={}, log_threshold=logging.INFO, logger_name='', formatter_specs=None, **kw):
+    def __init__(self, *args,
+                 log_threshold=logging.INFO, logger_name='', formatter_specs=None, **kw):
         """
         :param dict formatter_specs:
             A 2-element array of Formatter-args (note that python-2 has no `style` kw),
@@ -305,7 +326,7 @@ class LogPanel(tk.LabelFrame):
             raise RuntimeError("I said instantiate me only ONCE!!!")
         LogPanel.inited = True
 
-        super().__init__(master=master, cnf=cnf, **kw)
+        super().__init__(*args, **kw)
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
@@ -314,14 +335,14 @@ class LogPanel(tk.LabelFrame):
                                              font="Courier 8",
                                              **_sunken
                                              )
-        _log_text.grid(row=0, column=0, sticky=(tk.N, tk.S, tk.E, tk.W))
+        _log_text.grid(row=0, column=0, sticky='nswe')
 
         # Setup scrollbars.
         #
-        v_scrollbar = tk.Scrollbar(self)
-        v_scrollbar.grid(row=0, column=1, sticky=tk.N + tk.S)
-        h_scrollbar = tk.Scrollbar(self, orient=tk.HORIZONTAL)
-        h_scrollbar.grid(row=1, column=0, sticky=tk.E + tk.W)
+        v_scrollbar = ttk.Scrollbar(self)
+        v_scrollbar.grid(row=0, column=1, sticky='ns')
+        h_scrollbar = ttk.Scrollbar(self, orient=tk.HORIZONTAL)
+        h_scrollbar.grid(row=1, column=0, sticky='ew')
         self._log_text.config(yscrollcommand=v_scrollbar.set)
         v_scrollbar.config(command=self._log_text.yview)
         self._log_text.config(xscrollcommand=h_scrollbar.set)
@@ -524,9 +545,9 @@ class LogPanel(tk.LabelFrame):
                   traceback.format_exc())
 
 
-class _MainPanel(tk.Frame):
+class _MainPanel(ttk.Frame):
     def __init__(self, parent, *args, **kwargs):
-        super().__init__(parent, *args, **kwargs)
+        super().__init__(parent, style='Sunk.TFrame', *args, **kwargs)
 
         self._stop_job = False  # semaphore for the red button.
         self._job_thread = None
@@ -543,9 +564,9 @@ class _MainPanel(tk.Frame):
         self.mediate_panel()
 
     def _make_files_frame(self, parent):
-        frame = tk.Frame(parent)
+        frame = ttk.Frame(parent)
 
-        kwds = dict(padx=_pad, pady=2 * _pad)
+        kwds = {}
 
         (inp_label, tree, add_files_btn, add_folder_btn, del_btn) = self._build_inputs_tree(frame)
         inp_label.grid(column=0, row=0, sticky='nswe')
@@ -575,7 +596,7 @@ class _MainPanel(tk.Frame):
         return frame
 
     def _build_inputs_tree(self, parent):
-        inp_label = tk.Label(parent, text='Inputs:')
+        inp_label = ttk.Label(parent, text='Inputs:')
         tree = ttk.Treeview(parent)
         columns = (
             ('#0', {
@@ -633,10 +654,10 @@ class _MainPanel(tk.Frame):
             if not ev or ev.keysym == 'Delete':
                 for item_id in tree.selection():
                     tree.delete(item_id)
-                #del_btn['state'] = tk.DISABLED  # tk-BUG: Selection-vent is not fired.
+                del_btn.state((tk.DISABLED, ))  # tk-BUG: Selection-vent is not fired.
 
         def tree_selection_changed(ev):
-            del_btn['state'] = tk.NORMAL if tree.selection() else tk.DISABLED
+            del_btn.state((bang(tree.selection()) + tk.DISABLED, ))
 
         def on_double_click(ev):
             item = tree.identify('item', ev.x, ev.y)
@@ -651,7 +672,7 @@ class _MainPanel(tk.Frame):
 
     def _build_output_folder(self, frame):
         title = 'Output Folder'
-        label = tk.Label(frame, text=labelize_str(title))
+        label = ttk.Label(frame, text=labelize_str(title))
 
         var = StringVar()
         entry = ttk.Entry(frame, textvariable=var)
@@ -671,7 +692,7 @@ class _MainPanel(tk.Frame):
 
     def _build_template_file(self, parent):
         title = 'Output Template file'
-        label = tk.Label(parent, text=labelize_str(title))
+        label = ttk.Label(parent, text=labelize_str(title))
 
         var = StringVar()
         entry = ttk.Entry(parent, textvariable=var)
@@ -694,18 +715,18 @@ class _MainPanel(tk.Frame):
         return label, entry, btn, var
 
     def _make_flags_frame(self, parent):
-        frame = tk.Frame(parent)
-        flags_frame = tk.Frame(frame)
-        flags_frame.pack(fill=tk.X, expand=1)
+        frame = ttk.Frame(parent)
+        flags_frame = ttk.Frame(frame)
+        flags_frame.pack(fill=tk.X)
 
         def make_flag(flag):
             flag_name = flag.replace('_', ' ').title()
             btn = FlagButton(flags_frame, text=flag_name,
                              command=self.mediate_panel,
-                             padx=_pad, pady=4 * _pad)
+                             padding=(_pad, 4 * _pad, _pad, 4 * _pad))
             btn.pack(side=tk.LEFT, ipadx=4 * _pad)
 
-            return flag, btn.state_var
+            return flag, btn.flag_var
 
         flags = (
             'engineering_mode',
@@ -716,7 +737,7 @@ class _MainPanel(tk.Frame):
         )
         self.flag_vars = [make_flag(f) for f in flags]
 
-        label = tk.Label(frame, text=labelize_str("Extra Options and Flags"))
+        label = ttk.Label(frame, text=labelize_str("Extra Options and Flags"))
         label.pack(anchor=tk.W)
 
         self.extra_opts_var = StringVar()
@@ -726,47 +747,41 @@ class _MainPanel(tk.Frame):
         return frame
 
     def _make_buttons_frame(self, parent):
-        frame = tk.Frame(parent)
+        frame = ttk.Frame(parent)
         run_btns = []
-        btn = tk.Button(frame, text="Help",
-                        command=fnt.partial(log.info, '%s', main_help_doc),
-                        padx=_pad, pady=_pad)
+        btn = ttk.Button(frame, text="Help",
+                        command=fnt.partial(log.info, '%s', main_help_doc))
         add_icon(btn, 'icons/help-olive-32.png ')
-        btn.grid(column=0, row=4, sticky=(tk.N, tk.W, tk.E, tk.S))
+        btn.grid(column=0, row=4, sticky='nswe')
         run_btns.append(btn)
 
-        btn = tk.Button(frame, text="Run",
-                        command=fnt.partial(self._do_run_job, is_ta=False),
-                        padx=_pad, pady=_pad)
+        btn = ttk.Button(frame, text="Run",
+                        command=fnt.partial(self._do_run_job, is_ta=False))
         add_icon(btn, 'icons/play-olive-32.png')
-        btn.grid(column=1, row=4, sticky=(tk.N, tk.W, tk.E, tk.S))
+        btn.grid(column=1, row=4, sticky='nswe')
         run_btns.append(btn)
 
-        self._run_ta_btn = btn = tk.Button(frame,
-                                           text="Run TA", fg="orange",
-                                           command=fnt.partial(self._do_run_job, is_ta=True),
-                                           padx=_pad, pady=_pad)
+        self._run_ta_btn = btn = ttk.Button(frame,
+                                            text="Run TA", style='TA.TButton',
+                                            command=fnt.partial(self._do_run_job, is_ta=True))
         add_icon(btn, 'icons/play_doc-orange-32.png ')
-        btn.grid(column=2, row=4, sticky=(tk.N, tk.W, tk.E, tk.S))
+        btn.grid(column=2, row=4, sticky='nswe')
         run_btns.append(btn)
 
         self._run_btns = run_btns
 
-        self._stop_job_btn = btn = tk.Button(frame, text="Stop", padx=_pad, pady=_pad)
-        add_icon(btn, 'icons/hand-red-32.png')
-        btn.grid(column=3, row=4, sticky=(tk.N, tk.W, tk.E, tk.S))
-
         def stop_job_clicked():
             self._stop_job = True
-            btn['relief'] = 'sunken'
-        btn['command'] = stop_job_clicked
+            self.mediate_panel()
+        self._stop_job_btn = btn = ttk.Button(frame, text="Stop", command=stop_job_clicked)
+        add_icon(btn, 'icons/hand-red-32.png')
+        btn.grid(column=3, row=4, sticky='nswe')
 
-        self.prgrs_var = tk.IntVar()
-        self.prgrs_bar = ttk.Progressbar(frame, orient=tk.HORIZONTAL,
-                                         mode='determinate', variable=self.prgrs_var)
-        self.prgrs_bar.grid(column=0, row=6, columnspan=4, sticky=(tk.N, tk.W, tk.E, tk.S),
-                            ipadx=4 * _pad, ipady=4 * _pad)
-        self.status_label = tk.Label(self.prgrs_bar, fg='blue')
+        self.progr_var = tk.IntVar()
+        self.progr_bar = ttk.Progressbar(frame, orient=tk.HORIZONTAL,
+                                         mode='determinate', variable=self.progr_var)
+        self.progr_bar.grid(column=0, row=6, columnspan=4, sticky='nswe')
+        self.status_label = ttk.Label(self.progr_bar, style='Prog.TLabel')
 
         frame.columnconfigure(0, weight=1)
         frame.columnconfigure(1, weight=2)
@@ -774,20 +789,39 @@ class _MainPanel(tk.Frame):
 
         return frame
 
-    def mediate_panel(self, msg=None):
+    def mediate_panel_T(self, msg=None, progr_step=None, progr_max=None):
+        """To be nvoked by other threads."""
+        self.after_idle(self.mediate_panel, msg, progr_step, progr_max)
+
+    def mediate_panel(self, msg=None, progr_step=None, progr_max=None):
         """Handler of states for all panel's widgets."""
-        any_flags = any(var.get() for _, var in self.flag_vars)
+        progr_var = self.progr_var
+
+        ## Update progress-bar.
+        #
+        if progr_max is not None:
+            self.progr_bar['maximum'] = progr_max
+            progr_var.set(0)
+        if progr_step:
+            progr_var.set(progr_var.get() + progr_step)
+        if msg is not None:
+            self._set_status(msg)
+
         job_alive = bool(self._job_thread)
 
-        self._stop_job_btn['state'] = tk.NORMAL if job_alive else tk.DISABLED
-        if not job_alive:
-            self._stop_job_btn['relief'] = 'raised'
+        ## Update Stop-button.
+        #
+        self._stop_job_btn.state((bang(job_alive) + tk.DISABLED, ))
+        stop_requested = job_alive and self._stop_job
+        self._stop_job_btn.state((bang(not stop_requested) + 'pressed', ))
 
+        ## Update Run-buttons.
+        #
+        any_flags = any(var.get() for _, var in self.flag_vars)
+        run_btns_state = bang(not job_alive) + tk.DISABLED
         for btn in self._run_btns:
-            btn['state'] = tk.NORMAL if not job_alive else tk.DISABLED
-        self._run_ta_btn['state'] = tk.NORMAL if not job_alive and not any_flags else tk.DISABLED
-
-        self._set_status(msg)
+            btn.state((run_btns_state, ))
+        self._run_ta_btn.state((bang(not job_alive and not any_flags) + tk.DISABLED, ))
 
     def _set_status(self, msg):
         """Overlays a message on the progressbar."""
@@ -836,6 +870,7 @@ class _MainPanel(tk.Frame):
         log.info('Launching %s job:\n  %s', job_name, cmd_args)
 
         maingui = self
+        mediate_panel = self.mediate_panel_T
 
         class ProgressUpdater:
             """
@@ -857,43 +892,43 @@ class _MainPanel(tk.Frame):
                 return self
 
             def __next__(self):
-                step = maingui.prgrs_var.get()
-                maingui.prgrs_var.set(step + 1)
-                self.pump_streams()
+                mediate_panel(progr_step=1)
+                cur_step = maingui.progr_var.get()
+                self.pump_streams(cur_step)
 
                 if maingui._stop_job:
                     log.warn("Canceled %s job: %s", job_name, cmd_args)
                     raise StopIteration()
 
                 item = next(self.it)
-                maingui.mediate_panel('Job %s %i of %i: %r...' % (job_name, step, self.len, item))
+
+                msg = 'Job %s %s of %s: %r...' % (job_name, cur_step, self.len, item)
+                maingui.mediate_panel(msg)
 
                 return item
 
-            def pump_streams(self):
-                i = maingui.prgrs_var.get()
+            def pump_streams(self, cur_step):
                 new_out = self.stdout.getvalue()[self.out_i:]
                 if new_out:
                     self.out_i += len(new_out)
-                    log.info("Job %s stdout(%i): %s", job_name, i, new_out)
+                    log.info("Job %s stdout(%s): %s", job_name, cur_step, new_out)
 
                 new_err = self.stderr.getvalue()[self.err_i:]
                 if new_err:
                     self.err_i += len(new_err)
-                    log.info("Job %s stderr(%i): %s", job_name, i, new_err)
+                    log.info("Job %s stderr(%s): %s", job_name, cur_step, new_err)
 
             def tqdm_replacement(self, iterable, *args, **kwds):
-                #maingui.prgrs_var.set(1)  Already set to 1.
+                #maingui.progr_var.set(1)  Already set to 1.
                 self.it = iter(iterable)
                 self.len = len(iterable)
-                maingui.prgrs_bar['maximum'] = 2 + self.len  # +1 on start, +1 final step.
+                mediate_panel(progr_max=2 + self.len)  # +1 on start, +1 final step.
 
                 return self
 
             def on_finish(self, out, err):
                 maingui._job_thread = None
-                maingui.prgrs_var.set(0)
-                maingui.mediate_panel()
+                mediate_panel(msg='', progr_max=0)
 
                 new_out = self.stdout.getvalue()[self.out_i:]
                 new_err = self.stderr.getvalue()[self.err_i:]
@@ -917,8 +952,8 @@ class _MainPanel(tk.Frame):
         )
         t.start()
 
-        self.prgrs_bar['maximum'] = len(self.inputs_tree.get_children())
-        self.prgrs_var.set(1)
+        self.progr_bar['maximum'] = len(self.inputs_tree.get_children())
+        self.progr_var.set(1)
         self.mediate_panel('Launched %s job...' % job_name)
 
 
@@ -934,20 +969,23 @@ class TkUI(object):
 
         root.title("%s-%s" % (app_name, __version__))
 
+        set_ttk_styles()
+
         # Menubar
         #
         menubar = tk.Menu(root)
         menubar.add_command(label="About %r" % app_name, command=self._do_about,)
         root['menu'] = menubar
 
-        self.master = master = tk.PanedWindow(root, orient=tk.VERTICAL, handlepad=16)
+        self.master = master = ttk.PanedWindow(root, orient=tk.VERTICAL, height=16)
         self.master.pack(fill=tk.BOTH, expand=1)
+        self.master.configure(height=960, width=960)
 
-        self.model_panel = _MainPanel(self.master)
-        master.add(self.model_panel, minsize=560)
+        self.model_panel = _MainPanel(self.master, height=-560)
+        master.add(self.model_panel, weight=1)
 
-        self.log_panel = LogPanel(master)
-        master.add(self.log_panel, minsize=60)
+        self.log_panel = LogPanel(master, height=-120)
+        master.add(self.log_panel, weight=2)
 
         s = ttk.Sizegrip(root)
         s.pack(side=tk.RIGHT)
