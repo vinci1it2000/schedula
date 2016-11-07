@@ -37,8 +37,18 @@ Layout::
 ## TODO: 5-Nov-2016
 #  - Fix co2mpas's main() init-sequence with new GUI instead of *easyguis*.
 #  - Make labels as hyperlinks or use ballons.
-#  - Cannot enable DEBUG log level.
-#
+#  - Checkbox for using input as out-template.
+#  - Cannot enable DEBUG log level?
+#  - Co2mpas flags: remove plan, order; [workflow, only-summary, soft-val, engineer, use-sele] 
+#  - Co2mpas tab:    1: add [gen-input template] button
+#                    2: link to sync-tab 
+#                    3: rest 
+#  - Datasync frame:
+#        [gen-file] [sync-temple-entry][sel] 
+#        [   help   ] [        run         ] 
+#  - mediate: disable Run-btns if no outfolder or extra-opts exist.
+#  - mediate: disable run-TA if not out-template.
+
 ## Help (apart from PY-site):
 #  - http://effbot.org/tkinterbook/tkinter-index.htm
 #  - http://www.tkdocs.com/
@@ -58,7 +68,7 @@ import re
 import sys
 from textwrap import dedent, indent
 from threading import Thread
-from tkinter import StringVar, ttk, filedialog, font as tkfont
+from tkinter import StringVar, ttk, filedialog
 import traceback
 import webbrowser
 
@@ -66,7 +76,7 @@ from PIL import Image, ImageTk
 from toolz import dicttoolz as dtz
 
 from co2mpas import (__version__, __updated__, __copyright__, __license__, __uri__)
-from co2mpas.__main__ import init_logging, _main as co2mpas_main, __doc__ as main_help_doc
+from co2mpas.__main__ import init_logging, _main as co2mpas_main
 import co2mpas.batch as co2mpas_batch
 from co2mpas.utils import stds_redirected
 import functools as fnt
@@ -81,6 +91,7 @@ _bw = 2
 _pad = 2
 _sunken = dict(relief=tk.SUNKEN, padx=_pad, pady=_pad, borderwidth=_bw)
 app_name = 'co2mpas'
+user_guidelines_url = 'https://github.com/JRCSTU/CO2MPAS-TA/wiki/CO2MPAS-user-guidelines'
 
 try:
     _levelsMap = logging._levelToName
@@ -754,13 +765,13 @@ class _MainPanel(ttk.Frame):
         frame = ttk.LabelFrame(parent, text='Launch Job')
         run_btns = []
         btn = ttk.Button(frame, text="Help",
-                        command=fnt.partial(log.info, '%s', main_help_doc))
+                         command=fnt.partial(open_url, user_guidelines_url))
         add_icon(btn, 'icons/help-olive-32.png ')
         btn.grid(column=0, row=4, sticky='nswe')
         run_btns.append(btn)
 
         btn = ttk.Button(frame, text="Run",
-                        command=fnt.partial(self._do_run_job, is_ta=False))
+                         command=fnt.partial(self._do_run_job, is_ta=False))
         add_icon(btn, 'icons/play-olive-32.png')
         btn.grid(column=1, row=4, sticky='nswe')
         run_btns.append(btn)
