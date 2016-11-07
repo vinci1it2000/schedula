@@ -140,7 +140,6 @@ import functools as fnt
 import numpy as np
 import os.path as osp
 import pandas as pd
-from co2mpas import __version__ as proj_ver
 from co2mpas.__main__ import CmdException, init_logging, build_version_string, \
     parse_overrides
 import openpyxl
@@ -601,16 +600,7 @@ def _get_theoretical(profile):
 def _cmd_template(opts):
     dst_fpaths = opts.get('<excel-file-path>', None)
 
-    is_gui = opts.get('--gui', False)
-    if is_gui and not dst_fpaths:
-        import easygui as eu
-        fpath = eu.filesavebox(msg='Create INPUT-TEMPLATE file as:',
-                               title='%s-v%s' % (proj_name, proj_ver),
-                               default='template.xlsx')
-        if not fpath:
-            raise CmdException('User abort creating INPUT-TEMPLATE file.')
-        dst_fpaths = [fpath]
-    elif not dst_fpaths:
+    if not dst_fpaths:
         raise CmdException('Missing destination filepath for INPUT-TEMPLATE!')
     if opts['--cycle'] is not None:
 
@@ -634,7 +624,7 @@ def _cmd_template(opts):
     for fpath in dst_fpaths:
         if not fpath.endswith('.xlsx'):
             fpath = '%s.xlsx' % fpath
-        if osp.exists(fpath) and not force and not is_gui:
+        if osp.exists(fpath) and not force:
             raise CmdException(
                 "Writing file '%s' skipped, already exists! "
                 "Use '-f' to overwrite it." % fpath)

@@ -16,17 +16,17 @@ Use the `batch` sub-command to simulate a vehicle contained in an excel-file.
 
 
 USAGE:
-  co2mpas ta          [--gui] [-f] [-O=<output-folder>] [<input-path>]...
-  co2mpas batch       [-v | -q | --logconf=<conf-file>] [--gui] [-f]
+  co2mpas gui
+  co2mpas ta          [-f] [-O=<output-folder>] [<input-path>]...
+  co2mpas batch       [-v | -q | --logconf=<conf-file>] [-f]
                       [--overwrite-cache] [-O=<output-folder>]
                       [--modelconf=<yaml-file>]
                       [-D=<key=value>]... [<input-path>]...
-  co2mpas demo        [-v | -q | --logconf=<conf-file>] [--gui] [-f]
+  co2mpas demo        [-v | -q | --logconf=<conf-file>] [-f]
                       [<output-folder>]
-  co2mpas template    [-v | -q | --logconf=<conf-file>] [--gui] [-f]
+  co2mpas template    [-v | -q | --logconf=<conf-file>] [-f]
                       [<excel-file-path> ...]
-  co2mpas ipynb       [-v | -q | --logconf=<conf-file>] [--gui] [-f]
-                      [<output-folder>]
+  co2mpas ipynb       [-v | -q | --logconf=<conf-file>] [-f] [<output-folder>]
   co2mpas modelgraph  [-v | -q | --logconf=<conf-file>] [-O=<output-folder>]
                       [--modelconf=<yaml-file>]
                       (--list | [--graph-depth=<levels>] [<models> ...])
@@ -46,8 +46,6 @@ OPTIONS:
                               missing.
   -O=<output-folder>          Output folder or file [default: .].
   <excel-file-path>           Output file.
-  --gui                       Launches GUI dialog-boxes to choose Input, Output
-                              and Options. [default: False].
   --modelconf=<yaml-file>     Path to a model-configuration file, according to YAML:
                                 https://docs.python.org/3.5/library/logging.config.html#logging-config-dictschema
   --overwrite-cache           Overwrite the cached input file.
@@ -84,6 +82,7 @@ Miscellaneous:
 
 
 SUB-COMMANDS:
+    gui             Launches co2mpas GUI.
     ta              Simulate vehicle in type approval mode for all <input-path>
                     excel-files & folder. If no <input-path> given, reads all
                     excel-files from current-dir. It reads just the declaration
@@ -114,9 +113,6 @@ EXAMPLES::
     # Create work folders and then fill `input` with sample-vehicles:
     md input output
     co2mpas  demo  input
-
-    # Launch GUI dialog-boxes on the sample-vehicles just created:
-    co2mpas  batch  --gui  input
 
     # or specify them with workflow plot:
     co2mpas  batch  input  -O output  -D plot_workflow=True
@@ -257,20 +253,10 @@ def _generate_files_from_streams(
 
 def _cmd_demo(opts):
     dst_folder = opts.get('<output-folder>', None)
-    is_gui = opts['--gui']
-    if is_gui and not dst_folder:
-        import easygui as eu
-        msg = ("Select folder to store INPUT-DEMO files:"
-                "\n(existing ones will be overwritten)")
-        dst_folder = eu.diropenbox(msg=msg,
-                                   title='%s-v%s' % (proj_name, proj_ver),
-                                   default=os.environ.get('HOME', '.'))
-        if not dst_folder:
-            raise CmdException('User abort creating INPUT-DEMO files.')
-    elif not dst_folder:
+    if not dst_folder:
         raise CmdException('Missing destination folder for INPUT-DEMO files!')
 
-    force = opts['--force'] or is_gui
+    force = opts['--force']
     file_category = 'INPUT-DEMO'
     file_stream_pairs = _get_internal_file_streams('demos', r'.*\.xlsx$')
     file_stream_pairs = sorted(file_stream_pairs.items())
@@ -282,20 +268,10 @@ def _cmd_demo(opts):
 
 def _cmd_ipynb(opts):
     dst_folder = opts.get('<output-folder>', None)
-    is_gui = opts['--gui']
-    if is_gui and not dst_folder:
-        import easygui as eu
-        msg = ("Select folder to store IPYTHON NOTEBOOKS:"
-                "\n(existing ones will be overwritten)")
-        dst_folder = eu.diropenbox(msg=msg,
-                                   title='%s-v%s' % (proj_name, proj_ver),
-                                   default=os.environ.get('HOME', '.'))
-        if not dst_folder:
-            raise CmdException('User abort creating IPYTHON NOTEBOOKS.')
-    elif not dst_folder:
+    if not dst_folder:
         raise CmdException('Missing destination folder for IPYTHON NOTEBOOKS!')
 
-    force = opts['--force'] or is_gui
+    force = opts['--force']
     file_category = 'IPYTHON NOTEBOOK'
     file_stream_pairs = _get_internal_file_streams('ipynbs', r'.*\.ipynb$')
     file_stream_pairs = sorted(file_stream_pairs.items())
@@ -312,23 +288,14 @@ def _get_input_template_fpath():
 
 def _cmd_template(opts):
     dst_fpaths = opts.get('<excel-file-path>', None)
-    is_gui = opts['--gui']
-    if is_gui and not dst_fpaths:
-        import easygui as eu
-        fpath = eu.filesavebox(msg='Create INPUT-TEMPLATE file as:',
-                               title='%s-v%s' % (proj_name, proj_ver),
-                               default='co2mpas_template.xlsx')
-        if not fpath:
-            raise CmdException('User abort creating INPUT-TEMPLATE file.')
-        dst_fpaths = [fpath]
-    elif not dst_fpaths:
+    if not dst_fpaths:
         raise CmdException('Missing destination filepath for INPUT-TEMPLATE!')
 
     force = opts['--force']
     for fpath in dst_fpaths:
         if not fpath.endswith('.xlsx'):
             fpath = '%s.xlsx' % fpath
-        if osp.exists(fpath) and not force and not is_gui:
+        if osp.exists(fpath) and not force:
             raise CmdException(
                 "Writing file '%s' skipped, already exists! "
                 "Use '-f' to overwrite it." % fpath)
@@ -360,64 +327,6 @@ def _get_internal_file_streams(internal_folder, incl_regex=None):
             osp.join(internal_folder, f))
             for f in samples
             if not incl_regex or incl_regex.match(f)}
-
-
-def _prompt_folder(folder_name, fpath):
-    while not fpath or not (os.path.isfile(fpath) or os.path.isdir(fpath)):
-        log.info('Cannot find %s folder/file: %r', folder_name, fpath)
-        import easygui as eu
-        fpath = eu.diropenbox(msg='Select %s folder:' % folder_name,
-                              title='%s-v%s' % (proj_name, proj_ver),
-                              default=fpath)
-        if not fpath:
-            raise CmdException('User abort.')
-    return fpath
-
-
-def _prompt_options(opts):
-    import easygui as eu
-    fields = {
-        'overwrite-cache': 'y/[n]',
-        'force': 'y/[n]',
-    }
-
-    fields, choices = zip(*((k, v) for k, v in fields.items() if not opts['--%s' % k]))
-
-    if not fields:
-        return {}
-
-    for values in iter(lambda: eu.multenterbox(
-            msg='Select BATCH-run options:',
-            title='%s-v%s' % (proj_name, proj_ver),
-            fields=fields, values=choices),
-            None):
-        opts = {}
-        for (f, c, v) in zip(fields, choices, values):
-            if v and v != c:
-                o = '--%s' % f
-                vl = v.lower()
-                if f == 'out-template':
-                    if vl == 'y':
-                        opts[o] = '-'
-                    elif vl == 'n':
-                        opts[o] = False
-                    elif not vl.endswith('.xlsx'):
-                        eu.msgbox('The file %r has not .xlsx extension!' % v)
-                        break
-                    elif not osp.isfile(v):
-                        eu.msgbox('The xl-file %r does not exist!' % v)
-                        break
-                    else:
-                        opts[o] = v
-                elif vl == 'y':
-                    opts[o] = True
-                elif vl == 'n':
-                    opts[o] = False
-                else: # Invalid content
-                    break
-        else:
-            return opts
-    raise CmdException('User abort.')
 
 
 _input_file_regex = re.compile('^\w')
@@ -462,23 +371,15 @@ def _init_defaults(modelconf):
             raise CmdException(msg % modelconf)
     return defaults
 
-def _run_batch(opts, **kwargs):
-    input_paths = opts['<input-path>']
-    output_folder = opts['-O']
-    if opts['--gui']:
-        input_paths = [
-            _prompt_folder(folder_name='INPUT',
-                           fpath=input_paths[-1] if input_paths else None)
-        ]
-        output_folder = _prompt_folder(folder_name='OUTPUT', fpath=output_folder)
-        opts.update(_prompt_options(opts))
 
+def _run_batch(opts, **kwargs):
+    input_paths = opts['<input-path>'] or ['.']
+    output_folder = opts['-O']
     log.info("Processing %r --> %r...", input_paths, output_folder)
     input_paths = file_finder(input_paths)
     if not input_paths:
         raise CmdException("No <input-path> found! \n"
                 "\n  Try: co2mpas batch <fpath-1>..."
-                "\n  or : co2mpas --gui"
                 "\n  or : co2mpas --help")
 
     if not osp.isdir(output_folder):
@@ -523,6 +424,13 @@ def _cmd_modelconf(opts):
     log.info('Default model config written into yaml-file(%s)...', fname)
 
 
+def _cmd_gui(opts):
+    init_logging(verbose=None)
+    from co2mpas.tkui import TkUI
+    app = TkUI()
+    app.mainloop()
+
+
 def _main(*args):
     """Does not ``sys.exit()`` like :func:`main()` but throws any exception."""
 
@@ -548,6 +456,8 @@ def _main(*args):
             _cmd_modelgraph(opts)
         elif opts['modelconf']:
             _cmd_modelconf(opts)
+        elif opts['gui']:
+            _cmd_gui(opts)
         elif opts['ta']:
             _run_batch(opts, type_approval_mode=True, overwrite_cache=True)
         else:
