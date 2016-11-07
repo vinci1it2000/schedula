@@ -35,9 +35,6 @@ Layout::
 
 """
 ## TODO: 5-Nov-2016
-#  - Make labels as hyperlinks or use ballons.
-#  - Checkbox for using input as out-template.
-#  - Co2mpas flags: add --force, remove plan, order; [workflow, only-summary, soft-val, engineer, use-sele]
 #  - Co2mpas tab:    1: add [gen-input template] button
 #                    2: link to sync-tab
 #                    3: rest
@@ -130,7 +127,7 @@ def define_tooltips():
         out_template_entry: |-
             Select a pre-populated Excel file to clone and append CO2MPAS results into.
             By default, results are appended into an empty excel-file.
-            - Use a dash('-') to have CO2MPAS clone the Input-file and use it as template.
+            - Use a dash('-') to have CO2MPAS clone the Input-file and use it as template;
             - Incompatible with DECLARATION mode (started with the `Run TA` buttons).
         sel_tmpl_file_btn: |-
             Opens a File-dialog to let you choose an Excel file for the field to the left.
@@ -138,7 +135,7 @@ def define_tooltips():
             Launches the BATCH CO2MPAS command.
             - Supports multiple Input files;
             - Compatible with all flags and options (including ENGINEERING/DECLARATION mode);
-            - The output-folder cannot be empty;
+            - The output-folder cannot be empty.
         run_ta_btn: |-
             Runs the TA command for a single file in DECLARATION mode.
             - Incompatible with any other flags and options;
@@ -149,22 +146,18 @@ def define_tooltips():
 
         extra_options_entry: |-
             Put any other cmd-line options here (try `--help`).
-            - Incompatible with DECLARATION mode (started with the `Run TA` buttons).
 
         engineering_mode: |-
             the model uses of all available input data (not only the declaration inputs),
             and is possible to override various model parameters..
-            - Incompatible with DECLARATION mode (started with the `Run TA` buttons).
         plot_workflow: |-
             Open workflow-plot in browser, after run finished.
-            - Incompatible with DECLARATION mode (started with the `Run TA` buttons).
         soft_validation: |-
             Relax some Input-data validations in order to facilitate experimentation.
         only_summary: |-
             Do not save vehicle outputs, just the summary; should be faster.
-            - Incompatible with DECLARATION mode (started with the `Run TA` buttons).
         use_selector: |-
-            - Incompatible with DECLARATION mode (started with the `Run TA` buttons).
+            Select internally the best model to predict both NEDC H/L cycles.
         run_plan: |-
     """
 
@@ -844,10 +837,10 @@ class _MainPanel(ttk.Frame):
 
         flags = (
             'engineering_mode',
-            'run_plan',
-            'soft_validation',
-            'only_summary',
             'plot_workflow',
+            'only_summary',
+            'soft_validation',
+            'use_selector',
         )
         self.flag_vars = [make_flag(f) for f in flags]
 

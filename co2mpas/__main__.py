@@ -42,8 +42,7 @@ Syntax tip:
 
 
 OPTIONS:
-  <input-path>                Input xlsx-file or folder. Assumes current-dir if
-                              missing.
+  <input-path>                Input xlsx-file or folder. Assumes current-dir if missing.
   -O=<output-folder>          Output folder or file [default: .].
   <excel-file-path>           Output file.
   --modelconf=<yaml-file>     Path to a model-configuration file, according to YAML:
@@ -60,7 +59,7 @@ Model flags (-D flag.xxx, example -D flag.engineering_mode=True):
  engineering_mode=<bool>     Use all data and not only the declaration data.
  soft_validation=<bool>      Relax some Input-data validations, to facilitate experimentation.
  run_base=<bool>             Enable/disable the `run_base` model.
- use_selector=<bool>         Enable/disable the selection of the best model.
+ use_selector=<bool>         Select internally the best model to predict both NEDC H/L cycles.
  only_summary=<bool>         Do not save vehicle outputs, just the summary.
  plot_workflow=<bool>        Open workflow-plot in browser, after run finished.
  output_template=<xlsx-file> Clone the given excel-file and appends results into

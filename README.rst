@@ -622,21 +622,23 @@ you have installed |co2mpas| (see :ref:`install` above) and type::
 
 
     USAGE:
-      co2mpas ta          [--gui] [-f] [-O=<output-folder>] [<input-path>]...
-      co2mpas batch       [-v | --logconf=<conf-file>] [--gui] [-f]
+      co2mpas gui         [-v | -q | --logconf=<conf-file>]
+      co2mpas ta          [-f] [-O=<output-folder>] [<input-path>]...
+      co2mpas batch       [-v | -q | --logconf=<conf-file>] [-f]
                           [--overwrite-cache] [-O=<output-folder>]
                           [--modelconf=<yaml-file>]
                           [-D=<key=value>]... [<input-path>]...
-      co2mpas demo        [-v | --logconf=<conf-file>] [--gui] [-f]
+      co2mpas demo        [-v | -q | --logconf=<conf-file>] [-f]
                           [<output-folder>]
-      co2mpas template    [-v | --logconf=<conf-file>] [--gui] [-f]
+      co2mpas template    [-v | -q | --logconf=<conf-file>] [-f]
                           [<excel-file-path> ...]
-      co2mpas ipynb       [-v | --logconf=<conf-file>] [--gui] [-f]
-                          [<output-folder>]
-      co2mpas modelgraph  [-v | --logconf=<conf-file>] [-O=<output-folder>]
+      co2mpas ipynb       [-v | -q | --logconf=<conf-file>] [-f] [<output-folder>]
+      co2mpas modelgraph  [-v | -q | --logconf=<conf-file>] [-O=<output-folder>]
                           [--modelconf=<yaml-file>]
                           (--list | [--graph-depth=<levels>] [<models> ...])
-      co2mpas             [--verbose | -v]  (--version | -V)
+      co2mpas modelconf   [-v | -q | --logconf=<conf-file>] [-f]
+                          [--modelconf=<yaml-file>] [-O=<output-folder>]
+      co2mpas             [-v | -q | --logconf=<conf-file>] (--version | -V)
       co2mpas             --help
 
     Syntax tip:
@@ -646,28 +648,24 @@ you have installed |co2mpas| (see :ref:`install` above) and type::
 
 
     OPTIONS:
-      <input-path>                Input xlsx-file or folder. Assumes current-dir if
-                                  missing.
+      <input-path>                Input xlsx-file or folder. Assumes current-dir if missing.
       -O=<output-folder>          Output folder or file [default: .].
       <excel-file-path>           Output file.
-      --gui                       Launches GUI dialog-boxes to choose Input, Output
-                                  and Options. [default: False].
       --modelconf=<yaml-file>     Path to a model-configuration file, according to YAML:
                                     https://docs.python.org/3.5/library/logging.config.html#logging-config-dictschema
-      --overwrite-cache           Overwrite the cached file.
-      --override, -D=<key=value> Validate only partially input-data (no schema).
+      --overwrite-cache           Overwrite the cached input file.
+      --override, -D=<key=value>  Input data overrides (e.g., `-D fuel_type=diesel`,
+                                  `-D prediction.nedc_h.vehicle_mass=1000`).
       -l, --list                  List available models.
       --graph-depth=<levels>      An integer to Limit the levels of sub-models plotted.
       -f, --force                 Overwrite output/template/demo excel-file(s).
 
 
-    Model flags (-D flag.xxx, example -D flag.engineering_mode=2):
-     engineering_mode=<int>      0: Full validation + selection of declaration data,
-                                 1: Full validation,
-                                 2: Soft validation (just schema).
+    Model flags (-D flag.xxx, example -D flag.engineering_mode=True):
+     engineering_mode=<bool>     Use all data and not only the declaration data.
+     soft_validation=<bool>      Relax some Input-data validations, to facilitate experimentation.
      run_base=<bool>             Enable/disable the `run_base` model.
-     run_plan=<bool>             Enable/disable the `run_plan` model.
-     use_selector=<bool>         Enable/disable the selection of the best model.
+     use_selector=<bool>         Select internally the best model to predict both NEDC H/L cycles.
      only_summary=<bool>         Do not save vehicle outputs, just the summary.
      plot_workflow=<bool>        Open workflow-plot in browser, after run finished.
      output_template=<xlsx-file> Clone the given excel-file and appends results into
@@ -680,6 +678,7 @@ you have installed |co2mpas| (see :ref:`install` above) and type::
       -V, --version               Print version of the program, with --verbose
                                   list release-date and installation details.
       -v, --verbose               Print more verbosely messages - overridden by --logconf.
+      -q, --quite                 Print less verbosely messages (warnings) - overridden by --logconf.
       --logconf=<conf-file>       Path to a logging-configuration file, according to:
                                     https://docs.python.org/3/library/logging.config.html#configuration-file-format
                                   If the file-extension is '.yaml' or '.yml', it reads a dict-schema from YAML:
@@ -687,15 +686,20 @@ you have installed |co2mpas| (see :ref:`install` above) and type::
 
 
     SUB-COMMANDS:
-        ta              Simulate vehicle in declaration mode for all <input-path>
+        gui             Launches co2mpas GUI.
+        ta              Simulate vehicle in type approval mode for all <input-path>
                         excel-files & folder. If no <input-path> given, reads all
                         excel-files from current-dir. It reads just the declaration
-                        inputs.
+                        inputs, if it finds some extra input will raise a warning
+                        and will not produce any result.
                         Read this for explanations of the param names:
                           http://co2mpas.io/explanation.html#excel-input-data-naming-conventions
-        batch           Simulate vehicle in engineering mode for all <input-path>
+        batch           Simulate vehicle in scientific mode for all <input-path>
                         excel-files & folder. If no <input-path> given, reads all
-                        excel-files from current-dir. It reads all inputs.
+                        excel-files from current-dir. By default reads just the
+                        declaration inputs and skip the extra inputs. Thus, it will
+                        produce always a result. To read all inputs the flag
+                        `engineering_mode` have to be set to True.
                         Read this for explanations of the param names:
                           http://co2mpas.io/explanation.html#excel-input-data-naming-conventions
         demo            Generate demo input-files for the `batch` cmd inside <output-folder>.
@@ -703,31 +707,37 @@ you have installed |co2mpas| (see :ref:`install` above) and type::
         ipynb           Generate IPython notebooks inside <output-folder>; view them with cmd:
                           jupyter --notebook-dir=<output-folder>
         modelgraph      List or plot available models. If no model(s) specified, all assumed.
+        modelconf       Save a copy of all model defaults in yaml format.
 
 
     EXAMPLES::
 
         # Don't enter lines starting with `#`.
 
-        # Create work folders and then fill `input` with sample-vehicles:
-        md input output
-        co2mpas  demo  input
-
-        # Launch GUI dialog-boxes on the sample-vehicles just created:
-        co2mpas  batch  --gui  input
-
-        # or specify them with output-charts and workflow plots:
-        co2mpas  batch  input  -O output  --plot-workflow
+        # View full version specs:
+        co2mpas -vV
 
         # Create an empty vehicle-file inside `input` folder:
         co2mpas  template  input/vehicle_1.xlsx
 
+        # Create work folders and then fill `input` with sample-vehicles:
+        md input output
+        co2mpas  demo  input
+
         # View a specific submodel on your browser:
         co2mpas  modelgraph  co2mpas.model.physical.wheels.wheels
 
-        # View full version specs:
-        co2mpas -vV
+        # Run co2mpas with batch cmd plotting the workflow:
+        co2mpas  batch  input  -O output  -D flag.plot_workflow=True
 
+        # Run co2mpas with ta cmd:
+        co2mpas  batch  input/co2mpas_demo-0.xlsx  -O output
+
+        # or launch the co2mpas GUI:
+        co2mpas  gui
+
+        # View all model defaults in yaml format:
+        co2maps modelconf -O output
 
 The default sub-command (``batch``) accepts either a single **input-excel-file**
 or a folder with multiple input-files for each vehicle, and generates a
