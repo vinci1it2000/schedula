@@ -179,6 +179,8 @@ def init_logging(level=None, frmt=None, logconf_file=None):
         if not frmt:
             frmt = "%(asctime)-15s:%(levelname)5.5s:%(name)s:%(message)s"
         logging.basicConfig(level=level, format=frmt)
+        rlog = logging.getLogger()
+        rlog.level = level  # because `basicConfig()` does not reconfig root-logger when re-invoked.
     logging.captureWarnings(True)
 
 

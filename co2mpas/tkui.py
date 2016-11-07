@@ -38,7 +38,6 @@ Layout::
 #  - Fix co2mpas's main() init-sequence with new GUI instead of *easyguis*.
 #  - Make labels as hyperlinks or use ballons.
 #  - Checkbox for using input as out-template.
-#  - Cannot enable DEBUG log level?
 #  - Co2mpas flags: remove plan, order; [workflow, only-summary, soft-val, engineer, use-sele] 
 #  - Co2mpas tab:    1: add [gen-input template] button
 #                    2: link to sync-tab 
@@ -326,7 +325,8 @@ class LogPanel(ttk.LabelFrame):
     initted = False
 
     def __init__(self, *args,
-                 log_threshold=logging.INFO, logger_name='', formatter_specs=None, **kw):
+                 log_threshold=logging.INFO, logger_name='', formatter_specs=None, 
+                 log_level_cb=None, **kw):
         """
         :param dict formatter_specs:
             A 2-element array of Formatter-args (note that python-2 has no `style` kw),
@@ -334,8 +334,12 @@ class LogPanel(ttk.LabelFrame):
             If missing, defaults to :attr:`LogPanel.FORMATTER_SPECS`
         :param logger_name:
             What logger to intercept to.
-            If missing, defaults to root('') and DOES NOT change its threshold.
+            If missing, defaults to root('') and DOES NOT change its threshold, 
+            unless modified by the `log_level_cb` of the popup-menu (see next param).
+        :param log_level_cb:
+            An optional ``func(level)`` invoked when log-threshold is modified from popup-menu.  
         """
+        self._log_level_cb = log_level_cb 
         if LogPanel.initted:
             raise RuntimeError("I said instantiate me only ONCE!!!")
         LogPanel.inited = True
@@ -438,7 +442,10 @@ class LogPanel(ttk.LabelFrame):
         # Threshold sub-menu
         #
         def change_threshold():
-            self.log_threshold = self.threshold_var.get()
+            level = self.threshold_var.get()
+            self.log_threshold = level
+            if self._log_level_cb:
+                self._log_level_cb(level)
 
         threshold_menu = tk.Menu(target, tearoff=0)
         for lno, lname in levels_map:
@@ -998,7 +1005,7 @@ class TkUI(object):
         frame = _MainPanel(master, height=-320)
         master.add(frame, weight=1)
 
-        frame = LogPanel(master, height=-260)
+        frame = LogPanel(master, height=-260, log_level_cb=init_logging)
         master.add(frame, weight=3)
 
         ttk.Sizegrip(root).pack(side=tk.RIGHT)
@@ -1045,7 +1052,7 @@ class TkUI(object):
 
 
 def main():
-    init_logging(level=None)
+    init_logging()
     app = TkUI()
     app.mainloop()
 
