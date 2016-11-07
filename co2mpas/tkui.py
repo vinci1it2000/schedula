@@ -37,7 +37,6 @@ Layout::
 ## TODO: 5-Nov-2016
 #  - Make labels as hyperlinks or use ballons.
 #  - Checkbox for using input as out-template.
-#  - cwd on output-folder.
 #  - Co2mpas flags: add --force, remove plan, order; [workflow, only-summary, soft-val, engineer, use-sele]
 #  - Co2mpas tab:    1: add [gen-input template] button
 #                    2: link to sync-tab
@@ -775,7 +774,7 @@ class _MainPanel(ttk.Frame):
         title = 'Output Folder'
         frame = ttk.LabelFrame(parent, text=labelize_str(title))
 
-        var = StringVar()
+        var = StringVar(value=os.getcwd())
         entry = ttk.Entry(frame, textvariable=var)
         entry.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
 
