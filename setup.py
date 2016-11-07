@@ -183,12 +183,13 @@ setup(
         'schema',
         'tqdm',
         'PyYAML>=3.12',
-        'cycler',
         'pip',
         'boltons',
         'pykalman',
         'wltp',
-        'openpyxl>=2.4.0'
+        'openpyxl>=2.4.0',
+        'Pillow',           ## for tkui
+        'toolz,'
     ],
     extras_require={
         'dice': [
