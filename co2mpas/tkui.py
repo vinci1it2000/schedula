@@ -95,8 +95,7 @@ def set_ttk_styles():
     style.configure('None.TButton', background='SystemButtonFace')
     style.configure('True.TButton', foreground='green')
     style.configure('False.TButton', foreground='red')
-    style.configure('Sunk.TFrame', relief=tk.SUNKEN, padding=_pad)
-    style.configure('Sunken.TLabelFrame', relief=tk.SUNKEN, padding=_pad)
+    style.configure('TLabelFrame', relief=tk.RAISED, padding=_pad)
     style.configure('TA.TButton', foreground='orange')
     style.configure('Prog.TLabel', foreground='blue')
 
@@ -119,6 +118,10 @@ def open_file_with_os(fpath):
             putils.open_file_with_os(fpath.strip())
         except Exception as ex:
             log.error("Failed opening %r due to: %s", fpath, ex)
+
+
+def open_url(url):
+    webbrowser.open_new(url)
 
 
 def find_longest_valid_dir(path, default=None):
@@ -546,57 +549,54 @@ class LogPanel(ttk.LabelFrame):
 
 
 class _MainPanel(ttk.Frame):
-    def __init__(self, parent, *args, **kwargs):
-        super().__init__(parent, style='Sunk.TFrame', *args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self._stop_job = False  # semaphore for the red button.
         self._job_thread = None
 
-        frame = self._make_files_frame(self)
-        frame.pack(fill=tk.BOTH, expand=1)
+        frame = self._make_inputs_frame(self)
+        frame.grid(column=0, row=0, rowspan=3, sticky='nswe')
 
-        frame = self._make_flags_frame(self)
-        frame.pack(fill=tk.X)
+        frame, var = self._make_output_folder(self)
+        frame.grid(column=1, row=0, sticky='nswe')
+        self.out_folder_var = var
+
+        frame, var = self._make_template_file(self)
+        frame.grid(column=1, row=1, sticky='nswe')
+        self.tmpl_folder_var = var
+
+        frame, var = self._make_flags_frame(self)
+        frame.grid(column=1, row=2, sticky='nswe')
+        self.extra_opts_var = var
 
         frame = self._make_buttons_frame(self)
-        frame.pack(fill=tk.X)
+        frame.grid(column=0, row=3, columnspan=2, sticky='nswe')
+
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=1)
+        for r in range(3):
+            self.rowconfigure(r, weight=1)
 
         self.mediate_panel()
 
-    def _make_files_frame(self, parent):
-        frame = ttk.Frame(parent)
+    def _make_inputs_frame(self, parent):
+        frame = ttk.LabelFrame(parent, text='Inputs')
 
-        kwds = {}
-
-        (inp_label, tree, add_files_btn, add_folder_btn, del_btn) = self._build_inputs_tree(frame)
-        inp_label.grid(column=0, row=0, sticky='nswe')
-        tree.grid(column=0, row=1, rowspan=3, sticky='nswe', **kwds)
-        add_files_btn.grid(column=1, row=1, sticky='nswe', **kwds)
-        add_folder_btn.grid(column=1, row=2, sticky='nswe', **kwds)
-        del_btn.grid(column=1, row=3, sticky='nswe', **kwds)
+        (tree, add_files_btn, add_folder_btn, del_btn) = self._build_inputs_tree(frame)
+        tree.grid(column=0, row=0, rowspan=3, sticky='nswe')
+        add_files_btn.grid(column=1, row=0, sticky='nswe')
+        add_folder_btn.grid(column=1, row=1, sticky='nswe')
+        del_btn.grid(column=1, row=2, sticky='nswe')
         self.inputs_tree = tree
 
-        (out_label, out_entry, out_btn, out_var) = self._build_output_folder(frame)
-        out_label.grid(column=0, row=4, sticky='nswe')
-        out_entry.grid(column=0, row=5, sticky='nswe', **kwds)
-        out_btn.grid(column=1, row=5, sticky='nswe', **kwds)
-        self.out_folder_var = out_var
-
-        (tmpl_label, tmpl_entry, tmpl_btn, tmpl_var) = self._build_template_file(frame)
-        tmpl_label.grid(column=0, row=8, sticky='nswe')
-        tmpl_entry.grid(column=0, row=9, sticky='nswe', **kwds)
-        tmpl_btn.grid(column=1, row=9, sticky='nswe', **kwds)
-        self.tmpl_folder_var = tmpl_var
-
-        frame.rowconfigure(1, weight=3)
-        frame.rowconfigure(2, weight=3)
-        frame.rowconfigure(3, weight=1)
         frame.columnconfigure(0, weight=1)
+        for r in range(3):
+            frame.rowconfigure(r, weight=1)
 
         return frame
 
     def _build_inputs_tree(self, parent):
-        inp_label = ttk.Label(parent, text='Inputs:')
         tree = ttk.Treeview(parent)
         columns = (
             ('#0', {
@@ -668,14 +668,15 @@ class _MainPanel(ttk.Frame):
         tree.bind('<<TreeviewSelect>>', tree_selection_changed)
         tree.bind("<Double-1>", on_double_click)
 
-        return (inp_label, tree, files_btn, folder_btn, del_btn)
+        return (tree, files_btn, folder_btn, del_btn)
 
-    def _build_output_folder(self, frame):
+    def _make_output_folder(self, parent):
         title = 'Output Folder'
-        label = ttk.Label(frame, text=labelize_str(title))
+        frame = ttk.LabelFrame(parent, text=labelize_str(title))
 
         var = StringVar()
         entry = ttk.Entry(frame, textvariable=var)
+        entry.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
 
         def ask_output_folder():
             initialdir = find_longest_valid_dir(var.get().strip())
@@ -684,18 +685,20 @@ class _MainPanel(ttk.Frame):
                 var.set(folder + '/')
 
         btn = ttk.Button(frame, command=ask_output_folder)
+        btn.pack(side=tk.LEFT, fill=tk.BOTH, )
         add_icon(btn, 'icons/add_folder-olive-32.png')
 
         entry.bind("<Double-1>", lambda ev: open_file_with_os(var.get()))
 
-        return label, entry, btn, var
+        return frame, var
 
-    def _build_template_file(self, parent):
+    def _make_template_file(self, parent):
         title = 'Output Template file'
-        label = ttk.Label(parent, text=labelize_str(title))
+        frame = ttk.LabelFrame(parent, text=labelize_str(title))
 
         var = StringVar()
-        entry = ttk.Entry(parent, textvariable=var)
+        entry = ttk.Entry(frame, textvariable=var)
+        entry.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
 
         def ask_template_file():
             initialdir = find_longest_valid_dir(var.get().strip())
@@ -708,14 +711,15 @@ class _MainPanel(ttk.Frame):
             if file:
                 var.set(file)
 
-        btn = ttk.Button(parent, command=ask_template_file)
+        btn = ttk.Button(frame, command=ask_template_file)
+        btn.pack(side=tk.LEFT, fill=tk.BOTH, )
         add_icon(btn, 'icons/add_file-olive-32.png')
         entry.bind("<Double-1>", lambda ev: open_file_with_os(var.get()))
 
-        return label, entry, btn, var
+        return frame, var
 
     def _make_flags_frame(self, parent):
-        frame = ttk.Frame(parent)
+        frame = ttk.LabelFrame(parent, text='Flags and Options')
         flags_frame = ttk.Frame(frame)
         flags_frame.pack(fill=tk.X)
 
@@ -737,17 +741,17 @@ class _MainPanel(ttk.Frame):
         )
         self.flag_vars = [make_flag(f) for f in flags]
 
-        label = ttk.Label(frame, text=labelize_str("Extra Options and Flags"))
+        label = ttk.Label(frame, text=labelize_str("Extra Options"))
         label.pack(anchor=tk.W)
 
-        self.extra_opts_var = StringVar()
-        entry = ttk.Entry(frame, textvariable=self.extra_opts_var)
-        entry.pack(fill=tk.X, expand=1, ipady=2 * _pad)
+        var = StringVar()
+        entry = ttk.Entry(frame, textvariable=var)
+        entry.pack(fill=tk.BOTH, expand=1, ipady=2 * _pad)
 
-        return frame
+        return frame, var
 
     def _make_buttons_frame(self, parent):
-        frame = ttk.Frame(parent)
+        frame = ttk.LabelFrame(parent, text='Launch Job')
         run_btns = []
         btn = ttk.Button(frame, text="Help",
                         command=fnt.partial(log.info, '%s', main_help_doc))
@@ -977,21 +981,16 @@ class TkUI(object):
         menubar.add_command(label="About %r" % app_name, command=self._do_about,)
         root['menu'] = menubar
 
-        self.master = master = ttk.PanedWindow(root, orient=tk.VERTICAL, height=16)
-        self.master.pack(fill=tk.BOTH, expand=1)
-        self.master.configure(height=960, width=960)
+        self.master = master = ttk.PanedWindow(root, orient=tk.VERTICAL)
+        master.pack(fill=tk.BOTH, expand=1)
 
-        self.model_panel = _MainPanel(self.master, height=-560)
-        master.add(self.model_panel, weight=1)
+        frame = _MainPanel(master, height=-320)
+        master.add(frame, weight=1)
 
-        self.log_panel = LogPanel(master, height=-120)
-        master.add(self.log_panel, weight=2)
+        frame = LogPanel(master, height=-260)
+        master.add(frame, weight=3)
 
-        s = ttk.Sizegrip(root)
-        s.pack(side=tk.RIGHT)
-
-    def open_url(self, url):
-        webbrowser.open_new(url)
+        ttk.Sizegrip(root).pack(side=tk.RIGHT)
 
     def _do_about(self):
         top = tk.Toplevel(self.master)
@@ -1020,7 +1019,7 @@ class TkUI(object):
         msg.insert(tk.INSERT, txt2)
         msg.insert(tk.INSERT, 'Home: ')
         msg.insert(tk.INSERT, __uri__,
-                   linkman.add(fnt.partial(self.open_url, __uri__)))
+                   linkman.add(fnt.partial(open_url, __uri__)))
 
         msg.configure(state=tk.DISABLED, bg='SystemButtonFace')
 
