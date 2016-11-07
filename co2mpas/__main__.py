@@ -58,7 +58,7 @@ OPTIONS:
 
 Model flags (-D flag.xxx, example -D flag.engineering_mode=True):
  engineering_mode=<bool>     Use all data and not only the declaration data.
- soft_validation=<bool>      Soft validation (just schema).
+ soft_validation=<bool>      Relax some Input-data validations, to facilitate experimentation.
  run_base=<bool>             Enable/disable the `run_base` model.
  use_selector=<bool>         Enable/disable the selection of the best model.
  only_summary=<bool>         Do not save vehicle outputs, just the summary.
@@ -441,7 +441,7 @@ def _cmd_gui(opts):
     if quiet:
         level = logging.WARNING
     init_logging(level=level, logconf_file=opts.get('--logconf'))
-    
+
     from co2mpas import tkui
     tkui.main()
 
@@ -460,7 +460,7 @@ def _main(*args):
     if quiet:
         level = logging.WARNING
     init_logging(level=level, logconf_file=opts.get('--logconf'))
-    
+
     if opts['--version']:
         v = build_version_string(verbose)
         # noinspection PyBroadException

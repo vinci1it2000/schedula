@@ -35,16 +35,16 @@ Layout::
 
 """
 ## TODO: 5-Nov-2016
-#  - Fix co2mpas's main() init-sequence with new GUI instead of *easyguis*.
 #  - Make labels as hyperlinks or use ballons.
 #  - Checkbox for using input as out-template.
-#  - Co2mpas flags: remove plan, order; [workflow, only-summary, soft-val, engineer, use-sele] 
+#  - cwd on output-folder.
+#  - Co2mpas flags: add --force, remove plan, order; [workflow, only-summary, soft-val, engineer, use-sele]
 #  - Co2mpas tab:    1: add [gen-input template] button
-#                    2: link to sync-tab 
-#                    3: rest 
+#                    2: link to sync-tab
+#                    3: rest
 #  - Datasync frame:
-#        [gen-file] [sync-temple-entry][sel] 
-#        [   help   ] [        run         ] 
+#        [gen-file] [sync-temple-entry][sel]
+#        [   help   ] [        run         ]
 
 ## Help (apart from PY-site):
 #  - http://effbot.org/tkinterbook/tkinter-index.htm
@@ -57,10 +57,10 @@ Layout::
 
 from collections import Counter, OrderedDict
 import datetime
+from idlelib.ToolTip import ToolTip
 import io
 import logging
 import os
-from pandalone import utils as putils
 import re
 import sys
 from textwrap import dedent, indent
@@ -70,7 +70,9 @@ import traceback
 import webbrowser
 
 from PIL import Image, ImageTk
+from pandalone import utils as putils
 from toolz import dicttoolz as dtz
+import yaml
 
 from co2mpas import (__version__, __updated__, __copyright__, __license__, __uri__)
 from co2mpas.__main__ import init_logging, _main as co2mpas_main
@@ -98,14 +100,76 @@ except AttributeError:
                   if isinstance(k, int)}
 
 
-def set_ttk_styles():
+def define_ttk_styles():
     style = ttk.Style()
     style.configure('None.TButton', background='SystemButtonFace')
     style.configure('True.TButton', foreground='green')
     style.configure('False.TButton', foreground='red')
+    style.configure('TFrame', relief=tk.RAISED, padding=_pad)
     style.configure('TLabelFrame', relief=tk.RAISED, padding=_pad)
     style.configure('TA.TButton', foreground='orange')
     style.configure('Prog.TLabel', foreground='blue')
+
+
+@fnt.lru_cache()
+def define_tooltips():
+    all_tooltips = """
+        inp_files_tree: |-
+            Populate this list with CO2MPAS Input files/folders using the buttons to the right.
+        add_inp_files_btn: |-
+            Opens a File-dialog to let you choose CO2MPAS Excel Input files
+            to add in the list to the left.
+        add_inp_folder_btn: |-
+            Opens a Folder-dialog to let you choose Folders with CO2MPAS Input files
+            to add in the list to the left.
+        del_inp_btn: |-
+            Deletes selected items from the list to the left.
+        out_folder_entry: |-
+            Select the folder to write the Output files using the button to the right.
+        sel_out_folder_btn: |-
+            Opens a Folder-dialog to let you choose a Folder for the field to the left.
+        out_template_entry: |-
+            Select a pre-populated Excel file to clone and append CO2MPAS results into.
+            By default, results are appended into an empty excel-file.
+            - Use a dash('-') to have CO2MPAS clone the Input-file and use it as template.
+            - Incompatible with DECLARATION mode (started with the `Run TA` buttons).
+        sel_tmpl_file_btn: |-
+            Opens a File-dialog to let you choose an Excel file for the field to the left.
+        run_batch_btn: |-
+            Launches the BATCH CO2MPAS command.
+            - Supports multiple Input files;
+            - Compatible with all flags and options (including ENGINEERING/DECLARATION mode);
+            - The output-folder cannot be empty;
+        run_ta_btn: |-
+            Runs the TA command for a single file in DECLARATION mode.
+            - Incompatible with any other flags and options;
+            - The output-folder cannot be empty;
+            - Needs one, and only one file input.
+        stop_job_btn: |-
+            Aborts a "job" that have started with the `Run` or `Run TA` buttons.
+
+        extra_options_entry: |-
+            Put any other cmd-line options here (try `--help`).
+            - Incompatible with DECLARATION mode (started with the `Run TA` buttons).
+
+        engineering_mode: |-
+            the model uses of all available input data (not only the declaration inputs),
+            and is possible to override various model parameters..
+            - Incompatible with DECLARATION mode (started with the `Run TA` buttons).
+        plot_workflow: |-
+            Open workflow-plot in browser, after run finished.
+            - Incompatible with DECLARATION mode (started with the `Run TA` buttons).
+        soft_validation: |-
+            Relax some Input-data validations in order to facilitate experimentation.
+        only_summary: |-
+            Do not save vehicle outputs, just the summary; should be faster.
+            - Incompatible with DECLARATION mode (started with the `Run TA` buttons).
+        use_selector: |-
+            - Incompatible with DECLARATION mode (started with the `Run TA` buttons).
+        run_plan: |-
+    """
+
+    return yaml.load(all_tooltips)
 
 
 def bang(cond):
@@ -204,6 +268,13 @@ def tree_apply_columns(tree, columns):
         tree.column(c, **c_col_kwds)
 
 
+def add_tooltip(widget, key):
+    tooltips = define_tooltips()
+    tooltip_text = tooltips[key]
+    tooltip_text = dedent(tooltip_text.strip())
+    ToolTip(widget, tooltip_text)
+
+
 class HyperlinkManager:
     ## From http://effbot.org/zone/tkinter-text-hyperlink.htm
     def __init__(self, text):
@@ -239,12 +310,6 @@ class HyperlinkManager:
             if tag[:6] == "hyper-":
                 self.links[tag]()
                 return
-
-
-class LinkLabel(ttk.Label):
-    def __init__(self, *args, url=None, **kwds):
-        super().__init__(*args, style='Link.TLabel', **kwds)
-        self.url = url
 
 
 class FlagButton(ttk.Button):
@@ -300,7 +365,7 @@ class FlagButton(ttk.Button):
 
         self.flag_var.set(flag)
         self.configure(text=self._format_text(flag), style=flag_style)
-        self.state((bang(not flag) + 'pressed', ))
+        self.state((bang(not flag) + 'pressed',))
 
 
 class LogPanel(ttk.LabelFrame):
@@ -323,7 +388,7 @@ class LogPanel(ttk.LabelFrame):
     initted = False
 
     def __init__(self, *args,
-                 log_threshold=logging.INFO, logger_name='', formatter_specs=None, 
+                 log_threshold=logging.INFO, logger_name='', formatter_specs=None,
                  log_level_cb=None, **kw):
         """
         :param dict formatter_specs:
@@ -332,12 +397,12 @@ class LogPanel(ttk.LabelFrame):
             If missing, defaults to :attr:`LogPanel.FORMATTER_SPECS`
         :param logger_name:
             What logger to intercept to.
-            If missing, defaults to root('') and DOES NOT change its threshold, 
+            If missing, defaults to root('') and DOES NOT change its threshold,
             unless modified by the `log_level_cb` of the popup-menu (see next param).
         :param log_level_cb:
-            An optional ``func(level)`` invoked when log-threshold is modified from popup-menu.  
+            An optional ``func(level)`` invoked when log-threshold is modified from popup-menu.
         """
-        self._log_level_cb = log_level_cb 
+        self._log_level_cb = log_level_cb
         if LogPanel.initted:
             raise RuntimeError("I said instantiate me only ONCE!!!")
         LogPanel.inited = True
@@ -567,12 +632,12 @@ class LogPanel(ttk.LabelFrame):
 class _MainPanel(ttk.Frame):
     """
     The state of all widgets is controlled by :meth:`mediate_panel()`.
-    
-    :ivar _stop_job: 
+
+    :ivar _stop_job:
         semaphore armed when the "red" button pressed
     :ivar _job_thread:
         semaphore armed when the "red" button pressed
-        
+
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -658,6 +723,7 @@ class _MainPanel(ttk.Frame):
                 self.mediate_panel()
         files_btn = btn = ttk.Button(parent, text="Add File(s)...", command=ask_input_files)
         add_icon(btn, 'icons/add_file-olive-48.png')
+        add_tooltip(btn, 'add_inp_files_btn')
 
         def ask_input_folder():
             folder = filedialog.askdirectory(
@@ -672,9 +738,11 @@ class _MainPanel(ttk.Frame):
                 self.mediate_panel()
         folder_btn = btn = ttk.Button(parent, text="Add Folder...", command=ask_input_folder)
         add_icon(btn, 'icons/add_folder-olive-48.png')
+        add_tooltip(btn, 'add_inp_folder_btn')
 
         del_btn = btn = ttk.Button(parent, state=tk.DISABLED)  # Its state maintained internally in this method.
         add_icon(btn, 'icons/x_circle-olive-32.png')
+        add_tooltip(btn, 'del_inp_btn')
 
         ## Tree events:
         ##s
@@ -685,11 +753,11 @@ class _MainPanel(ttk.Frame):
                             tree.delete(item)
                     except Exception as ex:
                         log.warning("Cannot del %r due to: %s", item, ex)
-                del_btn.state((tk.DISABLED, ))  # tk-BUG: Selection-vent is not fired.
+                del_btn.state((tk.DISABLED,))  # tk-BUG: Selection-vent is not fired.
                 self.mediate_panel()
 
         def tree_selection_changed(ev):
-            del_btn.state((bang(tree.selection()) + tk.DISABLED, ))
+            del_btn.state((bang(tree.selection()) + tk.DISABLED,))
 
         def on_double_click(ev):
             item = tree.identify('item', ev.x, ev.y)
@@ -699,6 +767,7 @@ class _MainPanel(ttk.Frame):
         del_btn['command'] = del_input_file
         tree.bind('<<TreeviewSelect>>', tree_selection_changed)
         tree.bind("<Double-1>", on_double_click)
+        add_tooltip(tree, 'inp_files_tree')
 
         return (tree, files_btn, folder_btn, del_btn)
 
@@ -718,11 +787,13 @@ class _MainPanel(ttk.Frame):
                 self.mediate_panel()
 
         btn = ttk.Button(frame, command=ask_output_folder)
-        btn.pack(side=tk.LEFT, fill=tk.BOTH, )
+        btn.pack(side=tk.LEFT, fill=tk.BOTH,)
         add_icon(btn, 'icons/add_folder-olive-32.png')
+        add_tooltip(btn, 'sel_out_folder_btn')
 
         entry.bind("<Double-1>", lambda ev: open_file_with_os(var.get()))
         entry.bind("<KeyRelease>", lambda ev: self.mediate_panel())
+        add_tooltip(entry, 'out_folder_entry')
 
         return frame, var
 
@@ -733,6 +804,7 @@ class _MainPanel(ttk.Frame):
         var = StringVar()
         entry = ttk.Entry(frame, textvariable=var)
         entry.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
+        add_tooltip(entry, 'out_template_entry')
 
         def ask_template_file():
             initialdir = find_longest_valid_dir(var.get().strip())
@@ -747,8 +819,10 @@ class _MainPanel(ttk.Frame):
                 self.mediate_panel()
 
         btn = ttk.Button(frame, command=ask_template_file)
-        btn.pack(side=tk.LEFT, fill=tk.BOTH, )
+        btn.pack(side=tk.LEFT, fill=tk.BOTH)
         add_icon(btn, 'icons/add_file-olive-32.png')
+        add_tooltip(btn, 'sel_tmpl_file_btn')
+
         entry.bind("<Double-1>", lambda ev: open_file_with_os(var.get()))
         entry.bind("<KeyRelease>", lambda ev: self.mediate_panel())
 
@@ -765,6 +839,7 @@ class _MainPanel(ttk.Frame):
                              command=self.mediate_panel,
                              padding=(_pad, 4 * _pad, _pad, 4 * _pad))
             btn.pack(side=tk.LEFT, ipadx=4 * _pad)
+            add_tooltip(btn, flag)
 
             return flag, btn.flag_var
 
@@ -784,6 +859,7 @@ class _MainPanel(ttk.Frame):
         entry = ttk.Entry(frame, textvariable=var)
         entry.pack(fill=tk.BOTH, expand=1, ipady=2 * _pad)
         entry.bind("<KeyRelease>", lambda ev: self.mediate_panel())
+        add_tooltip(entry, 'extra_options_entry')
 
         return frame, var
 
@@ -794,16 +870,18 @@ class _MainPanel(ttk.Frame):
         add_icon(btn, 'icons/help-olive-32.png ')
         btn.grid(column=0, row=4, sticky='nswe')
 
-        self._run_btn = btn = ttk.Button(frame, text="Run",
+        self._run_batch_btn = btn = ttk.Button(frame, text="Run",
                          command=fnt.partial(self._do_run_job, is_ta=False))
         add_icon(btn, 'icons/play-olive-32.png')
         btn.grid(column=1, row=4, sticky='nswe')
+        add_tooltip(btn, 'run_batch_btn')
 
         self._run_ta_btn = btn = ttk.Button(frame,
                                             text="Run TA", style='TA.TButton',
                                             command=fnt.partial(self._do_run_job, is_ta=True))
         add_icon(btn, 'icons/play_doc-orange-32.png ')
         btn.grid(column=2, row=4, sticky='nswe')
+        add_tooltip(btn, 'run_ta_btn')
 
         def stop_job_clicked():
             self.stop_job = True
@@ -811,6 +889,7 @@ class _MainPanel(ttk.Frame):
         self._stop_job_btn = btn = ttk.Button(frame, text="Stop", command=stop_job_clicked)
         add_icon(btn, 'icons/hand-red-32.png')
         btn.grid(column=3, row=4, sticky='nswe')
+        add_tooltip(btn, 'stop_job_btn')
 
         self.progr_var = tk.IntVar()
         self.progr_bar = ttk.Progressbar(frame, orient=tk.HORIZONTAL,
@@ -846,23 +925,23 @@ class _MainPanel(ttk.Frame):
 
         ## Update Stop-button.
         #
-        self._stop_job_btn.state((bang(job_alive) + tk.DISABLED, ))
+        self._stop_job_btn.state((bang(job_alive) + tk.DISABLED,))
         stop_requested = job_alive and self.stop_job
-        self._stop_job_btn.state((bang(not stop_requested) + 'pressed', ))
+        self._stop_job_btn.state((bang(not stop_requested) + 'pressed',))
 
         ## Update Run-button.
         #
         inputs = self.inputs_tree.get_children()
-        is_run_btn_enabled = not job_alive and self.out_folder_var.get() and inputs
-        self._run_btn.state((bang(is_run_btn_enabled) + tk.DISABLED, ))
+        is_run_batch_btn_enabled = not job_alive and self.out_folder_var.get() and inputs
+        self._run_batch_btn.state((bang(is_run_batch_btn_enabled) + tk.DISABLED,))
         any_flags = (self.extra_opts_var.get() or
-                     self.tmpl_folder_var.get() or 
+                     self.tmpl_folder_var.get() or
                      any(var.get() for _, var in self.flag_vars))
 
         ## Update Run-TA-button.
         #
-        is_run_ta_enabled = is_run_btn_enabled and not any_flags and len(inputs) == 1
-        self._run_ta_btn.state((bang(is_run_ta_enabled) + tk.DISABLED, ))
+        is_run_ta_enabled = is_run_batch_btn_enabled and not any_flags and len(inputs) == 1
+        self._run_ta_btn.state((bang(is_run_ta_enabled) + tk.DISABLED,))
 
     def _set_status(self, msg):
         """Overlays a message on the progressbar."""
@@ -1009,7 +1088,7 @@ class TkUI(object):
 
         root.title("%s-%s" % (app_name, __version__))
 
-        set_ttk_styles()
+        define_ttk_styles()
 
         # Menubar
         #
