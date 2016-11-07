@@ -45,8 +45,6 @@ Layout::
 #  - Datasync frame:
 #        [gen-file] [sync-temple-entry][sel] 
 #        [   help   ] [        run         ] 
-#  - mediate: disable Run-btns if no outfolder or extra-opts exist.
-#  - mediate: disable run-TA if not out-template.
 
 ## Help (apart from PY-site):
 #  - http://effbot.org/tkinterbook/tkinter-index.htm
@@ -567,10 +565,19 @@ class LogPanel(ttk.LabelFrame):
 
 
 class _MainPanel(ttk.Frame):
+    """
+    The state of all widgets is controlled by :meth:`mediate_panel()`.
+    
+    :ivar _stop_job: 
+        semaphore armed when the "red" button pressed
+    :ivar _job_thread:
+        semaphore armed when the "red" button pressed
+        
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self._stop_job = False  # semaphore for the red button.
+        self.stop_job = False  # semaphore for the red button.
         self._job_thread = None
 
         frame = self._make_inputs_frame(self)
@@ -639,14 +646,16 @@ class _MainPanel(ttk.Frame):
                 filetypes=(('Excel files', '.xlsx .xlsm'),
                            ('All files', '*'),
                            ))
-            for fpath in files:
-                try:
-                    icon = tree.excel_icon if re.search(r'\.xl\w\w$', fpath) else tree.file_icon
-                    finfos = get_file_infos(fpath)
-                    tree.insert('', 'end', fpath, text=fpath,
-                                values=('FILE', *finfos), image=icon)
-                except Exception as ex:
-                    log.warning("Cannot add input file %r due to: %s", fpath, ex)
+            if files:
+                for fpath in files:
+                    try:
+                        icon = tree.excel_icon if re.search(r'\.xl\w\w$', fpath) else tree.file_icon
+                        finfos = get_file_infos(fpath)
+                        tree.insert('', 'end', fpath, text=fpath,
+                                    values=('FILE', *finfos), image=icon)
+                    except Exception as ex:
+                        log.warning("Cannot add input file %r due to: %s", fpath, ex)
+                self.mediate_panel()
         files_btn = btn = ttk.Button(parent, text="Add File(s)...", command=ask_input_files)
         add_icon(btn, 'icons/add_file-olive-48.png')
 
@@ -660,19 +669,24 @@ class _MainPanel(ttk.Frame):
                                 values=('FOLDER', *finfos), image=tree.folder_icon)
                 except Exception as ex:
                     log.warning("Cannot add input folder %r due to: %s", folder, ex)
+                self.mediate_panel()
         folder_btn = btn = ttk.Button(parent, text="Add Folder...", command=ask_input_folder)
         add_icon(btn, 'icons/add_folder-olive-48.png')
 
-        del_btn = btn = ttk.Button(parent, state=tk.DISABLED)
+        del_btn = btn = ttk.Button(parent, state=tk.DISABLED)  # Its state maintained internally in this method.
         add_icon(btn, 'icons/x_circle-olive-32.png')
 
         ## Tree events:
         ##s
         def del_input_file(ev=None):
             if not ev or ev.keysym == 'Delete':
-                for item_id in tree.selection():
-                    tree.delete(item_id)
+                for item in tree.selection():
+                    try:
+                            tree.delete(item)
+                    except Exception as ex:
+                        log.warning("Cannot del %r due to: %s", item, ex)
                 del_btn.state((tk.DISABLED, ))  # tk-BUG: Selection-vent is not fired.
+                self.mediate_panel()
 
         def tree_selection_changed(ev):
             del_btn.state((bang(tree.selection()) + tk.DISABLED, ))
@@ -701,12 +715,14 @@ class _MainPanel(ttk.Frame):
             folder = filedialog.askdirectory(title="Select %s" % title, initialdir=initialdir)
             if folder:
                 var.set(folder + '/')
+                self.mediate_panel()
 
         btn = ttk.Button(frame, command=ask_output_folder)
         btn.pack(side=tk.LEFT, fill=tk.BOTH, )
         add_icon(btn, 'icons/add_folder-olive-32.png')
 
         entry.bind("<Double-1>", lambda ev: open_file_with_os(var.get()))
+        entry.bind("<KeyRelease>", lambda ev: self.mediate_panel())
 
         return frame, var
 
@@ -728,11 +744,13 @@ class _MainPanel(ttk.Frame):
                            ))
             if file:
                 var.set(file)
+                self.mediate_panel()
 
         btn = ttk.Button(frame, command=ask_template_file)
         btn.pack(side=tk.LEFT, fill=tk.BOTH, )
         add_icon(btn, 'icons/add_file-olive-32.png')
         entry.bind("<Double-1>", lambda ev: open_file_with_os(var.get()))
+        entry.bind("<KeyRelease>", lambda ev: self.mediate_panel())
 
         return frame, var
 
@@ -765,35 +783,30 @@ class _MainPanel(ttk.Frame):
         var = StringVar()
         entry = ttk.Entry(frame, textvariable=var)
         entry.pack(fill=tk.BOTH, expand=1, ipady=2 * _pad)
+        entry.bind("<KeyRelease>", lambda ev: self.mediate_panel())
 
         return frame, var
 
     def _make_buttons_frame(self, parent):
         frame = ttk.LabelFrame(parent, text='Launch Job')
-        run_btns = []
         btn = ttk.Button(frame, text="Help",
                          command=fnt.partial(open_url, user_guidelines_url))
         add_icon(btn, 'icons/help-olive-32.png ')
         btn.grid(column=0, row=4, sticky='nswe')
-        run_btns.append(btn)
 
-        btn = ttk.Button(frame, text="Run",
+        self._run_btn = btn = ttk.Button(frame, text="Run",
                          command=fnt.partial(self._do_run_job, is_ta=False))
         add_icon(btn, 'icons/play-olive-32.png')
         btn.grid(column=1, row=4, sticky='nswe')
-        run_btns.append(btn)
 
         self._run_ta_btn = btn = ttk.Button(frame,
                                             text="Run TA", style='TA.TButton',
                                             command=fnt.partial(self._do_run_job, is_ta=True))
         add_icon(btn, 'icons/play_doc-orange-32.png ')
         btn.grid(column=2, row=4, sticky='nswe')
-        run_btns.append(btn)
-
-        self._run_btns = run_btns
 
         def stop_job_clicked():
-            self._stop_job = True
+            self.stop_job = True
             self.mediate_panel()
         self._stop_job_btn = btn = ttk.Button(frame, text="Stop", command=stop_job_clicked)
         add_icon(btn, 'icons/hand-red-32.png')
@@ -834,16 +847,22 @@ class _MainPanel(ttk.Frame):
         ## Update Stop-button.
         #
         self._stop_job_btn.state((bang(job_alive) + tk.DISABLED, ))
-        stop_requested = job_alive and self._stop_job
+        stop_requested = job_alive and self.stop_job
         self._stop_job_btn.state((bang(not stop_requested) + 'pressed', ))
 
-        ## Update Run-buttons.
+        ## Update Run-button.
         #
-        any_flags = any(var.get() for _, var in self.flag_vars)
-        run_btns_state = bang(not job_alive) + tk.DISABLED
-        for btn in self._run_btns:
-            btn.state((run_btns_state, ))
-        self._run_ta_btn.state((bang(not job_alive and not any_flags) + tk.DISABLED, ))
+        inputs = self.inputs_tree.get_children()
+        is_run_btn_enabled = not job_alive and self.out_folder_var.get() and inputs
+        self._run_btn.state((bang(is_run_btn_enabled) + tk.DISABLED, ))
+        any_flags = (self.extra_opts_var.get() or
+                     self.tmpl_folder_var.get() or 
+                     any(var.get() for _, var in self.flag_vars))
+
+        ## Update Run-TA-button.
+        #
+        is_run_ta_enabled = is_run_btn_enabled and not any_flags and len(inputs) == 1
+        self._run_ta_btn.state((bang(is_run_ta_enabled) + tk.DISABLED, ))
 
     def _set_status(self, msg):
         """Overlays a message on the progressbar."""
@@ -886,7 +905,7 @@ class _MainPanel(ttk.Frame):
     def _do_run_job(self, is_ta):
         job_name = "CO2MPAS-TA" if is_ta else "CO2MPAS"
         assert self._job_thread is None, self._job_thread
-        self._stop_job = False
+        self.stop_job = False
 
         cmd_args = self.reconstruct_cmd_args_from_gui(is_ta)
         log.info('Launching %s job:\n  %s', job_name, cmd_args)
@@ -915,16 +934,16 @@ class _MainPanel(ttk.Frame):
 
             def __next__(self):
                 mediate_panel(progr_step=1)
+                max_steps = maingui.progr_bar['maximum']
                 cur_step = maingui.progr_var.get()
                 self.pump_streams(cur_step)
 
-                if maingui._stop_job:
+                if maingui.stop_job:
                     log.warn("Canceled %s job: %s", job_name, cmd_args)
                     raise StopIteration()
-
                 item = next(self.it)
 
-                msg = 'Job %s %s of %s: %r...' % (job_name, cur_step, self.len, item)
+                msg = 'Job %s %s of %s: %r...' % (job_name, cur_step, max_steps, item)
                 maingui.mediate_panel(msg)
 
                 return item
@@ -943,8 +962,7 @@ class _MainPanel(ttk.Frame):
             def tqdm_replacement(self, iterable, *args, **kwds):
                 #maingui.progr_var.set(1)  Already set to 1.
                 self.it = iter(iterable)
-                self.len = len(iterable)
-                mediate_panel(progr_max=2 + self.len)  # +1 on start, +1 final step.
+                mediate_panel(progr_max=2 + len(iterable))  # +1 on start, +1 final step.
 
                 return self
 
@@ -1052,11 +1070,11 @@ class TkUI(object):
 
 
 def main():
-    init_logging()
     app = TkUI()
     app.mainloop()
 
 if __name__ == '__main__':
     if __package__ is None:
         __package__ = "co2mpas"  # @ReservedAssignment
+    init_logging()
     main()
