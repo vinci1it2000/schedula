@@ -16,8 +16,9 @@ capabilities have been added for the user, namely:
 - the new template file contains the minimum inputs that the user have to
   provide to run the "declaration mode";
 - the new output template file;
+- provide a desktop GUI.
 
-while several model changes improved the handling of real-measurement
+Several model changes improved the handling of real-measurement
 data-series.
 
 The study of this release's results are contained in these 3 reports:
@@ -153,9 +154,10 @@ Naming conventions
 - :gh:`b8ce65f`: : If cycle is not given the defaults are `nedc-h`, `nedc-l`,
   `wltp-h` and `wltp-l`.
 
-Chore(build, site, etc)
-~~~~~~~~~~~~~~~~~~~~~~~
+Build Chores(build, site, etc)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - Set ``python-3.5`` only in trove-classifier.
+- Dependencies: +toolz, +Pillow, -easygui, -cachetool, -cyclr.  
 
 Known limitations
 -----------------
