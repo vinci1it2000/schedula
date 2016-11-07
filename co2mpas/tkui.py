@@ -526,24 +526,19 @@ class LogPanel(tk.LabelFrame):
 
 class _MainPanel(tk.Frame):
     def __init__(self, parent, *args, **kwargs):
-        tk.Frame.__init__(self, parent, *args, **kwargs)
+        super().__init__(parent, *args, **kwargs)
 
         self._stop_job = False  # semaphore for the red button.
         self._job_thread = None
 
-        main = tk.Frame(self, **_sunken)
-        main.pack(fill=tk.BOTH, expand=1)
+        frame = self._make_files_frame(self)
+        frame.pack(fill=tk.BOTH, expand=1)
 
-        frame = self._make_files_frame(main)
-        frame.pack(fill=tk.X, expand=1)
+        frame = self._make_flags_frame(self)
+        frame.pack(fill=tk.X)
 
-        frame = self._make_flags_frame(main)
-        frame.pack(fill=tk.X, expand=1)
-
-        frame = self._make_buttons_frame(main)
-        frame.pack(fill=tk.X, expand=1)
-
-        main.rowconfigure(0, weight=1)
+        frame = self._make_buttons_frame(self)
+        frame.pack(fill=tk.X)
 
         self.mediate_panel()
 
@@ -553,23 +548,23 @@ class _MainPanel(tk.Frame):
         kwds = dict(padx=_pad, pady=2 * _pad)
 
         (inp_label, tree, add_files_btn, add_folder_btn, del_btn) = self._build_inputs_tree(frame)
-        inp_label.grid(column=0, row=0, sticky=(tk.W, tk.S))
-        tree.grid(column=0, row=1, rowspan=3, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
-        add_files_btn.grid(column=1, row=1, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
-        add_folder_btn.grid(column=1, row=2, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
-        del_btn.grid(column=1, row=3, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
+        inp_label.grid(column=0, row=0, sticky='nswe')
+        tree.grid(column=0, row=1, rowspan=3, sticky='nswe', **kwds)
+        add_files_btn.grid(column=1, row=1, sticky='nswe', **kwds)
+        add_folder_btn.grid(column=1, row=2, sticky='nswe', **kwds)
+        del_btn.grid(column=1, row=3, sticky='nswe', **kwds)
         self.inputs_tree = tree
 
         (out_label, out_entry, out_btn, out_var) = self._build_output_folder(frame)
-        out_label.grid(column=0, row=4, sticky=(tk.W, tk.S))
-        out_entry.grid(column=0, row=5, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
-        out_btn.grid(column=1, row=5, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
+        out_label.grid(column=0, row=4, sticky='nswe')
+        out_entry.grid(column=0, row=5, sticky='nswe', **kwds)
+        out_btn.grid(column=1, row=5, sticky='nswe', **kwds)
         self.out_folder_var = out_var
 
         (tmpl_label, tmpl_entry, tmpl_btn, tmpl_var) = self._build_template_file(frame)
-        tmpl_label.grid(column=0, row=8, sticky=(tk.W, tk.S))
-        tmpl_entry.grid(column=0, row=9, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
-        tmpl_btn.grid(column=1, row=9, sticky=(tk.N, tk.W, tk.E, tk.S), **kwds)
+        tmpl_label.grid(column=0, row=8, sticky='nswe')
+        tmpl_entry.grid(column=0, row=9, sticky='nswe', **kwds)
+        tmpl_btn.grid(column=1, row=9, sticky='nswe', **kwds)
         self.tmpl_folder_var = tmpl_var
 
         frame.rowconfigure(1, weight=3)
