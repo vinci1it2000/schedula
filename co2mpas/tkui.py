@@ -130,12 +130,14 @@ def define_tooltips():
         sel_out_folder_btn: |-
             Opens a Folder-dialog to select the Output Folder for the field to the left.
 
+        advanced_link: |-
+            Options and flags incompatible with DECLARATION mode (started with the `Run TA` buttons).
+            The may be useful for engineers and experimentation, and for facilitating running batches. 
         out_template_entry: |-
             Select a pre-populated Excel file to clone and append CO2MPAS results into.
             By default, results are appended into an empty excel-file.
             - If feld is not empty, double-click to open the specified folder.
             - Use a dash('-') to have CO2MPAS clone the Input-file and use it as template;
-            - Incompatible with DECLARATION mode (started with the `Run TA` buttons).
         sel_tmpl_file_btn: |-
             Opens a File-dialog to select an existing Excel Output Template file
             for the field to the left.
@@ -374,16 +376,17 @@ FlipSpec = namedtuple('FlipSpec', 'show_func hide_func')
 class WidgetFlipper:
     """Given a parent widget and a list of children, keeps always one child visible"""
 
-    def __init__(self, parent, *flip_children):
+    def __init__(self, parent, *flip_children, flip_cb=None):
         """
         :param flip_children:
             A list of :class:`FlipSpec` or compatible tuples.
         """
         self.flip_specs = [isinstance(fspec, FlipSpec) and fspec or FlipSpec(*fspec)
                            for fspec in flip_children]
+        self._flip_cb = flip_cb
 
         self.flip_ix = -1  # So that flipping kicks-in below.
-        self.flip(0)
+        parent.after_idle(self.flip, 0)
 
     def flip(self, flip_ix=None):
         flip_specs = self.flip_specs
@@ -397,6 +400,9 @@ class WidgetFlipper:
                 flip_specs[old_ix].hide_func()
             flip_specs[flip_ix].show_func()
             self.flip_ix = flip_ix
+
+            if self._flip_cb:
+                self._flip_cb((self, old_ix, flip_ix))
 
 
 class LogPanel(ttk.Labelframe):
@@ -848,6 +854,7 @@ class _MainPanel(ttk.Frame):
 
     def _make_advanced_flipper(self, parent):
         frame = ttk.Labelframe(parent, text='Advanced...', style='Flipper.TLabelframe')
+        add_tooltip(frame, 'advanced_link')
 
         logo = ttk.Label(frame, image=self.app.logo)
 
@@ -871,7 +878,10 @@ class _MainPanel(ttk.Frame):
             frame1.grid_forget()
             frame2.grid_forget()
 
-        flipper = WidgetFlipper(frame, (show_logo, hide_logo), (show_advanced, hide_advanced))
+        flipper = WidgetFlipper(frame,
+                                (show_logo, hide_logo),
+                                (show_advanced, hide_advanced),
+                                flip_cb=lambda ev: self.mediate_guistate())
         frame.bind('<Button-1>', lambda ev: flipper.flip())
 
         return frame, flipper
