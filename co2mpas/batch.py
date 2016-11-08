@@ -448,7 +448,7 @@ def _get_co2mpas_output_template_fpath():
     import pkg_resources
 
     fname = 'co2mpas_output_template.xlsx'
-    return pkg_resources.resource_filename(__name__, fname)
+    return pkg_resources.resource_filename(__name__, fname)  # @UndefinedVariable
 
 
 def vehicle_processing_model():

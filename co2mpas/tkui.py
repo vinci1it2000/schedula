@@ -47,7 +47,7 @@ Layout::
 #    - http://www.iconsdb.com/red-icons/red-play-icons.html
 #    - https://material.io/icons/#
 
-from collections import Counter, OrderedDict
+from collections import Counter, OrderedDict, namedtuple
 import datetime
 from idlelib.ToolTip import ToolTip
 import io
@@ -98,7 +98,8 @@ def define_ttk_styles():
     style.configure('True.TButton', foreground='green')
     style.configure('False.TButton', foreground='red')
     style.configure('TFrame', relief=tk.RAISED, padding=_pad)
-    style.configure('TLabelFrame', relief=tk.RAISED, padding=_pad)
+    style.configure('TLabelframe', relief=tk.RAISED,)
+    style.configure('Flipper.TLabelframe', relief=tk.RAISED, underline=True)
     style.configure('TA.TButton', foreground='orange')
     style.configure('Prog.TLabel', foreground='blue')
 
@@ -345,7 +346,7 @@ class FlagButton(ttk.Button):
 
         ## Begin from 1st flag.
         #
-        self._flag_ix = len(self.flag_styles) - 1
+        self._flag_ix = -1
         self.next_flag()
 
     @property
@@ -367,7 +368,38 @@ class FlagButton(ttk.Button):
         self.state((bang(not flag) + 'pressed',))
 
 
-class LogPanel(ttk.LabelFrame):
+FlipSpec = namedtuple('FlipSpec', 'show_func hide_func')
+
+
+class WidgetFlipper:
+    """Given a parent widget and a list of children, keeps always one child visible"""
+
+    def __init__(self, parent, *flip_children):
+        """
+        :param flip_children:
+            A list of :class:`FlipSpec` or compatible tuples.
+        """
+        self.flip_specs = [isinstance(fspec, FlipSpec) and fspec or FlipSpec(*fspec)
+                           for fspec in flip_children]
+
+        self.flip_ix = -1  # So that flipping kicks-in below.
+        self.flip(0)
+
+    def flip(self, flip_ix=None):
+        flip_specs = self.flip_specs
+        old_ix = self.flip_ix
+
+        if flip_ix is None:
+            flip_ix = (self.flip_ix + 1) % len(self.flip_specs)
+
+        if flip_ix != old_ix:
+            if old_ix is not None:
+                flip_specs[old_ix].hide_func()
+            flip_specs[flip_ix].show_func()
+            self.flip_ix = flip_ix
+
+
+class LogPanel(ttk.Labelframe):
 
     """
     Instantiate only once(!), or logging and Tk's ex-handling will get borged.
@@ -638,45 +670,44 @@ class _MainPanel(ttk.Frame):
         semaphore armed when the "red" button pressed
 
     """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, master, app, *args, **kwargs):
+        super().__init__(master, *args, **kwargs)
+        self.app = app
 
-        self.stop_job = False  # semaphore for the red button.
+        ## Could move to app.
+        #
+        self.stop_job = False  # semaphore for the red Stop button
         self._job_thread = None
 
         frame = self._make_inputs_frame(self)
-        frame.grid(column=0, row=0, rowspan=3, sticky='nswe')
+        frame.grid(column=0, row=0, rowspan=2, sticky='nswe')
 
         frame, var = self._make_output_folder(self)
         frame.grid(column=1, row=0, sticky='nswe')
         self.out_folder_var = var
 
-        frame, var = self._make_template_file(self)
+        frame, flipper = self._make_advanced_flipper(self)
         frame.grid(column=1, row=1, sticky='nswe')
-        self.tmpl_folder_var = var
-
-        frame, var = self._make_flags_frame(self)
-        frame.grid(column=1, row=2, sticky='nswe')
-        self.extra_opts_var = var
+        self.advanced_flipper = flipper
 
         frame = self._make_buttons_frame(self)
         frame.grid(column=0, row=3, columnspan=2, sticky='nswe')
 
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=1)
-        for r in range(3):
+        for r in range(2):
             self.rowconfigure(r, weight=1)
 
         self.mediate_guistate()
 
     def _make_inputs_frame(self, parent):
-        frame = ttk.LabelFrame(parent, text='Inputs')
+        frame = ttk.Labelframe(parent, text='Inputs')
 
-        (tree, ssve_templ_btn, add_files_btn, add_folder_btn, del_btn) = self._build_inputs_tree(frame)
+        (tree, add_files_btn, add_folder_btn, save_templ_btn, del_btn) = self._build_inputs_tree(frame)
         tree.grid(column=0, row=0, rowspan=4, sticky='nswe')
-        ssve_templ_btn.grid(column=1, row=0, sticky='nswe')
-        add_files_btn.grid(column=1, row=1, sticky='nswe')
-        add_folder_btn.grid(column=1, row=2, sticky='nswe')
+        add_files_btn.grid(column=1, row=0, sticky='nswe')
+        add_folder_btn.grid(column=1, row=1, sticky='nswe')
+        save_templ_btn.grid(column=1, row=2, sticky='nswe')
         del_btn.grid(column=1, row=3, sticky='nswe')
         self.inputs_tree = tree
 
@@ -719,20 +750,6 @@ class _MainPanel(ttk.Frame):
             except Exception as ex:
                 log.warning("Cannot add input file %r due to: %s", path, ex)
 
-        def ask_save_template_file():
-            file = filedialog.asksaveasfilename(
-                title='Save "sample" Input CO2MPAS file',
-                defaultextension='xlsx',
-                filetypes=(('Excel files', '.xlsx .xlsm'),))
-            if file:
-                save_template((file, ), force=True)
-                insert_item(file, is_folder=False)
-                self.mediate_guistate()
-
-        save_btn = btn = ttk.Button(parent, command=ask_save_template_file)
-        add_icon(btn, 'icons/download-olive-32.png ')
-        add_tooltip(btn, 'download_tmpl_file_btn')
-
         def ask_input_files():
             files = filedialog.askopenfilenames(
                 title='Select CO2MPAS Input file(s)',
@@ -757,6 +774,20 @@ class _MainPanel(ttk.Frame):
         folder_btn = btn = ttk.Button(parent, text="Add Folder...", command=ask_input_folder)
         add_icon(btn, 'icons/add_folder-olive-48.png')
         add_tooltip(btn, 'add_inp_folder_btn')
+
+        def ask_save_template_file():
+            file = filedialog.asksaveasfilename(
+                title='Save "sample" Input CO2MPAS file',
+                defaultextension='xlsx',
+                filetypes=(('Excel files', '.xlsx .xlsm'),))
+            if file:
+                save_template((file,), force=True)
+                insert_item(file, is_folder=False)
+                self.mediate_guistate()
+
+        save_btn = btn = ttk.Button(parent, command=ask_save_template_file)
+        add_icon(btn, 'icons/download-olive-32.png ')
+        add_tooltip(btn, 'download_tmpl_file_btn')
 
         del_btn = btn = ttk.Button(parent, state=tk.DISABLED)  # Its state maintained internally in this method.
         add_icon(btn, 'icons/trash-olive-32.png')
@@ -787,11 +818,11 @@ class _MainPanel(ttk.Frame):
         tree.bind("<Double-1>", on_double_click)
         add_tooltip(tree, 'inp_files_tree')
 
-        return (tree, save_btn, files_btn, folder_btn, del_btn)
+        return (tree, files_btn, folder_btn, save_btn, del_btn)
 
     def _make_output_folder(self, parent):
         title = 'Output Folder'
-        frame = ttk.LabelFrame(parent, text=labelize_str(title))
+        frame = ttk.Labelframe(parent, text=labelize_str(title))
 
         var = StringVar(value=os.getcwd())
         entry = ttk.Entry(frame, textvariable=var)
@@ -815,9 +846,39 @@ class _MainPanel(ttk.Frame):
 
         return frame, var
 
+    def _make_advanced_flipper(self, parent):
+        frame = ttk.Labelframe(parent, text='Advanced...', style='Flipper.TLabelframe')
+
+        logo = ttk.Label(frame, image=self.app.logo)
+
+        def show_logo():
+            logo.grid(column=1, row=1, rowspan=2, sticky='nswe')
+
+        def hide_logo():
+            logo.grid_forget()
+
+        frame1, var = self._make_template_file(frame)
+        self.tmpl_folder_var = var
+
+        frame2, var = self._make_flags_frame(frame)
+        self.extra_opts_var = var
+
+        def show_advanced():
+            frame1.grid(column=1, row=1, sticky='nswe')
+            frame2.grid(column=1, row=2, sticky='nswe')
+
+        def hide_advanced():
+            frame1.grid_forget()
+            frame2.grid_forget()
+
+        flipper = WidgetFlipper(frame, (show_logo, hide_logo), (show_advanced, hide_advanced))
+        frame.bind('<Button-1>', lambda ev: flipper.flip())
+
+        return frame, flipper
+
     def _make_template_file(self, parent):
         title = 'Output Template file'
-        frame = ttk.LabelFrame(parent, text=labelize_str(title))
+        frame = ttk.Labelframe(parent, text=labelize_str(title))
 
         var = StringVar()
         entry = ttk.Entry(frame, textvariable=var)
@@ -847,7 +908,7 @@ class _MainPanel(ttk.Frame):
         return frame, var
 
     def _make_flags_frame(self, parent):
-        frame = ttk.LabelFrame(parent, text='Flags and Options')
+        frame = ttk.Labelframe(parent, text='Flags and Options')
         flags_frame = ttk.Frame(frame)
         flags_frame.pack(fill=tk.X)
 
@@ -882,14 +943,14 @@ class _MainPanel(ttk.Frame):
         return frame, var
 
     def _make_buttons_frame(self, parent):
-        frame = ttk.LabelFrame(parent, text='Launch Job')
+        frame = ttk.Labelframe(parent, text='Launch Job')
         btn = ttk.Button(frame, text="Help",
                          command=fnt.partial(open_url, user_guidelines_url))
         add_icon(btn, 'icons/help-olive-32.png ')
         btn.grid(column=0, row=4, sticky='nswe')
 
         self._run_batch_btn = btn = ttk.Button(frame, text="Run",
-                         command=fnt.partial(self._do_run_job, is_ta=False))
+                                               command=fnt.partial(self._do_run_job, is_ta=False))
         add_icon(btn, 'icons/play-olive-32.png')
         btn.grid(column=1, row=4, sticky='nswe')
         add_tooltip(btn, 'run_batch_btn')
@@ -952,13 +1013,10 @@ class _MainPanel(ttk.Frame):
         inputs = self.inputs_tree.get_children()
         is_run_batch_btn_enabled = not job_alive and self.out_folder_var.get() and inputs
         self._run_batch_btn.state((bang(is_run_batch_btn_enabled) + tk.DISABLED,))
-        any_flags = (self.extra_opts_var.get() or
-                     self.tmpl_folder_var.get() or
-                     any(var.get() for _, var in self.flag_vars))
 
         ## Update Run-TA-button.
         #
-        is_run_ta_enabled = is_run_batch_btn_enabled and not any_flags and len(inputs) == 1
+        is_run_ta_enabled = is_run_batch_btn_enabled and self.advanced_flipper.flip_ix == 0
         self._run_ta_btn.state((bang(is_run_ta_enabled) + tk.DISABLED,))
 
     def _set_status(self, msg):
@@ -974,20 +1032,21 @@ class _MainPanel(ttk.Frame):
     def reconstruct_cmd_args_from_gui(self, is_ta):
         cmd_args = ['ta' if is_ta else 'batch']
 
-        cmd_args += self.extra_opts_var.get().strip().split()
-
         out_folder = self.out_folder_var.get()
         if out_folder:
             cmd_args += ['-O', out_folder]
 
-        tmpl_folder = self.tmpl_folder_var.get()
-        if tmpl_folder:
-            cmd_args += ['-D', 'flag.output_template=%s' % tmpl_folder]
+        if self.advanced_flipper.flip_ix > 0:
+            cmd_args += self.extra_opts_var.get().strip().split()
 
-        for flag, flag_var in self.flag_vars:
-            flag_value = flag_var.get()
-            if flag_value:
-                cmd_args += ['-D', 'flag.%s=%s' % (flag, flag_value)]
+            tmpl_folder = self.tmpl_folder_var.get()
+            if tmpl_folder:
+                cmd_args += ['-D', 'flag.output_template=%s' % tmpl_folder]
+
+            for flag, flag_var in self.flag_vars:
+                flag_value = flag_var.get()
+                if flag_value:
+                    cmd_args += ['-D', 'flag.%s=%s' % (flag, flag_value)]
 
         inputs = self.inputs_tree.get_children()
         if not inputs:
@@ -1036,12 +1095,12 @@ class _MainPanel(ttk.Frame):
                 self.pump_streams(cur_step)
 
                 if maingui.stop_job:
-                    log.warn("Canceled %s job: %s", job_name, cmd_args)
+                    log.warning("Canceled %s job: %s", job_name, cmd_args)
                     raise StopIteration()
                 item = next(self.it)
 
                 msg = 'Job %s %s of %s: %r...' % (job_name, cur_step, max_steps, item)
-                maingui.mediate_guistate(msg)
+                mediate_guistate(msg)
 
                 return item
 
@@ -1091,7 +1150,7 @@ class _MainPanel(ttk.Frame):
 
         self.progr_bar['maximum'] = len(self.inputs_tree.get_children())
         self.progr_var.set(1)
-        self.mediate_panel('Launched %s job...' % job_name)
+        self.mediate_guistate('Launched %s job...' % job_name)
 
 
 class TkUI(object):
@@ -1103,7 +1162,6 @@ class TkUI(object):
         if not root:
             root = tk.Tk()
         self.root = root
-
         root.title("%s-%s" % (app_name, __version__))
 
         define_ttk_styles()
@@ -1117,13 +1175,19 @@ class TkUI(object):
         self.master = master = ttk.PanedWindow(root, orient=tk.VERTICAL)
         master.pack(fill=tk.BOTH, expand=1)
 
-        frame = _MainPanel(master, height=-320)
+        frame = _MainPanel(master, app=self, height=-320)
         master.add(frame, weight=1)
 
         frame = LogPanel(master, height=-260, log_level_cb=init_logging)
         master.add(frame, weight=3)
 
         ttk.Sizegrip(root).pack(side=tk.RIGHT)
+
+    @property
+    def logo(self):
+        if not hasattr(self, '_logo'):
+            self._logo = read_image('icons/CO2MPAS_banner2.png')  # Avoid GC.
+        return self._logo
 
     def _do_about(self):
         top = tk.Toplevel(self.master)
@@ -1147,8 +1211,7 @@ class TkUI(object):
 
         msg.insert(tk.INSERT, txt1)
 
-        msg.photo = read_image('icons/CO2MPAS_banner2.png')  # Avoid GC.
-        msg.image_create(tk.INSERT, image=msg.photo)
+        msg.image_create(tk.INSERT, image=self.logo)
         msg.insert(tk.INSERT, txt2)
         msg.insert(tk.INSERT, 'Home: ')
         msg.insert(tk.INSERT, __uri__,
