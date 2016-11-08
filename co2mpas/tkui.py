@@ -567,7 +567,7 @@ class LogPanel(ttk.LabelFrame):
         levels = ['Totals'] + [lname for _, lname in LogPanel.LEVELS_MAP]
         levels_counted = [(lname, self._log_counters[lname])
                           for lname in levels]
-        self['text'] = 'Log (%s)' % ', '.join(
+        self['text'] = 'Log messages (%s)' % ', '.join(
             '%s: %i' % (lname, count) for lname, count in levels_counted if count)
 
     def clear_log(self):
@@ -630,7 +630,7 @@ class LogPanel(ttk.LabelFrame):
 
 class _MainPanel(ttk.Frame):
     """
-    The state of all widgets is controlled by :meth:`mediate_panel()`.
+    The state of all widgets is controlled by :meth:`mediate_guistateate()`.
 
     :ivar _stop_job:
         semaphore armed when the "red" button pressed
@@ -667,7 +667,7 @@ class _MainPanel(ttk.Frame):
         for r in range(3):
             self.rowconfigure(r, weight=1)
 
-        self.mediate_panel()
+        self.mediate_guistate()
 
     def _make_inputs_frame(self, parent):
         frame = ttk.LabelFrame(parent, text='Inputs')
@@ -727,7 +727,7 @@ class _MainPanel(ttk.Frame):
             if file:
                 save_template((file, ), force=True)
                 insert_item(file, is_folder=False)
-                self.mediate_panel()
+                self.mediate_guistate()
 
         save_btn = btn = ttk.Button(parent, command=ask_save_template_file)
         add_icon(btn, 'icons/download-olive-32.png ')
@@ -743,7 +743,7 @@ class _MainPanel(ttk.Frame):
             if files:
                 for fpath in files:
                     insert_item(fpath, is_folder=False)
-                self.mediate_panel()
+                self.mediate_guistate()
         files_btn = btn = ttk.Button(parent, text="Add File(s)...", command=ask_input_files)
         add_icon(btn, 'icons/add_file-olive-48.png')
         add_tooltip(btn, 'add_inp_files_btn')
@@ -753,7 +753,7 @@ class _MainPanel(ttk.Frame):
                 title='Select CO2MPAS Input folder')
             if folder:
                 insert_item(folder, is_folder=True)
-                self.mediate_panel()
+                self.mediate_guistate()
         folder_btn = btn = ttk.Button(parent, text="Add Folder...", command=ask_input_folder)
         add_icon(btn, 'icons/add_folder-olive-48.png')
         add_tooltip(btn, 'add_inp_folder_btn')
@@ -772,7 +772,7 @@ class _MainPanel(ttk.Frame):
                     except Exception as ex:
                         log.warning("Cannot delete %r due to: %s", item, ex)
                 del_btn.state((tk.DISABLED,))  # tk-BUG: Selection-vent is not fired.
-                self.mediate_panel()
+                self.mediate_guistate()
 
         def tree_selection_changed(ev):
             del_btn.state((bang(tree.selection()) + tk.DISABLED,))
@@ -802,7 +802,7 @@ class _MainPanel(ttk.Frame):
             folder = filedialog.askdirectory(title="Select %s" % title, initialdir=initialdir)
             if folder:
                 var.set(folder + '/')
-                self.mediate_panel()
+                self.mediate_guistate()
 
         btn = ttk.Button(frame, command=ask_output_folder)
         btn.pack(side=tk.LEFT, fill=tk.BOTH,)
@@ -810,7 +810,7 @@ class _MainPanel(ttk.Frame):
         add_tooltip(btn, 'sel_out_folder_btn')
 
         entry.bind("<Double-1>", lambda ev: open_file_with_os(var.get()))
-        entry.bind("<KeyRelease>", lambda ev: self.mediate_panel())
+        entry.bind("<KeyRelease>", lambda ev: self.mediate_guistate())
         add_tooltip(entry, 'out_folder_entry')
 
         return frame, var
@@ -834,7 +834,7 @@ class _MainPanel(ttk.Frame):
                            ))
             if file:
                 var.set(file)
-                self.mediate_panel()
+                self.mediate_guistate()
 
         btn = ttk.Button(frame, command=ask_template_file)
         btn.pack(side=tk.LEFT, fill=tk.BOTH)
@@ -842,7 +842,7 @@ class _MainPanel(ttk.Frame):
         add_tooltip(btn, 'sel_tmpl_file_btn')
 
         entry.bind("<Double-1>", lambda ev: open_file_with_os(var.get()))
-        entry.bind("<KeyRelease>", lambda ev: self.mediate_panel())
+        entry.bind("<KeyRelease>", lambda ev: self.mediate_guistate())
 
         return frame, var
 
@@ -854,7 +854,7 @@ class _MainPanel(ttk.Frame):
         def make_flag(flag):
             flag_name = flag.replace('_', ' ').title()
             btn = FlagButton(flags_frame, text=flag_name,
-                             command=self.mediate_panel,
+                             command=self.mediate_guistate,
                              padding=(_pad, 4 * _pad, _pad, 4 * _pad))
             btn.pack(side=tk.LEFT, ipadx=4 * _pad)
             add_tooltip(btn, flag)
@@ -876,7 +876,7 @@ class _MainPanel(ttk.Frame):
         var = StringVar()
         entry = ttk.Entry(frame, textvariable=var)
         entry.pack(fill=tk.BOTH, expand=1, ipady=2 * _pad)
-        entry.bind("<KeyRelease>", lambda ev: self.mediate_panel())
+        entry.bind("<KeyRelease>", lambda ev: self.mediate_guistate())
         add_tooltip(entry, 'extra_options_entry')
 
         return frame, var
@@ -903,7 +903,7 @@ class _MainPanel(ttk.Frame):
 
         def stop_job_clicked():
             self.stop_job = True
-            self.mediate_panel()
+            self.mediate_guistate()
         self._stop_job_btn = btn = ttk.Button(frame, text="Stop", command=stop_job_clicked)
         add_icon(btn, 'icons/hand-red-32.png')
         btn.grid(column=3, row=4, sticky='nswe')
@@ -921,11 +921,11 @@ class _MainPanel(ttk.Frame):
 
         return frame
 
-    def mediate_panel_T(self, msg=None, progr_step=None, progr_max=None):
+    def mediate_guistate_T(self, msg=None, progr_step=None, progr_max=None):
         """To be nvoked by other threads."""
-        self.after_idle(self.mediate_panel, msg, progr_step, progr_max)
+        self.after_idle(self.mediate_guistate, msg, progr_step, progr_max)
 
-    def mediate_panel(self, msg=None, progr_step=None, progr_max=None):
+    def mediate_guistate(self, msg=None, progr_step=None, progr_max=None):
         """Handler of states for all panel's widgets."""
         progr_var = self.progr_var
 
@@ -1008,7 +1008,7 @@ class _MainPanel(ttk.Frame):
         log.info('Launching %s job:\n  %s', job_name, cmd_args)
 
         maingui = self
-        mediate_panel = self.mediate_panel_T
+        mediate_guistate = self.mediate_guistate_T
 
         class ProgressUpdater:
             """
@@ -1030,7 +1030,7 @@ class _MainPanel(ttk.Frame):
                 return self
 
             def __next__(self):
-                mediate_panel(progr_step=1)
+                mediate_guistate(progr_step=1)
                 max_steps = maingui.progr_bar['maximum']
                 cur_step = maingui.progr_var.get()
                 self.pump_streams(cur_step)
@@ -1041,7 +1041,7 @@ class _MainPanel(ttk.Frame):
                 item = next(self.it)
 
                 msg = 'Job %s %s of %s: %r...' % (job_name, cur_step, max_steps, item)
-                maingui.mediate_panel(msg)
+                maingui.mediate_guistate(msg)
 
                 return item
 
@@ -1059,13 +1059,13 @@ class _MainPanel(ttk.Frame):
             def tqdm_replacement(self, iterable, *args, **kwds):
                 #maingui.progr_var.set(1)  Already set to 1.
                 self.it = iter(iterable)
-                mediate_panel(progr_max=2 + len(iterable))  # +1 on start, +1 final step.
+                mediate_guistate(progr_max=2 + len(iterable))  # +1 on start, +1 final step.
 
                 return self
 
             def on_finish(self, out, err):
                 maingui._job_thread = None
-                mediate_panel(msg='', progr_max=0)
+                mediate_guistate(msg='', progr_max=0)
 
                 new_out = self.stdout.getvalue()[self.out_i:]
                 new_err = self.stderr.getvalue()[self.err_i:]
