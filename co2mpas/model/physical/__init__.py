@@ -30,7 +30,6 @@ Modules:
 import co2mpas.dispatcher as dsp
 import numpy as np
 import functools
-np.seterr(divide='ignore', invalid='ignore')
 
 
 def predict_vehicle_electrics_and_engine_behavior(
