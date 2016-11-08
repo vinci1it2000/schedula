@@ -498,36 +498,47 @@ def define_fmep_model(
     return model
 
 
-# noinspection PyUnusedLocal
-def _fuel_ABC(
-        n_speeds, n_powers, n_temperatures,
-        a2=0, b2=0, a=0, b=0, c=0, t=0, l=0, l2=0, acr=1, vva=0, lb=0, ecr=0,
-        **kw):
-
-    acr2 = (acr ** 2)
-
+def _tech_mult(vva=0, lb=0, ecr=0, **params):
+    p = {}
+    func = functools.partial(dsp_utl.get_nested_dicts, p, default=list)
     if vva:
-        a = 0.98 * a
-        l = 0.92 * l
+        func('a').append(0.98)
+        func('l').append(0.92)
 
     if lb:
-        a = 1.1 * a
-        b = 0.72 * b
-        c = 0.76 * c
-        a2 = 1.25 * a2
-        l2 = 2.85 * l2
+        func('a').append(1.1)
+        func('b').append(0.72)
+        func('c').append(0.76)
+        func('a2').append(1.25)
+        func('l2').append(2.85)
 
     if ecr:
-        b = 1.1 * b
-        a2 = 1.1 * a2
+        func('b').append(1.1)
+        func('a2').append(1.1)
 
         if ecr == 1:
-            a = 1.02 * a
-            c = 1.5 * c
+            func('a').append(1.02)
+            func('c').append(1.5)
         else:
-            a = 1.015 * a
-            c = 1.4 * c
+            func('a').append(1.015)
+            func('c').append(1.4)
 
+    for k, v in p.items():
+        params[k] = np.mean(v) * params[k]
+
+    return params
+
+
+def _fuel_ABC(n_speeds, **kw):
+    return _ABC(n_speeds, **_tech_mult(**kw))
+
+
+# noinspection PyUnusedLocal
+def _ABC(
+        n_speeds, n_powers=0, n_temperatures=1,
+        a2=0, b2=0, a=0, b=0, c=0, t=0, l=0, l2=0, acr=1, **kw):
+
+    acr2 = (acr ** 2)
     A = a2 / acr2 + (b2 / acr2) * n_speeds
     B = a / acr + (b / acr + (c / acr) * n_speeds) * n_speeds
     C = l + l2 * n_speeds ** 2
@@ -2139,7 +2150,7 @@ def calculate_optimal_efficiency(params, mean_piston_speeds):
 
 
 def _calculate_optimal_point(params, n_speed):
-    A, B, C = _fuel_ABC(n_speed, 0, 1, **params)
+    A, B, C = _fuel_ABC(n_speed, **params)
     ac4, B2 = 4 * A * C, B ** 2
     sabc = np.sqrt(ac4 * B2)
     n = sabc - ac4
