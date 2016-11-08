@@ -188,7 +188,7 @@ setup(
         'wltp',
         'openpyxl>=2.4.0',
         'Pillow',           ## for tkui
-        'toolz,'
+        'toolz',
     ],
     extras_require={
         'dice': [
