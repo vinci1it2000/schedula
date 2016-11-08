@@ -14,9 +14,9 @@
     :name: mastertoc
 
     install
-    allinone
-    usage
     explanation
+    usage
+    developers
     changes
     reference
 
