@@ -1010,8 +1010,7 @@ class _MainPanel(ttk.Frame):
 
         ## Update Run-button.
         #
-        inputs = self.inputs_tree.get_children()
-        is_run_batch_btn_enabled = not job_alive and self.out_folder_var.get() and inputs
+        is_run_batch_btn_enabled = not job_alive and self.out_folder_var.get()
         self._run_batch_btn.state((bang(is_run_batch_btn_enabled) + tk.DISABLED,))
 
         ## Update Run-TA-button.
@@ -1049,12 +1048,7 @@ class _MainPanel(ttk.Frame):
                     cmd_args += ['-D', 'flag.%s=%s' % (flag, flag_value)]
 
         inputs = self.inputs_tree.get_children()
-        if not inputs:
-            cwd = os.getcwd()
-            log.warning("No inputs specified; assuming current directory: %s", cwd)
-            cmd_args.append(cwd)
-        else:
-            cmd_args += inputs
+        cmd_args += inputs
 
         return cmd_args
 
@@ -1062,6 +1056,11 @@ class _MainPanel(ttk.Frame):
         job_name = "CO2MPAS-TA" if is_ta else "CO2MPAS"
         assert self._job_thread is None, self._job_thread
         self.stop_job = False
+
+        inputs = self.inputs_tree.get_children()
+        if not inputs:
+            log.error("No inputs specified!  Please add files & folders in the Inputs list at the top-left.")
+            return
 
         cmd_args = self.reconstruct_cmd_args_from_gui(is_ta)
         log.info('Launching %s job:\n  %s', job_name, cmd_args)
