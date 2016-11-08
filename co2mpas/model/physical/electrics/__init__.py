@@ -844,7 +844,7 @@ class Alternator_status_model(object):
         from ..defaults import dfl
         min_dt = dfl.functions.Alternator_status_model.min_delta_time_boundaries
         for i, j in mask:
-            t,  = times[i:j],
+            t = times[i:j]
             if t[-1] - t[0] <= min_dt:
                 continue
             soc = state_of_charges[i:j]
@@ -855,12 +855,18 @@ class Alternator_status_model(object):
                 if j < n:
                     _max.append(soc.max())
 
+        min_dsoc = dfl.functions.Alternator_status_model.min_delta_soc
         if _min:
             self.min = _min = max(self.min, min(100.0, min(_min)))
 
-        _max = [m for m in _max if m >= _min]
-        if _max:
-            self.max = min(100.0, max(_max))
+            _max = [m for m in _max if m >= _min]
+            if _max:
+                self.max = min(100.0, min(max(_max), _min + min_dsoc))
+            else:
+                self.max = min(100.0, _min + min_dsoc)
+        elif _max:
+            self.max = _max = min(self.max, max(0.0, max(_max)))
+            self.min = _max - min_dsoc
 
     # noinspection PyUnresolvedReferences
     def fit(self, times, alternator_statuses, state_of_charges,

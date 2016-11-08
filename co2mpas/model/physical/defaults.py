@@ -202,6 +202,9 @@ class Functions(co2_utl.Constants):
         #: Minimum acceptance percentile to fit the bers threshold [%].
         min_percentile_bers = 90
 
+        #: Minimum delta soc to set the charging boundaries [%].
+        min_delta_soc = 8
+
     class default_ki_factor(co2_utl.Constants):
         #: Correction for vehicles with periodically regenerating systems [-].
         ki_factor = {True: 1.05, False: 1.0}
