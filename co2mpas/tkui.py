@@ -1147,7 +1147,7 @@ class TkUI(object):
 
         msg.insert(tk.INSERT, txt1)
 
-        msg.photo = read_image('icons/CO2MPAS_logo.png')  # Avoid GC.
+        msg.photo = read_image('icons/CO2MPAS_banner2.png')  # Avoid GC.
         msg.image_create(tk.INSERT, image=msg.photo)
         msg.insert(tk.INSERT, txt2)
         msg.insert(tk.INSERT, 'Home: ')
