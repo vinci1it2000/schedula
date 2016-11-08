@@ -10,28 +10,24 @@ The launching GUI formCO2MPAS.
 
 Layout::
 
-    #####################################################
-    #:  ______________________________                  :#
-    #: |                              |                 :#
-    #: |                              | [  Add files  ] :#
-    #: |                              |                 :#
-    #: |                              | [  Add folder ] :#
-    #: |___________(inputs)___________|                 :#
-    #:  ______________________________                  :#
-    #: |_________(Output dir)_________| [ Set Out Dir ] :#
-    #:  ______________________________                  :#
-    #: |________(Template file________| [Set Template ] :#
-    #:                                                  :#
-    #: [flag-1] [flag-2] [flag-3] [flag-4]              :#
-    #:  ______________________________________________  :#
-    #: |_________________(extra flags)________________| :#
-    #: [ Help ]     [ Run-1 ]  ...             [ Run-2] :#
-    #+--------------------------------------------------+#
-    #:  ______________________________________________  :#
-    #: |                                              | :#
-    #: |                                              | :#
-    #: |________________(log_frame)___________________| :#
-    #####################################################
+    ######################################################################################################
+    #:  ______________________________               :  ______________________________                  :#
+    #: |                              |              : |_________(Output dir)_________| [ Set Out Dir ] :#
+    #: |                              | [Add files ] :  ______________________________                  :#
+    #: |                              |              : |________(Template file________| [Set Template ] :#
+    #: |                              | [Add folder] :                                                  :#
+    #: |                              |              : [flag-1] [flag-2] [flag-3] [flag-4]              :#
+    #: |                              | [ Del item ] :  ______________________________________________  :#
+    #: |___________(inputs)___________|              : |_________________(extra flags)________________| :#
+    #:                                               :                                                  :#
+    #: [ Help ]     [ Run-1 ]  ...             [ Run-2]
+    #: [ PROGRESS BAR ...]
+    #+--------------------------------------------------------------------------------------------------:#
+    #:  ______________________________________________________________________________________________  :#
+    #: |                                                                                              | :#
+    #: |                                                                                              | :#
+    #: |________________________________________(log_frame)___________________________________________| :#
+    ######################################################################################################
 
 """
 ## TODO: 5-Nov-2016
@@ -71,7 +67,7 @@ from toolz import dicttoolz as dtz
 import yaml
 
 from co2mpas import (__version__, __updated__, __copyright__, __license__, __uri__)
-from co2mpas.__main__ import init_logging, _main as co2mpas_main
+from co2mpas.__main__ import init_logging, _main as co2mpas_main, save_template
 import co2mpas.batch as co2mpas_batch
 from co2mpas.utils import stds_redirected
 import functools as fnt
@@ -111,29 +107,41 @@ def define_ttk_styles():
 def define_tooltips():
     all_tooltips = """
         inp_files_tree: |-
-            Populate this list with CO2MPAS Input files/folders using the buttons to the right.
+            Populate this list with CO2MPAS Input files & folders using the buttons to the right.
+            - Double-click to open populated items.
+        download_tmpl_file_btn: |-
+            Opens a File-dialog to save a new "sample" Input Template file,
+            for the field to the left.
         add_inp_files_btn: |-
-            Opens a File-dialog to let you choose CO2MPAS Excel Input files
+            Opens a File-dialog to select existing CO2MPAS Excel Input file(s)
             to add in the list to the left.
         add_inp_folder_btn: |-
-            Opens a Folder-dialog to let you choose Folders with CO2MPAS Input files
+            Opens a Folder-dialog to select a Folder with CO2MPAS Input files,
             to add in the list to the left.
         del_inp_btn: |-
-            Deletes selected items from the list to the left.
+            Deletes selected items from the list o Input files & folders to the left.
+            - Pressing [Delete] key on selected items also removes them from the list.
+
         out_folder_entry: |-
             Select the folder to write the Output files using the button to the right.
+            - CO2MPAS will save there results with the date and time appended in their filenames.
+            - If feld is not empty, double-click to open and inspect the specified folder.
         sel_out_folder_btn: |-
-            Opens a Folder-dialog to let you choose a Folder for the field to the left.
+            Opens a Folder-dialog to select the Output Folder for the field to the left.
+
         out_template_entry: |-
             Select a pre-populated Excel file to clone and append CO2MPAS results into.
             By default, results are appended into an empty excel-file.
+            - If feld is not empty, double-click to open the specified folder.
             - Use a dash('-') to have CO2MPAS clone the Input-file and use it as template;
             - Incompatible with DECLARATION mode (started with the `Run TA` buttons).
         sel_tmpl_file_btn: |-
-            Opens a File-dialog to let you choose an Excel file for the field to the left.
+            Opens a File-dialog to select an existing Excel Output Template file
+            for the field to the left.
+
         run_batch_btn: |-
             Launches the BATCH CO2MPAS command.
-            - Supports multiple Input files;
+            - Populate the "Inputs" list with (at lteast one) files & folders;
             - Compatible with all flags and options (including ENGINEERING/DECLARATION mode);
             - The output-folder cannot be empty.
         run_ta_btn: |-
@@ -145,7 +153,7 @@ def define_tooltips():
             Aborts a "job" that have started with the `Run` or `Run TA` buttons.
 
         extra_options_entry: |-
-            Put any other cmd-line options here (try `--help`).
+            Put any other cmd-line options here (try '--help' and click `Run`` button).
 
         engineering_mode: |-
             the model uses of all available input data (not only the declaration inputs),
@@ -158,7 +166,6 @@ def define_tooltips():
             Do not save vehicle outputs, just the summary; should be faster.
         use_selector: |-
             Select internally the best model to predict both NEDC H/L cycles.
-        run_plan: |-
     """
 
     return yaml.load(all_tooltips)
@@ -665,15 +672,16 @@ class _MainPanel(ttk.Frame):
     def _make_inputs_frame(self, parent):
         frame = ttk.LabelFrame(parent, text='Inputs')
 
-        (tree, add_files_btn, add_folder_btn, del_btn) = self._build_inputs_tree(frame)
-        tree.grid(column=0, row=0, rowspan=3, sticky='nswe')
-        add_files_btn.grid(column=1, row=0, sticky='nswe')
-        add_folder_btn.grid(column=1, row=1, sticky='nswe')
-        del_btn.grid(column=1, row=2, sticky='nswe')
+        (tree, ssve_templ_btn, add_files_btn, add_folder_btn, del_btn) = self._build_inputs_tree(frame)
+        tree.grid(column=0, row=0, rowspan=4, sticky='nswe')
+        ssve_templ_btn.grid(column=1, row=0, sticky='nswe')
+        add_files_btn.grid(column=1, row=1, sticky='nswe')
+        add_folder_btn.grid(column=1, row=2, sticky='nswe')
+        del_btn.grid(column=1, row=3, sticky='nswe')
         self.inputs_tree = tree
 
         frame.columnconfigure(0, weight=1)
-        for r in range(3):
+        for r in range(4):
             frame.rowconfigure(r, weight=1)
 
         return frame
@@ -696,6 +704,35 @@ class _MainPanel(ttk.Frame):
         tree.file_icon = read_image('icons/file-olive-16.png')
         tree.folder_icon = read_image('icons/folder-olive-16.png')
 
+        def insert_item(path, is_folder):
+            try:
+                if is_folder:
+                    ftype = 'FOLDER' 'FILE'
+                    path += '/'
+                    icon = tree.folder_icon
+                else:
+                    ftype = 'FILE'
+                    icon = tree.excel_icon if re.search(r'\.xl\w\w$', path) else tree.file_icon
+                finfos = get_file_infos(path)
+                tree.insert('', 'end', path, text=path,
+                            values=(ftype, *finfos), image=icon)
+            except Exception as ex:
+                log.warning("Cannot add input file %r due to: %s", path, ex)
+
+        def ask_save_template_file():
+            file = filedialog.asksaveasfilename(
+                title='Save "sample" Input CO2MPAS file',
+                defaultextension='xlsx',
+                filetypes=(('Excel files', '.xlsx .xlsm'),))
+            if file:
+                save_template((file, ), force=True)
+                insert_item(file, is_folder=False)
+                self.mediate_panel()
+
+        save_btn = btn = ttk.Button(parent, command=ask_save_template_file)
+        add_icon(btn, 'icons/download-olive-32.png ')
+        add_tooltip(btn, 'download_tmpl_file_btn')
+
         def ask_input_files():
             files = filedialog.askopenfilenames(
                 title='Select CO2MPAS Input file(s)',
@@ -705,13 +742,7 @@ class _MainPanel(ttk.Frame):
                            ))
             if files:
                 for fpath in files:
-                    try:
-                        icon = tree.excel_icon if re.search(r'\.xl\w\w$', fpath) else tree.file_icon
-                        finfos = get_file_infos(fpath)
-                        tree.insert('', 'end', fpath, text=fpath,
-                                    values=('FILE', *finfos), image=icon)
-                    except Exception as ex:
-                        log.warning("Cannot add input file %r due to: %s", fpath, ex)
+                    insert_item(fpath, is_folder=False)
                 self.mediate_panel()
         files_btn = btn = ttk.Button(parent, text="Add File(s)...", command=ask_input_files)
         add_icon(btn, 'icons/add_file-olive-48.png')
@@ -721,19 +752,14 @@ class _MainPanel(ttk.Frame):
             folder = filedialog.askdirectory(
                 title='Select CO2MPAS Input folder')
             if folder:
-                try:
-                    finfos = get_file_infos(folder)
-                    tree.insert('', 'end', folder, text=folder + '/',
-                                values=('FOLDER', *finfos), image=tree.folder_icon)
-                except Exception as ex:
-                    log.warning("Cannot add input folder %r due to: %s", folder, ex)
+                insert_item(folder, is_folder=True)
                 self.mediate_panel()
         folder_btn = btn = ttk.Button(parent, text="Add Folder...", command=ask_input_folder)
         add_icon(btn, 'icons/add_folder-olive-48.png')
         add_tooltip(btn, 'add_inp_folder_btn')
 
         del_btn = btn = ttk.Button(parent, state=tk.DISABLED)  # Its state maintained internally in this method.
-        add_icon(btn, 'icons/x_circle-olive-32.png')
+        add_icon(btn, 'icons/trash-olive-32.png')
         add_tooltip(btn, 'del_inp_btn')
 
         ## Tree events:
@@ -742,9 +768,9 @@ class _MainPanel(ttk.Frame):
             if not ev or ev.keysym == 'Delete':
                 for item in tree.selection():
                     try:
-                            tree.delete(item)
+                        tree.delete(item)
                     except Exception as ex:
-                        log.warning("Cannot del %r due to: %s", item, ex)
+                        log.warning("Cannot delete %r due to: %s", item, ex)
                 del_btn.state((tk.DISABLED,))  # tk-BUG: Selection-vent is not fired.
                 self.mediate_panel()
 
@@ -761,7 +787,7 @@ class _MainPanel(ttk.Frame):
         tree.bind("<Double-1>", on_double_click)
         add_tooltip(tree, 'inp_files_tree')
 
-        return (tree, files_btn, folder_btn, del_btn)
+        return (tree, save_btn, files_btn, folder_btn, del_btn)
 
     def _make_output_folder(self, parent):
         title = 'Output Folder'
@@ -780,7 +806,7 @@ class _MainPanel(ttk.Frame):
 
         btn = ttk.Button(frame, command=ask_output_folder)
         btn.pack(side=tk.LEFT, fill=tk.BOTH,)
-        add_icon(btn, 'icons/add_folder-olive-32.png')
+        add_icon(btn, 'icons/download_dir-olive-32.png')
         add_tooltip(btn, 'sel_out_folder_btn')
 
         entry.bind("<Double-1>", lambda ev: open_file_with_os(var.get()))
@@ -812,7 +838,7 @@ class _MainPanel(ttk.Frame):
 
         btn = ttk.Button(frame, command=ask_template_file)
         btn.pack(side=tk.LEFT, fill=tk.BOTH)
-        add_icon(btn, 'icons/add_file-olive-32.png')
+        add_icon(btn, 'icons/excel-olive-32.png ')
         add_tooltip(btn, 'sel_tmpl_file_btn')
 
         entry.bind("<Double-1>", lambda ev: open_file_with_os(var.get()))

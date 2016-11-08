@@ -296,7 +296,10 @@ def _cmd_template(opts):
     if not dst_fpaths:
         raise CmdException('Missing destination filepath for INPUT-TEMPLATE!')
 
-    force = opts['--force']
+    save_template(dst_fpaths, opts['--force'])
+
+
+def save_template(dst_fpaths, force):
     for fpath in dst_fpaths:
         if not fpath.endswith('.xlsx'):
             fpath = '%s.xlsx' % fpath
