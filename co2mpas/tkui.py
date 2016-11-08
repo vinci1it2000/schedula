@@ -1154,6 +1154,8 @@ class _MainPanel(ttk.Frame):
 
 class TkUI(object):
 
+    STATUS_TAG_TEMP = 'temp'
+
     """
     CO2MPAS UI for predicting NEDC CO2 emissions from WLTP for type-approval purposes.
     """
@@ -1172,7 +1174,7 @@ class TkUI(object):
         root['menu'] = menubar
 
         self.master = master = ttk.PanedWindow(root, orient=tk.VERTICAL)
-        master.pack(fill=tk.BOTH, expand=1)
+        master.grid(row=0, column=0, columnspan=2, sticky='nswe')
 
         frame = _MainPanel(master, app=self, height=-320)
         master.add(frame, weight=1)
@@ -1180,7 +1182,37 @@ class TkUI(object):
         frame = LogPanel(master, height=-260, log_level_cb=init_logging)
         master.add(frame, weight=3)
 
-        ttk.Sizegrip(root).pack(side=tk.RIGHT)
+        self._status = status = self._make_status(root)
+        status.grid(row=1, column=0, sticky='nswe')
+        ttk.Sizegrip(root).grid(row=1, column=1)
+        self.set_status('CO2MPAS GUI started')
+
+        root.columnconfigure(0, weight=1)
+        root.rowconfigure(0, weight=1)
+
+    def _make_status(self, parent):
+        status = tk.Text(parent, wrap=tk.NONE, height=1, relief=tk.FLAT,
+                         state=tk.DISABLED, background='SystemButtonFace')
+        status.tag_config(self.STATUS_TAG_TEMP, foreground='blue')
+
+        return status
+
+    def set_status(self, msg, delay=7 * 1000):
+        status = self._status
+        status['state'] = tk.NORMAL
+        status.delete('0.0', tk.END)
+        tags = ()
+        if delay:
+            tags = (self.STATUS_TAG_TEMP, )
+            status.after(delay, self.clear_status)
+        status.insert('0.0', msg, *tags)
+        status['state'] = tk.DISABLED
+
+    def clear_status(self):
+        status = self._status
+        status['state'] = tk.NORMAL
+        status.delete('0.0', tk.END)
+        status['state'] = tk.DISABLED
 
     @property
     def logo(self):
