@@ -39,6 +39,7 @@ Layout::
 #        [gen-file] [sync-temple-entry][sel]
 #        [   help   ] [        run         ]
 #  - Improve extra-options parsing...
+#  - Scrollist into  file-lists.
 
 ## Help (apart from PY-site):
 #  - http://effbot.org/tkinterbook/tkinter-index.htm
@@ -326,7 +327,7 @@ def make_file_tree(parent, **tree_kwds):
         ('modified', {'anchor': tk.W, 'width': 164, 'stretch': False}),
     )
     tree_apply_columns(tree, columns)
-    
+
     ## Attach onto tree not to be GCed.
     tree.excel_icon = read_image('icons/excel-olive-16.png')
     tree.file_icon = read_image('icons/file-olive-16.png')
@@ -1054,7 +1055,7 @@ class Co2mpasPanel(ttk.Frame):
                          new_out_file=None):
         """
         Handler of states for all panel's widgets and progressbar/status.
-        
+
         :param static_msg:
             if true, message becomes the new static-status message,
             if a string, that string becomes the "static" message
@@ -1092,9 +1093,9 @@ class Co2mpasPanel(ttk.Frame):
 
         if new_out_file:
             self.outputs_tree.insert_path(new_out_file)
-    
+
         self.update()
-        
+
     def reconstruct_cmd_args_from_gui(self):
         cmd_kwds = OrderedDict()
 
@@ -1352,7 +1353,7 @@ class TkUI(object):
 
         if level is None:
             level = logging.INFO
-            
+
         ##  Translate the level --> tag.
         #
         tag = logging.getLevelName(level)
@@ -1366,7 +1367,7 @@ class TkUI(object):
 
         if isinstance(level, int) and (msg or args):  # Do not log empty static-cleaning msgs.
             log.log(level, msg, *args, **kwds)
-            
+
         msg = msg % args
 
         ## Set static message as "clear" text.
@@ -1393,15 +1394,20 @@ class TkUI(object):
 
     def show_motd(self, delay=21 * 1000, motd_ix=None):
         def show():
-            if motd_ix is not None:
-                msg = MOTDs[motd_ix]
-            else:
-                msg = random.choice(MOTDs)
-            self._status('Tip: %s', msg, level='help')
+            if not self._status_static_msg and not self._clear_cb_id:
+                #
+                # Do not hide urgent msgs; reschedule in case they leave.
+
+                if motd_ix is not None:
+                    msg = MOTDs[motd_ix]
+                else:
+                    msg = random.choice(MOTDs)
+                self._status('Tip: %s', msg, level='help')
+
             self.show_motd()  # Re-schedule motd.
 
         self._motd_cb_id = self._status_text.after(delay, show)
-        
+
     def progress(self, step=None, maximum=None):
         """
         :param step:
