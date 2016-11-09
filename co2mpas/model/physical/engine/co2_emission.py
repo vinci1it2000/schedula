@@ -340,7 +340,7 @@ class FMEP(object):
             #b &= n_powers <= (self.fbc(n_speeds) * self.egr_fbc_percentage)
             egr = defaults.dfl.functions.FMEP_egr.egr_fact_map[self.engine_type]
             if self.engine_type == 'compression':
-                a['egr'] = (egr, n_temp < 1),
+                a['egr'] = ((0, True), (egr, n_temp < 1))
             else:
                 a['egr'] = ((0, True), (egr, True))
 
@@ -358,11 +358,24 @@ class FMEP(object):
                 l.append((acr, b & (ac < acr)))
         return a
 
+    @staticmethod
+    def _check_combinations(a):
+        out = {}
+        for k, v in a.items():
+            for i in v:
+                try:
+                    if i[1] is True or i[1].any():
+                        dsp_utl.get_nested_dicts(out, k, default=list).append(i)
+                except AttributeError:
+                    pass
+        return out
+
     def combination(self, params, n_speeds, n_powers, n_temp):
         a = self.acr(params, n_speeds, n_powers, n_temp)
         a = self.lb(params, n_speeds, n_powers, n_temp, a=a)
         a = self.vva(params, n_powers, a=a)
         a = self.egr(params, n_speeds, n_powers, n_temp, a=a)
+        a = self._check_combinations(a)
 
         keys, c = zip(*sorted(a.items()))
         p = params.copy()
@@ -420,6 +433,7 @@ class FMEP(object):
         vva = s.get('vva', params.get('vva', 0))
         lb = s.get('lb', params.get('lb', 0))
         egr = s.get('egr', params.get('egr', 0))
+
         return s['fmep'], s['v'], acr, vva, lb, egr
 
 
