@@ -57,6 +57,7 @@ import os
 import re
 import sys
 import random
+from typing import Text, Union
 from textwrap import dedent, indent
 from threading import Thread
 from tkinter import StringVar, ttk, filedialog
@@ -1036,21 +1037,36 @@ class _MainPanel(ttk.Frame):
         return frame
 
     def mediate_guistate_threaded(self, msg=None, *args,
-                                  level=None,
+                                  level=None, static_msg=None,
                                   progr_step=None, progr_max=None,
                                   new_out_file=None):
         """To be nvoked by other threads AND by mainloop-thread to discouple races."""
         self.update_idletasks()
-        self.after_idle(self._mediate_guistate, msg, *args, level, progr_step, progr_max)
+        self.after_idle(self.mediate_guistate, msg, *args,
+                        level, static_msg, progr_step, progr_max)
 
     def mediate_guistate(self, msg=None, *args,
-                         level=None, progr_step=None, progr_max=None,
+                         level=None,
+                         static_msg: Union[bool, Text]=None,
+                         progr_step=None, progr_max=None,
                          new_out_file=None):
-        """Handler of states for all panel's widgets."""
+        """
+        Handler of states for all panel's widgets and progressbar/status.
+        
+        :param static_msg:
+            if true, message becomes the new static-status message,
+            if a string, that string becomes the "static" message 
+            (usefull to set a temporary status-msg and clear the "static" one).
+        """
         ## Update progress/status bars.
         #
         if msg is not None:
-            self.app.lstatus(msg, *args, level=level)
+            delay = None
+            if isinstance(static_msg, str):
+                self.app.lstatus(msg, *args, level=level, delay=0)
+            else:
+                delay = 0 if static_msg else None
+            self.app.lstatus(msg, *args, level=level, delay=delay)
         if progr_step is not None or progr_max is not None:
             self.app.progress(progr_step, progr_max)
 
@@ -1149,7 +1165,7 @@ class _MainPanel(ttk.Frame):
                 finally:
                     msg = 'Job %s %s of %s: %r...'
                     mediate_guistate(msg, job_name, cur_step, self.len, item,
-                                     progr_step=-cur_step)
+                                     static_msg=True, progr_step=-cur_step)
 
                 return item
 
@@ -1184,7 +1200,7 @@ class _MainPanel(ttk.Frame):
                 finally:
                     msg = "Finished job %s: %s%s"
                     mediate_guistate(msg, job_name, new_out, new_err,
-                                     progr_max=0)
+                                     static_msg='', progr_max=0)
 
         updater = ProgressUpdater()
         user_cmd_kwds = cmd_kwds.copy()
@@ -1209,7 +1225,7 @@ class _MainPanel(ttk.Frame):
         msg = 'Launched %s job: %s'
         self.mediate_guistate(msg, job_name,
                               ', '.join('%s: %s' % (k, v) for k, v in user_cmd_kwds.items()),
-                              progr_step=0, progr_max=-1)
+                              static_msg=True, progr_step=0, progr_max=-1)
 
         t.start()
 
@@ -1286,16 +1302,23 @@ class TkUI(object):
     def estatus(self, msg, *args, delay=7 * 1000, **kwds):
         self.root.after_idle(self._status, msg, args, logging.ERROR, delay, kwds)
 
+    _status_static_msg = ('', None)
     _clear_cb_id = None
     _motd_cb_id = None
 
-    def _status(self, msg, args, level=None, delay=7 * 1000, kwds={}):
+    def _status(self, msg, args, level=None, delay=None, kwds={}):
         """
         :param level:
             tag or logging-level(int)
+        :param delay:
+            If None, defaults to 7sec, if 0, "static message", can be cleared 
+            only with ``msg='', delay=0``.
         """
         if msg is None:
             return
+
+        if delay is None:
+            delay = 7 * 1000
 
         status = self._status_text
         if self._clear_cb_id:
@@ -1304,21 +1327,28 @@ class TkUI(object):
         if self._motd_cb_id:
             status.after_cancel(self._motd_cb_id)
             self._motd_cb_id = None
+            self.show_motd()
 
         if level is None and delay:
             level = logging.INFO
 
-        ## Static UI-related status message.
         tag = None
         if isinstance(level, int):
             log.log(level, msg, *args, **kwds)
             tag = logging.getLevelName(level)
         elif level is not None:
             tag = level
+            
+        msg = msg % args
+
+        ## Store static message.
+        #
+        if not delay:
+            self._status_static_msg = (msg, tag)
 
         status['state'] = tk.NORMAL
         status.delete('0.0', tk.END)
-        status.insert('0.0', msg % args, tag)
+        status.insert('0.0', msg, tag)
         status['state'] = tk.DISABLED
         if delay:
             self._clear_cb_id = status.after(delay, self.clear_status)
@@ -1327,6 +1357,7 @@ class TkUI(object):
         status = self._status_text
         status['state'] = tk.NORMAL
         status.delete('0.0', tk.END)
+        status.insert('0.0', *self._status_static_msg)
         status['state'] = tk.DISABLED
 
     def show_motd(self, delay=21 * 1000):
