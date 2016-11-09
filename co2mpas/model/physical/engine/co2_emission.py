@@ -340,7 +340,13 @@ class FMEP(object):
             #b &= n_powers <= (self.fbc(n_speeds) * self.egr_fbc_percentage)
             egr = defaults.dfl.functions.FMEP_egr.egr_fact_map[self.engine_type]
             if self.engine_type == 'compression':
-                a['egr'] = ((0, True), (egr, n_temp < 1))
+                b = n_temp < 1
+                if b is True:
+                    a['egr'] = (egr, True),
+                elif b is False:
+                    a['egr'] = (0, True),
+                else:
+                    a['egr'] = (np.where(n_temp < 1, egr, 0), True),
             else:
                 a['egr'] = ((0, True), (egr, True))
 
@@ -517,15 +523,42 @@ def define_fmep_model(
     return model
 
 
+def _yield_factors(param_id, factor):
+    try:
+        for k, v in factor.get(param_id, {}).items():
+            yield k, v, 1
+    except TypeError:
+        p = {}
+
+        def _defaults():
+            j = np.zeros_like(param_id, dtype=float)
+            n = np.zeros_like(param_id, dtype=int)
+            return j, n
+
+        for m in np.unique(param_id):
+            b = m == param_id
+            for k, v in factor.get(m, {}).items():
+                j, i = dsp_utl.get_nested_dicts(p, k, default=_defaults)
+                j[b], i[b] = v, 1
+
+        for k, (j, n) in p.items():
+            b = n == 0
+            j[b], n[b] = 1, 1
+            yield k, j, n
+
+
 def _tech_mult_factors(**params):
     p = {}
     factors = defaults.dfl.functions._tech_mult_factors.factors
     for k, v in factors.items():
-        for i, j in v.get(params.get(k, 0), {}).items():
-            dsp_utl.get_nested_dicts(p, i, default=list).append(j)
+        for i, j, n in _yield_factors(params.get(k, 0), v):
+            s = dsp_utl.get_nested_dicts(p, i, default=lambda: [0, 0])
+            s[0] += j
+            s[1] += n
 
-    for k, v in p.items():
-        params[k] = np.mean(v) * params[k]
+    for k, (n, d) in p.items():
+        m = n / d
+        params[k] = m * params[k]
 
     return params
 
