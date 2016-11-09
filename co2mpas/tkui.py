@@ -83,6 +83,8 @@ _pad = 2
 _sunken = dict(relief=tk.SUNKEN, padx=_pad, pady=_pad, borderwidth=_bw)
 app_name = 'co2mpas'
 user_guidelines_url = 'https://github.com/JRCSTU/CO2MPAS-TA/wiki/CO2MPAS-user-guidelines'
+MOTD = 'Select Input files/folders and run them.  Read tooltips for help.'
+
 
 try:
     _levelsMap = logging._levelToName
@@ -132,7 +134,7 @@ def define_tooltips():
 
         advanced_link: |-
             Options and flags incompatible with DECLARATION mode (started with the `Run TA` buttons).
-            The may be useful for engineers and experimentation, and for facilitating running batches. 
+            The may be useful for engineers and experimentation, and for facilitating running batches.
         out_template_entry: |-
             Select a pre-populated Excel file to clone and append CO2MPAS results into.
             By default, results are appended into an empty excel-file.
@@ -172,6 +174,22 @@ def define_tooltips():
     """
 
     return yaml.load(all_tooltips)
+
+LOGGING_TAGS = OrderedDict((
+    (logging.CRITICAL, {'background': "red", 'foreground': "yellow"}),
+    (logging.ERROR, {'foreground': "red"}),
+    (logging.WARNING, {'foreground': "magenta"}),
+    (logging.INFO, {'foreground': "blue"}),
+    (logging.DEBUG, {'foreground': "grey"}),
+    (logging.NOTSET, {}),
+))
+
+
+def config_text_tags(text, tags):
+    for tag, kws in tags.items():
+        if isinstance(tag, int):
+            tag = logging.getLevelName(tag)
+        text.tag_config(tag, **kws)
 
 
 def bang(cond):
@@ -224,7 +242,8 @@ def run_python_job(function, cmd_args, job_name, stdout=None, stderr=None, on_fi
         try:
             function(*cmd_args)
         except SystemExit as ex:
-            log.error("Job %s exited due to: %r", job_name, ex)
+            log.error("Job %s exited due to: %s", job_name, ex)
+            ## TODO: Do not log, send to on_finish()
         except Exception as ex:
             log.error("Job %s failed due to: %s", job_name, ex, exc_info=1)
 
@@ -468,22 +487,12 @@ class LogPanel(ttk.Labelframe):
 
         # Prepare Log-Tags
         #
-        tags = [
-            [LogPanel.TAG_LOGS, dict(lmargin2='+2c')],
-            [LogPanel.TAG_META, dict(font="Courier 7")],
-
-            [logging.CRITICAL, dict(background="red", foreground="yellow")],
-            [logging.ERROR, dict(foreground="red")],
-            [logging.WARNING, dict(foreground="magenta")],
-            [logging.INFO, dict(foreground="blue")],
-            [logging.DEBUG, dict(foreground="grey")],
-            [logging.NOTSET, dict()],
-
-        ]
-        for tag, kws in tags:
-            if isinstance(tag, int):
-                tag = logging.getLevelName(tag)
-            _log_text.tag_config(tag, **kws)
+        tags = OrderedDict((
+            (LogPanel.TAG_LOGS, dict(lmargin2='+2c')),
+            (LogPanel.TAG_META, dict(font="Courier 7")),
+        ))
+        tags.update(LOGGING_TAGS)
+        config_text_tags(_log_text, tags)
         _log_text.tag_raise(tk.SEL)
 
         self._log_counters = Counter()
@@ -668,22 +677,11 @@ class LogPanel(ttk.Labelframe):
 
 class _MainPanel(ttk.Frame):
     """
-    The state of all widgets is controlled by :meth:`mediate_guistateate()`.
-
-    :ivar _stop_job:
-        semaphore armed when the "red" button pressed
-    :ivar _job_thread:
-        semaphore armed when the "red" button pressed
-
+    The state of all widgets is controlled by :meth:`mediate_guistate()`.
     """
     def __init__(self, master, app, *args, **kwargs):
         super().__init__(master, *args, **kwargs)
         self.app = app
-
-        ## Could move to app.
-        #
-        self.stop_job = False  # semaphore for the red Stop button
-        self._job_thread = None
 
         frame = self._make_inputs_frame(self)
         frame.grid(column=0, row=0, rowspan=2, sticky='nswe')
@@ -744,7 +742,7 @@ class _MainPanel(ttk.Frame):
         def insert_item(path, is_folder):
             try:
                 if is_folder:
-                    ftype = 'FOLDER' 'FILE'
+                    ftype = 'FOLDER'
                     path += '/'
                     icon = tree.folder_icon
                 else:
@@ -884,6 +882,9 @@ class _MainPanel(ttk.Frame):
                                 flip_cb=lambda ev: self.mediate_guistate())
         frame.bind('<Button-1>', lambda ev: flipper.flip())
 
+        ## TODO: FIX advanced layout-fill.
+        #self.columnconfigure(0, weight=1)
+
         return frame, flipper
 
     def _make_template_file(self, parent):
@@ -973,18 +974,12 @@ class _MainPanel(ttk.Frame):
         add_tooltip(btn, 'run_ta_btn')
 
         def stop_job_clicked():
-            self.stop_job = True
+            self.app.stop_job = True
             self.mediate_guistate()
         self._stop_job_btn = btn = ttk.Button(frame, text="Stop", command=stop_job_clicked)
         add_icon(btn, 'icons/hand-red-32.png')
         btn.grid(column=3, row=4, sticky='nswe')
         add_tooltip(btn, 'stop_job_btn')
-
-        self.progr_var = tk.IntVar()
-        self.progr_bar = ttk.Progressbar(frame, orient=tk.HORIZONTAL,
-                                         mode='determinate', variable=self.progr_var)
-        self.progr_bar.grid(column=0, row=6, columnspan=4, sticky='nswe')
-        self.status_label = ttk.Label(self.progr_bar, style='Prog.TLabel')
 
         frame.columnconfigure(0, weight=1)
         frame.columnconfigure(1, weight=2)
@@ -992,30 +987,25 @@ class _MainPanel(ttk.Frame):
 
         return frame
 
-    def mediate_guistate_T(self, msg=None, progr_step=None, progr_max=None):
-        """To be nvoked by other threads."""
-        self.after_idle(self.mediate_guistate, msg, progr_step, progr_max)
+    def mediate_guistate(self, msg=None, *args, level=None, progr_step=None, progr_max=None):
+        """To be nvoked by other threads AND by mainloop-thread to discouple races."""
+        self.after_idle(self._mediate_guistate, msg, args, level, progr_step, progr_max)
 
-    def mediate_guistate(self, msg=None, progr_step=None, progr_max=None):
+    def _mediate_guistate(self, msg=None, args=(), level=None, progr_step=None, progr_max=None):
         """Handler of states for all panel's widgets."""
-        progr_var = self.progr_var
-
-        ## Update progress-bar.
+        ## Update progress/status bars.
         #
-        if progr_max is not None:
-            self.progr_bar['maximum'] = progr_max
-            progr_var.set(0)
-        if progr_step:
-            progr_var.set(progr_var.get() + progr_step)
         if msg is not None:
-            self._set_status(msg)
+            self.app.lstatus(msg, *args, level=level)
+        if progr_step is not None or progr_max is not None:
+            self.app.progress(progr_step, progr_max)
 
-        job_alive = bool(self._job_thread)
+        job_alive = bool(self.app._job_thread)
 
         ## Update Stop-button.
         #
         self._stop_job_btn.state((bang(job_alive) + tk.DISABLED,))
-        stop_requested = job_alive and self.stop_job
+        stop_requested = job_alive and self.app.stop_job
         self._stop_job_btn.state((bang(not stop_requested) + 'pressed',))
 
         ## Update Run-button.
@@ -1027,16 +1017,6 @@ class _MainPanel(ttk.Frame):
         #
         is_run_ta_enabled = is_run_batch_btn_enabled and self.advanced_flipper.flip_ix == 0
         self._run_ta_btn.state((bang(is_run_ta_enabled) + tk.DISABLED,))
-
-    def _set_status(self, msg):
-        """Overlays a message on the progressbar."""
-        status_label = self.status_label
-        if msg:
-            status_label['text'] = msg
-            self.status_label.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
-        else:
-            status_label.place_forget()
-            status_label['text'] = ''
 
     def reconstruct_cmd_args_from_gui(self, is_ta):
         cmd_args = ['ta' if is_ta else 'batch']
@@ -1064,19 +1044,19 @@ class _MainPanel(ttk.Frame):
 
     def _do_run_job(self, is_ta):
         job_name = "CO2MPAS-TA" if is_ta else "CO2MPAS"
-        assert self._job_thread is None, self._job_thread
-        self.stop_job = False
+        app = self.app
+
+        assert app._job_thread is None, app._job_thread
+        app.stop_job = False
 
         inputs = self.inputs_tree.get_children()
         if not inputs:
-            log.error("No inputs specified!  Please add files & folders in the Inputs list at the top-left.")
+            app.estatus("No inputs specified!  Please add files & folders in the Inputs list at the top-left.")
             return
 
         cmd_args = self.reconstruct_cmd_args_from_gui(is_ta)
-        log.info('Launching %s job:\n  %s', job_name, cmd_args)
 
-        maingui = self
-        mediate_guistate = self.mediate_guistate_T
+        mediate_guistate = self.mediate_guistate
 
         class ProgressUpdater:
             """
@@ -1098,77 +1078,86 @@ class _MainPanel(ttk.Frame):
                 return self
 
             def __next__(self):
-                mediate_guistate(progr_step=1)
-                max_steps = maingui.progr_bar['maximum']
-                cur_step = maingui.progr_var.get()
-                self.pump_streams(cur_step)
+                cur_step, item = next(self.it)
 
-                if maingui.stop_job:
-                    log.warning("Canceled %s job: %s", job_name, cmd_args)
+                ## Report stdout/err collected from previous step.
+                #
+                new_out, new_err = self.pump_streams()
+                if new_out or new_err:
+                    log.info("Job %s %s of %s:\n%s%s",
+                             job_name, cur_step - 1, self.len, new_out, new_err)
+
+                if app.stop_job:
+                    log.warning("Canceled %s job before %s of %s: %s",
+                                job_name, cur_step, self.len, cmd_args)
                     raise StopIteration()
-                item = next(self.it)
 
-                msg = 'Job %s %s of %s: %r...' % (job_name, cur_step, max_steps, item)
-                mediate_guistate(msg)
+                msg = 'Job %s %s of %s: %r...'
+                mediate_guistate(msg, job_name, cur_step, self.len, item,
+                                 progr_step=-cur_step)
 
                 return item
 
-            def pump_streams(self, cur_step):
-                new_out = self.stdout.getvalue()[self.out_i:]
-                if new_out:
-                    self.out_i += len(new_out)
-                    log.info("Job %s stdout(%s): %s", job_name, cur_step, new_out)
-
-                new_err = self.stderr.getvalue()[self.err_i:]
-                if new_err:
-                    self.err_i += len(new_err)
-                    log.info("Job %s stderr(%s): %s", job_name, cur_step, new_err)
-
-            def tqdm_replacement(self, iterable, *args, **kwds):
-                #maingui.progr_var.set(1)  Already set to 1.
-                self.it = iter(iterable)
-                mediate_guistate(progr_max=2 + len(iterable))  # +1 on start, +1 final step.
-
-                return self
-
-            def on_finish(self, out, err):
-                maingui._job_thread = None
-                mediate_guistate(msg='', progr_max=0)
-
+            def pump_streams(self):
                 new_out = self.stdout.getvalue()[self.out_i:]
                 new_err = self.stderr.getvalue()[self.err_i:]
+                self.out_i += len(new_out)
+                self.err_i += len(new_err)
                 if new_out:
                     new_out = '\n  stdout: %s' % indent(new_out, '    ')
                 if new_err:
                     new_err = '\n  stderr: %s' % indent(new_err, '    ')
-                log.info('Finished %s job: %s%s%s', job_name, cmd_args, new_out, new_err)
+
+                return new_out, new_err
+
+            def tqdm_replacement(self, iterable, *args, **kwds):
+
+                self.len = len(iterable)
+                self.it = iter(enumerate(iterable, 1))
+                mediate_guistate(progr_step=-1, progr_max=self.len + 1)  # +1 finalization job-work.
+                return self
+
+            def on_finish(self, out, err):
+                app._job_thread = None
+
+                new_out, new_err = self.pump_streams()
+                msg = "Finished job %s:\n%s%s"
+                mediate_guistate(msg, job_name, new_out, new_err,
+                                 progr_max=0)
 
         ## Monkeypatch *tqdm* on co2mpas-batcher.
         #
         updater = ProgressUpdater()
         co2mpas_batch._custom_tqdm = updater.tqdm_replacement
 
-        self._job_thread = t = Thread(
+        self.app._job_thread = t = Thread(
             target=run_python_job,
             args=(co2mpas_main, cmd_args, job_name,
                   updater.stdout, updater.stderr,
                   updater.on_finish),
-            daemon=False,  # To ensure co2mpas do not corrupt output-files.
+            daemon=True,  # To ensure co2mpas do not corrupt output-files.
         )
         t.start()
 
-        self.progr_bar['maximum'] = len(self.inputs_tree.get_children())
-        self.progr_var.set(1)
-        self.mediate_guistate('Launched %s job...' % job_name)
+        msg = 'Launched %s job: %s'
+        self.mediate_guistate(msg, job_name, cmd_args,
+                              progr_step=0, progr_max=-1)
 
 
 class TkUI(object):
-
-    STATUS_TAG_TEMP = 'temp'
-
     """
     CO2MPAS UI for predicting NEDC CO2 emissions from WLTP for type-approval purposes.
+
+    :ivar _stop_job:
+        semaphore armed when the "red" button pressed
+    :ivar _job_thread:
+        semaphore armed when the "red" button pressed
+
     """
+
+    stop_job = False  # semaphore for the red Stop button
+    _job_thread = None
+
     def __init__(self, root=None):
         if not root:
             root = tk.Tk()
@@ -1183,8 +1172,17 @@ class TkUI(object):
         menubar.add_command(label="About %r" % app_name, command=self._do_about,)
         root['menu'] = menubar
 
+        self._status_text = status = self._make_status(root)
+        status.grid(row=1, column=0, sticky='nswe')
+        self._clear_cb_id = status.after(7 * 1000, self.istatus, MOTD)
+
+        self._progr_var = var = tk.IntVar(value=0)
+        self._progr_bar = ttk.Progressbar(root, orient=tk.HORIZONTAL, variable=var)
+
+        ttk.Sizegrip(root).grid(row=1, column=1, sticky='e')
+
         self.master = master = ttk.PanedWindow(root, orient=tk.VERTICAL)
-        master.grid(row=0, column=0, columnspan=2, sticky='nswe')
+        master.grid(row=0, column=0, columnspan=3, sticky='nswe')
 
         frame = _MainPanel(master, app=self, height=-320)
         master.add(frame, weight=1)
@@ -1192,37 +1190,92 @@ class TkUI(object):
         frame = LogPanel(master, height=-260, log_level_cb=init_logging)
         master.add(frame, weight=3)
 
-        self._status = status = self._make_status(root)
-        status.grid(row=1, column=0, sticky='nswe')
-        ttk.Sizegrip(root).grid(row=1, column=1)
-        self.set_status('CO2MPAS GUI started')
-
         root.columnconfigure(0, weight=1)
+        root.columnconfigure(0, weight=2)
         root.rowconfigure(0, weight=1)
 
     def _make_status(self, parent):
         status = tk.Text(parent, wrap=tk.NONE, height=1, relief=tk.FLAT,
                          state=tk.DISABLED, background='SystemButtonFace')
-        status.tag_config(self.STATUS_TAG_TEMP, foreground='blue')
+        config_text_tags(status, LOGGING_TAGS)
 
         return status
 
-    def set_status(self, msg, delay=7 * 1000):
-        status = self._status
+    def lstatus(self, msg, *args, level=None, delay=7 * 1000, **kwds):
+        self.root.after_idle(self._status, msg, args, level, delay, kwds)
+
+    def dstatus(self, msg, *args, delay=7 * 1000, **kwds):
+        self.root.after_idle(self._status, msg, args, logging.DEBUG, delay, kwds)
+
+    def istatus(self, msg, *args, delay=7 * 1000, **kwds):
+        self.root.after_idle(self._status, msg, args, logging.INFO, delay, kwds)
+
+    def wstatus(self, msg, *args, delay=7 * 1000, **kwds):
+        self.root.after_idle(self._status, msg, args, logging.WARNING, delay, kwds)
+
+    def estatus(self, msg, *args, delay=7 * 1000, **kwds):
+        self.root.after_idle(self._status, msg, args, logging.ERROR, delay, kwds)
+
+    _clear_cb_id = None
+
+    def _status(self, msg, args, level=None, delay=7 * 1000, kwds={}):
+        if msg is None:
+            return
+
+        status = self._status_text
+        if self._clear_cb_id:
+            status.after_cancel(self._clear_cb_id)
+
+        if level is None and delay:
+            level = logging.INFO
+
+        if level is None:
+            ## Static UI-related status message.
+            tag = None
+        else:
+            log.log(level, msg, *args, **kwds)
+            tag = logging.getLevelName(level)
+
         status['state'] = tk.NORMAL
         status.delete('0.0', tk.END)
-        tags = ()
-        if delay:
-            tags = (self.STATUS_TAG_TEMP, )
-            status.after(delay, self.clear_status)
-        status.insert('0.0', msg, *tags)
+        status.insert('0.0', msg % args, tag)
         status['state'] = tk.DISABLED
+        if delay:
+            self._clear_cb_id = status.after(delay, self.clear_status)
 
     def clear_status(self):
-        status = self._status
+        status = self._status_text
         status['state'] = tk.NORMAL
         status.delete('0.0', tk.END)
         status['state'] = tk.DISABLED
+
+    def progress(self, step=None, maximum=None):
+        """
+        :param step:
+            Positives, increment step, <=0, set absolute step, None ignored
+        :param maximum:
+            0 disables progressbar, negatives, set `indeterminate` mode, None ignored.
+        """
+        progr_bar = self._progr_bar
+        progr_var = self._progr_var
+
+        if maximum is not None:
+            if maximum == 0:
+                progr_bar.grid_forget()
+            else:
+                mode = 'determinate' if maximum > 0 else 'indeterminate'
+                progr_bar.configure(mode=mode, maximum=maximum)
+                progr_bar.grid(column=1, row=1, sticky='nswe')
+
+        if step is not None:
+            if step < 0:
+                progr_var.set(-step)
+            else:
+                progr_var.set(progr_var.get() + step)
+
+    def get_progress(self):
+        progr_bar = self._progr_bar
+        return self._progr_var.get(), progr_bar['maximum']
 
     @property
     def logo(self):
