@@ -6,7 +6,7 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 """
-The launching GUI formCO2MPAS.
+CO2MPAS UI for predicting NEDC CO2 emissions from WLTP for type-approval purposes.
 
 Layout::
 
@@ -31,6 +31,7 @@ Layout::
 
 """
 ## TODO: 5-Nov-2016
+#  - Add popup-menus on filelists (copy).
 #  - Co2mpas tab:    1: add [gen-input template] button
 #                    2: link to sync-tab
 #                    3: rest
@@ -1329,7 +1330,7 @@ class TkUI(object):
         top = tk.Toplevel(self.master)
         top.title("About %s" % app_name)
 
-        txt1 = '%s\n\n' % self.__doc__.strip()
+        txt1 = '%s\n\n' % ''.join(__doc__.split('\n')[:2]).strip()
         txt2 = dedent("""\n
 
             Version: %s (%s)
