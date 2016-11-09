@@ -87,12 +87,13 @@ _sunken = dict(relief=tk.SUNKEN, padx=_pad, pady=_pad, borderwidth=_bw)
 app_name = 'co2mpas'
 user_guidelines_url = 'https://github.com/JRCSTU/CO2MPAS-TA/wiki/CO2MPAS-user-guidelines'
 MOTD = (
-    'Select Input files/folders and run them.  Read tooltips for help.',
-    'Double-click on file-paths to open them.',
-    '[Ctrl-A]: select all files in a list;  [Delete]: delete selected all files in list.',
-    'Try the `Run` button first and check the results;  then `Run TA` and re-check them.',
-    'Use [Tab] to navigate to the next field/button; [Space] clicks buttons.',
-    'You cannot `Run TA` when the `Advanced` options are active.',
+    "Select Input files/folders and run them.  Read tooltips for help.",
+    "Double-click on file-paths to open them.",
+    "[Ctrl-A]: select all files in a list;  [Delete]: delete selected all files in list.",
+    "Try the `Run` button first and check the results;  then `Run TA` and re-check them.",
+    "Use [Tab] to navigate to the next field/button; [Space] clicks buttons.",
+    "You cannot `Run TA` when the `Advanced` options are active.",
+    "User mouse's [Right button] to clear the log messages from the popup-menu.",
 )
 
 
@@ -579,7 +580,8 @@ class LogPanel(ttk.Labelframe):
 
             def emit(self2, record):  # @NoSelf
                 try:
-                    self.after_idle(lambda: self._write_log_record(record))
+                    self._write_log_record(record)
+                    self.update()
                 except Exception:
                     self2.handleError(record)
 
@@ -1036,15 +1038,6 @@ class _MainPanel(ttk.Frame):
 
         return frame
 
-    def mediate_guistate_threaded(self, msg=None, *args,
-                                  level=None, static_msg=None,
-                                  progr_step=None, progr_max=None,
-                                  new_out_file=None):
-        """To be nvoked by other threads AND by mainloop-thread to discouple races."""
-        self.update_idletasks()
-        self.after_idle(self.mediate_guistate, msg, *args,
-                        level, static_msg, progr_step, progr_max)
-
     def mediate_guistate(self, msg=None, *args,
                          level=None,
                          static_msg: Union[bool, Text]=None,
@@ -1055,7 +1048,7 @@ class _MainPanel(ttk.Frame):
         
         :param static_msg:
             if true, message becomes the new static-status message,
-            if a string, that string becomes the "static" message 
+            if a string, that string becomes the "static" message
             (usefull to set a temporary status-msg and clear the "static" one).
         """
         ## Update progress/status bars.
@@ -1063,7 +1056,7 @@ class _MainPanel(ttk.Frame):
         if msg is not None:
             delay = None
             if isinstance(static_msg, str):
-                self.app.lstatus(msg, *args, level=level, delay=0)
+                self.app.lstatus(static_msg, level=level, delay=0)
             else:
                 delay = 0 if static_msg else None
             self.app.lstatus(msg, *args, level=level, delay=delay)
@@ -1090,7 +1083,9 @@ class _MainPanel(ttk.Frame):
 
         if new_out_file:
             self.outputs_tree.insert_path(new_out_file)
-
+    
+        self.update()
+        
     def reconstruct_cmd_args_from_gui(self):
         cmd_kwds = OrderedDict()
 
@@ -1155,7 +1150,7 @@ class _MainPanel(ttk.Frame):
                     #
                     new_out, new_err = self.pump_std_streams()
                     if new_out or new_err:
-                        log.info("Job %s %s of %s: %s%s",
+                        log.info("Job %s %s of %s. %s%s",
                                  job_name, cur_step - 1, self.len, new_out, new_err)
 
                     if app.stop_job:
@@ -1171,7 +1166,8 @@ class _MainPanel(ttk.Frame):
 
             def result_generated(self, result_tuple):
                 fpath, _ = result_tuple
-                mediate_guistate('Job %s generated file: %s', job_name, fpath, new_out_file=fpath)
+                mediate_guistate('Job %s generated file: %s', job_name, fpath,
+                                 level=logging.debug, new_out_file=fpath)
 
             def pump_std_streams(self):
                 new_out = self.stdout.getvalue()[self.out_i:]
@@ -1179,9 +1175,9 @@ class _MainPanel(ttk.Frame):
                 self.out_i += len(new_out)
                 self.err_i += len(new_err)
                 if new_out:
-                    new_out = '  stdout: %s' % indent(new_out, '  ')
+                    new_out = '\n  stdout: %s' % indent(new_out, '  ')
                 if new_err:
-                    new_err = '  stderr: %s' % indent(new_err, '  ')
+                    new_err = '\n  stderr: %s' % indent(new_err, '  ')
 
                 return new_out, new_err
 
@@ -1198,14 +1194,14 @@ class _MainPanel(ttk.Frame):
 
                     new_out, new_err = self.pump_std_streams()
                 finally:
-                    msg = "Finished job %s: %s%s"
+                    msg = "Finished job %s. %s%s"
                     mediate_guistate(msg, job_name, new_out, new_err,
                                      static_msg='', progr_max=0)
 
         updater = ProgressUpdater()
         user_cmd_kwds = cmd_kwds.copy()
         cmd_kwds.update({
-            'type_approval_mode': is_ta, 
+            'type_approval_mode': is_ta,
             'overwrite_cache': True,
             'result_listener': updater.result_generated})
         t = Thread(
@@ -1287,34 +1283,34 @@ class TkUI(object):
 
         return status
 
-    def lstatus(self, msg, *args, level=None, delay=7 * 1000, **kwds):
-        self.root.after_idle(self._status, msg, args, level, delay, kwds)
+    def lstatus(self, msg, *args, level=None, delay=None, **kwds):
+        self._status(msg, args, level, delay, kwds)
 
-    def dstatus(self, msg, *args, delay=7 * 1000, **kwds):
-        self.root.after_idle(self._status, msg, args, logging.DEBUG, delay, kwds)
+    def dstatus(self, msg, *args, delay=None, **kwds):
+        self._status(msg, args, logging.DEBUG, delay, kwds)
 
-    def istatus(self, msg, *args, delay=7 * 1000, **kwds):
-        self.root.after_idle(self._status, msg, args, logging.INFO, delay, kwds)
+    def istatus(self, msg, *args, delay=None, **kwds):
+        self._status(msg, args, logging.INFO, delay, kwds)
 
-    def wstatus(self, msg, *args, delay=7 * 1000, **kwds):
-        self.root.after_idle(self._status, msg, args, logging.WARNING, delay, kwds)
+    def wstatus(self, msg, *args, delay=None, **kwds):
+        self._status(msg, args, logging.WARNING, delay, kwds)
 
-    def estatus(self, msg, *args, delay=7 * 1000, **kwds):
-        self.root.after_idle(self._status, msg, args, logging.ERROR, delay, kwds)
+    def estatus(self, msg, *args, delay=None, **kwds):
+        self._status(msg, args, logging.ERROR, delay, kwds)
 
     _status_static_msg = ('', None)
     _clear_cb_id = None
     _motd_cb_id = None
 
-    def _status(self, msg, args, level=None, delay=None, kwds={}):
+    def _status(self, msg, args, level: Union[Text, int]=None, delay=None, kwds={}):
         """
         :param level:
-            tag or logging-level(int)
+            logging-level(int) or tag(str), if None, defaults to INFO.
         :param delay:
             If None, defaults to 7sec, if 0, "static message", can be cleared 
             only with ``msg='', delay=0``.
         """
-        if msg is None:
+        if msg is None:  # A '' msg clears the 'static" status.
             return
 
         if delay is None:
@@ -1327,21 +1323,28 @@ class TkUI(object):
         if self._motd_cb_id:
             status.after_cancel(self._motd_cb_id)
             self._motd_cb_id = None
-            self.show_motd()
+            self.show_motd()  # Re-schedule motd.
 
-        if level is None and delay:
+        if level is None:
             level = logging.INFO
-
-        tag = None
-        if isinstance(level, int):
-            log.log(level, msg, *args, **kwds)
-            tag = logging.getLevelName(level)
-        elif level is not None:
+            
+        ##  Translate the level --> tag.
+        #
+        tag = logging.getLevelName(level)
+        if tag.startswith('Level'):  # unknown level
             tag = level
+
+        ## Static message, are not colored as INFOs.
+        #
+        if delay == 0 and level == logging.INFO:
+            tag = None
+
+        if isinstance(level, int) and (msg or args):  # Do not log empty static-cleaning msgs.
+            log.log(level, msg, *args, **kwds)
             
         msg = msg % args
 
-        ## Store static message.
+        ## Set static message as "clear" text.
         #
         if not delay:
             self._status_static_msg = (msg, tag)
@@ -1352,19 +1355,22 @@ class TkUI(object):
         status['state'] = tk.DISABLED
         if delay:
             self._clear_cb_id = status.after(delay, self.clear_status)
+        status.update()
 
     def clear_status(self):
+        """Actually prints the "static" message, if any."""
         status = self._status_text
         status['state'] = tk.NORMAL
         status.delete('0.0', tk.END)
         status.insert('0.0', *self._status_static_msg)
         status['state'] = tk.DISABLED
+        status.update()
 
     def show_motd(self, delay=21 * 1000):
         def show():
             msg = random.choice(MOTD)
             self._status('Tip: %s', msg, level='help')
-            self.show_motd()  # Schedule next motd.
+            self.show_motd()  # Re-schedule motd.
 
         self._motd_cb_id = self._status_text.after(delay, show)
         
