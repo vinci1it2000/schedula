@@ -68,7 +68,7 @@ from toolz import dicttoolz as dtz
 import yaml
 
 from co2mpas import (__version__, __updated__, __copyright__, __license__, __uri__)
-from co2mpas.__main__ import init_logging, _main as co2mpas_main, save_template
+from co2mpas.__main__ import init_logging, save_template
 import co2mpas.batch as co2mpas_batch
 from co2mpas.utils import stds_redirected
 import functools as fnt
@@ -240,7 +240,7 @@ def get_file_infos(fpath):
     return (s.st_size, mtime.isoformat())
 
 
-def run_python_job(function, cmd_args, job_name, stdout=None, stderr=None, on_finish=None):
+def run_python_job(job_name, function, cmd_args, cmd_kwds, stdout=None, stderr=None, on_finish=None):
     """
     Redirects stdout/stderr to logging, and notifies when finished.
 
@@ -248,7 +248,7 @@ def run_python_job(function, cmd_args, job_name, stdout=None, stderr=None, on_fi
     """
     with stds_redirected(stdout, stderr) as (stdout, stderr):
         try:
-            function(*cmd_args)
+            function(*cmd_args, **cmd_kwds)
         except SystemExit as ex:
             log.error("Job %s exited due to: %s", job_name, ex)
             ## TODO: Do not log, send to on_finish()
@@ -1033,43 +1033,41 @@ class _MainPanel(ttk.Frame):
         is_run_ta_enabled = is_run_batch_btn_enabled and self.advanced_flipper.flip_ix == 0
         self._run_ta_btn.state((bang(is_run_ta_enabled) + tk.DISABLED,))
 
-    def reconstruct_cmd_args_from_gui(self, is_ta):
-        cmd_args = ['ta' if is_ta else 'batch']
+    def reconstruct_cmd_args_from_gui(self):
+        cmd_kwds = OrderedDict()
 
         out_folder = self.out_folder_var.get()
-        if out_folder:
-            cmd_args += ['-O', out_folder]
 
         if self.advanced_flipper.flip_ix > 0:
-            cmd_args += self.extra_opts_var.get().strip().split()
+            cmd_kwds += self.extra_opts_var.get().strip().split()
 
             tmpl_folder = self.tmpl_folder_var.get()
             if tmpl_folder:
-                cmd_args += ['-D', 'flag.output_template=%s' % tmpl_folder]
+                cmd_kwds['flag.output_template'] = tmpl_folder
 
+            variation = OrderedDict()
             for flag, flag_var in self.flag_vars:
                 flag_value = flag_var.get()
                 if flag_value:
-                    cmd_args += ['-D', 'flag.%s=%s' % (flag, flag_value)]
+                    variation['flag.%s' % flag] = flag_value
+            if variation:
+                cmd_kwds['variation'] = variation
 
-        inputs = self.inputs_tree.get_children()
-        cmd_args += inputs
+        inp_paths = self.inputs_tree.get_children()
 
-        return cmd_args
+        return inp_paths, out_folder, cmd_kwds
 
     def _do_run_job(self, is_ta):
-        job_name = "CO2MPAS-TA" if is_ta else "CO2MPAS"
         app = self.app
+        job_name = "CO2MPAS-TA" if is_ta else "CO2MPAS"
 
-        assert app._job_thread is None, app._job_thread
-        app.stop_job = False
+        assert app._job_thread is None, (app._job_thread, job_name)
 
-        inputs = self.inputs_tree.get_children()
-        if not inputs:
+        inp_paths, out_folder, cmd_kwds = self.reconstruct_cmd_args_from_gui()
+
+        if not inp_paths:
             app.estatus("No inputs specified!  Please add files & folders in the Inputs list at the top-left.")
             return
-
-        cmd_args = self.reconstruct_cmd_args_from_gui(is_ta)
 
         mediate_guistate = self.mediate_guistate
 
@@ -1094,34 +1092,38 @@ class _MainPanel(ttk.Frame):
 
             def __next__(self):
                 cur_step, item = next(self.it)
+                try:
+                    ## Report stdout/err collected from previous step.
+                    #
+                    new_out, new_err = self.pump_std_streams()
+                    if new_out or new_err:
+                        log.info("Job %s %s of %s: %s%s",
+                                 job_name, cur_step - 1, self.len, new_out, new_err)
 
-                ## Report stdout/err collected from previous step.
-                #
-                new_out, new_err = self.pump_streams()
-                if new_out or new_err:
-                    log.info("Job %s %s of %s:\n%s%s",
-                             job_name, cur_step - 1, self.len, new_out, new_err)
-
-                if app.stop_job:
-                    log.warning("Canceled %s job before %s of %s: %s",
-                                job_name, cur_step, self.len, cmd_args)
-                    raise StopIteration()
-
-                msg = 'Job %s %s of %s: %r...'
-                mediate_guistate(msg, job_name, cur_step, self.len, item,
-                                 progr_step=-cur_step)
+                    if app.stop_job:
+                        log.warning("Canceled %s job before %s of %s",
+                                    job_name, cur_step, self.len)
+                        raise StopIteration()
+                finally:
+                    msg = 'Job %s %s of %s: %r...'
+                    mediate_guistate(msg, job_name, cur_step, self.len, item,
+                                     progr_step=-cur_step)
 
                 return item
 
-            def pump_streams(self):
+            def result_generated(self, result_tuple):
+                fpath, _ = result_tuple
+                log.info('Gened file: %r', fpath)
+
+            def pump_std_streams(self):
                 new_out = self.stdout.getvalue()[self.out_i:]
                 new_err = self.stderr.getvalue()[self.err_i:]
                 self.out_i += len(new_out)
                 self.err_i += len(new_err)
                 if new_out:
-                    new_out = '\n  stdout: %s' % indent(new_out, '    ')
+                    new_out = '  stdout: %s' % indent(new_out, '  ')
                 if new_err:
-                    new_err = '\n  stderr: %s' % indent(new_err, '    ')
+                    new_err = '  stderr: %s' % indent(new_err, '  ')
 
                 return new_out, new_err
 
@@ -1133,30 +1135,35 @@ class _MainPanel(ttk.Frame):
                 return self
 
             def on_finish(self, out, err):
-                app._job_thread = None
+                try:
+                    app._job_thread = None
 
-                new_out, new_err = self.pump_streams()
-                msg = "Finished job %s:\n%s%s"
-                mediate_guistate(msg, job_name, new_out, new_err,
-                                 progr_max=0)
+                    new_out, new_err = self.pump_std_streams()
+                finally:
+                    msg = "Finished job %s: %s%s"
+                    mediate_guistate(msg, job_name, new_out, new_err,
+                                     progr_max=0)
+
+        updater = ProgressUpdater()
+        cmd_kwds.update({'type_approval_mode': is_ta, 'overwrite_cache': True})
+        self.app._job_thread = t = Thread(
+            target=run_python_job,
+            args=(job_name,
+                  co2mpas_batch.process_folder_files, (inp_paths, out_folder), cmd_kwds,
+                  updater.stdout, updater.stderr, updater.on_finish),
+            daemon=True,  # May corrupt output-files, but prefferably UI closes cleanly.
+        )
 
         ## Monkeypatch *tqdm* on co2mpas-batcher.
         #
-        updater = ProgressUpdater()
         co2mpas_batch._custom_tqdm = updater.tqdm_replacement
 
-        self.app._job_thread = t = Thread(
-            target=run_python_job,
-            args=(co2mpas_main, cmd_args, job_name,
-                  updater.stdout, updater.stderr,
-                  updater.on_finish),
-            daemon=True,  # To ensure co2mpas do not corrupt output-files.
-        )
-        t.start()
-
         msg = 'Launched %s job: %s'
-        self.mediate_guistate(msg, job_name, cmd_args,
+        self.mediate_guistate(msg, job_name, ' '.join(str(i) for i in cmd_kwds.items()),
                               progr_step=0, progr_max=-1)
+
+        app.stop_job = False
+        t.start()
 
 
 class TkUI(object):

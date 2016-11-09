@@ -9,18 +9,23 @@ It contains functions to process vehicle files.
 """
 
 import datetime
-import logging
-import os.path as osp
-import re
 import functools
-import pandas as pd
+import logging
+import re
+import sys
+from typing import Callable
+
 from tqdm import tqdm
-import pandalone.xleash as xleash
+
+import co2mpas.dispatcher as dsp
+import co2mpas.dispatcher.utils as dsp_utl
 import co2mpas.io.excel as excel
 import co2mpas.io.schema as schema
-import co2mpas.dispatcher.utils as dsp_utl
-import co2mpas.dispatcher as dsp
 import co2mpas.utils as co2_utl
+import os.path as osp
+import pandalone.xleash as xleash
+import pandas as pd
+
 
 log = logging.getLogger(__name__)
 
@@ -58,26 +63,34 @@ def parse_dsp_solution(solution):
     return res
 
 
-def process_folder_files(input_files, output_folder, **kwds):
+def process_folder_files(input_files, output_folder,
+                         result_listener: Callable=None, **kwds):
     """
     Process all xls-files in a folder with CO2MPAS-model and produces summary.
 
     :param list input_files:
         A list of input xl-files.
-
     :param str output_folder:
         Where to store the results; the exact output-filenames will be::
 
             <timestamp>-<input_filename>.xlsx
+
+    :param result_listener:
+        A callable that will receive a 2 tuple for each file as it is produced::
+
+                (<filepath>, <contents>)
+
     """
 
-    summary, start_time = _process_folder_files(
-        input_files, output_folder, **kwds
-    )
+    summary, start_time = _process_folder_files(input_files, output_folder,
+                                                result_listener=result_listener,
+                                                **kwds)
 
     timestamp = start_time.strftime('%Y%m%d_%H%M%S')
 
     summary_xl_file = osp.join(output_folder, '%s-summary.xlsx' % timestamp)
+    if result_listener:
+        result_listener((summary_xl_file, summary))
 
     _save_summary(summary_xl_file, start_time, summary)
 
@@ -114,7 +127,7 @@ def _yield_folder_files_results(
         yield _process_vehicle({'input_file_name': fpath}, kw)
 
 
-def _process_folder_files(*args, **kwargs):
+def _process_folder_files(*args, result_listener=None, **kwargs):
     """
     Process all xls-files in a folder with CO2MPAS-model.
 
@@ -143,6 +156,8 @@ def _process_folder_files(*args, **kwargs):
 
     summary, n = {}, ('solution', 'summary')
     for res in _yield_folder_files_results(start_time, *args, **kwargs):
+        if result_listener:
+            result_listener('FOO', res)
         if dsp_utl.are_in_nested_dicts(res, *n):
             _add2summary(summary, dsp_utl.get_nested_dicts(res, *n))
 
