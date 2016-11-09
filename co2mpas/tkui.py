@@ -798,15 +798,22 @@ class _MainPanel(ttk.Frame):
         add_tooltip(btn, 'del_inp_btn')
 
         ## Tree events:
-        ##s
-        def del_input_file(ev=None):
-            if not ev or ev.keysym == 'Delete':
-                for item in tree.selection():
-                    try:
-                        tree.delete(item)
-                    except Exception as ex:
-                        log.warning("Cannot delete %r due to: %s", item, ex)
-                del_btn.state((tk.DISABLED,))  # tk-BUG: Selection-vent is not fired.
+        #
+        def do_del_items():
+            for item in tree.selection():
+                try:
+                    tree.delete(item)
+                except Exception as ex:
+                    log.warning("Cannot delete %r due to: %s", item, ex)
+            del_btn.state((tk.DISABLED,))  # tk-BUG: Selection-vent is not fired.
+            self.mediate_guistate()
+
+        def key_handler(ev=None):
+            if ev.keysym == 'Delete':
+                do_del_items()
+                #self.mediate_guistate() Already in `do-del()`.
+            elif ev.keysym.lower() == 'a':
+                tree.selection_set(tree.get_children())
                 self.mediate_guistate()
 
         def tree_selection_changed(ev):
@@ -816,8 +823,8 @@ class _MainPanel(ttk.Frame):
             item = tree.identify('item', ev.x, ev.y)
             open_file_with_os(item)
 
-        tree.bind("<Key>", del_input_file)
-        del_btn['command'] = del_input_file
+        tree.bind("<Key>", key_handler)
+        del_btn['command'] = do_del_items
         tree.bind('<<TreeviewSelect>>', tree_selection_changed)
         tree.bind("<Double-1>", on_double_click)
         add_tooltip(tree, 'inp_files_tree')
