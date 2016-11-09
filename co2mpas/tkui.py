@@ -81,40 +81,20 @@ import tkinter as tk
 
 log = logging.getLogger('tkui')
 
-_bw = 2
-_pad = 2
-_sunken = dict(relief=tk.SUNKEN, padx=_pad, pady=_pad, borderwidth=_bw)
 app_name = 'co2mpas'
-user_guidelines_url = 'https://github.com/JRCSTU/CO2MPAS-TA/wiki/CO2MPAS-user-guidelines'
-MOTD = (
-    "Select Input files/folders and run them.  Read tooltips for help.",
-    "Double-click on file-paths to open them.",
-    "[Ctrl-A]: select all files in a list;  [Delete]: delete selected all files in list.",
-    "Try the `Run` button first and check the results;  then `Run TA` and re-check them.",
-    "Use [Tab] to navigate to the next field/button; [Space] clicks buttons.",
-    "You cannot `Run TA` when the `Advanced` options are active.",
-    "User mouse's [Right button] to clear the log messages from the popup-menu.",
-)
-
-
-try:
-    _levelsMap = logging._levelToName
-except AttributeError:
-    _levelsMap = {k: v for k, v
-                  in logging._levelNames.items()  # @UndefinedVariable PY2-only
-                  if isinstance(k, int)}
-
-
-def define_ttk_styles():
-    style = ttk.Style()
-    style.configure('None.TButton', background='SystemButtonFace')
-    style.configure('True.TButton', foreground='green')
-    style.configure('False.TButton', foreground='red')
-    style.configure('TFrame', relief=tk.RAISED, padding=_pad)
-    style.configure('TLabelframe', relief=tk.RAISED,)
-    style.configure('Flipper.TLabelframe', relief=tk.RAISED, underline=True)
-    style.configure('TA.TButton', foreground='orange')
-    style.configure('Prog.TLabel', foreground='blue')
+user_guidelines_url = 'https://co2mpas.io'
+MOTDs = dedent("""\
+    Select Input files/folders and run them.  Read tooltips for help.
+    Double-click on file-paths to open them (as explained in it's tooltip).
+    [Ctrl-A]: select all files in a list;  [Delete]: delete selected all files in list.
+    Try the `Run` button first and check the results;  then `Run TA` and re-check them.
+    Use [Tab] to navigate to the next field/button; [Space] clicks buttons.
+    You cannot `Run TA` when the `Advanced` options are active.
+    User mouse's [Right button] to clear the log messages from the popup-menu.
+    Ensure you run the latest CO2MPAS;\
+  click the `About CO2MPAS` menu-item and compare its version with the site's.
+    Synchronized *appropriately* the time-series before launching CO2MPAS.
+""")[:-1].split('\n')
 
 
 @fnt.lru_cache()
@@ -155,6 +135,8 @@ def define_tooltips():
             Opens a File-dialog to select an existing Excel Output Template file
             for the field to the left.
 
+        help_btn: |-
+            Opens the CO2MPAS site in a browser.
         run_batch_btn: |-
             Launches the BATCH CO2MPAS command.
             - Populate the "Inputs" list with (at lteast one) files & folders;
@@ -189,6 +171,25 @@ def define_tooltips():
     """
 
     return yaml.load(all_tooltips)
+
+_bw = 2
+_pad = 2
+olive_color = '#556b2f'
+_sunken = dict(relief=tk.SUNKEN, padx=_pad, pady=_pad, borderwidth=_bw)
+
+
+def define_ttk_styles():
+    style = ttk.Style()
+    style.configure('None.TButton', background='SystemButtonFace')
+    style.configure('True.TButton', foreground='green')
+    style.configure('False.TButton', foreground='red')
+    style.configure('TFrame', relief=tk.RAISED, padding=_pad)
+    style.configure('TLabelframe', relief=tk.RAISED,)
+    style.configure('Flipper.TLabelframe', relief=tk.RAISED, underline=True)
+    style.configure('TA.TButton', foreground='orange')
+    style.configure('Prog.TLabel', foreground='blue')
+
+
 
 LOGGING_TAGS = OrderedDict((
     (logging.CRITICAL, {'background': "red", 'foreground': "yellow"}),
@@ -496,7 +497,7 @@ class LogPanel(ttk.Labelframe):
     Instantiate only once(!), or logging and Tk's ex-handling will get borged.
     """
 
-    LEVELS_MAP = sorted(_levelsMap.items(), reverse=True)
+    LEVELS_MAP = sorted(logging._levelToName.items(), reverse=True)
 
     TAG_META = 'meta'
     TAG_LOGS = 'logs'
@@ -1010,6 +1011,7 @@ class _MainPanel(ttk.Frame):
                          command=fnt.partial(open_url, user_guidelines_url))
         add_icon(btn, 'icons/help-olive-32.png ')
         btn.grid(column=0, row=4, sticky='nswe')
+        add_tooltip(btn, 'help_btn')
 
         self._run_batch_btn = btn = ttk.Button(frame, text="Run",
                                                command=fnt.partial(self._do_run_job, is_ta=False))
@@ -1254,7 +1256,7 @@ class TkUI(object):
 
         self._status_text = status = self._make_status(root)
         status.grid(row=1, column=0, sticky='nswe')
-        self.show_motd(7 * 1000)
+        self.show_motd(7 * 1000, 0)
 
         self._progr_var = var = tk.IntVar(value=0)
         self._progr_bar = ttk.Progressbar(root, orient=tk.HORIZONTAL, variable=var)
@@ -1278,7 +1280,7 @@ class TkUI(object):
         status = tk.Text(parent, wrap=tk.NONE, height=1, relief=tk.FLAT,
                          state=tk.DISABLED, background='SystemButtonFace')
         tags = LOGGING_TAGS.copy()
-        tags['help'] = {'foreground': 'green'}
+        tags['help'] = {'foreground': 'white', 'background': olive_color}
         config_text_tags(status, tags)
 
         return status
@@ -1366,9 +1368,12 @@ class TkUI(object):
         status['state'] = tk.DISABLED
         status.update()
 
-    def show_motd(self, delay=21 * 1000):
+    def show_motd(self, delay=21 * 1000, motd_ix=None):
         def show():
-            msg = random.choice(MOTD)
+            if motd_ix is not None:
+                msg = MOTDs[motd_ix]
+            else:
+                msg = random.choice(MOTDs)
             self._status('Tip: %s', msg, level='help')
             self.show_motd()  # Re-schedule motd.
 
