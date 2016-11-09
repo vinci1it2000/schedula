@@ -750,7 +750,7 @@ class LogPanel(ttk.Labelframe):
                   traceback.format_exc())
 
 
-class _MainPanel(ttk.Frame):
+class Co2mpasPanel(ttk.Frame):
     """
     The state of all widgets is controlled by :meth:`mediate_guistate()`.
     """
@@ -1285,7 +1285,7 @@ class TkUI(object):
         self.master = master = ttk.PanedWindow(root, orient=tk.VERTICAL)
         master.grid(row=0, column=0, columnspan=3, sticky='nswe')
 
-        frame = _MainPanel(master, app=self, height=-320)
+        frame = Co2mpasPanel(master, app=self, height=-320)
         master.add(frame, weight=1)
 
         frame = LogPanel(master, self, height=-260, log_level_cb=init_logging)
