@@ -377,6 +377,8 @@ class FMEP(object):
             try:
                 if b is False or not b.any():
                     continue
+                if b.all():
+                    b = True
             except AttributeError:
                 pass
 
@@ -498,30 +500,12 @@ def define_fmep_model(
     return model
 
 
-def _tech_mult(vva=0, lb=0, ecr=0, **params):
+def _tech_mult_factors(**params):
     p = {}
-    func = functools.partial(dsp_utl.get_nested_dicts, p, default=list)
-    if vva:
-        func('a').append(0.98)
-        func('l').append(0.92)
-
-    if lb:
-        func('a').append(1.1)
-        func('b').append(0.72)
-        func('c').append(0.76)
-        func('a2').append(1.25)
-        func('l2').append(2.85)
-
-    if ecr:
-        func('b').append(1.1)
-        func('a2').append(1.1)
-
-        if ecr == 1:
-            func('a').append(1.02)
-            func('c').append(1.5)
-        else:
-            func('a').append(1.015)
-            func('c').append(1.4)
+    factors = defaults.dfl.functions._tech_mult_factors.factors
+    for k, v in factors.items():
+        for i, j in v.get(params.get(k, 0), {}).items():
+            dsp_utl.get_nested_dicts(p, i, default=list).append(j)
 
     for k, v in p.items():
         params[k] = np.mean(v) * params[k]
@@ -530,13 +514,13 @@ def _tech_mult(vva=0, lb=0, ecr=0, **params):
 
 
 def _fuel_ABC(n_speeds, **kw):
-    return _ABC(n_speeds, **_tech_mult(**kw))
+    return _ABC(n_speeds, **_tech_mult_factors(**kw))
 
 
 # noinspection PyUnusedLocal
 def _ABC(
-        n_speeds, n_powers=0, n_temperatures=1,
-        a2=0, b2=0, a=0, b=0, c=0, t=0, l=0, l2=0, acr=1, **kw):
+    n_speeds, n_powers=0, n_temperatures=1,
+    a2=0, b2=0, a=0, b=0, c=0, t=0, l=0, l2=0, acr=1, **kw):
 
     acr2 = (acr ** 2)
     A = a2 / acr2 + (b2 / acr2) * n_speeds

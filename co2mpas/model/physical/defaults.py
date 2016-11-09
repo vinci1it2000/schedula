@@ -177,6 +177,23 @@ class Values(co2_utl.Constants):
 
 #: Container of internal function parameters.
 class Functions(co2_utl.Constants):
+    class _tech_mult_factors(co2_utl.Constants):
+        factors = {
+            'vva': {
+                #0: {},
+                1: {'a': 0.98, 'l': 0.92},
+            },
+            'lb': {
+                #0: {},
+                1: {'a': 1.1, 'b' : 0.72, 'c': 0.76, 'a2': 1.25, 'l2': 2.85}
+            },
+            'ecr': {
+                #0: {},
+                1: {'a': 1.02, 'b': 1.1, 'c': 1.5, 'a2': 1.1},  # engine_type != 'compression'
+                2: {'a': 1.015, 'b': 1.1, 'c': 1.4, 'a2': 1.1}  # engine_type == 'compression'
+            }
+        }
+
     class calibrate_co2_params(co2_utl.Constants):
         #: Enable third step in the co2_params calibration? [-]
         enable_third_step = True
