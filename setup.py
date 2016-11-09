@@ -202,6 +202,7 @@ setup(
     package_data={'co2mpas': [
         'demos/*.xlsx',
         'ipynbs/*.ipynb',
+        'icons/*.png',
         'co2mpas_template.xlsx',
         'datasync_template.xlsx',
         'co2mpas_output_template.xlsx',
