@@ -55,6 +55,7 @@ import logging
 import os
 import re
 import sys
+import random
 from textwrap import dedent, indent
 from threading import Thread
 from tkinter import StringVar, ttk, filedialog
@@ -83,7 +84,14 @@ _pad = 2
 _sunken = dict(relief=tk.SUNKEN, padx=_pad, pady=_pad, borderwidth=_bw)
 app_name = 'co2mpas'
 user_guidelines_url = 'https://github.com/JRCSTU/CO2MPAS-TA/wiki/CO2MPAS-user-guidelines'
-MOTD = 'Select Input files/folders and run them.  Read tooltips for help.'
+MOTD = (
+    'Select Input files/folders and run them.  Read tooltips for help.',
+    'Double-click on file-paths to open them.',
+    '[Ctrl-A]: select all files in a list;  [Delete]: delete selected all files in list.',
+    'Try the `Run` button first and check the results;  then `Run TA` and re-check them.',
+    'Use [Tab] to move to the next field.',
+    'You cannot use the `Advanced` options with the `Run TA` command.',
+)
 
 
 try:
@@ -1181,7 +1189,7 @@ class TkUI(object):
 
         self._status_text = status = self._make_status(root)
         status.grid(row=1, column=0, sticky='nswe')
-        self._clear_cb_id = status.after(7 * 1000, self.istatus, MOTD)
+        self.show_motd(7 * 1000)
 
         self._progr_var = var = tk.IntVar(value=0)
         self._progr_bar = ttk.Progressbar(root, orient=tk.HORIZONTAL, variable=var)
@@ -1204,7 +1212,9 @@ class TkUI(object):
     def _make_status(self, parent):
         status = tk.Text(parent, wrap=tk.NONE, height=1, relief=tk.FLAT,
                          state=tk.DISABLED, background='SystemButtonFace')
-        config_text_tags(status, LOGGING_TAGS)
+        tags = LOGGING_TAGS.copy()
+        tags['help'] = {'foreground': 'green'}
+        config_text_tags(status, tags)
 
         return status
 
@@ -1224,24 +1234,34 @@ class TkUI(object):
         self.root.after_idle(self._status, msg, args, logging.ERROR, delay, kwds)
 
     _clear_cb_id = None
+    _motd_cb_id = None
 
     def _status(self, msg, args, level=None, delay=7 * 1000, kwds={}):
+        """
+        :param level:
+            tag or logging-level(int)
+        """
         if msg is None:
             return
 
         status = self._status_text
         if self._clear_cb_id:
             status.after_cancel(self._clear_cb_id)
+            self._clear_cb_id = None
+        if self._motd_cb_id:
+            status.after_cancel(self._motd_cb_id)
+            self._motd_cb_id = None
 
         if level is None and delay:
             level = logging.INFO
 
-        if level is None:
-            ## Static UI-related status message.
-            tag = None
-        else:
+        ## Static UI-related status message.
+        tag = None
+        if isinstance(level, int):
             log.log(level, msg, *args, **kwds)
             tag = logging.getLevelName(level)
+        elif level is not None:
+            tag = level
 
         status['state'] = tk.NORMAL
         status.delete('0.0', tk.END)
@@ -1256,6 +1276,14 @@ class TkUI(object):
         status.delete('0.0', tk.END)
         status['state'] = tk.DISABLED
 
+    def show_motd(self, delay=21 * 1000):
+        def show():
+            msg = random.choice(MOTD)
+            self._status('Tip: %s', msg, level='help')
+            self.show_motd()  # Schedule next motd.
+
+        self._motd_cb_id = self._status_text.after(delay, show)
+        
     def progress(self, step=None, maximum=None):
         """
         :param step:
