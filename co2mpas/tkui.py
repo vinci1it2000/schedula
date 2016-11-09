@@ -271,7 +271,7 @@ def run_python_job(job_name, function, cmd_args, cmd_kwds, stdout=None, stderr=N
         try:
             on_finish(stdout, stderr, ex)
         except Exception as ex:
-            log.critical("While ending job: %s", ex, exc_info=1)
+            log.critical("GUI failed while ending job due to: %s", ex, exc_info=1)
     else:
         if ex:
             log.error("Job %s failed due to: %s", job_name, ex, exc_info=1)
@@ -512,7 +512,7 @@ class LogPanel(ttk.Labelframe):
 
     initted = False
 
-    def __init__(self, *args,
+    def __init__(self, master, app, *args,
                  log_threshold=logging.INFO, logger_name='', formatter_specs=None,
                  log_level_cb=None, **kw):
         """
@@ -527,12 +527,13 @@ class LogPanel(ttk.Labelframe):
         :param log_level_cb:
             An optional ``func(level)`` invoked when log-threshold is modified from popup-menu.
         """
+        self.app = app
         self._log_level_cb = log_level_cb
         if LogPanel.initted:
             raise RuntimeError("I said instantiate me only ONCE!!!")
         LogPanel.inited = True
 
-        super().__init__(*args, **kw)
+        super().__init__(master, *args, **kw)
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
@@ -606,6 +607,10 @@ class LogPanel(ttk.Labelframe):
         def my_ex_interceptor(*args):
             # Must not raise any errors, or infinite recursion here.
             log.critical('Unhandled TkUI exception:', exc_info=True)
+            try:
+                self.app.cstatus('Unhandled TkUI exception: %s', args, delay=0)
+            except:
+                pass
             self._original_tk_ex_handler(*args)
 
         self._original_tk_ex_handler = tk.Tk.report_callback_exception
@@ -1283,7 +1288,7 @@ class TkUI(object):
         frame = _MainPanel(master, app=self, height=-320)
         master.add(frame, weight=1)
 
-        frame = LogPanel(master, height=-260, log_level_cb=init_logging)
+        frame = LogPanel(master, self, height=-260, log_level_cb=init_logging)
         master.add(frame, weight=3)
 
         root.columnconfigure(0, weight=1)
@@ -1311,6 +1316,9 @@ class TkUI(object):
 
     def estatus(self, msg, *args, delay=None, **kwds):
         self._status(msg, args, logging.ERROR, delay, kwds)
+
+    def cstatus(self, msg, *args, delay=None, **kwds):
+        self._status(msg, args, logging.CRITICAL, delay, kwds)
 
     _status_static_msg = ('', None)
     _clear_cb_id = None
