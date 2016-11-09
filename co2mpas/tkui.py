@@ -258,21 +258,22 @@ def run_python_job(job_name, function, cmd_args, cmd_kwds, stdout=None, stderr=N
 
     Suitable to be run within a thread.
     """
+    ex = None
     with stds_redirected(stdout, stderr) as (stdout, stderr):
         try:
             function(*cmd_args, **cmd_kwds)
-        except SystemExit as ex:
-            log.error("Job %s exited due to: %s", job_name, ex)
-            ## TODO: Do not log, send to on_finish()
-        except Exception as ex:
-            log.error("Job %s failed due to: %s", job_name, ex, exc_info=1)
+        except (SystemExit, Exception) as ex1:
+            log.error("Job %s failed due to: %s", job_name, ex1, exc_info=1)
+            ex = ex1
 
     if on_finish:
         try:
-            on_finish(stdout, stderr)
+            on_finish(stdout, stderr, ex)
         except Exception as ex:
-            log.error("While ending job: %s", ex, exc_info=1)
+            log.critical("While ending job: %s", ex, exc_info=1)
     else:
+        if ex:
+            log.error("Job %s failed due to: %s", job_name, ex, exc_info=1)
         stdout = stdout.getvalue()
         if stdout:
             log.info("Job %s stdout: %s", job_name, stdout)
@@ -1190,15 +1191,28 @@ class _MainPanel(ttk.Frame):
                 mediate_guistate(progr_step=-1, progr_max=self.len + 1)  # +1 finalization job-work.
                 return self
 
-            def on_finish(self, out, err):
-                try:
-                    app._job_thread = None
-
-                    new_out, new_err = self.pump_std_streams()
-                finally:
+            def on_finish(self, out, err, ex):
+                app._job_thread = None
+                args = [job_name]
+                if ex:
+                    msg = "Failed job %s due to %s. %s%s"
+                    args.append(ex)
+                    ## Status a "permanent" failure msg.
+                    #
+                    static_msg = True
+                    level = logging.ERROR
+                else:
                     msg = "Finished job %s. %s%s"
-                    mediate_guistate(msg, job_name, new_out, new_err,
-                                     static_msg='', progr_max=0)
+                    ## Status a temporary success msg.
+                    #
+                    static_msg = ''
+                    level = None
+                try:
+                    args.extend(self.pump_std_streams())
+                finally:
+                    mediate_guistate(msg, *args, 
+                                     static_msg=static_msg, level=level,
+                                     progr_max=0)
 
         updater = ProgressUpdater()
         user_cmd_kwds = cmd_kwds.copy()
