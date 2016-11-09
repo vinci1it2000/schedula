@@ -62,7 +62,6 @@ def parse_dsp_solution(solution):
 
     return res
 
-
 def process_folder_files(input_files, output_folder,
                          result_listener: Callable=None, **kwds):
     """
@@ -90,7 +89,10 @@ def process_folder_files(input_files, output_folder,
 
     summary_xl_file = osp.join(output_folder, '%s-summary.xlsx' % timestamp)
     if result_listener:
-        result_listener((summary_xl_file, summary))
+        try:
+            result_listener((summary_xl_file, summary))
+        except Exception as ex:
+            log.warning("Failed notifying result-listener due to: %s", ex, exc_info=1)
 
     _save_summary(summary_xl_file, start_time, summary)
 
@@ -157,7 +159,10 @@ def _process_folder_files(*args, result_listener=None, **kwargs):
     summary, n = {}, ('solution', 'summary')
     for res in _yield_folder_files_results(start_time, *args, **kwargs):
         if result_listener:
-            result_listener('FOO', res)
+            try:
+                result_listener((res['solution']['output_file_name'], res))
+            except Exception as ex:
+                log.warning("Failed notifying result-listener due to: %s", ex, exc_info=1)
         if dsp_utl.are_in_nested_dicts(res, *n):
             _add2summary(summary, dsp_utl.get_nested_dicts(res, *n))
 
