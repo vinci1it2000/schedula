@@ -38,6 +38,7 @@ Layout::
 #  - Datasync frame:
 #        [gen-file] [sync-temple-entry][sel]
 #        [   help   ] [        run         ]
+#  - Improve extra-options parsing...
 
 ## Help (apart from PY-site):
 #  - http://effbot.org/tkinterbook/tkinter-index.htm
@@ -66,7 +67,7 @@ import webbrowser
 
 from PIL import Image, ImageTk
 from pandalone import utils as putils
-from toolz import dicttoolz as dtz
+from toolz import dicttoolz as dtz, itertoolz as itz
 import yaml
 
 from co2mpas import (__version__, __updated__, __copyright__, __license__, __uri__)
@@ -1100,7 +1101,9 @@ class Co2mpasPanel(ttk.Frame):
         out_folder = self.out_folder_var.get()
 
         if self.advanced_flipper.flip_ix > 0:
-            cmd_kwds += self.extra_opts_var.get().strip().split()
+            args = self.extra_opts_var.get().strip().split()
+            for k, v in itz.partition(2, args):
+                cmd_kwds[k] = v
 
             tmpl_folder = self.tmpl_folder_var.get()
             if tmpl_folder:
@@ -1372,8 +1375,8 @@ class TkUI(object):
             self._status_static_msg = (msg, tag)
 
         status['state'] = tk.NORMAL
-        status.delete('0.0', tk.END)
-        status.insert('0.0', msg, tag)
+        status.delete('1.0', tk.END)
+        status.insert('1.0', msg, tag)
         status['state'] = tk.DISABLED
         if delay:
             self._clear_cb_id = status.after(delay, self.clear_status)
@@ -1383,8 +1386,8 @@ class TkUI(object):
         """Actually prints the "static" message, if any."""
         status = self._status_text
         status['state'] = tk.NORMAL
-        status.delete('0.0', tk.END)
-        status.insert('0.0', *self._status_static_msg)
+        status.delete('1.0', tk.END)
+        status.insert('1.0', *self._status_static_msg)
         status['state'] = tk.DISABLED
         status.update()
 
