@@ -242,7 +242,8 @@ def _scores2df(data):
     it = (('model_selections', ['model_id'], 2, ('stage', 'cycle'), ()),
           ('score_by_model', ['model_id'], 1, ('cycle',), ()),
           ('scores', ['model_id', 'param_id'], 2, ('cycle', 'cycle'), ()),
-          ('param_selections', ['param_id'], 2, ('stage', 'cycle'), ()))
+          ('param_selections', ['param_id'], 2, ('stage', 'cycle'), ()),
+          ('models_uuid', ['cycle'], 0, (), ('cycle',)))
     dfs = []
     for k, idx, depth, col_keys, row_keys in it:
         df = _dd2df(
@@ -477,7 +478,10 @@ def _dd2df(dd, index=None, depth=0, col_key=None, row_key=None):
     df = pd.concat(frames, copy=False, axis=1, verify_integrity=True)
 
     if col_key is not None:
-        ax = pd.MultiIndex.from_tuples(sorted(df.columns, key=col_key))
+        ax = sorted(df.columns, key=col_key)
+        if isinstance(df.columns, pd.MultiIndex):
+            ax = pd.MultiIndex.from_tuples(ax)
+
         # noinspection PyUnresolvedReferences
         df = df.reindex_axis(ax, axis='columns', copy=False)
 

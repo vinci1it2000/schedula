@@ -17,6 +17,7 @@ import sklearn.metrics as sk_met
 import co2mpas.dispatcher.utils as dsp_utl
 import co2mpas.utils as co2_utl
 import co2mpas.io.excel as co2_exl
+import dill
 
 
 def _compare(t, o, metrics):
@@ -414,6 +415,19 @@ def format_report_scores(data):
         n = scores + ('scores',)
         v = _format_scores(dsp_utl.get_nested_dicts(data, *n))
         if v:
+            dsp_utl.get_nested_dicts(res, *n, default=co2_utl.ret_v(v))
+
+        v = []
+        for k in ('nedc_h', 'nedc_l', 'wltp_h', 'wltp_l'):
+            n = 'data', 'prediction', 'models_%s' % k
+            if dsp_utl.are_in_nested_dicts(data, *n):
+                v.append({
+                    'cycle': k,
+                    'uuid': str(dill.dumps(dsp_utl.get_nested_dicts(data, *n)))
+                })
+
+        if v:
+            n = scores + ('models_uuid',)
             dsp_utl.get_nested_dicts(res, *n, default=co2_utl.ret_v(v))
 
     return res
