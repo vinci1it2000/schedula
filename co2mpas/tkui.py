@@ -90,8 +90,8 @@ MOTD = (
     'Double-click on file-paths to open them.',
     '[Ctrl-A]: select all files in a list;  [Delete]: delete selected all files in list.',
     'Try the `Run` button first and check the results;  then `Run TA` and re-check them.',
-    'Use [Tab] to move to the next field.',
-    'You cannot use the `Advanced` options with the `Run TA` command.',
+    'Use [Tab] to navigate to the next field/button; [Space] clicks buttons.',
+    'You cannot `Run TA` when the `Advanced` options are active.',
 )
 
 
@@ -120,7 +120,7 @@ def define_tooltips():
     all_tooltips = """
         inp_files_tree: |-
             Populate this list with CO2MPAS Input files & folders using the buttons to the right.
-            - Double-click to open populated items.
+            - Double-click on each file/folder to open it.
         download_tmpl_file_btn: |-
             Opens a File-dialog to save a new "sample" Input Template file,
             for the field to the left.
@@ -180,6 +180,10 @@ def define_tooltips():
             Do not save vehicle outputs, just the summary; should be faster.
         use_selector: |-
             Select internally the best model to predict both NEDC H/L cycles.
+
+        out_files_tree: |-
+            A CO2MPAS run populates this list with all Excel result files.
+            - Double-click on each file to open it.
     """
 
     return yaml.load(all_tooltips)
@@ -236,9 +240,13 @@ def find_longest_valid_dir(path, default=None):
 
 
 def get_file_infos(fpath):
-    s = os.stat(fpath)
-    mtime = datetime.datetime.fromtimestamp(s.st_mtime)  # @UndefinedVariable
-    return (s.st_size, mtime.isoformat())
+    try:
+        s = os.stat(fpath)
+        mtime = datetime.datetime.fromtimestamp(s.st_mtime)  # @UndefinedVariable
+        res = (s.st_size, mtime.isoformat())
+    except:
+        res = ('', '')
+    return res
 
 
 def run_python_job(job_name, function, cmd_args, cmd_kwds, stdout=None, stderr=None, on_finish=None):
@@ -296,6 +304,53 @@ def tree_apply_columns(tree, columns):
 
         c_col_kwds = dtz.keyfilter((lambda k: k in set('anchor minwidth stretch width'.split())), col_kwds)
         tree.column(c, **c_col_kwds)
+
+
+def make_file_tree(parent, **tree_kwds):
+    tree = ttk.Treeview(parent, **tree_kwds)
+    columns = (
+        ('#0', {
+            'text': 'Filepath',
+            'anchor': tk.W,
+            'stretch': True,
+            'minwidth': 96,
+            'width': 362}),
+        ('type', {'anchor': tk.W, 'width': 56, 'stretch': False}),
+        ('size', {'anchor': tk.E, 'width': 64, 'stretch': False}),
+        ('modified', {'anchor': tk.W, 'width': 164, 'stretch': False}),
+    )
+    tree_apply_columns(tree, columns)
+    
+    ## Attach onto tree not to be GCed.
+    tree.excel_icon = read_image('icons/excel-olive-16.png')
+    tree.file_icon = read_image('icons/file-olive-16.png')
+    tree.folder_icon = read_image('icons/folder-olive-16.png')
+
+    def insert_path(path, is_folder=False):
+        try:
+            if is_folder:
+                ftype = 'FOLDER'
+                path += '/'
+                icon = tree.folder_icon
+            else:
+                ftype = 'FILE'
+                icon = tree.excel_icon if re.search(r'\.xl\w\w$', path) else tree.file_icon
+            finfos = get_file_infos(path)
+            tree.insert('', 'end', path, text=path,
+                        values=(ftype, *finfos), image=icon)
+        except Exception as ex:
+            log.warning("Cannot add input file %r due to: %s", path, ex)
+
+    tree.insert_path = insert_path
+    tree.clear = lambda: tree.delete(*tree.get_children())
+
+    def on_double_click(ev):
+        item = tree.identify('item', ev.x, ev.y)
+        open_file_with_os(item)
+
+    tree.bind("<Double-1>", on_double_click)
+
+    return tree
 
 
 def add_tooltip(widget, key):
@@ -692,24 +747,28 @@ class _MainPanel(ttk.Frame):
         super().__init__(master, *args, **kwargs)
         self.app = app
 
-        frame = self._make_inputs_frame(self)
-        frame.grid(column=0, row=0, rowspan=2, sticky='nswe')
+        w = self._make_inputs_frame(self)
+        w.grid(column=0, row=0, rowspan=2, sticky='nswe')
 
-        frame, var = self._make_output_folder(self)
-        frame.grid(column=1, row=0, sticky='nswe')
+        w, var = self._make_output_folder(self)
+        w.grid(column=1, row=0, sticky='nswe')
         self.out_folder_var = var
 
-        frame, flipper = self._make_advanced_flipper(self)
-        frame.grid(column=1, row=1, sticky='nswe')
+        w, flipper = self._make_advanced_flipper(self)
+        w.grid(column=1, row=1, sticky='nswe')
         self.advanced_flipper = flipper
 
-        frame = self._make_buttons_frame(self)
-        frame.grid(column=0, row=3, columnspan=2, sticky='nswe')
+        w = self._make_buttons_frame(self)
+        w.grid(column=0, row=3, columnspan=2, sticky='nswe')
+
+        w = self._make_output_tree(self)
+        w.grid(column=0, row=4, columnspan=2, sticky='nswe')
 
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=1)
         for r in range(2):
             self.rowconfigure(r, weight=1)
+        self.rowconfigure(4, weight=1)
 
         self.mediate_guistate()
 
@@ -722,7 +781,6 @@ class _MainPanel(ttk.Frame):
         add_folder_btn.grid(column=1, row=1, sticky='nswe')
         save_templ_btn.grid(column=1, row=2, sticky='nswe')
         del_btn.grid(column=1, row=3, sticky='nswe')
-        self.inputs_tree = tree
 
         frame.columnconfigure(0, weight=1)
         for r in range(4):
@@ -731,37 +789,7 @@ class _MainPanel(ttk.Frame):
         return frame
 
     def _build_inputs_tree(self, parent):
-        tree = ttk.Treeview(parent)
-        columns = (
-            ('#0', {
-                'text': 'Filepath',
-                'anchor': tk.W,
-                'stretch': True,
-                'minwidth': 96,
-                'width': 362}),
-            ('type', {'anchor': tk.W, 'width': 56, 'stretch': False}),
-            ('size', {'anchor': tk.E, 'width': 64, 'stretch': False}),
-            ('modified', {'anchor': tk.W, 'width': 164, 'stretch': False}),
-        )
-        tree_apply_columns(tree, columns)
-        tree.excel_icon = read_image('icons/excel-olive-16.png')
-        tree.file_icon = read_image('icons/file-olive-16.png')
-        tree.folder_icon = read_image('icons/folder-olive-16.png')
-
-        def insert_item(path, is_folder):
-            try:
-                if is_folder:
-                    ftype = 'FOLDER'
-                    path += '/'
-                    icon = tree.folder_icon
-                else:
-                    ftype = 'FILE'
-                    icon = tree.excel_icon if re.search(r'\.xl\w\w$', path) else tree.file_icon
-                finfos = get_file_infos(path)
-                tree.insert('', 'end', path, text=path,
-                            values=(ftype, *finfos), image=icon)
-            except Exception as ex:
-                log.warning("Cannot add input file %r due to: %s", path, ex)
+        self.inputs_tree = tree = make_file_tree(parent)
 
         def ask_input_files():
             files = filedialog.askopenfilenames(
@@ -772,7 +800,7 @@ class _MainPanel(ttk.Frame):
                            ))
             if files:
                 for fpath in files:
-                    insert_item(fpath, is_folder=False)
+                    tree.insert_path(fpath, is_folder=False)
                 self.mediate_guistate()
         files_btn = btn = ttk.Button(parent, text="Add File(s)...", command=ask_input_files)
         add_icon(btn, 'icons/add_file-olive-48.png')
@@ -782,7 +810,7 @@ class _MainPanel(ttk.Frame):
             folder = filedialog.askdirectory(
                 title='Select CO2MPAS Input folder')
             if folder:
-                insert_item(folder, is_folder=True)
+                tree.insert_path(folder, is_folder=True)
                 self.mediate_guistate()
         folder_btn = btn = ttk.Button(parent, text="Add Folder...", command=ask_input_folder)
         add_icon(btn, 'icons/add_folder-olive-48.png')
@@ -795,7 +823,7 @@ class _MainPanel(ttk.Frame):
                 filetypes=(('Excel files', '.xlsx .xlsm'),))
             if file:
                 save_template((file,), force=True)
-                insert_item(file, is_folder=False)
+                tree.insert_path(file, is_folder=False)
                 self.mediate_guistate()
 
         save_btn = btn = ttk.Button(parent, command=ask_save_template_file)
@@ -828,17 +856,21 @@ class _MainPanel(ttk.Frame):
         def tree_selection_changed(ev):
             del_btn.state((bang(tree.selection()) + tk.DISABLED,))
 
-        def on_double_click(ev):
-            item = tree.identify('item', ev.x, ev.y)
-            open_file_with_os(item)
-
         tree.bind("<Key>", key_handler)
         del_btn['command'] = do_del_items
         tree.bind('<<TreeviewSelect>>', tree_selection_changed)
-        tree.bind("<Double-1>", on_double_click)
         add_tooltip(tree, 'inp_files_tree')
 
         return (tree, files_btn, folder_btn, save_btn, del_btn)
+
+    def _make_output_tree(self, parent):
+        frame = ttk.Labelframe(parent, text="Output Result Files")
+        self.outputs_tree = tree = make_file_tree(frame, selectmode='none')
+        tree.pack(expand=1, fill=tk.BOTH)
+
+        add_tooltip(tree, 'out_files_tree')
+
+        return frame
 
     def _make_output_folder(self, parent):
         title = 'Output Folder'
@@ -1003,11 +1035,17 @@ class _MainPanel(ttk.Frame):
 
         return frame
 
-    def mediate_guistate(self, msg=None, *args, level=None, progr_step=None, progr_max=None):
+    def mediate_guistate_threaded(self, msg=None, *args,
+                                  level=None,
+                                  progr_step=None, progr_max=None,
+                                  new_out_file=None):
         """To be nvoked by other threads AND by mainloop-thread to discouple races."""
-        self.after_idle(self._mediate_guistate, msg, args, level, progr_step, progr_max)
+        self.update_idletasks()
+        self.after_idle(self._mediate_guistate, msg, *args, level, progr_step, progr_max)
 
-    def _mediate_guistate(self, msg=None, args=(), level=None, progr_step=None, progr_max=None):
+    def mediate_guistate(self, msg=None, *args,
+                         level=None, progr_step=None, progr_max=None,
+                         new_out_file=None):
         """Handler of states for all panel's widgets."""
         ## Update progress/status bars.
         #
@@ -1033,6 +1071,9 @@ class _MainPanel(ttk.Frame):
         #
         is_run_ta_enabled = is_run_batch_btn_enabled and self.advanced_flipper.flip_ix == 0
         self._run_ta_btn.state((bang(is_run_ta_enabled) + tk.DISABLED,))
+
+        if new_out_file:
+            self.outputs_tree.insert_path(new_out_file)
 
     def reconstruct_cmd_args_from_gui(self):
         cmd_kwds = OrderedDict()
@@ -1114,7 +1155,7 @@ class _MainPanel(ttk.Frame):
 
             def result_generated(self, result_tuple):
                 fpath, _ = result_tuple
-                log.info('Gened file: %r', fpath)
+                mediate_guistate('Job %s generated file: %s', job_name, fpath, new_out_file=fpath)
 
             def pump_std_streams(self):
                 new_out = self.stdout.getvalue()[self.out_i:]
@@ -1146,8 +1187,12 @@ class _MainPanel(ttk.Frame):
                                      progr_max=0)
 
         updater = ProgressUpdater()
-        cmd_kwds.update({'type_approval_mode': is_ta, 'overwrite_cache': True})
-        self.app._job_thread = t = Thread(
+        user_cmd_kwds = cmd_kwds.copy()
+        cmd_kwds.update({
+            'type_approval_mode': is_ta, 
+            'overwrite_cache': True,
+            'result_listener': updater.result_generated})
+        t = Thread(
             target=run_python_job,
             args=(job_name,
                   co2mpas_batch.process_folder_files, (inp_paths, out_folder), cmd_kwds,
@@ -1156,21 +1201,21 @@ class _MainPanel(ttk.Frame):
         )
 
         ## Monkeypatch *tqdm* on co2mpas-batcher.
-        #
         co2mpas_batch._custom_tqdm = updater.tqdm_replacement
+        self.outputs_tree.clear()
+        app.stop_job = False
+        self.app._job_thread = t
 
         msg = 'Launched %s job: %s'
-        self.mediate_guistate(msg, job_name, ' '.join(str(i) for i in cmd_kwds.items()),
+        self.mediate_guistate(msg, job_name,
+                              ', '.join('%s: %s' % (k, v) for k, v in user_cmd_kwds.items()),
                               progr_step=0, progr_max=-1)
 
-        app.stop_job = False
         t.start()
 
 
 class TkUI(object):
     """
-    CO2MPAS UI for predicting NEDC CO2 emissions from WLTP for type-approval purposes.
-
     :ivar _stop_job:
         semaphore armed when the "red" button pressed
     :ivar _job_thread:
