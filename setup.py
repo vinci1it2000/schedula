@@ -176,7 +176,7 @@ setup(
         'sphinx',
         'docopt',
         'six',
-        'mpld3',
+        'mpld3',    
         'pandalone>=0.2.0', ## For datasync pascha-fixes and openpyxl version.
         'regex',
         'schema',

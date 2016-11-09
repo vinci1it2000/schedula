@@ -185,7 +185,9 @@ def init_logging(level=None, frmt=None, logconf_file=None):
         rlog.level = level  # because `basicConfig()` does not reconfig root-logger when re-invoked.
 
     import numpy as np
-    np.seterr(divide='ignore', invalid='ignore')
+    if not rlog.isEnabledFor(logging.DEBUG):
+        np.seterr(divide='ignore', invalid='ignore')
+
     logging.captureWarnings(True)
 
 
