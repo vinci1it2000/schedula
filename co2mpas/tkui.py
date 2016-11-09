@@ -54,14 +54,14 @@ from idlelib.ToolTip import ToolTip
 import io
 import logging
 import os
+import random
 import re
 import sys
-import random
-from typing import Text, Union
 from textwrap import dedent, indent
 from threading import Thread
 from tkinter import StringVar, ttk, filedialog
 import traceback
+from typing import Text, Union
 import webbrowser
 
 from PIL import Image, ImageTk
@@ -175,6 +175,7 @@ def define_tooltips():
 _bw = 2
 _pad = 2
 olive_color = '#556b2f'
+yellow_color = '#f1c232'  # saffron yellow
 _sunken = dict(relief=tk.SUNKEN, padx=_pad, pady=_pad, borderwidth=_bw)
 
 
@@ -190,7 +191,6 @@ def define_ttk_styles():
     style.configure('Prog.TLabel', foreground='blue')
 
 
-
 LOGGING_TAGS = OrderedDict((
     (logging.CRITICAL, {'background': "red", 'foreground': "yellow"}),
     (logging.ERROR, {'foreground': "red"}),
@@ -198,6 +198,7 @@ LOGGING_TAGS = OrderedDict((
     (logging.INFO, {'foreground': "blue"}),
     (logging.DEBUG, {'foreground': "grey"}),
     (logging.NOTSET, {}),
+    ('help', {'foreground': yellow_color, 'background': olive_color}),
 ))
 
 
@@ -771,7 +772,7 @@ class _MainPanel(ttk.Frame):
 
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=1)
-        for r in range(2):
+        for r in range(1, 2):
             self.rowconfigure(r, weight=1)
         self.rowconfigure(4, weight=1)
 
@@ -935,8 +936,7 @@ class _MainPanel(ttk.Frame):
                                 flip_cb=lambda ev: self.mediate_guistate())
         frame.bind('<Button-1>', lambda ev: flipper.flip())
 
-        ## TODO: FIX advanced layout-fill.
-        #self.columnconfigure(0, weight=1)
+        frame.columnconfigure(1, weight=1)
 
         return frame, flipper
 
@@ -1210,7 +1210,7 @@ class _MainPanel(ttk.Frame):
                 try:
                     args.extend(self.pump_std_streams())
                 finally:
-                    mediate_guistate(msg, *args, 
+                    mediate_guistate(msg, *args,
                                      static_msg=static_msg, level=level,
                                      progr_max=0)
 
@@ -1293,9 +1293,7 @@ class TkUI(object):
     def _make_status(self, parent):
         status = tk.Text(parent, wrap=tk.NONE, height=1, relief=tk.FLAT,
                          state=tk.DISABLED, background='SystemButtonFace')
-        tags = LOGGING_TAGS.copy()
-        tags['help'] = {'foreground': 'white', 'background': olive_color}
-        config_text_tags(status, tags)
+        config_text_tags(status, LOGGING_TAGS)
 
         return status
 
@@ -1323,7 +1321,7 @@ class TkUI(object):
         :param level:
             logging-level(int) or tag(str), if None, defaults to INFO.
         :param delay:
-            If None, defaults to 7sec, if 0, "static message", can be cleared 
+            If None, defaults to 7sec, if 0, "static message", can be cleared
             only with ``msg='', delay=0``.
         """
         if msg is None:  # A '' msg clears the 'static" status.
