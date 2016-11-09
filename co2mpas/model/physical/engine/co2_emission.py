@@ -333,13 +333,16 @@ class FMEP(object):
             a['lb'] = ((0, True), (1, b))
         return a
 
-    def egr(self, params, n_speeds, n_powers, a=None):
+    def egr(self, params, n_speeds, n_powers, n_temp, a=None):
         a = a or {}
         if self.has_exhausted_gas_recirculation and 'egr' not in params:
-            b = n_speeds < self.egr_max_mean_piston_speeds
-            b &= n_powers <= (self.fbc(n_speeds) * self.egr_fbc_percentage)
-            egr = 1 if 'compression' != self.engine_type else 2
-            a['lb'] = ((0, True), (egr, b))
+            #b = n_speeds < self.egr_max_mean_piston_speeds
+            #b &= n_powers <= (self.fbc(n_speeds) * self.egr_fbc_percentage)
+            egr = defaults.dfl.functions.FMEP_egr.egr_fact_map[self.engine_type]
+            if self.engine_type == 'compression':
+                a['egr'] = (egr, n_temp < 1),
+            else:
+                a['egr'] = ((0, True), (egr, True))
 
         return a
 
@@ -359,7 +362,7 @@ class FMEP(object):
         a = self.acr(params, n_speeds, n_powers, n_temp)
         a = self.lb(params, n_speeds, n_powers, n_temp, a=a)
         a = self.vva(params, n_powers, a=a)
-        a = self.egr(params, n_speeds, n_powers, a=a)
+        a = self.egr(params, n_speeds, n_powers, n_temp, a=a)
 
         keys, c = zip(*sorted(a.items()))
         p = params.copy()
@@ -416,8 +419,8 @@ class FMEP(object):
         acr = s.get('acr', params.get('acr', self.base_acr))
         vva = s.get('vva', params.get('vva', 0))
         lb = s.get('lb', params.get('lb', 0))
-        ecr = s.get('ecr', params.get('ecr', 0))
-        return s['fmep'], s['v'], acr, vva, lb, ecr
+        egr = s.get('egr', params.get('egr', 0))
+        return s['fmep'], s['v'], acr, vva, lb, egr
 
 
 def define_fmep_model(

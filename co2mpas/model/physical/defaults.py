@@ -178,6 +178,7 @@ class Values(co2_utl.Constants):
 #: Container of internal function parameters.
 class Functions(co2_utl.Constants):
     class _tech_mult_factors(co2_utl.Constants):
+        #: Multiplication factors of the engine parameters [-].
         factors = {
             'vva': {
                 #0: {},
@@ -187,11 +188,20 @@ class Functions(co2_utl.Constants):
                 #0: {},
                 1: {'a': 1.1, 'b' : 0.72, 'c': 0.76, 'a2': 1.25, 'l2': 2.85}
             },
-            'ecr': {
+            'egr': {
                 #0: {},
-                1: {'a': 1.02, 'b': 1.1, 'c': 1.5, 'a2': 1.1},  # engine_type != 'compression'
-                2: {'a': 1.015, 'b': 1.1, 'c': 1.4, 'a2': 1.1}  # engine_type == 'compression'
+                1: {'a': 1.02, 'b': 1.1, 'c': 1.5, 'a2': 1.1},  # positive turbo
+                2: {'a': 1.02, 'b': 1.1, 'c': 1.5, 'a2': 1.1},  # positive natural aspiration
+                3: {'a': 1.015, 'b': 1.1, 'c': 1.4, 'a2': 1.1}  # compression
             }
+        }
+
+    class FMEP_egr(co2_utl.Constants):
+        #: Exhausted gas recirculation multiplication factors ids [-].
+        egr_fact_map = {
+            'positive turbo': 1,
+            'positive natural aspiration': 2,
+            'compression': 3
         }
 
     class calibrate_co2_params(co2_utl.Constants):
