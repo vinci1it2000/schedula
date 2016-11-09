@@ -333,13 +333,16 @@ class FMEP(object):
             a['lb'] = ((0, True), (1, b))
         return a
 
-    def egr(self, params, n_speeds, n_powers, a=None):
+    def egr(self, params, n_speeds, n_powers, n_temp, a=None):
         a = a or {}
         if self.has_exhausted_gas_recirculation and 'egr' not in params:
-            b = n_speeds < self.egr_max_mean_piston_speeds
-            b &= n_powers <= (self.fbc(n_speeds) * self.egr_fbc_percentage)
-            egr = 1 if 'compression' != self.engine_type else 2
-            a['lb'] = ((0, True), (egr, b))
+            #b = n_speeds < self.egr_max_mean_piston_speeds
+            #b &= n_powers <= (self.fbc(n_speeds) * self.egr_fbc_percentage)
+            egr = defaults.dfl.functions.FMEP_egr.egr_fact_map[self.engine_type]
+            if self.engine_type == 'compression':
+                a['egr'] = ((0, True), (egr, n_temp < 1))
+            else:
+                a['egr'] = ((0, True), (egr, True))
 
         return a
 
@@ -355,11 +358,24 @@ class FMEP(object):
                 l.append((acr, b & (ac < acr)))
         return a
 
+    @staticmethod
+    def _check_combinations(a):
+        out = {}
+        for k, v in a.items():
+            for i in v:
+                try:
+                    if i[1] is True or i[1].any():
+                        dsp_utl.get_nested_dicts(out, k, default=list).append(i)
+                except AttributeError:
+                    pass
+        return out
+
     def combination(self, params, n_speeds, n_powers, n_temp):
         a = self.acr(params, n_speeds, n_powers, n_temp)
         a = self.lb(params, n_speeds, n_powers, n_temp, a=a)
         a = self.vva(params, n_powers, a=a)
-        a = self.egr(params, n_speeds, n_powers, a=a)
+        a = self.egr(params, n_speeds, n_powers, n_temp, a=a)
+        a = self._check_combinations(a)
 
         keys, c = zip(*sorted(a.items()))
         p = params.copy()
@@ -377,6 +393,8 @@ class FMEP(object):
             try:
                 if b is False or not b.any():
                     continue
+                if b.all():
+                    b = True
             except AttributeError:
                 pass
 
@@ -414,8 +432,9 @@ class FMEP(object):
         acr = s.get('acr', params.get('acr', self.base_acr))
         vva = s.get('vva', params.get('vva', 0))
         lb = s.get('lb', params.get('lb', 0))
-        ecr = s.get('ecr', params.get('ecr', 0))
-        return s['fmep'], s['v'], acr, vva, lb, ecr
+        egr = s.get('egr', params.get('egr', 0))
+
+        return s['fmep'], s['v'], acr, vva, lb, egr
 
 
 def define_fmep_model(
@@ -498,30 +517,12 @@ def define_fmep_model(
     return model
 
 
-def _tech_mult(vva=0, lb=0, ecr=0, **params):
+def _tech_mult_factors(**params):
     p = {}
-    func = functools.partial(dsp_utl.get_nested_dicts, p, default=list)
-    if vva:
-        func('a').append(0.98)
-        func('l').append(0.92)
-
-    if lb:
-        func('a').append(1.1)
-        func('b').append(0.72)
-        func('c').append(0.76)
-        func('a2').append(1.25)
-        func('l2').append(2.85)
-
-    if ecr:
-        func('b').append(1.1)
-        func('a2').append(1.1)
-
-        if ecr == 1:
-            func('a').append(1.02)
-            func('c').append(1.5)
-        else:
-            func('a').append(1.015)
-            func('c').append(1.4)
+    factors = defaults.dfl.functions._tech_mult_factors.factors
+    for k, v in factors.items():
+        for i, j in v.get(params.get(k, 0), {}).items():
+            dsp_utl.get_nested_dicts(p, i, default=list).append(j)
 
     for k, v in p.items():
         params[k] = np.mean(v) * params[k]
@@ -530,13 +531,13 @@ def _tech_mult(vva=0, lb=0, ecr=0, **params):
 
 
 def _fuel_ABC(n_speeds, **kw):
-    return _ABC(n_speeds, **_tech_mult(**kw))
+    return _ABC(n_speeds, **_tech_mult_factors(**kw))
 
 
 # noinspection PyUnusedLocal
 def _ABC(
-        n_speeds, n_powers=0, n_temperatures=1,
-        a2=0, b2=0, a=0, b=0, c=0, t=0, l=0, l2=0, acr=1, **kw):
+    n_speeds, n_powers=0, n_temperatures=1,
+    a2=0, b2=0, a=0, b=0, c=0, t=0, l=0, l2=0, acr=1, **kw):
 
     acr2 = (acr ** 2)
     A = a2 / acr2 + (b2 / acr2) * n_speeds
