@@ -23,7 +23,8 @@
 |co2mpas| is backward-looking longitudinal-dynamics |CO2| and
 fuel-consumption simulator for light-duty M1 & N1 vehicles (cars and vans),
 specially crafted to back-translate consumption figures from WLTP cycles
-into NEDC ones, according to the *EU* legislation (see `History`_ section, below).
+into NEDC ones, according to the *EU* legislation (see `History`_ section,
+below).
 
 It is an open-source project developed with Python-3.4+,
 using Anaconda & WinPython under Windows 7, Anaconda under MacOS, and
@@ -120,31 +121,18 @@ otherwise follow the detailed instructions under sections :ref:`install` and
 
 Install
 =======
-These are the installation options:
-
-A. On *Windows* you may install the latest *all-In-One* archive and
-   ensure it contains (or upgrade to) the latest ``co2mpas`` python package;
-   alternatively, you may perform the following 2 steps.
+On *Windows* you may install the latest *all-In-One* archive and ensure it
+contains (or upgrade to) the latest ``co2mpas`` python package; alternatively,
+you may install the developer version.
 
    .. Tip::
-      **This is the easiest procedure for all non-technical users.**
-
-A. Manually install everything needed:
-
-   1. Install (or Upgrade) Python (2 choices under *Windows*), then proceed to
-   2. install the ``co2mpas`` python package:
-
-      a. Install (or Upgrade) executable.
-      b. (optional) Install documents.
-      c. (optional) Install sources.
-
-
+      **all-in-one is the official procedure to install co2mpas for TA.**
 
 .. _all-in-one:
 
 *All-In-One* Installation under Windows
 ---------------------------------------
-- Download **all-in-one archive** from http://files.co2mpas.io/
+- Download **all-in-one archive** from https://files.co2mpas.io/LATEST/co2mpas_ALLINONE-64bit-v1.4.1.dev3.7z
   (it only runs on **64bit PCs**).
 
   .. Tip::
@@ -179,413 +167,110 @@ A. Manually install everything needed:
    :alt: Launch CO2MPAS from Window Start-menu.
    :align: center
 
-
-- Visit the guidelines for its usage: :doc:`allinone`
-  (also contained within the archive).
-
 .. Note::
     If you have downloaded an *all-in-one* from previous version of |co2mpas|
     you may upgrade |co2mpas| contained within.
     Follow the instructions in the "Upgrade" section, below.
 
 
-Python Installation
--------------------
-If you already have a suitable python-3 installation with all scientific
-packages updated to their latest versions, you may skip this 1st stage.
-
-.. Note::
-    **Installing Python under Windows:**
-
-    The program requires CPython-3, and depends on *numpy*, *scipy*, *pandas*,
-    *sklearn* and *matplotlib* packages, which depend on C-native backends
-    and need a C-compiler to install from sources.
-
-    In *Windows* it is strongly suggested **NOT to install the standard CPython
-    distribution that comes up first(!) when you google for "python windows"**,
-    unless you are an experienced python-developer, and you know how to
-    hunt down pre-compiled dependencies from the *PyPi* repository and/or
-    from the `Unofficial Windows Binaries for Python Extension Packages
-    <http://www.lfd.uci.edu/~gohlke/pythonlibs/>`_.
-
-    Therefore we suggest that you download one of the following two
-    *scientific-python* distributions:
-
-      #. `WinPython <https://winpython.github.io/>`_ **python-3** (64 bit)
-      #. `Anaconda <http://continuum.io/downloads>`_ **python-3** (64 bit)
-
-
-
-Install WinPython
-~~~~~~~~~~~~~~~~~
-The *WinPython* distribution is just a collection of the standard pre-compiled
-binaries for *Windows* containing all the scientific packages, and much more.
-It is not update-able, and has a quasi-regular release-cycle of 3 months.
-
-
-1. Install the latest **python-3.4+  64 bit** from https://winpython.github.io/.
-   Prefer an **installation-folder without any spaces leading to it**.
-
-2. Open the WinPython's command-prompt console, by locating the folder where
-   you just installed it and run (double-click) the following file::
-
-        <winpython-folder>\"WinPython Command Prompt.exe"
-
-
-3. In the console-window check that you have the correct version of
-   WinPython installed, and expect a similar response:
-
-   .. code-block:: console
-
-        > python -V
-        Python 3.4.3
-
-        REM Check your python is indeed where you installed it.
-        > where python
-        ....
-
-
-4. Use this console and follow :ref:`install-co2mpas-package` instructions, below.
-
-
-
-Install Anaconda
-~~~~~~~~~~~~~~~~
-The *Anaconda* distribution is a non-standard Python environment that
-for *Windows* containing all the scientific packages we need, and much more.
-It is not update-able, and has a semi-regular release-cycle of 3 months.
-
-1. Install Anaconda **python-3.4+ 64 bit** from http://continuum.io/downloads.
-   Prefer an **installation-folder without any spaces leading to it**.
-
-   .. Note::
-        When asked by the installation wizard, ensure that *Anaconda* gets to be
-        registered as the default python-environment for the user's account.
-
-2. Open a *Windows* command-prompt console::
-
-        "windows start button" --> `cmd.exe`
-
-3. In the console-window check that you have the correct version of
-   Anaconda-python installed, by typing:
-
-   .. code-block:: console
-
-        > python -V
-        Python 3.4.3 :: Anaconda 2.3.0 (64-bit)
-
-        REM Check your python is indeed where you installed it.
-        > where python
-        ....
-
-4. Use this console and follow :ref:`install-co2mpas-package` instructions, below.
-
-
-.. _install-co2mpas-package:
-
-Install ``co2mpas`` package
----------------------------
-1. Install |co2mpas| executable internally into your python-environment with
-   the following console-commands (there is no prob if the 1st `uninstall`
-   command fails):
-
-   .. code-block:: console
-
-        > pip uninstall co2mpas
-        > pip install co2mpas
-        Collecting co2mpas
-        Downloading http://pypi.co2mpas.io/packages/co2mpas-...
-        ...
-        Installing collected packages: co2mpas
-        Successfully installed co2mpas-1.4.1.dev3
-
-   .. Warning::
-        **Installation failures:**
-
-        The previous step require http-connectivity for ``pip`` command to
-        Python's "standard" repository (https://pypi.python.org/) and to
-        co2mpas-site (http://files.co2mpas.io).
-        In case you are behind a **corporate proxy**, you may try one of the methods
-        described in section `Alternative installation methods`_, below.
-
-        If all methods to install |co2mpas| fail, re-run ``pip`` command adding
-        extra *verbose* flags ``-vv``, copy-paste the console-output, and report it
-        to JRC.
-
-2. Check that when you run ``co2mpas``, the version executed is indeed the one
-   installed above (check both version-identifiers and paths):
-
-   .. code-block:: console
-
-       > co2mpas -vV
-       co2mpas_version: 1.4.1.dev3
-       co2mpas_rel_date: 2016-11-07 18:23:12
-       co2mpas_path: d:\co2mpas_ALLINONE-64bit-v1.4.1.dev3\Apps\WinPython\python-3.4.3\lib\site-packages\co2mpas
-       python_path: D:\co2mpas_ALLINONE-64bit-v1.4.1.dev3\WinPython\python-3.4.3
-       python_version: 3.4.3 (v3.4.3:9b73f1c3e601, Feb 24 2015, 22:44:40) [MSC v.1600 XXX]
-       PATH: D:\co2mpas_ALLINONE-64bit-v1.4.1.dev3\WinPython...
-
-
-   .. Note::
-       The above procedure installs the *latest* |co2mpas|, which
-       **might be more up-to-date than the version described here!**
-
-       In that case you can either:
-
-       a) Visit the documents for the newer version actually installed.
-       b) "Pin" the exact version you wish to install with a ``pip`` command
-          (see section below).
-
-
-Install extras
-~~~~~~~~~~~~~~
-Internally |co2mpas| uses an algorithmic scheduler to execute model functions.
-In order to visualize the *design-time models* and *run-time workflows*
-you need to install the **Graphviz** visualization library  from:
-http://www.graphviz.org/.
-
-If you skip this step, the ``modelgraph`` sub-command and the ``--plot-workflow``
-option would both fail to run (see :ref:`debug`).
-
-
-
-Upgrade |co2mpas| (with internet connectivity)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-1. Uninstall (see below) and re-install it.
-
-
-Uninstall |co2mpas|
-~~~~~~~~~~~~~~~~~~~
-To uninstall |co2mpas| type the following command, and confirm it with ``y``:
-
-.. code-block:: console
-
-    > pip uninstall co2mpas
-    Uninstalling co2mpas-<installed-version>
-    ...
-    Proceed (y/n)?
-
-
-Re-run the command *again*, to make sure that no dangling installations are left
-over; disregard any errors this time.
-
-
-Alternative installation methods
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-You may get multiple versions of |co2mpas|, from various places, but all
-require the use of ``pip`` command from a *console* to install:
-
-..  Warning::
-    In all cases below, remember to uninstall |co2mpas| if it's already installed.
-
-- **Latest STABLE:**
-  use the default ``pip`` described command above.
-
-- **Latest PRE-RELEASE:**
-  append the ``--pre`` option in the ``pip`` command.
-
-- **Specific version:**
-  modify the ``pip`` command like that, with optionally appending ``--pre``:
-
-  .. code-block:: console
-
-      pip install co2mpas==1.0.1 ... # Other options, like above.
-
-- **Specific branch** from the GitHub-sources:
-
-  .. code-block:: console
-
-      pip install git+https://github.com/JRCSTU/co2mpas.git@dev
-
-- **Specific commit** from the GitHub-sources:
-
-  .. code-block:: console
-
-      pip install git+https://github.com/JRCSTU/co2mpas.git@2927346f4c513a
-
-- **Speed-up download**:
-  append  the ``--use-mirrors`` option in the ``pip`` command.
-
-- (for all of the above) When you are **behind an http-proxy**:
-  append an appropriately adapted option
-  ``--proxy http://user:password@yourProxyUrl:yourProxyPort``.
-
-  .. Important::
-      To avert any security deliberations for this http-proxy "tunnel",
-      JRC *cryptographically signs* all *final releases* with one of those
-      keys:
-      - ``GPG key ID: 9CF277C40A8A1B08`` form @ankostis
-      - ``GPG key ID: 1831F9C2294A33CC`` for @vinci1it2000
-
-      Your IT staff may `validate their authenticity
-      <https://www.davidfischer.name/2012/05/signing-and-verifying-python-packages-with-pgp/>`_
-      and detect *man-in-the-middle* attacks, however impossible.
-
-- (for all of the above) **Without internet connectivity** or when the above
-  proxy cmd fails:
-
-  1. With with a "regular" browser and when connected to the Internet,
-     pre-download locally all files present in the ``packages`` folder
-     located in the desired |co2mpas| version in the *|co2mpas| site*
-     (e.g. http://files.co2mpas.io/CO2MPAS-1.4.1.dev3/packages/).
-
-  2. Install *co2mpas*, referencing the above folder.
-     Assuming that you downloaded the packages in the folder ``path/to/co2mpas_packages``,
-     use a console-command like this:
-
-     .. code-block:: console
-
-        pip install co2mpas  --no-index  -f path/to/co2mpas_packages
-
-
-Install Multiple versions in parallel
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-In order to run and compare results from different |co2mpas| versions,
-you may use `virtualenv <http://docs.python-guide.org/en/latest/dev/virtualenvs/>`_
-command.
-
-The `virtualenv` command creates isolated python-environments ("children-venvs")
-where in each one you can install a different versions of |co2mpas|.
-
-.. Note::
-    The `virtualenv` command does NOT run under the "conda" python-environment.
-    Use the `conda command <http://conda.pydata.org/docs/using/envs.html>`_
-    in similar manner to create child *conda-environments* instead.
-
-
-1. Ensure `virtualenv` command installed in your "parent" python-environment,
-   i.e the "WinPython" you use:
-
-   .. code-block:: console
-
-       > pip install virtualenv
-
-   .. Note::
-      The ``pip`` command above has to run only once for each parent python-env.
-      If `virtualenv` is already installed, ``pip`` will exit gracefully.
-
-
-
-2. Ensure co2mpas uninstalled in your parent-env:
-
-   .. code-block:: console
-
-       > pip uninstall co2mpas
-
-   .. Warning::
-     It is important for the "parent" python-env NOT to have |co2mpas| installed!
-     The reason is that you must set "children venvs" to inherit all packages
-     installed on their "parent" (i.e. `numpy` and `pandas`), and you cannot
-     update any inherited package from within a child-env.
-
-
-3. Move to the folder where you want your "venvs" to reside and create
-   the "venv" with this command:
-
-   .. code-block:: console
-
-       > virtualenv --system-site-packages co2mpas_v1.0.1.venv.venv
-
-   The ``--system-site-packages`` option instructs the child-venv to inherit
-   all "parent" packages (numpy, pandas).
-
-   Select a venv's  name to signify the version it will contains,
-   e.g. ``co2mpas_v1.0.1.venv``.  The ``.venv`` at the end is not required,
-   it is just for tagging the *venv* folders.
-
-4. "Activate" the new "venv" by running the following command
-   (notice the dot(``.``) at the begining of the command):
-
-   .. code-block:: console
-
-        > .\co2mpas_v1.0.1.venv.venv\Scripts\activate.bat
-
-   Or type this in *bash*:
-
-   .. code-block:: console
-
-        $ source co2mpas_v1.0.1.venv.venv\Scripts\activate.bat
-
-   You must now see that your prompt has been prefixed with the venv's name.
-
-
-6. Install the co2mpas version you want inside the activated venv.
-   See the :ref:`install-co2mpas-package` section, above.
-
-   Don't forget to check that what you get when running co2mpas is what you
-   installed.
-
-7. To "deactivate" the active venv, type:
-
-   .. code-block:: console
-
-       > deactivate
-
-   The prompt-prefix with the venv-name should now dissappear.  And if you
-   try to invoke ``co2mpas``, it should fail.
-
-
+Upgrade CO2MPAS
+---------------
+Uninstall and re-install it from the |co2mpas| CONSOLE::
+
+    pip uninstall co2mpas
+    pip install co2mpas
 
 .. Tip::
-    - Repeat steps 2-->5 to create venvs for different versions of co2mpas.
-    - Use steps (6: Activate) and (9: Deactivate) to switch between different
-      venvs.
+
+    Don't forget verify that the installed version is the correct one by checking
+    the output of this command::
+
+        co2mpas -vV
+
+Upgrade CO2MPAS in a corporate environment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1. Use your browser to download the "wheel" package `co2mpas-X.X.X-py2.py3-none-any.whl`
+   from this location: https://files.co2mpas.io/CO2MPAS-X.X.X/
+   and place it inside your ALLINONE's home-folder: ``co2mpas_ALLINONE-64bit-X.X.X\CO2MPAS\``
+
+2. Launch the ALLINONE console into your home-folder (it opens there by default).
+
+3. Use `pip` to install the wheel-package with a command like that::
+
+    pip install co2mpas-X.X.X-py2.py3-none-any.whl
+
+  .. Note::
+    if you downloaded the whl-package somewhere else,
+    you don't have to move it inside the `CO2MPAS folder`;  you can specify its path
+    in the command-line, like this::
+
+        pip install D:\Users\John\Downloads\co2mpas-X.X.X-py2.py3-none-any.whl
+
+File Contents
+-------------
+::
+
+    RUN_CO2MPAS.bat            ## Asks for Input & Output folders, and runs CO2MPAS for all Excel-files in Input.
+    MAKE_TEMPLATE.bat          ## Asks for a folder to store an empty CO2MPAS input-file.
+    MAKE_DEMOS.bat             ## Asks for a folder to store demo CO2MPAS input-files.
+    MAKE_IPYTHON_NOTEBOOKS.bat ## Asks for a folder to store IPYTHON NOTEBOOKS that run CO2MPAS and generate reports.
+    CONSOLE.bat                ## Open a python+cygwin enabled `cmd.exe` console.
+
+    co2mpas-env.bat            ## Sets env-vars for python+cygwin and launches arguments as new command
+                               ## !!!!! DO NOT MODIFY !!!!! used by Windows StartMenu shortcuts.
+    bash-console.bat           ## Open a python+cygwin enabled `bash` console.
 
 
-Autocompletion
---------------
-In order to press ``[Tab]`` and get completions, do the following in your
-environment (ALLINONE is pre-configured with them):
+    CO2MPAS/                   ## User's HOME directory containing release-files and tutorial-folders.
+    CO2MPAS/.*                 ## Configuration-files auto-generated by various programs, starting with dot(.).
 
-- For the |clink|_ environment, on `cmd.exe`, add the following *lua* script
-  inside clink's profile folder: ``clink/profile/co2mpas_autocompletion.lua``
+    Apps/Cygwin/               ## Unix-folders for *Cygwin* environment (i.e. bash).
+    Apps/WinPython/            ## Python environment (co2mpas is pre-installed inside it).
+    Apps/Console2/             ## A versatile console-window supporting decent copy-paste.
+    Apps/graphviz/             ## Graph-plotting library (needed to generate model-plots).
+    CO2MPAS_*.ico              ## The logos used by the INSTALL.bat script.
 
-  .. code-block:: lua
-
-    --[[ clink-autocompletion for CO2MPAS
-    --]]
-    local handle = io.popen('co2mpas-autocompletions')
-    words_str = handle:read("*a")
-    handle:close()
-
-    function words_generator(prefix, first, last)
-        local cmd = 'co2mpas'
-        local prefix_len = #prefix
-
-        --print('P:'..prefix..', F:'..first..', L:'..last..', l:'..rl_state.line_buffer)
-        if prefix_len == 0 or rl_state.line_buffer:sub(1, cmd:len()) ~= cmd then
-            return false
-        end
-
-        for w in string.gmatch(words_str, "%S+") do
-            -- Add matching app-words.
-            --
-            if w:sub(1, prefix_len) == prefix then
-                clink.add_match(w)
-            end
-
-            -- Add matching files & dirs.
-            --
-            full_path = true
-            nf = clink.match_files(prefix..'*', full_path)
-            if nf > 0 then
-                clink.matches_are_files()
-            end
-        end
-        return clink.match_count() > 0
-    end
-
-    sort_id = 100
-    clink.register_match_generator(words_generator)
+    README                     ## This file, with instructions on this pre-populated folder.
 
 
-- For the *bash* shell just add this command in your :file:`~/.bashrc`
-  (or type it every time you open a new console):
+Generic Tips
+------------
 
-  .. code-block:: console
+- You may freely move & copy this folder around.
+  But prefer NOT TO HAVE SPACES IN THE PATH LEADING TO IT.
 
-      complete -fdev -W "`co2mpas-autocompletions`" co2mpas
+- To view & edit textual files, such as ``.txt``, ``.bat`` or config-files
+  starting with dot(``.``), you may use the "ancient" Window *notepad* editor,
+  but it will save you from  a lot of trouble if you download and install
+  **notepad++** from: http://portableapps.com/apps/development/notepadpp_portable
+  (no admin-rights needed).
 
+  Even better if you combine it with the "gem" file-manager of the '90s,
+  **TotalCommander**, from http://www.ghisler.com/ (no admin-rights needed).
+  From inside this file-manager, ``F3`` key-shortcut views files.
+
+- The **Cygwin** POSIX-environment and its accompanying **bash-shell** are
+  a much better choice to give console-commands compare to `cmd.exe` prompt,
+  supporting *auto-completion* for various commands (with ``[TAB]``key) and
+  enhanced history search (with ``[UP]/[DOWN]`` cursor-keys).
+
+  There are MANY tutorials and crash-courses for bash:
+
+  - a concise one:
+    http://www.ks.uiuc.edu/Training/Tutorials/Reference/unixprimer.html
+  - a more detailed guide (just ignore the Linux-specific part):
+    http://linuxcommand.org/lc3_lts0020.php
+  - a useful poster with all fundamental bash-commands (eg. `ls`, `pwd`, `cd`):
+    http://www.improgrammer.net/linux-commands-cheat-sheet/
+
+- The console automatically copies into clipboard anything that is selected
+  with the mouse.  In case of errors, copy and paste the offending commands and
+  their error-messages to emails sent to JRC.
+
+- When a new CO2MPAS version comes out it is not necessary to download the full
+  ALLINONE archive, but you choose instead to just *upgrade* co2mpas.
+
+  Please follow the upgrade procedure in the main documentation.
 
 .. _usage:
 
@@ -748,25 +433,7 @@ and (optionally) multiple **output-excel-files** for each vehicle run.
 Demo files
 ----------
 The simulator contains input-files for demo-vehicles that are a nice
-starting point to try out:
-
-======= == ========== ========== === ==== ========== ========== ====
-id      AT cal WLTP-H cal WLTP-L S/S BERS trg NEDC-H trg NEDC-L plan
-======= == ========== ========== === ==== ========== ========== ====
-   0           X          X                  X
-   1           X          X      X    X      X
-   2    X      X          X                             X
-   3           X          X      X           X
-   4    X                 X           X                 X
-   5           X          X           X      X
-   6    X      X          X      X           X
-   7    X      X                 X    X      X
-   8           X          X                  X          X
-   9    X      X          X      X    X      X
-simplan        X          X                  X                   X
-======= == ========== ========== === ==== ========== ========== ====
-
-To run them, do the following:
+starting point to try out. To run them, do the following:
 
 1. Choose a folder where you will store the *input* and *output* files:
 
@@ -805,6 +472,24 @@ To run them, do the following:
         INFO:co2mpas.__main__:Creating INPUT-DEMO file 't\co2mpas_simplan.xlsx'...
         INFO:co2mpas.__main__:You may run DEMOS with:
             co2mpas batch input
+
+Demo description:
+
+======= == ========== ========== === ==== ========== ========== ====
+id      AT cal WLTP-H cal WLTP-L S/S BERS trg NEDC-H trg NEDC-L plan
+======= == ========== ========== === ==== ========== ========== ====
+   0           X          X                  X
+   1           X          X      X    X      X
+   2    X      X          X                             X
+   3           X          X      X           X
+   4    X                 X           X                 X
+   5           X          X           X      X
+   6    X      X          X      X           X
+   7    X      X                 X    X      X
+   8           X          X                  X          X
+   9    X      X          X      X    X      X
+simplan        X          X                  X                   X
+======= == ========== ========== === ==== ========== ========== ====
 
 3. Run the simulator on all demo-files (note, it might take considerable time):
 
@@ -845,7 +530,6 @@ The output-files produced on each run are the following:
 - A Summary-file named as `<timestamp>-summary.xls`:
   Major |CO2| emissions values, optimized |CO2| parameters values and
   success/fail flags of |co2mpas| submodels for all vehicles in the batch-run.
-
 
 
 Entering new vehicles
@@ -1429,6 +1113,407 @@ The following table describes the scores, targets, and metrics for each model:
 .. image:: _static/CO2MPAS_model_score_targets_limits.png
    :width: 600 px
    :align: center
+
+.. _developers:
+Developers Installation
+=======================
+
+Python Installation
+-------------------
+If you already have a suitable python-3 installation with all scientific
+packages updated to their latest versions, you may skip this 1st stage.
+
+.. Note::
+    **Installing Python under Windows:**
+
+    The program requires CPython-3, and depends on *numpy*, *scipy*, *pandas*,
+    *sklearn* and *matplotlib* packages, which depend on C-native backends
+    and need a C-compiler to install from sources.
+
+    In *Windows* it is strongly suggested **NOT to install the standard CPython
+    distribution that comes up first(!) when you google for "python windows"**,
+    unless you are an experienced python-developer, and you know how to
+    hunt down pre-compiled dependencies from the *PyPi* repository and/or
+    from the `Unofficial Windows Binaries for Python Extension Packages
+    <http://www.lfd.uci.edu/~gohlke/pythonlibs/>`_.
+
+    Therefore we suggest that you download one of the following two
+    *scientific-python* distributions:
+
+      #. `WinPython <https://winpython.github.io/>`_ **python-3** (64 bit)
+      #. `Anaconda <http://continuum.io/downloads>`_ **python-3** (64 bit)
+
+
+
+Install WinPython
+~~~~~~~~~~~~~~~~~
+The *WinPython* distribution is just a collection of the standard pre-compiled
+binaries for *Windows* containing all the scientific packages, and much more.
+It is not update-able, and has a quasi-regular release-cycle of 3 months.
+
+
+1. Install the latest **python-3.4+  64 bit** from https://winpython.github.io/.
+   Prefer an **installation-folder without any spaces leading to it**.
+
+2. Open the WinPython's command-prompt console, by locating the folder where
+   you just installed it and run (double-click) the following file::
+
+        <winpython-folder>\"WinPython Command Prompt.exe"
+
+
+3. In the console-window check that you have the correct version of
+   WinPython installed, and expect a similar response:
+
+   .. code-block:: console
+
+        > python -V
+        Python 3.4.3
+
+        REM Check your python is indeed where you installed it.
+        > where python
+        ....
+
+
+4. Use this console and follow :ref:`install-co2mpas-package` instructions, below.
+
+
+
+Install Anaconda
+~~~~~~~~~~~~~~~~
+The *Anaconda* distribution is a non-standard Python environment that
+for *Windows* containing all the scientific packages we need, and much more.
+It is not update-able, and has a semi-regular release-cycle of 3 months.
+
+1. Install Anaconda **python-3.4+ 64 bit** from http://continuum.io/downloads.
+   Prefer an **installation-folder without any spaces leading to it**.
+
+   .. Note::
+        When asked by the installation wizard, ensure that *Anaconda* gets to be
+        registered as the default python-environment for the user's account.
+
+2. Open a *Windows* command-prompt console::
+
+        "windows start button" --> `cmd.exe`
+
+3. In the console-window check that you have the correct version of
+   Anaconda-python installed, by typing:
+
+   .. code-block:: console
+
+        > python -V
+        Python 3.4.3 :: Anaconda 2.3.0 (64-bit)
+
+        REM Check your python is indeed where you installed it.
+        > where python
+        ....
+
+4. Use this console and follow :ref:`install-co2mpas-package` instructions, below.
+
+
+.. _install-co2mpas-package:
+
+Install ``co2mpas`` package
+---------------------------
+1. Install |co2mpas| executable internally into your python-environment with
+   the following console-commands (there is no prob if the 1st `uninstall`
+   command fails):
+
+   .. code-block:: console
+
+        > pip uninstall co2mpas
+        > pip install co2mpas
+        Collecting co2mpas
+        Downloading http://pypi.co2mpas.io/packages/co2mpas-...
+        ...
+        Installing collected packages: co2mpas
+        Successfully installed co2mpas-1.4.1.dev3
+
+   .. Warning::
+        **Installation failures:**
+
+        The previous step require http-connectivity for ``pip`` command to
+        Python's "standard" repository (https://pypi.python.org/) and to
+        co2mpas-site (http://files.co2mpas.io).
+        In case you are behind a **corporate proxy**, you may try one of the methods
+        described in section `Alternative installation methods`_, below.
+
+        If all methods to install |co2mpas| fail, re-run ``pip`` command adding
+        extra *verbose* flags ``-vv``, copy-paste the console-output, and report it
+        to JRC.
+
+2. Check that when you run ``co2mpas``, the version executed is indeed the one
+   installed above (check both version-identifiers and paths):
+
+   .. code-block:: console
+
+       > co2mpas -vV
+       co2mpas_version: 1.4.1.dev3
+       co2mpas_rel_date: 2016-11-07 18:23:12
+       co2mpas_path: d:\co2mpas_ALLINONE-64bit-v1.4.1.dev3\Apps\WinPython\python-3.4.3\lib\site-packages\co2mpas
+       python_path: D:\co2mpas_ALLINONE-64bit-v1.4.1.dev3\WinPython\python-3.4.3
+       python_version: 3.4.3 (v3.4.3:9b73f1c3e601, Feb 24 2015, 22:44:40) [MSC v.1600 XXX]
+       PATH: D:\co2mpas_ALLINONE-64bit-v1.4.1.dev3\WinPython...
+
+
+   .. Note::
+       The above procedure installs the *latest* |co2mpas|, which
+       **might be more up-to-date than the version described here!**
+
+       In that case you can either:
+
+       a) Visit the documents for the newer version actually installed.
+       b) "Pin" the exact version you wish to install with a ``pip`` command
+          (see section below).
+
+
+Install extras
+~~~~~~~~~~~~~~
+Internally |co2mpas| uses an algorithmic scheduler to execute model functions.
+In order to visualize the *design-time models* and *run-time workflows*
+you need to install the **Graphviz** visualization library  from:
+http://www.graphviz.org/.
+
+If you skip this step, the ``modelgraph`` sub-command and the ``--plot-workflow``
+option would both fail to run (see :ref:`debug`).
+
+
+
+Upgrade |co2mpas| (with internet connectivity)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1. Uninstall (see below) and re-install it.
+
+
+Uninstall |co2mpas|
+~~~~~~~~~~~~~~~~~~~
+To uninstall |co2mpas| type the following command, and confirm it with ``y``:
+
+.. code-block:: console
+
+    > pip uninstall co2mpas
+    Uninstalling co2mpas-<installed-version>
+    ...
+    Proceed (y/n)?
+
+
+Re-run the command *again*, to make sure that no dangling installations are left
+over; disregard any errors this time.
+
+
+Alternative installation methods
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+You may get multiple versions of |co2mpas|, from various places, but all
+require the use of ``pip`` command from a *console* to install:
+
+..  Warning::
+    In all cases below, remember to uninstall |co2mpas| if it's already installed.
+
+- **Latest STABLE:**
+  use the default ``pip`` described command above.
+
+- **Latest PRE-RELEASE:**
+  append the ``--pre`` option in the ``pip`` command.
+
+- **Specific version:**
+  modify the ``pip`` command like that, with optionally appending ``--pre``:
+
+  .. code-block:: console
+
+      pip install co2mpas==1.0.1 ... # Other options, like above.
+
+- **Specific branch** from the GitHub-sources:
+
+  .. code-block:: console
+
+      pip install git+https://github.com/JRCSTU/co2mpas.git@dev
+
+- **Specific commit** from the GitHub-sources:
+
+  .. code-block:: console
+
+      pip install git+https://github.com/JRCSTU/co2mpas.git@2927346f4c513a
+
+- **Speed-up download**:
+  append  the ``--use-mirrors`` option in the ``pip`` command.
+
+- (for all of the above) When you are **behind an http-proxy**:
+  append an appropriately adapted option
+  ``--proxy http://user:password@yourProxyUrl:yourProxyPort``.
+
+  .. Important::
+      To avert any security deliberations for this http-proxy "tunnel",
+      JRC *cryptographically signs* all *final releases* with one of those
+      keys:
+      - ``GPG key ID: 9CF277C40A8A1B08`` form @ankostis
+      - ``GPG key ID: 1831F9C2294A33CC`` for @vinci1it2000
+
+      Your IT staff may `validate their authenticity
+      <https://www.davidfischer.name/2012/05/signing-and-verifying-python-packages-with-pgp/>`_
+      and detect *man-in-the-middle* attacks, however impossible.
+
+- (for all of the above) **Without internet connectivity** or when the above
+  proxy cmd fails:
+
+  1. With with a "regular" browser and when connected to the Internet,
+     pre-download locally all files present in the ``packages`` folder
+     located in the desired |co2mpas| version in the *|co2mpas| site*
+     (e.g. http://files.co2mpas.io/CO2MPAS-1.4.1.dev3/packages/).
+
+  2. Install *co2mpas*, referencing the above folder.
+     Assuming that you downloaded the packages in the folder ``path/to/co2mpas_packages``,
+     use a console-command like this:
+
+     .. code-block:: console
+
+        pip install co2mpas  --no-index  -f path/to/co2mpas_packages
+
+
+Install Multiple versions in parallel
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In order to run and compare results from different |co2mpas| versions,
+you may use `virtualenv <http://docs.python-guide.org/en/latest/dev/virtualenvs/>`_
+command.
+
+The `virtualenv` command creates isolated python-environments ("children-venvs")
+where in each one you can install a different versions of |co2mpas|.
+
+.. Note::
+    The `virtualenv` command does NOT run under the "conda" python-environment.
+    Use the `conda command <http://conda.pydata.org/docs/using/envs.html>`_
+    in similar manner to create child *conda-environments* instead.
+
+
+1. Ensure `virtualenv` command installed in your "parent" python-environment,
+   i.e the "WinPython" you use:
+
+   .. code-block:: console
+
+       > pip install virtualenv
+
+   .. Note::
+      The ``pip`` command above has to run only once for each parent python-env.
+      If `virtualenv` is already installed, ``pip`` will exit gracefully.
+
+
+
+2. Ensure co2mpas uninstalled in your parent-env:
+
+   .. code-block:: console
+
+       > pip uninstall co2mpas
+
+   .. Warning::
+     It is important for the "parent" python-env NOT to have |co2mpas| installed!
+     The reason is that you must set "children venvs" to inherit all packages
+     installed on their "parent" (i.e. `numpy` and `pandas`), and you cannot
+     update any inherited package from within a child-env.
+
+
+3. Move to the folder where you want your "venvs" to reside and create
+   the "venv" with this command:
+
+   .. code-block:: console
+
+       > virtualenv --system-site-packages co2mpas_v1.0.1.venv.venv
+
+   The ``--system-site-packages`` option instructs the child-venv to inherit
+   all "parent" packages (numpy, pandas).
+
+   Select a venv's  name to signify the version it will contains,
+   e.g. ``co2mpas_v1.0.1.venv``.  The ``.venv`` at the end is not required,
+   it is just for tagging the *venv* folders.
+
+4. "Activate" the new "venv" by running the following command
+   (notice the dot(``.``) at the begining of the command):
+
+   .. code-block:: console
+
+        > .\co2mpas_v1.0.1.venv.venv\Scripts\activate.bat
+
+   Or type this in *bash*:
+
+   .. code-block:: console
+
+        $ source co2mpas_v1.0.1.venv.venv\Scripts\activate.bat
+
+   You must now see that your prompt has been prefixed with the venv's name.
+
+
+6. Install the co2mpas version you want inside the activated venv.
+   See the :ref:`install-co2mpas-package` section, above.
+
+   Don't forget to check that what you get when running co2mpas is what you
+   installed.
+
+7. To "deactivate" the active venv, type:
+
+   .. code-block:: console
+
+       > deactivate
+
+   The prompt-prefix with the venv-name should now dissappear.  And if you
+   try to invoke ``co2mpas``, it should fail.
+
+
+
+.. Tip::
+    - Repeat steps 2-->5 to create venvs for different versions of co2mpas.
+    - Use steps (6: Activate) and (9: Deactivate) to switch between different
+      venvs.
+
+
+Autocompletion
+--------------
+In order to press ``[Tab]`` and get completions, do the following in your
+environment (ALLINONE is pre-configured with them):
+
+- For the |clink|_ environment, on `cmd.exe`, add the following *lua* script
+  inside clink's profile folder: ``clink/profile/co2mpas_autocompletion.lua``
+
+  .. code-block:: lua
+
+    --[[ clink-autocompletion for CO2MPAS
+    --]]
+    local handle = io.popen('co2mpas-autocompletions')
+    words_str = handle:read("*a")
+    handle:close()
+
+    function words_generator(prefix, first, last)
+        local cmd = 'co2mpas'
+        local prefix_len = #prefix
+
+        --print('P:'..prefix..', F:'..first..', L:'..last..', l:'..rl_state.line_buffer)
+        if prefix_len == 0 or rl_state.line_buffer:sub(1, cmd:len()) ~= cmd then
+            return false
+        end
+
+        for w in string.gmatch(words_str, "%S+") do
+            -- Add matching app-words.
+            --
+            if w:sub(1, prefix_len) == prefix then
+                clink.add_match(w)
+            end
+
+            -- Add matching files & dirs.
+            --
+            full_path = true
+            nf = clink.match_files(prefix..'*', full_path)
+            if nf > 0 then
+                clink.matches_are_files()
+            end
+        end
+        return clink.match_count() > 0
+    end
+
+    sort_id = 100
+    clink.register_match_generator(words_generator)
+
+
+- For the *bash* shell just add this command in your :file:`~/.bashrc`
+  (or type it every time you open a new console):
+
+  .. code-block:: console
+
+      complete -fdev -W "`co2mpas-autocompletions`" co2mpas
 
 .. _substs:
 
