@@ -62,7 +62,7 @@ from textwrap import dedent, indent
 from threading import Thread
 from tkinter import StringVar, ttk, filedialog
 import traceback
-from typing import Text, Union
+from typing import Text, Union  # @UnusedImport
 import weakref
 import webbrowser
 
@@ -71,7 +71,8 @@ from pandalone import utils as putils
 from toolz import dicttoolz as dtz, itertoolz as itz
 import yaml
 
-from co2mpas import (__main__ as cmain, __version__, __updated__, __copyright__, __license__, __uri__)
+from co2mpas import (__main__ as cmain, __version__,
+                     __updated__, __copyright__, __license__, __uri__)  # @UnusedImport
 import co2mpas.batch as co2mpas_batch
 from co2mpas.utils import stds_redirected
 import functools as fnt
@@ -92,6 +93,7 @@ MOTDs = dedent("""\
     Use [Tab] to navigate to the next field/button; [Space] clicks buttons.
     You cannot `Run TA` when the `Advanced` options are active.
     User mouse's [Right button] to clear the log messages from the popup-menu.
+    You may view more log-messages by Right-cliking on them and setting "Log Threshold | Debug".
     Ensure you run the latest CO2MPAS;\
   click the `About CO2MPAS` menu-item and compare its version with the site's.
     Synchronized *appropriately* the time-series before launching CO2MPAS.
@@ -190,7 +192,7 @@ about_txt = """
     Python   : {pyversion}
     Copyright: {__copyright__}
     License  : {__license__}
-    
+
     {extra}
 """
 
@@ -317,6 +319,8 @@ def run_python_job(job_name, function, cmd_args, cmd_kwds, stdout=None, stderr=N
         try:
             on_finish(stdout, stderr, ex)
         except Exception as ex:
+            ## Have to log as CRITICAL because outside event-loop and
+            #  will be logged and collected by the log panel as a normal ERROR.
             log.critical("GUI failed while ending job due to: %s", ex, exc_info=1)
     else:
         if ex:
@@ -445,7 +449,7 @@ def add_tooltip(widget, key, allow_misses=False, no_lookup=False):
 _img_in_txt_regex = re.compile(
     r'''
         \[                                # image:[img:<alt-text>](<file-name>)
-                \ * (?P<img_alt>img:)? 
+                \ * (?P<img_alt>img:)?
                 \ * (?P<alt>[^\]]+?) \ *
         \]
         \(
@@ -463,12 +467,12 @@ def add_markdownd_text(text_widget, text):
 
     - Images: ``[img:<alt-text>](<file-name>)`` is replaced with the image.
     - Links: ``[<alt-text>](<url>)`` is replaced with a :class:`HyperlinkManager` link.
-    
+
     Example::
-    
+
         msg = "[Einstein](https://en.wikipedia.org/wiki/Einstein) on the [img:beach](images/keratokampos.png).")
         add_markdownd_text(text, msg)
-    
+
     """
     linkman = None
 
@@ -1168,7 +1172,7 @@ class SimulatePanel(ttk.Frame):
         add_tooltip(btn, 'run_ta_btn')
 
         def stop_job_clicked():
-            self.app.stop_job = True
+            self.app.signal_job_to_stop()
             self.mediate_guistate()
         self._stop_job_btn = btn = ttk.Button(frame, text="Stop", command=stop_job_clicked)
         add_icon(btn, 'icons/hand-red-32.png')
@@ -1206,13 +1210,14 @@ class SimulatePanel(ttk.Frame):
         if progr_step is not None or progr_max is not None:
             self.app.progress(progr_step, progr_max)
 
-        job_alive = bool(self.app._job_thread)
-
         ## Update Stop-button.
         #
-        self._stop_job_btn.state((bang(job_alive) + tk.DISABLED,))
-        stop_requested = job_alive and self.app.stop_job
-        self._stop_job_btn.state((bang(not stop_requested) + 'pressed',))
+        job_alive = self.app.is_job_alive()
+        stop_requested = job_alive and self.app.is_stop_job_signaled()
+        self._stop_job_btn.state((
+            bang(job_alive) + tk.DISABLED,
+            bang(not stop_requested) + 'pressed',
+        ))
 
         ## Update Run-button.
         #
@@ -1298,7 +1303,7 @@ class SimulatePanel(ttk.Frame):
                         log.info("Job %s %s of %s. %s%s",
                                  job_name, cur_step - 1, self.len, new_out, new_err)
 
-                    if app.stop_job:
+                    if app.is_stop_job_signaled():
                         log.warning("Canceled %s job before %s of %s",
                                     job_name, cur_step, self.len)
                         raise StopIteration()
@@ -1337,7 +1342,7 @@ class SimulatePanel(ttk.Frame):
                 app._job_thread = None
                 args = [job_name]
                 if ex:
-                    msg = "Failed job %s due to %s. %s%s"
+                    msg = "Failed job %s due to: %s %s%s"
                     args.append(ex)
                     ## Status a "permanent" failure msg.
                     #
@@ -1373,15 +1378,12 @@ class SimulatePanel(ttk.Frame):
         ## Monkeypatch *tqdm* on co2mpas-batcher.
         co2mpas_batch._custom_tqdm = updater.tqdm_replacement
         self.outputs_tree.clear()
-        app.stop_job = False
-        self.app._job_thread = t
+        app.start_job(t)
 
         msg = 'Launched %s job: %s'
         self.mediate_guistate(msg, job_name,
                               ', '.join('%s: %s' % (k, v) for k, v in user_cmd_kwds.items()),
                               static_msg=True, progr_step=0, progr_max=-1)
-
-        t.start()
 
 
 class SyncronizePanel(ttk.Labelframe):
@@ -1435,14 +1437,11 @@ class SyncronizePanel(ttk.Labelframe):
 
 class TkUI(object):
     """
-    :ivar _stop_job:
-        semaphore armed when the "red" button pressed
     :ivar _job_thread:
         semaphore armed when the "red" button pressed
 
     """
 
-    stop_job = False  # semaphore for the red Stop button
     _job_thread = None
 
     def __init__(self, root=None):
@@ -1487,6 +1486,26 @@ class TkUI(object):
         menubar = tk.Menu(root)
         menubar.add_command(label="About %r" % app_name, command=fnt.partial(self.show_about_window, slider))
         root['menu'] = menubar
+
+    def start_job(self, thread):
+        self._job_thread = thread
+
+        from co2mpas.dispatcher import Dispatcher
+        Dispatcher.dsp_must_stop.clear()
+
+        thread.start()
+
+    def signal_job_to_stop(self):
+        from co2mpas.dispatcher import Dispatcher
+        Dispatcher.dsp_must_stop.set()
+
+    def is_job_alive(self):
+        return self._job_thread and self._job_thread.is_alive()
+
+    def is_stop_job_signaled(self):
+        """Returns true if signaled, but job might be already dead; check also :meth:`is_job_alive()`."""
+        from co2mpas.dispatcher import Dispatcher
+        return self._job_thread and Dispatcher.dsp_must_stop
 
     def _add_window_icon(self, win):
         win.tk.call('wm', 'iconphoto', win._w, read_image('icons/CO2MPAS_icon-64.png'))
