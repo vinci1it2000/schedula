@@ -39,7 +39,6 @@ Layout::
 #        [gen-file] [sync-temple-entry][sel]
 #        [   help   ] [        run         ]
 #  - Improve extra-options parsing...
-#  - Scrollist into  file-lists.
 
 ## Help (apart from PY-site):
 #  - http://effbot.org/tkinterbook/tkinter-index.htm
@@ -313,8 +312,21 @@ def tree_apply_columns(tree, columns):
         tree.column(c, **c_col_kwds)
 
 
-def make_file_tree(parent, **tree_kwds):
-    tree = ttk.Treeview(parent, **tree_kwds)
+def make_file_tree(frame, **tree_kwds):
+    frame.grid_rowconfigure(0, weight=1)
+    frame.grid_columnconfigure(0, weight=1)
+
+    tree = ttk.Treeview(frame, **tree_kwds)
+    tree.grid(row=0, column=0, sticky='nswe')
+
+    # Setup scrollbars.
+    #
+    v_scrollbar = ttk.Scrollbar(frame, command=tree.yview)
+    h_scrollbar = ttk.Scrollbar(frame, orient=tk.HORIZONTAL, command=tree.xview)
+    tree.config(xscrollcommand=h_scrollbar.set, yscrollcommand=v_scrollbar.set)
+    v_scrollbar.grid(row=0, column=1, sticky='ns')
+    h_scrollbar.grid(row=1, column=0, sticky='ew')
+
     columns = (
         ('#0', {
             'text': 'Filepath',
@@ -548,14 +560,11 @@ class LogPanel(ttk.Labelframe):
 
         # Setup scrollbars.
         #
-        v_scrollbar = ttk.Scrollbar(self)
+        v_scrollbar = ttk.Scrollbar(self, command=self._log_text.yview)
+        h_scrollbar = ttk.Scrollbar(self, command=self._log_text.xview, orient=tk.HORIZONTAL)
+        self._log_text.config(yscrollcommand=v_scrollbar.set, xscrollcommand=h_scrollbar.set)
         v_scrollbar.grid(row=0, column=1, sticky='ns')
-        h_scrollbar = ttk.Scrollbar(self, orient=tk.HORIZONTAL)
         h_scrollbar.grid(row=1, column=0, sticky='ew')
-        self._log_text.config(yscrollcommand=v_scrollbar.set)
-        v_scrollbar.config(command=self._log_text.yview)
-        self._log_text.config(xscrollcommand=h_scrollbar.set)
-        h_scrollbar.config(command=self._log_text.xview)
 
         # Prepare Log-Tags
         #
@@ -802,7 +811,10 @@ class Co2mpasPanel(ttk.Frame):
         return frame
 
     def _build_inputs_tree(self, parent):
-        self.inputs_tree = tree = make_file_tree(parent)
+        tframe = ttk.Frame(parent, style='FrameTree.TFrame')
+
+        tree = make_file_tree(tframe)
+        self.inputs_tree = tree
 
         def ask_input_files():
             files = filedialog.askopenfilenames(
@@ -874,13 +886,13 @@ class Co2mpasPanel(ttk.Frame):
         tree.bind('<<TreeviewSelect>>', tree_selection_changed)
         add_tooltip(tree, 'inp_files_tree')
 
-        return (tree, files_btn, folder_btn, save_btn, del_btn)
+        return (tframe, files_btn, folder_btn, save_btn, del_btn)
 
     def _make_output_tree(self, parent):
-        frame = ttk.Labelframe(parent, text="Output Result Files")
-        self.outputs_tree = tree = make_file_tree(frame, selectmode='none')
-        tree.pack(expand=1, fill=tk.BOTH)
+        frame = ttk.Labelframe(parent, text="Output Result Files", style='FileTree.TFrame')
 
+        tree = make_file_tree(frame, selectmode='none')
+        self.outputs_tree = tree
         add_tooltip(tree, 'out_files_tree')
 
         return frame
