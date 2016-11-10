@@ -171,6 +171,13 @@ def define_tooltips():
         out_files_tree: |-
             A CO2MPAS run populates this list with all Excel result files.
             - Double-click on each file to open it.
+
+        sync_entry: |-
+            TODO
+        sel_sync_file_btn: |-
+            TODO
+        download_sync_tmpl_file_btn: |-
+            TODO
     """
 
     return yaml.load(all_tooltips)
@@ -991,7 +998,7 @@ class SimulatePanel(ttk.Frame):
 
         btn = ttk.Button(frame, command=ask_template_file)
         btn.pack(side=tk.LEFT, fill=tk.BOTH)
-        add_icon(btn, 'icons/excel-olive-32.png ')
+        add_icon(btn, 'icons/excel-olive-32.png')
         add_tooltip(btn, 'sel_tmpl_file_btn')
 
         entry.bind("<Double-1>", lambda ev: open_file_with_os(var.get()))
@@ -1272,6 +1279,55 @@ class SimulatePanel(ttk.Frame):
         t.start()
 
 
+class SyncronizePanel(ttk.Labelframe):
+
+    def __init__(self, parent, app, **kw):
+        super().__init__(parent, text='Synchronize Template:', **kw)
+        self.app = app
+
+        var = StringVar(value=os.getcwd())
+        entry = ttk.Entry(self, textvariable=var, width=60)
+        entry.grid(column=0, row=0, sticky='nsew')
+        add_tooltip(entry, 'sync_entry')
+        entry.bind("<Double-1>", lambda ev: open_file_with_os(var.get()))
+
+        def ask_save_template_file():
+            file = filedialog.asksaveasfilename(
+                title='Save Synchronization Template File',
+                defaultextension='xlsx',
+                filetypes=(('Excel files', '.xlsx .xlsm'),))
+            if file:
+                var.set(file)
+
+        btn = ttk.Button(self, command=ask_save_template_file)
+        btn.grid(column=1, row=0, sticky='new')
+        add_icon(btn, 'icons/download-olive-32.png ')
+        add_tooltip(btn, 'download_sync_tmpl_file_btn')
+
+        def ask_template_file():
+            initialdir = find_longest_valid_dir(var.get().strip())
+            file = filedialog.askopenfilename(
+                title='Select Synchronization File',
+                initialdir=initialdir,
+                filetypes=(('Excel files', '.xlsx .xlsm'),
+                           ('All files', '*'),
+                           ))
+            if file:
+                var.set(file)
+                self.mediate_guistate()
+
+        btn = ttk.Button(self, command=ask_save_template_file)
+        btn.grid(column=2, row=0, sticky='new')
+        add_icon(btn, 'icons/excel-olive-32.png')
+        add_tooltip(btn, 'sel_sync_file_btn')
+
+        btn = ttk.Button(self, text='Synchronize')
+        add_icon(btn, 'icons/align_center-olive-32.png')
+        btn.grid(column=0, row=1, columnspan=3, sticky='new')
+
+        self.grid_columnconfigure(0, weight=1)
+
+
 class TkUI(object):
     """
     :ivar _stop_job:
@@ -1316,8 +1372,8 @@ class TkUI(object):
         tab = SimulatePanel(nb, app=self)
         nb.add(tab, text='Simulate', sticky='nswe')
 
-        tab = ttk.Frame(nb)
-        nb.add(tab, text='Synchronize', sticky='nswe')
+        tab = SyncronizePanel(nb, app=self)
+        nb.add(tab, text='Synchronize', sticky='nw')
 
         frame = LogPanel(slider, self, height=-260, log_level_cb=init_logging)
         slider.add(frame, weight=3)
