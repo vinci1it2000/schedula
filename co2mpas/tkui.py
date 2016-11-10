@@ -187,9 +187,9 @@ def define_ttk_styles():
     style.configure('False.TButton', foreground='red')
     style.configure('TFrame', relief=tk.RAISED, padding=_pad)
     style.configure('TLabelframe', relief=tk.RAISED,)
-    style.configure('Flipper.TLabelframe', relief=tk.RAISED, underline=True)
+    style.configure('Flipper.TLabelframe', relief=tk.RAISED)
     style.configure('TA.TButton', foreground='orange')
-    style.configure('Prog.TLabel', foreground='blue')
+    style.configure('Logo.TLabel')
 
 
 LOGGING_TAGS = OrderedDict((
@@ -761,12 +761,12 @@ class LogPanel(ttk.Labelframe):
                   traceback.format_exc())
 
 
-class Co2mpasPanel(ttk.Frame):
+class SimulatePanel(ttk.Frame):
     """
     The state of all widgets is controlled by :meth:`mediate_guistate()`.
     """
-    def __init__(self, master, app, *args, **kwargs):
-        super().__init__(master, *args, **kwargs)
+    def __init__(self, parent, app, *args, **kwargs):
+        super().__init__(parent, *args, **kwargs)
         self.app = app
 
         w = self._make_inputs_frame(self)
@@ -925,10 +925,11 @@ class Co2mpasPanel(ttk.Frame):
         return frame, var
 
     def _make_advanced_flipper(self, parent):
-        frame = ttk.Labelframe(parent, text='Advanced...', style='Flipper.TLabelframe')
+        frame = ttk.Labelframe(parent, text='Advanced...',
+                               style='Flipper.TLabelframe')
         add_tooltip(frame, 'advanced_link')
 
-        logo = ttk.Label(frame, image=self.app.logo)
+        logo = ttk.Label(frame, image=self.app.logo, style='Logo.TLabel')
 
         def show_logo():
             logo.grid(column=1, row=1, rowspan=2, sticky='nswe')
@@ -1299,14 +1300,20 @@ class TkUI(object):
 
         ttk.Sizegrip(root).grid(row=1, column=1, sticky='e')
 
-        self.master = master = ttk.PanedWindow(root, orient=tk.VERTICAL)
-        master.grid(row=0, column=0, columnspan=3, sticky='nswe')
+        slider = ttk.PanedWindow(root, orient=tk.VERTICAL)
+        slider.grid(row=0, column=0, columnspan=3, sticky='nswe')
 
-        frame = Co2mpasPanel(master, app=self, height=-320)
-        master.add(frame, weight=1)
+        nb = ttk.Notebook(slider, height=460)
+        slider.add(nb, weight=1)
 
-        frame = LogPanel(master, self, height=-260, log_level_cb=init_logging)
-        master.add(frame, weight=3)
+        tab = SimulatePanel(nb, app=self)
+        nb.add(tab, text='Simulate', sticky='nswe')
+
+        tab = ttk.Frame(nb)
+        nb.add(tab, text='Synchronize', sticky='nswe')
+
+        frame = LogPanel(slider, self, height=-260, log_level_cb=init_logging)
+        slider.add(frame, weight=3)
 
         root.columnconfigure(0, weight=1)
         root.columnconfigure(0, weight=2)
