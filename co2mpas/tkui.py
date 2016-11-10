@@ -811,9 +811,9 @@ class Co2mpasPanel(ttk.Frame):
         return frame
 
     def _build_inputs_tree(self, parent):
-        tframe = ttk.Frame(parent, style='FrameTree.TFrame')
+        tframe = ttk.Frame(parent, style='FrameTree.TFrame', height=260)
 
-        tree = make_file_tree(tframe)
+        tree = make_file_tree(tframe, height=3)
         self.inputs_tree = tree
 
         def ask_input_files():
@@ -827,8 +827,8 @@ class Co2mpasPanel(ttk.Frame):
                 for fpath in files:
                     tree.insert_path(fpath, is_folder=False)
                 self.mediate_guistate()
-        files_btn = btn = ttk.Button(parent, text="Add File(s)...", command=ask_input_files)
-        add_icon(btn, 'icons/add_file-olive-48.png')
+        files_btn = btn = ttk.Button(parent, command=ask_input_files)
+        add_icon(btn, 'icons/add_file-olive-32.png')
         add_tooltip(btn, 'add_inp_files_btn')
 
         def ask_input_folder():
@@ -837,8 +837,8 @@ class Co2mpasPanel(ttk.Frame):
             if folder:
                 tree.insert_path(folder, is_folder=True)
                 self.mediate_guistate()
-        folder_btn = btn = ttk.Button(parent, text="Add Folder...", command=ask_input_folder)
-        add_icon(btn, 'icons/add_folder-olive-48.png')
+        folder_btn = btn = ttk.Button(parent, command=ask_input_folder)
+        add_icon(btn, 'icons/add_folder-olive-32.png')
         add_tooltip(btn, 'add_inp_folder_btn')
 
         def ask_save_template_file():
@@ -889,9 +889,10 @@ class Co2mpasPanel(ttk.Frame):
         return (tframe, files_btn, folder_btn, save_btn, del_btn)
 
     def _make_output_tree(self, parent):
-        frame = ttk.Labelframe(parent, text="Output Result Files", style='FileTree.TFrame')
+        frame = ttk.Labelframe(parent, text="Output Result Files",
+                               style='FileTree.TFrame', height=260)
 
-        tree = make_file_tree(frame, selectmode='none')
+        tree = make_file_tree(frame, selectmode='none', height=3)
         self.outputs_tree = tree
         add_tooltip(tree, 'out_files_tree')
 
@@ -999,7 +1000,7 @@ class Co2mpasPanel(ttk.Frame):
             flag_name = flag.replace('_', ' ').title()
             btn = FlagButton(flags_frame, text=flag_name,
                              command=self.mediate_guistate,
-                             padding=(_pad, 4 * _pad, _pad, 4 * _pad))
+                             padding=_pad)
             btn.pack(side=tk.LEFT, ipadx=4 * _pad)
             add_tooltip(btn, flag)
 
@@ -1455,7 +1456,7 @@ class TkUI(object):
         return self._logo
 
     def _do_about(self):
-        top = tk.Toplevel(self.master)
+        top = tk.Toplevel(self.root)
         top.title("About %s" % app_name)
 
         txt1 = '%s\n\n' % ''.join(__doc__.split('\n')[:2]).strip()
