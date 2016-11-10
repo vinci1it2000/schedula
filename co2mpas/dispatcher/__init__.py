@@ -5,7 +5,6 @@
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
-
 """
 It contains a comprehensive list of all modules and classes within dispatcher.
 
@@ -22,27 +21,29 @@ Modules:
     utils
 """
 
+from collections import deque
+from copy import copy, deepcopy
 import logging
 import threading
 
-from collections import deque
-from copy import copy, deepcopy
-from .utils.sol import Solution
 from .utils.alg import rm_cycles_iter, get_unused_node_id, add_func_edges, \
-    get_sub_node, _children, stlp, _update_io_attr_sub_dsp,\
+    get_sub_node, _children, stlp, _update_io_attr_sub_dsp, \
     _update_remote_links, remove_links, _union_workflow, _convert_bfs
+from .utils.cel import create_celery_app
 from .utils.cst import EMPTY, START, NONE, SINK, SELF, PLOT
 from .utils.des import parent_func
 from .utils.drw import DspPlot, autoplot_callback, autoplot_function
 from .utils.dsp import SubDispatch, bypass, combine_dicts, selector
 from .utils.gen import caller_name, counter
+from .utils.sol import Solution
 from .utils.web import create_flask_app
-from .utils.cel import create_celery_app
 
-log = logging.getLogger(__name__)
 
 __all__ = ['Dispatcher']
 __author__ = 'Vincenzo Arcidiacono'
+
+
+log = logging.getLogger(__name__)
 
 
 class Dispatcher(object):
@@ -1158,7 +1159,7 @@ class Dispatcher(object):
                             succ[p][c] = s_pred[p] = dmap_succ[p][c]
                     elif not check_inputs or add_missing:
                         if add_missing:
-                            for p in node_attr['inputs'] and p not in family:
+                            for p in node_attr['inputs'] and p not in family:  # Is the last check working??
                                 _set_node_attr(p, add2family=False)
 
                         _set_node_attr(c)

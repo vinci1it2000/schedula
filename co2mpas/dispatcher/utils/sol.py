@@ -11,20 +11,23 @@ It contains a comprehensive list of all modules and classes within dispatcher.
 
 Docstrings should provide sufficient understanding for any individual function.
 """
-import logging
-from heapq import heappush, heappop
 from collections import OrderedDict
 from copy import _reconstruct
 from datetime import datetime
-from .alg import add_edge_fun, remove_edge_fun, stlp, get_full_pipe,\
-     _sort_sk_wait_in, get_sub_node
+from heapq import heappush, heappop
+import logging
+
+from .alg import (add_edge_fun, remove_edge_fun, stlp, get_full_pipe,
+                  _sort_sk_wait_in, get_sub_node)
 from .cst import START, NONE, PLOT
-from .dsp import SubDispatch
 from .des import parent_func
+from .dsp import SubDispatch
 from .exc import DispatcherError
-log = logging.getLogger(__name__)
+
 
 __all__ = ['Solution']
+
+log = logging.getLogger(__name__)
 
 
 class Solution(OrderedDict):

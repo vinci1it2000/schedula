@@ -9,6 +9,16 @@
 """
 It provides tools to create models with the :func:`~dispatcher.Dispatcher`.
 """
+from collections import OrderedDict
+from copy import deepcopy
+from functools import partial, reduce
+from inspect import signature, Parameter, _POSITIONAL_OR_KEYWORD
+from itertools import repeat, chain
+import types
+
+from .exc import DispatcherError
+from .gen import caller_name, Token
+
 
 __author__ = 'Vincenzo Arcidiacono'
 
@@ -17,16 +27,6 @@ __all__ = ['combine_dicts', 'bypass', 'summation', 'map_dict', 'map_list',
            'stack_nested_keys', 'get_nested_dicts', 'are_in_nested_dicts',
            'combine_nested_dicts', 'SubDispatch', 'ReplicateFunction',
            'SubDispatchFunction', 'SubDispatchPipe']
-
-import types
-from collections import OrderedDict
-from copy import deepcopy
-from functools import partial, reduce
-from inspect import signature, Parameter, _POSITIONAL_OR_KEYWORD
-from itertools import repeat, chain
-
-from .exc import DispatcherError
-from .gen import caller_name, Token
 
 
 def combine_dicts(*dicts, copy=False, base=None):
@@ -1225,7 +1225,7 @@ class DFun(object):
         return 'DFun(%r, %r, %s)' % (
             self.out,
             self.fun,
-            ', '.join('%s=%s' %(k, v) for k, v in kwds.items()))
+            ', '.join('%s=%s' % (k, v) for k, v in kwds.items()))
 
     def copy(self):
         cp = DFun(**vars(self))
