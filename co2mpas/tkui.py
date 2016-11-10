@@ -797,8 +797,6 @@ class SimulatePanel(ttk.Frame):
 
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=1)
-        for r in range(1, 2):
-            self.rowconfigure(r, weight=1)
         self.rowconfigure(4, weight=1)
 
         self.mediate_guistate()
