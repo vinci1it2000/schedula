@@ -57,7 +57,8 @@ def hard_validation(data, usage, stage, cycle, *args):
             _check_ki_factor,
             _check_prediction_gears_not_mt,
             _check_lean_burn_tech,
-            _check_vva
+            _check_vva,
+            _check_scr
         )
         for check in checks:
             c = check(data, usage, stage, cycle, *args)
@@ -228,4 +229,17 @@ def _check_vva(data, usage, stage, cycle, *args):
               "`ignition_type = '%s'`." \
               "Hence, set `engine_has_variable_valve_actuation = False` or " \
               "set `ignition_type = 'positive'`!" % it
+        return s, msg
+
+def _check_scr(data, usage, stage, cycle, *args):
+    s = ('has_selective_catalytic_reduction', 'ignition_type')
+    out = _get_engine_model(s[1:]).dispatch(data, outputs=s[1:])
+    it = out.get(s[1], None)
+    from ..model.physical.defaults import dfl
+    has_scr = data.get(s[0], dfl.values.has_selective_catalytic_reduction)
+    if has_scr and it == 'positive':
+        msg = "`has_selective_catalytic_reduction` cannot be enable with " \
+              "`ignition_type = '%s'`." \
+              "Hence, set `has_selective_catalytic_reduction = False` or " \
+              "set `ignition_type = 'compression'`!" % it
         return s, msg

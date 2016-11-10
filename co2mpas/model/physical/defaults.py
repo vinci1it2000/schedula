@@ -16,6 +16,9 @@ import co2mpas.utils as co2_utl
 
 #: Container of node default values.
 class Values(co2_utl.Constants):
+    #: Does the engine have selective catalytic reduction technology?
+    has_selective_catalytic_reduction = False
+
     #: Does the engine have lean burn technology?
     has_lean_burn = False
 
@@ -192,16 +195,18 @@ class Functions(co2_utl.Constants):
                 #0: {},
                 1: {'a': 1.02, 'b': 1.1, 'c': 1.5, 'a2': 1.1},  # positive turbo
                 2: {'a': 1.02, 'b': 1.1, 'c': 1.5, 'a2': 1.1},  # positive natural aspiration
-                3: {'a': 1.015, 'b': 1.1, 'c': 1.4, 'a2': 1.1}  # compression
+                3: {'a': 1.015, 'b': 1.1, 'c': 1.4, 'a2': 1.1}, # compression
+                4: {'a': 1.015, 'b': 1.1, 'c': 1.4, 'a2': 1.1}  # compression + scr
             }
         }
 
     class FMEP_egr(co2_utl.Constants):
         #: Exhausted gas recirculation multiplication factors ids [-].
         egr_fact_map = {
-            'positive turbo': 1,
-            'positive natural aspiration': 2,
-            'compression': 3
+            ('positive turbo', False): 1,
+            ('positive natural aspiration', False): 2,
+            ('compression', False): 3,
+            ('compression', True): 4
         }
 
     class calibrate_co2_params(co2_utl.Constants):

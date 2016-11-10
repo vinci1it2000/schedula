@@ -290,6 +290,7 @@ class FMEP(object):
                  lb_max_mean_piston_speeds=12.0,
                  lb_full_bmep_curve_percentage=0.4,
                  has_exhausted_gas_recirculation=False,
+                 has_selective_catalytic_reduction=False,
                  egr_max_mean_piston_speeds=12.0,
                  egr_full_bmep_curve_percentage=0.7,
                  engine_type=None):
@@ -314,6 +315,7 @@ class FMEP(object):
         self.lb_n_temp_min = 0.5
 
         self.has_exhausted_gas_recirculation = has_exhausted_gas_recirculation
+        self.has_selective_catalytic_reduction = has_selective_catalytic_reduction
         self.egr_max_mean_piston_speeds = float(egr_max_mean_piston_speeds)
         self.egr_fbc_percentage = egr_full_bmep_curve_percentage
         self.engine_type = engine_type
@@ -338,9 +340,15 @@ class FMEP(object):
         if self.has_exhausted_gas_recirculation and 'egr' not in params:
             #b = n_speeds < self.egr_max_mean_piston_speeds
             #b &= n_powers <= (self.fbc(n_speeds) * self.egr_fbc_percentage)
-            egr = defaults.dfl.functions.FMEP_egr.egr_fact_map[self.engine_type]
-            if self.engine_type == 'compression':
-                b = n_temp < 1
+            k = self.engine_type, self.has_selective_catalytic_reduction
+            egr = defaults.dfl.functions.FMEP_egr.egr_fact_map[k]
+            if k[0] == 'compression':
+                if k[1]:
+                    b = n_temp < 1
+                else:
+                    b = n_speeds < self.egr_max_mean_piston_speeds
+                    b &= n_powers <= (self.fbc(n_speeds) * self.egr_fbc_percentage)
+
                 if b is True:
                     a['egr'] = (egr, True),
                 elif b is False:
@@ -446,7 +454,8 @@ class FMEP(object):
 def define_fmep_model(
     full_bmep_curve, engine_max_speed, engine_stroke, active_cylinder_ratios,
     has_cylinder_deactivation, has_variable_valve_actuation, has_lean_burn,
-    has_exhausted_gas_recirculation, engine_type):
+    has_exhausted_gas_recirculation, has_selective_catalytic_reduction,
+    engine_type):
     """
     Defines the vehicle FMEP model.
 
@@ -482,6 +491,10 @@ def define_fmep_model(
         Does the engine have exhaust gas recirculation technology?
     :type has_exhausted_gas_recirculation: bool
 
+    :param has_selective_catalytic_reduction:
+        Does the engine have selective catalytic reduction technology?
+    :type has_selective_catalytic_reduction: bool
+
     :param engine_type:
         Engine type (positive turbo, positive natural aspiration, compression).
     :type engine_type: str
@@ -515,6 +528,7 @@ def define_fmep_model(
         lb_max_mean_piston_speeds=bmep(lb_mps, engine_stroke),
         lb_full_bmep_curve_percentage=lb_fbcp,
         has_exhausted_gas_recirculation=has_exhausted_gas_recirculation,
+        has_selective_catalytic_reduction=has_selective_catalytic_reduction,
         egr_max_mean_piston_speeds=bmep(egr_mps, engine_stroke),
         egr_full_bmep_curve_percentage=egr_fbcp,
         engine_type=engine_type
@@ -2411,6 +2425,11 @@ def co2_emission():
         default_value=defaults.dfl.values.has_lean_burn
     )
 
+    d.add_data(
+        data_id='has_selective_catalytic_reduction',
+        default_value=defaults.dfl.values.has_selective_catalytic_reduction
+    )
+
     d.add_function(
         function=default_engine_has_exhausted_gas_recirculation,
         inputs=['fuel_type'],
@@ -2422,7 +2441,8 @@ def co2_emission():
         inputs=['full_bmep_curve', 'engine_max_speed', 'engine_stroke',
                 'active_cylinder_ratios', 'engine_has_cylinder_deactivation',
                 'engine_has_variable_valve_actuation', 'has_lean_burn',
-                'has_exhausted_gas_recirculation', 'engine_type'],
+                'has_exhausted_gas_recirculation',
+                'has_selective_catalytic_reduction', 'engine_type'],
         outputs=['fmep_model']
     )
 
