@@ -346,7 +346,7 @@ class FMEP(object):
                 elif b is False:
                     a['egr'] = (0, True),
                 else:
-                    a['egr'] = (np.where(n_temp < 1, egr, 0), True),
+                    a['egr'] = (np.where(b, egr, 0), True),
             else:
                 a['egr'] = ((0, True), (egr, True))
 
@@ -1141,10 +1141,13 @@ def _rescale_co2_emissions(
         cumulative_co2_emissions, params_initial_guess):
     co2_emissions = co2_emissions_model(params_initial_guess)[0]
     trapz = sci_itg.trapz
+    k_factors = []
     for cco2, p in zip(cumulative_co2_emissions, phases_integration_times):
         i, j = np.searchsorted(times, p)
-        co2_emissions[i:j] *= cco2 / trapz(co2_emissions[i:j], times[i:j])
-    return co2_emissions
+        k = cco2 / trapz(co2_emissions[i:j], times[i:j])
+        co2_emissions[i:j] *= k
+        k_factors.append(k)
+    return co2_emissions, np.array(k_factors)
 
 
 def identify_co2_emissions(
@@ -1192,11 +1195,14 @@ def identify_co2_emissions(
         _3rd_emissions=dfl.third_step_against_emissions
     )
     error_function = define_co2_error_function_on_emissions
-    co2 = rescale(p)
-    n = dfl.n_perturbations
+    co2, k0 = rescale(p)
+    n, xatol = dfl.n_perturbations, dfl.xatol
     for i in range(n):
         p = calibrate(error_function(co2_emissions_model, co2), p)[0]
-        co2 = rescale(p)
+        co2, k1 = rescale(p)
+        if np.max(np.abs(k1 - k0)) <= xatol:
+            break
+        k0 = k1
 
     return co2
 
@@ -1620,7 +1626,7 @@ def calibrate_co2_params(
         _set_attr(p, cold_p, default=False)
 
     if _3rd_step:
-        p = restrict_bounds(p)
+        #p = restrict_bounds(p)
 
         if _3rd_emissions:
             err = co2_error_function_on_emissions
