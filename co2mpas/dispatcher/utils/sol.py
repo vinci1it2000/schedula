@@ -22,7 +22,6 @@ from .cst import START, NONE, PLOT
 from .dsp import SubDispatch
 from .des import parent_func
 from .exc import DispatcherError
-import threading
 log = logging.getLogger(__name__)
 
 __all__ = ['Solution']
@@ -198,11 +197,9 @@ class Solution(OrderedDict):
             for v in dsp.sub_dsp_nodes.values():
                 _dsp_closed_add(v['function'])
 
-        local = threading.local()
-
         while fringe:
-            if getattr(local, 'dsp_abort', False):
-                raise StopIteration
+            if self.dsp.dsp_must_stop.is_set():
+                raise RuntimeError("Stop requested.")
             # Visit the closest available node.
             n = (d, _, (v, sol)) = heappop(fringe)
 
@@ -1107,10 +1104,12 @@ class Solution(OrderedDict):
 
         node_id = ','.join(self.dsp.get_full_node_id(node_id))
 
-        local = threading.local()
-
-        if self.raises or getattr(local, 'dsp_abort', False):
+        if self.raises:
             raise DispatcherError(self, msg, node_id, ex, *args, **kwargs)
+        elif self.dsp.dsp_must_stop.is_set():
+            ## Do not wrap stop-exceptions, to avoid
+            #  long-exception call (but we loose calc-results).
+            raise
         else:
             kwargs['exc_info'] = kwargs.get('exc_info', 1)
             log.error(msg, node_id, ex, *args, **kwargs)

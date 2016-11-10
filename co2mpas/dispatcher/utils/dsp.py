@@ -24,7 +24,6 @@ from copy import deepcopy
 from functools import partial, reduce
 from inspect import signature, Parameter, _POSITIONAL_OR_KEYWORD
 from itertools import repeat, chain
-import threading
 
 from .exc import DispatcherError
 from .gen import caller_name, Token
@@ -1168,13 +1167,11 @@ class SubDispatchPipe(SubDispatchFunction):
         for s in sub_dsp.values():
             s._init_workflow(clean=False)
 
-        local = threading.local()
-
         for v, s, nxt_nds, nxt_dsp in self.pipe:
             s = key_map[s]
 
-            if getattr(local, 'dsp_abort', False):
-                raise StopIteration
+            if dsp.dsp_must_stop.is_set():
+                raise RuntimeError("Stop requested.")
 
             if not s._set_node_output(v, False, next_nds=nxt_nds):
                 break

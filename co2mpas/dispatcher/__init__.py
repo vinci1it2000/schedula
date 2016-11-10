@@ -23,6 +23,8 @@ Modules:
 """
 
 import logging
+import threading
+
 from collections import deque
 from copy import copy, deepcopy
 from .utils.sol import Solution
@@ -49,6 +51,12 @@ class Dispatcher(object):
 
     The scope of this data structure is to compute the shortest workflow between
     input and output data nodes.
+
+    :ivar dsp_must_stop:
+        A semaphore (:class:`threading.Event`) for breaking out of the dispatching when true.
+        
+    .. Tip::
+        Rember to set :attr:`dsp_must_stop` to `False` before dispatching ;-)
 
     A workflow is a sequence of function calls.
 
@@ -152,7 +160,11 @@ class Dispatcher(object):
 
         >>> dsp
         <...>
+    
     """
+
+    #: When false, dispatch loops raise :exc:`StopIteration` ASAP.
+    dsp_must_stop = threading.Event()
 
     def __lt__(self, other):
         return isinstance(other, Dispatcher) and id(other) < id(self)
