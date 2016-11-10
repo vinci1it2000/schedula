@@ -6,7 +6,7 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 """
-CO2MPAS UI for predicting NEDC CO2 emissions from WLTP for type-approval purposes.
+CO2MPAS UI: predict NEDC CO2 emissions from WLTP for Vehicle Type-Approval.
 
 Layout::
 
@@ -49,13 +49,12 @@ Layout::
 #    - http://www.iconsdb.com/red-icons/red-play-icons.html
 #    - https://material.io/icons/#
 
-from collections import Counter, OrderedDict, namedtuple
+from collections import Counter, OrderedDict, namedtuple, ChainMap
 import datetime
 from idlelib.ToolTip import ToolTip
 import io
 import logging
 import os
-from pandalone import utils as putils
 import random
 import re
 import sys
@@ -68,16 +67,15 @@ import weakref
 import webbrowser
 
 from PIL import Image, ImageTk
+from pandalone import utils as putils
 from toolz import dicttoolz as dtz, itertoolz as itz
 import yaml
 
-from co2mpas import (__version__, __updated__, __copyright__, __license__, __uri__)
-from co2mpas.__main__ import init_logging, save_template
+from co2mpas import (__main__ as cmain, __version__, __updated__, __copyright__, __license__, __uri__)
 import co2mpas.batch as co2mpas_batch
 from co2mpas.utils import stds_redirected
 import functools as fnt
 import os.path as osp
-import weakref
 import pkg_resources as pkg
 import tkinter as tk
 
@@ -107,14 +105,14 @@ def define_tooltips():
             Populate this list with CO2MPAS Input files & folders using the buttons to the right.
             - Double-click on each file/folder to open it.
         download_tmpl_file_btn: |-
-            Opens a File-dialog to save a new "sample" Input Template file,
-            for the field to the left.
+            Opens a File-dialog to save a new Input Template file,
+            to be added into the Inputs-list to the left.
         add_inp_files_btn: |-
             Opens a File-dialog to select existing CO2MPAS Excel Input file(s)
-            to add in the list to the left.
+            to be added into the Inputs-list to the left.
         add_inp_folder_btn: |-
             Opens a Folder-dialog to select a Folder with CO2MPAS Input files,
-            to add in the list to the left.
+            to be added into the Inputs-list to the left.
         del_inp_btn: |-
             Deletes selected items from the list o Input files & folders to the left.
             - Pressing [Delete] key on selected items also removes them from the list.
@@ -181,6 +179,44 @@ def define_tooltips():
     """
 
     return yaml.load(all_tooltips)
+
+about_txt = """
+    {intro}
+
+    [img:CO2MPAS logo](icons/CO2MPAS_banner2.png)
+
+    Home     : [{__uri__}]({__uri__})
+    Version  : {__version__} ({__updated__})
+    Python   : {pyversion}
+    Copyright: {__copyright__}
+    License  : {__license__}
+    
+    {extra}
+"""
+
+
+def show_about(root, about_txt=about_txt, verbose=False):
+    root.title("About %s" % app_name)
+
+    msg = tk.Text(root, wrap=tk.WORD)
+    msg.pack(fill=tk.BOTH, expand=1)
+
+    if verbose:
+        extra = 'Verbose versions: \n%s' % indent(cmain.build_version_string(verbose=True), '    ')
+    else:
+        extra = ''
+    fields = dict(
+        intro='%s\n\n' % ''.join(__doc__.split('\n')[:2]).strip(),
+        extra=extra,
+        pyversion=sys.version,
+    )
+    txt = dedent(about_txt).format_map(ChainMap(fields, locals(), globals()))
+
+    log.info(txt)
+    add_markdownd_text(msg, txt)
+
+    msg.configure(state=tk.DISABLED, bg='SystemButtonFace')
+
 
 _bw = 2
 _pad = 2
@@ -388,11 +424,79 @@ def make_file_tree(frame, **tree_kwds):
     return tree
 
 
-def add_tooltip(widget, key):
-    tooltips = define_tooltips()
-    tooltip_text = tooltips[key]
+def add_tooltip(widget, key, allow_misses=False, no_lookup=False):
+    """
+    :param no_lookup:
+        If true, uses the `key` as tooltip text.
+    """
+    if no_lookup:
+        tooltip_text = key
+    else:
+        tooltips = define_tooltips()
+        tooltip_text = tooltips.get(key)
+        if tooltip_text is None:
+            if not allow_misses:
+                raise AssertionError('Tooltip %r not in %s!' % (key, list(tooltips)))
+            return
+
     tooltip_text = dedent(tooltip_text.strip())
     ToolTip(widget, tooltip_text)
+
+_img_in_txt_regex = re.compile(
+    r'''
+        \[                                # image:[img:<alt-text>](<file-name>)
+                \ * (?P<img_alt>img:)? 
+                \ * (?P<alt>[^\]]+?) \ *
+        \]
+        \(
+            \ * (?P<url>[^)]+?) \ *
+        \)
+    ''',
+    re.IGNORECASE | re.VERBOSE)
+
+
+def add_markdownd_text(text_widget, text):
+    """
+    Support a limited Markdown for inserting text into :class:`tk.Text`.
+
+    Supported formats:
+
+    - Images: ``[img:<alt-text>](<file-name>)`` is replaced with the image.
+    - Links: ``[<alt-text>](<url>)`` is replaced with a :class:`HyperlinkManager` link.
+    
+    Example::
+    
+        msg = "[Einstein](https://en.wikipedia.org/wiki/Einstein) on the [img:beach](images/keratokampos.png).")
+        add_markdownd_text(text, msg)
+    
+    """
+    linkman = None
+
+    def get_linkman():
+        nonlocal linkman
+
+        if linkman is None:
+            linkman = HyperlinkManager(text_widget)
+        return linkman
+
+    last_endp = 0
+    for m in _img_in_txt_regex.finditer(text):
+        s, e = m.span(0)
+        text_widget.insert(tk.INSERT, text[last_endp:s])
+
+        is_img, alt, url = m.groups()
+        if is_img:
+            img = read_image(url)
+            #add_tooltip(img, alt, no_lookup=True)
+            text_widget.image_create(tk.INSERT, image=img)
+        elif alt:
+            lm = get_linkman()
+            tag = lm.add(fnt.partial(open_url, url))
+            text_widget.insert(tk.INSERT, alt, tag)
+        else:
+            raise AssertionError(text, s, e, is_img, alt, url, m.groupdict())
+        last_endp = e
+    text_widget.insert(tk.INSERT, text[last_endp:])
 
 
 class HyperlinkManager:
@@ -632,11 +736,11 @@ class LogPanel(ttk.Labelframe):
 
     def _intercept_tinker_exceptions(self):
         def my_ex_interceptor(*args):
-            # Must not raise any errors, or infinite recursion here.
             log.critical('Unhandled TkUI exception:', exc_info=True)
             try:
                 self.app.cstatus('Unhandled TkUI exception: %s', args, delay=0)
             except:
+                # Must not raise any errors, or infinite recursion here.
                 pass
             self._original_tk_ex_handler(*args)
 
@@ -861,12 +965,12 @@ class SimulatePanel(ttk.Frame):
                 defaultextension='xlsx',
                 filetypes=(('Excel files', '.xlsx .xlsm'),))
             if file:
-                save_template((file,), force=True)
+                cmain.save_template((file,), force=True)
                 tree.insert_path(file, is_folder=False)
                 self.mediate_guistate()
 
         save_btn = btn = ttk.Button(parent, command=ask_save_template_file)
-        add_icon(btn, 'icons/download-olive-32.png ')
+        add_icon(btn, 'icons/download-olive-32.png')
         add_tooltip(btn, 'download_tmpl_file_btn')
 
         del_btn = btn = ttk.Button(parent, state=tk.DISABLED)  # Its state maintained internally in this method.
@@ -1045,7 +1149,7 @@ class SimulatePanel(ttk.Frame):
         frame = ttk.Labelframe(parent, text='Launch Job')
         btn = ttk.Button(frame, text="Help",
                          command=fnt.partial(open_url, user_guidelines_url))
-        add_icon(btn, 'icons/help-olive-32.png ')
+        add_icon(btn, 'icons/help-olive-32.png')
         btn.grid(column=0, row=4, sticky='nswe')
         add_tooltip(btn, 'help_btn')
 
@@ -1058,7 +1162,7 @@ class SimulatePanel(ttk.Frame):
         self._run_ta_btn = btn = ttk.Button(frame,
                                             text="Run TA", style='TA.TButton',
                                             command=fnt.partial(self._do_run_job, is_ta=True))
-        add_icon(btn, 'icons/play_doc-orange-32.png ')
+        add_icon(btn, 'icons/play_doc-orange-32.png')
         btn.grid(column=2, row=4, sticky='nswe')
         add_tooltip(btn, 'run_ta_btn')
 
@@ -1301,7 +1405,7 @@ class SyncronizePanel(ttk.Labelframe):
 
         btn = ttk.Button(self, command=ask_save_template_file)
         btn.grid(column=1, row=0, sticky='new')
-        add_icon(btn, 'icons/download-olive-32.png ')
+        add_icon(btn, 'icons/download-olive-32.png')
         add_tooltip(btn, 'download_sync_tmpl_file_btn')
 
         def ask_template_file():
@@ -1351,7 +1455,7 @@ class TkUI(object):
         # Menubar
         #
         menubar = tk.Menu(root)
-        menubar.add_command(label="About %r" % app_name, command=self._do_about,)
+        menubar.add_command(label="About %r" % app_name, command=self.show_about,)
         root['menu'] = menubar
 
         self._status_text = status = self._make_status(root)
@@ -1375,7 +1479,7 @@ class TkUI(object):
         tab = SyncronizePanel(nb, app=self)
         nb.add(tab, text='Synchronize', sticky='nw')
 
-        frame = LogPanel(slider, self, height=-260, log_level_cb=init_logging)
+        frame = LogPanel(slider, self, height=-260, log_level_cb=cmain.init_logging)
         slider.add(frame, weight=3)
 
         root.columnconfigure(0, weight=1)
@@ -1525,35 +1629,10 @@ class TkUI(object):
             self._logo = read_image('icons/CO2MPAS_banner2.png')  # Avoid GC.
         return self._logo
 
-    def _do_about(self):
+    def show_about(self):
         top = tk.Toplevel(self.root)
-        top.title("About %s" % app_name)
-
-        txt1 = '%s\n\n' % ''.join(__doc__.split('\n')[:2]).strip()
-        txt2 = dedent("""\n
-
-            Version: %s (%s)
-            Copyright: %s
-            License: %s
-            Python: %s
-            """ % (__version__, __updated__, __copyright__, __license__, sys.version))
-        txt = '%s\n\n%s' % (txt1, txt2)
-        log.info(txt)
-        print(txt)
-
-        msg = tk.Text(top, wrap=tk.WORD)
-        msg.pack(fill=tk.BOTH, expand=1)
-        linkman = HyperlinkManager(msg)
-
-        msg.insert(tk.INSERT, txt1)
-
-        msg.image_create(tk.INSERT, image=self.logo)
-        msg.insert(tk.INSERT, txt2)
-        msg.insert(tk.INSERT, 'Home: ')
-        msg.insert(tk.INSERT, __uri__,
-                   linkman.add(fnt.partial(open_url, __uri__)))
-
-        msg.configure(state=tk.DISABLED, bg='SystemButtonFace')
+        verbose = logging.getLogger().level <= logging.DEBUG
+        show_about(top, verbose=verbose)
 
     def mainloop(self):
         try:
@@ -1572,5 +1651,5 @@ def main():
 if __name__ == '__main__':
     if __package__ is None:
         __package__ = "co2mpas"  # @ReservedAssignment
-    init_logging()
+    cmain.init_logging()
     main()
