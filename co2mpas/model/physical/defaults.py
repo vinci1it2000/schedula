@@ -16,6 +16,9 @@ import co2mpas.utils as co2_utl
 
 #: Container of node default values.
 class Values(co2_utl.Constants):
+    #: Does the engine have selective catalytic reduction technology?
+    has_selective_catalytic_reduction = False
+
     #: Does the engine have lean burn technology?
     has_lean_burn = False
 
@@ -192,34 +195,40 @@ class Functions(co2_utl.Constants):
                 #0: {},
                 1: {'a': 1.02, 'b': 1.1, 'c': 1.5, 'a2': 1.1},  # positive turbo
                 2: {'a': 1.02, 'b': 1.1, 'c': 1.5, 'a2': 1.1},  # positive natural aspiration
-                3: {'a': 1.015, 'b': 1.1, 'c': 1.4, 'a2': 1.1}  # compression
+                3: {'a': 1.015, 'b': 1.1, 'c': 1.4, 'a2': 1.1}, # compression
+                4: {'a': 1.015, 'b': 1.1, 'c': 1.4, 'a2': 1.1}  # compression + scr
             }
         }
 
     class FMEP_egr(co2_utl.Constants):
         #: Exhausted gas recirculation multiplication factors ids [-].
         egr_fact_map = {
-            'positive turbo': 1,
-            'positive natural aspiration': 2,
-            'compression': 3
+            ('positive turbo', False): 1,
+            ('positive natural aspiration', False): 2,
+            ('compression', False): 3,
+            ('compression', True): 4
         }
 
     class calibrate_co2_params(co2_utl.Constants):
         #: Enable third step in the co2_params calibration? [-]
-        enable_third_step = True
+        enable_third_step = False
 
         #: Use co2 error function against co2_emissions on the third step? [-]
-        third_step_against_emissions = False
+        third_step_against_emissions = True
 
     class identify_co2_emissions(co2_utl.Constants):
         #: Number of perturbations to identify the co2_emissions [-].
-        n_perturbations = 2
+        n_perturbations = 100
 
         #: Enable third step co2_params calibration in perturbation loop? [-]
         enable_third_step = False
 
         #: Use error function against co2_emissions in perturbation loop? [-]
-        third_step_against_emissions = False
+        third_step_against_emissions = True
+
+        #: Absolute error in k_refactor between iterations that is acceptable
+        #: for convergence in perturbation loop [-].
+        xatol = 1e-4
 
     class Alternator_status_model(co2_utl.Constants):
         #: Minimum delta time to consider valid a charging state to fit charges
@@ -311,18 +320,18 @@ class Functions(co2_utl.Constants):
                 'c': {'value': -0.00069, 'min': -0.00099, 'max': -0.00038},
                 'a2': {'value': -0.00266, 'min': -0.00354, 'max': -0.00179},
                 'b2': {'value': 0, 'min': -1, 'max': 1, 'vary': False},
-                'l': {'value': -2.49882, 'min': -3.27698, 'max': -1.72066},
+                'l': {'value': -2.14063, 'min': -3.17876, 'max': -1.1025},
                 'l2': {'value': -0.0025, 'min': -0.00796, 'max': 0.0},
                 't0': {'value': 4.5, 'min': 0.0, 'max': 8.0},
                 't1': {'value': 3.5, 'min': 0.0, 'max': 8.0},
             },
             'positive natural aspiration': {
-                'a': {'value': 0.4719, 'min': 0.40065, 'max': 0.54315},
+                'a': {'value': 0.4751, 'min': 0.40065, 'max': 0.54315},
                 'b': {'value': 0.01193, 'min': -0.00247, 'max': 0.026333},
                 'c': {'value': -0.00065, 'min': -0.00138, 'max': 0.0000888},
                 'a2': {'value': -0.00385, 'min': -0.00663, 'max': -0.00107},
                 'b2': {'value': 0, 'min': -1, 'max': 1, 'vary': False},
-                'l': {'value': -2.14063, 'min': -3.17876, 'max': -1.1025},
+                'l': {'value': -2.49882, 'min': -3.27698, 'max': -1.72066},
                 'l2': {'value': -0.00286, 'min': -0.00577, 'max': 0.0},
                 't0': {'value': 4.5, 'min': 0.0, 'max': 8.0},
                 't1': {'value': 3.5, 'min': 0.0, 'max': 8.0},

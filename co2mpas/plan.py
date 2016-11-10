@@ -107,7 +107,7 @@ def make_simulation_plan(plan, timestamp, variation, flag, model=None):
 
     var = json.dumps(variation, sort_keys=True)
     o_cache, o_folder = flag['overwrite_cache'], flag['output_folder']
-    modelconf = flag['modelconf']
+    modelconf = flag.get('modelconf', None)
     kw, bases = dsp_utl.combine_dicts(flag, {'run_base': True}), set()
     for (i, base_fpath, run), p in tqdm.tqdm(plan, disable=False):
         try:

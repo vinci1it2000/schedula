@@ -1382,6 +1382,8 @@ def engine():
                 'has_periodically_regenerating_systems',
             'ki_factor': 'ki_factor',
             'engine_max_speed': 'engine_max_speed',
+            'has_selective_catalytic_reduction':
+                'has_selective_catalytic_reduction',
             'has_exhausted_gas_recirculation': 'has_exhausted_gas_recirculation'
         },
         outputs={

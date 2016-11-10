@@ -290,6 +290,7 @@ class FMEP(object):
                  lb_max_mean_piston_speeds=12.0,
                  lb_full_bmep_curve_percentage=0.4,
                  has_exhausted_gas_recirculation=False,
+                 has_selective_catalytic_reduction=False,
                  egr_max_mean_piston_speeds=12.0,
                  egr_full_bmep_curve_percentage=0.7,
                  engine_type=None):
@@ -314,6 +315,7 @@ class FMEP(object):
         self.lb_n_temp_min = 0.5
 
         self.has_exhausted_gas_recirculation = has_exhausted_gas_recirculation
+        self.has_selective_catalytic_reduction = has_selective_catalytic_reduction
         self.egr_max_mean_piston_speeds = float(egr_max_mean_piston_speeds)
         self.egr_fbc_percentage = egr_full_bmep_curve_percentage
         self.engine_type = engine_type
@@ -338,9 +340,21 @@ class FMEP(object):
         if self.has_exhausted_gas_recirculation and 'egr' not in params:
             #b = n_speeds < self.egr_max_mean_piston_speeds
             #b &= n_powers <= (self.fbc(n_speeds) * self.egr_fbc_percentage)
-            egr = defaults.dfl.functions.FMEP_egr.egr_fact_map[self.engine_type]
-            if self.engine_type == 'compression':
-                a['egr'] = ((0, True), (egr, n_temp < 1))
+            k = self.engine_type, self.has_selective_catalytic_reduction
+            egr = defaults.dfl.functions.FMEP_egr.egr_fact_map[k]
+            if k[0] == 'compression':
+                if k[1]:
+                    b = n_temp < 1
+                else:
+                    b = n_speeds < self.egr_max_mean_piston_speeds
+                    b &= n_powers <= (self.fbc(n_speeds) * self.egr_fbc_percentage)
+
+                if b is True:
+                    a['egr'] = (egr, True),
+                elif b is False:
+                    a['egr'] = (0, True),
+                else:
+                    a['egr'] = (np.where(b, egr, 0), True),
             else:
                 a['egr'] = ((0, True), (egr, True))
 
@@ -440,7 +454,8 @@ class FMEP(object):
 def define_fmep_model(
     full_bmep_curve, engine_max_speed, engine_stroke, active_cylinder_ratios,
     has_cylinder_deactivation, has_variable_valve_actuation, has_lean_burn,
-    has_exhausted_gas_recirculation, engine_type):
+    has_exhausted_gas_recirculation, has_selective_catalytic_reduction,
+    engine_type):
     """
     Defines the vehicle FMEP model.
 
@@ -476,6 +491,10 @@ def define_fmep_model(
         Does the engine have exhaust gas recirculation technology?
     :type has_exhausted_gas_recirculation: bool
 
+    :param has_selective_catalytic_reduction:
+        Does the engine have selective catalytic reduction technology?
+    :type has_selective_catalytic_reduction: bool
+
     :param engine_type:
         Engine type (positive turbo, positive natural aspiration, compression).
     :type engine_type: str
@@ -509,6 +528,7 @@ def define_fmep_model(
         lb_max_mean_piston_speeds=bmep(lb_mps, engine_stroke),
         lb_full_bmep_curve_percentage=lb_fbcp,
         has_exhausted_gas_recirculation=has_exhausted_gas_recirculation,
+        has_selective_catalytic_reduction=has_selective_catalytic_reduction,
         egr_max_mean_piston_speeds=bmep(egr_mps, engine_stroke),
         egr_full_bmep_curve_percentage=egr_fbcp,
         engine_type=engine_type
@@ -517,15 +537,42 @@ def define_fmep_model(
     return model
 
 
+def _yield_factors(param_id, factor):
+    try:
+        for k, v in factor.get(param_id, {}).items():
+            yield k, v, 1
+    except TypeError:
+        p = {}
+
+        def _defaults():
+            j = np.zeros_like(param_id, dtype=float)
+            n = np.zeros_like(param_id, dtype=int)
+            return j, n
+
+        for m in np.unique(param_id):
+            b = m == param_id
+            for k, v in factor.get(m, {}).items():
+                j, i = dsp_utl.get_nested_dicts(p, k, default=_defaults)
+                j[b], i[b] = v, 1
+
+        for k, (j, n) in p.items():
+            b = n == 0
+            j[b], n[b] = 1, 1
+            yield k, j, n
+
+
 def _tech_mult_factors(**params):
     p = {}
     factors = defaults.dfl.functions._tech_mult_factors.factors
     for k, v in factors.items():
-        for i, j in v.get(params.get(k, 0), {}).items():
-            dsp_utl.get_nested_dicts(p, i, default=list).append(j)
+        for i, j, n in _yield_factors(params.get(k, 0), v):
+            s = dsp_utl.get_nested_dicts(p, i, default=lambda: [0, 0])
+            s[0] += j
+            s[1] += n
 
-    for k, v in p.items():
-        params[k] = np.mean(v) * params[k]
+    for k, (n, d) in p.items():
+        m = n / d
+        params[k] = m * params[k]
 
     return params
 
@@ -1108,10 +1155,13 @@ def _rescale_co2_emissions(
         cumulative_co2_emissions, params_initial_guess):
     co2_emissions = co2_emissions_model(params_initial_guess)[0]
     trapz = sci_itg.trapz
+    k_factors = []
     for cco2, p in zip(cumulative_co2_emissions, phases_integration_times):
         i, j = np.searchsorted(times, p)
-        co2_emissions[i:j] *= cco2 / trapz(co2_emissions[i:j], times[i:j])
-    return co2_emissions
+        k = cco2 / trapz(co2_emissions[i:j], times[i:j])
+        co2_emissions[i:j] *= k
+        k_factors.append(k)
+    return co2_emissions, np.array(k_factors)
 
 
 def identify_co2_emissions(
@@ -1159,11 +1209,14 @@ def identify_co2_emissions(
         _3rd_emissions=dfl.third_step_against_emissions
     )
     error_function = define_co2_error_function_on_emissions
-    co2 = rescale(p)
-    n = dfl.n_perturbations
+    co2, k0 = rescale(p)
+    n, xatol = dfl.n_perturbations, dfl.xatol
     for i in range(n):
         p = calibrate(error_function(co2_emissions_model, co2), p)[0]
-        co2 = rescale(p)
+        co2, k1 = rescale(p)
+        if np.max(np.abs(k1 - k0)) <= xatol:
+            break
+        k0 = k1
 
     return co2
 
@@ -1587,7 +1640,7 @@ def calibrate_co2_params(
         _set_attr(p, cold_p, default=False)
 
     if _3rd_step:
-        p = restrict_bounds(p)
+        #p = restrict_bounds(p)
 
         if _3rd_emissions:
             err = co2_error_function_on_emissions
@@ -2372,6 +2425,11 @@ def co2_emission():
         default_value=defaults.dfl.values.has_lean_burn
     )
 
+    d.add_data(
+        data_id='has_selective_catalytic_reduction',
+        default_value=defaults.dfl.values.has_selective_catalytic_reduction
+    )
+
     d.add_function(
         function=default_engine_has_exhausted_gas_recirculation,
         inputs=['fuel_type'],
@@ -2383,7 +2441,8 @@ def co2_emission():
         inputs=['full_bmep_curve', 'engine_max_speed', 'engine_stroke',
                 'active_cylinder_ratios', 'engine_has_cylinder_deactivation',
                 'engine_has_variable_valve_actuation', 'has_lean_burn',
-                'has_exhausted_gas_recirculation', 'engine_type'],
+                'has_exhausted_gas_recirculation',
+                'has_selective_catalytic_reduction', 'engine_type'],
         outputs=['fmep_model']
     )
 

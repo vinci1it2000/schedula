@@ -550,6 +550,8 @@ def physical():
         dsp_id='engine_model',
         dsp=engine(),
         inputs={
+            'has_selective_catalytic_reduction':
+                'has_selective_catalytic_reduction',
             'has_lean_burn': 'has_lean_burn',
             'engine_mass': 'engine_mass',
             'is_hybrid': 'is_hybrid',
