@@ -55,6 +55,7 @@ from idlelib.ToolTip import ToolTip
 import io
 import logging
 import os
+from pandalone import utils as putils
 import random
 import re
 import sys
@@ -63,10 +64,10 @@ from threading import Thread
 from tkinter import StringVar, ttk, filedialog
 import traceback
 from typing import Text, Union
+import weakref
 import webbrowser
 
 from PIL import Image, ImageTk
-from pandalone import utils as putils
 from toolz import dicttoolz as dtz, itertoolz as itz
 import yaml
 
@@ -76,6 +77,7 @@ import co2mpas.batch as co2mpas_batch
 from co2mpas.utils import stds_redirected
 import functools as fnt
 import os.path as osp
+import weakref
 import pkg_resources as pkg
 import tkinter as tk
 
@@ -285,11 +287,18 @@ def run_python_job(job_name, function, cmd_args, cmd_kwds, stdout=None, stderr=N
             log.error("Job %s stderr: %s", job_name, stderr)
 
 
+_loaded_icons = weakref.WeakValueDictionary()
+
+
 def read_image(fpath):
-    with pkg.resource_stream('co2mpas', fpath) as fd:  # @UndefinedVariable
-        img = Image.open(fd)
-        photo = ImageTk.PhotoImage(img)
-    return photo
+    icon = _loaded_icons.get(fpath)
+    if not icon:
+        with pkg.resource_stream('co2mpas', fpath) as fd:  # @UndefinedVariable
+            img = Image.open(fd)
+            icon = ImageTk.PhotoImage(img)
+        _loaded_icons[fpath] = icon
+
+    return icon
 
 
 def add_icon(btn, icon_path):
