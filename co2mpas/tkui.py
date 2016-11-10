@@ -1366,7 +1366,10 @@ class SimulatePanel(ttk.Frame):
         cmd_kwds.update({
             'type_approval_mode': is_ta,
             'overwrite_cache': True,
-            'result_listener': updater.result_generated})
+            'result_listener': updater.result_generated,
+            # FIXME: Why `job_must_stop` flag appears True!??
+            #'model': co2mpas_batch.vehicle_processing_model(),
+        })
         t = Thread(
             target=run_python_job,
             args=(job_name,
@@ -1505,7 +1508,7 @@ class TkUI(object):
     def is_stop_job_signaled(self):
         """Returns true if signaled, but job might be already dead; check also :meth:`is_job_alive()`."""
         from co2mpas.dispatcher import Dispatcher
-        return self._job_thread and Dispatcher.dsp_must_stop
+        return self._job_thread and Dispatcher.dsp_must_stop.is_set()
 
     def _add_window_icon(self, win):
         win.tk.call('wm', 'iconphoto', win._w, read_image('icons/CO2MPAS_icon-64.png'))
