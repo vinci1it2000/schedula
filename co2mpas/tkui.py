@@ -1047,7 +1047,8 @@ class SimulatePanel(ttk.Frame):
                                style='Flipper.TLabelframe')
         add_tooltip(frame, 'advanced_link')
 
-        logo = ttk.Label(frame, image=self.app.logo, style='Logo.TLabel')
+        logo = ttk.Label(frame, style='Logo.TLabel')
+        add_icon(logo, 'icons/CO2MPAS_banner2.png')
 
         def show_logo():
             logo.grid(column=1, row=1, rowspan=2, sticky='nswe')
@@ -1449,14 +1450,9 @@ class TkUI(object):
             root = tk.Tk()
         self.root = root
         root.title("%s-%s" % (app_name, __version__))
+        self._add_window_icon(root)
 
         define_ttk_styles()
-
-        # Menubar
-        #
-        menubar = tk.Menu(root)
-        menubar.add_command(label="About %r" % app_name, command=self.show_about,)
-        root['menu'] = menubar
 
         self._status_text = status = self._make_status(root)
         status.grid(row=1, column=0, sticky='nswe')
@@ -1485,6 +1481,15 @@ class TkUI(object):
         root.columnconfigure(0, weight=1)
         root.columnconfigure(0, weight=2)
         root.rowconfigure(0, weight=1)
+
+        # Menubar
+        #
+        menubar = tk.Menu(root)
+        menubar.add_command(label="About %r" % app_name, command=fnt.partial(self.show_about_window, slider))
+        root['menu'] = menubar
+
+    def _add_window_icon(self, win):
+        win.tk.call('wm', 'iconphoto', win._w, read_image('icons/CO2MPAS_icon-64.png'))
 
     def _make_status(self, parent):
         status = tk.Text(parent, wrap=tk.NONE, height=1, relief=tk.FLAT,
@@ -1623,15 +1628,9 @@ class TkUI(object):
         progr_bar = self._progr_bar
         return self._progr_var.get(), progr_bar['maximum']
 
-    @property
-    def logo(self):
-        if not hasattr(self, '_logo'):
-            self._logo = read_image('icons/CO2MPAS_banner2.png')  # Avoid GC.
-        return self._logo
-
     _about_top_wind = None
 
-    def show_about(self):
+    def show_about_window(self, root):
         if self._about_top_wind:
             self._about_top_wind.lift()
             return
@@ -1642,6 +1641,8 @@ class TkUI(object):
 
         self._about_top_wind = top = tk.Toplevel(self.root)
         top.transient()
+        self._add_window_icon(top)
+
         top.protocol("WM_DELETE_WINDOW", close_win)
         verbose = logging.getLogger().level <= logging.DEBUG
         show_about(top, verbose=verbose)
