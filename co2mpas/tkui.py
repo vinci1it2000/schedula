@@ -1499,28 +1499,28 @@ class TkUI(object):
         return status
 
     def lstatus(self, msg, *args, level=None, delay=None, **kwds):
-        self._status(msg, args, level, delay, kwds)
+        self.status(msg, *args, level=level, delay=delay, **kwds)
 
     def dstatus(self, msg, *args, delay=None, **kwds):
-        self._status(msg, args, logging.DEBUG, delay, kwds)
+        self.status(msg, *args, level=logging.DEBUG, delay=delay, **kwds)
 
     def istatus(self, msg, *args, delay=None, **kwds):
-        self._status(msg, args, logging.INFO, delay, kwds)
+        self.status(msg, *args, level=logging.INFO, delay=delay, **kwds)
 
     def wstatus(self, msg, *args, delay=None, **kwds):
-        self._status(msg, args, logging.WARNING, delay, kwds)
+        self.status(msg, *args, level=logging.WARNING, delay=delay, **kwds)
 
     def estatus(self, msg, *args, delay=None, **kwds):
-        self._status(msg, args, logging.ERROR, delay, kwds)
+        self.status(msg, *args, level=logging.ERROR, delay=delay, **kwds)
 
     def cstatus(self, msg, *args, delay=None, **kwds):
-        self._status(msg, args, logging.CRITICAL, delay, kwds)
+        self.status(msg, *args, level=logging.CRITICAL, delay=delay, **kwds)
 
     _status_static_msg = ('', None)
     _clear_cb_id = None
     _motd_cb_id = None
 
-    def _status(self, msg, args, level: Union[Text, int]=None, delay=None, kwds={}):
+    def status(self, msg, *args, level: Union[Text, int]=None, delay=None, kwds={}):
         """
         :param level:
             logging-level(int) or tag(str), if None, defaults to INFO.
@@ -1578,6 +1578,8 @@ class TkUI(object):
     def clear_status(self):
         """Actually prints the "static" message, if any."""
         status = self._status_text
+
+        status.after_cancel(self._clear_cb_id)
         status['state'] = tk.NORMAL
         status.delete('1.0', tk.END)
         status.insert('1.0', *self._status_static_msg)
@@ -1586,15 +1588,14 @@ class TkUI(object):
 
     def show_motd(self, delay=21 * 1000, motd_ix=None):
         def show():
-            if not self._status_static_msg and not self._clear_cb_id:
-                #
-                # Do not hide urgent msgs; reschedule in case they leave.
-
+            # Do not hide static msgs; reschedule in case they leave.
+            #
+            if not self._status_static_msg[0]:
                 if motd_ix is not None:
                     msg = MOTDs[motd_ix]
                 else:
                     msg = random.choice(MOTDs)
-                self._status('Tip: %s', msg, level='help')
+                self.status('Tip: %s', msg, level='help')
 
             self.show_motd()  # Re-schedule motd.
 
