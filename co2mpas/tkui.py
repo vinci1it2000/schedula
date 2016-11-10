@@ -1629,8 +1629,20 @@ class TkUI(object):
             self._logo = read_image('icons/CO2MPAS_banner2.png')  # Avoid GC.
         return self._logo
 
+    _about_top_wind = None
+
     def show_about(self):
-        top = tk.Toplevel(self.root)
+        if self._about_top_wind:
+            self._about_top_wind.lift()
+            return
+
+        def close_win():
+            self._about_top_wind.destroy()
+            self._about_top_wind = None
+
+        self._about_top_wind = top = tk.Toplevel(self.root)
+        top.transient()
+        top.protocol("WM_DELETE_WINDOW", close_win)
         verbose = logging.getLogger().level <= logging.DEBUG
         show_about(top, verbose=verbose)
 
