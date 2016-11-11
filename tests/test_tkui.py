@@ -24,7 +24,7 @@ mydir = osp.dirname(__file__)
 
 @ddt.ddt
 class Test(unittest.TestCase):
-    
+
     @ddt.data(
         ("", ()),
         ("""Some clean text.""", ()),
@@ -57,8 +57,16 @@ class Test(unittest.TestCase):
              (None, 'mplah', 'blah'),
          )
          ),
+
+        ("""] (Hi [ wdg: foo] there [img: abc ] and [ mplah ].""",
+         (
+             ('wdg:', 'foo', None),
+             ('img:', 'abc', None),
+             (None, 'mplah', None),
+         )
+         ),
     )
-    def test_markdown_parsing_regex(self, case):
+    def test_makdown_parsing_regex(self, case):
         txt, exp_groups_seq = case
         exp_nmatches = len(exp_groups_seq)
         regex = tkui._img_in_txt_regex
@@ -68,6 +76,22 @@ class Test(unittest.TestCase):
             self.assertEqual(m.groups(), exp_groups)
 
         self.assertEqual(nmatches, exp_nmatches)
+
+    @ddt.data(
+        'asd [ foo f',
+        'asd ( foo f',
+        'asd ( foo )f',
+        'asd  foo )f',
+        'asd  foo ]f',
+        ' [bar)sf',
+        ' (bar)sf',
+        ' [img:bar)sf',
+        ' [wdg:bar)sf',
+    )
+    def test_makdown_parsing_regex_bad(self, txt):
+        regex = tkui._img_in_txt_regex
+
+        self.assertIsNone(regex.search(txt))
 
 #    def test_smoketest(self):
 #        root = tk.Tk()
@@ -86,7 +110,7 @@ class Test(unittest.TestCase):
         root = tk.Tk()
         try:
             tkui.show_about(root, verbose=True)
-            root.after(3000, root.quit)
+            root.after(2000, root.quit)
             root.mainloop()
         finally:
             try:

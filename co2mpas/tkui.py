@@ -215,7 +215,7 @@ def show_about(root, about_txt=about_txt, verbose=False):
     txt = dedent(about_txt).format_map(ChainMap(fields, locals(), globals()))
 
     log.info(txt)
-    add_markdownd_text(msg, txt)
+    add_makdownd_text(msg, txt)
 
     msg.configure(state=tk.DISABLED, bg='SystemButtonFace')
 
@@ -452,14 +452,14 @@ _img_in_txt_regex = re.compile(
                 \ * (?P<obj>(?:img|wdg):)?
                 \ * (?P<alt>[^\]]+?) \ *
         \]
-        \(
+        (?:\(
             \ * (?P<url>[^)]+?) \ *
-        \)
+        \))?
     ''',
     re.IGNORECASE | re.VERBOSE)
 
 
-def add_markdownd_text(text_widget, text, widgets: Mapping=None):
+def add_makdownd_text(text_widget, text, widgets: Mapping[str, tk.Widget]=None):
     """
     Support a limited Markdown for inserting text into :class:`tk.Text`.
 
@@ -467,16 +467,16 @@ def add_markdownd_text(text_widget, text, widgets: Mapping=None):
 
     - Links: ``[<alt-text>](<url>)`` is replaced with a :class:`HyperlinkManager` link.
     - Images: ``[img:<alt-text>](<filename>)`` is replaced with the image loaded from ``<filename>``.
-    - Widgets: ``[wdg:<alt-text>](<widget-key>)`` where ``<widget-key>`` is use to retrieve the widget 
+    - Widgets: ``[wdg:<alt-text>](<widget-key>)`` where ``<widget-key>`` is use to retrieve the widget
       from the `widgets` mapping passed as argument (must exist).
 
     Example::
 
         msg = "[Einstein](https://en.wikipedia.org/wiki/Einstein) on the [img:beach](images/keratokampos.png).")
-        add_markdownd_text(text, msg)
+        add_makdownd_text(text, msg)
 
     :param widgets:
-        Maps ``{url --> Widget-instances}`` to be used by 
+        Maps ``{url --> Widget-instances}`` to be used by ``[wdg:studd]``
     """
     linkman = None
 
@@ -489,24 +489,40 @@ def add_markdownd_text(text_widget, text, widgets: Mapping=None):
 
     last_endp = 0
     for m in _img_in_txt_regex.finditer(text):
-        s, e = m.span(0)
-        text_widget.insert(tk.INSERT, text[last_endp:s])
+        try:
+            s, e = m.span(0)
+            text_widget.insert(tk.INSERT, text[last_endp:s])
 
-        obj, alt, url = m.groups()
-        if obj == 'img:':
-            img = read_image(url)
-            #add_tooltip(img, alt, no_lookup=True)
-            text_widget.image_create(tk.INSERT, image=img)
-        elif obj == 'wdg:':
-            w = widgets[url]
-            #add_tooltip(w, alt, allow_misses=True)
-            text_widget.window_create(tk.INSERT, window=w)
-        elif alt:
-            lm = get_linkman()
-            tag = lm.add(fnt.partial(open_url, url))
-            text_widget.insert(tk.INSERT, alt, tag)
-        else:
-            raise AssertionError(text, s, e, obj, alt, url, m.groupdict())
+            obj, alt, url = m.groups()
+            if not url:
+                url = alt
+
+            if obj == 'img:':
+                img = read_image(url)
+                #add_tooltip(img, alt, no_lookup=True)
+                text_widget.image_create(tk.INSERT, image=img)
+
+                ## Do not GC image.
+                #
+                imgs = getattr(text_widget, 'imgs', [])
+                if not widgets:
+                    text_widget.imgs = imgs
+                imgs.append(img)
+
+            elif obj == 'wdg:':
+                w = widgets[url]
+                #add_tooltip(w, alt, allow_misses=True)
+                text_widget.window_create(tk.INSERT, window=w)
+            elif alt:
+                lm = get_linkman()
+                tag = lm.add(fnt.partial(open_url, url))
+                text_widget.insert(tk.INSERT, alt, tag)
+            else:
+                raise AssertionError(text, s, e, obj, alt, url, m.groupdict())
+        except Exception as ex:
+            raise ValueError("Makdown syntax-error %r at (line.column) %s: %s"
+                             "\n  obj: %s, alt: %s, url: %s"%
+                             (m.group(0), text_widget.index(tk.INSERT), ex, obj, alt, url))
         last_endp = e
     text_widget.insert(tk.INSERT, text[last_endp:])
 
@@ -1402,19 +1418,19 @@ class SyncronizePanel(ttk.Labelframe):
     def __init__(self, parent, app, **kw):
         super().__init__(parent, text='Synchronize Template:', **kw)
         self.app = app
-        widgets = {}  # To register widgets embeded in markdown-text.
+        widgets = {}  # To register widgets embeded in makdown-text.
 
         help_msg = dedent("""
-        1.a) Choose a theoretical velocity profile and click the [img:download template](icons/download-olive-32.png) button below to create an empty "Sync file": 
+        1.a) Choose a theoretical velocity profile and click the [img:download template](icons/download-olive-32.png) button below to create an empty "Sync file":
              [wdg:download-templ-file](download-templ-file)
-        
+
         1.b) OR click the [img:Select Excel file to Sync](icons/excel-olive-32.png) button to load a pre-populated "Sync file":
              [wdg:inp-sync-file](inp-sync-file)
 
 
         2) Then fill-in your raw data into the `dyno` and `obd` sheets, and click [img:align](icons/align_center-olive-32.png) button below:
            [wdg:run-sync](run-sync)
-        
+
         3) Copy paste the synchronized signal into a CO2MPAS Input File,
            and run it (previous tab).
         """)
@@ -1482,7 +1498,7 @@ class SyncronizePanel(ttk.Labelframe):
         add_icon(btn, 'icons/align_center-olive-32.png')
         widgets['run-sync'] = btn
 
-        add_markdownd_text(textarea, help_msg, widgets)
+        add_makdownd_text(textarea, help_msg, widgets)
         textarea['state'] = tk.DISABLED
 
     def mediate_guistate(self):
