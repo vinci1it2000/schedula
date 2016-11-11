@@ -16,7 +16,7 @@ from inspect import signature, Parameter, _POSITIONAL_OR_KEYWORD
 from itertools import repeat, chain
 import types
 
-from .exc import DispatcherError
+from .exc import DispatcherError, DispatcherAbort
 from .gen import caller_name, Token
 
 
@@ -671,7 +671,8 @@ class SubDispatch(object):
         from .sol import Solution
         self.solution = Solution(dsp)
 
-    def __call__(self, *input_dicts, copy_input_dicts=False, _sol_output=None):
+    def __call__(self, *input_dicts, copy_input_dicts=False, _sol_output=None,
+                 _sol_stopper=None):
 
         # Combine input dictionaries.
         i = combine_dicts(*input_dicts, copy=copy_input_dicts)
@@ -679,7 +680,7 @@ class SubDispatch(object):
         # Dispatch the function calls.
         self.solution = self.dsp.dispatch(
             i, self.outputs, self.cutoff, self.inputs_dist, self.wildcard,
-            self.no_call, self.shrink, self.rm_unused_nds
+            self.no_call, self.shrink, self.rm_unused_nds, stopper=_sol_stopper
         )
 
         return self._return(self.solution, _sol_output)
@@ -1002,10 +1003,11 @@ class SubDispatchFunction(SubDispatch):
         elif len(outputs) == 1:
             self.output_type = 'values'
 
-    def __call__(self, *args, _sol_output=None, **kwargs):
+    def __call__(self, *args, _sol_output=None, _sol_stopper=None, **kwargs):
         # Namespace shortcuts.
         dsp, inputs = self.dsp, map_list(self.inputs, *args)
         self.solution = sol = self._sol.copy_structure()
+        sol.stopper = _sol_stopper or dsp.stopper
 
         # Check multiple values for the same argument.
         i = next((i for i in kwargs if i in inputs), None)
@@ -1152,11 +1154,12 @@ class SubDispatchPipe(SubDispatchFunction):
 
         self.pipe = [_make_tks(*v['task'][-1]) for v in self._sol.pipe.values()]
 
-    def __call__(self, *args, _sol_output=None):
+    def __call__(self, *args, _sol_output=None, _sol_stopper=None):
         dsp, inputs = self.dsp, map_list(self.inputs, *args)
         key_map, sub_dsp = {}, {}
         for k, s in self._sol.sub_dsp.items():
             ns = s.copy_structure(dist=1)
+            ns.stopper = _sol_stopper or ns.stopper
             ns.sub_dsp = sub_dsp
             key_map[s] = ns
             sub_dsp[k] = ns
@@ -1170,8 +1173,8 @@ class SubDispatchPipe(SubDispatchFunction):
         for v, s, nxt_nds, nxt_dsp in self.pipe:
             s = key_map[s]
 
-            if dsp.dsp_must_stop.is_set():
-                raise RuntimeError("Stop requested.")
+            if s.stopper.is_set():
+                raise DispatcherAbort(sol, "Stop requested.")
 
             if not s._set_node_output(v, False, next_nds=nxt_nds):
                 break

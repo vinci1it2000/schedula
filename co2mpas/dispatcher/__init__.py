@@ -22,10 +22,8 @@ Modules:
 """
 
 from collections import deque
-from copy import copy, deepcopy
-import logging
+from copy import copy, deepcopy, _reconstruct
 import threading
-
 from .utils.alg import rm_cycles_iter, get_unused_node_id, add_func_edges, \
     get_sub_node, _children, stlp, _update_io_attr_sub_dsp, \
     _update_remote_links, remove_links, _union_workflow, _convert_bfs
@@ -43,9 +41,6 @@ __all__ = ['Dispatcher']
 __author__ = 'Vincenzo Arcidiacono'
 
 
-log = logging.getLogger(__name__)
-
-
 class Dispatcher(object):
     """
     It provides a data structure to process a complex system of functions.
@@ -53,11 +48,11 @@ class Dispatcher(object):
     The scope of this data structure is to compute the shortest workflow between
     input and output data nodes.
 
-    :ivar dsp_must_stop:
-        A semaphore (:class:`threading.Event`) for breaking out of the dispatching when true.
+    :ivar stopper:
+        A semaphore (:class:`threading.Event`) to abort the dispatching.
         
     .. Tip::
-        Rember to set :attr:`dsp_must_stop` to `False` before dispatching ;-)
+        Rember to set :attr:`stopper` to `False` before dispatching ;-)
 
     A workflow is a sequence of function calls.
 
@@ -164,14 +159,14 @@ class Dispatcher(object):
     
     """
 
-    #: When false, dispatch loops raise :exc:`StopIteration` ASAP.
-    dsp_must_stop = threading.Event()
+    #: When True, the dispatching loop raise :exc:`DispatcherAbort` ASAP.
+    stopper = threading.Event()
 
     def __lt__(self, other):
         return isinstance(other, Dispatcher) and id(other) < id(self)
 
     def __init__(self, dmap=None, name='', default_values=None, raises=False,
-                 description='', caller=None):
+                 description='', caller=None, stopper=None):
         """
         Initializes the dispatcher.
 
@@ -196,7 +191,16 @@ class Dispatcher(object):
         :param description:
             The dispatcher's description.
         :type description: str, optional
+
+        :param caller:
+            Who calls my caller?
+        :type caller: str, optional
+
+        :param stopper:
+            A semaphore to abort the dispatching.
+        :type stopper: threading.Event, optional
         """
+
         from networkx import DiGraph
         #: The directed graph that stores data & functions parameters.
         self.dmap = dmap if dmap else DiGraph()
@@ -225,10 +229,26 @@ class Dispatcher(object):
         #: Parent dispatcher.
         self._parent = None
 
+        if stopper:
+            #: Stopper to abort the dispatcher execution.
+            self.stopper = stopper
+
         #: Last dispatch solution.
         self.solution = Solution(self)
 
+        #: Counter to set the node index.
         self.counter = counter()
+
+    def copy_structure(self, **kwargs):
+        _map = {
+            'description': '__doc__', 'name': 'name', 'stopper': 'stopper',
+            'raises': 'raises'
+        }
+        base = {k: getattr(self, v) for k, v in _map.items()}
+        obj = self.__class__(**combine_dicts(kwargs, base=base))
+        obj._parent = self._parent
+        obj.weight = self.weight
+        return obj
 
     def add_data(self, data_id=None, default_value=EMPTY, initial_dist=0.0,
                  wait_inputs=False, wildcard=None, function=None, callback=None,
@@ -995,12 +1015,7 @@ class Dispatcher(object):
         nodes_bunch = [self.get_node(u)[1][0] for u in nodes_bunch]
 
         # Define an empty dispatcher.
-        sub_dsp = self.__class__(dmap=self.dmap.subgraph(nodes_bunch))
-        sub_dsp.weight = self.weight
-        sub_dsp.__doc__ = self.__doc__
-        sub_dsp.name = self.name
-        sub_dsp.raises = self.raises
-        sub_dsp._parent = self._parent
+        sub_dsp = self.copy_structure(dmap=self.dmap.subgraph(nodes_bunch))
 
         # Namespace shortcuts for speed.
         nodes, dmap_out_degree = sub_dsp.nodes, sub_dsp.dmap.out_degree
@@ -1121,9 +1136,7 @@ class Dispatcher(object):
         """
 
         # Define an empty dispatcher map.
-        sub_dsp, sub_dsp.weight = self.__class__(), self.weight
-        sub_dsp.__doc__, sub_dsp.name = self.__doc__, self.name
-        sub_dsp.raises, sub_dsp._parent = self.raises, self._parent
+        sub_dsp = self.copy_structure()
 
         if not graph:  # Set default graph.
             graph = self.solution.workflow
@@ -1395,6 +1408,14 @@ class Dispatcher(object):
         """
 
         return deepcopy(self)  # Return the copy of the Dispatcher.
+
+    def __deepcopy__(self, memo):
+        rv = super(Dispatcher, self).__reduce_ex__(4)
+        i = id(self.stopper)
+        if i not in memo:
+            memo[i] = threading.Event()
+
+        return _reconstruct(self, rv, 1, memo)
 
     def plot(self, workflow=False, view=True, nested=True, edge_data=(),
              node_data=(), node_function=(), draw_outputs=0, node_styles=None,
@@ -1671,7 +1692,8 @@ class Dispatcher(object):
 
     def dispatch(self, inputs=None, outputs=None, cutoff=None, inputs_dist=None,
                  wildcard=False, no_call=False, shrink=False,
-                 rm_unused_nds=False, select_output_kw=None, _wait_in=None):
+                 rm_unused_nds=False, select_output_kw=None, _wait_in=None,
+                 stopper=None):
         """
         Evaluates the minimum workflow and data outputs of the dispatcher
         model from given inputs.
@@ -1721,6 +1743,10 @@ class Dispatcher(object):
         :param _wait_in:
             Override wait inputs.
         :type _wait_in: dict, optional
+
+        :param stopper:
+            A semaphore to abort the dispatching.
+        :type stopper: threading.Event, optional
 
         :return:
             Dictionary of estimated data node outputs.
@@ -1810,10 +1836,12 @@ class Dispatcher(object):
         # Initialize.
         self.solution = sol = Solution(
             dsp, inputs, outputs, wildcard, cutoff, inputs_dist, no_call,
-            rm_unused_nds, _wait_in)
-        # dispatch
+            rm_unused_nds, _wait_in, stopper=stopper
+        )
+
+        # Dispatch.
         sol.run()
-        sol.sub_dsp[self] = sol.sub_dsp.pop(dsp)
+        sol.sub_dsp[self] = sol.sub_dsp.pop(dsp)  #: Update correct reference.
 
         if select_output_kw:
             return selector(dictionary=sol, **select_output_kw)
@@ -1954,7 +1982,7 @@ class Dispatcher(object):
             outputs, bfs = outputs or o, _convert_bfs(bfs)
 
         elif not outputs:
-            return self.__class__()  # Empty Dispatcher.
+            return self.copy_structure()  # Empty Dispatcher.
 
         # Get sub dispatcher breadth-first-search graph.
         dsp = self._get_dsp_from_bfs(outputs, bfs_graphs=bfs)

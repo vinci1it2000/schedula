@@ -1547,13 +1547,13 @@ class TkUI(object):
         self._job_thread = thread
 
         from co2mpas.dispatcher import Dispatcher
-        Dispatcher.dsp_must_stop.clear()
+        Dispatcher.stopper.clear()
 
         thread.start()
 
     def signal_job_to_stop(self):
         from co2mpas.dispatcher import Dispatcher
-        Dispatcher.dsp_must_stop.set()
+        Dispatcher.stopper.set()
 
     def is_job_alive(self):
         return self._job_thread and self._job_thread.is_alive()
@@ -1561,7 +1561,7 @@ class TkUI(object):
     def is_stop_job_signaled(self):
         """Returns true if signaled, but job might be already dead; check also :meth:`is_job_alive()`."""
         from co2mpas.dispatcher import Dispatcher
-        return self._job_thread and Dispatcher.dsp_must_stop.is_set()
+        return self._job_thread and Dispatcher.stopper.is_set()
 
     def _add_window_icon(self, win):
         win.tk.call('wm', 'iconphoto', win._w, read_image('icons/CO2MPAS_icon-64.png'))
