@@ -49,6 +49,14 @@ class Test(unittest.TestCase):
              ('img:', 'beach', 'images/keratokampos.png'),
          )
          ),
+
+        ("""Hi [wdg:foo](bar) there [img:abc](def) and [mplah](blah).""",
+         (
+             ('wdg:', 'foo', 'bar'),
+             ('img:', 'abc', 'def'),
+             (None, 'mplah', 'blah'),
+         )
+         ),
     )
     def test_markdown_parsing_regex(self, case):
         txt, exp_groups_seq = case
@@ -78,7 +86,7 @@ class Test(unittest.TestCase):
         root = tk.Tk()
         try:
             tkui.show_about(root, verbose=True)
-            root.after(17000, root.quit)
+            root.after(3000, root.quit)
             root.mainloop()
         finally:
             try:

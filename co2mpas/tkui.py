@@ -62,7 +62,7 @@ from textwrap import dedent, indent
 from threading import Thread
 from tkinter import StringVar, ttk, filedialog
 import traceback
-from typing import Text, Union  # @UnusedImport
+from typing import Any, Union, Mapping, Text  # @UnusedImport
 import weakref
 import webbrowser
 
@@ -448,8 +448,8 @@ def add_tooltip(widget, key, allow_misses=False, no_lookup=False):
 
 _img_in_txt_regex = re.compile(
     r'''
-        \[                                # image:[img:<alt-text>](<file-name>)
-                \ * (?P<img_alt>img:)?
+        \[
+                \ * (?P<obj>(?:img|wdg):)?
                 \ * (?P<alt>[^\]]+?) \ *
         \]
         \(
@@ -459,20 +459,24 @@ _img_in_txt_regex = re.compile(
     re.IGNORECASE | re.VERBOSE)
 
 
-def add_markdownd_text(text_widget, text):
+def add_markdownd_text(text_widget, text, widgets: Mapping=None):
     """
     Support a limited Markdown for inserting text into :class:`tk.Text`.
 
     Supported formats:
 
-    - Images: ``[img:<alt-text>](<file-name>)`` is replaced with the image.
     - Links: ``[<alt-text>](<url>)`` is replaced with a :class:`HyperlinkManager` link.
+    - Images: ``[img:<alt-text>](<filename>)`` is replaced with the image loaded from ``<filename>``.
+    - Widgets: ``[wdg:<alt-text>](<widget-key>)`` where ``<widget-key>`` is use to retrieve the widget 
+      from the `widgets` mapping passed as argument (must exist).
 
     Example::
 
         msg = "[Einstein](https://en.wikipedia.org/wiki/Einstein) on the [img:beach](images/keratokampos.png).")
         add_markdownd_text(text, msg)
 
+    :param widgets:
+        Maps ``{url --> Widget-instances}`` to be used by 
     """
     linkman = None
 
@@ -488,17 +492,21 @@ def add_markdownd_text(text_widget, text):
         s, e = m.span(0)
         text_widget.insert(tk.INSERT, text[last_endp:s])
 
-        is_img, alt, url = m.groups()
-        if is_img:
+        obj, alt, url = m.groups()
+        if obj == 'img:':
             img = read_image(url)
             #add_tooltip(img, alt, no_lookup=True)
             text_widget.image_create(tk.INSERT, image=img)
+        elif obj == 'wdg:':
+            w = widgets[url]
+            #add_tooltip(w, alt, allow_misses=True)
+            text_widget.window_create(tk.INSERT, window=w)
         elif alt:
             lm = get_linkman()
             tag = lm.add(fnt.partial(open_url, url))
             text_widget.insert(tk.INSERT, alt, tag)
         else:
-            raise AssertionError(text, s, e, is_img, alt, url, m.groupdict())
+            raise AssertionError(text, s, e, obj, alt, url, m.groupdict())
         last_endp = e
     text_widget.insert(tk.INSERT, text[last_endp:])
 
@@ -1394,12 +1402,40 @@ class SyncronizePanel(ttk.Labelframe):
     def __init__(self, parent, app, **kw):
         super().__init__(parent, text='Synchronize Template:', **kw)
         self.app = app
+        widgets = {}  # To register widgets embeded in markdown-text.
 
-        var = StringVar(value=os.getcwd())
-        entry = ttk.Entry(self, textvariable=var, width=60)
-        entry.grid(column=0, row=0, sticky='nsew')
-        add_tooltip(entry, 'sync_entry')
-        entry.bind("<Double-1>", lambda ev: open_file_with_os(var.get()))
+        help_msg = dedent("""
+        1.a) Choose a theoretical velocity profile and click the [img:download template](icons/download-olive-32.png) button below to create an empty "Sync file": 
+             [wdg:download-templ-file](download-templ-file)
+        
+        1.b) OR click the [img:Select Excel file to Sync](icons/excel-olive-32.png) button to load a pre-populated "Sync file":
+             [wdg:inp-sync-file](inp-sync-file)
+
+
+        2) Then fill-in your raw data into the `dyno` and `obd` sheets, and click [img:align](icons/align_center-olive-32.png) button below:
+           [wdg:run-sync](run-sync)
+        
+        3) Copy paste the synchronized signal into a CO2MPAS Input File,
+           and run it (previous tab).
+        """)
+        textarea = tk.Text(self, font='TkDefaultFont', background='SystemButtonFace')
+        textarea.pack(fill=tk.BOTH, expand=1)
+
+        frame = ttk.Labelframe(textarea, text='Download Template for Cycle:',
+                               style='SyncCycles.Radio.TLabelframe')
+        widgets['download-templ-file'] = frame
+        cycles = (
+            'nedc.manual',
+            'nedc.automatic',
+            'wltp.class1',
+            'wltp.class2',
+            'wltp.class3a',
+            'wltp.class3b',
+        )
+        var = tk.StringVar()
+        for c in cycles:
+            rb = ttk.Radiobutton(frame, text=c, value=c, variable=var)
+            rb.pack(side=tk.LEFT)
 
         def ask_save_template_file():
             file = filedialog.asksaveasfilename(
@@ -1408,13 +1444,24 @@ class SyncronizePanel(ttk.Labelframe):
                 filetypes=(('Excel files', '.xlsx .xlsm'),))
             if file:
                 var.set(file)
+                self.mediate_guistate()
 
-        btn = ttk.Button(self, command=ask_save_template_file)
-        btn.grid(column=1, row=0, sticky='new')
+        btn = ttk.Button(frame, command=ask_save_template_file)
+        btn.pack(side=tk.LEFT)
         add_icon(btn, 'icons/download-olive-32.png')
         add_tooltip(btn, 'download_sync_tmpl_file_btn')
 
-        def ask_template_file():
+        frame = ttk.Labelframe(textarea, text='Select Excel file to Synchronize:',
+                               style='SyncFile.Radio.TLabelframe')
+        widgets['inp-sync-file'] = frame
+
+        var = StringVar()
+        entry = ttk.Entry(frame, textvariable=var, width=60)
+        entry.pack(side=tk.LEFT)
+        add_tooltip(entry, 'sync_entry')
+        entry.bind("<Double-1>", lambda ev: open_file_with_os(var.get()))
+
+        def ask_sync_file():
             initialdir = find_longest_valid_dir(var.get().strip())
             file = filedialog.askopenfilename(
                 title='Select Synchronization File',
@@ -1426,16 +1473,20 @@ class SyncronizePanel(ttk.Labelframe):
                 var.set(file)
                 self.mediate_guistate()
 
-        btn = ttk.Button(self, command=ask_save_template_file)
-        btn.grid(column=2, row=0, sticky='new')
+        btn = ttk.Button(frame, command=ask_sync_file)
+        btn.pack(side=tk.LEFT)
         add_icon(btn, 'icons/excel-olive-32.png')
         add_tooltip(btn, 'sel_sync_file_btn')
 
-        btn = ttk.Button(self, text='Synchronize')
+        btn = ttk.Button(textarea, text='Sync')
         add_icon(btn, 'icons/align_center-olive-32.png')
-        btn.grid(column=0, row=1, columnspan=3, sticky='new')
+        widgets['run-sync'] = btn
 
-        self.grid_columnconfigure(0, weight=1)
+        add_markdownd_text(textarea, help_msg, widgets)
+        textarea['state'] = tk.DISABLED
+
+    def mediate_guistate(self):
+        pass
 
 
 class TkUI(object):
@@ -1452,7 +1503,6 @@ class TkUI(object):
             root = tk.Tk()
         self.root = root
         root.title("%s-%s" % (app_name, __version__))
-        self._add_window_icon(root)
 
         define_ttk_styles()
 
@@ -1475,7 +1525,7 @@ class TkUI(object):
         nb.add(tab, text='Simulate', sticky='nswe')
 
         tab = SyncronizePanel(nb, app=self)
-        nb.add(tab, text='Synchronize', sticky='nw')
+        nb.add(tab, text='Synchronize', sticky='nwse')
 
         frame = LogPanel(slider, self, height=-260, log_level_cb=cmain.init_logging)
         slider.add(frame, weight=3)
@@ -1489,6 +1539,9 @@ class TkUI(object):
         menubar = tk.Menu(root)
         menubar.add_command(label="About %r" % app_name, command=fnt.partial(self.show_about_window, slider))
         root['menu'] = menubar
+
+        ## Last, or it shows the empty-root momentarily.
+        self._add_window_icon(root)
 
     def start_job(self, thread):
         self._job_thread = thread
