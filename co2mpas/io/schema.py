@@ -110,7 +110,7 @@ def validate_plan(plan, engineering_mode, soft_validation, use_selector):
         inputs, inp = {}, {}
         data.dropna(how='all', inplace=True)
         plan_id = 'plan id:{}'.format(i[0])
-        for k, v in excel._parse_values(data):
+        for k, v in excel._parse_values(data, where='in plan'):
             if k[0] == 'base':
                 d = dsp_utl.get_nested_dicts(inp, *k[1:-1])
                 v = _add_validated_input(d, v_data, (plan_id,) + k, v, errors)
