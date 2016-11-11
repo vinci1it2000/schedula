@@ -413,7 +413,8 @@ def physical():
             'min_engine_on_speed': 'min_engine_on_speed',
             'max_velocity_full_load_correction':
                 'max_velocity_full_load_correction',
-            'has_torque_converter': 'has_torque_converter'
+            'has_torque_converter': 'has_torque_converter',
+            'n_gears': 'n_gears',
         },
         outputs={
             'CVT': 'CVT',
@@ -441,7 +442,8 @@ def physical():
             'gear_shifts': 'gear_shifts',
             'velocity_speed_ratios': 'velocity_speed_ratios',
             'max_speed_velocity_ratio': 'max_speed_velocity_ratio',
-            'specific_gear_shifting': 'specific_gear_shifting'
+            'specific_gear_shifting': 'specific_gear_shifting',
+            'n_gears': 'n_gears',
         },
         inp_weight={'initial_temperature': 5}
     )
