@@ -65,7 +65,13 @@ class Test(unittest.TestCase):
              (None, 'mplah', None),
          )
          ),
-    )
+
+        ("[foo] (bar)", ((None, 'foo', None), )),
+        ("[wdg:foo] (bar)", (('wdg:', 'foo', None), )),
+        ("[foo](bar\ntender)", ((None, 'foo', None), )),
+        ("[img:foo](bar\ntender)", (('img:', 'foo', None), )),
+
+)
     def test_makdown_parsing_regex(self, case):
         txt, exp_groups_seq = case
         exp_nmatches = len(exp_groups_seq)
@@ -87,6 +93,11 @@ class Test(unittest.TestCase):
         ' (bar)sf',
         ' [img:bar)sf',
         ' [wdg:bar)sf',
+
+        'NL? [wdg:foo \n bar] 1',
+
+        '\\[wdg:escaped] 1',
+        '\\[wdg:escaped](url) 2',
     )
     def test_makdown_parsing_regex_bad(self, txt):
         regex = tkui._img_in_txt_regex
@@ -110,7 +121,7 @@ class Test(unittest.TestCase):
         root = tk.Tk()
         try:
             tkui.show_about(root, verbose=True)
-            root.after(2000, root.quit)
+            root.after(700, root.quit)
             root.mainloop()
         finally:
             try:
