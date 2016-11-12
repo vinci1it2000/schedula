@@ -21,3 +21,8 @@ class DispatcherError(ValueError):
         self.plot = self.sol.plot
 
 
+class DispatcherAbort(ValueError):
+    def __init__(self, sol, *args, **kwargs):
+        super(DispatcherAbort, self).__init__(*args, **kwargs)
+        self.sol = sol
+        self.plot = self.sol.plot

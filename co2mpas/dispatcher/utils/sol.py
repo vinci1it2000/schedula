@@ -16,13 +16,13 @@ from copy import _reconstruct
 from datetime import datetime
 from heapq import heappush, heappop
 import logging
-
+import threading
 from .alg import (add_edge_fun, remove_edge_fun, stlp, get_full_pipe,
                   _sort_sk_wait_in, get_sub_node)
 from .cst import START, NONE, PLOT
 from .des import parent_func
 from .dsp import SubDispatch
-from .exc import DispatcherError
+from .exc import DispatcherError, DispatcherAbort
 
 
 __all__ = ['Solution']
@@ -40,7 +40,7 @@ class Solution(OrderedDict):
     def __init__(self, dsp=None, inputs=None, outputs=None, wildcard=False,
                  cutoff=None, inputs_dist=None, no_call=False,
                  rm_unused_nds=False, wait_in=None, no_domain=False,
-                 _empty=False, index=(-1,)):
+                 _empty=False, index=(-1,), stopper=None):
 
         super(Solution, self).__init__()
         self.index = index
@@ -50,9 +50,12 @@ class Solution(OrderedDict):
         self.cutoff = cutoff
         self._wait_in = wait_in or {}
         self.outputs = set(outputs or ())
-        from .. import Dispatcher
 
+        from .. import Dispatcher
         self._set_dsp_features(dsp or Dispatcher(caller=__name__))
+
+        self.stopper = stopper or self.dsp.stopper
+
         if not _empty:
             self._set_inputs(inputs, inputs_dist)
 
@@ -201,11 +204,11 @@ class Solution(OrderedDict):
                 _dsp_closed_add(v['function'])
 
         while fringe:
-            if self.dsp.dsp_must_stop.is_set():
-                raise RuntimeError("Stop requested.")
             # Visit the closest available node.
             n = (d, _, (v, sol)) = heappop(fringe)
 
+            if sol.stopper.is_set():
+                raise DispatcherAbort(self, "Stop requested.")
             # Skip terminated sub-dispatcher or visited nodes.
             if sol.dsp in dsp_closed or (v is not START and v in sol.dist):
                 continue
@@ -243,10 +246,10 @@ class Solution(OrderedDict):
         return get_full_pipe(self)
 
     def copy_structure(self, **kwargs):
-        sol = Solution(
+        sol = self.__class__(
             self.dsp, self.inputs, self.outputs, False, self.cutoff,
             self.inputs_dist, self.no_call, self.rm_unused_nds, self._wait_in,
-            self.no_domain, True, self.index
+            self.no_domain, True, self.index, self.stopper
         )
         sol._clean_set()
         it = ['_wildcards', 'inputs', 'inputs_dist']
@@ -257,6 +260,9 @@ class Solution(OrderedDict):
 
     def __deepcopy__(self, memo):
         rv = super(Solution, self).__reduce_ex__(4)
+        i = id(self.stopper)
+        if i not in memo:
+            memo[i] = threading.Event()
         y = _reconstruct(self, rv, 1, memo)
         y._update_methods()
         return y
@@ -648,7 +654,8 @@ class Solution(OrderedDict):
                 fun = node_attr['function']
 
                 if isinstance(parent_func(fun), SubDispatch):
-                    res = fun(*args, _sol_output=attr)
+                    res = fun(*args, _sol_output=attr,
+                              _sol_stopper=self.stopper)
                 else:
                     res = fun(*args)
 
@@ -959,9 +966,11 @@ class Solution(OrderedDict):
         """
 
         # Initialize as sub-dispatcher.
-        sol = Solution(dsp, {}, outputs, False, None, None, no_call, False,
-                       wait_in=self._wait_in.get(dsp, None),
-                       index=self.index + index)
+        sol = self.__class__(
+            dsp, {}, outputs, False, None, None, no_call, False,
+            wait_in=self._wait_in.get(dsp, None), index=self.index + index,
+            stopper=self.stopper
+        )
 
         sol.sub_dsp = self.sub_dsp
 
@@ -1109,10 +1118,8 @@ class Solution(OrderedDict):
 
         if self.raises:
             raise DispatcherError(self, msg, node_id, ex, *args, **kwargs)
-        elif self.dsp.dsp_must_stop.is_set():
-            ## Do not wrap stop-exceptions, to avoid
-            #  long-exception call (but we loose calc-results).
-            raise
+        elif isinstance(ex, DispatcherAbort):
+            raise DispatcherAbort(self, msg, node_id, ex, *args, **kwargs)
         else:
             kwargs['exc_info'] = kwargs.get('exc_info', 1)
             log.error(msg, node_id, ex, *args, **kwargs)

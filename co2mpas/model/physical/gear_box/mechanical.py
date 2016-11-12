@@ -320,7 +320,68 @@ def calculate_gear_box_speeds_in_v1(
     return gear_box_speeds_out * ratios
 
 
+def identify_n_gears(gear_box_ratios):
+    """
+    Identify the number of gears [-].
+
+    :param gear_box_ratios:
+        Gear box ratios [-].
+    :type gear_box_ratios: dict
+
+    :return:
+        Number of gears [-].
+    :rtype: int
+    """
+    return len([k for k in gear_box_ratios if k > 0])
+
+
 def identify_velocity_speed_ratios(
+        n_gears, gear_box_speeds_in, velocities, idle_engine_speed,
+        stop_velocity):
+    """
+    Identifies velocity speed ratios from gear box speed vector [km/(h*RPM)].
+
+    :param n_gears:
+        Number of gears [-].
+    :type n_gears: int
+
+    :param gear_box_speeds_in:
+        Gear box speed vector [RPM].
+    :type gear_box_speeds_in: numpy.array
+
+    :param velocities:
+        Velocity vector [km/h].
+    :type velocities: numpy.array
+
+    :param idle_engine_speed:
+        Engine speed idle median and std [RPM].
+    :type idle_engine_speed: (float, float)
+
+    :param stop_velocity:
+        Maximum velocity to consider the vehicle stopped [km/h].
+    :type stop_velocity: float
+
+    :return:
+        Constant velocity speed ratios of the gear box [km/(h*RPM)].
+    :rtype: dict
+    """
+
+    idle_speed = idle_engine_speed[0] + idle_engine_speed[1]
+
+    b = (gear_box_speeds_in > idle_speed) & (velocities > stop_velocity)
+    x = (velocities[b] / gear_box_speeds_in[b])[:, None]
+
+    ms = sk_clu.KMeans(n_clusters=n_gears,copy_x=False)
+    ms.fit(x)
+
+    vsr = {k + 1: v for k, v in enumerate(sorted(ms.cluster_centers_[:, 0]))}
+
+    vsr[0] = 0.0
+
+    return vsr
+
+
+def identify_velocity_speed_ratios_v1(
         gear_box_speeds_in, velocities, idle_engine_speed, stop_velocity):
     """
     Identifies velocity speed ratios from gear box speed vector [km/(h*RPM)].
@@ -583,6 +644,20 @@ def mechanical():
         function=calculate_velocity_speed_ratios,
         inputs=['speed_velocity_ratios'],
         outputs=['velocity_speed_ratios']
+    )
+
+    d.add_function(
+        function=identify_n_gears,
+        inputs=['gear_box_ratios'],
+        outputs=['n_gears']
+    )
+
+    d.add_function(
+        function=identify_velocity_speed_ratios,
+        inputs=['n_gears', 'engine_speeds_out', 'velocities',
+                'idle_engine_speed', 'stop_velocity'],
+        outputs=['velocity_speed_ratios'],
+        weight=49
     )
 
     d.add_function(

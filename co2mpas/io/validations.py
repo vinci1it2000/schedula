@@ -57,7 +57,8 @@ def hard_validation(data, usage, stage, cycle, *args):
             _check_ki_factor,
             _check_prediction_gears_not_mt,
             _check_lean_burn_tech,
-            _check_vva
+            _check_vva,
+            _check_scr
         )
         for check in checks:
             c = check(data, usage, stage, cycle, *args)
@@ -187,7 +188,7 @@ def _check_acr(data, *args):
     elif not has_acr and len(acr) > 1:
         msg = "Please since there are %d `active_cylinder_ratios` set " \
               "`engine_has_cylinder_deactivation = True` " \
-              "or remove the extra ratios!"
+              "or remove the extra ratios!" % len(acr)
         return s, msg
 
 

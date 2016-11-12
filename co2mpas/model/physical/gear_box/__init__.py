@@ -745,6 +745,7 @@ def gear_box():
         include_defaults=True,
         dsp=mechanical(),
         inputs={
+            'n_gears': 'n_gears',
             'times': 'times',
             'velocities': 'velocities',
             'accelerations': 'accelerations',
@@ -762,6 +763,7 @@ def gear_box():
             'change_gear_window_width': 'change_gear_window_width'
         },
         outputs={
+            'n_gears': 'n_gears',
             'gears': 'gears',
             'gear_box_ratios': 'gear_box_ratios',
             'velocity_speed_ratios': 'velocity_speed_ratios',

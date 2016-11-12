@@ -384,7 +384,7 @@ def prepare_data(raw_data, variation, input_file_name, overwrite_cache,
     r = {}
     sheets_factory = xleash.SheetsFactory()
     from co2mpas.io import check_xlasso
-    for k, v in excel._parse_values(variation, match):
+    for k, v in excel._parse_values(variation, match, "in variations"):
         if isinstance(v, str) and check_xlasso(v):
             v = xleash.lasso(v, sheets_factory, url_file=input_file_name)
         dsp_utl.get_nested_dicts(r, *k[:-1])[k[-1]] = v

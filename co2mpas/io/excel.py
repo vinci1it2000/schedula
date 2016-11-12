@@ -32,29 +32,29 @@ log = logging.getLogger(__name__)
 
 
 _base_params = r"""
-    ^((?P<scope>base)[. ]{1})?
-    ((?P<usage>(target|input|output|data|config))s?[. ]{1})?
-    ((?P<stage>(precondition|calibration|prediction|selector))s?[. ]{1})?
+    ^((?P<scope>base)(\.|\s+))?
+    ((?P<usage>(target|input|output|data|config))s?(\.|\s+))?
+    ((?P<stage>(precondition|calibration|prediction|selector))s?(\.|\s+))?
     ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|
                NEDC([-_]{1}[HL]{1})?|
-               ALL)(recon)?[. ]{1})?
-    (?P<param>[^\s.]*)$
+               ALL)(recon)?(\.|\s+))?
+    (?P<param>[^\s.]*)\s*$
     |
-    ^((?P<scope>base)[. ]{1})?
-    ((?P<usage>(target|input|output|data|config))s?[. ]{1})?
-    ((?P<stage>(precondition|calibration|prediction|selector))s?[. ]{1})?
+    ^((?P<scope>base)(\.|\s+))?
+    ((?P<usage>(target|input|output|data|config))s?(\.|\s+))?
+    ((?P<stage>(precondition|calibration|prediction|selector))s?(\.|\s+))?
     ((?P<param>[^\s.]*))?
-    ([. ]{1}(?P<cycle>WLTP([-_]{1}[HLP]{1})?|
+    ((.|\s+)(?P<cycle>WLTP([-_]{1}[HLP]{1})?|
                       NEDC([-_]{1}[HL]{1})?|
-                      ALL)(recon)?)?$
+                      ALL)(recon)?)?\s*$
 """
 
-_flag_params = r"""^(?P<scope>flag)[. ]{1}(?P<flag>[^\s.]*)$"""
+_flag_params = r"""^(?P<scope>flag)(\.|\s+)(?P<flag>[^\s.]*)\s*$"""
 
 
 _plan_params = r"""
-    ^(?P<scope>plan)[. ]{1}(
-     (?P<index>(id|base|run_base))$
+    ^(?P<scope>plan)(\.|\s+)(
+     (?P<index>(id|base|run_base))\s*$
      |
 """ + _flag_params.replace('<scope>', '<v_scope>').replace('^(', '(') + r"""
      |
@@ -70,7 +70,7 @@ _re_params_name = regex.compile(
                     ((precondition|calibration|prediction|selector)s?)|
                     (WLTP([-_]{1}[HLP]{1})?|
                      NEDC([-_]{1}[HL]{1})?|
-                     ALL)(recon)?))$
+                     ALL)(recon)?))\s*$
         |
     """ + _flag_params + r"""
         |
@@ -79,23 +79,23 @@ _re_params_name = regex.compile(
     """ + _base_params, regex.IGNORECASE | regex.X | regex.DOTALL)
 
 _base_sheet = r"""
-    ^((?P<scope>base)[. ]?)?
-    ((?P<usage>(target|input|output|data|config))s?[. ]?)?
-    ((?P<stage>(precondition|calibration|prediction|selector))s?[. ]?)?
+    ^((?P<scope>base)(\.|\s+)?)?
+    ((?P<usage>(target|input|output|data|config))s?(\.|\s+)?)?
+    ((?P<stage>(precondition|calibration|prediction|selector))s?(\.|\s+)?)?
     ((?P<cycle>WLTP([-_]{1}[HLP]{1})?|
                NEDC([-_]{1}[HL]{1})?|
-               ALL)(recon)?[. ]?)?
-    (?P<type>(pa|ts|pl))?$
+               ALL)(recon)?(\.|\s+)?)?
+    (?P<type>(pa|ts|pl))?\s*$
 """
 
-_flag_sheet = r"""^(?P<scope>flag)([. ]{1}(?P<type>(pa|ts|pl)))?$"""
+_flag_sheet = r"""^(?P<scope>flag)((\.|\s+)(?P<type>(pa|ts|pl)))?\s*$"""
 
 _plan_sheet = r"""
-    ^(?P<scope>plan)([. ]{1}(
+    ^(?P<scope>plan)((\.|\s+)(
 """ + _flag_sheet.replace('<scope>', '<v_scope>').replace('^(', '(') + r"""
      |
 """ + _base_sheet.replace('<scope>', '<v_scope>').replace('^(', '(') + r"""
-     ))?$
+     ))?\s*$
 """
 
 _re_input_sheet_name = regex.compile(
@@ -159,7 +159,7 @@ def _parse_sheet(match, sheet, sheet_name, res=None):
                   'Please correct the inputs!'
             raise ValueError(msg.format(drop, sheet_name))
 
-    for k, v in _parse_values(data, match):
+    for k, v in _parse_values(data, match, "in sheet '%s'" % sheet_name):
         dsp_utl.get_nested_dicts(res, *k[:-1])[k[-1]] = v
     return res
 
@@ -224,11 +224,14 @@ def _parse_key(scope='base', usage='input', **match):
                 yield scope, usage, stage, c, i
 
 
-def _parse_values(data, default=None):
+def _parse_values(data, default=None, where=''):
     default = default or {}
     for k, v in data.items():
         match = _re_params_name.match(k) if k is not None else None
-        if not match or _isempty(v):
+        if not match:
+            log.warning("Parameter '%s' %s cannot be parsed!", k, where)
+            continue
+        elif _isempty(v):
             continue
         match = {i: j.lower() for i, j in match.groupdict().items() if j}
 
@@ -282,6 +285,7 @@ def parse_excel_file(file_path):
     for sheet_name in excel_file.sheet_names:
         match = _re_input_sheet_name.match(sheet_name)
         if not match:
+            log.debug("Sheet name '%s' cannot be parsed!", sheet_name)
             continue
         match = {k: v.lower() for k, v in match.groupdict().items() if v}
 
