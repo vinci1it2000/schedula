@@ -563,6 +563,8 @@ def do_datasync(x_label, y_label, ref_xlref, *sync_xlrefs,
         df.to_excel(writer, tables.ref_sh_name, header=False, index=False)
         writer.save()
 
+    return out_file
+
 
 def _get_input_template_fpath():
     import pkg_resources
@@ -653,7 +655,7 @@ def main(*args):
     if quiet:
         level = logging.WARNING
     init_logging(level=level, logconf_file=opts.get('--logconf'))
-    
+
     if opts['--version']:
         v = build_version_string(verbose)
         # noinspection PyBroadException

@@ -55,6 +55,7 @@ from idlelib.ToolTip import ToolTip
 import io
 import logging
 import os
+from pandalone import utils as putils
 import random
 import re
 import sys
@@ -67,13 +68,14 @@ import weakref
 import webbrowser
 
 from PIL import Image, ImageTk
-from pandalone import utils as putils
+import docopt
 from toolz import dicttoolz as dtz, itertoolz as itz
 import yaml
 
 from co2mpas import (__main__ as cmain, __version__,
                      __updated__, __copyright__, __license__, __uri__)  # @UnusedImport
-import co2mpas.batch as co2mpas_batch
+from co2mpas import datasync
+import co2mpas.batch as cbatch
 from co2mpas.utils import stds_redirected
 import functools as fnt
 import os.path as osp
@@ -180,6 +182,7 @@ def define_tooltips():
             - Double-click to open it.
         download_sync_tmpl_file_btn: |-
             Opens a Save-File dialog to specify where to create an empty "Sync Excel file".
+            - Choose a cycle to enable it.
         sel_sync_file_btn: |-
             Opens an Open-File dialog to specify an existing Input "Sync Excel file".
         run_sync_btn: |-
@@ -283,6 +286,15 @@ def open_file_with_os(fpath):
             putils.open_file_with_os(fpath.strip())
         except Exception as ex:
             log.error("Failed opening %r due to: %s", fpath, ex)
+
+
+def attach_open_file_popup(widget, var):
+    popup = tk.Menu(widget, tearoff=0)
+    popup.add_command(label="Open...", command=lambda: open_file_with_os(var.get()))
+
+    def do_popup(event):
+        popup.post(event.x_root, event.y_root)
+    widget.bind("<Button-3>", do_popup)
 
 
 def open_url(url):
@@ -972,6 +984,7 @@ class SimulatePanel(ttk.Frame):
 
         def ask_input_files():
             files = filedialog.askopenfilenames(
+                parent=self,
                 title='Select CO2MPAS Input file(s)',
                 multiple=True,
                 filetypes=(('Excel files', '.xlsx .xlsm'),
@@ -987,6 +1000,7 @@ class SimulatePanel(ttk.Frame):
 
         def ask_input_folder():
             folder = filedialog.askdirectory(
+                parent=self,
                 title='Select CO2MPAS Input folder')
             if folder:
                 tree.insert_path(folder, is_folder=True)
@@ -997,6 +1011,7 @@ class SimulatePanel(ttk.Frame):
 
         def ask_save_template_file():
             file = filedialog.asksaveasfilename(
+                parent=self,
                 title='Save "sample" Input CO2MPAS file',
                 defaultextension='xlsx',
                 filetypes=(('Excel files', '.xlsx .xlsm'),))
@@ -1060,10 +1075,16 @@ class SimulatePanel(ttk.Frame):
         var = StringVar(value=os.getcwd())
         entry = ttk.Entry(frame, textvariable=var)
         entry.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
+        attach_open_file_popup(entry, var)
+        entry.bind("<Double-1>", lambda ev: open_file_with_os(var.get()))
+        add_tooltip(entry, 'out_folder_entry')
 
         def ask_output_folder():
             initialdir = find_longest_valid_dir(var.get().strip())
-            folder = filedialog.askdirectory(title="Select %s" % title, initialdir=initialdir)
+            folder = filedialog.askdirectory(
+                parent=self,
+                title="Select %s" % title,
+                initialdir=initialdir)
             if folder:
                 var.set(folder + '/')
                 self.mediate_guistate()
@@ -1073,9 +1094,7 @@ class SimulatePanel(ttk.Frame):
         add_icon(btn, 'icons/download_dir-olive-32.png')
         add_tooltip(btn, 'sel_out_folder_btn')
 
-        entry.bind("<Double-1>", lambda ev: open_file_with_os(var.get()))
         entry.bind("<KeyRelease>", lambda ev: self.mediate_guistate())
-        add_tooltip(entry, 'out_folder_entry')
 
         return frame, var
 
@@ -1124,11 +1143,14 @@ class SimulatePanel(ttk.Frame):
         var = StringVar()
         entry = ttk.Entry(frame, textvariable=var)
         entry.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
+        attach_open_file_popup(entry, var)
+        entry.bind("<Double-1>", lambda ev: open_file_with_os(var.get()))
         add_tooltip(entry, 'out_template_entry')
 
         def ask_template_file():
             initialdir = find_longest_valid_dir(var.get().strip())
             file = filedialog.askopenfilename(
+                parent=self,
                 title='Select %s' % title,
                 initialdir=initialdir,
                 filetypes=(('Excel files', '.xlsx .xlsm'),
@@ -1143,7 +1165,6 @@ class SimulatePanel(ttk.Frame):
         add_icon(btn, 'icons/excel-olive-32.png')
         add_tooltip(btn, 'sel_tmpl_file_btn')
 
-        entry.bind("<Double-1>", lambda ev: open_file_with_os(var.get()))
         entry.bind("<KeyRelease>", lambda ev: self.mediate_guistate())
 
         return frame, var
@@ -1178,8 +1199,9 @@ class SimulatePanel(ttk.Frame):
         var = StringVar()
         entry = ttk.Entry(frame, textvariable=var)
         entry.pack(fill=tk.BOTH, expand=1, ipady=2 * _pad)
-        entry.bind("<KeyRelease>", lambda ev: self.mediate_guistate())
         add_tooltip(entry, 'extra_options_entry')
+
+        entry.bind("<KeyRelease>", lambda ev: self.mediate_guistate())
 
         return frame, var
 
@@ -1401,18 +1423,18 @@ class SimulatePanel(ttk.Frame):
             'overwrite_cache': True,
             'result_listener': updater.result_generated,
             # FIXME: Why `job_must_stop` flag appears True!??
-            #'model': co2mpas_batch.vehicle_processing_model(),
+            #'model': cbatch.vehicle_processing_model(),
         })
         t = Thread(
             target=run_python_job,
             args=(job_name,
-                  co2mpas_batch.process_folder_files, (inp_paths, out_folder), cmd_kwds,
+                  cbatch.process_folder_files, (inp_paths, out_folder), cmd_kwds,
                   updater.stdout, updater.stderr, updater.on_finish),
             daemon=True,  # May corrupt output-files, but prefferably UI closes cleanly.
         )
 
         ## Monkeypatch *tqdm* on co2mpas-batcher.
-        co2mpas_batch._custom_tqdm = updater.tqdm_replacement
+        cbatch._custom_tqdm = updater.tqdm_replacement
         self.outputs_tree.clear()
         app.start_job(t)
 
@@ -1437,7 +1459,7 @@ click the [img:icons/download-olive-32.png] button to create an empty "Sync Exce
         [wdg:inp-file]
 
         2) THEN run synchronization by clicking the [img:icons/align_center-olive-32.png] button, \
-and click on the result file to open it,
+and double-click on the result file to open it,
            and copy paste the synchronized signals into your CO2MPAS Input File:
         [wdg:out-file]
         """)
@@ -1457,9 +1479,10 @@ and click on the result file to open it,
             'wltp.class3a',
             'wltp.class3b',
         )
-        var = tk.StringVar()
+        self.rb_var = rb_var = tk.StringVar()
         for c in cycles:
-            rb = ttk.Radiobutton(rb_frame, text=c, value=c, variable=var)
+            rb = ttk.Radiobutton(rb_frame, text=c, value=c, variable=rb_var,
+                                 command=self.mediate_guistate)
             rb.pack(side=tk.LEFT)
             add_tooltip(rb,
                         'The new template file will work with measured time series for a %r cycle.' % c,
@@ -1467,14 +1490,22 @@ and click on the result file to open it,
 
         def ask_save_template_file():
             file = filedialog.asksaveasfilename(
+                parent=self,
                 title='Save Synchronization Template File',
                 defaultextension='xlsx',
+                initialfile='datasync.xlsx',
                 filetypes=(('Excel files', '.xlsx .xlsm'),))
             if file:
+                opts = docopt.Dict()
+                opts['<excel-file-path>'] = [file]
+                opts['--force'] = True
+                opts['--cycle'] = rb_var.get()
+                datasync._cmd_template(opts)
+
                 self.inp_var.set(file)
                 self.mediate_guistate()
 
-        btn = ttk.Button(frame, command=ask_save_template_file)
+        self.save_tmpl_btn = btn = ttk.Button(frame, command=ask_save_template_file)
         btn.grid(column=1, row=0, sticky='nswe')
         add_icon(btn, 'icons/download-olive-32.png')
         add_tooltip(btn, 'download_sync_tmpl_file_btn')
@@ -1484,12 +1515,14 @@ and click on the result file to open it,
         entry.grid(column=0, row=1, sticky='nswe')
         add_tooltip(entry, 'inp_sync_entry')
         entry.bind("<Double-1>", lambda ev: open_file_with_os(var.get()))
+        attach_open_file_popup(entry, var)
 
         def ask_sync_file():
-            initialdir = find_longest_valid_dir(var.get().strip())
+            path = var.get().strip()
             file = filedialog.askopenfilename(
+                parent=self,
                 title='Select Synchronization File',
-                initialdir=initialdir,
+                initialdir=path and find_longest_valid_dir(path) or None,
                 filetypes=(('Excel files', '.xlsx .xlsm'),
                            ('All files', '*'),
                            ))
@@ -1506,10 +1539,19 @@ and click on the result file to open it,
         widgets['out-file'] = frame
 
         def run_sync():
-            ## TODO: Impl run sync.
-            self.out_var.set(self.inp_var.get())
+            inp_file = self.inp_var.get()
+            if not osp.isfile(inp_file):
+                raise ValueError('File %r does not exist!' % inp_file)
 
-        btn = ttk.Button(frame, command=run_sync)
+            "datasync -O ./output times velocities template.xlsx#ref! dyno obd -i alternator_currents=integral -i battery_currents=integral"
+            out_file = datasync.do_datasync('times', 'velocities',
+                                            inp_file, out_path=osp.dirname(inp_file),
+                                            force=True)
+
+            self.out_var.set(out_file)
+            self.mediate_guistate()
+
+        self.run_btn = btn = ttk.Button(frame, command=run_sync)
         btn.grid(column=0, row=0, sticky='nswe')
         add_icon(btn, 'icons/align_center-olive-32.png')
 
@@ -1520,12 +1562,16 @@ and click on the result file to open it,
         btn.grid(column=1, row=0, sticky='nsw')
         add_tooltip(btn, 'out_sync_btn')
         btn.bind("<Double-1>", lambda ev: open_file_with_os(self.out_var.get()))
+        attach_open_file_popup(btn, var)
 
         add_makdownd_text(textarea, help_msg.strip(), widgets)
         textarea['state'] = tk.DISABLED
 
+        self.mediate_guistate()
+
     def mediate_guistate(self):
-        pass
+        self.run_btn.state((bang(self.inp_var.get()) + tk.DISABLED,))
+        self.save_tmpl_btn.state((bang(self.rb_var.get()) + tk.DISABLED,))
 
 
 class TkUI(object):
