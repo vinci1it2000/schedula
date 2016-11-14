@@ -251,26 +251,27 @@ Generic Tips
 
 Usage
 =====
-.. Note::
-    The following commands are for the **bash console**, specifically tailored
-    for the **all-in-one** archive.  In `cmd.exe` the commands are rougly similar,
-    but remember to substitute the slashes (`/`) in paths with backslashes(`\\`).
+First ensure that the latest version of |co2mpas| is properly installed, and
+that its version is the latest released.
 
-    The :doc:`allinone` contains additionally batch-files
-    (e.g. :file:`RUN_CO2MPAS.bat`, :file:`NEW_TEMPLATE.bat`, etc)
-    that offer roughly the same capabillities described below.
-    When you double-click them, the output from these commands gets to be
-    written in the :file:`ALLINONE/CO2MPAS/co2mpas.log` file.
+.. image:: _static/Co2mpasALLINONE-About.gif
+   :scale: 75%
+   :alt: Check Co2mpas-ALLINONE Version
+   :align: center
 
+.. code-block:: console
 
+    ## Check co2mpas version.
+    $ co2mpas -V
+    co2mpas-1.4.1b0
 
-First ensure that the latest version of |co2mpas| is properly installed, and that
-its version match the version declared on this file.
-
-The main entry for the simulator is the ``co2mpas`` console-command,
-which **is not visible, but it is installed in your PATH**.
+co2mpas cmd syntax
+------------------
 To get the syntax of the ``co2mpas`` console-command, open a console where
 you have installed |co2mpas| (see :ref:`install` above) and type::
+
+    ## co2mpas help.
+    $ co2mpas --help
 
     Predict NEDC CO2 emissions from WLTP.
 
@@ -399,6 +400,299 @@ you have installed |co2mpas| (see :ref:`install` above) and type::
         # View all model defaults in yaml format:
         co2maps modelconf -O output
 
+
+Input template
+--------------
+The sub-commands ``batch`` (Run) and ``ta`` (Run TA) accept either a single
+**input-excel-file** or a folder with multiple input-files for each vehicle.
+You can download an *empty* input excel-file from the GUI:
+
+.. image:: _static/Co2mpasALLINONE-Template.gif
+   :scale: 75%
+   :alt: Generate Co2mpas input template
+   :align: center
+
+Or you can create an empty vehicle template-file (e.g., ``vehicle_1.xlsx``)
+inside the *input-folder* with the ``template`` sub-command::
+
+        $ co2mpas template input/vehicle_1.xlsx -f
+        Creating TEMPLATE INPUT file 'input/vehicle_1.xlsx'...
+
+The generated file contains descriptions to help you populate it with vehicle
+data. For items where an array of values is required (e.g. gear-box ratios) you
+may reference different parts of the spreadsheet following the syntax of the
+`"xlref" mini-language <https://pandalone.readthedocs.org/en/latest/reference.html#module-pandalone.xleash>`_.
+
+.. tip::
+   For an explanation of the naming of the fields, read the :ref:`excel-model`
+   section
+
+Demo files
+----------
+The simulator contains input-files for demo-vehicles that are a nice starting
+point to try out. You can create the demo vehicles inside the *input-folder*
+with the ``demo`` sub-command::
+
+    $ co2mpas demo input -f
+    2016-11-14 16:33:07,520: INFO:co2mpas_main:Creating INPUT-DEMO file 'input\co2mpas_demo-0.xlsx'...
+    2016-11-14 16:33:07,525: INFO:co2mpas_main:Creating INPUT-DEMO file 'input\co2mpas_demo-1.xlsx'...
+    2016-11-14 16:33:07,530: INFO:co2mpas_main:Creating INPUT-DEMO file 'input\co2mpas_demo-2.xlsx'...
+    2016-11-14 16:33:07,535: INFO:co2mpas_main:Creating INPUT-DEMO file 'input\co2mpas_demo-3.xlsx'...
+    2016-11-14 16:33:07,540: INFO:co2mpas_main:Creating INPUT-DEMO file 'input\co2mpas_demo-4.xlsx'...
+    2016-11-14 16:33:07,546: INFO:co2mpas_main:Creating INPUT-DEMO file 'input\co2mpas_demo-5.xlsx'...
+    2016-11-14 16:33:07,551: INFO:co2mpas_main:Creating INPUT-DEMO file 'input\co2mpas_demo-6.xlsx'...
+    2016-11-14 16:33:07,556: INFO:co2mpas_main:Creating INPUT-DEMO file 'input\co2mpas_demo-7.xlsx'...
+    2016-11-14 16:33:07,560: INFO:co2mpas_main:Creating INPUT-DEMO file 'input\co2mpas_demo-8.xlsx'...
+    2016-11-14 16:33:07,565: INFO:co2mpas_main:Creating INPUT-DEMO file 'input\co2mpas_demo-9.xlsx'...
+    2016-11-14 16:33:07,570: INFO:co2mpas_main:Creating INPUT-DEMO file 'input\co2mpas_simplan.xlsx'...
+    2016-11-14 16:33:07,574: INFO:co2mpas_main:You may run DEMOS with:
+        co2mpas batch input
+
+Demo description:
+
+======= == ========== ========== === ==== ========== ========== ====
+id      AT cal WLTP-H cal WLTP-L S/S BERS trg NEDC-H trg NEDC-L plan
+======= == ========== ========== === ==== ========== ========== ====
+   0           X          X                  X
+   1           X          X      X    X      X
+   2    X      X          X                             X
+   3           X          X      X           X
+   4    X                 X           X                 X
+   5           X          X           X      X
+   6    X      X          X      X           X
+   7    X      X                 X    X      X
+   8           X          X                  X          X
+   9    X      X          X      X    X      X
+simplan        X          X                  X                   X
+======= == ========== ========== === ==== ========== ========== ====
+
+
+Synchronizing time-series
+-------------------------
+The model might fail in case your time-series signals are time-shifted and/or
+with different sampling rates. Even if the run succeeds, the results will not
+be accurate enough, because the data are not synchronized with the theoretical
+cycle.
+
+As an aid tool, you may use the ``datasync`` tool to "synchronize" and
+"resample" your data, which have been acquired from different sources.
+
+.. image:: _static/Co2mpasALLINONE-Datasync.gif
+   :scale: 75%
+   :alt: datasync tool
+   :align: center
+
+To get the syntax of the ``datasync`` console-command, open a console where
+you have installed |co2mpas| and type::
+
+    ## datasync help.
+    $ datasync --help
+
+    Shift and resample excel-tables; see http://co2mpas.io/usage.html#Synchronizing-time-series.
+
+    Usage:
+      datasync          [(-v | --verbose) | --logconf <conf-file>] [--force | -f]
+                        [--interp <method>] [--no-clone] [--prefix-cols]
+                        [-O <output>] <x-label> <y-label> <ref-table>
+                        [<sync-table> ...]
+      datasync          [--verbose | -v]  (--version | -V)
+      datasync          [--interp-methods | -l]
+      datasync          --help
+      datasync template [-f] [--cycle <cycle>] [<excel-file-path> ...]
+
+    Options:
+      <x-label>              Column-name of the common x-axis (e.g. 'times') to be
+                             re-sampled if needed.
+      <y-label>              Column-name of y-axis cross-correlated between all
+                             <sync-table> and <ref-table>.
+      <ref-table>            The reference table, in *xl-ref* notation (usually
+                             given as `file#sheet!`); synced columns will be
+                             appended into this table.
+                             The captured table must contain <x_label> & <y_label>
+                             as column labels.
+                             If hash(`#`) symbol missing, assumed as file-path and
+                             the table is read from its 1st sheet .
+      <sync-table>           Sheets to be synced in relation to <ref-table>, also in
+                             *xl-ref* notation.
+                             All tables must contain <x_label> & <y_label> as column
+                             labels.
+                             Each xlref may omit file or sheet-name parts; in that
+                             case, those from the previous xlref(s) are reused.
+                             If hash(`#`) symbol missing, assumed as sheet-name.
+                             If none given, all non-empty sheets of <ref-table> are
+                             synced against the 1st one.
+      -O <output>            Output folder or file path to write the results:
+                             - Non-existent path: taken as the new file-path; fails
+                               if intermediate folders do not exist, unless --force.
+                             - Existent file: file-path to overwrite if --force,
+                               fails otherwise.
+                             - Existent folder: writes a new file
+                               `<ref-file>.sync<.ext>` in that folder; --force
+                               required if that file exists.
+                             [default: .].
+      -f, --force            Overwrite excel-file(s) and create any missing
+                             intermediate folders.
+      --prefix-cols          Prefix all synced column names with their source
+                             sheet-names. By default, only clashing column-names are
+                             prefixed.
+      --no-clone             Do not clone excel-sheets contained in <ref-table>
+                             workbook into output.
+      --interp <method>      Interpolation method used in the resampling
+                             [default: linear]: 'linear', 'nearest', 'zero',
+                             'slinear', 'quadratic', 'cubic', 'barycentric',
+                             'polynomial', 'spline' is passed to
+                             scipy.interpolate.interp1d. Both 'polynomial' and
+                             'spline' require that you also specify an order (int),
+                             e.g. df.interpolate(--interp=polynomial4).
+                             'krogh', 'piecewise_polynomial', 'pchip' and 'akima'
+                             are all wrappers around the scipy interpolation methods
+                             of similar names.
+                             'integral' is respect the signal integral.
+      -l, --interp-methods   List of all interpolation methods that can be used in
+                             the resampling.
+      --cycle <cycle>        If set (e.g., --cycle=nedc.manual), the <ref-table> is
+                             populated with the theoretical velocity profile.
+                             Options: 'nedc.manual', 'nedc.automatic',
+                             'wltp.class1', 'wltp.class2', 'wltp.class3a', and
+                             'wltp.class3b'.
+      <excel-file-path>      Output file.
+
+Datasync input template
+~~~~~~~~~~~~~~~~~~~~~~~
+The sub-command ``datasync`` accepts a single **input-excel-file**.
+You can download an *empty* input excel-file from the GUI or you can use the
+``template`` sub-command:
+
+.. image:: _static/Co2mpasALLINONE-Datasync_Template.gif
+   :scale: 75%
+   :alt: datasync tool
+   :align: center
+
+Or you can create an empty datasync template-file (e.g., ``datasync.xlsx``)
+inside the *sync-folder* with the ``template`` sub-command::
+
+        $ datasync template sync/datasync.xlsx --cycle wltp.class3b -f
+        2016-11-14 17:14:00,919: INFO:__main__:Creating INPUT-TEMPLATE file 'sync/datasync.xlsx'...
+
+All sheets must share 2 common columns ``times`` and ``velocities`` (for
+datasync cmd are ``<x-label>`` and ``<y-label>``). These describe the reference
+signal that is used to synchronize the data.
+
+The ``ref`` sheet (``<ref-table>``) is considered to contain the "theoretical"
+profile, while other sheets (``dyno`` and ``obd``, i.e. ``<sync-table>`` for
+datasync cmd) contains the data to synchronize and resample.
+
+Run datasync
+~~~~~~~~~~~~
+Fill the dyno and obd sheet with the raw data. Then, you can synchronize the
+data:
+
+Or you can create an empty datasync template-file (e.g., ``datasync.xlsx``)
+inside the *sync-folder* with the ``template`` sub-command::
+    datasync -O ./output times velocities template.xlsx#ref dyno obd
+
+- *synchronization* is based on the *fourier transform* of ``<y-label>`` columns;
+- *resampling* is based on the values of ``<x-label>`` columns among the
+  different tables.
+
+All tables are read from excel-sheets using the `xl-ref syntax
+<https://pandalone.readthedocs.org/en/latest/reference.html#module-pandalone.xleash>`_,
+which is best explained with some examples.
+
+
+Examples
+~~~~~~~~
+- Read the full contents from all `wbook.xlsx` sheets as tables and
+  sync their columns using the table from the 1st sheet as reference::
+
+    datasync times velocity folder/Book.xlsx
+
+- Sync `Sheet1` using `Sheet3` as reference::
+
+    datasync times velocity wbook.xlsx#Sheet3!  Sheet1!
+
+- The same as above but with integers used to index excel-sheets::
+
+    datasync times velocity wbook.xlsx#2!  0
+
+  .. Note:: Sheet-indices are zero based!
+
+- A more complex *xlr-ref* example which reads the synce-table from sheet2
+  of wbook-2 starting at D5 cell, or more Down 'n Right if that was empty,
+  till the first empty cell Down n Right, and synchronizes that  based on
+  1st sheet of wbook-1::
+
+    datasync times  velocity wbook-1.xlsx  wbook-2.xlsx#0!D5(DR):..(DR)
+
+- Typical usage for |co2mpas| velocity time-series from Dyno and OBD:
+
+  1. Create a template pre-populated with the theoretical velocity profile::
+
+       datasync template --cycle wltp.class3b template.xlsx
+
+  .. note:: the ref sheet contains the theoretical velocity profile.
+
+  2. Fill the dyno and obd sheet with the raw data. Synchronize the data::
+
+       datasync -O ./output times velocities template.xlsx#ref dyno obd
+
+  3. Copy paste the synchronized signal into the CO2MPAS template.
+
+
+Run batch
+---------
+3. Run the simulator on all demo-files (note, it might take considerable time):
+
+   .. code-block:: console
+
+       $ co2mpas batch input -O output
+       Processing ['input'] --> 'output'...
+       Processing: co2mpas_demo-0
+       ...
+       ...
+       Done! [499.579 sec]
+
+   .. Note::
+      The last demo-file, the "simulation-plan" will take longer to complete,
+      and, for demonstration purposes, some some of the actual models will fail;
+      check the *summary file*.
+
+4. Inspect the results (explained in the next section):
+
+   .. code-block:: console
+
+       $ start output/*summary.xlsx       ## More summaries might exist in the folder from previous runs.
+       $ start output                     ## View the folder with all files generated.
+
+
+
+   You may repeat these last 2 steps if you want to add more vehicles in
+   the *batch-run*.
+
+4. Run the simulator.  Specify the single excel-file as input:
+
+   .. code-block:: console
+
+        $ co2mpas batch ./input/vehicle_1.xlsx -O output
+        Processing './input/vehicle_1.xlsx' --> 'output'...
+        Processing: vehicle_1
+        ...
+        Done! [12.938986 sec]
+
+5. Assuming you do receive any error, you may now inspect the results:
+
+   .. code-block:: console
+
+        $ start output/*summary.xlsx      ## More summaries might open from previous runs.
+        $ start output                    ## View all files generated (see below).
+
+
+6. In the case of errors, or if the results are not satisfactory, repeat the
+   above procedure from step 3 to modify the vehicle and re-run the model.
+   See also :ref:`debug`, below.
+
+
+
 The default sub-command (``batch``) accepts either a single **input-excel-file**
 or a folder with multiple input-files for each vehicle, and generates a
 **summary-excel-file** aggregating the major result-values from these vehicles,
@@ -465,6 +759,11 @@ id      AT cal WLTP-H cal WLTP-L S/S BERS trg NEDC-H trg NEDC-L plan
    9    X      X          X      X    X      X
 simplan        X          X                  X                   X
 ======= == ========== ========== === ==== ========== ========== ====
+
+
+
+
+
 
 3. Run the simulator on all demo-files (note, it might take considerable time):
 

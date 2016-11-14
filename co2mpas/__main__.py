@@ -243,8 +243,11 @@ def _cmd_modelgraph(opts):
 def _generate_files_from_streams(
         dst_folder, file_stream_pairs, force, file_category):
     if not osp.exists(dst_folder):
-        raise CmdException(
-            "Destination folder '%s' does not exist!" % dst_folder)
+        if force:
+            os.makedirs(dst_folder)
+        else:
+            raise CmdException(
+                "Destination folder '%s' does not exist!" % dst_folder)
     if not osp.isdir(dst_folder):
         raise CmdException(
             "Destination '%s' is not a <output-folder>!" % dst_folder)

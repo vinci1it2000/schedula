@@ -570,7 +570,7 @@ def _get_input_template_fpath():
     import pkg_resources
 
     fname = 'datasync_template.xlsx'
-    return pkg_resources.resource_stream(__name__, fname)
+    return pkg_resources.resource_filename(__name__, fname)
 
 
 _re_template = regex.compile(
@@ -628,17 +628,24 @@ def _cmd_template(opts):
             fpath = '%s.xlsx' % fpath
         if osp.exists(fpath) and not force:
             raise CmdException(
-                "Writing file '%s' skipped, already exists! "
+                "File '%s', already exists! "
                 "Use '-f' to overwrite it." % fpath)
-        if osp.isdir(fpath):
+
+        if not osp.splitext(fpath)[-1]:
             raise CmdException(
                 "Expecting a file-name instead of directory '%s'!" % fpath)
 
+        dir_name = osp.dirname(fpath)
+        if not osp.isdir(dir_name):
+            if force:
+                os.makedirs(dir_name)
+            else:
+                raise CmdException(
+                    "Directory '%s' does not exists! "
+                    "Use '-f' to create it." % dir_name)
+
         log.info("Creating INPUT-TEMPLATE file '%s'...", fpath)
-
-        with open(fpath, 'wb') as fd:
-            shutil.copyfileobj(template, fd, 16 * 1024)
-
+        shutil.copy(template, fpath)
         overwrite_ref(fpath)
 
 
