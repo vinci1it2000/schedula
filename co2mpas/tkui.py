@@ -1112,7 +1112,7 @@ class SimulatePanel(ttk.Frame):
         def hide_logo():
             logo.grid_forget()
 
-        frame1, var = self._make_template_file(frame)
+        frame1, var = self._make_out_template_file(frame)
         self.tmpl_folder_var = var
 
         frame2, var = self._make_flags_frame(frame)
@@ -1136,7 +1136,7 @@ class SimulatePanel(ttk.Frame):
 
         return frame, flipper
 
-    def _make_template_file(self, parent):
+    def _make_out_template_file(self, parent):
         title = 'Output Template file'
         frame = ttk.Labelframe(parent, text=labelize_str(title))
 
@@ -1574,6 +1574,76 @@ and double-click on the result file to open it,
         self.save_tmpl_btn.state((bang(self.rb_var.get()) + tk.DISABLED,))
 
 
+class TemplatesPanel(ttk.Frame):
+
+    def __init__(self, parent, app, **kw):
+        super().__init__(parent, **kw)
+        self.app = app
+        widgets = {}  # To register widgets embeded in makdown-text.
+
+        help_msg = dedent("""
+        - Opens a Select-folder dialog for storing DEMO INPUT  files:
+        [wdg:demo-files]
+
+        - Opens a Select-folder dialog for storing IPYTHON NOTEBOOKS that may also run CO2MPAS and generate reports:
+        [wdg:ipython-files]
+        """)
+        textarea = tk.Text(self, font='TkDefaultFont', background='SystemButtonFace', foreground='olive')
+
+        textarea.pack(fill=tk.BOTH, expand=1)
+
+        def store_demos(folder):
+            opts = docopt.Dict()
+            opts['--force'] = True
+            opts['<output-folder>'] = folder
+            cmain._cmd_demo(opts)
+
+        frame = self._make_download_panel(textarea, title='CO2MPAS DEMO Input-files', action_func=store_demos)
+        widgets['demo-files'] = frame
+
+        def store_ipythons(folder):
+            opts = docopt.Dict()
+            opts['--force'] = True
+            opts['<output-folder>'] = folder
+            cmain._cmd_ipynb(opts)
+
+        frame = self._make_download_panel(textarea, title='CO2MPAS IPython files', action_func=store_ipythons)
+        widgets['ipython-files'] = frame
+
+        add_makdownd_text(textarea, help_msg.strip(), widgets, tags=('default', ))
+        textarea['state'] = tk.DISABLED
+
+    def _make_download_panel(self, textarea, title, action_func):
+        frame = ttk.Frame(textarea, style='IPythonFiles.TFrame')
+        frame.grid_columnconfigure(1, weight=1)
+
+        var = StringVar()
+
+        def ask_output_folder(title):
+            initialdir = find_longest_valid_dir(var.get().strip())
+            folder = filedialog.askdirectory(
+                parent=self,
+                title="Select Folder to store %s" % title,
+                initialdir=initialdir)
+            if folder:
+                action_func(folder)
+                var.set(folder + '/')
+
+        btn = ttk.Button(frame, command=fnt.partial(ask_output_folder, title))
+        btn.grid(column=0, row=0, sticky='nswe')
+        add_icon(btn, 'icons/download_dir-olive-32.png')
+        #add_tooltip(btn, 'sel_ipythons_folder_btn')
+
+        btn = ttk.Button(frame, textvariable=var, width=87,  # In line with embeded-frame above.
+                         style='Filepath.TButton')
+        btn.grid(column=1, row=0, sticky='nsw')
+        #add_tooltip(btn, 'ipython_folder_btn')
+        btn.bind("<Double-1>", lambda ev: open_file_with_os(var.get()))
+        attach_open_file_popup(btn, var)
+
+        return frame
+
+
 class TkUI(object):
     """
     :ivar _job_thread:
@@ -1611,6 +1681,9 @@ class TkUI(object):
 
         tab = SyncronizePanel(nb, app=self)
         nb.add(tab, text='Synchronize', sticky='nwse')
+
+        tab = TemplatesPanel(nb, app=self)
+        nb.add(tab, text='Templates & Samples', sticky='nwse')
 
         frame = LogPanel(slider, self, height=-260, log_level_cb=cmain.init_logging)
         slider.add(frame, weight=3)
