@@ -1323,6 +1323,7 @@ class SimulatePanel(ttk.Frame):
 
         inp_paths, out_folder, cmd_kwds = self.reconstruct_cmd_args_from_gui()
 
+        inp_paths = cmain.file_finder(inp_paths)
         if not inp_paths:
             app.estatus("No inputs specified!  Please add files & folders in the Inputs list at the top-left.")
             return
