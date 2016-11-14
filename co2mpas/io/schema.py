@@ -448,6 +448,10 @@ def _dir(error=None, **kwargs):
     return And(_string(), Schema(osp.isdir, error=er), error=error)
 
 
+def is_sorted(iterable, key=lambda a, b: a <= b):
+    return all(key(a, b) for a, b in dsp_utl.pairwise(iterable))
+
+
 @functools.lru_cache(None)
 def define_data_schema(read=True):
     cmv = _cmv(read=read)
@@ -467,6 +471,11 @@ def define_data_schema(read=True):
     limits = _limits(read=read)
     index_dict = _index_dict(read=read)
     np_array = _np_array(read=read)
+    np_array_sorted = _np_array_positive(
+        read=read, error='cannot be parsed because it should be an '
+                         'np.array dtype=<float> with ascending order!',
+        check=is_sorted
+    )
     np_array_greater_than_minus_one = _np_array_positive(
         read=read, error='cannot be parsed because it should be an '
                          'np.array dtype=<float> and all values >= -1!',
@@ -547,7 +556,7 @@ def define_data_schema(read=True):
         'velocity_speed_ratios': index_dict,
         'gear_box_ratios': index_dict,
         'speed_velocity_ratios': index_dict,
-        'full_load_speeds': np_array,
+        'full_load_speeds': np_array_sorted,
         'full_load_torques': np_array,
         'full_load_powers': np_array,
 
@@ -690,7 +699,7 @@ def define_data_schema(read=True):
         'on_engine': np_array_bool,
         'on_idle': np_array_bool,
         'state_of_charges': np_array,
-        'times': np_array,
+        'times': np_array_sorted,
         'velocities': np_array_greater_than_minus_one,
         _compare_str('obd_velocities'): np_array_greater_than_minus_one,
         'wheel_powers': np_array,
