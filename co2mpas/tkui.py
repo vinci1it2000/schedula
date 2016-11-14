@@ -130,7 +130,7 @@ def define_tooltips():
 
         advanced_link: |-
             Options and flags incompatible with DECLARATION mode (started with the `Run TA` buttons).
-            The may be useful for engineers and experimentation, and for facilitating running batches.
+            These may be useful for engineers and experimentation, and for facilitating running batches.
         out_template_entry: |-
             Select a pre-populated Excel file to clone and append CO2MPAS results into.
             By default, results are appended into an empty excel-file.
