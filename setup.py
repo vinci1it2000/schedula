@@ -192,8 +192,8 @@ setup(
     ],
     extras_require={
         'dice': [
-            'python-gpg>=2.0.8', ## Due to https://github.com/gitpython-developers/GitPython/issues/332
-            'gitpython',
+            'python-gnupg',
+            'gitpython >= 2.0.8', ## Due to https://github.com/gitpython-developers/GitPython/issues/332
             'keyring',
             'transitions',
         ],
