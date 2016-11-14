@@ -1564,6 +1564,9 @@ def _set_attr(params, data, default=False, attr='vary'):
         s[attr] = v
         p.set(**s)
 
+        if p.max == p.min:
+            p.set(value=p.min, min=None, max=None, vary=False)
+
     return params
 
 
