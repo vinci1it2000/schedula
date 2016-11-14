@@ -11,8 +11,7 @@ v1.4.1, file-ver: 2.2.5, 20-October 2016: "Rally" release
 This release contains both key model and software changes; additional
 capabilities have been added for the user, namely:
 
-- the type approval command and declaration mode;
-- predict in a single run both *High/Low NEDC* cycles from *WLTP* ones;
+- the type approval command and declaration data input;
 - the new template file contains the minimum inputs that the user have to
   provide to run the "declaration mode";
 - the new output template file;
@@ -22,30 +21,35 @@ Several model changes improved the handling of real-measurement
 data-series.
 
 The study of this release's results are contained in these 3 reports:
-`manual <http://jrcstu.github.io/co2mpas/v1.4.x/validation_manual_cases.html>`_,
-`automatic <http://jrcstu.github.io/co2mpas/v1.4.x/validation_automatic_cases.html>`_,
-and `real <http://jrcstu.github.io/co2mpas/v1.4.x/validation_real_cases.html>`_
+`manual <http://jrcstu.github.io/co2mpas/v1.4.x/validation_manual_cases.html>`__,
+`automatic <http://jrcstu.github.io/co2mpas/v1.4.x/validation_automatic_cases.html>`__,
+and `real <http://jrcstu.github.io/co2mpas/v1.4.x/validation_real_cases.html>`__
 cars, respectively.
 
 
 Model-changes
 -------------
-- :gh:`250`, :gh:`251`, :gh:`276`:
-  Implementation of declaration and engineering modes.
-  Add option `-D, --override` to vary the data model from the cmd.
-  Bypass model-selector. Implement of model-selector preferences to select
-  arbitrary calibration models for each predictions.
-  Remove unneeded flags: [--out-template=<xlsx-file>], [--plot-workflow],
-  [--only-summary].[--engineering-mode=<n>]
-- :gh:`276` (:git:`ec937d0`, :git:`ad5bc81`, :git:`2472894`): First implementation of declaration mode `--soft-validation` -->
-  `--engineering-mode`. Add special plan id `run_base`. If it is false the base model is just parsed but not evaluated.
-- :gh:`251` (:git:`f5a75b2`, :git:`c52886f`): Use a separate flag to enable
-  the selector: ``use_selector`` configuration in case of declaration mode.
-- :gh:`276`: Implement the new ta cmd.
+- :gh:`250`,:gh:`276`:
+  Implementation of the type approval command, defining declaration and
+  engineering data.
+
 - :git:`228`:
-  Add conf file where there are all co2mpas constant parameters.
-  Add overwrite constants from cmd.
-  Add overwrite constants to modelgraph cmd.
+  Add an option to bash cmd `-D, --override` to vary the data model from the
+  cmd instead modifying the input file. Moreover with the new option
+  `--modelconf` also the constant parameters can be modified.
+
+  The cmd options [--out-template=<xlsx-file>], [--plot-workflow],
+  [--only-summary], and [--engineering-mode=<n>] have been transformed as
+  internal flags that can be input from the input file or from the cmd
+  (e.g., `-D flag.xxx`).
+
+  Add special plan id `run_base`. If it is false the base model is just parsed
+  but not evaluated.
+
+- :gh:`251`:
+  The model-selector can enabled or disabled (default). Moreover, model-selector
+  preferences can be defined in order to select arbitrary calibration models
+  for each predictions.
 
 
 Wheels model
@@ -111,6 +115,10 @@ CO2 model
   purely cold.
 - :gh:`205`, :gh:`207`: Calibrate `co2_params` using co2 emission identified in
   the third step.
+- :gh:`301`: Implement the exhaust gas recirculation and selective catalytic
+  reduction technologies.
+- :gh:`299`: Implement the gearbox thermal management.
+- :gh:`295`: Implement the lean burn technology.
 - :gh:`285`: Implement the cylinder deactivation strategy.
 - :gh:`287`: Implement the variable valve activation strategy.
 - :gh:`259` (:git:`119fa28`): Implement ki factor correction for vehicle with
@@ -195,9 +203,9 @@ while several model changes improved the handling of real-measurement
 data-series.
 
 The study of this release's results are contained in these 3 reports:
-`manual <http://jrcstu.github.io/co2mpas/v1.3.x/validation_manual_cases.html>`_,
-`automatic <http://jrcstu.github.io/co2mpas/v1.3.x/validation_automatic_cases.html>`_,
-and `real <http://jrcstu.github.io/co2mpas/v1.3.x/validation_real_cases.html>`_
+`manual <http://jrcstu.github.io/co2mpas/v1.3.x/validation_manual_cases.html>`__,
+`automatic <http://jrcstu.github.io/co2mpas/v1.3.x/validation_automatic_cases.html>`__,
+and `real <http://jrcstu.github.io/co2mpas/v1.3.x/validation_real_cases.html>`__
 cars, respectively.
 
 

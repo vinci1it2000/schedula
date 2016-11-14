@@ -65,9 +65,7 @@ calibration = {
     'n_dyno_axes': True,
     'times': True,
     'velocities': True,
-    'gears': True,
     'bag_phases': True,
-    'OBD_velocities': True,
     'engine_speeds_out': True,
     'engine_coolant_temperatures': True,
     'co2_normalization_references': True,
@@ -75,7 +73,6 @@ calibration = {
     'battery_currents': True,
     'cycle_name': True,
     'cycle_type': True,
-    'initial_state_of_charge': True
 }
 
 prediction = {

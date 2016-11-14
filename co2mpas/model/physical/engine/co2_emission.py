@@ -550,10 +550,11 @@ def _yield_factors(param_id, factor):
             return j, n
 
         for m in np.unique(param_id):
-            b = m == param_id
-            for k, v in factor.get(m, {}).items():
-                j, i = dsp_utl.get_nested_dicts(p, k, default=_defaults)
-                j[b], i[b] = v, 1
+            if not isinstance(m, np.ma.core.MaskedConstant):
+                b = m == param_id
+                for k, v in factor.get(m, {}).items():
+                    j, i = dsp_utl.get_nested_dicts(p, k, default=_defaults)
+                    j[b], i[b] = v, 1
 
         for k, (j, n) in p.items():
             b = n == 0
@@ -1563,6 +1564,9 @@ def _set_attr(params, data, default=False, attr='vary'):
         s = {i: getattr(p, i) for i in d}
         s[attr] = v
         p.set(**s)
+
+        if p.max == p.min:
+            p.set(value=p.min, min=None, max=None, vary=False)
 
     return params
 
