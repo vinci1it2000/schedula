@@ -479,7 +479,7 @@ _img_in_txt_regex = re.compile(
     re.IGNORECASE | re.VERBOSE)
 
 
-def add_makdownd_text(text_widget, text, widgets: Mapping[str, tk.Widget]=None):
+def add_makdownd_text(text_widget, text, widgets: Mapping[str, tk.Widget]=None, tags=()):
     """
     Support a limited Markdown for inserting text into :class:`tk.Text`.
 
@@ -511,7 +511,7 @@ def add_makdownd_text(text_widget, text, widgets: Mapping[str, tk.Widget]=None):
     for m in _img_in_txt_regex.finditer(text):
         try:
             s, e = m.span(0)
-            text_widget.insert(tk.INSERT, text[last_endp:s])
+            text_widget.insert(tk.INSERT, text[last_endp:s], *tags)
 
             obj, alt, url = m.groups()
             if not url:
@@ -536,7 +536,7 @@ def add_makdownd_text(text_widget, text, widgets: Mapping[str, tk.Widget]=None):
             elif alt:
                 lm = get_linkman()
                 tag = lm.add(fnt.partial(open_url, url))
-                text_widget.insert(tk.INSERT, alt, tag)
+                text_widget.insert(tk.INSERT, alt, tag, *tags)
             else:
                 raise AssertionError(text, s, e, obj, alt, url, m.groupdict())
         except Exception as ex:
@@ -544,7 +544,7 @@ def add_makdownd_text(text_widget, text, widgets: Mapping[str, tk.Widget]=None):
                              "\n  obj: %s, alt: %s, url: %s"%
                              (m.group(0), text_widget.index(tk.INSERT), ex, obj, alt, url)) from ex
         last_endp = e
-    text_widget.insert(tk.INSERT, text[last_endp:])
+    text_widget.insert(tk.INSERT, text[last_endp:], *tags)
 
 
 class HyperlinkManager:
