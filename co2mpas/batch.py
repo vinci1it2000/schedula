@@ -158,18 +158,19 @@ def _process_folder_files(*args, result_listener=None, **kwargs):
 
     summary, n = {}, ('solution', 'summary')
     for res in _yield_folder_files_results(start_time, *args, **kwargs):
-        if result_listener:
-            try:
-                result_listener((res['solution']['output_file_name'], res))
-            except Exception as ex:
-                try:
-                    keys = list(res)
-                except:
-                    keys = '<no keys>'
-                log.warning("Failed notifying result-listener due to: %s\n  result-keys: %s",
-                            ex, keys, exc_info=1)
         if dsp_utl.are_in_nested_dicts(res, *n):
             _add2summary(summary, dsp_utl.get_nested_dicts(res, *n))
+
+            if result_listener:
+                try:
+                    result_listener((res['solution']['output_file_name'], res))
+                except Exception as ex:
+                    try:
+                        keys = list(res)
+                    except:
+                        keys = '<no keys>'
+                    log.warning("Failed notifying result-listener due to: %s\n  result-keys: %s",
+                                ex, keys, exc_info=1)
 
     return summary, start_time
 
