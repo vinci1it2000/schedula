@@ -13,33 +13,31 @@
 :Sources:       https://github.com/JRCSTU/co2mpas
 :pypi-repo:     https://pypi.python.org/pypi/co2mpas
 :Keywords:      CO2, fuel-consumption, WLTP, NEDC, vehicle, automotive,
-                EU, JRC, IET, STU, back-translation, policy, monitoring, M1, N1,
+                EU, JRC, IET, STU, correlation, back-translation, policy, monitoring, M1, N1,
                 simulator, engineering, scientific
 :Developers:    .. include:: AUTHORS.rst
-:Copyright:     2015-2016 European Commission (`JRC-IET
-                <https://ec.europa.eu/jrc/en/institutes/iet>`_)
+:Copyright:     2015-2016 European Commission (`JRC <https://ec.europa.eu/jrc/>`_)
 :License:       `EUPL 1.1+ <https://joinup.ec.europa.eu/software/page/eupl>`_
 
 |co2mpas| is backward-looking longitudinal-dynamics |CO2| and
-fuel-consumption simulator for light-duty M1 & N1 vehicles (cars and vans),
-specially crafted to back-translate consumption figures from WLTP cycles
-into NEDC ones, according to the *EU* legislation (see `History`_ section,
-below).
+fuel-consumption simulator for light-duty M1 & N1 vehicles (cars and vans), specially crafted to
+*calculate CO2 emissions of a vehicle subject to a NEDC test using the results of a WLTP test*,
+according to the *EU* legislation (see `History`_ section, below).
 
 It is an open-source project developed with Python-3.4+,
 using Anaconda & WinPython under Windows 7, Anaconda under MacOS, and
-Linux's standard python environment.
-It runs as a *console command* consuming (mostly) excel-files with input-data.
+standard python environment under Linux.
+It runs either as a *console command* or as a *desktop GUI application*,
+and it uses Excel-files for its input & output data.
 
 History
 =======
-The *European Commission* is supporting the introduction of the *WLTP cycle*
-for Light-duty vehicles developed at the *United Nations (UN/ECE)*
-level, in the shortest possible time-frame. Its introduction requires
-the adaptation of |CO2| certification and monitoring procedures set
-by European regulations. European Commission's *Joint Research Centre (JRC)*
-has been assigned the development of this vehicle simulator to facilitate this
-adaptation.
+The *European Commission* has introduced the *WLTP* as test procedure for the type I test
+of the European type-approval of Light-duty vehicles as of September 2017.
+Its introduction has required the adaptation of |CO2| certification and monitoring procedures
+set by European regulations (443/2009 and 510/2011).
+European Commission’s *Joint Research Centre* (JRC) has been assigned the development
+of this vehicle simulator to facilitate this adaptation.
 
 The European Regulation setting the conditions for using |co2mpas| can be
 found in `the Comitology Register
