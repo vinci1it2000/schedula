@@ -50,30 +50,6 @@ For recent activity, check the :doc:`changes`.
 
 Quickstart
 ==========
-.. Tip::
-    **About console-commands appearing in the examples of the documentation:**
-
-    - Console-commands beginning with ``$`` symbol are for the ``bash`` shell
-      (UNIX).
-      You can install it on *Windows* with **cygwin**: https://www.cygwin.com/
-      along with these useful utilities::
-
-        * git, git-completion
-        * make, zip, unzip, bzip2, 7z, dos2unix
-        * openssh, curl, wget
-
-    - Console-commands beginning with ``>`` symbol are for *Windows* ``cmd.exe``
-      command-prompt.
-      You can augment it with bash-like capabilities using **Clink**:
-      http://mridgers.github.io/clink/
-
-    - You can adapt commands between the two shells with minor modifications
-      (i.e. ``ls <--> dir``, ``rm -r <--> rmdir /s/q``).
-
-    - You may download and install the *all-in-one* archive which contains
-      both shells configured in a console supporting decent copy-paste and
-      resizing capabilities (see :ref:`all-in-one`).
-
 IF you are familiar with python, AND
 IF you already have a full-blown *python-3 environment*
 (i.e. *Linux* or the *all-in-one* archive), AND
@@ -85,28 +61,29 @@ otherwise follow the detailed instructions under sections :ref:`install` and
 .. code-block:: console
 
     ## Install co2mpas.
-    ## NOTE: If behind proxy, specify additionally this option:
-    ##    --proxy http://user:password@yourProxyUrl:yourProxyPort
-    ##
     $ pip install co2mpas
 
-    ## Where to store input and output files.
-    ## In *Windows* cmd-prompt use `md` command instead.
-    $ mkdir input output
-
     ## Create a template excel-file for inputs.
-    $ co2mpas template input/vehicle_1.xlsx
+    $ co2mpas template vehicle_1.xlsx
 
     ###################################################
     ## Edit generated `./input/vehicle_1.xlsx` file. ##
     ###################################################
 
-    ## Run simulator.
-    $ co2mpas batch  input -O output
+
+    ## To synchronize the Dyno and OBD data with the theoretical:
+    $ datasync template --cycle wltp.class3b template.xlsx
+    $ datasync -O ./output times velocities template.xlsx#ref! dyno obd -i alternator_currents=integral -i battery_currents=integral
+
+    ## Run batch simulator.
+    $ co2mpas batch vehicle_1.xlsx -O output -f
 
     ###################################################
     ## Inspect generated results inside `./output/`. ##
     ###################################################
+
+    ## Run type approval command.
+    $ co2mpas ta vehicle_1.xlsx -O output -f
 
 
 .. _end-opening:
