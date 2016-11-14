@@ -187,6 +187,19 @@ def define_tooltips():
             Opens an Open-File dialog to specify an existing Input "Sync Excel file".
         run_sync_btn: |-
             Runs the Synchronization utility.
+
+        sel_demo_folder_btn: |-
+            Opens an Select-folder dialog to specify where to store the IPython-notebook(`.ipynb`) files.
+        demo_folder_btn: |-
+            The folder where the IPython-notebook(`.ipynb`) files have been stored.
+            - Double-click to open it.
+
+        sel_ipython_folder_btn: |-
+            Opens an Select-folder dialog to specify where to store the demo CO2MPAS Input files.
+        ipython_folder_btn: |-
+            The folder where the demo CO2MPAS Input files have been stored.
+            - Double-click to open it.
+
     """
 
     return yaml.load(all_tooltips)
@@ -1599,7 +1612,8 @@ class TemplatesPanel(ttk.Frame):
             opts['<output-folder>'] = folder
             cmain._cmd_demo(opts)
 
-        frame = self._make_download_panel(textarea, title='CO2MPAS DEMO Input-files', action_func=store_demos)
+        frame = self._make_download_panel(textarea, title='CO2MPAS DEMO Input-files',
+                                          action_func=store_demos, tooltip_key='demo')
         widgets['demo-files'] = frame
 
         def store_ipythons(folder):
@@ -1608,13 +1622,14 @@ class TemplatesPanel(ttk.Frame):
             opts['<output-folder>'] = folder
             cmain._cmd_ipynb(opts)
 
-        frame = self._make_download_panel(textarea, title='CO2MPAS IPython files', action_func=store_ipythons)
+        frame = self._make_download_panel(textarea, title='CO2MPAS IPython files',
+                                          action_func=store_ipythons, tooltip_key='ipython')
         widgets['ipython-files'] = frame
 
         add_makdownd_text(textarea, help_msg.strip(), widgets, tags=('default', ))
         textarea['state'] = tk.DISABLED
 
-    def _make_download_panel(self, textarea, title, action_func):
+    def _make_download_panel(self, textarea, title, action_func, tooltip_key):
         frame = ttk.Frame(textarea, style='IPythonFiles.TFrame')
         frame.grid_columnconfigure(1, weight=1)
 
@@ -1633,12 +1648,12 @@ class TemplatesPanel(ttk.Frame):
         btn = ttk.Button(frame, command=fnt.partial(ask_output_folder, title))
         btn.grid(column=0, row=0, sticky='nswe')
         add_icon(btn, 'icons/download_dir-olive-32.png')
-        #add_tooltip(btn, 'sel_ipythons_folder_btn')
+        add_tooltip(btn, 'sel_%s_folder_btn' % tooltip_key)
 
         btn = ttk.Button(frame, textvariable=var, width=87,  # In line with embeded-frame above.
                          style='Filepath.TButton')
         btn.grid(column=1, row=0, sticky='nsw')
-        #add_tooltip(btn, 'ipython_folder_btn')
+        add_tooltip(btn, '%s_folder_btn' % tooltip_key)
         btn.bind("<Double-1>", lambda ev: open_file_with_os(var.get()))
         attach_open_file_popup(btn, var)
 
