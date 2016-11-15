@@ -231,8 +231,10 @@ about_txt = """
 def show_about(root, about_txt=about_txt, verbose=False):
     root.title("About %s" % app_name)
 
-    msg = tk.Text(root, wrap=tk.WORD)
-    msg.pack(fill=tk.BOTH, expand=1)
+    textarea = tk.Text(root, wrap=tk.WORD,
+                       background='SystemButtonFace',
+                       cursor='arrow')
+    textarea.pack(fill=tk.BOTH, expand=1)
 
     if verbose:
         extra = 'Verbose versions: \n%s' % indent(cmain.build_version_string(verbose=True), '    ')
@@ -246,9 +248,9 @@ def show_about(root, about_txt=about_txt, verbose=False):
     txt = dedent(about_txt).format_map(ChainMap(fields, locals(), globals()))
 
     log.info(txt)
-    add_makdownd_text(msg, txt)
+    add_makdownd_text(textarea, txt)
 
-    msg.configure(state=tk.DISABLED, bg='SystemButtonFace')
+    textarea.configure(state=tk.DISABLED)
 
 
 _bw = 2
@@ -507,7 +509,7 @@ _img_in_txt_regex = re.compile(
     re.IGNORECASE | re.VERBOSE)
 
 
-def add_makdownd_text(text_widget, text, widgets: Mapping[str, tk.Widget]=None, tags=()):
+def add_makdownd_text(text_widget, text, widgets: Mapping[str, tk.Widget]=None, *tags):
     """
     Support a limited Markdown for inserting text into :class:`tk.Text`.
 
@@ -1516,7 +1518,10 @@ and double-click on the result file to open it,
            and copy paste the synchronized signals into your CO2MPAS Input File:
         [wdg:out-file]
         """)
-        textarea = tk.Text(self, font='TkDefaultFont', background='SystemButtonFace', foreground='olive')
+        textarea = tk.Text(self, font='TkDefaultFont',
+                           background='SystemButtonFace',
+                           foreground='olive',
+                           cursor='arrow')
         textarea.pack(fill=tk.BOTH, expand=1)
 
         frame = ttk.Frame(textarea, style='InpFile.TFrame')
@@ -1640,7 +1645,10 @@ class TemplatesPanel(ttk.Frame):
         - Opens a Select-folder dialog for storing IPYTHON NOTEBOOKS that may also run CO2MPAS and generate reports:
         [wdg:ipython-files]
         """)
-        textarea = tk.Text(self, font='TkDefaultFont', background='SystemButtonFace', foreground='olive')
+        textarea = tk.Text(self, font='TkDefaultFont',
+                           background='SystemButtonFace',
+                           foreground='olive',
+                           cursor='arrow')
 
         textarea.pack(fill=tk.BOTH, expand=1)
 
@@ -1664,7 +1672,7 @@ class TemplatesPanel(ttk.Frame):
                                           action_func=store_ipythons, tooltip_key='ipython')
         widgets['ipython-files'] = frame
 
-        add_makdownd_text(textarea, help_msg.strip(), widgets, tags=('default', ))
+        add_makdownd_text(textarea, help_msg.strip(), widgets, 'default')
         textarea['state'] = tk.DISABLED
 
     def _make_download_panel(self, textarea, title, action_func, tooltip_key):
