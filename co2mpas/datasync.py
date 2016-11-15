@@ -570,7 +570,7 @@ def _get_input_template_fpath():
     import pkg_resources
 
     fname = 'datasync_template.xlsx'
-    return pkg_resources.resource_filename(__name__, fname)
+    return pkg_resources.resource_filename(__name__, fname)  # @UndefinedVariable
 
 
 _re_template = regex.compile(
@@ -684,15 +684,14 @@ def main(*args):
         _cmd_template(opts)
     else:
         do_datasync(
-                opts['<x-label>'], opts['<y-label>'],
-                opts['<ref-table>'], *opts['<sync-table>'],
-                out_path=opts['-O'],
-                prefix_cols=opts['--prefix-cols'],
-                force=opts['--force'],
-                no_clone=opts['--no-clone'],
-                interpolation_method=opts['--interp'],
-                interpolation_methods=parse_overrides(opts['-i'], option_name='-i'),
-        )
+            opts['<x-label>'], opts['<y-label>'],
+            opts['<ref-table>'], *opts['<sync-table>'],
+            out_path=opts['-O'],
+            prefix_cols=opts['--prefix-cols'],
+            force=opts['--force'],
+            no_clone=opts['--no-clone'],
+            interpolation_method=opts['--interp'],
+            interpolation_methods=parse_overrides(opts['-i'], option_name='-i'))
 
 
 if __name__ == '__main__':

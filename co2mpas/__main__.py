@@ -167,7 +167,7 @@ warnings.filterwarnings(
 )
 
 
-def _set_thread_logging():
+def _set_numpy_logging():
     rlog = logging.getLogger()
     if not rlog.isEnabledFor(logging.DEBUG):
         import numpy as np
@@ -191,7 +191,7 @@ def init_logging(level=None, frmt=None, logconf_file=None):
         rlog = logging.getLogger()
         rlog.level = level  # because `basicConfig()` does not reconfig root-logger when re-invoked.
 
-    _set_thread_logging()
+    _set_numpy_logging()
 
     logging.captureWarnings(True)
 

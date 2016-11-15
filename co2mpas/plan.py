@@ -98,6 +98,10 @@ def define_new_inputs(data, base):
     return new_base, out_id
 
 
+#: Cludge for GUI to receive Plan's output filenames.
+plan_listener = None
+
+
 def make_simulation_plan(plan, timestamp, variation, flag, model=None):
     model, summary = model or batch.vehicle_processing_model(), {}
     run_base = model.get_node('run_base')[0].dsp
@@ -132,6 +136,7 @@ def make_simulation_plan(plan, timestamp, variation, flag, model=None):
         inputs['vehicle_name'] = name
         inputs.update(kw)
         res = run_base.dispatch(inputs)
+        batch.notify_result_listener(plan_listener, res)
 
         s = filter_summary(p, o, res.get('summary', {}))
         base_keys = {

@@ -56,6 +56,7 @@ import io
 import logging
 import os
 from pandalone import utils as putils
+from queue import Queue
 import random
 import re
 import sys
@@ -69,14 +70,14 @@ import webbrowser
 
 from PIL import Image, ImageTk
 import docopt
-from toolz import dicttoolz as dtz, itertoolz as itz
+from toolz import dicttoolz as dtz
 import yaml
 
 from co2mpas import (__main__ as cmain, __version__,
                      __updated__, __copyright__, __license__, __uri__)  # @UnusedImport
 from co2mpas import datasync
 import co2mpas.batch as cbatch
-from co2mpas.utils import stds_redirected
+from co2mpas.utils import stds_redirected, parse_key_value_pair
 import functools as fnt
 import os.path as osp
 import pkg_resources as pkg
@@ -129,12 +130,12 @@ def define_tooltips():
             Opens a Folder-dialog to select the Output Folder for the field to the left.
 
         advanced_link: |-
-            Options and flags incompatible with DECLARATION mode (started with the `Run TA` buttons).
-            These may be useful for engineers and experimentation, and for facilitating running batches.
+            Options and flags incompatible with DECLARATION mode (started with the Run TA button).
+            These may be useful for engineering and experimentation purposes, and for facilitating running batches.
         out_template_entry: |-
-            Select a pre-populated Excel file to clone and append CO2MPAS results into.
+            Select a pre-populated Excel file to clone and append CO2MPAS results into it.
             By default, results are appended into an empty excel-file.
-            - If feld is not empty, double-click to open the specified folder.
+            - If field is not empty, double-click to open the specified folder.
             - Use a dash('-') to have CO2MPAS clone the Input-file and use it as template;
         sel_tmpl_file_btn: |-
             Opens a File-dialog to select an existing Excel Output Template file
@@ -143,26 +144,34 @@ def define_tooltips():
         help_btn: |-
             Opens the CO2MPAS site in a browser.
         run_batch_btn: |-
-            Launches the BATCH CO2MPAS command.
-            - Populate the "Inputs" list with (at lteast one) files & folders;
+            Launches the CO2MPAS BATCH command.
+            - Populate the "Inputs" list with (at least one) files & folders;
             - Compatible with all flags and options (including ENGINEERING/DECLARATION mode);
             - The output-folder cannot be empty.
         run_ta_btn: |-
-            Runs the TA command for a single file in DECLARATION mode.
+            Runs the CO2MPAS TA command for a single file in DECLARATION mode.
             - Incompatible with any other flags and options;
             - The output-folder cannot be empty;
-            - Needs one, and only one file input.
         stop_job_btn: |-
-            Aborts a "job" that have started with the `Run` or `Run TA` buttons.
+            Aborts a "job" that has started with the Run or Run TA buttons.
 
         extra_options_entry: |-
-            Put any other cmd-line options here (try '--help' and click `Run`` button).
+            A space-separated list of key-value pair options.
+            - Values are "typed"; use the following assignment symbols to demarcate them:
+                +=: INTEGER
+                *=: FLOAT
+                ?=: BOOLEAN: (1, yes, true, on) ==> True, (0, no, false, off) ==> False
+                :=: JSON expression
+                @=: PYTHON expression
+                = : STRING
+            - example:
+                flag.engineering?=on  flag.plot_workflow?=yes  flag.output_template=some_file.xlsx
 
         engineering_mode: |-
-            the model uses of all available input data (not only the declaration inputs),
-            and is possible to override various model parameters..
+            the model uses all the available input data (not only the declaration inputs),
+            and it is possible to override various model parameters.
         plot_workflow: |-
-            Open workflow-plot in browser, after run finished.
+            Open workflow-plot in browser, after the run has finished.
         soft_validation: |-
             Relax some Input-data validations in order to facilitate experimentation.
         only_summary: |-
@@ -222,8 +231,10 @@ about_txt = """
 def show_about(root, about_txt=about_txt, verbose=False):
     root.title("About %s" % app_name)
 
-    msg = tk.Text(root, wrap=tk.WORD)
-    msg.pack(fill=tk.BOTH, expand=1)
+    textarea = tk.Text(root, wrap=tk.WORD,
+                       background='SystemButtonFace',
+                       cursor='arrow')
+    textarea.pack(fill=tk.BOTH, expand=1)
 
     if verbose:
         extra = 'Verbose versions: \n%s' % indent(cmain.build_version_string(verbose=True), '    ')
@@ -237,9 +248,9 @@ def show_about(root, about_txt=about_txt, verbose=False):
     txt = dedent(about_txt).format_map(ChainMap(fields, locals(), globals()))
 
     log.info(txt)
-    add_makdownd_text(msg, txt)
+    add_makdownd_text(textarea, txt)
 
-    msg.configure(state=tk.DISABLED, bg='SystemButtonFace')
+    textarea.configure(state=tk.DISABLED)
 
 
 _bw = 2
@@ -340,10 +351,15 @@ def run_python_job(job_name, function, cmd_args, cmd_kwds, stdout=None, stderr=N
 
     Suitable to be run within a thread.
     """
+    ## Numpy error-config is on per-thread basis:
+    #    https://docs.scipy.org/doc/numpy/reference/ufuncs.html#error-handling
+    #  So replicate :func:`cmain.init_logging()` logic also here.
+    #
+    cmain._set_numpy_logging()
+
     ex = None
     with stds_redirected(stdout, stderr) as (stdout, stderr):
         try:
-            cmain._set_thread_logging()
             function(*cmd_args, **cmd_kwds)
         except (SystemExit, Exception) as ex1:
             log.error("Job %s failed due to: %s", job_name, ex1, exc_info=1)
@@ -493,7 +509,7 @@ _img_in_txt_regex = re.compile(
     re.IGNORECASE | re.VERBOSE)
 
 
-def add_makdownd_text(text_widget, text, widgets: Mapping[str, tk.Widget]=None, tags=()):
+def add_makdownd_text(text_widget, text, widgets: Mapping[str, tk.Widget]=None, *tags):
     """
     Support a limited Markdown for inserting text into :class:`tk.Text`.
 
@@ -555,7 +571,7 @@ def add_makdownd_text(text_widget, text, widgets: Mapping[str, tk.Widget]=None, 
                 raise AssertionError(text, s, e, obj, alt, url, m.groupdict())
         except Exception as ex:
             raise ValueError("Makdown syntax-error %r at (line.column) %s: %s"
-                             "\n  obj: %s, alt: %s, url: %s"%
+                             "\n  obj: %s, alt: %s, url: %s" %
                              (m.group(0), text_widget.index(tk.INSERT), ex, obj, alt, url)) from ex
         last_endp = e
     text_widget.insert(tk.INSERT, text[last_endp:], *tags)
@@ -670,9 +686,9 @@ class WidgetFlipper:
         self._flip_cb = flip_cb
 
         self.flip_ix = -1  # So that flipping kicks-in below.
-        parent.after_idle(self.flip, 0)
+        self.flip(0, dont_invoke_cb=True)
 
-    def flip(self, flip_ix=None):
+    def flip(self, flip_ix=None, dont_invoke_cb=False):
         flip_specs = self.flip_specs
         old_ix = self.flip_ix
 
@@ -685,7 +701,7 @@ class WidgetFlipper:
             flip_specs[flip_ix].show_func()
             self.flip_ix = flip_ix
 
-            if self._flip_cb:
+            if not dont_invoke_cb and self._flip_cb:
                 self._flip_cb((self, old_ix, flip_ix))
 
 
@@ -770,17 +786,56 @@ class LogPanel(ttk.Labelframe):
         self.bind('<Destroy>', self._stop_intercepting_exceptions)
 
     def _setup_logging_components(self, formatter_specs, log_threshold):
+        log_panel = self
+        log_textarea = self._log_text
+
         class MyHandler(logging.Handler):
+            refresh_delay_ms = 140
 
-            def __init__(self2, **kws):  # @NoSelf
-                logging.Handler.__init__(self2, **kws)
+            def __init__(self, **kws):
+                logging.Handler.__init__(self, **kws)
+                self.lrq = Queue()
+                self.reschedule()
 
-            def emit(self2, record):  # @NoSelf
-                try:
-                    self._write_log_record(record)
-                    self.update()
-                except Exception:
-                    self2.handleError(record)
+            def emit(self, record):
+                self.lrq.put(record)
+
+            def reschedule(self):
+                self.gui_cb_id = log_textarea.after(self.refresh_delay_ms,
+                                                    self.pump_logqueue_into_gui)
+                
+            def pump_logqueue_into_gui(self):
+                lrq = self.lrq
+
+                if not lrq.empty():
+                    try:
+                        log_textarea.update()
+                        was_bottom = (log_textarea.yview()[1] == 1)
+                        log_textarea['state'] = tk.NORMAL
+
+                        while not lrq.empty():
+                            try:
+                                record = lrq.get()
+                                log_panel._write_log_record(record)
+                            except Exception:
+                                ## Must not raise any errors, or
+                                #  infinite recursion here.
+                                print("Failed emitting log into UI: %s" %
+                                      traceback.format_exc(), file=sys.stderr)
+
+                        log_textarea['state'] = tk.DISABLED
+                        # Scroll to the bottom, if
+                        #    log serious or log was already at the bottom.
+                        #
+                        if record.levelno >= logging.ERROR or was_bottom:
+                            log_textarea.see(tk.END)
+
+                        log_panel._log_counters.update(['Total', record.levelname])
+                        log_panel._update_title()
+                    except Exception:
+                        self.handleError(record)
+
+                self.reschedule()
 
         self._handler = MyHandler()
 
@@ -908,39 +963,22 @@ class LogPanel(ttk.Labelframe):
                 fd.write(txt)
 
     def _write_log_record(self, record):
-        try:
-            log_text = self._log_text
-            # Test FAILS on Python-2! Its ok.
-            was_bottom = (log_text.yview()[1] == 1)
+        """The textarea must be writtable."""
+        log_text = self._log_text
 
-            txt = self.formatter.format(record)
-            if txt[-1] != '\n':
-                txt += '\n'
-            txt_len = len(txt) + 1  # +1 ??
-            log_start = '%s-%ic' % (tk.END, txt_len)
-            metadata_len = len(self.metadata_formatter.formatMessage(record))
-            meta_end = '%s-%ic' % (tk.END, txt_len - metadata_len)
+        txt = self.formatter.format(record)
+        if txt[-1] != '\n':
+            txt += '\n'
+        txt_len = len(txt) + 1  # +1 ??
+        log_start = '%s-%ic' % (tk.END, txt_len)
+        metadata_len = len(self.metadata_formatter.formatMessage(record))
+        meta_end = '%s-%ic' % (tk.END, txt_len - metadata_len)
 
-            log_text['state'] = tk.NORMAL
-            self._log_text.mark_set('LE', tk.END)
-            # , LogPanel.TAG_LOGS)
-            log_text.insert(tk.END, txt, LogPanel.TAG_LOGS)
-            log_text.tag_add(record.levelname, log_start, tk.END)
-            log_text.tag_add(LogPanel.TAG_META, log_start, meta_end)
-            log_text['state'] = tk.DISABLED
-
-            # Scrolling to the bottom if
-            #    log serious or log already at the bottom.
-            #
-            if record.levelno >= logging.ERROR or was_bottom:
-                log_text.see(tk.END)
-
-            self._log_counters.update(['Total', record.levelname])
-            self._update_title()
-        except Exception:
-            # Must not raise any errors, or infinite recursion here.
-            print("!!!!!!     Unexpected exception while logging exceptions(!): %s" %
-                  traceback.format_exc())
+        self._log_text.mark_set('LE', tk.END)
+        # , LogPanel.TAG_LOGS)
+        log_text.insert(tk.END, txt, LogPanel.TAG_LOGS)
+        log_text.tag_add(record.levelname, log_start, tk.END)
+        log_text.tag_add(LogPanel.TAG_META, log_start, meta_end)
 
 
 class SimulatePanel(ttk.Frame):
@@ -1207,7 +1245,7 @@ class SimulatePanel(ttk.Frame):
         )
         self.flag_vars = [make_flag(f) for f in flags]
 
-        label = ttk.Label(frame, text=labelize_str("Extra Options"))
+        label = ttk.Label(frame, text=labelize_str("Extra key-value pairs"))
         label.pack(anchor=tk.W)
 
         var = StringVar()
@@ -1309,19 +1347,21 @@ class SimulatePanel(ttk.Frame):
         out_folder = self.out_folder_var.get()
 
         if self.advanced_flipper.flip_ix > 0:
-            args = self.extra_opts_var.get().strip().split()
-            for k, v in itz.partition(2, args):
-                cmd_kwds[k] = v
+            variation = OrderedDict()
 
             tmpl_folder = self.tmpl_folder_var.get()
             if tmpl_folder:
-                cmd_kwds['flag.output_template'] = tmpl_folder
+                variation['flag.output_template'] = tmpl_folder
 
-            variation = OrderedDict()
+            args = self.extra_opts_var.get().strip().split()
+            for kvpair in args:
+                k, v = parse_key_value_pair(kvpair)
+                variation[k] = v
+
             for flag, flag_var in self.flag_vars:
                 flag_value = flag_var.get()
                 if flag_value:
-                    variation['flag.%s' % flag] = flag_value
+                    variation['flag.%s' % flag] = putils.str2bool(flag_value)
             if variation:
                 cmd_kwds['variation'] = variation
 
@@ -1451,7 +1491,7 @@ class SimulatePanel(ttk.Frame):
         ## Monkeypatch *tqdm* on co2mpas-batcher.
         cbatch._custom_tqdm = updater.tqdm_replacement
         self.outputs_tree.clear()
-        app.start_job(t)
+        app.start_job(t, updater.result_generated)
 
         msg = 'Launched %s job: %s'
         self.mediate_guistate(msg, job_name,
@@ -1478,7 +1518,10 @@ and double-click on the result file to open it,
            and copy paste the synchronized signals into your CO2MPAS Input File:
         [wdg:out-file]
         """)
-        textarea = tk.Text(self, font='TkDefaultFont', background='SystemButtonFace', foreground='olive')
+        textarea = tk.Text(self, font='TkDefaultFont',
+                           background='SystemButtonFace',
+                           foreground='olive',
+                           cursor='arrow')
         textarea.pack(fill=tk.BOTH, expand=1)
 
         frame = ttk.Frame(textarea, style='InpFile.TFrame')
@@ -1558,7 +1601,6 @@ and double-click on the result file to open it,
             if not osp.isfile(inp_file):
                 raise ValueError('File %r does not exist!' % inp_file)
 
-            "datasync -O ./output times velocities template.xlsx#ref! dyno obd -i alternator_currents=integral -i battery_currents=integral"
             out_file = datasync.do_datasync('times', 'velocities',
                                             inp_file, out_path=osp.dirname(inp_file),
                                             force=True)
@@ -1603,7 +1645,10 @@ class TemplatesPanel(ttk.Frame):
         - Opens a Select-folder dialog for storing IPYTHON NOTEBOOKS that may also run CO2MPAS and generate reports:
         [wdg:ipython-files]
         """)
-        textarea = tk.Text(self, font='TkDefaultFont', background='SystemButtonFace', foreground='olive')
+        textarea = tk.Text(self, font='TkDefaultFont',
+                           background='SystemButtonFace',
+                           foreground='olive',
+                           cursor='arrow')
 
         textarea.pack(fill=tk.BOTH, expand=1)
 
@@ -1627,7 +1672,7 @@ class TemplatesPanel(ttk.Frame):
                                           action_func=store_ipythons, tooltip_key='ipython')
         widgets['ipython-files'] = frame
 
-        add_makdownd_text(textarea, help_msg.strip(), widgets, tags=('default', ))
+        add_makdownd_text(textarea, help_msg.strip(), widgets, 'default')
         textarea['state'] = tk.DISABLED
 
     def _make_download_panel(self, textarea, title, action_func, tooltip_key):
@@ -1718,17 +1763,25 @@ class TkUI(object):
         ## Last, or it shows the empty-root momentarily.
         self._add_window_icon(root)
 
-    def start_job(self, thread):
+    def start_job(self, thread, result_listener):
         self._job_thread = thread
 
         from co2mpas.dispatcher import Dispatcher
         Dispatcher.stopper.clear()
+
+        #: Cludge for GUI to receive Plan's output filenames.
+        from co2mpas import plan
+        plan.plan_listener = result_listener
 
         thread.start()
 
     def signal_job_to_stop(self):
         from co2mpas.dispatcher import Dispatcher
         Dispatcher.stopper.set()
+
+        #: Cludge for GUI to receive Plan's output filenames.
+        from co2mpas import plan
+        plan.plan_listener = None
 
     def is_job_alive(self):
         return self._job_thread and self._job_thread.is_alive()
