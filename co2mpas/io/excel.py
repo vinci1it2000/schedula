@@ -158,6 +158,8 @@ def _parse_sheet(match, sheet, sheet_name, res=None):
             msg = 'Columns {} in {} sheet contains nan.\n ' \
                   'Please correct the inputs!'
             raise ValueError(msg.format(drop, sheet_name))
+    else:
+        data = {k: v for k, v in data.items() if k}
 
     for k, v in _parse_values(data, match, "in sheet '%s'" % sheet_name):
         dsp_utl.get_nested_dicts(res, *k[:-1])[k[-1]] = v
