@@ -343,6 +343,7 @@ def run_python_job(job_name, function, cmd_args, cmd_kwds, stdout=None, stderr=N
     ex = None
     with stds_redirected(stdout, stderr) as (stdout, stderr):
         try:
+            cmain._set_thread_logging()
             function(*cmd_args, **cmd_kwds)
         except (SystemExit, Exception) as ex1:
             log.error("Job %s failed due to: %s", job_name, ex1, exc_info=1)
