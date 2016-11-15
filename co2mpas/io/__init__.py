@@ -246,6 +246,8 @@ def _scores2df(data):
           ('models_uuid', ['cycle'], 0, (), ('cycle',)))
     dfs = []
     for k, idx, depth, col_keys, row_keys in it:
+        if k not in scores:
+            continue
         df = _dd2df(
             scores[k], idx, depth=depth,
             col_key=functools.partial(_sort_key, p_keys=col_keys),
@@ -253,8 +255,10 @@ def _scores2df(data):
         )
         setattr(df, 'name', k)
         dfs.append(df)
-
-    return {'.'.join(n): dfs}
+    if dfs:
+        return {'.'.join(n): dfs}
+    else:
+        return {}
 
 
 def _parse_name(name, _standard_names=None):
