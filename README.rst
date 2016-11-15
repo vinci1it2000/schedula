@@ -646,6 +646,42 @@ Or you can run |co2mpas| with the ``batch`` sub-command::
   For demonstration purposes, some some of the actual models will fail;
   check the *summary file*.
 
+Run ta
+------
+The type approval command simulates the NEDC fuel consumption and CO2 emission
+of the given vehicle using just the required `declaration inputs
+<https://github.com/JRCSTU/CO2MPAS-TA/wiki/TA_compulsory_inputs>`_ (marked as
+compulsory inputs in input file version >= 2.2.5) and produces an NEDC
+prediction. If |co2mpas| finds some extra input it will raise a warning and it
+will not produce any result. The type approval command is the |co2mpas| running
+mode that is fully aligned to the WLTP-NEDC correlation `Regulation
+<http://ec.europa.eu/transparency/regcomitology/index.cfm?do=search.documentdeta
+il&gYsYfQyLRa3DqHm8YKXObaxj0Is1LmebRoBfg8saKszVqHZGdIwy2rS97ztb5t8b>`_.
+
+
+The sub-command ``ta`` accepts either a single **input-excel-file** or a folder
+with multiple input-files for each vehicle, and generates a
+**summary-excel-file** aggregating the major result-values from these vehicles,
+and multiple **output-excel-files** for each vehicle run.
+
+.. note::
+   The user can insert just the input files and the output folder.
+
+To run the type approval command you can use the GUI as follows:
+
+.. image:: _static/Co2mpasALLINONE-TA_Run.gif
+   :scale: 75%
+   :alt: |co2mpas| ta
+   :align: center
+
+Or you can run |co2mpas| with the ``ta`` sub-command::
+
+   $ co2mpas ta input -O output
+   2016-11-15 17:00:31,286: INFO:co2mpas_main:Processing ['../input'] --> '../output'...
+     0%|          | 0/1 [00:00<?, ?it/s]: Processing ../input\co2mpas_demo-0.xlsx
+   ...
+   ...
+   Done! [51.6874 sec]
 
 Output files
 ------------
