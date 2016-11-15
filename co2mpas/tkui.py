@@ -1347,16 +1347,16 @@ class SimulatePanel(ttk.Frame):
         out_folder = self.out_folder_var.get()
 
         if self.advanced_flipper.flip_ix > 0:
+            variation = OrderedDict()
+
+            tmpl_folder = self.tmpl_folder_var.get()
+            if tmpl_folder:
+                variation['flag.output_template'] = tmpl_folder
+
             args = self.extra_opts_var.get().strip().split()
             for kvpair in args:
                 k, v = parse_key_value_pair(kvpair)
-                cmd_kwds[k] = v
-            tmpl_folder = self.tmpl_folder_var.get()
-
-            variation = OrderedDict()
-
-            if tmpl_folder:
-                variation['flag.output_template'] = tmpl_folder
+                variation[k] = v
 
             for flag, flag_var in self.flag_vars:
                 flag_value = flag_var.get()
