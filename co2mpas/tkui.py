@@ -1320,7 +1320,7 @@ class SimulatePanel(ttk.Frame):
             for flag, flag_var in self.flag_vars:
                 flag_value = flag_var.get()
                 if flag_value:
-                    variation['flag.%s' % flag] = flag_value
+                    variation['flag.%s' % flag] = putils.str2bool(flag_value)
             if variation:
                 cmd_kwds['variation'] = variation
 
