@@ -349,6 +349,15 @@ def run_python_job(job_name, function, cmd_args, cmd_kwds, stdout=None, stderr=N
 
     Suitable to be run within a thread.
     """
+    ## Numpy error-config is on per-thread basis:
+    #    https://docs.scipy.org/doc/numpy/reference/ufuncs.html#error-handling
+    #  So replicate :func:`cmain.init_logging()` logic also here.
+    #
+    rlog = logging.getLogger()
+    if not rlog.isEnabledFor(logging.DEBUG):
+        import numpy as np
+        np.seterr(divide='ignore', invalid='ignore')
+
     ex = None
     with stds_redirected(stdout, stderr) as (stdout, stderr):
         try:
