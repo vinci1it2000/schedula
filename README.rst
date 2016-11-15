@@ -499,14 +499,14 @@ you have installed |co2mpas| and type::
     Shift and resample excel-tables; see http://co2mpas.io/usage.html#Synchronizing-time-series.
 
     Usage:
-      datasync          [(-v | --verbose) | --logconf <conf-file>] [--force | -f]
+      datasync template [-f] [--cycle <cycle>] <excel-file-path>...
+      datasync          [-v | -q | --logconf=<conf-file>] [--force | -f]
                         [--interp <method>] [--no-clone] [--prefix-cols]
                         [-O <output>] <x-label> <y-label> <ref-table>
-                        [<sync-table> ...]
-      datasync          [--verbose | -v]  (--version | -V)
-      datasync          [--interp-methods | -l]
+                        [<sync-table> ...] [-i=<label=interp> ...]
+      datasync          [-v | -q | --logconf=<conf-file>] (--version | -V)
+      datasync          (--interp-methods | -l)
       datasync          --help
-      datasync template [-f] [--cycle <cycle>] [<excel-file-path> ...]
 
     Options:
       <x-label>              Column-name of the common x-axis (e.g. 'times') to be
@@ -529,7 +529,9 @@ you have installed |co2mpas| and type::
                              If hash(`#`) symbol missing, assumed as sheet-name.
                              If none given, all non-empty sheets of <ref-table> are
                              synced against the 1st one.
-      -O <output>            Output folder or file path to write the results:
+      -O=<output>            Output folder or file path to write the results
+                             [default: .]:
+
                              - Non-existent path: taken as the new file-path; fails
                                if intermediate folders do not exist, unless --force.
                              - Existent file: file-path to overwrite if --force,
@@ -537,7 +539,7 @@ you have installed |co2mpas| and type::
                              - Existent folder: writes a new file
                                `<ref-file>.sync<.ext>` in that folder; --force
                                required if that file exists.
-                             [default: .].
+
       -f, --force            Overwrite excel-file(s) and create any missing
                              intermediate folders.
       --prefix-cols          Prefix all synced column names with their source
@@ -545,8 +547,8 @@ you have installed |co2mpas| and type::
                              prefixed.
       --no-clone             Do not clone excel-sheets contained in <ref-table>
                              workbook into output.
-      --interp <method>      Interpolation method used in the resampling
-                             [default: linear]: 'linear', 'nearest', 'zero',
+      --interp=<method>      Interpolation method used in the resampling for all
+                             signals [default: linear]: 'linear', 'nearest', 'zero',
                              'slinear', 'quadratic', 'cubic', 'barycentric',
                              'polynomial', 'spline' is passed to
                              scipy.interpolate.interp1d. Both 'polynomial' and
@@ -556,14 +558,60 @@ you have installed |co2mpas| and type::
                              are all wrappers around the scipy interpolation methods
                              of similar names.
                              'integral' is respect the signal integral.
+      -i=<label=interp>      Interpolation method used in the resampling for a
+                             signal with a specific label
+                             (e.g., `-i alternator_currents=integral`).
       -l, --interp-methods   List of all interpolation methods that can be used in
                              the resampling.
-      --cycle <cycle>        If set (e.g., --cycle=nedc.manual), the <ref-table> is
+      --cycle=<cycle>        If set (e.g., --cycle=nedc.manual), the <ref-table> is
                              populated with the theoretical velocity profile.
                              Options: 'nedc.manual', 'nedc.automatic',
                              'wltp.class1', 'wltp.class2', 'wltp.class3a', and
                              'wltp.class3b'.
+
       <excel-file-path>      Output file.
+
+    Miscellaneous:
+      -h, --help             Show this help message and exit.
+      -V, --version          Print version of the program, with --verbose
+                             list release-date and installation details.
+      -v, --verbose          Print more verbosely messages - overridden by --logconf.
+      -q, --quite            Print less verbosely messages (warnings) - overridden by --logconf.
+      --logconf=<conf-file>  Path to a logging-configuration file, according to:
+                             See https://docs.python.org/3/library/logging.config.html#configuration-file-format
+                             Uses reads a dict-schema if file ends with '.yaml' or '.yml'.
+                             See https://docs.python.org/3.5/library/logging.config.html#logging-config-dictschema
+
+    * For xl-refs see: https://pandalone.readthedocs.org/en/latest/reference.html#module-pandalone.xleash
+
+    SUB-COMMANDS:
+        template             Generate "empty" input-file for the `datasync` cmd as
+                             <excel-file-path>.
+
+
+    Examples::
+
+        ## Read the full contents from all `wbook.xlsx` sheets as tables and
+        ## sync their columns using the table from the 1st sheet as reference:
+        datasync times velocities folder/Book.xlsx
+
+        ## Sync `Sheet1` using `Sheet3` as reference:
+        datasync times velocities wbook.xlsx#Sheet3!  Sheet1!
+
+        ## The same as above but with integers used to index excel-sheets.
+        ## NOTE that sheet-indices are zero based!
+        datasync times velocities wbook.xlsx#2! 0
+
+        ## Complex Xlr-ref example:
+        ## Read the table in sheet2 of wbook-2 starting at D5 cell
+        ## or more Down 'n Right if that was empty, till Down n Right,
+        ## and sync this based on 1st sheet of wbook-1:
+        datasync times velocities wbook-1.xlsx  wbook-2.xlsx#0!D5(DR):..(DR)
+
+        ## Typical usage for CO2MPAS velocity time-series from Dyno and OBD
+        ## (the ref sheet contains the theoretical velocity profile):
+        datasync template --cycle wltp.class3b template.xlsx
+        datasync -O ./output times velocities template.xlsx#ref! dyno obd -i alternator_currents=integral -i battery_currents=integral
 
 Datasync input template
 ~~~~~~~~~~~~~~~~~~~~~~~
