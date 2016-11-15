@@ -504,7 +504,7 @@ def at_models_selector(d, at_pred_inputs, models_ids, data):
         models[sgs], models[k] = k, m
         log.debug('at_gear_shifting_model: %s with mean_absolute_error %.3f '
                   '[RPM], accuracy_score %.3f, and correlation_coefficient '
-                  '%.3f.', k, *select(t_e, e))
+                  '%.3f.', k, *select(t_e, e, output_type='list'))
 
     return models
 
