@@ -22,7 +22,6 @@ from co2mpas import datasync
 mydir = os.path.dirname(__file__)
 proj_path = os.path.join(mydir, '..')
 readme_path = os.path.join(mydir, '..', 'README.rst')
-allinone_path = os.path.join(mydir, '..', 'doc', 'allinone.rst')
 
 
 class Doctest(unittest.TestCase):
@@ -105,13 +104,6 @@ class Doctest(unittest.TestCase):
                 if l:
                     assert l in ftext, msg % (i, l)
 
-
-    def test_allinone_contains_version(self):
-        ver = co2mpas.__version__
-        mydir = os.path.dirname(__file__)
-        with open(allinone_path) as fd:
-            msg = "Version(%s) not found in %s header-lines!"
-            self.assertIn(ver, fd.read(), msg % (ver, allinone_path))
 
     def test_README_as_PyPi_landing_page(self):
         from docutils import core as dcore
