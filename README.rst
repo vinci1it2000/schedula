@@ -48,12 +48,12 @@ June 23, 2016.
 For recent activity, check the :doc:`changes`.
 
 
-Quickstart
-==========
+Quick Start
+===========
 IF you are familiar with python, AND
 IF you already have a full-blown *python-3 environment*
 (i.e. *Linux* or the *all-in-one* archive), AND
-IF you have familiarity with v1 release, THEN
+IF you have familiarity with previous releases, THEN
 you can immediately start working with the following *bash* commands;
 otherwise follow the detailed instructions under sections :ref:`install` and
 :ref:`usage`.
@@ -70,7 +70,11 @@ otherwise follow the detailed instructions under sections :ref:`install` and
     ## Edit generated `./input/vehicle_1.xlsx` file. ##
     ###################################################
 
+    ## Launch GUI, select the edited template as Input, and click `Run`.
+    $ co2mpas gui
 
+    ## Further command-line alternative:
+    
     ## To synchronize the Dyno and OBD data with the theoretical:
     $ datasync template --cycle wltp.class3b template.xlsx
     $ datasync -O ./output times velocities template.xlsx#ref! dyno obd -i alternator_currents=integral -i battery_currents=integral
@@ -107,12 +111,12 @@ you may install the developer version.
 
 *All-In-One* Installation under Windows
 ---------------------------------------
-- Download **all-in-one archive** from https://files.co2mpas.io/LATEST/co2mpas_ALLINONE-64bit-v1.4.1b1.7z
+- Download **all-in-one archive** from https://files.co2mpas.io/
   (it only runs on **64bit PCs**).
 
   .. Tip::
      Search in older releases if the latest does not contain an ALLINONE archive,
-     ansd remember to upgrade |co2mpas| afterwords.
+     and remember to upgrade |co2mpas| afterwords.
 
 
 - Use the original `"7z" extraxtor <http://portableapps.com/apps/utilities/7-zip_portable>`_,
@@ -135,9 +139,11 @@ you may install the developer version.
    :alt: Install Co2mpas-ALLINONE shortcupts into Window Start-menu.
    :align: center
 
-- Use *Windows start-menu* to launch |co2mpas| CONSOLE or the GUI dialog-boxes.
+- You can start |co2mpas| from *Windows start-menu* by pressing the `[WinKey]` and start typing `'co2mpas'`,
+  or by selecting its menu item from *All Programs*. 
+  Alternatively, advanced users may continue to use the Console.
 
-  .. image:: _static/Co2mpasALLINONE-LaunchConsoleShortcut.gif
+  .. image:: _static/Co2mpasALLINONE-LaunchGUI.gif
    :scale: 75%
    :alt: Launch |co2mpas| from Window Start-menu.
    :align: center
@@ -148,8 +154,8 @@ you may install the developer version.
     Follow the instructions in the "Upgrade" section, below.
 
 
-Upgrade CO2MPAS
----------------
+Upgrade |co2mpas|
+------------------
 Uninstall and re-install it from the |co2mpas| CONSOLE::
 
     pip uninstall co2mpas
@@ -251,13 +257,21 @@ Generic Tips
 
 Usage
 =====
-First ensure that the latest version of |co2mpas| is properly installed, and
-that its version is the latest released.
+
+|co2mpas| GUI
+---------------------
+From *"Rally"* release, co2mpas can be launched through a Graphical user interface.
+Most of its functionality is provided within, as shown in the following animated gif:
 
 .. image:: _static/Co2mpasALLINONE-About.gif
    :scale: 75%
    :alt: Check Co2mpas-ALLINONE Version
    :align: center
+
+
+Ensure that the latest version of |co2mpas| is properly installed, and
+that its version is the latest released, either by checking the "About" menu 
+or by opening the CONSOLE and typing the following command:
 
 .. code-block:: console
 
@@ -265,8 +279,9 @@ that its version is the latest released.
     $ co2mpas -V
     co2mpas-1.4.1b0
 
-co2mpas cmd syntax
-------------------
+
+|co2mpas| cmd syntax
+---------------------
 To get the syntax of the ``co2mpas`` console-command, open a console where
 you have installed |co2mpas| (see :ref:`install` above) and type::
 
