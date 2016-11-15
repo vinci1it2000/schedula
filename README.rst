@@ -6,8 +6,8 @@
 |co2mpas|: Vehicle simulator predicting NEDC |CO2| emissions from WLTP
 ######################################################################
 
-:Release:       1.4.1b1
-:Date:          2016-11-15 01:19:29
+:Release:       1.4.1rc0
+:Date:          2016-11-15 22:00:07
 :Home:          http://co2mpas.io/
 :Releases:      http://files.co2mpas.io/
 :Sources:       https://github.com/JRCSTU/CO2MPAS-TA
@@ -1273,7 +1273,7 @@ Install ``co2mpas`` package
         Downloading http://pypi.co2mpas.io/packages/co2mpas-...
         ...
         Installing collected packages: co2mpas
-        Successfully installed co2mpas-1.4.1b1
+        Successfully installed co2mpas-1.4.1rc0
 
    .. Warning::
         **Installation failures:**
@@ -1294,12 +1294,12 @@ Install ``co2mpas`` package
    .. code-block:: console
 
        > co2mpas -vV
-       co2mpas_version: 1.4.1b1
-       co2mpas_rel_date: 2016-11-15 01:19:29
-       co2mpas_path: d:\co2mpas_ALLINONE-64bit-v1.4.1b1\Apps\WinPython\python-3.4.3\lib\site-packages\co2mpas
-       python_path: D:\co2mpas_ALLINONE-64bit-v1.4.1b1\WinPython\python-3.4.3
+       co2mpas_version: 1.4.1rc0
+       co2mpas_rel_date: 2016-11-15 22:00:07
+       co2mpas_path: d:\co2mpas_ALLINONE-64bit-v1.4.1rc0\Apps\WinPython\python-3.4.3\lib\site-packages\co2mpas
+       python_path: D:\co2mpas_ALLINONE-64bit-v1.4.1rc0\WinPython\python-3.4.3
        python_version: 3.4.3 (v3.4.3:9b73f1c3e601, Feb 24 2015, 22:44:40) [MSC v.1600 XXX]
-       PATH: D:\co2mpas_ALLINONE-64bit-v1.4.1b1\WinPython...
+       PATH: D:\co2mpas_ALLINONE-64bit-v1.4.1rc0\WinPython...
 
 
    .. Note::
@@ -1403,7 +1403,7 @@ require the use of ``pip`` command from a *console* to install:
   1. With with a "regular" browser and when connected to the Internet,
      pre-download locally all files present in the ``packages`` folder
      located in the desired |co2mpas| version in the *|co2mpas| site*
-     (e.g. http://files.co2mpas.io/CO2MPAS-1.4.1b1/packages/).
+     (e.g. http://files.co2mpas.io/CO2MPAS-1.4.1rc0/packages/).
 
   2. Install *co2mpas*, referencing the above folder.
      Assuming that you downloaded the packages in the folder ``path/to/co2mpas_packages``,
