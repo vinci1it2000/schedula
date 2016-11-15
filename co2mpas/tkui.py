@@ -56,6 +56,7 @@ import io
 import logging
 import os
 from pandalone import utils as putils
+from queue import Queue
 import random
 import re
 import sys
@@ -787,19 +788,56 @@ class LogPanel(ttk.Labelframe):
         self.bind('<Destroy>', self._stop_intercepting_exceptions)
 
     def _setup_logging_components(self, formatter_specs, log_threshold):
-        log_widget = self
+        log_panel = self
+        log_textarea = self._log_text
 
         class MyHandler(logging.Handler):
-            def __init__(self, **kws):  # @NoSelf
-                logging.Handler.__init__(self, **kws)
+            refresh_delay_ms = 140
 
-            def emit(self, record):  # @NoSelf
-                try:
-                    log_widget.update()
-                    log_widget._write_log_record(record)
-                    log_widget.update()
-                except Exception:
-                    self.handleError(record)
+            def __init__(self, **kws):
+                logging.Handler.__init__(self, **kws)
+                self.lrq = Queue()
+                self.reschedule()
+
+            def emit(self, record):
+                self.lrq.put(record)
+
+            def reschedule(self):
+                self.gui_cb_id = log_textarea.after(self.refresh_delay_ms,
+                                                    self.pump_logqueue_into_gui)
+                
+            def pump_logqueue_into_gui(self):
+                lrq = self.lrq
+
+                if not lrq.empty():
+                    try:
+                        log_textarea.update()
+                        was_bottom = (log_textarea.yview()[1] == 1)
+                        log_textarea['state'] = tk.NORMAL
+
+                        while not lrq.empty():
+                            try:
+                                record = lrq.get()
+                                log_panel._write_log_record(record)
+                            except Exception:
+                                ## Must not raise any errors, or
+                                #  infinite recursion here.
+                                print("Failed emitting log into UI: %s" %
+                                      traceback.format_exc(), file=sys.stderr)
+
+                        log_textarea['state'] = tk.DISABLED
+                        # Scroll to the bottom, if
+                        #    log serious or log was already at the bottom.
+                        #
+                        if record.levelno >= logging.ERROR or was_bottom:
+                            log_textarea.see(tk.END)
+
+                        log_panel._log_counters.update(['Total', record.levelname])
+                        log_panel._update_title()
+                    except Exception:
+                        self.handleError(record)
+
+                self.reschedule()
 
         self._handler = MyHandler()
 
@@ -927,39 +965,22 @@ class LogPanel(ttk.Labelframe):
                 fd.write(txt)
 
     def _write_log_record(self, record):
-        try:
-            log_text = self._log_text
-            # Test FAILS on Python-2! Its ok.
-            was_bottom = (log_text.yview()[1] == 1)
+        """The textarea must be writtable."""
+        log_text = self._log_text
 
-            txt = self.formatter.format(record)
-            if txt[-1] != '\n':
-                txt += '\n'
-            txt_len = len(txt) + 1  # +1 ??
-            log_start = '%s-%ic' % (tk.END, txt_len)
-            metadata_len = len(self.metadata_formatter.formatMessage(record))
-            meta_end = '%s-%ic' % (tk.END, txt_len - metadata_len)
+        txt = self.formatter.format(record)
+        if txt[-1] != '\n':
+            txt += '\n'
+        txt_len = len(txt) + 1  # +1 ??
+        log_start = '%s-%ic' % (tk.END, txt_len)
+        metadata_len = len(self.metadata_formatter.formatMessage(record))
+        meta_end = '%s-%ic' % (tk.END, txt_len - metadata_len)
 
-            log_text['state'] = tk.NORMAL
-            self._log_text.mark_set('LE', tk.END)
-            # , LogPanel.TAG_LOGS)
-            log_text.insert(tk.END, txt, LogPanel.TAG_LOGS)
-            log_text.tag_add(record.levelname, log_start, tk.END)
-            log_text.tag_add(LogPanel.TAG_META, log_start, meta_end)
-            log_text['state'] = tk.DISABLED
-
-            # Scrolling to the bottom if
-            #    log serious or log already at the bottom.
-            #
-            if record.levelno >= logging.ERROR or was_bottom:
-                log_text.see(tk.END)
-
-            self._log_counters.update(['Total', record.levelname])
-            self._update_title()
-        except Exception:
-            # Must not raise any errors, or infinite recursion here.
-            print("!!!!!!     Unexpected exception while logging exceptions(!): %s" %
-                  traceback.format_exc())
+        self._log_text.mark_set('LE', tk.END)
+        # , LogPanel.TAG_LOGS)
+        log_text.insert(tk.END, txt, LogPanel.TAG_LOGS)
+        log_text.tag_add(record.levelname, log_start, tk.END)
+        log_text.tag_add(LogPanel.TAG_META, log_start, meta_end)
 
 
 class SimulatePanel(ttk.Frame):
