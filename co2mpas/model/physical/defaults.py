@@ -103,7 +103,7 @@ class Values(co2_utl.Constants):
     gear_box_temperature_references = (40.0, 80.0)
 
     #: Constant torque loss due to engine auxiliaries [N*m].
-    auxiliaries_torque_loss = 0.5
+    auxiliaries_torque_loss = 0.0
 
     #: Constant power loss due to engine auxiliaries [kW].
     auxiliaries_power_loss = 0.0
@@ -195,8 +195,8 @@ class Functions(co2_utl.Constants):
                 #0: {},
                 1: {'a': 1.02, 'b': 1.1, 'c': 1.5, 'a2': 1.1},  # positive turbo
                 2: {'a': 1.02, 'b': 1.1, 'c': 1.5, 'a2': 1.1},  # positive natural aspiration
-                3: {'a': 1.015, 'b': 1.1, 'c': 1.4, 'a2': 1.1}, # compression
-                4: {'a': 1.015, 'b': 1.1, 'c': 1.4, 'a2': 1.1}  # compression + scr
+                3: {'b': 1.08, 'c': 1.15, 'a2': 1.1}, # compression
+                4: {'b': 1.08, 'c': 1.15, 'a2': 1.1}  # compression + scr
             }
         }
 
@@ -211,10 +211,11 @@ class Functions(co2_utl.Constants):
 
     class calibrate_co2_params(co2_utl.Constants):
         #: Enable third step in the co2_params calibration? [-]
-        enable_third_step = False
+        enable_third_step = True
 
         #: Use co2 error function against co2_emissions on the third step? [-]
-        third_step_against_emissions = True
+        third_step_against_emissions = False
+
 
     class identify_co2_emissions(co2_utl.Constants):
         #: Number of perturbations to identify the co2_emissions [-].
@@ -264,11 +265,11 @@ class Functions(co2_utl.Constants):
 
         #: Percentage of max full bmep curve used as limit in exhausted gas
         #: recirculation strategy [-].
-        egr_full_bmep_curve_percentage = 0.7
+        egr_full_bmep_curve_percentage = 0.5
 
         #: Percentage of max mean piston speeds used as limit in exhausted gas
         #: recirculation strategy [-].
-        egr_max_mean_piston_speeds_percentage = 0.7
+        egr_max_mean_piston_speeds_percentage = 0.5
 
     class define_idle_model_detector(co2_utl.Constants):
         #: eps parameter of DBSCAN [RPM].
@@ -326,12 +327,12 @@ class Functions(co2_utl.Constants):
                 't1': {'value': 3.5, 'min': 0.0, 'max': 8.0},
             },
             'positive natural aspiration': {
-                'a': {'value': 0.4751, 'min': 0.40065, 'max': 0.54315},
+                'a': {'value': 0.4851, 'min': 0.40065, 'max': 0.54315},
                 'b': {'value': 0.01193, 'min': -0.00247, 'max': 0.026333},
                 'c': {'value': -0.00065, 'min': -0.00138, 'max': 0.0000888},
                 'a2': {'value': -0.00385, 'min': -0.00663, 'max': -0.00107},
                 'b2': {'value': 0, 'min': -1, 'max': 1, 'vary': False},
-                'l': {'value': -2.49882, 'min': -3.27698, 'max': -1.72066},
+                'l': {'value': -2.39882, 'min': -3.27698, 'max': -1.72066},
                 'l2': {'value': -0.00286, 'min': -0.00577, 'max': 0.0},
                 't0': {'value': 4.5, 'min': 0.0, 'max': 8.0},
                 't1': {'value': 3.5, 'min': 0.0, 'max': 8.0},
