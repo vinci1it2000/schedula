@@ -130,12 +130,12 @@ def define_tooltips():
             Opens a Folder-dialog to select the Output Folder for the field to the left.
 
         advanced_link: |-
-            Options and flags incompatible with DECLARATION mode (started with the `Run TA` buttons).
-            These may be useful for engineers and experimentation, and for facilitating running batches.
+            Options and flags incompatible with DECLARATION mode (started with the Run TA button).
+            These may be useful for engineering and experimentation purposes, and for facilitating running batches.
         out_template_entry: |-
-            Select a pre-populated Excel file to clone and append CO2MPAS results into.
+            Select a pre-populated Excel file to clone and append CO2MPAS results into it.
             By default, results are appended into an empty excel-file.
-            - If feld is not empty, double-click to open the specified folder.
+            - If field is not empty, double-click to open the specified folder.
             - Use a dash('-') to have CO2MPAS clone the Input-file and use it as template;
         sel_tmpl_file_btn: |-
             Opens a File-dialog to select an existing Excel Output Template file
@@ -144,17 +144,16 @@ def define_tooltips():
         help_btn: |-
             Opens the CO2MPAS site in a browser.
         run_batch_btn: |-
-            Launches the BATCH CO2MPAS command.
-            - Populate the "Inputs" list with (at lteast one) files & folders;
+            Launches the CO2MPAS BATCH command.
+            - Populate the "Inputs" list with (at least one) files & folders;
             - Compatible with all flags and options (including ENGINEERING/DECLARATION mode);
             - The output-folder cannot be empty.
         run_ta_btn: |-
-            Runs the TA command for a single file in DECLARATION mode.
+            Runs the CO2MPAS TA command for a single file in DECLARATION mode.
             - Incompatible with any other flags and options;
             - The output-folder cannot be empty;
-            - Needs one, and only one file input.
         stop_job_btn: |-
-            Aborts a "job" that have started with the `Run` or `Run TA` buttons.
+            Aborts a "job" that has started with the Run or Run TA buttons.
 
         extra_options_entry: |-
             A space-separated list of key-value pair options.
@@ -169,10 +168,10 @@ def define_tooltips():
                 flag.engineering?=on  flag.plot_workflow?=yes  flag.output_template=some_file.xlsx
 
         engineering_mode: |-
-            the model uses of all available input data (not only the declaration inputs),
-            and is possible to override various model parameters..
+            the model uses all the available input data (not only the declaration inputs),
+            and it is possible to override various model parameters.
         plot_workflow: |-
-            Open workflow-plot in browser, after run finished.
+            Open workflow-plot in browser, after the run has finished.
         soft_validation: |-
             Relax some Input-data validations in order to facilitate experimentation.
         only_summary: |-
