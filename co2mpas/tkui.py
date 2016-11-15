@@ -353,10 +353,7 @@ def run_python_job(job_name, function, cmd_args, cmd_kwds, stdout=None, stderr=N
     #    https://docs.scipy.org/doc/numpy/reference/ufuncs.html#error-handling
     #  So replicate :func:`cmain.init_logging()` logic also here.
     #
-    rlog = logging.getLogger()
-    if not rlog.isEnabledFor(logging.DEBUG):
-        import numpy as np
-        np.seterr(divide='ignore', invalid='ignore')
+    cmain._set_numpy_logging()
 
     ex = None
     with stds_redirected(stdout, stderr) as (stdout, stderr):

@@ -87,7 +87,7 @@ def _eng_mode_parser(
             log.info('Since CO2MPAS is launched in declaration mode the '
                      'following data are not used:\n %s\n'
                      'If you want to include these data add to the batch cmd '
-                     '-D engineering_mode=True',
+                     '-D flag.engineering_mode=True',
                      ',\n'.join(diff))
 
     if not use_selector:

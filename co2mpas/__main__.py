@@ -167,6 +167,13 @@ warnings.filterwarnings(
 )
 
 
+def _set_numpy_logging():
+    rlog = logging.getLogger()
+    if not rlog.isEnabledFor(logging.DEBUG):
+        import numpy as np
+        np.seterr(divide='ignore', invalid='ignore')
+
+
 def init_logging(level=None, frmt=None, logconf_file=None):
     if logconf_file:
         if osp.splitext(logconf_file)[1] in '.yaml' or '.yml':
@@ -184,9 +191,7 @@ def init_logging(level=None, frmt=None, logconf_file=None):
         rlog = logging.getLogger()
         rlog.level = level  # because `basicConfig()` does not reconfig root-logger when re-invoked.
 
-    import numpy as np
-    if not rlog.isEnabledFor(logging.DEBUG):
-        np.seterr(divide='ignore', invalid='ignore')
+    _set_numpy_logging()
 
     logging.captureWarnings(True)
 
@@ -442,16 +447,6 @@ def _cmd_modelconf(opts):
 
 
 def _cmd_gui(opts):
-    verbose = opts['--verbose']
-    quiet = opts['--quite']
-    assert not (verbose and quiet), "Specify either `verbose` or `quiet` as true - not both!"
-    level = None  # Let `init_logging()` decide.
-    if verbose:
-        level = logging.DEBUG
-    if quiet:
-        level = logging.WARNING
-    init_logging(level=level, logconf_file=opts.get('--logconf'))
-
     from co2mpas import tkui
     tkui.main()
 
