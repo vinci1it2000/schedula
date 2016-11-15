@@ -59,7 +59,7 @@ def _ta_mode(data):
     for k in ('plan', 'flag'):
         diff.update((k,) + tuple(j.split('.')) for j in data.get(k, {}))
 
-    diff -= {('flag', 'input_version'), ('flag', 'ta_certificate_number')}
+    diff -= {('flag', 'input_version'), ('flag', 'vehicle_family_id')}
 
     if diff:
         diff = ['.'.join(k) for k in sorted(diff)]
@@ -730,7 +730,7 @@ def define_flags_schema(read=True):
 
     schema = {
         _compare_str('input_version'): string,
-        _compare_str('ta_certificate_number'): string,
+        _compare_str('vehicle_family_id'): string,
         _compare_str('modelconf'): isfile,
 
         _compare_str('soft_validation'): _bool,
