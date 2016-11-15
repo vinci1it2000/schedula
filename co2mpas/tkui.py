@@ -1491,7 +1491,7 @@ class SimulatePanel(ttk.Frame):
         ## Monkeypatch *tqdm* on co2mpas-batcher.
         cbatch._custom_tqdm = updater.tqdm_replacement
         self.outputs_tree.clear()
-        app.start_job(t)
+        app.start_job(t, updater.result_generated)
 
         msg = 'Launched %s job: %s'
         self.mediate_guistate(msg, job_name,
@@ -1763,17 +1763,25 @@ class TkUI(object):
         ## Last, or it shows the empty-root momentarily.
         self._add_window_icon(root)
 
-    def start_job(self, thread):
+    def start_job(self, thread, result_listener):
         self._job_thread = thread
 
         from co2mpas.dispatcher import Dispatcher
         Dispatcher.stopper.clear()
+
+        #: Cludge for GUI to receive Plan's output filenames.
+        from co2mpas import plan
+        plan.plan_listener = result_listener
 
         thread.start()
 
     def signal_job_to_stop(self):
         from co2mpas.dispatcher import Dispatcher
         Dispatcher.stopper.set()
+
+        #: Cludge for GUI to receive Plan's output filenames.
+        from co2mpas import plan
+        plan.plan_listener = None
 
     def is_job_alive(self):
         return self._job_thread and self._job_thread.is_alive()

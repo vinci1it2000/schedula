@@ -12,7 +12,6 @@ import datetime
 import functools
 import logging
 import re
-import sys
 from typing import Callable
 
 from tqdm import tqdm
@@ -62,6 +61,23 @@ def parse_dsp_solution(solution):
 
     return res
 
+
+def notify_result_listener(result_listener, res, out_fpath=None):
+    """Utility func to send to the listener the output-file discovered from the results."""
+    if result_listener:
+        try:
+            if not out_fpath:
+                out_fpath = res['solution']['output_file_name']
+            result_listener((out_fpath, res))
+        except Exception as ex:
+            try:
+                keys = list(res)
+            except:
+                keys = '<no keys>'
+            log.warning("Failed notifying result-listener due to: %s\n  result-keys: %s",
+                        ex, keys, exc_info=1)
+
+
 def process_folder_files(input_files, output_folder,
                          result_listener: Callable=None, **kwds):
     """
@@ -88,11 +104,7 @@ def process_folder_files(input_files, output_folder,
     timestamp = start_time.strftime('%Y%m%d_%H%M%S')
 
     summary_xl_file = osp.join(output_folder, '%s-summary.xlsx' % timestamp)
-    if result_listener:
-        try:
-            result_listener((summary_xl_file, summary))
-        except Exception as ex:
-            log.warning("Failed notifying result-listener due to: %s", ex, exc_info=1)
+    notify_result_listener(result_listener, summary, summary_xl_file)
 
     _save_summary(summary_xl_file, start_time, summary)
 
@@ -160,17 +172,7 @@ def _process_folder_files(*args, result_listener=None, **kwargs):
     for res in _yield_folder_files_results(start_time, *args, **kwargs):
         if dsp_utl.are_in_nested_dicts(res, *n):
             _add2summary(summary, dsp_utl.get_nested_dicts(res, *n))
-
-            if result_listener:
-                try:
-                    result_listener((res['solution']['output_file_name'], res))
-                except Exception as ex:
-                    try:
-                        keys = list(res)
-                    except:
-                        keys = '<no keys>'
-                    log.warning("Failed notifying result-listener due to: %s\n  result-keys: %s",
-                                ex, keys, exc_info=1)
+            notify_result_listener(result_listener, res)
 
     return summary, start_time
 
