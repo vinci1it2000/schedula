@@ -459,17 +459,17 @@ sub-command::
 Demo description
 ~~~~~~~~~~~~~~~~
 ======= == ========== ========== === ==== ========== ========== ====
-id      AT cal WLTP-H cal WLTP-L S/S BERS trg NEDC-H trg NEDC-L plan
+  id    AT cal WLTP-H cal WLTP-L S/S BERS trg NEDC-H trg NEDC-L plan
 ======= == ========== ========== === ==== ========== ========== ====
    0           X          X                  X
    1           X          X      X    X      X
-   2    X      X          X                             X
+   2    X      X          X                              X
    3           X          X      X           X
-   4    X                 X           X                 X
+   4    X                 X           X                  X
    5           X          X           X      X
    6    X      X          X      X           X
    7    X      X                 X    X      X
-   8           X          X                  X          X
+   8           X          X                  X           X
    9    X      X          X      X    X      X
 simplan        X          X                  X                   X
 ======= == ========== ========== === ==== ========== ========== ====
@@ -629,15 +629,15 @@ GUI as follows:
    :alt: |co2mpas| batch
    :align: center
 
-.. note::
-    To run the last demo-file is needed ``-D engineering_mode=True``, because it
-    contains a "simulation-plan" with non declaration data.
+.. note:: the file ``co2mpas_simplan.xlsx`` has the ``flag.engineering_mode``
+   set to ``True``, because it contains a "simulation-plan" with non declaration
+   data.
 
 Or you can run |co2mpas| with the ``batch`` sub-command::
 
    $ co2mpas batch input -O output
    2016-11-15 17:00:31,286: INFO:co2mpas_main:Processing ['../input'] --> '../output'...
-     0%|          | 0/10 [00:00<?, ?it/s]: Processing ../input\co2mpas_demo-0.xlsx
+     0%|          | 0/11 [00:00<?, ?it/s]: Processing ../input\co2mpas_demo-0.xlsx
    ...
    ...
    Done! [527.420557 sec]
@@ -745,22 +745,20 @@ The columns of these tables can contain the following special names:
 - **run_base**: this is a boolean. If true the base model results are computed
   and stored, otherwise the data are just loaded.
 
-To run the last demo-file is needed ``-D engineering_mode=True``, because it
-contains a "simulation-plan" with non declaration data. You can use the GUI as
-follows:
+You can use the GUI as follows:
 
 .. image:: _static/Co2mpasALLINONE-Plan_Run.gif
    :scale: 75%
    :alt: |co2mpas| batch simulation plan
    :align: center
 
-.. note::
-   To run the demo-file ``co2mpas_simplan.xlsx`` is needed
-   ``-D engineering_mode=True``, because it contains non declaration data.
+.. note:: the file ``co2mpas_simplan.xlsx`` has the ``flag.engineering_mode``
+   set to ``True``, because it contains a "simulation-plan" with non declaration
+   data.
 
 Or you can run |co2mpas| with the ``batch`` sub-command::
 
-   $ co2mpas batch input/co2mpas_simplan.xlsx -O output -D engineering_mode=True
+   $ co2mpas batch input/co2mpas_simplan.xlsx -O output
    2016-11-15 17:00:31,286: INFO:co2mpas_main:Processing ['../input/co2mpas_simplan.xlsx'] --> '../output'...
      0%|          | 0/4 [00:00<?, ?it/s]: Processing ../input\co2mpas_simplan.xlsx
    ...
