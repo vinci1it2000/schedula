@@ -776,8 +776,8 @@ class LogPanel(ttk.Labelframe):
 
             def emit(self2, record):  # @NoSelf
                 try:
-                    self._write_log_record(record)
                     self.update()
+                    self._write_log_record(record)
                 except Exception:
                     self2.handleError(record)
 
