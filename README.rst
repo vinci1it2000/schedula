@@ -24,7 +24,7 @@ fuel-consumption simulator for light-duty M1 & N1 vehicles (cars and vans), spec
 *calculate CO2 emissions of a vehicle subject to a NEDC test using the results of a WLTP test*,
 according to the *EU* legislation (see `History`_ section, below).
 
-It is an open-source project developed with Python-3.4+,
+It is an open-source project developed with Python-3.5+,
 using Anaconda & WinPython under Windows 7, Anaconda under MacOS, and
 standard python environment under Linux.
 It runs either as a *console command* or as a *desktop GUI application*,

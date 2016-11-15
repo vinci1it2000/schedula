@@ -695,8 +695,8 @@ def main(*args):
 
 
 if __name__ == '__main__':
-    if sys.version_info < (3, 4):
-        msg = "Sorry, Python >= 3.4 is required, but found: {}"
+    if sys.version_info < (3, 5):
+        msg = "Sorry, Python >= 3.5 is required, but found: {}"
         sys.exit(msg.format(sys.version_info))
     try:
         main()
