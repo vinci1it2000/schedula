@@ -325,7 +325,9 @@ you have installed |co2mpas| (see :ref:`install` above) and type::
     Model flags (-D flag.xxx, example -D flag.engineering_mode=True):
      engineering_mode=<bool>     Use all data and not only the declaration data.
      soft_validation=<bool>      Relax some Input-data validations, to facilitate experimentation.
-     run_base=<bool>             Enable/disable the `run_base` model.
+     run_base=<bool>             If True and the input file is a plan, the
+                                 simulation plan will not be launched, but the file
+                                 will be executed as a normal file with base inputs.
      use_selector=<bool>         Select internally the best model to predict both NEDC H/L cycles.
      only_summary=<bool>         Do not save vehicle outputs, just the summary.
      plot_workflow=<bool>        Open workflow-plot in browser, after run finished.
