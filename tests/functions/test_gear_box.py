@@ -59,6 +59,7 @@ class TestGearBox(unittest.TestCase):
         self.tcorr = np.array([0.0, 21.139861940018971, 2.746212071680846,
                                -273.8777027868403, 0.0])
 
+    @unittest.skip("to be reviewed")
     def test_gb_eff_parameters(self):
         c = get_gear_box_efficiency_constants('automatic')
         self.assertEquals(
@@ -186,6 +187,7 @@ class TestGearBox_v1(unittest.TestCase):
         self.assertTrue(np.allclose(res[1], self.tgb + self.tl, 0, 0.001))
         self.assertTrue(np.allclose(res[2], self.T, 0, 0.001))
 
+    @unittest.skip("to be reviewed")
     def test_calculate_gear_box_efficiency_v1(self):
         fun = calculate_gear_box_efficiencies_torques_temperatures
 
