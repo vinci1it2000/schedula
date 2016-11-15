@@ -20,7 +20,7 @@ pandalone>=0.2.0
 xlsxwriter
 regex
 schema
-lmfit
+lmfit>=0.9.5
 tqdm
 pip
 pyyaml>=3.12
