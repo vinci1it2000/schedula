@@ -10,7 +10,7 @@
 :Date:          2016-11-15 01:19:29
 :Home:          http://co2mpas.io/
 :Releases:      http://files.co2mpas.io/
-:Sources:       https://github.com/JRCSTU/co2mpas
+:Sources:       https://github.com/JRCSTU/CO2MPAS-TA
 :pypi-repo:     https://pypi.python.org/pypi/co2mpas
 :Keywords:      CO2, fuel-consumption, WLTP, NEDC, vehicle, automotive,
                 EU, JRC, IET, STU, correlation, back-translation, policy, monitoring, M1, N1,
@@ -255,11 +255,15 @@ Generic Tips
 
 .. _usage:
 
+
 Usage
 =====
+The sections below constitute a "reference" for |co2mpas| - a **tutorial** 
+is maintained in the *wiki* for this project at:
+https://github.com/JRCSTU/CO2MPAS-TA/wiki/CO2MPAS-user-guidelines
 
 |co2mpas| GUI
----------------------
+-------------
 From *"Rally"* release, co2mpas can be launched through a Graphical user interface.
 Most of its functionality is provided within, as shown in the following animated gif:
 
@@ -711,8 +715,8 @@ Or you can run |co2mpas| with the ``batch`` sub-command::
   For demonstration purposes, some some of the actual models will fail;
   check the *summary file*.
 
-Run ta
-------
+Run Type-Approval mode (``ta``)
+--------------------------------
 The type approval command simulates the NEDC fuel consumption and CO2 emission
 of the given vehicle using just the required `declaration inputs
 <https://github.com/JRCSTU/CO2MPAS-TA/wiki/TA_compulsory_inputs>`_ (marked as
