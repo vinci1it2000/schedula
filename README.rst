@@ -429,9 +429,16 @@ may reference different parts of the spreadsheet following the syntax of the
 
 Demo files
 ----------
-The simulator contains input-files for demo-vehicles that are a nice starting
-point to try out. You can create the demo vehicles inside the *input-folder*
-with the ``demo`` sub-command::
+The simulator contains demo-files that are a nice starting point to try out.
+You can download the *demo* vehicles from the GUI:
+
+.. image:: _static/Co2mpasALLINONE-Demo.gif
+   :scale: 75%
+   :alt: Generate Co2mpas demo files
+   :align: center
+
+Or you can create the demo files inside the *input-folder* with the ``demo``
+sub-command::
 
     $ co2mpas demo input -f
     2016-11-14 16:33:07,520: INFO:co2mpas_main:Creating INPUT-DEMO file 'input\co2mpas_demo-0.xlsx'...
@@ -448,8 +455,9 @@ with the ``demo`` sub-command::
     2016-11-14 16:33:07,574: INFO:co2mpas_main:You may run DEMOS with:
         co2mpas batch input
 
-Demo description:
 
+Demo description
+~~~~~~~~~~~~~~~~
 ======= == ========== ========== === ==== ========== ========== ====
 id      AT cal WLTP-H cal WLTP-L S/S BERS trg NEDC-H trg NEDC-L plan
 ======= == ========== ========== === ==== ========== ========== ====
