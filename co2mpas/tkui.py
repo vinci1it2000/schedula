@@ -1354,10 +1354,12 @@ class SimulatePanel(ttk.Frame):
                 k, v = parse_key_value_pair(kvpair)
                 cmd_kwds[k] = v
             tmpl_folder = self.tmpl_folder_var.get()
-            if tmpl_folder:
-                cmd_kwds['flag.output_template'] = tmpl_folder
 
             variation = OrderedDict()
+
+            if tmpl_folder:
+                variation['flag.output_template'] = tmpl_folder
+
             for flag, flag_var in self.flag_vars:
                 flag_value = flag_var.get()
                 if flag_value:
