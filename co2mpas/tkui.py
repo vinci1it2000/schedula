@@ -69,14 +69,14 @@ import webbrowser
 
 from PIL import Image, ImageTk
 import docopt
-from toolz import dicttoolz as dtz, itertoolz as itz
+from toolz import dicttoolz as dtz
 import yaml
 
 from co2mpas import (__main__ as cmain, __version__,
                      __updated__, __copyright__, __license__, __uri__)  # @UnusedImport
 from co2mpas import datasync
 import co2mpas.batch as cbatch
-from co2mpas.utils import stds_redirected
+from co2mpas.utils import stds_redirected, parse_key_value_pair
 import functools as fnt
 import os.path as osp
 import pkg_resources as pkg
@@ -156,7 +156,16 @@ def define_tooltips():
             Aborts a "job" that have started with the `Run` or `Run TA` buttons.
 
         extra_options_entry: |-
-            Put any other cmd-line options here (try '--help' and click `Run`` button).
+            A space-separated list of key-value pair options.
+            - Values are "typed"; use the following assignment symbols to demarcate them:
+                +=: INTEGER
+                *=: FLOAT
+                ?=: BOOLEAN: (1, yes, true, on) ==> True, (0, no, false, off) ==> False
+                :=: JSON expression
+                @=: PYTHON expression
+                = : STRING
+            - example:
+                flag.engineering?=on  flag.plot_workflow?=yes  flag.output_template=some_file.xlsx
 
         engineering_mode: |-
             the model uses of all available input data (not only the declaration inputs),
@@ -769,17 +778,19 @@ class LogPanel(ttk.Labelframe):
         self.bind('<Destroy>', self._stop_intercepting_exceptions)
 
     def _setup_logging_components(self, formatter_specs, log_threshold):
+        log_widget = self
+
         class MyHandler(logging.Handler):
+            def __init__(self, **kws):  # @NoSelf
+                logging.Handler.__init__(self, **kws)
 
-            def __init__(self2, **kws):  # @NoSelf
-                logging.Handler.__init__(self2, **kws)
-
-            def emit(self2, record):  # @NoSelf
+            def emit(self, record):  # @NoSelf
                 try:
-                    self.update()
-                    self._write_log_record(record)
+                    log_widget.update()
+                    log_widget._write_log_record(record)
+                    log_widget.update()
                 except Exception:
-                    self2.handleError(record)
+                    self.handleError(record)
 
         self._handler = MyHandler()
 
@@ -1206,7 +1217,7 @@ class SimulatePanel(ttk.Frame):
         )
         self.flag_vars = [make_flag(f) for f in flags]
 
-        label = ttk.Label(frame, text=labelize_str("Extra Options"))
+        label = ttk.Label(frame, text=labelize_str("Extra key-value pairs"))
         label.pack(anchor=tk.W)
 
         var = StringVar()
@@ -1309,9 +1320,9 @@ class SimulatePanel(ttk.Frame):
 
         if self.advanced_flipper.flip_ix > 0:
             args = self.extra_opts_var.get().strip().split()
-            for k, v in itz.partition(2, args):
+            for kvpair in args:
+                k, v = parse_key_value_pair(kvpair)
                 cmd_kwds[k] = v
-
             tmpl_folder = self.tmpl_folder_var.get()
             if tmpl_folder:
                 cmd_kwds['flag.output_template'] = tmpl_folder

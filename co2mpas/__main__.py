@@ -444,7 +444,7 @@ def _cmd_modelconf(opts):
 def _cmd_gui(opts):
     verbose = opts['--verbose']
     quiet = opts['--quite']
-    assert not (verbose and quiet), "Specify one of `verbose` and `quiet` as true!"
+    assert not (verbose and quiet), "Specify either `verbose` or `quiet` as true - not both!"
     level = None  # Let `init_logging()` decide.
     if verbose:
         level = logging.DEBUG

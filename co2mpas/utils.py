@@ -5,9 +5,6 @@
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
-from contextlib import contextmanager
-import io
-
 """
 It contains classes and functions of general utility.
 
@@ -16,26 +13,31 @@ numerical operations.
 """
 
 
-import yaml
-import networkx as nx
 import collections
-import math
-import statistics
+from contextlib import contextmanager
 import inspect
+import io
+import json
+import math
+import re
+import statistics
 import sys
+
+from sklearn.linear_model import RANSACRegressor
+import yaml
+
+import co2mpas.dispatcher.utils as dsp_utl
+import networkx as nx
+import numpy as np
+import pandalone.utils as putils
 import scipy.interpolate as sci_itp
 import scipy.misc as sci_misc
 import sklearn.metrics as sk_met
-import co2mpas.dispatcher.utils as dsp_utl
-import numpy as np
-from sklearn.linear_model import RANSACRegressor
 
 
 try:
     isidentifier = str.isidentifier
 except AttributeError:
-    import re
-
     isidentifier = re.compile(r'[a-z_]\w*$', re.I).match
 
 __all__ = [
@@ -490,3 +492,34 @@ class _SafeRANSACRegressor(RANSACRegressor):
                 return res
             else:
                 raise ex
+
+
+_value_parsers = {
+    '+': int,
+    '*': float,
+    '?': putils.str2bool,
+    ':': json.loads,
+    '@': eval,
+    #'@': ast.literal_eval ## best-effort security: http://stackoverflow.com/questions/3513292/python-make-eval-safe
+}
+
+
+_key_value_regex = re.compile(r'^\s*([/_A-Za-z][\w/\.]*)\s*([+*?:@]?)=\s*(.*?)\s*$')
+
+
+def parse_key_value_pair(arg):
+    """Argument-type for syntax like: KEY [+*?:]= VALUE."""
+
+    m = _key_value_regex.match(arg)
+    if m:
+        (key, type_sym, value) = m.groups()
+        if type_sym:
+            try:
+                value = _value_parsers[type_sym](value)
+            except Exception as ex:
+                raise ValueError("Failed parsing key(%s)%s=VALUE(%s) due to: %s" %
+                                 (key, type_sym, value, ex)) from ex
+
+        return [key, value]
+    else:
+        raise ValueError("Not a KEY=VALUE syntax: %s" % arg)
