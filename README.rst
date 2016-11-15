@@ -762,7 +762,7 @@ To create/modify one output-template yourself, do the following:
 3. (Optional) Delete the old sheets and save your file.
 
 4. Use that file together with the ``-D flag.output_template=file/path.xlsx``
-  argument.
+   argument.
 
 
 Simulation plan
@@ -1111,6 +1111,7 @@ The following table describes the scores, targets, and metrics for each model:
    :align: center
 
 .. _developers:
+
 Developers Installation
 =======================
 
