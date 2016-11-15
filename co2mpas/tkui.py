@@ -554,7 +554,7 @@ def add_makdownd_text(text_widget, text, widgets: Mapping[str, tk.Widget]=None, 
                 raise AssertionError(text, s, e, obj, alt, url, m.groupdict())
         except Exception as ex:
             raise ValueError("Makdown syntax-error %r at (line.column) %s: %s"
-                             "\n  obj: %s, alt: %s, url: %s"%
+                             "\n  obj: %s, alt: %s, url: %s" %
                              (m.group(0), text_widget.index(tk.INSERT), ex, obj, alt, url)) from ex
         last_endp = e
     text_widget.insert(tk.INSERT, text[last_endp:], *tags)
@@ -669,9 +669,9 @@ class WidgetFlipper:
         self._flip_cb = flip_cb
 
         self.flip_ix = -1  # So that flipping kicks-in below.
-        parent.after_idle(self.flip, 0)
+        self.flip(0, dont_invoke_cb=True)
 
-    def flip(self, flip_ix=None):
+    def flip(self, flip_ix=None, dont_invoke_cb=False):
         flip_specs = self.flip_specs
         old_ix = self.flip_ix
 
@@ -684,7 +684,7 @@ class WidgetFlipper:
             flip_specs[flip_ix].show_func()
             self.flip_ix = flip_ix
 
-            if self._flip_cb:
+            if not dont_invoke_cb and self._flip_cb:
                 self._flip_cb((self, old_ix, flip_ix))
 
 
@@ -1557,7 +1557,6 @@ and double-click on the result file to open it,
             if not osp.isfile(inp_file):
                 raise ValueError('File %r does not exist!' % inp_file)
 
-            "datasync -O ./output times velocities template.xlsx#ref! dyno obd -i alternator_currents=integral -i battery_currents=integral"
             out_file = datasync.do_datasync('times', 'velocities',
                                             inp_file, out_path=osp.dirname(inp_file),
                                             force=True)
