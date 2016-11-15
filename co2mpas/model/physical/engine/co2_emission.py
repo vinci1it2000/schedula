@@ -1565,8 +1565,8 @@ def _set_attr(params, data, default=False, attr='vary'):
         s[attr] = v
         p.set(**s)
 
-        if p.max == p.min:
-            p.set(value=p.min, min=None, max=None, vary=False)
+        if lmfit.parameter.isclose(p.min, p.max, atol=1e-13, rtol=1e-13):
+            p.set(value=np.mean((p.max, p.min)), min=None, max=None, vary=False)
 
     return params
 
@@ -1688,8 +1688,8 @@ def restrict_bounds(co2_params):
     for k, v in p.items():
         v.min, v.max = _limits(k, v)
 
-        if v.max == v.min:
-            v.set(value=v.min, min=None, max=None, vary=False)
+        if lmfit.parameter.isclose(v.min, v.max, atol=1e-13, rtol=1e-13):
+            v.set(value=np.mean((v.max, v.min)), min=None, max=None, vary=False)
 
     return p
 
