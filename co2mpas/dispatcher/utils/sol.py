@@ -1119,7 +1119,7 @@ class Solution(OrderedDict):
         if self.raises:
             raise DispatcherError(self, msg, node_id, ex, *args, **kwargs)
         elif isinstance(ex, DispatcherAbort):
-            raise DispatcherAbort(self, msg, node_id, ex, *args, **kwargs)
+            raise
         else:
             kwargs['exc_info'] = kwargs.get('exc_info', 1)
             log.error(msg, node_id, ex, *args, **kwargs)
