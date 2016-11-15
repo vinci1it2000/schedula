@@ -1758,6 +1758,13 @@ class TkUI(object):
         #
         menubar = tk.Menu(root)
         menubar.add_command(label="About %r" % app_name, command=fnt.partial(self.show_about_window, slider))
+        
+        def open_console():
+            homdedir = os.environ['HOME']
+            console_xml = osp.join(homdedir, '..', 'Apps', 'Console', 'console.xml')
+            import subprocess as subp
+            subp.Popen(['Console.exe', '-c', console_xml, '-t', 'cmd'])
+        menubar.add_command(label="Launch console...", command=open_console)
         root['menu'] = menubar
 
         ## Last, or it shows the empty-root momentarily.
