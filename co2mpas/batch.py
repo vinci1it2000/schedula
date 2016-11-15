@@ -63,7 +63,7 @@ def parse_dsp_solution(solution):
     return res
 
 def process_folder_files(input_files, output_folder,
-                         result_listener: Callable=None, **kwds):
+                         result_listener=None, **kwds):
     """
     Process all xls-files in a folder with CO2MPAS-model and produces summary.
 
@@ -78,6 +78,7 @@ def process_folder_files(input_files, output_folder,
         A callable that will receive a 2 tuple for each file as it is produced::
 
                 (<filepath>, <contents>)
+    :type result_listener: function
 
     """
 
