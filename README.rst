@@ -101,7 +101,7 @@ contains (or upgrade to) the latest ``co2mpas`` python package; alternatively,
 you may install the developer version.
 
    .. Tip::
-      **all-in-one is the official procedure to install co2mpas for TA.**
+      **all-in-one is the official procedure to install |co2mpas| for TA.**
 
 .. _all-in-one:
 
@@ -139,7 +139,7 @@ you may install the developer version.
 
   .. image:: _static/Co2mpasALLINONE-LaunchConsoleShortcut.gif
    :scale: 75%
-   :alt: Launch CO2MPAS from Window Start-menu.
+   :alt: Launch |co2mpas| from Window Start-menu.
    :align: center
 
 .. Note::
@@ -162,8 +162,8 @@ Uninstall and re-install it from the |co2mpas| CONSOLE::
 
         co2mpas -vV
 
-Upgrade CO2MPAS in a corporate environment
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Upgrade |co2mpas| in a corporate environment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 1. Use your browser to download the "wheel" package `co2mpas-X.X.X-py2.py3-none-any.whl`
    from this location: https://files.co2mpas.io/CO2MPAS-X.X.X/
    and place it inside your ALLINONE's home-folder: ``co2mpas_ALLINONE-64bit-X.X.X\CO2MPAS\``
@@ -242,7 +242,7 @@ Generic Tips
   with the mouse.  In case of errors, copy and paste the offending commands and
   their error-messages to emails sent to JRC.
 
-- When a new CO2MPAS version comes out it is not necessary to download the full
+- When a new |co2mpas| version comes out it is not necessary to download the full
   ALLINONE archive, but you choose instead to just *upgrade* co2mpas.
 
   Please follow the upgrade procedure in the main documentation.
@@ -409,7 +409,7 @@ You can download an *empty* input excel-file from the GUI:
 
 .. image:: _static/Co2mpasALLINONE-Template.gif
    :scale: 75%
-   :alt: Generate Co2mpas input template
+   :alt: Generate |co2mpas| input template
    :align: center
 
 Or you can create an empty vehicle template-file (e.g., ``vehicle_1.xlsx``)
@@ -434,7 +434,7 @@ You can download the *demo* vehicles from the GUI:
 
 .. image:: _static/Co2mpasALLINONE-Demo.gif
    :scale: 75%
-   :alt: Generate Co2mpas demo files
+   :alt: Generate |co2mpas| demo files
    :align: center
 
 Or you can create the demo files inside the *input-folder* with the ``demo``
@@ -579,8 +579,8 @@ You can download an *empty* input excel-file from the GUI or you can use the
 Or you can create an empty datasync template-file (e.g., ``datasync.xlsx``)
 inside the *sync-folder* with the ``template`` sub-command::
 
-        $ datasync template sync/datasync.xlsx --cycle wltp.class3b -f
-        2016-11-14 17:14:00,919: INFO:__main__:Creating INPUT-TEMPLATE file 'sync/datasync.xlsx'...
+    $ datasync template sync/datasync.xlsx --cycle wltp.class3b -f
+    2016-11-14 17:14:00,919: INFO:__main__:Creating INPUT-TEMPLATE file 'sync/datasync.xlsx'...
 
 All sheets must share 2 common columns ``times`` and ``velocities`` (for
 datasync cmd are ``<x-label>`` and ``<y-label>``). These describe the reference
@@ -616,86 +616,35 @@ Or you can synchronize the data with the ``datasync`` command::
 
 Run batch
 ---------
-Run the simulator on all demo-files (note, it might take considerable time):
-
-   .. code-block:: console
-
-       $ co2mpas batch input -O output
-       Processing ['input'] --> 'output'...
-       Processing: co2mpas_demo-0
-       ...
-       ...
-       Done! [499.579 sec]
-
-   .. Note::
-      The last demo-file, the "simulation-plan" will take longer to complete,
-      and, for demonstration purposes, some some of the actual models will fail;
-      check the *summary file*.
-
-4. Inspect the results (explained in the next section):
-
-   .. code-block:: console
-
-       $ start output/*summary.xlsx       ## More summaries might exist in the folder from previous runs.
-       $ start output                     ## View the folder with all files generated.
-
-
-
-   You may repeat these last 2 steps if you want to add more vehicles in
-   the *batch-run*.
-
-4. Run the simulator.  Specify the single excel-file as input:
-
-   .. code-block:: console
-
-        $ co2mpas batch ./input/vehicle_1.xlsx -O output
-        Processing './input/vehicle_1.xlsx' --> 'output'...
-        Processing: vehicle_1
-        ...
-        Done! [12.938986 sec]
-
-5. Assuming you do receive any error, you may now inspect the results:
-
-   .. code-block:: console
-
-        $ start output/*summary.xlsx      ## More summaries might open from previous runs.
-        $ start output                    ## View all files generated (see below).
-
-
-6. In the case of errors, or if the results are not satisfactory, repeat the
-   above procedure from step 3 to modify the vehicle and re-run the model.
-   See also :ref:`debug`, below.
-
-
-
 The default sub-command (``batch``) accepts either a single **input-excel-file**
 or a folder with multiple input-files for each vehicle, and generates a
 **summary-excel-file** aggregating the major result-values from these vehicles,
 and (optionally) multiple **output-excel-files** for each vehicle run.
 
+To run all demo-files (note, it might take considerable time), you can use the
+GUI as follows:
 
-3. Run the simulator on all demo-files (note, it might take considerable time):
+.. image:: _static/Co2mpasALLINONE-Batch_Run.gif
+   :scale: 75%
+   :alt: |co2mpas| batch
+   :align: center
 
-   .. code-block:: console
+.. note::
+    To run the last demo-file is needed ``-D engineering_mode=True``, because it
+    contains a "simulation-plan" with non declaration data.
 
-       $ co2mpas batch input -O output
-       Processing ['input'] --> 'output'...
-       Processing: co2mpas_demo-0
-       ...
-       ...
-       Done! [499.579 sec]
+Or you can run |co2mpas| with the ``batch`` sub-command::
 
-   .. Note::
-      The last demo-file, the "simulation-plan" will take longer to complete,
-      and, for demonstration purposes, some some of the actual models will fail;
-      check the *summary file*.
+   $ co2mpas batch input -O output
+   2016-11-15 17:00:31,286: INFO:co2mpas_main:Processing ['../input'] --> '../output'...
+     0%|          | 0/10 [00:00<?, ?it/s]: Processing ../input\co2mpas_demo-0.xlsx
+   ...
+   ...
+   Done! [527.420557 sec]
 
-4. Inspect the results (explained in the next section):
-
-   .. code-block:: console
-
-       $ start output/*summary.xlsx       ## More summaries might exist in the folder from previous runs.
-       $ start output                     ## View the folder with all files generated.
+.. Note::
+  For demonstration purposes, some some of the actual models will fail;
+  check the *summary file*.
 
 
 Output files
@@ -703,7 +652,7 @@ Output files
 The output-files produced on each run are the following:
 
 - One file per vehicle, named as `<timestamp>-<inp-fname>.xls`:
-  This file contains all the inputs and calculation results for each vehicle
+  This file contains all inputs and calculation results for each vehicle
   contained in the batch-run: scalar-parameters and time series for target,
   calibration and prediction phases, for all cycles.
   In addition, the file contains all the specific submodel-functions that
@@ -715,36 +664,12 @@ The output-files produced on each run are the following:
   success/fail flags of |co2mpas| submodels for all vehicles in the batch-run.
 
 
-4. Run the simulator.  Specify the single excel-file as input:
-
-   .. code-block:: console
-
-        $ co2mpas batch ./input/vehicle_1.xlsx -O output
-        Processing './input/vehicle_1.xlsx' --> 'output'...
-        Processing: vehicle_1
-        ...
-        Done! [12.938986 sec]
-
-5. Assuming you do receive any error, you may now inspect the results:
-
-   .. code-block:: console
-
-        $ start output/*summary.xlsx      ## More summaries might open from previous runs.
-        $ start output                    ## View all files generated (see below).
-
-
-6. In the case of errors, or if the results are not satisfactory, repeat the
-   above procedure from step 3 to modify the vehicle and re-run the model.
-   See also :ref:`debug`, below.
-
-
 Custom output xl-files as templates
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 You may have defined customized xl-files for summarizing time-series and
-scalar parameters.  To have |co2mpas| fill those "output-template" files with
+scalar parameters. To have |co2mpas| fill those "output-template" files with
 its results, execute it with the ``-D flag.output_template=file/path.xlsx``
 option.
-
 
 To create/modify one output-template yourself, do the following:
 
@@ -767,8 +692,8 @@ To create/modify one output-template yourself, do the following:
 
 Simulation plan
 ---------------
-It is possible to launch co2mpas once, and have it run the model multiple times,
-with variations on the input-data, all contained in a single
+It is possible to launch |co2mpas| once, and have it run the model multiple
+times, with variations on the input-data, all contained in a single
 (or more) input file(s).
 
 The data for **base model** are contained in the regular sheets, and any
@@ -779,10 +704,32 @@ while the columns names are the parameters that the user want to vary.
 The columns of these tables can contain the following special names:
 
 - **id**: Identifies the variation id.
-- **base**: this is a file path of a CO2MPAS excel input, this model will be
+- **base**: this is a file path of a |co2mpas| excel input, this model will be
   used as new base vehicle.
 - **run_base**: this is a boolean. If true the base model results are computed
   and stored, otherwise the data are just loaded.
+
+To run the last demo-file is needed ``-D engineering_mode=True``, because it
+contains a "simulation-plan" with non declaration data. You can use the GUI as
+follows:
+
+.. image:: _static/Co2mpasALLINONE-Plan_Run.gif
+   :scale: 75%
+   :alt: |co2mpas| batch simulation plan
+   :align: center
+
+.. note::
+   To run the demo-file ``co2mpas_simplan.xlsx`` is needed
+   ``-D engineering_mode=True``, because it contains non declaration data.
+
+Or you can run |co2mpas| with the ``batch`` sub-command::
+
+   $ co2mpas batch input/co2mpas_simplan.xlsx -O output -D engineering_mode=True
+   2016-11-15 17:00:31,286: INFO:co2mpas_main:Processing ['../input/co2mpas_simplan.xlsx'] --> '../output'...
+     0%|          | 0/4 [00:00<?, ?it/s]: Processing ../input\co2mpas_simplan.xlsx
+   ...
+   ...
+   Done! [180.4692 sec]
 
 
 Launch |co2mpas| from Jupyter(aka IPython)
@@ -854,11 +801,11 @@ Debugging and investigating results
 -----------------------------------
 
 - Make sure that you have installed `graphviz`, and when running the simulation,
-  append also the ``--plot-workflow`` option.
+  append also the ``-D flag.plot_workflow=True`` option.
 
   .. code-block:: console
 
-        $ co2mpas batch --plot-workflow bad-file.xlsx
+        $ co2mpas batch bad-file.xlsx -D flag.plot_workflow=True
 
   A browser tab will open at the end with the nodes processed.
 
@@ -885,7 +832,7 @@ Model
 =====
 Execution Model
 ---------------
-The execution of CO2MPAS model for a single vehicle is a stepwise procedure
+The execution of |co2mpas| model for a single vehicle is a stepwise procedure
 of 3 stages: ``precondition``, ``calibration``, and ``prediction``.
 These are invoked repeatedly, and subsequently combined, for the various cycles,
 as shown in the "active" flow-diagram of the execution, below:
@@ -1392,7 +1339,7 @@ where in each one you can install a different versions of |co2mpas|.
 
 
 
-2. Ensure co2mpas uninstalled in your parent-env:
+2. Ensure |co2mpas| uninstalled in your parent-env:
 
    .. code-block:: console
 
@@ -1435,10 +1382,10 @@ where in each one you can install a different versions of |co2mpas|.
    You must now see that your prompt has been prefixed with the venv's name.
 
 
-6. Install the co2mpas version you want inside the activated venv.
+6. Install the |co2mpas| version you want inside the activated venv.
    See the :ref:`install-co2mpas-package` section, above.
 
-   Don't forget to check that what you get when running co2mpas is what you
+   Don't forget to check that what you get when running |co2mpas| is what you
    installed.
 
 7. To "deactivate" the active venv, type:
