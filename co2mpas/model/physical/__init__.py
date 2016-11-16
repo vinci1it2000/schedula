@@ -176,6 +176,7 @@ def predict_vehicle_electrics_and_engine_behavior(
 
         soc[i + 1] = e[-1]
         ele.append(e)
+        # noinspection PyTypeChecker
         eng.append([eng_s] + on_eng)
 
     alt_c, alt_sts, bat_c, _ = zip(*ele[1:])

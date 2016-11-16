@@ -12,7 +12,6 @@ import datetime
 import functools
 import logging
 import re
-from typing import Callable
 
 from tqdm import tqdm
 
@@ -381,6 +380,10 @@ def prepare_data(raw_data, variation, input_file_name, overwrite_cache,
     :param type_approval_mode:
         Is launched for TA?
     :type type_approval_mode: bool
+
+    :param modelconf:
+        Path of modelconf that has modified the defaults.
+    :type modelconf: str
 
     :return:
         Prepared data.

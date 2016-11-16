@@ -317,6 +317,7 @@ def integral_interpolation(x, xp, fp):
     I = np.diff(_cum_integral(X, xp, fp))
 
     dx /= 8.0
+    # noinspection PyTypeChecker
     A = np.diag((dx[:-1] + dx[1:]) * 3.0)
     i, j = np.indices(A.shape)
     A[i == j - 1] = A[i - 1 == j] = dx[1:-1]

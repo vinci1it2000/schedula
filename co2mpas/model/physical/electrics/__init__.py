@@ -816,6 +816,7 @@ class Alternator_status_model(object):
                 self.bers = m.predict  # shortcut name
                 return self.bers
 
+            # noinspection PyUnresolvedReferences
             if not b.all():
                 gb_p_s = gear_box_powers_in[_mask_boolean_phases(b)[:, 0]]
 

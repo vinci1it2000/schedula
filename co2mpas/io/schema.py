@@ -338,6 +338,7 @@ def _check_np_array_positive(x):
     :type x: numpy.array
     :return:
     """
+    # noinspection PyUnresolvedReferences
     return (x >= 0).all()
 
 
@@ -452,6 +453,7 @@ def is_sorted(iterable, key=lambda a, b: a <= b):
     return all(key(a, b) for a, b in dsp_utl.pairwise(iterable))
 
 
+# noinspection PyUnresolvedReferences
 @functools.lru_cache(None)
 def define_data_schema(read=True):
     cmv = _cmv(read=read)

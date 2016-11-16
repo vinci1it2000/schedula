@@ -355,6 +355,7 @@ def bin_split(x, bin_std=(0.01, 0.1), n_min=None, bins_min=None):
     return _bin_merge(x, edges, bin_stats)
 
 
+# noinspection PyTypeChecker
 def interpolate_cloud(x, y):
     """
     Defines a function that interpolate a cloud of points.
@@ -387,6 +388,7 @@ def interpolate_cloud(x, y):
 
         y[0] = y[1]
         x.append(x[-1])
+        # noinspection PyTypeChecker,PyTypeChecker
         y.append(y[-1] * 1.1)
     else:
         x, y = ([0, 1], [np.mean(y)] * 2)

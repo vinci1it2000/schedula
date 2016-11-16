@@ -802,6 +802,7 @@ def calculate_co2_emissions(
         )
         _b &= ~((e_powers <= ec_p0) & (e_speeds > idle_cutoff))
         b = n & _b
+        # noinspection PyUnresolvedReferences
         idle_fc, ac[b], vva[b], lb[b], egr[b] = idle_fc_model(p, ac_phases[b])
         fc[b] = idle_fc * np.power(n_temp[b], -p['t'][b])
         b = ~n & _b
@@ -1192,6 +1193,19 @@ def identify_co2_emissions(
     :param cumulative_co2_emissions:
         Cumulative CO2 of cycle phases [CO2g].
     :type cumulative_co2_emissions: numpy.array
+
+    :param co2_error_function_on_phases:
+        Error function (according to co2 emissions phases) to calibrate the CO2
+        emission model params.
+    :type co2_error_function_on_phases: function
+
+    :param engine_coolant_temperatures:
+        Engine coolant temperature vector [°C].
+    :type engine_coolant_temperatures: numpy.array
+
+    :param is_cycle_hot:
+        Is an hot cycle?
+    :type is_cycle_hot: bool
 
     :return:
         The instantaneous CO2 emission vector [CO2g/s].
@@ -1709,6 +1723,10 @@ def calibrate_model_params(
         If not specified a brute force is used to identify the best initial
         guess with in the bounds.
     :type params: dict, optional
+
+    :param method:
+        Name of the fitting method to use.
+    :type method: str, optional
 
     :return:
         Calibrated model params.

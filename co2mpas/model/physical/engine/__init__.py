@@ -25,7 +25,6 @@ Sub-Modules:
 import math
 import co2mpas.model.physical.defaults as defaults
 import numpy as np
-import scipy.interpolate as sci_itp
 import sklearn.metrics as sk_met
 from sklearn.cluster import DBSCAN
 import co2mpas.dispatcher.utils as dsp_utl

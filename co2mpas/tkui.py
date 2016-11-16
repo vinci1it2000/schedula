@@ -462,7 +462,7 @@ def make_file_tree(frame, **tree_kwds):
                 icon = tree.excel_icon if re.search(r'\.xl\w\w$', path) else tree.file_icon
             finfos = get_file_infos(path)
             tree.insert('', 'end', path, text=path,
-                        values=(ftype, *finfos), image=icon, **kwds)
+                        values=(ftype,) + finfos, image=icon, **kwds)
         except Exception as ex:
             log.warning("Cannot add input file %r due to: %s", path, ex)
 

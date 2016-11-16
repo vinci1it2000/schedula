@@ -857,6 +857,7 @@ class GSPV(CMV):
         vsr = pprint.pformat(self.velocity_speed_ratios)
         return s.format(pprint.pformat(self.cloud), vsr)
 
+    # noinspection PyMethodOverriding
     def fit(self, gears, velocities, wheel_powers, velocity_speed_ratios,
             stop_velocity):
         self.clear()
@@ -1203,6 +1204,7 @@ def prediction_gears_gsm(
 
     gsm = _upgrade_gsm(gsm, velocity_speed_ratios, cycle_type)
 
+    # noinspection PyArgumentList
     gears = gsm.predict(np.column_stack(X), correct_gear=correct_gear,
                         times=times, gear_filter=gear_filter)
     return np.asarray(gears, dtype=int)

@@ -1172,7 +1172,7 @@ class Dispatcher(object):
                             succ[p][c] = s_pred[p] = dmap_succ[p][c]
                     elif not check_inputs or add_missing:
                         if add_missing:
-                            for p in node_attr['inputs'] and p not in family:  # Is the last check working??
+                            for p in node_attr['inputs'] and p not in family:
                                 _set_node_attr(p, add2family=False)
 
                         _set_node_attr(c)
