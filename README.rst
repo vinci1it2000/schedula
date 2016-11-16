@@ -1402,13 +1402,16 @@ require the use of ``pip`` command from a *console* to install:
 - (for all of the above) **Without internet connectivity** or when the above
   proxy cmd fails:
 
-  1. With with a "regular" browser and when connected to the Internet,
-     pre-download locally all files present in the ``packages`` folder
-     located in the desired |co2mpas| version in the *|co2mpas| site*
-     (e.g. http://files.co2mpas.io/CO2MPAS-1.4.1rc0/packages/).
+  1. Use an existing *Python-3.5* environment; that might be an older *ALLINONE*, 
+     *WinPython*, *Anaconda* or Linux's standard python environment.
+  
+  2. With with a "regular" browser and when connected to the Internet,
+     pre-download locally and unzip the respective ``co2mpas_DEPENDENCIES-vX.X.XXX.7z`` file 
+     from the latest ALLINONE release (e.g. http://files.co2mpas.io/).
+     This archive contains all the dependent packages of |co2mpas|.
 
-  2. Install *co2mpas*, referencing the above folder.
-     Assuming that you downloaded the packages in the folder ``path/to/co2mpas_packages``,
+  3. Install |co2mpas|, referencing the above folder.
+     Assuming that you unzipped the packages in the folder ``path/to/co2mpas_packages``,
      use a console-command like this:
 
      .. code-block:: console
