@@ -50,7 +50,7 @@ For recent activity, check the :doc:`changes`.
 
 Quick Start
 ===========
-IF you are familiar with python, AND
+IF you are familiar with Python, AND
 IF you already have a full-blown *python-3 environment*
 (i.e. *Linux* or the *all-in-one* archive), AND
 IF you have familiarity with previous releases, THEN
@@ -101,7 +101,7 @@ otherwise follow the detailed instructions under sections :ref:`install` and
 Install
 =======
 On *Windows* you may install the latest *all-In-One* archive and ensure it
-contains (or upgrade to) the latest ``co2mpas`` python package; alternatively,
+contains (or upgrade to) the latest |co2mpas| python package; alternatively,
 you may install the developer version.
 
    .. Tip::
@@ -173,7 +173,7 @@ Uninstall and re-install it from the |co2mpas| CONSOLE::
 Upgrade |co2mpas| in a corporate environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 1. Use your browser to download the "wheel" package `co2mpas-X.X.X-py2.py3-none-any.whl`
-   from this location: https://files.co2mpas.io/CO2MPAS-X.X.X/
+   for the latest release from this location: https://files.co2mpas.io/
    and place it inside your ALLINONE's home-folder: ``co2mpas_ALLINONE-64bit-X.X.X\CO2MPAS\``
 
 2. Launch the ALLINONE console into your home-folder (it opens there by default).
@@ -288,7 +288,7 @@ Alternatively, open the CONSOLE and type the following command:
 
 |co2mpas| cmd syntax
 ---------------------
-To get the syntax of the ``co2mpas`` console-command, open a console where
+To get the syntax of the |co2mpas| console-command, open a console where
 you have installed |co2mpas| (see :ref:`install` above) and type::
 
     ## co2mpas help.
@@ -1261,7 +1261,7 @@ It is not update-able, and has a semi-regular release-cycle of 3 months.
 
 .. _install-co2mpas-package:
 
-Install ``co2mpas`` package
+Install |co2mpas| package
 ---------------------------
 1. Install |co2mpas| executable internally into your python-environment with
    the following console-commands (there is no prob if the 1st `uninstall`
@@ -1281,8 +1281,7 @@ Install ``co2mpas`` package
         **Installation failures:**
 
         The previous step require http-connectivity for ``pip`` command to
-        Python's "standard" repository (https://pypi.python.org/) and to
-        co2mpas-site (http://files.co2mpas.io).
+        Python's "standard" repository (https://pypi.python.org/).
         In case you are behind a **corporate proxy**, you may try one of the methods
         described in section `Alternative installation methods`_, below.
 
@@ -1290,7 +1289,7 @@ Install ``co2mpas`` package
         extra *verbose* flags ``-vv``, copy-paste the console-output, and report it
         to JRC.
 
-2. Check that when you run ``co2mpas``, the version executed is indeed the one
+2. Check that when you run |co2mpas|, the version executed is indeed the one
    installed above (check both version-identifiers and paths):
 
    .. code-block:: console
@@ -1503,7 +1502,7 @@ where in each one you can install a different versions of |co2mpas|.
        > deactivate
 
    The prompt-prefix with the venv-name should now dissappear.  And if you
-   try to invoke ``co2mpas``, it should fail.
+   try to invoke |co2mpas|, it should fail.
 
 
 
