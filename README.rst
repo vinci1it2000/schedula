@@ -11,7 +11,7 @@
 :Home:          http://co2mpas.io/
 :Releases:      http://files.co2mpas.io/
 :Sources:       https://github.com/JRCSTU/CO2MPAS-TA
-:pypi-repo:     https://pypi.python.org/pypi/co2mpas
+:pypi-repo:     https://pypi.org/project/co2mpas/
 :Keywords:      CO2, fuel-consumption, WLTP, NEDC, vehicle, automotive,
                 EU, JRC, IET, STU, correlation, back-translation, policy, monitoring, M1, N1,
                 simulator, engineering, scientific
@@ -74,7 +74,7 @@ otherwise follow the detailed instructions under sections :ref:`install` and
     $ co2mpas gui
 
     ## Further command-line alternative:
-    
+
     ## To synchronize the Dyno and OBD data with the theoretical:
     $ datasync template --cycle wltp.class3b template.xlsx
     $ datasync -O ./output times velocities template.xlsx#ref! dyno obd -i alternator_currents=integral -i battery_currents=integral
@@ -140,7 +140,7 @@ you may install the developer version.
    :align: center
 
 - You can start |co2mpas| from *Windows start-menu* by pressing the `[WinKey]` and start typing `'co2mpas'`,
-  or by selecting its menu item from *All Programs*. 
+  or by selecting its menu item from *All Programs*.
   Alternatively, advanced users may continue to use the Console.
 
   .. image:: _static/Co2mpasALLINONE-LaunchGUI.gif
@@ -258,7 +258,7 @@ Generic Tips
 
 Usage
 =====
-The sections below constitute a "reference" for |co2mpas| - a **tutorial** 
+The sections below constitute a "reference" for |co2mpas| - a **tutorial**
 is maintained in the *wiki* for this project at:
 https://github.com/JRCSTU/CO2MPAS-TA/wiki/CO2MPAS-user-guidelines
 
@@ -274,7 +274,7 @@ Most of its functionality is provided within, as shown in the following animated
 
 
 Ensure that the latest version of |co2mpas| is properly installed, and
-that its version is the latest released, either by checking the "About" menu 
+that its version is the latest released, either by checking the "About" menu
 or by opening the CONSOLE and typing the following command:
 
 .. code-block:: console
