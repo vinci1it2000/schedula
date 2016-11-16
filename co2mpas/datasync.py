@@ -637,7 +637,7 @@ def _cmd_template(opts):
                 "Expecting a file-name instead of directory '%s'!" % fpath)
 
         dir_name = osp.dirname(fpath)
-        if not osp.isdir(dir_name):
+        if dir_name and not osp.isdir(dir_name):
             if force:
                 os.makedirs(dir_name)
             else:
