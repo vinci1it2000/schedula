@@ -257,10 +257,6 @@ def _extract_summary_from_summary(report, extracted):
                     if v:
                         dsp_utl.get_nested_dicts(extracted, *k).update(v)
 
-    n = ('summary', 'delta')
-    if dsp_utl.are_in_nested_dicts(report, *n):
-        extracted['delta'] = dsp_utl.get_nested_dicts(report, *n)
-
 
 def _extract_summary_from_model_scores(report, extracted):
     n = ('data', 'calibration', 'model_scores', 'model_selections')
@@ -436,24 +432,6 @@ def format_report_scores(data):
     return res
 
 
-def calculate_delta(data):
-    # delta
-    n, d = ['output', 'prediction', 'cycle', 'co2_emission_value'], {}
-    for k in ('%s_h', '%s_l'):
-        co2 = []
-        for c in ('nedc', 'wltp'):
-            n[2] = k % c
-            if dsp_utl.are_in_nested_dicts(data, *n):
-                co2.append(dsp_utl.get_nested_dicts(data, *n))
-        try:
-            dco2 = co2_utl.ret_v(np.diff(co2)[0])
-        except IndexError:
-            continue
-        dsp_utl.get_nested_dicts(d, k % 'nedc', *n[2:], default=dco2)
-
-    return d
-
-
 def get_selection(data):
     n = ('data', 'calibration', 'model_scores', 'model_selections')
     if dsp_utl.are_in_nested_dicts(data, *n):
@@ -513,10 +491,6 @@ def format_report_summary(data):
     comparison = compare_outputs_vs_targets(data)
     if comparison:
         summary['comparison'] = comparison
-
-    delta = calculate_delta(data)
-    if delta:
-        summary['delta'] = delta
 
     selection = get_selection(data)
     if selection:
