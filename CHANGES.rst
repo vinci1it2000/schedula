@@ -11,18 +11,29 @@ v1.4.1, file-ver: 2.2.5, 20-October 2016: "Rally" release
    :align: left
    :width: 480
    
-This *CO<sub>2</sub>MPAS* release contains both key model and software updates; additional capabilities have been added for the user, namely:
+This *CO\ :sub:`2`MPAS* release contains both key model and software updates; additional capabilities have been added for the user, namely:
 
 -    the **Declaration mode:** template & demo files now contain just the minimum inputs required to run under *Type Approval command (TA)*;
--    a **desktop GUI** to launch *CO<sub>2</sub>MPAS* and perform selected tasks (i.e. *simulate*, *datasync* time-series for a specific cycle, *generate templates*);
-- several model changes improved the handling of real-measurement data-series - this release's results, validated against real vehicles, are described in the [validation report](http://jrcstu.github.io/co2mpas/v1.4.x/validation_real_cases.html);
+-    a **desktop GUI** to launch *CO\ :sub:`2`MPAS* and perform selected tasks (i.e. *simulate*, *datasync* time-series for a specific cycle, *generate templates*);
+- several model changes improved the handling of real-measurement data-series:
+  - a series of **technologies** enabled, but "optional" due to the lack of sufficient 
+    experimental data for their validation: 
+    - cylinder deactivation for both petrol and diesel engines,
+    - exhaust gas recirculation for petrol engines,
+    - selective catalytic reduction for diesel engines and,
+    - gearbox thermal management for all gearbox types;
+    
+  - this release's results, validated against real vehicles, are described in the `validation report 
+    <http://jrcstu.github.io/co2mpas/v1.4.x/validation_real_cases.html>`_;
+    
 - *enhancements and diagrams for the result files*, very few, *backward-compatible changes in the Input files*;
 - *the serving URLs of this project have changed:*
   - the sources are now served from *github*: https://github.com/JRCSTU/CO2MPAS-TA 
-  - a **Wiki** hosting [*simple guidelines*](https://github.com/JRCSTU/CO2MPAS-TA/wiki/CO2MPAS-user-guidelines) on how to download, install, and run the *CO<sub>2</sub>MPAS* software;
-  - the [*Issues-tracker*](https://github.com/JRCSTU/CO2MPAS-TA/issues) for collecting feedback, 
-  - installation files distributed from [*Github-Releases page*](https://github.com/JRCSTU/CO2MPAS-TA/releases) (the https://files.co2mpas.io/ url has been deprecated).
-- a series of **technologies** which have been enabled; in particular the following technologies are enabled as "optional" due to the lack of sufficient experimental data for their validation: cylinder deactivation for both petrol and diesel engines, exhaust gas recirculation for petrol engines, selective catalytic reduction for diesel engines and gearbox thermal management for all gearbox types. 
+  - a **Wiki** hosting `*simple guidelines* <https://github.com/JRCSTU/CO2MPAS-TA/wiki/CO2MPAS-user-guidelines>`_ 
+    on how to download, install, and run the *CO\ :sub:`2`MPAS* software;
+  - the `*Issues-tracker* <https://github.com/JRCSTU/CO2MPAS-TA/issues>`_ for collecting feedback, 
+  - installation files distributed from `*Github-Releases page* <https://github.com/JRCSTU/CO2MPAS-TA/releases>`_ 
+    (the https://files.co2mpas.io/ url has been deprecated).
 
 The study of this release's results are contained in these 3 reports:
 `manual <http://jrcstu.github.io/co2mpas/v1.4.x/validation_manual_cases.html>`__,
