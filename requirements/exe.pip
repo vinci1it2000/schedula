@@ -23,8 +23,7 @@ schema
 lmfit>=0.9.5
 tqdm
 pip
-pyyaml>=3.12
-cycler
+PyYAML>=3.12
 boltons
 pykalman
 wltp
