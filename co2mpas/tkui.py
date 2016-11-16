@@ -156,16 +156,16 @@ def define_tooltips():
             Aborts a "job" that has started with the Run or Run TA buttons.
 
         extra_options_entry: |-
-            A space-separated list of key-value pair options.
+            A space-separated list of key-value pair for flags and parameters to override.
             - Values are "typed"; use the following assignment symbols to demarcate them:
                 +=: INTEGER
                 *=: FLOAT
                 ?=: BOOLEAN: (1, yes, true, on) ==> True, (0, no, false, off) ==> False
                 :=: JSON expression
                 @=: PYTHON expression
-                = : STRING
-            - example:
-                flag.engineering?=on  flag.plot_workflow?=yes  flag.output_template=some_file.xlsx
+                 =: STRING
+            - Example:
+                flag.engineering?=on  flag.plot_workflow?=yes  inputs.final_drive_ratio*=4.35
 
         engineering_mode: |-
             the model uses all the available input data (not only the declaration inputs),
@@ -1245,7 +1245,7 @@ class SimulatePanel(ttk.Frame):
         )
         self.flag_vars = [make_flag(f) for f in flags]
 
-        label = ttk.Label(frame, text=labelize_str("Extra key-value pairs"))
+        label = ttk.Label(frame, text=labelize_str("Extra Flags"))
         label.pack(anchor=tk.W)
 
         var = StringVar()
