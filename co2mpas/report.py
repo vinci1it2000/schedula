@@ -18,6 +18,7 @@ import co2mpas.dispatcher.utils as dsp_utl
 import co2mpas.utils as co2_utl
 import co2mpas.io.excel as co2_exl
 import dill
+import base64
 
 
 def _compare(t, o, metrics):
@@ -423,7 +424,9 @@ def format_report_scores(data):
             if dsp_utl.are_in_nested_dicts(data, *n):
                 v.append({
                     'cycle': k,
-                    'uuid': str(dill.dumps(dsp_utl.get_nested_dicts(data, *n)))
+                    'uuid': base64.encodebytes(
+                        dill.dumps(dsp_utl.get_nested_dicts(data, *n))
+                    )
                 })
 
         if v:
