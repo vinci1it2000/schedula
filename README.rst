@@ -1,6 +1,6 @@
 .. image:: doc/_static/CO2MPAS_banner.png
    :width: 640
-   
+
 .. _start-opening:
 
 ######################################################################
@@ -36,9 +36,9 @@ and it uses Excel-files for its input & output data.
 
 Quick Start
 ===========
-You may find usage Guidelines in the wiki: 
+You may find usage Guidelines in the wiki:
 https://github.com/JRCSTU/CO2MPAS-TA/wiki/CO2MPAS-user-guidelines
- 
+
 IF you are familiar with Python, AND
 IF you already have a full-blown *python-3 environment*
 (i.e. *Linux* or the *all-in-one* archive), AND
@@ -107,7 +107,7 @@ to derive from - all the code is a property of JRC's and covered by the said lic
 
 The *ALLINONE archive* contains many python libraries installed in its standard python -folder,
 (``co2mpas_ALLINONE-XXX\Apps\WinPython\python-YYY.amd64\Lib\``)
-so CO2MPAS only "links dynamically"[2]_ to them. 
+so CO2MPAS only "links dynamically"[2]_ to them.
 A non-exhaustive list of python-libraries contained is listed in WinPython site[3]_
 plus those manually installed by JRC when installing CO2MPAS in ALLINONE.
 We are certain that all of them are open-source and can be freely re-distributed.
@@ -212,7 +212,7 @@ Upgrade |co2mpas| in a corporate environment
 1. Launch the ALLINONE console into your home-folder (it opens there by default).
 
 2. With with a "regular" browser and when connected to the Internet,
-   pre-download locally and unzip the respective ``co2mpas_DEPENDENCIES-vX.X.XXX.7z`` file 
+   pre-download locally and unzip the respective ``co2mpas_DEPENDENCIES-vX.X.XXX.7z`` file
    from the latest ALLINONE release in: http://github.com/JRCSTU/CO2MPAS-TA/releases/.
    This archive contains |co2mpas| along with all its dependent packages.
 
@@ -228,9 +228,8 @@ Upgrade |co2mpas| in a corporate environment
 .. Note::
     If you extracted the dependencies somewhere else, you don't have to move them
     inside the `CO2MPAS folder`;  you may specify its path in the command-line, like this::
-   
-        pip install co2mpas  --no-index  -f D:\Users\John\Downloads\dependencies
 
+        pip install co2mpas  --no-index  -f D:\Users\John\Downloads\dependencies
 
 
 File Contents
@@ -313,7 +312,7 @@ https://github.com/JRCSTU/CO2MPAS-TA/wiki/CO2MPAS-user-guidelines
 From *"Rally"* release, |co2mpas| can be launched through a *Graphical User Interface (GUI)*.
 Its core functionality is provided from within the GUI.
 Just ensure that the latest version of |co2mpas| is properly installed, and
-that its version is the latest released, by checking the "About" menu, 
+that its version is the latest released, by checking the "About" menu,
 as shown in the animation, below:
 
 .. image:: _static/Co2mpasALLINONE-About.gif
@@ -340,14 +339,14 @@ you have installed |co2mpas| (see :ref:`install` above) and type::
     $ co2mpas --help
 
     Predict NEDC CO2 emissions from WLTP.
-    
+
     :Home:         http://co2mpas.io/
     :Copyright:    2015-2016 European Commission, JRC <https://ec.europa.eu/jrc/>
     :License:       EUPL 1.1+ <https://joinup.ec.europa.eu/software/page/eupl>
-    
+
     Use the `batch` sub-command to simulate a vehicle contained in an excel-file.
-    
-    
+
+
     USAGE:
       co2mpas gui         [-v | -q | --logconf=<conf-file>]
       co2mpas ta          [-f] [-O=<output-folder>] [<input-path>]...
@@ -367,13 +366,13 @@ you have installed |co2mpas| (see :ref:`install` above) and type::
                           [--modelconf=<yaml-file>] [-O=<output-folder>]
       co2mpas             [-v | -q | --logconf=<conf-file>] (--version | -V)
       co2mpas             --help
-    
+
     Syntax tip:
       The brackets `[ ]`, parens `( )`, pipes `|` and ellipsis `...` signify
       "optional", "required", "mutually exclusive", and "repeating elements";
       for more syntax-help see: http://docopt.org/
-    
-    
+
+
     OPTIONS:
       <input-path>                Input xlsx-file or folder. Assumes current-dir if missing.
       -O=<output-folder>          Output folder or file [default: .].
@@ -386,8 +385,8 @@ you have installed |co2mpas| (see :ref:`install` above) and type::
       -l, --list                  List available models.
       --graph-depth=<levels>      An integer to Limit the levels of sub-models plotted.
       -f, --force                 Overwrite output/template/demo excel-file(s).
-    
-    
+
+
     Model flags (-D flag.xxx, example -D flag.engineering_mode=True):
      engineering_mode=<bool>     Use all data and not only the declaration data.
      soft_validation=<bool>      Relax some Input-data validations, to facilitate experimentation.
@@ -398,7 +397,7 @@ you have installed |co2mpas| (see :ref:`install` above) and type::
                                  it. By default, results are appended into an empty
                                  excel-file. Use `output_template=-` to use
                                  input-file as template.
-    
+
     Miscellaneous:
       -h, --help                  Show this help message and exit.
       -V, --version               Print version of the program, with --verbose
@@ -409,8 +408,8 @@ you have installed |co2mpas| (see :ref:`install` above) and type::
                                     https://docs.python.org/3/library/logging.config.html#configuration-file-format
                                   If the file-extension is '.yaml' or '.yml', it reads a dict-schema from YAML:
                                     https://docs.python.org/3.5/library/logging.config.html#logging-config-dictschema
-    
-    
+
+
     SUB-COMMANDS:
         gui             Launches co2mpas GUI.
         ta              Simulate vehicle in type approval mode for all <input-path>
@@ -434,34 +433,34 @@ you have installed |co2mpas| (see :ref:`install` above) and type::
                           jupyter --notebook-dir=<output-folder>
         modelgraph      List or plot available models. If no model(s) specified, all assumed.
         modelconf       Save a copy of all model defaults in yaml format.
-    
-    
+
+
     EXAMPLES::
-    
+
         # Don't enter lines starting with `#`.
-    
+
         # View full version specs:
         co2mpas -vV
-    
+
         # Create an empty vehicle-file inside `input` folder:
         co2mpas  template  input/vehicle_1.xlsx
-    
+
         # Create work folders and then fill `input` with sample-vehicles:
         md input output
         co2mpas  demo  input
-    
+
         # View a specific submodel on your browser:
         co2mpas  modelgraph  co2mpas.model.physical.wheels.wheels
-    
+
         # Run co2mpas with batch cmd plotting the workflow:
         co2mpas  batch  input  -O output  -D flag.plot_workflow=True
-    
+
         # Run co2mpas with ta cmd:
         co2mpas  batch  input/co2mpas_demo-0.xlsx  -O output
-    
+
         # or launch the co2mpas GUI:
         co2mpas  gui
-    
+
         # View all model defaults in yaml format:
         co2maps modelconf -O output
 
@@ -963,10 +962,15 @@ Debugging and investigating results
 
         $ co2mpas modelgraph co2mpas.model.physical.wheels.wheels
 
-  .. image:: _static/Wheel%20model/Wheel_model.gv.svg
+  .. module:: co2mpas
+
+  .. dispatcher:: dsp
      :alt: Flow-diagram Wheel-to-Engine speed ratio calculations.
      :height: 240
      :width: 320
+
+    >>> import co2mpas
+    >>> dsp = co2mpas.model.physical.wheels.wheels()
 
 - Inspect the functions mentioned in the workflow and models and search them
   in `CO2MPAS documentation <http://co2mpas.io/>`_ ensuring you are
@@ -984,9 +988,15 @@ of 3 stages: ``precondition``, ``calibration``, and ``prediction``.
 These are invoked repeatedly, and subsequently combined, for the various cycles,
 as shown in the "active" flow-diagram of the execution, below:
 
-.. image:: _static/CO2MPAS%20model/CO2MPAS_model.gv.svg
+.. module:: co2mpas
+
+.. dispatcher:: dsp
+    :opt: depth=-1
     :alt: Flow-diagram of the execution of various Stages and Cycles sub-models.
     :width: 640
+
+    >>> import co2mpas
+    >>> dsp = co2mpas.model.model()
 
 .. Tip:: The models in the diagram are nested; explore by clicking on them.
 
@@ -1161,13 +1171,13 @@ are provided.
     (when both are present).
 
 
-Model selection 
+Model selection
 ----------------
 
 .. Note::
-   Since *v1.4.1-Rally*, this part of the model remains disabled, 
+   Since *v1.4.1-Rally*, this part of the model remains disabled,
    unless the ``flag.use_selector`` is true.
-   
+
 For the type approval mode the selection is fixed. The criteria is to select the
 models calibrated from *WLTP_H* to predict *WLTP_H* and *NEDC_H*; and
 from *WLTP_L* to predict *WLTP_L* and *NEDC_L*.
@@ -1448,11 +1458,11 @@ require the use of ``pip`` command from a *console* to install:
 - (for all of the above) **Without internet connectivity** or when the above
   proxy cmd fails:
 
-  1. Use an existing *Python-3.5* environment; that might be an older *ALLINONE*, 
+  1. Use an existing *Python-3.5* environment; that might be an older *ALLINONE*,
      |winpython|, |anaconda| or Linux's standard python environment.
-  
+
   2. With with a "regular" browser and when connected to the Internet,
-     pre-download locally and unzip the respective ``co2mpas_DEPENDENCIES-vX.X.XXX.7z`` file 
+     pre-download locally and unzip the respective ``co2mpas_DEPENDENCIES-vX.X.XXX.7z`` file
      from the latest ALLINONE release (e.g. http://github.com/JRCSTU/CO2MPAS-TA/releases/).
      This archive contains all the dependent packages of |co2mpas|.
 

@@ -476,12 +476,15 @@ class DspPlot(gviz.Digraph):
                 f.write(self.pprint(out))
             self._saved_outputs[id] = fpath
 
-        return urlparse.quote(self._relpath(fpath))
+        return urlparse.quote('./%s' % self._relpath(fpath))
 
-    def _relpath(self, fpath):
+    def _relpath(self, fpath, start=None):
+        if start is None:
+            start = self.directory
+
         if fpath.startswith(_UNC):
             fpath = fpath[len(_UNC):]
-        return './%s' % osp.relpath(fpath, self.directory).replace('\\', '/')
+        return osp.relpath(fpath, start).replace('\\', '/')
 
     def _set_data_node(self, node_id, attr):
 
@@ -580,7 +583,7 @@ class DspPlot(gviz.Digraph):
             if isinstance(func, (Dispatcher, SubDispatch)) and self.depth != 0:
                 dot = self.set_sub_dsp(node_id, node_name, attr)
                 if self.nested:
-                    rpath = self._relpath(dot.render(cleanup=True))
+                    rpath = './%s' % self._relpath(dot.render(cleanup=True))
                     # noinspection PyUnresolvedReferences
                     kw['URL'] = urlparse.quote(rpath)
                 else:
@@ -674,7 +677,11 @@ class DspPlot(gviz.Digraph):
 
     @property
     def filepath(self):
-        return uncpath(osp.join(self.directory, self.filename))
+        return uncpath(self._filepath)
+
+    @property
+    def _filepath(self):
+        return osp.join(self.directory, self.filename)
 
     # noinspection PyMethodOverriding
     def _view_windows(self, filepath):

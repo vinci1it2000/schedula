@@ -9,6 +9,9 @@ from co2mpas.dispatcher.utils.des import search_node_description, get_summary, \
 # Doctest handling
 # ------------------------------------------------------------------------------
 from doctest import DocTestParser, DocTestRunner, NORMALIZE_WHITESPACE, ELLIPSIS
+import tempfile
+import os.path as osp
+from sphinxcontrib.fancybox import FancyboxDirective
 
 
 def contains_doctest(text):
@@ -104,9 +107,13 @@ def _code(lines, documenter):
         lines.append('')
 
 
-def _plot(lines, dsp, dot_view_opt):
-    digraph = u'   %s' % dsp.plot(**dot_view_opt).source
-    lines.extend(['.. graphviz::', '', digraph, ''])
+def _plot(lines, dsp, dot_view_opt, documenter):
+    builder = documenter.env.app.builder
+    fpath = tempfile.mktemp(dir=osp.join(builder.outdir, builder.imagedir))
+    dot = dsp.plot(filename=fpath, **dot_view_opt)
+    rnd = dot.render(cleanup=True)
+    fpath = dot._relpath(rnd, osp.dirname(documenter.directive.reporter.source))
+    lines.extend(['.. fancybox:: %s' % fpath, ''])
 
 
 def _table_heather(lines, title, dsp_name):
@@ -191,6 +198,7 @@ class DispatcherDocumenter(DataDocumenter):
     objtype = 'dispatcher'
     directivetype = 'data'
     option_spec = dict(DataDocumenter.option_spec)
+    option_spec.update(FancyboxDirective.option_spec)
     option_spec.update({
         'description': bool_option,
         'opt': _dsp2dot_option,
@@ -249,7 +257,7 @@ class DispatcherDocumenter(DataDocumenter):
             _description(lines, dsp, self)
 
         if not opt or opt.opt:
-            _plot(lines, dsp, dot_view_opt)
+            _plot(lines, dsp, dot_view_opt, self)
 
         if not opt or opt.data:
             _data(lines, dsp)
@@ -287,6 +295,6 @@ def add_autodocumenter(app, cls):
 
 def setup(app):
     app.setup_extension('sphinx.ext.autodoc')
-    app.setup_extension('sphinx.ext.graphviz')
+    app.setup_extension('sphinxcontrib.fancybox')
     add_autodocumenter(app, DispatcherDocumenter)
     app.add_directive('dispatcher', DispatcherDirective)
