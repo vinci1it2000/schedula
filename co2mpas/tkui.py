@@ -975,9 +975,7 @@ class LogPanel(ttk.Labelframe):
         meta_end = '%s-%ic' % (tk.END, txt_len - metadata_len)
 
         self._log_text.mark_set('LE', tk.END)
-        # , LogPanel.TAG_LOGS)
-        log_text.insert(tk.END, txt, LogPanel.TAG_LOGS)
-        log_text.tag_add(record.levelname, log_start, tk.END)
+        log_text.insert(tk.END, txt, (LogPanel.TAG_LOGS, record.levelname))
         log_text.tag_add(LogPanel.TAG_META, log_start, meta_end)
 
 
