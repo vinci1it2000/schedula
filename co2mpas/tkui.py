@@ -1328,11 +1328,14 @@ class SimulatePanel(ttk.Frame):
         #
         is_run_batch_btn_enabled = not job_alive and self.out_folder_var.get()
         self._run_batch_btn.state((bang(is_run_batch_btn_enabled) + tk.DISABLED,))
-
         ## Update Run-TA-button.
         #
         is_run_ta_enabled = is_run_batch_btn_enabled and self.advanced_flipper.flip_ix == 0
         self._run_ta_btn.state((bang(is_run_ta_enabled) + tk.DISABLED,))
+
+        ## Update cursor for run-buttons.
+        for b in (self._run_batch_btn, self._run_ta_btn):
+            b['cursor'] = 'watch' if job_alive else 'arrow'
 
         if new_out_file:
             self.outputs_tree.insert_path(new_out_file, tags=['ro'])
