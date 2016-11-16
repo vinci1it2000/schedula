@@ -139,14 +139,15 @@ you may install the developer version.
    :alt: Install Co2mpas-ALLINONE shortcupts into Window Start-menu.
    :align: center
 
-- You can start |co2mpas| from *Windows start-menu* by pressing the `[WinKey]` and start typing `'co2mpas'`,
-  or by selecting its menu item from *All Programs*.
-  Alternatively, advanced users may continue to use the Console.
+- You can start |co2mpas| from *Windows start-menu* by pressing the `[WinKey]` and
+  start typing `'co2mpas'`, or by selecting the |co2mpas| menu item from *All Programs*.
 
   .. image:: _static/Co2mpasALLINONE-LaunchGUI.gif
    :scale: 75%
    :alt: Launch |co2mpas| from Window Start-menu.
    :align: center
+
+  Alternatively, advanced users may continue to use the Console.
 
 .. Note::
     If you have downloaded an *all-in-one* from previous version of |co2mpas|
