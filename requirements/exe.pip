@@ -29,3 +29,9 @@ boltons
 pykalman
 wltp
 openpyxl>=2.4.0
+
+## Dice
+python-gnupg
+gitpython >= 2.1.0 ## Win+Cygwin support
+keyring
+transitions
