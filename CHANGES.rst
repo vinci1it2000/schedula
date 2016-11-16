@@ -27,7 +27,9 @@ This *CO\ :sub:`2`MPAS* release contains both key model and software updates; ad
     <http://jrcstu.github.io/co2mpas/v1.4.x/validation_real_cases.html>`_;
     
 - *enhancements and diagrams for the result files*, very few, *backward-compatible changes in the Input files*;
-- the project has been *practically "open sourced"*, so many of *the serving URLs have changed:*
+- the project's sources are now *"practically" open* in *GitHub*, so 
+  many of *the serving URLs have changed:*
+
   - sources are now served from *github*: https://github.com/JRCSTU/CO2MPAS-TA 
   - a **Wiki** hosting `*simple guidelines* <https://github.com/JRCSTU/CO2MPAS-TA/wiki/CO2MPAS-user-guidelines>`_ 
     on how to download, install, and run the *CO\ :sub:`2`MPAS* software;
@@ -44,7 +46,7 @@ cars, respectively.
 
 Model-changes
 -------------
-- :gh:`250`,:gh:`276`:
+- :gh:`250`, :gh:`276`:
   Implementation of the type approval command, defining declaration and
   engineering data.
 
