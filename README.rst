@@ -7,8 +7,8 @@
 |co2mpas|: Vehicle simulator predicting NEDC |CO2| emissions from WLTP
 ######################################################################
 
-:release:       1.4.1rc0
-:date:          2016-11-15 22:00:07
+:release:       1.4.1
+:date:          2016-11-17 01:07:24
 :home:          http://co2mpas.io/
 :sources:       https://github.com/JRCSTU/CO2MPAS-TA
 :pypi-repo:     https://pypi.org/project/co2mpas/
@@ -1332,7 +1332,7 @@ Install |co2mpas| package
         Downloading http://pypi.co2mpas.io/packages/co2mpas-...
         ...
         Installing collected packages: co2mpas
-        Successfully installed co2mpas-1.4.1rc0
+        Successfully installed co2mpas-1.4.1
 
    .. Warning::
         **Installation failures:**
@@ -1352,12 +1352,12 @@ Install |co2mpas| package
    .. code-block:: console
 
        > co2mpas -vV
-       co2mpas_version: 1.4.1rc0
-       co2mpas_rel_date: 2016-11-15 22:00:07
-       co2mpas_path: d:\co2mpas_ALLINONE-64bit-v1.4.1rc0\Apps\WinPython\python-3.4.3\lib\site-packages\co2mpas
-       python_path: D:\co2mpas_ALLINONE-64bit-v1.4.1rc0\WinPython\python-3.4.3
+       co2mpas_version: 1.4.1
+       co2mpas_rel_date: 2016-11-17 01:07:24
+       co2mpas_path: d:\co2mpas_ALLINONE-64bit-v1.4.1\Apps\WinPython\python-3.4.3\lib\site-packages\co2mpas
+       python_path: D:\co2mpas_ALLINONE-64bit-v1.4.1\WinPython\python-3.4.3
        python_version: 3.4.3 (v3.4.3:9b73f1c3e601, Feb 24 2015, 22:44:40) [MSC v.1600 XXX]
-       PATH: D:\co2mpas_ALLINONE-64bit-v1.4.1rc0\WinPython...
+       PATH: D:\co2mpas_ALLINONE-64bit-v1.4.1\WinPython...
 
 
    .. Note::

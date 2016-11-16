@@ -5,8 +5,8 @@ CO2MPAS Changes
 .. _changes:
 
 
-v1.4.1, file-ver: 2.2.5, 20-October 2016: "Rally" release
-=========================================================
+v1.4.1, file-ver: 2.2.5, 17-November 2016: "Rally" release
+===========================================================
 .. image:: https://cloud.githubusercontent.com/assets/501585/20363048/09b0c724-ac3e-11e6-81b4-bc49d12e6aa1.png
    :align: left
    :width: 480
