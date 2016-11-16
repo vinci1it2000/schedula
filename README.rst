@@ -105,7 +105,8 @@ contains (or upgrade to) the latest ``co2mpas`` python package; alternatively,
 you may install the developer version.
 
    .. Tip::
-      **all-in-one is the official procedure to install |co2mpas| for TA.**
+      Installing and using ALLINONE is the official procedure for
+      running |co2mpas| for Type Approval (TA).
 
 .. _all-in-one:
 
@@ -233,7 +234,7 @@ Generic Tips
 
 - The **Cygwin** POSIX-environment and its accompanying **bash-shell** are
   a much better choice to give console-commands compare to `cmd.exe` prompt,
-  supporting *auto-completion* for various commands (with ``[TAB]``key) and
+  supporting *auto-completion* for various commands (with ``[TAB]`` key) and
   enhanced history search (with ``[UP]/[DOWN]`` cursor-keys).
 
   There are MANY tutorials and crash-courses for bash:
@@ -265,8 +266,10 @@ https://github.com/JRCSTU/CO2MPAS-TA/wiki/CO2MPAS-user-guidelines
 
 |co2mpas| GUI
 -------------
-From *"Rally"* release, co2mpas can be launched through a Graphical user interface.
-Most of its functionality is provided within, as shown in the following animated gif:
+From *"Rally"* release, |co2mpas| can be launched through a *Graphical User Interface (GUI)*.
+Its core functionality is provided from within the GUI.
+Just ensure that the latest version of |co2mpas| is properly installed, and
+that its version is the latest released, by checking the "About" menu, as shown below:
 
 .. image:: _static/Co2mpasALLINONE-About.gif
    :scale: 75%
@@ -274,9 +277,7 @@ Most of its functionality is provided within, as shown in the following animated
    :align: center
 
 
-Ensure that the latest version of |co2mpas| is properly installed, and
-that its version is the latest released, either by checking the "About" menu
-or by opening the CONSOLE and typing the following command:
+Alternatively, open the CONSOLE and type the following command:
 
 .. code-block:: console
 
