@@ -22,6 +22,7 @@ This *CO<sub>2</sub>MPAS* release contains both key model and software updates; 
   - a **Wiki** hosting [*simple guidelines*](https://github.com/JRCSTU/CO2MPAS-TA/wiki/CO2MPAS-user-guidelines) on how to download, install, and run the *CO<sub>2</sub>MPAS* software;
   - the [*Issues-tracker*](https://github.com/JRCSTU/CO2MPAS-TA/issues) for collecting feedback, 
   - installation files distributed from [*Github-Releases page*](https://github.com/JRCSTU/CO2MPAS-TA/releases) (the https://files.co2mpas.io/ url has been deprecated).
+- a series of **technologies** which have been enabled; in particular the following technologies are enabled as "optional" due to the lack of sufficient experimental data for their validation: cylinder deactivation for both petrol and diesel engines, exhaust gas recirculation for petrol engines, selective catalytic reduction for diesel engines and gearbox thermal management for all gearbox types. 
 
 The study of this release's results are contained in these 3 reports:
 `manual <http://jrcstu.github.io/co2mpas/v1.4.x/validation_manual_cases.html>`__,
@@ -110,6 +111,7 @@ Gearbox model
   generated from WLTP pkg.
 - :gh:`288` (:git:`11f5ad5`): Link the `gear_box_efficiency_constants` to the
   parameter `has_torque_converter`.
+- :gh:`299`: Implement the gearbox thermal management (not validated, not enough data).
 
 
 CO2 model
@@ -119,13 +121,12 @@ CO2 model
 - :gh:`205`, :gh:`207`: Calibrate `co2_params` using co2 emission identified in
   the third step.
 - :gh:`301`: Implement the exhaust gas recirculation and selective catalytic
-  reduction technologies.
-- :gh:`299`: Implement the gearbox thermal management.
-- :gh:`295`: Implement the lean burn technology.
-- :gh:`285`: Implement the cylinder deactivation strategy.
+  reduction technologies (EGR for petrol and SCR for diesel not validated, not enough data).
+- :gh:`295`: Implement the lean burn technology. (partially validated on synthetic data)
+- :gh:`285`: Implement the cylinder deactivation strategy.(not validated, not enough data)
 - :gh:`287`: Implement the variable valve activation strategy.
 - :gh:`259` (:git:`119fa28`): Implement ki factor correction for vehicle with
-  periodically regenerating systems. Now the model predict the declared CO2
+  periodically regenerating systems. Now the model predicts the declared CO2
   value.
 - :gh:`271` (:git:`0972723`): Add a check for idle fuel consumption different
   than 0 in the input.
