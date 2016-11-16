@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # !/usr/bin/env python
 #
-# Copyright 2014-2015 European Commission (JRC);
+# Copyright 2014-2016 European Commission (JRC);
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
@@ -9,7 +9,7 @@ r"""
 Predict NEDC CO2 emissions from WLTP.
 
 :Home:         http://co2mpas.io/
-:Copyright:    2015-2016 European Commission (JRC-IET <https://ec.europa.eu/jrc/en/institutes/iet>
+:Copyright:    2015-2016 European Commission, JRC <https://ec.europa.eu/jrc/>
 :License:       EUPL 1.1+ <https://joinup.ec.europa.eu/software/page/eupl>
 
 Use the `batch` sub-command to simulate a vehicle contained in an excel-file.
