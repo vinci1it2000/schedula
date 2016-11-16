@@ -50,6 +50,8 @@ For recent activity, check the :doc:`changes`.
 
 Quick Start
 ===========
+You may find usage Guidelines in the wiki: https://github.com/JRCSTU/CO2MPAS-TA/wiki/CO2MPAS-user-guidelines
+ 
 IF you are familiar with Python, AND
 IF you already have a full-blown *python-3 environment*
 (i.e. *Linux* or the *all-in-one* archive), AND
