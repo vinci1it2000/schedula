@@ -6,15 +6,15 @@
 |co2mpas|: Vehicle simulator predicting NEDC |CO2| emissions from WLTP
 ######################################################################
 
-:Release:       1.4.1rc0
-:Date:          2016-11-15 22:00:07
-:Home:          http://co2mpas.io/
-:Sources:       https://github.com/JRCSTU/CO2MPAS-TA
+:release:       1.4.1rc0
+:date:          2016-11-15 22:00:07
+:home:          http://co2mpas.io/
+:sources:       https://github.com/JRCSTU/CO2MPAS-TA
 :pypi-repo:     https://pypi.org/project/co2mpas/
-:Documentation: http://docs.co2mpas.io/
-:Wiki:          https://github.com/JRCSTU/CO2MPAS-TA/wiki/
-:Releases:      http://github.com/JRCSTU/CO2MPAS-TA/releases/
-:Keywords:      CO2, fuel-consumption, WLTP, NEDC, vehicle, automotive,
+:docs:          http://docs.co2mpas.io/
+:wiki:          https://github.com/JRCSTU/CO2MPAS-TA/wiki/
+:download:      http://github.com/JRCSTU/CO2MPAS-TA/releases/
+:keywords:      CO2, fuel-consumption, WLTP, NEDC, vehicle, automotive,
                 EU, JRC, IET, STU, correlation, back-translation, policy, monitoring, M1, N1,
                 simulator, engineering, scientific
 :Developers:    .. include:: AUTHORS.rst
@@ -177,31 +177,34 @@ Uninstall and re-install it from the |co2mpas| CONSOLE::
 
 Upgrade |co2mpas| in a corporate environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-1. Use your browser to download the "wheel" package `co2mpas-X.X.X-py2.py3-none-any.whl`
-   for the latest release from this location: https://github.com/JRCSTU/CO2MPAS-TA/releases/
-   and place it inside your ALLINONE's home-folder: ``co2mpas_ALLINONE-64bit-X.X.X\CO2MPAS\``
+1. Launch the ALLINONE console into your home-folder (it opens there by default).
 
-2. Launch the ALLINONE console into your home-folder (it opens there by default).
+2. With with a "regular" browser and when connected to the Internet,
+   pre-download locally and unzip the respective ``co2mpas_DEPENDENCIES-vX.X.XXX.7z`` file 
+   from the latest ALLINONE release (e.g. http://github.com/JRCSTU/CO2MPAS-TA/releases/).
+   This archive contains all the dependent packages of |co2mpas|.
 
-3. Use `pip` to install the wheel-package with a command like that::
+3. Install |co2mpas|, referencing the above folder.
+   Assuming that you unzipped the packages in the folder ``path/to/co2mpas_packages``,
+   use a console-command like this:
 
-    pip install co2mpas-X.X.X-py2.py3-none-any.whl
+   .. code-block:: console
+
+      pip install co2mpas  --no-index  -f path/to/co2mpas_packages
+
 
   .. Note::
-    if you downloaded the whl-package somewhere else,
-    you don't have to move it inside the `CO2MPAS folder`;  you can specify its path
-    in the command-line, like this::
+    If you extracted the dependencies somewhere else, you don't have to move them
+    inside the `CO2MPAS folder`;  you may specify its path in the command-line, like this::
 
-        pip install D:\Users\John\Downloads\co2mpas-X.X.X-py2.py3-none-any.whl
+        pip install co2mpas  --no-index  -f D:\Users\John\Downloads\dependencies
+
 
 File Contents
 -------------
 ::
 
     RUN_CO2MPAS.bat            ## Asks for Input & Output folders, and runs CO2MPAS for all Excel-files in Input.
-    MAKE_TEMPLATE.bat          ## Asks for a folder to store an empty CO2MPAS input-file.
-    MAKE_DEMOS.bat             ## Asks for a folder to store demo CO2MPAS input-files.
-    MAKE_IPYTHON_NOTEBOOKS.bat ## Asks for a folder to store IPYTHON NOTEBOOKS that run CO2MPAS and generate reports.
     CONSOLE.bat                ## Open a python+cygwin enabled `cmd.exe` console.
 
     co2mpas-env.bat            ## Sets env-vars for python+cygwin and launches arguments as new command
@@ -216,7 +219,10 @@ File Contents
     Apps/WinPython/            ## Python environment (co2mpas is pre-installed inside it).
     Apps/Console2/             ## A versatile console-window supporting decent copy-paste.
     Apps/graphviz/             ## Graph-plotting library (needed to generate model-plots).
-    CO2MPAS_*.ico              ## The logos used by the INSTALL.bat script.
+    Apps/gpg4win-2.3.3.exe     ## GPG cryptographic suite installer for Windows.
+    vc_redist.x64.exe          ## Microsoft Visual C++ Redistributable for Visual Studio 2015
+                               #  (KB2977003 Windows update, prerequisite for running Python-3.5.x).
+    CO2MPAS_logo.ico           ## The logos used by the INSTALL.bat script.
 
     README                     ## This file, with instructions on this pre-populated folder.
 
