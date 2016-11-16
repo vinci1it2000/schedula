@@ -87,7 +87,7 @@ import tkinter as tk
 log = logging.getLogger('tkui')
 
 app_name = 'co2mpas'
-user_guidelines_url = 'https://co2mpas.io'
+user_guidelines_url = 'https://co2mpas.io/usage.html'
 MOTDs = dedent("""\
     Select Input files/folders and run them.  Read tooltips for help.
     Double-click on file-paths to open them (as explained in it's tooltip).
