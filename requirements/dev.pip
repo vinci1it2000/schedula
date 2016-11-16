@@ -11,3 +11,4 @@ wheel
 sphinx
 nose
 ddt
+sphinxcontrib-fancybox  # For dispatcher directive.
