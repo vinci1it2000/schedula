@@ -9,9 +9,11 @@
 :Release:       1.4.1rc0
 :Date:          2016-11-15 22:00:07
 :Home:          http://co2mpas.io/
-:Releases:      http://github.com/JRCSTU/CO2MPAS-TA/releases/
 :Sources:       https://github.com/JRCSTU/CO2MPAS-TA
 :pypi-repo:     https://pypi.org/project/co2mpas/
+:Documentation: http://docs.co2mpas.io/
+:Wiki:          https://github.com/JRCSTU/CO2MPAS-TA/wiki/
+:Releases:      http://github.com/JRCSTU/CO2MPAS-TA/releases/
 :Keywords:      CO2, fuel-consumption, WLTP, NEDC, vehicle, automotive,
                 EU, JRC, IET, STU, correlation, back-translation, policy, monitoring, M1, N1,
                 simulator, engineering, scientific
@@ -50,7 +52,8 @@ For recent activity, check the :doc:`changes`.
 
 Quick Start
 ===========
-You may find usage Guidelines in the wiki: https://github.com/JRCSTU/CO2MPAS-TA/wiki/CO2MPAS-user-guidelines
+You may find usage Guidelines in the wiki: 
+https://github.com/JRCSTU/CO2MPAS-TA/wiki/CO2MPAS-user-guidelines
  
 IF you are familiar with Python, AND
 IF you already have a full-blown *python-3 environment*
@@ -288,8 +291,8 @@ Alternatively, open the CONSOLE and type the following command:
     co2mpas-1.4.1b0
 
 
-|co2mpas| cmd syntax
----------------------
+|co2mpas| command syntax
+-------------------------
 To get the syntax of the |co2mpas| console-command, open a console where
 you have installed |co2mpas| (see :ref:`install` above) and type::
 
