@@ -7,18 +7,21 @@ CO2MPAS Changes
 
 v1.4.1, file-ver: 2.2.5, 20-October 2016: "Rally" release
 =========================================================
+.. image:: https://cloud.githubusercontent.com/assets/501585/20363048/09b0c724-ac3e-11e6-81b4-bc49d12e6aa1.png
+   :align: left
+   :width: 480
+   
+This *CO<sub>2</sub>MPAS* release contains both key model and software updates; additional capabilities have been added for the user, namely:
 
-This release contains both key model and software changes; additional
-capabilities have been added for the user, namely:
-
-- the type approval command and declaration data input;
-- the new template file contains the minimum inputs that the user have to
-  provide to run the "declaration mode";
-- the new output template file;
-- provide a desktop GUI.
-
-Several model changes improved the handling of real-measurement
-data-series.
+-    the **Declaration mode:** template & demo files now contain just the minimum inputs required to run under *Type Approval command (TA)*;
+-    a **desktop GUI** to launch *CO<sub>2</sub>MPAS* and perform selected tasks (i.e. *simulate*, *datasync* time-series for a specific cycle, *generate templates*);
+- several model changes improved the handling of real-measurement data-series - this release's results, validated against real vehicles, are described in the [validation report](http://jrcstu.github.io/co2mpas/v1.4.x/validation_real_cases.html);
+- *enhancements and diagrams for the result files*, very few, *backward-compatible changes in the Input files*;
+- *the serving URLs of this project have changed:*
+  - the sources are now served from *github*: https://github.com/JRCSTU/CO2MPAS-TA 
+  - a **Wiki** hosting [*simple guidelines*](https://github.com/JRCSTU/CO2MPAS-TA/wiki/CO2MPAS-user-guidelines) on how to download, install, and run the *CO<sub>2</sub>MPAS* software;
+  - the [*Issues-tracker*](https://github.com/JRCSTU/CO2MPAS-TA/issues) for collecting feedback, 
+  - installation files distributed from [*Github-Releases page*](https://github.com/JRCSTU/CO2MPAS-TA/releases) (the https://files.co2mpas.io/ url has been deprecated).
 
 The study of this release's results are contained in these 3 reports:
 `manual <http://jrcstu.github.io/co2mpas/v1.4.x/validation_manual_cases.html>`__,
@@ -165,9 +168,10 @@ Naming conventions
 Build Chores(build, site, etc)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 - Set ``python-3.5`` only in trove-classifier.
-- Dependencies: +toolz, +Pillow, -easygui, -cachetool, -cyclr.  
+- Dependencies: +toolz, +Pillow, +openpyxl, +python-gnupg, +gitpython +keyring, +transitions, 
+  -easygui, -cachetool, -cycler, .  
 
-Known limitations
+Known Limitations
 -----------------
 
 1. **Model sensitivity**: The sensitivity of CO2MPAS to moderately differing input
@@ -184,15 +188,20 @@ Known limitations
    <wltp.io>`_ which it still produces *GTR phase-1a* profiles.
 
 
+
+
 v1.3.1, file-ver: 2.2.1, 18-Jul 2016: "Qube" release
 ====================================================
+.. image:: https://cloud.githubusercontent.com/assets/501585/18394783/f392a136-76bb-11e6-9d6c-fe2ab6bad8e2.png
+   :align: left
+   :width: 480
 
 This release contains both key model and software changes; additional
 capabilities have been added for the user, namely:
 
 - the prediction (by default) of *WLTP* cycle with the theoretical velocity
   and gear shifting profiles (do not use it for *declaration* purposes, read
-  "Known limitations" for this release, below);
+  "Known Limitations" for this release, below);
 - predict in a single run both *High/Low NEDC* cycles from *WLTP* ones;
 - the ``datasync`` command supports more interpolation methods and templates
   for the typical need to synchronize dyno/OBD data;
@@ -375,7 +384,7 @@ ALLINONE
   (not used yet by any of the ipython files in co2mpas).
 
 
-Known limitations
+Known Limitations
 -----------------
 
 1. **Model sensitivity**: The sensitivity of CO2MPAS to moderately differing input
@@ -394,6 +403,10 @@ Known limitations
 
 v1.2.5, file-ver: 2.2, 25-May 2016: "Panino/Sandwich" release ("PS")
 ====================================================================
+.. image:: https://cloud.githubusercontent.com/assets/501585/15218135/ca1bd7c0-185e-11e6-9180-3aacf4b37d7b.png
+   :align: left
+   :width: 480
+
 3nd POST-Panino release.
 It contains a bug fix in for creating directories.
 
@@ -424,6 +437,10 @@ and not accompanied by a ALLINONE archive.
 
 v1.2.2, file-ver: 2.2, 19-Apr 2016: "Panino" release
 ====================================================
+.. image:: https://cloud.githubusercontent.com/assets/501585/14559450/20a56554-0309-11e6-9c4d-22fc72e3d934.png
+   :align: left
+   :width: 480
+
 This release contains both key model and software changes; additional capabilities
 have been added for the user, namely,
 
@@ -584,7 +601,7 @@ Documentation
   <http://co2mpas.io/explanation.html#excel-input-data-naming-conventions>`_
   used in the model and in the input/output excel files (:gh:`215`);
 
-Known limitations
+Known Limitations
 -----------------
 - *Model sensitivity*: The sensitivity of CO2MPAS to moderately differing input
   time-series has been tested and found within expected ranges when
@@ -614,6 +631,10 @@ v1.1.1.fix1, file-ver: 2.1, 03-March 2016: "O'Udo" 1st release
 
 v1.1.1, file-ver: 2.1, 09-Feb 2016: "O'snow" release
 ====================================================
+.. image:: https://cloud.githubusercontent.com/assets/13638851/12930853/f2a79350-cf7a-11e5-9a0f-5fa6fc9aa1a4.png
+   :align: left
+   :width: 480
+
 This release contains mostly model changes; some internal restructurings have
 not affected the final user.
 
@@ -799,6 +820,9 @@ Model changes reported in "O'snow" release, above.
 
 v1.0.5, 11-Dec 2015: "No more console" release, no model changes
 ================================================================
+.. image:: https://cloud.githubusercontent.com/assets/501585/11741701/42680714-a003-11e5-9ae6-c58a343f1a3f.png
+   :align: left
+   :width: 480
 
 - main: Failback to GUI when demo/template/ipynb folder not specified in
   cmdline (prepare for Window's start-menu shortcuts).

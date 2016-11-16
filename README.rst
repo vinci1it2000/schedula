@@ -722,9 +722,9 @@ Or you can run |co2mpas| with the ``batch`` sub-command::
   For demonstration purposes, some some of the actual models will fail;
   check the *summary file*.
 
-Run Type-Approval mode (``ta``)
---------------------------------
-The type approval command simulates the NEDC fuel consumption and CO2 emission
+Run Type-Approval (``ta``) command
+-----------------------------------
+The Type Approval command simulates the NEDC fuel consumption and CO2 emission
 of the given vehicle using just the required `declaration inputs
 <https://github.com/JRCSTU/CO2MPAS-TA/wiki/TA_compulsory_inputs>`_ (marked as
 compulsory inputs in input file version >= 2.2.5) and produces an NEDC
