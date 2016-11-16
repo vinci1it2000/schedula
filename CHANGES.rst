@@ -27,8 +27,8 @@ This *CO\ :sub:`2`MPAS* release contains both key model and software updates; ad
     <http://jrcstu.github.io/co2mpas/v1.4.x/validation_real_cases.html>`_;
     
 - *enhancements and diagrams for the result files*, very few, *backward-compatible changes in the Input files*;
-- *the serving URLs of this project have changed:*
-  - the sources are now served from *github*: https://github.com/JRCSTU/CO2MPAS-TA 
+- the project has been *practically "open sourced"*, so many of *the serving URLs have changed:*
+  - sources are now served from *github*: https://github.com/JRCSTU/CO2MPAS-TA 
   - a **Wiki** hosting `*simple guidelines* <https://github.com/JRCSTU/CO2MPAS-TA/wiki/CO2MPAS-user-guidelines>`_ 
     on how to download, install, and run the *CO\ :sub:`2`MPAS* software;
   - the `*Issues-tracker* <https://github.com/JRCSTU/CO2MPAS-TA/issues>`_ for collecting feedback, 
@@ -49,16 +49,16 @@ Model-changes
   engineering data.
 
 - :git:`228`:
-  Add an option to bash cmd `-D, --override` to vary the data model from the
+  Add an option to bash cmd ``-D, --override`` to vary the data model from the
   cmd instead modifying the input file. Moreover with the new option
   `--modelconf` also the constant parameters can be modified.
 
-  The cmd options [--out-template=<xlsx-file>], [--plot-workflow],
-  [--only-summary], and [--engineering-mode=<n>] have been transformed as
+  The cmd options ``--out-template=<xlsx-file>``,  ``--plot-workflow``,
+  ``--only-summary``, and ``--engineering-mode=<n>`` have been transformed as
   internal flags that can be input from the input file or from the cmd
   (e.g., `-D flag.xxx`).
 
-  Add special plan id `run_base`. If it is false the base model is just parsed
+  Add special plan id ``run_base``. If it is false, the base model is just parsed
   but not evaluated.
 
 - :gh:`251`:
@@ -70,8 +70,8 @@ Model-changes
 Wheels model
 ~~~~~~~~~~~~
 - :gh:`272` (:git:`b52bb51`, :git:`8b9ee77`): Select the tyre code with the
-  minimum difference but with `r_wheels > r_dynamic`. Update the default
-  `tyre_dynamic_rolling_coefficient`  from 0.975 to 3.05 / 3.14.
+  minimum difference but with :math:`r_wheels > r_dynamic`. Update the default
+  `tyre_dynamic_rolling_coefficient`  from :math:`0.975 --> 3.05 / 3.14`.
 
 
 Electrics model
@@ -88,7 +88,7 @@ Electrics model
 
   + Identification of charging statuses. This correct the model calibration.
   + Correct min and max charging SOC when a plateau (balance point) is fount.
-  + Correct `electric_loads` when \|off load\| > \|on load\|, choosing that with
+  + Correct ``electric_loads`` when :math:`|off load| > |on load|`, choosing that with
     the minimum mean absolute error.
 
 
@@ -99,7 +99,7 @@ Vehicle model
   slope, while before was constant value for all the simulation. The average
   slope (``av_slope``) is calculated per each phase and it is added to the
   output.
-- :gh:`255`: Force velocities to be >=-1 km.
+- :gh:`255`: Force velocities to math:`be >= -1 km`.
 
 
 Engine model
@@ -107,21 +107,21 @@ Engine model
 - :gh:`210` (:git:`5438d49`,:git:`7630832`): Improve identification of
   ``idle_engine_speed_median`` and ``identify_idle_engine_speed_std``, using the
   `DBSCAN` algorithm. Correct the identification of ``idle_engine_speed_std``
-  and set maximum limit (`0.3 * idle_engine_speed_median`).
-- :gh:`265` (:git:`8da5eb4`): Add `identify_engine_max_speed` function to get
+  and set maximum limit (:math:`0.3 * idle_engine_speed_median`).
+- :gh:`265` (:git:`8da5eb4`): Add ``identify_engine_max_speed`` function to get
   the maximum engine speed from the T1 map speed vector.
 - :gh:`202` (:git:`5792ae7`): Add a function to calculate hot idling fuel
   consumption based on co2mpas solution.
 - :gh:`283` (:git:`70bd182`): Calculation of engine mass with respect to
-  `ignition_type` and `engine_max_power`.
+  ``ignition_type`` and ``engine_max_power``.
 
 
 Gearbox model
 ~~~~~~~~~~~~~
 - :gh:`255` (:git:`32e6923`): Add warning log when gear-shift profile is
   generated from WLTP pkg.
-- :gh:`288` (:git:`11f5ad5`): Link the `gear_box_efficiency_constants` to the
-  parameter `has_torque_converter`.
+- :gh:`288` (:git:`11f5ad5`): Link the ``gear_box_efficiency_constants`` to the
+  parameter ``has_torque_converter``.
 - :gh:`299`: Implement the gearbox thermal management (not validated, not enough data).
 
 
@@ -129,7 +129,7 @@ CO2 model
 ~~~~~~~~~
 - :git:`370ca2c`: Fix of a minor bug on the calibration status when cycle is
   purely cold.
-- :gh:`205`, :gh:`207`: Calibrate `co2_params` using co2 emission identified in
+- :gh:`205`, :gh:`207`: Calibrate ``co2_params`` using co2 emission identified in
   the third step.
 - :gh:`301`: Implement the exhaust gas recirculation and selective catalytic
   reduction technologies (EGR for petrol and SCR for diesel not validated, not enough data).
@@ -146,15 +146,15 @@ CO2 model
 Cycle model
 ~~~~~~~~~~~
 - :git:`444087b`: Add new data node ``max_time``. This allows to replicate the
-  theoretical velocity profile when `max_time > theoretical time`.
+  theoretical velocity profile when :math:`max_time > theoretical time`.
 - :git:`279` (:git:`8880d9d`,:git:`93b78db`): Add input vector variable
-  `bag_phases` to extract the integration times for bags phases. Move
-  `select_phases_integration_times` from `co2_emissions` to `cycle`.
+  ``bag_phases`` to extract the integration times for bags phases. Move
+  ``select_phases_integration_times`` from ``co2_emissions`` to ``cycle``.
 
 
 Clutch model
 ~~~~~~~~~~~~
-- :gh:`256` (:git:`0e9bc3e`): FIX waring `No inliers found` by `ransac.py`,
+- :gh:`256` (:git:`0e9bc3e`): FIX waring ``'No inliers found by ransac.py'``,
   implementing SafeRANSACRegressor.
 - :gh:`288`,`251` (:git:`93c4212`): Use `has_torque_converter` to set the torque
   converter.
@@ -174,14 +174,15 @@ IO
 
 Naming conventions
 ~~~~~~~~~~~~~~~~~~
-- :gh:`b8ce65f`: : If cycle is not given the defaults are `nedc-h`, `nedc-l`,
-  `wltp-h` and `wltp-l`.
+- :gh:`b8ce65f`: : If cycle is not given the defaults are ``nedc-h``, ``nedc-l``,
+  ``wltp-h`` and ``wltp-l``.
 
 Build Chores(build, site, etc)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-- Set ``python-3.5`` only in trove-classifier.
+- Allow to run only under *Python-3.5*, set trove-classifiers accordingly.
 - Dependencies: +toolz, +Pillow, +openpyxl, +python-gnupg, +gitpython +keyring, +transitions, 
-  -easygui, -cachetool, -cycler, .  
+  -easygui, -cachetool, -cycler.
+  - Changes of URLs, opensourcing repository.
 
 Known Limitations
 -----------------
