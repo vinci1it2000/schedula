@@ -1161,6 +1161,9 @@ def _rescale_co2_emissions(
     for cco2, p in zip(cumulative_co2_emissions, phases_integration_times):
         i, j = np.searchsorted(times, p)
         k = cco2 / trapz(co2_emissions[i:j], times[i:j])
+        if np.isnan(k):
+            k = 1
+
         co2_emissions[i:j] *= k
         k_factors.append(k)
     return co2_emissions, np.array(k_factors)
