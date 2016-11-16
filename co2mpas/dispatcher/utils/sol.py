@@ -1112,14 +1112,16 @@ class Solution(OrderedDict):
            when an error occur, otherwise it logs a warning.
         """
 
-        self._errors[node_id] = msg % ((node_id, ex) + args)
+        if (self.raises and isinstance(ex, DispatcherError)) or \
+                isinstance(ex, DispatcherAbort):
+            ex.update(self)
+            raise ex
 
-        node_id = ','.join(self.dsp.get_full_node_id(node_id))
+        self._errors[node_id] = msg % ((node_id, ex) + args)
+        node_id = '/'.join(self.dsp.get_full_node_id(node_id))
 
         if self.raises:
             raise DispatcherError(self, msg, node_id, ex, *args, **kwargs)
-        elif isinstance(ex, DispatcherAbort):
-            raise
         else:
             kwargs['exc_info'] = kwargs.get('exc_info', 1)
             log.error(msg, node_id, ex, *args, **kwargs)

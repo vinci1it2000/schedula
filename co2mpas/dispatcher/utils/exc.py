@@ -11,18 +11,17 @@
 
 __author__ = 'Vincenzo Arcidiacono'
 
-__all__ = ['DispatcherError']
+__all__ = ['DispatcherError', 'DispatcherAbort']
 
 
 class DispatcherError(ValueError):
     def __init__(self, sol, *args, **kwargs):
         super(DispatcherError, self).__init__(*args, **kwargs)
+        self.update(sol)
+
+    def update(self, sol):
         self.sol = sol
         self.plot = self.sol.plot
 
-
-class DispatcherAbort(ValueError):
-    def __init__(self, sol, *args, **kwargs):
-        super(DispatcherAbort, self).__init__(*args, **kwargs)
-        self.sol = sol
-        self.plot = self.sol.plot
+class DispatcherAbort(DispatcherError):
+    pass
