@@ -9,7 +9,7 @@
 :Release:       1.4.1rc0
 :Date:          2016-11-15 22:00:07
 :Home:          http://co2mpas.io/
-:Releases:      http://files.co2mpas.io/
+:Releases:      http://github.com/JRCSTU/CO2MPAS-TA/releases/
 :Sources:       https://github.com/JRCSTU/CO2MPAS-TA
 :pypi-repo:     https://pypi.org/project/co2mpas/
 :Keywords:      CO2, fuel-consumption, WLTP, NEDC, vehicle, automotive,
@@ -112,7 +112,7 @@ you may install the developer version.
 
 *All-In-One* Installation under Windows
 ---------------------------------------
-- Download **all-in-one archive** from https://files.co2mpas.io/
+- Download **all-in-one archive** from https://github.com/JRCSTU/CO2MPAS-TA/releases/
   (it only runs on **64bit PCs**).
 
   .. Tip::
@@ -173,7 +173,7 @@ Uninstall and re-install it from the |co2mpas| CONSOLE::
 Upgrade |co2mpas| in a corporate environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 1. Use your browser to download the "wheel" package `co2mpas-X.X.X-py2.py3-none-any.whl`
-   for the latest release from this location: https://files.co2mpas.io/
+   for the latest release from this location: https://github.com/JRCSTU/CO2MPAS-TA/releases/
    and place it inside your ALLINONE's home-folder: ``co2mpas_ALLINONE-64bit-X.X.X\CO2MPAS\``
 
 2. Launch the ALLINONE console into your home-folder (it opens there by default).
@@ -927,7 +927,7 @@ Debugging and investigating results
     :width: 320
 
 - Inspect the functions mentioned in the workflow and models and search them
-  in `CO2MPAS documentation <http://files.co2mpas.io/>`_ ensuring you are
+  in `CO2MPAS documentation <http://co2mpas.io/>`_ ensuring you are
   visiting the documents for the actual version you are using.
 
 
@@ -1406,7 +1406,7 @@ require the use of ``pip`` command from a *console* to install:
   
   2. With with a "regular" browser and when connected to the Internet,
      pre-download locally and unzip the respective ``co2mpas_DEPENDENCIES-vX.X.XXX.7z`` file 
-     from the latest ALLINONE release (e.g. http://files.co2mpas.io/).
+     from the latest ALLINONE release (e.g. http://github.com/JRCSTU/CO2MPAS-TA/releases/).
      This archive contains all the dependent packages of |co2mpas|.
 
   3. Install |co2mpas|, referencing the above folder.
