@@ -962,15 +962,10 @@ Debugging and investigating results
 
         $ co2mpas modelgraph co2mpas.model.physical.wheels.wheels
 
-  .. module:: co2mpas
-
-  .. dispatcher:: dsp
+  .. image:: _static/Wheel%20model/Wheel_model.gv.svg
      :alt: Flow-diagram Wheel-to-Engine speed ratio calculations.
      :height: 240
      :width: 320
-
-    >>> from co2mpas.model.physical import wheels
-    >>> dsp = wheels.wheels()
 
 - Inspect the functions mentioned in the workflow and models and search them
   in `CO2MPAS documentation <http://co2mpas.io/>`_ ensuring you are
@@ -988,15 +983,9 @@ of 3 stages: ``precondition``, ``calibration``, and ``prediction``.
 These are invoked repeatedly, and subsequently combined, for the various cycles,
 as shown in the "active" flow-diagram of the execution, below:
 
-.. module:: co2mpas
-
-.. dispatcher:: dsp
-    :opt: depth=-1
+.. image:: _static/CO2MPAS%20model/CO2MPAS_model.gv.svg
     :alt: Flow-diagram of the execution of various Stages and Cycles sub-models.
     :width: 640
-
-    >>> import co2mpas
-    >>> dsp = co2mpas.model.model()
 
 .. Tip:: The models in the diagram are nested; explore by clicking on them.
 
