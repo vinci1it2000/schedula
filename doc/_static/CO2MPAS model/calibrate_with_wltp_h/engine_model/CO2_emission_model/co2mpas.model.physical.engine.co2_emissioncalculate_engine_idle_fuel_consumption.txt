@@ -1,0 +1,21 @@
+def calculate_engine_idle_fuel_consumption(
+        idle_fuel_consumption_model, params=None):
+    """
+    Calculates fuel consumption at hot idle engine speed [g/s].
+
+    :param idle_fuel_consumption_model:
+        Idle fuel consumption model.
+    :type idle_fuel_consumption_model: IdleFuelConsumptionModel
+
+    :param params:
+        CO2 emission model parameters (a2, b2, a, b, c, l, l2, t, trg).
+
+        The missing parameters are set equal to zero.
+    :type params: dict
+
+    :return:
+        Fuel consumption at hot idle engine speed [g/s].
+    :rtype: float
+    """
+
+    return idle_fuel_consumption_model.consumption(params)[0]

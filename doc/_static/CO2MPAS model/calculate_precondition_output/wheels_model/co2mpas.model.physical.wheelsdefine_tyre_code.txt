@@ -1,0 +1,16 @@
+def define_tyre_code(tyre_dimensions):
+    """
+    Returns the tyre code from the tyre dimensions.
+
+    :param tyre_dimensions:
+        Tyre dimensions.
+
+        .. note:: The fields are : use, nominal_section_width, aspect_ratio,
+           carcass, diameter, load_index, speed_rating, and additional_marks.
+    :type tyre_dimensions: dict
+
+    :return:
+        Tyre code (e.g.,P225/70R14).
+    :rtype: str
+    """
+    return _format_tyre_code(**tyre_dimensions)

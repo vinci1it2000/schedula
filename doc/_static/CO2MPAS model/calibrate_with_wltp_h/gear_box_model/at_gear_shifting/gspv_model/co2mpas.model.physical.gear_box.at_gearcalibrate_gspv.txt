@@ -1,0 +1,36 @@
+def calibrate_gspv(
+        gears, velocities, wheel_powers, velocity_speed_ratios, stop_velocity):
+    """
+    Identifies gear shifting power velocity matrix.
+
+    :param gears:
+        Gear vector [-].
+    :type gears: numpy.array
+
+    :param velocities:
+        Vehicle velocity [km/h].
+    :type velocities: numpy.array
+
+    :param wheel_powers:
+        Power at wheels vector [kW].
+    :type wheel_powers: numpy.array
+
+    :param velocity_speed_ratios:
+        Constant velocity speed ratios of the gear box [km/(h*RPM)].
+    :type velocity_speed_ratios: dict
+
+    :param stop_velocity:
+        Maximum velocity to consider the vehicle stopped [km/h].
+    :type stop_velocity: float
+
+    :return:
+        Gear shifting power velocity matrix.
+    :rtype: dict
+    """
+
+    gspv = GSPV()
+
+    gspv.fit(gears, velocities, wheel_powers, velocity_speed_ratios,
+             stop_velocity)
+
+    return gspv

@@ -1,0 +1,18 @@
+def calculate_mean_piston_speeds(engine_speeds_out, engine_stroke):
+    """
+    Calculates mean piston speed [m/sec].
+
+    :param engine_speeds_out:
+        Engine speed vector [RPM].
+    :type engine_speeds_out: numpy.array
+
+    :param engine_stroke:
+        Engine stroke [mm].
+    :type engine_stroke: float
+
+    :return:
+        Mean piston speed vector [m/s].
+    :rtype: numpy.array | float
+    """
+
+    return (engine_stroke / 30000.0) * engine_speeds_out

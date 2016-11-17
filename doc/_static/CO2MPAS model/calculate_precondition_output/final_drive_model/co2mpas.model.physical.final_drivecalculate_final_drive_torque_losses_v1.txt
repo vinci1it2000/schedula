@@ -1,0 +1,30 @@
+def calculate_final_drive_torque_losses_v1(
+        n_wheel_drive, final_drive_torques_out, final_drive_ratio,
+        final_drive_efficiency):
+    """
+    Calculates final drive torque losses [N*m].
+
+    :param n_wheel_drive:
+        Number of wheel drive [-].
+    :type n_wheel_drive: int
+
+    :param final_drive_torques_out:
+        Torque at the wheels [N*m].
+    :type final_drive_torques_out: numpy.array | float
+
+    :param final_drive_ratio:
+        Final drive ratio [-].
+    :type final_drive_ratio: float
+
+    :param final_drive_efficiency:
+        Final drive efficiency [-].
+    :type final_drive_efficiency: float
+
+    :return:
+        Final drive torque losses [N*m].
+    :rtype: numpy.array | float
+    """
+
+    eff_fd = final_drive_efficiency - (n_wheel_drive - 2) / 100
+
+    return (1 - eff_fd) / (eff_fd * final_drive_ratio) * final_drive_torques_out

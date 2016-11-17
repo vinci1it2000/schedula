@@ -1,0 +1,31 @@
+def calculate_engine_speeds_out_hot(
+        gear_box_speeds_in, on_engine, idle_engine_speed):
+    """
+    Calculates the engine speed at hot condition [RPM].
+
+    :param gear_box_speeds_in:
+        Gear box speed [RPM].
+    :type gear_box_speeds_in: numpy.array, float
+
+    :param on_engine:
+        If the engine is on [-].
+    :type on_engine: numpy.array, bool
+
+    :param idle_engine_speed:
+        Idle engine speed and its standard deviation [RPM].
+    :type idle_engine_speed: (float, float)
+
+    :return:
+        Engine speed at hot condition [RPM].
+    :rtype: numpy.array, float
+    """
+
+    if isinstance(gear_box_speeds_in, float):
+        s = max(idle_engine_speed[0], gear_box_speeds_in) if on_engine else 0
+    else:
+        s = gear_box_speeds_in.copy()
+
+        s[~on_engine] = 0
+        s[on_engine & (s < idle_engine_speed[0])] = idle_engine_speed[0]
+
+    return s

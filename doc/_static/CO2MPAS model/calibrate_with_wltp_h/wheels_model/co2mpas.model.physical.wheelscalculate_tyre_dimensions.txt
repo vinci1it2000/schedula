@@ -1,0 +1,24 @@
+def calculate_tyre_dimensions(tyre_code):
+    """
+    Calculates the tyre dimensions from the tyre code.
+
+    :param tyre_code:
+        Tyre code (e.g.,P225/70R14).
+    :type tyre_code: str
+
+    :return:
+        Tyre dimensions.
+    :rtype: dict
+    """
+    it = ('iso', _re_tyre_code_iso), ('numeric', _re_tyre_code_numeric)
+    for c, _r in it:
+        try:
+            m = _r.match(tyre_code).groupdict()
+            m['code'] = c
+            if c == 'numeric' and 'aspect_ratio' not in m:
+                b = m['nominal_section_width'].split('.')[-1][-1] == '5'
+                m['aspect_ratio'] = '82' if b else '92'
+            return _format_tyre_dimensions(m)
+        except (AttributeError, schema.SchemaError):
+            pass
+    raise ValueError('Invalid tyre code: %s', tyre_code)

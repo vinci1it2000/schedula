@@ -1,0 +1,59 @@
+def nedc_gears(times, max_gear, k1=1, k2=2, k5=2):
+    """
+    Returns the gear shifting profile according to NEDC [-].
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
+
+    :param max_gear:
+        Maximum gear of the gear box [-].
+    :type max_gear: int
+
+    :param k1:
+        K1 NEDC parameter (first or second gear) [-].
+    :type k1: int
+
+    :param k2:
+        K2 NEDC parameter (first or second gear) [-].
+    :type k2: int
+
+    :param k5:
+        K5 NEDC parameter (first or second gear) [-].
+    :type k5: int
+
+    :return:
+        Gear vector [-].
+    :rtype: numpy.array
+    """
+    eps = 0.01
+    # part one
+    t, s = zip(*[
+        [0, 0], [6, 0], [6, k1], [11, k1], [11, 1], [25, 1], [25, k1], [28, k1],
+        [28, 0], [44, 0], [44, k1], [49, k1], [49, 1], [55 - eps, 1],
+        [55 - eps, 2], [93, 2], [93, k2], [96, k2], [96, 0], [112, 0],
+        [112, k1], [117, k1], [117, 1], [123 - eps, 1], [123 - eps, 2],
+        [134 - eps, 2], [134 - eps, 3], [177 - eps, 3], [177 - eps, 2],
+        [185, 2], [185, k2], [188, k2], [188, 0], [195, 0]
+    ])
+
+    _t, shifting = _repeat_part_one(t, s)
+
+    # part two
+    t, s = zip(*[
+        [0, k1], [20, k1], [20, 1], [26 - eps, 1], [26 - eps, 2], [37 - eps, 2],
+        [37 - eps, 3], [47 - eps, 3], [47 - eps, 4], [61, 4], [61, 5], [115, 5],
+        [115, 4], [201, 4], [201, 5], [286, 5], [286, max_gear],
+        [370, max_gear], [370, k5], [380, k5], [380, 0], [400, 0]
+    ])
+
+    _t.extend(np.asarray(t) + _t[-1])
+    shifting.extend(s)
+
+    s = sci_itp.interp1d(
+        _t, shifting, kind='nearest', assume_sorted=True
+    )(times)
+
+    s[s > max_gear] = max_gear
+
+    return s

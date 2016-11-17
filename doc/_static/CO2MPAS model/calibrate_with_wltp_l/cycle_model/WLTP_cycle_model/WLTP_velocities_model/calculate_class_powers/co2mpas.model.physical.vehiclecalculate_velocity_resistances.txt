@@ -1,0 +1,18 @@
+def calculate_velocity_resistances(f1, velocities):
+    """
+    Calculates forces function of velocity [N].
+
+    :param f1:
+        Defined by dyno procedure [N/(km/h)].
+    :type f1: float
+
+    :param velocities:
+        Velocity vector [km/h].
+    :type velocities: numpy.array | float
+
+    :return:
+        Forces function of velocity [N].
+    :rtype: numpy.array | float
+    """
+
+    return f1 * velocities

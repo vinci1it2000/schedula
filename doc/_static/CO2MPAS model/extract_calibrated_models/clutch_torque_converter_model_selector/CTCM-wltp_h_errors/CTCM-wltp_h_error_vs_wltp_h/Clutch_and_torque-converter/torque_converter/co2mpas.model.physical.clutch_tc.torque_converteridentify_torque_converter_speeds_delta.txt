@@ -1,0 +1,23 @@
+def identify_torque_converter_speeds_delta(
+        engine_speeds_out, engine_speeds_out_hot, cold_start_speeds_delta):
+    """
+    Calculates the engine speed delta due to the clutch [RPM].
+
+    :param engine_speeds_out:
+        Engine speed [RPM].
+    :type engine_speeds_out: numpy.array
+
+    :param engine_speeds_out_hot:
+        Engine speed at hot condition [RPM].
+    :type engine_speeds_out_hot: numpy.array
+
+    :param cold_start_speeds_delta:
+        Engine speed delta due to the cold start [RPM].
+    :type cold_start_speeds_delta: numpy.array
+
+    :return:
+        Engine speed delta due to the clutch or torque converter [RPM].
+    :rtype: numpy.array
+    """
+
+    return engine_speeds_out - engine_speeds_out_hot - cold_start_speeds_delta

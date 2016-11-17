@@ -1,0 +1,37 @@
+def calculate_cumulative_co2(
+        times, phases_integration_times, co2_emissions,
+        phases_distances=1.0):
+    """
+    Calculates CO2 emission or cumulative CO2 of cycle phases [CO2g/km or CO2g].
+
+    If phases_distances is not given the result is the cumulative CO2 of cycle
+    phases [CO2g] otherwise it is CO2 emission of cycle phases [CO2g/km].
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
+
+    :param phases_integration_times:
+        Cycle phases integration times [s].
+    :type phases_integration_times: tuple
+
+    :param co2_emissions:
+        CO2 instantaneous emissions vector [CO2g/s].
+    :type co2_emissions: numpy.array
+
+    :param phases_distances:
+        Cycle phases distances [km].
+    :type phases_distances: numpy.array | float, optional
+
+    :return:
+        CO2 emission or cumulative CO2 of cycle phases [CO2g/km or CO2g].
+    :rtype: numpy.array
+    """
+
+    co2 = []
+
+    for p in phases_integration_times:
+        i, j = np.searchsorted(times, p)
+        co2.append(sci_itg.trapz(co2_emissions[i:j], times[i:j]))
+
+    return np.array(co2) / phases_distances

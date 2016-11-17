@@ -1,0 +1,59 @@
+def identify_charging_statuses_and_alternator_initialization_time(
+        times, alternator_currents, gear_box_powers_in, on_engine,
+        alternator_current_threshold, starts_windows, state_of_charges,
+        accelerations):
+    """
+    Identifies when the alternator statuses [-] and alternator initialization
+    time delta [s].
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
+
+    :param alternator_currents:
+        Alternator current vector [A].
+    :type alternator_currents: numpy.array
+
+    :param gear_box_powers_in:
+        Gear box power vector [kW].
+    :type gear_box_powers_in: numpy.array
+
+    :param on_engine:
+        If the engine is on [-].
+    :type on_engine: numpy.array
+
+    :param alternator_current_threshold:
+        Alternator current threshold [A].
+    :type alternator_current_threshold: float
+
+    :param starts_windows:
+        Alternator starts windows [-].
+    :type starts_windows: numpy.array
+
+    :param state_of_charges:
+        State of charge of the battery [%].
+
+        .. note::
+
+            `state_of_charges` = 99 is equivalent to 99%.
+    :type state_of_charges: numpy.array
+
+    :param accelerations:
+        Acceleration [m/s2].
+    :type accelerations: numpy.array
+
+    :return:
+        The alternator status (0: off, 1: on, due to state of charge, 2: on due
+        to BERS, 3: on and initialize battery) [-] and alternator initialization
+        time delta [s].
+    :rtype: numpy.array, float
+    """
+    statuses = identify_charging_statuses(
+        times, alternator_currents, gear_box_powers_in, on_engine,
+        alternator_current_threshold, starts_windows, 0)
+    alternator_initialization_time = identify_alternator_initialization_time(
+        alternator_currents, gear_box_powers_in, on_engine, accelerations,
+        state_of_charges, statuses, times, alternator_current_threshold
+    )
+    _set_alt_init_status(times, alternator_initialization_time, statuses)
+    return statuses, alternator_initialization_time

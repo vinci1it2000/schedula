@@ -1,0 +1,14 @@
+def identify_max_engine_coolant_temperature(engine_coolant_temperatures):
+    """
+    Identifies maximum engine coolant temperature [°C].
+
+    :param engine_coolant_temperatures:
+        Engine coolant temperature vector [°C].
+    :type engine_coolant_temperatures: numpy.array
+
+    :return:
+        Maximum engine coolant temperature [°C].
+    :rtype: float
+    """
+
+    return engine_coolant_temperatures.max()

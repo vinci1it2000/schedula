@@ -1,0 +1,41 @@
+def calculate_gear_box_torques(
+        gear_box_powers_out, gear_box_speeds_in, gear_box_speeds_out,
+        min_engine_on_speed):
+    """
+    Calculates torque entering the gear box [N*m].
+
+    :param gear_box_powers_out:
+        Gear box power vector [kW].
+    :type gear_box_powers_out: numpy.array
+
+    :param gear_box_speeds_in:
+        Engine speed vector [RPM].
+    :type gear_box_speeds_in: numpy.array
+
+    :param gear_box_speeds_out:
+        Wheel speed vector [RPM].
+    :type gear_box_speeds_out: numpy.array
+
+    :param min_engine_on_speed:
+        Minimum engine speed to consider the engine to be on [RPM].
+    :type min_engine_on_speed: float
+
+    :return:
+        Torque gear box vector [N*m].
+    :rtype: numpy.array
+
+    .. note:: Torque entering the gearbox can be from engine side
+       (power mode or from wheels in motoring mode)
+    """
+
+    s_in, s_out = gear_box_speeds_in, gear_box_speeds_out
+
+    x = np.where(gear_box_powers_out > 0, s_in, s_out)
+
+    y = np.zeros_like(gear_box_powers_out)
+
+    b = x > min_engine_on_speed
+
+    y[b] = gear_box_powers_out[b] / x[b]
+
+    return y * (30000.0 / math.pi)

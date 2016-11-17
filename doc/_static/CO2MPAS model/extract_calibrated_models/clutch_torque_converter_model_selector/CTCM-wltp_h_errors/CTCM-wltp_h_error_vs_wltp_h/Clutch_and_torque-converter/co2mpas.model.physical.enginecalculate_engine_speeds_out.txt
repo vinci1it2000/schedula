@@ -1,0 +1,38 @@
+def calculate_engine_speeds_out(
+        on_engine, idle_engine_speed, engine_speeds_out_hot, *delta_speeds):
+    """
+    Calculates the engine speed [RPM].
+
+    :param on_engine:
+        If the engine is on [-].
+    :type on_engine: numpy.array
+
+    :param idle_engine_speed:
+        Idle engine speed and its standard deviation [RPM].
+    :type idle_engine_speed: (float, float)
+
+    :param engine_speeds_out_hot:
+        Engine speed at hot condition [RPM].
+    :type engine_speeds_out_hot: numpy.array
+
+    :param delta_speeds:
+        Delta engine speed [RPM].
+    :type delta_speeds: (numpy.array,)
+
+    :return:
+        Engine speed [RPM].
+    :rtype: numpy.array
+    """
+
+    speeds = engine_speeds_out_hot.copy()
+    s = speeds[on_engine]
+    for delta in delta_speeds:
+        s += delta[on_engine]
+
+    dn = idle_engine_speed[0]
+
+    s[s < dn] = dn
+
+    speeds[on_engine] = s
+
+    return speeds

@@ -1,0 +1,5 @@
+def co2_sort_models(rank, *data, weights=None):
+    from . import _sorting_func, sort_models
+    r = sort_models(*data, weights=weights)
+    r.extend(rank)
+    return list(sorted(r, key=_sorting_func))

@@ -1,0 +1,18 @@
+def identify_tyre_dynamic_rolling_coefficient(r_wheels, r_dynamic):
+    """
+    Identifies the dynamic rolling coefficient [-].
+
+    :param r_wheels:
+        Radius of the wheels [m].
+    :type r_wheels: float
+
+    :param r_dynamic:
+        Dynamic radius of the wheels [m].
+    :type r_dynamic: float
+
+    :return:
+        Dynamic rolling coefficient [-].
+    :rtype: float
+    """
+
+    return r_dynamic / r_wheels

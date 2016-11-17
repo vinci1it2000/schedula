@@ -1,0 +1,25 @@
+def select_calibration_data(cycle_inputs, precondition_outputs):
+    """
+    Updates cycle inputs with the precondition outputs.
+
+    :param cycle_inputs:
+        Dictionary that has inputs of the calibration cycle.
+    :type cycle_inputs: dict
+
+    :param precondition_outputs:
+        Dictionary that has all outputs of the precondition cycle.
+    :type precondition_outputs: dict
+
+    :return:
+        Dictionary that has all inputs of the calibration cycle.
+    :rtype: dict
+    """
+
+    pre = precondition_outputs
+
+    p = ('initial_state_of_charge', 'state_of_charges')
+    if not any(k in cycle_inputs for k in p) and p[1] in pre:
+        inputs = cycle_inputs.copy()
+        inputs['initial_state_of_charge'] = pre['state_of_charges'][-1]
+        return inputs
+    return cycle_inputs

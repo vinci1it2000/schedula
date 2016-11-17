@@ -1,0 +1,19 @@
+def calculate_final_drive_powers_in(
+        final_drive_powers_out, final_drive_efficiencies):
+    """
+    Calculates final drive power [kW].
+
+    :param final_drive_powers_out:
+        Power at the wheels [kW].
+    :type final_drive_powers_out: numpy.array | float
+
+    :param final_drive_efficiencies:
+        Final drive torque efficiency vector [-].
+    :type final_drive_efficiencies: numpy.array | float
+
+    :return:
+        Final drive power in [kW].
+    :rtype: numpy.array | float
+    """
+
+    return final_drive_powers_out / final_drive_efficiencies

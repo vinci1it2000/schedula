@@ -1,0 +1,84 @@
+def define_co2_emissions_model(
+        engine_speeds_out, engine_powers_out, mean_piston_speeds,
+        brake_mean_effective_pressures, engine_coolant_temperatures, on_engine,
+        engine_fuel_lower_heating_value, idle_engine_speed, engine_stroke,
+        engine_capacity, idle_fuel_consumption_model, fuel_carbon_content,
+        min_engine_on_speed, tau_function, fmep_model):
+    """
+    Returns CO2 emissions model (see :func:`calculate_co2_emissions`).
+
+    :param engine_speeds_out:
+        Engine speed vector [RPM].
+    :type engine_speeds_out: numpy.array
+
+    :param engine_powers_out:
+        Engine power vector [kW].
+    :type engine_powers_out: numpy.array
+
+    :param mean_piston_speeds:
+        Mean piston speed vector [m/s].
+    :type mean_piston_speeds: numpy.array
+
+    :param brake_mean_effective_pressures:
+        Engine brake mean effective pressure vector [bar].
+    :type brake_mean_effective_pressures: numpy.array
+
+    :param engine_coolant_temperatures:
+        Engine coolant temperature vector [°C].
+    :type engine_coolant_temperatures: numpy.array
+
+    :param on_engine:
+        If the engine is on [-].
+    :type on_engine: numpy.array
+
+    :param engine_fuel_lower_heating_value:
+        Fuel lower heating value [kJ/kg].
+    :type engine_fuel_lower_heating_value: float
+
+    :param idle_engine_speed:
+        Engine speed idle median and std [RPM].
+    :type idle_engine_speed: (float, float)
+
+    :param engine_stroke:
+        Engine stroke [mm].
+    :type engine_stroke: float
+
+    :param engine_capacity:
+        Engine capacity [cm3].
+    :type engine_capacity: float
+
+    :param idle_fuel_consumption_model:
+        Idle fuel consumption model.
+    :type idle_fuel_consumption_model: IdleFuelConsumptionModel
+
+    :param fuel_carbon_content:
+        Fuel carbon content [CO2g/g].
+    :type fuel_carbon_content: float
+
+    :param min_engine_on_speed:
+        Minimum engine speed to consider the engine to be on [RPM].
+    :type min_engine_on_speed: float
+
+    :param tau_function:
+        Tau-function of the extended Willans curve.
+    :type tau_function: function
+
+    :param fmep_model:
+        Engine FMEP model.
+    :type fmep_model: FMEP
+
+    :return:
+        CO2 emissions model (co2_emissions = models(params)).
+    :rtype: function
+    """
+
+    model = functools.partial(
+        calculate_co2_emissions, engine_speeds_out, engine_powers_out,
+        mean_piston_speeds, brake_mean_effective_pressures,
+        engine_coolant_temperatures, on_engine, engine_fuel_lower_heating_value,
+        idle_engine_speed, engine_stroke, engine_capacity,
+        idle_fuel_consumption_model, fuel_carbon_content, min_engine_on_speed,
+        tau_function, fmep_model
+    )
+
+    return model

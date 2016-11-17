@@ -1,0 +1,14 @@
+def identify_idle_engine_speed_median(idle_model_detector):
+    """
+    Identifies idle engine speed [RPM].
+
+    :param idle_model_detector:
+        Idle engine speed model detector.
+    :type idle_model_detector: _IdleDetector
+
+    :return:
+        Idle engine speed [RPM].
+    :rtype: float
+    """
+    imd = idle_model_detector
+    return np.median(imd.cluster_centers_[imd.labels_])

@@ -1,0 +1,5 @@
+def tyre_models_selector(models_ids, data):
+    models = dsp_utl.selector(models_ids, data, allow_miss=True)
+    if 'tyre_dynamic_rolling_coefficient' in models:
+        models.pop('r_dynamic', None)
+    return models

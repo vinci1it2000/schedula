@@ -1,0 +1,18 @@
+def get_full_load(ignition_type):
+    """
+    Returns vehicle full load curve.
+
+    :param ignition_type:
+        Engine ignition type (positive or compression).
+    :type ignition_type: str
+
+    :return:
+        Vehicle normalized full load curve.
+    :rtype: scipy.interpolate.InterpolatedUnivariateSpline
+    """
+
+    xp, fp = defaults.dfl.functions.get_full_load.FULL_LOAD[ignition_type]
+    func = functools.partial(
+        np.interp, xp=xp, fp=fp, left=fp[0], right=fp[-1]
+    )
+    return func

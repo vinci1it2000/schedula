@@ -1,0 +1,22 @@
+def identify_engine_thermostat_temperature_window(
+        engine_thermostat_temperature, engine_coolant_temperatures):
+    """
+    Identifies thermostat engine temperature limits [°C].
+
+    :param engine_thermostat_temperature:
+        Engine thermostat temperature [°C].
+    :type engine_thermostat_temperature: float
+
+    :param engine_coolant_temperatures:
+        Engine coolant temperature vector [°C].
+    :type engine_coolant_temperatures: numpy.array
+
+    :return:
+        Thermostat engine temperature limits [°C].
+    :rtype: float, float
+    """
+
+    thr = engine_thermostat_temperature
+    # noinspection PyTypeChecker
+    std = np.sqrt(np.mean((engine_coolant_temperatures - thr) ** 2))
+    return thr - std, thr + std

@@ -1,0 +1,17 @@
+def calculate_time_length(frequency, max_time):
+    """
+    Returns the length of the time vector [-].
+
+    :param frequency:
+        Time frequency [1/s].
+    :type frequency: float
+
+    :param max_time:
+        Maximum time [s].
+    :type max_time: float
+
+    :return:
+        length of the time vector [-].
+    :rtype: int
+    """
+    return np.floor(max_time * frequency) + 1

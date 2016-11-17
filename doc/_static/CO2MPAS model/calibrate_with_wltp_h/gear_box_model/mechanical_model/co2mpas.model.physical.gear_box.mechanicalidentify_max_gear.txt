@@ -1,0 +1,14 @@
+def identify_max_gear(speed_velocity_ratios):
+    """
+    Identifies the maximum gear of the gear box [-].
+
+    :param speed_velocity_ratios:
+        Speed velocity ratios of the gear box [h*RPM/km].
+    :type speed_velocity_ratios: dict
+
+    :return:
+        Maximum gear of the gear box [-].
+    :rtype: int
+    """
+
+    return int(max(speed_velocity_ratios))

@@ -1,0 +1,29 @@
+def identify_max_speed_velocity_ratio(
+        velocities, engine_speeds_out, idle_engine_speed, stop_velocity):
+    """
+    Identifies the maximum speed velocity ratio of the gear box [h*RPM/km].
+
+    :param velocities:
+        Vehicle velocity [km/h].
+    :type velocities: numpy.array
+
+    :param engine_speeds_out:
+        Engine speed [RPM].
+    :type engine_speeds_out: numpy.array
+
+    :param idle_engine_speed:
+        Engine speed idle median and std [RPM].
+    :type idle_engine_speed: (float, float)
+
+    :param stop_velocity:
+        Maximum velocity to consider the vehicle stopped [km/h].
+    :type stop_velocity: float
+
+    :return:
+        Maximum speed velocity ratio of the gear box [h*RPM/km].
+    :rtype: float
+    """
+
+    b = (velocities > stop_velocity)
+    b &= (engine_speeds_out > idle_engine_speed[0])
+    return max(engine_speeds_out[b] / velocities[b])

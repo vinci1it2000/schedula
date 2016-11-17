@@ -1,0 +1,18 @@
+def calculate_motive_powers(motive_forces, velocities):
+    """
+    Calculates motive power [kW].
+
+    :param motive_forces:
+        Motive forces [N].
+    :type motive_forces: numpy.array | float
+
+    :param velocities:
+        Velocity vector [km/h].
+    :type velocities: numpy.array | float
+
+    :return:
+        Motive power [kW].
+    :rtype: numpy.array | float
+    """
+
+    return motive_forces * velocities / 3600

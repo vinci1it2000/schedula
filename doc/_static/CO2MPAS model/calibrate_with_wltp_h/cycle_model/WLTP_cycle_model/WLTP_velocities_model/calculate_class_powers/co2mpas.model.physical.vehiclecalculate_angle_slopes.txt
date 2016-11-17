@@ -1,0 +1,18 @@
+def calculate_angle_slopes(times, angle_slope):
+    """
+    Returns the angle slope vector [rad].
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
+
+    :param angle_slope:
+         Angle slope [rad].
+    :type angle_slope: float
+
+    :return:
+        Angle slope vector [rad].
+    :rtype: numpy.array
+    """
+
+    return np.ones_like(times, dtype=float) * angle_slope

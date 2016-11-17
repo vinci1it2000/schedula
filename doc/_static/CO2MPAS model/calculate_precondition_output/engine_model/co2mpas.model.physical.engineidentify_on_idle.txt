@@ -1,0 +1,35 @@
+def identify_on_idle(
+        velocities, engine_speeds_out, gears, stop_velocity,
+        min_engine_on_speed):
+    """
+    Identifies when the engine is on idle [-].
+
+    :param velocities:
+        Velocity vector [km/h].
+    :type velocities: numpy.array
+
+    :param engine_speeds_out:
+        Engine speed vector [RPM].
+    :type engine_speeds_out: numpy.array
+
+    :param gears:
+        Gear vector [-].
+    :type gears: numpy.array
+
+    :param stop_velocity:
+        Maximum velocity to consider the vehicle stopped [km/h].
+    :type stop_velocity: float
+
+    :param min_engine_on_speed:
+        Minimum engine speed to consider the engine to be on [RPM].
+    :type min_engine_on_speed: float
+
+    :return:
+        If the engine is on idle [-].
+    :rtype: numpy.array
+    """
+
+    on_idle = engine_speeds_out > min_engine_on_speed
+    on_idle &= (gears == 0) | (velocities <= stop_velocity)
+
+    return on_idle

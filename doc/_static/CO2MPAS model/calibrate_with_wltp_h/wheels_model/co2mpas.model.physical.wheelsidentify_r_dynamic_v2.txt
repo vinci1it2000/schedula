@@ -1,0 +1,72 @@
+def identify_r_dynamic_v2(
+        times, velocities, accelerations, r_wheels, engine_speeds_out,
+        gear_box_ratios, final_drive_ratio, idle_engine_speed, stop_velocity,
+        plateau_acceleration, change_gear_window_width):
+    """
+    Identifies the dynamic radius of the wheels [m].
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
+
+    :param velocities:
+        Vehicle velocity [km/h].
+    :type velocities: numpy.array
+
+    :param accelerations:
+        Vehicle acceleration [m/s2].
+    :type accelerations: numpy.array
+
+    :param r_wheels:
+        Radius of the wheels [m].
+    :type r_wheels: float
+
+    :param engine_speeds_out:
+        Engine speed [RPM].
+    :type engine_speeds_out: numpy.array
+
+    :param gear_box_ratios:
+        Gear box ratios [-].
+    :type gear_box_ratios: dict
+
+    :param final_drive_ratio:
+        Final drive ratio [-].
+    :type final_drive_ratio: float
+
+    :param idle_engine_speed:
+        Engine speed idle median and std [RPM].
+    :type idle_engine_speed: (float, float)
+
+    :param stop_velocity:
+        Maximum velocity to consider the vehicle stopped [km/h].
+    :type stop_velocity: float
+
+    :param plateau_acceleration:
+        Maximum acceleration to be at constant velocity [m/s2].
+    :type plateau_acceleration: float
+
+    :param change_gear_window_width:
+        Time window used to apply gear change filters [s].
+    :type change_gear_window_width: float
+
+    :return:
+        Dynamic radius of the wheels [m].
+    :rtype: float
+    """
+
+    svr = gb_mec.calculate_speed_velocity_ratios(
+        gear_box_ratios, final_drive_ratio, r_wheels
+    )
+
+    gears = gb_mec.identify_gears(
+        times, velocities, accelerations, engine_speeds_out,
+        gb_mec.calculate_velocity_speed_ratios(svr), stop_velocity,
+        plateau_acceleration, change_gear_window_width, idle_engine_speed
+    )
+
+    r_dynamic = identify_r_dynamic_v1(
+        velocities, gears, engine_speeds_out, gear_box_ratios,
+        final_drive_ratio, stop_velocity
+    )
+
+    return r_dynamic

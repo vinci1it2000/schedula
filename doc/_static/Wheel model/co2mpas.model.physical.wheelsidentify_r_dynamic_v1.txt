@@ -1,0 +1,49 @@
+def identify_r_dynamic_v1(
+        velocities, gears, engine_speeds_out, gear_box_ratios,
+        final_drive_ratio, stop_velocity):
+    """
+    Identifies the dynamic radius of the wheels [m].
+
+    :param velocities:
+        Vehicle velocity [km/h].
+    :type velocities: numpy.array
+
+    :param gears:
+        Gear vector [-].
+    :type gears: numpy.array
+
+    :param engine_speeds_out:
+        Engine speed [RPM].
+    :type engine_speeds_out: numpy.array
+
+    :param gear_box_ratios:
+        Gear box ratios [-].
+    :type gear_box_ratios: dict
+
+    :param final_drive_ratio:
+        Final drive ratio [-].
+    :type final_drive_ratio: float
+
+    :param stop_velocity:
+        Maximum velocity to consider the vehicle stopped [km/h].
+    :type stop_velocity: float
+
+    :return:
+        Dynamic radius of the wheels [m].
+    :rtype: float
+    """
+
+    svr = gb_mec.calculate_speed_velocity_ratios(
+        gear_box_ratios, final_drive_ratio, 1.0)
+
+    vsr = gb_mec.calculate_velocity_speed_ratios(svr)
+
+    speed_x_r_dyn_ratios = gb_mec.calculate_gear_box_speeds_in(
+        gears, velocities, vsr, stop_velocity
+    )
+
+    r_dynamic = speed_x_r_dyn_ratios / engine_speeds_out
+    r_dynamic = r_dynamic[~np.isnan(r_dynamic)]
+    r_dynamic = co2_utl.reject_outliers(r_dynamic)[0]
+
+    return r_dynamic

@@ -1,0 +1,44 @@
+def prediction_gears_decision_tree(
+        correct_gear, gear_filter, decision_tree, times, *params):
+    """
+    Predicts gears with a decision tree classifier [-].
+
+    :param correct_gear:
+        A function to correct the gear predicted.
+    :type correct_gear: function
+
+    :param gear_filter:
+        Gear filter function.
+    :type gear_filter: function
+
+    :param decision_tree:
+        A decision tree classifier to predict gears.
+    :type decision_tree: sklearn.tree.DecisionTreeClassifier
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
+
+    :param params:
+        Time series vectors.
+    :type params: (nx.array, ...)
+
+    :return:
+        Predicted gears.
+    :rtype: numpy.array
+    """
+
+    gears = [0]
+
+    predict = decision_tree.predict
+
+    def predict_gear(*args):
+        g = predict([gears + list(args)])[0]
+        gears[0] = correct_gear(args[0], args[1], g)
+        return gears[0]
+
+    gears = np.vectorize(predict_gear)(*params)
+
+    gears = gear_filter(times, gears)
+
+    return gears

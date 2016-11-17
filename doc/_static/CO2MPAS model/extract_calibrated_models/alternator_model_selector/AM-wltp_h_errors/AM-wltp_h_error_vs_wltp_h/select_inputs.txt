@@ -1,0 +1,37 @@
+def map_dict(key_map, *dicts, copy=False, base=None):
+    """
+    Returns a dict with new key values.
+
+    :param key_map:
+        A dictionary that maps the dict keys ({old key: new key}
+    :type key_map: dict
+
+    :param dicts:
+        A sequence of dicts.
+    :type dicts: tuple[dict]
+
+    :param copy:
+        If True, it returns a deepcopy of input values.
+    :type copy: bool, optional
+
+    :param base:
+        Base dict where combine multiple dicts in one.
+    :type base: dict, optional
+
+    :return:
+        A unique dict with new key values.
+    :rtype: dict
+
+    Example::
+
+        >>> d = map_dict({'a': 'c', 'b': 'd'}, {'a': 1, 'b': 1}, {'b': 2})
+        >>> sorted(d.items())
+        [('c', 1), ('d', 2)]
+    """
+
+    it = combine_dicts(*dicts).items()  # Combine dicts.
+
+    get = key_map.get  # Namespace shortcut.
+
+    # Return mapped dict.
+    return combine_dicts({get(k, k): v for k, v in it}, copy=copy, base=base)

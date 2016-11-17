@@ -962,7 +962,7 @@ Debugging and investigating results
 
         $ co2mpas modelgraph co2mpas.model.physical.wheels.wheels
 
-  .. image:: _static/Wheel%20model/Wheel_model.gv.svg
+  .. image:: _static/Wheel%20model.gv.svg
      :alt: Flow-diagram Wheel-to-Engine speed ratio calculations.
      :height: 240
      :width: 320
@@ -983,7 +983,7 @@ of 3 stages: ``precondition``, ``calibration``, and ``prediction``.
 These are invoked repeatedly, and subsequently combined, for the various cycles,
 as shown in the "active" flow-diagram of the execution, below:
 
-.. image:: _static/CO2MPAS%20model/CO2MPAS_model.gv.svg
+.. image:: _static/CO2MPAS%20model.gv.svg
     :alt: Flow-diagram of the execution of various Stages and Cycles sub-models.
     :width: 640
 

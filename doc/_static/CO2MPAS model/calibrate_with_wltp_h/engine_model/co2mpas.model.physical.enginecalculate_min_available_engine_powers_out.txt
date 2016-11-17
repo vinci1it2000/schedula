@@ -1,0 +1,30 @@
+def calculate_min_available_engine_powers_out(
+        engine_stroke, engine_capacity, friction_params, engine_speeds_out):
+    """
+    Calculates the minimum available engine power (i.e., engine motoring curve).
+
+    :param engine_stroke:
+        Engine stroke [mm].
+    :type engine_stroke: float
+
+    :param engine_capacity:
+        Engine capacity [cm3].
+    :type engine_capacity: float
+
+    :param friction_params:
+        Engine initial friction params l & l2 [-].
+    :type friction_params: float, float
+
+    :param engine_speeds_out:
+        Engine speed [RPM].
+    :type engine_speeds_out: numpy.array | float
+
+    :return:
+        Minimum available engine power [kW].
+    :rtype: numpy.array | float
+    """
+
+    l, l2 = np.array(friction_params) * (engine_capacity / 1200000.0)
+    l2 *= (engine_stroke / 30000.0) ** 2
+
+    return (l2 * engine_speeds_out * engine_speeds_out + l) * engine_speeds_out

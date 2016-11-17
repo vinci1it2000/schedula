@@ -1,0 +1,19 @@
+def calculate_engine_moment_inertia(engine_capacity, ignition_type):
+    """
+    Calculates engine moment of inertia [kg*m2].
+
+    :param engine_capacity:
+        Engine capacity [cm3].
+    :type engine_capacity: float
+
+    :param ignition_type:
+        Engine ignition type (positive or compression).
+    :type ignition_type: str
+
+    :return:
+        Engine moment of inertia [kg*m2].
+    :rtype: float
+    """
+    PARAMS = defaults.dfl.functions.calculate_engine_moment_inertia.PARAMS
+
+    return (0.05 + 0.1 * engine_capacity / 1000.0) * PARAMS[ignition_type]

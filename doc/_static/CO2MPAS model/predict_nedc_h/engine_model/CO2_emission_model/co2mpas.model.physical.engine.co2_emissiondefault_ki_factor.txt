@@ -1,0 +1,15 @@
+def default_ki_factor(has_periodically_regenerating_systems):
+    """
+    Returns the default ki factor [-].
+
+    :param has_periodically_regenerating_systems:
+        Does the vehicle has periodically regenerating systems? [-].
+    :type has_periodically_regenerating_systems: bool
+
+    :return:
+        Correction for vehicles with periodically regenerating systems [-].
+    :rtype: float
+    """
+
+    par = defaults.dfl.functions.default_ki_factor.ki_factor
+    return par.get(has_periodically_regenerating_systems, 1.0)

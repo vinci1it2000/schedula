@@ -1,0 +1,47 @@
+def calculate_motive_forces(
+        vehicle_mass, accelerations, climbing_force, aerodynamic_resistances,
+        rolling_resistance, velocity_resistances, rotational_inertia_forces):
+    """
+    Calculate motive forces [N].
+
+    :param vehicle_mass:
+        Vehicle mass [kg].
+    :type vehicle_mass: float
+
+    :param accelerations:
+        Acceleration vector [m/s2].
+    :type accelerations: numpy.array | float
+
+    :param climbing_force:
+        Vehicle climbing resistance [N].
+    :type climbing_force: float | numpy.array
+
+    :param rolling_resistance:
+        Rolling resistance force [N].
+    :type rolling_resistance: float | numpy.array
+
+    :param aerodynamic_resistances:
+        Aerodynamic resistance vector [N].
+    :type aerodynamic_resistances: numpy.array | float
+
+    :param velocity_resistances:
+        Forces function of velocity [N].
+    :type velocity_resistances: numpy.array | float
+
+    :param rotational_inertia_forces:
+        Rotational inertia forces [N].
+    :type rotational_inertia_forces: numpy.array | float
+
+    :return:
+        Motive forces [N].
+    :rtype: numpy.array | float
+    """
+
+    # namespace shortcuts
+    Frr = rolling_resistance
+    Faero = aerodynamic_resistances
+    Fclimb = climbing_force
+    Fvel = velocity_resistances
+    Finertia = rotational_inertia_forces
+
+    return vehicle_mass * accelerations + Fclimb + Frr + Faero + Fvel + Finertia

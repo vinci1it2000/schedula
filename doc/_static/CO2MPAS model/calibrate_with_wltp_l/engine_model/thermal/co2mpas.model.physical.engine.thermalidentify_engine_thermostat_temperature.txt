@@ -1,0 +1,14 @@
+def identify_engine_thermostat_temperature(engine_temperature_regression_model):
+    """
+    Identifies thermostat engine temperature and its limits [°C].
+
+    :param engine_temperature_regression_model:
+        The calibrated engine temperature regression model.
+    :type engine_temperature_regression_model: ThermalModel
+
+    :return:
+        Engine thermostat temperature [°C].
+    :rtype: float
+    """
+
+    return engine_temperature_regression_model.thermostat

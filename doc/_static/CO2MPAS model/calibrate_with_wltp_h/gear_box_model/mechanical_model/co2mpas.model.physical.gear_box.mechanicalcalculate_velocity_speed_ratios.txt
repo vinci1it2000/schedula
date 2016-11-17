@@ -1,0 +1,25 @@
+def calculate_velocity_speed_ratios(speed_velocity_ratios):
+    """
+    Calculates velocity speed (or speed velocity) ratios of the gear box
+    [km/(h*RPM) or h*RPM/km].
+
+    :param speed_velocity_ratios:
+        Constant speed velocity (or velocity speed) ratios of the gear box
+        [h*RPM/km or km/(h*RPM)].
+    :type speed_velocity_ratios: dict
+
+    :return:
+        Constant velocity speed (or speed velocity) ratios of the gear box
+        [km/(h*RPM) or h*RPM/km].
+    :rtype: dict
+    """
+
+    def inverse(v):
+        if v <= 0:
+            return defaults.dfl.INF
+        elif v >= defaults.dfl.INF:
+            return 0.0
+        else:
+            return 1 / v
+
+    return {k: inverse(v) for k, v in speed_velocity_ratios.items()}

@@ -1,0 +1,21 @@
+def get_best_model(
+        rank, settings=None, models_wo_err=None, selector_id=''):
+    settings = settings or {}
+    scores = collections.OrderedDict()
+    rank = _sort_rank_for_selecting_best(rank, **settings)
+    for m in rank:
+        if m[1]:
+            scores[m[3]] = {
+                'score': m[0],
+                'errors': {k: v[0] for k, v in m[2].items()},
+                'limits': {k: v[1] for k, v in m[2].items()},
+                'models': tuple(sorted(m[-1].keys()))
+            }
+        else:
+            scores[m[3]] = {'models': tuple(sorted(m[-1].keys()))}
+    if not rank:
+        m = {}
+    else:
+        m = _select_models(rank, scores, models_wo_err, selector_id, **settings)
+
+    return m, scores

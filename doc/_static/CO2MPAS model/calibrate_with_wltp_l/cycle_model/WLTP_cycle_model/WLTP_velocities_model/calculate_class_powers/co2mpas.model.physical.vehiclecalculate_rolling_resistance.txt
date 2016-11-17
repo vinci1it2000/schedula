@@ -1,0 +1,18 @@
+def calculate_rolling_resistance(f0, angle_slopes):
+    """
+    Calculates rolling resistance [N].
+
+    :param f0:
+        Rolling resistance force [N] when angle_slope == 0.
+    :type f0: float
+
+    :param angle_slopes:
+        Angle slope vector [rad].
+    :type angle_slopes: numpy.array
+
+    :return:
+        Rolling resistance force [N].
+    :rtype: numpy.array
+    """
+
+    return f0 * np.cos(angle_slopes)

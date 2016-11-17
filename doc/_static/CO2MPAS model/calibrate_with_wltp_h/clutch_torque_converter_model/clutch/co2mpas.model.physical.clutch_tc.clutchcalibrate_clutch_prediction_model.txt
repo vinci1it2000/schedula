@@ -1,0 +1,26 @@
+def calibrate_clutch_prediction_model(
+        clutch_phases, accelerations, clutch_speeds_delta):
+    """
+    Calibrate clutch prediction model.
+
+    :param clutch_phases:
+        When the clutch is active [-].
+    :type clutch_phases: numpy.array
+
+    :param accelerations:
+        Acceleration vector [m/s2].
+    :type accelerations: numpy.array
+
+    :param clutch_speeds_delta:
+        Engine speed delta due to the clutch [RPM].
+    :type clutch_speeds_delta: numpy.array
+
+    :return:
+        Clutch prediction model.
+    :rtype: ClutchModel
+    """
+
+    model = ClutchModel()
+    model.fit(clutch_phases, accelerations, clutch_speeds_delta)
+
+    return model

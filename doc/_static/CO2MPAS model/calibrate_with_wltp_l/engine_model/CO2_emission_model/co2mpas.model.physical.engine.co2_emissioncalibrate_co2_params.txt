@@ -1,0 +1,88 @@
+def calibrate_co2_params(
+    is_cycle_hot, engine_coolant_temperatures, co2_error_function_on_phases,
+    co2_error_function_on_emissions, co2_params_initial_guess,
+    _3rd_step=defaults.dfl.functions.calibrate_co2_params.enable_third_step,
+    _3rd_emissions=defaults.dfl.functions.calibrate_co2_params.third_step_against_emissions):
+    """
+    Calibrates the CO2 emission model parameters (a2, b2, a, b, c, l, l2, t, trg
+    ).
+
+    :param engine_coolant_temperatures:
+        Engine coolant temperature vector [°C].
+    :type engine_coolant_temperatures: numpy.array
+
+    :param co2_error_function_on_emissions:
+        Error function (according to co2 emissions time series) to calibrate the
+        CO2 emission model params.
+    :type co2_error_function_on_emissions: function
+
+    :param co2_error_function_on_phases:
+        Error function (according to co2 emissions phases) to calibrate the CO2
+        emission model params.
+    :type co2_error_function_on_phases: function
+
+    :param co2_params_initial_guess:
+        Initial guess of CO2 emission model params.
+    :type co2_params_initial_guess: Parameters
+
+    :param is_cycle_hot:
+        Is an hot cycle?
+    :type is_cycle_hot: bool
+
+    :return:
+        Calibrated CO2 emission model parameters (a2, b2, a, b, c, l, l2, t,
+        trg) and their calibration statuses.
+    :rtype: (lmfit.Parameters, list)
+    """
+
+    p = copy.deepcopy(co2_params_initial_guess)
+    vary = {k: v.vary for k, v in p.items()}
+    values = {k: v._val for k, v in p.items()}
+
+    cold = np.zeros_like(engine_coolant_temperatures, dtype=bool)
+    if not is_cycle_hot:
+        i = co2_utl.argmax(engine_coolant_temperatures >= p['trg'].value)
+        cold[:i] = True
+    hot = ~cold
+
+    success = [(True, copy.deepcopy(p))]
+
+    def calibrate(id_p, p, **kws):
+        _set_attr(p, id_p, default=False)
+        p, s = calibrate_model_params(co2_error_function_on_emissions, p, **kws)
+        _set_attr(p, vary)
+        success.append((s, copy.deepcopy(p)))
+        return p
+
+    cold_p = ['t0', 't1']
+    if hot.any():
+        _set_attr(p, ['t0', 't1'], default=0.0, attr='value')
+        p = calibrate(cold_p, p, sub_values=hot)
+    else:
+        success.append((True, copy.deepcopy(p)))
+
+    if cold.any():
+        _set_attr(p, {'t0': values['t0'], 't1': values['t1']}, attr='value')
+        hot_p = ['a2', 'a', 'b', 'c', 'l', 'l2']
+        p = calibrate(hot_p, p, sub_values=cold)
+    else:
+        success.append((True, copy.deepcopy(p)))
+        _set_attr(p, ['t0', 't1'], default=0.0, attr='value')
+        _set_attr(p, cold_p, default=False)
+
+    if _3rd_step:
+        #p = restrict_bounds(p)
+
+        if _3rd_emissions:
+            err = co2_error_function_on_emissions
+        else:
+            err = co2_error_function_on_phases
+        p, s = calibrate_model_params(err, p)
+
+    else:
+        s = True
+
+    success.append((s, copy.deepcopy(p)))
+    _set_attr(p, vary)
+
+    return p, success

@@ -1,0 +1,32 @@
+def calculate_full_load(full_load_speeds, full_load_powers, idle_engine_speed):
+    """
+    Calculates the full load curve.
+
+    :param full_load_speeds:
+        T1 map speed vector [RPM].
+    :type full_load_speeds: numpy.array
+
+    :param full_load_powers:
+        T1 map power vector [kW].
+    :type full_load_powers: numpy.array
+
+    :param idle_engine_speed:
+        Engine speed idle median and std [RPM].
+    :type idle_engine_speed: (float, float)
+
+    :return:
+        Vehicle full load curve, Maximum power [kW], Rated engine speed [RPM].
+    :rtype: (scipy.interpolate.InterpolatedUnivariateSpline, float, float)
+    """
+
+    pn = np.array((full_load_speeds, full_load_powers))
+    max_speed_at_max_power, max_power = pn[:, np.argmax(pn[1])]
+    pn[1] /= max_power
+    idle = idle_engine_speed[0]
+    pn[0] = (pn[0] - idle) / (max_speed_at_max_power - idle)
+
+    xp, fp = pn
+    func = functools.partial(
+        np.interp, xp=xp, fp=fp, left=fp[0], right=fp[-1]
+    )
+    return func, max_power, max_speed_at_max_power

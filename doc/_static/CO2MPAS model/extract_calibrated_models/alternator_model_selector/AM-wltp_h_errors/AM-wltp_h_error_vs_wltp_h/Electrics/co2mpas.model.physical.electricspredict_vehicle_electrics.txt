@@ -1,0 +1,56 @@
+def predict_vehicle_electrics(
+        electrics_model, initial_state_of_charge, times, gear_box_powers_in,
+        on_engine, engine_starts, accelerations):
+    """
+    Predicts alternator and battery currents, state of charge, and alternator
+    status.
+
+    :param electrics_model:
+        Electrics model.
+    :type electrics_model: function
+
+    :param initial_state_of_charge:
+        Initial state of charge of the battery [%].
+
+        .. note::
+
+            `initial_state_of_charge` = 99 is equivalent to 99%.
+    :type initial_state_of_charge: float
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
+
+    :param gear_box_powers_in:
+        Gear box power vector [kW].
+    :type gear_box_powers_in: numpy.array
+
+    :param on_engine:
+        If the engine is on [-].
+    :type on_engine: numpy.array
+
+    :param engine_starts:
+        When the engine starts [-].
+    :type engine_starts: numpy.array
+
+    :param accelerations:
+        Acceleration vector [m/s2].
+    :type accelerations: numpy.array
+
+    :return:
+        Alternator and battery currents, state of charge, and alternator status
+        [A, A, %, -].
+    :rtype: (numpy.array, numpy.array, numpy.array, numpy.array)
+    """
+
+    delta_times = np.append([0], np.diff(times))
+    o = (0, 0, None, initial_state_of_charge)
+    res = [o]
+    for x in zip(delta_times, gear_box_powers_in, accelerations, times,
+                 on_engine, engine_starts):
+        o = tuple(electrics_model(*(x + o[1:])))
+        res.append(o)
+
+    alt_c, alt_stat, bat_c, soc = zip(*res[1:])
+
+    return np.array(alt_c), np.array(bat_c), np.array(soc), np.array(alt_stat)

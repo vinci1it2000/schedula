@@ -1,0 +1,16 @@
+def default_ignition_type_v1(fuel_type):
+    """
+    Returns the default ignition type according to the fuel type.
+
+    :param fuel_type:
+        Fuel type (diesel, gasoline, LPG, NG, ethanol, biodiesel).
+    :type fuel_type: str
+
+    :return:
+        Engine ignition type (positive or compression).
+    :rtype: str
+    """
+
+    if 'diesel' in fuel_type:
+        return 'compression'
+    return 'positive'

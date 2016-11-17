@@ -1,0 +1,33 @@
+def correct_gear_box_torques_in(
+        gear_box_torques_out, gear_box_torques_in, gears, gear_box_ratios):
+    """
+    Corrects the torque when the gear box ratio is equal to 1.
+
+    :param gear_box_torques_out:
+        Torque gear_box vector [N*m].
+    :type gear_box_torques_out: numpy.array
+
+    :param gear_box_torques_in:
+        Torque required vector [N*m].
+    :type gear_box_torques_in: numpy.array
+
+    :param gears:
+        Gear vector [-].
+    :type gears: numpy.array
+
+    :param gear_box_ratios:
+        Gear box ratios [-].
+    :type gear_box_ratios: dict
+
+    :return:
+        Corrected Torque required vector [N*m].
+    :rtype: numpy.array
+    """
+
+    b = np.zeros_like(gears, dtype=bool)
+
+    for k, v in gear_box_ratios.items():
+        if v == 1:
+            b |= gears == k
+
+    return np.where(b, gear_box_torques_out, gear_box_torques_in)

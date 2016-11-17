@@ -1,0 +1,14 @@
+def get_gear_box_efficiency_constants(has_torque_converter):
+    """
+    Returns vehicle gear box efficiency constants (gbp00, gbp10, and gbp01).
+
+    :param has_torque_converter:
+        Gear box type (manual or automatic or cvt).
+    :type has_torque_converter: bool
+
+    :return:
+        Vehicle gear box efficiency constants (gbp00, gbp10, and gbp01).
+    :rtype: dict
+    """
+    PARAMS = defaults.dfl.functions.get_gear_box_efficiency_constants.PARAMS
+    return PARAMS[has_torque_converter]

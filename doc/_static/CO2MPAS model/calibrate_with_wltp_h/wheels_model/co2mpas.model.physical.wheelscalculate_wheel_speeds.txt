@@ -1,0 +1,18 @@
+def calculate_wheel_speeds(velocities, r_dynamic):
+    """
+    Calculates rotating speed of the wheels [RPM].
+
+    :param velocities:
+        Vehicle velocity [km/h].
+    :type velocities: numpy.array | float
+
+    :param r_dynamic:
+        Dynamic radius of the wheels [m].
+    :type r_dynamic: float
+
+    :return:
+        Rotating speed of the wheel [RPM].
+    :rtype: numpy.array | float
+    """
+
+    return velocities * (30.0 / (3.6 * math.pi * r_dynamic))

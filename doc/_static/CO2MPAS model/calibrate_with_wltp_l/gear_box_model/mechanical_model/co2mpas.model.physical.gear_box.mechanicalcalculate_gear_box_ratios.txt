@@ -1,0 +1,27 @@
+def calculate_gear_box_ratios(
+        velocity_speed_ratios, final_drive_ratio, r_dynamic):
+    """
+    Calculates gear box ratios [-].
+
+    :param velocity_speed_ratios:
+        Constant velocity speed ratios of the gear box [km/(h*RPM)].
+    :type velocity_speed_ratios: dict
+
+    :param final_drive_ratio:
+        Final drive ratio [-].
+    :type final_drive_ratio: float
+
+    :param r_dynamic:
+        Dynamic radius of the wheels [m].
+    :type r_dynamic: float
+
+    :return:
+        Gear box ratios [-].
+    :rtype: dict
+    """
+
+    c = final_drive_ratio * 30 / (3.6 * math.pi * r_dynamic)
+
+    svr = calculate_velocity_speed_ratios(velocity_speed_ratios)
+
+    return {k: v / c for k, v in svr.items() if k != 0}

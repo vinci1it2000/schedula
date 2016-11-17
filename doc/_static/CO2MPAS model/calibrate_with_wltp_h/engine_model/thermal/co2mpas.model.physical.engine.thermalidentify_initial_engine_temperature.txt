@@ -1,0 +1,14 @@
+def identify_initial_engine_temperature(engine_coolant_temperatures):
+    """
+    Identifies initial engine temperature [°C].
+
+    :param engine_coolant_temperatures:
+        Engine coolant temperature vector [°C].
+    :type engine_coolant_temperatures: numpy.array
+
+    :return:
+        Initial engine temperature [°C].
+    :rtype: float
+    """
+
+    return float(engine_coolant_temperatures[0])

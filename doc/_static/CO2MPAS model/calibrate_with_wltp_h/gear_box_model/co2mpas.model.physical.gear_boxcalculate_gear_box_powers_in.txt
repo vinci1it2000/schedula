@@ -1,0 +1,19 @@
+def calculate_gear_box_powers_in(gear_box_torques_in, gear_box_speeds_in):
+    """
+    Calculates gear box power [kW].
+
+    :param gear_box_torques_in:
+        Torque at the wheel [N*m].
+    :type gear_box_torques_in: numpy.array | float
+
+    :param gear_box_speeds_in:
+        Rotating speed of the wheel [RPM].
+    :type gear_box_speeds_in: numpy.array | float
+
+    :return:
+        Gear box power [kW].
+    :rtype: numpy.array | float
+    """
+    
+    from ..wheels import calculate_wheel_powers
+    return calculate_wheel_powers(gear_box_torques_in, gear_box_speeds_in)

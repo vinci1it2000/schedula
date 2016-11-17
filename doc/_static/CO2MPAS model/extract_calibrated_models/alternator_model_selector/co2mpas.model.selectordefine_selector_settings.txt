@@ -1,0 +1,2 @@
+def define_selector_settings(selector_settings, node_ids=()):
+    return tuple(selector_settings.get(k, {}) for k in node_ids)

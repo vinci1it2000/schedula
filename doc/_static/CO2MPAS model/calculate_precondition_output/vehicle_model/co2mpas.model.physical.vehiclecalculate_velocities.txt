@@ -1,0 +1,22 @@
+def calculate_velocities(times, obd_velocities):
+    """
+    Filters the obd velocities [km/h].
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
+
+    :param obd_velocities:
+        OBD velocity vector [km/h].
+    :type obd_velocities: numpy.array
+
+    :return:
+        Velocity vector [km/h].
+    :rtype: numpy.array
+    """
+
+    dt = float(np.median(np.diff(times)))
+    t = np.arange(times[0], times[-1] + dt, dt)
+    v = np.interp(t, times, obd_velocities)
+
+    return np.interp(times, t, pykalman.KalmanFilter().em(v).smooth(v)[0].T[0])

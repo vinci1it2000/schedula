@@ -1,0 +1,34 @@
+def calculate_brake_mean_effective_pressures(
+        engine_speeds_out, engine_powers_out, engine_capacity,
+        min_engine_on_speed):
+    """
+    Calculates engine brake mean effective pressure [bar].
+
+    :param engine_speeds_out:
+        Engine speed vector [RPM].
+    :type engine_speeds_out: numpy.array
+
+    :param engine_powers_out:
+        Engine power vector [kW].
+    :type engine_powers_out: numpy.array
+
+    :param engine_capacity:
+        Engine capacity [cm3].
+    :type engine_capacity: float
+
+    :param min_engine_on_speed:
+        Minimum engine speed to consider the engine to be on [RPM].
+    :type min_engine_on_speed: float
+
+    :return:
+        Engine brake mean effective pressure vector [bar].
+    :rtype: numpy.array
+    """
+
+    b = engine_speeds_out > min_engine_on_speed
+
+    p = np.zeros_like(engine_powers_out)
+    p[b] = engine_powers_out[b] / engine_speeds_out[b]
+    p[b] *= 1200000.0 / engine_capacity
+
+    return np.nan_to_num(p)

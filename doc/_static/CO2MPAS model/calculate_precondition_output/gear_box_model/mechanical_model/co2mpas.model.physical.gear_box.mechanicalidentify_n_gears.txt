@@ -1,0 +1,13 @@
+def identify_n_gears(gear_box_ratios):
+    """
+    Identify the number of gears [-].
+
+    :param gear_box_ratios:
+        Gear box ratios [-].
+    :type gear_box_ratios: dict
+
+    :return:
+        Number of gears [-].
+    :rtype: int
+    """
+    return len([k for k in gear_box_ratios if k > 0])

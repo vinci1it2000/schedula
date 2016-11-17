@@ -1,0 +1,34 @@
+def define_idle_model_detector(
+        velocities, engine_speeds_out, stop_velocity, min_engine_on_speed):
+    """
+    Defines idle engine speed model detector.
+
+    :param velocities:
+        Velocity vector [km/h].
+    :type velocities: numpy.array
+
+    :param engine_speeds_out:
+        Engine speed vector [RPM].
+    :type engine_speeds_out: numpy.array
+
+    :param stop_velocity:
+        Maximum velocity to consider the vehicle stopped [km/h].
+    :type stop_velocity: float
+
+    :param min_engine_on_speed:
+        Minimum engine speed to consider the engine to be on [RPM].
+    :type min_engine_on_speed: float
+
+    :return:
+        Idle engine speed model detector.
+    :rtype: sklearn.cluster.DBSCAN
+    """
+
+    b = (velocities < stop_velocity) & (engine_speeds_out > min_engine_on_speed)
+
+    x = engine_speeds_out[b, None]
+    eps = defaults.dfl.functions.define_idle_model_detector.EPS
+    model = _IdleDetector(eps=eps)
+    model.fit(x)
+
+    return model

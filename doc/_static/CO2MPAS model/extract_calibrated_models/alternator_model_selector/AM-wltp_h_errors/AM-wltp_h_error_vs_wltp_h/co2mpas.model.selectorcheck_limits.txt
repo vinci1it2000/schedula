@@ -1,0 +1,13 @@
+def check_limits(errors, up_limit=None, dn_limit=None):
+
+    status = {}
+
+    limit = _check_limit(up_limit, errors, check=lambda e, l: e <= l)
+    if limit:
+        status['up_limit'] = limit
+
+    limit = _check_limit(dn_limit, errors, check=lambda e, l: e >= l)
+    if limit:
+        status['up_limit'] = limit
+
+    return status

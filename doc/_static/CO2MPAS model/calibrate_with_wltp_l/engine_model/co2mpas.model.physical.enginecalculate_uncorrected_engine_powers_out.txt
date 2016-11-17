@@ -1,0 +1,63 @@
+def calculate_uncorrected_engine_powers_out(
+        times, engine_moment_inertia, clutch_tc_powers, engine_speeds_out,
+        on_engine, auxiliaries_power_losses, gear_box_type, on_idle,
+        alternator_powers_demand=None):
+    """
+    Calculates the uncorrected engine power [kW].
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
+
+    :param engine_moment_inertia:
+        Engine moment of inertia [kg*m2].
+    :type engine_moment_inertia: float
+
+    :param clutch_tc_powers:
+        Clutch or torque converter power [kW].
+    :type clutch_tc_powers: numpy.array
+
+    :param engine_speeds_out:
+        Engine speed [RPM].
+    :type engine_speeds_out: numpy.array
+
+    :param on_engine:
+        If the engine is on [-].
+    :type on_engine: numpy.array
+
+    :param auxiliaries_power_losses:
+        Engine torque losses due to engine auxiliaries [N*m].
+    :type auxiliaries_power_losses: numpy.array
+
+    :param gear_box_type:
+        Gear box type (manual or automatic or cvt).
+    :type gear_box_type: str
+
+    :param on_idle:
+        If the engine is on idle [-].
+    :type on_idle: numpy.array
+
+    :param alternator_powers_demand:
+        Alternator power demand to the engine [kW].
+    :type alternator_powers_demand: numpy.array, optional
+
+    :return:
+        Uncorrected engine power [kW].
+    :rtype: numpy.array
+    """
+
+    p, b = np.zeros_like(clutch_tc_powers, dtype=float), on_engine
+    p[b] = clutch_tc_powers[b]
+
+    if gear_box_type == 'manual':
+        p[on_idle & (p < 0)] = 0.0
+
+    p[b] += auxiliaries_power_losses[b]
+
+    if alternator_powers_demand is not None:
+        p[b] += alternator_powers_demand[b]
+
+    p_inertia = engine_moment_inertia / 2000 * (2 * math.pi / 60) ** 2
+    p += p_inertia * co2_utl.derivative(times, engine_speeds_out) ** 2
+
+    return p

@@ -1,0 +1,20 @@
+def correct_gear_v3(velocity_speed_ratios, idle_engine_speed):
+    """
+    Returns a function that does not correct the gear predicted.
+
+    :param velocity_speed_ratios:
+        Constant velocity speed ratios of the gear box [km/(h*RPM)].
+    :type velocity_speed_ratios: dict
+
+    :param idle_engine_speed:
+        Engine speed idle median and std [RPM].
+    :type idle_engine_speed: (float, float)
+
+    :return:
+        A function to correct the predicted gear.
+    :rtype: function
+    """
+
+    correct_gear = CorrectGear(velocity_speed_ratios, idle_engine_speed)
+    correct_gear.fit_basic_correct_gear()
+    return correct_gear

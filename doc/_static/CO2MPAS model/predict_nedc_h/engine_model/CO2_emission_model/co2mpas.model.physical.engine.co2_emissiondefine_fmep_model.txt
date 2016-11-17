@@ -1,0 +1,84 @@
+def define_fmep_model(
+    full_bmep_curve, engine_max_speed, engine_stroke, active_cylinder_ratios,
+    has_cylinder_deactivation, has_variable_valve_actuation, has_lean_burn,
+    has_exhausted_gas_recirculation, has_selective_catalytic_reduction,
+    engine_type):
+    """
+    Defines the vehicle FMEP model.
+
+    :param full_bmep_curve:
+        Vehicle full bmep curve.
+    :type full_bmep_curve: scipy.interpolate.InterpolatedUnivariateSpline
+
+    :param engine_max_speed:
+        Maximum allowed engine speed [RPM].
+    :type engine_max_speed: float
+
+    :param engine_stroke:
+        Engine stroke [mm].
+    :type engine_stroke: float
+
+    :param active_cylinder_ratios:
+        Possible active cylinder ratios [-].
+    :type active_cylinder_ratios: tuple[float]
+
+    :param has_cylinder_deactivation:
+        Does the engine have cylinder deactivation technology?
+    :type has_cylinder_deactivation: bool
+
+    :param has_variable_valve_actuation:
+        Does the engine feature variable valve actuation? [-].
+    :type has_variable_valve_actuation: bool
+
+    :param has_lean_burn:
+        Does the engine have lean burn technology?
+    :type has_lean_burn: bool
+
+    :param has_exhausted_gas_recirculation:
+        Does the engine have exhaust gas recirculation technology?
+    :type has_exhausted_gas_recirculation: bool
+
+    :param has_selective_catalytic_reduction:
+        Does the engine have selective catalytic reduction technology?
+    :type has_selective_catalytic_reduction: bool
+
+    :param engine_type:
+        Engine type (positive turbo, positive natural aspiration, compression).
+    :type engine_type: str
+
+    :return:
+        Vehicle FMEP model.
+    :rtype: FMEP
+    """
+
+    dfl = defaults.dfl.functions.define_fmep_model
+    acr_fbcp = dfl.acr_full_bmep_curve_percentage
+    lb_fbcp = dfl.lb_full_bmep_curve_percentage
+    egr_fbcp = dfl.egr_full_bmep_curve_percentage
+
+    acr_mps = dfl.acr_max_mean_piston_speeds_percentage * engine_max_speed
+    lb_mps = dfl.lb_max_mean_piston_speeds_percentage * engine_max_speed
+    egr_mps = dfl.egr_max_mean_piston_speeds_percentage * engine_max_speed
+
+
+    from . import calculate_mean_piston_speeds
+    bmep = calculate_mean_piston_speeds
+
+    model = FMEP(
+        full_bmep_curve,
+        active_cylinder_ratios=active_cylinder_ratios,
+        has_cylinder_deactivation=has_cylinder_deactivation,
+        acr_full_bmep_curve_percentage=acr_fbcp,
+        acr_max_mean_piston_speeds=bmep(acr_mps, engine_stroke),
+        has_variable_valve_actuation=has_variable_valve_actuation,
+        has_lean_burn=has_lean_burn,
+        lb_max_mean_piston_speeds=bmep(lb_mps, engine_stroke),
+        lb_full_bmep_curve_percentage=lb_fbcp,
+        has_exhausted_gas_recirculation=has_exhausted_gas_recirculation,
+        has_selective_catalytic_reduction=has_selective_catalytic_reduction,
+        egr_max_mean_piston_speeds=bmep(egr_mps, engine_stroke),
+        egr_full_bmep_curve_percentage=egr_fbcp,
+        engine_type=engine_type
+    )
+
+    return model

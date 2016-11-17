@@ -1,0 +1,37 @@
+def define_alternator_status_model(
+        state_of_charge_balance, state_of_charge_balance_window):
+    """
+    Defines the alternator status model.
+
+    :param state_of_charge_balance:
+        Battery state of charge balance [%].
+
+        .. note::
+
+            `state_of_charge_balance` = 99 is equivalent to 99%.
+    :type state_of_charge_balance: float
+
+    :param state_of_charge_balance_window:
+        Battery state of charge balance window [%].
+
+        .. note::
+
+            `state_of_charge_balance_window` = 2 is equivalent to 2%.
+    :type state_of_charge_balance_window: float
+
+    :return:
+        A function that predicts the alternator status.
+    :rtype: function
+    """
+
+    def bers_pred(X):
+        return [X[0][0] < 0]
+
+    model = Alternator_status_model(
+        charge_pred=lambda X: [X[0][0] == 1],
+        bers_pred=bers_pred,
+        min_soc=state_of_charge_balance - state_of_charge_balance_window / 2,
+        max_soc=state_of_charge_balance + state_of_charge_balance_window / 2
+    )
+
+    return model

@@ -1,0 +1,42 @@
+def define_idle_fuel_consumption_model(
+        idle_engine_speed, engine_capacity, engine_stroke,
+        engine_fuel_lower_heating_value, fmep_model,
+        idle_fuel_consumption=None):
+    """
+    Defines the idle fuel consumption model.
+
+    :param idle_engine_speed:
+        Engine speed idle median and std [RPM].
+    :type idle_engine_speed: (float, float)
+
+    :param engine_capacity:
+        Engine capacity [cm3].
+    :type engine_capacity: float
+
+    :param engine_stroke:
+        Engine stroke [mm].
+    :type engine_stroke: float
+
+    :param engine_fuel_lower_heating_value:
+        Fuel lower heating value [kJ/kg].
+    :type engine_fuel_lower_heating_value: float
+
+    :param fmep_model:
+        Engine FMEP model.
+    :type fmep_model: FMEP
+
+    :param idle_fuel_consumption:
+        Fuel consumption at hot idle engine speed [g/s].
+    :type idle_fuel_consumption: float, optional
+
+    :return:
+        Idle fuel consumption model.
+    :rtype: IdleFuelConsumptionModel
+    """
+
+    model = IdleFuelConsumptionModel(idle_fuel_consumption).fit(
+        idle_engine_speed, engine_capacity, engine_stroke,
+        engine_fuel_lower_heating_value, fmep_model
+    )
+
+    return model

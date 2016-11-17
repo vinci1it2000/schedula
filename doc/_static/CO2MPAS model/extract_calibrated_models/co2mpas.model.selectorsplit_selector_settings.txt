@@ -1,0 +1,3 @@
+def split_selector_settings(models_ids, selector_settings):
+    config = selector_settings.get('config', {})
+    return tuple(config.get(k, {}) for k in models_ids)

@@ -1,0 +1,16 @@
+def default_ignition_type(engine_type):
+    """
+    Returns the default ignition type according to the fuel type.
+
+    :param engine_type:
+        Engine type (positive turbo, positive natural aspiration, compression).
+    :type engine_type: str
+
+    :return:
+        Engine ignition type (positive or compression).
+    :rtype: str
+    """
+
+    if 'compression' in engine_type:
+        return 'compression'
+    return 'positive'

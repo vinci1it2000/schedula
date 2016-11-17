@@ -1,0 +1,26 @@
+def calibrate_gear_shifting_decision_tree(gears, *params):
+    """
+    Calibrates a decision tree classifier to predict gears.
+
+    :param gears:
+        Gear vector [-].
+    :type gears: numpy.array
+
+    :param params:
+        Time series vectors.
+    :type params: (numpy.array, ...)
+
+    :returns:
+        A decision tree classifier to predict gears.
+    :rtype: sklearn.tree.DecisionTreeClassifier
+    """
+
+    previous_gear = [gears[0]]
+
+    previous_gear.extend(gears[:-1])
+
+    tree = sk_tree.DecisionTreeClassifier(random_state=0)
+
+    tree.fit(np.column_stack((previous_gear,) + params), gears)
+
+    return tree

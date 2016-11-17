@@ -1,0 +1,49 @@
+def calculate_gear_box_efficiencies_torques_temperatures(
+        gear_box_loss_model, gear_box_powers_out, gear_box_speeds_in,
+        gear_box_speeds_out, gear_box_torques_out, initial_gear_box_temperature,
+        gears=None):
+    """
+    Calculates gear box efficiency [-], torque in [N*m], and temperature [°C].
+
+    :param gear_box_loss_model:
+        Gear box loss model.
+    :type gear_box_loss_model: GearBoxLosses
+
+    :param gear_box_powers_out:
+        Power at wheels vector [kW].
+    :type gear_box_powers_out: numpy.array
+
+    :param gear_box_speeds_in:
+        Engine speed vector [RPM].
+    :type gear_box_speeds_in: numpy.array
+
+    :param gear_box_speeds_out:
+        Wheel speed vector [RPM].
+    :type gear_box_speeds_out: numpy.array
+
+    :param gear_box_torques_out:
+        Torque gear_box vector [N*m].
+    :type gear_box_torques_out: numpy.array
+
+    :param initial_gear_box_temperature:
+        initial_gear_box_temperature [°C].
+    :type initial_gear_box_temperature: float
+
+    :param gears:
+        Gear vector [-].
+    :type gears: numpy.array, optional
+
+    :return:
+        Gear box efficiency [-], torque in [N*m], and temperature [°C] vectors.
+    :rtype: (numpy.array, numpy.array, numpy.array)
+
+    .. note:: Torque entering the gearbox can be from engine side
+       (power mode or from wheels in motoring mode).
+    """
+
+    temp, to_in, eff = gear_box_loss_model.predict(
+        gear_box_powers_out, gear_box_speeds_in, gear_box_speeds_out,
+        gear_box_torques_out, initial_gear_box_temperature, gears=gears
+    )
+
+    return temp, to_in, eff

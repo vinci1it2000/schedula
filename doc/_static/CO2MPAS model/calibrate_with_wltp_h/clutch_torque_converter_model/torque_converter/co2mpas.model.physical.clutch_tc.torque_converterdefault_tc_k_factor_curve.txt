@@ -1,0 +1,14 @@
+def default_tc_k_factor_curve():
+    """
+    Returns a default k factor curve for a generic torque converter.
+
+    :return:
+        k factor curve.
+    :rtype: function
+    """
+    from ..defaults import dfl
+    par = dfl.functions.default_tc_k_factor_curve
+    a = par.STAND_STILL_TORQUE_RATIO, par.LOCKUP_SPEED_RATIO
+
+    from . import define_k_factor_curve
+    return define_k_factor_curve(*a)

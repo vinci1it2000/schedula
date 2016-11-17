@@ -1,0 +1,53 @@
+def correct_gear_v2(
+        velocity_speed_ratios, engine_max_power, engine_max_speed_at_max_power,
+        idle_engine_speed, full_load_curve, road_loads, vehicle_mass,
+        max_velocity_full_load_correction):
+    """
+    Returns a function to correct the gear predicted according to
+    :func:`correct_gear_full_load`.
+
+    :param velocity_speed_ratios:
+        Constant velocity speed ratios of the gear box [km/(h*RPM)].
+    :type velocity_speed_ratios: dict
+
+    :param engine_max_power:
+        Maximum power [kW].
+    :type engine_max_power: float
+
+    :param engine_max_speed_at_max_power:
+        Rated engine speed [RPM].
+    :type engine_max_speed_at_max_power: float
+
+    :param idle_engine_speed:
+        Engine speed idle median and std [RPM].
+    :type idle_engine_speed: (float, float)
+
+    :param full_load_curve:
+        Vehicle full load curve.
+    :type full_load_curve: scipy.interpolate.InterpolatedUnivariateSpline
+
+    :param road_loads:
+        Cycle road loads [N, N/(km/h), N/(km/h)^2].
+    :type road_loads: list, tuple
+
+    :param vehicle_mass:
+        Vehicle mass [kg].
+    :type vehicle_mass: float
+
+    :param max_velocity_full_load_correction:
+        Maximum velocity to apply the correction due to the full load curve.
+    :type max_velocity_full_load_correction: float
+
+    :return:
+        A function to correct the predicted gear.
+    :rtype: function
+    """
+
+    correct_gear = CorrectGear(velocity_speed_ratios, idle_engine_speed)
+    correct_gear.fit_correct_gear_full_load(
+        engine_max_power, engine_max_speed_at_max_power, full_load_curve,
+        road_loads, vehicle_mass, max_velocity_full_load_correction
+    )
+    correct_gear.fit_basic_correct_gear()
+
+    return correct_gear

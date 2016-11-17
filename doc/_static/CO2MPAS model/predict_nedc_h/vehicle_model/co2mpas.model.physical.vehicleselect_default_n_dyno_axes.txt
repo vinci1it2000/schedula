@@ -1,0 +1,15 @@
+def select_default_n_dyno_axes(cycle_type):
+    """
+    Selects the default number of dyno axes[-].
+
+    :param cycle_type:
+        Cycle type (WLTP or NEDC).
+    :type cycle_type: str
+
+    :return:
+        Number of dyno axes [-].
+    :rtype: int
+    """
+    from .defaults import dfl
+    par = dfl.functions.select_default_n_dyno_axes
+    return par.DYNO_AXES.get(cycle_type.upper(), 2)

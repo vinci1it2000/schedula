@@ -1,0 +1,47 @@
+def calculate_state_of_charges(
+        battery_capacity, times, initial_soc, battery_currents,
+        max_battery_charging_current):
+    """
+    Calculates the state of charge of the battery [%].
+
+    :param battery_capacity:
+        Battery capacity [Ah].
+    :type battery_capacity: float
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
+
+    :param initial_soc:
+        Initial state of charge of the battery [%].
+    :type initial_soc: float
+
+    :param battery_currents:
+        Low voltage battery current vector [A].
+    :type battery_currents: numpy.array
+
+    :param max_battery_charging_current:
+        Maximum charging current of the battery [A].
+    :type max_battery_charging_current: float
+
+    :return:
+        State of charge of the battery [%].
+
+        .. note::
+
+            `state_of_charges` = 99 is equivalent to 99%.
+    :rtype: numpy.array
+    """
+
+    soc = [initial_soc]
+    c = battery_capacity * 36.0
+
+    bc = np.asarray(battery_currents)
+    bc[bc > max_battery_charging_current] = max_battery_charging_current
+    bc = (bc[:-1] + bc[1:]) * np.diff(times) / 2.0
+
+    for b in bc:
+        soc.append(soc[-1] + b / c)
+        soc[-1] = min(soc[-1], 100.0)
+
+    return np.asarray(soc)

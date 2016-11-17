@@ -1,0 +1,18 @@
+def calculate_declared_co2_emission(co2_emission_value, ki_factor):
+    """
+    Calculates the declared CO2 emission of the cycle [CO2g/km].
+
+    :param co2_emission_value:
+        CO2 emission value of the cycle [CO2g/km].
+    :type co2_emission_value: float
+
+    :param ki_factor:
+        Correction for vehicles with periodically regenerating systems [-].
+    :type ki_factor: float
+
+    :return:
+        Declared CO2 emission value of the cycle [CO2g/km].
+    :rtype: float
+    """
+
+    return co2_emission_value * ki_factor

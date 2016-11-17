@@ -1,0 +1,43 @@
+def calibrate_start_stop_model(
+        on_engine, velocities, accelerations, engine_coolant_temperatures,
+        state_of_charges):
+    """
+    Calibrates an start/stop model to predict if the engine is on.
+
+    :param on_engine:
+        If the engine is on [-].
+    :type on_engine: numpy.array
+
+    :param velocities:
+        Velocity vector [km/h].
+    :type velocities: numpy.array
+
+    :param accelerations:
+        Acceleration vector [m/s2].
+    :type accelerations: numpy.array
+
+    :param engine_coolant_temperatures:
+        Engine coolant temperature vector [°C].
+    :type engine_coolant_temperatures: numpy.array
+
+    :param state_of_charges:
+        State of charge of the battery [%].
+
+        .. note::
+
+            `state_of_charges` = 99 is equivalent to 99%.
+    :type state_of_charges: numpy.array
+
+    :return:
+        Start/stop model.
+    :rtype: function
+    """
+
+    soc = np.zeros_like(state_of_charges)
+    soc[0], soc[1:] = state_of_charges[0], state_of_charges[:-1]
+    model = StartStopModel()
+    model.fit(
+        on_engine, velocities, accelerations, engine_coolant_temperatures, soc
+    )
+
+    return model

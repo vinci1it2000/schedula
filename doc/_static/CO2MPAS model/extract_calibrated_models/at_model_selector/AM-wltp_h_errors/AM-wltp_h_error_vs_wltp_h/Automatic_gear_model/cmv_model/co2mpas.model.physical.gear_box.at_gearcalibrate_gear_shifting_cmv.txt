@@ -1,0 +1,43 @@
+def calibrate_gear_shifting_cmv(
+        correct_gear, gears, engine_speeds_out, velocities, accelerations,
+        velocity_speed_ratios, stop_velocity):
+    """
+    Calibrates a corrected matrix velocity to predict gears.
+
+    :param correct_gear:
+        A function to correct the predicted gear.
+    :type correct_gear: function
+
+    :param gears:
+        Gear vector [-].
+    :type gears: numpy.array
+
+    :param engine_speeds_out:
+        Engine speed vector [RPM].
+    :type engine_speeds_out: numpy.array
+
+    :param velocities:
+        Vehicle velocity [km/h].
+    :type velocities: numpy.array
+
+    :param accelerations:
+        Vehicle acceleration [m/s2].
+    :type accelerations: numpy.array
+
+    :param velocity_speed_ratios:
+        Constant velocity speed ratios of the gear box [km/(h*RPM)].
+    :type velocity_speed_ratios: dict
+
+    :param stop_velocity:
+        Maximum velocity to consider the vehicle stopped [km/h].
+    :type stop_velocity: float
+
+    :returns:
+        A corrected matrix velocity to predict gears.
+    :rtype: dict
+    """
+
+    cmv = CMV().fit(correct_gear, gears, engine_speeds_out, velocities,
+                    accelerations, velocity_speed_ratios, stop_velocity)
+
+    return cmv

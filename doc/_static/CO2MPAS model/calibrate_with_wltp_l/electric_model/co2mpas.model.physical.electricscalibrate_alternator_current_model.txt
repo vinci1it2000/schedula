@@ -1,0 +1,56 @@
+def calibrate_alternator_current_model(
+        alternator_currents, on_engine, times, state_of_charges,
+        alternator_statuses, gear_box_powers_in, accelerations,
+        alternator_initialization_time):
+    """
+    Calibrates an alternator current model that predicts alternator current [A].
+
+    :param alternator_currents:
+        Alternator current vector [A].
+    :type alternator_currents: numpy.array
+
+    :param on_engine:
+        If the engine is on [-].
+    :type on_engine: numpy.array
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
+
+    :param state_of_charges:
+        State of charge of the battery [%].
+
+        .. note::
+
+            `state_of_charges` = 99 is equivalent to 99%.
+    :type state_of_charges: numpy.array
+
+    :param alternator_statuses:
+        The alternator status (0: off, 1: on, due to state of charge, 2: on due
+        to BERS, 3: on and initialize battery) [-].
+    :type alternator_statuses: numpy.array
+
+    :param gear_box_powers_in:
+        Gear box power vector [kW].
+    :type gear_box_powers_in: numpy.array
+
+    :param accelerations:
+        Acceleration vector [m/s2].
+    :type accelerations: numpy.array
+
+    :param alternator_initialization_time:
+        Alternator initialization time delta [s].
+    :type alternator_initialization_time: float
+
+    :return:
+        Alternator current model.
+    :rtype: function
+    """
+    model = AlternatorCurrentModel()
+    model.fit(
+        alternator_currents, on_engine, times, state_of_charges,
+        alternator_statuses, gear_box_powers_in, accelerations,
+        init_time=alternator_initialization_time
+    )
+
+    return model

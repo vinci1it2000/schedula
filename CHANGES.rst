@@ -45,7 +45,7 @@ cars, respectively.
 
 .. Note:
    Actually *v1.4.1* is NOT published in *PyPi* due to corrupted ``.whl`` archive. 
-   *v1.4.2* has been published in its place.
+   *v1.4.2* has been published in its place, and *v1.4.3* in the site.
    
    
 Model-changes

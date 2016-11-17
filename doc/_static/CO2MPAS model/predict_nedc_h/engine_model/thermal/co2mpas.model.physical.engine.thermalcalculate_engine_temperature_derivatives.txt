@@ -1,0 +1,19 @@
+def calculate_engine_temperature_derivatives(
+        times, engine_coolant_temperatures):
+    """
+    Calculates the derivative of the engine temperature [°C/s].
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
+
+    :param engine_coolant_temperatures:
+        Engine coolant temperature vector [°C].
+    :type engine_coolant_temperatures: numpy.array
+
+    :return:
+        Derivative of the engine temperature [°C/s].
+    :rtype: numpy.array
+    """
+
+    return co2_utl.derivative(times, engine_coolant_temperatures, dx=4, order=7)

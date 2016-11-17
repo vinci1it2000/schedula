@@ -1,0 +1,6 @@
+def select_outputs(outputs, targets, results):
+
+    results = dsp_utl.selector(outputs, results, allow_miss=True)
+    results = dsp_utl.map_dict(dict(zip(outputs, targets)), results)
+    it = ((k, results[k]) for k in targets if k in results)
+    return collections.OrderedDict(it)

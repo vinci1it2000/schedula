@@ -1,0 +1,31 @@
+def calculate_engine_start_demand(
+        engine_moment_inertia, idle_engine_speed, alternator_efficiency,
+        delta_time_engine_starter):
+    """
+    Calculates the energy required to start the engine [kJ].
+
+    :param engine_moment_inertia:
+        Engine moment of inertia [kg*m2].
+    :type engine_moment_inertia: float
+
+    :param idle_engine_speed:
+        Idle engine speed and its standard deviation [RPM].
+    :type idle_engine_speed: (float, float)
+
+    :param alternator_efficiency:
+        Alternator efficiency [-].
+    :type alternator_efficiency: float
+
+    :param delta_time_engine_starter:
+        Time elapsed to turn on the engine with electric starter [s].
+    :type delta_time_engine_starter: float
+
+    :return:
+        Energy required to start engine [kJ].
+    :rtype: float
+    """
+
+    idle = idle_engine_speed[0] / 30.0 * math.pi
+    dt = delta_time_engine_starter  # Assumed time for engine turn on [s].
+
+    return engine_moment_inertia / alternator_efficiency * idle ** 2 / 2000 * dt

@@ -1,0 +1,25 @@
+def calculate_alternator_powers_demand(
+        alternator_nominal_voltage, alternator_currents, alternator_efficiency):
+    """
+    Calculates the alternator power demand to the engine [kW].
+
+    :param alternator_nominal_voltage:
+        Alternator nominal voltage [V].
+    :type alternator_nominal_voltage: float
+
+    :param alternator_currents:
+        Alternator current vector [A].
+    :type alternator_currents: numpy.array
+
+    :param alternator_efficiency:
+        Alternator efficiency [-].
+    :type alternator_efficiency: float
+
+    :return:
+        Alternator power demand to the engine [kW].
+    :rtype: numpy.array
+    """
+
+    c = alternator_nominal_voltage / (1000.0 * alternator_efficiency)
+
+    return np.maximum(-alternator_currents * c, 0.0)

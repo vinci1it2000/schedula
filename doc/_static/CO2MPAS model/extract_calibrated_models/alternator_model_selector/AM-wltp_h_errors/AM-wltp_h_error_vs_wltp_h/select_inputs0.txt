@@ -1,0 +1,59 @@
+def selector(keys, dictionary, copy=False, output_type='dict',
+             allow_miss=False):
+    """
+    Selects the chosen dictionary keys from the given dictionary.
+
+    :param keys:
+        Keys to select.
+    :type keys: list, tuple, set
+
+    :param dictionary:
+        A dictionary.
+    :type dictionary: dict
+
+    :param copy:
+        If True the output contains deep-copies of the values.
+    :type copy: bool
+
+    :param output_type:
+        Type of function output:
+
+            + 'list': a list with all values listed in `keys`.
+            + 'dict': a dictionary with any outputs listed in `keys`.
+            + 'values': if output length == 1 return a single value otherwise a
+                        tuple with all values listed in `keys`.
+
+        :type output_type: str, optional
+
+    :param allow_miss:
+        If True it does not raise when some key is missing in the dictionary.
+    :type allow_miss: bool
+
+    :return:
+        A dictionary with chosen dictionary keys if present in the sequence of
+        dictionaries. These are combined with :func:`combine_dicts`.
+    :rtype: dict
+
+    Example::
+
+        >>> from functools import partial
+        >>> fun = partial(selector, ['a', 'b'])
+        >>> sorted(fun({'a': 1, 'b': 2, 'c': 3}).items())
+        [('a', 1), ('b', 2)]
+    """
+
+    if not allow_miss:
+        def check(key):
+            return True
+    else:
+        def check(key):
+            return key in dictionary
+
+    if output_type == 'list':  # Select as list.
+        res = [dictionary[k] for k in keys if check(k)]
+        return deepcopy(res) if copy else res
+    elif output_type == 'values':
+        return bypass(*[dictionary[k] for k in keys if check(k)], copy=copy)
+
+    # Select as dict.
+    return bypass({k: dictionary[k] for k in keys if check(k)}, copy=copy)

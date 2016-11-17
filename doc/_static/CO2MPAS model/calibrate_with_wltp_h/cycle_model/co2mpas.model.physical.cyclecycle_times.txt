@@ -1,0 +1,20 @@
+def cycle_times(frequency, time_length):
+    """
+    Returns the time vector with constant time step [s].
+
+    :param frequency:
+        Time frequency [1/s].
+    :type frequency: float
+
+    :param time_length:
+        Length of the time vector [-].
+    :type time_length: float
+
+    :return:
+        Time vector [s].
+    :rtype: numpy.array
+    """
+
+    dt = 1 / frequency
+
+    return np.arange(0.0, time_length,  dtype=float) * dt

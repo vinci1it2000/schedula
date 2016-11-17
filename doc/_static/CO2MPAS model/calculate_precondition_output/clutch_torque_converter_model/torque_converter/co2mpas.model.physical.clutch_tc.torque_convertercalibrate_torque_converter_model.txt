@@ -1,0 +1,50 @@
+def calibrate_torque_converter_model(
+        lock_up_tc_limits, calibration_tc_speed_threshold, stop_velocity,
+        torque_converter_speeds_delta, accelerations, velocities,
+        gear_box_speeds_in, gears):
+    """
+    Calibrate torque converter model.
+
+    :param lock_up_tc_limits:
+        Limits (vel, acc) when torque converter is active [km/h, m/s].
+    :type lock_up_tc_limits: (float, float)
+
+    :param calibration_tc_speed_threshold:
+        Calibration torque converter speeds delta threshold [RPM].
+    :type calibration_tc_speed_threshold: float
+
+    :param stop_velocity:
+        Maximum velocity to consider the vehicle stopped [km/h].
+    :type stop_velocity: float
+
+    :param torque_converter_speeds_delta:
+        Engine speed delta due to the torque converter [RPM].
+    :type torque_converter_speeds_delta: numpy.array
+
+    :param accelerations:
+        Acceleration vector [m/s2].
+    :type accelerations: numpy.array
+
+    :param velocities:
+        Velocity vector [km/h].
+    :type velocities: numpy.array
+
+    :param gear_box_speeds_in:
+        Gear box speed vector [RPM].
+    :type gear_box_speeds_in: numpy.array
+
+    :param gears:
+        Gear vector [-].
+    :type gears: numpy.array
+
+    :return:
+        Torque converter model.
+    :rtype: TorqueConverter
+    """
+
+    model = TorqueConverter()
+    model.fit(lock_up_tc_limits, calibration_tc_speed_threshold,
+              stop_velocity, torque_converter_speeds_delta,
+              accelerations, velocities, gear_box_speeds_in, gears)
+
+    return model

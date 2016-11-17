@@ -1,0 +1,14 @@
+def check_vehicle_has_sufficient_power(missing_powers):
+    """
+    Checks if the vehicle has sufficient power.
+
+    :param missing_powers:
+        Missing powers [kW].
+    :type missing_powers: numpy.array
+
+    :return:
+        If the vehicle has sufficient power.
+    :rtype: bool
+    """
+
+    return not missing_powers.any()

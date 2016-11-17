@@ -1,0 +1,25 @@
+def calculate_engine_max_torque(
+        engine_max_power, engine_max_speed_at_max_power, ignition_type):
+    """
+    Calculates engine nominal torque [N*m].
+
+    :param engine_max_power:
+        Engine nominal power [kW].
+    :type engine_max_power: float
+
+    :param engine_max_speed_at_max_power:
+        Engine nominal speed at engine nominal power [RPM].
+    :type engine_max_speed_at_max_power: float
+
+    :param ignition_type:
+        Engine ignition type (positive or compression).
+    :type ignition_type: str
+
+    :return:
+        Engine nominal torque [N*m].
+    :rtype: float
+    """
+
+    c = defaults.dfl.functions.calculate_engine_max_torque.PARAMS[ignition_type]
+    pi = math.pi
+    return engine_max_power / engine_max_speed_at_max_power * 30000.0 / pi * c

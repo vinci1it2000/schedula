@@ -1,0 +1,36 @@
+def calculate_cold_start_speeds_delta(
+        cold_start_speed_model, on_engine, engine_coolant_temperatures,
+        engine_speeds_out_hot, idle_engine_speed):
+    """
+    Calculates the engine speed delta and phases due to the cold start [RPM, -].
+
+    :param cold_start_speed_model:
+        Cold start speed model.
+    :type cold_start_speed_model: function
+
+    :param on_engine:
+        If the engine is on [-].
+    :type on_engine: numpy.array
+
+    :param engine_coolant_temperatures:
+        Engine coolant temperature vector [°C].
+    :type engine_coolant_temperatures: numpy.array
+
+    :param engine_speeds_out_hot:
+        Engine speed at hot condition [RPM].
+    :type engine_speeds_out_hot: numpy.array
+
+    :param idle_engine_speed:
+        Engine speed idle median and std [RPM].
+    :type idle_engine_speed: (float, float)
+
+    :return:
+        Engine speed delta due to the cold start and its phases [RPM, -].
+    :rtype: numpy.array, numpy.array
+    """
+    idle = idle_engine_speed[0]
+    delta = cold_start_speed_model(
+        idle, on_engine, engine_coolant_temperatures, engine_speeds_out_hot
+    )
+
+    return delta

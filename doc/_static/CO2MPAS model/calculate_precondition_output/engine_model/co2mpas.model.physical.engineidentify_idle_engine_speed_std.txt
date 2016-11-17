@@ -1,0 +1,38 @@
+def identify_idle_engine_speed_std(
+        idle_model_detector, engine_speeds_out, idle_engine_speed_median,
+        min_engine_on_speed):
+    """
+    Identifies standard deviation of idle engine speed [RPM].
+
+    :param idle_model_detector:
+        Idle engine speed model detector.
+    :type idle_model_detector: _IdleDetector
+
+    :param engine_speeds_out:
+        Engine speed vector [RPM].
+    :type engine_speeds_out: numpy.array
+
+    :param idle_engine_speed_median:
+        Idle engine speed [RPM].
+    :type idle_engine_speed_median: float
+
+    :param min_engine_on_speed:
+        Minimum engine speed to consider the engine to be on [RPM].
+    :type min_engine_on_speed: float
+
+    :return:
+        Standard deviation of idle engine speed [RPM].
+    :rtype: float
+    """
+    b = idle_model_detector.predict([(idle_engine_speed_median,)],
+                                    set_outliers=False)
+    b = idle_model_detector.predict(engine_speeds_out[:, None]) == b
+    b &= (engine_speeds_out > min_engine_on_speed)
+    idle_std = defaults.dfl.functions.identify_idle_engine_speed_std.MIN_STD
+    if not b.any():
+        return idle_std
+
+    s = np.sqrt(np.mean((engine_speeds_out[b] - idle_engine_speed_median) ** 2))
+
+    p = defaults.dfl.functions.identify_idle_engine_speed_std.MAX_STD_PERC
+    return min(max(s, idle_std), idle_engine_speed_median * p)

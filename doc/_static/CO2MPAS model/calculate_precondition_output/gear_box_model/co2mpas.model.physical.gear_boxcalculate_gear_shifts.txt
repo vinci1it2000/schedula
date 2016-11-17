@@ -1,0 +1,14 @@
+def calculate_gear_shifts(gears):
+    """
+    Returns when there is a gear shifting [-].
+
+    :param gears:
+        Gear vector [-].
+    :type gears: numpy.array
+
+    :return:
+        When there is a gear shifting [-].
+    :rtype: numpy.array
+    """
+
+    return np.append([False], np.diff(gears) != 0)

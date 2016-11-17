@@ -1,0 +1,69 @@
+def identify_gears(
+        times, velocities, accelerations, engine_speeds_out,
+        velocity_speed_ratios, stop_velocity, plateau_acceleration,
+        change_gear_window_width, idle_engine_speed):
+    """
+    Identifies gear time series [-].
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
+
+    :param velocities:
+        Velocity vector [km/h].
+    :type velocities: numpy.array
+
+    :param accelerations:
+        Acceleration vector [m/s2].
+    :type accelerations: numpy.array
+
+    :param engine_speeds_out:
+        Engine speed [RPM].
+    :type engine_speeds_out: numpy.array
+
+    :param velocity_speed_ratios:
+        Constant velocity speed ratios of the gear box [km/(h*RPM)].
+    :type velocity_speed_ratios: dict
+
+    :param stop_velocity:
+        Maximum velocity to consider the vehicle stopped [km/h].
+    :type stop_velocity: float
+
+    :param plateau_acceleration:
+        Maximum acceleration to be at constant velocity [m/s2].
+    :type plateau_acceleration: float
+
+    :param change_gear_window_width:
+        Time window used to apply gear change filters [s].
+    :type change_gear_window_width: float
+
+    :param idle_engine_speed:
+        Engine speed idle median and std [RPM].
+    :type idle_engine_speed: (float, float)
+
+    :return:
+        Gear vector identified [-].
+    :rtype: numpy.array
+    """
+
+    vsr = [v for v in velocity_speed_ratios.items() if v[0] != 0]
+
+    ratios = velocities / engine_speeds_out
+
+    idle_speed = (idle_engine_speed[0] - idle_engine_speed[1],
+                  idle_engine_speed[0] + idle_engine_speed[1])
+
+    ratios[engine_speeds_out < idle_speed[0]] = 0
+
+    id_gear = functools.partial(_identify_gear, idle_speed, vsr, stop_velocity,
+                                plateau_acceleration)
+
+    gear = list(map(id_gear, *(ratios, velocities, accelerations)))
+
+    gear = co2_utl.median_filter(times, gear, change_gear_window_width)
+
+    gear = _correct_gear_shifts(times, ratios, gear, velocity_speed_ratios)
+
+    gear = co2_utl.clear_fluctuations(times, gear, change_gear_window_width)
+
+    return gear

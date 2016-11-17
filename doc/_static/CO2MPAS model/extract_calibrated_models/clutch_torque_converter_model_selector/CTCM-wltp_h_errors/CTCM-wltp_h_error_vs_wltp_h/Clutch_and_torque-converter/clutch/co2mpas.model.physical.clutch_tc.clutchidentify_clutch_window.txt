@@ -1,0 +1,69 @@
+def identify_clutch_window(
+        times, accelerations, gear_shifts, engine_speeds_out,
+        engine_speeds_out_hot, cold_start_speeds_delta,
+        max_clutch_window_width):
+    """
+    Identifies clutching time window [s].
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
+
+    :param accelerations:
+        Acceleration vector [m/s2].
+    :type accelerations: numpy.array
+
+    :param gear_shifts:
+        When there is a gear shifting [-].
+    :type gear_shifts: numpy.array
+
+    :param engine_speeds_out:
+        Engine speed [RPM].
+    :type engine_speeds_out: numpy.array
+
+    :param engine_speeds_out_hot:
+        Engine speed at hot condition [RPM].
+    :type engine_speeds_out_hot: numpy.array
+
+    :param cold_start_speeds_delta:
+        Engine speed delta due to the cold start [RPM].
+    :type cold_start_speeds_delta: numpy.array
+
+    :param max_clutch_window_width:
+        Maximum clutch window width [s].
+    :type max_clutch_window_width: float
+
+    :return:
+        Clutching time window [s].
+    :rtype: tuple
+    """
+
+    if not gear_shifts.any():
+        return 0.0, 0.0
+
+    model = co2_utl._SafeRANSACRegressor(
+        base_estimator=sk_lim.LinearRegression(fit_intercept=False),
+        random_state=0
+    )
+
+    phs = functools.partial(calculate_clutch_phases, times, gear_shifts)
+
+    delta = engine_speeds_out - engine_speeds_out_hot - cold_start_speeds_delta
+    threshold = np.std(delta) * 2
+
+    def _error(v):
+        clutch_phases = phs(v) & ((-threshold > delta) | (delta > threshold))
+        if clutch_phases.any():
+
+            y = delta[clutch_phases]
+            # noinspection PyBroadException
+            try:
+                X = accelerations[clutch_phases, None]
+                return -model.fit(X, y).score(X, y)
+            except:
+                pass
+        return np.inf
+
+    dt = max_clutch_window_width / 2
+    Ns = int(dt / max(times[1] - times[0], 0.5)) + 1
+    return tuple(sci_opt.brute(_error, ((0, -dt), (0, dt)), Ns=Ns, finish=None))

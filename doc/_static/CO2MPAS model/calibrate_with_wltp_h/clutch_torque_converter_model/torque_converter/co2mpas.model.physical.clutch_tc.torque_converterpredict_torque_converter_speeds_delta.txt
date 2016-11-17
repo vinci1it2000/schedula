@@ -1,0 +1,40 @@
+def predict_torque_converter_speeds_delta(
+        lock_up_tc_limits, torque_converter_model, accelerations, velocities,
+        gear_box_speeds_in, gears):
+    """
+    Predicts engine speed delta due to the torque converter [RPM].
+
+    :param lock_up_tc_limits:
+        Limits (vel, acc) when torque converter is active [km/h, m/s].
+    :type lock_up_tc_limits: (float, float)
+
+    :param torque_converter_model:
+        Torque converter model.
+    :type torque_converter_model: TorqueConverter
+
+    :param accelerations:
+        Acceleration vector [m/s2].
+    :type accelerations: numpy.array
+
+    :param velocities:
+        Velocity vector [km/h].
+    :type velocities: numpy.array
+
+    :param gear_box_speeds_in:
+        Gear box speed vector [RPM].
+    :type gear_box_speeds_in: numpy.array
+
+    :param gears:
+        Gear vector [-].
+    :type gears: numpy.array
+
+    :return:
+        Engine speed delta due to the torque converter [RPM].
+    :rtype: numpy.array
+    """
+
+    X = np.column_stack(
+        (accelerations, velocities, gear_box_speeds_in, gears)
+    )
+
+    return torque_converter_model(lock_up_tc_limits, X)

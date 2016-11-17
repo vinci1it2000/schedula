@@ -1,0 +1,31 @@
+def identify_r_dynamic(
+        velocity_speed_ratios, gear_box_ratios, final_drive_ratio):
+    """
+    Identifies the dynamic radius of the wheels [m].
+
+    :param velocity_speed_ratios:
+        Constant velocity speed ratios of the gear box [km/(h*RPM)].
+    :type velocity_speed_ratios: dict
+
+    :param gear_box_ratios:
+        Gear box ratios [-].
+    :type gear_box_ratios: dict
+
+    :param final_drive_ratio:
+        Final drive ratio [-].
+    :type final_drive_ratio: float
+
+    :return:
+        Dynamic radius of the wheels [m].
+    :rtype: float
+    """
+
+    svr = gb_mec.calculate_speed_velocity_ratios(
+        gear_box_ratios, final_drive_ratio, 1
+    )
+
+    r = [svr[k] * vs for k, vs in velocity_speed_ratios.items() if k]
+
+    r_dynamic = co2_utl.reject_outliers(r)[0]
+
+    return r_dynamic

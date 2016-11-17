@@ -1,0 +1,29 @@
+def calculate_gear_box_speeds_in_v1(
+        gears, gear_box_speeds_out, gear_box_ratios):
+    """
+    Calculates Gear box speed vector [RPM].
+
+    :param gears:
+        Gear vector [-].
+    :type gears: numpy.array
+
+    :param gear_box_speeds_out:
+        Wheel speed vector [RPM].
+    :type gear_box_speeds_out: numpy.array
+
+    :param gear_box_ratios:
+        Gear box ratios [-].
+    :type gear_box_ratios: dict
+
+    :return:
+        Gear box speed vector [RPM].
+    :rtype: numpy.array
+    """
+
+    d = {0: 0.0}
+
+    d.update(gear_box_ratios)
+
+    ratios = np.vectorize(d.get)(gears)
+
+    return gear_box_speeds_out * ratios

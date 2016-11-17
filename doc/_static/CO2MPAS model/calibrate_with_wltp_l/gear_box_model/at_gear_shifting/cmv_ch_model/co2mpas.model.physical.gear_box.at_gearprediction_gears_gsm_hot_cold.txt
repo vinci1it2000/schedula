@@ -1,0 +1,69 @@
+def prediction_gears_gsm_hot_cold(
+        correct_gear, gear_filter, cycle_type, velocity_speed_ratios, gsm,
+        time_cold_hot_transition, times, velocities, accelerations,
+        wheel_powers=None):
+    """
+    Predicts gears with a gear shifting matrix (cmv or gspv) for cold and hot
+    phases [-].
+
+    :param correct_gear:
+        A function to correct the gear predicted.
+    :type correct_gear: function
+
+    :param gear_filter:
+        Gear filter function.
+    :type gear_filter: function
+
+    :param cycle_type:
+        Cycle type (WLTP or NEDC).
+    :type cycle_type: str
+
+    :param velocity_speed_ratios:
+        Constant velocity speed ratios of the gear box [km/(h*RPM)].
+    :type velocity_speed_ratios: dict
+
+    :param gsm:
+        A gear shifting matrix (cmv or gspv).
+    :type gsm: dict
+
+    :param time_cold_hot_transition:
+        Time at cold hot transition phase [s].
+    :type time_cold_hot_transition: float
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
+
+    :param velocities:
+        Vehicle velocity [km/h].
+    :type velocities: numpy.array
+
+    :param accelerations:
+        Vehicle acceleration [m/s2].
+    :type accelerations: numpy.array
+
+    :param wheel_powers:
+        Power at wheels vector [kW].
+
+        If None gears are predicted with cmv approach, otherwise with gspv.
+    :type wheel_powers: numpy.array, optional
+
+    :return:
+        Predicted gears [-].
+    :rtype: numpy.array
+    """
+
+    b = times <= time_cold_hot_transition
+
+    gears = []
+
+    for i in ['cold', 'hot']:
+        args = [correct_gear, gear_filter, cycle_type, velocity_speed_ratios,
+                gsm[i], velocities[b], accelerations[b], times[b]]
+        if wheel_powers is not None:
+            args.append(wheel_powers[b])
+
+        gears = np.append(gears, prediction_gears_gsm(*args))
+        b = ~b
+
+    return np.asarray(gears, dtype=int)

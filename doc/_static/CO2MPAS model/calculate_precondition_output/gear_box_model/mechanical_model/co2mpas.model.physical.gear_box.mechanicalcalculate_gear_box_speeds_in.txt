@@ -1,0 +1,37 @@
+def calculate_gear_box_speeds_in(
+        gears, velocities, velocity_speed_ratios, stop_velocity):
+    """
+    Calculates Gear box speed vector [RPM].
+
+    :param gears:
+        Gear vector [-].
+    :type gears: numpy.array
+
+    :param velocities:
+        Velocity vector [km/h].
+    :type velocities: numpy.array
+
+    :param velocity_speed_ratios:
+        Constant velocity speed ratios of the gear box [km/(h*RPM)].
+    :type velocity_speed_ratios: dict
+
+    :param stop_velocity:
+        Maximum velocity to consider the vehicle stopped [km/h].
+    :type stop_velocity: float
+
+    :return:
+        Gear box speed vector [RPM].
+    :rtype: numpy.array
+    """
+
+    speeds = np.array(velocities, dtype=float, copy=True)
+    n = velocities >= stop_velocity
+    b = ~n
+    for k, r in velocity_speed_ratios.items():
+        if r:
+            speeds[n & (gears == k)] /= r
+        else:
+            b |= gears == k
+
+    speeds[b] = 0.0
+    return speeds

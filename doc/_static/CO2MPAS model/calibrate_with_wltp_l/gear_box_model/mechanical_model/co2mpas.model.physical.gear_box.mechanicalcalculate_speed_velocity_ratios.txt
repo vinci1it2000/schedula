@@ -1,0 +1,29 @@
+def calculate_speed_velocity_ratios(
+        gear_box_ratios, final_drive_ratio, r_dynamic):
+    """
+    Calculates speed velocity ratios of the gear box [h*RPM/km].
+
+    :param gear_box_ratios:
+        Gear box ratios [-].
+    :type gear_box_ratios: dict
+
+    :param final_drive_ratio:
+        Final drive ratio [-].
+    :type final_drive_ratio: float
+
+    :param r_dynamic:
+        Dynamic radius of the wheels [m].
+    :type r_dynamic: float
+
+    :return:
+        Speed velocity ratios of the gear box [h*RPM/km].
+    :rtype: dict
+    """
+
+    c = final_drive_ratio * 30 / (3.6 * math.pi * r_dynamic)
+
+    svr = {k: c * v for k, v in gear_box_ratios.items()}
+
+    svr[0] = defaults.dfl.INF
+
+    return svr

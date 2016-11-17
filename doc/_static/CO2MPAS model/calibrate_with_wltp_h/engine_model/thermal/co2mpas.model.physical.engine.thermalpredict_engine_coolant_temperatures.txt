@@ -1,0 +1,44 @@
+def predict_engine_coolant_temperatures(
+        model, times, gear_box_powers_in, engine_speeds_out_hot, accelerations,
+        initial_temperature, max_engine_coolant_temperature):
+    """
+    Predicts the engine temperature [°C].
+
+    :param model:
+        Engine temperature regression model.
+    :type model: function
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
+
+    :param accelerations:
+        Acceleration vector [m/s2].
+    :type accelerations: numpy.array
+
+    :param gear_box_powers_in:
+        Gear box power vector [kW].
+    :type gear_box_powers_in: numpy.array
+
+    :param engine_speeds_out_hot:
+        Engine speed at hot condition [RPM].
+    :type engine_speeds_out_hot: numpy.array
+
+    :param initial_temperature:
+        Engine initial temperature [°C]
+    :type initial_temperature: float
+
+    :param max_engine_coolant_temperature:
+        Maximum engine coolant temperature [°C].
+    :type max_engine_coolant_temperature: float
+
+    :return:
+        Engine coolant temperature vector [°C].
+    :rtype: numpy.array
+    """
+
+    temp = model(np.diff(times), gear_box_powers_in, engine_speeds_out_hot,
+                 accelerations, initial_temperature=initial_temperature,
+                 max_temp=max_engine_coolant_temperature)
+
+    return temp

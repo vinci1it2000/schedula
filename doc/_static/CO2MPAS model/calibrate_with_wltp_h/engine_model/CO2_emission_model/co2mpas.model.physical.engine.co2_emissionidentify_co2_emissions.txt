@@ -1,0 +1,68 @@
+def identify_co2_emissions(
+        co2_emissions_model, params_initial_guess, times,
+        phases_integration_times, cumulative_co2_emissions,
+        co2_error_function_on_phases, engine_coolant_temperatures,
+        is_cycle_hot):
+    """
+    Identifies instantaneous CO2 emission vector [CO2g/s].
+
+    :param co2_emissions_model:
+        CO2 emissions model (co2_emissions = models(params)).
+    :type co2_emissions_model: function
+
+    :param params_initial_guess:
+        Initial guess of co2 emission model params.
+    :type params_initial_guess: dict
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
+
+    :param phases_integration_times:
+        Cycle phases integration times [s].
+    :type phases_integration_times: tuple
+
+    :param cumulative_co2_emissions:
+        Cumulative CO2 of cycle phases [CO2g].
+    :type cumulative_co2_emissions: numpy.array
+
+    :param co2_error_function_on_phases:
+        Error function (according to co2 emissions phases) to calibrate the CO2
+        emission model params.
+    :type co2_error_function_on_phases: function
+
+    :param engine_coolant_temperatures:
+        Engine coolant temperature vector [°C].
+    :type engine_coolant_temperatures: numpy.array
+
+    :param is_cycle_hot:
+        Is an hot cycle?
+    :type is_cycle_hot: bool
+
+    :return:
+        The instantaneous CO2 emission vector [CO2g/s].
+    :rtype: numpy.array
+    """
+
+    p = params_initial_guess
+    rescale = functools.partial(
+        _rescale_co2_emissions, co2_emissions_model, times,
+        phases_integration_times, cumulative_co2_emissions
+    )
+    dfl = defaults.dfl.functions.identify_co2_emissions
+    calibrate = functools.partial(
+        calibrate_co2_params, is_cycle_hot, engine_coolant_temperatures,
+        co2_error_function_on_phases, _3rd_step=dfl.enable_third_step,
+        _3rd_emissions=dfl.third_step_against_emissions
+    )
+    error_function = define_co2_error_function_on_emissions
+    co2, k0 = rescale(p)
+    n, xatol = dfl.n_perturbations, dfl.xatol
+    for i in range(n):
+        p = calibrate(error_function(co2_emissions_model, co2), p)[0]
+        co2, k1 = rescale(p)
+        if np.max(np.abs(k1 - k0)) <= xatol:
+            break
+        k0 = k1
+
+    return co2
