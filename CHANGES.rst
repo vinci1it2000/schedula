@@ -43,7 +43,11 @@ The study of this release's results are contained in these 3 reports:
 and `real <http://jrcstu.github.io/co2mpas/v1.4.x/validation_real_cases.html>`__
 cars, respectively.
 
-
+.. Note:
+   Actually *v1.4.1* is NOT published in *PyPi* due to corrupted ``.whl`` archive. 
+   *v1.4.2* has been published in its place.
+   
+   
 Model-changes
 -------------
 - :gh:`250`, :gh:`276`:
