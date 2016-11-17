@@ -969,8 +969,8 @@ Debugging and investigating results
      :height: 240
      :width: 320
 
-    >>> import co2mpas
-    >>> dsp = co2mpas.model.physical.wheels.wheels()
+    >>> from co2mpas.model.physical import wheels
+    >>> dsp = wheels.wheels()
 
 - Inspect the functions mentioned in the workflow and models and search them
   in `CO2MPAS documentation <http://co2mpas.io/>`_ ensuring you are
