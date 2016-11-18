@@ -13,7 +13,7 @@ v1.4.1, file-ver: 2.2.5, 17-November 2016: "Rally" release
    
 This |co2mpas| release contains both key model and software updates; additional capabilities have been added for the user, namely:
 
-- the **Declaration mode:** template & demo files now contain just the minimum inputs required to run under *Type Approval command (TA)*;
+- the **Declaration mode:** template & demo files now contain just the minimum inputs required to run under *Type Approval (TA)* command;
 - a **desktop GUI** to launch |co2mpas| and perform selected tasks (i.e. *simulate*, *datasync* time-series for a specific cycle, *generate templates*);
 - several model changes: 
   - improved handling of real-measurement data-series - results validated against 
@@ -69,12 +69,12 @@ Model-changes
 - :git:`228`:
   Add an option to bash cmd ``-D, --override`` to vary the data model from the
   cmd instead modifying the input file. Moreover with the new option
-  `--modelconf` also the constant parameters can be modified.
+  ``--modelconf`` also the constant parameters can be modified.
 
   The cmd options ``--out-template=<xlsx-file>``,  ``--plot-workflow``,
   ``--only-summary``, and ``--engineering-mode=<n>`` have been transformed as
   internal flags that can be input from the input file or from the cmd
-  (e.g., `-D flag.xxx`).
+  (e.g., ``-D flag.xxx``).
 
   Add special plan id ``run_base``. If it is false, the base model is just parsed
   but not evaluated.
@@ -197,6 +197,10 @@ Naming conventions
 
 Build Chores(build, site, etc)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- :gh:`189`: Open public GitHub repo; clone old releases.
+- Use `ReadTheDocs <https://co2mpas-ta.readthedocs.io/>`_ for automated building of project-site,
+  SSL-proxied by https://co2mpas.io.
+- Depracated 
 - Allow to run only under *Python-3.5*, set trove-classifiers accordingly.
 - Dependencies: +toolz, +Pillow, +openpyxl, +python-gnupg, +gitpython +keyring, +transitions, 
   -easygui, -cachetool, -cycler.
