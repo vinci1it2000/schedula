@@ -273,7 +273,7 @@ class DispatcherDocumenter(DataDocumenter):
     objtype = 'dispatcher'
     directivetype = 'data'
     option_spec = dict(DataDocumenter.option_spec)
-    option_spec.update(Graphviz.option_spec)
+    option_spec.update(_Graphviz.option_spec)
     option_spec.update({
         'description': bool_option,
         'opt': _dsp2dot_option,
