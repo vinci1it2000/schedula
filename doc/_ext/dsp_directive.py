@@ -1,17 +1,16 @@
+import co2mpas.dispatcher.utils as dsp_utl
+import os.path as osp
 from sphinx.ext.autodoc import *
+from sphinx.ext.graphviz import *
 from co2mpas.dispatcher import Dispatcher
-# noinspection PyProtectedMember
 from co2mpas.dispatcher.utils.drw import _func_name
-from co2mpas.dispatcher.utils.dsp import SubDispatch
-from co2mpas.dispatcher.utils.des import search_node_description, get_summary, \
-    parent_func
+from doctest import DocTestParser, DocTestRunner, NORMALIZE_WHITESPACE, ELLIPSIS
+from hashlib import sha1
+
+
 # ------------------------------------------------------------------------------
 # Doctest handling
 # ------------------------------------------------------------------------------
-from doctest import DocTestParser, DocTestRunner, NORMALIZE_WHITESPACE, ELLIPSIS
-import tempfile
-import os.path as osp
-from sphinxcontrib.fancybox import FancyboxDirective
 
 
 def contains_doctest(text):
@@ -24,6 +23,7 @@ def contains_doctest(text):
     r = re.compile(r'^\s*>>>', re.M)
     m = r.search(text)
     return bool(m)
+
 
 # ------------------------------------------------------------------------------
 # Auto dispatcher content
@@ -108,12 +108,18 @@ def _code(lines, documenter):
 
 
 def _plot(lines, dsp, dot_view_opt, documenter):
+    hashkey = (documenter.modname + str(documenter.code) +
+               str(sorted(dot_view_opt.items()))).encode('utf-8')
+    fname = 'dispatcher-%s' % sha1(hashkey).hexdigest()
+
     builder = documenter.env.app.builder
-    fpath = tempfile.mktemp(dir=osp.join(builder.outdir, builder.imagedir))
-    dot = dsp.plot(filename=fpath, **dot_view_opt)
-    rnd = dot.render(cleanup=True)
-    fpath = dot._relpath(rnd, osp.dirname(documenter.directive.reporter.source))
-    lines.extend(['.. fancybox:: %s' % fpath, ''])
+    fpath = osp.join(builder.outdir, builder.imagedir, fname)
+    opath = '%s.gv' % fpath
+    if not osp.isfile(opath):
+        dsp.plot(filename=fpath, **dot_view_opt).save()
+
+    dsource = osp.dirname(documenter.directive.reporter.source)
+    lines.extend(['.. graphviz:: %s' % osp.relpath(opath, dsource), ''])
 
 
 def _table_heather(lines, title, dsp_name):
@@ -122,7 +128,7 @@ def _table_heather(lines, title, dsp_name):
 
 
 def _data(lines, dsp):
-    if isinstance(dsp, SubDispatch):
+    if isinstance(dsp, dsp_utl.SubDispatch):
         dsp = dsp.dsp
 
     data = sorted(dsp.data_nodes.items())
@@ -130,25 +136,26 @@ def _data(lines, dsp):
         _table_heather(lines, 'data', dsp.name)
 
         for k, v in data:
-            des, link = search_node_description(k, v, dsp)
+            des, link = dsp_utl.search_node_description(k, v, dsp)
 
             link = ':obj:`%s <%s>`' % (_node_name(str(k)), link)
             str_format = u'   "%s", "%s"'
-            lines.append(str_format % (link, get_summary(des.split('\n'))))
+            lines.append(str_format % (link,
+                                       dsp_utl.get_summary(des.split('\n'))))
 
         lines.append('')
 
 
 def _functions(lines, dsp, function_module, node_type='function'):
-    if isinstance(dsp, SubDispatch):
+    if isinstance(dsp, dsp_utl.SubDispatch):
         dsp = dsp.dsp
     def check_fun(node_attr):
         if node_attr['type'] not in ('function', 'dispatcher'):
             return False
 
         if 'function' in node_attr:
-            func = parent_func(node_attr['function'])
-            c = isinstance(func, (Dispatcher, SubDispatch))
+            func = dsp_utl.parent_func(node_attr['function'])
+            c = isinstance(func, (Dispatcher, dsp_utl.SubDispatch))
             return c if node_type == 'dispatcher' else not c
         return node_attr['type'] == node_type
 
@@ -158,7 +165,7 @@ def _functions(lines, dsp, function_module, node_type='function'):
         _table_heather(lines, '%ss' % node_type, dsp.name)
 
         for k, v in fun:
-            des, full_name = search_node_description(k, v, dsp)
+            des, full_name = dsp_utl.search_node_description(k, v, dsp)
             name = _node_name(_func_name(k, function_module))
 
             lines.append(u'   ":func:`%s <%s>`", "%s"' % (name, full_name, des))
@@ -169,10 +176,6 @@ def _node_name(name):
     return name.replace('<', '\<').replace('>', '\>')
 
 
-# ------------------------------------------------------------------------------
-# Registration hook
-# ------------------------------------------------------------------------------
-
 PLOT = object()
 
 
@@ -181,13 +184,83 @@ def _dsp2dot_option(arg):
 
     # noinspection PyUnusedLocal
     def map_args(*args, **kwargs):
-        k = ['workflow', 'dot', 'edge_attr', 'view', 'depth', 'function_module']
+        k = ['workflow', 'dot', 'edge_attr', 'depth', 'function_module']
         kw = dict(zip(k, args))
         kw.update(kwargs)
         return kw
     kw = eval('map_args(%s)' % arg)
 
     return kw if kw else PLOT
+
+
+# ------------------------------------------------------------------------------
+# Graphviz override
+# ------------------------------------------------------------------------------
+
+
+class img(nodes.General, nodes.Element):
+    pass
+
+
+class _Graphviz(Graphviz):
+    img_opt = {
+        'height': directives.length_or_unitless,
+        'width': directives.length_or_percentage_or_unitless,
+    }
+    option_spec = Graphviz.option_spec.copy()
+    option_spec.update(img_opt)
+
+    def run(self):
+        node = super(_Graphviz, self).run()[0]
+        node['img_opt'] = dsp_utl.selector(self.img_opt, self.options,
+                                           allow_miss=True)
+        return [node]
+
+
+def render_dot_html(self, node, code, options, prefix='dispatcher',
+                    imgcls=None, alt=None):
+    format = self.builder.config.graphviz_output_format
+    try:
+        if format not in ('png', 'svg'):
+            raise GraphvizError("graphviz_output_format must be one of 'png', "
+                                "'svg', but is %r" % format)
+        fname, outfn = render_dot(self, code, options, format, prefix)
+    except GraphvizError as exc:
+        self.builder.warn('dot code %r: ' % code + str(exc))
+        raise nodes.SkipNode
+
+    if fname is None:
+        extend = [self.encode(code)]
+    else:
+        if alt is None:
+            alt = node.get('alt', self.encode(code).strip())
+
+        n = img('', src=fname, alt=alt, **node['img_opt'])
+        extend = [n]
+        if format != 'svg':
+            if imgcls:
+                n['class'] = imgcls
+            with open(outfn + '.map', 'rb') as mapfile:
+                imgmap = mapfile.readlines()
+                if len(imgmap) != 2:
+                    # has a map: get the name of the map and connect the parts
+                    mname = mapname_re.match(imgmap[0].decode('utf-8')).group(1)
+                    n['usemap'] = '#%s' % mname
+                    extend += [item.decode('utf-8') for item in imgmap]
+
+    self.body.extend(map(str, extend))
+
+    raise nodes.SkipNode
+
+
+def html_visit_graphviz(self, node):
+    warn_for_deprecated_option(self, node)
+    render_dot_html(self, node, node['code'], node['options'])
+
+
+# ------------------------------------------------------------------------------
+# Registration hook
+# ------------------------------------------------------------------------------
 
 
 class DispatcherDocumenter(DataDocumenter):
@@ -198,7 +271,7 @@ class DispatcherDocumenter(DataDocumenter):
     objtype = 'dispatcher'
     directivetype = 'data'
     option_spec = dict(DataDocumenter.option_spec)
-    option_spec.update(FancyboxDirective.option_spec)
+    option_spec.update(Graphviz.option_spec)
     option_spec.update({
         'description': bool_option,
         'opt': _dsp2dot_option,
@@ -219,7 +292,7 @@ class DispatcherDocumenter(DataDocumenter):
     @classmethod
     def can_document_member(cls, member, membername, isattr, parent):
         return (isinstance(parent, ModuleDocumenter)
-                and isinstance(member, (Dispatcher, SubDispatch)))
+                and isinstance(member, (Dispatcher, dsp_utl.SubDispatch)))
 
     def add_directive_header(self, sig):
         if not self.code:
@@ -295,6 +368,9 @@ def add_autodocumenter(app, cls):
 
 def setup(app):
     app.setup_extension('sphinx.ext.autodoc')
-    app.setup_extension('sphinxcontrib.fancybox')
+    app.setup_extension('sphinx.ext.graphviz')
+    app.add_node(graphviz, html=(html_visit_graphviz, None), override=True)
+    directives._directives.pop('graphviz', None)
+    app.add_directive('graphviz', _Graphviz)
     add_autodocumenter(app, DispatcherDocumenter)
     app.add_directive('dispatcher', DispatcherDirective)
