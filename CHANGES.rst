@@ -15,10 +15,12 @@ This |co2mpas| release contains both key model and software updates; additional 
 
 - the **Declaration mode:** template & demo files now contain just the minimum inputs required to run under *Type Approval (TA)* command;
 - a **desktop GUI** to launch |co2mpas| and perform selected tasks (i.e. *simulate*, *datasync* time-series for a specific cycle, *generate templates*);
-- several model changes: 
+- several **model changes**: 
+  
   - improved handling of real-measurement data-series - results validated against 
     real vehicles, are described in the `this release's validation report 
     <http://jrcstu.github.io/co2mpas/v1.4.x/validation_real_cases.html>`_;
+  
   - support of a series of **technologies**, some marked as "untested" due to the lack of 
     sufficient experimental data for their validation: 
     
@@ -1095,6 +1097,3 @@ Bugs reported from v0 with their status up to date:
    for relatively low negative engine power demands (engine power> -2kW)
 #. A 5 second start-stop anticipation should not occur in the case of A/T
    vehicles: **fixed**.
-
-   
-.. |co2mpas| replace:: CO\ :sub:`2`\ MPAS

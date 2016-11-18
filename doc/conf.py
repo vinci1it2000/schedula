@@ -56,6 +56,16 @@ extensions = [
     'dsp_directive',
 ]
 
+rst_epilog = """
+.. |co2mpas| replace:: CO\ :sub:`2`\ MPAS
+.. |CO2| replace:: CO\ :sub:`2`
+.. |clink| replace:: *Clink*
+.. _clink: http://mridgers.github.io/clink/
+.. |winpython| replace:: *WinPython*
+.. _winpython: https://winpython.github.io/
+.. |anaconda| replace:: *Anaconda*
+.. _anaconda: http://continuum.io/downloads
+"""
 autosummary_generate = True
 
 autodoc_member_order = 'bysource'
@@ -179,7 +189,7 @@ html_static_path = ['_static']
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
-html_last_updated_fmt = '%d/%m/%Y %H:%M:%S'
+html_last_updated_fmt = ''
 
 # If true, SmartyPants will be used to convert quotes and dashes to
 # typographically correct entities.
