@@ -328,19 +328,24 @@ class DspPlot(gviz.Digraph):
 
         name = name or dsp.name or '%s %d' % (type(dsp).__name__, id(dsp))
         self.nested = nested
+        prefix = 'workflow-' if self.workflow else 'dmap-'
+        filename = osp.join(directory or '', filename or '')
+        if not filename:
+            prefix += _encode_file_name(name[8:] if parent_dot else name)
+            filename = mkdtemp(self._default_extension, prefix)
 
-        if filename:
-            if directory is not None:
-                filename = osp.join(directory, filename)
-            directory, filename = osp.split(osp.abspath(filename))
-        else:
-            if directory is None:
-                directory = mkdtemp('')
+        directory, filename = osp.split(filename)
 
-            filename = _encode_file_name(name[8:] if parent_dot else name)
-
-        if osp.splitext(filename)[1] != self._default_extension:
+        directory = directory or '.'
+        if not osp.splitext(filename)[1]:
+            if not filename:
+                prefix += _encode_file_name(name[8:] if parent_dot else name)
+                filename = prefix
             filename = '%s.%s' % (filename, self._default_extension)
+
+        if osp.isfile(osp.join(directory, filename)):
+            filename = mktemp(self._default_extension, prefix, directory)
+
         name = self._html_encode(name)
         _body['label'] = _body['label'] % name
         body = combine_dicts(_body, body or {})
@@ -623,7 +628,6 @@ class DspPlot(gviz.Digraph):
         return True
 
     def set_sub_dsp(self, node_id, node_name, attr):
-        directory = 'workflow-%s' if self.workflow else 'dmap-%s'
         dot = self.__class__(
             obj=attr['solution'] if self.workflow else attr['function'],
             workflow=self.workflow,
@@ -632,7 +636,7 @@ class DspPlot(gviz.Digraph):
             node_data=self._node_data,
             node_function=self._node_function,
             name='cluster_%s' % node_name,
-            directory=directory % osp.splitext(self._filepath)[0],
+            directory=osp.splitext(self._filepath)[0],
             format=self.format,
             engine=self.engine,
             encoding=self.encoding,
