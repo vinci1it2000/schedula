@@ -229,14 +229,15 @@ def render_dot_html(self, node, code, options, prefix='dispatcher',
         self.builder.warn('dot code %r: ' % code + str(exc))
         raise nodes.SkipNode
 
+    extend = []
     if fname is None:
-        extend = [self.encode(code)]
+        extend += [self.encode(code)]
     else:
         if alt is None:
             alt = node.get('alt', self.encode(code).strip())
 
         n = img('', src=fname, alt=alt, **node['img_opt'])
-        extend = [n]
+        e = []
         if format != 'svg':
             if imgcls:
                 n['class'] = imgcls
@@ -246,9 +247,10 @@ def render_dot_html(self, node, code, options, prefix='dispatcher',
                     # has a map: get the name of the map and connect the parts
                     mname = mapname_re.match(imgmap[0].decode('utf-8')).group(1)
                     n['usemap'] = '#%s' % mname
-                    extend += [item.decode('utf-8') for item in imgmap]
+                    e += [item.decode('utf-8') for item in imgmap]
+        extend += ['<a href="{}">{}</a>'.format(fname, n)] + e
 
-    self.body.extend(map(str, extend))
+    self.body.extend(extend)
 
     raise nodes.SkipNode
 
