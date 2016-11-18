@@ -8,7 +8,7 @@
 ## Pure python libs from Setup + Build + Dev + Test requirements.
 setuptools-git >= 0.3
 wheel
-sphinx
+sphinx >= 1.4.8
 nose
 ddt
 sphinxcontrib-fancybox  # For dispatcher directive.
