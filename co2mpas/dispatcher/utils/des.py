@@ -12,7 +12,7 @@ It provides tools to find data, function, and sub-dispatcher node description.
 
 __author__ = 'Vincenzo Arcidiacono'
 
-__all__ = ['parent_func', 'search_node_description']
+__all__ = ['parent_func', 'search_node_description', 'get_summary']
 
 import re
 import logging

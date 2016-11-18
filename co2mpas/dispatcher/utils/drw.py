@@ -29,6 +29,7 @@ import html
 import logging
 from .des import parent_func, search_node_description
 from .alg import stlp
+from hashlib import sha1
 
 
 __author__ = 'Vincenzo Arcidiacono'
@@ -457,23 +458,22 @@ class DspPlot(gviz.Digraph):
         except KeyError:
             if 'URL' in kw:
                 fpath = urlparse.unquote(kw['URL'])
-
             else:
-                rpath = '%s.%s' % (_encode_file_name(node_id), ext)
-                rpath = osp.join(osp.splitext(osp.basename(self.filename))[0],
-                                 rpath)
-                rpath = rpath.replace('\\', '/')
-                fpath = osp.join(self.directory, rpath)
+                fpath = osp.join(
+                    osp.splitext(self._filepath)[0],
+                    '%s.%s' % (_encode_file_name(node_id), ext)
+                )
 
-            dpath = _UNC + osp.dirname(fpath)
-            fpath = uncpath(fpath)
-            if not osp.isdir(dpath):
-                os.makedirs(dpath)
-            elif osp.isfile(fpath):
-                fpath = mktemp(dir=dpath)
-
+            out = self.pprint(out)
+            dpath = osp.dirname(fpath)
+            if osp.isfile(fpath):
+                hashkey = sha1(out.encode('utf-8')).hexdigest()
+                fpath = osp.join(dpath, '%s.%s' % (hashkey, ext))
+            else:
+                os.makedirs(dpath, exist_ok=True)
             with open(fpath, 'w') as f:
-                f.write(self.pprint(out))
+                f.write(out)
+
             self._saved_outputs[id] = fpath
 
         return urlparse.quote('./%s' % self._relpath(fpath))
@@ -623,7 +623,7 @@ class DspPlot(gviz.Digraph):
         return True
 
     def set_sub_dsp(self, node_id, node_name, attr):
-
+        directory = 'workflow-%s' if self.workflow else 'dmap-%s'
         dot = self.__class__(
             obj=attr['solution'] if self.workflow else attr['function'],
             workflow=self.workflow,
@@ -632,8 +632,7 @@ class DspPlot(gviz.Digraph):
             node_data=self._node_data,
             node_function=self._node_function,
             name='cluster_%s' % node_name,
-            directory=osp.join(self.directory,
-                               osp.splitext(osp.basename(self.filename))[0]),
+            directory=directory % osp.splitext(self._filepath)[0],
             format=self.format,
             engine=self.engine,
             encoding=self.encoding,
