@@ -11,20 +11,32 @@ v1.4.1, file-ver: 2.2.5, 17-November 2016: "Rally" release
    :align: left
    :width: 480
    
-This *CO\ :sub:`2`MPAS* release contains both key model and software updates; additional capabilities have been added for the user, namely:
+This |co2mpas| release contains both key model and software updates; additional capabilities have been added for the user, namely:
 
--    the **Declaration mode:** template & demo files now contain just the minimum inputs required to run under *Type Approval command (TA)*;
--    a **desktop GUI** to launch *CO\ :sub:`2`MPAS* and perform selected tasks (i.e. *simulate*, *datasync* time-series for a specific cycle, *generate templates*);
-- several model changes improved the handling of real-measurement data-series:
-  - a series of **technologies** enabled, but "optional" due to the lack of sufficient 
-    experimental data for their validation: 
-    - cylinder deactivation for both petrol and diesel engines,
-    - exhaust gas recirculation for petrol engines,
-    - selective catalytic reduction for diesel engines and,
-    - gearbox thermal management for all gearbox types;
-    
-  - this release's results, validated against real vehicles, are described in the `validation report 
+- the **Declaration mode:** template & demo files now contain just the minimum inputs required to run under *Type Approval command (TA)*;
+- a **desktop GUI** to launch |co2mpas| and perform selected tasks (i.e. *simulate*, *datasync* time-series for a specific cycle, *generate templates*);
+- several model changes: 
+  - improved handling of real-measurement data-series - results validated against 
+    real vehicles, are described in the `this release's validation report 
     <http://jrcstu.github.io/co2mpas/v1.4.x/validation_real_cases.html>`_;
+  - support of a series of **technologies**, some marked as "untested" due to the lack of 
+    sufficient experimental data for their validation: 
+    
+    +----------------------------------------+-----------+-----------+
+    |                                        | petrol    | diesel    |
+    +========================================+===========+===========+
+    |      *Variable Valve Actuation (VVA):* |     X     |           |
+    +----------------------------------------+-----------+-----------+
+    |                           *Lean Burn:* |     X     |           |
+    +----------------------------------------+-----------+-----------+
+    |               *Cylinder Deactivation:* | untested  | untested  |
+    +----------------------------------------+-----------+-----------+
+    |     *Exhaust Gas Recirculation (EGR):* | untested  |     X     |
+    +----------------------------------------+-----------+-----------+
+    | *Selective Catalytic Reduction (SCR):* |           | untested  |
+    +----------------------------------------+-----------+-----------+
+    |          *Gearbox Thermal Management:* | untested  | untested  |
+    +----------------------------------------+-----------+-----------+
     
 - *enhancements and diagrams for the result files*, very few, *backward-compatible changes in the Input files*;
 - the project's sources are now *"practically" open* in *GitHub*, so 
@@ -32,15 +44,15 @@ This *CO\ :sub:`2`MPAS* release contains both key model and software updates; ad
 
   - sources are now served from *github*: https://github.com/JRCSTU/CO2MPAS-TA 
   - a **Wiki** hosting `*simple guidelines* <https://github.com/JRCSTU/CO2MPAS-TA/wiki/CO2MPAS-user-guidelines>`_ 
-    on how to download, install, and run the *CO\ :sub:`2`MPAS* software;
+    on how to download, install, and run the |co2mpas| software;
   - the `*Issues-tracker* <https://github.com/JRCSTU/CO2MPAS-TA/issues>`_ for collecting feedback, 
   - installation files distributed from `*Github-Releases page* <https://github.com/JRCSTU/CO2MPAS-TA/releases>`_ 
     (the https://files.co2mpas.io/ url has been deprecated).
 
 The study of this release's results are contained in these 3 reports:
-`manual <http://jrcstu.github.io/co2mpas/v1.4.x/validation_manual_cases.html>`__,
-`automatic <http://jrcstu.github.io/co2mpas/v1.4.x/validation_automatic_cases.html>`__,
-and `real <http://jrcstu.github.io/co2mpas/v1.4.x/validation_real_cases.html>`__
+`manual <http://jrcstu.github.io/co2mpas/v1.4.x/validation_manual_cases.html>`_,
+`automatic <http://jrcstu.github.io/co2mpas/v1.4.x/validation_automatic_cases.html>`_,
+and `real <http://jrcstu.github.io/co2mpas/v1.4.x/validation_real_cases.html>`_
 cars, respectively.
 
 .. Note:
@@ -197,7 +209,7 @@ Known Limitations
    time-series has been tested and found within expected ranges when
    *a single measured WLTP cycle is given as input* on each run - if both
    WLTP H & L cycles are given, even small changes in those paired time-series
-   may force the `model-selector <http://co2mpas.io/explanation.html#model-selection>`
+   may force the `model-selector <http://co2mpas.io/explanation.html#model-selection>`_
    to choose different combinations of calibrated model, thus arriving in
    significantly different fuel-consumption figures between the runs.
 2. **Theoretical WLTP**: The theoretical WLTP cycles produced MUST NOT
@@ -269,12 +281,12 @@ Thermal model
 Engine model
 ~~~~~~~~~~~~
 - :git:`bfbbb75`: Add ``auxiliaries_power_loss`` calculation node for engine
-  power losses due to engine auxiliaries [kW]. By default, no auxiliaries
+  power losses due to engine auxiliaries ``[kW]``. By default, no auxiliaries
   assumed (0 kW).
 - :git:`0816e64`: Add functions to calculate the ``max_available_engine_powers``
   and the ``missing_powers``. The latest tells if the vehicle has sufficient
   power to drive the cycle.
-- :git:`71baf52`: Add inverse function to calculate engine nominal power [kW]
+- :git:`71baf52`: Add inverse function to calculate engine nominal power ``[kW]``
   from ``engine_max_torque`` and ``engine_max_speed_at_max_power``.
 
 
@@ -282,7 +294,7 @@ Vehicle model
 ~~~~~~~~~~~~~
 - :git:`1a700b6`: Add function to treat ``obd_velocities`` and produce the
   ``velocities``. This function uses a Kalman Filter in order to smooth the
-  noise in the OBD velocities [km/h], and it takes a considerable time to run
+  noise in the OBD velocities ``[km/h]``, and it takes a considerable time to run
   (~5min is not uncommon, depending on the sampling frequency).
 - :git:`8ded622`: FIX acceleration when adjacent velocities are zero. This error
   was due to the interpolation function that does not like discontinuities.
@@ -747,7 +759,7 @@ Inputs:
 
 - Add `fuel_carbon_content` input values for each cycle.
 - Correct units in `initial_SOC_NEDC`.
-- Replace `Battery SOC [%]` time series with `target state_of_charges`.
+- Replace `Battery SOC [%]` time series with ``target state_of_charges``.
 - :gh:`61`, :gh:`119`: Add dyno type and driveline type (2WD, 4WD) for each cycle.
   Those are used to specify inertia coefficients and drivetrain efficiency
   (default efficiency for `final_drive_efficiency` changed to 0.98).(still open)
@@ -914,7 +926,7 @@ Model-changes in comparison to v1.0.1:
 
   - :gh:`23`: Add units and descriptions into output files as a 2nd header-line.
   - :gh:`36`, :gh:`37`: Add comparison-metrics into the summary (target vs output).
-    New cmd-line option [--only-summary] to skip saving vehicle-files.
+    New cmd-line option ``--only-summary`` to skip saving vehicle-files.
 
 - Miscellaneous:
 
@@ -1079,3 +1091,6 @@ Bugs reported from v0 with their status up to date:
    for relatively low negative engine power demands (engine power> -2kW)
 #. A 5 second start-stop anticipation should not occur in the case of A/T
    vehicles: **fixed**.
+
+   
+.. |co2mpas| replace:: CO\ :sub:`2`\ MPAS
