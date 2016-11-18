@@ -62,7 +62,15 @@ otherwise follow the detailed instructions under sections :ref:`install` and
     ## Launch GUI, select the edited template as Input, and click `Run`.
     $ co2mpas gui
 
-    ## Further command-line alternative:
+And the GUI pops up:
+
+.. image:: doc/_static/CO2MPAS_GUI.png
+   :width: 640
+
+Further command-line alternatives:
+
+.. code-block:: console
+
 
     ## To synchronize the Dyno and OBD data with the theoretical:
     $ datasync template --cycle wltp.class3b template.xlsx
