@@ -252,11 +252,6 @@ def nedc_cycle():
         initial_dist=10
     )
 
-    d.add_data(
-        data_id='time_sample_frequency',
-        default_value=dfl.values.time_sample_frequency
-    )
-
     d.add_function(
         function_id='nedc_gears',
         function=dsp_utl.add_args(nedc_gears),

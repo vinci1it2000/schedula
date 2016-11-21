@@ -409,11 +409,6 @@ def wltp_cycle():
         outputs=['base_model']
     )
 
-    d.add_data(
-        data_id='time_sample_frequency',
-        default_value=dfl.values.time_sample_frequency
-    )
-
     d.add_dispatcher(
         dsp=calculate_wltp_velocities(),
         inputs={

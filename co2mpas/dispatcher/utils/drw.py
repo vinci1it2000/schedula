@@ -11,7 +11,6 @@ It provides functions to plot dispatcher map and workflow.
 """
 
 import graphviz as gviz
-import os
 import os.path as osp
 import string
 import urllib.parse as urlparse
@@ -19,28 +18,52 @@ import pprint
 import inspect
 import platform
 import copy
-from tempfile import mkdtemp, mktemp
-from .cst import START, SINK, END, EMPTY, SELF, NONE, PLOT
-from .dsp import SubDispatch, SubDispatchFunction, combine_dicts, map_dict, \
-    combine_nested_dicts, selector
-from itertools import chain
-from functools import partial
+import tempfile
 import html
 import logging
+import functools
+import itertools
+import regex
+import socket
+import datetime
+import os
+import jinja2
+import pkg_resources
+import glob
+import shutil
+import weakref
+import flask
+import multiprocessing
+import dill
+import collections
+from docutils import nodes
+from .cst import START, SINK, END, EMPTY, SELF, NONE, PLOT
+from .dsp import SubDispatch, combine_dicts, map_dict, combine_nested_dicts, \
+    selector
 from .des import parent_func, search_node_description
 from .alg import stlp
-from hashlib import sha1
+from .gen import counter
 
 
 __author__ = 'Vincenzo Arcidiacono'
 
-__all__ = ['DspPlot']
+__all__ = ['DspPlot', 'SiteMap']
 
 log = logging.getLogger(__name__)
 
 PLATFORM = platform.system().lower()
 
 _UNC = u'\\\\?\\' if PLATFORM == 'windows' else ''
+
+
+class DspPlot(gviz.Digraph):
+    def __init__(self, sitemap, *args, **kwargs):
+        super(DspPlot, self).__init__(*args, **kwargs)
+        self.sitemap = sitemap
+
+    @property
+    def filepath(self):
+        return uncpath(os.path.join(self.directory, self.filename))
 
 
 def uncpath(p):
@@ -61,7 +84,7 @@ def _encode_file_name(s):
     return filename
 
 
-def _func_name(name, function_module=True):
+def _func_name(name, function_module=False):
     return name if function_module else name.split(':')[-1]
 
 
@@ -77,19 +100,145 @@ def _upt_styles(styles, base=None):
 def autoplot_function(kwargs):
     keys = sorted(kwargs, key=lambda x: (x is not PLOT, x))
     kw = combine_dicts(*selector(keys, kwargs, output_type='list'))
-    return partial(kw.pop('obj').plot, **kw)
+    return functools.partial(kw.pop('obj').plot, **kw)
 
 
 def autoplot_callback(value):
     value()
 
 
-class DspPlot(gviz.Digraph):
-    __node_attr = {'style': 'filled'}
-    __graph_attr = {}
-    __edge_attr = {}
-    __body = {'splines': 'ortho', 'style': 'filled'}
-    __node_styles = _upt_styles({
+class _Table(nodes.General, nodes.Element):
+    tagname = 'TABLE'
+
+    def adds(self, *items):
+        for item in items:
+            self += item
+        return self
+
+
+class _Tr(_Table):
+    tagname = 'TR'
+
+    def add(self, text, **attributes):
+        self += _Td(**attributes).add(text)
+        return self
+
+
+class _Td(nodes.General, nodes.Element):
+    tagname = 'TD'
+
+    def add(self, text):
+        self += nodes.Text(html.escape(text).replace('\n', '<BR/>'))
+        return self
+
+
+def jinja2_format(source, context=None, **kw):
+    return jinja2.Environment(**kw).from_string(source).render(context or {})
+
+
+def valid_filename(item, filenames, ext=None):
+    if ext == '':
+        _ = '%s'
+    else:
+        _ = '%s.{}'.format(ext or item.ext)
+    if isinstance(item, str):
+        _filename = item
+    else:
+        _filename = item._filename
+
+    filename, c = _ % _filename, counter()
+    while filename in filenames:
+        filename = _ % '{}-{}'.format(_filename, c())
+    return filename
+
+
+def update_filenames(node, filenames):
+    filename = valid_filename(node, filenames)
+    yield (node, None), filename
+    filenames.append(filename)
+    for file in node.extra_files:
+        filename, ext = osp.splitext(file)
+        filename = valid_filename(filename, filenames, ext=ext[1:])
+        yield (node, file), filename
+        filenames.append(filename)
+
+
+def site_view(app, node, filepath, context, generated_files):
+    static_folder = app.static_folder
+    fpath = osp.join(static_folder, filepath)
+    if not osp.isfile(fpath):
+        generated_files.extend(node.view(fpath, context))
+    fpath = osp.relpath(fpath, static_folder).replace('\\', '/')
+    return app.send_static_file(fpath)
+
+
+def render_output(out, pformat):
+    out = parent_func(out)
+    if inspect.isfunction(out):
+        # noinspection PyBroadException
+        try:
+            out = inspect.getsource(out)
+        except:
+            pass
+
+    if isinstance(out, (datetime.datetime, datetime.timedelta)):
+        out = str(out)
+
+    if isinstance(out, str):
+        return out
+
+    return pformat(out)
+
+
+class SiteNode(object):
+    counter = counter()
+    ext = 'txt'
+    pprint = pprint.PrettyPrinter(compact=True, width=200)
+
+    def __init__(self, folder, node_id, item):
+        self.folder = folder
+        self.node_id = node_id
+        self.item = item
+        self.id = str(self.counter())
+        self.extra_files = []
+
+    @property
+    def name(self):
+        try:
+            return parent_func(self.item).__name__
+        except AttributeError:
+            return self.node_id
+
+    @property
+    def title(self, module_name=False):
+        return _func_name(self.name, module_name)
+
+    @property
+    def _filename(self):
+        return _encode_file_name(self.title)
+
+    @property
+    def filename(self):
+        return '.'.join((self._filename, self.ext))
+
+    def __repr__(self):
+        return self.title
+
+    def render(self, *args, **kwargs):
+        return render_output(self.item, self.pprint.pformat)
+
+    def view(self, filepath, *args, **kwargs):
+        filepath = uncpath(filepath)
+        os.makedirs(osp.dirname(filepath), exist_ok=True)
+        with open(filepath, 'w') as f:
+            f.write(self.render(*args, **kwargs))
+        return filepath,
+
+
+class FolderNode(object):
+    counter = counter()
+
+    node_styles = _upt_styles({
         'info': {
             START: {'shape': 'egg', 'fillcolor': 'red', 'label': 'start'},
             SELF: {'shape': 'egg', 'fillcolor': 'gold', 'label': 'self'},
@@ -109,7 +258,8 @@ class DspPlot(gviz.Digraph):
                 'subdispatchpipe': {'shape': 'note', 'style': 'filled',
                                     'fillcolor': 'greenyellow'},
                 'dispatcher': {'shape': 'note', 'style': 'filled',
-                               'fillcolor': 'springgreen'}
+                               'fillcolor': 'springgreen'},
+                'edge': {None: None}
             }
         },
         'warning': {
@@ -119,7 +269,7 @@ class DspPlot(gviz.Digraph):
                 'subdispatch': {'fillcolor': 'orange'},
                 'subdispatchfunction': {'fillcolor': 'orange'},
                 'subdispatchpipe': {'fillcolor': 'orange'},
-                'dispatcher': {'fillcolor': 'orange'}
+                'dispatcher': {'fillcolor': 'orange'},
             }
         },
         'error': {
@@ -129,631 +279,699 @@ class DspPlot(gviz.Digraph):
                 'subdispatch': {'fillcolor': 'red'},
                 'subdispatchfunction': {'fillcolor': 'red'},
                 'subdispatchpipe': {'fillcolor': 'red'},
-                'dispatcher': {'fillcolor': 'red'}
+                'dispatcher': {'fillcolor': 'red'},
             }
         }
     })
-    __node_data = ('default', 'initial_dist', 'wait_inputs', 'function',
-                   'weight', 'remote_links', 'distance', 'error', 'output')
-    __node_function = ('input_domain', 'weight', 'M_inputs', 'M_outputs',
-                       'distance', 'started', 'duration', 'error')
-    __edge_data = ('inp_id', 'out_id', 'weight', 'value')
-    _pprinter = pprint.PrettyPrinter(compact=True, width=200)
 
-    def __init__(self, obj, workflow=False, nested=True, edge_data=(),
-                 node_data=(), node_function=(), draw_outputs=0, view=False,
-                 node_styles=None, depth=-1, function_module=False, name=None,
-                 comment=None, directory=None, filename=None, format='svg',
-                 engine=None, encoding=None, graph_attr=None, node_attr=None,
-                 edge_attr=None, body=None, parent_dot='', _saved_outputs=None):
-        """
-        Plots the Dispatcher with a graph in the DOT language with Graphviz.
+    node_data = (
+        '-', '.tooltip', '!default_values', 'wait_inputs', '+function',
+        'weight', 'remote_links', 'distance', '!error', '*output'
+    )
 
-        :param workflow:
-           If True the latest solution will be plotted, otherwise the dmap.
-        :type workflow: bool, optional
+    node_function = (
+        '-', '.tooltip', '+input_domain', 'weight',
+        'missing_inputs_outputs', 'distance', 'started', 'duration', '!error',
+        '*function'
+    )
 
-        :param view:
-            Open the rendered directed graph in the DOT language with the sys
-            default opener.
-        :type view: bool, optional
+    edge_data = ('?', 'inp_id', 'out_id', 'weight')
 
-        :param nested:
-            If False the sub-dispatcher nodes are plotted on the same graph,
-            otherwise they can be viewed clicking on the node that has an URL
-            link.
-        :type nested: bool, optional
+    node_map = {
+        '-': (), # Add title.
+        '?': (), # Optional title.
+        '': ('dot', 'table'), # item in the table.
+        '+': ('dot', 'table'), # link.
+        '!': ('dot', 'table'), # if str is big add a link, otherwise table.
+        '.': ('dot',),  # dot attr
+        '*': ('link',) # title link
+    }
+    re_node = regex.compile('^([.*+!]?)(\w+)$')
+    max_lines = 5
+    max_width = 200
+    pprint = pprint.PrettyPrinter(compact=True, width=200)
 
-        :param edge_data:
-            Edge attributes to view.
-        :type edge_data: tuple[str], optional
+    def __init__(self, folder, node_id, attr, **options):
+        self.folder = folder
+        self.node_id = node_id
+        attr = attr.copy()
+        if self.folder.workflow:
+            key_m = {'solution_domain': 'input_domain', 'solution': 'function'}
+            for k in key_m.values():
+                attr.pop(k, None)
+            attr = map_dict(key_m, attr)
+        self.attr = attr
+        self.id = str(self.counter())
+        self._links = {}
+        for k, v in options.items():
+            setattr(self, k, v)
 
-        :param node_data:
-            Data node attributes to view.
-        :type node_data: tuple[str], optional
+    @property
+    def title(self, module_name=False):
+        return _func_name(self.node_id, module_name)
 
-        :param node_function:
-            Function node attributes to view.
-        :type node_function: tuple[str], optional
+    @property
+    def type(self):
+        return self.attr.get('type', 'data')
 
-        :param draw_outputs:
-            It modifies the defaults data node and edge attributes to view.
-            If `draw_outputs` is:
+    def __repr__(self):
+        return self.title
 
-                - 1: node attribute 'output' is drawn.
-                - 2: edge attribute 'value' is drawn.
-                - 3: node 'output' and edge 'value' attributes are drawn.
-                - otherwise: node 'output' and edge 'value' attributes are not
-                  drawn.
-        :type draw_outputs: int, optional
-
-        :param node_styles:
-            Default node styles according to graphviz node attributes.
-        :type node_styles: dict[str|Token, dict[str, str]]
-
-        :param depth:
-            Depth of sub-dispatch plots. If negative all levels are plotted.
-        :type depth: int, optional
-
-        :param function_module:
-            If True the function labels are plotted with the function module,
-            otherwise only the function name will be visible.
-        :type function_module: bool, optional
-
-        :param name:
-            Graph name used in the source code.
-        :type name: str
-
-        :param comment:
-            Comment added to the first line of the source.
-        :type comment: str
-
-        :param directory:
-            (Sub)directory for source saving and rendering.
-        :type directory: str, optional
-
-        :param filename:
-            File name for saving the source.
-        :type filename: str, optional
-
-        :param format:
-            Rendering output format ('pdf', 'png', ...).
-        :type format: str, optional
-
-        :param engine:
-            Layout command used ('dot', 'neato', ...).
-        :type engine: str, optional
-
-        :param encoding:
-            Encoding for saving the source.
-        :type encoding: str, optional
-
-        :param graph_attr:
-            Dict of (attribute, value) pairs for the graph.
-        :type graph_attr: dict, optional
-
-        :param node_attr:
-            Dict of (attribute, value) pairs set for all nodes.
-        :type node_attr: dict, optional
-
-        :param edge_attr:
-            Dict of (attribute, value) pairs set for all edges.
-        :type edge_attr: dict, optional
-
-        :param body:
-            Dict of (attribute, value) pairs to add to the graph body.
-        :type body: dict, optional
-
-        :return:
-            A directed graph source code in the DOT language.
-        :rtype: graphviz.dot.Digraph
-
-        Example:
-
-        .. dispatcher:: dsp
-           :opt: graph_attr={'ratio': '1'}
-           :code:
-
-            >>> from co2mpas.dispatcher import Dispatcher
-            >>> dsp = Dispatcher(name='Dispatcher')
-            >>> def fun(a):
-            ...     return a + 1, a - 1
-            >>> dsp.add_function('fun', fun, ['a'], ['b', 'c'])
-            'fun'
-            >>> dsp.plot(view=False, graph_attr={'ratio': '1'})
-            <co2mpas.dispatcher.utils.drw.DspPlot object at 0x...>
-        """
-
-        from .sol import Solution
-        from .. import Dispatcher
-        from networkx import is_isolate
-        self._edge_data = edge_data
-        self._node_data = node_data
-        self._node_function = node_function
-        self._graph_attr = graph_attr
-        self._node_attr = node_attr
-        self._edge_attr = edge_attr
-        self._body = body
-
-        self.node_styles = _upt_styles(node_styles or {}, self.__node_styles)
-        self.depth = depth
-        self.draw_outputs = draw_outputs
-        self.function_module = function_module
-        self._saved_outputs = _saved_outputs or {}
-        self.workflow = workflow
-
-        inputs, outputs = (), ()
-        obj = parent_func(obj)
-
-        if isinstance(obj, Solution):
-            dsp, sol = obj.dsp, obj
-        elif isinstance(obj, SubDispatchFunction):
-            dsp, sol = obj.dsp, obj.solution
-            inputs, outputs = obj.inputs or (), obj.outputs or ()
-        elif isinstance(obj, SubDispatch):
-            dsp, sol = obj.dsp, obj.solution
-            if obj.output_type != 'all':
-                outputs = obj.outputs or ()
-        elif isinstance(obj, Dispatcher):
-            dsp, sol = obj, obj.solution
-        else:
-            raise ValueError('Type %s not supported.' % type(obj).__name__)
-
-        self.dsp = dsp
-
-        _body = self.__body.copy()
-        if workflow:
-            _body['label'] = '<%s workflow>'
-            self.g = g = sol.workflow
-            self.obj = sol
-        else:
-            _body['label'] = '<%s>'
-            self.g = g = dsp.dmap
-            self.obj = obj
-
-        draw_outputs = int(draw_outputs)
-        if draw_outputs == 1:
-            i, j = -1, None
-        elif draw_outputs == 2:
-            i, j = None, -1
-        elif draw_outputs == 3:
-            i = j = None
-        else:
-            i = j = -1
-
-        self.node_data = node_data or self.__node_data[:j]
-        self.node_function = node_function or self.__node_function
-        self.edge_data = tuple(k if k != 'weight' else dsp.weight
-                               for k in edge_data or self.__edge_data[:i])
-
-        name = name or dsp.name or '%s %d' % (type(dsp).__name__, id(dsp))
-        self.nested = nested
-        prefix = 'workflow-' if self.workflow else 'dmap-'
-        filename = osp.join(directory or '', filename or '')
-        if not filename:
-            prefix += _encode_file_name(name[8:] if parent_dot else name)
-            filename = mkdtemp(self._default_extension, prefix)
-
-        directory, filename = osp.split(filename)
-
-        directory = directory or '.'
-        if not osp.splitext(filename)[1]:
-            if not filename:
-                prefix += _encode_file_name(name[8:] if parent_dot else name)
-                filename = prefix
-            filename = '%s.%s' % (filename, self._default_extension)
-
-        if osp.isfile(osp.join(directory, filename)):
-            filename = mktemp(self._default_extension, prefix, directory)
-
-        name = self._html_encode(name)
-        _body['label'] = _body['label'] % name
-        body = combine_dicts(_body, body or {})
-        super(DspPlot, self).__init__(
-            name=name,
-            comment=comment,
-            filename=filename,
-            directory=directory,
-            format=format,
-            engine=engine,
-            encoding=encoding,
-            graph_attr=combine_dicts(self.__graph_attr, graph_attr or {}),
-            node_attr=combine_dicts(self.__node_attr, node_attr or {}),
-            edge_attr=combine_dicts(self.__edge_attr, edge_attr or {}),
-            body=['%s = %s' % (k, v) for k, v in body.items()]
-        )
-
-        self.id_map = self.get_id_map(parent_dot,
-                                      chain(g.node, inputs, outputs))
-
-        if not g.node or not (g.edge or inputs or outputs):
-            self._set_data_node(EMPTY, {})
-
-        if START in g.node or (inputs and START not in g.node):
-            self._set_data_node(START, {})
-
-        if outputs and END not in g.node:
-            self._set_data_node(END, {})
-
-        for k, v in sorted(g.node.items()):
-            if k not in dsp.nodes or (k is SINK and is_isolate(g, SINK)):
-                continue
-
-            self._set_node(k, v)
-
-        edges = {(u, v): a for u, v, a in g.edges_iter(data=True)}
-
-        for i, v in enumerate(inputs):
-            n = (START, v)
-            edges[n] = combine_dicts(edges.get(n, {}), {'inp_id': i})
-
-        for i, u in enumerate(outputs):
-            n = (u, END)
-            edges[n] = combine_dicts(edges.get(n, {}), {'out_id': i})
-
-        for (u, v), a in sorted(edges.items()):
-            self._set_edge(u, v, a)
-
-        if view:
-            self.render(cleanup=True, view=True)
-
-    def _set_edge(self, u, v, a):
-
-        if u != v:
-            kw = {}
-            try:
-                attr = combine_dicts(self.dsp.dmap.edge[u][v], a)
-            except KeyError:
-                attr = a.copy()
-
-            w = attr.get(self.dsp.weight, 2)
-            if w in (0, 1):
-                for k in (u, v):
-                    try:
-                        t = self.dsp.nodes[k]['type']
-                        if (t, w) in (('function', 1), ('dispatcher', 0)):
-                            attr.pop(self.dsp.weight)
-                            break
-                    except KeyError:
-                        pass
-
-            if attr and self.edge_data:
-                it = tuple((k, attr[k]) for k in self.edge_data if k in attr)
-                if len(self.edge_data) == 1 and it:
-                    kw['xlabel'] = self._html_table(it[0][1])
-                    kw['tooltip'] = self._html_encode(it[0][1])
-                elif it:
-                    kw['xlabel'] = self._html_table(None, it)
-                    kw['tooltip'] = ''
-
-            u, v = self.id_map[u], self.id_map[v]
-            self.edge(u, v, **kw)
-
-    def _set_node(self, node_id, a):
-        attr = combine_dicts(self.dsp.nodes.get(node_id, {}), a)
+    def yield_attr(self, name, *args, **kwargs):
         try:
-            attr['error'] = self.obj._errors[node_id]
-        except (AttributeError, KeyError):
+            yield name, self.attr[name]
+        except KeyError:
             pass
 
-        node_type = attr['type'] if attr else 'data'
-        if node_type in ('data', 'start'):
-            ret = self._set_data_node(node_id, attr)
-        else:
-            ret = self._set_function_node(node_id, attr)
-        if not ret:
-            raise ValueError('Setting node:%s' % node_id)
-        return True
+    def render_size(self, out):
+        lines = render_output(out, self.pprint.pformat).splitlines(True)
+        n, w = self.max_lines, self.max_width
+        return len(lines) <= n and not any(len(l) > w for l in lines)
 
-    def _get_style(self, node_id, dfl_styles, log='info'):
-        node_styles = self.node_styles.get(log, self.node_styles['info'])
+    def items(self):
+        check = self.render_size
+        for k, func in self.render_funcs():
+            if k and k in '*+':
+                yield from func()
+            elif k =='!':
+                yield from ((i, j)for i, j in func() if not check(j))
 
-        if node_id in node_styles:
-            return node_styles[node_id].copy()
-        else:
-            for style in dfl_styles:
-                try:
-                    return node_styles[NONE][style].copy()
-                except KeyError:
-                    pass
-
-    def _save_output(self, id, out, kw, node_id, ext='txt'):
+    def _tooltip(self):
         try:
-            fpath = self._saved_outputs[id]
-        except KeyError:
-            if 'URL' in kw:
-                fpath = urlparse.unquote(kw['URL'])
-            else:
-                fpath = osp.join(
-                    osp.splitext(self._filepath)[0],
-                    '%s.%s' % (_encode_file_name(node_id), ext)
-                )
+            tooltip = search_node_description(
+                self.node_id, self.attr, self.folder.dsp
+            )[0]
+        except (AttributeError, KeyError):
+            tooltip = None
+        yield 'tooltip', tooltip or self.title
 
-            out = self.pprint(out)
-            dpath = osp.dirname(fpath)
-            if osp.isfile(fpath):
-                hashkey = sha1(out.encode('utf-8')).hexdigest()
-                fpath = osp.join(dpath, '%s.%s' % (hashkey, ext))
-            else:
-                os.makedirs(dpath, exist_ok=True)
-            with open(fpath, 'w') as f:
-                f.write(out)
-
-            self._saved_outputs[id] = fpath
-
-        return urlparse.quote('./%s' % self._relpath(fpath))
-
-    def _relpath(self, fpath, start=None):
-        if start is None:
-            start = self.directory
-
-        if fpath.startswith(_UNC):
-            fpath = fpath[len(_UNC):]
-        return osp.relpath(fpath, start).replace('\\', '/')
-
-    def _set_data_node(self, node_id, attr):
-
-        dot_id = self.id_map[node_id]
+    def _wait_inputs(self):
+        attr = self.attr
         try:
-            tooltip = search_node_description(node_id, attr, self.dsp)[0]
-            tooltip = tooltip or node_id
+            if attr['type'] == 'data' and attr['wait_inputs']:
+                yield 'wait_inputs', True
         except KeyError:
-            tooltip = node_id
-        if 'error' in attr:
-            nstyle = 'error'
-        else:
-            nstyle = 'info'
+            pass
 
-        kw = self._get_style(node_id, ('data',), log=nstyle)
-        attr = attr.copy()
-        if not attr.get('wait_inputs', True):
-            attr.pop('wait_inputs')
-        dfl = self.dsp.default_values.get(node_id, {})
-        attr.update(map_dict({'value': 'default'}, dfl))
+    def _default_values(self):
+        try:
+            dfl = self.folder.dsp.default_values.get(self.node_id, {})
+            res = map_dict({'value': 'default'}, dfl)
 
-        if not attr.get('initial_dist', 1):
-            attr.pop('initial_dist')
+            if not res.get('initial_dist', 1):
+                res.pop('initial_dist')
+        except AttributeError:
+            res = {}
+        yield from sorted(res.items())
 
-        rl = []
-        for i, ((k, v), t) in enumerate(attr.pop('remote_links', [])):
-            n = 'remote %s %d' % (t, i)
-            rl.append(n)
-            attr[n] = self._get_link(k, v, node_id, t)
+    def _remote_links(self):
+        attr, item = self.attr, self.folder.item
+        for i, ((dsp_id, dsp), tag) in enumerate(attr.get('remote_links', [])):
+            tag = {'child': 'outputs', 'parent': 'inputs'}[tag]
+            dsp_attr, nid = dsp.nodes[dsp_id], self.node_id
+            if tag == 'inputs':
+                n = tuple(k for k, v in dsp_attr[tag].items() if nid in stlp(v))
+            else:
+                n = stlp(dsp_attr[tag][nid])
 
-        if node_id not in (START, SINK, SELF, END):
+            if len(n) == 1:
+                n = n[0]
             try:
-                attr['output'] = out = self.obj[node_id]
-                obj_id = id(out)
-                if inspect.isfunction(out):
-                    # noinspection PyBroadException
-                    try:
-                        attr['output'] = out = inspect.getsource(out)
-                    except:
-                        pass
+                obj = item.sub_dsp[dsp]
+            except (AttributeError, KeyError):
+                obj = dsp
 
-                kw['URL'] = self._save_output(obj_id, out, kw, node_id)
-            except (KeyError, TypeError):
+            n = '%s({})'.format(n)
+            n = 'ref({}, "{}", "{}", attr)'.format(id(obj), dsp_id, n)
+            yield 'remote %s %d' % (tag, i), '{{%s}}' %  n
+
+
+    def _output(self):
+        if self.node_id not in (START, SINK, SELF, END):
+            try:
+                out = self.folder.item[self.node_id]
+                yield 'output', out
+            except (KeyError, TypeError): # Output not in solution or item is not a solution.
                 pass
 
+    def _distance(self):
         try:
-            attr['distance'] = self.obj.dist[node_id]
+            yield 'distance', self.folder.item.dist[self.node_id]
         except (AttributeError, KeyError):
             pass
 
-        if 'label' not in kw:
-            it = []
-            for k in self.node_data:
-                if k in attr:
-                    it.append((k, attr[k]))
-                elif k == 'remote_links':
-                    it.extend((k, attr[k]) for k in sorted(rl))
-            kw['label'] = self._html_table(node_id, it)
+    def _weight(self):
+        try:
+            dsp = self.folder.dsp
+            yield 'weight', dsp.node[self.node_id][dsp.weight]
+        except (AttributeError, KeyError):
+            pass
 
-        if 'tooltip' not in kw:
-            kw['tooltip'] = self._html_encode(tooltip, compact=True)
+    def _missing_inputs_outputs(self):
+        attr, res = self.attr, {}
+        try:
+            if attr['wait_inputs']:
+                graph = self.folder.graph
+                pred, succ = graph.pred[self.node_id], graph.succ[self.node_id]
+                for i, j in (('inputs', pred), ('outputs', succ)):
+                    v = tuple(k for k in attr[i] if k not in j)
+                    if v:
+                        yield 'M_%s' % i, v
+        except (AttributeError, KeyError):
+            pass
 
-        self.node(dot_id, **kw)
+    def style(self):
+        attr = self.attr
 
-        return True
-
-    def _function_name(self, node_id):
-        return _func_name(node_id, self.function_module)
-
-    def _set_function_node(self, node_id, attr):
-        dot_id = self.id_map[node_id]
-        node_name = self._function_name(node_id)
-        tooltip = search_node_description(node_id, attr,
-                                          self.dsp)[0] or node_name
-
-        attr = attr.copy()
-        missing_io = self._missing_inputs_outputs(node_id, attr)
-        attr.update(missing_io)
         if 'error' in attr:
             nstyle = 'error'
-        elif missing_io:
+        elif list(self._missing_inputs_outputs()):
             nstyle = 'warning'
         else:
             nstyle = 'info'
 
-        try:
-            attr['input_domain'] = parent_func(attr['input_domain']).__name__
-        except (KeyError, AttributeError, TypeError):
-            pass
-        try:
-            func = parent_func(attr['function'])
-            obj_id = id(func)
-            dfl_styles = (type(func).__name__.lower(), 'function')
-            kw = self._get_style(node_id, dfl_styles, log=nstyle)
-            from .. import Dispatcher
-            if isinstance(func, (Dispatcher, SubDispatch)) and self.depth != 0:
-                dot = self.set_sub_dsp(node_id, node_name, attr)
-                if self.nested:
-                    rpath = './%s' % self._relpath(dot.render(cleanup=True))
-                    # noinspection PyUnresolvedReferences
-                    kw['URL'] = urlparse.quote(rpath)
-                else:
-                    self.subgraph(dot)
-            elif inspect.isfunction(func):
-                # noinspection PyBroadException
+        node_styles = self.node_styles.get(nstyle, self.node_styles['info'])
+        if self.node_id in node_styles:
+            node_style = node_styles[self.node_id].copy()
+            node_style.pop(None, None)
+            return node_style
+        else:
+            if self.type in ('dispatcher', 'function'):
+                ntype = 'function',
                 try:
-                    out = attr['function'] = inspect.getsource(func)
-                    kw['URL'] = self._save_output(obj_id, out, kw, node_id)
-                except:
+                    func = parent_func(attr['function'])
+                    ntype = (type(func).__name__.lower(),) + ntype
+                except (KeyError, AttributeError):
+                    pass
+            elif self.type == 'edge':
+                ntype = 'edge',
+            else:
+                ntype = 'data',
+            for style in ntype:
+                try:
+                    node_style = node_styles[NONE][style].copy()
+                    node_style.pop(None, None)
+                    return node_style
+                except KeyError:
                     pass
 
-        except (KeyError, TypeError):
-            kw = self._get_style(node_id, ('function',), log=nstyle)
+    def render_funcs(self):
+        if self.type in ('dispatcher', 'function'):
+            funcs = self.node_function
+        elif self.type == 'edge':
+            funcs = self.edge_data
+        else:
+            funcs = self.node_data
+        r, s, match = {}, '_%s', self.re_node.match
+        for f in funcs:
+            if f == '-' or f =='?':
+                yield f, lambda *args: self.title
+            else:
+                k, v = match(f).groups()
+                try:
+                    yield k, getattr(self, s % v)
+                except AttributeError:
+                    yield k, functools.partial(self.yield_attr, v)
 
+    def ref(self, context, child, default, template='%s', attr=None):
+        text, attr = template % default, attr or {}
         try:
-            attr['distance'] = self.obj.dist[node_id]
-        except (AttributeError, KeyError):
+            node, rule = context[child]
+            attr = attr.copy()
+            attr['href'] = urlparse.unquote('./%s' % osp.relpath(
+                rule, osp.dirname(context[id(self.folder.item)][1])
+            ).replace('\\', '/'))
+            text = template % node.title
+        except KeyError:
             pass
-        for k in ('started', 'duration'):
+
+        return 'Td(**{}).add("{}")'.format(attr, text)
+
+    def href(self, context, link_id):
+        res = {}
+        if link_id in self._links:
+            node = self._links[link_id]
+            res['text'] = node.title
             try:
-                attr[k] = str(attr[k])
+                res['href'] = urlparse.unquote(
+                    './%s' % osp.relpath(
+                        context[(node, None)],
+                        osp.dirname(context[(self.folder, None)])
+                    ).replace('\\', '/')
+                )
             except KeyError:
                 pass
+        return res
 
-        attr['inputs'] = self.pprint(attr['inputs'])
-        attr['outputs'] = self.pprint(attr['outputs'])
-
-        if 'label' not in kw:
-            it = ((k, attr[k]) for k in self.node_function if k in attr)
-            kw['label'] = self._html_table(node_name, it)
-
-        if 'tooltip' not in kw:
-            kw['tooltip'] = self._html_encode(tooltip, compact=True)
-
-        self.node(dot_id, **kw)
-        return True
-
-    def set_sub_dsp(self, node_id, node_name, attr):
-        dot = self.__class__(
-            obj=attr['solution'] if self.workflow else attr['function'],
-            workflow=self.workflow,
-            nested=self.nested,
-            edge_data=self._edge_data,
-            node_data=self._node_data,
-            node_function=self._node_function,
-            name='cluster_%s' % node_name,
-            directory=osp.splitext(self._filepath)[0],
-            format=self.format,
-            engine=self.engine,
-            encoding=self.encoding,
-            graph_attr=self._graph_attr,
-            node_attr=self._node_attr,
-            edge_attr=self._edge_attr,
-            body=combine_dicts(
-                self._body or {},
-                {'fillcolor': '"#FF8F0F80"',
-                 'label': '<%s>' % self._html_encode(node_name)}),
-            parent_dot='cluster_%s' % self.id_map[node_id],
-            depth=self.depth - 1,
-            function_module=self.function_module,
-            node_styles=self.node_styles,
-            _saved_outputs=self._saved_outputs,
-            draw_outputs=self.draw_outputs
+    def dot(self, context=None):
+        if context is None:
+            context = {}
+        dot = self.style()
+        if 'label' in dot:
+            return dot
+        key, val = dict(ALIGN="RIGHT", BORDER=1), dict(ALIGN="LEFT", BORDER=1)
+        rows, funcs, cnt = [], list(self.render_funcs()), {'attr': val}
+        cnt['ref'] = functools.partial(
+            self.ref, {id(k.item): (k, v)
+                       for (k, extra), v in context.items()
+                       if not extra}
         )
+        href, pformat, links = self.href, self.pprint.pformat, self._links
+        for k, func in funcs:
+            if k == '.':
+                dot.update(func())
+            elif not (k == '*' or k == '-' or k == '?'):
+                for i, j in func():
+                    tr = _Tr().add(i, **key)
+                    if i in links and (k == '!' or k == '+'):
+                        v = combine_dicts(val, {'text': j}, href(context, i))
+                        tr.add(**v)
+                    else:
+                        j = render_output(j, pformat)
+                        # noinspection PyBroadException
+                        try:
+                            tr += eval(jinja2_format(j, cnt))
+                        except:  # It is not a valid jinja2 format.
+                            tr.add(j, **val)
+
+                    rows.append(tr)
+
+        if any(k[0] == '-' or (rows and k[0] == '?') for k in funcs):
+            link_id = next((next(f())[0] for k, f in funcs if k == '*'), None)
+            kw = combine_dicts(
+                self.href(context, link_id),
+                {'COLSPAN': 2, 'BORDER': 0, 'text': self.title}
+            )
+            rows = [_Tr().add(**kw)] + rows
+
+        if rows:
+            k = 'xlabel' if self.type == 'edge' else 'label'
+            dot[k] = '<%s>' % _Table(BORDER=0, CELLSPACING=0).adds(rows)
 
         return dot
 
-    def _get_link(self, dsp_id, dsp, node_id, tag):
-        tag = {'child': 'outputs', 'parent': 'inputs'}[tag]
-        if tag == 'inputs':
-            n = tuple(k for k, v in dsp.nodes[dsp_id][tag].items()
-                      if node_id in stlp(v))
-        else:
-            n = stlp(dsp.nodes[dsp_id][tag][node_id])
 
-        if len(n) == 1:
-            n = n[0]
+class SiteFolder(object):
+    counter = SiteNode.counter
+    digraph = {
+        'node_attr': {'style': 'filled'},
+        'graph_attr': {},
+        'edge_attr': {},
+        'body': {'splines': 'ortho', 'style': 'filled'},
+        'format': 'svg'
+    }
+    folder_node = FolderNode
+    ext = 'svg'
 
-        return '{}:{}'.format(self._function_name(dsp_id), n)
-
-    @staticmethod
-    def get_id_map(parent_dot, nodes):
-        def id_node(o):
-            return html.unescape('%s%s' % (parent_dot, hash(o)))
-
-        tkn = [START, END, SINK, EMPTY, SELF]
-        return {k: id_node(k) for k in chain(nodes, tkn)}
+    def __init__(self, item, dsp, graph, name='', workflow=False,
+                 digraph=None, **options):
+        self.item, self.dsp, self.graph = item, dsp, graph
+        self._name = name
+        self.workflow = workflow
+        self.id = str(self.counter())
+        self.options = options
+        nodes = collections.OrderedDict(self._nodes)
+        self.nodes = list(nodes.values())
+        self.edges = [e for k, e in self._edges(nodes)]
+        self.sitemap = None
+        self.extra_files = []
+        if digraph is not None:
+            self.digraph = combine_dicts(self.__class__.digraph, digraph)
 
     @property
-    def filepath(self):
-        return uncpath(self._filepath)
+    def title(self, module_name=False):
+        return _func_name(self.name or '', module_name)
 
     @property
-    def _filepath(self):
-        return osp.join(self.directory, self.filename)
+    def _filename(self):
+        return _encode_file_name(self.title)
 
-    # noinspection PyMethodOverriding
-    def _view_windows(self, filepath):
-        """Start filepath with its associated application (windows)."""
+    @property
+    def filename(self):
+        return '.'.join((self._filename, self.ext))
+
+    def __repr__(self):
+        return self.title
+
+    @property
+    def inputs(self):
         try:
-            super(DspPlot, self)._view_windows(filepath)
-        except FileNotFoundError as ex:
-            if osp.isfile(filepath):
-                raise ValueError('The file path is too long. It cannot '
-                                 'be opened by Windows!')
-            else:
-                raise ex
+            return self.item.inputs or ()
+        except AttributeError:
+            return ()
+
+    @property
+    def outputs(self):
+        item = self.item
+        if not isinstance(item, SubDispatch) or item.output_type != 'all':
+            try:
+                return item.outpus or ()
+            except AttributeError:
+                pass
+        return ()
+
+    @property
+    def name(self):
+        if not self._name:
+            dsp = self.dsp
+            name = dsp.name or '%s %d' % (type(dsp).__name__, id(dsp))
+        else:
+            name = self._name
+        return name
+
+    @property
+    def label_name(self):
+        return '-'.join(('workflow' if self.workflow else 'dmap', self.title))
+
+    @property
+    def _nodes(self):
+        from networkx import is_isolate
+        nodes, item, graph = self.dsp.nodes, self.item, self.graph
+        try:
+            errors = item._errors
+        except AttributeError:
+            errors = {}
+
+        def nodes_filter(x):
+            k, v = x
+            return k in nodes and (k is not SINK or not is_isolate(graph, SINK))
+
+        it = dict(filter(nodes_filter, graph.node.items()))
+        if not nodes or not (graph.edge or self.inputs or self.outputs):
+            it[EMPTY] = {'index': (EMPTY,)}
+
+        if START in graph.node or (self.inputs and START not in graph.node):
+            it[START] = {'index': (START,)}
+
+        if self.outputs and END not in graph.node:
+            it[END] = {'index': (END,)}
+
+        for k, a in sorted(it.items()):
+            attr = combine_dicts(nodes.get(k, {}), a)
+            if k in errors:
+                attr['error'] = errors[k]
+
+            yield k, self.folder_node(self, k, attr, **self.options)
+
+    def _edges(self, nodes):
+        edges = self.graph.edges_iter(data=True)
+        edges = {(u, v): a for u, v, a in edges if u != v}
+
+        for i, v in enumerate(self.inputs):
+            if v != START:
+                n = (START, v)
+                edges[n] = combine_dicts(edges.get(n, {}), {'inp_id': i})
+
+        for i, u in enumerate(self.outputs):
+            if u != END:
+                n = (u, END)
+                edges[n] = combine_dicts(edges.get(n, {}), {'out_id': i})
+
+        for (u, v), a in edges.items():
+            base = {'type': 'edge', 'dot_ids': (nodes[u].id, nodes[v].id)}
+            a = combine_dicts(a, base=base)
+            yield (u, v), self.folder_node(self, '{} --> {}'.format(u, v), a)
+
+    def dot(self, context=None):
+        context = context or {}
+        kw = combine_nested_dicts(self.digraph, {
+            'name': self.title,
+            'body': {'label': '<%s>' % self.label_name}
+        })
+        kw['body'] = ['%s = %s' % (k, v) for k, v in sorted(kw['body'].items())]
+        dot = DspPlot(self.sitemap, **kw)
+        id_map = {}
+        for node in self.nodes:
+            id_map[node.node_id] = node.id
+            dot.node(node.id, **node.dot(context))
+
+        for edge in self.edges:
+            dot.edge(*edge.attr['dot_ids'], **edge.dot(context))
+        return dot
+
+    def view(self, filepath, context=None):
+        fpath, f = osp.splitext(filepath)
+        dot = self.dot(context=context)
+        dot.format = f[1:]
+        fpath = dot.render(
+            filename=tempfile.mktemp(dir=osp.dirname(filepath)), directory=None,
+            cleanup=True
+        )
+        upath = uncpath(filepath)
+        if osp.isfile(upath):
+            os.remove(upath)
+        os.rename(fpath, upath)
+        return filepath,
+
+
+class SiteIndex(SiteNode):
+    ext='html'
+
+    def __init__(self, sitemap, node_id='index'):
+        super(SiteIndex, self).__init__(None, node_id, None)
+        self.sitemap = sitemap
+        dfl_folder = osp.join(
+            pkg_resources.resource_filename(__name__, ''), 'static'
+        )
+        for default_file in glob.glob(dfl_folder + '/*'):
+            self.extra_files.append(osp.relpath(default_file, dfl_folder))
+
+    def render(self, context, *args, **kwargs):
+        pkg_dir = pkg_resources.resource_filename(__name__, '')
+        fpath = osp.join(pkg_dir, 'templates', self.filename)
+        with open(fpath, 'r') as myfile:
+            return jinja2_format(myfile.read(), {'sitemap': self.sitemap,
+                                                 'context': context},
+                                 loader=jinja2.PackageLoader(__name__))
+
+    def view(self, filepath, *args, **kwargs):
+        files = list(super(SiteIndex, self).view(filepath, *args, **kwargs))
+        folder = osp.dirname(filepath)
+        dfl_folder = osp.join(
+            pkg_resources.resource_filename(__name__, ''), 'static'
+        )
+        for default_file in glob.glob(dfl_folder + '/*'):
+            fpath = osp.join(folder, osp.relpath(default_file, dfl_folder))
+            fpath = uncpath(fpath)
+            if not osp.isfile(fpath):
+                os.makedirs(osp.dirname(fpath), exist_ok=True)
+                shutil.copy(default_file, fpath)
+                files.append(fpath)
+        return files
+
+
+def run_server(app, options):
+    app.run(**options)
+
+
+def cleanup(files):
+    while files:
+        fpath = files.pop()
+        try:
+            os.remove(fpath)
+        except FileNotFoundError:
+            pass
+        try:
+            os.removedirs(osp.dirname(fpath))
+        except OSError:  # The directory is not empty.
+            pass
+
+
+def shutdown_server(generated_files):
+    func = flask.request.environ.get('werkzeug.server.shutdown')
+    if func is None:
+        raise RuntimeError('Not running with the Werkzeug Server')
+    func()
+    cleanup(generated_files)
+    return 'Server shutting down...'
+
+
+def shutdown_site(url):
+    import requests
+    try:
+        requests.post('%s/shutdown' % url)
+    except requests.exceptions.ConnectionError:
+        pass
+
+
+class Site:
+    def __init__(self, sitemap, host='localhost', port=0, **kwargs):
+        self.sitemap = sitemap
+        self.kwargs = kwargs
+        self.host = host
+        self.port = port
+        self.shutdown = lambda: None
+
+    def get_port(self, host=None, port=None, **kw):
+        kw = kw.copy()
+        kw['host'] = self.host = host or self.host
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.bind((self.host, port or self.port))
+        kw['port'] = self.port = sock.getsockname()[1]
+        sock.close()
+        return kw
+
+    def _repr_html_(self):
+        from IPython.display import IFrame
+        self.run(host='localhost', port=0)
+        return IFrame(self.url, width='100%', height=500)._repr_html_()
+
+    @property
+    def url(self):
+        return 'http://{}:{}'.format(self.host, self.port)
+
+    def run(self, **options):
+        self.shutdown()
+        import threading
+        threading.Thread(
+            target=run_server,
+            args=(self.sitemap.app(**self.kwargs), self.get_port(**options))
+        ).start()
+        self.shutdown = weakref.finalize(self, shutdown_site, self.url)
+
+
+class SiteMap(collections.OrderedDict):
+    site_folder = SiteFolder
+    site_node = SiteNode
+    site_index = SiteIndex
+
+    def __init__(self):
+        super(SiteMap, self).__init__()
+        self._nodes = []
+        self.foldername = ''
+        self.index = self.site_index(self)
+
+    def __setitem__(self, key, value, *args, **kwargs):
+        filenames = self.index_filenames()
+        filenames += [v.foldername for k, v in self.items() if k is not key]
+        value.foldername = valid_filename(key, filenames, ext='')
+        super(SiteMap, self).__setitem__(key, value, *args, **kwargs)
+
+    def _repr_svg_(self):
+        dot = list(self)[-1].dot()
+        return dot.pipe(format='svg').decode(dot._encoding)
+
+    def index_filenames(self):
+        filenames = []
+        list(update_filenames(self.index, filenames))
+        return filenames
+
+    @property
+    def nodes(self):
+        return sorted(self._nodes, key=lambda x: x.title)
+
+    def rules(self, depth=-1, index=True):
+        filenames, rules = [], []
+        rules.extend(self._rules(depth=depth, filenames=filenames))
+        if index:
+            rules.extend(list(update_filenames(self.index, filenames))[::-1])
+        it = ((k, v.replace('\\', '/')) for k, v in reversed(rules))
+        return collections.OrderedDict(it)
+
+    def _rules(self, depth=-1, rule='', filenames=None):
+        if self.foldername:
+            rule = osp.join(rule, self.foldername)
+        if filenames is None:
+            filenames = []
+        filenames += [v.foldername for k, v in self.items()]
+        if depth != 0:
+            depth -= 1
+            for folder, smap in self.items():
+                yield from smap._rules(rule=rule, depth=depth)
+                for k, filename in update_filenames(folder, filenames):
+                    yield k, osp.join(rule, filename)
+
+        for node in self._nodes:
+            for k, filename in update_filenames(node, filenames):
+                yield k, osp.join(rule, filename)
+
+    def add_item(self, item, workflow=False, **options):
+        item = parent_func(item)
+        if workflow:
+            item = self.get_sol_from(item)
+            dsp, graph = item.dsp, item.workflow
+        else:
+            dsp = self.get_dsp_from(item)
+            graph = dsp.dmap
+
+        folder = self.site_folder(item, dsp, graph, workflow=workflow, **options)
+        folder.sitemap = smap = self[folder] = self.__class__()
+        return smap, folder
+
+    def add_items(self, item, workflow=False, depth=-1, **options):
+        smap, folder = self.add_item(item, workflow=workflow, **options)
+        if depth > 0:
+            depth -= 1
+        site_node, append = self.site_node, smap._nodes.append
+        add_items = functools.partial(smap.add_items, workflow=workflow)
+        for node in itertools.chain(folder.nodes, folder.edges):
+            links, node_id = node._links, node.node_id
+            for k, item in node.items():
+                try:
+                    if depth == 0:
+                        raise ValueError
+                    link = add_items(item, depth=depth, name=node_id)
+                except ValueError:  # item is not a dsp object.
+                    link = site_node(folder, '%s-%s' % (node_id, k), item)
+                    append(link)
+                links[k] = link
+
+        return folder
 
     @staticmethod
-    def _html_encode(s, depth=1, **kw):
-        if not isinstance(s, str):
-            s = pprint.pformat(s, depth=depth, **kw)
+    def get_dsp_from(item):
+        from .sol import Solution
+        from .. import Dispatcher
+        if isinstance(item, (Solution, SubDispatch)):
+            return item.dsp
+        elif isinstance(item, Dispatcher):
+            return item
+        raise ValueError('Type %s not supported.' % type(item).__name__)
 
-        return html.escape(s).replace('\n', '<BR/>')
+    @staticmethod
+    def get_sol_from(item):
+        from .sol import Solution
+        from .. import Dispatcher
+        if isinstance(item, (Dispatcher, SubDispatch)):
+            return item.solution
+        elif isinstance(item, Solution):
+            return item
+        raise ValueError('Type %s not supported.' % type(item).__name__)
 
-    def _html_table(self, name=None, kv=()):
-
-        label = '<<TABLE BORDER="0" CELLSPACING="0">'
-
-        if name is not None:
-            name = self._html_encode(name, width=40, compact=True)
-            label += '<TR><TD COLSPAN="2" BORDER="0">{}</TD></TR>'.format(name)
-
-        tr = '<TR>' \
-             '<TD BORDER="1" ALIGN="RIGHT">{}=</TD>' \
-             '<TD BORDER="1" ALIGN="LEFT">{}</TD>' \
-             '</TR>'
-
-        for k, v in kv:
-            label += tr.format(
-                self._html_encode(k, width=20, compact=True),
-                self._html_encode(v, width=20, compact=True)
+    def app(self, root_path=None, depth=-1, index=True, **kwargs):
+        root_path = root_path or tempfile.mktemp()
+        rule = '/shutdown'
+        app = flask.Flask(root_path, root_path=root_path, **kwargs)
+        generated_files = []
+        func = functools.partial(shutdown_server, generated_files)
+        app.add_url_rule(rule, rule[1:], func, methods=['POST'])
+        context = self.rules(depth=depth, index=index)
+        for (node, extra), filepath in context.items():
+            func = functools.partial(
+                site_view, app, node, filepath, context, generated_files
             )
-        label += '</TABLE>>'
-        return label
+            app.add_url_rule('/%s' % filepath, filepath, func)
 
-    def _missing_inputs_outputs(self, node_id, attr):
-        pred = self.g.pred[node_id]
-        succ = self.g.succ[node_id]
+        if context:
+            app.add_url_rule('/', next(iter(context.values())))
 
-        if attr['type'] == 'dispatcher':
-            inp, out = {}, {}
-            # node = self.g.node
-            # for k, v in attr['inputs'].items():
-            #    k = tuple(k for k in _iter_list_nodes((k,)) if k not in pred)
-            #    if k:
-            #        inp[k if len(k) != 1 else k[0]] = v
+        return app
 
-            # for k, v in attr['outputs'].items():
-            #    v = tuple(v for v in _iter_list_nodes((v,)) if v not in node)
-            #    if v:
-            #        out[k] = v if len(v) != 1 else v[0]
-        else:
-            inp = tuple(k for k in attr['inputs'] if k not in pred)
-            out = tuple(k for k in attr['outputs'] if k not in succ)
-        res = {}
+    def site(self, root_path=None, depth=-1, index=True, view=False, **kw):
+        site = Site(self, root_path=root_path, depth=depth, index=index, **kw)
 
-        if inp:
-            res['M_inputs'] = self.pprint(inp)
-        if out:
-            res['M_outputs'] = self.pprint(out)
-        return res
+        if view:
+            site.run()
+            DspPlot(None)._view(site.url, 'html')
 
-    def pprint(self, object):
-        if isinstance(object, str):
-            return object
-        return self._pprinter.pformat(object)
+        return site
+
+    def render(self, depth=-1, directory='static', view=False, index=True):
+        context = self.rules(depth=depth, index=index)
+        for (node, extra), filepath in context.items():
+            if not extra:
+                node.view(osp.join(directory, filepath), context)
+        fpath = osp.join(directory, next(iter(context.values()), ''))
+        if view:
+            DspPlot(None)._view(fpath, osp.splitext(fpath)[1][1:])
+        return fpath

@@ -111,15 +111,19 @@ def _plot(lines, dsp, dot_view_opt, documenter):
     hashkey = (documenter.modname + str(documenter.code) +
                str(sorted(dot_view_opt.items()))).encode('utf-8')
     fname = 'dispatcher-%s' % sha1(hashkey).hexdigest()
+    env = documenter.env
+    dspdir = osp.join(env.app.builder.outdir, env.app.builder.imagedir)
+    fpath = '%s.gv' % osp.join(dspdir, fname)
+    if not osp.isfile(fpath):
+        smap = dsp.plot(**dot_view_opt)
+        folder = next(iter(smap))
+        folder._name = folder.sitemap.foldername = fname
+        dot = folder.dot(smap.rules(index=False))
+        dot.sitemap.render(directory=dspdir, index=False)
+        dot.save(fpath, '')
 
-    builder = documenter.env.app.builder
-    fpath = osp.join(builder.outdir, builder.imagedir, fname)
-    opath = '%s.gv' % fpath
-    if not osp.isfile(opath):
-        dsp.plot(filename=fpath, **dot_view_opt).save()
-
-    dsource = osp.dirname(documenter.directive.reporter.source)
-    lines.extend(['.. graphviz:: %s' % osp.relpath(opath, dsource), ''])
+    dsource = osp.dirname(osp.join(env.srcdir, env.docname))
+    lines.extend(['.. graphviz:: %s' % osp.relpath(fpath, dsource), ''])
 
 
 def _table_heather(lines, title, dsp_name):
@@ -146,7 +150,7 @@ def _data(lines, dsp):
         lines.append('')
 
 
-def _functions(lines, dsp, function_module, node_type='function'):
+def _functions(lines, dsp, node_type='function'):
     if isinstance(dsp, dsp_utl.SubDispatch):
         dsp = dsp.dsp
     def check_fun(node_attr):
@@ -166,7 +170,7 @@ def _functions(lines, dsp, function_module, node_type='function'):
 
         for k, v in fun:
             des, full_name = dsp_utl.search_node_description(k, v, dsp)
-            name = _node_name(_func_name(k, function_module))
+            name = _node_name(_func_name(k))
 
             lines.append(u'   ":func:`%s <%s>`", "%s"' % (name, full_name, des))
         lines.append('')
@@ -184,10 +188,11 @@ def _dsp2dot_option(arg):
 
     # noinspection PyUnusedLocal
     def map_args(*args, **kwargs):
-        k = ['workflow', 'dot', 'edge_attr', 'depth', 'function_module']
-        kw = dict(zip(k, args))
-        kw.update(kwargs)
-        return kw
+        from co2mpas.dispatcher.utils.base import Base
+        a = inspect.signature(Base.plot).bind(None, *args, **kwargs).arguments
+        a.popitem(last=False)
+        return a
+
     kw = eval('map_args(%s)' % arg)
 
     return kw if kw else PLOT
@@ -283,10 +288,8 @@ class DispatcherDocumenter(DataDocumenter):
         'dsp': bool_option,
     })
     default_opt = {
-        'view': False,
         'depth': 0,
-        'draw_outputs': 1,
-        'function_module': False
+        'view': False
     }
     code = None
     is_doctest = False
@@ -338,12 +341,10 @@ class DispatcherDocumenter(DataDocumenter):
             _data(lines, dsp)
 
         if not opt or opt.func:
-            _functions(lines, dsp, dot_view_opt['function_module'])
+            _functions(lines, dsp)
 
         if not opt or opt.dsp:
-            _functions(
-                lines, dsp, dot_view_opt['function_module'], 'dispatcher'
-            )
+            _functions(lines, dsp, 'dispatcher')
 
         for line in lines:
             self.add_line(line, sourcename)

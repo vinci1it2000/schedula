@@ -30,18 +30,19 @@ from .utils.alg import rm_cycles_iter, get_unused_node_id, add_func_edges, \
 from .utils.cel import create_celery_app
 from .utils.cst import EMPTY, START, NONE, SINK, SELF, PLOT
 from .utils.des import parent_func
-from .utils.drw import DspPlot, autoplot_callback, autoplot_function
+from .utils.drw import SiteMap, autoplot_callback, autoplot_function
 from .utils.dsp import SubDispatch, bypass, combine_dicts, selector
 from .utils.gen import caller_name, counter
 from .utils.sol import Solution
 from .utils.web import create_flask_app
+from .utils.base import Base
 
 
 __all__ = ['Dispatcher']
 __author__ = 'Vincenzo Arcidiacono'
 
 
-class Dispatcher(object):
+class Dispatcher(Base):
     """
     It provides a data structure to process a complex system of functions.
 
@@ -1247,114 +1248,6 @@ class Dispatcher(object):
 
         return sub_dsp  # Return the sub-dispatcher map.
 
-    def get_node(self, *node_ids, node_attr='auto'):
-        """
-        Returns a sub node of a dispatcher.
-
-        :param node_ids:
-            A sequence of node ids or a single node id. The id order identifies
-            a dispatcher sub-level.
-        :type node_ids: str
-
-        :param node_attr:
-            Output node attr.
-
-            If the searched node does not have this attribute, all its
-            attributes are returned.
-
-            When 'auto', returns the "default" attributes of the searched node,
-            which are:
-
-              - for data node: its output, and if not exists, all its
-                attributes.
-              - for function and sub-dispatcher nodes: the 'function' attribute.
-
-            When 'description', returns the "description" of the searched node,
-            searching also in function or sub-dispatcher input/output
-            description.
-
-            When 'output', returns the data node output.
-
-            When 'default_value', returns the data node default value.
-
-            When 'value_type', returns the data node value's type.
-
-            When `None`, returns the node attributes.
-        :type node_attr: str, None, optional
-
-        :return:
-            Node attributes and its real path.
-        :rtype: (T, (str, ...))
-
-        **Example**:
-
-        .. dispatcher:: dsp
-           :opt: workflow=True, graph_attr={'ratio': '1'}, depth=1
-
-            >>> from co2mpas.dispatcher import Dispatcher
-            >>> s_dsp = Dispatcher(name='Sub-dispatcher')
-            >>> def fun(a, b):
-            ...     return a + b
-            ...
-            >>> s_dsp.add_function('a + b', fun, ['a', 'b'], ['c'])
-            'a + b'
-            >>> dispatch = SubDispatch(s_dsp, ['c'], output_type='dict')
-            >>> dsp = Dispatcher(name='Dispatcher')
-            >>> dsp.add_function('Sub-dispatcher', dispatch, ['a'], ['b'])
-            'Sub-dispatcher'
-
-            >>> o = dsp.dispatch(inputs={'a': {'a': 3, 'b': 1}})
-            ...
-
-        Get the sub node output::
-
-            >>> dsp.get_node('Sub-dispatcher', 'c')
-            (4, ('Sub-dispatcher', 'c'))
-            >>> dsp.get_node('Sub-dispatcher', 'c', node_attr='type')
-            ('data', ('Sub-dispatcher', 'c'))
-
-        .. dispatcher:: sub_dsp
-           :opt: workflow=True, graph_attr={'ratio': '1'}, depth=0
-           :code:
-
-            >>> sub_dsp, sub_dsp_id = dsp.get_node('Sub-dispatcher')
-        """
-
-        # Returns the node.
-        return get_sub_node(self, node_ids, node_attr=node_attr)
-
-    def get_full_node_id(self, *node_ids):
-        """
-        Returns the full node id.
-
-        :param node_ids:
-            A sequence of node ids or a single node id. The id order identifies
-            a dispatcher sub-level.
-
-            If it is empty it will return the full id of the dispatcher.
-        :type node_ids: str
-
-        :return:
-            Full node id and related .
-        :rtype: tuple[str], tuple[Dispatcher]
-        """
-
-        if not node_ids:
-            n, dsp = NONE, self
-        else:
-            n, dsp = node_ids[-1], self.get_node(*node_ids, node_attr='dsp')[0]
-
-        def _parent(n_id, d):
-            if d._parent:
-                l = _parent(*d._parent)
-                if n_id is not NONE:
-                    l.append(n_id)
-                return l
-
-            return [] if n_id is NONE else [n_id]
-
-        return tuple(_parent(n, dsp))
-
     @property
     def data_nodes(self):
         """
@@ -1416,141 +1309,6 @@ class Dispatcher(object):
             memo[i] = threading.Event()
 
         return _reconstruct(self, rv, 1, memo)
-
-    def plot(self, workflow=False, view=True, nested=True, edge_data=(),
-             node_data=(), node_function=(), draw_outputs=0, node_styles=None,
-             depth=-1, function_module=False, name=None, comment=None,
-             directory=None, filename=None, format='svg', engine=None,
-             encoding=None, graph_attr=None, node_attr=None, edge_attr=None,
-             body=None):
-        """
-        Plots the Dispatcher with a graph in the DOT language with Graphviz.
-
-        :param workflow:
-           If True the latest solution will be plotted, otherwise the dmap.
-        :type workflow: bool, optional
-
-        :param view:
-            Open the rendered directed graph in the DOT language with the sys
-            default opener.
-        :type view: bool, optional
-
-        :param nested:
-            If False the sub-dispatcher nodes are plotted on the same graph,
-            otherwise they can be viewed clicking on the node that has an URL
-            link.
-        :type nested: bool, optional
-
-        :param edge_data:
-            Edge attributes to view.
-        :type edge_data: tuple[str], optional
-
-        :param node_data:
-            Data node attributes to view.
-        :type node_data: tuple[str], optional
-
-        :param node_function:
-            Function node attributes to view.
-        :type node_function: tuple[str], optional
-
-        :param draw_outputs:
-            It modifies the defaults data node and edge attributes to view.
-            If `draw_outputs` is:
-
-                - 1: node attribute 'output' is drawn.
-                - 2: edge attribute 'value' is drawn.
-                - 3: node 'output' and edge 'value' attributes are drawn.
-                - otherwise: node 'output' and edge 'value' attributes are not
-                  drawn.
-        :type draw_outputs: int, optional
-
-        :param node_styles:
-            Default node styles according to graphviz node attributes.
-        :type node_styles: dict[str|Token, dict[str, str]]
-
-        :param depth:
-            Depth of sub-dispatch plots. If negative all levels are plotted.
-        :type depth: int, optional
-
-        :param function_module:
-            If True the function labels are plotted with the function module,
-            otherwise only the function name will be visible.
-        :type function_module: bool, optional
-
-        :param name:
-            Graph name used in the source code.
-        :type name: str
-
-        :param comment:
-            Comment added to the first line of the source.
-        :type comment: str
-
-        :param directory:
-            (Sub)directory for source saving and rendering.
-        :type directory: str, optional
-
-        :param filename:
-            File name for saving the source.
-        :type filename: str, optional
-
-        :param format:
-            Rendering output format ('pdf', 'png', ...).
-        :type format: str, optional
-
-        :param engine:
-            Layout command used ('dot', 'neato', ...).
-        :type engine: str, optional
-
-        :param encoding:
-            Encoding for saving the source.
-        :type encoding: str, optional
-
-        :param graph_attr:
-            Dict of (attribute, value) pairs for the graph.
-        :type graph_attr: dict, optional
-
-        :param node_attr:
-            Dict of (attribute, value) pairs set for all nodes.
-        :type node_attr: dict, optional
-
-        :param edge_attr:
-            Dict of (attribute, value) pairs set for all edges.
-        :type edge_attr: dict, optional
-
-        :param body:
-            Dict of (attribute, value) pairs to add to the graph body.
-        :type body: dict, optional
-
-        :return:
-            A directed graph source code in the DOT language.
-        :rtype: graphviz.dot.Digraph
-
-        Example:
-
-        .. dispatcher:: dsp
-           :opt: graph_attr={'ratio': '1'}
-           :code:
-
-            >>> dsp = Dispatcher(name='Dispatcher')
-            >>> def fun(a):
-            ...     return a + 1, a - 1
-            >>> dsp.add_function('fun', fun, ['a'], ['b', 'c'])
-            'fun'
-            >>> dsp.plot(view=False, graph_attr={'ratio': '1'})
-            <co2mpas.dispatcher.utils.drw.DspPlot object at 0x...>
-        """
-
-        dot = DspPlot(
-            obj=self, workflow=workflow, nested=nested, view=view,
-            edge_data=edge_data, node_data=node_data, draw_outputs=draw_outputs,
-            node_function=node_function, depth=depth, node_styles=node_styles,
-            function_module=function_module, name=name, comment=comment,
-            directory=directory, filename=filename, format=format,
-            engine=engine, encoding=encoding, graph_attr=graph_attr,
-            node_attr=node_attr, edge_attr=edge_attr, body=body
-        )
-
-        return dot
 
     def web(self, import_name=None, **options):
         """

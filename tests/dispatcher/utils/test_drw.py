@@ -9,11 +9,10 @@
 import unittest
 import doctest
 import platform
-from graphviz.dot import Digraph
 from co2mpas.dispatcher import Dispatcher
 from co2mpas.dispatcher.utils.dsp import SubDispatch, SubDispatchFunction, SubDispatchPipe
 from co2mpas.dispatcher.utils.cst import SINK
-from co2mpas.dispatcher.utils.drw import DspPlot
+from co2mpas.dispatcher.utils.drw import SiteMap
 import tempfile
 import os.path as osp
 
@@ -22,7 +21,7 @@ PLATFORM = platform.system().lower()
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):
-        import co2mpas.dispatcher.utils.drw as utl
+        import co2mpas.dispatcher.utils.base as utl
 
         failure_count, test_count = doctest.testmod(
             utl, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS
@@ -76,32 +75,28 @@ class TestDispatcherDraw(unittest.TestCase):
     def test_plot_dsp_dot(self):
         dsp, sol = self.dsp, self.sol
 
-        plt = DspPlot(dsp)
-        self.assertIsInstance(plt, Digraph)
+        plt = dsp.plot(view=False)
+        self.assertIsInstance(plt, SiteMap)
 
-        plt = DspPlot(sol)
-        self.assertIsInstance(plt, Digraph)
+        plt = sol.plot(view=False)
+        self.assertIsInstance(plt, SiteMap)
 
-        plt = DspPlot(sol, workflow=True)
-        self.assertIsInstance(plt, Digraph)
+        plt = sol.plot(workflow=False, view=False)
+        self.assertIsInstance(plt, SiteMap)
 
-        plt = DspPlot(dsp, depth=1)
-        self.assertIsInstance(plt, Digraph)
-
-        plt = DspPlot(dsp, draw_outputs=3)
-        self.assertIsInstance(plt, Digraph)
-
-        plt = DspPlot(dsp, function_module=True)
-        self.assertIsInstance(plt, Digraph)
+        plt = dsp.plot(depth=1, view=False)
+        self.assertIsInstance(plt, SiteMap)
 
     def test_long_path(self):
         dsp = self.dsp
         filename = osp.join(tempfile.TemporaryDirectory().name, 'a' * 200)
-        d = dsp.plot(filename=filename, view=False)
-        self.assertIsInstance(d, Digraph)
+        smap = dsp.plot(view=False)
+        smap.render(directory=filename)
+        self.assertIsInstance(smap, SiteMap)
 
     @unittest.skipIf(PLATFORM != 'windows', 'Your sys can open long path file.')
     def test_view_long_path(self):
         dsp = self.dsp
         filename = osp.join(tempfile.TemporaryDirectory().name, 'a' * 250)
-        self.assertRaises(OSError, dsp.plot, filename=filename, view=True)
+        smap = dsp.plot(view=False)
+        self.assertRaises(OSError, smap.render, directory=filename, view=True)

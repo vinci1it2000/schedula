@@ -15,7 +15,7 @@ from functools import partial, reduce
 from inspect import signature, Parameter, _POSITIONAL_OR_KEYWORD
 from itertools import repeat, chain
 import types
-
+from .base import Base
 from .exc import DispatcherError, DispatcherAbort
 from .gen import caller_name, Token
 
@@ -61,7 +61,8 @@ def combine_dicts(*dicts, copy=False, base=None):
         cd = {} if base is None else base  # Initialize empty dict.
 
         for d in dicts:  # Combine dicts.
-            cd.update(d)
+            if d:
+                cd.update(d)
 
     # Return combined dict.
     return {k: deepcopy(v) for k, v in cd.items()} if copy else cd
@@ -439,9 +440,13 @@ def get_nested_dicts(nested_dict, *keys, default=None, init_nesting=dict):
 
     if keys:
         default = default or init_nesting
-        d = default() if len(keys) == 1 else init_nesting()
-        nd = nested_dict[keys[0]] = nested_dict.get(keys[0], d)
-        return get_nested_dicts(nd, *keys[1:], default=default)
+        if keys[0] in nested_dict:
+            nd = nested_dict[keys[0]]
+        else:
+            d = default() if len(keys) == 1 else init_nesting()
+            nd = nested_dict[keys[0]] = d
+        return get_nested_dicts(nd, *keys[1:], default=default,
+                                init_nesting=init_nesting)
     return nested_dict
 
 
@@ -561,7 +566,7 @@ class parse_args(add_args):
         return cls
 
 
-class SubDispatch(object):
+class SubDispatch(Base):
     """
     It dispatches a given :func:`~dispatcher.Dispatcher` like a function.
 
@@ -707,146 +712,6 @@ class SubDispatch(object):
                 raise DispatcherError(solution, msg)
 
         return solution  # Return outputs.
-
-    def plot(self, workflow=False, view=True, nested=True, edge_data=(),
-             node_data=(), node_function=(), draw_outputs=0, node_styles=None,
-             depth=-1, function_module=False, name=None, comment=None,
-             directory=None, filename=None, format='svg', engine=None,
-             encoding=None, graph_attr=None, node_attr=None, edge_attr=None,
-             body=None):
-        """
-        Plots the Dispatcher with a graph in the DOT language with Graphviz.
-
-        :param workflow:
-           If True the latest solution will be plotted, otherwise the dmap.
-        :type workflow: bool, optional
-
-        :param view:
-            Open the rendered directed graph in the DOT language with the sys
-            default opener.
-        :type view: bool, optional
-
-        :param nested:
-            If False the sub-dispatcher nodes are plotted on the same graph,
-            otherwise they can be viewed clicking on the node that has an URL
-            link.
-        :type nested: bool, optional
-
-        :param edge_data:
-            Edge attributes to view.
-        :type edge_data: tuple[str], optional
-
-        :param node_data:
-            Data node attributes to view.
-        :type node_data: tuple[str], optional
-
-        :param node_function:
-            Function node attributes to view.
-        :type node_function: tuple[str], optional
-
-        :param draw_outputs:
-            It modifies the defaults data node and edge attributes to view.
-            If `draw_outputs` is:
-
-                - 1: node attribute 'output' is drawn.
-                - 2: edge attribute 'value' is drawn.
-                - 3: node 'output' and edge 'value' attributes are drawn.
-                - otherwise: node 'output' and edge 'value' attributes are not
-                  drawn.
-        :type draw_outputs: int, optional
-
-        :param node_styles:
-            Default node styles according to graphviz node attributes.
-        :type node_styles: dict[str|Token, dict[str, str]]
-
-        :param depth:
-            Depth of sub-dispatch plots. If negative all levels are plotted.
-        :type depth: int, optional
-
-        :param function_module:
-            If True the function labels are plotted with the function module,
-            otherwise only the function name will be visible.
-        :type function_module: bool, optional
-
-        :param name:
-            Graph name used in the source code.
-        :type name: str
-
-        :param comment:
-            Comment added to the first line of the source.
-        :type comment: str
-
-        :param directory:
-            (Sub)directory for source saving and rendering.
-        :type directory: str, optional
-
-        :param filename:
-            File name for saving the source.
-        :type filename: str, optional
-
-        :param format:
-            Rendering output format ('pdf', 'png', ...).
-        :type format: str, optional
-
-        :param engine:
-            Layout command used ('dot', 'neato', ...).
-        :type engine: str, optional
-
-        :param encoding:
-            Encoding for saving the source.
-        :type encoding: str, optional
-
-        :param graph_attr:
-            Dict of (attribute, value) pairs for the graph.
-        :type graph_attr: dict, optional
-
-        :param node_attr:
-            Dict of (attribute, value) pairs set for all nodes.
-        :type node_attr: dict, optional
-
-        :param edge_attr:
-            Dict of (attribute, value) pairs set for all edges.
-        :type edge_attr: dict, optional
-
-        :param body:
-            Dict of (attribute, value) pairs to add to the graph body.
-        :type body: dict, optional
-
-        :return:
-            A directed graph source code in the DOT language.
-        :rtype: graphviz.dot.Digraph
-
-        Example:
-
-        .. dispatcher:: sub_dsp
-           :opt: graph_attr={'ratio': '1'}, depth=1
-           :code:
-
-            >>> from co2mpas.dispatcher import Dispatcher
-            >>> dsp = Dispatcher()
-            ...
-            >>> def fun(a):
-            ...     return a + 1, a - 1
-            ...
-            >>> dsp.add_function('fun', fun, ['a'], ['b', 'c'])
-            'fun'
-            >>> sub_dsp = SubDispatch(dsp, ['a', 'b', 'c'], output_type='dict')
-            >>> sub_dsp.plot(view=False, graph_attr={'ratio': '1'})
-            <co2mpas.dispatcher.utils.drw.DspPlot object at 0x...>
-        """
-
-        from .drw import DspPlot
-        dot = DspPlot(
-            obj=self, workflow=workflow, nested=nested, view=view,
-            edge_data=edge_data, node_data=node_data, draw_outputs=draw_outputs,
-            node_function=node_function, depth=depth, node_styles=node_styles,
-            function_module=function_module, name=name, comment=comment,
-            directory=directory, filename=filename, format=format,
-            engine=engine, encoding=encoding, graph_attr=graph_attr,
-            node_attr=node_attr, edge_attr=edge_attr, body=body
-        )
-
-        return dot
 
     def copy(self):
         return deepcopy(self)
