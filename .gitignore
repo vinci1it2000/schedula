@@ -68,13 +68,14 @@ target/
 /.project
 /.pydevproject
 /.settings
+.ipynb_checkpoints/
 /co2mpas/ipynbs/.ipynb_checkpoints/
 .co2mpas_cache
+/co2mpas/demos/.co2mpas_cache
 /tests/data
 
 /*.xlsx
 tests/dispatcher/docs
-.ipynb_checkpoints/
 doc/_static/CO2MPAS model/
 doc/_static/Wheel model/
 /tests/load_inputs

@@ -109,20 +109,20 @@ proj_ver = read_project_version()
 readme_lines = read_text_lines('README.rst')
 description = readme_lines[1]
 long_desc = ''.join(yield_rst_only_markup(readme_lines))
-download_url = 'https://github.com/JRCSTU/%s/tarball/v%s' % (proj_name, proj_ver)
+download_url = 'https://github.com/JRCSTU/CO2MPAS-TA/releases/tag/v%s' % proj_ver
 
 setup(
     name=proj_name,
     version=proj_ver,
-    description="A vehicle simulator predicting CO2 emissions for NEDC using WLTP time-series",
+    description="The Type-Approving vehicle simulator predicting NEDC CO2 emissions from WLTP",
     long_description=long_desc,
     download_url=download_url,
-    keywords=[
-        "python", "utility", "library", "data", "processing",
-        "calculation", "dependencies", "resolution", "scientific",
-        "engineering", "dispatch", "simulink", "graphviz",
-    ],
-    url='http://co2mpas.io/',
+    keywords="""
+        CO2 fuel-consumption WLTP NEDC vehicle automotive
+        EU JRC IET STU correlation back-translation policy monitoring
+        M1 N1 simulator engineering scientific
+    """.split(),
+    url='https://co2mpas.io/',
     license='EUPL 1.1+',
     author='CO2MPAS-Team',
     author_email='co2mpas@jrc.ec.europa.eu',
