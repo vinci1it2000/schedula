@@ -5,9 +5,7 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 #
-from transitions.core import MachineError
 """A *project* stores all CO2MPAS files for a single vehicle, and tracks its sampling procedure. """
-
 from collections import (defaultdict, OrderedDict, namedtuple)  # @UnusedImport
 import copy
 from datetime import datetime
@@ -21,6 +19,7 @@ from typing import (
 import git  # From: pip install gitpython
 from toolz import itertoolz as itz, dicttoolz as dtz
 import transitions
+from transitions.core import MachineError
 
 import functools as fnt
 import os.path as osp
@@ -29,19 +28,21 @@ import traitlets as trt
 import traitlets.config as trtc
 
 from . import baseapp, dice, report, CmdException, PFiles
+from .. import (__version__, __updated__, __file_version__,   # @UnusedImport
+                __input_file_version__, __copyright__, __license__)  # @UnusedImport
 from .. import __uri__  # @UnusedImport
-from co2mpas.dispatcher import utils
-from .._version import (__version__, __updated__, __file_version__,   # @UnusedImport
-                        __input_file_version__, __copyright__, __license__)  # @UnusedImport
+from ..dispatcher import utils
 
+
+PROJECT_VERSION = '0.0.2'  # TODO: Move to `co2mpas/_version.py`.
+
+
+def split_version(v):
+    return v.split('.')
 
 ###################
 ##     Specs     ##
 ###################
-PROJECT_VERSION = '0.0.2'  ## TODO: Move to `co2mpas/_version.py`.
-
-def split_version(v):
-    return v.split('.')
 
 PROJECT_STATUSES = '<invalid> empty full signed dice_sent sampled'.split()
 

@@ -18,8 +18,8 @@ import pandalone.utils as pndlu
 
 from . import baseapp, project, CmdException, PFiles
 from .. import __uri__  # @UnusedImport
-from .._version import (__version__, __updated__, __file_version__,   # @UnusedImport
-                        __input_file_version__, __copyright__, __license__)  # @UnusedImport
+from .. import (__version__, __updated__, __file_version__,   # @UnusedImport
+                __input_file_version__, __copyright__, __license__)  # @UnusedImport
 
 
 ###################
@@ -27,26 +27,13 @@ from .._version import (__version__, __updated__, __file_version__,   # @UnusedI
 ###################
 REPORT_VERSION = '0.0.1'  ## TODO: Move to `co2mpas/_version.py`.
 
+
 class Report(baseapp.Spec):
     """Mines reported-parameters from co2mpas excel-files and serves them as a pandas dataframes."""
 
-    input_xlref = trt.Unicode('#Inputs!B2:C_:"sr"',
-            help="""
-            The *xlref* expression to resolving to 2 columns (<param-name>, <value>) to extract
-            from co2mpas input files.'
-            """).tag(config=True)
-    output_master_xlref = trt.Unicode('#xlref!::"dict"',
-            help="""
-            The *xlref* expression resolving to a *dictionary* of other xlrefs
-            inside co2mpas output files.'
-            """).tag(config=True)
-
-    output_table_keys = trt.List(trt.Unicode(),
-            default_value=['summary.results', 'summary.selection', 'summary.comparison', ],
-            help="""
-            A list of the keys within `output_master_xlref` dictionary to read
-            and resolve as *xlref* expressions, while extracting from co2mpas output files.'
-            """).tag(config=True)
+    dice_report_xlref = trt.Unicode('#dice_report!:"df"',
+                                    help="The *xlref* expression to read the dice-report from output-file."
+                                    ).tag(config=True)
 
     input_params = trt.Instance(pd.Series, allow_none=True)
     output_tables = trt.List(trt.Instance(pd.DataFrame), allow_none=True)
@@ -54,44 +41,20 @@ class Report(baseapp.Spec):
     def clear_params(self, fpath):
         self.input_params = self.output_tables = None
 
-    def extract_input_params(self, fpath):
+    def extract_dice_report(self, fpath):
         from pandalone import xleash
+        dice_report_xlref = '#dice_report!:"df"'
+        tab = xleash.lasso(dice_report_xlref, url_file=fpath)
+        assert isinstance(tab, pd.DataFrame), (
+            "The dice_report xlref(%s) for %r must resolve to a DataFrame, not type(%r): %s" %
+            (dice_report_xlref, dice_report_xlref, type(tab), tab))
+        self.output_tables.append(tab)
 
-        #fpath = pndlu.convpath(fpath)
-        self.input_params = xleash.lasso(self.input_xlref, url_file=fpath)
-        return self.input_params
-
-    def extract_output_tables(self, fpath):
-        from pandalone import xleash
-
-        #fpath = pndlu.convpath(fpath)
-        master_xlrefs = xleash.lasso(self.output_master_xlref, url_file=fpath)
-        assert isinstance(master_xlrefs, Mapping), (
-            "The `output_master_xlref(%s) must resolve to a dictionary, not type(%r): %s"
-            % (self.output_master_xlref, type(master_xlrefs), master_xlrefs))
-
-        tables = []
-        for tab_key in self.output_table_keys:
-            assert tab_key in master_xlrefs, (
-                "The `output_table_key` %r were not found in *master-xlref* dictionary: %s"
-                % (tab_key, master_xlrefs))
-
-            tab_xlref = master_xlrefs[tab_key]
-            tab = xleash.lasso(tab_xlref, url_file=fpath)
-            assert isinstance(tab, pd.DataFrame), (
-            "The `output_master_xlref` key (%r --> %r) must resolve to a DataFrame, not type(%r): %s"
-            % (tab_key, tab_xlref, type(tab), tab))
-            tables.append(tab)
-
-        self.output_tables = tables
         return self.output_tables
 
     def yield_from_iofiles(self, iofiles: PFiles):
-        for fpath in iofiles.inp:
-            yield self.extract_input_params(pndlu.convpath(fpath))
-
         for fpath in iofiles.out:
-            yield from self.extract_output_tables(pndlu.convpath(fpath))
+            yield from self.extract_dice_report(pndlu.convpath(fpath))
 
 
 ###################

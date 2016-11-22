@@ -57,7 +57,7 @@ class TReportArgs(unittest.TestCase):
         res = cmd.run('inp=%s' % _inp_fpath)
         self.assertIsInstance(res, types.GeneratorType)
         res = list(res)
-        self.assertEqual(len(res), 1)
+        self.assertEqual(len(res), 0)
         for i in res:
             self.assertIsInstance(i, pd.Series)
 
@@ -68,7 +68,7 @@ class TReportArgs(unittest.TestCase):
         res = cmd.run('out=%s' % _out_fpath)
         self.assertIsInstance(res, types.GeneratorType)
         res = list(res)
-        self.assertEqual(len(res), 3)
+        self.assertEqual(len(res), 1)
         for i in res:
             self.assertIsInstance(i, pd.DataFrame)
 
@@ -79,9 +79,8 @@ class TReportArgs(unittest.TestCase):
         res = cmd.run('inp=%s' % _inp_fpath, 'out=%s' % _out_fpath)
         self.assertIsInstance(res, types.GeneratorType)
         res = list(res)
-        self.assertEqual(len(res), 4)
-        self.assertIsInstance(res[0], pd.Series)
-        for i in res[1:]:
+        self.assertEqual(len(res), 1)
+        for i in res:
             self.assertIsInstance(i, pd.DataFrame)
 
     def test_bad_prefix(self):
@@ -132,7 +131,9 @@ class TReportProject(unittest.TestCase):
             c.ProjectsDB.repo_path = td
             project.ProjectCmd.AddCmd(config=c).run('proj1')
             cmd = report.ReportCmd(config=c)
-            with self.assertRaisesRegex(CmdException, r"Current project 'proj1' contains no input/output files!"):
+            with self.assertRaisesRegex(
+                CmdException, re.escape(
+                    r"Current Project(proj1: empty) contains no input/output files!")):
                 list(cmd.run())
 
     def test_input_output(self):
@@ -148,7 +149,7 @@ class TReportProject(unittest.TestCase):
             res = cmd.run()
             self.assertIsInstance(res, types.GeneratorType)
             res = list(res)
-            self.assertEqual(len(res), 1)
+            self.assertEqual(len(res), 0)
             for i in res:
                 self.assertIsInstance(i, pd.Series)
 
@@ -157,10 +158,7 @@ class TReportProject(unittest.TestCase):
             res = cmd.run()
             self.assertIsInstance(res, types.GeneratorType)
             res = list(res)
-            self.assertEqual(len(res), 4)
-            self.assertIsInstance(res[0], pd.Series)
-            for i in res[1:]:
-                self.assertIsInstance(i, pd.DataFrame)
+            self.assertEqual(len(res), 1)
 
     def test_output_input(self):
         c = get_config()
@@ -175,7 +173,7 @@ class TReportProject(unittest.TestCase):
             res = cmd.run()
             self.assertIsInstance(res, types.GeneratorType)
             res = list(res)
-            self.assertEqual(len(res), 3)
+            self.assertEqual(len(res), 1)
             for i in res:
                 self.assertIsInstance(i, pd.DataFrame)
 
@@ -184,9 +182,8 @@ class TReportProject(unittest.TestCase):
             res = cmd.run()
             self.assertIsInstance(res, types.GeneratorType)
             res = list(res)
-            self.assertEqual(len(res), 4)
-            self.assertIsInstance(res[0], pd.Series)
-            for i in res[1:]:
+            self.assertEqual(len(res), 1)
+            for i in res:
                 self.assertIsInstance(i, pd.DataFrame)
 
     def test_both(self):
@@ -203,8 +200,6 @@ class TReportProject(unittest.TestCase):
             res = cmd.run()
             self.assertIsInstance(res, types.GeneratorType)
             res = list(res)
-            self.assertEqual(len(res), 4)
-            self.assertIsInstance(res[0], pd.Series)
-            for i in res[1:]:
+            self.assertEqual(len(res), 1)
+            for i in res:
                 self.assertIsInstance(i, pd.DataFrame)
-
