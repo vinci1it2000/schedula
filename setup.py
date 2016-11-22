@@ -148,17 +148,14 @@ setup(
         "Topic :: Scientific/Engineering :: Information Analysis",
     ],
     setup_requires=[
+        # PEP426-field actually not used by `pip`, hence
+        # included also in /requirements/developmnet.pip.
         'setuptools',
+        'setuptools-git >= 0.3',  # Example given like that in PY docs.
+        'wheel',
     ],
-    # build_requires=[
-    #     # PEP426-field actually not used by `pip` them, hence
-    #     # included in /requirements/developmnet.pip.
-    #     'setuptools',
-    #     'setuptools-git >= 0.3',
-    #     'wheel',
-    # ],
     # dev_requires=[
-    #     # PEP426-field actually not used by `pip` them, hence
+    #     # PEP426-field actually not used by `pip`, hence
     #     # included in /requirements/developmnet.pip.
     #     'sphinx',
     # ],
@@ -198,8 +195,13 @@ setup(
             'transitions',
         ],
     },
-    packages=find_packages(exclude=['tests', 'doc']),
-    package_data={'co2mpas': [
+    packages=find_packages(exclude=[
+        'tests', 'tests.*',
+        'doc', 'doc.*',
+        'benchmarks'
+    ]),
+    package_data={
+        'co2mpas': [
         'demos/*.xlsx',
         'ipynbs/*.ipynb',
         'icons/*.png',

@@ -1,8 +1,0 @@
-include README.md LICENSE.txt AUTHORS.rst CHANGES.rst
-recursive-include requirements *
-
-include co2mpas/co2mpas_template.xlsx
-recursive-include co2mpas/demos *
-recursive-include co2mpas/ipynbs *
-prune co2mpas/ipynbs/.ipynb_checkpoints
-
