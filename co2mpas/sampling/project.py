@@ -52,11 +52,14 @@ _PROJECTS_PREFIX = 'projects/'
 _HEADS_PREFIX = 'refs/heads/'
 _PROJECTS_FULL_PREFIX = _HEADS_PREFIX + _PROJECTS_PREFIX
 
+
 def _is_project_ref(ref: git.Reference) -> bool:
     return ref.name.startswith(_PROJECTS_PREFIX)
 
+
 def _ref2pname(ref: git.Reference) -> Text:
     return ref.path[len(_PROJECTS_FULL_PREFIX):]
+
 
 def _pname2ref_path(pname: Text) -> Text:
     if pname.startswith(_HEADS_PREFIX):
@@ -65,6 +68,7 @@ def _pname2ref_path(pname: Text) -> Text:
         pname = '%s%s' % (_PROJECTS_FULL_PREFIX, pname)
     return pname
 
+
 def _pname2ref_name(pname: Text) -> Text:
     if pname.startswith(_HEADS_PREFIX):
         pname = pname[len(_HEADS_PREFIX):]
@@ -72,11 +76,13 @@ def _pname2ref_name(pname: Text) -> Text:
         pname = '%s%s' % (_PROJECTS_PREFIX, pname)
     return pname
 
+
 def _get_ref(refs, refname: Text, default: git.Reference=None) -> git.Reference:
     return refname and refname in refs and refs[refname] or default
 
 _TAGS_PREFIX = 'refs/tags/'
 _DICES_PREFIX = 'dices/'
+
 
 def _tname2ref_name(tname: Text) -> Text:
     if tname.startswith(_TAGS_PREFIX):
@@ -89,14 +95,13 @@ def _tname2ref_name(tname: Text) -> Text:
 #transitions.logger.level = 50 ## FSM logs annoyingly high.
 def _evarg(event, dname, dtype=None):
     data = event.kwargs.get(dname)
-    assert data, (
-                "Missing event-data(%r) from event: %s"
-                % (dname, vars(event)))
+    assert data, ("Missing event-data(%r) from event: %s" %
+                  (dname, vars(event)))
     if dtype:
         assert isinstance(data, dtype), (
-                "Expected TYPE of event-data(%r) is %r, but was %r!"
-                "\n  data: %s\n  event: %s"
-                % (dname, dtype, type(data), data, vars(event)))
+            "Expected TYPE of event-data(%r) is %r, but was %r!"
+            "\n  data: %s\n  event: %s" %
+            (dname, dtype, type(data), data, vars(event)))
     return data
 
 
@@ -128,7 +133,6 @@ class Project(transitions.Machine, baseapp.Spec):
 
         return clone
 
-
     error = None
     """Store any problems when state 'INVALID'. """
 
@@ -155,13 +159,14 @@ class Project(transitions.Machine, baseapp.Spec):
 
     def _is_inp_out_files(self, event):
         pfiles = _evarg(event, 'pfiles', PFiles)
-        return bool(pfiles and pfiles.inp and pfiles.out
-                    and not pfiles.other)
+        return bool(pfiles and pfiles.inp and
+                    pfiles.out and
+                    not pfiles.other)
 
     def _is_other_files(self, event):
         pfiles = _evarg(event, 'pfiles', PFiles)
-        return bool(pfiles and pfiles.other
-                    and not (pfiles.inp or pfiles.out))
+        return bool(pfiles and pfiles.other and
+                    not (pfiles.inp or pfiles.out))
 
     def __init__(self, pname, projects_db, **kwds):
         """DO NOT INVOKE THIS; use performant :meth:`Project.new_instance()` instead."""
@@ -220,7 +225,6 @@ class Project(transitions.Machine, baseapp.Spec):
         self.on_enter_nedc('_cb_stage_pfiles')
         self.on_enter_mailed('_cb_send_email')
 
-
     def attempt_repair(self, force=None):
         if force is None:
             force = self.force
@@ -246,15 +250,13 @@ class Project(transitions.Machine, baseapp.Spec):
         cmsg = _CommitMsg(self.pname, self.state, action, PROJECT_VERSION)
         return json.dumps(cmsg._asdict(), indent=2)
 
-
     @classmethod
     def parse_commit_msg(self, cmsg_js, scream=False):
         """
         :return: a :class:`_CommitMsg` instance, or fails if cannot parse.
         """
         return json.loads(cmsg_js,
-                object_hook=lambda seq: _CommitMsg(**seq))
-
+                          object_hook=lambda seq: _CommitMsg(**seq))
 
     def _make_tag_msg(self, report):
         """
@@ -270,7 +272,6 @@ class Project(transitions.Machine, baseapp.Spec):
         """) % (self.pname, report_str)
 
         return msg
-
 
     def _cb_check_my_index(self, event):
         """ Executed on ENTER for all states, to compare my `pname` with checked-out ref. """
@@ -290,7 +291,7 @@ class Project(transitions.Machine, baseapp.Spec):
                 report = _evarg(event, 'report')
                 msg = self._make_tag_msg(report)
                 tref = _tname2ref_name(self.pname)
-                repo.create_tag(tref, message=msg) ## TODO: GPG!!
+                repo.create_tag(tref, message=msg)  # TODO: GPG!!
             else:
                 self.log.debug('Committing %s...', event.kwargs)
                 action = _evarg(event, 'action')
@@ -298,14 +299,12 @@ class Project(transitions.Machine, baseapp.Spec):
                 cmsg_js = self._make_commit_msg(action)
                 index.commit(cmsg_js)
 
-
     def _make_readme(self):
         return textwrap.dedent("""
         This is the CO2MPAS-project %r (see https://co2mpas.io/ for more).
 
         - created: %s
         """ % (self.pname, datetime.now()))
-
 
     def _cb_stage_new_project_content(self, event):
         """Triggered by `do_createme()` on ENTER 'empty' state."""
@@ -317,14 +316,12 @@ class Project(transitions.Machine, baseapp.Spec):
         index.add([state_fpath])
 
         ## Commit/tag callback expects `action` on event.
-        event.kwargs['action'] = 'Project created.' ## TODO: Improve actions
-
+        event.kwargs['action'] = 'Project created.'  # TODO: Improve actions
 
     def _new_report_spec(self):
         if not getattr(self, '__report', None):
             self.__report = report.Report(config=self.config)
         return self.__report
-
 
     def _cb_stage_pfiles(self, event):
         """
@@ -368,8 +365,7 @@ class Project(transitions.Machine, baseapp.Spec):
         files_count = ', '.join('%s: %s' % (k, len(f))
                                 for k, f in pfiles._asdict().items())
         ## Commit/tag callback expects `action` on event.
-        event.kwargs['action'] = 'Imported (%s) files.' % files_count ## TODO: Improve actions
-
+        event.kwargs['action'] = 'Imported (%s) files.' % files_count  # TODO: Improve actions
 
     def list_pfiles(self, *io_kinds, _as_index_paths=False) -> PFiles or None:
         """
@@ -392,6 +388,7 @@ class Project(transitions.Machine, baseapp.Spec):
         """
         io_kinds = PFiles._io_kinds_list(*io_kinds)
         repo = self.projects_db.repo
+
         def collect_kind_files(io_kind):
             wd_fpath = osp.join(repo.working_tree_dir, io_kind)
             io_pathlist = os.listdir(wd_fpath) if osp.isdir(wd_fpath) else []
@@ -400,9 +397,8 @@ class Project(transitions.Machine, baseapp.Spec):
             return io_pathlist
 
         iofpaths = {io_kind: collect_kind_files(io_kind) for io_kind in io_kinds}
-        if any(iofpaths):
+        if any(iofpaths.values()):
             return PFiles(**iofpaths)
-
 
     def _cb_generate_report(self, event):
         """
@@ -426,7 +422,7 @@ class Project(transitions.Machine, baseapp.Spec):
         Parses last tag and uses class:`SMTP` to send its message as email.
         """
         self.log.info('TODO: Sending email...')
-        event.kwargs['action'] = 'Email sent.' ## TODO: Improve actions
+        event.kwargs['action'] = 'Email sent.'  # TODO: Improve actions
 
     def _cond_is_dice_yes(self, event):
         """
@@ -441,9 +437,6 @@ class Project(transitions.Machine, baseapp.Spec):
         is_dice = random.random() > 0.5
 
         event.kwargs['action'] = is_dice and 'Run NEDC now!' or 'Spared...'
-
-
-
 
 
 class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
@@ -465,17 +458,19 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
       ``c:\Program Files (x86)\Git\bin\git.exe on windows`` or ``/usr/bin/git`` on linux.
     """
 
-    repo_path = trt.Unicode('repo',
-            help="""
-            The path to the Git repository to store TA files (signed and exchanged).
-            If relative, it joined against default config-dir: '{confdir}'
-            """.format(confdir=baseapp.default_config_dir())).tag(config=True)
-    reset_settings = trt.Bool(False,
-            help="""
-            When enabled, re-writes default git's config-settings on app start up.
-            Git settings include user-name and email address, so this option might be usefull
-            when the regular owner running the app has changed.
-            """).tag(config=True)
+    repo_path = trt.Unicode(
+        'repo',
+        help="""
+        The path to the Git repository to store TA files (signed and exchanged).
+        If relative, it joined against default config-dir: '{confdir}'
+        """.format(confdir=baseapp.default_config_dir())).tag(config=True)
+    reset_settings = trt.Bool(
+        False,
+        help="""
+        When enabled, re-writes default git's config-settings on app start up.
+        Git settings include user-name and email address, so this option might be usefull
+        when the regular owner running the app has changed.
+        """).tag(config=True)
 
     ## Useless, see https://github.com/ipython/traitlets/issues/287
     # @trt.validate('repo_path')
@@ -538,12 +533,14 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
             cw.set_value('core', 'ignorecase', False)
             cw.set_value('user', 'email', self.user_email)
             cw.set_value('user', 'name', self.user_name)
-            cw.set_value('alias', 'lg',
-                     r"log --graph --abbrev-commit --decorate --date=relative --format=format:'%C(bold blue)%h%C(reset) "
-                     r"- %C(bold green)(%ar)%C(reset) %C(white)%s%C(reset) %C(dim white)- "
-                     r"%an%C(reset)%C(bold yellow)%d%C(reset)' --all")
+            cw.set_value(
+                'alias', 'lg',
+                r"log --graph --abbrev-commit --decorate --date=relative "
+                r"--format=format:'%C(bold blue)%h%C(reset) "
+                r"- %C(bold green)(%ar)%C(reset) %C(white)%s%C(reset) %C(dim white)- "
+                r"%an%C(reset)%C(bold yellow)%d%C(reset)' --all")
 
-    def read_git_settings(self, prefix: Text=None, config_level: Text=None):# -> List(Text):
+    def read_git_settings(self, prefix: Text=None, config_level: Text=None):  # -> List(Text):
         """
         :param prefix:
             prefix of all settings.key (without a dot).
@@ -553,7 +550,8 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
             See :meth:`git.Repo.config_reader`.
         :return: a list with ``section.setting = value`` str lines
         """
-        settings = defaultdict(); settings.default_factory = defaultdict
+        settings = defaultdict()
+        settings.default_factory = defaultdict
         sec = '<not-started>'
         cname = '<not-started>'
         try:
@@ -566,7 +564,7 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
                         s[sec][cname] = citem
         except Exception as ex:
             self.log.info('Failed reading git-settings on %s.%s due to: %s',
-                     sec, cname, ex, exc_info=1)
+                          sec, cname, ex, exc_info=1)
             raise
         return settings
 
@@ -597,7 +595,7 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
 
         return archive_fpath
 
-    @fnt.lru_cache() # x6(!) faster!
+    @fnt.lru_cache()  # x6(!) faster!
     def _infos_dsp(self, fallback_value='<invalid>'):
         from co2mpas.dispatcher import Dispatcher
         from co2mpas.dispatcher.utils.dsp import DFun
@@ -636,7 +634,7 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
             DFun('cmsg', lambda cmt: '<invalid: %s>' % cmt.message, weight=10),
 
             DFun(['msg.%s' % f for f in _CommitMsg._fields],
-                                    lambda cmsg: Project.parse_commit_msg(cmsg)),
+                 lambda cmsg: Project.parse_commit_msg(cmsg)),
 
             DFun('tree', lambda tre: tre.hexsha),
             DFun('files_count', lambda tre: itz.count(tre.list_traverse())),
@@ -652,7 +650,7 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
             If ''> max-level'' then max-level assumed, negatives fetch no fields.
         """
         verbose_levels = {
-            0:[
+            0: [
                 'msg.project',
                 'msg.state',
                 'msg.action',
@@ -670,13 +668,13 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
                 'tree',
                 'repo',
             ],
-            2: None,  ## null signifies "all fields".
+            2: None,  # null signifies "all fields".
         }
         max_level = max(verbose_levels.keys())
         if level > max_level:
             level = max_level
         fields = []
-        for l  in range(level + 1):
+        for l in range(level + 1):
             fs = verbose_levels[l]
             if not fs:
                 return None
@@ -704,7 +702,6 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
 
         return infos
 
-
     def proj_examine(self, pname: Text=None, verbose=None, as_text=False, as_json=False):
         """
         Does not validate project, not fails, just reports situation.
@@ -731,11 +728,9 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
 
         return infos
 
-
-    def _conceive_new_project(self, pname): # -> Project:
+    def _conceive_new_project(self, pname):  # -> Project:
         """Returns a "UNBORN" :class:`Project`; its state must be triggered immediately."""
         return Project.new_instance(pname, self, self.config)
-
 
     _current_project = None
 
@@ -771,7 +766,6 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
 
         return self._current_project
 
-
     def proj_add(self, pname: Text) -> Project:
         """
         Creates a new project and sets it as the current one.
@@ -798,7 +792,6 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
             return p
         except Exception as ex:
             p.do_invalidate(error=ex)
-
 
     def proj_open(self, pname: Text) -> Project:
         """
@@ -836,9 +829,9 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
             infos = []
             if verbose:
                 infos = OrderedDict(self._infos_fields(
-                        pname=pname,
-                        fields='msg.state revs_count files_count last_cdata author msg.action'.split(),
-                        inv_value='<invalid>'))
+                    pname=pname,
+                    fields='msg.state revs_count files_count last_cdata author msg.action'.split(),
+                    inv_value='<invalid>'))
             res[pname] = infos
 
         if not res:
@@ -863,10 +856,9 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
                     res = res.to_string(index=False)
             else:
                 res = [('* %s' if _pname2ref_path(r) == ap else '  %s') % r
-                for r in sorted(res)]
+                       for r in sorted(res)]
 
         return res
-
 
 
 ###################
@@ -895,7 +887,6 @@ class ProjectCmd(_PrjCmd):
             co2dice project list
         """)
 
-
     class ListCmd(_PrjCmd):
         """
         List specified projects, or all, if none specified.
@@ -910,7 +901,6 @@ class ProjectCmd(_PrjCmd):
             self.log.info('Listing %s projects...', args or 'all')
             return self.projects_db.proj_list(*args)
 
-
     class CurrentCmd(_PrjCmd):
         """Prints the currently open project."""
         def run(self, *args):
@@ -918,7 +908,6 @@ class ProjectCmd(_PrjCmd):
                 raise CmdException('Cmd %r takes no arguments, received %r!'
                                    % (self.name, args))
             return self.projects_db.current_project()
-
 
     class OpenCmd(_PrjCmd):
         """
@@ -946,7 +935,6 @@ class ProjectCmd(_PrjCmd):
                 raise CmdException('Cmd %r takes a SINGLE project-name as argument, received %r!'
                                    % (self.name, args))
             return self.projects_db.proj_add(args[0])
-
 
     class AddReportCmd(_PrjCmd):
         """
@@ -983,11 +971,10 @@ class ProjectCmd(_PrjCmd):
             pfiles = PFiles.parse_io_args(*args)
             if pfiles.other:
                 raise CmdException(
-                    "Cmd %r filepaths must either start with 'inp=' or 'out=' prefix!\n%s"
-                                       % (self.name, '\n'.join('  arg[%d]: %s' % i for i in pfiles.other.items())))
+                    "Cmd %r filepaths must either start with 'inp=' or 'out=' prefix!\n%s" %
+                    (self.name, '\n'.join('  arg[%d]: %s' % i for i in pfiles.other.items())))
 
             return self.projects_db.current_project().do_addfiles(pfiles=pfiles)
-
 
     class ExamineCmd(_PrjCmd):
         """
@@ -998,9 +985,10 @@ class ProjectCmd(_PrjCmd):
         SYNTAX
             co2dice project examine [<project>]
         """
-        as_json = trt.Bool(False,
-                help="Whether to return infos as JSON, instead of python-code."
-                ).tag(config=True)
+        as_json = trt.Bool(
+            False,
+            help="Whether to return infos as JSON, instead of python-code."
+        ).tag(config=True)
 
         def run(self, *args):
             if len(args) > 1:
@@ -1008,7 +996,6 @@ class ProjectCmd(_PrjCmd):
                                    % (self.name, len(args), args))
             pname = args and args[0] or None
             return self.projects_db.proj_examine(pname, as_text=True, as_json=self.as_json)
-
 
     class BackupCmd(_PrjCmd):
         """
@@ -1033,9 +1020,9 @@ class ProjectCmd(_PrjCmd):
             try:
                 return self.projects_db.repo_backup(**kwds)
             except FileNotFoundError as ex:
-                raise baseapp.CmdException("Folder '%s' to store archive does not exist!"
-                                   "\n  Use --force to create it." % ex)
-
+                raise baseapp.CmdException(
+                    "Folder '%s' to store archive does not exist!"
+                    "\n  Use --force to create it." % ex)
 
     def __init__(self, **kwds):
         with self.hold_trait_notifications():
@@ -1044,12 +1031,16 @@ class ProjectCmd(_PrjCmd):
                 'subcommands': baseapp.build_sub_cmds(*project_subcmds),
                 #'default_subcmd': 'current', ## Does not help the user.
                 'cmd_flags': {
-                    'reset-git-settings': ({
+                    'reset-git-settings': (
+                        {
+
                             'ProjectsDB': {'reset_settings': True},
-                        }, pndlu.first_line(ProjectsDB.reset_settings.help)),
-                    'as-json': ({
+                        }, pndlu.first_line(ProjectsDB.reset_settings.help)
+                    ), 'as-json': (
+                        {
                             'ExamineCmd': {'as_json': True},
-                        }, pndlu.first_line(ProjectCmd.ExamineCmd.as_json.help)),
+                        }, pndlu.first_line(ProjectCmd.ExamineCmd.as_json.help)
+                    ),
                 }
             }
             dkwds.update(kwds)

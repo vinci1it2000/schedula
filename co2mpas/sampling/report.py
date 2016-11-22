@@ -91,10 +91,11 @@ class ReportCmd(baseapp.Cmd):
             co2dice report  --project
         """)
 
-    project = trt.Bool(False,
-            help="""
-            Whether to extract report from files present already in the *current-project*.
-            """).tag(config=True)
+    project = trt.Bool(
+        False,
+        help="""
+        Whether to extract report from files present already in the *current-project*.
+        """).tag(config=True)
 
     __report = None
 
@@ -116,32 +117,30 @@ class ReportCmd(baseapp.Cmd):
                 'conf_classes': [Report],
                 'cmd_flags': {
                     'project': ({
-                            'ReportCmd': {'project': True},
-                        }, pndlu.first_line(ReportCmd.project.help)),
+                        'ReportCmd': {'project': True},
+                    }, pndlu.first_line(ReportCmd.project.help)),
                 }
             }
             dkwds.update(kwds)
             super().__init__(**dkwds)
-
 
     def _build_io_files_from_project(self, args) -> PFiles:
         project = self.projects_db.current_project()
         pfiles = project.list_pfiles('inp', 'out', _as_index_paths=True)
         if not pfiles:
             raise CmdException(
-                    "Current %s contains no input/output files!"
-                    % project)
+                "Current %s contains no input/output files!" % project)
         return pfiles
 
     def _build_io_files_from_args(self, args) -> PFiles:
         """Just to report any stray files>"""
         pfiles = PFiles.parse_io_args(*args)
         if pfiles.other:
-            bad_args = ('  arg[%d]: %s' % (1+ args.index(a), a)
+            bad_args = ('  arg[%d]: %s' % (1 + args.index(a), a)
                         for a in pfiles.other)
             raise CmdException(
-                    "Cmd %r filepaths must either start with 'inp=' or 'out=' prefix!\n%s"
-                    % (self.name, '\n'.join(bad_args)))
+                "Cmd %r filepaths must either start with 'inp=' or 'out=' prefix!\n%s" %
+                (self.name, '\n'.join(bad_args)))
 
         return pfiles
 
@@ -170,7 +169,7 @@ if __name__ == '__main__':
     from traitlets.config import get_config
     # Invoked from IDEs, so enable debug-logging.
     c = get_config()
-    c.Application.log_level=0
+    c.Application.log_level = 0
     #c.Spec.log_level='ERROR'
 
     argv = None

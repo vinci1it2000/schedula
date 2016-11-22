@@ -6,7 +6,7 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 #
 """
-A *traitlets*[#]_ framework for building hierarchical cmd-line tools (class:`Cmd`) delegating to backend classes (class:`Spec`).
+A *traitlets*[#]_ framework for building hierarchical :class:`Cmd` line tools delegating to backend- :class:`Spec`.
 
 To run a base command, use this code::
 
@@ -66,14 +66,15 @@ except:
     _mydir = '.'
 
 
-
 def default_config_fname():
     """The config-file's basename (no path or extension) to search when not explicitly specified."""
     return '%s_config' % APPNAME
 
+
 def default_config_dir():
     """The folder of to user's config-file."""
     return pndlu.convpath('~/.%s' % APPNAME)
+
 
 def default_config_fpath():
     """The full path of to user's config-file, without extension."""
@@ -94,8 +95,8 @@ class Spec(trtc.LoggingConfigurable):
 
     # The log level for the application
     log_level = trt.Enum((0, 10, 20, 30, 40, 50, 'DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL'),
-                    default_value=logging.WARN,
-                    help="Set the log level by value or name.").tag(config=True)
+                         default_value=logging.WARN,
+                         help="Set the log level by value or name.").tag(config=True)
 
     @trt.observe('log_level')
     def _log_level_changed(self, change):
@@ -106,31 +107,35 @@ class Spec(trtc.LoggingConfigurable):
             self.log_level = new
         self.log.setLevel(new)
 
-    verbose = trt.Union((trt.Integer(0), trt.Bool(False)),
-            ## INFO: Add verbose flag explanations here.
-            help="""
-            Make various sub-commands increase their verbosity (not to be confused with --debug):
-            Can be a boolean or 0, 1(==True), 2, ....
+    verbose = trt.Union(
+        (trt.Integer(0), trt.Bool(False)),
+        ## INFO: Add verbose flag explanations here.
+        help="""
+        Make various sub-commands increase their verbosity (not to be confused with --debug):
+        Can be a boolean or 0, 1(==True), 2, ....
 
-            - project list  : List project with the "long" format.
-            - project infos : Whether to include also info about the repo-configuration (when 2).
-            """).tag(config=True)
+        - project list  : List project with the "long" format.
+        - project infos : Whether to include also info about the repo-configuration (when 2).
+        """).tag(config=True)
 
-    force = trt.Bool(False,
-            ## INFO: Add force flag explanations here.
-            help="""
-            Force various sub-commands perform their duties without complaints.
+    force = trt.Bool(
+        False,
+        ## INFO: Add force flag explanations here.
+        help="""
+        Force various sub-commands perform their duties without complaints.
 
-            - project backup: Whether to overwrite existing archives or to create intermediate folders.
-            """).tag(config=True)
+        - project backup: Whether to overwrite existing archives or to create intermediate folders.
+        """).tag(config=True)
 
-    user_name = trt.Unicode('<Name Surname>',
-            help="""The Name & Surname of the default user invoking the app.  Must not be empty!"""
-            ).tag(config=True)
-    user_email = trt.Unicode('<email-address>',
-            help="""The email address of the default user invoking the app. Must not be empty!"""
-            ).tag(config=True)
+    user_name = trt.Unicode(
+        '<Name Surname>',
+        help="""The Name & Surname of the default user invoking the app.  Must not be empty!"""
+    ).tag(config=True)
 
+    user_email = trt.Unicode(
+        '<email-address>',
+        help="""The email address of the default user invoking the app. Must not be empty!"""
+    ).tag(config=True)
 
     @trt.validate('user_name', 'user_email')
     def _valid_user(self, proposal):
@@ -141,8 +146,6 @@ class Spec(trtc.LoggingConfigurable):
         return value
 
 
-
-
 ###################
 ##    Commands   ##
 ###################
@@ -150,10 +153,11 @@ class Spec(trtc.LoggingConfigurable):
 
 def app_short_help(app_class):
     desc = app_class.class_traits().get('description')
-    doc = (isinstance(desc, str) and desc
-        or (isinstance(app_class.description, str) and app_class.description)
-        or app_class.__doc__)
+    doc = (isinstance(desc, str) and desc or
+           (isinstance(app_class.description, str) and app_class.description) or
+           app_class.__doc__)
     return pndlu.first_line(doc)
+
 
 def class2cmd_name(cls):
     name = cls.__name__
@@ -161,11 +165,13 @@ def class2cmd_name(cls):
         name = name[:-3]
     return pndlu.camel_to_cmd_name(name)
 
+
 def build_sub_cmds(*subapp_classes):
     """Builds an ordered-dictionary of ``cmd-name --> (cmd-class, help-msg)``. """
 
     return OrderedDict((class2cmd_name(sa), (sa, app_short_help(sa)))
                        for sa in subapp_classes)
+
 
 class Cmd(trtc.Application):
     """Common machinery for all (sub-)commands. """
@@ -177,21 +183,21 @@ class Cmd(trtc.Application):
         name = class2cmd_name(type(self))
         return name
 
-
     @trt.default('description')
     def _description(self):
         return __doc__ or '<no description>'
 
-    config_files = trt.Unicode(None, allow_none=True,
-            help="""
-            Absolute/relative path(s) to config files to OVERRIDE default configs.
-            Multiple paths are separated by '{pathsep}' in descending order.
-            Any extensions are ignored, and '.json' or '.py' are searched (in this order).
-            If the path specified resolves to a folder, the filename `{appname}_config.[json | py]` is appended;
-            Any command-line values take precendance over the `{confvar}` envvar.
-            Use `gen-config` sub-command to produce a skeleton of the config-file.
-            """.format(appname=APPNAME, confvar=CONF_VAR_NAME, pathsep=osp.pathsep)
-            ).tag(config=True)
+    config_files = trt.Unicode(
+        None, allow_none=True,
+        help="""
+        Absolute/relative path(s) to config files to OVERRIDE default configs.
+        Multiple paths are separated by '{pathsep}' in descending order.
+        Any extensions are ignored, and '.json' or '.py' are searched (in this order).
+        If the path specified resolves to a folder, the filename `{appname}_config.[json | py]` is appended;
+        Any command-line values take precendance over the `{confvar}` envvar.
+        Use `gen-config` sub-command to produce a skeleton of the config-file.
+        """.format(appname=APPNAME, confvar=CONF_VAR_NAME, pathsep=osp.pathsep)
+    ).tag(config=True)
 
     @trt.default('log')
     def _log(self):
@@ -255,7 +261,7 @@ class Cmd(trtc.Application):
         op = 'Over-writting' if osp.isfile(config_file) else 'Writting'
         self.log.info('%s config-file %r...', op, config_file)
         pndlu.ensure_dir_exists(os.path.dirname(config_file), 0o700)
-        config_text = self.generate_config_file();
+        config_text = self.generate_config_file()
         with io.open(config_file, mode='wt') as fp:
             fp.write(config_text)
 
@@ -269,7 +275,7 @@ class Cmd(trtc.Application):
         lines.append('-' * len(lines[0]))
         lines.append('')
         for p in wrap_paragraphs(self.subcommand_description.format(
-                    app=self.name)):
+                app=self.name)):
             lines.append(p)
         lines.append('')
         for subc, (cls, hlp) in self.subcommands.items():
@@ -298,20 +304,24 @@ class Cmd(trtc.Application):
         self.subapp = subapp.instance(parent=self)
         self.subapp.initialize(argv)
 
-    default_subcmd = trt.Unicode(None, allow_none=True,
-            help="The name of the sub-command to use if unspecified.")
+    default_subcmd = trt.Unicode(
+        None, allow_none=True,
+        help="The name of the sub-command to use if unspecified.")
 
-    conf_classes = trt.List(trt.Type(trtc.Configurable), default_value=[],
-            help="""
-            Any *configurables* found in this prop up the cmd-chain are merged,
-            along with any subcommands, into :attr:`classes`.
-            """)
+    conf_classes = trt.List(
+        trt.Type(trtc.Configurable), default_value=[],
+        help="""
+        Any *configurables* found in this prop up the cmd-chain are merged,
+        along with any subcommands, into :attr:`classes`.
+        """)
 
-    cmd_aliases = trt.Dict({},
-            help="Any *flags* found in this prop up the cmd-chain are merged into :attr:`aliases`. """)
+    cmd_aliases = trt.Dict(
+        {},
+        help="Any *flags* found in this prop up the cmd-chain are merged into :attr:`aliases`. """)
 
-    cmd_flags = trt.Dict({},
-            help="Any *flags* found in this prop up the cmd-chain are merged into :attr:`flags`. """)
+    cmd_flags = trt.Dict(
+        {},
+        help="Any *flags* found in this prop up the cmd-chain are merged into :attr:`flags`. """)
 
     def my_cmd_chain(self):
         """Return the chain of cmd-classes starting from my self or subapp."""
@@ -376,10 +386,11 @@ class Cmd(trtc.Application):
                 'config-files': 'Cmd.config_files',
             },
             'cmd_flags': {
-                ('d', 'debug'): ({
-                        'Application' : {'log_level' : 0},
-                        'Spec' : {'log_level' : 0},
-                        'Cmd' : {
+                ('d', 'debug'): (
+                    {
+                        'Application': {'log_level': 0},
+                        'Spec': {'log_level': 0},
+                        'Cmd': {
                             'raise_config_file_errors': True,
                             'print_config': True,
                         },
@@ -387,12 +398,14 @@ class Cmd(trtc.Application):
                     "Log more logging, fail on configuration errors, "
                     "and print configuration on each cmd startup."
                 ),
-                ('v', 'verbose'):  ({
+                ('v', 'verbose'): (
+                    {
                         'Spec': {'verbose': True},
                     },
                     pndlu.first_line(Spec.verbose.help)
                 ),
-                ('f', 'force'):  ({
+                ('f', 'force'): (
+                    {
                         'Spec': {'force': True},
                     },
                     pndlu.first_line(Spec.force.help)
@@ -405,7 +418,6 @@ class Cmd(trtc.Application):
     def _is_dispatching(self):
         """True if dispatching to another command."""
         return bool(self.subapp)
-
 
     @trtc.catch_config_error
     def initialize(self, argv=None):
@@ -423,8 +435,9 @@ class Cmd(trtc.Application):
         self.load_config_files()
         self.update_config(cl_config)
 
-    print_config = trt.Bool(False,
-            help="""Enable it to print the configurations before launching any command."""
+    print_config = trt.Bool(
+        False,
+        help="""Enable it to print the configurations before launching any command."""
     ).tag(config=True)
 
     def start(self):
@@ -461,8 +474,6 @@ class Cmd(trtc.Application):
         assert False, "Override run() method in cmd subclasses."
 
 
-
-
 ## Disable logging-format configs, because their observer
 #    works on on loger's handlers, which might be null.
 Cmd.log_format.tag(config=False)
@@ -477,7 +488,6 @@ Cmd.name.default_value = None
 #  :envvar:`TRAITLETS_APPLICATION_RAISE_CONFIG_FILE_ERROR`.
 trtc.Application.raise_config_file_errors.tag(config=True)
 Cmd.raise_config_file_errors.help = 'Whether failing to load config files should prevent startup.'
-
 
 
 def chain_cmds(app_classes: Sequence[type(trtc.Application)],
@@ -513,4 +523,3 @@ def chain_cmds(app_classes: Sequence[type(trtc.Application)],
 
     app_classes[0]._instance = app
     return root
-

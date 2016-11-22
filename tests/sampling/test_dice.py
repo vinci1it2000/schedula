@@ -6,23 +6,16 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
-from getpass import getpass
-import io
 import logging
 import os
-import sys
 import tempfile
-from unittest import mock
 import unittest
 
 import ddt
-import git
-import gnupg
 from traitlets.config import get_config
-import yaml
 
 from co2mpas.__main__ import init_logging
-from co2mpas.sampling import baseapp, dice, project
+from co2mpas.sampling import dice
 import os.path as osp
 
 
@@ -32,6 +25,10 @@ log = logging.getLogger(__name__)
 
 mydir = osp.dirname(__file__)
 
+# from getpass import getpass
+# import git
+# import gnupg
+# import yaml
 #
 # _test_cfg = """
 # sampling:
@@ -240,6 +237,7 @@ mydir = osp.dirname(__file__)
 #         dice.gpg_gen_interesting_keys(gpg, key_length, name_real, name_email,
 #                 keyid_n_fingerprint_start_repetitively)
 
+
 @ddt.ddt
 class TApp(unittest.TestCase):
 
@@ -269,4 +267,3 @@ class TApp(unittest.TestCase):
                             (conf_fpath, os.listdir(osp.split(conf_fpath)[0])))
             stat = os.stat(conf_fpath)
             self.assertGreater(stat.st_size, 7000, stat)
-

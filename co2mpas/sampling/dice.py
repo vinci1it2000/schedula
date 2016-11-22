@@ -27,7 +27,7 @@ import types
 from typing import Sequence, Text
 
 from boltons.setutils import IndexedSet as iset
-import gnupg # from python-gnupg
+import gnupg  # from python-gnupg
 import keyring
 from toolz import dicttoolz as dtz, itertoolz as itz
 
@@ -357,53 +357,58 @@ def __GPG__init__(self, my_gpg_key):
 ##     Specs     ##
 ###################
 
-
-
 class GpgSpec(trtc.SingletonConfigurable, baseapp.Spec):
     """Provider of GnuPG high-level methods."""
 
-    exec_path = trt.Unicode(None, allow_none=True,
-            help="""
-            The path to GnuPG executable; if None, the first one in PATH variable is used: '{gpgexec}'.
-            """.format(gpgexec=pndlu.convpath(pndlu.which('gpg')))).tag(config=True)
+    exec_path = trt.Unicode(
+        None, allow_none=True,
+        help="""
+        The path to GnuPG executable; if None, the first one in PATH variable is used: '{gpgexec}'.
+        """.format(gpgexec=pndlu.convpath(pndlu.which('gpg')))).tag(config=True)
 
-    home = trt.Unicode(None, allow_none=True,
-            help="""
-            The default home directory containing the keys; if None given and nor env-var GNUPGHOME exist,
-            the executable decides (e.g. `~/.gpg` on POSIX, `%APPDATA%\Roaming\GnuPG` on Windows).
-            """).tag(config=True)
+    home = trt.Unicode(
+        None, allow_none=True,
+        help="""
+        The default home directory containing the keys; if None given and nor env-var GNUPGHOME exist,
+        the executable decides (e.g. `~/.gpg` on POSIX, `%APPDATA%\Roaming\GnuPG` on Windows).
+        """).tag(config=True)
 
 
 class MailSpec(baseapp.Spec):
     """Common parameters and methods for both SMTP(sending emails) & IMAP(receiving emails)."""
 
-    host = trt.Unicode('',
-            help="""The SMTP/IMAP server, e.g. 'smtp.gmail.com'."""
-            ).tag(config=True)
+    host = trt.Unicode(
+        '',
+        help="""The SMTP/IMAP server, e.g. 'smtp.gmail.com'."""
+    ).tag(config=True)
 
-    port = trt.Int(587,
-            help="""The SMTP/IMAP server's port, usually 587/465 for SSL, 25 otherwise."""
-            ).tag(config=True)
+    port = trt.Int(
+        587,
+        help="""The SMTP/IMAP server's port, usually 587/465 for SSL, 25 otherwise."""
+    ).tag(config=True)
 
-    ssl = trt.Bool(True,
-            help="""Whether to talk TLS/SSL to the SMTP/IMAP server; configure `port` separately!"""
-            ).tag(config=True)
+    ssl = trt.Bool(
+        True,
+        help="""Whether to talk TLS/SSL to the SMTP/IMAP server; configure `port` separately!"""
+    ).tag(config=True)
 
-    user = trt.Unicode(None, allow_none=True,
-            help="""The user to authenticate with the SMTP/IMAP server."""
-            ).tag(config=True)
+    user = trt.Unicode(
+        None, allow_none=True,
+        help="""The user to authenticate with the SMTP/IMAP server."""
+    ).tag(config=True)
 
 
 class SmtpSpec(MailSpec):
     """Parameters and methods for SMTP(sending emails)."""
 
-    login = trt.CaselessStrEnum('login simple'.split(), default_value=None, allow_none=True,
-            help="""Which SMTP mechanism to use to authenticate: [ login | simple | <None> ]. """
-             ).tag(config=True)
+    login = trt.CaselessStrEnum(
+        'login simple'.split(), default_value=None, allow_none=True,
+        help="""Which SMTP mechanism to use to authenticate: [ login | simple | <None> ]. """
+    ).tag(config=True)
 
     kwds = trt.Dict(
-            help="""Any key-value pairs passed to the SMTP/IMAP mail-client libraries."""
-            ).tag(config=True)
+        help="""Any key-value pairs passed to the SMTP/IMAP mail-client libraries."""
+    ).tag(config=True)
 
 
 class ImapSpec(MailSpec):
@@ -418,7 +423,7 @@ class ImapSpec(MailSpec):
 class MainCmd(Cmd):
     """The parent command."""
 
-    name        = trt.Unicode(__title__)
+    name = trt.Unicode(__title__)
     description = trt.Unicode("""
     co2dice: prepare/sign/send/receive/validate & archive Type Approval sampling emails for *co2mpas*.
 
@@ -429,11 +434,12 @@ class MainCmd(Cmd):
     NOTE:
       Do not run multiple instances!
     """)
-    version     = __version__
+    version = __version__
     #examples = """TODO: Write cmd-line examples."""
 
-    print_config = trt.Bool(False,
-            help="""Enable it to print the configurations before launching any command."""
+    print_config = trt.Bool(
+        False,
+        help="""Enable it to print the configurations before launching any command."""
     ).tag(config=True)
 
     def __init__(self, **kwds):
@@ -448,6 +454,7 @@ class MainCmd(Cmd):
             dkwds.update(kwds)
             super().__init__(**dkwds)
 
+
 ## INFO: Add al conf-classes here
 class GenConfigCmd(Cmd):
     """
@@ -460,10 +467,9 @@ class GenConfigCmd(Cmd):
         co2dice gen-config [<config-path-1>] ...
     """
 
-
     ## Class-docstring CANNOT contain string-interpolations!
     description = trt.Unicode(__doc__.format(confpath=pndlu.convpath('~/.%s_config.py' % APPNAME),
-                                 appname=APPNAME))
+                              appname=APPNAME))
 
     examples = trt.Unicode("""
         Generate a config-file at your home folder:
@@ -480,10 +486,10 @@ class GenConfigCmd(Cmd):
         ## INFO: Add all conf-classes here
         pp = project.ProjectCmd
         self.classes = [
-              pp, pp.CurrentCmd, pp.ListCmd, pp.AddCmd, pp.OpenCmd, pp.ExamineCmd, pp.BackupCmd,
-              report.ReportCmd,
-              GenConfigCmd,
-              baseapp.Spec, project.ProjectsDB, report.Report, MainCmd,
+            pp, pp.CurrentCmd, pp.ListCmd, pp.AddCmd, pp.OpenCmd, pp.ExamineCmd, pp.BackupCmd,
+            report.ReportCmd,
+            GenConfigCmd,
+            baseapp.Spec, project.ProjectsDB, report.Report, MainCmd,
         ]
         args = args or [None]
         for fpath in args:
@@ -514,6 +520,7 @@ def run_cmd(cmd: Cmd, argv: Sequence[Text]=None):
             print(os.linesep.join(res))
         else:
             print(res)
+
 
 def main(argv=None, log_level=None, **app_init_kwds):
     """
