@@ -291,19 +291,6 @@ class Cmd(trtc.Application):
         lines.append('')
         print(os.linesep.join(lines))
 
-    @trtc.catch_config_error
-    def initialize_subcommand(self, subc, argv=None):
-        """Initialize a subcommand named `subc` with `argv`, or `sys.argv` if `None` (default)."""
-        ## INFO: Overriden to set parent on subcmds and inherit config,
-        #  see https://github.com/ipython/traitlets/issues/286
-        subcmd_tuple = self.subcommands.get(subc)
-        assert subcmd_tuple, "Cannot find sub-cmd %r in sub-cmds of %r: %s" % (
-            subc, self.name, list(self.subcommands.keys()))
-        subapp, _ = subcmd_tuple
-        type(self).clear_instance()
-        self.subapp = subapp.instance(parent=self)
-        self.subapp.initialize(argv)
-
     default_subcmd = trt.Unicode(
         None, allow_none=True,
         help="The name of the sub-command to use if unspecified.")
