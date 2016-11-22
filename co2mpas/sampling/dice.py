@@ -96,14 +96,16 @@ def app_config_dir():
 
     return osp.abspath(osp.join(home_dir, '.co2dice'))
 
+
 def store_secret(master_pswd, key, secret):
     """
     Uses Microsoft's DPPAPI to store sensitive infos (e.g. passwords).
 
     :param str master_pswd:     master-password given by the user
     """
-    kr=keyring.get_keyring()
-    kr.set_password('%s.%s' %(__title__, master_pswd), key, secret)
+    kr = keyring.get_keyring()
+    kr.set_password('%s.%s' % (__title__, master_pswd), key, secret)
+
 
 def retrieve_secret(master_pswd, key):
     """
@@ -111,8 +113,8 @@ def retrieve_secret(master_pswd, key):
 
     :param str master_pswd:     master-password given by the user
     """
-    kr=keyring.get_keyring()
-    return kr.get_password('%s.%s' %(__title__, master_pswd), key)
+    kr = keyring.get_keyring()
+    return kr.get_password('%s.%s' % (__title__, master_pswd), key)
 
 
 def _describe_gpg(gpg):

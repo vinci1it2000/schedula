@@ -27,7 +27,7 @@ import pandalone.utils as pndlu
 import traitlets as trt
 import traitlets.config as trtc
 
-from . import baseapp, dice, report, CmdException, PFiles
+from . import baseapp, dice, CmdException, PFiles
 from .. import (__version__, __updated__, __file_version__,   # @UnusedImport
                 __input_file_version__, __copyright__, __license__)  # @UnusedImport
 from .. import __uri__  # @UnusedImport
@@ -144,6 +144,13 @@ class Project(transitions.Machine, baseapp.Spec):
             s = 'Project(%s: %s)' % (self.pname, self.state)
         return s
 
+    def _new_report_spec(self):
+        spec = getattr(self, '__report', None)
+        if not spec:
+            from . import report
+            spec = self.__report = report.Report(config=self.config)
+        return spec
+
     def _is_force(self, event):
         return event.kwargs.get('force', self.force)
 
@@ -201,8 +208,8 @@ class Project(transitions.Machine, baseapp.Spec):
 
             ['do_sendmail', 'tagged', 'mailed'],
 
-            ['do_recvmail', 'mailed', 'dice_yes', '_cond_is_dice_yes'],
-            ['do_recvmail', 'mailed', 'dice_no'],
+            ['do_mailrecv', 'mailed', 'dice_yes', '_cond_is_dice_yes'],
+            ['do_mailrecv', 'mailed', 'dice_no'],
 
             ['do_addfiles', ['dice_yes',
                              'dice_no'], 'nedc', '_is_other_files'],
@@ -260,7 +267,8 @@ class Project(transitions.Machine, baseapp.Spec):
 
     def _make_tag_msg(self, report):
         """
-        :param report: a list of extracted params
+        :param report:
+            a list of extracted params
         """
         ## TODO: Report can be more beautiful...YAML!??
         report_str = '\n\n'.join(str(r) for r in report)
@@ -317,11 +325,6 @@ class Project(transitions.Machine, baseapp.Spec):
 
         ## Commit/tag callback expects `action` on event.
         event.kwargs['action'] = 'Project created.'  # TODO: Improve actions
-
-    def _new_report_spec(self):
-        if not getattr(self, '__report', None):
-            self.__report = report.Report(config=self.config)
-        return self.__report
 
     def _cb_stage_pfiles(self, event):
         """
@@ -426,10 +429,10 @@ class Project(transitions.Machine, baseapp.Spec):
 
     def _cond_is_dice_yes(self, event):
         """
-        Triggered by `do_recvmail(mail=<raw-mail>)` on CONDITION before `dice_yes` state.
+        Triggered by `do_mailrecv(mail=<raw-mail>)` on CONDITION before `dice_yes` state.
 
-        :param mail
-        Parses timestamped-email to decide if next-state is `dice_yes` or `dice_no`.
+        :param mail:
+            Parses timestamped-email to decide if next-state is `dice_yes` or `dice_no`.
         """
         self.log.info('TODO: Receiving email: %s...', event.kwargs)
         mail = _evarg(event, 'mail')
@@ -571,8 +574,10 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
     def repo_backup(self, folder: Text='.', repo_name: Text='co2mpas_repo',
                     force: bool=None) -> Text:
         """
-        :param folder: The path to the folder to store the repo-archive in.
-        :return: the path of the repo-archive
+        :param folder:
+            The path to the folder to store the repo-archive in.
+        :return:
+            the path of the repo-archive
         """
         import tarfile
 
@@ -770,8 +775,10 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
         """
         Creates a new project and sets it as the current one.
 
-        :param pname: the project name (without prefix)
-        :return: the current :class:`Project` or fail
+        :param pname:
+            the project name (without prefix)
+        :return:
+            the current :class:`Project` or fail
         """
         self.log.info('Creating project %r...', pname)
         if not pname or not pname.isidentifier():
@@ -795,8 +802,10 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
 
     def proj_open(self, pname: Text) -> Project:
         """
-        :param pname: the project name (without prefix)
-        :return: the current :class:`Project`
+        :param pname:
+            the project name (without prefix)
+        :return:
+            the current :class:`Project`
         """
         prefname = _pname2ref_name(pname)
         if prefname not in self.repo.heads:
@@ -815,9 +824,12 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
 
     def proj_list(self, *pnames: Text, verbose=None, as_text=False):
         """
-        :param pnames: some project name, or none for all
-        :param verbose: return infos in a table with 3-4 coulmns per each project
-        :retun: yield any matched projects, or all if `pnames` were empty.
+        :param pnames:
+            some project name, or none for all
+        :param verbose:
+            return infos in a table with 3-4 coulmns per each project
+        :retun:
+            yield any matched projects, or all if `pnames` were empty.
         """
         import pandas as pd
         if verbose is None:
