@@ -201,50 +201,6 @@ def gpg_gen_interesting_keys(gpg, name_real, name_email, key_length,
                 gpg_del_gened_key(gpg, key.fingerprint)
     return keys
 
-def _log_into_server(login_cb, login_cmd, prompt):
-    """
-    Connects a credential-source(`login_db`) to a consumer(`login_cmd`).
-
-    :param login_cb:
-        An object with 2 methods::
-
-            ask_user_pswd(prompt) --> (user, pswd)  ## or `None` to abort.
-            report_failure(obj)
-
-    :param login_cmd:
-        A function like::
-
-                login_cmd(user, pswd) --> xyz  ## `xyz` might be the server.
-    """
-    for login_data in iter(lambda: login_cb.ask_user_pswd('%s? ' % prompt), None):
-        user, pswd = login_data
-        try:
-            return login_cmd(user, pswd)
-        except smtplib.SMTPAuthenticationError as ex:
-            login_cb.report_failure('%r' % ex)
-    else:
-        raise CmdException("User abort logging into %r email-server." % prompt)
-
-
-def send_timestamped_email(msg, sender, recipients, host,
-        login_cb=None, ssl=False, **srv_kwds):
-    x_recs = '\n'.join('X-Stamper-To: %s' % rec for rec in recipients)
-    msg = "\n\n%s\n%s" % (x_recs, msg)
-
-    mail = MIMEText(msg)
-    mail['Subject'] = '[CO2MPAS-dice] test'
-    mail['From'] = sender
-    mail['To'] = ', '.join([_timestamping_address, sender])
-    with (smtplib.SMTP_SSL(host, **srv_kwds)
-            if ssl else smtplib.SMTP(host, **srv_kwds)) as srv:
-        if login_cb:
-            login_cmd = lambda user, pswd: srv.login(user, pswd)
-            prompt = 'SMTP(%r)' % host
-            _log_into_server(login_cb, login_cmd, prompt)
-
-        srv.send_message(mail)
-    return mail
-
 
 _list_response_regex = re.compile(r'\((?P<flags>.*?)\) "(?P<delimiter>.*)" (?P<name>.*)')
 
@@ -254,37 +210,8 @@ def _parse_list_response(line):
     mailbox_name = mailbox_name.strip('"')
     return (flags, delimiter, mailbox_name)
 
-# see https://pymotw.com/2/imaplib/ for IMAP example.
-def receive_timestamped_email(host, login_cb, ssl=False, **srv_kwds):
-    prompt = 'IMAP(%r)' % host
-
-    def login_cmd(user, pswd):
-        srv = (imaplib.IMAP4_SSL(host, **srv_kwds)
-                if ssl else imaplib.IMAP4(host, **srv_kwds))
-        repl = srv.login(user, pswd)
-        """GMAIL-2FAuth: imaplib.error: b'[ALERT] Application-specific password required:
-        https://support.google.com/accounts/answer/185833 (Failure)'"""
-        log.debug("Sent %s-user/pswd, server replied: %s", prompt, repl)
-        return srv
-
-    srv = _log_into_server(login_cb, login_cmd, prompt)
-    try:
-        resp = srv.list()
-        print(resp[0])
-        return [srv.retr(i+1) for i, msg_id in zip(range(10), resp[1])]
-    finally:
-        resp = srv.logout()
-        if resp:
-            log.warning('While closing %s srv responded: %s', prompt, resp)
-
-def git_read_bytes(obj):
-    bytes_sink = io.BytesIO()
-    obj.stream_data(bytes_sink)
-    return bytes_sink.getvalue()
-
-
-_PGP_SIGNATURE  = b'-----BEGIN PGP SIGNATURE-----'
-_PGP_MESSAGE    = b'-----BEGIN PGP MESSAGE-----'
+_PGP_SIGNATURE  = b'-----BEGIN PGP SIGNATURE-----'  # noqa: E221
+_PGP_MESSAGE    = b'-----BEGIN PGP MESSAGE-----'    # noqa: E221
 
 def split_detached_signed(tag: bytes) -> (bytes, bytes):
     """
@@ -376,51 +303,9 @@ class GpgSpec(trtc.SingletonConfigurable, baseapp.Spec):
         """).tag(config=True)
 
 
-class MailSpec(baseapp.Spec):
-    """Common parameters and methods for both SMTP(sending emails) & IMAP(receiving emails)."""
-
-    host = trt.Unicode(
-        '',
-        help="""The SMTP/IMAP server, e.g. 'smtp.gmail.com'."""
-    ).tag(config=True)
-
-    port = trt.Int(
-        587,
-        help="""The SMTP/IMAP server's port, usually 587/465 for SSL, 25 otherwise."""
-    ).tag(config=True)
-
-    ssl = trt.Bool(
-        True,
-        help="""Whether to talk TLS/SSL to the SMTP/IMAP server; configure `port` separately!"""
-    ).tag(config=True)
-
-    user = trt.Unicode(
-        None, allow_none=True,
-        help="""The user to authenticate with the SMTP/IMAP server."""
-    ).tag(config=True)
-
-
-class SmtpSpec(MailSpec):
-    """Parameters and methods for SMTP(sending emails)."""
-
-    login = trt.CaselessStrEnum(
-        'login simple'.split(), default_value=None, allow_none=True,
-        help="""Which SMTP mechanism to use to authenticate: [ login | simple | <None> ]. """
-    ).tag(config=True)
-
-    kwds = trt.Dict(
-        help="""Any key-value pairs passed to the SMTP/IMAP mail-client libraries."""
-    ).tag(config=True)
-
-
-class ImapSpec(MailSpec):
-    """Parameters and methods for IMAP(receiving emails)."""
-
-
 ###################
 ##    Commands   ##
 ###################
-
 
 class MainCmd(Cmd):
     """The parent command."""
@@ -445,19 +330,24 @@ class MainCmd(Cmd):
     ).tag(config=True)
 
     def __init__(self, **kwds):
-        from co2mpas.sampling import project, report
+        from co2mpas.sampling import project, report, tstamp
+        sub_cmds = build_sub_cmds(
+            project.ProjectCmd,
+            report.ReportCmd,
+            tstamp.TstampCmd,
+            GenConfigCmd)
         with self.hold_trait_notifications():
             dkwds = {
                 'name': __title__,
                 'description': __summary__,
                 ##'default_subcmd': 'project', ## Confusing for the user.
-                'subcommands': build_sub_cmds(project.ProjectCmd, report.ReportCmd, GenConfigCmd),
+                'subcommands': sub_cmds,
             }
             dkwds.update(kwds)
             super().__init__(**dkwds)
 
 
-## INFO: Add al conf-classes here
+## INFO: Add all conf-classes here
 class GenConfigCmd(Cmd):
     """
     Store config defaults into specified path(s); '{confpath}' assumed if none specified.
@@ -484,14 +374,17 @@ class GenConfigCmd(Cmd):
         """)
 
     def run(self, *args):
-        from co2mpas.sampling import project, report
+        from co2mpas.sampling import project, report, tstamp
         ## INFO: Add all conf-classes here
         pp = project.ProjectCmd
         self.classes = [
             pp, pp.CurrentCmd, pp.ListCmd, pp.AddCmd, pp.OpenCmd, pp.ExamineCmd, pp.BackupCmd,
             report.ReportCmd,
             GenConfigCmd,
-            baseapp.Spec, project.ProjectsDB, report.Report, MainCmd,
+            baseapp.Spec, project.ProjectsDB,
+            report.Report,
+            tstamp.TstampSender, #TODO: tstamp.TstampReceiver,
+            MainCmd,
         ]
         args = args or [None]
         for fpath in args:
