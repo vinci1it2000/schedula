@@ -144,11 +144,18 @@ class Project(transitions.Machine, baseapp.Spec):
             s = 'Project(%s: %s)' % (self.pname, self.state)
         return s
 
-    def _new_report_spec(self):
+    def _report_spec(self):
         spec = getattr(self, '__report', None)
         if not spec:
             from . import report
             spec = self.__report = report.Report(config=self.config)
+        return spec
+
+    def _tstamp_sender_spec(self):
+        spec = getattr(self, '__tstamp_sender', None)
+        if not spec:
+            from . import tstamp
+            spec = self.__tstamp_sender = tstamp.TstampSender(config=self.config)
         return spec
 
     def _is_force(self, event):
@@ -342,7 +349,7 @@ class Project(transitions.Machine, baseapp.Spec):
         ## Check extraction of report works ok.
         #
         try:
-            rep = self._new_report_spec()
+            rep = self._report_spec()
             list(rep.yield_from_iofiles(pfiles))
         except Exception as ex:
             msg = ("Failed extracting report from %s, due to: %s"
@@ -410,7 +417,7 @@ class Project(transitions.Machine, baseapp.Spec):
         Uses the :class:`Report` to build the tag-msg.
         """
         self.log.info('Generating and taging report: %s...', event.kwargs)
-        rep = self._new_report_spec()
+        rep = self._report_spec()
         pfiles = self.list_pfiles('inp', 'out', _as_index_paths=True)
 
         report = list(rep.yield_from_iofiles(pfiles))
@@ -424,7 +431,13 @@ class Project(transitions.Machine, baseapp.Spec):
 
         Parses last tag and uses class:`SMTP` to send its message as email.
         """
-        self.log.info('TODO: Sending email...')
+        self.log.info('Sending email...')
+        tstamp_sender = self._tstamp_sender_spec()
+        repo = self.projects_db.repo
+        tref = _tname2ref_name(self.pname)
+        tagref = repo.tags[tref]
+        dice_mail = tagref.tag.data_stream.read()
+        tstamp_sender.send_timestamped_email(dice_mail)
         event.kwargs['action'] = 'Email sent.'  # TODO: Improve actions
 
     def _cond_is_dice_yes(self, event):

@@ -22,6 +22,7 @@ import sys
 from typing import (
     List, Sequence, Iterable, Text, Tuple, Dict, Callable)  # @UnusedImport
 
+import pandalone.utils as pndlu
 import traitlets as trt
 import traitlets.config as trtc
 
@@ -65,9 +66,15 @@ class MailSpec(baseapp.Spec):
         """
     ).tag(config=True)
 
-    def _log_into_server(self, login_cb, login_cmd, prompt):
+    login_cb = trt.Instance('ConsoleLoginCb', (), {},
+                            help="If none, replaced by a new :class:`ConsoleLoginCb` instance.")
+
+    def _log_into_server(self, login_cmd, prompt, login_cb=None):
         """
-        Connects a credential-source(`login_db`) to a consumer(`login_cmd`).
+        Connects a credential-source(`login_cb`) to a consumer(`login_cmd`).
+
+        :param login_cmd:
+            A function like::
 
         :param login_cb:
             An object with 2 methods::
@@ -75,10 +82,9 @@ class MailSpec(baseapp.Spec):
                 ask_user_pswd(prompt) --> (user, pswd)  ## or `None` to abort.
                 report_failure(obj)
 
-        :param login_cmd:
-            A function like::
-
                     login_cmd(user, pswd) --> xyz  ## `xyz` might be the server.
+
+            If none, an instance of :class:`ConsoleLoginCb` is used.
         """
         for login_data in iter(lambda: login_cb.ask_user_pswd(prompt), None):
             user, pswd = login_data
@@ -91,6 +97,8 @@ class MailSpec(baseapp.Spec):
 
 
 class ConsoleLoginCb(baseapp.Spec):
+    """Reads password from environment or console (if tty), to be used by :meth:`MailSpec._log_into_server()`."""
+
     user = None
 
     def __init__(self, *args, user=None, **kwds):
@@ -106,7 +114,7 @@ class ConsoleLoginCb(baseapp.Spec):
         var_name = self.convert_prompt_to_env_var(prompt)
         pswd = os.environ.get(var_name)
         self.log.debug('Found password in env-var %r? %s', var_name, bool(pswd))
-        if pswd is None:
+        if pswd is None and os.isatty(sys.stdin):
             pswd = getpass.getpass('%s? ' % prompt)
 
         user = self.user
@@ -154,7 +162,7 @@ class TstampSender(MailSpec):
 #         v = proposal['value']
 #         if not v:
 
-    def send_timestamped_email(self, msg, login_cb):
+    def send_timestamped_email(self, msg):
         x_recs = '\n'.join('X-Stamper-To: %s' % rec for rec in self.x_recipients)
         msg = "\n\n%s\n%s" % (x_recs, msg)
 
@@ -176,7 +184,7 @@ class TstampSender(MailSpec):
         prompt = 'SMTP pswd for %s' % host
         with (smtplib.SMTP_SSL(host, **srv_kwds)
               if self.ssl else smtplib.SMTP(host, **srv_kwds)) as srv:
-            self._log_into_server(login_cb, srv.login, prompt)
+            self._log_into_server(srv.login, prompt)
 
             srv.send_message(mail)
         return mail
@@ -257,8 +265,6 @@ class TstampCmd(baseapp.Cmd):
         Whether to extract dice-report tag from the *current-project*.
         """).tag(config=True)
 
-    __report = None
-
     __sender = None
 
     @property
@@ -280,17 +286,18 @@ class TstampCmd(baseapp.Cmd):
                 'cmd_aliases': {
                     'file': 'TstampCmd.file',
                 },
+                'cmd_flags': {
+                    'project': ({
+                        'TstampCmd': {'project': True},
+                    }, pndlu.first_line(TstampCmd.project.help)),
+                }
             }
             dkwds.update(kwds)
             super().__init__(**dkwds)
 
-    def _build_mail_from_project(self, args) -> PFiles:
+    def _send_mail_from_project(self) -> PFiles:
         project = self.projects_db.current_project()
-        pfiles = project.list_pfiles('inp', 'out', _as_index_paths=True)
-        if not pfiles:
-            raise CmdException(
-                "Current %s contains no dice-report!" % project)
-        return pfiles
+        project.do_sendmail()
 
     def run(self, *args):
         nargs = len(args)
@@ -313,7 +320,7 @@ class TstampCmd(baseapp.Cmd):
                     mail_text = fin.read()
             else:
                 self.log.info('Timestamping dice-report from current-project...')
-                assert False, "Not impl!"
+                self._send_mail_from_project()
         tstamper = TstampSender(config=self.config)
         login_cb = ConsoleLoginCb(config=self.config)
         tstamper.send_timestamped_email(mail_text, login_cb)

@@ -41,7 +41,8 @@ class TApp(unittest.TestCase):
         dice.MainCmd.print_subcommands,
         dice.MainCmd.print_examples,
         dice.MainCmd.print_help,
-        ), project.project_subcmds))
+    ),
+        project.project_subcmds))
     )
     def test_app(self, case):
         meth, cmd_cls = case
@@ -49,7 +50,6 @@ class TApp(unittest.TestCase):
         c.MainCmd.raise_config_file_errors = True
         cmd = cmd_cls(config=c)
         meth(cmd)
-
 
 
 @ddt.ddt
@@ -127,7 +127,6 @@ class TProjectsDBStory(unittest.TestCase):
         cmd = project.ProjectCmd.CurrentCmd(config=self._config)
         res = cmd.run()
         self.assertEqual(str(res), 'Project(foo: empty)')
-
 
     def test_2b_list(self):
         cmd = project.ProjectCmd.ListCmd(config=self._config)
@@ -245,7 +244,6 @@ class TProjectsDBStory(unittest.TestCase):
             cmd.run('who')
 
 
-
 @ddt.ddt
 class TStraightStory(unittest.TestCase):
     ## INFO: Must run a whole, ordering of TCs matter.
@@ -284,7 +282,6 @@ class TStraightStory(unittest.TestCase):
         self.assertIsInstance(res, project.Project)
         self.assertEqual(res.pname, pname)
         self.assertEqual(res.state, 'empty')
-
 
     def test_2a_import_io(self):
         pdb = project.ProjectsDB.instance()
@@ -339,7 +336,7 @@ class TStraightStory(unittest.TestCase):
         pdb.update_config(self._config)
         p = pdb.current_project()
 
-        res = p.do_recvmail(mail='Hi there')
+        res = p.do_mailrecv(mail='Hi there')
         self.assertIsInstance(res, bool)
         self.assertIn(p.state, ('dice_yes', 'dice_no'))
 
@@ -401,7 +398,7 @@ class TBackupCmd(unittest.TestCase):
         project.ProjectCmd.AddCmd(config=self._config).run('barfoo')
         cmd = project.ProjectCmd.BackupCmd(config=self._config)
         with tempfile.TemporaryDirectory() as td:
-            archive_fpath = td +'\\'
+            archive_fpath = td + '\\'
             res = cmd.run(archive_fpath)
             self.assertIn(archive_fpath, res)
             self.assertIn('co2mpas', res)

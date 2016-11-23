@@ -114,7 +114,7 @@ class ReportCmd(baseapp.Cmd):
     def __init__(self, **kwds):
         with self.hold_trait_notifications():
             dkwds = {
-                'conf_classes': [Report],
+                'conf_classes': [project.ProjectsDB, Report],
                 'cmd_flags': {
                     'project': ({
                         'ReportCmd': {'project': True},
