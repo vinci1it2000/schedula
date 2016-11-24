@@ -79,8 +79,6 @@ class MailSpec(baseapp.Spec):
             A function like::
 
                     login_cmd(user, pswd) --> xyz  ## `xyz` might be the server.
-
-            If none, an instance of :class:`ConsoleLoginCb` is used.
         """
         for login_data in iter(lambda: login_cb.ask_user_pswd(prompt), None):
             user, pswd = login_data
