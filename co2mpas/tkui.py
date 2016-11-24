@@ -1283,9 +1283,9 @@ class SimulatePanel(ttk.Frame):
 
         self._open_dice_btn = btn = ttk.Button(
             frame,
-            text="Dice", style='DICE.TButton',
+            text="Dice...", style='DICE.TButton',
             command=fnt.partial(self.app.prepare_dice_for_files, self.outputs_tree.get_children()))
-        add_icon(btn, 'icons/dice-olive-32.png ')
+        add_icon(btn, 'icons/dice-orange-32.png ')
         btn.grid(column=3, row=4, sticky='nswe')
         add_tooltip(btn, 'open_dice_btn')
 
@@ -1724,6 +1724,78 @@ class TemplatesPanel(ttk.Frame):
         return frame
 
 
+class DicePanel(ttk.Frame):
+
+    def __init__(self, parent, app, **kw):
+        super().__init__(parent, **kw)
+        self.app = app
+        widgets = {}  # To register widgets embeded in makdown-text.
+
+        help_msg = dedent("""
+        The Project name is derived from the "Vehicle Family ID"  The I/O files must much that!
+        Project:   [wdg:project]
+
+        The I/O files are imported into the project for a unique Hash to be derived.
+        [wdg:files]
+
+        Clicking the "Dice Now!" button initiates the sampling procedure!
+        [wdg:check_internet] [wdg:send_dice]
+
+        Paste the timestampe email response "as is" below, and click "Decode" to see the OK/SAMPLE decision:
+        [wdg:tstamp_response]
+        [wdg:decode]
+
+        DECISION: (TODO: OK/SAMPLE)
+
+        When dice has been rolled, print the "TAA Report" and
+        archive the project, to be stored within TAA:
+        [wdg:taa_report] [wdg:archive_project]
+
+        """)
+        textarea = tk.Text(self, font='TkDefaultFont',
+                           background='SystemButtonFace',
+                           foreground='orange',
+                           cursor='arrow')
+        textarea.pack(fill=tk.BOTH, expand=1)
+
+        var = tk.StringVar()
+        entry = ttk.Entry(textarea, textvariable=var, width=60)
+        widgets['project'] = entry
+
+        frame = ttk.Frame(textarea)
+        tree = make_file_tree(frame, height=3)
+        widgets['files'] = frame
+
+        btn = ttk.Button(textarea, text="Check Internet Connectivity",
+                         style='CheckInternet.TButton')
+        widgets['check_internet'] = btn
+
+        btn = ttk.Button(textarea, text="Dice Now!",
+                         style='send_dice.TButton')
+        widgets['send_dice'] = btn
+
+#         frame = ttk.Frame(textarea)
+#         textarea = tk.Text(frame)
+#         textarea.pack(fill=tk.BOTH, expand=1)
+        frame = ttk.Entry(textarea, width=60)
+        widgets['tstamp_response'] = frame
+
+        btn = ttk.Button(textarea, text="Decode response",
+                         style='send_dice.TButton')
+        widgets['decode'] = btn
+
+        btn = ttk.Button(textarea, text="TAA_Report",
+                         style='send_dice.TButton')
+        widgets['taa_report'] = btn
+
+        btn = ttk.Button(textarea, text="Archive Project",
+                         style='send_dice.TButton')
+        widgets['archive_project'] = btn
+
+        add_makdownd_text(textarea, help_msg.strip(), widgets, 'default')
+        textarea['state'] = tk.DISABLED
+
+
 class TkUI(object):
     """
     :ivar _job_thread:
@@ -1764,6 +1836,9 @@ class TkUI(object):
 
         tab = TemplatesPanel(nb, app=self)
         nb.add(tab, text='Templates & Samples', sticky='nwse')
+
+        tab = DicePanel(nb, app=self)
+        nb.add(tab, text='Dice', sticky='nswe')
 
         frame = LogPanel(slider, self, height=-260, log_level_cb=cmain.init_logging)
         slider.add(frame, weight=3)
