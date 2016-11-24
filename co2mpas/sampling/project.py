@@ -299,20 +299,19 @@ class Project(transitions.Machine, baseapp.Spec):
     def _cb_commit_or_tag(self, event):
         """ Executed on EXIT for all states, and commits/tags into repo. """
         state = self.state
-        if state.islower():
+        if state.islower():  # exclude transient/special cases (BIRTH/DEATH)
             repo = self.projects_db.repo
+            self.log.debug('Committing %s...', event.kwargs)
+            action = _evarg(event, 'action')
+            index = repo.index
+            cmsg_js = self._make_commit_msg(action)
+            index.commit(cmsg_js)
             if state == 'tagged':
                 self.log.debug('Tagging %s...', event.kwargs)
                 report = _evarg(event, 'report')
                 msg = self._make_tag_msg(report)
                 tref = _tname2ref_name(self.pname)
                 repo.create_tag(tref, message=msg)  # TODO: GPG!!
-            else:
-                self.log.debug('Committing %s...', event.kwargs)
-                action = _evarg(event, 'action')
-                index = repo.index
-                cmsg_js = self._make_commit_msg(action)
-                index.commit(cmsg_js)
 
     def _make_readme(self):
         return textwrap.dedent("""
@@ -423,6 +422,7 @@ class Project(transitions.Machine, baseapp.Spec):
         report = list(rep.yield_from_iofiles(pfiles))
 
         ## Commit/tag callback expects `report` on event.
+        event.kwargs['action'] = 'Tagging (%s) files.' % len(pfiles)  # TODO: Improve actions'
         event.kwargs['report'] = report
 
     def _cb_send_email(self, event):
@@ -1001,6 +1001,25 @@ class ProjectCmd(_PrjCmd):
 
             return self.projects_db.current_project().do_addfiles(pfiles=pfiles)
 
+    class TagReportCmd(_PrjCmd):
+        """
+        Extract Dice report as a tag, preparing it to be sent for timestamping.
+
+        SYNTAX
+            co2dice project tag
+        """
+
+        #examples = trt.Unicode(""" """)
+
+        __report = None
+
+        def run(self, *args):
+            self.log.info('Tagging project %r...', args)
+            if len(args) > 0:
+                raise CmdException('Cmd %r takes no arguments, received %d: %r!'
+                                   % (self.name, len(args), args))
+            return self.projects_db.current_project().do_tagreport()
+
     class ExamineCmd(_PrjCmd):
         """
         Print various information about the specified project, or the current-project, if none specified.
@@ -1072,7 +1091,7 @@ class ProjectCmd(_PrjCmd):
             super().__init__(**dkwds)
 
 project_subcmds = (ProjectCmd.ListCmd, ProjectCmd.CurrentCmd, ProjectCmd.OpenCmd, ProjectCmd.AddCmd,
-                   ProjectCmd.AddReportCmd, ProjectCmd.ExamineCmd, ProjectCmd.BackupCmd)
+                   ProjectCmd.AddReportCmd, ProjectCmd.TagReportCmd, ProjectCmd.ExamineCmd, ProjectCmd.BackupCmd)
 
 if __name__ == '__main__':
     from traitlets.config import get_config
