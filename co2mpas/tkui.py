@@ -153,6 +153,10 @@ def define_tooltips():
             Runs the CO2MPAS TA command for a single file in DECLARATION mode.
             - Incompatible with any other flags and options;
             - The output-folder cannot be empty;
+        open_dice_btn: |-
+            Switches to the `Dice` tab, prepared for the output files generated
+            during the most recent `Run TA` command.
+            - Enabled only when output files have been generated.
         stop_job_btn: |-
             Aborts a "job" that has started with the Run or Run TA buttons.
 
@@ -804,7 +808,7 @@ class LogPanel(ttk.Labelframe):
             def reschedule(self):
                 self.gui_cb_id = log_textarea.after(self.refresh_delay_ms,
                                                     self.pump_logqueue_into_gui)
-                
+
             def pump_logqueue_into_gui(self):
                 lrq = self.lrq
 
@@ -999,11 +1003,11 @@ class SimulatePanel(ttk.Frame):
         w.grid(column=1, row=1, sticky='nswe')
         self.advanced_flipper = flipper
 
-        w = self._make_buttons_frame(self)
-        w.grid(column=0, row=3, columnspan=2, sticky='nswe')
-
         w = self._make_output_tree(self)
         w.grid(column=0, row=4, columnspan=2, sticky='nswe')
+
+        w = self._make_buttons_frame(self)
+        w.grid(column=0, row=3, columnspan=2, sticky='nswe')
 
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=1)
@@ -1277,12 +1281,20 @@ class SimulatePanel(ttk.Frame):
         btn.grid(column=2, row=4, sticky='nswe')
         add_tooltip(btn, 'run_ta_btn')
 
+        self._open_dice_btn = btn = ttk.Button(
+            frame,
+            text="Dice", style='DICE.TButton',
+            command=fnt.partial(self.app.prepare_dice_for_files, self.outputs_tree.get_children()))
+        add_icon(btn, 'icons/dice-olive-32.png ')
+        btn.grid(column=3, row=4, sticky='nswe')
+        add_tooltip(btn, 'open_dice_btn')
+
         def stop_job_clicked():
             self.app.signal_job_to_stop()
             self.mediate_guistate()
         self._stop_job_btn = btn = ttk.Button(frame, text="Stop", command=stop_job_clicked)
         add_icon(btn, 'icons/hand-red-32.png')
-        btn.grid(column=3, row=4, sticky='nswe')
+        btn.grid(column=4, row=4, sticky='nswe')
         add_tooltip(btn, 'stop_job_btn')
 
         frame.columnconfigure(0, weight=1)
@@ -1329,10 +1341,14 @@ class SimulatePanel(ttk.Frame):
         #
         is_run_batch_btn_enabled = not job_alive and self.out_folder_var.get()
         self._run_batch_btn.state((bang(is_run_batch_btn_enabled) + tk.DISABLED,))
+
         ## Update Run-TA-button.
         #
         is_run_ta_enabled = is_run_batch_btn_enabled and self.advanced_flipper.flip_ix == 0
         self._run_ta_btn.state((bang(is_run_ta_enabled) + tk.DISABLED,))
+
+        ## Update Open-DICE-button.
+        self._open_dice_btn.state((bang(self.outputs_tree.get_children()) + tk.DISABLED,))
 
         ## Update cursor for run-buttons.
         for b in (self._run_batch_btn, self._run_ta_btn):
@@ -1960,6 +1976,9 @@ class TkUI(object):
         top.protocol("WM_DELETE_WINDOW", close_win)
         verbose = logging.getLogger().level <= logging.DEBUG
         show_about(top, verbose=verbose)
+
+    def prepare_dice_for_files(self, fpaths):
+        print("OKy DOKy")
 
     def mainloop(self):
         try:
