@@ -10,7 +10,7 @@
 :release:       1.4.3.dev0
 :date:          2016-11-22 15:42:45
 :home:          http://co2mpas.io/
-:sources:       https://github.com/JRCSTU/CO2MPAS-TA
+:repository:    https://github.com/JRCSTU/CO2MPAS-TA
 :pypi-repo:     https://pypi.org/project/co2mpas/
 :docs:          http://docs.co2mpas.io/
 :wiki:          https://github.com/JRCSTU/CO2MPAS-TA/wiki/
