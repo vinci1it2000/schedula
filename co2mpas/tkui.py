@@ -88,6 +88,7 @@ log = logging.getLogger('tkui')
 
 app_name = 'co2mpas'
 user_guidelines_url = 'https://co2mpas.io/usage.html'
+issues_url = 'https://github.com/JRCSTU/CO2MPAS-TA/issues'
 MOTDs = dedent("""\
     Select Input files/folders and run them.  Read tooltips for help.
     Double-click on file-paths to open them (as explained in it's tooltip).
@@ -1759,12 +1760,13 @@ class TkUI(object):
         #
         menubar = tk.Menu(root)
         menubar.add_command(label="About %r" % app_name, command=fnt.partial(self.show_about_window, slider))
-        
+
         def open_console():
             homdedir = os.environ['HOME']
             console_xml = osp.join(homdedir, '..', 'Apps', 'Console', 'console.xml')
             import subprocess as subp
             subp.Popen(['Console.exe', '-c', console_xml, '-t', 'cmd'])
+        menubar.add_command(label="Report an issue...", command=fnt.partial(open_url, issues_url))
         menubar.add_command(label="Launch console...", command=open_console)
         root['menu'] = menubar
 
