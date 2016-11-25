@@ -213,6 +213,7 @@ class Project(transitions.Machine, baseapp.Spec):
 
             ['do_tagreport', 'wltp_iof', 'tagged'],
 
+            ## TODO: MERGE `tagged` state with `wltp_iof`??
             ['do_sendmail', 'tagged', 'mailed'],
 
             ['do_mailrecv', 'mailed', 'dice_yes', '_cond_is_dice_yes'],
@@ -950,6 +951,7 @@ class ProjectCmd(_PrjCmd):
 
     class AddCmd(_PrjCmd):
         """
+        TODO: Rename to `new`.
         Create a new project.
 
         SYNTAX
@@ -963,6 +965,7 @@ class ProjectCmd(_PrjCmd):
 
     class AddReportCmd(_PrjCmd):
         """
+        TODO: rename to `add`.
         Import the specified input/output co2mpas files into the *current project*.
 
         The *report parameters* will be time-stamped and disseminated to
@@ -1003,6 +1006,7 @@ class ProjectCmd(_PrjCmd):
 
     class TagReportCmd(_PrjCmd):
         """
+        TODO: rename to `???`` if `tagged` state merged?.
         Extract Dice report as a tag, preparing it to be sent for timestamping.
 
         SYNTAX
@@ -1015,6 +1019,25 @@ class ProjectCmd(_PrjCmd):
 
         def run(self, *args):
             self.log.info('Tagging project %r...', args)
+            if len(args) > 0:
+                raise CmdException('Cmd %r takes no arguments, received %d: %r!'
+                                   % (self.name, len(args), args))
+            return self.projects_db.current_project().do_tagreport()
+
+    class TstampCmd(_PrjCmd):
+        """
+        Sends the prepared tag tag to be timestamped
+
+        SYNTAX
+            co2dice project tstamp
+        """
+
+        #examples = trt.Unicode(""" """)
+
+        __report = None
+
+        def run(self, *args):
+            self.log.info('Importing report files %s...', args)
             if len(args) > 0:
                 raise CmdException('Cmd %r takes no arguments, received %d: %r!'
                                    % (self.name, len(args), args))
@@ -1091,7 +1114,7 @@ class ProjectCmd(_PrjCmd):
             super().__init__(**dkwds)
 
 project_subcmds = (ProjectCmd.ListCmd, ProjectCmd.CurrentCmd, ProjectCmd.OpenCmd, ProjectCmd.AddCmd,
-                   ProjectCmd.AddReportCmd, ProjectCmd.TagReportCmd, ProjectCmd.ExamineCmd, ProjectCmd.BackupCmd)
+                   ProjectCmd.AddReportCmd, ProjectCmd.TagReportCmd, ProjectCmd.TstampCmd, ProjectCmd.ExamineCmd, ProjectCmd.BackupCmd)
 
 if __name__ == '__main__':
     from traitlets.config import get_config

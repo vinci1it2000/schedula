@@ -1734,17 +1734,14 @@ class DicePanel(ttk.Frame):
         help_msg = dedent("""
         The Project name is derived from the "Vehicle Family ID"  The I/O files must much that!
         Project:   [wdg:project]
-
         The I/O files are imported into the project for a unique Hash to be derived.
         [wdg:files]
 
         Clicking the "Dice Now!" button initiates the sampling procedure!
         [wdg:check_internet] [wdg:send_dice]
-
         Paste the timestampe email response "as is" below, and click "Decode" to see the OK/SAMPLE decision:
         [wdg:tstamp_response]
         [wdg:decode]
-
         DECISION: (TODO: OK/SAMPLE)
 
         When dice has been rolled, print the "TAA Report" and
