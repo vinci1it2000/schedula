@@ -97,7 +97,7 @@ MOTDs = dedent("""\
     Use [Tab] to navigate to the next field/button; [Space] clicks buttons.
     You cannot `Run TA` when the `Advanced` options are active.
     User mouse's [Right button] to clear the log messages from the popup-menu.
-    You may view more log-messages by Right-cliking on them and setting "Log Threshold | Debug".
+    You may view more log-messages by Right-cliking on the Log-panel and setting "Log Threshold: Debug".
     Ensure you run the latest CO2MPAS;\
   click the `About CO2MPAS` menu-item and compare its version with the site's.
     Synchronized *appropriately* the time-series before launching CO2MPAS.
@@ -575,7 +575,7 @@ def add_makdownd_text(text_widget, text, widgets: Mapping[str, tk.Widget]=None, 
             else:
                 raise AssertionError(text, s, e, obj, alt, url, m.groupdict())
         except Exception as ex:
-            raise ValueError("Makdown syntax-error %r at (line.column) %s: %s"
+            raise ValueError("Makdown-error %r at (line.column) %s: %s"
                              "\n  obj: %s, alt: %s, url: %s" %
                              (m.group(0), text_widget.index(tk.INSERT), ex, obj, alt, url)) from ex
         last_endp = e
@@ -1740,12 +1740,8 @@ class DicePanel(ttk.Frame):
         Clicking the "Dice Now!" button initiates the sampling procedure!
         [wdg:check_internet] [wdg:send_dice]
         Paste the timestampe email response "as is" below, and click "Decode" to see the OK/SAMPLE decision:
-        [wdg:tstamp_response]
-        [wdg:decode]
-        DECISION: (TODO: OK/SAMPLE)
-
-        When dice has been rolled, print the "TAA Report" and
-        archive the project, to be stored within TAA:
+        [wdg:tstamp_response] [wdg:decode] DECISION: [wdg:decision]
+        When dice has been rolled, print the "TAA Report" and archive the project, to be stored within TAA:
         [wdg:taa_report] [wdg:archive_project]
 
         """)
@@ -1771,15 +1767,16 @@ class DicePanel(ttk.Frame):
                          style='send_dice.TButton')
         widgets['send_dice'] = btn
 
-#         frame = ttk.Frame(textarea)
-#         textarea = tk.Text(frame)
-#         textarea.pack(fill=tk.BOTH, expand=1)
-        frame = ttk.Entry(textarea, width=60)
+        frame = self._make_response_paste_area(textarea, width=60, height=8)
         widgets['tstamp_response'] = frame
 
         btn = ttk.Button(textarea, text="Decode response",
                          style='send_dice.TButton')
         widgets['decode'] = btn
+
+        btn = ttk.Label(textarea, text="OK/SAMPLE",
+                        style='Decision.TLabel')
+        widgets['decision'] = btn
 
         btn = ttk.Button(textarea, text="TAA_Report",
                          style='send_dice.TButton')
@@ -1792,6 +1789,20 @@ class DicePanel(ttk.Frame):
         add_makdownd_text(textarea, help_msg.strip(), widgets, 'default')
         textarea['state'] = tk.DISABLED
 
+    def _make_response_paste_area(self, parent, **textarea_kwds):
+        frame = ttk.Frame(parent)
+        self.response_pastearea = textarea = tk.Text(frame, **textarea_kwds)
+        textarea.grid(row=0, column=0, sticky='nswe')
+
+        # Setup scrollbars.
+        #
+        v_scrollbar = ttk.Scrollbar(frame, command=textarea.yview)
+        h_scrollbar = ttk.Scrollbar(frame, command=textarea.xview, orient=tk.HORIZONTAL)
+        textarea.config(yscrollcommand=v_scrollbar.set, xscrollcommand=h_scrollbar.set)
+        v_scrollbar.grid(row=0, column=1, sticky='ns')
+        h_scrollbar.grid(row=1, column=0, sticky='ew')
+
+        return frame
 
 class TkUI(object):
     """

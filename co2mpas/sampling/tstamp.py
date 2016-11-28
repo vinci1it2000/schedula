@@ -16,9 +16,11 @@ from email.mime.text import MIMEText
 import imaplib
 import io
 import os
+import os.path as osp
 import re
 import smtplib
 import sys
+import tempfile
 from typing import (
     List, Sequence, Iterable, Text, Tuple, Dict, Callable)  # @UnusedImport
 
@@ -232,6 +234,25 @@ class TstampReceiver(MailSpec):
         num = int(binascii.b2a_hex(sig), 16)
 
         return num
+
+    def verify_detached_armor(self, sig: str, data: str):
+    #def verify_file(self, file, data_filename=None):
+        """Verify `sig` on the `data`."""
+        #with tempfile.NamedTemporaryFile(mode='wt+',
+        #                encoding='latin-1') as sig_fp:
+        #sig_fp.write(sig)
+        #sig_fp.flush(); sig_fp.seek(0) ## paranoid seek(), Windows at least)
+        #sig_fn = sig_fp.name
+        sig_fn = osp.join(tempfile.gettempdir(), 'sig.sig')
+        self.log.debug('Wrote sig to temp file: %r', sig_fn)
+
+        args = ['--verify', gnupg.no_quote(sig_fn), '-']
+        result = self.result_map['verify'](self)
+        data_stream = io.BytesIO(data.encode(self.encoding))
+        self._handle_io(args, data_stream, result, binary=True)
+
+        return result
+
 
     def parse_tsamp_response(self, mail_text: Text) -> int:
         mbytes = mail_text.encode('utf-8')
