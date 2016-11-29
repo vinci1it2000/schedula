@@ -373,6 +373,24 @@ class GenConfigCmd(Cmd):
             co2dice --config-files=~/my_conf  ...
         """)
 
+    force = trt.Bool(
+        False,
+        ## INFO: Add force flag explanations here.
+        help="""Force overwriting config-file, even if it already exists."""
+    ).tag(config=True)
+
+    def __init__(self, **kwds):
+        dkwds = {
+            'cmd_flags': {
+                ('f', 'force'): (
+                    {'GenConfigCmd': {'force': True}, },
+                    pndlu.first_line(GenConfigCmd.force.help)
+                )
+            },
+        }
+        dkwds.update(kwds)
+        super().__init__(**dkwds)
+
     def run(self, *args):
         from co2mpas.sampling import project, report, tstamp
         ## INFO: Add all conf-classes here
@@ -388,7 +406,7 @@ class GenConfigCmd(Cmd):
         ]
         args = args or [None]
         for fpath in args:
-            self.write_default_config(fpath)
+            self.write_default_config(fpath, self.force)
 
 
 def run_cmd(cmd: Cmd, argv: Sequence[Text]=None):

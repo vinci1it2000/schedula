@@ -249,7 +249,7 @@ class Cmd(trtc.Application):
             cdir, cfname = osp.split(fp)
             self.load_config_file(cfname, path=cdir)
 
-    def write_default_config(self, config_file=None):
+    def write_default_config(self, config_file=None, force=False):
         if not config_file:
             config_file = default_config_fpath()
         else:
@@ -258,7 +258,12 @@ class Cmd(trtc.Application):
                 config_file = osp.join(config_file, default_config_fname())
         config_file = pndlu.ensure_file_ext(config_file, '.py')
 
-        op = 'Over-writting' if osp.isfile(config_file) else 'Writting'
+        is_overwrite = osp.isfile(config_file)
+        if is_overwrite and not force:
+            raise CmdException("Config-file %r already exists!\n  Specify `--force` to overwrite." %
+                               config_file)
+
+        op = 'Over-writting' if is_overwrite else 'Writting'
         self.log.info('%s config-file %r...', op, config_file)
         pndlu.ensure_dir_exists(os.path.dirname(config_file), 0o700)
         config_text = self.generate_config_file()
