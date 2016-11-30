@@ -396,7 +396,7 @@ class GenConfigCmd(Cmd):
         ## INFO: Add all conf-classes here
         pp = project.ProjectCmd
         self.classes = [
-            pp, pp.CurrentCmd, pp.ListCmd, pp.AddCmd, pp.OpenCmd, pp.ExamineCmd, pp.BackupCmd,
+            pp, pp.CurrentCmd, pp.ListCmd, pp.InitCmd, pp.OpenCmd, pp.ExamineCmd, pp.BackupCmd,
             report.ReportCmd,
             GenConfigCmd,
             baseapp.Spec, project.ProjectsDB,
@@ -481,7 +481,7 @@ if __name__ == '__main__':
 #     argv = 'project list  --Project.reset_settings=True'.split()
     #argv = '--Project.reset_settings=True'.split()
     #argv = 'project list  --reset-git-settings'.split()
-    #argv = 'project add one'.split()
+    #argv = 'project init one'.split()
 
     # Invoked from IDEs, so enable debug-logging.
     main(argv, log_level=logging.DEBUG)
@@ -491,4 +491,4 @@ if __name__ == '__main__':
     #c = trtc.get_config()
     #c.Application.log_level=0
     #c.Spec.log_level='ERROR'
-    #run_cmd(chain_cmds([MainCmd, ProjectCmd, ProjectCmd.Add], argv=['project_foo']))
+    #run_cmd(chain_cmds([MainCmd, ProjectCmd, ProjectCmd.InitCmd], argv=['project_foo']))

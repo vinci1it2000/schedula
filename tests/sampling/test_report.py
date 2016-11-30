@@ -129,7 +129,7 @@ class TReportProject(unittest.TestCase):
         c.ReportCmd.project = True
         with tempfile.TemporaryDirectory() as td:
             c.ProjectsDB.repo_path = td
-            project.ProjectCmd.AddCmd(config=c).run('proj1')
+            project.ProjectCmd.InitCmd(config=c).run('proj1')
             cmd = report.ReportCmd(config=c)
             with self.assertRaisesRegex(
                 CmdException, re.escape(
@@ -142,7 +142,7 @@ class TReportProject(unittest.TestCase):
         c.ReportCmd.project = True
         with tempfile.TemporaryDirectory() as td:
             c.ProjectsDB.repo_path = td
-            project.ProjectCmd.AddCmd(config=c).run('proj1')
+            project.ProjectCmd.InitCmd(config=c).run('proj1')
 
             project.ProjectCmd.AddReportCmd(config=c).run('inp=%s' % _inp_fpath)
             cmd = report.ReportCmd(config=c)
@@ -166,7 +166,7 @@ class TReportProject(unittest.TestCase):
         c.ReportCmd.project = True
         with tempfile.TemporaryDirectory() as td:
             c.ProjectsDB.repo_path = td
-            project.ProjectCmd.AddCmd(config=c).run('proj1')
+            project.ProjectCmd.InitCmd(config=c).run('proj1')
 
             project.ProjectCmd.AddReportCmd(config=c).run('out=%s' % _out_fpath)
             cmd = report.ReportCmd(config=c)
@@ -192,7 +192,7 @@ class TReportProject(unittest.TestCase):
         c.ReportCmd.project = True
         with tempfile.TemporaryDirectory() as td:
             c.ProjectsDB.repo_path = td
-            project.ProjectCmd.AddCmd(config=c).run('proj1')
+            project.ProjectCmd.InitCmd(config=c).run('proj1')
 
             cmd = project.ProjectCmd.AddReportCmd(config=c)
             cmd.run('out=%s' % _out_fpath, 'inp=%s' % _inp_fpath)

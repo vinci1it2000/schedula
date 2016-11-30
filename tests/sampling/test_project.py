@@ -117,7 +117,7 @@ class TProjectsDBStory(unittest.TestCase):
         self.assertIsNone(cmd.projects_db._current_project)
 
     def test_2a_add_project(self):
-        cmd = project.ProjectCmd.AddCmd(config=self._config)
+        cmd = project.ProjectCmd.InitCmd(config=self._config)
         pname = 'foo'
         res = cmd.run(pname)
         self.assertIsInstance(res, project.Project)
@@ -156,7 +156,7 @@ class TProjectsDBStory(unittest.TestCase):
         self._check_infos_shapes(pdb)
 
     def test_3a_add_same_project__fail(self):
-        cmd = project.ProjectCmd.AddCmd(config=self._config)
+        cmd = project.ProjectCmd.InitCmd(config=self._config)
         with self.assertRaisesRegex(baseapp.CmdException, r"Project 'foo' already exists!"):
             cmd.run('foo')
 
@@ -166,7 +166,7 @@ class TProjectsDBStory(unittest.TestCase):
 
     @ddt.data('sp ace', '%fg', '1ffg')
     def test_3b_add_bad_project__fail(self, pname):
-        cmd = project.ProjectCmd.AddCmd(config=self._config)
+        cmd = project.ProjectCmd.InitCmd(config=self._config)
         with self.assertRaisesRegex(baseapp.CmdException, "Invalid name '%s' for a project!" % pname):
             cmd.run(pname)
 
@@ -176,7 +176,7 @@ class TProjectsDBStory(unittest.TestCase):
 
     def test_4a_add_another_project(self):
         pname = 'bar'
-        cmd = project.ProjectCmd.AddCmd(config=self._config)
+        cmd = project.ProjectCmd.InitCmd(config=self._config)
         res = cmd.run(pname)
         self.assertIsInstance(res, project.Project)
         self.assertEqual(res.pname, pname)
@@ -276,7 +276,7 @@ class TStraightStory(unittest.TestCase):
         self.assertEqual(len(res), 32, res)
 
     def test_1_add_project(self):
-        cmd = project.ProjectCmd.AddCmd(config=self._config)
+        cmd = project.ProjectCmd.InitCmd(config=self._config)
         pname = 'foo'
         res = cmd.run(pname)
         self.assertIsInstance(res, project.Project)
@@ -374,7 +374,7 @@ class TBackupCmd(unittest.TestCase):
         return c
 
     def test_backup_cwd(self):
-        project.ProjectCmd.AddCmd(config=self._config).run('foobar')
+        project.ProjectCmd.InitCmd(config=self._config).run('foobar')
         cmd = project.ProjectCmd.BackupCmd(config=self._config)
         with tempfile.TemporaryDirectory() as td:
             with chdir(td):
@@ -384,7 +384,7 @@ class TBackupCmd(unittest.TestCase):
                 self.assertTrue(osp.isfile(res), (res, os.listdir(osp.split(res)[0])))
 
     def test_backup_fullpath(self):
-        project.ProjectCmd.AddCmd(config=self._config).run('foobar')
+        project.ProjectCmd.InitCmd(config=self._config).run('foobar')
         cmd = project.ProjectCmd.BackupCmd(config=self._config)
         with tempfile.TemporaryDirectory() as td:
             archive_fpath = osp.join(td, 'foo')
@@ -395,7 +395,7 @@ class TBackupCmd(unittest.TestCase):
             self.assertTrue(osp.isfile(res), (res, os.listdir(osp.split(res)[0])))
 
     def test_backup_folder_only(self):
-        project.ProjectCmd.AddCmd(config=self._config).run('barfoo')
+        project.ProjectCmd.InitCmd(config=self._config).run('barfoo')
         cmd = project.ProjectCmd.BackupCmd(config=self._config)
         with tempfile.TemporaryDirectory() as td:
             archive_fpath = td + '\\'
@@ -405,7 +405,7 @@ class TBackupCmd(unittest.TestCase):
             self.assertTrue(osp.isfile(res), (res, os.listdir(osp.split(res)[0])))
 
     def test_backup_no_dir(self):
-        project.ProjectCmd.AddCmd(config=self._config).run('foobar')
+        project.ProjectCmd.InitCmd(config=self._config).run('foobar')
         cmd = project.ProjectCmd.BackupCmd(config=self._config)
         with tempfile.TemporaryDirectory() as td:
             with self.assertRaisesRegex(baseapp.CmdException,

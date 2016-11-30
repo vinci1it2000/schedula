@@ -457,7 +457,7 @@ class Project(transitions.Machine, baseapp.Spec):
 
 
 class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
-    """A git-based repository storing the TA projects (containing signed-files and sampling-resonses).
+    """A git-based repository storing the TA projects (containing signed-files and sampling-responses).
 
     It handles checkouts but delegates index modifications to `Project` spec.
 
@@ -468,7 +468,7 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
       If set to full, the executed git command _and_ its entire output on stdout and stderr
       will be shown as they happen
 
-      NOTE: All logging is outputted using a Python logger, so make sure your program is configured
+      NOTE: All logging is done through a Python logger, so make sure your program is configured
       to show INFO-level messages. If this is not the case, try adding the following to your program:
 
     - :envvar:`GIT_PYTHON_GIT_EXECUTABLE`: If set, it should contain the full path to the git executable, e.g.
@@ -780,7 +780,7 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
                         Try opening an existing project, with:
                             co2mpas project open <project-name>
                         or create a new one, with:
-                            co2mpas project add <project-name>
+                            co2mpas project init <project-name>
                         """))
 
         return self._current_project
@@ -949,13 +949,12 @@ class ProjectCmd(_PrjCmd):
                                    % (self.name, args))
             return self.projects_db.proj_open(args[0])
 
-    class AddCmd(_PrjCmd):
+    class InitCmd(_PrjCmd):
         """
-        TODO: Rename to `new`.
         Create a new project.
 
         SYNTAX
-            co2dice project add <project>
+            co2dice project init <project>
         """
         def run(self, *args):
             if len(args) != 1:
@@ -965,7 +964,6 @@ class ProjectCmd(_PrjCmd):
 
     class AddReportCmd(_PrjCmd):
         """
-        TODO: rename to `add`.
         Import the specified input/output co2mpas files into the *current project*.
 
         The *report parameters* will be time-stamped and disseminated to
@@ -1113,7 +1111,7 @@ class ProjectCmd(_PrjCmd):
             dkwds.update(kwds)
             super().__init__(**dkwds)
 
-project_subcmds = (ProjectCmd.ListCmd, ProjectCmd.CurrentCmd, ProjectCmd.OpenCmd, ProjectCmd.AddCmd,
+project_subcmds = (ProjectCmd.ListCmd, ProjectCmd.CurrentCmd, ProjectCmd.OpenCmd, ProjectCmd.InitCmd,
                    ProjectCmd.AddReportCmd, ProjectCmd.TagReportCmd, ProjectCmd.TstampCmd, ProjectCmd.ExamineCmd, ProjectCmd.BackupCmd)
 
 if __name__ == '__main__':
