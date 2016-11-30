@@ -25,8 +25,6 @@ from .. import (__version__, __updated__, __file_version__,   # @UnusedImport
 ###################
 ##     Specs     ##
 ###################
-REPORT_VERSION = '0.0.1'  ## TODO: Move to `co2mpas/_version.py`.
-
 
 class Report(baseapp.Spec):
     """Mines reported-parameters from co2mpas excel-files and serves them as a pandas dataframes."""

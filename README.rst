@@ -7,8 +7,8 @@
 |co2mpas|: Vehicle simulator predicting NEDC |CO2| emissions from WLTP
 ######################################################################
 
-:release:       1.4.3.dev0
-:date:          2016-11-22 15:42:45
+:release:       1.4.3.dev1
+:date:          2016-11-30 18:54:10
 :home:          http://co2mpas.io/
 :repository:    https://github.com/JRCSTU/CO2MPAS-TA
 :pypi-repo:     https://pypi.org/project/co2mpas/
@@ -335,7 +335,7 @@ Alternatively, open the CONSOLE and type the following command:
 
     ## Check co2mpas version.
     $ co2mpas -V
-    co2mpas-1.4.3.dev0
+    co2mpas-1.4.3.dev1
 
 
 |co2mpas| command syntax
@@ -1329,7 +1329,7 @@ Install |co2mpas| package
         Downloading http://pypi.co2mpas.io/packages/co2mpas-...
         ...
         Installing collected packages: co2mpas
-        Successfully installed co2mpas-1.4.3.dev0
+        Successfully installed co2mpas-1.4.3.dev1
 
    .. Warning::
         **Installation failures:**
@@ -1349,8 +1349,8 @@ Install |co2mpas| package
    .. code-block:: console
 
        > co2mpas -vV
-       co2mpas_version: 1.4.3.dev0
-       co2mpas_rel_date: 2016-11-22 15:42:45
+       co2mpas_version: 1.4.3.dev1
+       co2mpas_rel_date: 2016-11-30 18:54:10
        co2mpas_path: d:\co2mpas_ALLINONE-64bit-v1.4.1\Apps\WinPython\python-3.4.3\lib\site-packages\co2mpas
        python_path: D:\co2mpas_ALLINONE-64bit-v1.4.1\WinPython\python-3.4.3
        python_version: 3.4.3 (v3.4.3:9b73f1c3e601, Feb 24 2015, 22:44:40) [MSC v.1600 XXX]
