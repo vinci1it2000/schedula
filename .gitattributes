@@ -7,3 +7,7 @@
 *.xlsx  diff=zip
 *.zip   diff=zip
 co2mpas/sampling/dice.ipynb filter=dropoutput_ipynb
+
+# Crypto-TCs with text that needs to be maintained as is.
+tests/sampling/*.py text eol=lf  
+co2mpas/sampling/*.py text eol=lf
