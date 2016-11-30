@@ -144,7 +144,7 @@ class TReportProject(unittest.TestCase):
             c.ProjectsDB.repo_path = td
             project.ProjectCmd.InitCmd(config=c).run('proj1')
 
-            project.ProjectCmd.AddReportCmd(config=c).run('inp=%s' % _inp_fpath)
+            project.ProjectCmd.AddFileCmd(config=c).run('inp=%s' % _inp_fpath)
             cmd = report.ReportCmd(config=c)
             res = cmd.run()
             self.assertIsInstance(res, types.GeneratorType)
@@ -153,7 +153,7 @@ class TReportProject(unittest.TestCase):
             for i in res:
                 self.assertIsInstance(i, pd.Series)
 
-            project.ProjectCmd.AddReportCmd(config=c).run('out=%s' % _out_fpath)
+            project.ProjectCmd.AddFileCmd(config=c).run('out=%s' % _out_fpath)
             cmd = report.ReportCmd(config=c)
             res = cmd.run()
             self.assertIsInstance(res, types.GeneratorType)
@@ -168,7 +168,7 @@ class TReportProject(unittest.TestCase):
             c.ProjectsDB.repo_path = td
             project.ProjectCmd.InitCmd(config=c).run('proj1')
 
-            project.ProjectCmd.AddReportCmd(config=c).run('out=%s' % _out_fpath)
+            project.ProjectCmd.AddFileCmd(config=c).run('out=%s' % _out_fpath)
             cmd = report.ReportCmd(config=c)
             res = cmd.run()
             self.assertIsInstance(res, types.GeneratorType)
@@ -177,7 +177,7 @@ class TReportProject(unittest.TestCase):
             for i in res:
                 self.assertIsInstance(i, pd.DataFrame)
 
-            project.ProjectCmd.AddReportCmd(config=c).run('inp=%s' % _inp_fpath)
+            project.ProjectCmd.AddFileCmd(config=c).run('inp=%s' % _inp_fpath)
             cmd = report.ReportCmd(config=c)
             res = cmd.run()
             self.assertIsInstance(res, types.GeneratorType)
@@ -194,7 +194,7 @@ class TReportProject(unittest.TestCase):
             c.ProjectsDB.repo_path = td
             project.ProjectCmd.InitCmd(config=c).run('proj1')
 
-            cmd = project.ProjectCmd.AddReportCmd(config=c)
+            cmd = project.ProjectCmd.AddFileCmd(config=c)
             cmd.run('out=%s' % _out_fpath, 'inp=%s' % _inp_fpath)
             cmd = report.ReportCmd(config=c)
             res = cmd.run()

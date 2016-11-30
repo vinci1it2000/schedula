@@ -962,13 +962,9 @@ class ProjectCmd(_PrjCmd):
                                    % (self.name, args))
             return self.projects_db.proj_add(args[0])
 
-    class AddReportCmd(_PrjCmd):
+    class AddFileCmd(_PrjCmd):
         """
         Import the specified input/output co2mpas files into the *current project*.
-
-        The *report parameters* will be time-stamped and disseminated to
-        TA authorities & oversight bodies with an email, to receive back
-        the sampling decision.
 
         - One file from each kind (inp/out) may be given.
         - If an input/output is already present in the current project, use --force.
@@ -1006,6 +1002,10 @@ class ProjectCmd(_PrjCmd):
         """
         TODO: rename to `???`` if `tagged` state merged?.
         Extract Dice report as a tag, preparing it to be sent for timestamping.
+
+        Eventually the *Dice Report* parameters will be time-stamped and disseminated to
+        TA authorities & oversight bodies with an email, to receive back
+        the sampling decision.
 
         SYNTAX
             co2dice project tag
@@ -1112,7 +1112,9 @@ class ProjectCmd(_PrjCmd):
             super().__init__(**dkwds)
 
 project_subcmds = (ProjectCmd.ListCmd, ProjectCmd.CurrentCmd, ProjectCmd.OpenCmd, ProjectCmd.InitCmd,
-                   ProjectCmd.AddReportCmd, ProjectCmd.TagReportCmd, ProjectCmd.TstampCmd, ProjectCmd.ExamineCmd, ProjectCmd.BackupCmd)
+                   ProjectCmd.AddFileCmd, ProjectCmd.TagReportCmd,
+                   ProjectCmd.TstampCmd,
+                   ProjectCmd.ExamineCmd, ProjectCmd.BackupCmd)
 
 if __name__ == '__main__':
     from traitlets.config import get_config
