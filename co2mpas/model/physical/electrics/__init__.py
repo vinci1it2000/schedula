@@ -22,14 +22,17 @@ Sub-Modules:
 import functools
 import itertools
 import math
+import lmfit
 import numpy as np
 import scipy.stats as sci_stat
 import sklearn.pipeline as sk_pip
 import sklearn.ensemble as sk_ens
 import sklearn.tree as sk_tree
+import sklearn.metrics as sk_met
 import sklearn.cluster as sk_clu
 import co2mpas.dispatcher as dsp
 import co2mpas.utils as co2_utl
+
 
 
 def calculate_engine_start_demand(
@@ -868,6 +871,13 @@ class Alternator_status_model(object):
         elif _max:
             self.max = _max = min(self.max, max(0.0, max(_max)))
             self.min = _max - min_dsoc
+        else:
+            balance = _identify_balance_soc(times, state_of_charges)
+            # noinspection PyTypeChecker
+            std = np.sqrt(np.mean((balance - state_of_charges) ** 2)) * 2
+            std = min(min_dsoc, std)
+            self.max = min(balance + std, 100)
+            self.min = max(balance - std, 0)
 
     # noinspection PyUnresolvedReferences
     def fit(self, times, alternator_statuses, state_of_charges,
@@ -898,6 +908,31 @@ class Alternator_status_model(object):
                 status = 2
 
         return status
+
+
+def _identify_balance_soc(times, state_of_charges):
+    parameters = lmfit.Parameters()
+    A0 = state_of_charges[0]
+    A1 = np.median(state_of_charges) - A0
+
+    if A0 + A1 >= 100:
+        A0 = 99.99 - A1
+    from ..defaults import dfl
+    parameters.add('A0', value=A0, min=0, max=100)
+    parameters.add('A1', value=A1)
+    parameters.add('T', value=dfl.EPS, min=dfl.EPS)
+    parameters.add('B', value=A0 + A1, min=0, max=100, expr='A0 + A1')
+    x = (times - times[0]) / times[-1]
+
+    def func(params):
+        p = params.valuesdict()
+        return p['A0'] + p['A1'] * (1 - np.exp(-x / p['T']))
+
+    def error(params):
+        return sk_met.mean_absolute_error(state_of_charges, func(params))
+
+    from ..engine.co2_emission import calibrate_model_params
+    return calibrate_model_params(error, parameters)[0].valuesdict()['B']
 
 
 def calibrate_alternator_status_model(
