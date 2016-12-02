@@ -1518,7 +1518,7 @@ where in each one you can install a different versions of |co2mpas|.
 
    .. code-block:: console
 
-       > virtualenv --system-site-packages co2mpas_v1.0.1.venv.venv
+       > virtualenv --system-site-packages co2mpas_v1.0.1.venv
 
    The ``--system-site-packages`` option instructs the child-venv to inherit
    all "parent" packages (numpy, pandas).
@@ -1532,13 +1532,13 @@ where in each one you can install a different versions of |co2mpas|.
 
    .. code-block:: console
 
-        > .\co2mpas_v1.0.1.venv.venv\Scripts\activate.bat
+        > .\co2mpas_v1.0.1.venv\Scripts\activate.bat
 
    Or type this in *bash*:
 
    .. code-block:: console
 
-        $ source co2mpas_v1.0.1.venv.venv\Scripts\activate.bat
+        $ source co2mpas_v1.0.1.venv\Scripts\activate.bat
 
    You must now see that your prompt has been prefixed with the venv's name.
 
