@@ -876,8 +876,8 @@ class Alternator_status_model(object):
             # noinspection PyTypeChecker
             std = np.sqrt(np.mean((balance - state_of_charges) ** 2)) * 2
             std = min(min_dsoc, std)
-            self.max = min(balance + std, 100)
-            self.min = max(balance - std, 0)
+            self.max = min(balance + std, 100.0)
+            self.min = max(balance - std, 0.0)
 
     # noinspection PyUnresolvedReferences
     def fit(self, times, alternator_statuses, state_of_charges,
@@ -912,21 +912,18 @@ class Alternator_status_model(object):
 
 def _identify_balance_soc(times, state_of_charges):
     parameters = lmfit.Parameters()
-    A0 = state_of_charges[0]
-    A1 = np.median(state_of_charges) - A0
-
-    if A0 + A1 >= 100:
-        A0 = 99.99 - A1
-    from ..defaults import dfl
-    parameters.add('A0', value=A0, min=0, max=100)
-    parameters.add('A1', value=A1)
-    parameters.add('T', value=dfl.EPS, min=dfl.EPS)
-    parameters.add('B', value=A0 + A1, min=0, max=100, expr='A0 + A1')
-    x = (times - times[0]) / times[-1]
+    parameters.add('B', value=np.median(state_of_charges), min=0.0, max=100.0)
+    parameters.add('A', value=0)
+    parameters.add('X0', value=1.0, min=0.0)
+    x = (times - times[0]) / (times[-1] - times[0])
+    n = len(x)
 
     def func(params):
         p = params.valuesdict()
-        return p['A0'] + p['A1'] * (1 - np.exp(-x / p['T']))
+        y = np.tile(p['B'], n)
+        b = x < p['X0']
+        y[b] += p['A'] * (x[b] - p['X0']) ** 2
+        return y
 
     def error(params):
         return sk_met.mean_absolute_error(state_of_charges, func(params))
