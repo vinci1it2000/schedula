@@ -14,13 +14,11 @@ co2dice: prepare/sign/send/receive/validate/archive Type Approval sampling email
 
 from collections import defaultdict, MutableMapping, OrderedDict, namedtuple
 from email.mime.text import MIMEText
-import imaplib
 import io
 import logging
 import os
 import re
 import shutil
-import smtplib
 import tempfile
 import textwrap
 import types
@@ -28,7 +26,6 @@ from typing import Sequence, Text
 
 from boltons.setutils import IndexedSet as iset
 import gnupg  # from python-gnupg
-import keyring
 from toolz import dicttoolz as dtz, itertoolz as itz
 
 from co2mpas import __uri__  # @UnusedImport
@@ -97,26 +94,6 @@ def app_config_dir():
     return osp.abspath(osp.join(home_dir, '.co2dice'))
 
 
-def store_secret(master_pswd, key, secret):
-    """
-    Uses Microsoft's DPPAPI to store sensitive infos (e.g. passwords).
-
-    :param str master_pswd:     master-password given by the user
-    """
-    kr = keyring.get_keyring()
-    kr.set_password('%s.%s' % (__title__, master_pswd), key, secret)
-
-
-def retrieve_secret(master_pswd, key):
-    """
-    Uses Microsoft's DPPAPI to store sensitive infos (e.g. passwords).
-
-    :param str master_pswd:     master-password given by the user
-    """
-    kr = keyring.get_keyring()
-    return kr.get_password('%s.%s' % (__title__, master_pswd), key)
-
-
 def _describe_gpg(gpg):
     gpg_path = gpg.gpgbinary
     if not osp.isabs(gpg_path):
@@ -178,7 +155,6 @@ def _has_repeatitive_prefix(word, limit, char=None):
         else:
             return True
 
-
 def gpg_gen_interesting_keys(gpg, name_real, name_email, key_length,
         predicate, nkeys=1, runs=0):
     keys = []
@@ -209,26 +185,6 @@ def _parse_list_response(line):
     flags, delimiter, mailbox_name = _list_response_regex.match(line).groups()
     mailbox_name = mailbox_name.strip('"')
     return (flags, delimiter, mailbox_name)
-
-_PGP_SIGNATURE  = b'-----BEGIN PGP SIGNATURE-----'  # noqa: E221
-_PGP_MESSAGE    = b'-----BEGIN PGP MESSAGE-----'    # noqa: E221
-
-def split_detached_signed(tag: bytes) -> (bytes, bytes):
-    """
-    Look at GPG signed content (e.g. the message of a signed tag object),
-    whose payload is followed by a detached signature on it, and
-    split these two; do nothing if there is no signature following.
-
-    :param tag:
-        As fetched from ``git cat-file tag v1.2.1``.
-    :return:
-        A 2-tuple(sig, msg), None if no sig found.
-    """
-    nl = b'\n'
-    lines = tag.split(nl)
-    for i, l in enumerate(lines):
-        if l.startswith(_PGP_SIGNATURE) or l.startswith(_PGP_MESSAGE):
-            return nl.join(lines[i:]), nl.join(lines[:i]) + nl
 
 
 class DiceGPG(gnupg.GPG):
@@ -401,7 +357,8 @@ class GenConfigCmd(Cmd):
             GenConfigCmd,
             baseapp.Spec, project.ProjectsDB,
             report.Report,
-            tstamp.TstampSender, #TODO: tstamp.TstampReceiver,
+            tstamp.TstampSender,
+            tstamp.TstampReceiver,
             MainCmd,
         ]
         args = args or [None]
@@ -476,13 +433,14 @@ if __name__ == '__main__':
     #argv = 'project infos --help-all'.split()
     #argv = 'project infos'.split()
     argv = 'project --help-all'.split()
-    argv = 'project infos --as-json --verbose --debug'.split()
-    argv = 'project infos --Project.verbose=2 --debug'.split()
+    argv = 'project examine --as-json --verbose --debug'.split()
+    argv = 'project examine --Project.verbose=2 --debug'.split()
 #     argv = 'project list  --Project.reset_settings=True'.split()
     #argv = '--Project.reset_settings=True'.split()
     #argv = 'project list  --reset-git-settings'.split()
     #argv = 'project init one'.split()
 
+    #argv = 'tstamp send'.split()
     # Invoked from IDEs, so enable debug-logging.
     main(argv, log_level=logging.DEBUG)
 

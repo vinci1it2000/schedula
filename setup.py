@@ -192,6 +192,7 @@ setup(
             'python-gnupg',
             'gitpython >= 2.0.8', ## Due to https://github.com/gitpython-developers/GitPython/issues/332
             'keyring',
+            'pycryptodome',
             'transitions',
         ],
     },
