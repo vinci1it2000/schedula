@@ -307,6 +307,7 @@ class Project(transitions.Machine, baseapp.Spec):
             index = repo.index
             cmsg_js = self._make_commit_msg(action)
             index.commit(cmsg_js)
+
             if state == 'tagged':
                 self.log.debug('Tagging %s...', event.kwargs)
                 report = _evarg(event, 'report')
@@ -352,10 +353,10 @@ class Project(transitions.Machine, baseapp.Spec):
             rep = self._report_spec()
             list(rep.yield_from_iofiles(pfiles))
         except Exception as ex:
-            msg = ("Failed extracting report from %s, due to: %s"
-                   "  BUT FORCED to import them!")
+            msg = "Failed extracting report from %s, due to: %s"
             if force:
-                self.log.error(msg, pfiles, ex, exc_info=1)
+                msg += "  BUT FORCED to import them!"
+                self.log.warning(msg, pfiles, ex, exc_info=1)
             else:
                 raise CmdException(msg % (pfiles, ex))
 
@@ -416,7 +417,7 @@ class Project(transitions.Machine, baseapp.Spec):
 
         Uses the :class:`Report` to build the tag-msg.
         """
-        self.log.info('Generating and taging report: %s...', event.kwargs)
+        self.log.info('Generating and Dice report: %s...', event.kwargs)
         rep = self._report_spec()
         pfiles = self.list_pfiles('inp', 'out', _as_index_paths=True)
 
@@ -994,7 +995,9 @@ class ProjectCmd(_PrjCmd):
             if pfiles.other:
                 raise CmdException(
                     "Cmd %r filepaths must either start with 'inp=' or 'out=' prefix!\n%s" %
-                    (self.name, '\n'.join('  arg[%d]: %s' % i for i in pfiles.other.items())))
+                    (self.name, '\n'.join('  arg[%d]: %s' % (i, f)
+                                          for i, f in
+                                          enumerate(pfiles.other))))
 
             return self.projects_db.current_project().do_addfiles(pfiles=pfiles)
 
@@ -1130,4 +1133,4 @@ if __name__ == '__main__':
 
     dice.run_cmd(baseapp.chain_cmds(
         [dice.MainCmd, ProjectCmd, ProjectCmd.ListCmd],
-        config=c))#argv=['project_foo']))
+        config=c))  # argv=['project_foo']))
