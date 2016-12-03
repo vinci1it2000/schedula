@@ -13,10 +13,10 @@
 from collections import (
     defaultdict, OrderedDict, namedtuple, Mapping)  # @UnusedImport
 from email.mime.text import MIMEText
+import getpass
 import imaplib
 import io
 import os
-import os.path as osp
 import re
 import smtplib
 import sys
@@ -24,7 +24,6 @@ import tempfile
 from typing import (
     List, Sequence, Iterable, Text, Tuple, Dict, Callable)  # @UnusedImport
 
-import pandalone.utils as pndlu
 import traitlets as trt
 import traitlets.config as trtc
 
@@ -34,34 +33,51 @@ from .. import (__version__, __updated__, __file_version__,   # @UnusedImport
 from .. import __uri__  # @UnusedImport
 
 
-class ConsoleLoginCb(baseapp.Spec):
-    """Reads password from environment or console (if tty), to be used by :meth:`MailSpec._log_into_server()`."""
+class LoginCb(baseapp.Spec):
+    """Reads os-user & password from env-var based on `prompt`, used by :meth:`TStampSpec._log_into_server()`."""
 
     user = None
 
-    def __init__(self, *args, user=None, **kwds):
+    def __init__(self, *args, user: Text=None, **kwds):
         super().__init__(*args, **kwds)
         self.user = user
 
-    def convert_prompt_to_env_var(self, prompt):
+    def convert_prompt_to_env_var(self, prompt: Text):
         return re.sub('\W+', '_', prompt.strip()).upper()
 
-    def ask_user_pswd(self, prompt):
-        import getpass
+    def ask_user_pswd(self, prompt: Text):
 
         var_name = self.convert_prompt_to_env_var(prompt)
         pswd = os.environ.get(var_name)
         self.log.debug('Found password in env-var %r? %s', var_name, bool(pswd))
-        if pswd is None and os.isatty(sys.stdin.fileno()):
-            pswd = getpass.getpass('%s? ' % prompt)
-
-        user = self.user
-        if user is None:
-            user = getpass.getuser()
-        return user, pswd
+        if pswd is not None:
+            user = self.user
+            if user is None:
+                user = getpass.getuser()
+            return user, pswd
 
     def report_failure(self, err):
         self.log.error('%s', err)
+
+
+class ConsoleLoginCb(LoginCb):
+    """Reads password from environment or from console (if tty)."""
+
+    def ask_user_pswd(self, prompt):
+        creds = super().ask_user_pswd(prompt)
+        if creds:
+            user, pswd = creds
+        elif os.isatty(sys.stdin.fileno()):
+            try:
+                pswd = getpass.getpass('%s? ' % prompt)
+            except KeyboardInterrupt:
+                return None
+
+            user = self.user
+            if user is None:
+                user = getpass.getuser()
+
+        return user, pswd
 
 
 class TStampSpec(baseapp.Spec):
@@ -167,7 +183,7 @@ class TstampSender(TStampSpec):
 #         v = proposal['value']
 #         if not v:
 
-    def send_timestamped_email(self, msg):
+    def send_timestamped_email(self, msg, login_cb=None):
         x_recs = '\n'.join('X-Stamper-To: %s' % rec for rec in self.x_recipients)
         msg = "\n\n%s\n%s" % (x_recs, msg)
 
@@ -189,7 +205,7 @@ class TstampSender(TStampSpec):
         prompt = 'SMTP pswd for %s' % host
         with (smtplib.SMTP_SSL(host, **srv_kwds)
               if self.ssl else smtplib.SMTP(host, **srv_kwds)) as srv:
-            self._log_into_server(srv.login, prompt)
+            self._log_into_server(srv.login, prompt, login_cb)
 
             srv.send_message(mail)
         return mail
@@ -277,7 +293,7 @@ class TstampReceiver(TStampSpec):
             self.log.debug("Sent %s-user/pswd, server replied: %s", prompt, repl)
             return srv
 
-        srv = self._log_into_server(login_cb, login_cmd, prompt)
+        srv = self._log_into_server(login_cmd, prompt, login_cb)
         try:
             resp = srv.list()
             print(resp[0])
