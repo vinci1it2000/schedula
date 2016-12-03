@@ -175,14 +175,29 @@ class TstampSender(TStampSpec):
         """
     ).tag(config=True)
 
-#     @trt.validate('from_address')
-#     def _validate(self, proposal):
-#         v = proposal['value']
-#         if not v:
+    def _sign_msg_mody(self, text):
+        return text
 
-    def send_timestamped_email(self, msg, login_cb=None):
+    def _append_x_recipients(self, msg):
         x_recs = '\n'.join('X-Stamper-To: %s' % rec for rec in self.x_recipients)
         msg = "\n\n%s\n%s" % (x_recs, msg)
+
+        return msg
+
+    def _prepare_mail(self, msg):
+        mail = MIMEText(msg)
+        mail['Subject'] = self.subject
+        mail['From'] = self.from_address
+        mail['To'] = ', '.join(self.timestamping_addresses)
+
+        return mail
+
+    def send_timestamped_email(self, msg, login_cb=None):
+        print(self.config)
+        return
+        msg = self._sign_msg_mody(msg)
+
+        msg = self._append_x_recipients(msg)
 
         host = self.host
         port = self.port
@@ -193,11 +208,9 @@ class TstampSender(TStampSpec):
         self.log.info("Timestamping dice-report from %r through %r%s to %s-->%s",
                       self.from_address,
                       host, srv_kwds or '',
-                      self.timestamping_addresses, self.x_recipients)
-        mail = MIMEText(msg)
-        mail['Subject'] = self.subject
-        mail['From'] = self.from_address
-        mail['To'] = ', '.join(self.timestamping_addresses)
+                      self.timestamping_addresses,
+                      self.x_recipients)
+        mail = self._prepare_mail(msg)
 
         prompt = 'SMTP pswd for %s' % host
         with (smtplib.SMTP_SSL(host, **srv_kwds)
@@ -208,14 +221,24 @@ class TstampSender(TStampSpec):
         return mail
 
 
-_PGP_SIGNATURE  = b'-----BEGIN PGP SIGNATURE-----'  # noqa: E221
-_PGP_MESSAGE    = b'-----BEGIN PGP MESSAGE-----'    # noqa: E221
+_PGP_SIGNATURE = b'-----BEGIN PGP SIGNATURE-----'  # noqa: E221
+_PGP_MESSAGE = b'-----BEGIN PGP MESSAGE-----'    # noqa: E221
+_PGP_SIG_REGEX = re.compile(
+    br"""
+        -----BEGIN PGP SIGNATURE-----
+        .+
+        Comment: Stamper Reference Id: (\d+)
+        \n\n
+        (.+?)
+        \n-----END PGP SIGNATURE-----
+    """,
+    re.DOTALL | re.VERBOSE)
 
 
 class TstampReceiver(TStampSpec):
     """IMAP & timestamp parameters and methods for receiving & parsing dice emails."""
 
-    def split_pgp_clear_signed(self, mail_bytes: bytes) -> (bytes, bytes):
+    def _split_pgp_clear_signed(self, mail_bytes: bytes) -> (bytes, bytes):
         """
         Look at GPG signed content (e.g. the message of a signed tag object),
         whose payload is followed by a detached signature on it, and
@@ -235,12 +258,11 @@ class TstampReceiver(TStampSpec):
 
                 return msg, sig
 
-    def pgp_sig2int(self, sig_bytes: bytes) -> int:
+    def _pgp_sig2int(self, sig_bytes: bytes) -> int:
         import base64
         import binascii
 
-        sig_regex = re.compile(br'\n\n(.+?)-----END PGP SIGNATURE-----\n', re.DOTALL)
-        m = sig_regex.search(sig_bytes)
+        m = _PGP_SIG_REGEX.search(sig_bytes)
         if not m:
             raise CmdException("Invalid signature: %r" % sig_bytes)
         sig = base64.decodebytes(m.group(0))
@@ -248,30 +270,30 @@ class TstampReceiver(TStampSpec):
 
         return num
 
-    def verify_detached_armor(self, sig: str, data: str):
-    #def verify_file(self, file, data_filename=None):
+    def _verify_detached_armor(self, sig: str, data: str):
         """Verify `sig` on the `data`."""
+    #def verify_file(self, file, data_filename=None):
         #with tempfile.NamedTemporaryFile(mode='wt+',
         #                encoding='latin-1') as sig_fp:
         #sig_fp.write(sig)
         #sig_fp.flush(); sig_fp.seek(0) ## paranoid seek(), Windows at least)
         #sig_fn = sig_fp.name
-        sig_fn = osp.join(tempfile.gettempdir(), 'sig.sig')
-        self.log.debug('Wrote sig to temp file: %r', sig_fn)
+        with tempfile.TemporaryFile('wb+', prefix='dicesig_') as dicesig_file:
+            sig_fn = dicesig_file.name
+            self.log.debug('Wrote sig to temp file: %r', sig_fn)
 
-        args = ['--verify', gnupg.no_quote(sig_fn), '-']
-        result = self.result_map['verify'](self)
-        data_stream = io.BytesIO(data.encode(self.encoding))
-        self._handle_io(args, data_stream, result, binary=True)
+            args = ['--verify', gnupg.no_quote(sig_fn), '-']
+            result = self.result_map['verify'](self)
+            data_stream = io.BytesIO(data.encode(self.encoding))
+            self._handle_io(args, data_stream, result, binary=True)
 
-        return result
-
+            return result
 
     def parse_tsamp_response(self, mail_text: Text) -> int:
         mbytes = mail_text.encode('utf-8')
         # TODO: validate sig!
-        msg, sig = self.split_pgp_clear_signed(mbytes)
-        num = self.pgp_sig2int(sig)
+        msg, sig = self._split_pgp_clear_signed(mbytes)
+        num = self._pgp_sig2int(sig)
         mod100 = num % 100
         decision = 'OK' if mod100 < 90 else 'SAMPLE'
 
