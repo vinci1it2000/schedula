@@ -6,14 +6,14 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
+from co2mpas.__main__ import init_logging
+from co2mpas.sampling import crypto
 import logging
-import itertools as itt
 import unittest
 
 import ddt
 
-from co2mpas.__main__ import init_logging
-from co2mpas.sampling import crypto
+import itertools as itt
 import os.path as osp
 
 
@@ -23,7 +23,7 @@ log = logging.getLogger(__name__)
 
 mydir = osp.dirname(__file__)
 
-texts = ('', ' ', 'a' * 2048, '123', '#@#@', 'asdfasd|*(KJ|KL97GDk;')
+texts = ('', ' ', 'a' * 2048, '123', 'asdfasd|*(KJ|KL97GDk;')
 
 ciphertexts = set()
 
@@ -31,7 +31,7 @@ ciphertexts = set()
 @ddt.ddt
 class TCrypto(unittest.TestCase):
 
-    @ddt.idata(itt.product(('user', 'a09|*(K}&@^', '&^a09|*(K}'), texts, texts))
+    @ddt.idata(itt.product(('user', '&^a09|*(K}'), texts, texts))
     def test_encrypt_text(self, case):
         pswdid, pswd, text = case
         plainbytes = text.encode()
@@ -63,3 +63,14 @@ class TCrypto(unittest.TestCase):
         else:
             self.assertEqual(s, s1, msg)
         self.assertEqual(s, s2, msg)
+        
+    def test_rot_random(self):
+        ss = set()
+        s = "abc"
+        for _ in range(30000):
+            f1, _ = crypto.rot_funcs()
+            s1 = f1(s)
+            ss.add(s1)
+            # Check not ever the same.
+            self.assertNotEqual(s, s1)
+        self.assertGreater(len(ss), 80) # 94 letters, usually all covvered

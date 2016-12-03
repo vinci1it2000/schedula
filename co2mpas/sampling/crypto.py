@@ -14,7 +14,7 @@ import base64
 import binascii
 import logging
 import string
-from typing import Text, Tuple
+from typing import Text, Tuple, Union
 
 import functools as fnt
 
@@ -190,15 +190,22 @@ def text_decrypt(pswdid: Text, pswd: Text, text_enc: Text) -> bytes:
         return plainbytes
 
 
-def rot_funcs(nrot: int) -> Text:
+def rot_funcs(nrot: int=None) -> Text:
     """
     Naive scrambling to hide keys held in memory from the casual debugger (for long-running programs).
     
+    :param nrot:
+        If not an integer, a new one gets selected at random.
     :return: a pair of "rot-n" func used to encrypt/decrypt strings
     """
     ## Adapted from: http://stackoverflow.com/a/3269724/548792
     allchars = ' ' + string.ascii_letters + string.digits + string.punctuation
-    nrot %= len(allchars)
+    clen = len(allchars)
+    if nrot is None:
+        import random
+        nrot = random.randrange(1, clen)
+    else:
+        nrot %= clen
     rotchars = allchars[nrot:] + allchars[:nrot]
 
     t1 = str.maketrans(allchars, rotchars)
