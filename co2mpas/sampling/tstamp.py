@@ -350,15 +350,9 @@ class TstampCmd(baseapp.Cmd):
             """)
 
         file = trt.Unicode(
-            help="""
-            If not null, extract dice-report from a file.
-            """).tag(config=True)
-
-        project = trt.Bool(
-            False,
-            help="""
-            Whether to extract dice-report tag from the *current-project*.
-            """).tag(config=True)
+            None, allow_none=True,
+            help="""If not null, read mail body from the specified file."""
+        ).tag(config=True)
 
         __sender = None
 
@@ -375,18 +369,9 @@ class TstampCmd(baseapp.Cmd):
                     'cmd_aliases': {
                         'file': 'SendCmd.file',
                     },
-                    'cmd_flags': {
-                        'project': ({
-                            'SendCmd': {'project': True},
-                        }, pndlu.first_line(TstampCmd.project.help)),
-                    }
                 }
                 dkwds.update(kwds)
                 super().__init__(**dkwds)
-
-        def _send_mail_from_project(self) -> PFiles:
-            project = self.projects_db.current_project()
-            project.do_sendmail()
 
         def run(self, *args):
             nargs = len(args)
@@ -396,20 +381,14 @@ class TstampCmd(baseapp.Cmd):
                     % (self.name, len(args), args))
 
             file = self.file
-            project = self.project
 
-            if not (file or project):
-                self.log.warning("Time-stamping STDIN; copy message verbatim!")
+            if not file:
+                self.log.warning("Time-stamping STDIN; paste message verbatim!")
                 mail_text = sys.stdin.read()
             else:
-                assert bool(file) ^ bool(project), (file, project)
-                if file:
-                    self.log.info('Time-stamping files %r...', file)
-                    with io.open(file, 'rt') as fin:
-                        mail_text = fin.read()
-                else:
-                    self.log.info('Timestamping dice-report from current-project...')
-                    self._send_mail_from_project()
+                self.log.info('Time-stamping files %r...', file)
+                with io.open(file, 'rt') as fin:
+                    mail_text = fin.read()
             sender = self.sender
             login_cb = ConsoleLoginCb(config=self.config)
             sender.send_timestamped_email(mail_text, login_cb)
