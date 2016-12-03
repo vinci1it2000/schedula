@@ -10,7 +10,7 @@ co2dice: prepare/sign/send/receive/validate/archive Type Approval sampling email
 This is an articulated application comprised of the following:
 
 - A GUI application, based on the `kivy UI framework
-  <https://kivy.org/>`;
+  <https://kivy.org/>` or plain :mod:`tkinter`;
 - a library performing the backend-tasks,
   implemented with :class:`baseapp.Spec` instances;
 - the ``co2dice`` hierarchical cmd-line tool,
@@ -51,6 +51,7 @@ _file_arg_regex = re.compile('(inp|out)=(.+)', re.IGNORECASE)
 
 all_io_kinds = tuple('inp out other'.split())
 
+
 class PFiles(namedtuple('PFiles', all_io_kinds)):
     """
     Holder of project-files stored in the repository.
@@ -72,7 +73,6 @@ class PFiles(namedtuple('PFiles', all_io_kinds)):
             assert not (set(io_kinds) - set(all_io_kinds)), (
                 "Invalid io-kind(s): ", set(io_kinds) - set(all_io_kinds))
         return tuple(set(io_kinds))
-
 
     @staticmethod
     def parse_io_args(*args: Text) -> 'PFiles' or None:

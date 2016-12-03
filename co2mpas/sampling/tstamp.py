@@ -64,7 +64,7 @@ class ConsoleLoginCb(baseapp.Spec):
         self.log.error('%s', err)
 
 
-class MailSpec(baseapp.Spec):
+class TStampSpec(baseapp.Spec):
     """Common parameters and methods for both SMTP(sending emails) & IMAP(receiving emails)."""
 
     host = trt.Unicode(
@@ -89,7 +89,7 @@ class MailSpec(baseapp.Spec):
         help="""The user to authenticate with the SMTP/IMAP server."""
     ).tag(config=True)
 
-    kwds = trt.Dict(
+    mail_kwds = trt.Dict(
         help="""
             Any extra key-value pairs passed to the SMTP/IMAP mail-client libraries.
             For instance, :class:`smtlib.SMTP_SSL` and :class:`smtlib.IMAP4_SSL`
@@ -131,7 +131,7 @@ class MailSpec(baseapp.Spec):
             raise CmdException("User abort logging into %r email-server." % prompt)
 
 
-class TstampSender(MailSpec):
+class TstampSender(TStampSpec):
     """SMTP & timestamp parameters and methods for sending dice emails."""
 
     login = trt.CaselessStrEnum(
@@ -173,7 +173,7 @@ class TstampSender(MailSpec):
 
         host = self.host
         port = self.port
-        srv_kwds = self.kwds.copy()
+        srv_kwds = self.mail_kwds.copy()
         if port is not None:
             srv_kwds['port'] = port
 
@@ -199,7 +199,7 @@ _PGP_SIGNATURE  = b'-----BEGIN PGP SIGNATURE-----'  # noqa: E221
 _PGP_MESSAGE    = b'-----BEGIN PGP MESSAGE-----'    # noqa: E221
 
 
-class TstampReceiver(MailSpec):
+class TstampReceiver(TStampSpec):
     """IMAP & timestamp parameters and methods for receiving & parsing dice emails."""
 
     def split_pgp_clear_signed(self, mail_bytes: bytes) -> (bytes, bytes):
@@ -360,11 +360,11 @@ class TstampCmd(baseapp.Cmd):
                 dkwds = {
                     'conf_classes': [project.ProjectsDB, TstampSender],
                     'cmd_aliases': {
-                        'file': 'TstampCmd.file',
+                        'file': 'SendCmd.file',
                     },
                     'cmd_flags': {
                         'project': ({
-                            'TstampCmd': {'project': True},
+                            'SendCmd': {'project': True},
                         }, pndlu.first_line(TstampCmd.project.help)),
                     }
                 }
@@ -397,9 +397,9 @@ class TstampCmd(baseapp.Cmd):
                 else:
                     self.log.info('Timestamping dice-report from current-project...')
                     self._send_mail_from_project()
-            tstamper = TstampSender(config=self.config)
+            sender = self.sender
             login_cb = ConsoleLoginCb(config=self.config)
-            tstamper.send_timestamped_email(mail_text, login_cb)
+            sender.send_timestamped_email(mail_text, login_cb)
 
     class ParseCmd(_Subcmd):
         """
