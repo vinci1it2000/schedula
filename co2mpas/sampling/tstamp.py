@@ -36,11 +36,8 @@ from .. import __uri__  # @UnusedImport
 class LoginCb(baseapp.Spec):
     """Reads os-user & password from env-var based on `prompt`, used by :meth:`TStampSpec._log_into_server()`."""
 
-    user = None
-
     def __init__(self, *args, user: Text=None, **kwds):
         super().__init__(*args, **kwds)
-        self.user = user
 
     def convert_prompt_to_env_var(self, prompt: Text):
         return re.sub('\W+', '_', prompt.strip()).upper()
@@ -51,7 +48,7 @@ class LoginCb(baseapp.Spec):
         pswd = os.environ.get(var_name)
         self.log.debug('Found password in env-var %r? %s', var_name, bool(pswd))
         if pswd is not None:
-            user = self.user
+            user = self.user_name
             if user is None:
                 user = getpass.getuser()
             return user, pswd
@@ -73,7 +70,7 @@ class ConsoleLoginCb(LoginCb):
             except KeyboardInterrupt:
                 return None
 
-            user = self.user
+            user = self.user_name
             if user is None:
                 user = getpass.getuser()
 
