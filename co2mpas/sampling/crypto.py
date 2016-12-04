@@ -14,7 +14,7 @@ import base64
 import binascii
 import logging
 import string
-from typing import Text, Tuple, Union
+from typing import Text, Tuple, Union  # @UnusedImport
 
 import functools as fnt
 
@@ -30,12 +30,19 @@ log = logging.getLogger(__name__)
 def store_host_btoken(tokenid: Text, token: bytes):
     """see :func:`store_host_token()`"""
     store_host_token(tokenid, binascii.hexlify(token).decode())
-    
+
 
 def store_host_token(tokenid: Text, token: Text):
     """
-    Use :mod:`keyring` to store non-sensitive infos (i.e. salt or AES initialization-vectors) on local host.
-    
+    Use :mod:`keyring` to store non-sensitive infos on local host.
+
+    Non-sensitive crypto-related data are:
+    - salts
+    - nonses
+    - IVs
+    - MACs
+    - chiphertexts
+
     :param token:
         Since on *Windows* it uses Microsoft's DPPAPI so it must not be very big.
     """
@@ -53,8 +60,8 @@ def retrieve_host_btoken(tokenid: Text) -> bytes:
             return binascii.unhexlify(token)
     except Exception as ex:
         log.warning('Failed retrieving host-token for %r, due to: %s', tokenid, ex)
-    
-    
+
+
 def retrieve_host_token(tokenid: Text) -> Text:
     """
     Use :mod:`keyring` to store non-sensitive infos (i.e. salt or AES initialization-vectors) on local.
@@ -65,10 +72,19 @@ def retrieve_host_token(tokenid: Text) -> Text:
     return kr.get_password(KEYRING_ID, tokenid)
 
 
-def retrieve_or_create_salt(pswdid: Text) -> bytes:
+def retrieve_or_create_salt(pswdid: Text, new_salt: bool=False) -> bytes:
+    """
+    Salts are created (if not exist) and stored in :mod:`keyring`, keyed by `pwsdid`.
+
+    :param new_salt:
+        When true, creates a new salt and overrides any old stored in keyring.
+    """
     from Crypto.Random import get_random_bytes
-    
-    salt = retrieve_host_btoken(pswdid)
+
+    salt = None
+    if not new_salt:
+        salt = retrieve_host_btoken(pswdid)
+
     if not salt:
         salt = get_random_bytes(SALT_LEN)
         store_host_btoken(pswdid, salt)
@@ -76,18 +92,18 @@ def retrieve_or_create_salt(pswdid: Text) -> bytes:
     return salt
 
 
-def derive_key(pswdid: Text, pswd: Text):
+def derive_key(pswdid: Text, pswd: Text, new_salt: bool=False):
     """
     Generate encryption keys based on user passwords applying PBKDF2 and host-tokens.
-    
+
     :param pswdid:
             Used to retrieve the salt from the host-token.
     :param pswd:
             the user password to hash
     """
     from Crypto.Protocol.KDF import PBKDF2
-    
-    salt = retrieve_or_create_salt(pswdid)
+
+    salt = retrieve_or_create_salt(pswdid, new_salt)
     key = PBKDF2(pswd, salt)
 
     return key
@@ -96,7 +112,7 @@ def derive_key(pswdid: Text, pswd: Text):
 def encrypt(key: bytes, plainbytes: bytes) -> Tuple[bytes, bytes, bytes]:
     """
     Low-level AES-EAX encrypt `plainbytes` and return side plainbytes in a tuple.
-    
+
     :param key:
         the encryption key (after pbkdf-ing user password).
     :return:
@@ -117,7 +133,7 @@ def encrypt(key: bytes, plainbytes: bytes) -> Tuple[bytes, bytes, bytes]:
 def decrypt(key: bytes, nonce: bytes, mac: bytes, cipherbytes: bytes) -> bytes:
     """
     Low-level decrypt `tuplebytes` encrypted with :func:`encrypt()`.
-    
+
     :param key:
         the decryption key (after pbkdf-ing user password).
     :param tuplebytes:
@@ -150,11 +166,11 @@ def text_encrypt(pswdid: Text, pswd: Text, plainbytes: bytes) -> Text:
     Encrypt `plainbytes` in a self-contained textual-form suitable to be stored in a file.
 
     The textual-format is shown below, and the prefix works as "version":
-    
+
         TRAITAES_1: <base32(nonce(NONCE_LEN) + mac(16) + cipher)>
 
     The :func:`encrypt()` does the actual crypto.
-    
+
     :param pswdid:
             Used to pbkdf the user-pswd--> encryption-key.
     """
@@ -175,7 +191,7 @@ def strip_text_encrypted(text_enc: Text) -> Text:
 def text_decrypt(pswdid: Text, pswd: Text, text_enc: Text) -> bytes:
     """
     High-level decrypt `plainbytes` encrypted with :func:`text_encrypt()`.
-    
+
     :return:
         none if `text_enc` not *TRAITAES_1* textual formatted
     """
@@ -188,34 +204,3 @@ def text_decrypt(pswdid: Text, pswd: Text, text_enc: Text) -> bytes:
         plainbytes = decrypt(key, nonce, mac, cipherbytes)
 
         return plainbytes
-
-
-def rot_funcs(nrot: int=None) -> Text:
-    """
-    Naive scrambling to hide keys held in memory from the casual debugger (for long-running programs).
-    
-    :param nrot:
-        If not an integer, a new one gets selected at random.
-    :return: a pair of "rot-n" func used to encrypt/decrypt strings
-    """
-    ## Adapted from: http://stackoverflow.com/a/3269724/548792
-    allchars = ' ' + string.ascii_letters + string.digits + string.punctuation
-    clen = len(allchars)
-    if nrot is None:
-        import random
-        nrot = random.randrange(1, clen)
-    else:
-        nrot %= clen
-    rotchars = allchars[nrot:] + allchars[:nrot]
-
-    t1 = str.maketrans(allchars, rotchars)
-    t2 = str.maketrans(rotchars, allchars)
-    
-    def translate(s, table):
-        ss = s.translate(table)
-        assert len(s) == len(ss), (len(s), len(ss))
-
-        return ss
-
-    return (fnt.partial(translate, table=t1),
-            fnt.partial(translate, table=t2))
