@@ -6,17 +6,14 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 #
 """
-Utilities for storing passwords in text-files and in memory, bound exclusively to the host hat generated them.
+Utilities for storing passwords splitted in text-files and bound exclusively to the host that generated them.
 
 """
 
 import base64
 import binascii
 import logging
-import string
 from typing import Text, Tuple, Union  # @UnusedImport
-
-import functools as fnt
 
 
 #: The "service-name" for accessing semi-secret keys from :mod:`keyring`.
@@ -161,9 +158,9 @@ def _bytes2tuple(tuplebytes: bytes) -> Tuple[bytes, bytes, bytes]:
     return nonce, mac, cipherbytes
 
 
-def text_encrypt(pswdid: Text, pswd: Text, plainbytes: bytes) -> Text:
+def tencrypt_any(pswdid: Text, pswd: Text, plainobj) -> Text:
     """
-    Encrypt `plainbytes` in a self-contained textual-form suitable to be stored in a file.
+    Encrypt `plainobj` in a self-contained textual-form suitable to be stored in a file.
 
     The textual-format is shown below, and the prefix works as "version":
 
@@ -174,6 +171,9 @@ def text_encrypt(pswdid: Text, pswd: Text, plainbytes: bytes) -> Text:
     :param pswdid:
             Used to pbkdf the user-pswd--> encryption-key.
     """
+    import dill
+
+    plainbytes = dill.dumps(plainobj)
     key = derive_key(pswdid, pswd)
     tpl = encrypt(key, plainbytes)
     tuplebytes = _tuple2bytes(*tpl)
@@ -188,19 +188,22 @@ def strip_text_encrypted(text_enc: Text) -> Text:
         return text_enc[len(ENC_PREFIX) + 1:].strip()  # +1 for ':' char
 
 
-def text_decrypt(pswdid: Text, pswd: Text, text_enc: Text) -> bytes:
+def tdecrypt_any(pswdid: Text, pswd: Text, text_enc: Text):
     """
-    High-level decrypt `plainbytes` encrypted with :func:`text_encrypt()`.
+    High-level decrypt `plainobj` encrypted with :func:`tencrypt_any()`.
 
     :return:
         none if `text_enc` not *TRAITAES_1* textual formatted
     """
     tupleb64 = strip_text_encrypted(text_enc)
     if tupleb64:
+        import dill
+
         tuplebytes = base64.urlsafe_b64decode(tupleb64)
         (nonce, mac, cipherbytes) = _bytes2tuple(tuplebytes)
         key = derive_key(pswdid, pswd)
 
         plainbytes = decrypt(key, nonce, mac, cipherbytes)
+        plainobj = dill.loads(plainbytes)
 
-        return plainbytes
+        return plainobj
