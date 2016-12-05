@@ -6,49 +6,89 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 #
 """
-Master encrypt passwords splitted in text-files and bound exclusively to the host that generated them.
+Master-encrypt 3rdp passwords stored in text-files and try limiting decryption on the host that generated them.
 
 The general idea is this::
 
+    _\|/^  :master-pswd              :salt1
+     (_oo ------------->(PBKDF2*)<------------+
+      |                     |                  \    .--------------.
+     /|\                    |:master-prekey     +---| host keyring |
+      |                     V                  /    '--------------'
+      LL                (PBKDF2*)<------------+
+                            |        :salt2
+                            |:master-key
+                            V      :ciphered-pswd   .--------------.
+                        (AES-EAX)<------------------|  Filesystem  |
+                            |                       '--------------'
+                            |:plain-pswd
+                            V
 
+- Sensitive tokens are the following:
+  ``master-pswd``, ``master-prekey``, ``master-key``, ``plain-pswd``
 
+- ``master-pswd`` is given once by user, and the generated ``master-prekey``
+  stays in RAM(!), to avoid "easy" grabing of ``master-key`` when debugging/grepping RAM
+  (need also ``salt2`` from host).
 
-            .------------.
-            | filesystem |-----------:ciphered-password---------+
-    _\|/^   '------------'                                      |
-     (_oo                                                       V
-      |  :master------>(PBKDF2)--:master-->(PBKDF2)--:key-->(AES-EAX)--:plain
-     /|\  password        ^       prekey      ^                 ^       password
-      |                   |                   |                 |
-      LL                  +-------------------+------------+    |
-            .-----.                    .---------.         |    |
-            | app |--:master-pswdid--->|  host   |--:salt--+    |
-            |     |------:pswdid------>| keyring |--:nonse------+
-            '-----'                    '---------'
-
-- Sensitive tokens are: ``master-password``, ``master-prekey``, ``key``, ``plain-password``
-
-- ``master-password`` is given once by user, and the generated ``master-prekey`` stays in RAM,
-  to avoid "easy" grabing of ``key`` with debugging/grepping into RAM (need ``salt`` from host).
-
-- the ``key`` and the ``plain-password`` are generated when needed, and immediately discarded.
+- the ``master-key`` and the ``plain-pswd`` are generated when needed, and immediately discarded.
 
 - The point is always to need at least 2 sources (filesystem/host-keyring) for
-  decryption ``key`` & ``plain-password``.
-"""
+  decryption ``key`` & ``plain-pswd``.
 
+- ``PBKDF2*`` means that the NIC's hwMAC address gets hashed into the bytes
+  fed into *PBKDF2*, so as to require modification to the code if done on other machine.
+"""
 import base64
 import binascii
+import hashlib
 import logging
+import os
 from typing import Text, Tuple, Union  # @UnusedImport
 
 
 #: The "service-name" for accessing semi-secret keys from :mod:`keyring`.
 KEYRING_ID = 'ec.jrc.co2mpas'
 SALT_LEN = MAC_LEN = NONCE_LEN = 16
-ENC_PREFIX = 'TRAITAES_1'  # version-like prefix for encrypted ciphers
+ENC_PREFIX = 'TRAES.1'  # version-like prefix for encrypted ciphers
+#: Recommended by PY3: https://docs.python.org/3/library/hashlib.html
+PBKDF_NITERS = 10000
+PBKDF_MAC = 'sha256'
 
 log = logging.getLogger(__name__)
+
+
+def hash_bytes_with_hw_mac(rbytes: bytes):
+    """
+    Example::
+    
+        >>> hash_bytes_with_hw_mac(b'1') != b'1'     # Input indeed hashed..
+        True
+        >>> hash_bytes_with_hw_mac(b'')              # unless empty
+        b''
+        
+        >>> hash_bytes_with_hw_mac(b'1') == hash_bytes_with_hw_mac(b'1')  # repetability
+        True
+        >>> len(hash_bytes_with_hw_mac(b'123'))      # length maintained
+        3
+    """
+    import uuid
+
+    h = hashlib.new(PBKDF_MAC, b'No sleeves')
+    HASH_LEN = h.digest_size  # sha256-len: 32bytes
+
+    blen = len(rbytes)
+    nhashes = blen // HASH_LEN + bool(blen % HASH_LEN)
+
+    hw_mac_bytes = uuid.getnode().to_bytes(5, 'big')  # NetworkMAC is 48bit long
+
+    hashes = []
+    for i in range(0, nhashes * HASH_LEN, HASH_LEN):
+        h.update(h.digest() + rbytes[i:HASH_LEN] + hw_mac_bytes)
+        hashes.append(h.digest())
+    rbytes = b''.join(hashes)
+
+    return rbytes[:blen]
 
 
 def store_host_btoken(tokenid: Text, token: bytes):
@@ -103,32 +143,35 @@ def retrieve_or_create_salt(pswdid: Text, new_salt: bool=False) -> bytes:
     :param new_salt:
         When true, creates a new salt and overrides any old stored in keyring.
     """
-    from Crypto.Random import get_random_bytes
-
     salt = None
     if not new_salt:
         salt = retrieve_host_btoken(pswdid)
 
     if not salt:
-        salt = get_random_bytes(SALT_LEN)
+        salt = os.urandom(SALT_LEN)
         store_host_btoken(pswdid, salt)
 
     return salt
 
 
-def derive_key(pswdid: Text, pswd: Text, new_salt: bool=False):
+def derive_key(pswdid: Text,
+               pswd: Union[bytes, Text],
+               new_salt: bool=False):
     """
-    Generate encryption keys based on user passwords applying PBKDF2 and host-tokens.
+    Generate encryption keys based on user passwords + hwMAC applying PBKDF2 with salt from host-tokens.
 
     :param pswdid:
             Used to retrieve the salt from the host-token.
     :param pswd:
             the user password to hash
     """
-    from Crypto.Protocol.KDF import PBKDF2
+    if not isinstance(pswd, bytes):
+        pswd = pswd.encode(errors='surrogateescape')
+
+    pswd = hash_bytes_with_hw_mac(pswd)
 
     salt = retrieve_or_create_salt(pswdid, new_salt)
-    key = PBKDF2(pswd, salt)
+    key = hashlib.pbkdf2_hmac(PBKDF_MAC, pswd, salt, PBKDF_NITERS)
 
     return key
 
@@ -143,9 +186,8 @@ def encrypt(key: bytes, plainbytes: bytes) -> Tuple[bytes, bytes, bytes]:
         a 3-tuple: ``(nonce(NONCE_LEN), mac(16), cipher)``
 """
     from Crypto.Cipher import AES
-    from Crypto.Random import get_random_bytes
 
-    nonce = get_random_bytes(NONCE_LEN)
+    nonce = os.urandom(NONCE_LEN)
     ## To reason mode, see http://blog.cryptographyengineering.com/2012/05/how-to-choose-authenticated-encryption.html
     cipher = AES.new(key, AES.MODE_EAX, nonce)
     cipherbytes, mac = cipher.encrypt_and_digest(plainbytes)
@@ -206,7 +248,7 @@ def tencrypt_any(pswdid: Text, pswd: Text, plainobj) -> Text:
     tuplebytes = _tuple2bytes(*tpl)
     tuplebytes = base64.urlsafe_b64encode(tuplebytes)
 
-    return "%s: %s" % (ENC_PREFIX, tuplebytes.decode())
+    return "$%s$%s" % (ENC_PREFIX, tuplebytes.decode())
 
 
 def strip_text_encrypted(text_enc: Text) -> Text:

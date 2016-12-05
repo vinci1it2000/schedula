@@ -8,6 +8,7 @@
 
 from co2mpas.__main__ import init_logging
 from co2mpas.sampling import crypto
+import doctest
 import logging
 import unittest
 
@@ -15,6 +16,7 @@ import ddt
 
 import itertools as itt
 import os.path as osp
+
 
 init_logging(level=logging.DEBUG)
 
@@ -26,6 +28,15 @@ texts = ('', ' ', 'a' * 2048, '123', 'asdfasd|*(KJ|KL97GDk;')
 objs = ('', ' ', 'a' * 2048, 1244, b'\x22', {1: 'a', '2': {3, b'\x04'}})
 
 ciphertexts = set()
+
+
+class TestDoctest(unittest.TestCase):
+    def runTest(self):
+        failure_count, test_count = doctest.testmod(
+            crypto,
+            optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS)
+        self.assertGreater(test_count, 0, (failure_count, test_count))
+        self.assertEqual(failure_count, 0, (failure_count, test_count))
 
 
 @ddt.ddt
@@ -46,3 +57,12 @@ class TCrypto(unittest.TestCase):
 
         plainbytes2 = crypto.tdecrypt_any(pswdid, pswd, ciphertext)
         self.assertEqual(obj, plainbytes2, msg)
+
+    @ddt.idata(texts)
+    def test_derive_key(self, pswd):
+        k1 = crypto.derive_key('test_derive_key', pswd)
+        k2 = crypto.derive_key('test_derive_key', pswd)
+
+        SHA256_LEN = 32
+        self.assertEqual(len(k1), SHA256_LEN, pswd)
+        self.assertEqual(k1, k2, pswd)
