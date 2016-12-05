@@ -6,8 +6,35 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 #
 """
-Utilities for storing passwords splitted in text-files and bound exclusively to the host that generated them.
+Master encrypt passwords splitted in text-files and bound exclusively to the host that generated them.
 
+The general idea is this::
+
+
+
+
+            .------------.
+            | filesystem |-----------:ciphered-password---------+
+    _\|/^   '------------'                                      |
+     (_oo                                                       V
+      |  :master------>(PBKDF2)--:master-->(PBKDF2)--:key-->(AES-EAX)--:plain
+     /|\  password        ^       prekey      ^                 ^       password
+      |                   |                   |                 |
+      LL                  +-------------------+------------+    |
+            .-----.                    .---------.         |    |
+            | app |--:master-pswdid--->|  host   |--:salt--+    |
+            |     |------:pswdid------>| keyring |--:nonse------+
+            '-----'                    '---------'
+
+- Sensitive tokens are: ``master-password``, ``master-prekey``, ``key``, ``plain-password``
+
+- ``master-password`` is given once by user, and the generated ``master-prekey`` stays in RAM,
+  to avoid "easy" grabing of ``key`` with debugging/grepping into RAM (need ``salt`` from host).
+
+- the ``key`` and the ``plain-password`` are generated when needed, and immediately discarded.
+
+- The point is always to need at least 2 sources (filesystem/host-keyring) for
+  decryption ``key`` & ``plain-password``.
 """
 
 import base64
