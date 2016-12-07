@@ -105,93 +105,96 @@ Vehicle general characteristics
         continuously variable transmission (CVT).
 
     ``start_stop_activation_time``
-        Start/stop activation time elapsed from test start, how many seconds after the NEDC test 
-        the `S-S` system is expected to be enabled.
+        Indicate the time elapsed from the begining of the NEDC test to the first time the Start-Stop system is enabled, 
+        expressed in seconds [s].
 
     ``alternator_nomimal_voltage``
-        Alternator nomimal voltage.
+        Alternator nomimal voltage [V].
 
     ``alternator_nomimal_power``
-        Alternator maximum power.
+        Alternator maximum power [kW].
 
     ``battery_capacity``
-        Battery capacity.
+        Battery capacity [Ah].
 
     ``calibration.initial_temperature.WLTP-H``
-        Initial temperature of the test cell during WLTP-H test. 
-        It is used to calibrate the thermal model. 
-        Default value = 23 C
-
+        Initial temperature of the test cell during the WLTP-H test. It is used to calibrate the thermal model.
+        The default value is 23 °C.
+        
     ``calibration.initial_temperature.WLTP-L``
-        Initial temperature of the test cell during WLTP-L test. 
-        It is used to calibrate the thermal model. Default value = 23 C
-
+        Initial temperature of the test cell during the WLTP-L test. It is used to calibrate the thermal model.
+        The default value is 23 °C.
+        
     ``alternator_efficiency``
-        Average alternator efficiency as declared by the manufacturer; 
-        If not provided equal to default value=0.67
+        Average alternator efficiency as declared by the manufacturer; if the value is not provided,
+        the default value is = 0.67.
 
     ``gear_box_ratios``
-        Gear box ratios ``[ratio gear 1, ratio gear 2, ...]``
+        Insert in the ``gear_box_ratios`` tab of the input file the gear box ratios as an array 
+        ``[ratio gear 1, ratio gear 2, ...]``
 
     ``full_load_speeds``
-        T1 max speed. Input the engine speed [rpm] array used by the OEM to calculate the gearshifting in WLTP.   
-
+        Insert in the ``T1_map`` tab of the input file the engine full load speeds. Input the engine speed [rpm] array used by
+        the OEM to calculate the gearshifting in WLTP. The engine maximum speed, and the engine speed at maximum power are
+        read from this array.
+        
     ``full_load_powers``
-        T1 max power. Input the engine power [kW] array used by the OEM to calculate the gearshifting in WLTP.  
+        Insert in the ``T1_map`` tab of the input file the engine full load powers. Input the engine power [kW] array used by
+        the OEM to calculate the gearshifting in WLTP. The engine maximum power is read from this array.
 
 Road loads
 ------------------
 .. glossary::
     ``vehicle_mass.WLTP-H``
-        Dyno applied mass [kg]
+        Dyno applied mass [kg].
 
     ``f0.WLTP-H``
-        road load coefficient WLTP-H. Rolling resistance force [N], when angle_slope==0
+        Set the F0 road load coefficient for WLTP-H. This scalar corresponds to the rolling resistance force [N], when the angle slope is 0.
 
     ``f1.WLTP-H``
-        F1 road load coefficient WLTP-H. Defined by Dyno procedure [N/kmh].
+        Set the F1 road load coefficient for WLTP-H. Defined by Dyno procedure :math:`[\frac{N}{kmh}]`.
 
     ``f2.WLTP-H``
-        F2 road load coefficient WLTP-H. As used in the Dyno and defined by respective guidelines 
+        Set the F2 road load coefficient for WLTP-H. As used in the Dyno and defined by the respective guideline
         :math:`[\frac{N}{{kmh}^2}]`.
-
+        
     ``vehicle_mass.WLTP-L``
-        Dyno applied mass [kg]
+        Dyno applied mass [kg].
 
     ``f0.WLTP-L``
-        F0 road load coefficient WLTP-L. Rolling resistance force [N], when angle_slope==0
+        Set the F0 road load coefficient for WLTP-L. This scalar corresponds to the rolling resistance force [N], when the angle slope is 0.
 
     ``f1.WLTP-L``
-        F1 road load coefficient WLTP-L. Defined by Dyno procedure :math:`[\frac{N}{kmh}]`.
+        Set the F1 road load coefficient for WLTP-L. Defined by Dyno procedure :math:`[\frac{N}{kmh}]`.
 
     ``f2.WLTP-L``
-        F2 road load coefficient WLTP-L. As used in the Dyno and defined by respective guidelines 
+        Set the F2 road load coefficient for WLTP-L. As used in the Dyno and defined by the respective guideline
         :math:`[\frac{N}{{kmh}^2}]`.
 
     ``vehicle_mass.NEDC-H``
-        Dyno applied mass [kg].
+        Inertia class of NEDC-H - Do not correct for rotating parts [kg].
 
     ``f0.NEDC-H``
-        F0 road load coefficient NEDC-H. Rolling resistance force [N], when angle_slope==0
+        Set the F0 road load coefficient for NEDC-H. This scalar corresponds to the rolling resistance force [N], when the angle slope is 0.
 
     ``f1.NEDC-H``
-        F1 road load coefficient NEDC-H. Defined by Dyno procedure [N/kmh].
+        Set the F1 road load coefficient for NEDC-H. Defined by Dyno procedure :math:`[\frac{N}{kmh}]`.
 
     ``f2.NEDC-H``
-        F2 road load coefficient NEDC-H. As used in the Dyno and defined by respective guidelines 
+        Set the F2 road load coefficient for NEDC-H. As used in the Dyno and defined by the respective guideline
         :math:`[\frac{N}{{kmh}^2}]`.
-
+        
     ``vehicle_mass.NEDC-L``
-        Dyno applied mass [kg]
+        Inertia class of NEDC-H - Do not correct for rotating parts. [kg]
 
     ``f0.NEDC-L``
-        The ``F0`` road load coefficient NEDC-L. Rolling resistance force [N], when angle_slope==0
+        Set the F0 road load coefficient for NEDC-L. This scalar corresponds to the rolling resistance force [N], when the angle slope is 0.
 
     ``f1.NEDC-L``
-        The  ``F1`` road load coefficient NEDC-L. Defined by Dyno procedure [N/kmh].
+        Set the F1 road load coefficient for NEDC-L. Defined by Dyno procedure :math:`[\frac{N}{kmh}]`.
 
     ``f2.NEDC-L``
-        The ``F2`` road load coefficient NEDC-L. As used in the Dyno and defined by respective guidelines
+        Set the F2 road load coefficient for NEDC-L. As used in the Dyno and defined by the respective guideline
         :math:`[\frac{N}{{kmh}^2}]`.
 
 
@@ -200,34 +203,34 @@ Targets
 ---------------------------
 .. glossary::
     ``co2_emissions_low.WLTP-H``
-        Phase low, |CO2| emissions bag values [g|CO2|/km], not corrected for RCB, not rounded WLTP-H test measurements. 
+        Phase low, |CO2| emissions bag values [gCO2/km], not corrected for RCB, not rounded WLTP-H test measurements. 
 
     ``co2_emissions_medium.WLTP-H``
-        Phase medium, |CO2| emissions bag values [g|CO2|/km], not corrected for RCB, not rounded WLTP-H test measurements.
+        Phase medium, |CO2| emissions bag values [gCO2/km], not corrected for RCB, not rounded WLTP-H test measurements.
 
     ``co2_emissions_high.WLTP-H``
-        Phase high, |CO2| emissions bag values [g|CO2|/km], not corrected for RCB, not rounded WLTP-H test measurements.
+        Phase high, |CO2| emissions bag values [gCO2/km], not corrected for RCB, not rounded WLTP-H test measurements.
 
     ``co2_emissions_extra_high.WLTP-H``
-        Phase extra high, |CO2| emissions bag values [g|CO2|/km], not corrected for RCB, not rounded WLTP-H test measurements.
+        Phase extra high, |CO2| emissions bag values [gCO2/km], not corrected for RCB, not rounded WLTP-H test measurements.
 
     ``co2_emissions_low.WLTP-L``
-        Phase low, |CO2| emissions bag values [g|CO2|/km], not corrected for RCB, not rounded WLTP-L test measurements.
+        Phase low, |CO2| emissions bag values [gCO2/km], not corrected for RCB, not rounded WLTP-L test measurements.
 
     ``co2_emissions_medium.WLTP-L``
-        Phase medium, |CO2| emissions bag values [g|CO2|/km], not corrected for RCB, not rounded WLTP-L test measurements.
+        Phase medium, |CO2| emissions bag values [gCO2/km], not corrected for RCB, not rounded WLTP-L test measurements.
 
     ``co2_emissions_high.WLTP-L``
-        Phase high, |CO2| emissions bag values [g|CO2|/km], not corrected for RCB, not rounded WLTP-L test measurements.
+        Phase high, |CO2| emissions bag values [gCO2/km], not corrected for RCB, not rounded WLTP-L test measurements.
 
     ``co2_emissions_extra_high.WLTP-L``
-        Phase extra high, |CO2| emissions bag values [g|CO2|/km], not corrected for RCB, not rounded WLTP-L test measurements.
+        Phase extra high, |CO2| emissions bag values [gCO2/km], not corrected for RCB, not rounded WLTP-L test measurements.
 
     ``target declared_co2_emission_value.NEDC-H``
-        Declared value for NEDC vehicle H [g|CO2|M/km]. Value should be Ki factor corrected.
+        Declared value for NEDC vehicle H [gCO2/km]. Value should be Ki factor corrected.
 
     ``target declared_co2_emission_value.NEDC-L``
-        Declared value for NEDC vehicle L [g|CO2|/km]. Value should be Ki factor corrected.
+        Declared value for NEDC vehicle L [gCO2/km]. Value should be Ki factor corrected.
 
     ``ta_certificate_number``
         Type approving body certificate number. This number is printed in the output file of |co2mpas|
@@ -429,6 +432,8 @@ Reports & exchanged files
           the vehicle has to undergo an NEDC physical test;
         - ``'OK'`` means that the declared NEDC value is accepted 
           (assuming |co2mpas| prediction does not deviate more than 4% of the declared NEDC value).
+
+.. image:: _static/dice_co2mpas_dev.PNG
 
     dice decision
         A new file stored in the TAA files as received from timestamps server:
