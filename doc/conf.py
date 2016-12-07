@@ -12,13 +12,14 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys
-import os
 import io
-
+import os
 from os.path import abspath, join, dirname
+import sys
+
 
 mydir = os.path.dirname(__file__)
+
 
 def read_project_version():
     fglobals = {}
@@ -59,6 +60,7 @@ extensions = [
 rst_epilog = """
 .. |co2mpas| replace:: CO\ :sub:`2`\ MPAS
 .. |CO2| replace:: CO\ :sub:`2`
+.. |NOx| replace:: NO\ :sub:`x`\
 .. |clink| replace:: *Clink*
 .. _clink: http://mridgers.github.io/clink/
 .. |winpython| replace:: *WinPython*
