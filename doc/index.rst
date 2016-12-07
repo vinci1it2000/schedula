@@ -19,6 +19,7 @@
     developers
     changes
     reference
+    glossary
 
 
 Indices and tables
