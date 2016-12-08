@@ -302,8 +302,7 @@ class Cmd(trtc.Application):
             return
 
         lines = ["Subcommands"]
-        lines.append('-' * len(lines[0]))
-        lines.append('')
+        lines.append('=' * len(lines[0]))
         for p in wrap_paragraphs(self.subcommand_description.format(
                 app=self.name)):
             lines.append(p)
