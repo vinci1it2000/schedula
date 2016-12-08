@@ -12,6 +12,13 @@ co2dice: prepare/sign/send/receive/validate/archive Type Approval sampling email
     Do not run multiple instances!
 """
 
+from co2mpas import (__version__, __updated__, __file_version__,   # @UnusedImport
+                              __input_file_version__, __copyright__, __license__)  # @UnusedImport
+from co2mpas import __uri__  # @UnusedImport
+from co2mpas.__main__ import init_logging
+from co2mpas.sampling import baseapp, CmdException
+from co2mpas.sampling.baseapp import (APPNAME, Cmd, build_sub_cmds,
+                                      chain_cmds)  # @UnusedImport
 from collections import defaultdict, MutableMapping, OrderedDict, namedtuple
 from email.mime.text import MIMEText
 import io
@@ -28,17 +35,10 @@ from boltons.setutils import IndexedSet as iset
 import gnupg  # from python-gnupg
 from toolz import dicttoolz as dtz, itertoolz as itz
 
-from co2mpas import __uri__  # @UnusedImport
-from co2mpas.__main__ import init_logging
-from co2mpas import (__version__, __updated__, __file_version__,   # @UnusedImport
-                              __input_file_version__, __copyright__, __license__)  # @UnusedImport
-from co2mpas.sampling import baseapp, CmdException
-from co2mpas.sampling.baseapp import (APPNAME, Cmd, build_sub_cmds,
-                                      chain_cmds)  # @UnusedImport
-import pandalone.utils as pndlu
 import functools as fnt
 import itertools as itt
 import os.path as osp
+import pandalone.utils as pndlu
 import pandas as pd  # SLOW!
 import traitlets as trt
 import traitlets.config as trtc
@@ -348,22 +348,40 @@ class GenConfigCmd(Cmd):
         super().__init__(**dkwds)
 
     def run(self, *args):
-        from co2mpas.sampling import project, report, tstamp
-        ## INFO: Add all conf-classes here
-        pp = project.ProjectCmd
-        self.classes = [
-            pp, pp.CurrentCmd, pp.ListCmd, pp.InitCmd, pp.OpenCmd, pp.ExamineCmd, pp.BackupCmd,
-            report.ReportCmd,
-            GenConfigCmd,
-            baseapp.Spec, project.ProjectsDB,
-            report.Report,
-            tstamp.TstampSender,
-            tstamp.TstampReceiver,
-            MainCmd,
-        ]
+        self.classes = all_configurables()
         args = args or [None]
         for fpath in args:
             self.write_default_config(fpath, self.force)
+
+
+####################################
+## INFO: Add all CMDs here.
+#
+def all_cmds():
+    from co2mpas.sampling import project, report, tstamp
+    return (
+        (
+            MainCmd,
+            project.ProjectCmd,
+            report.ReportCmd,
+            tstamp.TstampCmd,
+            GenConfigCmd,
+        ) +
+        project.all_subcmds +
+        tstamp.all_subcmds)
+
+
+## INFO: Add all SPECs here.
+#
+def all_configurables():
+    from co2mpas.sampling import project, report, tstamp
+    return all_cmds() + (
+        baseapp.Spec, project.ProjectsDB,
+        report.Report,
+        tstamp.TstampSender,
+        tstamp.TstampReceiver,
+    )
+####################################
 
 
 def run_cmd(cmd: Cmd, argv: Sequence[Text]=None):

@@ -449,12 +449,12 @@ class TstampCmd(baseapp.Cmd):
         with self.hold_trait_notifications():
             dkwds = {
                 'conf_classes': [project.ProjectsDB, TstampSender, TstampReceiver],
-                'subcommands': baseapp.build_sub_cmds(*_subcmds),
+                'subcommands': baseapp.build_sub_cmds(*all_subcmds),
             }
             dkwds.update(kwds)
             super().__init__(**dkwds)
 
-_subcmds = (TstampCmd.SendCmd, TstampCmd.ParseCmd)
+all_subcmds = (TstampCmd.SendCmd, TstampCmd.ParseCmd)
 
 
 if __name__ == '__main__':

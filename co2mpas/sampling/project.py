@@ -1096,7 +1096,7 @@ class ProjectCmd(_PrjCmd):
         with self.hold_trait_notifications():
             dkwds = {
                 'conf_classes': [ProjectsDB, Project],
-                'subcommands': baseapp.build_sub_cmds(*project_subcmds),
+                'subcommands': baseapp.build_sub_cmds(*all_subcmds),
                 #'default_subcmd': 'current', ## Does not help the user.
                 'cmd_flags': {
                     'reset-git-settings': (
@@ -1114,7 +1114,7 @@ class ProjectCmd(_PrjCmd):
             dkwds.update(kwds)
             super().__init__(**dkwds)
 
-project_subcmds = (ProjectCmd.ListCmd, ProjectCmd.CurrentCmd, ProjectCmd.OpenCmd, ProjectCmd.InitCmd,
+all_subcmds = (ProjectCmd.ListCmd, ProjectCmd.CurrentCmd, ProjectCmd.OpenCmd, ProjectCmd.InitCmd,
                    ProjectCmd.AddFileCmd, ProjectCmd.TagReportCmd,
                    ProjectCmd.TstampCmd,
                    ProjectCmd.ExamineCmd, ProjectCmd.BackupCmd)
