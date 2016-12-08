@@ -371,6 +371,21 @@ class ConfigCmd(Cmd):
 
             return (format_tuple(p, f) for p, f in self.loaded_config_files)
 
+    class ShowCmd(Cmd):
+        """Print the actual configuration parameters as loaded from the config-files."""
+
+        def __init__(self, **kwds):
+            dkwds = {'conf_classes': all_configurables()}
+            dkwds.update(kwds)
+            super().__init__(**kwds)
+
+        def run(self, *args):
+            if len(args) > 0:
+                raise CmdException('Cmd %r takes no arguments, received %d: %r!'
+                                   % (self.name, len(args), args))
+
+            return self.config
+
     def __init__(self, **kwds):
             dkwds = {'subcommands': baseapp.build_sub_cmds(*config_subcmds)}
             dkwds.update(kwds)
@@ -380,6 +395,7 @@ class ConfigCmd(Cmd):
 config_subcmds = (
     ConfigCmd.InitCmd,
     ConfigCmd.ListCmd,
+    ConfigCmd.ShowCmd,
 )
 
 
