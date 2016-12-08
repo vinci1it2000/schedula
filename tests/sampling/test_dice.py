@@ -6,16 +6,17 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
+from co2mpas.__main__ import init_logging
+from co2mpas.sampling import baseapp, dice
 import logging
 import os
 import tempfile
+from traitlets.config import get_config
 import unittest
 
 import ddt
-from traitlets.config import get_config
 
-from co2mpas.__main__ import init_logging
-from co2mpas.sampling import dice
+import itertools as itt
 import os.path as osp
 
 
@@ -57,107 +58,108 @@ mydir = osp.dirname(__file__)
 # # with open(fpath) as fp:
 # #     # Create a text/plain message
 # #     msg = MIMEText(fp.read())
-# _signed_msg = """
-# -----BEGIN PGP SIGNED MESSAGE-----
-# Hash: SHA256
+
+_signed_msg = """
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA256
+
+hi gpg
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQEcBAEBCAAGBQJW3YK+AAoJEDOsPX8JK97lgTAH/2C2TF5dsVaEWqI5grhHnERK
+kMkq9sHK5Gi3g8VbRB5gcaSM0xN3YmdzQlwp1kKdbQTffUwJk9U4ErQ9LT7RJNaH
+e5Rr9w45nRiSjAyJME4858kWNv0vvRdloB58y/eRzcO5WfTsOQsnl471Lct6wSN1
+gQHZcRQVW4p18rJ9kaeBr5C9H2vg5CRTfrwMKDRX+ntGj1HY/obl4Kb2IgWSLDcd
+5uGImNIDu3gQ15ibh1bIwH8/ya8tg38JBNhlYdvt9/y24jgsKKO+iOHVLUMj7LO6
+q1mI64ULC1SlW2KBKdGV0xDcq+YA3GoXhD5FDPS70cTQ+DBkx1lUa6xmZgBR0uE=
+=ctnm
+-----END PGP SIGNATURE-----
+"""
+
+_signed_tags = {'v1.2.1': [b"""object 76bcb73a24bfc40d6480a1a3050d743b02f71625
+type commit
+tag v1.2.1
+tagger Kostis Anagnostopoulos <ankostis@gmail.com> 1461012303 +0200
+
+Panino release-no2:
+
+- real-cars,
+- theoritical-wltp,
+- repeatable 64bit,
+- input-schema.
+
+See https://github.com/JRCSTU/co2mpas/releases/tag/v1.2.0
+""", b"""-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+
+iEYEABECAAYFAlcVR08ACgkQnPJ3xAqKGwi9sQCeJ4qO6a30FqBMoDJhW5esS+Q0
+uYMAn3l0GhwyCkob9OQ9EBjqETse+LoE
+=W4tm
+-----END PGP SIGNATURE-----
+"""]}
+
+_timestamped_msg = """
+
+-----BEGIN PGP SIGNED MESSAGE-----
+
+########################################################
 #
-# hi gpg
-# -----BEGIN PGP SIGNATURE-----
-# Version: GnuPG v2
+# This is a proof of posting certificate from
+# stamper.itconsult.co.uk certifying that a user
+# claiming to be:-
+#     konstantinos.anagnostopoulos@ext.jrc.ec.europa.eu
+# requested that this message be sent to:-
+#     ankostis@gmail.com
+#     konstantinos.anagnostopoulos@ext.jrc.ec.europa.eu
 #
-# iQEcBAEBCAAGBQJW3YK+AAoJEDOsPX8JK97lgTAH/2C2TF5dsVaEWqI5grhHnERK
-# kMkq9sHK5Gi3g8VbRB5gcaSM0xN3YmdzQlwp1kKdbQTffUwJk9U4ErQ9LT7RJNaH
-# e5Rr9w45nRiSjAyJME4858kWNv0vvRdloB58y/eRzcO5WfTsOQsnl471Lct6wSN1
-# gQHZcRQVW4p18rJ9kaeBr5C9H2vg5CRTfrwMKDRX+ntGj1HY/obl4Kb2IgWSLDcd
-# 5uGImNIDu3gQ15ibh1bIwH8/ya8tg38JBNhlYdvt9/y24jgsKKO+iOHVLUMj7LO6
-# q1mI64ULC1SlW2KBKdGV0xDcq+YA3GoXhD5FDPS70cTQ+DBkx1lUa6xmZgBR0uE=
-# =ctnm
-# -----END PGP SIGNATURE-----
-# """
+# This certificate was issued at 14:50 (GMT)
+# on Monday 07 March 2016 with reference 0891345
 #
-# _signed_tags = {'v1.2.1': [b"""object 76bcb73a24bfc40d6480a1a3050d743b02f71625
-# type commit
-# tag v1.2.1
-# tagger Kostis Anagnostopoulos <ankostis@gmail.com> 1461012303 +0200
+# CAUTION: while the message may well be from the sender
+#          indicated in the "From:" header, the sender
+#          has NOT been authenticated by this service
 #
-# Panino release-no2:
+# For information about the Stamper service see
+#        http://www.itconsult.co.uk/stamper.htm
 #
-# - real-cars,
-# - theoritical-wltp,
-# - repeatable 64bit,
-# - input-schema.
-#
-# See https://github.com/JRCSTU/co2mpas/releases/tag/v1.2.0
-# """, b"""-----BEGIN PGP SIGNATURE-----
-# Version: GnuPG v1
-#
-# iEYEABECAAYFAlcVR08ACgkQnPJ3xAqKGwi9sQCeJ4qO6a30FqBMoDJhW5esS+Q0
-# uYMAn3l0GhwyCkob9OQ9EBjqETse+LoE
-# =W4tm
-# -----END PGP SIGNATURE-----
-# """]}
-#
-# _timestamped_msg = """
-#
-# -----BEGIN PGP SIGNED MESSAGE-----
-#
-# ########################################################
-# #
-# # This is a proof of posting certificate from
-# # stamper.itconsult.co.uk certifying that a user
-# # claiming to be:-
-# #     konstantinos.anagnostopoulos@ext.jrc.ec.europa.eu
-# # requested that this message be sent to:-
-# #     ankostis@gmail.com
-# #     konstantinos.anagnostopoulos@ext.jrc.ec.europa.eu
-# #
-# # This certificate was issued at 14:50 (GMT)
-# # on Monday 07 March 2016 with reference 0891345
-# #
-# # CAUTION: while the message may well be from the sender
-# #          indicated in the "From:" header, the sender
-# #          has NOT been authenticated by this service
-# #
-# # For information about the Stamper service see
-# #        http://www.itconsult.co.uk/stamper.htm
-# #
-# ########################################################
-#
-#
-#
-#
-# - -----BEGIN PGP SIGNED MESSAGE-----
-# Hash: SHA256
-#
-# hi gpg
-# - -----BEGIN PGP SIGNATURE-----
-# Version: GnuPG v2
-#
-# iQEcBAEBCAAGBQJW3YK+AAoJEDOsPX8JK97lgTAH/2C2TF5dsVaEWqI5grhHnERK
-# kMkq9sHK5Gi3g8VbRB5gcaSM0xN3YmdzQlwp1kKdbQTffUwJk9U4ErQ9LT7RJNaH
-# e5Rr9w45nRiSjAyJME4858kWNv0vvRdloB58y/eRzcO5WfTsOQsnl471Lct6wSN1
-# gQHZcRQVW4p18rJ9kaeBr5C9H2vg5CRTfrwMKDRX+ntGj1HY/obl4Kb2IgWSLDcd
-# 5uGImNIDu3gQ15ibh1bIwH8/ya8tg38JBNhlYdvt9/y24jgsKKO+iOHVLUMj7LO6
-# q1mI64ULC1SlW2KBKdGV0xDcq+YA3GoXhD5FDPS70cTQ+DBkx1lUa6xmZgBR0uE=
-# =ctnm
-# - -----END PGP SIGNATURE-----
-#
-# -----BEGIN PGP SIGNATURE-----
-# Version: 2.6.3i
-# Charset: noconv
-# Comment: Stamper Reference Id: 0891345
-#
-# iQEVAgUBVt2VGIGVnbVwth+BAQHzMgf+I5X0bMvFjxgrlskt1IqlXahuGmh20okQ
-# wEC01LEZb0v8vTVKYyjSllvRdDp93Debm6ll3GieuCNs80FWkkY45yi7pKOk68Em
-# ia2RkPRrZRBllTc8ZIlezt1/XJBw4RdqEbk4pExNIfnjGfBv4aKAuMlS/B6XijWv
-# EnNc6rb3HFpbYwboHi1yA/HvlIGnWEwNPFdDJLEacsV6acBTAG7TGiXYv7S/I4wQ
-# 0rjbqjGvGijyt5XKjI8fFYApPBcNiwlmLSSovn4JglBHC6Cfo0PG7HTZvbTMFwlh
-# KTv1GRz3C2ofyMwqx4TGueTHr8ANtNm7ByUEVLzmCq3Aod6r5CGXUg==
-# =ahMl
-# -----END PGP SIGNATURE-----
-#
-# """
-#
+########################################################
+
+
+
+
+- -----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA256
+
+hi gpg
+- -----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQEcBAEBCAAGBQJW3YK+AAoJEDOsPX8JK97lgTAH/2C2TF5dsVaEWqI5grhHnERK
+kMkq9sHK5Gi3g8VbRB5gcaSM0xN3YmdzQlwp1kKdbQTffUwJk9U4ErQ9LT7RJNaH
+e5Rr9w45nRiSjAyJME4858kWNv0vvRdloB58y/eRzcO5WfTsOQsnl471Lct6wSN1
+gQHZcRQVW4p18rJ9kaeBr5C9H2vg5CRTfrwMKDRX+ntGj1HY/obl4Kb2IgWSLDcd
+5uGImNIDu3gQ15ibh1bIwH8/ya8tg38JBNhlYdvt9/y24jgsKKO+iOHVLUMj7LO6
+q1mI64ULC1SlW2KBKdGV0xDcq+YA3GoXhD5FDPS70cTQ+DBkx1lUa6xmZgBR0uE=
+=ctnm
+- -----END PGP SIGNATURE-----
+
+-----BEGIN PGP SIGNATURE-----
+Version: 2.6.3i
+Charset: noconv
+Comment: Stamper Reference Id: 0891345
+
+iQEVAgUBVt2VGIGVnbVwth+BAQHzMgf+I5X0bMvFjxgrlskt1IqlXahuGmh20okQ
+wEC01LEZb0v8vTVKYyjSllvRdDp93Debm6ll3GieuCNs80FWkkY45yi7pKOk68Em
+ia2RkPRrZRBllTc8ZIlezt1/XJBw4RdqEbk4pExNIfnjGfBv4aKAuMlS/B6XijWv
+EnNc6rb3HFpbYwboHi1yA/HvlIGnWEwNPFdDJLEacsV6acBTAG7TGiXYv7S/I4wQ
+0rjbqjGvGijyt5XKjI8fFYApPBcNiwlmLSSovn4JglBHC6Cfo0PG7HTZvbTMFwlh
+KTv1GRz3C2ofyMwqx4TGueTHr8ANtNm7ByUEVLzmCq3Aod6r5CGXUg==
+=ahMl
+-----END PGP SIGNATURE-----
+
+"""
+
 # def _make_test_cfg():
 #     cfg = io.StringIO(_test_cfg)
 #     return yaml.load(cfg)
@@ -259,7 +261,7 @@ class TApp(unittest.TestCase):
     def test_gen_conf(self):
         c = get_config()
         c.MainCmd.raise_config_file_errors = True
-        cmd = dice.GenConfigCmd(config=c)
+        cmd = baseapp.chain_cmds([dice.GenConfigCmd], config=c)
         with tempfile.TemporaryDirectory() as td:
             conf_fpath = osp.join(td, 'cc.py')
             cmd.run(conf_fpath)
@@ -267,3 +269,10 @@ class TApp(unittest.TestCase):
                             (conf_fpath, os.listdir(osp.split(conf_fpath)[0])))
             stat = os.stat(conf_fpath)
             self.assertGreater(stat.st_size, 7000, stat)
+
+    @ddt.data(*dice.all_cmds())
+    def test_all_cmds_help_smoketest(self, cmd: baseapp.Cmd):
+        cmd.class_get_help()
+        cmd.class_config_section()
+        cmd.class_config_rst_doc()
+        cmd().print_help()
