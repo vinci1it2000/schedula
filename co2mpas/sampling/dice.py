@@ -13,7 +13,7 @@ co2dice: prepare/sign/send/receive/validate/archive Type Approval sampling email
 """
 
 from co2mpas import (__version__, __updated__, __file_version__,   # @UnusedImport
-                              __input_file_version__, __copyright__, __license__)  # @UnusedImport
+                     __input_file_version__, __copyright__, __license__)  # @UnusedImport
 from co2mpas import __uri__  # @UnusedImport
 from co2mpas.__main__ import init_logging
 from co2mpas.sampling import baseapp, CmdException
@@ -29,7 +29,7 @@ import shutil
 import tempfile
 import textwrap
 import types
-from typing import Sequence, Text
+from typing import Sequence, Text, List
 
 from boltons.setutils import IndexedSet as iset
 import gnupg  # from python-gnupg
@@ -358,13 +358,29 @@ class ConfigCmd(Cmd):
             for fpath in args:
                 self.write_default_config(fpath, self.force)
 
+    class ListCmd(Cmd):
+        """List search-paths and actual config-files loaded in descending orders (last one overrides previous)."""
+        def run(self, *args):
+            if len(args) > 0:
+                raise CmdException('Cmd %r takes no arguments, received %d: %r!'
+                                   % (self.name, len(args), args))
+
+            def format_tuple(path, files: List[Text]):
+                endpath = osp.sep if path[-1] != osp.sep else ''
+                return '%s%s: %s' % (path, endpath, files or '')
+
+            return (format_tuple(p, f) for p, f in self.loaded_config_files)
+
     def __init__(self, **kwds):
-            dkwds = {
-                'subcommands': baseapp.build_sub_cmds(
-                    ConfigCmd.InitCmd),
-            }
+            dkwds = {'subcommands': baseapp.build_sub_cmds(*config_subcmds)}
             dkwds.update(kwds)
             super().__init__(**dkwds)
+
+
+config_subcmds = (
+    ConfigCmd.InitCmd,
+    ConfigCmd.ListCmd,
+)
 
 
 ####################################
@@ -378,8 +394,9 @@ def all_cmds():
             project.ProjectCmd,
             report.ReportCmd,
             tstamp.TstampCmd,
-            ConfigCmd, ConfigCmd.InitCmd,
+            ConfigCmd,
         ) +
+        config_subcmds +
         project.all_subcmds +
         tstamp.all_subcmds)
 
@@ -470,6 +487,9 @@ if __name__ == '__main__':
     #argv = '--Project.reset_settings=True'.split()
     #argv = 'project list  --reset-git-settings'.split()
     #argv = 'project init one'.split()
+
+    #argv = 'config --help'.split()
+    argv = 'config list'.split()
 
     #argv = 'tstamp send'.split()
     # Invoked from IDEs, so enable debug-logging.

@@ -222,6 +222,38 @@ class Cmd(trtc.Application):
 
         return fpaths
 
+    #: A list of 2-tuples ``(folder, fname(s))`` with loaded config-files
+    #: in descending order (last overrides previous), to answer inquires afterwards.
+    loaded_config_files = []
+
+    def load_config_file(self, filename, path=None):
+        # Overridden just to maintain :attr:`loaded_config_files` list.
+        """
+        The :attr:`loaded_config_files` would contain eventually::
+
+            [['co2dice_config.py', 'co2dice_config.json']),
+            ('D:\cur_dir\', None)
+            ('G:\some_dir\', ['some.py']),
+            ('G:\another_dir\', ['other_conf.json'])]
+
+        """
+        super().load_config_file(filename, path)
+
+        ## Reproduce trait-loaders logic and
+        #  report any existing config files.
+        #
+        fname, _ = osp.splitext(filename)
+        if not isinstance(path, (list, tuple)):
+            path = [path]
+        for p in path:
+            found = []
+            for e in ('.py', '.json'):
+                fpath = osp.join(p, fname + e)
+                p, f = osp.split(fpath)
+                if osp.isfile(fpath):
+                    found.append(f)
+            self.loaded_config_files.insert(0, (p, found or None))
+
     def load_config_files(self):
         """Load default user-specified overrides config files.
 
