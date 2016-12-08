@@ -151,12 +151,9 @@ class Spec(trtc.LoggingConfigurable):
 ###################
 
 
-def app_short_help(app_class):
-    desc = app_class.class_traits().get('description')
-    doc = (isinstance(desc, str) and desc or
-           (isinstance(app_class.description, str) and app_class.description) or
-           app_class.__doc__)
-    return pndlu.first_line(doc)
+def cmd_class_short_help(app_class):
+    desc = app_class.description
+    return pndlu.first_line(isinstance(desc, str) and desc or app_class.__doc__)
 
 
 def class2cmd_name(cls):
@@ -169,7 +166,7 @@ def class2cmd_name(cls):
 def build_sub_cmds(*subapp_classes):
     """Builds an ordered-dictionary of ``cmd-name --> (cmd-class, help-msg)``. """
 
-    return OrderedDict((class2cmd_name(sa), (sa, app_short_help(sa)))
+    return OrderedDict((class2cmd_name(sa), (sa, cmd_class_short_help(sa)))
                        for sa in subapp_classes)
 
 
@@ -182,10 +179,6 @@ class Cmd(trtc.Application):
     def _name(self):
         name = class2cmd_name(type(self))
         return name
-
-    @trt.default('description')
-    def _description(self):
-        return __doc__ or '<no description>'
 
     config_files = trt.Unicode(
         None, allow_none=True,
@@ -401,7 +394,6 @@ class Cmd(trtc.Application):
         dkwds = {
             ## Traits defaults are always applied...??
             #
-            'description': cls.__doc__,
             'name': class2cmd_name(cls),
 
             ## Set some nice defaults for root-CMDs.
@@ -436,6 +428,8 @@ class Cmd(trtc.Application):
                 )
             },
         }
+        if cls.__doc__:
+            dkwds['description'] = cls.__doc__
         dkwds.update(kwds)
         super().__init__(**dkwds)
 

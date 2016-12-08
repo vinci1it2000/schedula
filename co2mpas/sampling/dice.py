@@ -264,7 +264,7 @@ class GpgSpec(trtc.SingletonConfigurable, baseapp.Spec):
 ###################
 
 class MainCmd(Cmd):
-    """The parent command."""
+    """The root "dice" command of all sub-commands."""
 
     name = trt.Unicode(__title__)
     description = trt.Unicode("""
@@ -305,9 +305,9 @@ class MainCmd(Cmd):
 
 class ConfigCmd(Cmd):
     """
-    Commands related to the management of configuration-options stored in the filesystem.
+    Manage configuration-options loaded from filesystem.
 
-    Read also the help message for `--config-files` option.
+    Read also the help message for `--config-files` generic option.
     """
 
     class InitCmd(Cmd):
@@ -504,8 +504,8 @@ if __name__ == '__main__':
     #argv = 'project list  --reset-git-settings'.split()
     #argv = 'project init one'.split()
 
-    #argv = 'config --help'.split()
-    argv = 'config list'.split()
+    argv = 'config --help'.split()
+    #argv = 'config list'.split()
 
     #argv = 'tstamp send'.split()
     # Invoked from IDEs, so enable debug-logging.
