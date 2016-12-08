@@ -261,7 +261,7 @@ class TApp(unittest.TestCase):
     def test_gen_conf(self):
         c = get_config()
         c.MainCmd.raise_config_file_errors = True
-        cmd = baseapp.chain_cmds([dice.GenConfigCmd], config=c)
+        cmd = baseapp.chain_cmds([dice.ConfigCmd.InitCmd], config=c)
         with tempfile.TemporaryDirectory() as td:
             conf_fpath = osp.join(td, 'cc.py')
             cmd.run(conf_fpath)

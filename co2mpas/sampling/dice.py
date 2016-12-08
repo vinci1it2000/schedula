@@ -291,7 +291,7 @@ class MainCmd(Cmd):
             project.ProjectCmd,
             report.ReportCmd,
             tstamp.TstampCmd,
-            GenConfigCmd)
+            ConfigCmd)
         with self.hold_trait_notifications():
             dkwds = {
                 'name': __title__,
@@ -303,55 +303,68 @@ class MainCmd(Cmd):
             super().__init__(**dkwds)
 
 
-## INFO: Add all conf-classes here
-class GenConfigCmd(Cmd):
+class ConfigCmd(Cmd):
     """
-    Store config defaults into specified path(s); '{confpath}' assumed if none specified.
+    Commands related to the management of configuration-options stored in the filesystem.
 
-    - If a path resolves to a folder, the filename '{appname}_config.py' is appended.
-    - It OVERWRITES any pre-existing configuration file(s)!
-
-    SYNTAX
-        co2dice gen-config [<config-path-1>] ...
+    Read also the help message for `--config-files` option.
     """
 
-    ## Class-docstring CANNOT contain string-interpolations!
-    description = trt.Unicode(__doc__.format(confpath=pndlu.convpath('~/.%s_config.py' % APPNAME),
-                              appname=APPNAME))
+    class InitCmd(Cmd):
+        """
+        Store config defaults into specified path(s); '{confpath}' assumed if none specified.
 
-    examples = trt.Unicode("""
-        Generate a config-file at your home folder:
+        - If a path resolves to a folder, the filename '{appname}_config.py' is appended.
+        - It OVERWRITES any pre-existing configuration file(s)!
 
-            co2dice gen-config ~/my_conf
+        SYNTAX
+            co2dice config init [<config-path-1>] ...
+        """
 
-        Re-use this custom config-file:
+        ## Class-docstring CANNOT contain string-interpolations!
+        description = trt.Unicode(__doc__.format(confpath=pndlu.convpath('~/.%s_config.py' % APPNAME),
+                                  appname=APPNAME))
 
-            co2dice --config-files=~/my_conf  ...
-        """)
+        examples = trt.Unicode("""
+            Generate a config-file at your home folder:
 
-    force = trt.Bool(
-        False,
-        ## INFO: Add force flag explanations here.
-        help="""Force overwriting config-file, even if it already exists."""
-    ).tag(config=True)
+                co2dice config init ~/my_conf
+
+            Re-use this custom config-file:
+
+                co2dice --config-files=~/my_conf  ...
+            """)
+
+        force = trt.Bool(
+            False,
+            help="""Force overwriting config-file, even if it already exists."""
+        ).tag(config=True)
+
+        def __init__(self, **kwds):
+            dkwds = {
+                'cmd_flags': {
+                    ('f', 'force'): (
+                        {'InitCmd': {'force': True}, },
+                        pndlu.first_line(ConfigCmd.InitCmd.force.help)
+                    )
+                },
+            }
+            dkwds.update(kwds)
+            super().__init__(**dkwds)
+
+        def run(self, *args):
+            self.classes = all_configurables()
+            args = args or [None]
+            for fpath in args:
+                self.write_default_config(fpath, self.force)
 
     def __init__(self, **kwds):
-        dkwds = {
-            'cmd_flags': {
-                ('f', 'force'): (
-                    {'GenConfigCmd': {'force': True}, },
-                    pndlu.first_line(GenConfigCmd.force.help)
-                )
-            },
-        }
-        dkwds.update(kwds)
-        super().__init__(**dkwds)
-
-    def run(self, *args):
-        self.classes = all_configurables()
-        args = args or [None]
-        for fpath in args:
-            self.write_default_config(fpath, self.force)
+            dkwds = {
+                'subcommands': baseapp.build_sub_cmds(
+                    ConfigCmd.InitCmd),
+            }
+            dkwds.update(kwds)
+            super().__init__(**dkwds)
 
 
 ####################################
@@ -365,7 +378,7 @@ def all_cmds():
             project.ProjectCmd,
             report.ReportCmd,
             tstamp.TstampCmd,
-            GenConfigCmd,
+            ConfigCmd, ConfigCmd.InitCmd,
         ) +
         project.all_subcmds +
         tstamp.all_subcmds)
