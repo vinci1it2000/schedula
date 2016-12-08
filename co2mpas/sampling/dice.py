@@ -20,7 +20,6 @@ from co2mpas.sampling import baseapp, CmdException
 from co2mpas.sampling.baseapp import (APPNAME, Cmd, build_sub_cmds,
                                       chain_cmds)  # @UnusedImport
 from collections import defaultdict, MutableMapping, OrderedDict, namedtuple
-from email.mime.text import MIMEText
 import io
 import logging
 import os
@@ -32,7 +31,6 @@ import types
 from typing import Sequence, Text, List
 
 from boltons.setutils import IndexedSet as iset
-import gnupg  # from python-gnupg
 from toolz import dicttoolz as dtz, itertoolz as itz
 
 import functools as fnt
@@ -46,7 +44,7 @@ import traitlets.config as trtc
 
 # TODO: move to pandalone
 __title__   = APPNAME
-__summary__ = __doc__.split('\n')[0]
+__summary__ = pndlu.first_line(__doc__)
 
 
 log = logging.getLogger(__name__)
@@ -92,6 +90,16 @@ def app_config_dir():
         return env['CO2DICE_CONFIG_DIR']
 
     return osp.abspath(osp.join(home_dir, '.co2dice'))
+
+#gpg_path = trt.Unicode(
+#    'gpg',
+#    allow_none=True,
+#    help="""
+#    The path to GnuPG executable;
+#    if None, the first `gpg` command in PATH variable is used (currently: '{gpgexec}'),
+#    unless the GPG_EXECUTABLE environ-variable is set.
+#    """.format(gpgexec=pndlu.convpath(shutil.which('gpg')))
+#).tag(config=True)
 
 
 def _describe_gpg(gpg):
@@ -187,55 +195,55 @@ def _parse_list_response(line):
     return (flags, delimiter, mailbox_name)
 
 
-class DiceGPG(gnupg.GPG):
-    def __init__(self, *args, **kws):
-        super().__init__(*args, **kws)
-
-    def verify_detached_armor(self, sig: str, data: str):
-    #def verify_file(self, file, data_filename=None):
-        """Verify `sig` on the `data`."""
-        logger = gnupg.logger
-        #with tempfile.NamedTemporaryFile(mode='wt+',
-        #                encoding='latin-1') as sig_fp:
-        #sig_fp.write(sig)
-        #sig_fp.flush(); sig_fp.seek(0) ## paranoid seek(), Windows at least)
-        #sig_fn = sig_fp.name
-        sig_fn = osp.join(tempfile.gettempdir(), 'sig.sig')
-        logger.debug('Wrote sig to temp file: %r', sig_fn)
-
-        args = ['--verify', gnupg.no_quote(sig_fn), '-']
-        result = self.result_map['verify'](self)
-        data_stream = io.BytesIO(data.encode(self.encoding))
-        self._handle_io(args, data_stream, result, binary=True)
-        return result
-
-
-    def verify_detached(self, sig: bytes, msg: bytes):
-        with tempfile.NamedTemporaryFile('wb+', prefix='co2dice_') as sig_fp:
-            with tempfile.NamedTemporaryFile('wb+', prefix='co2dice_') as msg_fp:
-                sig_fp.write(sig)
-                sig_fp.flush()
-                sig_fp.seek(0) ## paranoid seek(), Windows at least)
-
-                msg_fp.write(msg)
-                msg_fp.flush();
-                msg_fp.seek(0)
-
-                sig_fn = gnupg.no_quote(sig_fp.name)
-                msg_fn = gnupg.no_quote(msg_fp.name)
-                args = ['--verify', sig_fn, msg_fn]
-                result = self.result_map['verify'](self)
-                p = self._open_subprocess(args)
-                self._collect_output(p, result, stdin=p.stdin)
-                return result
-
-def __GPG__init__(self, my_gpg_key):
-    gpg_prog = 'gpg2.exe'
-    gpg2_path = pndlu.which(prog)
-    self.assertIsNotNone(gpg2_path)
-    gpg=gnupg.GPG(r'C:\Program Files (x86)\GNU\GnuPG\gpg2.exe')
-    self.my_gpg_key
-    self._cfg = read_config('co2mpas')
+#class DiceGPG(gnupg.GPG):
+#    def __init__(self, *args, **kws):
+#        super().__init__(*args, **kws)
+#
+#    def verify_detached_armor(self, sig: str, data: str):
+#    #def verify_file(self, file, data_filename=None):
+#        """Verify `sig` on the `data`."""
+#        logger = gnupg.logger
+#        #with tempfile.NamedTemporaryFile(mode='wt+',
+#        #                encoding='latin-1') as sig_fp:
+#        #sig_fp.write(sig)
+#        #sig_fp.flush(); sig_fp.seek(0) ## paranoid seek(), Windows at least)
+#        #sig_fn = sig_fp.name
+#        sig_fn = osp.join(tempfile.gettempdir(), 'sig.sig')
+#        logger.debug('Wrote sig to temp file: %r', sig_fn)
+#
+#        args = ['--verify', gnupg.no_quote(sig_fn), '-']
+#        result = self.result_map['verify'](self)
+#        data_stream = io.BytesIO(data.encode(self.encoding))
+#        self._handle_io(args, data_stream, result, binary=True)
+#        return result
+#
+#
+#    def verify_detached(self, sig: bytes, msg: bytes):
+#        with tempfile.NamedTemporaryFile('wb+', prefix='co2dice_') as sig_fp:
+#            with tempfile.NamedTemporaryFile('wb+', prefix='co2dice_') as msg_fp:
+#                sig_fp.write(sig)
+#                sig_fp.flush()
+#                sig_fp.seek(0) ## paranoid seek(), Windows at least)
+#
+#                msg_fp.write(msg)
+#                msg_fp.flush();
+#                msg_fp.seek(0)
+#
+#                sig_fn = gnupg.no_quote(sig_fp.name)
+#                msg_fn = gnupg.no_quote(msg_fp.name)
+#                args = ['--verify', sig_fn, msg_fn]
+#                result = self.result_map['verify'](self)
+#                p = self._open_subprocess(args)
+#                self._collect_output(p, result, stdin=p.stdin)
+#                return result
+#
+#def __GPG__init__(self, my_gpg_key):
+#    gpg_prog = 'gpg2.exe'
+#    gpg2_path = pndlu.which(prog)
+#    self.assertIsNotNone(gpg2_path)
+#    gpg=gnupg.GPG(r'C:\Program Files (x86)\GNU\GnuPG\gpg2.exe')
+#    self.my_gpg_key
+#    self._cfg = read_config('co2mpas')
 
 
 ###################
@@ -248,7 +256,9 @@ class GpgSpec(trtc.SingletonConfigurable, baseapp.Spec):
     exec_path = trt.Unicode(
         None, allow_none=True,
         help="""
-        The path to GnuPG executable; if None, the first one in PATH variable is used: '{gpgexec}'.
+        The path to GnuPG executable;
+        if None, the first `gpg` command in PATH variable is used (currently: '{gpgexec}'),
+        unless the GPG_EXECUTABLE environ-variable is set.
         """.format(gpgexec=pndlu.convpath(pndlu.which('gpg')))).tag(config=True)
 
     home = trt.Unicode(
@@ -264,19 +274,21 @@ class GpgSpec(trtc.SingletonConfigurable, baseapp.Spec):
 ###################
 
 class MainCmd(Cmd):
-    """The root "dice" command of all sub-commands."""
-
-    name = trt.Unicode(__title__)
-    description = trt.Unicode("""
+    """
     co2dice: prepare/sign/send/receive/validate & archive Type Approval sampling emails for *co2mpas*.
+
+    This is root command for co2mpas "dice"; use subcommands or preferably GUI to accomplish sampling.
 
     TIP:
       If you bump into blocking errors, please use the `co2dice project backup` command and
       send the generated archive-file back to "CO2MPAS-Team <co2mpas@jrc.ec.europa.eu>",
       for examination.
+
     NOTE:
       Do not run multiple instances!
-    """)
+    """
+
+    name = trt.Unicode(__title__)
     version = __version__
     #examples = """TODO: Write cmd-line examples."""
 
@@ -295,7 +307,6 @@ class MainCmd(Cmd):
         with self.hold_trait_notifications():
             dkwds = {
                 'name': __title__,
-                'description': __summary__,
                 ##'default_subcmd': 'project', ## Confusing for the user.
                 'subcommands': sub_cmds,
             }
