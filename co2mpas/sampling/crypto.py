@@ -8,33 +8,65 @@
 """
 Master-encrypt 3rdp passwords stored in text-files and try limiting decryption on the host that generated them.
 
-The general idea is this::
+The general idea is to use a ``master-password`` to securely store many passwords
+( ``pswd-``, ``pswd-2``, etc), and always to require access to both places for
+decrypting ``key`` & ``pswd``.
 
-    _\|/^  :master-pswd              :salt1
-     (_oo ------------->(PBKDF2*)<------------+
-      |                     |                  \    .--------------.
-     /|\                    |:master-prekey     +---| host keyring |
-      |                     V                  /    '--------------'
-      LL                (PBKDF2*)<------------+
-                            |        :salt2
-                            |:master-key
-                            V      :ciphered-pswd   .--------------.
-                        (AES-EAX)<------------------|  Filesystem  |
-                            |                       '--------------'
-                            |:plain-pswd
+Key Generation::
+
+    _\|/^
+     (_oo    $master-pswd      .........     $salt    ---------------
+      |   ------------------->( PBKDF2* )<-----------/ host keyring /
+     /|\                       ''''|''''             ------^--------
+      |                            |$ram-key              /
+      LL   .-----. $priv-key   ....V....  $AES(priv-key) /
+           | App |----------->( AES-EAX )---------------+
+           '--+--'             '''''''''                 \
+               \                                          \
+                \               $pub-key             ------V--------
+                 '--------------------------------->/  filesystem  /
+                                                    ---------------
+
+Encrypt 3rdp password::
+
+    .-----.
+    | App |                   ---------------
+    '--+--'                  / host keyring /
+       |$pswd-i              ---------------
+     ..V..       $pub-key
+    ( RSA )<----------------------.
+     ''\''                         \
+        \     $RSA(pswd-i)    ------+--------
+         '------------------>/  filesystem  /
+                             ---------------
+
+Decrypt 3rdp password::
+
+    _\|/^
+     (_oo  $master-pswd .........       $salt
+      |   ------------>( PBKDF2* )<----------------.
+     /|\                ''''|''''                   \    ---------------
+      |                     |$ram-key                +--/ host keyring /
+      LL                ....V....   $AES(priv-key)  /   ---------------
+                       ( AES-EAX )<----------------+
+                        ''''|''''                   \    ---------------
+                            |$priv-key               +--/  filesystem  /
+                          ..V..     $RSA(pswd-i)    /   ---------------
+                         ( RSA )<------------------'
+                          ''|''
+                            |$pswd-i
                             V
 
 - Sensitive tokens are the following:
-  ``master-pswd``, ``master-prekey``, ``master-key``, ``plain-pswd``
+  ``master-pswd``, ``ram-key``, ``priv-key``, ``pswd``
 
-- ``master-pswd`` is given once by user, and the generated ``master-prekey``
-  stays in RAM(!), to avoid "easy" grabing of ``master-key`` when debugging/grepping RAM
-  (need also ``salt2`` from host).
+- ``master-pswd`` is given once by user, and the generated ``ram-key`` stays in RAM,
+  to avoid "easy" grabing of ``priv-key`` when debugging/grepping memory.
 
-- the ``master-key`` and the ``plain-pswd`` are generated when needed, and immediately discarded.
+- the ``priv-key`` and the ``pswd`` are generated when needed, and immediately discarded.
 
 - The point is always to need at least 2 sources (filesystem/host-keyring) for
-  decryption ``key`` & ``plain-pswd``.
+  decryption ``key`` & ``pswd``.
 
 - ``PBKDF2*`` means that the NIC's hwMAC address gets hashed into the bytes
   fed into *PBKDF2*, so as to require modification to the code if done on other machine.
