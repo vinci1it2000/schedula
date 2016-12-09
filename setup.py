@@ -220,6 +220,10 @@ setup(
             'datasync = %(p)s.datasync:main' % {'p': proj_name},
             'co2dice = %(p)s.sampling.dice:main [dice]' % {'p': proj_name},
             '%(p)s-autocompletions = %(p)s.__main__:print_autocompletions' % {'p': proj_name},
+
+            ## No `gui_script` because it flickers a console-window!
+            #  better invoke it with a Windows shortcut "minimized.
+            'co2gui = co2mpas.tkui:main'
         ],
     },
     options={
