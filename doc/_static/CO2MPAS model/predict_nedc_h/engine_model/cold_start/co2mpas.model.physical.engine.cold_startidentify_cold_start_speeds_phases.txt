@@ -1,8 +1,0 @@
-def identify_cold_start_speeds_phases(
-        engine_coolant_temperatures, engine_thermostat_temperature, on_idle):
-
-    temp = engine_coolant_temperatures
-    i = co2_utl.argmax(temp > engine_thermostat_temperature)
-    p = on_idle.copy()
-    p[i:] = False
-    return p

@@ -1,3 +1,0 @@
-def define_wltp_base_model(base_model):
-
-    return dsp_utl.combine_dicts(wltp_mdl._get_model_base(), base_model)
