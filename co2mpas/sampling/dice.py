@@ -1,4 +1,4 @@
-#!/usr/b in/env python
+#!/usr/bin/env pythonw
 #
 # Copyright 2014-2016 European Commission (JRC);
 # Licensed under the EUPL (the 'Licence');

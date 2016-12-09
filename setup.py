@@ -6,8 +6,8 @@
 ##		pip install -r requirements.txt
 ## and then just code from inside this folder.
 #
-import os
 import io
+import os
 import re
 import sys
 

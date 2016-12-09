@@ -1,4 +1,4 @@
-#!/usr/b in/env python
+#!/usr/bin/env python
 #
 # Copyright 2014-2016 European Commission (JRC);
 # Licensed under the EUPL (the 'Licence');
@@ -12,9 +12,9 @@ from collections import (
 from typing import (
     List, Sequence, Iterable, Text, Tuple, Dict, Callable)  # @UnusedImport
 
+import pandalone.utils as pndlu
 import pandas as pd
 import traitlets as trt
-import pandalone.utils as pndlu
 
 from . import baseapp, project, CmdException, PFiles
 from .. import (__version__, __updated__, __uri__, __copyright__, __license__)  # @UnusedImport
@@ -23,7 +23,6 @@ from .. import (__version__, __updated__, __uri__, __copyright__, __license__)  
 ###################
 ##     Specs     ##
 ###################
-
 class Report(baseapp.Spec):
     """Mines reported-parameters from co2mpas excel-files and serves them as a pandas dataframes."""
 

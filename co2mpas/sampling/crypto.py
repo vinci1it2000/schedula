@@ -1,4 +1,4 @@
-#!/usr/b in/env python
+#!/usr/bin/env python
 #
 # Copyright 2014-2016 European Commission (JRC);
 # Licensed under the EUPL (the 'Licence');
@@ -61,12 +61,12 @@ log = logging.getLogger(__name__)
 def hash_bytes_with_hw_mac(rbytes: bytes):
     """
     Example::
-    
+
         >>> hash_bytes_with_hw_mac(b'1') != b'1'     # Input indeed hashed..
         True
         >>> hash_bytes_with_hw_mac(b'')              # unless empty
         b''
-        
+
         >>> hash_bytes_with_hw_mac(b'1') == hash_bytes_with_hw_mac(b'1')  # repetability
         True
         >>> len(hash_bytes_with_hw_mac(b'123'))      # length maintained
