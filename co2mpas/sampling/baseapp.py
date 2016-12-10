@@ -428,7 +428,7 @@ class Cmd(trtc.Application):
                 )
             },
         }
-        if cls.__doc__ and not isinstance(self.description, str):
+        if cls.__doc__ and not isinstance(cls.description, str):
             dkwds['description'] = cls.__doc__
         dkwds.update(kwds)
         super().__init__(**dkwds)
