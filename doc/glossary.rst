@@ -10,7 +10,7 @@ Glossary
 Input file terminology  
 =========================
 Vehicle general characteristics
-------------------------------------
+-------------------------------
 .. glossary::
     ``input_version``
         It corresponds to the version of the template file used for |co2mpas| - 
@@ -142,8 +142,9 @@ Vehicle general characteristics
         Insert in the ``T1_map`` tab of the input file the engine full load powers. Input the engine power [kW] array used by
         the OEM to calculate the gearshifting in WLTP. The engine maximum power is read from this array.
 
+
 Road loads
-------------------
+----------
 .. glossary::
     ``vehicle_mass.WLTP-H``
         Dyno applied mass [kg].
@@ -200,7 +201,7 @@ Road loads
 
 
 Targets
----------------------------
+-------
 .. glossary::
     ``co2_emissions_low.WLTP-H``
         Phase low, |CO2| emissions bag values [gCO2/km], not corrected for RCB, not rounded WLTP-H test measurements. 
@@ -236,7 +237,7 @@ Targets
         Type approving body certificate number. This number is printed in the output file of |co2mpas|
 
 Drive mode
----------------------------
+----------
 The |co2mpas| model can handle vehicles that have 2x4 and 4x4 wheel drive. 
 Provide in this section the driving mode used in the WLTP and NEDC tests. 
 The default value for all tests is 2x4 wheel drive.
@@ -255,8 +256,8 @@ The default value for all tests is 2x4 wheel drive.
         Specify whether NEDC-L test is conducted on 2-wheel driving or 4-wheel driving. The default is 2-wheel drive.
 
 
-Vehicle technologies   
----------------------------
+Vehicle technologies
+--------------------
 The |co2mpas| model calculates the NEDC |CO2| emission prediction considering the presence/absence 
 of a set of technologies in the vehicle. 
 For the following |co2mpas| inputs, 0 corresponds to the absence of the technology 
@@ -387,9 +388,8 @@ If no input is provided, the |co2mpas| model will use the default value.
         For **Rally** release, this specific input is considered to be optional.
 
 
-
 Dyno configuration
----------------------------
+------------------
 .. glossary::
     ``n_dyno_axes.WLTP-H``
         The WLTP regulation states that WLTP tests should be performed using a dyno with 2 rotating axis. 
@@ -402,10 +402,8 @@ Dyno configuration
         Set it to 1 in case a 1 rotating axis dyno was used during the WLTP-L test.
 
 
-
-
 Reports & exchanged files
-================================
+=========================
 .. glossary::
     dice report 
     dice report sheet 
@@ -452,7 +450,7 @@ Reports & exchanged files
 
 
 Generic terms
-======================
+=============
 .. glossary::
     NEDC
         New European Driving Cycle
@@ -526,3 +524,5 @@ Generic terms
 .. |co2mpas| replace:: CO\ :sub:`2`\ MPAS
 .. |CO2| replace:: CO\ :sub:`2`
 .. |NOx| replace:: NO\ :sub:`x`\
+
+.. default-role:: obj
