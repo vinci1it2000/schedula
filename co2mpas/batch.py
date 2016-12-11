@@ -135,7 +135,7 @@ def _yield_folder_files_results(
         'type_approval_mode': type_approval_mode
     }
 
-    _process_vehicle = dsp_utl.SubDispatch(model)
+    _process_vehicle = dsp_utl.SubDispatch(model, caller=__name__)
 
     for fpath in _custom_tqdm(input_files, bar_format='{l_bar}{bar}{r_bar}'):
         yield _process_vehicle({'input_file_name': fpath}, kw)
@@ -499,7 +499,8 @@ def vehicle_processing_model():
     d = dsp.Dispatcher(
         name='CO2MPAS vehicle_processing_model',
         description='Processes a vehicle from the file path to the write of its'
-                    ' outputs.'
+                    ' outputs.',
+        caller=__name__
     )
 
     from .io import load_inputs
@@ -588,7 +589,8 @@ def run_base():
     d = dsp.Dispatcher(
         name='run_base',
         description='Processes a vehicle from the file path to the write of its'
-                    ' outputs.'
+                    ' outputs.',
+        caller=__name__
     )
 
     d.add_data(
@@ -650,7 +652,7 @@ def run_base():
 
     from .model import model
     d.add_function(
-        function=dsp_utl.SubDispatch(model()),
+        function=dsp_utl.SubDispatch(model(), caller=__name__),
         inputs=['validated_base'],
         outputs=['dsp_solution'],
     )
@@ -697,7 +699,7 @@ def run_base():
         input_domain=check_first_arg
     )
 
-    return dsp_utl.SubDispatch(d)
+    return dsp_utl.SubDispatch(d, caller=__name__)
 
 
 def run_plan():
@@ -715,7 +717,8 @@ def run_plan():
 
     d = dsp.Dispatcher(
         name='run_plan',
-        description='Processes a vehicle plan.'
+        description='Processes a vehicle plan.',
+        caller=__name__
     )
 
     d.add_data(
@@ -759,4 +762,4 @@ def run_plan():
         outputs=['summary']
     )
 
-    return dsp_utl.SubDispatch(d)
+    return dsp_utl.SubDispatch(d, caller=__name__)

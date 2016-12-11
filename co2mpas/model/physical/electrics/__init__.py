@@ -1194,7 +1194,8 @@ def electrics():
 
     d = dsp.Dispatcher(
         name='Electrics',
-        description='Models the vehicle electrics.'
+        description='Models the vehicle electrics.',
+        caller=__name__
     )
 
     from ..defaults import dfl

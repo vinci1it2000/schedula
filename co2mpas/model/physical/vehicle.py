@@ -379,7 +379,8 @@ def vehicle():
 
     d = dsp.Dispatcher(
         name='Vehicle free body diagram',
-        description='Calculates forces and power acting on the vehicle.'
+        description='Calculates forces and power acting on the vehicle.',
+        caller=__name__
     )
 
     d.add_function(

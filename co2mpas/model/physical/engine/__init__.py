@@ -976,7 +976,8 @@ def engine():
 
     d = dsp.Dispatcher(
         name='Engine',
-        description='Models the vehicle engine.'
+        description='Models the vehicle engine.',
+        caller=__name__
     )
 
     d.add_function(

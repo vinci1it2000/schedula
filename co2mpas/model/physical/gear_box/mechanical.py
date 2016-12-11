@@ -579,7 +579,8 @@ def mechanical():
 
     d = dsp.Dispatcher(
         name='mechanical model',
-        description='Models the gear box mechanical.'
+        description='Models the gear box mechanical.',
+        caller=__name__
     )
 
     d.add_data(

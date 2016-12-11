@@ -551,7 +551,8 @@ def load_inputs():
 
     d = dsp.Dispatcher(
         name='load_inputs',
-        description='Loads from files the inputs for the CO2MPAS model.'
+        description='Loads from files the inputs for the CO2MPAS model.',
+        caller=__name__
     )
 
     d.add_function(
@@ -624,7 +625,8 @@ def write_outputs():
 
     d = dsp.Dispatcher(
         name='write_outputs',
-        description='Writes on files the outputs of the CO2MPAS model.'
+        description='Writes on files the outputs of the CO2MPAS model.',
+        caller=__name__
     )
 
     d.add_function(
@@ -641,4 +643,4 @@ def write_outputs():
     inp = ['output_file_name', 'template_file_name', 'output_data',
            'start_time', 'main_flags']
 
-    return dsp_utl.SubDispatchFunction(d, d.name, inp)
+    return dsp_utl.SubDispatchFunction(d, d.name, inp, caller=__name__)

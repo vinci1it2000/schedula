@@ -137,7 +137,8 @@ def cycle():
 
     d = dsp.Dispatcher(
         name='Cycle model',
-        description='Returns the theoretical times, velocities, and gears.'
+        description='Returns the theoretical times, velocities, and gears.',
+        caller=__name__
     )
 
     from ..defaults import dfl

@@ -146,7 +146,8 @@ def clutch_torque_converter():
 
     d = dsp.Dispatcher(
         name='Clutch and torque-converter',
-        description='Models the clutch and torque-converter.'
+        description='Models the clutch and torque-converter.',
+        caller=__name__
     )
 
     d.add_function(

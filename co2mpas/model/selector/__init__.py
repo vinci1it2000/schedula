@@ -242,7 +242,7 @@ def define_sub_model(d, inputs, outputs, models, **kwargs):
         outputs = set(outputs).difference(missing)
     if inputs is not None:
         inputs = set(inputs).union(models)
-    return dsp_utl.SubDispatch(d.shrink_dsp(inputs, outputs))
+    return dsp_utl.SubDispatch(d.shrink_dsp(inputs, outputs), caller=__name__)
 
 
 # noinspection PyUnusedLocal
@@ -369,7 +369,8 @@ def sub_models():
                    'gear_box_type', 'gears', 'accelerations', 'times',
                    'gear_shifts', 'engine_speeds_out_hot', 'velocities',
                    'lock_up_tc_limits', 'has_torque_converter'],
-        'define_sub_model': lambda d, **kwargs: dsp_utl.SubDispatch(d),
+        'define_sub_model':
+            lambda d, **kwargs: dsp_utl.SubDispatch(d, caller=__name__),
         'outputs': ['engine_speeds_out'],
         'targets': ['engine_speeds_out'],
         'metrics_inputs': ['on_engine'],
@@ -435,7 +436,8 @@ def sub_models():
                    'specific_gear_shifting', 'change_gear_window_width',
                    'max_velocity_full_load_correction', 'plateau_acceleration'],
         'inputs': at_pred_inputs,
-        'define_sub_model': lambda d, **kwargs: dsp_utl.SubDispatch(d),
+        'define_sub_model':
+            lambda d, **kwargs: dsp_utl.SubDispatch(d, caller=__name__),
         'outputs': ['gears', 'max_gear'],
         'targets': ['gears', 'max_gear'],
         'metrics': [sk_met.accuracy_score, None],
@@ -569,6 +571,7 @@ def selector(*data, pred_cyl_ids=('nedc_h', 'nedc_l', 'wltp_h', 'wltp_l')):
     d = dsp.Dispatcher(
         name='Models selector',
         description='Select the calibrated models.',
+        caller=__name__
     )
 
     d.add_function(
@@ -625,7 +628,8 @@ def selector(*data, pred_cyl_ids=('nedc_h', 'nedc_l', 'wltp_h', 'wltp_l')):
         dsp=d,
         function_id='models_selector',
         inputs=('selector_settings', 'default_models') + data,
-        outputs=['selections'] + pred_mdl_ids
+        outputs=['selections'] + pred_mdl_ids,
+        caller=__name__
     )
 
     return func
@@ -645,6 +649,7 @@ def _selector(name, data_in, data_out, setting):
     d = dsp.Dispatcher(
         name='%s selector' % name,
         description='Select the calibrated %s.' % name,
+        caller=__name__
     )
 
     errors, setting = [], setting or {}
@@ -699,7 +704,7 @@ def _selector(name, data_in, data_out, setting):
     )
 
     return dsp_utl.SubDispatch(d, outputs=['model', 'errors'],
-                               output_type='list')
+                               output_type='list', caller=__name__)
 
 
 def _errors(name, data_id, data_out, setting):
@@ -709,6 +714,7 @@ def _errors(name, data_id, data_out, setting):
     d = dsp.Dispatcher(
         name='%s-%s errors' % (name, data_id),
         description='Calculates the error of calibrated model.',
+        caller=__name__
     )
 
     setting = setting.copy()
@@ -755,9 +761,7 @@ def _errors(name, data_id, data_out, setting):
 
     i = ['error_settings', data_id] + [k for k in data_out if k != data_id]
     func = dsp_utl.SubDispatchFunction(
-        dsp=d,
-        function_id=d.name,
-        inputs=i
+        dsp=d, function_id=d.name, inputs=i, caller=__name__
     )
 
     return func
@@ -768,6 +772,7 @@ def _error(name, data_id, data_out, setting):
     d = dsp.Dispatcher(
         name='%s-%s error vs %s' % (name, data_id, data_out),
         description='Calculates the error of calibrated model of a reference.',
+        caller=__name__
     )
 
     default_settings = {
@@ -853,7 +858,8 @@ def _error(name, data_id, data_out, setting):
     func = dsp_utl.SubDispatch(
         dsp=d,
         outputs=['errors', 'status'],
-        output_type='list'
+        output_type='list',
+        caller=__name__
     )
 
     return func

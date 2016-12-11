@@ -226,7 +226,8 @@ def cold_start():
 
     d = dsp.Dispatcher(
         name='cold_start',
-        description='Models the engine cold start strategy.'
+        description='Models the engine cold start strategy.',
+        caller=__name__
     )
 
     d.add_function(

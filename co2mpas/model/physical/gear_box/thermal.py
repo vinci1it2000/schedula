@@ -246,7 +246,8 @@ def thermal():
     d = dsp.Dispatcher(
         name='Gear box thermal sub model',
         description='Calculates temperature, efficiency, '
-                    'torque loss of gear box'
+                    'torque loss of gear box',
+        caller=__name__
     )
 
     from ..defaults import dfl

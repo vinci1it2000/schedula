@@ -610,7 +610,8 @@ def gear_box():
 
     d = dsp.Dispatcher(
         name='Gear box model',
-        description='Models the gear box.'
+        description='Models the gear box.',
+        caller=__name__
     )
 
     d.add_function(

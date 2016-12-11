@@ -413,7 +413,8 @@ def thermal():
 
     d = dsp.Dispatcher(
         name='thermal',
-        description='Models the engine thermal behaviour.'
+        description='Models the engine thermal behaviour.',
+        caller=__name__
     )
 
     d.add_function(

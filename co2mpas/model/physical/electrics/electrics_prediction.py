@@ -280,7 +280,8 @@ def electrics_prediction():
 
     d = dsp.Dispatcher(
         name='Electric sub model',
-        description='Electric sub model to predict the alternator loads'
+        description='Electric sub model to predict the alternator loads',
+        caller=__name__
     )
 
     d.add_function(
