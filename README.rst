@@ -1630,3 +1630,14 @@ environment (ALLINONE is pre-configured with them):
   .. code-block:: console
 
       complete -fdev -W "`co2mpas-autocompletions`" co2mpas
+
+.. _substs:
+
+.. |co2mpas| replace:: CO\ :sub:`2`\ MPAS
+.. |CO2| replace:: CO\ :sub:`2`
+.. |clink| replace:: *Clink*
+.. _clink: http://mridgers.github.io/clink/
+.. |winpython| replace:: *WinPython*
+.. _winpython: https://winpython.github.io/
+.. |anaconda| replace:: *Anaconda*
+.. _anaconda: http://continuum.io/downloads

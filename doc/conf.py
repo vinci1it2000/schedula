@@ -57,19 +57,6 @@ extensions = [
     'dsp_directive',
 ]
 
-rst_epilog = """
-
-.. |co2mpas| replace:: CO\ :sub:`2`\ MPAS
-.. |CO2| replace:: CO\ :sub:`2`
-.. |NOx| replace:: NO\ :sub:`x`\
-.. |clink| replace:: *Clink*
-.. _clink: https://mridgers.github.io/clink/
-.. |winpython| replace:: *WinPython*
-.. _winpython: https://winpython.github.io/
-.. |anaconda| replace:: *Anaconda*
-.. _anaconda: https://continuum.io/downloads
-
-"""
 autosummary_generate = True
 
 autodoc_member_order = 'bysource'
