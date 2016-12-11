@@ -613,7 +613,7 @@ class SubDispatch(Base):
     """
     def __init__(self, dsp, outputs=None, cutoff=None, inputs_dist=None,
                  wildcard=False, no_call=False, shrink=False,
-                 rm_unused_nds=False, output_type='all'):
+                 rm_unused_nds=False, output_type='all', caller=None):
         """
         Initializes the Sub-dispatch.
 
@@ -659,6 +659,10 @@ class SubDispatch(Base):
                 + 'list': a list with all outputs listed in `outputs`.
                 + 'dict': a dictionary with any outputs listed in `outputs`.
         :type output_type: str, optional
+
+        :param caller:
+            Who calls my caller?
+        :type caller: str, optional
         """
 
         self.dsp = dsp
@@ -670,7 +674,7 @@ class SubDispatch(Base):
         self.output_type = output_type
         self.inputs_dist = inputs_dist
         self.rm_unused_nds = rm_unused_nds
-        self.__module__ = caller_name()
+        self.__module__ = caller or caller_name()
         self.name = self.__name__ = dsp.name
         self.__doc__ = dsp.__doc__
         from .sol import Solution
@@ -798,7 +802,7 @@ class SubDispatchFunction(SubDispatch):
     """
 
     def __init__(self, dsp, function_id, inputs, outputs=None, cutoff=None,
-                 inputs_dist=None, shrink=True):
+                 inputs_dist=None, shrink=True, caller=None):
         """
         Initializes the Sub-dispatch Function.
 
@@ -825,6 +829,10 @@ class SubDispatchFunction(SubDispatch):
         :param inputs_dist:
             Initial distances of input data nodes.
         :type inputs_dist: dict[str, int | float], optional
+
+        :param caller:
+            Who calls my caller?
+        :type caller: str, optional
         """
 
         if shrink:
@@ -856,11 +864,9 @@ class SubDispatchFunction(SubDispatch):
 
         # Initialize as sub dispatch.
         super(SubDispatchFunction, self).__init__(
-            dsp, outputs, cutoff, sol.inputs_dist, wildcard, no_call,
-            True, True, 'list'
+            dsp, outputs, cutoff, sol.inputs_dist, wildcard, no_call, 
+            True, True, 'list', caller or caller_name()
         )
-
-        self.__module__ = caller_name()  # Set as who calls my caller.
 
         # Define the function to return outputs sorted.
         if outputs is None:
@@ -960,7 +966,7 @@ class SubDispatchPipe(SubDispatchFunction):
     """
 
     def __init__(self, dsp, function_id, inputs, outputs=None, cutoff=None,
-                 inputs_dist=None, no_domain=True):
+                 inputs_dist=None, no_domain=True, caller=None):
         """
         Initializes the Sub-dispatch Function.
 
@@ -987,6 +993,10 @@ class SubDispatchPipe(SubDispatchFunction):
         :param inputs_dist:
             Initial distances of input data nodes.
         :type inputs_dist: dict[str, int | float], optional
+
+        :param caller:
+            Who calls my caller?
+        :type caller: str, optional
         """
 
         from co2mpas.dispatcher.utils.sol import Solution
@@ -1002,9 +1012,9 @@ class SubDispatchPipe(SubDispatchFunction):
 
         super(SubDispatchPipe, self).__init__(
             dsp, function_id, inputs, outputs=outputs, cutoff=cutoff,
-            inputs_dist=inputs_dist, shrink=False
+            inputs_dist=inputs_dist, shrink=False, 
+            caller=caller or caller_name()
         )
-        self.__module__ = caller_name()  # Set as who calls my caller.
         self._sol.no_call = True
         self._sol._init_workflow()
         self._sol.run()
@@ -1144,4 +1154,3 @@ class DFun(object):
             except Exception as ex:
                 raise ValueError("Failed adding dfun %s due to: %s: %s"
                                  % (uf, type(ex).__name__, ex)) from ex
-
