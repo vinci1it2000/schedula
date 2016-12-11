@@ -769,19 +769,20 @@ def cleanup(files):
             os.removedirs(osp.dirname(fpath))
         except OSError:  # The directory is not empty.
             pass
+    return 'Cleaned up generated files by the server.'
 
 
-def shutdown_server(generated_files):
+def shutdown_server():
     func = flask.request.environ.get('werkzeug.server.shutdown')
     if func is None:
         raise RuntimeError('Not running with the Werkzeug Server')
     func()
-    cleanup(generated_files)
     return 'Server shutting down...'
 
 
 def shutdown_site(url):
     import requests
+    requests.post('%s/cleanup' % url)
     try:
         requests.post('%s/shutdown' % url)
     except requests.exceptions.ConnectionError:
@@ -934,11 +935,13 @@ class SiteMap(collections.OrderedDict):
 
     def app(self, root_path=None, depth=-1, index=True, **kwargs):
         root_path = root_path or tempfile.mktemp()
-        rule = '/shutdown'
         app = flask.Flask(root_path, root_path=root_path, **kwargs)
         generated_files = []
-        func = functools.partial(shutdown_server, generated_files)
+        func = functools.partial(cleanup, generated_files)
+        rule = '/cleanup'
         app.add_url_rule(rule, rule[1:], func, methods=['POST'])
+        rule = '/shutdown'
+        app.add_url_rule(rule, rule[1:], shutdown_server, methods=['POST'])
         context = self.rules(depth=depth, index=index)
         for (node, extra), filepath in context.items():
             func = functools.partial(
