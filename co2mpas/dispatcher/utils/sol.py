@@ -12,13 +12,11 @@ It contains a comprehensive list of all modules and classes within dispatcher.
 Docstrings should provide sufficient understanding for any individual function.
 """
 from collections import OrderedDict
-from copy import _reconstruct
 from datetime import datetime
 from heapq import heappush, heappop
 import logging
-import threading
 from .alg import (add_edge_fun, remove_edge_fun, stlp, get_full_pipe,
-                  _sort_sk_wait_in, get_sub_node)
+                  _sort_sk_wait_in)
 from .cst import START, NONE, PLOT
 from .des import parent_func
 from .dsp import SubDispatch
@@ -260,11 +258,7 @@ class Solution(Base, OrderedDict):
         return sol
 
     def __deepcopy__(self, memo):
-        rv = super(Solution, self).__reduce_ex__(4)
-        i = id(self.stopper)
-        if i not in memo:
-            memo[i] = threading.Event()
-        y = _reconstruct(self, rv, 1, memo)
+        y = super(Solution, self).__deepcopy__(memo)
         y._update_methods()
         return y
 

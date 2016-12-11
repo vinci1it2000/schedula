@@ -1,7 +1,17 @@
 from .cst import NONE
+from copy import _reconstruct
+import threading
 
 
 class Base(object):
+    def __deepcopy__(self, memo):
+        if hasattr(self, 'stopper'):
+            i = id(self.stopper)
+            if i not in memo:
+                memo[i] = threading.Event()
+        rv = super(Base, self).__reduce_ex__(4)
+        return _reconstruct(self, rv, 1, memo)
+
     def plot(self, workflow=None, view=True, depth=-1, name=NONE, comment=NONE,
              format=NONE, engine=NONE, encoding=NONE, graph_attr=NONE,
              node_attr=NONE, edge_attr=NONE, body=NONE, node_styles=NONE,

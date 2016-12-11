@@ -22,7 +22,7 @@ Modules:
 """
 
 from collections import deque
-from copy import copy, deepcopy, _reconstruct
+from copy import copy, deepcopy
 import threading
 from .utils.alg import rm_cycles_iter, get_unused_node_id, add_func_edges, \
     get_sub_node, _children, stlp, _update_io_attr_sub_dsp, \
@@ -243,7 +243,7 @@ class Dispatcher(Base):
     def copy_structure(self, **kwargs):
         _map = {
             'description': '__doc__', 'name': 'name', 'stopper': 'stopper',
-            'raises': 'raises'
+            'raises': 'raises', 'caller': '__module__'
         }
         base = {k: getattr(self, v) for k, v in _map.items()}
         obj = self.__class__(**combine_dicts(kwargs, base=base))
@@ -427,8 +427,7 @@ class Dispatcher(Base):
     def add_function(self, function_id=None, function=None, inputs=None,
                      outputs=None, input_domain=None, weight=None,
                      inp_weight=None, out_weight=None, description=None,
-                     filters=None,
-                     **kwargs):
+                     filters=None, **kwargs):
         """
         Add a single function node to dispatcher.
 
@@ -1301,14 +1300,6 @@ class Dispatcher(Base):
         """
 
         return deepcopy(self)  # Return the copy of the Dispatcher.
-
-    def __deepcopy__(self, memo):
-        rv = super(Dispatcher, self).__reduce_ex__(4)
-        i = id(self.stopper)
-        if i not in memo:
-            memo[i] = threading.Event()
-
-        return _reconstruct(self, rv, 1, memo)
 
     def web(self, import_name=None, **options):
         """
