@@ -433,7 +433,7 @@ Reports & exchanged files
         - ``'OK'`` means that the declared NEDC value is accepted 
           (assuming |co2mpas| prediction does not deviate more than 4% of the declared NEDC value).
 
-.. image:: _static/dice_co2mpas_dev.PNG
+    .. image:: _static/dice_co2mpas_dev.PNG
 
     dice decision
         A new file stored in the TAA files as received from timestamps server:
