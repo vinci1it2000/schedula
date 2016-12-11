@@ -27,10 +27,8 @@ from typing import (
 import traitlets as trt
 import traitlets.config as trtc
 
-from . import baseapp, project, CmdException, PFiles
-from .. import (__version__, __updated__, __file_version__,   # @UnusedImport
-                __input_file_version__, __copyright__, __license__)  # @UnusedImport
-from .. import __uri__  # @UnusedImport
+from . import baseapp, project, CmdException
+from .. import (__version__, __updated__, __uri__, __copyright__, __license__)  # @UnusedImport
 
 
 class LoginCb(baseapp.Spec):

@@ -54,6 +54,7 @@ import traitlets.config as trtc
 
 from . import CmdException
 from ..__main__ import init_logging
+from .. import (__version__, __updated__, __uri__, __copyright__, __license__)  # @UnusedImport
 
 
 ## INFO: Modify the following variables on a different application.

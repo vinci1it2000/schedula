@@ -28,10 +28,7 @@ import traitlets as trt
 import traitlets.config as trtc
 
 from . import baseapp, dice, CmdException, PFiles
-from .. import (__version__, __updated__, __file_version__,   # @UnusedImport
-                __input_file_version__, __copyright__, __license__)  # @UnusedImport
-from .. import __uri__  # @UnusedImport
-from ..dispatcher import utils
+from .. import (__version__, __updated__, __uri__, __copyright__, __license__)  # @UnusedImport
 
 
 PROJECT_VERSION = '0.0.2'  # TODO: Move to `co2mpas/_version.py`.
@@ -703,6 +700,8 @@ class ProjectsDB(trtc.SingletonConfigurable, baseapp.Spec):
 
     def _infos_fields(self, pname: Text=None, fields: Sequence[Text]=None, inv_value=None) -> List[Tuple[Text, Any]]:
         """Runs repo examination code returning all requested fields (even failed ones)."""
+        from ..dispatcher import utils
+
         dsp = self._infos_dsp()
         inputs = {'_infos': 'ok', '_inp_prj': pname}
         infos = dsp.dispatch(inputs=inputs,
