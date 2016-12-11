@@ -33,8 +33,6 @@ import glob
 import shutil
 import weakref
 import flask
-import multiprocessing
-import dill
 import collections
 from docutils import nodes
 from .cst import START, SINK, END, EMPTY, SELF, NONE, PLOT
@@ -47,7 +45,7 @@ from .gen import counter
 
 __author__ = 'Vincenzo Arcidiacono'
 
-__all__ = ['DspPlot', 'SiteMap']
+__all__ = ['SiteMap']
 
 log = logging.getLogger(__name__)
 
