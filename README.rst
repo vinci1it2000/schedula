@@ -977,8 +977,8 @@ Debugging and investigating results
      :height: 240
      :width: 320
 
-    >>> import co2mpas
-    >>> d = co2mpas.model.physical.wheels.wheels()
+     >>> import co2mpas
+     >>> d = co2mpas.model.physical.wheels.wheels()
 
 - Inspect the functions mentioned in the workflow and models and search them
   in `CO2MPAS documentation <http://co2mpas.io/>`_ ensuring you are
@@ -999,12 +999,12 @@ as shown in the "active" flow-diagram of the execution, below:
 .. module:: co2mpas
 
 .. dispatcher:: dsp
-    :opt: depth=-1
-    :alt: Flow-diagram of the execution of various Stages and Cycles sub-models.
-    :width: 640
+   :opt: depth=-1
+   :alt: Flow-diagram of the execution of various Stages and Cycles sub-models.
+   :width: 640
 
-    >>> import co2mpas
-    >>> dsp = co2mpas.model.model()
+   >>> import co2mpas
+   >>> dsp = co2mpas.model.model()
 
 .. Tip:: The models in the diagram are nested; explore by clicking on them.
 
