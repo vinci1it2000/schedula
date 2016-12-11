@@ -167,7 +167,7 @@ class Dispatcher(Base):
         return isinstance(other, Dispatcher) and id(other) < id(self)
 
     def __init__(self, dmap=None, name='', default_values=None, raises=False,
-                 description='', caller=None, stopper=None):
+                 description='', stopper=None):
         """
         Initializes the dispatcher.
 
@@ -192,10 +192,6 @@ class Dispatcher(Base):
         :param description:
             The dispatcher's description.
         :type description: str, optional
-
-        :param caller:
-            Who calls my caller?
-        :type caller: str, optional
 
         :param stopper:
             A semaphore to abort the dispatching.
@@ -225,8 +221,6 @@ class Dispatcher(Base):
         #: If True the dispatcher interrupt the dispatch when an error occur.
         self.raises = raises
 
-        self.__module__ = caller or caller_name()  # Set as who calls my caller.
-
         #: Parent dispatcher.
         self._parent = None
 
@@ -243,7 +237,7 @@ class Dispatcher(Base):
     def copy_structure(self, **kwargs):
         _map = {
             'description': '__doc__', 'name': 'name', 'stopper': 'stopper',
-            'raises': 'raises', 'caller': '__module__'
+            'raises': 'raises'
         }
         base = {k: getattr(self, v) for k, v in _map.items()}
         obj = self.__class__(**combine_dicts(kwargs, base=base))
@@ -433,7 +427,7 @@ class Dispatcher(Base):
 
         :param function_id:
             Function node id.
-            If None will be assigned as <fun.__module__>:<fun.__name__>.
+            If None will be assigned as <fun.__name__>.
         :type function_id: str, optional
 
         :param function:
@@ -508,7 +502,7 @@ class Dispatcher(Base):
             ...
             >>> dsp.add_function(function=my_function, inputs=['a', 'b'],
             ...                  outputs=['c', 'd'])
-            '...dispatcher:my_function'
+            'my_function'
 
         Add a function node with domain::
 
@@ -521,7 +515,7 @@ class Dispatcher(Base):
             ...
             >>> dsp.add_function(function=my_log, inputs=['a', 'b'],
             ...                  outputs=['e'], input_domain=my_domain)
-            '...dispatcher:my_log'
+            'my_log'
         """
 
         if inputs is None:  # Set a dummy input.
@@ -565,8 +559,7 @@ class Dispatcher(Base):
         # Set function name.
         if function_id is None:
             try:  # Set function name.
-                # noinspection PyUnresolvedReferences
-                function_name = '%s:%s' % (func.__module__, func.__name__)
+                function_name = func.__name__
             except Exception as ex:
                 raise ValueError('Invalid function id due to:\n{}'.format(ex))
         else:
@@ -620,7 +613,7 @@ class Dispatcher(Base):
 
         :param dsp_id:
             Sub-dispatcher node id.
-            If None will be assigned as <dsp.__module__>:<dsp.name>.
+            If None will be assigned as <dsp.name>.
         :type dsp_id: str, optional
 
         :param input_domain:
@@ -702,7 +695,7 @@ class Dispatcher(Base):
             dsp.add_from_lists(**kw)
 
         if not dsp_id:  # Get the dsp id.
-            dsp_id = '%s:%s' % (dsp.__module__, dsp.name or 'unknown')
+            dsp_id = dsp.name or 'unknown'
 
         if description is None:  # Get description.
             description = dsp.__doc__ or None
@@ -802,19 +795,19 @@ class Dispatcher(Base):
 
         Define a functions list::
 
-            >>> def f(a, b):
+            >>> def func(a, b):
             ...     return a + b
             ...
             >>> fun_list = [
-            ...     {'function': f, 'inputs': ['a', 'b'], 'outputs': ['c']}
+            ...     {'function': func, 'inputs': ['a', 'b'], 'outputs': ['c']}
             ... ]
 
-        Define a functions list::
+        Define a sub-dispatchers list::
 
             >>> sub_dsp = Dispatcher(name='Sub-dispatcher')
-            >>> sub_dsp.add_function(function=f, inputs=['e', 'f'],
+            >>> sub_dsp.add_function(function=func, inputs=['e', 'f'],
             ...                      outputs=['g'])
-            '...:f'
+            'func'
             >>>
             >>> dsp_list = [
             ...     {'dsp_id': 'Sub', 'dsp': sub_dsp,
@@ -824,7 +817,7 @@ class Dispatcher(Base):
         Add function and data nodes to dispatcher::
 
             >>> dsp.add_from_lists(data_list, fun_list, dsp_list)
-            (['a', 'b', 'c'], ['...dispatcher:f'], ['Sub'])
+            (['a', 'b', 'c'], ['func'], ['Sub'])
         """
 
         if data_list:  # Add data nodes.

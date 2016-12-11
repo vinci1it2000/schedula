@@ -377,8 +377,7 @@ def start_stop():
 
     d = dsp.Dispatcher(
         name='start_stop',
-        description='Models the engine start/stop strategy.',
-        caller=__name__
+        description='Models the engine start/stop strategy.'
     )
 
     d.add_function(

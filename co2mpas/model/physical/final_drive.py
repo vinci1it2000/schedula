@@ -209,8 +209,7 @@ def final_drive():
 
     d = dsp.Dispatcher(
         name='Final drive',
-        description='Models the final drive.',
-        caller=__name__
+        description='Models the final drive.'
     )
 
     from .defaults import dfl

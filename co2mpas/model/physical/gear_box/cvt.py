@@ -141,8 +141,7 @@ def cvt_model():
 
     d = dsp.Dispatcher(
         name='CVT model',
-        description='Models the gear box.',
-        caller=__name__
+        description='Models the gear box.'
     )
 
     d.add_function(

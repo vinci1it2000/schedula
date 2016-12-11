@@ -318,7 +318,7 @@ def _children(inputs):
     return set(_iter_list_nodes(inputs.values()))
 
 
-def _get_node(nodes, node_id, _function_module=True):
+def _get_node(nodes, node_id, fuzzy=True):
     """
     Returns a dispatcher node that match the given node id.
 
@@ -339,28 +339,15 @@ def _get_node(nodes, node_id, _function_module=True):
     :rtype: (str, dict)
     """
 
-    from .drw import _func_name
-
     try:
         return node_id, nodes[node_id]  # Return dispatcher node and its id.
-    except KeyError:
-        if _function_module:
-
-            def f_name(n_id, attr):
-                if 'type' in attr and attr['type'] != 'data':
-                    return _func_name(n_id, False)
-                return n_id
-
-            nfm = {f_name(*v): v for v in nodes.items()}
-            try:
-                return _get_node(nfm, node_id, _function_module=False)[1]
-            except KeyError:
-                for n in (nfm, {k: (k, v) for k, v in nodes.items()}):
-                    it = sorted(n.items())
-                    n = next((v for k, v in it if node_id in k), EMPTY)
-                    if n is not EMPTY:
-                        return n
-    raise KeyError
+    except KeyError as ex:
+        if fuzzy:
+            it = sorted(nodes.items())
+            n = next(((k, v) for k, v in it if node_id in k), EMPTY)
+            if n is not EMPTY:
+                return n
+        raise ex
 
 
 def _update_remote_links(new_dsp, old_dsp):

@@ -324,8 +324,7 @@ def clutch():
 
     d = dsp.Dispatcher(
         name='Clutch',
-        description='Models the clutch.',
-        caller=__name__
+        description='Models the clutch.'
     )
 
     d.add_function(

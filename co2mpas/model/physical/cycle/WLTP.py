@@ -381,8 +381,7 @@ def wltp_cycle():
     d = dsp.Dispatcher(
         name='WLTP cycle model',
         description='Returns the theoretical times, velocities, and gears of '
-                    'WLTP.',
-        caller=__name__
+                    'WLTP.'
     )
 
     from ..defaults import dfl
@@ -465,8 +464,7 @@ def calculate_wltp_velocities():
 
     d = dsp.Dispatcher(
         name='WLTP velocities model',
-        description='Returns the theoretical velocities of WLTP.',
-        caller=__name__
+        description='Returns the theoretical velocities of WLTP.'
     )
 
     d.add_function(
@@ -527,8 +525,7 @@ def calculate_wltp_velocities():
         function_id='calculate_class_powers',
         inputs=['vehicle_mass', 'velocities', 'climbing_force', 'road_loads',
                 'inertial_factor', 'times'],
-        outputs=['motive_powers'],
-        caller=__name__
+        outputs=['motive_powers']
     )
 
     d.add_function(

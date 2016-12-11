@@ -568,8 +568,7 @@ def report():
     # Initialize a dispatcher.
     d = dsp.Dispatcher(
         name='make_report',
-        description='Produces a vehicle report from CO2MPAS outputs.',
-        caller=__name__
+        description='Produces a vehicle report from CO2MPAS outputs.'
     )
 
     d.add_function(
@@ -586,4 +585,4 @@ def report():
 
     inputs = ['output_data', 'vehicle_name']
     outputs = ['report', 'summary']
-    return dsp_utl.SubDispatchFunction(d, d.name, inputs, outputs, caller=__name__)
+    return dsp_utl.SubDispatchFunction(d, d.name, inputs, outputs)

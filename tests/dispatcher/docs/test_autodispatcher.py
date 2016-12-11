@@ -131,9 +131,9 @@ if not IS_PYPY:
                 del directive.result[:]
                 return results
 
-            results = genarate_docstring('dispatcher', dsp.__module__ + '.dsp')
+            results = genarate_docstring('dispatcher', __name__ + '.dsp')
             assert '.. py:data:: dsp' in results
-            assert '   :module: %s' % dsp.__module__ in results
+            assert '   :module: %s' % __name__ in results
             assert '   :annotation:  = Pippo' in results
 
         def test_generate(self):
@@ -146,18 +146,18 @@ if not IS_PYPY:
                 assert len(_warnings) == 0, _warnings
                 assert_equal_items(self, items)
 
-            directive.env.ref_context['py:module'] = dsp.__module__
+            directive.env.ref_context['py:module'] = __name__
             res = [
                 '',
                 '.. py:data:: dsp',
-                '   :module: %s' % dsp.__module__,
+                '   :module: %s' % __name__,
                 '   :annotation:  = Pippo',
                 '',
                 '   Docstring 1',
                 '   ',
                 '   good',
                 '   ',
-                '   .. graphviz:: _build\html\_images\dispatcher-bd7628869b692b44d77785e673658a45a90b6f70.gv',
+                '   .. graphviz:: _build/html/_images/dispatcher-bd7628869b692b44d77785e673658a45a90b6f70.gv',
                 '   ',
                 "   .. csv-table:: **Pippo's data**",
                 '   ',
@@ -174,8 +174,8 @@ if not IS_PYPY:
                 "   .. csv-table:: **Pippo's functions**",
                 '   ',
                 '      ":func:`fun1 <>`", "Fun1"',
-                '      ":func:`fun2 <%s.fun2>`", "Fun2"' % dsp.__module__,
-                '      ":func:`fun3 <%s.fun2>`", "Fun3"' % dsp.__module__,
+                '      ":func:`fun2 <%s.fun2>`", "Fun2"' % __name__,
+                '      ":func:`fun3 <%s.fun2>`", "Fun3"' % __name__,
                 '   ']
 
             assert_result(self, res, 'dispatcher', 'dsp')

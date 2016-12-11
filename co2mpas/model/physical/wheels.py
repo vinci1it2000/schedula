@@ -562,8 +562,7 @@ def wheels():
 
     d = dsp.Dispatcher(
         name='Wheel model',
-        description='It models the wheel dynamics.',
-        caller=__name__
+        description='It models the wheel dynamics.'
     )
 
     d.add_function(

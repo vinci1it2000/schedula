@@ -51,7 +51,7 @@ class Solution(Base, OrderedDict):
         self.outputs = set(outputs or ())
 
         from .. import Dispatcher
-        self._set_dsp_features(dsp or Dispatcher(caller=__name__))
+        self._set_dsp_features(dsp or Dispatcher())
 
         self.stopper = stopper or self.dsp.stopper
 

@@ -212,8 +212,7 @@ def nedc_cycle():
     d = dsp.Dispatcher(
         name='NEDC cycle model',
         description='Returns the theoretical times, velocities, and gears of '
-                    'NEDC.',
-        caller=__name__
+                    'NEDC.'
     )
 
     from ..defaults import dfl

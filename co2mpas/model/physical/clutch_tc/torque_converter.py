@@ -230,8 +230,7 @@ def torque_converter():
 
     d = dsp.Dispatcher(
         name='Torque_converter',
-        description='Models the torque converter.',
-        caller=__name__
+        description='Models the torque converter.'
     )
 
     from ..defaults import dfl

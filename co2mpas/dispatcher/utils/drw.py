@@ -82,10 +82,6 @@ def _encode_file_name(s):
     return filename
 
 
-def _func_name(name, function_module=False):
-    return name if function_module else name.split(':')[-1]
-
-
 def _upt_styles(styles, base=None):
     d, base = {}, copy.deepcopy(base or {})
     res = {}
@@ -208,8 +204,8 @@ class SiteNode(object):
             return self.node_id
 
     @property
-    def title(self, module_name=False):
-        return _func_name(self.name, module_name)
+    def title(self):
+        return self.name
 
     @property
     def _filename(self):
@@ -325,8 +321,8 @@ class FolderNode(object):
             setattr(self, k, v)
 
     @property
-    def title(self, module_name=False):
-        return _func_name(self.node_id, module_name)
+    def title(self):
+        return self.node_id
 
     @property
     def type(self):
@@ -597,8 +593,8 @@ class SiteFolder(object):
             self.digraph = combine_dicts(self.__class__.digraph, digraph)
 
     @property
-    def title(self, module_name=False):
-        return _func_name(self.name or '', module_name)
+    def title(self):
+        return self.name or ''
 
     @property
     def _filename(self):

@@ -2427,8 +2427,7 @@ def co2_emission():
 
     d = dsp.Dispatcher(
         name='Engine CO2 emission sub model',
-        description='Calculates CO2 emission.',
-        caller=__name__
+        description='Calculates CO2 emission.'
     )
 
     d.add_data(

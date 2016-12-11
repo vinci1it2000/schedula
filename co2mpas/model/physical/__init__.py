@@ -203,8 +203,7 @@ def physical():
     d = dsp.Dispatcher(
         name='CO2MPAS physical model',
         description='Wraps all functions needed to calibrate and predict '
-                    'light-vehicles\' CO2 emissions.',
-        caller=__name__
+                    'light-vehicles\' CO2 emissions.'
     )
 
     from .cycle import cycle

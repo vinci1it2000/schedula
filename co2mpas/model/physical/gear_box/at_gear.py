@@ -1531,8 +1531,7 @@ def at_gear():
     d = dsp.Dispatcher(
         name='Automatic gear model',
         description='Defines an omni-comprehensive gear shifting model for '
-                    'automatic vehicles.',
-        caller=__name__
+                    'automatic vehicles.'
     )
 
     d.add_data(
@@ -1827,7 +1826,6 @@ def at_cmv():
 
     d = dsp.Dispatcher(
         name='Corrected Matrix Velocity Approach',
-        caller=__name__
     )
 
     d.add_data(
@@ -1868,8 +1866,7 @@ def at_cmv_cold_hot():
     """
 
     d = dsp.Dispatcher(
-        name='Corrected Matrix Velocity Approach with Cold/Hot',
-        caller=__name__
+        name='Corrected Matrix Velocity Approach with Cold/Hot'
     )
 
     d.add_data(
@@ -1917,8 +1914,7 @@ def at_dt_va():
     """
 
     d = dsp.Dispatcher(
-        name='Decision Tree with Velocity & Acceleration',
-        caller=__name__
+        name='Decision Tree with Velocity & Acceleration'
     )
 
     d.add_data(
@@ -1956,8 +1952,7 @@ def at_dt_vap():
     """
 
     d = dsp.Dispatcher(
-        name='Decision Tree with Velocity, Acceleration, & Power',
-        caller=__name__
+        name='Decision Tree with Velocity, Acceleration, & Power'
     )
 
     d.add_data(
@@ -2001,8 +1996,7 @@ def at_dt_vat():
     """
 
     d = dsp.Dispatcher(
-        name='Decision Tree with Velocity, Acceleration & Temperature',
-        caller=__name__
+        name='Decision Tree with Velocity, Acceleration & Temperature'
     )
 
     d.add_data(
@@ -2048,8 +2042,7 @@ def at_dt_vatp():
     """
 
     d = dsp.Dispatcher(
-        name='Decision Tree with Velocity, Acceleration, Temperature, & Power',
-        caller=__name__
+        name='Decision Tree with Velocity, Acceleration, Temperature, & Power'
     )
 
     d.add_data(
@@ -2101,8 +2094,7 @@ def at_gspv():
     """
 
     d = dsp.Dispatcher(
-        name='Gear Shifting Power Velocity Approach',
-        caller=__name__
+        name='Gear Shifting Power Velocity Approach'
     )
 
     d.add_data(
@@ -2142,8 +2134,7 @@ def at_gspv_cold_hot():
     """
 
     d = dsp.Dispatcher(
-        name='Gear Shifting Power Velocity Approach with Cold/Hot',
-        caller=__name__
+        name='Gear Shifting Power Velocity Approach with Cold/Hot'
     )
 
     d.add_data(

@@ -122,14 +122,14 @@ class TestCreateDispatcher(unittest.TestCase):
         fun_id = dsp.add_function(function=my_function, inputs=['a', 'b'],
                                   outputs=['c', 'd'])
 
-        self.assertEqual(fun_id, '%s:my_function' % __name__)
+        self.assertEqual(fun_id, 'my_function')
         from functools import partial
         partial_fun = partial(my_function)
         fun_id = dsp.add_function(function=partial_fun,
                                   inputs=['a', 'b'],
                                   outputs=['c', 'd'])
 
-        self.assertEqual(fun_id, '%s:my_function<0>' % __name__)
+        self.assertEqual(fun_id, 'my_function<0>')
 
         from math import log
 
@@ -152,14 +152,14 @@ class TestCreateDispatcher(unittest.TestCase):
             'c': {'index': (3,), 'wait_inputs': False, 'type': 'data'},
             'd': {'index': (4,), 'wait_inputs': False, 'type': 'data'},
             'e': {'index': (7,), 'wait_inputs': False, 'type': 'data'},
-            '%s:my_function' % __name__: {
+            'my_function': {
                 'index': (0,),
                 'type': 'function',
                 'inputs': ['a', 'b'],
                 'function': my_function,
                 'outputs': ['c', 'd'],
                 'wait_inputs': True},
-            '%s:my_function<0>' % __name__: {
+            'my_function<0>': {
                 'index': (5,),
                 'type': 'function',
                 'inputs': ['a', 'b'],
@@ -210,7 +210,7 @@ class TestCreateDispatcher(unittest.TestCase):
                                     inputs={'d': 'a', 'e': 'b'},
                                     outputs={'c':'d', 'e':'e'})
 
-        self.assertEqual(dsp_id, sub_dsp.__module__ + ':sub_dispatcher')
+        self.assertEqual(dsp_id, 'sub_dispatcher')
         dsp.nodes[dsp_id].pop('function')
         res = {
             'index': (4,),
@@ -226,14 +226,14 @@ class TestCreateDispatcher(unittest.TestCase):
                                     inputs={'d': 'a', 'e': 'b'},
                                     outputs={'c':'d', 'e':'e'})
 
-        self.assertEqual(dsp_id, self.sub_dsp.__module__ + ':unknown')
+        self.assertEqual(dsp_id, 'unknown')
 
         sub_dsp.name=''
         dsp_id = dsp.add_dispatcher(sub_dsp,
                                     inputs={'d': 'a', 'e': 'b'},
                                     outputs={'c':'d', 'e':'e'})
 
-        self.assertEqual(dsp_id, self.sub_dsp.__module__ + ':unknown<0>')
+        self.assertEqual(dsp_id, 'unknown<0>')
 
         dsp_id = dsp.add_dispatcher(sub_dsp, dsp_id='sub_dsp',
                                     inputs={'d': 'a', 'e': 'b'},
@@ -290,7 +290,7 @@ class TestCreateDispatcher(unittest.TestCase):
             'C': {'index': (7,), 'wait_inputs': False, 'type': 'data'},
             'c': {'index': (2,), 'wait_inputs': True, 'function': fun,
                   'type': 'data', 'wildcard': True},
-            '%s:fun1' % __name__: {
+            'fun1': {
                 'index': (3,),
                 'inputs': ['a', 'b'],
                 'wait_inputs': True,

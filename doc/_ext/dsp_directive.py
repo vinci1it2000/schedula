@@ -3,7 +3,6 @@ import os.path as osp
 from sphinx.ext.autodoc import *
 from sphinx.ext.graphviz import *
 from co2mpas.dispatcher import Dispatcher
-from co2mpas.dispatcher.utils.drw import _func_name
 from doctest import DocTestParser, DocTestRunner, NORMALIZE_WHITESPACE, ELLIPSIS
 from hashlib import sha1
 
@@ -170,9 +169,7 @@ def _functions(lines, dsp, node_type='function'):
 
         for k, v in fun:
             des, full_name = dsp_utl.search_node_description(k, v, dsp)
-            name = _node_name(_func_name(k))
-
-            lines.append(u'   ":func:`%s <%s>`", "%s"' % (name, full_name, des))
+            lines.append(u'   ":func:`%s <%s>`", "%s"' % (k, full_name, des))
         lines.append('')
 
 
@@ -293,6 +290,9 @@ class DispatcherDocumenter(DataDocumenter):
     }
     code = None
     is_doctest = False
+
+    def get_real_modname(self):
+        return self.modname
 
     @classmethod
     def can_document_member(cls, member, membername, isattr, parent):

@@ -17,7 +17,7 @@ from itertools import repeat, chain
 import types
 from .base import Base
 from .exc import DispatcherError, DispatcherAbort
-from .gen import caller_name, Token
+from .gen import Token
 
 
 __author__ = 'Vincenzo Arcidiacono'
@@ -342,7 +342,6 @@ class add_args(object):
     def __init__(self, func, n=1, callback=None):
         try:
             self.__name__ = func.__name__
-            self.__module__ = func.__module__
             self.__doc__ = func.__doc__
             self.__signature__ = _get_signature(func, n)
             self.func = func
@@ -538,7 +537,6 @@ class parse_args(add_args):
     def __init__(self, func, magic_arg=1):
         try:
             self.__name__ = func.__name__
-            self.__module__ = func.__module__
             self.__doc__ = func.__doc__
             self.__signature__ = _get_signature(func, 0)
             self.func = func
@@ -613,7 +611,7 @@ class SubDispatch(Base):
     """
     def __init__(self, dsp, outputs=None, cutoff=None, inputs_dist=None,
                  wildcard=False, no_call=False, shrink=False,
-                 rm_unused_nds=False, output_type='all', caller=None):
+                 rm_unused_nds=False, output_type='all'):
         """
         Initializes the Sub-dispatch.
 
@@ -659,10 +657,6 @@ class SubDispatch(Base):
                 + 'list': a list with all outputs listed in `outputs`.
                 + 'dict': a dictionary with any outputs listed in `outputs`.
         :type output_type: str, optional
-
-        :param caller:
-            Who calls my caller?
-        :type caller: str, optional
         """
 
         self.dsp = dsp
@@ -674,7 +668,6 @@ class SubDispatch(Base):
         self.output_type = output_type
         self.inputs_dist = inputs_dist
         self.rm_unused_nds = rm_unused_nds
-        self.__module__ = caller or caller_name()
         self.name = self.__name__ = dsp.name
         self.__doc__ = dsp.__doc__
         from .sol import Solution
@@ -728,7 +721,6 @@ class ReplicateFunction(object):
 
     def __init__(self, function, *args, **kwargs):
         self.function = partial(function, *args, **kwargs)
-        self.__module__ = caller_name()
         self.__name__ = function.__name__
         self.__doc__ = function.__doc__
 
@@ -802,7 +794,7 @@ class SubDispatchFunction(SubDispatch):
     """
 
     def __init__(self, dsp, function_id, inputs, outputs=None, cutoff=None,
-                 inputs_dist=None, shrink=True, caller=None):
+                 inputs_dist=None, shrink=True):
         """
         Initializes the Sub-dispatch Function.
 
@@ -829,10 +821,6 @@ class SubDispatchFunction(SubDispatch):
         :param inputs_dist:
             Initial distances of input data nodes.
         :type inputs_dist: dict[str, int | float], optional
-
-        :param caller:
-            Who calls my caller?
-        :type caller: str, optional
         """
 
         if shrink:
@@ -865,7 +853,7 @@ class SubDispatchFunction(SubDispatch):
         # Initialize as sub dispatch.
         super(SubDispatchFunction, self).__init__(
             dsp, outputs, cutoff, sol.inputs_dist, wildcard, no_call, 
-            True, True, 'list', caller or caller_name()
+            True, True, 'list'
         )
 
         # Define the function to return outputs sorted.
@@ -966,7 +954,7 @@ class SubDispatchPipe(SubDispatchFunction):
     """
 
     def __init__(self, dsp, function_id, inputs, outputs=None, cutoff=None,
-                 inputs_dist=None, no_domain=True, caller=None):
+                 inputs_dist=None, no_domain=True):
         """
         Initializes the Sub-dispatch Function.
 
@@ -993,10 +981,6 @@ class SubDispatchPipe(SubDispatchFunction):
         :param inputs_dist:
             Initial distances of input data nodes.
         :type inputs_dist: dict[str, int | float], optional
-
-        :param caller:
-            Who calls my caller?
-        :type caller: str, optional
         """
 
         from co2mpas.dispatcher.utils.sol import Solution
@@ -1012,8 +996,7 @@ class SubDispatchPipe(SubDispatchFunction):
 
         super(SubDispatchPipe, self).__init__(
             dsp, function_id, inputs, outputs=outputs, cutoff=cutoff,
-            inputs_dist=inputs_dist, shrink=False, 
-            caller=caller or caller_name()
+            inputs_dist=inputs_dist, shrink=False,
         )
         self._sol.no_call = True
         self._sol._init_workflow()
@@ -1138,7 +1121,7 @@ class DFun(object):
             pass
 
         if 'description' not in kwds:
-            kwds['function_id'] = '%s:%s%s --> %s' % (fun.__module__, fun.__name__, inp, out)
+            kwds['function_id'] = '%s%s --> %s' % (fun.__name__, inp, out)
 
         return dsp.add_function(inputs=inp,
                                 outputs=out,
