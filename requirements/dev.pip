@@ -11,4 +11,3 @@ wheel
 sphinx >= 1.4.8
 nose
 ddt
-sphinxcontrib-fancybox  # For dispatcher directive.
