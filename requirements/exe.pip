@@ -28,6 +28,7 @@ boltons
 pykalman
 wltp
 openpyxl>=2.4.0
+flask
 
 ## Dice
 python-gnupg

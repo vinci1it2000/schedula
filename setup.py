@@ -186,6 +186,7 @@ setup(
         'openpyxl>=2.4.0',
         'Pillow',           ## for tkui
         'toolz',
+        'flask'
     ],
     extras_require={
         'dice': [
