@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 #
 # CO2MPAS documentation build configuration file, created by
 # sphinx-quickstart on Tue May 26 08:17:12 2015.
