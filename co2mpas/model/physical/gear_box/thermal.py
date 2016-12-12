@@ -207,7 +207,8 @@ def calculate_gear_box_temperature(
     return min(temp, thermostat_temperature - 5.0)
 
 
-def calculate_gear_box_heat(gear_box_efficiency, gear_box_power_out):
+def calculate_gear_box_heat(
+        gear_box_efficiency, gear_box_power_out, delta_time):
     """
     Calculates the gear box temperature heat [W].
 
@@ -219,13 +220,18 @@ def calculate_gear_box_heat(gear_box_efficiency, gear_box_power_out):
         Power at wheels [kW].
     :type gear_box_power_out: float
 
+    :param delta_time:
+        Time step [s].
+    :type delta_time: float
+
     :return:
         Gear box heat [W].
     :rtype: float
     """
 
     if gear_box_efficiency and gear_box_power_out:
-        return abs(gear_box_power_out) * (1.0 - gear_box_efficiency) * 1000.0
+        eff = gear_box_efficiency
+        return abs(gear_box_power_out) * (1.0 - eff) * 1000.0 * delta_time
 
     return 0.0
 
@@ -287,7 +293,7 @@ def thermal():
 
     d.add_function(
         function=calculate_gear_box_heat,
-        inputs=['gear_box_efficiency', 'gear_box_power_out'],
+        inputs=['gear_box_efficiency', 'gear_box_power_out', 'delta_time'],
         outputs=['gear_box_heat']
     )
 

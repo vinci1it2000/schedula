@@ -397,11 +397,13 @@ class GearBoxLosses(object):
     def predict(self, *args, **kwargs):
         return np.array(list(self._yield_losses(*args, **kwargs))).T
 
-    def _yield_losses(self, gear_box_powers_out, gear_box_speeds_in,
+    def _yield_losses(self, times, gear_box_powers_out, gear_box_speeds_in,
                       gear_box_speeds_out, gear_box_torques_out,
                       initial_gear_box_temperature, gears=None):
-
+        delta_times = np.zeros_like(times, dtype=float)
+        delta_times[:-1] = np.diff(times)
         inputs = collections.OrderedDict()
+        inputs['delta_time'] = delta_times
         inputs['gear_box_power_out'] = gear_box_powers_out
         inputs['gear_box_speed_out'] = gear_box_speeds_out
         inputs['gear_box_speed_in'] = gear_box_speeds_in
@@ -479,7 +481,7 @@ def define_gear_box_loss_model(
 
 
 def calculate_gear_box_efficiencies_torques_temperatures(
-        gear_box_loss_model, gear_box_powers_out, gear_box_speeds_in,
+        gear_box_loss_model, times, gear_box_powers_out, gear_box_speeds_in,
         gear_box_speeds_out, gear_box_torques_out, initial_gear_box_temperature,
         gears=None):
     """
@@ -488,6 +490,10 @@ def calculate_gear_box_efficiencies_torques_temperatures(
     :param gear_box_loss_model:
         Gear box loss model.
     :type gear_box_loss_model: GearBoxLosses
+
+    :param times:
+        Time vector [s].
+    :type times: numpy.array
 
     :param gear_box_powers_out:
         Power at wheels vector [kW].
@@ -522,7 +528,7 @@ def calculate_gear_box_efficiencies_torques_temperatures(
     """
 
     temp, to_in, eff = gear_box_loss_model.predict(
-        gear_box_powers_out, gear_box_speeds_in, gear_box_speeds_out,
+        times, gear_box_powers_out, gear_box_speeds_in, gear_box_speeds_out,
         gear_box_torques_out, initial_gear_box_temperature, gears=gears
     )
 
@@ -705,7 +711,7 @@ def gear_box():
 
     d.add_function(
         function=calculate_gear_box_efficiencies_torques_temperatures,
-        inputs=['gear_box_loss_model', 'gear_box_powers_out',
+        inputs=['gear_box_loss_model', 'times', 'gear_box_powers_out',
                 'gear_box_speeds_in', 'gear_box_speeds_out', 'gear_box_torques',
                 'initial_gear_box_temperature', 'gears'],
         outputs=['gear_box_temperatures', 'gear_box_torques_in',
@@ -715,7 +721,7 @@ def gear_box():
 
     d.add_function(
         function=calculate_gear_box_efficiencies_torques_temperatures,
-        inputs=['gear_box_loss_model', 'gear_box_powers_out',
+        inputs=['gear_box_loss_model', 'times', 'gear_box_powers_out',
                 'gear_box_speeds_in', 'gear_box_speeds_out', 'gear_box_torques',
                 'initial_gear_box_temperature'],
         outputs=['gear_box_temperatures', 'gear_box_torques_in',
