@@ -170,7 +170,6 @@ setup(
         'networkx',
         'dill',
         'graphviz',
-        'sphinx',
         'docopt',
         'six',
         'mpld3',
