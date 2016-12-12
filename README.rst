@@ -28,7 +28,7 @@ fuel-consumption simulator for light-duty M1 & N1 vehicles (cars and vans), spec
 according to the *EU* legislation (see `History`_ section, below).
 
 It is an open-source project developed with Python-3.5+,
-using |winpython| & |anaconda| under Windows 7, Anaconda under MacOS, and
+using |winpython|_ & |anaconda|_ under Windows 7, Anaconda under MacOS, and
 standard python environment under Linux.
 It runs either as a *console command* or as a *desktop GUI application*,
 and it uses Excel-files for its input & output data.
@@ -1261,7 +1261,7 @@ packages updated to their latest versions, you may skip this 1st stage.
 
 Install WinPython
 ~~~~~~~~~~~~~~~~~
-The |winpython| distribution is just a collection of the standard pre-compiled
+The |winpython|_ distribution is just a collection of the standard pre-compiled
 binaries for *Windows* containing all the scientific packages, and much more.
 It is not update-able, and has a quasi-regular release-cycle of 3 months.
 
@@ -1294,7 +1294,7 @@ It is not update-able, and has a quasi-regular release-cycle of 3 months.
 
 Install Anaconda
 ~~~~~~~~~~~~~~~~
-The |anaconda| distribution is a non-standard Python environment that
+The |anaconda|_ distribution is a non-standard Python environment that
 for *Windows* containing all the scientific packages we need, and much more.
 It is not update-able, and has a semi-regular release-cycle of 3 months.
 
@@ -1467,7 +1467,7 @@ require the use of ``pip`` command from a *console* to install:
   proxy cmd fails:
 
   1. Use an existing *Python-3.5* environment; that might be an older *ALLINONE*,
-     |winpython|, |anaconda| or Linux's standard python environment.
+     |winpython|_, |anaconda|_ or Linux's standard python environment.
 
   2. With with a "regular" browser and when connected to the Internet,
      pre-download locally and unzip the respective ``co2mpas_DEPENDENCIES-vX.X.XXX.7z`` file
