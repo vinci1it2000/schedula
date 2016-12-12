@@ -661,7 +661,7 @@ def mechanical():
     )
 
     d.add_function(
-        function=identify_velocity_speed_ratios,
+        function=identify_velocity_speed_ratios_v1,
         inputs=['engine_speeds_out', 'velocities', 'idle_engine_speed',
                 'stop_velocity'],
         outputs=['velocity_speed_ratios'],
