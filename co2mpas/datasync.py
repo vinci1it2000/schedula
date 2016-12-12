@@ -417,8 +417,9 @@ class Tables(object):
                     break
             else:
                 raise CmdException(
-                    "Columns %r not found in rows %r of sheet(%r)!" %
-                    (self.required_labels, str_row_indices, xlref))
+                    "Columns %r not found in table of sheet(%r) in book(%r)!" %
+                    (self.required_labels, lasso.sheet._sheet.name,
+                     lasso.sheet.book_fname))
             ix = values[k]
             i = max(str_row_indices, default=0) + 1
 
@@ -428,6 +429,10 @@ class Tables(object):
             values = pd.DataFrame(values[i:], columns=ix)
             values.dropna(how='all', inplace=True)
             values.dropna(axis=1, how='any', inplace=True)
+            if values.empty:
+                raise CmdException(
+                    "Empty table of sheet(%r) in book (%r)!" %
+                    (lasso.sheet._sheet.name, lasso.sheet.book_fname))
             self.tables.append(values)
 
         return lasso
