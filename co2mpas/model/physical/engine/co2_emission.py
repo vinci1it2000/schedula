@@ -1486,7 +1486,9 @@ def define_initial_co2_emission_model_params_guess(
         if 'min' in kw and 'max' in kw and kw['min'] == kw['max']:
             kw['vary'] = False
             kw['max'] = kw['min'] = None
-        kw['max'] = kw['min'] = None
+
+        kw['min'] = kw.get('min', None)
+        kw['max'] = kw.get('max', None)
         p.add(**kw)
 
     friction_params = _select_initial_friction_params(p)
@@ -1767,7 +1769,8 @@ def calibrate_model_params(
     # slsqp is unstable (4 runs, 4 vehicles) [average time 18s/4 vehicles].
     # differential_evolution is unstable (1 runs, 4 vehicles)
     # [average time 270s/4 vehicles].
-    res = _minimize(error_func, params, args=args, kws=kws, method=method)
+    res = _minimize(error_func, params, args=args, kws=kws, method=method,
+                    nan_policy='omit')
 
     # noinspection PyUnresolvedReferences
     return (res.params if res.success else min_e_and_p[1]), res.success
