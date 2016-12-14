@@ -1038,13 +1038,9 @@ def _gspv_interpolate_cloud(powers, velocities):
     from sklearn.isotonic import IsotonicRegression
     regressor = IsotonicRegression()
     regressor.fit(powers, velocities)
-
-    min_p, max_p = min(powers), max(powers)
-    x = np.linspace(min_p, max_p)
+    x = np.linspace(min(powers), max(powers))
     y = regressor.predict(x)
-    y = np.append(np.append(y[0], y), [y[-1]])
-    x = np.append(np.append([0.0], x), [max_p * 1.1])
-    return sci_itp.InterpolatedUnivariateSpline(x, y, k=1)
+    return sci_itp.InterpolatedUnivariateSpline(x, y, k=1, ext=3)
 
 
 def calibrate_gspv_hot_cold(
