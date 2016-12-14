@@ -499,21 +499,19 @@ class CMV(collections.OrderedDict):
                                                            stop_velocity))
 
         gear_id, velocity_limits = zip(*list(sorted(self.items()))[1:])
-
-        _inf = float('inf')
-
+        max_gear, _inf, grp = gear_id[-1], float('inf'), co2_utl.grouper
+        update, predict = self.update, self.predict
         def _update_gvs(vel_limits):
             self[0] = (0, vel_limits[0])
-
-            limits = np.append(vel_limits[1:], (_inf,))
-            self.update(dict(zip(gear_id, co2_utl.grouper(limits, 2))))
+            self[max_gear] = (vel_limits[-1], _inf)
+            update({k: v for k, v in zip(gear_id, grp(vel_limits[1:-1], 2))})
 
         X = np.column_stack((velocities, accelerations))
 
         def _error_fun(vel_limits):
             _update_gvs(vel_limits)
 
-            g_pre = self.predict(X, correct_gear=correct_gear)
+            g_pre = predict(X, correct_gear=correct_gear)
 
             speed_pred = calculate_gear_box_speeds_in(
                 g_pre, velocities, velocity_speed_ratios, stop_velocity)
