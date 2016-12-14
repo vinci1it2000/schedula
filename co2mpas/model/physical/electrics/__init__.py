@@ -1183,7 +1183,7 @@ def predict_vehicle_electrics(
             o = tuple(electrics_model(*(x + o[1:])))
             yield o
 
-    dtype = [('alt_c', 'f8'), ('alt_s', 'f8'), ('bat_c', 'f8'), ('soc', 'f8')]
+    dtype = [('alt_c', 'f'), ('alt_s', 'f'), ('bat_c', 'f'), ('soc', 'f')]
     keys = ('alt_c', 'bat_c', 'soc', 'alt_s')
     return co2_utl.fromiter(_gen(), dtype, keys, len(times))
 
