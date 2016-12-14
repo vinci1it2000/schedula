@@ -137,7 +137,7 @@ def predict_vehicle_electrics_and_engine_behavior(
     :rtype: tuple[numpy.array]
     """
     n = len(times)
-    soc, temp = np.zeros((2, n + 1), dtype=float)
+    soc, temp = np.zeros((2, n), dtype=float)
     soc[0], temp[0] = initial_state_of_charge, initial_engine_temperature
 
     gen = start_stop_model.yield_on_start(
@@ -165,12 +165,13 @@ def predict_vehicle_electrics_and_engine_behavior(
             eng_s = eng_speed_hot(s, on_eng[0], idle_engine_speed)
 
             T += thermal_model(dt, fdp, eng_s, a, prev_temperature=T)
-            temp[i] = T
 
             eng = tuple(on_eng)
             e = tuple(electrics_model(dt, p, a, t, *(eng + e[1:])))
-            soc[i] = e[-1]
-
+            try:
+                temp[i], soc[i] = T, e[-1]
+            except IndexError:
+                pass
             yield e + (eng_s, T) + eng
 
     dtype = [('alt_c', 'f'), ('alt_sts', 'f'), ('bat_c', 'f'), ('soc', 'f'),
