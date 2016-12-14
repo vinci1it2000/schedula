@@ -672,44 +672,19 @@ def _apply_ac_phases(func, fmep_model, params, *args, ac_phases=None):
         return np.where(ac_phases, res_with_ac, func(fmep_model, p, *args))
 
 
-def _get_sub_values(*args, sub_values=None):
-    if sub_values is not None:
-        return tuple(a[sub_values] for a in args)
-    return args
-
-
-def calculate_co2_emissions(
-        engine_speeds_out, engine_powers_out, mean_piston_speeds,
-        brake_mean_effective_pressures, engine_coolant_temperatures, on_engine,
-        engine_fuel_lower_heating_value, idle_engine_speed, engine_stroke,
-        engine_capacity, idle_fuel_consumption_model, fuel_carbon_content,
-        min_engine_on_speed, tau_function, fmep_model, params, sub_values=None):
+def _calculate_co2_emissions(
+        time_series, engine_fuel_lower_heating_value, idle_engine_speed,
+        engine_stroke, engine_capacity, idle_fuel_consumption_model,
+        fuel_carbon_content, min_engine_on_speed, tau_function, fmep_model,
+        params, sub_values=None):
     """
     Calculates CO2 emissions [CO2g/s].
 
-    :param engine_speeds_out:
-        Engine speed vector [RPM].
-    :type engine_speeds_out: numpy.array
-
-    :param engine_powers_out:
-        Engine power vector [kW].
-    :type engine_powers_out: numpy.array
-
-    :param mean_piston_speeds:
-        Mean piston speed vector [m/s].
-    :type mean_piston_speeds: numpy.array
-
-    :param brake_mean_effective_pressures:
-        Engine brake mean effective pressure vector [bar].
-    :type brake_mean_effective_pressures: numpy.array
-
-    :param engine_coolant_temperatures:
-        Engine coolant temperature vector [°C].
-    :type engine_coolant_temperatures: numpy.array
-
-    :param on_engine:
-        If the engine is on [-].
-    :type on_engine: numpy.array
+    :param time_series:
+        Engine speed vector [RPM], Engine power vector [kW], Engine coolant
+        temperature vector [°C], Mean piston speed vector [m/s], and Engine
+        brake mean effective pressure vector [bar].
+    :type time_series: numpy.array
 
     :param engine_fuel_lower_heating_value:
         Fuel lower heating value [kJ/kg].
@@ -763,58 +738,50 @@ def calculate_co2_emissions(
     """
 
     p = params.valuesdict()
-
     # namespace shortcuts
-    n_speeds, n_powers, e_speeds, e_powers, e_temp = _get_sub_values(
-        mean_piston_speeds, brake_mean_effective_pressures, engine_speeds_out,
-        engine_powers_out, engine_coolant_temperatures, sub_values=sub_values
-    )
+    if sub_values is not None:
+        e_s, e_p, e_t, n_s, n_p = time_series[:, sub_values]
+    else:
+        e_s, e_p, e_t, n_s, n_p = time_series
     lhv = engine_fuel_lower_heating_value
     idle_fc_model = idle_fuel_consumption_model.consumption
-    fc, ac = np.zeros_like(e_powers), np.zeros_like(e_powers)
-    vva, lb = np.zeros_like(e_powers), np.zeros_like(e_powers)
-    egr = np.zeros_like(e_powers)
+    fc, ac, vva, lb, egr = np.zeros((5, len(e_p)), dtype=float)
 
     # Idle fc correction for temperature
-    n = (e_speeds < idle_engine_speed[0] + min_engine_on_speed)
-    _b = (e_speeds >= min_engine_on_speed)
+    n = (e_s < idle_engine_speed[0] + min_engine_on_speed)
+    _b = (e_s >= min_engine_on_speed)
+    par = defaults.dfl.functions.calculate_co2_emissions
+    idle_cutoff = idle_engine_speed[0] * par.cutoff_idle_ratio
+
     if p['t0'] == 0 and p['t1'] == 0:
-        ac_phases, n_temp = np.ones_like(e_powers, dtype=bool), 1
-        par = defaults.dfl.functions.calculate_co2_emissions
-        idle_cutoff = idle_engine_speed[0] * par.cutoff_idle_ratio
+        ac_phases, n_t = np.ones_like(e_p, dtype=bool), 1
         ec_p0 = calculate_p0(
             fmep_model, p, engine_capacity, engine_stroke, idle_cutoff, lhv
         )
-        _b &= ~((e_powers <= ec_p0) & (e_speeds > idle_cutoff))
+        _b &= ~((e_p <= ec_p0) & (e_s > idle_cutoff))
         b = n & _b
         fc[b], ac[b], vva[b], lb[b], egr[b] = idle_fc_model(p)
         b = ~n & _b
     else:
-        p['t'] = tau_function(p['t0'], p['t1'], e_temp)
+        p['t'] = tau_function(p['t0'], p['t1'], e_t)
         func = calculate_normalized_engine_coolant_temperatures
-        n_temp = func(e_temp, p['trg'])
-        ac_phases = n_temp == 1
-        par = defaults.dfl.functions.calculate_co2_emissions
-        idle_cutoff = idle_engine_speed[0] * par.cutoff_idle_ratio
+        n_t = func(e_t, p['trg'])
+        ac_phases = n_t == 1
         ec_p0 = _apply_ac_phases(
             calculate_p0, fmep_model, p, engine_capacity, engine_stroke,
             idle_cutoff, lhv, ac_phases=ac_phases
         )
-        _b &= ~((e_powers <= ec_p0) & (e_speeds > idle_cutoff))
+        _b &= ~((e_p <= ec_p0) & (e_s > idle_cutoff))
         b = n & _b
         # noinspection PyUnresolvedReferences
         idle_fc, ac[b], vva[b], lb[b], egr[b] = idle_fc_model(p, ac_phases[b])
-        fc[b] = idle_fc * np.power(n_temp[b], -p['t'][b])
+        fc[b] = idle_fc * np.power(n_t[b], -p['t'][b])
         b = ~n & _b
         p['t'] = p['t'][b]
-        n_temp = n_temp[b]
+        n_t = n_t[b]
 
-    fc[b], _, ac[b], vva[b], lb[b], egr[b] = fmep_model(
-        p, n_speeds[b], n_powers[b], n_temp
-    )
-
-    fc[b] *= e_speeds[b] * (engine_capacity / (lhv * 1200))  # [g/sec]
-
+    fc[b], _, ac[b], vva[b], lb[b], egr[b] = fmep_model(p, n_s[b], n_p[b], n_t)
+    fc[b] *= e_s[b] * (engine_capacity / (lhv * 1200))  # [g/sec]
     fc[fc < 0] = 0
 
     co2 = fc * fuel_carbon_content
@@ -896,13 +863,14 @@ def define_co2_emissions_model(
     :rtype: function
     """
 
+    ts = (engine_speeds_out, engine_powers_out, engine_coolant_temperatures,
+          mean_piston_speeds, brake_mean_effective_pressures)
+
     model = functools.partial(
-        calculate_co2_emissions, engine_speeds_out, engine_powers_out,
-        mean_piston_speeds, brake_mean_effective_pressures,
-        engine_coolant_temperatures, on_engine, engine_fuel_lower_heating_value,
-        idle_engine_speed, engine_stroke, engine_capacity,
-        idle_fuel_consumption_model, fuel_carbon_content, min_engine_on_speed,
-        tau_function, fmep_model
+        _calculate_co2_emissions, np.array(ts, copy=False),
+        engine_fuel_lower_heating_value, idle_engine_speed, engine_stroke,
+        engine_capacity, idle_fuel_consumption_model, fuel_carbon_content,
+        min_engine_on_speed, tau_function, fmep_model
     )
 
     return model
