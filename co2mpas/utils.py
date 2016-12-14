@@ -525,3 +525,11 @@ def parse_key_value_pair(arg):
         return [key, value]
     else:
         raise ValueError("Not a KEY=VALUE syntax: %s" % arg)
+
+
+def fromiter(gen, dtype, keys=None, count=-1):
+    a = np.fromiter(gen, dtype=dtype, count=count)
+    _keys = a.dtype.names
+    if _keys:
+        return dsp_utl.selector(keys or _keys, a, output_type='list')
+    return a
