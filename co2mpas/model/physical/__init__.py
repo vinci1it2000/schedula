@@ -30,6 +30,7 @@ Modules:
 import co2mpas.dispatcher as dsp
 import numpy as np
 import functools
+import co2mpas.utils as co2_utl
 
 
 def predict_vehicle_electrics_and_engine_behavior(
@@ -135,14 +136,9 @@ def predict_vehicle_electrics_and_engine_behavior(
         [A, A, %, -, -, -, RPM, °C].
     :rtype: tuple[numpy.array]
     """
-
-    from .engine import calculate_engine_speeds_out_hot
-
-    soc = np.zeros((len(times) + 1,), dtype=float)
-    soc[0] = initial_state_of_charge
-
-    temp = np.zeros((len(times) + 1,), dtype=float)
-    T = temp[0] = initial_engine_temperature
+    n = len(times)
+    soc, temp = np.zeros((2, n + 1), dtype=float)
+    soc[0], temp[0] = initial_state_of_charge, initial_engine_temperature
 
     gen = start_stop_model.yield_on_start(
         times, velocities, accelerations, temp, soc,
@@ -152,39 +148,35 @@ def predict_vehicle_electrics_and_engine_behavior(
         has_start_stop=has_start_stop, use_basic_start_stop=use_basic_start_stop
     )
 
-    e = (0, 0, None, initial_state_of_charge)
-    args = np.append([0], np.diff(times)), gear_box_powers_in, accelerations
-    args += (gear_box_speeds_in, final_drive_powers_in, times)
-    eng, ele = [(True, False)], [e]
-
-    # min_soc = electrics_model.alternator_status_model.min
+    args = (np.ediff1d(times, to_begin=[0]), gear_box_powers_in, accelerations,
+            gear_box_speeds_in, final_drive_powers_in, times)
 
     thermal_model = functools.partial(engine_temperature_regression_model.delta,
                                       max_temp=max_engine_coolant_temperature)
+    from .engine import calculate_engine_speeds_out_hot as eng_speed_hot
 
-    for i, (on_eng, dt, p, a, s, fdp, t) in enumerate(zip(gen, *args)):
+    def _func():
+        eng, T, e = (True, False), temp[0], (0, 0, None, soc[0])
+        # min_soc = electrics_model.alternator_status_model.min
+        for i, (on_eng, dt, p, a, s, fdp, t) in enumerate(zip(gen, *args), 1):
+            # if e[-1] < min_soc and not on_eng[0]:
+            #    on_eng[0], on_eng[1] = True, not eng[0]
 
-        # if e[-1] < min_soc and not on_eng[0]:
-        #    on_eng[0], on_eng[1] = True, not eng[-1][-2]
+            eng_s = eng_speed_hot(s, on_eng[0], idle_engine_speed)
 
-        eng_s = calculate_engine_speeds_out_hot(s, on_eng[0], idle_engine_speed)
+            T += thermal_model(dt, fdp, eng_s, a, prev_temperature=T)
+            temp[i] = T
 
-        T += thermal_model(dt, fdp, eng_s, a, prev_temperature=T)
-        temp[i + 1] = T
+            eng = tuple(on_eng)
+            e = tuple(electrics_model(dt, p, a, t, *(eng + e[1:])))
+            soc[i] = e[-1]
 
-        e = tuple(electrics_model(dt, p, a, t, *(tuple(on_eng) + tuple(e[1:]))))
+            yield e + (eng_s, T) + eng
 
-        soc[i + 1] = e[-1]
-        ele.append(e)
-        # noinspection PyTypeChecker
-        eng.append([eng_s] + on_eng)
-
-    alt_c, alt_sts, bat_c, _ = zip(*ele[1:])
-    eng_s, on, st = zip(*eng[1:])
-
-    on, st = np.array(on, dtype=bool), np.array(st, dtype=bool)
-    alt_c, bat_c, alt_sts = np.array(alt_c), np.array(bat_c), np.array(alt_sts)
-    return alt_c, bat_c, soc[1:], alt_sts, on, st, np.array(eng_s), temp[1:]
+    dtype = [('alt_c', 'f'), ('alt_sts', 'f'), ('bat_c', 'f'), ('soc', 'f'),
+             ('eng_s', 'f'), ('tmp', 'f'), ('on_eng', '?'), ('eng_st', '?')]
+    k = ('alt_c', 'bat_c', 'soc', 'alt_sts', 'on_eng', 'eng_st', 'eng_s', 'tmp')
+    return co2_utl.fromiter(_func(), dtype, k, n)
 
 
 def physical():
