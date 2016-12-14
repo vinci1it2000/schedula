@@ -183,7 +183,10 @@ def clutch_torque_converter():
             'max_clutch_window_width': 'max_clutch_window_width',
             'engine_speeds_out': 'engine_speeds_out',
             'engine_speeds_out_hot': 'engine_speeds_out_hot',
-            'cold_start_speeds_delta': 'cold_start_speeds_delta'
+            'cold_start_speeds_delta': 'cold_start_speeds_delta',
+            'velocities': 'velocities',
+            'gear_box_speeds_in': 'gear_box_speeds_in',
+            'gears': 'gears'
         },
         outputs={
             'clutch_speeds_delta': 'clutch_tc_speeds_delta',

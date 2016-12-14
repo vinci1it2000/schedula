@@ -42,20 +42,26 @@ def identify_torque_converter_speeds_delta(
 
 class TorqueConverter(object):
     def __init__(self):
-        self.predict = self.no_torque_converter
+        self.predict = self.no_model
         self.regressor = None
 
     def __call__(self, *args, **kwargs):
         return self.predict(*args, **kwargs)
 
-    def fit(self, lock_up_tc_limits, calibration_tc_speed_threshold,
-            stop_velocity, torque_converter_speeds_delta, accelerations,
-            velocities, gear_box_speeds_in, gears):
+    def _fit_sub_set(self, params, calibration_speed_threshold, stop_velocity,
+                     speeds_delta, accelerations, velocities,
+                     gear_box_speeds_in, gears):
+        b = np.isclose(accelerations, (0,)) & (velocities < stop_velocity)
+        return ~(b & (abs(speeds_delta) > calibration_speed_threshold))
+
+    def fit(self, params, calibration_speed_threshold,
+            stop_velocity, speeds_delta, accelerations,
+            velocities, gear_box_speeds_in, gears, *args):
 
         X = np.column_stack(
             (accelerations, velocities, gear_box_speeds_in, gears)
         )
-        y = torque_converter_speeds_delta
+        y = speeds_delta
 
         regressor = sk_ens.GradientBoostingRegressor(
             random_state=0,
@@ -65,24 +71,15 @@ class TorqueConverter(object):
             alpha=0.99
         )
 
-        b = np.isclose(accelerations, (0,)) & (velocities < stop_velocity)
-        b = ~(b & (abs(y) > calibration_tc_speed_threshold))
+        b = self._fit_sub_set(
+            params, calibration_speed_threshold, stop_velocity, speeds_delta,
+            accelerations, velocities, gear_box_speeds_in, gears
+        )
 
         regressor.fit(X[b, :], y[b])
         self.regressor = regressor
-
-        models = [
-            self.torque_converter,
-            self.no_torque_converter
-        ]
-
-        X = np.column_stack(
-            (accelerations, velocities, gear_box_speeds_in, gears)
-        )
-        y = torque_converter_speeds_delta
-
-        models = enumerate(models)
-        a = lock_up_tc_limits, X
+        models = enumerate((self.model, self.no_model))
+        a = params, X
         error = sk_met.mean_absolute_error
         m = min([(error(y, m(*a)), i, m) for i, m in models])[-1]
 
@@ -91,11 +88,11 @@ class TorqueConverter(object):
         return self
 
     @staticmethod
-    def no_torque_converter(lock_up_limits, X):
+    def no_model(params, X):
         return np.zeros(X.shape[0])
 
-    def torque_converter(self, lock_up_limits, X):
-        lm_vel, lm_acc = lock_up_limits
+    def model(self, params, X):
+        lm_vel, lm_acc = params
         d = np.zeros(X.shape[0])
         a, v = X[:, 0], X[:, 1]
         # From issue #179 add lock up mode in torque converter.
