@@ -1176,17 +1176,16 @@ def predict_vehicle_electrics(
     :rtype: (numpy.array, numpy.array, numpy.array, numpy.array)
     """
 
-    delta_times = np.append([0], np.diff(times))
-    o = (0, 0, None, initial_state_of_charge)
-    res = [o]
-    for x in zip(delta_times, gear_box_powers_in, accelerations, times,
-                 on_engine, engine_starts):
-        o = tuple(electrics_model(*(x + o[1:])))
-        res.append(o)
+    def _gen():
+        o = (0, 0, None, initial_state_of_charge)
+        for x in zip(np.ediff1d(times,to_begin=(0,)), gear_box_powers_in,
+                     accelerations, times, on_engine, engine_starts):
+            o = tuple(electrics_model(*(x + o[1:])))
+            yield o
 
-    alt_c, alt_stat, bat_c, soc = zip(*res[1:])
-
-    return np.array(alt_c), np.array(bat_c), np.array(soc), np.array(alt_stat)
+    dtype = [('alt_c', 'f8'), ('alt_s', 'f8'), ('bat_c', 'f8'), ('soc', 'f8')]
+    keys = ('alt_c', 'bat_c', 'soc', 'alt_s')
+    return co2_utl.fromiter(_gen(), dtype, keys, len(times))
 
 
 def default_initial_state_of_charge(cycle_type):
