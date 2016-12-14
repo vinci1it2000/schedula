@@ -16,6 +16,7 @@ import sklearn.feature_selection as sk_fsel
 import numpy as np
 import co2mpas.model.physical.defaults as defaults
 import co2mpas.dispatcher as dsp
+import co2mpas.utils as co2_utl
 
 
 def identify_on_engine(
@@ -49,7 +50,7 @@ def identify_on_engine(
     mask = np.where(identify_engine_starts(on_engine))[0] + 1
     ts = np.asarray(times[mask], dtype=float)
     ts += min_time_engine_on_after_start + defaults.dfl.EPS
-    for i, j in zip(mask, np.searchsorted(times, ts)):
+    for i, j in np.column_stack((mask, np.searchsorted(times, ts))):
         on_engine[i:j] = True
 
     return on_engine
@@ -181,18 +182,16 @@ class StartStopModel(object):
                 min_time_engine_on_after_start=0.0, has_start_stop=True,
                 use_basic_start_stop=True):
 
-        gen = self.yield_on_start(
+        gen = map(tuple, self.yield_on_start(
             times, velocities, accelerations, *args, gears=gears,
             correct_start_stop_with_gears=correct_start_stop_with_gears,
             start_stop_activation_time=start_stop_activation_time,
             min_time_engine_on_after_start=min_time_engine_on_after_start,
             has_start_stop=has_start_stop,
             use_basic_start_stop=use_basic_start_stop
-        )
-
-        on_eng, eng_starts = zip(*list(gen))
-
-        return np.array(on_eng, dtype=bool), np.array(eng_starts, dtype=bool)
+        ))
+        dtype = [('on', bool), ('starts', bool)]
+        return co2_utl.fromiter(gen, dtype=dtype, count=len(times))
 
     def yield_on_start(self, times, velocities, accelerations, *args,
                        start_stop_activation_time=None, gears=None,
@@ -220,8 +219,9 @@ class StartStopModel(object):
         on, prev, t_switch_on, can_off = True, True, times[0], False
         model = self.base if use_basic_start_stop else self.model
         predict = model.predict
-        args = (velocities, accelerations) + args
-        for t, p, X in zip(times, to_predict, zip(*args)):
+        args = (times, to_predict, velocities, accelerations) + args
+        for v in np.column_stack(args):
+            t, p, X = v[0], v[1], v[2:]
             if p and can_off and t >= t_switch_on:
                 on = (prev or base([X])[0]) and predict([X])[0]
             else:
