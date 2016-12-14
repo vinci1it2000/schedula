@@ -313,7 +313,7 @@ def calculates_brake_powers(
     """
 
     b = wheel_powers <= 0
-    speeds = np.append(np.diff(gear_box_speeds_in), [0])[b] / 30 * math.pi
+    speeds = np.ediff1d(gear_box_speeds_in, [0])[b] / 30 * math.pi
     engine_powers_on_brake = engine_moment_inertia / 2000 * speeds**2
 
     engine_powers_on_brake += calculate_wheel_powers(

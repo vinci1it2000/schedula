@@ -45,7 +45,7 @@ def calculate_gear_shifts(gears):
     :rtype: numpy.array
     """
 
-    return np.append([False], np.diff(gears) != 0)
+    return np.ediff1d(gears, None, [0]) != 0
 
 
 def get_gear_box_efficiency_constants(has_torque_converter):
