@@ -23,7 +23,7 @@ import co2mpas.dispatcher.utils as dsp_utl
 import co2mpas.dispatcher as dsp
 
 
-def select_prediction_data(data, new_data=(), theoretical=True):
+def select_prediction_data(data, *new_data, theoretical=True):
     """
     Selects the data required to predict the CO2 emissions with CO2MPAS model.
 
@@ -47,17 +47,16 @@ def select_prediction_data(data, new_data=(), theoretical=True):
     ids = [
         'angle_slope', 'alternator_nominal_voltage', 'alternator_efficiency',
         'battery_capacity', 'cycle_type', 'cycle_name', 'engine_capacity',
-        'engine_stroke', 'engine_thermostat_temperature',
-        'final_drive_efficiency', 'frontal_area',
+        'engine_stroke', 'final_drive_efficiency',
+        'frontal_area', 'final_drive_ratio', 'engine_thermostat_temperature',
         'aerodynamic_drag_coefficient', 'fuel_type', 'ignition_type',
         'gear_box_type', 'engine_max_power', 'engine_max_speed_at_max_power',
         'rolling_resistance_coeff', 'time_cold_hot_transition',
         'engine_idle_fuel_consumption', 'engine_type', 'engine_is_turbo',
         'engine_fuel_lower_heating_value', 'has_start_stop',
         'has_energy_recuperation', 'fuel_carbon_content_percentage',
-        'f0', 'f1', 'f2',
-        'vehicle_mass', 'full_load_speeds', 'plateau_acceleration',
-        'full_load_powers', 'fuel_saving_at_strategy',
+        'f0', 'f1', 'f2', 'vehicle_mass', 'full_load_speeds',
+        'plateau_acceleration', 'full_load_powers', 'fuel_saving_at_strategy',
         'stand_still_torque_ratio', 'lockup_speed_ratio',
         'change_gear_window_width', 'alternator_start_window_width',
         'stop_velocity', 'min_time_engine_on_after_start',
@@ -66,7 +65,7 @@ def select_prediction_data(data, new_data=(), theoretical=True):
         'active_cylinder_ratios', 'engine_has_variable_valve_actuation',
         'has_torque_converter', 'has_gear_box_thermal_management',
         'has_lean_burn', 'ki_factor', 'n_wheel_drive',
-        'has_periodically_regenerating_systems',
+        'has_periodically_regenerating_systems', 'n_dyno_axes',
         'has_selective_catalytic_reduction', 'has_exhausted_gas_recirculation'
     ]
 
@@ -76,6 +75,7 @@ def select_prediction_data(data, new_data=(), theoretical=True):
     data = dsp_utl.selector(ids, data, allow_miss=True)
 
     if new_data:
+        new_data = dsp_utl.combine_dicts(*new_data)
         data = dsp_utl.combine_dicts(data, new_data)
 
     if 'gears' in data and 'gears' not in new_data:
@@ -183,14 +183,15 @@ def model():
 
     d.add_function(
         function=select_prediction_data,
-        inputs=['output.calibration.wltp_h', 'input.prediction.wltp_h'],
+        inputs=['output.calibration.wltp_h', 'data.prediction.models_wltp_h',
+                'input.prediction.wltp_h'],
         outputs=['data.prediction.wltp_h']
     )
 
     d.add_function(
         function_id='predict_wltp_h',
         function=dsp_utl.SubDispatch(physical()),
-        inputs=['data.prediction.models_wltp_h', 'data.prediction.wltp_h'],
+        inputs=['data.prediction.wltp_h'],
         outputs=['output.prediction.wltp_h'],
         description='Wraps all functions needed to predict CO2 emissions.'
     )
@@ -226,14 +227,15 @@ def model():
 
     d.add_function(
         function=select_prediction_data,
-        inputs=['output.calibration.wltp_l', 'input.prediction.wltp_l'],
+        inputs=['output.calibration.wltp_l', 'data.prediction.models_wltp_l',
+                'input.prediction.wltp_l'],
         outputs=['data.prediction.wltp_l']
     )
 
     d.add_function(
         function_id='predict_wltp_l',
         function=dsp_utl.SubDispatch(physical()),
-        inputs=['data.prediction.models_wltp_l', 'data.prediction.wltp_l'],
+        inputs=['data.prediction.wltp_l'],
         outputs=['output.prediction.wltp_l'],
         description='Wraps all functions needed to predict CO2 emissions.'
 
