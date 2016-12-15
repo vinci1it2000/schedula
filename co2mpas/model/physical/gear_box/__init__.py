@@ -757,7 +757,7 @@ def gear_box():
             'accelerations': 'accelerations',
             'velocity_speed_ratios': 'velocity_speed_ratios',
             'engine_speeds_out': 'engine_speeds_out',
-            'final_drive_ratio': 'final_drive_ratio',
+            'final_drive_ratios': 'final_drive_ratios',
             'gear_box_speeds_out': 'gear_box_speeds_out',
             'gear_box_ratios': 'gear_box_ratios',
             'gear_box_type': dsp_utl.SINK,

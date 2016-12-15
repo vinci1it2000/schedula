@@ -313,7 +313,7 @@ def sub_models():
     models['engine_speed_model'] = {
         'd': physical(),
         'select_models': tyre_models_selector,
-        'models': ['final_drive_ratio', 'gear_box_ratios',
+        'models': ['final_drive_ratios', 'gear_box_ratios',
                    'idle_engine_speed_median', 'idle_engine_speed_std',
                    'CVT', 'max_speed_velocity_ratio',
                    'tyre_dynamic_rolling_coefficient'],

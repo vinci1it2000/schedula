@@ -120,7 +120,7 @@ def calculate_wheel_speeds(velocities, r_dynamic):
 
 def identify_r_dynamic_v1(
         velocities, gears, engine_speeds_out, gear_box_ratios,
-        final_drive_ratio, stop_velocity):
+        final_drive_ratios, stop_velocity):
     """
     Identifies the dynamic radius of the wheels [m].
 
@@ -140,9 +140,9 @@ def identify_r_dynamic_v1(
         Gear box ratios [-].
     :type gear_box_ratios: dict
 
-    :param final_drive_ratio:
-        Final drive ratio [-].
-    :type final_drive_ratio: float
+    :param final_drive_ratios:
+        Final drive ratios [-].
+    :type final_drive_ratios: dict
 
     :param stop_velocity:
         Maximum velocity to consider the vehicle stopped [km/h].
@@ -154,7 +154,7 @@ def identify_r_dynamic_v1(
     """
 
     svr = gb_mec.calculate_speed_velocity_ratios(
-        gear_box_ratios, final_drive_ratio, 1.0)
+        gear_box_ratios, final_drive_ratios, 1.0)
 
     vsr = gb_mec.calculate_velocity_speed_ratios(svr)
 
@@ -171,7 +171,7 @@ def identify_r_dynamic_v1(
 
 def identify_r_dynamic_v2(
         times, velocities, accelerations, r_wheels, engine_speeds_out,
-        gear_box_ratios, final_drive_ratio, idle_engine_speed, stop_velocity,
+        gear_box_ratios, final_drive_ratios, idle_engine_speed, stop_velocity,
         plateau_acceleration, change_gear_window_width):
     """
     Identifies the dynamic radius of the wheels [m].
@@ -200,9 +200,9 @@ def identify_r_dynamic_v2(
         Gear box ratios [-].
     :type gear_box_ratios: dict
 
-    :param final_drive_ratio:
-        Final drive ratio [-].
-    :type final_drive_ratio: float
+    :param final_drive_ratios:
+        Final drive ratios [-].
+    :type final_drive_ratios: dict
 
     :param idle_engine_speed:
         Engine speed idle median and std [RPM].
@@ -226,7 +226,7 @@ def identify_r_dynamic_v2(
     """
 
     svr = gb_mec.calculate_speed_velocity_ratios(
-        gear_box_ratios, final_drive_ratio, r_wheels
+        gear_box_ratios, final_drive_ratios, r_wheels
     )
 
     gears = gb_mec.identify_gears(
@@ -237,14 +237,14 @@ def identify_r_dynamic_v2(
 
     r_dynamic = identify_r_dynamic_v1(
         velocities, gears, engine_speeds_out, gear_box_ratios,
-        final_drive_ratio, stop_velocity
+        final_drive_ratios, stop_velocity
     )
 
     return r_dynamic
 
 
 def identify_r_dynamic(
-        velocity_speed_ratios, gear_box_ratios, final_drive_ratio):
+        velocity_speed_ratios, gear_box_ratios, final_drive_ratios):
     """
     Identifies the dynamic radius of the wheels [m].
 
@@ -256,9 +256,9 @@ def identify_r_dynamic(
         Gear box ratios [-].
     :type gear_box_ratios: dict
 
-    :param final_drive_ratio:
+    :param final_drive_ratios:
         Final drive ratio [-].
-    :type final_drive_ratio: float
+    :type final_drive_ratios: float
 
     :return:
         Dynamic radius of the wheels [m].
@@ -266,7 +266,7 @@ def identify_r_dynamic(
     """
 
     svr = gb_mec.calculate_speed_velocity_ratios(
-        gear_box_ratios, final_drive_ratio, 1
+        gear_box_ratios, final_drive_ratios, 1
     )
 
     r = [svr[k] * vs for k, vs in velocity_speed_ratios.items() if k]
@@ -586,14 +586,14 @@ def wheels():
     d.add_function(
         function=identify_r_dynamic,
         inputs=['velocity_speed_ratios', 'gear_box_ratios',
-                'final_drive_ratio'],
+                'final_drive_ratios'],
         outputs=['r_dynamic']
     )
 
     d.add_function(
         function=identify_r_dynamic_v1,
         inputs=['velocities', 'gears', 'engine_speeds_out', 'gear_box_ratios',
-                'final_drive_ratio', 'stop_velocity'],
+                'final_drive_ratios', 'stop_velocity'],
         outputs=['r_dynamic'],
         weight=10
     )
@@ -660,7 +660,7 @@ def wheels():
     d.add_function(
         function=identify_r_dynamic_v2,
         inputs=['times', 'velocities', 'accelerations', 'r_wheels',
-                'engine_speeds_out', 'gear_box_ratios', 'final_drive_ratio',
+                'engine_speeds_out', 'gear_box_ratios', 'final_drive_ratios',
                 'idle_engine_speed', 'stop_velocity', 'plateau_acceleration',
                 'change_gear_window_width'],
         outputs=['r_dynamic'],

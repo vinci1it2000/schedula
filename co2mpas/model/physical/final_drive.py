@@ -16,7 +16,8 @@ import numpy as np
 log = logging.getLogger(__name__)
 
 
-def calculate_final_drive_speeds_in(final_drive_speeds_out, final_drive_ratio):
+def calculate_final_drive_speeds_in(
+        final_drive_speeds_out, final_drive_ratio_vector):
     """
     Calculates final drive speed [RPM].
 
@@ -24,16 +25,16 @@ def calculate_final_drive_speeds_in(final_drive_speeds_out, final_drive_ratio):
         Rotating speed of the wheel [RPM].
     :type final_drive_speeds_out: numpy.array | float
 
-    :param final_drive_ratio:
-        Final drive ratio [-].
-    :type final_drive_ratio: float
+    :param final_drive_ratio_vector:
+        Final drive ratio vector [-].
+    :type final_drive_ratio_vector: numpy.array | float
 
     :return:
         Final drive speed in [RPM].
     :rtype: numpy.array | float
     """
 
-    return final_drive_speeds_out * final_drive_ratio
+    return final_drive_speeds_out * final_drive_ratio_vector
 
 
 def calculate_final_drive_torque_losses(
@@ -58,7 +59,7 @@ def calculate_final_drive_torque_losses(
 
 
 def calculate_final_drive_torque_losses_v1(
-        n_wheel_drive, final_drive_torques_out, final_drive_ratio,
+        n_wheel_drive, final_drive_torques_out, final_drive_ratio_vector,
         final_drive_efficiency):
     """
     Calculates final drive torque losses [N*m].
@@ -71,9 +72,9 @@ def calculate_final_drive_torque_losses_v1(
         Torque at the wheels [N*m].
     :type final_drive_torques_out: numpy.array | float
 
-    :param final_drive_ratio:
-        Final drive ratio [-].
-    :type final_drive_ratio: float
+    :param final_drive_ratio_vector:
+        Final drive ratio vector [-].
+    :type final_drive_ratio_vector: numpy.array | float
 
     :param final_drive_efficiency:
         Final drive efficiency [-].
@@ -85,8 +86,8 @@ def calculate_final_drive_torque_losses_v1(
     """
 
     eff_fd = final_drive_efficiency - (n_wheel_drive - 2) / 100
-
-    return (1 - eff_fd) / (eff_fd * final_drive_ratio) * final_drive_torques_out
+    to = final_drive_torques_out
+    return (1 - eff_fd) / (eff_fd * final_drive_ratio_vector) * to
 
 
 # noinspection PyUnusedLocal
@@ -115,7 +116,8 @@ def domain_final_drive_torque_losses_v1(n_dyno_axes, n_wheel_drive, *args):
 
 
 def calculate_final_drive_torques_in(
-        final_drive_torques_out, final_drive_ratio, final_drive_torque_losses):
+        final_drive_torques_out, final_drive_ratio_vector,
+        final_drive_torque_losses):
     """
     Calculates final drive torque [N*m].
 
@@ -123,9 +125,9 @@ def calculate_final_drive_torques_in(
         Torque at the wheels [N*m].
     :type final_drive_torques_out: numpy.array | float
 
-    :param final_drive_ratio:
-        Final drive ratio [-].
-    :type final_drive_ratio: float
+    :param final_drive_ratio_vector:
+        Final drive ratio vector [-].
+    :type final_drive_ratio_vector: numpy.array | float
 
     :param final_drive_torque_losses:
         Final drive torque losses [N*m].
@@ -136,13 +138,14 @@ def calculate_final_drive_torques_in(
     :rtype: numpy.array | float
     """
 
-    t = final_drive_torques_out / final_drive_ratio
+    t = final_drive_torques_out / final_drive_ratio_vector
 
     return t + final_drive_torque_losses
 
 
 def calculate_final_drive_efficiencies(
-        final_drive_torques_out, final_drive_ratio, final_drive_torques_in):
+        final_drive_torques_out, final_drive_ratio_vector,
+        final_drive_torques_in):
     """
     Calculates final drive efficiency [-].
 
@@ -150,9 +153,9 @@ def calculate_final_drive_efficiencies(
         Torque at the wheels [N*m].
     :type final_drive_torques_out: numpy.array
 
-    :param final_drive_ratio:
-        Final drive ratio [-].
-    :type final_drive_ratio: float
+    :param final_drive_ratio_vector:
+        Final drive ratio vector [-].
+    :type final_drive_ratio_vector: numpy.array | float
 
     :param final_drive_torques_in:
         Final drive torque in [N*m].
@@ -168,7 +171,7 @@ def calculate_final_drive_efficiencies(
     eff = np.ones_like(t_out, dtype=float)
 
     b = ~((t_out == 0) & (t_in == 0))
-    eff[b] = t_out[b] / (final_drive_ratio * t_in[b])
+    eff[b] = t_out[b] / (final_drive_ratio_vector[b] * t_in[b])
 
     return np.nan_to_num(eff)
 
@@ -192,6 +195,50 @@ def calculate_final_drive_powers_in(
     """
 
     return final_drive_powers_out / final_drive_efficiencies
+
+
+def calculate_final_drive_ratios(final_drive_ratio, gear_box_ratios):
+    """
+    Defines final drive ratios for each gear [-].
+
+    :param final_drive_ratio:
+        Final drive ratio [-].
+    :type final_drive_ratio: float
+
+    :param gear_box_ratios:
+        Gear box ratios [-].
+    :type gear_box_ratios: dict
+
+    :return:
+        Final drive ratios [-].
+    :rtype: dict
+    """
+
+    return dict.fromkeys(gear_box_ratios, final_drive_ratio)
+
+
+def calculate_final_drive_ratio_vector(final_drive_ratios, gears):
+    """
+    Calculates the final drive ratio vector [-].
+
+    :param final_drive_ratios:
+        Final drive ratios [-].
+    :type final_drive_ratios: dict
+
+    :param gears:
+        Gear vector [-].
+    :type gears: numpy.array
+
+    :return:
+        Final drive ratio vector [-].
+    :rtype: numpy.array
+    """
+    from .defaults import dfl
+    d = {0: dfl.values.final_drive_ratio}
+
+    d.update(final_drive_ratios)
+
+    return np.vectorize(d.get)(gears)
 
 
 def final_drive():
@@ -219,8 +266,26 @@ def final_drive():
     )
 
     d.add_function(
+        function=calculate_final_drive_ratios,
+        inputs=['final_drive_ratio', 'gear_box_ratios'],
+        outputs=['final_drive_ratios']
+    )
+
+    d.add_function(
+        function=calculate_final_drive_ratios,
+        inputs=['final_drive_ratio', 'velocity_speed_ratios'],
+        outputs=['final_drive_ratios']
+    )
+
+    d.add_function(
+        function=calculate_final_drive_ratio_vector,
+        inputs=['final_drive_ratios', 'gears'],
+        outputs=['final_drive_ratio_vector']
+    )
+
+    d.add_function(
         function=calculate_final_drive_speeds_in,
-        inputs=['final_drive_speeds_out', 'final_drive_ratio'],
+        inputs=['final_drive_speeds_out', 'final_drive_ratio_vector'],
         outputs=['final_drive_speeds_in']
     )
 
@@ -243,7 +308,7 @@ def final_drive():
     d.add_function(
         function=dsp_utl.add_args(calculate_final_drive_torque_losses_v1),
         inputs=['n_dyno_axes', 'n_wheel_drive', 'final_drive_torques_out',
-                'final_drive_ratio', 'final_drive_efficiency'],
+                'final_drive_ratio_vector', 'final_drive_efficiency'],
         outputs=['final_drive_torque_losses'],
         weight=5,
         input_domain=domain_final_drive_torque_losses_v1
@@ -251,14 +316,14 @@ def final_drive():
 
     d.add_function(
         function=calculate_final_drive_torques_in,
-        inputs=['final_drive_torques_out', 'final_drive_ratio',
+        inputs=['final_drive_torques_out', 'final_drive_ratio_vector',
                 'final_drive_torque_losses'],
         outputs=['final_drive_torques_in']
     )
 
     d.add_function(
         function=calculate_final_drive_efficiencies,
-        inputs=['final_drive_torques_out', 'final_drive_ratio',
+        inputs=['final_drive_torques_out', 'final_drive_ratio_vector',
                 'final_drive_torques_in'],
         outputs=['final_drive_efficiencies']
     )

@@ -462,7 +462,7 @@ def identify_speed_velocity_ratios(
 
 
 def calculate_gear_box_ratios(
-        velocity_speed_ratios, final_drive_ratio, r_dynamic):
+        velocity_speed_ratios, final_drive_ratios, r_dynamic):
     """
     Calculates gear box ratios [-].
 
@@ -470,9 +470,9 @@ def calculate_gear_box_ratios(
         Constant velocity speed ratios of the gear box [km/(h*RPM)].
     :type velocity_speed_ratios: dict
 
-    :param final_drive_ratio:
-        Final drive ratio [-].
-    :type final_drive_ratio: float
+    :param final_drive_ratios:
+        Final drive ratios [-].
+    :type final_drive_ratios: dict
 
     :param r_dynamic:
         Dynamic radius of the wheels [m].
@@ -483,15 +483,15 @@ def calculate_gear_box_ratios(
     :rtype: dict
     """
 
-    c = final_drive_ratio * 30 / (3.6 * math.pi * r_dynamic)
+    c = 30 / (3.6 * math.pi * r_dynamic)
 
-    svr = calculate_velocity_speed_ratios(velocity_speed_ratios)
+    r = calculate_velocity_speed_ratios(velocity_speed_ratios)
 
-    return {k: v / c for k, v in svr.items() if k != 0}
+    return {k: v / (c * final_drive_ratios[k]) for k, v in r.items() if k != 0}
 
 
 def calculate_speed_velocity_ratios(
-        gear_box_ratios, final_drive_ratio, r_dynamic):
+        gear_box_ratios, final_drive_ratios, r_dynamic):
     """
     Calculates speed velocity ratios of the gear box [h*RPM/km].
 
@@ -499,9 +499,9 @@ def calculate_speed_velocity_ratios(
         Gear box ratios [-].
     :type gear_box_ratios: dict
 
-    :param final_drive_ratio:
-        Final drive ratio [-].
-    :type final_drive_ratio: float
+    :param final_drive_ratios:
+        Final drive ratios [-].
+    :type final_drive_ratios: dict
 
     :param r_dynamic:
         Dynamic radius of the wheels [m].
@@ -512,9 +512,9 @@ def calculate_speed_velocity_ratios(
     :rtype: dict
     """
 
-    c = final_drive_ratio * 30 / (3.6 * math.pi * r_dynamic)
+    c = 30 / (3.6 * math.pi * r_dynamic)
 
-    svr = {k: c * v for k, v in gear_box_ratios.items()}
+    svr = {k: c * v * final_drive_ratios[k] for k, v in gear_box_ratios.items()}
 
     svr[0] = defaults.dfl.INF
 
@@ -622,7 +622,7 @@ def mechanical():
 
     d.add_function(
         function=calculate_speed_velocity_ratios,
-        inputs=['gear_box_ratios', 'final_drive_ratio', 'r_dynamic'],
+        inputs=['gear_box_ratios', 'final_drive_ratios', 'r_dynamic'],
         outputs=['speed_velocity_ratios']
     )
 
@@ -670,7 +670,7 @@ def mechanical():
 
     d.add_function(
         function=calculate_gear_box_ratios,
-        inputs=['velocity_speed_ratios', 'final_drive_ratio', 'r_dynamic'],
+        inputs=['velocity_speed_ratios', 'final_drive_ratios', 'r_dynamic'],
         outputs=['gear_box_ratios']
     )
 

@@ -563,6 +563,7 @@ def define_data_schema(read=True):
         'optimal_efficiency': dictarray,
         'velocity_speed_ratios': index_dict,
         'gear_box_ratios': index_dict,
+        'final_drive_ratios': index_dict,
         'speed_velocity_ratios': index_dict,
         'full_load_speeds': np_array_sorted,
         'full_load_torques': np_array,

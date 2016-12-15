@@ -47,7 +47,7 @@ def select_prediction_data(data, *new_data, theoretical=True):
     ids = [
         'angle_slope', 'alternator_nominal_voltage', 'alternator_efficiency',
         'battery_capacity', 'cycle_type', 'cycle_name', 'engine_capacity',
-        'engine_stroke', 'final_drive_efficiency',
+        'engine_stroke', 'final_drive_efficiency', 'final_drive_ratios',
         'frontal_area', 'final_drive_ratio', 'engine_thermostat_temperature',
         'aerodynamic_drag_coefficient', 'fuel_type', 'ignition_type',
         'gear_box_type', 'engine_max_power', 'engine_max_speed_at_max_power',
