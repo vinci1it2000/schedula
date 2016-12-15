@@ -371,7 +371,7 @@ def identify_velocity_speed_ratios(
     b = (gear_box_speeds_in > idle_speed) & (velocities > stop_velocity)
     x = (velocities[b] / gear_box_speeds_in[b])[:, None]
 
-    ms = sk_clu.KMeans(n_clusters=n_gears,copy_x=False)
+    ms = sk_clu.KMeans(n_clusters=int(n_gears), copy_x=False, random_state=0)
     ms.fit(x)
 
     vsr = {k + 1: v for k, v in enumerate(sorted(ms.cluster_centers_[:, 0]))}
