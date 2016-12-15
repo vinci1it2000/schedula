@@ -29,6 +29,7 @@ pykalman
 wltp
 openpyxl>=2.4.0
 flask
+git+https://github.com/vinci1it2000/pycel.git
 
 ## Dice
 python-gnupg

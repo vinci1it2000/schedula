@@ -41,6 +41,7 @@ Sub-Modules:
     drw
     dsp
     exc
+    exl
     gen
     io
     sol
@@ -78,6 +79,11 @@ from . import exc
 from .exc import *
 
 __all__ += exc.__all__
+
+from . import exl
+from .exl import *
+
+__all__ += exl.__all__
 
 from . import gen
 from .gen import *

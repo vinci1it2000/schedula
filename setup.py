@@ -185,8 +185,10 @@ setup(
         'openpyxl>=2.4.0',
         'Pillow',           ## for tkui
         'toolz',
-        'flask'
+        'flask',
+        'Pycel'
     ],
+    dependency_links=['https://github.com/vinci1it2000/pycel/tarball/master#egg=Pycel'],
     extras_require={
         'dice': [
             'python-gnupg',
