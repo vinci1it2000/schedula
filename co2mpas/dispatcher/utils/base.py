@@ -1,6 +1,7 @@
 from .cst import NONE
 from copy import _reconstruct
 import threading
+import tempfile
 
 
 class Base(object):
@@ -111,7 +112,7 @@ class Base(object):
 
         :return:
             A directed graph source code in the DOT language.
-        :rtype: graphviz.dot.Digraph
+        :rtype: SiteMap
 
         Example:
 
@@ -155,7 +156,7 @@ class Base(object):
         sitemap = SiteMap()
         sitemap.add_items(self, workflow=workflow, depth=depth, **options)
         if view:
-            sitemap.site(view=True)
+            sitemap.render(directory=tempfile.mkdtemp(), view=True)
         return sitemap
 
     def get_node(self, *node_ids, node_attr=NONE):
