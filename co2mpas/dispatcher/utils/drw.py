@@ -610,6 +610,9 @@ class SiteFolder(object):
     @property
     def inputs(self):
         try:
+            from .sol import Solution
+            if isinstance(self.item, Solution):
+                return self.item.dsp.inputs or ()
             return self.item.inputs or ()
         except AttributeError:
             return ()
