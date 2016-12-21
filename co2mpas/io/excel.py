@@ -390,11 +390,12 @@ def write_to_excel(data, output_file_name, template_file_name):
         log.debug('Writing into xl-file(%s) based on template(%s)...',
                   output_file_name, template_file_name)
         writer = clone_excel(template_file_name, output_file_name)
+
     else:
         log.debug('Writing into xl-file(%s)...', output_file_name)
         writer = pd.ExcelWriter(output_file_name, engine='xlsxwriter')
-    xlref = []
-    charts = []
+
+    xlref, calculate_sheets, charts = [], sorted(writer.sheets), []
     for k, v in sorted(data.items(), key=_sort_sheets):
         if not k.startswith('graphs.'):
             down = True
@@ -424,6 +425,14 @@ def write_to_excel(data, output_file_name, template_file_name):
         xlref = pd.DataFrame(xlref)
         xlref.set_index([0], inplace=True)
         _df2excel(writer, 'xlref', xlref, 0, (), index=True, header=False)
+
+    if calculate_sheets:
+        d, seeds = dsp_utl.extract_dsp_from_excel(
+            writer.path, writer.book, calculate_sheets
+        )[:-1]
+        s = d.dispatch()
+        for k, (v, f) in seeds.items():
+            v.value = s.get(k, None)
 
     writer.save()
     log.info('Written into xl-file(%s)...', output_file_name)
