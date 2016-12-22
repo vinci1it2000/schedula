@@ -1014,18 +1014,18 @@ class SubDispatchPipe(SubDispatchFunction):
 
     def __call__(self, *args, _sol_output=None, _sol_stopper=None):
         dsp, inputs = self.dsp, map_list(self.inputs, *args)
-        key_map, sub_dsp = {}, {}
-        for k, s in self._sol.sub_dsp.items():
+        key_map, sub_sol = {}, {}
+        for k, s in self._sol.sub_sol.items():
             ns = s.copy_structure(dist=1)
             ns.stopper = _sol_stopper or ns.stopper
-            ns.sub_dsp = sub_dsp
+            ns.sub_sol = sub_sol
             key_map[s] = ns
-            sub_dsp[k] = ns
+            sub_sol[ns.index] = ns
 
         sol = key_map[self._sol]
         sol.inputs.update(inputs)
 
-        for s in sub_dsp.values():
+        for s in sub_sol.values():
             s._init_workflow(clean=False)
 
         for v, s, nxt_nds, nxt_dsp in self.pipe:

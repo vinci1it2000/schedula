@@ -547,7 +547,6 @@ def get_sub_node(dsp, path, node_attr='auto', solution=NONE, _level=0,
         try:
             if node['type'] == 'function':
                 try:
-                    solution = solution.sub_dsp[dsp]
                     solution = solution.workflow.node[node_id]['solution']
                 except (KeyError, AttributeError):
                     solution = EMPTY
@@ -568,12 +567,12 @@ def get_sub_node(dsp, path, node_attr='auto', solution=NONE, _level=0,
         # Return the sub node.
         if node_attr == 'auto' and node['type'] != 'data':  # Auto: function.
             node_attr = 'function'
-        elif node_attr == 'auto' and solution is not EMPTY and node_id in solution.sub_dsp.get(dsp, ()):  # Auto: data output.
-                data = solution.sub_dsp[dsp][node_id]
+        elif node_attr == 'auto' and solution is not EMPTY and node_id in solution:  # Auto: data output.
+                data = solution[node_id]
         elif node_attr == 'output' and node['type'] != 'data':
             data = solution.workflow.node[node_id]['solution']
         elif node_attr == 'output' and node['type'] == 'data':
-            data = solution.sub_dsp[dsp][node_id]
+            data = solution[node_id]
         elif node_attr == 'description':  # Search and return node description.
             data = search_node_description(node_id, node, dsp)
         elif node_attr == 'value_type' and node['type'] == 'data':
@@ -1056,8 +1055,8 @@ def _sort_sk_wait_in(sol):
         w = set()
         L = []
         for n, a in s.dsp.sub_dsp_nodes.items():
-            if 'function' in a and a['function'] in s.sub_dsp:
-                sub_sol = s.sub_dsp[a['function']]
+            if 'function' in a and s.index + a['index'] in s.sub_sol:
+                sub_sol = s.sub_sol[s.index + a['index']]
                 n_d, l = _get_sk_wait_in(sub_sol)
                 L += l
                 wi = {k for k, v in sub_sol._wait_in.items() if v is True}
@@ -1090,7 +1089,7 @@ def _union_workflow(sol, node_id=None, bfs=None):
 
     for n, a in sol.dsp.sub_dsp_nodes.items():
         if 'function' in a:
-            s = sol.sub_dsp.get(a['function'], None)
+            s = sol.sub_sol.get(sol.index + a['index'], None)
             if s:
                 _union_workflow(s, node_id=n, bfs=j)
     return j

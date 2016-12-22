@@ -1583,7 +1583,6 @@ class Dispatcher(Base):
 
         # Dispatch.
         sol.run()
-        sol.sub_dsp[self] = sol.sub_dsp.pop(dsp)  #: Update correct reference.
 
         if select_output_kw:
             return selector(dictionary=sol, **select_output_kw)

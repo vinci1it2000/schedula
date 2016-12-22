@@ -391,7 +391,7 @@ class FolderNode(object):
             if len(n) == 1:
                 n = n[0]
             try:
-                obj = item.sub_dsp[dsp]
+                obj = item.sub_sol[item.index[:-1]]
             except (AttributeError, KeyError):
                 obj = dsp
 
