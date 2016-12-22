@@ -422,9 +422,17 @@ def _run_batch(opts, **kwargs):
     }
     kw.update(kwargs)
 
-    from co2mpas.batch import process_folder_files
+    from co2mpas.batch import process_folder_files, SITES
     process_folder_files(input_paths, output_folder, **kw)
 
+    if SITES:
+        import time
+        try:
+            while True:
+                time.sleep(1)
+        except (KeyboardInterrupt, SystemExit):
+            for site in SITES:
+                site.shutdown()
 
 def _cmd_modelconf(opts):
     output_folder = opts['-O']

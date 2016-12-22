@@ -176,6 +176,7 @@ def _process_folder_files(*args, result_listener=None, **kwargs):
 
     return summary, start_time
 
+SITES = set()
 
 # noinspection PyUnusedLocal
 def plot_model_workflow(output_file_name=None, vehicle_name='', **kw):
@@ -203,7 +204,7 @@ def plot_model_workflow(output_file_name=None, vehicle_name='', **kw):
         if output_file_name:
             ofname = osp.splitext(output_file_name)[0]
         log.info("Plotting workflow of %s... into '%s'", vehicle_name, ofname)
-        return {'filename': ofname}
+        return {'directory': ofname, 'sites': SITES}
     except RuntimeError as ex:
         log.warning(ex, exc_info=1)
     return dsp_utl.NONE
