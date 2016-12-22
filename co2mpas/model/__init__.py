@@ -127,6 +127,7 @@ def model():
     """
 
     from .physical import physical
+    ph = dsp_utl.SubDispatch(physical())
     d = dsp.Dispatcher(
         name='CO2MPAS model',
         description='Calibrates the models with WLTP data and predicts NEDC '
@@ -145,7 +146,7 @@ def model():
 
     d.add_function(
         function_id='calculate_precondition_output',
-        function=dsp_utl.SubDispatch(physical()),
+        function=ph,
         inputs=['input.precondition.wltp_p'],
         outputs=['output.precondition.wltp_p'],
         description='Wraps all functions needed to calculate the precondition '
@@ -169,7 +170,7 @@ def model():
 
     d.add_function(
         function_id='calibrate_with_wltp_h',
-        function=dsp_utl.SubDispatch(physical()),
+        function=ph,
         inputs=['data.calibration.wltp_h'],
         outputs=['output.calibration.wltp_h'],
         description='Wraps all functions needed to calibrate the models to '
@@ -190,7 +191,7 @@ def model():
 
     d.add_function(
         function_id='predict_wltp_h',
-        function=dsp_utl.SubDispatch(physical()),
+        function=ph,
         inputs=['data.prediction.wltp_h'],
         outputs=['output.prediction.wltp_h'],
         description='Wraps all functions needed to predict CO2 emissions.'
@@ -213,7 +214,7 @@ def model():
 
     d.add_function(
         function_id='calibrate_with_wltp_l',
-        function=dsp_utl.SubDispatch(physical()),
+        function=ph,
         inputs=['data.calibration.wltp_l'],
         outputs=['output.calibration.wltp_l'],
         description='Wraps all functions needed to calibrate the models to '
@@ -234,7 +235,7 @@ def model():
 
     d.add_function(
         function_id='predict_wltp_l',
-        function=dsp_utl.SubDispatch(physical()),
+        function=ph,
         inputs=['data.prediction.wltp_l'],
         outputs=['output.prediction.wltp_l'],
         description='Wraps all functions needed to predict CO2 emissions.'
@@ -276,7 +277,7 @@ def model():
 
     d.add_function(
         function_id='predict_nedc_h',
-        function=dsp_utl.SubDispatch(physical()),
+        function=ph,
         inputs=['data.prediction.models_nedc_h', 'input.prediction.nedc_h'],
         outputs=['output.prediction.nedc_h'],
     )
@@ -287,7 +288,7 @@ def model():
 
     d.add_function(
         function_id='predict_nedc_l',
-        function=dsp_utl.SubDispatch(physical()),
+        function=ph,
         inputs=['data.prediction.models_nedc_l', 'input.prediction.nedc_l'],
         outputs=['output.prediction.nedc_l'],
     )
