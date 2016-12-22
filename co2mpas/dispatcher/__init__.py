@@ -221,9 +221,6 @@ class Dispatcher(Base):
         #: If True the dispatcher interrupt the dispatch when an error occur.
         self.raises = raises
 
-        #: Parent dispatcher.
-        self._parent = None
-
         if stopper:
             #: Stopper to abort the dispatcher execution.
             self.stopper = stopper
@@ -241,7 +238,6 @@ class Dispatcher(Base):
         }
         base = {k: getattr(self, v) for k, v in _map.items()}
         obj = self.__class__(**combine_dicts(kwargs, base=base))
-        obj._parent = self._parent
         obj.weight = self.weight
         return obj
 
@@ -533,10 +529,6 @@ class Dispatcher(Base):
         # Get parent function.
         func = parent_func(function)
 
-        if self._check_func_parent(func):
-            function = deepcopy(function)
-            func = parent_func(function)
-
         # Base function node attributes.
         attr_dict = {
             'type': 'function',
@@ -572,12 +564,6 @@ class Dispatcher(Base):
             attr_dict['weight'] = weight
 
         attr_dict.update(kwargs)  # Set additional attributes.
-
-        # Set parent.
-        if isinstance(func, SubDispatch):
-            func.dsp._update_children_parent((fun_id, self))
-        elif isinstance(func, Dispatcher):
-            func._update_children_parent((fun_id, self))
 
         # Add node to the dispatcher map.
         self.dmap.add_node(fun_id, attr_dict=attr_dict)
@@ -1779,8 +1765,6 @@ class Dispatcher(Base):
         if _update_links:
             _update_remote_links(dsp, self)  # Update remote links.
 
-            dsp._update_children_parent(self._parent)  # Update parents.
-
             remove_links(dsp)  # Remove unused links.
 
         return dsp
@@ -1856,25 +1840,3 @@ class Dispatcher(Base):
                     wait_in.update(dict.fromkeys(a['outputs'].values(), flag))
 
         return wait_in
-
-    def _update_children_parent(self, parent=None):
-        self._parent = parent
-
-        for k, v in self.sub_dsp_nodes.items():
-            v['function']._update_children_parent((k, self))
-
-        for k, v in self.function_nodes.items():
-            func = parent_func(v['function'])
-            if isinstance(func, SubDispatch):
-                func.dsp._update_children_parent((k, self))
-
-    def _check_func_parent(self, func):
-        dsp = parent_func(func)
-
-        if isinstance(dsp, SubDispatch):
-            dsp = dsp.dsp
-
-        if isinstance(dsp, Dispatcher) and dsp._parent:
-            return dsp._parent[1] != self
-
-        return False
