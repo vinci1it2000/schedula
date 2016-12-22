@@ -498,7 +498,7 @@ class FolderNode(object):
         except KeyError:
             pass
 
-        return 'Td(**{}).add("{}")'.format(attr, text)
+        return '_Td(**{}).add("{}")'.format(attr, text)
 
     def href(self, context, link_id):
         res = {}
