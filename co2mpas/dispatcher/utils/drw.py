@@ -903,9 +903,10 @@ class SiteMap(collections.OrderedDict):
         add_items = functools.partial(smap.add_items, workflow=workflow)
         for node in itertools.chain(folder.nodes, folder.edges):
             links, node_id = node._links, node.node_id
+            only_site_node = depth == 0 or node.type == 'data'
             for k, item in node.items():
                 try:
-                    if depth == 0:
+                    if only_site_node:
                         raise ValueError
                     link = add_items(item, depth=depth, name=node_id)
                 except ValueError:  # item is not a dsp object.
