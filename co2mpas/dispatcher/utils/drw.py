@@ -399,7 +399,6 @@ class FolderNode(object):
             n = 'ref({}, "{}", "{}", attr)'.format(id(obj), dsp_id, n)
             yield 'remote %s %d' % (tag, i), '{{%s}}' %  n
 
-
     def _output(self):
         if self.node_id not in (START, SINK, SELF, END):
             try:
@@ -937,7 +936,7 @@ class SiteMap(collections.OrderedDict):
         raise ValueError('Type %s not supported.' % type(item).__name__)
 
     def app(self, root_path=None, depth=-1, index=True, **kwargs):
-        root_path = root_path or tempfile.mktemp()
+        root_path = osp.abspath(root_path or tempfile.mktemp())
         app = flask.Flask(root_path, root_path=root_path, **kwargs)
         generated_files = []
         func = functools.partial(cleanup, generated_files)
