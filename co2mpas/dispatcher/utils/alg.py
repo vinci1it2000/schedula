@@ -1026,7 +1026,7 @@ def get_full_pipe(sol, base=()):
         if n in s._errors:
             p['error'] = s._errors[n]
 
-        node_id = d.get_full_node_id(n)
+        node_id = s.full_name + (n,)
 
         if base != node_id[:len(base)]:
             raise ValueError('%s != %s' % (node_id[:len(base)], base))

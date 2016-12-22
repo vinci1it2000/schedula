@@ -49,6 +49,7 @@ class Solution(Base, OrderedDict):
         self.cutoff = cutoff
         self._wait_in = wait_in or {}
         self.outputs = set(outputs or ())
+        self.parent = None
 
         from .. import Dispatcher
         self._set_dsp_features(dsp or Dispatcher())
@@ -263,6 +264,35 @@ class Solution(Base, OrderedDict):
         y = super(Solution, self).__deepcopy__(memo)
         y._update_methods()
         return y
+
+    @property
+    def full_name(self):
+        """
+        Returns the full node id.
+
+        :param node_ids:
+            A sequence of node ids or a single node id. The id order identifies
+            a dispatcher sub-level.
+
+            If it is empty it will return the full id of the dispatcher.
+        :type node_ids: str
+
+        :return:
+            Full node id and related .
+        :rtype: tuple[str], tuple[Dispatcher]
+        """
+
+        sub_sol = self.sub_sol
+        def _get_id(path):
+            p, i = path[:-1], path[-1:]
+            if p:
+                for k, v in sub_sol[p].nodes.items():
+                    if v['index'] == i:
+                        return _get_id(p) + (k,)
+            s = sub_sol[path]
+            return (s.parent and (s.parent[1].full_name + s.parent[:1])) or ()
+
+        return _get_id(self.index)
 
     def _add_out_dsp_inputs(self):
         # Nodes that are out of the dispatcher nodes.
@@ -654,8 +684,7 @@ class Solution(Base, OrderedDict):
                 fun = node_attr['function']
 
                 if isinstance(parent_func(fun), SubDispatch):
-                    res = fun(*args, _sol_output=attr,
-                              _sol_stopper=self.stopper)
+                    res = fun(*args, _sol_output=attr, _sol=(node_id, self))
                 else:
                     res = fun(*args)
 
@@ -1119,7 +1148,7 @@ class Solution(Base, OrderedDict):
             raise ex
 
         self._errors[node_id] = msg % ((node_id, ex) + args)
-        node_id = '/'.join(self.dsp.get_full_node_id(node_id))
+        node_id = '/'.join(self.full_name + (node_id,))
 
         if self.raises:
             raise DispatcherError(self, msg, node_id, ex, *args, **kwargs)

@@ -236,44 +236,17 @@ class Base(object):
 
             >>> sub_dsp, sub_dsp_id = d.get_node('Sub-dispatcher')
         """
+        kw = {}
+
+        from .sol import Solution
         if node_attr is NONE:
-            from .sol import Solution
             node_attr = 'output' if isinstance(self, Solution) else 'auto'
+
+        if isinstance(self, Solution):
+            kw['solution'] = self
 
         from .alg import get_sub_node
         dsp = getattr(self, 'dsp', self)
 
         # Returns the node.
-        return get_sub_node(dsp, node_ids, node_attr=node_attr)
-
-    def get_full_node_id(self, *node_ids):
-        """
-        Returns the full node id.
-
-        :param node_ids:
-            A sequence of node ids or a single node id. The id order identifies
-            a dispatcher sub-level.
-
-            If it is empty it will return the full id of the dispatcher.
-        :type node_ids: str
-
-        :return:
-            Full node id and related .
-        :rtype: tuple[str], tuple[Dispatcher]
-        """
-
-        if not node_ids:
-            n, dsp = NONE, getattr(self, 'dsp', self)
-        else:
-            n, dsp = node_ids[-1], self.get_node(*node_ids, node_attr='dsp')[0]
-
-        def _parent(n_id, d):
-            if d._parent:
-                l = _parent(*d._parent)
-                if n_id is not NONE:
-                    l.append(n_id)
-                return l
-
-            return [] if n_id is NONE else [n_id]
-
-        return tuple(_parent(n, dsp))
+        return get_sub_node(dsp, node_ids, node_attr=node_attr, **kw)

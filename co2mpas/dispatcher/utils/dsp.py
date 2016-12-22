@@ -674,7 +674,7 @@ class SubDispatch(Base):
         self.solution = Solution(dsp)
 
     def __call__(self, *input_dicts, copy_input_dicts=False, _sol_output=None,
-                 _sol_stopper=None):
+                 _sol=None):
 
         # Combine input dictionaries.
         i = combine_dicts(*input_dicts, copy=copy_input_dicts)
@@ -682,14 +682,15 @@ class SubDispatch(Base):
         # Dispatch the function calls.
         self.solution = self.dsp.dispatch(
             i, self.outputs, self.cutoff, self.inputs_dist, self.wildcard,
-            self.no_call, self.shrink, self.rm_unused_nds, stopper=_sol_stopper
+            self.no_call, self.shrink, self.rm_unused_nds,
+            stopper=_sol and _sol[1].stopper
         )
 
-        return self._return(self.solution, _sol_output)
+        return self._return(self.solution, _sol_output, _sol)
 
-    def _return(self, solution, _sol_output):
+    def _return(self, solution, _sol_output, _sol):
         outs = self.outputs
-
+        solution.parent = _sol
         # Store solution.
         if _sol_output is not None:
             _sol_output['solution'] = solution
@@ -862,11 +863,11 @@ class SubDispatchFunction(SubDispatch):
         elif len(outputs) == 1:
             self.output_type = 'values'
 
-    def __call__(self, *args, _sol_output=None, _sol_stopper=None, **kwargs):
+    def __call__(self, *args, _sol_output=None, _sol=None, **kwargs):
         # Namespace shortcuts.
         dsp, inputs = self.dsp, map_list(self.inputs, *args)
         self.solution = sol = self._sol.copy_structure()
-        sol.stopper = _sol_stopper or dsp.stopper
+        sol.stopper = (_sol and _sol[1].stopper) or dsp.stopper
 
         # Check multiple values for the same argument.
         i = next((i for i in kwargs if i in inputs), None)
@@ -893,7 +894,7 @@ class SubDispatchFunction(SubDispatch):
         sol.run()
 
         # Return outputs sorted.
-        return self._return(sol, _sol_output)
+        return self._return(sol, _sol_output, _sol)
 
 
 class SubDispatchPipe(SubDispatchFunction):
@@ -1012,12 +1013,12 @@ class SubDispatchPipe(SubDispatchFunction):
 
         self.pipe = [_make_tks(*v['task'][-1]) for v in self._sol.pipe.values()]
 
-    def __call__(self, *args, _sol_output=None, _sol_stopper=None):
+    def __call__(self, *args, _sol_output=None, _sol=None):
         dsp, inputs = self.dsp, map_list(self.inputs, *args)
         key_map, sub_sol = {}, {}
         for k, s in self._sol.sub_sol.items():
             ns = s.copy_structure(dist=1)
-            ns.stopper = _sol_stopper or ns.stopper
+            ns.stopper = (_sol and _sol[1].stopper) or ns.stopper
             ns.sub_sol = sub_sol
             key_map[s] = ns
             sub_sol[ns.index] = ns
@@ -1041,7 +1042,7 @@ class SubDispatchPipe(SubDispatchFunction):
             s._see_remote_link_node(v)
 
         # Return outputs sorted.
-        return self._return(sol, _sol_output)
+        return self._return(sol, _sol_output, _sol)
 
 
 class DFun(object):

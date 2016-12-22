@@ -217,14 +217,11 @@ class TestDispatcherGetSubNode(unittest.TestCase):
         self.assertRaises(ValueError, get_sub_node, dsp, ('dispatch', 'b', 'c'))
         self.assertRaises(ValueError, get_sub_node, dsp, ('dispatch', 'e'))
 
-    def test_get_full_node_id(self):
-        ss_dsp = self.ss_dsp_func.dsp
-        dsp = self.dsp
-        v = ss_dsp.get_full_node_id('module:fun')
-        self.assertEqual(v, ('dispatch', 'sub_dispatch', 'module:fun'))
-
-        v = ss_dsp.get_full_node_id()
+    def test_full_name(self):
+        sol = self.sol
+        v = sol.workflow.node['dispatch']['solution']
+        v = v.workflow.node['sub_dispatch']['solution'].full_name
         self.assertEqual(v, ('dispatch', 'sub_dispatch'))
 
-        v = dsp.get_full_node_id('input')
-        self.assertEqual(v, ('input',))
+        v = sol.full_name
+        self.assertEqual(v, ())
