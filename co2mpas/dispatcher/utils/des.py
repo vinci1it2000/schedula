@@ -12,13 +12,10 @@ It provides tools to find data, function, and sub-dispatcher node description.
 
 __author__ = 'Vincenzo Arcidiacono'
 
-__all__ = ['parent_func', 'search_node_description', 'get_summary']
-
 import re
 import logging
-from .dsp import SubDispatch, SubDispatchFunction, add_args, bypass, \
-    replicate_value
-from functools import partial
+from .dsp import SubDispatch, SubDispatchFunction, bypass, replicate_value, \
+    parent_func
 
 
 log = logging.getLogger(__name__)
@@ -208,22 +205,3 @@ def get_link(*items):
         except AttributeError:
             pass
     return ''
-
-
-def parent_func(func, input_id=None):
-
-    if isinstance(func, partial):
-        if input_id is not None:
-            # noinspection PyTypeChecker
-            input_id += len(func.args)
-        return parent_func(func.func, input_id=input_id)
-
-    elif isinstance(func, add_args):
-        if input_id is not None:
-            input_id -= func.n
-        return parent_func(func.func, input_id=input_id)
-
-    if input_id is None:
-        return func
-    else:
-        return func, input_id

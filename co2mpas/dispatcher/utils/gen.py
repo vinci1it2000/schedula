@@ -15,42 +15,28 @@ numerical operations.
 
 __author__ = 'Vincenzo Arcidiacono'
 
-import inspect
-from itertools import tee, count
-
+import itertools
 
 __all__ = ['counter', 'Token', 'pairwise', 'caller_name']
 
-if '__next__' in count.__dict__:
-    def counter(start=0, step=1):
-        """
-        Return a object whose .__call__() method returns consecutive values.
 
-        :param start:
-            Start value.
-        :type start: int, float, optional
+def counter(start=0, step=1):
+    """
+    Return a object whose .__call__() method returns consecutive values.
 
-        :param step:
-            Step value.
-        :type step: int, float, optional
-        """
+    :param start:
+        Start value.
+    :type start: int, float, optional
 
-        return count(start, step).__next__
-else:
-    def counter(start=0, step=1):
-        """
-        Return a object whose .__call__() method returns consecutive values.
-
-        :param start:
-            Start value.
-        :type start: int, float, optional
-
-        :param step:
-            Step value.
-        :type step: int, float, optional
-        """
-
-        return count(start, step).next
+    :param step:
+        Step value.
+    :type step: int, float, optional
+    """
+    c = itertools.count(start, step)
+    try:
+        return c.__next__
+    except AttributeError:
+        return c.next
 
 
 class Token(str):
@@ -110,7 +96,7 @@ def pairwise(iterable):
         [(1, 2), (2, 3), (3, 4), (4, 5)]
     """
 
-    a, b = tee(iterable)
+    a, b = itertools.tee(iterable)
 
     next(b, None)
 
@@ -133,6 +119,7 @@ def caller_name(skip=2):
         stack height.
     :rtype: str
     """
+    import inspect
 
     stack = inspect.stack()
     start = 0 + skip

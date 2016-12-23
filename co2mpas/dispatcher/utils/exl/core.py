@@ -1,16 +1,14 @@
 from pycel.excelcompiler import *
-import openpyxl
-import functools
-import regex
+import re
 
 __all__ = ['extract_dsp_from_excel']
 
-_re_indirect = regex.compile(
+_re_indirect = re.compile(
     r"""(INDIRECT\([^"\(\)]*"([^"\(\)]*)"[^"\(\)]*\))""",
-    regex.IGNORECASE | regex.X | regex.DOTALL
+    re.IGNORECASE | re.X | re.DOTALL
 )
 
-_re_sheet = regex.compile('(([^!]*)!)?(.*)')
+_re_sheet = re.compile('(([^!]*)!)?(.*)')
 
 
 def get_named_range(formula):
@@ -80,33 +78,3 @@ def evaluate_cell(cell, map_inputs, *args):
     except Exception as e:
         raise Exception("Problem evalling: %s for %s, %s" % (
         e, cell.address(), cell.python_expression))
-
-
-def extract_dsp_from_excel(filename, workbook=None, sheets=None):
-    from pycel.excelwrapper import ExcelOpxWrapper
-    exl = ExcelOpxWrapper(filename)
-    exl.workbookDO = exl.workbook = workbook or openpyxl.load_workbook(filename)
-
-    seeds = dict(get_seeds(exl, sheets))
-    graph = ExcelCompiler(filename, excel=exl).gen_graph(seed=list(seeds)).G
-
-    from co2mpas.dispatcher import Dispatcher
-    node, d = graph.node, Dispatcher()
-    for n in graph.node:
-        node_id = n.address()
-        if isinstance(n, Cell) and not n.formula:
-            d.add_data(data_id=node_id, default_value=n.value)
-        else:
-            inputs = sorted(v.address() for v in graph.pred[n])
-            if isinstance(n, CellRange):
-                fun_id, function = 'get_range(%s)' % node_id, get_range
-            else:
-                fun_id, function = n.formula[1:], evaluate_cell
-                inputs += sorted(get_named_range(fun_id))
-
-            d.add_function(
-                function_id=fun_id, inputs=inputs or None, outputs=[node_id],
-                function=functools.partial(function, n, inputs)
-            )
-
-    return d, seeds, exl

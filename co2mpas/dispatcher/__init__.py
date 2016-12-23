@@ -21,20 +21,11 @@ Modules:
     utils
 """
 
-from collections import deque
-from copy import copy, deepcopy
 import threading
-from .utils.alg import rm_cycles_iter, get_unused_node_id, add_func_edges, \
-    get_sub_node, _children, stlp, _update_io_attr_sub_dsp, \
-    _update_remote_links, remove_links, _union_workflow, _convert_bfs
-from .utils.cel import create_celery_app
 from .utils.cst import EMPTY, START, NONE, SINK, SELF, PLOT
-from .utils.des import parent_func
-from .utils.drw import SiteMap, autoplot_callback, autoplot_function
-from .utils.dsp import SubDispatch, bypass, combine_dicts, selector
-from .utils.gen import caller_name, counter
-from .utils.sol import Solution
-from .utils.web import create_flask_app
+from .utils.dsp import SubDispatch, bypass, combine_dicts, selector, stlp, \
+    parent_func
+from .utils.gen import counter
 from .utils.base import Base
 
 
@@ -225,6 +216,7 @@ class Dispatcher(Base):
             #: Stopper to abort the dispatcher execution.
             self.stopper = stopper
 
+        from .utils.sol import Solution
         #: Last dispatch solution.
         self.solution = Solution(self)
 
@@ -366,6 +358,7 @@ class Dispatcher(Base):
         elif data_id is SELF:
             default_value, description = self, SELF.__doc__
         elif data_id is PLOT:
+            from .utils.drw import autoplot_callback, autoplot_function
             callback, description = callback or autoplot_callback, PLOT.__doc__
             function = function or autoplot_function
 
@@ -399,6 +392,7 @@ class Dispatcher(Base):
         has_node = self.dmap.has_node  # Namespace shortcut for speed.
 
         if data_id is None:  # Search for an unused node id.
+            from .utils.alg import get_unused_node_id
             data_id = get_unused_node_id(self.dmap)  # Get an unused node id.
 
         # Check if the node id exists as function.
@@ -557,6 +551,7 @@ class Dispatcher(Base):
         else:
             function_name = function_id
 
+        from .utils.alg import get_unused_node_id
         # Get an unused node id.
         fun_id = get_unused_node_id(self.dmap, initial_guess=function_name)
 
@@ -568,7 +563,7 @@ class Dispatcher(Base):
         # Add node to the dispatcher map.
         self.dmap.add_node(fun_id, attr_dict=attr_dict)
 
-        # Add input edges.
+        from .utils.alg import add_func_edges  # Add input edges.
         n_data = add_func_edges(self, fun_id, inputs, inp_weight, True)
 
         # Add output edges.
@@ -690,7 +685,7 @@ class Dispatcher(Base):
         _weight_from = dict.fromkeys(inputs.keys(), 0.0)
         _weight_from.update(inp_weight or {})
 
-        # Get children and parents nodes.
+        from .utils.alg import _children  # Get children and parents nodes.
         children, parents = _children(inputs), _children(outputs)
 
         # Return dispatcher node id.
@@ -709,7 +704,7 @@ class Dispatcher(Base):
 
         # Unlink node reference.
         for k in children.union(outputs).intersection(dsp.nodes):
-            dsp.nodes[k] = copy(dsp.nodes[k])
+            dsp.nodes[k] = dsp.nodes[k].copy()
 
         # Set remote link.
         for it, is_parent in [(children, True), (outputs, False)]:
@@ -1181,7 +1176,7 @@ class Dispatcher(Base):
                     except KeyError:
                         return True
                 return False
-
+        from collections import deque
         queue = deque([])
 
         # Function to set node attributes.
@@ -1277,8 +1272,8 @@ class Dispatcher(Base):
             >>> dsp is dsp.copy()
             False
         """
-
-        return deepcopy(self)  # Return the copy of the Dispatcher.
+        import copy
+        return copy.deepcopy(self)  # Return the copy of the Dispatcher.
 
     def web(self, import_name=None, **options):
         """
@@ -1296,7 +1291,8 @@ class Dispatcher(Base):
             Flask app based on the given dispatcher.
         :rtype: flask.Flask
         """
-        import_name = import_name or '/'.join((caller_name(), self.name))
+
+        from .utils.web import create_flask_app
         return create_flask_app(self, import_name=import_name, **options)
 
     def celery(self, import_name=None, **options):
@@ -1315,6 +1311,7 @@ class Dispatcher(Base):
             Flask app based on the given dispatcher.
         :rtype: celery.Celery
         """
+        from .utils.cel import create_celery_app
         return create_celery_app(self, **options)
 
     def remove_cycles(self, sources):
@@ -1408,7 +1405,7 @@ class Dispatcher(Base):
         edge_to_remove = []  # List of edges to be removed.
 
         wait_in = self._get_wait_in(all_domain=False)  # Get wait inputs.
-
+        from .utils.alg import rm_cycles_iter
         # Updates the reachable nodes and list of edges to be removed.
         rm_cycles_iter(self.dmap, iter(sources), reached_nodes, edge_to_remove,
                        wait_in)
@@ -1562,7 +1559,7 @@ class Dispatcher(Base):
                 dsp = self.shrink_dsp(outputs=outputs)
 
         # Initialize.
-        self.solution = sol = Solution(
+        self.solution = sol = self.solution.__class__(
             dsp, inputs, outputs, wildcard, cutoff, inputs_dist, no_call,
             rm_unused_nds, _wait_in, stopper=stopper
         )
@@ -1677,6 +1674,7 @@ class Dispatcher(Base):
 
             data_nodes = self.data_nodes  # Get data nodes.
 
+            from .utils.alg import _union_workflow, _convert_bfs
             bfs = _union_workflow(o)  # bfg edges.
 
             # Set minimum initial distances.
@@ -1743,6 +1741,8 @@ class Dispatcher(Base):
         in_e, out_e = dsp.dmap.in_edges, dsp.dmap.out_edges
         succ, nodes = dsp.dmap.succ, dsp.nodes
         rm_edges = dsp.dmap.remove_edges_from
+        from .utils.alg import _children
+
         for n in dsp.sub_dsp_nodes:
             a = nodes[n] = nodes[n].copy()
             bfs = bfs_graphs[n] if bfs_graphs is not None else None
@@ -1755,6 +1755,7 @@ class Dispatcher(Base):
                 o = o.union(set(_children(a['inputs'])))
 
             d = a['function'] = a['function']._get_dsp_from_bfs(o, bfs, False)
+            from .utils.alg import _update_io_attr_sub_dsp
             _update_io_attr_sub_dsp(d, a)
 
             # Update sub-dispatcher edges.
@@ -1763,6 +1764,7 @@ class Dispatcher(Base):
             rm_edges(i.union(o))  # Remove unreachable nodes.
 
         if _update_links:
+            from .utils.alg import _update_remote_links, remove_links
             _update_remote_links(dsp, self)  # Update remote links.
 
             remove_links(dsp)  # Remove unused links.

@@ -11,14 +11,8 @@ It provides functions to read and save a dispatcher from/to files.
 """
 
 __author__ = 'Vincenzo Arcidiacono'
-from decorator import decorator
-from dill import dump, load
 
-try:
-    from win32api import GetShortPathName
-except ImportError:
-    def GetShortPathName(x):
-        return x
+import dill
 
 __all__ = ['save_dispatcher', 'load_dispatcher', 'save_default_values',
            'load_default_values', 'save_map', 'load_map', 'open_file']
@@ -45,6 +39,8 @@ def open_file(path_arg, mode='r'):
         Function which cleanly executes the io.
     :rtype: function
     """
+    from decorator import decorator
+
     @decorator
     def _open_file(func, *args, **kwargs):
         from networkx.utils import open_file as nx_open_file
@@ -86,7 +82,7 @@ def save_dispatcher(dsp, path):
     """
 
     # noinspection PyArgumentList
-    dump(dsp, path)
+    dill.dump(dsp, path)
 
 
 @open_file(0, mode='rb')
@@ -126,7 +122,7 @@ def load_dispatcher(path):
     """
 
     # noinspection PyArgumentList
-    return load(path)
+    return dill.load(path)
 
 
 @open_file(1, mode='wb')
@@ -162,7 +158,7 @@ def save_default_values(dsp, path):
     """
 
     # noinspection PyArgumentList
-    dump(dsp.default_values, path)
+    dill.dump(dsp.default_values, path)
 
 
 @open_file(1, mode='rb')
@@ -203,7 +199,7 @@ def load_default_values(dsp, path):
     """
 
     # noinspection PyArgumentList
-    dsp.__init__(dmap=dsp.dmap, default_values=load(path))
+    dsp.__init__(dmap=dsp.dmap, default_values=dill.load(path))
 
 
 @open_file(1, mode='wb')
@@ -236,7 +232,7 @@ def save_map(dsp, path):
         >>> save_map(dsp, file_name)
     """
 
-    dump(dsp.dmap, path)
+    dill.dump(dsp.dmap, path)
 
 
 @open_file(1, mode='rb')
@@ -271,5 +267,5 @@ def load_map(dsp, path):
         3
     """
 
-    dsp.__init__(dmap=load(path), default_values=dsp.default_values)
+    dsp.__init__(dmap=dill.load(path), default_values=dsp.default_values)
 

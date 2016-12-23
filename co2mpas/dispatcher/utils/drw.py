@@ -23,29 +23,24 @@ import html
 import logging
 import functools
 import itertools
-import regex
+import re
 import socket
 import datetime
 import os
 import jinja2
-import pkg_resources
 import glob
 import shutil
 import weakref
-import flask
 import collections
 from docutils import nodes
 from .cst import START, SINK, END, EMPTY, SELF, NONE, PLOT
 from .dsp import SubDispatch, combine_dicts, map_dict, combine_nested_dicts, \
-    selector
-from .des import parent_func, search_node_description
-from .alg import stlp
+    selector, stlp, parent_func
 from .gen import counter
 
 
 __author__ = 'Vincenzo Arcidiacono'
 
-__all__ = ['SiteMap']
 
 log = logging.getLogger(__name__)
 
@@ -300,7 +295,7 @@ class FolderNode(object):
         '.': ('dot',),  # dot attr
         '*': ('link',) # title link
     }
-    re_node = regex.compile('^([.*+!]?)(\w+)$')
+    re_node = re.compile('^([.*+!]?)(\w+)$')
     max_lines = 5
     max_width = 200
     pprint = pprint.PrettyPrinter(compact=True, width=200)
@@ -352,6 +347,7 @@ class FolderNode(object):
 
     def _tooltip(self):
         try:
+            from .des import search_node_description
             tooltip = search_node_description(
                 self.node_id, self.attr, self.folder.dsp
             )[0]
@@ -726,6 +722,7 @@ class SiteIndex(SiteNode):
     def __init__(self, sitemap, node_id='index'):
         super(SiteIndex, self).__init__(None, node_id, None)
         self.sitemap = sitemap
+        import pkg_resources
         dfl_folder = osp.join(
             pkg_resources.resource_filename(__name__, ''), 'static'
         )
@@ -733,6 +730,7 @@ class SiteIndex(SiteNode):
             self.extra_files.append(osp.relpath(default_file, dfl_folder))
 
     def render(self, context, *args, **kwargs):
+        import pkg_resources
         pkg_dir = pkg_resources.resource_filename(__name__, '')
         fpath = osp.join(pkg_dir, 'templates', self.filename)
         with open(fpath, 'r') as myfile:
@@ -743,6 +741,7 @@ class SiteIndex(SiteNode):
     def view(self, filepath, *args, **kwargs):
         files = list(super(SiteIndex, self).view(filepath, *args, **kwargs))
         folder = osp.dirname(filepath)
+        import pkg_resources
         dfl_folder = osp.join(
             pkg_resources.resource_filename(__name__, ''), 'static'
         )
@@ -775,6 +774,7 @@ def cleanup(files):
 
 
 def shutdown_server():
+    import flask
     func = flask.request.environ.get('werkzeug.server.shutdown')
     if func is None:
         raise RuntimeError('Not running with the Werkzeug Server')
@@ -938,6 +938,7 @@ class SiteMap(collections.OrderedDict):
 
     def app(self, root_path=None, depth=-1, index=True, **kwargs):
         root_path = osp.abspath(root_path or tempfile.mktemp())
+        import flask
         app = flask.Flask(root_path, root_path=root_path, **kwargs)
         generated_files = []
         func = functools.partial(cleanup, generated_files)

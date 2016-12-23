@@ -12,14 +12,13 @@ It provides functions to build a flask app from a dispatcher.
 
 __author__ = 'Vincenzo Arcidiacono'
 
-from .gen import caller_name
-from .alg import parent_func
-from .dsp import SubDispatch
-from functools import partial
+import functools
 import logging
-log = logging.getLogger(__name__)
+import tempfile
+import os.path as osp
+from .dsp import SubDispatch, parent_func
 
-__all__ = ['create_flask_app', 'add_dsp_url_rules']
+log = logging.getLogger(__name__)
 
 
 def create_flask_app(dsp, import_name=None, **options):
@@ -44,7 +43,7 @@ def create_flask_app(dsp, import_name=None, **options):
     """
     from flask import Flask
     if import_name is None:
-        import_name = '/'.join((caller_name(), dsp.name))
+        import_name = osp.abspath(import_name or tempfile.mktemp())
 
     app = Flask(import_name, **options)
 
@@ -107,7 +106,7 @@ def stack_func_rules(dsp, rule='/', edit_data=False, depth=-1,
     if edit_data:
         set_value = dsp.set_default_value
         for k in dsp.data_nodes.keys():
-            yield rule % k, partial(set_value, k)
+            yield rule % k, functools.partial(set_value, k)
 
     for k, v in dsp.function_nodes.items():
         if 'function' in v:
@@ -164,6 +163,6 @@ def add_dsp_url_rules(dsp, app, rule, edit_data=False, methods=('POST',),
     """
 
     options['methods'] = methods
-    add_rule = partial(_add_rule, app.add_url_rule)
+    add_rule = functools.partial(_add_rule, app.add_url_rule)
     for r, func in stack_func_rules(dsp, rule, edit_data):
         add_rule(r, r, func_handler_maker(func), **options)

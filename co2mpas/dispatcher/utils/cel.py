@@ -9,9 +9,10 @@
 """
 It provides functions to build a celery app from a dispatcher.
 """
+
+import functools
+from .dsp import parent_func
 from .web import stack_func_rules
-from functools import partial
-from .alg import parent_func
 
 
 def create_celery_app(dsp, rule='/', edit_data=False, depth=-1,
@@ -47,12 +48,11 @@ def create_celery_app(dsp, rule='/', edit_data=False, depth=-1,
         Flask app based on the given dispatcher.
     :rtype: flask.Flask
     """
-
     from celery import Celery
     app = Celery(**options)
-
     for r, v in stack_func_rules(dsp, rule, edit_data, depth, sub_dsp_function):
-        if isinstance(v, partial):
+        if isinstance(v, functools.partial):
+
             f = parent_func(v)
             for k in ('__name__', '__module__'):
                 if not hasattr(v, k):

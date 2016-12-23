@@ -1,7 +1,19 @@
-from .cst import NONE
-from copy import _reconstruct
+# coding=utf-8
+# -*- coding: UTF-8 -*-
+#
+# Copyright 2014-2016 European Commission (JRC);
+# Licensed under the EUPL (the 'Licence');
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+
+"""
+It provides a base class to for dispatcher objects.
+"""
+
+import copy
 import threading
 import tempfile
+from .cst import NONE
 
 
 class Base(object):
@@ -11,7 +23,7 @@ class Base(object):
             if i not in memo:
                 memo[i] = threading.Event()
         rv = super(Base, self).__reduce_ex__(4)
-        return _reconstruct(self, rv, 1, memo)
+        return copy._reconstruct(self, rv, 1, memo)
 
     def plot(self, workflow=None, view=True, depth=-1, name=NONE, comment=NONE,
              format=NONE, engine=NONE, encoding=NONE, graph_attr=NONE,
@@ -250,3 +262,9 @@ class Base(object):
 
         # Returns the node.
         return get_sub_node(dsp, node_ids, node_attr=node_attr, **kw)
+
+
+    def search_node_description(self, node_id, what='description'):
+        dsp = getattr(self, 'dsp', self)
+        from .des import search_node_description
+        return search_node_description(node_id, dsp.nodes[node_id], dsp, what)

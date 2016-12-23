@@ -11,25 +11,21 @@ It contains a comprehensive list of all modules and classes within dispatcher.
 
 Docstrings should provide sufficient understanding for any individual function.
 """
-from collections import OrderedDict
-from datetime import datetime
-from heapq import heappush, heappop
+import collections
+import heapq
 import logging
-from .alg import (add_edge_fun, remove_edge_fun, stlp, get_full_pipe,
-                  _sort_sk_wait_in)
+from datetime import datetime
+from .alg import add_edge_fun, remove_edge_fun, get_full_pipe, _sort_sk_wait_in
 from .cst import START, NONE, PLOT
-from .des import parent_func
-from .dsp import SubDispatch
+from .dsp import SubDispatch, stlp, parent_func
 from .exc import DispatcherError, DispatcherAbort
 from .base import Base
 
 
-__all__ = ['Solution']
-
 log = logging.getLogger(__name__)
 
 
-class Solution(Base, OrderedDict):
+class Solution(Base, collections.OrderedDict):
     def __hash__(self):
         return id(self)
 
@@ -150,7 +146,7 @@ class Solution(Base, OrderedDict):
         self.workflow = DiGraph()
         self._visited = set()
         self._wf_pred = self.workflow.pred
-        self._errors = OrderedDict()
+        self._errors = collections.OrderedDict()
         self.sub_sol = {self.index: self}
         self.fringe = []  # Use heapq with (distance, wait, label).
         self.dist, self.seen, self._meet = {START: -1}, {START: -1}, {START: -1}
@@ -207,7 +203,7 @@ class Solution(Base, OrderedDict):
 
         while fringe:
             # Visit the closest available node.
-            n = (d, _, (v, sol)) = heappop(fringe)
+            n = (d, _, (v, sol)) = heapq.heappop(fringe)
 
             if sol.stopper.is_set():
                 raise DispatcherAbort(self, "Stop requested.")
@@ -300,9 +296,9 @@ class Solution(Base, OrderedDict):
 
         # Add nodes that are out of the dispatcher nodes.
         if self.no_call:
-            self.update(OrderedDict.fromkeys(o, None))
+            self.update(collections.OrderedDict.fromkeys(o, None))
         else:
-            self.update(OrderedDict((k, self.inputs[k]) for k in o))
+            self.update(collections.OrderedDict((k, self.inputs[k]) for k in o))
 
     def _check_targets(self):
         """
@@ -461,7 +457,7 @@ class Solution(Base, OrderedDict):
             for k, v in estimations.items():  # Calculate length.
                 if k is not START:
                     d = dist[k] + edg_length(edg[k][node_id], node_attr)
-                    heappush(est, (d, k, v))
+                    heapq.heappush(est, (d, k, v))
 
             # The estimation with minimum distance from the starting node.
             estimations = {est[0][1]: est[0][2]}
@@ -803,7 +799,7 @@ class Solution(Base, OrderedDict):
 
                 vd = (True, w, self.index + node['index'])  # Virtual distance.
 
-                heappush(fringe, (vw_dist, vd, (w, self)))  # Add to heapq.
+                heapq.heappush(fringe, (vw_dist, vd, (w, self)))  # Add to heapq.
 
             return True
 
@@ -817,7 +813,7 @@ class Solution(Base, OrderedDict):
             vd = (wait_in, data_id, self.index + index)  # Virtual distance.
 
             # Add node to heapq.
-            heappush(fringe, (initial_dist, vd, (data_id, self)))
+            heapq.heappush(fringe, (initial_dist, vd, (data_id, self)))
 
             return True
         return False
@@ -949,7 +945,7 @@ class Solution(Base, OrderedDict):
             vd = (w_wait_in + int(wait_in), node_id, self.index + index)
 
             # Add to heapq.
-            heappush(fringe, (dist, vd, (node_id, self)))
+            heapq.heappush(fringe, (dist, vd, (node_id, self)))
 
             return True  # The node is visible.
         return False  # The node is not visible.
@@ -1004,7 +1000,7 @@ class Solution(Base, OrderedDict):
         sol.sub_sol = self.sub_sol
 
         for f in sol.fringe:  # Update the fringe.
-            heappush(fringe, (initial_dist + f[0], (2,) + f[1][1:], f[-1]))
+            heapq.heappush(fringe, (initial_dist + f[0], (2,) + f[1][1:], f[-1]))
 
         return sol
 
