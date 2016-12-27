@@ -21,8 +21,6 @@ import co2mpas.io.excel as excel
 import co2mpas.io.schema as schema
 import co2mpas.utils as co2_utl
 import os.path as osp
-import pandalone.xleash as xleash
-import pandas as pd
 
 
 log = logging.getLogger(__name__)
@@ -305,6 +303,7 @@ def _save_summary(fpath, start_time, summary):
     if summary:
         from co2mpas.io.excel import _df2excel
         from co2mpas.io import _dd2df, _sort_key, _co2mpas_info2df, _add_units
+        import pandas as pd
 
         p_keys = ('cycle', 'stage', 'usage', 'param')
 
@@ -395,8 +394,12 @@ def prepare_data(raw_data, variation, input_file_name, overwrite_cache,
         'scope': 'plan' if has_plan else 'base',
     }
     r = {}
-    sheets_factory = xleash.SheetsFactory()
+    import pandalone.xleash as xleash
     from co2mpas.io import check_xlasso
+    import pandas as pd
+
+    sheets_factory = xleash.SheetsFactory()
+
     for k, v in excel._parse_values(variation, match, "in variations"):
         if isinstance(v, str) and check_xlasso(v):
             v = xleash.lasso(v, sheets_factory, url_file=input_file_name)

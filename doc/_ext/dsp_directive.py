@@ -137,14 +137,13 @@ def _data(lines, dsp):
     data = sorted(dsp.data_nodes.items())
     if data:
         _table_heather(lines, 'data', dsp.name)
-
+        from co2mpas.dispatcher.utils.des import get_summary
         for k, v in data:
-            des, link = dsp_utl.search_node_description(k, v, dsp)
+            des, link = dsp.search_node_description(k)
 
             link = ':obj:`%s <%s>`' % (_node_name(str(k)), link)
             str_format = u'   "%s", "%s"'
-            lines.append(str_format % (link,
-                                       dsp_utl.get_summary(des.split('\n'))))
+            lines.append(str_format % (link, get_summary(des.split('\n'))))
 
         lines.append('')
 
@@ -168,7 +167,7 @@ def _functions(lines, dsp, node_type='function'):
         _table_heather(lines, '%ss' % node_type, dsp.name)
 
         for k, v in fun:
-            des, full_name = dsp_utl.search_node_description(k, v, dsp)
+            des, full_name = dsp.search_node_description(k)
             lines.append(u'   ":func:`%s <%s>`", "%s"' % (k, full_name, des))
         lines.append('')
 

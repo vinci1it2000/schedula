@@ -12,12 +12,8 @@ It contains functions to read/write inputs/outputs from/on excel.
 
 import logging
 import math
-import pandas as pd
 import collections
-import pandalone.xleash as xleash
-import pandalone.xleash.io._xlrd as pnd_xlrd
 import shutil
-import openpyxl
 import xlsxwriter.utility as xl_utl
 import inspect
 import itertools
@@ -133,12 +129,14 @@ def _parse_sheet(match, sheet, sheet_name, res=None):
 
     # noinspection PyBroadException
     try:
+        import pandalone.xleash as xleash
         data = xleash.lasso(_xl_ref[sh_type] % sheet_name, sheet=sheet)
     except:
         return res
 
     if sh_type == 'pl':
         try:
+            import pandas as pd
             data = pd.DataFrame(data[1:], columns=data[0])
         except IndexError:
             return None
@@ -273,7 +271,7 @@ def parse_excel_file(file_path):
         A pandas DataFrame with cycle's time series.
     :rtype: dict, pandas.DataFrame
     """
-
+    import pandas as pd
     try:
         excel_file = pd.ExcelFile(file_path)
     except FileNotFoundError:
@@ -284,6 +282,7 @@ def parse_excel_file(file_path):
 
     book = excel_file.book
 
+    import pandalone.xleash.io._xlrd as pnd_xlrd
     for sheet_name in excel_file.sheet_names:
         match = _re_input_sheet_name.match(sheet_name)
         if not match:
@@ -335,7 +334,7 @@ def _add_index_plan(plan, file_path):
 
 
 def _finalize_plan(res, plans, file_path):
-
+    import pandas as pd
     if not plans:
         plans = (pd.DataFrame(),)
 
@@ -368,6 +367,7 @@ def _check_none(v):
 
 
 def _write_sheets(writer, sheet_name, data, down=True, **kw):
+    import pandas as pd
     if isinstance(data, pd.DataFrame):
         return [_df2excel(writer, sheet_name, data, **kw)]
     else:
@@ -385,7 +385,7 @@ def _write_sheets(writer, sheet_name, data, down=True, **kw):
 
 
 def write_to_excel(data, output_file_name, template_file_name):
-
+    import pandas as pd
     if template_file_name:
         log.debug('Writing into xl-file(%s) based on template(%s)...',
                   output_file_name, template_file_name)
@@ -440,7 +440,8 @@ def write_to_excel(data, output_file_name, template_file_name):
 
 def clone_excel(file_name, output_file_name):
     shutil.copy(file_name, output_file_name)
-
+    import pandas as pd
+    import openpyxl
     book = openpyxl.load_workbook(output_file_name)
     writer = pd.ExcelWriter(output_file_name, engine='openpyxl',
                             optimized_write=True, write_only=True)
@@ -477,6 +478,7 @@ def _multi_index_df2excel(writer, shname, df, index=True, **kw):
     try:
         df.to_excel(writer, shname, index=index, **kw)
     except NotImplementedError as ex:
+        import pandas as pd
         if not index and isinstance(df.columns, pd.MultiIndex):
             kw = kw.copy()
             if kw.pop('header', True):
@@ -490,6 +492,7 @@ def _multi_index_df2excel(writer, shname, df, index=True, **kw):
 
 
 def _df2excel(writer, shname, df, k0=0, named_ranges=('columns', 'rows'), **kw):
+    import pandas as pd
     if isinstance(df, pd.DataFrame) and not df.empty:
         _multi_index_df2excel(writer, shname, df, **kw)
         defaults = _get_defaults(df.to_excel)
@@ -574,6 +577,7 @@ def _get_corner(df, startcol=0, startrow=0, index=False, header=True, **kw):
         ref['header'] = list(range(i))
         startrow += i
 
+        import pandas as pd
         if index and isinstance(df.columns, pd.MultiIndex):
             ref['skiprows'] = [i + 1]
             startrow += 1

@@ -28,15 +28,12 @@ import datetime
 import logging
 import pathlib
 import regex
-import pandas as pd
 import co2mpas.dispatcher.utils as dsp_utl
 from co2mpas._version import version
 import co2mpas.dispatcher as dsp
 from . import schema, excel, dill
 import functools
 import itertools
-import pandalone.xleash as xleash
-import pandalone.xleash._parse as pnd_par
 import collections
 log = logging.getLogger(__name__)
 
@@ -106,6 +103,7 @@ def _summary2df(data):
                 col_key=functools.partial(_sort_key, p_keys=('param',) * 2),
                 row_key=functools.partial(_sort_key, p_keys=index)
             )
+            import pandas as pd
             df.columns = pd.MultiIndex.from_tuples(_add_units(df.columns))
             setattr(df, 'name', 'results')
             res.append(df)
@@ -144,6 +142,7 @@ def _proc_info2df(data, start_time, main_flags):
     df, max_l = _pipe2list(data.get('pipe', {}))
 
     if df:
+        import pandas as pd
         df = pd.DataFrame(df)
         setattr(df, 'name', 'pipe')
         res += (df,)
@@ -163,7 +162,7 @@ def _co2mpas_info2df(start_time, main_flags=None):
     if main_flags:
         main_flags = schema.define_flags_schema(read=False).validate(main_flags)
         info.extend(sorted(main_flags.items()))
-
+    import pandas as pd
     df = pd.DataFrame(info, columns=['Parameter', 'Value'])
     df.set_index(['Parameter'], inplace=True)
     setattr(df, 'name', 'info')
@@ -175,6 +174,7 @@ def _freeze2df():
     d = dict(v.split('==') for v in freeze() if '==' in v)
     d = {k: (v,) for k, v in d.items()}
     d['version'] = 'version'
+    import pandas as pd
     df = pd.DataFrame([d])
     df.set_index(['version'], inplace=True)
     df = df.transpose()
@@ -299,6 +299,7 @@ def _parameters2df(data, data_descriptions, write_schema):
             raise ValueError(k, v, ex)
 
     if df:
+        import pandas as pd
         df = pd.DataFrame(df)
         df.set_index(['Parameter', 'Model Name'], inplace=True)
         return df
@@ -459,6 +460,7 @@ def _time_series2df(data, data_descriptions):
     df = collections.OrderedDict()
     for k, v in data.items():
         df[(_parse_name(_param_parts(k)['param'], data_descriptions), k)] = v
+    import pandas as pd
     return pd.DataFrame(df)
 
 
@@ -469,6 +471,7 @@ def _dd2df(dd, index=None, depth=0, col_key=None, row_key=None):
     :rtype: pandas.DataFrame
     """
     frames = []
+    import pandas as pd
     for k, v in dsp_utl.stack_nested_keys(dd, depth=depth):
         df = pd.DataFrame(v)
         df.drop_duplicates(subset=index, inplace=True)
@@ -506,7 +509,6 @@ _re_units = regex.compile('(\[.*\])')
 @functools.lru_cache(None)
 def get_doc_description():
     from ..model.physical import physical
-    from co2mpas.dispatcher.utils import search_node_description
 
     doc_descriptions = {}
 
@@ -514,7 +516,7 @@ def get_doc_description():
     for k, v in d.data_nodes.items():
         if k in doc_descriptions or v['type'] != 'data':
             continue
-        des = search_node_description(k, v, d)[0]
+        des = d.search_node_description(k)[0]
         if not des or len(des.split(' ')) > 4:
 
             unit = _re_units.search(des)
@@ -530,6 +532,7 @@ def get_doc_description():
 
 def check_xlasso(input_file_name):
     try:
+        import pandalone.xleash._parse as pnd_par
         pnd_par.parse_xlref(input_file_name)
         return True
     except SyntaxError:
@@ -591,6 +594,7 @@ def load_inputs():
         weight=5
     )
 
+    import pandalone.xleash as xleash
     d.add_function(
         function_id='load_from_xlasso',
         function=xleash.lasso,
