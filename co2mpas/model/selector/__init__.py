@@ -604,7 +604,7 @@ def selector(*data, pred_cyl_ids=('nedc_h', 'nedc_l', 'wltp_h', 'wltp_l')):
     )
 
     for k, v in setting.items():
-        v['dsp'] = v.pop('define_sub_model', define_sub_model)(**v)
+        v['dsp'] = v.pop('define_sub_model', define_sub_model)(v.pop('d'), **v)
         v['metrics'] = dsp_utl.map_list(v['targets'], *v['metrics'])
         d.add_function(
             function=v.pop('model_selector', _selector)(k, data, data, v),
@@ -736,7 +736,7 @@ def _errors(name, data_id, data_out, setting):
         data_id='error_settings',
         default_value={}
     )
-
+    err = _error(name, setting)
     for o in data_out:
 
         d.add_function(
@@ -748,7 +748,7 @@ def _errors(name, data_id, data_out, setting):
         )
 
         d.add_function(
-            function=_error(name, data_id, o, setting),
+            function=err,
             inputs=['input/%s' % o, 'error_settings'],
             outputs=['error/%s' % o]
         )
@@ -763,10 +763,10 @@ def _errors(name, data_id, data_out, setting):
     return func
 
 
-def _error(name, data_id, data_out, setting):
+def _error(name, setting):
 
     d = dsp.Dispatcher(
-        name='%s-%s error vs %s' % (name, data_id, data_out),
+        name=name,
         description='Calculates the error of calibrated model of a reference.',
     )
 
