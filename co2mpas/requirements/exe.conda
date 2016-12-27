@@ -1,0 +1,18 @@
+## Dependencies for the *conda* package-manager.
+## Use this command to install them::
+##
+##      conda install --file requirements/exe.conda
+##
+## To install the rest deps of the project, use AFTERWARDS the "standard"::
+##
+##      pip install -r requirements/exe.pip
+#
+## or::
+##
+##      pip install -r requirements/dev.pip
+
+pandas
+numpy
+scipy
+scikit-learn
+matplotlib

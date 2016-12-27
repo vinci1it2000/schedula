@@ -1,0 +1,36 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en-GB">
+<head>
+	<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <style type="text/css">
+    {% include "styles.css" %}
+    </style>
+</head>
+<body>
+{% macro input(sitemap, context) -%}
+{%- for item, next_sitemap in sitemap.items() %}
+<li>
+    <label for="{{ item.id }}">{{ item.title }}</label>
+    <input type="checkbox" id="{{ item.id }}" />
+    <ol>
+        {{ input(next_sitemap, context) }}
+    </ol>
+</li>
+{%- endfor %}
+{%- for item in sitemap.keys() %}
+<li class="dot">
+    <a href="{{ context[(item, None)] }}">{{ item.title }}</a>
+</li>
+{%- endfor %}
+{%- for item in sitemap.nodes %}
+<li class="file">
+    <a href="{{ context[(item, None)] }}">{{ item.title }}</a>
+</li>
+{%- endfor %}
+{%- endmacro %}
+
+<ol class="tree">
+    {{ input(sitemap, context) }}
+</ol>
+</body>
+</html>

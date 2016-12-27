@@ -1,0 +1,38 @@
+## Pip-dependencies for installing and running the project.
+
+## C-backends (under Anaconda use `conda` to install them)
+#
+pandas
+numpy
+scipy
+scikit-learn
+matplotlib
+
+## Pure python libs.
+#
+setuptools
+networkx
+dill
+graphviz
+docopt
+six
+pandalone>=0.2.0
+xlsxwriter
+regex
+schema
+lmfit>=0.9.5
+tqdm
+pip
+PyYAML>=3.12
+boltons
+pykalman
+wltp
+openpyxl>=2.4.0
+flask
+git+https://github.com/vinci1it2000/pycel.git
+
+## Dice
+python-gnupg
+gitpython >= 2.1.0 ## Win+Cygwin support
+keyring
+transitions
