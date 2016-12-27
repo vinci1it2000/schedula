@@ -31,6 +31,7 @@ import jinja2
 import glob
 import shutil
 import weakref
+import regex
 import collections
 from docutils import nodes
 from .cst import START, SINK, END, EMPTY, SELF, NONE, PLOT
@@ -143,22 +144,21 @@ def valid_filename(item, filenames, ext=None):
 
 def update_filenames(node, filenames):
     filename = valid_filename(node, filenames)
-    yield (node, None), filename
+    yield (node, None), (filename,)
     filenames.append(filename)
     for file in node.extra_files:
         filename, ext = osp.splitext(file)
         filename = valid_filename(filename, filenames, ext=ext[1:])
-        yield (node, file), filename
+        yield (node, file), (filename,)
         filenames.append(filename)
 
 
-def site_view(app, node, filepath, context, generated_files):
-    static_folder = app.static_folder
-    fpath = osp.join(static_folder, filepath)
-    if not osp.isfile(fpath):
-        generated_files.extend(node.view(fpath, context))
-    fpath = osp.relpath(fpath, static_folder).replace('\\', '/')
-    return app.send_static_file(fpath)
+def site_view(app, node, context, generated_files, rendered):
+    static_folder, filepath = app.static_folder, context[(node, None)]
+    if not osp.isfile(osp.join(static_folder, filepath)):
+        files = cached_view(node, static_folder, context, rendered).values()
+        generated_files.extend(files)
+    return app.send_static_file(filepath.replace('\\', '/'))
 
 
 def render_output(out, pformat):
@@ -221,7 +221,7 @@ class SiteNode(object):
         os.makedirs(osp.dirname(filepath), exist_ok=True)
         with open(filepath, 'w') as f:
             f.write(self.render(*args, **kwargs))
-        return filepath,
+        return {(id(self.item), None): filepath}
 
 
 class FolderNode(object):
@@ -343,7 +343,7 @@ class FolderNode(object):
             if k and k in '*+':
                 yield from func()
             elif k =='!':
-                yield from ((i, j)for i, j in func() if not check(j))
+                yield from ((i, j) for i, j in func() if not check(j))
 
     def _tooltip(self):
         try:
@@ -386,13 +386,8 @@ class FolderNode(object):
 
             if len(n) == 1:
                 n = n[0]
-            try:
-                obj = item.sub_sol[item.index[:-1]]
-            except (AttributeError, KeyError):
-                obj = dsp
 
-            n = '%s({})'.format(n)
-            n = 'ref({}, "{}", "{}", attr)'.format(id(obj), dsp_id, n)
+            n = 'parent_ref("({})", attr)'.format(n)
             yield 'remote %s %d' % (tag, i), '{{%s}}' %  n
 
     def _output(self):
@@ -482,16 +477,15 @@ class FolderNode(object):
                 except AttributeError:
                     yield k, functools.partial(self.yield_attr, v)
 
-    def ref(self, context, child, default, template='%s', attr=None):
-        text, attr = template % default, attr or {}
+    def parent_ref(self, context, text, attr=None):
+        attr = attr or {}
         try:
-            node, rule = context[child]
-            attr = attr.copy()
-            attr['href'] = urlparse.unquote('./%s' % osp.relpath(
-                rule, osp.dirname(context[id(self.folder.item)][1])
-            ).replace('\\', '/'))
-            text = template % node.title
-        except KeyError:
+            dirname = osp.dirname(context[(self.folder, None)])
+            rule = next(f for (n, e), f in context.items()
+                        if e is None and dirname == osp.splitext(f)[0])
+            attr, href = attr.copy(), osp.relpath(rule, dirname)
+            attr['href'] = urlparse.unquote('./%s' % href.replace('\\', '/'))
+        except StopIteration:
             pass
 
         return '_Td(**{}).add("{}")'.format(attr, text)
@@ -502,12 +496,9 @@ class FolderNode(object):
             node = self._links[link_id]
             res['text'] = node.title
             try:
-                res['href'] = urlparse.unquote(
-                    './%s' % osp.relpath(
-                        context[(node, None)],
-                        osp.dirname(context[(self.folder, None)])
-                    ).replace('\\', '/')
-                )
+                dirname = osp.dirname(context[(self.folder, None)])
+                href = osp.relpath(context[(node, None)], dirname)
+                res['href'] = urlparse.unquote('./%s' % href.replace('\\', '/'))
             except KeyError:
                 pass
         return res
@@ -520,11 +511,7 @@ class FolderNode(object):
             return dot
         key, val = dict(ALIGN="RIGHT", BORDER=1), dict(ALIGN="LEFT", BORDER=1)
         rows, funcs, cnt = [], list(self.render_funcs()), {'attr': val}
-        cnt['ref'] = functools.partial(
-            self.ref, {id(k.item): (k, v)
-                       for (k, extra), v in context.items()
-                       if not extra}
-        )
+        cnt['parent_ref'] = functools.partial(self.parent_ref, context)
         href, pformat, links = self.href, self.pprint.pformat, self._links
         for k, func in funcs:
             if k == '.':
@@ -537,10 +524,10 @@ class FolderNode(object):
                         tr.add(**v)
                     else:
                         j = render_output(j, pformat)
-                        # noinspection PyBroadException
-                        try:
-                            tr += eval(jinja2_format(j, cnt))
-                        except:  # It is not a valid jinja2 format.
+                        s = jinja2_format(j, cnt)
+                        if s.startswith('_Td('):
+                            tr += eval(s)
+                        else:  # It is not a valid jinja2 format.
                             tr.add(j, **val)
 
                     rows.append(tr)
@@ -633,7 +620,7 @@ class SiteFolder(object):
 
     @property
     def label_name(self):
-        return '-'.join(('workflow' if self.workflow else 'dmap', self.title))
+        return 'workflow' if self.workflow else 'dmap'
 
     @property
     def _nodes(self):
@@ -687,7 +674,7 @@ class SiteFolder(object):
     def dot(self, context=None):
         context = context or {}
         kw = combine_nested_dicts(self.digraph, {
-            'name': self.title,
+            'name': self.label_name,
             'body': {'label': '<%s>' % self.label_name}
         })
         kw['body'] = ['%s = %s' % (k, v) for k, v in sorted(kw['body'].items())]
@@ -709,18 +696,18 @@ class SiteFolder(object):
             filename=tempfile.mktemp(dir=osp.dirname(filepath)), directory=None,
             cleanup=True
         )
-        upath = uncpath(filepath)
-        if osp.isfile(upath):
-            os.remove(upath)
-        os.rename(fpath, upath)
-        return filepath,
+        filepath = uncpath(filepath)
+        if osp.isfile(filepath):
+            os.remove(filepath)
+        os.rename(fpath, filepath)
+        return {(id(self.item), None): filepath}
 
 
 class SiteIndex(SiteNode):
     ext='html'
 
     def __init__(self, sitemap, node_id='index'):
-        super(SiteIndex, self).__init__(None, node_id, None)
+        super(SiteIndex, self).__init__(None, node_id, self)
         self.sitemap = sitemap
         import pkg_resources
         dfl_folder = osp.join(
@@ -739,19 +726,17 @@ class SiteIndex(SiteNode):
                                  loader=jinja2.PackageLoader(__name__))
 
     def view(self, filepath, *args, **kwargs):
-        files = list(super(SiteIndex, self).view(filepath, *args, **kwargs))
+        files = super(SiteIndex, self).view(filepath, *args, **kwargs)
         folder = osp.dirname(filepath)
-        import pkg_resources
-        dfl_folder = osp.join(
-            pkg_resources.resource_filename(__name__, ''), 'static'
-        )
-        for default_file in glob.glob(dfl_folder + '/*'):
-            fpath = osp.join(folder, osp.relpath(default_file, dfl_folder))
-            fpath = uncpath(fpath)
+        import pkg_resources as pkg_res
+        dfl_folder = osp.join(pkg_res.resource_filename(__name__, ''), 'static')
+
+        for fname in self.extra_files:
+            fpath = uncpath(osp.join(folder, fname))
             if not osp.isfile(fpath):
                 os.makedirs(osp.dirname(fpath), exist_ok=True)
-                shutil.copy(default_file, fpath)
-                files.append(fpath)
+                shutil.copy(uncpath(osp.join(dfl_folder, fname)), fpath)
+            files[(id(self.item), fname)] = fpath
         return files
 
 
@@ -759,7 +744,7 @@ def run_server(app, options):
     app.run(**options)
 
 
-def cleanup(files):
+def cleanup(files, rendered):
     while files:
         fpath = files.pop()
         try:
@@ -770,6 +755,7 @@ def cleanup(files):
             os.removedirs(osp.dirname(fpath))
         except OSError:  # The directory is not empty.
             pass
+    rendered.clear()
     return 'Cleaned up generated files by the server.'
 
 
@@ -862,12 +848,12 @@ class SiteMap(collections.OrderedDict):
         rules.extend(self._rules(depth=depth, filenames=filenames))
         if index:
             rules.extend(list(update_filenames(self.index, filenames))[::-1])
-        it = ((k, v.replace('\\', '/')) for k, v in reversed(rules))
+        it = ((k, osp.join(*v).replace('\\', '/')) for k, v in reversed(rules))
         return collections.OrderedDict(it)
 
-    def _rules(self, depth=-1, rule='', filenames=None):
+    def _rules(self, depth=-1, rule=(), filenames=None):
         if self.foldername:
-            rule = osp.join(rule, self.foldername)
+            rule = rule + (self.foldername,)
         if filenames is None:
             filenames = []
         filenames += [v.foldername for k, v in self.items()]
@@ -876,11 +862,11 @@ class SiteMap(collections.OrderedDict):
             for folder, smap in self.items():
                 yield from smap._rules(rule=rule, depth=depth)
                 for k, filename in update_filenames(folder, filenames):
-                    yield k, osp.join(rule, filename)
+                    yield k, rule + filename
 
         for node in self._nodes:
             for k, filename in update_filenames(node, filenames):
-                yield k, osp.join(rule, filename)
+                yield k, rule + filename
 
     def add_item(self, item, workflow=False, **options):
         item = parent_func(item)
@@ -940,8 +926,8 @@ class SiteMap(collections.OrderedDict):
         root_path = osp.abspath(root_path or tempfile.mktemp())
         import flask
         app = flask.Flask(root_path, root_path=root_path, **kwargs)
-        generated_files = []
-        func = functools.partial(cleanup, generated_files)
+        generated_files, rendered = [], {}
+        func = functools.partial(cleanup, generated_files, rendered)
         rule = '/cleanup'
         app.add_url_rule(rule, rule[1:], func, methods=['POST'])
         rule = '/shutdown'
@@ -949,7 +935,7 @@ class SiteMap(collections.OrderedDict):
         context = self.rules(depth=depth, index=index)
         for (node, extra), filepath in context.items():
             func = functools.partial(
-                site_view, app, node, filepath, context, generated_files
+                site_view, app, node, context, generated_files, rendered
             )
             app.add_url_rule('/%s' % filepath, filepath, func)
 
@@ -968,11 +954,42 @@ class SiteMap(collections.OrderedDict):
         return site
 
     def render(self, depth=-1, directory='static', view=False, index=True):
-        context = self.rules(depth=depth, index=index)
-        for (node, extra), filepath in context.items():
+        context, rendered = self.rules(depth=depth, index=index), {}
+        for node, extra in context:
             if not extra:
-                node.view(osp.join(directory, filepath), context)
+                cached_view(node, directory, context, rendered)
+
         fpath = osp.join(directory, next(iter(context.values()), ''))
         if view:
             DspPlot(None)._view(fpath, osp.splitext(fpath)[1][1:])
         return fpath
+
+
+def cached_view(node, directory, context, rendered):
+    n_id = id(node.item)
+    rend = {k: v for k, v in rendered.items() if k[0] == n_id}
+    cnt = {(n_id, e): f for (n, e), f in context.items() if n == node}
+    if rend and all(k in rend and osp.isfile(rend[k]) for k in cnt):
+        for k, f in cnt.items():
+            fpath = uncpath(osp.join(directory, f))
+            os.makedirs(osp.dirname(fpath), exist_ok=True)
+            parent, child = _compile_subs(rend[k], fpath)
+            with open(fpath, 'w') as new_file:
+                with open(rend[k]) as old_file:
+                    for line in old_file:
+                        new_file.write(child(parent(line)))
+            rend[k] = fpath
+    else:
+        rend = node.view(osp.join(directory, context[(node, None)]), context)
+        rendered.update(rend)
+    return rend
+
+
+def _compile_subs(o, n):
+    bn, dn, st = osp.basename, osp.dirname, osp.splitext
+    return _sub(bn(dn(o)), bn(dn(n))), _sub(st(bn(o))[0], st(bn(n))[0])
+
+
+def _sub(old, new):
+    p, repl = r'(href\s*=\s*"[^"]*)(/%s)((.|/)[^"]*")' % old, r'\1/%s\3' % new
+    return functools.partial(regex.compile(p, regex.IGNORECASE,).sub, repl)
