@@ -122,7 +122,8 @@ def _plot(lines, dsp, dot_view_opt, documenter):
         dot.save(fpath, '')
 
     dsource = osp.dirname(osp.join(env.srcdir, env.docname))
-    lines.extend(['.. graphviz:: %s' % osp.relpath(fpath, dsource), ''])
+    path = osp.relpath(fpath, dsource).replace('\\', '/')
+    lines.extend(['.. graphviz:: %s' % path, ''])
 
 
 def _table_heather(lines, title, dsp_name):
