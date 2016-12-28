@@ -22,11 +22,12 @@ class Base(object):
             i = id(self.stopper)
             if i not in memo:
                 memo[i] = threading.Event()
-        rv = super(Base, self).__reduce_ex__(4)
-        try:
-            return copy._reconstruct(self, rv, 1, memo)
-        except AttributeError:  # py36.
-            return copy._reconstruct(self, memo, *rv)
+        cls = self.__class__
+        memo[id(self)] = result = cls.__new__(cls)
+        for k, v in self.__dict__.items():
+            setattr(result, k, copy.deepcopy(v, memo))
+        return result
+
 
     def plot(self, workflow=None, view=True, depth=-1, name=NONE, comment=NONE,
              format=NONE, engine=NONE, encoding=NONE, graph_attr=NONE,
