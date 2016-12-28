@@ -36,6 +36,8 @@ Sub-Modules:
     :toctree: utils/
 
     alg
+    base
+    cel
     cst
     des
     drw
