@@ -6,7 +6,13 @@
 Welcome to dispatcher's documentation!
 ======================================
 
-.. automodule:: dispatcher
+.. toctree::
+    :maxdepth: 4
+    :numbered:
+    :caption: Table of Contents
+    :name: mastertoc
+
+    api
 
 Indices and tables
 ==================
