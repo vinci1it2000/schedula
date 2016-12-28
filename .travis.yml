@@ -9,6 +9,12 @@ python:
   # maintainers to fix their pypy-dev package.
   - "pypy"
   - "pypy3"
+
+addons:
+  apt:
+    packages:
+      - graphviz
+
 # command to install dependencies
 install:
   - python setup.py install
