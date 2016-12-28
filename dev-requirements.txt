@@ -5,3 +5,6 @@ nose
 wheel
 coveralls
 sphinx
+regex
+flask
+git+https://github.com/vinci1it2000/pycel.git

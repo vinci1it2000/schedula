@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 #
-# Copyright 2014 European Commission (JRC);
+# Copyright 2014-2016 European Commission (JRC);
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
@@ -15,50 +15,28 @@ numerical operations.
 
 __author__ = 'Vincenzo Arcidiacono'
 
-import inspect
-from itertools import tee, count
-from heapq import heappop
+import itertools
 
-try:
-    isidentifier = str.isidentifier
-except AttributeError:
-    import re
+__all__ = ['counter', 'Token', 'pairwise', 'caller_name']
 
-    isidentifier = re.compile(r'[a-z_]\w*$', re.I).match
 
-__all__ = ['counter', 'Token', 'pairwise', 'heap_flush', 'AttrDict',
-           'caller_name']
+def counter(start=0, step=1):
+    """
+    Return a object whose .__call__() method returns consecutive values.
 
-if '__next__' in count.__dict__:
-    def counter(start=0, step=1):
-        """
-        Return a object whose .__call__() method returns consecutive values.
+    :param start:
+        Start value.
+    :type start: int, float, optional
 
-        :param start:
-            Start value.
-        :type start: int, float, optional
-
-        :param step:
-            Step value.
-        :type step: int, float, optional
-        """
-
-        return count(start, step).__next__
-else:
-    def counter(start=0, step=1):
-        """
-        Return a object whose .__call__() method returns consecutive values.
-
-        :param start:
-            Start value.
-        :type start: int, float, optional
-
-        :param step:
-            Step value.
-        :type step: int, float, optional
-        """
-
-        return count(start, step).next
+    :param step:
+        Step value.
+    :type step: int, float, optional
+    """
+    c = itertools.count(start, step)
+    try:
+        return c.__next__
+    except AttributeError:
+        return c.next
 
 
 class Token(str):
@@ -92,6 +70,13 @@ class Token(str):
     def __hash__(self):
         return id(self)
 
+    def __copy__(self):
+        return self
+
+    # noinspection PyUnusedLocal
+    def __deepcopy__(self, memo):
+        return self
+
 
 def pairwise(iterable):
     """
@@ -111,143 +96,30 @@ def pairwise(iterable):
         [(1, 2), (2, 3), (3, 4), (4, 5)]
     """
 
-    a, b = tee(iterable)
+    a, b = itertools.tee(iterable)
 
     next(b, None)
 
     return zip(a, b)
 
 
-def heap_flush(heap):
-    """
-    Returns an ordered list of heap elements.
-
-    :param heap:
-        Fibonacci heap.
-    :type heap: list
-
-    :return:
-        A list of elements sorted in descending order.
-    :rtype: list
-
-    Example::
-
-        >>> from heapq import heappush
-        >>> heap = []
-        >>> heappush(heap, 3)
-        >>> heappush(heap, 1)
-        >>> heappush(heap, 2)
-        >>> heap_flush(heap)
-        [1, 2, 3]
-    """
-
-    ordered_list = []
-
-    while heap:
-        ordered_list.append(heappop(heap))
-
-    return ordered_list
-
-
-def _isidentifier(*args):
-    attr = set()
-
-    for a in args:
-        attr.update(a)
-
-    def my_isidentifier(self, key):
-        try:
-            return isidentifier(key) and key not in attr
-        except TypeError:
-            return False
-
-    return my_isidentifier
-
-
-class _Attr(str):
-    def __new__(cls, text, value=None):
-        self = str.__new__(cls, text)
-        self.value = value
-        return self
-
-    def __call__(self):
-        return self.value
-
-
-class AttrDict(dict):
-    """
-    It constructs a dictionary with extended attributes.
-
-    An extended attribute is a dictionary's attribute that has:
-
-        - `name` == `value` == `key`
-        - `attribute.__call__()` returns `value`
-
-    Example::
-
-        >>> o = object()
-        >>> d = AttrDict({'a': {'b': 3}, 'pop': 4, o: 5})
-        >>> d.a
-        'a'
-        >>> d.a()
-        {'b': 3}
-        >>> d.pop(o)
-        5
-        >>> d.pop('pop')
-        4
-        >>> c = d.copy()
-        >>> d.popitem()
-        ('a', {'b': 3})
-        >>> c.a
-        'a'
-        >>> c.a()
-        {'b': 3}
-        >>> c.clear()
-    """
-
-    isidentifier = _isidentifier(dict.__dict__, ['isidentifier'])
-
-    def __init__(self, *args, **kwargs):
-        super(AttrDict, self).__init__(*args, **kwargs)
-        self.__dict__ = {k: _Attr(k, v)
-                         for k, v in self.items()
-                         if self.isidentifier(k)}
-
-    def __setitem__(self, key, value):
-        super(AttrDict, self).__setitem__(key, value)
-        if self.isidentifier(key):
-            self.__dict__[key] = _Attr(key, value)
-
-    def __delitem__(self, key):
-        super(AttrDict, self).__delitem__(key)
-        self.__dict__.pop(key, None)
-
-    def pop(self, k, d=None):
-        self.__dict__.pop(k, None)
-        return super(AttrDict, self).pop(k, d)
-
-    def popitem(self):
-        k, v = super(AttrDict, self).popitem()
-        self.__dict__.pop(k, None)
-        return k, v
-
-    def clear(self):
-        super(AttrDict, self).clear()
-        self.__dict__ = {}
-
-    def copy(self):
-        return AttrDict(super(AttrDict, self).copy())
-
-
 def caller_name(skip=2):
     """
-    Get a name of a caller in the format module.class.method
+    Get a name of a caller in the format module.class.method.
 
-    `skip` specifies how many levels of stack to skip while getting caller
-    name. skip=1 means "who calls me", skip=2 "who calls my caller" etc.
+    :param skip:
+        Levels of stack to skip
 
-    An empty string is returned if skipped levels exceed stack height
+        ..note:: Specifies how many levels of stack to skip while getting caller
+          name. skip=1 means "who calls me", skip=2 "who calls my caller" etc.
+    :type skip: int
+
+    :return:
+        The caller name or an empty string is returned if skipped levels exceed
+        stack height.
+    :rtype: str
     """
+    import inspect
 
     stack = inspect.stack()
     start = 0 + skip
@@ -270,5 +142,5 @@ def caller_name(skip=2):
     codename = parentframe.f_code.co_name
     if codename != '<module>':  # top level usually
         name.append(codename)  # function or a method
-    del parentframe
+    del parentframe, stack
     return ".".join(name)

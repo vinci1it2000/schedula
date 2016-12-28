@@ -1,26 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 #
-# Copyright 2014 European Commission (JRC);
+# Copyright 2014-2016 European Commission (JRC);
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
-
 """
-This page contains a comprehensive list of all modules and classes within
-dispatcher.
+It contains a comprehensive list of all modules and classes within dispatcher.
 
 Docstrings should provide sufficient understanding for any individual function.
-
-Dispatcher:
-
-.. currentmodule:: dispatcher
-
-.. autosummary::
-    :nosignatures:
-    :toctree: dispatcher/__init__/
-
-      Dispatcher
 
 Modules:
 
@@ -28,63 +16,35 @@ Modules:
 
 .. autosummary::
     :nosignatures:
-    :toctree: dispatcher/__init__/
+    :toctree: dispatcher/
 
-      draw
-      utils
-      read_write
-      constants
-
+    utils
 """
 
-__author__ = 'Vincenzo Arcidiacono'
+import threading
+from .utils.cst import EMPTY, START, NONE, SINK, SELF, PLOT
+from .utils.dsp import SubDispatch, bypass, combine_dicts, selector, stlp, \
+    parent_func
+from .utils.gen import counter
+from .utils.base import Base
 
-import logging
-from heapq import heappush, heappop
-from collections import deque
-from copy import copy
-from networkx import DiGraph, isolates
-
-from .utils.gen import AttrDict, counter, caller_name
-from .utils.alg import add_edge_fun, remove_cycles_iteration
-from .constants import EMPTY, START, NONE, SINK
-from .utils.dsp import SubDispatch, bypass
-
-
-log = logging.getLogger(__name__)
 
 __all__ = ['Dispatcher']
+__author__ = 'Vincenzo Arcidiacono'
 
 
-def _warning(raises):
-    """
-    Returns a function that handle the error messages.
-
-    :param raises:
-        If True the dispatcher interrupt the dispatch when an error occur,
-        otherwise it logs a warning.
-    :type: bool
-
-    :return:
-        A function that handle the error messages.
-    :rtype: function
-    """
-
-    if raises:
-        def warning(msg):
-            raise ValueError(msg)
-    else:
-        def warning(msg):
-            log.warning(msg, exc_info=1)
-    return warning
-
-
-class Dispatcher(object):
+class Dispatcher(Base):
     """
     It provides a data structure to process a complex system of functions.
 
     The scope of this data structure is to compute the shortest workflow between
     input and output data nodes.
+
+    :ivar stopper:
+        A semaphore (:class:`threading.Event`) to abort the dispatching.
+        
+    .. Tip::
+        Rember to set :attr:`stopper` to `False` before dispatching ;-)
 
     A workflow is a sequence of function calls.
 
@@ -107,7 +67,7 @@ class Dispatcher(object):
 
     Create an empty dispatcher::
 
-        >>> dsp = Dispatcher()
+        >>> dsp = Dispatcher(name='Dispatcher')
 
     Add data nodes to the dispatcher map::
 
@@ -178,7 +138,7 @@ class Dispatcher(object):
 
     Dispatch the function calls to achieve the desired output data node `d`::
 
-        >>> workflow, outputs = dsp.dispatch(inputs={'a': 0}, outputs=['d'])
+        >>> outputs = dsp.dispatch(inputs={'a': 0}, outputs=['d'])
         (log(1) + 4) / 2 = 2.0
         >>> sorted(outputs.items())
         [('a', 0), ('b', 1), ('c', 1), ('d', 2.0)]
@@ -188,16 +148,23 @@ class Dispatcher(object):
 
         >>> dsp
         <...>
+    
     """
 
+    #: When True, the dispatching loop raise :exc:`DispatcherAbort` ASAP.
+    stopper = threading.Event()
+
+    def __lt__(self, other):
+        return isinstance(other, Dispatcher) and id(other) < id(self)
+
     def __init__(self, dmap=None, name='', default_values=None, raises=False,
-                 description=''):
+                 description='', stopper=None):
         """
         Initializes the dispatcher.
 
         :param dmap:
             A directed graph that stores data & functions parameters.
-        :type dmap: DiGraph, optional
+        :type dmap: networkx.DiGraph, optional
 
         :param name:
             The dispatcher's name.
@@ -206,7 +173,7 @@ class Dispatcher(object):
         :param default_values:
             Data node default values. These will be used as input if it is not
             specified as inputs in the ArciDispatch algorithm.
-        :type default_values: dict, optional
+        :type default_values: dict[str, dict], optional
 
         :param raises:
             If True the dispatcher interrupt the dispatch when an error occur,
@@ -216,9 +183,14 @@ class Dispatcher(object):
         :param description:
             The dispatcher's description.
         :type description: str, optional
+
+        :param stopper:
+            A semaphore to abort the dispatching.
+        :type stopper: threading.Event, optional
         """
 
-        # : The directed graph that stores data & functions parameters.
+        from networkx import DiGraph
+        #: The directed graph that stores data & functions parameters.
         self.dmap = dmap if dmap else DiGraph()
 
         #: The dispatcher's name.
@@ -226,8 +198,6 @@ class Dispatcher(object):
 
         #: The dispatcher's description.
         self.__doc__ = description
-
-        self.dmap.node = AttrDict(self.dmap.node)
 
         #: The function and data nodes of the dispatcher.
         self.nodes = self.dmap.node
@@ -239,62 +209,50 @@ class Dispatcher(object):
         #: Weight tag.
         self.weight = 'weight'
 
-        #: The dispatch workflow graph. It is a sequence of function calls with
-        #: outputs.
-        self.workflow = DiGraph()
+        #: If True the dispatcher interrupt the dispatch when an error occur.
+        self.raises = raises
 
-        #: A dictionary with the dispatch outputs.
-        self.data_output = AttrDict()
+        if stopper:
+            #: Stopper to abort the dispatcher execution.
+            self.stopper = stopper
 
-        #: A dictionary of distances from the `START` node.
-        self.dist = {}
+        from .utils.sol import Solution
+        #: Last dispatch solution.
+        self.solution = Solution(self)
 
-        #: A function that raises or logs warnings.
-        self.warning = _warning(raises)
+        #: Counter to set the node index.
+        self.counter = counter()
 
-        #: A set of visited nodes from the dispatch.
-        self._visited = set()
+    def copy_structure(self, **kwargs):
+        _map = {
+            'description': '__doc__', 'name': 'name', 'stopper': 'stopper',
+            'raises': 'raises'
+        }
+        base = {k: getattr(self, v) for k, v in _map.items()}
+        obj = self.__class__(**combine_dicts(kwargs, base=base))
+        obj.weight = self.weight
+        return obj
 
-        #: A set of target nodes.
-        self._targets = set()
-
-        #: Depth to stop the search.
-        self._cutoff = None
-
-        #: A set of nodes with a wildcard.
-        self._wildcards = set()
-
-        #: The predecessors of the dispatcher map nodes.
-        self._pred = self.dmap.pred
-
-        #: The successors of the dispatcher map nodes.
-        self._succ = self.dmap.succ
-
-        #: A function that add edges to the `workflow`.
-        self._wf_add_edge = add_edge_fun(self.workflow)
-
-        #: The predecessors of the `workflow` nodes.
-        self._wf_pred = self.workflow.pred
-
-        #: Data nodes that waits inputs. They are used in `shrink_dsp`.
-        self._wait_in = {}
-
-        self.__module__ = caller_name()
-
-    def add_data(self, data_id=None, default_value=EMPTY, wait_inputs=False,
-                 wildcard=None, function=None, callback=None, input=None,
-                 output=None, **kwargs):
+    def add_data(self, data_id=None, default_value=EMPTY, initial_dist=0.0,
+                 wait_inputs=False, wildcard=None, function=None, callback=None,
+                 remote_links=None, description=None, filters=None, **kwargs):
         """
         Add a single data node to the dispatcher.
 
         :param data_id:
-            Data node id. If None will be assigned the next 'int' not in dmap.
-        :type data_id: any hashable Python object except None, optional
+            Data node id. If None will be assigned automatically ('unknown<%d>')
+            not in dmap.
+        :type data_id: str, optional
 
         :param default_value:
             Data node default value. This will be used as input if it is not
             specified as inputs in the ArciDispatch algorithm.
-        :type default_value: object, optional
+        :type default_value: T, optional
+
+        :param initial_dist:
+            Initial distance in the ArciDispatch algorithm when the data node
+            default value is used.
+        :type initial_dist: float, int, optional
 
         :param wait_inputs:
             If True ArciDispatch algorithm stops on the node until it gets all
@@ -320,31 +278,36 @@ class Dispatcher(object):
             data node estimation output. It does not return anything.
         :type callback: function, optional
 
+        :param remote_links:
+            List of parent or child dispatcher nodes e.g., [[dsp_id, dsp], ...].
+        :type remote_links: list[[str, Dispatcher]], optional
+
+        :param description:
+            Data node's description.
+        :type description: str, optional
+
+        :param filters:
+            A list of functions that are invoked after the invocation of the
+            main function.
+        :type filters: list[function], optional
+
         :param kwargs:
             Set additional node attributes using key=value.
         :type kwargs: keyword arguments, optional
 
         :return:
             Data node id.
-        :rtype: object
+        :rtype: str
 
-        .. seealso:: :func:`add_function`, :func:`add_from_lists`
-
-        .. note::
-            A hashable object is one that can be used as a key in a Python
-            dictionary. This includes strings, numbers, tuples of strings
-            and numbers, etc.
-
-            On many platforms hashable items also include mutable objects such
-            as NetworkX Graphs, though one should be careful that the hash
-            doesn't change on mutable objects.
+        .. seealso:: :func:`add_function`,  :func:`add_dispatcher`,
+           :func:`add_from_lists`
 
         \***********************************************************************
 
         **Example**:
 
         .. testsetup::
-            >>> dsp = Dispatcher()
+            >>> dsp = Dispatcher(name='Dispatcher')
 
         Add a data to be estimated or a possible input data node::
 
@@ -384,65 +347,78 @@ class Dispatcher(object):
         Create a data with an unknown id and return the generated id::
 
             >>> dsp.add_data()
-            'unknown<0>'
+            'unknown'
         """
 
-        # base data node attributes
-        attr_dict = {'type': 'data', 'wait_inputs': wait_inputs}
+        # Set special data nodes.
+        if data_id is START:
+            default_value, description = NONE, START.__doc__
+        elif data_id is SINK:
+            wait_inputs, function, description = True, bypass, SINK.__doc__
+        elif data_id is SELF:
+            default_value, description = self, SELF.__doc__
+        elif data_id is PLOT:
+            from .utils.drw import autoplot_callback, autoplot_function
+            callback, description = callback or autoplot_callback, PLOT.__doc__
+            function = function or autoplot_function
 
-        if function is not None:  # add function as node attribute
+        # Base data node attributes.
+        attr_dict = {
+            'type': 'data',
+            'wait_inputs': wait_inputs,
+            'index': (self.counter(),)
+        }
+
+        if function is not None:  # Add function as node attribute.
             attr_dict['function'] = function
 
-        if callback is not None:  # add callback as node attribute
+        if callback is not None:  # Add callback as node attribute.
             attr_dict['callback'] = callback
 
-        if wildcard is not None:  # add wildcard as node attribute
+        if wildcard is not None:  # Add wildcard as node attribute.
             attr_dict['wildcard'] = wildcard
 
-        if input is not None:  # add output as node attribute
-            attr_dict['input'] = input
+        if remote_links is not None:  # Add remote links.
+            attr_dict['remote_links'] = remote_links
 
-        if output is not None:  # add output as node attribute
-            attr_dict['output'] = output
+        if description is not None:  # Add description as node attribute.
+            attr_dict['description'] = description
 
-        # additional attributes
-        attr_dict.update(kwargs)
+        if filters:  # Add filters as node attribute.
+            attr_dict['filters'] = filters
 
-        has_node = self.dmap.has_node  # namespace shortcut for speed
+        attr_dict.update(kwargs)  # Additional attributes.
 
-        if data_id is None:  # search for a unused node id
-            n = counter(0)  # counter
-            data_id = 'unknown<%d>' % n()  # initial guess
-            while has_node(data_id):  # check if node id is used
-                data_id = 'unknown<%d>' % n()  # guess
+        has_node = self.dmap.has_node  # Namespace shortcut for speed.
 
-        # check if the node id exists as function
+        if data_id is None:  # Search for an unused node id.
+            from .utils.alg import get_unused_node_id
+            data_id = get_unused_node_id(self.dmap)  # Get an unused node id.
+
+        # Check if the node id exists as function.
         elif has_node(data_id) and self.dmap.node[data_id]['type'] != 'data':
             raise ValueError('Invalid data id: '
                              'override function {}'.format(data_id))
 
-        if default_value != EMPTY:  # add default value
-            self.default_values[data_id] = default_value
-
-        elif data_id in self.default_values:  # remove default value
-            self.default_values.pop(data_id)
-
-        # add node to the dispatcher map
+        # Add node to the dispatcher map.
         self.dmap.add_node(data_id, attr_dict=attr_dict)
 
-        # return data node id
-        return data_id
+        # Set default value.
+        self.set_default_value(data_id, default_value, initial_dist)
+
+        return data_id  # Return data node id.
 
     def add_function(self, function_id=None, function=None, inputs=None,
                      outputs=None, input_domain=None, weight=None,
-                     weight_from=None, weight_to=None, **kwargs):
+                     inp_weight=None, out_weight=None, description=None,
+                     filters=None, **kwargs):
         """
         Add a single function node to dispatcher.
 
         :param function_id:
             Function node id.
-            If None will be assigned as <fun.__module__>:<fun.__name__>.
-        :type function_id: any hashable Python object except None, optional
+            If None will be assigned as <fun.__name__>.
+        :type function_id: str, optional
 
         :param function:
             Data node estimation function.
@@ -468,17 +444,26 @@ class Dispatcher(object):
             algorithm to estimate the minimum workflow.
         :type weight: float, int, optional
 
-        :param weight_from:
+        :param inp_weight:
             Edge weights from data nodes to the function node.
             It is a dictionary (key=data node id) with the weight coefficients
             used by the dispatch algorithm to estimate the minimum workflow.
-        :type weight_from: dict, optional
+        :type inp_weight: dict[str, float | int], optional
 
-        :param weight_to:
+        :param out_weight:
             Edge weights from the function node to data nodes.
             It is a dictionary (key=data node id) with the weight coefficients
             used by the dispatch algorithm to estimate the minimum workflow.
-        :type weight_to: dict, optional
+        :type out_weight: dict[str, float | int], optional
+
+        :param description:
+            Function node's description.
+        :type description: str, optional
+
+        :param filters:
+            A list of functions that are invoked after the invocation of the
+            main function.
+        :type filters: list[function], optional
 
         :param kwargs:
             Set additional node attributes using key=value.
@@ -486,16 +471,17 @@ class Dispatcher(object):
 
         :return:
             Function node id.
-        :rtype: object
+        :rtype: str
 
-        .. seealso:: :func:`add_data`, :func:`add_from_lists`
+        .. seealso:: :func:`add_data`, :func:`add_dispatcher`,
+           :func:`add_from_lists`
 
         \***********************************************************************
 
         **Example**:
 
         .. testsetup::
-            >>> dsp = Dispatcher()
+            >>> dsp = Dispatcher(name='Dispatcher')
 
         Add a function node::
 
@@ -506,247 +492,279 @@ class Dispatcher(object):
             ...
             >>> dsp.add_function(function=my_function, inputs=['a', 'b'],
             ...                  outputs=['c', 'd'])
-            '...dispatcher:my_function'
+            'my_function'
 
         Add a function node with domain::
 
             >>> from math import log
             >>> def my_log(a, b):
-            ...     log(b - a)
+            ...     return log(b - a)
             ...
             >>> def my_domain(a, b):
             ...     return a < b
             ...
             >>> dsp.add_function(function=my_log, inputs=['a', 'b'],
             ...                  outputs=['e'], input_domain=my_domain)
-            '...dispatcher:my_log'
+            'my_log'
         """
 
-        if inputs is None:  # set a dummy input
+        if inputs is None:  # Set a dummy input.
             if START not in self.nodes:
-                self.add_data(START, default_value=NONE)
+                self.add_data(START)
 
-            inputs = [START]
+            inputs = [START]  # Update inputs.
 
-        if outputs is None:  # set a dummy output
+        if outputs is None:  # Set a dummy output.
             if SINK not in self.nodes:
-                self.add_data(SINK, wait_inputs=True, function=bypass)
+                self.add_data(SINK)
 
-            outputs = [SINK]
+            outputs = [SINK]  # Update outputs.
 
-        # base function node attributes
-        attr_dict = {'type': 'function',
-                     'inputs': inputs,
-                     'outputs': outputs,
-                     'function': function,
-                     'wait_inputs': True}
+        # Get parent function.
+        func = parent_func(function)
 
-        if input_domain:  # add domain as node attribute
+        # Base function node attributes.
+        attr_dict = {
+            'type': 'function',
+            'inputs': inputs,
+            'outputs': outputs,
+            'function': function,
+            'wait_inputs': True,
+            'index': (self.counter(),)
+        }
+
+        if input_domain:  # Add domain as node attribute.
             attr_dict['input_domain'] = input_domain
 
-        if function_id is None:  # set function name
-            try:
-                # noinspection PyUnresolvedReferences
-                function_name = '%s:%s' % (function.__module__,
-                                           function.__name__)
+        if description is not None:  # Add description as node attribute.
+            attr_dict['description'] = description
+
+        if filters:  # Add filters as node attribute.
+            attr_dict['filters'] = filters
+
+        # Set function name.
+        if function_id is None:
+            try:  # Set function name.
+                function_name = func.__name__
             except Exception as ex:
-                raise ValueError('Invalid function name due to:\n{}'.format(ex))
+                raise ValueError('Invalid function id due to:\n{}'.format(ex))
         else:
             function_name = function_id
 
-        fun_id = function_name  # initial function id guess
+        from .utils.alg import get_unused_node_id
+        # Get an unused node id.
+        fun_id = get_unused_node_id(self.dmap, initial_guess=function_name)
 
-        n = counter(0)  # counter
-
-        has_node = self.dmap.has_node  # namespace shortcut for speed
-
-        while has_node(fun_id):  # search for a unused node id
-            fun_id = '%s<%d>' % (function_name, n())  # guess
-
-        if weight is not None:  # add weight as node attribute
+        if weight is not None:  # Add weight as node attribute.
             attr_dict['weight'] = weight
 
-        # additional attributes
-        attr_dict.update(kwargs)
+        attr_dict.update(kwargs)  # Set additional attributes.
 
-        # add node to the dispatcher map
+        # Add node to the dispatcher map.
         self.dmap.add_node(fun_id, attr_dict=attr_dict)
 
-        def add_edge(i, o, edge_weight, w):
-            # Adds edge to the dispatcher map.
+        from .utils.alg import add_func_edges  # Add input edges.
+        n_data = add_func_edges(self, fun_id, inputs, inp_weight, True)
 
-            if edge_weight is not None and w in edge_weight:
-                self.dmap.add_edge(i, o, weight=edge_weight[w])  # weighted edge
-            else:
-                self.dmap.add_edge(i, o)  # normal edge
+        # Add output edges.
+        add_func_edges(self, fun_id, outputs, out_weight, False, n_data)
 
-        for u in inputs:
-            try:
-                # check if the node id exists as data
-                if self.dmap.node[u]['type'] != 'data':
-                    self.dmap.remove_node(fun_id)
-                    raise ValueError('Invalid input id:'
-                                     ' {} is not a data node'.format(u))
-            except KeyError:
-                self.add_data(data_id=u)  # add data node
-
-            add_edge(u, fun_id, weight_from, u)
-
-        for v in outputs:
-            try:
-                # check if the node id exists as data
-                if self.dmap.node[v]['type'] != 'data':
-                    self.dmap.remove_node(fun_id)
-                    raise ValueError('Invalid output id:'
-                                     ' {} is not a data node'.format(v))
-            except KeyError:
-                self.add_data(data_id=v)  # add data node
-
-            add_edge(fun_id, v, weight_to, v)
-
-        # return function node id
-        return fun_id
+        return fun_id  # Return function node id.
 
     def add_dispatcher(self, dsp, inputs, outputs, dsp_id=None,
-                       input_domain=None, weight=None, weight_from=None,
-                       cutoff=None, **kwargs):
+                       input_domain=None, weight=None, inp_weight=None,
+                       description=None, include_defaults=False, **kwargs):
         """
         Add a single sub-dispatcher node to dispatcher.
 
         :param dsp:
-            Data node estimation function.
-        :type dsp: Dispatcher
+            Child dispatcher that is added as sub-dispatcher node to the parent
+            dispatcher.
+        :type dsp: Dispatcher | dict[str, list]
 
         :param inputs:
-            Ordered arguments (i.e., data node ids) needed by the function.
-        :type inputs: dict
+            Inputs mapping. Data node ids from parent dispatcher to child
+            sub-dispatcher.
+        :type inputs: dict[str, str | list[str]]
 
         :param outputs:
-            Ordered results (i.e., data node ids) returned by the function.
-        :type outputs: dict
+            Outputs mapping. Data node ids from child sub-dispatcher to parent
+            dispatcher.
+        :type outputs: dict[str, str | list[str]]
 
         :param dsp_id:
             Sub-dispatcher node id.
-            If None will be assigned as <dsp.__module__>:<dsp.name>.
-        :type dsp_id: any hashable Python object except None, optional
+            If None will be assigned as <dsp.name>.
+        :type dsp_id: str, optional
 
         :param input_domain:
             A function that checks if input values satisfy the function domain.
-            This can be any function that takes the same inputs of the function
-            and returns True if input values satisfy the domain, otherwise
-            False. In this case the dispatch algorithm doesn't pass on the node.
-        :type input_domain: function, optional
+            This can be any function that takes the a dictionary with the inputs
+            of the sub-dispatcher node and returns True if input values satisfy
+            the domain, otherwise False.
+
+            .. note:: This function is invoked every time that a data node reach
+               the sub-dispatcher node.
+        :type input_domain: (dict) -> bool, optional
 
         :param weight:
             Node weight. It is a weight coefficient that is used by the dispatch
             algorithm to estimate the minimum workflow.
         :type weight: float, int, optional
 
-        :param weight_from:
-            Edge weights from data nodes to the function node.
+        :param inp_weight:
+            Edge weights from data nodes to the sub-dispatcher node.
             It is a dictionary (key=data node id) with the weight coefficients
             used by the dispatch algorithm to estimate the minimum workflow.
-        :type weight_from: dict, optional
+        :type inp_weight: dict[str, int | float], optional
+
+        :param description:
+            Sub-dispatcher node's description.
+        :type description: str, optional
+
+        :param include_defaults:
+            If True the default values of the sub-dispatcher are added to the
+            current dispatcher.
+        :type include_defaults: bool, optional
 
         :param kwargs:
             Set additional node attributes using key=value.
         :type kwargs: keyword arguments, optional
 
         :return:
-            Function node id.
-        :rtype: object
+            Sub-dispatcher node id.
+        :rtype: str
 
-        .. seealso:: :func:`add_data`, :func:`add_from_lists`
+        .. seealso:: :func:`add_data`, :func:`add_function`,
+           :func:`add_from_lists`
 
         \***********************************************************************
 
         **Example**:
 
         .. testsetup::
-            >>> dsp = Dispatcher()
+            >>> dsp = Dispatcher(name='Dispatcher')
 
-        Add a function node::
+        Create a sub-dispatcher::
 
-            >>> def my_function(a, b):
-            ...     c = a + b
-            ...     d = a - b
-            ...     return c, d
+            >>> sub_dsp = Dispatcher()
+            >>> sub_dsp.add_function('max', max, ['a', 'b'], ['c'])
+            'max'
+
+        Add the sub-dispatcher to the parent dispatcher::
+
+            >>> dsp.add_dispatcher(dsp_id='Sub-Dispatcher', dsp=sub_dsp,
+            ...                    inputs={'A': 'a', 'B': 'b'},
+            ...                    outputs={'c': 'C'})
+            'Sub-Dispatcher'
+
+        Add a sub-dispatcher node with domain::
+
+
+            >>> def my_domain(kwargs):
+            ...     return kwargs['C'] > 3
             ...
-            >>> dsp.add_function(function=my_function, inputs=['a', 'b'],
-            ...                  outputs=['c', 'd'])
-            '...dispatcher:my_function'
-
-        Add a function node with domain::
-
-            >>> from math import log
-            >>> def my_log(a, b):
-            ...     log(b - a)
-            ...
-            >>> def my_domain(a, b):
-            ...     return a < b
-            ...
-            >>> dsp.add_function(function=my_log, inputs=['a', 'b'],
-            ...                  outputs=['e'], input_domain=my_domain)
-            '...dispatcher:my_log'
+            >>> dsp.add_dispatcher(dsp_id='Sub-Dispatcher with domain',
+            ...                    dsp=sub_dsp, inputs={'C': 'a', 'D': 'b'},
+            ...                    outputs={'c': 'E'}, input_domain=my_domain)
+            'Sub-Dispatcher with domain'
         """
 
-        # new shrink dispatcher
-        shrink_dsp = dsp.shrink_dsp(inputs.values(), outputs, cutoff=cutoff)
+        if not isinstance(dsp, Dispatcher):
+            kw = dsp
+            dsp = Dispatcher(name=dsp_id or 'unknown')
+            dsp.add_from_lists(**kw)
 
+        if not dsp_id:  # Get the dsp id.
+            dsp_id = dsp.name or 'unknown'
 
-        # select the name
-        if dsp_id:
-            pass
-        elif dsp.name:
-            dsp_id = '%s:%s' % (dsp.__module__, dsp.name)
-        else:
-            dsp_id = '%s:%s' % (dsp.__module__, 'unknown')
+        if description is None:  # Get description.
+            description = dsp.__doc__ or None
 
-        # return dispatcher node id
+        # Set zero as default input distances.
+        _weight_from = dict.fromkeys(inputs.keys(), 0.0)
+        _weight_from.update(inp_weight or {})
+
+        from .utils.alg import _children  # Get children and parents nodes.
+        children, parents = _children(inputs), _children(outputs)
+
+        # Return dispatcher node id.
         dsp_id = self.add_function(
-            dsp_id, shrink_dsp, inputs, outputs.values(), input_domain, weight,
-            weight_from, type='dispatcher')
+            dsp_id, dsp, sorted(inputs), sorted(parents), input_domain, weight,
+            _weight_from, type='dispatcher', description=description,
+            wait_inputs=False, **kwargs)
 
+        # Set proper inputs.
+        self.nodes[dsp_id]['inputs'] = inputs
+
+        # Set proper outputs.
         self.nodes[dsp_id]['outputs'] = outputs
 
-        nodes = shrink_dsp.nodes
+        remote_link = [dsp_id, self]  # Define the remote link.
 
-        remote_link = [dsp_id, self]
+        # Unlink node reference.
+        for k in children.union(outputs).intersection(dsp.nodes):
+            dsp.nodes[k] = dsp.nodes[k].copy()
 
-        for tag, it in [('input', inputs.values()), ('output', outputs)]:
+        # Set remote link.
+        for it, is_parent in [(children, True), (outputs, False)]:
             for k in it:
-                node = nodes[k] = copy(nodes[k])
-                node[tag] = node.get(tag, [])
-                node[tag].append(remote_link)
+                dsp.set_data_remote_link(k, remote_link, is_parent=is_parent)
 
-        return dsp_id
+        # Import default values from sub-dispatcher.
+        if include_defaults:
+            dsp_dfl = dsp.default_values  # Namespace shortcut.
 
-    def add_from_lists(self, data_list=None, fun_list=None):
+            remove = set()  # Set of nodes to remove after the import.
+
+            # Set default values.
+            for k, v in inputs.items():
+                if isinstance(v, str):
+                    if v in dsp_dfl:
+                        self.set_default_value(k, **dsp_dfl.pop(v))
+                else:
+                    if v[0] in dsp_dfl:
+                        self.set_default_value(k, **dsp_dfl.pop(v[0]))
+                        remove.update(v[1:])
+
+            # Remove default values.
+            for k in remove:
+                dsp_dfl.pop(k, None)
+
+        return dsp_id  # Return sub-dispatcher node id.
+
+    def add_from_lists(self, data_list=None, fun_list=None, dsp_list=None):
         """
         Add multiple function and data nodes to dispatcher.
 
         :param data_list:
             It is a list of data node kwargs to be loaded.
-        :type data_list: list, optional
+        :type data_list: list[dict], optional
 
         :param fun_list:
             It is a list of function node kwargs to be loaded.
-        :type fun_list: list, optional
+        :type fun_list: list[dict], optional
+
+        :param dsp_list:
+            It is a list of sub-dispatcher node kwargs to be loaded.
+        :type dsp_list: list[dict], optional
 
         :returns:
 
             - Data node ids.
             - Function node ids.
-        :rtype: (list, list)
+            - Sub-dispatcher node ids.
+        :rtype: (list[str], list[str], list[str])
 
-        .. seealso:: :func:`add_data`, :func:`add_function`
+        .. seealso:: :func:`add_data`, :func:`add_function`,
+           :func:`add_dispatcher`
 
         \***********************************************************************
 
         **Example**:
 
         .. testsetup::
-            >>> dsp = Dispatcher()
+            >>> dsp = Dispatcher(name='Dispatcher')
 
         Define a data list::
 
@@ -758,44 +776,67 @@ class Dispatcher(object):
 
         Define a functions list::
 
-            >>> def f(a, b):
+            >>> def func(a, b):
             ...     return a + b
             ...
             >>> fun_list = [
-            ...     {'function': f, 'inputs': ['a', 'b'], 'outputs': ['c']},
-            ...     {'function': f, 'inputs': ['c', 'd'], 'outputs': ['a']}
+            ...     {'function': func, 'inputs': ['a', 'b'], 'outputs': ['c']}
+            ... ]
+
+        Define a sub-dispatchers list::
+
+            >>> sub_dsp = Dispatcher(name='Sub-dispatcher')
+            >>> sub_dsp.add_function(function=func, inputs=['e', 'f'],
+            ...                      outputs=['g'])
+            'func'
+            >>>
+            >>> dsp_list = [
+            ...     {'dsp_id': 'Sub', 'dsp': sub_dsp,
+            ...      'inputs': {'a': 'e', 'b': 'f'}, 'outputs': {'g': 'c'}},
             ... ]
 
         Add function and data nodes to dispatcher::
 
-            >>> dsp.add_from_lists(data_list, fun_list)
-            (['a', 'b', 'c'], ['...dispatcher:f', '...dispatcher:f<0>'])
+            >>> dsp.add_from_lists(data_list, fun_list, dsp_list)
+            (['a', 'b', 'c'], ['func'], ['Sub'])
         """
 
-        if data_list:  # add data nodes
-            data_ids = [self.add_data(**v) for v in data_list]  # data ids
+        if data_list:  # Add data nodes.
+            data_ids = [self.add_data(**v) for v in data_list]  # Data ids.
         else:
             data_ids = []
 
-        if fun_list:  # add function nodes
-            fun_ids = [self.add_function(**v) for v in fun_list]  # function ids
+        if fun_list:  # Add function nodes.
+            fun_ids = [self.add_function(**v) for v in fun_list]  # Func ids.
         else:
             fun_ids = []
 
-        # return data and function node ids
-        return data_ids, fun_ids
+        if dsp_list:  # Add dispatcher nodes.
+            dsp_ids = [self.add_dispatcher(**v) for v in dsp_list]  # Dsp ids.
+        else:
+            dsp_ids = []
 
-    def set_default_value(self, data_id, value=EMPTY):
+        # Return data, function, and sub-dispatcher node ids.
+        return data_ids, fun_ids, dsp_ids
+
+    def set_default_value(self, data_id, value=EMPTY, initial_dist=0.0):
         """
         Set the default value of a data node in the dispatcher.
 
         :param data_id:
             Data node id.
-        :type data_id: any hashable Python object except None
+        :type data_id: str
 
         :param value:
             Data node default value.
-        :type value: object, optional
+
+            .. note:: If `EMPTY` the previous default value is removed.
+        :type value: T, optional
+
+        :param initial_dist:
+            Initial distance in the ArciDispatch algorithm when the data node
+            default value is used.
+        :type initial_dist: float, int, optional
 
         \***********************************************************************
 
@@ -803,7 +844,7 @@ class Dispatcher(object):
 
         A dispatcher with a data node named `a`::
 
-            >>> dsp = Dispatcher()
+            >>> dsp = Dispatcher(name='Dispatcher')
             ...
             >>> dsp.add_data(data_id='a')
             'a'
@@ -811,8 +852,8 @@ class Dispatcher(object):
         Add a default value to `a` node::
 
             >>> dsp.set_default_value('a', value='value of the data')
-            >>> dsp.default_values
-            {'a': 'value of the data'}
+            >>> list(sorted(dsp.default_values['a'].items()))
+            [('initial_dist', 0.0), ('value', 'value of the data')]
 
         Remove the default value of `a` node::
 
@@ -822,15 +863,69 @@ class Dispatcher(object):
         """
 
         try:
-            if self.dmap.node[data_id]['type'] == 'data':  # check if data node
-                if value == EMPTY:
-                    self.default_values.pop(data_id, None)  # remove default
-                else:
-                    self.default_values[data_id] = value  # add default
+            if self.dmap.node[data_id]['type'] == 'data':  # Check if data node.
+                if value is EMPTY:
+                    self.default_values.pop(data_id, None)  # Remove default.
+                else:  # Add default.
+                    self.default_values[data_id] = {
+                        'value': value,
+                        'initial_dist': initial_dist
+                    }
                 return
-            raise ValueError
-        except:
-            raise ValueError('Input error: %s is not a data node' % data_id)
+        except KeyError:
+            pass
+        raise ValueError('Input error: %s is not a data node' % data_id)
+
+    def set_data_remote_link(self, data_id, remote_link=EMPTY, is_parent=True):
+        """
+        Set a remote link of a data node in the dispatcher.
+
+        :param data_id:
+            Data node id.
+        :type data_id: str
+
+        :param remote_link:
+            Parent or child dispatcher and its node id (id, dsp).
+        :type remote_link: [str, Dispatcher], optional
+
+        :param is_parent:
+            If True the link is inflow (parent), otherwise is outflow (child).
+        :type is_parent: bool
+        """
+
+        nodes = self.nodes  # Namespace shortcut.
+
+        if remote_link != EMPTY and data_id is SINK and data_id not in nodes:
+            self.add_data(SINK)  # Add sink node.
+
+        try:
+            if self.dmap.node[data_id]['type'] == 'data':  # Check if data node.
+
+                type = ['child', 'parent'][is_parent]  # Remote link type.
+
+                if remote_link == EMPTY:
+                    # Namespace shortcuts.
+                    node = nodes.get(data_id, {})
+                    rl = node.get('remote_links', [])
+
+                    # Remove remote links.
+                    for v in [v for v in rl if rl[1] == type]:
+                        rl.remove(v)
+
+                    # Remove remote link attribute.
+                    if not rl:
+                        node.pop('remote_links', None)
+                else:
+                    node = nodes[data_id]  # Namespace shortcuts.
+
+                    rl = node['remote_links'] = node.get('remote_links', [])
+                    if [remote_link, type] not in rl:  # Add remote link.
+                        rl.append([remote_link, type])
+
+                return
+        except KeyError:
+            pass
+        raise ValueError('Input error: %s is not a data node' % data_id)
 
     def get_sub_dsp(self, nodes_bunch, edges_bunch=None):
         """
@@ -844,14 +939,14 @@ class Dispatcher(object):
 
         :param nodes_bunch:
             A container of node ids which will be iterated through once.
-        :type nodes_bunch: list, iterable
+        :type nodes_bunch: list[str], iterable
 
         :param edges_bunch:
             A container of edge ids that will be removed.
-        :type edges_bunch: list, iterable, optional
+        :type edges_bunch: list[(str, str)], iterable, optional
 
         :return:
-            A sub-dispatcher.
+            A dispatcher.
         :rtype: Dispatcher
 
         .. seealso:: :func:`get_sub_dsp_from_workflow`
@@ -872,7 +967,7 @@ class Dispatcher(object):
         .. dispatcher:: dsp
            :opt: graph_attr={'ratio': '1'}
 
-            >>> dsp = Dispatcher()
+            >>> dsp = Dispatcher(name='Dispatcher')
             >>> dsp.add_function(function_id='fun1', inputs=['a', 'b'],
             ...                   outputs=['c', 'd'])
             'fun1'
@@ -890,47 +985,47 @@ class Dispatcher(object):
             >>> sub_dsp.name = 'Sub-Dispatcher'
         """
 
-        # define an empty dispatcher
-        sub_dsp = self.__class__(dmap=self.dmap.subgraph(nodes_bunch))
-        sub_dsp.weight = self.weight
+        # Get real paths.
+        nodes_bunch = [self.get_node(u)[1][0] for u in nodes_bunch]
 
-        # namespace shortcuts for speed
-        nodes = sub_dsp.dmap.node
-        dmap_out_degree = sub_dsp.dmap.out_degree
-        dmap_remove_node = sub_dsp.dmap.remove_node
-        dmap_remove_edge = sub_dsp.dmap.remove_edge
-        dmap_dv = self.default_values
+        # Define an empty dispatcher.
+        sub_dsp = self.copy_structure(dmap=self.dmap.subgraph(nodes_bunch))
 
-        # remove function nodes that has not whole inputs available
+        # Namespace shortcuts for speed.
+        nodes, dmap_out_degree = sub_dsp.nodes, sub_dsp.dmap.out_degree
+        dmap_dv, dmap_rm_edge = self.default_values, sub_dsp.dmap.remove_edge
+        dmap_rm_node = sub_dsp.dmap.remove_node
+
+        # Remove function nodes that has not whole inputs available.
         for u in nodes_bunch:
-            n = nodes[u].get('inputs', None)  # function inputs
-            # no all inputs
+            n = nodes[u].get('inputs', None)  # Function inputs.
+            # No all inputs
             if n is not None and not set(n).issubset(nodes_bunch):
-                dmap_remove_node(u)  # remove function node
+                dmap_rm_node(u)  # Remove function node.
 
-        # remove edges that are not in edges_bunch
+        # Remove edges that are not in edges_bunch.
         if edges_bunch is not None:
-            # iterate sub-graph edges
-            for e in edges_bunch:
-                dmap_remove_edge(*e)  # remove edge
+            for e in edges_bunch:  # Iterate sub-graph edges.
+                dmap_rm_edge(*e)  # Remove edge.
 
-        # remove function node with no outputs
+        # Remove function node with no outputs.
         for u in [u for u, n in sub_dsp.dmap.nodes_iter(True)
                   if n['type'] == 'function']:
 
-            if not dmap_out_degree(u):  # no outputs
-                dmap_remove_node(u)  # remove function node
+            if not dmap_out_degree(u):  # No outputs.
+                dmap_rm_node(u)  # Remove function node.
 
-        # remove isolate nodes from sub-graph
+        from networkx import isolates
+        # Remove isolate nodes from sub-graph.
         sub_dsp.dmap.remove_nodes_from(isolates(sub_dsp.dmap))
 
-        # set default values
+        # Set default values.
         sub_dsp.default_values = {k: dmap_dv[k] for k in dmap_dv if k in nodes}
 
-        # return the sub-dispatcher
-        return sub_dsp
+        return sub_dsp  # Return the sub-dispatcher.
 
-    def get_sub_dsp_from_workflow(self, sources, graph=None, reverse=False):
+    def get_sub_dsp_from_workflow(self, sources, graph=None, reverse=False,
+                                  add_missing=False, check_inputs=True):
         """
         Returns the sub-dispatcher induced by the workflow from sources.
 
@@ -941,18 +1036,26 @@ class Dispatcher(object):
         :param sources:
             Source nodes for the breadth-first-search.
             A container of nodes which will be iterated through once.
-        :type sources: iterable
+        :type sources: list[str], iterable
 
         :param graph:
             A directed graph where evaluate the breadth-first-search.
-        :type graph: DiGraph
+        :type graph: networkx.DiGraph, optional
 
         :param reverse:
             If True the workflow graph is assumed as reversed.
         :type reverse: bool, optional
 
+        :param add_missing:
+            If True, missing function' inputs are added to the sub-dispatcher.
+        :type add_missing: bool, optional
+
+        :param check_inputs:
+            If True the missing function' inputs are not checked.
+        :type check_inputs: bool, optional
+
         :return:
-            A sub-dispatcher
+            A sub-dispatcher.
         :rtype: Dispatcher
 
         .. seealso:: :func:`get_sub_dsp`
@@ -973,7 +1076,7 @@ class Dispatcher(object):
         .. dispatcher:: dsp
            :opt: graph_attr={'ratio': '1'}
 
-            >>> dsp = Dispatcher()
+            >>> dsp = Dispatcher(name='Dispatcher')
             >>> dsp.add_data(data_id='a', default_value=1)
             'a'
             >>> dsp.add_function(function_id='fun1', inputs=['a', 'b'],
@@ -985,7 +1088,7 @@ class Dispatcher(object):
 
         Dispatch with no calls in order to have a workflow::
 
-            >>> o = dsp.dispatch(inputs=['a', 'b'], no_call=True)[1]
+            >>> o = dsp.dispatch(inputs=['a', 'b'], no_call=True)
 
         Get sub-dispatcher from workflow inputs `a` and `b`::
 
@@ -1006,32 +1109,34 @@ class Dispatcher(object):
             >>> sub_dsp.name = 'Sub-Dispatcher (reverse workflow)'
         """
 
-        # define an empty dispatcher map
-        sub_dsp = self.__class__()
-        sub_dsp.weight = self.weight
+        # Define an empty dispatcher map.
+        sub_dsp = self.copy_structure()
 
-        if not graph:  # set default graph
-            graph = self.workflow
+        if not graph:  # Set default graph.
+            graph = self.solution.workflow
 
-        # visited nodes used as queue
+        # Visited nodes used as queue.
         family = {}
 
-        # namespace shortcuts for speed
-        nodes, dmap_nodes = (sub_dsp.dmap.node, self.dmap.node)
-        dlt_val, dsp_dlt_val = (sub_dsp.default_values, self.default_values)
+        # Namespace shortcuts for speed.
+        nodes, dmap_nodes = sub_dsp.dmap.node, self.dmap.node
+        dlt_val, dsp_dlt_val = sub_dsp.default_values, self.default_values
 
         if not reverse:
-            # namespace shortcuts for speed
-            neighbors = graph.neighbors_iter
-            dmap_succ = self.dmap.succ
-            succ, pred = (sub_dsp.dmap.succ, sub_dsp.dmap.pred)
+            # Namespace shortcuts for speed.
+            neighbors, dmap_succ = graph.neighbors_iter, self.dmap.succ
+            succ, pred = sub_dsp.dmap.succ, sub_dsp.dmap.pred
 
-            def check_node_inputs(c):
+            # noinspection PyUnusedLocal
+            def _check_node_inputs(c, p):
+                if c == START:
+                    return True
+
                 node_attr = dmap_nodes[c]
 
                 if node_attr['type'] == 'function':
                     if set(node_attr['inputs']).issubset(family):
-                        set_node_attr(c)
+                        _set_node_attr(c)
 
                         # namespace shortcuts for speed
                         s_pred = pred[c]
@@ -1039,62 +1144,175 @@ class Dispatcher(object):
                         for p in node_attr['inputs']:
                             # add attributes to both representations of edge
                             succ[p][c] = s_pred[p] = dmap_succ[p][c]
+                    elif not check_inputs or add_missing:
+                        if add_missing:
+                            for p in node_attr['inputs'] and p not in family:
+                                _set_node_attr(p, add2family=False)
+
+                        _set_node_attr(c)
+
+                        # namespace shortcuts for speed
+                        s_pred = pred[c]
+
+                        for p in set(node_attr['inputs']).intersection(family):
+                            # add attributes to both representations of edge
+                            succ[p][c] = s_pred[p] = dmap_succ[p][c]
+                        return False
+
                     return True
 
                 return False
 
         else:
-            # namespace shortcuts for speed
-            neighbors = graph.predecessors_iter
-            dmap_succ = self.dmap.pred
-            pred, succ = (sub_dsp.dmap.succ, sub_dsp.dmap.pred)
+            # Namespace shortcuts for speed.
+            neighbors, dmap_succ = graph.predecessors_iter, self.dmap.pred
+            pred, succ = sub_dsp.dmap.succ, sub_dsp.dmap.pred
 
-            def check_node_inputs(c):
+            def _check_node_inputs(c, p):
+                if c == START:
+                    try:
+                        node_attr = dmap_nodes[p]
+                        return node_attr['type'] == 'data'
+                    except KeyError:
+                        return True
                 return False
-
+        from collections import deque
         queue = deque([])
 
-        # function to set node attributes
-        def set_node_attr(n):
-            # set node attributes
+        # Function to set node attributes.
+        def _set_node_attr(n, add2family=True):
+            # Set node attributes.
             nodes[n] = dmap_nodes[n]
 
-            # add node in the adjacency matrix
+            # Add node in the adjacency matrix.
             succ[n], pred[n] = ({}, {})
 
             if n in dsp_dlt_val:
-                dlt_val[n] = dsp_dlt_val[n]  # set the default value
+                dlt_val[n] = dsp_dlt_val[n]  # Set the default value.
 
-            family[n] = neighbors(n)  # append a new parent to the family
+            if add2family:
+                family[n] = neighbors(n)  # Append a new parent to the family.
 
-            queue.append(n)
+                queue.append(n)
 
-        # set initial node attributes
+        # Set initial node attributes.
         for s in sources:
             if s in dmap_nodes and s in graph.node:
-                set_node_attr(s)
+                _set_node_attr(s)
 
-        # start breadth-first-search
+        # Start breadth-first-search.
         while queue:
             parent = queue.popleft()
 
-            # namespace shortcuts for speed
+            # Namespace shortcuts for speed.
             nbrs, dmap_nbrs = (succ[parent], dmap_succ[parent])
 
-            # iterate parent's children
+            # Iterate parent's children.
             for child in family[parent]:
 
-                if child == START or check_node_inputs(child):
+                if _check_node_inputs(child, parent):
                     continue
 
                 if child not in family:
-                    set_node_attr(child)  # set node attributes
+                    _set_node_attr(child)  # Set node attributes.
 
-                # add attributes to both representations of edge: u-v and v-u
+                # Add attributes to both representations of edge: u-v and v-u.
                 nbrs[child] = pred[child][parent] = dmap_nbrs[child]
 
-        # return the sub-dispatcher map
-        return sub_dsp
+        return sub_dsp  # Return the sub-dispatcher map.
+
+    @property
+    def data_nodes(self):
+        """
+        Returns all data nodes of the dispatcher.
+
+        :return:
+            All data nodes of the dispatcher.
+        :rtype: dict[str, dict]
+        """
+
+        return {k: v for k, v in self.nodes.items() if v['type'] == 'data'}
+
+    @property
+    def function_nodes(self):
+        """
+        Returns all function nodes of the dispatcher.
+
+        :return:
+            All data function of the dispatcher.
+        :rtype: dict[str, dict]
+        """
+
+        return {k: v for k, v in self.nodes.items() if v['type'] == 'function'}
+
+    @property
+    def sub_dsp_nodes(self):
+        """
+        Returns all sub-dispatcher nodes of the dispatcher.
+
+        :return:
+            All sub-dispatcher nodes of the dispatcher.
+        :rtype: dict[str, dict]
+        """
+
+        return {k: v for k, v in self.nodes.items() if
+                v['type'] == 'dispatcher'}
+
+    def copy(self):
+        """
+        Returns a copy of the Dispatcher.
+
+        :return:
+            A copy of the Dispatcher.
+        :rtype: Dispatcher
+
+        Example::
+
+            >>> dsp = Dispatcher()
+            >>> dsp is dsp.copy()
+            False
+        """
+        import copy
+        return copy.deepcopy(self)  # Return the copy of the Dispatcher.
+
+    def web(self, import_name=None, **options):
+        """
+        Creates a dispatcher Flask app.
+
+        :param import_name:
+            The name of the application package.
+        :type import_name: str, optional
+
+        :param options:
+            Flask options.
+        :type options: dict, optional
+
+        :return:
+            Flask app based on the given dispatcher.
+        :rtype: flask.Flask
+        """
+
+        from .utils.web import create_flask_app
+        return create_flask_app(self, import_name=import_name, **options)
+
+    def celery(self, import_name=None, **options):
+        """
+        Creates a dispatcher Celery app.
+
+        :param import_name:
+            The name of the application package.
+        :type import_name: str, optional
+
+        :param options:
+            Flask options.
+        :type options: dict, optional
+
+        :return:
+            Flask app based on the given dispatcher.
+        :rtype: celery.Celery
+        """
+        from .utils.cel import create_celery_app
+        return create_celery_app(self, **options)
 
     def remove_cycles(self, sources):
         """
@@ -1105,7 +1323,7 @@ class Dispatcher(object):
 
         :param sources:
             Input data nodes.
-        :type sources: iterable
+        :type sources: list[str], iterable
 
         :return:
             A new dispatcher without the unresolved cycles.
@@ -1121,7 +1339,7 @@ class Dispatcher(object):
         .. dispatcher:: dsp
            :opt: graph_attr={'ratio': '1'}
 
-            >>> dsp = Dispatcher()
+            >>> dsp = Dispatcher(name='Dispatcher')
             >>> def average(kwargs):
             ...     return sum(kwargs.values()) / float(len(kwargs))
             >>> data = [
@@ -1159,7 +1377,7 @@ class Dispatcher(object):
 
         The dispatch stops on data node `c` due to the unresolved cycle::
 
-            >>> res = dsp.dispatch(inputs={'a': 1})[1]
+            >>> res = dsp.dispatch(inputs={'a': 1})
             >>> sorted(res.items())
             [('a', 1), ('b', 3)]
 
@@ -1172,7 +1390,7 @@ class Dispatcher(object):
         Removing the unresolved cycle the dispatch continues to all nodes::
 
             >>> dsp_rm_cy = dsp.remove_cycles(['a', 'b'])
-            >>> res = dsp_rm_cy.dispatch(inputs={'a': 1})[1]
+            >>> res = dsp_rm_cy.dispatch(inputs={'a': 1})
             >>> sorted(res.items())
             [('a', 1), ('b', 3), ('c', 3.0), ('d', 1)]
 
@@ -1182,43 +1400,44 @@ class Dispatcher(object):
             >>> dsp_rm_cy.name = 'Dispatcher without unresolved cycles'
         """
 
-        # Reachable nodes from sources
-        reached_nodes = set()
+        reached_nodes = set()  # Reachable nodes from sources.
 
-        # List of edges to be removed
-        edge_to_remove = []
+        edge_to_remove = []  # List of edges to be removed.
 
-        # updates the reachable nodes and list of edges to be removed
-        remove_cycles_iteration(self.dmap, iter(sources), reached_nodes,
-                                edge_to_remove)
+        wait_in = self._get_wait_in(all_domain=False)  # Get wait inputs.
+        from .utils.alg import rm_cycles_iter
+        # Updates the reachable nodes and list of edges to be removed.
+        rm_cycles_iter(self.dmap, iter(sources), reached_nodes, edge_to_remove,
+                       wait_in)
 
-        for v in self.dmap.node.values():
-            if v.pop('undo', False):
-                v['wait_inputs'] = True
-
-        # sub-dispatcher induced by the reachable nodes
+        # Sub-dispatcher induced by the reachable nodes.
         new_dmap = self.get_sub_dsp(reached_nodes, edge_to_remove)
 
-        # return a new dispatcher without the unresolved cycles
-        return new_dmap
+        return new_dmap  # Return a new dispatcher without unresolved cycles.
 
-    def dispatch(self, inputs=None, outputs=None, cutoff=None,
-                 wildcard=False, no_call=False, shrink=False):
+    def dispatch(self, inputs=None, outputs=None, cutoff=None, inputs_dist=None,
+                 wildcard=False, no_call=False, shrink=False,
+                 rm_unused_nds=False, select_output_kw=None, _wait_in=None,
+                 stopper=None):
         """
         Evaluates the minimum workflow and data outputs of the dispatcher
         model from given inputs.
 
         :param inputs:
             Input data values.
-        :type inputs: dict, iterable, optional
+        :type inputs: dict[str, T], list[str], iterable, optional
 
         :param outputs:
             Ending data nodes.
-        :type outputs: iterable, optional
+        :type outputs: list[str], iterable, optional
 
         :param cutoff:
             Depth to stop the search.
         :type cutoff: float, int, optional
+
+        :param inputs_dist:
+            Initial distances of input data nodes.
+        :type inputs_dist: dict[str, int | float], optional
 
         :param wildcard:
             If True, when the data node is used as input and target in the
@@ -1227,32 +1446,48 @@ class Dispatcher(object):
         :type wildcard: bool, optional
 
         :param no_call:
-            If True data node estimation function is not used.
+            If True data node estimation function is not used and the input
+            values are not used.
         :type no_call: bool, optional
 
         :param shrink:
             If True the dispatcher is shrink before the dispatch.
+
+            .. seealso:: :func:`shrink_dsp`
         :type shrink: bool, optional
 
-        :returns:
+        :param rm_unused_nds:
+            If True unused function and sub-dispatcher nodes are removed from
+            workflow.
+        :type rm_unused_nds: bool, optional
 
-            - workflow: A directed graph with data node estimations.
-            - data_output: Dictionary of estimated data node outputs.
-        :rtype: (DiGraph, AttrDict)
+        :param select_output_kw:
+            Kwargs of selector function to select specific outputs.
+        :type select_output_kw: dict, optional
 
-        .. seealso:: :func:`shrink_dsp`
+        :param _wait_in:
+            Override wait inputs.
+        :type _wait_in: dict, optional
+
+        :param stopper:
+            A semaphore to abort the dispatching.
+        :type stopper: threading.Event, optional
+
+        :return:
+            Dictionary of estimated data node outputs.
+        :rtype: Result[str, T]
 
         \***********************************************************************
 
         **Example**:
 
-        A dispatcher with a function `my_log` and two data `a` and `b`
+        A dispatcher with a function :math:`log(b - a)` and two data `a` and `b`
         with default values:
 
         .. dispatcher:: dsp
            :opt: graph_attr={'ratio': '1'}
 
-            >>> dsp = Dispatcher()
+            >>> dsp = Dispatcher(name='Dispatcher')
             >>> dsp.add_data(data_id='a', default_value=0)
             'a'
             >>> dsp.add_data(data_id='b', default_value=5)
@@ -1264,16 +1499,17 @@ class Dispatcher(object):
             ...     return log(b - a)
             >>> def my_domain(a, b):
             ...     return a < b
-            >>> dsp.add_function('my log', function=my_log, inputs=['c', 'd'],
+            >>> dsp.add_function('log(b - a)', function=my_log,
+            ...                  inputs=['c', 'd'],
             ...                  outputs=['e'], input_domain=my_domain)
-            'my log'
+            'log(b - a)'
             >>> dsp.add_function('min', function=min, inputs=['a', 'b'],
             ...                  outputs=['c'])
             'min'
 
         Dispatch without inputs. The default values are used as inputs::
 
-            >>> workflow, outputs = dsp.dispatch()
+            >>> outputs = dsp.dispatch()
             ...
             >>> sorted(outputs.items())
             [('a', 0), ('b', 5), ('c', 0), ('d', 1), ('e', 0.0)]
@@ -1286,10 +1522,10 @@ class Dispatcher(object):
 
         Dispatch until data node `c` is estimated::
 
-            >>> workflow, outputs = dsp.dispatch(outputs=['c'])
+            >>> outputs = dsp.dispatch(outputs=['c'])
             ...
             >>> sorted(outputs.items())
-             [('a', 0), ('b', 5), ('c', 0), ('d', 1)]
+             [('a', 0), ('b', 5), ('c', 0)]
 
         .. dispatcher:: dsp
            :opt: workflow=True, graph_attr={'ratio': '1'}
@@ -1300,7 +1536,7 @@ class Dispatcher(object):
         Dispatch with one inputs. The default value of `a` is not used as
         inputs::
 
-            >>> workflow, outputs = dsp.dispatch(inputs={'a': 3})
+            >>> outputs = dsp.dispatch(inputs={'a': 3})
             ...
             >>> sorted(outputs.items())
              [('a', 3), ('b', 5), ('c', 3), ('d', 1)]
@@ -1312,46 +1548,57 @@ class Dispatcher(object):
             <...>
         """
 
-        # pre shrink
-        if not no_call and shrink:
-            dsp = self.shrink_dsp(inputs, outputs, cutoff)
-        else:
-            dsp = self
+        dsp = self
 
-        # initialize
-        args = dsp._init_run(inputs, outputs, wildcard, cutoff, no_call)
+        if not no_call:
+            if shrink:  # Pre shrink.
+                dsp = self.shrink_dsp(
+                    inputs, outputs, cutoff, inputs_dist, wildcard
+                )
+            elif outputs:
+                dsp = self.shrink_dsp(outputs=outputs)
 
-        # return the evaluated workflow graph and data outputs
-        self.workflow, self.data_output = dsp._run(*args[1:])
+        # Initialize.
+        self.solution = sol = self.solution.__class__(
+            dsp, inputs, outputs, wildcard, cutoff, inputs_dist, no_call,
+            rm_unused_nds, _wait_in, stopper=stopper
+        )
 
-        # nodes that are out of the dispatcher nodes
-        out_dsp_nodes = set(args[0]).difference(dsp.nodes)
+        # Dispatch.
+        sol.run()
 
-        # add nodes that are out of the dispatcher nodes
-        if inputs:
-            if no_call:
-                self.data_output.update({k: None for k in out_dsp_nodes})
-            else:
-                self.data_output.update({k: inputs[k] for k in out_dsp_nodes})
+        if select_output_kw:
+            return selector(dictionary=sol, **select_output_kw)
 
-        # return the evaluated workflow graph and data outputs
-        return self.workflow, self.data_output
+        # Return the evaluated data outputs.
+        return sol
 
-    def shrink_dsp(self, inputs=None, outputs=None, cutoff=None):
+    def shrink_dsp(self, inputs=None, outputs=None, cutoff=None,
+                   inputs_dist=None, wildcard=True):
         """
         Returns a reduced dispatcher.
 
         :param inputs:
             Input data nodes.
-        :type inputs: iterable, optional
+        :type inputs: list[str], iterable, optional
 
         :param outputs:
             Ending data nodes.
-        :type outputs: iterable, optional
+        :type outputs: list[str], iterable, optional
 
         :param cutoff:
             Depth to stop the search.
         :type cutoff: float, int, optional
+
+        :param inputs_dist:
+            Initial distances of input data nodes.
+        :type inputs_dist: dict[str, int | float], optional
+
+        :param wildcard:
+            If True, when the data node is used as input and target in the
+            ArciDispatch algorithm, the input value will be used as input for
+            the connected functions, but not as output.
+        :type wildcard: bool, optional
 
         :return:
             A sub-dispatcher.
@@ -1368,7 +1615,7 @@ class Dispatcher(object):
         .. dispatcher:: dsp
            :opt: graph_attr={'ratio': '1'}
 
-            >>> dsp = Dispatcher()
+            >>> dsp = Dispatcher(name='Dispatcher')
             >>> functions = [
             ...     {
             ...         'function_id': 'fun1',
@@ -1414,156 +1661,115 @@ class Dispatcher(object):
             >>> shrink_dsp.name = 'Sub-Dispatcher'
         """
 
-        bfs_graph = self.dmap
-
+        bfs = None
         if inputs:
+            # Get all data nodes no wait inputs.
+            wait_in = self._get_wait_in(flag=False)
 
-            self._set_wait_in()
-            wait_in = self._wait_in
+            # Evaluate the workflow graph without invoking functions.
+            o = self.dispatch(
+                inputs, outputs, cutoff, inputs_dist, wildcard, True, False,
+                True, _wait_in=wait_in
+            )
 
-            edges = set()
-            bfs_graph = DiGraph()
-            wi = set(wait_in)
+            data_nodes = self.data_nodes  # Get data nodes.
 
-            while True:
+            from .utils.alg import _union_workflow, _convert_bfs
+            bfs = _union_workflow(o)  # bfg edges.
 
-                for k, v in wait_in.items():
-                    if v and k in inputs:
-                        wait_in[k] = False
-                        wi.remove(k)
+            # Set minimum initial distances.
+            if inputs_dist:
+                inputs_dist = combine_dicts(o.dist, inputs_dist)
+            else:
+                inputs_dist = o.dist
 
-                # evaluate the workflow graph without invoking functions
-                wf, o = self.dispatch(inputs, outputs, cutoff, True, True)
+            # Set data nodes to wait inputs.
+            wait_in = self._get_wait_in(flag=True)
 
-                edges.update(wf.edges())
+            while True:  # Start shrinking loop.
+                # Evaluate the workflow graph without invoking functions.
+                o = self.dispatch(
+                    inputs, outputs, cutoff, inputs_dist, wildcard, True, False,
+                    False, _wait_in=wait_in
+                )
 
-                n_d = (set(wf.node.keys()) - self._visited)
-                n_d = n_d.union(self._visited.intersection(wi))
+                _union_workflow(o, bfs=bfs)  # Update bfs.
 
-                if not n_d:
-                    break
+                n_d, status = o._remove_wait_in()  # Remove wait input flags.
 
-                inputs = n_d.union(inputs)
+                if not status:
+                    break  # Stop iteration.
 
-            bfs_graph.add_edges_from(edges)
+                # Update inputs.
+                inputs = n_d.intersection(data_nodes).union(inputs)
 
-            if outputs is None:
-                # noinspection PyUnboundLocalVariable
-                outputs = o
+            # Update outputs and convert bfs in DiGraphs.
+            outputs, bfs = outputs or o, _convert_bfs(bfs)
 
-        self._wait_in = {}
+        elif not outputs:
+            return self.copy_structure()  # Empty Dispatcher.
 
-        if outputs:
-            dsp = self.get_sub_dsp_from_workflow(outputs, bfs_graph, True)
-        else:
-            return self.__class__()
+        # Get sub dispatcher breadth-first-search graph.
+        dsp = self._get_dsp_from_bfs(outputs, bfs_graphs=bfs)
 
-        pred, succ = dsp.dmap.pred, dsp.dmap.succ
-        nodes = dsp.nodes
-        for k in (k for k, v in dsp.nodes.items() if v['type'] == 'dispatcher'):
-            i, o = pred[k], succ[k]
-            node = nodes[k] = nodes[k].copy()
+        return dsp  # Return the shrink sub dispatcher.
 
-            i = {l: m for l, m in node['inputs'].items() if l in i}
-            o = {l: m for l, m in node['outputs'].items() if m in o}
+    def _get_dsp_from_bfs(self, outputs, bfs_graphs=None, _update_links=True):
+        """
+        Returns the sub-dispatcher induced by the workflow from outputs.
 
-            sub_dsp = node['function'].shrink_dsp(
-                i.values() if i else None, o if o else None)
+        :param outputs:
+            Ending data nodes.
+        :type outputs: list[str], iterable, optional
 
-            rl = [k, self]
-            nl = [k, dsp]
-            for tag, v, w in (('input', i.values(), node['inputs'].values()),
-                              ('output', o, node['outputs'])):
-                for j in w:
-                    if j in sub_dsp.nodes:
-                        n = sub_dsp.nodes[j] = sub_dsp.nodes[j].copy()
-                        if j in v:
-                            n[tag] = [l if l != rl else nl for l in n[tag]]
-                        else:
-                            n[tag] = [l for l in n[tag] if l != rl]
-                            if not n[tag]:
-                                n.pop(tag)
-            node['inputs'] = i
-            node['outputs'] = o
-            node['function'] = sub_dsp
+        :param bfs_graphs:
+            A dictionary with directed graphs where evaluate the
+            breadth-first-search.
+        :type bfs_graphs: dict[str | Token, networkx.DiGraph | dict], optional
 
-        # return the sub dispatcher
+        :return:
+            A sub-dispatcher
+        :rtype: Dispatcher
+        """
+
+        bfs = bfs_graphs[NONE] if bfs_graphs is not None else self.dmap
+
+        # Get sub dispatcher breadth-first-search graph.
+        dsp = self.get_sub_dsp_from_workflow(outputs, bfs, True)
+
+        # Namespace shortcuts.
+        in_e, out_e = dsp.dmap.in_edges, dsp.dmap.out_edges
+        succ, nodes = dsp.dmap.succ, dsp.nodes
+        rm_edges = dsp.dmap.remove_edges_from
+        from .utils.alg import _children
+
+        for n in dsp.sub_dsp_nodes:
+            a = nodes[n] = nodes[n].copy()
+            bfs = bfs_graphs[n] if bfs_graphs is not None else None
+
+            o = succ[n]
+            o = {k for k, v in a['outputs'].items()
+                 if any(i in o for i in stlp(v))}
+
+            if 'input_domain' in a:
+                o = o.union(set(_children(a['inputs'])))
+
+            d = a['function'] = a['function']._get_dsp_from_bfs(o, bfs, False)
+            from .utils.alg import _update_io_attr_sub_dsp
+            _update_io_attr_sub_dsp(d, a)
+
+            # Update sub-dispatcher edges.
+            o = set(out_e(n)) - {(n, u) for u in _children(a['outputs'])}
+            i = set(in_e(n)) - {(u, n) for u in a['inputs']}
+            rm_edges(i.union(o))  # Remove unreachable nodes.
+
+        if _update_links:
+            from .utils.alg import _update_remote_links, remove_links
+            _update_remote_links(dsp, self)  # Update remote links.
+
+            remove_links(dsp)  # Remove unused links.
+
         return dsp
-
-    def _check_targets(self):
-        """
-        Returns a function to terminate the ArciDispatch algorithm when all
-        targets have been visited.
-
-        :return:
-            A function to terminate the ArciDispatch algorithm.
-        :rtype: function
-        """
-
-        if self._targets:
-
-            targets = self._targets
-
-            def check_targets(node_id):
-                """
-                Terminates ArciDispatch algorithm when all targets have been
-                visited.
-
-                :param node_id:
-                    Data or function node id.
-                :type node_id: any hashable Python object except None
-
-                :return:
-                    True if all targets have been visited, otherwise False
-                :rtype: bool
-                """
-
-                try:
-                    targets.remove(node_id)  # remove visited node
-                    return not targets  # if no targets terminate the algorithm
-                except KeyError:  # the node is not in the targets set
-                    return False
-        else:
-            def check_targets(node_id):
-                return False
-
-        return check_targets
-
-    def _check_cutoff(self):
-        """
-        Returns a function to stop the search of the investigated node of the
-        ArciDispatch algorithm.
-
-        :return:
-            A function to stop the search
-        :rtype: function
-        """
-
-        if self._cutoff is not None:
-
-            cutoff = self._cutoff
-
-            def check_cutoff(distance):
-                """
-                Stops the search of the investigated node of the ArciDispatch
-                algorithm.
-
-                :param distance:
-                    Distance from the starting node.
-                :type distance: float, int
-
-                :return:
-                    True if distance > cutoff, otherwise False
-                :rtype: bool
-                """
-
-                return distance > cutoff  # check cutoff distance
-
-        else:  # cutoff is None.
-            def check_cutoff(distance):
-                return False
-
-        return check_cutoff
 
     def _edge_length(self, edge, node_out):
         """
@@ -1573,768 +1779,66 @@ class Dispatcher(object):
 
         :param edge:
             Edge attributes.
-        :type edge: dict
+        :type edge: dict[str, int | float]
 
         :param node_out:
             Node attributes.
-        :type node_out: dict
+        :type node_out: dict[str, int | float]
 
         :return:
             Edge length.
         :rtype: float, int
         """
 
-        weight = self.weight
+        weight = self.weight  # Namespace shortcut.
 
-        return edge.get(weight, 1) + node_out.get(weight, 0)
+        return edge.get(weight, 1) + node_out.get(weight, 0)  # Return length.
 
-    def _get_node_estimations(self, node_attr, node_id):
-        """
-        Returns the data nodes estimations and `wait_inputs` flag.
-
-        :param node_attr:
-            Dictionary of node attributes.
-        :type node_attr: dict
-
-        :param node_id:
-            Data node's id.
-        :type node_id: any hashable Python object except None
-
-        :returns:
-
-            - node estimations with minimum distance from the starting node, and
-            - `wait_inputs` flag
-        :rtype: (dict, bool)
-        """
-
-        # get data node estimations
-        estimations = self._wf_pred[node_id]
-
-        # namespace shortcut
-        wait_in = node_attr['wait_inputs']
-
-        # check if node has multiple estimations and it is not waiting inputs
-        if len(estimations) > 1 and not self._wait_in.get(node_id, wait_in):
-            # namespace shortcuts
-            dist = self.dist
-            edge_length = self._edge_length
-            edg = self.dmap.edge
-
-            est = []  # estimations' heap
-
-            for k, v in estimations.items():  # calculate length
-                if k is not START:
-                    d = dist[k] + edge_length(edg[k][node_id], node_attr)
-                    heappush(est, (d, k, v))
-
-            # the estimation with minimum distance from the starting node
-            estimations = {est[0][1]: est[0][2]}
-
-            # remove unused workflow edges
-            self.workflow.remove_edges_from([(v[1], node_id) for v in est[1:]])
-
-        # return estimations and `wait_inputs` flag.
-        return estimations, wait_in
-
-    def _check_wait_input_flag(self):
-        """
-        Returns a function to stop the search of the investigated node of the
-        ArciDispatch algorithm.
-
-        :return:
-            A function to stop the search
-        :rtype: function
-        """
-
-        # namespace shortcuts
-        visited = self._visited
-        pred = self._pred
-
-        if self._wait_in:
-            # namespace shortcut
-            we = self._wait_in.get
-
-            def check_wait_input_flag(wait_in, n_id):
-                """
-                Stops the search of the investigated node of the ArciDispatch
-                algorithm, until all inputs are satisfied.
-
-                :param wait_in:
-                    If True the node is waiting input estimations.
-                :type wait_in: bool
-
-                :param n_id:
-                    Data or function node id.
-                :type n_id: any hashable Python object except None
-
-                :return:
-                    True if all node inputs are satisfied, otherwise False
-                :rtype: bool
-                """
-
-                # return true if the node inputs are satisfied
-                return we(n_id, wait_in) and (set(pred[n_id].keys()) - visited)
-
-        else:
-            def check_wait_input_flag(wait_in, n_id):
-                # return true if the node inputs are satisfied
-                return wait_in and (set(pred[n_id].keys()) - visited)
-
-        return check_wait_input_flag
-
-    def _set_wildcards(self, inputs=None, outputs=None):
-        """
-        Update wildcards set with the input data nodes that are also outputs.
-
-        :param inputs:
-            Input data nodes.
-        :type inputs: iterable
-
-        :param outputs:
-            Ending data nodes.
-        :type outputs: iterable
-        """
-
-        # clear wildcards
-        self._wildcards = set()
-
-        if outputs:
-            # namespace shortcut
-            node = self.nodes
-
-            # input data nodes that are in output_targets
-            wildcards = {u: node[u] for u in inputs if u in outputs}
-
-            # data nodes without the wildcard
-            self._wildcards.update([k
-                                    for k, v in wildcards.items()
-                                    if v.get('wildcard', True)])
-
-    def _set_wait_in(self):
+    def _get_wait_in(self, flag=True, all_domain=True):
         """
         Set `wait_inputs` flags for data nodes that:
 
             - are estimated from functions with a domain function, and
             - are waiting inputs.
+
+        :param flag:
+            Value to be set. If None `wait_inputs` are just cleaned.
+        :type flag: bool, None, optional
+
+        :param all_domain:
+            Set `wait_inputs` flags for data nodes that are estimated from
+            functions with a domain function.
+        :type all_domain: bool, optional
         """
 
-        # clear wait_in
-        self._wait_in = {}
-
-        # namespace shortcut
-        wait_in = self._wait_in
-
-        for n, a in self.nodes.items():
-            # namespace shortcut
-            n_type = a['type']
-
-            if n_type == 'function' and 'input_domain' in a:  # with a domain
-                # nodes estimated from functions with a domain function
-                for k in a['outputs']:
-                    wait_in[k] = True
-
-            elif n_type == 'data' and a['wait_inputs']:  # is waiting inputs
-                wait_in[n] = True
-
-    def _get_initial_values(self, inputs, no_call):
-        """
-        Returns inputs' initial values for the ArciDispatcher algorithm.
-
-        Initial values are the default values merged with the input values.
-
-        :param inputs:
-            Input data nodes values.
-        :type inputs: iterable, None
-
-        :param no_call:
-            If True data node value is not None.
-        :type no_call: bool
-
-        :return:
-            Inputs' initial values.
-        :rtype: dict
-        """
-
-        if no_call:
-            # set initial values
-            initial_values = dict.fromkeys(self.default_values, NONE)
-
-            # update initial values with input values
-            if inputs is not None:
-                initial_values.update(dict.fromkeys(inputs, NONE))
-        else:
-            # set initial values
-            initial_values = self.default_values.copy()
-
-            # update initial values with input values
-            if inputs is not None:
-                initial_values.update(inputs)
-
-        return initial_values
-
-    def _set_node_output(self, node_id, no_call):
-        """
-        Set the node outputs from node inputs.
-
-        :param node_id:
-            Data or function node id.
-        :type node_id: any hashable Python object except None
-
-        :param no_call:
-            If True data node estimation function is not used.
-        :type no_call: bool
-
-        :return:
-            If the output have been evaluated correctly.
-        :rtype: bool
-        """
-
-        # namespace shortcuts
-        node_attr = self.nodes[node_id]
-        node_type = node_attr['type']
-
-        if node_type == 'data':  # set data node
-            return self._set_data_node_output(node_id, node_attr, no_call)
-
-        elif node_type == 'function':  # det function node
-            return self._set_function_node_output(node_id, node_attr, no_call)
-
-    def _set_data_node_output(self, node_id, node_attr, no_call):
-        """
-        Set the data node output from node estimations.
-
-        :param node_id:
-            Data node id.
-        :type node_id: any hashable Python object except None
-
-        :param node_attr:
-            Dictionary of node attributes.
-        :type node_attr: dict
-
-        :param no_call:
-            If True data node estimations are not used.
-        :type no_call: bool
-
-        :return:
-            If the output have been evaluated correctly.
-        :rtype: bool
-        """
-
-        # get data node estimations
-        est, wait_in = self._get_node_estimations(node_attr, node_id)
-
-        if not no_call:
-
-            # final estimation of the node and node status
-            if not wait_in:
-
-                if 'function' in node_attr:  # evaluate output
-                    try:
-                        kwargs = {k: v['value'] for k, v in est.items()}
-                        # noinspection PyCallingNonCallable
-                        value = node_attr['function'](kwargs)
-                    except Exception as ex:
-                        # some error occurs
-                        msg = 'Estimation error at data node ({}) ' \
-                              'due to: {}'.format(node_id, ex)
-                        self.warning(msg)  # raise a Warning
-                        return False
-                else:
-                    # data node that has just one estimation value
-                    value = list(est.values())[0]['value']
-
-            else:  # use the estimation function of node
-                try:
-                    # dict of all data node estimations
-                    kwargs = {k: v['value'] for k, v in est.items()}
-
-                    # noinspection PyCallingNonCallable
-                    value = node_attr['function'](kwargs)  # evaluate output
-                except Exception as ex:
-                    # is missing estimation function of data node or some error
-                    msg = 'Estimation error at data node ({}) ' \
-                          'due to: {}'.format(node_id, ex)
-                    self.warning(msg)  # raise a Warning
-                    return False
-
-            if 'callback' in node_attr:  # invoke callback function of data node
-                try:
-                    # noinspection PyCallingNonCallable
-                    node_attr['callback'](value)
-                except Exception as ex:
-                    msg = 'Callback error at data node ({}) ' \
-                          'due to: {}'.format(node_id, ex)
-                    self.warning(msg)  # raise a Warning
-
-            if value is not NONE:
-                # set data output
-                self.data_output[node_id] = value
-
-            # output value
-            value = {'value': value}
-        else:
-            # set data output
-            self.data_output[node_id] = NONE
-
-            # output value
-            value = {}
-
-        # list of functions
-        succ_fun = [u for u in self._succ[node_id]]
-
-        # check if it has functions as outputs and wildcard condition
-        if succ_fun and succ_fun[0] not in self._visited:
-            # namespace shortcuts for speed
-            wf_add_edge = self._wf_add_edge
-
-            # set workflow
-            for u in succ_fun:
-                wf_add_edge(node_id, u, **value)
-
-        # return True, i.e. that the output have been evaluated correctly
-        return True
-
-    def _set_function_node_output(self, node_id, node_attr, no_call):
-        """
-        Set the function node output from node inputs.
-
-        :param node_id:
-            Function node id.
-        :type node_id: any hashable Python object except None
-
-        :param node_attr:
-            Dictionary of node attributes.
-        :type node_attr: dict
-
-        :param no_call:
-            If True data node estimation function is not used.
-        :type no_call: bool
-
-        :return:
-            If the output have been evaluated correctly.
-        :rtype: bool
-        """
-
-        # namespace shortcuts for speed
-        o_nds = node_attr['outputs']
-        dist = self.dist
-        nodes = self.nodes
-
-        # list of nodes that can still be estimated by the function node
-        output_nodes = [u for u in o_nds
-                        if (not u in dist) and (u in nodes)]
-
-        if not output_nodes:  # this function is not needed
-            self.workflow.remove_node(node_id)  # remove function node
-            return False
-
-        # namespace shortcuts for speed
-        wf_add_edge = self._wf_add_edge
-
-        if no_call:
-            # set workflow out
-            for u in output_nodes:
-                wf_add_edge(node_id, u)
-            return True
-
-        args = self._wf_pred[node_id]  # list of the function's arguments
-        args = [args[k]['value'] for k in node_attr['inputs']]
-        args = [v for v in args if v is not NONE]
-
-        try:
-            # noinspection PyCallingNonCallable
-            if 'input_domain' in node_attr and \
-                    not node_attr['input_domain'](*args):
-                # args are not respecting the domain
-                return False
-            else:  # use the estimation function of node
-                fun = node_attr['function']
-                res = fun(*args)
-                if isinstance(fun, SubDispatch):
-                    self.workflow.add_node(
-                        node_id,
-                        workflow=(fun.workflow, fun.data_output, fun.dist)
-                    )
-
-                # list of function results
-                res = res if len(o_nds) > 1 else [res]
-
-        except Exception as ex:
-            # is missing function of the node or args are not in the domain
-            msg = 'Estimation error at function node ({}) ' \
-                  'due to: {}'.format(node_id, ex)
-            self.warning(msg)  # raise a Warning
-            return False
-
-        # set workflow
-        for k, v in zip(o_nds, res):
-            if k in output_nodes and v is not NONE:
-                wf_add_edge(node_id, k, value=v)
-
-        # return True, i.e. that the output have been evaluated correctly
-        return True
-
-    def _init_workflow(self, inputs, input_value):
-        """
-        Initializes workflow, visited nodes, data output, and distance.
-
-        :param inputs:
-            Input data nodes.
-        :type inputs: iterable
-
-        :param input_value:
-            A function that return the input value of a given data node.
-            If input_values = {'a': 'value'} then 'value' == input_value('a')
-        :type input_value: function
-
-        :returns:
-            Inputs for _run:
-
-                - fringe: Nodes not visited, but seen.
-                - check_cutoff: Check the cutoff limit.
-        :rtype: (list, function)
-        """
-
-        # clear previous outputs
-        self.workflow = DiGraph()
-        self.data_output = AttrDict()  # estimated data node output
-        self._visited = set()
-        self._wf_add_edge = add_edge_fun(self.workflow)
-        self._wf_pred = self.workflow.pred
-        self.check_wait_in = self._check_wait_input_flag()
-        self.check_targets = self._check_targets()
-
-        # namespace shortcuts for speed
-        check_cutoff = self._check_cutoff()
-        add_visited = self._visited.add
-        wf_add_node = self.workflow.add_node
-
-        add_visited(START)  # nodes visited by the algorithm
-
-        # dicts of distances
-        self.dist, self.seen = ({START: -1}, {START: -1})
-
-        # use heapq with (distance, wait, label)
-        fringe = []
-
-        # add the starting node to the workflow graph
-        wf_add_node(START, type='start')
-
-        # add initial values to fringe and seen
-        for v in inputs:
-            self._add_initial_value(fringe, check_cutoff, v, input_value(v))
-
-        return fringe, check_cutoff
-
-    def _add_initial_value(self, fringe, check_cutoff, data_id, value,
-                           initial_dist=0):
-        # namespace shortcuts for speed
-        node_attr = self.nodes
-        edge_weight = self._edge_length
-        wf_add_edge = self._wf_add_edge
-        seen = self.seen
-        check_wait_in = self.check_wait_in
-
-        # add initial value to fringe and seen
-        if data_id not in node_attr:
-            return False
-
-        wait_in = node_attr[data_id]['wait_inputs']  # store wait inputs flag
-
-        # add edge
-        wf_add_edge(START, data_id, **value)
-
-        if data_id in self._wildcards:  # check if the data node is in wildcards
-
-            # update visited nodes
-            self._visited.add(data_id)
-
-            # add node to workflow
-            self.workflow.add_node(data_id)
-
-            for w, edge_data in self.dmap[data_id].items():  # see function node
-                # set workflow
-                wf_add_edge(data_id, w, **value)
-
-                # evaluate distance
-                vw_dist = initial_dist + edge_weight(edge_data, node_attr[w])
-
-                # check the cutoff limit and if all inputs are satisfied
-                if check_cutoff(vw_dist) or check_wait_in(True, w):
-                    continue  # pass the node
-
-                # update distance
-                seen[w] = vw_dist
-
-                # add node to heapq
-                heappush(fringe, (vw_dist, True, (w, self)))
-
-            return True
-
-        # check if all node inputs are satisfied
-        if not (check_cutoff(initial_dist) or check_wait_in(wait_in, data_id)):
-            # update distance
-            seen[data_id] = initial_dist
-
-            # add node to heapq
-            heappush(fringe, (initial_dist, wait_in, (data_id, self)))
-
-            return True
-        return False
-
-    def _init_run(self, inputs, outputs, wildcard, cutoff, no_call):
-        """
-        Initializes workflow, visited nodes, data output, and distance.
-
-        :param inputs:
-            Input data values.
-        :type inputs: dict
-
-        :param outputs:
-            Ending data nodes.
-        :type outputs: iterable
-
-        :param wildcard:
-            If True, when the data node is used as input and target in the
-            ArciDispatch algorithm, the input value will be used as input for
-            the connected functions, but not as output.
-        :type wildcard: bool, optional
-
-        :param cutoff:
-            Depth to stop the search.
-        :type cutoff: float, int
-
-        :param no_call:
-            If True data node estimation function is not used.
-        :type no_call: bool
-
-        :return:
-            Inputs for _run:
-
-                - inputs: default values + inputs.
-                - fringe: Nodes not visited, but seen.
-                - check_cutoff: Check the cutoff limit.
-                - no_call.
-        :rtype: (dict, list, function, bool)
-        """
-
-        # get inputs
-        inputs = self._get_initial_values(inputs, no_call)
-
-        # clear old targets
-        self._targets = set()
-
-        # update new targets
-        if outputs is not None:
-            self._targets.update(outputs)
-
-        self._cutoff = cutoff  # set cutoff parameter
-
-        if wildcard:
-            self._set_wildcards(inputs, outputs)  # set wildcards
-        else:
-            self._set_wildcards()  # clear wildcards
-
-        # define f function that return the input value of a given data node
-        if no_call:
-            def input_value(*k):
-                return {}
-        else:
-            def input_value(k):
-                return {'value': inputs[k]}
-
-        # initialize workflow params
-        fringe, check_cutoff = self._init_workflow(inputs, input_value)
-
-        # return inputs for _run
-        return inputs, fringe, check_cutoff, no_call
-
-    def _run(self, fringe, check_cutoff, no_call=False):
-        """
-        Evaluates the minimum workflow and data outputs of the dispatcher map.
-
-        Uses a modified (ArciDispatch) Dijkstra's algorithm for evaluating the
-        workflow.
-
-        :param fringe:
-            Heapq of closest available nodes.
-        :type fringe: list
-
-        :param seen:
-            Distances of seen nodes.
-        :type seen: dict
-
-        :param check_cutoff:
-            Check the cutoff limit.
-        :type check_cutoff: function
-
-        :param check_wait_in:
-            Check if all node inputs of a given node are satisfied.
-        :type check_wait_in: function
-
-        :param check_targets:
-            Check wildcard option and if the targets are satisfied.
-        :type check_targets: function
-
-        :param no_call:
-            If True data node estimation function is not used.
-        :type no_call: bool, optional
-
-        :returns:
-
-            - workflow: A directed graph with data node estimations.
-            - data_output: Dictionary of estimated data node outputs.
-        :rtype: (DiGraph, AttrDict)
-        """
-
-        finished = set()
-        started = {self}
-        while fringe:
-            (d, _, (v, dsp)) = heappop(fringe)  # visit the closest available node
-
-            if dsp in finished:
-                continue
-            started.add(dsp)
-            # set and see nodes
-            if not dsp._visit_nodes(v, d, fringe, check_cutoff, no_call):
-                if self is dsp:
-                    break
-                else:
-                    finished.add(dsp)
-
-            node = dsp.nodes[v]
-
-            if node['type'] == 'data' and 'output' in node:
-                value = dsp.data_output[v]
-                for sub_dsp_id, sub_dsp in node['output']:
-                    if sub_dsp in started:
-                        n = sub_dsp.nodes[sub_dsp_id]['outputs'][v]
-                        if sub_dsp._see_node(n, fringe, d):
-                            sub_dsp._wf_add_edge(sub_dsp_id, n, value=value)
-
-        self._remove_unused_functions()
-
-        # return the workflow and data outputs
-        return self.workflow, self.data_output
-
-    def _visit_nodes(self, node_id, dist, fringe, check_cutoff, no_call=False):
-        # namespace shortcuts
-        node_attr = self.nodes
-        graph = self.dmap
-        workflow_has_edge = self.workflow.has_edge
-        distances = self.dist
-        add_visited = self._visited.add
-        set_node_output = self._set_node_output
-        edge_weight = self._edge_length
-        check_targets = self.check_targets
-        wf_add_node = self.workflow.add_node
-
-        # set minimum dist
-        distances[node_id] = dist
-
-        # update visited nodes
-        add_visited(node_id)
-
-        # set node output
-        if not set_node_output(node_id, no_call):
-            # some error occurs or inputs are not in the function domain
-            return True
-
-        # check wildcard option and if the targets are satisfied
-        if check_targets(node_id):
-            return False  # stop loop
-
-        for w, e_data in graph[node_id].items():
-            if not workflow_has_edge(node_id, w):
-                continue
-
-            node = node_attr[w]  # get node attributes
-
-            vw_d = dist + edge_weight(e_data, node)  # evaluate dist
-
-            # check the cutoff limit
-            if check_cutoff(vw_d):
-                continue
-
-            if node['type'] == 'dispatcher':
-                # namespace shortcuts
-                dsp, pred = node['function'], self._wf_pred[w]
-
-                if len(pred) == 1:  # initialize the sub-dispatcher
-                    dsp._init_as_sub_dsp(fringe, node['outputs'], no_call)
-                    wf = (dsp.workflow, dsp.data_output, dsp.dist)
-                    wf_add_node(w, workflow=wf)
-
-                nodes = [node_id]
-
-                if w not in distances:
-                    if 'input_domain' in node and not no_call:
-                        try:
-                            kwargs = {k: v['value'] for k, v in pred.items()}
-                            if not node['input_domain'](kwargs):
-                                continue
-                            else:
-                                nodes = pred
-                        except:
-                            continue
-                    distances[w] = vw_d
-
-                for n_id in nodes:
-                    # namespace shortcuts
-                    n, val = node['inputs'][n_id], pred[n_id]
-
-                    # add initial value to the sub-dispatcher
-                    dsp._add_initial_value(fringe, check_cutoff, n, val, vw_d)
-
-            else:
-                # see the node
-                self._see_node(w, fringe, vw_d)
-
-        return True
-
-    def _see_node(self, node_id, fringe, dist):
-        check_wait_in = self.check_wait_in
-        seen = self.seen
-        distances = self.dist
-
-        # wait inputs flag
-        wait_in = self.nodes[node_id]['wait_inputs']
-
-        # check if all node inputs are satisfied
-        if check_wait_in(wait_in, node_id):
-            pass # pass the node
-
-        elif node_id in distances:  # the node w already estimated
-            if dist < distances[node_id]:  # error for negative paths
-                raise ValueError('Contradictory paths found: '
-                                 'negative weights?')
-        elif node_id not in seen or dist < seen[node_id]:  # check min dist to w
-            # update dist
-            seen[node_id] = dist
-
-            # add node to heapq
-            heappush(fringe, (dist, wait_in, (node_id, self)))
-
-            # the node is visible
-            return True
-        return False
-
-    def _remove_unused_functions(self):
-        nodes = self.nodes
-        succ = self.workflow.succ
-        # remove unused functions
-        for n in (set(self._wf_pred) - set(self._visited)):
-            node_type = nodes[n]['type']
-            if node_type == 'data':
-                continue
-
-            if node_type == 'dispatcher' and succ[n]:
-                self._visited.add(n)
-                continue
-
-            self.workflow.remove_node(n)
-
-    def _init_as_sub_dsp(self, fringe, outputs, no_call):
-        dsp_fringe = self._init_run({}, outputs, True, None, no_call)[1]
-        for f in dsp_fringe:
-            heappush(fringe, f)
+        wait_in = {}
+
+        if flag is None:  # No set.
+            for a in self.sub_dsp_nodes.values():
+                if 'function' in a:
+                    a['function']._get_wait_in(flag=flag)
+            return
+
+        for n, a in self.data_nodes.items():
+            if n is not SINK and a['wait_inputs']:
+                wait_in[n] = flag
+
+        if all_domain:
+            for a in self.function_nodes.values():
+                if 'input_domain' in a:
+                    wait_in.update(dict.fromkeys(a['outputs'], flag))
+
+            for n, a in self.sub_dsp_nodes.items():
+                if 'function' in a:
+                    dsp = a['function']
+                    wait_in[dsp] = w = dsp._get_wait_in(flag=flag)
+                    if 'input_domain' not in a:
+                        o = a['outputs']
+                        w = [o[k] for k in set(o).intersection(w)]
+                        wait_in.update(dict.fromkeys(w, flag))
+
+                if 'input_domain' in a:
+                    wait_in[n] = flag
+                    wait_in.update(dict.fromkeys(a['outputs'].values(), flag))
+
+        return wait_in

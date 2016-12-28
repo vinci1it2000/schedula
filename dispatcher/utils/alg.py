@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 #
-# Copyright 2014 European Commission (JRC);
+# Copyright 2014-2016 European Commission (JRC);
 # Licensed under the EUPL (the 'Licence');
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
@@ -12,16 +12,17 @@ It contains basic algorithms, numerical tricks, and data processing tasks.
 
 __author__ = 'Vincenzo Arcidiacono'
 
-from heapq import heappush, heappop
-from .gen import pairwise, heap_flush, counter
-
-__all__ = ['add_edge_fun', 'scc_fun', 'dijkstra', 'remove_cycles_iteration']
+import heapq
+from .gen import pairwise, counter
+from .cst import EMPTY, NONE
+from .dsp import SubDispatch, bypass, selector, map_dict, stlp, parent_func
+import collections
 
 
 # modified from NetworkX library
 def add_edge_fun(graph):
     """
-    Returns a function that add an edge to the `graph` checking only the out
+    Returns a function that adds an edge to the `graph` checking only the out
     node.
 
     :param graph:
@@ -29,27 +30,558 @@ def add_edge_fun(graph):
     :type graph: networkx.classes.digraph.DiGraph
 
     :return:
-        A function that add edges to the `graph`.
+        A function that adds an edge to the `graph`.
     :rtype: function
     """
 
-    succ = graph.succ
-    pred = graph.pred
-    node = graph.node
+    # Namespace shortcut for speed.
+    succ, pred, node = graph.succ, graph.pred, graph.node
 
-    def add_edges(u, v, **attr):
-        # add nodes
-        if v not in succ:
-            succ[v] = {}
-            pred[v] = {}
-            node[v] = {}
-        # add the edge
-        succ[u][v] = pred[v][u] = attr
+    def add_edge(u, v, **attr):
+        if v not in succ:  # Add nodes.
+            succ[v], pred[v], node[v] = {}, {}, {}
 
-    return add_edges
+        succ[u][v] = pred[v][u] = attr  # Add the edge.
+
+    return add_edge  # Returns the function.
 
 
-# modified from NetworkX library
+def remove_edge_fun(graph):
+    """
+    Returns a function that removes an edge from the `graph`.
+
+    ..note:: The out node is removed if this is isolate.
+
+    :param graph:
+        A directed graph.
+    :type graph: networkx.classes.digraph.DiGraph
+
+    :return:
+        A function that remove an edge from the `graph`.
+    :rtype: function
+    """
+
+    # Namespace shortcut for speed.
+    rm_edge, rm_node = graph.remove_edge, graph.remove_node
+    from networkx import is_isolate
+
+    def remove_edge(u, v):
+        rm_edge(u, v)  # Remove the edge.
+        if is_isolate(graph, v):  # Check if v is isolate.
+            rm_node(v)  # Remove the isolate out node.
+
+    return remove_edge  # Returns the function.
+
+
+def get_unused_node_id(graph, initial_guess='unknown'):
+    """
+    Finds an unused node id in `graph`.
+
+    :param graph:
+        A directed graph.
+    :type graph: networkx.classes.digraph.DiGraph
+
+    :param initial_guess:
+        Initial node id guess.
+    :type initial_guess: str, optional
+
+    :return:
+        An unused node id.
+    :rtype: str
+    """
+
+    has_node = graph.has_node  # Namespace shortcut for speed.
+
+    n = counter(0)  # Counter.
+    node_id_format = '%s%s' % (initial_guess, '<%d>')  # Node id format.
+
+    node_id = initial_guess  # Initial guess.
+    while has_node(node_id):  # Check if node id is used.
+        node_id = node_id_format % n()  # Guess.
+
+    return node_id  # Returns an unused node id.
+
+
+def add_func_edges(dsp, fun_id, nodes_bunch, edge_weights=None, input=True,
+                   data_nodes=None):
+    """
+    Adds function node edges.
+
+    :param dsp:
+        A dispatcher that identifies the model adopted.
+    :type dsp: dispatcher.Dispatcher
+
+    :param fun_id:
+        Function node id.
+    :type fun_id: str
+
+    :param nodes_bunch:
+        A container of nodes which will be iterated through once.
+    :type nodes_bunch: iterable
+
+    :param edge_weights:
+        Edge weights.
+    :type edge_weights: dict, optional
+
+    :param input:
+        If True the nodes_bunch are input nodes, otherwise are output nodes.
+    :type input: bool, optional
+
+    :param data_nodes:
+        Data nodes to be deleted if something fail.
+    :type data_nodes: list
+
+    :return:
+        List of new data nodes.
+    :rtype: list
+    """
+
+    # Namespace shortcut for speed.
+    add_edge = _add_edge_dmap_fun(dsp.dmap, edge_weights)
+    node, add_data = dsp.dmap.node, dsp.add_data
+    remove_nodes = dsp.dmap.remove_nodes_from
+
+    # Define an error message.
+    msg = 'Invalid %sput id: {} is not a data node' % ['out', 'in'][input]
+    i, j = ('i', 'o') if input else ('o', 'i')
+
+    data_nodes = data_nodes or []  # Update data nodes.
+
+    for u in nodes_bunch:  # Iterate nodes.
+        try:
+            if node[u]['type'] != 'data':  # The node is not a data node.
+                data_nodes.append(fun_id)  # Add function id to be removed.
+
+                remove_nodes(data_nodes)  # Remove function and new data nodes.
+
+                raise ValueError(msg.format(u))  # Raise error.
+        except KeyError:
+            data_nodes.append(add_data(data_id=u))  # Add new data node.
+
+        add_edge(**{i: u, j: fun_id, 'w': u})  # Add edge.
+
+    return data_nodes  # Return new data nodes.
+
+
+def _add_edge_dmap_fun(graph, edges_weights=None):
+    """
+    Adds edge to the dispatcher map.
+
+    :param graph:
+        A directed graph.
+    :type graph: networkx.classes.digraph.DiGraph
+
+    :param edges_weights:
+        Edge weights.
+    :type edges_weights: dict, optional
+
+    :return:
+        A function that adds an edge to the `graph`.
+    :rtype: function
+    """
+
+    add = graph.add_edge  # Namespace shortcut for speed.
+
+    if edges_weights is not None:
+        def add_edge(i, o, w):
+            if w in edges_weights:
+                add(i, o, weight=edges_weights[w])  # Weighted edge.
+            else:
+                add(i, o)  # Normal edge.
+    else:
+        def add_edge(i, o, w):
+            add(i, o)  # Normal edge.
+
+    return add_edge  # Returns the function.
+
+
+def remove_remote_link(dsp, nodes_bunch, type=('child', 'parent')):
+    nodes = dsp.nodes
+    for k in nodes_bunch:
+        node = nodes[k]
+        links = []
+        # Define new remote links.
+        for (n, d), t in node.pop('remote_links', []):
+            if t not in type:
+                links.append([[n, d], t])
+        if links:
+            node['remote_links'] = links
+
+
+def _get_parent_nodes(dsp, sub_dsp_id, inputs=True):
+    if inputs:
+        key_map, d = dsp.nodes[sub_dsp_id]['inputs'], dsp.dmap.pred[sub_dsp_id]
+    else:
+        key_map = _invert_node_map(dsp.nodes[sub_dsp_id]['outputs'])
+        d = dsp.dmap.succ[sub_dsp_id]
+
+    return list(_iter_list_nodes(map_dict(key_map, d)))
+
+
+def _invert_node_map(_map):
+    r = {}
+    for i, v in _map.items():
+        for j in stlp(v):
+            if j in r:
+                r[j] = stlp(r[j]) + (i,)
+            else:
+                r[j] = i
+    return r
+
+
+def remove_links(dsp):
+    for k, a in dsp.data_nodes.items():
+        links = []
+        for (n, d), t in a.pop('remote_links', []):
+            if t == 'parent' and k in _get_parent_nodes(d, n, inputs=True):
+                links.append([[n, d], t])
+            elif t == 'child' and k in _get_parent_nodes(d, n, inputs=False):
+                links.append([[n, d], t])
+        if links:
+            a['remote_links'] = links
+
+    for n, a in dsp.sub_dsp_nodes.items():
+        remove_links(a['function'])
+        nodes = a['function'].nodes
+        i = a['inputs']
+        for k, v in list(i.items()):
+            j = tuple(
+                i for i in stlp(v) if _has_remote(nodes[i], type='parent'))
+            if j:
+                i[k] = j
+            else:
+                i.pop(k)
+
+        a['outputs'] = {k: v for k, v in a['outputs'].items() if
+                        _has_remote(nodes[k], type='child')}
+
+
+def _has_remote(node, type=('child', 'parent')):
+    return any(v[1] in stlp(type) for v in node.get('remote_links', []))
+
+
+def replace_remote_link(dsp, nodes_bunch, link_map):
+    """
+    Replaces or removes remote links.
+
+    :param dsp:
+        A dispatcher with remote links.
+    :type dsp: dispatcher.Dispatcher
+
+    :param nodes_bunch:
+        A container of nodes which will be iterated through once.
+    :type nodes_bunch: iterable
+
+    :param link_map:
+        A dictionary that maps the link keys ({old link: new link}
+    :type link_map: dict
+    """
+    nodes = dsp.nodes
+    for k in nodes_bunch:  # Update remote links.
+        node = nodes[k] = nodes[k].copy()
+        links = []
+        # Define new remote links.
+        for (n, d), t in node.pop('remote_links', []):
+            d = link_map.get(d, None)
+
+            if d:
+                links.append([[n, d], t])
+        if links:
+            node['remote_links'] = links
+
+
+
+def _iter_list_nodes(l):
+    for v in l:
+        if isinstance(v, str):
+            yield v
+        else:
+            for j in v:
+                yield j
+
+
+def _children(inputs):
+    """
+
+    :param inputs:
+    :return:
+    """
+
+    return set(_iter_list_nodes(inputs.values()))
+
+
+def _get_node(nodes, node_id, fuzzy=True):
+    """
+    Returns a dispatcher node that match the given node id.
+
+    :param nodes:
+        Dispatcher nodes.
+    :type nodes: dict
+
+    :param node_id:
+        Node id.
+    :type node_id: str
+
+    :param _function_module:
+        If True `node_id` could be just the function name.
+    :type _function_module: bool, optional
+
+    :return:
+         The dispatcher node and its id.
+    :rtype: (str, dict)
+    """
+
+    try:
+        return node_id, nodes[node_id]  # Return dispatcher node and its id.
+    except KeyError as ex:
+        if fuzzy:
+            it = sorted(nodes.items())
+            n = next(((k, v) for k, v in it if node_id in k), EMPTY)
+            if n is not EMPTY:
+                return n
+        raise ex
+
+
+def _update_remote_links(new_dsp, old_dsp):
+    """
+    Update the remote links (parent/child) in the new_dsp .
+
+    :param new_dsp:
+        New Dispatcher.
+    :type new_dsp: Dispatcher
+
+    :param old_dsp:
+        Old Dispatcher.
+    :type old_dsp: Dispatcher
+    """
+
+    _map = _map_remote_links(new_dsp, old_dsp)
+
+    def _update(dsp):
+        nodes = dsp.nodes
+        for k, n in dsp.sub_dsp_nodes.items():
+            n = nodes[k] = n.copy()
+            dsp = n['function']
+
+            n = set(_children(n['inputs'])).union(set(n['outputs']))
+
+            # Update remote links.
+            replace_remote_link(dsp, n.intersection(dsp.nodes), _map)
+
+            _update(dsp)
+
+    _update(new_dsp)
+
+
+def _map_remote_links(new_dsp, old_dsp):
+    """
+    Returns a map with old_dsp and new_dsp to update remote links.
+
+    :param new_dsp:
+        Old Dispatcher.
+    :type new_dsp: dispatcher.Dispatcher
+
+    :param old_dsp:
+        Old Dispatcher.
+    :type old_dsp: dispatcher.Dispatcher
+
+    :return:
+        A map with old_dsp and new_dsp.
+    :rtype: dict[Dispatcher, Dispatcher]
+    """
+
+    ref, nodes = {old_dsp: new_dsp}, old_dsp.nodes  # Namespace shortcuts.
+
+    for k, n in new_dsp.sub_dsp_nodes.items():
+        s, o = n['function'], nodes[k]['function']
+        ref.update(_map_remote_links(s, o))
+
+    return ref
+
+
+def _update_io_attr_sub_dsp(dsp, attr):
+    """
+    Updates input and output of sub-dispatcher node attributes.
+
+    :param dsp:
+        A dispatcher.
+    :type dsp: dispatcher.Dispatcher
+
+    :param attr:
+        Sub-dispatcher node attributes.
+    :type attr: dict
+    """
+
+    # Namespace shortcuts.
+    nodes, o, i = dsp.nodes, attr['outputs'], {}
+
+    attr['outputs'] = selector(set(o).intersection(nodes), o)
+
+    for k, v in attr['inputs'].items():
+        j = tuple(j for j in stlp(v) if j in nodes)
+
+        if j:
+            i[k] = bypass(*j)
+
+    attr['inputs'] = i
+
+
+def get_sub_node(dsp, path, node_attr='auto', solution=NONE, _level=0,
+                 _dsp_name=NONE):
+    """
+    Returns a sub node of a dispatcher.
+
+    :param dsp:
+         A dispatcher object or a sub dispatch function.
+    :type dsp: dispatcher.Dispatcher | SubDispatch
+
+    :param path:
+        A sequence of node ids or a single node id. Each id identifies a
+        sub-level node.
+    :type path: tuple, str
+
+    :param node_attr:
+        Output node attr.
+
+        If the searched node does not have this attribute, all its attributes
+        are returned.
+
+        When 'auto', returns the "default" attributes of the searched node,
+        which are:
+
+          - for data node: its output, and if not exists, all its attributes.
+          - for function and sub-dispatcher nodes: the 'function' attribute.
+    :type node_attr: str | None
+
+    :param solution:
+        Parent Solution.
+    :type solution: dispatcher.utils.Solution
+
+    :param _level:
+        Path level.
+    :type _level: int
+
+    :param _dsp_name:
+        dsp name to show when the function raise a value error.
+    :type _dsp_name: str
+
+    :return:
+        A sub node of a dispatcher and its path.
+    :rtype: dict | object, tuple[str]
+
+    **Example**:
+
+    .. dispatcher:: dsp
+       :opt: workflow=True, graph_attr={'ratio': '1'}, depth=1
+
+        >>> from dispatcher import Dispatcher
+        >>> s_dsp = Dispatcher(name='Sub-dispatcher')
+        >>> def fun(a, b):
+        ...     return a + b
+        ...
+        >>> s_dsp.add_function('a + b', fun, ['a', 'b'], ['c'])
+        'a + b'
+        >>> dispatch = SubDispatch(s_dsp, ['c'], output_type='dict')
+        >>> dsp = Dispatcher(name='Dispatcher')
+        >>> dsp.add_function('Sub-dispatcher', dispatch, ['a'], ['b'])
+        'Sub-dispatcher'
+
+        >>> o = dsp.dispatch(inputs={'a': {'a': 3, 'b': 1}})
+        ...
+
+    Get the sub node output::
+
+        >>> get_sub_node(dsp, ('Sub-dispatcher', 'c'))
+        (4, ('Sub-dispatcher', 'c'))
+        >>> get_sub_node(dsp, ('Sub-dispatcher', 'c'), node_attr='type')
+        ('data', ('Sub-dispatcher', 'c'))
+
+    .. dispatcher:: sub_dsp
+       :opt: workflow=True, graph_attr={'ratio': '1'}, depth=0
+       :code:
+
+        >>> sub_dsp = get_sub_node(dsp, ('Sub-dispatcher',))[0]
+    """
+
+    path = list(path)
+
+    if isinstance(dsp, SubDispatch):  # Take the dispatcher obj.
+        dsp = dsp.dsp
+
+    if _dsp_name is NONE:  # Set origin dispatcher name for warning purpose.
+        _dsp_name = dsp.name
+
+    if solution is NONE:  # Set origin dispatcher name for warning purpose.
+        solution = dsp.solution
+
+    node_id = path[_level]  # Node id at given level.
+
+    try:
+        node_id, node = _get_node(dsp.nodes, node_id)  # Get dispatcher node.
+        path[_level] = node_id
+    except KeyError:
+        if _level == len(path) - 1 and node_attr in ('auto', 'output') \
+                and solution is not EMPTY:
+            try:
+                # Get dispatcher node.
+                node_id, node = _get_node(solution, node_id, False)
+                path[_level] = node_id
+                return node, tuple(path)
+            except KeyError:
+                pass
+        msg = 'Path %s does not exist in %s dispatcher.' % (path, _dsp_name)
+        raise ValueError(msg)
+
+    _level += 1  # Next level.
+
+    if _level < len(path):  # Is not path leaf?.
+
+        try:
+            if node['type'] == 'function':
+                try:
+                    solution = solution.workflow.node[node_id]['solution']
+                except (KeyError, AttributeError):
+                    solution = EMPTY
+                dsp = parent_func(node['function'])  # Get parent function.
+            else:
+                dsp = node['function']  # Get function or sub-dispatcher node.
+
+        except KeyError:
+            msg = 'Node of path %s at level %i is not a function or ' \
+                  'sub-dispatcher node of %s ' \
+                  'dispatcher.' % (path, _level, _dsp_name)
+            raise ValueError(msg)
+
+        # Continue the node search.
+        return get_sub_node(dsp, path, node_attr, solution, _level, _dsp_name)
+    else:
+        data = EMPTY
+        # Return the sub node.
+        if node_attr == 'auto' and node['type'] != 'data':  # Auto: function.
+            node_attr = 'function'
+        elif node_attr == 'auto' and solution is not EMPTY and node_id in solution:  # Auto: data output.
+                data = solution[node_id]
+        elif node_attr == 'output' and node['type'] != 'data':
+            data = solution.workflow.node[node_id]['solution']
+        elif node_attr == 'output' and node['type'] == 'data':
+            data = solution[node_id]
+        elif node_attr == 'description':  # Search and return node description.
+            data = dsp.search_node_description(node_id)
+        elif node_attr == 'value_type' and node['type'] == 'data':
+            # Search and return data node value's type.
+            data = dsp.search_node_description(node_id, node_attr)
+        elif node_attr == 'default_value':
+            data = dsp.default_values[node_id]
+        elif node_attr == 'dsp':
+            data = dsp
+
+        if data is EMPTY:
+            data = node.get(node_attr, node)
+
+        return data, tuple(path)  # Return the data
+
+
+# Modified from NetworkX library.
 def scc_fun(graph, nodes_bunch=None):
     """
     Return nodes in strongly connected components (SCC) of the reachable graph.
@@ -73,10 +605,10 @@ def scc_fun(graph, nodes_bunch=None):
     """
 
     p_ord, l_link, scc_found, scc_queue = ({}, {}, {}, [])
-    pre_ord_n = counter()  # Pre-order counter
+    pre_ord_n = counter()  # Pre-order counter.
     for source in (nodes_bunch if nodes_bunch else graph):
         if source not in scc_found:
-            q = [source]  # queue
+            q = [source]  # Queue.
             while q:
                 v = q[-1]
 
@@ -169,13 +701,13 @@ def dijkstra(graph, source, targets=None, cutoff=None, weight=True):
     check_cutoff = _check_cutoff_fun(cutoff)
     edge_weight = _edge_weight_fun(weight)
 
-    dist = {}  # dictionary of final distances
-    paths = {source: [source]}  # dictionary of paths
+    dist = {}  # Dictionary of final distances.
+    paths = {source: [source]}  # Dictionary of paths.
     seen = {source: 0}
     c = counter(1)
-    fringe = [(0, 0, source)]  # use heapq with (distance,label) tuples
+    fringe = [(0, 0, source)]  # Use heapq with (distance,label) tuples.
     while fringe:
-        (d, _, v) = heappop(fringe)
+        (d, _, v) = heapq.heappop(fringe)
 
         dist[v] = d
 
@@ -196,7 +728,7 @@ def dijkstra(graph, source, targets=None, cutoff=None, weight=True):
             elif w not in seen or vw_dist < seen[w]:
                 seen[w] = vw_dist
 
-                heappush(fringe, (vw_dist, c(), w))
+                heapq.heappush(fringe, (vw_dist, c(), w))
 
                 paths[w] = paths[v] + [w]
 
@@ -208,10 +740,12 @@ def _check_targets_fun(targets):
     Returns a function to stop the Dijkstra algorithm when all the targets
     have been visited.
 
-    :param targets: Ending data nodes.
+    :param targets:
+        Ending data nodes.
     :type targets: iterable, None
 
-    :return: A function to stop the Dijkstra algorithm.
+    :return:
+        A function to stop the Dijkstra algorithm.
     :rtype: function
     """
 
@@ -223,7 +757,8 @@ def _check_targets_fun(targets):
                 return True
             return False
     else:
-        check_targets = lambda n: False
+        def check_targets(n):
+            return False
 
     return check_targets
 
@@ -234,10 +769,12 @@ def _check_cutoff_fun(cutoff):
 
     Only paths of length <= cutoff are returned.
 
-    :param cutoff: Depth to stop the search.
+    :param cutoff:
+        Depth to stop the search.
     :type cutoff: float, int
 
-    :return: A function to stop the search of the Dijkstra algorithm.
+    :return:
+        A function to stop the search of the Dijkstra algorithm.
     :rtype: function
     """
 
@@ -256,7 +793,8 @@ def _edge_weight_fun(weight):
         otherwise is 1.
     :type weight: bool
 
-    :return: A function to evaluate the edge weight.
+    :return:
+        A function to evaluate the edge weight.
     :rtype: function
     """
 
@@ -264,12 +802,13 @@ def _edge_weight_fun(weight):
         def edge_weight(edge, node_out):
             return edge.get('weight', 1) + node_out.get('weight', 0)
     else:
-        edge_weight = lambda *args: 1
+        def edge_weight(edge, node_out):
+            return 1
 
     return edge_weight
 
 
-def _nodes_by_relevance(graph, nodes_bunch):
+def _nodes_by_relevance(graph, nodes_bunch, get_wait_flag):
     """
     Returns function and data nodes ordered by relevance for the edges removal.
 
@@ -292,34 +831,30 @@ def _nodes_by_relevance(graph, nodes_bunch):
     :rtype: (list of tuples, list of tuples)
     """
 
-    # initialize data and function node lists
+    # Initialize data and function node lists.
     fun_nds, data_nds = ([], [])
 
-    # counter
+    # Counter.
     c = counter(1)
 
-    # namespace shortcuts for speed
-    node = graph.node
-    out_degree = graph.out_degree
-    in_degree = graph.in_degree
+    # Namespace shortcuts for speed.
+    node, out_degree, in_degree = graph.node, graph.out_degree, graph.in_degree
 
     for u, n in ((u, node[u]) for u in nodes_bunch):
-        # node type
+        # Node type.
         node_type = n['type']
 
-        # node weight
+        # Node weight.
         nw = node[u].get('weight', 0)
 
         if node_type in ('function', 'dispatcher'):
-            heappush(fun_nds, (nw + out_degree(u, 'weight'), 1.0 / c(), u))
+            fun_nds.append((nw + out_degree(u, 'weight'), 1.0 / c(), u))
 
-        elif node_type == 'data' and n['wait_inputs']:  # this is unresolved
-            # item to push
-            item = (1.0 / (nw + in_degree(u, 'weight')), 1.0 / c(), u)
+        # This is unresolved.
+        elif node_type == 'data' and get_wait_flag(u, n['wait_inputs']):
+            data_nds.append((1.0 / (nw + in_degree(u, 'weight')), 1.0 / c(), u))
 
-            heappush(data_nds, item)
-
-    return heap_flush(fun_nds), heap_flush(data_nds)
+    return sorted(fun_nds), sorted(data_nds)
 
 
 def _cycles_ord_by_length(graph, data_nodes, function_nodes):
@@ -343,46 +878,45 @@ def _cycles_ord_by_length(graph, data_nodes, function_nodes):
     :rtype: list
     """
 
-    # use heapq with (length, steps, 1/data node in-degree, counter, cycle path)
+    # Use heap with (length, steps, 1/data node in-degree, counter, cycle path).
     h = []
 
-    # counter
+    # Counter.
     c = counter(0)
 
-    # set of function nodes labels
+    # Set of function nodes labels.
     fun_n = set([v[-1] for v in function_nodes])
 
-    # namespace shortcuts for speed
-    pred = graph.pred
-    node = graph.node
+    # Namespace shortcuts for speed.
+    pred, node = graph.pred, graph.node
 
     for in_d, i in ((v[0], v[-1]) for v in data_nodes):
-        # function node targets
+        # Function node targets.
         f_n = [j for j in pred[i] if j in fun_n]
 
-        # length and path of the semi-cycle without function-data edge
+        # Length and path of the semi-cycle without function-data edge.
         length, cycle = dijkstra(graph, i, f_n, None, True)
 
-        # node weight
+        # Node weight.
         n_weight = node[i].get('weight', 0.0)
 
-        # sort the cycles founded
+        # Sort the cycles founded.
         for j in (j for j in f_n if j in length):
-            # cycle length
+            # Cycle length.
             lng = length[j] + graph[j][i].get('weight', 1.0) + n_weight
 
-            # cycle path
+            # Cycle path.
             pth = cycle[j] + [i]
 
-            # add cycle to the heapq
-            heappush(h, (lng, len(pth), 1.0 / in_d, c(), list(pairwise(pth))))
+            # Add cycle to the heapq.
+            h.append((lng, len(pth), 1.0 / in_d, c(), list(pairwise(pth))))
 
-    # sorted list of cycles (expressed as list of edges).
-    # N.B. the last edge is that to be deleted
-    return [p[-1] for p in heap_flush(h)]
+    # Sorted list of cycles (expressed as list of edges).
+    # N.B. The last edge is that to be deleted.
+    return [p[-1] for p in sorted(h)]
 
 
-def remove_cycles_iteration(graph, nodes_bunch, reached_nodes, edge_to_rm):
+def rm_cycles_iter(graph, nodes_bunch, reached_nodes, edge_to_rm, wait_in):
     """
     Identifies and removes the unresolved cycles.
 
@@ -401,46 +935,166 @@ def remove_cycles_iteration(graph, nodes_bunch, reached_nodes, edge_to_rm):
     :param edge_to_rm:
         List of edges to be removed that will be updated during the iteration.
     :type edge_to_rm: list
+
+    :param wait_in:
+        Wait input flags.
+    :type wait_in: dict[str, bool]
     """
 
-    # search for strongly connected components
+    # Namespace shortcut.
+    get_wait_flag = wait_in.get
+
+    # Search for strongly connected components.
     for scc in scc_fun(graph, nodes_bunch):
-        # add reachable nodes
+        # Add reachable nodes.
         reached_nodes.update(scc)
 
-        if len(scc) < 2:  # single node
-            continue  # not a cycle
+        if len(scc) < 2:  # Single node.
+            continue  # Not a cycle.
 
-        # function and data nodes that are waiting inputs ordered by relevance
-        fun_n, data_n = _nodes_by_relevance(graph, scc)
+        # Function and data nodes that are waiting inputs ordered by relevance.
+        fun_n, data_n = _nodes_by_relevance(graph, scc, get_wait_flag)
 
-        if not data_n:  # no cycles to be deleted
-            continue  # cycles are deleted by populate_output algorithm
+        if not data_n:  # No cycles to be deleted.
+            continue  # Cycles are deleted by populate_output algorithm.
 
-        # sub-graph that contains the cycles
+        # Sub-graph that contains the cycles.
         sub_g = graph.subgraph(scc)
 
-        # cycles ordered by length
+        # Cycles ordered by length.
         cycles = _cycles_ord_by_length(sub_g, data_n, fun_n)
 
-        # list of removed edges in the current scc
+        # List of removed edges in the current scc.
         removed_edges = []
 
-        # data nodes that are waiting inputs
+        # Data nodes that are waiting inputs.
         data_n = list(v[-1] for v in data_n)
 
-        # remove edges from sub-graph
+        # Remove edges from sub-graph.
         for cycle, edge, data_id in ((c, c[-1], c[-1][1]) for c in cycles):
             if data_id in data_n and set(cycle).isdisjoint(removed_edges):
-                sub_g.remove_edge(*edge)  # remove edge from sub-graph
-                removed_edges.append(edge)  # update removed edges in the scc
-                edge_to_rm.append(edge)  # update removed edges in the dmap
+                sub_g.remove_edge(*edge)  # Remove edge from sub-graph.
+                removed_edges.append(edge)  # Update removed edges in the scc.
+                edge_to_rm.append(edge)  # Update removed edges in the dmap.
 
-                # no multiple estimations needed
+                # No multiple estimations needed.
                 if sub_g.in_degree(data_id) == 1:
-                    data_n.remove(data_id)  # wait only one estimation
-                    sub_g.node[data_id]['wait_inputs'] = False
-                    sub_g.node[data_id]['undo'] = True
+                    data_n.remove(data_id)  # Wait only one estimation.
+                    wait_in[data_id] = False
 
-        if data_n:  # no unresolved data nodes
-            remove_cycles_iteration(sub_g, data_n, reached_nodes, edge_to_rm)
+        if data_n:  # No unresolved data nodes.
+            rm_cycles_iter(sub_g, data_n, reached_nodes, edge_to_rm, wait_in)
+
+
+class DspPipe(collections.OrderedDict):
+    def __repr__(self):
+        return "<%s instance at %s>" % (self.__class__.__name__, id(self))
+
+
+def get_full_pipe(sol, base=()):
+    """
+    Returns the full pipe of a dispatch run.
+
+    :param sol:
+         A Solution object.
+    :type sol: dispatcher.utils.Solution
+
+    :param base:
+        Base node id.
+    :type base: tuple[str]
+
+    :return:
+        Full pipe of a dispatch run.
+    :rtype: DspPipe
+    """
+
+    pipe = DspPipe()
+
+    for p in sol._pipe:
+        n, s = p[-1]
+        d = s.dsp
+        p = {'task': p}
+
+        if n in s._errors:
+            p['error'] = s._errors[n]
+
+        node_id = s.full_name + (n,)
+
+        if base != node_id[:len(base)]:
+            raise ValueError('%s != %s' % (node_id[:len(base)], base))
+
+        n_id = node_id[len(base):]
+
+        n, path = d.get_node(n, node_attr=None)
+        if n['type'] == 'function' and 'function' in n:
+            try:
+                sub_sol = s.workflow.node[path[-1]]['solution']
+                sp = get_full_pipe(sub_sol, base=node_id)
+                if sp:
+                    p['sub_pipe'] = sp
+            except KeyError:
+                pass
+
+        pipe[bypass(*n_id)] = p
+
+    return pipe
+
+
+def _sort_sk_wait_in(sol):
+    c = counter()
+
+    def _get_sk_wait_in(s):
+        w = set()
+        L = []
+        for n, a in s.dsp.sub_dsp_nodes.items():
+            if 'function' in a and s.index + a['index'] in s.sub_sol:
+                sub_sol = s.sub_sol[s.index + a['index']]
+                n_d, l = _get_sk_wait_in(sub_sol)
+                L += l
+                wi = {k for k, v in sub_sol._wait_in.items() if v is True}
+                n_d = n_d.union(wi)
+                o = a['outputs']
+                w = w.union([o[k] for k in set(o).intersection(n_d)])
+
+        # Nodes to be visited.
+        wi = {k for k, v in s._wait_in.items() if v is True}
+
+        n_d = (set(s.workflow.node.keys()) - s._visited) - w
+
+        n_d = n_d.union(s._visited.intersection(wi))
+        wi = n_d.intersection(wi)
+
+        L += [(s._meet.get(k, float('inf')), k, c(), s._wait_in) for k in wi]
+
+        return set(n_d), L
+
+    return sorted(_get_sk_wait_in(sol)[1])
+
+
+def _union_workflow(sol, node_id=None, bfs=None):
+    if node_id is not None:
+        j = bfs[node_id] = bfs.get(node_id, {NONE: set()})
+    else:
+        j = bfs or {NONE: set()}
+
+    j[NONE].update(sol.workflow.edges())
+
+    for n, a in sol.dsp.sub_dsp_nodes.items():
+        if 'function' in a:
+            s = sol.sub_sol.get(sol.index + a['index'], None)
+            if s:
+                _union_workflow(s, node_id=n, bfs=j)
+    return j
+
+
+def _convert_bfs(bfs):
+    from networkx import DiGraph
+    g = DiGraph()
+    g.add_edges_from(bfs[NONE])
+    bfs[NONE] = g
+
+    for k, v in bfs.items():
+        if k is not NONE:
+            _convert_bfs(v)
+
+    return bfs

@@ -46,12 +46,17 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Topic :: Utilities",
     ],
-    requires=[
+    install_requires=[
         'networkx',
-        'matplotlib',
         'dill',
         'graphviz',
+        'docopt',
+        'regex',
+        'openpyxl>=2.4.0',
+        'flask',
+        'Pycel'
     ],
+    dependency_links=['https://github.com/vinci1it2000/pycel/tarball/master#egg=Pycel'],
     test_suite='nose.collector',
     setup_requires=['nose>=1.0'],
 

@@ -1,8 +1,0 @@
-- CO\ :sub:`2`\ MPAS-Team<co2mpas@jrc.ec.europa.eu>:
-    - Vincenzo Arcidiacono <vincenzo.arcidiacono@ext.jrc.ec.europa.eu>
-    - Stefanos Tsiamakis <stefanos.tsiakmakis@jrc.ec.europa.eu>
-    - Georgios Fontaras <georgios.fontaras@jrc.ec.europa.eu>
-    - Biagio Ciuffo <biagio.ciuffo@jrc.ec.europa.eu>
-    - Victor Valverde <victor.valverde-morales@jrc.ec.europa.eu>
-    - Jelica Pavlovic <jelica.pavlovic@jrc.ec.europa.eu>
-    - Kostis Anagnostopoulos <konstantinos.anagnostopoulos@ext.jrc.ec.europa.eu>
