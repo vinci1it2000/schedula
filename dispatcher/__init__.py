@@ -16,15 +16,15 @@ Modules:
 
 .. autosummary::
     :nosignatures:
-    :toctree: dispatcher/
+    :toctree: _build/dispatcher
 
-    utils
+    ~Dispatcher
+    ~utils
 """
 
 import threading
 from .utils.cst import EMPTY, START, NONE, SINK, SELF, PLOT
-from .utils.dsp import SubDispatch, bypass, combine_dicts, selector, stlp, \
-    parent_func
+from .utils.dsp import bypass, combine_dicts, selector, stlp, parent_func
 from .utils.gen import counter
 from .utils.base import Base
 
@@ -44,7 +44,7 @@ class Dispatcher(Base):
         A semaphore (:class:`threading.Event`) to abort the dispatching.
         
     .. Tip::
-        Rember to set :attr:`stopper` to `False` before dispatching ;-)
+        Remember to set :attr:`stopper` to `False` before dispatching ;-)
 
     A workflow is a sequence of function calls.
 
