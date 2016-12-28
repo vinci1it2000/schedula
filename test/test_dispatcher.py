@@ -1552,7 +1552,7 @@ class TestPipe(unittest.TestCase):
         self.assertEqual(sp, list(n['sub_pipe'].keys()))
         e = 'Failed DISPATCHING \'SubDispatchFunction\' due to:\n  ' \
             'DispatcherError("\\n  Unreachable output-targets: {\'d\'}\\n  ' \
-            'Available outputs: odict_keys([\'a\', \'b\', \'c\'])",)'
+            'Available outputs: [\'a\', \'b\', \'c\']",)'
         self.assertEqual(e, n['error'])
         e = 'Failed DISPATCHING \'dict\' due to:\n  ' \
             'TypeError("\'int\' object is not iterable",)'
