@@ -23,7 +23,10 @@ class Base(object):
             if i not in memo:
                 memo[i] = threading.Event()
         rv = super(Base, self).__reduce_ex__(4)
-        return copy._reconstruct(self, rv, 1, memo)
+        try:
+            return copy._reconstruct(self, rv, 1, memo)
+        except AttributeError:  # py36.
+            return copy._reconstruct(self, memo, *rv)
 
     def plot(self, workflow=None, view=True, depth=-1, name=NONE, comment=NONE,
              format=NONE, engine=NONE, encoding=NONE, graph_attr=NONE,
