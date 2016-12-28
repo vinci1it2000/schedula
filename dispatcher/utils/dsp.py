@@ -734,7 +734,7 @@ class SubDispatch(Base):
 
                 # Raise error
                 msg = '\n  Unreachable output-targets: {}\n  Available ' \
-                      'outputs: {}'.format(missed, solution.keys())
+                      'outputs: {}'.format(missed, list(solution.keys()))
 
                 raise DispatcherError(solution, msg)
 
@@ -862,7 +862,7 @@ class SubDispatchFunction(SubDispatch):
 
             if missed:  # If outputs are missing raise error.
 
-                available = dsp.data_nodes.keys()  # Available data nodes.
+                available = list(dsp.data_nodes.keys())  # Available data nodes.
 
                 # Raise error
                 msg = '\n  Unreachable output-targets: {}\n  Available ' \
