@@ -29,9 +29,6 @@ class Solution(Base, collections.OrderedDict):
     def __hash__(self):
         return id(self)
 
-    def __lt__(self, other):
-        return isinstance(other, Solution) and id(other) < id(self)
-
     def __init__(self, dsp=None, inputs=None, outputs=None, wildcard=False,
                  cutoff=None, inputs_dist=None, no_call=False,
                  rm_unused_nds=False, wait_in=None, no_domain=False,
