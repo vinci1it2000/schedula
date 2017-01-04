@@ -43,8 +43,8 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
-    'autosummary',
-    'dsp_directive',
+    'dispatcher.ext.autosummary',
+    'dispatcher.ext.dsp_directive',
 ]
 
 autosummary_generate = True

@@ -5,7 +5,7 @@ if not IS_PYPY:
 
     import unittest
     from dispatcher import Dispatcher
-    from doc._ext.dsp_directive import DispatcherDirective, PLOT
+    from dispatcher.ext.dsp_directive import DispatcherDirective, PLOT
     from docutils.statemachine import ViewList
 
     try:
