@@ -544,7 +544,7 @@ class FolderNode(object):
             k = 'xlabel' if self.type == 'edge' else 'label'
             dot[k] = '<%s>' % _Table(BORDER=0, CELLSPACING=0).adds(rows)
 
-        return dot
+        return {k: str(v) for k, v in dot.items()}
 
 
 class SiteFolder(object):
