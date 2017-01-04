@@ -6,12 +6,16 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name='dispatcher',
     version='0.0.1',
-    packages=['dispatcher'],
+    packages=find_packages(exclude=[
+        'test', 'test.*',
+        'doc', 'doc.*',
+        'appveyor', 'requirements'
+    ]),
     url='',
     license='',
     author='Vincenzo Arcidiacono',
