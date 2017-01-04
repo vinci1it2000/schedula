@@ -17,8 +17,6 @@ __author__ = 'Vincenzo Arcidiacono'
 
 import itertools
 
-__all__ = ['counter', 'Token', 'pairwise']
-
 
 def counter(start=0, step=1):
     """

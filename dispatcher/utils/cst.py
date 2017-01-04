@@ -14,8 +14,6 @@ __author__ = 'Vincenzo Arcidiacono'
 
 from .gen import Token
 
-__all__ = ['EMPTY', 'START', 'NONE', 'SINK', 'SELF', 'END', 'PLOT']
-
 #: It is used set and unset empty values.
 #:
 #: .. seealso:: :func:`~dispatcher.Dispatcher.set_default_value`

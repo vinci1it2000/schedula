@@ -7,11 +7,8 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """ Defines the dispatcher exception. """
-## TODO: Move it to parent package.
 
 __author__ = 'Vincenzo Arcidiacono'
-
-__all__ = ['DispatcherError', 'DispatcherAbort']
 
 
 class DispatcherError(ValueError):

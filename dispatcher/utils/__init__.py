@@ -51,35 +51,23 @@ Sub-Modules:
 """
 
 __author__ = 'Vincenzo Arcidiacono'
-__all__ = []
 
-from . import cst
-from .cst import *
+from .cst import EMPTY, START, NONE, SINK, SELF, END, PLOT
 
-__all__ += cst.__all__
+from .dsp import (
+    stlp, combine_dicts, bypass, summation, map_dict, map_list, selector,
+    replicate_value, add_args, parse_args, stack_nested_keys, get_nested_dicts,
+    are_in_nested_dicts, combine_nested_dicts, SubDispatch, ReplicateFunction,
+    SubDispatchFunction, SubDispatchPipe, parent_func
+)
 
+from .exc import DispatcherError, DispatcherAbort
 
-from . import dsp
-from .dsp import *
+from .exl import extract_dsp_from_excel
 
-__all__ += dsp.__all__
+from .gen import counter, Token, pairwise
 
-from . import exc
-from .exc import *
-
-__all__ += exc.__all__
-
-from . import exl
-from .exl import *
-
-__all__ += exl.__all__
-
-from . import gen
-from .gen import *
-
-__all__ += gen.__all__
-
-from . import io
-from .io import *
-
-__all__ += io.__all__
+from .io import (
+    save_dispatcher, load_dispatcher, save_default_values, load_default_values,
+    save_map, load_map, open_file
+)
