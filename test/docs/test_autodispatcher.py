@@ -157,7 +157,7 @@ if not IS_PYPY:
                 '   ',
                 '   good',
                 '   ',
-                '   .. graphviz:: _build/html/_images/dispatcher-cca2a722432426abafca076a7ccfde40b7bae49b.gv',
+                '   .. graphviz:: _build/_dispatchers/dispatcher-cca2a722432426abafca076a7ccfde40b7bae49b.gv',
                 '   ',
                 "   .. csv-table:: **Pippo's data**",
                 '   ',
