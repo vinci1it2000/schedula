@@ -76,5 +76,5 @@ def evaluate_cell(cell, map_inputs, *args):
     try:
         return eval(cell.compiled_expression)
     except Exception as e:
-        raise Exception("Problem evalling: %s for %s, %s" % (
+        raise ValueError("Problem evalling: %s for %s, %s" % (
         e, cell.address(), cell.python_expression))
