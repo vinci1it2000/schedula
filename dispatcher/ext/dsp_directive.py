@@ -258,7 +258,10 @@ def render_dot_html(self, node, code, options, prefix='dispatcher',
 
 
 def html_visit_graphviz(self, node):
-    warn_for_deprecated_option(self, node)
+    try:
+        warn_for_deprecated_option(self, node)
+    except NameError:  # sphinx==1.3.5
+        pass
     render_dot_html(self, node, node['code'], node['options'])
 
 
@@ -371,7 +374,10 @@ def add_autodocumenter(app, cls):
 def setup(app):
     app.setup_extension('sphinx.ext.autodoc')
     app.setup_extension('sphinx.ext.graphviz')
-    app.add_node(graphviz, html=(html_visit_graphviz, None), override=True)
+    try:
+        app.add_node(graphviz, html=(html_visit_graphviz, None), override=True)
+    except TypeError:  # sphinx 1.3.5
+        app.add_node(graphviz, html=(html_visit_graphviz, None))
     directives._directives.pop('graphviz', None)
     app.add_directive('graphviz', _Graphviz)
     add_autodocumenter(app, DispatcherDocumenter)
