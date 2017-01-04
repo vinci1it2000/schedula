@@ -14,9 +14,6 @@ __author__ = 'Vincenzo Arcidiacono'
 
 import dill
 
-__all__ = ['save_dispatcher', 'load_dispatcher', 'save_default_values',
-           'load_default_values', 'save_map', 'load_map', 'open_file']
-
 
 def open_file(path_arg, mode='r'):
     """
