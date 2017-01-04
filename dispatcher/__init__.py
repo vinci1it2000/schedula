@@ -154,9 +154,6 @@ class Dispatcher(Base):
     #: When True, the dispatching loop raise :exc:`DispatcherAbort` ASAP.
     stopper = threading.Event()
 
-    def __lt__(self, other):
-        return isinstance(other, Dispatcher) and id(other) < id(self)
-
     def __init__(self, dmap=None, name='', default_values=None, raises=False,
                  description='', stopper=None):
         """

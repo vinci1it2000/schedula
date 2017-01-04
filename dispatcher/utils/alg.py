@@ -195,19 +195,6 @@ def _add_edge_dmap_fun(graph, edges_weights=None):
     return add_edge  # Returns the function.
 
 
-def remove_remote_link(dsp, nodes_bunch, type=('child', 'parent')):
-    nodes = dsp.nodes
-    for k in nodes_bunch:
-        node = nodes[k]
-        links = []
-        # Define new remote links.
-        for (n, d), t in node.pop('remote_links', []):
-            if t not in type:
-                links.append([[n, d], t])
-        if links:
-            node['remote_links'] = links
-
-
 def _get_parent_nodes(dsp, sub_dsp_id, inputs=True):
     if inputs:
         key_map, d = dsp.nodes[sub_dsp_id]['inputs'], dsp.dmap.pred[sub_dsp_id]
@@ -348,11 +335,11 @@ def _update_remote_links(new_dsp, old_dsp):
 
     :param new_dsp:
         New Dispatcher.
-    :type new_dsp: Dispatcher
+    :type new_dsp: dispatcher.Dispatcher
 
     :param old_dsp:
         Old Dispatcher.
-    :type old_dsp: Dispatcher
+    :type old_dsp: dispatcher.Dispatcher
     """
 
     _map = _map_remote_links(new_dsp, old_dsp)
@@ -387,7 +374,7 @@ def _map_remote_links(new_dsp, old_dsp):
 
     :return:
         A map with old_dsp and new_dsp.
-    :rtype: dict[Dispatcher, Dispatcher]
+    :rtype: dict[dispatcher.Dispatcher, dispatcher.Dispatcher]
     """
 
     ref, nodes = {old_dsp: new_dsp}, old_dsp.nodes  # Namespace shortcuts.
