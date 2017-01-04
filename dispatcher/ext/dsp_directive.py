@@ -334,8 +334,7 @@ class DispatcherDocumenter(DataDocumenter):
         if not opt or opt.des:
             _description(lines, dsp, self)
 
-        if not opt or opt.opt:
-            _plot(lines, dsp, dot_view_opt, self)
+        _plot(lines, dsp, dot_view_opt, self)
 
         if not opt or opt.data:
             _data(lines, dsp)
