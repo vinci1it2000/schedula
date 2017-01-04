@@ -111,7 +111,8 @@ def _plot(lines, dsp, dot_view_opt, documenter):
                str(sorted(dot_view_opt.items()))).encode('utf-8')
     fname = 'dispatcher-%s' % sha1(hashkey).hexdigest()
     env = documenter.env
-    dspdir = osp.join(env.app.builder.outdir, env.app.builder.imagedir)
+
+    dspdir = osp.join(env.srcdir, env.config.dispatchers_out_dir)
     fpath = '%s.gv' % osp.join(dspdir, fname)
     if not osp.isfile(fpath):
         smap = dsp.plot(**dot_view_opt)
@@ -382,3 +383,4 @@ def setup(app):
     app.add_directive('graphviz', _Graphviz)
     add_autodocumenter(app, DispatcherDocumenter)
     app.add_directive('dispatcher', DispatcherDirective)
+    app.add_config_value('dispatchers_out_dir', '_build/_dispatchers', 'html')
