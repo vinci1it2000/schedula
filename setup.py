@@ -56,9 +56,9 @@ setup(
         'regex',
         'openpyxl>=2.4.0',
         'flask',
-        'Pycel'
+        'pycel'
     ],
-    dependency_links=['https://github.com/vinci1it2000/pycel/tarball/master#egg=Pycel'],
+    dependency_links=['https://github.com/vinci1it2000/pycel/tarball/master#egg=pycel'],
     test_suite='nose.collector',
     setup_requires=['nose>=1.0'],
 
