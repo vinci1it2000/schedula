@@ -738,20 +738,6 @@ class SubDispatch(Base):
         return _copy.deepcopy(self)
 
 
-class ReplicateFunction(object):
-    """
-    Replicates a function.
-    """
-
-    def __init__(self, function, *args, **kwargs):
-        self.function = functools.partial(function, *args, **kwargs)
-        self.__name__ = function.__name__
-        self.__doc__ = function.__doc__
-
-    def __call__(self, *inputs):
-        function = self.function
-        return [function(i) for i in inputs]
-
 
 class SubDispatchFunction(SubDispatch):
     """
