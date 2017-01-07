@@ -1291,25 +1291,6 @@ class Dispatcher(Base):
         from .utils.web import create_flask_app
         return create_flask_app(self, import_name=import_name, **options)
 
-    def celery(self, import_name=None, **options):
-        """
-        Creates a dispatcher Celery app.
-
-        :param import_name:
-            The name of the application package.
-        :type import_name: str, optional
-
-        :param options:
-            Flask options.
-        :type options: dict, optional
-
-        :return:
-            Flask app based on the given dispatcher.
-        :rtype: celery.Celery
-        """
-        from .utils.cel import create_celery_app
-        return create_celery_app(self, **options)
-
     def remove_cycles(self, sources):
         """
         Returns a new dispatcher removing unresolved cycles.
