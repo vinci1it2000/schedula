@@ -11,7 +11,7 @@ import os
 import sys
 from six import StringIO
 from sphinx import application
-from dispatcher.ext.dsp_directive import DispatcherDirective
+from schedula.ext.dsp_directive import DispatcherDirective
 from os.path import abspath, join, exists, isdir
 
 __all__ = ['Struct', 'ListOutput', 'TestApp']

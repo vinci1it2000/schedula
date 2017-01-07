@@ -8,7 +8,7 @@ import os
 
 sys.path.append(os.path.abspath('.'))
 
-extensions = ['dispatcher.ext.dsp_directive']
+extensions = ['schedula.ext.dsp_directive']
 
 jsmath_path = 'dummy.js'
 

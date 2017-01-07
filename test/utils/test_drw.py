@@ -9,10 +9,10 @@
 import unittest
 import doctest
 import platform
-from dispatcher import Dispatcher
-from dispatcher.utils.dsp import SubDispatch, SubDispatchFunction, SubDispatchPipe
-from dispatcher.utils.cst import SINK
-from dispatcher.utils.drw import SiteMap
+from schedula import Dispatcher
+from schedula.utils.dsp import SubDispatch, SubDispatchFunction, SubDispatchPipe
+from schedula.utils.cst import SINK
+from schedula.utils.drw import SiteMap
 import tempfile
 import os.path as osp
 
@@ -21,7 +21,7 @@ PLATFORM = platform.system().lower()
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):
-        import dispatcher.utils.base as utl
+        import schedula.utils.base as utl
 
         failure_count, test_count = doctest.testmod(
             utl, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS

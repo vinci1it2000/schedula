@@ -11,16 +11,16 @@ import unittest
 
 from networkx.classes.digraph import DiGraph
 
-from dispatcher.utils.alg import scc_fun, dijkstra, get_sub_node
-from dispatcher.utils.dsp import SubDispatch, SubDispatchFunction
-from dispatcher import Dispatcher
-from dispatcher.utils.cst import SINK
+from schedula.utils.alg import scc_fun, dijkstra, get_sub_node
+from schedula.utils.dsp import SubDispatch, SubDispatchFunction
+from schedula import Dispatcher
+from schedula.utils.cst import SINK
 from functools import partial
 
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):
-        import dispatcher.utils.alg as dsp
+        import schedula.utils.alg as dsp
         failure_count, test_count = doctest.testmod(
             dsp, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS)
         self.assertGreater(test_count, 0, (failure_count, test_count))

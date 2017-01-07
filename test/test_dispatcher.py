@@ -12,10 +12,10 @@ import unittest
 
 import numpy as np
 
-from dispatcher import Dispatcher
-from dispatcher.utils.cst import START, EMPTY, SINK, NONE
-from dispatcher.utils.dsp import SubDispatchFunction
-from dispatcher.utils.sol import Solution
+from schedula import Dispatcher
+from schedula.utils.cst import START, EMPTY, SINK, NONE
+from schedula.utils.dsp import SubDispatchFunction
+from schedula.utils.sol import Solution
 
 
 def _setup_dsp():
@@ -66,7 +66,7 @@ def _setup_dsp():
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):
-        import dispatcher as dsp
+        import schedula as dsp
 
         failure_count, test_count = doctest.testmod(
             dsp, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS
@@ -457,7 +457,7 @@ class TestPerformance(unittest.TestCase):
         t = np.mean(timeit.repeat(
             "fun(5, 6)",
             'from %s import _setup_dsp;'
-            'from dispatcher.utils.dsp import SubDispatchFunction;'
+            'from schedula.utils.dsp import SubDispatchFunction;'
             'dsp = _setup_dsp();'
             "[v.pop('input_domain', 0) for v in dsp.function_nodes.values()];"
             'fun = SubDispatchFunction(dsp, "f", ["a", "b"], ["c", "d", "e"])'
@@ -468,7 +468,7 @@ class TestPerformance(unittest.TestCase):
         t = np.mean(timeit.repeat(
             "fun(5, 6)",
             'from %s import _setup_dsp;'
-            'from dispatcher.utils.dsp import SubDispatchPipe;'
+            'from schedula.utils.dsp import SubDispatchPipe;'
             'dsp = _setup_dsp();'
             "[v.pop('input_domain', 0) for v in dsp.function_nodes.values()];"
             'fun = SubDispatchPipe(dsp, "f", ["a", "b"], ["c", "d", "e"])'

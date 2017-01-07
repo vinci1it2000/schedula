@@ -12,13 +12,13 @@ import platform
 
 if platform.python_implementation() != "PyPy":
     from tempfile import mkstemp
-    from dispatcher.utils.io import *
-    from dispatcher import Dispatcher
+    from schedula.utils.io import *
+    from schedula import Dispatcher
 
 
     class TestDoctest(unittest.TestCase):
         def runTest(self):
-            import dispatcher.utils.io as utl
+            import schedula.utils.io as utl
 
             failure_count, test_count = doctest.testmod(
                 utl,

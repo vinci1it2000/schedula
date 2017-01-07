@@ -136,7 +136,7 @@ class Base(object):
            :opt: graph_attr={'ratio': '1'}
            :code:
 
-            >>> from dispatcher import Dispatcher
+            >>> from schedula import Dispatcher
             >>> dsp = Dispatcher(name='Dispatcher')
             >>> def fun(a):
             ...     return a + 1, a - 1
@@ -223,8 +223,8 @@ class Base(object):
         .. dispatcher:: d
            :opt: workflow=True, graph_attr={'ratio': '1'}, depth=1
 
-            >>> import dispatcher as dsp
-            >>> import dispatcher.utils as dsp_utl
+            >>> import schedula  as dsp
+            >>> import schedula.utils as dsp_utl
             >>> s_d = dsp.Dispatcher(name='Sub-dispatcher')
             >>> def fun(a, b):
             ...     return a + b

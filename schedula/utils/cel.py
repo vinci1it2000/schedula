@@ -22,7 +22,7 @@ def create_celery_app(dsp, rule='/', edit_data=False, depth=-1,
 
     :param dsp:
         A dispatcher that identifies the model adopted.
-    :type dsp: dispatcher.Dispatcher
+    :type dsp: schedula.Dispatcher
 
     :param rule:
         Parent rule.

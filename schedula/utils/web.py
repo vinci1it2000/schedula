@@ -27,7 +27,7 @@ def create_flask_app(dsp, import_name=None, **options):
 
     :param dsp:
         A dispatcher that identifies the model adopted.
-    :type dsp: dispatcher.Dispatcher
+    :type dsp: schedula.Dispatcher
 
     :param import_name:
         The name of the application package.
@@ -77,7 +77,7 @@ def stack_func_rules(dsp, rule='/', edit_data=False, depth=-1,
 
     :param dsp:
         A dispatcher that identifies the model adopted.
-    :type dsp: dispatcher.Dispatcher
+    :type dsp: schedula.Dispatcher
 
     :param rule:
         Parent rule.
@@ -135,7 +135,7 @@ def add_dsp_url_rules(dsp, app, rule, edit_data=False, methods=('POST',),
 
     :param dsp:
         A dispatcher that identifies the model adopted.
-    :type dsp: dispatcher.Dispatcher
+    :type dsp: schedula.Dispatcher
 
     :param app:
         Flask app where to add url-rules derived from the given dispatcher.

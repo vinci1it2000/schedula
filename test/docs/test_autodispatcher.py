@@ -4,8 +4,8 @@ IS_PYPY = (getattr(sys, 'implementation', None) == 'pypy'
 if not IS_PYPY:
 
     import unittest
-    from dispatcher import Dispatcher
-    from dispatcher.ext.dsp_directive import DispatcherDirective, PLOT
+    from schedula import Dispatcher
+    from schedula.ext.dsp_directive import DispatcherDirective, PLOT
     from docutils.statemachine import ViewList
 
     try:
