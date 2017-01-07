@@ -209,9 +209,8 @@ class Dispatcher(Base):
         #: If True the dispatcher interrupt the dispatch when an error occur.
         self.raises = raises
 
-        if stopper:
-            #: Stopper to abort the dispatcher execution.
-            self.stopper = stopper
+        #: Stopper to abort the dispatcher execution.
+        self.stopper = stopper or self.__class__.stopper
 
         from .utils.sol import Solution
         #: Last dispatch solution.
