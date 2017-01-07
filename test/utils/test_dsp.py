@@ -45,12 +45,14 @@ class TestDispatcherUtils(unittest.TestCase):
         res = {'a': 1, 'b': args[1]['b']}
         self.assertEqual(selector(*args), res)
 
-        self.assertEqual(selector(*args, copy=False), res)
+        self.assertNotEqual(selector(*args, copy=True), res)
 
         args = (['a', 'b'], {'a': 1, 'b': 2, 'c': 3})
         self.assertSequenceEqual(selector(*args, output_type='list'), (1, 2))
 
         args = ['a', 'd'], {'a': 1, 'b': 1}
+        self.assertEqual(selector(*args, allow_miss=True), {'a': 1})
+
         self.assertRaises(KeyError, selector, *args, output_type='list')
 
     def test_replicate(self):
