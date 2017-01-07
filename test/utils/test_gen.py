@@ -8,7 +8,7 @@
 
 from __future__ import division, print_function, unicode_literals
 
-from dispatcher.utils.gen import pairwise, Token
+from schedula.utils.gen import pairwise, Token
 import doctest
 import unittest
 from copy import copy, deepcopy
@@ -16,7 +16,7 @@ from copy import copy, deepcopy
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):
-        import dispatcher.utils.gen as utl
+        import schedula.utils.gen as utl
         failure_count, test_count = doctest.testmod(
             utl, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS)
         self.assertGreater(test_count, 0, (failure_count, test_count))

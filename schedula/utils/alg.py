@@ -109,7 +109,7 @@ def add_func_edges(dsp, fun_id, nodes_bunch, edge_weights=None, input=True,
 
     :param dsp:
         A dispatcher that identifies the model adopted.
-    :type dsp: dispatcher.Dispatcher
+    :type dsp: schedula.Dispatcher
 
     :param fun_id:
         Function node id.
@@ -253,7 +253,7 @@ def replace_remote_link(dsp, nodes_bunch, link_map):
 
     :param dsp:
         A dispatcher with remote links.
-    :type dsp: dispatcher.Dispatcher
+    :type dsp: schedula.Dispatcher
 
     :param nodes_bunch:
         A container of nodes which will be iterated through once.
@@ -335,11 +335,11 @@ def _update_remote_links(new_dsp, old_dsp):
 
     :param new_dsp:
         New Dispatcher.
-    :type new_dsp: dispatcher.Dispatcher
+    :type new_dsp: schedula.Dispatcher
 
     :param old_dsp:
         Old Dispatcher.
-    :type old_dsp: dispatcher.Dispatcher
+    :type old_dsp: schedula.Dispatcher
     """
 
     _map = _map_remote_links(new_dsp, old_dsp)
@@ -366,15 +366,15 @@ def _map_remote_links(new_dsp, old_dsp):
 
     :param new_dsp:
         Old Dispatcher.
-    :type new_dsp: dispatcher.Dispatcher
+    :type new_dsp: schedula.Dispatcher
 
     :param old_dsp:
         Old Dispatcher.
-    :type old_dsp: dispatcher.Dispatcher
+    :type old_dsp: schedula.Dispatcher
 
     :return:
         A map with old_dsp and new_dsp.
-    :rtype: dict[dispatcher.Dispatcher, dispatcher.Dispatcher]
+    :rtype: dict[schedula.Dispatcher, schedula.Dispatcher]
     """
 
     ref, nodes = {old_dsp: new_dsp}, old_dsp.nodes  # Namespace shortcuts.
@@ -392,7 +392,7 @@ def _update_io_attr_sub_dsp(dsp, attr):
 
     :param dsp:
         A dispatcher.
-    :type dsp: dispatcher.Dispatcher
+    :type dsp: schedula.Dispatcher
 
     :param attr:
         Sub-dispatcher node attributes.
@@ -420,7 +420,7 @@ def get_sub_node(dsp, path, node_attr='auto', solution=NONE, _level=0,
 
     :param dsp:
          A dispatcher object or a sub dispatch function.
-    :type dsp: dispatcher.Dispatcher | SubDispatch
+    :type dsp: schedula.Dispatcher | SubDispatch
 
     :param path:
         A sequence of node ids or a single node id. Each id identifies a
@@ -442,7 +442,7 @@ def get_sub_node(dsp, path, node_attr='auto', solution=NONE, _level=0,
 
     :param solution:
         Parent Solution.
-    :type solution: dispatcher.utils.Solution
+    :type solution: schedula.utils.Solution
 
     :param _level:
         Path level.
@@ -461,7 +461,7 @@ def get_sub_node(dsp, path, node_attr='auto', solution=NONE, _level=0,
     .. dispatcher:: dsp
        :opt: workflow=True, graph_attr={'ratio': '1'}, depth=1
 
-        >>> from dispatcher import Dispatcher
+        >>> from schedula import Dispatcher
         >>> s_dsp = Dispatcher(name='Sub-dispatcher')
         >>> def fun(a, b):
         ...     return a + b
@@ -984,7 +984,7 @@ def get_full_pipe(sol, base=()):
 
     :param sol:
          A Solution object.
-    :type sol: dispatcher.utils.Solution
+    :type sol: schedula.utils.Solution
 
     :param base:
         Base node id.

@@ -1,8 +1,8 @@
-import dispatcher.utils as dsp_utl
+import schedula.utils as dsp_utl
 import os.path as osp
 from sphinx.ext.autodoc import *
 from sphinx.ext.graphviz import *
-from dispatcher import Dispatcher
+from schedula import Dispatcher
 from doctest import DocTestParser, DocTestRunner, NORMALIZE_WHITESPACE, ELLIPSIS
 from hashlib import sha1
 
@@ -139,7 +139,7 @@ def _data(lines, dsp):
     data = sorted(dsp.data_nodes.items())
     if data:
         _table_heather(lines, 'data', dsp.name)
-        from dispatcher.utils.des import get_summary
+        from schedula.utils.des import get_summary
         for k, v in data:
             des, link = dsp.search_node_description(k)
 
@@ -186,7 +186,7 @@ def _dsp2dot_option(arg):
 
     # noinspection PyUnusedLocal
     def map_args(*args, **kwargs):
-        from dispatcher.utils.base import Base
+        from schedula.utils.base import Base
         a = inspect.signature(Base.plot).bind(None, *args, **kwargs).arguments
         a.popitem(last=False)
         return a

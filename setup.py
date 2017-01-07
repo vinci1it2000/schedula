@@ -9,8 +9,8 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='dispatcher',
-    version='0.0.2',
+    name='schedula',
+    version='0.0.1',
     packages=find_packages(exclude=[
         'test', 'test.*',
         'doc', 'doc.*',
@@ -24,11 +24,10 @@ setup(
     keywords=[
         "python", "utility", "library", "data", "processing",
         "calculation", "dependencies", "resolution", "scientific",
-        "engineering", "dispatch", "simulink", "graphviz",
+        "engineering", "dispatch", "scheduling", "simulink", "graphviz",
     ],
     classifiers=[
         "Programming Language :: Python",
-        "Programming Language :: Python :: 3.3",
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",

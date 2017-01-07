@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# dispatcher documentation build configuration file, created by
+# schedula documentation build configuration file, created by
 # sphinx-quickstart on Sat May 23 16:20:31 2015.
 #
 # This file is execfile()d with the current directory set to its
@@ -43,8 +43,8 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
-    'dispatcher.ext.autosummary',
-    'dispatcher.ext.dsp_directive',
+    'schedula.ext.autosummary',
+    'schedula.ext.dsp_directive',
 ]
 
 autosummary_generate = True
@@ -68,7 +68,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'dispatcher'
+project = 'schedula'
 copyright = '2015-2016, Vincenzo Arcidiacono'
 author = 'Vincenzo Arcidiacono'
 
@@ -223,7 +223,7 @@ if not on_rtd:
 #html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'dispatcherdoc'
+htmlhelp_basename = 'scheduladoc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -247,8 +247,8 @@ latex_elements = {
 latex_documents = [
     (
         master_doc,
-        'dispatcher.tex',
-        'dispatcher Documentation',
+        'schedula.tex',
+        'schedula Documentation',
         'Vincenzo Arcidiacono',
         'manual'
     ),
@@ -282,8 +282,8 @@ latex_documents = [
 man_pages = [
     (
         master_doc,
-        'dispatcher',
-        'dispatcher Documentation',
+        'schedula',
+        'schedula Documentation',
         [author],
         1
     )
@@ -301,10 +301,10 @@ man_pages = [
 texinfo_documents = [
     (
         master_doc,
-        'dispatcher',
-        'dispatcher Documentation',
+        'schedula',
+        'schedula Documentation',
         author,
-        'dispatcher',
+        'schedula',
         'One line description of project.',
         'Miscellaneous'
     ),

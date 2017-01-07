@@ -6,17 +6,17 @@
 # You may not use this work except in compliance with the Licence.
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 """
-It contains a comprehensive list of all modules and classes within dispatcher.
+It contains a comprehensive list of all modules and classes within schedula.
 
 Docstrings should provide sufficient understanding for any individual function.
 
 Modules:
 
-.. currentmodule:: dispatcher
+.. currentmodule:: schedula
 
 .. autosummary::
     :nosignatures:
-    :toctree: _build/dispatcher
+    :toctree: _build/schedula
 
     ~Dispatcher
     ~utils
@@ -188,7 +188,7 @@ class Dispatcher(Base):
 
         from networkx import DiGraph
         #: The directed graph that stores data & functions parameters.
-        self.dmap = dmap if dmap else DiGraph()
+        self.dmap = dmap or DiGraph()
 
         #: The dispatcher's name.
         self.name = name
@@ -201,7 +201,7 @@ class Dispatcher(Base):
 
         #: Data node default values. These will be used as input if it is not
         #: specified as inputs in the ArciDispatch algorithm.
-        self.default_values = default_values if default_values else {}
+        self.default_values = default_values or {}
 
         #: Weight tag.
         self.weight = 'weight'

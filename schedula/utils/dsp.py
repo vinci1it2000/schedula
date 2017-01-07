@@ -7,7 +7,7 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 """
-It provides tools to create models with the :func:`~dispatcher.Dispatcher`.
+It provides tools to create models with the :func:`~schedula.Dispatcher`.
 """
 import collections
 import inspect
@@ -589,17 +589,17 @@ class parse_args(add_args):
 
 class SubDispatch(Base):
     """
-    It dispatches a given :func:`~dispatcher.Dispatcher` like a function.
+    It dispatches a given :func:`~schedula.Dispatcher` like a function.
 
     This function takes a sequence of dictionaries as input that will be
     combined before the dispatching.
 
     :return:
         A function that executes the dispatch of the given
-        :func:`~dispatcher.Dispatcher`.
+        :func:`~schedula.Dispatcher`.
     :rtype: function
 
-    .. seealso:: :func:`~dispatcher.Dispatcher.dispatch`, :func:`combine_dicts`
+    .. seealso:: :func:`~schedula.Dispatcher.dispatch`, :func:`combine_dicts`
 
     Example:
 
@@ -607,7 +607,7 @@ class SubDispatch(Base):
        :opt: graph_attr={'ratio': '1'}, depth=1
        :code:
 
-        >>> from dispatcher import Dispatcher
+        >>> from schedula import Dispatcher
         >>> sub_dsp = Dispatcher(name='Sub-dispatcher')
         ...
         >>> def fun(a):
@@ -640,7 +640,7 @@ class SubDispatch(Base):
 
         :param dsp:
             A dispatcher that identifies the model adopted.
-        :type dsp: dispatcher.Dispatcher
+        :type dsp: schedula.Dispatcher
 
         :param outputs:
             Ending data nodes.
@@ -755,7 +755,7 @@ class ReplicateFunction(object):
 
 class SubDispatchFunction(SubDispatch):
     """
-    It converts a :func:`~dispatcher.Dispatcher` into a function.
+    It converts a :func:`~schedula.Dispatcher` into a function.
 
     That function takes a sequence of arguments or a key values as input of the
     dispatch.
@@ -764,8 +764,8 @@ class SubDispatchFunction(SubDispatch):
         A function that executes the dispatch of the given `dsp`.
     :rtype: function
 
-    .. seealso:: :func:`~dispatcher.Dispatcher.dispatch`,
-       :func:`~dispatcher.Dispatcher.shrink_dsp`
+    .. seealso:: :func:`~schedula.Dispatcher.dispatch`,
+       :func:`~schedula.Dispatcher.shrink_dsp`
 
     **Example**:
 
@@ -775,7 +775,7 @@ class SubDispatchFunction(SubDispatch):
     .. dispatcher:: dsp
        :opt: graph_attr={'ratio': '1'}
 
-        >>> from dispatcher import Dispatcher
+        >>> from schedula import Dispatcher
         >>> dsp = Dispatcher(name='Dispatcher')
         >>> dsp.add_function('max', max, inputs=['a', 'b'], outputs=['c'])
         'max'
@@ -824,7 +824,7 @@ class SubDispatchFunction(SubDispatch):
 
         :param dsp:
             A dispatcher that identifies the model adopted.
-        :type dsp: dispatcher.Dispatcher
+        :type dsp: schedula.Dispatcher
 
         :param function_id:
             Function name.
@@ -868,7 +868,7 @@ class SubDispatchFunction(SubDispatch):
         dsp.name = function_id  # Set dsp name equal to function id.
         wildcard = True
         no_call = False
-        from dispatcher.utils.sol import Solution
+        from schedula.utils.sol import Solution
         self._sol = sol = Solution(
             dsp, dict.fromkeys(inputs, None), outputs, wildcard, None,
             inputs_dist, no_call, False
@@ -922,7 +922,7 @@ class SubDispatchFunction(SubDispatch):
 
 class SubDispatchPipe(SubDispatchFunction):
     """
-    It converts a :func:`~dispatcher.Dispatcher` into a function.
+    It converts a :func:`~schedula.Dispatcher` into a function.
 
     That function takes a sequence of arguments as input of the dispatch.
 
@@ -930,8 +930,8 @@ class SubDispatchPipe(SubDispatchFunction):
         A function that executes the pipe of the given `dsp`, updating .
     :rtype: function
 
-    .. seealso:: :func:`~dispatcher.Dispatcher.dispatch`,
-       :func:`~dispatcher.Dispatcher.shrink_dsp`
+    .. seealso:: :func:`~schedula.Dispatcher.dispatch`,
+       :func:`~schedula.Dispatcher.shrink_dsp`
 
     **Example**:
 
@@ -941,7 +941,7 @@ class SubDispatchPipe(SubDispatchFunction):
     .. dispatcher:: dsp
        :opt: graph_attr={'ratio': '1'}
 
-        >>> from dispatcher import Dispatcher
+        >>> from schedula import Dispatcher
         >>> dsp = Dispatcher(name='Dispatcher')
         >>> dsp.add_function('max', max, inputs=['a', 'b'], outputs=['c'])
         'max'
@@ -984,7 +984,7 @@ class SubDispatchPipe(SubDispatchFunction):
 
         :param dsp:
             A dispatcher that identifies the model adopted.
-        :type dsp: dispatcher.Dispatcher
+        :type dsp: schedula.Dispatcher
 
         :param function_id:
             Function name.
@@ -1007,7 +1007,7 @@ class SubDispatchPipe(SubDispatchFunction):
         :type inputs_dist: dict[str, int | float], optional
         """
 
-        from dispatcher.utils.sol import Solution
+        from schedula.utils.sol import Solution
         self.solution = sol = Solution(
             dsp, inputs, outputs, True, cutoff, inputs_dist, True, True,
             no_domain=no_domain

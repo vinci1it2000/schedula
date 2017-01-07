@@ -9,14 +9,14 @@
 import doctest
 import unittest
 
-from dispatcher.utils.dsp import *
-from dispatcher import Dispatcher
-from dispatcher.utils.cst import SINK
+from schedula.utils.dsp import *
+from schedula import Dispatcher
+from schedula.utils.cst import SINK
 
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):
-        import dispatcher.utils.dsp as utl
+        import schedula.utils.dsp as utl
         failure_count, test_count = doctest.testmod(
             utl, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS)
         self.assertGreater(test_count, 0, (failure_count, test_count))
@@ -104,7 +104,7 @@ class TestSubDispatcher(unittest.TestCase):
         self.dsp = dsp
 
     def test_sub_dsp(self):
-        from dispatcher.utils.sol import Solution
+        from schedula.utils.sol import Solution
 
         o = self.dsp.dispatch(inputs={'d': {'a': 3}})
         w = o.workflow

@@ -56,7 +56,7 @@ def save_dispatcher(dsp, path):
 
     :param dsp:
         A dispatcher that identifies the model adopted.
-    :type dsp: dispatcher.Dispatcher
+    :type dsp: schedula.Dispatcher
 
     :param path:
         File or filename to write.
@@ -69,7 +69,7 @@ def save_dispatcher(dsp, path):
 
     Example::
 
-        >>> from dispatcher import Dispatcher
+        >>> from schedula import Dispatcher
         >>> dsp = Dispatcher()
         >>> dsp.add_data('a', default_value=1)
         'a'
@@ -97,7 +97,7 @@ def load_dispatcher(path):
 
     :return:
         A dispatcher that identifies the model adopted.
-    :rtype: dispatcher.Dispatcher
+    :rtype: schedula.Dispatcher
 
     .. testsetup::
         >>> from tempfile import mkstemp
@@ -105,7 +105,7 @@ def load_dispatcher(path):
 
     Example::
 
-        >>> from dispatcher import Dispatcher
+        >>> from schedula import Dispatcher
         >>> dsp = Dispatcher()
         >>> dsp.add_data('a', default_value=1)
         'a'
@@ -132,7 +132,7 @@ def save_default_values(dsp, path):
 
     :param dsp:
         A dispatcher that identifies the model adopted.
-    :type dsp: dispatcher.Dispatcher
+    :type dsp: schedula.Dispatcher
 
     :param path:
         File or filename to write.
@@ -145,7 +145,7 @@ def save_default_values(dsp, path):
 
     Example::
 
-        >>> from dispatcher import Dispatcher
+        >>> from schedula import Dispatcher
         >>> dsp = Dispatcher()
         >>> dsp.add_data('a', default_value=1)
         'a'
@@ -168,7 +168,7 @@ def load_default_values(dsp, path):
 
     :param dsp:
         A dispatcher that identifies the model adopted.
-    :type dsp: dispatcher.Dispatcher
+    :type dsp: schedula.Dispatcher
 
     :param path:
         File or filename to write.
@@ -181,7 +181,7 @@ def load_default_values(dsp, path):
 
     Example::
 
-        >>> from dispatcher import Dispatcher
+        >>> from schedula import Dispatcher
         >>> dsp = Dispatcher()
         >>> dsp.add_data('a', default_value=1)
         'a'
@@ -209,7 +209,7 @@ def save_map(dsp, path):
 
     :param dsp:
         A dispatcher that identifies the model adopted.
-    :type dsp: dispatcher.Dispatcher
+    :type dsp: schedula.Dispatcher
 
     :param path:
         File or filename to write.
@@ -222,7 +222,7 @@ def save_map(dsp, path):
 
     Example::
 
-        >>> from dispatcher import Dispatcher
+        >>> from schedula import Dispatcher
         >>> dsp = Dispatcher()
         >>> dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
         'max'
@@ -239,7 +239,7 @@ def load_map(dsp, path):
 
     :param dsp:
         A dispatcher that identifies the model to be upgraded.
-    :type dsp: dispatcher.dispatcher.Dispatcher
+    :type dsp: schedula.schedula.Dispatcher
 
     :param path:
         File or filename to write.
@@ -252,7 +252,7 @@ def load_map(dsp, path):
 
     Example::
 
-        >>> from dispatcher import Dispatcher
+        >>> from schedula import Dispatcher
         >>> dsp = Dispatcher()
         >>> dsp.add_function(function=max, inputs=['a', 'b'], outputs=['c'])
         'max'
