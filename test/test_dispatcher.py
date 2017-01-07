@@ -1466,53 +1466,6 @@ class TestShrinkDispatcher(unittest.TestCase):
         self.assertEqual(sorted(sub_dsp.dmap.edges()), sw)
 
 
-# TODO: implement test for sub-dispatcher nodes
-class TestRemoveCycles(unittest.TestCase):
-    def setUp(self):
-        dsp = Dispatcher()
-
-        def average(kwargs):
-            return sum(kwargs.values()) / len(kwargs)
-
-        dsp.add_data(data_id='b', default_value=3)
-        dsp.add_data(data_id='c', function=average)
-        dsp.add_function('max', function=max, inputs=['a', 'b'], outputs=['c'])
-        dsp.add_function('min', function=min, inputs=['a', 'c'], outputs=['d'])
-        dsp.add_function('min', function=min, inputs=['b', 'd'], outputs=['c'])
-        dsp.add_function('max', function=max, inputs=['b', 'd'], outputs=['a'])
-        self.dsp = dsp
-
-    def test_remove_cycles(self):
-        dsp = self.dsp
-        # no cycles
-        dsp_woc = dsp.remove_cycles(['a', 'b'])
-        self.assertEqual(sorted(dsp_woc.dmap.edges()), sorted(dsp.dmap.edges()))
-
-        dsp.nodes['c']['wait_inputs'] = True
-        dsp_woc = dsp.remove_cycles(['a', 'b'])
-        res = [('a', 'max'), ('a', 'min'), ('b', 'max'), ('b', 'max<0>'),
-               ('c', 'min'), ('d', 'max<0>'), ('max', 'c'), ('max<0>', 'a'),
-               ('min', 'd')]
-        self.assertEqual(sorted(dsp_woc.dmap.edges()), res)
-        self.assertTrue(dsp_woc.dmap.node['c']['wait_inputs'])
-        self.assertTrue(dsp.dmap.node['c']['wait_inputs'])
-
-        dsp_woc = dsp.remove_cycles(['d', 'b'])
-        res = [('a', 'max'), ('a', 'min'), ('b', 'max'), ('b', 'max<0>'),
-               ('c', 'min'), ('d', 'max<0>'), ('max', 'c'), ('max<0>', 'a'),
-               ('min', 'd')]
-        self.assertEqual(sorted(dsp_woc.dmap.edges()), res)
-
-        dsp.dmap.remove_node('max<0>')
-        dsp_woc = dsp.remove_cycles(['b', 'd'])
-        self.assertEqual(dsp_woc.dmap.edges(), [])
-
-        dsp_woc = dsp.remove_cycles(['a', 'b', 'c'])
-        res = [('a', 'max'), ('a', 'min'), ('b', 'max'), ('c', 'min'),
-               ('max', 'c'), ('min', 'd')]
-        self.assertEqual(sorted(dsp_woc.dmap.edges()), res)
-
-
 class TestPipe(unittest.TestCase):
     def setUp(self):
         dsp = Dispatcher()
