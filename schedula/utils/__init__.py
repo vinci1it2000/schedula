@@ -57,8 +57,8 @@ from .cst import EMPTY, START, NONE, SINK, SELF, END, PLOT
 from .dsp import (
     stlp, combine_dicts, bypass, summation, map_dict, map_list, selector,
     replicate_value, add_args, parse_args, stack_nested_keys, get_nested_dicts,
-    are_in_nested_dicts, combine_nested_dicts, SubDispatch, ReplicateFunction,
-    SubDispatchFunction, SubDispatchPipe, parent_func
+    are_in_nested_dicts, combine_nested_dicts, SubDispatch, parent_func,
+    SubDispatchFunction, SubDispatchPipe
 )
 
 from .exc import DispatcherError, DispatcherAbort

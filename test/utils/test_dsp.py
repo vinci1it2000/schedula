@@ -71,18 +71,6 @@ class TestDispatcherUtils(unittest.TestCase):
         res = map_list(key_map, *inputs)
         self.assertEqual(res, {'a': 1, 'b': 2, 'c': 3, 'd': 4})
 
-    def test_replicate_function(self):
-        dsp = Dispatcher()
-
-        def fun(a):
-            return a + 1, a - 1
-
-        dsp.add_function('fun', ReplicateFunction(fun), ['a', 'b'], ['c', 'd'])
-
-        o = dsp.dispatch(inputs={'a': 3, 'b': 4})
-
-        self.assertEqual(o, {'a': 3, 'b': 4, 'c': (4, 2), 'd': (5, 3)})
-
 
 class TestSubDispatcher(unittest.TestCase):
     def setUp(self):
