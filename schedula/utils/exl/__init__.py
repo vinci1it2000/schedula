@@ -25,7 +25,7 @@ def extract_dsp_from_excel(filename, workbook=None, sheets=None):
             if isinstance(n, core.CellRange):
                 fun_id, function = 'get_range(%s)' % node_id, core.get_range
             else:
-                fun_id, function = n.formula[1:], core.evaluate_cell
+                fun_id, function = n.formula, core.evaluate_cell
                 inputs += sorted(core.get_named_range(fun_id))
 
             d.add_function(
