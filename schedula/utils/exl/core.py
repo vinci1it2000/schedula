@@ -23,20 +23,17 @@ def find_nr(excel, name, scope):
     return name
 
 
-def convert_formula(excel, formula):
+def convert_formula(excel, formula, sheet):
     defined_names, wb = excel.workbook.defined_names.definedName, excel.workbook
     for k, v in get_named_range(formula).items():
-        try:
-            sn, k = _re_sheet.match(k).groups()[1:]
-            sn = (wb.get_index(wb[sn]), None) if sn else (None,)
-            nr = next((nr for nr in (find_nr(excel, k, s) for s in sn) if nr))
-            rng = nr if isinstance(nr, str) else nr.value
-            sh, start, end = split_range(rng)
-            if start == end:
-                rng = '%s!%s' % (sh, start) if sh else start
-            formula = formula.replace(v, rng)
-        except Exception:
-            continue
+        sn, k = _re_sheet.match(k).groups()[1:]
+        sheet = sn or sheet
+        sn = (wb.get_index(wb[sn]), None) if sn else (None,)
+        nr = next((nr for nr in (find_nr(excel, k, s) for s in sn) if nr))
+        rng = nr if isinstance(nr, str) else nr.value
+        sh, start, end = split_range(rng)
+        rng = start if start == end else '%s:%s' % (start, end)
+        formula = formula.replace(v, '%s!%s' % (sh or sheet, rng))
     return formula
 
 
@@ -53,7 +50,7 @@ def get_seeds(excel, sheets=None):
                 address = '%s!%s' % (cell.parent.title, cell.coordinate)
                 formula = get_range(address).Formula
                 if formula.startswith('='):
-                    cell.value = convert_formula(excel, formula)
+                    cell.value = convert_formula(excel, formula, ws.title)
                     yield address, (cell, formula)
 
 

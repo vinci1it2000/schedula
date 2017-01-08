@@ -1351,7 +1351,7 @@ class Dispatcher(Base):
 
         :return:
             Dictionary of estimated data node outputs.
-        :rtype: Result[str, T]
+        :rtype: schedula.utils.sol.Solution
 
         \***********************************************************************
 

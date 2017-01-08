@@ -19,6 +19,32 @@ class TestUtils(unittest.TestCase):
         import logging
         logging.getLogger('pycel').setLevel(logging.WARNING)
         filename = osp.join(osp.dirname(__file__), 'example.xlsx')
-        d, seeds, exl = extract_dsp_from_excel(filename)
-        self.assertEqual('%.12f' % d.dispatch()['Sheet1!D1'], '-0.022863768173')
+        sol = extract_dsp_from_excel(filename)[0].dispatch()
 
+        self.assertAlmostEqual(sol['Sheet1!D1'], -0.022863768173)
+
+        self.assertAlmostEqual(sol['Sheet1!D2'], -1.091418424417)
+
+        self.assertEqual(sol['Sheet1!D4'], 1)
+
+        msg = 'Failed DISPATCHING \'=SQRT(D2)\' due to:\n  ' \
+              'ValueError(\'Problem evalling: math domain error for ' \
+              'Sheet1!D3, sqrt(eval_cell("Sheet1!D2"))\',)'
+        self.assertEqual(sol._errors['=SQRT(D2)'], msg)
+
+        self.assertEqual(sol['Sheet2!A1'], 680)
+
+        sol = extract_dsp_from_excel(filename, sheets=['Sheet1'])[0].dispatch()
+
+        self.assertAlmostEqual(sol['Sheet1!D1'], -0.022863768173)
+
+        self.assertAlmostEqual(sol['Sheet1!D2'], -1.091418424417)
+
+        self.assertEqual(sol['Sheet1!D4'], 1)
+
+        msg = 'Failed DISPATCHING \'=SQRT(D2)\' due to:\n  ' \
+              'ValueError(\'Problem evalling: math domain error for ' \
+              'Sheet1!D3, sqrt(eval_cell("Sheet1!D2"))\',)'
+        self.assertEqual(sol._errors['=SQRT(D2)'], msg)
+
+        self.assertNotIn('Sheet2!A1', sol)
