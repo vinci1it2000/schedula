@@ -19,6 +19,8 @@ def find_nr(excel, name, scope):
     for n in excel.workbook.defined_names.definedName:
         if n.name.upper() == name.upper() and n.localSheetId == scope:
             return n
+    split_range(name)  # Raises a ValueError if name is not range.
+    return name
 
 
 def convert_formula(excel, formula):
@@ -28,10 +30,10 @@ def convert_formula(excel, formula):
             sn, k = _re_sheet.match(k).groups()[1:]
             sn = (wb.get_index(wb[sn]), None) if sn else (None,)
             nr = next((nr for nr in (find_nr(excel, k, s) for s in sn) if nr))
-            rng = nr.value
+            rng = nr if isinstance(nr, str) else nr.value
             sh, start, end = split_range(rng)
             if start == end:
-                rng = '%s!%s' % (sh, start)
+                rng = '%s!%s' % (sh, start) if sh else start
             formula = formula.replace(v, rng)
         except Exception:
             continue
