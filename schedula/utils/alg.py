@@ -307,10 +307,6 @@ def _get_node(nodes, node_id, fuzzy=True):
         Node id.
     :type node_id: str
 
-    :param _function_module:
-        If True `node_id` could be just the function name.
-    :type _function_module: bool, optional
-
     :return:
          The dispatcher node and its id.
     :rtype: (str, dict)
@@ -551,10 +547,10 @@ def get_sub_node(dsp, path, node_attr='auto', solution=NONE, _level=0,
         elif node_attr == 'output' and node['type'] == 'data':
             data = solution[node_id]
         elif node_attr == 'description':  # Search and return node description.
-            data = dsp.search_node_description(node_id)
+            data = dsp.search_node_description(node_id)[0]
         elif node_attr == 'value_type' and node['type'] == 'data':
             # Search and return data node value's type.
-            data = dsp.search_node_description(node_id, node_attr)
+            data = dsp.search_node_description(node_id, node_attr)[0]
         elif node_attr == 'default_value':
             data = dsp.default_values[node_id]
         elif node_attr == 'dsp':
