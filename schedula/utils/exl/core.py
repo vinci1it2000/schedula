@@ -19,21 +19,24 @@ def find_nr(excel, name, scope):
     for n in excel.workbook.defined_names.definedName:
         if n.name.upper() == name.upper() and n.localSheetId == scope:
             return n
-    split_range(name)  # Raises a ValueError if name is not range.
+    split_range(name)  # Raises a AttributeError if name is not range.
     return name
 
 
 def convert_formula(excel, formula, sheet):
     defined_names, wb = excel.workbook.defined_names.definedName, excel.workbook
     for k, v in get_named_range(formula).items():
-        sn, k = _re_sheet.match(k).groups()[1:]
-        sheet = sn or sheet
-        sn = (wb.get_index(wb[sn]), None) if sn else (None,)
-        nr = next((nr for nr in (find_nr(excel, k, s) for s in sn) if nr))
-        rng = nr if isinstance(nr, str) else nr.value
-        sh, start, end = split_range(rng)
-        rng = start if start == end else '%s:%s' % (start, end)
-        formula = formula.replace(v, '%s!%s' % (sh or sheet, rng))
+        try:
+            sn, k = _re_sheet.match(k).groups()[1:]
+            sheet = sn or sheet
+            sn = (wb.get_index(wb[sn]), None) if sn else (None,)
+            nr = next((nr for nr in (find_nr(excel, k, s) for s in sn) if nr))
+            rng = nr if isinstance(nr, str) else nr.value
+            sh, start, end = split_range(rng)
+            rng = start if start == end else '%s:%s' % (start, end)
+            formula = formula.replace(v, '%s!%s' % (sh or sheet, rng))
+        except AttributeError:  # Named range is not in the excel ref.
+            pass
     return formula
 
 
