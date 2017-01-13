@@ -274,14 +274,14 @@ class FolderNode(object):
     })
 
     node_data = (
-        '-', '.tooltip', '!default_values', 'wait_inputs', '+function',
+        '-', '.tooltip', '!default_values', 'wait_inputs', '+function|solution',
         'weight', 'remote_links', 'distance', '!error', '*output'
     )
 
     node_function = (
-        '-', '.tooltip', '+input_domain', 'weight',
+        '-', '.tooltip', '+input_domain|solution_domain', 'weight',
         'missing_inputs_outputs', 'distance', 'started', 'duration', '!error',
-        '*function'
+        '*function|solution'
     )
 
     edge_data = ('?', 'inp_id', 'out_id', 'weight')
@@ -295,7 +295,7 @@ class FolderNode(object):
         '.': ('dot',),  # dot attr
         '*': ('link',) # title link
     }
-    re_node = re.compile('^([.*+!]?)(\w+)$')
+    re_node = regex.compile(r"^([.*+!]?)(\w+)(?>\|(\w+))?$")
     max_lines = 5
     max_width = 200
     pprint = pprint.PrettyPrinter(compact=True, width=200)
@@ -303,12 +303,6 @@ class FolderNode(object):
     def __init__(self, folder, node_id, attr, **options):
         self.folder = folder
         self.node_id = node_id
-        attr = attr.copy()
-        if self.folder.workflow:
-            key_m = {'solution_domain': 'input_domain', 'solution': 'function'}
-            for k in key_m.values():
-                attr.pop(k, None)
-            attr = map_dict(key_m, attr)
         self.attr = attr
         self.id = str(self.counter())
         self._links = {}
@@ -467,11 +461,18 @@ class FolderNode(object):
         else:
             funcs = self.node_data
         r, s, match = {}, '_%s', self.re_node.match
+        workflow = self.folder.workflow
         for f in funcs:
             if f == '-' or f =='?':
                 yield f, lambda *args: self.title
             else:
-                k, v = match(f).groups()
+                k, v, v1 = match(f).groups()
+                if workflow and v1:
+                    try:
+                        yield k, getattr(self, s % v1)
+                    except AttributeError:
+                        if v1 in self.attr:
+                            yield k, functools.partial(self.yield_attr, v1)
                 try:
                     yield k, getattr(self, s % v)
                 except AttributeError:
