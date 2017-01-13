@@ -1,4 +1,5 @@
 import schedula.utils as dsp_utl
+import shutil
 import os.path as osp
 from sphinx.ext.autodoc import *
 from sphinx.ext.graphviz import *
@@ -217,6 +218,13 @@ class _Graphviz(Graphviz):
         node = super(_Graphviz, self).run()[0]
         node['img_opt'] = dsp_utl.selector(self.img_opt, self.options,
                                            allow_miss=True)
+        if self.arguments:
+            env = self.state.document.settings.env
+            argument = search_image_for_language(self.arguments[0], env)
+            dirpath = osp.splitext(env.relfn2path(argument)[1])[0]
+            node['dirpath'] = dirpath if osp.isdir(dirpath) else None
+        else:
+            node['dirpath'] = None
         return [node]
 
 
@@ -231,6 +239,11 @@ def render_dot_html(self, node, code, options, prefix='dispatcher',
     except GraphvizError as exc:
         self.builder.warn('dot code %r: ' % code + str(exc))
         raise nodes.SkipNode
+    dirpath = node['dirpath']
+    if dirpath:
+        outd = osp.join(osp.dirname(outfn), osp.split(dirpath)[-1])
+        if not osp.isdir(outd):
+            shutil.copytree(dirpath, outd)
 
     extend = []
     if fname is None:
