@@ -452,8 +452,9 @@ def get_sub_node(dsp, path, node_attr='auto', solution=NONE, _level=0,
 
     **Example**:
 
-    .. dispatcher:: dsp
-       :opt: workflow=True, graph_attr={'ratio': '1'}, depth=1
+    .. dispatcher:: o
+       :opt: graph_attr={'ratio': '1'}, depth=-1
+       :code:
 
         >>> from schedula import Dispatcher
         >>> s_dsp = Dispatcher(name='Sub-dispatcher')
@@ -470,18 +471,22 @@ def get_sub_node(dsp, path, node_attr='auto', solution=NONE, _level=0,
         >>> o = dsp.dispatch(inputs={'a': {'a': 3, 'b': 1}})
         ...
 
-    Get the sub node output::
+    Get the sub node 'c' output or type::
 
         >>> get_sub_node(dsp, ('Sub-dispatcher', 'c'))
         (4, ('Sub-dispatcher', 'c'))
         >>> get_sub_node(dsp, ('Sub-dispatcher', 'c'), node_attr='type')
         ('data', ('Sub-dispatcher', 'c'))
 
-    .. dispatcher:: sub_dsp
-       :opt: workflow=True, graph_attr={'ratio': '1'}, depth=0
+    Get the sub-dispatcher output:
+
+    .. dispatcher:: sol
+       :opt: graph_attr={'ratio': '1'}, depth=-1
        :code:
 
-        >>> sub_dsp = get_sub_node(dsp, ('Sub-dispatcher',))[0]
+        >>> sol, p = get_sub_node(dsp, ('Sub-dispatcher',), node_attr='output')
+        >>> sol, p
+        (Solution([('a', 3), ('b', 1), ('c', 4)]), ('Sub-dispatcher',))
     """
 
     path = list(path)

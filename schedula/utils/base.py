@@ -220,8 +220,8 @@ class Base(object):
 
         **Example**:
 
-        .. dispatcher:: d
-           :opt: workflow=True, graph_attr={'ratio': '1'}, depth=1
+        .. dispatcher:: o
+           :opt: graph_attr={'ratio': '1'}, depth=-1
 
             >>> import schedula  as dsp
             >>> import schedula.utils as dsp_utl
@@ -247,7 +247,7 @@ class Base(object):
             ('data', ('Sub-dispatcher', 'c'))
 
         .. dispatcher:: sub_dsp
-           :opt: workflow=True, graph_attr={'ratio': '1'}, depth=0
+           :opt: workflow=True, graph_attr={'ratio': '1'}
            :code:
 
             >>> sub_dsp, sub_dsp_id = d.get_node('Sub-dispatcher')

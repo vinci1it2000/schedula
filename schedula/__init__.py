@@ -136,19 +136,16 @@ class Dispatcher(Base):
         >>> dsp
         <...>
 
-    Dispatch the function calls to achieve the desired output data node `d`::
+    Dispatch the function calls to achieve the desired output data node `d`:
+
+    .. dispatcher:: outputs
+       :opt: graph_attr={'ratio': '1'}
+       :code:
 
         >>> outputs = dsp.dispatch(inputs={'a': 0}, outputs=['d'])
         (log(1) + 4) / 2 = 2.0
-        >>> sorted(outputs.items())
-        [('a', 0), ('b', 1), ('c', 1), ('d', 2.0)]
-
-    .. dispatcher:: dsp
-       :opt: workflow=True, graph_attr={'ratio': '1'}
-
-        >>> dsp
-        <...>
-    
+        >>> outputs
+        Solution([('a', 0), ('b', 1), ('c', 1), ('d', 2.0)])
     """
 
     #: When True, the dispatching loop raise :exc:`DispatcherAbort` ASAP.
@@ -1383,45 +1380,36 @@ class Dispatcher(Base):
             ...                  outputs=['c'])
             'min'
 
-        Dispatch without inputs. The default values are used as inputs::
+        Dispatch without inputs. The default values are used as inputs:
+
+        .. dispatcher:: outputs
+           :opt: graph_attr={'ratio': '1'}
+           :code:
 
             >>> outputs = dsp.dispatch()
-            ...
-            >>> sorted(outputs.items())
-            [('a', 0), ('b', 5), ('c', 0), ('d', 1), ('e', 0.0)]
+            >>> outputs
+            Solution([('a', 0), ('b', 5), ('d', 1), ('c', 0), ('e', 0.0)])
 
-        .. dispatcher:: dsp
-           :opt: workflow=True, graph_attr={'ratio': '1'}
+        Dispatch until data node `c` is estimated:
 
-            >>> dsp
-            <...>
-
-        Dispatch until data node `c` is estimated::
+        .. dispatcher:: outputs
+           :opt: graph_attr={'ratio': '1'}
+           :code:
 
             >>> outputs = dsp.dispatch(outputs=['c'])
-            ...
-            >>> sorted(outputs.items())
-             [('a', 0), ('b', 5), ('c', 0)]
-
-        .. dispatcher:: dsp
-           :opt: workflow=True, graph_attr={'ratio': '1'}
-
-            >>> dsp
-            <...>
+            >>> outputs
+            Solution([('a', 0), ('b', 5), ('c', 0)])
 
         Dispatch with one inputs. The default value of `a` is not used as
-        inputs::
+        inputs:
+
+        .. dispatcher:: outputs
+           :opt: graph_attr={'ratio': '1'}
+           :code:
 
             >>> outputs = dsp.dispatch(inputs={'a': 3})
-            ...
-            >>> sorted(outputs.items())
-             [('a', 3), ('b', 5), ('c', 3), ('d', 1)]
-
-        .. dispatcher:: dsp
-           :opt: workflow=True, graph_attr={'ratio': '1'}
-
-            >>> dsp
-            <...>
+            >>> outputs
+            Solution([('a', 3), ('b', 5), ('d', 1), ('c', 3)])
         """
 
         dsp = self
