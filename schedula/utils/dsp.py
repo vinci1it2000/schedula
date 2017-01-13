@@ -604,7 +604,7 @@ class SubDispatch(Base):
     Example:
 
     .. dispatcher:: dsp
-       :opt: graph_attr={'ratio': '1'}, depth=1
+       :opt: graph_attr={'ratio': '1'}, depth=-1
        :code:
 
         >>> from schedula import Dispatcher
@@ -620,16 +620,25 @@ class SubDispatch(Base):
         >>> dsp.add_function('Sub-dispatch', dispatch, ['d'], ['e'])
         'Sub-dispatch'
 
-    Dispatch the dispatch output is:
+    The Dispatcher output is:
 
-    .. dispatcher:: dsp
-       :opt: workflow=True, graph_attr={'ratio': '1'}, depth=1
+    .. dispatcher:: o
+       :opt: graph_attr={'ratio': '1'}, depth=-1
+       :code:
 
         >>> o = dsp.dispatch(inputs={'d': {'a': 3}})
-        >>> sorted(o['e'].items())
-        [('a', 3), ('b', 4), ('c', 2)]
-        >>> o.workflow.node['Sub-dispatch']['solution']
+
+    while, the Sub-dispatch is:
+
+    .. dispatcher:: sol
+       :opt: graph_attr={'ratio': '1'}, depth=-1
+       :code:
+
+        >>> sol = o.workflow.node['Sub-dispatch']['solution']
+        >>> sol
         Solution([('a', 3), ('b', 4), ('c', 2)])
+        >>> sol == o['e']
+        True
 
     """
     def __init__(self, dsp, outputs=None, cutoff=None, inputs_dist=None,
@@ -781,14 +790,17 @@ class SubDispatchFunction(SubDispatch):
         >>> fun(2, 1)
         0.0
 
-    .. dispatcher:: dsp
+    .. dispatcher:: fun
        :opt: workflow=True, graph_attr={'ratio': '1'}
 
-        >>> dsp = fun.dsp
-        >>> dsp.name = 'Created function internal'
+        >>> fun.dsp.name = 'Created function internal'
 
     The created function raises a ValueError if un-valid inputs are
-    provided::
+    provided:
+
+    .. dispatcher:: fun
+       :opt: workflow=True, graph_attr={'ratio': '1'}
+       :code:
 
         >>> fun(1, 0)  # doctest: +IGNORE_EXCEPTION_DETAIL
         Traceback (most recent call last):
@@ -796,11 +808,6 @@ class SubDispatchFunction(SubDispatch):
         DispatcherError:
           Unreachable output-targets: ...
           Available outputs: ...
-
-    .. dispatcher:: dsp
-       :opt: workflow=True, graph_attr={'ratio': '1'}
-
-        >>> dsp = fun.dsp
     """
 
     def __init__(self, dsp, function_id, inputs, outputs=None, cutoff=None,
@@ -945,22 +952,20 @@ class SubDispatchPipe(SubDispatchFunction):
         >>> fun(2, 1)
         1
 
-    .. dispatcher:: dsp
+    .. dispatcher:: fun
        :opt: workflow=True, graph_attr={'ratio': '1'}
 
-        >>> dsp = fun.dsp
-        >>> dsp.name = 'Created function internal'
+        >>> fun.dsp.name = 'Created function internal'
 
     The created function raises a ValueError if un-valid inputs are
-    provided::
+    provided:
+
+    .. dispatcher:: fun
+       :opt: workflow=True, graph_attr={'ratio': '1'}
+       :code:
 
         >>> fun(1, 0)
         0
-
-    .. dispatcher:: dsp
-       :opt: workflow=True, graph_attr={'ratio': '1'}
-
-        >>> dsp = fun.dsp
     """
 
     def __init__(self, dsp, function_id, inputs, outputs=None, cutoff=None,
