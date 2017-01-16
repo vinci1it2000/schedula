@@ -19,8 +19,9 @@ schedula: pure Python implementation of an intelligent function scheduler
 
 What is schedula?
 -----------------
-Schedula implements a intelligent function scheduler, which selects and
-executes functions. The order is calculated from the provided inputs and the
+Schedula implements an intelligent function scheduler. Schedula selects and
+executes functions (based on which principle write something here). 
+The order is calculated from the provided inputs and the
 requested outputs. A function is executed when all its dependencies (i.e.,
 inputs, input domain) are satisfied and when at least one of its outputs has to
 be calculated.
@@ -41,17 +42,23 @@ Why may I use schedula?
 Because I'm bored to think and code all possible combinations of inputs and
 outputs from a model.
 
+Nice but you need to write something more solid in addition to this.
+Eg schedula provides a flexible framework for structuring code that operates using different
+inputs and can provide different outputs.
+
 
 Very simple example
 -------------------
-Imagine we have a system of interdependent functions - i.e., inputs
-of a function is the output for one or more function(s), and we do not know
+Imagine we have a system of interdependent functions - i.e. the inputs
+of a function are the output for one or more function(s), and we do not know
 which input the user will provide and which output will request.
 
-With a normal scheduler you have to code all possible implementations. Schedula
-allows to write a simple model (named Dispatcher) with just the basic functions,
+With a normal scheduler you would have to code all possible implementations.
+Schedula allows to write a simple model (named Dispatcher **is this an example name or is actually necessary**) with just the basic functions,
 then the Dispatcher will select and execute the proper functions for the given
 inputs and the requested outputs:
+
+**this example is a bit unclear to me but maybe it is my inexperience with such code, try something simpler maybe?**
 
 .. dispatcher:: dsp
    :code:
@@ -116,12 +123,12 @@ functions.
 
 With a normal scheduler you have to code all possible implementations, so
 :math:`(2^n - 1)^2` functions (IMPOSSIBLE!!!). Schedula allows to write a simple
-model (named Dispatcher) with just *n* functions, then the Dispatcher will
+model (named Dispatcher **why you want to impose the name of the model maybe they want to call it something else, is this part of the library?**) with just *n* functions, then the Dispatcher will
 select and execute the proper functions for the given inputs and the requested
 outputs.
-
+**BTW you need to explain this example with more detail too it is not clear how the dispatcher works don't jump from first to last step, show intermediate steps**
 First step would be to create a Dispatcher and to define the functions that
-links the data:
+link the data:
 
 .. dispatcher::
    :code:
