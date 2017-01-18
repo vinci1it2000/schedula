@@ -1,6 +1,8 @@
-#########################################################################
-schedula: pure Python implementation of an intelligent function scheduler
-#########################################################################
+###########################################
+schedula: An intelligent function scheduler
+###########################################
+|pypi-ver| |travis-status| |appveyor-status| |cover-status| |docs-status| \
+|dependencies| |downloads-count| |github-issues| |python-ver| |proj-license|
 
 :release:       0.0.1
 :date:          2017-01-13 16:00:00
@@ -209,3 +211,45 @@ Next moves
 ==========
 Things yet to do include a mechanism to allow the execution of functions in
 parallel.
+
+.. |travis-status| image:: https://travis-ci.org/vinci1it2000/schedula.svg?branch=master
+    :alt: Travis build status
+    :scale: 100%
+    :target: https://travis-ci.org/vinci1it2000/schedula
+
+.. |appveyor-status| image:: https://ci.appveyor.com/api/projects/status/i3bmqdc92u1bskg5?svg=true
+    :alt: Apveyor build status
+    :scale: 100%
+    :target: https://ci.appveyor.com/project/vinci1it2000/schedula
+
+.. |cover-status| image:: https://coveralls.io/repos/github/vinci1it2000/schedula/badge.svg?branch=master
+    :target: https://coveralls.io/github/vinci1it2000/schedula?branch=master
+
+.. |docs-status| image:: https://readthedocs.org/projects/schedula/badge/
+    :alt: Documentation status
+    :scale: 100%
+    :target: https://readthedocs.org/builds/schedula/
+
+.. |pypi-ver| image::  https://img.shields.io/pypi/v/schedula.svg
+    :target: https://pypi.python.org/pypi/schedula/
+    :alt: Latest Version in PyPI
+
+.. |python-ver| image:: https://img.shields.io/pypi/pyversions/schedula.svg
+    :target: https://pypi.python.org/pypi/schedula/
+    :alt: Supported Python versions
+
+.. |downloads-count| image:: https://img.shields.io/pypi/dm/schedula.svg?period=month
+    :target: https://pypi.python.org/pypi/schedula/
+    :alt: Downloads
+
+.. |github-issues| image:: https://img.shields.io/github/issues/schedula/pandalone.svg
+    :target: https://github.com/vinci1it2000/schedula/issues
+    :alt: Issues count
+
+.. |proj-license| image:: https://img.shields.io/badge/license-EUPL%201.1%2B-blue.svg
+    :target: https://raw.githubusercontent.com/vinci1it2000/schedula/master/LICENSE.txt
+    :alt: Project License
+
+.. |dependencies| image:: https://img.shields.io/requires/github/vinci1it2000/schedula.svg
+    :target: https://requires.io/github/vinci1it2000/pandalone/schedula/
+    :alt: Dependencies up-to-date?
