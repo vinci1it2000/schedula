@@ -42,26 +42,31 @@ def get_grandfather_offset(content):
     return 0
 
 
-def _import_docstring(documenter):
+def _import_docstring_code_content(documenter):
     if getattr(documenter.directive, 'content', None):
+        import textwrap
+        content = documenter.directive.content
+        def get_code(source, c=''):
+            s = "\n%s" % c
+            return textwrap.dedent(s.join(map(str, source)))
+
+        is_doctest = contains_doctest(get_code(content))
+        offset = documenter.directive.content_offset
+        if is_doctest:
+            parent, parent_offset = get_grandfather_content(content)
+            parent = parent[:offset + len(content) - parent_offset]
+            code = get_code(parent)
+        else:
+            code = get_code(content, '>>> ')
+        return code, content
+
+
+def _import_docstring(documenter):
+    code_content = _import_docstring_code_content(documenter)
+    if code_content:
         # noinspection PyBroadException
         try:
-            import textwrap
-
-            content = documenter.directive.content
-            def get_code(source, c=''):
-                s = "\n%s" % c
-                return textwrap.dedent(s.join(map(str, source)))
-
-            is_doctest = contains_doctest(get_code(content))
-            offset = documenter.directive.content_offset
-            if is_doctest:
-                parent, parent_offset = get_grandfather_content(content)
-                parent = parent[:offset + len(content) - parent_offset]
-                code = get_code(parent)
-            else:
-                code = get_code(content, '>>> ')
-
+            code, content = code_content
             parser = DocTestParser()
             runner = DocTestRunner(verbose=0,
                                    optionflags=NORMALIZE_WHITESPACE | ELLIPSIS)
@@ -78,7 +83,7 @@ def _import_docstring(documenter):
             documenter.is_doctest = True
             return True
         except:
-            return False
+            pass
 
 
 def _description(lines, dsp, documenter):
@@ -108,9 +113,18 @@ def _code(lines, documenter):
 
 
 def _plot(lines, dsp, dot_view_opt, documenter):
-    hashkey = (documenter.modname or '' + str(documenter.code) +
-               str(sorted(dot_view_opt.items()))).encode('utf-8')
-    fname = 'dispatcher-%s' % sha1(hashkey).hexdigest()
+    code_content = _import_docstring_code_content(documenter)
+    hashkey = str(sorted(dot_view_opt.items())) + '\n'
+    if code_content:
+        hashkey += code_content[0]
+    else:
+        modname, objpath = documenter.modname, documenter.objpath
+        if modname:
+            hashkey += 'import %s\n' % modname
+        if objpath:
+            hashkey += 'from %s import %s\n' % (modname, '.'.join(objpath))
+
+    fname = 'dispatcher-%s' % sha1(hashkey.encode('utf-8')).hexdigest()
     env = documenter.env
 
     dspdir = osp.join(env.srcdir, env.config.dispatchers_out_dir)
