@@ -70,7 +70,7 @@ class Base(object):
              format=NONE, engine=NONE, encoding=NONE, graph_attr=NONE,
              node_attr=NONE, edge_attr=NONE, body=NONE, node_styles=NONE,
              node_data=NONE, node_function=NONE, edge_data=NONE, max_lines=NONE,
-             max_width=NONE, directory=None, sites=None):
+             max_width=NONE, directory=None, sites=None, index=False):
         """
         Plots the Dispatcher with a graph in the DOT language with Graphviz.
 
@@ -211,9 +211,9 @@ class Base(object):
         if view:
             directory = directory or tempfile.mkdtemp()
             if sites is None:
-                sitemap.render(directory=directory, view=True)
+                sitemap.render(directory=directory, view=True, index=index)
             else:
-                sites.add(sitemap.site(root_path=directory, view=True))
+                sites.add(sitemap.site(directory, view=True, index=index))
         return sitemap
 
     def get_node(self, *node_ids, node_attr=NONE):
