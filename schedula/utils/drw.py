@@ -141,14 +141,15 @@ def valid_filename(item, filenames, ext=None):
 
 
 def update_filenames(node, filenames):
-    filename = valid_filename(node, filenames)
-    yield (node, None), (filename,)
-    filenames.append(filename)
-    for file in node.extra_files:
-        filename, ext = osp.splitext(file)
-        filename = valid_filename(filename, filenames, ext=ext[1:])
-        yield (node, file), (filename,)
+    if node is not None:
+        filename = valid_filename(node, filenames)
+        yield (node, None), (filename,)
         filenames.append(filename)
+        for file in node.extra_files:
+            filename, ext = osp.splitext(file)
+            filename = valid_filename(filename, filenames, ext=ext[1:])
+            yield (node, file), (filename,)
+            filenames.append(filename)
 
 
 def site_view(app, node, context, generated_files, rendered):
