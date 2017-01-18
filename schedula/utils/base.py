@@ -72,6 +72,7 @@ class Base(object):
             >>> requests.post(url, json={'args': (0,)}).json()['return']
             [1, -1]
             >>> site.shutdown()
+            True
         """
 
         options = {'node_data': node_data, 'node_function': node_function}
