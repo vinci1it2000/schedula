@@ -9,3 +9,4 @@ regex
 flask
 git+https://github.com/vinci1it2000/pycel.git
 numpy
+requests>=2.11.1
