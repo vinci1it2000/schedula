@@ -51,6 +51,8 @@ class Base(object):
 
         Example:
 
+        From a dispatcher like this:
+
         .. dispatcher:: dsp
            :opt: graph_attr={'ratio': '1'}
            :code:
@@ -61,18 +63,21 @@ class Base(object):
             ...     return a + 1, a - 1
             >>> dsp.add_function('fun', fun, ['a'], ['b', 'c'])
             'fun'
-            >>> sites = set()
-            >>> dsp.web(sites=sites)
-            WebMap([(Dispatcher, WebMap())])
-            >>> site = sites.pop()
-            >>> site
-            <schedula.utils.drw.Site object at 0x...>
+
+        You can create a web server with the following steps::
+
+            >>> webmap = dsp.web()
+            >>> site = webmap.site().run(); site
+            Site(WebMap([(Dispatcher, WebMap())]), host='localhost', ...)
             >>> import requests
             >>> url = '%s/%s/%s' % (site.url, dsp.name, fun.__name__)
             >>> requests.post(url, json={'args': (0,)}).json()['return']
             [1, -1]
-            >>> site.shutdown()
+            >>> site.shutdown()  # Remember to shutdown the server.
             True
+
+        .. note::
+           When site is garbage collected the server is shutdown automatically.
         """
 
         options = {'node_data': node_data, 'node_function': node_function}
