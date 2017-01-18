@@ -160,7 +160,7 @@ class TestDispatcherDirective(unittest.TestCase):
               "    >>> s = Dispatcher(name='Dispatcher')",
               "    >>> f = s.add_function('fun', lambda x: 0, ['a'], ['b'])",
               '   ', '   ', '   ',
-              '   .. graphviz:: _build/_dispatchers/dispatcher-d3e6f164a5f551b4a612ec146ea2286d59a93705.gv',
+              '   .. graphviz:: _build/_dispatchers/dispatcher-e6fae1119c5ef15c4426de01b7ad758f98e88d54.gv',
               '      :graphviz_dot: dot',
               '   ',
               "   .. csv-table:: **Dispatcher's data**",
@@ -185,6 +185,7 @@ class TestDispatcherDirective(unittest.TestCase):
             assert_equal_items(self, items)
 
         directive.env.ref_context['py:module'] = __name__
+
         res = [
             '',
             '.. py:data:: dsp',
@@ -195,7 +196,7 @@ class TestDispatcherDirective(unittest.TestCase):
             '   ',
             '   good',
             '   ',
-            '   .. graphviz:: _build/_dispatchers/dispatcher-f128e7b7fd1c97ef3644c5d2f2a5a6b556aa8471.gv',
+            '   .. graphviz:: _build/_dispatchers/dispatcher-73e25d64a2d3385b1a6fde2e07406deab3171ab2.gv',
             '      :graphviz_dot: dot',
             '   ',
             "   .. csv-table:: **Pippo's data**",
@@ -216,15 +217,16 @@ class TestDispatcherDirective(unittest.TestCase):
             '      ":func:`fun2 <%s.fun2>`", "Fun2"' % __name__,
             '      ":func:`fun3 <%s.fun2>`", "Fun3"' % __name__,
             '   ']
-
         assert_result(self, res, 'dispatcher', 'dsp')
+
         res[1] = '.. py:data:: dsp_1'
         res[5] = '   Docstring 2'
-
+        res[9] = '   .. graphviz:: _build/_dispatchers/dispatcher-c4cdb95f7c323136c07b06e9cc9e97c054e65cd3.gv'
         assert_result(self, res, 'dispatcher', 'dsp_1')
 
         res[1] = '.. py:data:: dsp_2'
         res[5] = '   Docstring 3'
+        res[9] = '   .. graphviz:: _build/_dispatchers/dispatcher-626650ebb81b12cfd2764e7dde8087e834a31bd1.gv'
         assert_result(self, res, 'dispatcher', 'dsp_2')
 
     def test_build(self):
