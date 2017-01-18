@@ -242,7 +242,7 @@ parallel.
     :target: https://pypi.python.org/pypi/schedula/
     :alt: Downloads
 
-.. |github-issues| image:: https://img.shields.io/github/issues/schedula/pandalone.svg
+.. |github-issues| image:: https://img.shields.io/github/issues/vinci1it2000/schedula.svg
     :target: https://github.com/vinci1it2000/schedula/issues
     :alt: Issues count
 
@@ -251,5 +251,5 @@ parallel.
     :alt: Project License
 
 .. |dependencies| image:: https://img.shields.io/requires/github/vinci1it2000/schedula.svg
-    :target: https://requires.io/github/vinci1it2000/pandalone/schedula/
+    :target: https://requires.io/github/vinci1it2000/schedula/requirements/?branch=master
     :alt: Dependencies up-to-date?
