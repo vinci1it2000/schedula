@@ -27,25 +27,6 @@ class TestDoctest(unittest.TestCase):
         self.assertEqual(failure_count, 0, (failure_count, test_count))
 
 
-class TestGraphAlgorithms(unittest.TestCase):
-    def setUp(self):
-        graph = DiGraph()
-        graph.add_cycle([1, 2, 3, 4])
-        graph.add_cycle([5, 6, 7, 8])
-        graph.add_node(0)
-        graph.add_edge(9, 10)
-        self.graph_1 = graph
-
-        graph = DiGraph()
-        graph.add_cycle([1, 2, 3, 4])
-        graph.add_cycle([5, 6, 7, 8])
-        graph.add_node(0)
-        graph.add_edge(9, 10)
-        graph.add_edge(3, 9)
-        graph.add_edge(10, 7)
-        self.graph_2 = graph
-
-
 class TestDispatcherGetSubNode(unittest.TestCase):
     def setUp(self):
         ss_dsp = Dispatcher()
