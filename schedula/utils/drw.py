@@ -746,7 +746,9 @@ def run_server(app, options):
     app.run(**options)
 
 
-def cleanup(files, rendered):
+def _cleanup(files=None, rendered=None):
+    if files is None and rendered is None:
+        return 'Nothing to cleanup.'
     while files:
         fpath = files.pop()
         try:
@@ -757,11 +759,11 @@ def cleanup(files, rendered):
             os.removedirs(osp.dirname(fpath))
         except OSError:  # The directory is not empty.
             pass
-    rendered.clear()
+    rendered and rendered.clear()
     return 'Cleaned up generated files by the server.'
 
 
-def shutdown_server():
+def _shutdown_server():
     import flask
     func = flask.request.environ.get('werkzeug.server.shutdown')
     if func is None:
@@ -770,13 +772,28 @@ def shutdown_server():
     return 'Server shutting down...'
 
 
-def shutdown_site(url):
-    import requests
-    requests.post('%s/cleanup' % url)
-    try:
-        requests.post('%s/shutdown' % url)
-    except requests.exceptions.ConnectionError:
-        pass
+def basic_app(root_path, cleanup=None, shutdown=None, **kwargs):
+    import flask
+    app = flask.Flask(root_path, root_path=root_path, **kwargs)
+    app.before_request(before_request)
+
+    cleanup, rule = (cleanup or _cleanup), '/cleanup'
+    app.add_url_rule(rule, rule[1:], cleanup, methods=['DELETE'])
+
+    shutdown, rule = (shutdown or _shutdown_server), '/shutdown'
+    app.add_url_rule(rule, rule[1:], shutdown, methods=['DELETE'])
+    return app
+
+
+def before_request():
+    import flask
+    from flask import request
+    method = request.form.get('_method', '').upper()
+    if method:
+        request.environ['REQUEST_METHOD'] = method
+        ctx = flask._request_ctx_stack.top
+        ctx.url_adapter.default_method = method
+        assert request.method == method
 
 
 class Site:
@@ -812,7 +829,7 @@ class Site:
             target=run_server,
             args=(self.sitemap.app(**self.kwargs), self.get_port(**options))
         ).start()
-        self.shutdown = weakref.finalize(self, shutdown_site, self.url)
+        self.shutdown = weakref.finalize(self, _shutdown_server, self.url)
 
 
 class SiteMap(collections.OrderedDict):
@@ -928,14 +945,9 @@ class SiteMap(collections.OrderedDict):
 
     def app(self, root_path=None, depth=-1, index=True, **kwargs):
         root_path = osp.abspath(root_path or tempfile.mktemp())
-        import flask
-        app = flask.Flask(root_path, root_path=root_path, **kwargs)
         generated_files, rendered = [], {}
-        func = functools.partial(cleanup, generated_files, rendered)
-        rule = '/cleanup'
-        app.add_url_rule(rule, rule[1:], func, methods=['POST'])
-        rule = '/shutdown'
-        app.add_url_rule(rule, rule[1:], shutdown_server, methods=['POST'])
+        cleanup = functools.partial(_cleanup, generated_files, rendered)
+        app = basic_app(root_path, cleanup=cleanup, **kwargs)
         context = self.rules(depth=depth, index=index)
         for (node, extra), filepath in context.items():
             func = functools.partial(
