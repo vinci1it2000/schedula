@@ -1,3 +1,24 @@
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
+#
+# Copyright 2014-2016 European Commission (JRC);
+# Licensed under the EUPL (the 'Licence');
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
+
+"""
+It provides a function to build a dispatcher from an excel file.
+
+Sub-Modules:
+
+.. currentmodule:: schedula.utils.exl
+
+.. autosummary::
+    :nosignatures:
+    :toctree: exl/
+
+    core
+"""
 __all__ = ['extract_dsp_from_excel']
 
 
