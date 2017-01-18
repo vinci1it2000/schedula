@@ -803,6 +803,13 @@ class Site:
         self.port = port
         self.shutdown = lambda: False
 
+    def __repr__(self):
+        s = "%s(%s, " % (self.__class__.__name__, self.sitemap)
+        s += "host='{}', port={}".format(self.host, self.port)
+        for k, v in sorted(self.kwargs.items()):
+            s += ', {}={}'.format(k, ("'%s'" % v) if isinstance(v, str) else v)
+        return s + ')'
+
     def get_port(self, host=None, port=None, **kw):
         kw = kw.copy()
         kw['host'] = self.host = host or self.host
@@ -842,7 +849,7 @@ class Site:
             args=(self.app(), self.get_port(**options))
         ).start()
         self.shutdown = weakref.finalize(self, self.shutdown_site, self.url)
-
+        return self
 
 class SiteMap(collections.OrderedDict):
     site_folder = SiteFolder
