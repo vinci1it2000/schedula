@@ -652,22 +652,18 @@ class TestDispatch(unittest.TestCase):
         dsp = self.dsp
 
         o = dsp.dispatch({'a': 5, 'b': 6}, ['d'])
-        r = {'2 / (d + 1)', 'a', 'b', 'c', 'd', 'log(b - a)', 'max', 'min',
-             START, 'x - 4', 'x ^ y'}
+        r = {'a', 'b', 'c', 'd', 'log(b - a)', 'max', 'min', START, 'x - 4'}
         w = {
-            '2 / (d + 1)': {},
             'a': {'log(b - a)': {'value': 5}, 'min': {'value': 5},
                   'x - 4': {'value': 5}},
             'b': {'max': {'value': 6}, 'log(b - a)': {'value': 6}},
             'c': {'min': {'value': 0.0}},
-            'd': {'max': {'value': 0.0}, '2 / (d + 1)': {'value': 0.0},
-                  'x ^ y': {'value': 0.0}},
+            'd': {'max': {'value': 0.0}},
             'log(b - a)': {'c': {'value': 0.0}},
             'max': {},
             'min': {'d': {'value': 0.0}},
             START: {'a': {'value': 5}, 'b': {'value': 6}},
             'x - 4': {},
-            'x ^ y': {},
         }
         self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 0})
         self.assertEqual(set(o.workflow.node), r)
