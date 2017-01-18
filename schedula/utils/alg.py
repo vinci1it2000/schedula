@@ -560,6 +560,8 @@ def get_sub_node(dsp, path, node_attr='auto', solution=NONE, _level=0,
             data = dsp.default_values[node_id]
         elif node_attr == 'dsp':
             data = dsp
+        elif node_attr == 'sol':
+            data = solution
 
         if data is EMPTY:
             data = node.get(node_attr, node)
