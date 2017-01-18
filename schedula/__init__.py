@@ -1018,7 +1018,8 @@ class Dispatcher(Base):
         return sub_dsp  # Return the sub-dispatcher.
 
     def get_sub_dsp_from_workflow(self, sources, graph=None, reverse=False,
-                                  add_missing=False, check_inputs=True):
+                                  add_missing=False, check_inputs=True,
+                                  blockers=None):
         """
         Returns the sub-dispatcher induced by the workflow from sources.
 
@@ -1046,6 +1047,10 @@ class Dispatcher(Base):
         :param check_inputs:
             If True the missing function' inputs are not checked.
         :type check_inputs: bool, optional
+
+        :param blockers:
+            Nodes to not be added to the queue.
+        :type blockers: set[str], iterable, optional
 
         :return:
             A sub-dispatcher.
@@ -1169,11 +1174,14 @@ class Dispatcher(Base):
                     except KeyError:
                         return True
                 return False
+
         from collections import deque
         queue = deque([])
 
+        blockers = set(blockers or ())
+
         # Function to set node attributes.
-        def _set_node_attr(n, add2family=True):
+        def _set_node_attr(n, add2family=True, block=False):
             # Set node attributes.
             nodes[n] = dmap_nodes[n]
 
@@ -1184,7 +1192,8 @@ class Dispatcher(Base):
                 dlt_val[n] = dsp_dlt_val[n]  # Set the default value.
 
             if add2family:
-                family[n] = neighbors(n)  # Append a new parent to the family.
+                # Append a new parent to the family.
+                family[n] = () if block and n in blockers else neighbors(n)
 
                 queue.append(n)
 
@@ -1198,16 +1207,16 @@ class Dispatcher(Base):
             parent = queue.popleft()
 
             # Namespace shortcuts for speed.
-            nbrs, dmap_nbrs = (succ[parent], dmap_succ[parent])
+            nbrs, dmap_nbrs = succ[parent], dmap_succ[parent]
 
             # Iterate parent's children.
-            for child in family[parent]:
+            for child in sorted(family[parent]):
 
                 if _check_node_inputs(child, parent):
                     continue
 
                 if child not in family:
-                    _set_node_attr(child)  # Set node attributes.
+                    _set_node_attr(child, block=True)  # Set node attributes.
 
                 # Add attributes to both representations of edge: u-v and v-u.
                 nbrs[child] = pred[child][parent] = dmap_nbrs[child]
@@ -1420,7 +1429,9 @@ class Dispatcher(Base):
                     inputs, outputs, cutoff, inputs_dist, wildcard
                 )
             elif outputs:
-                dsp = self.shrink_dsp(outputs=outputs)
+                dsp = self.get_sub_dsp_from_workflow(
+                    outputs, self.dmap, reverse=True, blockers=inputs
+                )
 
         # Initialize.
         self.solution = sol = self.solution.__class__(
