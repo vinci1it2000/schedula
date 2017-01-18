@@ -12,7 +12,7 @@ import platform
 from schedula import Dispatcher
 from schedula.utils.dsp import SubDispatch, SubDispatchFunction, SubDispatchPipe
 from schedula.utils.cst import SINK
-from schedula.utils.drw import SiteMap
+from schedula.utils.drw import SiteMap, Site
 import tempfile
 import os.path as osp
 
@@ -72,7 +72,7 @@ class TestDispatcherDraw(unittest.TestCase):
         self.sol = dsp.dispatch()
         self.dsp = dsp
 
-    def test_plot_dsp_dot(self):
+    def test_plot(self):
         dsp, sol = self.dsp, self.sol
 
         plt = dsp.plot(view=False)
@@ -86,6 +86,22 @@ class TestDispatcherDraw(unittest.TestCase):
 
         plt = dsp.plot(depth=1, view=False)
         self.assertIsInstance(plt, SiteMap)
+
+    def test_view(self):
+        sol = self.sol
+        SiteMap._view = lambda *args, **kwargs: None
+        plt = sol.plot(view=True)
+        self.assertIsInstance(plt, SiteMap)
+
+        sites = set()
+        plt = sol.plot(view=True, sites=sites, index=True)
+        self.assertIsInstance(plt, SiteMap)
+        site = sites.pop()
+        self.assertIsInstance(site, Site)
+        import requests
+        self.assertEqual(requests.get(site.url).status_code, 200)
+        self.assertIsInstance(site, Site)
+        site.shutdown()
 
     def test_long_path(self):
         dsp = self.dsp
