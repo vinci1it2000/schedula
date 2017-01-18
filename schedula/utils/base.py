@@ -77,7 +77,8 @@ class Base(object):
             True
 
         .. note::
-           When site is garbage collected the server is shutdown automatically.
+           When :func:`~schedula.utils.drw.Site` is garbage collected the server
+           is shutdown automatically.
         """
 
         options = {'node_data': node_data, 'node_function': node_function}
