@@ -46,8 +46,32 @@ class Base(object):
         :type depth: int, optional
 
         :return:
-            A directed graph source code in the DOT language.
-        :rtype: WebMap
+            A WebMap.
+        :rtype: schedula.utils.web.WebMap
+
+        Example:
+
+        .. dispatcher:: dsp
+           :opt: graph_attr={'ratio': '1'}
+           :code:
+
+            >>> from schedula import Dispatcher
+            >>> dsp = Dispatcher(name='Dispatcher')
+            >>> def fun(a):
+            ...     return a + 1, a - 1
+            >>> dsp.add_function('fun', fun, ['a'], ['b', 'c'])
+            'fun'
+            >>> sites = set()
+            >>> dsp.web(sites=sites)
+            WebMap([(Dispatcher, WebMap())])
+            >>> site = sites.pop()
+            >>> site
+            <schedula.utils.drw.Site object at 0x...>
+            >>> import requests
+            >>> url = '%s/%s/%s' % (site.url, dsp.name, fun.__name__)
+            >>> requests.post(url, json={'args': (0,)}).json()['return']
+            [1, -1]
+            >>> site.shutdown()
         """
 
         options = {'node_data': node_data, 'node_function': node_function}
@@ -95,17 +119,6 @@ class Base(object):
             Function node attributes to view.
         :type node_function: tuple[str], optional
 
-        :param draw_outputs:
-            It modifies the defaults data node and edge attributes to view.
-            If `draw_outputs` is:
-
-                - 1: node attribute 'output' is drawn.
-                - 2: edge attribute 'value' is drawn.
-                - 3: node 'output' and edge 'value' attributes are drawn.
-                - otherwise: node 'output' and edge 'value' attributes are not
-                  drawn.
-        :type draw_outputs: int, optional
-
         :param node_styles:
             Default node styles according to graphviz node attributes.
         :type node_styles: dict[str|Token, dict[str, str]]
@@ -113,11 +126,6 @@ class Base(object):
         :param depth:
             Depth of sub-dispatch plots. If negative all levels are plotted.
         :type depth: int, optional
-
-        :param function_module:
-            If True the function labels are plotted with the function module,
-            otherwise only the function name will be visible.
-        :type function_module: bool, optional
 
         :param name:
             Graph name used in the source code.
@@ -130,10 +138,6 @@ class Base(object):
         :param directory:
             (Sub)directory for source saving and rendering.
         :type directory: str, optional
-
-        :param filename:
-            File name for saving the source.
-        :type filename: str, optional
 
         :param format:
             Rendering output format ('pdf', 'png', ...).
@@ -164,8 +168,8 @@ class Base(object):
         :type body: dict, optional
 
         :return:
-            A directed graph source code in the DOT language.
-        :rtype: SiteMap
+            A SiteMap.
+        :rtype: schedula.utils.drw.SiteMap
 
         Example:
 
