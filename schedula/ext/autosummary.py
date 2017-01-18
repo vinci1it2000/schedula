@@ -179,4 +179,11 @@ def process_generate_options(app):
 
 def setup(app):
     app.setup_extension('sphinx.ext.autosummary')
-    app.connect('builder-inited', process_generate_options)
+
+    # replace callback process_generate_options of 'builder-inited' event.
+    import sphinx.ext.autosummary as mdl
+    event = 'builder-inited'
+    listeners = app._listeners[event]
+    for listener_id, callback in listeners.items():
+        if callback is mdl.process_generate_options:
+            listeners[listener_id] = process_generate_options
