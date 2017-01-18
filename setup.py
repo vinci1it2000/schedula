@@ -24,7 +24,8 @@ def read_project_version():
     return fglobals['__version__']
 
 proj_ver = read_project_version()
-download_url = 'https://github.com/vinci1it2000/%s/releases/tag/v%s' % (name, proj_ver)
+url = 'https://github.com/vinci1it2000/%s' % name
+download_url = '%s/tarball/v%s' % (url, proj_ver)
 
 setup(
     name=name,
@@ -34,7 +35,7 @@ setup(
         'doc', 'doc.*',
         'appveyor', 'requirements'
     ]),
-    url='',
+    url=url,
     download_url=download_url,
     license='EUPL 1.1+',
     author='Vincenzo Arcidiacono',
@@ -51,7 +52,7 @@ setup(
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: Implementation :: CPython",
-        "Development Status :: 1 - Alpha",
+        "Development Status :: 3 - Alpha",
         'Natural Language :: English',
         "Intended Audience :: Developers",
         "Intended Audience :: Science/Research",
