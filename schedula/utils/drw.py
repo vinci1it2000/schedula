@@ -127,10 +127,8 @@ def jinja2_format(source, context=None, **kw):
 
 
 def valid_filename(item, filenames, ext=None):
-    if ext == '':
-        _ = '%s'
-    else:
-        _ = '%s.{}'.format(ext or item.ext)
+    ext = ext or item.ext
+    _ = '%s' + ('.{}'.format(ext) if ext != '' else '')
     if isinstance(item, str):
         _filename = item
     else:
@@ -937,7 +935,8 @@ class SiteMap(collections.OrderedDict):
                         raise ValueError
                     link = add_items(item, depth=depth, name=node_id)
                 except ValueError:  # item is not a dsp object.
-                    link = site_node(folder, '%s-%s' % (node_id, k), item, item)
+                    i = ''.join((node_id, k and '-' or '', k))
+                    link = site_node(folder, i, item, item)
                     append(link)
                 links[k] = link
 
