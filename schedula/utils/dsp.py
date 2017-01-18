@@ -1096,8 +1096,7 @@ class DFun(object):
         assert 'outputs' not in kwds and 'function' not in kwds, self
 
     def __repr__(self, *args, **kwargs):
-        from toolz import dicttoolz as dtz
-        kwds = dtz.keyfilter(lambda k: k not in ('fun', 'out'), self.kwds)
+        kwds = selector(set(self.kwds) - {'fun', 'out'}, self.kwds)
         return 'DFun(%r, %r, %s)' % (
             self.out,
             self.fun,
