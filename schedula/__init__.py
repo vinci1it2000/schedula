@@ -1278,26 +1278,6 @@ class Dispatcher(Base):
         import copy
         return copy.deepcopy(self)  # Return the copy of the Dispatcher.
 
-    def web(self, import_name=None, **options):
-        """
-        Creates a dispatcher Flask app.
-
-        :param import_name:
-            The name of the application package.
-        :type import_name: str, optional
-
-        :param options:
-            Flask options.
-        :type options: dict, optional
-
-        :return:
-            Flask app based on the given dispatcher.
-        :rtype: flask.Flask
-        """
-
-        from .utils.web import create_flask_app
-        return create_flask_app(self, import_name=import_name, **options)
-
     def dispatch(self, inputs=None, outputs=None, cutoff=None, inputs_dist=None,
                  wildcard=False, no_call=False, shrink=False,
                  rm_unused_nds=False, select_output_kw=None, _wait_in=None,

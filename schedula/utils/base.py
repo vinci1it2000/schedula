@@ -1,4 +1,4 @@
-# coding=utf-8
+#!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 #
 # Copyright 2014-2016 European Commission (JRC);
@@ -28,6 +28,43 @@ class Base(object):
             setattr(result, k, copy.deepcopy(v, memo))
         return result
 
+    def web(self, depth=-1, node_data=NONE, node_function=NONE, directory=None,
+            sites=None, run=True):
+        """
+        Creates a dispatcher Flask app.
+
+        :param node_data:
+            Data node attributes to view.
+        :type node_data: tuple[str], optional
+
+        :param node_function:
+            Function node attributes to view.
+        :type node_function: tuple[str], optional
+
+        :param depth:
+            Depth of sub-dispatch plots. If negative all levels are plotted.
+        :type depth: int, optional
+
+        :return:
+            A directed graph source code in the DOT language.
+        :rtype: WebMap
+        """
+
+        options = {'node_data': node_data, 'node_function': node_function}
+        options = {k: v for k, v in options.items() if v is not NONE}
+        from .web import WebMap
+        from .sol import Solution
+
+        obj = self.dsp if isinstance(self, Solution) else self
+
+        webmap = WebMap()
+        webmap.add_items(obj, workflow=False, depth=depth, **options)
+
+        if sites is not None:
+            directory = directory or tempfile.mkdtemp()
+            sites.add(webmap.site(directory, view=run))
+
+        return webmap
 
     def plot(self, workflow=None, view=True, depth=-1, name=NONE, comment=NONE,
              format=NONE, engine=NONE, encoding=NONE, graph_attr=NONE,
@@ -266,7 +303,6 @@ class Base(object):
 
         # Returns the node.
         return get_sub_node(dsp, node_ids, node_attr=node_attr, **kw)
-
 
     def search_node_description(self, node_id, what='description'):
         dsp = getattr(self, 'dsp', self)
