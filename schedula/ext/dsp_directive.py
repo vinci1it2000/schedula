@@ -125,7 +125,10 @@ def _plot(lines, dsp, dot_view_opt, documenter):
 
     dsource = osp.dirname(osp.join(env.srcdir, env.docname))
     path = osp.relpath(fpath, dsource).replace('\\', '/')
-    lines.extend(['.. graphviz:: %s' % path, ''])
+
+    lines.extend(['.. graphviz:: %s' % path,
+                  '   :graphviz_dot: %s' % dot_view_opt.get('engine', 'dot'),
+                  ''])
 
 
 def _table_heather(lines, title, dsp_name):
@@ -369,7 +372,7 @@ class DispatcherDocumenter(DataDocumenter):
 
 
 class DispatcherDirective(AutoDirective):
-    _default_flags = {'des', 'opt', 'data', 'func', 'dsp', 'code', 'annotation'}
+    _default_flags = set(DispatcherDocumenter.option_spec)
 
     def __init__(self, *args, **kwargs):
         super(DispatcherDirective, self).__init__(*args, **kwargs)
