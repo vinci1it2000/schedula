@@ -19,17 +19,6 @@ import os.path as osp
 PLATFORM = platform.system().lower()
 
 
-class TestDoctest(unittest.TestCase):
-    def runTest(self):
-        import schedula.utils.base as utl
-
-        failure_count, test_count = doctest.testmod(
-            utl, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS
-        )
-        self.assertGreater(test_count, 0, (failure_count, test_count))
-        self.assertEqual(failure_count, 0, (failure_count, test_count))
-
-
 class TestDispatcherDraw(unittest.TestCase):
     def setUp(self):
         ss_dsp = Dispatcher()
@@ -101,7 +90,8 @@ class TestDispatcherDraw(unittest.TestCase):
         import requests
         self.assertEqual(requests.get(site.url).status_code, 200)
         self.assertIsInstance(site, Site)
-        site.shutdown()
+        self.assertTrue(site.shutdown())
+        self.assertFalse(site.shutdown())
 
     def test_long_path(self):
         dsp = self.dsp
