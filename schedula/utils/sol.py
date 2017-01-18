@@ -685,6 +685,7 @@ class Solution(Base, collections.OrderedDict):
                 for f in node_attr.get('filters', ()):
                     res = f(res)
 
+                attr['results'] = res
                 attr['duration'] = datetime.today() - attr['started']
 
                 # Save node.
