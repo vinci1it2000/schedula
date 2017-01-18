@@ -16,153 +16,70 @@ import functools
 import logging
 import tempfile
 import os.path as osp
-from .dsp import SubDispatch, parent_func
+from .drw import SiteMap, SiteFolder, FolderNode, SiteNode, basic_app
+
 
 log = logging.getLogger(__name__)
 
 
-def create_flask_app(dsp, import_name=None, **options):
-    """
-    Creates a Flask app from a dispatcher.
+class FolderNodeWeb(FolderNode):
+    node_data = ()  # ('+set_value',)
+    node_function = ('+function',) # ('+input_domain',)
+    edge_data = ()
 
-    :param dsp:
-        A dispatcher that identifies the model adopted.
-    :type dsp: schedula.Dispatcher
+    def _set_value(self):
+        if self.type == 'data' and self.node_id in self.folder.dsp.nodes:
+            set_value = self.folder.dsp.set_default_value
+            yield '', functools.partial(set_value, self.node_id)
 
-    :param import_name:
-        The name of the application package.
-    :type import_name: str, optional
-
-    :param options:
-        Flask options.
-    :type options: dict, optional
-
-    :return:
-        Flask app based on the given dispatcher.
-    :rtype: flask.Flask
-    """
-    from flask import Flask
-    if import_name is None:
-        import_name = osp.abspath(import_name or tempfile.mktemp())
-
-    app = Flask(import_name, **options)
-
-    add_dsp_url_rules(dsp, app, '/')
-
-    return app
+    def _function(self):
+        name = 'function'
+        if name in self.attr:
+            yield '' if self.type == 'function' else name, self.attr[name]
 
 
-def _func_handler_maker(func):
+class WebFolder(SiteFolder):
+    folder_node = FolderNodeWeb
+    ext = ''
+
+
+class WebNode(SiteNode):
+    ext = ''
+
+    @property
+    def name(self):
+        return self.node_id
+
+
+class WebMap(SiteMap):
+    _view = site_index = lambda *args, **kwargs: None
+    site_folder = WebFolder
+    site_node = WebNode
+    include_folders_as_filenames = False
+
+    def _repr_svg_(self):
+        raise NotImplementedError()
+
+    def app(self, root_path=None, depth=-1, **kwargs):
+        kwargs.pop('index', None)
+        root_path = osp.abspath(root_path or tempfile.mktemp())
+        app = basic_app(root_path, **kwargs)
+        context = self.rules(depth=depth, index=False)
+        for (node, extra), filepath in context.items():
+            func = functools.partial(func_handler, node.obj)
+            app.add_url_rule('/%s' % filepath, filepath, func, methods=['POST'])
+
+        if context:
+            app.add_url_rule('/', next(iter(context.values())), methods=['POST'])
+
+        return app
+
+    def render(self, *args, **kwargs):
+        raise NotImplementedError()
+
+
+def func_handler(func):
     from flask import request, jsonify
-
-    def func_handler():
-        data = request.get_json(force=True)
-        data['return'] = func(*data.get('args', ()), **data.get('kwargs', {}))
-        return jsonify(data)
-
-    return func_handler
-
-
-def _add_rule(add_rule, *args, **kwargs):
-    try:
-        add_rule(*args, **kwargs)
-    except ValueError as ex:
-        log.warn(ex)
-
-
-def stack_func_rules(dsp, rule='/', edit_data=False, depth=-1,
-                     sub_dsp_function=False, yield_self=True):
-    """
-    Stacks function rules.
-
-    :param dsp:
-        A dispatcher that identifies the model adopted.
-    :type dsp: schedula.Dispatcher
-
-    :param rule:
-        Parent rule.
-    :type rule: str
-
-    :param edit_data:
-        Add rule to set data node?
-    :type edit_data: bool
-
-    :param depth:
-        Maximum depth of nested rules.
-    :type depth: int
-
-    :param sub_dsp_function:
-        Enable nested rules for sub-dispatcher nodes?
-    :type sub_dsp_function: bool
-
-    :param yield_self:
-        Add `dsp.dispatch` rule?
-    :type yield_self: bool
-    """
-    if yield_self:
-        yield rule, dsp.dispatch
-    rule += '%s/'
-
-    if edit_data:
-        set_value = dsp.set_default_value
-        for k in dsp.data_nodes.keys():
-            yield rule % k, functools.partial(set_value, k)
-
-    for k, v in dsp.function_nodes.items():
-        if 'function' in v:
-            r, f = rule % k, v['function']
-            yield r, f
-            if depth != 0:
-                f = parent_func(f)
-                if isinstance(f, SubDispatch):
-                    yield from stack_func_rules(
-                        f.dsp, r, edit_data, depth - 1, sub_dsp_function, 0
-                    )
-
-    if depth == 0 or sub_dsp_function:
-        return
-
-    for k, v in dsp.sub_dsp_nodes.items():
-        yield from stack_func_rules(
-            v['function'], rule % k, edit_data, depth - 1, sub_dsp_function, 0
-        )
-
-
-def add_dsp_url_rules(dsp, app, rule, edit_data=False, methods=('POST',),
-                      func_handler_maker=_func_handler_maker, **options):
-    """
-    Add url-rules derived from the given dispatcher to a given Flask app.
-
-    :param dsp:
-        A dispatcher that identifies the model adopted.
-    :type dsp: schedula.Dispatcher
-
-    :param app:
-        Flask app where to add url-rules derived from the given dispatcher.
-    :type app: flask.Flask
-
-    :param rule:
-        Base URL rule.
-    :type rule: str
-
-    :param edit_data:
-        Allow to set data node values with a request.
-    :type edit_data: bool, optional
-
-    :param methods:
-        A list of methods this rule should be limited to (GET, POST etc.).
-    :type methods: tuple[str], optional
-
-    :param func_handler_maker:
-        A function that return a function call handler.
-    :type func_handler_maker: function, optional
-
-    :param options:
-        Options to be forwarded to the underlying Rule object.
-    :type options: dict, optional
-    """
-
-    options['methods'] = methods
-    add_rule = functools.partial(_add_rule, app.add_url_rule)
-    for r, func in stack_func_rules(dsp, rule, edit_data):
-        add_rule(r, r, func_handler_maker(func), **options)
+    data = request.get_json(force=True)
+    data['return'] = func(*data.get('args', ()), **data.get('kwargs', {}))
+    return jsonify(data)
