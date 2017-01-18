@@ -49,7 +49,6 @@ def _import_docstring(documenter):
             import textwrap
 
             content = documenter.directive.content
-
             def get_code(source, c=''):
                 s = "\n%s" % c
                 return textwrap.dedent(s.join(map(str, source)))
@@ -68,8 +67,9 @@ def _import_docstring(documenter):
                                    optionflags=NORMALIZE_WHITESPACE | ELLIPSIS)
 
             glob = {}
-            exec('import %s as mdl\n' % documenter.modname, glob)
-            glob = glob['mdl'].__dict__
+            if documenter.modname:
+                exec('from %s import *\n' % documenter.modname, glob)
+
             tests = parser.get_doctest(code, glob, '', '', 0)
             runner.run(tests, clear_globs=False)
 
@@ -108,7 +108,7 @@ def _code(lines, documenter):
 
 
 def _plot(lines, dsp, dot_view_opt, documenter):
-    hashkey = (documenter.modname + str(documenter.code) +
+    hashkey = (documenter.modname or '' + str(documenter.code) +
                str(sorted(dot_view_opt.items()))).encode('utf-8')
     fname = 'dispatcher-%s' % sha1(hashkey).hexdigest()
     env = documenter.env
@@ -322,10 +322,12 @@ class DispatcherDocumenter(DataDocumenter):
                 self.options.annotation = ' = %s' % self.object.name
             super(DispatcherDocumenter, self).add_directive_header(sig)
 
+    def parse_name(self):
+        return super(DispatcherDocumenter, self).parse_name() or True
+
     def import_object(self):
-        if getattr(self.directive, 'arguments', None):
-            if _import_docstring(self):
-                return True
+        if _import_docstring(self):
+            return True
         self.is_doctest = False
         self.code = None
         return DataDocumenter.import_object(self)
