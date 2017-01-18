@@ -849,6 +849,10 @@ class SiteMap(collections.OrderedDict):
     site_node = SiteNode
     site_index = SiteIndex
     _view = DspPlot(None)._view
+    options = {
+        'digraph', 'node_styles', 'node_data', 'node_function', 'edge_data',
+        'max_lines', 'max_width'
+    }
     def __init__(self):
         super(SiteMap, self).__init__()
         self._nodes = []
@@ -915,11 +919,13 @@ class SiteMap(collections.OrderedDict):
         return smap, folder
 
     def add_items(self, item, workflow=False, depth=-1, **options):
-        smap, folder = self._add_obj(item, workflow=workflow, **options)
+        opt = selector(self.options, self.__dict__, allow_miss=True)
+        opt = combine_dicts(options, base=opt)
+        smap, folder = self._add_obj(item, workflow=workflow, **opt)
         if depth > 0:
             depth -= 1
         site_node, append = self.site_node, smap._nodes.append
-        add_items = functools.partial(smap.add_items, workflow=workflow)
+        add_items = functools.partial(smap.add_items, workflow=workflow, **opt)
         for node in itertools.chain(folder.nodes, folder.edges):
             links, node_id = node._links, node.node_id
             only_site_node = depth == 0 or node.type == 'data'
