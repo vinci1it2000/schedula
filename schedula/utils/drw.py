@@ -184,10 +184,11 @@ class SiteNode(object):
     ext = 'txt'
     pprint = pprint.PrettyPrinter(compact=True, width=200)
 
-    def __init__(self, folder, node_id, item):
+    def __init__(self, folder, node_id, item, obj):
         self.folder = folder
         self.node_id = node_id
         self.item = item
+        self.obj = obj
         self.id = str(self.counter())
         self.extra_files = []
 
@@ -560,9 +561,9 @@ class SiteFolder(object):
     folder_node = FolderNode
     ext = 'svg'
 
-    def __init__(self, item, dsp, graph, name='', workflow=False,
+    def __init__(self, item, dsp, graph, obj, name='', workflow=False,
                  digraph=None, **options):
-        self.item, self.dsp, self.graph = item, dsp, graph
+        self.item, self.dsp, self.graph, self.obj = item, dsp, graph, obj
         self._name = name
         self.workflow = workflow
         self.id = str(self.counter())
@@ -708,7 +709,7 @@ class SiteIndex(SiteNode):
     ext='html'
 
     def __init__(self, sitemap, node_id='index'):
-        super(SiteIndex, self).__init__(None, node_id, self)
+        super(SiteIndex, self).__init__(None, node_id, self, None)
         self.sitemap = sitemap
         import pkg_resources
         dfl_folder = osp.join(
@@ -869,8 +870,8 @@ class SiteMap(collections.OrderedDict):
             for k, filename in update_filenames(node, filenames):
                 yield k, rule + filename
 
-    def add_item(self, item, workflow=False, **options):
-        item = parent_func(item)
+    def _add_obj(self, obj, workflow=False, **options):
+        item = parent_func(obj)
         if workflow:
             item = self.get_sol_from(item)
             dsp, graph = item.dsp, item.workflow
@@ -878,12 +879,14 @@ class SiteMap(collections.OrderedDict):
             dsp = self.get_dsp_from(item)
             graph = dsp.dmap
 
-        folder = self.site_folder(item, dsp, graph, workflow=workflow, **options)
+        folder = self.site_folder(
+            item, dsp, graph, obj, workflow=workflow, **options
+        )
         folder.sitemap = smap = self[folder] = self.__class__()
         return smap, folder
 
     def add_items(self, item, workflow=False, depth=-1, **options):
-        smap, folder = self.add_item(item, workflow=workflow, **options)
+        smap, folder = self._add_obj(item, workflow=workflow, **options)
         if depth > 0:
             depth -= 1
         site_node, append = self.site_node, smap._nodes.append
@@ -897,7 +900,7 @@ class SiteMap(collections.OrderedDict):
                         raise ValueError
                     link = add_items(item, depth=depth, name=node_id)
                 except ValueError:  # item is not a dsp object.
-                    link = site_node(folder, '%s-%s' % (node_id, k), item)
+                    link = site_node(folder, '%s-%s' % (node_id, k), item, item)
                     append(link)
                 links[k] = link
 
