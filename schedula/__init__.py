@@ -20,6 +20,7 @@ Modules:
 
     ~Dispatcher
     ~utils
+    ~ext
 """
 
 import threading
@@ -1448,6 +1449,9 @@ class Dispatcher(Base):
         # Return the evaluated data outputs.
         return sol
 
+    def __call__(self, *args, **kwargs):
+        return self.dispatch(*args, **kwargs)
+
     def shrink_dsp(self, inputs=None, outputs=None, cutoff=None,
                    inputs_dist=None, wildcard=True):
         """
@@ -1687,12 +1691,6 @@ class Dispatcher(Base):
         """
 
         wait_in = {}
-
-        if flag is None:  # No set.
-            for a in self.sub_dsp_nodes.values():
-                if 'function' in a:
-                    a['function']._get_wait_in(flag=flag)
-            return
 
         for n, a in self.data_nodes.items():
             if n is not SINK and a['wait_inputs']:
