@@ -801,7 +801,7 @@ class Site:
         self.kwargs = kwargs
         self.host = host
         self.port = port
-        self.shutdown = lambda: None
+        self.shutdown = lambda: False
 
     def get_port(self, host=None, port=None, **kw):
         kw = kw.copy()
@@ -831,7 +831,8 @@ class Site:
         try:
             requests.delete('%s/shutdown' % url)
         except requests.exceptions.ConnectionError:
-            pass
+            return False
+        return True
 
     def run(self, **options):
         self.shutdown()
