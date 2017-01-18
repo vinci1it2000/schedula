@@ -747,7 +747,6 @@ class SubDispatch(Base):
         return _copy.deepcopy(self)
 
 
-
 class SubDispatchFunction(SubDispatch):
     """
     It converts a :func:`~schedula.Dispatcher` into a function.
@@ -1075,16 +1074,27 @@ class DFun(object):
          NOTE: Inspection works only for regular args, no ``*args, **kwds`` supported,
          and they will fail late, on :meth:`addme()`, if no `input` or `inp` defined.
 
-    Example::
+    **Example**:
 
-        dfuns = [
-            DFun('res', lambda num: num * 2),
-            DFun('res2', lambda num, num2: num + num2, weight=30),
-            DFun(out=['nargs', 'res22'],
-                 fun=lambda *args: (len(args), args),
-                 inp=('res', 'res1')
-            ),
-        ]
+    .. dispatcher:: dsp
+       :opt: graph_attr={'ratio': '1'}
+       :code:
+
+        >>> dfuns = [
+        ...     DFun('res', lambda num: num * 2),
+        ...     DFun('res2', lambda num, num2: num + num2, weight=30),
+        ...     DFun(out=['nargs', 'res22'],
+        ...          fun=lambda *args: (len(args), args),
+        ...          inputs=('res', 'res1')
+        ...     )]
+        >>> dfuns
+        [DFun('res', <function <lambda> at 0x...>, ),
+         DFun('res2', <function <lambda> at 0x...>, weight=30),
+         DFun(['nargs', 'res22'], <function <lambda> at 0x...>,
+              inputs=('res', 'res1'))]
+        >>> from schedula import Dispatcher
+        >>> dsp = Dispatcher()
+        >>> DFun.add_dfuns(dfuns, dsp)
     """
 
     def __init__(self, out, fun, inputs=None, **kwds):
