@@ -60,7 +60,8 @@ def assert_equal_items(test, items):
     it = iter(directive.result)
     while items:
         item = items.pop()
-        test.assertEqual(item, next(it), 'item %r not found in result or not in'
+        v = next(it)
+        test.assertEqual(item, v, 'item %r not found in result or not in'
                                          ' the correct order' % item)
     del directive.result[:]
 
@@ -135,15 +136,16 @@ class TestDispatcherDirective(unittest.TestCase):
         assert '   :module: %s' % __name__ in results
         assert '   :annotation:  = Pippo' in results
 
-    def test_import(self):
+    def test_code(self):
         import docutils.statemachine
 
         setup_test(
             arguments=['dsp'],
             options={'opt': "graph_attr={'ratio': '1'}", 'code': True},
             content=docutils.statemachine.StringList(
-                [" >>> s = Dispatcher(name='Dispatcher')",
-                 " >>> f = s.add_function('fun', fun2, ['a'], ['b'])"]),
+                [" >>> from schedula import Dispatcher",
+                 " >>> s = Dispatcher(name='Dispatcher')",
+                 " >>> f = s.add_function('fun', lambda x: 0, ['a'], ['b'])"]),
             content_offset=0)
 
         def assert_result(self, items, objtype, name, **kw):
@@ -154,23 +156,23 @@ class TestDispatcherDirective(unittest.TestCase):
             assert_equal_items(self, items)
 
         res= ['', '',
+              '    >>> from schedula import Dispatcher',
               "    >>> s = Dispatcher(name='Dispatcher')",
-              "    >>> f = s.add_function('fun', fun2, ['a'], ['b'])",
+              "    >>> f = s.add_function('fun', lambda x: 0, ['a'], ['b'])",
               '   ', '   ', '   ',
-              '   .. graphviz:: _build/_dispatchers/dispatcher-41dfbb6d292c8abba905c15874724d3d9d3a3b0d.gv',
+              '   .. graphviz:: _build/_dispatchers/dispatcher-d3e6f164a5f551b4a612ec146ea2286d59a93705.gv',
+              '      :graphviz_dot: dot',
               '   ',
               "   .. csv-table:: **Dispatcher's data**",
               '   ',
-              '      ":obj:`a <>`", "Nice e."',
-              '      ":obj:`b <>`", "Nice f."',
+              '      ":obj:`a <>`", ""',
+              '      ":obj:`b <>`", ""',
               '   ',
               "   .. csv-table:: **Dispatcher's functions**",
               '   ',
-              '      ":func:`fun <%s.fun2>`", "Fun2"' % __name__,
+              '      ":func:`fun <None.<lambda>>`", ""',
               '   ']
-        directive.env.ref_context['py:module'] = __name__
         assert_result(self, res, 'dispatcher', 's')
-
 
     def test_generate(self):
         setup_test()
@@ -193,7 +195,8 @@ class TestDispatcherDirective(unittest.TestCase):
             '   ',
             '   good',
             '   ',
-            '   .. graphviz:: _build/_dispatchers/dispatcher-cca2a722432426abafca076a7ccfde40b7bae49b.gv',
+            '   .. graphviz:: _build/_dispatchers/dispatcher-f128e7b7fd1c97ef3644c5d2f2a5a6b556aa8471.gv',
+            '      :graphviz_dot: dot',
             '   ',
             "   .. csv-table:: **Pippo's data**",
             '   ',
@@ -223,6 +226,15 @@ class TestDispatcherDirective(unittest.TestCase):
         res[1] = '.. py:data:: dsp_2'
         res[5] = '   Docstring 3'
         assert_result(self, res, 'dispatcher', 'dsp_2')
+
+    def test_build(self):
+        app = TestApp()
+        app.builder.env.app = app
+        app.builder.env.temp_data['docname'] = 'dummy'
+        app.build(True)
+        s = 'while setting up extension'
+        errors = [v for v in app._warning.content if s not in v]
+        self.assertEqual(errors, [], '\n'.join(errors))
 
 
 def fun2(e, my_args, *args):
