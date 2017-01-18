@@ -822,14 +822,26 @@ class Site:
     def url(self):
         return 'http://{}:{}'.format(self.host, self.port)
 
+    def app(self):
+        return self.sitemap.app(**self.kwargs)
+
+    @staticmethod
+    def shutdown_site(url):
+        import requests
+        requests.delete('%s/cleanup' % url)
+        try:
+            requests.delete('%s/shutdown' % url)
+        except requests.exceptions.ConnectionError:
+            pass
+
     def run(self, **options):
         self.shutdown()
         import threading
         threading.Thread(
             target=run_server,
-            args=(self.sitemap.app(**self.kwargs), self.get_port(**options))
+            args=(self.app(), self.get_port(**options))
         ).start()
-        self.shutdown = weakref.finalize(self, _shutdown_server, self.url)
+        self.shutdown = weakref.finalize(self, self.shutdown_site, self.url)
 
 
 class SiteMap(collections.OrderedDict):
