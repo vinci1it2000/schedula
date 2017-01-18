@@ -12,12 +12,17 @@ from schedula.utils.exl import extract_dsp_from_excel
 import doctest
 import unittest
 import os.path as osp
-
+import warnings
 
 class TestUtils(unittest.TestCase):
     def test_extract_dsp_from_excel(self):
         import logging
         logging.getLogger('pycel').setLevel(logging.WARNING)
+        warnings.filterwarnings(
+            action="ignore", module="openpyxl",
+            message="^Call to deprecated function or class get_squared_range",
+        )
+
         filename = osp.join(osp.dirname(__file__), 'example.xlsx')
         sol = extract_dsp_from_excel(filename)[0].dispatch()
 
