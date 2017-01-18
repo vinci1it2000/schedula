@@ -523,14 +523,14 @@ def get_sub_node(dsp, path, node_attr='auto', solution=NONE, _level=0,
     if _level < len(path):  # Is not path leaf?.
 
         try:
-            if node['type'] == 'function':
+            if node['type'] in ('function', 'dispatcher'):
                 try:
                     solution = solution.workflow.node[node_id]['solution']
                 except (KeyError, AttributeError):
                     solution = EMPTY
                 dsp = parent_func(node['function'])  # Get parent function.
             else:
-                dsp = node['function']  # Get function or sub-dispatcher node.
+                raise KeyError
 
         except KeyError:
             msg = 'Node of path %s at level %i is not a function or ' \
