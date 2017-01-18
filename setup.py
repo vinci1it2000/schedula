@@ -82,5 +82,4 @@ setup(
     ],
     test_suite='nose.collector',
     setup_requires=['nose>=1.0'],
-
 )
