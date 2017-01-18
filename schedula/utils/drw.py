@@ -836,7 +836,7 @@ class SiteMap(collections.OrderedDict):
     site_folder = SiteFolder
     site_node = SiteNode
     site_index = SiteIndex
-
+    _view = DspPlot(None)._view
     def __init__(self):
         super(SiteMap, self).__init__()
         self._nodes = []
@@ -965,7 +965,7 @@ class SiteMap(collections.OrderedDict):
 
         if view:
             site.run()
-            DspPlot(None)._view(site.url, 'html')
+            self._view(site.url, 'html')
 
         return site
 
@@ -977,7 +977,7 @@ class SiteMap(collections.OrderedDict):
 
         fpath = osp.join(directory, next(iter(context.values()), ''))
         if view:
-            DspPlot(None)._view(fpath, osp.splitext(fpath)[1][1:])
+            self._view(fpath, osp.splitext(fpath)[1][1:])
         return fpath
 
 
