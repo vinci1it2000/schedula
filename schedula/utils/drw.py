@@ -853,6 +853,7 @@ class SiteMap(collections.OrderedDict):
         'digraph', 'node_styles', 'node_data', 'node_function', 'edge_data',
         'max_lines', 'max_width'
     }
+    include_folders_as_filenames = True
     def __init__(self):
         super(SiteMap, self).__init__()
         self._nodes = []
@@ -891,7 +892,8 @@ class SiteMap(collections.OrderedDict):
             rule = rule + (self.foldername,)
         if filenames is None:
             filenames = []
-        filenames += [v.foldername for k, v in self.items()]
+        if self.include_folders_as_filenames:
+            filenames += [v.foldername for k, v in self.items()]
         if depth != 0:
             depth -= 1
             for folder, smap in self.items():
