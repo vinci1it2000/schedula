@@ -180,7 +180,6 @@ class TestSubDispatchPipe(unittest.TestCase):
                            outputs={'c': 'd'})
         self.dsp_4 = dsp
 
-
     def test_sub_dispatch_function(self):
 
         fun = SubDispatchPipe(self.dsp_1, 'F', ['a', 'b'], ['a'])
