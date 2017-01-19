@@ -10,7 +10,7 @@ extensions = [
     'sphinx.ext.doctest',
     'sphinx.ext.mathjax',
     'schedula.ext.autosummary',
-    'schedula.ext.dsp_directive'
+    'schedula.ext.dispatcher'
 ]
 
 templates_path = ['_templates']

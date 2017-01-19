@@ -1,6 +1,6 @@
 import unittest
 from schedula import Dispatcher
-from schedula.ext.dsp_directive import DispatcherDirective, PLOT
+from schedula.ext.dispatcher import DispatcherDirective, PLOT
 from docutils.statemachine import ViewList
 
 try:
