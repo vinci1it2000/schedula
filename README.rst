@@ -230,11 +230,11 @@ parallel.
     :scale: 100%
     :target: https://readthedocs.org/builds/schedula/
 
-.. |pypi-ver| image::  https://img.shields.io/pypi/v/schedula.svg
+.. |pypi-ver| image::  https://img.shields.io/pypi/v/schedula.svg?
     :target: https://pypi.python.org/pypi/schedula/
     :alt: Latest Version in PyPI
 
-.. |python-ver| image:: https://img.shields.io/pypi/pyversions/schedula.svg
+.. |python-ver| image:: https://img.shields.io/pypi/pyversions/schedula.svg?
     :target: https://pypi.python.org/pypi/schedula/
     :alt: Supported Python versions
 
@@ -242,14 +242,14 @@ parallel.
     :target: https://pypi.python.org/pypi/schedula/
     :alt: Downloads
 
-.. |github-issues| image:: https://img.shields.io/github/issues/vinci1it2000/schedula.svg
+.. |github-issues| image:: https://img.shields.io/github/issues/vinci1it2000/schedula.svg?
     :target: https://github.com/vinci1it2000/schedula/issues
     :alt: Issues count
 
-.. |proj-license| image:: https://img.shields.io/badge/license-EUPL%201.1%2B-blue.svg
+.. |proj-license| image:: https://img.shields.io/badge/license-EUPL%201.1%2B-blue.svg?
     :target: https://raw.githubusercontent.com/vinci1it2000/schedula/master/LICENSE.txt
     :alt: Project License
 
-.. |dependencies| image:: https://img.shields.io/requires/github/vinci1it2000/schedula.svg
+.. |dependencies| image:: https://img.shields.io/requires/github/vinci1it2000/schedula.svg?
     :target: https://requires.io/github/vinci1it2000/schedula/requirements/?branch=master
     :alt: Dependencies up-to-date?
