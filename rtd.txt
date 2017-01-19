@@ -1,0 +1,5 @@
+networkx
+graphviz
+sphinx==1.4.8
+regex
+git+https://github.com/vinci1it2000/pycel.git
