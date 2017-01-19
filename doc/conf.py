@@ -45,7 +45,7 @@ extensions = [
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
     'schedula.ext.autosummary',
-    'schedula.ext.dsp_directive',
+    'schedula.ext.dispatcher',
 ]
 
 autosummary_generate = True
