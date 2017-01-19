@@ -41,7 +41,7 @@ To install it use (with root privileges):
 
 .. code-block:: console
 
-    $ pip install schedula
+    $ pip install schedula --process-dependency-links
 
 Or download the last git version and use (with root privileges):
 
