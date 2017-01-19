@@ -227,9 +227,10 @@ class _Graphviz(Graphviz):
     img_opt = {
         'height': directives.length_or_unitless,
         'width': directives.length_or_percentage_or_unitless,
+
     }
-    option_spec = Graphviz.option_spec.copy()
-    option_spec.update(img_opt)
+    option_spec = {'graphviz_dot': directives.unchanged}  # sphinx==1.3.5
+    dsp_utl.combine_dicts(img_opt, Graphviz.option_spec, base=option_spec)
 
     def run(self):
         node = super(_Graphviz, self).run()[0]
