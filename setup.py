@@ -8,6 +8,7 @@
 
 from setuptools import setup, find_packages
 import io
+import re
 import os.path as osp
 
 name = 'schedula'
@@ -23,9 +24,83 @@ def read_project_version():
         exec(fd.read(), fglobals)  # To read __version__
     return fglobals['__version__']
 
+
+def read_text_lines(fname):
+    with io.open(osp.join(mydir, fname)) as fd:
+        return fd.readlines()
+
+
+def yield_rst_only_markup(lines):
+    """
+    :param file_inp:     a `filename` or ``sys.stdin``?
+    :param file_out:     a `filename` or ``sys.stdout`?`
+
+    """
+    substs = [
+        # Selected Sphinx-only Roles.
+        #
+        (r':abbr:`([^`]+)`', r'\1'),
+        (r':ref:`([^`]+)`', r'ref: *\1*'),
+        (r':term:`([^`]+)`', r'**\1**'),
+        (r':dfn:`([^`]+)`', r'**\1**'),
+        (r':(samp|guilabel|menuselection|doc|file):`([^`]+)`',
+                                    r'``\2``'),
+
+        # Sphinx-only roles:
+        #        :foo:`bar`   --> foo(``bar``)
+        #        :a:foo:`bar` XXX afoo(``bar``)
+        #
+        #(r'(:(\w+))?:(\w+):`([^`]*)`', r'\2\3(``\4``)'),
+        #(r':(\w+):`([^`]*)`', r'\1(`\2`)'),
+        # emphasis
+        # literal
+        # code
+        # math
+        # pep-reference
+        # rfc-reference
+        # strong
+        # subscript, sub
+        # superscript, sup
+        # title-reference
+
+
+        # Sphinx-only Directives.
+        #
+        (r'\.\. doctest', r'code-block'),
+        (r'\.\. plot::', r'.. '),
+        (r'\.\. seealso', r'info'),
+        (r'\.\. glossary', r'rubric'),
+        (r'\.\. figure::', r'.. '),
+        (r'\.\. image::', r'.. '),
+
+
+        # Other
+        #
+        (r'\|version\|', r'x.x.x'),
+        (r'\.\. include:: AUTHORS', r'see: AUTHORS'),
+    ]
+
+    regex_subs = [(re.compile(r, re.IGNORECASE), sub) for (r, sub) in substs]
+
+    def clean_line(line):
+        try:
+            for (r, sub) in regex_subs:
+                line = r.sub(sub, line)
+        except Exception as ex:
+            print("ERROR: %s, (line(%s)" % (r, sub))
+            raise ex
+
+        return line
+
+    for line in lines:
+        yield clean_line(line)
+
+
 proj_ver = read_project_version()
 url = 'https://github.com/vinci1it2000/%s' % name
 download_url = '%s/tarball/v%s' % (url, proj_ver)
+readme_lines = read_text_lines('README.rst')
+long_desc = ''.join(yield_rst_only_markup(readme_lines))
 
 setup(
     name=name,
@@ -40,7 +115,8 @@ setup(
     license='EUPL 1.1+',
     author='Vincenzo Arcidiacono',
     author_email='vinci1it2000@gmail.com',
-    description='A dispatch function calls.',
+    description='Procude a plan that dispatches calls based on a graph of functions, satisfying data dependencies.',
+    long_description=long_desc,
     keywords=[
         "python", "utility", "library", "data", "processing",
         "calculation", "dependencies", "resolution", "scientific",
