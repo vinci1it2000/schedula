@@ -219,8 +219,8 @@ def _dsp2dot_option(arg):
 # ------------------------------------------------------------------------------
 
 
-class img(nodes.General, nodes.Element):
-    pass
+class _img(nodes.General, nodes.Element):
+    tagname = '_img'
 
 
 class _Graphviz(Graphviz):
@@ -270,7 +270,7 @@ def render_dot_html(self, node, code, options, prefix='dispatcher',
         if alt is None:
             alt = node.get('alt', self.encode(code).strip())
 
-        n = img('', src=fname, alt=alt, **node['img_opt'])
+        n = _img('', src=fname, alt=alt, **node['img_opt'])
         e = []
         if format != 'svg':
             if imgcls:
