@@ -232,7 +232,7 @@ def _dsp2dot_option(arg):
 
 
 class _img(nodes.General, nodes.Element):
-    tagname = '_img'
+    tagname = 'img'
 
 
 class _Graphviz(Graphviz):
