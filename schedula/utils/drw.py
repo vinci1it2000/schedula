@@ -796,12 +796,15 @@ def before_request():
 
 
 class Site:
-    def __init__(self, sitemap, host='localhost', port=0, **kwargs):
+    def __init__(self, sitemap, host='localhost', port=0, delay=0.1, until=30,
+                 **kwargs):
         self.sitemap = sitemap
         self.kwargs = kwargs
         self.host = host
         self.port = port
         self.shutdown = lambda: False
+        self.delay = delay
+        self.until = until
 
     def __repr__(self):
         s = "%s(%s, " % (self.__class__.__name__, self.sitemap)
@@ -834,8 +837,8 @@ class Site:
     @staticmethod
     def shutdown_site(url):
         import requests
-        requests.delete('%s/cleanup' % url)
         try:
+            requests.delete('%s/cleanup' % url)
             requests.delete('%s/shutdown' % url)
         except requests.exceptions.ConnectionError:
             return False
@@ -849,7 +852,22 @@ class Site:
             args=(self.app(), self.get_port(**options))
         ).start()
         self.shutdown = weakref.finalize(self, self.shutdown_site, self.url)
+        self.wait_server()
         return self
+
+    def wait_server(self, elapsed=0):
+        if elapsed > self.until:
+            msg = 'After %.3fs the server %s is down!' % (elapsed, self.url)
+            raise ConnectionRefusedError(msg)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            sock.connect((self.host, self.port))  # tries to connect to the host
+            sock.close()  # closes socket
+            log.debug('After %.3fs the server %s is up!', elapsed, self.url)
+        except ConnectionRefusedError:  # if failed to connect
+            import time
+            time.sleep(self.delay)
+            self.wait_server(elapsed + self.delay)
 
 class SiteMap(collections.OrderedDict):
     site_folder = SiteFolder
