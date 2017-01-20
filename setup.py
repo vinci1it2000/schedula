@@ -39,7 +39,7 @@ def get_long_description(cleanup=True):
                      'exclude_patterns': exclude_patterns,
                      'master_doc': 'README',
                      'dispatchers_out_dir': abspath(outdir + '/_dispatchers'),
-                 })
+                 }, status=None, warning=None)
     app.build(filenames=[osp.join(app.srcdir, 'README.rst')])
     res = open(outdir + '/README.txt').read()
     if cleanup:
