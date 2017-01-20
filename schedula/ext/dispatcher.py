@@ -138,8 +138,10 @@ def _plot(lines, dsp, dot_view_opt, documenter):
 
     fname = 'dispatcher-%s' % sha1(hashkey.encode('utf-8')).hexdigest()
     env = documenter.env
-
-    dspdir = osp.join(env.srcdir, env.config.dispatchers_out_dir)
+    if osp.isabs(env.config.dispatchers_out_dir):
+        dspdir = env.config.dispatchers_out_dir
+    else:
+        dspdir = osp.join(env.srcdir, env.config.dispatchers_out_dir)
     fpath = '%s.gv' % osp.join(dspdir, fname)
     if not osp.isfile(fpath):
         smap = dsp.plot(**dot_view_opt)
