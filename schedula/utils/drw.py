@@ -867,6 +867,7 @@ class Site:
         except ConnectionRefusedError:  # if failed to connect
             import time
             time.sleep(self.delay)
+            sock.close()  # closes socket
             self.wait_server(elapsed + self.delay)
 
 class SiteMap(collections.OrderedDict):
