@@ -252,7 +252,10 @@ class _Graphviz(Graphviz):
                                            allow_miss=True)
         if self.arguments:
             env = self.state.document.settings.env
-            argument = search_image_for_language(self.arguments[0], env)
+            try:
+                argument = search_image_for_language(self.arguments[0], env)
+            except NameError:  # spinx==1.3.5
+                argument = self.arguments[0]
             dirpath = osp.splitext(env.relfn2path(argument)[1])[0]
             node['dirpath'] = dirpath if osp.isdir(dirpath) else None
         else:
