@@ -11,3 +11,4 @@ git+https://github.com/vinci1it2000/pycel.git
 numpy
 requests
 sphinx_rtd_theme
+sphinxcontrib-restbuilder

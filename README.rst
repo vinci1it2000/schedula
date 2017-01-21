@@ -16,7 +16,7 @@ schedula: An intelligent function scheduler
 :developers:    .. include:: AUTHORS.rst
 :license:       `EUPL 1.1+ <https://joinup.ec.europa.eu/software/page/eupl>`_
 
-
+.. _start-pypi:
 What is schedula?
 =================
 Schedula implements a intelligent function scheduler, which selects and
