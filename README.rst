@@ -4,7 +4,7 @@ schedula: An intelligent function scheduler
 |pypi_ver| |travis_status| |appveyor_status| |cover_status| |docs_status|
 |dependencies| |downloads_count| |github_issues| |python_ver| |proj_license|
 
-:release:       0.1.1
+:release:       0.1.1.dev1
 :date:          2017-01-21 03:00:00
 :repository:    https://github.com/vinci1it2000/schedula
 :pypi-repo:     https://pypi.org/project/schedula/
@@ -26,13 +26,13 @@ and the requested outputs. A function is executed when all its dependencies
 has to be calculated.
 
 .. note::
-   Schedula is performing the runtime selection of the minimum-workflow
-   to be invoked. A workflow describes the overall process - i.e., the order of
+   Schedula is performing the runtime selection of the **minimum-workflow** to
+   be invoked. A workflow describes the overall process - i.e., the order of
    function execution - and it is defined by a directed acyclic graph (DAG).
-   The minimum-workflow is the DAG where each output is calculated
-   using the shortest path from the provided inputs. The path is calculated on
-   the basis of a weighed directed graph (data-flow diagram) with a modified
-   Dijkstra algorithm.
+   The **minimum-workflow** is the DAG where each output is calculated using the
+   shortest path from the provided inputs. The path is calculated on the basis
+   of a weighed directed graph (data-flow diagram) with a modified Dijkstra
+   algorithm.
 
 
 Installation
