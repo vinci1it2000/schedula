@@ -1,3 +1,5 @@
+.. _start-quick:
+
 ###########################################
 schedula: An intelligent function scheduler
 ###########################################
@@ -17,6 +19,8 @@ schedula: An intelligent function scheduler
 :license:       `EUPL 1.1+ <https://joinup.ec.europa.eu/software/page/eupl>`_
 
 .. _start-pypi:
+.. _start-intro:
+
 What is schedula?
 =================
 Schedula implements a intelligent function scheduler, which selects and
@@ -49,6 +53,7 @@ Or download the last git version and use (with root privileges):
 
     $ python setup.py install
 
+.. _end-quick:
 
 Why may I use schedula?
 =======================
@@ -137,6 +142,7 @@ outputs:
     >>> o
     Solution([('path', 'schedula/_version.py'), ('basename', '_version.py')])
 
+.. _end-pypi:
 
 Advanced example (circular system)
 ==================================
@@ -212,6 +218,8 @@ Next moves
 Things yet to do include a mechanism to allow the execution of functions in
 parallel.
 
+.. _end-intro:
+.. _start-badges:
 .. |travis_status| image:: https://travis-ci.org/vinci1it2000/schedula.svg?branch=master
     :alt: Travis build status
     :scale: 100%
@@ -254,3 +262,4 @@ parallel.
 .. |dependencies| image:: https://img.shields.io/requires/github/vinci1it2000/schedula.svg?
     :target: https://requires.io/github/vinci1it2000/schedula/requirements/?branch=master
     :alt: Dependencies up-to-date?
+.. _end-badges:
