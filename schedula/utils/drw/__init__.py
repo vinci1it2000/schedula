@@ -34,10 +34,10 @@ import weakref
 import regex
 import collections
 from docutils import nodes
-from .cst import START, SINK, END, EMPTY, SELF, NONE, PLOT
-from .dsp import SubDispatch, combine_dicts, map_dict, combine_nested_dicts, \
+from schedula.utils.cst import START, SINK, END, EMPTY, SELF, NONE, PLOT
+from schedula.utils.dsp import SubDispatch, combine_dicts, map_dict, combine_nested_dicts, \
     selector, stlp, parent_func
-from .gen import counter
+from schedula.utils.gen import counter
 
 
 __author__ = 'Vincenzo Arcidiacono'
