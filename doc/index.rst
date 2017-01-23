@@ -4,6 +4,12 @@
    contain the root `toctree` directive.
 
 .. include:: ../README.rst
+    :start-after: .. _start-quick:
+    :end-before: .. _end-quick:
+
+.. include:: ../README.rst
+    :start-after: .. _start-badges:
+    :end-before: .. _end-badges:
 
 .. toctree::
     :maxdepth: 4
@@ -11,6 +17,7 @@
     :caption: Table of Contents
     :name: mastertoc
 
+    doc
     api
 
 Indices and tables

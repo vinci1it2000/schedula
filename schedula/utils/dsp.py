@@ -1077,9 +1077,10 @@ class DFun(object):
          function; in any case wrap the result in a tuple (if not already a
          list-type).
 
-         .. note:: Inspection works only for regular args, no ``*args, **kwds``
-         supported, and they will fail late, on :meth:`addme()`, if no `input`
-         or `inp` defined.
+         .. note::
+            Inspection works only for regular args, no ``*args, **kwds``
+            supported, and they will fail late, on :meth:`addme()`, if no
+            `input` or `inp` defined.
 
     **Example**:
 
@@ -1102,6 +1103,7 @@ class DFun(object):
         >>> from schedula import Dispatcher
         >>> dsp = Dispatcher()
         >>> DFun.add_dfuns(dfuns, dsp)
+
     """
 
     def __init__(self, out, fun, inputs=None, **kwds):
