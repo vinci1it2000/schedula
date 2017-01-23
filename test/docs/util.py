@@ -13,12 +13,11 @@ from six import StringIO
 from sphinx import application
 from schedula.ext.dispatcher import DispatcherDirective
 from os.path import abspath, join, exists, isdir
+import shutil
 
 __all__ = ['Struct', 'ListOutput', 'TestApp']
 
 rootdir = abspath(os.path.dirname(__file__) or '.')
-
-import shutil
 
 
 # find a temp dir for testing and clean it up now
@@ -113,4 +112,5 @@ class TestApp(application.Sphinx):
         sys.modules.pop('autodoc_fodder', None)
 
     def __repr__(self):
-        return '<%s buildername=%r>' % (self.__class__.__name__, self.builder.name)
+        return '<%s buildername=%r>' % (self.__class__.__name__,
+                                        self.builder.name)

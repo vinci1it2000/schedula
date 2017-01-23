@@ -23,7 +23,7 @@ import html
 import logging
 import functools
 import itertools
-import re
+import regex
 import socket
 import datetime
 import os
@@ -31,13 +31,12 @@ import jinja2
 import glob
 import shutil
 import weakref
-import regex
 import collections
-from docutils import nodes
-from schedula.utils.cst import START, SINK, END, EMPTY, SELF, NONE, PLOT
-from schedula.utils.dsp import SubDispatch, combine_dicts, map_dict, combine_nested_dicts, \
+from docutils import nodes as _nodes
+from ..cst import START, SINK, END, EMPTY, SELF, NONE, PLOT
+from ..dsp import SubDispatch, combine_dicts, map_dict, combine_nested_dicts, \
     selector, stlp, parent_func
-from schedula.utils.gen import counter
+from ..gen import counter
 
 
 __author__ = 'Vincenzo Arcidiacono'
@@ -97,11 +96,12 @@ def autoplot_callback(value):
     value()
 
 
-class _Table(nodes.General, nodes.Element):
+class _Table(_nodes.General, _nodes.Element):
     tagname = 'TABLE'
 
     def adds(self, *items):
         for item in items:
+            # noinspection PyMethodFirstArgAssignment
             self += item
         return self
 
@@ -110,15 +110,17 @@ class _Tr(_Table):
     tagname = 'TR'
 
     def add(self, text, **attributes):
+        # noinspection PyMethodFirstArgAssignment
         self += _Td(**attributes).add(text)
         return self
 
 
-class _Td(nodes.General, nodes.Element):
+class _Td(_nodes.General, _nodes.Element):
     tagname = 'TD'
 
     def add(self, text):
-        self += nodes.Text(html.escape(text).replace('\n', '<BR/>'))
+        # noinspection PyMethodFirstArgAssignment
+        self += _nodes.Text(html.escape(text).replace('\n', '<BR/>'))
         return self
 
 
@@ -127,12 +129,12 @@ def jinja2_format(source, context=None, **kw):
 
 
 def valid_filename(item, filenames, ext=None):
-    ext = ext or item.ext
-    _ = '%s' + ('.{}'.format(ext) if ext != '' else '')
     if isinstance(item, str):
         _filename = item
     else:
         _filename = item._filename
+        ext = ext or item.ext
+    _ = '%s' + ('.{}'.format(ext) if ext != '' else '')
 
     filename, c = _ % _filename, counter()
     while filename in filenames:
@@ -287,13 +289,13 @@ class FolderNode(object):
     edge_data = ('?', 'inp_id', 'out_id', 'weight')
 
     node_map = {
-        '-': (), # Add title.
-        '?': (), # Optional title.
-        '': ('dot', 'table'), # item in the table.
-        '+': ('dot', 'table'), # link.
-        '!': ('dot', 'table'), # if str is big add a link, otherwise table.
-        '.': ('dot',),  # dot attr
-        '*': ('link',) # title link
+        '-': (),  # Add title.
+        '?': (),  # Optional title.
+        '': ('dot', 'table'),  # item in the table.
+        '+': ('dot', 'table'),  # link.
+        '!': ('dot', 'table'),  # if str is big add a link, otherwise table.
+        '.': ('dot',),  # dot attr.
+        '*': ('link',)  # title link.
     }
     re_node = regex.compile(r"^([.*+!]?)(\w+)(?>\|(\w+))?$")
     max_lines = 5
@@ -320,7 +322,7 @@ class FolderNode(object):
     def __repr__(self):
         return self.title
 
-    def yield_attr(self, name, *args, **kwargs):
+    def yield_attr(self, name):
         try:
             yield name, self.attr[name]
         except KeyError:
@@ -336,12 +338,12 @@ class FolderNode(object):
         for k, func in self.render_funcs():
             if k and k in '*+':
                 yield from func()
-            elif k =='!':
+            elif k == '!':
                 yield from ((i, j) for i, j in func() if not check(j))
 
     def _tooltip(self):
         try:
-            from .des import search_node_description
+            from ..des import search_node_description
             tooltip = search_node_description(
                 self.node_id, self.attr, self.folder.dsp
             )[0]
@@ -382,15 +384,15 @@ class FolderNode(object):
                 n = n[0]
 
             n = 'parent_ref("({})", attr)'.format(n)
-            yield 'remote %s %d' % (tag, i), '{{%s}}' %  n
+            yield 'remote %s %d' % (tag, i), '{{%s}}' % n
 
     def _output(self):
         if self.node_id not in (START, SINK, SELF, END):
             try:
                 out = self.folder.item[self.node_id]
                 yield 'output', out
-            except (KeyError, TypeError): # Output not in solution or item is not a solution.
-                pass
+            except (KeyError, TypeError):
+                pass  # Output not in solution or item is not a solution.
 
     def _distance(self):
         try:
@@ -463,7 +465,7 @@ class FolderNode(object):
         r, s, match = {}, '_%s', self.re_node.match
         workflow = self.folder.workflow
         for f in funcs:
-            if f == '-' or f =='?':
+            if f == '-' or f == '?':
                 yield f, lambda *args: self.title
             else:
                 k, v, v1 = match(f).groups()
@@ -593,7 +595,7 @@ class SiteFolder(object):
     @property
     def inputs(self):
         try:
-            from .sol import Solution
+            from ..sol import Solution
             if isinstance(self.item, Solution):
                 return self.item.dsp.inputs or ()
             return self.item.inputs or ()
@@ -633,8 +635,8 @@ class SiteFolder(object):
             errors = {}
 
         def nodes_filter(x):
-            k, v = x
-            return k in nodes and (k is not SINK or not is_isolate(graph, SINK))
+            i, v = x
+            return i in nodes and (i is not SINK or not is_isolate(graph, SINK))
 
         it = dict(filter(nodes_filter, graph.node.items()))
         if not nodes or not (graph.edge or self.inputs or self.outputs):
@@ -705,7 +707,7 @@ class SiteFolder(object):
 
 
 class SiteIndex(SiteNode):
-    ext='html'
+    ext = 'html'
 
     def __init__(self, sitemap, node_id='index'):
         super(SiteIndex, self).__init__(None, node_id, self, None)
@@ -721,7 +723,7 @@ class SiteIndex(SiteNode):
         import pkg_resources
         pkg_dir = pkg_resources.resource_filename(__name__, '')
         fpath = osp.join(pkg_dir, 'templates', self.filename)
-        with open(fpath, 'r') as myfile:
+        with open(fpath) as myfile:
             return jinja2_format(myfile.read(), {'sitemap': self.sitemap,
                                                  'context': context},
                                  loader=jinja2.PackageLoader(__name__))
@@ -870,6 +872,7 @@ class Site:
             sock.close()  # closes socket
             self.wait_server(elapsed + self.delay)
 
+
 class SiteMap(collections.OrderedDict):
     site_folder = SiteFolder
     site_node = SiteNode
@@ -880,6 +883,7 @@ class SiteMap(collections.OrderedDict):
         'max_lines', 'max_width'
     }
     include_folders_as_filenames = True
+
     def __init__(self):
         super(SiteMap, self).__init__()
         self._nodes = []
@@ -915,7 +919,7 @@ class SiteMap(collections.OrderedDict):
 
     def _rules(self, depth=-1, rule=(), filenames=None):
         if self.foldername:
-            rule = rule + (self.foldername,)
+            rule += self.foldername,
         if filenames is None:
             filenames = []
         if self.include_folders_as_filenames:
@@ -972,8 +976,8 @@ class SiteMap(collections.OrderedDict):
 
     @staticmethod
     def get_dsp_from(item):
-        from .sol import Solution
-        from .. import Dispatcher
+        from ..sol import Solution
+        from ... import Dispatcher
         if isinstance(item, (Solution, SubDispatch)):
             return item.dsp
         elif isinstance(item, Dispatcher):
@@ -982,8 +986,8 @@ class SiteMap(collections.OrderedDict):
 
     @staticmethod
     def get_sol_from(item):
-        from .sol import Solution
-        from .. import Dispatcher
+        from ..sol import Solution
+        from ... import Dispatcher
         if isinstance(item, (Dispatcher, SubDispatch)):
             return item.solution
         elif isinstance(item, Solution):

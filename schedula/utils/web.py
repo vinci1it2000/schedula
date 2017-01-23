@@ -10,13 +10,13 @@
 It provides functions to build a flask app from a dispatcher.
 """
 
-__author__ = 'Vincenzo Arcidiacono'
-
 import functools
 import logging
 import tempfile
 import os.path as osp
 from .drw import SiteMap, SiteFolder, FolderNode, SiteNode, basic_app
+
+__author__ = 'Vincenzo Arcidiacono'
 
 
 log = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ log = logging.getLogger(__name__)
 
 class FolderNodeWeb(FolderNode):
     node_data = ()  # ('+set_value',)
-    node_function = ('+function',) # ('+input_domain',)
+    node_function = ('+function',)  # ('+input_domain',)
     edge_data = ()
 
     def _set_value(self):
@@ -70,7 +70,9 @@ class WebMap(SiteMap):
             app.add_url_rule('/%s' % filepath, filepath, func, methods=['POST'])
 
         if context:
-            app.add_url_rule('/', next(iter(context.values())), methods=['POST'])
+            app.add_url_rule(
+                '/', next(iter(context.values())), methods=['POST']
+            )
 
         return app
 

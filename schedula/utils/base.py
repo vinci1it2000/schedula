@@ -25,6 +25,7 @@ class Base(object):
         cls = self.__class__
         memo[id(self)] = result = cls.__new__(cls)
         for k, v in self.__dict__.items():
+            # noinspection PyArgumentList
             setattr(result, k, copy.deepcopy(v, memo))
         return result
 
@@ -32,6 +33,10 @@ class Base(object):
             sites=None, run=True):
         """
         Creates a dispatcher Flask app.
+
+        :param depth:
+            Depth of sub-dispatch plots. If negative all levels are plotted.
+        :type depth: int, optional
 
         :param node_data:
             Data node attributes to view.
@@ -41,13 +46,22 @@ class Base(object):
             Function node attributes to view.
         :type node_function: tuple[str], optional
 
-        :param depth:
-            Depth of sub-dispatch plots. If negative all levels are plotted.
-        :type depth: int, optional
+        :param directory:
+            Where is the generated Flask app root located?
+        :type directory: str, optional
+
+        :param sites:
+            A set of :func:`~schedula.utils.drw.Site` to maintain alive the
+            backend server.
+        :type sites: set[~schedula.utils.drw.Site], optional
+
+        :param run:
+            Run the backend server?
+        :type run: bool, optional
 
         :return:
             A WebMap.
-        :rtype: schedula.utils.web.WebMap
+        :rtype: ~schedula.utils.web.WebMap
 
         Example:
 
@@ -173,6 +187,31 @@ class Base(object):
         :param body:
             Dict of (attribute, value) pairs to add to the graph body.
         :type body: dict, optional
+
+        :param directory:
+            Where is the generated Flask app root located?
+        :type directory: str, optional
+
+        :param sites:
+            A set of :func:`~schedula.utils.drw.Site` to maintain alive the
+            backend server.
+        :type sites: set[~schedula.utils.drw.Site], optional
+
+        :param index:
+            Add the site index as first page?
+        :type index: bool, optional
+
+        :param max_lines:
+            Maximum number of lines for rendering node attributes.
+        :type max_lines: int, optional
+
+        :param max_width:
+            Maximum number of characters in a line to render node attributes.
+        :type max_width: int, optional
+
+        :param view:
+            Open the main page of the site?
+        :type view: bool, optional
 
         :return:
             A SiteMap.

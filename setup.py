@@ -14,8 +14,10 @@ import os.path as osp
 name = 'schedula'
 mydir = osp.dirname(__file__)
 
+
 # Version-trick to have version-info in a single place,
-# taken from: http://stackoverflow.com/questions/2058802/how-can-i-get-the-version-defined-in-setup-py-setuptools-in-my-package
+# taken from: http://stackoverflow.com/questions/2058802/how-can-i-get-the-
+# version-defined-in-setup-py-setuptools-in-my-package
 ##
 def read_project_version():
     fglobals = {}
@@ -26,13 +28,14 @@ def read_project_version():
 
 
 def get_long_description(cleanup=True):
+    # noinspection PyBroadException
     try:
         from sphinx.application import Sphinx
         from sphinx.util.osutil import abspath
         import tempfile
         import shutil
         from sphinxcontrib.writers.rst import RstTranslator
-    except ImportError:
+    except:
         return ''
     outdir = tempfile.mkdtemp(prefix='setup-', dir='.')
     exclude_patterns = os.listdir(mydir or '.')
@@ -88,7 +91,8 @@ setup(
         'Natural Language :: English',
         "Intended Audience :: Developers",
         "Intended Audience :: Science/Research",
-        "License :: OSI Approved :: European Union Public Licence 1.1 (EUPL 1.1)",
+        "License :: OSI Approved :: European Union Public Licence 1.1 "
+        "(EUPL 1.1)",
         "Operating System :: MacOS :: MacOS X",
         "Operating System :: Microsoft :: Windows",
         "Operating System :: POSIX",
@@ -107,7 +111,10 @@ setup(
         'regex',
         'openpyxl>=2.4.0',
         'flask',
-        'pycel'
+        'pycel',
+        'sphinx',
+        'decorator',
+        'requests'
     ],
     dependency_links=[
         'https://github.com/vinci1it2000/pycel/tarball/master#egg=pycel-0.0.1'

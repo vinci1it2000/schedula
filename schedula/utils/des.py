@@ -10,12 +10,11 @@
 It provides tools to find data, function, and sub-dispatcher node description.
 """
 
-__author__ = 'Vincenzo Arcidiacono'
-
 import re
 import logging
 from .dsp import SubDispatch, SubDispatchFunction, bypass, replicate_value, \
     parent_func
+__author__ = 'Vincenzo Arcidiacono'
 
 
 log = logging.getLogger(__name__)

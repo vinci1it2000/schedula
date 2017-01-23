@@ -18,34 +18,34 @@ def setup_test(**kw):
     global options, directive, _warnings, app
     _warnings = []
     options = Struct(
-        des = True,
-        opt = PLOT,
-        data = True,
-        func = True,
-        code = True,
-        dsp = True,
-        inherited_members = False,
-        undoc_members = False,
-        private_members = False,
-        special_members = False,
-        imported_members = False,
-        show_inheritance = False,
-        noindex = False,
-        annotation = None,
-        synopsis = '',
-        platform = '',
-        deprecated = False,
-        members = [],
-        member_order = 'alphabetic',
-        exclude_members = set(),
+        des=True,
+        opt=PLOT,
+        data=True,
+        func=True,
+        code=True,
+        dsp=True,
+        inherited_members=False,
+        undoc_members=False,
+        private_members=False,
+        special_members=False,
+        imported_members=False,
+        show_inheritance=False,
+        noindex=False,
+        annotation=None,
+        synopsis='',
+        platform='',
+        deprecated=False,
+        members=[],
+        member_order='alphabetic',
+        exclude_members=set(),
     )
 
     directive = Struct(
-        env = app.builder.env,
-        genopt = options,
-        result = ViewList(),
-        warn = warnfunc,
-        filename_set = set(),
+        env=app.builder.env,
+        genopt=options,
+        result=ViewList(),
+        warn=warnfunc,
+        filename_set=set(),
         **kw
     )
 
@@ -62,7 +62,7 @@ def assert_equal_items(test, items):
         item = items.pop()
         v = next(it)
         test.assertEqual(item, v, 'item %r not found in result or not in'
-                                         ' the correct order' % item)
+                                  ' the correct order' % item)
     del directive.result[:]
 
 
@@ -98,6 +98,7 @@ class TestDispatcherDirective(unittest.TestCase):
 
     def test_get_doc(self):
         setup_test()
+
         def getdocl(objtype, obj, name, encoding=None):
             global directive
             inst = DispatcherDirective._registry[objtype](directive, 'tmp')
@@ -105,7 +106,7 @@ class TestDispatcherDirective(unittest.TestCase):
             inst.objpath = [name]
             inst.object = obj
             ds = inst.get_doc(encoding)
-            # for testing purposes, concat them and strip the empty line at the end
+            # for testing, concat them and strip the empty line at the end.
             res = sum(ds, [])[:-1]
             return res
 
@@ -123,6 +124,7 @@ class TestDispatcherDirective(unittest.TestCase):
 
     def test_docstring_property_processing(self):
         setup_test()
+
         def genarate_docstring(objtype, name, **kw):
             global directive
             inst = DispatcherDirective._registry[objtype](directive, name)
@@ -155,23 +157,23 @@ class TestDispatcherDirective(unittest.TestCase):
             assert len(_warnings) == 0, _warnings
             assert_equal_items(self, items)
 
-        res= ['', '',
-              '    >>> from schedula import Dispatcher',
-              "    >>> s = Dispatcher(name='Dispatcher')",
-              "    >>> f = s.add_function('fun', lambda x: 0, ['a'], ['b'])",
-              '   ', '   ', '   ',
-              '   .. graphviz:: _build/_dispatchers/dispatcher-e6fae1119c5ef15c4426de01b7ad758f98e88d54.gv',
-              '      :graphviz_dot: dot',
-              '   ',
-              "   .. csv-table:: **Dispatcher's data**",
-              '   ',
-              '      ":obj:`a <>`", ""',
-              '      ":obj:`b <>`", ""',
-              '   ',
-              "   .. csv-table:: **Dispatcher's functions**",
-              '   ',
-              '      ":func:`fun <None.<lambda>>`", ""',
-              '   ']
+        res = ['', '',
+               '    >>> from schedula import Dispatcher',
+               "    >>> s = Dispatcher(name='Dispatcher')",
+               "    >>> f = s.add_function('fun', lambda x: 0, ['a'], ['b'])",
+               '   ', '   ', '   ',
+               '   .. graphviz:: _build/_dispatchers/dispatcher-e6fae1119c5ef15c4426de01b7ad758f98e88d54.gv',
+               '      :graphviz_dot: dot',
+               '   ',
+               "   .. csv-table:: **Dispatcher's data**",
+               '   ',
+               '      ":obj:`a <>`", ""',
+               '      ":obj:`b <>`", ""',
+               '   ',
+               "   .. csv-table:: **Dispatcher's functions**",
+               '   ',
+               '      ":func:`fun <None.<lambda>>`", ""',
+               '   ']
         assert_result(self, res, 'dispatcher', 's')
 
     def test_generate(self):
@@ -270,6 +272,7 @@ def fun2(e, my_args, *args):
     """
     return
 
+
 #: Docstring 1
 #:
 #: good
@@ -278,7 +281,6 @@ dsp.add_data(data_id='a', description='Description of a\n\nerror')
 dsp.add_function(function_id='fun1', description='Fun1\n\nerror')
 dsp.add_function('fun2', fun2, ['b', 'e', 'd'], ['c'])
 dsp.add_function('fun3', fun2, description='Fun3\n\nerror')
-
 
 dsp_1 = dsp
 

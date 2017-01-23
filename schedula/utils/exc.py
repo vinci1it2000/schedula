@@ -14,11 +14,14 @@ __author__ = 'Vincenzo Arcidiacono'
 class DispatcherError(ValueError):
     def __init__(self, sol, *args, **kwargs):
         super(DispatcherError, self).__init__(*args, **kwargs)
+        self.plot = None
+        self.sol = None
         self.update(sol)
 
     def update(self, sol):
         self.sol = sol
         self.plot = self.sol.plot
+
 
 class DispatcherAbort(DispatcherError):
     pass

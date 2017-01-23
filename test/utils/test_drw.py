@@ -7,7 +7,6 @@
 # You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl
 
 import unittest
-import doctest
 import platform
 from schedula import Dispatcher
 from schedula.utils.dsp import SubDispatch, SubDispatchFunction, SubDispatchPipe

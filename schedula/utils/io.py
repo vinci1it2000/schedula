@@ -10,9 +10,9 @@
 It provides functions to read and save a dispatcher from/to files.
 """
 
-__author__ = 'Vincenzo Arcidiacono'
-
 import dill
+
+__author__ = 'Vincenzo Arcidiacono'
 
 
 def open_file(path_arg, mode='r'):
@@ -265,4 +265,3 @@ def load_map(dsp, path):
     """
 
     dsp.__init__(dmap=dill.load(path), default_values=dsp.default_values)
-

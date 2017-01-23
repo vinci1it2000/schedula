@@ -58,6 +58,7 @@ def _import_docstring_code_content(documenter):
     if getattr(documenter.directive, 'content', None):
         import textwrap
         content = documenter.directive.content
+
         def get_code(source, c=''):
             s = "\n%s" % c
             return textwrap.dedent(s.join(map(str, source)))
@@ -152,9 +153,9 @@ def _plot(lines, dsp, dot_view_opt, documenter):
         dot.save(fpath, '')
 
     dsource = osp.dirname(osp.join(env.srcdir, env.docname))
-    path = osp.relpath(fpath, dsource).replace('\\', '/')
+    p = osp.relpath(fpath, dsource).replace('\\', '/')
 
-    lines.extend(['.. graphviz:: %s' % path,
+    lines.extend(['.. graphviz:: %s' % p,
                   '   :graphviz_dot: %s' % dot_view_opt.get('engine', 'dot'),
                   ''])
 
@@ -185,6 +186,7 @@ def _data(lines, dsp):
 def _functions(lines, dsp, node_type='function'):
     if isinstance(dsp, dsp_utl.SubDispatch):
         dsp = dsp.dsp
+
     def check_fun(node_attr):
         if node_attr['type'] not in ('function', 'dispatcher'):
             return False

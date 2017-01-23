@@ -434,7 +434,7 @@ class TestSubDMap(unittest.TestCase):
 class TestPerformance(unittest.TestCase):
     def test_stress_tests(self):
 
-        T = np.mean(timeit.repeat(
+        t0 = np.mean(timeit.repeat(
             "dsp.dispatch({'a': 5, 'b': 6})",
             'from %s import _setup_dsp; '
             'dsp = _setup_dsp();'
@@ -443,7 +443,7 @@ class TestPerformance(unittest.TestCase):
             repeat=3, number=1000))
         msg = 'Mean performance of %s with%s functions made in %f ms/call.\n' \
               'It is %.2f%% faster than Dispatcher.dispatch with functions.\n'
-        print(msg % ('Dispatcher.dispatch', '', T, (T - T) / T * 100))
+        print(msg % ('Dispatcher.dispatch', '', t0, (t0 - t0) / t0 * 100))
 
         t = np.mean(timeit.repeat(
             "dsp.dispatch({'a': 5, 'b': 6}, no_call=True)",
@@ -452,7 +452,7 @@ class TestPerformance(unittest.TestCase):
             "[v.pop('input_domain', 0) "
             "for v in dsp.function_nodes.values()]" % __name__,
             repeat=3, number=1000))
-        print(msg % ('Dispatcher.dispatch', 'out', t, (T - t) / T * 100))
+        print(msg % ('Dispatcher.dispatch', 'out', t, (t0 - t) / t0 * 100))
 
         t = np.mean(timeit.repeat(
             "fun(5, 6)",
@@ -463,7 +463,7 @@ class TestPerformance(unittest.TestCase):
             'fun = SubDispatchFunction(dsp, "f", ["a", "b"], ["c", "d", "e"])'
             % __name__,
             repeat=3, number=1000))
-        print(msg % ('SubDispatchFunction.__call__', '', t, (T - t) / T * 100))
+        print(msg % ('SubDispatchFunction.__call__', '', t, (t0 - t) / t0 * 100))
 
         t = np.mean(timeit.repeat(
             "fun(5, 6)",
@@ -474,7 +474,7 @@ class TestPerformance(unittest.TestCase):
             'fun = SubDispatchPipe(dsp, "f", ["a", "b"], ["c", "d", "e"])'
             % __name__,
             repeat=3, number=1000))
-        print(msg % ('SubDispatchPipe.__call__', '', t, (T - t) / T * 100))
+        print(msg % ('SubDispatchPipe.__call__', '', t, (t0 - t) / t0 * 100))
 
 
 class TestDispatch(unittest.TestCase):
@@ -671,7 +671,7 @@ class TestDispatch(unittest.TestCase):
 
         o = dsp.dispatch({'a': 5, 'b': 6}, ['d'], shrink=True)
         n = {'2 / (d + 1)', 'max', 'x ^ y'}
-        r = r - n
+        r -= n
         w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
              for k in w.items() if k[0] not in n}
         self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 0})
@@ -680,7 +680,7 @@ class TestDispatch(unittest.TestCase):
 
         o = dsp.dispatch({'a': 5, 'b': 6}, ['d'], rm_unused_nds=True)
         n = {'x - 4'}
-        r = r - n
+        r -= n
         w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
              for k in w.items() if k[0] not in n}
         self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 0})
@@ -892,7 +892,7 @@ class TestDispatch(unittest.TestCase):
 
         o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2, shrink=True)
         n = {'max', 'min'}
-        r = r - n
+        r -= n
         w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
              for k in w.items() if k[0] not in n}
         self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0})
@@ -920,7 +920,7 @@ class TestDispatch(unittest.TestCase):
 
         o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2, shrink=True)
         n = {'max', 'min'}
-        r = r - n
+        r -= n
         w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
              for k in w.items() if k[0] not in n}
         self.assertEqual(o, {'a': 5, 'b': 6, 'c': 0, 'd': 1})
@@ -996,7 +996,7 @@ class TestDispatch(unittest.TestCase):
         o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2, shrink=True,
                          inputs_dist={'b': 1})
         n = {'max', 'min', 'log(b - a)'}
-        r = r - n
+        r -= n
         w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
              for k in w.items() if k[0] not in n}
         self.assertEqual(o, {'a': 5, 'b': 6})
@@ -1025,7 +1025,7 @@ class TestDispatch(unittest.TestCase):
         o = dsp.dispatch({'a': 5, 'b': 6}, cutoff=2, shrink=True,
                          inputs_dist={'b': 1})
         n = {'max', 'min', 'log(b - a)'}
-        r = r - n
+        r -= n
         w = {k[0]: dict(v for v in k[1].items() if v[0] not in n)
              for k in w.items() if k[0] not in n}
         self.assertEqual(o, {'a': 5, 'b': 6, 'd': 1})

@@ -9,7 +9,6 @@
 from __future__ import division, print_function, unicode_literals
 
 from schedula.utils.exl import extract_dsp_from_excel
-import doctest
 import unittest
 import os.path as osp
 import warnings

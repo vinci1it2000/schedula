@@ -10,9 +10,9 @@
 It provides constants data node ids and values.
 """
 
-__author__ = 'Vincenzo Arcidiacono'
-
 from .gen import Token
+
+__author__ = 'Vincenzo Arcidiacono'
 
 #: It is used set and unset empty values.
 #:

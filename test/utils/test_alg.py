@@ -8,9 +8,6 @@
 
 import doctest
 import unittest
-
-from networkx.classes.digraph import DiGraph
-
 from schedula.utils.alg import get_sub_node
 from schedula.utils.dsp import SubDispatch, SubDispatchFunction
 from schedula import Dispatcher
