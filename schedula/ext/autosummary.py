@@ -16,6 +16,27 @@ from sphinx.ext.autosummary.generate import *
 from sphinx.ext.autosummary.generate import _simple_warn, _simple_info
 
 
+def get_members(obj, typ, include_public=(), imported=False):
+    items = []
+    for name in dir(obj):
+        try:
+            obj_name = safe_getattr(obj, name)
+            documenter = get_documenter(obj_name, obj)
+        except AttributeError:
+            continue
+        if documenter.objtype == typ:
+            try:
+                cond = imported or (obj_name.__module__ == obj.__name__)
+            except AttributeError:
+                cond = True
+
+            if cond:
+                items.append(name)
+    public = [x for x in items
+              if x in include_public or not x.startswith('_')]
+    return public, items
+
+
 def generate_autosummary_docs(sources, output_dir=None, suffix='.rst',
                               warn=_simple_warn, info=_simple_info,
                               base_path=None, builder=None, template_dir=None):
@@ -90,27 +111,6 @@ def generate_autosummary_docs(sources, output_dir=None, suffix='.rst',
                                                          % doc.objtype)
                 except TemplateNotFound:
                     template = template_env.get_template('autosummary/base.rst')
-
-            def get_members(obj, typ, include_public=[], imported=False):
-                items = []
-                for name in dir(obj):
-                    try:
-                        obj_name = safe_getattr(obj, name)
-                        documenter = get_documenter(obj_name, obj)
-                    except AttributeError:
-                        continue
-                    if documenter.objtype == typ:
-                        try:
-                            cond = imported or obj_name.__module__ == obj.__name__
-
-                        except AttributeError:
-                            cond = True
-
-                        if cond:
-                            items.append(name)
-                public = [x for x in items
-                          if x in include_public or not x.startswith('_')]
-                return public, items
 
             ns = {}
 

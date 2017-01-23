@@ -16,7 +16,7 @@ import re
 __all__ = ['extract_dsp_from_excel']
 
 _re_indirect = re.compile(
-    r"""(INDIRECT\([^"\(\)]*"([^"\(\)]*)"[^"\(\)]*\))""",
+    r'(INDIRECT\([^"()]*"([^"()]*)"[^"()]*\))',
     re.IGNORECASE | re.X | re.DOTALL
 )
 
@@ -53,7 +53,7 @@ def convert_formula(excel, formula, sheet):
 
 
 def get_seeds(excel, sheets=None):
-    get_range = excel.get_range
+    _get_range = excel.get_range
     if sheets:
         sheets = [excel.workbook[sn] for sn in sheets]
     else:
@@ -63,7 +63,7 @@ def get_seeds(excel, sheets=None):
         for row in ws.iter_rows():
             for cell in row:
                 address = '%s!%s' % (cell.parent.title, cell.coordinate)
-                formula = get_range(address).Formula
+                formula = _get_range(address).Formula
                 if formula.startswith('='):
                     cell.value = convert_formula(excel, formula, ws.title)
                     yield address, (cell, formula)
@@ -89,6 +89,6 @@ def evaluate_cell(cell, map_inputs, *args):
 
     try:
         return eval(cell.compiled_expression)
-    except Exception as e:
-        raise ValueError("Problem evalling: %s for %s, %s" % (
-        e, cell.address(), cell.python_expression))
+    except Exception as ex:
+        msg = "Problem evalling: %s for %s, %s"
+        raise ValueError(msg % (ex, cell.address(), cell.python_expression))

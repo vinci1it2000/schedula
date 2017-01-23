@@ -49,8 +49,6 @@ Sub-Modules:
     web
 """
 
-__author__ = 'Vincenzo Arcidiacono'
-
 from .cst import EMPTY, START, NONE, SINK, SELF, END, PLOT
 
 from .dsp import (
@@ -70,3 +68,5 @@ from .io import (
     save_dispatcher, load_dispatcher, save_default_values, load_default_values,
     save_map, load_map, open_file
 )
+
+__author__ = 'Vincenzo Arcidiacono'

@@ -10,12 +10,12 @@
 It contains basic algorithms, numerical tricks, and data processing tasks.
 """
 
-__author__ = 'Vincenzo Arcidiacono'
-
 from .gen import counter
 from .cst import EMPTY, NONE
 from .dsp import SubDispatch, bypass, selector, map_dict, stlp, parent_func
 import collections
+
+__author__ = 'Vincenzo Arcidiacono'
 
 
 # modified from NetworkX library
@@ -91,7 +91,7 @@ def get_unused_node_id(graph, initial_guess='unknown'):
 
     has_node = graph.has_node  # Namespace shortcut for speed.
 
-    n = counter(0)  # Counter.
+    n = counter()  # Counter.
     node_id_format = '%s%s' % (initial_guess, '<%d>')  # Node id format.
 
     node_id = initial_guess  # Initial guess.
@@ -541,16 +541,16 @@ def get_sub_node(dsp, path, node_attr='auto', solution=NONE, _level=0,
         # Continue the node search.
         return get_sub_node(dsp, path, node_attr, solution, _level, _dsp_name)
     else:
-        data = EMPTY
+        data, sol = EMPTY, solution
         # Return the sub node.
         if node_attr == 'auto' and node['type'] != 'data':  # Auto: function.
             node_attr = 'function'
-        elif node_attr == 'auto' and solution is not EMPTY and node_id in solution:  # Auto: data output.
-                data = solution[node_id]
+        elif node_attr == 'auto' and sol is not EMPTY and node_id in sol:
+            data = sol[node_id]  # Auto: data output.
         elif node_attr == 'output' and node['type'] != 'data':
-            data = solution.workflow.node[node_id]['solution']
+            data = sol.workflow.node[node_id]['solution']
         elif node_attr == 'output' and node['type'] == 'data':
-            data = solution[node_id]
+            data = sol[node_id]
         elif node_attr == 'description':  # Search and return node description.
             data = dsp.search_node_description(node_id)[0]
         elif node_attr == 'value_type' and node['type'] == 'data':
@@ -561,7 +561,7 @@ def get_sub_node(dsp, path, node_attr='auto', solution=NONE, _level=0,
         elif node_attr == 'dsp':
             data = dsp
         elif node_attr == 'sol':
-            data = solution
+            data = sol
 
         if data is EMPTY:
             data = node.get(node_attr, node)
@@ -628,12 +628,12 @@ def _sort_sk_wait_in(sol):
 
     def _get_sk_wait_in(s):
         w = set()
-        L = []
+        _l = []
         for n, a in s.dsp.sub_dsp_nodes.items():
             if 'function' in a and s.index + a['index'] in s.sub_sol:
                 sub_sol = s.sub_sol[s.index + a['index']]
                 n_d, l = _get_sk_wait_in(sub_sol)
-                L += l
+                _l += l
                 wi = {k for k, v in sub_sol._wait_in.items() if v is True}
                 n_d = n_d.union(wi)
                 o = a['outputs']
@@ -647,9 +647,9 @@ def _sort_sk_wait_in(sol):
         n_d = n_d.union(s._visited.intersection(wi))
         wi = n_d.intersection(wi)
 
-        L += [(s._meet.get(k, float('inf')), k, c(), s._wait_in) for k in wi]
+        _l += [(s._meet.get(k, float('inf')), k, c(), s._wait_in) for k in wi]
 
-        return set(n_d), L
+        return set(n_d), _l
 
     return sorted(_get_sk_wait_in(sol)[1])
 

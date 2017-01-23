@@ -65,6 +65,7 @@ def combine_dicts(*dicts, copy=False, base=None):
 
         for d in dicts:  # Combine dicts.
             if d:
+                # noinspection PyTypeChecker
                 cd.update(d)
 
     # Return combined dict.
@@ -383,6 +384,7 @@ class add_args(object):
         return res
 
     def __deepcopy__(self, memo):
+        # noinspection PyArgumentList,PyArgumentList
         cls = add_args(
             func=_copy.deepcopy(self.func, memo),
             n=self.n,
@@ -580,6 +582,7 @@ class parse_args(add_args):
         return self.func(*a, **kwargs)
 
     def __deepcopy__(self, memo):
+        # noinspection PyArgumentList
         cls = parse_args(
             func=_copy.deepcopy(self.func, memo),
             magic_arg=self.magic_arg,
@@ -1060,19 +1063,23 @@ class SubDispatchPipe(SubDispatchFunction):
 
 class DFun(object):
     """
-     A 3-tuple ``(out, fun, **kwds)``, used to prepare a list of calls to :meth:`Dispatcher.add_function()`.
+     A 3-tuple ``(out, fun, **kwds)``, used to prepare a list of calls to
+     :meth:`Dispatcher.add_function()`.
 
-     The workhorse is the :meth:`addme()` which delegates to :meth:`Dispatcher.add_function()`:
+     The workhorse is the :meth:`addme()` which delegates to
+     :meth:`Dispatcher.add_function()`:
 
        - ``out``: a scalar string or a string-list that, sent as `output` arg,
        - ``fun``: a callable, sent as `function` args,
        - ``kwds``: any keywords of :meth:`Dispatcher.add_function()`.
        - Specifically for the 'inputs' argument, if present in `kwds`, use them
-         (a scalar-string or string-list type, possibly empty), else inspect function;
-         in any case wrap the result in a tuple (if not already a list-type).
+         (a scalar-string or string-list type, possibly empty), else inspect
+         function; in any case wrap the result in a tuple (if not already a
+         list-type).
 
-         NOTE: Inspection works only for regular args, no ``*args, **kwds`` supported,
-         and they will fail late, on :meth:`addme()`, if no `input` or `inp` defined.
+         .. note:: Inspection works only for regular args, no ``*args, **kwds``
+         supported, and they will fail late, on :meth:`addme()`, if no `input`
+         or `inp` defined.
 
     **Example**:
 
@@ -1153,7 +1160,6 @@ class DFun(object):
 
     @classmethod
     def add_dfuns(cls, dfuns, dsp):
-    #def add_dfuns(cls, dfuns: Iterable, dsp: Dispatcher):
         for uf in dfuns:
             try:
                 uf.addme(dsp)

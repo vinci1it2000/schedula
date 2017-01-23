@@ -13,9 +13,9 @@ These are python-specific utilities and hacks - general data-processing or
 numerical operations.
 """
 
-__author__ = 'Vincenzo Arcidiacono'
-
 import itertools
+
+__author__ = 'Vincenzo Arcidiacono'
 
 
 def counter(start=0, step=1):

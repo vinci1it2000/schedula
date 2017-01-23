@@ -25,6 +25,7 @@ from .base import Base
 log = logging.getLogger(__name__)
 
 
+# noinspection PyTypeChecker
 class Solution(Base, collections.OrderedDict):
     def __hash__(self):
         return id(self)
@@ -43,6 +44,7 @@ class Solution(Base, collections.OrderedDict):
         self._wait_in = wait_in or {}
         self.outputs = set(outputs or ())
         self.parent = None
+        self._pipe = []
 
         from .. import Dispatcher
         self._set_dsp_features(dsp or Dispatcher())
@@ -191,12 +193,12 @@ class Solution(Base, collections.OrderedDict):
         dsp_closed_add = dsp_closed.add
         fringe, check_cutoff = self.fringe, self.check_cutoff
 
-        def _dsp_closed_add(sol):
-            dsp_closed_add(sol.index)
-            for v in sol.dsp.sub_dsp_nodes.values():
-                s = sol.sub_sol.get(sol.index + v['index'], None)
-                if s:
-                    _dsp_closed_add(s)
+        def _dsp_closed_add(s):
+            dsp_closed_add(s.index)
+            for val in s.dsp.sub_dsp_nodes.values():
+                _s = s.sub_sol.get(s.index + val['index'], None)
+                if _s:
+                    _dsp_closed_add(_s)
 
         while fringe:
             # Visit the closest available node.
@@ -263,19 +265,13 @@ class Solution(Base, collections.OrderedDict):
         """
         Returns the full node id.
 
-        :param node_ids:
-            A sequence of node ids or a single node id. The id order identifies
-            a dispatcher sub-level.
-
-            If it is empty it will return the full id of the dispatcher.
-        :type node_ids: str
-
         :return:
             Full node id and related .
         :rtype: tuple[str], tuple[Dispatcher]
         """
 
         sub_sol = self.sub_sol
+
         def _get_id(path):
             p, i = path[:-1], path[-1:]
             if p:
@@ -539,7 +535,7 @@ class Solution(Base, collections.OrderedDict):
                 if 'function' in node_attr:  # Evaluate output.
                     try:
                         kwargs = {k: v['value'] for k, v in est.items()}
-                        # noinspection PyCallingNonCallable
+                        # noinspection PyCallingNonCallable,PyTypeChecker
                         value = node_attr['function'](kwargs)
                     except Exception as ex:
                         # Some error occurs.
@@ -555,7 +551,7 @@ class Solution(Base, collections.OrderedDict):
                     # Dict of all data node estimations.
                     kwargs = {k: v['value'] for k, v in est.items()}
 
-                    # noinspection PyCallingNonCallable
+                    # noinspection PyCallingNonCallable,PyTypeChecker
                     value = node_attr['function'](kwargs)  # Evaluate output.
                 except Exception as ex:
                     # Is missing estimation function of data node or some error.
@@ -797,7 +793,7 @@ class Solution(Base, collections.OrderedDict):
 
                 vd = (True, w, self.index + node['index'])  # Virtual distance.
 
-                heapq.heappush(fringe, (vw_dist, vd, (w, self)))  # Add to heapq.
+                heapq.heappush(fringe, (vw_dist, vd, (w, self)))  # Add 2 heapq.
 
             return True
 
@@ -966,7 +962,8 @@ class Solution(Base, collections.OrderedDict):
 
             if node_type == 'dispatcher' and succ[n]:
                 add_visited(n)  # Add to visited nodes.
-                self.sub_sol[self.index + nodes[n]['index']]._remove_unused_nodes()
+                i = self.index + nodes[n]['index']
+                self.sub_sol[i]._remove_unused_nodes()
                 continue  # Skip sub-dispatcher node with outputs.
 
             wf_remove_node(n)  # Remove unused node.
@@ -998,7 +995,8 @@ class Solution(Base, collections.OrderedDict):
         sol.sub_sol = self.sub_sol
 
         for f in sol.fringe:  # Update the fringe.
-            heapq.heappush(fringe, (initial_dist + f[0], (2,) + f[1][1:], f[-1]))
+            item = (initial_dist + f[0], (2,) + f[1][1:], f[-1])
+            heapq.heappush(fringe, item)
 
         return sol
 
