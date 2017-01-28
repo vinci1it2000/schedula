@@ -72,7 +72,7 @@ def remove_edge_fun(graph):
     return remove_edge  # Returns the function.
 
 
-def get_unused_node_id(graph, initial_guess='unknown'):
+def get_unused_node_id(graph, initial_guess='unknown', _format='{}<%d>'):
     """
     Finds an unused node id in `graph`.
 
@@ -84,6 +84,10 @@ def get_unused_node_id(graph, initial_guess='unknown'):
         Initial node id guess.
     :type initial_guess: str, optional
 
+    :param _format:
+        Format to generate the new node id if the given is already used.
+    :type _format: str, optional
+
     :return:
         An unused node id.
     :rtype: str
@@ -92,7 +96,7 @@ def get_unused_node_id(graph, initial_guess='unknown'):
     has_node = graph.has_node  # Namespace shortcut for speed.
 
     n = counter()  # Counter.
-    node_id_format = '%s%s' % (initial_guess, '<%d>')  # Node id format.
+    node_id_format = _format.format(initial_guess)  # Node id format.
 
     node_id = initial_guess  # Initial guess.
     while has_node(node_id):  # Check if node id is used.
