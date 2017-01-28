@@ -71,6 +71,83 @@ class TestDispatcherUtils(unittest.TestCase):
         res = map_list(key_map, *inputs)
         self.assertEqual(res, {'a': 1, 'b': 2, 'c': 3, 'd': 4})
 
+    def test_stack_nested_keys(self):
+        d = {'a': {'b': {'c': ('d',)}}, 'A': {'B': {'C': ('D',)}}}
+        output = sorted(stack_nested_keys(d))
+        result = [(('A', 'B', 'C'), ('D',)), (('a', 'b', 'c'), ('d',))]
+        self.assertEqual(output, result)
+
+        output = sorted(stack_nested_keys(d, key=(0,)))
+        result = [((0, 'A', 'B', 'C'), ('D',)), ((0, 'a', 'b', 'c'), ('d',))]
+        self.assertEqual(output, result)
+
+        output = sorted(stack_nested_keys(d, depth=2))
+        result = [(('A', 'B'),  {'C': ('D',)}), (('a', 'b'), {'c': ('d',)})]
+        self.assertEqual(output, result)
+
+    def test_get_nested_dicts(self):
+        d = {'a': {'b': {'c': ('d',)}}, 'A': {'B': {'C': ('D',)}}}
+        output = get_nested_dicts(d, 'a', 'b', 'c')
+        result = ('d',)
+        self.assertEqual(output, result)
+
+        output = get_nested_dicts(d, 0, default=list)
+        self.assertIsInstance(output, list)
+        self.assertTrue(0 in d)
+        import collections
+
+        output = get_nested_dicts(d, 0, init_nesting=collections.OrderedDict)
+        self.assertIsInstance(output, list)
+
+        output = get_nested_dicts(d, 1, init_nesting=collections.OrderedDict)
+        self.assertIsInstance(output, collections.OrderedDict)
+        self.assertTrue(1 in d)
+
+        output = get_nested_dicts(d, 2, 3, default=list,
+                                  init_nesting=collections.OrderedDict)
+        self.assertIsInstance(output, list)
+        self.assertTrue(2 in d)
+        self.assertIsInstance(d[2], collections.OrderedDict)
+
+    def test_are_in_nested_dicts(self):
+        d = {'a': {'b': {'c': ('d',)}}, 'A': {'B': {'C': ('D',)}}}
+        self.assertTrue(are_in_nested_dicts(d, 'a', 'b', 'c'))
+        self.assertFalse(are_in_nested_dicts(d, 'a', 'b', 'C'))
+        self.assertFalse(are_in_nested_dicts(d, 'a', 'b', 'c', 'd'))
+
+    def test_combine_nested_dicts(self):
+        d1 = {'a': {'b': {'c': ('d',), 0: 1}}, 'A': {'B': ('C',), 0: 1}, 0: 1}
+        d2 = {'A': {'B': {'C': 'D'}}, 'a': {'b': 'c'}}
+        base = {0: 0, 1: 2}
+        output = combine_nested_dicts(d1, d2, base=base)
+        result = {0: 1, 1: 2, 'A': {0: 1, 'B': {'C': 'D'}}, 'a': {'b': 'c'}}
+        self.assertEqual(output, result)
+        self.assertIs(output, base)
+
+        output = combine_nested_dicts(d1, d2, depth=1)
+        result = {0: 1, 'A': {'B': {'C': 'D'}}, 'a': {'b': 'c'}}
+        self.assertEqual(output, result)
+
+    def test_add_args_parent_func(self):
+        class original_func():
+            __name__ = 'original_func'
+            def __call__(self, a, b, *c, d=0, e=0):
+                '''Doc'''
+                return list((a, b) + c)
+
+        fo = original_func()
+        func = add_args(functools.partial(fo, 1, 2), 2)
+        self.assertEqual(func.__name__, 'original_func')
+        self.assertEqual(func.__doc__, None)
+        self.assertEqual(func((1, 2, 3), 2, 4), [1, 2, 4])
+        func = add_args(functools.partial(functools.partial(func, 1), 1, 2), 2,
+                        callback=lambda res, *args, **kwargs: res.pop())
+        self.assertEqual(func.__name__, 'original_func')
+        self.assertEqual(func.__doc__, None)
+        self.assertEqual(func((1, 2, 3), 6, 5, 7), [1, 2, 2, 5])
+        func = parent_func(func)
+        self.assertEqual(func, fo)
+
 
 class TestSubDispatcher(unittest.TestCase):
     def setUp(self):
