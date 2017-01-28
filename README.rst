@@ -225,8 +225,8 @@ parallel.
     :scale: 100%
     :target: https://travis-ci.org/vinci1it2000/schedula
 
-.. |appveyor_status| image:: https://ci.appveyor.com/api/projects/status/i3bmqdc92u1bskg5?svg=true
-    :alt: Apveyor build status
+.. |appveyor_status| image:: https://ci.appveyor.com/api/projects/status/i3bmqdc92u1bskg5/branch/master?svg=true
+    :alt: Appveyor build status
     :scale: 100%
     :target: https://ci.appveyor.com/project/vinci1it2000/schedula
 
