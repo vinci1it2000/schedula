@@ -492,9 +492,10 @@ def are_in_nested_dicts(nested_dict, *keys):
     """
 
     if keys:
+        # noinspection PyBroadException
         try:
             return are_in_nested_dicts(nested_dict[keys[0]], *keys[1:])
-        except KeyError:
+        except:  # Key error or not a dict.
             return False
     return True
 
