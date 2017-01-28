@@ -607,7 +607,7 @@ class SiteFolder(object):
         item = self.item
         if not isinstance(item, SubDispatch) or item.output_type != 'all':
             try:
-                return item.outpus or ()
+                return item.outputs or ()
             except AttributeError:
                 pass
         return ()
@@ -638,14 +638,15 @@ class SiteFolder(object):
             i, v = x
             return i in nodes and (i is not SINK or not is_isolate(graph, SINK))
 
-        it = dict(filter(nodes_filter, graph.node.items()))
+        gnode = graph.node
+        it = dict(filter(nodes_filter, gnode.items()))
         if not nodes or not (graph.edge or self.inputs or self.outputs):
             it[EMPTY] = {'index': (EMPTY,)}
 
-        if START in graph.node or (self.inputs and START not in graph.node):
+        if START in gnode or any(i in it for i in self.inputs):
             it[START] = {'index': (START,)}
 
-        if self.outputs and END not in graph.node:
+        if any(o in it for o in self.outputs) and END not in gnode:
             it[END] = {'index': (END,)}
 
         for k, a in sorted(it.items()):
@@ -660,12 +661,12 @@ class SiteFolder(object):
         edges = {(u, v): a for u, v, a in edges if u != v}
 
         for i, v in enumerate(self.inputs):
-            if v != START:
+            if v != START and v in nodes:
                 n = (START, v)
                 edges[n] = combine_dicts(edges.get(n, {}), {'inp_id': i})
 
         for i, u in enumerate(self.outputs):
-            if u != END:
+            if u != END and u in nodes:
                 n = (u, END)
                 edges[n] = combine_dicts(edges.get(n, {}), {'out_id': i})
 
