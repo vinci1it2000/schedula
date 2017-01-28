@@ -538,66 +538,6 @@ def combine_nested_dicts(*nested_dicts, depth=-1, base=None):
     return base
 
 
-class parse_args(add_args):
-    """
-    Parse an argument as magic args.
-
-    :param func:
-        Function to wrap.
-    :type func: function
-
-    :param magic_arg:
-        Index of the magic args.
-    :type magic_arg: int
-
-    :return:
-        Wrapped function.
-    :rtype: function
-
-    Example::
-
-        >>> def original_func(a, *b):
-        ...     '''Doc'''
-        ...     return (a,) + b
-        >>> func = parse_args(original_func, magic_arg=0)
-        >>> func.__name__, func.__doc__
-        ('original_func', 'Doc')
-        >>> func((1, 2, 3), 4)
-        (4, 1, 2, 3)
-    """
-
-    # noinspection PyMissingConstructor
-    def __init__(self, func, magic_arg=1):
-        try:
-            self.__name__ = func.__name__
-            self.__doc__ = func.__doc__
-            self.__signature__ = _get_signature(func, 0)
-            self.func = func
-            self.magic_arg = magic_arg
-
-        except AttributeError:
-            from .des import parent_func
-            parse_args.__init__(self, parent_func(func), magic_arg=magic_arg)
-            self.func = func
-
-    def __call__(self, *args, **kwargs):
-        n = self.magic_arg
-        a = args[:n] + args[n + 1:]
-        try:
-            a += tuple(args[n])
-        except TypeError:
-            a += (args[n],)
-        return self.func(*a, **kwargs)
-
-    def __deepcopy__(self, memo):
-        # noinspection PyArgumentList
-        cls = parse_args(
-            func=_copy.deepcopy(self.func, memo),
-            magic_arg=self.magic_arg,
-        )
-        return cls
-
-
 class SubDispatch(Base):
     """
     It dispatches a given :func:`~schedula.Dispatcher` like a function.
