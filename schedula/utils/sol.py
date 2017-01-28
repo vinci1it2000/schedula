@@ -55,7 +55,7 @@ class Solution(Base, collections.OrderedDict):
             self._set_inputs(inputs, inputs_dist)
 
             # Set wildcards.
-            self._set_wildcards(*((self.inputs, outputs) if wildcard else ()))
+            self._set_wildcards(*((inputs, outputs) if wildcard else ()))
 
             # Initialize workflow params.
             self._init_workflow()
