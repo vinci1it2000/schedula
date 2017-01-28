@@ -363,17 +363,20 @@ class add_args(object):
     """
 
     def __init__(self, func, n=1, callback=None):
-        try:
-            self.__name__ = func.__name__
-            self.__doc__ = func.__doc__
-            self.__signature__ = _get_signature(func, n)
-            self.func = func
-            self.n = n
-            self.callback = callback
-        except AttributeError:
-            from .des import parent_func
-            add_args.__init__(self, parent_func(func), n=n, callback=callback)
-            self.func = func
+        self.n = n
+        self.callback = callback
+        self.func = func
+        for i in range(2):
+            try:
+                self._set_doc(func, n)
+                break
+            except:
+                func = parent_func(func)
+
+    def _set_doc(self, func, n):
+        self.__name__ = func.__name__
+        self.__doc__ = func.__doc__
+        self.__signature__ = _get_signature(func, n)
 
     def __call__(self, *args, **kwargs):
         res = self.func(*args[self.n:], **kwargs)
@@ -393,7 +396,7 @@ class add_args(object):
         return cls
 
 
-def _get_signature(func, n=1):
+def _get_signature(func, n_ept=1, n_skip=0):
     sig = inspect.signature(func)  # Get function signature.
 
     def ept_par():  # Return none signature parameter.
