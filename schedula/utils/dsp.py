@@ -813,7 +813,7 @@ class SubDispatchFunction(SubDispatch):
     """
 
     def __init__(self, dsp, function_id, inputs, outputs=None, cutoff=None,
-                 inputs_dist=None, shrink=True):
+                 inputs_dist=None, shrink=True, wildcard=True):
         """
         Initializes the Sub-dispatch Function.
 
@@ -844,7 +844,7 @@ class SubDispatchFunction(SubDispatch):
 
         if shrink:
             dsp = dsp.shrink_dsp(inputs, outputs, cutoff=cutoff,
-                                 inputs_dist=inputs_dist)
+                                 inputs_dist=inputs_dist, wildcard=wildcard)
 
         if outputs:
             missed = set(outputs).difference(dsp.nodes)  # Outputs not reached.
@@ -861,7 +861,6 @@ class SubDispatchFunction(SubDispatch):
         # Set internal proprieties
         self.inputs = inputs
         dsp.name = function_id  # Set dsp name equal to function id.
-        wildcard = True
         no_call = False
         from schedula.utils.sol import Solution
         self._sol = sol = Solution(
@@ -971,7 +970,7 @@ class SubDispatchPipe(SubDispatchFunction):
     """
 
     def __init__(self, dsp, function_id, inputs, outputs=None, cutoff=None,
-                 inputs_dist=None, no_domain=True):
+                 inputs_dist=None, no_domain=True, wildcard=True):
         """
         Initializes the Sub-dispatch Function.
 
@@ -1002,7 +1001,7 @@ class SubDispatchPipe(SubDispatchFunction):
 
         from schedula.utils.sol import Solution
         self.solution = sol = Solution(
-            dsp, inputs, outputs, True, cutoff, inputs_dist, True, True,
+            dsp, inputs, outputs, wildcard, cutoff, inputs_dist, True, True,
             no_domain=no_domain
         )
         sol.run()
@@ -1013,7 +1012,7 @@ class SubDispatchPipe(SubDispatchFunction):
 
         super(SubDispatchPipe, self).__init__(
             dsp, function_id, inputs, outputs=outputs, cutoff=cutoff,
-            inputs_dist=inputs_dist, shrink=False,
+            inputs_dist=inputs_dist, shrink=False, wildcard=wildcard
         )
         self._sol.no_call = True
         self._sol._init_workflow()
@@ -1030,6 +1029,7 @@ class SubDispatchPipe(SubDispatchFunction):
         self.pipe = [_make_tks(*v['task'][-1]) for v in self._sol.pipe.values()]
 
     def __call__(self, *args, _sol_output=None, _sol=None):
+        assert len(self.inputs) == len(args)
         dsp, inputs = self.dsp, map_list(self.inputs, *args)
         key_map, sub_sol = {}, {}
         for k, s in self._sol.sub_sol.items():
@@ -1039,7 +1039,7 @@ class SubDispatchPipe(SubDispatchFunction):
             key_map[s] = ns
             sub_sol[ns.index] = ns
 
-        sol = key_map[self._sol]
+        self.solution = sol = key_map[self._sol]
         sol.inputs.update(inputs)
 
         for s in sub_sol.values():
