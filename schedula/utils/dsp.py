@@ -526,7 +526,14 @@ def combine_nested_dicts(*nested_dicts, depth=-1, base=None):
 
     for nested_dict in nested_dicts:
         for k, v in stack_nested_keys(nested_dict, depth=depth):
-            get_nested_dicts(base, *k[:-1])[k[-1]] = v
+            while k:
+                # noinspection PyBroadException
+                try:
+                    get_nested_dicts(base, *k[:-1])[k[-1]] = v
+                    break
+                except:  # A branch of the nested_dict is longer than the base.
+                    k = k[:-1]
+                    v = get_nested_dicts(nested_dict, *k)
 
     return base
 
