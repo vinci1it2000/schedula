@@ -77,6 +77,7 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function',
     nodes = dsp.nodes
     des, link = ('', '')
 
+    # noinspection PyUnusedLocal
     def check(*args):
         return True
 
