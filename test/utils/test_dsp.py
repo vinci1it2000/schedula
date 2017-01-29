@@ -11,7 +11,8 @@ import unittest
 
 from schedula.utils.dsp import *
 from schedula import Dispatcher
-from schedula.utils.cst import SINK
+from schedula.utils.cst import SINK, NONE
+from schedula.utils.exc import DispatcherError
 
 
 class TestDoctest(unittest.TestCase):
@@ -233,6 +234,8 @@ class TestSubDispatchPipe(unittest.TestCase):
         dsp = Dispatcher()
 
         def f(a, b):
+            if b is None:
+                return a, NONE
             return a + b, a - b
 
         dsp.add_function(function=f, inputs=['a', 'b'], outputs=['c', SINK])
@@ -265,6 +268,7 @@ class TestSubDispatchPipe(unittest.TestCase):
         # noinspection PyCallingNonCallable
         self.assertEqual(fun(2, 1), 1)
         self.assertRaises(ValueError, fun, 3, -1)
+        self.assertRaises(DispatcherError, fun, 3, None)
 
         fun = SubDispatchPipe(self.dsp_2, 'F', ['b', 'a'], ['c', 'd'])
         # noinspection PyCallingNonCallable

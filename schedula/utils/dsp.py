@@ -1003,7 +1003,8 @@ class SubDispatchPipe(SubDispatchFunction):
             if s.stopper.is_set():
                 raise DispatcherAbort(sol, "Stop requested.")
 
-            if not s._set_node_output(v, False, next_nds=nxt_nds):
+            has_node = v not in s.workflow.node
+            if has_node or not s._set_node_output(v, False, next_nds=nxt_nds):
                 break
             for n, vw_d in nxt_dsp:
                 s._set_sub_dsp_node_input(v, n, [], s.check_cutoff, False, vw_d)
