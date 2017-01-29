@@ -396,7 +396,7 @@ class add_args(object):
         return cls
 
 
-def _get_signature(func, n_ept=1, n_skip=0):
+def _get_signature(func, n=1):
     sig = inspect.signature(func)  # Get function signature.
 
     def ept_par():  # Return none signature parameter.
