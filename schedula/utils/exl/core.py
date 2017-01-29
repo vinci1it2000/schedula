@@ -85,6 +85,8 @@ def evaluate_cell(cell, map_inputs, *args):
 
     def eval_cell(address):
         return args[ind(address)]
+
+    # noinspection PyUnusedLocal
     eval_range = eval_cell
 
     try:

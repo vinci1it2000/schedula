@@ -19,7 +19,6 @@ from .base import Base
 from .exc import DispatcherError, DispatcherAbort
 from .gen import Token
 
-
 __author__ = 'Vincenzo Arcidiacono'
 
 
@@ -268,6 +267,7 @@ def selector(keys, dictionary, copy=False, output_type='dict',
     """
 
     if not allow_miss:
+        # noinspection PyUnusedLocal
         def check(key):
             return True
     else:
@@ -316,7 +316,6 @@ def replicate_value(value, n=2, copy=True):
 
 
 def parent_func(func, input_id=None):
-
     if isinstance(func, functools.partial):
         if input_id is not None:
             # noinspection PyTypeChecker
@@ -367,6 +366,7 @@ class add_args(object):
         self.callback = callback
         self.func = func
         for i in range(2):
+            # noinspection PyBroadException
             try:
                 self._set_doc(func, n)
                 break
@@ -595,6 +595,7 @@ class SubDispatch(Base):
         True
 
     """
+
     def __init__(self, dsp, outputs=None, cutoff=None, inputs_dist=None,
                  wildcard=False, no_call=False, shrink=False,
                  rm_unused_nds=False, output_type='all'):
@@ -821,7 +822,7 @@ class SubDispatchFunction(SubDispatch):
 
         # Initialize as sub dispatch.
         super(SubDispatchFunction, self).__init__(
-            dsp, outputs, cutoff, sol.inputs_dist, wildcard, no_call, 
+            dsp, outputs, cutoff, sol.inputs_dist, wildcard, no_call,
             True, True, 'list'
         )
 
@@ -1081,7 +1082,7 @@ class DFun(object):
         fun_params = inspect.signature(self.fun).parameters
         assert not any(p.kind for p in fun_params.values()
                        if p.kind != inspect.Parameter.POSITIONAL_OR_KEYWORD), (
-                           "Found '*args or **kwds on function!", self)
+            "Found '*args or **kwds on function!", self)
         return tuple(fun_params.keys())
 
     def addme(self, dsp):
@@ -1090,7 +1091,7 @@ class DFun(object):
         fun = self.fun
 
         if not isinstance(out, (tuple, list)):
-            out = (out, )
+            out = (out,)
         else:
             pass
 
@@ -1099,7 +1100,7 @@ class DFun(object):
             inp = self.inspect_inputs()
 
         if not isinstance(inp, (tuple, list)):
-            inp = (inp, )
+            inp = (inp,)
         else:
             pass
 

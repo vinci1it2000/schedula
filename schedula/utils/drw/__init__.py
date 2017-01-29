@@ -732,8 +732,8 @@ class SiteIndex(SiteNode):
     def view(self, filepath, *args, **kwargs):
         files = super(SiteIndex, self).view(filepath, *args, **kwargs)
         folder = osp.dirname(filepath)
-        import pkg_resources as pkg_res
-        dfl_folder = osp.join(pkg_res.resource_filename(__name__, ''), 'static')
+        from pkg_resources import resource_filename
+        dfl_folder = osp.join(resource_filename(__name__, ''), 'static')
 
         for fname in self.extra_files:
             fpath = uncpath(osp.join(folder, fname))

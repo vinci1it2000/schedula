@@ -192,6 +192,7 @@ def _add_edge_dmap_fun(graph, edges_weights=None):
             else:
                 add(i, o)  # Normal edge.
     else:
+        # noinspection PyUnusedLocal
         def add_edge(i, o, w):
             add(i, o)  # Normal edge.
 
