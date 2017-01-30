@@ -501,6 +501,18 @@ class Solution(Base, collections.OrderedDict):
             return self._set_function_node_output(node_id, node_attr, no_call,
                                                   next_nds)
 
+    def _evaluate_function(self, args, node_id, node_attr, attr):
+        if 'started' not in attr:
+            attr['started'] = datetime.today()
+
+        fun = node_attr['function']
+
+        if isinstance(parent_func(fun), SubDispatch):
+            res = fun(*args, _sol_output=attr, _sol=(node_id, self))
+        else:
+            res = fun(*args)
+        return res
+
     def _set_data_node_output(self, node_id, node_attr, no_call, next_nds=None):
         """
         Set the data node output from node estimations.
@@ -526,18 +538,22 @@ class Solution(Base, collections.OrderedDict):
         est, wait_in = self._get_node_estimations(node_attr, node_id)
 
         if not no_call:
+            attr = self.workflow.node[node_id]
             if node_id is PLOT:
                 est = est.copy()
                 est[PLOT] = {'value': {'obj': self}}
             # Final estimation of the node and node status.
             if not wait_in:
-
                 if 'function' in node_attr:  # Evaluate output.
                     try:
                         kwargs = {k: v['value'] for k, v in est.items()}
-                        # noinspection PyCallingNonCallable,PyTypeChecker
-                        value = node_attr['function'](kwargs)
+                        value = self._evaluate_function(
+                            (kwargs,), node_id, node_attr, attr
+                        )
                     except Exception as ex:
+                        if 'started' in attr:
+                            dt = datetime.today() - attr['started']
+                            attr['duration'] = dt
                         # Some error occurs.
                         msg = "Failed DISPATCHING '%s' due to:\n  %r"
                         self._warning(msg, node_id, ex)
@@ -551,18 +567,24 @@ class Solution(Base, collections.OrderedDict):
                     # Dict of all data node estimations.
                     kwargs = {k: v['value'] for k, v in est.items()}
 
-                    # noinspection PyCallingNonCallable,PyTypeChecker
-                    value = node_attr['function'](kwargs)  # Evaluate output.
+                    # Evaluate output.
+                    value = self._evaluate_function(
+                        (kwargs,), node_id, node_attr, attr
+                    )
                 except Exception as ex:
+                    if 'started' in attr:
+                        attr['duration'] = datetime.today() - attr['started']
                     # Is missing estimation function of data node or some error.
                     msg = "Failed DISPATCHING '%s' due to:\n  %r"
                     self._warning(msg, node_id, ex)
                     return False
             try:
                 # Apply filters to output.
-                for f in node_attr.get('filters', ()):
-                    value = f(value)
+                self._apply_filters(value, node_id, node_attr, attr)
+
             except Exception as ex:
+                if 'started' in attr:
+                    attr['duration'] = datetime.today() - attr['started']
                 # Some error occurs.
                 msg = "Failed DISPATCHING '%s' due to:\n  %r"
                 self._warning(msg, node_id, ex)
@@ -570,6 +592,9 @@ class Solution(Base, collections.OrderedDict):
 
             if value is not NONE:  # Set data output.
                 self[node_id] = value
+
+            if 'started' in attr:
+                attr['duration'] = datetime.today() - attr['started']
 
             if 'callback' in node_attr:  # Invoke callback func of data node.
                 try:
@@ -616,6 +641,25 @@ class Solution(Base, collections.OrderedDict):
                     wf_add_edge(node_id, u, **value)
 
         return True  # Return that the output have been evaluated correctly.
+
+    def _apply_filters(self, res, node_id, node_attr, attr):
+        if 'filters' in node_attr and 'started' not in attr:
+            attr['started'] = datetime.today()
+        filters = []
+        # Apply filters to results.
+        for f in node_attr.get('filters', ()):
+            if isinstance(parent_func(f), SubDispatch):
+                out = {}
+                res = f(res, _sol_output=out, _sol=(node_id, self))
+                filters.append(out['solution'])
+            else:
+                res = f(res)
+                filters.append(res)
+
+        if filters:
+            attr['solution_filters'] = filters
+
+        return res
 
     def _set_function_node_output(self, node_id, node_attr, no_call,
                                   next_nds=None):
@@ -670,16 +714,9 @@ class Solution(Base, collections.OrderedDict):
             if not s:
                 return False  # Args are not respecting the domain.
             else:  # Use the estimation function of node.
-                fun = node_attr['function']
-
-                if isinstance(parent_func(fun), SubDispatch):
-                    res = fun(*args, _sol_output=attr, _sol=(node_id, self))
-                else:
-                    res = fun(*args)
-
+                res = self._evaluate_function(args, node_id, node_attr, attr)
                 # Apply filters to results.
-                for f in node_attr.get('filters', ()):
-                    res = f(res)
+                res = self._apply_filters(res, node_id, node_attr, attr)
 
                 attr['results'] = res
                 attr['duration'] = datetime.today() - attr['started']
