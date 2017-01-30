@@ -277,13 +277,14 @@ class FolderNode(object):
 
     node_data = (
         '-', '.tooltip', '!default_values', 'wait_inputs', '+function|solution',
-        'weight', 'remote_links', 'distance', '!error', '*output'
+        'weight', 'remote_links', '+filters|solution_filters', 'distance',
+        '!error', '*output'
     )
 
     node_function = (
         '-', '.tooltip', '+input_domain|solution_domain', 'weight',
-        'missing_inputs_outputs', 'distance', 'started', 'duration', '!error',
-        '*function|solution'
+        '+filters|solution_filters', 'missing_inputs_outputs', 'distance',
+        'started', 'duration', '!error', '*function|solution'
     )
 
     edge_data = ('?', 'inp_id', 'out_id', 'weight')
@@ -370,6 +371,16 @@ class FolderNode(object):
             res = {}
         yield from sorted(res.items())
 
+    def _filters(self, name='filters'):
+        try:
+            for i, f in enumerate(self.attr[name]):
+                yield 'filter %d' % i, f
+        except (AttributeError, KeyError):
+            pass
+
+    def _solution_filters(self):
+        yield from self._filters(name='solution_filters')
+
     def _remote_links(self):
         attr, item = self.attr, self.folder.item
         for i, ((dsp_id, dsp), tag) in enumerate(attr.get('remote_links', [])):
@@ -402,8 +413,7 @@ class FolderNode(object):
 
     def _weight(self):
         try:
-            dsp = self.folder.dsp
-            yield 'weight', dsp.node[self.node_id][dsp.weight]
+            yield 'weight', self.attr[self.folder.dsp.weight]
         except (AttributeError, KeyError):
             pass
 
