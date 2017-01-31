@@ -13,7 +13,7 @@ import unittest
 import numpy as np
 
 from schedula import Dispatcher
-from schedula.utils.cst import START, EMPTY, SINK, NONE
+from schedula.utils.cst import START, EMPTY, SINK, NONE, SELF
 from schedula.utils.dsp import SubDispatchFunction
 from schedula.utils.sol import Solution
 
@@ -430,6 +430,23 @@ class TestSubDMap(unittest.TestCase):
         dfl = {'value': 3, 'initial_dist': 0.0}
         self.assertEqual(sub_dmap.default_values['b'], dfl)
 
+        sub_dmap = sol.get_sub_dsp_from_workflow(['c'], add_missing=True)
+        res = {
+            'd': {'type': 'data', 'index': (5,), 'wait_inputs': False},
+            'c': {'type': 'data', 'index': (3,), 'wait_inputs': False},
+            'a': {'type': 'data', 'index': (2,), 'wait_inputs': False},
+            'min': {
+                'type': 'function',
+                'index': (4,),
+                'outputs': ['d'],
+                'inputs': ['a', 'c'],
+                'wait_inputs': True,
+                'function': None}
+        }
+        edge = {'d': {}, 'c': {'min': {}}, 'a': {'min': {}}, 'min': {'d': {}}}
+        self.assertEqual(sub_dmap.dmap.node, res)
+        self.assertEqual(sub_dmap.dmap.edge, edge)
+
 
 class TestPerformance(unittest.TestCase):
     def test_stress_tests(self):
@@ -574,6 +591,17 @@ class TestDispatch(unittest.TestCase):
         dsp.add_function('min', min, ['c', 'b'], ['d'])
 
         self.dsp_dfl_input_dist = dsp
+
+        dsp = Dispatcher()
+        f = lambda x: x + 1
+        dsp.add_data('a', 0, filters=(f, f, f))
+        dsp.add_function('f', f, ['a'], ['b'], filters=(f, f, f, f))
+        dsp.add_function('f', f, ['a'], ['c'], filters=(f, lambda x: NONE))
+        self.dsp_with_filters = dsp
+
+        dsp = Dispatcher()
+        dsp.add_data(SELF)
+        self.dsp_select_output_kw = dsp
 
     def test_without_outputs(self):
         dsp = self.dsp
@@ -1104,6 +1132,16 @@ class TestDispatch(unittest.TestCase):
         self.assertEqual({'b': 5, 'c': 0, 'd': 0}, o)
         self.assertEqual(o.workflow.edge, w)
 
+    def test_filters(self):
+        dsp = self.dsp_with_filters
+        self.assertEqual(dsp.dispatch(), {'a': 3, 'b': 8})
+        self.assertEqual(dsp.dispatch({'a': 1}), {'a': 4, 'b': 9})
+
+    def test_select_output_kw(self):
+        dsp = self.dsp_select_output_kw
+        select_output_kw = {'keys': (SELF,), 'output_type': 'values'}
+        self.assertEqual(dsp.dispatch(select_output_kw=select_output_kw), dsp)
+
 
 class TestBoundaryDispatch(unittest.TestCase):
     def setUp(self):
@@ -1157,8 +1195,6 @@ class TestBoundaryDispatch(unittest.TestCase):
 
 class TestNodeOutput(unittest.TestCase):
     def setUp(self):
-
-
         dsp = Dispatcher()
 
         dsp.add_data('a', default_value=[1, 2])
