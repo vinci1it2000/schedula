@@ -89,11 +89,11 @@ def _upt_styles(styles, base=None):
 def autoplot_function(kwargs):
     keys = sorted(kwargs, key=lambda x: (x is not PLOT, x))
     kw = combine_dicts(*selector(keys, kwargs, output_type='list'))
-    return functools.partial(kw.pop('obj').plot, **kw)
+    return {'dsp': kw.pop('obj'), 'kw': kw}
 
 
-def autoplot_callback(value):
-    value()
+def autoplot_callback(res):
+    res['plot'] = res['dsp'].plot(**res['kw'])
 
 
 class _Table(_nodes.General, _nodes.Element):
