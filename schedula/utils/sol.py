@@ -580,7 +580,7 @@ class Solution(Base, collections.OrderedDict):
                     return False
             try:
                 # Apply filters to output.
-                self._apply_filters(value, node_id, node_attr, attr)
+                value = self._apply_filters(value, node_id, node_attr, attr)
 
             except Exception as ex:
                 if 'started' in attr:
