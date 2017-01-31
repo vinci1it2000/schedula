@@ -1150,14 +1150,16 @@ class Dispatcher(Base):
                             # add attributes to both representations of edge
                             succ[p][c] = s_pred[p] = dmap_succ[p][c]
                     elif not check_inputs or add_missing:
-                        if add_missing:
-                            for p in node_attr['inputs'] and p not in family:
-                                _set_node_attr(p, add2family=False)
-
                         _set_node_attr(c)
 
                         # namespace shortcuts for speed
                         s_pred = pred[c]
+
+                        if add_missing:
+                            for p in node_attr['inputs']:
+                                if p not in family:
+                                    _set_node_attr(p, add2family=False)
+                                    succ[p][c] = s_pred[p] = dmap_succ[p][c]
 
                         for p in set(node_attr['inputs']).intersection(family):
                             # add attributes to both representations of edge
