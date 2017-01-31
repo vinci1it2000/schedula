@@ -1020,7 +1020,7 @@ class Dispatcher(Base):
 
     def get_sub_dsp_from_workflow(self, sources, graph=None, reverse=False,
                                   add_missing=False, check_inputs=True,
-                                  blockers=None):
+                                  blockers=None, wildcard=False):
         """
         Returns the sub-dispatcher induced by the workflow from sources.
 
@@ -1052,6 +1052,12 @@ class Dispatcher(Base):
         :param blockers:
             Nodes to not be added to the queue.
         :type blockers: set[str], iterable, optional
+
+        :param wildcard:
+            If True, when the data node is used as input and target in the
+            ArciDispatch algorithm, the input value will be used as input for
+            the connected functions, but not as output.
+        :type wildcard: bool, optional
 
         :return:
             A sub-dispatcher.
@@ -1201,7 +1207,7 @@ class Dispatcher(Base):
         # Set initial node attributes.
         for s in sources:
             if s in dmap_nodes and s in graph.node:
-                _set_node_attr(s)
+                _set_node_attr(s, block=not (wildcard and s in blockers))
 
         # Start breadth-first-search.
         while queue:
@@ -1411,7 +1417,8 @@ class Dispatcher(Base):
                 )
             elif outputs:
                 dsp = self.get_sub_dsp_from_workflow(
-                    outputs, self.dmap, reverse=True, blockers=inputs
+                    outputs, self.dmap, reverse=True, blockers=inputs,
+                    wildcard=wildcard
                 )
 
         # Initialize.
