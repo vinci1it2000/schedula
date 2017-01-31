@@ -9,8 +9,9 @@
 import unittest
 import platform
 from schedula import Dispatcher
-from schedula.utils.dsp import SubDispatch, SubDispatchFunction, SubDispatchPipe
-from schedula.utils.cst import SINK
+from schedula.utils.dsp import SubDispatch, SubDispatchFunction, \
+    SubDispatchPipe, bypass
+from schedula.utils.cst import SINK, PLOT
 from schedula.utils.drw import SiteMap, Site
 import tempfile
 import os.path as osp
@@ -60,6 +61,10 @@ class TestDispatcherDraw(unittest.TestCase):
         self.sol = dsp.dispatch()
         self.dsp = dsp
 
+        dsp = Dispatcher()
+        dsp.add_function(function=bypass, inputs=['a'], outputs=[PLOT])
+        self.dsp_plot = dsp
+
     def test_plot(self):
         dsp, sol = self.dsp, self.sol
 
@@ -81,12 +86,24 @@ class TestDispatcherDraw(unittest.TestCase):
         plt = sol.plot(view=True)
         self.assertIsInstance(plt, SiteMap)
 
+        plt = self.dsp_plot({'a': {}})[PLOT]['plot']
+        self.assertIsInstance(plt, SiteMap)
+
         sites = set()
         plt = sol.plot(view=True, sites=sites, index=True)
         self.assertIsInstance(plt, SiteMap)
         site = sites.pop()
         self.assertIsInstance(site, Site)
         import requests
+        self.assertEqual(requests.get(site.url).status_code, 200)
+        self.assertIsInstance(site, Site)
+        self.assertTrue(site.shutdown())
+        self.assertFalse(site.shutdown())
+
+        plt = self.dsp_plot({'a': dict(view=True, sites=sites)})[PLOT]['plot']
+        self.assertIsInstance(plt, SiteMap)
+        site = sites.pop()
+        self.assertIsInstance(site, Site)
         self.assertEqual(requests.get(site.url).status_code, 200)
         self.assertIsInstance(site, Site)
         self.assertTrue(site.shutdown())
