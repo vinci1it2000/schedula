@@ -12,7 +12,7 @@ __author__ = 'Vincenzo Arcidiacono'
 
 
 class DispatcherError(ValueError):
-    def __init__(self, sol, *args, **kwargs):
+    def __init__(self, *args, sol=None, **kwargs):
         super(DispatcherError, self).__init__(*args, **kwargs)
         self.plot = None
         self.sol = None
@@ -20,7 +20,7 @@ class DispatcherError(ValueError):
 
     def update(self, sol):
         self.sol = sol
-        self.plot = self.sol.plot
+        self.plot = self.sol.plot if sol is not None else None
 
 
 class DispatcherAbort(DispatcherError):

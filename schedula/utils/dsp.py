@@ -694,7 +694,7 @@ class SubDispatch(Base):
                 msg = '\n  Unreachable output-targets: {}\n  Available ' \
                       'outputs: {}'.format(missed, list(solution.keys()))
 
-                raise DispatcherError(solution, msg)
+                raise DispatcherError(msg, sol=solution)
 
         return solution  # Return outputs.
 

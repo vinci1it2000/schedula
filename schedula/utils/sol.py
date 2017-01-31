@@ -965,8 +965,8 @@ class Solution(Base, collections.OrderedDict):
 
         elif node_id in dists:  # The node w already estimated.
             if dist < dists[node_id]:  # Error for negative paths.
-                raise DispatcherError(self, 'Contradictory paths found: '
-                                            'negative weights?')
+                raise DispatcherError('Contradictory paths found: '
+                                      'negative weights?', sol=self)
         elif node_id not in seen or dist < seen[node_id]:  # Check min dist.
             seen[node_id] = dist  # Update dist.
 
@@ -1180,7 +1180,7 @@ class Solution(Base, collections.OrderedDict):
         node_id = '/'.join(self.full_name + (node_id,))
 
         if self.raises:
-            raise DispatcherError(self, msg, node_id, ex, *args, **kwargs)
+            raise DispatcherError(msg, node_id, ex, *args, sol=self, **kwargs)
         else:
             kwargs['exc_info'] = kwargs.get('exc_info', 1)
             log.error(msg, node_id, ex, *args, **kwargs)
