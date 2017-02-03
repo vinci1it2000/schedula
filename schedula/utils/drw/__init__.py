@@ -371,15 +371,21 @@ class FolderNode(object):
             res = {}
         yield from sorted(res.items())
 
-    def _filters(self, name='filters'):
+    def _filters(self):
         try:
-            for i, f in enumerate(self.attr[name]):
+            for i, f in enumerate(self.attr['filters']):
                 yield 'filter %d' % i, f
         except (AttributeError, KeyError):
             pass
 
     def _solution_filters(self):
-        yield from self._filters(name='solution_filters')
+        try:
+            it = self.attr['solution_filters']
+            yield 'input_filter 0', it[0]
+            for i, f in enumerate(it[1:]):
+                yield 'output_filter %d' % i, f
+        except (AttributeError, KeyError, IndexError):
+            pass
 
     def _remote_links(self):
         attr, item = self.attr, self.folder.item
