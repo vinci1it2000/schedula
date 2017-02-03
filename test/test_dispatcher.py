@@ -9,9 +9,7 @@
 import doctest
 import timeit
 import unittest
-
 import numpy as np
-
 from schedula import Dispatcher
 from schedula.utils.cst import START, EMPTY, SINK, NONE, SELF
 from schedula.utils.dsp import SubDispatchFunction
