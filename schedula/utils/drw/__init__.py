@@ -482,9 +482,11 @@ class FolderNode(object):
                 if workflow and v1:
                     try:
                         yield k, getattr(self, s % v1)
+                        continue
                     except AttributeError:
                         if v1 in self.attr:
                             yield k, functools.partial(self.yield_attr, v1)
+                            continue
                 try:
                     yield k, getattr(self, s % v)
                 except AttributeError:
