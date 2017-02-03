@@ -643,11 +643,14 @@ class Solution(Base, collections.OrderedDict):
         return True  # Return that the output have been evaluated correctly.
 
     def _apply_filters(self, res, node_id, node_attr, attr):
-        if 'filters' in node_attr and 'started' not in attr:
-            attr['started'] = datetime.today()
         filters = []
         # Apply filters to results.
         for f in node_attr.get('filters', ()):
+            if not filters:
+                if 'started' not in attr:
+                    attr['started'] = datetime.today()
+                filters.append(res)
+
             if isinstance(parent_func(f), SubDispatch):
                 out = {}
                 res = f(res, _sol_output=out, _sol=(node_id, self))
