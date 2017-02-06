@@ -64,7 +64,7 @@ def _setup_dsp():
 
 class TestDoctest(unittest.TestCase):
     def runTest(self):
-        import schedula as dsp
+        import schedula.dispatcher as dsp
 
         failure_count, test_count = doctest.testmod(
             dsp, optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS
