@@ -8,5 +8,5 @@ API Reference
     :toctree: _build/
 
     Dispatcher
-    utils.exl
+    utils.drw
     utils.dsp.SubDispatch.copy

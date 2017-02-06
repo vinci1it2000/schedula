@@ -13,7 +13,7 @@ The utils module contains classes and functions of general utility used in
 multiple places throughout `schedula`. Some of these are graph-specific
 algorithms while others are more python tricks.
 
-The utils module is composed of six submodules to make organization clearer.
+The utils module is composed of eleven submodules to make organization clearer.
 The submodules are fairly different from each other, but the main uniting theme
 is that all of these submodules are not specific to a particularly schedula
 application.
@@ -42,7 +42,6 @@ Sub-Modules:
     drw
     dsp
     exc
-    exl
     gen
     io
     sol
@@ -59,8 +58,6 @@ from .dsp import (
 )
 
 from .exc import DispatcherError, DispatcherAbort
-
-from .exl import extract_dsp_from_excel
 
 from .gen import counter, Token, pairwise
 
