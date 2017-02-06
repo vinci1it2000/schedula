@@ -354,6 +354,18 @@ class TestSubDMap(unittest.TestCase):
         self.sol = dsp.dispatch(['a', 'b'], no_call=True)
         self.dsp = dsp
 
+        sub_dsp = Dispatcher()
+        sub_dsp.add_data(data_id='a', default_value=1)
+        sub_dsp.add_data(data_id='b', default_value=2)
+        sub_dsp.add_data(data_id='c')
+
+        dsp = Dispatcher()
+        dsp.add_data(data_id='C', default_value=1)
+        dsp.add_dispatcher(
+            sub_dsp, {'C': 'c'}, {'a': 'A', 'b': 'B', 'c': 'D'}, 'sdsp'
+        )
+        self.dsp1 = dsp
+
     def test_get_sub_dmap(self):
 
         dsp = self.dsp
@@ -444,6 +456,14 @@ class TestSubDMap(unittest.TestCase):
         edge = {'d': {}, 'c': {'min': {}}, 'a': {'min': {}}, 'min': {'d': {}}}
         self.assertEqual(sub_dmap.dmap.node, res)
         self.assertEqual(sub_dmap.dmap.edge, edge)
+
+        dsp = self.dsp1
+        sub_dmap = dsp.get_sub_dsp_from_workflow(['B'], dsp.dmap, reverse=True)
+        res = {'B', 'C', 'sdsp'}
+        edge = {'B': {}, 'sdsp': {'B': {}}, 'C': {'sdsp': {'weight': 0.0}}}
+        self.assertEqual(set(sub_dmap.dmap.node), res)
+        self.assertEqual(sub_dmap.dmap.edge, edge)
+        self.assertEqual(sub_dmap(), {'C': 1, 'B': 2})
 
 
 class TestPerformance(unittest.TestCase):

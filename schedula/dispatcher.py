@@ -1004,9 +1004,10 @@ class Dispatcher(Base):
 
         return sub_dsp  # Return the sub-dispatcher.
 
-    def get_sub_dsp_from_workflow(self, sources, graph=None, reverse=False,
-                                  add_missing=False, check_inputs=True,
-                                  blockers=None, wildcard=False):
+    def get_sub_dsp_from_workflow(
+            self, sources, graph=None, reverse=False, add_missing=False,
+            check_inputs=True, blockers=None, wildcard=False,
+            _update_links=True):
         """
         Returns the sub-dispatcher induced by the workflow from sources.
 
@@ -1215,6 +1216,26 @@ class Dispatcher(Base):
 
                 # Add attributes to both representations of edge: u-v and v-u.
                 nbrs[child] = pred[child][parent] = dmap_nbrs[child]
+
+        if _update_links:
+            from .utils.alg import _children, _update_remote_links, remove_links
+            succ, pred = sub_dsp.dmap.succ, sub_dsp.dmap.pred
+            for k, a in sub_dsp.sub_dsp_nodes.items():
+                nodes[k] = a = a.copy()
+                o = {i: selector(stlp(j), succ[k], allow_miss=True)
+                     for i, j in a['outputs'].items()}
+
+                a['outputs'] = o = {i: bypass(*j) for i, j in o.items() if j}
+                a['inputs'] = selector(pred[k], a['inputs'], allow_miss=True)
+                inp = _children(a['inputs'])
+                o = set(o).union(inp)
+                a['function'] = a['function'].get_sub_dsp_from_workflow(
+                    o, a['function'].dmap, True, inp, wildcard=True
+                )
+
+            _update_remote_links(sub_dsp, self)  # Update remote links.
+
+            remove_links(sub_dsp)  # Remove unused links.
 
         return sub_dsp  # Return the sub-dispatcher map.
 
@@ -1589,7 +1610,8 @@ class Dispatcher(Base):
         bfs = bfs_graphs[NONE] if bfs_graphs is not None else self.dmap
 
         # Get sub dispatcher breadth-first-search graph.
-        dsp = self.get_sub_dsp_from_workflow(outputs, bfs, True)
+        dsp = self.get_sub_dsp_from_workflow(outputs, bfs, True,
+                                             _update_links=False)
 
         # Namespace shortcuts.
         in_e, out_e = dsp.dmap.in_edges, dsp.dmap.out_edges
