@@ -6,8 +6,8 @@ schedula: An intelligent function scheduler
 |pypi_ver| |travis_status| |appveyor_status| |cover_status| |docs_status|
 |dependencies| |downloads_count| |github_issues| |python_ver| |proj_license|
 
-:release:       0.1.4
-:date:          2017-01-31 21:00:00
+:release:       0.1.5
+:date:          2017-02-06 19:00:00
 :repository:    https://github.com/vinci1it2000/schedula
 :pypi-repo:     https://pypi.org/project/schedula/
 :docs:          http://schedula.readthedocs.io/
