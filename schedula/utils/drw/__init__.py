@@ -688,9 +688,16 @@ class SiteFolder(object):
                 n = (u, END)
                 edges[n] = combine_dicts(edges.get(n, {}), {'out_id': i})
 
+        d_nodes = self.dsp.nodes
         for (u, v), a in edges.items():
             base = {'type': 'edge', 'dot_ids': (nodes[u].id, nodes[v].id)}
             a = combine_dicts(a, base=base)
+            if v in d_nodes and d_nodes[v]['type'] == 'dispatcher':
+                if not a.get('weight', 1):
+                    a.pop('weight')
+            elif a.get('weight') == 1:
+                a.pop('weight')
+
             yield (u, v), self.folder_node(self, '{} --> {}'.format(u, v), a)
 
     def dot(self, context=None):
