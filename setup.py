@@ -120,4 +120,10 @@ if __name__ == '__main__':
         ],
         test_suite='nose.collector',
         setup_requires=['nose>=1.0'],
+        package_data={
+            'schedula.utils.drw': [
+                'static/*',
+                'templates/*'
+            ]
+        },
     )
