@@ -15,7 +15,7 @@
         font-size: 1em;
         }
 
-        /* ————————————————————–
+        /* ---------------------
         Tree core styles
         */
         .tree { margin: 1em; }
@@ -29,7 +29,7 @@
 
         .tree input:checked ~ ul { display: block; }
 
-        /* ————————————————————–
+        /* ---------------------
         Tree rows
         */
         .tree li {
@@ -42,7 +42,7 @@
 
         .tree > li:last-child { padding-bottom: 0; }
 
-        /* ————————————————————–
+        /* ---------------------
         Tree labels
         */
         .tree_icon {
@@ -55,7 +55,7 @@
 
         label.tree_icon:hover { color: #666; }
 
-        /* ————————————————————–
+        /* ---------------------
         Tree expanded icon
         */
         label.tree_icon:before {
@@ -73,9 +73,9 @@
         line-height: .9em;
         }
 
-        :checked ~ label.tree_icon:before { content: '–'; }
+        :checked ~ label.tree_icon:before { content: '-'; }
 
-        /* ————————————————————–
+        /* ---------------------
         Tree branches
         */
         .tree li:before {
@@ -180,21 +180,29 @@
 {% macro input(sitemap, context) -%}
 {%- for item, next_sitemap in sitemap.items() %}
 <li>
+    {% if next_sitemap and next_sitemap.nodes %}
     <input type="checkbox" id="{{ item.id }}" />
     <label class="tree_icon" for="{{ item.id }}"></label>
     <a class="tree_label" href="{{ context[(item, None)] }}">
-        {{ item.title }}
+        {{ item.title|e }}
     </a>
     <ul>
         {{ input(next_sitemap, context) }}
     </ul>
+    {% else %}
+    <span class="tree_icon">
+        <a class="tree_label" href="{{ context[(item, None)] }}">
+            {{ item.title|e }}
+        </a>
+    </span>
+    {% endif %}
 </li>
 {%- endfor %}
 {%- for item in sitemap.nodes %}
 <li>
     <span class="tree_icon">
         <a class="tree_label" href="{{ context[(item, None)] }}">
-            {{ item.title }}
+            {{ item.title|e }}
         </a>
     </span>
 </li>
@@ -204,6 +212,5 @@
 <ul class="tree">
     {{ input(sitemap, context) }}
 </ul>
-
 </body>
 </html>
