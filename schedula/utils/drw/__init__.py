@@ -27,9 +27,10 @@ import regex
 import socket
 import datetime
 import os
+import pygments
+import bs4
 import jinja2
 import glob
-import shutil
 import weakref
 import collections
 from docutils import nodes as _nodes
@@ -154,11 +155,30 @@ def update_filenames(node, filenames):
             filenames.append(filename)
 
 
-def site_view(app, node, context, generated_files, rendered):
+_header = """
+    <div>
+        <input type="button" VALUE="Back"
+               onClick="window.history.back()">
+        <input type="button" VALUE="Forward"
+               onClick="window.history.forward()">
+    </div>
+"""
+
+
+def add_header(filepath, header):
+    if header and osp.splitext(filepath)[1][1:] == 'html':
+        with open(filepath, 'r') as file:
+            soup = bs4.BeautifulSoup(header, 'lxml')
+            soup.html.body.append(bs4.BeautifulSoup(file, "lxml"))
+        with open(filepath, 'wb') as file:
+            file.write(soup.prettify("utf-8"))
+
+
+def site_view(app, node, context, generated_files, rendered, header=_header):
     static_folder, filepath = app.static_folder, context[(node, None)]
     if not osp.isfile(osp.join(static_folder, filepath)):
-        files = cached_view(node, static_folder, context, rendered).values()
-        generated_files.extend(files)
+        files = cached_view(node, static_folder, context, rendered, header)
+        generated_files.extend(files.values())
     return app.send_static_file(filepath.replace('\\', '/'))
 
 
@@ -182,7 +202,7 @@ def render_output(out, pformat):
 
 class SiteNode(object):
     counter = counter()
-    ext = 'txt'
+    ext = 'html'
     pprint = pprint.PrettyPrinter(compact=True, width=200)
 
     def __init__(self, folder, node_id, item, obj):
@@ -216,13 +236,18 @@ class SiteNode(object):
         return self.title
 
     def render(self, *args, **kwargs):
-        return render_output(self.item, self.pprint.pformat)
+        import pygments.lexers as lexers
+        import pygments.formatters as formatters
+        code = render_output(self.item, self.pprint.pformat)
+        formatter = formatters.HtmlFormatter(noclasses=True)
+        return pygments.highlight(code, lexers.Python3Lexer(), formatter)
 
-    def view(self, filepath, *args, **kwargs):
+    def view(self, filepath, *args, header=_header, **kwargs):
         filepath = uncpath(filepath)
         os.makedirs(osp.dirname(filepath), exist_ok=True)
         with open(filepath, 'w') as f:
             f.write(self.render(*args, **kwargs))
+        add_header(filepath, header)
         return {(id(self.item), None): filepath}
 
 
@@ -578,7 +603,7 @@ class SiteFolder(object):
         'format': 'svg'
     }
     folder_node = FolderNode
-    ext = 'svg'
+    ext = 'html'
 
     def __init__(self, item, dsp, graph, obj, name='', workflow=False,
                  digraph=None, **options):
@@ -623,7 +648,7 @@ class SiteFolder(object):
     @property
     def outputs(self):
         item = self.item
-        if not isinstance(item, SubDispatch) or item.output_type != 'all':
+        if isinstance(item, SubDispatch) and item.output_type != 'all':
             try:
                 return item.outputs or ()
             except AttributeError:
@@ -717,10 +742,9 @@ class SiteFolder(object):
             dot.edge(*edge.attr['dot_ids'], **edge.dot(context))
         return dot
 
-    def view(self, filepath, context=None):
-        fpath, f = osp.splitext(filepath)
+    def view(self, filepath, context=None, header=_header):
         dot = self.dot(context=context)
-        dot.format = f[1:]
+        dot.format = self.digraph['format']
         fpath = dot.render(
             filename=tempfile.mktemp(dir=osp.dirname(filepath)), directory=None,
             cleanup=True
@@ -729,6 +753,7 @@ class SiteFolder(object):
         if osp.isfile(filepath):
             os.remove(filepath)
         os.rename(fpath, filepath)
+        add_header(filepath, header)
         return {(id(self.item), None): filepath}
 
 
@@ -753,20 +778,6 @@ class SiteIndex(SiteNode):
             return jinja2_format(myfile.read(), {'sitemap': self.sitemap,
                                                  'context': context},
                                  loader=jinja2.PackageLoader(__name__))
-
-    def view(self, filepath, *args, **kwargs):
-        files = super(SiteIndex, self).view(filepath, *args, **kwargs)
-        folder = osp.dirname(filepath)
-        from pkg_resources import resource_filename
-        dfl_folder = osp.join(resource_filename(__name__, ''), 'static')
-
-        for fname in self.extra_files:
-            fpath = uncpath(osp.join(folder, fname))
-            if not osp.isfile(fpath):
-                os.makedirs(osp.dirname(fpath), exist_ok=True)
-                shutil.copy(uncpath(osp.join(dfl_folder, fname)), fpath)
-            files[(id(self.item), fname)] = fpath
-        return files
 
 
 def run_server(app, options):
@@ -1020,15 +1031,15 @@ class SiteMap(collections.OrderedDict):
             return item
         raise ValueError('Type %s not supported.' % type(item).__name__)
 
-    def app(self, root_path=None, depth=-1, index=True, **kwargs):
+    def app(self, root_path=None, depth=-1, index=True, header=_header, **kw):
         root_path = osp.abspath(root_path or tempfile.mktemp())
         generated_files, rendered = [], {}
         cleanup = functools.partial(_cleanup, generated_files, rendered)
-        app = basic_app(root_path, cleanup=cleanup, **kwargs)
+        app = basic_app(root_path, cleanup=cleanup, **kw)
         context = self.rules(depth=depth, index=index)
         for (node, extra), filepath in context.items():
             func = functools.partial(
-                site_view, app, node, context, generated_files, rendered
+                site_view, app, node, context, generated_files, rendered, header
             )
             app.add_url_rule('/%s' % filepath, filepath, func)
 
@@ -1046,11 +1057,12 @@ class SiteMap(collections.OrderedDict):
 
         return site
 
-    def render(self, depth=-1, directory='static', view=False, index=True):
+    def render(self, depth=-1, directory='static', view=False, index=True,
+               header=_header):
         context, rendered = self.rules(depth=depth, index=index), {}
         for node, extra in context:
             if not extra:
-                cached_view(node, directory, context, rendered)
+                cached_view(node, directory, context, rendered, header)
 
         fpath = osp.join(directory, next(iter(context.values()), ''))
         if view:
@@ -1058,7 +1070,7 @@ class SiteMap(collections.OrderedDict):
         return fpath
 
 
-def cached_view(node, directory, context, rendered):
+def cached_view(node, directory, context, rendered, header):
     n_id = id(node.item)
     rend = {k: v for k, v in rendered.items() if k[0] == n_id}
     cnt = {(n_id, e): f for (n, e), f in context.items() if n == node}
@@ -1073,7 +1085,10 @@ def cached_view(node, directory, context, rendered):
                         new_file.write(child(parent(line)))
             rend[k] = fpath
     else:
-        rend = node.view(osp.join(directory, context[(node, None)]), context)
+        rend = node.view(
+            osp.join(directory, context[(node, None)]),
+            context=context, header=header
+        )
         rendered.update(rend)
     return rend
 

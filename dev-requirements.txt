@@ -9,5 +9,8 @@ regex
 flask
 numpy
 requests
+Pygments
+lxml
+bs4
 sphinx_rtd_theme
 sphinxcontrib-restbuilder
