@@ -752,6 +752,9 @@ class SiteFolder(object):
         filepath = uncpath(filepath)
         if osp.isfile(filepath):
             os.remove(filepath)
+        if not osp.isfile(fpath):
+            log.error('dot could not render: %s', filepath)
+            return {}
         os.rename(fpath, filepath)
         add_header(filepath, header)
         return {(id(self.item), None): filepath}
