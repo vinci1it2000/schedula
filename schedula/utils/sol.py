@@ -178,9 +178,22 @@ class Solution(Base, collections.OrderedDict):
 
         self._add_out_dsp_inputs()
 
+    def _close(self, cached_ids):
+        p = self.index[:-1]
+        if p:
+            p = self.sub_sol[p]
+            if self.index in cached_ids:
+                k = cached_ids[self.index]
+            else:
+                i = self.index[-1:]
+                k = next(k for k, v in p.nodes.items() if v['index'] == i)
+                cached_ids[self.index] = k
+            return not set(p.dmap[k]).difference(p.dist)
+        return False
+
     def run(self):
         # Initialized and terminated dispatcher sets.
-        dsp_closed, dsp_init = set(), {self.index}
+        dsp_closed, dsp_init, cached_ids = set(), {self.index}, {}
 
         # Reset function pipe.
         pipe = self._pipe = []
@@ -206,8 +219,15 @@ class Solution(Base, collections.OrderedDict):
 
             if sol.stopper.is_set():
                 raise DispatcherAbort(self, "Stop requested.")
+
             # Skip terminated sub-dispatcher or visited nodes.
             if sol.index in dsp_closed or (v is not START and v in sol.dist):
+                continue
+
+            # Close sub-dispatcher solution when all outputs are satisfied.
+            if sol._close(cached_ids):
+                _dsp_closed_add(sol)
+                cached_ids.pop(sol.index)
                 continue
 
             dsp_init_add(sol.index)  # Update initialized dispatcher sets.
@@ -1040,6 +1060,8 @@ class Solution(Base, collections.OrderedDict):
 
         return sol
 
+    def _check_close_sub_dsp(self):
+        pass
     def _see_remote_link_node(self, node_id, fringe=None, dist=None,
                               check_dsp=lambda x: True):
         """

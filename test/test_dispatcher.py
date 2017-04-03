@@ -1187,6 +1187,13 @@ class TestBoundaryDispatch(unittest.TestCase):
         self.dsp_3.add_function('A', min, inputs=['a', 'b'], outputs=['c'])
         self.dsp_3.add_data('c', function=f, callback=f)
 
+        self.dsp_4 = Dispatcher()
+        self.dsp_4.add_dispatcher(
+            dsp=self.dsp_3.copy(),
+            inputs={'A': 'a', 'B': 'b'},
+            outputs={'c': 'c', 'a': 'd', 'b': 'e'}
+        )
+
     def test_dispatch_functions_without_arguments(self):
         dsp = self.dsp
         self.assertEqual(dsp.dispatch(outputs=['a', 'b']), {'a': 3, 'b': 5})
@@ -1210,6 +1217,11 @@ class TestBoundaryDispatch(unittest.TestCase):
         o = dsp.dispatch(inputs={'a': 0, 'b': 5})
         self.assertEqual(o, {'a': 0, 'b': 5})
 
+    def test_sub_dispatcher(self):
+        i = {'A': 1, 'B': 3, 'c': 1, 'd': 1, 'e': 3}
+        sol = self.dsp_4(i)
+        self.assertEqual(sol, i)
+        self.assertEqual(sol.sub_sol[(-1, 0)], {'a': 1, 'b': 3})
 
 class TestNodeOutput(unittest.TestCase):
     def setUp(self):
