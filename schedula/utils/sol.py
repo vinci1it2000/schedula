@@ -286,8 +286,8 @@ class Solution(Base, collections.OrderedDict):
         Returns the full node id.
 
         :return:
-            Full node id and related .
-        :rtype: tuple[str], tuple[Dispatcher]
+            Full node id.
+        :rtype: tuple[str]
         """
 
         sub_sol = self.sub_sol

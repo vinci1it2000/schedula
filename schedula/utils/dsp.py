@@ -37,7 +37,7 @@ def combine_dicts(*dicts, copy=False, base=None):
 
     :param dicts:
         A sequence of dicts.
-    :type dicts: tuple[dict]
+    :type dicts: dict
 
     :param copy:
         If True, it returns a deepcopy of input values.
@@ -77,7 +77,7 @@ def bypass(*inputs, copy=False):
 
     :param inputs:
         Inputs values.
-    :type inputs: (T, ...)
+    :type inputs: T
 
     :param copy:
         If True, it returns a deepcopy of input values.
@@ -133,7 +133,7 @@ def map_dict(key_map, *dicts, copy=False, base=None):
 
     :param dicts:
         A sequence of dicts.
-    :type dicts: tuple[dict]
+    :type dicts: dict
 
     :param copy:
         If True, it returns a deepcopy of input values.
@@ -172,7 +172,7 @@ def map_list(key_map, *inputs, copy=False, base=None):
 
     :param inputs:
         A sequence of data.
-    :type inputs: tuple[dict | int | float | list | tuple]
+    :type inputs: dict | int | float | list | tuple
 
     :param copy:
         If True, it returns a deepcopy of input values.
@@ -450,7 +450,7 @@ def get_nested_dicts(nested_dict, *keys, default=None, init_nesting=dict):
 
     :param keys:
         Nested keys.
-    :type keys: tuple
+    :type keys: object
 
     :param default:
         Function used to initialize a new value.
@@ -487,7 +487,7 @@ def are_in_nested_dicts(nested_dict, *keys):
 
     :param keys:
         Nested keys.
-    :type keys: tuple
+    :type keys: object
 
     :return:
         True if nested keys are inside of nested-dictionaries, otherwise False.
@@ -509,7 +509,7 @@ def combine_nested_dicts(*nested_dicts, depth=-1, base=None):
 
     :param nested_dicts:
         Nested dictionaries.
-    :type nested_dicts: tuple[dict]
+    :type nested_dicts: dict
 
     :param depth:
         Maximum keys depth.
