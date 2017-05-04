@@ -34,13 +34,14 @@ def open_file(path_arg, mode='r'):
 
     :return:
         Function which cleanly executes the io.
-    :rtype: function
+    :rtype: callable
     """
     from decorator import decorator
 
     @decorator
     def _open_file(func, *args, **kwargs):
         from networkx.utils import open_file as nx_open_file
+        # noinspection PyCallingNonCallable
         return nx_open_file(path_arg, mode=mode)(func)(*args, **kwargs)
 
     return _open_file
