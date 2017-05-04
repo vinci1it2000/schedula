@@ -50,9 +50,9 @@ PLATFORM = platform.system().lower()
 _UNC = u'\\\\?\\' if PLATFORM == 'windows' else ''
 
 
-class DspPlot(gviz.Digraph):
+class _DspPlot(gviz.Digraph):
     def __init__(self, sitemap, *args, **kwargs):
-        super(DspPlot, self).__init__(*args, **kwargs)
+        super(_DspPlot, self).__init__(*args, **kwargs)
         self.sitemap = sitemap
 
     @property
@@ -732,7 +732,7 @@ class SiteFolder(object):
             'body': {'label': '<%s>' % self.label_name}
         })
         kw['body'] = ['%s = %s' % (k, v) for k, v in sorted(kw['body'].items())]
-        dot = DspPlot(self.sitemap, **kw)
+        dot = _DspPlot(self.sitemap, **kw)
         id_map = {}
         for node in self.nodes:
             id_map[node.node_id] = node.id
@@ -917,7 +917,7 @@ class SiteMap(collections.OrderedDict):
     site_folder = SiteFolder
     site_node = SiteNode
     site_index = SiteIndex
-    _view = DspPlot(None)._view
+    _view = _DspPlot(None)._view
     options = {
         'digraph', 'node_styles', 'node_data', 'node_function', 'edge_data',
         'max_lines', 'max_width'

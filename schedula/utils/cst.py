@@ -47,7 +47,7 @@ END = Token('end')
 SELF = Token('self')
 
 #: Plot node, it is a node that plot the dispatcher solution.
-#: .. note:: you can pass the `kwargs` of :class:`~schedula.utils.drw.DspPlot`
+#: .. note:: you can pass the `kwargs` of :class:`~schedula.utils.drw._DspPlot`
 #: .. seealso:: :func:`~schedula.Dispatcher.add_data`,
 #: :func:`~schedula.Dispatcher.add_function`,
 #: :func:`~schedula.Dispatcher.add_dispatcher`
