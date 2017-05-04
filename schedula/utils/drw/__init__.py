@@ -9,7 +9,7 @@
 """
 It provides functions to plot dispatcher map and workflow.
 """
-
+import subprocess
 import graphviz as gviz
 import os.path as osp
 import string
@@ -746,17 +746,20 @@ class SiteFolder(object):
     def view(self, filepath, context=None, header=_header):
         dot = self.dot(context=context)
         dot.format = self.digraph['format']
-        fpath = dot.render(
-            filename=tempfile.mktemp(dir=osp.dirname(filepath)), directory=None,
-            cleanup=True
-        )
-        filepath = uncpath(filepath)
-        if osp.isfile(filepath):
-            os.remove(filepath)
-        if not osp.isfile(fpath):
-            log.error('dot could not render: %s', filepath)
+        try:
+            fpath = dot.render(
+                filename=tempfile.mktemp(dir=osp.dirname(filepath)),
+                directory=None,
+                cleanup=True
+            )
+            filepath = uncpath(filepath)
+            if osp.isfile(filepath):
+                os.remove(filepath)
+            os.rename(fpath, filepath)
+        except Exception as ex:
+            log.error('dot could not render %s due to:\n %r', filepath, ex)
             return {}
-        os.rename(fpath, filepath)
+
         add_header(filepath, header)
         return {(id(self.item), None): filepath}
 
