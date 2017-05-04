@@ -30,7 +30,7 @@ from .utils import (
     stlp, combine_dicts, bypass, summation, map_dict, map_list, selector,
     replicate_value, add_args, stack_nested_keys, get_nested_dicts,
     are_in_nested_dicts, combine_nested_dicts, SubDispatch, parent_func,
-    SubDispatchFunction, SubDispatchPipe, kk_dict,
+    SubDispatchFunction, SubDispatchPipe, kk_dict, add_function,
 
     DispatcherError, DispatcherAbort,
 

@@ -1167,3 +1167,81 @@ class DFun(object):
             except Exception as ex:
                 raise ValueError("Failed adding dfun %s due to: %s: %s"
                                  % (uf, type(ex).__name__, ex)) from ex
+
+
+def _get_parameters(func, include_kwargs=False):
+    var = (inspect._VAR_POSITIONAL, inspect._VAR_KEYWORD)
+
+    if include_kwargs:
+        var += inspect._KEYWORD_ONLY,
+
+    par = collections.OrderedDict()
+    sig = _get_signature(func, 0)
+    for k, v in sig._parameters.items():
+        if v._kind in var:
+            break
+        par[k] = v
+    return par
+
+
+def add_function(dsp, inputs_kwargs=False, inputs_defaults=False, **kw):
+    """
+    Decorator to add a function to a dispatcher.
+
+    :param dsp:
+        A dispatcher.
+    :type dsp: schedula.Dispatcher
+
+    :param inputs_kwargs:
+        Do you want to include kwargs as inputs? 
+    :type inputs_kwargs: bool
+    
+    :param inputs_defaults:
+        Do you want to set default values? 
+    :type inputs_defaults: bool
+    
+    :param kw:
+        See :func:~`schedula.Dispatcher.add_function`.
+    :type kw: dict
+
+    :return:
+        Decorator.
+    :rtype: callable
+    
+    **Example**:
+    
+    .. dispatcher:: dsp
+       :opt: graph_attr={'ratio': '1'}
+
+        >>> import schedula as sh
+        >>> dsp = sh.Dispatcher(name='Dispatcher')
+        >>> @sh.add_function(dsp, outputs=['e'])
+        ... def func(a, b, c, d=0):
+        ...     return (a + b) - c + d
+        
+    .. dispatcher:: dsp
+       :opt: graph_attr={'ratio': '1'}
+       
+        >>> import schedula as sh
+        >>> dsp = sh.Dispatcher(name='Dispatcher')
+        >>> @sh.add_function(dsp, True, True, outputs=['e'])
+        ... def func(a, b, c, d=0):
+        ...     return (a + b) - c + d
+    """
+
+    def decorator(f):
+        par = {}
+        if 'inputs' not in kw or inputs_defaults:
+            par = _get_parameters(f, inputs_kwargs)
+
+        kw['inputs'] = kw.get('inputs', tuple(par))
+
+        dsp.add_function(function=f, **kw)
+
+        if inputs_defaults:
+            for k, v in zip(kw['inputs'], par.values()):
+                if v._default is not inspect._empty:
+                    dsp.set_default_value(k, v._default)
+        return f
+
+    return decorator
