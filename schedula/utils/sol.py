@@ -730,10 +730,10 @@ class Solution(Base, collections.OrderedDict):
         attr = {'started': datetime.today()}
         try:
             if not self.no_domain and 'input_domain' in node_attr:
+                # noinspection PyCallingNonCallable
                 attr['solution_domain'] = s = node_attr['input_domain'](*args)
             else:
                 s = True
-            # noinspection PyCallingNonCallable
             if not s:
                 return False  # Args are not respecting the domain.
             else:  # Use the estimation function of node.
@@ -1062,6 +1062,7 @@ class Solution(Base, collections.OrderedDict):
 
     def _check_close_sub_dsp(self):
         pass
+
     def _see_remote_link_node(self, node_id, fringe=None, dist=None,
                               check_dsp=lambda x: True):
         """

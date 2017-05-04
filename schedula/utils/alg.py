@@ -30,7 +30,7 @@ def add_edge_fun(graph):
 
     :return:
         A function that adds an edge to the `graph`.
-    :rtype: function
+    :rtype: callable
     """
 
     # Namespace shortcut for speed.
@@ -57,7 +57,7 @@ def remove_edge_fun(graph):
 
     :return:
         A function that remove an edge from the `graph`.
-    :rtype: function
+    :rtype: callable
     """
 
     # Namespace shortcut for speed.
@@ -180,7 +180,7 @@ def _add_edge_dmap_fun(graph, edges_weights=None):
 
     :return:
         A function that adds an edge to the `graph`.
-    :rtype: function
+    :rtype: callable
     """
 
     add = graph.add_edge  # Namespace shortcut for speed.

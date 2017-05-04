@@ -252,13 +252,13 @@ class Dispatcher(Base):
             This can be any function that takes only one dictionary
             (key=function node id, value=estimation of data node) as input and
             return one value that is the estimation of the data node.
-        :type function: function, optional
+        :type function: callable, optional
 
         :param callback:
             Callback function to be called after node estimation.
             This can be any function that takes only one argument that is the
             data node estimation output. It does not return anything.
-        :type callback: function, optional
+        :type callback: callable, optional
 
         :param remote_links:
             List of parent or child dispatcher nodes e.g., [[dsp_id, dsp], ...].
@@ -404,7 +404,7 @@ class Dispatcher(Base):
 
         :param function:
             Data node estimation function.
-        :type function: function, optional
+        :type function: callable, optional
 
         :param inputs:
             Ordered arguments (i.e., data node ids) needed by the function.
@@ -419,7 +419,7 @@ class Dispatcher(Base):
             This can be any function that takes the same inputs of the function
             and returns True if input values satisfy the domain, otherwise
             False. In this case the dispatch algorithm doesn't pass on the node.
-        :type input_domain: function, optional
+        :type input_domain: callable, optional
 
         :param weight:
             Node weight. It is a weight coefficient that is used by the dispatch

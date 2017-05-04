@@ -218,7 +218,7 @@ def map_list(key_map, *inputs, copy=False, base=None):
 
     :param inputs:
         A sequence of data.
-    :type inputs: dict | int | float | list | tuple
+    :type inputs: iterable | dict | int | float | list | tuple
 
     :param copy:
         If True, it returns a deepcopy of input values.
@@ -385,7 +385,7 @@ class add_args(object):
 
     :param func:
         Function to wrap.
-    :type func: function
+    :type func: callable
 
     :param n:
         Number of unused arguments to add to the left side.
@@ -393,7 +393,7 @@ class add_args(object):
 
     :return:
         Wrapped function.
-    :rtype: function
+    :rtype: callable
 
     Example::
 
@@ -500,11 +500,11 @@ def get_nested_dicts(nested_dict, *keys, default=None, init_nesting=dict):
 
     :param default:
         Function used to initialize a new value.
-    :type default: function, optional
+    :type default: callable, optional
 
     :param init_nesting:
         Function used to initialize a new intermediate nesting dict.
-    :type init_nesting: function, optional
+    :type init_nesting: callable, optional
 
     :return:
         Value of nested-dictionary.
@@ -597,7 +597,7 @@ class SubDispatch(Base):
     :return:
         A function that executes the dispatch of the given
         :func:`~schedula.Dispatcher`.
-    :rtype: function
+    :rtype: callable
 
     .. seealso:: :func:`~schedula.Dispatcher.dispatch`, :func:`combine_dicts`
 
@@ -757,7 +757,7 @@ class SubDispatchFunction(SubDispatch):
 
     :return:
         A function that executes the dispatch of the given `dsp`.
-    :rtype: function
+    :rtype: callable
 
     .. seealso:: :func:`~schedula.Dispatcher.dispatch`,
        :func:`~schedula.Dispatcher.shrink_dsp`
@@ -920,7 +920,7 @@ class SubDispatchPipe(SubDispatchFunction):
 
     :return:
         A function that executes the pipe of the given `dsp`, updating .
-    :rtype: function
+    :rtype: callable
 
     .. seealso:: :func:`~schedula.Dispatcher.dispatch`,
        :func:`~schedula.Dispatcher.shrink_dsp`
