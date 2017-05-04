@@ -11,7 +11,9 @@ It provides Dispatcher class.
 
 import threading
 from .utils.cst import EMPTY, START, NONE, SINK, SELF, PLOT
-from .utils.dsp import bypass, combine_dicts, selector, stlp, parent_func
+from .utils.dsp import (
+    bypass, combine_dicts, selector, stlp, parent_func, kk_dict
+)
 from .utils.gen import counter
 from .utils.base import Base
 
@@ -565,12 +567,14 @@ class Dispatcher(Base):
         :param inputs:
             Inputs mapping. Data node ids from parent dispatcher to child
             sub-dispatcher.
-        :type inputs: dict[str, str | list[str]]
+        :type inputs: dict[str, str | list[str]] | tuple[str] | 
+                      (str, ..., dict[str, str | list[str]])
 
         :param outputs:
             Outputs mapping. Data node ids from child sub-dispatcher to parent
             dispatcher.
-        :type outputs: dict[str, str | list[str]]
+        :type outputs: dict[str, str | list[str]] | tuple[str] | 
+                       (str, ..., dict[str, str | list[str]])
 
         :param dsp_id:
             Sub-dispatcher node id.
@@ -660,6 +664,12 @@ class Dispatcher(Base):
 
         if description is None:  # Get description.
             description = dsp.__doc__ or None
+
+        if not isinstance(inputs, dict):  # Create the inputs dict.
+            inputs = kk_dict(*inputs)
+
+        if not isinstance(outputs, dict):  # Create the outputs dict.
+            outputs = kk_dict(*outputs)
 
         # Set zero as default input distances.
         _weight_from = dict.fromkeys(inputs.keys(), 0.0)
