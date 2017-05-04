@@ -134,7 +134,8 @@ def valid_filename(item, filenames, ext=None):
         _filename = item
     else:
         _filename = item._filename
-        ext = ext or item.ext
+        if ext is None:
+            ext = item.ext
     _ = '%s' + ('.{}'.format(ext) if ext != '' else '')
 
     filename, c = _ % _filename, counter()
