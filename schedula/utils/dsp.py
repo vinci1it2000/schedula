@@ -71,6 +71,52 @@ def combine_dicts(*dicts, copy=False, base=None):
     return {k: _copy.deepcopy(v) for k, v in cd.items()} if copy else cd
 
 
+def kk_dict(*kk, **adict):
+    """
+    Merges and defines dictionaries with values identical to keys.
+
+    :param kk:
+        A sequence of keys and/or dictionaries.
+    :type kk: object | dict, optional
+
+    :param adict:
+        A dictionary.
+    :type adict: dict, optional
+
+    :return:
+        Merged dictionary.
+    :rtype: dict
+
+    Example::
+
+        >>> sorted(kk_dict('a', 'b', 'c').items())
+        [('a', 'a'), ('b', 'b'), ('c', 'c')]
+        
+        >>> sorted(kk_dict('a', 'b', **{'a-c': 'c'}).items())
+        [('a', 'a'), ('a-c', 'c'), ('b', 'b')]
+        
+        >>> sorted(kk_dict('a', {'b': 'c'}, 'c').items())
+        [('a', 'a'), ('b', 'c'), ('c', 'c')]
+        
+        >>> sorted(kk_dict('a', 'b', **{'b': 'c'}).items())
+        Traceback (most recent call last):
+         ...
+        ValueError: keyword argument repeated
+    """
+
+    for k in kk:
+        if isinstance(k, dict):
+            if not set(k).isdisjoint(adict):
+                raise ValueError('keyword argument repeated')
+            adict.update(k)
+        elif k in adict:
+            raise ValueError('keyword argument repeated')
+        else:
+            adict[k] = k
+
+    return adict
+
+
 def bypass(*inputs, copy=False):
     """
     Returns the same arguments.
