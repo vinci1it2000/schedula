@@ -1164,6 +1164,8 @@ class DFun(object):
         for uf in dfuns:
             try:
                 uf.addme(dsp)
+            except KeyboardInterrupt as ex:
+                raise ex
             except Exception as ex:
                 raise ValueError("Failed adding dfun %s due to: %s: %s"
                                  % (uf, type(ex).__name__, ex)) from ex

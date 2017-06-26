@@ -570,6 +570,8 @@ class Solution(Base, collections.OrderedDict):
                         value = self._evaluate_function(
                             (kwargs,), node_id, node_attr, attr
                         )
+                    except KeyboardInterrupt as ex:
+                        raise ex
                     except Exception as ex:
                         if 'started' in attr:
                             dt = datetime.today() - attr['started']
@@ -591,6 +593,8 @@ class Solution(Base, collections.OrderedDict):
                     value = self._evaluate_function(
                         (kwargs,), node_id, node_attr, attr
                     )
+                except KeyboardInterrupt as ex:
+                    raise ex
                 except Exception as ex:
                     if 'started' in attr:
                         attr['duration'] = datetime.today() - attr['started']
@@ -601,7 +605,8 @@ class Solution(Base, collections.OrderedDict):
             try:
                 # Apply filters to output.
                 value = self._apply_filters(value, node_id, node_attr, attr)
-
+            except KeyboardInterrupt as ex:
+                raise ex
             except Exception as ex:
                 if 'started' in attr:
                     attr['duration'] = datetime.today() - attr['started']
@@ -620,6 +625,8 @@ class Solution(Base, collections.OrderedDict):
                 try:
                     # noinspection PyCallingNonCallable
                     node_attr['callback'](value)
+                except KeyboardInterrupt as ex:
+                    raise ex
                 except Exception as ex:
                     msg = "Failed CALLBACKING '%s' due to:\n  %s"
                     self._warning(msg, node_id, ex)
@@ -749,7 +756,8 @@ class Solution(Base, collections.OrderedDict):
 
                 # List of function results.
                 res = res if len(o_nds) > 1 else [res]
-
+        except KeyboardInterrupt as ex:
+            raise ex
         except Exception as ex:
             if isinstance(ex, DispatcherError):  # Save intermediate results.
                 attr['duration'] = datetime.today() - attr['started']
