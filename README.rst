@@ -94,12 +94,20 @@ Note that with this simple system the maximum number of inputs combinations is
     >>> import schedula
     >>> import os.path as osp
     >>> dsp = schedula.Dispatcher()
+    >>> dsp.add_data(data_id='dirname', default_value='.', initial_dist=2)
+    'dirname'
     >>> dsp.add_function(function=osp.split, inputs=['path'],
     ...                  outputs=['dirname', 'basename'])
     'split'
     >>> dsp.add_function(function=osp.splitext, inputs=['basename'],
     ...                  outputs=['fname', 'suffix'])
     'splitext'
+    >>> dsp.add_function(function=osp.join, inputs=['dirname', 'basename'],
+    ...                  outputs=['path'])
+    'join'
+    >>> dsp.add_function(function_id='union', function=lambda *a: ''.join(a),
+    ...                  inputs=['fname', 'suffix'], outputs=['basename'])
+    'union'
 
 .. tip::
    You can explore the diagram by clicking on it.
