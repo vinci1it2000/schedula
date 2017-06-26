@@ -193,7 +193,12 @@ def setup(app):
     # replace callback process_generate_options of 'builder-inited' event.
     import sphinx.ext.autosummary as mdl
     event = 'builder-inited'
-    listeners = app._listeners[event]
+
+    try:
+        listeners = app._listeners[event]
+    except AttributeError:  # Sphinx 1.6.2
+        listeners = app.events.listeners[event]
+
     for listener_id, callback in listeners.items():
         if callback is mdl.process_generate_options:
             listeners[listener_id] = process_generate_options
