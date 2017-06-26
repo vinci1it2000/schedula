@@ -528,7 +528,7 @@ class Dispatcher(Base):
         if function_id is None:
             try:  # Set function name.
                 function_name = func.__name__
-            except Exception as ex:
+            except AttributeError as ex:
                 raise ValueError('Invalid function id due to:\n{}'.format(ex))
         else:
             function_name = function_id

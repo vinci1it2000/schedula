@@ -756,6 +756,8 @@ class SiteFolder(object):
             if osp.isfile(filepath):
                 os.remove(filepath)
             os.rename(fpath, filepath)
+        except KeyboardInterrupt as ex:
+            raise ex
         except Exception as ex:
             log.error('dot could not render %s due to:\n %r', filepath, ex)
             return {}
