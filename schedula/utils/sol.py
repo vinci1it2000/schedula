@@ -218,7 +218,7 @@ class Solution(Base, collections.OrderedDict):
             n = (d, _, (v, sol)) = heapq.heappop(fringe)
 
             if sol.stopper.is_set():
-                raise DispatcherAbort(self, "Stop requested.")
+                raise DispatcherAbort("Stop requested.", sol=self)
 
             # Skip terminated sub-dispatcher or visited nodes.
             if sol.index in dsp_closed or (v is not START and v in sol.dist):
