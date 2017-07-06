@@ -1047,7 +1047,7 @@ class SubDispatchPipe(SubDispatchFunction):
             s = key_map[s]
 
             if s.stopper.is_set():
-                raise DispatcherAbort(sol, "Stop requested.")
+                raise DispatcherAbort("Stop requested.", sol=sol)
 
             has_node = v not in s.workflow.node
             if has_node or not s._set_node_output(v, False, next_nds=nxt_nds):
