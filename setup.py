@@ -108,7 +108,7 @@ if __name__ == '__main__':
         ],
         install_requires=[
             'networkx',
-            'dill',
+            'dill<=0.2.6',
             'graphviz',
             'docopt',
             'regex',

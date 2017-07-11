@@ -1,5 +1,5 @@
 networkx
-dill
+dill<=0.2.6
 graphviz
 nose
 wheel
