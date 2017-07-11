@@ -6,8 +6,8 @@ schedula: An intelligent function scheduler
 |pypi_ver| |travis_status| |appveyor_status| |cover_status| |docs_status|
 |dependencies| |downloads_count| |github_issues| |python_ver| |proj_license|
 
-:release:       0.1.13
-:date:          2017-06-26 12:00:00
+:release:       0.1.14
+:date:          2017-07-11 10:00:00
 :repository:    https://github.com/vinci1it2000/schedula
 :pypi-repo:     https://pypi.org/project/schedula/
 :docs:          http://schedula.readthedocs.io/
@@ -45,7 +45,7 @@ To install it use (with root privileges):
 
 .. code-block:: console
 
-    $ pip install schedula --process-dependency-links
+    $ pip install schedula
 
 Or download the last git version and use (with root privileges):
 
