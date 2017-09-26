@@ -107,8 +107,8 @@ if __name__ == '__main__':
             "Topic :: Utilities",
         ],
         install_requires=[
-            'networkx',
-            'dill<=0.2.6',
+            'networkx>=2.0.0',
+            'dill>=0.2.7.1',
             'graphviz',
             'docopt',
             'regex',
