@@ -463,13 +463,13 @@ class Solution(Base, collections.OrderedDict):
         # Check if node has multiple estimations and it is not waiting inputs.
         if len(estimations) > 1 and not self._wait_in.get(node_id, wait_in):
             # Namespace shortcuts.
-            dist, edg_length, edg = self.dist, self._edge_length, self.dmap.edge
+            dist, edg_length, adj = self.dist, self._edge_length, self.dmap.adj
 
             est = []  # Estimations' heap.
 
             for k, v in estimations.items():  # Calculate length.
                 if k is not START:
-                    d = dist[k] + edg_length(edg[k][node_id], node_attr)
+                    d = dist[k] + edg_length(adj[k][node_id], node_attr)
                     heapq.heappush(est, (d, k, v))
 
             # The estimation with minimum distance from the starting node.

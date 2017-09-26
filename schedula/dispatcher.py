@@ -183,7 +183,7 @@ class Dispatcher(Base):
         self.__doc__ = description
 
         #: The function and data nodes of the dispatcher.
-        self.nodes = self.dmap.node
+        self.nodes = self.dmap._node
 
         #: Data node default values. These will be used as input if it is not
         #: specified as inputs in the ArciDispatch algorithm.
@@ -378,12 +378,12 @@ class Dispatcher(Base):
             data_id = get_unused_node_id(self.dmap)  # Get an unused node id.
 
         # Check if the node id exists as function.
-        elif has_node(data_id) and self.dmap.node[data_id]['type'] != 'data':
+        elif has_node(data_id) and self.dmap.nodes[data_id]['type'] != 'data':
             raise ValueError('Invalid data id: '
                              'override function {}'.format(data_id))
 
         # Add node to the dispatcher map.
-        self.dmap.add_node(data_id, attr_dict=attr_dict)
+        self.dmap.add_node(data_id, **attr_dict)
 
         # Set default value.
         self.set_default_value(data_id, default_value, initial_dist)
@@ -543,7 +543,7 @@ class Dispatcher(Base):
         attr_dict.update(kwargs)  # Set additional attributes.
 
         # Add node to the dispatcher map.
-        self.dmap.add_node(fun_id, attr_dict=attr_dict)
+        self.dmap.add_node(fun_id, **attr_dict)
 
         from .utils.alg import add_func_edges  # Add input edges.
         n_data = add_func_edges(self, fun_id, inputs, inp_weight, True)
@@ -853,7 +853,7 @@ class Dispatcher(Base):
         """
 
         try:
-            if self.dmap.node[data_id]['type'] == 'data':  # Check if data node.
+            if self.dmap.nodes[data_id]['type'] == 'data':  # Check if data node.
                 if value is EMPTY:
                     self.default_values.pop(data_id, None)  # Remove default.
                 else:  # Add default.
@@ -889,7 +889,7 @@ class Dispatcher(Base):
             self.add_data(SINK)  # Add sink node.
 
         try:
-            if self.dmap.node[data_id]['type'] == 'data':  # Check if data node.
+            if self.dmap.nodes[data_id]['type'] == 'data':  # Check if data node.
 
                 type = ['child', 'parent'][is_parent]  # Remote link type.
 
@@ -979,7 +979,9 @@ class Dispatcher(Base):
         nodes_bunch = [self.get_node(u)[1][0] for u in nodes_bunch]
 
         # Define an empty dispatcher.
-        sub_dsp = self.copy_structure(dmap=self.dmap.subgraph(nodes_bunch))
+        sub_dsp = self.copy_structure(
+            dmap=self.dmap.subgraph(nodes_bunch).copy()
+        )
 
         # Namespace shortcuts for speed.
         nodes, dmap_out_degree = sub_dsp.nodes, sub_dsp.dmap.out_degree
@@ -999,7 +1001,7 @@ class Dispatcher(Base):
                 dmap_rm_edge(*e)  # Remove edge.
 
         # Remove function node with no outputs.
-        for u in [u for u, n in sub_dsp.dmap.nodes_iter(True)
+        for u in [u for u, n in sub_dsp.dmap.nodes.items()
                   if n['type'] == 'function']:
 
             if not dmap_out_degree(u):  # No outputs.
@@ -1007,7 +1009,7 @@ class Dispatcher(Base):
 
         from networkx import isolates
         # Remove isolate nodes from sub-graph.
-        sub_dsp.dmap.remove_nodes_from(isolates(sub_dsp.dmap))
+        sub_dsp.dmap.remove_nodes_from(list(isolates(sub_dsp.dmap)))
 
         # Set default values.
         sub_dsp.default_values = {k: dmap_dv[k] for k in dmap_dv if k in nodes}
@@ -1121,13 +1123,13 @@ class Dispatcher(Base):
         family = {}
 
         # Namespace shortcuts for speed.
-        nodes, dmap_nodes = sub_dsp.dmap.node, self.dmap.node
+        nodes, dmap_nodes = sub_dsp.dmap._node, self.dmap.nodes
         dlt_val, dsp_dlt_val = sub_dsp.default_values, self.default_values
 
         if not reverse:
             # Namespace shortcuts for speed.
-            neighbors, dmap_succ = graph.neighbors_iter, self.dmap.succ
-            succ, pred = sub_dsp.dmap.succ, sub_dsp.dmap.pred
+            neighbors, dmap_succ = graph.neighbors, self.dmap.succ
+            succ, pred = sub_dsp.dmap._succ, sub_dsp.dmap._pred
 
             # noinspection PyUnusedLocal
             def _check_node_inputs(c, p):
@@ -1169,8 +1171,8 @@ class Dispatcher(Base):
 
         else:
             # Namespace shortcuts for speed.
-            neighbors, dmap_succ = graph.predecessors_iter, self.dmap.pred
-            pred, succ = sub_dsp.dmap.succ, sub_dsp.dmap.pred
+            neighbors, dmap_succ = graph.predecessors, self.dmap.pred
+            pred, succ = sub_dsp.dmap._succ, sub_dsp.dmap._pred
 
             def _check_node_inputs(c, p):
                 if c == START:
@@ -1205,7 +1207,7 @@ class Dispatcher(Base):
 
         # Set initial node attributes.
         for s in sources:
-            if s in dmap_nodes and s in graph.node:
+            if s in dmap_nodes and s in graph.nodes:
                 _set_node_attr(s, block=not (wildcard and s in blockers))
 
         # Start breadth-first-search.

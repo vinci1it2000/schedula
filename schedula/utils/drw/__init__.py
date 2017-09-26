@@ -682,9 +682,9 @@ class SiteFolder(object):
             i, v = x
             return i in nodes and (i is not SINK or not is_isolate(graph, SINK))
 
-        gnode = graph.node
+        gnode = graph.nodes
         it = dict(filter(nodes_filter, gnode.items()))
-        if not nodes or not (graph.edge or self.inputs or self.outputs):
+        if not nodes or not (graph.edges or self.inputs or self.outputs):
             it[EMPTY] = {'index': (EMPTY,)}
 
         if START in gnode or any(i in it for i in self.inputs):
@@ -701,8 +701,7 @@ class SiteFolder(object):
             yield k, self.folder_node(self, k, attr, **self.options)
 
     def _edges(self, nodes):
-        edges = self.graph.edges_iter(data=True)
-        edges = {(u, v): a for u, v, a in edges if u != v}
+        edges = {(u, v): a for (u, v), a in self.graph.edges.items() if u != v}
 
         for i, v in enumerate(self.inputs):
             if v != START and v in nodes:

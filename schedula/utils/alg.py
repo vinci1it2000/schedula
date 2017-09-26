@@ -34,7 +34,7 @@ def add_edge_fun(graph):
     """
 
     # Namespace shortcut for speed.
-    succ, pred, node = graph.succ, graph.pred, graph.node
+    succ, pred, node = graph._succ, graph._pred, graph._node
 
     def add_edge(u, v, **attr):
         if v not in succ:  # Add nodes.
@@ -141,7 +141,7 @@ def add_func_edges(dsp, fun_id, nodes_bunch, edge_weights=None, input=True,
 
     # Namespace shortcut for speed.
     add_edge = _add_edge_dmap_fun(dsp.dmap, edge_weights)
-    node, add_data = dsp.dmap.node, dsp.add_data
+    node, add_data = dsp.dmap.nodes, dsp.add_data
     remove_nodes = dsp.dmap.remove_nodes_from
 
     # Define an error message.
@@ -553,7 +553,7 @@ def get_sub_node(dsp, path, node_attr='auto', solution=NONE, _level=0,
         elif node_attr == 'auto' and sol is not EMPTY and node_id in sol:
             data = sol[node_id]  # Auto: data output.
         elif node_attr == 'output' and node['type'] != 'data':
-            data = sol.workflow.node[node_id]['solution']
+            data = sol.workflow.nodes[node_id]['solution']
         elif node_attr == 'output' and node['type'] == 'data':
             data = sol[node_id]
         elif node_attr == 'description':  # Search and return node description.

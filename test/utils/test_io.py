@@ -49,7 +49,7 @@ if platform.python_implementation() != "PyPy":
         def test_load_dispatcher(self):
             save_dispatcher(self.dsp, self.tmp)
             dsp = load_dispatcher(self.tmp)
-            self.assertEqual(dsp.dmap.node['a']['type'], 'data')
+            self.assertEqual(dsp.dmap.nodes['a']['type'], 'data')
             self.assertEqual(dsp.dispatch()['b'], 6)
 
         def test_save_default_values(self):
@@ -73,5 +73,5 @@ if platform.python_implementation() != "PyPy":
             self.assertEqual(
                 dsp.dmap.degree(self.fun_id), self.dsp.dmap.degree(self.fun_id)
             )
-            self.assertEqual(dsp.dmap.node[self.fun_id]['function'](1), 2)
+            self.assertEqual(dsp.dmap.nodes[self.fun_id]['function'](1), 2)
             self.assertEqual(dsp.dispatch()['b'], 6)
