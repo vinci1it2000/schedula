@@ -1,5 +1,5 @@
 networkx>=2.0.0
-dill>=0.2.7.1
+dill!=0.2.7
 graphviz
 nose
 wheel
