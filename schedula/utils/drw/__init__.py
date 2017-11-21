@@ -864,6 +864,7 @@ class Site:
         kw = kw.copy()
         kw['host'] = self.host = host or self.host
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.bind((self.host, port or self.port))
         kw['port'] = self.port = sock.getsockname()[1]
         sock.close()
