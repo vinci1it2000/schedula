@@ -81,7 +81,8 @@ class Base(object):
         You can create a web server with the following steps::
 
             >>> webmap = dsp.web()
-            >>> site = webmap.site().run(); site
+            >>> print("Starting...\\n"); site = webmap.site().run(); site
+            Starting...
             Site(WebMap([(Dispatcher, WebMap())]), host='localhost', ...)
             >>> import requests
             >>> url = '%s/%s/%s' % (site.url, dsp.name, fun.__name__)
