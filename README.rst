@@ -4,7 +4,7 @@
 schedula: An intelligent function scheduler
 ###########################################
 |pypi_ver| |travis_status| |appveyor_status| |cover_status| |docs_status|
-|dependencies| |downloads_count| |github_issues| |python_ver| |proj_license|
+|dependencies| |github_issues| |python_ver| |proj_license|
 
 :release:       0.1.16
 :date:          2017-09-26 17:00:00
@@ -254,10 +254,6 @@ parallel.
 .. |python_ver| image:: https://img.shields.io/pypi/pyversions/schedula.svg?
     :target: https://pypi.python.org/pypi/schedula/
     :alt: Supported Python versions
-
-.. |downloads_count| image:: https://img.shields.io/pypi/dm/schedula.svg?period=month
-    :target: https://pypi.python.org/pypi/schedula/
-    :alt: Downloads
 
 .. |github_issues| image:: https://img.shields.io/github/issues/vinci1it2000/schedula.svg?
     :target: https://github.com/vinci1it2000/schedula/issues
