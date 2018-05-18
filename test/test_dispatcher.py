@@ -93,9 +93,9 @@ class TestCreateDispatcher(unittest.TestCase):
         self.assertEqual(dsp.add_data(), 'unknown')
 
         self.assertEqual(dsp.add_data(default_value='v'), 'unknown<0>')
-        self.assertEqual(dsp.dmap.nodes['unknown<0>'], {'wait_inputs': False,
-                                                       'type': 'data',
-                                                       'index': (3,)})
+        self.assertEqual(dsp.dmap.nodes['unknown<0>'], {
+            'wait_inputs': False, 'type': 'data', 'index': (3,)
+        })
         r = {'initial_dist': 0.0, 'value': 'v'}
         self.assertEqual(dsp.default_values['unknown<0>'], r)
 
@@ -109,7 +109,7 @@ class TestCreateDispatcher(unittest.TestCase):
         self.assertEqual(set(dsp.dmap.nodes['a'].keys()), set(res))
 
         dsp.add_function(function_id='fun', inputs=['a'])
-        self.assertRaises(ValueError, dsp.add_data, *('fun', ))
+        self.assertRaises(ValueError, dsp.add_data, *('fun',))
 
     def test_add_function(self):
         dsp = Dispatcher()
@@ -206,7 +206,7 @@ class TestCreateDispatcher(unittest.TestCase):
 
         dsp_id = dsp.add_dispatcher(sub_dsp,
                                     inputs={'d': 'a', 'e': 'b'},
-                                    outputs={'c':'d', 'e':'e'})
+                                    outputs={'c': 'd', 'e': 'e'})
 
         self.assertEqual(dsp_id, 'sub_dispatcher')
         dsp.nodes[dsp_id].pop('function')
@@ -219,23 +219,23 @@ class TestCreateDispatcher(unittest.TestCase):
         }
         self.assertEqual(dsp.nodes[dsp_id], res)
 
-        sub_dsp.name=''
+        sub_dsp.name = ''
         dsp_id = dsp.add_dispatcher(sub_dsp,
                                     inputs={'d': 'a', 'e': 'b'},
-                                    outputs={'c':'d', 'e':'e'})
+                                    outputs={'c': 'd', 'e': 'e'})
 
         self.assertEqual(dsp_id, 'unknown')
 
-        sub_dsp.name=''
+        sub_dsp.name = ''
         dsp_id = dsp.add_dispatcher(sub_dsp,
                                     inputs={'d': 'a', 'e': 'b'},
-                                    outputs={'c':'d', 'e':'e'})
+                                    outputs={'c': 'd', 'e': 'e'})
 
         self.assertEqual(dsp_id, 'unknown<0>')
 
         dsp_id = dsp.add_dispatcher(sub_dsp, dsp_id='sub_dsp',
                                     inputs={'d': 'a', 'e': 'b'},
-                                    outputs={'c':'d', 'e':'e'},
+                                    outputs={'c': 'd', 'e': 'e'},
                                     include_defaults=True)
 
         self.assertEqual(dsp_id, 'sub_dsp')
@@ -325,7 +325,7 @@ class TestCreateDispatcher(unittest.TestCase):
         self.assertRaises(ValueError, dsp.set_default_value, *('b', 3))
 
         fun_id = dsp.add_function(function=max, inputs=['a', 'b'])
-        self.assertRaises(ValueError, dsp.set_default_value, *(fun_id, ))
+        self.assertRaises(ValueError, dsp.set_default_value, *(fun_id,))
 
         dsp.set_default_value('b', value=3)
         dfl = {'value': 3, 'initial_dist': 0.0}
@@ -367,7 +367,6 @@ class TestSubDMap(unittest.TestCase):
         self.dsp1 = dsp
 
     def test_get_sub_dmap(self):
-
         dsp = self.dsp
         sub_dmap = dsp.get_sub_dsp(['a', 'b', 'c', 'max', 'max<0>'])
         res = {
@@ -468,7 +467,6 @@ class TestSubDMap(unittest.TestCase):
 
 class TestPerformance(unittest.TestCase):
     def test_stress_tests(self):
-
         t0 = np.mean(timeit.repeat(
             "dsp.dispatch({'a': 5, 'b': 6})",
             'from %s import _setup_dsp; '
@@ -498,7 +496,9 @@ class TestPerformance(unittest.TestCase):
             'fun = SubDispatchFunction(dsp, "f", ["a", "b"], ["c", "d", "e"])'
             % __name__,
             repeat=3, number=1000))
-        print(msg % ('SubDispatchFunction.__call__', '', t, (t0 - t) / t0 * 100))
+        print(
+            msg % ('SubDispatchFunction.__call__', '', t, (t0 - t) / t0 * 100)
+        )
 
         t = np.mean(timeit.repeat(
             "fun(5, 6)",
@@ -546,7 +546,7 @@ class TestDispatch(unittest.TestCase):
         dsp = Dispatcher()
         dsp.add_function('max', function=max, inputs=['a', 'b'], outputs=['c'])
         dsp.add_dispatcher(
-            sub_dsp.copy(), {'d': 'a', 'e': 'b'}, {'d':'c', 'e':'f'},
+            sub_dsp.copy(), {'d': 'a', 'e': 'b'}, {'d': 'c', 'e': 'f'},
             dsp_id='sub_dsp',
             input_domain=dom
         )
@@ -582,7 +582,7 @@ class TestDispatch(unittest.TestCase):
         sub_dsp.add_data('a', 1)
         sub_dsp.add_function('min', min, inputs=['a', 'b'], outputs=['c'])
         sub_dsp.add_dispatcher(
-            sub_sub_dsp, {'c': 'a'}, {'d':'d'}, dsp_id='sub_sub_dsp',
+            sub_sub_dsp, {'c': 'a'}, {'d': 'd'}, dsp_id='sub_sub_dsp',
         )
 
         def fun(c):
@@ -593,8 +593,8 @@ class TestDispatch(unittest.TestCase):
         dsp = Dispatcher()
         dsp.add_function('max', function=max, inputs=['a', 'b'], outputs=['c'])
         dsp.add_dispatcher(
-            sub_dsp, {'d': 'a', 'e': 'b'}, {'e':'c', 'f':'f'}, dsp_id='sub_dsp',
-            input_domain=dom
+            sub_dsp, {'d': 'a', 'e': 'b'}, {'e': 'c', 'f': 'f'},
+            dsp_id='sub_dsp', input_domain=dom
         )
         self.dsp_of_dsp_2 = dsp
 
@@ -1223,6 +1223,7 @@ class TestBoundaryDispatch(unittest.TestCase):
         self.assertEqual(sol, i)
         self.assertEqual(sol.sub_sol[(-1, 0)], {'a': 1, 'b': 3})
 
+
 class TestNodeOutput(unittest.TestCase):
     def setUp(self):
         dsp = Dispatcher()
@@ -1356,7 +1357,6 @@ class TestShrinkDispatcher(unittest.TestCase):
         self.dsp_of_dsp_1 = dsp
 
     def test_shrink_with_inputs_outputs(self):
-
         dsp = self.dsp_1
         shrink_dsp = dsp.shrink_dsp(['a', 'b', 'd'], ['c', 'a', 'f'])
         r = ['a', 'b', 'c', 'd', 'e', 'f', 'h', 'h<0>', 'h<1>', 'h<3>']
@@ -1545,7 +1545,7 @@ class TestPipe(unittest.TestCase):
         dsp.add_dispatcher(
             dsp_id='sub_dsp',
             dsp=sub_dsp,
-            inputs={'a': 'A', 'b': 'B', 'c': 'C', 'e':'E'},
+            inputs={'a': 'A', 'b': 'B', 'c': 'C', 'e': 'E'},
             outputs={'F': 'f', 'D': 'd'}
         )
 
