@@ -1,6 +1,7 @@
 import unittest
 from schedula import Dispatcher
-from schedula.ext.dispatcher import DispatcherDirective, PLOT
+from sphinx.ext.autodoc import AutoDirective
+from schedula.ext.dispatcher import PLOT
 from docutils.statemachine import ViewList
 
 try:
@@ -82,7 +83,7 @@ class TestDispatcherDirective(unittest.TestCase):
 
         def formatsig(objtype, name, obj, args, retann):
             global directive
-            inst = DispatcherDirective._registry[objtype](directive, name)
+            inst = AutoDirective._registry[objtype](directive, name)
             inst.fullname = name
             inst.doc_as_attr = False  # for class objtype
             inst.object = obj
@@ -101,7 +102,7 @@ class TestDispatcherDirective(unittest.TestCase):
 
         def getdocl(objtype, obj, name, encoding=None):
             global directive
-            inst = DispatcherDirective._registry[objtype](directive, 'tmp')
+            inst = AutoDirective._registry[objtype](directive, 'tmp')
 
             inst.objpath = [name]
             inst.object = obj
@@ -127,7 +128,7 @@ class TestDispatcherDirective(unittest.TestCase):
 
         def genarate_docstring(objtype, name, **kw):
             global directive
-            inst = DispatcherDirective._registry[objtype](directive, name)
+            inst = AutoDirective._registry[objtype](directive, name)
             inst.generate(**kw)
             results = list(directive.result)
             del directive.result[:]
@@ -140,19 +141,22 @@ class TestDispatcherDirective(unittest.TestCase):
 
     def test_code(self):
         import docutils.statemachine
-
+        content_offset = 0
+        content = docutils.statemachine.StringList(
+            [" >>> from schedula import Dispatcher",
+             " >>> s = Dispatcher(name='Dispatcher')",
+             " >>> f = s.add_function('fun', lambda x: 0, ['a'], ['b'])"])
+        content._offset = content_offset
         setup_test(
             arguments=['dsp'],
             options={'opt': "graph_attr={'ratio': '1'}", 'code': True},
-            content=docutils.statemachine.StringList(
-                [" >>> from schedula import Dispatcher",
-                 " >>> s = Dispatcher(name='Dispatcher')",
-                 " >>> f = s.add_function('fun', lambda x: 0, ['a'], ['b'])"]),
-            content_offset=0)
+            content=content,
+            content_offset=content_offset
+        )
 
         def assert_result(self, items, objtype, name, **kw):
             global directive
-            inst = DispatcherDirective._registry[objtype](directive, name)
+            inst = AutoDirective._registry[objtype](directive, name)
             inst.generate(**kw)
             assert len(_warnings) == 0, _warnings
             assert_equal_items(self, items)
@@ -162,7 +166,7 @@ class TestDispatcherDirective(unittest.TestCase):
                "    >>> s = Dispatcher(name='Dispatcher')",
                "    >>> f = s.add_function('fun', lambda x: 0, ['a'], ['b'])",
                '   ', '   ', '   ',
-               '   .. graphviz:: _build/_dispatchers/dispatcher-e6fae1119c5ef15c4426de01b7ad758f98e88d54.gv',
+               '   .. dsp:: _build/_dispatchers/dispatcher-e6fae1119c5ef15c4426de01b7ad758f98e88d54.gv',
                '      :graphviz_dot: dot',
                '   ',
                "   .. csv-table:: **Dispatcher's data**",
@@ -174,14 +178,14 @@ class TestDispatcherDirective(unittest.TestCase):
                '   ',
                '      ":func:`fun <None.<lambda>>`", ""',
                '   ']
-        assert_result(self, res, 'dispatcher', 's')
+        assert_result(self, res, 'dispatcher', 's', more_content=content)
 
     def test_generate(self):
         setup_test()
 
         def assert_result(self, items, objtype, name, **kw):
             global directive
-            inst = DispatcherDirective._registry[objtype](directive, name)
+            inst = AutoDirective._registry[objtype](directive, name)
             inst.generate(**kw)
             assert len(_warnings) == 0, _warnings
             assert_equal_items(self, items)
@@ -198,7 +202,7 @@ class TestDispatcherDirective(unittest.TestCase):
             '   ',
             '   good',
             '   ',
-            '   .. graphviz:: _build/_dispatchers/dispatcher-73e25d64a2d3385b1a6fde2e07406deab3171ab2.gv',
+            '   .. dsp:: _build/_dispatchers/dispatcher-73e25d64a2d3385b1a6fde2e07406deab3171ab2.gv',
             '      :graphviz_dot: dot',
             '   ',
             "   .. csv-table:: **Pippo's data**",
@@ -223,12 +227,12 @@ class TestDispatcherDirective(unittest.TestCase):
 
         res[1] = '.. py:data:: dsp_1'
         res[5] = '   Docstring 2'
-        res[9] = '   .. graphviz:: _build/_dispatchers/dispatcher-c4cdb95f7c323136c07b06e9cc9e97c054e65cd3.gv'
+        res[9] = '   .. dsp:: _build/_dispatchers/dispatcher-c4cdb95f7c323136c07b06e9cc9e97c054e65cd3.gv'
         assert_result(self, res, 'dispatcher', 'dsp_1')
 
         res[1] = '.. py:data:: dsp_2'
         res[5] = '   Docstring 3'
-        res[9] = '   .. graphviz:: _build/_dispatchers/dispatcher-626650ebb81b12cfd2764e7dde8087e834a31bd1.gv'
+        res[9] = '   .. dsp:: _build/_dispatchers/dispatcher-626650ebb81b12cfd2764e7dde8087e834a31bd1.gv'
         assert_result(self, res, 'dispatcher', 'dsp_2')
 
     def test_build(self):

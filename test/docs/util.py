@@ -11,7 +11,7 @@ import os
 import sys
 from six import StringIO
 from sphinx import application
-from schedula.ext.dispatcher import DispatcherDirective
+from sphinx.ext.autodoc import AutoDirective
 from os.path import abspath, join, exists, isdir
 import shutil
 
@@ -107,7 +107,7 @@ class TestApp(application.Sphinx):
                                     freshenv, warningiserror, tags)
 
     def cleanup(self, doctrees=False):
-        DispatcherDirective._registry.clear()
+        AutoDirective._registry.clear()
         sys.path[:] = self._saved_path
         sys.modules.pop('autodoc_fodder', None)
 

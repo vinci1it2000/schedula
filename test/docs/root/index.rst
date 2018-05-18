@@ -89,3 +89,22 @@
     :name: mastertoc
 
     api
+
+7:
+
+.. dispatcher:: dsp
+   :opt: graph_attr={'ratio': '1'}, engine='neato',
+         body={'splines': 'curves', 'style': 'filled'}
+   :code:
+   :height: 240
+   :width: 320
+
+
+    >>> import schedula
+    >>> dsp = schedula.Dispatcher()
+    >>> plus, minus = lambda x: x + 1, lambda x: x - 1
+    >>> n = j = 6
+    >>> for i in range(1, n + 1):
+    ...     func = plus if i < (n / 2 + 1) else minus
+    ...     f = dsp.add_function('f%d' % i, func, ['v%d' % j], ['v%d' % i])
+    ...     j = i
