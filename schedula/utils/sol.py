@@ -14,7 +14,7 @@ Docstrings should provide sufficient understanding for any individual function.
 import collections
 import heapq
 import logging
-from datetime import datetime
+import time
 from .alg import add_edge_fun, remove_edge_fun, get_full_pipe, _sort_sk_wait_in
 from .cst import START, NONE, PLOT
 from .dsp import SubDispatch, stlp, parent_func
@@ -523,7 +523,7 @@ class Solution(Base, collections.OrderedDict):
 
     def _evaluate_function(self, args, node_id, node_attr, attr):
         if 'started' not in attr:
-            attr['started'] = datetime.today()
+            attr['started'] = time.time()
 
         fun = node_attr['function']
 
@@ -574,7 +574,7 @@ class Solution(Base, collections.OrderedDict):
                         raise ex
                     except Exception as ex:
                         if 'started' in attr:
-                            dt = datetime.today() - attr['started']
+                            dt = time.time() - attr['started']
                             attr['duration'] = dt
                         # Some error occurs.
                         msg = "Failed DISPATCHING '%s' due to:\n  %r"
@@ -597,7 +597,7 @@ class Solution(Base, collections.OrderedDict):
                     raise ex
                 except Exception as ex:
                     if 'started' in attr:
-                        attr['duration'] = datetime.today() - attr['started']
+                        attr['duration'] = time.time() - attr['started']
                     # Is missing estimation function of data node or some error.
                     msg = "Failed DISPATCHING '%s' due to:\n  %r"
                     self._warning(msg, node_id, ex)
@@ -609,7 +609,7 @@ class Solution(Base, collections.OrderedDict):
                 raise ex
             except Exception as ex:
                 if 'started' in attr:
-                    attr['duration'] = datetime.today() - attr['started']
+                    attr['duration'] = time.time() - attr['started']
                 # Some error occurs.
                 msg = "Failed DISPATCHING '%s' due to:\n  %r"
                 self._warning(msg, node_id, ex)
@@ -619,7 +619,7 @@ class Solution(Base, collections.OrderedDict):
                 self[node_id] = value
 
             if 'started' in attr:
-                attr['duration'] = datetime.today() - attr['started']
+                attr['duration'] = time.time() - attr['started']
 
             if 'callback' in node_attr:  # Invoke callback func of data node.
                 try:
@@ -675,7 +675,7 @@ class Solution(Base, collections.OrderedDict):
         for f in node_attr.get('filters', ()):
             if not filters:
                 if 'started' not in attr:
-                    attr['started'] = datetime.today()
+                    attr['started'] = time.time()
                 filters.append(res)
 
             if isinstance(parent_func(f), SubDispatch):
@@ -734,7 +734,7 @@ class Solution(Base, collections.OrderedDict):
         args = [args[k]['value'] for k in node_attr['inputs']]
         args = [v for v in args if v is not NONE]
 
-        attr = {'started': datetime.today()}
+        attr = {'started': time.time()}
         try:
             if not self.no_domain and 'input_domain' in node_attr:
                 # noinspection PyCallingNonCallable
@@ -749,7 +749,7 @@ class Solution(Base, collections.OrderedDict):
                 res = self._apply_filters(res, node_id, node_attr, attr)
 
                 attr['results'] = res
-                attr['duration'] = datetime.today() - attr['started']
+                attr['duration'] = time.time() - attr['started']
 
                 # Save node.
                 self.workflow.add_node(node_id, **attr)
@@ -760,7 +760,7 @@ class Solution(Base, collections.OrderedDict):
             raise ex
         except Exception as ex:
             if isinstance(ex, DispatcherError):  # Save intermediate results.
-                attr['duration'] = datetime.today() - attr['started']
+                attr['duration'] = time.time() - attr['started']
 
                 # Save node.
                 self.workflow.add_node(node_id, **attr)

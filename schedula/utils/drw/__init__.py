@@ -9,7 +9,6 @@
 """
 It provides functions to plot dispatcher map and workflow.
 """
-import subprocess
 import graphviz as gviz
 import os.path as osp
 import string
@@ -39,9 +38,7 @@ from ..dsp import SubDispatch, combine_dicts, map_dict, combine_nested_dicts, \
     selector, stlp, parent_func
 from ..gen import counter
 
-
 __author__ = 'Vincenzo Arcidiacono'
-
 
 log = logging.getLogger(__name__)
 
@@ -436,6 +433,18 @@ class FolderNode(object):
                 yield 'output', out
             except (KeyError, TypeError):
                 pass  # Output not in solution or item is not a solution.
+
+    def _started(self):
+        try:
+            yield 'started', datetime.date.fromtimestamp(self.attr['started'])
+        except KeyError:
+            pass
+
+    def _duration(self):
+        try:
+            yield 'duration', datetime.timedelta(seconds=self.attr['duration'])
+        except KeyError:
+            pass
 
     def _distance(self):
         try:
@@ -1109,4 +1118,4 @@ def _compile_subs(o, n):
 
 def _sub(old, new):
     p, repl = r'(href\s*=\s*"[^"]*)(/%s)((.|/)[^"]*")' % old, r'\1/%s\3' % new
-    return functools.partial(regex.compile(p, regex.IGNORECASE,).sub, repl)
+    return functools.partial(regex.compile(p, regex.IGNORECASE).sub, repl)
