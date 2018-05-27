@@ -482,15 +482,15 @@ class Solution(Base, collections.OrderedDict):
 
     def _remove_wait_in(self):
 
-        l = _sort_sk_wait_in(self)
+        ll = _sort_sk_wait_in(self)
         n_d = set()
 
-        for d, k, _, w in l:
-            if d == l[0][0]:
+        for d, k, _, w in ll:
+            if d == ll[0][0]:
                 w[k] = False
                 if w is self._wait_in:
                     n_d.add(k)
-        return n_d, l
+        return n_d, ll
 
     def _set_node_output(self, node_id, no_call, next_nds=None):
         """
@@ -558,6 +558,7 @@ class Solution(Base, collections.OrderedDict):
         est, wait_in = self._get_node_estimations(node_attr, node_id)
 
         if not no_call:
+            # noinspection PyUnresolvedReferences
             attr = self.workflow.node[node_id]
             if node_id is PLOT:
                 est = est.copy()
@@ -1171,7 +1172,7 @@ class Solution(Base, collections.OrderedDict):
                         return False  # Args are not respecting the domain.
                     else:
                         iv_nodes = pred  # Args respect the domain.
-                except:
+                except Exception:
                     return False  # Some error occurs.
 
             # Initialize the sub-dispatcher.

@@ -637,8 +637,8 @@ def _sort_sk_wait_in(sol):
         for n, a in s.dsp.sub_dsp_nodes.items():
             if 'function' in a and s.index + a['index'] in s.sub_sol:
                 sub_sol = s.sub_sol[s.index + a['index']]
-                n_d, l = _get_sk_wait_in(sub_sol)
-                _l += l
+                n_d, ll = _get_sk_wait_in(sub_sol)
+                _l += ll
                 wi = {k for k, v in sub_sol._wait_in.items() if v is True}
                 n_d = n_d.union(wi)
                 o = a['outputs']

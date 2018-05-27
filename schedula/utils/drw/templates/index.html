@@ -153,7 +153,7 @@
           $('#fontSize')
             .bind('change', function(){ setFontSize($(this)); })
             .bind('keyup', function(e){
-              if (e.keyCode == 27) {
+              if (e.keyCode === 27) {
                 $(this).val('1');
                 $('body').css({ fontSize: '1em' });
               } else {
@@ -163,7 +163,7 @@
 
           $(window)
             .bind('keyup', function(e){
-              if (e.keyCode == 27) {
+              if (e.keyCode === 27) {
                 $('#fontSize').val('1');
                 $('body').css({ fontSize: '1em' });
               }

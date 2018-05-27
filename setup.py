@@ -60,7 +60,7 @@ if __name__ == '__main__':
     # noinspection PyBroadException
     try:
         long_description = get_long_description()
-    except:
+    except Exception:
         long_description = ''
 
     setup(
@@ -110,16 +110,16 @@ if __name__ == '__main__':
             'networkx>=2.0.0',
             'dill!=0.2.7',
             'graphviz',
-            'docopt',
             'regex',
-            'openpyxl>=2.4.0',
             'flask',
-            'sphinx',
             'decorator',
-            'requests',
             'Pygments',
             'lxml',
-            'bs4'
+            'bs4',
+
+            'jinja2',
+            'docutils',
+            'sphinx'
         ],
         test_suite='nose.collector',
         setup_requires=['nose>=1.0'],

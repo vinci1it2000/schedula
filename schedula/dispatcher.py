@@ -22,6 +22,7 @@ __all__ = ['Dispatcher']
 __author__ = 'Vincenzo Arcidiacono'
 
 
+# noinspection PyShadowingBuiltins
 class Dispatcher(Base):
     """
     It provides a data structure to process a complex system of functions.
@@ -672,6 +673,7 @@ class Dispatcher(Base):
             outputs = kk_dict(*outputs)
 
         # Set zero as default input distances.
+        # noinspection PyTypeChecker
         _weight_from = dict.fromkeys(inputs.keys(), 0.0)
         _weight_from.update(inp_weight or {})
 
@@ -853,7 +855,7 @@ class Dispatcher(Base):
         """
 
         try:
-            if self.dmap.nodes[data_id]['type'] == 'data':  # Check if data node.
+            if self.dmap.nodes[data_id]['type'] == 'data':  # Is data node?
                 if value is EMPTY:
                     self.default_values.pop(data_id, None)  # Remove default.
                 else:  # Add default.
@@ -889,7 +891,7 @@ class Dispatcher(Base):
             self.add_data(SINK)  # Add sink node.
 
         try:
-            if self.dmap.nodes[data_id]['type'] == 'data':  # Check if data node.
+            if self.dmap.nodes[data_id]['type'] == 'data':  # Is data node?
 
                 type = ['child', 'parent'][is_parent]  # Remote link type.
 
@@ -1004,6 +1006,7 @@ class Dispatcher(Base):
         for u in [u for u, n in sub_dsp.dmap.nodes.items()
                   if n['type'] == 'function']:
 
+            # noinspection PyCallingNonCallable
             if not dmap_out_degree(u):  # No outputs.
                 dmap_rm_node(u)  # Remove function node.
 
@@ -1057,6 +1060,10 @@ class Dispatcher(Base):
             ArciDispatch algorithm, the input value will be used as input for
             the connected functions, but not as output.
         :type wildcard: bool, optional
+
+        :param _update_links:
+            If True, it updates remote links of the extracted dispatcher.
+        :type _update_links: bool, optional
 
         :return:
             A sub-dispatcher.

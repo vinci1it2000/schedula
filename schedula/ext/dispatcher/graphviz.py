@@ -5,7 +5,8 @@ import posixpath
 import os.path as osp
 import schedula as sh
 from docutils import nodes
-import xml.etree.ElementTree as ET
+# noinspection PyPep8Naming
+import xml.etree.ElementTree as etree
 from docutils.parsers.rst import directives
 
 from sphinx.ext.graphviz import (
@@ -21,11 +22,13 @@ except ImportError:  # spinx==1.3.5
 try:
     from sphinx.ext.graphviz import warn_for_deprecated_option
 except ImportError:  # sphinx!=1.5.5
+    # noinspection PyUnusedLocal
     def warn_for_deprecated_option(*args, **kwargs):
         pass
 
 
-class dsp(nodes.General, nodes.Inline, nodes.Element): pass
+class dsp(nodes.General, nodes.Inline, nodes.Element):
+    pass
 
 
 class Dispatcher(Graphviz):
@@ -39,6 +42,7 @@ class Dispatcher(Graphviz):
 
     def run(self):
         node = super(Dispatcher, self).run()[0]
+        # noinspection PyUnresolvedReferences
         node = dsp(node.rawsource, *node.children, **node.attributes)
         node['img_opt'] = sh.selector(
             self.img_opt, self.options, allow_miss=True
@@ -98,7 +102,7 @@ def html_visit_dispatcher(self, node):
             )
             if fname is not None:
                 copy_files(node, outfn)
-                root = ET.fromstring('<div>%s</div>' % ''.join(n))
+                root = etree.fromstring('<div>%s</div>' % ''.join(n))
                 imgs = {c: p
                         for p in root.iter()
                         for c in p.findall('img')
@@ -107,12 +111,12 @@ def html_visit_dispatcher(self, node):
                     c.attrib.update(node.get('img_opt', {}))
                     j = list(p).index(c)
                     p.remove(c)
-                    a = ET.Element('a', href=fname)
+                    a = etree.Element('a', href=fname)
                     p.insert(j, a)
                     a.append(c)
                 del self.body[-len(n):]
                 for c in root:
-                    self.body.append(ET.tostring(c, 'unicode'))
+                    self.body.append(etree.tostring(c, 'unicode'))
 
         raise nodes.SkipNode
 

@@ -98,7 +98,7 @@ def _import_docstring(documenter):
             documenter.code = content
             documenter.is_doctest = True
             return True
-        except:
+        except Exception:
             pass
 
 
@@ -282,6 +282,7 @@ class DispatcherDocumenter(DataDocumenter):
         return super(DispatcherDocumenter, self).parse_name() or True
 
     def generate(self, more_content=None, **kw):
+        # noinspection PyAttributeOutsideInit
         self.content = kw['more_content'] = more_content
         return super(DispatcherDocumenter, self).generate(**kw)
 

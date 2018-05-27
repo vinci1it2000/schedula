@@ -416,7 +416,7 @@ class add_args(object):
             try:
                 self._set_doc(func, n)
                 break
-            except:
+            except Exception:
                 func = parent_func(func)
 
     def _set_doc(self, func, n):
@@ -544,7 +544,7 @@ def are_in_nested_dicts(nested_dict, *keys):
         # noinspection PyBroadException
         try:
             return are_in_nested_dicts(nested_dict[keys[0]], *keys[1:])
-        except:  # Key error or not a dict.
+        except Exception:  # Key error or not a dict.
             return False
     return True
 
@@ -580,7 +580,8 @@ def combine_nested_dicts(*nested_dicts, depth=-1, base=None):
                 try:
                     get_nested_dicts(base, *k[:-1])[k[-1]] = v
                     break
-                except:  # A branch of the nested_dict is longer than the base.
+                except Exception:
+                    # A branch of the nested_dict is longer than the base.
                     k = k[:-1]
                     v = get_nested_dicts(nested_dict, *k)
 

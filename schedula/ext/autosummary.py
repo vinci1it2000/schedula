@@ -10,10 +10,17 @@
 It is a patch to shpinx.ext.autosummary.
 """
 
-
-from sphinx.ext.autosummary.generate import *
-
-from sphinx.ext.autosummary.generate import _simple_warn, _simple_info
+import os.path as osp
+from sphinx import package_dir
+from sphinx.util.osutil import ensuredir
+from sphinx.util.inspect import safe_getattr
+from jinja2.sandbox import SandboxedEnvironment
+from sphinx.jinja2glue import BuiltinTemplateLoader
+from jinja2 import FileSystemLoader, TemplateNotFound
+from sphinx.ext.autosummary import import_by_name, get_documenter
+from sphinx.ext.autosummary.generate import (
+    _simple_warn, _simple_info, find_autosummary_in_files
+)
 
 
 def get_members(obj, typ, include_public=(), imported=False):
@@ -50,11 +57,10 @@ def generate_autosummary_docs(sources, output_dir=None, suffix='.rst',
         info('[autosummary] writing to %s' % output_dir)
 
     if base_path is not None:
-        sources = [os.path.join(base_path, filename) for filename in sources]
+        sources = [osp.join(base_path, filename) for filename in sources]
 
     # create our own templating environment
-    template_dirs = [os.path.join(package_dir, 'ext',
-                                  'autosummary', 'templates')]
+    template_dirs = [osp.join(package_dir, 'ext', 'autosummary', 'templates')]
     if builder is not None:
         # allow the user to override the templates
         template_loader = BuiltinTemplateLoader()
@@ -75,13 +81,14 @@ def generate_autosummary_docs(sources, output_dir=None, suffix='.rst',
     new_files = []
 
     # write
+    # noinspection PyTypeChecker
     for name, path, template_name in sorted(items, key=str):
         if path is None:
             # The corresponding autosummary:: directive did not have
             # a :toctree: option
             continue
 
-        path = output_dir or os.path.abspath(path)
+        path = output_dir or osp.abspath(path)
         ensuredir(path)
 
         try:
@@ -90,10 +97,10 @@ def generate_autosummary_docs(sources, output_dir=None, suffix='.rst',
             warn('[autosummary] failed to import %r: %s' % (name, e))
             continue
 
-        fn = os.path.join(path, name + suffix)
+        fn = osp.join(path, name + suffix)
 
         # skip it if it exists
-        if os.path.isfile(fn):
+        if osp.isfile(fn):
             continue
 
         new_files.append(fn)
@@ -173,7 +180,7 @@ def process_generate_options(app):
     if genfiles and not hasattr(genfiles, '__len__'):
         env = app.builder.env
         genfiles = [env.doc2path(x, base=None) for x in env.found_docs
-                    if os.path.isfile(env.doc2path(x))]
+                    if osp.isfile(env.doc2path(x))]
 
     if not genfiles:
         return

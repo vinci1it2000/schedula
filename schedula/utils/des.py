@@ -14,8 +14,8 @@ import re
 import logging
 from .dsp import SubDispatch, SubDispatchFunction, bypass, replicate_value, \
     parent_func
-__author__ = 'Vincenzo Arcidiacono'
 
+__author__ = 'Vincenzo Arcidiacono'
 
 log = logging.getLogger(__name__)
 
@@ -98,14 +98,14 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function',
 
         def get_des(func_node):
             n_ix = func_node[node_attr].index(node_id)
-            d, l = '', ''
+            d, ll = '', ''
             if where_succ:
                 fun, n = parent_func(func_node['function'], input_id=n_ix)
                 if n < 0 or fun in (bypass, replicate_value):
                     fun, n_ix = parent_func(func_node['input_domain'],
                                             input_id=n_ix)
                     if n_ix < 0:
-                        return d, l
+                        return d, ll
                 else:
                     n_ix = n
 
@@ -116,14 +116,14 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function',
                 sub_dsp = fun.dsp
                 n_id = getattr(fun, node_attr)[n_ix]
                 n_att = sub_dsp.nodes[n_id]
-                d, l = search_node_description(n_id, n_att, sub_dsp, what)
+                d, ll = search_node_description(n_id, n_att, sub_dsp, what)
 
             elif isinstance(fun, SubDispatch) and not where_succ:
                 if fun.output_type == 'list':
                     sub_dsp = fun.dsp
                     n_id = getattr(fun, node_attr)[n_ix]
                     n_att = sub_dsp.nodes[n_id]
-                    d, l = search_node_description(n_id, n_att, sub_dsp, what)
+                    d, ll = search_node_description(n_id, n_att, sub_dsp, what)
 
             doc = fun.__doc__
             if not d and doc:
@@ -136,7 +136,7 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function',
 
                 return get_attr_doc(doc, attr_name, where_succ, what), ''
 
-            return d, l
+            return d, ll
     else:
         if where_succ:
             def get_id(node):
@@ -157,7 +157,7 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function',
             # noinspection PyBroadException
             try:
                 des, link = get_des(v)
-            except:
+            except Exception:
                 pass
 
         if des:
@@ -171,7 +171,6 @@ def _search_doc_in_func(dsp, node_id, where_succ=True, node_type='function',
 
 
 def search_node_description(node_id, node_attr, dsp, what='description'):
-
     if node_attr['type'] in ('function', 'dispatcher'):
         func = parent_func(node_attr.get('function', None))
     else:

@@ -186,7 +186,7 @@ def render_output(out, pformat):
         # noinspection PyBroadException
         try:
             out = inspect.getsource(out)
-        except:
+        except Exception:
             pass
 
     if isinstance(out, (datetime.datetime, datetime.timedelta)):
@@ -755,6 +755,7 @@ class SiteFolder(object):
         dot = self.dot(context=context)
         dot.format = self.digraph['format']
         try:
+            # noinspection PyArgumentList
             fpath = dot.render(
                 filename=tempfile.mktemp(dir=osp.dirname(filepath)),
                 directory=None,
@@ -925,7 +926,7 @@ class Site:
             import time
             time.sleep(self.delay)
             sock.close()  # closes socket
-            self.wait_server(elapsed + self.delay)
+            self.wait_server(int(elapsed + self.delay))
 
 
 class SiteMap(collections.OrderedDict):
@@ -949,6 +950,7 @@ class SiteMap(collections.OrderedDict):
         filenames = self.index_filenames()
         filenames += [v.foldername for k, v in self.items() if k is not key]
         value.foldername = valid_filename(key, filenames, ext='')
+        # noinspection PyArgumentList
         super(SiteMap, self).__setitem__(key, value, *args, **kwargs)
 
     def _repr_svg_(self):
@@ -1071,6 +1073,7 @@ class SiteMap(collections.OrderedDict):
 
         if view:
             site.run()
+            # noinspection PyArgumentList
             self._view(site.url, 'html')
 
         return site
@@ -1084,6 +1087,7 @@ class SiteMap(collections.OrderedDict):
 
         fpath = osp.join(directory, next(iter(context.values()), ''))
         if view:
+            # noinspection PyArgumentList
             self._view(fpath, osp.splitext(fpath)[1][1:])
         return fpath
 
