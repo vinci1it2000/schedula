@@ -17,7 +17,7 @@ import logging
 import time
 from .alg import add_edge_fun, remove_edge_fun, get_full_pipe, _sort_sk_wait_in
 from .cst import START, NONE, PLOT
-from .dsp import SubDispatch, stlp, parent_func
+from .dsp import SubDispatch, stlp, parent_func, NoSub
 from .exc import DispatcherError, DispatcherAbort
 from .base import Base
 
@@ -525,12 +525,12 @@ class Solution(Base, collections.OrderedDict):
         if 'started' not in attr:
             attr['started'] = time.time()
 
-        fun = node_attr['function']
-
-        if isinstance(parent_func(fun), SubDispatch):
-            res = fun(*args, _sol_output=attr, _sol=(node_id, self))
+        func = node_attr['function']
+        pfunc = parent_func(func)
+        if isinstance(pfunc, SubDispatch) and not isinstance(pfunc, NoSub):
+            res = func(*args, _sol_output=attr, _sol=(node_id, self))
         else:
-            res = fun(*args)
+            res = func(*args)
         return res
 
     def _set_data_node_output(self, node_id, node_attr, no_call, next_nds=None):
@@ -677,8 +677,8 @@ class Solution(Base, collections.OrderedDict):
                 if 'started' not in attr:
                     attr['started'] = time.time()
                 filters.append(res)
-
-            if isinstance(parent_func(f), SubDispatch):
+            pfunc = parent_func(f)
+            if isinstance(pfunc, SubDispatch) and not isinstance(pfunc, NoSub):
                 out = {}
                 res = f(res, _sol_output=out, _sol=(node_id, self))
                 filters.append(out['solution'])

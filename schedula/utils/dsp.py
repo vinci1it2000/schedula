@@ -752,7 +752,7 @@ class SubDispatchFunction(SubDispatch):
     """
     It converts a :func:`~schedula.Dispatcher` into a function.
 
-    That function takes a sequence of arguments or a key values as input of the
+    This function takes a sequence of arguments or a key values as input of the
     dispatch.
 
     :return:
@@ -878,25 +878,41 @@ class SubDispatchFunction(SubDispatch):
         elif len(outputs) == 1:
             self.output_type = 'values'
 
-    def __call__(self, *args, _sol_output=None, _sol=None, **kwargs):
-        # Namespace shortcuts.
-        dsp, inputs = self.dsp, map_list(self.inputs, *args)
-        self.solution = sol = self._sol.copy_structure()
-        sol.stopper = (_sol and _sol[1].stopper) or dsp.stopper
-
+    def parse_inputs(self, valid_keyword, *args, **kwargs):
+        inputs = map_list(self.inputs, *args)
         # Check multiple values for the same argument.
         i = next((i for i in kwargs if i in inputs), None)
         if i:
             msg = "%s() got multiple values for argument '%s'"
-            raise TypeError(msg % (dsp.name, i))
+            raise TypeError(msg % (self.dsp.name, i))
 
-        i = next((i for i in sorted(kwargs) if i not in dsp.nodes), None)
+        i = next((i for i in sorted(kwargs) if i not in valid_keyword), None)
         if i:
             msg = "%s() got an unexpected keyword argument '%s'"
-            raise TypeError(msg % (dsp.name, i))
+            raise TypeError(msg % (self.dsp.name, i))
+
+        inputs = combine_dicts(self.solution.inputs, inputs, kwargs)
+
+        m = [k for k in self.inputs if k not in inputs]
+        if m:
+            n, p, m, s = len(m), '', list(map("'{}'".format, m)), ' '
+            if n > 1:
+                p = 's'
+                m[-1] = 'and ' + m[-1]
+                if n > 2:
+                    s = ', '
+            m = s.join(m)
+            msg = "%s() missing %d required positional argument%s: %s"
+            raise TypeError(msg % (self.dsp.name, n, p, m))
+        return inputs
+
+    def __call__(self, *args, _sol_output=None, _sol=None, **kwargs):
+        # Namespace shortcuts.
+        self.solution = sol = self._sol.copy_structure()
+        sol.stopper = (_sol and _sol[1].stopper) or self.dsp.stopper
 
         # Update inputs.
-        input_values = combine_dicts(sol.inputs, inputs, kwargs)
+        input_values = self.parse_inputs(self.dsp.nodes, *args, **kwargs)
 
         # Define the function to populate the workflow.
         def i_val(k):
@@ -916,10 +932,10 @@ class SubDispatchPipe(SubDispatchFunction):
     """
     It converts a :func:`~schedula.Dispatcher` into a function.
 
-    That function takes a sequence of arguments as input of the dispatch.
+    This function takes a sequence of arguments as input of the dispatch.
 
     :return:
-        A function that executes the pipe of the given `dsp`, updating .
+        A function that executes the pipe of the given `dsp`.
     :rtype: callable
 
     .. seealso:: :func:`~schedula.Dispatcher.dispatch`,
@@ -1026,38 +1042,118 @@ class SubDispatchPipe(SubDispatchFunction):
 
         self.pipe = [_make_tks(*v['task'][-1]) for v in self._sol.pipe.values()]
 
-    def __call__(self, *args, _sol_output=None, _sol=None):
-        assert len(self.inputs) == len(args)
-        dsp, inputs = self.dsp, map_list(self.inputs, *args)
-        key_map, sub_sol = {}, {}
+    def _init_new_solution(self, _sol):
+        key_map, sub_sol, stopper = {}, {}, _sol and _sol[1].stopper or None
         for k, s in self._sol.sub_sol.items():
             ns = s.copy_structure(dist=1)
-            ns.stopper = (_sol and _sol[1].stopper) or ns.stopper
+            ns.stopper = stopper or ns.stopper
             ns.sub_sol = sub_sol
             key_map[s] = ns
             sub_sol[ns.index] = ns
+        return key_map[self._sol], lambda x: key_map[x]
 
-        self.solution = sol = key_map[self._sol]
-        sol.inputs.update(inputs)
-
-        for s in sub_sol.values():
+    def _init_workflows(self, inputs):
+        self.solution.inputs.update(inputs)
+        for s in self.solution.sub_sol.values():
             s._init_workflow(clean=False)
 
+    def _callback_pipe_failure(self):
+        pass
+
+    def __call__(self, *args, _sol_output=None, _sol=None, **kwargs):
+        self.solution, key_map = self._init_new_solution(_sol)
+        self._init_workflows(self.parse_inputs(self.inputs, *args, **kwargs))
+
         for v, s, nxt_nds, nxt_dsp in self.pipe:
-            s = key_map[s]
+            s = key_map(s)
 
             if s.stopper.is_set():
-                raise DispatcherAbort("Stop requested.", sol=sol)
+                raise DispatcherAbort("Stop requested.", sol=self.solution)
 
-            has_node = v not in s.workflow.node
-            if has_node or not s._set_node_output(v, False, next_nds=nxt_nds):
+            if not s._set_node_output(v, False, next_nds=nxt_nds):
+                self._callback_pipe_failure()
                 break
+
             for n, vw_d in nxt_dsp:
                 s._set_sub_dsp_node_input(v, n, [], s.check_cutoff, False, vw_d)
             s._see_remote_link_node(v)
 
         # Return outputs sorted.
-        return self._return(sol, _sol_output, _sol)
+        return self._return(self.solution, _sol_output, _sol)
+
+
+class NoSub:
+    """Class for avoiding to add a sub solution to the workflow."""
+
+
+class DispatchPipe(NoSub, SubDispatchPipe):
+    """
+    It converts a :func:`~schedula.Dispatcher` into a function.
+
+    This function takes a sequence of arguments as input of the dispatch.
+
+    :return:
+        A function that executes the pipe of the given `dsp`, updating its
+        workflow.
+    :rtype: callable
+
+    .. note::
+
+    .. seealso:: :func:`~schedula.Dispatcher.dispatch`,
+       :func:`~schedula.Dispatcher.shrink_dsp`
+
+    **Example**:
+
+    A dispatcher with two functions `max` and `min` and an unresolved cycle
+    (i.e., `a` --> `max` --> `c` --> `min` --> `a`):
+
+    .. dispatcher:: dsp
+       :opt: graph_attr={'ratio': '1'}
+
+        >>> from schedula import Dispatcher
+        >>> dsp = Dispatcher(name='Dispatcher')
+        >>> dsp.add_function('max', max, inputs=['a', 'b'], outputs=['c'])
+        'max'
+        >>> def func(x):
+        ...     return x - 1
+        >>> dsp.add_function('x - 1', func, inputs=['c'], outputs=['a'])
+        'x - 1'
+
+    Extract a static function node, i.e. the inputs `a` and `b` and the
+    output `a` are fixed::
+
+        >>> fun = DispatchPipe(dsp, 'myF', ['a', 'b'], ['a'])
+        >>> fun.__name__
+        'myF'
+        >>> fun(2, 1)
+        1
+
+    .. dispatcher:: fun
+       :opt: workflow=True, graph_attr={'ratio': '1'}
+
+        >>> fun.dsp.name = 'Created function internal'
+
+    The created function raises a ValueError if un-valid inputs are
+    provided:
+
+    .. dispatcher:: fun
+       :opt: workflow=True, graph_attr={'ratio': '1'}
+       :code:
+
+        >>> fun(1, 0)
+        0
+    """
+
+    def _init_new_solution(self, _sol):
+        return self._sol, lambda x: x
+
+    def _init_workflows(self, inputs):
+        for s in self.solution.sub_sol.values():
+            s._visited.clear()
+        return super(DispatchPipe, self)._init_workflows(inputs)
+
+    def _callback_pipe_failure(self):
+        raise DispatcherError("The pipe is not respected.", sol=self.solution)
 
 
 class DFun(object):
