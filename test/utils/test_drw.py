@@ -48,8 +48,7 @@ class TestDispatcherDraw(unittest.TestCase):
         s_dsp.add_function('SubDispatch', sdsp, ['d'], ['e', 'f'])
 
         dsp = Dispatcher()
-        import numpy as np
-        dsp.add_data('A', default_value=np.zeros(1000))
+        dsp.add_data('A', default_value=[0] * 1000)
         dsp.add_data('D', default_value={'a': 3})
 
         dsp.add_dispatcher(

@@ -9,7 +9,6 @@
 import doctest
 import timeit
 import unittest
-import numpy as np
 from schedula import Dispatcher
 from schedula.utils.cst import START, EMPTY, SINK, NONE, SELF
 from schedula.utils.dsp import SubDispatchFunction
@@ -468,27 +467,27 @@ class TestSubDMap(unittest.TestCase):
 class TestPerformance(unittest.TestCase):
     def test_stress_tests(self):
         repeat, number = 3, 1000
-        t0 = np.mean(timeit.repeat(
+        t0 = sum(timeit.repeat(
             "dsp.dispatch({'a': 5, 'b': 6})",
             'from %s import _setup_dsp; '
             'dsp = _setup_dsp();'
             "[v.pop('input_domain', 0) "
             "for v in dsp.function_nodes.values()]" % __name__,
-            repeat=repeat, number=number))
+            repeat=repeat, number=number)) / repeat
         msg = '\nMean performance of %s with%s functions made in %f ms/call.\n' \
               'It is %.2f%% faster than Dispatcher.dispatch with functions.\n'
         print(msg % ('Dispatcher.dispatch', '', t0, (t0 - t0) / t0 * 100))
 
-        t = np.mean(timeit.repeat(
+        t = sum(timeit.repeat(
             "dsp.dispatch({'a': 5, 'b': 6}, no_call=True)",
             'from %s import _setup_dsp; '
             'dsp = _setup_dsp();'
             "[v.pop('input_domain', 0) "
             "for v in dsp.function_nodes.values()]" % __name__,
-            repeat=repeat, number=number))
+            repeat=repeat, number=number)) / repeat
         print(msg % ('Dispatcher.dispatch', 'out', t, (t0 - t) / t0 * 100))
 
-        t = np.mean(timeit.repeat(
+        t = sum(timeit.repeat(
             "fun(5, 6)",
             'from %s import _setup_dsp;'
             'from schedula.utils.dsp import SubDispatchFunction;'
@@ -496,12 +495,12 @@ class TestPerformance(unittest.TestCase):
             "[v.pop('input_domain', 0) for v in dsp.function_nodes.values()];"
             'fun = SubDispatchFunction(dsp, "f", ["a", "b"], ["c", "d", "e"])'
             % __name__,
-            repeat=repeat, number=number))
+            repeat=repeat, number=number)) / repeat
         print(
             msg % ('SubDispatchFunction.__call__', '', t, (t0 - t) / t0 * 100)
         )
 
-        t = np.mean(timeit.repeat(
+        t = sum(timeit.repeat(
             "fun(5, 6)",
             'from %s import _setup_dsp;'
             'from schedula.utils.dsp import SubDispatchPipe;'
@@ -509,10 +508,10 @@ class TestPerformance(unittest.TestCase):
             "[v.pop('input_domain', 0) for v in dsp.function_nodes.values()];"
             'fun = SubDispatchPipe(dsp, "f", ["a", "b"], ["c", "d", "e"])'
             % __name__,
-            repeat=repeat, number=number))
+            repeat=repeat, number=number)) / repeat
         print(msg % ('SubDispatchPipe.__call__', '', t, (t0 - t) / t0 * 100))
 
-        t = np.mean(timeit.repeat(
+        t = sum(timeit.repeat(
             "fun(5, 6)",
             'from %s import _setup_dsp;'
             'from schedula.utils.dsp import DispatchPipe;'
@@ -520,7 +519,7 @@ class TestPerformance(unittest.TestCase):
             "[v.pop('input_domain', 0) for v in dsp.function_nodes.values()];"
             'fun = DispatchPipe(dsp, "f", ["a", "b"], ["c", "d", "e"])'
             % __name__,
-            repeat=repeat, number=number))
+            repeat=repeat, number=number)) / repeat
         print(msg % ('DispatchPipe.__call__', '', t, (t0 - t) / t0 * 100))
 
 

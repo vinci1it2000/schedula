@@ -15,39 +15,6 @@ import dill
 __author__ = 'Vincenzo Arcidiacono'
 
 
-def open_file(path_arg, mode='r'):
-    """
-    Decorator to ensure clean opening and closing of files.
-
-    .. note:: This is cloned from netwokx to avoid the import of the library at
-       import time.
-
-    :param path_arg:
-        Location of the path argument in args.  Even if the argument is a
-        named positional argument (with a default value), you must specify its
-        index as a positional argument.
-    :type path_arg: int
-
-    :param mode:
-        String for opening mode.
-    :type mode: str
-
-    :return:
-        Function which cleanly executes the io.
-    :rtype: callable
-    """
-    from decorator import decorator
-
-    @decorator
-    def _open_file(func, *args, **kwargs):
-        from networkx.utils import open_file as nx_open_file
-        # noinspection PyCallingNonCallable
-        return nx_open_file(path_arg, mode=mode)(func)(*args, **kwargs)
-
-    return _open_file
-
-
-@open_file(1, mode='wb')
 def save_dispatcher(dsp, path):
     """
     Write Dispatcher object in Python pickle format.
@@ -79,11 +46,10 @@ def save_dispatcher(dsp, path):
         >>> save_dispatcher(dsp, file_name)
     """
 
-    # noinspection PyArgumentList
-    dill.dump(dsp, path)
+    with open(path, 'wb') as f:
+        dill.dump(dsp, f)
 
 
-@open_file(0, mode='rb')
 def load_dispatcher(path):
     """
     Load Dispatcher object in Python pickle format.
@@ -120,10 +86,10 @@ def load_dispatcher(path):
     """
 
     # noinspection PyArgumentList
-    return dill.load(path)
+    with open(path, 'rb') as f:
+        return dill.load(f)
 
 
-@open_file(1, mode='wb')
 def save_default_values(dsp, path):
     """
     Write Dispatcher default values in Python pickle format.
@@ -155,11 +121,10 @@ def save_default_values(dsp, path):
         >>> save_default_values(dsp, file_name)
     """
 
-    # noinspection PyArgumentList
-    dill.dump(dsp.default_values, path)
+    with open(path, 'wb') as f:
+        dill.dump(dsp.default_values, f)
 
 
-@open_file(1, mode='rb')
 def load_default_values(dsp, path):
     """
     Load Dispatcher default values in Python pickle format.
@@ -197,10 +162,10 @@ def load_default_values(dsp, path):
     """
 
     # noinspection PyArgumentList
-    dsp.__init__(dmap=dsp.dmap, default_values=dill.load(path))
+    with open(path, 'rb') as f:
+        dsp.__init__(dmap=dsp.dmap, default_values=dill.load(f))
 
 
-@open_file(1, mode='wb')
 def save_map(dsp, path):
     """
     Write Dispatcher graph object in Python pickle format.
@@ -229,11 +194,10 @@ def save_map(dsp, path):
         'max'
         >>> save_map(dsp, file_name)
     """
+    with open(path, 'wb') as f:
+        dill.dump(dsp.dmap, f)
 
-    dill.dump(dsp.dmap, path)
 
-
-@open_file(1, mode='rb')
 def load_map(dsp, path):
     """
     Load Dispatcher map in Python pickle format.
@@ -264,5 +228,5 @@ def load_map(dsp, path):
         >>> dsp.dispatch(inputs={'a': 1, 'b': 3})['c']
         3
     """
-
-    dsp.__init__(dmap=dill.load(path), default_values=dsp.default_values)
+    with open(path, 'rb') as f:
+        dsp.__init__(dmap=dill.load(f), default_values=dsp.default_values)

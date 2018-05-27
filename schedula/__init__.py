@@ -37,7 +37,7 @@ from .utils import (
     counter, Token, pairwise,
 
     save_dispatcher, load_dispatcher, save_default_values, load_default_values,
-    save_map, load_map, open_file
+    save_map, load_map
 )
 
 __author__ = 'Vincenzo Arcidiacono'

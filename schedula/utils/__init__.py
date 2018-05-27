@@ -63,7 +63,7 @@ from .gen import counter, Token, pairwise
 
 from .io import (
     save_dispatcher, load_dispatcher, save_default_values, load_default_values,
-    save_map, load_map, open_file
+    save_map, load_map
 )
 
 __author__ = 'Vincenzo Arcidiacono'

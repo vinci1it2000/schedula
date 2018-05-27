@@ -1,18 +1,25 @@
-networkx>=2.0.0
-dill!=0.2.7
-graphviz
 nose
 wheel
 coveralls
-docutils
-sphinx
-regex
+
+networkx>=2.0.0
+
+# io
+dill!=0.2.7
+
+# web & plot
 flask
-numpy
-requests
+regex
+graphviz
 Pygments
 lxml
 bs4
+jinja2
+docutils
+sphinx
+
+# tests
+requests
 sphinx_rtd_theme
 setuptools>=36.0.1
 sphinxcontrib-restbuilder

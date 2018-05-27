@@ -112,11 +112,9 @@ if __name__ == '__main__':
             'graphviz',
             'regex',
             'flask',
-            'decorator',
             'Pygments',
             'lxml',
             'bs4',
-
             'jinja2',
             'docutils',
             'sphinx'
