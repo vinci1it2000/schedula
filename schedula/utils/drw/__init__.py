@@ -436,7 +436,8 @@ class FolderNode(object):
 
     def _started(self):
         try:
-            yield 'started', datetime.date.fromtimestamp(self.attr['started'])
+            started = datetime.datetime.fromtimestamp(self.attr['started'])
+            yield 'started', started.isoformat()
         except KeyError:
             pass
 
