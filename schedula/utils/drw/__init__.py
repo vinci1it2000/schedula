@@ -219,6 +219,10 @@ class SiteNode(object):
             return self.node_id
 
     @property
+    def view_id(self):
+        return id(self.item), self.__class__.__name__
+
+    @property
     def title(self):
         return self.name
 
@@ -246,7 +250,7 @@ class SiteNode(object):
         with open(filepath, 'w') as f:
             f.write(self.render(*args, **kwargs))
         add_header(filepath, header)
-        return {(id(self.item), None): filepath}
+        return {(self.view_id, None): filepath}
 
 
 class FolderNode(object):
@@ -632,6 +636,10 @@ class SiteFolder(object):
             self.digraph = combine_dicts(self.__class__.digraph, digraph)
 
     @property
+    def view_id(self):
+        return id(self.item), self.__class__.__name__
+
+    @property
     def title(self):
         return self.name or ''
 
@@ -773,7 +781,7 @@ class SiteFolder(object):
             return {}
 
         add_header(filepath, header)
-        return {(id(self.item), None): filepath}
+        return {(self.view_id, None): filepath}
 
 
 class SiteIndex(SiteNode):
@@ -1094,7 +1102,7 @@ class SiteMap(collections.OrderedDict):
 
 
 def cached_view(node, directory, context, rendered, header):
-    n_id = id(node.item)
+    n_id = node.view_id
     rend = {k: v for k, v in rendered.items() if k[0] == n_id}
     cnt = {(n_id, e): f for (n, e), f in context.items() if n == node}
     if rend and all(k in rend and osp.isfile(rend[k]) for k in cnt):
