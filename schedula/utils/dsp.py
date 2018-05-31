@@ -1099,6 +1099,7 @@ class DispatchPipe(NoSub, SubDispatchPipe):
     :rtype: callable
 
     .. note::
+        This wrapper is not thread safe, because it overwrite the solution.
 
     .. seealso:: :func:`~schedula.Dispatcher.dispatch`,
        :func:`~schedula.Dispatcher.shrink_dsp`
