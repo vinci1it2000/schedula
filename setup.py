@@ -32,21 +32,22 @@ def get_long_description(cleanup=True):
     from sphinx.util.osutil import abspath
     import tempfile
     import shutil
-    from sphinxcontrib.writers.rst import RstTranslator
+    from doc.conf import extensions
+
     outdir = tempfile.mkdtemp(prefix='setup-', dir='.')
     exclude_patterns = os.listdir(mydir or '.')
     exclude_patterns.remove('pypi.rst')
 
-    app = Sphinx(abspath(mydir), './doc/', outdir, outdir + '/.doctree', 'text',
+    app = Sphinx(abspath(mydir), './doc/', outdir, outdir + '/.doctree', 'rst',
                  confoverrides={
                      'exclude_patterns': exclude_patterns,
                      'master_doc': 'pypi',
-                     'dispatchers_out_dir': abspath(outdir + '/_dispatchers')
+                     'dispatchers_out_dir': abspath(outdir + '/_dispatchers'),
+                     'extensions': extensions + ['sphinxcontrib.restbuilder']
                  }, status=None, warning=None)
 
-    app.builder.translator_class = RstTranslator
     app.build(filenames=[osp.join(app.srcdir, 'pypi.rst')])
-    res = open(outdir + '/pypi.txt').read()
+    res = open(outdir + '/pypi.rst').read()
     if cleanup:
         shutil.rmtree(outdir)
     return res
